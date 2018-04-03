@@ -1,41 +1,47 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [GIT PULL] remove in-kernel calls to syscalls
-Date: Tue, 3 Apr 2018 12:53:52 +0200
-Message-ID: <20180403105352.eicib6jcicif5zoo@gmail.com>
-References: <20180402190454.GB29890@light.dominikbrodowski.net>
- <CA+55aFyaVVKKbXPFzW1Tr7CTpiLCK+1nGdhS21wnm1j64bqWPA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
+ readX() implementation
+Date: Tue, 3 Apr 2018 13:13:30 +0200
+Message-ID: <CAK8P3a3fZx42sQY41Pf+Q3fMNrP2FgXvvntnrLkQXbAezOQjEw@mail.gmail.com>
+References: <1522425494-2916-1-git-send-email-okaya@codeaurora.org>
+ <1522425494-2916-2-git-send-email-okaya@codeaurora.org> <20180403104925.fuyajja6tyanlna4@lakrids.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyaVVKKbXPFzW1Tr7CTpiLCK+1nGdhS21wnm1j64bqWPA@mail.gmail.com>
+In-Reply-To: <20180403104925.fuyajja6tyanlna4@lakrids.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, hmclauchlan@fb.com, tautschn@amazon.co.uk, Amir Goldstein <amir73il@gmail.com>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Darren Hart <dvhart@infradead.org>, "David S. Miller" <davem@davemloft.net>, "Eric W. Biederman" <ebiederm@xmission.com>, "H. Peter Anvin" <hpa@zytor.com>, Jaswinder Singh <jaswinder@infradead.org>, Jeff Dike <jdike@addtoit.com>, Jiri Slaby <jslaby@suse.com>, Kexec Mailing List <kexec@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Sinan Kaya <okaya@codeaurora.org>, Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, Apr 3, 2018 at 12:49 PM, Mark Rutland <mark.rutland@arm.com> wrote:
+> Hi,
+>
+> On Fri, Mar 30, 2018 at 11:58:13AM -0400, Sinan Kaya wrote:
+>> The default implementation of mapping readX() to __raw_readX() is wrong.
+>> readX() has stronger ordering semantics. Compiler is allowed to reorder
+>> __raw_readX().
+>
+> Could you please specify what the compiler is potentially reordering
+> __raw_readX() against, and why this would be wrong?
+>
+> e.g. do we care about prior normal memory accesses, subsequent normal
+> memory accesses, and/or other IO accesses?
+>
+> I assume that the asm-generic __raw_{read,write}X() implementations are
+> all ordered w.r.t. each other (at least for a specific device).
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+I think that is correct: the compiler won't reorder those because of the
+'volatile' pointer dereference, but it can reorder access to a normal
+pointer against a __raw_readl()/__raw_writel(), which breaks the scenario
+of using writel to trigger a DMA, or using a readl to see if a DMA has
+completed.
 
-> On Mon, Apr 2, 2018 at 12:04 PM, Dominik Brodowski
-> <linux@dominikbrodowski.net> wrote:
-> >
-> > This patchset removes all in-kernel calls to syscall functions in the
-> > kernel with the exception of arch/.
-> 
-> Ok, this finished off my arch updates for today, I'll probably move on
-> to driver pulls tomorrow.
-> 
-> Anyway, it's in my tree, will push out once my test build finishes.
+The question is whether we should use a stronger barrier such
+as rmb() amd wmb() here rather than a simple compiler barrier.
 
-Thanks!
+I would assume that on complex architectures with write buffers and
+out-of-order prefetching, those are required, while on architectures
+without those features, the barriers are cheap.
 
-Dominik, if you submit the x86 ptregs conversion patches in the next 1-2 days on 
-top of Linus's tree (642e7fd23353), then I can apply them and if they are 
-problem-free I can perhaps tempt Linus with a pull request early next week or so.
-
-The Spectre angle does make me want those changes as well.
-
-Thanks,
-
-	Ingo
+      Arnd
