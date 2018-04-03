@@ -1,112 +1,41 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
- readX() implementation
-Date: Tue, 3 Apr 2018 11:49:25 +0100
-Message-ID: <20180403104925.fuyajja6tyanlna4@lakrids.cambridge.arm.com>
-References: <1522425494-2916-1-git-send-email-okaya@codeaurora.org>
- <1522425494-2916-2-git-send-email-okaya@codeaurora.org>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [GIT PULL] remove in-kernel calls to syscalls
+Date: Tue, 3 Apr 2018 12:53:52 +0200
+Message-ID: <20180403105352.eicib6jcicif5zoo@gmail.com>
+References: <20180402190454.GB29890@light.dominikbrodowski.net>
+ <CA+55aFyaVVKKbXPFzW1Tr7CTpiLCK+1nGdhS21wnm1j64bqWPA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1522425494-2916-2-git-send-email-okaya@codeaurora.org>
+In-Reply-To: <CA+55aFyaVVKKbXPFzW1Tr7CTpiLCK+1nGdhS21wnm1j64bqWPA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sinan Kaya <okaya@codeaurora.org>
-Cc: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, hmclauchlan@fb.com, tautschn@amazon.co.uk, Amir Goldstein <amir73il@gmail.com>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Darren Hart <dvhart@infradead.org>, "David S. Miller" <davem@davemloft.net>, "Eric W. Biederman" <ebiederm@xmission.com>, "H. Peter Anvin" <hpa@zytor.com>, Jaswinder Singh <jaswinder@infradead.org>, Jeff Dike <jdike@addtoit.com>, Jiri Slaby <jslaby@suse.com>, Kexec Mailing List <kexec@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
 
-On Fri, Mar 30, 2018 at 11:58:13AM -0400, Sinan Kaya wrote:
-> The default implementation of mapping readX() to __raw_readX() is wrong.
-> readX() has stronger ordering semantics. Compiler is allowed to reorder
-> __raw_readX().
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Could you please specify what the compiler is potentially reordering
-__raw_readX() against, and why this would be wrong?
+> On Mon, Apr 2, 2018 at 12:04 PM, Dominik Brodowski
+> <linux@dominikbrodowski.net> wrote:
+> >
+> > This patchset removes all in-kernel calls to syscall functions in the
+> > kernel with the exception of arch/.
+> 
+> Ok, this finished off my arch updates for today, I'll probably move on
+> to driver pulls tomorrow.
+> 
+> Anyway, it's in my tree, will push out once my test build finishes.
 
-e.g. do we care about prior normal memory accesses, subsequent normal
-memory accesses, and/or other IO accesses?
+Thanks!
 
-I assume that the asm-generic __raw_{read,write}X() implementations are
-all ordered w.r.t. each other (at least for a specific device).
+Dominik, if you submit the x86 ptregs conversion patches in the next 1-2 days on 
+top of Linus's tree (642e7fd23353), then I can apply them and if they are 
+problem-free I can perhaps tempt Linus with a pull request early next week or so.
+
+The Spectre angle does make me want those changes as well.
 
 Thanks,
-Mark.
 
-> In the abscence of a read barrier or when using a strongly ordered
-> architecture, readX() should at least have a compiler barrier in
-> it to prevent commpiler from clobbering the execution order.
-> 
-> Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
-> ---
->  include/asm-generic/io.h | 28 ++++++++++++++++++++++++----
->  1 file changed, 24 insertions(+), 4 deletions(-)
-> 
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index e8c2078..2554f15 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -110,7 +110,12 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
->  #define readb readb
->  static inline u8 readb(const volatile void __iomem *addr)
->  {
-> -	return __raw_readb(addr);
-> +	u8 val;
-> +
-> +	val = __raw_readb(addr);
-> +	barrier();
-> +
-> +	return val;
->  }
->  #endif
->  
-> @@ -118,7 +123,12 @@ static inline u8 readb(const volatile void __iomem *addr)
->  #define readw readw
->  static inline u16 readw(const volatile void __iomem *addr)
->  {
-> -	return __le16_to_cpu(__raw_readw(addr));
-> +	u16 val;
-> +
-> +	val = __le16_to_cpu(__raw_readw(addr));
-> +	barrier();
-> +
-> +	return val;
->  }
->  #endif
->  
-> @@ -126,7 +136,12 @@ static inline u16 readw(const volatile void __iomem *addr)
->  #define readl readl
->  static inline u32 readl(const volatile void __iomem *addr)
->  {
-> -	return __le32_to_cpu(__raw_readl(addr));
-> +	u32 val;
-> +
-> +	val = __le32_to_cpu(__raw_readl(addr));
-> +	barrier();
-> +
-> +	return val;
->  }
->  #endif
->  
-> @@ -135,7 +150,12 @@ static inline u32 readl(const volatile void __iomem *addr)
->  #define readq readq
->  static inline u64 readq(const volatile void __iomem *addr)
->  {
-> -	return __le64_to_cpu(__raw_readq(addr));
-> +	u64 val;
-> +
-> +	val = __le64_to_cpu(__raw_readq(addr));
-> +	barrier();
-> +
-> +	return val;
->  }
->  #endif
->  #endif /* CONFIG_64BIT */
-> -- 
-> 2.7.4
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+	Ingo
