@@ -1,26 +1,67 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [GIT PULL] remove in-kernel calls to syscalls
-Date: Mon, 2 Apr 2018 21:33:07 -0700
-Message-ID: <CA+55aFyaVVKKbXPFzW1Tr7CTpiLCK+1nGdhS21wnm1j64bqWPA@mail.gmail.com>
-References: <20180402190454.GB29890@light.dominikbrodowski.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: [PATCH v8 0/4] Fix issues with huge mapping in ioremap for ARM64
+Date: Tue,  3 Apr 2018 13:30:42 +0530
+Message-ID: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180402190454.GB29890@light.dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, hmclauchlan@fb.com, tautschn@amazon.co.uk, Amir Goldstein <amir73il@gmail.com>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Darren Hart <dvhart@infradead.org>, "David S. Miller" <davem@davemloft.net>, "Eric W. Biederman" <ebiederm@xmission.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Jaswinder Singh <jaswinder@infradead.org>, Jeff Dike <jdike@addtoit.com>, Jiri Slaby <jslaby@suse.com>, Kexec Mailing List <kexec@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kv>
+To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
+Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 2, 2018 at 12:04 PM, Dominik Brodowski
-<linux@dominikbrodowski.net> wrote:
->
-> This patchset removes all in-kernel calls to syscall functions in the
-> kernel with the exception of arch/.
+This series of patches are follow up work (and depends on)
+Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
+panic in ioremap huge pages".
 
-Ok, this finished off my arch updates for today, I'll probably move on
-to driver pulls tomorrow.
+This series of patches are tested on 4.9 kernel with Cortex-A75
+based SoC.
 
-Anyway, it's in my tree, will push out once my test build finishes.
+These patches can also go into '-stable' branch (if accepted)
+for 4.6 onwards.
 
-                Linus
+From V7->V8:
+ - Properly fixed compilation issue in x86 file
+
+From V6->V7:
+ - Fixed compilation issue in x86 case
+ - V6 patches were not properly enumarated
+
+From V5->V6:
+ - Use __flush_tlb_kernel_pgtable() for both PUD and PMD. Remove
+   "bool tlb_inv" based variance as it is not need now
+ - Re-naming for consistency
+
+From V4->V5:
+ - Add new API __flush_tlb_kernel_pgtable(unsigned long addr)
+   for kernel addresses
+
+From V3->V4:
+ - Add header for 'addr' in x86 implementation
+ - Re-order pmd/pud clear and table free
+ - Avoid redundant TLB invalidatation in one perticular case
+
+From V2->V3:
+ - Use the exisiting page table free interface to do arm64
+   specific things
+
+From V1->V2:
+ - Rebased my patches on top of "[PATCH v2 1/2] mm/vmalloc:
+   Add interfaces to free unmapped page table"
+ - Honored BBM for ARM64
+
+Chintan Pandya (4):
+  ioremap: Update pgtable free interfaces with addr
+  arm64: tlbflush: Introduce __flush_tlb_kernel_pgtable
+  arm64: Implement page table free interfaces
+  Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
+
+ arch/arm64/include/asm/tlbflush.h |  6 ++++++
+ arch/arm64/mm/mmu.c               | 37 +++++++++++++++++++++++++------------
+ arch/x86/mm/pgtable.c             |  8 +++++---
+ include/asm-generic/pgtable.h     |  8 ++++----
+ lib/ioremap.c                     |  4 ++--
+ 5 files changed, 42 insertions(+), 21 deletions(-)
+
+-- 
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation
+Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
+Collaborative Project
