@@ -1,53 +1,35 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v8 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-Date: Tue,  3 Apr 2018 13:30:46 +0530
-Message-ID: <1522742446-5084-5-git-send-email-cpandya@codeaurora.org>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH v8 0/4] Fix issues with huge mapping in ioremap for ARM64
+Date: Tue, 3 Apr 2018 09:43:23 +0100
+Message-ID: <a613f834-f356-a826-526f-aef532f62951@arm.com>
 References: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
+Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
-To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
-Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Chintan Pandya <cpandya@codeaurora.org>
+To: Chintan Pandya <cpandya@codeaurora.org>, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
+Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-This commit 15122ee2c515a ("arm64: Enforce BBM for huge
-IO/VMAP mappings") is a temporary work-around until the
-issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
+Hi Chintan,
 
-Revert this change as we have fixes for the issue.
+On 03/04/18 09:00, Chintan Pandya wrote:
+> This series of patches are follow up work (and depends on)
+> Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
+> panic in ioremap huge pages".
+> 
+> This series of patches are tested on 4.9 kernel with Cortex-A75
+> based SoC.
 
-Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
----
- arch/arm64/mm/mmu.c | 8 --------
- 1 file changed, 8 deletions(-)
+Given that this is targeting mainline, can you please test with 4.16?
+Basing your patches on something that is over 15 months old is not
+exactly reassuring.
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 0f651db..170009b 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pud_present(READ_ONCE(*pudp)))
--		return 0;
--
- 	BUG_ON(phys & ~PUD_MASK);
- 	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
- 	return 1;
-@@ -949,10 +945,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pmd_present(READ_ONCE(*pmdp)))
--		return 0;
--
- 	BUG_ON(phys & ~PMD_MASK);
- 	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
- 	return 1;
+Thanks,
+
+	M.
 -- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation
-Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
-Collaborative Project
+Jazz is not dead. It just smells funny...
