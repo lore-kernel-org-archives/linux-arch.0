@@ -1,59 +1,112 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [GIT PULL] arch: remove obsolete architecture ports
-Date: Tue, 3 Apr 2018 11:18:15 +0200
-Message-ID: <CAMuHMdVZg8BL7D2eB-FnDbJabU3sfda6nOnaCdJj-3OC-+KP0g@mail.gmail.com>
-References: <CAK8P3a0q70FYtBaCcsBPejVULgsbJPwUG7QmrkU9NJpr7oTzpQ@mail.gmail.com>
- <CA+55aFzmQ9specaytsjEb=iNm-NHE5kxMSy_H_jKvqZa4-Fomw@mail.gmail.com> <CAK8P3a2pdmLOHb2wkPVvqLDo71Rf3hLVfhG7vsMzaPD-DMEzSg@mail.gmail.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
+ readX() implementation
+Date: Tue, 3 Apr 2018 11:49:25 +0100
+Message-ID: <20180403104925.fuyajja6tyanlna4@lakrids.cambridge.arm.com>
+References: <1522425494-2916-1-git-send-email-okaya@codeaurora.org>
+ <1522425494-2916-2-git-send-email-okaya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2pdmLOHb2wkPVvqLDo71Rf3hLVfhG7vsMzaPD-DMEzSg@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <1522425494-2916-2-git-send-email-okaya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, James Hogan <jhogan@kernel.org>, David Howells <dhowells@redhat.com>, "moderated list:PANASONIC MN10300..." <linux-am33-list@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Lennox Wu <lennox.wu@gmail.com>, Aaron Wu <Aaron.Wu@analog.com>, Bryan Wu <cooloney@gmail.com>, Chris Metcalf <chris.d.metcalf@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>
+To: Sinan Kaya <okaya@codeaurora.org>
+Cc: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 2, 2018 at 9:54 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Mon, Apr 2, 2018 at 8:57 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> Regarding a possible revert, that would indeed involve reverting
-> multiple patches for most architectures, plus parts of at least these
-> three:
->
->   Documentation: arch-support: remove obsolete architectures
->   treewide: simplify Kconfig dependencies for removed archs
->   ktest: remove obsolete architectures
->
-> For those, I went the other way, and removed all architectures at
-> once to simplify my work and to avoid touching the same files up
-> to eight times with interdependent patches (which couldn't
-> be reverted without conflicts either).
->
-> There are a couple of driver removal patches that got picked up
-> into subsystem trees instead of this tree, so a full revert would also
-> involve finding other drivers, but if you prefer to have the patches
-> completely split up by arch, I could rework the series that way.
+Hi,
 
-In reality, a resurrection may not be implemented as a pure revert, but as
-the addition of a new architecture, implemented using modern features (DT,
-CCF, ...).
+On Fri, Mar 30, 2018 at 11:58:13AM -0400, Sinan Kaya wrote:
+> The default implementation of mapping readX() to __raw_readX() is wrong.
+> readX() has stronger ordering semantics. Compiler is allowed to reorder
+> __raw_readX().
 
-Cfr. the resurrected arch/h8300, which doesn't have much in common with
-the removed one:
+Could you please specify what the compiler is potentially reordering
+__raw_readX() against, and why this would be wrong?
 
-$ git diff --stat v3.12..v4.2 -- arch/h8300
-[...]
- 197 files changed, 3155 insertions(+), 7849 deletions(-)
+e.g. do we care about prior normal memory accesses, subsequent normal
+memory accesses, and/or other IO accesses?
 
-(for a total of ca. 6200 lines)
+I assume that the asm-generic __raw_{read,write}X() implementations are
+all ordered w.r.t. each other (at least for a specific device).
 
-Gr{oetje,eeting}s,
+Thanks,
+Mark.
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> In the abscence of a read barrier or when using a strongly ordered
+> architecture, readX() should at least have a compiler barrier in
+> it to prevent commpiler from clobbering the execution order.
+> 
+> Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
+> ---
+>  include/asm-generic/io.h | 28 ++++++++++++++++++++++++----
+>  1 file changed, 24 insertions(+), 4 deletions(-)
+> 
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index e8c2078..2554f15 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -110,7 +110,12 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
+>  #define readb readb
+>  static inline u8 readb(const volatile void __iomem *addr)
+>  {
+> -	return __raw_readb(addr);
+> +	u8 val;
+> +
+> +	val = __raw_readb(addr);
+> +	barrier();
+> +
+> +	return val;
+>  }
+>  #endif
+>  
+> @@ -118,7 +123,12 @@ static inline u8 readb(const volatile void __iomem *addr)
+>  #define readw readw
+>  static inline u16 readw(const volatile void __iomem *addr)
+>  {
+> -	return __le16_to_cpu(__raw_readw(addr));
+> +	u16 val;
+> +
+> +	val = __le16_to_cpu(__raw_readw(addr));
+> +	barrier();
+> +
+> +	return val;
+>  }
+>  #endif
+>  
+> @@ -126,7 +136,12 @@ static inline u16 readw(const volatile void __iomem *addr)
+>  #define readl readl
+>  static inline u32 readl(const volatile void __iomem *addr)
+>  {
+> -	return __le32_to_cpu(__raw_readl(addr));
+> +	u32 val;
+> +
+> +	val = __le32_to_cpu(__raw_readl(addr));
+> +	barrier();
+> +
+> +	return val;
+>  }
+>  #endif
+>  
+> @@ -135,7 +150,12 @@ static inline u32 readl(const volatile void __iomem *addr)
+>  #define readq readq
+>  static inline u64 readq(const volatile void __iomem *addr)
+>  {
+> -	return __le64_to_cpu(__raw_readq(addr));
+> +	u64 val;
+> +
+> +	val = __le64_to_cpu(__raw_readq(addr));
+> +	barrier();
+> +
+> +	return val;
+>  }
+>  #endif
+>  #endif /* CONFIG_64BIT */
+> -- 
+> 2.7.4
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
