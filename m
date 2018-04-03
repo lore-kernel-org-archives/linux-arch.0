@@ -1,40 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:57772 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755219AbeDCIne (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Apr 2018 04:43:34 -0400
-Subject: Re: [PATCH v8 0/4] Fix issues with huge mapping in ioremap for ARM64
-References: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
-From: Marc Zyngier <marc.zyngier@arm.com>
-Message-ID: <a613f834-f356-a826-526f-aef532f62951@arm.com>
-Date: Tue, 3 Apr 2018 09:43:23 +0100
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:42643 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753292AbeDCJSR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Apr 2018 05:18:17 -0400
 MIME-Version: 1.0
-In-Reply-To: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAK8P3a2pdmLOHb2wkPVvqLDo71Rf3hLVfhG7vsMzaPD-DMEzSg@mail.gmail.com>
+References: <CAK8P3a0q70FYtBaCcsBPejVULgsbJPwUG7QmrkU9NJpr7oTzpQ@mail.gmail.com>
+ <CA+55aFzmQ9specaytsjEb=iNm-NHE5kxMSy_H_jKvqZa4-Fomw@mail.gmail.com> <CAK8P3a2pdmLOHb2wkPVvqLDo71Rf3hLVfhG7vsMzaPD-DMEzSg@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 3 Apr 2018 11:18:15 +0200
+Message-ID: <CAMuHMdVZg8BL7D2eB-FnDbJabU3sfda6nOnaCdJj-3OC-+KP0g@mail.gmail.com>
+Subject: Re: [GIT PULL] arch: remove obsolete architecture ports
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chintan Pandya <cpandya@codeaurora.org>, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
-Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Message-ID: <20180403084323.KsI_BMemprhGI16zq8lRedJSVh7lmRsvp4FtT1jIZIg@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, James Hogan <jhogan@kernel.org>, David Howells <dhowells@redhat.com>, "moderated list:PANASONIC MN10300..." <linux-am33-list@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Lennox Wu <lennox.wu@gmail.com>, Aaron Wu <Aaron.Wu@analog.com>, Bryan Wu <cooloney@gmail.com>, Chris Metcalf <chris.d.metcalf@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>
+Message-ID: <20180403091815.KUEkaQbzj75jRbUECKZ92LzD9UA22EmSFKBKoigs3AY@z>
 
-Hi Chintan,
+On Mon, Apr 2, 2018 at 9:54 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Mon, Apr 2, 2018 at 8:57 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> Regarding a possible revert, that would indeed involve reverting
+> multiple patches for most architectures, plus parts of at least these
+> three:
+>
+>   Documentation: arch-support: remove obsolete architectures
+>   treewide: simplify Kconfig dependencies for removed archs
+>   ktest: remove obsolete architectures
+>
+> For those, I went the other way, and removed all architectures at
+> once to simplify my work and to avoid touching the same files up
+> to eight times with interdependent patches (which couldn't
+> be reverted without conflicts either).
+>
+> There are a couple of driver removal patches that got picked up
+> into subsystem trees instead of this tree, so a full revert would also
+> involve finding other drivers, but if you prefer to have the patches
+> completely split up by arch, I could rework the series that way.
 
-On 03/04/18 09:00, Chintan Pandya wrote:
-> This series of patches are follow up work (and depends on)
-> Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
-> panic in ioremap huge pages".
-> 
-> This series of patches are tested on 4.9 kernel with Cortex-A75
-> based SoC.
+In reality, a resurrection may not be implemented as a pure revert, but as
+the addition of a new architecture, implemented using modern features (DT,
+CCF, ...).
 
-Given that this is targeting mainline, can you please test with 4.16?
-Basing your patches on something that is over 15 months old is not
-exactly reassuring.
+Cfr. the resurrected arch/h8300, which doesn't have much in common with
+the removed one:
 
-Thanks,
+$ git diff --stat v3.12..v4.2 -- arch/h8300
+[...]
+ 197 files changed, 3155 insertions(+), 7849 deletions(-)
 
-	M.
+(for a total of ca. 6200 lines)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-Jazz is not dead. It just smells funny...
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
