@@ -1,31 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:53848 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752286AbeDCEdJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Apr 2018 00:33:09 -0400
-MIME-Version: 1.0
-In-Reply-To: <20180402190454.GB29890@light.dominikbrodowski.net>
-References: <20180402190454.GB29890@light.dominikbrodowski.net>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 2 Apr 2018 21:33:07 -0700
-Message-ID: <CA+55aFyaVVKKbXPFzW1Tr7CTpiLCK+1nGdhS21wnm1j64bqWPA@mail.gmail.com>
-Subject: Re: [GIT PULL] remove in-kernel calls to syscalls
-Content-Type: text/plain; charset="UTF-8"
+Received: from smtp.codeaurora.org ([198.145.29.96]:40656 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754583AbeDCIBC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Apr 2018 04:01:02 -0400
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: [PATCH v8 0/4] Fix issues with huge mapping in ioremap for ARM64
+Date: Tue,  3 Apr 2018 13:30:42 +0530
+Message-ID: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, hmclauchlan@fb.com, tautschn@amazon.co.uk, Amir Goldstein <amir73il@gmail.com>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Darren Hart <dvhart@infradead.org>, "David S. Miller" <davem@davemloft.net>, "Eric W. Biederman" <ebiederm@xmission.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Jaswinder Singh <jaswinder@infradead.org>, Jeff Dike <jdike@addtoit.com>, Jiri Slaby <jslaby@suse.com>, Kexec Mailing List <kexec@lists.infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linux-s390 <linux-s390@vger.kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Network Development <netdev@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20180403043307.c8VP4NrrnJi82cbkGAOXGAGQOl84KOPlC4BUZI1XVOQ@z>
+To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
+Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Chintan Pandya <cpandya@codeaurora.org>
+Message-ID: <20180403080042.rV36Dyng-x63tGKdnwMdm-nnRcRq_e1o4aGrZcyXTyo@z>
 
-On Mon, Apr 2, 2018 at 12:04 PM, Dominik Brodowski
-<linux@dominikbrodowski.net> wrote:
->
-> This patchset removes all in-kernel calls to syscall functions in the
-> kernel with the exception of arch/.
+This series of patches are follow up work (and depends on)
+Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
+panic in ioremap huge pages".
 
-Ok, this finished off my arch updates for today, I'll probably move on
-to driver pulls tomorrow.
+This series of patches are tested on 4.9 kernel with Cortex-A75
+based SoC.
 
-Anyway, it's in my tree, will push out once my test build finishes.
-
-                Linus
+These patches can also go into '-stable' branch (if accepted)
+for 4.6 onwards.
