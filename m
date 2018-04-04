@@ -1,164 +1,54 @@
-From: Sinan Kaya <okaya@codeaurora.org>
-Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
- readX() implementation
-Date: Wed, 4 Apr 2018 11:52:20 -0400
-Message-ID: <691b903c-e97d-0a25-28c5-690318bb215a@codeaurora.org>
-References: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: Re: [PATCH v15 0/9] Add io{read|write}64 to io-64-atomic headers
+Date: Wed, 4 Apr 2018 09:54:41 -0600
+Message-ID: <515f5c92-ac02-6e09-830e-46ea4d462652@deltatee.com>
+References: <20180327230834.5931-1-logang@deltatee.com>
+ <87r2nvmf3b.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
+In-Reply-To: <87r2nvmf3b.fsf@concordia.ellerman.id.au>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Palmer Dabbelt <palmer@sifive.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: mark.rutland@arm.com, timur@codeaurora.org, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, akpm@linux-foundation.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 4/3/2018 6:29 PM, Palmer Dabbelt wrote:
-> On Tue, 03 Apr 2018 05:56:18 PDT (-0700), Arnd Bergmann wrote:
->> On Tue, Apr 3, 2018 at 2:44 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
->>> On 4/3/2018 7:13 AM, Arnd Bergmann wrote:
->>>> On Tue, Apr 3, 2018 at 12:49 PM, Mark Rutland <mark.rutland@arm.com> wrote:
->>>>> Hi,
->>>>>
->>>>> On Fri, Mar 30, 2018 at 11:58:13AM -0400, Sinan Kaya wrote:
->>>>>> The default implementation of mapping readX() to __raw_readX() is wrong.
->>>>>> readX() has stronger ordering semantics. Compiler is allowed to reorder
->>>>>> __raw_readX().
->>>>>
->>>>> Could you please specify what the compiler is potentially reordering
->>>>> __raw_readX() against, and why this would be wrong?
->>>>>
->>>>> e.g. do we care about prior normal memory accesses, subsequent normal
->>>>> memory accesses, and/or other IO accesses?
->>>>>
->>>>> I assume that the asm-generic __raw_{read,write}X() implementations are
->>>>> all ordered w.r.t. each other (at least for a specific device).
->>>>
->>>> I think that is correct: the compiler won't reorder those because of the
->>>> 'volatile' pointer dereference, but it can reorder access to a normal
->>>> pointer against a __raw_readl()/__raw_writel(), which breaks the scenario
->>>> of using writel to trigger a DMA, or using a readl to see if a DMA has
->>>> completed.
->>>
->>> Yes, we are worried about memory update vs. IO update ordering here.
->>> That was the reason why barrier() was introduced in this patch. I'll try to
->>> clarify that better in the commit text.
->>>
->>>>
->>>> The question is whether we should use a stronger barrier such
->>>> as rmb() amd wmb() here rather than a simple compiler barrier.
->>>>
->>>> I would assume that on complex architectures with write buffers and
->>>> out-of-order prefetching, those are required, while on architectures
->>>> without those features, the barriers are cheap.
->>>
->>> That's my reasoning too. I'm trying to follow the x86 example here where there
->>> is a compiler barrier in writeX() and readX() family of functions.
->>
->> I think x86 is the special case here because it implicitly guarantees
->> the strict ordering in the hardware, as long as the compiler gets it
->> right. For the asm-generic version, it may be better to play safe and
->> do the safest version, requiring architectures to override that barrier
->> if they want to be faster.
->>
->> We could use the same macros that riscv has, using __io_br(),
->> __io_ar(), __io_bw() and __io_aw() for before/after read/write.
-> 
-> FWIW, when I wrote this I wasn't sure what the RISC-V memory model was going to be so I just picked something generic.  In other words, it's already a generic interface, just one that we're the only users of :).
-> 
+On 4/4/2018 4:38 AM, Michael Ellerman wrote:
+> What's the plan for getting it merged? Seems we don't have one?
 
-Are we looking for something like this?
+Yeah, so far there is no plan. I'm not really sure who's attention I 
+need to get or how to get it.
 
+> Given it touches two arches and generic stuff and drivers and crypto,
+> it's a bit of a mess to merge. It's not really something I want to merge
+> via the powerpc tree.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index e8c2078..693a82f 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -101,6 +101,16 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifndef __io_br()
-+#define __io_br()	do {} while (0)
-+#endif
-+
-+#ifdef rmb
-+#define __io_ar()	rmb();
-+#else
-+#define __io_ar()	barrier();
-+#endif
-+
- /*
-  * {read,write}{b,w,l,q}() access little endian memory and return result in
-  * native endianness.
-@@ -108,35 +118,46 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
- 
- #ifndef readb
- #define readb readb
--static inline u8 readb(const volatile void __iomem *addr)
--{
--	return __raw_readb(addr);
--}
-+#define readb(c)				\
-+	({ u8  __v;				\
-+	 __io_br();				\
-+	 __v = __raw_readb(c);			\
-+	 __io_ar();				\
-+	 __v; })
- #endif
- 
- #ifndef readw
- #define readw readw
--static inline u16 readw(const volatile void __iomem *addr)
--{
--	return __le16_to_cpu(__raw_readw(addr));
--}
-+#define readw(c)				\
-+    ({ u16 __v;					\
-+						\
-+     __io_br();					\
-+      __v = __le16_to_cpu(__raw_readw(c));	\
-+     __io_ar();					\
-+     __v; })
- #endif
- 
- #ifndef readl
- #define readl readl
--static inline u32 readl(const volatile void __iomem *addr)
--{
--	return __le32_to_cpu(__raw_readl(addr));
--}
-+#define readl(c)				\
-+    ({ u32 __v;					\
-+						\
-+     __io_br();					\
-+      __v = __le32_to_cpu(__raw_readl(c));	\
-+     __io_ar();					\
-+     __v; })
- #endif
- 
- #ifdef CONFIG_64BIT
- #ifndef readq
- #define readq readq
--static inline u64 readq(const volatile void __iomem *addr)
--{
--	return __le64_to_cpu(__raw_readq(addr));
--}
-+#define readq(c)				\
-+    ({ u64 __v;					\
-+						\
-+     __io_br();					\
-+      __v = __le64_to_cpu(__raw_readq(c));	\
-+     __io_ar();					\
-+     __v; })
- #endif
- #endif /* CONFIG_64BIT */
-  
+Understood.
 
+> Is there any way to split it? I couldn't immediately see what the hard
+> dependencies were between the patches.
 
--- 
-Sinan Kaya
-Qualcomm Datacenter Technologies, Inc. as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the Code Aurora Forum, a Linux Foundation Collaborative Project.
+Yes, a couple of patches have already been taken by their maintainers 
+over the last few cycles.
+
+> eg. It looks like I could take the two powerpc patches on their own for
+> 4.17, and then the rest could go via other trees?
+
+Yup! If you can take the powerpc patches I can keep trying to get the 
+rest in. They are largely independent and shouldn't really change 
+anything without the following patches.
+
+> Is patch 1 stand alone?
+
+Essentially, yes, but patch 5 depends on it seeing it's changing the 
+same area and is trying to avoid creating the same kbuild warnings that 
+patch 1 suppresses.
+
+> The other option is to ask Andrew Morton to take it, as he often carries
+> these cross-tree type series.
+
+Thanks for the tip! I'll copy him when I repost it after the merge window.
+
+Logan
