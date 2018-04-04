@@ -1,66 +1,164 @@
-From: James Hogan <jhogan@kernel.org>
-Subject: Re: [GIT PULL] arch: remove obsolete architecture ports
-Date: Wed, 4 Apr 2018 14:28:16 +0100
-Message-ID: <20180404132815.GC25517@saruman>
-References: <CAK8P3a0q70FYtBaCcsBPejVULgsbJPwUG7QmrkU9NJpr7oTzpQ@mail.gmail.com>
- <CA+55aFzmQ9specaytsjEb=iNm-NHE5kxMSy_H_jKvqZa4-Fomw@mail.gmail.com>
- <CAK8P3a2pdmLOHb2wkPVvqLDo71Rf3hLVfhG7vsMzaPD-DMEzSg@mail.gmail.com>
- <CAMuHMdVZg8BL7D2eB-FnDbJabU3sfda6nOnaCdJj-3OC-+KP0g@mail.gmail.com>
- <20180404080142.GC9342@amd>
- <CAK8P3a3Rj7utFTrNrNiv3948whE9Tsta9mmLPdX5HxBhif-_9w@mail.gmail.com>
+From: Sinan Kaya <okaya@codeaurora.org>
+Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
+ readX() implementation
+Date: Wed, 4 Apr 2018 11:52:20 -0400
+Message-ID: <691b903c-e97d-0a25-28c5-690318bb215a@codeaurora.org>
+References: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="dkEUBIird37B8yKS"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3Rj7utFTrNrNiv3948whE9Tsta9mmLPdX5HxBhif-_9w@mail.gmail.com>
+In-Reply-To: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Pavel Machek <pavel@ucw.cz>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Howells <dhowells@redhat.com>, "moderated list:PANASONIC MN10300..." <linux-am33-list@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Lennox Wu <lennox.wu@gmail.com>, Aaron Wu <Aaron.Wu@analog.com>, Bryan Wu <cooloney@gmail.com>, Chris Metcalf <chris.d.metcalf@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>
+To: Palmer Dabbelt <palmer@sifive.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: mark.rutland@arm.com, timur@codeaurora.org, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On 4/3/2018 6:29 PM, Palmer Dabbelt wrote:
+> On Tue, 03 Apr 2018 05:56:18 PDT (-0700), Arnd Bergmann wrote:
+>> On Tue, Apr 3, 2018 at 2:44 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
+>>> On 4/3/2018 7:13 AM, Arnd Bergmann wrote:
+>>>> On Tue, Apr 3, 2018 at 12:49 PM, Mark Rutland <mark.rutland@arm.com> wrote:
+>>>>> Hi,
+>>>>>
+>>>>> On Fri, Mar 30, 2018 at 11:58:13AM -0400, Sinan Kaya wrote:
+>>>>>> The default implementation of mapping readX() to __raw_readX() is wrong.
+>>>>>> readX() has stronger ordering semantics. Compiler is allowed to reorder
+>>>>>> __raw_readX().
+>>>>>
+>>>>> Could you please specify what the compiler is potentially reordering
+>>>>> __raw_readX() against, and why this would be wrong?
+>>>>>
+>>>>> e.g. do we care about prior normal memory accesses, subsequent normal
+>>>>> memory accesses, and/or other IO accesses?
+>>>>>
+>>>>> I assume that the asm-generic __raw_{read,write}X() implementations are
+>>>>> all ordered w.r.t. each other (at least for a specific device).
+>>>>
+>>>> I think that is correct: the compiler won't reorder those because of the
+>>>> 'volatile' pointer dereference, but it can reorder access to a normal
+>>>> pointer against a __raw_readl()/__raw_writel(), which breaks the scenario
+>>>> of using writel to trigger a DMA, or using a readl to see if a DMA has
+>>>> completed.
+>>>
+>>> Yes, we are worried about memory update vs. IO update ordering here.
+>>> That was the reason why barrier() was introduced in this patch. I'll try to
+>>> clarify that better in the commit text.
+>>>
+>>>>
+>>>> The question is whether we should use a stronger barrier such
+>>>> as rmb() amd wmb() here rather than a simple compiler barrier.
+>>>>
+>>>> I would assume that on complex architectures with write buffers and
+>>>> out-of-order prefetching, those are required, while on architectures
+>>>> without those features, the barriers are cheap.
+>>>
+>>> That's my reasoning too. I'm trying to follow the x86 example here where there
+>>> is a compiler barrier in writeX() and readX() family of functions.
+>>
+>> I think x86 is the special case here because it implicitly guarantees
+>> the strict ordering in the hardware, as long as the compiler gets it
+>> right. For the asm-generic version, it may be better to play safe and
+>> do the safest version, requiring architectures to override that barrier
+>> if they want to be faster.
+>>
+>> We could use the same macros that riscv has, using __io_br(),
+>> __io_ar(), __io_bw() and __io_aw() for before/after read/write.
+> 
+> FWIW, when I wrote this I wasn't sure what the RISC-V memory model was going to be so I just picked something generic.  In other words, it's already a generic interface, just one that we're the only users of :).
+> 
 
---dkEUBIird37B8yKS
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Are we looking for something like this?
 
-On Wed, Apr 04, 2018 at 10:38:41AM +0200, Arnd Bergmann wrote:
-> Also, now that the other architectures are gone, a lot of changes can
-> be done more easily that will be incompatible with a pure revert, so
-> the more time passes, the harder it will get to do that.
 
-Yes, and an out-of-tree arch port (as effectively these arches now are)
-requires constant maintenance (often subtle runtime breakage) to keep up
-to date with each new kernel release, which happens mostly automatically
-=66rom arch maintainer POV while they're merged.
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index e8c2078..693a82f 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -101,6 +101,16 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
+ #endif
+ #endif /* CONFIG_64BIT */
+ 
++#ifndef __io_br()
++#define __io_br()	do {} while (0)
++#endif
++
++#ifdef rmb
++#define __io_ar()	rmb();
++#else
++#define __io_ar()	barrier();
++#endif
++
+ /*
+  * {read,write}{b,w,l,q}() access little endian memory and return result in
+  * native endianness.
+@@ -108,35 +118,46 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
+ 
+ #ifndef readb
+ #define readb readb
+-static inline u8 readb(const volatile void __iomem *addr)
+-{
+-	return __raw_readb(addr);
+-}
++#define readb(c)				\
++	({ u8  __v;				\
++	 __io_br();				\
++	 __v = __raw_readb(c);			\
++	 __io_ar();				\
++	 __v; })
+ #endif
+ 
+ #ifndef readw
+ #define readw readw
+-static inline u16 readw(const volatile void __iomem *addr)
+-{
+-	return __le16_to_cpu(__raw_readw(addr));
+-}
++#define readw(c)				\
++    ({ u16 __v;					\
++						\
++     __io_br();					\
++      __v = __le16_to_cpu(__raw_readw(c));	\
++     __io_ar();					\
++     __v; })
+ #endif
+ 
+ #ifndef readl
+ #define readl readl
+-static inline u32 readl(const volatile void __iomem *addr)
+-{
+-	return __le32_to_cpu(__raw_readl(addr));
+-}
++#define readl(c)				\
++    ({ u32 __v;					\
++						\
++     __io_br();					\
++      __v = __le32_to_cpu(__raw_readl(c));	\
++     __io_ar();					\
++     __v; })
+ #endif
+ 
+ #ifdef CONFIG_64BIT
+ #ifndef readq
+ #define readq readq
+-static inline u64 readq(const volatile void __iomem *addr)
+-{
+-	return __le64_to_cpu(__raw_readq(addr));
+-}
++#define readq(c)				\
++    ({ u64 __v;					\
++						\
++     __io_br();					\
++      __v = __le64_to_cpu(__raw_readq(c));	\
++     __io_ar();					\
++     __v; })
+ #endif
+ #endif /* CONFIG_64BIT */
+  
 
-Even without changes intentionally taking advantage of not having to
-care about these arches, it'll be only a few cycles at the most before a
-plain revert won't "just work".
 
-Cheers
-James
-
---dkEUBIird37B8yKS
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAlrE0u8ACgkQbAtpk944
-dnpouw/7BuX2Xq6CccnKjZ0E6fXJrndakmq3V81c5YtmhPBNilFw/n2Rpf0k0edd
-HflcS2dsfIDBL6CB6mZIrXidwTcaIgYdClbOK+VNReyzcCGKqBWFguxQ4YF6H+Qt
-5Ri1ihoHveHtCkZC2Om9wA8GD5p0283QpHnI19pHCQwL0XblU56dE1210UEDT4CB
-ehPIzr7QaOAk8zeN97iB5xEjx6i7xoZQ1e9b4yOERQoR4rTtfx0CyJ75CfdZKVh3
-DXenWrRaen4+AeGbczkEeraJI7fL73Uw48Eb8KzZXbqWR21aH4wedb5t1No7T3hK
-igW7KhQ/yvwONhEngjyAQ7tIENwckBTtscJm0Amti9fek47i+bMVzVL9Ho2ZlMND
-0cb0v07reizXbmjEPVP9ZEQW5FwgYAj+72TD+EvUNHYq6n6pSwOPXZCbtk7LjBBR
-MKQ/Wj5FPP89QtA78gDgNfzByRzZPoHK2xbxwy7zstanWTBA0iEJ+jUQzL+bMMVM
-CwBI9SGSxbL5hoqk9cd/Owiks7LOhJSyz/R9J39chmB5bqyS0jRDY9j5KSSVYeoI
-LWi2fJklr24hIB5xBKow+S3ft5RTqgZOQ1YqRPCLbo1EGXKbGCZ6F2No8KHep2si
-rIRA4BLuhM6rz7vVGaRwYN2C5I3Kw6xSI1JWZSNqm4nrEvpMruw=
-=ztgU
------END PGP SIGNATURE-----
-
---dkEUBIird37B8yKS--
+-- 
+Sinan Kaya
+Qualcomm Datacenter Technologies, Inc. as an affiliate of Qualcomm Technologies, Inc.
+Qualcomm Technologies, Inc. is a member of the Code Aurora Forum, a Linux Foundation Collaborative Project.
