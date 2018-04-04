@@ -1,71 +1,94 @@
 From: Sinan Kaya <okaya@codeaurora.org>
-Subject: [PATCH v3 5/5] io: change inX() to have their own IO barrier overrides
-Date: Wed,  4 Apr 2018 19:58:20 -0400
-Message-ID: <1522886301-25955-5-git-send-email-okaya@codeaurora.org>
-References: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
+Subject: [PATCH v3 1/5] io: define several IO & PIO barrier types for the asm-generic version
+Date: Wed,  4 Apr 2018 19:58:16 -0400
+Message-ID: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org
 Cc: linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Sinan Kaya <okaya@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Open code readX() inside inX() so that inX() variants have their own
-overrideable Port IO barrier combinations as __io_pbr() and __io_par() for
-actions to be taken before port IO and after port IO read.
+Getting ready to harden readX()/writeX() and inX()/outX() semantics for the
+generic implementation.
+
+Defining two set of macros as __io_br() and __io_ar() to indicate actions
+to be taken before and after MMIO read.
+
+Defining two set of macros as __io_bw() and __io_aw() to indicate actions
+to be taken before and after MMIO write.
+
+Defining two set of macros as __io_pbw() and __io_paw() to indicate actions
+to be taken before and after Port IO write.
+
+Defining two set of macros as __io_pbr() and __io_par() to indicate actions
+to be taken before and after Port IO read.
+
+If rmb() is available for the architecture, prefer rmb() as the default
+implementation of __io_ar()/__io_par().
+
+If wmb() is available for the architecture, prefer wmb() as the default
+implementation of __io_bw()/__io_pbw().
 
 Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
 ---
- include/asm-generic/io.h | 21 ++++++++++++++++++---
- 1 file changed, 18 insertions(+), 3 deletions(-)
+ include/asm-generic/io.h | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 43 insertions(+)
 
 diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 38a96d1..da51092 100644
+index b4531e3..a3d349e 100644
 --- a/include/asm-generic/io.h
 +++ b/include/asm-generic/io.h
-@@ -432,7 +432,12 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define inb inb
- static inline u8 inb(unsigned long addr)
- {
--	return readb(PCI_IOBASE + addr);
-+	u8 val;
-+
-+	__io_pbr();
-+	val = __raw_readb(PCI_IOBASE + addr);
-+	__io_par();
-+	return val;
- }
+@@ -25,6 +25,49 @@
+ #define mmiowb() do {} while (0)
  #endif
  
-@@ -440,7 +445,12 @@ static inline u8 inb(unsigned long addr)
- #define inw inw
- static inline u16 inw(unsigned long addr)
- {
--	return readw(PCI_IOBASE + addr);
-+	u16 val;
++#ifndef __io_br
++#define __io_br()      barrier()
++#endif
 +
-+	__io_pbr();
-+	val = __le16_to_cpu(__raw_readw(PCI_IOBASE + addr));
-+	__io_par();
-+	return val;
- }
- #endif
- 
-@@ -448,7 +458,12 @@ static inline u16 inw(unsigned long addr)
- #define inl inl
- static inline u32 inl(unsigned long addr)
- {
--	return readl(PCI_IOBASE + addr);
-+	u32 val;
++#ifndef __io_ar
++#ifdef rmb
++/* prefer rmb() as the default implementation of __io_ar() if supported */
++#define __io_ar()      rmb()
++#else
++#define __io_ar()      barrier()
++#endif
++#endif
 +
-+	__io_pbr();
-+	val = __le32_to_cpu(__raw_readl(PCI_IOBASE + addr));
-+	__io_par();
-+	return val;
- }
- #endif
- 
++#ifndef __io_bw
++#ifdef wmb
++/* prefer wmb() as the default implementation of __io_bw() if supported */
++#define __io_bw()      wmb()
++#else
++#define __io_bw()      barrier()
++#endif
++#endif
++
++#ifndef __io_aw
++#define __io_aw()      barrier()
++#endif
++
++#ifndef __io_pbw
++#define __io_pbw()     __io_bw()
++#endif
++
++#ifndef __io_paw
++#define __io_paw()     __io_aw()
++#endif
++
++#ifndef __io_pbr
++#define __io_pbr()     __io_br()
++#endif
++
++#ifndef __io_par
++#define __io_par()     __io_ar()
++#endif
++
++
+ /*
+  * __raw_{read,write}{b,w,l,q}() access memory in native endianness.
+  *
 -- 
 2.7.4
