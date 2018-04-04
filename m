@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:41554 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:58382 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751994AbeDDP5h (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Apr 2018 11:57:37 -0400
+        with ESMTP id S1750915AbeDDRsi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Apr 2018 13:48:38 -0400
 Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
  readX() implementation
 References: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
  <691b903c-e97d-0a25-28c5-690318bb215a@codeaurora.org>
  <CAK8P3a2pGQb7TqQtuw0ZpQ=8CwXiRmRKKc1GwvEgKDgofxJ3nA@mail.gmail.com>
 From: Sinan Kaya <okaya@codeaurora.org>
-Message-ID: <1a66f95c-47f1-1017-3834-c20ed67e6de4@codeaurora.org>
-Date: Wed, 4 Apr 2018 11:57:34 -0400
+Message-ID: <9b0d7db3-0830-9661-6dc8-39523daa8f32@codeaurora.org>
+Date: Wed, 4 Apr 2018 13:48:35 -0400
 MIME-Version: 1.0
 In-Reply-To: <CAK8P3a2pGQb7TqQtuw0ZpQ=8CwXiRmRKKc1GwvEgKDgofxJ3nA@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
@@ -20,44 +20,17 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Palmer Dabbelt <palmer@sifive.com>, Mark Rutland <mark.rutland@arm.com>, Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20180404155734.MZdmQEfk0wkJlyrR4jNCI6dbrNv3wNrAf0Oc5QY-GUU@z>
+Message-ID: <20180404174835.qOJpxCt2qNC0WOKbS1m569oyNFg_yRhfdhzbxJzzm3U@z>
 
 On 4/4/2018 11:55 AM, Arnd Bergmann wrote:
-> On Wed, Apr 4, 2018 at 5:52 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
->> On 4/3/2018 6:29 PM, Palmer Dabbelt wrote:
->>>
->>
->> Are we looking for something like this?
-> 
 > Yes, exactly, plus the same for write and in/out of course.
-> 
 
-OK. I just wanted to double check first.
+I was looking at this...
 
->> diff --git a/inc
->>  #ifndef readb
->>  #define readb readb
->> -static inline u8 readb(const volatile void __iomem *addr)
->> -{
->> -       return __raw_readb(addr);
->> -}
->> +#define readb(c)                               \
->> +       ({ u8  __v;                             \
->> +        __io_br();                             \
->> +        __v = __raw_readb(c);                  \
->> +        __io_ar();                             \
->> +        __v; })
->>  #endif
-> 
-> I would prefer leaving these as inline functions, but that's only
-> a cosmetic difference.
+inb() and outb() seem to be calling writeb(). It gets the wmb/barrier automatically
+when we fix writeb().
 
-sure, I'll leave these as inline functions.
-
-> 
->        Arnd
-> 
-
+Did I miss something?
 
 -- 
 Sinan Kaya
