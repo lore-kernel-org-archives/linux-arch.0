@@ -1,93 +1,74 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC PATCH 0/3] Documentation/features: Provide and apply
- "features-refresh.sh"
-Date: Wed, 4 Apr 2018 06:56:32 +0200
-Message-ID: <20180404045632.uniwfrl32bjmsn5g@gmail.com>
-References: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [GIT PULL] arch: remove obsolete architecture ports
+Date: Wed, 4 Apr 2018 10:01:42 +0200
+Message-ID: <20180404080142.GC9342@amd>
+References: <CAK8P3a0q70FYtBaCcsBPejVULgsbJPwUG7QmrkU9NJpr7oTzpQ@mail.gmail.com>
+ <CA+55aFzmQ9specaytsjEb=iNm-NHE5kxMSy_H_jKvqZa4-Fomw@mail.gmail.com>
+ <CAK8P3a2pdmLOHb2wkPVvqLDo71Rf3hLVfhG7vsMzaPD-DMEzSg@mail.gmail.com>
+ <CAMuHMdVZg8BL7D2eB-FnDbJabU3sfda6nOnaCdJj-3OC-+KP0g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="UFHRwCdBEJvubb2X"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
+In-Reply-To: <CAMuHMdVZg8BL7D2eB-FnDbJabU3sfda6nOnaCdJj-3OC-+KP0g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, James Hogan <jhogan@kernel.org>, David Howells <dhowells@redhat.com>, "moderated list:PANASONIC MN10300..." <linux-am33-list@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Lennox Wu <lennox.wu@gmail.com>, Aaron Wu <Aaron.Wu@analog.com>, Bryan Wu <cooloney@gmail.com>, Chris Metcalf <chris.d.metcalf@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>
 List-Id: linux-arch.vger.kernel.org
 
 
-* Andrea Parri <andrea.parri@amarulasolutions.com> wrote:
+--UFHRwCdBEJvubb2X
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> In Ingo's words [1]:
-> 
->   "[...]  what should be done instead is to write a script that refreshes
->    all the arch-support.txt files in-place. [...]
-> 
->    It's OK for the script to have various quirks for weirdly implemented
->    features and exceptions: i.e. basically whenever it gets a feature wrong,
->    we can just tweak the script with quirks to make it all work out of box.
-> 
->    [...]  But in the end there should only be a single new script:
-> 
->      Documentation/features/scripts/features-refresh.sh
-> 
->    ... which operates on the arch-support.txt files and refreshes them in
->    place, and which, after all the refreshes have been committed, should
->    produce an empty 'git diff' result."
-> 
->   "[...]  New features can then be added by basically just creating a
->    header-only arch-support.txt file, such as:
-> 
->      triton:~/tip/Documentation/features> cat foo/bar/arch-support.txt
->      #
->      # Feature name:          shiny new fubar kernel feature
->      #         Kconfig:       ARCH_USE_FUBAR
->      #         description:   arch supports the fubar feature
->      #
-> 
->    And running Documentation/features/scripts/features-refresh.sh would
->    auto-generate the arch support matrix. [...]
->  
->    This way we soft- decouple the refreshing of the entries from the
->    introduction of the features, while still making it all easy to keep
->    sync and to extend."
-> 
-> This RFC presents a first attempt to implement such a feature/script, and
-> applies it script on top of Arnd's:
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git arch-removal
-> 
-> Patch 1/3 provides the "features-refresh.sh" script.  Patch 2/3 removes the
-> "BPF-JIT" feature file and it creates header-only files for "cBPF-JIT" and
-> "eBPF-JIT".  Patch 3/3 presents the results of running the script; this run
-> also printed to standard output the following warnings:
-> 
->   WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
->   WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
->   WARNING: '!ARCH_USES_GETTIMEOFFSET' is not a valid Kconfig
->   WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
-> 
-> (I'm sending these patches with empty commit messagges, for early feedback:
->  I'll fill in these messages in subsequent versions if this makes sense...)
-> 
-> Cheers,
->   Andrea
-> 
-> Andrea Parri (3):
->   Documentation/features: Add script that refreshes the arch support status files in place
->   Documentation/features/core: Add arch support status files for 'cBPF-JIT' and 'eBPF-JIT'
->   Documentation/features: Refresh and auto-generate the arch support status files in place
+On Tue 2018-04-03 11:18:15, Geert Uytterhoeven wrote:
+> On Mon, Apr 2, 2018 at 9:54 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Mon, Apr 2, 2018 at 8:57 PM, Linus Torvalds
+> > <torvalds@linux-foundation.org> wrote:
+> > Regarding a possible revert, that would indeed involve reverting
+> > multiple patches for most architectures, plus parts of at least these
+> > three:
+> >
+> >   Documentation: arch-support: remove obsolete architectures
+> >   treewide: simplify Kconfig dependencies for removed archs
+> >   ktest: remove obsolete architectures
+> >
+> > For those, I went the other way, and removed all architectures at
+> > once to simplify my work and to avoid touching the same files up
+> > to eight times with interdependent patches (which couldn't
+> > be reverted without conflicts either).
+> >
+> > There are a couple of driver removal patches that got picked up
+> > into subsystem trees instead of this tree, so a full revert would also
+> > involve finding other drivers, but if you prefer to have the patches
+> > completely split up by arch, I could rework the series that way.
+>=20
+> In reality, a resurrection may not be implemented as a pure revert, but as
+> the addition of a new architecture, implemented using modern features (DT,
+> CCF, ...).
 
-Ok, this series is really impressive at its RFC stage already!
+By insisting on new features instead of pure revert + incremental
+updates, you pretty much make sure resurection will not be possible
+:-(.
 
-Beyond fixing those warnings, I'd also suggest another change: please make the 
-new BPF features patch the last one, so that the 'refresh' patch shows how much 
-original bit-rot we gathered recently.
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
 
-The 'new features' patch should then also include the result of also running the 
-script, i.e. a single patch adding the base fields and the generated parts as 
-well. That will be the usual development flow anyway - people won't do two-part 
-patches just to show which bits are by hand and which are auto-generated.
+--UFHRwCdBEJvubb2X
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-Thanks,
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
 
-	Ingo
+iEYEARECAAYFAlrEhmYACgkQMOfwapXb+vKWKACdFSdjPnYHqBYoogKNbLV6gu66
+znIAn1yoUxRUhPZkbsUDtB7rZqLNIBhI
+=Sq8X
+-----END PGP SIGNATURE-----
+
+--UFHRwCdBEJvubb2X--
