@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:35512 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:35598 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752484AbeDDX62 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Apr 2018 19:58:28 -0400
+        with ESMTP id S1752630AbeDDX6a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Apr 2018 19:58:30 -0400
 From: Sinan Kaya <okaya@codeaurora.org>
-Subject: [PATCH v3 2/5] io: define stronger ordering for the default readX() implementation
-Date: Wed,  4 Apr 2018 19:58:17 -0400
-Message-ID: <1522886301-25955-2-git-send-email-okaya@codeaurora.org>
+Subject: [PATCH v3 4/5] io: change outX() to have their own IO barrier overrides
+Date: Wed,  4 Apr 2018 19:58:19 -0400
+Message-ID: <1522886301-25955-4-git-send-email-okaya@codeaurora.org>
 In-Reply-To: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
 References: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
 MIME-Version: 1.0
@@ -15,79 +15,53 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org
 Cc: linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Sinan Kaya <okaya@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180404235817.EsxnG-mzkxLLeFqWdtqvAm6Hefj2cYa2qOybcbn3ods@z>
+Message-ID: <20180404235819.SdrDJ-xgPklEfi4GolOwLfphOx6FCxHHd7tptMm8hdQ@z>
 
-The default implementation of mapping readX() to __raw_readX() is wrong.
-readX() has stronger ordering semantics. Compiler is allowed to reorder
-__raw_readX() against the memory accesses following register read.
-
-Use the previously defined __io_ar() and __io_br() macros to harden
-code generation according to architecture support.
+Open code writeX() inside outX() so that outX() variants have their own
+overrideable Port IO barrier combinations as __io_pbw() and __io_paw() for
+actions to be taken before port IO and after port IO write.
 
 Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
 ---
- include/asm-generic/io.h | 28 ++++++++++++++++++++++++----
- 1 file changed, 24 insertions(+), 4 deletions(-)
+ include/asm-generic/io.h | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index a3d349e..fc554af 100644
+index ca268d9..38a96d1 100644
 --- a/include/asm-generic/io.h
 +++ b/include/asm-generic/io.h
-@@ -153,7 +153,12 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
- #define readb readb
- static inline u8 readb(const volatile void __iomem *addr)
+@@ -456,7 +456,9 @@ static inline u32 inl(unsigned long addr)
+ #define outb outb
+ static inline void outb(u8 value, unsigned long addr)
  {
--	return __raw_readb(addr);
-+	u8 val;
-+
-+	__io_br();
-+	val = __raw_readb(addr);
-+	__io_ar();
-+	return val;
+-	writeb(value, PCI_IOBASE + addr);
++	__io_pbw();
++	__raw_writeb(value, PCI_IOBASE + addr);
++	__io_paw();
  }
  #endif
  
-@@ -161,7 +166,12 @@ static inline u8 readb(const volatile void __iomem *addr)
- #define readw readw
- static inline u16 readw(const volatile void __iomem *addr)
+@@ -464,7 +466,9 @@ static inline void outb(u8 value, unsigned long addr)
+ #define outw outw
+ static inline void outw(u16 value, unsigned long addr)
  {
--	return __le16_to_cpu(__raw_readw(addr));
-+	u16 val;
-+
-+	__io_br();
-+	val = __le16_to_cpu(__raw_readw(addr));
-+	__io_ar();
-+	return val;
+-	writew(value, PCI_IOBASE + addr);
++	__io_pbw();
++	__raw_writew(cpu_to_le16(value), PCI_IOBASE + addr);
++	__io_paw();
  }
  #endif
  
-@@ -169,7 +179,12 @@ static inline u16 readw(const volatile void __iomem *addr)
- #define readl readl
- static inline u32 readl(const volatile void __iomem *addr)
+@@ -472,7 +476,9 @@ static inline void outw(u16 value, unsigned long addr)
+ #define outl outl
+ static inline void outl(u32 value, unsigned long addr)
  {
--	return __le32_to_cpu(__raw_readl(addr));
-+	u32 val;
-+
-+	__io_br();
-+	val = __le32_to_cpu(__raw_readl(addr));
-+	__io_ar();
-+	return val;
+-	writel(value, PCI_IOBASE + addr);
++	__io_pbw();
++	__raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
++	__io_paw();
  }
  #endif
  
-@@ -178,7 +193,12 @@ static inline u32 readl(const volatile void __iomem *addr)
- #define readq readq
- static inline u64 readq(const volatile void __iomem *addr)
- {
--	return __le64_to_cpu(__raw_readq(addr));
-+	u64 val;
-+
-+	__io_br();
-+	val = __le64_to_cpu(__raw_readq(addr));
-+	__io_ar();
-+	return val;
- }
- #endif
- #endif /* CONFIG_64BIT */
 -- 
 2.7.4
