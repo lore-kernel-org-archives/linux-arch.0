@@ -1,60 +1,72 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
- readX() implementation
-Date: Wed, 4 Apr 2018 21:50:29 +0200
-Message-ID: <CAK8P3a2Cg59cTzUq2_8sopeY9BktM7a6_4nunMJVA5fQFaVLug@mail.gmail.com>
-References: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
- <691b903c-e97d-0a25-28c5-690318bb215a@codeaurora.org> <CAK8P3a2pGQb7TqQtuw0ZpQ=8CwXiRmRKKc1GwvEgKDgofxJ3nA@mail.gmail.com>
- <9b0d7db3-0830-9661-6dc8-39523daa8f32@codeaurora.org>
+From: Sinan Kaya <okaya@codeaurora.org>
+Subject: [PATCH v3 3/5] io: define stronger ordering for the default writeX() implementation
+Date: Wed,  4 Apr 2018 19:58:18 -0400
+Message-ID: <1522886301-25955-3-git-send-email-okaya@codeaurora.org>
+References: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <9b0d7db3-0830-9661-6dc8-39523daa8f32@codeaurora.org>
+In-Reply-To: <1522886301-25955-1-git-send-email-okaya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sinan Kaya <okaya@codeaurora.org>
-Cc: Palmer Dabbelt <palmer@sifive.com>, Mark Rutland <mark.rutland@arm.com>, Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org
+Cc: linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Sinan Kaya <okaya@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 4, 2018 at 7:48 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
-> On 4/4/2018 11:55 AM, Arnd Bergmann wrote:
->> Yes, exactly, plus the same for write and in/out of course.
->
-> I was looking at this...
->
-> inb() and outb() seem to be calling writeb(). It gets the wmb/barrier automatically
-> when we fix writeb().
->
-> Did I miss something?
+The default implementation of mapping writeX() to __raw_writeX() is wrong.
+writeX() has stronger ordering semantics. Compiler is allowed to reorder
+memory writes against __raw_writeX().
 
-At least outb() needs stricter barriers than writeb() in theory, what
-we want here
-is that outb() has not just made it out to the device but that the
-write has been
-confirmed completed by the device. Some architectures can't do it, but those
-that can should have an easy way to hook into that using a separate set of
-barriers.
+Use the previously defined __io_aw() and __io_bw() macros to harden
+code generation according to architecture support.
 
-Using the riscv barrier names, we could do this like
+Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
+---
+ include/asm-generic/io.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-#ifndef __io_bw()
-#define __io_bw()      wmb()
-#endif
-
-#ifndef __io_aw
-#define __io_aw()      barrier()
-#endif
-
-#ifndef __io_pbw
-#define __io_pbw()     __io_bw()
-#endif
-
-#ifndef __io_paw
-#define __io_paw()     __io_aw()
-#endif
-
-and the same thing for reads. This way, an architecture could override
-any of those, but still get reasonable defaults for the others.
-For __io_bw(), I picked barrier() instead of do {} while (0), no idea
-if that's any better, I just play safe here.
-
-     Arnd
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index fc554af..ca268d9 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -207,7 +207,9 @@ static inline u64 readq(const volatile void __iomem *addr)
+ #define writeb writeb
+ static inline void writeb(u8 value, volatile void __iomem *addr)
+ {
++	__io_bw();
+ 	__raw_writeb(value, addr);
++	__io_aw();
+ }
+ #endif
+ 
+@@ -215,7 +217,9 @@ static inline void writeb(u8 value, volatile void __iomem *addr)
+ #define writew writew
+ static inline void writew(u16 value, volatile void __iomem *addr)
+ {
++	__io_bw();
+ 	__raw_writew(cpu_to_le16(value), addr);
++	__io_aw();
+ }
+ #endif
+ 
+@@ -223,7 +227,9 @@ static inline void writew(u16 value, volatile void __iomem *addr)
+ #define writel writel
+ static inline void writel(u32 value, volatile void __iomem *addr)
+ {
++	__io_bw();
+ 	__raw_writel(__cpu_to_le32(value), addr);
++	__io_aw();
+ }
+ #endif
+ 
+@@ -232,7 +238,9 @@ static inline void writel(u32 value, volatile void __iomem *addr)
+ #define writeq writeq
+ static inline void writeq(u64 value, volatile void __iomem *addr)
+ {
++	__io_bw();
+ 	__raw_writeq(__cpu_to_le64(value), addr);
++	__io_aw();
+ }
+ #endif
+ #endif /* CONFIG_64BIT */
+-- 
+2.7.4
