@@ -1,124 +1,146 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH] ARC: Improve cmpxchng syscall implementation
-Date: Wed, 4 Apr 2018 08:56:13 +0000
-Message-ID: <1522832172.4851.7.camel@synopsys.com>
-References: <20180319110002.27419-1-abrodkin@synopsys.com>
-         <5bc39838-b1c5-ef65-f97d-8777ed33bda0@synopsys.com>
-         <1521633274.9805.30.camel@synopsys.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v15 0/9] Add io{read|write}64 to io-64-atomic headers
+Date: Wed, 04 Apr 2018 20:38:16 +1000
+Message-ID: <87r2nvmf3b.fsf@concordia.ellerman.id.au>
+References: <20180327230834.5931-1-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521633274.9805.30.camel@synopsys.com>
-Content-Language: en-US
-Content-ID: <C5DC4CC0C9F18446860494BECE814167@internal.synopsys.com>
+In-Reply-To: <20180327230834.5931-1-logang@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "peterz@infradead.org" <peterz@infradead.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "wbx@uclibc-ng.org" <wbx@uclibc-ng.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, akpm@linux-foundation.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgVmluZWV0LCBQZXRlciwNCg0KT24gV2VkLCAyMDE4LTAzLTIxIGF0IDE0OjU0ICswMzAwLCBB
-bGV4ZXkgQnJvZGtpbiB3cm90ZToNCj4gSGkgVmluZWV0LA0KPiANCj4gT24gTW9uLCAyMDE4LTAz
-LTE5IGF0IDExOjI5IC0wNzAwLCBWaW5lZXQgR3VwdGEgd3JvdGU6DQo+ID4gT24gMDMvMTkvMjAx
-OCAwNDowMCBBTSwgQWxleGV5IEJyb2RraW4gd3JvdGU6DQo+ID4gPiBhcmNfdXNyX2NtcHhjaGcg
-c3lzY2FsbCBpcyBzdXBwb3NlZCB0byBiZSB1c2VkIG9uIHBsYXRmb3Jtcw0KPiA+ID4gdGhhdCBs
-YWNrIHN1cHBvcnQgb2YgTG9hZC1Mb2NrZWQvU3RvcmUtQ29uZGl0aW9uYWwgaW5zdHJ1Y3Rpb25z
-DQo+ID4gPiBpbiBoYXJkd2FyZS4gQW5kIGluIHRoYXQgY2FzZSB3ZSBtaW1pYyBtaXNzaW5nIGhh
-cmR3YXJlIGZlYXR1cmVzDQo+ID4gPiB3aXRoIGhlbHAgb2Yga2VybmVsJ3Mgc3ljYWxsIHRoYXQg
-ImF0b21pY2FsbHkiIGNoZWNrcyBjdXJyZW50DQo+ID4gPiB2YWx1ZSBpbiBtZW1vcnkgYW5kIHRo
-ZW4gaWYgaXQgbWF0Y2hlcyBjYWxsZXIgZXhwZWN0YXRpb24gbmV3DQo+ID4gPiB2YWx1ZSBpcyB3
-cml0dGVuIHRvIHRoYXQgc2FtZSBsb2NhdGlvbi4NCj4gPiA+IA0KPiA+IA0KPiA+IC4uLg0KPiA+
-IC4uLg0KPiA+IA0KPiA+ID4gDQo+ID4gPiAyLiBXaGF0J3Mgd29yc2UgaWYgd2UncmUgZGVhbGlu
-ZyB3aXRoIGRhdGEgZnJvbSBub3QgeWV0IGFsbG9jYXRlZA0KPiA+ID4gICAgIHBhZ2UgKHRoaW5r
-IG9mIHByZS1jb3B5LW9uLXdyaXRlIHN0YXRlKSB3ZSdsbCBzdWNjZXNzZnVsbHkNCj4gPiA+ICAg
-ICByZWFkIGRhdGEgYnV0IG9uIHdyaXRlIHdlJ2xsIHNpbGVudGx5IHJldHVybiB0byB1c2VyLXNw
-YWNlDQo+ID4gPiAgICAgd2l0aCBjb3JyZWN0IHJlc3VsdCANCj4gPiANCj4gPiBUaGlzIGlzIHRl
-Y2huaWNhbGx5IGluY29ycmVjdCwgZXZlbiBmb3IgcmVhZGluZywgeW91IG5lZWQgYSBwYWdlLCB3
-aGljaCBjb3VsZCBiZSANCj4gPiBjb21tb24gemVybyBwYWdlIGluIGNlcnRhaW4gY2FzZXMuDQo+
-IA0KPiBPayBJJ2xsIHJld29yZCBpdCBsaWtlLg0KPiANCj4gPiANCj4gPiAod2hpY2ggd2UgcmVh
-bGx5IHJlYWQganVzdCBiZWZvcmUpLiBUaGF0IGxlYWRzDQo+ID4gPiAgICAgdG8gdmVyeSBzdHJh
-bmdlIHByb2JsZW1zIGluIHVzZXItc3BhY2UgYXBwIGZ1cnRoZXIgZG93biB0aGUgbGluZQ0KPiA+
-ID4gICAgIGJlY2F1c2UgbmV3IHZhbHVlIHdhcyBuZXZlciB3cml0dGVuIHRvIHRoZSBkZXN0aW5h
-dGlvbi4NCj4gPiA+IA0KPiA+ID4gMy4gUmVnYXJkbGVzcyBvZiB3aGF0IHdlbnQgd3Jvbmcgd2Un
-bGwgcmV0dXJuIGZyb20gc3lzY2FsbA0KPiA+ID4gICAgIGFuZCB1c2VyLXNwYWNlIGFwcGxpY2F0
-aW9uIHdpbGwgY29udGludWUgdG8gZXhlY3V0ZS4NCj4gPiA+ICAgICBFdmVuIGlmIHVzZXIncyBw
-b2ludGVyIHdhcyBjb21wbGV0ZWx5IGJvZ3VzLg0KPiA+IA0KPiA+IEFnYWluIHdlIGFyZSBleGFn
-Z2VyYXRpbmcgKGZyb20gdGVjaG5pY2FsIGNvcnJlY3RuZXNzIFBPVikgLSBpZiB1c2VyIHBvaW50
-ZXIgd2FzIA0KPiA+IGJvZ3MsIHRoZSByZWFkIHdvdWxkIG5vdCBoYXZlIHdvcmtlZCBpbiBmaXJz
-dCBwbGFjZSBldGMuIFNvIGxldHMgdG9uZSBkb3duIHRoZSANCj4gPiByaGV0b3JpYy4NCj4gDQo+
-IE9rIGhlcmUgSSBtYXkgcmVwaHJhc2UgaXQgbGlrZSB0aGF0Og0KPiAtLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiAzLiBSZWdh
-cmRsZXNzIG9mIHdoYXQgd2VudCB3cm9uZyB3ZSdsbCByZXR1cm4gZnJvbSBzeXNjYWxsDQo+ICAg
-IGFuZCB1c2VyLXNwYWNlIGFwcGxpY2F0aW9uIHdpbGwgY29udGludWUgdG8gZXhlY3V0ZS4NCj4g
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0NCj4gDQo+ID4gDQo+ID4gPiAgICAgSW4gY2FzZSBvZiBoYXJkd2FyZSBMTC9TQyB0aGF0
-IGFwcCB3b3VsZCBoYXZlIGJlZW4ga2lsbGVkDQo+ID4gPiAgICAgYnkgdGhlIGtlcm5lbC4NCj4g
-PiA+IA0KPiA+ID4gV2l0aCB0aGF0IGNoYW5nZSB3ZSBhdHRlbXB0IHRvIGltcm92ZSBvbiBhbGwg
-MyBpdGVtcyBhYm92ZToNCj4gPiA+IA0KPiA+ID4gMS4gV2Ugc3RpbGwgZGlzYWJsZSBwcmVlbXB0
-aW9uIGFyb3VuZCByZWFkLWFuZC13cml0ZSBvZg0KPiA+ID4gICAgIHVzZXIncyBkYXRhIGJ1dCBp
-ZiB3ZSBoYXBwZW4gdG8gZmFpbCB3aXRoIGVpdGhlciBvZiB0aGVtDQo+ID4gPiAgICAgd2UncmUg
-ZW5hYmxpbmcgcHJlZW1wdGlvbiBhbmQgdHJ5IHRvIGZvcmNlIHBhZ2UgZmF1bHQgc28NCj4gPiA+
-ICAgICB0aGF0IHdlIGhhdmUgYSBjb3JyZWN0IG1hcHBpbmcgaW4gdGhlIFRMQi4gVGhlbiByZS10
-cnkNCj4gPiA+ICAgICBhZ2FpbiBpbiAiYXRvbWljIiBjb250ZXh0Lg0KPiA+ID4gDQo+ID4gPiAy
-LiBJZiByZWFsIHBhZ2UgZmF1bHQgZmFpbHMgb3IgZXZlbiBhY2Nlc3Nfb2soKSByZXR1cm5zIGZh
-bHNlDQo+ID4gPiAgICAgd2Ugc2VuZCBTSUdTRUdWIHRvIHRoZSB1c2VyLXNwYWNlIHByb2Nlc3Mg
-c28gaWYgc29tZXRoaW5nIGdvZXMNCj4gPiA+ICAgICBzZXJpb3VzbHkgd3Jvbmcgd2UnbGwga25v
-dyBhYm91dCBpdCBtdWNoIGVhcmxpZXIuDQo+ID4gPiANCj4gPiANCj4gPiANCj4gPiA+ICAgDQo+
-ID4gPiAgIAkvKg0KPiA+ID4gICAJICogVGhpcyBpcyBvbmx5IGZvciBvbGQgY29yZXMgbGFja2lu
-ZyBMTE9DSy9TQ09ORCwgd2hpY2ggYnkgZGVmaW50aW9uDQo+ID4gPiBAQCAtNjAsMjMgKzYyLDQ4
-IEBAIFNZU0NBTExfREVGSU5FMyhhcmNfdXNyX2NtcHhjaGcsIGludCAqLCB1YWRkciwgaW50LCBl
-eHBlY3RlZCwgaW50LCBuZXcpDQo+ID4gPiAgIAkvKiBaIGluZGljYXRlcyB0byB1c2Vyc3BhY2Ug
-aWYgb3BlcmF0aW9uIHN1Y2NlZGVkICovDQo+ID4gPiAgIAlyZWdzLT5zdGF0dXMzMiAmPSB+U1RB
-VFVTX1pfTUFTSzsNCj4gPiA+ICAgDQo+ID4gPiAtCWlmICghYWNjZXNzX29rKFZFUklGWV9XUklU
-RSwgdWFkZHIsIHNpemVvZihpbnQpKSkNCj4gPiA+IC0JCXJldHVybiAtRUZBVUxUOw0KPiA+ID4g
-KwlyZXQgPSBhY2Nlc3Nfb2soVkVSSUZZX1dSSVRFLCB1YWRkciwgc2l6ZW9mKCp1YWRkcikpOw0K
-PiA+ID4gKwlpZiAoIXJldCkNCj4gPiA+ICsJCWdvdG8gZmFpbDsNCj4gPiA+ICAgDQo+ID4gPiAr
-YWdhaW46DQo+ID4gPiAgIAlwcmVlbXB0X2Rpc2FibGUoKTsNCj4gPiA+ICAgDQo+ID4gPiAtCWlm
-IChfX2dldF91c2VyKHV2YWwsIHVhZGRyKSkNCj4gPiA+IC0JCWdvdG8gZG9uZTsNCj4gPiA+IC0N
-Cj4gPiA+IC0JaWYgKHV2YWwgPT0gZXhwZWN0ZWQpIHsNCj4gPiA+IC0JCWlmICghX19wdXRfdXNl
-cihuZXcsIHVhZGRyKSkNCj4gPiA+ICsJcmV0ID0gX19nZXRfdXNlcih2YWwsIHVhZGRyKTsNCj4g
-PiA+ICsJaWYgKHJldCA9PSAtRUZBVUxUKSB7DQo+ID4gDQo+ID4gDQo+ID4gTGV0cyBzZWUgaWYg
-dGhpcyB3YXJyYW50cyBhZGRpbmcgY29tcGxleGl0eSAhIFRoaXMgaW1wbGllcyB0aGF0IFRMQiBl
-bnRyeSB3aXRoIA0KPiA+IFJlYWQgcGVybWlzc2lvbnMgZGlkbid0IGV4aXN0IGZvciByZWFkaW5n
-IHRoZSB2YXIgYW5kIHBhZ2UgZmF1bHQgaGFuZGxlciBjb3VsZCBub3QgDQo+ID4gd2lyZSB1cCBl
-dmVuIGEgemVybyBwYWdlIGR1ZSB0byBwcmVlbXB0X2Rpc2FibGUsIG1lYW5pbmcgaXQgd2FzIHNv
-bWV0aGluZyBub3QgDQo+ID4gdG91Y2hlZCBieSB1c2Vyc3BhY2UgYWxyZWFkeSAtIHNvcnQgb2Yg
-dW5pbml0aWFsaXplZCB2YXJpYWJsZSBpbiB1c2VyIGNvZGUuDQo+IA0KPiBPayBJIGNvbXBsZXRl
-bHkgbWlzc2VkIHRoZSBmYWN0IHRoYXQgZmFzdCBwYXRoIFRMQiBtaXNzIGhhbmRsZXIgaXMgYmVp
-bmcNCj4gZXhlY3V0ZWQgZXZlbiBpZiB3ZSBoYXZlIHByZWVtcHRpb24gZGlzYWJsZWQuIFNvIGdp
-dmVuIHRoZSBtYXBwaW5nIGV4aXN0DQo+IHdlIGRvIG5vdCBuZWVkIHRvIHJldHJ5IHdpdGggZW5h
-YmxlZCBwcmVlbXB0aW9uLg0KPiANCj4gU3RpbGwgbWF5YmUgSSdtIGEgYml0IHBhcmFub2lkIGhl
-cmUgYnV0IElNSE8gaXQncyBnb29kIHRvIGJlIHJlYWR5IGZvciBhIGNvcm5lci1jYXNlDQo+IHdo
-ZW4gdGhlIHBvaW50ZXIgaXMgY29tcGxldGVseSBib2d1cyBhbmQgdGhlcmUncyBubyBtYXBwaW5n
-IGZvciBoaW0uDQo+IEkgdW5kZXJzdGFuZCB0aGF0IHRvZGF5IHdlIG9ubHkgZXhwZWN0IHRoaXMg
-c3lzY2FsbCB0byBiZSB1c2VkIGZyb20gbGliYydzDQo+IGludGVybmFscyBidXQgYXMgbG9uZyBh
-cyBzeXNjYWxsIGV4aXN0cyBub2JvZHkgc3RvcHMgYW55Ym9keSBmcm9tIHVzaW5nIGl0DQo+IGRp
-cmVjdGx5IHdpdGhvdXQgbGliYy4gU28gbWF5YmUgaW5zdGVhZCBvZiBkb2luZyBnZXRfdXNlcl9w
-YWdlc19mYXN0KCkganVzdA0KPiBzZW5kIGEgU0lHU0VHViB0byB0aGUgcHJvY2Vzcz8gQXQgbGVh
-c3QgdXNlciB3aWxsIHJlYWxpemUgdGhlcmUncyBzb21lIHByb2JsZW0NCj4gYXQgZWFybGllciBz
-dGFnZS4NCj4gDQo+ID4gT3RoZXJ3aXNlIGl0IGlzIGV4dHJlbWVseSB1bmxpa2VseSB0byBzdGFy
-dCB3aXRoIGEgVExCIGVudHJ5IHdpdGggUmVhZCANCj4gPiBwZXJtaXNzaW9ucywgZm9sbG93ZWQg
-Ynkgc3lzY2FsbCBUcmFwIG9ubHkgdG8gZmluZCB0aGUgZW50cnkgbWlzc2luZywgdW5sZXNzIGEg
-DQo+ID4gZ2xvYmFsIFRMQiBmbHVzaCBjYW1lIGZyb20gb3RoZXIgY29yZXMsIHJpZ2h0IGluIHRo
-ZSBtaWRkbGUuIEJ1dCB0aGlzIHN5c2NhbGwgaXMgDQo+ID4gbm90IGd1YXJhbnRlZWQgdG8gd29y
-ayB3aXRoIFNNUCBhbnl3YXlzLCBzbyBsZXRzIGlnbm9yZSBhbnkgU01QIG1pc2RvaW5ncyBoZXJl
-Lg0KPiANCj4gV2VsbCBidXQgdGhhdCdzIGV4YWN0bHkgdGhlIHNpdHVhdGlvbiBJIHdhcyBkZWJ1
-Z2dpbmc6IHdlIHN0YXJ0IGZyb20gZGF0YSBmcm9tIHJlYWQtb25seQ0KPiBwYWdlIGFuZCBvbiBh
-dHRlbXB0IHRvIHdyaXRlIGJhY2sgbW9kaWZpZWQgdmFsdWUgQ09XIG1hY2hpbmVyeSBnZXRzIGlu
-dm9sdmVkLg0KPiANCj4gVGhhdCB3YXMgb24gVVAgcGxhdGZvcm0uDQo+IA0KPiA+IE5vdyBpbiBj
-YXNlIGl0IHdhcyAqYW4qIHVuaW5pdGlhbGl6ZWQgdmFyLCBkbyB3ZSBoYXZlIHRvIGd1YXJhbnRl
-ZSBhbnkgd2VsbCANCj4gPiBkZWZpbmVkIHNlbWFudGljcyBmb3IgdGhlIGtlcm5lbCBlbXVsYXRp
-b24gb2YgY21weGNoZyA/IElNTyBpdCBzaG91bGQgYmUgZmluZSB0byANCj4gPiByZXR1cm4gMCBv
-ciAtRUZBVUxUIGV0Yy4gSW5mYWN0IC1FRkFVTFQgaXMgYmV0dGVyIGFzIGl0IHdpbGwgZm9yY2Ug
-YSByZXRyeSBsb29wIG9uIA0KPiA+IHVzZXIgc2lkZSwgZ2l2ZW4gdGhlIHR5cGljYWwgY21weGNo
-ZyB1c2FnZSBwYXR0ZXJuLg0KPiANCj4gVGhlIHByb2JsZW0gaXMgbGliYyBvbmx5IGV4cGVjdHMg
-dG8gZ2V0IGEgdmFsdWUgcmVhZCBmcm9tIG1lbW9yeS4NCj4gQW5kIGluIHRoZW9yeSBleHBlY3Rl
-ZCB2YWx1ZSBtaWdodCBiZSAtMTQgd2hpY2ggaXMgYmFzaWNhbGx5IC1FRkFVTFQuDQo+IEknbSBu
-b3QgdGFsa2luZyBhYm91dCAwIGF0IGFsbCBiZWNhdXNlIGluIHNvbWUgY2FzZXMgdGhhdCdzIGV4
-YWN0bHkgd2hhdA0KPiB1c2VyLXNwYWNlIGV4cGVjdHMuDQo+IA0KPiBTbyBpZiB3ZSByZWFkIHVu
-ZXhwZWN0ZWQgdmFsdWUgdGhlbiB3ZSdsbCBqdXN0IHJldHVybiBpdCB3aXRob3V0IGV2ZW4gYXR0
-ZW1wdGluZw0KPiB0byB3cml0ZS4NCj4gDQo+IElmIHdlIHJlYWQgZXhwZWN0ZWQgZGF0YSBidXQg
-ZmFpbCB0byB3cml0ZSB0aGVuIHdlJ2xsIHNlbmQgYSBTSUdTRUdWIGFuZA0KPiByZXR1cm4gd2hh
-dGV2ZXIuLi4gbGV0IGl0IGJlIC1FRkFVTFQgLSBhbnl3YXlzIHRoZSBhcHAgd2lsbCBiZSBraWxs
-ZWQgb24gZXhpdCBmcm9tDQo+IHRoaXMgc3lzY2FsbC4NCg0KQW55IGNvbW1lbnRzIG9uIG15IGNv
-bW1lbnRzIGFib3ZlPw0KDQotQWxleGV5
+Logan Gunthorpe <logang@deltatee.com> writes:
+
+> This is v14 of my cleanup series to push a number of instances of people
+> defining their own io{read|write}64 functions into common headers seing
+> they don't exist in non-64bit systems. This series adds inline functions to the
+> io-64-nonatomic headers and then cleans up the drivers that defined their
+> own copies.
+>
+> This cleanup was originally requested by Greg after he reviewed my
+> Switchtec NTB code. And I hope someone can pick it up or at least give
+> feedback on it soon as it's been around relatively unchanged for a few
+> cycles now and I'm getting a bit tired of resubmitting it with little to
+> no interest.
+
+Yeah fair enough.
+
+What's the plan for getting it merged? Seems we don't have one?
+
+Given it touches two arches and generic stuff and drivers and crypto,
+it's a bit of a mess to merge. It's not really something I want to merge
+via the powerpc tree.
+
+Is there any way to split it? I couldn't immediately see what the hard
+dependencies were between the patches.
+
+eg. It looks like I could take the two powerpc patches on their own for
+4.17, and then the rest could go via other trees?
+
+Is patch 1 stand alone?
+
+The other option is to ask Andrew Morton to take it, as he often carries
+these cross-tree type series.
+
+cheers
+
+> Changes since v14:
+> - Rebased onto v4.16-rc7
+> - Replace the first two patches so that instead of correcting the
+>   endianness annotations we change to using writeX() and readX() with
+>   swabX() calls. This makes the big-endian functions more symmetric
+>   with the little-endian versions (with respect to barriers that are
+>   not included in the raw functions). As a side effect, it also fixes
+>   the kbuild warnings that the first two patches tried to address.
+>
+> Changes since v13:
+> - Changed the subject of patch 0001 to correct a nit pointed out by Luc
+>
+> Changes since v12:
+> - Rebased onto v4.16-rc6
+> - Split patch 0001 into two and reworked the commit log as requested
+>   by Luc Van Oostenryck
+>
+> Changes since v11:
+> - Rebased onto v4.16-rc5
+> - Added a patch (0001) to fix some old and new sparse warnings
+>   that the kbuild robot warned about this cycle. The latest version
+>   of sparse was required to reproduce these.
+> - Added a patch (0002) to add io{read|write}64 to parisc which the kbuild
+>   robot also found errors for this cycle
+>
+> Changes since v10:
+> - Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
+>   picked up by that tree and is already in 4.16.
+>
+> Changes since v9:
+> - Rebased onto v4.15-rc6
+> - Fixed a couple of issues in the new version of the CAAM patch as
+>   pointed out by Horia
+>
+> Changes since v8:
+> - Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
+>   some similar cleanup in that area.
+> - Added a patch to clean up the Switchtec NTB driver which landed in
+>   v4.15-rc1
+>
+> Changes since v7:
+> - Fix minor nits from Andy Shevchenko
+> - Rebased onto v4.14-rc1
+>
+> Changes since v6:
+>  ** none **
+>
+> Changes since v5:
+> - Added a fix to the tilcdc driver to ensure it doesn't use the
+>   non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+>   defines).
+>
+> Changes since v4:
+> - Add functions so the powerpc implementation of iomap.c compiles. (As
+>   noticed by Horia)
+>
+> Changes since v3:
+>
+> - I noticed powerpc didn't use the appropriate functions seeing
+>   readq/writeq were not defined when iomap.h was included. Thus I've
+>   included a patch to adjust this
+> - Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+>   headers
+> - Fixed a typo noticed by Horia.
+>
+> (earlier versions were drastically different)
+>
+> --
+>
+> Logan Gunthorpe (9):
+>   iomap: Use non-raw io functions for io{read|write}XXbe
+>   parisc: iomap: introduce io{read|write}64
+>   powerpc: io.h: move iomap.h include so that it can use readq/writeq
+>     defs
+>   powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+>   iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+>   io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+>   ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+>   crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+>   ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
+>     header
+>
+>  arch/parisc/include/asm/io.h           |   9 +++
+>  arch/parisc/lib/iomap.c                |  64 +++++++++++++++
+>  arch/powerpc/include/asm/io.h          |   6 +-
+>  arch/powerpc/kernel/iomap.c            |  40 ++++++++++
+>  drivers/crypto/caam/regs.h             |  30 +------
+>  drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +------
+>  drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  36 +--------
+>  include/asm-generic/iomap.h            |  26 ++++--
+>  include/linux/io-64-nonatomic-hi-lo.h  |  64 +++++++++++++++
+>  include/linux/io-64-nonatomic-lo-hi.h  |  64 +++++++++++++++
+>  lib/iomap.c                            | 140 ++++++++++++++++++++++++++++++++-
+>  11 files changed, 409 insertions(+), 100 deletions(-)
+>
+> --
+> 2.11.0
