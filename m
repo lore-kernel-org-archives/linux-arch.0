@@ -1,146 +1,128 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v15 0/9] Add io{read|write}64 to io-64-atomic headers
-Date: Wed, 04 Apr 2018 20:38:16 +1000
-Message-ID: <87r2nvmf3b.fsf@concordia.ellerman.id.au>
-References: <20180327230834.5931-1-logang@deltatee.com>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [RFC PATCH 0/3] Documentation/features: Provide and apply
+ "features-refresh.sh"
+Date: Wed, 4 Apr 2018 15:03:57 +0200
+Message-ID: <20180404130357.GA9125@andrea>
+References: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <20180404045632.uniwfrl32bjmsn5g@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180327230834.5931-1-logang@deltatee.com>
+Content-Disposition: inline
+In-Reply-To: <20180404045632.uniwfrl32bjmsn5g@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, akpm@linux-foundation.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Logan Gunthorpe <logang@deltatee.com> writes:
+On Wed, Apr 04, 2018 at 06:56:32AM +0200, Ingo Molnar wrote:
+> 
+> * Andrea Parri <andrea.parri@amarulasolutions.com> wrote:
+> 
+> > In Ingo's words [1]:
+> > 
+> >   "[...]  what should be done instead is to write a script that refreshes
+> >    all the arch-support.txt files in-place. [...]
+> > 
+> >    It's OK for the script to have various quirks for weirdly implemented
+> >    features and exceptions: i.e. basically whenever it gets a feature wrong,
+> >    we can just tweak the script with quirks to make it all work out of box.
+> > 
+> >    [...]  But in the end there should only be a single new script:
+> > 
+> >      Documentation/features/scripts/features-refresh.sh
+> > 
+> >    ... which operates on the arch-support.txt files and refreshes them in
+> >    place, and which, after all the refreshes have been committed, should
+> >    produce an empty 'git diff' result."
+> > 
+> >   "[...]  New features can then be added by basically just creating a
+> >    header-only arch-support.txt file, such as:
+> > 
+> >      triton:~/tip/Documentation/features> cat foo/bar/arch-support.txt
+> >      #
+> >      # Feature name:          shiny new fubar kernel feature
+> >      #         Kconfig:       ARCH_USE_FUBAR
+> >      #         description:   arch supports the fubar feature
+> >      #
+> > 
+> >    And running Documentation/features/scripts/features-refresh.sh would
+> >    auto-generate the arch support matrix. [...]
+> >  
+> >    This way we soft- decouple the refreshing of the entries from the
+> >    introduction of the features, while still making it all easy to keep
+> >    sync and to extend."
+> > 
+> > This RFC presents a first attempt to implement such a feature/script, and
+> > applies it script on top of Arnd's:
+> > 
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git arch-removal
+> > 
+> > Patch 1/3 provides the "features-refresh.sh" script.  Patch 2/3 removes the
+> > "BPF-JIT" feature file and it creates header-only files for "cBPF-JIT" and
+> > "eBPF-JIT".  Patch 3/3 presents the results of running the script; this run
+> > also printed to standard output the following warnings:
+> > 
+> >   WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
+> >   WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
+> >   WARNING: '!ARCH_USES_GETTIMEOFFSET' is not a valid Kconfig
+> >   WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
+> > 
+> > (I'm sending these patches with empty commit messagges, for early feedback:
+> >  I'll fill in these messages in subsequent versions if this makes sense...)
+> > 
+> > Cheers,
+> >   Andrea
+> > 
+> > Andrea Parri (3):
+> >   Documentation/features: Add script that refreshes the arch support status files in place
+> >   Documentation/features/core: Add arch support status files for 'cBPF-JIT' and 'eBPF-JIT'
+> >   Documentation/features: Refresh and auto-generate the arch support status files in place
+> 
+> Ok, this series is really impressive at its RFC stage already!
+> 
+> Beyond fixing those warnings, I'd also suggest another change: please make the 
+> new BPF features patch the last one, so that the 'refresh' patch shows how much 
+> original bit-rot we gathered recently.
+> 
+> The 'new features' patch should then also include the result of also running the 
+> script, i.e. a single patch adding the base fields and the generated parts as 
+> well. That will be the usual development flow anyway - people won't do two-part 
+> patches just to show which bits are by hand and which are auto-generated.
 
-> This is v14 of my cleanup series to push a number of instances of people
-> defining their own io{read|write}64 functions into common headers seing
-> they don't exist in non-64bit systems. This series adds inline functions to the
-> io-64-nonatomic headers and then cleans up the drivers that defined their
-> own copies.
->
-> This cleanup was originally requested by Greg after he reviewed my
-> Switchtec NTB code. And I hope someone can pick it up or at least give
-> feedback on it soon as it's been around relatively unchanged for a few
-> cycles now and I'm getting a bit tired of resubmitting it with little to
-> no interest.
+Yes, I'll do.
 
-Yeah fair enough.
+Let me ask some hints about the warnings, as I'm not sure how to 'fix' them;
+we have:
 
-What's the plan for getting it merged? Seems we don't have one?
+  a) __HAVE_ARCH_STRNCASECMP
+     __HAVE_ARCH_PTE_SPECIAL
 
-Given it touches two arches and generic stuff and drivers and crypto,
-it's a bit of a mess to merge. It's not really something I want to merge
-via the powerpc tree.
+  b) Optimized asm/rwsem.h
 
-Is there any way to split it? I couldn't immediately see what the hard
-dependencies were between the patches.
+  c) !ARCH_USES_GETTIMEOFFSET  
 
-eg. It looks like I could take the two powerpc patches on their own for
-4.17, and then the rest could go via other trees?
+For (c), I see two options:
 
-Is patch 1 stand alone?
+  1. replace that with 'ARCH_USES_GETTIMEOFFSET' (and update the status
+     matrix accordingly)
 
-The other option is to ask Andrew Morton to take it, as he often carries
-these cross-tree type series.
+  2. add logics/code to the script to handle simple boolean expressions
+     (mmh, this could get nasty really soon... let's say: limiting to a
+     leading '!', to start with ;)
 
-cheers
+For (a), I realize that 'grep-ing' the macros in arch-specific _sources_
+does serve the purpose of producing the hard-coded status matrices; but
+is this a reasonable approach? (e.g., can produce 'false-positives'?)
 
-> Changes since v14:
-> - Rebased onto v4.16-rc7
-> - Replace the first two patches so that instead of correcting the
->   endianness annotations we change to using writeX() and readX() with
->   swabX() calls. This makes the big-endian functions more symmetric
->   with the little-endian versions (with respect to barriers that are
->   not included in the raw functions). As a side effect, it also fixes
->   the kbuild warnings that the first two patches tried to address.
->
-> Changes since v13:
-> - Changed the subject of patch 0001 to correct a nit pointed out by Luc
->
-> Changes since v12:
-> - Rebased onto v4.16-rc6
-> - Split patch 0001 into two and reworked the commit log as requested
->   by Luc Van Oostenryck
->
-> Changes since v11:
-> - Rebased onto v4.16-rc5
-> - Added a patch (0001) to fix some old and new sparse warnings
->   that the kbuild robot warned about this cycle. The latest version
->   of sparse was required to reproduce these.
-> - Added a patch (0002) to add io{read|write}64 to parisc which the kbuild
->   robot also found errors for this cycle
->
-> Changes since v10:
-> - Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
->   picked up by that tree and is already in 4.16.
->
-> Changes since v9:
-> - Rebased onto v4.15-rc6
-> - Fixed a couple of issues in the new version of the CAAM patch as
->   pointed out by Horia
->
-> Changes since v8:
-> - Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
->   some similar cleanup in that area.
-> - Added a patch to clean up the Switchtec NTB driver which landed in
->   v4.15-rc1
->
-> Changes since v7:
-> - Fix minor nits from Andy Shevchenko
-> - Rebased onto v4.14-rc1
->
-> Changes since v6:
->  ** none **
->
-> Changes since v5:
-> - Added a fix to the tilcdc driver to ensure it doesn't use the
->   non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
->   defines).
->
-> Changes since v4:
-> - Add functions so the powerpc implementation of iomap.c compiles. (As
->   noticed by Horia)
->
-> Changes since v3:
->
-> - I noticed powerpc didn't use the appropriate functions seeing
->   readq/writeq were not defined when iomap.h was included. Thus I've
->   included a patch to adjust this
-> - Fixed some mistakes with a couple of the defines in io-64-nonatomic*
->   headers
-> - Fixed a typo noticed by Horia.
->
-> (earlier versions were drastically different)
->
-> --
->
-> Logan Gunthorpe (9):
->   iomap: Use non-raw io functions for io{read|write}XXbe
->   parisc: iomap: introduce io{read|write}64
->   powerpc: io.h: move iomap.h include so that it can use readq/writeq
->     defs
->   powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
->   iomap: introduce io{read|write}64_{lo_hi|hi_lo}
->   io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
->   ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
->   crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
->   ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
->     header
->
->  arch/parisc/include/asm/io.h           |   9 +++
->  arch/parisc/lib/iomap.c                |  64 +++++++++++++++
->  arch/powerpc/include/asm/io.h          |   6 +-
->  arch/powerpc/kernel/iomap.c            |  40 ++++++++++
->  drivers/crypto/caam/regs.h             |  30 +------
->  drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +------
->  drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  36 +--------
->  include/asm-generic/iomap.h            |  26 ++++--
->  include/linux/io-64-nonatomic-hi-lo.h  |  64 +++++++++++++++
->  include/linux/io-64-nonatomic-lo-hi.h  |  64 +++++++++++++++
->  lib/iomap.c                            | 140 ++++++++++++++++++++++++++++++++-
->  11 files changed, 409 insertions(+), 100 deletions(-)
->
-> --
-> 2.11.0
+What could it be a suitable solution for (b)? are there Kconfig options
+which I could in place of that expression? some other suggestion?
+
+Thanks,
+  Andrea
+
+
+> 
+> Thanks,
+> 
+> 	Ingo
