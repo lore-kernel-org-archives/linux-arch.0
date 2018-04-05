@@ -1,75 +1,41 @@
-From: Sinan Kaya <okaya@codeaurora.org>
-Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
- readX() implementation
-Date: Wed, 4 Apr 2018 20:06:42 -0400
-Message-ID: <d7c63b8f-b315-8593-9683-588598dd1dc1@codeaurora.org>
-References: <mhng-fe49c525-788d-4ce7-9703-95e2b3eaeca6@palmer-si-x1c4>
- <691b903c-e97d-0a25-28c5-690318bb215a@codeaurora.org>
- <CAK8P3a2pGQb7TqQtuw0ZpQ=8CwXiRmRKKc1GwvEgKDgofxJ3nA@mail.gmail.com>
- <9b0d7db3-0830-9661-6dc8-39523daa8f32@codeaurora.org>
- <CAK8P3a2Cg59cTzUq2_8sopeY9BktM7a6_4nunMJVA5fQFaVLug@mail.gmail.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v15 0/9] Add io{read|write}64 to io-64-atomic headers
+Date: Thu, 05 Apr 2018 14:48:18 +1000
+Message-ID: <876056cl7x.fsf@concordia.ellerman.id.au>
+References: <20180327230834.5931-1-logang@deltatee.com> <87r2nvmf3b.fsf@concordia.ellerman.id.au> <515f5c92-ac02-6e09-830e-46ea4d462652@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2Cg59cTzUq2_8sopeY9BktM7a6_4nunMJVA5fQFaVLug@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <515f5c92-ac02-6e09-830e-46ea4d462652@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Palmer Dabbelt <palmer@sifive.com>, Mark Rutland <mark.rutland@arm.com>, Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Logan Gunthorpe <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, akpm@linux-foundation.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 4/4/2018 3:50 PM, Arnd Bergmann wrote:
-> On Wed, Apr 4, 2018 at 7:48 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
->> On 4/4/2018 11:55 AM, Arnd Bergmann wrote:
->>> Yes, exactly, plus the same for write and in/out of course.
->>
->> I was looking at this...
->>
->> inb() and outb() seem to be calling writeb(). It gets the wmb/barrier automatically
->> when we fix writeb().
->>
->> Did I miss something?
-> 
-> At least outb() needs stricter barriers than writeb() in theory, what
-> we want here
-> is that outb() has not just made it out to the device but that the
-> write has been
-> confirmed completed by the device. Some architectures can't do it, but those
-> that can should have an easy way to hook into that using a separate set of
-> barriers.
-> 
-> Using the riscv barrier names, we could do this like
-> 
-> #ifndef __io_bw()
-> #define __io_bw()      wmb()
-> #endif
-> 
-> #ifndef __io_aw
-> #define __io_aw()      barrier()
-> #endif
-> 
-> #ifndef __io_pbw
-> #define __io_pbw()     __io_bw()
-> #endif
-> 
-> #ifndef __io_paw
-> #define __io_paw()     __io_aw()
-> #endif
-> 
-> and the same thing for reads. This way, an architecture could override
-> any of those, but still get reasonable defaults for the others.
-> For __io_bw(), I picked barrier() instead of do {} while (0), no idea
-> if that's any better, I just play safe here.
+Logan Gunthorpe <logang@deltatee.com> writes:
+> On 4/4/2018 4:38 AM, Michael Ellerman wrote:
+...
+>> eg. It looks like I could take the two powerpc patches on their own for
+>> 4.17, and then the rest could go via other trees?
+>
+> Yup! If you can take the powerpc patches I can keep trying to get the 
+> rest in. They are largely independent and shouldn't really change 
+> anything without the following patches.
 
-I posted V3. I hope I captured what you mean above correctly.
+OK, I'll take those then.
 
-> 
->      Arnd
-> 
+>> Is patch 1 stand alone?
+>
+> Essentially, yes, but patch 5 depends on it seeing it's changing the 
+> same area and is trying to avoid creating the same kbuild warnings that 
+> patch 1 suppresses.
+>
+>> The other option is to ask Andrew Morton to take it, as he often carries
+>> these cross-tree type series.
+>
+> Thanks for the tip! I'll copy him when I repost it after the merge window.
 
+Cool. If you want him to take it you should probably explicitly say so
+when you repost.
 
--- 
-Sinan Kaya
-Qualcomm Datacenter Technologies, Inc. as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the Code Aurora Forum, a Linux Foundation Collaborative Project.
+cheers
