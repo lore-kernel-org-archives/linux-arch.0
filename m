@@ -1,145 +1,67 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC PATCH 0/3] Documentation/features: Provide and apply
- "features-refresh.sh"
-Date: Thu, 5 Apr 2018 17:18:02 +0200
-Message-ID: <20180405151802.uvceareck465inqs@gmail.com>
-References: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
- <20180404045632.uniwfrl32bjmsn5g@gmail.com>
- <20180404130357.GA9125@andrea>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [GIT PULL] siginfo updares for 4.17-rc1
+Date: Thu, 05 Apr 2018 11:14:03 -0500
+Message-ID: <87sh898wc4.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180404130357.GA9125@andrea>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
-* Andrea Parri <andrea.parri@amarulasolutions.com> wrote:
+Linus,
 
-> On Wed, Apr 04, 2018 at 06:56:32AM +0200, Ingo Molnar wrote:
-> > 
-> > * Andrea Parri <andrea.parri@amarulasolutions.com> wrote:
-> > 
-> > > In Ingo's words [1]:
-> > > 
-> > >   "[...]  what should be done instead is to write a script that refreshes
-> > >    all the arch-support.txt files in-place. [...]
-> > > 
-> > >    It's OK for the script to have various quirks for weirdly implemented
-> > >    features and exceptions: i.e. basically whenever it gets a feature wrong,
-> > >    we can just tweak the script with quirks to make it all work out of box.
-> > > 
-> > >    [...]  But in the end there should only be a single new script:
-> > > 
-> > >      Documentation/features/scripts/features-refresh.sh
-> > > 
-> > >    ... which operates on the arch-support.txt files and refreshes them in
-> > >    place, and which, after all the refreshes have been committed, should
-> > >    produce an empty 'git diff' result."
-> > > 
-> > >   "[...]  New features can then be added by basically just creating a
-> > >    header-only arch-support.txt file, such as:
-> > > 
-> > >      triton:~/tip/Documentation/features> cat foo/bar/arch-support.txt
-> > >      #
-> > >      # Feature name:          shiny new fubar kernel feature
-> > >      #         Kconfig:       ARCH_USE_FUBAR
-> > >      #         description:   arch supports the fubar feature
-> > >      #
-> > > 
-> > >    And running Documentation/features/scripts/features-refresh.sh would
-> > >    auto-generate the arch support matrix. [...]
-> > >  
-> > >    This way we soft- decouple the refreshing of the entries from the
-> > >    introduction of the features, while still making it all easy to keep
-> > >    sync and to extend."
-> > > 
-> > > This RFC presents a first attempt to implement such a feature/script, and
-> > > applies it script on top of Arnd's:
-> > > 
-> > >   git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git arch-removal
-> > > 
-> > > Patch 1/3 provides the "features-refresh.sh" script.  Patch 2/3 removes the
-> > > "BPF-JIT" feature file and it creates header-only files for "cBPF-JIT" and
-> > > "eBPF-JIT".  Patch 3/3 presents the results of running the script; this run
-> > > also printed to standard output the following warnings:
-> > > 
-> > >   WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
-> > >   WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
-> > >   WARNING: '!ARCH_USES_GETTIMEOFFSET' is not a valid Kconfig
-> > >   WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
-> > > 
-> > > (I'm sending these patches with empty commit messagges, for early feedback:
-> > >  I'll fill in these messages in subsequent versions if this makes sense...)
-> > > 
-> > > Cheers,
-> > >   Andrea
-> > > 
-> > > Andrea Parri (3):
-> > >   Documentation/features: Add script that refreshes the arch support status files in place
-> > >   Documentation/features/core: Add arch support status files for 'cBPF-JIT' and 'eBPF-JIT'
-> > >   Documentation/features: Refresh and auto-generate the arch support status files in place
-> > 
-> > Ok, this series is really impressive at its RFC stage already!
-> > 
-> > Beyond fixing those warnings, I'd also suggest another change: please make the 
-> > new BPF features patch the last one, so that the 'refresh' patch shows how much 
-> > original bit-rot we gathered recently.
-> > 
-> > The 'new features' patch should then also include the result of also running the 
-> > script, i.e. a single patch adding the base fields and the generated parts as 
-> > well. That will be the usual development flow anyway - people won't do two-part 
-> > patches just to show which bits are by hand and which are auto-generated.
-> 
-> Yes, I'll do.
-> 
-> Let me ask some hints about the warnings, as I'm not sure how to 'fix' them;
-> we have:
-> 
->   a) __HAVE_ARCH_STRNCASECMP
->      __HAVE_ARCH_PTE_SPECIAL
-> 
->   b) Optimized asm/rwsem.h
-> 
->   c) !ARCH_USES_GETTIMEOFFSET  
-> 
-> For (c), I see two options:
-> 
->   1. replace that with 'ARCH_USES_GETTIMEOFFSET' (and update the status
->      matrix accordingly)
-> 
->   2. add logics/code to the script to handle simple boolean expressions
->      (mmh, this could get nasty really soon... let's say: limiting to a
->      leading '!', to start with ;)
+Please pull the siginfo-linus branch from the git tree:
 
-Yeah, so the problem here is that the feature is the _lack_ of legacy 
-ARCH_USES_GETTIMEOFFSET, so we cannot just invert the check - the output would be 
-rather confusing ...
+   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-linus
 
-Negating the switch in the kernel would force us to add a "arch uses modern 
-timekeeping" flag to every other architecture - not a very good solution.
+   HEAD: 4be33329d46f80e87afe7db61271d1370607260a m68k: Verify the offsets in struct siginfo never change.
 
-I'd suggest adding support for a simple '!' operator with very strict syntax - 
-nothing more. (This would also be useful for (b), see below.)
+The work on cleaning up and getting the bugs out of siginfo generation
+was largely stalled this round.  The progress that was made was the
+definition of FPE_FLTUNK.  Which is usable to fix many of the cases
+where siginfo generation is erroneously generating SI_USER by setting
+si_code to 0, that has recently been tagged as FPE_FIXME.
 
-> For (a), I realize that 'grep-ing' the macros in arch-specific _sources_
-> does serve the purpose of producing the hard-coded status matrices; but
-> is this a reasonable approach? (e.g., can produce 'false-positives'?)
+You already have the change by way of the arm64 tree as that definition
+was pulled into the arm64 tree to allow fixing the problem there.
 
-I'd suggest removing both :-)
+What remains is the second round of fixing for what I thought was a
+trivial change to the struct siginfo when put the union in _sigfault
+where it belongs.  Do to historical reasons 32bit m68k only ensures that
+pointers are 2 byte aligned.  So I have added a m68k test case made of
+BUILD_BUG_ONs to verify I have this fix correct and possibly catch
+problems, and I have computed the number of bytes of padding needed for
+the _addr_bnd and _addr_pkey cases and just use an array of characters
+that size.
 
-- strncasecmp() is an insignificant API and no arch has optimized it so far.
-- __HAVE_ARCH_PTE_SPECIAL is really a hardware detail.
+For pure paranoia I have written the code so if there is an architecture
+out there that does not perform any alignment of structures it should
+still work.
 
-> What could it be a suitable solution for (b)? are there Kconfig options
-> which I could in place of that expression? some other suggestion?
+With the removal of all of the stale arechitectures this cycle future
+work on cleaning up struct siginfo should be much easier.  Almost all
+of the conflicting si_code definitions have been removed with
+the removal of (blackfin, tile, and frv).   Plus some of the most
+difficult to test cases have simply been removed from the tree.
 
-Yes, !RWSEM_GENERIC_SPINLOCK expresses this equivalently. If you implement the NOT 
-operator for ARCH_USES_GETTIMEOFFSET then it would handle this one as well.
+Which means that with a little luck copy_siginfo_to_user can
+become a light weight wrapper around copy_to_user in the next
+cycle.
 
-Thanks,
+Dave Martin (1):
+      signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
 
-	Ingo
+Eric W. Biederman (2):
+      signal: Correct the offset of si_pkey and si_lower in struct siginfo on m68k
+      m68k: Verify the offsets in struct siginfo never change.
+
+ arch/m68k/kernel/signal.c          | 62 ++++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/signal_compat.c    |  2 +-
+ include/linux/compat.h             |  6 ++--
+ include/uapi/asm-generic/siginfo.h | 10 ++++--
+ 4 files changed, 74 insertions(+), 6 deletions(-)
+
+Eric
