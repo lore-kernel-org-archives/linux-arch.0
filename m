@@ -1,95 +1,88 @@
 From: Sinan Kaya <okaya@codeaurora.org>
-Subject: [PATCH v4 1/5] io: define several IO & PIO barrier types for the asm-generic version
-Date: Thu,  5 Apr 2018 09:09:09 -0400
-Message-ID: <1522933753-19589-1-git-send-email-okaya@codeaurora.org>
+Subject: [PATCH v4 2/5] io: define stronger ordering for the default readX() implementation
+Date: Thu,  5 Apr 2018 09:09:10 -0400
+Message-ID: <1522933753-19589-2-git-send-email-okaya@codeaurora.org>
+References: <1522933753-19589-1-git-send-email-okaya@codeaurora.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1522933753-19589-1-git-send-email-okaya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org
 Cc: linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Sinan Kaya <okaya@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Getting ready to harden readX()/writeX() and inX()/outX() semantics for the
-generic implementation.
+The default implementation of mapping readX() to __raw_readX() is wrong.
+readX() has stronger ordering semantics. Compiler is allowed to reorder
+__raw_readX() against the memory accesses following register read.
 
-Defining two set of macros as __io_br() and __io_ar() to indicate actions
-to be taken before and after MMIO read.
-
-Defining two set of macros as __io_bw() and __io_aw() to indicate actions
-to be taken before and after MMIO write.
-
-Defining two set of macros as __io_pbw() and __io_paw() to indicate actions
-to be taken before and after Port IO write.
-
-Defining two set of macros as __io_pbr() and __io_par() to indicate actions
-to be taken before and after Port IO read.
-
-If rmb() is available for the architecture, prefer rmb() as the default
-implementation of __io_ar()/__io_par().
-
-If wmb() is available for the architecture, prefer wmb() as the default
-implementation of __io_bw()/__io_pbw().
+Use the previously defined __io_ar() and __io_br() macros to harden
+code generation according to architecture support.
 
 Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
 ---
- include/asm-generic/io.h | 44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 44 insertions(+)
+ include/asm-generic/io.h | 28 ++++++++++++++++++++++++----
+ 1 file changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3..570433b 100644
+index 570433b..d27e8af 100644
 --- a/include/asm-generic/io.h
 +++ b/include/asm-generic/io.h
-@@ -25,6 +25,50 @@
- #define mmiowb() do {} while (0)
+@@ -154,7 +154,12 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
+ #define readb readb
+ static inline u8 readb(const volatile void __iomem *addr)
+ {
+-	return __raw_readb(addr);
++	u8 val;
++
++	__io_br();
++	val = __raw_readb(addr);
++	__io_ar();
++	return val;
+ }
  #endif
  
-+#ifndef __io_br
-+#define __io_br()      barrier()
-+#endif
+@@ -162,7 +167,12 @@ static inline u8 readb(const volatile void __iomem *addr)
+ #define readw readw
+ static inline u16 readw(const volatile void __iomem *addr)
+ {
+-	return __le16_to_cpu(__raw_readw(addr));
++	u16 val;
 +
-+/* prevent prefetching of coherent DMA data ahead of a dma-complete */
-+#ifndef __io_ar
-+#ifdef rmb
-+#define __io_ar()      rmb()
-+#else
-+#define __io_ar()      barrier()
-+#endif
-+#endif
++	__io_br();
++	val = __le16_to_cpu(__raw_readw(addr));
++	__io_ar();
++	return val;
+ }
+ #endif
+ 
+@@ -170,7 +180,12 @@ static inline u16 readw(const volatile void __iomem *addr)
+ #define readl readl
+ static inline u32 readl(const volatile void __iomem *addr)
+ {
+-	return __le32_to_cpu(__raw_readl(addr));
++	u32 val;
 +
-+/* flush writes to coherent DMA data before possibly triggering a DMA read */
-+#ifndef __io_bw
-+#ifdef wmb
-+#define __io_bw()      wmb()
-+#else
-+#define __io_bw()      barrier()
-+#endif
-+#endif
++	__io_br();
++	val = __le32_to_cpu(__raw_readl(addr));
++	__io_ar();
++	return val;
+ }
+ #endif
+ 
+@@ -179,7 +194,12 @@ static inline u32 readl(const volatile void __iomem *addr)
+ #define readq readq
+ static inline u64 readq(const volatile void __iomem *addr)
+ {
+-	return __le64_to_cpu(__raw_readq(addr));
++	u64 val;
 +
-+/* serialize device access against a spin_unlock, usually handled there. */
-+#ifndef __io_aw
-+#define __io_aw()      barrier()
-+#endif
-+
-+#ifndef __io_pbw
-+#define __io_pbw()     __io_bw()
-+#endif
-+
-+#ifndef __io_paw
-+#define __io_paw()     __io_aw()
-+#endif
-+
-+#ifndef __io_pbr
-+#define __io_pbr()     __io_br()
-+#endif
-+
-+#ifndef __io_par
-+#define __io_par()     __io_ar()
-+#endif
-+
-+
- /*
-  * __raw_{read,write}{b,w,l,q}() access memory in native endianness.
-  *
++	__io_br();
++	val = __le64_to_cpu(__raw_readq(addr));
++	__io_ar();
++	return val;
+ }
+ #endif
+ #endif /* CONFIG_64BIT */
 -- 
 2.7.4
