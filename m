@@ -1,67 +1,61 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [GIT PULL] siginfo updares for 4.17-rc1
-Date: Thu, 05 Apr 2018 11:14:03 -0500
-Message-ID: <87sh898wc4.fsf@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v4 1/5] io: define several IO & PIO barrier types for the
+ asm-generic version
+Date: Fri, 6 Apr 2018 12:19:49 +0200
+Message-ID: <CAK8P3a0Ahf9uuXYy0fxdC5_O84gmSqTUsP6xjpGQFE8n1Tw7HA@mail.gmail.com>
+References: <1522933753-19589-1-git-send-email-okaya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1522933753-19589-1-git-send-email-okaya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Sinan Kaya <okaya@codeaurora.org>
+Cc: Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ley Foon Tan <lftan@altera.com>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Thu, Apr 5, 2018 at 3:09 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
+> Getting ready to harden readX()/writeX() and inX()/outX() semantics for the
+> generic implementation.
+>
+> Defining two set of macros as __io_br() and __io_ar() to indicate actions
+> to be taken before and after MMIO read.
+>
+> Defining two set of macros as __io_bw() and __io_aw() to indicate actions
+> to be taken before and after MMIO write.
+>
+> Defining two set of macros as __io_pbw() and __io_paw() to indicate actions
+> to be taken before and after Port IO write.
+>
+> Defining two set of macros as __io_pbr() and __io_par() to indicate actions
+> to be taken before and after Port IO read.
+>
+> If rmb() is available for the architecture, prefer rmb() as the default
+> implementation of __io_ar()/__io_par().
+>
+> If wmb() is available for the architecture, prefer wmb() as the default
+> implementation of __io_bw()/__io_pbw().
+>
+> Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
 
-Linus,
+I've applied the series to my asm-generic tree now, I will give it a few days
+in linux-next to see if any obvious regressions happen, and then send
+a pull request.
 
-Please pull the siginfo-linus branch from the git tree:
+Checking the list of architectures that are affected by this, I see
+h8300, microblaze, nios2, openrisc, s390, sparc, um, unicore32,
+and xtensa, all of which use asm-generic/io.h without overriding
+the default readl/writel.
 
-   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-linus
+I would guess that at least s390 doesn't need the barriers
+(maintainers on Cc now), but there may be others that want to
+override the new barriers with weaker ones where an MMIO
+access is guaranteed to serialize against DMA, or where
+a specialized barrier for this case exists.
 
-   HEAD: 4be33329d46f80e87afe7db61271d1370607260a m68k: Verify the offsets in struct siginfo never change.
+Looking over the asm-generic implementation once more now,
+I wonder if we should change the relaxed accessors to not have
+any barriers (back to the version before your series) rather than
+defaulting them to having the same barriers as the regular
+readl/writel.
 
-The work on cleaning up and getting the bugs out of siginfo generation
-was largely stalled this round.  The progress that was made was the
-definition of FPE_FLTUNK.  Which is usable to fix many of the cases
-where siginfo generation is erroneously generating SI_USER by setting
-si_code to 0, that has recently been tagged as FPE_FIXME.
-
-You already have the change by way of the arm64 tree as that definition
-was pulled into the arm64 tree to allow fixing the problem there.
-
-What remains is the second round of fixing for what I thought was a
-trivial change to the struct siginfo when put the union in _sigfault
-where it belongs.  Do to historical reasons 32bit m68k only ensures that
-pointers are 2 byte aligned.  So I have added a m68k test case made of
-BUILD_BUG_ONs to verify I have this fix correct and possibly catch
-problems, and I have computed the number of bytes of padding needed for
-the _addr_bnd and _addr_pkey cases and just use an array of characters
-that size.
-
-For pure paranoia I have written the code so if there is an architecture
-out there that does not perform any alignment of structures it should
-still work.
-
-With the removal of all of the stale arechitectures this cycle future
-work on cleaning up struct siginfo should be much easier.  Almost all
-of the conflicting si_code definitions have been removed with
-the removal of (blackfin, tile, and frv).   Plus some of the most
-difficult to test cases have simply been removed from the tree.
-
-Which means that with a little luck copy_siginfo_to_user can
-become a light weight wrapper around copy_to_user in the next
-cycle.
-
-Dave Martin (1):
-      signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
-
-Eric W. Biederman (2):
-      signal: Correct the offset of si_pkey and si_lower in struct siginfo on m68k
-      m68k: Verify the offsets in struct siginfo never change.
-
- arch/m68k/kernel/signal.c          | 62 ++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/signal_compat.c    |  2 +-
- include/linux/compat.h             |  6 ++--
- include/uapi/asm-generic/siginfo.h | 10 ++++--
- 4 files changed, 74 insertions(+), 6 deletions(-)
-
-Eric
+     Arnd
