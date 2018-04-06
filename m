@@ -1,76 +1,165 @@
-From: Sinan Kaya <okaya@codeaurora.org>
-Subject: [PATCH 2/2] io: change writeX_relaxed() to remove barriers
-Date: Fri,  6 Apr 2018 14:02:46 -0400
-Message-ID: <1523037766-14518-2-git-send-email-okaya@codeaurora.org>
-References: <1523037766-14518-1-git-send-email-okaya@codeaurora.org>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+From: Daniel Kurtz <djkurtz@chromium.org>
+Subject: [PATCH v6] earlycon: Use a pointer table to fix __earlycon_table stride
+Date: Fri,  6 Apr 2018 17:21:53 -0600
+Message-ID: <20180406232154.168174-1-djkurtz@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1523037766-14518-1-git-send-email-okaya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org
-Cc: linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Sinan Kaya <okaya@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Daniel Kurtz <djkurtz@chromium.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND FLATTENED
+        DEVICE TREE" <devicetree@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now that we hardened writeX() API in asm-generic version, writeX_relaxed()
-API is violating the rules when writeX_relaxed() == writeX() in the default
-implementation.
+Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") tried to fix
+__earlycon_table stride by forcing the earlycon_id struct alignment to 32
+and asking the linker to 32-byte align the __earlycon_table symbol.  This
+fix was based on commit 07fca0e57fca92 ("tracing: Properly align linker
+defined symbols") which tried a similar fix for the tracing subsystem.
 
-The relaxed API shouldn't have any barriers in it and it doesn't provide
-any ordering with respect to the memory transactions. The only requirement
-is for writes to be ordered with respect to each other. This is achieved
-by the volatile in the __raw_writeX() API.
+However, this fix doesn't quite work because there is no guarantee that
+gcc will place structures packed into an array format.  In fact, gcc 4.9
+chooses to 64-byte align these structs by inserting additional padding
+between the entries because it has no clue that they are supposed to be in
+an array.  If we are unlucky, the linker will assign symbol
+"__earlycon_table" to a 32-byte aligned address which does not correspond
+to the 64-byte aligned contents of section "__earlycon_table".
 
-Open code the relaxed API and remove any barriers in it.
+To address this same problem, the fix to the tracing system was
+subsequently re-implemented using a more robust table of pointers approach
+by commits:
+ 3d56e331b653 ("tracing: Replace syscall_meta_data struct array with pointer array")
+ 654986462939 ("tracepoints: Fix section alignment using pointer array")
+ e4a9ea5ee7c8 ("tracing: Replace trace_event struct array with pointer array")
 
-Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
+Let's use this same "array of pointers to structs" approach for
+EARLYCON_TABLE.
+
+Fixes: 99492c39f39f ("earlycon: Fix __earlycon_table stride")
+Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
+Suggested-by: Aaron Durbin <adurbin@chromium.org>
+Reviewed-by: Rob Herring <robh@kernel.org>
+Tested-by: Guenter Roeck <groeck@chromium.org>
+Reviewed-by: Guenter Roeck <groeck@chromium.org>
 ---
- include/asm-generic/io.h | 24 ++++++++++++++++++++----
- 1 file changed, 20 insertions(+), 4 deletions(-)
+Changes since v2:
+ * Use __initconst instead of __initdata to avoid h8300 and alpha kbuild errors
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index fa0975d..f4a1494 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -284,19 +284,35 @@ static inline u64 readq_relaxed(const volatile void __iomem *addr)
+Changes since v3:
+ * Fixed typos in commit message
+
+Changes since v4:
+ * removed Change-Id: from commit message
+
+Changes since v5:
+ * None, just re-posting per request from greg k-h
+
+ drivers/of/fdt.c                  |  7 +++++--
+ drivers/tty/serial/earlycon.c     |  6 ++++--
+ include/asm-generic/vmlinux.lds.h |  2 +-
+ include/linux/serial_core.h       | 21 ++++++++++++++-------
+ 4 files changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 84aa9d676375..6da20b9688f7 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -942,7 +942,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
+ 	int offset;
+ 	const char *p, *q, *options = NULL;
+ 	int l;
+-	const struct earlycon_id *match;
++	const struct earlycon_id **p_match;
+ 	const void *fdt = initial_boot_params;
+ 
+ 	offset = fdt_path_offset(fdt, "/chosen");
+@@ -969,7 +969,10 @@ int __init early_init_dt_scan_chosen_stdout(void)
+ 		return 0;
+ 	}
+ 
+-	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
++	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
++	     p_match++) {
++		const struct earlycon_id *match = *p_match;
++
+ 		if (!match->compatible[0])
+ 			continue;
+ 
+diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
+index a24278380fec..22683393a0f2 100644
+--- a/drivers/tty/serial/earlycon.c
++++ b/drivers/tty/serial/earlycon.c
+@@ -169,7 +169,7 @@ static int __init register_earlycon(char *buf, const struct earlycon_id *match)
+  */
+ int __init setup_earlycon(char *buf)
+ {
+-	const struct earlycon_id *match;
++	const struct earlycon_id **p_match;
+ 
+ 	if (!buf || !buf[0])
+ 		return -EINVAL;
+@@ -177,7 +177,9 @@ int __init setup_earlycon(char *buf)
+ 	if (early_con.flags & CON_ENABLED)
+ 		return -EALREADY;
+ 
+-	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
++	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
++	     p_match++) {
++		const struct earlycon_id *match = *p_match;
+ 		size_t len = strlen(match->name);
+ 
+ 		if (strncmp(buf, match->name, len))
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 278841c75b97..af240573e482 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -188,7 +188,7 @@
  #endif
  
- #ifndef writeb_relaxed
--#define writeb_relaxed writeb
-+#define writeb_relaxed writeb_relaxed
-+static inline void writeb_relaxed(u8 value, volatile void __iomem *addr)
-+{
-+	__raw_writeb(value, addr);
-+}
+ #ifdef CONFIG_SERIAL_EARLYCON
+-#define EARLYCON_TABLE() STRUCT_ALIGN();			\
++#define EARLYCON_TABLE() . = ALIGN(8);				\
+ 			 VMLINUX_SYMBOL(__earlycon_table) = .;	\
+ 			 KEEP(*(__earlycon_table))		\
+ 			 VMLINUX_SYMBOL(__earlycon_table_end) = .;
+diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+index 1d356105f25a..b4c9fda9d833 100644
+--- a/include/linux/serial_core.h
++++ b/include/linux/serial_core.h
+@@ -351,10 +351,10 @@ struct earlycon_id {
+ 	char	name[16];
+ 	char	compatible[128];
+ 	int	(*setup)(struct earlycon_device *, const char *options);
+-} __aligned(32);
++};
+ 
+-extern const struct earlycon_id __earlycon_table[];
+-extern const struct earlycon_id __earlycon_table_end[];
++extern const struct earlycon_id *__earlycon_table[];
++extern const struct earlycon_id *__earlycon_table_end[];
+ 
+ #if defined(CONFIG_SERIAL_EARLYCON) && !defined(MODULE)
+ #define EARLYCON_USED_OR_UNUSED	__used
+@@ -362,12 +362,19 @@ extern const struct earlycon_id __earlycon_table_end[];
+ #define EARLYCON_USED_OR_UNUSED	__maybe_unused
  #endif
  
- #ifndef writew_relaxed
--#define writew_relaxed writew
-+#define writew_relaxed writew_relaxed
-+static inline void writew_relaxed(u16 value, volatile void __iomem *addr)
-+{
-+	__raw_writew(cpu_to_le16(value), addr);
-+}
- #endif
+-#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
+-	static const struct earlycon_id __UNIQUE_ID(__earlycon_##_name)	\
+-	     EARLYCON_USED_OR_UNUSED __section(__earlycon_table)	\
++#define _OF_EARLYCON_DECLARE(_name, compat, fn, unique_id)		\
++	static const struct earlycon_id unique_id			\
++	     EARLYCON_USED_OR_UNUSED __initconst			\
+ 		= { .name = __stringify(_name),				\
+ 		    .compatible = compat,				\
+-		    .setup = fn  }
++		    .setup = fn  };					\
++	static const struct earlycon_id EARLYCON_USED_OR_UNUSED		\
++		__section(__earlycon_table)				\
++		* const __PASTE(__p, unique_id) = &unique_id
++
++#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
++	_OF_EARLYCON_DECLARE(_name, compat, fn,				\
++			     __UNIQUE_ID(__earlycon_##_name))
  
- #ifndef writel_relaxed
--#define writel_relaxed writel
-+#define writel_relaxed writel_relaxed
-+static inline void writel_relaxed(u32 value, volatile void __iomem *addr)
-+{
-+	__raw_writel(__cpu_to_le32(value), addr);
-+}
- #endif
+ #define EARLYCON_DECLARE(_name, fn)	OF_EARLYCON_DECLARE(_name, "", fn)
  
- #if defined(writeq) && !defined(writeq_relaxed)
--#define writeq_relaxed writeq
-+#define writeq_relaxed writeq_relaxed
-+static inline void writeq_relaxed(u64 value, volatile void __iomem *addr)
-+{
-+	__raw_writeq(__cpu_to_le64(value), addr);
-+}
- #endif
- 
- /*
 -- 
-2.7.4
+2.17.0.484.g0c8726318c-goog
