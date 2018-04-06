@@ -1,41 +1,97 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v4 1/5] io: define several IO & PIO barrier types for the
- asm-generic version
-Date: Fri, 6 Apr 2018 15:20:40 +0200
-Message-ID: <CAK8P3a3qpbPZuEhW=pYnadDtg5UGRpiD_k2=XiJanqmmTL5VzA@mail.gmail.com>
-References: <1522933753-19589-1-git-send-email-okaya@codeaurora.org>
- <CAK8P3a0Ahf9uuXYy0fxdC5_O84gmSqTUsP6xjpGQFE8n1Tw7HA@mail.gmail.com> <fa0b02f16cb4cb993775518fabccfb2d@codeaurora.org>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 64/72] nospec: Kill array_index_nospec_mask_check()
+Date: Fri,  6 Apr 2018 15:24:05 +0200
+Message-ID: <20180406084310.804074694@linuxfoundation.org>
+References: <20180406084305.210085169@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <fa0b02f16cb4cb993775518fabccfb2d@codeaurora.org>
+In-Reply-To: <20180406084305.210085169@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sinan Kaya <okaya@codeaurora.org>
-Cc: Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ley Foon Tan <lftan@altera.com>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Ben Hutchings <ben.hutchings@codethink.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 6, 2018 at 2:50 PM,  <okaya@codeaurora.org> wrote:
-> On 2018-04-06 06:19, Arnd Bergmann wrote:
->>
->> On Thu, Apr 5, 2018 at 3:09 PM, Sinan Kaya <okaya@codeaurora.org> wrote:
->>>
->>
->> I would guess that at least s390 doesn't need the barriers
->> (maintainers on Cc now), but there may be others that want to
->> override the new barriers with weaker ones where an MMIO
->> access is guaranteed to serialize against DMA, or where
->> a specialized barrier for this case exists.
->>
->> Looking over the asm-generic implementation once more now,
->> I wonder if we should change the relaxed accessors to not have
->> any barriers (back to the version before your series) rather than
->> defaulting them to having the same barriers as the regular
->> readl/writel.
->
->
-> I can do a follow up patch. You want to map them to raw api without any
-> barriers as before. Right?
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
-Right, but of course with the byteswap.
+------------------
 
-      Arnd
+From: Dan Williams <dan.j.williams@intel.com>
+
+commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
+
+There are multiple problems with the dynamic sanity checking in
+array_index_nospec_mask_check():
+
+* It causes unnecessary overhead in the 32-bit case since integer sized
+  @index values will no longer cause the check to be compiled away like
+  in the 64-bit case.
+
+* In the 32-bit case it may trigger with user controllable input when
+  the expectation is that should only trigger during development of new
+  kernel enabling.
+
+* The macro reuses the input parameter in multiple locations which is
+  broken if someone passes an expression like 'index++' to
+  array_index_nospec().
+
+Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Cc: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ include/linux/nospec.h |   22 +---------------------
+ 1 file changed, 1 insertion(+), 21 deletions(-)
+
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -31,26 +31,6 @@ static inline unsigned long array_index_
+ #endif
+ 
+ /*
+- * Warn developers about inappropriate array_index_nospec() usage.
+- *
+- * Even if the CPU speculates past the WARN_ONCE branch, the
+- * sign bit of @index is taken into account when generating the
+- * mask.
+- *
+- * This warning is compiled out when the compiler can infer that
+- * @index and @size are less than LONG_MAX.
+- */
+-#define array_index_mask_nospec_check(index, size)				\
+-({										\
+-	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
+-	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
+-		_mask = 0;							\
+-	else									\
+-		_mask = array_index_mask_nospec(index, size);			\
+-	_mask;									\
+-})
+-
+-/*
+  * array_index_nospec - sanitize an array index after a bounds check
+  *
+  * For a code sequence like:
+@@ -68,7 +48,7 @@ static inline unsigned long array_index_
+ ({									\
+ 	typeof(index) _i = (index);					\
+ 	typeof(size) _s = (size);					\
+-	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
+ 									\
+ 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
+ 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
