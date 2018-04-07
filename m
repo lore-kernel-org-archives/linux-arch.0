@@ -1,165 +1,107 @@
-From: Daniel Kurtz <djkurtz@chromium.org>
-Subject: [PATCH v6] earlycon: Use a pointer table to fix __earlycon_table stride
-Date: Fri,  6 Apr 2018 17:21:53 -0600
-Message-ID: <20180406232154.168174-1-djkurtz@chromium.org>
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [PATCH 0/3] syscalls: clean up stub naming convention
+Date: Sat,  7 Apr 2018 09:46:48 +0200
+Message-ID: <20180407074651.29014-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: Daniel Kurtz <djkurtz@chromium.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND FLATTENED
-        DEVICE TREE" <devicetree@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>, "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, mingo@kernel.org
+Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") tried to fix
-__earlycon_table stride by forcing the earlycon_id struct alignment to 32
-and asking the linker to 32-byte align the __earlycon_table symbol.  This
-fix was based on commit 07fca0e57fca92 ("tracing: Properly align linker
-defined symbols") which tried a similar fix for the tracing subsystem.
+Ingo,
 
-However, this fix doesn't quite work because there is no guarantee that
-gcc will place structures packed into an array format.  In fact, gcc 4.9
-chooses to 64-byte align these structs by inserting additional padding
-between the entries because it has no clue that they are supposed to be in
-an array.  If we are unlucky, the linker will assign symbol
-"__earlycon_table" to a 32-byte aligned address which does not correspond
-to the 64-byte aligned contents of section "__earlycon_table".
+as discussed yesterday, here is a mini-series (mostly) implementing your
+suggestion on how to tidy up the naming convention for syscall stubs.
 
-To address this same problem, the fix to the tracing system was
-subsequently re-implemented using a more robust table of pointers approach
-by commits:
- 3d56e331b653 ("tracing: Replace syscall_meta_data struct array with pointer array")
- 654986462939 ("tracepoints: Fix section alignment using pointer array")
- e4a9ea5ee7c8 ("tracing: Replace trace_event struct array with pointer array")
+For the generic case, we now will have:
 
-Let's use this same "array of pointers to structs" approach for
-EARLYCON_TABLE.
+t	        kernel_waitid	# common C function (see kernel/exit.c)
 
-Fixes: 99492c39f39f ("earlycon: Fix __earlycon_table stride")
-Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
-Suggested-by: Aaron Durbin <adurbin@chromium.org>
-Reviewed-by: Rob Herring <robh@kernel.org>
-Tested-by: Guenter Roeck <groeck@chromium.org>
-Reviewed-by: Guenter Roeck <groeck@chromium.org>
----
-Changes since v2:
- * Use __initconst instead of __initdata to avoid h8300 and alpha kbuild errors
+i	      __in_sys_waitid	# inlined helper doing the actual work
+				# (takes parameters as declared)
 
-Changes since v3:
- * Fixed typos in commit message
+T	      __do_sys_waitid	# C function calling inlined helper
+				# (takes parameters of type long; casts
+				#  them to the declared type)
 
-Changes since v4:
- * removed Change-Id: from commit message
+i	__in_compat_sys_waitid	# inlined helper doing the actual work
+				  (takes parameters as declared)
 
-Changes since v5:
- * None, just re-posting per request from greg k-h
+T	__do_compat_sys_waitid	# compat C function calling inlined helper
+				# (takes parameters of type long, casts
+				#  them to unsigned long and then to the
+				#  declared type)
 
- drivers/of/fdt.c                  |  7 +++++--
- drivers/tty/serial/earlycon.c     |  6 ++++--
- include/asm-generic/vmlinux.lds.h |  2 +-
- include/linux/serial_core.h       | 21 ++++++++++++++-------
- 4 files changed, 24 insertions(+), 12 deletions(-)
+T	            sys_waitid	# alias to __do_sys_waitid() (taking
+				# parameters as declared), to be included
+				# in syscall table
 
-diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-index 84aa9d676375..6da20b9688f7 100644
---- a/drivers/of/fdt.c
-+++ b/drivers/of/fdt.c
-@@ -942,7 +942,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
- 	int offset;
- 	const char *p, *q, *options = NULL;
- 	int l;
--	const struct earlycon_id *match;
-+	const struct earlycon_id **p_match;
- 	const void *fdt = initial_boot_params;
- 
- 	offset = fdt_path_offset(fdt, "/chosen");
-@@ -969,7 +969,10 @@ int __init early_init_dt_scan_chosen_stdout(void)
- 		return 0;
- 	}
- 
--	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
-+	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
-+	     p_match++) {
-+		const struct earlycon_id *match = *p_match;
-+
- 		if (!match->compatible[0])
- 			continue;
- 
-diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
-index a24278380fec..22683393a0f2 100644
---- a/drivers/tty/serial/earlycon.c
-+++ b/drivers/tty/serial/earlycon.c
-@@ -169,7 +169,7 @@ static int __init register_earlycon(char *buf, const struct earlycon_id *match)
-  */
- int __init setup_earlycon(char *buf)
- {
--	const struct earlycon_id *match;
-+	const struct earlycon_id **p_match;
- 
- 	if (!buf || !buf[0])
- 		return -EINVAL;
-@@ -177,7 +177,9 @@ int __init setup_earlycon(char *buf)
- 	if (early_con.flags & CON_ENABLED)
- 		return -EALREADY;
- 
--	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
-+	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
-+	     p_match++) {
-+		const struct earlycon_id *match = *p_match;
- 		size_t len = strlen(match->name);
- 
- 		if (strncmp(buf, match->name, len))
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 278841c75b97..af240573e482 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -188,7 +188,7 @@
- #endif
- 
- #ifdef CONFIG_SERIAL_EARLYCON
--#define EARLYCON_TABLE() STRUCT_ALIGN();			\
-+#define EARLYCON_TABLE() . = ALIGN(8);				\
- 			 VMLINUX_SYMBOL(__earlycon_table) = .;	\
- 			 KEEP(*(__earlycon_table))		\
- 			 VMLINUX_SYMBOL(__earlycon_table_end) = .;
-diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
-index 1d356105f25a..b4c9fda9d833 100644
---- a/include/linux/serial_core.h
-+++ b/include/linux/serial_core.h
-@@ -351,10 +351,10 @@ struct earlycon_id {
- 	char	name[16];
- 	char	compatible[128];
- 	int	(*setup)(struct earlycon_device *, const char *options);
--} __aligned(32);
-+};
- 
--extern const struct earlycon_id __earlycon_table[];
--extern const struct earlycon_id __earlycon_table_end[];
-+extern const struct earlycon_id *__earlycon_table[];
-+extern const struct earlycon_id *__earlycon_table_end[];
- 
- #if defined(CONFIG_SERIAL_EARLYCON) && !defined(MODULE)
- #define EARLYCON_USED_OR_UNUSED	__used
-@@ -362,12 +362,19 @@ extern const struct earlycon_id __earlycon_table_end[];
- #define EARLYCON_USED_OR_UNUSED	__maybe_unused
- #endif
- 
--#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
--	static const struct earlycon_id __UNIQUE_ID(__earlycon_##_name)	\
--	     EARLYCON_USED_OR_UNUSED __section(__earlycon_table)	\
-+#define _OF_EARLYCON_DECLARE(_name, compat, fn, unique_id)		\
-+	static const struct earlycon_id unique_id			\
-+	     EARLYCON_USED_OR_UNUSED __initconst			\
- 		= { .name = __stringify(_name),				\
- 		    .compatible = compat,				\
--		    .setup = fn  }
-+		    .setup = fn  };					\
-+	static const struct earlycon_id EARLYCON_USED_OR_UNUSED		\
-+		__section(__earlycon_table)				\
-+		* const __PASTE(__p, unique_id) = &unique_id
-+
-+#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
-+	_OF_EARLYCON_DECLARE(_name, compat, fn,				\
-+			     __UNIQUE_ID(__earlycon_##_name))
- 
- #define EARLYCON_DECLARE(_name, fn)	OF_EARLYCON_DECLARE(_name, "", fn)
- 
+T	     compat_sys_waitid	# alias to __do_compat_sys_waitid()
+				# (taking parameters as declared), to
+				# be included in syscall table
+
+
+For 64-bit x86, kernel_waitid, __do_sys_waitid and __in_sys_waitid are the
+same. But instead of sys_waitid and compat_sys_waitid, there are:
+
+T	      __x64_sys_waitid	# x86 64-bit-ptregs -> C stub, calls
+				# __do_sys_waitid(); to be included in
+				# syscall table
+
+T	     __ia32_sys_waitid	# IA32_EMULATION 32-bit-ptregs -> C stub,
+				# calls __do_sys_waitid(); to be included
+				# in syscall table unless there is a
+				# compat syscall stub [in that case, it is
+				# unused]
+
+T     __ia32_compat_sys_waitid	# IA32_EMULATION 32-bit-ptregs -> C stub,
+				# calls __do_compat_sys_waitid(); to be
+				# included in syscall table
+
+T      __x32_compat_sys_waitid	# x32 64-bit-ptregs -> C stub, calls
+				# __do_compat_sys_waitid(); to be included
+				# in syscall table
+
+In short (0xffffffff prefix removed, re-ordered):
+
+810f0af0 t            kernel_waitid	# common (32/64) kernel helper
+
+<inline>            __in_sys_waitid	# inlined helper doing actual work
+810f0be0 t          __do_sys_waitid	# C func calling inlined helper
+
+<inline>     __in_compat_sys_waitid	# inlined helper doing actual work
+810f0d80 t   __do_compat_sys_waitid	# compat C func calling inlined helper
+
+810f2080 T         __x64_sys_waitid	# x64 64-bit-ptregs -> C stub
+810f20b0 T        __ia32_sys_waitid	# ia32 32-bit-ptregs -> C stub [unused]
+810f2470 T __ia32_compat_sys_waitid	# ia32 32-bit-ptregs -> compat C stub
+810f2490 T  __x32_compat_sys_waitid	# x32 64-bit-ptregs -> compat C stub
+
+The kbuild test robot barked at an alleged +20038 bytes kernel size regression
+for i386-tinyconfig due to the first patch of this series. That seems to be a
+false positive, as it likely doesn't take into account the change to
+scripts/bloat-o-meter. Moreover, I could not reproduce such a size regression
+on local i386 builds.
+
+Thanks,
+	Dominik
+
+Dominik Brodowski (3):
+  syscalls: clean up syscall stub naming convention
+  syscalls: clean up compat syscall stub naming convention
+  syscalls: rename struct pt_regs-based sys_*() to __x64_sys_*()
+
+ Documentation/process/adding-syscalls.rst |   4 +-
+ arch/x86/entry/syscalls/syscall_32.tbl    | 720 +++++++++++-----------
+ arch/x86/entry/syscalls/syscall_64.tbl    | 710 ++++++++++-----------
+ arch/x86/entry/syscalls/syscalltbl.sh     |  14 +-
+ arch/x86/entry/vsyscall/vsyscall_64.c     |   6 +-
+ arch/x86/include/asm/syscall_wrapper.h    | 142 +++--
+ arch/x86/include/asm/syscalls.h           |   2 +-
+ include/linux/compat.h                    |  24 +-
+ include/linux/syscalls.h                  |  12 +-
+ scripts/bloat-o-meter                     |   4 +-
+ 10 files changed, 841 insertions(+), 797 deletions(-)
+
 -- 
-2.17.0.484.g0c8726318c-goog
+2.17.0
