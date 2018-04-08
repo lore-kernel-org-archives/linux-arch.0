@@ -1,97 +1,86 @@
-From: Ingo Molnar <mingo@kernel.org>
+From: Dominik Brodowski <linux@dominikbrodowski.net>
 Subject: Re: [PATCH 0/3] syscalls: clean up stub naming convention
-Date: Sun, 8 Apr 2018 10:35:50 +0200
-Message-ID: <20180408083550.32d65b6ra6yca5p7@gmail.com>
+Date: Sun, 8 Apr 2018 11:15:36 +0200
+Message-ID: <20180408091536.GA10120@light.dominikbrodowski.net>
 References: <20180407074651.29014-1-linux@dominikbrodowski.net>
+ <20180408083550.32d65b6ra6yca5p7@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180407074651.29014-1-linux@dominikbrodowski.net>
+In-Reply-To: <20180408083550.32d65b6ra6yca5p7@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dominik Brodowski <linux@dominikbrodowski.net>
+To: Ingo Molnar <mingo@kernel.org>
 Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Sun, Apr 08, 2018 at 10:35:50AM +0200, Ingo Molnar wrote:
+>   - _____sys_waitid()      # ridiculous number of underscores?
+>   - __sys_waitid()         # too generic sounding?
 
-* Dominik Brodowski <linux@dominikbrodowski.net> wrote:
+... and we'd need to rename internal helpers in net/
 
-> In short (0xffffffff prefix removed, re-ordered):
+>   - __inline_sys_waitid()  # too long?
+
+sounds acceptable, though a bit long (especially for the compat case, though
+it doesn't really matter in the case of 
+__inline_compat_sys_sched_rr_get_interval)
+
+> One more fundamental question: why do we have the __do_sys_waitid() and 
+> __inline_sys_waitid() distinction - aren't the function call signatures the same 
+> with no conversion done?
 > 
-> 810f0af0 t            kernel_waitid	# common (32/64) kernel helper
+> I.e. couldn't we just do a single, static __do_sys_waitid(), where the compiler 
+> would decide to what extent inlining is justified? This would allow the compiler 
+> to inline all the intermediate code into the stubs themselves.
 > 
-> <inline>            __in_sys_waitid	# inlined helper doing actual work
-> 810f0be0 t          __do_sys_waitid	# C func calling inlined helper
-> 
-> <inline>     __in_compat_sys_waitid	# inlined helper doing actual work
-> 810f0d80 t   __do_compat_sys_waitid	# compat C func calling inlined helper
-> 
-> 810f2080 T         __x64_sys_waitid	# x64 64-bit-ptregs -> C stub
-> 810f20b0 T        __ia32_sys_waitid	# ia32 32-bit-ptregs -> C stub [unused]
-> 810f2470 T __ia32_compat_sys_waitid	# ia32 32-bit-ptregs -> compat C stub
-> 810f2490 T  __x32_compat_sys_waitid	# x32 64-bit-ptregs -> compat C stub
+> Or is this a side effect of the error injection feature, which needs to add extra 
+> logic at this intermediate level? That too should be able to use the 
+> __do_sys_waitid() variant though.
 
-Ok, looks pretty clean and nice to me all around, and looking at the highest level 
-syscall tables the actual calling convention and address encoding is now a _lot_ 
-more obvious at first sight as well.
+Error injection is unrelated. It seems to be for three reasons, if I read
+the code (include/linux/syscalls.h) correctly:
 
-The "in" part is a tiny bit confusing because it reads like a preposition:
-"are we in sys_waitid?".
+	asmlinkage long __do_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))
 
-But I have no better idea, other than we could perhaps use more underscores to 
-signal the inline helper, instead of the 'in_' prefix:
+1)  This takes arguments of type long (to protect against CVE-2009-0029);
+    see https://lwn.net/Articles/604287/ : "Digging into the history of
+    this, it turns out that the long version ensures that 32-bit values
+    are correctly sign-extended for some 64-bit kernel platforms,
+    preventing a historical vulnerability."
 
-> 810f0af0 t            kernel_waitid	# common (32/64) kernel helper
-> 
-> <inline>            _____sys_waitid	# inlined helper doing actual work
-> 810f0be0 t          __do_sys_waitid	# C func calling inlined helper
-> 
-> <inline>     _____compat_sys_waitid	# inlined helper doing actual work
-> 810f0d80 t   __do_compat_sys_waitid	# compat C func calling inlined helper
-> 
-> 810f2080 T         __x64_sys_waitid	# x64 64-bit-ptregs -> C stub
-> 810f20b0 T        __ia32_sys_waitid	# ia32 32-bit-ptregs -> C stub [unused]
-> 810f2470 T __ia32_compat_sys_waitid	# ia32 32-bit-ptregs -> compat C stub
-> 810f2490 T  __x32_compat_sys_waitid	# x32 64-bit-ptregs -> compat C stub
+	{
+		long ret = __in_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));
+		__MAP(x,__SC_TEST,__VA_ARGS__);
 
-?
+2) We can add testing whether one of the arguments is longer than long.
 
-There are some other variants as well, here's the list of all the options I could 
-think of:
+		__PROTECT(x, ret,__MAP(x,__SC_ARGS,__VA_ARGS__));
 
-  - _____sys_waitid()      # ridiculous number of underscores?
-  - __sys_waitid()         # too generic sounding?
-  - __inline_sys_waitid()  # too long?
-  - __il_sys_waitid()      # reminds me of the IL country code ;-)
-  - __in_sys_waitid()      # easy to read as 'are we in syscall?'
+3) This adds asmlinkage_protect() on m68k, but seems to be a no-op on other
+architectures.
 
-None is super convinging - but maybe __inline_sys_waitid is the most natural one.
 
-[ Note, whichever we pick (if we pick a new one), there no need to resend, I can 
-  edit the patches in place if you agree. ]
+While reasons 1 and 3 seem irrelevant on x86, I'd like to keep the code
+close to the generic one -- and reason 2 is valid in and by itself. So I'd
+recommend keeping the __inline_sys / __do_sys indirection.
 
-One more fundamental question: why do we have the __do_sys_waitid() and 
-__inline_sys_waitid() distinction - aren't the function call signatures the same 
-with no conversion done?
 
-I.e. couldn't we just do a single, static __do_sys_waitid(), where the compiler 
-would decide to what extent inlining is justified? This would allow the compiler 
-to inline all the intermediate code into the stubs themselves.
+> Is UML unaffected by these renames?
 
-Or is this a side effect of the error injection feature, which needs to add extra 
-logic at this intermediate level? That too should be able to use the 
-__do_sys_waitid() variant though.
+UML is only affected by patch 3/3, but kept happy by the patch to
+entry/syscalls/syscalltbl.sh.
 
-> The kbuild test robot barked at an alleged +20038 bytes kernel size regression
-> for i386-tinyconfig due to the first patch of this series. That seems to be a
-> false positive, as it likely doesn't take into account the change to
-> scripts/bloat-o-meter. Moreover, I could not reproduce such a size regression
-> on local i386 builds.
 
-Ok, I'll ignore that.
+On a somewhat related note: I'll try to prepare a patch this evening which
+lets us build just the __ia32_sys and __x32_compat_sys stubs we actually
+need. We have that information already in entry/syscalls/syscall_{32,64}.tbl,
+it just needs to be extracted into another header file (in the form of
+	#define NEED_IA32_sys_xyzzz 1
+) and then tested within the stubs. After some randconfig testing, this
+might be worthwile to add on top of the patches already in tip-asm and the
+three renaming patches currently under discussion.
 
-Is UML unaffected by these renames?
 
 Thanks,
-
-	Ingo
+	Dominik
