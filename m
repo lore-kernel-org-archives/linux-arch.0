@@ -1,149 +1,97 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH v2 3/6] Documentation/features/core: Add arch support status files for 'cBPF-JIT' and 'eBPF-JIT'
-Date: Sun,  8 Apr 2018 18:30:24 +0200
-Message-ID: <1523205027-31786-4-git-send-email-andrea.parri@amarulasolutions.com>
-References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [PATCH 4/3] syscalls/x86: adapt syscall_wrapper.h to the new syscall
+ stub naming convention
+Date: Sun, 8 Apr 2018 22:06:58 +0200
+Message-ID: <20180408200658.GA29848@light.dominikbrodowski.net>
+References: <20180407074651.29014-1-linux@dominikbrodowski.net>
+ <20180408083550.32d65b6ra6yca5p7@gmail.com>
+ <20180408091536.GA10120@light.dominikbrodowski.net>
+ <20180408195952.GA27462@light.dominikbrodowski.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
+Content-Disposition: inline
+In-Reply-To: <20180408195952.GA27462@light.dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Commit 6077776b5908e split 'HAVE_BPF_JIT' into cBPF and eBPF variant.
-Adds arch support status files for the new variants, and removes the
-status file corresponding to 'HAVE_BPT_JIT'. The new status matrices
-were auto-generated using the script 'features-refresh.sh'.
+Make the code in syscall_wrapper.h more readable by naming the stub macros
+similar to the stub they provide. While at it, fix a stray newline at the
+end of the __IA32_COMPAT_SYS_STUBx macro.
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- .../features/core/BPF-JIT/arch-support.txt         | 33 ----------------------
- .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++++++++++++++++
- .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++++++++++++++++
- 3 files changed, 66 insertions(+), 33 deletions(-)
- delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
- create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
- create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 
-diff --git a/Documentation/features/core/BPF-JIT/arch-support.txt b/Documentation/features/core/BPF-JIT/arch-support.txt
-deleted file mode 100644
-index d277f971ccd6b..0000000000000
---- a/Documentation/features/core/BPF-JIT/arch-support.txt
-+++ /dev/null
-@@ -1,33 +0,0 @@
--#
--# Feature name:          BPF-JIT
--#         Kconfig:       HAVE_BPF_JIT
--#         description:   arch supports BPF JIT optimizations
--#
--    -----------------------
--    |         arch |status|
--    -----------------------
--    |       alpha: | TODO |
--    |         arc: | TODO |
--    |         arm: |  ok  |
--    |       arm64: |  ok  |
--    |         c6x: | TODO |
--    |       h8300: | TODO |
--    |     hexagon: | TODO |
--    |        ia64: | TODO |
--    |        m68k: | TODO |
--    |  microblaze: | TODO |
--    |        mips: |  ok  |
--    |       nds32: | TODO |
--    |       nios2: | TODO |
--    |    openrisc: | TODO |
--    |      parisc: | TODO |
--    |     powerpc: |  ok  |
--    |       riscv: | TODO |
--    |        s390: |  ok  |
--    |          sh: | TODO |
--    |       sparc: |  ok  |
--    |          um: | TODO |
--    |   unicore32: | TODO |
--    |         x86: |  ok  |
--    |      xtensa: | TODO |
--    -----------------------
-diff --git a/Documentation/features/core/cBPF-JIT/arch-support.txt b/Documentation/features/core/cBPF-JIT/arch-support.txt
-new file mode 100644
-index 0000000000000..90459cdde3143
---- /dev/null
-+++ b/Documentation/features/core/cBPF-JIT/arch-support.txt
-@@ -0,0 +1,33 @@
-+#
-+# Feature name:          cBPF-JIT
-+#         Kconfig:       HAVE_CBPF_JIT
-+#         description:   arch supports cBPF JIT optimizations
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |         c6x: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m68k: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |       nds32: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-+    |        s390: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: | TODO |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/core/eBPF-JIT/arch-support.txt b/Documentation/features/core/eBPF-JIT/arch-support.txt
-new file mode 100644
-index 0000000000000..c90a0382fe667
---- /dev/null
-+++ b/Documentation/features/core/eBPF-JIT/arch-support.txt
-@@ -0,0 +1,33 @@
-+#
-+# Feature name:          eBPF-JIT
-+#         Kconfig:       HAVE_EBPF_JIT
-+#         description:   arch supports eBPF JIT optimizations
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |         c6x: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m68k: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |       nds32: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-+    |        s390: |  ok  |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
--- 
-2.7.4
+diff --git a/arch/x86/include/asm/syscall_wrapper.h b/arch/x86/include/asm/syscall_wrapper.h
+index bad0295739bf..37ee1985d156 100644
+--- a/arch/x86/include/asm/syscall_wrapper.h
++++ b/arch/x86/include/asm/syscall_wrapper.h
+@@ -28,15 +28,15 @@
+  * kernel/sys_ni.c and SYS_NI in kernel/time/posix-stubs.c to cover this
+  * case as well.
+  */
+-#define COMPAT_SC_IA32_STUBx(x, name, ...)				\
++#define __IA32_COMPAT_SYS_STUBx(x, name, ...)				\
+ 	asmlinkage long __ia32_compat_sys##name(const struct pt_regs *regs);\
+ 	ALLOW_ERROR_INJECTION(__ia32_compat_sys##name, ERRNO);		\
+ 	asmlinkage long __ia32_compat_sys##name(const struct pt_regs *regs)\
+ 	{								\
+ 		return __do_compat_sys##name(SC_IA32_REGS_TO_ARGS(x,__VA_ARGS__));\
+-	}								\
++	}
+ 
+-#define SC_IA32_WRAPPERx(x, name, ...)					\
++#define __IA32_SYS_STUBx(x, name, ...)					\
+ 	asmlinkage long __ia32_sys##name(const struct pt_regs *regs);	\
+ 	ALLOW_ERROR_INJECTION(__ia32_sys##name, ERRNO);			\
+ 	asmlinkage long __ia32_sys##name(const struct pt_regs *regs)	\
+@@ -64,8 +64,8 @@
+ 	SYSCALL_ALIAS(__ia32_sys_##name, sys_ni_posix_timers)
+ 
+ #else /* CONFIG_IA32_EMULATION */
+-#define COMPAT_SC_IA32_STUBx(x, name, ...)
+-#define SC_IA32_WRAPPERx(x, fullname, name, ...)
++#define __IA32_COMPAT_SYS_STUBx(x, name, ...)
++#define __IA32_SYS_STUBx(x, fullname, name, ...)
+ #endif /* CONFIG_IA32_EMULATION */
+ 
+ 
+@@ -75,7 +75,7 @@
+  * of the x86-64-style parameter ordering of x32 syscalls. The syscalls common
+  * with x86_64 obviously do not need such care.
+  */
+-#define COMPAT_SC_X32_STUBx(x, name, ...)				\
++#define __X32_COMPAT_SYS_STUBx(x, name, ...)				\
+ 	asmlinkage long __x32_compat_sys##name(const struct pt_regs *regs);\
+ 	ALLOW_ERROR_INJECTION(__x32_compat_sys##name, ERRNO);		\
+ 	asmlinkage long __x32_compat_sys##name(const struct pt_regs *regs)\
+@@ -84,7 +84,7 @@
+ 	}								\
+ 
+ #else /* CONFIG_X86_X32 */
+-#define COMPAT_SC_X32_STUBx(x, name, ...)
++#define __X32_COMPAT_SYS_STUBx(x, name, ...)
+ #endif /* CONFIG_X86_X32 */
+ 
+ 
+@@ -97,8 +97,8 @@
+ #define COMPAT_SYSCALL_DEFINEx(x, name, ...)					\
+ 	static long __do_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
+ 	static inline long __in_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
+-	COMPAT_SC_IA32_STUBx(x, name, __VA_ARGS__)				\
+-	COMPAT_SC_X32_STUBx(x, name, __VA_ARGS__)				\
++	__IA32_COMPAT_SYS_STUBx(x, name, __VA_ARGS__)				\
++	__X32_COMPAT_SYS_STUBx(x, name, __VA_ARGS__)				\
+ 	static long __do_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+ 	{									\
+ 		return __in_compat_sys##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));\
+@@ -163,7 +163,7 @@
+ 	{								\
+ 		return __do_sys##name(SC_X86_64_REGS_TO_ARGS(x,__VA_ARGS__));\
+ 	}								\
+-	SC_IA32_WRAPPERx(x, name, __VA_ARGS__)				\
++	__IA32_SYS_STUBx(x, name, __VA_ARGS__)				\
+ 	static long __do_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+ 	{								\
+ 		long ret = __in_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
