@@ -1,107 +1,97 @@
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 0/3] syscalls: clean up stub naming convention
-Date: Sat,  7 Apr 2018 09:46:48 +0200
-Message-ID: <20180407074651.29014-1-linux@dominikbrodowski.net>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 0/3] syscalls: clean up stub naming convention
+Date: Sun, 8 Apr 2018 10:35:50 +0200
+Message-ID: <20180408083550.32d65b6ra6yca5p7@gmail.com>
+References: <20180407074651.29014-1-linux@dominikbrodowski.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180407074651.29014-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, mingo@kernel.org
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Ingo,
 
-as discussed yesterday, here is a mini-series (mostly) implementing your
-suggestion on how to tidy up the naming convention for syscall stubs.
+* Dominik Brodowski <linux@dominikbrodowski.net> wrote:
 
-For the generic case, we now will have:
+> In short (0xffffffff prefix removed, re-ordered):
+> 
+> 810f0af0 t            kernel_waitid	# common (32/64) kernel helper
+> 
+> <inline>            __in_sys_waitid	# inlined helper doing actual work
+> 810f0be0 t          __do_sys_waitid	# C func calling inlined helper
+> 
+> <inline>     __in_compat_sys_waitid	# inlined helper doing actual work
+> 810f0d80 t   __do_compat_sys_waitid	# compat C func calling inlined helper
+> 
+> 810f2080 T         __x64_sys_waitid	# x64 64-bit-ptregs -> C stub
+> 810f20b0 T        __ia32_sys_waitid	# ia32 32-bit-ptregs -> C stub [unused]
+> 810f2470 T __ia32_compat_sys_waitid	# ia32 32-bit-ptregs -> compat C stub
+> 810f2490 T  __x32_compat_sys_waitid	# x32 64-bit-ptregs -> compat C stub
 
-t	        kernel_waitid	# common C function (see kernel/exit.c)
+Ok, looks pretty clean and nice to me all around, and looking at the highest level 
+syscall tables the actual calling convention and address encoding is now a _lot_ 
+more obvious at first sight as well.
 
-i	      __in_sys_waitid	# inlined helper doing the actual work
-				# (takes parameters as declared)
+The "in" part is a tiny bit confusing because it reads like a preposition:
+"are we in sys_waitid?".
 
-T	      __do_sys_waitid	# C function calling inlined helper
-				# (takes parameters of type long; casts
-				#  them to the declared type)
+But I have no better idea, other than we could perhaps use more underscores to 
+signal the inline helper, instead of the 'in_' prefix:
 
-i	__in_compat_sys_waitid	# inlined helper doing the actual work
-				  (takes parameters as declared)
+> 810f0af0 t            kernel_waitid	# common (32/64) kernel helper
+> 
+> <inline>            _____sys_waitid	# inlined helper doing actual work
+> 810f0be0 t          __do_sys_waitid	# C func calling inlined helper
+> 
+> <inline>     _____compat_sys_waitid	# inlined helper doing actual work
+> 810f0d80 t   __do_compat_sys_waitid	# compat C func calling inlined helper
+> 
+> 810f2080 T         __x64_sys_waitid	# x64 64-bit-ptregs -> C stub
+> 810f20b0 T        __ia32_sys_waitid	# ia32 32-bit-ptregs -> C stub [unused]
+> 810f2470 T __ia32_compat_sys_waitid	# ia32 32-bit-ptregs -> compat C stub
+> 810f2490 T  __x32_compat_sys_waitid	# x32 64-bit-ptregs -> compat C stub
 
-T	__do_compat_sys_waitid	# compat C function calling inlined helper
-				# (takes parameters of type long, casts
-				#  them to unsigned long and then to the
-				#  declared type)
+?
 
-T	            sys_waitid	# alias to __do_sys_waitid() (taking
-				# parameters as declared), to be included
-				# in syscall table
+There are some other variants as well, here's the list of all the options I could 
+think of:
 
-T	     compat_sys_waitid	# alias to __do_compat_sys_waitid()
-				# (taking parameters as declared), to
-				# be included in syscall table
+  - _____sys_waitid()      # ridiculous number of underscores?
+  - __sys_waitid()         # too generic sounding?
+  - __inline_sys_waitid()  # too long?
+  - __il_sys_waitid()      # reminds me of the IL country code ;-)
+  - __in_sys_waitid()      # easy to read as 'are we in syscall?'
 
+None is super convinging - but maybe __inline_sys_waitid is the most natural one.
 
-For 64-bit x86, kernel_waitid, __do_sys_waitid and __in_sys_waitid are the
-same. But instead of sys_waitid and compat_sys_waitid, there are:
+[ Note, whichever we pick (if we pick a new one), there no need to resend, I can 
+  edit the patches in place if you agree. ]
 
-T	      __x64_sys_waitid	# x86 64-bit-ptregs -> C stub, calls
-				# __do_sys_waitid(); to be included in
-				# syscall table
+One more fundamental question: why do we have the __do_sys_waitid() and 
+__inline_sys_waitid() distinction - aren't the function call signatures the same 
+with no conversion done?
 
-T	     __ia32_sys_waitid	# IA32_EMULATION 32-bit-ptregs -> C stub,
-				# calls __do_sys_waitid(); to be included
-				# in syscall table unless there is a
-				# compat syscall stub [in that case, it is
-				# unused]
+I.e. couldn't we just do a single, static __do_sys_waitid(), where the compiler 
+would decide to what extent inlining is justified? This would allow the compiler 
+to inline all the intermediate code into the stubs themselves.
 
-T     __ia32_compat_sys_waitid	# IA32_EMULATION 32-bit-ptregs -> C stub,
-				# calls __do_compat_sys_waitid(); to be
-				# included in syscall table
+Or is this a side effect of the error injection feature, which needs to add extra 
+logic at this intermediate level? That too should be able to use the 
+__do_sys_waitid() variant though.
 
-T      __x32_compat_sys_waitid	# x32 64-bit-ptregs -> C stub, calls
-				# __do_compat_sys_waitid(); to be included
-				# in syscall table
+> The kbuild test robot barked at an alleged +20038 bytes kernel size regression
+> for i386-tinyconfig due to the first patch of this series. That seems to be a
+> false positive, as it likely doesn't take into account the change to
+> scripts/bloat-o-meter. Moreover, I could not reproduce such a size regression
+> on local i386 builds.
 
-In short (0xffffffff prefix removed, re-ordered):
+Ok, I'll ignore that.
 
-810f0af0 t            kernel_waitid	# common (32/64) kernel helper
-
-<inline>            __in_sys_waitid	# inlined helper doing actual work
-810f0be0 t          __do_sys_waitid	# C func calling inlined helper
-
-<inline>     __in_compat_sys_waitid	# inlined helper doing actual work
-810f0d80 t   __do_compat_sys_waitid	# compat C func calling inlined helper
-
-810f2080 T         __x64_sys_waitid	# x64 64-bit-ptregs -> C stub
-810f20b0 T        __ia32_sys_waitid	# ia32 32-bit-ptregs -> C stub [unused]
-810f2470 T __ia32_compat_sys_waitid	# ia32 32-bit-ptregs -> compat C stub
-810f2490 T  __x32_compat_sys_waitid	# x32 64-bit-ptregs -> compat C stub
-
-The kbuild test robot barked at an alleged +20038 bytes kernel size regression
-for i386-tinyconfig due to the first patch of this series. That seems to be a
-false positive, as it likely doesn't take into account the change to
-scripts/bloat-o-meter. Moreover, I could not reproduce such a size regression
-on local i386 builds.
+Is UML unaffected by these renames?
 
 Thanks,
-	Dominik
 
-Dominik Brodowski (3):
-  syscalls: clean up syscall stub naming convention
-  syscalls: clean up compat syscall stub naming convention
-  syscalls: rename struct pt_regs-based sys_*() to __x64_sys_*()
-
- Documentation/process/adding-syscalls.rst |   4 +-
- arch/x86/entry/syscalls/syscall_32.tbl    | 720 +++++++++++-----------
- arch/x86/entry/syscalls/syscall_64.tbl    | 710 ++++++++++-----------
- arch/x86/entry/syscalls/syscalltbl.sh     |  14 +-
- arch/x86/entry/vsyscall/vsyscall_64.c     |   6 +-
- arch/x86/include/asm/syscall_wrapper.h    | 142 +++--
- arch/x86/include/asm/syscalls.h           |   2 +-
- include/linux/compat.h                    |  24 +-
- include/linux/syscalls.h                  |  12 +-
- scripts/bloat-o-meter                     |   4 +-
- 10 files changed, 841 insertions(+), 797 deletions(-)
-
--- 
-2.17.0
+	Ingo
