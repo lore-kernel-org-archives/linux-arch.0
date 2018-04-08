@@ -1,86 +1,114 @@
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: Re: [PATCH 0/3] syscalls: clean up stub naming convention
-Date: Sun, 8 Apr 2018 11:15:36 +0200
-Message-ID: <20180408091536.GA10120@light.dominikbrodowski.net>
-References: <20180407074651.29014-1-linux@dominikbrodowski.net>
- <20180408083550.32d65b6ra6yca5p7@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: [RFC PATCH v2 0/6] Documentation/features: Provide and apply 'features-refresh.sh'
+Date: Sun,  8 Apr 2018 18:30:21 +0200
+Message-ID: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180408083550.32d65b6ra6yca5p7@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
+Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 08, 2018 at 10:35:50AM +0200, Ingo Molnar wrote:
->   - _____sys_waitid()      # ridiculous number of underscores?
->   - __sys_waitid()         # too generic sounding?
+Hi,
 
-... and we'd need to rename internal helpers in net/
+This series provides the script 'features-refresh.sh', which operates on
+the arch support status files, and it applies this script to refresh the
+status files in place; previous discussions about this series are at [1].
 
->   - __inline_sys_waitid()  # too long?
+The series is organized as follows.
 
-sounds acceptable, though a bit long (especially for the compat case, though
-it doesn't really matter in the case of 
-__inline_compat_sys_sched_rr_get_interval)
+  - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
 
-> One more fundamental question: why do we have the __do_sys_waitid() and 
-> __inline_sys_waitid() distinction - aren't the function call signatures the same 
-> with no conversion done?
-> 
-> I.e. couldn't we just do a single, static __do_sys_waitid(), where the compiler 
-> would decide to what extent inlining is justified? This would allow the compiler 
-> to inline all the intermediate code into the stubs themselves.
-> 
-> Or is this a side effect of the error injection feature, which needs to add extra 
-> logic at this intermediate level? That too should be able to use the 
-> __do_sys_waitid() variant though.
+  - Patch 2/6 presents the results of running the script; this run
+    also printed the messages
 
-Error injection is unrelated. It seems to be for three reasons, if I read
-the code (include/linux/syscalls.h) correctly:
+       WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
+       WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
+       WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
+       WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
 
-	asmlinkage long __do_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))
+    to standard output.
 
-1)  This takes arguments of type long (to protect against CVE-2009-0029);
-    see https://lwn.net/Articles/604287/ : "Digging into the history of
-    this, it turns out that the long version ensures that 32-bit values
-    are correctly sign-extended for some 64-bit kernel platforms,
-    preventing a historical vulnerability."
+  - Patches 3-6/6 fix each of these warnings.
 
-	{
-		long ret = __in_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));
-		__MAP(x,__SC_TEST,__VA_ARGS__);
+(Applies on today's mainline.)
 
-2) We can add testing whether one of the arguments is longer than long.
+Cheers,
+  Andrea
 
-		__PROTECT(x, ret,__MAP(x,__SC_ARGS,__VA_ARGS__));
+[1] https://marc.info/?l=linux-kernel&m=152223974927255&w=2
+    https://marc.info/?l=linux-kernel&m=152277458614862&w=2
 
-3) This adds asmlinkage_protect() on m68k, but seems to be a no-op on other
-architectures.
+Changes in v2:
+  - support negation operators in Kconfig (suggested by Ingo Molnar)
+  - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
+  - add patches 4-6/6 (suggested by Ingo Molnar)
 
+Andrea Parri (6):
+  Documentation/features: Add script that refreshes the arch support
+    status files in place
+  Documentation/features: Refresh the arch support status files in place
+  Documentation/features/core: Add arch support status files for
+    'cBPF-JIT' and 'eBPF-JIT'
+  Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
+    Kconfig for 'rwsem-optimized'
+  Documentation/features/lib: Remove arch support status file for
+    'strncasecmp'
+  Documentation/features/vm: Remove arch support status file for
+    'pte_special'
 
-While reasons 1 and 3 seem irrelevant on x86, I'd like to keep the code
-close to the generic one -- and reason 2 is valid in and by itself. So I'd
-recommend keeping the __inline_sys / __do_sys indirection.
+ .../features/core/BPF-JIT/arch-support.txt         | 31 -------
+ .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
+ .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
+ .../core/generic-idle-thread/arch-support.txt      |  4 +-
+ .../features/core/jump-labels/arch-support.txt     |  2 +
+ .../features/core/tracehook/arch-support.txt       |  2 +
+ .../features/debug/KASAN/arch-support.txt          |  4 +-
+ .../debug/gcov-profile-all/arch-support.txt        |  2 +
+ Documentation/features/debug/kgdb/arch-support.txt |  4 +-
+ .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
+ .../features/debug/kprobes/arch-support.txt        |  4 +-
+ .../features/debug/kretprobes/arch-support.txt     |  4 +-
+ .../features/debug/optprobes/arch-support.txt      |  4 +-
+ .../features/debug/stackprotector/arch-support.txt |  2 +
+ .../features/debug/uprobes/arch-support.txt        |  6 +-
+ .../debug/user-ret-profiler/arch-support.txt       |  2 +
+ .../features/io/dma-api-debug/arch-support.txt     |  2 +
+ .../features/io/dma-contiguous/arch-support.txt    |  4 +-
+ .../features/io/sg-chain/arch-support.txt          |  2 +
+ .../features/lib/strncasecmp/arch-support.txt      | 31 -------
+ .../locking/cmpxchg-local/arch-support.txt         |  4 +-
+ .../features/locking/lockdep/arch-support.txt      |  4 +-
+ .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
+ .../locking/queued-spinlocks/arch-support.txt      |  8 +-
+ .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
+ .../features/perf/kprobes-event/arch-support.txt   |  6 +-
+ .../features/perf/perf-regs/arch-support.txt       |  4 +-
+ .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
+ .../sched/membarrier-sync-core/arch-support.txt    |  2 +
+ .../features/sched/numa-balancing/arch-support.txt |  6 +-
+ Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
+ .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
+ .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
+ .../features/time/clockevents/arch-support.txt     |  4 +-
+ .../time/context-tracking/arch-support.txt         |  2 +
+ .../features/time/irq-time-acct/arch-support.txt   |  4 +-
+ .../time/modern-timekeeping/arch-support.txt       |  2 +
+ .../features/time/virt-cpuacct/arch-support.txt    |  2 +
+ .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
+ .../features/vm/PG_uncached/arch-support.txt       |  2 +
+ Documentation/features/vm/THP/arch-support.txt     |  2 +
+ Documentation/features/vm/TLB/arch-support.txt     |  2 +
+ .../features/vm/huge-vmap/arch-support.txt         |  2 +
+ .../features/vm/ioremap_prot/arch-support.txt      |  2 +
+ .../features/vm/numa-memblock/arch-support.txt     |  4 +-
+ .../features/vm/pte_special/arch-support.txt       | 31 -------
+ 46 files changed, 279 insertions(+), 128 deletions(-)
+ delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
+ create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
+ create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
+ delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
+ create mode 100755 Documentation/features/scripts/features-refresh.sh
+ delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
 
-
-> Is UML unaffected by these renames?
-
-UML is only affected by patch 3/3, but kept happy by the patch to
-entry/syscalls/syscalltbl.sh.
-
-
-On a somewhat related note: I'll try to prepare a patch this evening which
-lets us build just the __ia32_sys and __x32_compat_sys stubs we actually
-need. We have that information already in entry/syscalls/syscall_{32,64}.tbl,
-it just needs to be extracted into another header file (in the form of
-	#define NEED_IA32_sys_xyzzz 1
-) and then tested within the stubs. After some randconfig testing, this
-might be worthwile to add on top of the patches already in tip-asm and the
-three renaming patches currently under discussion.
-
-
-Thanks,
-	Dominik
+-- 
+2.7.4
