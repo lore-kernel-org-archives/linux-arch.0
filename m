@@ -1,149 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:55377 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752492AbeDHQbX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Apr 2018 12:31:23 -0400
-Received: by mail-wm0-f65.google.com with SMTP id b127so13096346wmf.5
-        for <linux-arch@vger.kernel.org>; Sun, 08 Apr 2018 09:31:22 -0700 (PDT)
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH v2 1/6] Documentation/features: Add script that refreshes the arch support status files in place
-Date: Sun,  8 Apr 2018 18:30:22 +0200
-Message-ID: <1523205027-31786-2-git-send-email-andrea.parri@amarulasolutions.com>
-In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
-References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
+Received: from isilmar-4.linta.de ([136.243.71.142]:49872 "EHLO
+        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751552AbeDHUKa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Apr 2018 16:10:30 -0400
+Date: Sun, 8 Apr 2018 22:06:58 +0200
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [PATCH 4/3] syscalls/x86: adapt syscall_wrapper.h to the new syscall
+ stub naming convention
+Message-ID: <20180408200658.GA29848@light.dominikbrodowski.net>
+References: <20180407074651.29014-1-linux@dominikbrodowski.net>
+ <20180408083550.32d65b6ra6yca5p7@gmail.com>
+ <20180408091536.GA10120@light.dominikbrodowski.net>
+ <20180408195952.GA27462@light.dominikbrodowski.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180408195952.GA27462@light.dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
-Message-ID: <20180408163022.wlFmWsoJQNZALi8BHcFirnYd79cbfp46LqSyCBjG1qU@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180408200658.pzUx6Krcy6IYauNbzipf53ZhjSi09m0ykPk0xxfTz1k@z>
 
-Provides the script:
+Make the code in syscall_wrapper.h more readable by naming the stub macros
+similar to the stub they provide. While at it, fix a stray newline at the
+end of the __IA32_COMPAT_SYS_STUBx macro.
 
-	Documentation/features/scripts/features-refresh.sh
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 
-which operates on the arch-support.txt files and refreshes them in place.
-
-This way [1],
-
-   "[...] we soft- decouple the refreshing of the entries from the
-    introduction of the features, while still making it all easy to
-    keep sync and to extend."
-
-[1] https://marc.info/?l=linux-kernel&m=152240950509781&w=2
-
-Suggested-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
- 1 file changed, 98 insertions(+)
- create mode 100755 Documentation/features/scripts/features-refresh.sh
-
-diff --git a/Documentation/features/scripts/features-refresh.sh b/Documentation/features/scripts/features-refresh.sh
-new file mode 100755
-index 0000000000000..9e72d38a0720e
---- /dev/null
-+++ b/Documentation/features/scripts/features-refresh.sh
-@@ -0,0 +1,98 @@
-+#
-+# Small script that refreshes the kernel feature support status in place.
-+#
-+
-+for F_FILE in Documentation/features/*/*/arch-support.txt; do
-+	F=$(grep "^#         Kconfig:" "$F_FILE" | cut -c26-)
-+
-+	#
-+	# Each feature F is identified by a pair (O, K), where 'O' can
-+	# be either the empty string (for 'nop') or "not" (the logical
-+	# negation operator '!'); other operators are not supported.
-+	#
-+	O=""
-+	K=$F
-+	if [[ "$F" == !* ]]; then
-+		O="not"
-+		K=$(echo $F | sed -e 's/^!//g')
-+	fi
-+
-+	#
-+	# F := (O, K) is 'valid' iff there is a Kconfig file (for some
-+	# arch) which contains K.
-+	#
-+	# Notice that this definition entails an 'asymmetry' between
-+	# the case 'O = ""' and the case 'O = "not"'. E.g., F may be
-+	# _invalid_ if:
-+	#
-+	# [case 'O = ""']
-+	#   1) no arch provides support for F,
-+	#   2) K does not exist (e.g., it was renamed/mis-typed);
-+	#
-+	# [case 'O = "not"']
-+	#   3) all archs provide support for F,
-+	#   4) as in (2).
-+	#
-+	# The rationale for adopting this definition (and, thus, for
-+	# keeping the asymmetry) is:
-+	#
-+	#       We want to be able to 'detect' (2) (or (4)).
-+	#
-+	# (1) and (3) may further warn the developers about the fact
-+	# that K can be removed.
-+	#
-+	F_VALID="false"
-+	for ARCH_DIR in arch/*/; do
-+		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
-+		K_GREP=$(grep "$K" $K_FILES)
-+		if [ ! -z "$K_GREP" ]; then
-+			F_VALID="true"
-+			break
-+		fi
-+	done
-+	if [ "$F_VALID" = "false" ]; then
-+		printf "WARNING: '%s' is not a valid Kconfig\n" "$F"
-+	fi
-+
-+	T_FILE="$F_FILE.tmp"
-+	grep "^#" $F_FILE > $T_FILE
-+	echo "    -----------------------" >> $T_FILE
-+	echo "    |         arch |status|" >> $T_FILE
-+	echo "    -----------------------" >> $T_FILE
-+	for ARCH_DIR in arch/*/; do
-+		ARCH=$(echo $ARCH_DIR | sed -e 's/arch//g' | sed -e 's/\///g')
-+		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
-+		K_GREP=$(grep "$K" $K_FILES)
-+		#
-+		# Arch support status values for (O, K) are updated according
-+		# to the following rules.
-+		#
-+		#   - ("", K) is 'supported by a given arch', if there is a
-+		#     Kconfig file for that arch which contains K;
-+		#
-+		#   - ("not", K) is 'supported by a given arch', if there is
-+		#     no Kconfig file for that arch which contains K;
-+		#
-+		#   - otherwise: preserve the previous status value (if any),
-+		#                default to 'not yet supported'.
-+		#
-+		# Notice that, according these rules, invalid features may be
-+		# updated/modified.
-+		#
-+		if [ "$O" = "" ] && [ ! -z "$K_GREP" ]; then
-+			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
-+		elif [ "$O" = "not" ] && [ -z "$K_GREP" ]; then
-+			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
-+		else
-+			S=$(grep -v "^#" "$F_FILE" | grep " $ARCH:")
-+			if [ ! -z "$S" ]; then
-+				echo "$S" >> $T_FILE
-+			else
-+				printf "    |%12s: | TODO |\n" "$ARCH" \
-+					>> $T_FILE
-+			fi
-+		fi
-+	done
-+	echo "    -----------------------" >> $T_FILE
-+	mv $T_FILE $F_FILE
-+done
--- 
-2.7.4
+diff --git a/arch/x86/include/asm/syscall_wrapper.h b/arch/x86/include/asm/syscall_wrapper.h
+index bad0295739bf..37ee1985d156 100644
+--- a/arch/x86/include/asm/syscall_wrapper.h
++++ b/arch/x86/include/asm/syscall_wrapper.h
+@@ -28,15 +28,15 @@
+  * kernel/sys_ni.c and SYS_NI in kernel/time/posix-stubs.c to cover this
+  * case as well.
+  */
+-#define COMPAT_SC_IA32_STUBx(x, name, ...)				\
++#define __IA32_COMPAT_SYS_STUBx(x, name, ...)				\
+ 	asmlinkage long __ia32_compat_sys##name(const struct pt_regs *regs);\
+ 	ALLOW_ERROR_INJECTION(__ia32_compat_sys##name, ERRNO);		\
+ 	asmlinkage long __ia32_compat_sys##name(const struct pt_regs *regs)\
+ 	{								\
+ 		return __do_compat_sys##name(SC_IA32_REGS_TO_ARGS(x,__VA_ARGS__));\
+-	}								\
++	}
+ 
+-#define SC_IA32_WRAPPERx(x, name, ...)					\
++#define __IA32_SYS_STUBx(x, name, ...)					\
+ 	asmlinkage long __ia32_sys##name(const struct pt_regs *regs);	\
+ 	ALLOW_ERROR_INJECTION(__ia32_sys##name, ERRNO);			\
+ 	asmlinkage long __ia32_sys##name(const struct pt_regs *regs)	\
+@@ -64,8 +64,8 @@
+ 	SYSCALL_ALIAS(__ia32_sys_##name, sys_ni_posix_timers)
+ 
+ #else /* CONFIG_IA32_EMULATION */
+-#define COMPAT_SC_IA32_STUBx(x, name, ...)
+-#define SC_IA32_WRAPPERx(x, fullname, name, ...)
++#define __IA32_COMPAT_SYS_STUBx(x, name, ...)
++#define __IA32_SYS_STUBx(x, fullname, name, ...)
+ #endif /* CONFIG_IA32_EMULATION */
+ 
+ 
+@@ -75,7 +75,7 @@
+  * of the x86-64-style parameter ordering of x32 syscalls. The syscalls common
+  * with x86_64 obviously do not need such care.
+  */
+-#define COMPAT_SC_X32_STUBx(x, name, ...)				\
++#define __X32_COMPAT_SYS_STUBx(x, name, ...)				\
+ 	asmlinkage long __x32_compat_sys##name(const struct pt_regs *regs);\
+ 	ALLOW_ERROR_INJECTION(__x32_compat_sys##name, ERRNO);		\
+ 	asmlinkage long __x32_compat_sys##name(const struct pt_regs *regs)\
+@@ -84,7 +84,7 @@
+ 	}								\
+ 
+ #else /* CONFIG_X86_X32 */
+-#define COMPAT_SC_X32_STUBx(x, name, ...)
++#define __X32_COMPAT_SYS_STUBx(x, name, ...)
+ #endif /* CONFIG_X86_X32 */
+ 
+ 
+@@ -97,8 +97,8 @@
+ #define COMPAT_SYSCALL_DEFINEx(x, name, ...)					\
+ 	static long __do_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
+ 	static inline long __in_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
+-	COMPAT_SC_IA32_STUBx(x, name, __VA_ARGS__)				\
+-	COMPAT_SC_X32_STUBx(x, name, __VA_ARGS__)				\
++	__IA32_COMPAT_SYS_STUBx(x, name, __VA_ARGS__)				\
++	__X32_COMPAT_SYS_STUBx(x, name, __VA_ARGS__)				\
+ 	static long __do_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+ 	{									\
+ 		return __in_compat_sys##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));\
+@@ -163,7 +163,7 @@
+ 	{								\
+ 		return __do_sys##name(SC_X86_64_REGS_TO_ARGS(x,__VA_ARGS__));\
+ 	}								\
+-	SC_IA32_WRAPPERx(x, name, __VA_ARGS__)				\
++	__IA32_SYS_STUBx(x, name, __VA_ARGS__)				\
+ 	static long __do_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+ 	{								\
+ 		long ret = __in_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
