@@ -1,156 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f196.google.com ([209.85.128.196]:41510 "EHLO
-        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752669AbeDHQbc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Apr 2018 12:31:32 -0400
-Received: by mail-wr0-f196.google.com with SMTP id s12so6148958wrc.8
-        for <linux-arch@vger.kernel.org>; Sun, 08 Apr 2018 09:31:32 -0700 (PDT)
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:55377 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752492AbeDHQbX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Apr 2018 12:31:23 -0400
+Received: by mail-wm0-f65.google.com with SMTP id b127so13096346wmf.5
+        for <linux-arch@vger.kernel.org>; Sun, 08 Apr 2018 09:31:22 -0700 (PDT)
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH v2 3/6] Documentation/features/core: Add arch support status files for 'cBPF-JIT' and 'eBPF-JIT'
-Date: Sun,  8 Apr 2018 18:30:24 +0200
-Message-ID: <1523205027-31786-4-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: [RFC PATCH v2 1/6] Documentation/features: Add script that refreshes the arch support status files in place
+Date: Sun,  8 Apr 2018 18:30:22 +0200
+Message-ID: <1523205027-31786-2-git-send-email-andrea.parri@amarulasolutions.com>
 In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
 Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
-Message-ID: <20180408163024.h1GarZp2cH0vvB4SLeFKEa1HQu2X1ldcrWh3A2llZz8@z>
+Message-ID: <20180408163022.wlFmWsoJQNZALi8BHcFirnYd79cbfp46LqSyCBjG1qU@z>
 
-Commit 6077776b5908e split 'HAVE_BPF_JIT' into cBPF and eBPF variant.
-Adds arch support status files for the new variants, and removes the
-status file corresponding to 'HAVE_BPT_JIT'. The new status matrices
-were auto-generated using the script 'features-refresh.sh'.
+Provides the script:
 
+	Documentation/features/scripts/features-refresh.sh
+
+which operates on the arch-support.txt files and refreshes them in place.
+
+This way [1],
+
+   "[...] we soft- decouple the refreshing of the entries from the
+    introduction of the features, while still making it all easy to
+    keep sync and to extend."
+
+[1] https://marc.info/?l=linux-kernel&m=152240950509781&w=2
+
+Suggested-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Cc: Ingo Molnar <mingo@kernel.org>
 Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- .../features/core/BPF-JIT/arch-support.txt         | 33 ----------------------
- .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++++++++++++++++
- .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++++++++++++++++
- 3 files changed, 66 insertions(+), 33 deletions(-)
- delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
- create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
- create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
+ Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
+ 1 file changed, 98 insertions(+)
+ create mode 100755 Documentation/features/scripts/features-refresh.sh
 
-diff --git a/Documentation/features/core/BPF-JIT/arch-support.txt b/Documentation/features/core/BPF-JIT/arch-support.txt
-deleted file mode 100644
-index d277f971ccd6b..0000000000000
---- a/Documentation/features/core/BPF-JIT/arch-support.txt
-+++ /dev/null
-@@ -1,33 +0,0 @@
--#
--# Feature name:          BPF-JIT
--#         Kconfig:       HAVE_BPF_JIT
--#         description:   arch supports BPF JIT optimizations
--#
--    -----------------------
--    |         arch |status|
--    -----------------------
--    |       alpha: | TODO |
--    |         arc: | TODO |
--    |         arm: |  ok  |
--    |       arm64: |  ok  |
--    |         c6x: | TODO |
--    |       h8300: | TODO |
--    |     hexagon: | TODO |
--    |        ia64: | TODO |
--    |        m68k: | TODO |
--    |  microblaze: | TODO |
--    |        mips: |  ok  |
--    |       nds32: | TODO |
--    |       nios2: | TODO |
--    |    openrisc: | TODO |
--    |      parisc: | TODO |
--    |     powerpc: |  ok  |
--    |       riscv: | TODO |
--    |        s390: |  ok  |
--    |          sh: | TODO |
--    |       sparc: |  ok  |
--    |          um: | TODO |
--    |   unicore32: | TODO |
--    |         x86: |  ok  |
--    |      xtensa: | TODO |
--    -----------------------
-diff --git a/Documentation/features/core/cBPF-JIT/arch-support.txt b/Documentation/features/core/cBPF-JIT/arch-support.txt
-new file mode 100644
-index 0000000000000..90459cdde3143
+diff --git a/Documentation/features/scripts/features-refresh.sh b/Documentation/features/scripts/features-refresh.sh
+new file mode 100755
+index 0000000000000..9e72d38a0720e
 --- /dev/null
-+++ b/Documentation/features/core/cBPF-JIT/arch-support.txt
-@@ -0,0 +1,33 @@
++++ b/Documentation/features/scripts/features-refresh.sh
+@@ -0,0 +1,98 @@
 +#
-+# Feature name:          cBPF-JIT
-+#         Kconfig:       HAVE_CBPF_JIT
-+#         description:   arch supports cBPF JIT optimizations
++# Small script that refreshes the kernel feature support status in place.
 +#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |         c6x: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m68k: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |       nds32: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-+    |        s390: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: | TODO |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/core/eBPF-JIT/arch-support.txt b/Documentation/features/core/eBPF-JIT/arch-support.txt
-new file mode 100644
-index 0000000000000..c90a0382fe667
---- /dev/null
-+++ b/Documentation/features/core/eBPF-JIT/arch-support.txt
-@@ -0,0 +1,33 @@
-+#
-+# Feature name:          eBPF-JIT
-+#         Kconfig:       HAVE_EBPF_JIT
-+#         description:   arch supports eBPF JIT optimizations
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |         c6x: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m68k: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |       nds32: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-+    |        s390: |  ok  |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
++
++for F_FILE in Documentation/features/*/*/arch-support.txt; do
++	F=$(grep "^#         Kconfig:" "$F_FILE" | cut -c26-)
++
++	#
++	# Each feature F is identified by a pair (O, K), where 'O' can
++	# be either the empty string (for 'nop') or "not" (the logical
++	# negation operator '!'); other operators are not supported.
++	#
++	O=""
++	K=$F
++	if [[ "$F" == !* ]]; then
++		O="not"
++		K=$(echo $F | sed -e 's/^!//g')
++	fi
++
++	#
++	# F := (O, K) is 'valid' iff there is a Kconfig file (for some
++	# arch) which contains K.
++	#
++	# Notice that this definition entails an 'asymmetry' between
++	# the case 'O = ""' and the case 'O = "not"'. E.g., F may be
++	# _invalid_ if:
++	#
++	# [case 'O = ""']
++	#   1) no arch provides support for F,
++	#   2) K does not exist (e.g., it was renamed/mis-typed);
++	#
++	# [case 'O = "not"']
++	#   3) all archs provide support for F,
++	#   4) as in (2).
++	#
++	# The rationale for adopting this definition (and, thus, for
++	# keeping the asymmetry) is:
++	#
++	#       We want to be able to 'detect' (2) (or (4)).
++	#
++	# (1) and (3) may further warn the developers about the fact
++	# that K can be removed.
++	#
++	F_VALID="false"
++	for ARCH_DIR in arch/*/; do
++		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
++		K_GREP=$(grep "$K" $K_FILES)
++		if [ ! -z "$K_GREP" ]; then
++			F_VALID="true"
++			break
++		fi
++	done
++	if [ "$F_VALID" = "false" ]; then
++		printf "WARNING: '%s' is not a valid Kconfig\n" "$F"
++	fi
++
++	T_FILE="$F_FILE.tmp"
++	grep "^#" $F_FILE > $T_FILE
++	echo "    -----------------------" >> $T_FILE
++	echo "    |         arch |status|" >> $T_FILE
++	echo "    -----------------------" >> $T_FILE
++	for ARCH_DIR in arch/*/; do
++		ARCH=$(echo $ARCH_DIR | sed -e 's/arch//g' | sed -e 's/\///g')
++		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
++		K_GREP=$(grep "$K" $K_FILES)
++		#
++		# Arch support status values for (O, K) are updated according
++		# to the following rules.
++		#
++		#   - ("", K) is 'supported by a given arch', if there is a
++		#     Kconfig file for that arch which contains K;
++		#
++		#   - ("not", K) is 'supported by a given arch', if there is
++		#     no Kconfig file for that arch which contains K;
++		#
++		#   - otherwise: preserve the previous status value (if any),
++		#                default to 'not yet supported'.
++		#
++		# Notice that, according these rules, invalid features may be
++		# updated/modified.
++		#
++		if [ "$O" = "" ] && [ ! -z "$K_GREP" ]; then
++			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
++		elif [ "$O" = "not" ] && [ -z "$K_GREP" ]; then
++			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
++		else
++			S=$(grep -v "^#" "$F_FILE" | grep " $ARCH:")
++			if [ ! -z "$S" ]; then
++				echo "$S" >> $T_FILE
++			else
++				printf "    |%12s: | TODO |\n" "$ARCH" \
++					>> $T_FILE
++			fi
++		fi
++	done
++	echo "    -----------------------" >> $T_FILE
++	mv $T_FILE $F_FILE
++done
 -- 
 2.7.4
