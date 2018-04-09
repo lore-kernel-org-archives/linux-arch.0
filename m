@@ -1,30 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:53637 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751742AbeDIKwN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2018 06:52:13 -0400
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: dma-mapping: clear harmful GFP_* flags in common code
-Date: Mon, 9 Apr 2018 10:52:09 +0000
-Message-ID: <1523271128.5268.32.camel@synopsys.com>
-References: <20180328133535.17302-1-hch@lst.de>
-         <20180328133535.17302-2-hch@lst.de> <1522249966.2593.14.camel@synopsys.com>
-In-Reply-To: <1522249966.2593.14.camel@synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <2DA6D091281BFA4CA84A943AADC1B9D8@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:40120 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751650AbeDIM6V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2018 08:58:21 -0400
+Received: by mail-wm0-f65.google.com with SMTP id x4so16553075wmh.5
+        for <linux-arch@vger.kernel.org>; Mon, 09 Apr 2018 05:58:20 -0700 (PDT)
+Date: Mon, 9 Apr 2018 14:58:18 +0200
+From: Christoffer Dall <cdall@kernel.org>
+Subject: Re: [PATCHv2 10/12] arm64/kvm: context-switch ptrauth registers
+Message-ID: <20180409125818.GE10904@cbox>
+References: <20171127163806.31435-1-mark.rutland@arm.com>
+ <20171127163806.31435-11-mark.rutland@arm.com>
+ <20180206123847.GY21802@cbox>
+ <20180309142838.uvcv3mhvqqlprktt@lakrids.cambridge.arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180309142838.uvcv3mhvqqlprktt@lakrids.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "stable@vger.kernel.org" <stable@vger.kernel.org>
-Cc: "hch@lst.de" <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sebott@linux.vnet.ibm.com" <sebott@linux.vnet.ibm.com>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180409105209.jhj4ctHizG3VueDnQks4GEpL9UhYCBq1-LTGBfIPIqs@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Christoffer Dall <christoffer.dall@linaro.org>, linux-arch@vger.kernel.org, cdall@linaro.org, arnd@arndb.de, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180409125818.7IYZgQP76ks_e_8F8X7ootyd_muU0YGu2UTVAnyDtzs@z>
 
-SGVsbG8sDQoNCk1heSB3ZSBoYXZlDQplODlmNWIzNzAxNTMgKCJkbWEtbWFwcGluZzogRG9uJ3Qg
-Y2xlYXIgR0ZQX1pFUk8gaW4gZG1hX2FsbG9jX2F0dHJzIikNCmJhY2stcG9ydGVkIHRvIDQuMTYg
-a2VybmVsIGFzIGl0IGZpeGVzOg0KDQo1N2JmNWE4ICgiZG1hLW1hcHBpbmc6IGNsZWFyIGhhcm1m
-dWwgR0ZQXyogZmxhZ3MgaW4gY29tbW9uIGNvZGUiKS4NCg0KRm9yIG1vcmUgaW5mbyBhYm91dCBp
-bnRyb2R1Y2VkIHByb2JsZW0gc2VlIHRoaXMgdGhyZWFkOg0KaHR0cDovL2xpc3RzLmluZnJhZGVh
-ZC5vcmcvcGlwZXJtYWlsL2xpbnV4LXNucHMtYXJjLzIwMTgtTWFyY2gvMDAzNjUyLmh0bWwNCg0K
-LUFsZXhleQ==
+Hi Mark,
+
+[Sorry for late reply]
+
+On Fri, Mar 09, 2018 at 02:28:38PM +0000, Mark Rutland wrote:
+> On Tue, Feb 06, 2018 at 01:38:47PM +0100, Christoffer Dall wrote:
+> > On Mon, Nov 27, 2017 at 04:38:04PM +0000, Mark Rutland wrote:
+> > > When pointer authentication is supported, a guest may wish to use it.
+> > > This patch adds the necessary KVM infrastructure for this to work, with
+> > > a semi-lazy context switch of the pointer auth state.
+> > > 
+> > > When we schedule a vcpu, 
+> > 
+> > That's not quite what the code does, the code only does this when we
+> > schedule back a preempted or blocked vcpu thread.
+> 
+> Does that only leave the case of the vCPU being scheduled for the first
+> time? Or am I missing something else?
+> 
+> [...]
+
+In the current patch, you're only calling kvm_arm_vcpu_ptrauth_disable()
+from kvm_arch_sched_in() which is only called on the preempt notifier
+patch, which leaves out every time we enter the guest from userspace and
+therefore also the initial run of the vCPU (assuming there's no
+preemption in the kernel prior to running the first time).
+
+vcpu_load() takes care of all the cases.
+
+> 
+
+[...]
+
+> > 
+> > I still find this decision to begin trapping again quite arbitrary, and
+> > would at least prefer this to be in vcpu_load (which would make the
+> > behavior match the commit text as well).
+> 
+> Sure, done.
+> 
+> > My expectation would be that if a guest is running software with pointer
+> > authentication enabled, then it's likely to either keep using the
+> > feature, or not use it at all, so I would make this a one-time flag.
+> 
+> I think it's likely that some applications will use ptrauth while others
+> do not. Even if the gust OS supports ptrauth, KVM may repeatedly preempt
+> an application that doesn't use it, and we'd win in that case.
+> 
+> There are also some rarer cases, like kexec in a guest from a
+> ptrauth-aware kernel to a ptrauth-oblivious one.
+> 
+> I don't have strong feelings either way, and I have no data.
+> 
+
+I think your intuition sounds sane, and let's reset the flag on every
+vcpu_load, and we can always revisit when we have hardware and data if
+someone reports a performance issue.
+
+Thanks,
+-Christoffer
