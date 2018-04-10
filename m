@@ -1,42 +1,111 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 0/3] syscalls: clean up stub naming convention
-Date: Mon, 9 Apr 2018 12:13:50 -0700
-Message-ID: <CA+55aFzB1+e+X0pWgNyyQXiU34RnTk8swaqewbzSYK29gu-_dA@mail.gmail.com>
-References: <20180407074651.29014-1-linux@dominikbrodowski.net>
- <20180408083550.32d65b6ra6yca5p7@gmail.com> <20180408091536.GA10120@light.dominikbrodowski.net>
- <20180409063921.wkrqbnv4lzxb3isg@gmail.com>
+From: James Hogan <jhogan@kernel.org>
+Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
+Date: Tue, 10 Apr 2018 23:48:06 +0100
+Message-ID: <20180410224805.GA21429@saruman>
+References: <20171219114112.939391-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="sdtB3X0nJg68CQEu"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180409063921.wkrqbnv4lzxb3isg@gmail.com>
+Content-Disposition: inline
+In-Reply-To: <20171219114112.939391-1-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, the arch/x86 maintainers <x86@kernel.org>, Maninder Singh <maninder1.s@samsung.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, linux-mips@linux-mips.org, Paul Burton <paul.burton@mips.com>, Maciej Rozycki <macro@mips.com>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kbuild@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, linux-snps-arc@lists.infradead.org, linux-kern
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 8, 2018 at 11:39 PM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> I see - so it's _not_ the same function call signature, but a wrapper with a
-> sign-extended version, which is fair and useful. So on architectures where this
-> matters there's type conversion and active code generated.
 
-Exactly. Some architectures have that as part of their ABI.
+--sdtB3X0nJg68CQEu
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-On Powerpc, for example, when you pass an "int" argument, the ABI
-specifies that you have to sign-extend the register in the caller to
-64 bits.
+Hi Arnd,
 
-And the generated code actually depends on that behavior, in that
-maybe it first tests the 32 bit value, but then _uses_ the full 64
-bits, knowing that the caller sign-extended it properly.
+On Tue, Dec 19, 2017 at 12:39:33PM +0100, Arnd Bergmann wrote:
+> diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+> index 5d595cfdb2c4..66cfdad68f7e 100644
+> --- a/include/linux/compiler-gcc.h
+> +++ b/include/linux/compiler-gcc.h
+> @@ -205,6 +205,15 @@
+>  #endif
+> =20
+>  /*
+> + * calling noreturn functions, __builtin_unreachable() and __builtin_tra=
+p()
+> + * confuse the stack allocation in gcc, leading to overly large stack
+> + * frames, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=3D82365
+> + *
+> + * Adding an empty inline assembly before it works around the problem
+> + */
+> +#define barrier_before_unreachable() asm volatile("")
+> +
+> +/*
+>   * Mark a position in code as unreachable.  This can be used to
+>   * suppress control flow warnings after asm blocks that transfer
+>   * control elsewhere.
+> @@ -214,7 +223,11 @@
+>   * unreleased.  Really, we need to have autoconf for the kernel.
+>   */
+>  #define unreachable() \
+> -	do { annotate_unreachable(); __builtin_unreachable(); } while (0)
+> +	do {					\
+> +		annotate_unreachable();		\
+> +		barrier_before_unreachable();	\
+> +		__builtin_unreachable();	\
+> +	} while (0)
 
-This is a problem with the system call interface, since the caller
-isn't a trusted entity, and user space could pass an "int" value with
-the high bits set to something that _isn't_ the sign-extended thing,
-so then the compiler generates unsafe code.
+Unfortunately this breaks microMIPS builds (e.g. MIPS
+micro32r2_defconfig and micro32r2el_defconfig) on gcc 7.2, due to the
+lack of .insn in the asm volatile. Because of the
+__builtin_unreachable() there is no code following it. Without the empty
+asm the compiler will apparently put the .insn there automatically, but
+with the empty asm it doesn't. Therefore the assembler won't treat an
+immediately preceeding label as pointing at 16-bit microMIPS
+instructions which need the ISA bit set, i.e. bit 0 of the address.
+This causes assembler errors since the branch target is treated as a
+different ISA mode:
 
-On x86, this never happens, since x86 doesn't have that "hidden higher
-bits matter" ABI model. So that part of the wrapper will be a complete
-no-op. But some other architectures depend on it.
+arch/mips/mm/dma-default.s:3265: Error: branch to a symbol in another ISA m=
+ode
+arch/mips/mm/dma-default.s:5027: Error: branch to a symbol in another ISA m=
+ode
 
-               Linus
+Due to a compiler bug on gcc 4.9.2 -> somewhere before 7.2, Paul
+submitted these patches a while back:
+https://patchwork.linux-mips.org/patch/13360/
+https://patchwork.linux-mips.org/patch/13361/
+
+Your patch (suitably fixed for microMIPS) would I imagine fix that issue
+too (it certainly fixes the resulting link error on microMIPS builds
+with an old toolchain).
+
+Before I forward port those patches to add .insn for MIPS, is that sort
+of approach (an arch specific asm/compiler-gcc.h to allow MIPS to
+override barrier_before_unreachable()) an acceptable fix?
+
+Thanks
+James
+
+--sdtB3X0nJg68CQEu
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAlrNPx8ACgkQbAtpk944
+dnqSJw/+Kb3O5v2XI2GmfHi/0KELq1a0ZD1AXtMeexXWCA/G67vblwP7DhFAB5px
+IV666quqgKR09AdudWDm8+fMbH15AqlMBXRIgLRtyq6a8CuSD9P67MClnniB7+kq
+hWOqGYKwg/jAmw5E/ALHs1Xl9CmNnLnyVVG+utwTO3vA/2BkeA81oSCaeokhKlOX
+5KM9nTqjxW3eCP2syAXmlBli9bdGX7puZ3fXj7dNPbYTnOAT7E1NH4sD0+gr20Xv
+Vjwn+JVKxCdyMrQqIG5E/enYM3Gk+4z9Xjv7GFQB/I/iOuhUBzHbm6Fy7B+08xhl
+utcCYQKHnFia0a5rFHXesqonCB5KvATesX2yWYNpRatj/5Dn37kdY1+1hGqNeNbN
+WNtXKVOegnWJnBLu7TQ8XJxZnYuKvA+2Uj2pb5tTD2M1SYqxAfsJdxqv9GnutJKH
+R9INBc/U7/gqRfez9ycihU1ZcNJHj88I+ePMxUgphcKHdBiCryoO3Xf4+PA+EGhY
+AW176RF4f7VgZP3WgJ3WOTfD4Cq+FfqKGcQDyD8KnZ7o0pdiRY1tcrczeyYLd7Rl
+Rx7JcW9SE7SENMHbdiygBuLTKIbhYl1YXf9VcAm/mYSzgWfVhd9IXIN55FnViPvR
+d3Z7bA8GuxlydlHGdt2OYgSuIuJ3+MqNpIhIOTBNASjd7PdEVAA=
+=oUHg
+-----END PGP SIGNATURE-----
+
+--sdtB3X0nJg68CQEu--
