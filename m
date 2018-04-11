@@ -1,50 +1,73 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
-Date: Wed, 11 Apr 2018 12:08:51 +0200
-Message-ID: <CAK8P3a2_ihWCuUvDz_SVA1TMomkO1d7pa6e2bOQkZcEVP+Ff-A@mail.gmail.com>
-References: <20171219114112.939391-1-arnd@arndb.de> <20180410224805.GA21429@saruman>
- <CAK8P3a0-_u7_FCj-nH0izBv4ub6krm1uA32bwi2jtBzXJePcnQ@mail.gmail.com> <20180411095359.GB21429@saruman>
+Subject: [GIT PULL] asm-generic fixes for v4.17-rc1
+Date: Wed, 11 Apr 2018 17:40:02 +0200
+Message-ID: <CAK8P3a081_hkr5d0FRWpTaT-AsJoqznsS1=_WF4JVLTUOupUgg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180411095359.GB21429@saruman>
 Sender: linux-kernel-owner@vger.kernel.org
-To: James Hogan <jhogan@kernel.org>
-Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Maciej Rozycki <macro@mips.com>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redh>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Sinan Kaya <okaya@codeaurora.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-rdma <linux-rdma@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ley Foon Tan <lftan@altera.com>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, Michal Simek <monstr@monstr.eu>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, Yoshinori Sato <ysato@users.sourceforge.jp>, sparclinux <sparclinux@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, Guan
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 11, 2018 at 11:54 AM, James Hogan <jhogan@kernel.org> wrote:
-> On Wed, Apr 11, 2018 at 09:30:56AM +0200, Arnd Bergmann wrote:
->> On Wed, Apr 11, 2018 at 12:48 AM, James Hogan <jhogan@kernel.org> wrote:
->> > Before I forward port those patches to add .insn for MIPS, is that sort
->> > of approach (an arch specific asm/compiler-gcc.h to allow MIPS to
->> > override barrier_before_unreachable()) an acceptable fix?
->>
->> That sounds fine to me. However, I would suggest making that
->> asm/compiler.h instead of asm/compiler-gcc.h, so we can also
->> use the same file to include workarounds for clang if needed.
->
-> Yes, though there are a few asm/compiler.h's already, and the alpha one
-> includes linux/compiler.h before undefining inline, so seems to have its
-> own specific purpose...
+The following changes since commit 0adb32858b0bddf4ada5f364a84ed60b196dbcda:
 
-Interesting. For the other ones, including asm/compiler.h from linux/compiler.h
-seems appropriate though, so the question would be what to do with the
-alpha case. I think we can simply remove that header file and replace
-it with this patch:
+  Linux 4.16 (2018-04-01 14:20:27 -0700)
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index b2022885ced8..5502404f54cd 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -81,6 +81,9 @@ config PGTABLE_LEVELS
-        int
-        default 3
+are available in the git repository at:
 
-+config OPTIMIZE_INLINING
-+       def_bool y
-+
- source "init/Kconfig"
- source "kernel/Kconfig.freezer"
+  git+ssh://gitolite@ra.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic
 
-which should have the same effect.
+for you to fetch changes up to a71e7c44ffb7baea0c0795824afc34cc0bc1a301:
+
+  io: change writeX_relaxed() to remove barriers (2018-04-10 16:37:34 +0200)
+
+----------------------------------------------------------------
+asm-generic fixes for v4.17-rc1
+
+I have one regression fix for a minor build problem after the architecture
+removal series, plus a rework of the barriers in the readl/writel
+functions, thanks to work by Sinan Kaya:
+
+This started from a discussion on the linuxpcc and rdma mailing lists
+[1]. To summarize, we decided that architectures are responsible to
+serialize readl() and writel() accesses on a device MMIO space relative
+to DMA performed by that device.
+
+This series provides a pessimistic implementation of that behavior for
+asm-generic/io.h, which is in turn used by a number of architectures
+(h8300, microblaze, nios2, openrisc, s390, sparc, um, unicore32, and
+xtensa). Some of those presumably need no extra barriers, or something
+weaker than rmb()/wmb(), and they are advised to override the new default
+for better performance.
+
+For inb()/outb(), the same barriers are used, but architectures might
+want to add another barrier to outb() here if that can guarantee
+non-posted behavior (some architectures can, others cannot do that).
+
+The readl_relaxed()/writel_relaxed() family of functions retains the
+existing behavior with no extra barriers.
+
+[1]: https://lists.ozlabs.org/pipermail/linuxppc-dev/2018-March/170481.html
+
+----------------------------------------------------------------
+Liu, Changcheng (1):
+      dts: remove cris & metag dts hard link file
+
+Sinan Kaya (7):
+      io: define several IO & PIO barrier types for the asm-generic version
+      io: define stronger ordering for the default readX() implementation
+      io: define stronger ordering for the default writeX() implementation
+      io: change outX() to have their own IO barrier overrides
+      io: change inX() to have their own IO barrier overrides
+      io: change readX_relaxed() to remove barriers
+      io: change writeX_relaxed() to remove barriers
+
+ include/asm-generic/io.h           | 161
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------------
+ scripts/dtc/include-prefixes/cris  |   1 -
+ scripts/dtc/include-prefixes/metag |   1 -
+ 3 files changed, 143 insertions(+), 20 deletions(-)
+ delete mode 120000 scripts/dtc/include-prefixes/cris
+ delete mode 120000 scripts/dtc/include-prefixes/metag
