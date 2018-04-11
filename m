@@ -1,98 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42548 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750819AbeDKKTh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Apr 2018 06:19:37 -0400
-Date: Wed, 11 Apr 2018 11:19:27 +0100
-From: James Hogan <jhogan@kernel.org>
-Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
-Message-ID: <20180411101927.GA29949@saruman>
-References: <20171219114112.939391-1-arnd@arndb.de>
- <20180410224805.GA21429@saruman>
- <CAK8P3a0-_u7_FCj-nH0izBv4ub6krm1uA32bwi2jtBzXJePcnQ@mail.gmail.com>
- <20180411095359.GB21429@saruman>
- <CAK8P3a2_ihWCuUvDz_SVA1TMomkO1d7pa6e2bOQkZcEVP+Ff-A@mail.gmail.com>
+Received: from mail-qt0-f196.google.com ([209.85.216.196]:43197 "EHLO
+        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753782AbeDKPkE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Apr 2018 11:40:04 -0400
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="AhhlLboLdkugWU4S"
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a2_ihWCuUvDz_SVA1TMomkO1d7pa6e2bOQkZcEVP+Ff-A@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 11 Apr 2018 17:40:02 +0200
+Message-ID: <CAK8P3a081_hkr5d0FRWpTaT-AsJoqznsS1=_WF4JVLTUOupUgg@mail.gmail.com>
+Subject: [GIT PULL] asm-generic fixes for v4.17-rc1
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Maciej Rozycki <macro@mips.com>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, sparclinux <sparclinux@vger.kernel.org>, linux-sparse@vger.kernel.org, linux-alpha@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Sinan Kaya <okaya@codeaurora.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-rdma <linux-rdma@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ley Foon Tan <lftan@altera.com>, "moderated list:NIOS2 ARCHITECTURE" <nios2-dev@lists.rocketboards.org>, Michal Simek <monstr@monstr.eu>, "moderated list:H8/300 ARCHITECTURE" <uclinux-h8-devel@lists.sourceforge.jp>, Yoshinori Sato <ysato@users.sourceforge.jp>, sparclinux <sparclinux@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org
+Message-ID: <20180411154002.67O2shgH8sgtxm-0Xl3scF9J0dL3qGYAvFu-E-yE-LE@z>
 
+The following changes since commit 0adb32858b0bddf4ada5f364a84ed60b196dbcda:
 
---AhhlLboLdkugWU4S
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+  Linux 4.16 (2018-04-01 14:20:27 -0700)
 
-On Wed, Apr 11, 2018 at 12:08:51PM +0200, Arnd Bergmann wrote:
-> On Wed, Apr 11, 2018 at 11:54 AM, James Hogan <jhogan@kernel.org> wrote:
-> > On Wed, Apr 11, 2018 at 09:30:56AM +0200, Arnd Bergmann wrote:
-> >> On Wed, Apr 11, 2018 at 12:48 AM, James Hogan <jhogan@kernel.org> wrot=
-e:
-> >> > Before I forward port those patches to add .insn for MIPS, is that s=
-ort
-> >> > of approach (an arch specific asm/compiler-gcc.h to allow MIPS to
-> >> > override barrier_before_unreachable()) an acceptable fix?
-> >>
-> >> That sounds fine to me. However, I would suggest making that
-> >> asm/compiler.h instead of asm/compiler-gcc.h, so we can also
-> >> use the same file to include workarounds for clang if needed.
-> >
-> > Yes, though there are a few asm/compiler.h's already, and the alpha one
-> > includes linux/compiler.h before undefining inline, so seems to have its
-> > own specific purpose...
->=20
-> Interesting. For the other ones, including asm/compiler.h from linux/comp=
-iler.h
-> seems appropriate though, so the question would be what to do with the
-> alpha case. I think we can simply remove that header file and replace
-> it with this patch:
->=20
-> diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-> index b2022885ced8..5502404f54cd 100644
-> --- a/arch/alpha/Kconfig
-> +++ b/arch/alpha/Kconfig
-> @@ -81,6 +81,9 @@ config PGTABLE_LEVELS
->         int
->         default 3
->=20
-> +config OPTIMIZE_INLINING
-> +       def_bool y
-> +
->  source "init/Kconfig"
->  source "kernel/Kconfig.freezer"
->=20
-> which should have the same effect.
+are available in the git repository at:
 
-Hmm yes, and I suppose alpha would need ARCH_SUPPORTS_OPTIMIZED_INLINING
-too. I'll give it a try.
+  git+ssh://gitolite@ra.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+tags/asm-generic
 
-Cheers
-James
+for you to fetch changes up to a71e7c44ffb7baea0c0795824afc34cc0bc1a301:
 
---AhhlLboLdkugWU4S
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+  io: change writeX_relaxed() to remove barriers (2018-04-10 16:37:34 +0200)
 
------BEGIN PGP SIGNATURE-----
+----------------------------------------------------------------
+asm-generic fixes for v4.17-rc1
 
-iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAlrN4S4ACgkQbAtpk944
-dnoXAxAAsHoTKQyZDTU/r/kGekG1pEfs0mc8yWLe9iRHbilM5u/YOGj6o0cqkkv8
-7YEH7lfapOs5Fi3+t+kXezfDtIijHFiwlgWJXnqe8z1ZRoovmIw4BYZvZGRMUjrf
-syPK/fOx2ZkQ+L3Zv02UdXfITV2rvWaK58olIs9Qnl7mwkUViA7cK3tzRtOhyKG1
-mEi58L9dOR8SZIGLJjUvBHpMDKyXsTb1AD4chQ5I3TCs8eCOq5FCOb6b0sa9P2x5
-UOpiJ1IMORXgML+FQ2o8lakjkk7b+jmj+NP4dgtydiMqlwZTcXydXW7POh7HMzko
-G6R2+QQiDl8Wf8fqTokXskTT3v2/vM+TwufVJlxWTqirUmuDN2l8AICSXO0Y3PR4
-aTJPIamIA/izYNBo0ukletJRH89TdHdzG5zSNypm6tYu5Vil69A20NnRHHQOYAk6
-Wt1BZUZp9/hz1bcxMCT9jnB10xDO/cXOIODWiwWQQbgx/upbK6oFOHh8YKxgSnXQ
-HFPAwV5tFNT7jVabbj43IQ2lIg+LlwLxL96VghSWxfmOrbUbZhBq7owHp3wwPYiF
-2TAD34tz6oWpgismxcQMV3dnIILncctozEKBleRA63TxYh8gCSH/QsvTi+3zZI2M
-8jnlOr4EkFefBAHhOAjZQE14qDig9/rW8FgnJTAhLteAF8f5wY0=
-=HfmN
------END PGP SIGNATURE-----
+I have one regression fix for a minor build problem after the architecture
+removal series, plus a rework of the barriers in the readl/writel
+functions, thanks to work by Sinan Kaya:
 
---AhhlLboLdkugWU4S--
+This started from a discussion on the linuxpcc and rdma mailing lists
+[1]. To summarize, we decided that architectures are responsible to
+serialize readl() and writel() accesses on a device MMIO space relative
+to DMA performed by that device.
+
+This series provides a pessimistic implementation of that behavior for
+asm-generic/io.h, which is in turn used by a number of architectures
+(h8300, microblaze, nios2, openrisc, s390, sparc, um, unicore32, and
+xtensa). Some of those presumably need no extra barriers, or something
+weaker than rmb()/wmb(), and they are advised to override the new default
+for better performance.
+
+For inb()/outb(), the same barriers are used, but architectures might
+want to add another barrier to outb() here if that can guarantee
+non-posted behavior (some architectures can, others cannot do that).
+
+The readl_relaxed()/writel_relaxed() family of functions retains the
+existing behavior with no extra barriers.
+
+[1]: https://lists.ozlabs.org/pipermail/linuxppc-dev/2018-March/170481.html
+
+----------------------------------------------------------------
+Liu, Changcheng (1):
+      dts: remove cris & metag dts hard link file
+
+Sinan Kaya (7):
+      io: define several IO & PIO barrier types for the asm-generic version
+      io: define stronger ordering for the default readX() implementation
+      io: define stronger ordering for the default writeX() implementation
+      io: change outX() to have their own IO barrier overrides
+      io: change inX() to have their own IO barrier overrides
+      io: change readX_relaxed() to remove barriers
+      io: change writeX_relaxed() to remove barriers
+
+ include/asm-generic/io.h           | 161
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------------
+ scripts/dtc/include-prefixes/cris  |   1 -
+ scripts/dtc/include-prefixes/metag |   1 -
+ 3 files changed, 143 insertions(+), 20 deletions(-)
+ delete mode 120000 scripts/dtc/include-prefixes/cris
+ delete mode 120000 scripts/dtc/include-prefixes/metag
