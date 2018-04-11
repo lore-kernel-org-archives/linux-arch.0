@@ -1,161 +1,92 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Q: Do si_time and si_utime need to be 64bit for y2038?
-Date: Wed, 11 Apr 2018 11:11:35 -0500
-Message-ID: <87bmepn2o8.fsf_-_@xmission.com>
-References: <87d0z6ttxe.fsf@xmission.com>
-        <CALCETrVR1qHCndoaqXWosy8ckMTyT2RequQTgg0MZUw_sMPwwQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: Q: Do si_time and si_utime need to be 64bit for y2038?
+Date: Wed, 11 Apr 2018 22:13:52 +0200
+Message-ID: <CAK8P3a2HaYDOnWYb5cagJeHKmeoWAz1MGzGfGwbeymEqDpvWzw@mail.gmail.com>
+References: <87d0z6ttxe.fsf@xmission.com> <CALCETrVR1qHCndoaqXWosy8ckMTyT2RequQTgg0MZUw_sMPwwQ@mail.gmail.com>
+ <87bmepn2o8.fsf_-_@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrVR1qHCndoaqXWosy8ckMTyT2RequQTgg0MZUw_sMPwwQ@mail.gmail.com>
-        (Andy Lutomirski's message of "Tue, 10 Apr 2018 21:09:11 -0700")
+In-Reply-To: <87bmepn2o8.fsf_-_@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-
-Arnd,
-
-I am looking at the siginfo si_utime and si_stime fields of type clock_t
-on 32bit architectures except for x32 these are 32bit fields.  For y2038
-do we want to extend these fields to 64bit like x32 does?  Or is it not
-a problem for these fields to be 32bit?
-
-I care right now because I am trying to figure out how
-copy_siginfo_to_user32 and copy_siginfo_to_user need to evolve.
-
-If we are going to extend existing architectures with 64bit variations
-of si_utime and si_stime copy_siginfo_to_user and copy_siginfo_to_user32
-needs an additional parameter describing which variant they should be
-copying.
-
-It looks like posix does not define si_stime and and si_utime so we only
-have to be backwards compatible with ourselves for whatever that is
-worth.
-
-I am wondering if perhaps the general solution might be to just add
-two extra fields si_stime64 and si_utime64 and always fill those in.
-
-Arnd do you have any ideas?
-
-
-Andy Lutomirski <luto@amacapital.net> writes:
-
->> On Apr 10, 2018, at 6:26 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
->>
->>
->> Andy,
->>
->> I am looking at copy_siginfo_to_user32 and find it very unfortunate
->> that x86 with _sigchld_x32 needs to be the odd man out.  I am looking
->> at ways to simplify the special case.
->>
->> The core of the special case comes from:
->> exit_to_usermode_loop
->>  do_signal
->>    handle_signal
->>       setup_rt_frame
->>
->>
->> In setup_rt_frame the code looks at ksig to see which kind of signal
->> frame should be written for the signal.
->>
->> This leads to the one case in the kernel where copy_siginfo_to_user32
->> does not use is_ia32_syscall() or is_x32_syscall() to see which kind of
->> signal frame it needs to create.
->>
->> Andy, since you have been all over the entry point code in recent years
->> do you know if we allow tasks that can do both ia32 and x86_64 system
->> calls?  That seems to be what we the testing of ksig to see which kind
->> of signal frame to setup is all about.
+On Wed, Apr 11, 2018 at 6:11 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
 >
-> We do :(
+> Arnd,
 >
->> If we don't allow mixed abi's on x86_64 then can I see if I have a ia32
->> task in setup_rt_frame by just calling is_ia32_syscall()?
->>
->> If we do allow mixed abi's do you know if it would be safe to
->> temporarily play with orig_ax or current_thread_info()->status?
+> I am looking at the siginfo si_utime and si_stime fields of type clock_t
+> on 32bit architectures except for x32 these are 32bit fields.  For y2038
+> do we want to extend these fields to 64bit like x32 does?  Or is it not
+> a problem for these fields to be 32bit?
+
+Short answer: I think we're fine without changing it, at least for y2038.
+
+> I care right now because I am trying to figure out how
+> copy_siginfo_to_user32 and copy_siginfo_to_user need to evolve.
 >
-> Maybe, but it’s a real minefield. I think the right fix is to use
-> sa_flags's SA_X32_ABI bit instead for the sigchld bit.  In general,
-> the is_..._syscall() helpers can't be expected to return anything
-> valid in any context other than a syscall, and handle_signal() is not
-> a syscall.
+> If we are going to extend existing architectures with 64bit variations
+> of si_utime and si_stime copy_siginfo_to_user and copy_siginfo_to_user32
+> needs an additional parameter describing which variant they should be
+> copying.
 >
->>
->> My goal is to write two wrappers: copy_siginfo_to_user32_ia32, and
->> copy_siginfo_to_user32_x32 around the ordinary copy_siginfo_to_user32.
->> With only a runtime test to see which ABI we need to implement.
->>
->> Aka change:
->>>    case SIL_CHLD:
->>>        to->si_pid    = from->si_pid;
->>>        to->si_uid    = from->si_uid;
->>>        to->si_status = from->si_status;
->>> #ifdef CONFIG_X86_X32_ABI
->>>        if (x32_ABI) {
->>>            to->_sifields._sigchld_x32._utime = from->si_utime;
->>>            to->_sifields._sigchld_x32._stime = from->si_stime;
->>>        } else
->>> #endif
->>>        {
->>>            to->si_utime = from->si_utime;
->>>            to->si_stime = from->si_stime;
->>>        }
->>>        break;
->> to something like:
->>>    case SIL_CHLD:
->>>        to->si_pid    = from->si_pid;
->>>        to->si_uid    = from->si_uid;
->>>        to->si_status = from->si_status;
->>> #ifdef CONFIG_X86_X32_ABI
->>>        if (!is_ia32_syscall()) {
->>>            to->_sifields._sigchld_x32._utime = from->si_utime;
->>>            to->_sifields._sigchld_x32._stime = from->si_stime;
->>>        } else
->>> #endif
->>>        {
->>>            to->si_utime = from->si_utime;
->>>            to->si_stime = from->si_stime;
->>>        }
->>>        break;
->>
+> It looks like posix does not define si_stime and and si_utime so we only
+> have to be backwards compatible with ourselves for whatever that is
+> worth.
 >
-> Makes sense, but can you get to sa_flags in there instead?
-
-Almost.  copy_siginfo_to_user32 is called in 3 places: setup_rt_frame32
-(or whatever the arch names the function for setting up the 32bit signal
- frame), ptrace, and compat_binfmt_elf.
- 
-So except for ptrace and compat_binfmt_elf sa_flags are available so
-that is a possibility.  And for those we can fake something up if
-needed.
-
-Stepping back it really looks like the question is really do
-we want/need 64bit time in siginfo for 32bit architectures to
-make the code y2038 safe?
-
-If so passing an extra parameter to copy_siginfo_to_user32 and
-copy_siginfo_to_user is a no-brainer.  If not we are at x86 and
-in particular x32 is weird.  So I am asking Arnd above if he
-has any idea which way things should evolve.
-
-> FWIW, I have a branch here:
+> I am wondering if perhaps the general solution might be to just add
+> two extra fields si_stime64 and si_utime64 and always fill those in.
 >
-> https://git.kernel.org/pub/scm/linux/kernel/git/luto/linux.git/log/?h=execve
->
-> that contains a *massive* cleanup of some other x86 signal stuff.  I
-> need to dust it off and test it better.
+> Arnd do you have any ideas?
 
-It looks interesting, and except for the last patch "Drop the separate
-compat signal delivery code" looks orthogonal to what I am doing.
+There are generally four areas to be aware of with the data structure
+changes required for y2038:
 
-What I have seen other architectures do in that last case are instead of
-#ifdefs to #define functions to their compat counterparts on 64bit.
-Something like:
-#define copy_siginfo_to_user copy_siginfo_to_user32
+1. Stuff that overflows in the next few decades (either 2038 or some other
+    year). si_utime/si_stime counts relative times, so there is no overflow
+    happening at a particular date that we have to be aware of. However,
+    it does overflow when a 32-bit process runs for more than
+    (LONG_MAX / USER_HZ) seconds, which is about 248 days.
+    When you have a large SMP system with 256 CPUs and run a single
+    task across all of them, the overflow happens within one day of runtime.
+    This is a rare use case for 32-bit tasks, but it is an actual limitation
+    that we may want to fix regardless of the y2038 changes.
 
-Eric
+2. Types that don't overflow in a particular interface (because they count
+    relative times) but do overflow in others. We have a problem in
+    wait4()/waidid() and getrusage() here, since those use 'struct timeval'
+    to count process times. Those can count up to 68 years of process
+    times (97 days on a 256-core machine running one task), so we
+    probably don't care about the overflow, but POSIX requires the
+    use of timeval [1] and we have to redefine that structure with an
+    incompatible layout.
+    We do have a choice between either keeping the existing structure
+    and letting the libc translate the 32-bit time_t to a 64-bit time_t,
+    or adding replacement syscalls for both getrusage() and waitid().
+    IIRC we don't need a new wait4(), since that can be implemented
+    using waitid.
+    clock_t is used in exactly two places: struct siginfo and struct tms,
+    so if we change one of the two, we also have to change the other.
+
+3. In some cases, two structures are almost identical between 32-bit
+    and 64-bit architectures. Using the exact same layout simplifies the
+    compat syscall handling. I think in x32, this was a factor as it means
+    that e.g. times() is shared between x32 and x86-64.
+
+4. If we change an interface, we may want to improve it in more than
+   one way, like we did with stat()->stat64()->statx() or time()->
+   gettimeofday()->clock_gettime()->clock_gettime64().
+   If we introduce a larger range for the 32-bit siginfo and tms
+   structures, we could also consider extending the resolution to
+   nanoseconds. I wouldn't follow rusage's timeval but use
+   timespec64 (__kernel_timespec as seen from user space).
+   64-bit nanoseconds are another option, but that again
+   overflows after 584 CPU-years or 52 days on a 4096-core
+   system.
+
+         Arnd
+
+[1] http://pubs.opengroup.org/onlinepubs/009696699/basedefs/sys/resource.h.html
