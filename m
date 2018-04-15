@@ -1,160 +1,145 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 00/13] y2038: convert IPC syscalls
-Date: Thu, 12 Apr 2018 16:20:11 +0200
-Message-ID: <20180412142024.853892-1-arnd@arndb.de>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [RFC PATCH 0/3] Dealing with the aliases of SI_USER
+Date: Sun, 15 Apr 2018 10:56:21 -0500
+Message-ID: <87604sa2fu.fsf_-_@xmission.com>
+References: <CA+55aFxdg2bYHtbKXb4mT5UuP2GH_qjkc=WeZY-RYHWZFQ2Gng@mail.gmail.com>
+        <20180412172051.GK16141@n2100.armlinux.org.uk>
+        <CA+55aFwjZqd8J0=veki1g+quQg8amEG4NnMe-h7HFksn=F=x_Q@mail.gmail.com>
+        <20180413094211.GN16141@n2100.armlinux.org.uk>
+        <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
+        <20180413170827.GB16308@e103592.cambridge.arm.com>
+        <20180413175407.GO16141@n2100.armlinux.org.uk>
+        <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
+        <20180413184522.GD16308@e103592.cambridge.arm.com>
+        <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
+        <20180415131206.GR16141@n2100.armlinux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180415131206.GR16141@n2100.armlinux.org.uk> (Russell King's
+        message of "Sun, 15 Apr 2018 14:12:06 +0100")
 Sender: linux-kernel-owner@vger.kernel.org
-To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dave Martin <Dave.Martin@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This is an update of a series I posted a long time ago [1], updating
-the IPC subsystem to pass down 64-bit time stamps to user space.
 
-In particular, for sys_msgctl, sys_semctl and sys_shmctl, I do not
-introduce a completely new set of replacement system calls, but instead
-extend the existing ones to return data in the reserved fields of the
-normal data structure.
+Linus,
 
-This should be completely transparent to any existing user space, and
-only after the 32-bit time_t wraps, it will make a difference in the
-returned data.
+Would you consider the patchset below for -rc2?
 
-libc implementations will consequently have to provide their own data
-structures when they move to 64-bit time_t, and convert the structures
-in user space from the ones returned by the kernel.
+Dealing with the aliases of SI_USER has been a challenge as we have had
+a b0rked ABI in some cases since 2.5.
 
-There are three cases here:
+So far no one except myself has suggested that changing the si_code of
+from 0 to something else for those problematic aliases of SI_USER is
+going to be a problem.  So it looks like just fixing the issue is a real
+possibility.
 
-- little-endian architectures (except powerpc and mips) can use
-  the normal layout and just cast the data structure to the user space
-  type that contains 64-bit numbers.
+Fixing the cases that do kill(SIGFPE, ...) because at least test cases
+care seems important.
 
-- parisc and sparc can do the same thing with big-endian user space
+The best fixes to backport appear to be the real architecture fixes that
+remove the aliases for SI_USER as those are deep fixes that
+fundamentally fix the problems, and are also very small changes.
 
-- little-endian powerpc and most big-endian architectures have
-  to flip the upper and lower 32-bit halves of the time_t value in memory,
-  but can otherwise keep using the normal layout
+I am not yet brave enough to merge architectural fixes like that without
+arch maintainers buy-in.   Getting at least an ack if nothing else takes
+a little bit of time.
 
-- mips and big-endian xtensa need to be more careful because
-  they are not consistent in their definitions, and they have to provide
-  custom libc implementations for the system calls to use 64-bit time_t.
+Still we have a arm fix upthread and David Miller has given his nod
+to a sparc fix that uses FPE_FLTUNK.  So it appears real architecture
+fixes are progressing.  Further I have looked and that leaves only
+powerpc, parisc, ia64, and alpha.   The new si_code FPE_FLTUNK appears
+to address most of those, and there is an untested patch for parisc.
 
-Changes to the previous version include
+So real progress appears possible.
 
-- Rebased to the latest kernel (4.17-rc)
+The generic code can do better, and that is what this rfc patchset is
+about.  It ensures siginfo is fully initialized and uses copy_to_user
+to copy siginfo to userspace.  This takes siginfo_layout out of
+the picture and so for non-compat non-signalfd siginfos the status
+quo returns to what it was before I introduced siginfo_layout (AKA
+regressions go bye-bye).
 
-- Dropped changes for removed architectures
+I believe given the issues these changes are a candiate for -rc2.
+Otherwise I will keep these changes for the next merge window.
 
-- Simplified the IPC code changes, based on prior work from
-  both Deepa and Eric
+Eric W. Biederman (3):
+      signal: Ensure every siginfo we send has all bits initialized
+      signal: Reduce copy_siginfo_to_user to just copy_to_user
+      signal: Stop special casing TRAP_FIXME and FPE_FIXME in siginfo_layout
 
-- Fixed a few bugs that I found during rebasing, in parcular the
-  sparc version was incorrect.
+ arch/alpha/kernel/osf_sys.c               |  1 +
+ arch/alpha/kernel/signal.c                |  2 +
+ arch/alpha/kernel/traps.c                 |  5 ++
+ arch/alpha/mm/fault.c                     |  2 +
+ arch/arc/mm/fault.c                       |  2 +
+ arch/arm/kernel/ptrace.c                  |  1 +
+ arch/arm/kernel/swp_emulate.c             |  1 +
+ arch/arm/kernel/traps.c                   |  5 ++
+ arch/arm/mm/alignment.c                   |  1 +
+ arch/arm/mm/fault.c                       |  5 ++
+ arch/arm/vfp/vfpmodule.c                  |  3 +-
+ arch/arm64/kernel/fpsimd.c                |  2 +-
+ arch/arm64/kernel/sys_compat.c            |  1 +
+ arch/arm64/kernel/traps.c                 |  1 +
+ arch/arm64/mm/fault.c                     | 18 ++++--
+ arch/c6x/kernel/traps.c                   |  1 +
+ arch/hexagon/kernel/traps.c               |  1 +
+ arch/hexagon/mm/vm_fault.c                |  1 +
+ arch/ia64/kernel/brl_emu.c                |  1 +
+ arch/ia64/kernel/signal.c                 |  2 +
+ arch/ia64/kernel/traps.c                  | 27 ++++++++-
+ arch/ia64/kernel/unaligned.c              |  1 +
+ arch/ia64/mm/fault.c                      |  4 +-
+ arch/m68k/kernel/traps.c                  |  2 +
+ arch/microblaze/kernel/exceptions.c       |  1 +
+ arch/microblaze/mm/fault.c                |  4 +-
+ arch/mips/mm/fault.c                      |  1 +
+ arch/nds32/kernel/traps.c                 |  6 +-
+ arch/nds32/mm/fault.c                     |  1 +
+ arch/nios2/kernel/traps.c                 |  1 +
+ arch/openrisc/kernel/traps.c              |  5 +-
+ arch/openrisc/mm/fault.c                  |  1 +
+ arch/parisc/kernel/ptrace.c               |  1 +
+ arch/parisc/kernel/traps.c                |  2 +
+ arch/parisc/kernel/unaligned.c            |  1 +
+ arch/parisc/math-emu/driver.c             |  1 +
+ arch/parisc/mm/fault.c                    |  1 +
+ arch/powerpc/kernel/process.c             |  1 +
+ arch/powerpc/kernel/traps.c               |  3 +-
+ arch/powerpc/mm/fault.c                   |  1 +
+ arch/powerpc/platforms/cell/spufs/fault.c |  2 +-
+ arch/riscv/kernel/traps.c                 |  1 +
+ arch/s390/kernel/traps.c                  |  5 +-
+ arch/s390/mm/fault.c                      |  2 +
+ arch/sh/kernel/hw_breakpoint.c            |  1 +
+ arch/sh/kernel/traps_32.c                 |  2 +
+ arch/sh/math-emu/math.c                   |  1 +
+ arch/sh/mm/fault.c                        |  1 +
+ arch/sparc/kernel/process_64.c            |  1 +
+ arch/sparc/kernel/sys_sparc_32.c          |  1 +
+ arch/sparc/kernel/traps_32.c              | 10 ++++
+ arch/sparc/kernel/traps_64.c              | 14 +++++
+ arch/sparc/kernel/unaligned_32.c          |  1 +
+ arch/sparc/mm/fault_32.c                  |  1 +
+ arch/sparc/mm/fault_64.c                  |  1 +
+ arch/um/kernel/trap.c                     |  2 +
+ arch/unicore32/kernel/fpu-ucf64.c         |  2 +-
+ arch/unicore32/mm/fault.c                 |  3 +
+ arch/x86/entry/vsyscall/vsyscall_64.c     |  2 +-
+ arch/x86/kernel/ptrace.c                  |  2 +-
+ arch/x86/kernel/traps.c                   |  3 +
+ arch/x86/kernel/umip.c                    |  1 +
+ arch/x86/kvm/mmu.c                        |  1 +
+ arch/x86/mm/fault.c                       |  1 +
+ arch/xtensa/kernel/traps.c                |  1 +
+ arch/xtensa/mm/fault.c                    |  1 +
+ include/linux/ptrace.h                    |  1 -
+ include/linux/tracehook.h                 |  1 +
+ kernel/signal.c                           | 93 +------------------------------
+ virt/kvm/arm/mmu.c                        |  1 +
+ 70 files changed, 165 insertions(+), 115 deletions(-)
 
-If everyone agrees with the series, I'd like to have it merged through
-the tip tree once Deepa's earlier syscall series in there (I have both
-in my y2038 tree [2]).
-
-    Arnd
-
-[1] https://lkml.org/lkml/2015/5/20/605
-[2] git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git y2038-next
-
-Arnd Bergmann (13):
-  y2038: asm-generic: extend sysvipc data structures
-  y2038: alpha: remove unneeded ipc uapi header files
-  y2038: ia64: remove unneeded ipc uapi header files
-  y2038: s390: remove unneeded ipc uapi header files
-  y2038: arm64: extend sysvipc compat data structures
-  y2038: mips: extend sysvipc data structures
-  y2038: x86: extend sysvipc data structures
-  y2038: parisc: extend sysvipc data structures
-  y2038: sparc: extend sysvipc data structures
-  y2038: powerpc: extend sysvipc data structures
-  y2038: xtensa: extend sysvipc data structures
-  y2038: ipc: use ktime_get_real_seconds consistently
-  y2038: ipc: report long times to user space
-
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: libc-alpha@sourceware.org
-Cc: tglx@linutronix.de
-Cc: deepa.kernel@gmail.com
-Cc: viro@zeniv.linux.org.uk
-Cc: ebiederm@xmission.com
-Cc: albert.aribaud@3adev.fr
-Cc: linux-s390@vger.kernel.org
-Cc: schwidefsky@de.ibm.com
-Cc: x86@kernel.org
-Cc: catalin.marinas@arm.com
-Cc: will.deacon@arm.com
-Cc: linux-mips@linux-mips.org
-Cc: jhogan@kernel.org
-Cc: ralf@linux-mips.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: sparclinux@vger.kernel.org
-
- arch/alpha/include/asm/Kbuild          |  4 +++
- arch/alpha/include/uapi/asm/ipcbuf.h   |  2 --
- arch/alpha/include/uapi/asm/msgbuf.h   | 28 -----------------
- arch/alpha/include/uapi/asm/sembuf.h   | 23 --------------
- arch/alpha/include/uapi/asm/shmbuf.h   | 39 -----------------------
- arch/arm64/include/asm/compat.h        | 32 +++++++++----------
- arch/ia64/include/asm/Kbuild           |  4 +++
- arch/ia64/include/uapi/asm/ipcbuf.h    |  2 --
- arch/ia64/include/uapi/asm/msgbuf.h    | 28 -----------------
- arch/ia64/include/uapi/asm/sembuf.h    | 23 --------------
- arch/ia64/include/uapi/asm/shmbuf.h    | 39 -----------------------
- arch/mips/include/asm/compat.h         | 38 ++++++++++++-----------
- arch/mips/include/uapi/asm/msgbuf.h    | 57 ++++++++++++++++++++++------------
- arch/mips/include/uapi/asm/sembuf.h    | 15 +++++++--
- arch/mips/include/uapi/asm/shmbuf.h    | 23 ++++++++++++--
- arch/parisc/include/asm/compat.h       | 32 +++++++++----------
- arch/parisc/include/uapi/asm/msgbuf.h  | 33 ++++++++++----------
- arch/parisc/include/uapi/asm/sembuf.h  | 16 +++++-----
- arch/parisc/include/uapi/asm/shmbuf.h  | 19 +++++-------
- arch/powerpc/include/asm/compat.h      | 32 +++++++++----------
- arch/powerpc/include/uapi/asm/msgbuf.h | 18 +++++------
- arch/powerpc/include/uapi/asm/sembuf.h | 14 ++++-----
- arch/powerpc/include/uapi/asm/shmbuf.h | 19 +++++-------
- arch/s390/include/asm/Kbuild           |  3 ++
- arch/s390/include/asm/compat.h         | 32 +++++++++----------
- arch/s390/include/uapi/asm/msgbuf.h    | 38 -----------------------
- arch/s390/include/uapi/asm/sembuf.h    | 30 ------------------
- arch/s390/include/uapi/asm/shmbuf.h    | 49 -----------------------------
- arch/sparc/include/asm/compat.h        | 32 +++++++++----------
- arch/sparc/include/uapi/asm/msgbuf.h   | 22 ++++++-------
- arch/sparc/include/uapi/asm/sembuf.h   | 16 +++++-----
- arch/sparc/include/uapi/asm/shmbuf.h   | 21 ++++++-------
- arch/x86/include/asm/compat.h          | 32 +++++++++----------
- arch/x86/include/uapi/asm/Kbuild       |  5 ++-
- arch/x86/include/uapi/asm/msgbuf.h     |  1 -
- arch/x86/include/uapi/asm/sembuf.h     | 11 ++++++-
- arch/x86/include/uapi/asm/shmbuf.h     |  1 -
- arch/xtensa/include/uapi/asm/msgbuf.h  | 25 +++++++--------
- arch/xtensa/include/uapi/asm/sembuf.h  | 17 +++++-----
- arch/xtensa/include/uapi/asm/shmbuf.h  | 37 +++++-----------------
- include/uapi/asm-generic/msgbuf.h      | 17 +++++-----
- include/uapi/asm-generic/sembuf.h      | 26 ++++++++++------
- include/uapi/asm-generic/shmbuf.h      | 17 +++++-----
- ipc/msg.c                              | 20 ++++++++----
- ipc/sem.c                              | 20 ++++++++----
- ipc/shm.c                              | 14 +++++++--
- 46 files changed, 393 insertions(+), 633 deletions(-)
- delete mode 100644 arch/alpha/include/uapi/asm/ipcbuf.h
- delete mode 100644 arch/alpha/include/uapi/asm/msgbuf.h
- delete mode 100644 arch/alpha/include/uapi/asm/sembuf.h
- delete mode 100644 arch/alpha/include/uapi/asm/shmbuf.h
- delete mode 100644 arch/ia64/include/uapi/asm/ipcbuf.h
- delete mode 100644 arch/ia64/include/uapi/asm/msgbuf.h
- delete mode 100644 arch/ia64/include/uapi/asm/sembuf.h
- delete mode 100644 arch/ia64/include/uapi/asm/shmbuf.h
- delete mode 100644 arch/s390/include/uapi/asm/msgbuf.h
- delete mode 100644 arch/s390/include/uapi/asm/sembuf.h
- delete mode 100644 arch/s390/include/uapi/asm/shmbuf.h
- delete mode 100644 arch/x86/include/uapi/asm/msgbuf.h
- delete mode 100644 arch/x86/include/uapi/asm/shmbuf.h
-
--- 
-2.9.0
+Eric
