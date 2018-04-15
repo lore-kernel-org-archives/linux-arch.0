@@ -1,74 +1,101 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [RFC PATCH 3/3] signal: Stop special casing TRAP_FIXME and FPE_FIXME in siginfo_layout
-Date: Sun, 15 Apr 2018 10:59:09 -0500
-Message-ID: <87muy48nqq.fsf_-_@xmission.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC PATCH 0/3] Dealing with the aliases of SI_USER
+Date: Sun, 15 Apr 2018 11:16:04 -0700
+Message-ID: <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
 References: <CA+55aFxdg2bYHtbKXb4mT5UuP2GH_qjkc=WeZY-RYHWZFQ2Gng@mail.gmail.com>
-        <20180412172051.GK16141@n2100.armlinux.org.uk>
-        <CA+55aFwjZqd8J0=veki1g+quQg8amEG4NnMe-h7HFksn=F=x_Q@mail.gmail.com>
-        <20180413094211.GN16141@n2100.armlinux.org.uk>
-        <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
-        <20180413170827.GB16308@e103592.cambridge.arm.com>
-        <20180413175407.GO16141@n2100.armlinux.org.uk>
-        <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
-        <20180413184522.GD16308@e103592.cambridge.arm.com>
-        <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
-        <20180415131206.GR16141@n2100.armlinux.org.uk>
-        <87604sa2fu.fsf_-_@xmission.com>
+ <20180412172051.GK16141@n2100.armlinux.org.uk> <CA+55aFwjZqd8J0=veki1g+quQg8amEG4NnMe-h7HFksn=F=x_Q@mail.gmail.com>
+ <20180413094211.GN16141@n2100.armlinux.org.uk> <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
+ <20180413170827.GB16308@e103592.cambridge.arm.com> <20180413175407.GO16141@n2100.armlinux.org.uk>
+ <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
+ <20180413184522.GD16308@e103592.cambridge.arm.com> <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
+ <20180415131206.GR16141@n2100.armlinux.org.uk> <87604sa2fu.fsf_-_@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87604sa2fu.fsf_-_@xmission.com> (Eric W. Biederman's message of
-        "Sun, 15 Apr 2018 10:56:21 -0500")
+In-Reply-To: <87604sa2fu.fsf_-_@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dave Martin <Dave.Martin@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+(
 
-After more experience with the cases where no one the si_code of 0 is
-used both as a signal specific si_code, and as SI_USER it appears that
-no one cares about the signal specific si_code case and the good
-solution is to just fix the architectures by using a different si_code.
+On Sun, Apr 15, 2018 at 8:56 AM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+>
+> Would you consider the patchset below for -rc2?
 
-In none of the conversations has anyone even suggested that anything
-depends on the signal specific redefinition of SI_USER.
+Ugh.
 
-There are at least test cases that care when si_code as 0 does not work
-as si_user.
+I have an irrational dislike of "clear_siginfo()". It's a nasty broken
+interface, which just mis-spells "memset()", and makes it non-obvious
+that you could clear it other ways too (eg "kzalloc()" or whatever).
 
-So make things simple and keep the generic code from introducing
-problems by removing the special casing of TRAP_FIXME and FPE_FIXME.
-This will ensure the generic case of sending a signal with kill will
-always set SI_USER and work.
+And this series brings in a lot of new users.
 
-The architecture specific, and signal specific overloads that set
-si_code to 0 will now have problems with signalfd and the 32bit compat
-versions of siginfo copying.  At least until they are fixed.
+Honestly, both "clear_siginfo()" and "copy_siginfo()" are crazy
+interfaces. They may have made sense when converting code, but not so
+much now.
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- kernel/signal.c | 9 ---------
- 1 file changed, 9 deletions(-)
+If we want to have a function that initializes a siginfo, I think it
+should _actually_ initialize it, and at least take the two fields that
+a siginfo has to have to be valid: si_signo and si_code.
 
-diff --git a/kernel/signal.c b/kernel/signal.c
-index d56f4d496c89..fc82d2c0918f 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -2835,15 +2835,6 @@ enum siginfo_layout siginfo_layout(int sig, int si_code)
- 			layout = SIL_POLL;
- 		else if (si_code < 0)
- 			layout = SIL_RT;
--		/* Tests to support buggy kernel ABIs */
--#ifdef TRAP_FIXME
--		if ((sig == SIGTRAP) && (si_code == TRAP_FIXME))
--			layout = SIL_FAULT;
--#endif
--#ifdef FPE_FIXME
--		if ((sig == SIGFPE) && (si_code == FPE_FIXME))
--			layout = SIL_FAULT;
--#endif
- 	}
- 	return layout;
- }
--- 
-2.14.1
+So I'd rather see a patch that does something like this:
+
+  -             clear_siginfo(info);
+  -             info->si_signo = sig;
+  -             info->si_errno = 0;
+  -             info->si_code = SI_USER;
+  -             info->si_pid = 0;
+  -             info->si_uid = 0;
+  +             init_siginfo(info, sig, SI_USER);
+
+which at least makes that function be *worth* something, not just a
+bad spelling of memset. It's not just the removal of pointless "set to
+zero", it's the whole concept of "this function actually makes a valid
+siginfo", which is lacking in the existing function.
+
+(Yeah, yeah, si_errno is "generic" too and always part of a siginfo,
+but nobody cares. It's pretty much always set to zero, it would be
+stupid to add that interface to the "init_siginfo()" function. So just
+clearing it is fine, the one or two places that want to set it to some
+silly value can do it themselves).
+
+Then your series would incidentally also:
+
+ (a) make for fewer lines overall, rather than add lines
+
+ (b) make it clear that we always initialize si_code, which now *must*
+be a valid value with all the recent siginfo changes.
+
+Hmm?
+
+The other thing we should do is to get rid of the stupid padding.
+Right now "struct siginfo" is pointlessly padded to 128 bytes. That is
+completely insane, when it's always just zero in the kernel.
+
+So put that _pad[] thing inside #ifndef __KERNEL__, and make
+copy_siginfo_to_user() write the padding zeroes when copying to user
+space. The reason for the padding is "future expansion", so we do want
+to tell the user space that it's maybe up to 128 bytes in size, but if
+we don't fill it all, we shouldn't waste time and memory on clearing
+the padding internally.
+
+I'm certainly *hoping* nobody depends on the whole 128 bytes in
+rt_sigqueueinfo(). In theory you can fill it all (as long as si_code
+is negative), but the man-page only says "si_value", and the compat
+function doesn't copy any more than that either, so any user that
+tries to fill in more than si_value is already broken. In fact, it
+might even be worth enforcing that in rt_sigqueueinfo(), just to see
+if anybody plays any games..
+
+On x86-64, without the pointless padding, the size of 'struct siginfo'
+inside the kernel would be 48 bytes. That's quite a big difference for
+something that is often allocated on the kernel stack.
+
+So I'm certainly willing to make those kinds of changes, but let's
+make them real *improvements* now, ok? Wasn't that the point of all
+the cleanups in the end?
+
+                       Linus
