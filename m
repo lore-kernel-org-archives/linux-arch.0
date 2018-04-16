@@ -1,67 +1,65 @@
-From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers
-Date: Mon, 16 Apr 2018 11:51:23 +0100
-Message-ID: <2067b808-65b3-e4d9-e376-1062abc1542f@arm.com>
-References: <20180416085032.7367-1-hch@lst.de>
-	<20180416085032.7367-9-hch@lst.de>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH tools/memory-model 0/17] Memory-model changes
+Date: Mon, 16 Apr 2018 09:12:09 -0700
+Message-ID: <20180416161209.GA6895@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180416085032.7367-9-hch-jcswGhMUV9g@public.gmane.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ide-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 16/04/18 09:50, Christoph Hellwig wrote:
-> We can rely on the dma-mapping code to handle any DMA limits that is
-> bigger than the ISA DMA mask for us (either using an iommu or swiotlb),
-> so remove setting the block layer bounce limit for anything but bouncing
-> for highmem pages.
-> 
-> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-> ---
->   drivers/mmc/core/queue.c | 7 ++-----
->   1 file changed, 2 insertions(+), 5 deletions(-)
-> 
-> diff --git a/drivers/mmc/core/queue.c b/drivers/mmc/core/queue.c
-> index 56e9a803db21..60a02a763d01 100644
-> --- a/drivers/mmc/core/queue.c
-> +++ b/drivers/mmc/core/queue.c
-> @@ -351,17 +351,14 @@ static const struct blk_mq_ops mmc_mq_ops = {
->   static void mmc_setup_queue(struct mmc_queue *mq, struct mmc_card *card)
->   {
->   	struct mmc_host *host = card->host;
-> -	u64 limit = BLK_BOUNCE_HIGH;
-> -
-> -	if (mmc_dev(host)->dma_mask && *mmc_dev(host)->dma_mask)
-> -		limit = (u64)dma_max_pfn(mmc_dev(host)) << PAGE_SHIFT;
->   
->   	blk_queue_flag_set(QUEUE_FLAG_NONROT, mq->queue);
->   	blk_queue_flag_clear(QUEUE_FLAG_ADD_RANDOM, mq->queue);
->   	if (mmc_can_erase(card))
->   		mmc_queue_setup_discard(mq->queue, card);
->   
-> -	blk_queue_bounce_limit(mq->queue, limit);
-> +	if (!mmc_dev(host)->dma_mask || !mmc_dev(host)->dma_mask)
+Hello!
 
-I'm almost surprised that GCC doesn't warn about "x || x", but 
-nevertheless I think you've lost a "*" here...
+This series contains changes to the memory model, including the formal
+model in tools/memory-model and documentation in memory-barriers.txt (plus
+the Korean translation).  These changes are ready for inclusion in -tip.
 
-Robin.
+1.	Rename LKMM's "link" and "rcu-path" relations to "rcu-link"
+	and "rb", respectively, courtesy of Alan Stern.
 
-> +		blk_queue_bounce_limit(mq->queue, BLK_BOUNCE_HIGH);
->   	blk_queue_max_hw_sectors(mq->queue,
->   		min(host->max_blk_count, host->max_req_size / 512));
->   	blk_queue_max_segments(mq->queue, host->max_segs);
-> 
+2.	Redefine LKMM's "rb" relation in terms of rcu-fence in order
+	to match the structure of LKMM's other strong fences, courtesy
+	of Alan Stern.
+
+3.	Fix memory-barriers.txt's ordering example contrasting DMA to
+	MMIO, courtesy of Will Deacon.
+
+4-6.	Fixes related to spin_is_locked(), courtesy of Andrea Parri.
+
+7-11.	Updates to Korean translation of memory-barriers.txt, courtesy
+	of SeongJae Park.
+
+12.	Update required version of the herd7 tool, courtesy of Akira
+	Yokosawa.
+
+13.	Fix "RWM" typo in cheatsheet.txt, courtesy of Paolo Bonzini.
+
+14.	Improve cheatsheet.txt's key.
+
+15.	Fix cheatsheet.txt's ordering rules for smp_mb__after_atomic().
+
+16.	Add smp_store_mb() to LKMM, courtesy of Andrea Parri.
+
+17.	Use consistent coding style in linux-kernel.def, courtesy of
+	Andrea Parri.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/memory-barriers.txt                    |   17 -
+ Documentation/translations/ko_KR/memory-barriers.txt |   56 ++--
+ arch/arm64/include/asm/spinlock.h                    |    5 
+ include/asm-generic/qspinlock.h                      |    2 
+ include/linux/mutex.h                                |    3 
+ include/linux/spinlock.h                             |   18 +
+ tools/memory-model/Documentation/cheatsheet.txt      |    7 
+ tools/memory-model/Documentation/explanation.txt     |  261 +++++++++++--------
+ tools/memory-model/README                            |    2 
+ tools/memory-model/linux-kernel.cat                  |   49 ++-
+ tools/memory-model/linux-kernel.def                  |   29 +-
+ 11 files changed, 268 insertions(+), 181 deletions(-)
