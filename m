@@ -1,67 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44880 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:44682 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754111AbeDPIvj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:51:39 -0400
+        with ESMTP id S1753950AbeDPIuf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:50:35 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 11/12] net: remove the PCI_DMA_BUS_IS_PHYS check in illegal_highdma
-Date: Mon, 16 Apr 2018 10:50:31 +0200
-Message-ID: <20180416085032.7367-12-hch@lst.de>
-In-Reply-To: <20180416085032.7367-1-hch@lst.de>
-References: <20180416085032.7367-1-hch@lst.de>
+Subject: remove PCI_DMA_BUS_IS_PHYS 
+Date: Mon, 16 Apr 2018 10:50:20 +0200
+Message-ID: <20180416085032.7367-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
-Message-ID: <20180416085031.TCqmYrs_hJQJKe-eri7woRuEEBRXbA7gW5UU1ov900k@z>
+Message-ID: <20180416085020.OE2MQFY4V5DPeQnRlC5ZgbIxPOR1KAt4lLOAabEd4gE@z>
 
-These days the dma mapping routines must be able to handle any address
-supported by the device, be that using an iommu, or swiotlb if none is
-supported.  With that the PCI_DMA_BUS_IS_PHYS check in illegal_highdma
-is not needed and can be removed.
+Hi all,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- net/core/dev.c | 20 +-------------------
- 1 file changed, 1 insertion(+), 19 deletions(-)
-
-diff --git a/net/core/dev.c b/net/core/dev.c
-index 969462ebb296..5802cf177b07 100644
---- a/net/core/dev.c
-+++ b/net/core/dev.c
-@@ -2884,11 +2884,7 @@ void netdev_rx_csum_fault(struct net_device *dev)
- EXPORT_SYMBOL(netdev_rx_csum_fault);
- #endif
- 
--/* Actually, we should eliminate this check as soon as we know, that:
-- * 1. IOMMU is present and allows to map all the memory.
-- * 2. No high memory really exists on this machine.
-- */
--
-+/* XXX: check that highmem exists at all on the given machine. */
- static int illegal_highdma(struct net_device *dev, struct sk_buff *skb)
- {
- #ifdef CONFIG_HIGHMEM
-@@ -2902,20 +2898,6 @@ static int illegal_highdma(struct net_device *dev, struct sk_buff *skb)
- 				return 1;
- 		}
- 	}
--
--	if (PCI_DMA_BUS_IS_PHYS) {
--		struct device *pdev = dev->dev.parent;
--
--		if (!pdev)
--			return 0;
--		for (i = 0; i < skb_shinfo(skb)->nr_frags; i++) {
--			skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
--			dma_addr_t addr = page_to_phys(skb_frag_page(frag));
--
--			if (!pdev->dma_mask || addr + PAGE_SIZE - 1 > *pdev->dma_mask)
--				return 1;
--		}
--	}
- #endif
- 	return 0;
- }
--- 
-2.17.0
+this series tries to get rid of the global and PCI_DMA_BUS_IS_PHYS flag,
+which causes the block layer and networking code to bounce buffer memory
+above the dma mask in some cases.  It is a leftover from i386 + highmem
+days and is obsolete now that we have swiotlb or iommus so that the
+dma ops implementations can always (well minus the ISA DMA case which
+will require further attention) handle memory passed to them.
