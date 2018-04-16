@@ -1,99 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:55030 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1753046AbeDPQLs (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:44348 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1753056AbeDPQLs (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 16 Apr 2018 12:11:48 -0400
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GFxBBu030316
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:47 -0400
-Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2hcwkemt0m-1
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GG6ISO074325
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:48 -0400
+Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcutkttq4-1
         (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:47 -0400
 Received: from localhost
-        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 16 Apr 2018 12:11:46 -0400
+        Mon, 16 Apr 2018 12:11:45 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH tools/memory-model 17/17] tools/memory-model: Fix coding style in 'linux-kernel.def'
-Date: Mon, 16 Apr 2018 09:12:45 -0700
+Subject: [PATCH tools/memory-model 11/17] kokr/locking/memory-barriers: De-emphasize smp_read_barrier_depends() some more
+Date: Mon, 16 Apr 2018 09:12:39 -0700
 In-Reply-To: <20180416161209.GA6895@linux.vnet.ibm.com>
 References: <20180416161209.GA6895@linux.vnet.ibm.com>
-Message-ID: <1523895165-17576-17-git-send-email-paulmck@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Message-ID: <1523895165-17576-11-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180416161245.HUjlxDSYhhyqrx7jdIv3bfpzYQCFq2b6A4sqr3RDE2c@z>
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, SeongJae Park <sj38.park@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180416161239.pjerhmcdoH3YJoUoD2dn0FescruVrmbsG2hV0CARRVI@z>
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+From: SeongJae Park <sj38.park@gmail.com>
 
-This commit fixes white spaces around semicolons.
+This commit applies an upstream change, commit f28f0868feb1
+("locking/memory-barriers: De-emphasize smp_read_barrier_depends() some
+more") to the Korean version documentation.
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Signed-off-by: SeongJae Park <sj38.park@gmail.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- tools/memory-model/linux-kernel.def | 28 ++++++++++++++--------------
- 1 file changed, 14 insertions(+), 14 deletions(-)
+ .../translations/ko_KR/memory-barriers.txt         | 27 ++++++++++++++--------
+ 1 file changed, 18 insertions(+), 9 deletions(-)
 
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index acf86f6f360a..6bd3bc431b3d 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -17,12 +17,12 @@ rcu_dereference(X) __load{once}(X)
- smp_store_mb(X,V) { __store{once}(X,V); __fence{mb}; }
+diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
+index 99ef4ca1c1bf..21e78af7ee93 100644
+--- a/Documentation/translations/ko_KR/memory-barriers.txt
++++ b/Documentation/translations/ko_KR/memory-barriers.txt
+@@ -80,7 +80,7 @@ Documentation/memory-barriers.txt
  
- // Fences
--smp_mb() { __fence{mb} ; }
--smp_rmb() { __fence{rmb} ; }
--smp_wmb() { __fence{wmb} ; }
--smp_mb__before_atomic() { __fence{before-atomic} ; }
--smp_mb__after_atomic() { __fence{after-atomic} ; }
--smp_mb__after_spinlock() { __fence{after-spinlock} ; }
-+smp_mb() { __fence{mb}; }
-+smp_rmb() { __fence{rmb}; }
-+smp_wmb() { __fence{wmb}; }
-+smp_mb__before_atomic() { __fence{before-atomic}; }
-+smp_mb__after_atomic() { __fence{after-atomic}; }
-+smp_mb__after_spinlock() { __fence{after-spinlock}; }
+      - 메모리 배리어의 종류.
+      - 메모리 배리어에 대해 가정해선 안될 것.
+-     - 데이터 의존성 배리어.
++     - 데이터 의존성 배리어 (역사적).
+      - 컨트롤 의존성.
+      - SMP 배리어 짝맞추기.
+      - 메모리 배리어 시퀀스의 예.
+@@ -576,8 +576,14 @@ ACQUIRE 는 해당 오퍼레이션의 로드 부분에만 적용되고 RELEASE 
+ 	    Documentation/DMA-API.txt
  
- // Exchange
- xchg(X,V)  __xchg{mb}(X,V)
-@@ -35,26 +35,26 @@ cmpxchg_acquire(X,V,W) __cmpxchg{acquire}(X,V,W)
- cmpxchg_release(X,V,W) __cmpxchg{release}(X,V,W)
  
- // Spinlocks
--spin_lock(X) { __lock(X) ; }
--spin_unlock(X) { __unlock(X) ; }
-+spin_lock(X) { __lock(X); }
-+spin_unlock(X) { __unlock(X); }
- spin_trylock(X) __trylock(X)
+-데이터 의존성 배리어
+---------------------
++데이터 의존성 배리어 (역사적)
++-----------------------------
++
++리눅스 커널 v4.15 기준으로, smp_read_barrier_depends() 가 READ_ONCE() 에
++추가되었는데, 이는 이 섹션에 주의를 기울여야 하는 사람들은 DEC Alpha 아키텍쳐
++전용 코드를 만드는 사람들과 READ_ONCE() 자체를 만드는 사람들 뿐임을 의미합니다.
++그런 분들을 위해, 그리고 역사에 관심 있는 분들을 위해, 여기 데이터 의존성
++배리어에 대한 이야기를 적습니다.
  
- // RCU
- rcu_read_lock() { __fence{rcu-lock}; }
--rcu_read_unlock() { __fence{rcu-unlock};}
-+rcu_read_unlock() { __fence{rcu-unlock}; }
- synchronize_rcu() { __fence{sync-rcu}; }
- synchronize_rcu_expedited() { __fence{sync-rcu}; }
+ 데이터 의존성 배리어의 사용에 있어 지켜야 하는 사항들은 약간 미묘하고, 데이터
+ 의존성 배리어가 사용되어야 하는 상황도 항상 명백하지는 않습니다.  설명을 위해
+@@ -2802,8 +2808,9 @@ CPU 2 는 C/D 를 갖습니다)가 병렬로 연결되어 있는 시스템을 
  
- // Atomic
- atomic_read(X) READ_ONCE(*X)
--atomic_set(X,V) { WRITE_ONCE(*X,V) ; }
-+atomic_set(X,V) { WRITE_ONCE(*X,V); }
- atomic_read_acquire(X) smp_load_acquire(X)
- atomic_set_release(X,V) { smp_store_release(X,V); }
  
--atomic_add(V,X) { __atomic_op(X,+,V) ; }
--atomic_sub(V,X) { __atomic_op(X,-,V) ; }
--atomic_inc(X)   { __atomic_op(X,+,1) ; }
--atomic_dec(X)   { __atomic_op(X,-,1) ; }
-+atomic_add(V,X) { __atomic_op(X,+,V); }
-+atomic_sub(V,X) { __atomic_op(X,-,V); }
-+atomic_inc(X)   { __atomic_op(X,+,1); }
-+atomic_dec(X)   { __atomic_op(X,-,1); }
+ 여기에 개입하기 위해선, 데이터 의존성 배리어나 읽기 배리어를 로드 오퍼레이션들
+-사이에 넣어야 합니다.  이렇게 함으로써 캐시가 다음 요청을 처리하기 전에 일관성
+-큐를 처리하도록 강제하게 됩니다.
++사이에 넣어야 합니다 (v4.15 부터는 READ_ONCE() 매크로에 의해 무조건적으로
++그렇게 됩니다).  이렇게 함으로써 캐시가 다음 요청을 처리하기 전에 일관성 큐를
++처리하도록 강제하게 됩니다.
  
- atomic_add_return(V,X) __atomic_op_return{mb}(X,+,V)
- atomic_add_return_relaxed(V,X) __atomic_op_return{once}(X,+,V)
+ 	CPU 1		CPU 2		COMMENT
+ 	===============	===============	=======================================
+@@ -2833,9 +2840,9 @@ CPU 2 는 C/D 를 갖습니다)가 병렬로 연결되어 있는 시스템을 
+ 액세스를 위해서도 이 분할된 캐시들 사이의 조정을 해야만 합니다.  Alpha 는 가장
+ 약한 메모리 순서 시맨틱 (semantic) 을 선택함으로써 메모리 배리어가 명시적으로
+ 사용되지 않았을 때에는 그런 조정이 필요하지 않게 했으며, 이는 Alpha 가 당시에
+-더 높은 CPU 클락 속도를 가질 수 있게 했습니다.  하지만, Alpha 아키텍쳐 전용
+-코드와 READ_ONCE() 매크로 내부에서를 제외하고는 smp_read_barrier_depends() 가
+-사용되지 않아야 함을 알아두시기 바랍니다.
++더 높은 CPU 클락 속도를 가질 수 있게 했습니다.  하지만, (다시 말하건대, v4.15
++이후부터는) Alpha 아키텍쳐 전용 코드와 READ_ONCE() 매크로 내부에서를 제외하고는
++smp_read_barrier_depends() 가 사용되지 않아야 함을 알아두시기 바랍니다.
+ 
+ 
+ 캐시 일관성 VS DMA
+@@ -2997,7 +3004,9 @@ Alpha CPU 의 일부 버전은 분할된 데이터 캐시를 가지고 있어서
+ 메모리 일관성 시스템과 함께 두개의 캐시를 동기화 시켜서, 포인터 변경과 새로운
+ 데이터의 발견을 올바른 순서로 일어나게 하기 때문입니다.
+ 
+-리눅스 커널의 메모리 배리어 모델은 Alpha 에 기초해서 정의되었습니다.
++리눅스 커널의 메모리 배리어 모델은 Alpha 에 기초해서 정의되었습니다만, v4.15
++부터는 리눅스 커널이 READ_ONCE() 내에 smp_read_barrier_depends() 를 추가해서
++Alpha 의 메모리 모델로의 영향력이 크게 줄어들긴 했습니다.
+ 
+ 위의 "캐시 일관성" 서브섹션을 참고하세요.
+ 
 -- 
 2.5.2
