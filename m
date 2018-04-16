@@ -1,43 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44854 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754408AbeDPIvc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:51:32 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/12] ide: remove the PCI_DMA_BUS_IS_PHYS check
-Date: Mon, 16 Apr 2018 10:50:30 +0200
-Message-ID: <20180416085032.7367-11-hch@lst.de>
-In-Reply-To: <20180416085032.7367-1-hch@lst.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58046 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753359AbeDPKv0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Apr 2018 06:51:26 -0400
+Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers
 References: <20180416085032.7367-1-hch@lst.de>
+ <20180416085032.7367-9-hch@lst.de>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <2067b808-65b3-e4d9-e376-1062abc1542f@arm.com>
+Date: Mon, 16 Apr 2018 11:51:23 +0100
+MIME-Version: 1.0
+In-Reply-To: <20180416085032.7367-9-hch@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
-Message-ID: <20180416085030.Fv7p7J_SPer0mORoC88koLcuep3gEsxWtQKOrutI9YU@z>
+Message-ID: <20180416105123.Iq3fbDIDlf86140ltJ_vu4CBPPzeex8zewpFXn3nWlI@z>
 
-We now have ways to deal with drainage in the block layer, and libata has
-been using it for ages.  We also want to get rid of PCI_DMA_BUS_IS_PHYS
-now, so just reduce the PCI transfer size for ide - anyone who cares for
-performance on PCI controllers should have switched to libata long ago.
+On 16/04/18 09:50, Christoph Hellwig wrote:
+> We can rely on the dma-mapping code to handle any DMA limits that is
+> bigger than the ISA DMA mask for us (either using an iommu or swiotlb),
+> so remove setting the block layer bounce limit for anything but bouncing
+> for highmem pages.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>   drivers/mmc/core/queue.c | 7 ++-----
+>   1 file changed, 2 insertions(+), 5 deletions(-)
+> 
+> diff --git a/drivers/mmc/core/queue.c b/drivers/mmc/core/queue.c
+> index 56e9a803db21..60a02a763d01 100644
+> --- a/drivers/mmc/core/queue.c
+> +++ b/drivers/mmc/core/queue.c
+> @@ -351,17 +351,14 @@ static const struct blk_mq_ops mmc_mq_ops = {
+>   static void mmc_setup_queue(struct mmc_queue *mq, struct mmc_card *card)
+>   {
+>   	struct mmc_host *host = card->host;
+> -	u64 limit = BLK_BOUNCE_HIGH;
+> -
+> -	if (mmc_dev(host)->dma_mask && *mmc_dev(host)->dma_mask)
+> -		limit = (u64)dma_max_pfn(mmc_dev(host)) << PAGE_SHIFT;
+>   
+>   	blk_queue_flag_set(QUEUE_FLAG_NONROT, mq->queue);
+>   	blk_queue_flag_clear(QUEUE_FLAG_ADD_RANDOM, mq->queue);
+>   	if (mmc_can_erase(card))
+>   		mmc_queue_setup_discard(mq->queue, card);
+>   
+> -	blk_queue_bounce_limit(mq->queue, limit);
+> +	if (!mmc_dev(host)->dma_mask || !mmc_dev(host)->dma_mask)
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- drivers/ide/ide-probe.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+I'm almost surprised that GCC doesn't warn about "x || x", but 
+nevertheless I think you've lost a "*" here...
 
-diff --git a/drivers/ide/ide-probe.c b/drivers/ide/ide-probe.c
-index 8d8ed036ca0a..56d7bc228cb3 100644
---- a/drivers/ide/ide-probe.c
-+++ b/drivers/ide/ide-probe.c
-@@ -796,8 +796,7 @@ static int ide_init_queue(ide_drive_t *drive)
- 	 * This will be fixed once we teach pci_map_sg() about our boundary
- 	 * requirements, hopefully soon. *FIXME*
- 	 */
--	if (!PCI_DMA_BUS_IS_PHYS)
--		max_sg_entries >>= 1;
-+	max_sg_entries >>= 1;
- #endif /* CONFIG_PCI */
- 
- 	blk_queue_max_segments(q, max_sg_entries);
--- 
-2.17.0
+Robin.
+
+> +		blk_queue_bounce_limit(mq->queue, BLK_BOUNCE_HIGH);
+>   	blk_queue_max_hw_sectors(mq->queue,
+>   		min(host->max_blk_count, host->max_req_size / 512));
+>   	blk_queue_max_segments(mq->queue, host->max_segs);
+> 
