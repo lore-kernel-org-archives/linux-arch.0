@@ -1,87 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59024 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:54866 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1753022AbeDPQLr (ORCPT
+        by vger.kernel.org with ESMTP id S1753012AbeDPQLr (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 16 Apr 2018 12:11:47 -0400
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GFwF9J070237
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GFt7g5014072
         for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:46 -0400
-Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2hcvpggaaw-1
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2hcwkemsy7-1
         (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:46 -0400
 Received: from localhost
-        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 16 Apr 2018 12:11:46 -0400
+        Mon, 16 Apr 2018 12:11:45 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH tools/memory-model 06/17] locking: Clean up comment and #ifndef for {,queued_}spin_is_locked()
-Date: Mon, 16 Apr 2018 09:12:34 -0700
+Subject: [PATCH tools/memory-model 03/17] docs/memory-barriers.txt: Fix broken DMA vs MMIO ordering example
+Date: Mon, 16 Apr 2018 09:12:31 -0700
 In-Reply-To: <20180416161209.GA6895@linux.vnet.ibm.com>
 References: <20180416161209.GA6895@linux.vnet.ibm.com>
-Message-ID: <1523895165-17576-6-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1523895165-17576-3-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Ingo Molnar <mingo@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180416161234._J01BYIyEXmG8dSnKfuTsnbtrrW52KtvT4WhuNdasC4@z>
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Jason Gunthorpe <jgg@ziepe.ca>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, Jonathan Corbet <corbet@lwn.net>
+Message-ID: <20180416161231.RBlf0FmOyuYlpJemgvjn9OjECAmbOu9D_3WR64ObDmU@z>
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+From: Will Deacon <will.deacon@arm.com>
 
-Removes "#ifndef queued_spin_is_locked" from the generic code: this is
-unused and it's reasonable to conclude that it will continue to be unused.
+The section of memory-barriers.txt that describes the dma_Xmb() barriers
+has an incorrect example claiming that a wmb() is required after writing
+to coherent memory in order for those writes to be visible to a device
+before a subsequent MMIO access using writel() can reach the device.
 
-Also removes the comment about spin_is_locked() from mutex_is_locked():
-the comment remains valid but not particularly useful.
+In fact, this ordering guarantee is provided (at significant cost on some
+architectures such as arm and power) by writel, so the wmb() is not
+necessary. writel_relaxed exists for cases where this ordering is not
+required.
 
-Suggested-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
+Fix the example and update the text to make this clearer.
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Jason Gunthorpe <jgg@ziepe.ca>
 Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Reported-by: Sinan Kaya <okaya@codeaurora.org>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- include/asm-generic/qspinlock.h | 2 --
- include/linux/mutex.h           | 3 ---
- 2 files changed, 5 deletions(-)
+ Documentation/memory-barriers.txt | 17 +++++++++--------
+ 1 file changed, 9 insertions(+), 8 deletions(-)
 
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index b37b4ad7eb94..dc4e4ac4937e 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -26,7 +26,6 @@
-  * @lock: Pointer to queued spinlock structure
-  * Return: 1 if it is locked, 0 otherwise
-  */
--#ifndef queued_spin_is_locked
- static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
- {
- 	/*
-@@ -35,7 +34,6 @@ static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
- 	 */
- 	return atomic_read(&lock->val);
- }
--#endif
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 6dafc8085acc..34c1970908a5 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -1920,9 +1920,6 @@ There are some more advanced barrier functions:
+ 		/* assign ownership */
+ 		desc->status = DEVICE_OWN;
  
- /**
-  * queued_spin_value_unlocked - is the spinlock structure unlocked?
-diff --git a/include/linux/mutex.h b/include/linux/mutex.h
-index 14bc0d5d0ee5..3093dd162424 100644
---- a/include/linux/mutex.h
-+++ b/include/linux/mutex.h
-@@ -146,9 +146,6 @@ extern void __mutex_init(struct mutex *lock, const char *name,
-  */
- static inline bool mutex_is_locked(struct mutex *lock)
- {
--	/*
--	 * XXX think about spin_is_locked
--	 */
- 	return __mutex_owner(lock) != NULL;
- }
+-		/* force memory to sync before notifying device via MMIO */
+-		wmb();
+-
+ 		/* notify device of new descriptors */
+ 		writel(DESC_NOTIFY, doorbell);
+ 	}
+@@ -1930,11 +1927,15 @@ There are some more advanced barrier functions:
+      The dma_rmb() allows us guarantee the device has released ownership
+      before we read the data from the descriptor, and the dma_wmb() allows
+      us to guarantee the data is written to the descriptor before the device
+-     can see it now has ownership.  The wmb() is needed to guarantee that the
+-     cache coherent memory writes have completed before attempting a write to
+-     the cache incoherent MMIO region.
+-
+-     See Documentation/DMA-API.txt for more information on consistent memory.
++     can see it now has ownership.  Note that, when using writel(), a prior
++     wmb() is not needed to guarantee that the cache coherent memory writes
++     have completed before writing to the MMIO region.  The cheaper
++     writel_relaxed() does not provide this guarantee and must not be used
++     here.
++
++     See the subsection "Kernel I/O barrier effects" for more information on
++     relaxed I/O accessors and the Documentation/DMA-API.txt file for more
++     information on consistent memory.
  
+ 
+ MMIO WRITE BARRIER
 -- 
 2.5.2
