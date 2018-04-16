@@ -1,75 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44752 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:44798 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754265AbeDPIux (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:50:53 -0400
+        with ESMTP id S1754330AbeDPIvJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:51:09 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 04/12] DAC960: don't use block layer bounce buffers
-Date: Mon, 16 Apr 2018 10:50:24 +0200
-Message-ID: <20180416085032.7367-5-hch@lst.de>
+Subject: [PATCH 06/12] memstick: don't call blk_queue_bounce_limit
+Date: Mon, 16 Apr 2018 10:50:26 +0200
+Message-ID: <20180416085032.7367-7-hch@lst.de>
 In-Reply-To: <20180416085032.7367-1-hch@lst.de>
 References: <20180416085032.7367-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
-Message-ID: <20180416085024.4DMWDyah2xr1mdiqITbrKT9sKDdRjS42usWceTIHrII@z>
+Message-ID: <20180416085026.AoMDz2W2oqOvqHdl0aQV7FynSXnwllxSDItIoBNhNJs@z>
 
-DAC960 just sets the block bounce limit to the dma mask, which means
-that the iommu or swiotlb already take care of the bounce buffering,
-and the block bouncing can be removed.
+All in-tree host drivers set up a proper dma mask and use the dma-mapping
+helpers.  This means they will be able to deal with any address that we
+are throwing at them.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/block/DAC960.c | 9 ++-------
- drivers/block/DAC960.h | 1 -
- 2 files changed, 2 insertions(+), 8 deletions(-)
+ drivers/memstick/core/ms_block.c    | 5 -----
+ drivers/memstick/core/mspro_block.c | 5 -----
+ 2 files changed, 10 deletions(-)
 
-diff --git a/drivers/block/DAC960.c b/drivers/block/DAC960.c
-index f781eff7d23e..c9ba48519d0f 100644
---- a/drivers/block/DAC960.c
-+++ b/drivers/block/DAC960.c
-@@ -1179,7 +1179,6 @@ static bool DAC960_V1_EnableMemoryMailboxInterface(DAC960_Controller_T
+diff --git a/drivers/memstick/core/ms_block.c b/drivers/memstick/core/ms_block.c
+index 57b13dfbd21e..b2d025f42d14 100644
+--- a/drivers/memstick/core/ms_block.c
++++ b/drivers/memstick/core/ms_block.c
+@@ -2096,12 +2096,8 @@ static int msb_init_disk(struct memstick_dev *card)
+ 	struct msb_data *msb = memstick_get_drvdata(card);
+ 	struct memstick_host *host = card->host;
+ 	int rc;
+-	u64 limit = BLK_BOUNCE_HIGH;
+ 	unsigned long capacity;
  
-   if (pci_set_dma_mask(Controller->PCIDevice, DMA_BIT_MASK(32)))
- 	return DAC960_Failure(Controller, "DMA mask out of range");
--  Controller->BounceBufferLimit = DMA_BIT_MASK(32);
+-	if (host->dev.dma_mask && *(host->dev.dma_mask))
+-		limit = *(host->dev.dma_mask);
+-
+ 	mutex_lock(&msb_disk_lock);
+ 	msb->disk_id = idr_alloc(&msb_disk_idr, card, 0, 256, GFP_KERNEL);
+ 	mutex_unlock(&msb_disk_lock);
+@@ -2123,7 +2119,6 @@ static int msb_init_disk(struct memstick_dev *card)
  
-   if ((hw_type == DAC960_PD_Controller) || (hw_type == DAC960_P_Controller)) {
-     CommandMailboxesSize =  0;
-@@ -1380,11 +1379,8 @@ static bool DAC960_V2_EnableMemoryMailboxInterface(DAC960_Controller_T
-   dma_addr_t	CommandMailboxDMA;
-   DAC960_V2_CommandStatus_T CommandStatus;
+ 	msb->queue->queuedata = card;
  
--	if (!pci_set_dma_mask(Controller->PCIDevice, DMA_BIT_MASK(64)))
--		Controller->BounceBufferLimit = DMA_BIT_MASK(64);
--	else if (!pci_set_dma_mask(Controller->PCIDevice, DMA_BIT_MASK(32)))
--		Controller->BounceBufferLimit = DMA_BIT_MASK(32);
--	else
-+	if (pci_set_dma_mask(Controller->PCIDevice, DMA_BIT_MASK(64)) &&
-+	    pci_set_dma_mask(Controller->PCIDevice, DMA_BIT_MASK(32)))
- 		return DAC960_Failure(Controller, "DMA mask out of range");
+-	blk_queue_bounce_limit(msb->queue, limit);
+ 	blk_queue_max_hw_sectors(msb->queue, MS_BLOCK_MAX_PAGES);
+ 	blk_queue_max_segments(msb->queue, MS_BLOCK_MAX_SEGS);
+ 	blk_queue_max_segment_size(msb->queue,
+diff --git a/drivers/memstick/core/mspro_block.c b/drivers/memstick/core/mspro_block.c
+index 8897962781bb..a2fadc605750 100644
+--- a/drivers/memstick/core/mspro_block.c
++++ b/drivers/memstick/core/mspro_block.c
+@@ -1175,12 +1175,8 @@ static int mspro_block_init_disk(struct memstick_dev *card)
+ 	struct mspro_sys_info *sys_info = NULL;
+ 	struct mspro_sys_attr *s_attr = NULL;
+ 	int rc, disk_id;
+-	u64 limit = BLK_BOUNCE_HIGH;
+ 	unsigned long capacity;
  
-   /* This is a temporary dma mapping, used only in the scope of this function */
-@@ -2540,7 +2536,6 @@ static bool DAC960_RegisterBlockDevice(DAC960_Controller_T *Controller)
- 		continue;
-   	}
-   	Controller->RequestQueue[n] = RequestQueue;
--  	blk_queue_bounce_limit(RequestQueue, Controller->BounceBufferLimit);
-   	RequestQueue->queuedata = Controller;
- 	blk_queue_max_segments(RequestQueue, Controller->DriverScatterGatherLimit);
- 	blk_queue_max_hw_sectors(RequestQueue, Controller->MaxBlocksPerCommand);
-diff --git a/drivers/block/DAC960.h b/drivers/block/DAC960.h
-index 21aff470d268..1439e651928b 100644
---- a/drivers/block/DAC960.h
-+++ b/drivers/block/DAC960.h
-@@ -2295,7 +2295,6 @@ typedef struct DAC960_Controller
-   unsigned short MaxBlocksPerCommand;
-   unsigned short ControllerScatterGatherLimit;
-   unsigned short DriverScatterGatherLimit;
--  u64		BounceBufferLimit;
-   unsigned int CombinedStatusBufferLength;
-   unsigned int InitialStatusLength;
-   unsigned int CurrentStatusLength;
+-	if (host->dev.dma_mask && *(host->dev.dma_mask))
+-		limit = *(host->dev.dma_mask);
+-
+ 	for (rc = 0; msb->attr_group.attrs[rc]; ++rc) {
+ 		s_attr = mspro_from_sysfs_attr(msb->attr_group.attrs[rc]);
+ 
+@@ -1219,7 +1215,6 @@ static int mspro_block_init_disk(struct memstick_dev *card)
+ 
+ 	msb->queue->queuedata = card;
+ 
+-	blk_queue_bounce_limit(msb->queue, limit);
+ 	blk_queue_max_hw_sectors(msb->queue, MSPRO_BLOCK_MAX_PAGES);
+ 	blk_queue_max_segments(msb->queue, MSPRO_BLOCK_MAX_SEGS);
+ 	blk_queue_max_segment_size(msb->queue,
 -- 
 2.17.0
