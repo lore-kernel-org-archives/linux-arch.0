@@ -1,106 +1,61 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC PATCH 0/3] Dealing with the aliases of SI_USER
-Date: Sun, 15 Apr 2018 21:03:32 -0500
-Message-ID: <87tvsb29hn.fsf@xmission.com>
-References: <CA+55aFxdg2bYHtbKXb4mT5UuP2GH_qjkc=WeZY-RYHWZFQ2Gng@mail.gmail.com>
-        <20180412172051.GK16141@n2100.armlinux.org.uk>
-        <CA+55aFwjZqd8J0=veki1g+quQg8amEG4NnMe-h7HFksn=F=x_Q@mail.gmail.com>
-        <20180413094211.GN16141@n2100.armlinux.org.uk>
-        <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
-        <20180413170827.GB16308@e103592.cambridge.arm.com>
-        <20180413175407.GO16141@n2100.armlinux.org.uk>
-        <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
-        <20180413184522.GD16308@e103592.cambridge.arm.com>
-        <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
-        <20180415131206.GR16141@n2100.armlinux.org.uk>
-        <87604sa2fu.fsf_-_@xmission.com>
-        <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
+From: Maninder Singh <maninder1.s@samsung.com>
+Subject: Re: [PATCH v3] mm/page_owner: ignore everything below the IRQ entry
+ point
+Date: Mon, 16 Apr 2018 11:14:59 +0530
+Message-ID: <20180416054459epcms5p85f343635408abccfd12080d7fc322911@epcms5p8>
+References: <201803272356.6XjvciDF%fengguang.wu@intel.com>
+        <1522150907-33547-1-git-send-email-maninder1.s@samsung.com>
+        <CGME20180327160057epcas5p30597e515a359dc6a5d54767a8bcb78a7@epcms5p8>
+Reply-To: maninder1.s@samsung.com
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
-        (Linus Torvalds's message of "Sun, 15 Apr 2018 11:16:04 -0700")
+In-Reply-To: <201803272356.6XjvciDF%fengguang.wu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dave Martin <Dave.Martin@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch <linux-arch@vger.kernel.org>
+To: "dvyukov@google.com" <dvyukov@google.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "vbabka@suse.cz" <vbabka@suse.cz>, "arnd@arndb.de" <arnd@arndb.de>
+Cc: kbuild test robot <lkp@intel.com>, "kbuild-all@01.org" <kbuild-all@01.org>, "aryabinin@virtuozzo.com" <aryabinin@virtuozzo.com>, "glider@google.com" <glider@google.com>, "kstewart@linuxfoundation.org" <kstewart@linuxfoundation.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "pombredanne@nexb.com" <pombredanne@nexb.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, "mhocko@suse.com" <mhocko@suse.com>, "vinmenon@codeaurora.org" <vinmenon@codeaurora.org>, "gomonovych@gmail.com" <gomonovych@gmail.com>, Ayush Mittal <ayush.m@samsung.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>A
 List-Id: linux-arch.vger.kernel.org
 
-Linus Torvalds <torvalds@linux-foundation.org> writes:
-
-> (
->
-> On Sun, Apr 15, 2018 at 8:56 AM, Eric W. Biederman
-> <ebiederm@xmission.com> wrote:
->>
->> Would you consider the patchset below for -rc2?
->
-> Ugh.
-
-The point of this series is to squash the potential for regressions even
-from the weird broken code that fills in fields for si_code 0 that do
-not match SI_USER.
-
-The copy_siginfo_to_user32 never handled that so we don't need to worry
-about that.  All of the signals that abuse si_code 0 go through
-force_sig_info so signalfd can not catch them.  Which means that only
-copy_siginfo_to_user needs to be worried about.
-
-Last time I was benchmarking I could not see a difference between
-copying the entire siginfo and only a small part so I don't see
-the point of optimizing now.
-
-For an actual cleanup I intend to go farther than you are proposing and
-convert everthing to the set of helper functions I have added to
-kernel/signal.c force_sig_fault, force_sig_mceerr, force_sig_bnderr,
-force_sig_pkuerr.
-
-When I am done there will be maybe 5 instances of clear_siginfo outside
-of those helper functions.  At which point I won't care if we remove
-clear_siginfo and just use memset.  That is a real improvement
-that looks something like: "105 files changed, 933 insertions(+), 1698 deletions(-)"
-That is my end goal with all of this.
-
-You complained to me about regressions and you are right with the
-current handling of FPE_FIXME TRAP_FIXME the code is not bug compatible
-with old versions of linux, and people have noticed.
-
-What this patchset represents is the bare minimum needed to convert
-copy_siginfo_to_user to a copy_to_user, and remove the possibility
-of regressions.
-
-To that end I need to ensure every struct siginfo in the entire
-kernel is memset to 0.  A structure initializer is absolutely
-not enough.  So I don't mind people thinking clear_siginfo is necessary.
-
-
-To that end clear_siginfo where it does not take the size of
-struct siginfo as a parameter is much less suceptible to typos,
-and allows me to ensure every instance of struct siginfo is fully
-initialized.
-
-I fully intend to remove practically every instance of struct siginfo
-from the architecture specific code, and use the aforementioned helpers.
-The trouble is that some of the architecture code need refactoring
-for that to happen.  Even your proposed init_siginfo can't be widely
-used as a common pattern is to fill in siginfo partially in the
-code with si_code and si_signo being filled in almost last.
-
-So in short.  I intend to remove most of these clear_siginfo calls when
-I remove the siginfos later.  This series is focused on making
-copy_siginfo_to_user simple enough we don't need to use siginfo_layout,
-and thus can be fully backwards compatibile with ourselves and we won't
-need to worry about regressions.  I have aimed to keep this simple
-enough we can merge this after -rc1 because we don't want regressions.
-
-Eric
-
-ps.  I intend to place this change first in my series wether or not it makes
-it into -rc2 so that I can be certain we remove any possible regressions
-in behavior on the buggy architectures.  Then I can take my time and
-ensure the non-trivial changes of refactoring etc are done carefully so
-I don't introduce other bugs.  I need that so I can sleep at night.
-
-pps.  I can look at some of your other suggestions but cleverness leads
-to regressions, and if you are going to complain at me harshly when I
-have been being careful and taking things seriously I am not
-particularly willing to take unnecessary chances.
+=C2=A0=0D=0AHi=20Arnd,=0D=0A=0D=0A=0D=0AWe=20sent=20one=20patch=20for=20ign=
+oring=20entries=20below=20IRQ=20point=20in=20page_onwer=20using=20stackdepo=
+t.=0D=0A=0D=0AV2:-=20https://lkml.org/lkml/2018/3/26/178=0D=0A=0D=0AV3:-=20=
+https://lkml.org/lkml/2018/3/27/357=0D=0A=0D=0ABut=20it's=20breaking=20buil=
+d=20for=20um=20target=20with=20below=20reason.=0D=0A=0D=0A=0D=0A=C2=A0=C2=
+=A0=C2=A0kernel/stacktrace.o:=C2=A0In=C2=A0function=C2=A0=60filter_irq_stac=
+ks':=0D=0A>>=C2=A0stacktrace.c:(.text+0x20e):=C2=A0undefined=C2=A0reference=
+=C2=A0to=C2=A0=60__irqentry_text_start'=0D=0A>>=C2=A0stacktrace.c:(.text+0x=
+218):=C2=A0undefined=C2=A0reference=C2=A0to=C2=A0=60__irqentry_text_end'=0D=
+=0A>>=C2=A0stacktrace.c:(.text+0x222):=C2=A0undefined=C2=A0reference=C2=A0t=
+o=C2=A0=60__softirqentry_text_start'=0D=0A>>=C2=A0stacktrace.c:(.text+0x22c=
+):=C2=A0undefined=C2=A0reference=C2=A0to=C2=A0=60__softirqentry_text_end'=
+=0D=0A=C2=A0=C2=A0=C2=A0collect2:=C2=A0error:=C2=A0ld=C2=A0returned=C2=A01=
+=C2=A0exit=C2=A0status=0D=0A=0D=0ASo=20can=20we=20add=20below=20fix=20for=
+=20this=20build=20break,=20can=20you=20suggest=20if=20it=20is=20ok=20or=20w=
+e=20need=20to=20find=0D=0Asome=20other=20way:-=0D=0A=0D=0Adiff=20--git=20a/=
+include/asm-generic/vmlinux.lds.h=20b/include/asm-generic/vmlinux.lds.h=0D=
+=0Aindex=2076b63f5..0f3b7f8=20100644=0D=0A---=20a/include/asm-generic/vmlin=
+ux.lds.h=0D=0A+++=20b/include/asm-generic/vmlinux.lds.h=0D=0A=40=40=20-460,=
+6=20+460,10=20=40=40=0D=0A=20=20*=20to=20use=20=22..=22=20first.=0D=0A=20=
+=20*/=0D=0A=20=23define=20TEXT_TEXT=20=20=20=20=20=20=20=20=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=5C=0D=0A+=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20=20VMLINUX_SYMBOL(__irqentry_text_start)=20=3D=
+=20.;=20=20=20=20=20=20=20=20=20=20=20=20=20=20=5C=0D=0A+=20=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20VMLINUX_SYMBOL(__irqentry_text_end)=20=3D=20.;=
+=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=5C=0D=0A+=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20=20VMLINUX_SYMBOL(__softirqentry_text_start)=20=
+=3D=20.;=20=20=20=20=20=20=20=20=20=20=5C=0D=0A+=20=20=20=20=20=20=20=20=20=
+=20=20=20=20=20=20VMLINUX_SYMBOL(__softirqentry_text_end)=20=3D=20.;=20=20=
+=20=20=20=20=20=20=20=20=20=20=5C=0D=0A=20=20=20=20=20=20=20=20=20=20=20=20=
+=20=20=20=20ALIGN_FUNCTION();=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=5C=
+=0D=0A=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20*(.text.hot=20TEXT_MA=
+IN=20.text.fixup=20.text.unlikely)=20=20=20=20=20=20=20=5C=0D=0A=20=20=20=
+=20=20=20=20=20=20=20=20=20=20=20=20=20*(.text..refcount)=20=20=20=20=20=20=
+=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=20=
+=20=20=20=20=20=20=20=5C=0D=0Adiff=20--git=20a/include/linux/kallsyms.h=20b=
+/include/linux/kallsyms.h=0D=0A=0D=0A=0D=0ATo=20make=20solution=20generic=
+=20for=20all=20architecture=20we=20declared=204=20dummy=20variables=20which=
+=20we=20used=20in=20our=20patch.=0D=0A=0D=0A=0D=0AThanks=20,=0D=0AManinder=
+=20Singh
