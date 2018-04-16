@@ -1,83 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:55400 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1753014AbeDPQLr (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:36714 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753041AbeDPQLr (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 16 Apr 2018 12:11:47 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GG99PA134889
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:46 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcxcxjh4r-1
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GFtifW140816
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:47 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2hcwe2wemr-1
         (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:45 -0400
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:46 -0400
 Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 16 Apr 2018 12:11:44 -0400
+        Mon, 16 Apr 2018 12:11:46 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH tools/memory-model 05/17] arm64: Remove smp_mb() from arch_spin_is_locked()
-Date: Mon, 16 Apr 2018 09:12:33 -0700
+Subject: [PATCH tools/memory-model 10/17] kokr/memory-barriers: Fix description of data dependency barriers
+Date: Mon, 16 Apr 2018 09:12:38 -0700
 In-Reply-To: <20180416161209.GA6895@linux.vnet.ibm.com>
 References: <20180416161209.GA6895@linux.vnet.ibm.com>
-Message-ID: <1523895165-17576-5-git-send-email-paulmck@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Message-ID: <1523895165-17576-10-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180416161233.zzw9Jxlby3LO4WfdwODZAFUgLMZwKYTVntHYRgXVA_Y@z>
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, SeongJae Park <sj38.park@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180416161238.PdXJS5613vUMdAYEBXIg82jRj-7mbBJ2_YZERbTt6XQ@z>
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+From: SeongJae Park <sj38.park@gmail.com>
 
-Commit 38b850a73034f ("arm64: spinlock: order spin_{is_locked,unlock_wait}
-against local locks") added an smp_mb() to arch_spin_is_locked(), in order
-"to ensure that the lock value is always loaded after any other locks have
-been taken by the current CPU", and reported one example (the "insane case"
-in ipc/sem.c) relying on such guarantee.
+This commit applies an upstream change, commit 51de78892b12
+("memory-barriers: Fix description of data dependency barriers") to the
+Korean version document.
 
-It is however understood that spin_is_locked() is not required to provide
-such an ordering guarantee (a guarantee that is currently not provided by
-all the implementations/archs), and that callers relying on such ordering
-should instead insert suitable memory barriers before acting on the result
-of spin_is_locked().
-
-Following a recent auditing [1] of the callers of {,raw_}spin_is_locked(),
-revealing that none of them are relying on the ordering guarantee anymore,
-this commit removes the leading smp_mb() from the primitive thus reverting
-38b850a73034f.
-
-[1] https://marc.info/?l=linux-kernel&m=151981440005264&w=2
-    https://marc.info/?l=linux-kernel&m=152042843808540&w=2
-    https://marc.info/?l=linux-kernel&m=152043346110262&w=2
-
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: SeongJae Park <sj38.park@gmail.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- arch/arm64/include/asm/spinlock.h | 5 -----
- 1 file changed, 5 deletions(-)
+ Documentation/translations/ko_KR/memory-barriers.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
-index ebdae15d665d..26c5bd7d88d8 100644
---- a/arch/arm64/include/asm/spinlock.h
-+++ b/arch/arm64/include/asm/spinlock.h
-@@ -122,11 +122,6 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
+index 2c0ab128cd04..99ef4ca1c1bf 100644
+--- a/Documentation/translations/ko_KR/memory-barriers.txt
++++ b/Documentation/translations/ko_KR/memory-barriers.txt
+@@ -427,8 +427,8 @@ CPU 에게 기대할 수 있는 최소한의 보장사항 몇가지가 있습니
+      데이터 의존성 배리어는 읽기 배리어의 보다 완화된 형태입니다.  두개의 로드
+      오퍼레이션이 있고 두번째 것이 첫번째 것의 결과에 의존하고 있을 때(예:
+      두번째 로드가 참조할 주소를 첫번째 로드가 읽는 경우), 두번째 로드가 읽어올
+-     데이터는 첫번째 로드에 의해 그 주소가 얻어지기 전에 업데이트 되어 있음을
+-     보장하기 위해서 데이터 의존성 배리어가 필요할 수 있습니다.
++     데이터는 첫번째 로드에 의해 그 주소가 얻어진 뒤에 업데이트 됨을 보장하기
++     위해서 데이터 의존성 배리어가 필요할 수 있습니다.
  
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
- {
--	/*
--	 * Ensure prior spin_lock operations to other locks have completed
--	 * on this CPU before we test whether "lock" is locked.
--	 */
--	smp_mb(); /* ^^^ */
- 	return !arch_spin_value_unlocked(READ_ONCE(*lock));
- }
- 
+      데이터 의존성 배리어는 상호 의존적인 로드 오퍼레이션들 사이의 부분적 순서
+      세우기입니다; 스토어 오퍼레이션들이나 독립적인 로드들, 또는 중복되는
 -- 
 2.5.2
