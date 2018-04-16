@@ -1,72 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:60506 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752597AbeDPQV2 (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53104 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753021AbeDPQVv (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Apr 2018 12:21:28 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GGKde4011086
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:27 -0400
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcy58gctu-1
+        Mon, 16 Apr 2018 12:21:51 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GGKeY9027754
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:51 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcxu2hfsy-1
         (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:27 -0400
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:50 -0400
 Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 16 Apr 2018 12:21:25 -0400
-Date: Mon, 16 Apr 2018 09:22:28 -0700
+        Mon, 16 Apr 2018 12:21:50 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC tools/memory-model 0/5] Additional proposed changes to
- LKMM
-Reply-To: paulmck@linux.vnet.ibm.com
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Message-ID: <20180416162228.GA18167@linux.vnet.ibm.com>
+Subject: [PATCH RFC tools/memory-model 3/5] EXP tools/memory-model: Add .cfg and .cat files for s390
+Date: Mon, 16 Apr 2018 09:22:49 -0700
+In-Reply-To: <20180416162228.GA18167@linux.vnet.ibm.com>
+References: <20180416162228.GA18167@linux.vnet.ibm.com>
+Message-ID: <1523895771-19224-3-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180416162228.uiqG2XnIcmF5STpVkAmlZInjEpJbpu_0_hFxDyqi0gI@z>
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180416162249.g_aEib45U2HopK6CqiuTpsDo6xICZrvjJqVqZ9gifMU@z>
 
-Hello!
+This commit adds s390.cat and s390.cfg files to allow users to check
+litmus tests for s390-specific code.  Note that this change only enables
+herd7 checking of C-language litmus tests.  Larger changes are required
+to enable the litmus7 and klitmus7 tools to check litmus tests on real
+hardare.
 
-This series contains a few additional changes to tools/memory-model,
-however, the members of this series need more discussion and feedback
-before they are ready for inclusion.
+Suggested-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Suggested-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+[ paulmck: Add fixes suggested by Alan Stern. ]
+---
+ tools/memory-model/s390.cat | 18 ++++++++++++++++++
+ tools/memory-model/s390.cfg | 21 +++++++++++++++++++++
+ 2 files changed, 39 insertions(+)
+ create mode 100644 tools/memory-model/s390.cat
+ create mode 100644 tools/memory-model/s390.cfg
 
-1.	Add LKMM test scripts.
-
-2.	Add litmus test for full-up multicopy atomicity.
-
-3.	Add experimental .cfg and .cat files for s390.  These are for
-	expository purposes only, and would more likely be included in
-	the herd tool than in the Linux kernel.
-
-4.	Add LKMM support for spin_is_locked(), courtesy of Luc Maranget.
-	It has been suggested that spin_is_locked() be removed from the
-	kernel, but in the meantime we should at least have a definition
-	of what it does.
-
-5.	Flag litmus test demonstrating the A-cumulativity of
-	smp_store_release() and LKMM's propagation rule.
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
- linux-kernel.def                                       |    1 
- litmus-tests/.gitignore                                |    1 
- litmus-tests/IRIW+mbonceonces+OnceOnce.litmus          |    2 
- litmus-tests/MP+polockmbonce+poacquiresilsil.litmus    |   30 +++++
- litmus-tests/MP+polockonce+poacquiresilsil.litmus      |   29 +++++
- litmus-tests/README                                    |   19 +++
- litmus-tests/SB+poonceoncescoh.litmus                  |   31 ++++++
- litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus |    4 
- lock.cat                                               |   53 +++++++++-
- s390.cat                                               |   18 +++
- s390.cfg                                               |   21 ++++
- scripts/checkalllitmus.sh                              |   73 ++++++++++++++
- scripts/checklitmus.sh                                 |   86 +++++++++++++++++
- 13 files changed, 359 insertions(+), 9 deletions(-)
+diff --git a/tools/memory-model/s390.cat b/tools/memory-model/s390.cat
+new file mode 100644
+index 000000000000..216bf33d3ffe
+--- /dev/null
++++ b/tools/memory-model/s390.cat
+@@ -0,0 +1,18 @@
++s390
++
++include "fences.cat"
++include "cos.cat"
++
++(* Fundamental coherence ordering *)
++let com = rf | co | fr
++acyclic po-loc | com as coherence
++
++(* Atomic *)
++empty rmw & (fre;coe) as atom
++
++(* Fences *)
++let mb = [M] ; fencerel(Mb) ; [M]
++
++(* TSO with multicopy atomicity (tso-mca) *)
++let po-ghb = ([R] ; po ; [M]) | ([M] ; po ; [W])
++acyclic mb | po-ghb | fr | rf | co as tso-mca
+diff --git a/tools/memory-model/s390.cfg b/tools/memory-model/s390.cfg
+new file mode 100644
+index 000000000000..d77e05d2395c
+--- /dev/null
++++ b/tools/memory-model/s390.cfg
+@@ -0,0 +1,21 @@
++macros linux-kernel.def
++bell linux-kernel.bell
++model s390.cat
++graph columns
++squished true
++showevents noregs
++movelabel true
++fontsize 8
++xscale 2.0
++yscale 1.5
++arrowsize 0.8
++showinitrf false
++showfinalrf false
++showinitwrites false
++splines spline
++pad 0.1
++edgeattr hb,color,indigo
++edgeattr co,color,blue
++edgeattr mb,color,darkgreen
++edgeattr wmb,color,darkgreen
++edgeattr rmb,color,darkgreen
+-- 
+2.5.2
