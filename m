@@ -1,100 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:35004 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752976AbeDPQVv (ORCPT
+Received: from mail2-relais-roc.national.inria.fr ([192.134.164.83]:36553 "EHLO
+        mail2-relais-roc.national.inria.fr" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751146AbeDPTLu (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Apr 2018 12:21:51 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GGLmp4014813
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:51 -0400
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcy58gdch-1
-        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:50 -0400
-Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 16 Apr 2018 12:21:49 -0400
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC tools/memory-model 5/5] EXP tools/memory-model: Flag "cumulativity" and "propagation" tests
-Date: Mon, 16 Apr 2018 09:22:51 -0700
-In-Reply-To: <20180416162228.GA18167@linux.vnet.ibm.com>
-References: <20180416162228.GA18167@linux.vnet.ibm.com>
-Message-ID: <1523895771-19224-5-git-send-email-paulmck@linux.vnet.ibm.com>
+        Mon, 16 Apr 2018 15:11:50 -0400
+Date: Mon, 16 Apr 2018 21:11:46 +0200 (CEST)
+From: Julia Lawall <julia.lawall@lip6.fr>
+Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers (fwd)
+Message-ID: <alpine.DEB.2.20.1804162110510.3044@hadrien>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180416162251.UdKMVCW6ehuQLr_pjUdiFRm4MWRO_JKIh3lTRFjiy0c@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, kbuild-all@01.org
+Message-ID: <20180416191146.1x7Oq6bRFUw9hlo1xJCtqMYLBdsVM7DSS9iYGuRxveA@z>
 
-This commit flags WRC+pooncerelease+rmbonceonce+Once.litmus as being
-forbidden by LKMM cumulativity and IRIW+mbonceonces+OnceOnce.litmus as
-being forbidden by LKMM propagation.
+There is a duplicated test on line 360.
 
-Reported-by: Paolo Bonzini <pbonzini@redhat.com>
-Suggested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-[ paulmck: Updated wording as suggested by Alan Stern. ]
+julia
+
+---------- Forwarded message ----------
+Date: Mon, 16 Apr 2018 23:04:18 +0800
+From: kbuild test robot <lkp@intel.com>
+To: kbuild@01.org
+Cc: Julia Lawall <julia.lawall@lip6.fr>
+Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers
+
+CC: kbuild-all@01.org
+In-Reply-To: <20180416085032.7367-9-hch@lst.de>
+References: <20180416085032.7367-9-hch@lst.de>
+TO: Christoph Hellwig <hch@lst.de>
+CC: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
+CC: linux-kernel@vger.kernel.org
+
+Hi Christoph,
+
+I love your patch! Perhaps something to improve:
+
+[auto build test WARNING on linus/master]
+[also build test WARNING on v4.17-rc1 next-20180416]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+
+url:    https://github.com/0day-ci/linux/commits/Christoph-Hellwig/iscsi_tcp-don-t-set-a-bounce-limit/20180416-172618
+:::::: branch date: 6 hours ago
+:::::: commit date: 6 hours ago
+
+>> drivers/mmc/core/queue.c:360:5-29: duplicated argument to && or ||
+
+# https://github.com/0day-ci/linux/commit/6620a69f0eea8e8b7586f08f721c95a336022497
+git remote add linux-review https://github.com/0day-ci/linux
+git remote update linux-review
+git checkout 6620a69f0eea8e8b7586f08f721c95a336022497
+vim +360 drivers/mmc/core/queue.c
+
+81196976 Adrian Hunter     2017-11-29  350
+c8b5fd03 Adrian Hunter     2017-09-22  351  static void mmc_setup_queue(struct mmc_queue *mq, struct mmc_card *card)
+c8b5fd03 Adrian Hunter     2017-09-22  352  {
+c8b5fd03 Adrian Hunter     2017-09-22  353  	struct mmc_host *host = card->host;
+c8b5fd03 Adrian Hunter     2017-09-22  354
+8b904b5b Bart Van Assche   2018-03-07  355  	blk_queue_flag_set(QUEUE_FLAG_NONROT, mq->queue);
+8b904b5b Bart Van Assche   2018-03-07  356  	blk_queue_flag_clear(QUEUE_FLAG_ADD_RANDOM, mq->queue);
+c8b5fd03 Adrian Hunter     2017-09-22  357  	if (mmc_can_erase(card))
+c8b5fd03 Adrian Hunter     2017-09-22  358  		mmc_queue_setup_discard(mq->queue, card);
+c8b5fd03 Adrian Hunter     2017-09-22  359
+6620a69f Christoph Hellwig 2018-04-16 @360  	if (!mmc_dev(host)->dma_mask || !mmc_dev(host)->dma_mask)
+6620a69f Christoph Hellwig 2018-04-16  361  		blk_queue_bounce_limit(mq->queue, BLK_BOUNCE_HIGH);
+c8b5fd03 Adrian Hunter     2017-09-22  362  	blk_queue_max_hw_sectors(mq->queue,
+c8b5fd03 Adrian Hunter     2017-09-22  363  		min(host->max_blk_count, host->max_req_size / 512));
+c8b5fd03 Adrian Hunter     2017-09-22  364  	blk_queue_max_segments(mq->queue, host->max_segs);
+c8b5fd03 Adrian Hunter     2017-09-22  365  	blk_queue_max_segment_size(mq->queue, host->max_seg_size);
+c8b5fd03 Adrian Hunter     2017-09-22  366
+1e8e55b6 Adrian Hunter     2017-11-29  367  	INIT_WORK(&mq->recovery_work, mmc_mq_recovery_handler);
+81196976 Adrian Hunter     2017-11-29  368  	INIT_WORK(&mq->complete_work, mmc_blk_mq_complete_work);
+81196976 Adrian Hunter     2017-11-29  369
+81196976 Adrian Hunter     2017-11-29  370  	mutex_init(&mq->complete_lock);
+81196976 Adrian Hunter     2017-11-29  371
+81196976 Adrian Hunter     2017-11-29  372  	init_waitqueue_head(&mq->wait);
+81196976 Adrian Hunter     2017-11-29  373  }
+81196976 Adrian Hunter     2017-11-29  374
+
 ---
- tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus | 2 +-
- tools/memory-model/litmus-tests/README                           | 9 ++++++---
- .../litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus       | 4 +++-
- 3 files changed, 10 insertions(+), 5 deletions(-)
-
-diff --git a/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus b/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
-index 50d5db9ea983..98a3716efa37 100644
---- a/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
-+++ b/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
-@@ -7,7 +7,7 @@ C IRIW+mbonceonces+OnceOnce
-  * between each pairs of reads.  In other words, is smp_mb() sufficient to
-  * cause two different reading processes to agree on the order of a pair
-  * of writes, where each write is to a different variable by a different
-- * process?
-+ * process?  This litmus test exercises LKMM's "propagation" rule.
-  *)
- 
- {}
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 6919909bbd0f..17eb9a8c222d 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -23,7 +23,8 @@ IRIW+mbonceonces+OnceOnce.litmus
- 	between each pairs of reads.  In other words, is smp_mb()
- 	sufficient to cause two different reading processes to agree on
- 	the order of a pair of writes, where each write is to a different
--	variable by a different process?
-+	variable by a different process?  This litmus test is forbidden
-+	by LKMM's propagation rule.
- 
- IRIW+poonceonces+OnceOnce.litmus
- 	Test of independent reads from independent writes with nothing
-@@ -119,8 +120,10 @@ S+wmbonceonce+poacquireonce.litmus
- 
- WRC+poonceonces+Once.litmus
- WRC+pooncerelease+rmbonceonce+Once.litmus
--	These two are members of an extension of the MP litmus-test class
--	in which the first write is moved to a separate process.
-+	These two are members of an extension of the MP litmus-test
-+	class in which the first write is moved to a separate process.
-+	The second is forbidden because smp_store_release() is
-+	A-cumulative in LKMM.
- 
- Z6.0+pooncelock+pooncelock+pombonce.litmus
- 	Is the ordering provided by a spin_unlock() and a subsequent
-diff --git a/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus b/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
-index 97fcbffde9a0..ad3448b941e6 100644
---- a/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
-+++ b/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
-@@ -5,7 +5,9 @@ C WRC+pooncerelease+rmbonceonce+Once
-  *
-  * This litmus test is an extension of the message-passing pattern, where
-  * the first write is moved to a separate process.  Because it features
-- * a release and a read memory barrier, it should be forbidden.
-+ * a release and a read memory barrier, it should be forbidden.  More
-+ * specifically, this litmus test is forbidden because smp_store_release()
-+ * is A-cumulative in LKMM.
-  *)
- 
- {}
--- 
-2.5.2
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
