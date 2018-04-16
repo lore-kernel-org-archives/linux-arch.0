@@ -1,64 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58046 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753359AbeDPKv0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Apr 2018 06:51:26 -0400
-Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers
-References: <20180416085032.7367-1-hch@lst.de>
- <20180416085032.7367-9-hch@lst.de>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <2067b808-65b3-e4d9-e376-1062abc1542f@arm.com>
-Date: Mon, 16 Apr 2018 11:51:23 +0100
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50806 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752209AbeDPQLI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Apr 2018 12:11:08 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GFtEdl060003
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:07 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2hcvpgg925-1
+        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:11:06 -0400
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 16 Apr 2018 12:11:06 -0400
+Date: Mon, 16 Apr 2018 09:12:09 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH tools/memory-model 0/17] Memory-model changes
+Reply-To: paulmck@linux.vnet.ibm.com
 MIME-Version: 1.0
-In-Reply-To: <20180416085032.7367-9-hch@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20180416161209.GA6895@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Message-ID: <20180416105123.Iq3fbDIDlf86140ltJ_vu4CBPPzeex8zewpFXn3nWlI@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180416161209.TCpGTiIPcYK2Z351gwHsL2i4ag-bZMJ0wevf0PSqc2k@z>
 
-On 16/04/18 09:50, Christoph Hellwig wrote:
-> We can rely on the dma-mapping code to handle any DMA limits that is
-> bigger than the ISA DMA mask for us (either using an iommu or swiotlb),
-> so remove setting the block layer bounce limit for anything but bouncing
-> for highmem pages.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->   drivers/mmc/core/queue.c | 7 ++-----
->   1 file changed, 2 insertions(+), 5 deletions(-)
-> 
-> diff --git a/drivers/mmc/core/queue.c b/drivers/mmc/core/queue.c
-> index 56e9a803db21..60a02a763d01 100644
-> --- a/drivers/mmc/core/queue.c
-> +++ b/drivers/mmc/core/queue.c
-> @@ -351,17 +351,14 @@ static const struct blk_mq_ops mmc_mq_ops = {
->   static void mmc_setup_queue(struct mmc_queue *mq, struct mmc_card *card)
->   {
->   	struct mmc_host *host = card->host;
-> -	u64 limit = BLK_BOUNCE_HIGH;
-> -
-> -	if (mmc_dev(host)->dma_mask && *mmc_dev(host)->dma_mask)
-> -		limit = (u64)dma_max_pfn(mmc_dev(host)) << PAGE_SHIFT;
->   
->   	blk_queue_flag_set(QUEUE_FLAG_NONROT, mq->queue);
->   	blk_queue_flag_clear(QUEUE_FLAG_ADD_RANDOM, mq->queue);
->   	if (mmc_can_erase(card))
->   		mmc_queue_setup_discard(mq->queue, card);
->   
-> -	blk_queue_bounce_limit(mq->queue, limit);
-> +	if (!mmc_dev(host)->dma_mask || !mmc_dev(host)->dma_mask)
+Hello!
 
-I'm almost surprised that GCC doesn't warn about "x || x", but 
-nevertheless I think you've lost a "*" here...
+This series contains changes to the memory model, including the formal
+model in tools/memory-model and documentation in memory-barriers.txt (plus
+the Korean translation).  These changes are ready for inclusion in -tip.
 
-Robin.
+1.	Rename LKMM's "link" and "rcu-path" relations to "rcu-link"
+	and "rb", respectively, courtesy of Alan Stern.
 
-> +		blk_queue_bounce_limit(mq->queue, BLK_BOUNCE_HIGH);
->   	blk_queue_max_hw_sectors(mq->queue,
->   		min(host->max_blk_count, host->max_req_size / 512));
->   	blk_queue_max_segments(mq->queue, host->max_segs);
-> 
+2.	Redefine LKMM's "rb" relation in terms of rcu-fence in order
+	to match the structure of LKMM's other strong fences, courtesy
+	of Alan Stern.
+
+3.	Fix memory-barriers.txt's ordering example contrasting DMA to
+	MMIO, courtesy of Will Deacon.
+
+4-6.	Fixes related to spin_is_locked(), courtesy of Andrea Parri.
+
+7-11.	Updates to Korean translation of memory-barriers.txt, courtesy
+	of SeongJae Park.
+
+12.	Update required version of the herd7 tool, courtesy of Akira
+	Yokosawa.
+
+13.	Fix "RWM" typo in cheatsheet.txt, courtesy of Paolo Bonzini.
+
+14.	Improve cheatsheet.txt's key.
+
+15.	Fix cheatsheet.txt's ordering rules for smp_mb__after_atomic().
+
+16.	Add smp_store_mb() to LKMM, courtesy of Andrea Parri.
+
+17.	Use consistent coding style in linux-kernel.def, courtesy of
+	Andrea Parri.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/memory-barriers.txt                    |   17 -
+ Documentation/translations/ko_KR/memory-barriers.txt |   56 ++--
+ arch/arm64/include/asm/spinlock.h                    |    5 
+ include/asm-generic/qspinlock.h                      |    2 
+ include/linux/mutex.h                                |    3 
+ include/linux/spinlock.h                             |   18 +
+ tools/memory-model/Documentation/cheatsheet.txt      |    7 
+ tools/memory-model/Documentation/explanation.txt     |  261 +++++++++++--------
+ tools/memory-model/README                            |    2 
+ tools/memory-model/linux-kernel.cat                  |   49 ++-
+ tools/memory-model/linux-kernel.def                  |   29 +-
+ 11 files changed, 268 insertions(+), 181 deletions(-)
