@@ -1,40 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44732 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:44786 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753950AbeDPIut (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:50:49 -0400
+        with ESMTP id S1754297AbeDPIvD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2018 04:51:03 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/12] mtip32xx: don't use block layer bounce buffers
-Date: Mon, 16 Apr 2018 10:50:23 +0200
-Message-ID: <20180416085032.7367-4-hch@lst.de>
+Subject: [PATCH 05/12] sata_nv: don't use block layer bounce buffers
+Date: Mon, 16 Apr 2018 10:50:25 +0200
+Message-ID: <20180416085032.7367-6-hch@lst.de>
 In-Reply-To: <20180416085032.7367-1-hch@lst.de>
 References: <20180416085032.7367-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
-Message-ID: <20180416085023.XeBAF74NBcGRMxeH9NJKMQFZlOHsr2SZxsXUAZSbYK8@z>
+Message-ID: <20180416085025.8SiVxmuS74chvtyULXVUbuOVUCAIK7KbA266q58fEE8@z>
 
-mtip32xx just sets the block bounce limit to the dma mask, which means
-that the iommu or swiotlb already take care of the bounce buffering,
-and the block bouncing can be removed.
+sata_nv sets the block bounce limit to the reduce dma mask for ATAPI
+devices, which means that the iommu or swiotlb already take care of
+the bounce buffering, and the block bouncing can be removed.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/block/mtip32xx/mtip32xx.c | 1 -
- 1 file changed, 1 deletion(-)
+ drivers/ata/sata_nv.c | 62 +++++++++++++++++--------------------------
+ 1 file changed, 24 insertions(+), 38 deletions(-)
 
-diff --git a/drivers/block/mtip32xx/mtip32xx.c b/drivers/block/mtip32xx/mtip32xx.c
-index 769c551e3d71..b03bb27dcc58 100644
---- a/drivers/block/mtip32xx/mtip32xx.c
-+++ b/drivers/block/mtip32xx/mtip32xx.c
-@@ -3862,7 +3862,6 @@ static int mtip_block_initialize(struct driver_data *dd)
- 	blk_queue_max_hw_sectors(dd->queue, 0xffff);
- 	blk_queue_max_segment_size(dd->queue, 0x400000);
- 	blk_queue_io_min(dd->queue, 4096);
--	blk_queue_bounce_limit(dd->queue, dd->pdev->dma_mask);
+diff --git a/drivers/ata/sata_nv.c b/drivers/ata/sata_nv.c
+index 8c683ddd0f58..b6e9ad6d33c9 100644
+--- a/drivers/ata/sata_nv.c
++++ b/drivers/ata/sata_nv.c
+@@ -740,32 +740,16 @@ static int nv_adma_slave_config(struct scsi_device *sdev)
+ 	sdev1 = ap->host->ports[1]->link.device[0].sdev;
+ 	if ((port0->flags & NV_ADMA_ATAPI_SETUP_COMPLETE) ||
+ 	    (port1->flags & NV_ADMA_ATAPI_SETUP_COMPLETE)) {
+-		/** We have to set the DMA mask to 32-bit if either port is in
+-		    ATAPI mode, since they are on the same PCI device which is
+-		    used for DMA mapping. If we set the mask we also need to set
+-		    the bounce limit on both ports to ensure that the block
+-		    layer doesn't feed addresses that cause DMA mapping to
+-		    choke. If either SCSI device is not allocated yet, it's OK
+-		    since that port will discover its correct setting when it
+-		    does get allocated.
+-		    Note: Setting 32-bit mask should not fail. */
+-		if (sdev0)
+-			blk_queue_bounce_limit(sdev0->request_queue,
+-					       ATA_DMA_MASK);
+-		if (sdev1)
+-			blk_queue_bounce_limit(sdev1->request_queue,
+-					       ATA_DMA_MASK);
+-
+-		dma_set_mask(&pdev->dev, ATA_DMA_MASK);
++		/*
++		 * We have to set the DMA mask to 32-bit if either port is in
++		 * ATAPI mode, since they are on the same PCI device which is
++		 * used for DMA mapping.  If either SCSI device is not allocated
++		 * yet, it's OK since that port will discover its correct
++		 * setting when it does get allocated.
++		 */
++		rc = dma_set_mask(&pdev->dev, ATA_DMA_MASK);
+ 	} else {
+-		/** This shouldn't fail as it was set to this value before */
+-		dma_set_mask(&pdev->dev, pp->adma_dma_mask);
+-		if (sdev0)
+-			blk_queue_bounce_limit(sdev0->request_queue,
+-					       pp->adma_dma_mask);
+-		if (sdev1)
+-			blk_queue_bounce_limit(sdev1->request_queue,
+-					       pp->adma_dma_mask);
++		rc = dma_set_mask(&pdev->dev, pp->adma_dma_mask);
+ 	}
  
- 	/* Signal trim support */
- 	if (dd->trim_supp == true) {
+ 	blk_queue_segment_boundary(sdev->request_queue, segment_boundary);
+@@ -1131,12 +1115,11 @@ static int nv_adma_port_start(struct ata_port *ap)
+ 
+ 	VPRINTK("ENTER\n");
+ 
+-	/* Ensure DMA mask is set to 32-bit before allocating legacy PRD and
+-	   pad buffers */
+-	rc = dma_set_mask(&pdev->dev, DMA_BIT_MASK(32));
+-	if (rc)
+-		return rc;
+-	rc = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
++	/*
++	 * Ensure DMA mask is set to 32-bit before allocating legacy PRD and
++	 * pad buffers.
++	 */
++	rc = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+ 	if (rc)
+ 		return rc;
+ 
+@@ -1156,13 +1139,16 @@ static int nv_adma_port_start(struct ata_port *ap)
+ 	pp->notifier_clear_block = pp->gen_block +
+ 	       NV_ADMA_NOTIFIER_CLEAR + (4 * ap->port_no);
+ 
+-	/* Now that the legacy PRD and padding buffer are allocated we can
+-	   safely raise the DMA mask to allocate the CPB/APRD table.
+-	   These are allowed to fail since we store the value that ends up
+-	   being used to set as the bounce limit in slave_config later if
+-	   needed. */
+-	dma_set_mask(&pdev->dev, DMA_BIT_MASK(64));
+-	dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(64));
++	/*
++	 * Now that the legacy PRD and padding buffer are allocated we can
++	 * try to raise the DMA mask to allocate the CPB/APRD table.
++	 */
++	rc = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
++	if (rc) {
++		rc = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
++		if (rc)
++			return rc;
++	}
+ 	pp->adma_dma_mask = *dev->dma_mask;
+ 
+ 	mem = dmam_alloc_coherent(dev, NV_ADMA_PORT_PRIV_DMA_SZ,
 -- 
 2.17.0
