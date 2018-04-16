@@ -1,262 +1,224 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:34722 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:35032 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752387AbeDPQVx (ORCPT
+        by vger.kernel.org with ESMTP id S1753108AbeDPQVv (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Apr 2018 12:21:53 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GGLHfK121268
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:52 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcutku7rm-1
-        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:52 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Mon, 16 Apr 2018 12:21:51 -0400
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3GGKdLq011104
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:51 -0400
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2hcy58gdcj-1
+        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2018 12:21:50 -0400
+Received: from localhost
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 16 Apr 2018 12:21:49 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC tools/memory-model 4/5] tools/memory-model: Add model support for spin_is_locked
-Date: Mon, 16 Apr 2018 09:22:50 -0700
+Subject: [PATCH RFC tools/memory-model 1/5] EXP tools/memory-model: Add scripts to test memory model
+Date: Mon, 16 Apr 2018 09:22:47 -0700
 In-Reply-To: <20180416162228.GA18167@linux.vnet.ibm.com>
 References: <20180416162228.GA18167@linux.vnet.ibm.com>
-Message-ID: <1523895771-19224-4-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1523895771-19224-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Luc Maranget <Luc.Maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20180416162250.k0CcuHsIJzS2JWDuFmO0TWFEwr4EN0xWQv1P6fAu3_U@z>
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180416162247.I7iKLzf8x44vgSxLD202ii_typcQ3ky5nbuRFdksNFY@z>
 
-From: Luc Maranget <Luc.Maranget@inria.fr>
+This commit adds a pair of scripts that run the memory model on litmus
+tests, checking that the verification result of each litmus test matches
+the result flagged in the litmus test itself.  These scripts permit easier
+checking of changes to the memory model against preconceived notions.
 
-This commit first adds a trivial macro for spin_is_locked() to
-linux-kernel.def.
-
-It also adds cat code for enumerating all possible matches of lock
-write events (set LKW) with islocked events returning true (set RL,
-for Read from Lock), and unlock write events (set UL) with islocked
-events returning false (set RU, for Read from Unlock).  Note that this
-intentionally does not model uniprocessor kernels (CONFIG_SMP=n) built
-with CONFIG_DEBUG_SPINLOCK=n, in which spin_is_locked() unconditionally
-returns zero.
-
-It also adds a pair of litmus tests demonstrating the minimal ordering
-provided by spin_is_locked() in conjunction with spin_lock().  Will Deacon
-noted that this minimal ordering happens on ARMv8:
-https://lkml.kernel.org/r/20180226162426.GB17158@arm.com
-
-Notice that herd7 installations strictly older than version 7.49
-do not handle the new constructs.
-
-Signed-off-by: Luc Maranget <luc.maranget@inria.fr>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Akira Yokosawa <akiyks@gmail.com>
-Cc: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- tools/memory-model/linux-kernel.def                |  1 +
- .../MP+polockmbonce+poacquiresilsil.litmus         | 30 ++++++++++++
- .../MP+polockonce+poacquiresilsil.litmus           | 29 ++++++++++++
- tools/memory-model/litmus-tests/README             | 10 ++++
- tools/memory-model/lock.cat                        | 53 ++++++++++++++++++++--
- 5 files changed, 119 insertions(+), 4 deletions(-)
- create mode 100644 tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus
- create mode 100644 tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus
+ tools/memory-model/litmus-tests/.gitignore   |  1 +
+ tools/memory-model/scripts/checkalllitmus.sh | 73 +++++++++++++++++++++++
+ tools/memory-model/scripts/checklitmus.sh    | 86 ++++++++++++++++++++++++++++
+ 3 files changed, 160 insertions(+)
+ create mode 100644 tools/memory-model/litmus-tests/.gitignore
+ create mode 100755 tools/memory-model/scripts/checkalllitmus.sh
+ create mode 100755 tools/memory-model/scripts/checklitmus.sh
 
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index 6bd3bc431b3d..f0553bd37c08 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -38,6 +38,7 @@ cmpxchg_release(X,V,W) __cmpxchg{release}(X,V,W)
- spin_lock(X) { __lock(X); }
- spin_unlock(X) { __unlock(X); }
- spin_trylock(X) __trylock(X)
-+spin_is_locked(X) __islocked(X)
- 
- // RCU
- rcu_read_lock() { __fence{rcu-lock}; }
-diff --git a/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus b/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus
+diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
 new file mode 100644
-index 000000000000..37357404a08d
+index 000000000000..6e2ddc54152f
 --- /dev/null
-+++ b/tools/memory-model/litmus-tests/MP+polockmbonce+poacquiresilsil.litmus
-@@ -0,0 +1,30 @@
-+C MP+polockmbonce+poacquiresilsil
-+
-+(*
-+ * Result: Never
-+ *
-+ * Do spinlocks combined with smp_mb__after_spinlock() provide order
-+ * to outside observers using spin_is_locked() to sense the lock-held
-+ * state, ordered by acquire?  Note that when the first spin_is_locked()
-+ * returns false and the second true, we know that the smp_load_acquire()
-+ * executed before the lock was acquired (loosely speaking).
-+ *)
-+
-+{
-+}
-+
-+P0 (spinlock_t *lo, int *x) {
-+	spin_lock(lo);
-+	smp_mb__after_spinlock();
-+	WRITE_ONCE(*x,1);
-+	spin_unlock(lo);
-+}
-+
-+P1 (spinlock_t *lo, int *x) {
-+	int r1; int r2; int r3;
-+	r1 = smp_load_acquire(x);
-+        r2 = spin_is_locked(lo);
-+	r3 = spin_is_locked(lo);
-+}
-+
-+exists (1:r1=1 /\ 1:r2=0 /\ 1:r3=1)
-diff --git a/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus b/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus
-new file mode 100644
-index 000000000000..ebc2668f95ff
++++ b/tools/memory-model/litmus-tests/.gitignore
+@@ -0,0 +1 @@
++*.litmus.out
+diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
+new file mode 100755
+index 000000000000..af0aa15ab84e
 --- /dev/null
-+++ b/tools/memory-model/litmus-tests/MP+polockonce+poacquiresilsil.litmus
-@@ -0,0 +1,29 @@
-+C MP+polockonce+poacquiresilsil
++++ b/tools/memory-model/scripts/checkalllitmus.sh
+@@ -0,0 +1,73 @@
++#!/bin/sh
++#
++# Run herd tests on all .litmus files in the specified directory (which
++# defaults to litmus-tests) and check each file's result against a "Result:"
++# comment within that litmus test.  If the verification result does not
++# match that specified in the litmus test, this script prints an error
++# message prefixed with "^^^".  It also outputs verification results to
++# a file whose name is that of the specified litmus test, but with ".out"
++# appended.
++#
++# Usage:
++#	sh checkalllitmus.sh [ directory ]
++#
++# The LINUX_HERD_OPTIONS environment variable may be used to specify
++# arguments to herd, whose default is defined by the checklitmus.sh script.
++# Thus, one would normally run this in the directory containing the memory
++# model, specifying the pathname of the litmus test to check.
++#
++# This script makes no attempt to run the litmus tests concurrently.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, you can access it online at
++# http://www.gnu.org/licenses/gpl-2.0.html.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 +
-+(*
-+ * Result: Sometimes
-+ *
-+ * Do spinlocks provide order to outside observers using spin_is_locked()
-+ * to sense the lock-held state, ordered by acquire?  Note that when the
-+ * first spin_is_locked() returns false and the second true, we know that
-+ * the smp_load_acquire() executed before the lock was acquired (loosely
-+ * speaking).
-+ *)
++litmusdir=${1-litmus-tests}
++if test -d "$litmusdir" -a -r "$litmusdir" -a -x "$litmusdir"
++then
++	:
++else
++	echo ' --- ' error: $litmusdir is not an accessible directory
++	exit 255
++fi
 +
-+{
-+}
++# Find the checklitmus script.  If it is not where we expect it, then
++# assume that the caller has the PATH environment variable set
++# appropriately.
++if test -x scripts/checklitmus.sh
++then
++	clscript=scripts/checklitmus.sh
++else
++	clscript=checklitmus.sh
++fi
 +
-+P0 (spinlock_t *lo, int *x) {
-+	spin_lock(lo);
-+	WRITE_ONCE(*x,1);
-+	spin_unlock(lo);
-+}
++# Run the script on all the litmus tests in the specified directory
++ret=0
++for i in litmus-tests/*.litmus
++do
++	if ! $clscript $i
++	then
++		ret=1
++	fi
++done
++if test "$ret" -ne 0
++then
++	echo " ^^^ VERIFICATION MISMATCHES"
++else
++	echo All litmus tests verified as was expected.
++fi
++exit $ret
+diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
+new file mode 100755
+index 000000000000..e2e477472844
+--- /dev/null
++++ b/tools/memory-model/scripts/checklitmus.sh
+@@ -0,0 +1,86 @@
++#!/bin/sh
++#
++# Run a herd test and check the result against a "Result:" comment within
++# the litmus test.  If the verification result does not match that specified
++# in the litmus test, this script prints an error message prefixed with
++# "^^^" and exits with a non-zero status.  It also outputs verification
++# results to a file whose name is that of the specified litmus test, but
++# with ".out" appended.
++#
++# Usage:
++#	sh checklitmus.sh file.litmus
++#
++# The LINUX_HERD_OPTIONS environment variable may be used to specify
++# arguments to herd, which default to "-conf linux-kernel.cfg".  Thus,
++# one would normally run this in the directory containing the memory model,
++# specifying the pathname of the litmus test to check.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, you can access it online at
++# http://www.gnu.org/licenses/gpl-2.0.html.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 +
-+P1 (spinlock_t *lo, int *x) {
-+	int r1; int r2; int r3;
-+	r1 = smp_load_acquire(x);
-+        r2 = spin_is_locked(lo);
-+	r3 = spin_is_locked(lo);
-+}
++litmus=$1
++herdoptions=${LINUX_HERD_OPTIONS--conf linux-kernel.cfg}
 +
-+exists (1:r1=1 /\ 1:r2=0 /\ 1:r3=1)
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 04096fb8b8d9..6919909bbd0f 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -63,6 +63,16 @@ LB+poonceonces.litmus
- MP+onceassign+derefonce.litmus
- 	As below, but with rcu_assign_pointer() and an rcu_dereference().
- 
-+MP+polockmbonce+poacquiresilsil.litmus
-+	Protect the access with a lock and an smp_mb__after_spinlock()
-+	in one process, and use an acquire load followed by a pair of
-+	spin_is_locked() calls in the other process.
++if test -f "$litmus" -a -r "$litmus"
++then
++	:
++else
++	echo ' --- ' error: \"$litmus\" is not a readable file
++	exit 255
++fi
++if grep -q '^ \* Result: ' $litmus
++then
++	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
++else
++	outcome=specified
++fi
 +
-+MP+polockonce+poacquiresilsil.litmus
-+	Protect the access with a lock in one process, and use an
-+	acquire load followed by a pair of spin_is_locked() calls
-+	in the other process.
-+
- MP+polocks.litmus
- 	As below, but with the second access of the writer process
- 	and the first access of reader process protected by a lock.
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index ba4a4ec6d313..3b1439edc818 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -5,7 +5,11 @@
-  *)
- 
- (* Generate coherence orders and handle lock operations *)
--
-+(*
-+ * Warning, crashes with herd7 versions strictly before 7.48.
-+ * spin_islocked is functional from version 7.49.
-+ *
-+ *)
- include "cross.cat"
- 
- (* From lock reads to their partner lock writes *)
-@@ -32,12 +36,16 @@ flag ~empty [M \ IW] ; loc ; [ALL-LOCKS] as mixed-lock-accesses
- (* The final value of a spinlock should not be tested *)
- flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
- 
--
-+(*
-+ * Backward compatibility
-+ *)
-+let RL = try RL with emptyset (* defined herd7 >= 7.49 *)
-+let RU = try RU with emptyset (* defined herd7 >= 7.49 *)
- (*
-  * Put lock operations in their appropriate classes, but leave UL out of W
-  * until after the co relation has been generated.
-  *)
--let R = R | LKR | LF
-+let R = R | LKR | LF | RL | RU
- let W = W | LKW
- 
- let Release = Release | UL
-@@ -72,8 +80,45 @@ let all-possible-rfe-lf =
- 
- (* Generate all rf relations for LF events *)
- with rfe-lf from cross(all-possible-rfe-lf)
--let rf = rf | rfi-lf | rfe-lf
- 
-+let rf-lf = rfe-lf | rfi-lf
-+
-+(* rf for RL events, ie islocked returning true, similar to LF above *)
-+
-+(* islocked returning true inside a critical section
-+ * must read from the opening lock
-+ *)
-+let rfi-rl = ([LKW] ; po-loc ; [RL]) \ ([LKW] ; po-loc ; [UL] ; po-loc)
-+
-+(* islocked returning true outside critical sections can match any
-+ * external lock.
-+ *)
-+let all-possible-rfe-rl =
-+  let possible-rfe-lf r =
-+    let pair-to-relation p = p ++ 0
-+    in map pair-to-relation ((LKW * {r}) & loc & ext)
-+  in map possible-rfe-lf (RL \ range(rfi-rl))
-+
-+with rfe-rl from cross(all-possible-rfe-rl)
-+let rf-rl = rfe-rl | rfi-rl
-+
-+(* Read from unlock, ie islocked returning false, slightly different *)
-+
-+(* islocked returning false can read from the last po-previous unlock *)
-+let rfi-ru = ([UL] ; po-loc ; [RU]) \ ([UL] ; po-loc ; [LKW] ; po-loc)
-+
-+(* any islocked returning false can read from any external unlock *)
-+let all-possible-rfe-ru =
-+   let possible-rfe-ru r =
-+     let pair-to-relation p = p ++ 0
-+     in map pair-to-relation (((UL|IW) * {r}) & loc & ext)
-+  in map possible-rfe-ru RU
-+
-+with rfe-ru from cross(all-possible-rfe-ru)
-+let rf-ru = rfe-ru | rfi-ru
-+
-+(* Final rf relation *)
-+let rf = rf | rf-lf | rf-rl | rf-ru
- 
- (* Generate all co relations, including LKW events but not UL *)
- let co0 = co0 | ([IW] ; loc ; [LKW]) |
++echo Herd options: $herdoptions > $litmus.out
++/usr/bin/time herd7 -o ~/tmp $herdoptions $litmus >> $litmus.out 2>&1
++grep "Herd options:" $litmus.out
++grep '^Observation' $litmus.out
++if grep -q '^Observation' $litmus.out
++then
++	:
++else
++	cat $litmus.out
++	echo ' ^^^ Verification error'
++	echo ' ^^^ Verification error' >> $litmus.out 2>&1
++	exit 255
++fi
++if test "$outcome" = DEADLOCK
++then
++	echo grep 3 and 4
++	if grep '^Observation' $litmus.out | grep -q 'Never 0 0$'
++	then
++		ret=0
++	else
++		echo " ^^^ Unexpected non-$outcome verification"
++		echo " ^^^ Unexpected non-$outcome verification" >> $litmus.out 2>&1
++		ret=1
++	fi
++elif grep '^Observation' $litmus.out | grep -q $outcome || test "$outcome" = Maybe
++then
++	ret=0
++else
++	echo " ^^^ Unexpected non-$outcome verification"
++	echo " ^^^ Unexpected non-$outcome verification" >> $litmus.out 2>&1
++	ret=1
++fi
++tail -2 $litmus.out | head -1
++exit $ret
 -- 
 2.5.2
