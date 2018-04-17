@@ -1,154 +1,31 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [RFC PATCH 1/3] signal: Ensure every siginfo we send has all bits initialized
-Date: Tue, 17 Apr 2018 14:37:38 -0500
-Message-ID: <87d0yxzksd.fsf@xmission.com>
-References: <20180413094211.GN16141@n2100.armlinux.org.uk>
-        <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
-        <20180413170827.GB16308@e103592.cambridge.arm.com>
-        <20180413175407.GO16141@n2100.armlinux.org.uk>
-        <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
-        <20180413184522.GD16308@e103592.cambridge.arm.com>
-        <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
-        <20180415131206.GR16141@n2100.armlinux.org.uk>
-        <87604sa2fu.fsf_-_@xmission.com> <87zi248nte.fsf_-_@xmission.com>
-        <20180417132328.GF16308@e103592.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCHv3 06/11] asm-generic: mm_hooks: allow hooks to be
+ overridden individually
+Date: Tue, 17 Apr 2018 21:56:02 +0200
+Message-ID: <CAK8P3a3SVhW1ByQOtxw7JG8i3wWU5opdycfSCTbW=GCFvBJmQg@mail.gmail.com>
+References: <20180417183735.56985-1-mark.rutland@arm.com> <20180417183735.56985-7-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180417132328.GF16308@e103592.cambridge.arm.com> (Dave Martin's
-        message of "Tue, 17 Apr 2018 14:23:30 +0100")
+In-Reply-To: <20180417183735.56985-7-mark.rutland@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, cdall@kernel.org, drjones@redhat.com, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Adam Wallis <awallis@codeaurora.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>
 List-Id: linux-arch.vger.kernel.org
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On Tue, Apr 17, 2018 at 8:37 PM, Mark Rutland <mark.rutland@arm.com> wrote:
+> Currently, an architecture must either implement all of the mm hooks
+> itself, or use all of those provided by the asm-generic implementation.
+> When an architecture only needs to override a single hook, it must copy
+> the stub implementations from the asm-generic version.
+>
+> To avoid this repetition, allow each hook to be overridden indiviually,
+> by placing each under an #ifndef block. As architectures providing their
+> own hooks can't include this file today, this shouldn't adversely affect
+> any existing hooks.
+>
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-arch@vger.kernel.org
 
-> Hmmm
->
-> memset()/clear_siginfo() may ensure that there are no uninitialised
-> explicit fields except for those in inactive union members, but I'm not
-> sure that this approach is guaranteed to sanitise the padding seen by
-> userspace.
->
-> Rationale below, though it's a bit theoretical...
->
-> With this in mind, I tend agree with Linus that hiding memset() calls
-> from the maintainer may be a bad idea unless they are also hidden from
-> the compiler.  If the compiler sees the memset() it may be able to
-> optimise it in ways that wouldn't be possible for some other random
-> external function call, including optimising all or part of the call
-> out.
->
-> As a result, the breakdown into individual put_user()s etc. in
-> copy_siginfo_to_user() may still be valuable even if all paths have the
-> memset().
-
-The breakdown into individual put_user()s is known to be problematically
-slow, and is actually wrong.
-
-Even exclusing the SI_USER duplication in a small number of cases the
-fields filled out in siginfo by architecture code are not the fields
-that copy_siginfo_to_user is copying.  Which is much worse.  The code
-looks safe but is not.
-
-My intention is to leave 0 instances of clear_siginfo in the
-architecture specific code.  Ideally struct siginfo will be limited to
-kernel/signal.c but I am not certain I can quite get that far.
-The function do_coredump appears to have a legit need for siginfo.
-
-
-> (Rationale for an arch/arm example:)
->
->> diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
->> index 4c375e11ae95..adda3fc2dde8 100644
->> --- a/arch/arm/vfp/vfpmodule.c
->> +++ b/arch/arm/vfp/vfpmodule.c
->> @@ -218,8 +218,7 @@ static void vfp_raise_sigfpe(unsigned int sicode, struct pt_regs *regs)
->>  {
->>  	siginfo_t info;
->>  
->> -	memset(&info, 0, sizeof(info));
->> -
->> +	clear_siginfo(&info);
->>  	info.si_signo = SIGFPE;
->
-> /* by c11 (n1570) 6.2.6.1 para 6 [1], all padding bytes in info now take
->    unspecified values */
->
->>  	info.si_code = sicode;
->>  	info.si_addr = (void __user *)(instruction_pointer(regs) - 4);
->
-> /* by c11 (n1570) 6.2.6.1 para 7 [2], all bytes of the union info._sifields
->    other than than those corresponding to _sigfault take unspecified
->    values */
->
-> So I don't see why the compiler needs to ensure that any of the affected
-> bytes are zero: it could potentially skip a lot of the memset() as a
-> result, in theory.
->
-> I've not seen a compiler actually take advantage of that, but I'm now
-> not sure what forbids it.
-
-I took a quick look at gcc-4.9 which I have handy.
-
-The passes -f-no-strict-aliasing which helps, and gcc actually
-documents that if you access things through the union it will
-not take advantage of c11.
-
-gcc-4.9 Documents it this way:
-
-> -fstrict-aliasing'
->      Allow the compiler to assume the strictest aliasing rules
->      applicable to the language being compiled.  For C (and C++), this
->      activates optimizations based on the type of expressions.  In
->      particular, an object of one type is assumed never to reside at the
->      same address as an object of a different type, unless the types are
->      almost the same.  For example, an 'unsigned int' can alias an
->      'int', but not a 'void*' or a 'double'.  A character type may alias
->      any other type.
-> 
->      Pay special attention to code like this:
->           union a_union {
->             int i;
->             double d;
->           };
-> 
->           int f() {
->             union a_union t;
->             t.d = 3.0;
->             return t.i;
->           }
->      The practice of reading from a different union member than the one
->      most recently written to (called "type-punning") is common.  Even
->      with '-fstrict-aliasing', type-punning is allowed, provided the
->      memory is accessed through the union type.  So, the code above
->      works as expected.
-
-
-> If this can happen, I only see two watertight workarounds:
->
-> 1) Ensure that there is no implicit padding in any UAPI structure, e.g.
-> aeb1f39d814b: ("arm64/ptrace: Avoid uninitialised struct padding in
-> fpr_set()").  This would include tail-padding of any union member that
-> is smaller than the containing union.
->
-> It would be significantly more effort to ensure this for siginfo though.
->
-> 2) Poke all values directly into allocated or user memory directly
-> via pointers to paddingless types; never assign to objects on the kernel
-> stack if you care what ends up in the padding, e.g., what your
-> copy_siginfo_to_user() does prior to this series.
->
->
-> If I'm not barking up the wrong tree, memset() cannot generally be
-> used to determine the value of padding bytes, but it may still be
-> useful for forcing otherwise uninitialised members to sane initial
-> values.
->
-> This likely affects many more things than just siginfo.
-
-Unless gcc has changed it's stance on type-punning through unions
-or it's semantics with -fno-strict_aliasing we should be good.
-
-Eric
+Acked-by: Arnd Bergmann <arnd@arndb.de>
