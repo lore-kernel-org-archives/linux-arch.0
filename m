@@ -1,122 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46940 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47112 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752327AbeDQSht (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Apr 2018 14:37:49 -0400
+        id S1753012AbeDQSiW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Apr 2018 14:38:22 -0400
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCHv3 01/11] arm64: add pointer authentication register bits
-Date: Tue, 17 Apr 2018 19:37:25 +0100
-Message-ID: <20180417183735.56985-2-mark.rutland@arm.com>
+Subject: [PATCHv3 11/11] arm64: docs: document pointer authentication
+Date: Tue, 17 Apr 2018 19:37:35 +0100
+Message-ID: <20180417183735.56985-12-mark.rutland@arm.com>
 In-Reply-To: <20180417183735.56985-1-mark.rutland@arm.com>
 References: <20180417183735.56985-1-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: arnd@arndb.de, catalin.marinas@arm.com, cdall@kernel.org, drjones@redhat.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, ramana.radhakrishnan@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180417183725.dmGzYrJiBWx6-BtKy6bSqGWPECm99qB0QTYyv_w3k0s@z>
+Message-ID: <20180417183735.ih5U7zY_D1YfpfeyE8BWm5QIIOLo1b4WTx9pKp3ylTM@z>
 
-The ARMv8.3 pointer authentication extension adds:
-
-* New fields in ID_AA64ISAR1 to report the presence of pointer
-  authentication functionality.
-
-* New control bits in SCTLR_ELx to enable this functionality.
-
-* New system registers to hold the keys necessary for this
-  functionality.
-
-* A new ESR_ELx.EC code used when the new instructions are affected by
-  configurable traps
-
-This patch adds the relevant definitions to <asm/sysreg.h> and
-<asm/esr.h> for these, to be used by subsequent patches.
+Now that we've added code to support pointer authentication, add some
+documentation so that people can figure out if/how to use it.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Andrew Jones <drjones@redhat.com>
 Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
+Cc: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm64/include/asm/esr.h    |  3 ++-
- arch/arm64/include/asm/sysreg.h | 30 ++++++++++++++++++++++++++++++
- 2 files changed, 32 insertions(+), 1 deletion(-)
+ Documentation/arm64/booting.txt                |  8 +++
+ Documentation/arm64/elf_hwcaps.txt             |  6 ++
+ Documentation/arm64/pointer-authentication.txt | 84 ++++++++++++++++++++++++++
+ 3 files changed, 98 insertions(+)
+ create mode 100644 Documentation/arm64/pointer-authentication.txt
 
-diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-index ce70c3ffb993..022785162281 100644
---- a/arch/arm64/include/asm/esr.h
-+++ b/arch/arm64/include/asm/esr.h
-@@ -30,7 +30,8 @@
- #define ESR_ELx_EC_CP14_LS	(0x06)
- #define ESR_ELx_EC_FP_ASIMD	(0x07)
- #define ESR_ELx_EC_CP10_ID	(0x08)
--/* Unallocated EC: 0x09 - 0x0B */
-+#define ESR_ELx_EC_PAC		(0x09)
-+/* Unallocated EC: 0x0A - 0x0B */
- #define ESR_ELx_EC_CP14_64	(0x0C)
- /* Unallocated EC: 0x0d */
- #define ESR_ELx_EC_ILL		(0x0E)
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index 6171178075dc..426f0eb90101 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -171,6 +171,19 @@
- #define SYS_TTBR1_EL1			sys_reg(3, 0, 2, 0, 1)
- #define SYS_TCR_EL1			sys_reg(3, 0, 2, 0, 2)
+diff --git a/Documentation/arm64/booting.txt b/Documentation/arm64/booting.txt
+index 8d0df62c3fe0..8df9f4658d6f 100644
+--- a/Documentation/arm64/booting.txt
++++ b/Documentation/arm64/booting.txt
+@@ -205,6 +205,14 @@ Before jumping into the kernel, the following conditions must be met:
+     ICC_SRE_EL2.SRE (bit 0) must be initialised to 0b0.
+   - The DT or ACPI tables must describe a GICv2 interrupt controller.
  
-+#define SYS_APIAKEYLO_EL1		sys_reg(3, 0, 2, 1, 0)
-+#define SYS_APIAKEYHI_EL1		sys_reg(3, 0, 2, 1, 1)
-+#define SYS_APIBKEYLO_EL1		sys_reg(3, 0, 2, 1, 2)
-+#define SYS_APIBKEYHI_EL1		sys_reg(3, 0, 2, 1, 3)
++  For CPUs with pointer authentication functionality:
++  - If EL3 is present:
++    SCR_EL3.APK (bit 16) must be initialised to 0b1
++    SCR_EL3.API (bit 17) must be initialised to 0b1
++  - If the kernel is entered at EL1:
++    HCR_EL2.APK (bit 40) must be initialised to 0b1
++    HCR_EL2.API (bit 41) must be initialised to 0b1
 +
-+#define SYS_APDAKEYLO_EL1		sys_reg(3, 0, 2, 2, 0)
-+#define SYS_APDAKEYHI_EL1		sys_reg(3, 0, 2, 2, 1)
-+#define SYS_APDBKEYLO_EL1		sys_reg(3, 0, 2, 2, 2)
-+#define SYS_APDBKEYHI_EL1		sys_reg(3, 0, 2, 2, 3)
+ The requirements described above for CPU mode, caches, MMUs, architected
+ timers, coherency and system registers apply to all CPUs.  All CPUs must
+ enter the kernel in the same exception level.
+diff --git a/Documentation/arm64/elf_hwcaps.txt b/Documentation/arm64/elf_hwcaps.txt
+index d6aff2c5e9e2..ebc8b15b45fc 100644
+--- a/Documentation/arm64/elf_hwcaps.txt
++++ b/Documentation/arm64/elf_hwcaps.txt
+@@ -178,3 +178,9 @@ HWCAP_ILRCPC
+ HWCAP_FLAGM
+ 
+     Functionality implied by ID_AA64ISAR0_EL1.TS == 0b0001.
 +
-+#define SYS_APGAKEYLO_EL1		sys_reg(3, 0, 2, 3, 0)
-+#define SYS_APGAKEYHI_EL1		sys_reg(3, 0, 2, 3, 1)
++HWCAP_APIA
 +
- #define SYS_ICC_PMR_EL1			sys_reg(3, 0, 4, 6, 0)
- 
- #define SYS_AFSR0_EL1			sys_reg(3, 0, 5, 1, 0)
-@@ -417,9 +430,13 @@
- #define SYS_ICH_LR15_EL2		__SYS__LR8_EL2(7)
- 
- /* Common SCTLR_ELx flags. */
-+#define SCTLR_ELx_ENIA	(1 << 31)
-+#define SCTLR_ELx_ENIB	(1 << 30)
-+#define SCTLR_ELx_ENDA	(1 << 27)
- #define SCTLR_ELx_EE    (1 << 25)
- #define SCTLR_ELx_IESB	(1 << 21)
- #define SCTLR_ELx_WXN	(1 << 19)
-+#define SCTLR_ELx_ENDB	(1 << 13)
- #define SCTLR_ELx_I	(1 << 12)
- #define SCTLR_ELx_SA	(1 << 3)
- #define SCTLR_ELx_C	(1 << 2)
-@@ -510,11 +527,24 @@
- #define ID_AA64ISAR0_AES_SHIFT		4
- 
- /* id_aa64isar1 */
-+#define ID_AA64ISAR1_GPI_SHIFT		28
-+#define ID_AA64ISAR1_GPA_SHIFT		24
- #define ID_AA64ISAR1_LRCPC_SHIFT	20
- #define ID_AA64ISAR1_FCMA_SHIFT		16
- #define ID_AA64ISAR1_JSCVT_SHIFT	12
-+#define ID_AA64ISAR1_API_SHIFT		8
-+#define ID_AA64ISAR1_APA_SHIFT		4
- #define ID_AA64ISAR1_DPB_SHIFT		0
- 
-+#define ID_AA64ISAR1_APA_NI		0x0
-+#define ID_AA64ISAR1_APA_ARCHITECTED	0x1
-+#define ID_AA64ISAR1_API_NI		0x0
-+#define ID_AA64ISAR1_API_IMP_DEF	0x1
-+#define ID_AA64ISAR1_GPA_NI		0x0
-+#define ID_AA64ISAR1_GPA_ARCHITECTED	0x1
-+#define ID_AA64ISAR1_GPI_NI		0x0
-+#define ID_AA64ISAR1_GPI_IMP_DEF	0x1
++    EL0 AddPac and Auth functionality using APIAKey_EL1 is enabled, as
++    described by Documentation/arm64/pointer-authentication.txt.
 +
- /* id_aa64pfr0 */
- #define ID_AA64PFR0_CSV3_SHIFT		60
- #define ID_AA64PFR0_CSV2_SHIFT		56
+diff --git a/Documentation/arm64/pointer-authentication.txt b/Documentation/arm64/pointer-authentication.txt
+new file mode 100644
+index 000000000000..8a9cb5713770
+--- /dev/null
++++ b/Documentation/arm64/pointer-authentication.txt
+@@ -0,0 +1,84 @@
++Pointer authentication in AArch64 Linux
++=======================================
++
++Author: Mark Rutland <mark.rutland@arm.com>
++Date: 2017-07-19
++
++This document briefly describes the provision of pointer authentication
++functionality in AArch64 Linux.
++
++
++Architecture overview
++---------------------
++
++The ARMv8.3 Pointer Authentication extension adds primitives that can be
++used to mitigate certain classes of attack where an attacker can corrupt
++the contents of some memory (e.g. the stack).
++
++The extension uses a Pointer Authentication Code (PAC) to determine
++whether pointers have been modified unexpectedly. A PAC is derived from
++a pointer, another value (such as the stack pointer), and a secret key
++held in system registers.
++
++The extension adds instructions to insert a valid PAC into a pointer,
++and to verify/remove the PAC from a pointer. The PAC occupies a number
++of high-order bits of the pointer, which varies dependent on the
++configured virtual address size and whether pointer tagging is in use.
++
++A subset of these instructions have been allocated from the HINT
++encoding space. In the absence of the extension (or when disabled),
++these instructions behave as NOPs. Applications and libraries using
++these instructions operate correctly regardless of the presence of the
++extension.
++
++
++Basic support
++-------------
++
++When CONFIG_ARM64_PTR_AUTH is selected, and relevant HW support is
++present, the kernel will assign a random APIAKey value to each process
++at exec*() time. This key is shared by all threads within the process,
++and the key is preserved across fork(). Presence of functionality using
++APIAKey is advertised via HWCAP_APIA.
++
++Recent versions of GCC can compile code with APIAKey-based return
++address protection when passed the -msign-return-address option. This
++uses instructions in the HINT space, and such code can run on systems
++without the pointer authentication extension.
++
++The remaining instruction and data keys (APIBKey, APDAKey, APDBKey) are
++reserved for future use, and instructions using these keys must not be
++used by software until a purpose and scope for their use has been
++decided. To enable future software using these keys to function on
++contemporary kernels, where possible, instructions using these keys are
++made to behave as NOPs.
++
++The generic key (APGAKey) is currently unsupported. Instructions using
++the generic key must not be used by software.
++
++
++Debugging
++---------
++
++When CONFIG_ARM64_PTR_AUTH is selected, and relevant HW support is
++present, the kernel will expose the position of TTBR0 PAC bits in the
++NT_ARM_PAC_MASK regset (struct user_pac_mask), which userspace can
++acqure via PTRACE_GETREGSET.
++
++Separate masks are exposed for data pointers and instruction pointers,
++as the set of PAC bits can vary between the two. Debuggers should not
++expect that HWCAP_APIA implies the presence (or non-presence) of this
++regset -- in future the kernel may support the use of APIBKey, APDAKey,
++and/or APBAKey, even in the absence of APIAKey.
++
++Note that the masks apply to TTBR0 addresses, and are not valid to apply
++to TTBR1 addresses (e.g. kernel pointers).
++
++
++Virtualization
++--------------
++
++Pointer authentication is not currently supported in KVM guests. KVM
++will mask the feature bits from ID_AA64ISAR1_EL1, and attempted use of
++the feature will result in an UNDEFINED exception being injected into
++the guest.
 -- 
 2.11.0
