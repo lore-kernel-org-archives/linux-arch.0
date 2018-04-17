@@ -1,140 +1,148 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 1/3] signal: Ensure every siginfo we send has all
- bits initialized
-Date: Tue, 17 Apr 2018 14:23:30 +0100
-Message-ID: <20180417132328.GF16308@e103592.cambridge.arm.com>
-References: <20180413094211.GN16141@n2100.armlinux.org.uk>
- <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
- <20180413170827.GB16308@e103592.cambridge.arm.com>
- <20180413175407.GO16141@n2100.armlinux.org.uk>
- <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
- <20180413184522.GD16308@e103592.cambridge.arm.com>
- <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
- <20180415131206.GR16141@n2100.armlinux.org.uk>
- <87604sa2fu.fsf_-_@xmission.com>
- <87zi248nte.fsf_-_@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCHv3 00/11] ARMv8.3 pointer authentication userspace support
+Date: Tue, 17 Apr 2018 19:37:24 +0100
+Message-ID: <20180417183735.56985-1-mark.rutland@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87zi248nte.fsf_-_@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: linux-arm-kernel@lists.infradead.org
+Cc: arnd@arndb.de, catalin.marinas@arm.com, cdall@kernel.org, drjones@redhat.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, ramana.radhakrishnan@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org, kernel-hardening@lists.openwall.com
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 15, 2018 at 10:57:33AM -0500, Eric W. Biederman wrote:
-> 
-> Call clear_siginfo to ensure every stack allocated siginfo is properly
-> initialized before being passed to the signal sending functions.
-> 
-> Note: It is not safe to depend on C initializers to initialize struct
-> siginfo on the stack because C is allowed to skip holes when
-> initializing a structure.
-> 
-> The initialization of struct siginfo in tracehook_report_syscall_exit
-> was moved from the helper user_single_step_siginfo into
-> tracehook_report_syscall_exit itself, to make it clear that the local
-> variable siginfo gets fully initialized.
-> 
-> In a few cases the scope of struct siginfo has been reduced to make it
-> clear that siginfo siginfo is not used on other paths in the function
-> in which it is declared.
-> 
-> Instances of using memset to initialize siginfo have been replaced
-> with calls clear_siginfo for clarity.
-> 
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+This series adds support for the ARMv8.3 pointer authentication extension,
+enabling userspace return address protection with recent versions of GCC.
 
-[...]
+Since RFC [1]:
+* Make the KVM context switch (semi-lazy)
+* Rebase to v4.13-rc1
+* Improve pointer authentication documentation
+* Add hwcap documentation
+* Various minor cleanups
 
-Hmmm
+Since v1 [2]:
+* Rebase to v4.15-rc1
+* Settle on per-process keys
+* Strip PACs when unwinding userspace
+* Don't expose an XPAC hwcap (this is implied by ID registers)
+* Leave APIB, ABPDA, APDB, and APGA keys unsupported for now
+* Support IMP DEF algorithms
+* Rely on KVM ID register emulation
+* Various cleanups
 
-memset()/clear_siginfo() may ensure that there are no uninitialised
-explicit fields except for those in inactive union members, but I'm not
-sure that this approach is guaranteed to sanitise the padding seen by
-userspace.
+Since v2 [3]:
+* Unify HCR_EL2 initialization
+* s/POINTER_AUTHENTICATION/PTR_AUTH/
+* Drop KVM support (for now)
+* Drop detection of generic authentication
 
-Rationale below, though it's a bit theoretical...
+While there are use-cases for keys other than APIAKey, the only software that
+I'm aware of with pointer authentication support is GCC, which only makes use
+of APIAKey. I'm happy to add support for other keys as users appear.
 
-With this in mind, I tend agree with Linus that hiding memset() calls
-from the maintainer may be a bad idea unless they are also hidden from
-the compiler.  If the compiler sees the memset() it may be able to
-optimise it in ways that wouldn't be possible for some other random
-external function call, including optimising all or part of the call
-out.
-
-As a result, the breakdown into individual put_user()s etc. in
-copy_siginfo_to_user() may still be valuable even if all paths have the
-memset().
+I've pushed the series to the arm64/pointer-auth branch [4] of my linux tree.
+I've also pushed out a necessary bootwrapper patch to the pointer-auth branch
+[5] of my bootwrapper repo.
 
 
-(Rationale for an arch/arm example:)
+Extension Overview 
+==================
 
-> diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
-> index 4c375e11ae95..adda3fc2dde8 100644
-> --- a/arch/arm/vfp/vfpmodule.c
-> +++ b/arch/arm/vfp/vfpmodule.c
-> @@ -218,8 +218,7 @@ static void vfp_raise_sigfpe(unsigned int sicode, struct pt_regs *regs)
->  {
->  	siginfo_t info;
->  
-> -	memset(&info, 0, sizeof(info));
-> -
-> +	clear_siginfo(&info);
->  	info.si_signo = SIGFPE;
+The ARMv8.3 pointer authentication extension adds functionality to detect
+modification of pointer values, mitigating certain classes of attack such as
+stack smashing, and making return oriented programming attacks harder
 
-/* by c11 (n1570) 6.2.6.1 para 6 [1], all padding bytes in info now take
-   unspecified values */
+The extension introduces the concept of a pointer authentication code (PAC),
+which is stored in some upper bits of pointers. Each PAC is derived from the
+original pointer, another 64-bit value (e.g. the stack pointer), and a secret
+128-bit key.
 
->  	info.si_code = sicode;
->  	info.si_addr = (void __user *)(instruction_pointer(regs) - 4);
+New instructions are added which can be used to:
 
-/* by c11 (n1570) 6.2.6.1 para 7 [2], all bytes of the union info._sifields
-   other than than those corresponding to _sigfault take unspecified
-   values */
+* Insert a PAC into a pointer
+* Strip a PAC from a pointer
+* Authenticate strip a PAC from a pointer
 
-So I don't see why the compiler needs to ensure that any of the affected
-bytes are zero: it could potentially skip a lot of the memset() as a
-result, in theory.
+If authentication succeeds, the code is removed, yielding the original pointer.
+If authentication fails, bits are set in the pointer such that it is guaranteed
+to cause a fault if used.
 
-I've not seen a compiler actually take advantage of that, but I'm now
-not sure what forbids it.
+These instructions can make use of four keys:
 
+* APIAKey (A.K.A. Instruction A key)
+* APIBKey (A.K.A. Instruction B key)
+* APDAKey (A.K.A. Data A key)
+* APDBKey (A.K.A. Data B Key)
 
-If this can happen, I only see two watertight workarounds:
+A subset of these instruction encodings have been allocated from the HINT
+space, and will operate as NOPs on any ARMv8-A parts which do not feature the
+extension (or if purposefully disabled by the kernel). Software using only this
+subset of the instructions should function correctly on all ARMv8-A parts.
 
-1) Ensure that there is no implicit padding in any UAPI structure, e.g.
-aeb1f39d814b: ("arm64/ptrace: Avoid uninitialised struct padding in
-fpr_set()").  This would include tail-padding of any union member that
-is smaller than the containing union.
-
-It would be significantly more effort to ensure this for siginfo though.
-
-2) Poke all values directly into allocated or user memory directly
-via pointers to paddingless types; never assign to objects on the kernel
-stack if you care what ends up in the padding, e.g., what your
-copy_siginfo_to_user() does prior to this series.
+Additionally, instructions are added to authenticate small blocks of memory in
+similar fashion, using APGAKey (A.K.A. Generic key).
 
 
-If I'm not barking up the wrong tree, memset() cannot generally be
-used to determine the value of padding bytes, but it may still be
-useful for forcing otherwise uninitialised members to sane initial
-values.
+This Series
+===========
 
-This likely affects many more things than just siginfo.
+This series enables the use of instructions using APIAKey, which is initialised
+and maintained per-process (shared by all threads). This series does not add
+support for APIBKey, APDAKey, APDBKey, nor APGAKey.
 
-[...]
+I've given this some basic testing with a homebrew test suite. More ideally,
+we'd add some tests to the kernel source tree.
 
-Cheers
----Dave
+For the time being, pointer authentication functionality is hidden from
+guests via ID register trapping.
 
-[1] n1570 6.2.6.1.6: When a value is stored in an object of structure or
-union type, including in a member object, the bytes of the object
-representation that correspond to any padding bytes take unspecified
-values [...]
+Thanks,
+Mark.
 
-[2] n1570 6.2.6.1.7: When a value is stored in a member of an object of
-union type, the bytes of the object representation that do not
-correspond to that member but do correspond to other members take
-unspecified values.
+[1] http://lists.infradead.org/pipermail/linux-arm-kernel/2017-April/498941.html
+[2] https://lkml.kernel.org/r/1500480092-28480-1-git-send-email-mark.rutland@arm.com
+[3] https://lkml.kernel.org/r/20171127163806.31435-1-mark.rutland@arm.com
+[4] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git arm64/pointer-auth
+[5] git://git.kernel.org/pub/scm/linux/kernel/git/mark/boot-wrapper-aarch64.git pointer-auth
+
+
+Mark Rutland (11):
+  arm64: add pointer authentication register bits
+  arm64/kvm: consistently handle host HCR_EL2 flags
+  arm64/kvm: hide ptrauth from guests
+  arm64: Don't trap host pointer auth use to EL2
+  arm64/cpufeature: detect pointer authentication
+  asm-generic: mm_hooks: allow hooks to be overridden individually
+  arm64: add basic pointer authentication support
+  arm64: expose user PAC bit positions via ptrace
+  arm64: perf: strip PAC when unwinding userspace
+  arm64: enable pointer authentication
+  arm64: docs: document pointer authentication
+
+ Documentation/arm64/booting.txt                |   8 ++
+ Documentation/arm64/elf_hwcaps.txt             |   6 ++
+ Documentation/arm64/pointer-authentication.txt |  84 ++++++++++++++++++++
+ arch/arm64/Kconfig                             |  23 ++++++
+ arch/arm64/include/asm/cpucaps.h               |   5 +-
+ arch/arm64/include/asm/esr.h                   |   3 +-
+ arch/arm64/include/asm/kvm_arm.h               |   3 +
+ arch/arm64/include/asm/mmu.h                   |   5 ++
+ arch/arm64/include/asm/mmu_context.h           |  25 +++++-
+ arch/arm64/include/asm/pointer_auth.h          | 104 +++++++++++++++++++++++++
+ arch/arm64/include/asm/sysreg.h                |  30 +++++++
+ arch/arm64/include/uapi/asm/hwcap.h            |   1 +
+ arch/arm64/include/uapi/asm/ptrace.h           |   7 ++
+ arch/arm64/kernel/cpufeature.c                 |  56 +++++++++++++
+ arch/arm64/kernel/cpuinfo.c                    |   1 +
+ arch/arm64/kernel/head.S                       |   5 +-
+ arch/arm64/kernel/perf_callchain.c             |   5 +-
+ arch/arm64/kernel/ptrace.c                     |  38 +++++++++
+ arch/arm64/kvm/handle_exit.c                   |  18 +++++
+ arch/arm64/kvm/hyp/switch.c                    |   2 +-
+ arch/arm64/kvm/sys_regs.c                      |   9 +++
+ include/asm-generic/mm_hooks.h                 |  11 +++
+ include/uapi/linux/elf.h                       |   1 +
+ 23 files changed, 441 insertions(+), 9 deletions(-)
+ create mode 100644 Documentation/arm64/pointer-authentication.txt
+ create mode 100644 arch/arm64/include/asm/pointer_auth.h
+
+-- 
+2.11.0
