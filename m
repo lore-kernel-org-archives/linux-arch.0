@@ -1,79 +1,90 @@
-From: Julia Lawall <julia.lawall@lip6.fr>
-Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers (fwd)
-Date: Mon, 16 Apr 2018 21:11:46 +0200 (CEST)
-Message-ID: <alpine.DEB.2.20.1804162110510.3044@hadrien>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+From: James Hogan <jhogan@kernel.org>
+Subject: [PATCH v3 0/3] MIPS: Override barrier_before_unreachable() to fix microMIPS
+Date: Tue, 17 Apr 2018 11:11:03 +0100
+Message-ID: <cover.ebc99f68d5063a817328b9184d747f539800cff0.1523959603.git-series.jhogan@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, kbuild-all@01.org
+To: linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, Matthew Fortune <matthew.fortune@mips.com>, Robert Suchanek <robert.suchanek@mips.com>
 List-Id: linux-arch.vger.kernel.org
 
-There is a duplicated test on line 360.
+This series overrides barrier_before_unreachable() for MIPS to add an
+.insn assembler directive.
 
-julia
+Due to the subsequent __builtin_unreachable(), the assembler can't tell
+that a label on the empty inline asm is code rather than data, so any
+microMIPS branches targetting it (which sadly can't be removed) raise
+errors due to the mismatching ISA mode, Adding the .insn in patch 3
+tells the assembler that it should be treated as code.
 
----------- Forwarded message ----------
-Date: Mon, 16 Apr 2018 23:04:18 +0800
-From: kbuild test robot <lkp@intel.com>
-To: kbuild@01.org
-Cc: Julia Lawall <julia.lawall@lip6.fr>
-Subject: Re: [PATCH 08/12] mmc: reduce use of block bounce buffers
+To do this we add a new standard asm/compiler.h for architecture
+overrides in patch 2. There are a few existing asm/compiler.h files
+already existing, most of which are fairly simple and don't include
+anything else (arm, arm64, mips). Unfortunately the alpha one includes
+linux/compiler.h though, so it can undefine some inline macros. On
+Arnd's suggestion this is converted to use OPTIMIZE_INLINING instead in
+patch 1. A build of alpha's defconfig on GCC 7.3 before and after this
+series results in the following size differences, which appear harmless
+to me:
 
-CC: kbuild-all@01.org
-In-Reply-To: <20180416085032.7367-9-hch@lst.de>
-References: <20180416085032.7367-9-hch@lst.de>
-TO: Christoph Hellwig <hch@lst.de>
-CC: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
-CC: linux-kernel@vger.kernel.org
+$ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
+add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
+Function                                     old     new   delta
+cap_bprm_set_creds                          1496    1664    +168
+cap_issubset                                   -      68     +68
+flex_array_put                               328     344     +16
+cap_capset                                   488     500     +12
+nonroot_raised_pE.constprop                  348       -    -348
+Total: Before=5823709, After=5823625, chg -0.00%
 
-Hi Christoph,
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@mips.com>
+Cc: Matthew Fortune <matthew.fortune@mips.com>
+Cc: Robert Suchanek <robert.suchanek@mips.com>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-arch@vger.kernel.org
 
-I love your patch! Perhaps something to improve:
+James Hogan (1):
+  alpha: Use OPTIMIZE_INLINING instead of asm/compiler.h
 
-[auto build test WARNING on linus/master]
-[also build test WARNING on v4.17-rc1 next-20180416]
-[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+Paul Burton (2):
+  compiler.h: Allow arch-specific overrides
+  MIPS: Workaround GCC __builtin_unreachable reordering bug
 
-url:    https://github.com/0day-ci/linux/commits/Christoph-Hellwig/iscsi_tcp-don-t-set-a-bounce-limit/20180416-172618
-:::::: branch date: 6 hours ago
-:::::: commit date: 6 hours ago
+ arch/alpha/Kconfig                 |  6 ++++++
+ arch/alpha/include/asm/compiler.h  | 11 -----------
+ arch/arc/include/asm/Kbuild        |  1 +
+ arch/c6x/include/asm/Kbuild        |  1 +
+ arch/h8300/include/asm/Kbuild      |  1 +
+ arch/hexagon/include/asm/Kbuild    |  1 +
+ arch/ia64/include/asm/Kbuild       |  1 +
+ arch/m68k/include/asm/Kbuild       |  1 +
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/mips/include/asm/compiler.h   | 23 +++++++++++++++++++++++
+ arch/nds32/include/asm/Kbuild      |  1 +
+ arch/nios2/include/asm/Kbuild      |  1 +
+ arch/openrisc/include/asm/Kbuild   |  1 +
+ arch/parisc/include/asm/Kbuild     |  1 +
+ arch/powerpc/include/asm/Kbuild    |  1 +
+ arch/riscv/include/asm/Kbuild      |  1 +
+ arch/s390/include/asm/Kbuild       |  1 +
+ arch/sh/include/asm/Kbuild         |  1 +
+ arch/sparc/include/asm/Kbuild      |  1 +
+ arch/um/include/asm/Kbuild         |  1 +
+ arch/unicore32/include/asm/Kbuild  |  1 +
+ arch/x86/include/asm/Kbuild        |  1 +
+ arch/xtensa/include/asm/Kbuild     |  1 +
+ include/asm-generic/compiler.h     |  8 ++++++++
+ include/linux/compiler-gcc.h       |  2 ++
+ include/linux/compiler_types.h     |  3 +++
+ 26 files changed, 62 insertions(+), 11 deletions(-)
+ create mode 100644 include/asm-generic/compiler.h
 
->> drivers/mmc/core/queue.c:360:5-29: duplicated argument to && or ||
-
-# https://github.com/0day-ci/linux/commit/6620a69f0eea8e8b7586f08f721c95a336022497
-git remote add linux-review https://github.com/0day-ci/linux
-git remote update linux-review
-git checkout 6620a69f0eea8e8b7586f08f721c95a336022497
-vim +360 drivers/mmc/core/queue.c
-
-81196976 Adrian Hunter     2017-11-29  350
-c8b5fd03 Adrian Hunter     2017-09-22  351  static void mmc_setup_queue(struct mmc_queue *mq, struct mmc_card *card)
-c8b5fd03 Adrian Hunter     2017-09-22  352  {
-c8b5fd03 Adrian Hunter     2017-09-22  353  	struct mmc_host *host = card->host;
-c8b5fd03 Adrian Hunter     2017-09-22  354
-8b904b5b Bart Van Assche   2018-03-07  355  	blk_queue_flag_set(QUEUE_FLAG_NONROT, mq->queue);
-8b904b5b Bart Van Assche   2018-03-07  356  	blk_queue_flag_clear(QUEUE_FLAG_ADD_RANDOM, mq->queue);
-c8b5fd03 Adrian Hunter     2017-09-22  357  	if (mmc_can_erase(card))
-c8b5fd03 Adrian Hunter     2017-09-22  358  		mmc_queue_setup_discard(mq->queue, card);
-c8b5fd03 Adrian Hunter     2017-09-22  359
-6620a69f Christoph Hellwig 2018-04-16 @360  	if (!mmc_dev(host)->dma_mask || !mmc_dev(host)->dma_mask)
-6620a69f Christoph Hellwig 2018-04-16  361  		blk_queue_bounce_limit(mq->queue, BLK_BOUNCE_HIGH);
-c8b5fd03 Adrian Hunter     2017-09-22  362  	blk_queue_max_hw_sectors(mq->queue,
-c8b5fd03 Adrian Hunter     2017-09-22  363  		min(host->max_blk_count, host->max_req_size / 512));
-c8b5fd03 Adrian Hunter     2017-09-22  364  	blk_queue_max_segments(mq->queue, host->max_segs);
-c8b5fd03 Adrian Hunter     2017-09-22  365  	blk_queue_max_segment_size(mq->queue, host->max_seg_size);
-c8b5fd03 Adrian Hunter     2017-09-22  366
-1e8e55b6 Adrian Hunter     2017-11-29  367  	INIT_WORK(&mq->recovery_work, mmc_mq_recovery_handler);
-81196976 Adrian Hunter     2017-11-29  368  	INIT_WORK(&mq->complete_work, mmc_blk_mq_complete_work);
-81196976 Adrian Hunter     2017-11-29  369
-81196976 Adrian Hunter     2017-11-29  370  	mutex_init(&mq->complete_lock);
-81196976 Adrian Hunter     2017-11-29  371
-81196976 Adrian Hunter     2017-11-29  372  	init_waitqueue_head(&mq->wait);
-81196976 Adrian Hunter     2017-11-29  373  }
-81196976 Adrian Hunter     2017-11-29  374
-
----
-0-DAY kernel test infrastructure                Open Source Technology Center
-https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+base-commit: b284d4d5a6785f8cd07eda2646a95782373cd01e
+-- 
+git-series 0.9.1
