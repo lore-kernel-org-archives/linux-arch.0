@@ -1,62 +1,80 @@
-From: James Hogan <jhogan@kernel.org>
-Subject: Re: [PATCH v3 2/3] compiler.h: Allow arch-specific overrides
-Date: Tue, 17 Apr 2018 22:04:18 +0100
-Message-ID: <20180417210416.GB21386@saruman>
-References: <cbf1a73e1c751fc8db124f974e268bab0d9727a5.1523959603.git-series.jhogan@kernel.org>
- <201804180342.6jrQJ6v3%fengguang.wu@intel.com>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC tools/memory-model 2/5] tools/memory-model: Add
+ litmus test for multicopy atomicity
+Date: Wed, 18 Apr 2018 11:40:33 +0200
+Message-ID: <20180418094033.GA3409@andrea>
+References: <20180416162228.GA18167@linux.vnet.ibm.com>
+ <1523895771-19224-2-git-send-email-paulmck@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="rJwd6BRFiFCcLxzm"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <201804180342.6jrQJ6v3%fengguang.wu@intel.com>
+In-Reply-To: <1523895771-19224-2-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
+On Mon, Apr 16, 2018 at 09:22:48AM -0700, Paul E. McKenney wrote:
+> This commit adds a litmus test suggested by Alan Stern that is forbidden
+> on multicopy atomic systems, but allowed on non-multicopy atomic systems.
+> Note that other-multicopy atomic systems are examples of non-multicopy
+> atomic systems.
+> 
+> Suggested-by: Alan Stern <stern@rowland.harvard.edu>
+> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> ---
+>  .../litmus-tests/SB+poonceoncescoh.litmus          | 31 ++++++++++++++++++++++
+>  1 file changed, 31 insertions(+)
+>  create mode 100644 tools/memory-model/litmus-tests/SB+poonceoncescoh.litmus
 
---rJwd6BRFiFCcLxzm
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-
-Hi kbuild test robot,
-
-On Wed, Apr 18, 2018 at 03:19:47AM +0800, kbuild test robot wrote:
->    In file included from ./arch/x86/include/generated/asm/compiler.h:1:0,
->                     from include/linux/compiler_types.h:58,
->                     from <command-line>:0:
-> >> include/asm-generic/compiler.h:2:2: error: #error "Please don't include <asm/compiler.h> directly, include <linux/compiler.h> instead."
->     #error "Please don't include <asm/compiler.h> directly, include <linux/compiler.h> instead."
-
-Whoops, I love your bug report.
-
-I'll change asm-generic/compiler.h to look for __LINUX_COMPILER_TYPES_H
-instead of __LINUX_COMPILER_H and resend soon.
-
-Thanks!
-James
+We seem to be missing an entry in litmus-tests/README...
 
 
---rJwd6BRFiFCcLxzm
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+> 
+> diff --git a/tools/memory-model/litmus-tests/SB+poonceoncescoh.litmus b/tools/memory-model/litmus-tests/SB+poonceoncescoh.litmus
+> new file mode 100644
+> index 000000000000..991a2d6dec63
+> --- /dev/null
+> +++ b/tools/memory-model/litmus-tests/SB+poonceoncescoh.litmus
+> @@ -0,0 +1,31 @@
+> +C SB+poonceoncescoh
+> +
+> +(*
+> + * Result: Sometimes
+> + *
+> + * This litmus test demonstrates that LKMM is not multicopy atomic.
+> + *)
+> +
+> +{}
+> +
+> +P0(int *x, int *y)
+> +{
+> +	int r1;
+> +	int r2;
+> +
+> +	WRITE_ONCE(*x, 1);
+> +	r1 = READ_ONCE(*x);
+> +	r2 = READ_ONCE(*y);
+> +}
+> +
+> +P1(int *x, int *y)
+> +{
+> +	int r3;
+> +	int r4;
+> +
+> +	WRITE_ONCE(*y, 1);
+> +	r3 = READ_ONCE(*y);
+> +	r4 = READ_ONCE(*x);
+> +}
+> +
+> +exists (0:r2=0 /\ 1:r4=0 /\ 0:r1=1 /\ 1:r3=1)
 
------BEGIN PGP SIGNATURE-----
+This test has a normalised name:  why don't use that?
 
-iQIzBAEBCAAdFiEEd80NauSabkiESfLYbAtpk944dnoFAlrWYVAACgkQbAtpk944
-dnpItBAAufXUFwYhH2lz7N2GEw1Z23twrtCeSRcrq65r2wEcMizH6taYASGvNoww
-tmaKoXz+9oQQqvK1/4MSXMotkNYkVSe+MoGXnXU4x+v3dLsAiKG433SJKi65g97S
-jsEr+nWlGJMBFyD/zbLjYpCwKcx4fAqyR02VVQs87ChO1uaHE33LrK5pYpqLCqud
-1/tkeoP61zIE42fhEsXvS7Mw+5VDIGksPWuiMfpsxpsOek/tOhfDF2dDLFWK3gz6
-OUnL33pma+ocv+MP3+g1lI3PGqPSB+k4D3BYpLM7sQUNcFrr0qI/5gC8cc7QRuo8
-bGj36DXnYO6pqkWbHoiZC+PkelL+CcBj/aYlM/pKUr/84J9A1QX+6slsmgbtcQQT
-wUnsPtSrRnZw0/BbilsGPE9BakF8epbnB5u+mu7Fp4VAMgiKd/b1VKZ2M740dpqM
-UODP5v/CxSE4YGVHTx8TDutciODzbOcJu7mvogRw+QufVHX6GKvcdl/CU6ezGZuM
-LXzT+W7YRlLZ8X0/0JopD0mcDMc8Oglr3W3ilkG/pYa09vFHwW6KmeeFqBw4XSOT
-gxdk0QUahi7wo2+to2zxAfky0FT06Vzxx0tXP3x+nXTL52D+CMQtGacZPEpDnTn6
-+gnkisuFdngBdb0YB0UGDzY8zoLfjzdA7X38v9U91vLHizWxgWU=
-=ROKm
------END PGP SIGNATURE-----
+  Andrea
 
---rJwd6BRFiFCcLxzm--
+
+> -- 
+> 2.5.2
+> 
