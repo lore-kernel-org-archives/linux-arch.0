@@ -1,103 +1,73 @@
-From: Andrew Jones <drjones@redhat.com>
-Subject: Re: [PATCHv3 03/11] arm64/kvm: hide ptrauth from guests
-Date: Wed, 18 Apr 2018 15:19:26 +0200
-Message-ID: <20180418131926.pbjlbcjspg7azq2j@kamzik.brq.redhat.com>
-References: <20180417183735.56985-1-mark.rutland@arm.com>
- <20180417183735.56985-4-mark.rutland@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH v2 1/2] powerpc: fix vmlinux.lds to build with
+ CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+Date: Wed, 18 Apr 2018 15:36:03 +0200 (CEST)
+Message-ID: <fe9959328efb520e6030476553ed23541c547639.1524055122.git.christophe.leroy@c-s.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180417183735.56985-4-mark.rutland@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, cdall@kernel.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, ramana.radhakrishnan@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org, kernel-hardening@lists.openwall.com
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 17, 2018 at 07:37:27PM +0100, Mark Rutland wrote:
-> In subsequent patches we're going to expose ptrauth to the host kernel
-> and userspace, but things are a bit trickier for guest kernels. For the
-> time being, let's hide ptrauth from KVM guests.
-> 
-> Regardless of how well-behaved the guest kernel is, guest userspace
-> could attempt to use ptrauth instructions, triggering a trap to EL2,
-> resulting in noise from kvm_handle_unknown_ec(). So let's write up a
-> handler for the PAC trap, which silently injects an UNDEF into the
-> guest, as if the feature were really missing.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Christoffer Dall <cdall@kernel.org>
-> Cc: Marc Zyngier <marc.zyngier@arm.com>
-> Cc: kvmarm@lists.cs.columbia.edu
-> ---
->  arch/arm64/kvm/handle_exit.c | 18 ++++++++++++++++++
->  arch/arm64/kvm/sys_regs.c    |  9 +++++++++
->  2 files changed, 27 insertions(+)
-> 
-> diff --git a/arch/arm64/kvm/handle_exit.c b/arch/arm64/kvm/handle_exit.c
-> index e5e741bfffe1..5114ad691eae 100644
-> --- a/arch/arm64/kvm/handle_exit.c
-> +++ b/arch/arm64/kvm/handle_exit.c
-> @@ -173,6 +173,23 @@ static int handle_sve(struct kvm_vcpu *vcpu, struct kvm_run *run)
->  	return 1;
->  }
->  
-> +/*
-> + * Guest usage of a ptrauth instruction (which the guest EL1 did not turn into
-> + * a NOP), or guest EL1 access to a ptrauth register.
-> + */
-> +static int kvm_handle_ptrauth(struct kvm_vcpu *vcpu, struct kvm_run *run)
-> +{
-> +	/*
-> +	 * We don't currently suport ptrauth in a guest, and we mask the ID
-> +	 * registers to prevent well-behaved guests from trying to make use of
-> +	 * it.
-> +	 *
-> +	 * Inject an UNDEF, as if the feature really isn't present.
-> +	 */
-> +	kvm_inject_undefined(vcpu);
-> +	return 1;
-> +}
-> +
->  static exit_handle_fn arm_exit_handlers[] = {
->  	[0 ... ESR_ELx_EC_MAX]	= kvm_handle_unknown_ec,
->  	[ESR_ELx_EC_WFx]	= kvm_handle_wfx,
-> @@ -195,6 +212,7 @@ static exit_handle_fn arm_exit_handlers[] = {
->  	[ESR_ELx_EC_BKPT32]	= kvm_handle_guest_debug,
->  	[ESR_ELx_EC_BRK64]	= kvm_handle_guest_debug,
->  	[ESR_ELx_EC_FP_ASIMD]	= handle_no_fpsimd,
-> +	[ESR_ELx_EC_PAC]	= kvm_handle_ptrauth,
->  };
->  
->  static exit_handle_fn kvm_get_exit_handler(struct kvm_vcpu *vcpu)
-> diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-> index 806b0b126a64..eee399c35e84 100644
-> --- a/arch/arm64/kvm/sys_regs.c
-> +++ b/arch/arm64/kvm/sys_regs.c
-> @@ -1000,6 +1000,15 @@ static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
->  				    task_pid_nr(current));
->  
->  		val &= ~(0xfUL << ID_AA64PFR0_SVE_SHIFT);
-> +	} else if (id == SYS_ID_AA64ISAR1_EL1) {
-> +		const u64 ptrauth_mask = (0xfUL << ID_AA64ISAR1_APA_SHIFT) |
-> +					 (0xfUL << ID_AA64ISAR1_API_SHIFT) |
-> +					 (0xfUL << ID_AA64ISAR1_GPA_SHIFT) |
-> +					 (0xfUL << ID_AA64ISAR1_GPI_SHIFT);
-> +		if (val & ptrauth_mask)
-> +			pr_err_once("kvm [%i]: ptrauth unsupported for guests, suppressing\n",
-> +					task_pid_nr(current));
+This patch fixes vmlinux.lds script to build properly with
+CONFIG_LD_DEAD_CODE_DATA_ELIMINATION enabled
 
-Marc just changed the equivalent SVE pr_err_once() to kvm_debug().
-So we probably want to do the same here.
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+---
+ arch/powerpc/kernel/vmlinux.lds.S | 4 ++--
+ include/asm-generic/vmlinux.lds.h | 6 +++++-
+ 2 files changed, 7 insertions(+), 3 deletions(-)
 
-> +		val &= ~ptrauth_mask;
->  	} else if (id == SYS_ID_AA64MMFR1_EL1) {
->  		if (val & (0xfUL << ID_AA64MMFR1_LOR_SHIFT))
->  			pr_err_once("kvm [%i]: LORegions unsupported for guests, suppressing\n",
-> -- 
-> 2.11.0
->
-
-Otherwise
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index c8af90ff49f0..afff03e9be39 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -98,7 +98,7 @@ SECTIONS
+ 		ALIGN_FUNCTION();
+ #endif
+ 		/* careful! __ftr_alt_* sections need to be close to .text */
+-		*(.text.hot .text .text.fixup .text.unlikely .fixup __ftr_alt_* .ref.text);
++		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely .fixup __ftr_alt_* .ref.text);
+ 		SCHED_TEXT
+ 		CPUIDLE_TEXT
+ 		LOCK_TEXT
+@@ -274,7 +274,7 @@ SECTIONS
+ 	.data : AT(ADDR(.data) - LOAD_OFFSET) {
+ 		DATA_DATA
+ 		*(.data.rel*)
+-		*(.sdata)
++		*(SDATA_MAIN)
+ 		*(.sdata2)
+ 		*(.got.plt) *(.got)
+ 		*(.plt)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 278841c75b97..5549be081931 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -68,11 +68,15 @@
+ #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+ #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+ #define DATA_MAIN .data .data.[0-9a-zA-Z_]*
++#define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+ #define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
++#define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
+ #else
+ #define TEXT_MAIN .text
+ #define DATA_MAIN .data
++#define SDATA_MAIN .sdata
+ #define BSS_MAIN .bss
++#define SBSS_MAIN .sbss
+ #endif
  
-Reviewed-by: Andrew Jones <drjones@redhat.com>
+ /*
+@@ -629,7 +633,7 @@
+ 	. = ALIGN(sbss_align);						\
+ 	.sbss : AT(ADDR(.sbss) - LOAD_OFFSET) {				\
+ 		*(.dynsbss)						\
+-		*(.sbss)						\
++		*(SBSS_MAIN)						\
+ 		*(.scommon)						\
+ 	}
+ 
+-- 
+2.13.3
