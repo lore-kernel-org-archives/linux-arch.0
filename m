@@ -1,80 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f180.google.com ([209.85.216.180]:37520 "EHLO
-        mail-qt0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751882AbeDSPU2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 11:20:28 -0400
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:41818 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1753628AbeDSQIa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Apr 2018 12:08:30 -0400
+Date: Thu, 19 Apr 2018 18:08:28 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [RFC][PATCH] s390: add arch_change_pid for arch updates after
+ task pid change
+Message-ID: <20180419160827.GB19917@redhat.com>
+References: <1524120286-19066-1-git-send-email-schwidefsky@de.ibm.com>
+ <20180419140729.GA19917@redhat.com>
+ <20180419162056.6b657d71@mschwideX1>
 MIME-Version: 1.0
-In-Reply-To: <87efjbnswr.fsf@xmission.com>
-References: <20180419143737.606138-1-arnd@arndb.de> <20180419143737.606138-2-arnd@arndb.de>
- <87efjbnswr.fsf@xmission.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 19 Apr 2018 17:20:26 +0200
-Message-ID: <CAK8P3a196QYoM1egagMuZw4WhiwRiO83Qpj0CxoCeVQBEaj-gw@mail.gmail.com>
-Subject: Re: [PATCH v3 01/17] y2038: asm-generic: Extend sysvipc data structures
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180419162056.6b657d71@mschwideX1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Albert ARIBAUD <albert.aribaud@3adev.fr>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, the arch/x86 maintainers <x86@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>
-Message-ID: <20180419152026.1HCQxLGIReSdpyRPEWOYgFC8_JWkg5_2LWrfKmT_8yo@z>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Thu, Apr 19, 2018 at 4:59 PM, Eric W. Biederman
-<ebiederm@xmission.com> wrote:
-> Arnd Bergmann <arnd@arndb.de> writes:
->>
->>  struct msqid64_ds {
->>       struct ipc64_perm msg_perm;
->> +#if __BITS_PER_LONG == 64
->>       __kernel_time_t msg_stime;      /* last msgsnd time */
->> -#if __BITS_PER_LONG != 64
->> -     unsigned long   __unused1;
->> -#endif
->>       __kernel_time_t msg_rtime;      /* last msgrcv time */
->> -#if __BITS_PER_LONG != 64
->> -     unsigned long   __unused2;
->> -#endif
->>       __kernel_time_t msg_ctime;      /* last change time */
->> -#if __BITS_PER_LONG != 64
->> -     unsigned long   __unused3;
->> +#else
->> +     unsigned long   msg_stime;      /* last msgsnd time */
->> +     unsigned long   msg_stime_high;
->> +     unsigned long   msg_rtime;      /* last msgrcv time */
->> +     unsigned long   msg_rtime_high;
->> +     unsigned long   msg_ctime;      /* last change time */
->> +     unsigned long   msg_ctime_high;
->>  #endif
+On 04/19, Martin Schwidefsky wrote:
 >
-> I suspect you want to use __kernel_ulong_t here instead of a raw
-> unsigned long.  If nothing else it seems inconsistent to use typedefs
-> in one half of the structure and no typedefs in the other half.
+> On Thu, 19 Apr 2018 16:07:29 +0200
+> Oleg Nesterov <oleg@redhat.com> wrote:
+>
+> > On 04/19, Martin Schwidefsky wrote:
+> > >
+> > > In a multi-threaded program any thread can call execve(). If this
+> > > is not done by the thread group leader, the de_thread() function
+> > > replaces the pid of the task that calls execve() with the pid of
+> > > thread group leader. If the task reaches user space again without
+> > > going over __switch_to() the sampling tag is still set to the old
+> > > pid.
+> >
+> > If this is the only reason for arch_change_pid() hook, then perhaps
+> > it would be better/simpler to add it into de_thread() right after
+> > change_pid(tsk, PIDTYPE_PID, task_pid(leader)) ?
+> >
+> > note also that this way arch_change_pid() doesn't need any checks and
+> > any arguments, you can simply do
+> >
+> > void arch_change_pid(void)
+> > {
+> > 	S390_lowcore.current_pid = current->pid;
+> > 	if (test_facility(40))
+> > 		lpp(&S390_lowcore.lpp);
+> > }
+>
+> Yeah, the first patch I created to verify that this indeed the problem
+> basically looked like your proposal. But then why not make it a more
+> general hook for any kind of PID change?
 
-Good catch, there is definitely something wrong here, but I think using
-__kernel_ulong_t for all members would also be wrong, as that
-still changes the layout on x32, which effectively is
+Well, I doubt very much we will ever need an arch-specific hook for
+sys_setsid() or setpgid()... plus
 
-struct msqid64_ds {
-     ipc64_perm msg_perm;
-     u64 msg_stime;
-     u32 __unused1;
-     /* 32 bit implict padding */
-     u64 msg_rtime;
-     u32 __unused2;
-     /* 32 bit implict padding */
-     u64 msg_ctime;
-     u32 __unused3;
-     /* 32 bit implict padding */
-     __kernel_pid_t          shm_cpid;       /* pid of creator */
-     __kernel_pid_t          shm_lpid;       /* pid of last operator */
-     ....
-};
+> Dunno if this is a worthwhile
+> approach, the simpler version for sure works as well.
 
-The choices here would be to either use a mix of
-__kernel_ulong_t and unsigned long, or taking the x32
-version back into arch/x86/include/uapi/asm/ so the
-generic version at least makes some sense.
+and perhaps you can make another, even more simple change? can't you just
+introduce the s390 version of arch_setup_new_exec, something like
 
-I can't use __kernel_time_t for the lower half on 32-bit
-since it really should be unsigned.
+	void arch_setup_new_exec(void)
+	{
+		if (S390_lowcore.current_pid != current->pid) {
+			S390_lowcore.current_pid = current->pid;
+			...
+		}
+	}
 
-        Arnd
+?
+
+Oleg.
