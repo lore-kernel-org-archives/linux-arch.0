@@ -1,113 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50452 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1750964AbeDSGpJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Apr 2018 02:45:09 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3J6YMXE017335
-        for <linux-arch@vger.kernel.org>; Thu, 19 Apr 2018 02:45:08 -0400
-Received: from e06smtp15.uk.ibm.com (e06smtp15.uk.ibm.com [195.75.94.111])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hemtcke31-1
-        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 19 Apr 2018 02:45:08 -0400
-Received: from localhost
-        by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Thu, 19 Apr 2018 07:45:06 +0100
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [RFC][PATCH] s390: add arch_change_pid for arch updates after task pid change
-Date: Thu, 19 Apr 2018 08:44:46 +0200
-Message-Id: <1524120286-19066-1-git-send-email-schwidefsky@de.ibm.com>
+Received: from foss.arm.com ([217.140.101.70]:34314 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750799AbeDSI1B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Apr 2018 04:27:01 -0400
+Date: Thu, 19 Apr 2018 09:26:57 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH 1/3] signal: Ensure every siginfo we send has all
+ bits initialized
+Message-ID: <20180419082656.GK16308@e103592.cambridge.arm.com>
+References: <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
+ <20180413184522.GD16308@e103592.cambridge.arm.com>
+ <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
+ <20180415131206.GR16141@n2100.armlinux.org.uk>
+ <87604sa2fu.fsf_-_@xmission.com>
+ <87zi248nte.fsf_-_@xmission.com>
+ <20180417132328.GF16308@e103592.cambridge.arm.com>
+ <87d0yxzksd.fsf@xmission.com>
+ <20180418124717.GI16308@e103592.cambridge.arm.com>
+ <87h8o8y4q6.fsf@xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87h8o8y4q6.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20180419082657.tfY_svb21huo2i-br4aiAFK2fKMgS4qhBKe34N2mWrQ@z>
 
-The s390 architecture uses the task pid to tag the samples stored
-by the sampling facility. The user space tool can use the tag to
-distinguish the samples of different tasks. The pid is announced
-to the sampling facility with the LPP instruction, the update of
-the tag is done in __switch_to().
+On Wed, Apr 18, 2018 at 09:22:09AM -0500, Eric W. Biederman wrote:
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > On Tue, Apr 17, 2018 at 02:37:38PM -0500, Eric W. Biederman wrote:
 
-In a multi-threaded program any thread can call execve(). If this
-is not done by the thread group leader, the de_thread() function
-replaces the pid of the task that calls execve() with the pid of
-thread group leader. If the task reaches user space again without
-going over __switch_to() the sampling tag is still set to the old
-pid.
+[...]
 
-Add the arch_change_pid function to re-issue the LPP to set the
-new pid for the task in case of a thread ground leader change.
+> >> My intention is to leave 0 instances of clear_siginfo in the
+> >> architecture specific code.  Ideally struct siginfo will be limited to
+> >> kernel/signal.c but I am not certain I can quite get that far.
+> >> The function do_coredump appears to have a legit need for siginfo.
+> >
+> > So, you mean we can't detect that the caller didn't initialise all the
+> > members, or initialised the wrong union member?
+> 
+> Correct.  Even when we smuggled the the union member in the upper bits
+> of si_code we got it wrong.  So an interface that helps out and does
+> more and is harder to misues looks desirable.
+> 
+> > What would be the alternative?  Have a separate interface for each SIL_
+> > type, with only kernel/signal.c translating that into the siginfo_t that
+> > userspace sees?
+> 
+> Yes.  It really isn't bad as architecture specific code only generates
+> faults.  In general faults only take a pointer.  I have already merged
+> the needed helpers into kernel/signal.c
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- arch/s390/include/asm/thread_info.h |  2 ++
- arch/s390/kernel/process.c          | 10 ++++++++++
- kernel/pid.c                        |  5 +++++
- 3 files changed, 17 insertions(+)
+Good point.  I hadn't considered that only one class of signal comes
+from the arch code, but now that you point it out, it sounds right.
 
-diff --git a/arch/s390/include/asm/thread_info.h b/arch/s390/include/asm/thread_info.h
-index 83ba575..6f99b2f 100644
---- a/arch/s390/include/asm/thread_info.h
-+++ b/arch/s390/include/asm/thread_info.h
-@@ -42,6 +42,8 @@ struct thread_info {
- 	.flags		= 0,			\
- }
- 
-+enum pid_type;
-+void arch_change_pid(struct task_struct *task, enum pid_type type);
- void arch_release_task_struct(struct task_struct *tsk);
- int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src);
- 
-diff --git a/arch/s390/kernel/process.c b/arch/s390/kernel/process.c
-index 70576a2..1a716e7 100644
---- a/arch/s390/kernel/process.c
-+++ b/arch/s390/kernel/process.c
-@@ -29,6 +29,7 @@
- #include <linux/random.h>
- #include <linux/export.h>
- #include <linux/init_task.h>
-+#include <asm/cpu_mf.h>
- #include <asm/io.h>
- #include <asm/processor.h>
- #include <asm/vtimer.h>
-@@ -68,6 +69,15 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
- 	return 0;
- }
- 
-+void arch_change_pid(struct task_struct *task, enum pid_type type)
-+{
-+	if (type == PIDTYPE_PID && task == current) {
-+		S390_lowcore.current_pid = current->pid;
-+		if (test_facility(40))
-+			lpp(&S390_lowcore.lpp);
-+	}
-+}
-+
- int copy_thread_tls(unsigned long clone_flags, unsigned long new_stackp,
- 		    unsigned long arg, struct task_struct *p, unsigned long tls)
- {
-diff --git a/kernel/pid.c b/kernel/pid.c
-index 157fe4b..d38ac18 100644
---- a/kernel/pid.c
-+++ b/kernel/pid.c
-@@ -299,11 +299,16 @@ void detach_pid(struct task_struct *task, enum pid_type type)
- 	__change_pid(task, type, NULL);
- }
- 
-+void __weak arch_change_pid(struct task_struct *task, enum pid_type type)
-+{
-+}
-+
- void change_pid(struct task_struct *task, enum pid_type type,
- 		struct pid *pid)
- {
- 	__change_pid(task, type, pid);
- 	attach_pid(task, type);
-+	arch_change_pid(task, type);
- }
- 
- /* transfer_pid is an optimization of attach_pid(new), detach_pid(old) */
--- 
-2.7.4
+> > Either way, I don't see how we force the caller to initilise the whole
+> > structure.
+> 
+> In general the plan is to convert the callers to call force_sig_fault,
+> and then there is no need to have siginfo in the architecture specific
+> code.  I have all of the necessary helpers are already merged into
+> kernel/signal.c
+
+Makes sense.
+
+I wonder if all the relevant siginfo data could be passed to
+force_sig_fault() (or whatever) as arguments.  Then the problem of
+uninitialised fields goes away.  Perhaps that's what you had in mind.
+
+[...]
+
+> >> Unless gcc has changed it's stance on type-punning through unions
+> >> or it's semantics with -fno-strict_aliasing we should be good.
+> >
+> > In practice you're probably right.
+> >
+> > Today, gcc is pretty conservative in this area, and I haven't been able
+> > to convince clang to optimise away memset in this way either.
+> >
+> > My concern is that is this assumption turns out to be wrong it may be
+> > some time before anybody notices, because the leakage of kernel stack may
+> > be the only symptom.
+> >
+> > I'll try to nail down a compiler guy to see if we can get a promise on
+> > this at least with -fno-strict-aliasing.
+> >
+> >
+> > I wonder whether it's worth protecting ourselves with something like:
+> >
+> >
+> > static void clear_siginfo(siginfo_t *si)
+> > {
+> > 	asm ("" : "=m" (*si));
+> > 	memset(si, 0, sizeof(*si));
+> > 	asm ("" : "+m" (*si));
+> > }
+> >
+> > Probably needs to be thought about more widely though.  I guess it's out
+> > of scope for this series.
+> 
+> It is definitely a question worth asking.
+
+I may follow it up later if I find myself at a loose end...
+
+Cheers
+---Dave
