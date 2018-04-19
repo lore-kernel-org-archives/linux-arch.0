@@ -1,155 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:56537 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752826AbeDSOlz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:41:55 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20180413094211.GN16141@n2100.armlinux.org.uk>
-        <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
-        <20180413170827.GB16308@e103592.cambridge.arm.com>
-        <20180413175407.GO16141@n2100.armlinux.org.uk>
-        <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
-        <20180413184522.GD16308@e103592.cambridge.arm.com>
-        <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
-        <20180415131206.GR16141@n2100.armlinux.org.uk>
-        <87604sa2fu.fsf_-_@xmission.com>
-        <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
-        <20180419092840.GL16308@e103592.cambridge.arm.com>
-Date: Thu, 19 Apr 2018 09:40:28 -0500
-In-Reply-To: <20180419092840.GL16308@e103592.cambridge.arm.com> (Dave Martin's
-        message of "Thu, 19 Apr 2018 10:28:40 +0100")
-Message-ID: <87lgdjp8df.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [RFC PATCH 0/3] Dealing with the aliases of SI_USER
+Received: from mout.kundenserver.de ([212.227.17.10]:38767 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753088AbeDSOit (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:38:49 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v3 13/17] y2038: ipc: Report long times to user space
+Date: Thu, 19 Apr 2018 16:37:33 +0200
+Message-ID: <20180419143737.606138-14-arnd@arndb.de>
+In-Reply-To: <20180419143737.606138-1-arnd@arndb.de>
+References: <20180419143737.606138-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20180419144028.QwKEDLtMW1b3Z3mUQroZDPcwl1Bo2pliTIWkMVH8UsY@z>
+To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
+Message-ID: <20180419143733.GENc6plWdG88rgqUQcvvPonCMQ94j8PxUVh4XDCQqA4@z>
 
-Dave Martin <Dave.Martin@arm.com> writes:
+The shmid64_ds/semid64_ds/msqid64_ds data structures have been extended
+to contain extra fields for storing the upper bits of the time stamps,
+this patch does the other half of the job and and fills the new fields on
+32-bit architectures as well as 32-bit tasks running on a 64-bit kernel
+in compat mode.
 
-> On Sun, Apr 15, 2018 at 11:16:04AM -0700, Linus Torvalds wrote:
->
-> [...]
->
->> The other thing we should do is to get rid of the stupid padding.
->> Right now "struct siginfo" is pointlessly padded to 128 bytes. That is
->> completely insane, when it's always just zero in the kernel.
->
-> Agreed, inside the kernel the padding achieves nothing.
->
->> So put that _pad[] thing inside #ifndef __KERNEL__, and make
->> copy_siginfo_to_user() write the padding zeroes when copying to user
->> space. The reason for the padding is "future expansion", so we do want
->> to tell the user space that it's maybe up to 128 bytes in size, but if
->> we don't fill it all, we shouldn't waste time and memory on clearing
->> the padding internally.
->> 
->> I'm certainly *hoping* nobody depends on the whole 128 bytes in
->> rt_sigqueueinfo(). In theory you can fill it all (as long as si_code
->> is negative), but the man-page only says "si_value", and the compat
->> function doesn't copy any more than that either, so any user that
->> tries to fill in more than si_value is already broken. In fact, it
->> might even be worth enforcing that in rt_sigqueueinfo(), just to see
->> if anybody plays any games..
->
-> [...]
->
-> Digression:
->
-> Since we don't traditionally zero the tail-padding in the user sigframe,
-> is there a reliable way for userspace to detect newly-added fields in
-> siginfo other than by having an explicit sigaction sa_flags flag to
-> request them?  I imagine something like [1] below from the userspace
-> perspective.
->
-> On a separate thread, the issue of how to report syndrome information
-> for SIGSEGV came up [2] (such as whether the faulting instruction was a
-> read or a write).  This information is useful (and used) by things like
-> userspace sanitisers and qemu.  Currently, reporting this to userspace
-> relies on arch-specific cruft in the sigframe.
->
-> We're committed to maintaining what's already in each arch sigframe,
-> but it would be preferable to have a portable way of adding information
-> to siginfo in a generic way.  si_code doesn't really work for that,
-> since si_codes are mutually exclusive: I can't see a way of adding
-> supplementary information using si_code.
->
-> Anyway, that would be a separate RFC in the future (if ever).
+There should be no change for native 64-bit tasks.
 
-So far what I have seen done is ``registers'' added to sigcontext.
-Which it looks like you have done with esr.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ ipc/msg.c | 14 +++++++++++---
+ ipc/sem.c | 14 +++++++++++---
+ ipc/shm.c | 14 +++++++++++---
+ 3 files changed, 33 insertions(+), 9 deletions(-)
 
-Scrubbing information from faults to where the addresses point
-outside of the userspace mapping makes sense.
-
-I think before I would pursue what you are talking about on a generic
-level I would want to look at the fact that we handle unblockable faults
-wrong.  While unlikely it is possible for someone to send a thread
-specific signal at just the right time, and have that signal
-delivered before the synchronous fault.
-
-Then we could pass through additional arguments through that new
-``generic'' path.  Especially what are arguments such as
-tsk->thread.fault_address and tsk->thread.fault_code.
-
-We can do anything we like with a new SA_flag as that allows us to
-change the format of the sigframe.
-
-If we are very careful we can add generic fields after that crazy union
-anonymous union in the _sigfault case of struct siginfo.
-
-The trick would be to find something that would be enough so that people
-don't need to implement their own instruction decoder to see what is
-going on.  Something that is applicable to every sigfault case not just
-SIGSEGV.  Something that we can and want to implement on multiple
-architectures.
-
-The point being doing something generic can be a lot of work, even if it
-is worth it in the end.
-
-
-> [1]
->
-> static volatile int have_extflags = 0;
->
-> static void handler(int n, siginfo_t *si, void *uc)
-> {
-> 	/* ... */
->
-> 	if (have_extflags) {
-> 		/* Check si->si_extflags */
-> 	} else {
-> 		/* fallback */
-> 	}
->
-> 	/* ... */
-> }
->
-> int main(void)
-> {
-> 	/* ... */
->
-> 	struct sigaction sa;
->
-> 	/* ... */
->
-> 	sa.sa_flags = SA_SIGINFO | SA_SIGINFO_EXTFLAGS;
-> 	sa.sa_sigaction = handler;
-> 	if (!sigaction(SIGSEGV, &sa, NULL)) {
-> 		have_extflags = 1;
-> 	} else {
-> 		sa.sa_flags &= ~SA_SIGINFO_EXTFLAGS;
-> 		if (sigaction(SIGSEGV, &sa, NULL))
-> 			goto error;
-> 	}
->
-> 	/* ... */
-> }
->
-> [2] [RFC PATCH] arm64: fault: Don't leak data in ESR context for user fault on kernel VA
-> http://lists.infradead.org/pipermail/linux-arm-kernel/2018-April/571428.html
-
-Eric
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 574f76c9a2ff..3b6545302598 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -537,6 +537,11 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
+ 	p->msg_stime  = msq->q_stime;
+ 	p->msg_rtime  = msq->q_rtime;
+ 	p->msg_ctime  = msq->q_ctime;
++#ifndef CONFIG_64BIT
++	p->msg_stime_high = msq->q_stime >> 32;
++	p->msg_rtime_high = msq->q_rtime >> 32;
++	p->msg_ctime_high = msq->q_ctime >> 32;
++#endif
+ 	p->msg_cbytes = msq->q_cbytes;
+ 	p->msg_qnum   = msq->q_qnum;
+ 	p->msg_qbytes = msq->q_qbytes;
+@@ -646,9 +651,12 @@ static int copy_compat_msqid_to_user(void __user *buf, struct msqid64_ds *in,
+ 		struct compat_msqid64_ds v;
+ 		memset(&v, 0, sizeof(v));
+ 		to_compat_ipc64_perm(&v.msg_perm, &in->msg_perm);
+-		v.msg_stime = in->msg_stime;
+-		v.msg_rtime = in->msg_rtime;
+-		v.msg_ctime = in->msg_ctime;
++		v.msg_stime	 = lower_32_bits(in->msg_stime);
++		v.msg_stime_high = upper_32_bits(in->msg_stime);
++		v.msg_rtime	 = lower_32_bits(in->msg_rtime);
++		v.msg_rtime_high = upper_32_bits(in->msg_rtime);
++		v.msg_ctime	 = lower_32_bits(in->msg_ctime);
++		v.msg_ctime_high = upper_32_bits(in->msg_ctime);
+ 		v.msg_cbytes = in->msg_cbytes;
+ 		v.msg_qnum = in->msg_qnum;
+ 		v.msg_qbytes = in->msg_qbytes;
+diff --git a/ipc/sem.c b/ipc/sem.c
+index c6a8a971769d..8935cd8cf166 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -1214,6 +1214,7 @@ static int semctl_stat(struct ipc_namespace *ns, int semid,
+ 			 int cmd, struct semid64_ds *semid64)
+ {
+ 	struct sem_array *sma;
++	time64_t semotime;
+ 	int id = 0;
+ 	int err;
+ 
+@@ -1257,8 +1258,13 @@ static int semctl_stat(struct ipc_namespace *ns, int semid,
+ 	}
+ 
+ 	kernel_to_ipc64_perm(&sma->sem_perm, &semid64->sem_perm);
+-	semid64->sem_otime = get_semotime(sma);
++	semotime = get_semotime(sma);
++	semid64->sem_otime = semotime;
+ 	semid64->sem_ctime = sma->sem_ctime;
++#ifndef CONFIG_64BIT
++	semid64->sem_otime_high = semotime >> 32;
++	semid64->sem_ctime_high = sma->sem_ctime >> 32;
++#endif
+ 	semid64->sem_nsems = sma->sem_nsems;
+ 
+ 	ipc_unlock_object(&sma->sem_perm);
+@@ -1704,8 +1710,10 @@ static int copy_compat_semid_to_user(void __user *buf, struct semid64_ds *in,
+ 		struct compat_semid64_ds v;
+ 		memset(&v, 0, sizeof(v));
+ 		to_compat_ipc64_perm(&v.sem_perm, &in->sem_perm);
+-		v.sem_otime = in->sem_otime;
+-		v.sem_ctime = in->sem_ctime;
++		v.sem_otime	 = lower_32_bits(in->sem_otime);
++		v.sem_otime_high = upper_32_bits(in->sem_otime);
++		v.sem_ctime	 = lower_32_bits(in->sem_ctime);
++		v.sem_ctime_high = upper_32_bits(in->sem_ctime);
+ 		v.sem_nsems = in->sem_nsems;
+ 		return copy_to_user(buf, &v, sizeof(v));
+ 	} else {
+diff --git a/ipc/shm.c b/ipc/shm.c
+index 3cf48988d68c..0075990338f4 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -1002,6 +1002,11 @@ static int shmctl_stat(struct ipc_namespace *ns, int shmid,
+ 	tbuf->shm_atime	= shp->shm_atim;
+ 	tbuf->shm_dtime	= shp->shm_dtim;
+ 	tbuf->shm_ctime	= shp->shm_ctim;
++#ifndef CONFIG_64BIT
++	tbuf->shm_atime_high = shp->shm_atim >> 32;
++	tbuf->shm_dtime_high = shp->shm_dtim >> 32;
++	tbuf->shm_ctime_high = shp->shm_ctim >> 32;
++#endif
+ 	tbuf->shm_cpid	= pid_vnr(shp->shm_cprid);
+ 	tbuf->shm_lpid	= pid_vnr(shp->shm_lprid);
+ 	tbuf->shm_nattch = shp->shm_nattch;
+@@ -1233,9 +1238,12 @@ static int copy_compat_shmid_to_user(void __user *buf, struct shmid64_ds *in,
+ 		struct compat_shmid64_ds v;
+ 		memset(&v, 0, sizeof(v));
+ 		to_compat_ipc64_perm(&v.shm_perm, &in->shm_perm);
+-		v.shm_atime = in->shm_atime;
+-		v.shm_dtime = in->shm_dtime;
+-		v.shm_ctime = in->shm_ctime;
++		v.shm_atime	 = lower_32_bits(in->shm_atime);
++		v.shm_atime_high = upper_32_bits(in->shm_atime);
++		v.shm_dtime	 = lower_32_bits(in->shm_dtime);
++		v.shm_dtime_high = upper_32_bits(in->shm_dtime);
++		v.shm_ctime	 = lower_32_bits(in->shm_ctime);
++		v.shm_ctime_high = upper_32_bits(in->shm_ctime);
+ 		v.shm_segsz = in->shm_segsz;
+ 		v.shm_nattch = in->shm_nattch;
+ 		v.shm_cpid = in->shm_cpid;
+-- 
+2.9.0
