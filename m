@@ -1,124 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:54897 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.10]:33619 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753570AbeDSOjU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:39:20 -0400
+        with ESMTP id S1753162AbeDSOjN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:39:13 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 14/17] y2038: ipc: Use __kernel_timespec
-Date: Thu, 19 Apr 2018 16:37:34 +0200
-Message-ID: <20180419143737.606138-15-arnd@arndb.de>
+Subject: [PATCH v3 07/17] y2038: x86: Extend sysvipc data structures
+Date: Thu, 19 Apr 2018 16:37:27 +0200
+Message-ID: <20180419143737.606138-8-arnd@arndb.de>
 In-Reply-To: <20180419143737.606138-1-arnd@arndb.de>
 References: <20180419143737.606138-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
-Message-ID: <20180419143734.xiAeNAFjOMMTceWCZsNyYv2MKtHZq8eXsc6op9SGR9I@z>
+Message-ID: <20180419143727.PJ0j10AczRoOsZKW3HBih3UdVfEaffESh6EWbLDF5tw@z>
 
-This is a preparatation for changing over __kernel_timespec to 64-bit
-times, which involves assigning new system call numbers for mq_timedsend(),
-mq_timedreceive() and semtimedop() for compatibility with future y2038
-proof user space.
+This extends the x86 copy of the sysvipc data structures to deal with
+32-bit user space that has 64-bit time_t and wants to see timestamps
+beyond 2038.
 
-The existing ABIs will remain available through compat code.
+Fortunately, x86 has padding for this purpose in all the data structures,
+so we can just add extra fields. With msgid64_ds and shmid64_ds, the
+data structure is identical to the asm-generic version, which we have
+already extended.
+
+For some reason however, the 64-bit version of semid64_ds ended up with
+extra padding, so I'm implementing the same approach as the asm-generic
+version here, by using separate fields for the upper and lower halves
+of the two timestamps.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/syscalls.h | 6 +++---
- ipc/mqueue.c             | 6 +++---
- ipc/sem.c                | 4 ++--
- ipc/util.h               | 2 +-
- 4 files changed, 9 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/compat.h      | 32 ++++++++++++++++----------------
+ arch/x86/include/uapi/asm/Kbuild   |  5 ++++-
+ arch/x86/include/uapi/asm/msgbuf.h |  1 -
+ arch/x86/include/uapi/asm/sembuf.h | 11 ++++++++++-
+ arch/x86/include/uapi/asm/shmbuf.h |  1 -
+ 5 files changed, 30 insertions(+), 20 deletions(-)
+ delete mode 100644 arch/x86/include/uapi/asm/msgbuf.h
+ delete mode 100644 arch/x86/include/uapi/asm/shmbuf.h
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index c9a2a2601852..b92cb79d38c3 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -680,8 +680,8 @@ asmlinkage long sys_sysinfo(struct sysinfo __user *info);
- /* ipc/mqueue.c */
- asmlinkage long sys_mq_open(const char __user *name, int oflag, umode_t mode, struct mq_attr __user *attr);
- asmlinkage long sys_mq_unlink(const char __user *name);
--asmlinkage long sys_mq_timedsend(mqd_t mqdes, const char __user *msg_ptr, size_t msg_len, unsigned int msg_prio, const struct timespec __user *abs_timeout);
--asmlinkage long sys_mq_timedreceive(mqd_t mqdes, char __user *msg_ptr, size_t msg_len, unsigned int __user *msg_prio, const struct timespec __user *abs_timeout);
-+asmlinkage long sys_mq_timedsend(mqd_t mqdes, const char __user *msg_ptr, size_t msg_len, unsigned int msg_prio, const struct __kernel_timespec __user *abs_timeout);
-+asmlinkage long sys_mq_timedreceive(mqd_t mqdes, char __user *msg_ptr, size_t msg_len, unsigned int __user *msg_prio, const struct __kernel_timespec __user *abs_timeout);
- asmlinkage long sys_mq_notify(mqd_t mqdes, const struct sigevent __user *notification);
- asmlinkage long sys_mq_getsetattr(mqd_t mqdes, const struct mq_attr __user *mqstat, struct mq_attr __user *omqstat);
+diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
+index 7cd314b71c51..fb97cf7c4137 100644
+--- a/arch/x86/include/asm/compat.h
++++ b/arch/x86/include/asm/compat.h
+@@ -134,10 +134,10 @@ struct compat_ipc64_perm {
  
-@@ -698,7 +698,7 @@ asmlinkage long sys_semget(key_t key, int nsems, int semflg);
- asmlinkage long sys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- asmlinkage long sys_semtimedop(int semid, struct sembuf __user *sops,
- 				unsigned nsops,
--				const struct timespec __user *timeout);
-+				const struct __kernel_timespec __user *timeout);
- asmlinkage long sys_semop(int semid, struct sembuf __user *sops,
- 				unsigned nsops);
+ struct compat_semid64_ds {
+ 	struct compat_ipc64_perm sem_perm;
+-	compat_time_t  sem_otime;
+-	compat_ulong_t __unused1;
+-	compat_time_t  sem_ctime;
+-	compat_ulong_t __unused2;
++	compat_ulong_t sem_otime;
++	compat_ulong_t sem_otime_high;
++	compat_ulong_t sem_ctime;
++	compat_ulong_t sem_ctime_high;
+ 	compat_ulong_t sem_nsems;
+ 	compat_ulong_t __unused3;
+ 	compat_ulong_t __unused4;
+@@ -145,12 +145,12 @@ struct compat_semid64_ds {
  
-diff --git a/ipc/mqueue.c b/ipc/mqueue.c
-index a808f29d4c5a..9610afcfa2e5 100644
---- a/ipc/mqueue.c
-+++ b/ipc/mqueue.c
-@@ -691,7 +691,7 @@ static void __do_notify(struct mqueue_inode_info *info)
- 	wake_up(&info->wait_q);
- }
+ struct compat_msqid64_ds {
+ 	struct compat_ipc64_perm msg_perm;
+-	compat_time_t  msg_stime;
+-	compat_ulong_t __unused1;
+-	compat_time_t  msg_rtime;
+-	compat_ulong_t __unused2;
+-	compat_time_t  msg_ctime;
+-	compat_ulong_t __unused3;
++	compat_ulong_t msg_stime;
++	compat_ulong_t msg_stime_high;
++	compat_ulong_t msg_rtime;
++	compat_ulong_t msg_rtime_high;
++	compat_ulong_t msg_ctime;
++	compat_ulong_t msg_ctime_high;
+ 	compat_ulong_t msg_cbytes;
+ 	compat_ulong_t msg_qnum;
+ 	compat_ulong_t msg_qbytes;
+@@ -163,12 +163,12 @@ struct compat_msqid64_ds {
+ struct compat_shmid64_ds {
+ 	struct compat_ipc64_perm shm_perm;
+ 	compat_size_t  shm_segsz;
+-	compat_time_t  shm_atime;
+-	compat_ulong_t __unused1;
+-	compat_time_t  shm_dtime;
+-	compat_ulong_t __unused2;
+-	compat_time_t  shm_ctime;
+-	compat_ulong_t __unused3;
++	compat_ulong_t shm_atime;
++	compat_ulong_t shm_atime_high;
++	compat_ulong_t shm_dtime;
++	compat_ulong_t shm_dtime_high;
++	compat_ulong_t shm_ctime;
++	compat_ulong_t shm_ctime_high;
+ 	compat_pid_t   shm_cpid;
+ 	compat_pid_t   shm_lpid;
+ 	compat_ulong_t shm_nattch;
+diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
+index 322681622d1e..d1d883e304f7 100644
+--- a/arch/x86/include/uapi/asm/Kbuild
++++ b/arch/x86/include/uapi/asm/Kbuild
+@@ -2,7 +2,10 @@
+ include include/uapi/asm-generic/Kbuild.asm
  
--static int prepare_timeout(const struct timespec __user *u_abs_timeout,
-+static int prepare_timeout(const struct __kernel_timespec __user *u_abs_timeout,
- 			   struct timespec64 *ts)
- {
- 	if (get_timespec64(ts, u_abs_timeout))
-@@ -1128,7 +1128,7 @@ static int do_mq_timedreceive(mqd_t mqdes, char __user *u_msg_ptr,
- 
- SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes, const char __user *, u_msg_ptr,
- 		size_t, msg_len, unsigned int, msg_prio,
--		const struct timespec __user *, u_abs_timeout)
-+		const struct __kernel_timespec __user *, u_abs_timeout)
- {
- 	struct timespec64 ts, *p = NULL;
- 	if (u_abs_timeout) {
-@@ -1142,7 +1142,7 @@ SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes, const char __user *, u_msg_ptr,
- 
- SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes, char __user *, u_msg_ptr,
- 		size_t, msg_len, unsigned int __user *, u_msg_prio,
--		const struct timespec __user *, u_abs_timeout)
-+		const struct __kernel_timespec __user *, u_abs_timeout)
- {
- 	struct timespec64 ts, *p = NULL;
- 	if (u_abs_timeout) {
-diff --git a/ipc/sem.c b/ipc/sem.c
-index 8935cd8cf166..b951e25ba2db 100644
---- a/ipc/sem.c
-+++ b/ipc/sem.c
-@@ -2176,7 +2176,7 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
- }
- 
- long ksys_semtimedop(int semid, struct sembuf __user *tsops,
--		     unsigned int nsops, const struct timespec __user *timeout)
-+		     unsigned int nsops, const struct __kernel_timespec __user *timeout)
- {
- 	if (timeout) {
- 		struct timespec64 ts;
-@@ -2188,7 +2188,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- }
- 
- SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
--		unsigned int, nsops, const struct timespec __user *, timeout)
-+		unsigned int, nsops, const struct __kernel_timespec __user *, timeout)
- {
- 	return ksys_semtimedop(semid, tsops, nsops, timeout);
- }
-diff --git a/ipc/util.h b/ipc/util.h
-index acc5159e96d0..975c6de2df9d 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -251,7 +251,7 @@ static inline int compat_ipc_parse_version(int *cmd)
- /* for __ARCH_WANT_SYS_IPC */
- long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- 		     unsigned int nsops,
--		     const struct timespec __user *timeout);
-+		     const struct __kernel_timespec __user *timeout);
- long ksys_semget(key_t key, int nsems, int semflg);
- long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- long ksys_msgget(key_t key, int msgflg);
+ generic-y += bpf_perf_event.h
++generic-y += msgbuf.h
++generic-y += poll.h
++generic-y += shmbuf.h
++
+ generated-y += unistd_32.h
+ generated-y += unistd_64.h
+ generated-y += unistd_x32.h
+-generic-y += poll.h
+diff --git a/arch/x86/include/uapi/asm/msgbuf.h b/arch/x86/include/uapi/asm/msgbuf.h
+deleted file mode 100644
+index 809134c644a6..000000000000
+--- a/arch/x86/include/uapi/asm/msgbuf.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/msgbuf.h>
+diff --git a/arch/x86/include/uapi/asm/sembuf.h b/arch/x86/include/uapi/asm/sembuf.h
+index cabd7476bd6c..89de6cd9f0a7 100644
+--- a/arch/x86/include/uapi/asm/sembuf.h
++++ b/arch/x86/include/uapi/asm/sembuf.h
+@@ -8,15 +8,24 @@
+  * between kernel and user space.
+  *
+  * Pad space is left for:
+- * - 64-bit time_t to solve y2038 problem
+  * - 2 miscellaneous 32-bit values
++ *
++ * x86_64 and x32 incorrectly added padding here, so the structures
++ * are still incompatible with the padding on x86.
+  */
+ struct semid64_ds {
+ 	struct ipc64_perm sem_perm;	/* permissions .. see ipc.h */
++#ifdef __i386__
++	unsigned long	sem_otime;	/* last semop time */
++	unsigned long	sem_otime_high;
++	unsigned long	sem_ctime;	/* last change time */
++	unsigned long	sem_ctime_high;
++#else
+ 	__kernel_time_t	sem_otime;	/* last semop time */
+ 	__kernel_ulong_t __unused1;
+ 	__kernel_time_t	sem_ctime;	/* last change time */
+ 	__kernel_ulong_t __unused2;
++#endif
+ 	__kernel_ulong_t sem_nsems;	/* no. of semaphores in array */
+ 	__kernel_ulong_t __unused3;
+ 	__kernel_ulong_t __unused4;
+diff --git a/arch/x86/include/uapi/asm/shmbuf.h b/arch/x86/include/uapi/asm/shmbuf.h
+deleted file mode 100644
+index 83c05fc2de38..000000000000
+--- a/arch/x86/include/uapi/asm/shmbuf.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/shmbuf.h>
 -- 
 2.9.0
