@@ -1,161 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:33619 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:60509 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753162AbeDSOjN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:39:13 -0400
+        with ESMTP id S1751957AbeDSOjK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:39:10 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 07/17] y2038: x86: Extend sysvipc data structures
-Date: Thu, 19 Apr 2018 16:37:27 +0200
-Message-ID: <20180419143737.606138-8-arnd@arndb.de>
+Subject: [PATCH v3 02/17] y2038: alpha: Remove unneeded ipc uapi header files
+Date: Thu, 19 Apr 2018 16:37:22 +0200
+Message-ID: <20180419143737.606138-3-arnd@arndb.de>
 In-Reply-To: <20180419143737.606138-1-arnd@arndb.de>
 References: <20180419143737.606138-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
-Message-ID: <20180419143727.PJ0j10AczRoOsZKW3HBih3UdVfEaffESh6EWbLDF5tw@z>
+Message-ID: <20180419143722.2vf8HORiMJxm2A9fQZBbhUMsUMMJeUHnrmV-ltwePyw@z>
 
-This extends the x86 copy of the sysvipc data structures to deal with
-32-bit user space that has 64-bit time_t and wants to see timestamps
-beyond 2038.
+The alpha ipcbuf/msgbuf/sembuf/shmbuf header files are all identical
+to the version from asm-generic.
 
-Fortunately, x86 has padding for this purpose in all the data structures,
-so we can just add extra fields. With msgid64_ds and shmid64_ds, the
-data structure is identical to the asm-generic version, which we have
-already extended.
-
-For some reason however, the 64-bit version of semid64_ds ended up with
-extra padding, so I'm implementing the same approach as the asm-generic
-version here, by using separate fields for the upper and lower halves
-of the two timestamps.
+This patch removes the files and replaces them with 'generic-y'
+statements as part of the y2038 series. Since there is no 32-bit
+syscall support for alpha, we don't need the other changes, but
+it's good to have clean this up anyway.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/x86/include/asm/compat.h      | 32 ++++++++++++++++----------------
- arch/x86/include/uapi/asm/Kbuild   |  5 ++++-
- arch/x86/include/uapi/asm/msgbuf.h |  1 -
- arch/x86/include/uapi/asm/sembuf.h | 11 ++++++++++-
- arch/x86/include/uapi/asm/shmbuf.h |  1 -
- 5 files changed, 30 insertions(+), 20 deletions(-)
- delete mode 100644 arch/x86/include/uapi/asm/msgbuf.h
- delete mode 100644 arch/x86/include/uapi/asm/shmbuf.h
+ arch/alpha/include/uapi/asm/Kbuild   |  4 ++++
+ arch/alpha/include/uapi/asm/ipcbuf.h |  2 --
+ arch/alpha/include/uapi/asm/msgbuf.h | 28 --------------------------
+ arch/alpha/include/uapi/asm/sembuf.h | 23 ---------------------
+ arch/alpha/include/uapi/asm/shmbuf.h | 39 ------------------------------------
+ 5 files changed, 4 insertions(+), 92 deletions(-)
+ delete mode 100644 arch/alpha/include/uapi/asm/ipcbuf.h
+ delete mode 100644 arch/alpha/include/uapi/asm/msgbuf.h
+ delete mode 100644 arch/alpha/include/uapi/asm/sembuf.h
+ delete mode 100644 arch/alpha/include/uapi/asm/shmbuf.h
 
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index 7cd314b71c51..fb97cf7c4137 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -134,10 +134,10 @@ struct compat_ipc64_perm {
- 
- struct compat_semid64_ds {
- 	struct compat_ipc64_perm sem_perm;
--	compat_time_t  sem_otime;
--	compat_ulong_t __unused1;
--	compat_time_t  sem_ctime;
--	compat_ulong_t __unused2;
-+	compat_ulong_t sem_otime;
-+	compat_ulong_t sem_otime_high;
-+	compat_ulong_t sem_ctime;
-+	compat_ulong_t sem_ctime_high;
- 	compat_ulong_t sem_nsems;
- 	compat_ulong_t __unused3;
- 	compat_ulong_t __unused4;
-@@ -145,12 +145,12 @@ struct compat_semid64_ds {
- 
- struct compat_msqid64_ds {
- 	struct compat_ipc64_perm msg_perm;
--	compat_time_t  msg_stime;
--	compat_ulong_t __unused1;
--	compat_time_t  msg_rtime;
--	compat_ulong_t __unused2;
--	compat_time_t  msg_ctime;
--	compat_ulong_t __unused3;
-+	compat_ulong_t msg_stime;
-+	compat_ulong_t msg_stime_high;
-+	compat_ulong_t msg_rtime;
-+	compat_ulong_t msg_rtime_high;
-+	compat_ulong_t msg_ctime;
-+	compat_ulong_t msg_ctime_high;
- 	compat_ulong_t msg_cbytes;
- 	compat_ulong_t msg_qnum;
- 	compat_ulong_t msg_qbytes;
-@@ -163,12 +163,12 @@ struct compat_msqid64_ds {
- struct compat_shmid64_ds {
- 	struct compat_ipc64_perm shm_perm;
- 	compat_size_t  shm_segsz;
--	compat_time_t  shm_atime;
--	compat_ulong_t __unused1;
--	compat_time_t  shm_dtime;
--	compat_ulong_t __unused2;
--	compat_time_t  shm_ctime;
--	compat_ulong_t __unused3;
-+	compat_ulong_t shm_atime;
-+	compat_ulong_t shm_atime_high;
-+	compat_ulong_t shm_dtime;
-+	compat_ulong_t shm_dtime_high;
-+	compat_ulong_t shm_ctime;
-+	compat_ulong_t shm_ctime_high;
- 	compat_pid_t   shm_cpid;
- 	compat_pid_t   shm_lpid;
- 	compat_ulong_t shm_nattch;
-diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
-index 322681622d1e..d1d883e304f7 100644
---- a/arch/x86/include/uapi/asm/Kbuild
-+++ b/arch/x86/include/uapi/asm/Kbuild
-@@ -2,7 +2,10 @@
+diff --git a/arch/alpha/include/uapi/asm/Kbuild b/arch/alpha/include/uapi/asm/Kbuild
+index 9afaba5e5503..1a5b75310cf4 100644
+--- a/arch/alpha/include/uapi/asm/Kbuild
++++ b/arch/alpha/include/uapi/asm/Kbuild
+@@ -2,4 +2,8 @@
  include include/uapi/asm-generic/Kbuild.asm
  
  generic-y += bpf_perf_event.h
++generic-y += ipcbuf.h
 +generic-y += msgbuf.h
-+generic-y += poll.h
+ generic-y += poll.h
++generic-y += sembuf.h
 +generic-y += shmbuf.h
-+
- generated-y += unistd_32.h
- generated-y += unistd_64.h
- generated-y += unistd_x32.h
--generic-y += poll.h
-diff --git a/arch/x86/include/uapi/asm/msgbuf.h b/arch/x86/include/uapi/asm/msgbuf.h
+diff --git a/arch/alpha/include/uapi/asm/ipcbuf.h b/arch/alpha/include/uapi/asm/ipcbuf.h
 deleted file mode 100644
-index 809134c644a6..000000000000
---- a/arch/x86/include/uapi/asm/msgbuf.h
+index 90d6445a14df..000000000000
+--- a/arch/alpha/include/uapi/asm/ipcbuf.h
 +++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/msgbuf.h>
-diff --git a/arch/x86/include/uapi/asm/sembuf.h b/arch/x86/include/uapi/asm/sembuf.h
-index cabd7476bd6c..89de6cd9f0a7 100644
---- a/arch/x86/include/uapi/asm/sembuf.h
-+++ b/arch/x86/include/uapi/asm/sembuf.h
-@@ -8,15 +8,24 @@
-  * between kernel and user space.
-  *
-  * Pad space is left for:
-- * - 64-bit time_t to solve y2038 problem
-  * - 2 miscellaneous 32-bit values
-+ *
-+ * x86_64 and x32 incorrectly added padding here, so the structures
-+ * are still incompatible with the padding on x86.
-  */
- struct semid64_ds {
- 	struct ipc64_perm sem_perm;	/* permissions .. see ipc.h */
-+#ifdef __i386__
-+	unsigned long	sem_otime;	/* last semop time */
-+	unsigned long	sem_otime_high;
-+	unsigned long	sem_ctime;	/* last change time */
-+	unsigned long	sem_ctime_high;
-+#else
- 	__kernel_time_t	sem_otime;	/* last semop time */
- 	__kernel_ulong_t __unused1;
- 	__kernel_time_t	sem_ctime;	/* last change time */
- 	__kernel_ulong_t __unused2;
-+#endif
- 	__kernel_ulong_t sem_nsems;	/* no. of semaphores in array */
- 	__kernel_ulong_t __unused3;
- 	__kernel_ulong_t __unused4;
-diff --git a/arch/x86/include/uapi/asm/shmbuf.h b/arch/x86/include/uapi/asm/shmbuf.h
+@@ -1,2 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#include <asm-generic/ipcbuf.h>
+diff --git a/arch/alpha/include/uapi/asm/msgbuf.h b/arch/alpha/include/uapi/asm/msgbuf.h
 deleted file mode 100644
-index 83c05fc2de38..000000000000
---- a/arch/x86/include/uapi/asm/shmbuf.h
+index 8c5d4d8c1b16..000000000000
+--- a/arch/alpha/include/uapi/asm/msgbuf.h
 +++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/shmbuf.h>
+@@ -1,28 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _ALPHA_MSGBUF_H
+-#define _ALPHA_MSGBUF_H
+-
+-/* 
+- * The msqid64_ds structure for alpha architecture.
+- * Note extra padding because this structure is passed back and forth
+- * between kernel and user space.
+- *
+- * Pad space is left for:
+- * - 2 miscellaneous 64-bit values
+- */
+-
+-struct msqid64_ds {
+-	struct ipc64_perm msg_perm;
+-	__kernel_time_t msg_stime;	/* last msgsnd time */
+-	__kernel_time_t msg_rtime;	/* last msgrcv time */
+-	__kernel_time_t msg_ctime;	/* last change time */
+-	unsigned long  msg_cbytes;	/* current number of bytes on queue */
+-	unsigned long  msg_qnum;	/* number of messages in queue */
+-	unsigned long  msg_qbytes;	/* max number of bytes on queue */
+-	__kernel_pid_t msg_lspid;	/* pid of last msgsnd */
+-	__kernel_pid_t msg_lrpid;	/* last receive pid */
+-	unsigned long  __unused1;
+-	unsigned long  __unused2;
+-};
+-
+-#endif /* _ALPHA_MSGBUF_H */
+diff --git a/arch/alpha/include/uapi/asm/sembuf.h b/arch/alpha/include/uapi/asm/sembuf.h
+deleted file mode 100644
+index f28ffa668b2f..000000000000
+--- a/arch/alpha/include/uapi/asm/sembuf.h
++++ /dev/null
+@@ -1,23 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _ALPHA_SEMBUF_H
+-#define _ALPHA_SEMBUF_H
+-
+-/* 
+- * The semid64_ds structure for alpha architecture.
+- * Note extra padding because this structure is passed back and forth
+- * between kernel and user space.
+- *
+- * Pad space is left for:
+- * - 2 miscellaneous 64-bit values
+- */
+-
+-struct semid64_ds {
+-	struct ipc64_perm sem_perm;		/* permissions .. see ipc.h */
+-	__kernel_time_t	sem_otime;		/* last semop time */
+-	__kernel_time_t	sem_ctime;		/* last change time */
+-	unsigned long	sem_nsems;		/* no. of semaphores in array */
+-	unsigned long	__unused1;
+-	unsigned long	__unused2;
+-};
+-
+-#endif /* _ALPHA_SEMBUF_H */
+diff --git a/arch/alpha/include/uapi/asm/shmbuf.h b/arch/alpha/include/uapi/asm/shmbuf.h
+deleted file mode 100644
+index 7e041ca2eb40..000000000000
+--- a/arch/alpha/include/uapi/asm/shmbuf.h
++++ /dev/null
+@@ -1,39 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _ALPHA_SHMBUF_H
+-#define _ALPHA_SHMBUF_H
+-
+-/* 
+- * The shmid64_ds structure for alpha architecture.
+- * Note extra padding because this structure is passed back and forth
+- * between kernel and user space.
+- *
+- * Pad space is left for:
+- * - 2 miscellaneous 64-bit values
+- */
+-
+-struct shmid64_ds {
+-	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
+-	__kernel_time_t		shm_atime;	/* last attach time */
+-	__kernel_time_t		shm_dtime;	/* last detach time */
+-	__kernel_time_t		shm_ctime;	/* last change time */
+-	__kernel_pid_t		shm_cpid;	/* pid of creator */
+-	__kernel_pid_t		shm_lpid;	/* pid of last operator */
+-	unsigned long		shm_nattch;	/* no. of current attaches */
+-	unsigned long		__unused1;
+-	unsigned long		__unused2;
+-};
+-
+-struct shminfo64 {
+-	unsigned long	shmmax;
+-	unsigned long	shmmin;
+-	unsigned long	shmmni;
+-	unsigned long	shmseg;
+-	unsigned long	shmall;
+-	unsigned long	__unused1;
+-	unsigned long	__unused2;
+-	unsigned long	__unused3;
+-	unsigned long	__unused4;
+-};
+-
+-#endif /* _ALPHA_SHMBUF_H */
 -- 
 2.9.0
