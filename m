@@ -1,425 +1,150 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 17/17] y2038: compat: Move common compat types to asm-generic/compat.h
-Date: Thu, 19 Apr 2018 16:37:37 +0200
-Message-ID: <20180419143737.606138-18-arnd@arndb.de>
-References: <20180419143737.606138-1-arnd@arndb.de>
-Return-path: <libc-alpha-return-91717-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-In-Reply-To: <20180419143737.606138-1-arnd@arndb.de>
-To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC PATCH 0/3] Dealing with the aliases of SI_USER
+Date: Thu, 19 Apr 2018 09:40:28 -0500
+Message-ID: <87lgdjp8df.fsf@xmission.com>
+References: <20180413094211.GN16141@n2100.armlinux.org.uk>
+        <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
+        <20180413170827.GB16308@e103592.cambridge.arm.com>
+        <20180413175407.GO16141@n2100.armlinux.org.uk>
+        <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
+        <20180413184522.GD16308@e103592.cambridge.arm.com>
+        <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
+        <20180415131206.GR16141@n2100.armlinux.org.uk>
+        <87604sa2fu.fsf_-_@xmission.com>
+        <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
+        <20180419092840.GL16308@e103592.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180419092840.GL16308@e103592.cambridge.arm.com> (Dave Martin's
+        message of "Thu, 19 Apr 2018 10:28:40 +0100")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-The architectures that support 32-bit compat mode define a number
-of simple types for use in compat handlers. About half of those
-are identical between architectures, and some of those are also
-required now by handlers shared with CONFIG_COMPAT_32BIT_TIME
-functions on 32-bit architectures.
+Dave Martin <Dave.Martin@arm.com> writes:
 
-Let's move all the identical ones into asm-generic/compat.h to avoid
-having to add even more identical definitions of those types.
+> On Sun, Apr 15, 2018 at 11:16:04AM -0700, Linus Torvalds wrote:
+>
+> [...]
+>
+>> The other thing we should do is to get rid of the stupid padding.
+>> Right now "struct siginfo" is pointlessly padded to 128 bytes. That is
+>> completely insane, when it's always just zero in the kernel.
+>
+> Agreed, inside the kernel the padding achieves nothing.
+>
+>> So put that _pad[] thing inside #ifndef __KERNEL__, and make
+>> copy_siginfo_to_user() write the padding zeroes when copying to user
+>> space. The reason for the padding is "future expansion", so we do want
+>> to tell the user space that it's maybe up to 128 bytes in size, but if
+>> we don't fill it all, we shouldn't waste time and memory on clearing
+>> the padding internally.
+>> 
+>> I'm certainly *hoping* nobody depends on the whole 128 bytes in
+>> rt_sigqueueinfo(). In theory you can fill it all (as long as si_code
+>> is negative), but the man-page only says "si_value", and the compat
+>> function doesn't copy any more than that either, so any user that
+>> tries to fill in more than si_value is already broken. In fact, it
+>> might even be worth enforcing that in rt_sigqueueinfo(), just to see
+>> if anybody plays any games..
+>
+> [...]
+>
+> Digression:
+>
+> Since we don't traditionally zero the tail-padding in the user sigframe,
+> is there a reliable way for userspace to detect newly-added fields in
+> siginfo other than by having an explicit sigaction sa_flags flag to
+> request them?  I imagine something like [1] below from the userspace
+> perspective.
+>
+> On a separate thread, the issue of how to report syndrome information
+> for SIGSEGV came up [2] (such as whether the faulting instruction was a
+> read or a write).  This information is useful (and used) by things like
+> userspace sanitisers and qemu.  Currently, reporting this to userspace
+> relies on arch-specific cruft in the sigframe.
+>
+> We're committed to maintaining what's already in each arch sigframe,
+> but it would be preferable to have a portable way of adding information
+> to siginfo in a generic way.  si_code doesn't really work for that,
+> since si_codes are mutually exclusive: I can't see a way of adding
+> supplementary information using si_code.
+>
+> Anyway, that would be a separate RFC in the future (if ever).
 
-For unknown reasons, mips defines __compat_gid32_t, __compat_uid32_t
-and compat_caddr_t as signed, while all others have them unsigned.
-This seems to be a mistake, but I'm leaving it alone here. The other
-types all differ by size or alignment on at least on architecture.
+So far what I have seen done is ``registers'' added to sigcontext.
+Which it looks like you have done with esr.
 
-compat_aio_context_t is currently defined in linux/compat.h but
-also needed for compat_sys_io_getevents(), so let's move it into
-the same place.
+Scrubbing information from faults to where the addresses point
+outside of the userspace mapping makes sense.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/arm64/include/asm/compat.h   | 20 ++------------------
- arch/mips/include/asm/compat.h    | 22 ++--------------------
- arch/parisc/include/asm/compat.h  | 18 ++----------------
- arch/powerpc/include/asm/compat.h | 18 ++----------------
- arch/s390/include/asm/compat.h    | 18 ++----------------
- arch/sparc/include/asm/compat.h   | 19 ++-----------------
- arch/x86/include/asm/compat.h     | 19 ++-----------------
- include/asm-generic/compat.h      | 24 +++++++++++++++++++++++-
- include/linux/compat.h            |  2 --
- 9 files changed, 37 insertions(+), 123 deletions(-)
+I think before I would pursue what you are talking about on a generic
+level I would want to look at the fact that we handle unblockable faults
+wrong.  While unlikely it is possible for someone to send a thread
+specific signal at just the right time, and have that signal
+delivered before the synchronous fault.
 
-diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
-index 1a037b94eba1..a4c79f9e856d 100644
---- a/arch/arm64/include/asm/compat.h
-+++ b/arch/arm64/include/asm/compat.h
-@@ -25,6 +25,8 @@
- #include <linux/sched.h>
- #include <linux/sched/task_stack.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define COMPAT_USER_HZ		100
- #ifdef __AARCH64EB__
- #define COMPAT_UTS_MACHINE	"armv8b\0\0"
-@@ -32,10 +34,6 @@
- #define COMPAT_UTS_MACHINE	"armv8l\0\0"
- #endif
- 
--typedef u32		compat_size_t;
--typedef s32		compat_ssize_t;
--typedef s32		compat_clock_t;
--typedef s32		compat_pid_t;
- typedef u16		__compat_uid_t;
- typedef u16		__compat_gid_t;
- typedef u16		__compat_uid16_t;
-@@ -43,27 +41,13 @@ typedef u16		__compat_gid16_t;
- typedef u32		__compat_uid32_t;
- typedef u32		__compat_gid32_t;
- typedef u16		compat_mode_t;
--typedef u32		compat_ino_t;
- typedef u32		compat_dev_t;
--typedef s32		compat_off_t;
--typedef s64		compat_loff_t;
- typedef s32		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
--typedef s32		compat_daddr_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s32		compat_key_t;
--typedef s32		compat_timer_t;
--
--typedef s16		compat_short_t;
--typedef s32		compat_int_t;
--typedef s32		compat_long_t;
- typedef s64		compat_s64;
--typedef u16		compat_ushort_t;
--typedef u32		compat_uint_t;
--typedef u32		compat_ulong_t;
- typedef u64		compat_u64;
--typedef u32		compat_uptr_t;
- 
- struct compat_stat {
- #ifdef __AARCH64EB__
-diff --git a/arch/mips/include/asm/compat.h b/arch/mips/include/asm/compat.h
-index 78675f19440f..7033a7c93b48 100644
---- a/arch/mips/include/asm/compat.h
-+++ b/arch/mips/include/asm/compat.h
-@@ -9,43 +9,25 @@
- #include <asm/page.h>
- #include <asm/ptrace.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define COMPAT_USER_HZ		100
- #define COMPAT_UTS_MACHINE	"mips\0\0\0"
- 
--typedef u32		compat_size_t;
--typedef s32		compat_ssize_t;
--typedef s32		compat_clock_t;
--typedef s32		compat_suseconds_t;
--
--typedef s32		compat_pid_t;
- typedef s32		__compat_uid_t;
- typedef s32		__compat_gid_t;
- typedef __compat_uid_t	__compat_uid32_t;
- typedef __compat_gid_t	__compat_gid32_t;
- typedef u32		compat_mode_t;
--typedef u32		compat_ino_t;
- typedef u32		compat_dev_t;
--typedef s32		compat_off_t;
--typedef s64		compat_loff_t;
- typedef u32		compat_nlink_t;
- typedef s32		compat_ipc_pid_t;
--typedef s32		compat_daddr_t;
- typedef s32		compat_caddr_t;
- typedef struct {
- 	s32	val[2];
- } compat_fsid_t;
--typedef s32		compat_timer_t;
--typedef s32		compat_key_t;
--
--typedef s16		compat_short_t;
--typedef s32		compat_int_t;
--typedef s32		compat_long_t;
- typedef s64		compat_s64;
--typedef u16		compat_ushort_t;
--typedef u32		compat_uint_t;
--typedef u32		compat_ulong_t;
- typedef u64		compat_u64;
--typedef u32		compat_uptr_t;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/arch/parisc/include/asm/compat.h b/arch/parisc/include/asm/compat.h
-index ab8a54771507..f707e025f89b 100644
---- a/arch/parisc/include/asm/compat.h
-+++ b/arch/parisc/include/asm/compat.h
-@@ -8,36 +8,22 @@
- #include <linux/sched.h>
- #include <linux/thread_info.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define COMPAT_USER_HZ 		100
- #define COMPAT_UTS_MACHINE	"parisc\0\0"
- 
--typedef u32	compat_size_t;
--typedef s32	compat_ssize_t;
--typedef s32	compat_clock_t;
--typedef s32	compat_pid_t;
- typedef u32	__compat_uid_t;
- typedef u32	__compat_gid_t;
- typedef u32	__compat_uid32_t;
- typedef u32	__compat_gid32_t;
- typedef u16	compat_mode_t;
--typedef u32	compat_ino_t;
- typedef u32	compat_dev_t;
--typedef s32	compat_off_t;
--typedef s64	compat_loff_t;
- typedef u16	compat_nlink_t;
- typedef u16	compat_ipc_pid_t;
--typedef s32	compat_daddr_t;
- typedef u32	compat_caddr_t;
--typedef s32	compat_key_t;
--typedef s32	compat_timer_t;
--
--typedef s32	compat_int_t;
--typedef s32	compat_long_t;
- typedef s64	compat_s64;
--typedef u32	compat_uint_t;
--typedef u32	compat_ulong_t;
- typedef u64	compat_u64;
--typedef u32	compat_uptr_t;
- 
- struct compat_stat {
- 	compat_dev_t		st_dev;	/* dev_t is 32 bits on parisc */
-diff --git a/arch/powerpc/include/asm/compat.h b/arch/powerpc/include/asm/compat.h
-index 85c8af2bb272..036b210b1582 100644
---- a/arch/powerpc/include/asm/compat.h
-+++ b/arch/powerpc/include/asm/compat.h
-@@ -8,6 +8,8 @@
- #include <linux/types.h>
- #include <linux/sched.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define COMPAT_USER_HZ		100
- #ifdef __BIG_ENDIAN__
- #define COMPAT_UTS_MACHINE	"ppc\0\0"
-@@ -15,34 +17,18 @@
- #define COMPAT_UTS_MACHINE	"ppcle\0\0"
- #endif
- 
--typedef u32		compat_size_t;
--typedef s32		compat_ssize_t;
--typedef s32		compat_clock_t;
--typedef s32		compat_pid_t;
- typedef u32		__compat_uid_t;
- typedef u32		__compat_gid_t;
- typedef u32		__compat_uid32_t;
- typedef u32		__compat_gid32_t;
- typedef u32		compat_mode_t;
--typedef u32		compat_ino_t;
- typedef u32		compat_dev_t;
--typedef s32		compat_off_t;
--typedef s64		compat_loff_t;
- typedef s16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
--typedef s32		compat_daddr_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s32		compat_key_t;
--typedef s32		compat_timer_t;
--
--typedef s32		compat_int_t;
--typedef s32		compat_long_t;
- typedef s64		compat_s64;
--typedef u32		compat_uint_t;
--typedef u32		compat_ulong_t;
- typedef u64		compat_u64;
--typedef u32		compat_uptr_t;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
-index 97db2fba546a..63b46e30b2c3 100644
---- a/arch/s390/include/asm/compat.h
-+++ b/arch/s390/include/asm/compat.h
-@@ -9,6 +9,8 @@
- #include <linux/sched/task_stack.h>
- #include <linux/thread_info.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define __TYPE_IS_PTR(t) (!__builtin_types_compatible_p( \
- 				typeof(0?(__force t)0:0ULL), u64))
- 
-@@ -51,34 +53,18 @@
- #define COMPAT_USER_HZ		100
- #define COMPAT_UTS_MACHINE	"s390\0\0\0\0"
- 
--typedef u32		compat_size_t;
--typedef s32		compat_ssize_t;
--typedef s32		compat_clock_t;
--typedef s32		compat_pid_t;
- typedef u16		__compat_uid_t;
- typedef u16		__compat_gid_t;
- typedef u32		__compat_uid32_t;
- typedef u32		__compat_gid32_t;
- typedef u16		compat_mode_t;
--typedef u32		compat_ino_t;
- typedef u16		compat_dev_t;
--typedef s32		compat_off_t;
--typedef s64		compat_loff_t;
- typedef u16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
--typedef s32		compat_daddr_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s32		compat_key_t;
--typedef s32		compat_timer_t;
--
--typedef s32		compat_int_t;
--typedef s32		compat_long_t;
- typedef s64		compat_s64;
--typedef u32		compat_uint_t;
--typedef u32		compat_ulong_t;
- typedef u64		compat_u64;
--typedef u32		compat_uptr_t;
- 
- typedef struct {
- 	u32 mask;
-diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
-index 4eb51d2dae98..985286b79891 100644
---- a/arch/sparc/include/asm/compat.h
-+++ b/arch/sparc/include/asm/compat.h
-@@ -6,38 +6,23 @@
-  */
- #include <linux/types.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define COMPAT_USER_HZ		100
- #define COMPAT_UTS_MACHINE	"sparc\0\0"
- 
--typedef u32		compat_size_t;
--typedef s32		compat_ssize_t;
--typedef s32		compat_clock_t;
--typedef s32		compat_pid_t;
- typedef u16		__compat_uid_t;
- typedef u16		__compat_gid_t;
- typedef u32		__compat_uid32_t;
- typedef u32		__compat_gid32_t;
- typedef u16		compat_mode_t;
--typedef u32		compat_ino_t;
- typedef u16		compat_dev_t;
--typedef s32		compat_off_t;
--typedef s64		compat_loff_t;
- typedef s16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
--typedef s32		compat_daddr_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s32		compat_key_t;
--typedef s32		compat_timer_t;
--
--typedef s32		compat_int_t;
--typedef s32		compat_long_t;
- typedef s64		compat_s64;
--typedef u32		compat_uint_t;
--typedef u32		compat_ulong_t;
- typedef u64		compat_u64;
--typedef u32		compat_uptr_t;
--
- struct compat_stat {
- 	compat_dev_t	st_dev;
- 	compat_ino_t	st_ino;
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index fb97cf7c4137..0ce6f452d334 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -12,38 +12,23 @@
- #include <asm/user32.h>
- #include <asm/unistd.h>
- 
-+#include <asm-generic/compat.h>
-+
- #define COMPAT_USER_HZ		100
- #define COMPAT_UTS_MACHINE	"i686\0\0"
- 
--typedef u32		compat_size_t;
--typedef s32		compat_ssize_t;
--typedef s32		compat_clock_t;
--typedef s32		compat_pid_t;
- typedef u16		__compat_uid_t;
- typedef u16		__compat_gid_t;
- typedef u32		__compat_uid32_t;
- typedef u32		__compat_gid32_t;
- typedef u16		compat_mode_t;
--typedef u32		compat_ino_t;
- typedef u16		compat_dev_t;
--typedef s32		compat_off_t;
--typedef s64		compat_loff_t;
- typedef u16		compat_nlink_t;
- typedef u16		compat_ipc_pid_t;
--typedef s32		compat_daddr_t;
- typedef u32		compat_caddr_t;
- typedef __kernel_fsid_t	compat_fsid_t;
--typedef s32		compat_timer_t;
--typedef s32		compat_key_t;
--
--typedef s32		compat_int_t;
--typedef s32		compat_long_t;
- typedef s64 __attribute__((aligned(4))) compat_s64;
--typedef u32		compat_uint_t;
--typedef u32		compat_ulong_t;
--typedef u32		compat_u32;
- typedef u64 __attribute__((aligned(4))) compat_u64;
--typedef u32		compat_uptr_t;
- 
- struct compat_stat {
- 	compat_dev_t	st_dev;
-diff --git a/include/asm-generic/compat.h b/include/asm-generic/compat.h
-index 28819451b6d1..a86f65bffab8 100644
---- a/include/asm-generic/compat.h
-+++ b/include/asm-generic/compat.h
-@@ -1,3 +1,25 @@
- /* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_GENERIC_COMPAT_H
-+#define __ASM_GENERIC_COMPAT_H
- 
--/* This is an empty stub for 32-bit-only architectures */
-+/* These types are common across all compat ABIs */
-+typedef u32 compat_size_t;
-+typedef s32 compat_ssize_t;
-+typedef s32 compat_clock_t;
-+typedef s32 compat_pid_t;
-+typedef u32 compat_ino_t;
-+typedef s32 compat_off_t;
-+typedef s64 compat_loff_t;
-+typedef s32 compat_daddr_t;
-+typedef s32 compat_timer_t;
-+typedef s32 compat_key_t;
-+typedef s16 compat_short_t;
-+typedef s32 compat_int_t;
-+typedef s32 compat_long_t;
-+typedef u16 compat_ushort_t;
-+typedef u32 compat_uint_t;
-+typedef u32 compat_ulong_t;
-+typedef u32 compat_uptr_t;
-+typedef u32 compat_aio_context_t;
-+
-+#endif
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index cfc1b6383ae0..af5ac9de4bdf 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -104,8 +104,6 @@ typedef struct compat_sigaltstack {
- typedef __compat_uid32_t	compat_uid_t;
- typedef __compat_gid32_t	compat_gid_t;
- 
--typedef	compat_ulong_t		compat_aio_context_t;
--
- struct compat_sel_arg_struct;
- struct rusage;
- 
--- 
-2.9.0
+Then we could pass through additional arguments through that new
+``generic'' path.  Especially what are arguments such as
+tsk->thread.fault_address and tsk->thread.fault_code.
+
+We can do anything we like with a new SA_flag as that allows us to
+change the format of the sigframe.
+
+If we are very careful we can add generic fields after that crazy union
+anonymous union in the _sigfault case of struct siginfo.
+
+The trick would be to find something that would be enough so that people
+don't need to implement their own instruction decoder to see what is
+going on.  Something that is applicable to every sigfault case not just
+SIGSEGV.  Something that we can and want to implement on multiple
+architectures.
+
+The point being doing something generic can be a lot of work, even if it
+is worth it in the end.
+
+
+> [1]
+>
+> static volatile int have_extflags = 0;
+>
+> static void handler(int n, siginfo_t *si, void *uc)
+> {
+> 	/* ... */
+>
+> 	if (have_extflags) {
+> 		/* Check si->si_extflags */
+> 	} else {
+> 		/* fallback */
+> 	}
+>
+> 	/* ... */
+> }
+>
+> int main(void)
+> {
+> 	/* ... */
+>
+> 	struct sigaction sa;
+>
+> 	/* ... */
+>
+> 	sa.sa_flags = SA_SIGINFO | SA_SIGINFO_EXTFLAGS;
+> 	sa.sa_sigaction = handler;
+> 	if (!sigaction(SIGSEGV, &sa, NULL)) {
+> 		have_extflags = 1;
+> 	} else {
+> 		sa.sa_flags &= ~SA_SIGINFO_EXTFLAGS;
+> 		if (sigaction(SIGSEGV, &sa, NULL))
+> 			goto error;
+> 	}
+>
+> 	/* ... */
+> }
+>
+> [2] [RFC PATCH] arm64: fault: Don't leak data in ESR context for user fault on kernel VA
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2018-April/571428.html
+
+Eric
