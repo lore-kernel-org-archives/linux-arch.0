@@ -1,163 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.74]:46855 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.73]:50375 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753287AbeDSOiw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:38:52 -0400
+        with ESMTP id S1753359AbeDSOix (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:38:53 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 01/17] y2038: asm-generic: Extend sysvipc data structures
-Date: Thu, 19 Apr 2018 16:37:21 +0200
-Message-ID: <20180419143737.606138-2-arnd@arndb.de>
+Subject: [PATCH v3 16/17] y2038: ipc: Redirect ipc(SEMTIMEDOP, ...) to compat_ksys_semtimedop
+Date: Thu, 19 Apr 2018 16:37:36 +0200
+Message-ID: <20180419143737.606138-17-arnd@arndb.de>
 In-Reply-To: <20180419143737.606138-1-arnd@arndb.de>
 References: <20180419143737.606138-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
-Message-ID: <20180419143721.H0Yi4WeDwTmeQ0WAkF4SIVoCK4b2sjEOo6F-mtIsZSo@z>
+Message-ID: <20180419143736.71iqYFX_bvHUU_IqPbcpX9kE82d1JxMftGPRvyx82V0@z>
 
-Most architectures now use the asm-generic copy of the sysvipc data
-structures (msqid64_ds, semid64_ds, shmid64_ds), which use 32-bit
-__kernel_time_t on 32-bit architectures but have padding behind them to
-allow extending the type to 64-bit.
+32-bit architectures implementing 64BIT_TIME and COMPAT_32BIT_TIME
+need to have the traditional semtimedop() behavior with 32-bit timestamps
+for sys_ipc() by calling compat_ksys_semtimedop(), while those that
+are not yet converted need to keep using ksys_semtimedop() like
+64-bit architectures do.
 
-Unfortunately, that fails on all big-endian architectures, which have the
-padding on the wrong side. As so many of them get it wrong, we decided to
-not bother even trying to fix it up when we introduced the asm-generic
-copy. Instead we always use the padding word now to provide the upper
-32 bits of the seconds value, regardless of the endianess.
+Note that I chose to not implement a new SEMTIMEDOP64 function that
+corresponds to the new sys_semtimedop() with 64-bit timeouts. The reason
+here is that sys_ipc() should no longer be used for new system calls,
+and libc should just call the semtimedop syscall directly.
 
-A libc implementation on a typical big-endian system can deal with
-this by providing its own copy of the structure definition to user
-space, and swapping the two 32-bit words before returning from the
-semctl/shmctl/msgctl system calls.
-
-ARM64 and s/390 are architectures that use these generic headers and
-also provide support for compat mode on 64-bit kernels, so we adapt
-their copies here as well.
+One open question remain to whether we want to completely avoid the
+sys_ipc() system call for architectures that do not yet have all the
+individual calls as they get converted to 64-bit time_t. Doing that
+would require adding several extra system calls on m68k, mips, powerpc,
+s390, sh, sparc, and x86-32.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/uapi/asm-generic/msgbuf.h | 17 ++++++++---------
- include/uapi/asm-generic/sembuf.h | 26 ++++++++++++++++----------
- include/uapi/asm-generic/shmbuf.h | 17 ++++++++---------
- 3 files changed, 32 insertions(+), 28 deletions(-)
+ ipc/syscall.c | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
 
-diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
-index fb306ebdb36f..d2169cae93b8 100644
---- a/include/uapi/asm-generic/msgbuf.h
-+++ b/include/uapi/asm-generic/msgbuf.h
-@@ -18,23 +18,22 @@
-  * On big-endian systems, the padding is in the wrong place.
-  *
-  * Pad space is left for:
-- * - 64-bit time_t to solve y2038 problem
-  * - 2 miscellaneous 32-bit values
-  */
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 77a883ef2eca..65d405f1ba0c 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -30,9 +30,14 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 		return ksys_semtimedop(first, (struct sembuf __user *)ptr,
+ 				       second, NULL);
+ 	case SEMTIMEDOP:
+-		return ksys_semtimedop(first, (struct sembuf __user *)ptr,
+-				       second,
+-				       (const struct timespec __user *)fifth);
++		if (IS_ENABLED(CONFIG_64BIT) || !IS_ENABLED(CONFIG_64BIT_TIME))
++			return ksys_semtimedop(first, ptr, second,
++			        (const struct __kernel_timespec __user *)fifth);
++		else if (IS_ENABLED(CONFIG_COMPAT_32BIT_TIME))
++			return compat_ksys_semtimedop(first, ptr, second,
++			        (const struct compat_timespec __user *)fifth);
++		else
++			return -ENOSYS;
  
- struct msqid64_ds {
- 	struct ipc64_perm msg_perm;
-+#if __BITS_PER_LONG == 64
- 	__kernel_time_t msg_stime;	/* last msgsnd time */
--#if __BITS_PER_LONG != 64
--	unsigned long	__unused1;
--#endif
- 	__kernel_time_t msg_rtime;	/* last msgrcv time */
--#if __BITS_PER_LONG != 64
--	unsigned long	__unused2;
--#endif
- 	__kernel_time_t msg_ctime;	/* last change time */
--#if __BITS_PER_LONG != 64
--	unsigned long	__unused3;
-+#else
-+	unsigned long	msg_stime;	/* last msgsnd time */
-+	unsigned long	msg_stime_high;
-+	unsigned long	msg_rtime;	/* last msgrcv time */
-+	unsigned long	msg_rtime_high;
-+	unsigned long	msg_ctime;	/* last change time */
-+	unsigned long	msg_ctime_high;
- #endif
- 	__kernel_ulong_t msg_cbytes;	/* current number of bytes on queue */
- 	__kernel_ulong_t msg_qnum;	/* number of messages in queue */
-diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-generic/sembuf.h
-index cbf9cfe977d6..0bae010f1b64 100644
---- a/include/uapi/asm-generic/sembuf.h
-+++ b/include/uapi/asm-generic/sembuf.h
-@@ -13,23 +13,29 @@
-  * everyone just ended up making identical copies without specific
-  * optimizations, so we may just as well all use the same one.
-  *
-- * 64 bit architectures typically define a 64 bit __kernel_time_t,
-+ * 64 bit architectures use a 64-bit __kernel_time_t here, while
-+ * 32 bit architectures have a pair of unsigned long values.
-  * so they do not need the first two padding words.
-- * On big-endian systems, the padding is in the wrong place.
-  *
-- * Pad space is left for:
-- * - 64-bit time_t to solve y2038 problem
-- * - 2 miscellaneous 32-bit values
-+ * On big-endian systems, the padding is in the wrong place for
-+ * historic reasons, so user space has to reconstruct a time_t
-+ * value using
-+ *
-+ * user_semid_ds.sem_otime = kernel_semid64_ds.sem_otime +
-+ *		((long long)kernel_semid64_ds.sem_otime_high << 32)
-+ *
-+ * Pad space is left for 2 miscellaneous 32-bit values
-  */
- struct semid64_ds {
- 	struct ipc64_perm sem_perm;	/* permissions .. see ipc.h */
-+#if __BITS_PER_LONG == 64
- 	__kernel_time_t	sem_otime;	/* last semop time */
--#if __BITS_PER_LONG != 64
--	unsigned long	__unused1;
--#endif
- 	__kernel_time_t	sem_ctime;	/* last change time */
--#if __BITS_PER_LONG != 64
--	unsigned long	__unused2;
-+#else
-+	unsigned long	sem_otime;	/* last semop time */
-+	unsigned long	sem_otime_high;
-+	unsigned long	sem_ctime;	/* last change time */
-+	unsigned long	sem_ctime_high;
- #endif
- 	unsigned long	sem_nsems;	/* no. of semaphores in array */
- 	unsigned long	__unused3;
-diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 2b6c3bb97f97..602f1b5b462b 100644
---- a/include/uapi/asm-generic/shmbuf.h
-+++ b/include/uapi/asm-generic/shmbuf.h
-@@ -19,24 +19,23 @@
-  *
-  *
-  * Pad space is left for:
-- * - 64-bit time_t to solve y2038 problem
-  * - 2 miscellaneous 32-bit values
-  */
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
- 	size_t			shm_segsz;	/* size of segment (bytes) */
-+#if __BITS_PER_LONG == 64
- 	__kernel_time_t		shm_atime;	/* last attach time */
--#if __BITS_PER_LONG != 64
--	unsigned long		__unused1;
--#endif
- 	__kernel_time_t		shm_dtime;	/* last detach time */
--#if __BITS_PER_LONG != 64
--	unsigned long		__unused2;
--#endif
- 	__kernel_time_t		shm_ctime;	/* last change time */
--#if __BITS_PER_LONG != 64
--	unsigned long		__unused3;
-+#else
-+	unsigned long		shm_atime;	/* last attach time */
-+	unsigned long		shm_atime_high;
-+	unsigned long		shm_dtime;	/* last detach time */
-+	unsigned long		shm_dtime_high;
-+	unsigned long		shm_ctime;	/* last change time */
-+	unsigned long		shm_ctime_high;
- #endif
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
+ 	case SEMGET:
+ 		return ksys_semget(first, second, third);
+@@ -130,6 +135,8 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		/* struct sembuf is the same on 32 and 64bit :)) */
+ 		return ksys_semtimedop(first, compat_ptr(ptr), second, NULL);
+ 	case SEMTIMEDOP:
++		if (!IS_ENABLED(CONFIG_COMPAT_32BIT_TIME))
++			return -ENOSYS;
+ 		return compat_ksys_semtimedop(first, compat_ptr(ptr), second,
+ 						compat_ptr(fifth));
+ 	case SEMGET:
 -- 
 2.9.0
