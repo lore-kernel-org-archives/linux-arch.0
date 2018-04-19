@@ -1,170 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.74]:46887 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.10]:54107 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753190AbeDSOiv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:38:51 -0400
+        with ESMTP id S1753099AbeDSOit (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 10:38:49 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 15/17] y2038: ipc: Enable COMPAT_32BIT_TIME
-Date: Thu, 19 Apr 2018 16:37:35 +0200
-Message-ID: <20180419143737.606138-16-arnd@arndb.de>
+Subject: [PATCH v3 05/17] y2038: arm64: Extend sysvipc compat data structures
+Date: Thu, 19 Apr 2018 16:37:25 +0200
+Message-ID: <20180419143737.606138-6-arnd@arndb.de>
 In-Reply-To: <20180419143737.606138-1-arnd@arndb.de>
 References: <20180419143737.606138-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
-Message-ID: <20180419143735.qXeg5v4OVqRHxBwsHkO8gaUUS2nfIyjjci5Lewi5LKY@z>
+Message-ID: <20180419143725.Z3JBLK3mWfQJ_1HSQwiO40byqE3fJPeKQPXPmP5sbxg@z>
 
-Three ipc syscalls (mq_timedsend, mq_timedreceive and and semtimedop)
-take a timespec argument. After we move 32-bit architectures over to
-useing 64-bit time_t based syscalls, we need seperate entry points for
-the old 32-bit based interfaces.
+Both 32-bit amd 64-bit ARM use the asm-generic header files for their
+sysvipc data structures, so no special care is needed to make those
+work beyond y2038, with the one exception of compat mode: Since there
+is no asm-generic definition of the compat mode IPC structures, ARM64
+provides its own copy, and we make those match the changes in the native
+asm-generic header files.
 
-This changes the #ifdef guards for the existing 32-bit compat syscalls
-to check for CONFIG_COMPAT_32BIT_TIME instead, which will then be
-enabled on all existing 32-bit architectures.
+There is sufficient padding in these data structures to extend all
+timestamps to 64 bit, but on big-endian ARM kernels, the padding
+is in the wrong place, so the C library has to ensure it reassembles
+a 64-bit time_t correctly.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- ipc/mqueue.c | 80 +++++++++++++++++++++++++++++++-----------------------------
- ipc/sem.c    |  3 ++-
- ipc/util.h   |  2 +-
- 3 files changed, 44 insertions(+), 41 deletions(-)
+ arch/arm64/include/asm/compat.h | 32 ++++++++++++++++----------------
+ 1 file changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/ipc/mqueue.c b/ipc/mqueue.c
-index 9610afcfa2e5..c0d58f390c3b 100644
---- a/ipc/mqueue.c
-+++ b/ipc/mqueue.c
-@@ -1420,6 +1420,47 @@ COMPAT_SYSCALL_DEFINE4(mq_open, const char __user *, u_name,
- 	return do_mq_open(u_name, oflag, mode, p);
- }
+diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
+index 0030f79808b3..1a037b94eba1 100644
+--- a/arch/arm64/include/asm/compat.h
++++ b/arch/arm64/include/asm/compat.h
+@@ -181,10 +181,10 @@ struct compat_ipc64_perm {
  
-+COMPAT_SYSCALL_DEFINE2(mq_notify, mqd_t, mqdes,
-+		       const struct compat_sigevent __user *, u_notification)
-+{
-+	struct sigevent n, *p = NULL;
-+	if (u_notification) {
-+		if (get_compat_sigevent(&n, u_notification))
-+			return -EFAULT;
-+		if (n.sigev_notify == SIGEV_THREAD)
-+			n.sigev_value.sival_ptr = compat_ptr(n.sigev_value.sival_int);
-+		p = &n;
-+	}
-+	return do_mq_notify(mqdes, p);
-+}
-+
-+COMPAT_SYSCALL_DEFINE3(mq_getsetattr, mqd_t, mqdes,
-+		       const struct compat_mq_attr __user *, u_mqstat,
-+		       struct compat_mq_attr __user *, u_omqstat)
-+{
-+	int ret;
-+	struct mq_attr mqstat, omqstat;
-+	struct mq_attr *new = NULL, *old = NULL;
-+
-+	if (u_mqstat) {
-+		new = &mqstat;
-+		if (get_compat_mq_attr(new, u_mqstat))
-+			return -EFAULT;
-+	}
-+	if (u_omqstat)
-+		old = &omqstat;
-+
-+	ret = do_mq_getsetattr(mqdes, new, old);
-+	if (ret || !old)
-+		return ret;
-+
-+	if (put_compat_mq_attr(old, u_omqstat))
-+		return -EFAULT;
-+	return 0;
-+}
-+#endif
-+
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- static int compat_prepare_timeout(const struct compat_timespec __user *p,
- 				   struct timespec64 *ts)
- {
-@@ -1459,45 +1500,6 @@ COMPAT_SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes,
- 	}
- 	return do_mq_timedreceive(mqdes, u_msg_ptr, msg_len, u_msg_prio, p);
- }
--
--COMPAT_SYSCALL_DEFINE2(mq_notify, mqd_t, mqdes,
--		       const struct compat_sigevent __user *, u_notification)
--{
--	struct sigevent n, *p = NULL;
--	if (u_notification) {
--		if (get_compat_sigevent(&n, u_notification))
--			return -EFAULT;
--		if (n.sigev_notify == SIGEV_THREAD)
--			n.sigev_value.sival_ptr = compat_ptr(n.sigev_value.sival_int);
--		p = &n;
--	}
--	return do_mq_notify(mqdes, p);
--}
--
--COMPAT_SYSCALL_DEFINE3(mq_getsetattr, mqd_t, mqdes,
--		       const struct compat_mq_attr __user *, u_mqstat,
--		       struct compat_mq_attr __user *, u_omqstat)
--{
--	int ret;
--	struct mq_attr mqstat, omqstat;
--	struct mq_attr *new = NULL, *old = NULL;
--
--	if (u_mqstat) {
--		new = &mqstat;
--		if (get_compat_mq_attr(new, u_mqstat))
--			return -EFAULT;
--	}
--	if (u_omqstat)
--		old = &omqstat;
--
--	ret = do_mq_getsetattr(mqdes, new, old);
--	if (ret || !old)
--		return ret;
--
--	if (put_compat_mq_attr(old, u_omqstat))
--		return -EFAULT;
--	return 0;
--}
- #endif
+ struct compat_semid64_ds {
+ 	struct compat_ipc64_perm sem_perm;
+-	compat_time_t  sem_otime;
+-	compat_ulong_t __unused1;
+-	compat_time_t  sem_ctime;
+-	compat_ulong_t __unused2;
++	compat_ulong_t sem_otime;
++	compat_ulong_t sem_otime_high;
++	compat_ulong_t sem_ctime;
++	compat_ulong_t sem_ctime_high;
+ 	compat_ulong_t sem_nsems;
+ 	compat_ulong_t __unused3;
+ 	compat_ulong_t __unused4;
+@@ -192,12 +192,12 @@ struct compat_semid64_ds {
  
- static const struct inode_operations mqueue_dir_inode_operations = {
-diff --git a/ipc/sem.c b/ipc/sem.c
-index b951e25ba2db..cfd94d48a9aa 100644
---- a/ipc/sem.c
-+++ b/ipc/sem.c
-@@ -70,6 +70,7 @@
-  *   The worst-case behavior is nevertheless O(N^2) for N wakeups.
-  */
- 
-+#include <linux/compat.h>
- #include <linux/slab.h>
- #include <linux/spinlock.h>
- #include <linux/init.h>
-@@ -2193,7 +2194,7 @@ SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
- 	return ksys_semtimedop(semid, tsops, nsops, timeout);
- }
- 
--#ifdef CONFIG_COMPAT
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout)
-diff --git a/ipc/util.h b/ipc/util.h
-index 975c6de2df9d..0aba3230d007 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -265,10 +265,10 @@ long ksys_shmdt(char __user *shmaddr);
- long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
- 
- /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
--#ifdef CONFIG_COMPAT
- long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout);
-+#ifdef CONFIG_COMPAT
- long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
- long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
- long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
+ struct compat_msqid64_ds {
+ 	struct compat_ipc64_perm msg_perm;
+-	compat_time_t  msg_stime;
+-	compat_ulong_t __unused1;
+-	compat_time_t  msg_rtime;
+-	compat_ulong_t __unused2;
+-	compat_time_t  msg_ctime;
+-	compat_ulong_t __unused3;
++	compat_ulong_t msg_stime;
++	compat_ulong_t msg_stime_high;
++	compat_ulong_t msg_rtime;
++	compat_ulong_t msg_rtime_high;
++	compat_ulong_t msg_ctime;
++	compat_ulong_t msg_ctime_high;
+ 	compat_ulong_t msg_cbytes;
+ 	compat_ulong_t msg_qnum;
+ 	compat_ulong_t msg_qbytes;
+@@ -210,12 +210,12 @@ struct compat_msqid64_ds {
+ struct compat_shmid64_ds {
+ 	struct compat_ipc64_perm shm_perm;
+ 	compat_size_t  shm_segsz;
+-	compat_time_t  shm_atime;
+-	compat_ulong_t __unused1;
+-	compat_time_t  shm_dtime;
+-	compat_ulong_t __unused2;
+-	compat_time_t  shm_ctime;
+-	compat_ulong_t __unused3;
++	compat_ulong_t shm_atime;
++	compat_ulong_t shm_atime_high;
++	compat_ulong_t shm_dtime;
++	compat_ulong_t shm_dtime_high;
++	compat_ulong_t shm_ctime;
++	compat_ulong_t shm_ctime_high;
+ 	compat_pid_t   shm_cpid;
+ 	compat_pid_t   shm_lpid;
+ 	compat_ulong_t shm_nattch;
 -- 
 2.9.0
