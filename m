@@ -1,76 +1,70 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [tip GIT PULL] y2038: timekeeping syscall changes
-Date: Thu, 19 Apr 2018 12:48:11 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1804191240510.1563@nanos.tec.linutronix.de>
-References: <CAK8P3a2CEK=4Os4gbnXbR7VJJgaXVQ7NLjihr7rvMSK6g3_tNA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [RFC PATCH 0/6] Simplify setting thread flags to a particular value
+Date: Thu, 19 Apr 2018 11:58:42 +0100
+Message-ID: <1524135528-28561-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2CEK=4Os4gbnXbR7VJJgaXVQ7NLjihr7rvMSK6g3_tNA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 19 Apr 2018, Arnd Bergmann wrote:
+There are a number of bits of code sprinkled around the kernel to
+set a thread flag if a certain condition is true, and clear it
+otherwise.
 
-> The following changes since commit 60cc43fc888428bb2f18f08997432d426a243338:
-> 
->   Linux 4.17-rc1 (2018-04-15 18:24:20 -0700)
-> 
-> are available in the git repository at:
-> 
->   git+ssh://gitolite@ra.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git
-> tags/y2038-timekeeping
+To help make those call sites terser and less cumbersome, this
+patch adds a new family of thread flag manipulators
 
-Please don't use the +ssh address as that's only accessible for those who
-have a k.org account.
+	update*_thread_flag([...,] flag, cond)
 
-     git://git.kernel.org/
+See patch 1 for details.
 
-is accessible for everyone.
+Reviewers please pay close attention to accidental conversion of
+set_tsk_thread_flag() to set_thread_flag() for example, and accidental
+inversion of conditions.  I'm pretty sure neither happens, but
+build-testing can't pick these up.
 
-> ----------------------------------------------------------------
-> Arnd Bergmann (2):
->       compat: add an asm-generic/compat.h file
+Build-tested on x86 and the explicitly patched architectures (defconfig
+and multi_v7_defconfig for arm, defconfig for arm64, mips, powerpc,
+sparc).
 
-Please start the subject line sentence with an uppercase letter.
+Boot-tested on arm64, with some context-switch stress tests that depend
+on correct maintenance of TIF_FOREIGN_FPSTATE.
 
->       sparc: compat: allow including asm/compat.h for 32-bit
-> 
-> Deepa Dinamani (10):
->       compat: Make compat helpers independent of CONFIG_COMPAT
->       include: Move compat_timespec/ timeval to compat_time.h
 
-The proper subsystem is 'time:' not 'include:'
+Background rationale:
 
->       compat: enable compat_get/put_timespec64 always
+I've found myself coding this idiom a few times now and would like to
+stop duplicating it.  Using an ungainly lash-up of sed and grep I tried
+to find other users of the same idiom without too many false positives,
+and there while there aren't a huge number it seemed enough to be worth
+having a go at a simple cleanup.
 
->       arch: introduce CONFIG_64BIT_TIME
->       arch: Introduce CONFIG_COMPAT_32BIT_TIME
+The core changes are in the first patch; other changes are split
+per-arch.
 
-At least it should be consistent..
 
->       posix-clocks: Make compat syscalls depend on CONFIG_COMPAT_32BIT_TIME
+Dave Martin (6):
+  thread_info: Add update_thread_flag() helpers
+  ARM: Use update_thread_flag()
+  arm64: Use update{,_tsk}_thread_flag()
+  MIPS: Use update{,_tsk}_thread_flag()
+  powerpc: Use update_thread_flag()
+  sparc: Use update_thread_flag()
 
-'posix-timers:' please
+ arch/arm/kernel/elf.c           |  9 +++------
+ arch/arm64/kernel/fpsimd.c      | 19 +++++++------------
+ arch/mips/kernel/elf.c          | 10 ++--------
+ arch/mips/kernel/process.c      | 15 ++++++---------
+ arch/mips/kernel/ptrace.c       |  5 +----
+ arch/mips/kernel/syscall.c      | 10 ++--------
+ arch/powerpc/include/asm/elf.h  | 10 ++--------
+ arch/sparc/include/asm/elf_64.h |  5 +----
+ include/linux/sched.h           |  6 ++++++
+ include/linux/thread_info.h     | 11 +++++++++++
+ include/trace/syscall.h         |  6 ++----
+ kernel/ptrace.c                 | 13 +++++--------
+ 12 files changed, 48 insertions(+), 71 deletions(-)
 
->       include: Add new y2038 safe __kernel_timespec
-
-'time:'
-
->       fix get_timespec64() for y2038 safe compat interfaces
-
-Bah. This lacks a subsystem, i.e. 'time:'
-
->       change time types to new y2038 safe __kernel_* types
-
-Ditto
-
->       nanosleep: change time types to safe __kernel_* types
-
-Can you please fix that and send me an updated pull request?
-
-Thanks,
-
-	tglx
+-- 
+2.1.4
