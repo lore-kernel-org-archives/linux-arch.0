@@ -1,29 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:34659 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751381AbeDSMEl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 08:04:41 -0400
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:34072 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1753624AbeDSOHb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Apr 2018 10:07:31 -0400
+Date: Thu, 19 Apr 2018 16:07:29 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [RFC][PATCH] s390: add arch_change_pid for arch updates after
+ task pid change
+Message-ID: <20180419140729.GA19917@redhat.com>
+References: <1524120286-19066-1-git-send-email-schwidefsky@de.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.21.1804191240510.1563@nanos.tec.linutronix.de>
-References: <CAK8P3a2CEK=4Os4gbnXbR7VJJgaXVQ7NLjihr7rvMSK6g3_tNA@mail.gmail.com>
- <alpine.DEB.2.21.1804191240510.1563@nanos.tec.linutronix.de>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 19 Apr 2018 14:04:40 +0200
-Message-ID: <CAK8P3a28Ke-_tjggf2FvO+vsPs3BcoNUbPBNj+xnKXb5FkomyQ@mail.gmail.com>
-Subject: Re: [tip GIT PULL] y2038: timekeeping syscall changes
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1524120286-19066-1-git-send-email-schwidefsky@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20180419120440.XaUTY-Zle8mtSdy0jolngPmBlso-DIZfMcYVfr-uB9g@z>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Thu, Apr 19, 2018 at 12:48 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+On 04/19, Martin Schwidefsky wrote:
 >
-> Can you please fix that and send me an updated pull request?
+> In a multi-threaded program any thread can call execve(). If this
+> is not done by the thread group leader, the de_thread() function
+> replaces the pid of the task that calls execve() with the pid of
+> thread group leader. If the task reaches user space again without
+> going over __switch_to() the sampling tag is still set to the old
+> pid.
 
-Done. I sent a v2 pull request now as a separate thread. I still messed
-up the URL but replied with the correct one and figured out how to
-get that all automatically now.
+If this is the only reason for arch_change_pid() hook, then perhaps
+it would be better/simpler to add it into de_thread() right after
+change_pid(tsk, PIDTYPE_PID, task_pid(leader)) ?
 
-       Arnd
+note also that this way arch_change_pid() doesn't need any checks and
+any arguments, you can simply do
+
+void arch_change_pid(void)
+{
+	S390_lowcore.current_pid = current->pid;
+	if (test_facility(40))
+		lpp(&S390_lowcore.lpp);
+}
+
+Oleg.
