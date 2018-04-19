@@ -1,145 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35828 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751228AbeDSK65 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Apr 2018 06:58:57 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 1/6] thread_info: Add update_thread_flag() helpers
-Date: Thu, 19 Apr 2018 11:58:43 +0100
-Message-ID: <1524135528-28561-2-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1524135528-28561-1-git-send-email-Dave.Martin@arm.com>
-References: <1524135528-28561-1-git-send-email-Dave.Martin@arm.com>
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:33983 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751840AbeDSLpJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 07:45:09 -0400
+MIME-Version: 1.0
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 19 Apr 2018 13:45:07 +0200
+Message-ID: <CAK8P3a0-n-Qabdr+5hwjq8wa9nZHtFwcE32WsW8ZTbKjtpiBUQ@mail.gmail.com>
+Subject: [tip GIT PULL v2] y2038: timekeeping syscall changes
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20180419105843.h8tYyeLzHGcVP9wIKdopWYBKtNToteBRTqnpZh3hmps@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20180419114507.9orbPHLNyh97G14iknnynxyOkTGjvc7hWn6z3FG5AM4@z>
 
-There are a number of bits of code sprinkled around the kernel to
-set a thread flag if a certain condition is true, and clear it
-otherwise.
+The following changes since commit 60cc43fc888428bb2f18f08997432d426a243338:
 
-To help make those call sites terser and less cumbersome, this
-patch adds a new family of thread flag manipulators
+  Linux 4.17-rc1 (2018-04-15 18:24:20 -0700)
 
-	update*_thread_flag([...,] flag, cond)
+are available in the git repository at:
 
-which do the equivalent of:
+  git+ssh://gitolite@ra.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git
+tags/y2038-timekeeping
 
-	if (cond)
-		set*_thread_flag([...,] flag);
-	else
-		clear*_thread_flag([...,] flag);
+for you to fetch changes up to 01909974b41036a6a8d3907c66cc7b41c9a73da9:
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
----
+  time: Change nanosleep to safe __kernel_* types (2018-04-19 13:32:03 +0200)
 
-Note, this patch assumes C99 _Bool semantics where casting a value to
-_Bool is true is and only if the value compares != 0.  This would not
-be true if bool where a typedef of unsigned char for example.
+----------------------------------------------------------------
+y2038: timekeeping syscall changes
 
-It appears that the kernel has always used the C99 semantics for bool
-and relies on them elsewhere, so I don't believe this patch introduces
-a new dependency.
----
- include/linux/sched.h       |  6 ++++++
- include/linux/thread_info.h | 11 +++++++++++
- include/trace/syscall.h     |  6 ++----
- kernel/ptrace.c             | 13 +++++--------
- 4 files changed, 24 insertions(+), 12 deletions(-)
+This is the first set of system call entry point changes to enable 32-bit
+architectures to have variants on both 32-bit and 64-bit time_t. Typically
+these system calls take a 'struct timespec' argument, but that structure
+is defined in user space by the C library and its layout will change.
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index b3d697f..c2c3051 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1578,6 +1578,12 @@ static inline void clear_tsk_thread_flag(struct task_struct *tsk, int flag)
- 	clear_ti_thread_flag(task_thread_info(tsk), flag);
- }
- 
-+static inline void update_tsk_thread_flag(struct task_struct *tsk, int flag,
-+					  bool value)
-+{
-+	update_ti_thread_flag(task_thread_info(tsk), flag, value);
-+}
-+
- static inline int test_and_set_tsk_thread_flag(struct task_struct *tsk, int flag)
- {
- 	return test_and_set_ti_thread_flag(task_thread_info(tsk), flag);
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index 34f053a..efd5ec4 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -64,6 +64,15 @@ static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
- 	clear_bit(flag, (unsigned long *)&ti->flags);
- }
- 
-+static inline void update_ti_thread_flag(struct thread_info *ti, int flag,
-+					 bool value)
-+{
-+	if (value)
-+		set_ti_thread_flag(ti, flag);
-+	else
-+		clear_ti_thread_flag(ti, flag);
-+}
-+
- static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
- {
- 	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
-@@ -83,6 +92,8 @@ static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
- 	set_ti_thread_flag(current_thread_info(), flag)
- #define clear_thread_flag(flag) \
- 	clear_ti_thread_flag(current_thread_info(), flag)
-+#define update_thread_flag(flag, value) \
-+	update_ti_thread_flag(current_thread_info(), flag, value)
- #define test_and_set_thread_flag(flag) \
- 	test_and_set_ti_thread_flag(current_thread_info(), flag)
- #define test_and_clear_thread_flag(flag) \
-diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-index dc8ac27..dcc9bdf 100644
---- a/include/trace/syscall.h
-+++ b/include/trace/syscall.h
-@@ -37,10 +37,8 @@ struct syscall_metadata {
- #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
- static inline void syscall_tracepoint_update(struct task_struct *p)
- {
--	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
--		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
--	else
--		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-+	update_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT,
-+			       test_thread_flag(TIF_SYSCALL_TRACEPOINT));
- }
- #else
- static inline void syscall_tracepoint_update(struct task_struct *p)
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 21fec73..7a2bd8d 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -785,16 +785,13 @@ static int ptrace_resume(struct task_struct *child, long request,
- 	if (!valid_signal(data))
- 		return -EIO;
- 
--	if (request == PTRACE_SYSCALL)
--		set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--	else
--		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-+	update_tsk_thread_flag(child, TIF_SYSCALL_TRACE,
-+			       request == PTRACE_SYSCALL);
- 
- #ifdef TIF_SYSCALL_EMU
--	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
--		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
--	else
--		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-+	update_tsk_thread_flag(child, TIF_SYSCALL_EMU,
-+			       request == PTRACE_SYSEMU ||
-+			       request == PTRACE_SYSEMU_SINGLESTEP);
- #endif
- 
- 	if (is_singleblock(request)) {
--- 
-2.1.4
+The kernel already supports handling the 32-bit time_t on 64-bit
+architectures through the CONFIG_COMPAT mechanism. As there are a total
+of 51 system calls suffering from this problem, reusing that mechanism
+on 32-bit architectures.
+
+We already have patches for most of the remaining system calls, but this
+set contains most of the complexity and is best tested.  There was one
+last-minute regression that prevented it from going into 4.17, but that
+is fixed now.
+
+More details from Deepa's patch series description:
+
+   Big picture is as per the lwn article:
+   https://lwn.net/Articles/643234/ [2]
+
+   The series is directed at converting posix clock syscalls:
+   clock_gettime, clock_settime, clock_getres and clock_nanosleep
+   to use a new data structure __kernel_timespec at syscall boundaries.
+   __kernel_timespec maintains 64 bit time_t across all execution modes.
+
+   vdso will be handled as part of each architecture when they enable
+   support for 64 bit time_t.
+
+   The compat syscalls are repurposed to provide backward compatibility
+   by using them as native syscalls as well for 32 bit architectures.
+   They will continue to use timespec at syscall boundaries.
+
+   CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
+   or timespec at syscall boundaries.
+
+   The series does the following:
+   1. Enable compat syscalls on 32 bit architectures.
+   2. Add a new __kernel_timespec type to be used as the data structure
+      for all the new syscalls.
+   3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
+      [1] and [2] to switch to new definition of __kernel_timespec. It is
+      the same as struct timespec otherwise.
+   4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
+
+----------------------------------------------------------------
+v2: rewrote subject lines as suggested by Thomas, the contents
+      are unchanged. I Hope I understood all the requests right.
+
+Arnd Bergmann (2):
+      time: Add an asm-generic/compat.h file
+      sparc: compat: Allow including asm/compat.h for 32-bit
+
+Deepa Dinamani (10):
+      compat: Make compat helpers independent of CONFIG_COMPAT
+      compat: Move compat_timespec/ timeval to compat_time.h
+      compat: Enable compat_get/put_timespec64 always
+      time: Introduce CONFIG_64BIT_TIME in architectures
+      time: Introduce CONFIG_COMPAT_32BIT_TIME
+      posix-timers: Make compat syscalls depend on CONFIG_COMPAT_32BIT_TIME
+      time: Add new y2038 safe __kernel_timespec
+      time: Fix get_timespec64() for y2038 safe compat interfaces
+      time: Change types to new y2038 safe __kernel_* types
+      time: Change nanosleep to safe __kernel_* types
+
+ arch/Kconfig                           | 15 +++++++++
+ arch/alpha/include/asm/Kbuild          |  1 +
+ arch/arc/include/asm/Kbuild            |  1 +
+ arch/arm/include/asm/Kbuild            |  1 +
+ arch/arm64/include/asm/compat.h        | 11 -------
+ arch/arm64/include/asm/stat.h          |  1 +
+ arch/arm64/kernel/hw_breakpoint.c      |  1 -
+ arch/arm64/kernel/perf_regs.c          |  2 +-
+ arch/c6x/include/asm/Kbuild            |  1 +
+ arch/h8300/include/asm/Kbuild          |  1 +
+ arch/hexagon/include/asm/Kbuild        |  1 +
+ arch/ia64/include/asm/Kbuild           |  1 +
+ arch/m68k/include/asm/Kbuild           |  1 +
+ arch/microblaze/include/asm/Kbuild     |  1 +
+ arch/mips/include/asm/compat.h         | 11 -------
+ arch/mips/kernel/signal32.c            |  2 +-
+ arch/nds32/include/asm/Kbuild          |  1 +
+ arch/nios2/include/asm/Kbuild          |  1 +
+ arch/openrisc/include/asm/Kbuild       |  1 +
+ arch/parisc/include/asm/compat.h       | 11 -------
+ arch/powerpc/include/asm/compat.h      | 11 -------
+ arch/powerpc/kernel/asm-offsets.c      |  2 +-
+ arch/powerpc/oprofile/backtrace.c      |  1 +
+ arch/s390/hypfs/hypfs_sprp.c           |  1 -
+ arch/s390/include/asm/compat.h         | 11 -------
+ arch/s390/include/asm/elf.h            |  4 +--
+ arch/s390/kvm/priv.c                   |  1 -
+ arch/s390/pci/pci_clp.c                |  1 -
+ arch/sh/include/asm/Kbuild             |  1 +
+ arch/sparc/include/asm/compat.h        | 15 +++------
+ arch/um/include/asm/Kbuild             |  1 +
+ arch/unicore32/include/asm/Kbuild      |  1 +
+ arch/x86/events/core.c                 |  2 +-
+ arch/x86/include/asm/compat.h          | 11 -------
+ arch/x86/include/asm/ftrace.h          |  2 +-
+ arch/x86/kernel/sys_x86_64.c           |  2 +-
+ arch/xtensa/include/asm/Kbuild         |  1 +
+ drivers/s390/block/dasd_ioctl.c        |  1 -
+ drivers/s390/char/fs3270.c             |  1 -
+ drivers/s390/char/sclp_ctl.c           |  1 -
+ drivers/s390/char/vmcp.c               |  1 -
+ drivers/s390/cio/chsc_sch.c            |  1 -
+ drivers/s390/net/qeth_core_main.c      |  2 +-
+ include/asm-generic/compat.h           |  3 ++
+ include/linux/compat.h                 | 12 ++++---
+ include/linux/compat_time.h            | 23 ++++++++++++++
+ include/linux/restart_block.h          |  7 ++--
+ include/linux/syscalls.h               | 13 ++++----
+ include/linux/time.h                   |  4 +--
+ include/linux/time64.h                 | 10 +++++-
+ include/uapi/asm-generic/posix_types.h |  1 +
+ include/uapi/linux/time.h              |  7 ++++
+ kernel/compat.c                        | 52 +++++-------------------------
+ kernel/time/hrtimer.c                  | 10 ++++--
+ kernel/time/posix-stubs.c              | 12 ++++---
+ kernel/time/posix-timers.c             | 24 ++++++++++----
+ kernel/time/time.c                     | 58 +++++++++++++++++++++++++++++++---
+ 57 files changed, 201 insertions(+), 176 deletions(-)
+ create mode 100644 include/asm-generic/compat.h
+ create mode 100644 include/linux/compat_time.h
