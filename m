@@ -1,117 +1,150 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 0/3] Dealing with the aliases of SI_USER
-Date: Thu, 19 Apr 2018 10:28:40 +0100
-Message-ID: <20180419092840.GL16308@e103592.cambridge.arm.com>
-References: <20180413094211.GN16141@n2100.armlinux.org.uk>
- <CA+55aFwoThxqUeAZSsMhf--ODyhGkmOENH5R6=4+CuaopFx9eA@mail.gmail.com>
- <20180413170827.GB16308@e103592.cambridge.arm.com>
- <20180413175407.GO16141@n2100.armlinux.org.uk>
- <CA+55aFyya6B9_aq8ZSrZT-S-BGbpbDgFvDff5z8upDirpcoiHA@mail.gmail.com>
- <20180413184522.GD16308@e103592.cambridge.arm.com>
- <CA+55aFwMUQbALx60b3JDrTcWVSBS7imS+zCYEMz8NOs=6rE6+A@mail.gmail.com>
- <20180415131206.GR16141@n2100.armlinux.org.uk>
- <87604sa2fu.fsf_-_@xmission.com>
- <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [tip GIT PULL] y2038: timekeeping syscall changes
+Date: Thu, 19 Apr 2018 11:35:33 +0200
+Message-ID: <CAK8P3a2CEK=4Os4gbnXbR7VJJgaXVQ7NLjihr7rvMSK6g3_tNA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFw1gmfFH1o+oWMo4TnU5hEczAOiY1g=eMxqYZmy9JqDYw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Dmitry V. Levin" <ldv@altlinux.org>, sparclinux <sparclinux@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 15, 2018 at 11:16:04AM -0700, Linus Torvalds wrote:
+The following changes since commit 60cc43fc888428bb2f18f08997432d426a243338:
 
-[...]
+  Linux 4.17-rc1 (2018-04-15 18:24:20 -0700)
 
-> The other thing we should do is to get rid of the stupid padding.
-> Right now "struct siginfo" is pointlessly padded to 128 bytes. That is
-> completely insane, when it's always just zero in the kernel.
+are available in the git repository at:
 
-Agreed, inside the kernel the padding achieves nothing.
+  git+ssh://gitolite@ra.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git
+tags/y2038-timekeeping
 
-> So put that _pad[] thing inside #ifndef __KERNEL__, and make
-> copy_siginfo_to_user() write the padding zeroes when copying to user
-> space. The reason for the padding is "future expansion", so we do want
-> to tell the user space that it's maybe up to 128 bytes in size, but if
-> we don't fill it all, we shouldn't waste time and memory on clearing
-> the padding internally.
-> 
-> I'm certainly *hoping* nobody depends on the whole 128 bytes in
-> rt_sigqueueinfo(). In theory you can fill it all (as long as si_code
-> is negative), but the man-page only says "si_value", and the compat
-> function doesn't copy any more than that either, so any user that
-> tries to fill in more than si_value is already broken. In fact, it
-> might even be worth enforcing that in rt_sigqueueinfo(), just to see
-> if anybody plays any games..
+for you to fetch changes up to 2e294d2c97d6683fcdf1134d87be1c461dff8ffd:
 
-[...]
+  nanosleep: change time types to safe __kernel_* types (2018-04-19
+10:07:58 +0200)
 
-Digression:
+----------------------------------------------------------------
+y2038: timekeeping syscall changes
 
-Since we don't traditionally zero the tail-padding in the user sigframe,
-is there a reliable way for userspace to detect newly-added fields in
-siginfo other than by having an explicit sigaction sa_flags flag to
-request them?  I imagine something like [1] below from the userspace
-perspective.
+This is the first set of system call entry point changes to enable 32-bit
+architectures to have variants on both 32-bit and 64-bit time_t. Typically
+these system calls take a 'struct timespec' argument, but that structure
+is defined in user space by the C library and its layout will change.
 
-On a separate thread, the issue of how to report syndrome information
-for SIGSEGV came up [2] (such as whether the faulting instruction was a
-read or a write).  This information is useful (and used) by things like
-userspace sanitisers and qemu.  Currently, reporting this to userspace
-relies on arch-specific cruft in the sigframe.
+The kernel already supports handling the 32-bit time_t on 64-bit
+architectures through the CONFIG_COMPAT mechanism. As there are a total
+of 51 system calls suffering from this problem, reusing that mechanism
+on 32-bit architectures.
 
-We're committed to maintaining what's already in each arch sigframe,
-but it would be preferable to have a portable way of adding information
-to siginfo in a generic way.  si_code doesn't really work for that,
-since si_codes are mutually exclusive: I can't see a way of adding
-supplementary information using si_code.
+We already have patches for most of the remaining system calls, but this
+set contains most of the complexity and is best tested.  There was one
+last-minute regression that prevented it from going into 4.17, but that
+is fixed now.
 
-Anyway, that would be a separate RFC in the future (if ever).
+More details from Deepa's patch series description:
 
-Cheers
----Dave
+   Big picture is as per the lwn article:
+   https://lwn.net/Articles/643234/ [2]
 
+   The series is directed at converting posix clock syscalls:
+   clock_gettime, clock_settime, clock_getres and clock_nanosleep
+   to use a new data structure __kernel_timespec at syscall boundaries.
+   __kernel_timespec maintains 64 bit time_t across all execution modes.
 
-[1]
+   vdso will be handled as part of each architecture when they enable
+   support for 64 bit time_t.
 
-static volatile int have_extflags = 0;
+   The compat syscalls are repurposed to provide backward compatibility
+   by using them as native syscalls as well for 32 bit architectures.
+   They will continue to use timespec at syscall boundaries.
 
-static void handler(int n, siginfo_t *si, void *uc)
-{
-	/* ... */
+   CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
+   or timespec at syscall boundaries.
 
-	if (have_extflags) {
-		/* Check si->si_extflags */
-	} else {
-		/* fallback */
-	}
+   The series does the following:
+   1. Enable compat syscalls on 32 bit architectures.
+   2. Add a new __kernel_timespec type to be used as the data structure
+      for all the new syscalls.
+   3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
+      [1] and [2] to switch to new definition of __kernel_timespec. It is
+      the same as struct timespec otherwise.
+   4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
 
-	/* ... */
-}
+----------------------------------------------------------------
+Arnd Bergmann (2):
+      compat: add an asm-generic/compat.h file
+      sparc: compat: allow including asm/compat.h for 32-bit
 
-int main(void)
-{
-	/* ... */
+Deepa Dinamani (10):
+      compat: Make compat helpers independent of CONFIG_COMPAT
+      include: Move compat_timespec/ timeval to compat_time.h
+      compat: enable compat_get/put_timespec64 always
+      arch: introduce CONFIG_64BIT_TIME
+      arch: Introduce CONFIG_COMPAT_32BIT_TIME
+      posix-clocks: Make compat syscalls depend on CONFIG_COMPAT_32BIT_TIME
+      include: Add new y2038 safe __kernel_timespec
+      fix get_timespec64() for y2038 safe compat interfaces
+      change time types to new y2038 safe __kernel_* types
+      nanosleep: change time types to safe __kernel_* types
 
-	struct sigaction sa;
-
-	/* ... */
-
-	sa.sa_flags = SA_SIGINFO | SA_SIGINFO_EXTFLAGS;
-	sa.sa_sigaction = handler;
-	if (!sigaction(SIGSEGV, &sa, NULL)) {
-		have_extflags = 1;
-	} else {
-		sa.sa_flags &= ~SA_SIGINFO_EXTFLAGS;
-		if (sigaction(SIGSEGV, &sa, NULL))
-			goto error;
-	}
-
-	/* ... */
-}
-
-[2] [RFC PATCH] arm64: fault: Don't leak data in ESR context for user fault on kernel VA
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-April/571428.html
+ arch/Kconfig                           | 15 +++++++++
+ arch/alpha/include/asm/Kbuild          |  1 +
+ arch/arc/include/asm/Kbuild            |  1 +
+ arch/arm/include/asm/Kbuild            |  1 +
+ arch/arm64/include/asm/compat.h        | 11 -------
+ arch/arm64/include/asm/stat.h          |  1 +
+ arch/arm64/kernel/hw_breakpoint.c      |  1 -
+ arch/arm64/kernel/perf_regs.c          |  2 +-
+ arch/c6x/include/asm/Kbuild            |  1 +
+ arch/h8300/include/asm/Kbuild          |  1 +
+ arch/hexagon/include/asm/Kbuild        |  1 +
+ arch/ia64/include/asm/Kbuild           |  1 +
+ arch/m68k/include/asm/Kbuild           |  1 +
+ arch/microblaze/include/asm/Kbuild     |  1 +
+ arch/mips/include/asm/compat.h         | 11 -------
+ arch/mips/kernel/signal32.c            |  2 +-
+ arch/nds32/include/asm/Kbuild          |  1 +
+ arch/nios2/include/asm/Kbuild          |  1 +
+ arch/openrisc/include/asm/Kbuild       |  1 +
+ arch/parisc/include/asm/compat.h       | 11 -------
+ arch/powerpc/include/asm/compat.h      | 11 -------
+ arch/powerpc/kernel/asm-offsets.c      |  2 +-
+ arch/powerpc/oprofile/backtrace.c      |  1 +
+ arch/s390/hypfs/hypfs_sprp.c           |  1 -
+ arch/s390/include/asm/compat.h         | 11 -------
+ arch/s390/include/asm/elf.h            |  4 +--
+ arch/s390/kvm/priv.c                   |  1 -
+ arch/s390/pci/pci_clp.c                |  1 -
+ arch/sh/include/asm/Kbuild             |  1 +
+ arch/sparc/include/asm/compat.h        | 15 +++------
+ arch/um/include/asm/Kbuild             |  1 +
+ arch/unicore32/include/asm/Kbuild      |  1 +
+ arch/x86/events/core.c                 |  2 +-
+ arch/x86/include/asm/compat.h          | 11 -------
+ arch/x86/include/asm/ftrace.h          |  2 +-
+ arch/x86/kernel/sys_x86_64.c           |  2 +-
+ arch/xtensa/include/asm/Kbuild         |  1 +
+ drivers/s390/block/dasd_ioctl.c        |  1 -
+ drivers/s390/char/fs3270.c             |  1 -
+ drivers/s390/char/sclp_ctl.c           |  1 -
+ drivers/s390/char/vmcp.c               |  1 -
+ drivers/s390/cio/chsc_sch.c            |  1 -
+ drivers/s390/net/qeth_core_main.c      |  2 +-
+ include/asm-generic/compat.h           |  3 ++
+ include/linux/compat.h                 | 12 ++++---
+ include/linux/compat_time.h            | 23 ++++++++++++++
+ include/linux/restart_block.h          |  7 ++--
+ include/linux/syscalls.h               | 13 ++++----
+ include/linux/time.h                   |  4 +--
+ include/linux/time64.h                 | 10 +++++-
+ include/uapi/asm-generic/posix_types.h |  1 +
+ include/uapi/linux/time.h              |  7 ++++
+ kernel/compat.c                        | 52 +++++-------------------------
+ kernel/time/hrtimer.c                  | 10 ++++--
+ kernel/time/posix-stubs.c              | 12 ++++---
+ kernel/time/posix-timers.c             | 24 ++++++++++----
+ kernel/time/time.c                     | 58 +++++++++++++++++++++++++++++++---
+ 57 files changed, 201 insertions(+), 176 deletions(-)
+ create mode 100644 include/asm-generic/compat.h
+ create mode 100644 include/linux/compat_time.h
