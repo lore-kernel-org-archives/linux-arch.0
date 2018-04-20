@@ -1,93 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f67.google.com ([209.85.160.67]:35383 "EHLO
-        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753980AbeDTHem (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 03:34:42 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/4] kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if enabled
-Date: Fri, 20 Apr 2018 17:34:13 +1000
-Message-ID: <20180420073414.23169-4-npiggin@gmail.com>
-In-Reply-To: <20180420073414.23169-1-npiggin@gmail.com>
-References: <20180420073414.23169-1-npiggin@gmail.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43592 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753772AbeDTHyT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Apr 2018 03:54:19 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3K7nX51092853
+        for <linux-arch@vger.kernel.org>; Fri, 20 Apr 2018 03:54:19 -0400
+Received: from e06smtp14.uk.ibm.com (e06smtp14.uk.ibm.com [195.75.94.110])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2hfafxck8s-1
+        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 20 Apr 2018 03:54:18 -0400
+Received: from localhost
+        by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Fri, 20 Apr 2018 08:54:16 +0100
+Date: Fri, 20 Apr 2018 09:54:07 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH v3 04/17] y2038: s390: Remove unneeded ipc uapi header
+ files
+References: <20180419143737.606138-1-arnd@arndb.de>
+ <20180419143737.606138-5-arnd@arndb.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180419143737.606138-5-arnd@arndb.de>
+Message-ID: <20180420075407.GA7119@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Christophe Leroy <christophe.leroy@c-s.fr>, Nicolas Pitre <nico@fluxnic.net>
-Message-ID: <20180420073413.-APPk0O8RFwRTR4JuP_H8xbVCfZWNHn4fe-wiNHlLDU@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org
+Message-ID: <20180420075407.4yUl0pU28XUyV-LLNcZqS_xXUrPYmY2GIGXpkJ0k_VE@z>
 
-Architectures that are capable can select
-HAVE_LD_DEAD_CODE_DATA_ELIMINATION to enable selection of that
-option (as an EXPERT kernel option).
+On Thu, Apr 19, 2018 at 04:37:24PM +0200, Arnd Bergmann wrote:
+> The s390 msgbuf/sembuf/shmbuf header files are all identical to the
+> version from asm-generic.
+> 
+> This patch removes the files and replaces them with 'generic-y'
+> statements, to avoid having to modify each copy when we extend sysvipc
+> to deal with 64-bit time_t in 32-bit user space.
+> 
+> Note that unlike alpha and ia64, the ipcbuf.h header file is slightly
+> different here, so I'm leaving the private copy.
+> 
+> To deal with 32-bit compat tasks, we also have to adapt the definitions
+> of compat_{shm,sem,msg}id_ds to match the changes to the respective
+> asm-generic files.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  arch/s390/include/asm/compat.h      | 32 ++++++++++++------------
+>  arch/s390/include/uapi/asm/Kbuild   |  3 +++
+>  arch/s390/include/uapi/asm/msgbuf.h | 38 ----------------------------
+>  arch/s390/include/uapi/asm/sembuf.h | 30 -----------------------
+>  arch/s390/include/uapi/asm/shmbuf.h | 49 -------------------------------------
+>  5 files changed, 19 insertions(+), 133 deletions(-)
+>  delete mode 100644 arch/s390/include/uapi/asm/msgbuf.h
+>  delete mode 100644 arch/s390/include/uapi/asm/sembuf.h
+>  delete mode 100644 arch/s390/include/uapi/asm/shmbuf.h
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/Kconfig | 15 ---------------
- init/Kconfig | 27 +++++++++++++++++++++++++++
- 2 files changed, 27 insertions(+), 15 deletions(-)
+FWIW,
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 8e0d665c8d53..3234b73d4626 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -596,21 +596,6 @@ config CC_STACKPROTECTOR_AUTO
- 
- endchoice
- 
--config LD_DEAD_CODE_DATA_ELIMINATION
--	bool
--	help
--	  Select this if the architecture wants to do dead code and
--	  data elimination with the linker by compiling with
--	  -ffunction-sections -fdata-sections and linking with
--	  --gc-sections.
--
--	  This requires that the arch annotates or otherwise protects
--	  its external entry points from being discarded. Linker scripts
--	  must also merge .text.*, .data.*, and .bss.* correctly into
--	  output sections. Care must be taken not to pull in unrelated
--	  sections (e.g., '.text.init'). Typically '.' in section names
--	  is used to distinguish them from label names / C identifiers.
--
- config HAVE_ARCH_WITHIN_STACK_FRAMES
- 	bool
- 	help
-diff --git a/init/Kconfig b/init/Kconfig
-index f013afc74b11..1706d963766b 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1038,6 +1038,33 @@ config CC_OPTIMIZE_FOR_SIZE
- 
- endchoice
- 
-+config HAVE_LD_DEAD_CODE_DATA_ELIMINATION
-+	bool
-+	help
-+	  This requires that the arch annotates or otherwise protects
-+	  its external entry points from being discarded. Linker scripts
-+	  must also merge .text.*, .data.*, and .bss.* correctly into
-+	  output sections. Care must be taken not to pull in unrelated
-+	  sections (e.g., '.text.init'). Typically '.' in section names
-+	  is used to distinguish them from label names / C identifiers.
-+
-+config LD_DEAD_CODE_DATA_ELIMINATION
-+	bool "Dead code and data elimination (EXPERIMENTAL)"
-+	depends on HAVE_LD_DEAD_CODE_DATA_ELIMINATION
-+	depends on EXPERT
-+	help
-+	  Select this if the architecture wants to do dead code and
-+	  data elimination with the linker by compiling with
-+	  -ffunction-sections -fdata-sections, and linking with
-+	  --gc-sections.
-+
-+	  This can reduce on disk and in-memory size of the kernel
-+	  code and static data, particularly for small configs and
-+	  on small systems. This has the possibility of introducing
-+	  silently broken kernel if the required annotations are not
-+	  present. This option is not well tested yet, so use at your
-+	  own risk.
-+
- config SYSCTL
- 	bool
- 
--- 
-2.17.0
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
