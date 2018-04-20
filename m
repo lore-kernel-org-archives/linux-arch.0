@@ -1,76 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:50406 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753761AbeDTBMI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:12:08 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:35746 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753825AbeDTBGp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:06:45 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:04:03 -0500
-Message-ID: <20180420010408.24438-12-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:03:54 -0500
+Message-ID: <20180420010408.24438-3-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 12/17] signal/ia64: Replace FPE_FIXME with FPE_FLTUNK
+Subject: [REVIEW][PATCH 03/17] signal/sh: Use force_sig_fault in hw_breakpoint_handler
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20180420010403.WwUd8iZQOacbxHTqmXqlPnocymSFdCAf6doufwD3tkM@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Message-ID: <20180420010354.mNOfalS9hfN_E0QYYtLO1LoiKk7ML_iOkPr8H0POK8w@z>
 
-Using an si_code of 0 that aliases with SI_USER is clearly the wrong
-thing todo, and causes problems in interesting ways.
+The call chain is:
+breakpoint
+  notify_die
+    hw_breakpoint_exceptions_notify
+      hw_breakpoint_handler
 
-The newly defined FPE_FLTUNK semantically appears to fit the bill so
-use it instead.
+So the signal number can only be SIGTRAP.
 
-Given recent experience in this area odds are it will not
-break anything.  Fixing it removes a hazard to kernel maintenance.
+In hw_breakpoint_handler rc is either NOTIFY_STOP or NOTIF_DONE
+both of which notifier_to_errno converts to 0.  So si_errno is 0.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
-Fixes: 987159266c45 ("Linux version 2.3.48")
+Historically si_addr was left unitialized in struct siginfo which is a
+bug.  There appears to be no consensus among the various architectures
+which value should be in si_addr.  So since no usable value has
+been returned up to this point return NULL in si_addr.
+
+Fixes: 4352fc1b12fa ("sh: Abstracted SH-4A UBC support on hw-breakpoint core.")
+Fixes: 34d0b5af50a0 ("sh: Convert ptrace to hw_breakpoint API.")
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-sh@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/ia64/include/uapi/asm/siginfo.h | 7 -------
- arch/ia64/kernel/traps.c             | 4 ++--
- 2 files changed, 2 insertions(+), 9 deletions(-)
+ arch/sh/kernel/hw_breakpoint.c | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
 
-diff --git a/arch/ia64/include/uapi/asm/siginfo.h b/arch/ia64/include/uapi/asm/siginfo.h
-index 5aa454ed89db..52b5af424511 100644
---- a/arch/ia64/include/uapi/asm/siginfo.h
-+++ b/arch/ia64/include/uapi/asm/siginfo.h
-@@ -27,11 +27,4 @@
- #define __ISR_VALID_BIT	0
- #define __ISR_VALID	(1 << __ISR_VALID_BIT)
+diff --git a/arch/sh/kernel/hw_breakpoint.c b/arch/sh/kernel/hw_breakpoint.c
+index afe965712a69..8648ed05ccf0 100644
+--- a/arch/sh/kernel/hw_breakpoint.c
++++ b/arch/sh/kernel/hw_breakpoint.c
+@@ -347,13 +347,8 @@ static int __kprobes hw_breakpoint_handler(struct die_args *args)
  
--/*
-- * SIGFPE si_codes
-- */
--#ifdef __KERNEL__
--#define FPE_FIXME	0	/* Broken dup of SI_USER */
--#endif /* __KERNEL__ */
+ 		/* Deliver the signal to userspace */
+ 		if (!arch_check_bp_in_kernelspace(bp)) {
+-			siginfo_t info;
 -
- #endif /* _UAPI_ASM_IA64_SIGINFO_H */
-diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
-index 972873ed1ae5..c6f4932073a1 100644
---- a/arch/ia64/kernel/traps.c
-+++ b/arch/ia64/kernel/traps.c
-@@ -353,7 +353,7 @@ handle_fpu_swa (int fp_fault, struct pt_regs *regs, unsigned long isr)
- 			clear_siginfo(&siginfo);
- 			siginfo.si_signo = SIGFPE;
- 			siginfo.si_errno = 0;
--			siginfo.si_code = FPE_FIXME;	/* default code */
-+			siginfo.si_code = FPE_FLTUNK;	/* default code */
- 			siginfo.si_addr = (void __user *) (regs->cr_iip + ia64_psr(regs)->ri);
- 			if (isr & 0x11) {
- 				siginfo.si_code = FPE_FLTINV;
-@@ -380,7 +380,7 @@ handle_fpu_swa (int fp_fault, struct pt_regs *regs, unsigned long isr)
- 			clear_siginfo(&siginfo);
- 			siginfo.si_signo = SIGFPE;
- 			siginfo.si_errno = 0;
--			siginfo.si_code = FPE_FIXME;	/* default code */
-+			siginfo.si_code = FPE_FLTUNK;	/* default code */
- 			siginfo.si_addr = (void __user *) (regs->cr_iip + ia64_psr(regs)->ri);
- 			if (isr & 0x880) {
- 				siginfo.si_code = FPE_FLTOVF;
+-			info.si_signo = args->signr;
+-			info.si_errno = notifier_to_errno(rc);
+-			info.si_code = TRAP_HWBKPT;
+-
+-			force_sig_info(args->signr, &info, current);
++			force_sig_fault(SIGTRAP, TRAP_HWBKPT,
++					(void __user *)NULL, current);
+ 		}
+ 
+ 		rcu_read_unlock();
 -- 
 2.14.1
