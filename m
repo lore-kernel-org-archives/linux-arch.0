@@ -1,263 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:40468 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754194AbeDTIEk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:40 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 14/22] nios2: use generic dma_noncoherent_ops
-Date: Fri, 20 Apr 2018 10:03:05 +0200
-Message-ID: <20180420080313.18796-15-hch@lst.de>
-In-Reply-To: <20180420080313.18796-1-hch@lst.de>
-References: <20180420080313.18796-1-hch@lst.de>
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:35888 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754307AbeDTIy1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:54:27 -0400
+MIME-Version: 1.0
+In-Reply-To: <87k1t2n8v5.fsf@xmission.com>
+References: <20180419143737.606138-1-arnd@arndb.de> <20180419143737.606138-2-arnd@arndb.de>
+ <87efjbnswr.fsf@xmission.com> <CAK8P3a196QYoM1egagMuZw4WhiwRiO83Qpj0CxoCeVQBEaj-gw@mail.gmail.com>
+ <CAK8P3a2KR+0ZE5jHSmO6pSuiRPH83p75KetuQuHL1atChcTJGA@mail.gmail.com> <87k1t2n8v5.fsf@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 20 Apr 2018 10:54:25 +0200
+Message-ID: <CAK8P3a3qAoR1afmTTK1CAp1L81dzwtBL+SKj=QMqD=dBr_8oRQ@mail.gmail.com>
+Subject: Re: [PATCH v3 01/17] y2038: asm-generic: Extend sysvipc data structures
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
-Message-ID: <20180420080305.cV44fJPY-zOEOIIkV7i2gB-wjNey2NgPwHFvEHEVub0@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Albert ARIBAUD <albert.aribaud@3adev.fr>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, the arch/x86 maintainers <x86@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Jeffrey Walton <noloader@gmail.com>, Daniel Schepler <dschepler@gmail.com>, "H.J. Lu" <hjl.tools@gmail.com>, Adam Borowski <kilobyte@angband.pl>, tg@mirbsd.de, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Message-ID: <20180420085425.gEdx9nrwxgS0_jsX-6NJEeeSrmw8uH_fuXbqzP8pbqw@z>
 
-Switch to the generic noncoherent direct mapping implementation.
+On Fri, Apr 20, 2018 at 12:12 AM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+> Arnd Bergmann <arnd@arndb.de> writes:
+>
+>> On Thu, Apr 19, 2018 at 5:20 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>> On Thu, Apr 19, 2018 at 4:59 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
+>>>> I suspect you want to use __kernel_ulong_t here instead of a raw
+>>>> unsigned long.  If nothing else it seems inconsistent to use typedefs
+>>>> in one half of the structure and no typedefs in the other half.
+>>>
+>>> Good catch, there is definitely something wrong here, but I think using
+>>> __kernel_ulong_t for all members would also be wrong, as that
+>>> still changes the layout on x32, which effectively is
+>>>
+>>> struct msqid64_ds {
+>>>      ipc64_perm msg_perm;
+>>>      u64 msg_stime;
+>>>      u32 __unused1;
+>>>      /* 32 bit implict padding */
+>>>      u64 msg_rtime;
+>>>      u32 __unused2;
+>>>      /* 32 bit implict padding */
+>>>      u64 msg_ctime;
+>>>      u32 __unused3;
+>>>      /* 32 bit implict padding */
+>>>      __kernel_pid_t          shm_cpid;       /* pid of creator */
+>>>      __kernel_pid_t          shm_lpid;       /* pid of last operator */
+>>>      ....
+>>> };
+>>>
+>>> The choices here would be to either use a mix of
+>>> __kernel_ulong_t and unsigned long, or taking the x32
+>>> version back into arch/x86/include/uapi/asm/ so the
+>>> generic version at least makes some sense.
+>>>
+>>> I can't use __kernel_time_t for the lower half on 32-bit
+>>> since it really should be unsigned.
+>>
+>> After thinking about it some more, I conclude that the structure is simply
+>> incorrect on x32: The __kernel_ulong_t usage was introduced in 2013
+>> in commit b9cd5ca22d67 ("uapi: Use __kernel_ulong_t in struct
+>> msqid64_ds") and apparently was correct initially as __BITS_PER_LONG
+>> evaluated to 64, but it broke with commit f4b4aae18288 ("x86/headers/uapi:
+>> Fix __BITS_PER_LONG value for x32 builds") that changed the value
+>> of __BITS_PER_LONG and introduced the extra padding in 2015.
+>>
+>> The same change apparently also broke a lot of other definitions, e.g.
+>>
+>> $ echo "#include <linux/types.h>" | gcc -mx32 -E -xc - | grep -A3
+>> __kernel_size_t
+>> typedef unsigned int __kernel_size_t;
+>> typedef int __kernel_ssize_t;
+>> typedef int __kernel_ptrdiff_t;
+>>
+>> Those used to be defined as 'unsigned long long' and 'long long'
+>> respectively, so now all kernel interfaces using those on x32
+>> became incompatible!
+>
+> Is this just for the uapi header as seen by userspace?  I expect we are
+> using the a normal kernel interface with 64bit longs and 64bit pointers
+> when we build the kernel.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/nios2/Kconfig                   |   3 +
- arch/nios2/include/asm/Kbuild        |   1 +
- arch/nios2/include/asm/dma-mapping.h |  20 ----
- arch/nios2/mm/dma-mapping.c          | 139 +++------------------------
- 4 files changed, 17 insertions(+), 146 deletions(-)
- delete mode 100644 arch/nios2/include/asm/dma-mapping.h
+Yes, that patch shouldn't have changed anything in the kernel, which
+continues to be built with __BITS_PER_LONG=64. I haven't
+checked the vdso, which is the only bit of the kernel that gets built
+with -mx32, but I assume it's fine as well.
 
-diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
-index 3d4ec88f1db1..92035042cf62 100644
---- a/arch/nios2/Kconfig
-+++ b/arch/nios2/Kconfig
-@@ -1,6 +1,9 @@
- # SPDX-License-Identifier: GPL-2.0
- config NIOS2
- 	def_bool y
-+	select ARCH_HAS_SYNC_DMA_FOR_CPU
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
-+	select DMA_NONCOHERENT_OPS
- 	select TIMER_OF
- 	select GENERIC_ATOMIC64
- 	select GENERIC_CLOCKEVENTS
-diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
-index d232da2cbb38..24f6ee1ee69b 100644
---- a/arch/nios2/include/asm/Kbuild
-+++ b/arch/nios2/include/asm/Kbuild
-@@ -8,6 +8,7 @@ generic-y += current.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += dma.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/nios2/include/asm/dma-mapping.h b/arch/nios2/include/asm/dma-mapping.h
-deleted file mode 100644
-index 6ceb92251da0..000000000000
---- a/arch/nios2/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,20 +0,0 @@
--/*
-- * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-- * Copyright (C) 2009 Wind River Systems Inc
-- *
-- * This file is subject to the terms and conditions of the GNU General
-- * Public License.  See the file COPYING in the main directory of this
-- * archive for more details.
-- */
--
--#ifndef _ASM_NIOS2_DMA_MAPPING_H
--#define _ASM_NIOS2_DMA_MAPPING_H
--
--extern const struct dma_map_ops nios2_dma_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
--{
--	return &nios2_dma_ops;
--}
--
--#endif /* _ASM_NIOS2_DMA_MAPPING_H */
-diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
-index 4be815519dd4..4af9e5b5ba1c 100644
---- a/arch/nios2/mm/dma-mapping.c
-+++ b/arch/nios2/mm/dma-mapping.c
-@@ -12,18 +12,18 @@
- 
- #include <linux/types.h>
- #include <linux/mm.h>
--#include <linux/export.h>
- #include <linux/string.h>
--#include <linux/scatterlist.h>
- #include <linux/dma-mapping.h>
- #include <linux/io.h>
- #include <linux/cache.h>
- #include <asm/cacheflush.h>
- 
--static inline void __dma_sync_for_device(void *vaddr, size_t size,
--			      enum dma_data_direction direction)
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
- {
--	switch (direction) {
-+	void *vaddr = phys_to_virt(paddr);
-+
-+	switch (dir) {
- 	case DMA_FROM_DEVICE:
- 		invalidate_dcache_range((unsigned long)vaddr,
- 			(unsigned long)(vaddr + size));
-@@ -42,10 +42,12 @@ static inline void __dma_sync_for_device(void *vaddr, size_t size,
- 	}
- }
- 
--static inline void __dma_sync_for_cpu(void *vaddr, size_t size,
--			      enum dma_data_direction direction)
-+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
- {
--	switch (direction) {
-+	void *vaddr = phys_to_virt(paddr);
-+
-+	switch (dir) {
- 	case DMA_BIDIRECTIONAL:
- 	case DMA_FROM_DEVICE:
- 		invalidate_dcache_range((unsigned long)vaddr,
-@@ -58,8 +60,8 @@ static inline void __dma_sync_for_cpu(void *vaddr, size_t size,
- 	}
- }
- 
--static void *nios2_dma_alloc(struct device *dev, size_t size,
--		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
-+		gfp_t gfp, unsigned long attrs)
- {
- 	void *ret;
- 
-@@ -80,125 +82,10 @@ static void *nios2_dma_alloc(struct device *dev, size_t size,
- 	return ret;
- }
- 
--static void nios2_dma_free(struct device *dev, size_t size, void *vaddr,
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
- 		dma_addr_t dma_handle, unsigned long attrs)
- {
- 	unsigned long addr = (unsigned long) CAC_ADDR((unsigned long) vaddr);
- 
- 	free_pages(addr, get_order(size));
- }
--
--static int nios2_dma_map_sg(struct device *dev, struct scatterlist *sg,
--		int nents, enum dma_data_direction direction,
--		unsigned long attrs)
--{
--	int i;
--
--	for_each_sg(sg, sg, nents, i) {
--		void *addr = sg_virt(sg);
--
--		if (!addr)
--			continue;
--
--		sg->dma_address = sg_phys(sg);
--
--		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
--			continue;
--
--		__dma_sync_for_device(addr, sg->length, direction);
--	}
--
--	return nents;
--}
--
--static dma_addr_t nios2_dma_map_page(struct device *dev, struct page *page,
--			unsigned long offset, size_t size,
--			enum dma_data_direction direction,
--			unsigned long attrs)
--{
--	void *addr = page_address(page) + offset;
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		__dma_sync_for_device(addr, size, direction);
--
--	return page_to_phys(page) + offset;
--}
--
--static void nios2_dma_unmap_page(struct device *dev, dma_addr_t dma_address,
--		size_t size, enum dma_data_direction direction,
--		unsigned long attrs)
--{
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		__dma_sync_for_cpu(phys_to_virt(dma_address), size, direction);
--}
--
--static void nios2_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
--		int nhwentries, enum dma_data_direction direction,
--		unsigned long attrs)
--{
--	void *addr;
--	int i;
--
--	if (direction == DMA_TO_DEVICE)
--		return;
--
--	if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
--		return;
--
--	for_each_sg(sg, sg, nhwentries, i) {
--		addr = sg_virt(sg);
--		if (addr)
--			__dma_sync_for_cpu(addr, sg->length, direction);
--	}
--}
--
--static void nios2_dma_sync_single_for_cpu(struct device *dev,
--		dma_addr_t dma_handle, size_t size,
--		enum dma_data_direction direction)
--{
--	__dma_sync_for_cpu(phys_to_virt(dma_handle), size, direction);
--}
--
--static void nios2_dma_sync_single_for_device(struct device *dev,
--		dma_addr_t dma_handle, size_t size,
--		enum dma_data_direction direction)
--{
--	__dma_sync_for_device(phys_to_virt(dma_handle), size, direction);
--}
--
--static void nios2_dma_sync_sg_for_cpu(struct device *dev,
--		struct scatterlist *sg, int nelems,
--		enum dma_data_direction direction)
--{
--	int i;
--
--	/* Make sure that gcc doesn't leave the empty loop body.  */
--	for_each_sg(sg, sg, nelems, i)
--		__dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
--}
--
--static void nios2_dma_sync_sg_for_device(struct device *dev,
--		struct scatterlist *sg, int nelems,
--		enum dma_data_direction direction)
--{
--	int i;
--
--	/* Make sure that gcc doesn't leave the empty loop body.  */
--	for_each_sg(sg, sg, nelems, i)
--		__dma_sync_for_device(sg_virt(sg), sg->length, direction);
--
--}
--
--const struct dma_map_ops nios2_dma_ops = {
--	.alloc			= nios2_dma_alloc,
--	.free			= nios2_dma_free,
--	.map_page		= nios2_dma_map_page,
--	.unmap_page		= nios2_dma_unmap_page,
--	.map_sg			= nios2_dma_map_sg,
--	.unmap_sg		= nios2_dma_unmap_sg,
--	.sync_single_for_device	= nios2_dma_sync_single_for_device,
--	.sync_single_for_cpu	= nios2_dma_sync_single_for_cpu,
--	.sync_sg_for_cpu	= nios2_dma_sync_sg_for_cpu,
--	.sync_sg_for_device	= nios2_dma_sync_sg_for_device,
--};
--EXPORT_SYMBOL(nios2_dma_ops);
--- 
-2.17.0
+> If this is just a header as seen from userspace mess it seems
+> unfortunate but fixable.
+
+Right. I'll fix the IPC stuff for this series to make it work with
+any value of __BITS_PER_LONG on x32, but I don't plan to
+do anything about the rest of x32. The patch that caused the
+problem was intended as a bugfix, so we can't just revert it
+without first understanding how to properly fix the original bug,
+and which other interfaces have now come to rely on
+__BITS_PER_LONG=32 for x32.
+
+Adding a few other folks that have been involved in the x32
+kernel support or the Debian port in the past. Maybe one of
+them is motivated to figure out how to fix this properly.
+
+       Arnd
