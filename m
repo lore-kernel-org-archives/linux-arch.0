@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:46148 "EHLO
+Received: from out03.mta.xmission.com ([166.70.13.233]:46203 "EHLO
         out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755159AbeDTOkU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:40:20 -0400
+        with ESMTP id S1755160AbeDTOkm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:40:42 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:37:51 -0500
-Message-ID: <20180420143811.9994-2-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:37:54 -0500
+Message-ID: <20180420143811.9994-5-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 02/22] signal/alpha: Use force_sig_fault where appropriate
+Subject: [REVIEW][PATCH 05/22] signal/m68k: Use force_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha@vger.kernel.org
-Message-ID: <20180420143751.uwRBCLiKdmgWXPJonnYcAkxOtZUoQsecfOdcARtVSwc@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org
+Message-ID: <20180420143754.852O-Q94MDo_a47o7pentVyx7CfCnIXa_AHBNLtBqX4@z>
 
 Filling in struct siginfo before calling force_sig_info a tedious and
 error prone process, where once in a great while the wrong fields
@@ -27,76 +27,218 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: linux-alpha@vger.kernel.org
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/alpha/kernel/traps.c |  9 +--------
- arch/alpha/mm/fault.c     | 15 ++-------------
- 2 files changed, 3 insertions(+), 21 deletions(-)
+ arch/m68k/kernel/traps.c | 60 ++++++++++++++++++++----------------------------
+ arch/m68k/mm/fault.c     | 25 +++++++++-----------
+ 2 files changed, 36 insertions(+), 49 deletions(-)
 
-diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
-index 106a1692fca0..bc9627698796 100644
---- a/arch/alpha/kernel/traps.c
-+++ b/arch/alpha/kernel/traps.c
-@@ -400,16 +400,9 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- asmlinkage void
- do_entDbg(struct pt_regs *regs)
+diff --git a/arch/m68k/kernel/traps.c b/arch/m68k/kernel/traps.c
+index 0a00b476236d..b2fd000b9285 100644
+--- a/arch/m68k/kernel/traps.c
++++ b/arch/m68k/kernel/traps.c
+@@ -1007,11 +1007,10 @@ void bad_super_trap (struct frame *fp)
+ 
+ asmlinkage void trap_c(struct frame *fp)
+ {
+-	int sig;
++	int sig, si_code;
++	void __user *addr;
+ 	int vector = (fp->ptregs.vector >> 2) & 0xff;
+-	siginfo_t info;
+ 
+-	clear_siginfo(&info);
+ 	if (fp->ptregs.sr & PS_S) {
+ 		if (vector == VEC_TRACE) {
+ 			/* traced a trapping instruction on a 68020/30,
+@@ -1030,21 +1029,21 @@ asmlinkage void trap_c(struct frame *fp)
+ 	/* send the appropriate signal to the user program */
+ 	switch (vector) {
+ 	    case VEC_ADDRERR:
+-		info.si_code = BUS_ADRALN;
++		si_code = BUS_ADRALN;
+ 		sig = SIGBUS;
+ 		break;
+ 	    case VEC_ILLEGAL:
+ 	    case VEC_LINE10:
+ 	    case VEC_LINE11:
+-		info.si_code = ILL_ILLOPC;
++		si_code = ILL_ILLOPC;
+ 		sig = SIGILL;
+ 		break;
+ 	    case VEC_PRIV:
+-		info.si_code = ILL_PRVOPC;
++		si_code = ILL_PRVOPC;
+ 		sig = SIGILL;
+ 		break;
+ 	    case VEC_COPROC:
+-		info.si_code = ILL_COPROC;
++		si_code = ILL_COPROC;
+ 		sig = SIGILL;
+ 		break;
+ 	    case VEC_TRAP1:
+@@ -1061,76 +1060,74 @@ asmlinkage void trap_c(struct frame *fp)
+ 	    case VEC_TRAP12:
+ 	    case VEC_TRAP13:
+ 	    case VEC_TRAP14:
+-		info.si_code = ILL_ILLTRP;
++		si_code = ILL_ILLTRP;
+ 		sig = SIGILL;
+ 		break;
+ 	    case VEC_FPBRUC:
+ 	    case VEC_FPOE:
+ 	    case VEC_FPNAN:
+-		info.si_code = FPE_FLTINV;
++		si_code = FPE_FLTINV;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_FPIR:
+-		info.si_code = FPE_FLTRES;
++		si_code = FPE_FLTRES;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_FPDIVZ:
+-		info.si_code = FPE_FLTDIV;
++		si_code = FPE_FLTDIV;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_FPUNDER:
+-		info.si_code = FPE_FLTUND;
++		si_code = FPE_FLTUND;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_FPOVER:
+-		info.si_code = FPE_FLTOVF;
++		si_code = FPE_FLTOVF;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_ZERODIV:
+-		info.si_code = FPE_INTDIV;
++		si_code = FPE_INTDIV;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_CHK:
+ 	    case VEC_TRAP:
+-		info.si_code = FPE_INTOVF;
++		si_code = FPE_INTOVF;
+ 		sig = SIGFPE;
+ 		break;
+ 	    case VEC_TRACE:		/* ptrace single step */
+-		info.si_code = TRAP_TRACE;
++		si_code = TRAP_TRACE;
+ 		sig = SIGTRAP;
+ 		break;
+ 	    case VEC_TRAP15:		/* breakpoint */
+-		info.si_code = TRAP_BRKPT;
++		si_code = TRAP_BRKPT;
+ 		sig = SIGTRAP;
+ 		break;
+ 	    default:
+-		info.si_code = ILL_ILLOPC;
++		si_code = ILL_ILLOPC;
+ 		sig = SIGILL;
+ 		break;
+ 	}
+-	info.si_signo = sig;
+-	info.si_errno = 0;
+ 	switch (fp->ptregs.format) {
+ 	    default:
+-		info.si_addr = (void *) fp->ptregs.pc;
++		addr = (void __user *) fp->ptregs.pc;
+ 		break;
+ 	    case 2:
+-		info.si_addr = (void *) fp->un.fmt2.iaddr;
++		addr = (void __user *) fp->un.fmt2.iaddr;
+ 		break;
+ 	    case 7:
+-		info.si_addr = (void *) fp->un.fmt7.effaddr;
++		addr = (void __user *) fp->un.fmt7.effaddr;
+ 		break;
+ 	    case 9:
+-		info.si_addr = (void *) fp->un.fmt9.iaddr;
++		addr = (void __user *) fp->un.fmt9.iaddr;
+ 		break;
+ 	    case 10:
+-		info.si_addr = (void *) fp->un.fmta.daddr;
++		addr = (void __user *) fp->un.fmta.daddr;
+ 		break;
+ 	    case 11:
+-		info.si_addr = (void *) fp->un.fmtb.daddr;
++		addr = (void __user*) fp->un.fmtb.daddr;
+ 		break;
+ 	}
+-	force_sig_info (sig, &info, current);
++	force_sig_fault(sig, si_code, addr, current);
+ }
+ 
+ void die_if_kernel (char *str, struct pt_regs *fp, int nr)
+@@ -1162,13 +1159,6 @@ asmlinkage void fpsp040_die(void)
+ #ifdef CONFIG_M68KFPU_EMU
+ asmlinkage void fpemu_signal(int signal, int code, void *addr)
  {
 -	siginfo_t info;
 -
- 	die_if_kernel("Instruction fault", regs, 0, NULL);
- 
 -	clear_siginfo(&info);
--	info.si_signo = SIGILL;
+-	info.si_signo = signal;
 -	info.si_errno = 0;
--	info.si_code = ILL_ILLOPC;
--	info.si_addr = (void __user *) regs->pc;
--	force_sig_info(SIGILL, &info, current);
-+	force_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)regs->pc, 0, current);
+-	info.si_code = code;
+-	info.si_addr = addr;
+-	force_sig_info(signal, &info, current);
++	force_sig_fault(signal, code, addr, current);
  }
+ #endif
+diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
+index 03253c4f8e6a..f2ff3779875a 100644
+--- a/arch/m68k/mm/fault.c
++++ b/arch/m68k/mm/fault.c
+@@ -21,35 +21,32 @@ extern void die_if_kernel(char *, struct pt_regs *, long);
  
+ int send_fault_sig(struct pt_regs *regs)
+ {
+-	siginfo_t siginfo;
++	int signo, si_code;
++	void __user *addr;
  
-diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
-index 7f2202a9f50a..de2bd217adad 100644
---- a/arch/alpha/mm/fault.c
-+++ b/arch/alpha/mm/fault.c
-@@ -88,11 +88,8 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
- 	struct mm_struct *mm = current->mm;
- 	const struct exception_table_entry *fixup;
- 	int fault, si_code = SEGV_MAPERR;
--	siginfo_t info;
- 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+-	clear_siginfo(&siginfo);
+-	siginfo.si_signo = current->thread.signo;
+-	siginfo.si_code = current->thread.code;
+-	siginfo.si_addr = (void *)current->thread.faddr;
+-	pr_debug("send_fault_sig: %p,%d,%d\n", siginfo.si_addr,
+-		 siginfo.si_signo, siginfo.si_code);
++	signo = current->thread.signo;
++	si_code = current->thread.code;
++	addr = (void __user *)current->thread.faddr;
++	pr_debug("send_fault_sig: %p,%d,%d\n", addr, signo, si_code);
  
--	clear_siginfo(&info);
--
- 	/* As of EV6, a load into $31/$f31 is a prefetch, and never faults
- 	   (or is suppressed by the PALcode).  Support that for older CPUs
- 	   by ignoring such an instruction.  */
-@@ -223,21 +220,13 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
- 	up_read(&mm->mmap_sem);
- 	/* Send a sigbus, regardless of whether we were in kernel
- 	   or user mode.  */
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRERR;
--	info.si_addr = (void __user *) address;
--	force_sig_info(SIGBUS, &info, current);
-+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *) address, 0, current);
- 	if (!user_mode(regs))
- 		goto no_context;
- 	return;
+ 	if (user_mode(regs)) {
+-		force_sig_info(siginfo.si_signo,
+-			       &siginfo, current);
++		force_sig_fault(signo, si_code, addr, current);
+ 	} else {
+ 		if (fixup_exception(regs))
+ 			return -1;
  
-  do_sigsegv:
--	info.si_signo = SIGSEGV;
--	info.si_errno = 0;
--	info.si_code = si_code;
--	info.si_addr = (void __user *) address;
--	force_sig_info(SIGSEGV, &info, current);
-+	force_sig_fault(SIGSEGV, si_code, (void __user *) address, 0, current);
- 	return;
+-		//if (siginfo.si_signo == SIGBUS)
+-		//	force_sig_info(siginfo.si_signo,
+-		//		       &siginfo, current);
++		//if (signo == SIGBUS)
++		//	force_sig_fault(si_signo, si_code, addr, current);
  
- #ifdef CONFIG_ALPHA_LARGE_VMALLOC
+ 		/*
+ 		 * Oops. The kernel tried to access some bad page. We'll have to
+ 		 * terminate things with extreme prejudice.
+ 		 */
+-		if ((unsigned long)siginfo.si_addr < PAGE_SIZE)
++		if ((unsigned long)addr < PAGE_SIZE)
+ 			pr_alert("Unable to handle kernel NULL pointer dereference");
+ 		else
+ 			pr_alert("Unable to handle kernel access");
+-		pr_cont(" at virtual address %p\n", siginfo.si_addr);
++		pr_cont(" at virtual address %p\n", addr);
+ 		die_if_kernel("Oops", regs, 0 /*error_code*/);
+ 		do_exit(SIGKILL);
+ 	}
 -- 
 2.14.1
