@@ -1,43 +1,132 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [REVIEW][PATCH 22/22] signal/xtensa: Use force_sig_fault where appropriate
-Date: Fri, 20 Apr 2018 09:27:35 -0700
-Message-ID: <CAMo8Bf+LhSQX=debxSBLzpESb1LojBVdPd+L4x1ax5mBVvvYMA@mail.gmail.com>
-References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-22-ebiederm@xmission.com>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [RFC PATCH v2 0/6] Documentation/features: Provide and apply
+ 'features-refresh.sh'
+Date: Fri, 20 Apr 2018 19:04:05 +0200
+Message-ID: <20180420170405.GA14509@andrea>
+References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180420143811.9994-22-ebiederm@xmission.com>
+Content-Disposition: inline
+In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org
+To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
+Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 20, 2018 at 7:38 AM, Eric W. Biederman
-<ebiederm@xmission.com> wrote:
-> Filling in struct siginfo before calling force_sig_info a tedious and
-> error prone process, where once in a great while the wrong fields
-> are filled out, and siginfo has been inconsistently cleared.
->
-> Simplify this process by using the helper force_sig_fault.  Which
-> takes as a parameters all of the information it needs, ensures
-> all of the fiddly bits of filling in struct siginfo are done properly
-> and then calls force_sig_info.
->
-> In short about a 5 line reduction in code for every time force_sig_info
-> is called, which makes the calling function clearer.
->
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: linux-xtensa@linux-xtensa.org
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
-> ---
->  arch/xtensa/kernel/traps.c | 10 +---------
->  arch/xtensa/mm/fault.c     | 19 +++++--------------
->  2 files changed, 6 insertions(+), 23 deletions(-)
+Hi Ingo, Jon,
 
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
+On Sun, Apr 08, 2018 at 06:30:21PM +0200, Andrea Parri wrote:
+> Hi,
+> 
+> This series provides the script 'features-refresh.sh', which operates on
+> the arch support status files, and it applies this script to refresh the
+> status files in place; previous discussions about this series are at [1].
+> 
+> The series is organized as follows.
+> 
+>   - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
+> 
+>   - Patch 2/6 presents the results of running the script; this run
+>     also printed the messages
+> 
+>        WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
+>        WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
+>        WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
+>        WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
+> 
+>     to standard output.
+> 
+>   - Patches 3-6/6 fix each of these warnings.
+> 
+> (Applies on today's mainline.)
+> 
+> Cheers,
+>   Andrea
+> 
+> [1] https://marc.info/?l=linux-kernel&m=152223974927255&w=2
+>     https://marc.info/?l=linux-kernel&m=152277458614862&w=2
+> 
+> Changes in v2:
+>   - support negation operators in Kconfig (suggested by Ingo Molnar)
+>   - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
+>   - add patches 4-6/6 (suggested by Ingo Molnar)
+> 
+> Andrea Parri (6):
+>   Documentation/features: Add script that refreshes the arch support
+>     status files in place
+>   Documentation/features: Refresh the arch support status files in place
+>   Documentation/features/core: Add arch support status files for
+>     'cBPF-JIT' and 'eBPF-JIT'
+>   Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
+>     Kconfig for 'rwsem-optimized'
+>   Documentation/features/lib: Remove arch support status file for
+>     'strncasecmp'
+>   Documentation/features/vm: Remove arch support status file for
+>     'pte_special'
 
--- 
-Thanks.
--- Max
+I understand that you didn't get the chance to look into this yet ;D
+please let me know if you'd like me to rebase and re-send the series.
+
+Thanks,
+  Andrea
+
+
+> 
+>  .../features/core/BPF-JIT/arch-support.txt         | 31 -------
+>  .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
+>  .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
+>  .../core/generic-idle-thread/arch-support.txt      |  4 +-
+>  .../features/core/jump-labels/arch-support.txt     |  2 +
+>  .../features/core/tracehook/arch-support.txt       |  2 +
+>  .../features/debug/KASAN/arch-support.txt          |  4 +-
+>  .../debug/gcov-profile-all/arch-support.txt        |  2 +
+>  Documentation/features/debug/kgdb/arch-support.txt |  4 +-
+>  .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
+>  .../features/debug/kprobes/arch-support.txt        |  4 +-
+>  .../features/debug/kretprobes/arch-support.txt     |  4 +-
+>  .../features/debug/optprobes/arch-support.txt      |  4 +-
+>  .../features/debug/stackprotector/arch-support.txt |  2 +
+>  .../features/debug/uprobes/arch-support.txt        |  6 +-
+>  .../debug/user-ret-profiler/arch-support.txt       |  2 +
+>  .../features/io/dma-api-debug/arch-support.txt     |  2 +
+>  .../features/io/dma-contiguous/arch-support.txt    |  4 +-
+>  .../features/io/sg-chain/arch-support.txt          |  2 +
+>  .../features/lib/strncasecmp/arch-support.txt      | 31 -------
+>  .../locking/cmpxchg-local/arch-support.txt         |  4 +-
+>  .../features/locking/lockdep/arch-support.txt      |  4 +-
+>  .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
+>  .../locking/queued-spinlocks/arch-support.txt      |  8 +-
+>  .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
+>  .../features/perf/kprobes-event/arch-support.txt   |  6 +-
+>  .../features/perf/perf-regs/arch-support.txt       |  4 +-
+>  .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
+>  .../sched/membarrier-sync-core/arch-support.txt    |  2 +
+>  .../features/sched/numa-balancing/arch-support.txt |  6 +-
+>  Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
+>  .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
+>  .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
+>  .../features/time/clockevents/arch-support.txt     |  4 +-
+>  .../time/context-tracking/arch-support.txt         |  2 +
+>  .../features/time/irq-time-acct/arch-support.txt   |  4 +-
+>  .../time/modern-timekeeping/arch-support.txt       |  2 +
+>  .../features/time/virt-cpuacct/arch-support.txt    |  2 +
+>  .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
+>  .../features/vm/PG_uncached/arch-support.txt       |  2 +
+>  Documentation/features/vm/THP/arch-support.txt     |  2 +
+>  Documentation/features/vm/TLB/arch-support.txt     |  2 +
+>  .../features/vm/huge-vmap/arch-support.txt         |  2 +
+>  .../features/vm/ioremap_prot/arch-support.txt      |  2 +
+>  .../features/vm/numa-memblock/arch-support.txt     |  4 +-
+>  .../features/vm/pte_special/arch-support.txt       | 31 -------
+>  46 files changed, 279 insertions(+), 128 deletions(-)
+>  delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
+>  create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
+>  create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
+>  delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
+>  create mode 100755 Documentation/features/scripts/features-refresh.sh
+>  delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
+> 
+> -- 
+> 2.7.4
+> 
