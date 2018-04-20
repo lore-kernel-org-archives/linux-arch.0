@@ -1,139 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:45951 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752496AbeDTREN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 13:04:13 -0400
-Received: by mail-wr0-f194.google.com with SMTP id u11-v6so24726996wri.12
-        for <linux-arch@vger.kernel.org>; Fri, 20 Apr 2018 10:04:13 -0700 (PDT)
-Date: Fri, 20 Apr 2018 19:04:05 +0200
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [RFC PATCH v2 0/6] Documentation/features: Provide and apply
- 'features-refresh.sh'
-Message-ID: <20180420170405.GA14509@andrea>
-References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
+Received: from osg.samsung.com ([64.30.133.232]:42773 "EHLO osg.samsung.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753494AbeDTRnB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Apr 2018 13:43:01 -0400
+From: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+Subject: [PATCH 1/7] asm-generic, media: allow COMPILE_TEST with virt_to_bus
+Date: Fri, 20 Apr 2018 13:42:47 -0400
+Message-Id: <d8bdf4a080d4655d20b532a37ae22ca7e3483cc4.1524245455.git.mchehab@s-opensource.com>
+In-Reply-To: <cover.1524245455.git.mchehab@s-opensource.com>
+References: <cover.1524245455.git.mchehab@s-opensource.com>
+In-Reply-To: <cover.1524245455.git.mchehab@s-opensource.com>
+References: <cover.1524245455.git.mchehab@s-opensource.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
-Message-ID: <20180420170405.GTyYCcG4XJAcqUPmu5z3hWwRQTwBn7QhKgvKaAQqhew@z>
+Cc: Mauro Carvalho Chehab <mchehab@s-opensource.com>, Linux Media Mailing List <linux-media@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Arnd Bergmann <arnd@arndb.de>, mjpeg-users@lists.sourceforge.net, linux-arch@vger.kernel.org
 
-Hi Ingo, Jon,
+The virt_to_bus/bus_to_virt macros are arch-specific. Some
+archs don't support it. Yet, as it is interesting to allow
+doing compilation tests on non-ia32/ia64 archs, provide a
+fallback for such archs.
 
-On Sun, Apr 08, 2018 at 06:30:21PM +0200, Andrea Parri wrote:
-> Hi,
-> 
-> This series provides the script 'features-refresh.sh', which operates on
-> the arch support status files, and it applies this script to refresh the
-> status files in place; previous discussions about this series are at [1].
-> 
-> The series is organized as follows.
-> 
->   - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
-> 
->   - Patch 2/6 presents the results of running the script; this run
->     also printed the messages
-> 
->        WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
->        WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
->        WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
->        WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
-> 
->     to standard output.
-> 
->   - Patches 3-6/6 fix each of these warnings.
-> 
-> (Applies on today's mainline.)
-> 
-> Cheers,
->   Andrea
-> 
-> [1] https://marc.info/?l=linux-kernel&m=152223974927255&w=2
->     https://marc.info/?l=linux-kernel&m=152277458614862&w=2
-> 
-> Changes in v2:
->   - support negation operators in Kconfig (suggested by Ingo Molnar)
->   - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
->   - add patches 4-6/6 (suggested by Ingo Molnar)
-> 
-> Andrea Parri (6):
->   Documentation/features: Add script that refreshes the arch support
->     status files in place
->   Documentation/features: Refresh the arch support status files in place
->   Documentation/features/core: Add arch support status files for
->     'cBPF-JIT' and 'eBPF-JIT'
->   Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
->     Kconfig for 'rwsem-optimized'
->   Documentation/features/lib: Remove arch support status file for
->     'strncasecmp'
->   Documentation/features/vm: Remove arch support status file for
->     'pte_special'
+While here, enable COMPILE_TEST for two media drivers that
+depends on it.
 
-I understand that you didn't get the chance to look into this yet ;D
-please let me know if you'd like me to rebase and re-send the series.
+Signed-off-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+---
+ drivers/media/pci/sta2x11/Kconfig | 4 ++--
+ drivers/media/pci/zoran/Kconfig   | 3 ++-
+ include/asm-generic/io.h          | 2 +-
+ 3 files changed, 5 insertions(+), 4 deletions(-)
 
-Thanks,
-  Andrea
-
-
-> 
->  .../features/core/BPF-JIT/arch-support.txt         | 31 -------
->  .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
->  .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
->  .../core/generic-idle-thread/arch-support.txt      |  4 +-
->  .../features/core/jump-labels/arch-support.txt     |  2 +
->  .../features/core/tracehook/arch-support.txt       |  2 +
->  .../features/debug/KASAN/arch-support.txt          |  4 +-
->  .../debug/gcov-profile-all/arch-support.txt        |  2 +
->  Documentation/features/debug/kgdb/arch-support.txt |  4 +-
->  .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
->  .../features/debug/kprobes/arch-support.txt        |  4 +-
->  .../features/debug/kretprobes/arch-support.txt     |  4 +-
->  .../features/debug/optprobes/arch-support.txt      |  4 +-
->  .../features/debug/stackprotector/arch-support.txt |  2 +
->  .../features/debug/uprobes/arch-support.txt        |  6 +-
->  .../debug/user-ret-profiler/arch-support.txt       |  2 +
->  .../features/io/dma-api-debug/arch-support.txt     |  2 +
->  .../features/io/dma-contiguous/arch-support.txt    |  4 +-
->  .../features/io/sg-chain/arch-support.txt          |  2 +
->  .../features/lib/strncasecmp/arch-support.txt      | 31 -------
->  .../locking/cmpxchg-local/arch-support.txt         |  4 +-
->  .../features/locking/lockdep/arch-support.txt      |  4 +-
->  .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
->  .../locking/queued-spinlocks/arch-support.txt      |  8 +-
->  .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
->  .../features/perf/kprobes-event/arch-support.txt   |  6 +-
->  .../features/perf/perf-regs/arch-support.txt       |  4 +-
->  .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
->  .../sched/membarrier-sync-core/arch-support.txt    |  2 +
->  .../features/sched/numa-balancing/arch-support.txt |  6 +-
->  Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
->  .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
->  .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
->  .../features/time/clockevents/arch-support.txt     |  4 +-
->  .../time/context-tracking/arch-support.txt         |  2 +
->  .../features/time/irq-time-acct/arch-support.txt   |  4 +-
->  .../time/modern-timekeeping/arch-support.txt       |  2 +
->  .../features/time/virt-cpuacct/arch-support.txt    |  2 +
->  .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
->  .../features/vm/PG_uncached/arch-support.txt       |  2 +
->  Documentation/features/vm/THP/arch-support.txt     |  2 +
->  Documentation/features/vm/TLB/arch-support.txt     |  2 +
->  .../features/vm/huge-vmap/arch-support.txt         |  2 +
->  .../features/vm/ioremap_prot/arch-support.txt      |  2 +
->  .../features/vm/numa-memblock/arch-support.txt     |  4 +-
->  .../features/vm/pte_special/arch-support.txt       | 31 -------
->  46 files changed, 279 insertions(+), 128 deletions(-)
->  delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
->  create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
->  create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
->  delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
->  create mode 100755 Documentation/features/scripts/features-refresh.sh
->  delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
-> 
-> -- 
-> 2.7.4
-> 
+diff --git a/drivers/media/pci/sta2x11/Kconfig b/drivers/media/pci/sta2x11/Kconfig
+index 7af3f1cbcea8..fb4b4c8ac430 100644
+--- a/drivers/media/pci/sta2x11/Kconfig
++++ b/drivers/media/pci/sta2x11/Kconfig
+@@ -1,10 +1,10 @@
+ config STA2X11_VIP
+ 	tristate "STA2X11 VIP Video For Linux"
+-	depends on STA2X11 || COMPILE_TEST
++	depends on (STA2X11 && VIRT_TO_BUS) || COMPILE_TEST
+ 	depends on HAS_DMA
+ 	select VIDEO_ADV7180 if MEDIA_SUBDRV_AUTOSELECT
+ 	select VIDEOBUF2_DMA_CONTIG
+-	depends on PCI && VIDEO_V4L2 && VIRT_TO_BUS
++	depends on PCI && VIDEO_V4L2
+ 	depends on VIDEO_V4L2_SUBDEV_API
+ 	depends on I2C
+ 	help
+diff --git a/drivers/media/pci/zoran/Kconfig b/drivers/media/pci/zoran/Kconfig
+index 39ec35bd21a5..5d2678a9e310 100644
+--- a/drivers/media/pci/zoran/Kconfig
++++ b/drivers/media/pci/zoran/Kconfig
+@@ -1,6 +1,7 @@
+ config VIDEO_ZORAN
+ 	tristate "Zoran ZR36057/36067 Video For Linux"
+-	depends on PCI && I2C_ALGOBIT && VIDEO_V4L2 && VIRT_TO_BUS
++	depends on PCI && I2C_ALGOBIT && VIDEO_V4L2
++	depends on VIRT_TO_BUS || COMPILE_TEST
+ 	depends on !ALPHA
+ 	help
+ 	  Say Y for support for MJPEG capture cards based on the Zoran
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 66d1d45fa2e1..f448129ad15c 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -1068,7 +1068,7 @@ static inline void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+ }
+ #endif
+ 
+-#ifdef CONFIG_VIRT_TO_BUS
++#if defined(CONFIG_VIRT_TO_BUS) || defined(CONFIG_COMPILE_TEST)
+ #ifndef virt_to_bus
+ static inline unsigned long virt_to_bus(void *address)
+ {
+-- 
+2.14.3
