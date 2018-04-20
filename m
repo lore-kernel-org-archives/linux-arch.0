@@ -1,114 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ivanoab5.miniserver.com ([78.31.111.25]:47147 "EHLO
-        www.kot-begemot.co.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751092AbeDTQm1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 12:42:27 -0400
-Subject: Re: [uml-devel] [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault
- in relay_signal.
-References: <87604mhrnb.fsf@xmission.com>
- <20180420143811.9994-19-ebiederm@xmission.com>
-From: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
-Message-ID: <7074fe36-27c5-ee82-9659-da703cfc91fe@kot-begemot.co.uk>
-Date: Fri, 20 Apr 2018 17:06:10 +0100
+Received: from mail-wr0-f194.google.com ([209.85.128.194]:45951 "EHLO
+        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752496AbeDTREN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 13:04:13 -0400
+Received: by mail-wr0-f194.google.com with SMTP id u11-v6so24726996wri.12
+        for <linux-arch@vger.kernel.org>; Fri, 20 Apr 2018 10:04:13 -0700 (PDT)
+Date: Fri, 20 Apr 2018 19:04:05 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [RFC PATCH v2 0/6] Documentation/features: Provide and apply
+ 'features-refresh.sh'
+Message-ID: <20180420170405.GA14509@andrea>
+References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 MIME-Version: 1.0
-In-Reply-To: <20180420143811.9994-19-ebiederm@xmission.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, linux-um@lists.infradead.org, "user-mode-linux-devel@lists.sourceforge.net" <user-mode-linux-devel@lists.sourceforge.net>
-Message-ID: <20180420160610.49utrRJS4ciZF3FnL5gH3SMuKmpq9A9sZVQvKuN61Rc@z>
+To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
+Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
+Message-ID: <20180420170405.GTyYCcG4XJAcqUPmu5z3hWwRQTwBn7QhKgvKaAQqhew@z>
+
+Hi Ingo, Jon,
+
+On Sun, Apr 08, 2018 at 06:30:21PM +0200, Andrea Parri wrote:
+> Hi,
+> 
+> This series provides the script 'features-refresh.sh', which operates on
+> the arch support status files, and it applies this script to refresh the
+> status files in place; previous discussions about this series are at [1].
+> 
+> The series is organized as follows.
+> 
+>   - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
+> 
+>   - Patch 2/6 presents the results of running the script; this run
+>     also printed the messages
+> 
+>        WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
+>        WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
+>        WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
+>        WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
+> 
+>     to standard output.
+> 
+>   - Patches 3-6/6 fix each of these warnings.
+> 
+> (Applies on today's mainline.)
+> 
+> Cheers,
+>   Andrea
+> 
+> [1] https://marc.info/?l=linux-kernel&m=152223974927255&w=2
+>     https://marc.info/?l=linux-kernel&m=152277458614862&w=2
+> 
+> Changes in v2:
+>   - support negation operators in Kconfig (suggested by Ingo Molnar)
+>   - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
+>   - add patches 4-6/6 (suggested by Ingo Molnar)
+> 
+> Andrea Parri (6):
+>   Documentation/features: Add script that refreshes the arch support
+>     status files in place
+>   Documentation/features: Refresh the arch support status files in place
+>   Documentation/features/core: Add arch support status files for
+>     'cBPF-JIT' and 'eBPF-JIT'
+>   Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
+>     Kconfig for 'rwsem-optimized'
+>   Documentation/features/lib: Remove arch support status file for
+>     'strncasecmp'
+>   Documentation/features/vm: Remove arch support status file for
+>     'pte_special'
+
+I understand that you didn't get the chance to look into this yet ;D
+please let me know if you'd like me to rebase and re-send the series.
+
+Thanks,
+  Andrea
 
 
-On 04/20/18 15:38, Eric W. Biederman wrote:
-> Today user mode linux only works on x86 and x86_64 and this allows
-> simplifications of relay_signal.
-
-I believe someone recently fixed the ARM port. I have not had the time 
-to try the fixes though.
-
-I have added the new list we are migrating to the cc list.
-
-A.
-
-
-
->
-> - x86 always set si_errno to 0 in fault handlers.
-> - x86 does not implement si_trapno.
-> - Only si_codes between SI_USER and SI_KERNEL have a fault address.
->
-> Therefore warn if si_errno is set (it should never be).
-> Use force_sig_info in the case where we know we have a good fault.
->
-> For signals whose content it is not clear how to relay use plain
-> force_sig and let the signal sending code come up with an
-> appropriate generic siginfo.
->
-> Cc: Jeff Dike <jdike@addtoit.com>
-> Cc: Richard Weinberger <richard@nod.at>
-> Cc: user-mode-linux-devel@lists.sourceforge.net
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
-> ---
->   arch/um/kernel/trap.c | 28 +++++++++++++---------------
->   1 file changed, 13 insertions(+), 15 deletions(-)
->
-> diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
-> index d4d38520c4c6..5f0ff17cd790 100644
-> --- a/arch/um/kernel/trap.c
-> +++ b/arch/um/kernel/trap.c
-> @@ -296,9 +296,6 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
->   
->   void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
->   {
-> -	struct faultinfo *fi;
-> -	struct siginfo clean_si;
-> -
->   	if (!UPT_IS_USER(regs)) {
->   		if (sig == SIGBUS)
->   			printk(KERN_ERR "Bus error - the host /dev/shm or /tmp "
-> @@ -308,29 +305,30 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
->   
->   	arch_examine_signal(sig, regs);
->   
-> -	clear_siginfo(&clean_si);
-> -	clean_si.si_signo = si->si_signo;
-> -	clean_si.si_errno = si->si_errno;
-> -	clean_si.si_code = si->si_code;
-> +	if (unlikely(si->si_errno)) {
-> +		printk(KERN_ERR "Attempted to relay signal %d (si_code = %d) with errno %d\n",
-> +		       sig, si->si_code, si->si_errno);
-> +	}
->   	switch (sig) {
->   	case SIGILL:
->   	case SIGFPE:
->   	case SIGSEGV:
->   	case SIGBUS:
->   	case SIGTRAP:
-> -		fi = UPT_FAULTINFO(regs);
-> -		clean_si.si_addr = (void __user *) FAULT_ADDRESS(*fi);
-> -		current->thread.arch.faultinfo = *fi;
-> -#ifdef __ARCH_SI_TRAPNO
-> -		clean_si.si_trapno = si->si_trapno;
-> -#endif
-> -		break;
-> +		if ((si->si_code > SI_USER) && (si->si_code < SI_KERNEL)) {
-> +			struct faultinfo *fi = UPT_FAULTINFO(regs);
-> +			current->thread.arch.faultinfo = *fi;
-> +			force_sig_fault(sig, si->si_code,
-> +					(void __user *)FAULT_ADDRESS(*fi),
-> +					current);
-> +			break;
-> +		}
->   	default:
->   		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d)\n",
->   			sig, si->si_code);
->   	}
->   
-> -	force_sig_info(sig, &clean_si, current);
-> +	force_sig(sig, current);
->   }
->   
->   void bus_handler(int sig, struct siginfo *si, struct uml_pt_regs *regs)
+> 
+>  .../features/core/BPF-JIT/arch-support.txt         | 31 -------
+>  .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
+>  .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
+>  .../core/generic-idle-thread/arch-support.txt      |  4 +-
+>  .../features/core/jump-labels/arch-support.txt     |  2 +
+>  .../features/core/tracehook/arch-support.txt       |  2 +
+>  .../features/debug/KASAN/arch-support.txt          |  4 +-
+>  .../debug/gcov-profile-all/arch-support.txt        |  2 +
+>  Documentation/features/debug/kgdb/arch-support.txt |  4 +-
+>  .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
+>  .../features/debug/kprobes/arch-support.txt        |  4 +-
+>  .../features/debug/kretprobes/arch-support.txt     |  4 +-
+>  .../features/debug/optprobes/arch-support.txt      |  4 +-
+>  .../features/debug/stackprotector/arch-support.txt |  2 +
+>  .../features/debug/uprobes/arch-support.txt        |  6 +-
+>  .../debug/user-ret-profiler/arch-support.txt       |  2 +
+>  .../features/io/dma-api-debug/arch-support.txt     |  2 +
+>  .../features/io/dma-contiguous/arch-support.txt    |  4 +-
+>  .../features/io/sg-chain/arch-support.txt          |  2 +
+>  .../features/lib/strncasecmp/arch-support.txt      | 31 -------
+>  .../locking/cmpxchg-local/arch-support.txt         |  4 +-
+>  .../features/locking/lockdep/arch-support.txt      |  4 +-
+>  .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
+>  .../locking/queued-spinlocks/arch-support.txt      |  8 +-
+>  .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
+>  .../features/perf/kprobes-event/arch-support.txt   |  6 +-
+>  .../features/perf/perf-regs/arch-support.txt       |  4 +-
+>  .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
+>  .../sched/membarrier-sync-core/arch-support.txt    |  2 +
+>  .../features/sched/numa-balancing/arch-support.txt |  6 +-
+>  Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
+>  .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
+>  .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
+>  .../features/time/clockevents/arch-support.txt     |  4 +-
+>  .../time/context-tracking/arch-support.txt         |  2 +
+>  .../features/time/irq-time-acct/arch-support.txt   |  4 +-
+>  .../time/modern-timekeeping/arch-support.txt       |  2 +
+>  .../features/time/virt-cpuacct/arch-support.txt    |  2 +
+>  .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
+>  .../features/vm/PG_uncached/arch-support.txt       |  2 +
+>  Documentation/features/vm/THP/arch-support.txt     |  2 +
+>  Documentation/features/vm/TLB/arch-support.txt     |  2 +
+>  .../features/vm/huge-vmap/arch-support.txt         |  2 +
+>  .../features/vm/ioremap_prot/arch-support.txt      |  2 +
+>  .../features/vm/numa-memblock/arch-support.txt     |  4 +-
+>  .../features/vm/pte_special/arch-support.txt       | 31 -------
+>  46 files changed, 279 insertions(+), 128 deletions(-)
+>  delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
+>  create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
+>  create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
+>  delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
+>  create mode 100755 Documentation/features/scripts/features-refresh.sh
+>  delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
+> 
+> -- 
+> 2.7.4
+> 
