@@ -1,70 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35773 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753825AbeDTBHB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:07:01 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:50135 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753992AbeDTBH1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:07:27 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:03:55 -0500
-Message-ID: <20180420010408.24438-4-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:03:59 -0500
+Message-ID: <20180420010408.24438-8-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 04/17] signal/nds32: Use force_sig in unhandled_interruption and unhandled_exceptions
+Subject: [REVIEW][PATCH 08/17] signal: Stop special casing TRAP_FIXME and FPE_FIXME in siginfo_layout
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <greentime@andestech.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180420010355.rDjfOGwuxg2PwnEtdlKyCgh1nihKd23Oj5gmizhwdqo@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180420010359.xqtN7NxxR2VUZGyeAyikEWGJp0_dSAJ40UI7_Ka6M1s@z>
 
-Neither unhandled_interrupt nor unhandled_exceptions fills in any of the
-siginfo fields whend sending SIGKILL.  Further because it is SIGKILL
-even if all of the fields were filled out appropriately it would be impossible
-for the process to read any of the siginfo fields.  So simplfy things and
-just use force_sig instead of force_sig_info.
+After more experience with the cases where no one the si_code of 0
+is used both as a signal specific si_code, and as SI_USER it appears
+that no one cares about the signal specific si_code case and the
+good solution is to just fix the architectures by using
+a different si_code.
 
-Fixes: 2923f5ea7738 ("nds32: Exception handling")
-Cc: Vincent Chen <vincentc@andestech.com>
-Cc: Greentime Hu <greentime@andestech.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
+In none of the conversations has anyone even suggested that
+anything depends on the signal specific redefinition of SI_USER.
+
+There are at least test cases that care when si_code as 0 does
+not work as si_user.
+
+So make things simple and keep the generic code from introducing
+problems by removing the special casing of TRAP_FIXME and FPE_FIXME.
+This will ensure the generic case of sending a signal with
+kill will always set SI_USER and work.
+
+The architecture specific, and signal specific overloads that
+set si_code to 0 will now have problems with signalfd and
+the 32bit compat versions of siginfo copying.   At least
+until they are fixed.
+
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/nds32/kernel/traps.c | 11 ++---------
- 1 file changed, 2 insertions(+), 9 deletions(-)
+ kernel/signal.c | 9 ---------
+ 1 file changed, 9 deletions(-)
 
-diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
-index 6e34eb9824a4..65961bf91d64 100644
---- a/arch/nds32/kernel/traps.c
-+++ b/arch/nds32/kernel/traps.c
-@@ -318,29 +318,22 @@ void do_debug_trap(unsigned long entry, unsigned long addr,
- 
- void unhandled_interruption(struct pt_regs *regs)
- {
--	siginfo_t si;
- 	pr_emerg("unhandled_interruption\n");
- 	show_regs(regs);
- 	if (!user_mode(regs))
- 		do_exit(SIGKILL);
--	si.si_signo = SIGKILL;
--	si.si_errno = 0;
--	force_sig_info(SIGKILL, &si, current);
-+	force_sig(SIGKILL, current);
+diff --git a/kernel/signal.c b/kernel/signal.c
+index d56f4d496c89..fc82d2c0918f 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -2835,15 +2835,6 @@ enum siginfo_layout siginfo_layout(int sig, int si_code)
+ 			layout = SIL_POLL;
+ 		else if (si_code < 0)
+ 			layout = SIL_RT;
+-		/* Tests to support buggy kernel ABIs */
+-#ifdef TRAP_FIXME
+-		if ((sig == SIGTRAP) && (si_code == TRAP_FIXME))
+-			layout = SIL_FAULT;
+-#endif
+-#ifdef FPE_FIXME
+-		if ((sig == SIGFPE) && (si_code == FPE_FIXME))
+-			layout = SIL_FAULT;
+-#endif
+ 	}
+ 	return layout;
  }
- 
- void unhandled_exceptions(unsigned long entry, unsigned long addr,
- 			  unsigned long type, struct pt_regs *regs)
- {
--	siginfo_t si;
- 	pr_emerg("Unhandled Exception: entry: %lx addr:%lx itype:%lx\n", entry,
- 		 addr, type);
- 	show_regs(regs);
- 	if (!user_mode(regs))
- 		do_exit(SIGKILL);
--	si.si_signo = SIGKILL;
--	si.si_errno = 0;
--	si.si_addr = (void *)addr;
--	force_sig_info(SIGKILL, &si, current);
-+	force_sig(SIGKILL, current);
- }
- 
- extern int do_page_fault(unsigned long entry, unsigned long addr,
 -- 
 2.14.1
