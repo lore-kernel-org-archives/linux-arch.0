@@ -1,13 +1,13 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 04/22] signal/hexagon: Use force_sig_fault as appropriate
-Date: Fri, 20 Apr 2018 09:37:53 -0500
-Message-ID: <20180420143811.9994-4-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 15/22] signal/s390: Use force_sig_fault where appropriate
+Date: Fri, 20 Apr 2018 09:38:04 -0500
+Message-ID: <20180420143811.9994-15-ebiederm@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Filling in struct siginfo before calling force_sig_info a tedious and
@@ -22,95 +22,122 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-hexagon@vger.kernel.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-s390@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/hexagon/kernel/traps.c | 10 ++--------
- arch/hexagon/mm/vm_fault.c  | 21 +++++++--------------
- 2 files changed, 9 insertions(+), 22 deletions(-)
+ arch/s390/kernel/traps.c | 32 ++++++--------------------------
+ arch/s390/mm/fault.c     | 23 ++++++-----------------
+ 2 files changed, 12 insertions(+), 43 deletions(-)
 
-diff --git a/arch/hexagon/kernel/traps.c b/arch/hexagon/kernel/traps.c
-index 1ff6a6a7b97c..91ee04842c22 100644
---- a/arch/hexagon/kernel/traps.c
-+++ b/arch/hexagon/kernel/traps.c
-@@ -412,11 +412,6 @@ void do_trap0(struct pt_regs *regs)
- 	case TRAP_DEBUG:
- 		/* Trap0 0xdb is debug breakpoint */
- 		if (user_mode(regs)) {
--			struct siginfo info;
--
--			clear_siginfo(&info);
--			info.si_signo = SIGTRAP;
--			info.si_errno = 0;
- 			/*
- 			 * Some architecures add some per-thread state
- 			 * to distinguish between breakpoint traps and
-@@ -424,9 +419,8 @@ void do_trap0(struct pt_regs *regs)
- 			 * set the si_code value appropriately, or we
- 			 * may want to use a different trap0 flavor.
- 			 */
--			info.si_code = TRAP_BRKPT;
--			info.si_addr = (void __user *) pt_elr(regs);
--			force_sig_info(SIGTRAP, &info, current);
-+			force_sig_fault(SIGTRAP, TRAP_BRKPT,
-+					(void __user *) pt_elr(regs), current);
- 		} else {
- #ifdef CONFIG_KGDB
- 			kgdb_handle_exception(pt_cause(regs), SIGTRAP,
-diff --git a/arch/hexagon/mm/vm_fault.c b/arch/hexagon/mm/vm_fault.c
-index 2ad92edc877c..933bbcef5363 100644
---- a/arch/hexagon/mm/vm_fault.c
-+++ b/arch/hexagon/mm/vm_fault.c
-@@ -50,13 +50,12 @@ void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
+diff --git a/arch/s390/kernel/traps.c b/arch/s390/kernel/traps.c
+index 3ba649d8aa5a..8003b38c1688 100644
+--- a/arch/s390/kernel/traps.c
++++ b/arch/s390/kernel/traps.c
+@@ -44,15 +44,8 @@ int is_valid_bugaddr(unsigned long addr)
+ 
+ void do_report_trap(struct pt_regs *regs, int si_signo, int si_code, char *str)
  {
- 	struct vm_area_struct *vma;
- 	struct mm_struct *mm = current->mm;
 -	siginfo_t info;
-+	int si_signo;
- 	int si_code = SEGV_MAPERR;
- 	int fault;
- 	const struct exception_table_entry *fixup;
- 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
- 
--	clear_siginfo(&info);
- 	/*
- 	 * If we're in an interrupt or have no user context,
- 	 * then must not take the fault.
-@@ -141,28 +140,22 @@ void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
- 	 * unable to fix up the page fault.
- 	 */
- 	if (fault & VM_FAULT_SIGBUS) {
--		info.si_signo = SIGBUS;
--		info.si_code = BUS_ADRERR;
-+		si_signo = SIGBUS;
-+		si_code = BUS_ADRERR;
- 	}
- 	/* Address is not in the memory map */
- 	else {
--		info.si_signo = SIGSEGV;
--		info.si_code = SEGV_ACCERR;
-+		si_signo = SIGSEGV;
-+		si_code  = SEGV_ACCERR;
- 	}
--	info.si_errno = 0;
--	info.si_addr = (void __user *)address;
--	force_sig_info(info.si_signo, &info, current);
-+	force_sig_fault(si_signo, si_code, (void __user *)address, current);
- 	return;
- 
- bad_area:
- 	up_read(&mm->mmap_sem);
- 
+-
  	if (user_mode(regs)) {
--		info.si_signo = SIGSEGV;
+-		clear_siginfo(&info);
+-		info.si_signo = si_signo;
 -		info.si_errno = 0;
 -		info.si_code = si_code;
--		info.si_addr = (void *)address;
--		force_sig_info(info.si_signo, &info, current);
-+		force_sig_fault(SIGSEGV, si_code, (void __user *)address, current);
+-		info.si_addr = get_trap_ip(regs);
+-		force_sig_info(si_signo, &info, current);
++		force_sig_fault(si_signo, si_code, get_trap_ip(regs), current);
+ 		report_user_fault(regs, si_signo, 0);
+         } else {
+                 const struct exception_table_entry *fixup;
+@@ -81,19 +74,12 @@ NOKPROBE_SYMBOL(do_trap);
+ 
+ void do_per_trap(struct pt_regs *regs)
+ {
+-	siginfo_t info;
+-
+ 	if (notify_die(DIE_SSTEP, "sstep", regs, 0, 0, SIGTRAP) == NOTIFY_STOP)
  		return;
- 	}
- 	/* Kernel-mode fault falls through */
+ 	if (!current->ptrace)
+ 		return;
+-	clear_siginfo(&info);
+-	info.si_signo = SIGTRAP;
+-	info.si_errno = 0;
+-	info.si_code = TRAP_HWBKPT;
+-	info.si_addr =
+-		(void __force __user *) current->thread.per_event.address;
+-	force_sig_info(SIGTRAP, &info, current);
++	force_sig_fault(SIGTRAP, TRAP_HWBKPT,
++		(void __force __user *) current->thread.per_event.address, current);
+ }
+ NOKPROBE_SYMBOL(do_per_trap);
+ 
+@@ -178,15 +164,9 @@ void illegal_op(struct pt_regs *regs)
+ 		if (get_user(*((__u16 *) opcode), (__u16 __user *) location))
+ 			return;
+ 		if (*((__u16 *) opcode) == S390_BREAKPOINT_U16) {
+-			if (current->ptrace) {
+-				siginfo_t info;
+-				clear_siginfo(&info);
+-				info.si_signo = SIGTRAP;
+-				info.si_errno = 0;
+-				info.si_code = TRAP_BRKPT;
+-				info.si_addr = location;
+-				force_sig_info(SIGTRAP, &info, current);
+-			} else
++			if (current->ptrace)
++				force_sig_fault(SIGTRAP, TRAP_BRKPT, location, current);
++			else
+ 				signal = SIGILL;
+ #ifdef CONFIG_UPROBES
+ 		} else if (*((__u16 *) opcode) == UPROBE_SWBP_INSN) {
+diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
+index b3ff0e8e5860..e074480d3598 100644
+--- a/arch/s390/mm/fault.c
++++ b/arch/s390/mm/fault.c
+@@ -265,15 +265,10 @@ void report_user_fault(struct pt_regs *regs, long signr, int is_mm_fault)
+  */
+ static noinline void do_sigsegv(struct pt_regs *regs, int si_code)
+ {
+-	struct siginfo si;
+-
+ 	report_user_fault(regs, SIGSEGV, 1);
+-	clear_siginfo(&si);
+-	si.si_signo = SIGSEGV;
+-	si.si_errno = 0;
+-	si.si_code = si_code;
+-	si.si_addr = (void __user *)(regs->int_parm_long & __FAIL_ADDR_MASK);
+-	force_sig_info(SIGSEGV, &si, current);
++	force_sig_fault(SIGSEGV, si_code,
++			(void __user *)(regs->int_parm_long & __FAIL_ADDR_MASK),
++			current);
+ }
+ 
+ static noinline void do_no_context(struct pt_regs *regs)
+@@ -317,19 +312,13 @@ static noinline void do_low_address(struct pt_regs *regs)
+ 
+ static noinline void do_sigbus(struct pt_regs *regs)
+ {
+-	struct task_struct *tsk = current;
+-	struct siginfo si;
+-
+ 	/*
+ 	 * Send a sigbus, regardless of whether we were in kernel
+ 	 * or user mode.
+ 	 */
+-	clear_siginfo(&si);
+-	si.si_signo = SIGBUS;
+-	si.si_errno = 0;
+-	si.si_code = BUS_ADRERR;
+-	si.si_addr = (void __user *)(regs->int_parm_long & __FAIL_ADDR_MASK);
+-	force_sig_info(SIGBUS, &si, tsk);
++	force_sig_fault(SIGBUS, BUS_ADRERR,
++			(void __user *)(regs->int_parm_long & __FAIL_ADDR_MASK),
++			current);
+ }
+ 
+ static noinline int signal_return(struct pt_regs *regs)
 -- 
 2.14.1
