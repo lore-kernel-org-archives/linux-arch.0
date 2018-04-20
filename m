@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:46256 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755295AbeDTOlF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:41:05 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:44260 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755422AbeDTOks (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:40:48 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:37:58 -0500
-Message-ID: <20180420143811.9994-9-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:37:57 -0500
+Message-ID: <20180420143811.9994-8-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 09/22] signal/nds32: Use force_sig_fault where appropriate
+Subject: [REVIEW][PATCH 08/22] signal/mips: Use force_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>
-Message-ID: <20180420143758.mOIxtAEt4BFzFoGL1nBxjffl0g-7HPHyOaNbjxKxlH0@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org
+Message-ID: <20180420143757.objNqAAjw8XBcTinMMaAHGXYgTPrxF8X2HW9Wur71Cs@z>
 
 Filling in struct siginfo before calling force_sig_info a tedious and
 error prone process, where once in a great while the wrong fields
@@ -27,117 +27,226 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Greentime Hu <green.hu@gmail.com>
-Cc: Vincent Chen <deanbo422@gmail.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: James Hogan <jhogan@kernel.org>
+Cc: linux-mips@linux-mips.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/nds32/kernel/traps.c | 20 ++++----------------
- arch/nds32/mm/fault.c     | 19 +++++--------------
- 2 files changed, 9 insertions(+), 30 deletions(-)
+ arch/mips/kernel/traps.c | 65 ++++++++++++++----------------------------------
+ arch/mips/mm/fault.c     | 19 ++++----------
+ 2 files changed, 23 insertions(+), 61 deletions(-)
 
-diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
-index 46911768f4b5..636d1c7aa895 100644
---- a/arch/nds32/kernel/traps.c
-+++ b/arch/nds32/kernel/traps.c
-@@ -222,20 +222,13 @@ void die_if_kernel(const char *str, struct pt_regs *regs, int err)
- 
- int bad_syscall(int n, struct pt_regs *regs)
+diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
+index 967e9e4e795e..66ec4b0b484d 100644
+--- a/arch/mips/kernel/traps.c
++++ b/arch/mips/kernel/traps.c
+@@ -699,17 +699,11 @@ static int simulate_sync(struct pt_regs *regs, unsigned int opcode)
+ asmlinkage void do_ov(struct pt_regs *regs)
  {
+ 	enum ctx_state prev_state;
 -	siginfo_t info;
 -
- 	if (current->personality != PER_LINUX) {
- 		send_sig(SIGSEGV, current, 1);
- 		return regs->uregs[0];
- 	}
+-	clear_siginfo(&info);
+-	info.si_signo = SIGFPE;
+-	info.si_code = FPE_INTOVF;
+-	info.si_addr = (void __user *)regs->cp0_epc;
+ 
+ 	prev_state = exception_enter();
+ 	die_if_kernel("Integer overflow", regs);
+ 
+-	force_sig_info(SIGFPE, &info, current);
++	force_sig_fault(SIGFPE, FPE_INTOVF, (void __user *)regs->cp0_epc, current);
+ 	exception_exit(prev_state);
+ }
+ 
+@@ -722,32 +716,27 @@ asmlinkage void do_ov(struct pt_regs *regs)
+ void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
+ 		     struct task_struct *tsk)
+ {
+-	struct siginfo si;
+-
+-	clear_siginfo(&si);
+-	si.si_addr = fault_addr;
+-	si.si_signo = SIGFPE;
++	int si_code;
+ 
+ 	if (fcr31 & FPU_CSR_INV_X)
+-		si.si_code = FPE_FLTINV;
++		si_code = FPE_FLTINV;
+ 	else if (fcr31 & FPU_CSR_DIV_X)
+-		si.si_code = FPE_FLTDIV;
++		si_code = FPE_FLTDIV;
+ 	else if (fcr31 & FPU_CSR_OVF_X)
+-		si.si_code = FPE_FLTOVF;
++		si_code = FPE_FLTOVF;
+ 	else if (fcr31 & FPU_CSR_UDF_X)
+-		si.si_code = FPE_FLTUND;
++		si_code = FPE_FLTUND;
+ 	else if (fcr31 & FPU_CSR_INE_X)
+-		si.si_code = FPE_FLTRES;
++		si_code = FPE_FLTRES;
+ 
+-	force_sig_info(SIGFPE, &si, tsk);
++	force_sig_fault(SIGFPE, si_code, fault_addr, tsk);
+ }
+ 
+ int process_fpemu_return(int sig, void __user *fault_addr, unsigned long fcr31)
+ {
+-	struct siginfo si;
++	int si_code;
+ 	struct vm_area_struct *vma;
+ 
+-	clear_siginfo(&si);
+ 	switch (sig) {
+ 	case 0:
+ 		return 0;
+@@ -757,23 +746,18 @@ int process_fpemu_return(int sig, void __user *fault_addr, unsigned long fcr31)
+ 		return 1;
+ 
+ 	case SIGBUS:
+-		si.si_addr = fault_addr;
+-		si.si_signo = sig;
+-		si.si_code = BUS_ADRERR;
+-		force_sig_info(sig, &si, current);
++		force_sig_fault(SIGBUS, BUS_ADRERR, fault_addr, current);
+ 		return 1;
+ 
+ 	case SIGSEGV:
+-		si.si_addr = fault_addr;
+-		si.si_signo = sig;
+ 		down_read(&current->mm->mmap_sem);
+ 		vma = find_vma(current->mm, (unsigned long)fault_addr);
+ 		if (vma && (vma->vm_start <= (unsigned long)fault_addr))
+-			si.si_code = SEGV_ACCERR;
++			si_code = SEGV_ACCERR;
+ 		else
+-			si.si_code = SEGV_MAPERR;
++			si_code = SEGV_MAPERR;
+ 		up_read(&current->mm->mmap_sem);
+-		force_sig_info(sig, &si, current);
++		force_sig_fault(SIGSEGV, si_code, fault_addr, current);
+ 		return 1;
+ 
+ 	default:
+@@ -896,10 +880,8 @@ asmlinkage void do_fpe(struct pt_regs *regs, unsigned long fcr31)
+ void do_trap_or_bp(struct pt_regs *regs, unsigned int code, int si_code,
+ 	const char *str)
+ {
+-	siginfo_t info;
+ 	char b[40];
  
 -	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_ILLTRP;
--	info.si_addr = (void __user *)instruction_pointer(regs) - 4;
--
--	force_sig_info(SIGILL, &info, current);
-+	force_sig_fault(SIGILL, ILL_ILLTRP,
-+			(void __user *)instruction_pointer(regs) - 4, current);
- 	die_if_kernel("Oops - bad syscall", regs, n);
- 	return regs->uregs[0];
- }
-@@ -288,16 +281,11 @@ void __init early_trap_init(void)
- void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
- 		  int error_code, int si_code)
+ #ifdef CONFIG_KGDB_LOW_LEVEL_TRAP
+ 	if (kgdb_ll_trap(DIE_TRAP, str, regs, code, current->thread.trap_nr,
+ 			 SIGTRAP) == NOTIFY_STOP)
+@@ -921,13 +903,9 @@ void do_trap_or_bp(struct pt_regs *regs, unsigned int code, int si_code,
+ 	case BRK_DIVZERO:
+ 		scnprintf(b, sizeof(b), "%s instruction in kernel code", str);
+ 		die_if_kernel(b, regs);
+-		if (code == BRK_DIVZERO)
+-			info.si_code = FPE_INTDIV;
+-		else
+-			info.si_code = FPE_INTOVF;
+-		info.si_signo = SIGFPE;
+-		info.si_addr = (void __user *) regs->cp0_epc;
+-		force_sig_info(SIGFPE, &info, current);
++		force_sig_fault(SIGFPE,
++				code == BRK_DIVZERO ? FPE_INTDIV : FPE_INTOVF,
++				(void __user *) regs->cp0_epc, current);
+ 		break;
+ 	case BRK_BUG:
+ 		die_if_kernel("Kernel bug detected", regs);
+@@ -952,9 +930,7 @@ void do_trap_or_bp(struct pt_regs *regs, unsigned int code, int si_code,
+ 		scnprintf(b, sizeof(b), "%s instruction in kernel code", str);
+ 		die_if_kernel(b, regs);
+ 		if (si_code) {
+-			info.si_signo = SIGTRAP;
+-			info.si_code = si_code;
+-			force_sig_info(SIGTRAP, &info, current);
++			force_sig_fault(SIGTRAP, si_code, NULL,	current);
+ 		} else {
+ 			force_sig(SIGTRAP, current);
+ 		}
+@@ -1506,13 +1482,8 @@ asmlinkage void do_mdmx(struct pt_regs *regs)
+  */
+ asmlinkage void do_watch(struct pt_regs *regs)
  {
--	struct siginfo info;
--
- 	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
- 	tsk->thread.error_code = error_code;
+-	siginfo_t info;
+ 	enum ctx_state prev_state;
  
 -	clear_siginfo(&info);
 -	info.si_signo = SIGTRAP;
--	info.si_code = si_code;
--	info.si_addr = (void __user *)instruction_pointer(regs);
--	force_sig_info(SIGTRAP, &info, tsk);
-+	force_sig_fault(SIGTRAP, si_code
-+			(void __user *)instruction_pointer(regs), tsk);
- }
- 
- void do_debug_trap(unsigned long entry, unsigned long addr,
-diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
-index 876ee01ff80a..9bdb7c3ecbb6 100644
---- a/arch/nds32/mm/fault.c
-+++ b/arch/nds32/mm/fault.c
-@@ -72,16 +72,15 @@ void do_page_fault(unsigned long entry, unsigned long addr,
- 	struct task_struct *tsk;
- 	struct mm_struct *mm;
- 	struct vm_area_struct *vma;
+-	info.si_code = TRAP_HWBKPT;
+-
+ 	prev_state = exception_enter();
+ 	/*
+ 	 * Clear WP (bit 22) bit of cause register so we don't loop
+@@ -1528,7 +1499,7 @@ asmlinkage void do_watch(struct pt_regs *regs)
+ 	if (test_tsk_thread_flag(current, TIF_LOAD_WATCH)) {
+ 		mips_read_watch_registers();
+ 		local_irq_enable();
+-		force_sig_info(SIGTRAP, &info, current);
++		force_sig_fault(SIGTRAP, TRAP_HWBKPT, NULL, current);
+ 	} else {
+ 		mips_clear_watch_registers();
+ 		local_irq_enable();
+diff --git a/arch/mips/mm/fault.c b/arch/mips/mm/fault.c
+index 75392becd933..5f71f2b903b7 100644
+--- a/arch/mips/mm/fault.c
++++ b/arch/mips/mm/fault.c
+@@ -42,7 +42,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
+ 	struct task_struct *tsk = current;
+ 	struct mm_struct *mm = tsk->mm;
+ 	const int field = sizeof(unsigned long) * 2;
 -	siginfo_t info;
 +	int si_code;
  	int fault;
- 	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
  	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
  
+@@ -63,8 +63,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
+ 		return;
+ #endif
+ 
 -	clear_siginfo(&info);
- 	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
- 	tsk = current;
- 	mm = tsk->mm;
 -	info.si_code = SEGV_MAPERR;
 +	si_code = SEGV_MAPERR;
+ 
  	/*
  	 * We fault-in kernel-space virtual memory on-demand. The
- 	 * 'reference' page table is init_mm.pgd.
-@@ -162,7 +161,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
- 	 */
- 
+@@ -113,7 +112,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
+  * we can handle it..
+  */
  good_area:
 -	info.si_code = SEGV_ACCERR;
 +	si_code = SEGV_ACCERR;
  
- 	/* first do some preliminary protection checks */
- 	if (entry == ENTRY_PTE_NOT_PRESENT) {
-@@ -267,11 +266,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
- 		tsk->thread.address = addr;
- 		tsk->thread.error_code = error_code;
- 		tsk->thread.trap_no = entry;
+ 	if (write) {
+ 		if (!(vma->vm_flags & VM_WRITE))
+@@ -224,11 +223,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
+ 			pr_cont("\n");
+ 		}
+ 		current->thread.trap_nr = (regs->cp0_cause >> 2) & 0x1f;
 -		info.si_signo = SIGSEGV;
 -		info.si_errno = 0;
 -		/* info.si_code has been set above */
--		info.si_addr = (void *)addr;
+-		info.si_addr = (void __user *) address;
 -		force_sig_info(SIGSEGV, &info, tsk);
-+		force_sig_fault(SIGSEGV, si_code, (void __user *)addr, tsk);
++		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
  		return;
  	}
  
-@@ -340,11 +335,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
- 	tsk->thread.address = addr;
- 	tsk->thread.error_code = error_code;
- 	tsk->thread.trap_no = entry;
+@@ -284,11 +279,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
+ #endif
+ 	current->thread.trap_nr = (regs->cp0_cause >> 2) & 0x1f;
+ 	tsk->thread.cp0_badvaddr = address;
 -	info.si_signo = SIGBUS;
 -	info.si_errno = 0;
 -	info.si_code = BUS_ADRERR;
--	info.si_addr = (void *)addr;
+-	info.si_addr = (void __user *) address;
 -	force_sig_info(SIGBUS, &info, tsk);
-+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)addr, tsk);
++	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, tsk);
  
  	return;
- 
+ #ifndef CONFIG_64BIT
 -- 
 2.14.1
