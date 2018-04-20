@@ -1,13 +1,13 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 10/22] signal/nios2: Use force_sig_fault where appropriate
-Date: Fri, 20 Apr 2018 09:37:59 -0500
-Message-ID: <20180420143811.9994-10-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 09/22] signal/nds32: Use force_sig_fault where appropriate
+Date: Fri, 20 Apr 2018 09:37:58 -0500
+Message-ID: <20180420143811.9994-9-ebiederm@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
 Filling in struct siginfo before calling force_sig_info a tedious and
@@ -22,32 +22,117 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Ley Foon Tan <lftan@altera.com>
-Cc: nios2-dev@lists.rocketboards.org
+Cc: Greentime Hu <green.hu@gmail.com>
+Cc: Vincent Chen <deanbo422@gmail.com>
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/nios2/kernel/traps.c | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ arch/nds32/kernel/traps.c | 20 ++++----------------
+ arch/nds32/mm/fault.c     | 19 +++++--------------
+ 2 files changed, 9 insertions(+), 30 deletions(-)
 
-diff --git a/arch/nios2/kernel/traps.c b/arch/nios2/kernel/traps.c
-index a69861d3e1a3..3bc3cd22b750 100644
---- a/arch/nios2/kernel/traps.c
-+++ b/arch/nios2/kernel/traps.c
-@@ -26,14 +26,7 @@ static DEFINE_SPINLOCK(die_lock);
+diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
+index 46911768f4b5..636d1c7aa895 100644
+--- a/arch/nds32/kernel/traps.c
++++ b/arch/nds32/kernel/traps.c
+@@ -222,20 +222,13 @@ void die_if_kernel(const char *str, struct pt_regs *regs, int err)
  
- static void _send_sig(int signo, int code, unsigned long addr)
+ int bad_syscall(int n, struct pt_regs *regs)
  {
 -	siginfo_t info;
 -
+ 	if (current->personality != PER_LINUX) {
+ 		send_sig(SIGSEGV, current, 1);
+ 		return regs->uregs[0];
+ 	}
+ 
 -	clear_siginfo(&info);
--	info.si_signo = signo;
+-	info.si_signo = SIGILL;
 -	info.si_errno = 0;
--	info.si_code = code;
--	info.si_addr = (void __user *) addr;
--	force_sig_info(signo, &info, current);
-+	force_sig_fault(signo, code, (void __user *) addr, current);
+-	info.si_code = ILL_ILLTRP;
+-	info.si_addr = (void __user *)instruction_pointer(regs) - 4;
+-
+-	force_sig_info(SIGILL, &info, current);
++	force_sig_fault(SIGILL, ILL_ILLTRP,
++			(void __user *)instruction_pointer(regs) - 4, current);
+ 	die_if_kernel("Oops - bad syscall", regs, n);
+ 	return regs->uregs[0];
+ }
+@@ -288,16 +281,11 @@ void __init early_trap_init(void)
+ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+ 		  int error_code, int si_code)
+ {
+-	struct siginfo info;
+-
+ 	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
+ 	tsk->thread.error_code = error_code;
+ 
+-	clear_siginfo(&info);
+-	info.si_signo = SIGTRAP;
+-	info.si_code = si_code;
+-	info.si_addr = (void __user *)instruction_pointer(regs);
+-	force_sig_info(SIGTRAP, &info, tsk);
++	force_sig_fault(SIGTRAP, si_code
++			(void __user *)instruction_pointer(regs), tsk);
  }
  
- void die(const char *str, struct pt_regs *regs, long err)
+ void do_debug_trap(unsigned long entry, unsigned long addr,
+diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
+index 876ee01ff80a..9bdb7c3ecbb6 100644
+--- a/arch/nds32/mm/fault.c
++++ b/arch/nds32/mm/fault.c
+@@ -72,16 +72,15 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+ 	struct task_struct *tsk;
+ 	struct mm_struct *mm;
+ 	struct vm_area_struct *vma;
+-	siginfo_t info;
++	int si_code;
+ 	int fault;
+ 	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
+ 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+ 
+-	clear_siginfo(&info);
+ 	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
+ 	tsk = current;
+ 	mm = tsk->mm;
+-	info.si_code = SEGV_MAPERR;
++	si_code = SEGV_MAPERR;
+ 	/*
+ 	 * We fault-in kernel-space virtual memory on-demand. The
+ 	 * 'reference' page table is init_mm.pgd.
+@@ -162,7 +161,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+ 	 */
+ 
+ good_area:
+-	info.si_code = SEGV_ACCERR;
++	si_code = SEGV_ACCERR;
+ 
+ 	/* first do some preliminary protection checks */
+ 	if (entry == ENTRY_PTE_NOT_PRESENT) {
+@@ -267,11 +266,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+ 		tsk->thread.address = addr;
+ 		tsk->thread.error_code = error_code;
+ 		tsk->thread.trap_no = entry;
+-		info.si_signo = SIGSEGV;
+-		info.si_errno = 0;
+-		/* info.si_code has been set above */
+-		info.si_addr = (void *)addr;
+-		force_sig_info(SIGSEGV, &info, tsk);
++		force_sig_fault(SIGSEGV, si_code, (void __user *)addr, tsk);
+ 		return;
+ 	}
+ 
+@@ -340,11 +335,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+ 	tsk->thread.address = addr;
+ 	tsk->thread.error_code = error_code;
+ 	tsk->thread.trap_no = entry;
+-	info.si_signo = SIGBUS;
+-	info.si_errno = 0;
+-	info.si_code = BUS_ADRERR;
+-	info.si_addr = (void *)addr;
+-	force_sig_info(SIGBUS, &info, tsk);
++	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)addr, tsk);
+ 
+ 	return;
+ 
 -- 
 2.14.1
