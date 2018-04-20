@@ -1,51 +1,69 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 04/17] y2038: s390: Remove unneeded ipc uapi header files
-Date: Fri, 20 Apr 2018 09:58:24 +0200
-Message-ID: <CAK8P3a1_TLs=QZuMVbbAGMEct+SBg2wZ663Kq2RJN5mgU1ZCtw@mail.gmail.com>
-References: <20180419143737.606138-1-arnd@arndb.de> <20180419143737.606138-5-arnd@arndb.de>
- <20180420075407.GA7119@osiris>
+From: Christoph Hellwig <hch@lst.de>
+Subject: (unknown)
+Date: Fri, 20 Apr 2018 10:02:51 +0200
+Message-ID: <20180420080313.18796-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180420075407.GA7119@osiris>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, "Eric W . Biederman" <ebiederm@xmission.com>, Albert ARIBAUD <albert.aribaud@3adev.fr>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, the arch/x86 maintainers <x86@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Subject: 
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 20, 2018 at 9:54 AM, Heiko Carstens
-<heiko.carstens@de.ibm.com> wrote:
-> On Thu, Apr 19, 2018 at 04:37:24PM +0200, Arnd Bergmann wrote:
->> The s390 msgbuf/sembuf/shmbuf header files are all identical to the
->> version from asm-generic.
->>
->> This patch removes the files and replaces them with 'generic-y'
->> statements, to avoid having to modify each copy when we extend sysvipc
->> to deal with 64-bit time_t in 32-bit user space.
->>
->> Note that unlike alpha and ia64, the ipcbuf.h header file is slightly
->> different here, so I'm leaving the private copy.
->>
->> To deal with 32-bit compat tasks, we also have to adapt the definitions
->> of compat_{shm,sem,msg}id_ds to match the changes to the respective
->> asm-generic files.
->>
->> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
->> ---
->>  arch/s390/include/asm/compat.h      | 32 ++++++++++++------------
->>  arch/s390/include/uapi/asm/Kbuild   |  3 +++
->>  arch/s390/include/uapi/asm/msgbuf.h | 38 ----------------------------
->>  arch/s390/include/uapi/asm/sembuf.h | 30 -----------------------
->>  arch/s390/include/uapi/asm/shmbuf.h | 49 -------------------------------------
->>  5 files changed, 19 insertions(+), 133 deletions(-)
->>  delete mode 100644 arch/s390/include/uapi/asm/msgbuf.h
->>  delete mode 100644 arch/s390/include/uapi/asm/sembuf.h
->>  delete mode 100644 arch/s390/include/uapi/asm/shmbuf.h
->
-> FWIW,
->
-> Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+To: iommu@lists.linux-foundation.org
+Cc: linux-arch@vger.kernel.org
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Greentime Hu <green.hu@gmail.com>
+Cc: Vincent Chen <deanbo422@gmail.com>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-c6x-dev@linux-c6x.org
+Cc: linux-hexagon@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: nios2-dev@lists.rocketboards.org
+Cc: openrisc@lists.librecores.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-kernel@vger.kernel.org
+Subject: [RFC] common non-cache coherent direct dma mapping ops
 
-Thanks, added to the patch.
+Hi all,
 
-     Arnd
+this series continues consolidating the dma-mapping code, with a focus
+on architectures that do not (always) provide cache coherence for DMA.
+Three architectures (arm, mips and powerpc) are still left to be
+converted later due to complexity of their dma ops selection.
+
+The dma-noncoherent ops calls the dma-direct ops for the actual
+translation of streaming mappins and allow the architecture to provide
+any cache flushing required for cpu to device and/or device to cpu
+ownership transfers.  The dma coherent allocator is for now still left
+entirely to architecture supplied implementations due the amount of
+variations.  Hopefully we can do some consolidation for them later on
+as well.
+
+A lot of architectures are currently doing very questionable things
+in their dma mapping routines, which are documented in the changelogs
+for each patch.  Please review them very careful and correct me on
+incorrect assumptions.
+
+Because this series sits on top of two previously submitted series
+a git tree might be useful to actually test it.  It is provided here:
+
+    git://git.infradead.org/users/hch/misc.git generic-dma-noncoherent
+
+Gitweb:
+
+    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/generic-dma-noncoherent
