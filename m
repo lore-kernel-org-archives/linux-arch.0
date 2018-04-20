@@ -1,80 +1,57 @@
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 16/17] signal/alpha:  Replace TRAP_FIXME with TRAP_UNK
-Date: Thu, 19 Apr 2018 20:04:07 -0500
-Message-ID: <20180420010408.24438-16-ebiederm@xmission.com>
-References: <878t9ilmhv.fsf@xmission.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <878t9ilmhv.fsf@xmission.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Helge Deller <deller@gmx.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 0/4] LD_DEAD_CODE_DATA_ELIMINATION fixes and enabling for
+ powerpc
+Date: Fri, 20 Apr 2018 17:34:10 +1000
+Message-ID: <20180420073414.23169-1-npiggin@gmail.com>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org, Nicolas Pitre <nico@fluxnic.net>, Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using an si_code of 0 that aliases with SI_USER is clearly the wrong
-thing to do, and causes problems in interesting ways.
+A few people have been interested in this again. And I promised
+if it remains dead code it should be removed, so I would like to
+have another try.
 
-For it really is not clear to me if using TRAP_UNK bugcheck or
-the default case of gentrap is really the best way to handle
-things.  There is certainly enough information that that a more
-specific si_code could potentially be used.  That said TRAP_UNK
-is definitely an improvement over 0 as it removes the ambiguiuty
-of what si_code of 0 with SIGTRAP means on alpha.
+I think I got snagged on the modules problem last time and did
+not take the time to work it out, this time I just turned off the
+compile options for modules (the linker option was never set anyway
+so no loss).
 
-Recent history suggests no actually cares about crazy corner cases of
-the kernel behavior like this so I don't expect any regressions from
-changing this.  However if something does happen this change is easy
-to revert.
+This includes some linker script catches and ideas from others, I
+didn't documnt them all, but thanks for looking.
 
-Cc: Helge Deller <deller@gmx.de>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
-Fixes: 0a635c7a84cf ("Fill in siginfo_t.")
-History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/alpha/include/uapi/asm/siginfo.h | 7 -------
- arch/alpha/kernel/traps.c             | 4 ++--
- 2 files changed, 2 insertions(+), 9 deletions(-)
+I would be interested to help other archs get this working too, if
+anybody needs some help.
 
-diff --git a/arch/alpha/include/uapi/asm/siginfo.h b/arch/alpha/include/uapi/asm/siginfo.h
-index 3ebbb1e17902..db3f0138536f 100644
---- a/arch/alpha/include/uapi/asm/siginfo.h
-+++ b/arch/alpha/include/uapi/asm/siginfo.h
-@@ -7,11 +7,4 @@
- 
- #include <asm-generic/siginfo.h>
- 
--/*
-- * SIGTRAP si_codes
-- */
--#ifdef __KERNEL__
--#define TRAP_FIXME	0	/* Broken dup of SI_USER */
--#endif /* __KERNEL__ */
--
- #endif
-diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
-index 422b676b28f2..242c83d86ace 100644
---- a/arch/alpha/kernel/traps.c
-+++ b/arch/alpha/kernel/traps.c
-@@ -288,7 +288,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 	      case 1: /* bugcheck */
- 		info.si_signo = SIGTRAP;
- 		info.si_errno = 0;
--		info.si_code = TRAP_FIXME;
-+		info.si_code = TRAP_UNK;
- 		info.si_addr = (void __user *) regs->pc;
- 		info.si_trapno = 0;
- 		send_sig_info(SIGTRAP, &info, current);
-@@ -350,7 +350,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
- 		case GEN_SUBRNG7:
- 		default:
- 			signo = SIGTRAP;
--			code = TRAP_FIXME;
-+			code = TRAP_UNK;
- 			break;
- 		}
- 
+Thanks,
+Nick
+
+Nicholas Piggin (4):
+  kbuild: Fix asm-generic/vmlinux.lds.h for
+    LD_DEAD_CODE_DATA_ELIMINATION
+  kbuild: LD_DEAD_CODE_DATA_ELIMINATION no
+    -ffunction-sections/-fdata-sections for module build
+  kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if
+    enabled
+  powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
+
+ Makefile                          |  4 +--
+ arch/Kconfig                      | 15 ----------
+ arch/powerpc/Kconfig              |  1 +
+ arch/powerpc/kernel/vmlinux.lds.S | 22 +++++++-------
+ include/asm-generic/vmlinux.lds.h | 49 ++++++++++++++++++-------------
+ init/Kconfig                      | 27 +++++++++++++++++
+ 6 files changed, 70 insertions(+), 48 deletions(-)
+
 -- 
-2.14.1
+2.17.0
