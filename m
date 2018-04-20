@@ -1,48 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f193.google.com ([209.85.213.193]:45952 "EHLO
-        mail-yb0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750751AbeDTQ1g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 12:27:36 -0400
+Received: from ivanoab5.miniserver.com ([78.31.111.25]:47147 "EHLO
+        www.kot-begemot.co.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751092AbeDTQm1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 12:42:27 -0400
+Subject: Re: [uml-devel] [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault
+ in relay_signal.
+References: <87604mhrnb.fsf@xmission.com>
+ <20180420143811.9994-19-ebiederm@xmission.com>
+From: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
+Message-ID: <7074fe36-27c5-ee82-9659-da703cfc91fe@kot-begemot.co.uk>
+Date: Fri, 20 Apr 2018 17:06:10 +0100
 MIME-Version: 1.0
-In-Reply-To: <20180420143811.9994-22-ebiederm@xmission.com>
-References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-22-ebiederm@xmission.com>
-From: Max Filippov <jcmvbkbc@gmail.com>
-Date: Fri, 20 Apr 2018 09:27:35 -0700
-Message-ID: <CAMo8Bf+LhSQX=debxSBLzpESb1LojBVdPd+L4x1ax5mBVvvYMA@mail.gmail.com>
-Subject: Re: [REVIEW][PATCH 22/22] signal/xtensa: Use force_sig_fault where appropriate
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180420143811.9994-19-ebiederm@xmission.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org
-Message-ID: <20180420162735.Vq-Toxh5ex4H9nrD1B8KnzRys-XzQ6o0ZFORiZ5KYk0@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org
+Cc: Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, linux-um@lists.infradead.org, "user-mode-linux-devel@lists.sourceforge.net" <user-mode-linux-devel@lists.sourceforge.net>
+Message-ID: <20180420160610.49utrRJS4ciZF3FnL5gH3SMuKmpq9A9sZVQvKuN61Rc@z>
 
-On Fri, Apr 20, 2018 at 7:38 AM, Eric W. Biederman
-<ebiederm@xmission.com> wrote:
-> Filling in struct siginfo before calling force_sig_info a tedious and
-> error prone process, where once in a great while the wrong fields
-> are filled out, and siginfo has been inconsistently cleared.
+
+On 04/20/18 15:38, Eric W. Biederman wrote:
+> Today user mode linux only works on x86 and x86_64 and this allows
+> simplifications of relay_signal.
+
+I believe someone recently fixed the ARM port. I have not had the time 
+to try the fixes though.
+
+I have added the new list we are migrating to the cc list.
+
+A.
+
+
+
 >
-> Simplify this process by using the helper force_sig_fault.  Which
-> takes as a parameters all of the information it needs, ensures
-> all of the fiddly bits of filling in struct siginfo are done properly
-> and then calls force_sig_info.
+> - x86 always set si_errno to 0 in fault handlers.
+> - x86 does not implement si_trapno.
+> - Only si_codes between SI_USER and SI_KERNEL have a fault address.
 >
-> In short about a 5 line reduction in code for every time force_sig_info
-> is called, which makes the calling function clearer.
+> Therefore warn if si_errno is set (it should never be).
+> Use force_sig_info in the case where we know we have a good fault.
 >
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: linux-xtensa@linux-xtensa.org
+> For signals whose content it is not clear how to relay use plain
+> force_sig and let the signal sending code come up with an
+> appropriate generic siginfo.
+>
+> Cc: Jeff Dike <jdike@addtoit.com>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: user-mode-linux-devel@lists.sourceforge.net
 > Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 > ---
->  arch/xtensa/kernel/traps.c | 10 +---------
->  arch/xtensa/mm/fault.c     | 19 +++++--------------
->  2 files changed, 6 insertions(+), 23 deletions(-)
-
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-
--- 
-Thanks.
--- Max
+>   arch/um/kernel/trap.c | 28 +++++++++++++---------------
+>   1 file changed, 13 insertions(+), 15 deletions(-)
+>
+> diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+> index d4d38520c4c6..5f0ff17cd790 100644
+> --- a/arch/um/kernel/trap.c
+> +++ b/arch/um/kernel/trap.c
+> @@ -296,9 +296,6 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+>   
+>   void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
+>   {
+> -	struct faultinfo *fi;
+> -	struct siginfo clean_si;
+> -
+>   	if (!UPT_IS_USER(regs)) {
+>   		if (sig == SIGBUS)
+>   			printk(KERN_ERR "Bus error - the host /dev/shm or /tmp "
+> @@ -308,29 +305,30 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
+>   
+>   	arch_examine_signal(sig, regs);
+>   
+> -	clear_siginfo(&clean_si);
+> -	clean_si.si_signo = si->si_signo;
+> -	clean_si.si_errno = si->si_errno;
+> -	clean_si.si_code = si->si_code;
+> +	if (unlikely(si->si_errno)) {
+> +		printk(KERN_ERR "Attempted to relay signal %d (si_code = %d) with errno %d\n",
+> +		       sig, si->si_code, si->si_errno);
+> +	}
+>   	switch (sig) {
+>   	case SIGILL:
+>   	case SIGFPE:
+>   	case SIGSEGV:
+>   	case SIGBUS:
+>   	case SIGTRAP:
+> -		fi = UPT_FAULTINFO(regs);
+> -		clean_si.si_addr = (void __user *) FAULT_ADDRESS(*fi);
+> -		current->thread.arch.faultinfo = *fi;
+> -#ifdef __ARCH_SI_TRAPNO
+> -		clean_si.si_trapno = si->si_trapno;
+> -#endif
+> -		break;
+> +		if ((si->si_code > SI_USER) && (si->si_code < SI_KERNEL)) {
+> +			struct faultinfo *fi = UPT_FAULTINFO(regs);
+> +			current->thread.arch.faultinfo = *fi;
+> +			force_sig_fault(sig, si->si_code,
+> +					(void __user *)FAULT_ADDRESS(*fi),
+> +					current);
+> +			break;
+> +		}
+>   	default:
+>   		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d)\n",
+>   			sig, si->si_code);
+>   	}
+>   
+> -	force_sig_info(sig, &clean_si, current);
+> +	force_sig(sig, current);
+>   }
+>   
+>   void bus_handler(int sig, struct siginfo *si, struct uml_pt_regs *regs)
