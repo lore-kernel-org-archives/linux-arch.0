@@ -1,172 +1,84 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 11/22] signal/openrisc: Use force_sig_fault where appropriate
-Date: Fri, 20 Apr 2018 09:38:00 -0500
-Message-ID: <20180420143811.9994-11-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 12/22] signal/parisc: Use force_sig_mceerr where appropriate
+Date: Fri, 20 Apr 2018 09:38:01 -0500
+Message-ID: <20180420143811.9994-12-ebiederm@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, James Bottomley <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Filling in struct siginfo before calling force_sig_info a tedious and
-error prone process, where once in a great while the wrong fields
-are filled out, and siginfo has been inconsistently cleared.
+In do_page_fault where an mceerr is generated stop and call force_sig_mceerr.
+Keeping the mcerr handling logic out of the force_sig_info call below.
 
-Simplify this process by using the helper force_sig_fault.  Which
-takes as a parameters all of the information it needs, ensures
-all of the fiddly bits of filling in struct siginfo are done properly
-and then calls force_sig_info.
+This ensures that only and always in the mcerr case is lsb interesting.
 
-In short about a 5 line reduction in code for every time force_sig_info
-is called, which makes the calling function clearer.
+This ensures setting set si_lsb in the future won't accidentally
+stomp another siginfo field in the non mcerr case.
 
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: openrisc@lists.librecores.org
+Cc: James Bottomley <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/openrisc/kernel/traps.c | 33 ++++-----------------------------
- arch/openrisc/mm/fault.c     | 19 +++++--------------
- 2 files changed, 9 insertions(+), 43 deletions(-)
+ arch/parisc/mm/fault.c | 30 +++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
 
-diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
-index 1610b1d65a11..fac246e6f37a 100644
---- a/arch/openrisc/kernel/traps.c
-+++ b/arch/openrisc/kernel/traps.c
-@@ -250,28 +250,16 @@ void __init trap_init(void)
- 
- asmlinkage void do_trap(struct pt_regs *regs, unsigned long address)
- {
--	siginfo_t info;
--	clear_siginfo(&info);
--	info.si_signo = SIGTRAP;
--	info.si_code = TRAP_TRACE;
--	info.si_addr = (void *)address;
--	force_sig_info(SIGTRAP, &info, current);
-+	force_sig_fault(SIGTRAP, TRAP_TRACE, (void __user *)address, current);
- 
- 	regs->pc += 4;
- }
- 
- asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
- {
--	siginfo_t info;
--
- 	if (user_mode(regs)) {
- 		/* Send a SIGBUS */
--		clear_siginfo(&info);
--		info.si_signo = SIGBUS;
--		info.si_errno = 0;
--		info.si_code = BUS_ADRALN;
--		info.si_addr = (void __user *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)address, current);
- 	} else {
- 		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
- 		show_registers(regs);
-@@ -282,16 +270,9 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
- 
- asmlinkage void do_bus_fault(struct pt_regs *regs, unsigned long address)
- {
--	siginfo_t info;
--
- 	if (user_mode(regs)) {
- 		/* Send a SIGBUS */
--		clear_siginfo(&info);
--		info.si_signo = SIGBUS;
--		info.si_errno = 0;
--		info.si_code = BUS_ADRERR;
--		info.si_addr = (void *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, current);
- 	} else {		/* Kernel mode */
- 		printk("KERNEL: Bus error (SIGBUS) 0x%.8lx\n", address);
- 		show_registers(regs);
-@@ -466,7 +447,6 @@ static inline void simulate_swa(struct pt_regs *regs, unsigned long address,
- asmlinkage void do_illegal_instruction(struct pt_regs *regs,
- 				       unsigned long address)
- {
--	siginfo_t info;
- 	unsigned int op;
- 	unsigned int insn = *((unsigned int *)address);
- 
-@@ -487,12 +467,7 @@ asmlinkage void do_illegal_instruction(struct pt_regs *regs,
+diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
+index 657b35096bd8..51215b0048ef 100644
+--- a/arch/parisc/mm/fault.c
++++ b/arch/parisc/mm/fault.c
+@@ -354,7 +354,6 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
  
  	if (user_mode(regs)) {
- 		/* Send a SIGILL */
--		clear_siginfo(&info);
--		info.si_signo = SIGILL;
--		info.si_errno = 0;
--		info.si_code = ILL_ILLOPC;
--		info.si_addr = (void *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)address, current);
- 	} else {		/* Kernel mode */
- 		printk("KERNEL: Illegal instruction (SIGILL) 0x%.8lx\n",
- 		       address);
-diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
-index 68be33e4ae17..9f011d16cc46 100644
---- a/arch/openrisc/mm/fault.c
-+++ b/arch/openrisc/mm/fault.c
-@@ -52,11 +52,10 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	struct task_struct *tsk;
- 	struct mm_struct *mm;
- 	struct vm_area_struct *vma;
--	siginfo_t info;
-+	int si_code;
- 	int fault;
- 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+ 		struct siginfo si;
+-		unsigned int lsb = 0;
  
--	clear_siginfo(&info);
- 	tsk = current;
+ 		clear_siginfo(&si);
+ 		switch (code) {
+@@ -391,26 +390,27 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
  
- 	/*
-@@ -98,7 +97,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	}
+ #ifdef CONFIG_MEMORY_FAILURE
+ 		if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
++			unsigned int lsb = 0;
+ 			printk(KERN_ERR
+ 	"MCE: Killing %s:%d due to hardware memory corruption fault at %08lx\n",
+ 			tsk->comm, tsk->pid, address);
+-			si.si_signo = SIGBUS;
+-			si.si_code = BUS_MCEERR_AR;
++			/*
++			 * Either small page or large page may be poisoned.
++			 * In other words, VM_FAULT_HWPOISON_LARGE and
++			 * VM_FAULT_HWPOISON are mutually exclusive.
++			 */
++			if (fault & VM_FAULT_HWPOISON_LARGE)
++				lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
++			else if (fault & VM_FAULT_HWPOISON)
++				lsb = PAGE_SHIFT;
++
++			force_sig_mceerr(BUS_MCEERR_AR, (void __user *) address,
++					 lsb, current);
++			return;
+ 		}
+ #endif
  
- 	mm = tsk->mm;
--	info.si_code = SEGV_MAPERR;
-+	si_code = SEGV_MAPERR;
+-		/*
+-		 * Either small page or large page may be poisoned.
+-		 * In other words, VM_FAULT_HWPOISON_LARGE and
+-		 * VM_FAULT_HWPOISON are mutually exclusive.
+-		 */
+-		if (fault & VM_FAULT_HWPOISON_LARGE)
+-			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
+-		else if (fault & VM_FAULT_HWPOISON)
+-			lsb = PAGE_SHIFT;
+-		else
+-			show_signal_msg(regs, code, address, tsk, vma);
+-		si.si_addr_lsb = lsb;
++		show_signal_msg(regs, code, address, tsk, vma);
  
- 	/*
- 	 * If we're in an interrupt or have no user
-@@ -140,7 +139,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	 */
- 
- good_area:
--	info.si_code = SEGV_ACCERR;
-+	si_code = SEGV_ACCERR;
- 
- 	/* first do some preliminary protection checks */
- 
-@@ -214,11 +213,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	/* User mode accesses just cause a SIGSEGV */
- 
- 	if (user_mode(regs)) {
--		info.si_signo = SIGSEGV;
--		info.si_errno = 0;
--		/* info.si_code has been set above */
--		info.si_addr = (void *)address;
--		force_sig_info(SIGSEGV, &info, tsk);
-+		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
- 		return;
- 	}
- 
-@@ -283,11 +278,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	 * Send a sigbus, regardless of whether we were in kernel
- 	 * or user mode.
- 	 */
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRERR;
--	info.si_addr = (void *)address;
--	force_sig_info(SIGBUS, &info, tsk);
-+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, tsk);
- 
- 	/* Kernel mode? Handle exceptions or die */
- 	if (!user_mode(regs))
+ 		si.si_errno = 0;
+ 		si.si_addr = (void __user *) address;
 -- 
 2.14.1
