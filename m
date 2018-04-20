@@ -1,68 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:61991 "EHLO pegase1.c-s.fr"
+Received: from foss.arm.com ([217.140.101.70]:47582 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754273AbeDTKCj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Apr 2018 06:02:39 -0400
-Subject: Re: [PATCH 0/4] LD_DEAD_CODE_DATA_ELIMINATION fixes and enabling for
- powerpc
-References: <20180420073414.23169-1-npiggin@gmail.com>
-From: Christophe LEROY <christophe.leroy@c-s.fr>
-Message-ID: <099a9e24-6881-48fd-3db3-4fe3132372e4@c-s.fr>
-Date: Fri, 20 Apr 2018 12:02:37 +0200
+        id S1754321AbeDTKXs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Apr 2018 06:23:48 -0400
+Subject: Re: [PATCH 01/22] dma-debug: move initialization to common code
+References: <20180420080313.18796-1-hch@lst.de>
+ <20180420080313.18796-2-hch@lst.de>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <294a1469-01d6-10fb-5de1-b1d4513a066c@arm.com>
+Date: Fri, 20 Apr 2018 11:23:43 +0100
 MIME-Version: 1.0
-In-Reply-To: <20180420073414.23169-1-npiggin@gmail.com>
+In-Reply-To: <20180420080313.18796-2-hch@lst.de>
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Nicolas Pitre <nico@fluxnic.net>
-Message-ID: <20180420100237.4DaCsIro_j1xs2yYDJPkt7zeuJ3tgz-4qU9uTXroEQU@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180420102343.WvggukHjDwvd98vcFJ8584Is6uxgvEx7-Id51N4OzWE@z>
 
+Hi Christoph,
 
+Nice cleanup! Looks good overall, just a couple of nits.
 
-Le 20/04/2018 à 09:34, Nicholas Piggin a écrit :
-> A few people have been interested in this again. And I promised
-> if it remains dead code it should be removed, so I would like to
-> have another try.
-> 
-> I think I got snagged on the modules problem last time and did
-> not take the time to work it out, this time I just turned off the
-> compile options for modules (the linker option was never set anyway
-> so no loss).
-> 
-> This includes some linker script catches and ideas from others, I
-> didn't documnt them all, but thanks for looking.
+On 20/04/18 09:02, Christoph Hellwig wrote:
+[...]
+> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+> index 7f5cdc1e6b29..712a897174e4 100644
+> --- a/lib/dma-debug.c
+> +++ b/lib/dma-debug.c
+> @@ -41,6 +41,11 @@
+>   #define HASH_FN_SHIFT   13
+>   #define HASH_FN_MASK    (HASH_SIZE - 1)
+>   
+> +/* allow architectures to override this if absolutely required */
+> +#ifndef PREALLOC_DMA_DEBUG_ENTRIES
+> +#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+> +#endif
+> +
+>   enum {
+>   	dma_debug_single,
+>   	dma_debug_page,
+> @@ -1004,18 +1009,16 @@ void dma_debug_add_bus(struct bus_type *bus)
+>   	bus_register_notifier(bus, nb);
+>   }
+>   
+> -/*
+> - * Let the architectures decide how many entries should be preallocated.
+> - */
+> -void dma_debug_init(u32 num_entries)
+> +static int dma_debug_init(void)
+>   {
+> +	u32 num_entries;
 
-Thanks a lot.
+Maybe initialise it to PREALLOC_DMA_DEBUG_ENTRIES?
 
-It works well on both my 8xx and 83xx targets. I don't have 
-CONFIG_MODULE set.
+>   	int i;
+>   
+>   	/* Do not use dma_debug_initialized here, since we really want to be
+>   	 * called to set dma_debug_initialized
+>   	 */
+>   	if (global_disable)
+> -		return;
+> +		return 0;
+>   
+>   	for (i = 0; i < HASH_SIZE; ++i) {
+>   		INIT_LIST_HEAD(&dma_entry_hash[i].list);
+> @@ -1026,17 +1029,19 @@ void dma_debug_init(u32 num_entries)
+>   		pr_err("DMA-API: error creating debugfs entries - disabling\n");
+>   		global_disable = true;
+>   
+> -		return;
+> +		return 0;
+>   	}
+>   
+>   	if (req_entries)
+>   		num_entries = req_entries;
+> +	else
+> +		num_entries = PREALLOC_DMA_DEBUG_ENTRIES;
+>   
+>   	if (prealloc_memory(num_entries) != 0) {
+>   		pr_err("DMA-API: debugging out of memory error - disabled\n");
+>   		global_disable = true;
+>   
+> -		return;
+> +		return 0;
+>   	}
+>   
+>   	nr_total_entries = num_free_entries;
+> @@ -1044,7 +1049,9 @@ void dma_debug_init(u32 num_entries)
+>   	dma_debug_initialized = true;
+>   
+>   	pr_info("DMA-API: debugging enabled by kernel config\n");
+> +	return 0;
+>   }
+> +core_initcall(dma_debug_init);
 
-Christophe
+I think it's worth noting that for most users this now happens much 
+earlier than before. In general that's probably good (e.g. on arm64 it 
+should prevent false-positives from the Arm SMMU drivers under ACPI), 
+and I can't imagine it's high-risk, but it is a behaviour change.
 
-> 
-> I would be interested to help other archs get this working too, if
-> anybody needs some help.
-> 
-> Thanks,
-> Nick
-> 
-> Nicholas Piggin (4):
->    kbuild: Fix asm-generic/vmlinux.lds.h for
->      LD_DEAD_CODE_DATA_ELIMINATION
->    kbuild: LD_DEAD_CODE_DATA_ELIMINATION no
->      -ffunction-sections/-fdata-sections for module build
->    kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if
->      enabled
->    powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
-> 
->   Makefile                          |  4 +--
->   arch/Kconfig                      | 15 ----------
->   arch/powerpc/Kconfig              |  1 +
->   arch/powerpc/kernel/vmlinux.lds.S | 22 +++++++-------
->   include/asm-generic/vmlinux.lds.h | 49 ++++++++++++++++++-------------
->   init/Kconfig                      | 27 +++++++++++++++++
->   6 files changed, 70 insertions(+), 48 deletions(-)
+Robin.
+
+>   
+>   static __init int dma_debug_cmdline(char *str)
+>   {
 > 
