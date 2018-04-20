@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 09/22] hexagon: use generic dma_noncoherent_ops
-Date: Fri, 20 Apr 2018 10:03:00 +0200
-Message-ID: <20180420080313.18796-10-hch@lst.de>
+Subject: [PATCH 11/22] microblaze: use generic dma_noncoherent_ops
+Date: Fri, 20 Apr 2018 10:03:02 +0200
+Message-ID: <20180420080313.18796-12-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
@@ -11,280 +11,328 @@ List-Id: linux-arch.vger.kernel.org
 
 Switch to the generic noncoherent direct mapping implementation.
 
-This removes the previous sync_single_for_cpu implementation, which looks
-bogus given that no syncing is happening in the similar but more
-important unmap_single case.
-
-This adds the previously missing sync_sg_for_device implementation that
-matches the pre-existing sync_single_for_device implementation.
+This removes the direction-based optimizations in
+sync_{single,sg}_for_{cpu,device} which were marked untestested and
+do not match the usually very well tested {un,}map_{single,sg}
+implementations.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/hexagon/Kconfig                   |   2 +
- arch/hexagon/include/asm/Kbuild        |   1 +
- arch/hexagon/include/asm/dma-mapping.h |  40 -------
- arch/hexagon/kernel/dma.c              | 143 ++-----------------------
- 4 files changed, 11 insertions(+), 175 deletions(-)
- delete mode 100644 arch/hexagon/include/asm/dma-mapping.h
+ arch/microblaze/Kconfig                   |   4 +
+ arch/microblaze/include/asm/Kbuild        |   1 +
+ arch/microblaze/include/asm/dma-mapping.h |  28 -----
+ arch/microblaze/include/asm/pgtable.h     |   2 -
+ arch/microblaze/kernel/dma.c              | 144 ++--------------------
+ arch/microblaze/mm/consistent.c           |   9 +-
+ 6 files changed, 22 insertions(+), 166 deletions(-)
+ delete mode 100644 arch/microblaze/include/asm/dma-mapping.h
 
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 37adb2003033..bcbdcb32935c 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -4,6 +4,7 @@ comment "Linux Kernel Configuration for Hexagon"
- 
- config HEXAGON
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 3817a3e2146c..91b9b999eb18 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -1,6 +1,8 @@
+ config MICROBLAZE
  	def_bool y
 +	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select HAVE_OPROFILE
- 	# Other pending projects/to-do items.
- 	# select HAVE_REGS_AND_STACK_ACCESS_API
-@@ -28,6 +29,7 @@ config HEXAGON
- 	select GENERIC_CLOCKEVENTS_BROADCAST
- 	select MODULES_USE_ELF_RELA
- 	select GENERIC_CPU_DEVICES
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
++	select ARCH_HAS_SYNC_DMA_FOR_CPU
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+@@ -8,6 +10,8 @@ config MICROBLAZE
+ 	select TIMER_OF
+ 	select CLONE_BACKWARDS3
+ 	select COMMON_CLK
 +	select DMA_NONCOHERENT_OPS
- 	---help---
- 	  Qualcomm Hexagon is a processor architecture designed for high
- 	  performance and low power across a wide variety of applications.
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index e9743f689fb8..843a8086e980 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -5,6 +5,7 @@ generic-y += bugs.h
- generic-y += current.h
++	select DMA_NONCOHERENT_MMAP
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_CPU_DEVICES
+diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+index 3c80a5a308ed..8d3e71f43a3e 100644
+--- a/arch/microblaze/include/asm/Kbuild
++++ b/arch/microblaze/include/asm/Kbuild
+@@ -4,6 +4,7 @@ generic-y += bug.h
+ generic-y += bugs.h
  generic-y += device.h
  generic-y += div64.h
 +generic-y += dma-mapping.h
  generic-y += emergency-restart.h
+ generic-y += exec.h
  generic-y += extable.h
- generic-y += fb.h
-diff --git a/arch/hexagon/include/asm/dma-mapping.h b/arch/hexagon/include/asm/dma-mapping.h
+diff --git a/arch/microblaze/include/asm/dma-mapping.h b/arch/microblaze/include/asm/dma-mapping.h
 deleted file mode 100644
-index 263f6acbfb0f..000000000000
---- a/arch/hexagon/include/asm/dma-mapping.h
+index add50c1373bf..000000000000
+--- a/arch/microblaze/include/asm/dma-mapping.h
 +++ /dev/null
-@@ -1,40 +0,0 @@
+@@ -1,28 +0,0 @@
 -/*
-- * DMA operations for the Hexagon architecture
+- * Implements the generic device dma API for microblaze and the pci
 - *
-- * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+- * Copyright (C) 2009-2010 Michal Simek <monstr@monstr.eu>
+- * Copyright (C) 2009-2010 PetaLogix
 - *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 and
-- * only version 2 as published by the Free Software Foundation.
+- * This file is subject to the terms and conditions of the GNU General
+- * Public License. See the file COPYING in the main directory of this
+- * archive for more details.
 - *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, write to the Free Software
-- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-- * 02110-1301, USA.
+- * This file is base on powerpc and x86 dma-mapping.h versions
+- * Copyright (C) 2004 IBM
 - */
 -
--#ifndef _ASM_DMA_MAPPING_H
--#define _ASM_DMA_MAPPING_H
+-#ifndef _ASM_MICROBLAZE_DMA_MAPPING_H
+-#define _ASM_MICROBLAZE_DMA_MAPPING_H
 -
--#include <linux/types.h>
--#include <linux/cache.h>
--#include <linux/mm.h>
--#include <linux/scatterlist.h>
--#include <linux/dma-debug.h>
--#include <asm/io.h>
--
--struct device;
--
--extern const struct dma_map_ops *dma_ops;
+-/*
+- * Available generic sets of operations
+- */
+-extern const struct dma_map_ops dma_nommu_ops;
 -
 -static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 -{
--	return dma_ops;
+-	return &dma_nommu_ops;
 -}
 -
--#endif
-diff --git a/arch/hexagon/kernel/dma.c b/arch/hexagon/kernel/dma.c
-index 77459df34e2e..ffc4ae8e126f 100644
---- a/arch/hexagon/kernel/dma.c
-+++ b/arch/hexagon/kernel/dma.c
-@@ -18,32 +18,19 @@
-  * 02110-1301, USA.
+-#endif	/* _ASM_MICROBLAZE_DMA_MAPPING_H */
+diff --git a/arch/microblaze/include/asm/pgtable.h b/arch/microblaze/include/asm/pgtable.h
+index e53b8532353c..5174733fb489 100644
+--- a/arch/microblaze/include/asm/pgtable.h
++++ b/arch/microblaze/include/asm/pgtable.h
+@@ -551,8 +551,6 @@ void __init *early_get_page(void);
+ 
+ extern unsigned long ioremap_bot, ioremap_base;
+ 
+-void *consistent_alloc(gfp_t gfp, size_t size, dma_addr_t *dma_handle);
+-void consistent_free(size_t size, void *vaddr);
+ void consistent_sync(void *vaddr, size_t size, int direction);
+ void consistent_sync_page(struct page *page, unsigned long offset,
+ 	size_t size, int direction);
+diff --git a/arch/microblaze/kernel/dma.c b/arch/microblaze/kernel/dma.c
+index 3145e7dc8ab1..71032cf64669 100644
+--- a/arch/microblaze/kernel/dma.c
++++ b/arch/microblaze/kernel/dma.c
+@@ -8,29 +8,15 @@
   */
  
+ #include <linux/device.h>
 -#include <linux/dma-mapping.h>
--#include <linux/dma-direct.h>
 +#include <linux/dma-noncoherent.h>
- #include <linux/bootmem.h>
- #include <linux/genalloc.h>
--#include <asm/dma-mapping.h>
- #include <linux/module.h>
- #include <asm/page.h>
+ #include <linux/gfp.h>
+ #include <linux/dma-debug.h>
+ #include <linux/export.h>
+ #include <linux/bug.h>
+ #include <asm/cacheflush.h>
  
--#define HEXAGON_MAPPING_ERROR	0
--
--const struct dma_map_ops *dma_ops;
--EXPORT_SYMBOL(dma_ops);
--
--static inline void *dma_addr_to_virt(dma_addr_t dma_addr)
+-static void *dma_nommu_alloc_coherent(struct device *dev, size_t size,
+-				       dma_addr_t *dma_handle, gfp_t flag,
+-				       unsigned long attrs)
 -{
--	return phys_to_virt((unsigned long) dma_addr);
+-	return consistent_alloc(flag, size, dma_handle);
 -}
 -
- static struct gen_pool *coherent_pool;
- 
- 
- /* Allocates from a pool of uncached memory that was reserved at boot time */
- 
--static void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
--				 dma_addr_t *dma_addr, gfp_t flag,
--				 unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_addr,
-+		gfp_t flag, unsigned long attrs)
- {
- 	void *ret;
- 
-@@ -75,58 +62,17 @@ static void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
- 	return ret;
- }
- 
--static void hexagon_free_coherent(struct device *dev, size_t size, void *vaddr,
--				  dma_addr_t dma_addr, unsigned long attrs)
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
-+		dma_addr_t dma_addr, unsigned long attrs)
- {
- 	gen_pool_free(coherent_pool, (unsigned long) vaddr, size);
- }
- 
--static int check_addr(const char *name, struct device *hwdev,
--		      dma_addr_t bus, size_t size)
+-static void dma_nommu_free_coherent(struct device *dev, size_t size,
+-				     void *vaddr, dma_addr_t dma_handle,
+-				     unsigned long attrs)
 -{
--	if (hwdev && hwdev->dma_mask && !dma_capable(hwdev, bus, size)) {
--		if (*hwdev->dma_mask >= DMA_BIT_MASK(32))
--			printk(KERN_ERR
--				"%s: overflow %Lx+%zu of device mask %Lx\n",
--				name, (long long)bus, size,
--				(long long)*hwdev->dma_mask);
--		return 0;
--	}
--	return 1;
+-	consistent_free(size, vaddr);
 -}
 -
--static int hexagon_map_sg(struct device *hwdev, struct scatterlist *sg,
--			  int nents, enum dma_data_direction dir,
--			  unsigned long attrs)
+-static inline void __dma_sync(unsigned long paddr,
+-			      size_t size, enum dma_data_direction direction)
++static void __dma_sync(struct device *dev, phys_addr_t paddr, size_t size,
++		enum dma_data_direction direction)
+ {
+ 	switch (direction) {
+ 	case DMA_TO_DEVICE:
+@@ -45,113 +31,21 @@ static inline void __dma_sync(unsigned long paddr,
+ 	}
+ }
+ 
+-static int dma_nommu_map_sg(struct device *dev, struct scatterlist *sgl,
+-			     int nents, enum dma_data_direction direction,
+-			     unsigned long attrs)
 +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
 +		size_t size, enum dma_data_direction dir)
  {
--	struct scatterlist *s;
+-	struct scatterlist *sg;
 -	int i;
 -
--	WARN_ON(nents == 0 || sg[0].length == 0);
+-	/* FIXME this part of code is untested */
+-	for_each_sg(sgl, sg, nents, i) {
+-		sg->dma_address = sg_phys(sg);
 -
--	for_each_sg(sg, s, nents, i) {
--		s->dma_address = sg_phys(s);
--		if (!check_addr("map_sg", hwdev, s->dma_address, s->length))
--			return 0;
--
--		s->dma_length = s->length;
-+	void *addr = phys_to_virt(paddr);
- 
 -		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
 -			continue;
 -
--		flush_dcache_range(dma_addr_to_virt(s->dma_address),
--				   dma_addr_to_virt(s->dma_address + s->length));
+-		__dma_sync(sg_phys(sg), sg->length, direction);
 -	}
 -
 -	return nents;
 -}
 -
--/*
-- * address is virtual
-- */
--static inline void dma_sync(void *addr, size_t size,
--			    enum dma_data_direction dir)
+-static inline dma_addr_t dma_nommu_map_page(struct device *dev,
+-					     struct page *page,
+-					     unsigned long offset,
+-					     size_t size,
+-					     enum dma_data_direction direction,
+-					     unsigned long attrs)
 -{
- 	switch (dir) {
- 	case DMA_TO_DEVICE:
- 		hexagon_clean_dcache_range((unsigned long) addr,
-@@ -144,76 +90,3 @@ static inline void dma_sync(void *addr, size_t size,
- 		BUG();
- 	}
+-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		__dma_sync(page_to_phys(page) + offset, size, direction);
+-	return page_to_phys(page) + offset;
++	__dma_sync(dev, paddr, size, dir);
+ }
+ 
+-static inline void dma_nommu_unmap_page(struct device *dev,
+-					 dma_addr_t dma_address,
+-					 size_t size,
+-					 enum dma_data_direction direction,
+-					 unsigned long attrs)
++void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+-/* There is not necessary to do cache cleanup
+- *
+- * phys_to_virt is here because in __dma_sync_page is __virt_to_phys and
+- * dma_address is physical address
+- */
+-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		__dma_sync(dma_address, size, direction);
++	__dma_sync(dev, paddr, size, dir);
+ }
+ 
+-static inline void
+-dma_nommu_sync_single_for_cpu(struct device *dev,
+-			       dma_addr_t dma_handle, size_t size,
+-			       enum dma_data_direction direction)
+-{
+-	/*
+-	 * It's pointless to flush the cache as the memory segment
+-	 * is given to the CPU
+-	 */
+-
+-	if (direction == DMA_FROM_DEVICE)
+-		__dma_sync(dma_handle, size, direction);
+-}
+-
+-static inline void
+-dma_nommu_sync_single_for_device(struct device *dev,
+-				  dma_addr_t dma_handle, size_t size,
+-				  enum dma_data_direction direction)
+-{
+-	/*
+-	 * It's pointless to invalidate the cache if the device isn't
+-	 * supposed to write to the relevant region
+-	 */
+-
+-	if (direction == DMA_TO_DEVICE)
+-		__dma_sync(dma_handle, size, direction);
+-}
+-
+-static inline void
+-dma_nommu_sync_sg_for_cpu(struct device *dev,
+-			   struct scatterlist *sgl, int nents,
+-			   enum dma_data_direction direction)
+-{
+-	struct scatterlist *sg;
+-	int i;
+-
+-	/* FIXME this part of code is untested */
+-	if (direction == DMA_FROM_DEVICE)
+-		for_each_sg(sgl, sg, nents, i)
+-			__dma_sync(sg->dma_address, sg->length, direction);
+-}
+-
+-static inline void
+-dma_nommu_sync_sg_for_device(struct device *dev,
+-			      struct scatterlist *sgl, int nents,
+-			      enum dma_data_direction direction)
+-{
+-	struct scatterlist *sg;
+-	int i;
+-
+-	/* FIXME this part of code is untested */
+-	if (direction == DMA_TO_DEVICE)
+-		for_each_sg(sgl, sg, nents, i)
+-			__dma_sync(sg->dma_address, sg->length, direction);
+-}
+-
+-static
+-int dma_nommu_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
+-			     void *cpu_addr, dma_addr_t handle, size_t size,
+-			     unsigned long attrs)
++int arch_dma_mmap(struct device *dev, struct vm_area_struct *vma,
++		void *cpu_addr, dma_addr_t handle, size_t size,
++		unsigned long attrs)
+ {
+ #ifdef CONFIG_MMU
+ 	unsigned long user_count = vma_pages(vma);
+@@ -170,17 +64,3 @@ int dma_nommu_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
+ 	return -ENXIO;
+ #endif
  }
 -
--/**
-- * hexagon_map_page() - maps an address for device DMA
-- * @dev:	pointer to DMA device
-- * @page:	pointer to page struct of DMA memory
-- * @offset:	offset within page
-- * @size:	size of memory to map
-- * @dir:	transfer direction
-- * @attrs:	pointer to DMA attrs (not used)
-- *
-- * Called to map a memory address to a DMA address prior
-- * to accesses to/from device.
-- *
-- * We don't particularly have many hoops to jump through
-- * so far.  Straight translation between phys and virtual.
-- *
-- * DMA is not cache coherent so sync is necessary; this
-- * seems to be a convenient place to do it.
-- *
-- */
--static dma_addr_t hexagon_map_page(struct device *dev, struct page *page,
--				   unsigned long offset, size_t size,
--				   enum dma_data_direction dir,
--				   unsigned long attrs)
--{
--	dma_addr_t bus = page_to_phys(page) + offset;
--	WARN_ON(size == 0);
--
--	if (!check_addr("map_single", dev, bus, size))
--		return HEXAGON_MAPPING_ERROR;
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		dma_sync(dma_addr_to_virt(bus), size, dir);
--
--	return bus;
--}
--
--static void hexagon_sync_single_for_cpu(struct device *dev,
--					dma_addr_t dma_handle, size_t size,
--					enum dma_data_direction dir)
--{
--	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
--}
--
--static void hexagon_sync_single_for_device(struct device *dev,
--					dma_addr_t dma_handle, size_t size,
--					enum dma_data_direction dir)
--{
--	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
--}
--
--static int hexagon_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == HEXAGON_MAPPING_ERROR;
--}
--
--const struct dma_map_ops hexagon_dma_ops = {
--	.alloc		= hexagon_dma_alloc_coherent,
--	.free		= hexagon_free_coherent,
--	.map_sg		= hexagon_map_sg,
--	.map_page	= hexagon_map_page,
--	.sync_single_for_cpu = hexagon_sync_single_for_cpu,
--	.sync_single_for_device = hexagon_sync_single_for_device,
--	.mapping_error	= hexagon_mapping_error,
+-const struct dma_map_ops dma_nommu_ops = {
+-	.alloc			= dma_nommu_alloc_coherent,
+-	.free			= dma_nommu_free_coherent,
+-	.mmap			= dma_nommu_mmap_coherent,
+-	.map_sg			= dma_nommu_map_sg,
+-	.map_page		= dma_nommu_map_page,
+-	.unmap_page		= dma_nommu_unmap_page,
+-	.sync_single_for_cpu	= dma_nommu_sync_single_for_cpu,
+-	.sync_single_for_device	= dma_nommu_sync_single_for_device,
+-	.sync_sg_for_cpu	= dma_nommu_sync_sg_for_cpu,
+-	.sync_sg_for_device	= dma_nommu_sync_sg_for_device,
 -};
--
--void __init hexagon_dma_init(void)
--{
--	if (dma_ops)
--		return;
--
--	dma_ops = &hexagon_dma_ops;
--}
+-EXPORT_SYMBOL(dma_nommu_ops);
+diff --git a/arch/microblaze/mm/consistent.c b/arch/microblaze/mm/consistent.c
+index b06c3a7faf20..b9a9c8c3397b 100644
+--- a/arch/microblaze/mm/consistent.c
++++ b/arch/microblaze/mm/consistent.c
+@@ -33,6 +33,7 @@
+ #include <linux/pci.h>
+ #include <linux/interrupt.h>
+ #include <linux/gfp.h>
++#include <linux/dma-noncoherent.h>
+ 
+ #include <asm/pgalloc.h>
+ #include <linux/io.h>
+@@ -59,7 +60,8 @@
+  * uncached region.  This will no doubt cause big problems if memory allocated
+  * here is not also freed properly. -- JW
+  */
+-void *consistent_alloc(gfp_t gfp, size_t size, dma_addr_t *dma_handle)
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
++		gfp_t gfp, unsigned long attrs)
+ {
+ 	unsigned long order, vaddr;
+ 	void *ret;
+@@ -154,7 +156,6 @@ void *consistent_alloc(gfp_t gfp, size_t size, dma_addr_t *dma_handle)
+ 
+ 	return ret;
+ }
+-EXPORT_SYMBOL(consistent_alloc);
+ 
+ #ifdef CONFIG_MMU
+ static pte_t *consistent_virt_to_pte(void *vaddr)
+@@ -178,7 +179,8 @@ unsigned long consistent_virt_to_pfn(void *vaddr)
+ /*
+  * free page(s) as defined by the above mapping.
+  */
+-void consistent_free(size_t size, void *vaddr)
++void arch_dma_free(struct device *dev, size_t size, void *vaddr,
++		dma_addr_t dma_addr, unsigned long attrs)
+ {
+ 	struct page *page;
+ 
+@@ -218,7 +220,6 @@ void consistent_free(size_t size, void *vaddr)
+ 	flush_tlb_all();
+ #endif
+ }
+-EXPORT_SYMBOL(consistent_free);
+ 
+ /*
+  * make an area consistent.
 -- 
 2.17.0
