@@ -1,52 +1,270 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] x86: ipc: fix x32 version of shmid64_ds and
-	msqid64_ds
-Date: Fri, 20 Apr 2018 16:38:29 +0200
-Message-ID: <CAK8P3a0nL4B+t6BMRhr36RrZ_jDgwnY1BviNPD+cFzsUGeppmA@mail.gmail.com>
-References: <CAK8P3a3qAoR1afmTTK1CAp1L81dzwtBL+SKj=QMqD=dBr_8oRQ@mail.gmail.com>
- <20180420130346.3178914-1-arnd@arndb.de>
- <CAH8yC8mnfNnG86kgjnfwiZJ0=qN+w=5PVcLcxddaJdDtYbSanA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <CAH8yC8mnfNnG86kgjnfwiZJ0=qN+w=5PVcLcxddaJdDtYbSanA@mail.gmail.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Jeffrey Walton <noloader@gmail.com>
-Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Adam Borowski <kilobyte@angband.pl>, James Hogan <jhogan@kernel.org>, Will Deacon <will.deacon@arm.com>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Deepa Dinamani <deepa.kernel@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, tg@mirbsd.de, Catalin Marinas <catalin.marinas@arm.com>, Ben Hutchings <ben@decadent.org.uk>, "H . J . Lu" <hjl.tools@gmail.com>, Daniel Schepler <dschepler@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Thomas Gleixner <tglx@linutronix.de>, GNU C Library <libc-alpha@sourceware.org>, Linux
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 01/22] signal/alpha: Use send_sig_fault where appropriate
+Date: Fri, 20 Apr 2018 09:37:50 -0500
+Message-ID: <20180420143811.9994-1-ebiederm@xmission.com>
+References: <87604mhrnb.fsf@xmission.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87604mhrnb.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBBcHIgMjAsIDIwMTggYXQgMzo1MyBQTSwgSmVmZnJleSBXYWx0b24gPG5vbG9hZGVy
-QGdtYWlsLmNvbT4gd3JvdGU6Cj4+ICsjaWYgIWRlZmluZWQoX194ODZfNjRfXykgfHwgIWRlZmlu
-ZWQoX19pbHAzMl9fKQo+PiAgI2luY2x1ZGUgPGFzbS1nZW5lcmljL21zZ2J1Zi5oPgo+PiArI2Vs
-c2UKPgo+IEkgdW5kZXJzdGFuZCB0aGVyZSdzIHNvbWUgcHJvZ3Jlc3MgaGF2aW5nIENsYW5nIGNv
-bXBpbGUgdGhlIGtlcm5lbC4KPiBDbGFuZyB0cmVhdHMgX19JTFAzMl9fIGFuZCBmcmllbmRzIGRp
-ZmZlcmVudGx5IHRoYW4gR0NDLiBJIGJlbGlldmUKPiBJTFAzMiBzaG93cyB1cCBqdXN0IGFib3V0
-IGV2ZXJ5d2hlcmUgdGhlcmUgYXJlIDMyLWJpdCBpbnRzLCBsb25ncyBhbmQKPiBwb2ludGVycy4g
-WW91IG1pZ2h0IGZpbmQgaXQgb24gQWFyY2g2NCBvciB5b3UgbWlnaHQgZmluZCBpdCBvbiBNSVBT
-NjQKPiB3aGVuIHVzaW5nIENsYW5nLgo+Cj4gSSB0aGluayB0aGF0IG1lYW5zIHRoaXMgbWF5IGJl
-IGEgbGl0dGxlIHN1c3BpY2lvdXM6Cj4KPiAgICAgPiArI2lmICFkZWZpbmVkKF9feDg2XzY0X18p
-IHx8ICFkZWZpbmVkKF9faWxwMzJfXykKPgo+IEkga2luZCBvZiBmZWx0IExMVk0gd2FzIHdhbmRl
-cmluZyBhd2F5IGZyb20gdGhlIHgzMiBBQkksIGJ1dCB0aGUgTExWTQo+IGRldnMgaW5zaXN0ZWQg
-dGhleSB3ZXJlIHdpdGhpbiB0aGVpciBwdXJ2aWV3LiBBbHNvIHNlZQo+IGh0dHBzOi8vbGlzdHMu
-bGx2bS5vcmcvcGlwZXJtYWlsL2NmZS1kZXYvMjAxNS1EZWNlbWJlci8wNDYzMDAuaHRtbC4KPgo+
-IFNvcnJ5IGFib3V0IHRoZSB0b3AtcG9zdC4gSSBqdXN0IHdhbnRlZCB0byBwaWNrIG91dCB0aGF0
-IG9uZSBwaWVjZS4KCkl0IHNlZW1zIEkgbWFkZSBhIHR5cG8gYW5kIGl0IG5lZWRzIHRvIGJlIF9f
-SUxQMzJfXyByYXRoZXIgdGhhbgpfX2lscDMyX18gKGNvcnJlY3RlZCB0aGF0IGxvY2FsbHksIHdp
-bGwgcmVzZW5kIG9uY2Ugd2UgaGF2ZSByZXNvbHZlZAp0aGlzKS4KCkFzaWRlIGZyb20gdGhhdCwg
-dGhlICNpZiBjaGVjayBzZWVtcyB0byBiZSBjb3JyZWN0IHRvIG1lOiB0aGlzCmlzIGFuIHg4Ni1z
-cGVjaWZpYyBoZWFkZXIsIHNvIGl0IHdvbid0IGV2ZXIgYmUgc2VlbiBvbiBvdGhlcgphcmNoaXRl
-Y3R1cmVzLiBPbiB4ODYtMzIsIF9feDg2XzY0X18gaXNuJ3Qgc2V0LCBzbyB3ZSBkb24ndCBjYXJl
-CmFib3V0IHdoZXRoZXIgX19pbHAzMl9fIGlzIHNldCBvciBub3QsIGFuZCBvbiB4ODYtNjQgKGxw
-NjQpLApfX2lscDMyX18gaXMgbmV2ZXIgc2V0LCBzbyB3ZSBzdGlsbCBnZXQgdGhlIGFzbS1nZW5l
-cmljIGhlYWRlci4KCiAgICAgIEFybmQKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5vcmcK
-aHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
+Filling in struct siginfo before calling send_sig_info a tedious and
+error prone process, where once in a great while the wrong fields
+are filled out, and siginfo has been inconsistently cleared.
+
+Simplify this process by using the helper send_sig_fault.  Which
+takes as a parameters all of the information it needs, ensures
+all of the fiddly bits of filling in struct siginfo are done properly
+and then calls send_sig_info.
+
+In short about a 5 line reduction in code for every time send_sig_info
+is called, which makes the calling function clearer.
+
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: linux-alpha@vger.kernel.org
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ arch/alpha/kernel/osf_sys.c | 10 ++-----
+ arch/alpha/kernel/signal.c  | 22 +++-----------
+ arch/alpha/kernel/traps.c   | 71 +++++++++++----------------------------------
+ 3 files changed, 24 insertions(+), 79 deletions(-)
+
+diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+index bb3619118926..6e921754c8fc 100644
+--- a/arch/alpha/kernel/osf_sys.c
++++ b/arch/alpha/kernel/osf_sys.c
+@@ -871,7 +871,6 @@ SYSCALL_DEFINE5(osf_setsysinfo, unsigned long, op, void __user *, buffer,
+ 		   send a signal.  Old exceptions are not signaled.  */
+ 		fex = (exc >> IEEE_STATUS_TO_EXCSUM_SHIFT) & swcr;
+  		if (fex) {
+-			siginfo_t info;
+ 			int si_code = FPE_FLTUNK;
+ 
+ 			if (fex & IEEE_TRAP_ENABLE_DNO) si_code = FPE_FLTUND;
+@@ -881,12 +880,9 @@ SYSCALL_DEFINE5(osf_setsysinfo, unsigned long, op, void __user *, buffer,
+ 			if (fex & IEEE_TRAP_ENABLE_DZE) si_code = FPE_FLTDIV;
+ 			if (fex & IEEE_TRAP_ENABLE_INV) si_code = FPE_FLTINV;
+ 
+-			clear_siginfo(&info);
+-			info.si_signo = SIGFPE;
+-			info.si_errno = 0;
+-			info.si_code = si_code;
+-			info.si_addr = NULL;  /* FIXME */
+- 			send_sig_info(SIGFPE, &info, current);
++			send_sig_fault(SIGFPE, si_code,
++				       (void __user *)NULL,  /* FIXME */
++				       0, current);
+  		}
+ 		return 0;
+ 	}
+diff --git a/arch/alpha/kernel/signal.c b/arch/alpha/kernel/signal.c
+index cd306e602313..8c0c4ee0be6e 100644
+--- a/arch/alpha/kernel/signal.c
++++ b/arch/alpha/kernel/signal.c
+@@ -219,15 +219,8 @@ do_sigreturn(struct sigcontext __user *sc)
+ 
+ 	/* Send SIGTRAP if we're single-stepping: */
+ 	if (ptrace_cancel_bpt (current)) {
+-		siginfo_t info;
+-
+-		clear_siginfo(&info);
+-		info.si_signo = SIGTRAP;
+-		info.si_errno = 0;
+-		info.si_code = TRAP_BRKPT;
+-		info.si_addr = (void __user *) regs->pc;
+-		info.si_trapno = 0;
+-		send_sig_info(SIGTRAP, &info, current);
++		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->pc, 0,
++			       current);
+ 	}
+ 	return;
+ 
+@@ -254,15 +247,8 @@ do_rt_sigreturn(struct rt_sigframe __user *frame)
+ 
+ 	/* Send SIGTRAP if we're single-stepping: */
+ 	if (ptrace_cancel_bpt (current)) {
+-		siginfo_t info;
+-
+-		clear_siginfo(&info);
+-		info.si_signo = SIGTRAP;
+-		info.si_errno = 0;
+-		info.si_code = TRAP_BRKPT;
+-		info.si_addr = (void __user *) regs->pc;
+-		info.si_trapno = 0;
+-		send_sig_info(SIGTRAP, &info, current);
++		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->pc, 0,
++			       current);
+ 	}
+ 	return;
+ 
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 242c83d86ace..106a1692fca0 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -213,7 +213,6 @@ do_entArith(unsigned long summary, unsigned long write_mask,
+ 	    struct pt_regs *regs)
+ {
+ 	long si_code = FPE_FLTINV;
+-	siginfo_t info;
+ 
+ 	if (summary & 1) {
+ 		/* Software-completion summary bit is set, so try to
+@@ -228,21 +227,14 @@ do_entArith(unsigned long summary, unsigned long write_mask,
+ 	}
+ 	die_if_kernel("Arithmetic fault", regs, 0, NULL);
+ 
+-	clear_siginfo(&info);
+-	info.si_signo = SIGFPE;
+-	info.si_errno = 0;
+-	info.si_code = si_code;
+-	info.si_addr = (void __user *) regs->pc;
+-	send_sig_info(SIGFPE, &info, current);
++	send_sig_fault(SIGFPE, si_code, (void __user *) regs->pc, 0, current);
+ }
+ 
+ asmlinkage void
+ do_entIF(unsigned long type, struct pt_regs *regs)
+ {
+-	siginfo_t info;
+ 	int signo, code;
+ 
+-	clear_siginfo(&info);
+ 	if ((regs->ps & ~IPL_MAX) == 0) {
+ 		if (type == 1) {
+ 			const unsigned int *data
+@@ -272,31 +264,20 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 
+ 	switch (type) {
+ 	      case 0: /* breakpoint */
+-		info.si_signo = SIGTRAP;
+-		info.si_errno = 0;
+-		info.si_code = TRAP_BRKPT;
+-		info.si_trapno = 0;
+-		info.si_addr = (void __user *) regs->pc;
+-
+ 		if (ptrace_cancel_bpt(current)) {
+ 			regs->pc -= 4;	/* make pc point to former bpt */
+ 		}
+ 
+-		send_sig_info(SIGTRAP, &info, current);
++		send_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->pc, 0,
++			       current);
+ 		return;
+ 
+ 	      case 1: /* bugcheck */
+-		info.si_signo = SIGTRAP;
+-		info.si_errno = 0;
+-		info.si_code = TRAP_UNK;
+-		info.si_addr = (void __user *) regs->pc;
+-		info.si_trapno = 0;
+-		send_sig_info(SIGTRAP, &info, current);
++		send_sig_fault(SIGTRAP, TRAP_UNK, (void __user *) regs->pc, 0,
++			       current);
+ 		return;
+ 		
+ 	      case 2: /* gentrap */
+-		info.si_addr = (void __user *) regs->pc;
+-		info.si_trapno = regs->r16;
+ 		switch ((long) regs->r16) {
+ 		case GEN_INTOVF:
+ 			signo = SIGFPE;
+@@ -354,11 +335,8 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			break;
+ 		}
+ 
+-		info.si_signo = signo;
+-		info.si_errno = 0;
+-		info.si_code = code;
+-		info.si_addr = (void __user *) regs->pc;
+-		send_sig_info(signo, &info, current);
++		send_sig_fault(signo, code, (void __user *) regs->pc, regs->r16,
++			       current);
+ 		return;
+ 
+ 	      case 4: /* opDEC */
+@@ -382,11 +360,9 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 			if (si_code == 0)
+ 				return;
+ 			if (si_code > 0) {
+-				info.si_signo = SIGFPE;
+-				info.si_errno = 0;
+-				info.si_code = si_code;
+-				info.si_addr = (void __user *) regs->pc;
+-				send_sig_info(SIGFPE, &info, current);
++				send_sig_fault(SIGFPE, si_code,
++					       (void __user *) regs->pc, 0,
++					       current);
+ 				return;
+ 			}
+ 		}
+@@ -411,11 +387,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 		      ;
+ 	}
+ 
+-	info.si_signo = SIGILL;
+-	info.si_errno = 0;
+-	info.si_code = ILL_ILLOPC;
+-	info.si_addr = (void __user *) regs->pc;
+-	send_sig_info(SIGILL, &info, current);
++	send_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)regs->pc, 0, current);
+ }
+ 
+ /* There is an ifdef in the PALcode in MILO that enables a 
+@@ -761,11 +733,9 @@ do_entUnaUser(void __user * va, unsigned long opcode,
+ 
+ 	unsigned long tmp1, tmp2, tmp3, tmp4;
+ 	unsigned long fake_reg, *reg_addr = &fake_reg;
+-	siginfo_t info;
++	int si_code;
+ 	long error;
+ 
+-	clear_siginfo(&info);
+-
+ 	/* Check the UAC bits to decide what the user wants us to do
+ 	   with the unaliged access.  */
+ 
+@@ -986,34 +956,27 @@ do_entUnaUser(void __user * va, unsigned long opcode,
+ 
+ give_sigsegv:
+ 	regs->pc -= 4;  /* make pc point to faulting insn */
+-	info.si_signo = SIGSEGV;
+-	info.si_errno = 0;
+ 
+ 	/* We need to replicate some of the logic in mm/fault.c,
+ 	   since we don't have access to the fault code in the
+ 	   exception handling return path.  */
+ 	if ((unsigned long)va >= TASK_SIZE)
+-		info.si_code = SEGV_ACCERR;
++		si_code = SEGV_ACCERR;
+ 	else {
+ 		struct mm_struct *mm = current->mm;
+ 		down_read(&mm->mmap_sem);
+ 		if (find_vma(mm, (unsigned long)va))
+-			info.si_code = SEGV_ACCERR;
++			si_code = SEGV_ACCERR;
+ 		else
+-			info.si_code = SEGV_MAPERR;
++			si_code = SEGV_MAPERR;
+ 		up_read(&mm->mmap_sem);
+ 	}
+-	info.si_addr = va;
+-	send_sig_info(SIGSEGV, &info, current);
++	send_sig_fault(SIGSEGV, si_code, va, 0, current);
+ 	return;
+ 
+ give_sigbus:
+ 	regs->pc -= 4;
+-	info.si_signo = SIGBUS;
+-	info.si_errno = 0;
+-	info.si_code = BUS_ADRALN;
+-	info.si_addr = va;
+-	send_sig_info(SIGBUS, &info, current);
++	send_sig_fault(SIGBUS, BUS_ADRALN, va, 0, current);
+ 	return;
+ }
+ 
+-- 
+2.14.1
