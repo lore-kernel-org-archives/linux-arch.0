@@ -1,77 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from osg.samsung.com ([64.30.133.232]:42773 "EHLO osg.samsung.com"
+Received: from osg.samsung.com ([64.30.133.232]:51855 "EHLO osg.samsung.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753494AbeDTRnB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Apr 2018 13:43:01 -0400
+        id S1753502AbeDTRnA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Apr 2018 13:43:00 -0400
 From: Mauro Carvalho Chehab <mchehab@s-opensource.com>
-Subject: [PATCH 1/7] asm-generic, media: allow COMPILE_TEST with virt_to_bus
-Date: Fri, 20 Apr 2018 13:42:47 -0400
-Message-Id: <d8bdf4a080d4655d20b532a37ae22ca7e3483cc4.1524245455.git.mchehab@s-opensource.com>
-In-Reply-To: <cover.1524245455.git.mchehab@s-opensource.com>
-References: <cover.1524245455.git.mchehab@s-opensource.com>
-In-Reply-To: <cover.1524245455.git.mchehab@s-opensource.com>
-References: <cover.1524245455.git.mchehab@s-opensource.com>
+Subject: [PATCH 0/7] Enable most media drivers to build on ARM
+Date: Fri, 20 Apr 2018 13:42:46 -0400
+Message-ID: <cover.1524245455.git.mchehab@s-opensource.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: Mauro Carvalho Chehab <mchehab@s-opensource.com>, Linux Media Mailing List <linux-media@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Arnd Bergmann <arnd@arndb.de>, mjpeg-users@lists.sourceforge.net, linux-arch@vger.kernel.org
+Cc: Mauro Carvalho Chehab <mchehab@s-opensource.com>, Linux Media Mailing List <linux-media@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, dri-devel@lists.freedesktop.org, Stanimir Varbanov <stanimir.varbanov@linaro.org>, Jacob Chen <jacob-chen@iotwrt.com>, Florian Tobias Schandinat <FlorianSchandinat@gmx.de>, Hans Verkuil <hans.verkuil@cisco.com>, Geert Uytterhoeven <geert+renesas@glider.be>, linux-arch@vger.kernel.org, Sean Young <sean@mess.org>, Arnd Bergmann <arnd@arndb.de>, Bhumika Goyal <bhumirks@gmail.com>, Ramesh Shanmugasundaram <ramesh.shanmugasundaram@bp.renesas.com>, Mattia Dongili <malattia@linux.it>, mjpeg-users@lists.sourceforge.net, Al Viro <viro@zeniv.linux.org.uk>, Devin Heitmueller <dheitmueller@kernellabs.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, platform-driver-x86@vger.kernel.org, Stephen Hemminger <stephen@networkplumber.org>, linux-fbdev@vger.kernel.org, Ladislav Michl <ladis@linux-mips.org>, Philipp Zabel <p.zabel@pengutronix.de>, Shawn Guo <shawn.guo@linaro.org>, Mans Rullgard <mans@mansr.com>, Andi Kleen <ak@linux.intel.com>, Yong Zhi <yong.zhi@intel.com>
+Message-ID: <20180420174246.O627mie0_CEJjFPOiAqKtN1s4oud7xKRKMGqb0I03DY@z>
 
-The virt_to_bus/bus_to_virt macros are arch-specific. Some
-archs don't support it. Yet, as it is interesting to allow
-doing compilation tests on non-ia32/ia64 archs, provide a
-fallback for such archs.
+Right now, all media drivers build successfully with COMPILE_TEST on x86,
+on both i386 and x86_64. Yet, several drivers there don't build on other
+archs.
 
-While here, enable COMPILE_TEST for two media drivers that
-depends on it.
+I don't need myself to build all drivers outside x86, but others could
+find it useful. It also relps spreading COMPILE_TEST builds, with sounds
+a good idea, as more developers may be seeing issues and submiting 
+us patches.
 
-Signed-off-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
----
- drivers/media/pci/sta2x11/Kconfig | 4 ++--
- drivers/media/pci/zoran/Kconfig   | 3 ++-
- include/asm-generic/io.h          | 2 +-
- 3 files changed, 5 insertions(+), 4 deletions(-)
+So, this patch series makes most of them to be built elsewhere (tested
+only with ARM with allyesconfig). The only two media drivers that don't build 
+on such conditions are:
 
-diff --git a/drivers/media/pci/sta2x11/Kconfig b/drivers/media/pci/sta2x11/Kconfig
-index 7af3f1cbcea8..fb4b4c8ac430 100644
---- a/drivers/media/pci/sta2x11/Kconfig
-+++ b/drivers/media/pci/sta2x11/Kconfig
-@@ -1,10 +1,10 @@
- config STA2X11_VIP
- 	tristate "STA2X11 VIP Video For Linux"
--	depends on STA2X11 || COMPILE_TEST
-+	depends on (STA2X11 && VIRT_TO_BUS) || COMPILE_TEST
- 	depends on HAS_DMA
- 	select VIDEO_ADV7180 if MEDIA_SUBDRV_AUTOSELECT
- 	select VIDEOBUF2_DMA_CONTIG
--	depends on PCI && VIDEO_V4L2 && VIRT_TO_BUS
-+	depends on PCI && VIDEO_V4L2
- 	depends on VIDEO_V4L2_SUBDEV_API
- 	depends on I2C
- 	help
-diff --git a/drivers/media/pci/zoran/Kconfig b/drivers/media/pci/zoran/Kconfig
-index 39ec35bd21a5..5d2678a9e310 100644
---- a/drivers/media/pci/zoran/Kconfig
-+++ b/drivers/media/pci/zoran/Kconfig
-@@ -1,6 +1,7 @@
- config VIDEO_ZORAN
- 	tristate "Zoran ZR36057/36067 Video For Linux"
--	depends on PCI && I2C_ALGOBIT && VIDEO_V4L2 && VIRT_TO_BUS
-+	depends on PCI && I2C_ALGOBIT && VIDEO_V4L2
-+	depends on VIRT_TO_BUS || COMPILE_TEST
- 	depends on !ALPHA
- 	help
- 	  Say Y for support for MJPEG capture cards based on the Zoran
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 66d1d45fa2e1..f448129ad15c 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -1068,7 +1068,7 @@ static inline void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- }
- #endif
- 
--#ifdef CONFIG_VIRT_TO_BUS
-+#if defined(CONFIG_VIRT_TO_BUS) || defined(CONFIG_COMPILE_TEST)
- #ifndef virt_to_bus
- static inline unsigned long virt_to_bus(void *address)
- {
+1) media/staging/atomisp: it uses several ACPI bits that no other media
+driver requires (including Intel IPU3);
+
+2) radio-miropcm20: This device depnds on ISA_DMA_API, with is available only
+for a few non-Intel architectures.
+
+In other words, the following symbols aren't enabled with allyesconfig:
+
+	INTEL_ATOMISP VIDEO_ATOMISP
+	VIDEO_ATOMISP_MSRLIST_HELPER VIDEO_ATOMISP_MT9M114
+	VIDEO_ATOMISP_GC0310  VIDEO_ATOMISP_GC2235 
+	VIDEO_ATOMISP_OV2722 VIDEO_ATOMISP_OV5693
+	VIDEO_ATOMISP_OV2680 VIDEO_ATOMISP_LM3554
+	RADIO_MIROPCM20
+
+All patches in this series are available at:
+
+	https://git.linuxtv.org/mchehab/experimental.git/log/?h=compile_test_v7
+
+Mauro Carvalho Chehab (7):
+  asm-generic, media: allow COMPILE_TEST with virt_to_bus
+  media: meye: allow building it with COMPILE_TEST on non-x86
+  media: rc: allow build pnp-dependent drivers with COMPILE_TEST
+  media: ipu3: allow building it with COMPILE_TEST on non-x86 archs
+  omapfb: omapfb_dss.h: add stubs to build with COMPILE_TEST && DRM_OMAP
+  media: omap2: allow building it with COMPILE_TEST && DRM_OMAP
+  media: via-camera: allow build on non-x86 archs with COMPILE_TEST
+
+ drivers/media/pci/intel/ipu3/Kconfig |  3 +-
+ drivers/media/pci/meye/Kconfig       |  3 +-
+ drivers/media/pci/sta2x11/Kconfig    |  4 +--
+ drivers/media/pci/zoran/Kconfig      |  3 +-
+ drivers/media/platform/Kconfig       |  2 +-
+ drivers/media/platform/omap/Kconfig  |  3 +-
+ drivers/media/platform/via-camera.c  | 10 ++++++-
+ drivers/media/rc/Kconfig             | 10 +++----
+ include/asm-generic/io.h             |  2 +-
+ include/linux/sony-laptop.h          |  4 +++
+ include/linux/via-core.h             | 17 ++++++++++++
+ include/linux/via-gpio.h             |  4 +++
+ include/linux/via_i2c.h              |  5 ++++
+ include/video/omapfb_dss.h           | 54 ++++++++++++++++++++++++++++++++++--
+ 14 files changed, 107 insertions(+), 17 deletions(-)
+
 -- 
 2.14.3
