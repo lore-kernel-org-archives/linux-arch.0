@@ -1,100 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:50077 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753761AbeDTBGo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:06:44 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:35773 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753825AbeDTBHB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:07:01 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:03:53 -0500
-Message-ID: <20180420010408.24438-2-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:03:55 -0500
+Message-ID: <20180420010408.24438-4-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 02/17] sparc: fix compat siginfo ABI regression
+Subject: [REVIEW][PATCH 04/17] signal/nds32: Use force_sig in unhandled_interruption and unhandled_exceptions
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Dmitry V. Levin" <ldv@altlinux.org>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, "Eric W . Biederman" <ebiederm@xmission.com>
-Message-ID: <20180420010353.VMmcWwrBabnf4CI2fisCGSPFLcVLjwE7HI6qdZVEw4g@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <greentime@andestech.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20180420010355.rDjfOGwuxg2PwnEtdlKyCgh1nihKd23Oj5gmizhwdqo@z>
 
-From: "Dmitry V. Levin" <ldv@altlinux.org>
+Neither unhandled_interrupt nor unhandled_exceptions fills in any of the
+siginfo fields whend sending SIGKILL.  Further because it is SIGKILL
+even if all of the fields were filled out appropriately it would be impossible
+for the process to read any of the siginfo fields.  So simplfy things and
+just use force_sig instead of force_sig_info.
 
-Starting with commit v4.14-rc1~60^2^2~1, a SIGFPE signal sent via kill
-results to wrong values in si_pid and si_uid fields of compat siginfo_t.
-
-This happens due to FPE_FIXME being defined to 0 for sparc, and at the
-same time siginfo_layout() introduced by the same commit returns
-SIL_FAULT for SIGFPE if si_code == SI_USER and FPE_FIXME is defined to 0.
-
-Fix this regression by removing FPE_FIXME macro and changing all its users
-to assign FPE_FLTUNK to si_code instead of FPE_FIXME.
-
-Note that FPE_FLTUNK is a new macro introduced by commit
-266da65e9156d93e1126e185259a4aae68188d0e.
-
-Tested with commit v4.16-11958-g16e205cf42da.
-
-This bug was found by strace test suite.
-
-In the discussion about FPE_FLTUNK on sparc David Miller said:
-> Eric, feel free to do something similar on Sparc.
-
-Link: https://github.com/strace/strace/issues/21
-Fixes: cc731525f26a ("signal: Remove kernel interal si_code magic")
-Fixes: 2.3.41
-Cc: David Miller <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
-Conceptually-Acked-By: David Miller <davem@davemloft.net>
-Thanks-to: Anatoly Pugachev <matorola@gmail.com>
-Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+Fixes: 2923f5ea7738 ("nds32: Exception handling")
+Cc: Vincent Chen <vincentc@andestech.com>
+Cc: Greentime Hu <greentime@andestech.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sparc/include/uapi/asm/siginfo.h | 7 -------
- arch/sparc/kernel/traps_32.c          | 2 +-
- arch/sparc/kernel/traps_64.c          | 2 +-
- 3 files changed, 2 insertions(+), 9 deletions(-)
+ arch/nds32/kernel/traps.c | 11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
 
-diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
-index 896ce447d16a..e7049550ac82 100644
---- a/arch/sparc/include/uapi/asm/siginfo.h
-+++ b/arch/sparc/include/uapi/asm/siginfo.h
-@@ -17,13 +17,6 @@
+diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
+index 6e34eb9824a4..65961bf91d64 100644
+--- a/arch/nds32/kernel/traps.c
++++ b/arch/nds32/kernel/traps.c
+@@ -318,29 +318,22 @@ void do_debug_trap(unsigned long entry, unsigned long addr,
  
- #define SI_NOINFO	32767		/* no information in siginfo_t */
+ void unhandled_interruption(struct pt_regs *regs)
+ {
+-	siginfo_t si;
+ 	pr_emerg("unhandled_interruption\n");
+ 	show_regs(regs);
+ 	if (!user_mode(regs))
+ 		do_exit(SIGKILL);
+-	si.si_signo = SIGKILL;
+-	si.si_errno = 0;
+-	force_sig_info(SIGKILL, &si, current);
++	force_sig(SIGKILL, current);
+ }
  
--/*
-- * SIGFPE si_codes
-- */
--#ifdef __KERNEL__
--#define FPE_FIXME	0	/* Broken dup of SI_USER */
--#endif /* __KERNEL__ */
--
- /*
-  * SIGEMT si_codes
-  */
-diff --git a/arch/sparc/kernel/traps_32.c b/arch/sparc/kernel/traps_32.c
-index b1ed763e4787..33cd35bf3dc8 100644
---- a/arch/sparc/kernel/traps_32.c
-+++ b/arch/sparc/kernel/traps_32.c
-@@ -307,7 +307,7 @@ void do_fpe_trap(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 	info.si_errno = 0;
- 	info.si_addr = (void __user *)pc;
- 	info.si_trapno = 0;
--	info.si_code = FPE_FIXME;
-+	info.si_code = FPE_FLTUNK;
- 	if ((fsr & 0x1c000) == (1 << 14)) {
- 		if (fsr & 0x10)
- 			info.si_code = FPE_FLTINV;
-diff --git a/arch/sparc/kernel/traps_64.c b/arch/sparc/kernel/traps_64.c
-index 462a21abd105..e81072ac52c3 100644
---- a/arch/sparc/kernel/traps_64.c
-+++ b/arch/sparc/kernel/traps_64.c
-@@ -2372,7 +2372,7 @@ static void do_fpe_common(struct pt_regs *regs)
- 		info.si_errno = 0;
- 		info.si_addr = (void __user *)regs->tpc;
- 		info.si_trapno = 0;
--		info.si_code = FPE_FIXME;
-+		info.si_code = FPE_FLTUNK;
- 		if ((fsr & 0x1c000) == (1 << 14)) {
- 			if (fsr & 0x10)
- 				info.si_code = FPE_FLTINV;
+ void unhandled_exceptions(unsigned long entry, unsigned long addr,
+ 			  unsigned long type, struct pt_regs *regs)
+ {
+-	siginfo_t si;
+ 	pr_emerg("Unhandled Exception: entry: %lx addr:%lx itype:%lx\n", entry,
+ 		 addr, type);
+ 	show_regs(regs);
+ 	if (!user_mode(regs))
+ 		do_exit(SIGKILL);
+-	si.si_signo = SIGKILL;
+-	si.si_errno = 0;
+-	si.si_addr = (void *)addr;
+-	force_sig_info(SIGKILL, &si, current);
++	force_sig(SIGKILL, current);
+ }
+ 
+ extern int do_page_fault(unsigned long entry, unsigned long addr,
 -- 
 2.14.1
