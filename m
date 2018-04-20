@@ -1,202 +1,88 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/22] m68k: use generic dma_noncoherent_ops
-Date: Fri, 20 Apr 2018 10:03:01 +0200
-Message-ID: <20180420080313.18796-11-hch@lst.de>
+Subject: [PATCH 12/22] microblaze: remove the consistent_sync and consistent_sync_page
+Date: Fri, 20 Apr 2018 10:03:03 +0200
+Message-ID: <20180420080313.18796-13-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Switch to the generic noncoherent direct mapping implementation.
+Both unused.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/m68k/Kconfig                   |  2 +
- arch/m68k/include/asm/Kbuild        |  1 +
- arch/m68k/include/asm/dma-mapping.h | 12 -----
- arch/m68k/kernel/dma.c              | 68 ++++-------------------------
- 4 files changed, 11 insertions(+), 72 deletions(-)
- delete mode 100644 arch/m68k/include/asm/dma-mapping.h
+ arch/microblaze/include/asm/pgtable.h |  3 --
+ arch/microblaze/mm/consistent.c       | 45 ---------------------------
+ 2 files changed, 48 deletions(-)
 
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 785612b576f7..3f61327da2d5 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -2,6 +2,7 @@
- config M68K
- 	bool
- 	default y
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE if HAS_DMA
- 	select ARCH_MIGHT_HAVE_PC_PARPORT if ISA
- 	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
- 	select HAVE_IDE
-@@ -24,6 +25,7 @@ config M68K
- 	select MODULES_USE_ELF_RELA
- 	select OLD_SIGSUSPEND3
- 	select OLD_SIGACTION
-+	select DMA_NONCOHERENT_OPS if HAS_DMA
+diff --git a/arch/microblaze/include/asm/pgtable.h b/arch/microblaze/include/asm/pgtable.h
+index 5174733fb489..ac6a37bd41ec 100644
+--- a/arch/microblaze/include/asm/pgtable.h
++++ b/arch/microblaze/include/asm/pgtable.h
+@@ -551,9 +551,6 @@ void __init *early_get_page(void);
  
- config CPU_BIG_ENDIAN
- 	def_bool y
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 88a9d27df1ac..a853c00f1374 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -1,5 +1,6 @@
- generic-y += barrier.h
- generic-y += device.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/m68k/include/asm/dma-mapping.h b/arch/m68k/include/asm/dma-mapping.h
-deleted file mode 100644
-index e3722ed04fbb..000000000000
---- a/arch/m68k/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,12 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _M68K_DMA_MAPPING_H
--#define _M68K_DMA_MAPPING_H
+ extern unsigned long ioremap_bot, ioremap_base;
+ 
+-void consistent_sync(void *vaddr, size_t size, int direction);
+-void consistent_sync_page(struct page *page, unsigned long offset,
+-	size_t size, int direction);
+ unsigned long consistent_virt_to_pfn(void *vaddr);
+ 
+ void setup_memory(void);
+diff --git a/arch/microblaze/mm/consistent.c b/arch/microblaze/mm/consistent.c
+index b9a9c8c3397b..c9a278ac795a 100644
+--- a/arch/microblaze/mm/consistent.c
++++ b/arch/microblaze/mm/consistent.c
+@@ -220,48 +220,3 @@ void arch_dma_free(struct device *dev, size_t size, void *vaddr,
+ 	flush_tlb_all();
+ #endif
+ }
 -
--extern const struct dma_map_ops m68k_dma_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+-/*
+- * make an area consistent.
+- */
+-void consistent_sync(void *vaddr, size_t size, int direction)
 -{
--        return &m68k_dma_ops;
--}
+-	unsigned long start;
+-	unsigned long end;
 -
--#endif  /* _M68K_DMA_MAPPING_H */
-diff --git a/arch/m68k/kernel/dma.c b/arch/m68k/kernel/dma.c
-index c01b9b8f97bf..3d561c577d35 100644
---- a/arch/m68k/kernel/dma.c
-+++ b/arch/m68k/kernel/dma.c
-@@ -6,7 +6,7 @@
- 
- #undef DEBUG
- 
--#include <linux/dma-mapping.h>
-+#include <linux/dma-noncoherent.h>
- #include <linux/device.h>
- #include <linux/kernel.h>
- #include <linux/scatterlist.h>
-@@ -18,7 +18,7 @@
- 
- #if defined(CONFIG_MMU) && !defined(CONFIG_COLDFIRE)
- 
--static void *m68k_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 		gfp_t flag, unsigned long attrs)
- {
- 	struct page *page, **map;
-@@ -61,7 +61,7 @@ static void *m68k_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 	return addr;
- }
- 
--static void m68k_dma_free(struct device *dev, size_t size, void *addr,
-+void arch_dma_free(struct device *dev, size_t size, void *addr,
- 		dma_addr_t handle, unsigned long attrs)
- {
- 	pr_debug("dma_free_coherent: %p, %x\n", addr, handle);
-@@ -72,8 +72,8 @@ static void m68k_dma_free(struct device *dev, size_t size, void *addr,
- 
- #include <asm/cacheflush.h>
- 
--static void *m68k_dma_alloc(struct device *dev, size_t size,
--		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
-+		gfp_t gfp, unsigned long attrs)
- {
- 	void *ret;
- 
-@@ -88,7 +88,7 @@ static void *m68k_dma_alloc(struct device *dev, size_t size,
- 	return ret;
- }
- 
--static void m68k_dma_free(struct device *dev, size_t size, void *vaddr,
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
- 		dma_addr_t dma_handle, unsigned long attrs)
- {
- 	free_pages((unsigned long)vaddr, get_order(size));
-@@ -96,8 +96,8 @@ static void m68k_dma_free(struct device *dev, size_t size, void *vaddr,
- 
- #endif /* CONFIG_MMU && !CONFIG_COLDFIRE */
- 
--static void m68k_dma_sync_single_for_device(struct device *dev,
--		dma_addr_t handle, size_t size, enum dma_data_direction dir)
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t handle,
-+		size_t size, enum dma_data_direction dir)
- {
- 	switch (dir) {
- 	case DMA_BIDIRECTIONAL:
-@@ -113,55 +113,3 @@ static void m68k_dma_sync_single_for_device(struct device *dev,
- 		break;
- 	}
- }
+-	start = (unsigned long)vaddr;
 -
--static void m68k_dma_sync_sg_for_device(struct device *dev,
--		struct scatterlist *sglist, int nents, enum dma_data_direction dir)
--{
--	int i;
--	struct scatterlist *sg;
+-	/* Convert start address back down to unshadowed memory region */
+-#ifdef CONFIG_XILINX_UNCACHED_SHADOW
+-	start &= ~UNCACHED_SHADOW_MASK;
+-#endif
+-	end = start + size;
 -
--	for_each_sg(sglist, sg, nents, i) {
--		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
--					   dir);
+-	switch (direction) {
+-	case PCI_DMA_NONE:
+-		BUG();
+-	case PCI_DMA_FROMDEVICE:	/* invalidate only */
+-		invalidate_dcache_range(start, end);
+-		break;
+-	case PCI_DMA_TODEVICE:		/* writeback only */
+-		flush_dcache_range(start, end);
+-		break;
+-	case PCI_DMA_BIDIRECTIONAL:	/* writeback and invalidate */
+-		flush_dcache_range(start, end);
+-		break;
 -	}
 -}
+-EXPORT_SYMBOL(consistent_sync);
 -
--static dma_addr_t m68k_dma_map_page(struct device *dev, struct page *page,
--		unsigned long offset, size_t size, enum dma_data_direction dir,
--		unsigned long attrs)
+-/*
+- * consistent_sync_page makes memory consistent. identical
+- * to consistent_sync, but takes a struct page instead of a
+- * virtual address
+- */
+-void consistent_sync_page(struct page *page, unsigned long offset,
+-	size_t size, int direction)
 -{
--	dma_addr_t handle = page_to_phys(page) + offset;
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		dma_sync_single_for_device(dev, handle, size, dir);
--
--	return handle;
+-	unsigned long start = (unsigned long)page_address(page) + offset;
+-	consistent_sync((void *)start, size, direction);
 -}
--
--static int m68k_dma_map_sg(struct device *dev, struct scatterlist *sglist,
--		int nents, enum dma_data_direction dir, unsigned long attrs)
--{
--	int i;
--	struct scatterlist *sg;
--
--	for_each_sg(sglist, sg, nents, i) {
--		sg->dma_address = sg_phys(sg);
--
--		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
--			continue;
--
--		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
--					   dir);
--	}
--	return nents;
--}
--
--const struct dma_map_ops m68k_dma_ops = {
--	.alloc			= m68k_dma_alloc,
--	.free			= m68k_dma_free,
--	.map_page		= m68k_dma_map_page,
--	.map_sg			= m68k_dma_map_sg,
--	.sync_single_for_device	= m68k_dma_sync_single_for_device,
--	.sync_sg_for_device	= m68k_dma_sync_sg_for_device,
--};
--EXPORT_SYMBOL(m68k_dma_ops);
+-EXPORT_SYMBOL(consistent_sync_page);
 -- 
 2.17.0
