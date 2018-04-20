@@ -1,104 +1,52 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [REVIEW][PATCH 00/22] Simplifying siginfo users
-Date: Fri, 20 Apr 2018 09:35:52 -0500
-Message-ID: <87604mhrnb.fsf@xmission.com>
-References: <878t9ilmhv.fsf@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] x86: ipc: fix x32 version of shmid64_ds and
+	msqid64_ds
+Date: Fri, 20 Apr 2018 16:38:29 +0200
+Message-ID: <CAK8P3a0nL4B+t6BMRhr36RrZ_jDgwnY1BviNPD+cFzsUGeppmA@mail.gmail.com>
+References: <CAK8P3a3qAoR1afmTTK1CAp1L81dzwtBL+SKj=QMqD=dBr_8oRQ@mail.gmail.com>
+ <20180420130346.3178914-1-arnd@arndb.de>
+ <CAH8yC8mnfNnG86kgjnfwiZJ0=qN+w=5PVcLcxddaJdDtYbSanA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <878t9ilmhv.fsf@xmission.com> (Eric W. Biederman's message of
-        "Thu, 19 Apr 2018 20:01:16 -0500")
-Sender: stable-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Albert Ou <albert@sifive.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, Chris Zankel <chris@zankel.net>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, James Bottomley <jejb@parisc-linux.org>, James Hogan <jhogan@kernel.org>, Jeff Dike <jdike@addtoit.com>, Jonas Bonn <jonas@southpole.se>, Ley Foon Tan <lftan@altera.com>, Mark Salter <msalter@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Max Filippov <jcmvbkbc@gmail.com>, Michal Simek <monstr@monstr.eu>, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <CAH8yC8mnfNnG86kgjnfwiZJ0=qN+w=5PVcLcxddaJdDtYbSanA@mail.gmail.com>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Jeffrey Walton <noloader@gmail.com>
+Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Adam Borowski <kilobyte@angband.pl>, James Hogan <jhogan@kernel.org>, Will Deacon <will.deacon@arm.com>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Deepa Dinamani <deepa.kernel@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, tg@mirbsd.de, Catalin Marinas <catalin.marinas@arm.com>, Ben Hutchings <ben@decadent.org.uk>, "H . J . Lu" <hjl.tools@gmail.com>, Daniel Schepler <dschepler@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Thomas Gleixner <tglx@linutronix.de>, GNU C Library <libc-alpha@sourceware.org>, Linux
 List-Id: linux-arch.vger.kernel.org
 
-
-This patchset is almost completely updating the various pieces of
-architecture code from filling out a struct siginfo and then calling
-force_sig_info.  To using the helper force_sig_fault instead.  Which
-takes the values that would have gone in siginfo as arguments.
-
-As the diffstat below shows this noticeable reduces the amount of code.
-
-There are a couple of minor and straight forward bug fixes as well
-that I came across while working on the aforementioned changes.
-
-This applies on my last round of siginfo changes simply to remove the
-possibility of conflicts.  The changes should be semantically separate.
-
-I intend to merge these changes through my siginfo tree.  If you have
-any objections or would prefer to carry these changes in your
-architecture trees please let me know.
-
-The changes are also available at:
-  git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-review2
-
-Eric W. Biederman (22):
-      signal/alpha: Use send_sig_fault where appropriate
-      signal/alpha: Use force_sig_fault where appropriate
-      signal/c6x: Use force_sig_fault where appropriate
-      signal/hexagon: Use force_sig_fault as appropriate
-      signal/m68k: Use force_sig_fault where appropriate
-      signal/microblaze: Remove the commented out force_sig_info in do_page_fault
-      signal/microblaze: Use force_sig_fault where appropriate
-      signal/mips: Use force_sig_fault where appropriate
-      signal/nds32: Use force_sig_fault where appropriate
-      signal/nios2: Use force_sig_fault where appropriate
-      signal/openrisc: Use force_sig_fault where appropriate
-      signal/parisc: Use force_sig_mceerr where appropriate
-      signal/parisc: Use force_sig_fault where appropriate
-      signal/riscv: Use force_sig_fault where appropriate
-      signal/s390: Use force_sig_fault where appropriate
-      signal/sh: Use force_sig_fault where appropriate
-      signal/sparc: Use send_sig_fault where appropriate
-      signal/sparc: Use force_sig_fault where appropriate
-      signal/um: Use force_sig_fault in relay_signal.
-      signal/um: Use force_sig_fault where appropriate
-      signal/xtensa: Consistenly use SIGBUS in do_unaligned_user
-      signal/xtensa: Use force_sig_fault where appropriate
-
- arch/alpha/kernel/osf_sys.c         |  10 +--
- arch/alpha/kernel/signal.c          |  22 +-----
- arch/alpha/kernel/traps.c           |  80 +++++---------------
- arch/alpha/mm/fault.c               |  15 +---
- arch/c6x/kernel/traps.c             |  10 +--
- arch/hexagon/kernel/traps.c         |  10 +--
- arch/hexagon/mm/vm_fault.c          |  21 ++----
- arch/m68k/kernel/traps.c            |  60 +++++++--------
- arch/m68k/mm/fault.c                |  25 +++----
- arch/microblaze/kernel/exceptions.c |   9 +--
- arch/microblaze/mm/fault.c          |  14 +---
- arch/mips/kernel/traps.c            |  65 +++++-----------
- arch/mips/mm/fault.c                |  19 ++---
- arch/nds32/kernel/traps.c           |  20 +----
- arch/nds32/mm/fault.c               |  19 ++---
- arch/nios2/kernel/traps.c           |   9 +--
- arch/openrisc/kernel/traps.c        |  33 +-------
- arch/openrisc/mm/fault.c            |  19 ++---
- arch/parisc/kernel/ptrace.c         |  11 +--
- arch/parisc/kernel/traps.c          |  63 +++++-----------
- arch/parisc/kernel/unaligned.c      |  16 +---
- arch/parisc/math-emu/driver.c       |   9 +--
- arch/parisc/mm/fault.c              |  55 +++++++-------
- arch/riscv/kernel/traps.c           |   9 +--
- arch/s390/kernel/traps.c            |  32 ++------
- arch/s390/mm/fault.c                |  23 ++----
- arch/sh/kernel/traps_32.c           |  19 ++---
- arch/sh/math-emu/math.c             |   9 +--
- arch/sh/mm/fault.c                  |  10 +--
- arch/sparc/kernel/process_64.c      |  10 +--
- arch/sparc/kernel/sys_sparc_32.c    |   9 +--
- arch/sparc/kernel/sys_sparc_64.c    |   8 +-
- arch/sparc/kernel/traps_32.c        | 114 +++++-----------------------
- arch/sparc/kernel/traps_64.c        | 145 +++++++-----------------------------
- arch/sparc/kernel/unaligned_32.c    |  12 +--
- arch/sparc/mm/fault_32.c            |  13 +---
- arch/sparc/mm/fault_64.c            |   9 +--
- arch/um/kernel/ptrace.c             |  13 +---
- arch/um/kernel/trap.c               |  54 ++++++--------
- arch/xtensa/kernel/traps.c          |  10 +--
- arch/xtensa/mm/fault.c              |  19 ++---
- 41 files changed, 280 insertions(+), 852 deletions(-)
-
-Eric
+T24gRnJpLCBBcHIgMjAsIDIwMTggYXQgMzo1MyBQTSwgSmVmZnJleSBXYWx0b24gPG5vbG9hZGVy
+QGdtYWlsLmNvbT4gd3JvdGU6Cj4+ICsjaWYgIWRlZmluZWQoX194ODZfNjRfXykgfHwgIWRlZmlu
+ZWQoX19pbHAzMl9fKQo+PiAgI2luY2x1ZGUgPGFzbS1nZW5lcmljL21zZ2J1Zi5oPgo+PiArI2Vs
+c2UKPgo+IEkgdW5kZXJzdGFuZCB0aGVyZSdzIHNvbWUgcHJvZ3Jlc3MgaGF2aW5nIENsYW5nIGNv
+bXBpbGUgdGhlIGtlcm5lbC4KPiBDbGFuZyB0cmVhdHMgX19JTFAzMl9fIGFuZCBmcmllbmRzIGRp
+ZmZlcmVudGx5IHRoYW4gR0NDLiBJIGJlbGlldmUKPiBJTFAzMiBzaG93cyB1cCBqdXN0IGFib3V0
+IGV2ZXJ5d2hlcmUgdGhlcmUgYXJlIDMyLWJpdCBpbnRzLCBsb25ncyBhbmQKPiBwb2ludGVycy4g
+WW91IG1pZ2h0IGZpbmQgaXQgb24gQWFyY2g2NCBvciB5b3UgbWlnaHQgZmluZCBpdCBvbiBNSVBT
+NjQKPiB3aGVuIHVzaW5nIENsYW5nLgo+Cj4gSSB0aGluayB0aGF0IG1lYW5zIHRoaXMgbWF5IGJl
+IGEgbGl0dGxlIHN1c3BpY2lvdXM6Cj4KPiAgICAgPiArI2lmICFkZWZpbmVkKF9feDg2XzY0X18p
+IHx8ICFkZWZpbmVkKF9faWxwMzJfXykKPgo+IEkga2luZCBvZiBmZWx0IExMVk0gd2FzIHdhbmRl
+cmluZyBhd2F5IGZyb20gdGhlIHgzMiBBQkksIGJ1dCB0aGUgTExWTQo+IGRldnMgaW5zaXN0ZWQg
+dGhleSB3ZXJlIHdpdGhpbiB0aGVpciBwdXJ2aWV3LiBBbHNvIHNlZQo+IGh0dHBzOi8vbGlzdHMu
+bGx2bS5vcmcvcGlwZXJtYWlsL2NmZS1kZXYvMjAxNS1EZWNlbWJlci8wNDYzMDAuaHRtbC4KPgo+
+IFNvcnJ5IGFib3V0IHRoZSB0b3AtcG9zdC4gSSBqdXN0IHdhbnRlZCB0byBwaWNrIG91dCB0aGF0
+IG9uZSBwaWVjZS4KCkl0IHNlZW1zIEkgbWFkZSBhIHR5cG8gYW5kIGl0IG5lZWRzIHRvIGJlIF9f
+SUxQMzJfXyByYXRoZXIgdGhhbgpfX2lscDMyX18gKGNvcnJlY3RlZCB0aGF0IGxvY2FsbHksIHdp
+bGwgcmVzZW5kIG9uY2Ugd2UgaGF2ZSByZXNvbHZlZAp0aGlzKS4KCkFzaWRlIGZyb20gdGhhdCwg
+dGhlICNpZiBjaGVjayBzZWVtcyB0byBiZSBjb3JyZWN0IHRvIG1lOiB0aGlzCmlzIGFuIHg4Ni1z
+cGVjaWZpYyBoZWFkZXIsIHNvIGl0IHdvbid0IGV2ZXIgYmUgc2VlbiBvbiBvdGhlcgphcmNoaXRl
+Y3R1cmVzLiBPbiB4ODYtMzIsIF9feDg2XzY0X18gaXNuJ3Qgc2V0LCBzbyB3ZSBkb24ndCBjYXJl
+CmFib3V0IHdoZXRoZXIgX19pbHAzMl9fIGlzIHNldCBvciBub3QsIGFuZCBvbiB4ODYtNjQgKGxw
+NjQpLApfX2lscDMyX18gaXMgbmV2ZXIgc2V0LCBzbyB3ZSBzdGlsbCBnZXQgdGhlIGFzbS1nZW5l
+cmljIGhlYWRlci4KCiAgICAgIEFybmQKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5vcmcK
+aHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
