@@ -1,261 +1,352 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:40760 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:40918 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754340AbeDTIEw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:52 -0400
+        with ESMTP id S1754359AbeDTIE5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:57 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/22] sh: use generic dma_noncoherent_ops
-Date: Fri, 20 Apr 2018 10:03:10 +0200
-Message-ID: <20180420080313.18796-20-hch@lst.de>
+Subject: [PATCH 22/22] parisc: use generic dma_noncoherent_ops
+Date: Fri, 20 Apr 2018 10:03:13 +0200
+Message-ID: <20180420080313.18796-23-hch@lst.de>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
-Message-ID: <20180420080310.10VwPkSIruhJynJcmsP-fDNWgVkuu6PY1PF1jMWbWas@z>
+Message-ID: <20180420080313.LYNWE2-4QbtRqa7p9yYQ53xuyKt2KuMf1-_8NuBTln4@z>
 
 Switch to the generic noncoherent direct mapping implementation.
 
+Parisc previously had two different non-coherent dma ops implementation
+that just different in the way coherent allocations were handled or not
+handled.  The different behavior is not selected at runtime in the
+arch_dma_alloc and arch_dma_free routines.  The non-coherent allocation
+in the pcx cases now uses the dma_direct helpers that are a little more
+sophisticated and used by a lot of other architectures.
+
+Fix sync_single_for_cpu to do skip the cache flush unless the transfer
+is to the device to match the more tested unmap_single path which should
+have the same cache coherency implications.
+
+This also now consistenly uses flush_kernel_dcache_range for cache
+flushing while previously some of the SG based operations used
+flush_kernel_vmap_range instead.
+
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sh/Kconfig                   |  3 +-
- arch/sh/include/asm/Kbuild        |  1 +
- arch/sh/include/asm/dma-mapping.h | 26 -----------
- arch/sh/kernel/Makefile           |  1 -
- arch/sh/kernel/dma-nommu.c        | 75 -------------------------------
- arch/sh/mm/consistent.c           | 24 +++++-----
- 6 files changed, 13 insertions(+), 117 deletions(-)
- delete mode 100644 arch/sh/include/asm/dma-mapping.h
- delete mode 100644 arch/sh/kernel/dma-nommu.c
+ arch/parisc/Kconfig                   |   4 +
+ arch/parisc/include/asm/dma-mapping.h |   5 -
+ arch/parisc/kernel/pci-dma.c          | 181 ++++----------------------
+ arch/parisc/kernel/setup.c            |   8 +-
+ arch/parisc/mm/init.c                 |  11 +-
+ 5 files changed, 35 insertions(+), 174 deletions(-)
 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index 23e7432302b0..23ed245407b1 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -50,7 +50,6 @@ config SUPERH
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_FUTEX_CMPXCHG if FUTEX
- 	select HAVE_NMI
--	select NEED_DMA_MAP_STATE
- 	select NEED_SG_DMA_LENGTH
- 
- 	help
-@@ -163,6 +162,8 @@ config DMA_COHERENT
- 
- config DMA_NONCOHERENT
- 	def_bool !DMA_COHERENT
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 47047f0cbe35..80166a1cbcb7 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -188,6 +188,10 @@ config PA20
+ config PA11
+ 	def_bool y
+ 	depends on PA7000 || PA7100LC || PA7200 || PA7300LC
++	select ARCH_HAS_SYNC_DMA_FOR_CPU
 +	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
 +	select DMA_NONCOHERENT_OPS
++	select DMA_NONCOHERENT_CACHE_SYNC
  
- config PGTABLE_LEVELS
- 	default 3 if X2TLB
-diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
-index 1efcce74997b..50f7e878ea1b 100644
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -1,6 +1,7 @@
- generic-y += current.h
- generic-y += delay.h
- generic-y += div64.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += irq_regs.h
-diff --git a/arch/sh/include/asm/dma-mapping.h b/arch/sh/include/asm/dma-mapping.h
-deleted file mode 100644
-index 1ebc6a4eb1c5..000000000000
---- a/arch/sh/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,26 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef __ASM_SH_DMA_MAPPING_H
--#define __ASM_SH_DMA_MAPPING_H
--
--extern const struct dma_map_ops nommu_dma_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
--{
--#ifdef CONFIG_DMA_NONCOHERENT
--	return &nommu_dma_ops;
--#else
--	return &dma_direct_ops;
+ config PREFETCH
+ 	def_bool y
+diff --git a/arch/parisc/include/asm/dma-mapping.h b/arch/parisc/include/asm/dma-mapping.h
+index 01e1fc057c83..44a9f97194aa 100644
+--- a/arch/parisc/include/asm/dma-mapping.h
++++ b/arch/parisc/include/asm/dma-mapping.h
+@@ -21,11 +21,6 @@
+ ** flush/purge and allocate "regular" cacheable pages for everything.
+ */
+ 
+-#ifdef CONFIG_PA11
+-extern const struct dma_map_ops pcxl_dma_ops;
+-extern const struct dma_map_ops pcx_dma_ops;
 -#endif
--}
 -
--extern void *dma_generic_alloc_coherent(struct device *dev, size_t size,
--					dma_addr_t *dma_addr, gfp_t flag,
--					unsigned long attrs);
--extern void dma_generic_free_coherent(struct device *dev, size_t size,
--				      void *vaddr, dma_addr_t dma_handle,
--				      unsigned long attrs);
--
--void sh_sync_dma_for_device(void *vaddr, size_t size,
--	    enum dma_data_direction dir);
--
--#endif /* __ASM_SH_DMA_MAPPING_H */
-diff --git a/arch/sh/kernel/Makefile b/arch/sh/kernel/Makefile
-index cb5f1bfb52de..985106e13614 100644
---- a/arch/sh/kernel/Makefile
-+++ b/arch/sh/kernel/Makefile
-@@ -45,7 +45,6 @@ obj-$(CONFIG_DUMP_CODE)		+= disassemble.o
- obj-$(CONFIG_HIBERNATION)	+= swsusp.o
- obj-$(CONFIG_DWARF_UNWINDER)	+= dwarf.o
- obj-$(CONFIG_PERF_EVENTS)	+= perf_event.o perf_callchain.o
--obj-$(CONFIG_DMA_NONCOHERENT)	+= dma-nommu.o
- obj-$(CONFIG_HAVE_HW_BREAKPOINT)		+= hw_breakpoint.o
+ extern const struct dma_map_ops *hppa_dma_ops;
  
- ccflags-y := -Werror
-diff --git a/arch/sh/kernel/dma-nommu.c b/arch/sh/kernel/dma-nommu.c
-deleted file mode 100644
-index 442922a9f8c0..000000000000
---- a/arch/sh/kernel/dma-nommu.c
-+++ /dev/null
-@@ -1,75 +0,0 @@
--/*
-- * DMA mapping support for platforms lacking IOMMUs.
-- *
-- * Copyright (C) 2009  Paul Mundt
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--#include <linux/dma-mapping.h>
--#include <linux/io.h>
--#include <asm/cacheflush.h>
--
--static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
--				 unsigned long offset, size_t size,
--				 enum dma_data_direction dir,
--				 unsigned long attrs)
--{
--	dma_addr_t addr = page_to_phys(page) + offset;
--
--	WARN_ON(size == 0);
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		sh_sync_dma_for_device(page_address(page) + offset, size, dir);
--
--	return addr;
--}
--
--static int nommu_map_sg(struct device *dev, struct scatterlist *sg,
--			int nents, enum dma_data_direction dir,
--			unsigned long attrs)
--{
--	struct scatterlist *s;
--	int i;
--
--	WARN_ON(nents == 0 || sg[0].length == 0);
--
--	for_each_sg(sg, s, nents, i) {
--		BUG_ON(!sg_page(s));
--
--		if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--			sh_sync_dma_for_device(sg_virt(s), s->length, dir);
--
--		s->dma_address = sg_phys(s);
--		s->dma_length = s->length;
--	}
--
--	return nents;
--}
--
--static void nommu_sync_single_for_device(struct device *dev, dma_addr_t addr,
--			      size_t size, enum dma_data_direction dir)
--{
--	sh_sync_dma_for_device(phys_to_virt(addr), size, dir);
--}
--
--static void nommu_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
--			  int nelems, enum dma_data_direction dir)
--{
--	struct scatterlist *s;
--	int i;
--
--	for_each_sg(sg, s, nelems, i)
--		sh_sync_dma_for_device(sg_virt(s), s->length, dir);
--}
--
--const struct dma_map_ops nommu_dma_ops = {
--	.alloc			= dma_generic_alloc_coherent,
--	.free			= dma_generic_free_coherent,
--	.map_page		= nommu_map_page,
--	.map_sg			= nommu_map_sg,
--	.sync_single_for_device	= nommu_sync_single_for_device,
--	.sync_sg_for_device	= nommu_sync_sg_for_device,
--};
--EXPORT_SYMBOL(nommu_dma_ops);
-diff --git a/arch/sh/mm/consistent.c b/arch/sh/mm/consistent.c
-index 516d481525e1..aaeeb74fdcc3 100644
---- a/arch/sh/mm/consistent.c
-+++ b/arch/sh/mm/consistent.c
-@@ -12,17 +12,15 @@
- #include <linux/mm.h>
+ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+diff --git a/arch/parisc/kernel/pci-dma.c b/arch/parisc/kernel/pci-dma.c
+index 91bc0cac03a1..235e2e53959e 100644
+--- a/arch/parisc/kernel/pci-dma.c
++++ b/arch/parisc/kernel/pci-dma.c
+@@ -21,13 +21,12 @@
  #include <linux/init.h>
- #include <linux/platform_device.h>
--#include <linux/dma-mapping.h>
--#include <linux/dma-debug.h>
-+#include <linux/dma-noncoherent.h>
- #include <linux/io.h>
- #include <linux/module.h>
  #include <linux/gfp.h>
+ #include <linux/mm.h>
+-#include <linux/pci.h>
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+-#include <linux/scatterlist.h>
+-#include <linux/export.h>
++#include <linux/dma-direct.h>
++#include <linux/dma-noncoherent.h>
+ 
  #include <asm/cacheflush.h>
- #include <asm/addrspace.h>
- 
--void *dma_generic_alloc_coherent(struct device *dev, size_t size,
--				 dma_addr_t *dma_handle, gfp_t gfp,
--				 unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
-+		gfp_t gfp, unsigned long attrs)
- {
- 	void *ret, *ret_nocache;
- 	int order = get_order(size);
-@@ -37,7 +35,7 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 	 * Pages from the page allocator may have data present in
- 	 * cache. So flush the cache before using uncached memory.
- 	 */
--	sh_sync_dma_for_device(ret, size, DMA_BIDIRECTIONAL);
-+	__flush_purge_region(sh_cacheop_vaddr(ret), size);
- 
- 	ret_nocache = (void __force *)ioremap_nocache(virt_to_phys(ret), size);
- 	if (!ret_nocache) {
-@@ -52,9 +50,8 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 	return ret_nocache;
+ #include <asm/dma.h>    /* for DMA_CHUNK_SIZE */
+@@ -447,178 +446,48 @@ static void pa11_dma_free(struct device *dev, size_t size, void *vaddr,
+ 	free_pages((unsigned long)__va(dma_handle), order);
  }
  
--void dma_generic_free_coherent(struct device *dev, size_t size,
--			       void *vaddr, dma_addr_t dma_handle,
--			       unsigned long attrs)
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
-+		dma_addr_t dma_handle, unsigned long attrs)
- {
- 	int order = get_order(size);
- 	unsigned long pfn = dma_handle >> PAGE_SHIFT;
-@@ -66,12 +63,12 @@ void dma_generic_free_coherent(struct device *dev, size_t size,
- 	iounmap(vaddr);
- }
- 
--void sh_sync_dma_for_device(void *vaddr, size_t size,
--		    enum dma_data_direction direction)
+-static dma_addr_t pa11_dma_map_page(struct device *dev, struct page *page,
+-		unsigned long offset, size_t size,
+-		enum dma_data_direction direction, unsigned long attrs)
 +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
 +		size_t size, enum dma_data_direction dir)
  {
--	void *addr = sh_cacheop_vaddr(vaddr);
-+	void *addr = sh_cacheop_vaddr(phys_to_virt(paddr));
- 
--	switch (direction) {
-+	switch (dir) {
- 	case DMA_FROM_DEVICE:		/* invalidate only */
- 		__flush_invalidate_region(addr, size);
- 		break;
-@@ -85,7 +82,6 @@ void sh_sync_dma_for_device(void *vaddr, size_t size,
- 		BUG();
- 	}
+-	void *addr = page_address(page) + offset;
+-	BUG_ON(direction == DMA_NONE);
+-
+-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		flush_kernel_dcache_range((unsigned long) addr, size);
+-
+-	return virt_to_phys(addr);
++	flush_kernel_dcache_range((unsigned long)phys_to_virt(paddr), size);
  }
--EXPORT_SYMBOL(sh_sync_dma_for_device);
  
- static int __init memchunk_setup(char *str)
+-static void pa11_dma_unmap_page(struct device *dev, dma_addr_t dma_handle,
+-		size_t size, enum dma_data_direction direction,
+-		unsigned long attrs)
++void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
  {
+-	BUG_ON(direction == DMA_NONE);
+-
+-	if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-		return;
+-
+-	if (direction == DMA_TO_DEVICE)
++	if (dir == DMA_TO_DEVICE)
+ 		return;
+ 
+ 	/*
+-	 * For PCI_DMA_FROMDEVICE this flush is not necessary for the
++	 * For DMA_FROM_DEVICE this flush is not necessary for the
+ 	 * simple map/unmap case. However, it IS necessary if if
+-	 * pci_dma_sync_single_* has been called and the buffer reused.
++	 * dma_sync_single_* has been called and the buffer reused.
+ 	 */
+ 
+-	flush_kernel_dcache_range((unsigned long) phys_to_virt(dma_handle), size);
+-}
+-
+-static int pa11_dma_map_sg(struct device *dev, struct scatterlist *sglist,
+-		int nents, enum dma_data_direction direction,
+-		unsigned long attrs)
+-{
+-	int i;
+-	struct scatterlist *sg;
+-
+-	BUG_ON(direction == DMA_NONE);
+-
+-	for_each_sg(sglist, sg, nents, i) {
+-		unsigned long vaddr = (unsigned long)sg_virt(sg);
+-
+-		sg_dma_address(sg) = (dma_addr_t) virt_to_phys(vaddr);
+-		sg_dma_len(sg) = sg->length;
+-
+-		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-			continue;
+-
+-		flush_kernel_dcache_range(vaddr, sg->length);
+-	}
+-	return nents;
++	flush_kernel_dcache_range((unsigned long)phys_to_virt(paddr), size);
+ }
+ 
+-static void pa11_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
+-		int nents, enum dma_data_direction direction,
+-		unsigned long attrs)
+-{
+-	int i;
+-	struct scatterlist *sg;
+-
+-	BUG_ON(direction == DMA_NONE);
+-
+-	if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-		return;
+-
+-	if (direction == DMA_TO_DEVICE)
+-		return;
+-
+-	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+-
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
+-}
+-
+-static void pa11_dma_sync_single_for_cpu(struct device *dev,
+-		dma_addr_t dma_handle, size_t size,
+-		enum dma_data_direction direction)
+-{
+-	BUG_ON(direction == DMA_NONE);
+-
+-	flush_kernel_dcache_range((unsigned long) phys_to_virt(dma_handle),
+-			size);
+-}
+-
+-static void pa11_dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t dma_handle, size_t size,
+-		enum dma_data_direction direction)
+-{
+-	BUG_ON(direction == DMA_NONE);
+-
+-	flush_kernel_dcache_range((unsigned long) phys_to_virt(dma_handle),
+-			size);
+-}
+-
+-static void pa11_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nents, enum dma_data_direction direction)
+-{
+-	int i;
+-	struct scatterlist *sg;
+-
+-	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+-
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
+-}
+-
+-static void pa11_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist, int nents, enum dma_data_direction direction)
+-{
+-	int i;
+-	struct scatterlist *sg;
+-
+-	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+-
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
+-}
+-
+-static void pa11_dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++void arch_dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction)
+ {
+ 	flush_kernel_dcache_range((unsigned long)vaddr, size);
+ }
+ 
+-const struct dma_map_ops pcxl_dma_ops = {
+-	.alloc =		pa11_dma_alloc,
+-	.free =			pa11_dma_free,
+-	.map_page =		pa11_dma_map_page,
+-	.unmap_page =		pa11_dma_unmap_page,
+-	.map_sg =		pa11_dma_map_sg,
+-	.unmap_sg =		pa11_dma_unmap_sg,
+-	.sync_single_for_cpu =	pa11_dma_sync_single_for_cpu,
+-	.sync_single_for_device = pa11_dma_sync_single_for_device,
+-	.sync_sg_for_cpu =	pa11_dma_sync_sg_for_cpu,
+-	.sync_sg_for_device =	pa11_dma_sync_sg_for_device,
+-	.cache_sync =		pa11_dma_cache_sync,
+-};
+-
+-static void *pcx_dma_alloc(struct device *dev, size_t size,
+-		dma_addr_t *dma_handle, gfp_t flag, unsigned long attrs)
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
++		gfp_t gfp, unsigned long attrs)
+ {
+-	void *addr;
+-
+-	if ((attrs & DMA_ATTR_NON_CONSISTENT) == 0)
+-		return NULL;
+-
+-	addr = (void *)__get_free_pages(flag, get_order(size));
+-	if (addr)
+-		*dma_handle = (dma_addr_t)virt_to_phys(addr);
+-
+-	return addr;
++	if (boot_cpu_data.cpu_type == pcxl2 || boot_cpu_data.cpu_type == pcxl)
++		return pa11_dma_alloc(dev, size, dma_handle, gfp, attrs);
++	if (attrs & DMA_ATTR_NON_CONSISTENT)
++		return dma_direct_alloc(dev, size, dma_handle, gfp, attrs);
++	return NULL;
+ }
+ 
+-static void pcx_dma_free(struct device *dev, size_t size, void *vaddr,
+-		dma_addr_t iova, unsigned long attrs)
++void arch_dma_free(struct device *dev, size_t size, void *cpu_addr,
++		dma_addr_t dma_addr, unsigned long attrs)
+ {
+-	free_pages((unsigned long)vaddr, get_order(size));
+-	return;
++	if (boot_cpu_data.cpu_type == pcxl2 || boot_cpu_data.cpu_type == pcxl)
++		pa11_dma_free(dev, size, cpu_addr, dma_addr, attrs);
++	else
++		dma_direct_free(dev, size, cpu_addr, dma_addr, attrs);
+ }
+-
+-const struct dma_map_ops pcx_dma_ops = {
+-	.alloc =		pcx_dma_alloc,
+-	.free =			pcx_dma_free,
+-	.map_page =		pa11_dma_map_page,
+-	.unmap_page =		pa11_dma_unmap_page,
+-	.map_sg =		pa11_dma_map_sg,
+-	.unmap_sg =		pa11_dma_unmap_sg,
+-	.sync_single_for_cpu =	pa11_dma_sync_single_for_cpu,
+-	.sync_single_for_device = pa11_dma_sync_single_for_device,
+-	.sync_sg_for_cpu =	pa11_dma_sync_sg_for_cpu,
+-	.sync_sg_for_device =	pa11_dma_sync_sg_for_device,
+-	.cache_sync =		pa11_dma_cache_sync,
+-};
+diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
+index 8d3a7b80ac42..4e87c35c22b7 100644
+--- a/arch/parisc/kernel/setup.c
++++ b/arch/parisc/kernel/setup.c
+@@ -97,14 +97,12 @@ void __init dma_ops_init(void)
+ 		panic(	"PA-RISC Linux currently only supports machines that conform to\n"
+ 			"the PA-RISC 1.1 or 2.0 architecture specification.\n");
+ 
+-	case pcxs:
+-	case pcxt:
+-		hppa_dma_ops = &pcx_dma_ops;
+-		break;
+ 	case pcxl2:
+ 		pa7300lc_init();
+ 	case pcxl: /* falls through */
+-		hppa_dma_ops = &pcxl_dma_ops;
++	case pcxs:
++	case pcxt:
++		hppa_dma_ops = &dma_noncoherent_ops;
+ 		break;
+ 	default:
+ 		break;
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index cab32ee824d2..4ad91c28ecbe 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -19,7 +19,6 @@
+ #include <linux/gfp.h>
+ #include <linux/delay.h>
+ #include <linux/init.h>
+-#include <linux/pci.h>		/* for hppa_dma_ops and pcxl_dma_ops */
+ #include <linux/initrd.h>
+ #include <linux/swap.h>
+ #include <linux/unistd.h>
+@@ -616,17 +615,13 @@ void __init mem_init(void)
+ 	free_all_bootmem();
+ 
+ #ifdef CONFIG_PA11
+-	if (hppa_dma_ops == &pcxl_dma_ops) {
++	if (boot_cpu_data.cpu_type == pcxl2 || boot_cpu_data.cpu_type == pcxl) {
+ 		pcxl_dma_start = (unsigned long)SET_MAP_OFFSET(MAP_START);
+ 		parisc_vmalloc_start = SET_MAP_OFFSET(pcxl_dma_start
+ 						+ PCXL_DMA_MAP_SIZE);
+-	} else {
+-		pcxl_dma_start = 0;
+-		parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
+-	}
+-#else
+-	parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
++	} else
+ #endif
++		parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
+ 
+ 	mem_init_print_info(NULL);
+ 
 -- 
 2.17.0
