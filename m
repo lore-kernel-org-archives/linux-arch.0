@@ -1,270 +1,428 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:39868 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:38872 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753854AbeDTIEO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:14 -0400
+        with ESMTP id S1753777AbeDTIDa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:03:30 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/22] arm-nommu: use generic dma_noncoherent_ops
-Date: Fri, 20 Apr 2018 10:02:58 +0200
-Message-ID: <20180420080313.18796-8-hch@lst.de>
+Subject: [PATCH 01/22] dma-debug: move initialization to common code
+Date: Fri, 20 Apr 2018 10:02:52 +0200
+Message-ID: <20180420080313.18796-2-hch@lst.de>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
-Message-ID: <20180420080258.IhGAcr9m0CTVEEe1yQV078k2bB4EH11BwN4frjBvd7M@z>
+Message-ID: <20180420080252.k_eon4fDGEAUfa8CdrnrrxyZcP6WGmCKpv1hgy-b-f8@z>
 
-Switch to the generic noncoherent direct mapping implementation for
-the nommu dma map implementation.
+Most mainstream architectures are using 65536 entries, so lets stick to
+that.  If someone is really desperate to override it that can still be
+done through <asm/dma-mapping.h>, but I'd rather see a really good
+rationale for that.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arc/Kconfig                |   1 +
- arch/arm/Kconfig                |   4 +
- arch/arm/mm/dma-mapping-nommu.c | 139 +++++---------------------------
- 3 files changed, 23 insertions(+), 121 deletions(-)
+ arch/arm/mm/dma-mapping-nommu.c |  9 ---------
+ arch/arm/mm/dma-mapping.c       |  9 ---------
+ arch/arm64/mm/dma-mapping.c     | 10 ----------
+ arch/c6x/kernel/dma.c           | 11 -----------
+ arch/ia64/kernel/dma-mapping.c  | 10 ----------
+ arch/microblaze/kernel/dma.c    | 11 -----------
+ arch/mips/mm/dma-default.c      | 10 ----------
+ arch/openrisc/kernel/dma.c      | 11 -----------
+ arch/powerpc/kernel/dma.c       |  3 ---
+ arch/s390/pci/pci_dma.c         |  9 ---------
+ arch/sh/mm/consistent.c         |  9 ---------
+ arch/sparc/kernel/Makefile      |  2 --
+ arch/sparc/kernel/dma.c         | 13 -------------
+ arch/x86/kernel/pci-dma.c       |  4 ----
+ arch/xtensa/kernel/pci-dma.c    |  9 ---------
+ include/linux/dma-debug.h       |  6 ------
+ lib/dma-debug.c                 | 21 ++++++++++++++-------
+ 17 files changed, 14 insertions(+), 143 deletions(-)
+ delete mode 100644 arch/sparc/kernel/dma.c
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 89d47eac18b2..3a492a9aeaad 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -9,6 +9,7 @@
- config ARC
- 	def_bool y
- 	select ARC_TIMERS
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select ARCH_HAS_SYNC_DMA_FOR_CPU
- 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select ARCH_HAS_SG_CHAIN
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index f91f69174630..eacc45ac4e77 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -12,6 +12,8 @@ config ARM
- 	select ARCH_HAS_PHYS_TO_DMA
- 	select ARCH_HAS_STRICT_KERNEL_RWX if MMU && !XIP_KERNEL
- 	select ARCH_HAS_STRICT_MODULE_RWX if MMU
-+	select ARCH_HAS_SYNC_DMA_FOR_CPU if !MMU
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE if !MMU
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_HAS_GCOV_PROFILE_ALL
-@@ -27,6 +29,8 @@ config ARM
- 	select CPU_PM if (SUSPEND || CPU_IDLE)
- 	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select DMA_DIRECT_OPS if !MMU
-+	select DMA_NONCOHERENT_OPS if !MMU
-+	select DMA_NONCOHERENT_MMAP if !MMU
- 	select EDAC_SUPPORT
- 	select EDAC_ATOMIC_SCRUB
- 	select GENERIC_ALLOCATOR
 diff --git a/arch/arm/mm/dma-mapping-nommu.c b/arch/arm/mm/dma-mapping-nommu.c
-index f448a0663b10..a74ed6632982 100644
+index 619f24a42d09..f448a0663b10 100644
 --- a/arch/arm/mm/dma-mapping-nommu.c
 +++ b/arch/arm/mm/dma-mapping-nommu.c
-@@ -12,6 +12,7 @@
- #include <linux/export.h>
- #include <linux/mm.h>
- #include <linux/dma-direct.h>
-+#include <linux/dma-noncoherent.h>
- #include <linux/scatterlist.h>
- 
- #include <asm/cachetype.h>
-@@ -26,18 +27,16 @@
-  *   - MMU/MPU is off
-  *   - cpu is v7m w/o cache support
-  *   - device is coherent
-- *  otherwise arm_nommu_dma_ops is used.
-+ *  otherwise dma_noncoherent_ops is used.
-  *
-- *  arm_nommu_dma_ops rely on consistent DMA memory (please, refer to
-+ *  dma_noncoherent_ops rely on consistent DMA memory (please, refer to
-  *  [1] on how to declare such memory).
-  *
-  *  [1] Documentation/devicetree/bindings/reserved-memory/reserved-memory.txt
-  */
- 
--static void *arm_nommu_dma_alloc(struct device *dev, size_t size,
--				 dma_addr_t *dma_handle, gfp_t gfp,
--				 unsigned long attrs)
--
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
-+		gfp_t gfp, unsigned long attrs)
- {
- 	void *ret;
- 
-@@ -65,9 +64,8 @@ static void *arm_nommu_dma_alloc(struct device *dev, size_t size,
- 	return ret;
- }
- 
--static void arm_nommu_dma_free(struct device *dev, size_t size,
--			       void *cpu_addr, dma_addr_t dma_addr,
--			       unsigned long attrs)
-+void arch_dma_free(struct device *dev, size_t size, void *cpu_addr,
-+		dma_addr_t dma_addr, unsigned long attrs)
- {
- 	if (attrs & DMA_ATTR_NON_CONSISTENT) {
- 		dma_direct_free(dev, size, cpu_addr, dma_addr, attrs);
-@@ -81,9 +79,9 @@ static void arm_nommu_dma_free(struct device *dev, size_t size,
- 	return;
- }
- 
--static int arm_nommu_dma_mmap(struct device *dev, struct vm_area_struct *vma,
--			      void *cpu_addr, dma_addr_t dma_addr, size_t size,
--			      unsigned long attrs)
-+int arch_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+		void *cpu_addr, dma_addr_t dma_addr, size_t size,
-+		unsigned long attrs)
- {
- 	int ret;
- 
-@@ -93,9 +91,8 @@ static int arm_nommu_dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 	return dma_common_mmap(dev, vma, cpu_addr, dma_addr, size);
- }
- 
--
--static void __dma_page_cpu_to_dev(phys_addr_t paddr, size_t size,
--				  enum dma_data_direction dir)
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
- {
- 	dmac_map_area(__va(paddr), size, dir);
- 
-@@ -105,8 +102,8 @@ static void __dma_page_cpu_to_dev(phys_addr_t paddr, size_t size,
- 		outer_clean_range(paddr, paddr + size);
- }
- 
--static void __dma_page_dev_to_cpu(phys_addr_t paddr, size_t size,
--				  enum dma_data_direction dir)
-+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
- {
- 	if (dir != DMA_TO_DEVICE) {
- 		outer_inv_range(paddr, paddr + size);
-@@ -114,110 +111,9 @@ static void __dma_page_dev_to_cpu(phys_addr_t paddr, size_t size,
- 	}
- }
- 
--static dma_addr_t arm_nommu_dma_map_page(struct device *dev, struct page *page,
--					 unsigned long offset, size_t size,
--					 enum dma_data_direction dir,
--					 unsigned long attrs)
--{
--	dma_addr_t handle = page_to_phys(page) + offset;
--
--	__dma_page_cpu_to_dev(handle, size, dir);
--
--	return handle;
--}
--
--static void arm_nommu_dma_unmap_page(struct device *dev, dma_addr_t handle,
--				     size_t size, enum dma_data_direction dir,
--				     unsigned long attrs)
--{
--	__dma_page_dev_to_cpu(handle, size, dir);
--}
--
--
--static int arm_nommu_dma_map_sg(struct device *dev, struct scatterlist *sgl,
--				int nents, enum dma_data_direction dir,
--				unsigned long attrs)
--{
--	int i;
--	struct scatterlist *sg;
--
--	for_each_sg(sgl, sg, nents, i) {
--		sg_dma_address(sg) = sg_phys(sg);
--		sg_dma_len(sg) = sg->length;
--		__dma_page_cpu_to_dev(sg_dma_address(sg), sg_dma_len(sg), dir);
--	}
--
--	return nents;
--}
--
--static void arm_nommu_dma_unmap_sg(struct device *dev, struct scatterlist *sgl,
--				   int nents, enum dma_data_direction dir,
--				   unsigned long attrs)
--{
--	struct scatterlist *sg;
--	int i;
--
--	for_each_sg(sgl, sg, nents, i)
--		__dma_page_dev_to_cpu(sg_dma_address(sg), sg_dma_len(sg), dir);
--}
--
--static void arm_nommu_dma_sync_single_for_device(struct device *dev,
--		dma_addr_t handle, size_t size, enum dma_data_direction dir)
--{
--	__dma_page_cpu_to_dev(handle, size, dir);
--}
--
--static void arm_nommu_dma_sync_single_for_cpu(struct device *dev,
--		dma_addr_t handle, size_t size, enum dma_data_direction dir)
--{
--	__dma_page_cpu_to_dev(handle, size, dir);
--}
--
--static void arm_nommu_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sgl,
--					     int nents, enum dma_data_direction dir)
--{
--	struct scatterlist *sg;
--	int i;
--
--	for_each_sg(sgl, sg, nents, i)
--		__dma_page_cpu_to_dev(sg_dma_address(sg), sg_dma_len(sg), dir);
--}
--
--static void arm_nommu_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sgl,
--					  int nents, enum dma_data_direction dir)
--{
--	struct scatterlist *sg;
--	int i;
--
--	for_each_sg(sgl, sg, nents, i)
--		__dma_page_dev_to_cpu(sg_dma_address(sg), sg_dma_len(sg), dir);
--}
--
--const struct dma_map_ops arm_nommu_dma_ops = {
--	.alloc			= arm_nommu_dma_alloc,
--	.free			= arm_nommu_dma_free,
--	.mmap			= arm_nommu_dma_mmap,
--	.map_page		= arm_nommu_dma_map_page,
--	.unmap_page		= arm_nommu_dma_unmap_page,
--	.map_sg			= arm_nommu_dma_map_sg,
--	.unmap_sg		= arm_nommu_dma_unmap_sg,
--	.sync_single_for_device	= arm_nommu_dma_sync_single_for_device,
--	.sync_single_for_cpu	= arm_nommu_dma_sync_single_for_cpu,
--	.sync_sg_for_device	= arm_nommu_dma_sync_sg_for_device,
--	.sync_sg_for_cpu	= arm_nommu_dma_sync_sg_for_cpu,
--};
--EXPORT_SYMBOL(arm_nommu_dma_ops);
--
--static const struct dma_map_ops *arm_nommu_get_dma_map_ops(bool coherent)
--{
--	return coherent ? &dma_direct_ops : &arm_nommu_dma_ops;
--}
--
- void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
- 			const struct iommu_ops *iommu, bool coherent)
- {
--	const struct dma_map_ops *dma_ops;
--
- 	if (IS_ENABLED(CONFIG_CPU_V7M)) {
- 		/*
- 		 * Cache support for v7m is optional, so can be treated as
-@@ -233,9 +129,10 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
- 		dev->archdata.dma_coherent = (get_cr() & CR_M) ? coherent : true;
- 	}
- 
--	dma_ops = arm_nommu_get_dma_map_ops(dev->archdata.dma_coherent);
--
--	set_dma_ops(dev, dma_ops);
-+	if (dev->archdata.dma_coherent)
-+		set_dma_ops(dev, &dma_direct_ops);
-+	else
-+		set_dma_ops(dev, &dma_noncoherent_ops);
- }
- 
+@@ -241,12 +241,3 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
  void arch_teardown_dma_ops(struct device *dev)
+ {
+ }
+-
+-#define PREALLOC_DMA_DEBUG_ENTRIES	4096
+-
+-static int __init dma_debug_do_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-core_initcall(dma_debug_do_init);
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 8c398fedbbb6..c26bf83f44ca 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -1165,15 +1165,6 @@ int arm_dma_supported(struct device *dev, u64 mask)
+ 	return __dma_supported(dev, mask, false);
+ }
+ 
+-#define PREALLOC_DMA_DEBUG_ENTRIES	4096
+-
+-static int __init dma_debug_do_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-core_initcall(dma_debug_do_init);
+-
+ #ifdef CONFIG_ARM_DMA_USE_IOMMU
+ 
+ static int __dma_info_to_prot(enum dma_data_direction dir, unsigned long attrs)
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+index a96ec0181818..db01f2709842 100644
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -508,16 +508,6 @@ static int __init arm64_dma_init(void)
+ }
+ arch_initcall(arm64_dma_init);
+ 
+-#define PREALLOC_DMA_DEBUG_ENTRIES	4096
+-
+-static int __init dma_debug_do_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-fs_initcall(dma_debug_do_init);
+-
+-
+ #ifdef CONFIG_IOMMU_DMA
+ #include <linux/dma-iommu.h>
+ #include <linux/platform_device.h>
+diff --git a/arch/c6x/kernel/dma.c b/arch/c6x/kernel/dma.c
+index 9fff8be75f58..31e1a9ec3a9c 100644
+--- a/arch/c6x/kernel/dma.c
++++ b/arch/c6x/kernel/dma.c
+@@ -136,14 +136,3 @@ const struct dma_map_ops c6x_dma_ops = {
+ 	.sync_sg_for_cpu	= c6x_dma_sync_sg_for_cpu,
+ };
+ EXPORT_SYMBOL(c6x_dma_ops);
+-
+-/* Number of entries preallocated for DMA-API debugging */
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+-static int __init dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-
+-	return 0;
+-}
+-fs_initcall(dma_init);
+diff --git a/arch/ia64/kernel/dma-mapping.c b/arch/ia64/kernel/dma-mapping.c
+index f2d57e66fd86..7a471d8d67d4 100644
+--- a/arch/ia64/kernel/dma-mapping.c
++++ b/arch/ia64/kernel/dma-mapping.c
+@@ -9,16 +9,6 @@ int iommu_detected __read_mostly;
+ const struct dma_map_ops *dma_ops;
+ EXPORT_SYMBOL(dma_ops);
+ 
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+-static int __init dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-
+-	return 0;
+-}
+-fs_initcall(dma_init);
+-
+ const struct dma_map_ops *dma_get_ops(struct device *dev)
+ {
+ 	return dma_ops;
+diff --git a/arch/microblaze/kernel/dma.c b/arch/microblaze/kernel/dma.c
+index c91e8cef98dd..3145e7dc8ab1 100644
+--- a/arch/microblaze/kernel/dma.c
++++ b/arch/microblaze/kernel/dma.c
+@@ -184,14 +184,3 @@ const struct dma_map_ops dma_nommu_ops = {
+ 	.sync_sg_for_device	= dma_nommu_sync_sg_for_device,
+ };
+ EXPORT_SYMBOL(dma_nommu_ops);
+-
+-/* Number of entries preallocated for DMA-API debugging */
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+-static int __init dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-
+-	return 0;
+-}
+-fs_initcall(dma_init);
+diff --git a/arch/mips/mm/dma-default.c b/arch/mips/mm/dma-default.c
+index dcafa43613b6..f9fef0028ca2 100644
+--- a/arch/mips/mm/dma-default.c
++++ b/arch/mips/mm/dma-default.c
+@@ -402,13 +402,3 @@ static const struct dma_map_ops mips_default_dma_map_ops = {
+ 
+ const struct dma_map_ops *mips_dma_map_ops = &mips_default_dma_map_ops;
+ EXPORT_SYMBOL(mips_dma_map_ops);
+-
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+-static int __init mips_dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-
+-	return 0;
+-}
+-fs_initcall(mips_dma_init);
+diff --git a/arch/openrisc/kernel/dma.c b/arch/openrisc/kernel/dma.c
+index a945f00011b4..ec7fd45704d2 100644
+--- a/arch/openrisc/kernel/dma.c
++++ b/arch/openrisc/kernel/dma.c
+@@ -247,14 +247,3 @@ const struct dma_map_ops or1k_dma_map_ops = {
+ 	.sync_single_for_device = or1k_sync_single_for_device,
+ };
+ EXPORT_SYMBOL(or1k_dma_map_ops);
+-
+-/* Number of entries preallocated for DMA-API debugging */
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+-static int __init dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-
+-	return 0;
+-}
+-fs_initcall(dma_init);
+diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
+index da20569de9d4..138157deeadf 100644
+--- a/arch/powerpc/kernel/dma.c
++++ b/arch/powerpc/kernel/dma.c
+@@ -309,8 +309,6 @@ int dma_set_coherent_mask(struct device *dev, u64 mask)
+ }
+ EXPORT_SYMBOL(dma_set_coherent_mask);
+ 
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+ int dma_set_mask(struct device *dev, u64 dma_mask)
+ {
+ 	if (ppc_md.dma_set_mask)
+@@ -361,7 +359,6 @@ EXPORT_SYMBOL_GPL(dma_get_required_mask);
+ 
+ static int __init dma_init(void)
+ {
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+ #ifdef CONFIG_PCI
+ 	dma_debug_add_bus(&pci_bus_type);
+ #endif
+diff --git a/arch/s390/pci/pci_dma.c b/arch/s390/pci/pci_dma.c
+index 10abf5ed6187..d387a0fbdd7e 100644
+--- a/arch/s390/pci/pci_dma.c
++++ b/arch/s390/pci/pci_dma.c
+@@ -668,15 +668,6 @@ void zpci_dma_exit(void)
+ 	kmem_cache_destroy(dma_region_table_cache);
+ }
+ 
+-#define PREALLOC_DMA_DEBUG_ENTRIES	(1 << 16)
+-
+-static int __init dma_debug_do_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-fs_initcall(dma_debug_do_init);
+-
+ const struct dma_map_ops s390_pci_dma_ops = {
+ 	.alloc		= s390_dma_alloc,
+ 	.free		= s390_dma_free,
+diff --git a/arch/sh/mm/consistent.c b/arch/sh/mm/consistent.c
+index 6ea3aab508f2..a7bff3f29c2b 100644
+--- a/arch/sh/mm/consistent.c
++++ b/arch/sh/mm/consistent.c
+@@ -20,18 +20,9 @@
+ #include <asm/cacheflush.h>
+ #include <asm/addrspace.h>
+ 
+-#define PREALLOC_DMA_DEBUG_ENTRIES	4096
+-
+ const struct dma_map_ops *dma_ops;
+ EXPORT_SYMBOL(dma_ops);
+ 
+-static int __init dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-fs_initcall(dma_init);
+-
+ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
+ 				 dma_addr_t *dma_handle, gfp_t gfp,
+ 				 unsigned long attrs)
+diff --git a/arch/sparc/kernel/Makefile b/arch/sparc/kernel/Makefile
+index a284662b0e4c..cf8640841b7a 100644
+--- a/arch/sparc/kernel/Makefile
++++ b/arch/sparc/kernel/Makefile
+@@ -74,8 +74,6 @@ obj-$(CONFIG_SPARC64)	+= pcr.o
+ obj-$(CONFIG_SPARC64)	+= nmi.o
+ obj-$(CONFIG_SPARC64_SMP) += cpumap.o
+ 
+-obj-y                     += dma.o
+-
+ obj-$(CONFIG_PCIC_PCI)    += pcic.o
+ obj-$(CONFIG_LEON_PCI)    += leon_pci.o
+ obj-$(CONFIG_SPARC_GRPCI2)+= leon_pci_grpci2.o
+diff --git a/arch/sparc/kernel/dma.c b/arch/sparc/kernel/dma.c
+deleted file mode 100644
+index f73e7597c971..000000000000
+--- a/arch/sparc/kernel/dma.c
++++ /dev/null
+@@ -1,13 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-#include <linux/kernel.h>
+-#include <linux/dma-mapping.h>
+-#include <linux/dma-debug.h>
+-
+-#define PREALLOC_DMA_DEBUG_ENTRIES       (1 << 15)
+-
+-static int __init dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-fs_initcall(dma_init);
+diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
+index 77625b60a510..bcbaa2e8031e 100644
+--- a/arch/x86/kernel/pci-dma.c
++++ b/arch/x86/kernel/pci-dma.c
+@@ -55,9 +55,6 @@ struct device x86_dma_fallback_dev = {
+ };
+ EXPORT_SYMBOL(x86_dma_fallback_dev);
+ 
+-/* Number of entries preallocated for DMA-API debugging */
+-#define PREALLOC_DMA_DEBUG_ENTRIES       65536
+-
+ void __init pci_iommu_alloc(void)
+ {
+ 	struct iommu_table_entry *p;
+@@ -189,7 +186,6 @@ EXPORT_SYMBOL(arch_dma_supported);
+ static int __init pci_iommu_init(void)
+ {
+ 	struct iommu_table_entry *p;
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+ 
+ #ifdef CONFIG_PCI
+ 	dma_debug_add_bus(&pci_bus_type);
+diff --git a/arch/xtensa/kernel/pci-dma.c b/arch/xtensa/kernel/pci-dma.c
+index 732631ce250f..392b4a80ebc2 100644
+--- a/arch/xtensa/kernel/pci-dma.c
++++ b/arch/xtensa/kernel/pci-dma.c
+@@ -261,12 +261,3 @@ const struct dma_map_ops xtensa_dma_map_ops = {
+ 	.mapping_error = xtensa_dma_mapping_error,
+ };
+ EXPORT_SYMBOL(xtensa_dma_map_ops);
+-
+-#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
+-
+-static int __init xtensa_dma_init(void)
+-{
+-	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
+-	return 0;
+-}
+-fs_initcall(xtensa_dma_init);
+diff --git a/include/linux/dma-debug.h b/include/linux/dma-debug.h
+index c7d844f09c3a..a785f2507159 100644
+--- a/include/linux/dma-debug.h
++++ b/include/linux/dma-debug.h
+@@ -30,8 +30,6 @@ struct bus_type;
+ 
+ extern void dma_debug_add_bus(struct bus_type *bus);
+ 
+-extern void dma_debug_init(u32 num_entries);
+-
+ extern int dma_debug_resize_entries(u32 num_entries);
+ 
+ extern void debug_dma_map_page(struct device *dev, struct page *page,
+@@ -100,10 +98,6 @@ static inline void dma_debug_add_bus(struct bus_type *bus)
+ {
+ }
+ 
+-static inline void dma_debug_init(u32 num_entries)
+-{
+-}
+-
+ static inline int dma_debug_resize_entries(u32 num_entries)
+ {
+ 	return 0;
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index 7f5cdc1e6b29..712a897174e4 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -41,6 +41,11 @@
+ #define HASH_FN_SHIFT   13
+ #define HASH_FN_MASK    (HASH_SIZE - 1)
+ 
++/* allow architectures to override this if absolutely required */
++#ifndef PREALLOC_DMA_DEBUG_ENTRIES
++#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
++#endif
++
+ enum {
+ 	dma_debug_single,
+ 	dma_debug_page,
+@@ -1004,18 +1009,16 @@ void dma_debug_add_bus(struct bus_type *bus)
+ 	bus_register_notifier(bus, nb);
+ }
+ 
+-/*
+- * Let the architectures decide how many entries should be preallocated.
+- */
+-void dma_debug_init(u32 num_entries)
++static int dma_debug_init(void)
+ {
++	u32 num_entries;
+ 	int i;
+ 
+ 	/* Do not use dma_debug_initialized here, since we really want to be
+ 	 * called to set dma_debug_initialized
+ 	 */
+ 	if (global_disable)
+-		return;
++		return 0;
+ 
+ 	for (i = 0; i < HASH_SIZE; ++i) {
+ 		INIT_LIST_HEAD(&dma_entry_hash[i].list);
+@@ -1026,17 +1029,19 @@ void dma_debug_init(u32 num_entries)
+ 		pr_err("DMA-API: error creating debugfs entries - disabling\n");
+ 		global_disable = true;
+ 
+-		return;
++		return 0;
+ 	}
+ 
+ 	if (req_entries)
+ 		num_entries = req_entries;
++	else
++		num_entries = PREALLOC_DMA_DEBUG_ENTRIES;
+ 
+ 	if (prealloc_memory(num_entries) != 0) {
+ 		pr_err("DMA-API: debugging out of memory error - disabled\n");
+ 		global_disable = true;
+ 
+-		return;
++		return 0;
+ 	}
+ 
+ 	nr_total_entries = num_free_entries;
+@@ -1044,7 +1049,9 @@ void dma_debug_init(u32 num_entries)
+ 	dma_debug_initialized = true;
+ 
+ 	pr_info("DMA-API: debugging enabled by kernel config\n");
++	return 0;
+ }
++core_initcall(dma_debug_init);
+ 
+ static __init int dma_debug_cmdline(char *str)
+ {
 -- 
 2.17.0
