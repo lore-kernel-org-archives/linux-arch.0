@@ -1,86 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:36115 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753857AbeDTBMJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:12:09 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:50399 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753703AbeDTBMH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:12:07 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:04:02 -0500
-Message-ID: <20180420010408.24438-11-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:04:07 -0500
+Message-ID: <20180420010408.24438-16-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 11/17] signal/alpha: Replace FPE_FIXME with FPE_FLTUNK
+Subject: [REVIEW][PATCH 16/17] signal/alpha:  Replace TRAP_FIXME with TRAP_UNK
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Helge Deller <deller@gmx.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20180420010402.QF8mmcO1nk_zd0tFrNQf1QRMVWz_nCOvMxnmFhM346U@z>
+Message-ID: <20180420010407.QNXaAo_48k14wboh2WIxhIp8M1aZZ4BlDcWAh3HCZOY@z>
 
 Using an si_code of 0 that aliases with SI_USER is clearly the wrong
-thing todo, and causes problems in interesting ways.
+thing to do, and causes problems in interesting ways.
 
-The newly defined FPE_FLTUNK semantically appears to fit the bill so
-use it instead.
+For it really is not clear to me if using TRAP_UNK bugcheck or
+the default case of gentrap is really the best way to handle
+things.  There is certainly enough information that that a more
+specific si_code could potentially be used.  That said TRAP_UNK
+is definitely an improvement over 0 as it removes the ambiguiuty
+of what si_code of 0 with SIGTRAP means on alpha.
 
-Given recent experience in this area odds are it will not break
-anything.  Fixing it removes a hazard to kernel maintenance.
+Recent history suggests no actually cares about crazy corner cases of
+the kernel behavior like this so I don't expect any regressions from
+changing this.  However if something does happen this change is easy
+to revert.
 
 Cc: Helge Deller <deller@gmx.de>
 Cc: Richard Henderson <rth@twiddle.net>
 Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
 Cc: Matt Turner <mattst88@gmail.com>
 Cc: linux-alpha@vger.kernel.org
-History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
 Fixes: 0a635c7a84cf ("Fill in siginfo_t.")
+History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
  arch/alpha/include/uapi/asm/siginfo.h | 7 -------
- arch/alpha/kernel/osf_sys.c           | 2 +-
- arch/alpha/kernel/traps.c             | 2 +-
- 3 files changed, 2 insertions(+), 9 deletions(-)
+ arch/alpha/kernel/traps.c             | 4 ++--
+ 2 files changed, 2 insertions(+), 9 deletions(-)
 
 diff --git a/arch/alpha/include/uapi/asm/siginfo.h b/arch/alpha/include/uapi/asm/siginfo.h
-index 0cf3b527b274..3ebbb1e17902 100644
+index 3ebbb1e17902..db3f0138536f 100644
 --- a/arch/alpha/include/uapi/asm/siginfo.h
 +++ b/arch/alpha/include/uapi/asm/siginfo.h
-@@ -7,13 +7,6 @@
+@@ -7,11 +7,4 @@
  
  #include <asm-generic/siginfo.h>
  
 -/*
-- * SIGFPE si_codes
+- * SIGTRAP si_codes
 - */
 -#ifdef __KERNEL__
--#define FPE_FIXME	0	/* Broken dup of SI_USER */
+-#define TRAP_FIXME	0	/* Broken dup of SI_USER */
 -#endif /* __KERNEL__ */
 -
- /*
-  * SIGTRAP si_codes
-  */
-diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-index f5f154942aab..bb3619118926 100644
---- a/arch/alpha/kernel/osf_sys.c
-+++ b/arch/alpha/kernel/osf_sys.c
-@@ -872,7 +872,7 @@ SYSCALL_DEFINE5(osf_setsysinfo, unsigned long, op, void __user *, buffer,
- 		fex = (exc >> IEEE_STATUS_TO_EXCSUM_SHIFT) & swcr;
-  		if (fex) {
- 			siginfo_t info;
--			int si_code = FPE_FIXME;
-+			int si_code = FPE_FLTUNK;
- 
- 			if (fex & IEEE_TRAP_ENABLE_DNO) si_code = FPE_FLTUND;
- 			if (fex & IEEE_TRAP_ENABLE_INE) si_code = FPE_FLTRES;
+ #endif
 diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
-index 91636765dd6d..422b676b28f2 100644
+index 422b676b28f2..242c83d86ace 100644
 --- a/arch/alpha/kernel/traps.c
 +++ b/arch/alpha/kernel/traps.c
-@@ -328,7 +328,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+@@ -288,7 +288,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 	      case 1: /* bugcheck */
+ 		info.si_signo = SIGTRAP;
+ 		info.si_errno = 0;
+-		info.si_code = TRAP_FIXME;
++		info.si_code = TRAP_UNK;
+ 		info.si_addr = (void __user *) regs->pc;
+ 		info.si_trapno = 0;
+ 		send_sig_info(SIGTRAP, &info, current);
+@@ -350,7 +350,7 @@ do_entIF(unsigned long type, struct pt_regs *regs)
+ 		case GEN_SUBRNG7:
+ 		default:
+ 			signo = SIGTRAP;
+-			code = TRAP_FIXME;
++			code = TRAP_UNK;
  			break;
- 		case GEN_ROPRAND:
- 			signo = SIGFPE;
--			code = FPE_FIXME;
-+			code = FPE_FLTUNK;
- 			break;
+ 		}
  
- 		case GEN_DECOVF:
 -- 
 2.14.1
