@@ -1,49 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:50066 "EHLO
+Received: from out03.mta.xmission.com ([166.70.13.233]:50077 "EHLO
         out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753761AbeDTBGZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:06:25 -0400
+        with ESMTP id S1753761AbeDTBGo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:06:44 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:03:52 -0500
-Message-ID: <20180420010408.24438-1-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:03:53 -0500
+Message-ID: <20180420010408.24438-2-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 01/17] signal/alpha: Document a conflict with SI_USER for SIGFPE
+Subject: [REVIEW][PATCH 02/17] sparc: fix compat siginfo ABI regression
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Helge Deller <deller@gmx.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20180420010352.FhC2r1LJcX7gLQVl7Me5Vr1FchrbXv8BTdL2lZUddkk@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Dmitry V. Levin" <ldv@altlinux.org>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org, "Eric W . Biederman" <ebiederm@xmission.com>
+Message-ID: <20180420010353.VMmcWwrBabnf4CI2fisCGSPFLcVLjwE7HI6qdZVEw4g@z>
 
-Setting si_code to 0 is the same as setting si_code to SI_USER.  This
-is the same si_code as SI_USER.  Posix and common sense requires that
-SI_USER not be a signal specific si_code.  As such this use of 0 for
-the si_code is a pretty horribly broken ABI.
+From: "Dmitry V. Levin" <ldv@altlinux.org>
 
-Cc: Helge Deller <deller@gmx.de>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
-History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
-Ref: 0a635c7a84cf ("Fill in siginfo_t.")
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+Starting with commit v4.14-rc1~60^2^2~1, a SIGFPE signal sent via kill
+results to wrong values in si_pid and si_uid fields of compat siginfo_t.
+
+This happens due to FPE_FIXME being defined to 0 for sparc, and at the
+same time siginfo_layout() introduced by the same commit returns
+SIL_FAULT for SIGFPE if si_code == SI_USER and FPE_FIXME is defined to 0.
+
+Fix this regression by removing FPE_FIXME macro and changing all its users
+to assign FPE_FLTUNK to si_code instead of FPE_FIXME.
+
+Note that FPE_FLTUNK is a new macro introduced by commit
+266da65e9156d93e1126e185259a4aae68188d0e.
+
+Tested with commit v4.16-11958-g16e205cf42da.
+
+This bug was found by strace test suite.
+
+In the discussion about FPE_FLTUNK on sparc David Miller said:
+> Eric, feel free to do something similar on Sparc.
+
+Link: https://github.com/strace/strace/issues/21
+Fixes: cc731525f26a ("signal: Remove kernel interal si_code magic")
+Fixes: 2.3.41
+Cc: David Miller <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
+Conceptually-Acked-By: David Miller <davem@davemloft.net>
+Thanks-to: Anatoly Pugachev <matorola@gmail.com>
+Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
- arch/alpha/kernel/osf_sys.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/sparc/include/uapi/asm/siginfo.h | 7 -------
+ arch/sparc/kernel/traps_32.c          | 2 +-
+ arch/sparc/kernel/traps_64.c          | 2 +-
+ 3 files changed, 2 insertions(+), 9 deletions(-)
 
-diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-index 89faa6f4de47..2e02aef5a334 100644
---- a/arch/alpha/kernel/osf_sys.c
-+++ b/arch/alpha/kernel/osf_sys.c
-@@ -872,7 +872,7 @@ SYSCALL_DEFINE5(osf_setsysinfo, unsigned long, op, void __user *, buffer,
- 		fex = (exc >> IEEE_STATUS_TO_EXCSUM_SHIFT) & swcr;
-  		if (fex) {
- 			siginfo_t info;
--			int si_code = 0;
-+			int si_code = FPE_FIXME;
+diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
+index 896ce447d16a..e7049550ac82 100644
+--- a/arch/sparc/include/uapi/asm/siginfo.h
++++ b/arch/sparc/include/uapi/asm/siginfo.h
+@@ -17,13 +17,6 @@
  
- 			if (fex & IEEE_TRAP_ENABLE_DNO) si_code = FPE_FLTUND;
- 			if (fex & IEEE_TRAP_ENABLE_INE) si_code = FPE_FLTRES;
+ #define SI_NOINFO	32767		/* no information in siginfo_t */
+ 
+-/*
+- * SIGFPE si_codes
+- */
+-#ifdef __KERNEL__
+-#define FPE_FIXME	0	/* Broken dup of SI_USER */
+-#endif /* __KERNEL__ */
+-
+ /*
+  * SIGEMT si_codes
+  */
+diff --git a/arch/sparc/kernel/traps_32.c b/arch/sparc/kernel/traps_32.c
+index b1ed763e4787..33cd35bf3dc8 100644
+--- a/arch/sparc/kernel/traps_32.c
++++ b/arch/sparc/kernel/traps_32.c
+@@ -307,7 +307,7 @@ void do_fpe_trap(struct pt_regs *regs, unsigned long pc, unsigned long npc,
+ 	info.si_errno = 0;
+ 	info.si_addr = (void __user *)pc;
+ 	info.si_trapno = 0;
+-	info.si_code = FPE_FIXME;
++	info.si_code = FPE_FLTUNK;
+ 	if ((fsr & 0x1c000) == (1 << 14)) {
+ 		if (fsr & 0x10)
+ 			info.si_code = FPE_FLTINV;
+diff --git a/arch/sparc/kernel/traps_64.c b/arch/sparc/kernel/traps_64.c
+index 462a21abd105..e81072ac52c3 100644
+--- a/arch/sparc/kernel/traps_64.c
++++ b/arch/sparc/kernel/traps_64.c
+@@ -2372,7 +2372,7 @@ static void do_fpe_common(struct pt_regs *regs)
+ 		info.si_errno = 0;
+ 		info.si_addr = (void __user *)regs->tpc;
+ 		info.si_trapno = 0;
+-		info.si_code = FPE_FIXME;
++		info.si_code = FPE_FLTUNK;
+ 		if ((fsr & 0x1c000) == (1 << 14)) {
+ 			if (fsr & 0x10)
+ 				info.si_code = FPE_FLTINV;
 -- 
 2.14.1
