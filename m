@@ -1,89 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:46792 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755171AbeDTOqD (ORCPT
+Received: from out02.mta.xmission.com ([166.70.13.232]:44843 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755199AbeDTOqD (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:46:03 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:38:01 -0500
-Message-ID: <20180420143811.9994-12-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:38:10 -0500
+Message-ID: <20180420143811.9994-21-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 12/22] signal/parisc: Use force_sig_mceerr where appropriate
+Subject: [REVIEW][PATCH 21/22] signal/xtensa: Consistenly use SIGBUS in do_unaligned_user
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, James Bottomley <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
-Message-ID: <20180420143801.8UCmSklOWbOePBaFBU-pgfgzaNOy90ifbqeKXXaRgtc@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, stable@vger.kernel.org
+Message-ID: <20180420143810.gwomuulcStuPtk6L7-3tZoV4Q5QqIeCemNaJ4qbeoNs@z>
 
-In do_page_fault where an mceerr is generated stop and call force_sig_mceerr.
-Keeping the mcerr handling logic out of the force_sig_info call below.
+While working on changing this code to use force_sig_fault I
+discovered that do_unaliged_user is sets si_signo to SIGBUS and passes
+SIGSEGV to force_sig_info.  Which is just b0rked.
 
-This ensures that only and always in the mcerr case is lsb interesting.
+The code is reporting a SIGBUS error so replace the SIGSEGV with SIGBUS.
 
-This ensures setting set si_lsb in the future won't accidentally
-stomp another siginfo field in the non mcerr case.
-
-Cc: James Bottomley <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-xtensa@linux-xtensa.org
+Cc: stable@vger.kernel.org
+Fixes: 5a0015d62668 ("[PATCH] xtensa: Architecture support for Tensilica Xtensa Part 3")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/parisc/mm/fault.c | 30 +++++++++++++++---------------
- 1 file changed, 15 insertions(+), 15 deletions(-)
+ arch/xtensa/kernel/traps.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
-index 657b35096bd8..51215b0048ef 100644
---- a/arch/parisc/mm/fault.c
-+++ b/arch/parisc/mm/fault.c
-@@ -354,7 +354,6 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+diff --git a/arch/xtensa/kernel/traps.c b/arch/xtensa/kernel/traps.c
+index 51771929f341..90b509f65b6f 100644
+--- a/arch/xtensa/kernel/traps.c
++++ b/arch/xtensa/kernel/traps.c
+@@ -339,7 +339,7 @@ do_unaligned_user (struct pt_regs *regs)
+ 	info.si_errno = 0;
+ 	info.si_code = BUS_ADRALN;
+ 	info.si_addr = (void *) regs->excvaddr;
+-	force_sig_info(SIGSEGV, &info, current);
++	force_sig_info(SIGBUS, &info, current);
  
- 	if (user_mode(regs)) {
- 		struct siginfo si;
--		unsigned int lsb = 0;
- 
- 		clear_siginfo(&si);
- 		switch (code) {
-@@ -391,26 +390,27 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
- 
- #ifdef CONFIG_MEMORY_FAILURE
- 		if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
-+			unsigned int lsb = 0;
- 			printk(KERN_ERR
- 	"MCE: Killing %s:%d due to hardware memory corruption fault at %08lx\n",
- 			tsk->comm, tsk->pid, address);
--			si.si_signo = SIGBUS;
--			si.si_code = BUS_MCEERR_AR;
-+			/*
-+			 * Either small page or large page may be poisoned.
-+			 * In other words, VM_FAULT_HWPOISON_LARGE and
-+			 * VM_FAULT_HWPOISON are mutually exclusive.
-+			 */
-+			if (fault & VM_FAULT_HWPOISON_LARGE)
-+				lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
-+			else if (fault & VM_FAULT_HWPOISON)
-+				lsb = PAGE_SHIFT;
-+
-+			force_sig_mceerr(BUS_MCEERR_AR, (void __user *) address,
-+					 lsb, current);
-+			return;
- 		}
+ }
  #endif
- 
--		/*
--		 * Either small page or large page may be poisoned.
--		 * In other words, VM_FAULT_HWPOISON_LARGE and
--		 * VM_FAULT_HWPOISON are mutually exclusive.
--		 */
--		if (fault & VM_FAULT_HWPOISON_LARGE)
--			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
--		else if (fault & VM_FAULT_HWPOISON)
--			lsb = PAGE_SHIFT;
--		else
--			show_signal_msg(regs, code, address, tsk, vma);
--		si.si_addr_lsb = lsb;
-+		show_signal_msg(regs, code, address, tsk, vma);
- 
- 		si.si_errno = 0;
- 		si.si_addr = (void __user *) address;
 -- 
 2.14.1
