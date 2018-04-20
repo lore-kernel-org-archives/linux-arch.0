@@ -1,78 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:50408 "EHLO
+Received: from out03.mta.xmission.com ([166.70.13.233]:50412 "EHLO
         out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753782AbeDTBMI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:12:08 -0400
+        with ESMTP id S1753848AbeDTBMJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:12:09 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:04:05 -0500
-Message-ID: <20180420010408.24438-14-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:04:04 -0500
+Message-ID: <20180420010408.24438-13-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 14/17] signal/unicore32: Use FPE_FLTUNK instead of 0 in ucf64_raise_sigfpe
+Subject: [REVIEW][PATCH 13/17] signal/powerpc: Replace FPE_FIXME with FPE_FLTUNK
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180420010405.w51uKY19Ouw8sV-8uGAIzR6CwGS0YEVnhQRtT0FH7Sc@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Paul Mackerras <paulus@samba.org>, Kumar Gala <kumar.gala@freescale.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20180420010404.E1raVThT5sfHGT1AbZu9_nHFmRtwzI74KMk1WPCeZM4@z>
 
-The si_code of 0 (aka SI_USER) has fields si_pid and si_uid not
-si_addr so it so only by luck would the appropriate fields by copied
-to userspace by copy_siginfo_to_user.
+Using an si_code of 0 that aliases with SI_USER is clearly the
+wrong thing todo, and causes problems in interesting ways.
 
-This is just broken and wrong.
+The newly defined FPE_FLTUNK semantically appears to fit the
+bill so use it instead.
 
-Make it obvious what is happening by moving the si_code from a
-parameter of the one call to ucf64_raise_sigfpe to a constant value
-that info.si_code gets set to.
-
-Explicitly set the si_code to FPE_FLTUNK the newly reserved floating
-point si_code for an unknown floating point exception.
-
-It looks like there is a fair chance that this is a code path that has
-never been used in real life on unicore32.  The bad si_code and the
-print statement that calls it an unhandled exception.  So I really
-don't expect anyone will mind if this just gets fixed.
-
-In similar situations on more popular architectures the conclusion was
-just fix it.
-
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Fixes: d9bc15794d12 ("unicore32 additional architecture files: float point handling")
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Kumar Gala <kumar.gala@freescale.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc:  linuxppc-dev@lists.ozlabs.org
+Fixes: 9bad068c24d7 ("[PATCH] ppc32: support for e500 and 85xx")
+Fixes: 0ed70f6105ef ("PPC32: Provide proper siginfo information on various exceptions.")
+History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/unicore32/kernel/fpu-ucf64.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/powerpc/include/uapi/asm/siginfo.h | 7 -------
+ arch/powerpc/kernel/traps.c             | 6 +++---
+ 2 files changed, 3 insertions(+), 10 deletions(-)
 
-diff --git a/arch/unicore32/kernel/fpu-ucf64.c b/arch/unicore32/kernel/fpu-ucf64.c
-index d785955e1c29..8594b168f25e 100644
---- a/arch/unicore32/kernel/fpu-ucf64.c
-+++ b/arch/unicore32/kernel/fpu-ucf64.c
-@@ -52,14 +52,14 @@
-  * Raise a SIGFPE for the current process.
-  * sicode describes the signal being raised.
+diff --git a/arch/powerpc/include/uapi/asm/siginfo.h b/arch/powerpc/include/uapi/asm/siginfo.h
+index 9f142451a01f..0437afc9ef3c 100644
+--- a/arch/powerpc/include/uapi/asm/siginfo.h
++++ b/arch/powerpc/include/uapi/asm/siginfo.h
+@@ -15,13 +15,6 @@
+ 
+ #include <asm-generic/siginfo.h>
+ 
+-/*
+- * SIGFPE si_codes
+- */
+-#ifdef __KERNEL__
+-#define FPE_FIXME	0	/* Broken dup of SI_USER */
+-#endif /* __KERNEL__ */
+-
+ /*
+  * SIGTRAP si_codes
   */
--void ucf64_raise_sigfpe(unsigned int sicode, struct pt_regs *regs)
-+void ucf64_raise_sigfpe(struct pt_regs *regs)
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index 087855caf6a9..fdf9400beec8 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -1031,7 +1031,7 @@ static void emulate_single_step(struct pt_regs *regs)
+ 
+ static inline int __parse_fpscr(unsigned long fpscr)
  {
- 	siginfo_t info;
+-	int ret = FPE_FIXME;
++	int ret = FPE_FLTUNK;
  
- 	clear_siginfo(&info);
+ 	/* Invalid operation */
+ 	if ((fpscr & FPSCR_VE) && (fpscr & FPSCR_VX))
+@@ -1972,7 +1972,7 @@ void SPEFloatingPointException(struct pt_regs *regs)
+ 	extern int do_spe_mathemu(struct pt_regs *regs);
+ 	unsigned long spefscr;
+ 	int fpexc_mode;
+-	int code = FPE_FIXME;
++	int code = FPE_FLTUNK;
+ 	int err;
  
- 	info.si_signo = SIGFPE;
--	info.si_code = sicode;
-+	info.si_code = FPE_FLTUNK;
- 	info.si_addr = (void __user *)(instruction_pointer(regs) - 4);
- 
- 	/*
-@@ -94,7 +94,7 @@ void ucf64_exchandler(u32 inst, u32 fpexc, struct pt_regs *regs)
- 		pr_debug("UniCore-F64 FPSCR 0x%08x INST 0x%08x\n",
- 				cff(FPSCR), inst);
- 
--		ucf64_raise_sigfpe(0, regs);
-+		ucf64_raise_sigfpe(regs);
+ 	flush_spe_to_thread(current);
+@@ -2041,7 +2041,7 @@ void SPEFloatingPointRoundException(struct pt_regs *regs)
+ 		printk(KERN_ERR "unrecognized spe instruction "
+ 		       "in %s at %lx\n", current->comm, regs->nip);
+ 	} else {
+-		_exception(SIGFPE, regs, FPE_FIXME, regs->nip);
++		_exception(SIGFPE, regs, FPE_FLTUNK, regs->nip);
  		return;
  	}
- 
+ }
 -- 
 2.14.1
