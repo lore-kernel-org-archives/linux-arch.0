@@ -1,13 +1,13 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 18/22] signal/sparc: Use force_sig_fault where appropriate
-Date: Fri, 20 Apr 2018 09:38:07 -0500
-Message-ID: <20180420143811.9994-18-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 13/22] signal/parisc: Use force_sig_fault where appropriate
+Date: Fri, 20 Apr 2018 09:38:02 -0500
+Message-ID: <20180420143811.9994-13-ebiederm@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, James Bottomley <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Filling in struct siginfo before calling force_sig_info a tedious and
@@ -22,537 +22,329 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: David Miller <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
+Cc: James Bottomley <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sparc/kernel/process_64.c   |  10 +--
- arch/sparc/kernel/sys_sparc_32.c |   9 +--
- arch/sparc/kernel/sys_sparc_64.c |   8 +--
- arch/sparc/kernel/traps_32.c     |  21 +-----
- arch/sparc/kernel/traps_64.c     | 145 ++++++++-------------------------------
- arch/sparc/mm/fault_32.c         |  13 +---
- arch/sparc/mm/fault_64.c         |   9 +--
- 7 files changed, 37 insertions(+), 178 deletions(-)
+ arch/parisc/kernel/ptrace.c    | 11 ++------
+ arch/parisc/kernel/traps.c     | 63 ++++++++++++++----------------------------
+ arch/parisc/kernel/unaligned.c | 16 +++--------
+ arch/parisc/math-emu/driver.c  |  9 ++----
+ arch/parisc/mm/fault.c         | 25 +++++++----------
+ 5 files changed, 39 insertions(+), 85 deletions(-)
 
-diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
-index 2219e55206b4..6c086086ca8f 100644
---- a/arch/sparc/kernel/process_64.c
-+++ b/arch/sparc/kernel/process_64.c
-@@ -518,15 +518,7 @@ void synchronize_user_stack(void)
+diff --git a/arch/parisc/kernel/ptrace.c b/arch/parisc/kernel/ptrace.c
+index b1c12ceb1c88..7aa1d4d0d444 100644
+--- a/arch/parisc/kernel/ptrace.c
++++ b/arch/parisc/kernel/ptrace.c
+@@ -76,8 +76,6 @@ void user_enable_single_step(struct task_struct *task)
+ 	set_tsk_thread_flag(task, TIF_SINGLESTEP);
  
- static void stack_unaligned(unsigned long sp)
- {
--	siginfo_t info;
+ 	if (pa_psw(task)->n) {
+-		struct siginfo si;
 -
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRALN;
--	info.si_addr = (void __user *) sp;
--	info.si_trapno = 0;
--	force_sig_info(SIGBUS, &info, current);
-+	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *) sp, 0, current);
- }
- 
- void fault_in_user_windows(void)
-diff --git a/arch/sparc/kernel/sys_sparc_32.c b/arch/sparc/kernel/sys_sparc_32.c
-index 00f6353fe435..7f3d9c59719a 100644
---- a/arch/sparc/kernel/sys_sparc_32.c
-+++ b/arch/sparc/kernel/sys_sparc_32.c
-@@ -147,18 +147,11 @@ SYSCALL_DEFINE0(nis_syscall)
- asmlinkage void
- sparc_breakpoint (struct pt_regs *regs)
+ 		/* Nullified, just crank over the queue. */
+ 		task_regs(task)->iaoq[0] = task_regs(task)->iaoq[1];
+ 		task_regs(task)->iasq[0] = task_regs(task)->iasq[1];
+@@ -90,12 +88,9 @@ void user_enable_single_step(struct task_struct *task)
+ 		ptrace_disable(task);
+ 		/* Don't wake up the task, but let the
+ 		   parent know something happened. */
+-		clear_siginfo(&si);
+-		si.si_code = TRAP_TRACE;
+-		si.si_addr = (void __user *) (task_regs(task)->iaoq[0] & ~3);
+-		si.si_signo = SIGTRAP;
+-		si.si_errno = 0;
+-		force_sig_info(SIGTRAP, &si, task);
++		force_sig_fault(SIGTRAP, TRAP_TRACE,
++				(void __user *) (task_regs(task)->iaoq[0] & ~3),
++				task);
+ 		/* notify_parent(task, SIGCHLD); */
+ 		return;
+ 	}
+diff --git a/arch/parisc/kernel/traps.c b/arch/parisc/kernel/traps.c
+index 98f9f2f85940..132b09c657ff 100644
+--- a/arch/parisc/kernel/traps.c
++++ b/arch/parisc/kernel/traps.c
+@@ -297,14 +297,8 @@ void die_if_kernel(char *str, struct pt_regs *regs, long err)
+ #define GDB_BREAK_INSN 0x10004
+ static void handle_gdb_break(struct pt_regs *regs, int wot)
  {
--	siginfo_t info;
- 
- #ifdef DEBUG_SPARC_BREAKPOINT
-         printk ("TRAP: Entering kernel PC=%x, nPC=%x\n", regs->pc, regs->npc);
- #endif
--	clear_siginfo(&info);
--	info.si_signo = SIGTRAP;
--	info.si_errno = 0;
--	info.si_code = TRAP_BRKPT;
--	info.si_addr = (void __user *)regs->pc;
--	info.si_trapno = 0;
--	force_sig_info(SIGTRAP, &info, current);
-+	force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->pc, 0, current);
- 
- #ifdef DEBUG_SPARC_BREAKPOINT
- 	printk ("TRAP: Returning to space: PC=%x nPC=%x\n", regs->pc, regs->npc);
-diff --git a/arch/sparc/kernel/sys_sparc_64.c b/arch/sparc/kernel/sys_sparc_64.c
-index 9ef8de63f28b..7e49bbc925a5 100644
---- a/arch/sparc/kernel/sys_sparc_64.c
-+++ b/arch/sparc/kernel/sys_sparc_64.c
-@@ -502,7 +502,6 @@ SYSCALL_DEFINE0(nis_syscall)
- asmlinkage void sparc_breakpoint(struct pt_regs *regs)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
- 
- 	if (test_thread_flag(TIF_32BIT)) {
- 		regs->tpc &= 0xffffffff;
-@@ -511,12 +510,7 @@ asmlinkage void sparc_breakpoint(struct pt_regs *regs)
- #ifdef DEBUG_SPARC_BREAKPOINT
-         printk ("TRAP: Entering kernel PC=%lx, nPC=%lx\n", regs->tpc, regs->tnpc);
- #endif
--	info.si_signo = SIGTRAP;
--	info.si_errno = 0;
--	info.si_code = TRAP_BRKPT;
--	info.si_addr = (void __user *)regs->tpc;
--	info.si_trapno = 0;
--	force_sig_info(SIGTRAP, &info, current);
-+	force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)regs->tpc, 0, current);
- #ifdef DEBUG_SPARC_BREAKPOINT
- 	printk ("TRAP: Returning to space: PC=%lx nPC=%lx\n", regs->tpc, regs->tnpc);
- #endif
-diff --git a/arch/sparc/kernel/traps_32.c b/arch/sparc/kernel/traps_32.c
-index 06f43cf9695f..bcdfc6168dd5 100644
---- a/arch/sparc/kernel/traps_32.c
-+++ b/arch/sparc/kernel/traps_32.c
-@@ -93,8 +93,6 @@ void __noreturn die_if_kernel(char *str, struct pt_regs *regs)
- 
- void do_hw_interrupt(struct pt_regs *regs, unsigned long type)
- {
--	siginfo_t info;
+-	struct siginfo si;
 -
- 	if(type < 0x80) {
- 		/* Sun OS's puke from bad traps, Linux survives! */
- 		printk("Unimplemented Sparc TRAP, type = %02lx\n", type);
-@@ -104,13 +102,8 @@ void do_hw_interrupt(struct pt_regs *regs, unsigned long type)
- 	if(regs->psr & PSR_PS)
- 		die_if_kernel("Kernel bad trap", regs);
- 
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_ILLTRP;
--	info.si_addr = (void __user *)regs->pc;
--	info.si_trapno = type - 0x80;
--	force_sig_info(SIGILL, &info, current);
-+	force_sig_fault(SIGILL, ILL_ILLTRP,
-+			(void __user *)regs->pc, type - 0x80, current);
+-	clear_siginfo(&si);
+-	si.si_signo = SIGTRAP;
+-	si.si_errno = 0;
+-	si.si_code = wot;
+-	si.si_addr = (void __user *) (regs->iaoq[0] & ~3);
+-	force_sig_info(SIGTRAP, &si, current);
++	force_sig_fault(SIGTRAP, wot,
++			(void __user *) (regs->iaoq[0] & ~3), current);
  }
  
- void do_illegal_instruction(struct pt_regs *regs, unsigned long pc, unsigned long npc,
-@@ -330,19 +323,11 @@ void handle_watchpoint(struct pt_regs *regs, unsigned long pc, unsigned long npc
- void handle_reg_access(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 		       unsigned long psr)
+ static void handle_break(struct pt_regs *regs)
+@@ -488,9 +482,8 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
  {
--	siginfo_t info;
--
- #ifdef TRAP_DEBUG
- 	printk("Register Access Exception at PC %08lx NPC %08lx PSR %08lx\n",
- 	       pc, npc, psr);
- #endif
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_OBJERR;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	force_sig_info(SIGBUS, &info, current);
-+	force_sig_fault(SIGBUS, BUS_OBJERR, (void __user *)pc, 0, current);
- }
+ 	unsigned long fault_address = 0;
+ 	unsigned long fault_space = 0;
+-	struct siginfo si;
++	int si_code;
  
- void handle_cp_disabled(struct pt_regs *regs, unsigned long pc, unsigned long npc,
-diff --git a/arch/sparc/kernel/traps_64.c b/arch/sparc/kernel/traps_64.c
-index b485b49b87a8..aa624ed79db1 100644
---- a/arch/sparc/kernel/traps_64.c
-+++ b/arch/sparc/kernel/traps_64.c
-@@ -87,7 +87,6 @@ static void dump_tl1_traplog(struct tl1_traplog *p)
- void bad_trap(struct pt_regs *regs, long lvl)
- {
- 	char buffer[36];
--	siginfo_t info;
+-	clear_siginfo(&si);
+ 	if (code == 1)
+ 	    pdc_console_restart();  /* switch back to pdc if HPMC */
+ 	else
+@@ -573,7 +566,7 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 	case  8:
+ 		/* Illegal instruction trap */
+ 		die_if_kernel("Illegal instruction", regs, code);
+-		si.si_code = ILL_ILLOPC;
++		si_code = ILL_ILLOPC;
+ 		goto give_sigill;
  
- 	if (notify_die(DIE_TRAP, "bad trap", regs,
- 		       0, lvl, SIGTRAP) == NOTIFY_STOP)
-@@ -107,13 +106,8 @@ void bad_trap(struct pt_regs *regs, long lvl)
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_ILLTRP;
--	info.si_addr = (void __user *)regs->tpc;
--	info.si_trapno = lvl;
--	force_sig_info(SIGILL, &info, current);
-+	force_sig_fault(SIGILL, ILL_ILLTRP,
-+			(void __user *)regs->tpc, lvl, current);
- }
+ 	case  9:
+@@ -584,7 +577,7 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 	case 10:
+ 		/* Privileged operation trap */
+ 		die_if_kernel("Privileged operation", regs, code);
+-		si.si_code = ILL_PRVOPC;
++		si_code = ILL_PRVOPC;
+ 		goto give_sigill;
  
- void bad_trap_tl1(struct pt_regs *regs, long lvl)
-@@ -192,7 +186,6 @@ EXPORT_SYMBOL_GPL(unregister_dimm_printer);
- void spitfire_insn_access_exception(struct pt_regs *regs, unsigned long sfsr, unsigned long sfar)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
+ 	case 11:
+@@ -607,20 +600,16 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 		}
  
- 	if (notify_die(DIE_TRAP, "instruction access exception", regs,
- 		       0, 0x8, SIGTRAP) == NOTIFY_STOP)
-@@ -207,13 +200,8 @@ void spitfire_insn_access_exception(struct pt_regs *regs, unsigned long sfsr, un
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGSEGV;
--	info.si_errno = 0;
--	info.si_code = SEGV_MAPERR;
--	info.si_addr = (void __user *)regs->tpc;
--	info.si_trapno = 0;
--	force_sig_info(SIGSEGV, &info, current);
-+	force_sig_fault(SIGSEGV, SEGV_MAPERR,
-+			(void __user *)regs->tpc, 0, current);
- out:
- 	exception_exit(prev_state);
- }
-@@ -232,7 +220,6 @@ void sun4v_insn_access_exception(struct pt_regs *regs, unsigned long addr, unsig
- {
- 	unsigned short type = (type_ctx >> 16);
- 	unsigned short ctx  = (type_ctx & 0xffff);
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "instruction access exception", regs,
- 		       0, 0x8, SIGTRAP) == NOTIFY_STOP)
-@@ -249,13 +236,7 @@ void sun4v_insn_access_exception(struct pt_regs *regs, unsigned long addr, unsig
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGSEGV;
--	info.si_errno = 0;
--	info.si_code = SEGV_MAPERR;
--	info.si_addr = (void __user *) addr;
--	info.si_trapno = 0;
--	force_sig_info(SIGSEGV, &info, current);
-+	force_sig_fault(SIGSEGV, SEGV_MAPERR, (void __user *) addr, 0, current);
- }
- 
- void sun4v_insn_access_exception_tl1(struct pt_regs *regs, unsigned long addr, unsigned long type_ctx)
-@@ -310,7 +291,6 @@ bool is_no_fault_exception(struct pt_regs *regs)
- void spitfire_data_access_exception(struct pt_regs *regs, unsigned long sfsr, unsigned long sfar)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "data access exception", regs,
- 		       0, 0x30, SIGTRAP) == NOTIFY_STOP)
-@@ -341,13 +321,7 @@ void spitfire_data_access_exception(struct pt_regs *regs, unsigned long sfsr, un
- 	if (is_no_fault_exception(regs))
+ 		die_if_kernel("Privileged register usage", regs, code);
+-		si.si_code = ILL_PRVREG;
++		si_code = ILL_PRVREG;
+ 	give_sigill:
+-		si.si_signo = SIGILL;
+-		si.si_errno = 0;
+-		si.si_addr = (void __user *) regs->iaoq[0];
+-		force_sig_info(SIGILL, &si, current);
++		force_sig_fault(SIGILL, si_code,
++				(void __user *) regs->iaoq[0], current);
  		return;
  
--	clear_siginfo(&info);
--	info.si_signo = SIGSEGV;
--	info.si_errno = 0;
--	info.si_code = SEGV_MAPERR;
--	info.si_addr = (void __user *)sfar;
--	info.si_trapno = 0;
--	force_sig_info(SIGSEGV, &info, current);
-+	force_sig_fault(SIGSEGV, SEGV_MAPERR, (void __user *)sfar, 0, current);
- out:
- 	exception_exit(prev_state);
- }
-@@ -563,8 +537,6 @@ static void spitfire_cee_log(unsigned long afsr, unsigned long afar, unsigned lo
+ 	case 12:
+ 		/* Overflow Trap, let the userland signal handler do the cleanup */
+-		si.si_signo = SIGFPE;
+-		si.si_code = FPE_INTOVF;
+-		si.si_addr = (void __user *) regs->iaoq[0];
+-		force_sig_info(SIGFPE, &si, current);
++		force_sig_fault(SIGFPE, FPE_INTOVF,
++				(void __user *) regs->iaoq[0], current);
+ 		return;
+ 		
+ 	case 13:
+@@ -628,13 +617,11 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 		   The condition succeeds in an instruction which traps
+ 		   on condition  */
+ 		if(user_mode(regs)){
+-			si.si_signo = SIGFPE;
+ 			/* Let userspace app figure it out from the insn pointed
+ 			 * to by si_addr.
+ 			 */
+-			si.si_code = FPE_CONDTRAP;
+-			si.si_addr = (void __user *) regs->iaoq[0];
+-			force_sig_info(SIGFPE, &si, current);
++			force_sig_fault(SIGFPE, FPE_CONDTRAP,
++					(void __user *) regs->iaoq[0], current);
+ 			return;
+ 		} 
+ 		/* The kernel doesn't want to handle condition codes */
+@@ -743,14 +730,10 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 			return;
  
- static void spitfire_ue_log(unsigned long afsr, unsigned long afar, unsigned long udbh, unsigned long udbl, unsigned long tt, int tl1, struct pt_regs *regs)
- {
--	siginfo_t info;
--
- 	printk(KERN_WARNING "CPU[%d]: Uncorrectable Error AFSR[%lx] "
- 	       "AFAR[%lx] UDBL[%lx] UDBH[%ld] TT[%lx] TL>1[%d]\n",
- 	       smp_processor_id(), afsr, afar, udbl, udbh, tt, tl1);
-@@ -599,13 +571,7 @@ static void spitfire_ue_log(unsigned long afsr, unsigned long afar, unsigned lon
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_OBJERR;
--	info.si_addr = (void *)0;
--	info.si_trapno = 0;
--	force_sig_info(SIGBUS, &info, current);
-+	force_sig_fault(SIGBUS, BUS_OBJERR, (void *)0, 0, current);
- }
- 
- void spitfire_access_error(struct pt_regs *regs, unsigned long status_encoded, unsigned long afar)
-@@ -2195,7 +2161,6 @@ bool sun4v_nonresum_error_user_handled(struct pt_regs *regs,
- 
- 	if (attrs & SUN4V_ERR_ATTRS_MEMORY) {
- 		unsigned long addr = ent->err_raddr;
--		siginfo_t info;
- 
- 		if (addr == ~(u64)0) {
- 			/* This seems highly unlikely to ever occur */
-@@ -2216,23 +2181,13 @@ bool sun4v_nonresum_error_user_handled(struct pt_regs *regs,
- 				addr += PAGE_SIZE;
- 			}
- 		}
--		clear_siginfo(&info);
--		info.si_signo = SIGKILL;
--		info.si_errno = 0;
--		info.si_trapno = 0;
--		force_sig_info(info.si_signo, &info, current);
-+		force_sig(SIGKILL, current);
- 
- 		return true;
- 	}
- 	if (attrs & SUN4V_ERR_ATTRS_PIO) {
--		siginfo_t info;
--
--		clear_siginfo(&info);
--		info.si_signo = SIGBUS;
--		info.si_code = BUS_ADRERR;
--		info.si_addr = (void __user *)sun4v_get_vaddr(regs);
--		force_sig_info(info.si_signo, &info, current);
--
-+		force_sig_fault(SIGBUS, BUS_ADRERR,
-+				(void __user *)sun4v_get_vaddr(regs), 0, current);
- 		return true;
- 	}
- 
-@@ -2369,31 +2324,27 @@ static void do_fpe_common(struct pt_regs *regs)
- 		regs->tnpc += 4;
- 	} else {
- 		unsigned long fsr = current_thread_info()->xfsr[0];
--		siginfo_t info;
-+		int code;
- 
- 		if (test_thread_flag(TIF_32BIT)) {
- 			regs->tpc &= 0xffffffff;
- 			regs->tnpc &= 0xffffffff;
- 		}
--		clear_siginfo(&info);
--		info.si_signo = SIGFPE;
--		info.si_errno = 0;
--		info.si_addr = (void __user *)regs->tpc;
--		info.si_trapno = 0;
--		info.si_code = FPE_FLTUNK;
-+		code = FPE_FLTUNK;
- 		if ((fsr & 0x1c000) == (1 << 14)) {
- 			if (fsr & 0x10)
--				info.si_code = FPE_FLTINV;
-+				code = FPE_FLTINV;
- 			else if (fsr & 0x08)
--				info.si_code = FPE_FLTOVF;
-+				code = FPE_FLTOVF;
- 			else if (fsr & 0x04)
--				info.si_code = FPE_FLTUND;
-+				code = FPE_FLTUND;
- 			else if (fsr & 0x02)
--				info.si_code = FPE_FLTDIV;
-+				code = FPE_FLTDIV;
- 			else if (fsr & 0x01)
--				info.si_code = FPE_FLTRES;
-+				code = FPE_FLTRES;
- 		}
--		force_sig_info(SIGFPE, &info, current);
-+		force_sig_fault(SIGFPE, code,
-+				(void __user *)regs->tpc, 0, current);
- 	}
- }
- 
-@@ -2436,7 +2387,6 @@ void do_fpother(struct pt_regs *regs)
- void do_tof(struct pt_regs *regs)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "tagged arithmetic overflow", regs,
- 		       0, 0x26, SIGEMT) == NOTIFY_STOP)
-@@ -2448,13 +2398,8 @@ void do_tof(struct pt_regs *regs)
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGEMT;
--	info.si_errno = 0;
--	info.si_code = EMT_TAGOVF;
--	info.si_addr = (void __user *)regs->tpc;
--	info.si_trapno = 0;
--	force_sig_info(SIGEMT, &info, current);
-+	force_sig_fault(SIGEMT, EMT_TAGOVF,
-+			(void __user *)regs->tpc, 0, current);
- out:
- 	exception_exit(prev_state);
- }
-@@ -2462,7 +2407,6 @@ void do_tof(struct pt_regs *regs)
- void do_div0(struct pt_regs *regs)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "integer division by zero", regs,
- 		       0, 0x28, SIGFPE) == NOTIFY_STOP)
-@@ -2474,13 +2418,8 @@ void do_div0(struct pt_regs *regs)
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGFPE;
--	info.si_errno = 0;
--	info.si_code = FPE_INTDIV;
--	info.si_addr = (void __user *)regs->tpc;
--	info.si_trapno = 0;
--	force_sig_info(SIGFPE, &info, current);
-+	force_sig_fault(SIGFPE, FPE_INTDIV,
-+			(void __user *)regs->tpc, 0, current);
- out:
- 	exception_exit(prev_state);
- }
-@@ -2642,7 +2581,6 @@ void do_illegal_instruction(struct pt_regs *regs)
- 	unsigned long pc = regs->tpc;
- 	unsigned long tstate = regs->tstate;
- 	u32 insn;
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "illegal instruction", regs,
- 		       0, 0x10, SIGILL) == NOTIFY_STOP)
-@@ -2676,13 +2614,7 @@ void do_illegal_instruction(struct pt_regs *regs)
- 			}
- 		}
- 	}
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_ILLOPC;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	force_sig_info(SIGILL, &info, current);
-+	force_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)pc, 0, current);
- out:
- 	exception_exit(prev_state);
- }
-@@ -2690,7 +2622,6 @@ void do_illegal_instruction(struct pt_regs *regs)
- void mem_address_unaligned(struct pt_regs *regs, unsigned long sfar, unsigned long sfsr)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "memory address unaligned", regs,
- 		       0, 0x34, SIGSEGV) == NOTIFY_STOP)
-@@ -2703,21 +2634,13 @@ void mem_address_unaligned(struct pt_regs *regs, unsigned long sfar, unsigned lo
- 	if (is_no_fault_exception(regs))
+ 		die_if_kernel("Protection id trap", regs, code);
+-		si.si_code = SEGV_MAPERR;
+-		si.si_signo = SIGSEGV;
+-		si.si_errno = 0;
+-		if (code == 7)
+-		    si.si_addr = (void __user *) regs->iaoq[0];
+-		else
+-		    si.si_addr = (void __user *) regs->ior;
+-		force_sig_info(SIGSEGV, &si, current);
++		force_sig_fault(SIGSEGV, SEGV_MAPERR,
++				(code == 7)?
++				((void __user *) regs->iaoq[0]) :
++				((void __user *) regs->ior), current);
  		return;
  
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRALN;
--	info.si_addr = (void __user *)sfar;
--	info.si_trapno = 0;
--	force_sig_info(SIGBUS, &info, current);
-+	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)sfar, 0, current);
- out:
- 	exception_exit(prev_state);
- }
- 
- void sun4v_do_mna(struct pt_regs *regs, unsigned long addr, unsigned long type_ctx)
- {
--	siginfo_t info;
--
- 	if (notify_die(DIE_TRAP, "memory address unaligned", regs,
- 		       0, 0x34, SIGSEGV) == NOTIFY_STOP)
+ 	case 28: 
+@@ -764,11 +747,8 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 				"handle_interruption() pid=%d command='%s'\n",
+ 				task_pid_nr(current), current->comm);
+ 			/* SIGBUS, for lack of a better one. */
+-			si.si_signo = SIGBUS;
+-			si.si_code = BUS_OBJERR;
+-			si.si_errno = 0;
+-			si.si_addr = (void __user *) regs->ior;
+-			force_sig_info(SIGBUS, &si, current);
++			force_sig_fault(SIGBUS, BUS_OBJERR,
++					(void __user *)regs->ior, current);
+ 			return;
+ 		}
+ 		pdc_chassis_send_status(PDC_CHASSIS_DIRECT_PANIC);
+@@ -783,11 +763,8 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 				"User fault %d on space 0x%08lx, pid=%d command='%s'\n",
+ 				code, fault_space,
+ 				task_pid_nr(current), current->comm);
+-		si.si_signo = SIGSEGV;
+-		si.si_errno = 0;
+-		si.si_code = SEGV_MAPERR;
+-		si.si_addr = (void __user *) regs->ior;
+-		force_sig_info(SIGSEGV, &si, current);
++		force_sig_fault(SIGSEGV, SEGV_MAPERR,
++				(void __user *)regs->ior, current);
  		return;
-@@ -2729,13 +2652,7 @@ void sun4v_do_mna(struct pt_regs *regs, unsigned long addr, unsigned long type_c
- 	if (is_no_fault_exception(regs))
- 		return;
- 
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRALN;
--	info.si_addr = (void __user *) addr;
--	info.si_trapno = 0;
--	force_sig_info(SIGBUS, &info, current);
-+	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *) addr, 0, current);
- }
- 
- /* sun4v_mem_corrupt_detect_precise() - Handle precise exception on an ADI
-@@ -2788,7 +2705,6 @@ void sun4v_mem_corrupt_detect_precise(struct pt_regs *regs, unsigned long addr,
- void do_privop(struct pt_regs *regs)
- {
- 	enum ctx_state prev_state = exception_enter();
--	siginfo_t info;
- 
- 	if (notify_die(DIE_TRAP, "privileged operation", regs,
- 		       0, 0x11, SIGILL) == NOTIFY_STOP)
-@@ -2798,13 +2714,8 @@ void do_privop(struct pt_regs *regs)
- 		regs->tpc &= 0xffffffff;
- 		regs->tnpc &= 0xffffffff;
+ 	    }
  	}
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_PRVOPC;
--	info.si_addr = (void __user *)regs->tpc;
--	info.si_trapno = 0;
--	force_sig_info(SIGILL, &info, current);
-+	force_sig_fault(SIGILL, ILL_PRVOPC,
-+			(void __user *)regs->tpc, 0, current);
- out:
- 	exception_exit(prev_state);
- }
-diff --git a/arch/sparc/mm/fault_32.c b/arch/sparc/mm/fault_32.c
-index 2deb586665b9..9f75b6444bf1 100644
---- a/arch/sparc/mm/fault_32.c
-+++ b/arch/sparc/mm/fault_32.c
-@@ -127,20 +127,11 @@ show_signal_msg(struct pt_regs *regs, int sig, int code,
- static void __do_fault_siginfo(int code, int sig, struct pt_regs *regs,
- 			       unsigned long addr)
- {
--	siginfo_t info;
--
--	clear_siginfo(&info);
--	info.si_signo = sig;
--	info.si_code = code;
--	info.si_errno = 0;
--	info.si_addr = (void __user *) addr;
--	info.si_trapno = 0;
--
- 	if (unlikely(show_unhandled_signals))
--		show_signal_msg(regs, sig, info.si_code,
-+		show_signal_msg(regs, sig, code,
- 				addr, current);
+diff --git a/arch/parisc/kernel/unaligned.c b/arch/parisc/kernel/unaligned.c
+index 30b7c7f6c471..932bfc0b7cd8 100644
+--- a/arch/parisc/kernel/unaligned.c
++++ b/arch/parisc/kernel/unaligned.c
+@@ -452,10 +452,8 @@ void handle_unaligned(struct pt_regs *regs)
+ 	unsigned long newbase = R1(regs->iir)?regs->gr[R1(regs->iir)]:0;
+ 	int modify = 0;
+ 	int ret = ERR_NOTHANDLED;
+-	struct siginfo si;
+ 	register int flop=0;	/* true if this is a flop */
  
--	force_sig_info (sig, &info, current);
-+	force_sig_fault(sig, code, (void __user *) addr, 0, current);
- }
+-	clear_siginfo(&si);
+ 	__inc_irq_stat(irq_unaligned_count);
  
- static unsigned long compute_si_addr(struct pt_regs *regs, int text_fault)
-diff --git a/arch/sparc/mm/fault_64.c b/arch/sparc/mm/fault_64.c
-index 46ccff95d10e..63166fcf9e25 100644
---- a/arch/sparc/mm/fault_64.c
-+++ b/arch/sparc/mm/fault_64.c
-@@ -170,12 +170,7 @@ static void do_fault_siginfo(int code, int sig, struct pt_regs *regs,
- 			     int fault_code)
- {
- 	unsigned long addr;
--	siginfo_t info;
+ 	/* log a message with pacing */
+@@ -691,21 +689,15 @@ void handle_unaligned(struct pt_regs *regs)
  
--	clear_siginfo(&info);
--	info.si_code = code;
--	info.si_signo = sig;
--	info.si_errno = 0;
- 	if (fault_code & FAULT_CODE_ITLB) {
- 		addr = regs->tpc;
- 	} else {
-@@ -188,13 +183,11 @@ static void do_fault_siginfo(int code, int sig, struct pt_regs *regs,
+ 		if (ret == ERR_PAGEFAULT)
+ 		{
+-			si.si_signo = SIGSEGV;
+-			si.si_errno = 0;
+-			si.si_code = SEGV_MAPERR;
+-			si.si_addr = (void __user *)regs->ior;
+-			force_sig_info(SIGSEGV, &si, current);
++			force_sig_fault(SIGSEGV, SEGV_MAPERR,
++					(void __user *)regs->ior, current);
+ 		}
  		else
- 			addr = fault_addr;
+ 		{
+ force_sigbus:
+ 			/* couldn't handle it ... */
+-			si.si_signo = SIGBUS;
+-			si.si_errno = 0;
+-			si.si_code = BUS_ADRALN;
+-			si.si_addr = (void __user *)regs->ior;
+-			force_sig_info(SIGBUS, &si, current);
++			force_sig_fault(SIGBUS, BUS_ADRALN,
++					(void __user *)regs->ior, current);
+ 		}
+ 		
+ 		return;
+diff --git a/arch/parisc/math-emu/driver.c b/arch/parisc/math-emu/driver.c
+index 0d10efb53361..0590e05571d1 100644
+--- a/arch/parisc/math-emu/driver.c
++++ b/arch/parisc/math-emu/driver.c
+@@ -81,7 +81,6 @@ int
+ handle_fpe(struct pt_regs *regs)
+ {
+ 	extern void printbinary(unsigned long x, int nbits);
+-	struct siginfo si;
+ 	unsigned int orig_sw, sw;
+ 	int signalcode;
+ 	/* need an intermediate copy of float regs because FPU emulation
+@@ -93,7 +92,6 @@ handle_fpe(struct pt_regs *regs)
+ 	 */
+ 	__u64 frcopy[36];
+ 
+-	clear_siginfo(&si);
+ 	memcpy(frcopy, regs->fr, sizeof regs->fr);
+ 	frcopy[32] = 0;
+ 
+@@ -118,11 +116,8 @@ handle_fpe(struct pt_regs *regs)
+ 
+ 	memcpy(regs->fr, frcopy, sizeof regs->fr);
+ 	if (signalcode != 0) {
+-	    si.si_signo = signalcode >> 24;
+-	    si.si_errno = 0;
+-	    si.si_code = signalcode & 0xffffff;
+-	    si.si_addr = (void __user *) regs->iaoq[0];
+-	    force_sig_info(si.si_signo, &si, current);
++	    force_sig_fault(signalcode >> 24, signalcode & 0xffffff,
++			    (void __user *) regs->iaoq[0], current);
+ 	    return -1;
  	}
--	info.si_addr = (void __user *) addr;
--	info.si_trapno = 0;
  
- 	if (unlikely(show_unhandled_signals))
- 		show_signal_msg(regs, sig, code, addr, current);
+diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
+index 51215b0048ef..a80117980fc2 100644
+--- a/arch/parisc/mm/fault.c
++++ b/arch/parisc/mm/fault.c
+@@ -353,23 +353,22 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+ 	up_read(&mm->mmap_sem);
  
--	force_sig_info(sig, &info, current);
-+	force_sig_fault(sig, code, (void __user *) addr, 0, current);
- }
+ 	if (user_mode(regs)) {
+-		struct siginfo si;
++		int signo, si_code;
  
- static unsigned int get_fault_insn(struct pt_regs *regs, unsigned int insn)
+-		clear_siginfo(&si);
+ 		switch (code) {
+ 		case 15:	/* Data TLB miss fault/Data page fault */
+ 			/* send SIGSEGV when outside of vma */
+ 			if (!vma ||
+ 			    address < vma->vm_start || address >= vma->vm_end) {
+-				si.si_signo = SIGSEGV;
+-				si.si_code = SEGV_MAPERR;
++				signo = SIGSEGV;
++				si_code = SEGV_MAPERR;
+ 				break;
+ 			}
+ 
+ 			/* send SIGSEGV for wrong permissions */
+ 			if ((vma->vm_flags & acc_type) != acc_type) {
+-				si.si_signo = SIGSEGV;
+-				si.si_code = SEGV_ACCERR;
++				signo = SIGSEGV;
++				si_code = SEGV_ACCERR;
+ 				break;
+ 			}
+ 
+@@ -377,17 +376,16 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+ 			/* fall through */
+ 		case 17:	/* NA data TLB miss / page fault */
+ 		case 18:	/* Unaligned access - PCXS only */
+-			si.si_signo = SIGBUS;
+-			si.si_code = (code == 18) ? BUS_ADRALN : BUS_ADRERR;
++			signo = SIGBUS;
++			si_code = (code == 18) ? BUS_ADRALN : BUS_ADRERR;
+ 			break;
+ 		case 16:	/* Non-access instruction TLB miss fault */
+ 		case 26:	/* PCXL: Data memory access rights trap */
+ 		default:
+-			si.si_signo = SIGSEGV;
+-			si.si_code = (code == 26) ? SEGV_ACCERR : SEGV_MAPERR;
++			signo = SIGSEGV;
++			si_code = (code == 26) ? SEGV_ACCERR : SEGV_MAPERR;
+ 			break;
+ 		}
+-
+ #ifdef CONFIG_MEMORY_FAILURE
+ 		if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
+ 			unsigned int lsb = 0;
+@@ -409,12 +407,9 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+ 			return;
+ 		}
+ #endif
+-
+ 		show_signal_msg(regs, code, address, tsk, vma);
+ 
+-		si.si_errno = 0;
+-		si.si_addr = (void __user *) address;
+-		force_sig_info(si.si_signo, &si, current);
++		force_sig_fault(signo, si_code, (void __user *) address, current);
+ 		return;
+ 	}
+ 
 -- 
 2.14.1
