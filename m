@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:44253 "EHLO
+Received: from out02.mta.xmission.com ([166.70.13.232]:44306 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755160AbeDTOkp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:40:45 -0400
+        with ESMTP id S1755422AbeDTOlH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:41:07 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:37:56 -0500
-Message-ID: <20180420143811.9994-7-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:37:59 -0500
+Message-ID: <20180420143811.9994-10-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 07/22] signal/microblaze: Use force_sig_fault where appropriate
+Subject: [REVIEW][PATCH 10/22] signal/nios2: Use force_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20180420143756.eOAGEbCzfwslNKZ7c8m-JXcAu-Je0TJDTG9kJTsMYyY@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Message-ID: <20180420143759.BPSQFiRf6bzv3JrrjXM59olIUbwVGZunOn2LKDI9HHs@z>
 
 Filling in struct siginfo before calling force_sig_info a tedious and
 error prone process, where once in a great while the wrong fields
@@ -27,55 +27,32 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Michal Simek <monstr@monstr.eu>
+Cc: Ley Foon Tan <lftan@altera.com>
+Cc: nios2-dev@lists.rocketboards.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/microblaze/kernel/exceptions.c | 9 +--------
- arch/microblaze/mm/fault.c          | 9 +--------
- 2 files changed, 2 insertions(+), 16 deletions(-)
+ arch/nios2/kernel/traps.c | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/arch/microblaze/kernel/exceptions.c b/arch/microblaze/kernel/exceptions.c
-index 443ec1feacb4..eafff21fcb0e 100644
---- a/arch/microblaze/kernel/exceptions.c
-+++ b/arch/microblaze/kernel/exceptions.c
-@@ -60,17 +60,10 @@ asmlinkage void sw_exception(struct pt_regs *regs)
+diff --git a/arch/nios2/kernel/traps.c b/arch/nios2/kernel/traps.c
+index a69861d3e1a3..3bc3cd22b750 100644
+--- a/arch/nios2/kernel/traps.c
++++ b/arch/nios2/kernel/traps.c
+@@ -26,14 +26,7 @@ static DEFINE_SPINLOCK(die_lock);
  
- void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ static void _send_sig(int signo, int code, unsigned long addr)
  {
 -	siginfo_t info;
 -
- 	if (kernel_mode(regs))
- 		die("Exception in kernel mode", regs, signr);
- 
 -	clear_siginfo(&info);
--	info.si_signo = signr;
+-	info.si_signo = signo;
 -	info.si_errno = 0;
 -	info.si_code = code;
 -	info.si_addr = (void __user *) addr;
--	force_sig_info(signr, &info, current);
-+	force_sig_fault(signr, code, (void __user *)addr, current);
+-	force_sig_info(signo, &info, current);
++	force_sig_fault(signo, code, (void __user *) addr, current);
  }
  
- asmlinkage void full_exception(struct pt_regs *regs, unsigned int type,
-diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
-index 1251d380df47..af607447c683 100644
---- a/arch/microblaze/mm/fault.c
-+++ b/arch/microblaze/mm/fault.c
-@@ -289,14 +289,7 @@ void do_page_fault(struct pt_regs *regs, unsigned long address,
- do_sigbus:
- 	up_read(&mm->mmap_sem);
- 	if (user_mode(regs)) {
--		siginfo_t info;
--
--		clear_siginfo(&info);
--		info.si_signo = SIGBUS;
--		info.si_errno = 0;
--		info.si_code = BUS_ADRERR;
--		info.si_addr = (void __user *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, current);
- 		return;
- 	}
- 	bad_page_fault(regs, address, SIGBUS);
+ void die(const char *str, struct pt_regs *regs, long err)
 -- 
 2.14.1
