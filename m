@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 16/22] sh: simplify get_arch_dma_ops
-Date: Fri, 20 Apr 2018 10:03:07 +0200
-Message-ID: <20180420080313.18796-17-hch@lst.de>
+Subject: [PATCH 18/22] sh: use dma_direct_ops for the CONFIG_DMA_COHERENT case
+Date: Fri, 20 Apr 2018 10:03:09 +0200
+Message-ID: <20180420080313.18796-19-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
@@ -9,92 +9,96 @@ Sender: linux-kernel-owner@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Remove the indirection through the dma_ops variable, and just return
-nommu_dma_ops directly from get_arch_dma_ops.
+This is a slight change in behavior as we avoid the detour through the
+virtual mapping for the coherent allocator, but if this CPU really is
+coherent that should be the right thing to do.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sh/include/asm/dma-mapping.h |  5 ++---
- arch/sh/kernel/dma-nommu.c        |  8 +-------
- arch/sh/mm/consistent.c           |  3 ---
- arch/sh/mm/init.c                 | 10 ----------
- 4 files changed, 3 insertions(+), 23 deletions(-)
+ arch/sh/Kconfig                   | 1 +
+ arch/sh/include/asm/dma-mapping.h | 4 ++++
+ arch/sh/kernel/Makefile           | 4 ++--
+ arch/sh/kernel/dma-nommu.c        | 4 ----
+ 4 files changed, 7 insertions(+), 6 deletions(-)
 
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 9417f70e008e..23e7432302b0 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -158,6 +158,7 @@ config SWAP_IO_SPACE
+ 	bool
+ 
+ config DMA_COHERENT
++	select DMA_DIRECT_OPS
+ 	bool
+ 
+ config DMA_NONCOHERENT
 diff --git a/arch/sh/include/asm/dma-mapping.h b/arch/sh/include/asm/dma-mapping.h
-index 41167931e5d9..149e71f95be7 100644
+index 149e71f95be7..1ebc6a4eb1c5 100644
 --- a/arch/sh/include/asm/dma-mapping.h
 +++ b/arch/sh/include/asm/dma-mapping.h
-@@ -2,12 +2,11 @@
- #ifndef __ASM_SH_DMA_MAPPING_H
- #define __ASM_SH_DMA_MAPPING_H
- 
--extern const struct dma_map_ops *dma_ops;
--extern void no_iommu_init(void);
-+extern const struct dma_map_ops nommu_dma_ops;
+@@ -6,7 +6,11 @@ extern const struct dma_map_ops nommu_dma_ops;
  
  static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
  {
--	return dma_ops;
-+	return &nommu_dma_ops;
++#ifdef CONFIG_DMA_NONCOHERENT
+ 	return &nommu_dma_ops;
++#else
++	return &dma_direct_ops;
++#endif
  }
  
  extern void *dma_generic_alloc_coherent(struct device *dev, size_t size,
+diff --git a/arch/sh/kernel/Makefile b/arch/sh/kernel/Makefile
+index dc80041f7363..cb5f1bfb52de 100644
+--- a/arch/sh/kernel/Makefile
++++ b/arch/sh/kernel/Makefile
+@@ -12,7 +12,7 @@ endif
+ 
+ CFLAGS_REMOVE_return_address.o = -pg
+ 
+-obj-y	:= debugtraps.o dma-nommu.o dumpstack.o 		\
++obj-y	:= debugtraps.o dumpstack.o 		\
+ 	   idle.o io.o irq.o irq_$(BITS).o kdebugfs.o			\
+ 	   machvec.o nmi_debug.o process.o				\
+ 	   process_$(BITS).o ptrace.o ptrace_$(BITS).o			\
+@@ -45,7 +45,7 @@ obj-$(CONFIG_DUMP_CODE)		+= disassemble.o
+ obj-$(CONFIG_HIBERNATION)	+= swsusp.o
+ obj-$(CONFIG_DWARF_UNWINDER)	+= dwarf.o
+ obj-$(CONFIG_PERF_EVENTS)	+= perf_event.o perf_callchain.o
+-
++obj-$(CONFIG_DMA_NONCOHERENT)	+= dma-nommu.o
+ obj-$(CONFIG_HAVE_HW_BREAKPOINT)		+= hw_breakpoint.o
+ 
+ ccflags-y := -Werror
 diff --git a/arch/sh/kernel/dma-nommu.c b/arch/sh/kernel/dma-nommu.c
-index 2077cfe73cc6..c0fff676e2e4 100644
+index c0fff676e2e4..442922a9f8c0 100644
 --- a/arch/sh/kernel/dma-nommu.c
 +++ b/arch/sh/kernel/dma-nommu.c
-@@ -76,10 +76,4 @@ const struct dma_map_ops nommu_dma_ops = {
- 	.sync_sg_for_device	= nommu_sync_sg_for_device,
- #endif
- };
--
--void __init no_iommu_init(void)
--{
--	if (dma_ops)
--		return;
--	dma_ops = &nommu_dma_ops;
--}
-+EXPORT_SYMBOL(nommu_dma_ops);
-diff --git a/arch/sh/mm/consistent.c b/arch/sh/mm/consistent.c
-index a7bff3f29c2b..af2f28572119 100644
---- a/arch/sh/mm/consistent.c
-+++ b/arch/sh/mm/consistent.c
-@@ -20,9 +20,6 @@
- #include <asm/cacheflush.h>
- #include <asm/addrspace.h>
- 
--const struct dma_map_ops *dma_ops;
--EXPORT_SYMBOL(dma_ops);
--
- void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 				 dma_addr_t *dma_handle, gfp_t gfp,
- 				 unsigned long attrs)
-diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
-index ce0bbaa7e404..32e09f03e6bf 100644
---- a/arch/sh/mm/init.c
-+++ b/arch/sh/mm/init.c
-@@ -395,22 +395,12 @@ void __init paging_init(void)
- 	free_area_init_nodes(max_zone_pfns);
+@@ -48,7 +48,6 @@ static int nommu_map_sg(struct device *dev, struct scatterlist *sg,
+ 	return nents;
  }
  
--/*
-- * Early initialization for any I/O MMUs we might have.
-- */
--static void __init iommu_init(void)
--{
--	no_iommu_init();
--}
--
- unsigned int mem_init_done = 0;
- 
- void __init mem_init(void)
+-#ifdef CONFIG_DMA_NONCOHERENT
+ static void nommu_sync_single_for_device(struct device *dev, dma_addr_t addr,
+ 			      size_t size, enum dma_data_direction dir)
  {
- 	pg_data_t *pgdat;
+@@ -64,16 +63,13 @@ static void nommu_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 	for_each_sg(sg, s, nelems, i)
+ 		sh_sync_dma_for_device(sg_virt(s), s->length, dir);
+ }
+-#endif
  
--	iommu_init();
--
- 	high_memory = NULL;
- 	for_each_online_pgdat(pgdat)
- 		high_memory = max_t(void *, high_memory,
+ const struct dma_map_ops nommu_dma_ops = {
+ 	.alloc			= dma_generic_alloc_coherent,
+ 	.free			= dma_generic_free_coherent,
+ 	.map_page		= nommu_map_page,
+ 	.map_sg			= nommu_map_sg,
+-#ifdef CONFIG_DMA_NONCOHERENT
+ 	.sync_single_for_device	= nommu_sync_single_for_device,
+ 	.sync_sg_for_device	= nommu_sync_sg_for_device,
+-#endif
+ };
+ EXPORT_SYMBOL(nommu_dma_ops);
 -- 
 2.17.0
