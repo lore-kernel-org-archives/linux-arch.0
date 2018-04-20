@@ -1,88 +1,99 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 12/22] microblaze: remove the consistent_sync and consistent_sync_page
-Date: Fri, 20 Apr 2018 10:03:03 +0200
-Message-ID: <20180420080313.18796-13-hch@lst.de>
-References: <20180420080313.18796-1-hch@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 01/17] y2038: asm-generic: Extend sysvipc data structures
+Date: Fri, 20 Apr 2018 10:54:25 +0200
+Message-ID: <CAK8P3a3qAoR1afmTTK1CAp1L81dzwtBL+SKj=QMqD=dBr_8oRQ@mail.gmail.com>
+References: <20180419143737.606138-1-arnd@arndb.de> <20180419143737.606138-2-arnd@arndb.de>
+ <87efjbnswr.fsf@xmission.com> <CAK8P3a196QYoM1egagMuZw4WhiwRiO83Qpj0CxoCeVQBEaj-gw@mail.gmail.com>
+ <CAK8P3a2KR+0ZE5jHSmO6pSuiRPH83p75KetuQuHL1atChcTJGA@mail.gmail.com> <87k1t2n8v5.fsf@xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180420080313.18796-1-hch@lst.de>
+In-Reply-To: <87k1t2n8v5.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Albert ARIBAUD <albert.aribaud@3adev.fr>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, the arch/x86 maintainers <x86@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linuxppc-dev <linuxppc-dev@lists.o>
 List-Id: linux-arch.vger.kernel.org
 
-Both unused.
+On Fri, Apr 20, 2018 at 12:12 AM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+> Arnd Bergmann <arnd@arndb.de> writes:
+>
+>> On Thu, Apr 19, 2018 at 5:20 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>> On Thu, Apr 19, 2018 at 4:59 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
+>>>> I suspect you want to use __kernel_ulong_t here instead of a raw
+>>>> unsigned long.  If nothing else it seems inconsistent to use typedefs
+>>>> in one half of the structure and no typedefs in the other half.
+>>>
+>>> Good catch, there is definitely something wrong here, but I think using
+>>> __kernel_ulong_t for all members would also be wrong, as that
+>>> still changes the layout on x32, which effectively is
+>>>
+>>> struct msqid64_ds {
+>>>      ipc64_perm msg_perm;
+>>>      u64 msg_stime;
+>>>      u32 __unused1;
+>>>      /* 32 bit implict padding */
+>>>      u64 msg_rtime;
+>>>      u32 __unused2;
+>>>      /* 32 bit implict padding */
+>>>      u64 msg_ctime;
+>>>      u32 __unused3;
+>>>      /* 32 bit implict padding */
+>>>      __kernel_pid_t          shm_cpid;       /* pid of creator */
+>>>      __kernel_pid_t          shm_lpid;       /* pid of last operator */
+>>>      ....
+>>> };
+>>>
+>>> The choices here would be to either use a mix of
+>>> __kernel_ulong_t and unsigned long, or taking the x32
+>>> version back into arch/x86/include/uapi/asm/ so the
+>>> generic version at least makes some sense.
+>>>
+>>> I can't use __kernel_time_t for the lower half on 32-bit
+>>> since it really should be unsigned.
+>>
+>> After thinking about it some more, I conclude that the structure is simply
+>> incorrect on x32: The __kernel_ulong_t usage was introduced in 2013
+>> in commit b9cd5ca22d67 ("uapi: Use __kernel_ulong_t in struct
+>> msqid64_ds") and apparently was correct initially as __BITS_PER_LONG
+>> evaluated to 64, but it broke with commit f4b4aae18288 ("x86/headers/uapi:
+>> Fix __BITS_PER_LONG value for x32 builds") that changed the value
+>> of __BITS_PER_LONG and introduced the extra padding in 2015.
+>>
+>> The same change apparently also broke a lot of other definitions, e.g.
+>>
+>> $ echo "#include <linux/types.h>" | gcc -mx32 -E -xc - | grep -A3
+>> __kernel_size_t
+>> typedef unsigned int __kernel_size_t;
+>> typedef int __kernel_ssize_t;
+>> typedef int __kernel_ptrdiff_t;
+>>
+>> Those used to be defined as 'unsigned long long' and 'long long'
+>> respectively, so now all kernel interfaces using those on x32
+>> became incompatible!
+>
+> Is this just for the uapi header as seen by userspace?  I expect we are
+> using the a normal kernel interface with 64bit longs and 64bit pointers
+> when we build the kernel.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/microblaze/include/asm/pgtable.h |  3 --
- arch/microblaze/mm/consistent.c       | 45 ---------------------------
- 2 files changed, 48 deletions(-)
+Yes, that patch shouldn't have changed anything in the kernel, which
+continues to be built with __BITS_PER_LONG=64. I haven't
+checked the vdso, which is the only bit of the kernel that gets built
+with -mx32, but I assume it's fine as well.
 
-diff --git a/arch/microblaze/include/asm/pgtable.h b/arch/microblaze/include/asm/pgtable.h
-index 5174733fb489..ac6a37bd41ec 100644
---- a/arch/microblaze/include/asm/pgtable.h
-+++ b/arch/microblaze/include/asm/pgtable.h
-@@ -551,9 +551,6 @@ void __init *early_get_page(void);
- 
- extern unsigned long ioremap_bot, ioremap_base;
- 
--void consistent_sync(void *vaddr, size_t size, int direction);
--void consistent_sync_page(struct page *page, unsigned long offset,
--	size_t size, int direction);
- unsigned long consistent_virt_to_pfn(void *vaddr);
- 
- void setup_memory(void);
-diff --git a/arch/microblaze/mm/consistent.c b/arch/microblaze/mm/consistent.c
-index b9a9c8c3397b..c9a278ac795a 100644
---- a/arch/microblaze/mm/consistent.c
-+++ b/arch/microblaze/mm/consistent.c
-@@ -220,48 +220,3 @@ void arch_dma_free(struct device *dev, size_t size, void *vaddr,
- 	flush_tlb_all();
- #endif
- }
--
--/*
-- * make an area consistent.
-- */
--void consistent_sync(void *vaddr, size_t size, int direction)
--{
--	unsigned long start;
--	unsigned long end;
--
--	start = (unsigned long)vaddr;
--
--	/* Convert start address back down to unshadowed memory region */
--#ifdef CONFIG_XILINX_UNCACHED_SHADOW
--	start &= ~UNCACHED_SHADOW_MASK;
--#endif
--	end = start + size;
--
--	switch (direction) {
--	case PCI_DMA_NONE:
--		BUG();
--	case PCI_DMA_FROMDEVICE:	/* invalidate only */
--		invalidate_dcache_range(start, end);
--		break;
--	case PCI_DMA_TODEVICE:		/* writeback only */
--		flush_dcache_range(start, end);
--		break;
--	case PCI_DMA_BIDIRECTIONAL:	/* writeback and invalidate */
--		flush_dcache_range(start, end);
--		break;
--	}
--}
--EXPORT_SYMBOL(consistent_sync);
--
--/*
-- * consistent_sync_page makes memory consistent. identical
-- * to consistent_sync, but takes a struct page instead of a
-- * virtual address
-- */
--void consistent_sync_page(struct page *page, unsigned long offset,
--	size_t size, int direction)
--{
--	unsigned long start = (unsigned long)page_address(page) + offset;
--	consistent_sync((void *)start, size, direction);
--}
--EXPORT_SYMBOL(consistent_sync_page);
--- 
-2.17.0
+> If this is just a header as seen from userspace mess it seems
+> unfortunate but fixable.
+
+Right. I'll fix the IPC stuff for this series to make it work with
+any value of __BITS_PER_LONG on x32, but I don't plan to
+do anything about the rest of x32. The patch that caused the
+problem was intended as a bugfix, so we can't just revert it
+without first understanding how to properly fix the original bug,
+and which other interfaces have now come to rely on
+__BITS_PER_LONG=32 for x32.
+
+Adding a few other folks that have been involved in the x32
+kernel support or the Debian port in the past. Maybe one of
+them is motivated to figure out how to fix this properly.
+
+       Arnd
