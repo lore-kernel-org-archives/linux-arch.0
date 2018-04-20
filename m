@@ -1,247 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:46799 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755209AbeDTOqE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:46:04 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:44838 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755191AbeDTOqD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:46:03 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:38:06 -0500
-Message-ID: <20180420143811.9994-17-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:38:09 -0500
+Message-ID: <20180420143811.9994-20-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 17/22] signal/sparc: Use send_sig_fault where appropriate
+Subject: [REVIEW][PATCH 20/22] signal/um: Use force_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, David Miller <davem@davemloft.net>, sparclinux@vger.kernel.org
-Message-ID: <20180420143806.XECXvYv675RXM-4bFOjtvPaHNj8aPQ31Pa_vEMIiZFg@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20180420143809.vpSEHXiHQ7wyAZb9IA8Pdeor4xN51pcK3m6Sv7NOHM8@z>
 
-Filling in struct siginfo before calling send_sig_info a tedious and
+Filling in struct siginfo before calling force_sig_info a tedious and
 error prone process, where once in a great while the wrong fields
 are filled out, and siginfo has been inconsistently cleared.
 
-Simplify this process by using the helper send_sig_fault.  Which
+Simplify this process by using the helper force_sig_fault.  Which
 takes as a parameters all of the information it needs, ensures
 all of the fiddly bits of filling in struct siginfo are done properly
-and then calls send_sig_info.
+and then calls force_sig_info.
 
-In short about a 5 line reduction in code for every time send_sig_info
+In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: David Miller <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sparc/kernel/traps_32.c     | 93 ++++++++--------------------------------
- arch/sparc/kernel/unaligned_32.c | 12 ++----
- 2 files changed, 20 insertions(+), 85 deletions(-)
+ arch/um/kernel/ptrace.c | 13 +++----------
+ arch/um/kernel/trap.c   | 26 ++++++++------------------
+ 2 files changed, 11 insertions(+), 28 deletions(-)
 
-diff --git a/arch/sparc/kernel/traps_32.c b/arch/sparc/kernel/traps_32.c
-index 03e522274b8b..06f43cf9695f 100644
---- a/arch/sparc/kernel/traps_32.c
-+++ b/arch/sparc/kernel/traps_32.c
-@@ -116,8 +116,6 @@ void do_hw_interrupt(struct pt_regs *regs, unsigned long type)
- void do_illegal_instruction(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 			    unsigned long psr)
+diff --git a/arch/um/kernel/ptrace.c b/arch/um/kernel/ptrace.c
+index bc2a516c190f..1a1d88a4d940 100644
+--- a/arch/um/kernel/ptrace.c
++++ b/arch/um/kernel/ptrace.c
+@@ -115,17 +115,10 @@ long arch_ptrace(struct task_struct *child, long request,
+ static void send_sigtrap(struct task_struct *tsk, struct uml_pt_regs *regs,
+ 		  int error_code)
  {
--	siginfo_t info;
+-	struct siginfo info;
 -
- 	if(psr & PSR_PS)
- 		die_if_kernel("Kernel illegal instruction", regs);
- #ifdef TRAP_DEBUG
-@@ -125,29 +123,15 @@ void do_illegal_instruction(struct pt_regs *regs, unsigned long pc, unsigned lon
- 	       regs->pc, *(unsigned long *)regs->pc);
- #endif
- 
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_ILLOPC;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	send_sig_info(SIGILL, &info, current);
-+	send_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)pc, 0, current);
+-	memset(&info, 0, sizeof(info));
+-	info.si_signo = SIGTRAP;
+-	info.si_code = TRAP_BRKPT;
+-
+-	/* User-mode eip? */
+-	info.si_addr = UPT_IS_USER(regs) ? (void __user *) UPT_IP(regs) : NULL;
+-
+ 	/* Send us the fake SIGTRAP */
+-	force_sig_info(SIGTRAP, &info, tsk);
++	force_sig_fault(SIGTRAP, TRAP_BRKPT,
++			/* User-mode eip? */
++			UPT_IS_USER(regs) ? (void __user *) UPT_IP(regs) : NULL, tsk);
  }
  
- void do_priv_instruction(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 			 unsigned long psr)
+ /*
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index 5f0ff17cd790..48b70dcb6963 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -162,14 +162,9 @@ static void show_segv_info(struct uml_pt_regs *regs)
+ 
+ static void bad_segv(struct faultinfo fi, unsigned long ip)
  {
--	siginfo_t info;
+-	struct siginfo si;
 -
- 	if(psr & PSR_PS)
- 		die_if_kernel("Penguin instruction from Penguin mode??!?!", regs);
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_PRVOPC;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	send_sig_info(SIGILL, &info, current);
-+	send_sig_fault(SIGILL, ILL_PRVOPC, (void __user *)pc, 0, current);
+-	clear_siginfo(&si);
+-	si.si_signo = SIGSEGV;
+-	si.si_code = SEGV_ACCERR;
+-	si.si_addr = (void __user *) FAULT_ADDRESS(fi);
+ 	current->thread.arch.faultinfo = fi;
+-	force_sig_info(SIGSEGV, &si, current);
++	force_sig_fault(SIGSEGV, SEGV_ACCERR, (void __user *) FAULT_ADDRESS(fi),
++			current);
  }
  
- /* XXX User may want to be allowed to do this. XXX */
-@@ -155,8 +139,6 @@ void do_priv_instruction(struct pt_regs *regs, unsigned long pc, unsigned long n
- void do_memaccess_unaligned(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 			    unsigned long psr)
+ void fatal_sigsegv(void)
+@@ -215,13 +210,12 @@ void segv_handler(int sig, struct siginfo *unused_si, struct uml_pt_regs *regs)
+ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+ 		   struct uml_pt_regs *regs)
  {
--	siginfo_t info;
--
- 	if(regs->psr & PSR_PS) {
- 		printk("KERNEL MNA at pc %08lx npc %08lx called by %08lx\n", pc, npc,
- 		       regs->u_regs[UREG_RETPC]);
-@@ -168,13 +150,9 @@ void do_memaccess_unaligned(struct pt_regs *regs, unsigned long pc, unsigned lon
- 	instruction_dump ((unsigned long *) regs->pc);
- 	printk ("do_MNA!\n");
- #endif
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRALN;
--	info.si_addr = /* FIXME: Should dig out mna address */ (void *)0;
--	info.si_trapno = 0;
--	send_sig_info(SIGBUS, &info, current);
-+	send_sig_fault(SIGBUS, BUS_ADRALN,
-+		       /* FIXME: Should dig out mna address */ (void *)0,
-+		       0, current);
- }
+-	struct siginfo si;
+ 	jmp_buf *catcher;
++	int si_code;
+ 	int err;
+ 	int is_write = FAULT_WRITE(fi);
+ 	unsigned long address = FAULT_ADDRESS(fi);
  
- static unsigned long init_fsr = 0x0UL;
-@@ -230,9 +208,9 @@ void do_fpe_trap(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 		 unsigned long psr)
- {
- 	static int calls;
--	siginfo_t info;
- 	unsigned long fsr;
- 	int ret = 0;
-+	int code;
- #ifndef CONFIG_SMP
- 	struct task_struct *fpt = last_task_used_math;
- #else
-@@ -307,25 +285,20 @@ void do_fpe_trap(struct pt_regs *regs, unsigned long pc, unsigned long npc,
+-	clear_siginfo(&si);
+ 	if (!is_user && regs)
+ 		current->thread.segv_regs = container_of(regs, struct pt_regs, regs);
+ 
+@@ -241,7 +235,7 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+ 
+ 	if (SEGV_IS_FIXABLE(&fi))
+ 		err = handle_page_fault(address, ip, is_write, is_user,
+-					&si.si_code);
++					&si_code);
+ 	else {
+ 		err = -EFAULT;
+ 		/*
+@@ -273,18 +267,14 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+ 	show_segv_info(regs);
+ 
+ 	if (err == -EACCES) {
+-		si.si_signo = SIGBUS;
+-		si.si_errno = 0;
+-		si.si_code = BUS_ADRERR;
+-		si.si_addr = (void __user *)address;
+ 		current->thread.arch.faultinfo = fi;
+-		force_sig_info(SIGBUS, &si, current);
++		force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address,
++				current);
+ 	} else {
+ 		BUG_ON(err != -EFAULT);
+-		si.si_signo = SIGSEGV;
+-		si.si_addr = (void __user *) address;
+ 		current->thread.arch.faultinfo = fi;
+-		force_sig_info(SIGSEGV, &si, current);
++		force_sig_fault(SIGSEGV, si_code, (void __user *) address,
++				current);
  	}
  
- 	fsr = fpt->thread.fsr;
--	clear_siginfo(&info);
--	info.si_signo = SIGFPE;
--	info.si_errno = 0;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	info.si_code = FPE_FLTUNK;
-+	code = FPE_FLTUNK;
- 	if ((fsr & 0x1c000) == (1 << 14)) {
- 		if (fsr & 0x10)
--			info.si_code = FPE_FLTINV;
-+			code = FPE_FLTINV;
- 		else if (fsr & 0x08)
--			info.si_code = FPE_FLTOVF;
-+			code = FPE_FLTOVF;
- 		else if (fsr & 0x04)
--			info.si_code = FPE_FLTUND;
-+			code = FPE_FLTUND;
- 		else if (fsr & 0x02)
--			info.si_code = FPE_FLTDIV;
-+			code = FPE_FLTDIV;
- 		else if (fsr & 0x01)
--			info.si_code = FPE_FLTRES;
-+			code = FPE_FLTRES;
- 	}
--	send_sig_info(SIGFPE, &info, fpt);
-+	send_sig_fault(SIGFPE, code, (void __user *)pc, 0, fpt);
- #ifndef CONFIG_SMP
- 	last_task_used_math = NULL;
- #endif
-@@ -337,17 +310,9 @@ void do_fpe_trap(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- void handle_tag_overflow(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 			 unsigned long psr)
- {
--	siginfo_t info;
--
- 	if(psr & PSR_PS)
- 		die_if_kernel("Penguin overflow trap from kernel mode", regs);
--	clear_siginfo(&info);
--	info.si_signo = SIGEMT;
--	info.si_errno = 0;
--	info.si_code = EMT_TAGOVF;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	send_sig_info(SIGEMT, &info, current);
-+	send_sig_fault(SIGEMT, EMT_TAGOVF, (void __user *)pc, 0, current);
- }
- 
- void handle_watchpoint(struct pt_regs *regs, unsigned long pc, unsigned long npc,
-@@ -383,47 +348,23 @@ void handle_reg_access(struct pt_regs *regs, unsigned long pc, unsigned long npc
- void handle_cp_disabled(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 			unsigned long psr)
- {
--	siginfo_t info;
--
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_COPROC;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	send_sig_info(SIGILL, &info, current);
-+	send_sig_fault(SIGILL, ILL_COPROC, (void __user *)pc, 0, current);
- }
- 
- void handle_cp_exception(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 			 unsigned long psr)
- {
--	siginfo_t info;
--
- #ifdef TRAP_DEBUG
- 	printk("Co-Processor Exception at PC %08lx NPC %08lx PSR %08lx\n",
- 	       pc, npc, psr);
- #endif
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_COPROC;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	send_sig_info(SIGILL, &info, current);
-+	send_sig_fault(SIGILL, ILL_COPROC, (void __user *)pc, 0, current);
- }
- 
- void handle_hw_divzero(struct pt_regs *regs, unsigned long pc, unsigned long npc,
- 		       unsigned long psr)
- {
--	siginfo_t info;
--
--	clear_siginfo(&info);
--	info.si_signo = SIGFPE;
--	info.si_errno = 0;
--	info.si_code = FPE_INTDIV;
--	info.si_addr = (void __user *)pc;
--	info.si_trapno = 0;
--	send_sig_info(SIGFPE, &info, current);
-+	send_sig_fault(SIGFPE, FPE_INTDIV, (void __user *)pc, 0, current);
- }
- 
- #ifdef CONFIG_DEBUG_BUGVERBOSE
-diff --git a/arch/sparc/kernel/unaligned_32.c b/arch/sparc/kernel/unaligned_32.c
-index 0e4cf7217413..64ac8c0c1429 100644
---- a/arch/sparc/kernel/unaligned_32.c
-+++ b/arch/sparc/kernel/unaligned_32.c
-@@ -311,15 +311,9 @@ static inline int ok_for_user(struct pt_regs *regs, unsigned int insn,
- 
- static void user_mna_trap_fault(struct pt_regs *regs, unsigned int insn)
- {
--	siginfo_t info;
--
--	clear_siginfo(&info);
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRALN;
--	info.si_addr = (void __user *)safe_compute_effective_address(regs, insn);
--	info.si_trapno = 0;
--	send_sig_info(SIGBUS, &info, current);
-+	send_sig_fault(SIGBUS, BUS_ADRALN,
-+		       (void __user *)safe_compute_effective_address(regs, insn),
-+		       0, current);
- }
- 
- asmlinkage void user_unaligned_trap(struct pt_regs *regs, unsigned int insn)
+ out:
 -- 
 2.14.1
