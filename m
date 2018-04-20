@@ -1,84 +1,132 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH v3 01/17] y2038: asm-generic: Extend sysvipc data structures
-Date: Thu, 19 Apr 2018 17:12:46 -0500
-Message-ID: <87k1t2n8v5.fsf@xmission.com>
-References: <20180419143737.606138-1-arnd@arndb.de>
-        <20180419143737.606138-2-arnd@arndb.de> <87efjbnswr.fsf@xmission.com>
-        <CAK8P3a196QYoM1egagMuZw4WhiwRiO83Qpj0CxoCeVQBEaj-gw@mail.gmail.com>
-        <CAK8P3a2KR+0ZE5jHSmO6pSuiRPH83p75KetuQuHL1atChcTJGA@mail.gmail.com>
+Subject: [REVIEW][PATCH 00/17] siginfo bugfixes and cleanups
+Date: Thu, 19 Apr 2018 20:01:16 -0500
+Message-ID: <878t9ilmhv.fsf@xmission.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2KR+0ZE5jHSmO6pSuiRPH83p75KetuQuHL1atChcTJGA@mail.gmail.com>
-        (Arnd Bergmann's message of "Thu, 19 Apr 2018 23:24:36 +0200")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Albert ARIBAUD <albert.aribaud@3adev.fr>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, the arch/x86 maintainers <x86@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linuxppc-dev <linuxppc-dev@lists>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Helge Deller <deller@gmx.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, David Miller <davem@davemloft.net>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Paul Mundt <lethal@linux-sh.org>, Vincent Chen <vincentc@andestech.com>, Greentime Hu <greentime@andestech.com>, Arnd Bergmann <arnd@arndb.de>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Paul Mackerras <paulus@samba.org>, Kumar Gala <kumar.gala@freescale.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 List-Id: linux-arch.vger.kernel.org
 
-Arnd Bergmann <arnd@arndb.de> writes:
 
-> On Thu, Apr 19, 2018 at 5:20 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Thu, Apr 19, 2018 at 4:59 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
->>> I suspect you want to use __kernel_ulong_t here instead of a raw
->>> unsigned long.  If nothing else it seems inconsistent to use typedefs
->>> in one half of the structure and no typedefs in the other half.
->>
->> Good catch, there is definitely something wrong here, but I think using
->> __kernel_ulong_t for all members would also be wrong, as that
->> still changes the layout on x32, which effectively is
->>
->> struct msqid64_ds {
->>      ipc64_perm msg_perm;
->>      u64 msg_stime;
->>      u32 __unused1;
->>      /* 32 bit implict padding */
->>      u64 msg_rtime;
->>      u32 __unused2;
->>      /* 32 bit implict padding */
->>      u64 msg_ctime;
->>      u32 __unused3;
->>      /* 32 bit implict padding */
->>      __kernel_pid_t          shm_cpid;       /* pid of creator */
->>      __kernel_pid_t          shm_lpid;       /* pid of last operator */
->>      ....
->> };
->>
->> The choices here would be to either use a mix of
->> __kernel_ulong_t and unsigned long, or taking the x32
->> version back into arch/x86/include/uapi/asm/ so the
->> generic version at least makes some sense.
->>
->> I can't use __kernel_time_t for the lower half on 32-bit
->> since it really should be unsigned.
->
-> After thinking about it some more, I conclude that the structure is simply
-> incorrect on x32: The __kernel_ulong_t usage was introduced in 2013
-> in commit b9cd5ca22d67 ("uapi: Use __kernel_ulong_t in struct
-> msqid64_ds") and apparently was correct initially as __BITS_PER_LONG
-> evaluated to 64, but it broke with commit f4b4aae18288 ("x86/headers/uapi:
-> Fix __BITS_PER_LONG value for x32 builds") that changed the value
-> of __BITS_PER_LONG and introduced the extra padding in 2015.
->
-> The same change apparently also broke a lot of other definitions, e.g.
->
-> $ echo "#include <linux/types.h>" | gcc -mx32 -E -xc - | grep -A3
-> __kernel_size_t
-> typedef unsigned int __kernel_size_t;
-> typedef int __kernel_ssize_t;
-> typedef int __kernel_ptrdiff_t;
->
-> Those used to be defined as 'unsigned long long' and 'long long'
-> respectively, so now all kernel interfaces using those on x32
-> became incompatible!
+Mostly this dealing with aliases of SI_USER, that make it impossible for
+userspace to tell what kind of siginfo it has received.
 
-That seems like a real mess.
+Also in this series is the change to ensure we have siginfo initialized
+so I can rip out the switch in copy_siginfo_to_user for better
+performance, and to ensure better backwards compatibility as siginfo as
+generated in the callers is passed to userspace.
 
-Is this just for the uapi header as seen by userspace?  I expect we are
-using the a normal kernel interface with 64bit longs and 64bit pointers
-when we build the kernel.
+There are also fixes for a few other siginfo bugs I have found.
 
-If this is just a header as seen from userspace mess it seems
-unfortunate but fixable.
+There are cleanups of ifdefs on SEGV_BNDERR and BUS_MCERR_AX that are no
+longer necessary.
 
-Eric
+I plan to merge these bug fixes through my siginfo tree, but if you
+object to them or would prefer to have them go through your arch tree
+please let me know.
+
+The changes are avaiable as a totality at:
+    git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-review
+    
+Dmitry V. Levin (1):
+      sparc: fix compat siginfo ABI regression
+
+Eric W. Biederman (16):
+      signal/alpha: Document a conflict with SI_USER for SIGFPE
+      signal/sh: Use force_sig_fault in hw_breakpoint_handler
+      signal/nds32: Use force_sig in unhandled_interruption and unhandled_exceptions
+      signal/nds32: Use force_sig(SIGILL) in do_revisn
+      signal: Ensure every siginfo we send has all bits initialized
+      signal: Reduce copy_siginfo_to_user to just copy_to_user
+      signal: Stop special casing TRAP_FIXME and FPE_FIXME in siginfo_layout
+      signal: Remove SEGV_BNDERR ifdefs
+      signal: Remove ifdefs for BUS_MCEERR_AR and BUS_MCEERR_AO
+      signal/alpha: Replace FPE_FIXME with FPE_FLTUNK
+      signal/ia64: Replace FPE_FIXME with FPE_FLTUNK
+      signal/powerpc: Replace FPE_FIXME with FPE_FLTUNK
+      signal/unicore32: Use FPE_FLTUNK instead of 0 in ucf64_raise_sigfpe
+      signal: Add TRAP_UNK si_code for undiagnosted trap exceptions
+      signal/alpha:  Replace TRAP_FIXME with TRAP_UNK
+      signal/powerpc: Replace TRAP_FIXME with TRAP_UNK
+
+ arch/alpha/include/uapi/asm/siginfo.h     |  14 ----
+ arch/alpha/kernel/osf_sys.c               |   3 +-
+ arch/alpha/kernel/signal.c                |   2 +
+ arch/alpha/kernel/traps.c                 |  11 ++-
+ arch/alpha/mm/fault.c                     |   2 +
+ arch/arc/mm/fault.c                       |   2 +
+ arch/arm/kernel/ptrace.c                  |   1 +
+ arch/arm/kernel/swp_emulate.c             |   1 +
+ arch/arm/kernel/traps.c                   |   5 ++
+ arch/arm/mm/alignment.c                   |   1 +
+ arch/arm/mm/fault.c                       |   4 +
+ arch/arm/vfp/vfpmodule.c                  |   3 +-
+ arch/arm64/kernel/fpsimd.c                |   2 +-
+ arch/arm64/kernel/sys_compat.c            |   1 +
+ arch/arm64/kernel/traps.c                 |   1 +
+ arch/arm64/mm/fault.c                     |  18 +++--
+ arch/c6x/kernel/traps.c                   |   1 +
+ arch/hexagon/kernel/traps.c               |   1 +
+ arch/hexagon/mm/vm_fault.c                |   1 +
+ arch/ia64/include/uapi/asm/siginfo.h      |   7 --
+ arch/ia64/kernel/brl_emu.c                |   1 +
+ arch/ia64/kernel/signal.c                 |   2 +
+ arch/ia64/kernel/traps.c                  |  31 ++++++--
+ arch/ia64/kernel/unaligned.c              |   1 +
+ arch/ia64/mm/fault.c                      |   4 +-
+ arch/m68k/kernel/traps.c                  |   2 +
+ arch/microblaze/kernel/exceptions.c       |   1 +
+ arch/microblaze/mm/fault.c                |   4 +-
+ arch/mips/mm/fault.c                      |   1 +
+ arch/nds32/kernel/traps.c                 |  19 ++---
+ arch/nds32/mm/fault.c                     |   1 +
+ arch/nios2/kernel/traps.c                 |   1 +
+ arch/openrisc/kernel/traps.c              |   5 +-
+ arch/openrisc/mm/fault.c                  |   1 +
+ arch/parisc/kernel/ptrace.c               |   1 +
+ arch/parisc/kernel/traps.c                |   2 +
+ arch/parisc/kernel/unaligned.c            |   1 +
+ arch/parisc/math-emu/driver.c             |   1 +
+ arch/parisc/mm/fault.c                    |   1 +
+ arch/powerpc/include/uapi/asm/siginfo.h   |  15 ----
+ arch/powerpc/kernel/process.c             |   1 +
+ arch/powerpc/kernel/traps.c               |  13 ++--
+ arch/powerpc/mm/fault.c                   |   1 +
+ arch/powerpc/platforms/cell/spufs/fault.c |   2 +-
+ arch/riscv/kernel/traps.c                 |   1 +
+ arch/s390/kernel/traps.c                  |   5 +-
+ arch/s390/mm/fault.c                      |   2 +
+ arch/sh/kernel/hw_breakpoint.c            |   9 +--
+ arch/sh/kernel/traps_32.c                 |   2 +
+ arch/sh/math-emu/math.c                   |   1 +
+ arch/sh/mm/fault.c                        |   1 +
+ arch/sparc/include/uapi/asm/siginfo.h     |   7 --
+ arch/sparc/kernel/process_64.c            |   1 +
+ arch/sparc/kernel/sys_sparc_32.c          |   1 +
+ arch/sparc/kernel/traps_32.c              |  12 ++-
+ arch/sparc/kernel/traps_64.c              |  16 +++-
+ arch/sparc/kernel/unaligned_32.c          |   1 +
+ arch/sparc/mm/fault_32.c                  |   1 +
+ arch/sparc/mm/fault_64.c                  |   1 +
+ arch/um/kernel/trap.c                     |   2 +
+ arch/unicore32/kernel/fpu-ucf64.c         |   8 +-
+ arch/unicore32/mm/fault.c                 |   3 +
+ arch/x86/entry/vsyscall/vsyscall_64.c     |   2 +-
+ arch/x86/kernel/ptrace.c                  |   2 +-
+ arch/x86/kernel/signal_compat.c           |   2 +-
+ arch/x86/kernel/traps.c                   |   3 +
+ arch/x86/kernel/umip.c                    |   1 +
+ arch/x86/kvm/mmu.c                        |   1 +
+ arch/x86/mm/fault.c                       |   1 +
+ arch/xtensa/kernel/traps.c                |   1 +
+ arch/xtensa/mm/fault.c                    |   1 +
+ fs/signalfd.c                             |  15 +---
+ include/linux/ptrace.h                    |   1 -
+ include/linux/tracehook.h                 |   1 +
+ include/uapi/asm-generic/siginfo.h        |   3 +-
+ kernel/signal.c                           | 123 +++---------------------------
+ virt/kvm/arm/mmu.c                        |   1 +
+ 77 files changed, 194 insertions(+), 231 deletions(-)
