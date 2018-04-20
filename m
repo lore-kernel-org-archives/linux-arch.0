@@ -1,84 +1,93 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 12/22] signal/parisc: Use force_sig_mceerr where appropriate
-Date: Fri, 20 Apr 2018 09:38:01 -0500
-Message-ID: <20180420143811.9994-12-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault in relay_signal.
+Date: Fri, 20 Apr 2018 09:38:08 -0500
+Message-ID: <20180420143811.9994-19-ebiederm@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, James Bottomley <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
 List-Id: linux-arch.vger.kernel.org
 
-In do_page_fault where an mceerr is generated stop and call force_sig_mceerr.
-Keeping the mcerr handling logic out of the force_sig_info call below.
+Today user mode linux only works on x86 and x86_64 and this allows
+simplifications of relay_signal.
 
-This ensures that only and always in the mcerr case is lsb interesting.
+- x86 always set si_errno to 0 in fault handlers.
+- x86 does not implement si_trapno.
+- Only si_codes between SI_USER and SI_KERNEL have a fault address.
 
-This ensures setting set si_lsb in the future won't accidentally
-stomp another siginfo field in the non mcerr case.
+Therefore warn if si_errno is set (it should never be).
+Use force_sig_info in the case where we know we have a good fault.
 
-Cc: James Bottomley <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
+For signals whose content it is not clear how to relay use plain
+force_sig and let the signal sending code come up with an
+appropriate generic siginfo.
+
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/parisc/mm/fault.c | 30 +++++++++++++++---------------
- 1 file changed, 15 insertions(+), 15 deletions(-)
+ arch/um/kernel/trap.c | 28 +++++++++++++---------------
+ 1 file changed, 13 insertions(+), 15 deletions(-)
 
-diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
-index 657b35096bd8..51215b0048ef 100644
---- a/arch/parisc/mm/fault.c
-+++ b/arch/parisc/mm/fault.c
-@@ -354,7 +354,6 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index d4d38520c4c6..5f0ff17cd790 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -296,9 +296,6 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
  
- 	if (user_mode(regs)) {
- 		struct siginfo si;
--		unsigned int lsb = 0;
+ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
+ {
+-	struct faultinfo *fi;
+-	struct siginfo clean_si;
+-
+ 	if (!UPT_IS_USER(regs)) {
+ 		if (sig == SIGBUS)
+ 			printk(KERN_ERR "Bus error - the host /dev/shm or /tmp "
+@@ -308,29 +305,30 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
  
- 		clear_siginfo(&si);
- 		switch (code) {
-@@ -391,26 +390,27 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+ 	arch_examine_signal(sig, regs);
  
- #ifdef CONFIG_MEMORY_FAILURE
- 		if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
-+			unsigned int lsb = 0;
- 			printk(KERN_ERR
- 	"MCE: Killing %s:%d due to hardware memory corruption fault at %08lx\n",
- 			tsk->comm, tsk->pid, address);
--			si.si_signo = SIGBUS;
--			si.si_code = BUS_MCEERR_AR;
-+			/*
-+			 * Either small page or large page may be poisoned.
-+			 * In other words, VM_FAULT_HWPOISON_LARGE and
-+			 * VM_FAULT_HWPOISON are mutually exclusive.
-+			 */
-+			if (fault & VM_FAULT_HWPOISON_LARGE)
-+				lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
-+			else if (fault & VM_FAULT_HWPOISON)
-+				lsb = PAGE_SHIFT;
-+
-+			force_sig_mceerr(BUS_MCEERR_AR, (void __user *) address,
-+					 lsb, current);
-+			return;
- 		}
- #endif
+-	clear_siginfo(&clean_si);
+-	clean_si.si_signo = si->si_signo;
+-	clean_si.si_errno = si->si_errno;
+-	clean_si.si_code = si->si_code;
++	if (unlikely(si->si_errno)) {
++		printk(KERN_ERR "Attempted to relay signal %d (si_code = %d) with errno %d\n",
++		       sig, si->si_code, si->si_errno);
++	}
+ 	switch (sig) {
+ 	case SIGILL:
+ 	case SIGFPE:
+ 	case SIGSEGV:
+ 	case SIGBUS:
+ 	case SIGTRAP:
+-		fi = UPT_FAULTINFO(regs);
+-		clean_si.si_addr = (void __user *) FAULT_ADDRESS(*fi);
+-		current->thread.arch.faultinfo = *fi;
+-#ifdef __ARCH_SI_TRAPNO
+-		clean_si.si_trapno = si->si_trapno;
+-#endif
+-		break;
++		if ((si->si_code > SI_USER) && (si->si_code < SI_KERNEL)) {
++			struct faultinfo *fi = UPT_FAULTINFO(regs);
++			current->thread.arch.faultinfo = *fi;
++			force_sig_fault(sig, si->si_code,
++					(void __user *)FAULT_ADDRESS(*fi),
++					current);
++			break;
++		}
+ 	default:
+ 		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d)\n",
+ 			sig, si->si_code);
+ 	}
  
--		/*
--		 * Either small page or large page may be poisoned.
--		 * In other words, VM_FAULT_HWPOISON_LARGE and
--		 * VM_FAULT_HWPOISON are mutually exclusive.
--		 */
--		if (fault & VM_FAULT_HWPOISON_LARGE)
--			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
--		else if (fault & VM_FAULT_HWPOISON)
--			lsb = PAGE_SHIFT;
--		else
--			show_signal_msg(regs, code, address, tsk, vma);
--		si.si_addr_lsb = lsb;
-+		show_signal_msg(regs, code, address, tsk, vma);
+-	force_sig_info(sig, &clean_si, current);
++	force_sig(sig, current);
+ }
  
- 		si.si_errno = 0;
- 		si.si_addr = (void __user *) address;
+ void bus_handler(int sig, struct siginfo *si, struct uml_pt_regs *regs)
 -- 
 2.14.1
