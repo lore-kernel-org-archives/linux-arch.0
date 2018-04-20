@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:36378 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755165AbeDTOqB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:46:01 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:44854 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755265AbeDTOqF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:46:05 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:38:00 -0500
-Message-ID: <20180420143811.9994-11-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:38:05 -0500
+Message-ID: <20180420143811.9994-16-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 11/22] signal/openrisc: Use force_sig_fault where appropriate
+Subject: [REVIEW][PATCH 16/22] signal/sh: Use force_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org
-Message-ID: <20180420143800.zKB_6TXvvSqmNdSoeWJfTSQGvee7VH5epcYOR-dNGhQ@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+Message-ID: <20180420143805._-0yjxjI-dcm8KCBov8XbYGZmQ4QNjJ5l8dDnHWc774@z>
 
 Filling in struct siginfo before calling force_sig_info a tedious and
 error prone process, where once in a great while the wrong fields
@@ -27,151 +27,114 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: openrisc@lists.librecores.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: linux-sh@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/openrisc/kernel/traps.c | 33 ++++-----------------------------
- arch/openrisc/mm/fault.c     | 19 +++++--------------
- 2 files changed, 9 insertions(+), 43 deletions(-)
+ arch/sh/kernel/traps_32.c | 19 +++++--------------
+ arch/sh/math-emu/math.c   |  9 ++-------
+ arch/sh/mm/fault.c        | 10 +---------
+ 3 files changed, 8 insertions(+), 30 deletions(-)
 
-diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
-index 1610b1d65a11..fac246e6f37a 100644
---- a/arch/openrisc/kernel/traps.c
-+++ b/arch/openrisc/kernel/traps.c
-@@ -250,28 +250,16 @@ void __init trap_init(void)
- 
- asmlinkage void do_trap(struct pt_regs *regs, unsigned long address)
+diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
+index e85e59c3d6df..660a4bc17698 100644
+--- a/arch/sh/kernel/traps_32.c
++++ b/arch/sh/kernel/traps_32.c
+@@ -477,7 +477,6 @@ asmlinkage void do_address_error(struct pt_regs *regs,
  {
+ 	unsigned long error_code = 0;
+ 	mm_segment_t oldfs;
 -	siginfo_t info;
--	clear_siginfo(&info);
--	info.si_signo = SIGTRAP;
--	info.si_code = TRAP_TRACE;
--	info.si_addr = (void *)address;
--	force_sig_info(SIGTRAP, &info, current);
-+	force_sig_fault(SIGTRAP, TRAP_TRACE, (void __user *)address, current);
+ 	insn_size_t instruction;
+ 	int tmp;
  
- 	regs->pc += 4;
- }
+@@ -537,12 +536,7 @@ asmlinkage void do_address_error(struct pt_regs *regs,
+ 		       "access (PC %lx PR %lx)\n", current->comm, regs->pc,
+ 		       regs->pr);
  
- asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
- {
--	siginfo_t info;
--
- 	if (user_mode(regs)) {
- 		/* Send a SIGBUS */
 -		clear_siginfo(&info);
 -		info.si_signo = SIGBUS;
 -		info.si_errno = 0;
--		info.si_code = BUS_ADRALN;
+-		info.si_code = si_code;
 -		info.si_addr = (void __user *)address;
 -		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)address, current);
++		force_sig_fault(SIGBUS, si_code, (void __user *)address, current);
  	} else {
- 		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
- 		show_registers(regs);
-@@ -282,16 +270,9 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
+ 		inc_unaligned_kernel_access();
  
- asmlinkage void do_bus_fault(struct pt_regs *regs, unsigned long address)
+@@ -599,20 +593,17 @@ int is_dsp_inst(struct pt_regs *regs)
+ #ifdef CONFIG_CPU_SH2A
+ asmlinkage void do_divide_error(unsigned long r4)
+ {
+-	siginfo_t info;
++	int code;
+ 
+-	clear_siginfo(&info);
+ 	switch (r4) {
+ 	case TRAP_DIVZERO_ERROR:
+-		info.si_code = FPE_INTDIV;
++		code = FPE_INTDIV;
+ 		break;
+ 	case TRAP_DIVOVF_ERROR:
+-		info.si_code = FPE_INTOVF;
++		code = FPE_INTOVF;
+ 		break;
+ 	}
+-
+-	info.si_signo = SIGFPE;
+-	force_sig_info(info.si_signo, &info, current);
++	force_sig_fault(SIGFPE, code, NULL, current);
+ }
+ #endif
+ 
+diff --git a/arch/sh/math-emu/math.c b/arch/sh/math-emu/math.c
+index d6d2213df078..a0fa8fc88739 100644
+--- a/arch/sh/math-emu/math.c
++++ b/arch/sh/math-emu/math.c
+@@ -507,7 +507,6 @@ static int ieee_fpe_handler(struct pt_regs *regs)
+ 	unsigned short insn = *(unsigned short *)regs->pc;
+ 	unsigned short finsn;
+ 	unsigned long nextpc;
+-	siginfo_t info;
+ 	int nib[4] = {
+ 		(insn >> 12) & 0xf,
+ 		(insn >> 8) & 0xf,
+@@ -560,12 +559,8 @@ static int ieee_fpe_handler(struct pt_regs *regs)
+ 				~(FPSCR_CAUSE_MASK | FPSCR_FLAG_MASK);
+ 			task_thread_info(tsk)->status |= TS_USEDFPU;
+ 		} else {
+-			clear_siginfo(&info);
+-			info.si_signo = SIGFPE;
+-			info.si_errno = 0;
+-			info.si_code = FPE_FLTINV;
+-			info.si_addr = (void __user *)regs->pc;
+-			force_sig_info(SIGFPE, &info, tsk);
++			force_sig_fault(SIGFPE, FPE_FLTINV,
++					(void __user *)regs->pc, tsk);
+ 		}
+ 
+ 		regs->pc = nextpc;
+diff --git a/arch/sh/mm/fault.c b/arch/sh/mm/fault.c
+index 4c98b6f20e02..b8e7bb84b6b1 100644
+--- a/arch/sh/mm/fault.c
++++ b/arch/sh/mm/fault.c
+@@ -42,15 +42,7 @@ static void
+ force_sig_info_fault(int si_signo, int si_code, unsigned long address,
+ 		     struct task_struct *tsk)
  {
 -	siginfo_t info;
 -
- 	if (user_mode(regs)) {
- 		/* Send a SIGBUS */
--		clear_siginfo(&info);
--		info.si_signo = SIGBUS;
--		info.si_errno = 0;
--		info.si_code = BUS_ADRERR;
--		info.si_addr = (void *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, current);
- 	} else {		/* Kernel mode */
- 		printk("KERNEL: Bus error (SIGBUS) 0x%.8lx\n", address);
- 		show_registers(regs);
-@@ -466,7 +447,6 @@ static inline void simulate_swa(struct pt_regs *regs, unsigned long address,
- asmlinkage void do_illegal_instruction(struct pt_regs *regs,
- 				       unsigned long address)
- {
--	siginfo_t info;
- 	unsigned int op;
- 	unsigned int insn = *((unsigned int *)address);
- 
-@@ -487,12 +467,7 @@ asmlinkage void do_illegal_instruction(struct pt_regs *regs,
- 
- 	if (user_mode(regs)) {
- 		/* Send a SIGILL */
--		clear_siginfo(&info);
--		info.si_signo = SIGILL;
--		info.si_errno = 0;
--		info.si_code = ILL_ILLOPC;
--		info.si_addr = (void *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGILL, ILL_ILLOPC, (void __user *)address, current);
- 	} else {		/* Kernel mode */
- 		printk("KERNEL: Illegal instruction (SIGILL) 0x%.8lx\n",
- 		       address);
-diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
-index 68be33e4ae17..9f011d16cc46 100644
---- a/arch/openrisc/mm/fault.c
-+++ b/arch/openrisc/mm/fault.c
-@@ -52,11 +52,10 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	struct task_struct *tsk;
- 	struct mm_struct *mm;
- 	struct vm_area_struct *vma;
--	siginfo_t info;
-+	int si_code;
- 	int fault;
- 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
- 
 -	clear_siginfo(&info);
- 	tsk = current;
+-	info.si_signo	= si_signo;
+-	info.si_errno	= 0;
+-	info.si_code	= si_code;
+-	info.si_addr	= (void __user *)address;
+-
+-	force_sig_info(si_signo, &info, tsk);
++	force_sig_fault(si_signo, si_code, (void __user *)address, tsk);
+ }
  
- 	/*
-@@ -98,7 +97,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	}
- 
- 	mm = tsk->mm;
--	info.si_code = SEGV_MAPERR;
-+	si_code = SEGV_MAPERR;
- 
- 	/*
- 	 * If we're in an interrupt or have no user
-@@ -140,7 +139,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	 */
- 
- good_area:
--	info.si_code = SEGV_ACCERR;
-+	si_code = SEGV_ACCERR;
- 
- 	/* first do some preliminary protection checks */
- 
-@@ -214,11 +213,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	/* User mode accesses just cause a SIGSEGV */
- 
- 	if (user_mode(regs)) {
--		info.si_signo = SIGSEGV;
--		info.si_errno = 0;
--		/* info.si_code has been set above */
--		info.si_addr = (void *)address;
--		force_sig_info(SIGSEGV, &info, tsk);
-+		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
- 		return;
- 	}
- 
-@@ -283,11 +278,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	 * Send a sigbus, regardless of whether we were in kernel
- 	 * or user mode.
- 	 */
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRERR;
--	info.si_addr = (void *)address;
--	force_sig_info(SIGBUS, &info, tsk);
-+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, tsk);
- 
- 	/* Kernel mode? Handle exceptions or die */
- 	if (!user_mode(regs))
+ /*
 -- 
 2.14.1
