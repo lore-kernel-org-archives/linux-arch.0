@@ -1,85 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:40676 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:40278 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754307AbeDTIEt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:49 -0400
+        with ESMTP id S1754249AbeDTIEb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:31 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 17/22] sh: introduce a sh_cacheop_vaddr helper
-Date: Fri, 20 Apr 2018 10:03:08 +0200
-Message-ID: <20180420080313.18796-18-hch@lst.de>
+Subject: [PATCH 12/22] microblaze: remove the consistent_sync and consistent_sync_page
+Date: Fri, 20 Apr 2018 10:03:03 +0200
+Message-ID: <20180420080313.18796-13-hch@lst.de>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
-Message-ID: <20180420080308.mUBgz4wItHv3zGZ5uwKvPv69fuN9oldszhzOW-UvJ44@z>
+Message-ID: <20180420080303._lBq_KbVGoOkjGvccKjS77I4Hq_3yy-OA1zImhsieUM@z>
 
-And use it in the maple bus code to avoid a dma API dependency.
+Both unused.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sh/include/asm/cacheflush.h | 7 +++++++
- arch/sh/mm/consistent.c          | 5 +----
- drivers/sh/maple/maple.c         | 7 ++++---
- 3 files changed, 12 insertions(+), 7 deletions(-)
+ arch/microblaze/include/asm/pgtable.h |  3 --
+ arch/microblaze/mm/consistent.c       | 45 ---------------------------
+ 2 files changed, 48 deletions(-)
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index d103ab5a4e4b..b932e42ef028 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -101,5 +101,12 @@ void kunmap_coherent(void *kvaddr);
+diff --git a/arch/microblaze/include/asm/pgtable.h b/arch/microblaze/include/asm/pgtable.h
+index 5174733fb489..ac6a37bd41ec 100644
+--- a/arch/microblaze/include/asm/pgtable.h
++++ b/arch/microblaze/include/asm/pgtable.h
+@@ -551,9 +551,6 @@ void __init *early_get_page(void);
  
- void cpu_cache_init(void);
+ extern unsigned long ioremap_bot, ioremap_base;
  
-+static inline void *sh_cacheop_vaddr(void *vaddr)
-+{
-+	if (__in_29bit_mode())
-+		vaddr = (void *)CAC_ADDR((unsigned long)vaddr);
-+	return vaddr;
-+}
-+
- #endif /* __KERNEL__ */
- #endif /* __ASM_SH_CACHEFLUSH_H */
-diff --git a/arch/sh/mm/consistent.c b/arch/sh/mm/consistent.c
-index af2f28572119..516d481525e1 100644
---- a/arch/sh/mm/consistent.c
-+++ b/arch/sh/mm/consistent.c
-@@ -69,10 +69,7 @@ void dma_generic_free_coherent(struct device *dev, size_t size,
- void sh_sync_dma_for_device(void *vaddr, size_t size,
- 		    enum dma_data_direction direction)
- {
--	void *addr;
+-void consistent_sync(void *vaddr, size_t size, int direction);
+-void consistent_sync_page(struct page *page, unsigned long offset,
+-	size_t size, int direction);
+ unsigned long consistent_virt_to_pfn(void *vaddr);
+ 
+ void setup_memory(void);
+diff --git a/arch/microblaze/mm/consistent.c b/arch/microblaze/mm/consistent.c
+index b9a9c8c3397b..c9a278ac795a 100644
+--- a/arch/microblaze/mm/consistent.c
++++ b/arch/microblaze/mm/consistent.c
+@@ -220,48 +220,3 @@ void arch_dma_free(struct device *dev, size_t size, void *vaddr,
+ 	flush_tlb_all();
+ #endif
+ }
 -
--	addr = __in_29bit_mode() ?
--	       (void *)CAC_ADDR((unsigned long)vaddr) : vaddr;
-+	void *addr = sh_cacheop_vaddr(vaddr);
- 
- 	switch (direction) {
- 	case DMA_FROM_DEVICE:		/* invalidate only */
-diff --git a/drivers/sh/maple/maple.c b/drivers/sh/maple/maple.c
-index 7525039d812c..c9c354bd713a 100644
---- a/drivers/sh/maple/maple.c
-+++ b/drivers/sh/maple/maple.c
-@@ -300,8 +300,8 @@ static void maple_send(void)
- 	mutex_unlock(&maple_wlist_lock);
- 	if (maple_packets > 0) {
- 		for (i = 0; i < (1 << MAPLE_DMA_PAGES); i++)
--			sh_sync_dma_for_device(maple_sendbuf + i * PAGE_SIZE,
--				       PAGE_SIZE, DMA_BIDIRECTIONAL);
-+			__flush_purge_region(maple_sendbuf + i * PAGE_SIZE,
-+					PAGE_SIZE);
- 	}
- 
- finish:
-@@ -642,7 +642,8 @@ static void maple_dma_handler(struct work_struct *work)
- 		list_for_each_entry_safe(mq, nmq, &maple_sentq, list) {
- 			mdev = mq->dev;
- 			recvbuf = mq->recvbuf->buf;
--			sh_sync_dma_for_device(recvbuf, 0x400, DMA_FROM_DEVICE);
-+			__flush_invalidate_region(sh_cacheop_vaddr(recvbuf),
-+					0x400);
- 			code = recvbuf[0];
- 			kfree(mq->sendbuf);
- 			list_del_init(&mq->list);
+-/*
+- * make an area consistent.
+- */
+-void consistent_sync(void *vaddr, size_t size, int direction)
+-{
+-	unsigned long start;
+-	unsigned long end;
+-
+-	start = (unsigned long)vaddr;
+-
+-	/* Convert start address back down to unshadowed memory region */
+-#ifdef CONFIG_XILINX_UNCACHED_SHADOW
+-	start &= ~UNCACHED_SHADOW_MASK;
+-#endif
+-	end = start + size;
+-
+-	switch (direction) {
+-	case PCI_DMA_NONE:
+-		BUG();
+-	case PCI_DMA_FROMDEVICE:	/* invalidate only */
+-		invalidate_dcache_range(start, end);
+-		break;
+-	case PCI_DMA_TODEVICE:		/* writeback only */
+-		flush_dcache_range(start, end);
+-		break;
+-	case PCI_DMA_BIDIRECTIONAL:	/* writeback and invalidate */
+-		flush_dcache_range(start, end);
+-		break;
+-	}
+-}
+-EXPORT_SYMBOL(consistent_sync);
+-
+-/*
+- * consistent_sync_page makes memory consistent. identical
+- * to consistent_sync, but takes a struct page instead of a
+- * virtual address
+- */
+-void consistent_sync_page(struct page *page, unsigned long offset,
+-	size_t size, int direction)
+-{
+-	unsigned long start = (unsigned long)page_address(page) + offset;
+-	consistent_sync((void *)start, size, direction);
+-}
+-EXPORT_SYMBOL(consistent_sync_page);
 -- 
 2.17.0
