@@ -1,73 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from osg.samsung.com ([64.30.133.232]:51855 "EHLO osg.samsung.com"
+Received: from ale.deltatee.com ([207.54.116.67]:50946 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753502AbeDTRnA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Apr 2018 13:43:00 -0400
-From: Mauro Carvalho Chehab <mchehab@s-opensource.com>
-Subject: [PATCH 0/7] Enable most media drivers to build on ARM
-Date: Fri, 20 Apr 2018 13:42:46 -0400
-Message-ID: <cover.1524245455.git.mchehab@s-opensource.com>
+        id S1753576AbeDTSYQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Apr 2018 14:24:16 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Fri, 20 Apr 2018 12:24:01 -0600
+Message-ID: <20180420182403.9691-6-logang@deltatee.com>
+In-Reply-To: <20180420182403.9691-1-logang@deltatee.com>
+References: <20180420182403.9691-1-logang@deltatee.com>
+Subject: [PATCH v16 5/7] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: Mauro Carvalho Chehab <mchehab@s-opensource.com>, Linux Media Mailing List <linux-media@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, dri-devel@lists.freedesktop.org, Stanimir Varbanov <stanimir.varbanov@linaro.org>, Jacob Chen <jacob-chen@iotwrt.com>, Florian Tobias Schandinat <FlorianSchandinat@gmx.de>, Hans Verkuil <hans.verkuil@cisco.com>, Geert Uytterhoeven <geert+renesas@glider.be>, linux-arch@vger.kernel.org, Sean Young <sean@mess.org>, Arnd Bergmann <arnd@arndb.de>, Bhumika Goyal <bhumirks@gmail.com>, Ramesh Shanmugasundaram <ramesh.shanmugasundaram@bp.renesas.com>, Mattia Dongili <malattia@linux.it>, mjpeg-users@lists.sourceforge.net, Al Viro <viro@zeniv.linux.org.uk>, Devin Heitmueller <dheitmueller@kernellabs.com>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, platform-driver-x86@vger.kernel.org, Stephen Hemminger <stephen@networkplumber.org>, linux-fbdev@vger.kernel.org, Ladislav Michl <ladis@linux-mips.org>, Philipp Zabel <p.zabel@pengutronix.de>, Shawn Guo <shawn.guo@linaro.org>, Mans Rullgard <mans@mansr.com>, Andi Kleen <ak@linux.intel.com>, Yong Zhi <yong.zhi@intel.com>
-Message-ID: <20180420174246.O627mie0_CEJjFPOiAqKtN1s4oud7xKRKMGqb0I03DY@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20180420182401.UTSUnzQPX4AFU-rUXEE5_j6DHhguHR4H24ta5-1jAAU@z>
 
-Right now, all media drivers build successfully with COMPILE_TEST on x86,
-on both i386 and x86_64. Yet, several drivers there don't build on other
-archs.
+Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+we can remove the hack at the top of ntb_hw_intel.c and replace it
+with an include.
 
-I don't need myself to build all drivers outside x86, but others could
-find it useful. It also relps spreading COMPILE_TEST builds, with sounds
-a good idea, as more developers may be seeing issues and submiting 
-us patches.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
+Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+Acked-by: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
 
-So, this patch series makes most of them to be built elsewhere (tested
-only with ARM with allyesconfig). The only two media drivers that don't build 
-on such conditions are:
-
-1) media/staging/atomisp: it uses several ACPI bits that no other media
-driver requires (including Intel IPU3);
-
-2) radio-miropcm20: This device depnds on ISA_DMA_API, with is available only
-for a few non-Intel architectures.
-
-In other words, the following symbols aren't enabled with allyesconfig:
-
-	INTEL_ATOMISP VIDEO_ATOMISP
-	VIDEO_ATOMISP_MSRLIST_HELPER VIDEO_ATOMISP_MT9M114
-	VIDEO_ATOMISP_GC0310  VIDEO_ATOMISP_GC2235 
-	VIDEO_ATOMISP_OV2722 VIDEO_ATOMISP_OV5693
-	VIDEO_ATOMISP_OV2680 VIDEO_ATOMISP_LM3554
-	RADIO_MIROPCM20
-
-All patches in this series are available at:
-
-	https://git.linuxtv.org/mchehab/experimental.git/log/?h=compile_test_v7
-
-Mauro Carvalho Chehab (7):
-  asm-generic, media: allow COMPILE_TEST with virt_to_bus
-  media: meye: allow building it with COMPILE_TEST on non-x86
-  media: rc: allow build pnp-dependent drivers with COMPILE_TEST
-  media: ipu3: allow building it with COMPILE_TEST on non-x86 archs
-  omapfb: omapfb_dss.h: add stubs to build with COMPILE_TEST && DRM_OMAP
-  media: omap2: allow building it with COMPILE_TEST && DRM_OMAP
-  media: via-camera: allow build on non-x86 archs with COMPILE_TEST
-
- drivers/media/pci/intel/ipu3/Kconfig |  3 +-
- drivers/media/pci/meye/Kconfig       |  3 +-
- drivers/media/pci/sta2x11/Kconfig    |  4 +--
- drivers/media/pci/zoran/Kconfig      |  3 +-
- drivers/media/platform/Kconfig       |  2 +-
- drivers/media/platform/omap/Kconfig  |  3 +-
- drivers/media/platform/via-camera.c  | 10 ++++++-
- drivers/media/rc/Kconfig             | 10 +++----
- include/asm-generic/io.h             |  2 +-
- include/linux/sony-laptop.h          |  4 +++
- include/linux/via-core.h             | 17 ++++++++++++
- include/linux/via-gpio.h             |  4 +++
- include/linux/via_i2c.h              |  5 ++++
- include/video/omapfb_dss.h           | 54 ++++++++++++++++++++++++++++++++++--
- 14 files changed, 107 insertions(+), 17 deletions(-)
-
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
+index 156b45cd4a19..5cf40ab21366 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.c
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
+@@ -59,6 +59,7 @@
+ #include <linux/random.h>
+ #include <linux/slab.h>
+ #include <linux/ntb.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ #include "ntb_hw_intel.h"
+ 
+@@ -149,35 +150,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
+ static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
+ static int xeon_init_isr(struct intel_ntb_dev *ndev);
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ static inline int pdev_is_xeon(struct pci_dev *pdev)
+ {
+ 	switch (pdev->device) {
 -- 
-2.14.3
+2.11.0
