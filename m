@@ -1,68 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:44224 "EHLO
+Received: from out02.mta.xmission.com ([166.70.13.232]:44238 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755165AbeDTOkh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:40:37 -0400
+        with ESMTP id S1755165AbeDTOkn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 10:40:43 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 20 Apr 2018 09:37:52 -0500
-Message-ID: <20180420143811.9994-3-ebiederm@xmission.com>
+Date: Fri, 20 Apr 2018 09:37:55 -0500
+Message-ID: <20180420143811.9994-6-ebiederm@xmission.com>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-Subject: [REVIEW][PATCH 03/22] signal/c6x: Use force_sig_fault where appropriate
+Subject: [REVIEW][PATCH 06/22] signal/microblaze: Remove the commented out force_sig_info in do_page_fault
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <jacquiot.aurelien@gmail.com>, linux-c6x-dev@linux-c6x.org
-Message-ID: <20180420143752.ilwloftzpfUn-hPvtfbek-H8KGy7ZUNmq1u6rWvJVnQ@z>
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Michal Simek <monstr@monstr.eu>
+Message-ID: <20180420143755.m_SLrzqsGZwLfuVk5SlUtpKA2TwAxXOZG9S-s6ZoVBY@z>
 
-Filling in struct siginfo before calling force_sig_info a tedious and
-error prone process, where once in a great while the wrong fields
-are filled out, and siginfo has been inconsistently cleared.
+Remove the commented out call to force_sig_info right after a call to
+_exception in do_page_fault.  The function _exception does exactly the
+work the commented out code does so there is no reason for the
+commented out code.
 
-Simplify this process by using the helper force_sig_fault.  Which
-takes as a parameters all of the information it needs, ensures
-all of the fiddly bits of filling in struct siginfo are done properly
-and then calls force_sig_info.
-
-In short about a 5 line reduction in code for every time force_sig_info
-is called, which makes the calling function clearer.
-
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
-Cc: linux-c6x-dev@linux-c6x.org
+Cc: Michal Simek <monstr@monstr.eu>
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/c6x/kernel/traps.c | 10 ++--------
- 1 file changed, 2 insertions(+), 8 deletions(-)
+ arch/microblaze/mm/fault.c | 5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/arch/c6x/kernel/traps.c b/arch/c6x/kernel/traps.c
-index c5feee4542b0..5c60aea3b75a 100644
---- a/arch/c6x/kernel/traps.c
-+++ b/arch/c6x/kernel/traps.c
-@@ -244,9 +244,7 @@ static struct exception_info eexcept_table[128] = {
- static void do_trap(struct exception_info *except_info, struct pt_regs *regs)
- {
- 	unsigned long addr = instruction_pointer(regs);
--	siginfo_t info;
+diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
+index 43d92167012a..1251d380df47 100644
+--- a/arch/microblaze/mm/fault.c
++++ b/arch/microblaze/mm/fault.c
+@@ -268,11 +268,6 @@ void do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	/* User mode accesses cause a SIGSEGV */
+ 	if (user_mode(regs)) {
+ 		_exception(SIGSEGV, regs, code, address);
+-/*		info.si_signo = SIGSEGV;
+-		info.si_errno = 0;
+-		info.si_code = code;
+-		info.si_addr = (void *) address;
+-		force_sig_info(SIGSEGV, &info, current);*/
+ 		return;
+ 	}
  
--	clear_siginfo(&info);
- 	if (except_info->code != TRAP_BRKPT)
- 		pr_err("TRAP: %s PC[0x%lx] signo[%d] code[%d]\n",
- 		       except_info->kernel_str, regs->pc,
-@@ -254,12 +252,8 @@ static void do_trap(struct exception_info *except_info, struct pt_regs *regs)
- 
- 	die_if_kernel(except_info->kernel_str, regs, addr);
- 
--	info.si_signo = except_info->signo;
--	info.si_errno = 0;
--	info.si_code  = except_info->code;
--	info.si_addr  = (void __user *)addr;
--
--	force_sig_info(except_info->signo, &info, current);
-+	force_sig_fault(except_info->signo, except_info->code,
-+			(void __user *)addr, current);
- }
- 
- /*
 -- 
 2.14.1
