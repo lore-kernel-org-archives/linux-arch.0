@@ -1,13 +1,13 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 16/22] signal/sh: Use force_sig_fault where appropriate
-Date: Fri, 20 Apr 2018 09:38:05 -0500
-Message-ID: <20180420143811.9994-16-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 22/22] signal/xtensa: Use force_sig_fault where appropriate
+Date: Fri, 20 Apr 2018 09:38:11 -0500
+Message-ID: <20180420143811.9994-22-ebiederm@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87604mhrnb.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Max Filippov <jcmvbkbc@gmail.com>, Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org
 List-Id: linux-arch.vger.kernel.org
 
 Filling in struct siginfo before calling force_sig_info a tedious and
@@ -22,114 +22,99 @@ and then calls force_sig_info.
 In short about a 5 line reduction in code for every time force_sig_info
 is called, which makes the calling function clearer.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-xtensa@linux-xtensa.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sh/kernel/traps_32.c | 19 +++++--------------
- arch/sh/math-emu/math.c   |  9 ++-------
- arch/sh/mm/fault.c        | 10 +---------
- 3 files changed, 8 insertions(+), 30 deletions(-)
+ arch/xtensa/kernel/traps.c | 10 +---------
+ arch/xtensa/mm/fault.c     | 19 +++++--------------
+ 2 files changed, 6 insertions(+), 23 deletions(-)
 
-diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
-index e85e59c3d6df..660a4bc17698 100644
---- a/arch/sh/kernel/traps_32.c
-+++ b/arch/sh/kernel/traps_32.c
-@@ -477,7 +477,6 @@ asmlinkage void do_address_error(struct pt_regs *regs,
- {
- 	unsigned long error_code = 0;
- 	mm_segment_t oldfs;
--	siginfo_t info;
- 	insn_size_t instruction;
- 	int tmp;
- 
-@@ -537,12 +536,7 @@ asmlinkage void do_address_error(struct pt_regs *regs,
- 		       "access (PC %lx PR %lx)\n", current->comm, regs->pc,
- 		       regs->pr);
- 
--		clear_siginfo(&info);
--		info.si_signo = SIGBUS;
--		info.si_errno = 0;
--		info.si_code = si_code;
--		info.si_addr = (void __user *)address;
--		force_sig_info(SIGBUS, &info, current);
-+		force_sig_fault(SIGBUS, si_code, (void __user *)address, current);
- 	} else {
- 		inc_unaligned_kernel_access();
- 
-@@ -599,20 +593,17 @@ int is_dsp_inst(struct pt_regs *regs)
- #ifdef CONFIG_CPU_SH2A
- asmlinkage void do_divide_error(unsigned long r4)
+diff --git a/arch/xtensa/kernel/traps.c b/arch/xtensa/kernel/traps.c
+index 90b509f65b6f..86507fa7c2d7 100644
+--- a/arch/xtensa/kernel/traps.c
++++ b/arch/xtensa/kernel/traps.c
+@@ -323,8 +323,6 @@ do_illegal_instruction(struct pt_regs *regs)
+ void
+ do_unaligned_user (struct pt_regs *regs)
  {
 -	siginfo_t info;
-+	int code;
- 
--	clear_siginfo(&info);
- 	switch (r4) {
- 	case TRAP_DIVZERO_ERROR:
--		info.si_code = FPE_INTDIV;
-+		code = FPE_INTDIV;
- 		break;
- 	case TRAP_DIVOVF_ERROR:
--		info.si_code = FPE_INTOVF;
-+		code = FPE_INTOVF;
- 		break;
- 	}
 -
--	info.si_signo = SIGFPE;
--	force_sig_info(info.si_signo, &info, current);
-+	force_sig_fault(SIGFPE, code, NULL, current);
+ 	__die_if_kernel("Unhandled unaligned exception in kernel",
+ 			regs, SIGKILL);
+ 
+@@ -334,13 +332,7 @@ do_unaligned_user (struct pt_regs *regs)
+ 			    "(pid = %d, pc = %#010lx)\n",
+ 			    regs->excvaddr, current->comm,
+ 			    task_pid_nr(current), regs->pc);
+-	clear_siginfo(&info);
+-	info.si_signo = SIGBUS;
+-	info.si_errno = 0;
+-	info.si_code = BUS_ADRALN;
+-	info.si_addr = (void *) regs->excvaddr;
+-	force_sig_info(SIGBUS, &info, current);
+-
++	force_sig_fault(SIGBUS, BUS_ADRALN, (void *) regs->excvaddr, current);
  }
  #endif
  
-diff --git a/arch/sh/math-emu/math.c b/arch/sh/math-emu/math.c
-index d6d2213df078..a0fa8fc88739 100644
---- a/arch/sh/math-emu/math.c
-+++ b/arch/sh/math-emu/math.c
-@@ -507,7 +507,6 @@ static int ieee_fpe_handler(struct pt_regs *regs)
- 	unsigned short insn = *(unsigned short *)regs->pc;
- 	unsigned short finsn;
- 	unsigned long nextpc;
+diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
+index f9323a3e61ce..c111a833205a 100644
+--- a/arch/xtensa/mm/fault.c
++++ b/arch/xtensa/mm/fault.c
+@@ -39,14 +39,13 @@ void do_page_fault(struct pt_regs *regs)
+ 	struct mm_struct *mm = current->mm;
+ 	unsigned int exccause = regs->exccause;
+ 	unsigned int address = regs->excvaddr;
 -	siginfo_t info;
- 	int nib[4] = {
- 		(insn >> 12) & 0xf,
- 		(insn >> 8) & 0xf,
-@@ -560,12 +559,8 @@ static int ieee_fpe_handler(struct pt_regs *regs)
- 				~(FPSCR_CAUSE_MASK | FPSCR_FLAG_MASK);
- 			task_thread_info(tsk)->status |= TS_USEDFPU;
- 		} else {
--			clear_siginfo(&info);
--			info.si_signo = SIGFPE;
--			info.si_errno = 0;
--			info.si_code = FPE_FLTINV;
--			info.si_addr = (void __user *)regs->pc;
--			force_sig_info(SIGFPE, &info, tsk);
-+			force_sig_fault(SIGFPE, FPE_FLTINV,
-+					(void __user *)regs->pc, tsk);
- 		}
++	int code;
  
- 		regs->pc = nextpc;
-diff --git a/arch/sh/mm/fault.c b/arch/sh/mm/fault.c
-index 4c98b6f20e02..b8e7bb84b6b1 100644
---- a/arch/sh/mm/fault.c
-+++ b/arch/sh/mm/fault.c
-@@ -42,15 +42,7 @@ static void
- force_sig_info_fault(int si_signo, int si_code, unsigned long address,
- 		     struct task_struct *tsk)
- {
--	siginfo_t info;
--
+ 	int is_write, is_exec;
+ 	int fault;
+ 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+ 
 -	clear_siginfo(&info);
--	info.si_signo	= si_signo;
--	info.si_errno	= 0;
--	info.si_code	= si_code;
--	info.si_addr	= (void __user *)address;
--
--	force_sig_info(si_signo, &info, tsk);
-+	force_sig_fault(si_signo, si_code, (void __user *)address, tsk);
- }
+-	info.si_code = SEGV_MAPERR;
++	code = SEGV_MAPERR;
  
- /*
+ 	/* We fault-in kernel-space virtual memory on-demand. The
+ 	 * 'reference' page table is init_mm.pgd.
+@@ -92,7 +91,7 @@ void do_page_fault(struct pt_regs *regs)
+ 	 */
+ 
+ good_area:
+-	info.si_code = SEGV_ACCERR;
++	code = SEGV_ACCERR;
+ 
+ 	if (is_write) {
+ 		if (!(vma->vm_flags & VM_WRITE))
+@@ -158,11 +157,7 @@ void do_page_fault(struct pt_regs *regs)
+ 	if (user_mode(regs)) {
+ 		current->thread.bad_vaddr = address;
+ 		current->thread.error_code = is_write;
+-		info.si_signo = SIGSEGV;
+-		info.si_errno = 0;
+-		/* info.si_code has been set above */
+-		info.si_addr = (void *) address;
+-		force_sig_info(SIGSEGV, &info, current);
++		force_sig_fault(SIGSEGV, code, (void *) address, current);
+ 		return;
+ 	}
+ 	bad_page_fault(regs, address, SIGSEGV);
+@@ -187,11 +182,7 @@ void do_page_fault(struct pt_regs *regs)
+ 	 * or user mode.
+ 	 */
+ 	current->thread.bad_vaddr = address;
+-	info.si_code = SIGBUS;
+-	info.si_errno = 0;
+-	info.si_code = BUS_ADRERR;
+-	info.si_addr = (void *) address;
+-	force_sig_info(SIGBUS, &info, current);
++	force_sig_fault(SIGBUS, BUS_ADRERR, (void *) address, current);
+ 
+ 	/* Kernel mode? Handle exceptions or die */
+ 	if (!user_mode(regs))
 -- 
 2.14.1
