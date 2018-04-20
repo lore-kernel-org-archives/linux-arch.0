@@ -1,105 +1,90 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH 01/22] dma-debug: move initialization to common code
-Date: Fri, 20 Apr 2018 11:23:43 +0100
-Message-ID: <294a1469-01d6-10fb-5de1-b1d4513a066c@arm.com>
-References: <20180420080313.18796-1-hch@lst.de>
- <20180420080313.18796-2-hch@lst.de>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be
+ selected
+Date: Fri, 20 Apr 2018 20:36:58 +1000
+Message-ID: <20180420203658.73100c8b@roar.ozlabs.ibm.com>
+References: <20180420073414.23169-1-npiggin@gmail.com>
+ <20180420073414.23169-5-npiggin@gmail.com>
+ <5b495777-311b-ae81-6e07-6ae68f6da2b9@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180420080313.18796-2-hch@lst.de>
-Content-Language: en-GB
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <5b495777-311b-ae81-6e07-6ae68f6da2b9@c-s.fr>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Christophe LEROY <christophe.leroy@c-s.fr>
+Cc: linux-arch@vger.kernel.org, Nicolas Pitre <nico@fluxnic.net>, linuxppc-dev@lists.ozlabs.org, linux-kbuild@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+On Fri, 20 Apr 2018 12:01:34 +0200
+Christophe LEROY <christophe.leroy@c-s.fr> wrote:
 
-Nice cleanup! Looks good overall, just a couple of nits.
-
-On 20/04/18 09:02, Christoph Hellwig wrote:
-[...]
-> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-> index 7f5cdc1e6b29..712a897174e4 100644
-> --- a/lib/dma-debug.c
-> +++ b/lib/dma-debug.c
-> @@ -41,6 +41,11 @@
->   #define HASH_FN_SHIFT   13
->   #define HASH_FN_MASK    (HASH_SIZE - 1)
->   
-> +/* allow architectures to override this if absolutely required */
-> +#ifndef PREALLOC_DMA_DEBUG_ENTRIES
-> +#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
-> +#endif
-> +
->   enum {
->   	dma_debug_single,
->   	dma_debug_page,
-> @@ -1004,18 +1009,16 @@ void dma_debug_add_bus(struct bus_type *bus)
->   	bus_register_notifier(bus, nb);
->   }
->   
-> -/*
-> - * Let the architectures decide how many entries should be preallocated.
-> - */
-> -void dma_debug_init(u32 num_entries)
-> +static int dma_debug_init(void)
->   {
-> +	u32 num_entries;
-
-Maybe initialise it to PREALLOC_DMA_DEBUG_ENTRIES?
-
->   	int i;
->   
->   	/* Do not use dma_debug_initialized here, since we really want to be
->   	 * called to set dma_debug_initialized
->   	 */
->   	if (global_disable)
-> -		return;
-> +		return 0;
->   
->   	for (i = 0; i < HASH_SIZE; ++i) {
->   		INIT_LIST_HEAD(&dma_entry_hash[i].list);
-> @@ -1026,17 +1029,19 @@ void dma_debug_init(u32 num_entries)
->   		pr_err("DMA-API: error creating debugfs entries - disabling\n");
->   		global_disable = true;
->   
-> -		return;
-> +		return 0;
->   	}
->   
->   	if (req_entries)
->   		num_entries = req_entries;
-> +	else
-> +		num_entries = PREALLOC_DMA_DEBUG_ENTRIES;
->   
->   	if (prealloc_memory(num_entries) != 0) {
->   		pr_err("DMA-API: debugging out of memory error - disabled\n");
->   		global_disable = true;
->   
-> -		return;
-> +		return 0;
->   	}
->   
->   	nr_total_entries = num_free_entries;
-> @@ -1044,7 +1049,9 @@ void dma_debug_init(u32 num_entries)
->   	dma_debug_initialized = true;
->   
->   	pr_info("DMA-API: debugging enabled by kernel config\n");
-> +	return 0;
->   }
-> +core_initcall(dma_debug_init);
-
-I think it's worth noting that for most users this now happens much 
-earlier than before. In general that's probably good (e.g. on arm64 it 
-should prevent false-positives from the Arm SMMU drivers under ACPI), 
-and I can't imagine it's high-risk, but it is a behaviour change.
-
-Robin.
-
->   
->   static __init int dma_debug_cmdline(char *str)
->   {
+> Le 20/04/2018 à 09:34, Nicholas Piggin a écrit :
+> > This requires further changes to linker script to KEEP some tables
+> > and wildcard compiler generated sections into the right place. This
+> > includes pp32 modifications from Christophe Leroy.
+> > 
+> > When compiling powernv_defconfig with this option:
+> > 
+> > text       data      bss       dec        filename
+> > 11827621   4810490   1341080   17979191   vmlinux
+> > 11752437   4598858   1338776   17690071   vmlinux.dcde
+> > 
+> > Resulting kernel is almost 400kB smaller (and still boots).
+> > 
+> > [ppc32 numbers here]
+> > 
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> > ---
+> >   arch/powerpc/Kconfig              |  1 +
+> >   arch/powerpc/kernel/vmlinux.lds.S | 22 +++++++++++-----------
+> >   2 files changed, 12 insertions(+), 11 deletions(-)
+> > 
+> > diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> > index c32a181a7cbb..ee6dbe2efc8b 100644
+> > --- a/arch/powerpc/Kconfig
+> > +++ b/arch/powerpc/Kconfig
+> > @@ -205,6 +205,7 @@ config PPC
+> >   	select HAVE_KPROBES
+> >   	select HAVE_KPROBES_ON_FTRACE
+> >   	select HAVE_KRETPROBES
+> > +	select HAVE_LD_DEAD_CODE_DATA_ELIMINATION
+> >   	select HAVE_LIVEPATCH			if HAVE_DYNAMIC_FTRACE_WITH_REGS
+> >   	select HAVE_MEMBLOCK
+> >   	select HAVE_MEMBLOCK_NODE_MAP
+> > diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+> > index c8af90ff49f0..89381dc959ce 100644
+> > --- a/arch/powerpc/kernel/vmlinux.lds.S
+> > +++ b/arch/powerpc/kernel/vmlinux.lds.S
+> > @@ -89,7 +89,7 @@ SECTIONS
+> >   	 */
+> >   	.text BLOCK(0) : AT(ADDR(.text) - LOAD_OFFSET) {
+> >   #ifdef CONFIG_LD_HEAD_STUB_CATCH
+> > -		*(.linker_stub_catch);
+> > +		KEEP(*(.linker_stub_catch));
+> >   		. = . ;
+> >   #endif
+> >   
+> > @@ -98,7 +98,7 @@ SECTIONS
+> >   		ALIGN_FUNCTION();
+> >   #endif
+> >   		/* careful! __ftr_alt_* sections need to be close to .text */
+> > -		*(.text.hot .text .text.fixup .text.unlikely .fixup __ftr_alt_* .ref.text);
+> > +		*(.text.hot .text .text.[0-9a-zA-Z_]* .text.fixup .text.unlikely .fixup __ftr_alt_* .ref.text);  
 > 
+> Why not use TEXT_MAIN here instead of .text .text.[0-9a-zA-Z_]* ?
+
+It's from my early patch before we added those in the generic linker
+script. Yes your version looks nicer.
+
+Thanks,
+Nick
