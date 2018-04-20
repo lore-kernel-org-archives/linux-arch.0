@@ -1,132 +1,71 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [RFC PATCH v2 0/6] Documentation/features: Provide and apply
- 'features-refresh.sh'
-Date: Fri, 20 Apr 2018 19:04:05 +0200
-Message-ID: <20180420170405.GA14509@andrea>
-References: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH v16 1/7] iomap: Use non-raw io functions for io{read|write}XXbe
+Date: Fri, 20 Apr 2018 12:23:57 -0600
+Message-ID: <20180420182403.9691-2-logang@deltatee.com>
+References: <20180420182403.9691-1-logang@deltatee.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com>
+In-Reply-To: <20180420182403.9691-1-logang@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Ingo, Jon,
+Fix an asymmetry in the io{read|write}XXbe functions in that the
+big-endian variants make use of the raw io accessors while the
+little-endian variants use the regular accessors. Some architectures
+implement barriers to order against both spinlocks and DMA accesses
+and for these case, the big-endian variant of the API would not be
+protected.
 
-On Sun, Apr 08, 2018 at 06:30:21PM +0200, Andrea Parri wrote:
-> Hi,
-> 
-> This series provides the script 'features-refresh.sh', which operates on
-> the arch support status files, and it applies this script to refresh the
-> status files in place; previous discussions about this series are at [1].
-> 
-> The series is organized as follows.
-> 
->   - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
-> 
->   - Patch 2/6 presents the results of running the script; this run
->     also printed the messages
-> 
->        WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
->        WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
->        WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
->        WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
-> 
->     to standard output.
-> 
->   - Patches 3-6/6 fix each of these warnings.
-> 
-> (Applies on today's mainline.)
-> 
-> Cheers,
->   Andrea
-> 
-> [1] https://marc.info/?l=linux-kernel&m=152223974927255&w=2
->     https://marc.info/?l=linux-kernel&m=152277458614862&w=2
-> 
-> Changes in v2:
->   - support negation operators in Kconfig (suggested by Ingo Molnar)
->   - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
->   - add patches 4-6/6 (suggested by Ingo Molnar)
-> 
-> Andrea Parri (6):
->   Documentation/features: Add script that refreshes the arch support
->     status files in place
->   Documentation/features: Refresh the arch support status files in place
->   Documentation/features/core: Add arch support status files for
->     'cBPF-JIT' and 'eBPF-JIT'
->   Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
->     Kconfig for 'rwsem-optimized'
->   Documentation/features/lib: Remove arch support status file for
->     'strncasecmp'
->   Documentation/features/vm: Remove arch support status file for
->     'pte_special'
+Thus, change the mmio_XXXXbe macros to use the appropriate swab() function
+wrapping the regular accessor. This is similar to what was done for PIO.
 
-I understand that you didn't get the chance to look into this yet ;D
-please let me know if you'd like me to rebase and re-send the series.
+When this code was originally written, barriers in the IO accessors were
+not common and the accessors simply wrapped the raw functions in a
+conversion to CPU endianness. Since then, barriers have been added in
+some architectures and are now missing in the big endian variant of the
+API.
 
-Thanks,
-  Andrea
+This also manages to silence a few sparse warnings that check
+for using the correct endian types which the original code did
+not annotate correctly.
 
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>
+Cc: Philippe Ombredanne <pombredanne@nexb.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Link: http://lkml.kernel.org/r/CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com
+---
+ lib/iomap.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-> 
->  .../features/core/BPF-JIT/arch-support.txt         | 31 -------
->  .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
->  .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
->  .../core/generic-idle-thread/arch-support.txt      |  4 +-
->  .../features/core/jump-labels/arch-support.txt     |  2 +
->  .../features/core/tracehook/arch-support.txt       |  2 +
->  .../features/debug/KASAN/arch-support.txt          |  4 +-
->  .../debug/gcov-profile-all/arch-support.txt        |  2 +
->  Documentation/features/debug/kgdb/arch-support.txt |  4 +-
->  .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
->  .../features/debug/kprobes/arch-support.txt        |  4 +-
->  .../features/debug/kretprobes/arch-support.txt     |  4 +-
->  .../features/debug/optprobes/arch-support.txt      |  4 +-
->  .../features/debug/stackprotector/arch-support.txt |  2 +
->  .../features/debug/uprobes/arch-support.txt        |  6 +-
->  .../debug/user-ret-profiler/arch-support.txt       |  2 +
->  .../features/io/dma-api-debug/arch-support.txt     |  2 +
->  .../features/io/dma-contiguous/arch-support.txt    |  4 +-
->  .../features/io/sg-chain/arch-support.txt          |  2 +
->  .../features/lib/strncasecmp/arch-support.txt      | 31 -------
->  .../locking/cmpxchg-local/arch-support.txt         |  4 +-
->  .../features/locking/lockdep/arch-support.txt      |  4 +-
->  .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
->  .../locking/queued-spinlocks/arch-support.txt      |  8 +-
->  .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
->  .../features/perf/kprobes-event/arch-support.txt   |  6 +-
->  .../features/perf/perf-regs/arch-support.txt       |  4 +-
->  .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
->  .../sched/membarrier-sync-core/arch-support.txt    |  2 +
->  .../features/sched/numa-balancing/arch-support.txt |  6 +-
->  Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
->  .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
->  .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
->  .../features/time/clockevents/arch-support.txt     |  4 +-
->  .../time/context-tracking/arch-support.txt         |  2 +
->  .../features/time/irq-time-acct/arch-support.txt   |  4 +-
->  .../time/modern-timekeeping/arch-support.txt       |  2 +
->  .../features/time/virt-cpuacct/arch-support.txt    |  2 +
->  .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
->  .../features/vm/PG_uncached/arch-support.txt       |  2 +
->  Documentation/features/vm/THP/arch-support.txt     |  2 +
->  Documentation/features/vm/TLB/arch-support.txt     |  2 +
->  .../features/vm/huge-vmap/arch-support.txt         |  2 +
->  .../features/vm/ioremap_prot/arch-support.txt      |  2 +
->  .../features/vm/numa-memblock/arch-support.txt     |  4 +-
->  .../features/vm/pte_special/arch-support.txt       | 31 -------
->  46 files changed, 279 insertions(+), 128 deletions(-)
->  delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
->  create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
->  create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
->  delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
->  create mode 100755 Documentation/features/scripts/features-refresh.sh
->  delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
-> 
-> -- 
-> 2.7.4
-> 
+diff --git a/lib/iomap.c b/lib/iomap.c
+index 541d926da95e..2c293b22569f 100644
+--- a/lib/iomap.c
++++ b/lib/iomap.c
+@@ -65,8 +65,8 @@ static void bad_io_access(unsigned long port, const char *access)
+ #endif
+ 
+ #ifndef mmio_read16be
+-#define mmio_read16be(addr) be16_to_cpu(__raw_readw(addr))
+-#define mmio_read32be(addr) be32_to_cpu(__raw_readl(addr))
++#define mmio_read16be(addr) swab16(readw(addr))
++#define mmio_read32be(addr) swab32(readl(addr))
+ #endif
+ 
+ unsigned int ioread8(void __iomem *addr)
+@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
+ #endif
+ 
+ #ifndef mmio_write16be
+-#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
+-#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
++#define mmio_write16be(val,port) writew(swab16(val),port)
++#define mmio_write32be(val,port) writel(swab32(val),port)
+ #endif
+ 
+ void iowrite8(u8 val, void __iomem *addr)
+-- 
+2.11.0
