@@ -1,60 +1,44 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/22] c6x: use generic dma_noncoherent_ops
-Date: Fri, 20 Apr 2018 10:02:59 +0200
-Message-ID: <20180420080313.18796-9-hch@lst.de>
+Subject: [PATCH 14/22] nios2: use generic dma_noncoherent_ops
+Date: Fri, 20 Apr 2018 10:03:05 +0200
+Message-ID: <20180420080313.18796-15-hch@lst.de>
 References: <20180420080313.18796-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180420080313.18796-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Switch to the generic noncoherent direct mapping implementation.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/c6x/Kconfig                   |   3 +
- arch/c6x/include/asm/Kbuild        |   1 +
- arch/c6x/include/asm/dma-mapping.h |  28 ------
- arch/c6x/include/asm/setup.h       |   2 +
- arch/c6x/kernel/Makefile           |   2 +-
- arch/c6x/kernel/dma.c              | 138 -----------------------------
- arch/c6x/mm/dma-coherent.c         |  40 ++++++++-
- 7 files changed, 44 insertions(+), 170 deletions(-)
- delete mode 100644 arch/c6x/include/asm/dma-mapping.h
- delete mode 100644 arch/c6x/kernel/dma.c
+ arch/nios2/Kconfig                   |   3 +
+ arch/nios2/include/asm/Kbuild        |   1 +
+ arch/nios2/include/asm/dma-mapping.h |  20 ----
+ arch/nios2/mm/dma-mapping.c          | 139 +++------------------------
+ 4 files changed, 17 insertions(+), 146 deletions(-)
+ delete mode 100644 arch/nios2/include/asm/dma-mapping.h
 
-diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
-index c6b4dd1418b4..8d7a3b38810f 100644
---- a/arch/c6x/Kconfig
-+++ b/arch/c6x/Kconfig
-@@ -6,7 +6,10 @@
- 
- config C6X
+diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+index 3d4ec88f1db1..92035042cf62 100644
+--- a/arch/nios2/Kconfig
++++ b/arch/nios2/Kconfig
+@@ -1,6 +1,9 @@
+ # SPDX-License-Identifier: GPL-2.0
+ config NIOS2
  	def_bool y
 +	select ARCH_HAS_SYNC_DMA_FOR_CPU
 +	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select CLKDEV_LOOKUP
 +	select DMA_NONCOHERENT_OPS
+ 	select TIMER_OF
  	select GENERIC_ATOMIC64
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_ARCH_TRACEHOOK
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index fd4c840de837..434600e47662 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -5,6 +5,7 @@ generic-y += current.h
+ 	select GENERIC_CLOCKEVENTS
+diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
+index d232da2cbb38..24f6ee1ee69b 100644
+--- a/arch/nios2/include/asm/Kbuild
++++ b/arch/nios2/include/asm/Kbuild
+@@ -8,6 +8,7 @@ generic-y += current.h
  generic-y += device.h
  generic-y += div64.h
  generic-y += dma.h
@@ -62,279 +46,213 @@ index fd4c840de837..434600e47662 100644
  generic-y += emergency-restart.h
  generic-y += exec.h
  generic-y += extable.h
-diff --git a/arch/c6x/include/asm/dma-mapping.h b/arch/c6x/include/asm/dma-mapping.h
+diff --git a/arch/nios2/include/asm/dma-mapping.h b/arch/nios2/include/asm/dma-mapping.h
 deleted file mode 100644
-index 05daf1038111..000000000000
---- a/arch/c6x/include/asm/dma-mapping.h
+index 6ceb92251da0..000000000000
+--- a/arch/nios2/include/asm/dma-mapping.h
 +++ /dev/null
-@@ -1,28 +0,0 @@
+@@ -1,20 +0,0 @@
 -/*
-- *  Port on Texas Instruments TMS320C6x architecture
+- * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
+- * Copyright (C) 2009 Wind River Systems Inc
 - *
-- *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
-- *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
-- *
-- *  This program is free software; you can redistribute it and/or modify
-- *  it under the terms of the GNU General Public License version 2 as
-- *  published by the Free Software Foundation.
-- *
+- * This file is subject to the terms and conditions of the GNU General
+- * Public License.  See the file COPYING in the main directory of this
+- * archive for more details.
 - */
--#ifndef _ASM_C6X_DMA_MAPPING_H
--#define _ASM_C6X_DMA_MAPPING_H
 -
--extern const struct dma_map_ops c6x_dma_ops;
+-#ifndef _ASM_NIOS2_DMA_MAPPING_H
+-#define _ASM_NIOS2_DMA_MAPPING_H
+-
+-extern const struct dma_map_ops nios2_dma_ops;
 -
 -static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 -{
--	return &c6x_dma_ops;
+-	return &nios2_dma_ops;
 -}
 -
--extern void coherent_mem_init(u32 start, u32 size);
--void *c6x_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
--		gfp_t gfp, unsigned long attrs);
--void c6x_dma_free(struct device *dev, size_t size, void *vaddr,
--		dma_addr_t dma_handle, unsigned long attrs);
--
--#endif	/* _ASM_C6X_DMA_MAPPING_H */
-diff --git a/arch/c6x/include/asm/setup.h b/arch/c6x/include/asm/setup.h
-index 852afb209afb..350f34debb19 100644
---- a/arch/c6x/include/asm/setup.h
-+++ b/arch/c6x/include/asm/setup.h
-@@ -28,5 +28,7 @@ extern unsigned char c6x_fuse_mac[6];
- extern void machine_init(unsigned long dt_ptr);
- extern void time_init(void);
+-#endif /* _ASM_NIOS2_DMA_MAPPING_H */
+diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
+index 4be815519dd4..4af9e5b5ba1c 100644
+--- a/arch/nios2/mm/dma-mapping.c
++++ b/arch/nios2/mm/dma-mapping.c
+@@ -12,18 +12,18 @@
  
-+extern void coherent_mem_init(u32 start, u32 size);
-+
- #endif /* !__ASSEMBLY__ */
- #endif /* _ASM_C6X_SETUP_H */
-diff --git a/arch/c6x/kernel/Makefile b/arch/c6x/kernel/Makefile
-index 02f340d7b8fe..fbe74174de87 100644
---- a/arch/c6x/kernel/Makefile
-+++ b/arch/c6x/kernel/Makefile
-@@ -8,6 +8,6 @@ extra-y := head.o vmlinux.lds
- obj-y := process.o traps.o irq.o signal.o ptrace.o
- obj-y += setup.o sys_c6x.o time.o devicetree.o
- obj-y += switch_to.o entry.o vectors.o c6x_ksyms.o
--obj-y += soc.o dma.o
-+obj-y += soc.o
- 
- obj-$(CONFIG_MODULES)           += module.o
-diff --git a/arch/c6x/kernel/dma.c b/arch/c6x/kernel/dma.c
-deleted file mode 100644
-index 31e1a9ec3a9c..000000000000
---- a/arch/c6x/kernel/dma.c
-+++ /dev/null
-@@ -1,138 +0,0 @@
--/*
-- *  Copyright (C) 2011 Texas Instruments Incorporated
-- *  Author: Mark Salter <msalter@redhat.com>
-- *
-- *  This program is free software; you can redistribute it and/or modify
-- *  it under the terms of the GNU General Public License version 2 as
-- *  published by the Free Software Foundation.
-- */
--#include <linux/module.h>
--#include <linux/dma-mapping.h>
--#include <linux/mm.h>
--#include <linux/mm_types.h>
+ #include <linux/types.h>
+ #include <linux/mm.h>
+-#include <linux/export.h>
+ #include <linux/string.h>
 -#include <linux/scatterlist.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/io.h>
+ #include <linux/cache.h>
+ #include <asm/cacheflush.h>
+ 
+-static inline void __dma_sync_for_device(void *vaddr, size_t size,
+-			      enum dma_data_direction direction)
++void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+-	switch (direction) {
++	void *vaddr = phys_to_virt(paddr);
++
++	switch (dir) {
+ 	case DMA_FROM_DEVICE:
+ 		invalidate_dcache_range((unsigned long)vaddr,
+ 			(unsigned long)(vaddr + size));
+@@ -42,10 +42,12 @@ static inline void __dma_sync_for_device(void *vaddr, size_t size,
+ 	}
+ }
+ 
+-static inline void __dma_sync_for_cpu(void *vaddr, size_t size,
+-			      enum dma_data_direction direction)
++void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+-	switch (direction) {
++	void *vaddr = phys_to_virt(paddr);
++
++	switch (dir) {
+ 	case DMA_BIDIRECTIONAL:
+ 	case DMA_FROM_DEVICE:
+ 		invalidate_dcache_range((unsigned long)vaddr,
+@@ -58,8 +60,8 @@ static inline void __dma_sync_for_cpu(void *vaddr, size_t size,
+ 	}
+ }
+ 
+-static void *nios2_dma_alloc(struct device *dev, size_t size,
+-		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
++		gfp_t gfp, unsigned long attrs)
+ {
+ 	void *ret;
+ 
+@@ -80,125 +82,10 @@ static void *nios2_dma_alloc(struct device *dev, size_t size,
+ 	return ret;
+ }
+ 
+-static void nios2_dma_free(struct device *dev, size_t size, void *vaddr,
++void arch_dma_free(struct device *dev, size_t size, void *vaddr,
+ 		dma_addr_t dma_handle, unsigned long attrs)
+ {
+ 	unsigned long addr = (unsigned long) CAC_ADDR((unsigned long) vaddr);
+ 
+ 	free_pages(addr, get_order(size));
+ }
 -
--#include <asm/cacheflush.h>
--
--static void c6x_dma_sync(dma_addr_t handle, size_t size,
--			 enum dma_data_direction dir)
--{
--	unsigned long paddr = handle;
--
--	BUG_ON(!valid_dma_direction(dir));
--
--	switch (dir) {
--	case DMA_FROM_DEVICE:
--		L2_cache_block_invalidate(paddr, paddr + size);
--		break;
--	case DMA_TO_DEVICE:
--		L2_cache_block_writeback(paddr, paddr + size);
--		break;
--	case DMA_BIDIRECTIONAL:
--		L2_cache_block_writeback_invalidate(paddr, paddr + size);
--		break;
--	default:
--		break;
--	}
--}
--
--static dma_addr_t c6x_dma_map_page(struct device *dev, struct page *page,
--		unsigned long offset, size_t size, enum dma_data_direction dir,
+-static int nios2_dma_map_sg(struct device *dev, struct scatterlist *sg,
+-		int nents, enum dma_data_direction direction,
 -		unsigned long attrs)
 -{
--	dma_addr_t handle = virt_to_phys(page_address(page) + offset);
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		c6x_dma_sync(handle, size, dir);
--
--	return handle;
--}
--
--static void c6x_dma_unmap_page(struct device *dev, dma_addr_t handle,
--		size_t size, enum dma_data_direction dir, unsigned long attrs)
--{
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		c6x_dma_sync(handle, size, dir);
--}
--
--static int c6x_dma_map_sg(struct device *dev, struct scatterlist *sglist,
--		int nents, enum dma_data_direction dir, unsigned long attrs)
--{
--	struct scatterlist *sg;
 -	int i;
 -
--	for_each_sg(sglist, sg, nents, i) {
+-	for_each_sg(sg, sg, nents, i) {
+-		void *addr = sg_virt(sg);
+-
+-		if (!addr)
+-			continue;
+-
 -		sg->dma_address = sg_phys(sg);
--		if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--			c6x_dma_sync(sg->dma_address, sg->length, dir);
+-
+-		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-			continue;
+-
+-		__dma_sync_for_device(addr, sg->length, direction);
 -	}
 -
 -	return nents;
 -}
 -
--static void c6x_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
--		  int nents, enum dma_data_direction dir, unsigned long attrs)
+-static dma_addr_t nios2_dma_map_page(struct device *dev, struct page *page,
+-			unsigned long offset, size_t size,
+-			enum dma_data_direction direction,
+-			unsigned long attrs)
 -{
--	struct scatterlist *sg;
+-	void *addr = page_address(page) + offset;
+-
+-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		__dma_sync_for_device(addr, size, direction);
+-
+-	return page_to_phys(page) + offset;
+-}
+-
+-static void nios2_dma_unmap_page(struct device *dev, dma_addr_t dma_address,
+-		size_t size, enum dma_data_direction direction,
+-		unsigned long attrs)
+-{
+-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		__dma_sync_for_cpu(phys_to_virt(dma_address), size, direction);
+-}
+-
+-static void nios2_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
+-		int nhwentries, enum dma_data_direction direction,
+-		unsigned long attrs)
+-{
+-	void *addr;
 -	int i;
+-
+-	if (direction == DMA_TO_DEVICE)
+-		return;
 -
 -	if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
 -		return;
 -
--	for_each_sg(sglist, sg, nents, i)
--		c6x_dma_sync(sg_dma_address(sg), sg->length, dir);
+-	for_each_sg(sg, sg, nhwentries, i) {
+-		addr = sg_virt(sg);
+-		if (addr)
+-			__dma_sync_for_cpu(addr, sg->length, direction);
+-	}
 -}
 -
--static void c6x_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
--		size_t size, enum dma_data_direction dir)
+-static void nios2_dma_sync_single_for_cpu(struct device *dev,
+-		dma_addr_t dma_handle, size_t size,
+-		enum dma_data_direction direction)
 -{
--	c6x_dma_sync(handle, size, dir);
--
+-	__dma_sync_for_cpu(phys_to_virt(dma_handle), size, direction);
 -}
 -
--static void c6x_dma_sync_single_for_device(struct device *dev,
--		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-static void nios2_dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t dma_handle, size_t size,
+-		enum dma_data_direction direction)
 -{
--	c6x_dma_sync(handle, size, dir);
--
+-	__dma_sync_for_device(phys_to_virt(dma_handle), size, direction);
 -}
 -
--static void c6x_dma_sync_sg_for_cpu(struct device *dev,
--		struct scatterlist *sglist, int nents,
--		enum dma_data_direction dir)
+-static void nios2_dma_sync_sg_for_cpu(struct device *dev,
+-		struct scatterlist *sg, int nelems,
+-		enum dma_data_direction direction)
 -{
--	struct scatterlist *sg;
 -	int i;
 -
--	for_each_sg(sglist, sg, nents, i)
--		c6x_dma_sync_single_for_cpu(dev, sg_dma_address(sg),
--					sg->length, dir);
--
+-	/* Make sure that gcc doesn't leave the empty loop body.  */
+-	for_each_sg(sg, sg, nelems, i)
+-		__dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
 -}
 -
--static void c6x_dma_sync_sg_for_device(struct device *dev,
--		struct scatterlist *sglist, int nents,
--		enum dma_data_direction dir)
+-static void nios2_dma_sync_sg_for_device(struct device *dev,
+-		struct scatterlist *sg, int nelems,
+-		enum dma_data_direction direction)
 -{
--	struct scatterlist *sg;
 -	int i;
 -
--	for_each_sg(sglist, sg, nents, i)
--		c6x_dma_sync_single_for_device(dev, sg_dma_address(sg),
--					   sg->length, dir);
+-	/* Make sure that gcc doesn't leave the empty loop body.  */
+-	for_each_sg(sg, sg, nelems, i)
+-		__dma_sync_for_device(sg_virt(sg), sg->length, direction);
 -
 -}
 -
--const struct dma_map_ops c6x_dma_ops = {
--	.alloc			= c6x_dma_alloc,
--	.free			= c6x_dma_free,
--	.map_page		= c6x_dma_map_page,
--	.unmap_page		= c6x_dma_unmap_page,
--	.map_sg			= c6x_dma_map_sg,
--	.unmap_sg		= c6x_dma_unmap_sg,
--	.sync_single_for_device	= c6x_dma_sync_single_for_device,
--	.sync_single_for_cpu	= c6x_dma_sync_single_for_cpu,
--	.sync_sg_for_device	= c6x_dma_sync_sg_for_device,
--	.sync_sg_for_cpu	= c6x_dma_sync_sg_for_cpu,
+-const struct dma_map_ops nios2_dma_ops = {
+-	.alloc			= nios2_dma_alloc,
+-	.free			= nios2_dma_free,
+-	.map_page		= nios2_dma_map_page,
+-	.unmap_page		= nios2_dma_unmap_page,
+-	.map_sg			= nios2_dma_map_sg,
+-	.unmap_sg		= nios2_dma_unmap_sg,
+-	.sync_single_for_device	= nios2_dma_sync_single_for_device,
+-	.sync_single_for_cpu	= nios2_dma_sync_single_for_cpu,
+-	.sync_sg_for_cpu	= nios2_dma_sync_sg_for_cpu,
+-	.sync_sg_for_device	= nios2_dma_sync_sg_for_device,
 -};
--EXPORT_SYMBOL(c6x_dma_ops);
-diff --git a/arch/c6x/mm/dma-coherent.c b/arch/c6x/mm/dma-coherent.c
-index 95e38ad27c69..d0a8e0c4b27e 100644
---- a/arch/c6x/mm/dma-coherent.c
-+++ b/arch/c6x/mm/dma-coherent.c
-@@ -19,10 +19,12 @@
- #include <linux/bitops.h>
- #include <linux/module.h>
- #include <linux/interrupt.h>
--#include <linux/dma-mapping.h>
-+#include <linux/dma-noncoherent.h>
- #include <linux/memblock.h>
- 
-+#include <asm/cacheflush.h>
- #include <asm/page.h>
-+#include <asm/setup.h>
- 
- /*
-  * DMA coherent memory management, can be redefined using the memdma=
-@@ -73,7 +75,7 @@ static void __free_dma_pages(u32 addr, int order)
-  * Allocate DMA coherent memory space and return both the kernel
-  * virtual and DMA address for that space.
-  */
--void *c6x_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 		gfp_t gfp, unsigned long attrs)
- {
- 	u32 paddr;
-@@ -98,7 +100,7 @@ void *c6x_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- /*
-  * Free DMA coherent memory as defined by the above mapping.
-  */
--void c6x_dma_free(struct device *dev, size_t size, void *vaddr,
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
- 		dma_addr_t dma_handle, unsigned long attrs)
- {
- 	int order;
-@@ -139,3 +141,35 @@ void __init coherent_mem_init(phys_addr_t start, u32 size)
- 	dma_bitmap = phys_to_virt(bitmap_phys);
- 	memset(dma_bitmap, 0, dma_pages * PAGE_SIZE);
- }
-+
-+static void c6x_dma_sync(struct device *dev, phys_addr_t paddr, size_t size,
-+		enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
-+
-+	switch (dir) {
-+	case DMA_FROM_DEVICE:
-+		L2_cache_block_invalidate(paddr, paddr + size);
-+		break;
-+	case DMA_TO_DEVICE:
-+		L2_cache_block_writeback(paddr, paddr + size);
-+		break;
-+	case DMA_BIDIRECTIONAL:
-+		L2_cache_block_writeback_invalidate(paddr, paddr + size);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
-+{
-+	return c6x_dma_sync(dev, paddr, size, dir);
-+}
-+
-+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
-+{
-+	return c6x_dma_sync(dev, paddr, size, dir);
-+}
+-EXPORT_SYMBOL(nios2_dma_ops);
 -- 
 2.17.0
