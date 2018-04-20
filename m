@@ -1,66 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35746 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753825AbeDTBGp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:06:45 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:50408 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753782AbeDTBMI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2018 21:12:08 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 19 Apr 2018 20:03:54 -0500
-Message-ID: <20180420010408.24438-3-ebiederm@xmission.com>
+Date: Thu, 19 Apr 2018 20:04:05 -0500
+Message-ID: <20180420010408.24438-14-ebiederm@xmission.com>
 In-Reply-To: <878t9ilmhv.fsf@xmission.com>
 References: <878t9ilmhv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 03/17] signal/sh: Use force_sig_fault in hw_breakpoint_handler
+Subject: [REVIEW][PATCH 14/17] signal/unicore32: Use FPE_FLTUNK instead of 0 in ucf64_raise_sigfpe
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
-Message-ID: <20180420010354.mNOfalS9hfN_E0QYYtLO1LoiKk7ML_iOkPr8H0POK8w@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20180420010405.w51uKY19Ouw8sV-8uGAIzR6CwGS0YEVnhQRtT0FH7Sc@z>
 
-The call chain is:
-breakpoint
-  notify_die
-    hw_breakpoint_exceptions_notify
-      hw_breakpoint_handler
+The si_code of 0 (aka SI_USER) has fields si_pid and si_uid not
+si_addr so it so only by luck would the appropriate fields by copied
+to userspace by copy_siginfo_to_user.
 
-So the signal number can only be SIGTRAP.
+This is just broken and wrong.
 
-In hw_breakpoint_handler rc is either NOTIFY_STOP or NOTIF_DONE
-both of which notifier_to_errno converts to 0.  So si_errno is 0.
+Make it obvious what is happening by moving the si_code from a
+parameter of the one call to ucf64_raise_sigfpe to a constant value
+that info.si_code gets set to.
 
-Historically si_addr was left unitialized in struct siginfo which is a
-bug.  There appears to be no consensus among the various architectures
-which value should be in si_addr.  So since no usable value has
-been returned up to this point return NULL in si_addr.
+Explicitly set the si_code to FPE_FLTUNK the newly reserved floating
+point si_code for an unknown floating point exception.
 
-Fixes: 4352fc1b12fa ("sh: Abstracted SH-4A UBC support on hw-breakpoint core.")
-Fixes: 34d0b5af50a0 ("sh: Convert ptrace to hw_breakpoint API.")
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-sh@vger.kernel.org
+It looks like there is a fair chance that this is a code path that has
+never been used in real life on unicore32.  The bad si_code and the
+print statement that calls it an unhandled exception.  So I really
+don't expect anyone will mind if this just gets fixed.
+
+In similar situations on more popular architectures the conclusion was
+just fix it.
+
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Fixes: d9bc15794d12 ("unicore32 additional architecture files: float point handling")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sh/kernel/hw_breakpoint.c | 9 ++-------
- 1 file changed, 2 insertions(+), 7 deletions(-)
+ arch/unicore32/kernel/fpu-ucf64.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sh/kernel/hw_breakpoint.c b/arch/sh/kernel/hw_breakpoint.c
-index afe965712a69..8648ed05ccf0 100644
---- a/arch/sh/kernel/hw_breakpoint.c
-+++ b/arch/sh/kernel/hw_breakpoint.c
-@@ -347,13 +347,8 @@ static int __kprobes hw_breakpoint_handler(struct die_args *args)
+diff --git a/arch/unicore32/kernel/fpu-ucf64.c b/arch/unicore32/kernel/fpu-ucf64.c
+index d785955e1c29..8594b168f25e 100644
+--- a/arch/unicore32/kernel/fpu-ucf64.c
++++ b/arch/unicore32/kernel/fpu-ucf64.c
+@@ -52,14 +52,14 @@
+  * Raise a SIGFPE for the current process.
+  * sicode describes the signal being raised.
+  */
+-void ucf64_raise_sigfpe(unsigned int sicode, struct pt_regs *regs)
++void ucf64_raise_sigfpe(struct pt_regs *regs)
+ {
+ 	siginfo_t info;
  
- 		/* Deliver the signal to userspace */
- 		if (!arch_check_bp_in_kernelspace(bp)) {
--			siginfo_t info;
--
--			info.si_signo = args->signr;
--			info.si_errno = notifier_to_errno(rc);
--			info.si_code = TRAP_HWBKPT;
--
--			force_sig_info(args->signr, &info, current);
-+			force_sig_fault(SIGTRAP, TRAP_HWBKPT,
-+					(void __user *)NULL, current);
- 		}
+ 	clear_siginfo(&info);
  
- 		rcu_read_unlock();
+ 	info.si_signo = SIGFPE;
+-	info.si_code = sicode;
++	info.si_code = FPE_FLTUNK;
+ 	info.si_addr = (void __user *)(instruction_pointer(regs) - 4);
+ 
+ 	/*
+@@ -94,7 +94,7 @@ void ucf64_exchandler(u32 inst, u32 fpexc, struct pt_regs *regs)
+ 		pr_debug("UniCore-F64 FPSCR 0x%08x INST 0x%08x\n",
+ 				cff(FPSCR), inst);
+ 
+-		ucf64_raise_sigfpe(0, regs);
++		ucf64_raise_sigfpe(regs);
+ 		return;
+ 	}
+ 
 -- 
 2.14.1
