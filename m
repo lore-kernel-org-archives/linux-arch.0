@@ -1,99 +1,270 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43768 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1754268AbeDTIMd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Apr 2018 04:12:33 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3K89Nt1116520
-        for <linux-arch@vger.kernel.org>; Fri, 20 Apr 2018 04:12:32 -0400
-Received: from e06smtp14.uk.ibm.com (e06smtp14.uk.ibm.com [195.75.94.110])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2hfb98beby-1
-        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 20 Apr 2018 04:12:32 -0400
-Received: from localhost
-        by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Fri, 20 Apr 2018 09:12:30 +0100
-Date: Fri, 20 Apr 2018 10:12:26 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC][PATCH] s390: add arch_change_pid for arch updates after
- task pid change
-In-Reply-To: <20180419160827.GB19917@redhat.com>
-References: <1524120286-19066-1-git-send-email-schwidefsky@de.ibm.com>
-        <20180419140729.GA19917@redhat.com>
-        <20180419162056.6b657d71@mschwideX1>
-        <20180419160827.GB19917@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Message-Id: <20180420101226.377a281e@mschwideX1>
+Received: from bombadil.infradead.org ([198.137.202.133]:39868 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753854AbeDTIEO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2018 04:04:14 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 07/22] arm-nommu: use generic dma_noncoherent_ops
+Date: Fri, 20 Apr 2018 10:02:58 +0200
+Message-ID: <20180420080313.18796-8-hch@lst.de>
+In-Reply-To: <20180420080313.18796-1-hch@lst.de>
+References: <20180420080313.18796-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
+Message-ID: <20180420080258.IhGAcr9m0CTVEEe1yQV078k2bB4EH11BwN4frjBvd7M@z>
 
-On Thu, 19 Apr 2018 18:08:28 +0200
-Oleg Nesterov <oleg@redhat.com> wrote:
+Switch to the generic noncoherent direct mapping implementation for
+the nommu dma map implementation.
 
-> On 04/19, Martin Schwidefsky wrote:
-> >
-> > On Thu, 19 Apr 2018 16:07:29 +0200
-> > Oleg Nesterov <oleg@redhat.com> wrote:
-> >  
-> > > On 04/19, Martin Schwidefsky wrote:  
-> > > >
-> > > > In a multi-threaded program any thread can call execve(). If this
-> > > > is not done by the thread group leader, the de_thread() function
-> > > > replaces the pid of the task that calls execve() with the pid of
-> > > > thread group leader. If the task reaches user space again without
-> > > > going over __switch_to() the sampling tag is still set to the old
-> > > > pid.  
-> > >
-> > > If this is the only reason for arch_change_pid() hook, then perhaps
-> > > it would be better/simpler to add it into de_thread() right after
-> > > change_pid(tsk, PIDTYPE_PID, task_pid(leader)) ?
-> > >
-> > > note also that this way arch_change_pid() doesn't need any checks and
-> > > any arguments, you can simply do
-> > >
-> > > void arch_change_pid(void)
-> > > {
-> > > 	S390_lowcore.current_pid = current->pid;
-> > > 	if (test_facility(40))
-> > > 		lpp(&S390_lowcore.lpp);
-> > > }  
-> >
-> > Yeah, the first patch I created to verify that this indeed the problem
-> > basically looked like your proposal. But then why not make it a more
-> > general hook for any kind of PID change?  
-> 
-> Well, I doubt very much we will ever need an arch-specific hook for
-> sys_setsid() or setpgid()... plus
-> 
-> > Dunno if this is a worthwhile
-> > approach, the simpler version for sure works as well.  
-> 
-> and perhaps you can make another, even more simple change? can't you just
-> introduce the s390 version of arch_setup_new_exec, something like
-> 
-> 	void arch_setup_new_exec(void)
-> 	{
-> 		if (S390_lowcore.current_pid != current->pid) {
-> 			S390_lowcore.current_pid = current->pid;
-> 			...
-> 		}
-> 	}
-> 
-> ?
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arc/Kconfig                |   1 +
+ arch/arm/Kconfig                |   4 +
+ arch/arm/mm/dma-mapping-nommu.c | 139 +++++---------------------------
+ 3 files changed, 23 insertions(+), 121 deletions(-)
 
-Nice, set_new_exec is called after flush_old_exec/de_thread. Yes, that
-should work as well and does not require a new arch hook.
-
-Thanks Oleg!
-
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 89d47eac18b2..3a492a9aeaad 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -9,6 +9,7 @@
+ config ARC
+ 	def_bool y
+ 	select ARC_TIMERS
++	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+ 	select ARCH_HAS_SYNC_DMA_FOR_CPU
+ 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+ 	select ARCH_HAS_SG_CHAIN
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index f91f69174630..eacc45ac4e77 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -12,6 +12,8 @@ config ARM
+ 	select ARCH_HAS_PHYS_TO_DMA
+ 	select ARCH_HAS_STRICT_KERNEL_RWX if MMU && !XIP_KERNEL
+ 	select ARCH_HAS_STRICT_MODULE_RWX if MMU
++	select ARCH_HAS_SYNC_DMA_FOR_CPU if !MMU
++	select ARCH_HAS_SYNC_DMA_FOR_DEVICE if !MMU
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+@@ -27,6 +29,8 @@ config ARM
+ 	select CPU_PM if (SUSPEND || CPU_IDLE)
+ 	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	select DMA_DIRECT_OPS if !MMU
++	select DMA_NONCOHERENT_OPS if !MMU
++	select DMA_NONCOHERENT_MMAP if !MMU
+ 	select EDAC_SUPPORT
+ 	select EDAC_ATOMIC_SCRUB
+ 	select GENERIC_ALLOCATOR
+diff --git a/arch/arm/mm/dma-mapping-nommu.c b/arch/arm/mm/dma-mapping-nommu.c
+index f448a0663b10..a74ed6632982 100644
+--- a/arch/arm/mm/dma-mapping-nommu.c
++++ b/arch/arm/mm/dma-mapping-nommu.c
+@@ -12,6 +12,7 @@
+ #include <linux/export.h>
+ #include <linux/mm.h>
+ #include <linux/dma-direct.h>
++#include <linux/dma-noncoherent.h>
+ #include <linux/scatterlist.h>
+ 
+ #include <asm/cachetype.h>
+@@ -26,18 +27,16 @@
+  *   - MMU/MPU is off
+  *   - cpu is v7m w/o cache support
+  *   - device is coherent
+- *  otherwise arm_nommu_dma_ops is used.
++ *  otherwise dma_noncoherent_ops is used.
+  *
+- *  arm_nommu_dma_ops rely on consistent DMA memory (please, refer to
++ *  dma_noncoherent_ops rely on consistent DMA memory (please, refer to
+  *  [1] on how to declare such memory).
+  *
+  *  [1] Documentation/devicetree/bindings/reserved-memory/reserved-memory.txt
+  */
+ 
+-static void *arm_nommu_dma_alloc(struct device *dev, size_t size,
+-				 dma_addr_t *dma_handle, gfp_t gfp,
+-				 unsigned long attrs)
+-
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
++		gfp_t gfp, unsigned long attrs)
+ {
+ 	void *ret;
+ 
+@@ -65,9 +64,8 @@ static void *arm_nommu_dma_alloc(struct device *dev, size_t size,
+ 	return ret;
+ }
+ 
+-static void arm_nommu_dma_free(struct device *dev, size_t size,
+-			       void *cpu_addr, dma_addr_t dma_addr,
+-			       unsigned long attrs)
++void arch_dma_free(struct device *dev, size_t size, void *cpu_addr,
++		dma_addr_t dma_addr, unsigned long attrs)
+ {
+ 	if (attrs & DMA_ATTR_NON_CONSISTENT) {
+ 		dma_direct_free(dev, size, cpu_addr, dma_addr, attrs);
+@@ -81,9 +79,9 @@ static void arm_nommu_dma_free(struct device *dev, size_t size,
+ 	return;
+ }
+ 
+-static int arm_nommu_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+-			      void *cpu_addr, dma_addr_t dma_addr, size_t size,
+-			      unsigned long attrs)
++int arch_dma_mmap(struct device *dev, struct vm_area_struct *vma,
++		void *cpu_addr, dma_addr_t dma_addr, size_t size,
++		unsigned long attrs)
+ {
+ 	int ret;
+ 
+@@ -93,9 +91,8 @@ static int arm_nommu_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+ 	return dma_common_mmap(dev, vma, cpu_addr, dma_addr, size);
+ }
+ 
+-
+-static void __dma_page_cpu_to_dev(phys_addr_t paddr, size_t size,
+-				  enum dma_data_direction dir)
++void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+ 	dmac_map_area(__va(paddr), size, dir);
+ 
+@@ -105,8 +102,8 @@ static void __dma_page_cpu_to_dev(phys_addr_t paddr, size_t size,
+ 		outer_clean_range(paddr, paddr + size);
+ }
+ 
+-static void __dma_page_dev_to_cpu(phys_addr_t paddr, size_t size,
+-				  enum dma_data_direction dir)
++void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+ 	if (dir != DMA_TO_DEVICE) {
+ 		outer_inv_range(paddr, paddr + size);
+@@ -114,110 +111,9 @@ static void __dma_page_dev_to_cpu(phys_addr_t paddr, size_t size,
+ 	}
+ }
+ 
+-static dma_addr_t arm_nommu_dma_map_page(struct device *dev, struct page *page,
+-					 unsigned long offset, size_t size,
+-					 enum dma_data_direction dir,
+-					 unsigned long attrs)
+-{
+-	dma_addr_t handle = page_to_phys(page) + offset;
+-
+-	__dma_page_cpu_to_dev(handle, size, dir);
+-
+-	return handle;
+-}
+-
+-static void arm_nommu_dma_unmap_page(struct device *dev, dma_addr_t handle,
+-				     size_t size, enum dma_data_direction dir,
+-				     unsigned long attrs)
+-{
+-	__dma_page_dev_to_cpu(handle, size, dir);
+-}
+-
+-
+-static int arm_nommu_dma_map_sg(struct device *dev, struct scatterlist *sgl,
+-				int nents, enum dma_data_direction dir,
+-				unsigned long attrs)
+-{
+-	int i;
+-	struct scatterlist *sg;
+-
+-	for_each_sg(sgl, sg, nents, i) {
+-		sg_dma_address(sg) = sg_phys(sg);
+-		sg_dma_len(sg) = sg->length;
+-		__dma_page_cpu_to_dev(sg_dma_address(sg), sg_dma_len(sg), dir);
+-	}
+-
+-	return nents;
+-}
+-
+-static void arm_nommu_dma_unmap_sg(struct device *dev, struct scatterlist *sgl,
+-				   int nents, enum dma_data_direction dir,
+-				   unsigned long attrs)
+-{
+-	struct scatterlist *sg;
+-	int i;
+-
+-	for_each_sg(sgl, sg, nents, i)
+-		__dma_page_dev_to_cpu(sg_dma_address(sg), sg_dma_len(sg), dir);
+-}
+-
+-static void arm_nommu_dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-{
+-	__dma_page_cpu_to_dev(handle, size, dir);
+-}
+-
+-static void arm_nommu_dma_sync_single_for_cpu(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-{
+-	__dma_page_cpu_to_dev(handle, size, dir);
+-}
+-
+-static void arm_nommu_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sgl,
+-					     int nents, enum dma_data_direction dir)
+-{
+-	struct scatterlist *sg;
+-	int i;
+-
+-	for_each_sg(sgl, sg, nents, i)
+-		__dma_page_cpu_to_dev(sg_dma_address(sg), sg_dma_len(sg), dir);
+-}
+-
+-static void arm_nommu_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sgl,
+-					  int nents, enum dma_data_direction dir)
+-{
+-	struct scatterlist *sg;
+-	int i;
+-
+-	for_each_sg(sgl, sg, nents, i)
+-		__dma_page_dev_to_cpu(sg_dma_address(sg), sg_dma_len(sg), dir);
+-}
+-
+-const struct dma_map_ops arm_nommu_dma_ops = {
+-	.alloc			= arm_nommu_dma_alloc,
+-	.free			= arm_nommu_dma_free,
+-	.mmap			= arm_nommu_dma_mmap,
+-	.map_page		= arm_nommu_dma_map_page,
+-	.unmap_page		= arm_nommu_dma_unmap_page,
+-	.map_sg			= arm_nommu_dma_map_sg,
+-	.unmap_sg		= arm_nommu_dma_unmap_sg,
+-	.sync_single_for_device	= arm_nommu_dma_sync_single_for_device,
+-	.sync_single_for_cpu	= arm_nommu_dma_sync_single_for_cpu,
+-	.sync_sg_for_device	= arm_nommu_dma_sync_sg_for_device,
+-	.sync_sg_for_cpu	= arm_nommu_dma_sync_sg_for_cpu,
+-};
+-EXPORT_SYMBOL(arm_nommu_dma_ops);
+-
+-static const struct dma_map_ops *arm_nommu_get_dma_map_ops(bool coherent)
+-{
+-	return coherent ? &dma_direct_ops : &arm_nommu_dma_ops;
+-}
+-
+ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+ 			const struct iommu_ops *iommu, bool coherent)
+ {
+-	const struct dma_map_ops *dma_ops;
+-
+ 	if (IS_ENABLED(CONFIG_CPU_V7M)) {
+ 		/*
+ 		 * Cache support for v7m is optional, so can be treated as
+@@ -233,9 +129,10 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+ 		dev->archdata.dma_coherent = (get_cr() & CR_M) ? coherent : true;
+ 	}
+ 
+-	dma_ops = arm_nommu_get_dma_map_ops(dev->archdata.dma_coherent);
+-
+-	set_dma_ops(dev, dma_ops);
++	if (dev->archdata.dma_coherent)
++		set_dma_ops(dev, &dma_direct_ops);
++	else
++		set_dma_ops(dev, &dma_noncoherent_ops);
+ }
+ 
+ void arch_teardown_dma_ops(struct device *dev)
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+2.17.0
