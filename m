@@ -1,89 +1,59 @@
-From: christophe leroy <christophe.leroy@c-s.fr>
-Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be
- selected
-Date: Sat, 21 Apr 2018 09:16:32 +0200
-Message-ID: <738aa4d6-9313-f484-0510-e965f2881869@c-s.fr>
-References: <20180420073414.23169-1-npiggin@gmail.com>
- <20180420073414.23169-5-npiggin@gmail.com>
- <CA+7wUswuyn+YgNe732rQAzVmgDBohTMEqwsd76nQ_CH5h7Y5WA@mail.gmail.com>
- <20180420204104.6e22b136@roar.ozlabs.ibm.com>
- <CA+7wUsyWu3eweWjwfFoS5FD5yb3OxjLV4-XyErcNA4fJGPCf8Q@mail.gmail.com>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [REVIEW][PATCH 14/22] signal/riscv: Use force_sig_fault where
+ appropriate
+Date: Sat, 21 Apr 2018 00:25:50 -0700
+Message-ID: <20180421072550.GA6973@infradead.org>
+References: <87604mhrnb.fsf@xmission.com>
+ <20180420143811.9994-14-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <CA+7wUsyWu3eweWjwfFoS5FD5yb3OxjLV4-XyErcNA4fJGPCf8Q@mail.gmail.com>
-Content-Language: fr
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Mathieu Malaterre <malat@debian.org>, Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch@vger.kernel.org, Nicolas Pitre <nico@fluxnic.net>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-kbuild@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180420143811.9994-14-ebiederm@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, Palmer Dabbelt <palmer@sifive.com>, linux-kernel@vger.kernel.org, Albert Ou <albert@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-
-
-Le 20/04/2018 à 22:08, Mathieu Malaterre a écrit :
-> On Fri, Apr 20, 2018 at 12:41 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->> On Fri, 20 Apr 2018 12:00:49 +0200
->> Mathieu Malaterre <malat@debian.org> wrote:
->>
->>> On Fri, Apr 20, 2018 at 9:34 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
->>>> This requires further changes to linker script to KEEP some tables
->>>> and wildcard compiler generated sections into the right place. This
->>>> includes pp32 modifications from Christophe Leroy.
->>>>
->>>> When compiling powernv_defconfig with this option:
->>>>
->>>> text       data      bss       dec        filename
->>>> 11827621   4810490   1341080   17979191   vmlinux
->>>> 11752437   4598858   1338776   17690071   vmlinux.dcde
->>>>
->>>> Resulting kernel is almost 400kB smaller (and still boots).
->>>>
->>>> [ppc32 numbers here]
->>>
->>> ^^^
->>>
->>> Do you want somebody else to provide those numbers ?
->>
->> If you have a booting kernel, yes some more numbers would be good.
+On Fri, Apr 20, 2018 at 09:38:03AM -0500, Eric W. Biederman wrote:
+> Filling in struct siginfo before calling force_sig_info a tedious and
+> error prone process, where once in a great while the wrong fields
+> are filled out, and siginfo has been inconsistently cleared.
 > 
-> I've used /boot/config-4.15.0-2-powerpc from my current debian
-> package. Rebuild master with and without option, boot ok, load/unload
-> module ok.
+> Simplify this process by using the helper force_sig_fault.  Which
+> takes as a parameters all of the information it needs, ensures
+> all of the fiddly bits of filling in struct siginfo are done properly
+> and then calls force_sig_info.
 > 
-> $ size nick/vmlinux.with*
->     text    data     bss     dec     hex filename
-> 7386425 2364370 1425432 11176227 aa8923 nick/vmlinux.with
-> 7461457 2475122 1428064 11364643 ad6923 nick/vmlinux.without
+> In short about a 5 line reduction in code for every time force_sig_info
+> is called, which makes the calling function clearer.
 > 
-> This is not clear why with option the size of kernel is slightly bigger:
-
-The file contains also debug symbols, which might differ.
-Only the LOAD part of the file is interesting, that's the part you get 
-when doing ppc-linux-objcopy vmlinux vmlinux.bin -O binary
-
-You can see it with readelf -l vmlinux
-
-Christophe
-
+> Cc: Palmer Dabbelt <palmer@sifive.com>
+> Cc: Albert Ou <albert@sifive.com>
+> Cc: linux-riscv@lists.infradead.org
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> ---
+>  arch/riscv/kernel/traps.c | 9 +--------
+>  1 file changed, 1 insertion(+), 8 deletions(-)
 > 
-> $ du -sk nick/vmlinux.with*
-> 124488 nick/vmlinux.with
-> 124004 nick/vmlinux.without
-> 
-> 
->> Thanks,
->> Nick
+> diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+> index 48aa6471cede..3087940008f4 100644
+> --- a/arch/riscv/kernel/traps.c
+> +++ b/arch/riscv/kernel/traps.c
+> @@ -66,14 +66,7 @@ void die(struct pt_regs *regs, const char *str)
+>  static inline void do_trap_siginfo(int signo, int code,
+>  	unsigned long addr, struct task_struct *tsk)
+>  {
+> -	siginfo_t info;
+> -
+> -	clear_siginfo(&info);
+> -	info.si_signo = signo;
+> -	info.si_errno = 0;
+> -	info.si_code = code;
+> -	info.si_addr = (void __user *)addr;
+> -	force_sig_info(signo, &info, tsk);
+> +	force_sig_fault(signo, code, (void __user *)addr, tsk);
+>  }
 
----
-L'absence de virus dans ce courrier électronique a été vérifiée par le logiciel antivirus Avast.
-https://www.avast.com/antivirus
+Please kill the do_trap_siginfo helper and use force_sig_fault
+directly in both callers.
