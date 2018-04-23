@@ -1,73 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:33476 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753485AbeDVURU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Apr 2018 16:17:20 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:48966 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751285AbeDWFov (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Apr 2018 01:44:51 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w3N5dLJF047264
+        for <linux-arch@vger.kernel.org>; Mon, 23 Apr 2018 01:44:50 -0400
+Received: from e06smtp10.uk.ibm.com (e06smtp10.uk.ibm.com [195.75.94.106])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2hh4nwryb9-1
+        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 23 Apr 2018 01:44:50 -0400
+Received: from localhost
+        by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+        Mon, 23 Apr 2018 06:44:42 +0100
+Date: Mon, 23 Apr 2018 07:44:37 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [REVIEW][PATCH 15/22] signal/s390: Use force_sig_fault where
+ appropriate
+In-Reply-To: <20180420143811.9994-15-ebiederm@xmission.com>
+References: <87604mhrnb.fsf@xmission.com>
+        <20180420143811.9994-15-ebiederm@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMe9rOrTzgDmCF+A7nYdGR6BHZBuK5SMnJxeRxBFQW00VmdXvg@mail.gmail.com>
-References: <CAK8P3a3qAoR1afmTTK1CAp1L81dzwtBL+SKj=QMqD=dBr_8oRQ@mail.gmail.com>
- <20180420130346.3178914-1-arnd@arndb.de> <CAH8yC8mnfNnG86kgjnfwiZJ0=qN+w=5PVcLcxddaJdDtYbSanA@mail.gmail.com>
- <CAK8P3a0nL4B+t6BMRhr36RrZ_jDgwnY1BviNPD+cFzsUGeppmA@mail.gmail.com> <CAMe9rOrTzgDmCF+A7nYdGR6BHZBuK5SMnJxeRxBFQW00VmdXvg@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Sun, 22 Apr 2018 22:17:18 +0200
-Message-ID: <CAK8P3a2=nfW1YSJoTf_cj5DVSMVfzWYaYqG486FHD3vPw3YZfQ@mail.gmail.com>
-Subject: Re: [PATCH] x86: ipc: fix x32 version of shmid64_ds and msqid64_ds
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Message-ID: <20180423074437.1203f39f@mschwideX1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Jeffrey Walton <noloader@gmail.com>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "Eric W . Biederman" <ebiederm@xmission.com>, y2038 Mailman List <y2038@lists.linaro.org>, LKML <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Albert ARIBAUD <albert.aribaud@3adev.fr>, linux-s390 <linux-s390@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Daniel Schepler <dschepler@gmail.com>, Adam Borowski <kilobyte@angband.pl>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, "# 3.4.x" <stable@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20180422201718.tmGVQ0AmXDp41_Tv6KLJdg9vBJfnc61YbULouVwPxa4@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
+Message-ID: <20180423054437.JmdQlHGeH_hwMDGLIWBdH3IghNyLX9IYfslv0voq1ac@z>
 
-On Sun, Apr 22, 2018 at 2:38 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
-> On Fri, Apr 20, 2018 at 7:38 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Fri, Apr 20, 2018 at 3:53 PM, Jeffrey Walton <noloader@gmail.com> wrote:
->
-> Glibc has correct header files for system calls.  I have a very old
-> program to check if Linux kernel header files are correct for user
-> space:
->
-> https://github.com/hjl-tools/linux-header
->
-> It needs update to check uapi.
+On Fri, 20 Apr 2018 09:38:04 -0500
+"Eric W. Biederman" <ebiederm@xmission.com> wrote:
 
-Simply running 'make' on a regular distro shows this output:
+> Filling in struct siginfo before calling force_sig_info a tedious and
+> error prone process, where once in a great while the wrong fields
+> are filled out, and siginfo has been inconsistently cleared.
+> 
+> Simplify this process by using the helper force_sig_fault.  Which
+> takes as a parameters all of the information it needs, ensures
+> all of the fiddly bits of filling in struct siginfo are done properly
+> and then calls force_sig_info.
+> 
+> In short about a 5 line reduction in code for every time force_sig_info
+> is called, which makes the calling function clearer.
+> 
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: linux-s390@vger.kernel.org
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> ---
+>  arch/s390/kernel/traps.c | 32 ++++++--------------------------
+>  arch/s390/mm/fault.c     | 23 ++++++-----------------
+>  2 files changed, 12 insertions(+), 43 deletions(-)
+ 
+Compiles & boots. Comparing old vs. new the same values are
+set in siginfo. Looks good.
 
---- kernel.x32.out 2018-04-22 22:10:16.053432423 +0200
-+++ glibc.x32.out 2018-04-22 22:10:16.073432838 +0200
-@@ -10,9 +10,9 @@ size of daddr_t: 4
- size of __ipc_pid_t: 4
- size of struct ipc_perm: 48
- size of mqd_t: 4
--size of struct msqid_ds: 144
-+size of struct msqid_ds: 120
- size of struct semid_ds: 104
--size of struct shmid_ds: 136
-+size of struct shmid_ds: 112
- size of struct shminfo: 72
- size of struct timeval: 16
- size of struct timespec: 16
-@@ -22,8 +22,8 @@ size of struct mq_attr: 64
- size of struct rlimit: 16
- size of struct rusage: 144
- size of struct stat: 144
--size of struct statfs: 64
--size of struct statfs64: 88
-+size of struct statfs: 120
-+size of struct statfs64: 120
- size of struct timex: 208
- size of struct msginfo: 32
- size of struct msgbuf: 16
+Acked-by: Martin Schwidefsky >schwidefsky@de.ibm.com>
 
-This seems plausible, the statfs structure clearly has the same problem
-as msqid_ds/shmid_ds based on its usage of '__statfs_word' which is
-now defined as '__u32' rather than '__kernel_long_t'.
+-- 
+blue skies,
+   Martin.
 
-It should be trivial to override __statfs_word from
-arch/x86/include/uapi/asm/statfs.h
-
-I've checked the other uses of __BITS_PER_LONG in the uapi
-headers now, and all the others are either not relevant for x32
-(either definition is fine) or it has to be __BITS_PER_LONG=32.
-
-        Arnd
+"Reality continues to ruin my life." - Calvin.
