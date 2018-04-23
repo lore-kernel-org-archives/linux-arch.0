@@ -1,100 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f66.google.com ([209.85.213.66]:42060 "EHLO
-        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755173AbeDWLDu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Apr 2018 07:03:50 -0400
-Received: by mail-vk0-f66.google.com with SMTP id g6so9090421vkb.9
-        for <linux-arch@vger.kernel.org>; Mon, 23 Apr 2018 04:03:50 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <e78c09ad-ce68-a8ed-3cd9-2577c6e5539b@gmail.com>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de>
- <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com> <e78c09ad-ce68-a8ed-3cd9-2577c6e5539b@gmail.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Mon, 23 Apr 2018 19:03:09 +0800
-Message-ID: <CAEbi=3f2QJDdsC+0NEJSoP9n2GAR+sju2H8BJ9sUQprzmY-x8g@mail.gmail.com>
-Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:46509 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932454AbeDWTLZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Apr 2018 15:11:25 -0400
+Received: by mail-pf0-f195.google.com with SMTP id h69so10092378pfe.13
+        for <linux-arch@vger.kernel.org>; Mon, 23 Apr 2018 12:11:25 -0700 (PDT)
+Date: Mon, 23 Apr 2018 12:11:23 -0700 (PDT)
+Subject: Re: [REVIEW][PATCH 14/22] signal/riscv: Use force_sig_fault where appropriate
+In-Reply-To: <20180420143811.9994-14-ebiederm@xmission.com>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-77d5b15b-866b-464a-a256-6c7b84726ce3@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Schmitz <schmitzmic@gmail.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ebiederm@xmission.com, albert@sifive.com, linux-riscv@lists.infradead.org
+Message-ID: <20180423191123.Ur832GTSpTAtnhGbFQ-HvpbdnnxT7SXsXfMYaBqUfDA@z>
 
-2018-04-23 16:09 GMT+08:00 Michael Schmitz <schmitzmic@gmail.com>:
-> Hi
+On Fri, 20 Apr 2018 07:38:03 PDT (-0700), ebiederm@xmission.com wrote:
+> Filling in struct siginfo before calling force_sig_info a tedious and
+> error prone process, where once in a great while the wrong fields
+> are filled out, and siginfo has been inconsistently cleared.
 >
-> Am 23.04.2018 um 18:49 schrieb Greentime Hu:
->> 2018-04-20 16:03 GMT+08:00 Christoph Hellwig <hch@lst.de>:
->>> Switch to the generic noncoherent direct mapping implementation.
->>>
->>> This makes sure kmap_atomic_pfn is consistently used for access to
->>> virtual addresses instead of either using the slower plain kmap
->>> or blindly expecting page_address() to work.
->>>
->>> This makes sure the cache_sync routines is called in the unmap_sg
->>> case, to match the unmap_single and sync_{single,sg}_to_cpu cases.
->>>
->>> Signed-off-by: Christoph Hellwig <hch@lst.de>
->>
->>   CC      arch/nds32/kernel/dma.o
->> arch/nds32/kernel/dma.c: In function 'arch_sync_dma_for_device':
->> arch/nds32/kernel/dma.c:333:10: error: 'direction' undeclared (first
->> use in this function)
->>   switch (direction) {
->>           ^~~~~~~~~
->> arch/nds32/kernel/dma.c:333:10: note: each undeclared identifier is
->> reported only once for each function it appears in
->> arch/nds32/kernel/dma.c: In function 'arch_sync_dma_for_cpu':
->> arch/nds32/kernel/dma.c:353:10: error: 'direction' undeclared (first
->> use in this function)
->>   switch (direction) {
->>           ^~~~~~~~~
->> arch/nds32/kernel/dma.c:358:30: error: 'end' undeclared (first use in
->> this function)
->>    cpu_dma_inval_range(start, end);
->>                               ^~~
->> make[1]: *** [arch/nds32/kernel/dma.o] Error 1
->> make: *** [arch/nds32/kernel] Error 2
->>
->> After this building error, the ftmac100.c driver is broken. Not sure
->> what happened.
+> Simplify this process by using the helper force_sig_fault.  Which
+> takes as a parameters all of the information it needs, ensures
+> all of the fiddly bits of filling in struct siginfo are done properly
+> and then calls force_sig_info.
 >
-> Christoph used 'direction' as in the original consistent_sync(), but the
-> parameter is now named 'dir' in the new function. Changing
+> In short about a 5 line reduction in code for every time force_sig_info
+> is called, which makes the calling function clearer.
 >
-> +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-> +               size_t size, enum dma_data_direction dir)
+> Cc: Palmer Dabbelt <palmer@sifive.com>
+> Cc: Albert Ou <albert@sifive.com>
+> Cc: linux-riscv@lists.infradead.org
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> ---
+>  arch/riscv/kernel/traps.c | 9 +--------
+>  1 file changed, 1 insertion(+), 8 deletions(-)
 >
-> to
+> diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+> index 48aa6471cede..3087940008f4 100644
+> --- a/arch/riscv/kernel/traps.c
+> +++ b/arch/riscv/kernel/traps.c
+> @@ -66,14 +66,7 @@ void die(struct pt_regs *regs, const char *str)
+>  static inline void do_trap_siginfo(int signo, int code,
+>  	unsigned long addr, struct task_struct *tsk)
+>  {
+> -	siginfo_t info;
+> -
+> -	clear_siginfo(&info);
+> -	info.si_signo = signo;
+> -	info.si_errno = 0;
+> -	info.si_code = code;
+> -	info.si_addr = (void __user *)addr;
+> -	force_sig_info(signo, &info, tsk);
+> +	force_sig_fault(signo, code, (void __user *)addr, tsk);
+>  }
 >
-> +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-> +               size_t size, enum dma_data_direction direction)
->
-> (or using 'dir' in place of 'direction' in the switch clauses) should
-> fix that.
->
-> Christoph also forgot to declare and assign 'end'. Adding back the
->
-> unsigned long end = start + size;
->
-> after
->
-> +       unsigned long start = (unsigned long)addr;
->
-> should fix the second error.
->
-> If your ftmac100 driver relies on the DMA API, it wouldn't be expected
-> to work if kernel and module views of the DMA API disagree.
->
-> HTH,
->
->         Michael
->
+>  void do_trap(struct pt_regs *regs, int signo, int code,
 
-Hi, Micchael:
+If I understand this correctly, any change in behavior this causes would have 
+been a bug on our end not filling out siginfo correctly?  In that case then 
+feel free to add an
 
-Thank you for helping fixing this build error.
-What I mean before is that I fixed this build error just like what you
-did and I built-in the ftmac100 driver as default in defconfig.
-However the dhcpc failed, it works in Linux 4.17-rc1. I am still
-debugging it. I use ftmac100 to test because it's the only driver I
-can use for now and which will use DMA.
+    Acked-by: Palmer Dabbelt <palmer@sifive.com>
+
+Thanks!
