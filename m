@@ -1,97 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:39455 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751857AbeDWIJl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Apr 2018 04:09:41 -0400
-Received: by mail-pf0-f194.google.com with SMTP id z9so8619913pfe.6
-        for <linux-arch@vger.kernel.org>; Mon, 23 Apr 2018 01:09:41 -0700 (PDT)
-Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
-References: <20180420080313.18796-1-hch@lst.de>
- <20180420080313.18796-14-hch@lst.de>
- <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
-From: Michael Schmitz <schmitzmic@gmail.com>
-Message-ID: <e78c09ad-ce68-a8ed-3cd9-2577c6e5539b@gmail.com>
-Date: Mon, 23 Apr 2018 20:09:34 +1200
+Received: from mail-ot0-f178.google.com ([74.125.82.178]:36079 "EHLO
+        mail-ot0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754846AbeDWLBw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Apr 2018 07:01:52 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <738aa4d6-9313-f484-0510-e965f2881869@c-s.fr>
+References: <20180420073414.23169-1-npiggin@gmail.com> <20180420073414.23169-5-npiggin@gmail.com>
+ <CA+7wUswuyn+YgNe732rQAzVmgDBohTMEqwsd76nQ_CH5h7Y5WA@mail.gmail.com>
+ <20180420204104.6e22b136@roar.ozlabs.ibm.com> <CA+7wUsyWu3eweWjwfFoS5FD5yb3OxjLV4-XyErcNA4fJGPCf8Q@mail.gmail.com>
+ <738aa4d6-9313-f484-0510-e965f2881869@c-s.fr>
+From: Mathieu Malaterre <malat@debian.org>
+Date: Mon, 23 Apr 2018 13:01:31 +0200
+Message-ID: <CA+7wUszDBFQRV78stj_MArnZYFp3ug6UoxH+Y__SWC=fGH2g8A@mail.gmail.com>
+Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>, Christoph Hellwig <hch@lst.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+To: christophe leroy <christophe.leroy@c-s.fr>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Nicolas Pitre <nico@fluxnic.net>
+Message-ID: <20180423110131.s9Z4Uyrv1ya07T45Moi1UYcC0LVc_HnK2y4momCEB-k@z>
 
-Hi
+Christophe,
 
-Am 23.04.2018 um 18:49 schrieb Greentime Hu:
-> 2018-04-20 16:03 GMT+08:00 Christoph Hellwig <hch@lst.de>:
->> Switch to the generic noncoherent direct mapping implementation.
+On Sat, Apr 21, 2018 at 9:16 AM, christophe leroy
+<christophe.leroy@c-s.fr> wrote:
+>
+>
+> Le 20/04/2018 =C3=A0 22:08, Mathieu Malaterre a =C3=A9crit :
 >>
->> This makes sure kmap_atomic_pfn is consistently used for access to
->> virtual addresses instead of either using the slower plain kmap
->> or blindly expecting page_address() to work.
+>> On Fri, Apr 20, 2018 at 12:41 PM, Nicholas Piggin <npiggin@gmail.com>
+>> wrote:
+>>>
+>>> On Fri, 20 Apr 2018 12:00:49 +0200
+>>> Mathieu Malaterre <malat@debian.org> wrote:
+>>>
+>>>> On Fri, Apr 20, 2018 at 9:34 AM, Nicholas Piggin <npiggin@gmail.com>
+>>>> wrote:
+>>>>>
+>>>>> This requires further changes to linker script to KEEP some tables
+>>>>> and wildcard compiler generated sections into the right place. This
+>>>>> includes pp32 modifications from Christophe Leroy.
+>>>>>
+>>>>> When compiling powernv_defconfig with this option:
+>>>>>
+>>>>> text       data      bss       dec        filename
+>>>>> 11827621   4810490   1341080   17979191   vmlinux
+>>>>> 11752437   4598858   1338776   17690071   vmlinux.dcde
+>>>>>
+>>>>> Resulting kernel is almost 400kB smaller (and still boots).
+>>>>>
+>>>>> [ppc32 numbers here]
+>>>>
+>>>>
+>>>> ^^^
+>>>>
+>>>> Do you want somebody else to provide those numbers ?
+>>>
+>>>
+>>> If you have a booting kernel, yes some more numbers would be good.
 >>
->> This makes sure the cache_sync routines is called in the unmap_sg
->> case, to match the unmap_single and sync_{single,sg}_to_cpu cases.
 >>
->> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> 
->   CC      arch/nds32/kernel/dma.o
-> arch/nds32/kernel/dma.c: In function 'arch_sync_dma_for_device':
-> arch/nds32/kernel/dma.c:333:10: error: 'direction' undeclared (first
-> use in this function)
->   switch (direction) {
->           ^~~~~~~~~
-> arch/nds32/kernel/dma.c:333:10: note: each undeclared identifier is
-> reported only once for each function it appears in
-> arch/nds32/kernel/dma.c: In function 'arch_sync_dma_for_cpu':
-> arch/nds32/kernel/dma.c:353:10: error: 'direction' undeclared (first
-> use in this function)
->   switch (direction) {
->           ^~~~~~~~~
-> arch/nds32/kernel/dma.c:358:30: error: 'end' undeclared (first use in
-> this function)
->    cpu_dma_inval_range(start, end);
->                               ^~~
-> make[1]: *** [arch/nds32/kernel/dma.o] Error 1
-> make: *** [arch/nds32/kernel] Error 2
-> 
-> After this building error, the ftmac100.c driver is broken. Not sure
-> what happened.
+>> I've used /boot/config-4.15.0-2-powerpc from my current debian
+>> package. Rebuild master with and without option, boot ok, load/unload
+>> module ok.
+>>
+>> $ size nick/vmlinux.with*
+>>     text    data     bss     dec     hex filename
+>> 7386425 2364370 1425432 11176227 aa8923 nick/vmlinux.with
+>> 7461457 2475122 1428064 11364643 ad6923 nick/vmlinux.without
+>>
+>> This is not clear why with option the size of kernel is slightly bigger:
+>
+>
+> The file contains also debug symbols, which might differ.
+> Only the LOAD part of the file is interesting, that's the part you get wh=
+en
+> doing ppc-linux-objcopy vmlinux vmlinux.bin -O binary
+>
+> You can see it with readelf -l vmlinux
 
-Christoph used 'direction' as in the original consistent_sync(), but the
-parameter is now named 'dir' in the new function. Changing
+Here is what I see:
 
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+               size_t size, enum dma_data_direction dir)
+$ diff -u <(readelf -l nick/vmlinux.with) <(readelf -l nick/vmlinux.without=
+)
+--- /proc/self/fd/11 2018-04-23 12:59:52.413101612 +0200
++++ /proc/self/fd/12 2018-04-23 12:59:52.417101567 +0200
+@@ -5,9 +5,9 @@
 
-to
+ Program Headers:
+   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+-  LOAD           0x010000 0xc0000000 0x00000000 0x950f34 0xaad018 RWE 0x10=
+000
+-  NOTE           0x867640 0xc0857640 0x00857640 0x00024 0x00024     0x4
+-  NOTE           0x867664 0xc0857664 0x00857664 0x0000c 0x0000c     0x1
++  LOAD           0x010000 0xc0000000 0x00000000 0x97ef34 0xadba68 RWE 0x10=
+000
++  NOTE           0x87f640 0xc086f640 0x0086f640 0x00024 0x00024     0x4
++  NOTE           0x87f664 0xc086f664 0x0086f664 0x0000c 0x0000c     0x1
 
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+               size_t size, enum dma_data_direction direction)
+  Section to Segment mapping:
+   Segment Sections...
 
-(or using 'dir' in place of 'direction' in the switch clauses) should
-fix that.
 
-Christoph also forgot to declare and assign 'end'. Adding back the
-
-unsigned long end = start + size;
-
-after
-
-+       unsigned long start = (unsigned long)addr;
-
-should fix the second error.
-
-If your ftmac100 driver relies on the DMA API, it wouldn't be expected
-to work if kernel and module views of the DMA API disagree.
-
-HTH,
-
-	Michael
-
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-m68k" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+> Christophe
+>
+>>
+>> $ du -sk nick/vmlinux.with*
+>> 124488 nick/vmlinux.with
+>> 124004 nick/vmlinux.without
+>>
+>>
+>>> Thanks,
+>>> Nick
+>
+>
+> ---
+> L'absence de virus dans ce courrier =C3=A9lectronique a =C3=A9t=C3=A9 v=
+=C3=A9rifi=C3=A9e par le
+> logiciel antivirus Avast.
+> https://www.avast.com/antivirus
+>
