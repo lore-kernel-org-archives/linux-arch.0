@@ -1,53 +1,68 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 3/3] dma-debug: unexport dma_debug_resize_entries and
-	debug_dma_dump_mappings
-Date: Tue, 24 Apr 2018 16:02:35 +0200
-Message-ID: <20180424140235.9125-4-hch@lst.de>
-References: <20180424140235.9125-1-hch@lst.de>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [REVIEW][PATCH 14/22] signal/riscv: Use force_sig_fault where appropriate
+Date: Tue, 24 Apr 2018 10:28:39 -0500
+Message-ID: <87r2n4ei8o.fsf@xmission.com>
+References: <mhng-77d5b15b-866b-464a-a256-6c7b84726ce3@palmer-si-x1c4>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180424140235.9125-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <mhng-77d5b15b-866b-464a-a256-6c7b84726ce3@palmer-si-x1c4>
+        (Palmer Dabbelt's message of "Mon, 23 Apr 2018 12:11:23 -0700 (PDT)")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Palmer Dabbelt <palmer@sifive.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, albert@sifive.com, linux-riscv@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Only used by the AMD GART driver, which must be built in.
+Palmer Dabbelt <palmer@sifive.com> writes:
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
----
- lib/dma-debug.c | 2 --
- 1 file changed, 2 deletions(-)
+> On Fri, 20 Apr 2018 07:38:03 PDT (-0700), ebiederm@xmission.com wrote:
+>> Filling in struct siginfo before calling force_sig_info a tedious and
+>> error prone process, where once in a great while the wrong fields
+>> are filled out, and siginfo has been inconsistently cleared.
+>>
+>> Simplify this process by using the helper force_sig_fault.  Which
+>> takes as a parameters all of the information it needs, ensures
+>> all of the fiddly bits of filling in struct siginfo are done properly
+>> and then calls force_sig_info.
+>>
+>> In short about a 5 line reduction in code for every time force_sig_info
+>> is called, which makes the calling function clearer.
+>>
+>> Cc: Palmer Dabbelt <palmer@sifive.com>
+>> Cc: Albert Ou <albert@sifive.com>
+>> Cc: linux-riscv@lists.infradead.org
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+>> ---
+>>  arch/riscv/kernel/traps.c | 9 +--------
+>>  1 file changed, 1 insertion(+), 8 deletions(-)
+>>
+>> diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+>> index 48aa6471cede..3087940008f4 100644
+>> --- a/arch/riscv/kernel/traps.c
+>> +++ b/arch/riscv/kernel/traps.c
+>> @@ -66,14 +66,7 @@ void die(struct pt_regs *regs, const char *str)
+>>  static inline void do_trap_siginfo(int signo, int code,
+>>  	unsigned long addr, struct task_struct *tsk)
+>>  {
+>> -	siginfo_t info;
+>> -
+>> -	clear_siginfo(&info);
+>> -	info.si_signo = signo;
+>> -	info.si_errno = 0;
+>> -	info.si_code = code;
+>> -	info.si_addr = (void __user *)addr;
+>> -	force_sig_info(signo, &info, tsk);
+>> +	force_sig_fault(signo, code, (void __user *)addr, tsk);
+>>  }
+>>
+>>  void do_trap(struct pt_regs *regs, int signo, int code,
+>
+> If I understand this correctly, any change in behavior this causes would have
+> been a bug on our end not filling out siginfo correctly?  In that case then feel
+> free to add an
 
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index 075253cb613b..6a1ebaa83623 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -444,7 +444,6 @@ void debug_dma_dump_mappings(struct device *dev)
- 		spin_unlock_irqrestore(&bucket->lock, flags);
- 	}
- }
--EXPORT_SYMBOL(debug_dma_dump_mappings);
- 
- /*
-  * For each mapping (initial cacheline in the case of
-@@ -753,7 +752,6 @@ int dma_debug_resize_entries(u32 num_entries)
- 
- 	return ret;
- }
--EXPORT_SYMBOL(dma_debug_resize_entries);
- 
- /*
-  * DMA-API debugging init code
--- 
-2.17.0
+If this change above causes any user visible changes it is a bug.
+As Christoph rightly pointed out force_sig_fault is simply the arch
+generic version of do_trap_siginfo. 
+
+Eric
