@@ -1,67 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54662 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:54468 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752570AbeDXSQq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 14:16:46 -0400
+        with ESMTP id S1751483AbeDXSQe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 14:16:34 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 4/5] net: remove the PCI_DMA_BUS_IS_PHYS check in illegal_highdma
-Date: Tue, 24 Apr 2018 20:16:24 +0200
-Message-ID: <20180424181625.22410-5-hch@lst.de>
+Subject: [PATCH 1/5] scsi: reduce use of block bounce buffers
+Date: Tue, 24 Apr 2018 20:16:21 +0200
+Message-ID: <20180424181625.22410-2-hch@lst.de>
 In-Reply-To: <20180424181625.22410-1-hch@lst.de>
 References: <20180424181625.22410-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
 Cc: "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
-Message-ID: <20180424181624.BO3FXbdGrUXH4lzAHwvHTzvagbA8BHFhvENvaoOXobs@z>
+Message-ID: <20180424181621.6Cds8ilwarIvk-AN3XI6Z6Jn6c5wvP6AlPivQo5peow@z>
 
-These days the dma mapping routines must be able to handle any address
-supported by the device, be that using an iommu, or swiotlb if none is
-supported.  With that the PCI_DMA_BUS_IS_PHYS check in illegal_highdma
-is not needed and can be removed.
+We can rely on the dma-mapping code to handle any DMA limits that is
+bigger than the ISA DMA mask for us (either using an iommu or swiotlb),
+so remove setting the block layer bounce limit for anything but the
+unchecked_isa_dma case, or the bouncing for highmem pages.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- net/core/dev.c | 20 +-------------------
- 1 file changed, 1 insertion(+), 19 deletions(-)
+ drivers/scsi/scsi_lib.c | 24 ++----------------------
+ 1 file changed, 2 insertions(+), 22 deletions(-)
 
-diff --git a/net/core/dev.c b/net/core/dev.c
-index af0558b00c6c..060256cbf4f3 100644
---- a/net/core/dev.c
-+++ b/net/core/dev.c
-@@ -2884,11 +2884,7 @@ void netdev_rx_csum_fault(struct net_device *dev)
- EXPORT_SYMBOL(netdev_rx_csum_fault);
- #endif
- 
--/* Actually, we should eliminate this check as soon as we know, that:
-- * 1. IOMMU is present and allows to map all the memory.
-- * 2. No high memory really exists on this machine.
-- */
--
-+/* XXX: check that highmem exists at all on the given machine. */
- static int illegal_highdma(struct net_device *dev, struct sk_buff *skb)
- {
- #ifdef CONFIG_HIGHMEM
-@@ -2902,20 +2898,6 @@ static int illegal_highdma(struct net_device *dev, struct sk_buff *skb)
- 				return 1;
- 		}
- 	}
--
--	if (PCI_DMA_BUS_IS_PHYS) {
--		struct device *pdev = dev->dev.parent;
--
--		if (!pdev)
--			return 0;
--		for (i = 0; i < skb_shinfo(skb)->nr_frags; i++) {
--			skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
--			dma_addr_t addr = page_to_phys(skb_frag_page(frag));
--
--			if (!pdev->dma_mask || addr + PAGE_SIZE - 1 > *pdev->dma_mask)
--				return 1;
--		}
--	}
- #endif
- 	return 0;
+diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
+index e9b4f279d29c..e0b614c0b1e6 100644
+--- a/drivers/scsi/scsi_lib.c
++++ b/drivers/scsi/scsi_lib.c
+@@ -2149,27 +2149,6 @@ static int scsi_map_queues(struct blk_mq_tag_set *set)
+ 	return blk_mq_map_queues(set);
  }
+ 
+-static u64 scsi_calculate_bounce_limit(struct Scsi_Host *shost)
+-{
+-	struct device *host_dev;
+-	u64 bounce_limit = 0xffffffff;
+-
+-	if (shost->unchecked_isa_dma)
+-		return BLK_BOUNCE_ISA;
+-	/*
+-	 * Platforms with virtual-DMA translation
+-	 * hardware have no practical limit.
+-	 */
+-	if (!PCI_DMA_BUS_IS_PHYS)
+-		return BLK_BOUNCE_ANY;
+-
+-	host_dev = scsi_get_device(shost);
+-	if (host_dev && host_dev->dma_mask)
+-		bounce_limit = (u64)dma_max_pfn(host_dev) << PAGE_SHIFT;
+-
+-	return bounce_limit;
+-}
+-
+ void __scsi_init_queue(struct Scsi_Host *shost, struct request_queue *q)
+ {
+ 	struct device *dev = shost->dma_dev;
+@@ -2189,7 +2168,8 @@ void __scsi_init_queue(struct Scsi_Host *shost, struct request_queue *q)
+ 	}
+ 
+ 	blk_queue_max_hw_sectors(q, shost->max_sectors);
+-	blk_queue_bounce_limit(q, scsi_calculate_bounce_limit(shost));
++	if (shost->unchecked_isa_dma)
++		blk_queue_bounce_limit(q, BLK_BOUNCE_ISA);
+ 	blk_queue_segment_boundary(q, shost->dma_boundary);
+ 	dma_set_seg_boundary(dev, shost->dma_boundary);
+ 
 -- 
 2.17.0
