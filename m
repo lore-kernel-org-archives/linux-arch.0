@@ -1,42 +1,55 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [PATCH 5/5] PCI: remove PCI_DMA_BUS_IS_PHYS
-Date: Tue, 24 Apr 2018 11:23:16 -0700 (PDT)
-Message-ID: <mhng-1f7fdc5e-bbef-409b-80cb-6a6bbb76eca4@palmer-si-x1c4>
-References: <20180424181625.22410-6-hch@lst.de>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
+Date: Tue, 24 Apr 2018 21:16:40 +0200
+Message-ID: <20180424191640.GA32495@lst.de>
+References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de> <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180424181625.22410-6-hch@lst.de>
+Content-Disposition: inline
+In-Reply-To: <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, davem@davemloft.net, linux-kernel@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 24 Apr 2018 11:16:25 PDT (-0700), Christoph Hellwig wrote:
-> This was used by the ide, scsi and networking code in the past to
-> determine if they should bounce payloads.  Now that the dma mapping
-> always have to support dma to all physical memory (thanks to swiotlb
-> for non-iommu systems) there is no need to this crude hack any more.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
-> [...]
-> diff --git a/arch/riscv/include/asm/pci.h b/arch/riscv/include/asm/pci.h
-> index 0f2fc9ef20fc..b3638c505728 100644
-> --- a/arch/riscv/include/asm/pci.h
-> +++ b/arch/riscv/include/asm/pci.h
-> @@ -26,9 +26,6 @@
->  /* RISC-V shim does not initialize PCI bus */
->  #define pcibios_assign_all_busses() 1
->
-> -/* We do not have an IOMMU */
-> -#define PCI_DMA_BUS_IS_PHYS 1
-> -
->  extern int isa_dma_bridge_buggy;
->
->  #ifdef CONFIG_PCI
+Hi Greentime,
 
-Thanks!
+thanks for testing the patch!
 
-Acked-by: Palmer Dabbelt <palmer@sifive.com> (For the RISC-V change)
+It looks like nds32 doesn't have a buildbot yet, so this code didn't
+even get syntax checkin, sorry.
+
+Below is the incremental fixes based on this thread.
+
+Can you check if my tree works if you just revert the
+"nds32: use generic dma_noncoherent_ops" commit?
+
+diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
+index 688f1a03dee6..48018275e7f4 100644
+--- a/arch/nds32/kernel/dma.c
++++ b/arch/nds32/kernel/dma.c
+@@ -330,7 +330,7 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+ 	void *addr = kmap_atomic_pfn(PHYS_PFN(paddr));
+ 	unsigned long start = (unsigned long)addr;
+ 
+-	switch (direction) {
++	switch (dir) {
+ 	case DMA_FROM_DEVICE:
+ 		break;
+ 	case DMA_TO_DEVICE:
+@@ -350,12 +350,12 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+ 	void *addr = kmap_atomic_pfn(PHYS_PFN(paddr));
+ 	unsigned long start = (unsigned long)addr;
+ 
+-	switch (direction) {
++	switch (dir) {
+ 	case DMA_TO_DEVICE:
+ 		break;
+ 	case DMA_FROM_DEVICE:
+ 	case DMA_BIDIRECTIONAL:
+-		cpu_dma_inval_range(start, end);
++		cpu_dma_inval_range(start, start + size);
+ 		break;
+ 	default:
+ 		BUG();
