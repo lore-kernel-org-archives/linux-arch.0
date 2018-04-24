@@ -1,27 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54464 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:54510 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750943AbeDXSQd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 14:16:33 -0400
+        with ESMTP id S1752583AbeDXSQl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 14:16:41 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: remove PCI_DMA_BUS_IS_PHYS V2
-Date: Tue, 24 Apr 2018 20:16:20 +0200
-Message-ID: <20180424181625.22410-1-hch@lst.de>
+Subject: [PATCH 3/5] ide: remove the PCI_DMA_BUS_IS_PHYS check
+Date: Tue, 24 Apr 2018 20:16:23 +0200
+Message-ID: <20180424181625.22410-4-hch@lst.de>
+In-Reply-To: <20180424181625.22410-1-hch@lst.de>
+References: <20180424181625.22410-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
 Cc: "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
-Message-ID: <20180424181620.dHBoDiYKs8iLlzf2LYOOd4-fzsEmVmeYMyxVaIVO81I@z>
+Message-ID: <20180424181623.qsHn30TzSvaM4s21oGSk_2pOaq0NEeEvSaMPR6Ol9lc@z>
 
-Hi all,
+We now have ways to deal with drainage in the block layer, and libata has
+been using it for ages.  We also want to get rid of PCI_DMA_BUS_IS_PHYS
+now, so just reduce the PCI transfer size for ide - anyone who cares for
+performance on PCI controllers should have switched to libata long ago.
 
-this series tries to get rid of the global and PCI_DMA_BUS_IS_PHYS flag,
-which causes the block layer and networking code to bounce buffer memory
-above the dma mask in some cases.  It is a leftover from i386 + highmem
-days and is obsolete now that we have swiotlb or iommus so that the
-dma ops implementations can always (minus the ISA DMA case which
-will require further attention) handle memory passed to them.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/ide/ide-probe.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-Changes since V1:
- - dropped all patches not strictly required to remove
-   PCI_DMA_BUS_IS_PHYS, those will be resent separately
+diff --git a/drivers/ide/ide-probe.c b/drivers/ide/ide-probe.c
+index 8d8ed036ca0a..56d7bc228cb3 100644
+--- a/drivers/ide/ide-probe.c
++++ b/drivers/ide/ide-probe.c
+@@ -796,8 +796,7 @@ static int ide_init_queue(ide_drive_t *drive)
+ 	 * This will be fixed once we teach pci_map_sg() about our boundary
+ 	 * requirements, hopefully soon. *FIXME*
+ 	 */
+-	if (!PCI_DMA_BUS_IS_PHYS)
+-		max_sg_entries >>= 1;
++	max_sg_entries >>= 1;
+ #endif /* CONFIG_PCI */
+ 
+ 	blk_queue_max_segments(q, max_sg_entries);
+-- 
+2.17.0
