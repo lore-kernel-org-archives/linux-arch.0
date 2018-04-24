@@ -1,55 +1,47 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
-Date: Tue, 24 Apr 2018 21:16:40 +0200
-Message-ID: <20180424191640.GA32495@lst.de>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de> <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
+From: =?UTF-8?Q?Martin_P=C3=A4rtel?= <martin.partel@gmail.com>
+Subject: Re: [uml-devel] [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault
+ in relay_signal.
+Date: Wed, 25 Apr 2018 01:03:39 +0300
+Message-ID: <CAMD8JhxHwcuXh68o1=fbZ_t6DH7x_dO_0nEMqL=cHXBfZXub=w@mail.gmail.com>
+References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-19-ebiederm@xmission.com>
+ <7074fe36-27c5-ee82-9659-da703cfc91fe@kot-begemot.co.uk> <CAFLxGvyM+Kru=ERDvccjVuMjSPbu+FQzjbUbMwSyEbL1rVGkBQ@mail.gmail.com>
+ <7ddd238f-88a8-ed03-fe9e-0f4e5f2a490d@kot-begemot.co.uk> <87zi1sd28d.fsf@xmission.com>
+ <CAMD8JhwgcWCp6c=O4-spNW1VdY5M-eAjr7M5PieeAfeTSe_4yw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
+In-Reply-To: <CAMD8JhwgcWCp6c=O4-spNW1VdY5M-eAjr7M5PieeAfeTSe_4yw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>, Richard Weinberger <richard.weinberger@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, "user-mode-linux-devel@lists.sourceforge.net" <user-mode-linux-devel@lists.sourceforge.net>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Greentime,
+And once more in plain text..
 
-thanks for testing the patch!
-
-It looks like nds32 doesn't have a buildbot yet, so this code didn't
-even get syntax checkin, sorry.
-
-Below is the incremental fixes based on this thread.
-
-Can you check if my tree works if you just revert the
-"nds32: use generic dma_noncoherent_ops" commit?
-
-diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
-index 688f1a03dee6..48018275e7f4 100644
---- a/arch/nds32/kernel/dma.c
-+++ b/arch/nds32/kernel/dma.c
-@@ -330,7 +330,7 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
- 	void *addr = kmap_atomic_pfn(PHYS_PFN(paddr));
- 	unsigned long start = (unsigned long)addr;
- 
--	switch (direction) {
-+	switch (dir) {
- 	case DMA_FROM_DEVICE:
- 		break;
- 	case DMA_TO_DEVICE:
-@@ -350,12 +350,12 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
- 	void *addr = kmap_atomic_pfn(PHYS_PFN(paddr));
- 	unsigned long start = (unsigned long)addr;
- 
--	switch (direction) {
-+	switch (dir) {
- 	case DMA_TO_DEVICE:
- 		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
--		cpu_dma_inval_range(start, end);
-+		cpu_dma_inval_range(start, start + size);
- 		break;
- 	default:
- 		BUG();
+On 25 April 2018 at 01:00, Martin P=C3=A4rtel <martin.partel@gmail.com> wro=
+te:
+>
+> Hi all,
+>
+> This was ages ago, but from what I remember...
+>
+>>
+>> Having a second look I really don't understand what relay_signal is
+>> trying to do.
+>>
+>> The function relay_signal does not pass siginfo through unchanged.
+>
+>
+> Just copying the entire struct would do the wrong thing. It was discussed=
+ here:
+> https://marc.info/?l=3Duser-mode-linux-devel&m=3D133910707911999&w=3D2
+>
+>>
+>> Am I missing something subtle or have the subtle details of siginfo just
+>> always been ignored?
+>
+>
+> My guess is they have. I was almost certainly oblivious to such subtletie=
+s when writing my commit.
+>
