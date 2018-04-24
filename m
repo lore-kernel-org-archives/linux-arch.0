@@ -1,118 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:54482 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751990AbeDXSQh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 14:16:37 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/5] ide: kill ide_toggle_bounce
-Date: Tue, 24 Apr 2018 20:16:22 +0200
-Message-ID: <20180424181625.22410-3-hch@lst.de>
-In-Reply-To: <20180424181625.22410-1-hch@lst.de>
-References: <20180424181625.22410-1-hch@lst.de>
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:40611 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751518AbeDXSXS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 14:23:18 -0400
+Received: by mail-pg0-f65.google.com with SMTP id e9so11448417pgr.7
+        for <linux-arch@vger.kernel.org>; Tue, 24 Apr 2018 11:23:18 -0700 (PDT)
+Date: Tue, 24 Apr 2018 11:23:16 -0700 (PDT)
+Subject: Re: [PATCH 5/5] PCI: remove PCI_DMA_BUS_IS_PHYS
+In-Reply-To: <20180424181625.22410-6-hch@lst.de>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-1f7fdc5e-bbef-409b-80cb-6a6bbb76eca4@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
-Cc: "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
-Message-ID: <20180424181622.y6Sgw_n7R51DG5u_ske0HcNCZ-R44vdDCFwlnIVPxQg@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, davem@davemloft.net, linux-kernel@vger.kernel.org
+Message-ID: <20180424182316.-CzQU20Aqq9nRWo24_3Ivmg-u1wmlLrfAu5Y1RHpuKA@z>
 
-ide_toggle_bounce did select various strange block bounce limits, including
-not bouncing at all as soon as an iommu is present in the system.  Given
-that the dma_map routines now handle any required bounce buffering except
-for ISA DMA, and the ide code already must handle either ISA DMA or highmem
-at least for iommu equipped systems we can get rid of the block layer
-bounce limit setting entirely.
+On Tue, 24 Apr 2018 11:16:25 PDT (-0700), Christoph Hellwig wrote:
+> This was used by the ide, scsi and networking code in the past to
+> determine if they should bounce payloads.  Now that the dma mapping
+> always have to support dma to all physical memory (thanks to swiotlb
+> for non-iommu systems) there is no need to this crude hack any more.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+> [...]
+> diff --git a/arch/riscv/include/asm/pci.h b/arch/riscv/include/asm/pci.h
+> index 0f2fc9ef20fc..b3638c505728 100644
+> --- a/arch/riscv/include/asm/pci.h
+> +++ b/arch/riscv/include/asm/pci.h
+> @@ -26,9 +26,6 @@
+>  /* RISC-V shim does not initialize PCI bus */
+>  #define pcibios_assign_all_busses() 1
+>
+> -/* We do not have an IOMMU */
+> -#define PCI_DMA_BUS_IS_PHYS 1
+> -
+>  extern int isa_dma_bridge_buggy;
+>
+>  #ifdef CONFIG_PCI
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- drivers/ide/ide-dma.c   |  2 --
- drivers/ide/ide-lib.c   | 26 --------------------------
- drivers/ide/ide-probe.c |  3 ---
- include/linux/ide.h     |  2 --
- 4 files changed, 33 deletions(-)
+Thanks!
 
-diff --git a/drivers/ide/ide-dma.c b/drivers/ide/ide-dma.c
-index 54d4d78ca46a..6f344654ef22 100644
---- a/drivers/ide/ide-dma.c
-+++ b/drivers/ide/ide-dma.c
-@@ -180,7 +180,6 @@ EXPORT_SYMBOL_GPL(ide_dma_unmap_sg);
- void ide_dma_off_quietly(ide_drive_t *drive)
- {
- 	drive->dev_flags &= ~IDE_DFLAG_USING_DMA;
--	ide_toggle_bounce(drive, 0);
- 
- 	drive->hwif->dma_ops->dma_host_set(drive, 0);
- }
-@@ -211,7 +210,6 @@ EXPORT_SYMBOL(ide_dma_off);
- void ide_dma_on(ide_drive_t *drive)
- {
- 	drive->dev_flags |= IDE_DFLAG_USING_DMA;
--	ide_toggle_bounce(drive, 1);
- 
- 	drive->hwif->dma_ops->dma_host_set(drive, 1);
- }
-diff --git a/drivers/ide/ide-lib.c b/drivers/ide/ide-lib.c
-index e1180fa46196..78cb79eddc8b 100644
---- a/drivers/ide/ide-lib.c
-+++ b/drivers/ide/ide-lib.c
-@@ -6,32 +6,6 @@
- #include <linux/ide.h>
- #include <linux/bitops.h>
- 
--/**
-- *	ide_toggle_bounce	-	handle bounce buffering
-- *	@drive: drive to update
-- *	@on: on/off boolean
-- *
-- *	Enable or disable bounce buffering for the device. Drives move
-- *	between PIO and DMA and that changes the rules we need.
-- */
--
--void ide_toggle_bounce(ide_drive_t *drive, int on)
--{
--	u64 addr = BLK_BOUNCE_HIGH;	/* dma64_addr_t */
--
--	if (!PCI_DMA_BUS_IS_PHYS) {
--		addr = BLK_BOUNCE_ANY;
--	} else if (on && drive->media == ide_disk) {
--		struct device *dev = drive->hwif->dev;
--
--		if (dev && dev->dma_mask)
--			addr = *dev->dma_mask;
--	}
--
--	if (drive->queue)
--		blk_queue_bounce_limit(drive->queue, addr);
--}
--
- u64 ide_get_lba_addr(struct ide_cmd *cmd, int lba48)
- {
- 	struct ide_taskfile *tf = &cmd->tf;
-diff --git a/drivers/ide/ide-probe.c b/drivers/ide/ide-probe.c
-index 2019e66eada7..8d8ed036ca0a 100644
---- a/drivers/ide/ide-probe.c
-+++ b/drivers/ide/ide-probe.c
-@@ -805,9 +805,6 @@ static int ide_init_queue(ide_drive_t *drive)
- 	/* assign drive queue */
- 	drive->queue = q;
- 
--	/* needs drive->queue to be set */
--	ide_toggle_bounce(drive, 1);
--
- 	return 0;
- }
- 
-diff --git a/include/linux/ide.h b/include/linux/ide.h
-index ca9d34feb572..11f0dd03a4b4 100644
---- a/include/linux/ide.h
-+++ b/include/linux/ide.h
-@@ -1508,8 +1508,6 @@ static inline void ide_set_hwifdata (ide_hwif_t * hwif, void *data)
- 	hwif->hwif_data = data;
- }
- 
--extern void ide_toggle_bounce(ide_drive_t *drive, int on);
--
- u64 ide_get_lba_addr(struct ide_cmd *, int);
- u8 ide_dump_status(ide_drive_t *, const char *, u8);
- 
--- 
-2.17.0
+Acked-by: Palmer Dabbelt <palmer@sifive.com> (For the RISC-V change)
