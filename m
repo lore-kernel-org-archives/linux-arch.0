@@ -1,41 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:57575 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756326AbeDXHd6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Apr 2018 03:33:58 -0400
-Date: Tue, 24 Apr 2018 09:35:24 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 01/22] dma-debug: move initialization to common code
-Message-ID: <20180424073524.GB18945@lst.de>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-2-hch@lst.de> <294a1469-01d6-10fb-5de1-b1d4513a066c@arm.com>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:34707 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756023AbeDXHz5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 03:55:57 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <294a1469-01d6-10fb-5de1-b1d4513a066c@arm.com>
+In-Reply-To: <d8bdf4a080d4655d20b532a37ae22ca7e3483cc4.1524245455.git.mchehab@s-opensource.com>
+References: <cover.1524245455.git.mchehab@s-opensource.com> <d8bdf4a080d4655d20b532a37ae22ca7e3483cc4.1524245455.git.mchehab@s-opensource.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 24 Apr 2018 09:55:55 +0200
+Message-ID: <CAK8P3a1c044Tx9oCHyhR=-d4v67ijuwgubZPx52e4NDDETRe0Q@mail.gmail.com>
+Subject: Re: [PATCH 1/7] asm-generic, media: allow COMPILE_TEST with virt_to_bus
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180424073524.dfl_AOoOwMKzrbxDftTPPT_C6mVJxMRJOhzxlhA3Wrg@z>
+To: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+Cc: Linux Media Mailing List <linux-media@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, mjpeg-users@lists.sourceforge.net, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180424075555.A_Hga8QXX6-3FbhesTCzsIUj5Y8vBha6hvKsHNHyt3Y@z>
 
-On Fri, Apr 20, 2018 at 11:23:43AM +0100, Robin Murphy wrote:
->> -void dma_debug_init(u32 num_entries)
->> +static int dma_debug_init(void)
->>   {
->> +	u32 num_entries;
+On Fri, Apr 20, 2018 at 7:42 PM, Mauro Carvalho Chehab
+<mchehab@s-opensource.com> wrote:
+> The virt_to_bus/bus_to_virt macros are arch-specific. Some
+> archs don't support it. Yet, as it is interesting to allow
+> doing compilation tests on non-ia32/ia64 archs, provide a
+> fallback for such archs.
 >
-> Maybe initialise it to PREALLOC_DMA_DEBUG_ENTRIES?
-
-We initialize it down in an if/else clause which seems a little more clear
-to me, at the cost of two extra lines of code.  But I suspect I should
-just go a little further and merge the global req_entries and the local
-num_entries into a single variable with a better name.
-
->> +core_initcall(dma_debug_init);
+> While here, enable COMPILE_TEST for two media drivers that
+> depends on it.
 >
-> I think it's worth noting that for most users this now happens much earlier 
-> than before. In general that's probably good (e.g. on arm64 it should 
-> prevent false-positives from the Arm SMMU drivers under ACPI), and I can't 
-> imagine it's high-risk, but it is a behaviour change.
+> Signed-off-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
 
-I'll mention this in the changelog, thanks!
+I'd prefer not to do this: virt_to_bus() is deprecated for good reasons,
+and I'd rather see the drivers fixed to use dma-mapping.h correctly.
+
+One problem with your patch is that not all architectures include
+asm-generic/io.h, so it likely breaks allmodconfig builds on architectures
+that don't use that file and don't provide virt_to_bus() either.
+
+      Arnd
