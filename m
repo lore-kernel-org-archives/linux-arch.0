@@ -1,69 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:46509 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932454AbeDWTLZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Apr 2018 15:11:25 -0400
-Received: by mail-pf0-f195.google.com with SMTP id h69so10092378pfe.13
-        for <linux-arch@vger.kernel.org>; Mon, 23 Apr 2018 12:11:25 -0700 (PDT)
-Date: Mon, 23 Apr 2018 12:11:23 -0700 (PDT)
-Subject: Re: [REVIEW][PATCH 14/22] signal/riscv: Use force_sig_fault where appropriate
-In-Reply-To: <20180420143811.9994-14-ebiederm@xmission.com>
-From: Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <mhng-77d5b15b-866b-464a-a256-6c7b84726ce3@palmer-si-x1c4>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Received: from mail-vk0-f65.google.com ([209.85.213.65]:47010 "EHLO
+        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756075AbeDXHdt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 03:33:49 -0400
+MIME-Version: 1.0
+In-Reply-To: <d8bdf4a080d4655d20b532a37ae22ca7e3483cc4.1524245455.git.mchehab@s-opensource.com>
+References: <cover.1524245455.git.mchehab@s-opensource.com> <d8bdf4a080d4655d20b532a37ae22ca7e3483cc4.1524245455.git.mchehab@s-opensource.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 24 Apr 2018 09:33:48 +0200
+Message-ID: <CAMuHMdWnhtqSKabk5S8iHWri9JsuVgLVFa6FgyDHJBDg6da9Lg@mail.gmail.com>
+Subject: Re: [PATCH 1/7] asm-generic, media: allow COMPILE_TEST with virt_to_bus
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ebiederm@xmission.com, albert@sifive.com, linux-riscv@lists.infradead.org
-Message-ID: <20180423191123.Ur832GTSpTAtnhGbFQ-HvpbdnnxT7SXsXfMYaBqUfDA@z>
+To: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+Cc: Linux Media Mailing List <linux-media@vger.kernel.org>, Mauro Carvalho Chehab <mchehab@infradead.org>, Arnd Bergmann <arnd@arndb.de>, mjpeg-users@lists.sourceforge.net, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20180424073348.azF0u7myn9VxN4jNgZRy9zn-WqSihPtgdNMcDUvNv38@z>
 
-On Fri, 20 Apr 2018 07:38:03 PDT (-0700), ebiederm@xmission.com wrote:
-> Filling in struct siginfo before calling force_sig_info a tedious and
-> error prone process, where once in a great while the wrong fields
-> are filled out, and siginfo has been inconsistently cleared.
+Hi Mauro,
+
+On Fri, Apr 20, 2018 at 7:42 PM, Mauro Carvalho Chehab
+<mchehab@s-opensource.com> wrote:
+> The virt_to_bus/bus_to_virt macros are arch-specific. Some
+> archs don't support it. Yet, as it is interesting to allow
+> doing compilation tests on non-ia32/ia64 archs, provide a
+> fallback for such archs.
 >
-> Simplify this process by using the helper force_sig_fault.  Which
-> takes as a parameters all of the information it needs, ensures
-> all of the fiddly bits of filling in struct siginfo are done properly
-> and then calls force_sig_info.
+> While here, enable COMPILE_TEST for two media drivers that
+> depends on it.
 >
-> In short about a 5 line reduction in code for every time force_sig_info
-> is called, which makes the calling function clearer.
->
-> Cc: Palmer Dabbelt <palmer@sifive.com>
-> Cc: Albert Ou <albert@sifive.com>
-> Cc: linux-riscv@lists.infradead.org
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> Signed-off-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+
+Thanks for your patch!
+
+I guess this will cause the kernel to crash if I insert an STA2X11 or Zoran PCI
+card in a non-VIRT_TO_BUS machine and boot an all{mod,yes}config kernel?
+
+IMHO dummies are fine if they return error codes, not it they can cause
+crashes.
+
 > ---
->  arch/riscv/kernel/traps.c | 9 +--------
->  1 file changed, 1 insertion(+), 8 deletions(-)
+>  drivers/media/pci/sta2x11/Kconfig | 4 ++--
+>  drivers/media/pci/zoran/Kconfig   | 3 ++-
+>  include/asm-generic/io.h          | 2 +-
+>  3 files changed, 5 insertions(+), 4 deletions(-)
 >
-> diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
-> index 48aa6471cede..3087940008f4 100644
-> --- a/arch/riscv/kernel/traps.c
-> +++ b/arch/riscv/kernel/traps.c
-> @@ -66,14 +66,7 @@ void die(struct pt_regs *regs, const char *str)
->  static inline void do_trap_siginfo(int signo, int code,
->  	unsigned long addr, struct task_struct *tsk)
->  {
-> -	siginfo_t info;
-> -
-> -	clear_siginfo(&info);
-> -	info.si_signo = signo;
-> -	info.si_errno = 0;
-> -	info.si_code = code;
-> -	info.si_addr = (void __user *)addr;
-> -	force_sig_info(signo, &info, tsk);
-> +	force_sig_fault(signo, code, (void __user *)addr, tsk);
+> diff --git a/drivers/media/pci/sta2x11/Kconfig b/drivers/media/pci/sta2x11/Kconfig
+> index 7af3f1cbcea8..fb4b4c8ac430 100644
+> --- a/drivers/media/pci/sta2x11/Kconfig
+> +++ b/drivers/media/pci/sta2x11/Kconfig
+> @@ -1,10 +1,10 @@
+>  config STA2X11_VIP
+>         tristate "STA2X11 VIP Video For Linux"
+> -       depends on STA2X11 || COMPILE_TEST
+> +       depends on (STA2X11 && VIRT_TO_BUS) || COMPILE_TEST
+>         depends on HAS_DMA
+>         select VIDEO_ADV7180 if MEDIA_SUBDRV_AUTOSELECT
+>         select VIDEOBUF2_DMA_CONTIG
+> -       depends on PCI && VIDEO_V4L2 && VIRT_TO_BUS
+> +       depends on PCI && VIDEO_V4L2
+>         depends on VIDEO_V4L2_SUBDEV_API
+>         depends on I2C
+>         help
+> diff --git a/drivers/media/pci/zoran/Kconfig b/drivers/media/pci/zoran/Kconfig
+> index 39ec35bd21a5..5d2678a9e310 100644
+> --- a/drivers/media/pci/zoran/Kconfig
+> +++ b/drivers/media/pci/zoran/Kconfig
+> @@ -1,6 +1,7 @@
+>  config VIDEO_ZORAN
+>         tristate "Zoran ZR36057/36067 Video For Linux"
+> -       depends on PCI && I2C_ALGOBIT && VIDEO_V4L2 && VIRT_TO_BUS
+> +       depends on PCI && I2C_ALGOBIT && VIDEO_V4L2
+> +       depends on VIRT_TO_BUS || COMPILE_TEST
+>         depends on !ALPHA
+>         help
+>           Say Y for support for MJPEG capture cards based on the Zoran
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index 66d1d45fa2e1..f448129ad15c 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -1068,7 +1068,7 @@ static inline void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
 >  }
+>  #endif
 >
->  void do_trap(struct pt_regs *regs, int signo, int code,
+> -#ifdef CONFIG_VIRT_TO_BUS
+> +#if defined(CONFIG_VIRT_TO_BUS) || defined(CONFIG_COMPILE_TEST)
+>  #ifndef virt_to_bus
+>  static inline unsigned long virt_to_bus(void *address)
+>  {
 
-If I understand this correctly, any change in behavior this causes would have 
-been a bug on our end not filling out siginfo correctly?  In that case then 
-feel free to add an
+Gr{oetje,eeting}s,
 
-    Acked-by: Palmer Dabbelt <palmer@sifive.com>
+                        Geert
 
-Thanks!
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
