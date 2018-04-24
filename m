@@ -1,70 +1,75 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [REVIEW][PATCH 23/22] signal/riscv: Replace do_trap_siginfo with force_sig_fault
-Date: Tue, 24 Apr 2018 10:31:15 -0500
-Message-ID: <87lgdcei4c.fsf_-_@xmission.com>
+Subject: Re: [uml-devel] [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault in relay_signal.
+Date: Tue, 24 Apr 2018 10:59:46 -0500
+Message-ID: <87zi1sd28d.fsf@xmission.com>
 References: <87604mhrnb.fsf@xmission.com>
-        <20180420143811.9994-14-ebiederm@xmission.com>
-        <20180421072550.GA6973@infradead.org>
+        <20180420143811.9994-19-ebiederm@xmission.com>
+        <7074fe36-27c5-ee82-9659-da703cfc91fe@kot-begemot.co.uk>
+        <CAFLxGvyM+Kru=ERDvccjVuMjSPbu+FQzjbUbMwSyEbL1rVGkBQ@mail.gmail.com>
+        <7ddd238f-88a8-ed03-fe9e-0f4e5f2a490d@kot-begemot.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180421072550.GA6973@infradead.org> (Christoph Hellwig's
-        message of "Sat, 21 Apr 2018 00:25:50 -0700")
+In-Reply-To: <7ddd238f-88a8-ed03-fe9e-0f4e5f2a490d@kot-begemot.co.uk> (Anton
+        Ivanov's message of "Tue, 24 Apr 2018 09:44:22 +0100")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, Palmer Dabbelt <palmer@sifive.com>, linux-kernel@vger.kernel.org, Albert Ou <albert@sifive.com>
+To: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
+Cc: Richard Weinberger <richard.weinberger@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, "user-mode-linux-devel@lists.sourceforge.net" <user-mode-linux-devel@lists.sourceforge.net>, Martin =?utf-8?Q?P=C3=A4rt?= =?utf-8?Q?el?= <martin.partel@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
+Sigh I should have Cc'd Martin Partel as well as this bit is his
+original code.
 
-The function force_sig_fault is just the generic version of
-do_trap_siginfo with a (void __user *) instead of an unsigned long
-parameter for the address.
+Anton Ivanov <anton.ivanov@kot-begemot.co.uk> writes:
 
-So just use force_sig_fault to simplify the code.
+> Hi Richard,
+>
+> There was a post to uml-devel during the days when the sourceforge mailing list
+> was working in random drop mode which claimed that "this fixes the arm build".
+>
+> I have not kept it locally and I do not see it the archive (I do not see a few
+> other posts there either - including some of mine).
+>
+> The joys of having a broken list :(
+>
+> Whoever posted it, if you are reading it, please re-post again so we can have a
+> look.
+>
+> In the meantime we are as you said - x86 only.
 
-Cc: Palmer Dabbelt <palmer@sifive.com>
-Cc: Albert Ou <albert@sifive.com>
-Cc: linux-riscv@lists.infradead.org
-Suggested-by: Christoph Hellwig <hch@infradead.org>
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/riscv/kernel/traps.c | 10 ++--------
- 1 file changed, 2 insertions(+), 8 deletions(-)
+The only case I can see my changed relay_signal affecting on arm is the
+nasty hach where errno is set in conjunction with trap_trace.
 
-diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
-index 3087940008f4..b99d9dd21fd0 100644
---- a/arch/riscv/kernel/traps.c
-+++ b/arch/riscv/kernel/traps.c
-@@ -63,12 +63,6 @@ void die(struct pt_regs *regs, const char *str)
- 		do_exit(SIGSEGV);
- }
- 
--static inline void do_trap_siginfo(int signo, int code,
--	unsigned long addr, struct task_struct *tsk)
--{
--	force_sig_fault(signo, code, (void __user *)addr, tsk);
--}
--
- void do_trap(struct pt_regs *regs, int signo, int code,
- 	unsigned long addr, struct task_struct *tsk)
- {
-@@ -81,7 +75,7 @@ void do_trap(struct pt_regs *regs, int signo, int code,
- 		show_regs(regs);
- 	}
- 
--	do_trap_siginfo(signo, code, addr, tsk);
-+	force_sig_fault(signo, code, (void __user *)addr, tsk);
- }
- 
- static void do_trap_error(struct pt_regs *regs, int signo, int code,
-@@ -143,7 +137,7 @@ asmlinkage void do_trap_break(struct pt_regs *regs)
- 	}
- #endif /* CONFIG_GENERIC_BUG */
- 
--	do_trap_siginfo(SIGTRAP, TRAP_BRKPT, regs->sepc, current);
-+	force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *)(regs->sepc), current);
- 	regs->sepc += 0x4;
- }
- 
--- 
-2.14.1
+Having a second look I really don't understand what relay_signal is
+trying to do.
+
+The function relay_signal does not pass siginfo through unchanged.
+The function relay_signal does not handle cases where si_code is
+not SI_USER or SI_KERNEL, or any of the other signal independent
+si_codes.
+
+In my change I believe I have preserved the character of relay_signal of
+just passing through the fault.
+
+Still even after reading the commit that upgraded relay_signal to
+preserve si_code and si_addr I really don't understand the intended
+logic.
+
+Am I missing something subtle or have the subtle details of siginfo just
+always been ignored?
+
+commit d3c1cfcdb43e023ab1b1c7a555cd9e929026500a
+Author: Martin Pärtel <martin.partel@gmail.com>
+Date:   Thu Aug 2 00:49:17 2012 +0200
+
+    um: pass siginfo to guest process
+    
+    UML guest processes now get correct siginfo_t for SIGTRAP, SIGFPE,
+    SIGILL and SIGBUS. Specifically, si_addr and si_code are now correct
+    where previously they were si_addr = NULL and si_code = 128.
+    
+    Signed-off-by: Martin Pärtel <martin.partel@gmail.com>
+    Signed-off-by: Richard Weinberger <richard@nod.at>
+
+Eric
