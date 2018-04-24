@@ -1,49 +1,25 @@
-From: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
-Subject: Re: [uml-devel] [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault
- in relay_signal.
-Date: Tue, 24 Apr 2018 09:44:22 +0100
-Message-ID: <7ddd238f-88a8-ed03-fe9e-0f4e5f2a490d@kot-begemot.co.uk>
-References: <87604mhrnb.fsf@xmission.com>
- <20180420143811.9994-19-ebiederm@xmission.com>
- <7074fe36-27c5-ee82-9659-da703cfc91fe@kot-begemot.co.uk>
- <CAFLxGvyM+Kru=ERDvccjVuMjSPbu+FQzjbUbMwSyEbL1rVGkBQ@mail.gmail.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: dma-debug cleanups, including removing the arch hook
+Date: Tue, 24 Apr 2018 16:02:32 +0200
+Message-ID: <20180424140235.9125-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAFLxGvyM+Kru=ERDvccjVuMjSPbu+FQzjbUbMwSyEbL1rVGkBQ@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Richard Weinberger <richard.weinberger@gmail.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, "user-mode-linux-devel@lists.sourceforge.net" <user-mode-linux-devel@lists.sourceforge.net>
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: iommu@lists.linux-foundation.org
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Richard,
+Hi all,
 
-There was a post to uml-devel during the days when the sourceforge 
-mailing list was working in random drop mode which claimed that "this 
-fixes the arm build".
-
-I have not kept it locally and I do not see it the archive (I do not see 
-a few other posts there either - including some of mine).
-
-The joys of having a broken list :(
-
-Whoever posted it, if you are reading it, please re-post again so we can 
-have a look.
-
-In the meantime we are as you said - x86 only.
-
-A.
-
-On 04/24/18 09:32, Richard Weinberger wrote:
-> On Fri, Apr 20, 2018 at 6:06 PM, Anton Ivanov
-> <anton.ivanov@kot-begemot.co.uk> wrote:
->> On 04/20/18 15:38, Eric W. Biederman wrote:
->>> Today user mode linux only works on x86 and x86_64 and this allows
->>> simplifications of relay_signal.
->>
->> I believe someone recently fixed the ARM port. I have not had the time to
->> try the fixes though.
-> Huh? UML is for ages x86 only.
->
+this series has a few dma-debug cleanups, most notably removing the need
+for architectures to explicitly initialize dma-debug.
