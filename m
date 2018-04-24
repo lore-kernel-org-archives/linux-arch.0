@@ -1,76 +1,53 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/3] dma-debug: simplify counting of preallocated requests
-Date: Tue, 24 Apr 2018 16:02:34 +0200
-Message-ID: <20180424140235.9125-3-hch@lst.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 3/3] dma-debug: unexport dma_debug_resize_entries and
+	debug_dma_dump_mappings
+Date: Tue, 24 Apr 2018 16:02:35 +0200
+Message-ID: <20180424140235.9125-4-hch@lst.de>
 References: <20180424140235.9125-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180424140235.9125-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20180424140235.9125-1-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Just keep a single variable with a descriptive name instead of two
-with confusing names.
+Only used by the AMD GART driver, which must be built in.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- lib/dma-debug.c | 20 ++++----------------
- 1 file changed, 4 insertions(+), 16 deletions(-)
+ lib/dma-debug.c | 2 --
+ 1 file changed, 2 deletions(-)
 
 diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index 712a897174e4..075253cb613b 100644
+index 075253cb613b..6a1ebaa83623 100644
 --- a/lib/dma-debug.c
 +++ b/lib/dma-debug.c
-@@ -132,7 +132,7 @@ static u32 min_free_entries;
- static u32 nr_total_entries;
- 
- /* number of preallocated entries requested by kernel cmdline */
--static u32 req_entries;
-+static u32 nr_prealloc_entries = PREALLOC_DMA_DEBUG_ENTRIES;
- 
- /* debugfs dentry's for the stuff above */
- static struct dentry *dma_debug_dent        __read_mostly;
-@@ -1011,7 +1011,6 @@ void dma_debug_add_bus(struct bus_type *bus)
- 
- static int dma_debug_init(void)
- {
--	u32 num_entries;
- 	int i;
- 
- 	/* Do not use dma_debug_initialized here, since we really want to be
-@@ -1032,12 +1031,7 @@ static int dma_debug_init(void)
- 		return 0;
+@@ -444,7 +444,6 @@ void debug_dma_dump_mappings(struct device *dev)
+ 		spin_unlock_irqrestore(&bucket->lock, flags);
  	}
- 
--	if (req_entries)
--		num_entries = req_entries;
--	else
--		num_entries = PREALLOC_DMA_DEBUG_ENTRIES;
--
--	if (prealloc_memory(num_entries) != 0) {
-+	if (prealloc_memory(nr_prealloc_entries) != 0) {
- 		pr_err("DMA-API: debugging out of memory error - disabled\n");
- 		global_disable = true;
- 
-@@ -1068,16 +1062,10 @@ static __init int dma_debug_cmdline(char *str)
- 
- static __init int dma_debug_entries_cmdline(char *str)
- {
--	int res;
--
- 	if (!str)
- 		return -EINVAL;
--
--	res = get_option(&str, &req_entries);
--
--	if (!res)
--		req_entries = 0;
--
-+	if (!get_option(&str, &nr_prealloc_entries))
-+		nr_prealloc_entries = PREALLOC_DMA_DEBUG_ENTRIES;
- 	return 0;
  }
+-EXPORT_SYMBOL(debug_dma_dump_mappings);
  
+ /*
+  * For each mapping (initial cacheline in the case of
+@@ -753,7 +752,6 @@ int dma_debug_resize_entries(u32 num_entries)
+ 
+ 	return ret;
+ }
+-EXPORT_SYMBOL(dma_debug_resize_entries);
+ 
+ /*
+  * DMA-API debugging init code
 -- 
 2.17.0
