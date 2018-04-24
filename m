@@ -1,63 +1,36 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [REVIEW][PATCH 14/22] signal/riscv: Use force_sig_fault where appropriate
-Date: Mon, 23 Apr 2018 12:11:23 -0700 (PDT)
-Message-ID: <mhng-77d5b15b-866b-464a-a256-6c7b84726ce3@palmer-si-x1c4>
-References: <20180420143811.9994-14-ebiederm@xmission.com>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 01/22] dma-debug: move initialization to common code
+Date: Tue, 24 Apr 2018 09:35:24 +0200
+Message-ID: <20180424073524.GB18945@lst.de>
+References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-2-hch@lst.de> <294a1469-01d6-10fb-5de1-b1d4513a066c@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180420143811.9994-14-ebiederm@xmission.com>
+Content-Disposition: inline
+In-Reply-To: <294a1469-01d6-10fb-5de1-b1d4513a066c@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ebiederm@xmission.com, albert@sifive.com, linux-riscv@lists.infradead.org
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 20 Apr 2018 07:38:03 PDT (-0700), ebiederm@xmission.com wrote:
-> Filling in struct siginfo before calling force_sig_info a tedious and
-> error prone process, where once in a great while the wrong fields
-> are filled out, and siginfo has been inconsistently cleared.
+On Fri, Apr 20, 2018 at 11:23:43AM +0100, Robin Murphy wrote:
+>> -void dma_debug_init(u32 num_entries)
+>> +static int dma_debug_init(void)
+>>   {
+>> +	u32 num_entries;
 >
-> Simplify this process by using the helper force_sig_fault.  Which
-> takes as a parameters all of the information it needs, ensures
-> all of the fiddly bits of filling in struct siginfo are done properly
-> and then calls force_sig_info.
->
-> In short about a 5 line reduction in code for every time force_sig_info
-> is called, which makes the calling function clearer.
->
-> Cc: Palmer Dabbelt <palmer@sifive.com>
-> Cc: Albert Ou <albert@sifive.com>
-> Cc: linux-riscv@lists.infradead.org
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
-> ---
->  arch/riscv/kernel/traps.c | 9 +--------
->  1 file changed, 1 insertion(+), 8 deletions(-)
->
-> diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
-> index 48aa6471cede..3087940008f4 100644
-> --- a/arch/riscv/kernel/traps.c
-> +++ b/arch/riscv/kernel/traps.c
-> @@ -66,14 +66,7 @@ void die(struct pt_regs *regs, const char *str)
->  static inline void do_trap_siginfo(int signo, int code,
->  	unsigned long addr, struct task_struct *tsk)
->  {
-> -	siginfo_t info;
-> -
-> -	clear_siginfo(&info);
-> -	info.si_signo = signo;
-> -	info.si_errno = 0;
-> -	info.si_code = code;
-> -	info.si_addr = (void __user *)addr;
-> -	force_sig_info(signo, &info, tsk);
-> +	force_sig_fault(signo, code, (void __user *)addr, tsk);
->  }
->
->  void do_trap(struct pt_regs *regs, int signo, int code,
+> Maybe initialise it to PREALLOC_DMA_DEBUG_ENTRIES?
 
-If I understand this correctly, any change in behavior this causes would have 
-been a bug on our end not filling out siginfo correctly?  In that case then 
-feel free to add an
+We initialize it down in an if/else clause which seems a little more clear
+to me, at the cost of two extra lines of code.  But I suspect I should
+just go a little further and merge the global req_entries and the local
+num_entries into a single variable with a better name.
 
-    Acked-by: Palmer Dabbelt <palmer@sifive.com>
+>> +core_initcall(dma_debug_init);
+>
+> I think it's worth noting that for most users this now happens much earlier 
+> than before. In general that's probably good (e.g. on arm64 it should 
+> prevent false-positives from the Arm SMMU drivers under ACPI), and I can't 
+> imagine it's high-risk, but it is a behaviour change.
 
-Thanks!
+I'll mention this in the changelog, thanks!
