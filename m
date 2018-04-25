@@ -1,519 +1,425 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:40103 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.74]:33511 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755814AbeDYQEj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:04:39 -0400
+        with ESMTP id S1755419AbeDYQE3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:04:29 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 09/17] y2038: futex: Move compat implementation into futex.c
-Date: Wed, 25 Apr 2018 18:03:03 +0200
-Message-ID: <20180425160311.2718314-10-arnd@arndb.de>
+Subject: [PATCH 01/17] y2038: compat: Move common compat types to asm-generic/compat.h
+Date: Wed, 25 Apr 2018 18:02:55 +0200
+Message-ID: <20180425160311.2718314-2-arnd@arndb.de>
 In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
 References: <20180425160311.2718314-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425160303.cvtCXo757K8WKuQKr_T3zslTYJGTNuGGHFWVKQSFjCU@z>
+Message-ID: <20180425160255.2_Fg4kewx5glhn5wHEn4Tuygtcs87-_TtQ-OCpfPbu8@z>
 
-We are going to share the compat_sys_futex() handler between 64-bit
-architectures and 32-bit architectures that need to deal with both 32-bit
-and 64-bit time_t, and this is easier if both entry points are in the
-same file.
+The architectures that support 32-bit compat mode define a number
+of simple types for use in compat handlers. About half of those
+are identical between architectures, and some of those are also
+required now by handlers shared with CONFIG_COMPAT_32BIT_TIME
+functions on 32-bit architectures.
 
-In fact, most other system call handlers do the same thing these days, so
-let's follow the trend here and merge all of futex_compat.c into futex.c.
+Let's move all the identical ones into asm-generic/compat.h to avoid
+having to add even more identical definitions of those types.
 
-In the process, a few minor changes have to be done to make sure everything
-still makes sense: handle_futex_death() and futex_cmpxchg_enabled() become
-local symbol, and the compat version of the fetch_robust_entry() function
-gets renamed to compat_fetch_robust_entry() to avoid a symbol clash.
+For unknown reasons, mips defines __compat_gid32_t, __compat_uid32_t
+and compat_caddr_t as signed, while all others have them unsigned.
+This seems to be a mistake, but I'm leaving it alone here. The other
+types all differ by size or alignment on at least on architecture.
 
-This is intended as a purely cosmetic patch, no behavior should
-change.
+compat_aio_context_t is currently defined in linux/compat.h but
+also needed for compat_sys_io_getevents(), so let's move it into
+the same place.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/futex.h |   8 --
- kernel/Makefile       |   3 -
- kernel/futex.c        | 195 +++++++++++++++++++++++++++++++++++++++++++++++-
- kernel/futex_compat.c | 202 --------------------------------------------------
- 4 files changed, 192 insertions(+), 216 deletions(-)
- delete mode 100644 kernel/futex_compat.c
+ arch/arm64/include/asm/compat.h   | 20 ++------------------
+ arch/mips/include/asm/compat.h    | 22 ++--------------------
+ arch/parisc/include/asm/compat.h  | 18 ++----------------
+ arch/powerpc/include/asm/compat.h | 18 ++----------------
+ arch/s390/include/asm/compat.h    | 18 ++----------------
+ arch/sparc/include/asm/compat.h   | 19 ++-----------------
+ arch/x86/include/asm/compat.h     | 19 ++-----------------
+ include/asm-generic/compat.h      | 24 +++++++++++++++++++++++-
+ include/linux/compat.h            |  2 --
+ 9 files changed, 37 insertions(+), 123 deletions(-)
 
-diff --git a/include/linux/futex.h b/include/linux/futex.h
-index 821ae502d3d8..ccaef0097785 100644
---- a/include/linux/futex.h
-+++ b/include/linux/futex.h
-@@ -9,9 +9,6 @@ struct inode;
- struct mm_struct;
- struct task_struct;
+diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
+index 1a037b94eba1..a4c79f9e856d 100644
+--- a/arch/arm64/include/asm/compat.h
++++ b/arch/arm64/include/asm/compat.h
+@@ -25,6 +25,8 @@
+ #include <linux/sched.h>
+ #include <linux/sched/task_stack.h>
  
--extern int
--handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi);
--
- /*
-  * Futexes are matched on equal values of this key.
-  * The key type depends on whether it's a shared or private mapping.
-@@ -55,11 +52,6 @@ extern void exit_robust_list(struct task_struct *curr);
- 
- long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
- 	      u32 __user *uaddr2, u32 val2, u32 val3);
--#ifdef CONFIG_HAVE_FUTEX_CMPXCHG
--#define futex_cmpxchg_enabled 1
--#else
--extern int futex_cmpxchg_enabled;
--#endif
- #else
- static inline void exit_robust_list(struct task_struct *curr)
- {
-diff --git a/kernel/Makefile b/kernel/Makefile
-index f85ae5dfa474..fbebd38cef8f 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -48,9 +48,6 @@ obj-$(CONFIG_PROFILING) += profile.o
- obj-$(CONFIG_STACKTRACE) += stacktrace.o
- obj-y += time/
- obj-$(CONFIG_FUTEX) += futex.o
--ifeq ($(CONFIG_COMPAT),y)
--obj-$(CONFIG_FUTEX) += futex_compat.o
--endif
- obj-$(CONFIG_GENERIC_ISA_DMA) += dma.o
- obj-$(CONFIG_SMP) += smp.o
- ifneq ($(CONFIG_SMP),y)
-diff --git a/kernel/futex.c b/kernel/futex.c
-index 1f450e092c74..e9013d1e65a1 100644
---- a/kernel/futex.c
-+++ b/kernel/futex.c
-@@ -44,6 +44,7 @@
-  *  along with this program; if not, write to the Free Software
-  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  */
-+#include <linux/compat.h>
- #include <linux/slab.h>
- #include <linux/poll.h>
- #include <linux/fs.h>
-@@ -173,8 +174,10 @@
-  * double_lock_hb() and double_unlock_hb(), respectively.
-  */
- 
--#ifndef CONFIG_HAVE_FUTEX_CMPXCHG
--int __read_mostly futex_cmpxchg_enabled;
-+#ifdef CONFIG_HAVE_FUTEX_CMPXCHG
-+#define futex_cmpxchg_enabled 1
-+#else
-+static int  __read_mostly futex_cmpxchg_enabled;
++#include <asm-generic/compat.h>
++
+ #define COMPAT_USER_HZ		100
+ #ifdef __AARCH64EB__
+ #define COMPAT_UTS_MACHINE	"armv8b\0\0"
+@@ -32,10 +34,6 @@
+ #define COMPAT_UTS_MACHINE	"armv8l\0\0"
  #endif
  
- /*
-@@ -3360,7 +3363,7 @@ SYSCALL_DEFINE3(get_robust_list, int, pid,
-  * Process a futex-list entry, check whether it's owned by the
-  * dying task, and do notification if so:
+-typedef u32		compat_size_t;
+-typedef s32		compat_ssize_t;
+-typedef s32		compat_clock_t;
+-typedef s32		compat_pid_t;
+ typedef u16		__compat_uid_t;
+ typedef u16		__compat_gid_t;
+ typedef u16		__compat_uid16_t;
+@@ -43,27 +41,13 @@ typedef u16		__compat_gid16_t;
+ typedef u32		__compat_uid32_t;
+ typedef u32		__compat_gid32_t;
+ typedef u16		compat_mode_t;
+-typedef u32		compat_ino_t;
+ typedef u32		compat_dev_t;
+-typedef s32		compat_off_t;
+-typedef s64		compat_loff_t;
+ typedef s32		compat_nlink_t;
+ typedef u16		compat_ipc_pid_t;
+-typedef s32		compat_daddr_t;
+ typedef u32		compat_caddr_t;
+ typedef __kernel_fsid_t	compat_fsid_t;
+-typedef s32		compat_key_t;
+-typedef s32		compat_timer_t;
+-
+-typedef s16		compat_short_t;
+-typedef s32		compat_int_t;
+-typedef s32		compat_long_t;
+ typedef s64		compat_s64;
+-typedef u16		compat_ushort_t;
+-typedef u32		compat_uint_t;
+-typedef u32		compat_ulong_t;
+ typedef u64		compat_u64;
+-typedef u32		compat_uptr_t;
+ 
+ struct compat_stat {
+ #ifdef __AARCH64EB__
+diff --git a/arch/mips/include/asm/compat.h b/arch/mips/include/asm/compat.h
+index 78675f19440f..7033a7c93b48 100644
+--- a/arch/mips/include/asm/compat.h
++++ b/arch/mips/include/asm/compat.h
+@@ -9,43 +9,25 @@
+ #include <asm/page.h>
+ #include <asm/ptrace.h>
+ 
++#include <asm-generic/compat.h>
++
+ #define COMPAT_USER_HZ		100
+ #define COMPAT_UTS_MACHINE	"mips\0\0\0"
+ 
+-typedef u32		compat_size_t;
+-typedef s32		compat_ssize_t;
+-typedef s32		compat_clock_t;
+-typedef s32		compat_suseconds_t;
+-
+-typedef s32		compat_pid_t;
+ typedef s32		__compat_uid_t;
+ typedef s32		__compat_gid_t;
+ typedef __compat_uid_t	__compat_uid32_t;
+ typedef __compat_gid_t	__compat_gid32_t;
+ typedef u32		compat_mode_t;
+-typedef u32		compat_ino_t;
+ typedef u32		compat_dev_t;
+-typedef s32		compat_off_t;
+-typedef s64		compat_loff_t;
+ typedef u32		compat_nlink_t;
+ typedef s32		compat_ipc_pid_t;
+-typedef s32		compat_daddr_t;
+ typedef s32		compat_caddr_t;
+ typedef struct {
+ 	s32	val[2];
+ } compat_fsid_t;
+-typedef s32		compat_timer_t;
+-typedef s32		compat_key_t;
+-
+-typedef s16		compat_short_t;
+-typedef s32		compat_int_t;
+-typedef s32		compat_long_t;
+ typedef s64		compat_s64;
+-typedef u16		compat_ushort_t;
+-typedef u32		compat_uint_t;
+-typedef u32		compat_ulong_t;
+ typedef u64		compat_u64;
+-typedef u32		compat_uptr_t;
+ 
+ struct compat_stat {
+ 	compat_dev_t	st_dev;
+diff --git a/arch/parisc/include/asm/compat.h b/arch/parisc/include/asm/compat.h
+index ab8a54771507..f707e025f89b 100644
+--- a/arch/parisc/include/asm/compat.h
++++ b/arch/parisc/include/asm/compat.h
+@@ -8,36 +8,22 @@
+ #include <linux/sched.h>
+ #include <linux/thread_info.h>
+ 
++#include <asm-generic/compat.h>
++
+ #define COMPAT_USER_HZ 		100
+ #define COMPAT_UTS_MACHINE	"parisc\0\0"
+ 
+-typedef u32	compat_size_t;
+-typedef s32	compat_ssize_t;
+-typedef s32	compat_clock_t;
+-typedef s32	compat_pid_t;
+ typedef u32	__compat_uid_t;
+ typedef u32	__compat_gid_t;
+ typedef u32	__compat_uid32_t;
+ typedef u32	__compat_gid32_t;
+ typedef u16	compat_mode_t;
+-typedef u32	compat_ino_t;
+ typedef u32	compat_dev_t;
+-typedef s32	compat_off_t;
+-typedef s64	compat_loff_t;
+ typedef u16	compat_nlink_t;
+ typedef u16	compat_ipc_pid_t;
+-typedef s32	compat_daddr_t;
+ typedef u32	compat_caddr_t;
+-typedef s32	compat_key_t;
+-typedef s32	compat_timer_t;
+-
+-typedef s32	compat_int_t;
+-typedef s32	compat_long_t;
+ typedef s64	compat_s64;
+-typedef u32	compat_uint_t;
+-typedef u32	compat_ulong_t;
+ typedef u64	compat_u64;
+-typedef u32	compat_uptr_t;
+ 
+ struct compat_stat {
+ 	compat_dev_t		st_dev;	/* dev_t is 32 bits on parisc */
+diff --git a/arch/powerpc/include/asm/compat.h b/arch/powerpc/include/asm/compat.h
+index 85c8af2bb272..036b210b1582 100644
+--- a/arch/powerpc/include/asm/compat.h
++++ b/arch/powerpc/include/asm/compat.h
+@@ -8,6 +8,8 @@
+ #include <linux/types.h>
+ #include <linux/sched.h>
+ 
++#include <asm-generic/compat.h>
++
+ #define COMPAT_USER_HZ		100
+ #ifdef __BIG_ENDIAN__
+ #define COMPAT_UTS_MACHINE	"ppc\0\0"
+@@ -15,34 +17,18 @@
+ #define COMPAT_UTS_MACHINE	"ppcle\0\0"
+ #endif
+ 
+-typedef u32		compat_size_t;
+-typedef s32		compat_ssize_t;
+-typedef s32		compat_clock_t;
+-typedef s32		compat_pid_t;
+ typedef u32		__compat_uid_t;
+ typedef u32		__compat_gid_t;
+ typedef u32		__compat_uid32_t;
+ typedef u32		__compat_gid32_t;
+ typedef u32		compat_mode_t;
+-typedef u32		compat_ino_t;
+ typedef u32		compat_dev_t;
+-typedef s32		compat_off_t;
+-typedef s64		compat_loff_t;
+ typedef s16		compat_nlink_t;
+ typedef u16		compat_ipc_pid_t;
+-typedef s32		compat_daddr_t;
+ typedef u32		compat_caddr_t;
+ typedef __kernel_fsid_t	compat_fsid_t;
+-typedef s32		compat_key_t;
+-typedef s32		compat_timer_t;
+-
+-typedef s32		compat_int_t;
+-typedef s32		compat_long_t;
+ typedef s64		compat_s64;
+-typedef u32		compat_uint_t;
+-typedef u32		compat_ulong_t;
+ typedef u64		compat_u64;
+-typedef u32		compat_uptr_t;
+ 
+ struct compat_stat {
+ 	compat_dev_t	st_dev;
+diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
+index 97db2fba546a..63b46e30b2c3 100644
+--- a/arch/s390/include/asm/compat.h
++++ b/arch/s390/include/asm/compat.h
+@@ -9,6 +9,8 @@
+ #include <linux/sched/task_stack.h>
+ #include <linux/thread_info.h>
+ 
++#include <asm-generic/compat.h>
++
+ #define __TYPE_IS_PTR(t) (!__builtin_types_compatible_p( \
+ 				typeof(0?(__force t)0:0ULL), u64))
+ 
+@@ -51,34 +53,18 @@
+ #define COMPAT_USER_HZ		100
+ #define COMPAT_UTS_MACHINE	"s390\0\0\0\0"
+ 
+-typedef u32		compat_size_t;
+-typedef s32		compat_ssize_t;
+-typedef s32		compat_clock_t;
+-typedef s32		compat_pid_t;
+ typedef u16		__compat_uid_t;
+ typedef u16		__compat_gid_t;
+ typedef u32		__compat_uid32_t;
+ typedef u32		__compat_gid32_t;
+ typedef u16		compat_mode_t;
+-typedef u32		compat_ino_t;
+ typedef u16		compat_dev_t;
+-typedef s32		compat_off_t;
+-typedef s64		compat_loff_t;
+ typedef u16		compat_nlink_t;
+ typedef u16		compat_ipc_pid_t;
+-typedef s32		compat_daddr_t;
+ typedef u32		compat_caddr_t;
+ typedef __kernel_fsid_t	compat_fsid_t;
+-typedef s32		compat_key_t;
+-typedef s32		compat_timer_t;
+-
+-typedef s32		compat_int_t;
+-typedef s32		compat_long_t;
+ typedef s64		compat_s64;
+-typedef u32		compat_uint_t;
+-typedef u32		compat_ulong_t;
+ typedef u64		compat_u64;
+-typedef u32		compat_uptr_t;
+ 
+ typedef struct {
+ 	u32 mask;
+diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
+index 4eb51d2dae98..985286b79891 100644
+--- a/arch/sparc/include/asm/compat.h
++++ b/arch/sparc/include/asm/compat.h
+@@ -6,38 +6,23 @@
   */
--int handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi)
-+static int handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi)
- {
- 	u32 uval, uninitialized_var(nval), mval;
+ #include <linux/types.h>
  
-@@ -3587,6 +3590,192 @@ SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
- 	return do_futex(uaddr, op, val, tp, uaddr2, val2, val3);
- }
++#include <asm-generic/compat.h>
++
+ #define COMPAT_USER_HZ		100
+ #define COMPAT_UTS_MACHINE	"sparc\0\0"
  
-+#ifdef CONFIG_COMPAT
-+/*
-+ * Fetch a robust-list pointer. Bit 0 signals PI futexes:
-+ */
-+static inline int
-+compat_fetch_robust_entry(compat_uptr_t *uentry, struct robust_list __user **entry,
-+		   compat_uptr_t __user *head, unsigned int *pi)
-+{
-+	if (get_user(*uentry, head))
-+		return -EFAULT;
+-typedef u32		compat_size_t;
+-typedef s32		compat_ssize_t;
+-typedef s32		compat_clock_t;
+-typedef s32		compat_pid_t;
+ typedef u16		__compat_uid_t;
+ typedef u16		__compat_gid_t;
+ typedef u32		__compat_uid32_t;
+ typedef u32		__compat_gid32_t;
+ typedef u16		compat_mode_t;
+-typedef u32		compat_ino_t;
+ typedef u16		compat_dev_t;
+-typedef s32		compat_off_t;
+-typedef s64		compat_loff_t;
+ typedef s16		compat_nlink_t;
+ typedef u16		compat_ipc_pid_t;
+-typedef s32		compat_daddr_t;
+ typedef u32		compat_caddr_t;
+ typedef __kernel_fsid_t	compat_fsid_t;
+-typedef s32		compat_key_t;
+-typedef s32		compat_timer_t;
+-
+-typedef s32		compat_int_t;
+-typedef s32		compat_long_t;
+ typedef s64		compat_s64;
+-typedef u32		compat_uint_t;
+-typedef u32		compat_ulong_t;
+ typedef u64		compat_u64;
+-typedef u32		compat_uptr_t;
+-
+ struct compat_stat {
+ 	compat_dev_t	st_dev;
+ 	compat_ino_t	st_ino;
+diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
+index fb97cf7c4137..0ce6f452d334 100644
+--- a/arch/x86/include/asm/compat.h
++++ b/arch/x86/include/asm/compat.h
+@@ -12,38 +12,23 @@
+ #include <asm/user32.h>
+ #include <asm/unistd.h>
+ 
++#include <asm-generic/compat.h>
 +
-+	*entry = compat_ptr((*uentry) & ~1);
-+	*pi = (unsigned int)(*uentry) & 1;
+ #define COMPAT_USER_HZ		100
+ #define COMPAT_UTS_MACHINE	"i686\0\0"
+ 
+-typedef u32		compat_size_t;
+-typedef s32		compat_ssize_t;
+-typedef s32		compat_clock_t;
+-typedef s32		compat_pid_t;
+ typedef u16		__compat_uid_t;
+ typedef u16		__compat_gid_t;
+ typedef u32		__compat_uid32_t;
+ typedef u32		__compat_gid32_t;
+ typedef u16		compat_mode_t;
+-typedef u32		compat_ino_t;
+ typedef u16		compat_dev_t;
+-typedef s32		compat_off_t;
+-typedef s64		compat_loff_t;
+ typedef u16		compat_nlink_t;
+ typedef u16		compat_ipc_pid_t;
+-typedef s32		compat_daddr_t;
+ typedef u32		compat_caddr_t;
+ typedef __kernel_fsid_t	compat_fsid_t;
+-typedef s32		compat_timer_t;
+-typedef s32		compat_key_t;
+-
+-typedef s32		compat_int_t;
+-typedef s32		compat_long_t;
+ typedef s64 __attribute__((aligned(4))) compat_s64;
+-typedef u32		compat_uint_t;
+-typedef u32		compat_ulong_t;
+-typedef u32		compat_u32;
+ typedef u64 __attribute__((aligned(4))) compat_u64;
+-typedef u32		compat_uptr_t;
+ 
+ struct compat_stat {
+ 	compat_dev_t	st_dev;
+diff --git a/include/asm-generic/compat.h b/include/asm-generic/compat.h
+index 28819451b6d1..a86f65bffab8 100644
+--- a/include/asm-generic/compat.h
++++ b/include/asm-generic/compat.h
+@@ -1,3 +1,25 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_COMPAT_H
++#define __ASM_GENERIC_COMPAT_H
+ 
+-/* This is an empty stub for 32-bit-only architectures */
++/* These types are common across all compat ABIs */
++typedef u32 compat_size_t;
++typedef s32 compat_ssize_t;
++typedef s32 compat_clock_t;
++typedef s32 compat_pid_t;
++typedef u32 compat_ino_t;
++typedef s32 compat_off_t;
++typedef s64 compat_loff_t;
++typedef s32 compat_daddr_t;
++typedef s32 compat_timer_t;
++typedef s32 compat_key_t;
++typedef s16 compat_short_t;
++typedef s32 compat_int_t;
++typedef s32 compat_long_t;
++typedef u16 compat_ushort_t;
++typedef u32 compat_uint_t;
++typedef u32 compat_ulong_t;
++typedef u32 compat_uptr_t;
++typedef u32 compat_aio_context_t;
 +
-+	return 0;
-+}
-+
-+static void __user *futex_uaddr(struct robust_list __user *entry,
-+				compat_long_t futex_offset)
-+{
-+	compat_uptr_t base = ptr_to_compat(entry);
-+	void __user *uaddr = compat_ptr(base + futex_offset);
-+
-+	return uaddr;
-+}
-+
-+/*
-+ * Walk curr->robust_list (very carefully, it's a userspace list!)
-+ * and mark any locks found there dead, and notify any waiters.
-+ *
-+ * We silently return on any sign of list-walking problem.
-+ */
-+void compat_exit_robust_list(struct task_struct *curr)
-+{
-+	struct compat_robust_list_head __user *head = curr->compat_robust_list;
-+	struct robust_list __user *entry, *next_entry, *pending;
-+	unsigned int limit = ROBUST_LIST_LIMIT, pi, pip;
-+	unsigned int uninitialized_var(next_pi);
-+	compat_uptr_t uentry, next_uentry, upending;
-+	compat_long_t futex_offset;
-+	int rc;
-+
-+	if (!futex_cmpxchg_enabled)
-+		return;
-+
-+	/*
-+	 * Fetch the list head (which was registered earlier, via
-+	 * sys_set_robust_list()):
-+	 */
-+	if (compat_fetch_robust_entry(&uentry, &entry, &head->list.next, &pi))
-+		return;
-+	/*
-+	 * Fetch the relative futex offset:
-+	 */
-+	if (get_user(futex_offset, &head->futex_offset))
-+		return;
-+	/*
-+	 * Fetch any possibly pending lock-add first, and handle it
-+	 * if it exists:
-+	 */
-+	if (compat_fetch_robust_entry(&upending, &pending,
-+			       &head->list_op_pending, &pip))
-+		return;
-+
-+	next_entry = NULL;	/* avoid warning with gcc */
-+	while (entry != (struct robust_list __user *) &head->list) {
-+		/*
-+		 * Fetch the next entry in the list before calling
-+		 * handle_futex_death:
-+		 */
-+		rc = compat_fetch_robust_entry(&next_uentry, &next_entry,
-+			(compat_uptr_t __user *)&entry->next, &next_pi);
-+		/*
-+		 * A pending lock might already be on the list, so
-+		 * dont process it twice:
-+		 */
-+		if (entry != pending) {
-+			void __user *uaddr = futex_uaddr(entry, futex_offset);
-+
-+			if (handle_futex_death(uaddr, curr, pi))
-+				return;
-+		}
-+		if (rc)
-+			return;
-+		uentry = next_uentry;
-+		entry = next_entry;
-+		pi = next_pi;
-+		/*
-+		 * Avoid excessively long or circular lists:
-+		 */
-+		if (!--limit)
-+			break;
-+
-+		cond_resched();
-+	}
-+	if (pending) {
-+		void __user *uaddr = futex_uaddr(pending, futex_offset);
-+
-+		handle_futex_death(uaddr, curr, pip);
-+	}
-+}
-+
-+COMPAT_SYSCALL_DEFINE2(set_robust_list,
-+		struct compat_robust_list_head __user *, head,
-+		compat_size_t, len)
-+{
-+	if (!futex_cmpxchg_enabled)
-+		return -ENOSYS;
-+
-+	if (unlikely(len != sizeof(*head)))
-+		return -EINVAL;
-+
-+	current->compat_robust_list = head;
-+
-+	return 0;
-+}
-+
-+COMPAT_SYSCALL_DEFINE3(get_robust_list, int, pid,
-+			compat_uptr_t __user *, head_ptr,
-+			compat_size_t __user *, len_ptr)
-+{
-+	struct compat_robust_list_head __user *head;
-+	unsigned long ret;
-+	struct task_struct *p;
-+
-+	if (!futex_cmpxchg_enabled)
-+		return -ENOSYS;
-+
-+	rcu_read_lock();
-+
-+	ret = -ESRCH;
-+	if (!pid)
-+		p = current;
-+	else {
-+		p = find_task_by_vpid(pid);
-+		if (!p)
-+			goto err_unlock;
-+	}
-+
-+	ret = -EPERM;
-+	if (!ptrace_may_access(p, PTRACE_MODE_READ_REALCREDS))
-+		goto err_unlock;
-+
-+	head = p->compat_robust_list;
-+	rcu_read_unlock();
-+
-+	if (put_user(sizeof(*head), len_ptr))
-+		return -EFAULT;
-+	return put_user(ptr_to_compat(head), head_ptr);
-+
-+err_unlock:
-+	rcu_read_unlock();
-+
-+	return ret;
-+}
-+
-+COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-+		struct compat_timespec __user *, utime, u32 __user *, uaddr2,
-+		u32, val3)
-+{
-+	struct timespec ts;
-+	ktime_t t, *tp = NULL;
-+	int val2 = 0;
-+	int cmd = op & FUTEX_CMD_MASK;
-+
-+	if (utime && (cmd == FUTEX_WAIT || cmd == FUTEX_LOCK_PI ||
-+		      cmd == FUTEX_WAIT_BITSET ||
-+		      cmd == FUTEX_WAIT_REQUEUE_PI)) {
-+		if (compat_get_timespec(&ts, utime))
-+			return -EFAULT;
-+		if (!timespec_valid(&ts))
-+			return -EINVAL;
-+
-+		t = timespec_to_ktime(ts);
-+		if (cmd == FUTEX_WAIT)
-+			t = ktime_add_safe(ktime_get(), t);
-+		tp = &t;
-+	}
-+	if (cmd == FUTEX_REQUEUE || cmd == FUTEX_CMP_REQUEUE ||
-+	    cmd == FUTEX_CMP_REQUEUE_PI || cmd == FUTEX_WAKE_OP)
-+		val2 = (int) (unsigned long) utime;
-+
-+	return do_futex(uaddr, op, val, tp, uaddr2, val2, val3);
-+}
-+#endif /* CONFIG_COMPAT */
-+
- static void __init futex_detect_cmpxchg(void)
- {
- #ifndef CONFIG_HAVE_FUTEX_CMPXCHG
-diff --git a/kernel/futex_compat.c b/kernel/futex_compat.c
-deleted file mode 100644
-index 83f830acbb5f..000000000000
---- a/kernel/futex_compat.c
-+++ /dev/null
-@@ -1,202 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0
--/*
-- * linux/kernel/futex_compat.c
-- *
-- * Futex compatibililty routines.
-- *
-- * Copyright 2006, Red Hat, Inc., Ingo Molnar
-- */
++#endif
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index cfc1b6383ae0..af5ac9de4bdf 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -104,8 +104,6 @@ typedef struct compat_sigaltstack {
+ typedef __compat_uid32_t	compat_uid_t;
+ typedef __compat_gid32_t	compat_gid_t;
+ 
+-typedef	compat_ulong_t		compat_aio_context_t;
 -
--#include <linux/linkage.h>
--#include <linux/compat.h>
--#include <linux/nsproxy.h>
--#include <linux/futex.h>
--#include <linux/ptrace.h>
--#include <linux/syscalls.h>
--
--#include <linux/uaccess.h>
--
--
--/*
-- * Fetch a robust-list pointer. Bit 0 signals PI futexes:
-- */
--static inline int
--fetch_robust_entry(compat_uptr_t *uentry, struct robust_list __user **entry,
--		   compat_uptr_t __user *head, unsigned int *pi)
--{
--	if (get_user(*uentry, head))
--		return -EFAULT;
--
--	*entry = compat_ptr((*uentry) & ~1);
--	*pi = (unsigned int)(*uentry) & 1;
--
--	return 0;
--}
--
--static void __user *futex_uaddr(struct robust_list __user *entry,
--				compat_long_t futex_offset)
--{
--	compat_uptr_t base = ptr_to_compat(entry);
--	void __user *uaddr = compat_ptr(base + futex_offset);
--
--	return uaddr;
--}
--
--/*
-- * Walk curr->robust_list (very carefully, it's a userspace list!)
-- * and mark any locks found there dead, and notify any waiters.
-- *
-- * We silently return on any sign of list-walking problem.
-- */
--void compat_exit_robust_list(struct task_struct *curr)
--{
--	struct compat_robust_list_head __user *head = curr->compat_robust_list;
--	struct robust_list __user *entry, *next_entry, *pending;
--	unsigned int limit = ROBUST_LIST_LIMIT, pi, pip;
--	unsigned int uninitialized_var(next_pi);
--	compat_uptr_t uentry, next_uentry, upending;
--	compat_long_t futex_offset;
--	int rc;
--
--	if (!futex_cmpxchg_enabled)
--		return;
--
--	/*
--	 * Fetch the list head (which was registered earlier, via
--	 * sys_set_robust_list()):
--	 */
--	if (fetch_robust_entry(&uentry, &entry, &head->list.next, &pi))
--		return;
--	/*
--	 * Fetch the relative futex offset:
--	 */
--	if (get_user(futex_offset, &head->futex_offset))
--		return;
--	/*
--	 * Fetch any possibly pending lock-add first, and handle it
--	 * if it exists:
--	 */
--	if (fetch_robust_entry(&upending, &pending,
--			       &head->list_op_pending, &pip))
--		return;
--
--	next_entry = NULL;	/* avoid warning with gcc */
--	while (entry != (struct robust_list __user *) &head->list) {
--		/*
--		 * Fetch the next entry in the list before calling
--		 * handle_futex_death:
--		 */
--		rc = fetch_robust_entry(&next_uentry, &next_entry,
--			(compat_uptr_t __user *)&entry->next, &next_pi);
--		/*
--		 * A pending lock might already be on the list, so
--		 * dont process it twice:
--		 */
--		if (entry != pending) {
--			void __user *uaddr = futex_uaddr(entry, futex_offset);
--
--			if (handle_futex_death(uaddr, curr, pi))
--				return;
--		}
--		if (rc)
--			return;
--		uentry = next_uentry;
--		entry = next_entry;
--		pi = next_pi;
--		/*
--		 * Avoid excessively long or circular lists:
--		 */
--		if (!--limit)
--			break;
--
--		cond_resched();
--	}
--	if (pending) {
--		void __user *uaddr = futex_uaddr(pending, futex_offset);
--
--		handle_futex_death(uaddr, curr, pip);
--	}
--}
--
--COMPAT_SYSCALL_DEFINE2(set_robust_list,
--		struct compat_robust_list_head __user *, head,
--		compat_size_t, len)
--{
--	if (!futex_cmpxchg_enabled)
--		return -ENOSYS;
--
--	if (unlikely(len != sizeof(*head)))
--		return -EINVAL;
--
--	current->compat_robust_list = head;
--
--	return 0;
--}
--
--COMPAT_SYSCALL_DEFINE3(get_robust_list, int, pid,
--			compat_uptr_t __user *, head_ptr,
--			compat_size_t __user *, len_ptr)
--{
--	struct compat_robust_list_head __user *head;
--	unsigned long ret;
--	struct task_struct *p;
--
--	if (!futex_cmpxchg_enabled)
--		return -ENOSYS;
--
--	rcu_read_lock();
--
--	ret = -ESRCH;
--	if (!pid)
--		p = current;
--	else {
--		p = find_task_by_vpid(pid);
--		if (!p)
--			goto err_unlock;
--	}
--
--	ret = -EPERM;
--	if (!ptrace_may_access(p, PTRACE_MODE_READ_REALCREDS))
--		goto err_unlock;
--
--	head = p->compat_robust_list;
--	rcu_read_unlock();
--
--	if (put_user(sizeof(*head), len_ptr))
--		return -EFAULT;
--	return put_user(ptr_to_compat(head), head_ptr);
--
--err_unlock:
--	rcu_read_unlock();
--
--	return ret;
--}
--
--COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
--		struct compat_timespec __user *, utime, u32 __user *, uaddr2,
--		u32, val3)
--{
--	struct timespec ts;
--	ktime_t t, *tp = NULL;
--	int val2 = 0;
--	int cmd = op & FUTEX_CMD_MASK;
--
--	if (utime && (cmd == FUTEX_WAIT || cmd == FUTEX_LOCK_PI ||
--		      cmd == FUTEX_WAIT_BITSET ||
--		      cmd == FUTEX_WAIT_REQUEUE_PI)) {
--		if (compat_get_timespec(&ts, utime))
--			return -EFAULT;
--		if (!timespec_valid(&ts))
--			return -EINVAL;
--
--		t = timespec_to_ktime(ts);
--		if (cmd == FUTEX_WAIT)
--			t = ktime_add_safe(ktime_get(), t);
--		tp = &t;
--	}
--	if (cmd == FUTEX_REQUEUE || cmd == FUTEX_CMP_REQUEUE ||
--	    cmd == FUTEX_CMP_REQUEUE_PI || cmd == FUTEX_WAKE_OP)
--		val2 = (int) (unsigned long) utime;
--
--	return do_futex(uaddr, op, val, tp, uaddr2, val2, val3);
--}
+ struct compat_sel_arg_struct;
+ struct rusage;
+ 
 -- 
 2.9.0
