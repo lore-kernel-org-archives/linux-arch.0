@@ -1,70 +1,244 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:33469 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:33823 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755156AbeDYQFQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:05:16 -0400
+        with ESMTP id S1755896AbeDYQFc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:05:32 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 16/17] y2038: Make compat_sys_rt_sigtimedwait usable on 32-bit
-Date: Wed, 25 Apr 2018 18:03:10 +0200
-Message-ID: <20180425160311.2718314-17-arnd@arndb.de>
+Subject: [PATCH 02/17] y2038: Remove newstat family from default syscall set
+Date: Wed, 25 Apr 2018 18:02:56 +0200
+Message-ID: <20180425160311.2718314-3-arnd@arndb.de>
 In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
 References: <20180425160311.2718314-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425160310.ynIqkImAByVO4lL38l3F6G1Elj6vPvgixudSqKh23Hs@z>
+Message-ID: <20180425160256.3CCtIYMN6vtJN9AXs45v8DjtRwF4OQovE28EVYdLHk0@z>
 
-Once sys_rt_sigtimedwait() gets changed to a 64-bit time_t, we have
-to provide compatibility support for existing binaries.  Using the
-compat_sys_rt_sigtimedwait() entry point is convenient because it allows
-to share the implementation with 64-bit architectures.
+We have four generations of stat() syscalls:
+- the oldstat syscalls that are only used on the older architectures
+- the newstat family that is used on all 64-bit architectures but
+  lacked support for large files on 32-bit architectures.
+- the stat64 family that is used mostly on 32-bit architectures to
+  replace newstat
+- statx() to replace all of the above, adding 64-bit timestamps among
+  other things.
 
-Unfortunately, the get_compat_sigset() and copy_siginfo_to_user32()
-functions are used in that function, but we can replace them with
-trivial helpers that do the same thing as before.
+We already compile stat64 only on those architectures that need it,
+but newstat is always built, including on those that don't reference
+it. This adds a new __ARCH_WANT_NEW_STAT symbol along the lines of
+__ARCH_WANT_OLD_STAT and __ARCH_WANT_STAT64 to control compilation of
+newstat. All architectures that need it use an explict define, the
+others now get a little bit smaller, and future architecture (including
+64-bit targets) won't ever see it.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- kernel/signal.c | 19 +++++++++++++++++--
- 1 file changed, 17 insertions(+), 2 deletions(-)
+ arch/alpha/include/asm/unistd.h      | 1 +
+ arch/arm/include/asm/unistd.h        | 1 +
+ arch/arm64/include/uapi/asm/unistd.h | 1 +
+ arch/ia64/include/asm/unistd.h       | 2 ++
+ arch/m68k/include/asm/unistd.h       | 1 +
+ arch/microblaze/include/asm/unistd.h | 1 +
+ arch/mips/include/asm/unistd.h       | 1 +
+ arch/parisc/include/asm/unistd.h     | 1 +
+ arch/powerpc/include/asm/unistd.h    | 1 +
+ arch/s390/include/asm/unistd.h       | 1 +
+ arch/sh/include/asm/unistd.h         | 1 +
+ arch/sparc/include/asm/unistd.h      | 1 +
+ arch/x86/include/asm/unistd.h        | 1 +
+ arch/xtensa/include/asm/unistd.h     | 1 +
+ fs/stat.c                            | 3 +++
+ 15 files changed, 18 insertions(+)
 
-diff --git a/kernel/signal.c b/kernel/signal.c
-index d8d68a9556ae..72609c6835fd 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -3104,7 +3104,22 @@ int copy_siginfo_from_user32(struct siginfo *to,
- 	}
- 	return 0;
- }
--#endif /* CONFIG_COMPAT */
-+
-+#else /* !CONFIG_COMPAT */
-+
-+/* 32-bit architectures only need to convert compat_time_t, not siginfo or sigset_t */
-+
-+#define compat_siginfo siginfo
-+#define compat_sigset_t sigset_t
-+#define copy_siginfo_to_user32 copy_siginfo_to_user
-+static inline int get_compat_sigset(sigset_t *set, const sigset_t __user *compat)
-+{
-+	if (copy_from_user(set, compat, sizeof *set))
-+		return -EFAULT;
-+
-+	return 0;
-+}
-+#endif /* !CONFIG_COMPAT */
+diff --git a/arch/alpha/include/asm/unistd.h b/arch/alpha/include/asm/unistd.h
+index d6e29a1de4cc..edc090470023 100644
+--- a/arch/alpha/include/asm/unistd.h
++++ b/arch/alpha/include/asm/unistd.h
+@@ -6,6 +6,7 @@
  
- /**
-  *  do_sigtimedwait - wait for queued signals specified in @which
-@@ -3202,7 +3217,7 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese,
- 	return ret;
+ #define NR_SYSCALLS			523
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_GETHOSTNAME
+diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
+index 076090d2dbf5..07e58010d597 100644
+--- a/arch/arm/include/asm/unistd.h
++++ b/arch/arm/include/asm/unistd.h
+@@ -16,6 +16,7 @@
+ #include <uapi/asm/unistd.h>
+ #include <asm/unistd-nr.h>
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_GETHOSTNAME
+ #define __ARCH_WANT_SYS_PAUSE
+diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
+index 5072cbd15c82..dae1584cf017 100644
+--- a/arch/arm64/include/uapi/asm/unistd.h
++++ b/arch/arm64/include/uapi/asm/unistd.h
+@@ -16,5 +16,6 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_NEW_STAT
+ 
+ #include <asm-generic/unistd.h>
+diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
+index ffb705dc9c13..c5b2620c4a4c 100644
+--- a/arch/ia64/include/asm/unistd.h
++++ b/arch/ia64/include/asm/unistd.h
+@@ -28,6 +28,8 @@
+ #define __IGNORE_vfork		/* clone() */
+ #define __IGNORE_umount2	/* umount() */
+ 
++#define __ARCH_WANT_NEW_STAT
++
+ #if !defined(__ASSEMBLY__) && !defined(ASSEMBLER)
+ 
+ #include <linux/types.h>
+diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
+index 30d0d3fbd4ef..db22cdadc38a 100644
+--- a/arch/m68k/include/asm/unistd.h
++++ b/arch/m68k/include/asm/unistd.h
+@@ -7,6 +7,7 @@
+ 
+ #define NR_syscalls		380
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_OLD_STAT
+ #define __ARCH_WANT_STAT64
+diff --git a/arch/microblaze/include/asm/unistd.h b/arch/microblaze/include/asm/unistd.h
+index 9774e1d9507b..62ee12c247c1 100644
+--- a/arch/microblaze/include/asm/unistd.h
++++ b/arch/microblaze/include/asm/unistd.h
+@@ -15,6 +15,7 @@
+ 
+ /* #define __ARCH_WANT_OLD_READDIR */
+ /* #define __ARCH_WANT_OLD_STAT */
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_ALARM
+ #define __ARCH_WANT_SYS_GETHOSTNAME
+diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
+index 3c09450908aa..d7878b3e16d8 100644
+--- a/arch/mips/include/asm/unistd.h
++++ b/arch/mips/include/asm/unistd.h
+@@ -24,6 +24,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_SYS_ALARM
+ #define __ARCH_WANT_SYS_GETHOSTNAME
+diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
+index 3d507d04eb4c..b36273bacca7 100644
+--- a/arch/parisc/include/asm/unistd.h
++++ b/arch/parisc/include/asm/unistd.h
+@@ -141,6 +141,7 @@ type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)	\
+     return K_INLINE_SYSCALL(name, 5, arg1, arg2, arg3, arg4, arg5);	\
  }
  
--#ifdef CONFIG_COMPAT
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait, compat_sigset_t __user *, uthese,
- 		struct compat_siginfo __user *, uinfo,
- 		struct compat_timespec __user *, uts, compat_size_t, sigsetsize)
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_ALARM
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index daf1ba97a00c..d78c1f49272d 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -22,6 +22,7 @@
+ #include <linux/compiler.h>
+ #include <linux/linkage.h>
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_ALARM
+diff --git a/arch/s390/include/asm/unistd.h b/arch/s390/include/asm/unistd.h
+index fd79c0d35dc4..1d181373288a 100644
+--- a/arch/s390/include/asm/unistd.h
++++ b/arch/s390/include/asm/unistd.h
+@@ -15,6 +15,7 @@
+ #define __IGNORE_pkey_alloc
+ #define __IGNORE_pkey_free
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_SYS_ALARM
+ #define __ARCH_WANT_SYS_GETHOSTNAME
+diff --git a/arch/sh/include/asm/unistd.h b/arch/sh/include/asm/unistd.h
+index b36200af9ce7..a845b57eac69 100644
+--- a/arch/sh/include/asm/unistd.h
++++ b/arch/sh/include/asm/unistd.h
+@@ -5,6 +5,7 @@
+ #  include <asm/unistd_64.h>
+ # endif
+ 
++# define __ARCH_WANT_NEW_STAT
+ # define __ARCH_WANT_OLD_READDIR
+ # define __ARCH_WANT_OLD_STAT
+ # define __ARCH_WANT_STAT64
+diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
+index b2a6a955113e..3544244685e1 100644
+--- a/arch/sparc/include/asm/unistd.h
++++ b/arch/sparc/include/asm/unistd.h
+@@ -21,6 +21,7 @@
+ #else
+ #define __NR_time		231 /* Linux sparc32                               */
+ #endif
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_ALARM
+diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
+index 51c4eee00732..35b66bbf8028 100644
+--- a/arch/x86/include/asm/unistd.h
++++ b/arch/x86/include/asm/unistd.h
+@@ -31,6 +31,7 @@
+ 
+ # endif
+ 
++# define __ARCH_WANT_NEW_STAT
+ # define __ARCH_WANT_OLD_READDIR
+ # define __ARCH_WANT_OLD_STAT
+ # define __ARCH_WANT_SYS_ALARM
+diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
+index ed66db3bc9bb..0d532ab60b37 100644
+--- a/arch/xtensa/include/asm/unistd.h
++++ b/arch/xtensa/include/asm/unistd.h
+@@ -5,6 +5,7 @@
+ #define __ARCH_WANT_SYS_CLONE
+ #include <uapi/asm/unistd.h>
+ 
++#define __ARCH_WANT_NEW_STAT
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_UTIME
+ #define __ARCH_WANT_SYS_LLSEEK
+diff --git a/fs/stat.c b/fs/stat.c
+index f8e6fb2c3657..adbfcd86c81b 100644
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -280,6 +280,8 @@ SYSCALL_DEFINE2(fstat, unsigned int, fd, struct __old_kernel_stat __user *, stat
+ 
+ #endif /* __ARCH_WANT_OLD_STAT */
+ 
++#ifdef __ARCH_WANT_NEW_STAT
++
+ #if BITS_PER_LONG == 32
+ #  define choose_32_64(a,b) a
+ #else
+@@ -378,6 +380,7 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
+ 
+ 	return error;
+ }
++#endif
+ 
+ static int do_readlinkat(int dfd, const char __user *pathname,
+ 			 char __user *buf, int bufsiz)
 -- 
 2.9.0
