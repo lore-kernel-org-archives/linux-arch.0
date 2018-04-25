@@ -1,164 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:55939 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.10]:35143 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755653AbeDYQE3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:04:29 -0400
+        with ESMTP id S932078AbeDYQFe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:05:34 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 13/17] y2038: socket: Convert recvmmsg to __kernel_timespec
-Date: Wed, 25 Apr 2018 18:03:07 +0200
-Message-ID: <20180425160311.2718314-14-arnd@arndb.de>
+Subject: [PATCH 10/17] y2038: futex: Add support for __kernel_timespec
+Date: Wed, 25 Apr 2018 18:03:04 +0200
+Message-ID: <20180425160311.2718314-11-arnd@arndb.de>
 In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
 References: <20180425160311.2718314-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425160307.zNUbpv9b1jmYD4GMXnoJdyGf5JFWXqnM_JJUSx9zgII@z>
+Message-ID: <20180425160304.1VdA2ls6EYbQikBfktn4E_ZRJC3JoQZ04-hI8Bov6Bs@z>
 
-This converts the recvmmsg() system call in all its variations to use
-'timespec64' internally for its timeout, and have a __kernel_timespec64
-argument in the native entry point. This lets us change the type to use
-64-bit time_t at a later point while using the 32-bit compat system call
-emulation for existing user space.
+This prepares sys_futex for y2038 safe calling: the native
+syscall is changed to receive a __kernel_timespec argument, which
+will be switched to 64-bit time_t in the future. All the internal
+time handling gets changed to timespec64, and the compat_sys_futex
+entry point is moved under the CONFIG_COMPAT_32BIT_TIME check
+to provide compatibility for existing 32-bit architectures.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/socket.h   |  4 ++--
  include/linux/syscalls.h |  2 +-
- net/compat.c             |  6 +++---
- net/socket.c             | 18 ++++++++----------
- 4 files changed, 14 insertions(+), 16 deletions(-)
+ kernel/futex.c           | 22 ++++++++++++----------
+ 2 files changed, 13 insertions(+), 11 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index ea50f4a65816..d36a6c1bdbaf 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -345,7 +345,7 @@ struct ucred {
- extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr_storage *kaddr);
- extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
- 
--struct timespec;
-+struct timespec64;
- 
- /* The __sys_...msg variants allow MSG_CMSG_COMPAT iff
-  * forbid_cmsg_compat==false
-@@ -355,7 +355,7 @@ extern long __sys_recvmsg(int fd, struct user_msghdr __user *msg,
- extern long __sys_sendmsg(int fd, struct user_msghdr __user *msg,
- 			  unsigned int flags, bool forbid_cmsg_compat);
- extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
--			  unsigned int flags, struct timespec *timeout);
-+			  unsigned int flags, struct timespec64 *timeout);
- extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
- 			  unsigned int vlen, unsigned int flags,
- 			  bool forbid_cmsg_compat);
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index ffd8674e9df7..eaa32317f573 100644
+index d2b19e814218..c3d504dbba9c 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -817,7 +817,7 @@ asmlinkage long sys_perf_event_open(
- asmlinkage long sys_accept4(int, struct sockaddr __user *, int __user *, int);
- asmlinkage long sys_recvmmsg(int fd, struct mmsghdr __user *msg,
- 			     unsigned int vlen, unsigned flags,
--			     struct timespec __user *timeout);
-+			     struct __kernel_timespec __user *timeout);
+@@ -528,7 +528,7 @@ asmlinkage long sys_unshare(unsigned long unshare_flags);
  
- asmlinkage long sys_wait4(pid_t pid, int __user *stat_addr,
- 				int options, struct rusage __user *ru);
-diff --git a/net/compat.c b/net/compat.c
-index 5ae7437d3853..93b80a3d967c 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -815,18 +815,18 @@ static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
- 				 struct compat_timespec __user *timeout)
+ /* kernel/futex.c */
+ asmlinkage long sys_futex(u32 __user *uaddr, int op, u32 val,
+-			struct timespec __user *utime, u32 __user *uaddr2,
++			struct __kernel_timespec __user *utime, u32 __user *uaddr2,
+ 			u32 val3);
+ asmlinkage long sys_get_robust_list(int pid,
+ 				    struct robust_list_head __user * __user *head_ptr,
+diff --git a/kernel/futex.c b/kernel/futex.c
+index e9013d1e65a1..129555a3b64d 100644
+--- a/kernel/futex.c
++++ b/kernel/futex.c
+@@ -3556,10 +3556,10 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
+ 
+ 
+ SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+-		struct timespec __user *, utime, u32 __user *, uaddr2,
++		struct __kernel_timespec __user *, utime, u32 __user *, uaddr2,
+ 		u32, val3)
  {
- 	int datagrams;
--	struct timespec ktspec;
-+	struct timespec64 ktspec;
+-	struct timespec ts;
++	struct timespec64 ts;
+ 	ktime_t t, *tp = NULL;
+ 	u32 val2 = 0;
+ 	int cmd = op & FUTEX_CMD_MASK;
+@@ -3569,12 +3569,12 @@ SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+ 		      cmd == FUTEX_WAIT_REQUEUE_PI)) {
+ 		if (unlikely(should_fail_futex(!(op & FUTEX_PRIVATE_FLAG))))
+ 			return -EFAULT;
+-		if (copy_from_user(&ts, utime, sizeof(ts)) != 0)
++		if (get_timespec64(&ts, utime))
+ 			return -EFAULT;
+-		if (!timespec_valid(&ts))
++		if (!timespec64_valid(&ts))
+ 			return -EINVAL;
  
- 	if (timeout == NULL)
- 		return __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
- 				      flags | MSG_CMSG_COMPAT, NULL);
+-		t = timespec_to_ktime(ts);
++		t = timespec64_to_ktime(ts);
+ 		if (cmd == FUTEX_WAIT)
+ 			t = ktime_add_safe(ktime_get(), t);
+ 		tp = &t;
+@@ -3745,12 +3745,14 @@ COMPAT_SYSCALL_DEFINE3(get_robust_list, int, pid,
  
--	if (compat_get_timespec(&ktspec, timeout))
-+	if (compat_get_timespec64(&ktspec, timeout))
- 		return -EFAULT;
- 
- 	datagrams = __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
- 				   flags | MSG_CMSG_COMPAT, &ktspec);
--	if (datagrams > 0 && compat_put_timespec(&ktspec, timeout))
-+	if (datagrams > 0 && compat_put_timespec64(&ktspec, timeout))
- 		datagrams = -EFAULT;
- 
- 	return datagrams;
-diff --git a/net/socket.c b/net/socket.c
-index f10f1d947c78..4510e6269764 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -2343,7 +2343,7 @@ SYSCALL_DEFINE3(recvmsg, int, fd, struct user_msghdr __user *, msg,
-  */
- 
- int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
--		   unsigned int flags, struct timespec *timeout)
-+		   unsigned int flags, struct timespec64 *timeout)
- {
- 	int fput_needed, err, datagrams;
- 	struct socket *sock;
-@@ -2408,8 +2408,7 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
- 
- 		if (timeout) {
- 			ktime_get_ts64(&timeout64);
--			*timeout = timespec64_to_timespec(
--					timespec64_sub(end_time, timeout64));
-+			*timeout = timespec64_sub(end_time, timeout64);
- 			if (timeout->tv_sec < 0) {
- 				timeout->tv_sec = timeout->tv_nsec = 0;
- 				break;
-@@ -2455,10 +2454,10 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
- 
- static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
- 			   unsigned int vlen, unsigned int flags,
--			   struct timespec __user *timeout)
-+			   struct __kernel_timespec __user *timeout)
- {
- 	int datagrams;
--	struct timespec timeout_sys;
-+	struct timespec64 timeout_sys;
- 
- 	if (flags & MSG_CMSG_COMPAT)
- 		return -EINVAL;
-@@ -2466,13 +2465,12 @@ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
- 	if (!timeout)
- 		return __sys_recvmmsg(fd, mmsg, vlen, flags, NULL);
- 
--	if (copy_from_user(&timeout_sys, timeout, sizeof(timeout_sys)))
-+	if (get_timespec64(&timeout_sys, timeout))
- 		return -EFAULT;
- 
- 	datagrams = __sys_recvmmsg(fd, mmsg, vlen, flags, &timeout_sys);
- 
--	if (datagrams > 0 &&
--	    copy_to_user(timeout, &timeout_sys, sizeof(timeout_sys)))
-+	if (datagrams > 0 && put_timespec64(&timeout_sys, timeout))
- 		datagrams = -EFAULT;
- 
- 	return datagrams;
-@@ -2480,7 +2478,7 @@ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
- 
- SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
- 		unsigned int, vlen, unsigned int, flags,
--		struct timespec __user *, timeout)
-+		struct __kernel_timespec __user *, timeout)
- {
- 	return do_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
+ 	return ret;
  }
-@@ -2603,7 +2601,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		break;
- 	case SYS_RECVMMSG:
- 		err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
--				      a[3], (struct timespec __user *)a[4]);
-+				      a[3], (struct __kernel_timespec __user *)a[4]);
- 		break;
- 	case SYS_ACCEPT4:
- 		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
++#endif /* CONFIG_COMPAT */
+ 
++#ifdef CONFIG_COMPAT_32BIT_TIME
+ COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+ 		struct compat_timespec __user *, utime, u32 __user *, uaddr2,
+ 		u32, val3)
+ {
+-	struct timespec ts;
++	struct timespec64 ts;
+ 	ktime_t t, *tp = NULL;
+ 	int val2 = 0;
+ 	int cmd = op & FUTEX_CMD_MASK;
+@@ -3758,12 +3760,12 @@ COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+ 	if (utime && (cmd == FUTEX_WAIT || cmd == FUTEX_LOCK_PI ||
+ 		      cmd == FUTEX_WAIT_BITSET ||
+ 		      cmd == FUTEX_WAIT_REQUEUE_PI)) {
+-		if (compat_get_timespec(&ts, utime))
++		if (compat_get_timespec64(&ts, utime))
+ 			return -EFAULT;
+-		if (!timespec_valid(&ts))
++		if (!timespec64_valid(&ts))
+ 			return -EINVAL;
+ 
+-		t = timespec_to_ktime(ts);
++		t = timespec64_to_ktime(ts);
+ 		if (cmd == FUTEX_WAIT)
+ 			t = ktime_add_safe(ktime_get(), t);
+ 		tp = &t;
+@@ -3774,7 +3776,7 @@ COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+ 
+ 	return do_futex(uaddr, op, val, tp, uaddr2, val2, val3);
+ }
+-#endif /* CONFIG_COMPAT */
++#endif /* CONFIG_COMPAT_32BIT_TIME */
+ 
+ static void __init futex_detect_cmpxchg(void)
+ {
 -- 
 2.9.0
