@@ -1,40 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:35241 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:40331 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755687AbeDYQE0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:04:26 -0400
+        with ESMTP id S1755477AbeDYQEg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:04:36 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 05/17] asm-generic: Remove empty asm/unistd.h
-Date: Wed, 25 Apr 2018 18:02:59 +0200
-Message-ID: <20180425160311.2718314-6-arnd@arndb.de>
+Subject: [PATCH 17/17] y2038: signal: Add compat_sys_rt_sigtimedwait_time64
+Date: Wed, 25 Apr 2018 18:03:11 +0200
+Message-ID: <20180425160311.2718314-18-arnd@arndb.de>
 In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
 References: <20180425160311.2718314-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425160259.sTYx60depSG6CnnZHosa4tj6KzJ6lCWJt4mDLea-vQk@z>
+Message-ID: <20180425160311.lZRX6N4Zf_YxgHgB8U1le_xYxk5YIZK6M-hO94kJyZI@z>
 
-Nothing is left in asm/unistd.h except for the redirect to
-uapi/asm/unistd.h, so removing the file simply leads to that one being
-used directly.  The linux/export.h inclusion is a leftover from commit
-e1b5bb6d1236 ("consolidate cond_syscall and SYSCALL_ALIAS declarations")
-and should not be used anyway.
+Now that 32-bit architectures have two variants of
+sys_rt_sigtimedwaid() for 32-bit and 64-bit time_t, we also
+need to have a second compat system call entry point on the
+corresponding 64-bit architectures.
+
+The traditional system call keeps getting handled
+by compat_sys_rt_sigtimedwait(), and this adds a new
+compat_sys_rt_sigtimedwait_time64() that differs only in
+the timeout argument type.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/unistd.h | 3 ---
- 1 file changed, 3 deletions(-)
- delete mode 100644 include/asm-generic/unistd.h
+ kernel/signal.c | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
 
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-deleted file mode 100644
-index 71d2fcf9dbcd..000000000000
---- a/include/asm-generic/unistd.h
-+++ /dev/null
-@@ -1,3 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#include <uapi/asm-generic/unistd.h>
--#include <linux/export.h>
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 72609c6835fd..1927fcfa7077 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -3249,6 +3249,38 @@ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait, compat_sigset_t __user *, uthese,
+ }
+ #endif
+ 
++#ifdef CONFIG_COMPAT
++COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait_time64, compat_sigset_t __user *, uthese,
++		struct compat_siginfo __user *, uinfo,
++		struct __kernel_timespec __user *, uts, compat_size_t, sigsetsize)
++{
++	sigset_t s;
++	struct timespec64 t;
++	siginfo_t info;
++	long ret;
++
++	if (sigsetsize != sizeof(sigset_t))
++		return -EINVAL;
++
++	if (get_compat_sigset(&s, uthese))
++		return -EFAULT;
++
++	if (uts) {
++		if (get_timespec64(&t, uts))
++			return -EFAULT;
++	}
++
++	ret = do_sigtimedwait(&s, &info, uts ? &t : NULL);
++
++	if (ret > 0 && uinfo) {
++		if (copy_siginfo_to_user32(uinfo, &info))
++			ret = -EFAULT;
++	}
++
++	return ret;
++}
++#endif
++
+ /**
+  *  sys_kill - send a signal to a process
+  *  @pid: the PID of the process
 -- 
 2.9.0
