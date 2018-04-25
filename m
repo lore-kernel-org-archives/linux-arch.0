@@ -1,106 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:38822 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755519AbeDYP6s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 11:58:48 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87604mhrnb.fsf@xmission.com>
-        <20180420143811.9994-9-ebiederm@xmission.com>
-        <CAJsyPhy_GbfnzCNa_rJDMSRrUfVKOJKCVqrkWkDUmH6jPDGPhw@mail.gmail.com>
-Date: Wed, 25 Apr 2018 10:57:22 -0500
-In-Reply-To: <CAJsyPhy_GbfnzCNa_rJDMSRrUfVKOJKCVqrkWkDUmH6jPDGPhw@mail.gmail.com>
-        (Vincent Chen's message of "Wed, 25 Apr 2018 19:29:34 +0800")
-Message-ID: <87wowvuvml.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 09/22] signal/nds32: Use force_sig_fault where appropriate
+Received: from mout.kundenserver.de ([212.227.17.13]:33469 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755156AbeDYQFQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:05:16 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 16/17] y2038: Make compat_sys_rt_sigtimedwait usable on 32-bit
+Date: Wed, 25 Apr 2018 18:03:10 +0200
+Message-ID: <20180425160311.2718314-17-arnd@arndb.de>
+In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
+References: <20180425160311.2718314-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincent Chen <deanbo422@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180425155722.6mON1WdyAI5SGM1foMY5ckNtGM2Czzot7r7e3yVJ714@z>
+To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
+Message-ID: <20180425160310.ynIqkImAByVO4lL38l3F6G1Elj6vPvgixudSqKh23Hs@z>
 
-Vincent Chen <deanbo422@gmail.com> writes:
+Once sys_rt_sigtimedwait() gets changed to a 64-bit time_t, we have
+to provide compatibility support for existing binaries.  Using the
+compat_sys_rt_sigtimedwait() entry point is convenient because it allows
+to share the implementation with 64-bit architectures.
 
-> 2018-04-20 22:37 GMT+08:00 Eric W. Biederman <ebiederm@xmission.com>:
->> Filling in struct siginfo before calling force_sig_info a tedious and
->> error prone process, where once in a great while the wrong fields
->> are filled out, and siginfo has been inconsistently cleared.
->>
->> Simplify this process by using the helper force_sig_fault.  Which
->> takes as a parameters all of the information it needs, ensures
->> all of the fiddly bits of filling in struct siginfo are done properly
->> and then calls force_sig_info.
->>
->> In short about a 5 line reduction in code for every time force_sig_info
->> is called, which makes the calling function clearer.
->>
->> Cc: Greentime Hu <green.hu@gmail.com>
->> Cc: Vincent Chen <deanbo422@gmail.com>
->> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->> ---
->>  arch/nds32/kernel/traps.c | 20 ++++----------------
->>  arch/nds32/mm/fault.c     | 19 +++++--------------
->>  2 files changed, 9 insertions(+), 30 deletions(-)
->>
->> diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
->> index 46911768f4b5..636d1c7aa895 100644
->> --- a/arch/nds32/kernel/traps.c
->> +++ b/arch/nds32/kernel/traps.c
->> @@ -222,20 +222,13 @@ void die_if_kernel(const char *str, struct pt_regs *regs, int err)
->>
->>  int bad_syscall(int n, struct pt_regs *regs)
->>  {
->> -       siginfo_t info;
->> -
->>         if (current->personality != PER_LINUX) {
->>                 send_sig(SIGSEGV, current, 1);
->>                 return regs->uregs[0];
->>         }
->>
->> -       clear_siginfo(&info);
->> -       info.si_signo = SIGILL;
->> -       info.si_errno = 0;
->> -       info.si_code = ILL_ILLTRP;
->> -       info.si_addr = (void __user *)instruction_pointer(regs) - 4;
->> -
->> -       force_sig_info(SIGILL, &info, current);
->> +       force_sig_fault(SIGILL, ILL_ILLTRP,
->> +                       (void __user *)instruction_pointer(regs) - 4, current);
->>         die_if_kernel("Oops - bad syscall", regs, n);
->>         return regs->uregs[0];
->>  }
->> @@ -288,16 +281,11 @@ void __init early_trap_init(void)
->>  void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
->>                   int error_code, int si_code)
->>  {
->> -       struct siginfo info;
->> -
->>         tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
->>         tsk->thread.error_code = error_code;
->>
->> -       clear_siginfo(&info);
->> -       info.si_signo = SIGTRAP;
->> -       info.si_code = si_code;
->> -       info.si_addr = (void __user *)instruction_pointer(regs);
->> -       force_sig_info(SIGTRAP, &info, tsk);
->> +       force_sig_fault(SIGTRAP, si_code
->> +                       (void __user *)instruction_pointer(regs), tsk);
->>  }
->>
->
-> I found a comma is missing after argument si_code.
+Unfortunately, the get_compat_sigset() and copy_siginfo_to_user32()
+functions are used in that function, but we can replace them with
+trivial helpers that do the same thing as before.
 
-Good catch.  Fixed.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ kernel/signal.c | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
 
-Unfortunately the only compiler I have for nds32 is my eyeballs so
-this slipped through.  Grr.
-
-
-> Except the missing comma in send_sigtrap(), I think this patch for nds32 is OK.
->
-
-I have corrected the change as you suggested and have added your Acked
-by.
-
-Eric
+diff --git a/kernel/signal.c b/kernel/signal.c
+index d8d68a9556ae..72609c6835fd 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -3104,7 +3104,22 @@ int copy_siginfo_from_user32(struct siginfo *to,
+ 	}
+ 	return 0;
+ }
+-#endif /* CONFIG_COMPAT */
++
++#else /* !CONFIG_COMPAT */
++
++/* 32-bit architectures only need to convert compat_time_t, not siginfo or sigset_t */
++
++#define compat_siginfo siginfo
++#define compat_sigset_t sigset_t
++#define copy_siginfo_to_user32 copy_siginfo_to_user
++static inline int get_compat_sigset(sigset_t *set, const sigset_t __user *compat)
++{
++	if (copy_from_user(set, compat, sizeof *set))
++		return -EFAULT;
++
++	return 0;
++}
++#endif /* !CONFIG_COMPAT */
+ 
+ /**
+  *  do_sigtimedwait - wait for queued signals specified in @which
+@@ -3202,7 +3217,7 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese,
+ 	return ret;
+ }
+ 
+-#ifdef CONFIG_COMPAT
++#ifdef CONFIG_COMPAT_32BIT_TIME
+ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait, compat_sigset_t __user *, uthese,
+ 		struct compat_siginfo __user *, uinfo,
+ 		struct compat_timespec __user *, uts, compat_size_t, sigsetsize)
+-- 
+2.9.0
