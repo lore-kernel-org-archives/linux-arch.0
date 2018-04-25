@@ -1,27 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f195.google.com ([209.85.223.195]:35456 "EHLO
-        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753256AbeDYMKX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 08:10:23 -0400
+Received: from mail-io0-f193.google.com ([209.85.223.193]:40692 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751487AbeDYMO0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 08:14:26 -0400
 MIME-Version: 1.0
-In-Reply-To: <20180420010408.24438-5-ebiederm@xmission.com>
-References: <878t9ilmhv.fsf@xmission.com> <20180420010408.24438-5-ebiederm@xmission.com>
+In-Reply-To: <20180420010408.24438-4-ebiederm@xmission.com>
+References: <878t9ilmhv.fsf@xmission.com> <20180420010408.24438-4-ebiederm@xmission.com>
 From: Vincent Chen <deanbo422@gmail.com>
-Date: Wed, 25 Apr 2018 20:10:22 +0800
-Message-ID: <CAJsyPhyDeafwUQxXgnZ9Rfj6nwYrU_Kgyfv8DQ2q0BkwW25BBw@mail.gmail.com>
-Subject: Re: [REVIEW][PATCH 05/17] signal/nds32: Use force_sig(SIGILL) in do_revisn
+Date: Wed, 25 Apr 2018 20:14:25 +0800
+Message-ID: <CAJsyPhySxu=zhZVFr-7j4w6CmyDNKLUg=zMBvQ0pAdmYD=39Lg@mail.gmail.com>
+Subject: Re: [REVIEW][PATCH 04/17] signal/nds32: Use force_sig in
+ unhandled_interruption and unhandled_exceptions
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-api@vger.kernel.org, Vincent Chen <vincentc@andestech.com>, Greentime Hu <greentime@andestech.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180425121022.EWs0sayW0HRPLID_irTLPzuzVMYqzhvR-qNOCi2Yb4I@z>
+Message-ID: <20180425121425.gSfrOp9H8XgI3C0gIpUx8zuXjV_yAqNY_dhmCdI2hfk@z>
 
 2018-04-20 9:03 GMT+08:00 Eric W. Biederman <ebiederm@xmission.com>:
-> As originally committed do_revisn would deliver a siginfo for SIGILL
-> with an si_code composed of random stack contents.  That makes no
-> sense and is not something userspace can depend on.  So simplify
-> the code and just use "force_sig(SIG_ILL, current)" instead.
+> Neither unhandled_interrupt nor unhandled_exceptions fills in any of the
+> siginfo fields whend sending SIGKILL.  Further because it is SIGKILL
+> even if all of the fields were filled out appropriately it would be impossible
+> for the process to read any of the siginfo fields.  So simplfy things and
+> just use force_sig instead of force_sig_info.
 >
 > Fixes: 2923f5ea7738 ("nds32: Exception handling")
 > Cc: Vincent Chen <vincentc@andestech.com>
@@ -29,41 +31,47 @@ Message-ID: <20180425121022.EWs0sayW0HRPLID_irTLPzuzVMYqzhvR-qNOCi2Yb4I@z>
 > Cc: Arnd Bergmann <arnd@arndb.de>
 > Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 > ---
->  arch/nds32/kernel/traps.c | 5 +----
->  1 file changed, 1 insertion(+), 4 deletions(-)
+>  arch/nds32/kernel/traps.c | 11 ++---------
+>  1 file changed, 2 insertions(+), 9 deletions(-)
 >
 > diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
-> index 65961bf91d64..8e9a5b1f6234 100644
+> index 6e34eb9824a4..65961bf91d64 100644
 > --- a/arch/nds32/kernel/traps.c
 > +++ b/arch/nds32/kernel/traps.c
-> @@ -356,14 +356,11 @@ void do_dispatch_tlb_misc(unsigned long entry, unsigned long addr,
+> @@ -318,29 +318,22 @@ void do_debug_trap(unsigned long entry, unsigned long addr,
 >
->  void do_revinsn(struct pt_regs *regs)
+>  void unhandled_interruption(struct pt_regs *regs)
 >  {
 > -       siginfo_t si;
->         pr_emerg("Reserved Instruction\n");
+>         pr_emerg("unhandled_interruption\n");
 >         show_regs(regs);
 >         if (!user_mode(regs))
->                 do_exit(SIGILL);
-> -       si.si_signo = SIGILL;
+>                 do_exit(SIGKILL);
+> -       si.si_signo = SIGKILL;
 > -       si.si_errno = 0;
-> -       force_sig_info(SIGILL, &si, current);
-> +       force_sig(SIGILL, current);
+> -       force_sig_info(SIGKILL, &si, current);
+> +       force_sig(SIGKILL, current);
 >  }
 >
->  #ifdef CONFIG_ALIGNMENT_TRAP
+>  void unhandled_exceptions(unsigned long entry, unsigned long addr,
+>                           unsigned long type, struct pt_regs *regs)
+>  {
+> -       siginfo_t si;
+>         pr_emerg("Unhandled Exception: entry: %lx addr:%lx itype:%lx\n", entry,
+>                  addr, type);
+>         show_regs(regs);
+>         if (!user_mode(regs))
+>                 do_exit(SIGKILL);
+> -       si.si_signo = SIGKILL;
+> -       si.si_errno = 0;
+> -       si.si_addr = (void *)addr;
+> -       force_sig_info(SIGKILL, &si, current);
+> +       force_sig(SIGKILL, current);
+>  }
+>
+>  extern int do_page_fault(unsigned long entry, unsigned long addr,
 > --
 > 2.14.1
 >
 
-You are right we do not store any valuable information in sigingo_t now.
-However, We hope more information can be recorded by force_sig_fault()
-as below instead of calling force_sig() directly.
-
--        force_sig(SIGILL, current);
-+        force_sig_fault(SIGILL, ILL_ILLTRP,
-+                        (void __user *)instruction_pointer(regs), current);
-
-Thanks
-
-Vincent Chen
+Acked-by Vincent Chen
