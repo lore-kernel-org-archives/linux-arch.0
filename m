@@ -1,73 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:45696 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750862AbeDYBoZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 21:44:25 -0400
+Received: from mail-pg0-f44.google.com ([74.125.83.44]:42214 "EHLO
+        mail-pg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751110AbeDYCDB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2018 22:03:01 -0400
+Received: by mail-pg0-f44.google.com with SMTP id e12so12197160pgn.9
+        for <linux-arch@vger.kernel.org>; Tue, 24 Apr 2018 19:03:01 -0700 (PDT)
+Subject: Re: [PATCH 2/5] ide: kill ide_toggle_bounce
+References: <20180424181625.22410-1-hch@lst.de>
+ <20180424181625.22410-3-hch@lst.de>
+From: Jens Axboe <axboe@kernel.dk>
+Message-ID: <5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
+Date: Tue, 24 Apr 2018 20:02:56 -0600
 MIME-Version: 1.0
-In-Reply-To: <20180424191640.GA32495@lst.de>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de>
- <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com> <20180424191640.GA32495@lst.de>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Wed, 25 Apr 2018 09:43:43 +0800
-Message-ID: <CAEbi=3f7yzE+KAM2GOh6QahC_E6BAUfB3ys3U-WdBSUf3DPZqg@mail.gmail.com>
-Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180424181625.22410-3-hch@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20180425014343.3FITNfdIiHOaHXIztAQuqlzBgPJjzkJVvk5-XuBxWms@z>
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
+Message-ID: <20180425020256.AW0b6bp4otMwCL8ijCvF1ZRAGlLR0bxacgXUf34BkxQ@z>
 
-2018-04-25 3:16 GMT+08:00 Christoph Hellwig <hch@lst.de>:
-> Hi Greentime,
->
-> thanks for testing the patch!
->
-> It looks like nds32 doesn't have a buildbot yet, so this code didn't
-> even get syntax checkin, sorry.
->
-> Below is the incremental fixes based on this thread.
->
-> Can you check if my tree works if you just revert the
-> "nds32: use generic dma_noncoherent_ops" commit?
->
-> diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
-> index 688f1a03dee6..48018275e7f4 100644
-> --- a/arch/nds32/kernel/dma.c
-> +++ b/arch/nds32/kernel/dma.c
-> @@ -330,7 +330,7 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
->         void *addr = kmap_atomic_pfn(PHYS_PFN(paddr));
->         unsigned long start = (unsigned long)addr;
->
-> -       switch (direction) {
-> +       switch (dir) {
->         case DMA_FROM_DEVICE:
->                 break;
->         case DMA_TO_DEVICE:
-> @@ -350,12 +350,12 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
->         void *addr = kmap_atomic_pfn(PHYS_PFN(paddr));
->         unsigned long start = (unsigned long)addr;
->
-> -       switch (direction) {
-> +       switch (dir) {
->         case DMA_TO_DEVICE:
->                 break;
->         case DMA_FROM_DEVICE:
->         case DMA_BIDIRECTIONAL:
-> -               cpu_dma_inval_range(start, end);
-> +               cpu_dma_inval_range(start, start + size);
->                 break;
->         default:
->                 BUG();
+On 4/24/18 12:16 PM, Christoph Hellwig wrote:
+> ide_toggle_bounce did select various strange block bounce limits, including
+> not bouncing at all as soon as an iommu is present in the system.  Given
+> that the dma_map routines now handle any required bounce buffering except
+> for ISA DMA, and the ide code already must handle either ISA DMA or highmem
+> at least for iommu equipped systems we can get rid of the block layer
+> bounce limit setting entirely.
 
-Hi Crhistoph,
+Pretty sure I was the one to add this code, when highmem page IO was
+enabled about two decades ago...
 
-The ftmac100 works if I revert this commit.
+Outside of DMA, the issue was that the PIO code could not handle
+highmem. That's not the case anymore, so this should be fine.
 
-commit de46b9ba5298aafc47284735a4f21baa8e4ed4b7
-Author: Greentime Hu <greentime@andestech.com>
-Date:   Wed Apr 25 09:33:51 2018 +0800
+Reviewed-by: Jens Axboe <axboe@kernel.dk>
 
-    Revert "nds32: use generic dma_noncoherent_ops"
-
-    This reverts commit 0489ce952072e7542456e0d962437062916ce0df.
+-- 
+Jens Axboe
