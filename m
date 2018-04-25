@@ -1,85 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay6.synopsys.com ([198.182.37.59]:54119 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753297AbeDYL0y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 07:26:54 -0400
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH 06/22] arc: use generic dma_noncoherent_ops
-Date: Wed, 25 Apr 2018 11:17:01 +0000
-Message-ID: <1524655020.5315.9.camel@synopsys.com>
-References: <20180420080313.18796-1-hch@lst.de>
-         <20180420080313.18796-7-hch@lst.de>
-In-Reply-To: <20180420080313.18796-7-hch@lst.de>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <213720B0788595488614ECA66BA22CC2@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+Received: from mail-io0-f193.google.com ([209.85.223.193]:34086 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752827AbeDYL3g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 07:29:36 -0400
 MIME-Version: 1.0
+In-Reply-To: <20180420143811.9994-9-ebiederm@xmission.com>
+References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-9-ebiederm@xmission.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Date: Wed, 25 Apr 2018 19:29:34 +0800
+Message-ID: <CAJsyPhy_GbfnzCNa_rJDMSRrUfVKOJKCVqrkWkDUmH6jPDGPhw@mail.gmail.com>
+Subject: Re: [REVIEW][PATCH 09/22] signal/nds32: Use force_sig_fault where appropriate
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "hch@lst.de" <hch@lst.de>
-Cc: "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20180425111701.GELzgSdbXwl4KE8BGQn2idqPsrf1-xxMoDGUQutOdgk@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Greentime Hu <green.hu@gmail.com>
+Message-ID: <20180425112934.JFTHUFOmBWbCpopyxt3cqC26NPi-Nny6IKSqEUyUpag@z>
 
-SGkgQ2hyaXN0b3BoLA0KDQpPbiBGcmksIDIwMTgtMDQtMjAgYXQgMTA6MDIgKzAyMDAsIENocmlz
-dG9waCBIZWxsd2lnIHdyb3RlOg0KPiBTd2l0Y2ggdG8gdGhlIGdlbmVyaWMgbm9uY29oZXJlbnQg
-ZGlyZWN0IG1hcHBpbmcgaW1wbGVtZW50YXRpb24uDQo+IA0KPiBTaWduZWQtb2ZmLWJ5OiBDaHJp
-c3RvcGggSGVsbHdpZyA8aGNoQGxzdC5kZT4NCj4gLS0tDQo+ICBhcmNoL2FyYy9LY29uZmlnICAg
-ICAgICAgICAgICAgICAgIHwgICA0ICsNCj4gIGFyY2gvYXJjL2luY2x1ZGUvYXNtL0tidWlsZCAg
-ICAgICAgfCAgIDEgKw0KPiAgYXJjaC9hcmMvaW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaCB8ICAy
-MSAtLS0tLQ0KPiAgYXJjaC9hcmMvbW0vZG1hLmMgICAgICAgICAgICAgICAgICB8IDE0MSArKyst
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiAgNCBmaWxlcyBjaGFuZ2VkLCAxOSBpbnNlcnRp
-b25zKCspLCAxNDggZGVsZXRpb25zKC0pDQo+ICBkZWxldGUgbW9kZSAxMDA2NDQgYXJjaC9hcmMv
-aW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaA0KPiANCg0KW3NuaXBdDQoNCj4gQEAgLTEzNSw3ICsx
-MzQsNyBAQCBzdGF0aWMgaW50IGFyY19kbWFfbW1hcChzdHJ1Y3QgZGV2aWNlICpkZXYsIHN0cnVj
-dCB2bV9hcmVhX3N0cnVjdCAqdm1hLA0KPiAgICogQ1BVIGFjY2Vzc2VzIHBhZ2UgdmlhIG5vcm1h
-bCBwYWRkciwgdGh1cyBuZWVkcyB0byBleHBsaWNpdGx5IG1hZGUNCj4gICAqIGNvbnNpc3RlbnQg
-YmVmb3JlIGVhY2ggdXNlDQo+ICAgKi8NCj4gLXN0YXRpYyB2b2lkIF9kbWFfY2FjaGVfc3luYyhw
-aHlzX2FkZHJfdCBwYWRkciwgc2l6ZV90IHNpemUsDQo+ICtzdGF0aWMgdm9pZCBfZG1hX2NhY2hl
-X3N5bmMoc3RydWN0IGRldmljZSAqZGV2LCBwaHlzX2FkZHJfdCBwYWRkciBzaXplX3Qgc2l6ZSwN
-Cj4gIAkJZW51bSBkbWFfZGF0YV9kaXJlY3Rpb24gZGlyKQ0KDQpTZWVtcyBsaWtlIHRoZXJlJ3Mg
-YSBtaXNzaW5nIGNvbW1hOg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KLS0tIGEvYXJjaC9hcmMvbW0vZG1h
-LmMNCisrKyBiL2FyY2gvYXJjL21tL2RtYS5jDQpAQCAtMTM0LDcgKzEzNCw3IEBAIGludCBhcmNo
-X2RtYV9tbWFwKHN0cnVjdCBkZXZpY2UgKmRldiwgc3RydWN0IHZtX2FyZWFfc3RydWN0ICp2bWEs
-DQogICogQ1BVIGFjY2Vzc2VzIHBhZ2UgdmlhIG5vcm1hbCBwYWRkciwgdGh1cyBuZWVkcyB0byBl
-eHBsaWNpdGx5IG1hZGUNCiAgKiBjb25zaXN0ZW50IGJlZm9yZSBlYWNoIHVzZQ0KICAqLw0KLXN0
-YXRpYyB2b2lkIF9kbWFfY2FjaGVfc3luYyhzdHJ1Y3QgZGV2aWNlICpkZXYsIHBoeXNfYWRkcl90
-IHBhZGRyIHNpemVfdCBzaXplLA0KK3N0YXRpYyB2b2lkIF9kbWFfY2FjaGVfc3luYyhzdHJ1Y3Qg
-ZGV2aWNlICpkZXYsIHBoeXNfYWRkcl90IHBhZGRyLCBzaXplX3Qgc2l6ZSwNCiAgICAgICAgICAg
-ICAgICBlbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBkaXIpDQogew0KICAgICAgICBzd2l0Y2ggKGRp
-cikgew0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpXaGljaCBpcyBhY3R1YWxseSBzdHJhbmdlIGFzIEkg
-d291bGQgZXhwZWN0IEFSQyBjb2RlIHRvIGJlIGJ1aWx0IGJ5IGJvdHMuDQoNCkFueXdheXMgd2l0
-aCBhYm92ZSBmaXggSSBkbyBzZWUgcHJvYmxlbXMgd2l0aCBib3RoIFVTQiBhbmQgRXRoZXJuZXQg
-Y29udHJvbGxlcnMNCm9uIEFSQyBIU0RLIGJvYXJkLg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KdXNiIDEt
-MTogbmV3IGhpZ2gtc3BlZWQgVVNCIGRldmljZSBudW1iZXIgMiB1c2luZyBlaGNpLXBsYXRmb3Jt
-DQp1c2IgMS0xOiBkZXZpY2UgZGVzY3JpcHRvciByZWFkLzY0LCBlcnJvciAtMzINCnVzYiAxLTE6
-IGRldmljZSBkZXNjcmlwdG9yIHJlYWQvNjQsIGVycm9yIC0zMg0KdXNiIDEtMTogbmV3IGhpZ2gt
-c3BlZWQgVVNCIGRldmljZSBudW1iZXIgMyB1c2luZyBlaGNpLXBsYXRmb3JtDQp1c2IgMS0xOiBk
-ZXZpY2UgZGVzY3JpcHRvciByZWFkLzY0LCBlcnJvciAtMzINCnVzYiAxLTE6IGRldmljZSBkZXNj
-cmlwdG9yIHJlYWQvNjQsIGVycm9yIC0zMg0KdXNiIHVzYjEtcG9ydDE6IGF0dGVtcHQgcG93ZXIg
-Y3ljbGUNCnVzYiAxLTE6IG5ldyBoaWdoLXNwZWVkIFVTQiBkZXZpY2UgbnVtYmVyIDQgdXNpbmcg
-ZWhjaS1wbGF0Zm9ybQ0KdXNiIDEtMTogZGV2aWNlIG5vdCBhY2NlcHRpbmcgYWRkcmVzcyA0LCBl
-cnJvciAtMzINCnVzYiAxLTE6IG5ldyBoaWdoLXNwZWVkIFVTQiBkZXZpY2UgbnVtYmVyIDUgdXNp
-bmcgZWhjaS1wbGF0Zm9ybQ0KdXNiIDEtMTogZGV2aWNlIG5vdCBhY2NlcHRpbmcgYWRkcmVzcyA1
-LCBlcnJvciAtMzINCg0KLi4uDQoNCiMgd2dldCBmdHA6Ly9mdHAuZGVueC5kZS9wdWIvdS1ib290
-L3UtYm9vdC0xLjAuMC50YXIuYnoyDQpDb25uZWN0aW5nIHRvIGZ0cC5kZW54LmRlICg4MS4xNjku
-MjAyLjY6MjEpDQp3Z2V0OiBjYW4ndCBjb25uZWN0IHRvIHJlbW90ZSBob3N0ICg4MS4xNjkuMjAy
-LjYpOiBObyByb3V0ZSB0byBob3N0DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCldpbGwgYWxsIHBhdGNo
-ZXMgZnJvbSB0aGUgc2VyaWVzIHJldmVydGVkIChpLmUuIHdpdGgNCnlvdXIgYmFzZS1saW5lKSBh
-bGwgaXNzdWVzIGdvIGF3YXkuDQoNCkknbGwgbmVlZCB0byBzcGVuZCBtb3JlIHRpbWUgb24gY2hl
-Y2tpbmcgd2hhdCdzIGFjdHVhbGx5IHdyb25nLg0KDQotQWxleGV5DQoNClAuUy4gTm90ZSB0byBt
-eSBBUkMgY29sbGVhZ3VlcyAtIGl0J3MgcmVxdWlyZWQgdG8gZGlzYWJsZSBJTyBDb2hlcmVuY3kN
-CnRvIGdldCBETUEgb3BzIHJlYWxseSB1c2VkLCBpdCBjb3VsZCBiZSBvYnZpb3VzbHkgZG9uZSB3
-aXRoOg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KLS0tIGEvYXJjaC9hcmMvbW0vY2FjaGUuYw0KKysrIGIv
-YXJjaC9hcmMvbW0vY2FjaGUuYw0KQEAgLTI3LDcgKzI3LDcgQEANCiANCiBzdGF0aWMgaW50IGwy
-X2xpbmVfc3o7DQogc3RhdGljIGludCBpb2NfZXhpc3RzOw0KLWludCBzbGNfZW5hYmxlID0gMSwg
-aW9jX2VuYWJsZSA9IDE7DQoraW50IHNsY19lbmFibGUgPSAxLCBpb2NfZW5hYmxlID0gMDsNCiB1
-bnNpZ25lZCBsb25nIHBlcmlwX2Jhc2UgPSBBUkNfVU5DQUNIRURfQUREUl9TUEFDRTsgLyogbGVn
-YWN5IHZhbHVlIGZvciBib290ICovDQogdW5zaWduZWQgbG9uZyBwZXJpcF9lbmQgPSAweEZGRkZG
-RkZGOyAvKiBsZWdhY3kgdmFsdWUgKi8NCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg==
+2018-04-20 22:37 GMT+08:00 Eric W. Biederman <ebiederm@xmission.com>:
+> Filling in struct siginfo before calling force_sig_info a tedious and
+> error prone process, where once in a great while the wrong fields
+> are filled out, and siginfo has been inconsistently cleared.
+>
+> Simplify this process by using the helper force_sig_fault.  Which
+> takes as a parameters all of the information it needs, ensures
+> all of the fiddly bits of filling in struct siginfo are done properly
+> and then calls force_sig_info.
+>
+> In short about a 5 line reduction in code for every time force_sig_info
+> is called, which makes the calling function clearer.
+>
+> Cc: Greentime Hu <green.hu@gmail.com>
+> Cc: Vincent Chen <deanbo422@gmail.com>
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> ---
+>  arch/nds32/kernel/traps.c | 20 ++++----------------
+>  arch/nds32/mm/fault.c     | 19 +++++--------------
+>  2 files changed, 9 insertions(+), 30 deletions(-)
+>
+> diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
+> index 46911768f4b5..636d1c7aa895 100644
+> --- a/arch/nds32/kernel/traps.c
+> +++ b/arch/nds32/kernel/traps.c
+> @@ -222,20 +222,13 @@ void die_if_kernel(const char *str, struct pt_regs *regs, int err)
+>
+>  int bad_syscall(int n, struct pt_regs *regs)
+>  {
+> -       siginfo_t info;
+> -
+>         if (current->personality != PER_LINUX) {
+>                 send_sig(SIGSEGV, current, 1);
+>                 return regs->uregs[0];
+>         }
+>
+> -       clear_siginfo(&info);
+> -       info.si_signo = SIGILL;
+> -       info.si_errno = 0;
+> -       info.si_code = ILL_ILLTRP;
+> -       info.si_addr = (void __user *)instruction_pointer(regs) - 4;
+> -
+> -       force_sig_info(SIGILL, &info, current);
+> +       force_sig_fault(SIGILL, ILL_ILLTRP,
+> +                       (void __user *)instruction_pointer(regs) - 4, current);
+>         die_if_kernel("Oops - bad syscall", regs, n);
+>         return regs->uregs[0];
+>  }
+> @@ -288,16 +281,11 @@ void __init early_trap_init(void)
+>  void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+>                   int error_code, int si_code)
+>  {
+> -       struct siginfo info;
+> -
+>         tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
+>         tsk->thread.error_code = error_code;
+>
+> -       clear_siginfo(&info);
+> -       info.si_signo = SIGTRAP;
+> -       info.si_code = si_code;
+> -       info.si_addr = (void __user *)instruction_pointer(regs);
+> -       force_sig_info(SIGTRAP, &info, tsk);
+> +       force_sig_fault(SIGTRAP, si_code
+> +                       (void __user *)instruction_pointer(regs), tsk);
+>  }
+>
+
+I found a comma is missing after argument si_code.
+
+>  void do_debug_trap(unsigned long entry, unsigned long addr,
+> diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
+> index 876ee01ff80a..9bdb7c3ecbb6 100644
+> --- a/arch/nds32/mm/fault.c
+> +++ b/arch/nds32/mm/fault.c
+> @@ -72,16 +72,15 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+>         struct task_struct *tsk;
+>         struct mm_struct *mm;
+>         struct vm_area_struct *vma;
+> -       siginfo_t info;
+> +       int si_code;
+>         int fault;
+>         unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
+>         unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+>
+> -       clear_siginfo(&info);
+>         error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
+>         tsk = current;
+>         mm = tsk->mm;
+> -       info.si_code = SEGV_MAPERR;
+> +       si_code = SEGV_MAPERR;
+>         /*
+>          * We fault-in kernel-space virtual memory on-demand. The
+>          * 'reference' page table is init_mm.pgd.
+> @@ -162,7 +161,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+>          */
+>
+>  good_area:
+> -       info.si_code = SEGV_ACCERR;
+> +       si_code = SEGV_ACCERR;
+>
+>         /* first do some preliminary protection checks */
+>         if (entry == ENTRY_PTE_NOT_PRESENT) {
+> @@ -267,11 +266,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+>                 tsk->thread.address = addr;
+>                 tsk->thread.error_code = error_code;
+>                 tsk->thread.trap_no = entry;
+> -               info.si_signo = SIGSEGV;
+> -               info.si_errno = 0;
+> -               /* info.si_code has been set above */
+> -               info.si_addr = (void *)addr;
+> -               force_sig_info(SIGSEGV, &info, tsk);
+> +               force_sig_fault(SIGSEGV, si_code, (void __user *)addr, tsk);
+>                 return;
+>         }
+>
+> @@ -340,11 +335,7 @@ void do_page_fault(unsigned long entry, unsigned long addr,
+>         tsk->thread.address = addr;
+>         tsk->thread.error_code = error_code;
+>         tsk->thread.trap_no = entry;
+> -       info.si_signo = SIGBUS;
+> -       info.si_errno = 0;
+> -       info.si_code = BUS_ADRERR;
+> -       info.si_addr = (void *)addr;
+> -       force_sig_info(SIGBUS, &info, tsk);
+> +       force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)addr, tsk);
+>
+>         return;
+>
+> --
+> 2.14.1
+>
+
+
+Except the missing comma in send_sigtrap(), I think this patch for nds32 is OK.
+
+Vincent Chen
