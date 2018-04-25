@@ -1,69 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:52585 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755253AbeDYQFO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:05:14 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 12/17] y2038: aio: Prepare sys_io_getevents for __kernel_timespec
-Date: Wed, 25 Apr 2018 18:03:06 +0200
-Message-ID: <20180425160311.2718314-13-arnd@arndb.de>
-In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
-References: <20180425160311.2718314-1-arnd@arndb.de>
+Received: from mail-ua0-f193.google.com ([209.85.217.193]:38382 "EHLO
+        mail-ua0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755348AbeDYSgR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 14:36:17 -0400
+MIME-Version: 1.0
+In-Reply-To: <20180425160311.2718314-3-arnd@arndb.de>
+References: <20180425160311.2718314-1-arnd@arndb.de> <20180425160311.2718314-3-arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 25 Apr 2018 20:36:15 +0200
+Message-ID: <CAMuHMdVThd7nV=EsSSZ1puC6b8V85pWHDSGvJpLaeeafo-vRaw@mail.gmail.com>
+Subject: Re: [PATCH 02/17] y2038: Remove newstat family from default syscall set
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425160306.AbOY7eJ6cl8uFA93mgFwFVqt-WKGoYjlhmbss6LLnYc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, libc-alpha <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, netdev <netdev@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, "Albert ARIBAUD (3ADEV)" <albert.aribaud@3adev.fr>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
+Message-ID: <20180425183615.qgR36gJ6_6qQMnq0QYoAEuyhxwpq8vvREJ_sOzUoH9Q@z>
 
-This is a preparation patch for converting sys_io_getevents to
-work with 64-bit time_t on 32-bit architectures. The 'timeout' argument
-is changed to struct __kernel_timespec, which will be redefined using
-64-bit time_t in the future. The compat version of the system call in
-turn is enabled for compilation with CONFIG_COMPAT_32BIT_TIME so
-the individual 32-bit architectures can share the handling of the
-traditional argument with 64-bit architectures providing it for their
-compat mode.
+On Wed, Apr 25, 2018 at 6:02 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> We have four generations of stat() syscalls:
+> - the oldstat syscalls that are only used on the older architectures
+> - the newstat family that is used on all 64-bit architectures but
+>   lacked support for large files on 32-bit architectures.
+> - the stat64 family that is used mostly on 32-bit architectures to
+>   replace newstat
+> - statx() to replace all of the above, adding 64-bit timestamps among
+>   other things.
+>
+> We already compile stat64 only on those architectures that need it,
+> but newstat is always built, including on those that don't reference
+> it. This adds a new __ARCH_WANT_NEW_STAT symbol along the lines of
+> __ARCH_WANT_OLD_STAT and __ARCH_WANT_STAT64 to control compilation of
+> newstat. All architectures that need it use an explict define, the
+> others now get a little bit smaller, and future architecture (including
+> 64-bit targets) won't ever see it.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- fs/aio.c                 | 4 ++--
- include/linux/syscalls.h | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+For m68k:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-diff --git a/fs/aio.c b/fs/aio.c
-index 88d7927ffbc6..64fea8c27b16 100644
---- a/fs/aio.c
-+++ b/fs/aio.c
-@@ -1858,7 +1858,7 @@ SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
- 		long, min_nr,
- 		long, nr,
- 		struct io_event __user *, events,
--		struct timespec __user *, timeout)
-+		struct __kernel_timespec __user *, timeout)
- {
- 	struct timespec64	ts;
- 
-@@ -1870,7 +1870,7 @@ SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
- 	return do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &ts : NULL);
- }
- 
--#ifdef CONFIG_COMPAT
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- COMPAT_SYSCALL_DEFINE5(io_getevents, compat_aio_context_t, ctx_id,
- 		       compat_long_t, min_nr,
- 		       compat_long_t, nr,
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 2619678359ee..ffd8674e9df7 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -289,7 +289,7 @@ asmlinkage long sys_io_getevents(aio_context_t ctx_id,
- 				long min_nr,
- 				long nr,
- 				struct io_event __user *events,
--				struct timespec __user *timeout);
-+				struct __kernel_timespec __user *timeout);
- 
- /* fs/xattr.c */
- asmlinkage long sys_setxattr(const char __user *path, const char __user *name,
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-2.9.0
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
