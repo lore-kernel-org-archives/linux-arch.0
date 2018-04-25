@@ -1,50 +1,40 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 04/17] asm-generic: Remove unneeded
-	__ARCH_WANT_SYS_LLSEEK macro
-Date: Wed, 25 Apr 2018 20:36:43 +0200
-Message-ID: <CAMuHMdXzNwNxbrcbJxdh+ON5MU7Wp2OPYriHq9mk3eViXOWaOg@mail.gmail.com>
-References: <20180425160311.2718314-1-arnd@arndb.de>
- <20180425160311.2718314-5-arnd@arndb.de>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH 22/22] parisc: use generic dma_noncoherent_ops
+Date: Wed, 25 Apr 2018 23:07:57 +0200
+Message-ID: <84d9e1ac-86c3-6f2e-377f-2be44783b933@gmx.de>
+References: <20180420080313.18796-1-hch@lst.de>
+ <20180420080313.18796-23-hch@lst.de>
+ <e0b4f3be-68b9-c3af-e432-fd20419e2d70@gmx.de> <20180425072105.GA12308@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20180425160311.2718314-5-arnd@arndb.de>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, libc-alpha <libc-alpha@sourceware.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, "Albert ARIBAUD (3ADEV)" <albert.aribaud@3adev.fr>, Peter Zijlstra <peterz@infradead.org>, Deepa Dinamani <deepa.kernel@gmail.com>, netdev <netdev@vger.kernel.org>, Darren Hart <dvhart@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20180425072105.GA12308@lst.de>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gV2VkLCBBcHIgMjUsIDIwMTggYXQgNjowMiBQTSwgQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5k
-Yi5kZT4gd3JvdGU6Cj4gVGhlIHN5c19sbHNlZWsgc3l0ZW0gY2FsbCBpcyBuZWVkZWQgb24gYWxs
-IDMyLWJpdCBhcmNoaXRlY3R1cmVzIGFuZAo+IG5vbmUgb2YgdGhlIDY0LWJpdCBvbmVzLCBzbyB3
-ZSBjYW4gcmVtb3ZlIHRoZSBfX0FSQ0hfV0FOVF9TWVNfTExTRUVLIGd1YXJkCj4gYW5kIHNpbXBs
-aWZ5IHRoZSBpbmNsdWRlL2FzbS1nZW5lcmljL3VuaXN0ZC5oIGhlYWRlciBmdXJ0aGVyLgo+Cj4g
-U2luY2UgMzItYml0IHRhc2tzIGNhbiBydW4gZWl0aGVyIG5hdGl2ZWx5IG9yIGluIGNvbXBhdCBt
-b2RlIG9uIDY0LWJpdAo+IGFyY2hpdGVjdHVyZXMsIHdlIGhhdmUgdG8gY2hlY2sgZm9yIGJvdGgg
-IUNPTkZJR182NEJJVCBhbmQgQ09ORklHX0NPTVBBVC4KPgo+IFRoZXJlIGFyZSBhIGZldyA2NC1i
-aXQgYXJjaGl0ZWN0dXJlcyB0aGF0IGFsc28gcmVmZXJlbmNlIHN5c19sbHNlZWsKPiBpbiB0aGVp
-ciA2NC1iaXQgQUJJIChlLmcuIHNwYXJjKSwgYnV0IEkgdmVyaWZpZWQgdGhhdCB0aG9zZSBhbGwK
-PiBzZWxlY3QgQ09ORklHX0NPTVBBVCwgc28gdGhlICNpZiBjaGVjayBpcyBzdGlsbCBjb3JyZWN0
-IGhlcmUuIEl0J3MKPiBhIGJpdCBvZGQgdG8gaW5jbHVkZSBpdCBpbiB0aGUgc3lzY2FsbCB0YWJs
-ZSB0aG91Z2gsIGFzIGl0J3MgdGhlCj4gc2FtZSBhcyBzeXNfbHNlZWsoKSBvbiA2NC1iaXQsIGJ1
-dCB3aXRoIHN0cmFuZ2UgY2FsbGluZyBjb252ZW50aW9ucy4KPgo+IFNpZ25lZC1vZmYtYnk6IEFy
-bmQgQmVyZ21hbm4gPGFybmRAYXJuZGIuZGU+CgpGb3IgbTY4azoKQWNrZWQtYnk6IEdlZXJ0IFV5
-dHRlcmhvZXZlbiA8Z2VlcnRAbGludXgtbTY4ay5vcmc+CgpHcntvZXRqZSxlZXRpbmd9cywKCiAg
-ICAgICAgICAgICAgICAgICAgICAgIEdlZXJ0CgotLSAKR2VlcnQgVXl0dGVyaG9ldmVuIC0tIFRo
-ZXJlJ3MgbG90cyBvZiBMaW51eCBiZXlvbmQgaWEzMiAtLSBnZWVydEBsaW51eC1tNjhrLm9yZwoK
-SW4gcGVyc29uYWwgY29udmVyc2F0aW9ucyB3aXRoIHRlY2huaWNhbCBwZW9wbGUsIEkgY2FsbCBt
-eXNlbGYgYSBoYWNrZXIuIEJ1dAp3aGVuIEknbSB0YWxraW5nIHRvIGpvdXJuYWxpc3RzIEkganVz
-dCBzYXkgInByb2dyYW1tZXIiIG9yIHNvbWV0aGluZyBsaWtlIHRoYXQuCiAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgLS0gTGludXMgVG9ydmFsZHMKX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3Rz
-LmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIw
-MzgK
+On 25.04.2018 09:21, Christoph Hellwig wrote:
+> On Sat, Apr 21, 2018 at 07:43:46PM +0200, Helge Deller wrote:
+>> This patch breaks a 32bit kernel on a B160L machine (PA7300LC CPU, "pcxl2").
+>> After applying this patch series the lasi82956 network driver works unreliable. 
+>> NIC gets IP, but ping doesn't work.
+>> See drivers/net/ethernet/i825xx/lasi_82596.c, it uses dma*sync() functions.
+> 
+> Just to confirm:  Without the series it is known to actually work?
+
+Yes.
+I reverted this series from my tree, rebuilt, and then the issue was gone.
+I won't be able to test again earlier than next week.
+
+Helge
