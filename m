@@ -1,40 +1,32 @@
-From: Helge Deller <deller@gmx.de>
-Subject: Re: [PATCH 22/22] parisc: use generic dma_noncoherent_ops
-Date: Wed, 25 Apr 2018 23:07:57 +0200
-Message-ID: <84d9e1ac-86c3-6f2e-377f-2be44783b933@gmx.de>
-References: <20180420080313.18796-1-hch@lst.de>
- <20180420080313.18796-23-hch@lst.de>
- <e0b4f3be-68b9-c3af-e432-fd20419e2d70@gmx.de> <20180425072105.GA12308@lst.de>
+From: =?UTF-8?Q?Martin_P=C3=A4rtel?= <martin.partel@gmail.com>
+Subject: Re: [uml-devel] [REVIEW][PATCH 19/22] signal/um: Use force_sig_fault
+ in relay_signal.
+Date: Thu, 26 Apr 2018 02:05:44 +0300
+Message-ID: <CAMD8JhxzzCCjo_OLs8wS7ggOh4NqdxeRAGhcvuEJSUZZLO6NDA@mail.gmail.com>
+References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-19-ebiederm@xmission.com>
+ <7074fe36-27c5-ee82-9659-da703cfc91fe@kot-begemot.co.uk> <CAFLxGvyM+Kru=ERDvccjVuMjSPbu+FQzjbUbMwSyEbL1rVGkBQ@mail.gmail.com>
+ <7ddd238f-88a8-ed03-fe9e-0f4e5f2a490d@kot-begemot.co.uk> <87zi1sd28d.fsf@xmission.com>
+ <CAMD8JhwgcWCp6c=O4-spNW1VdY5M-eAjr7M5PieeAfeTSe_4yw@mail.gmail.com>
+ <CAMD8JhxHwcuXh68o1=fbZ_t6DH7x_dO_0nEMqL=cHXBfZXub=w@mail.gmail.com> <87lgdc1bvr.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20180425072105.GA12308@lst.de>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87lgdc1bvr.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>, Richard Weinberger <richard.weinberger@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, "user-mode-linux-devel@lists.sourceforge.net" <user-mode-linux-devel@lists.sourceforge.net>
 List-Id: linux-arch.vger.kernel.org
 
-On 25.04.2018 09:21, Christoph Hellwig wrote:
-> On Sat, Apr 21, 2018 at 07:43:46PM +0200, Helge Deller wrote:
->> This patch breaks a 32bit kernel on a B160L machine (PA7300LC CPU, "pcxl2").
->> After applying this patch series the lasi82956 network driver works unreliable. 
->> NIC gets IP, but ping doesn't work.
->> See drivers/net/ethernet/i825xx/lasi_82596.c, it uses dma*sync() functions.
-> 
-> Just to confirm:  Without the series it is known to actually work?
+>
+> Then my analysis is correct that you simply missed filtering out the
+> si codes that are not signal specific and do not use the fault layout
+> in struct siginfo.
+> ...
+> I would say that you really need a
+> white-list of si_codes that whose use of struct siginfo that you know.
+> Otherwise you could get into the same problem of under or over copying
+> data.
+>
 
-Yes.
-I reverted this series from my tree, rebuilt, and then the issue was gone.
-I won't be able to test again earlier than next week.
-
-Helge
+I think that's correct, but I'm not super familiar with either UML or
+signal handling.
