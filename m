@@ -1,111 +1,100 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH 06/22] arc: use generic dma_noncoherent_ops
-Date: Wed, 25 Apr 2018 11:17:01 +0000
-Message-ID: <1524655020.5315.9.camel@synopsys.com>
-References: <20180420080313.18796-1-hch@lst.de>
- <20180420080313.18796-7-hch@lst.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCHv3 07/11] arm64: add basic pointer authentication support
+Date: Wed, 25 Apr 2018 12:23:32 +0100
+Message-ID: <20180425112331.hke7afxnslyrwf3h@armageddon.cambridge.arm.com>
+References: <20180417183735.56985-1-mark.rutland@arm.com>
+ <20180417183735.56985-8-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20180420080313.18796-7-hch@lst.de>
-Content-Language: en-US
-Content-ID: <213720B0788595488614ECA66BA22CC2@internal.synopsys.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "hch@lst.de" <hch@lst.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180417183735.56985-8-mark.rutland@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, drjones@redhat.com, cdall@kernel.org, arnd@arndb.de, suzuki.poulose@arm.com, marc.zyngier@arm.com, awallis@codeaurora.org, kernel-hardening@lists.openwall.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, kvmarm@lists.cs.columbia.edu
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+Hi Mark,
 
-On Fri, 2018-04-20 at 10:02 +0200, Christoph Hellwig wrote:
-> Switch to the generic noncoherent direct mapping implementation.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/arc/Kconfig                   |   4 +
->  arch/arc/include/asm/Kbuild        |   1 +
->  arch/arc/include/asm/dma-mapping.h |  21 -----
->  arch/arc/mm/dma.c                  | 141 +++--------------------------
->  4 files changed, 19 insertions(+), 148 deletions(-)
->  delete mode 100644 arch/arc/include/asm/dma-mapping.h
-> 
+On Tue, Apr 17, 2018 at 07:37:31PM +0100, Mark Rutland wrote:
+> diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
+> index 39ec0b8a689e..caf0d3010112 100644
+> --- a/arch/arm64/include/asm/mmu_context.h
+> +++ b/arch/arm64/include/asm/mmu_context.h
+> @@ -29,7 +29,6 @@
+>  #include <asm/cacheflush.h>
+>  #include <asm/cpufeature.h>
+>  #include <asm/proc-fns.h>
+> -#include <asm-generic/mm_hooks.h>
+>  #include <asm/cputype.h>
+>  #include <asm/pgtable.h>
+>  #include <asm/sysreg.h>
+> @@ -168,7 +167,14 @@ static inline void cpu_replace_ttbr1(pgd_t *pgdp)
+>  #define destroy_context(mm)		do { } while(0)
+>  void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
+>  
+> -#define init_new_context(tsk,mm)	({ atomic64_set(&(mm)->context.id, 0); 0; })
+> +static inline int init_new_context(struct task_struct *tsk,
+> +			struct mm_struct *mm)
+> +{
+> +	atomic64_set(&mm->context.id, 0);
+> +	mm_ctx_ptrauth_init(&mm->context);
+> +
+> +	return 0;
+> +}
+>  
+>  #ifdef CONFIG_ARM64_SW_TTBR0_PAN
+>  static inline void update_saved_ttbr0(struct task_struct *tsk,
+> @@ -216,6 +222,8 @@ static inline void __switch_mm(struct mm_struct *next)
+>  		return;
+>  	}
+>  
+> +	mm_ctx_ptrauth_switch(&next->context);
+> +
+>  	check_and_switch_context(next, cpu);
+>  }
+>  
+> @@ -241,6 +249,19 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
+>  void verify_cpu_asid_bits(void);
+>  void post_ttbr_update_workaround(void);
+>  
+> +static inline void arch_dup_mmap(struct mm_struct *oldmm,
+> +				 struct mm_struct *mm)
+> +{
+> +	mm_ctx_ptrauth_dup(&oldmm->context, &mm->context);
+> +}
+> +#define arch_dup_mmap arch_dup_mmap
 
-[snip]
+IIUC, we could skip the arch_dup_mmap() and init_new_context() here for
+the fork() case since the ptrauth_keys would be copied as part of the
+dup_mm(). There is another situation where init_new_context() is called
+bprm_mm_init() -> mm_alloc() -> mm_init() -> init_new_context().
+However, in this case the core code also calls arch_bprm_mm_init(). So I
+think we only need to update the latter to get a new random key.
 
-> @@ -135,7 +134,7 @@ static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
->   * CPU accesses page via normal paddr, thus needs to explicitly made
->   * consistent before each use
->   */
-> -static void _dma_cache_sync(phys_addr_t paddr, size_t size,
-> +static void _dma_cache_sync(struct device *dev, phys_addr_t paddr size_t size,
->  		enum dma_data_direction dir)
+> diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
+> new file mode 100644
+> index 000000000000..a2e8fb91fdee
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/pointer_auth.h
+> @@ -0,0 +1,89 @@
+> +/*
+> + * Copyright (C) 2016 ARM Ltd.
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
 
-Seems like there's a missing comma:
------------------------------------>8------------------------------------
---- a/arch/arc/mm/dma.c
-+++ b/arch/arc/mm/dma.c
-@@ -134,7 +134,7 @@ int arch_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-  * CPU accesses page via normal paddr, thus needs to explicitly made
-  * consistent before each use
-  */
--static void _dma_cache_sync(struct device *dev, phys_addr_t paddr size_t size,
-+static void _dma_cache_sync(struct device *dev, phys_addr_t paddr, size_t size,
-                enum dma_data_direction dir)
- {
-        switch (dir) {
------------------------------------>8------------------------------------
+Nitpick: 2018. You could also use the SPDX header, save some lines.
 
-Which is actually strange as I would expect ARC code to be built by bots.
-
-Anyways with above fix I do see problems with both USB and Ethernet controllers
-on ARC HSDK board.
------------------------------------>8------------------------------------
-usb 1-1: new high-speed USB device number 2 using ehci-platform
-usb 1-1: device descriptor read/64, error -32
-usb 1-1: device descriptor read/64, error -32
-usb 1-1: new high-speed USB device number 3 using ehci-platform
-usb 1-1: device descriptor read/64, error -32
-usb 1-1: device descriptor read/64, error -32
-usb usb1-port1: attempt power cycle
-usb 1-1: new high-speed USB device number 4 using ehci-platform
-usb 1-1: device not accepting address 4, error -32
-usb 1-1: new high-speed USB device number 5 using ehci-platform
-usb 1-1: device not accepting address 5, error -32
-
-...
-
-# wget ftp://ftp.denx.de/pub/u-boot/u-boot-1.0.0.tar.bz2
-Connecting to ftp.denx.de (81.169.202.6:21)
-wget: can't connect to remote host (81.169.202.6): No route to host
------------------------------------>8------------------------------------
-
-Will all patches from the series reverted (i.e. with
-your base-line) all issues go away.
-
-I'll need to spend more time on checking what's actually wrong.
-
--Alexey
-
-P.S. Note to my ARC colleagues - it's required to disable IO Coherency
-to get DMA ops really used, it could be obviously done with:
------------------------------------>8------------------------------------
---- a/arch/arc/mm/cache.c
-+++ b/arch/arc/mm/cache.c
-@@ -27,7 +27,7 @@
- 
- static int l2_line_sz;
- static int ioc_exists;
--int slc_enable = 1, ioc_enable = 1;
-+int slc_enable = 1, ioc_enable = 0;
- unsigned long perip_base = ARC_UNCACHED_ADDR_SPACE; /* legacy value for boot */
- unsigned long perip_end = 0xFFFFFFFF; /* legacy value */
------------------------------------>8------------------------------------
+-- 
+Catalin
