@@ -1,229 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:50117 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:52585 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754578AbeDYQEz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:04:55 -0400
+        with ESMTP id S1755253AbeDYQFO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 12:05:14 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 14/17] y2038: socket: Add compat_sys_recvmmsg_time64
-Date: Wed, 25 Apr 2018 18:03:08 +0200
-Message-ID: <20180425160311.2718314-15-arnd@arndb.de>
+Subject: [PATCH 12/17] y2038: aio: Prepare sys_io_getevents for __kernel_timespec
+Date: Wed, 25 Apr 2018 18:03:06 +0200
+Message-ID: <20180425160311.2718314-13-arnd@arndb.de>
 In-Reply-To: <20180425160311.2718314-1-arnd@arndb.de>
 References: <20180425160311.2718314-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, netdev@vger.kernel.org, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, albert.aribaud@3adev.fr, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425160308.UPs5oNxofPJQ2mz6rZN8ZjD8F8NFSPhNacZtuXWPYyA@z>
+Message-ID: <20180425160306.AbOY7eJ6cl8uFA93mgFwFVqt-WKGoYjlhmbss6LLnYc@z>
 
-recvmmsg() takes two arguments to pointers of structures that differ
-between 32-bit and 64-bit architectures: mmsghdr and timespec.
-
-For y2038 compatbility, we are changing the native system call from
-timespec to __kernel_timespec with a 64-bit time_t (in another patch),
-and use the existing compat system call on both 32-bit and 64-bit
-architectures for compatibility with traditional 32-bit user space.
-
-As we now have two variants of recvmmsg() for 32-bit tasks that are both
-different from the variant that we use on 64-bit tasks, this means we
-also require two compat system calls!
-
-The solution I picked is to flip things around: The existing
-compat_sys_recvmmsg() call gets moved from net/compat.c into net/socket.c
-and now handles the case for old user space on all architectures that
-have set CONFIG_COMPAT_32BIT_TIME.  A new compat_sys_recvmmsg_time64()
-call gets added in the old place for 64-bit architectures only, this
-one handles the case of a compat mmsghdr structure combined with
-__kernel_timespec.
-
-In the indirect sys_socketcall(), we now need to call either
-do_sys_recvmmsg() or __compat_sys_recvmmsg(), depending on what kind of
-architecture we are on. For compat_sys_socketcall(), no such change is
-needed, we always call __compat_sys_recvmmsg().
-
-I decided to not add a new SYS_RECVMMSG_TIME64 socketcall: Any libc
-implementation for 64-bit time_t will need significant changes including
-an updated asm/unistd.h, and it seems better to consistently use the
-separate syscalls that configuration, leaving the socketcall only for
-backward compatibility with 32-bit time_t based libc.
+This is a preparation patch for converting sys_io_getevents to
+work with 64-bit time_t on 32-bit architectures. The 'timeout' argument
+is changed to struct __kernel_timespec, which will be redefined using
+64-bit time_t in the future. The compat version of the system call in
+turn is enabled for compilation with CONFIG_COMPAT_32BIT_TIME so
+the individual 32-bit architectures can share the handling of the
+traditional argument with 64-bit architectures providing it for their
+compat mode.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/compat.h |  5 ++++-
- include/linux/socket.h | 15 ++++++++++++++-
- kernel/sys_ni.c        |  1 +
- net/compat.c           | 14 +++++++-------
- net/socket.c           | 39 +++++++++++++++++++++++++++++++++++++--
- 5 files changed, 63 insertions(+), 11 deletions(-)
+ fs/aio.c                 | 4 ++--
+ include/linux/syscalls.h | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 7887b0a54c1e..f9423bbf7e7c 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -863,7 +863,10 @@ asmlinkage long compat_sys_move_pages(pid_t pid, compat_ulong_t nr_pages,
- asmlinkage long compat_sys_rt_tgsigqueueinfo(compat_pid_t tgid,
- 					compat_pid_t pid, int sig,
- 					struct compat_siginfo __user *uinfo);
--asmlinkage long compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
-+asmlinkage long compat_sys_recvmmsg_time64(int fd, struct compat_mmsghdr __user *mmsg,
-+				    unsigned vlen, unsigned int flags,
-+				    struct __kernel_timespec __user *timeout);
-+asmlinkage long compat_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
- 				    unsigned vlen, unsigned int flags,
- 				    struct compat_timespec __user *timeout);
- asmlinkage long compat_sys_wait4(compat_pid_t pid,
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index d36a6c1bdbaf..22358e0e1288 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -2,8 +2,8 @@
- #ifndef _LINUX_SOCKET_H
- #define _LINUX_SOCKET_H
- 
--
- #include <asm/socket.h>			/* arch-dependent defines	*/
-+#include <linux/errno.h>
- #include <linux/sockios.h>		/* the SIOCxxx I/O controls	*/
- #include <linux/uio.h>			/* iovec support		*/
- #include <linux/types.h>		/* pid_t			*/
-@@ -346,6 +346,7 @@ extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr_sto
- extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
- 
- struct timespec64;
-+struct compat_timespec;
- 
- /* The __sys_...msg variants allow MSG_CMSG_COMPAT iff
-  * forbid_cmsg_compat==false
-@@ -356,6 +357,18 @@ extern long __sys_sendmsg(int fd, struct user_msghdr __user *msg,
- 			  unsigned int flags, bool forbid_cmsg_compat);
- extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
- 			  unsigned int flags, struct timespec64 *timeout);
-+#ifdef CONFIG_COMPAT_32BIT_TIME
-+extern int __compat_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
-+				 unsigned int vlen, unsigned int flags,
-+				 struct compat_timespec __user *timeout);
-+#else
-+static inline int __compat_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
-+					unsigned int vlen, unsigned int flags,
-+					struct compat_timespec __user *timeout)
-+{
-+	return -EINVAL;
-+}
-+#endif
- extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
- 			  unsigned int vlen, unsigned int flags,
- 			  bool forbid_cmsg_compat);
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 9791364925dc..61fc9babe6ce 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -283,6 +283,7 @@ COND_SYSCALL(perf_event_open);
- COND_SYSCALL(accept4);
- COND_SYSCALL(recvmmsg);
- COND_SYSCALL_COMPAT(recvmmsg);
-+COND_SYSCALL_COMPAT(recvmmsg_time64);
- 
- /*
-  * Architecture specific syscalls: see further below
-diff --git a/net/compat.c b/net/compat.c
-index 93b80a3d967c..7521a0afe18d 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -810,9 +810,9 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
- 	return __compat_sys_recvfrom(fd, buf, len, flags, addr, addrlen);
- }
- 
--static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
-+static int __compat_sys_recvmmsg_time64(int fd, struct compat_mmsghdr __user *mmsg,
- 				 unsigned int vlen, unsigned int flags,
--				 struct compat_timespec __user *timeout)
-+				 struct __kernel_timespec __user *timeout)
+diff --git a/fs/aio.c b/fs/aio.c
+index 88d7927ffbc6..64fea8c27b16 100644
+--- a/fs/aio.c
++++ b/fs/aio.c
+@@ -1858,7 +1858,7 @@ SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
+ 		long, min_nr,
+ 		long, nr,
+ 		struct io_event __user *, events,
+-		struct timespec __user *, timeout)
++		struct __kernel_timespec __user *, timeout)
  {
- 	int datagrams;
- 	struct timespec64 ktspec;
-@@ -821,22 +821,22 @@ static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
- 		return __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
- 				      flags | MSG_CMSG_COMPAT, NULL);
+ 	struct timespec64	ts;
  
--	if (compat_get_timespec64(&ktspec, timeout))
-+	if (get_timespec64(&ktspec, timeout))
- 		return -EFAULT;
- 
- 	datagrams = __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
- 				   flags | MSG_CMSG_COMPAT, &ktspec);
--	if (datagrams > 0 && compat_put_timespec64(&ktspec, timeout))
-+	if (datagrams > 0 && put_timespec64(&ktspec, timeout))
- 		datagrams = -EFAULT;
- 
- 	return datagrams;
+@@ -1870,7 +1870,7 @@ SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
+ 	return do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &ts : NULL);
  }
  
--COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
-+COMPAT_SYSCALL_DEFINE5(recvmmsg_time64, int, fd, struct compat_mmsghdr __user *, mmsg,
- 		       unsigned int, vlen, unsigned int, flags,
--		       struct compat_timespec __user *, timeout)
-+		       struct __kernel_timespec __user *, timeout)
- {
--	return __compat_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
-+	return __compat_sys_recvmmsg_time64(fd, mmsg, vlen, flags, timeout);
- }
- 
- COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
-diff --git a/net/socket.c b/net/socket.c
-index 4510e6269764..5e97b645bfee 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -2483,6 +2483,37 @@ SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
- 	return do_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
- }
- 
+-#ifdef CONFIG_COMPAT
 +#ifdef CONFIG_COMPAT_32BIT_TIME
-+int __compat_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
-+			  unsigned int vlen, unsigned int flags,
-+			  struct compat_timespec __user *timeout)
-+{
-+	int datagrams;
-+	struct timespec64 ktspec;
-+
-+	if (timeout == NULL)
-+		return __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
-+				      flags | MSG_CMSG_COMPAT, NULL);
-+
-+	if (compat_get_timespec64(&ktspec, timeout))
-+		return -EFAULT;
-+
-+	datagrams = __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
-+				   flags | MSG_CMSG_COMPAT, &ktspec);
-+	if (datagrams > 0 && compat_put_timespec64(&ktspec, timeout))
-+		datagrams = -EFAULT;
-+
-+	return datagrams;
-+}
-+
-+COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
-+		       unsigned int, vlen, unsigned int, flags,
-+		       struct compat_timespec __user *, timeout)
-+{
-+	return __compat_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
-+}
-+#endif
-+
- #ifdef __ARCH_WANT_SYS_SOCKETCALL
- /* Argument list sizes for sys_socketcall */
- #define AL(x) ((x) * sizeof(unsigned long))
-@@ -2600,8 +2631,12 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 				    a[2], true);
- 		break;
- 	case SYS_RECVMMSG:
--		err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
--				      a[3], (struct __kernel_timespec __user *)a[4]);
-+		if (IS_ENABLED(CONFIG_64BIT) || !IS_ENABLED(CONFIG_64BIT_TIME))
-+			err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
-+					      a[3], (struct __kernel_timespec __user *)a[4]);
-+		else
-+			err = __compat_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
-+					      a[3], (struct compat_timespec __user *)a[4]);
- 		break;
- 	case SYS_ACCEPT4:
- 		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
+ COMPAT_SYSCALL_DEFINE5(io_getevents, compat_aio_context_t, ctx_id,
+ 		       compat_long_t, min_nr,
+ 		       compat_long_t, nr,
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 2619678359ee..ffd8674e9df7 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -289,7 +289,7 @@ asmlinkage long sys_io_getevents(aio_context_t ctx_id,
+ 				long min_nr,
+ 				long nr,
+ 				struct io_event __user *events,
+-				struct timespec __user *timeout);
++				struct __kernel_timespec __user *timeout);
+ 
+ /* fs/xattr.c */
+ asmlinkage long sys_setxattr(const char __user *path, const char __user *name,
 -- 
 2.9.0
