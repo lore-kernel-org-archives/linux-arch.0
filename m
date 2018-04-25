@@ -1,88 +1,101 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v4 06/16] y2038: arm64: Extend sysvipc compat data structures
-Date: Wed, 25 Apr 2018 17:05:56 +0200
-Message-ID: <20180425150606.954771-6-arnd@arndb.de>
-References: <20180425132242.1500539-1-arnd@arndb.de>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [REVIEW][PATCH 09/22] signal/nds32: Use force_sig_fault where appropriate
+Date: Wed, 25 Apr 2018 10:57:22 -0500
+Message-ID: <87wowvuvml.fsf@xmission.com>
+References: <87604mhrnb.fsf@xmission.com>
+        <20180420143811.9994-9-ebiederm@xmission.com>
+        <CAJsyPhy_GbfnzCNa_rJDMSRrUfVKOJKCVqrkWkDUmH6jPDGPhw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180425132242.1500539-1-arnd@arndb.de>
+In-Reply-To: <CAJsyPhy_GbfnzCNa_rJDMSRrUfVKOJKCVqrkWkDUmH6jPDGPhw@mail.gmail.com>
+        (Vincent Chen's message of "Wed, 25 Apr 2018 19:29:34 +0800")
 Sender: linux-kernel-owner@vger.kernel.org
-To: y2038@lists.linaro.org, linux-kernel@vger.kernel.org
-Cc: linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, tglx@linutronix.de, deepa.kernel@gmail.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, albert.aribaud@3adev.fr, linux-s390@vger.kernel.org, schwidefsky@de.ibm.com, x86@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, linux-mips@linux-mips.org, jhogan@kernel.org, ralf@linux-mips.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, zackw@panix.com, noloader@gmail.com, Arnd Bergmann <arnd@arndb.de>
+To: Vincent Chen <deanbo422@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Both 32-bit amd 64-bit ARM use the asm-generic header files for their
-sysvipc data structures, so no special care is needed to make those
-work beyond y2038, with the one exception of compat mode: Since there
-is no asm-generic definition of the compat mode IPC structures, ARM64
-provides its own copy, and we make those match the changes in the native
-asm-generic header files.
+Vincent Chen <deanbo422@gmail.com> writes:
 
-There is sufficient padding in these data structures to extend all
-timestamps to 64 bit, but on big-endian ARM kernels, the padding
-is in the wrong place, so the C library has to ensure it reassembles
-a 64-bit time_t correctly.
+> 2018-04-20 22:37 GMT+08:00 Eric W. Biederman <ebiederm@xmission.com>:
+>> Filling in struct siginfo before calling force_sig_info a tedious and
+>> error prone process, where once in a great while the wrong fields
+>> are filled out, and siginfo has been inconsistently cleared.
+>>
+>> Simplify this process by using the helper force_sig_fault.  Which
+>> takes as a parameters all of the information it needs, ensures
+>> all of the fiddly bits of filling in struct siginfo are done properly
+>> and then calls force_sig_info.
+>>
+>> In short about a 5 line reduction in code for every time force_sig_info
+>> is called, which makes the calling function clearer.
+>>
+>> Cc: Greentime Hu <green.hu@gmail.com>
+>> Cc: Vincent Chen <deanbo422@gmail.com>
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+>> ---
+>>  arch/nds32/kernel/traps.c | 20 ++++----------------
+>>  arch/nds32/mm/fault.c     | 19 +++++--------------
+>>  2 files changed, 9 insertions(+), 30 deletions(-)
+>>
+>> diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
+>> index 46911768f4b5..636d1c7aa895 100644
+>> --- a/arch/nds32/kernel/traps.c
+>> +++ b/arch/nds32/kernel/traps.c
+>> @@ -222,20 +222,13 @@ void die_if_kernel(const char *str, struct pt_regs *regs, int err)
+>>
+>>  int bad_syscall(int n, struct pt_regs *regs)
+>>  {
+>> -       siginfo_t info;
+>> -
+>>         if (current->personality != PER_LINUX) {
+>>                 send_sig(SIGSEGV, current, 1);
+>>                 return regs->uregs[0];
+>>         }
+>>
+>> -       clear_siginfo(&info);
+>> -       info.si_signo = SIGILL;
+>> -       info.si_errno = 0;
+>> -       info.si_code = ILL_ILLTRP;
+>> -       info.si_addr = (void __user *)instruction_pointer(regs) - 4;
+>> -
+>> -       force_sig_info(SIGILL, &info, current);
+>> +       force_sig_fault(SIGILL, ILL_ILLTRP,
+>> +                       (void __user *)instruction_pointer(regs) - 4, current);
+>>         die_if_kernel("Oops - bad syscall", regs, n);
+>>         return regs->uregs[0];
+>>  }
+>> @@ -288,16 +281,11 @@ void __init early_trap_init(void)
+>>  void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+>>                   int error_code, int si_code)
+>>  {
+>> -       struct siginfo info;
+>> -
+>>         tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
+>>         tsk->thread.error_code = error_code;
+>>
+>> -       clear_siginfo(&info);
+>> -       info.si_signo = SIGTRAP;
+>> -       info.si_code = si_code;
+>> -       info.si_addr = (void __user *)instruction_pointer(regs);
+>> -       force_sig_info(SIGTRAP, &info, tsk);
+>> +       force_sig_fault(SIGTRAP, si_code
+>> +                       (void __user *)instruction_pointer(regs), tsk);
+>>  }
+>>
+>
+> I found a comma is missing after argument si_code.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/arm64/include/asm/compat.h | 32 ++++++++++++++++----------------
- 1 file changed, 16 insertions(+), 16 deletions(-)
+Good catch.  Fixed.
 
-diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
-index 0030f79808b3..1a037b94eba1 100644
---- a/arch/arm64/include/asm/compat.h
-+++ b/arch/arm64/include/asm/compat.h
-@@ -181,10 +181,10 @@ struct compat_ipc64_perm {
- 
- struct compat_semid64_ds {
- 	struct compat_ipc64_perm sem_perm;
--	compat_time_t  sem_otime;
--	compat_ulong_t __unused1;
--	compat_time_t  sem_ctime;
--	compat_ulong_t __unused2;
-+	compat_ulong_t sem_otime;
-+	compat_ulong_t sem_otime_high;
-+	compat_ulong_t sem_ctime;
-+	compat_ulong_t sem_ctime_high;
- 	compat_ulong_t sem_nsems;
- 	compat_ulong_t __unused3;
- 	compat_ulong_t __unused4;
-@@ -192,12 +192,12 @@ struct compat_semid64_ds {
- 
- struct compat_msqid64_ds {
- 	struct compat_ipc64_perm msg_perm;
--	compat_time_t  msg_stime;
--	compat_ulong_t __unused1;
--	compat_time_t  msg_rtime;
--	compat_ulong_t __unused2;
--	compat_time_t  msg_ctime;
--	compat_ulong_t __unused3;
-+	compat_ulong_t msg_stime;
-+	compat_ulong_t msg_stime_high;
-+	compat_ulong_t msg_rtime;
-+	compat_ulong_t msg_rtime_high;
-+	compat_ulong_t msg_ctime;
-+	compat_ulong_t msg_ctime_high;
- 	compat_ulong_t msg_cbytes;
- 	compat_ulong_t msg_qnum;
- 	compat_ulong_t msg_qbytes;
-@@ -210,12 +210,12 @@ struct compat_msqid64_ds {
- struct compat_shmid64_ds {
- 	struct compat_ipc64_perm shm_perm;
- 	compat_size_t  shm_segsz;
--	compat_time_t  shm_atime;
--	compat_ulong_t __unused1;
--	compat_time_t  shm_dtime;
--	compat_ulong_t __unused2;
--	compat_time_t  shm_ctime;
--	compat_ulong_t __unused3;
-+	compat_ulong_t shm_atime;
-+	compat_ulong_t shm_atime_high;
-+	compat_ulong_t shm_dtime;
-+	compat_ulong_t shm_dtime_high;
-+	compat_ulong_t shm_ctime;
-+	compat_ulong_t shm_ctime_high;
- 	compat_pid_t   shm_cpid;
- 	compat_pid_t   shm_lpid;
- 	compat_ulong_t shm_nattch;
--- 
-2.9.0
+Unfortunately the only compiler I have for nds32 is my eyeballs so
+this slipped through.  Grr.
+
+
+> Except the missing comma in send_sigtrap(), I think this patch for nds32 is OK.
+>
+
+I have corrected the change as you suggested and have added your Acked
+by.
+
+Eric
