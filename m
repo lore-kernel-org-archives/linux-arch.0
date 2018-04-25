@@ -1,105 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38272 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753033AbeDYLXh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 25 Apr 2018 07:23:37 -0400
-Date: Wed, 25 Apr 2018 12:23:32 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCHv3 07/11] arm64: add basic pointer authentication support
-Message-ID: <20180425112331.hke7afxnslyrwf3h@armageddon.cambridge.arm.com>
-References: <20180417183735.56985-1-mark.rutland@arm.com>
- <20180417183735.56985-8-mark.rutland@arm.com>
+Received: from smtprelay6.synopsys.com ([198.182.37.59]:54119 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753297AbeDYL0y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 07:26:54 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [PATCH 06/22] arc: use generic dma_noncoherent_ops
+Date: Wed, 25 Apr 2018 11:17:01 +0000
+Message-ID: <1524655020.5315.9.camel@synopsys.com>
+References: <20180420080313.18796-1-hch@lst.de>
+         <20180420080313.18796-7-hch@lst.de>
+In-Reply-To: <20180420080313.18796-7-hch@lst.de>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <213720B0788595488614ECA66BA22CC2@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180417183735.56985-8-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, drjones@redhat.com, cdall@kernel.org, arnd@arndb.de, suzuki.poulose@arm.com, marc.zyngier@arm.com, awallis@codeaurora.org, kernel-hardening@lists.openwall.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, kvmarm@lists.cs.columbia.edu
-Message-ID: <20180425112332.kBFjyY6XpMzlTt6hylYJJyoUDyKMBSPbY9ztKSJJe70@z>
+To: "hch@lst.de" <hch@lst.de>
+Cc: "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
+Message-ID: <20180425111701.GELzgSdbXwl4KE8BGQn2idqPsrf1-xxMoDGUQutOdgk@z>
 
-Hi Mark,
-
-On Tue, Apr 17, 2018 at 07:37:31PM +0100, Mark Rutland wrote:
-> diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
-> index 39ec0b8a689e..caf0d3010112 100644
-> --- a/arch/arm64/include/asm/mmu_context.h
-> +++ b/arch/arm64/include/asm/mmu_context.h
-> @@ -29,7 +29,6 @@
->  #include <asm/cacheflush.h>
->  #include <asm/cpufeature.h>
->  #include <asm/proc-fns.h>
-> -#include <asm-generic/mm_hooks.h>
->  #include <asm/cputype.h>
->  #include <asm/pgtable.h>
->  #include <asm/sysreg.h>
-> @@ -168,7 +167,14 @@ static inline void cpu_replace_ttbr1(pgd_t *pgdp)
->  #define destroy_context(mm)		do { } while(0)
->  void check_and_switch_context(struct mm_struct *mm, unsigned int cpu);
->  
-> -#define init_new_context(tsk,mm)	({ atomic64_set(&(mm)->context.id, 0); 0; })
-> +static inline int init_new_context(struct task_struct *tsk,
-> +			struct mm_struct *mm)
-> +{
-> +	atomic64_set(&mm->context.id, 0);
-> +	mm_ctx_ptrauth_init(&mm->context);
-> +
-> +	return 0;
-> +}
->  
->  #ifdef CONFIG_ARM64_SW_TTBR0_PAN
->  static inline void update_saved_ttbr0(struct task_struct *tsk,
-> @@ -216,6 +222,8 @@ static inline void __switch_mm(struct mm_struct *next)
->  		return;
->  	}
->  
-> +	mm_ctx_ptrauth_switch(&next->context);
-> +
->  	check_and_switch_context(next, cpu);
->  }
->  
-> @@ -241,6 +249,19 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
->  void verify_cpu_asid_bits(void);
->  void post_ttbr_update_workaround(void);
->  
-> +static inline void arch_dup_mmap(struct mm_struct *oldmm,
-> +				 struct mm_struct *mm)
-> +{
-> +	mm_ctx_ptrauth_dup(&oldmm->context, &mm->context);
-> +}
-> +#define arch_dup_mmap arch_dup_mmap
-
-IIUC, we could skip the arch_dup_mmap() and init_new_context() here for
-the fork() case since the ptrauth_keys would be copied as part of the
-dup_mm(). There is another situation where init_new_context() is called
-bprm_mm_init() -> mm_alloc() -> mm_init() -> init_new_context().
-However, in this case the core code also calls arch_bprm_mm_init(). So I
-think we only need to update the latter to get a new random key.
-
-> diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-> new file mode 100644
-> index 000000000000..a2e8fb91fdee
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/pointer_auth.h
-> @@ -0,0 +1,89 @@
-> +/*
-> + * Copyright (C) 2016 ARM Ltd.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
-
-Nitpick: 2018. You could also use the SPDX header, save some lines.
-
--- 
-Catalin
+SGkgQ2hyaXN0b3BoLA0KDQpPbiBGcmksIDIwMTgtMDQtMjAgYXQgMTA6MDIgKzAyMDAsIENocmlz
+dG9waCBIZWxsd2lnIHdyb3RlOg0KPiBTd2l0Y2ggdG8gdGhlIGdlbmVyaWMgbm9uY29oZXJlbnQg
+ZGlyZWN0IG1hcHBpbmcgaW1wbGVtZW50YXRpb24uDQo+IA0KPiBTaWduZWQtb2ZmLWJ5OiBDaHJp
+c3RvcGggSGVsbHdpZyA8aGNoQGxzdC5kZT4NCj4gLS0tDQo+ICBhcmNoL2FyYy9LY29uZmlnICAg
+ICAgICAgICAgICAgICAgIHwgICA0ICsNCj4gIGFyY2gvYXJjL2luY2x1ZGUvYXNtL0tidWlsZCAg
+ICAgICAgfCAgIDEgKw0KPiAgYXJjaC9hcmMvaW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaCB8ICAy
+MSAtLS0tLQ0KPiAgYXJjaC9hcmMvbW0vZG1hLmMgICAgICAgICAgICAgICAgICB8IDE0MSArKyst
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiAgNCBmaWxlcyBjaGFuZ2VkLCAxOSBpbnNlcnRp
+b25zKCspLCAxNDggZGVsZXRpb25zKC0pDQo+ICBkZWxldGUgbW9kZSAxMDA2NDQgYXJjaC9hcmMv
+aW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaA0KPiANCg0KW3NuaXBdDQoNCj4gQEAgLTEzNSw3ICsx
+MzQsNyBAQCBzdGF0aWMgaW50IGFyY19kbWFfbW1hcChzdHJ1Y3QgZGV2aWNlICpkZXYsIHN0cnVj
+dCB2bV9hcmVhX3N0cnVjdCAqdm1hLA0KPiAgICogQ1BVIGFjY2Vzc2VzIHBhZ2UgdmlhIG5vcm1h
+bCBwYWRkciwgdGh1cyBuZWVkcyB0byBleHBsaWNpdGx5IG1hZGUNCj4gICAqIGNvbnNpc3RlbnQg
+YmVmb3JlIGVhY2ggdXNlDQo+ICAgKi8NCj4gLXN0YXRpYyB2b2lkIF9kbWFfY2FjaGVfc3luYyhw
+aHlzX2FkZHJfdCBwYWRkciwgc2l6ZV90IHNpemUsDQo+ICtzdGF0aWMgdm9pZCBfZG1hX2NhY2hl
+X3N5bmMoc3RydWN0IGRldmljZSAqZGV2LCBwaHlzX2FkZHJfdCBwYWRkciBzaXplX3Qgc2l6ZSwN
+Cj4gIAkJZW51bSBkbWFfZGF0YV9kaXJlY3Rpb24gZGlyKQ0KDQpTZWVtcyBsaWtlIHRoZXJlJ3Mg
+YSBtaXNzaW5nIGNvbW1hOg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KLS0tIGEvYXJjaC9hcmMvbW0vZG1h
+LmMNCisrKyBiL2FyY2gvYXJjL21tL2RtYS5jDQpAQCAtMTM0LDcgKzEzNCw3IEBAIGludCBhcmNo
+X2RtYV9tbWFwKHN0cnVjdCBkZXZpY2UgKmRldiwgc3RydWN0IHZtX2FyZWFfc3RydWN0ICp2bWEs
+DQogICogQ1BVIGFjY2Vzc2VzIHBhZ2UgdmlhIG5vcm1hbCBwYWRkciwgdGh1cyBuZWVkcyB0byBl
+eHBsaWNpdGx5IG1hZGUNCiAgKiBjb25zaXN0ZW50IGJlZm9yZSBlYWNoIHVzZQ0KICAqLw0KLXN0
+YXRpYyB2b2lkIF9kbWFfY2FjaGVfc3luYyhzdHJ1Y3QgZGV2aWNlICpkZXYsIHBoeXNfYWRkcl90
+IHBhZGRyIHNpemVfdCBzaXplLA0KK3N0YXRpYyB2b2lkIF9kbWFfY2FjaGVfc3luYyhzdHJ1Y3Qg
+ZGV2aWNlICpkZXYsIHBoeXNfYWRkcl90IHBhZGRyLCBzaXplX3Qgc2l6ZSwNCiAgICAgICAgICAg
+ICAgICBlbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBkaXIpDQogew0KICAgICAgICBzd2l0Y2ggKGRp
+cikgew0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpXaGljaCBpcyBhY3R1YWxseSBzdHJhbmdlIGFzIEkg
+d291bGQgZXhwZWN0IEFSQyBjb2RlIHRvIGJlIGJ1aWx0IGJ5IGJvdHMuDQoNCkFueXdheXMgd2l0
+aCBhYm92ZSBmaXggSSBkbyBzZWUgcHJvYmxlbXMgd2l0aCBib3RoIFVTQiBhbmQgRXRoZXJuZXQg
+Y29udHJvbGxlcnMNCm9uIEFSQyBIU0RLIGJvYXJkLg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KdXNiIDEt
+MTogbmV3IGhpZ2gtc3BlZWQgVVNCIGRldmljZSBudW1iZXIgMiB1c2luZyBlaGNpLXBsYXRmb3Jt
+DQp1c2IgMS0xOiBkZXZpY2UgZGVzY3JpcHRvciByZWFkLzY0LCBlcnJvciAtMzINCnVzYiAxLTE6
+IGRldmljZSBkZXNjcmlwdG9yIHJlYWQvNjQsIGVycm9yIC0zMg0KdXNiIDEtMTogbmV3IGhpZ2gt
+c3BlZWQgVVNCIGRldmljZSBudW1iZXIgMyB1c2luZyBlaGNpLXBsYXRmb3JtDQp1c2IgMS0xOiBk
+ZXZpY2UgZGVzY3JpcHRvciByZWFkLzY0LCBlcnJvciAtMzINCnVzYiAxLTE6IGRldmljZSBkZXNj
+cmlwdG9yIHJlYWQvNjQsIGVycm9yIC0zMg0KdXNiIHVzYjEtcG9ydDE6IGF0dGVtcHQgcG93ZXIg
+Y3ljbGUNCnVzYiAxLTE6IG5ldyBoaWdoLXNwZWVkIFVTQiBkZXZpY2UgbnVtYmVyIDQgdXNpbmcg
+ZWhjaS1wbGF0Zm9ybQ0KdXNiIDEtMTogZGV2aWNlIG5vdCBhY2NlcHRpbmcgYWRkcmVzcyA0LCBl
+cnJvciAtMzINCnVzYiAxLTE6IG5ldyBoaWdoLXNwZWVkIFVTQiBkZXZpY2UgbnVtYmVyIDUgdXNp
+bmcgZWhjaS1wbGF0Zm9ybQ0KdXNiIDEtMTogZGV2aWNlIG5vdCBhY2NlcHRpbmcgYWRkcmVzcyA1
+LCBlcnJvciAtMzINCg0KLi4uDQoNCiMgd2dldCBmdHA6Ly9mdHAuZGVueC5kZS9wdWIvdS1ib290
+L3UtYm9vdC0xLjAuMC50YXIuYnoyDQpDb25uZWN0aW5nIHRvIGZ0cC5kZW54LmRlICg4MS4xNjku
+MjAyLjY6MjEpDQp3Z2V0OiBjYW4ndCBjb25uZWN0IHRvIHJlbW90ZSBob3N0ICg4MS4xNjkuMjAy
+LjYpOiBObyByb3V0ZSB0byBob3N0DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCldpbGwgYWxsIHBhdGNo
+ZXMgZnJvbSB0aGUgc2VyaWVzIHJldmVydGVkIChpLmUuIHdpdGgNCnlvdXIgYmFzZS1saW5lKSBh
+bGwgaXNzdWVzIGdvIGF3YXkuDQoNCkknbGwgbmVlZCB0byBzcGVuZCBtb3JlIHRpbWUgb24gY2hl
+Y2tpbmcgd2hhdCdzIGFjdHVhbGx5IHdyb25nLg0KDQotQWxleGV5DQoNClAuUy4gTm90ZSB0byBt
+eSBBUkMgY29sbGVhZ3VlcyAtIGl0J3MgcmVxdWlyZWQgdG8gZGlzYWJsZSBJTyBDb2hlcmVuY3kN
+CnRvIGdldCBETUEgb3BzIHJlYWxseSB1c2VkLCBpdCBjb3VsZCBiZSBvYnZpb3VzbHkgZG9uZSB3
+aXRoOg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KLS0tIGEvYXJjaC9hcmMvbW0vY2FjaGUuYw0KKysrIGIv
+YXJjaC9hcmMvbW0vY2FjaGUuYw0KQEAgLTI3LDcgKzI3LDcgQEANCiANCiBzdGF0aWMgaW50IGwy
+X2xpbmVfc3o7DQogc3RhdGljIGludCBpb2NfZXhpc3RzOw0KLWludCBzbGNfZW5hYmxlID0gMSwg
+aW9jX2VuYWJsZSA9IDE7DQoraW50IHNsY19lbmFibGUgPSAxLCBpb2NfZW5hYmxlID0gMDsNCiB1
+bnNpZ25lZCBsb25nIHBlcmlwX2Jhc2UgPSBBUkNfVU5DQUNIRURfQUREUl9TUEFDRTsgLyogbGVn
+YWN5IHZhbHVlIGZvciBib290ICovDQogdW5zaWduZWQgbG9uZyBwZXJpcF9lbmQgPSAweEZGRkZG
+RkZGOyAvKiBsZWdhY3kgdmFsdWUgKi8NCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg==
