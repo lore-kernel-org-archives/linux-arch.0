@@ -1,48 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f66.google.com ([209.85.213.66]:38703 "EHLO
-        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756021AbeDYSgp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2018 14:36:45 -0400
+Received: from mout.gmx.net ([212.227.17.20]:39997 "EHLO mout.gmx.net"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751569AbeDYVIX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 25 Apr 2018 17:08:23 -0400
+Subject: Re: [PATCH 22/22] parisc: use generic dma_noncoherent_ops
+References: <20180420080313.18796-1-hch@lst.de>
+ <20180420080313.18796-23-hch@lst.de>
+ <e0b4f3be-68b9-c3af-e432-fd20419e2d70@gmx.de> <20180425072105.GA12308@lst.de>
+From: Helge Deller <deller@gmx.de>
+Message-ID: <84d9e1ac-86c3-6f2e-377f-2be44783b933@gmx.de>
+Date: Wed, 25 Apr 2018 23:07:57 +0200
 MIME-Version: 1.0
-In-Reply-To: <20180425160311.2718314-5-arnd@arndb.de>
-References: <20180425160311.2718314-1-arnd@arndb.de> <20180425160311.2718314-5-arnd@arndb.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Wed, 25 Apr 2018 20:36:43 +0200
-Message-ID: <CAMuHMdXzNwNxbrcbJxdh+ON5MU7Wp2OPYriHq9mk3eViXOWaOg@mail.gmail.com>
-Subject: Re: [PATCH 04/17] asm-generic: Remove unneeded __ARCH_WANT_SYS_LLSEEK macro
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180425072105.GA12308@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, libc-alpha <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, netdev <netdev@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, "Albert ARIBAUD (3ADEV)" <albert.aribaud@3adev.fr>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
-Message-ID: <20180425183643.fFJunDoEVA0U69SWWgQH6f3Xdd-JenhipHyVRTNQ50E@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180425210757.tJw58xORBnscMDkPcTAtNVVAY268C-speHgufkIc7Ow@z>
 
-On Wed, Apr 25, 2018 at 6:02 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> The sys_llseek sytem call is needed on all 32-bit architectures and
-> none of the 64-bit ones, so we can remove the __ARCH_WANT_SYS_LLSEEK guard
-> and simplify the include/asm-generic/unistd.h header further.
->
-> Since 32-bit tasks can run either natively or in compat mode on 64-bit
-> architectures, we have to check for both !CONFIG_64BIT and CONFIG_COMPAT.
->
-> There are a few 64-bit architectures that also reference sys_llseek
-> in their 64-bit ABI (e.g. sparc), but I verified that those all
-> select CONFIG_COMPAT, so the #if check is still correct here. It's
-> a bit odd to include it in the syscall table though, as it's the
-> same as sys_lseek() on 64-bit, but with strange calling conventions.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+On 25.04.2018 09:21, Christoph Hellwig wrote:
+> On Sat, Apr 21, 2018 at 07:43:46PM +0200, Helge Deller wrote:
+>> This patch breaks a 32bit kernel on a B160L machine (PA7300LC CPU, "pcxl2").
+>> After applying this patch series the lasi82956 network driver works unreliable. 
+>> NIC gets IP, but ping doesn't work.
+>> See drivers/net/ethernet/i825xx/lasi_82596.c, it uses dma*sync() functions.
+> 
+> Just to confirm:  Without the series it is known to actually work?
 
-For m68k:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Yes.
+I reverted this series from my tree, rebuilt, and then the issue was gone.
+I won't be able to test again earlier than next week.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Helge
