@@ -1,82 +1,40 @@
-From: Vincent Chen <deanbo422@gmail.com>
-Subject: Re: [PATCH] signal/nds32: More information in do_revinsn
-Date: Thu, 26 Apr 2018 11:02:54 +0800
-Message-ID: <CAJsyPhzSgPebAtP7m8Dsidy+2Lj6mKb7J-dPqHmFVzWv6Q55YQ@mail.gmail.com>
-References: <878t9ilmhv.fsf@xmission.com> <20180420010408.24438-5-ebiederm@xmission.com>
- <CAJsyPhyDeafwUQxXgnZ9Rfj6nwYrU_Kgyfv8DQ2q0BkwW25BBw@mail.gmail.com> <87in8fuuva.fsf_-_@xmission.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
+Date: Thu, 26 Apr 2018 08:42:39 +0200
+Message-ID: <20180426064239.GA13895@lst.de>
+References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de> <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com> <20180424191640.GA32495@lst.de> <CAEbi=3f7yzE+KAM2GOh6QahC_E6BAUfB3ys3U-WdBSUf3DPZqg@mail.gmail.com> <20180425064055.GA11460@lst.de> <CAEbi=3fcd8E=xi_hbef45LnPsBZhZv37yPO-xfZmU1gMaWnDvg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87in8fuuva.fsf_-_@xmission.com>
+Content-Disposition: inline
+In-Reply-To: <CAEbi=3fcd8E=xi_hbef45LnPsBZhZv37yPO-xfZmU1gMaWnDvg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-api@vger.kernel.org, Vincent Chen <vincentc@andestech.com>, Greentime Hu <greentime@andestech.com>, Arnd Bergmann <arnd@arndb.de>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-2018-04-26 0:13 GMT+08:00 Eric W. Biederman <ebiederm@xmission.com>:
->
-> While reviewing f6ed1ecad56f ("signal/nds32: Use force_sig(SIGILL) in do_revisn")
-> Vincent Chen asked if it was possible to provide more information in do_revinsn
-> with force_sig_fault.
->
-> That seems reasonable and the appropirate si_code appears to be
-> ILL_ILLOPC (illegal opcode) as the printk indicates this code path
-> is triggered when a reserved instruction is exectured.
->
+Can you try this patch ontop of either the new or original one?
 
-I think error code is set as ILL_ILLOPC is a good choice for normal
-reserved instruction
-but it seems a little bit inappropriate for nds32. For nds32 reserved
-exception, It is possibly
-triggered by illegal opcode, operand and immediate. Unfortunately,
-do_revisn() can not
-identify the actual reason now. Therefore, I chose ILLTRAP to avoid
-confusing user when
-the reserved exception is cauesd by wrong immediate or operand.
-
-
-
-> So update do_revinsn to use force_sig_fault(SIGILL, ILL_ILLOPC, ...).
-> Giving userspace a much better experience when soemone attempts
-> to execute a reserved instruction.
->
-> Cc: Greentime Hu <green.hu@gmail.com>
-> Cc: Vincent Chen <deanbo422@gmail.com>
-> Suggested-by: Vincent Chen <deanbo422@gmail.com>
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
-> ---
->
-> Vincent I have updated this from your suggestion to use
-> ILL_ILLOPC as that appears the more appropriate si_code.
-> Normally I expect you could just update your nds32 tree and
-> make this kind of change but since I am touching this code anyway I will
-> be happy to take this change along with the others.
->
-> Does this look good to you?
->
-
-It is fine to commit this change along with the others.
-
-Vincent Chen
-
-
->  arch/nds32/kernel/traps.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
-> index a6205fd4db52..5c2f61835ab9 100644
-> --- a/arch/nds32/kernel/traps.c
-> +++ b/arch/nds32/kernel/traps.c
-> @@ -349,7 +349,8 @@ void do_revinsn(struct pt_regs *regs)
->         show_regs(regs);
->         if (!user_mode(regs))
->                 do_exit(SIGILL);
-> -       force_sig(SIGILL, current);
-> +       force_sig_fault(SIGILL, ILL_ILLOPC,
-> +                       (void __user *)instruction_pointer(regs), current);
->  }
->
->  #ifdef CONFIG_ALIGNMENT_TRAP
-> --
-> 2.14.1
->
+---
+diff --git a/lib/dma-noncoherent.c b/lib/dma-noncoherent.c
+index f4b8532c20ac..a2c192b3508d 100644
+--- a/lib/dma-noncoherent.c
++++ b/lib/dma-noncoherent.c
+@@ -48,7 +48,7 @@ static int dma_noncoherent_map_sg(struct device *dev, struct scatterlist *sgl,
+ 	return nents;
+ }
+ 
+-#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
++#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
+ static void dma_noncoherent_sync_single_for_cpu(struct device *dev,
+ 		dma_addr_t addr, size_t size, enum dma_data_direction dir)
+ {
+@@ -88,7 +88,7 @@ const struct dma_map_ops dma_noncoherent_ops = {
+ 	.sync_sg_for_device	= dma_noncoherent_sync_sg_for_device,
+ 	.map_page		= dma_noncoherent_map_page,
+ 	.map_sg			= dma_noncoherent_map_sg,
+-#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
++#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
+ 	.sync_single_for_cpu	= dma_noncoherent_sync_single_for_cpu,
+ 	.sync_sg_for_cpu	= dma_noncoherent_sync_sg_for_cpu,
+ 	.unmap_page		= dma_noncoherent_unmap_page,
