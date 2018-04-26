@@ -1,39 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:40714 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752148AbeDZHSv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Apr 2018 03:18:51 -0400
-Date: Thu, 26 Apr 2018 09:20:33 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/5] ide: kill ide_toggle_bounce
-Message-ID: <20180426072033.GA14700@lst.de>
-References: <20180424181625.22410-1-hch@lst.de> <20180424181625.22410-3-hch@lst.de> <5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
+Received: from mail-ua0-f194.google.com ([209.85.217.194]:42275 "EHLO
+        mail-ua0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752972AbeDZIHP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2018 04:07:15 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
+In-Reply-To: <20180426064239.GA13895@lst.de>
+References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de>
+ <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
+ <20180424191640.GA32495@lst.de> <CAEbi=3f7yzE+KAM2GOh6QahC_E6BAUfB3ys3U-WdBSUf3DPZqg@mail.gmail.com>
+ <20180425064055.GA11460@lst.de> <CAEbi=3fcd8E=xi_hbef45LnPsBZhZv37yPO-xfZmU1gMaWnDvg@mail.gmail.com>
+ <20180426064239.GA13895@lst.de>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Thu, 26 Apr 2018 16:06:34 +0800
+Message-ID: <CAEbi=3e3gM_WpQOtKZXP4Xj2Az4bLf_u6BjDELqXy6-d9HurMQ@mail.gmail.com>
+Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jens Axboe <axboe@kernel.dk>
-Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
-Message-ID: <20180426072033.LvroaX6Q3WGcaMvRTkuJiLnbAmILEEME0ry7Obsa00g@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180426080634.zs8Dni34e5tC_f-aZmfdfnlYIM_aVTCjasTasr7K2x8@z>
 
-On Tue, Apr 24, 2018 at 08:02:56PM -0600, Jens Axboe wrote:
-> On 4/24/18 12:16 PM, Christoph Hellwig wrote:
-> > ide_toggle_bounce did select various strange block bounce limits, including
-> > not bouncing at all as soon as an iommu is present in the system.  Given
-> > that the dma_map routines now handle any required bounce buffering except
-> > for ISA DMA, and the ide code already must handle either ISA DMA or highmem
-> > at least for iommu equipped systems we can get rid of the block layer
-> > bounce limit setting entirely.
-> 
-> Pretty sure I was the one to add this code, when highmem page IO was
-> enabled about two decades ago...
-> 
-> Outside of DMA, the issue was that the PIO code could not handle
-> highmem. That's not the case anymore, so this should be fine.
+2018-04-26 14:42 GMT+08:00 Christoph Hellwig <hch@lst.de>:
+> Can you try this patch ontop of either the new or original one?
+>
+> ---
+> diff --git a/lib/dma-noncoherent.c b/lib/dma-noncoherent.c
+> index f4b8532c20ac..a2c192b3508d 100644
+> --- a/lib/dma-noncoherent.c
+> +++ b/lib/dma-noncoherent.c
+> @@ -48,7 +48,7 @@ static int dma_noncoherent_map_sg(struct device *dev, struct scatterlist *sgl,
+>         return nents;
+>  }
+>
+> -#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
+> +#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
+>  static void dma_noncoherent_sync_single_for_cpu(struct device *dev,
+>                 dma_addr_t addr, size_t size, enum dma_data_direction dir)
+>  {
+> @@ -88,7 +88,7 @@ const struct dma_map_ops dma_noncoherent_ops = {
+>         .sync_sg_for_device     = dma_noncoherent_sync_sg_for_device,
+>         .map_page               = dma_noncoherent_map_page,
+>         .map_sg                 = dma_noncoherent_map_sg,
+> -#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
+> +#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
+>         .sync_single_for_cpu    = dma_noncoherent_sync_single_for_cpu,
+>         .sync_sg_for_cpu        = dma_noncoherent_sync_sg_for_cpu,
+>         .unmap_page             = dma_noncoherent_unmap_page,
 
-Yes, that is the rationale.  Any chance to you could look over the
-other patches as well?  Except for the networking one for which I'd
-really like to see a review from Dave all the users of the interface
-are block related.
+It works!!!
