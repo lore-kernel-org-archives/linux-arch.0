@@ -1,62 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:40552 "EHLO newverein.lst.de"
+Received: from verein.lst.de ([213.95.11.211]:40714 "EHLO newverein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752630AbeDZGnS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Apr 2018 02:43:18 -0400
-Date: Thu, 26 Apr 2018 08:45:00 +0200
-From: "hch@lst.de" <hch@lst.de>
-Subject: Re: [PATCH 06/22] arc: use generic dma_noncoherent_ops
-Message-ID: <20180426064500.GB13895@lst.de>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-7-hch@lst.de> <1524655020.5315.9.camel@synopsys.com>
+        id S1752148AbeDZHSv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Apr 2018 03:18:51 -0400
+Date: Thu, 26 Apr 2018 09:20:33 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/5] ide: kill ide_toggle_bounce
+Message-ID: <20180426072033.GA14700@lst.de>
+References: <20180424181625.22410-1-hch@lst.de> <20180424181625.22410-3-hch@lst.de> <5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1524655020.5315.9.camel@synopsys.com>
+In-Reply-To: <5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "hch@lst.de" <hch@lst.de>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20180426064500.NMSsdxA9ZQiHQ6pUbFfGUF3bjajKy_iS-qAVi6vXHnA@z>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
+Message-ID: <20180426072033.LvroaX6Q3WGcaMvRTkuJiLnbAmILEEME0ry7Obsa00g@z>
 
-On Wed, Apr 25, 2018 at 11:17:01AM +0000, Alexey Brodkin wrote:
-> Which is actually strange as I would expect ARC code to be built by bots.
+On Tue, Apr 24, 2018 at 08:02:56PM -0600, Jens Axboe wrote:
+> On 4/24/18 12:16 PM, Christoph Hellwig wrote:
+> > ide_toggle_bounce did select various strange block bounce limits, including
+> > not bouncing at all as soon as an iommu is present in the system.  Given
+> > that the dma_map routines now handle any required bounce buffering except
+> > for ISA DMA, and the ide code already must handle either ISA DMA or highmem
+> > at least for iommu equipped systems we can get rid of the block layer
+> > bounce limit setting entirely.
+> 
+> Pretty sure I was the one to add this code, when highmem page IO was
+> enabled about two decades ago...
+> 
+> Outside of DMA, the issue was that the PIO code could not handle
+> highmem. That's not the case anymore, so this should be fine.
 
-I don't think I got any notification.  Thank for the fixes!
-
-I think I found the bug, based on the fact that so far all tests for
-architectures that also need a cache op for device to cpu transitions
-failed.  I did a stupid typo when changing kconfig symbols, so please
-try the patch below.
-
->  
->  static int l2_line_sz;
->  static int ioc_exists;
-> -int slc_enable = 1, ioc_enable = 1;
-> +int slc_enable = 1, ioc_enable = 0;
-
-Hmm.  It seems if ioc_enable is 0 we should simply be using
-dma_direct_ops on arc, but that is a different discussion.
-
----
-diff --git a/lib/dma-noncoherent.c b/lib/dma-noncoherent.c
-index f4b8532c20ac..a2c192b3508d 100644
---- a/lib/dma-noncoherent.c
-+++ b/lib/dma-noncoherent.c
-@@ -48,7 +48,7 @@ static int dma_noncoherent_map_sg(struct device *dev, struct scatterlist *sgl,
- 	return nents;
- }
- 
--#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
-+#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
- static void dma_noncoherent_sync_single_for_cpu(struct device *dev,
- 		dma_addr_t addr, size_t size, enum dma_data_direction dir)
- {
-@@ -88,7 +88,7 @@ const struct dma_map_ops dma_noncoherent_ops = {
- 	.sync_sg_for_device	= dma_noncoherent_sync_sg_for_device,
- 	.map_page		= dma_noncoherent_map_page,
- 	.map_sg			= dma_noncoherent_map_sg,
--#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
-+#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
- 	.sync_single_for_cpu	= dma_noncoherent_sync_single_for_cpu,
- 	.sync_sg_for_cpu	= dma_noncoherent_sync_sg_for_cpu,
- 	.unmap_page		= dma_noncoherent_unmap_page,
+Yes, that is the rationale.  Any chance to you could look over the
+other patches as well?  Except for the networking one for which I'd
+really like to see a review from Dave all the users of the interface
+are block related.
