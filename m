@@ -1,57 +1,45 @@
-From: "hch@lst.de" <hch@lst.de>
-Subject: Re: [PATCH 06/22] arc: use generic dma_noncoherent_ops
-Date: Thu, 26 Apr 2018 08:45:00 +0200
-Message-ID: <20180426064500.GB13895@lst.de>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-7-hch@lst.de> <1524655020.5315.9.camel@synopsys.com>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: [PATCH 2/5] ide: kill ide_toggle_bounce
+Date: Thu, 26 Apr 2018 09:20:33 +0200
+Message-ID: <20180426072033.GA14700@lst.de>
+References: <20180424181625.22410-1-hch@lst.de>
+	<20180424181625.22410-3-hch@lst.de>
+	<5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <1524655020.5315.9.camel@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "hch@lst.de" <hch@lst.de>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+In-Reply-To: <5aaca0d3-417f-57f3-969f-b4c777c3fd48-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Jens Axboe <axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ide-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 25, 2018 at 11:17:01AM +0000, Alexey Brodkin wrote:
-> Which is actually strange as I would expect ARC code to be built by bots.
+On Tue, Apr 24, 2018 at 08:02:56PM -0600, Jens Axboe wrote:
+> On 4/24/18 12:16 PM, Christoph Hellwig wrote:
+> > ide_toggle_bounce did select various strange block bounce limits, including
+> > not bouncing at all as soon as an iommu is present in the system.  Given
+> > that the dma_map routines now handle any required bounce buffering except
+> > for ISA DMA, and the ide code already must handle either ISA DMA or highmem
+> > at least for iommu equipped systems we can get rid of the block layer
+> > bounce limit setting entirely.
+> 
+> Pretty sure I was the one to add this code, when highmem page IO was
+> enabled about two decades ago...
+> 
+> Outside of DMA, the issue was that the PIO code could not handle
+> highmem. That's not the case anymore, so this should be fine.
 
-I don't think I got any notification.  Thank for the fixes!
-
-I think I found the bug, based on the fact that so far all tests for
-architectures that also need a cache op for device to cpu transitions
-failed.  I did a stupid typo when changing kconfig symbols, so please
-try the patch below.
-
->  
->  static int l2_line_sz;
->  static int ioc_exists;
-> -int slc_enable = 1, ioc_enable = 1;
-> +int slc_enable = 1, ioc_enable = 0;
-
-Hmm.  It seems if ioc_enable is 0 we should simply be using
-dma_direct_ops on arc, but that is a different discussion.
-
----
-diff --git a/lib/dma-noncoherent.c b/lib/dma-noncoherent.c
-index f4b8532c20ac..a2c192b3508d 100644
---- a/lib/dma-noncoherent.c
-+++ b/lib/dma-noncoherent.c
-@@ -48,7 +48,7 @@ static int dma_noncoherent_map_sg(struct device *dev, struct scatterlist *sgl,
- 	return nents;
- }
- 
--#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
-+#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
- static void dma_noncoherent_sync_single_for_cpu(struct device *dev,
- 		dma_addr_t addr, size_t size, enum dma_data_direction dir)
- {
-@@ -88,7 +88,7 @@ const struct dma_map_ops dma_noncoherent_ops = {
- 	.sync_sg_for_device	= dma_noncoherent_sync_sg_for_device,
- 	.map_page		= dma_noncoherent_map_page,
- 	.map_sg			= dma_noncoherent_map_sg,
--#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
-+#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
- 	.sync_single_for_cpu	= dma_noncoherent_sync_single_for_cpu,
- 	.sync_sg_for_cpu	= dma_noncoherent_sync_sg_for_cpu,
- 	.unmap_page		= dma_noncoherent_unmap_page,
+Yes, that is the rationale.  Any chance to you could look over the
+other patches as well?  Except for the networking one for which I'd
+really like to see a review from Dave all the users of the interface
+are block related.
