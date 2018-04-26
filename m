@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34908 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:35824 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754128AbeDZIJ6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Apr 2018 04:09:58 -0400
+        id S1754128AbeDZIMB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Apr 2018 04:12:01 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v2 3/7] kprobes: Show address of kprobes if kallsyms does
-Date: Thu, 26 Apr 2018 17:09:33 +0900
-Message-ID: <152473017303.8819.1403957389248242878.stgit@devbox>
+Subject: [PATCH -tip v2 7/7] kprobes/arm64: Fix %p uses in error messages
+Date: Thu, 26 Apr 2018 17:11:35 +0900
+Message-ID: <152473029530.8819.16999245501020107222.stgit@devbox>
 In-Reply-To: <152473007907.8819.10449983839199591406.stgit@devbox>
 References: <152473007907.8819.10449983839199591406.stgit@devbox>
 MIME-Version: 1.0
@@ -16,49 +16,36 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
-Message-ID: <20180426080933.e9xatuGbQW2luLZzD6Lr5FvIu8Tq7FIxNrEvCqMn7Yg@z>
+Message-ID: <20180426081135.3wsLXc18GX5g2gSB-bunN-pZT_6sIkdpLjwdpIYapc0@z>
 
-Show probed address in debugfs kprobe list file as same
-as kallsyms does. This information is used for checking
-kprobes are placed in the expected address. So it should
-be able to compared with address in kallsyms.
+Fix %p uses in error messages by removing it because
+those are redundant or meaningless.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Acked-by: Will Deacon <will.deacon@arm.com>
 ---
- kernel/kprobes.c |   14 +++++++++-----
- 1 file changed, 9 insertions(+), 5 deletions(-)
+ arch/arm64/kernel/probes/kprobes.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index e7d7e3e8598a..94af7c99cf81 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -2326,6 +2326,7 @@ static void report_probe(struct seq_file *pi, struct kprobe *p,
- 		const char *sym, int offset, char *modname, struct kprobe *pp)
- {
- 	char *kprobe_type;
-+	void *addr = p->addr;
- 
- 	if (p->pre_handler == pre_handler_kretprobe)
- 		kprobe_type = "r";
-@@ -2334,13 +2335,16 @@ static void report_probe(struct seq_file *pi, struct kprobe *p,
- 	else
- 		kprobe_type = "k";
- 
-+	if (!kallsyms_show_value())
-+		addr = NULL;
-+
- 	if (sym)
--		seq_printf(pi, "%p  %s  %s+0x%x  %s ",
--			p->addr, kprobe_type, sym, offset,
-+		seq_printf(pi, "%px  %s  %s+0x%x  %s ",
-+			addr, kprobe_type, sym, offset,
- 			(modname ? modname : " "));
--	else
--		seq_printf(pi, "%p  %s  %p ",
--			p->addr, kprobe_type, p->addr);
-+	else	/* try to use %pS */
-+		seq_printf(pi, "%px  %s  %pS ",
-+			addr, kprobe_type, p->addr);
- 
- 	if (!pp)
- 		pp = p;
+diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
+index d849d9804011..34f78d07a068 100644
+--- a/arch/arm64/kernel/probes/kprobes.c
++++ b/arch/arm64/kernel/probes/kprobes.c
+@@ -275,7 +275,7 @@ static int __kprobes reenter_kprobe(struct kprobe *p,
+ 		break;
+ 	case KPROBE_HIT_SS:
+ 	case KPROBE_REENTER:
+-		pr_warn("Unrecoverable kprobe detected at %p.\n", p->addr);
++		pr_warn("Unrecoverable kprobe detected.\n");
+ 		dump_kprobe(p);
+ 		BUG();
+ 		break;
+@@ -521,7 +521,7 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ 		    (struct pt_regs *)kcb->jprobe_saved_regs.sp;
+ 		pr_err("current sp %lx does not match saved sp %lx\n",
+ 		       orig_sp, stack_addr);
+-		pr_err("Saved registers for jprobe %p\n", jp);
++		pr_err("Saved registers for jprobe\n");
+ 		__show_regs(saved_regs);
+ 		pr_err("Current registers\n");
+ 		__show_regs(regs);
