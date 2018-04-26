@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34814 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:35064 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753440AbeDZIJ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Apr 2018 04:09:28 -0400
+        id S1752419AbeDZIK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Apr 2018 04:10:29 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v2 2/7] kprobes: Show blacklist addresses as same as kallsyms does
-Date: Thu, 26 Apr 2018 17:09:02 +0900
-Message-ID: <152473014240.8819.3919458094230811205.stgit@devbox>
+Subject: [PATCH -tip v2 4/7] kprobes: Replace %p with other pointer types
+Date: Thu, 26 Apr 2018 17:10:03 +0900
+Message-ID: <152473020349.8819.11597612324633031612.stgit@devbox>
 In-Reply-To: <152473007907.8819.10449983839199591406.stgit@devbox>
 References: <152473007907.8819.10449983839199591406.stgit@devbox>
 MIME-Version: 1.0
@@ -16,42 +16,78 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
-Message-ID: <20180426080902.6BJuFAoZKd48Bp5DF2K3WW6bTn8kfvhc9CiD8XJjioI@z>
+Message-ID: <20180426081003.MSRBbrHx4g6WWd_ocsxWPzx6d9fNuRghtbu9itrkLg0@z>
 
-Show kprobes blacklist addresses under same condition of
-showing kallsyms addresses.
-
-Since there are several name conflict for local symbols,
-kprobe blacklist needs to show each addresses so that
-user can identify where is on blacklist by comparing
-with kallsyms.
+Replace %p with appropriate pointer types (or just remove it)
+ - Use %pS if possible
+ - Use %px only for the function right before BUG().
+ - Remove unneeded error message.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- kernel/kprobes.c |   12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ Changes in v2:
+  - Rebased on linux-next
+---
+ kernel/kprobes.c |   18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
 
 diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 314cec85a8b2..e7d7e3e8598a 100644
+index 94af7c99cf81..58f9e313cf08 100644
 --- a/kernel/kprobes.c
 +++ b/kernel/kprobes.c
-@@ -2427,9 +2427,17 @@ static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
- {
- 	struct kprobe_blacklist_entry *ent =
- 		list_entry(v, struct kprobe_blacklist_entry, list);
-+	void *start = (void *)ent->start_addr, *end = (void *)ent->end_addr;
+@@ -712,7 +712,7 @@ static void reuse_unused_kprobe(struct kprobe *ap)
+ 	op = container_of(ap, struct optimized_kprobe, kp);
+ 	if (unlikely(list_empty(&op->list)))
+ 		printk(KERN_WARNING "Warning: found a stray unused "
+-			"aggrprobe@%p\n", ap->addr);
++			"aggrprobe@%pS\n", ap->addr);
+ 	/* Enable the probe again */
+ 	ap->flags &= ~KPROBE_FLAG_DISABLED;
+ 	/* Optimize it again (remove from op->list) */
+@@ -985,7 +985,8 @@ static int arm_kprobe_ftrace(struct kprobe *p)
+ 	ret = ftrace_set_filter_ip(&kprobe_ftrace_ops,
+ 				   (unsigned long)p->addr, 0, 0);
+ 	if (ret) {
+-		pr_debug("Failed to arm kprobe-ftrace at %p (%d)\n", p->addr, ret);
++		pr_debug("Failed to arm kprobe-ftrace at %pS (%d)\n",
++			 p->addr, ret);
+ 		return ret;
+ 	}
  
--	seq_printf(m, "0x%p-0x%p\t%ps\n", (void *)ent->start_addr,
--		   (void *)ent->end_addr, (void *)ent->start_addr);
-+	/*
-+	 * As long as kallsyms shows the address, kprobes blacklist also
-+	 * show it, Or, it shows null address and symbol.
-+	 */
-+	if (!kallsyms_show_value())
-+		start = end = NULL;
-+
-+	seq_printf(m, "0x%px-0x%px\t%ps\n", start, end,
-+		   (void *)ent->start_addr);
- 	return 0;
+@@ -1025,7 +1026,8 @@ static int disarm_kprobe_ftrace(struct kprobe *p)
+ 
+ 	ret = ftrace_set_filter_ip(&kprobe_ftrace_ops,
+ 			   (unsigned long)p->addr, 1, 0);
+-	WARN(ret < 0, "Failed to disarm kprobe-ftrace at %p (%d)\n", p->addr, ret);
++	WARN(ret < 0, "Failed to disarm kprobe-ftrace at %pS (%d)\n",
++	     p->addr, ret);
+ 	return ret;
  }
+ #else	/* !CONFIG_KPROBES_ON_FTRACE */
+@@ -2169,10 +2171,11 @@ int enable_kprobe(struct kprobe *kp)
+ }
+ EXPORT_SYMBOL_GPL(enable_kprobe);
  
++/* Caller must NOT call this in usual path. This is only for critical case */
+ void dump_kprobe(struct kprobe *kp)
+ {
+-	printk(KERN_WARNING "Dumping kprobe:\n");
+-	printk(KERN_WARNING "Name: %s\nAddress: %p\nOffset: %x\n",
++	pr_err("Dumping kprobe:\n");
++	pr_err("Name: %s\nAddress: %px\nOffset: %x\n",
+ 	       kp->symbol_name, kp->addr, kp->offset);
+ }
+ NOKPROBE_SYMBOL(dump_kprobe);
+@@ -2196,11 +2199,8 @@ static int __init populate_kprobe_blacklist(unsigned long *start,
+ 		entry = arch_deref_entry_point((void *)*iter);
+ 
+ 		if (!kernel_text_address(entry) ||
+-		    !kallsyms_lookup_size_offset(entry, &size, &offset)) {
+-			pr_err("Failed to find blacklist at %p\n",
+-				(void *)entry);
++		    !kallsyms_lookup_size_offset(entry, &size, &offset))
+ 			continue;
+-		}
+ 
+ 		ent = kmalloc(sizeof(*ent), GFP_KERNEL);
+ 		if (!ent)
