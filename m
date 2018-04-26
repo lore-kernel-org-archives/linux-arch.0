@@ -1,46 +1,64 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 13/22] nds32: use generic dma_noncoherent_ops
-Date: Thu, 26 Apr 2018 16:06:34 +0800
-Message-ID: <CAEbi=3e3gM_WpQOtKZXP4Xj2Az4bLf_u6BjDELqXy6-d9HurMQ@mail.gmail.com>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-14-hch@lst.de>
- <CAEbi=3fkakVD2vxGu6SgJM77JnNM8Y79xS8_o6m9d_85BJpMFQ@mail.gmail.com>
- <20180424191640.GA32495@lst.de> <CAEbi=3f7yzE+KAM2GOh6QahC_E6BAUfB3ys3U-WdBSUf3DPZqg@mail.gmail.com>
- <20180425064055.GA11460@lst.de> <CAEbi=3fcd8E=xi_hbef45LnPsBZhZv37yPO-xfZmU1gMaWnDvg@mail.gmail.com>
- <20180426064239.GA13895@lst.de>
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: [PATCH -tip v2 0/7] kprobes: Fix %p in kprobes
+Date: Thu, 26 Apr 2018 17:08:00 +0900
+Message-ID: <152473007907.8819.10449983839199591406.stgit@devbox>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180426064239.GA13895@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <stable-owner@vger.kernel.org>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-2018-04-26 14:42 GMT+08:00 Christoph Hellwig <hch@lst.de>:
-> Can you try this patch ontop of either the new or original one?
->
-> ---
-> diff --git a/lib/dma-noncoherent.c b/lib/dma-noncoherent.c
-> index f4b8532c20ac..a2c192b3508d 100644
-> --- a/lib/dma-noncoherent.c
-> +++ b/lib/dma-noncoherent.c
-> @@ -48,7 +48,7 @@ static int dma_noncoherent_map_sg(struct device *dev, struct scatterlist *sgl,
->         return nents;
->  }
->
-> -#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
-> +#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
->  static void dma_noncoherent_sync_single_for_cpu(struct device *dev,
->                 dma_addr_t addr, size_t size, enum dma_data_direction dir)
->  {
-> @@ -88,7 +88,7 @@ const struct dma_map_ops dma_noncoherent_ops = {
->         .sync_sg_for_device     = dma_noncoherent_sync_sg_for_device,
->         .map_page               = dma_noncoherent_map_page,
->         .map_sg                 = dma_noncoherent_map_sg,
-> -#ifdef CONFIG_DMA_NONCOHERENT_SYNC_FOR_CPU
-> +#ifdef CONFIG_ARCH_HAS_SYNC_DMA_FOR_CPU
->         .sync_single_for_cpu    = dma_noncoherent_sync_single_for_cpu,
->         .sync_sg_for_cpu        = dma_noncoherent_sync_sg_for_cpu,
->         .unmap_page             = dma_noncoherent_unmap_page,
+Hi,
 
-It works!!!
+This 2nd version of the series which fixes %p uses in kprobes.
+Some by replacing with %pS, some by replacing with %px but
+masking with kallsyms_show_value().
+
+V1 series is here:
+ https://lkml.org/lkml/2018/1/25/1
+
+I've read the thread about %pK and if I understand correctly
+we shouldn't print kernel addresses. However, kprobes debugfs
+interface can not stop to show the actual probe address because
+it should be compared with addresses in kallsyms for debugging.
+So, it depends on that kallsyms_show_value() allows to show
+address to user, because if it returns true, anyway that user
+can dump /proc/kallsyms.
+
+Other error messages are replaced it with %pS, and one critical
+function uses %px which is called right before BUG().
+
+Also, I tried to fix this issue on each arch port. I searched
+it by
+
+ # find arch/* | grep -e 'kprobe.*c' | xargs grep -w %p
+
+And fixed all %p uses in those files.
+
+Changes in this version;
+ - [1/7] is newly added.
+ - patches for MN10300(deleted) and s390(merged) are removed.
+
+Thank you,
+
+---
+
+Masami Hiramatsu (7):
+      kprobes: Make blacklist root user read only
+      kprobes: Show blacklist addresses as same as kallsyms does
+      kprobes: Show address of kprobes if kallsyms does
+      kprobes: Replace %p with other pointer types
+      kprobes/x86: Fix %p uses in error messages
+      kprobes/arm: Fix %p uses in error messages
+      kprobes/arm64: Fix %p uses in error messages
+
+
+ arch/arm/probes/kprobes/core.c      |   10 ++++----
+ arch/arm/probes/kprobes/test-core.c |    1 -
+ arch/arm64/kernel/probes/kprobes.c  |    4 ++-
+ arch/x86/kernel/kprobes/core.c      |   12 +++------
+ kernel/kprobes.c                    |   46 ++++++++++++++++++++++-------------
+ 5 files changed, 40 insertions(+), 33 deletions(-)
