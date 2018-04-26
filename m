@@ -1,35 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:40967 "EHLO newverein.lst.de"
+Received: from mail.kernel.org ([198.145.29.99]:41708 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754584AbeDZIX3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Apr 2018 04:23:29 -0400
-Date: Thu, 26 Apr 2018 10:25:12 +0200
-From: "hch@lst.de" <hch@lst.de>
-Subject: Re: [PATCH 06/22] arc: use generic dma_noncoherent_ops
-Message-ID: <20180426082512.GB15580@lst.de>
-References: <20180420080313.18796-1-hch@lst.de> <20180420080313.18796-7-hch@lst.de> <1524655020.5315.9.camel@synopsys.com> <20180426064500.GB13895@lst.de>
+        id S1754543AbeDZIkg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Apr 2018 04:40:36 -0400
+Date: Thu, 26 Apr 2018 10:40:22 +0200
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH -tip v2 0/7] kprobes: Fix %p in kprobes
+Message-ID: <20180426084022.GA6777@kroah.com>
+References: <152473007907.8819.10449983839199591406.stgit@devbox>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180426064500.GB13895@lst.de>
+In-Reply-To: <152473007907.8819.10449983839199591406.stgit@devbox>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "hch@lst.de" <hch@lst.de>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20180426082512.nQhREZ_urDlDg80rB2ae9DH8sQczl0OWc0JhSCpVJJE@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
+Message-ID: <20180426084022.bGc2odic90N3uZ52f1zn76_SqE6EdV-HDI0fcGeWipI@z>
 
-On Thu, Apr 26, 2018 at 08:45:00AM +0200, hch@lst.de wrote:
-> On Wed, Apr 25, 2018 at 11:17:01AM +0000, Alexey Brodkin wrote:
-> > Which is actually strange as I would expect ARC code to be built by bots.
+On Thu, Apr 26, 2018 at 05:08:00PM +0900, Masami Hiramatsu wrote:
+> Hi,
 > 
-> I don't think I got any notification.  Thank for the fixes!
+> This 2nd version of the series which fixes %p uses in kprobes.
+> Some by replacing with %pS, some by replacing with %px but
+> masking with kallsyms_show_value().
 > 
-> I think I found the bug, based on the fact that so far all tests for
-> architectures that also need a cache op for device to cpu transitions
-> failed.  I did a stupid typo when changing kconfig symbols, so please
-> try the patch below.
+> V1 series is here:
+>  https://lkml.org/lkml/2018/1/25/1
+> 
+> I've read the thread about %pK and if I understand correctly
+> we shouldn't print kernel addresses. However, kprobes debugfs
+> interface can not stop to show the actual probe address because
+> it should be compared with addresses in kallsyms for debugging.
+> So, it depends on that kallsyms_show_value() allows to show
+> address to user, because if it returns true, anyway that user
+> can dump /proc/kallsyms.
+> 
+> Other error messages are replaced it with %pS, and one critical
+> function uses %px which is called right before BUG().
+> 
+> Also, I tried to fix this issue on each arch port. I searched
+> it by
+> 
+>  # find arch/* | grep -e 'kprobe.*c' | xargs grep -w %p
+> 
+> And fixed all %p uses in those files.
+> 
+> Changes in this version;
+>  - [1/7] is newly added.
+>  - patches for MN10300(deleted) and s390(merged) are removed.
+> 
+> Thank you,
+> 
+> ---
+> 
+> Masami Hiramatsu (7):
+>       kprobes: Make blacklist root user read only
+>       kprobes: Show blacklist addresses as same as kallsyms does
+>       kprobes: Show address of kprobes if kallsyms does
+>       kprobes: Replace %p with other pointer types
+>       kprobes/x86: Fix %p uses in error messages
+>       kprobes/arm: Fix %p uses in error messages
+>       kprobes/arm64: Fix %p uses in error messages
+> 
+> 
+>  arch/arm/probes/kprobes/core.c      |   10 ++++----
+>  arch/arm/probes/kprobes/test-core.c |    1 -
+>  arch/arm64/kernel/probes/kprobes.c  |    4 ++-
+>  arch/x86/kernel/kprobes/core.c      |   12 +++------
+>  kernel/kprobes.c                    |   46 ++++++++++++++++++++++-------------
+>  5 files changed, 40 insertions(+), 33 deletions(-)
+> 
+> --
+> Masami Hiramatsu (Linaro) <mhiramat@kernel.org>
 
-Confirmed to work for nds32, so here is a git tree with the core, arc
-and nds32 fixes folded in, feel free to test that one:
+<formletter>
 
-git://git.infradead.org/users/hch/misc.git generic-dma-noncoherent
+This is not the correct way to submit patches for inclusion in the
+stable kernel tree.  Please read:
+    https://www.kernel.org/doc/html/latest/process/stable-kernel-rules.html
+for how to do this properly.
+
+</formletter>
