@@ -1,46 +1,43 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH v3 7/7] kprobes/arm64: Fix %p uses in error messages
-Date: Fri, 27 Apr 2018 15:43:12 +0900
-Message-ID: <152481139202.22588.7904972616986820097.stgit@devbox>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v3 1/7] kprobes: Make blacklist root user read only
+Date: Fri, 27 Apr 2018 08:56:11 +0200
+Message-ID: <20180427065611.GA4361@kroah.com>
 References: <152481117776.22588.1210388093668905564.stgit@devbox>
+ <152481120919.22588.16126591608892708741.stgit@devbox>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <152481117776.22588.1210388093668905564.stgit@devbox>
+Content-Disposition: inline
+In-Reply-To: <152481120919.22588.16126591608892708741.stgit@devbox>
 Sender: stable-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix %p uses in error messages by removing it because
-those are redundant or meaningless.
+On Fri, Apr 27, 2018 at 03:40:09PM +0900, Masami Hiramatsu wrote:
+> Since the blacklist file indicates a sensitive address
+> information to reader, it should be restricted to the
+> root user.
+> 
+> Suggested-by: Thomas Richter <tmricht@linux.ibm.com>
+> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> ---
+>  kernel/kprobes.c |    2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Acked-by: Will Deacon <will.deacon@arm.com>
----
- arch/arm64/kernel/probes/kprobes.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+<formletter>
 
-diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
-index d849d9804011..34f78d07a068 100644
---- a/arch/arm64/kernel/probes/kprobes.c
-+++ b/arch/arm64/kernel/probes/kprobes.c
-@@ -275,7 +275,7 @@ static int __kprobes reenter_kprobe(struct kprobe *p,
- 		break;
- 	case KPROBE_HIT_SS:
- 	case KPROBE_REENTER:
--		pr_warn("Unrecoverable kprobe detected at %p.\n", p->addr);
-+		pr_warn("Unrecoverable kprobe detected.\n");
- 		dump_kprobe(p);
- 		BUG();
- 		break;
-@@ -521,7 +521,7 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
- 		    (struct pt_regs *)kcb->jprobe_saved_regs.sp;
- 		pr_err("current sp %lx does not match saved sp %lx\n",
- 		       orig_sp, stack_addr);
--		pr_err("Saved registers for jprobe %p\n", jp);
-+		pr_err("Saved registers for jprobe\n");
- 		__show_regs(saved_regs);
- 		pr_err("Current registers\n");
- 		__show_regs(regs);
+This is not the correct way to submit patches for inclusion in the
+stable kernel tree.  Please read:
+    https://www.kernel.org/doc/html/latest/process/stable-kernel-rules.html
+for how to do this properly.
+
+</formletter>
+
+If you want these to go to the stable tree(s), that is great, but please
+mark them properly.  As you did it here for this series, it will not
+work.
+
+thanks,
+
+greg k-h
