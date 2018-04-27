@@ -1,61 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:60124 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757716AbeD0Mad (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2018 08:30:33 -0400
-Subject: Re: [PATCH v8 2/4] arm64: tlbflush: Introduce
- __flush_tlb_kernel_pgtable
-References: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
- <1522742446-5084-3-git-send-email-cpandya@codeaurora.org>
- <20180427102900.4e63lo4eksk23vtn@armageddon.cambridge.arm.com>
-From: Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <26d3696d-a298-fe1b-c686-0f12ea94d5a6@codeaurora.org>
-Date: Fri, 27 Apr 2018 18:00:22 +0530
-MIME-Version: 1.0
-In-Reply-To: <20180427102900.4e63lo4eksk23vtn@armageddon.cambridge.arm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Received: from mail.kernel.org ([198.145.29.99]:38992 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S934495AbeD0OvX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 27 Apr 2018 10:51:23 -0400
+Date: Fri, 27 Apr 2018 23:51:17 +0900
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH -tip v2 0/7] kprobes: Fix %p in kprobes
+Message-ID: <20180427235117.c0bcfc30ed4cb0c97038e555@kernel.org>
+In-Reply-To: <20180427065637.GB4361@kroah.com>
+References: <152473007907.8819.10449983839199591406.stgit@devbox>
+        <20180426084022.GA6777@kroah.com>
+        <20180426211434.140fa33d@vmware.local.home>
+        <20180427065637.GB4361@kroah.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com, linux-arch@vger.kernel.org, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, tglx@linutronix.de, akpm@linux-foundation.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180427123022.9AjvMbBVQ2MoOURjFhPxRI1D5JtLogsu6KT-MuPfaQQ@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu <mhiramat@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
+Message-ID: <20180427145117.sNvQx_md17_74s7FtmfesGGuFEHoAseIXTcxUzDAbzo@z>
 
+On Fri, 27 Apr 2018 08:56:37 +0200
+Greg KH <gregkh@linuxfoundation.org> wrote:
 
-
-On 4/27/2018 3:59 PM, Catalin Marinas wrote:
-> On Tue, Apr 03, 2018 at 01:30:44PM +0530, Chintan Pandya wrote:
->> Add an interface to invalidate intermediate page tables
->> from TLB for kernel.
->>
->> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
->> ---
->>   arch/arm64/include/asm/tlbflush.h | 6 ++++++
->>   1 file changed, 6 insertions(+)
->>
->> diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
->> index 9e82dd7..6a4816d 100644
->> --- a/arch/arm64/include/asm/tlbflush.h
->> +++ b/arch/arm64/include/asm/tlbflush.h
->> @@ -209,6 +209,12 @@ static inline void __flush_tlb_pgtable(struct mm_struct *mm,
->>   	dsb(ish);
->>   }
->>   
->> +static inline void __flush_tlb_kernel_pgtable(unsigned long addr)
->> +{
->> +	addr >>= 12;
->> +	__tlbi(vaae1is, addr);
->> +	dsb(ish);
->> +}
->>   #endif
+> On Thu, Apr 26, 2018 at 09:14:34PM -0400, Steven Rostedt wrote:
+> > On Thu, 26 Apr 2018 10:40:22 +0200
+> > Greg KH <gregkh@linuxfoundation.org> wrote:
+> > 
+> > > <formletter>
+> > > 
+> > > This is not the correct way to submit patches for inclusion in the
+> > > stable kernel tree.  Please read:
+> > >     https://www.kernel.org/doc/html/latest/process/stable-kernel-rules.html
+> > > for how to do this properly.
+> > > 
+> > > </formletter>
+> > 
+> > Is it because he didn't add the Cc: stable@vger.kernel.org tag?
 > 
-> Please use __TLBI_VADDR here as it does some additional masking.
-> 
-Sure.
+> Yes.
 
-Chintan
+Ah, I misunderstood that. OK, adding that CC in the body.
+
+Thanks,
+
+
+
 -- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
-Inc. is a member of the Code Aurora Forum, a Linux Foundation
-Collaborative Project
+Masami Hiramatsu <mhiramat@kernel.org>
