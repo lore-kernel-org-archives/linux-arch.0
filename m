@@ -1,7 +1,7 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH v3 4/7] kprobes: Replace %p with other pointer types
-Date: Fri, 27 Apr 2018 15:41:40 +0900
-Message-ID: <152481130062.22588.10747314456340608852.stgit@devbox>
+Subject: [PATCH v3 5/7] kprobes/x86: Fix %p uses in error messages
+Date: Fri, 27 Apr 2018 15:42:11 +0900
+Message-ID: <152481133105.22588.10668983189195179761.stgit@devbox>
 References: <152481117776.22588.1210388093668905564.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,77 +13,55 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Replace %p with %pS or just remove it if unneeded.
+Fix %p uses in error messages in kprobes/x86.
+- Some %p uses are not needed. Just remove it (or remove message).
+- One %p use seems important to show some address
+  so replaced with %pS.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
  Changes in v3:
-  - Do not use %px in any case.
- Changes in v2:
-  - Rebased on linux-next
+  - Do not use %px.
 ---
- kernel/kprobes.c |   20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
+ arch/x86/kernel/kprobes/core.c |   12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 94af7c99cf81..a72ff4999b11 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -712,7 +712,7 @@ static void reuse_unused_kprobe(struct kprobe *ap)
- 	op = container_of(ap, struct optimized_kprobe, kp);
- 	if (unlikely(list_empty(&op->list)))
- 		printk(KERN_WARNING "Warning: found a stray unused "
--			"aggrprobe@%p\n", ap->addr);
-+			"aggrprobe@%pS\n", ap->addr);
- 	/* Enable the probe again */
- 	ap->flags &= ~KPROBE_FLAG_DISABLED;
- 	/* Optimize it again (remove from op->list) */
-@@ -985,7 +985,8 @@ static int arm_kprobe_ftrace(struct kprobe *p)
- 	ret = ftrace_set_filter_ip(&kprobe_ftrace_ops,
- 				   (unsigned long)p->addr, 0, 0);
- 	if (ret) {
--		pr_debug("Failed to arm kprobe-ftrace at %p (%d)\n", p->addr, ret);
-+		pr_debug("Failed to arm kprobe-ftrace at %pS (%d)\n",
-+			 p->addr, ret);
- 		return ret;
- 	}
- 
-@@ -1025,7 +1026,8 @@ static int disarm_kprobe_ftrace(struct kprobe *p)
- 
- 	ret = ftrace_set_filter_ip(&kprobe_ftrace_ops,
- 			   (unsigned long)p->addr, 1, 0);
--	WARN(ret < 0, "Failed to disarm kprobe-ftrace at %p (%d)\n", p->addr, ret);
-+	WARN(ret < 0, "Failed to disarm kprobe-ftrace at %pS (%d)\n",
-+	     p->addr, ret);
- 	return ret;
- }
- #else	/* !CONFIG_KPROBES_ON_FTRACE */
-@@ -2169,11 +2171,12 @@ int enable_kprobe(struct kprobe *kp)
- }
- EXPORT_SYMBOL_GPL(enable_kprobe);
- 
-+/* Caller must NOT call this in usual path. This is only for critical case */
- void dump_kprobe(struct kprobe *kp)
- {
--	printk(KERN_WARNING "Dumping kprobe:\n");
--	printk(KERN_WARNING "Name: %s\nAddress: %p\nOffset: %x\n",
--	       kp->symbol_name, kp->addr, kp->offset);
-+	pr_err("Dumping kprobe:\n");
-+	pr_err("Name: %s\nOffset: %x\nAddress: %pS\n",
-+	       kp->symbol_name, kp->offset, kp->addr);
- }
- NOKPROBE_SYMBOL(dump_kprobe);
- 
-@@ -2196,11 +2199,8 @@ static int __init populate_kprobe_blacklist(unsigned long *start,
- 		entry = arch_deref_entry_point((void *)*iter);
- 
- 		if (!kernel_text_address(entry) ||
--		    !kallsyms_lookup_size_offset(entry, &size, &offset)) {
--			pr_err("Failed to find blacklist at %p\n",
--				(void *)entry);
-+		    !kallsyms_lookup_size_offset(entry, &size, &offset))
- 			continue;
--		}
- 
- 		ent = kmalloc(sizeof(*ent), GFP_KERNEL);
- 		if (!ent)
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 0715f827607c..d2c9d5c8e4ce 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -391,8 +391,6 @@ int __copy_instruction(u8 *dest, u8 *src, u8 *real, struct insn *insn)
+ 			  - (u8 *) real;
+ 		if ((s64) (s32) newdisp != newdisp) {
+ 			pr_err("Kprobes error: new displacement does not fit into s32 (%llx)\n", newdisp);
+-			pr_err("\tSrc: %p, Dest: %p, old disp: %x\n",
+-				src, real, insn->displacement.value);
+ 			return 0;
+ 		}
+ 		disp = (u8 *) dest + insn_offset_displacement(insn);
+@@ -636,8 +634,7 @@ static int reenter_kprobe(struct kprobe *p, struct pt_regs *regs,
+ 		 * Raise a BUG or we'll continue in an endless reentering loop
+ 		 * and eventually a stack overflow.
+ 		 */
+-		printk(KERN_WARNING "Unrecoverable kprobe detected at %p.\n",
+-		       p->addr);
++		pr_err("Unrecoverable kprobe detected.\n");
+ 		dump_kprobe(p);
+ 		BUG();
+ 	default:
+@@ -1146,12 +1143,11 @@ int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ 	    (addr < (u8 *) jprobe_return_end)) {
+ 		if (stack_addr(regs) != saved_sp) {
+ 			struct pt_regs *saved_regs = &kcb->jprobe_saved_regs;
+-			printk(KERN_ERR
+-			       "current sp %p does not match saved sp %p\n",
++			pr_err("current sp %pS does not match saved sp %pS\n",
+ 			       stack_addr(regs), saved_sp);
+-			printk(KERN_ERR "Saved registers for jprobe %p\n", jp);
++			pr_err("Saved registers for jprobe\n");
+ 			show_regs(saved_regs);
+-			printk(KERN_ERR "Current registers\n");
++			pr_err("Current registers\n");
+ 			show_regs(regs);
+ 			BUG();
+ 		}
