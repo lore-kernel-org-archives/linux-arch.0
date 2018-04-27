@@ -1,51 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f181.google.com ([209.85.192.181]:34485 "EHLO
-        mail-pf0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755998AbeDZPL3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2018 11:11:29 -0400
-Received: by mail-pf0-f181.google.com with SMTP id a14so8122817pfi.1
-        for <linux-arch@vger.kernel.org>; Thu, 26 Apr 2018 08:11:29 -0700 (PDT)
-Subject: Re: [PATCH 2/5] ide: kill ide_toggle_bounce
-References: <20180424181625.22410-1-hch@lst.de>
- <20180424181625.22410-3-hch@lst.de>
- <5aaca0d3-417f-57f3-969f-b4c777c3fd48@kernel.dk>
- <20180426072033.GA14700@lst.de>
-From: Jens Axboe <axboe@kernel.dk>
-Message-ID: <682db9af-33bc-639d-8930-7a66c30bc644@kernel.dk>
-Date: Thu, 26 Apr 2018 09:11:21 -0600
+Received: from mail.kernel.org ([198.145.29.99]:48858 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755199AbeD0BN4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Apr 2018 21:13:56 -0400
+Date: Thu, 26 Apr 2018 21:13:51 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH -tip v2 4/7] kprobes: Replace %p with other pointer
+ types
+Message-ID: <20180426211351.419d3502@vmware.local.home>
+In-Reply-To: <152473020349.8819.11597612324633031612.stgit@devbox>
+References: <152473007907.8819.10449983839199591406.stgit@devbox>
+        <152473020349.8819.11597612324633031612.stgit@devbox>
 MIME-Version: 1.0
-In-Reply-To: <20180426072033.GA14700@lst.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-scsi@vger.kernel.org, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org
-Message-ID: <20180426151121.9RDjv5Nh-AOsNN_1IjZJSm2bK9xBe1nTBweOMSFkCCM@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
+Message-ID: <20180427011351.NqtmOnwJxSPwFqILjwyWknr1iokePas0P0ugPJrmY7A@z>
 
-On 4/26/18 1:20 AM, Christoph Hellwig wrote:
-> On Tue, Apr 24, 2018 at 08:02:56PM -0600, Jens Axboe wrote:
->> On 4/24/18 12:16 PM, Christoph Hellwig wrote:
->>> ide_toggle_bounce did select various strange block bounce limits, including
->>> not bouncing at all as soon as an iommu is present in the system.  Given
->>> that the dma_map routines now handle any required bounce buffering except
->>> for ISA DMA, and the ide code already must handle either ISA DMA or highmem
->>> at least for iommu equipped systems we can get rid of the block layer
->>> bounce limit setting entirely.
->>
->> Pretty sure I was the one to add this code, when highmem page IO was
->> enabled about two decades ago...
->>
->> Outside of DMA, the issue was that the PIO code could not handle
->> highmem. That's not the case anymore, so this should be fine.
-> 
-> Yes, that is the rationale.  Any chance to you could look over the
-> other patches as well?  Except for the networking one for which I'd
-> really like to see a review from Dave all the users of the interface
-> are block related.
+On Thu, 26 Apr 2018 17:10:03 +0900
+Masami Hiramatsu <mhiramat@kernel.org> wrote:
 
-You can add my reviewed-by to 1-3, and 5. Looks good to me.
+> Replace %p with appropriate pointer types (or just remove it)
+>  - Use %pS if possible
+>  - Use %px only for the function right before BUG().
+>  - Remove unneeded error message.
 
--- 
-Jens Axboe
+I'm not sure "right before BUG()" is legitimate for using %px. Why not
+still use %pS?
+
+-- Steve
