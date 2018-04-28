@@ -1,75 +1,48 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] mm: provide a fallback for PAGE_KERNEL_RO for
- architectures
-Date: Fri, 27 Apr 2018 20:18:10 -0700
-Message-ID: <20180428031810.GA14566@bombadil.infradead.org>
-References: <20180428001526.22475-1-mcgrof@kernel.org>
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH v3 4/7] kprobes: Replace %p with other pointer types
+Date: Sat, 28 Apr 2018 13:43:33 +0900
+Message-ID: <20180428134333.6e1b878fc9748dac67387476@kernel.org>
+References: <152481117776.22588.1210388093668905564.stgit@devbox>
+        <152481130062.22588.10747314456340608852.stgit@devbox>
+        <20180427065636.ells635z7cw4b4oz@gmail.com>
+        <20180428004202.4297e781304b5eda53100f67@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180428001526.22475-1-mcgrof@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: arnd@arndb.de, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180428004202.4297e781304b5eda53100f67@kernel.org>
+Sender: stable-owner@vger.kernel.org
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 27, 2018 at 05:15:26PM -0700, Luis R. Rodriguez wrote:
-> Some architectures do not define PAGE_KERNEL_RO, best we can do
-> for them is to provide a fallback onto PAGE_KERNEL. Remove the
-> hack from the firmware loader and move it onto the asm-generic
-> header, and document while at it the affected architectures
-> which do not have a PAGE_KERNEL_RO:
+On Sat, 28 Apr 2018 00:42:02 +0900
+Masami Hiramatsu <mhiramat@kernel.org> wrote:
+
+> > > +/* Caller must NOT call this in usual path. This is only for critical case */
+> > >  void dump_kprobe(struct kprobe *kp)
+> > >  {
+> > > -	printk(KERN_WARNING "Dumping kprobe:\n");
+> > > -	printk(KERN_WARNING "Name: %s\nAddress: %p\nOffset: %x\n",
+> > > -	       kp->symbol_name, kp->addr, kp->offset);
+> > > +	pr_err("Dumping kprobe:\n");
+> > > +	pr_err("Name: %s\nOffset: %x\nAddress: %pS\n",
+> > > +	       kp->symbol_name, kp->offset, kp->addr);
+> > 
+> > No, this function should just go away and be replaced by a WARN() in 
+> > reenter_kprobe().
 > 
->   o alpha
->   o ia64
->   o m68k
->   o mips
->   o sparc64
->   o sparc
+> Would you consider to use pr_err() here? If so, I'll move this
+> dump as you suggested.
 
-ia64 doesn't have it?
+So, this is actually called right before BUG(), which means we found
+a non-recoverable error while recovering from reentrant kprobes.
+Since the BUG() dumps all registers and stack as same as WARN(),
+I think we should keep it.
+(I would like to dump all kprobes fields like flags, etc. so that
+ we can find it is broken or not.)
 
-*fx: riffles through architecture book*
+Thank you,
 
-That seems like an oversight of the Linux port.  Tony, Fenghua, any thoughts?
-
-(also, Luis, maybe move the PAGE_KERNEL_EXEC fallback the same way you
-moved the PAGE_KERNEL_RO fallback?)
-
---- >8 ---
-
-ia64: Add PAGE_KERNEL_RO and PAGE_KERNEL_EXEC
-
-The rest of the kernel was falling back to simple PAGE_KERNEL pages; using
-PAGE_KERNEL_RO and PAGE_KERNEL_EXEC provide better protection against
-unintended writes.
-
-Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
-
-diff --git a/arch/ia64/include/asm/pgtable.h b/arch/ia64/include/asm/pgtable.h
-index 165827774bea..041a32a7960d 100644
---- a/arch/ia64/include/asm/pgtable.h
-+++ b/arch/ia64/include/asm/pgtable.h
-@@ -23,7 +23,7 @@
- 
- /*
-  * First, define the various bits in a PTE.  Note that the PTE format
-- * matches the VHPT short format, the firt doubleword of the VHPD long
-+ * matches the VHPT short format, the first doubleword of the VHPD long
-  * format, and the first doubleword of the TLB insertion format.
-  */
- #define _PAGE_P_BIT		0
-@@ -142,9 +142,11 @@
- #define PAGE_COPY_EXEC	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_RX)
- #define PAGE_GATE	__pgprot(__ACCESS_BITS | _PAGE_PL_0 | _PAGE_AR_X_RX)
- #define PAGE_KERNEL	__pgprot(__DIRTY_BITS  | _PAGE_PL_0 | _PAGE_AR_RWX)
--#define PAGE_KERNELRX	__pgprot(__ACCESS_BITS | _PAGE_PL_0 | _PAGE_AR_RX)
-+#define PAGE_KERNEL_RO	__pgprot(__ACCESS_BITS | _PAGE_PL_0 | _PAGE_AR_R)
-+#define PAGE_KERNEL_RX	__pgprot(__ACCESS_BITS | _PAGE_PL_0 | _PAGE_AR_RX)
- #define PAGE_KERNEL_UC	__pgprot(__DIRTY_BITS  | _PAGE_PL_0 | _PAGE_AR_RWX | \
- 				 _PAGE_MA_UC)
-+#define PAGE_KERNEL_EXEC	PAGE_KERNEL_RX
- 
- # ifndef __ASSEMBLY__
- 
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
