@@ -1,135 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:37138 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933421AbeD1OH1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2018 10:07:27 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:36975 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933579AbeD1OHl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2018 10:07:41 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Sat, 28 Apr 2018 09:06:58 -0500
-Message-ID: <20180428140702.3925-1-ebiederm@xmission.com>
+Date: Sat, 28 Apr 2018 09:07:02 -0500
+Message-ID: <20180428140702.3925-5-ebiederm@xmission.com>
 In-Reply-To: <87zi1nctut.fsf_-_@xmission.com>
 References: <87zi1nctut.fsf_-_@xmission.com>
-Subject: [REVIEW][PATCH 1/5] signal/signalfd: Remove __put_user from signalfd_copyinfo
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [REVIEW][PATCH 5/5] signal/um: More carefully relay signals in relay_signal.
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linux-Arch <linux-arch@vger.kernel.org>
 Cc: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>, Richard Weinberger <richard.weinberger@gmail.com>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, =?UTF-8?q?Martin=20P=C3=A4rtel?= <martin.partel@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180428140658.Y8nAh8iukxKuQVg5tfXAL81ZnB4lv7JJffHOgvR21CE@z>
+Message-ID: <20180428140702.zJ3Ce_9gcNcL2k-avhsYCC175UbCfsjNZy4-rJYBM4Q@z>
 
-Put a signalfd_siginfo structure on the stack fully initializae
-it and then copy it to userspace.
+There is a bug in relay signal.  It assumes that when a signal is
+relayed the signal never uses a signal independent si_code, such
+as SI_USER, SI_KERNEL, SI_QUEUE, ... SI_SIGIO etc.  In practice
+siginfo was assuming it was relaying a signal with the SIL_FAULT
+layout.  As that is the common cases for the signals it supported
+that is a reasonable assumption.
 
-The code is a little less wordy, and this avoids a long series
-of the somewhat costly __put_user calls.
+Further user mode linux must be very careful when relaying different
+kinds of signals to prevent an information leak.  This means simply
+increasing the kinds of signals that are handled in relay_signal
+is non-trivial.
 
+Therefore use siginfo_layout and force_sig_fault to simplify
+the signal relaying in relay_signal.
+
+By taking advantage of the fact that user mode linux only works
+on x86 and x86_64 we can assume that si_trapno can be ignored,
+and that si_errno is always zero.
+
+For the signals SIGLL, SIGFPE, SIGSEGV, SIGBUS, and SIGTRAP the only
+fault handler I know of that sets si_errno is SIGTRAP TRAP_HWBKPT on a
+few oddball architectures.  Those architectures have been modified to
+use force_sig_ptrace_errno_trap.
+
+Similarly only a few architectures set __ARCH_SI_TRAPNO.
+
+At the point uml supports those architectures again these additional
+cases can be examined and supported if desired in relay_signal.
+
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
+Cc: Martin Pärtel <martin.partel@gmail.com>
+Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: linux-um@lists.infradead.org
+Fixes: d3c1cfcdb43e ("um: pass siginfo to guest process")
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- fs/signalfd.c | 56 +++++++++++++++++++++++++++++---------------------------
- 1 file changed, 29 insertions(+), 27 deletions(-)
+ arch/um/kernel/trap.c | 38 ++++++++++++++------------------------
+ 1 file changed, 14 insertions(+), 24 deletions(-)
 
-diff --git a/fs/signalfd.c b/fs/signalfd.c
-index ff302bf50be4..31e960209a08 100644
---- a/fs/signalfd.c
-+++ b/fs/signalfd.c
-@@ -81,41 +81,41 @@ static __poll_t signalfd_poll(struct file *file, poll_table *wait)
- static int signalfd_copyinfo(struct signalfd_siginfo __user *uinfo,
- 			     siginfo_t const *kinfo)
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index d18be983814a..ec9a42c14c56 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -286,9 +286,7 @@ unsigned long segv(struct faultinfo fi, unsigned long ip, int is_user,
+ 
+ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
  {
--	long err;
-+	struct signalfd_siginfo new;
+-	struct faultinfo *fi;
+-	struct siginfo clean_si;
+-
++	int code, err;
+ 	if (!UPT_IS_USER(regs)) {
+ 		if (sig == SIGBUS)
+ 			printk(KERN_ERR "Bus error - the host /dev/shm or /tmp "
+@@ -298,29 +296,21 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
  
- 	BUILD_BUG_ON(sizeof(struct signalfd_siginfo) != 128);
+ 	arch_examine_signal(sig, regs);
  
- 	/*
- 	 * Unused members should be zero ...
- 	 */
--	err = __clear_user(uinfo, sizeof(*uinfo));
-+	memset(&new, 0, sizeof(new));
- 
- 	/*
- 	 * If you change siginfo_t structure, please be sure
- 	 * this code is fixed accordingly.
- 	 */
--	err |= __put_user(kinfo->si_signo, &uinfo->ssi_signo);
--	err |= __put_user(kinfo->si_errno, &uinfo->ssi_errno);
--	err |= __put_user(kinfo->si_code, &uinfo->ssi_code);
-+	new.ssi_signo = kinfo->si_signo;
-+	new.ssi_errno = kinfo->si_errno;
-+	new.ssi_code  = kinfo->si_code;
- 	switch (siginfo_layout(kinfo->si_signo, kinfo->si_code)) {
- 	case SIL_KILL:
--		err |= __put_user(kinfo->si_pid, &uinfo->ssi_pid);
--		err |= __put_user(kinfo->si_uid, &uinfo->ssi_uid);
-+		new.ssi_pid = kinfo->si_pid;
-+		new.ssi_uid = kinfo->si_uid;
- 		break;
- 	case SIL_TIMER:
--		 err |= __put_user(kinfo->si_tid, &uinfo->ssi_tid);
--		 err |= __put_user(kinfo->si_overrun, &uinfo->ssi_overrun);
--		 err |= __put_user((long) kinfo->si_ptr, &uinfo->ssi_ptr);
--		 err |= __put_user(kinfo->si_int, &uinfo->ssi_int);
-+		new.ssi_tid = kinfo->si_tid;
-+		new.ssi_overrun = kinfo->si_overrun;
-+		new.ssi_ptr = (long) kinfo->si_ptr;
-+		new.ssi_int = kinfo->si_int;
- 		break;
- 	case SIL_POLL:
--		err |= __put_user(kinfo->si_band, &uinfo->ssi_band);
--		err |= __put_user(kinfo->si_fd, &uinfo->ssi_fd);
-+		new.ssi_band = kinfo->si_band;
-+		new.ssi_fd   = kinfo->si_fd;
- 		break;
- 	case SIL_FAULT:
--		err |= __put_user((long) kinfo->si_addr, &uinfo->ssi_addr);
-+		new.ssi_addr = (long) kinfo->si_addr;
- #ifdef __ARCH_SI_TRAPNO
--		err |= __put_user(kinfo->si_trapno, &uinfo->ssi_trapno);
-+		new.ssi_trapno = kinfo->si_trapno;
- #endif
- 		/*
- 		 * Other callers might not initialize the si_lsb field,
-@@ -124,29 +124,31 @@ static int signalfd_copyinfo(struct signalfd_siginfo __user *uinfo,
- 		if (kinfo->si_signo == SIGBUS &&
- 		    ((kinfo->si_code == BUS_MCEERR_AR) ||
- 		     (kinfo->si_code == BUS_MCEERR_AO)))
--			err |= __put_user((short) kinfo->si_addr_lsb,
--					  &uinfo->ssi_addr_lsb);
-+			new.ssi_addr_lsb = (short) kinfo->si_addr_lsb;
- 		break;
- 	case SIL_CHLD:
--		err |= __put_user(kinfo->si_pid, &uinfo->ssi_pid);
--		err |= __put_user(kinfo->si_uid, &uinfo->ssi_uid);
--		err |= __put_user(kinfo->si_status, &uinfo->ssi_status);
--		err |= __put_user(kinfo->si_utime, &uinfo->ssi_utime);
--		err |= __put_user(kinfo->si_stime, &uinfo->ssi_stime);
-+		new.ssi_pid    = kinfo->si_pid;
-+		new.ssi_uid    = kinfo->si_uid;
-+		new.ssi_status = kinfo->si_status;
-+		new.ssi_utime  = kinfo->si_utime;
-+		new.ssi_stime  = kinfo->si_stime;
- 		break;
- 	case SIL_RT:
- 	default:
- 		/*
- 		 * This case catches also the signals queued by sigqueue().
- 		 */
--		err |= __put_user(kinfo->si_pid, &uinfo->ssi_pid);
--		err |= __put_user(kinfo->si_uid, &uinfo->ssi_uid);
--		err |= __put_user((long) kinfo->si_ptr, &uinfo->ssi_ptr);
--		err |= __put_user(kinfo->si_int, &uinfo->ssi_int);
-+		new.ssi_pid = kinfo->si_pid;
-+		new.ssi_uid = kinfo->si_uid;
-+		new.ssi_ptr = (long) kinfo->si_ptr;
-+		new.ssi_int = kinfo->si_int;
- 		break;
+-	clear_siginfo(&clean_si);
+-	clean_si.si_signo = si->si_signo;
+-	clean_si.si_errno = si->si_errno;
+-	clean_si.si_code = si->si_code;
+-	switch (sig) {
+-	case SIGILL:
+-	case SIGFPE:
+-	case SIGSEGV:
+-	case SIGBUS:
+-	case SIGTRAP:
+-		fi = UPT_FAULTINFO(regs);
+-		clean_si.si_addr = (void __user *) FAULT_ADDRESS(*fi);
++	/* Is the signal layout for the signal known?
++	 * Signal data must be scrubbed to prevent information leaks.
++	 */
++	code = si->si_code;
++	err = si->si_errno;
++	if ((err == 0) && (siginfo_layout(sig, code) == SIL_FAULT)) {
++		struct faultinfo *fi = UPT_FAULTINFO(regs);
+ 		current->thread.arch.faultinfo = *fi;
+-#ifdef __ARCH_SI_TRAPNO
+-		clean_si.si_trapno = si->si_trapno;
+-#endif
+-		break;
+-	default:
+-		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d)\n",
+-			sig, si->si_code);
++		force_sig_fault(sig, code, (void __user *)FAULT_ADDRESS(*fi),
++				current);
++	} else {
++		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d) with errno %d\n",
++		       sig, code, err);
++		force_sig(sig, current);
  	}
- 
--	return err ? -EFAULT: sizeof(*uinfo);
-+	if (copy_to_user(uinfo, &new, sizeof(struct signalfd_siginfo)))
-+		return -EFAULT;
-+
-+	return sizeof(*uinfo);
+-
+-	force_sig_info(sig, &clean_si, current);
  }
  
- static ssize_t signalfd_dequeue(struct signalfd_ctx *ctx, siginfo_t *info,
+ void bus_handler(int sig, struct siginfo *si, struct uml_pt_regs *regs)
 -- 
 2.14.1
