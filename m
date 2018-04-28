@@ -1,112 +1,74 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [PATCH v3 2/7] kprobes: Show blacklist addresses as same as
- kallsyms does
-Date: Sat, 28 Apr 2018 01:10:56 +0900
-Message-ID: <20180428011056.931092c5eee7ef42f1effe3d@kernel.org>
-References: <152481117776.22588.1210388093668905564.stgit@devbox>
-        <152481123945.22588.459569704440210836.stgit@devbox>
-        <20180427071417.lq4swylywht7mdy7@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: [PATCH] mm: provide a fallback for PAGE_KERNEL_RO for architectures
+Date: Fri, 27 Apr 2018 17:15:26 -0700
+Message-ID: <20180428001526.22475-1-mcgrof@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180427071417.lq4swylywht7mdy7@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Richter <tmricht@linux.ibm.com>, akpm@linux-foundation.org, acme@kernel.org, rostedt@goodmis.org, brueckner@linux.vnet.ibm.com, schwidefsky@de.ibm.com, stable@vger.kernel.org
+To: arnd@arndb.de
+Cc: gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 27 Apr 2018 09:14:17 +0200
-Ingo Molnar <mingo@kernel.org> wrote:
+Some architectures do not define PAGE_KERNEL_RO, best we can do
+for them is to provide a fallback onto PAGE_KERNEL. Remove the
+hack from the firmware loader and move it onto the asm-generic
+header, and document while at it the affected architectures
+which do not have a PAGE_KERNEL_RO:
 
-> 
-> * Masami Hiramatsu <mhiramat@kernel.org> wrote:
-> 
-> > +	/*
-> > +	 * As long as kallsyms shows the address, kprobes blacklist also
-> > +	 * show it, Or, it shows null address and symbol.
-> > +	 */
-> 
-> Please _read_ the comments you write!
-> 
-> In which universe does a capitalized 'Or' make sense, even if we ignore the 
-> various other spelling mistakes?
+  o alpha
+  o ia64
+  o m68k
+  o mips
+  o sparc64
+  o sparc
 
-It's a typo. I mean "show it. Or, it shows..." anyway,
+Blessed-by: 0-day
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
+ drivers/base/firmware_loader/fallback.c |  5 -----
+ include/asm-generic/pgtable.h           | 15 +++++++++++++++
+ 2 files changed, 15 insertions(+), 5 deletions(-)
 
-> 
-> Also, that sentence is unnecessarily complex, just say this:
-> 
-> > +	/*
-> > +	 * If /proc/kallsyms is not showing kernel addresses then we won't show 
-> > +      * them here either:
-> > +	 */
-
-OK, look good to me.
-
-> 
-> But I'm unhappy about the messy typing and the messy code flow:
-> 
-> +       void *start = (void *)ent->start_addr, *end = (void *)ent->end_addr;
-> 
-> +       /*
-> +        * As long as kallsyms shows the address, kprobes blacklist also
-> +        * show it, Or, it shows null address and symbol.
-> +        */
-> +       if (!kallsyms_show_value())
-> +               start = end = NULL;
-> +
-> +       seq_printf(m, "0x%px-0x%px\t%ps\n", start, end,
-> +                  (void *)ent->start_addr);
-> 
-> 
-> All three 'void *' type casts here are due to the bad type choices here:
-> 
-> struct kprobe_blacklist_entry {
->         struct list_head list;
->         unsigned long start_addr;
->         unsigned long end_addr;
-> };
-> 
-> The natural type of ->start_addr and ->end_addr is 'void *', AFAICS this would 
-> remove some other type casts from the kprobes code as well, such as from the 
-> arch_deref_entry_point()...
-
-Would you really think we should handle all the address with 'void *'?
-IOW, are there any policy that we handle the generic address by 'void *'
-or 'unsigned long'?
-For example, other address checker like kernel_text_address(),
-module_text_address(), and ftrace_location() receive 'unsigned long'.
-(only jump_label_text_reserved() using 'void *')
-
-> 
-> But the whole code flow introduced by this patch is messy as hell as well.
-> Why cannot this do the obvious thing:
-> 
-> 	if (!kallsyms_show_value())
-> 		seq_printf(m, "0x%px-0x%px\t%ps\n", NULL, NULL, ent->start_addr);
-> 	else
-> 		seq_printf(m, "0x%px-0x%px\t%ps\n", ent->start_addr, ent->end_addr, ent->start_addr);
-> 
-> ?
-
-Both are OK to me. I just didn't want to repeat the printk format string there.
-
-> 
-> This variant eliminates the unnecessary complication over local variables and 
-> makes it abundantly clear what gets printed and how.
-
-Agreed, it may shorten the patch.
-
-> ( Note that the kprobe_blacklist_entry type cleanup should still be done, 
->   regardless of code flow choices. )
-> 
-> Thanks,
-> 
-> 	Ingo
-
-Thank you,
-
-
+diff --git a/drivers/base/firmware_loader/fallback.c b/drivers/base/firmware_loader/fallback.c
+index 31b5015b59fe..90f36be9e5ca 100644
+--- a/drivers/base/firmware_loader/fallback.c
++++ b/drivers/base/firmware_loader/fallback.c
+@@ -219,11 +219,6 @@ static ssize_t firmware_loading_show(struct device *dev,
+ 	return sprintf(buf, "%d\n", loading);
+ }
+ 
+-/* Some architectures don't have PAGE_KERNEL_RO */
+-#ifndef PAGE_KERNEL_RO
+-#define PAGE_KERNEL_RO PAGE_KERNEL
+-#endif
+-
+ /* one pages buffer should be mapped/unmapped only once */
+ static int map_fw_priv_pages(struct fw_priv *fw_priv)
+ {
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index f59639afaa39..da47fe81df51 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1083,6 +1083,21 @@ int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
+ static inline void init_espfix_bsp(void) { }
+ #endif
+ 
++/*
++ * Some architectures don't have PAGE_KERNEL_RO. This is the best
++ * we can do for them buggers for now. Currently known to not have it:
++ *
++ *  o alpha
++ *  o ia64
++ *  o m68k
++ *  o mips
++ *  o sparc64
++ *  o sparc
++ */
++#ifndef PAGE_KERNEL_RO
++#define PAGE_KERNEL_RO PAGE_KERNEL
++#endif
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #ifndef io_remap_pfn_range
 -- 
-Masami Hiramatsu <mhiramat@kernel.org>
+2.13.2
