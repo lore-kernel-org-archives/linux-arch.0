@@ -1,79 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:37146 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933421AbeD1OHa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2018 10:07:30 -0400
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Sat, 28 Apr 2018 09:06:59 -0500
-Message-ID: <20180428140702.3925-2-ebiederm@xmission.com>
-In-Reply-To: <87zi1nctut.fsf_-_@xmission.com>
-References: <87zi1nctut.fsf_-_@xmission.com>
-Subject: [REVIEW][PATCH 2/5] signal/signalfd: Add support for SIGSYS
+Received: from smtp.codeaurora.org ([198.145.29.96]:45622 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751705AbeD3Hlx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2018 03:41:53 -0400
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: [PATCH v9 0/4] Fix issues with huge mapping in ioremap for ARM64
+Date: Mon, 30 Apr 2018 13:11:30 +0530
+Message-ID: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux-Arch <linux-arch@vger.kernel.org>
-Cc: Anton Ivanov <anton.ivanov@kot-begemot.co.uk>, Richard Weinberger <richard.weinberger@gmail.com>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, =?UTF-8?q?Martin=20P=C3=A4rtel?= <martin.partel@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180428140659.XHD3InllsMzR9HN449PbRdyQjny0tKgiCmThjJrb3nk@z>
+To: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Philip Elcan <pelcan@codeaurora.org>, James Morse <james.morse@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, Toshi Kani <toshi.kani@hpe.com>, Dave Hansen <dave.hansen@linux.intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Joerg Roedel <joro@8bytes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>
+Message-ID: <20180430074130.628i3-YVBDtwTcE1qE5xPcvmVbY5nhLTABKRwz_VyhA@z>
 
-I don't know why signalfd has never grown support for SIGSYS but grow it now.
+This series of patches takes Toshi Kani <toshi.kani@hpe.com>'s
+patches ("fix memory leak/panic in ioremap huge pages") as base
+and re-bring huge_vmap back for arm64.
 
-This corrects an oversight and removes a need for a default in the
-switch statement.  Allowing gcc to warn when future members are added
-to the enum siginfo_layout, and signalfd does not handle them.
+This series of patches are tested on 4.16 kernel with Cortex-A75
+based SoC.
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- fs/signalfd.c                 | 6 +++++-
- include/uapi/linux/signalfd.h | 6 +++++-
- 2 files changed, 10 insertions(+), 2 deletions(-)
+The test used for verifying these patches is a stress test on
+ioremap/unmap which tries to re-use same io-address but changes
+size of mapping randomly i.e. 4K to 2M to 16K etc. The same test
+used to reproduce 3rd level translation fault without these fixes
+(and also of course with Revert "arm64: Enforce BBM for huge IO/VMAP
+mappings" being part of the tree).
 
-diff --git a/fs/signalfd.c b/fs/signalfd.c
-index 31e960209a08..f652249f59f9 100644
---- a/fs/signalfd.c
-+++ b/fs/signalfd.c
-@@ -134,7 +134,6 @@ static int signalfd_copyinfo(struct signalfd_siginfo __user *uinfo,
- 		new.ssi_stime  = kinfo->si_stime;
- 		break;
- 	case SIL_RT:
--	default:
- 		/*
- 		 * This case catches also the signals queued by sigqueue().
- 		 */
-@@ -143,6 +142,11 @@ static int signalfd_copyinfo(struct signalfd_siginfo __user *uinfo,
- 		new.ssi_ptr = (long) kinfo->si_ptr;
- 		new.ssi_int = kinfo->si_int;
- 		break;
-+	case SIL_SYS:
-+		new.ssi_call_addr = (long) kinfo->si_call_addr;
-+		new.ssi_syscall   = kinfo->si_syscall;
-+		new.ssi_arch      = kinfo->si_arch;
-+		break;
- 	}
- 
- 	if (copy_to_user(uinfo, &new, sizeof(struct signalfd_siginfo)))
-diff --git a/include/uapi/linux/signalfd.h b/include/uapi/linux/signalfd.h
-index 6f0da42fc5ef..83429a05b698 100644
---- a/include/uapi/linux/signalfd.h
-+++ b/include/uapi/linux/signalfd.h
-@@ -35,6 +35,10 @@ struct signalfd_siginfo {
- 	__u64 ssi_stime;
- 	__u64 ssi_addr;
- 	__u16 ssi_addr_lsb;
-+	__u16 __pad2;
-+	__s32 ssi_syscall;
-+	__u64 ssi_call_addr;
-+	__u32 ssi_arch;
- 
- 	/*
- 	 * Pad strcture to 128 bytes. Remember to update the
-@@ -45,7 +49,7 @@ struct signalfd_siginfo {
- 	 * comes out of a read(2) and we really don't want to have
- 	 * a compat on read(2).
- 	 */
--	__u8 __pad[46];
-+	__u8 __pad[28];
- };
- 
- 
--- 
-2.14.1
+These patches can also go into '-stable' branch (if accepted)
+for 4.6 onwards.
