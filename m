@@ -1,83 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:47696 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752348AbeD3Hmb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2018 03:42:31 -0400
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v9 3/4] arm64: Implement page table free interfaces
-Date: Mon, 30 Apr 2018 13:11:33 +0530
-Message-ID: <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
-In-Reply-To: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
-References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
+Received: from mga09.intel.com ([134.134.136.24]:56155 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754805AbeEANKk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 1 May 2018 09:10:40 -0400
+From: changbin.du@intel.com
+Subject: [PATCH 0/5] kernel hacking: GCC optimization for debug experience (-Og)
+Date: Tue,  1 May 2018 21:00:09 +0800
+Message-ID: <1525179614-14571-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Philip Elcan <pelcan@codeaurora.org>, James Morse <james.morse@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, Toshi Kani <toshi.kani@hpe.com>, Dave Hansen <dave.hansen@linux.intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Joerg Roedel <joro@8bytes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180430074133.TPfura-Si57dIBYTyLZ2XvNmdePS58_wN3vhsCbfFk8@z>
+To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
+Cc: x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
+Message-ID: <20180501130009.V88--gD4OKjQqx_I6rg3xoo9FmZ4p7lh-o6Z-53RFYM@z>
 
-Implement pud_free_pmd_page() and pmd_free_pte_page().
+From: Changbin Du <changbin.du@intel.com>
 
-Implementation requires,
- 1) Clearing off the current pud/pmd entry
- 2) Invalidate TLB which could have previously
-    valid but not stale entry
- 3) Freeing of the un-used next level page tables
+Hi all,
+I know some kernel developers was searching for a method to dissable GCC
+optimizations, probably they want to apply GCC '-O0' option. But since Linux
+kernel replys on GCC optimization to remove some dead code, so '-O0' just
+breaks the build. They do need this because they want to debug kernel with
+qemu, simics, kgtp or kgdb.
 
-Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
----
- arch/arm64/mm/mmu.c | 29 +++++++++++++++++++++++++----
- 1 file changed, 25 insertions(+), 4 deletions(-)
+Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
+offers a reasonable level of optimization while maintaining fast compilation
+and a good debugging experience. It is similar to '-O1' while perfer keeping
+debug ability over runtime speed. With '-Og', we can build a kernel with
+better debug ability and little performance drop after some simple change.
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index da98828..0f651db 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -45,6 +45,7 @@
- #include <asm/memblock.h>
- #include <asm/mmu_context.h>
- #include <asm/ptdump.h>
-+#include <asm/tlbflush.h>
- 
- #define NO_BLOCK_MAPPINGS	BIT(0)
- #define NO_CONT_MAPPINGS	BIT(1)
-@@ -973,12 +974,32 @@ int pmd_clear_huge(pmd_t *pmdp)
- 	return 1;
- }
- 
--int pud_free_pmd_page(pud_t *pud, unsigned long addr)
-+int pmd_free_pte_page(pmd_t *pmdp, unsigned long addr)
- {
--	return pud_none(*pud);
-+	pmd_t *table;
-+
-+	if (pmd_present(READ_ONCE(*pmdp))) {
-+		table = __va(pmd_val(*pmdp));
-+		pmd_clear(pmdp);
-+		__flush_tlb_kernel_pgtable(addr);
-+		free_page((unsigned long) table);
-+	}
-+	return 1;
- }
- 
--int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
-+int pud_free_pmd_page(pud_t *pudp, unsigned long addr)
- {
--	return pmd_none(*pmd);
-+	pmd_t *table;
-+	int i;
-+
-+	if (pud_present(READ_ONCE(*pudp))) {
-+		table = __va(pud_val(*pudp));
-+		for (i = 0; i < PTRS_PER_PMD; i++)
-+			pmd_free_pte_page(&table[i], addr + (i * PMD_SIZE));
-+
-+		pud_clear(pudp);
-+		__flush_tlb_kernel_pgtable(addr);
-+		free_page((unsigned long) table);
-+	}
-+	return 1;
- }
+In this serias, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
+fixes. Selecting this option will make compiler not auto-inline kernel
+functions.This is useful when you are using ftrace to understand the control
+flow of kernel code or tracing some static functions.
+
+Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
+optimization level for whole kernel, with a simple fix in fix_to_virt().
+Currently this option is only tested on a QEMU gust and it works fine.
+
+Comparison of vmlinux size: a bit smaller.
+
+    w/o CONFIG_DEBUG_EXPERIENCE
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    22665554   9709674  2920908 35296136        21a9388 vmlinux
+
+    w/ CONFIG_DEBUG_EXPERIENCE
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    21499032   10102758 2920908 34522698        20ec64a vmlinux
+
+Comparison of system performance: a bit drop.
+
+    w/o CONFIG_DEBUG_EXPERIENCE
+    $ time make -j4
+    real    6m43.619s
+    user    19m5.160s
+    sys     2m20.287s
+
+    w/ CONFIG_DEBUG_EXPERIENCE
+    $ time make -j4
+    real    6m55.054s
+    user    19m11.129s
+    sys     2m36.345s
+
+Changbin Du (5):
+  x86/mm: surround level4_kernel_pgt with #ifdef
+    CONFIG_X86_5LEVEL...#endif
+  regulator: add dummy of_find_regulator_by_node
+  kernel hacking: new config NO_AUTO_INLINE to disable compiler
+    atuo-inline optimizations
+  kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
+    optimization
+  asm-generic: fix build error in fix_to_virt with
+    CONFIG_DEBUG_EXPERIENCE
+
+ Makefile                          | 10 ++++++++++
+ arch/x86/include/asm/pgtable_64.h |  2 ++
+ arch/x86/kernel/head64.c          | 13 ++++++-------
+ drivers/regulator/internal.h      |  9 +++++++--
+ include/asm-generic/fixmap.h      |  3 ++-
+ include/linux/compiler-gcc.h      |  2 +-
+ include/linux/compiler.h          |  2 +-
+ lib/Kconfig.debug                 | 34 ++++++++++++++++++++++++++++++++++
+ 8 files changed, 63 insertions(+), 12 deletions(-)
+
 -- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation
-Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
-Collaborative Project
+2.7.4
