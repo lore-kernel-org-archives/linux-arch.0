@@ -1,53 +1,83 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v9 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-Date: Mon, 30 Apr 2018 13:11:34 +0530
-Message-ID: <1525074094-25839-5-git-send-email-cpandya@codeaurora.org>
-References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
+From: changbin.du@intel.com
+Subject: [PATCH 0/5] kernel hacking: GCC optimization for debug experience (-Og)
+Date: Tue,  1 May 2018 21:00:09 +0800
+Message-ID: <1525179614-14571-1-git-send-email-changbin.du@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Philip Elcan <pelcan@codeaurora.org>, James Morse <james.morse@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, Toshi Kani <toshi.kani@hpe.com>, Dave Hansen <dave.hansen@linux.intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Joerg Roedel <joro@8bytes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>
+To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
+Cc: x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This commit 15122ee2c515a ("arm64: Enforce BBM for huge
-IO/VMAP mappings") is a temporary work-around until the
-issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
+From: Changbin Du <changbin.du@intel.com>
 
-Revert this change as we have fixes for the issue.
+Hi all,
+I know some kernel developers was searching for a method to dissable GCC
+optimizations, probably they want to apply GCC '-O0' option. But since Linux
+kernel replys on GCC optimization to remove some dead code, so '-O0' just
+breaks the build. They do need this because they want to debug kernel with
+qemu, simics, kgtp or kgdb.
 
-Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
----
- arch/arm64/mm/mmu.c | 8 --------
- 1 file changed, 8 deletions(-)
+Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
+offers a reasonable level of optimization while maintaining fast compilation
+and a good debugging experience. It is similar to '-O1' while perfer keeping
+debug ability over runtime speed. With '-Og', we can build a kernel with
+better debug ability and little performance drop after some simple change.
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 0f651db..170009b 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pud_present(READ_ONCE(*pudp)))
--		return 0;
--
- 	BUG_ON(phys & ~PUD_MASK);
- 	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
- 	return 1;
-@@ -949,10 +945,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pmd_present(READ_ONCE(*pmdp)))
--		return 0;
--
- 	BUG_ON(phys & ~PMD_MASK);
- 	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
- 	return 1;
+In this serias, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
+fixes. Selecting this option will make compiler not auto-inline kernel
+functions.This is useful when you are using ftrace to understand the control
+flow of kernel code or tracing some static functions.
+
+Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
+optimization level for whole kernel, with a simple fix in fix_to_virt().
+Currently this option is only tested on a QEMU gust and it works fine.
+
+Comparison of vmlinux size: a bit smaller.
+
+    w/o CONFIG_DEBUG_EXPERIENCE
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    22665554   9709674  2920908 35296136        21a9388 vmlinux
+
+    w/ CONFIG_DEBUG_EXPERIENCE
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    21499032   10102758 2920908 34522698        20ec64a vmlinux
+
+Comparison of system performance: a bit drop.
+
+    w/o CONFIG_DEBUG_EXPERIENCE
+    $ time make -j4
+    real    6m43.619s
+    user    19m5.160s
+    sys     2m20.287s
+
+    w/ CONFIG_DEBUG_EXPERIENCE
+    $ time make -j4
+    real    6m55.054s
+    user    19m11.129s
+    sys     2m36.345s
+
+Changbin Du (5):
+  x86/mm: surround level4_kernel_pgt with #ifdef
+    CONFIG_X86_5LEVEL...#endif
+  regulator: add dummy of_find_regulator_by_node
+  kernel hacking: new config NO_AUTO_INLINE to disable compiler
+    atuo-inline optimizations
+  kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
+    optimization
+  asm-generic: fix build error in fix_to_virt with
+    CONFIG_DEBUG_EXPERIENCE
+
+ Makefile                          | 10 ++++++++++
+ arch/x86/include/asm/pgtable_64.h |  2 ++
+ arch/x86/kernel/head64.c          | 13 ++++++-------
+ drivers/regulator/internal.h      |  9 +++++++--
+ include/asm-generic/fixmap.h      |  3 ++-
+ include/linux/compiler-gcc.h      |  2 +-
+ include/linux/compiler.h          |  2 +-
+ lib/Kconfig.debug                 | 34 ++++++++++++++++++++++++++++++++++
+ 8 files changed, 63 insertions(+), 12 deletions(-)
+
 -- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation
-Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
-Collaborative Project
+2.7.4
