@@ -1,88 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:56155 "EHLO mga09.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:65261 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754805AbeEANKk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 1 May 2018 09:10:40 -0400
+        id S1755345AbeEANLD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 1 May 2018 09:11:03 -0400
 From: changbin.du@intel.com
-Subject: [PATCH 0/5] kernel hacking: GCC optimization for debug experience (-Og)
-Date: Tue,  1 May 2018 21:00:09 +0800
-Message-ID: <1525179614-14571-1-git-send-email-changbin.du@intel.com>
+Subject: [PATCH 5/5] asm-generic: fix build error in fix_to_virt with CONFIG_DEBUG_EXPERIENCE
+Date: Tue,  1 May 2018 21:00:14 +0800
+Message-ID: <1525179614-14571-6-git-send-email-changbin.du@intel.com>
+In-Reply-To: <1525179614-14571-1-git-send-email-changbin.du@intel.com>
+References: <1525179614-14571-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
 Cc: x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
-Message-ID: <20180501130009.V88--gD4OKjQqx_I6rg3xoo9FmZ4p7lh-o6Z-53RFYM@z>
+Message-ID: <20180501130014.RYd9kC_x1owhGPvzc4-j8YMe9sC-t__csfwJcftGPe0@z>
 
 From: Changbin Du <changbin.du@intel.com>
 
-Hi all,
-I know some kernel developers was searching for a method to dissable GCC
-optimizations, probably they want to apply GCC '-O0' option. But since Linux
-kernel replys on GCC optimization to remove some dead code, so '-O0' just
-breaks the build. They do need this because they want to debug kernel with
-qemu, simics, kgtp or kgdb.
+With '-Og' optimization level, GCC would not optimize a count for a loop
+as a constant value. But BUILD_BUG_ON() only accept compile-time constant
+values.
 
-Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
-offers a reasonable level of optimization while maintaining fast compilation
-and a good debugging experience. It is similar to '-O1' while perfer keeping
-debug ability over runtime speed. With '-Og', we can build a kernel with
-better debug ability and little performance drop after some simple change.
+arch/arm/mm/mmu.o: In function `fix_to_virt':
+/home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
+Makefile:1051: recipe for target 'vmlinux' failed
+make: *** [vmlinux] Error 1
 
-In this serias, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
-fixes. Selecting this option will make compiler not auto-inline kernel
-functions.This is useful when you are using ftrace to understand the control
-flow of kernel code or tracing some static functions.
+Signed-off-by: Changbin Du <changbin.du@intel.com>
+---
+ include/asm-generic/fixmap.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
-optimization level for whole kernel, with a simple fix in fix_to_virt().
-Currently this option is only tested on a QEMU gust and it works fine.
-
-Comparison of vmlinux size: a bit smaller.
-
-    w/o CONFIG_DEBUG_EXPERIENCE
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    22665554   9709674  2920908 35296136        21a9388 vmlinux
-
-    w/ CONFIG_DEBUG_EXPERIENCE
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    21499032   10102758 2920908 34522698        20ec64a vmlinux
-
-Comparison of system performance: a bit drop.
-
-    w/o CONFIG_DEBUG_EXPERIENCE
-    $ time make -j4
-    real    6m43.619s
-    user    19m5.160s
-    sys     2m20.287s
-
-    w/ CONFIG_DEBUG_EXPERIENCE
-    $ time make -j4
-    real    6m55.054s
-    user    19m11.129s
-    sys     2m36.345s
-
-Changbin Du (5):
-  x86/mm: surround level4_kernel_pgt with #ifdef
-    CONFIG_X86_5LEVEL...#endif
-  regulator: add dummy of_find_regulator_by_node
-  kernel hacking: new config NO_AUTO_INLINE to disable compiler
-    atuo-inline optimizations
-  kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
-    optimization
-  asm-generic: fix build error in fix_to_virt with
-    CONFIG_DEBUG_EXPERIENCE
-
- Makefile                          | 10 ++++++++++
- arch/x86/include/asm/pgtable_64.h |  2 ++
- arch/x86/kernel/head64.c          | 13 ++++++-------
- drivers/regulator/internal.h      |  9 +++++++--
- include/asm-generic/fixmap.h      |  3 ++-
- include/linux/compiler-gcc.h      |  2 +-
- include/linux/compiler.h          |  2 +-
- lib/Kconfig.debug                 | 34 ++++++++++++++++++++++++++++++++++
- 8 files changed, 63 insertions(+), 12 deletions(-)
-
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index 827e4d3..a6576d4 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -28,7 +28,8 @@
+  */
+ static __always_inline unsigned long fix_to_virt(const unsigned int idx)
+ {
+-	BUILD_BUG_ON(idx >= __end_of_fixed_addresses);
++	BUILD_BUG_ON(__builtin_constant_p(idx) &&
++		     idx >= __end_of_fixed_addresses);
+ 	return __fix_to_virt(idx);
+ }
+ 
 -- 
 2.7.4
