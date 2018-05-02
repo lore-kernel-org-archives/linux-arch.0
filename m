@@ -1,74 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37684 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750898AbeEBMOe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 May 2018 08:14:34 -0400
-From: Florian Weimer <fweimer@redhat.com>
-Date: Wed, 2 May 2018 14:10:32 +0200
-Subject: [PATCH] selftests/x86: Detect -no-pie availability
-Message-Id: <20180502121433.7F874401F1BF7@oldenburg.str.redhat.com>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:34144 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750898AbeEBMYp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2018 08:24:45 -0400
+Date: Wed, 2 May 2018 22:24:30 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be
+ selected
+Message-ID: <20180502222430.2a1cced4@roar.ozlabs.ibm.com>
+In-Reply-To: <CA+7wUsy1KaWc0LJNXieNTtQcfoQyg-kFp10nGoTzVe7CdXYOyg@mail.gmail.com>
+References: <20180420073414.23169-1-npiggin@gmail.com>
+        <20180420073414.23169-5-npiggin@gmail.com>
+        <CA+7wUswuyn+YgNe732rQAzVmgDBohTMEqwsd76nQ_CH5h7Y5WA@mail.gmail.com>
+        <20180420204104.6e22b136@roar.ozlabs.ibm.com>
+        <CA+7wUsyWu3eweWjwfFoS5FD5yb3OxjLV4-XyErcNA4fJGPCf8Q@mail.gmail.com>
+        <20180421124838.5facd0f7@roar.ozlabs.ibm.com>
+        <CA+7wUsy1KaWc0LJNXieNTtQcfoQyg-kFp10nGoTzVe7CdXYOyg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-x86_64@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: rdunlap@infradead.org, shuah@kernel.org
+To: Mathieu Malaterre <malat@debian.org>
+Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch@vger.kernel.org, Nicolas Pitre <nico@fluxnic.net>, linux-kbuild@vger.kernel.org
+Message-ID: <20180502122430.G58HOcJI1uUz99gZXiV8MLaQu31V8j5TCO_rfjdPf1E@z>
 
-Some toolchains need -no-pie to build all tests, others do not support
-the -no-pie flag at all.  Therefore, add another test for the
-availability of the flag.
+On Wed, 2 May 2018 11:17:52 +0200
+Mathieu Malaterre <malat@debian.org> wrote:
 
-This amends commit 3346a6a4e5ba8c040360f753b26938cec31a4bdc
-("selftests: x86: sysret_ss_attrs doesn't build on a PIE build").
+> Nick,
+> 
+> On Sat, Apr 21, 2018 at 4:48 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> > On Fri, 20 Apr 2018 22:08:27 +0200
+> > Mathieu Malaterre <malat@debian.org> wrote:
+> >  
+> >> On Fri, Apr 20, 2018 at 12:41 PM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> > On Fri, 20 Apr 2018 12:00:49 +0200
+> >> > Mathieu Malaterre <malat@debian.org> wrote:
+> >> >  
+> >> >> On Fri, Apr 20, 2018 at 9:34 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> >> > This requires further changes to linker script to KEEP some tables
+> >> >> > and wildcard compiler generated sections into the right place. This
+> >> >> > includes pp32 modifications from Christophe Leroy.
+> >> >> >
+> >> >> > When compiling powernv_defconfig with this option:
+> >> >> >
+> >> >> > text       data      bss       dec        filename
+> >> >> > 11827621   4810490   1341080   17979191   vmlinux
+> >> >> > 11752437   4598858   1338776   17690071   vmlinux.dcde
+> >> >> >
+> >> >> > Resulting kernel is almost 400kB smaller (and still boots).
+> >> >> >
+> >> >> > [ppc32 numbers here]  
+> >> >>
+> >> >> ^^^
+> >> >>
+> >> >> Do you want somebody else to provide those numbers ?  
+> >> >
+> >> > If you have a booting kernel, yes some more numbers would be good.  
+> >>
+> >> I've used /boot/config-4.15.0-2-powerpc from my current debian
+> >> package. Rebuild master with and without option, boot ok, load/unload
+> >> module ok.
+> >>
+> >> $ size nick/vmlinux.with*
+> >>    text    data     bss     dec     hex filename
+> >> 7386425 2364370 1425432 11176227 aa8923 nick/vmlinux.with
+> >> 7461457 2475122 1428064 11364643 ad6923 nick/vmlinux.without
+> >>
+> >> This is not clear why with option the size of kernel is slightly bigger:
+> >>
+> >> $ du -sk nick/vmlinux.with*
+> >> 124488 nick/vmlinux.with
+> >> 124004 nick/vmlinux.without  
+> >
+> > Not sure. readelf -S vmlinux may show something.
+> >
+> > To really get lots of detail, you can add to the top level Makefile:
+> >
+> > LDFLAGS_vmlinux += -M  
+> 
+> Here is what I did:
+> 
+> $ git diff
+> diff --git a/Makefile b/Makefile
+> index 619a85ad716b..1a2e3d142a59 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -4,6 +4,7 @@ PATCHLEVEL = 17
+>  SUBLEVEL = 0
+>  EXTRAVERSION = -rc3
+>  NAME = Fearless Coyote
+> +LDFLAGS_vmlinux += -M
 
-Signed-off-by: Florian Weimer <fweimer@redhat.com>
-Acked-by: Randy Dunlap <rdunlap@infradead.org>
-Tested-by: Randy Dunlap <rdunlap@infradead.org>
----
- tools/testing/selftests/x86/Makefile          |  8 +++++++-
- tools/testing/selftests/x86/trivial_program.c | 10 ++++++++++
- 2 files changed, 17 insertions(+), 1 deletion(-)
- create mode 100644 tools/testing/selftests/x86/trivial_program.c
+That'll get overwritten further down. Put it down with another line
+that starts with LDFLAGS_vmlinux +=
 
-diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-index d744991c0f4f..94c89261a236 100644
---- a/tools/testing/selftests/x86/Makefile
-+++ b/tools/testing/selftests/x86/Makefile
-@@ -8,6 +8,7 @@ include ../lib.mk
- UNAME_M := $(shell uname -m)
- CAN_BUILD_I386 := $(shell ./check_cc.sh $(CC) trivial_32bit_program.c -m32)
- CAN_BUILD_X86_64 := $(shell ./check_cc.sh $(CC) trivial_64bit_program.c)
-+CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
- 
- TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
- 			check_initial_reg_state sigreturn iopl mpx-mini-test ioperm \
-@@ -31,7 +32,12 @@ BINARIES_64 := $(TARGETS_C_64BIT_ALL:%=%_64)
- BINARIES_32 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_32))
- BINARIES_64 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_64))
- 
--CFLAGS := -O2 -g -std=gnu99 -pthread -Wall -no-pie
-+CFLAGS := -O2 -g -std=gnu99 -pthread -Wall
-+
-+# call32_from_64 in thunks.S uses absolute addresses.
-+ifeq ($(CAN_BUILD_WITH_NOPIE),1)
-+CFLAGS += -no-pie
-+endif
- 
- define gen-target-rule-32
- $(1) $(1)_32: $(OUTPUT)/$(1)_32
-diff --git a/tools/testing/selftests/x86/trivial_program.c b/tools/testing/selftests/x86/trivial_program.c
-new file mode 100644
-index 000000000000..46a447163b93
---- /dev/null
-+++ b/tools/testing/selftests/x86/trivial_program.c
-@@ -0,0 +1,10 @@
-+/* Trivial program to check that compilation with certain flags is working. */
-+
-+#include <stdio.h>
-+
-+int
-+main(void)
-+{
-+	puts("");
-+	return 0;
-+}
--- 
-2.14.3
+Thanks,
+Nick
