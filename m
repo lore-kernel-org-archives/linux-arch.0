@@ -1,67 +1,93 @@
-From: changbin.du@intel.com
-Subject: [PATCH v2 1/5] x86/mm: surround level4_kernel_pgt with #ifdef CONFIG_X86_5LEVEL...#endif
-Date: Wed,  2 May 2018 21:44:56 +0800
-Message-ID: <1525268700-10631-2-git-send-email-changbin.du@intel.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 3/5] kernel hacking: new config NO_AUTO_INLINE to
+ disable compiler auto-inline optimizations
+Date: Wed, 2 May 2018 10:07:48 -0400
+Message-ID: <20180502100748.3fd41bae@gandalf.local.home>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+        <1525268700-10631-4-git-send-email-changbin.du@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+In-Reply-To: <1525268700-10631-4-git-send-email-changbin.du@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
-Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
+To: changbin.du@intel.com
+Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Changbin Du <changbin.du@intel.com>
+On Wed,  2 May 2018 21:44:58 +0800
+changbin.du@intel.com wrote:
 
-The level4_kernel_pgt is only defined when X86_5LEVEL is enabled. So
-surround level4_kernel_pgt with #ifdef CONFIG_X86_5LEVEL...#endif to
-make code correct.
+> From: Changbin Du <changbin.du@intel.com>
+> 
+> This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
+> this option will prevent the compiler from optimizing the kernel by
+> auto-inlining functions not marked with the inline keyword.
+> 
+> With this option, only functions explicitly marked with "inline" will
+> be inlined. This will allow the function tracer to trace more functions
+> because it only traces functions that the compiler has not inlined.
+> 
+> Signed-off-by: Changbin Du <changbin.du@intel.com>
+> Cc: Steven Rostedt <rostedt@goodmis.org>
 
-Signed-off-by: Changbin Du <changbin.du@intel.com>
----
- arch/x86/include/asm/pgtable_64.h |  2 ++
- arch/x86/kernel/head64.c          | 13 ++++++-------
- 2 files changed, 8 insertions(+), 7 deletions(-)
+I'm fine with this patch if others are OK with it too.
 
-diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
-index 877bc27..9e7f667 100644
---- a/arch/x86/include/asm/pgtable_64.h
-+++ b/arch/x86/include/asm/pgtable_64.h
-@@ -15,7 +15,9 @@
- #include <linux/bitops.h>
- #include <linux/threads.h>
- 
-+#ifdef CONFIG_X86_5LEVEL
- extern p4d_t level4_kernel_pgt[512];
-+#endif
- extern p4d_t level4_ident_pgt[512];
- extern pud_t level3_kernel_pgt[512];
- extern pud_t level3_ident_pgt[512];
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 0c408f8..775d7a6 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -143,16 +143,15 @@ unsigned long __head __startup_64(unsigned long physaddr,
- 
- 	pgd = fixup_pointer(&early_top_pgt, physaddr);
- 	p = pgd + pgd_index(__START_KERNEL_map);
--	if (la57)
--		*p = (unsigned long)level4_kernel_pgt;
--	else
--		*p = (unsigned long)level3_kernel_pgt;
--	*p += _PAGE_TABLE_NOENC - __START_KERNEL_map + load_delta;
--
-+#ifdef CONFIG_X86_5LEVEL
- 	if (la57) {
-+		*p = (unsigned long)level4_kernel_pgt;
- 		p4d = fixup_pointer(&level4_kernel_pgt, physaddr);
- 		p4d[511] += load_delta;
--	}
-+	} else
-+#endif
-+		*p = (unsigned long)level3_kernel_pgt;
-+	*p += _PAGE_TABLE_NOENC - __START_KERNEL_map + load_delta;
- 
- 	pud = fixup_pointer(&level3_kernel_pgt, physaddr);
- 	pud[510] += load_delta;
--- 
-2.7.4
+Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+
+-- Steve
+
+> 
+> ---
+> v2: Some grammar updates from Steven.
+> ---
+>  Makefile          |  6 ++++++
+>  lib/Kconfig.debug | 18 ++++++++++++++++++
+>  2 files changed, 24 insertions(+)
+> 
+> diff --git a/Makefile b/Makefile
+> index 619a85a..eb694f6 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -775,6 +775,12 @@ KBUILD_CFLAGS 	+= $(call cc-option, -femit-struct-debug-baseonly) \
+>  		   $(call cc-option,-fno-var-tracking)
+>  endif
+>  
+> +ifdef CONFIG_NO_AUTO_INLINE
+> +KBUILD_CFLAGS   += $(call cc-option, -fno-inline-functions) \
+> +		   $(call cc-option, -fno-inline-small-functions) \
+> +		   $(call cc-option, -fno-inline-functions-called-once)
+> +endif
+> +
+>  ifdef CONFIG_FUNCTION_TRACER
+>  ifndef CC_FLAGS_FTRACE
+>  CC_FLAGS_FTRACE := -pg
+> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> index c40c7b7..ab55801 100644
+> --- a/lib/Kconfig.debug
+> +++ b/lib/Kconfig.debug
+> @@ -198,6 +198,24 @@ config GDB_SCRIPTS
+>  	  instance. See Documentation/dev-tools/gdb-kernel-debugging.rst
+>  	  for further details.
+>  
+> +config NO_AUTO_INLINE
+> +	bool "Disable compiler auto-inline optimizations"
+> +	default n
+> +	help
+> +	  This will prevent the compiler from optimizing the kernel by
+> +	  auto-inlining functions not marked with the inline keyword.
+> +	  With this option, only functions explicitly marked with
+> +	  "inline" will be inlined. This will allow the function tracer
+> +	  to trace more functions because it only traces functions that
+> +	  the compiler has not inlined.
+> +
+> +	  Enabling this function can help debugging a kernel if using
+> +	  the function tracer. But it can also change how the kernel
+> +	  works, because inlining functions may change the timing,
+> +	  which could make it difficult while debugging race conditions.
+> +
+> +	  If unsure, select N.
+> +
+>  config ENABLE_WARN_DEPRECATED
+>  	bool "Enable __deprecated logic"
+>  	default y
