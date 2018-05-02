@@ -1,66 +1,138 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with
- CONFIG_DEBUG_EXPERIENCE
-Date: Wed, 2 May 2018 10:19:30 -0400
-Message-ID: <20180502101930.25a5437d@gandalf.local.home>
+From: Daniel Thompson <daniel.thompson@linaro.org>
+Subject: Re: [PATCH v2 0/5] kernel hacking: GCC optimization for debug
+ experience (-Og)
+Date: Wed, 2 May 2018 15:56:31 +0100
+Message-ID: <20180502145631.bzfqpw4izlrqhda6@holly.lan>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
-        <1525268700-10631-6-git-send-email-changbin.du@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525268700-10631-6-git-send-email-changbin.du@intel.com>
+Content-Disposition: inline
+In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: changbin.du@intel.com
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed,  2 May 2018 21:45:00 +0800
-changbin.du@intel.com wrote:
-
+On Wed, May 02, 2018 at 09:44:55PM +0800, changbin.du@intel.com wrote:
 > From: Changbin Du <changbin.du@intel.com>
 > 
-> With '-Og' optimization level, GCC would not optimize a count for a loop
-> as a constant value. But BUILD_BUG_ON() only accept compile-time constant
-> values.
+> Hi all,
+> I know some kernel developers was searching for a method to dissable GCC
+> optimizations, probably they want to apply GCC '-O0' option. But since Linux
+> kernel replys on GCC optimization to remove some dead code, so '-O0' just
+> breaks the build. They do need this because they want to debug kernel with
+> qemu, simics, kgtp or kgdb.
 > 
-> arch/arm/mm/mmu.o: In function `fix_to_virt':
-> /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
-> Makefile:1051: recipe for target 'vmlinux' failed
-> make: *** [vmlinux] Error 1
+> Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
+> offers a reasonable level of optimization while maintaining fast compilation
+> and a good debugging experience. It is similar to '-O1' while perfer keeping
+> debug ability over runtime speed. With '-Og', we can build a kernel with
+> better debug ability and little performance drop after some simple change.
 > 
-> Signed-off-by: Changbin Du <changbin.du@intel.com>
-> ---
->  include/asm-generic/fixmap.h | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
+> In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
+> fixes for this new option. With this option, only functions explicitly marked
+> with "inline" will  be inlined. This will allow the function tracer to trace
+> more functions because it only traces functions that the compiler has not
+> inlined.
 > 
-> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-> index 827e4d3..a6576d4 100644
-> --- a/include/asm-generic/fixmap.h
-> +++ b/include/asm-generic/fixmap.h
-> @@ -28,7 +28,8 @@
->   */
->  static __always_inline unsigned long fix_to_virt(const unsigned int idx)
->  {
-> -	BUILD_BUG_ON(idx >= __end_of_fixed_addresses);
-> +	BUILD_BUG_ON(__builtin_constant_p(idx) &&
-> +		     idx >= __end_of_fixed_addresses);
+> Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
+> optimization level for whole kernel, with a simple fix in fix_to_virt().
+> Currently this option is only tested on a QEMU gust and it works fine.
+> 
+> 
+> Comparison of vmlinux size: a bit smaller.
+> 
+>     w/o CONFIG_DEBUG_EXPERIENCE
+>     $ size vmlinux
+>        text    data     bss     dec     hex filename
+>     22665554   9709674  2920908 35296136        21a9388 vmlinux
+> 
+>     w/ CONFIG_DEBUG_EXPERIENCE
+>     $ size vmlinux
+>        text    data     bss     dec     hex filename
+>     21499032   10102758 2920908 34522698        20ec64a vmlinux
+> 
+> 
+> Comparison of system performance: a bit drop (~6%).
+>     This benchmark of kernel compilation is suggested by Ingo Molnar.
+>     https://lkml.org/lkml/2018/5/2/74
 
-Hmm, this changes the check slightly. Perhaps we should only do this
-when your config is active:
+In my mind was the opposite question. When running on the same kernel
+does a kernel whose config contains CONFIG_DEBUG_EXPERIENCE build faster
+than one without (due to the disabled optimization passes).
 
-{
-	BUILD_BUG_ON(
-/* CONFIG_DEBUG_OPTIMIZE may cause idx not to be constant */
-#ifdef CONFIG_DEBUG_OPTIMIZE
-		__builtin_constant_p(idx) &&
-#endif
-		idx >= __end_of_fixed_addresses);
+To be honest this is more curiosity than a review comment though... if
+you have the figures please share, if not then don't sweat it on my
+account!
 
-}
 
--- Steve
+Daniel.
 
->  	return __fix_to_virt(idx);
->  }
->  
+
+
+> 
+>     Preparation: Set cpufreq to 'performance'.
+>     for ((cpu=0; cpu<120; cpu++)); do
+>       G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
+>       [ -f $G ] && echo performance > $G
+>     done
+> 
+>     w/o CONFIG_DEBUG_EXPERIENCE
+>     $ perf stat --repeat 5 --null --pre                 '\
+>         cp -a kernel ../kernel.copy.$(date +%s);         \
+>         rm -rf *;                                        \
+>         git checkout .;                                  \
+>         echo 1 > /proc/sys/vm/drop_caches;               \
+>         find ../kernel* -type f | xargs cat >/dev/null;  \
+>         make -j kernel >/dev/null;                       \
+>         make clean >/dev/null 2>&1;                      \
+>         sync                                            '\
+>                                                          \
+>         make -j8 >/dev/null
+> 
+>      Performance counter stats for 'make -j8' (5 runs):
+> 
+>         219.764246652 seconds time elapsed                   ( +-  0.78% )
+> 
+>     w/ CONFIG_DEBUG_EXPERIENCE
+>     $ perf stat --repeat 5 --null --pre                 '\
+>         cp -a kernel ../kernel.copy.$(date +%s);         \
+>         rm -rf *;                                        \
+>         git checkout .;                                  \
+>         echo 1 > /proc/sys/vm/drop_caches;               \
+>         find ../kernel* -type f | xargs cat >/dev/null;  \
+>         make -j kernel >/dev/null;                       \
+>         make clean >/dev/null 2>&1;                      \
+>         sync                                            '\
+>                                                          \
+>         make -j8 >/dev/null
+> 
+>     Performance counter stats for 'make -j8' (5 runs):
+> 
+>          233.574187771 seconds time elapsed                  ( +-  0.19% )
+> 
+> Changbin Du (5):
+>   x86/mm: surround level4_kernel_pgt with #ifdef
+>     CONFIG_X86_5LEVEL...#endif
+>   regulator: add dummy function of_find_regulator_by_node
+>   kernel hacking: new config NO_AUTO_INLINE to disable compiler
+>     auto-inline optimizations
+>   kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
+>     optimization
+>   asm-generic: fix build error in fix_to_virt with
+>     CONFIG_DEBUG_EXPERIENCE
+> 
+>  Makefile                          | 10 ++++++++++
+>  arch/x86/include/asm/pgtable_64.h |  2 ++
+>  arch/x86/kernel/head64.c          | 13 ++++++-------
+>  drivers/regulator/internal.h      |  9 +++++++--
+>  include/asm-generic/fixmap.h      |  3 ++-
+>  include/linux/compiler-gcc.h      |  2 +-
+>  include/linux/compiler.h          |  2 +-
+>  lib/Kconfig.debug                 | 39 +++++++++++++++++++++++++++++++++++++++
+>  8 files changed, 68 insertions(+), 12 deletions(-)
+> 
+> -- 
+> 2.7.4
+> 
