@@ -1,71 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59396 "EHLO mail.kernel.org"
+Received: from mga02.intel.com ([134.134.136.20]:52273 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751641AbeEBOTd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 May 2018 10:19:33 -0400
-Date: Wed, 2 May 2018 10:19:30 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with
- CONFIG_DEBUG_EXPERIENCE
-Message-ID: <20180502101930.25a5437d@gandalf.local.home>
-In-Reply-To: <1525268700-10631-6-git-send-email-changbin.du@intel.com>
-References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
-        <1525268700-10631-6-git-send-email-changbin.du@intel.com>
+        id S1751011AbeEBObA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 May 2018 10:31:00 -0400
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+Date: Wed, 2 May 2018 07:30:56 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: changbin.du@intel.com
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180502141930.XFeehkjViU5nF4y1zXSr3-MWWBUrPOI9ZwML553nRIA@z>
+To: Florian Weimer <fweimer@redhat.com>, linux-mm@kvack.org, linux-api@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: linuxram@us.ibm.com
 
-On Wed,  2 May 2018 21:45:00 +0800
-changbin.du@intel.com wrote:
+On 05/02/2018 06:26 AM, Florian Weimer wrote:
+> pkeys support for IBM POWER intends to inherited the access rights of
+> the current thread in signal handlers.  The advantage is that this
+> preserves access to memory regions associated with non-default keys,
+> enabling additional usage scenarios for memory protection keys which
+> currently do not work on x86 due to the unconditional reset to the
+> (configurable) default key in signal handlers.
 
-> From: Changbin Du <changbin.du@intel.com>
-> 
-> With '-Og' optimization level, GCC would not optimize a count for a loop
-> as a constant value. But BUILD_BUG_ON() only accept compile-time constant
-> values.
-> 
-> arch/arm/mm/mmu.o: In function `fix_to_virt':
-> /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
-> Makefile:1051: recipe for target 'vmlinux' failed
-> make: *** [vmlinux] Error 1
-> 
-> Signed-off-by: Changbin Du <changbin.du@intel.com>
-> ---
->  include/asm-generic/fixmap.h | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-> index 827e4d3..a6576d4 100644
-> --- a/include/asm-generic/fixmap.h
-> +++ b/include/asm-generic/fixmap.h
-> @@ -28,7 +28,8 @@
->   */
->  static __always_inline unsigned long fix_to_virt(const unsigned int idx)
->  {
-> -	BUILD_BUG_ON(idx >= __end_of_fixed_addresses);
-> +	BUILD_BUG_ON(__builtin_constant_p(idx) &&
-> +		     idx >= __end_of_fixed_addresses);
+What's the usage scenario that does not work?
 
-Hmm, this changes the check slightly. Perhaps we should only do this
-when your config is active:
+> Consequently, this commit updates the x86 implementation to preserve
+> the PKRU register value of the interrupted context in signal handlers.
+> If a key is allocated successfully with the PKEY_ALLOC_SIGNALINHERIT
+> flag, the application can assume this signal inheritance behavior.
 
-{
-	BUILD_BUG_ON(
-/* CONFIG_DEBUG_OPTIMIZE may cause idx not to be constant */
-#ifdef CONFIG_DEBUG_OPTIMIZE
-		__builtin_constant_p(idx) &&
-#endif
-		idx >= __end_of_fixed_addresses);
+I think this is a pretty gross misuse of the API.  Adding an argument to
+pkey_alloc() is something that folks would assume would impact the key
+being *allocated*, not pkeys behavior across the process as a whole.
 
-}
+> This change does not affect the init_pkru optimization because if the
+> thread's PKRU register is zero due to the init_pkru setting, it will
+> remain zero in the signal handler through inheritance from the
+> interrupted context.
 
--- Steve
+I think you are right, but it's rather convoluted.  It does:
 
->  	return __fix_to_virt(idx);
->  }
->  
+1. Running with PKRU in the init state
+2. Kernel saves off init-state-PKRU XSAVE signal buffer
+3. Enter signal, kernel XRSTOR (may) set the init state again
+4. fpu__clear() does __write_pkru(), takes it out of the init state
+5. Signal handler runs, exits
+6. fpu__restore_sig() XRSTOR's the state from #2, taking PKRU back to
+   the init state
+
+But, about the patch in general:
+
+I'm not a big fan of doing this in such a PKRU-specific way.  It would
+be nice to have this available for all XSAVE states.  It would also keep
+you from so unnecessarily frobbing with WRPKRU in fpu__clear().  You
+could just clear the PKRU bit in the Requested Feature BitMap (RFBM)
+passed to XRSTOR.  That would be much straightforward and able to be
+more easily extended to more states.
+
+PKRU is now preserved on signal entry, but not signal exit.  Was that
+intentional?  That seems like odd behavior, and also differs from the
+POWER implementation as I understand it.
