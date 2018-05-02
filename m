@@ -1,7 +1,7 @@
 From: changbin.du@intel.com
-Subject: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with CONFIG_DEBUG_EXPERIENCE
-Date: Wed,  2 May 2018 21:45:00 +0800
-Message-ID: <1525268700-10631-6-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v2 3/5] kernel hacking: new config NO_AUTO_INLINE to disable compiler auto-inline optimizations
+Date: Wed,  2 May 2018 21:44:58 +0800
+Message-ID: <1525268700-10631-4-git-send-email-changbin.du@intel.com>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
@@ -12,33 +12,69 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Changbin Du <changbin.du@intel.com>
 
-With '-Og' optimization level, GCC would not optimize a count for a loop
-as a constant value. But BUILD_BUG_ON() only accept compile-time constant
-values.
+This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
+this option will prevent the compiler from optimizing the kernel by
+auto-inlining functions not marked with the inline keyword.
 
-arch/arm/mm/mmu.o: In function `fix_to_virt':
-/home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
-Makefile:1051: recipe for target 'vmlinux' failed
-make: *** [vmlinux] Error 1
+With this option, only functions explicitly marked with "inline" will
+be inlined. This will allow the function tracer to trace more functions
+because it only traces functions that the compiler has not inlined.
 
 Signed-off-by: Changbin Du <changbin.du@intel.com>
----
- include/asm-generic/fixmap.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+Cc: Steven Rostedt <rostedt@goodmis.org>
 
-diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-index 827e4d3..a6576d4 100644
---- a/include/asm-generic/fixmap.h
-+++ b/include/asm-generic/fixmap.h
-@@ -28,7 +28,8 @@
-  */
- static __always_inline unsigned long fix_to_virt(const unsigned int idx)
- {
--	BUILD_BUG_ON(idx >= __end_of_fixed_addresses);
-+	BUILD_BUG_ON(__builtin_constant_p(idx) &&
-+		     idx >= __end_of_fixed_addresses);
- 	return __fix_to_virt(idx);
- }
+---
+v2: Some grammar updates from Steven.
+---
+ Makefile          |  6 ++++++
+ lib/Kconfig.debug | 18 ++++++++++++++++++
+ 2 files changed, 24 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index 619a85a..eb694f6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -775,6 +775,12 @@ KBUILD_CFLAGS 	+= $(call cc-option, -femit-struct-debug-baseonly) \
+ 		   $(call cc-option,-fno-var-tracking)
+ endif
  
++ifdef CONFIG_NO_AUTO_INLINE
++KBUILD_CFLAGS   += $(call cc-option, -fno-inline-functions) \
++		   $(call cc-option, -fno-inline-small-functions) \
++		   $(call cc-option, -fno-inline-functions-called-once)
++endif
++
+ ifdef CONFIG_FUNCTION_TRACER
+ ifndef CC_FLAGS_FTRACE
+ CC_FLAGS_FTRACE := -pg
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index c40c7b7..ab55801 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -198,6 +198,24 @@ config GDB_SCRIPTS
+ 	  instance. See Documentation/dev-tools/gdb-kernel-debugging.rst
+ 	  for further details.
+ 
++config NO_AUTO_INLINE
++	bool "Disable compiler auto-inline optimizations"
++	default n
++	help
++	  This will prevent the compiler from optimizing the kernel by
++	  auto-inlining functions not marked with the inline keyword.
++	  With this option, only functions explicitly marked with
++	  "inline" will be inlined. This will allow the function tracer
++	  to trace more functions because it only traces functions that
++	  the compiler has not inlined.
++
++	  Enabling this function can help debugging a kernel if using
++	  the function tracer. But it can also change how the kernel
++	  works, because inlining functions may change the timing,
++	  which could make it difficult while debugging race conditions.
++
++	  If unsure, select N.
++
+ config ENABLE_WARN_DEPRECATED
+ 	bool "Enable __deprecated logic"
+ 	default y
 -- 
 2.7.4
