@@ -1,36 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:41775 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750993AbeEBUaW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2018 16:30:22 -0400
+Received: from mail.kernel.org ([198.145.29.99]:33680 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750970AbeEBUll (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 May 2018 16:41:41 -0400
+Received: from mail-wr0-f173.google.com (mail-wr0-f173.google.com [209.85.128.173])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 84B172394F
+        for <linux-arch@vger.kernel.org>; Wed,  2 May 2018 20:41:40 +0000 (UTC)
+Received: by mail-wr0-f173.google.com with SMTP id p5-v6so15351886wre.12
+        for <linux-arch@vger.kernel.org>; Wed, 02 May 2018 13:41:40 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1525179614-14571-5-git-send-email-changbin.du@intel.com>
-References: <1525179614-14571-1-git-send-email-changbin.du@intel.com> <1525179614-14571-5-git-send-email-changbin.du@intel.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 2 May 2018 16:30:21 -0400
-Message-ID: <CAK8P3a0c++Ti_39WPXwwjjmRx+EUozzCVY5Y2qicyEeLop6_6w@mail.gmail.com>
-Subject: Re: [PATCH 4/5] kernel hacking: new config DEBUG_EXPERIENCE to apply
- GCC -Og optimization
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com> <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net> <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+In-Reply-To: <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Wed, 02 May 2018 20:41:28 +0000
+Message-ID: <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: changbin.du@intel.com
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Liam Girdwood <lgirdwood@gmail.com>, Mark Brown <broonie@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20180502203021.ixLRmQEvmaRb5mUeXecWM3V6Wd4bz1HpzrgWQtC0Tno@z>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com
 
-On Tue, May 1, 2018 at 9:00 AM,  <changbin.du@intel.com> wrote:
-> From: Changbin Du <changbin.du@intel.com>
-> +config DEBUG_EXPERIENCE
-> +       bool "Optimize for better debugging experience (-Og)"
-> +       default n
-> +       select NO_AUTO_INLINE
-> +       depends on !CC_OPTIMIZE_FOR_SIZE
-> +       help
+On Wed, May 2, 2018 at 10:17 AM Florian Weimer <fweimer@redhat.com> wrote:
 
-How about having this as another option alongside CC_OPTIMIZE_FOR_SIZE
-and CC_OPTIMIZE_FOR_PERFORMANCE in the same choice statement?
+> On 05/02/2018 07:09 PM, Andy Lutomirski wrote:
+> >> Nick Clifton wrote a binutils patch which puts the .got.plt section on
+separate pages.  We allocate a protection key for it, assign it to all such
+sections in the process image, and change the access rights of the main
+thread to disallow writes via that key during process startup.  In
+_dl_fixup, we enable write access to the GOT, update the GOT entry, and
+then disable it again.
+> >>
+> >> This way, we have a pretty safe form of lazy binding, without having
+to resort to BIND_NOW.
+> >>
+> >> With the current kernel behavior on x86, we cannot do that because
+signal handlers revert to the default (deny) access rights, so the GOT
+turns inaccessible.
 
-We could also add another option for -Os (for faster compiles)  or possibly
-for -O3 (if anyone cares) in there.
+> > Dave is right: the current behavior was my request, and I still think
+it=E2=80=99s correct.  The whole point is that, even if something nasty hap=
+pens
+like a SIGALRM handler hitting in the middle of _dl_fixup, the SIGALRM
+handler is preventing from accidentally writing to the protected memory.
+When SIGALRM returns, PKRU should get restored
+> >
+> > Another way of looking at this is that the kernel would like to
+approximate what the ISA behavior*should*  have been: the whole sequence
+=E2=80=9Cmodify PKRU; access memory; restore PKRU=E2=80=9D should be as ato=
+mic as possible.
+> >
+> > Florian, what is the actual problematic sequence of events?
 
-      Arnd
+> See above.  The signal handler will crash if it calls any non-local
+> function through the GOT because with the default access rights, it's
+> not readable in the signal handler.
+
+> Any use of memory protection keys for basic infrastructure will run into
+> this problem, so I think the current kernel behavior is not very useful.
+>    It's also x86-specific.
+
+>   From a security perspective, the atomic behavior is not very useful
+> because you generally want to modify PKRU *before* computing the details
+> of the memory access, so that you don't have a general =E2=80=9Cpoke anyw=
+here
+> with this access right=E2=80=9D primitive in the text segment.  (I called=
+ this
+> the =E2=80=9Csuffix problem=E2=80=9D in another context.)
+
+
+Ugh, right.  It's been long enough that I forgot about the underlying
+issue.  A big part of the problem here is that pkey_alloc() should set the
+initial value of the key across all threads, but it *can't*.  There is
+literally no way to do it in a multithreaded program that uses RDPKRU and
+WRPKRU.
+
+But I think the right fix, at least for your use case, is to have a per-mm
+init_pkru variable that starts as "deny all".  We'd add a new pkey_alloc()
+flag like PKEY_ALLOC_UPDATE_INITIAL_STATE that causes the specified mode to
+update init_pkru.  New threads and delivered signals would get the
+init_pkru state instead of the hardcoded default.
