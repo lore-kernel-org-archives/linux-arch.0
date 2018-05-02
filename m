@@ -1,85 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga01.intel.com ([192.55.52.88]:58147 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751476AbeEBNzi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 May 2018 09:55:38 -0400
+        id S1750930AbeEBNz3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 May 2018 09:55:29 -0400
 From: changbin.du@intel.com
-Subject: [PATCH v2 3/5] kernel hacking: new config NO_AUTO_INLINE to disable compiler auto-inline optimizations
-Date: Wed,  2 May 2018 21:44:58 +0800
-Message-ID: <1525268700-10631-4-git-send-email-changbin.du@intel.com>
-In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
-References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v2 0/5] kernel hacking: GCC optimization for debug experience (-Og)
+Date: Wed,  2 May 2018 21:44:55 +0800
+Message-ID: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
 Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
-Message-ID: <20180502134458.GmgJUQtRXSgaj6bL-S1Ss68X3VAehkt52NySeNSrZ6c@z>
+Message-ID: <20180502134455.s-ZssnrQX9XRdwmJo70I4Mtjs3TkfWCJ2NggMSWOlo8@z>
 
 From: Changbin Du <changbin.du@intel.com>
 
-This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
-this option will prevent the compiler from optimizing the kernel by
-auto-inlining functions not marked with the inline keyword.
+Hi all,
+I know some kernel developers was searching for a method to dissable GCC
+optimizations, probably they want to apply GCC '-O0' option. But since Linux
+kernel replys on GCC optimization to remove some dead code, so '-O0' just
+breaks the build. They do need this because they want to debug kernel with
+qemu, simics, kgtp or kgdb.
 
-With this option, only functions explicitly marked with "inline" will
-be inlined. This will allow the function tracer to trace more functions
-because it only traces functions that the compiler has not inlined.
+Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
+offers a reasonable level of optimization while maintaining fast compilation
+and a good debugging experience. It is similar to '-O1' while perfer keeping
+debug ability over runtime speed. With '-Og', we can build a kernel with
+better debug ability and little performance drop after some simple change.
 
-Signed-off-by: Changbin Du <changbin.du@intel.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>
+In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
+fixes for this new option. With this option, only functions explicitly marked
+with "inline" will  be inlined. This will allow the function tracer to trace
+more functions because it only traces functions that the compiler has not
+inlined.
 
----
-v2: Some grammar updates from Steven.
----
- Makefile          |  6 ++++++
- lib/Kconfig.debug | 18 ++++++++++++++++++
- 2 files changed, 24 insertions(+)
+Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
+optimization level for whole kernel, with a simple fix in fix_to_virt().
+Currently this option is only tested on a QEMU gust and it works fine.
 
-diff --git a/Makefile b/Makefile
-index 619a85a..eb694f6 100644
---- a/Makefile
-+++ b/Makefile
-@@ -775,6 +775,12 @@ KBUILD_CFLAGS 	+= $(call cc-option, -femit-struct-debug-baseonly) \
- 		   $(call cc-option,-fno-var-tracking)
- endif
- 
-+ifdef CONFIG_NO_AUTO_INLINE
-+KBUILD_CFLAGS   += $(call cc-option, -fno-inline-functions) \
-+		   $(call cc-option, -fno-inline-small-functions) \
-+		   $(call cc-option, -fno-inline-functions-called-once)
-+endif
-+
- ifdef CONFIG_FUNCTION_TRACER
- ifndef CC_FLAGS_FTRACE
- CC_FLAGS_FTRACE := -pg
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index c40c7b7..ab55801 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -198,6 +198,24 @@ config GDB_SCRIPTS
- 	  instance. See Documentation/dev-tools/gdb-kernel-debugging.rst
- 	  for further details.
- 
-+config NO_AUTO_INLINE
-+	bool "Disable compiler auto-inline optimizations"
-+	default n
-+	help
-+	  This will prevent the compiler from optimizing the kernel by
-+	  auto-inlining functions not marked with the inline keyword.
-+	  With this option, only functions explicitly marked with
-+	  "inline" will be inlined. This will allow the function tracer
-+	  to trace more functions because it only traces functions that
-+	  the compiler has not inlined.
-+
-+	  Enabling this function can help debugging a kernel if using
-+	  the function tracer. But it can also change how the kernel
-+	  works, because inlining functions may change the timing,
-+	  which could make it difficult while debugging race conditions.
-+
-+	  If unsure, select N.
-+
- config ENABLE_WARN_DEPRECATED
- 	bool "Enable __deprecated logic"
- 	default y
+
+Comparison of vmlinux size: a bit smaller.
+
+    w/o CONFIG_DEBUG_EXPERIENCE
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    22665554   9709674  2920908 35296136        21a9388 vmlinux
+
+    w/ CONFIG_DEBUG_EXPERIENCE
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    21499032   10102758 2920908 34522698        20ec64a vmlinux
+
+
+Comparison of system performance: a bit drop (~6%).
+    This benchmark of kernel compilation is suggested by Ingo Molnar.
+    https://lkml.org/lkml/2018/5/2/74
+
+    Preparation: Set cpufreq to 'performance'.
+    for ((cpu=0; cpu<120; cpu++)); do
+      G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
+      [ -f $G ] && echo performance > $G
+    done
+
+    w/o CONFIG_DEBUG_EXPERIENCE
+    $ perf stat --repeat 5 --null --pre                 '\
+        cp -a kernel ../kernel.copy.$(date +%s);         \
+        rm -rf *;                                        \
+        git checkout .;                                  \
+        echo 1 > /proc/sys/vm/drop_caches;               \
+        find ../kernel* -type f | xargs cat >/dev/null;  \
+        make -j kernel >/dev/null;                       \
+        make clean >/dev/null 2>&1;                      \
+        sync                                            '\
+                                                         \
+        make -j8 >/dev/null
+
+     Performance counter stats for 'make -j8' (5 runs):
+
+        219.764246652 seconds time elapsed                   ( +-  0.78% )
+
+    w/ CONFIG_DEBUG_EXPERIENCE
+    $ perf stat --repeat 5 --null --pre                 '\
+        cp -a kernel ../kernel.copy.$(date +%s);         \
+        rm -rf *;                                        \
+        git checkout .;                                  \
+        echo 1 > /proc/sys/vm/drop_caches;               \
+        find ../kernel* -type f | xargs cat >/dev/null;  \
+        make -j kernel >/dev/null;                       \
+        make clean >/dev/null 2>&1;                      \
+        sync                                            '\
+                                                         \
+        make -j8 >/dev/null
+
+    Performance counter stats for 'make -j8' (5 runs):
+
+         233.574187771 seconds time elapsed                  ( +-  0.19% )
+
+Changbin Du (5):
+  x86/mm: surround level4_kernel_pgt with #ifdef
+    CONFIG_X86_5LEVEL...#endif
+  regulator: add dummy function of_find_regulator_by_node
+  kernel hacking: new config NO_AUTO_INLINE to disable compiler
+    auto-inline optimizations
+  kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
+    optimization
+  asm-generic: fix build error in fix_to_virt with
+    CONFIG_DEBUG_EXPERIENCE
+
+ Makefile                          | 10 ++++++++++
+ arch/x86/include/asm/pgtable_64.h |  2 ++
+ arch/x86/kernel/head64.c          | 13 ++++++-------
+ drivers/regulator/internal.h      |  9 +++++++--
+ include/asm-generic/fixmap.h      |  3 ++-
+ include/linux/compiler-gcc.h      |  2 +-
+ include/linux/compiler.h          |  2 +-
+ lib/Kconfig.debug                 | 39 +++++++++++++++++++++++++++++++++++++++
+ 8 files changed, 68 insertions(+), 12 deletions(-)
+
 -- 
 2.7.4
