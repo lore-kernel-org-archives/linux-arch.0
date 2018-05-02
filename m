@@ -1,67 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:52273 "EHLO mga02.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751011AbeEBObA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 May 2018 10:31:00 -0400
-Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
- signal semantics
-References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
-Date: Wed, 2 May 2018 07:30:56 -0700
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:39798 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751391AbeEBO4g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2018 10:56:36 -0400
+Received: by mail-wm0-f68.google.com with SMTP id f8so14438601wmc.4
+        for <linux-arch@vger.kernel.org>; Wed, 02 May 2018 07:56:35 -0700 (PDT)
+Date: Wed, 2 May 2018 15:56:31 +0100
+From: Daniel Thompson <daniel.thompson@linaro.org>
+Subject: Re: [PATCH v2 0/5] kernel hacking: GCC optimization for debug
+ experience (-Og)
+Message-ID: <20180502145631.bzfqpw4izlrqhda6@holly.lan>
+References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>, linux-mm@kvack.org, linux-api@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: linuxram@us.ibm.com
+To: changbin.du@intel.com
+Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180502145631.A8efjqUX4lWFKcNtxO5kakT498P39bztI5pCa0I1xk0@z>
 
-On 05/02/2018 06:26 AM, Florian Weimer wrote:
-> pkeys support for IBM POWER intends to inherited the access rights of
-> the current thread in signal handlers.  The advantage is that this
-> preserves access to memory regions associated with non-default keys,
-> enabling additional usage scenarios for memory protection keys which
-> currently do not work on x86 due to the unconditional reset to the
-> (configurable) default key in signal handlers.
+On Wed, May 02, 2018 at 09:44:55PM +0800, changbin.du@intel.com wrote:
+> From: Changbin Du <changbin.du@intel.com>
+> 
+> Hi all,
+> I know some kernel developers was searching for a method to dissable GCC
+> optimizations, probably they want to apply GCC '-O0' option. But since Linux
+> kernel replys on GCC optimization to remove some dead code, so '-O0' just
+> breaks the build. They do need this because they want to debug kernel with
+> qemu, simics, kgtp or kgdb.
+> 
+> Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
+> offers a reasonable level of optimization while maintaining fast compilation
+> and a good debugging experience. It is similar to '-O1' while perfer keeping
+> debug ability over runtime speed. With '-Og', we can build a kernel with
+> better debug ability and little performance drop after some simple change.
+> 
+> In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
+> fixes for this new option. With this option, only functions explicitly marked
+> with "inline" will  be inlined. This will allow the function tracer to trace
+> more functions because it only traces functions that the compiler has not
+> inlined.
+> 
+> Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
+> optimization level for whole kernel, with a simple fix in fix_to_virt().
+> Currently this option is only tested on a QEMU gust and it works fine.
+> 
+> 
+> Comparison of vmlinux size: a bit smaller.
+> 
+>     w/o CONFIG_DEBUG_EXPERIENCE
+>     $ size vmlinux
+>        text    data     bss     dec     hex filename
+>     22665554   9709674  2920908 35296136        21a9388 vmlinux
+> 
+>     w/ CONFIG_DEBUG_EXPERIENCE
+>     $ size vmlinux
+>        text    data     bss     dec     hex filename
+>     21499032   10102758 2920908 34522698        20ec64a vmlinux
+> 
+> 
+> Comparison of system performance: a bit drop (~6%).
+>     This benchmark of kernel compilation is suggested by Ingo Molnar.
+>     https://lkml.org/lkml/2018/5/2/74
 
-What's the usage scenario that does not work?
+In my mind was the opposite question. When running on the same kernel
+does a kernel whose config contains CONFIG_DEBUG_EXPERIENCE build faster
+than one without (due to the disabled optimization passes).
 
-> Consequently, this commit updates the x86 implementation to preserve
-> the PKRU register value of the interrupted context in signal handlers.
-> If a key is allocated successfully with the PKEY_ALLOC_SIGNALINHERIT
-> flag, the application can assume this signal inheritance behavior.
+To be honest this is more curiosity than a review comment though... if
+you have the figures please share, if not then don't sweat it on my
+account!
 
-I think this is a pretty gross misuse of the API.  Adding an argument to
-pkey_alloc() is something that folks would assume would impact the key
-being *allocated*, not pkeys behavior across the process as a whole.
 
-> This change does not affect the init_pkru optimization because if the
-> thread's PKRU register is zero due to the init_pkru setting, it will
-> remain zero in the signal handler through inheritance from the
-> interrupted context.
+Daniel.
 
-I think you are right, but it's rather convoluted.  It does:
 
-1. Running with PKRU in the init state
-2. Kernel saves off init-state-PKRU XSAVE signal buffer
-3. Enter signal, kernel XRSTOR (may) set the init state again
-4. fpu__clear() does __write_pkru(), takes it out of the init state
-5. Signal handler runs, exits
-6. fpu__restore_sig() XRSTOR's the state from #2, taking PKRU back to
-   the init state
 
-But, about the patch in general:
-
-I'm not a big fan of doing this in such a PKRU-specific way.  It would
-be nice to have this available for all XSAVE states.  It would also keep
-you from so unnecessarily frobbing with WRPKRU in fpu__clear().  You
-could just clear the PKRU bit in the Requested Feature BitMap (RFBM)
-passed to XRSTOR.  That would be much straightforward and able to be
-more easily extended to more states.
-
-PKRU is now preserved on signal entry, but not signal exit.  Was that
-intentional?  That seems like odd behavior, and also differs from the
-POWER implementation as I understand it.
+> 
+>     Preparation: Set cpufreq to 'performance'.
+>     for ((cpu=0; cpu<120; cpu++)); do
+>       G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
+>       [ -f $G ] && echo performance > $G
+>     done
+> 
+>     w/o CONFIG_DEBUG_EXPERIENCE
+>     $ perf stat --repeat 5 --null --pre                 '\
+>         cp -a kernel ../kernel.copy.$(date +%s);         \
+>         rm -rf *;                                        \
+>         git checkout .;                                  \
+>         echo 1 > /proc/sys/vm/drop_caches;               \
+>         find ../kernel* -type f | xargs cat >/dev/null;  \
+>         make -j kernel >/dev/null;                       \
+>         make clean >/dev/null 2>&1;                      \
+>         sync                                            '\
+>                                                          \
+>         make -j8 >/dev/null
+> 
+>      Performance counter stats for 'make -j8' (5 runs):
+> 
+>         219.764246652 seconds time elapsed                   ( +-  0.78% )
+> 
+>     w/ CONFIG_DEBUG_EXPERIENCE
+>     $ perf stat --repeat 5 --null --pre                 '\
+>         cp -a kernel ../kernel.copy.$(date +%s);         \
+>         rm -rf *;                                        \
+>         git checkout .;                                  \
+>         echo 1 > /proc/sys/vm/drop_caches;               \
+>         find ../kernel* -type f | xargs cat >/dev/null;  \
+>         make -j kernel >/dev/null;                       \
+>         make clean >/dev/null 2>&1;                      \
+>         sync                                            '\
+>                                                          \
+>         make -j8 >/dev/null
+> 
+>     Performance counter stats for 'make -j8' (5 runs):
+> 
+>          233.574187771 seconds time elapsed                  ( +-  0.19% )
+> 
+> Changbin Du (5):
+>   x86/mm: surround level4_kernel_pgt with #ifdef
+>     CONFIG_X86_5LEVEL...#endif
+>   regulator: add dummy function of_find_regulator_by_node
+>   kernel hacking: new config NO_AUTO_INLINE to disable compiler
+>     auto-inline optimizations
+>   kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
+>     optimization
+>   asm-generic: fix build error in fix_to_virt with
+>     CONFIG_DEBUG_EXPERIENCE
+> 
+>  Makefile                          | 10 ++++++++++
+>  arch/x86/include/asm/pgtable_64.h |  2 ++
+>  arch/x86/kernel/head64.c          | 13 ++++++-------
+>  drivers/regulator/internal.h      |  9 +++++++--
+>  include/asm-generic/fixmap.h      |  3 ++-
+>  include/linux/compiler-gcc.h      |  2 +-
+>  include/linux/compiler.h          |  2 +-
+>  lib/Kconfig.debug                 | 39 +++++++++++++++++++++++++++++++++++++++
+>  8 files changed, 68 insertions(+), 12 deletions(-)
+> 
+> -- 
+> 2.7.4
+> 
