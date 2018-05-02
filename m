@@ -1,8 +1,10 @@
 From: changbin.du@intel.com
-Subject: [PATCH v2 0/5] kernel hacking: GCC optimization for debug experience (-Og)
-Date: Wed,  2 May 2018 21:44:55 +0800
-Message-ID: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v2 2/5] regulator: add dummy function of_find_regulator_by_node
+Date: Wed,  2 May 2018 21:44:57 +0800
+Message-ID: <1525268700-10631-3-git-send-email-changbin.du@intel.com>
+References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
 Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
@@ -10,107 +12,73 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Changbin Du <changbin.du@intel.com>
 
-Hi all,
-I know some kernel developers was searching for a method to dissable GCC
-optimizations, probably they want to apply GCC '-O0' option. But since Linux
-kernel replys on GCC optimization to remove some dead code, so '-O0' just
-breaks the build. They do need this because they want to debug kernel with
-qemu, simics, kgtp or kgdb.
+If device tree is not enabled, of_find_regulator_by_node() should have
+a dummy function since the function call is still there.
 
-Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
-offers a reasonable level of optimization while maintaining fast compilation
-and a good debugging experience. It is similar to '-O1' while perfer keeping
-debug ability over runtime speed. With '-Og', we can build a kernel with
-better debug ability and little performance drop after some simple change.
+This is to fix build error after CONFIG_NO_AUTO_INLINE is introduced.
+If this option is enabled, GCC will not auto-inline functions that are
+not explicitly marked as inline.
 
-In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
-fixes for this new option. With this option, only functions explicitly marked
-with "inline" will  be inlined. This will allow the function tracer to trace
-more functions because it only traces functions that the compiler has not
-inlined.
+In this case (no CONFIG_OF), the copmiler will report error in function
+regulator_dev_lookup().
 
-Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
-optimization level for whole kernel, with a simple fix in fix_to_virt().
-Currently this option is only tested on a QEMU gust and it works fine.
+W/O NO_AUTO_INLINE, function of_get_regulator() is auto-inlined and then
+the call to of_find_regulator_by_node() is optimized out since
+of_get_regulator() always return NULL.
 
+W/ NO_AUTO_INLINE, the return value of of_get_regulator() is a variable
+so the call to of_find_regulator_by_node() cannot be optimized out. So
+we need a stub of_find_regulator_by_node().
 
-Comparison of vmlinux size: a bit smaller.
+static struct regulator_dev *regulator_dev_lookup(struct device *dev,
+						  const char *supply)
+{
+	struct regulator_dev *r = NULL;
+	struct device_node *node;
+	struct regulator_map *map;
+	const char *devname = NULL;
 
-    w/o CONFIG_DEBUG_EXPERIENCE
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    22665554   9709674  2920908 35296136        21a9388 vmlinux
+	regulator_supply_alias(&dev, &supply);
 
-    w/ CONFIG_DEBUG_EXPERIENCE
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    21499032   10102758 2920908 34522698        20ec64a vmlinux
+	/* first do a dt based lookup */
+	if (dev && dev->of_node) {
+		node = of_get_regulator(dev, supply);
+		if (node) {
+			r = of_find_regulator_by_node(node);
+			if (r)
+				return r;
+	...
 
+Signed-off-by: Changbin Du <changbin.du@intel.com>
+---
+ drivers/regulator/internal.h | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-Comparison of system performance: a bit drop (~6%).
-    This benchmark of kernel compilation is suggested by Ingo Molnar.
-    https://lkml.org/lkml/2018/5/2/74
-
-    Preparation: Set cpufreq to 'performance'.
-    for ((cpu=0; cpu<120; cpu++)); do
-      G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
-      [ -f $G ] && echo performance > $G
-    done
-
-    w/o CONFIG_DEBUG_EXPERIENCE
-    $ perf stat --repeat 5 --null --pre                 '\
-        cp -a kernel ../kernel.copy.$(date +%s);         \
-        rm -rf *;                                        \
-        git checkout .;                                  \
-        echo 1 > /proc/sys/vm/drop_caches;               \
-        find ../kernel* -type f | xargs cat >/dev/null;  \
-        make -j kernel >/dev/null;                       \
-        make clean >/dev/null 2>&1;                      \
-        sync                                            '\
-                                                         \
-        make -j8 >/dev/null
-
-     Performance counter stats for 'make -j8' (5 runs):
-
-        219.764246652 seconds time elapsed                   ( +-  0.78% )
-
-    w/ CONFIG_DEBUG_EXPERIENCE
-    $ perf stat --repeat 5 --null --pre                 '\
-        cp -a kernel ../kernel.copy.$(date +%s);         \
-        rm -rf *;                                        \
-        git checkout .;                                  \
-        echo 1 > /proc/sys/vm/drop_caches;               \
-        find ../kernel* -type f | xargs cat >/dev/null;  \
-        make -j kernel >/dev/null;                       \
-        make clean >/dev/null 2>&1;                      \
-        sync                                            '\
-                                                         \
-        make -j8 >/dev/null
-
-    Performance counter stats for 'make -j8' (5 runs):
-
-         233.574187771 seconds time elapsed                  ( +-  0.19% )
-
-Changbin Du (5):
-  x86/mm: surround level4_kernel_pgt with #ifdef
-    CONFIG_X86_5LEVEL...#endif
-  regulator: add dummy function of_find_regulator_by_node
-  kernel hacking: new config NO_AUTO_INLINE to disable compiler
-    auto-inline optimizations
-  kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
-    optimization
-  asm-generic: fix build error in fix_to_virt with
-    CONFIG_DEBUG_EXPERIENCE
-
- Makefile                          | 10 ++++++++++
- arch/x86/include/asm/pgtable_64.h |  2 ++
- arch/x86/kernel/head64.c          | 13 ++++++-------
- drivers/regulator/internal.h      |  9 +++++++--
- include/asm-generic/fixmap.h      |  3 ++-
- include/linux/compiler-gcc.h      |  2 +-
- include/linux/compiler.h          |  2 +-
- lib/Kconfig.debug                 | 39 +++++++++++++++++++++++++++++++++++++++
- 8 files changed, 68 insertions(+), 12 deletions(-)
-
+diff --git a/drivers/regulator/internal.h b/drivers/regulator/internal.h
+index abfd56e..24fde1e 100644
+--- a/drivers/regulator/internal.h
++++ b/drivers/regulator/internal.h
+@@ -56,14 +56,19 @@ static inline struct regulator_dev *dev_to_rdev(struct device *dev)
+ 	return container_of(dev, struct regulator_dev, dev);
+ }
+ 
+-struct regulator_dev *of_find_regulator_by_node(struct device_node *np);
+-
+ #ifdef CONFIG_OF
++struct regulator_dev *of_find_regulator_by_node(struct device_node *np);
+ struct regulator_init_data *regulator_of_get_init_data(struct device *dev,
+ 			         const struct regulator_desc *desc,
+ 				 struct regulator_config *config,
+ 				 struct device_node **node);
+ #else
++static inline struct regulator_dev *
++of_find_regulator_by_node(struct device_node *np)
++{
++	return NULL;
++}
++
+ static inline struct regulator_init_data *
+ regulator_of_get_init_data(struct device *dev,
+ 			   const struct regulator_desc *desc,
 -- 
 2.7.4
