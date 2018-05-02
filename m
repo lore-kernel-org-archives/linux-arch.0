@@ -1,85 +1,118 @@
 From: "Du, Changbin" <changbin.du@intel.com>
-Subject: Re: [PATCH 4/5] kernel hacking: new config DEBUG_EXPERIENCE to apply
- GCC -Og optimization
-Date: Wed, 2 May 2018 17:24:58 +0800
-Message-ID: <20180502092458.zss44oqy7fqsyszp@intel.com>
+Subject: Re: [PATCH 3/5] kernel hacking: new config NO_AUTO_INLINE to disable
+ compiler atuo-inline optimizations
+Date: Wed, 2 May 2018 17:27:01 +0800
+Message-ID: <20180502092700.i4tpyi7gbf7jz7ax@intel.com>
 References: <1525179614-14571-1-git-send-email-changbin.du@intel.com>
- <1525179614-14571-5-git-send-email-changbin.du@intel.com>
- <f19eae29-3b94-5151-04c5-6fb620bd28e9@infradead.org>
+ <1525179614-14571-4-git-send-email-changbin.du@intel.com>
+ <20180501105420.07e41578@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <f19eae29-3b94-5151-04c5-6fb620bd28e9@infradead.org>
+In-Reply-To: <20180501105420.07e41578@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>
+To: Steven Rostedt <rostedt@goodmis.org>
 Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 01, 2018 at 08:25:27AM -0700, Randy Dunlap wrote:
-> Good morning.
+On Tue, May 01, 2018 at 10:54:20AM -0400, Steven Rostedt wrote:
+> On Tue,  1 May 2018 21:00:12 +0800
+> changbin.du@intel.com wrote:
 > 
-> On 05/01/2018 06:00 AM, changbin.du@intel.com wrote:
 > > From: Changbin Du <changbin.du@intel.com>
 > > 
+> > This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
+> > this option will make compiler not auto-inline kernel functions. By
+> > enabling this option, all the kernel functions (including static ones)
+> > will not be optimized out except those marked as inline or always_inline.
+> > This is useful when you are using ftrace to understand the control flow
+> > of kernel code or tracing some static functions.
+> 
+> I'm not against this patch, but it's up to others if this gets included
+> or not.
+> 
 > > 
 > > Signed-off-by: Changbin Du <changbin.du@intel.com>
+> > Cc: Steven Rostedt <rostedt@goodmis.org>
 > > ---
-> >  Makefile                     |  4 ++++
-> >  include/linux/compiler-gcc.h |  2 +-
-> >  include/linux/compiler.h     |  2 +-
-> >  lib/Kconfig.debug            | 21 +++++++++++++++++++++
-> >  4 files changed, 27 insertions(+), 2 deletions(-)
+> >  Makefile          |  6 ++++++
+> >  lib/Kconfig.debug | 13 +++++++++++++
+> >  2 files changed, 19 insertions(+)
 > > 
-> 
+> > diff --git a/Makefile b/Makefile
+> > index 619a85a..eb694f6 100644
+> > --- a/Makefile
+> > +++ b/Makefile
+> > @@ -775,6 +775,12 @@ KBUILD_CFLAGS 	+= $(call cc-option, -femit-struct-debug-baseonly) \
+> >  		   $(call cc-option,-fno-var-tracking)
+> >  endif
+> >  
+> > +ifdef CONFIG_NO_AUTO_INLINE
+> > +KBUILD_CFLAGS   += $(call cc-option, -fno-inline-functions) \
+> > +		   $(call cc-option, -fno-inline-small-functions) \
+> > +		   $(call cc-option, -fno-inline-functions-called-once)
+> > +endif
+> > +
+> >  ifdef CONFIG_FUNCTION_TRACER
+> >  ifndef CC_FLAGS_FTRACE
+> >  CC_FLAGS_FTRACE := -pg
 > > diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-> > index 90f35ad..2432e77d 100644
+> > index c40c7b7..90f35ad 100644
 > > --- a/lib/Kconfig.debug
 > > +++ b/lib/Kconfig.debug
-> > @@ -211,6 +211,27 @@ config NO_AUTO_INLINE
+> > @@ -198,6 +198,19 @@ config GDB_SCRIPTS
+> >  	  instance. See Documentation/dev-tools/gdb-kernel-debugging.rst
+> >  	  for further details.
 > >  
-> >  	  Use only if you want to debug the kernel.
-> >  
-> > +config DEBUG_EXPERIENCE
-> > +	bool "Optimize for better debugging experience (-Og)"
+> > +config NO_AUTO_INLINE
+> > +	bool "Disable compiler atuo-inline optimizations"
+> 
+> typo: s/atuo/auto/
+> 
 > > +	default n
-> > +	select NO_AUTO_INLINE
-> > +	depends on !CC_OPTIMIZE_FOR_SIZE
 > > +	help
-> > +	  This will apply GCC '-Og' optimization level get supported from
+> > +	  This will make compiler not auto-inline kernel functions for
+> > +	  optimization. By enabling this option, all the kernel functions
+> > +	  (including static ones) will not be optimized out except those
+> > +	  marked as inline or always_inline. This is useful when you are
+> > +	  using ftrace to understand the control flow of kernel code or
+> > +	  tracing some static functions.
 > 
-> 	                                               which is supported since
+> Some grammar updates:
 > 
-> > +	  GCC 4.8. This optimization level offers a reasonable level of
-> > +	  optimization while maintaining fast compilation and a good
-> > +	  debugging experience. It is similar to '-O1' while perfer keeping
+> 	  This will prevent the compiler from optimizing the kernel by
+> 	  auto-inlining functions not marked with the inline keyword.
+> 	  With this option, only functions explicitly marked with
+> 	  "inline" will be inlined. This will allow the function tracer
+> 	  to trace more functions because it only traces functions that
+> 	  the compiler has not inlined.
 > 
-> 	                                               while preferring to keep
+> 	  Enabling this function can help debugging a kernel if using
+> 	  the function tracer. But it can also change how the kernel
+> 	  works, because inlining functions may change the timing,
+> 	  which could make it difficult while debugging race conditions.
 > 
-> > +	  debug ability over runtime speed. The overall performance will
-> > +	  drop a bit.
+
+Thanks for your kind grammar updates. I will update them. :)
+
 > > +
-> > +	  If enabling this option break your kernel, you should either
+> > +	  Use only if you want to debug the kernel.
 > 
-> 	                          breaks
+> The proper way to say the above is:
 > 
-> > +	  disable this or find a fix (mostly in the arch code). Currently
-> > +	  this option has only be tested in qemu x86_64 guest.
-> > +
-> > +	  Use only if you want to debug the kernel, especially if you want
-> > +	  to have better kernel debugging experience with gdb facilities
-> > +	  like kgdb and qemu.
+> 	  If unsure, select N
+>
+Agree.
+
+> -- Steve
+> 
 > > +
 > >  config ENABLE_WARN_DEPRECATED
 > >  	bool "Enable __deprecated logic"
 > >  	default y
-> > 
 > 
-> thanks,
-> -- 
-> ~Randy
 
-Thanks for your correction, I will update.
 
 -- 
 Thanks,
