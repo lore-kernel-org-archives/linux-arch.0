@@ -1,138 +1,48 @@
-From: Daniel Thompson <daniel.thompson@linaro.org>
-Subject: Re: [PATCH v2 0/5] kernel hacking: GCC optimization for debug
- experience (-Og)
-Date: Wed, 2 May 2018 15:56:31 +0100
-Message-ID: <20180502145631.bzfqpw4izlrqhda6@holly.lan>
-References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH] mm: provide a fallback for PAGE_KERNEL_RO for
+ architectures
+Date: Wed, 2 May 2018 15:11:13 +0000
+Message-ID: <20180502151113.GB27853@wotan.suse.de>
+References: <20180428001526.22475-1-mcgrof@kernel.org>
+ <CAMuHMdUpc6=j62E7Xrcid6tKU5FRUZsiSVK7J=KD09epQ=9xfA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+In-Reply-To: <CAMuHMdUpc6=j62E7Xrcid6tKU5FRUZsiSVK7J=KD09epQ=9xfA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: changbin.du@intel.com
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Matthew Wilcox <mawilcox@microsoft.com>, Greg KH <gregkh@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 02, 2018 at 09:44:55PM +0800, changbin.du@intel.com wrote:
-> From: Changbin Du <changbin.du@intel.com>
+On Wed, May 02, 2018 at 12:08:57PM +0200, Geert Uytterhoeven wrote:
+> Hi Luis,
 > 
-> Hi all,
-> I know some kernel developers was searching for a method to dissable GCC
-> optimizations, probably they want to apply GCC '-O0' option. But since Linux
-> kernel replys on GCC optimization to remove some dead code, so '-O0' just
-> breaks the build. They do need this because they want to debug kernel with
-> qemu, simics, kgtp or kgdb.
+> On Sat, Apr 28, 2018 at 2:15 AM, Luis R. Rodriguez <mcgrof@kernel.org> wrote:
+> > Some architectures do not define PAGE_KERNEL_RO, best we can do
+> > for them is to provide a fallback onto PAGE_KERNEL. Remove the
+> > hack from the firmware loader and move it onto the asm-generic
+> > header, and document while at it the affected architectures
+> > which do not have a PAGE_KERNEL_RO:
+> >
+> >   o alpha
+> >   o ia64
+> >   o m68k
+> >   o mips
+> >   o sparc64
+> >   o sparc
+> >
+> > Blessed-by: 0-day
+> > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 > 
-> Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
-> offers a reasonable level of optimization while maintaining fast compilation
-> and a good debugging experience. It is similar to '-O1' while perfer keeping
-> debug ability over runtime speed. With '-Og', we can build a kernel with
-> better debug ability and little performance drop after some simple change.
-> 
-> In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
-> fixes for this new option. With this option, only functions explicitly marked
-> with "inline" will  be inlined. This will allow the function tracer to trace
-> more functions because it only traces functions that the compiler has not
-> inlined.
-> 
-> Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
-> optimization level for whole kernel, with a simple fix in fix_to_virt().
-> Currently this option is only tested on a QEMU gust and it works fine.
-> 
-> 
-> Comparison of vmlinux size: a bit smaller.
-> 
->     w/o CONFIG_DEBUG_EXPERIENCE
->     $ size vmlinux
->        text    data     bss     dec     hex filename
->     22665554   9709674  2920908 35296136        21a9388 vmlinux
-> 
->     w/ CONFIG_DEBUG_EXPERIENCE
->     $ size vmlinux
->        text    data     bss     dec     hex filename
->     21499032   10102758 2920908 34522698        20ec64a vmlinux
-> 
-> 
-> Comparison of system performance: a bit drop (~6%).
->     This benchmark of kernel compilation is suggested by Ingo Molnar.
->     https://lkml.org/lkml/2018/5/2/74
+> I believe the "best we can do" is to add the missing definitions for the
+> architectures where the hardware does support it?
 
-In my mind was the opposite question. When running on the same kernel
-does a kernel whose config contains CONFIG_DEBUG_EXPERIENCE build faster
-than one without (due to the disabled optimization passes).
+True, but we cannot wait for every architecture to implement a feature to then
+such generics upstream, specially when we have common places which use that.
+Matthew did send a patch to add ia64 support for PAGE_KERNEL_RO, so I'll
+respin the patch to add that and also move the other define he suggested.
 
-To be honest this is more curiosity than a review comment though... if
-you have the figures please share, if not then don't sweat it on my
-account!
+At least we'd now have a list of documented archs which need further work too.
 
-
-Daniel.
-
-
-
-> 
->     Preparation: Set cpufreq to 'performance'.
->     for ((cpu=0; cpu<120; cpu++)); do
->       G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
->       [ -f $G ] && echo performance > $G
->     done
-> 
->     w/o CONFIG_DEBUG_EXPERIENCE
->     $ perf stat --repeat 5 --null --pre                 '\
->         cp -a kernel ../kernel.copy.$(date +%s);         \
->         rm -rf *;                                        \
->         git checkout .;                                  \
->         echo 1 > /proc/sys/vm/drop_caches;               \
->         find ../kernel* -type f | xargs cat >/dev/null;  \
->         make -j kernel >/dev/null;                       \
->         make clean >/dev/null 2>&1;                      \
->         sync                                            '\
->                                                          \
->         make -j8 >/dev/null
-> 
->      Performance counter stats for 'make -j8' (5 runs):
-> 
->         219.764246652 seconds time elapsed                   ( +-  0.78% )
-> 
->     w/ CONFIG_DEBUG_EXPERIENCE
->     $ perf stat --repeat 5 --null --pre                 '\
->         cp -a kernel ../kernel.copy.$(date +%s);         \
->         rm -rf *;                                        \
->         git checkout .;                                  \
->         echo 1 > /proc/sys/vm/drop_caches;               \
->         find ../kernel* -type f | xargs cat >/dev/null;  \
->         make -j kernel >/dev/null;                       \
->         make clean >/dev/null 2>&1;                      \
->         sync                                            '\
->                                                          \
->         make -j8 >/dev/null
-> 
->     Performance counter stats for 'make -j8' (5 runs):
-> 
->          233.574187771 seconds time elapsed                  ( +-  0.19% )
-> 
-> Changbin Du (5):
->   x86/mm: surround level4_kernel_pgt with #ifdef
->     CONFIG_X86_5LEVEL...#endif
->   regulator: add dummy function of_find_regulator_by_node
->   kernel hacking: new config NO_AUTO_INLINE to disable compiler
->     auto-inline optimizations
->   kernel hacking: new config DEBUG_EXPERIENCE to apply GCC -Og
->     optimization
->   asm-generic: fix build error in fix_to_virt with
->     CONFIG_DEBUG_EXPERIENCE
-> 
->  Makefile                          | 10 ++++++++++
->  arch/x86/include/asm/pgtable_64.h |  2 ++
->  arch/x86/kernel/head64.c          | 13 ++++++-------
->  drivers/regulator/internal.h      |  9 +++++++--
->  include/asm-generic/fixmap.h      |  3 ++-
->  include/linux/compiler-gcc.h      |  2 +-
->  include/linux/compiler.h          |  2 +-
->  lib/Kconfig.debug                 | 39 +++++++++++++++++++++++++++++++++++++++
->  8 files changed, 68 insertions(+), 12 deletions(-)
-> 
-> -- 
-> 2.7.4
-> 
+  Luis
