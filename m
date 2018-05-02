@@ -1,48 +1,64 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH] mm: provide a fallback for PAGE_KERNEL_RO for
- architectures
-Date: Wed, 2 May 2018 15:11:13 +0000
-Message-ID: <20180502151113.GB27853@wotan.suse.de>
-References: <20180428001526.22475-1-mcgrof@kernel.org>
- <CAMuHMdUpc6=j62E7Xrcid6tKU5FRUZsiSVK7J=KD09epQ=9xfA@mail.gmail.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [PATCH v2 4/5] kernel hacking: new config DEBUG_EXPERIENCE to
+ apply GCC -Og optimization
+Date: Wed, 2 May 2018 12:26:30 -0700
+Message-ID: <34ba017d-2e94-7411-a675-0e3e2a6b0682@infradead.org>
+References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+ <1525268700-10631-5-git-send-email-changbin.du@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdUpc6=j62E7Xrcid6tKU5FRUZsiSVK7J=KD09epQ=9xfA@mail.gmail.com>
+In-Reply-To: <1525268700-10631-5-git-send-email-changbin.du@intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Matthew Wilcox <mawilcox@microsoft.com>, Greg KH <gregkh@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
+To: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
+Cc: rostedt@goodmis.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 02, 2018 at 12:08:57PM +0200, Geert Uytterhoeven wrote:
-> Hi Luis,
+On 05/02/2018 06:44 AM, changbin.du@intel.com wrote:
+> From: Changbin Du <changbin.du@intel.com>
 > 
-> On Sat, Apr 28, 2018 at 2:15 AM, Luis R. Rodriguez <mcgrof@kernel.org> wrote:
-> > Some architectures do not define PAGE_KERNEL_RO, best we can do
-> > for them is to provide a fallback onto PAGE_KERNEL. Remove the
-> > hack from the firmware loader and move it onto the asm-generic
-> > header, and document while at it the affected architectures
-> > which do not have a PAGE_KERNEL_RO:
-> >
-> >   o alpha
-> >   o ia64
-> >   o m68k
-> >   o mips
-> >   o sparc64
-> >   o sparc
-> >
-> > Blessed-by: 0-day
-> > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+
+Sorry, I missed one:
+
+> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> index ab55801..e264199 100644
+> --- a/lib/Kconfig.debug
+> +++ b/lib/Kconfig.debug
+> @@ -216,6 +216,27 @@ config NO_AUTO_INLINE
+>  
+>  	  If unsure, select N.
+>  
+> +config DEBUG_EXPERIENCE
+> +	bool "Optimize for better debugging experience (-Og)"
+> +	default n
+> +	select NO_AUTO_INLINE
+> +	depends on !CC_OPTIMIZE_FOR_SIZE
+> +	help
+> +	  This will apply GCC '-Og' optimization level which is supported
+> +	  since GCC 4.8. This optimization level offers a reasonable level
+> +	  of optimization while maintaining fast compilation and a good
+> +	  debugging experience. It is similar to '-O1' while preferring to
+> +	  keep debug ability over runtime speed. The overall performance
+> +	  will drop a bit (~6%).
+> +
+> +	  Use only if you want to debug the kernel, especially if you want
+> +	  to have better kernel debugging experience with gdb facilities
+> +	  like kgdb or qemu. If enabling this option breaks your kernel,
+> +	  you should either disable this or find a fix (mostly in the arch
+> +	  code). Currently this option has only be tested on x86_64 platform.
+
+	                                        been tested
+
+> +
+> +	  If unsure, select N.
+> +
+>  config ENABLE_WARN_DEPRECATED
+>  	bool "Enable __deprecated logic"
+>  	default y
 > 
-> I believe the "best we can do" is to add the missing definitions for the
-> architectures where the hardware does support it?
 
-True, but we cannot wait for every architecture to implement a feature to then
-such generics upstream, specially when we have common places which use that.
-Matthew did send a patch to add ia64 support for PAGE_KERNEL_RO, so I'll
-respin the patch to add that and also move the other define he suggested.
 
-At least we'd now have a list of documented archs which need further work too.
-
-  Luis
+-- 
+~Randy
