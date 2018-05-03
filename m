@@ -1,49 +1,44 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 4/5] kernel hacking: new config DEBUG_EXPERIENCE to
- apply GCC -Og optimization
-Date: Wed, 2 May 2018 21:19:56 -0400
-Message-ID: <20180502211956.6c9e8d7b@vmware.local.home>
+From: "Du, Changbin" <changbin.du@intel.com>
+Subject: Re: [PATCH v2 3/5] kernel hacking: new config NO_AUTO_INLINE to
+ disable compiler auto-inline optimizations
+Date: Thu, 3 May 2018 21:00:13 +0800
+Message-ID: <20180503130013.lcsem2xubk5jqmcg@intel.com>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
-        <1525268700-10631-5-git-send-email-changbin.du@intel.com>
-        <20180502101707.206984e9@gandalf.local.home>
-        <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
+ <1525268700-10631-4-git-send-email-changbin.du@intel.com>
+ <CAK8P3a01sgKSYKmzptkNn4xfoGzV=k+uHu0+wco_-x-iMFtVYQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a01sgKSYKmzptkNn4xfoGzV=k+uHu0+wco_-x-iMFtVYQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: changbin.du@intel.com, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Randy Dunlap <rdunlap@infradead.org>, the arch/x86 maintainers <x86@kernel.org>, Liam Girdwood <lgirdwood@gmail.com>, Mark Brown <broonie@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2 May 2018 13:45:58 -0700
-Andrew Morton <akpm@linux-foundation.org> wrote:
-
-> On Wed, 2 May 2018 10:17:07 -0400 Steven Rostedt <rostedt@goodmis.org> wrote:
+On Wed, May 02, 2018 at 04:27:47PM -0400, Arnd Bergmann wrote:
+> On Wed, May 2, 2018 at 9:44 AM,  <changbin.du@intel.com> wrote:
+> > From: Changbin Du <changbin.du@intel.com>
+> >
+> > This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
+> > this option will prevent the compiler from optimizing the kernel by
+> > auto-inlining functions not marked with the inline keyword.
+> >
+> > With this option, only functions explicitly marked with "inline" will
+> > be inlined. This will allow the function tracer to trace more functions
+> > because it only traces functions that the compiler has not inlined.
+> >
+> > Signed-off-by: Changbin Du <changbin.du@intel.com>
+> > Cc: Steven Rostedt <rostedt@goodmis.org>
 > 
-> > > Comparison of vmlinux size: a bit smaller.
-> > > 
-> > >     w/o CONFIG_DEBUG_EXPERIENCE  
-> > 
-> > I hate the config name.
-> > 
-> > I probably can't come up with better ones but let's try:
-> > 
-> >  CONFIG_DEBUG_OPTIMIZE ?
-> >  CONFIG_OPTIMIZE_DEBUG ?
-> > 
-> > But "EXPERIENCE" sounds like I'm on some DEBUG LSD.  
-> 
-> Metoo, but the gcc people decided on "-Og: Optimize debugging
-> experience ..." and I think there are benefits if the kernel is to
-> align the naming with that.
+> Should this be closer to CONFIG_OPTIMIZE_INLINING or
+> possibly mutually exclusive with it?
+>
+They are not related I think. CONFIG_OPTIMIZE_INLINING only has effect on
+functions which are explicitly marked as inline.
 
-I still see that as "Optimize debugging" and "experience" is just the
-platform of what was done.
+>        Arnd
 
-With that gcc comment, I still think CONFIG_OPTIMIZE_DEBUG is more
-inline with what it is and understandable than
-CONFIG_DEBUG_EXPERIENCE. The "OPTIMIZE" is the key word there.
-
--- Steve
+-- 
+Thanks,
+Changbin Du
