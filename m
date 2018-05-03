@@ -1,61 +1,43 @@
-From: weylin <weylin.machine@gmail.com>
-Subject: Re: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with
- CONFIG_DEBUG_EXPERIENCE
-Date: Thu, 3 May 2018 16:39:09 +0000
-Message-ID: <cfdd795e-e724-c6c7-cd47-1fea0fd9fa6b@gmail.com>
-References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
- <1525268700-10631-6-git-send-email-changbin.du@intel.com>
- <20180502101930.25a5437d@gandalf.local.home>
- <20180503132508.qudxf67tyijvjndo@intel.com>
- <20180503101920.3157f63f@gandalf.local.home>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: Introducing a nanoMIPS port for Linux
+Date: Thu, 3 May 2018 18:40:07 -0400
+Message-ID: <CAK8P3a2y2EA1g099DXOHkfevQb=6zuWmVOq9C_wVTQ8zrAMx8w@mail.gmail.com>
+References: <20180502215107.GA9884@saruman>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180503101920.3157f63f@gandalf.local.home>
-Content-Language: en-US
+In-Reply-To: <20180502215107.GA9884@saruman>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>, "Du, Changbin" <changbin.du@intel.com>
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: James Hogan <jhogan@kernel.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Matt Redfearn <matt.redfearn@mips.com>, Marcin Nowakowski <marcin.nowakowski@mips.com>, Matthew Fortune <Matthew.Fortune@mips.com>
 List-Id: linux-arch.vger.kernel.org
 
-Dear kernel devs,
+On Wed, May 2, 2018 at 5:51 PM, James Hogan <jhogan@kernel.org> wrote:
 
-After configuring for 2 hours settings, faced below on making :
-
-cc1: error: 
-/usr/src/linux-next-master/arch/x86/crypto/serpent-sse2-x86_64-asm_64.S: 
-Input/output error
-
-Thank you for your attantion to config matter last days, It is really 
-physically  hard every time sort sort out menu again. If it would 
-ppossible to have standard -- Conservative Unix style secure / paranoid 
-choice alongwith -- allyesconfig .
-
-
-Thank you !
-
-
-On 05/03/2018 02:19 PM, Steven Rostedt wrote:
-> On Thu, 3 May 2018 21:25:08 +0800
-> "Du, Changbin" <changbin.du@intel.com> wrote:
+> Due to the binary incompatibility between previous MIPS architecture
+> generations and nanoMIPS, and the significantly revamped compiler ABI,
+> where for the first time, a single Linux kernel would not be expected to
+> handle both old and new ABIs, we have decided to also take the
+> opportunity to modernise the Linux user ABI for nanoMIPS, making as much
+> use of generic interfaces as possible and modernising the true
+> architecture specific parts.
 >
->> I think fix_to_virt() is designed for constant idx only. So I think we should
->> fix it at the caller side by replacing it with __fix_to_virt().
->>
->> --- a/arch/arm/mm/mmu.c
->> +++ b/arch/arm/mm/mmu.c
->> @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
->>                  pte_t *pte;
->>                  struct map_desc map;
->>
->> -               map.virtual = fix_to_virt(i);
->> +               map.virtual = __fix_to_virt(i);
->>                  pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
-> That's a better solution than the current patch.
->
-> -- Steve
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> This is similar to what a whole new kernel architecture would be
+> expected to adopt, but has been done within the existing MIPS
+> architecture port to allow reuse of the existing MIPS code, most of
+> which does not depend on these ABI specifics. Details of the proposed
+> Linux user ABI changes for nanoMIPS can be found here:
+
+While I haven't looked at the individual changes, I wonder whether
+it would be useful to make this new ABI use 64-bit time_t from
+the start, using the new system calls that Deepa and I have been
+posting recently. There are still a few things to be worked out:
+only the first of four sets of syscall patches is merged so far,
+and we have a couple of areas that will require further ABI changes
+(sound, sockets, media and maybe a couple of smaller drivers),
+so it depends on the overall timing. If you would otherwise merge
+the patches quickly, then it may be better to just follow the existing
+32-bit architectures and add the 64-bit entry points when we do it
+for everyone.
+
+         Arnd
