@@ -1,45 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f182.google.com ([209.85.192.182]:46216 "EHLO
-        mail-pf0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751749AbeECBON (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2018 21:14:13 -0400
-Received: by mail-pf0-f182.google.com with SMTP id p12so13256979pff.13
-        for <linux-arch@vger.kernel.org>; Wed, 02 May 2018 18:14:13 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change signal semantics
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <cf71c470-9712-ce7c-a84a-f78468ebb4a8@intel.com>
-Date: Wed, 2 May 2018 18:14:11 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-Id: <AE502DA2-5B8E-4144-937F-E39DCCC57540@amacapital.net>
-References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com> <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com> <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com> <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net> <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com> <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com> <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com> <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com> <a37b7deb-7f5a-3dfa-f360-956cab8a813a@intel.com> <CALCETrUM7wWZh55gaLiAoPqtxLLUJ4QC8r8zj62E9avJ6ZVu0w@mail.gmail.com> <f9f7edc5-6426-91aa-f279-2f9f4671957a@intel.com> <2BE03B9A-B1E0-4707-8705-203F88B62A1C@amacapital.net> <cf71c470-9712-ce7c-a84a-f78468ebb4a8@intel.com>
+Received: from mail.kernel.org ([198.145.29.99]:43444 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751745AbeECBT7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 2 May 2018 21:19:59 -0400
+Date: Wed, 2 May 2018 21:19:56 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 4/5] kernel hacking: new config DEBUG_EXPERIENCE to
+ apply GCC -Og optimization
+Message-ID: <20180502211956.6c9e8d7b@vmware.local.home>
+In-Reply-To: <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
+References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+        <1525268700-10631-5-git-send-email-changbin.du@intel.com>
+        <20180502101707.206984e9@gandalf.local.home>
+        <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Florian Weimer <fweimer@redhat.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180503011956.3EoxMfOzaLcFnpi9glsMDM79vYPG3x84KXeYzbBaCQw@z>
 
+On Wed, 2 May 2018 13:45:58 -0700
+Andrew Morton <akpm@linux-foundation.org> wrote:
 
+> On Wed, 2 May 2018 10:17:07 -0400 Steven Rostedt <rostedt@goodmis.org> wrote:
+> 
+> > > Comparison of vmlinux size: a bit smaller.
+> > > 
+> > >     w/o CONFIG_DEBUG_EXPERIENCE  
+> > 
+> > I hate the config name.
+> > 
+> > I probably can't come up with better ones but let's try:
+> > 
+> >  CONFIG_DEBUG_OPTIMIZE ?
+> >  CONFIG_OPTIMIZE_DEBUG ?
+> > 
+> > But "EXPERIENCE" sounds like I'm on some DEBUG LSD.  
+> 
+> Metoo, but the gcc people decided on "-Og: Optimize debugging
+> experience ..." and I think there are benefits if the kernel is to
+> align the naming with that.
 
-> On May 2, 2018, at 4:58 PM, Dave Hansen <dave.hansen@intel.com> wrote:
->=20
-> On 05/02/2018 04:32 PM, Andy Lutomirski wrote:
->>> But, where do those come from in this scenario?  I'm not getting
->>> the secondary mechanism is that *makes* them unsafe.
->> pkey_alloc() itself.  If someone tries to allocate a key with a given
->> default mode, unless there=E2=80=99s already a key that already had that
->> value in all threads or pkey_alloc() needs to asynchronously create
->> such a key.
->=20
-> I think you are saying: If a thread calls pkey_alloc(), all threads
-> should, by default, implicitly get access.
+I still see that as "Optimize debugging" and "experience" is just the
+platform of what was done.
 
-No, I=E2=80=99m saying that all threads should get the *requested* access.  I=
-f I=E2=80=99m protecting the GOT, I want all threads to get RO access. If I=E2=
-=80=99m writing a crypto library, I probably want all threads to have no acc=
-ess.  If I=E2=80=99m writing a database, I probably want all threads to get R=
-O by default.  If I=E2=80=99m writing some doodad to sandbox some carefully c=
-onstructed code, I might want all threads to have full access by default.
+With that gcc comment, I still think CONFIG_OPTIMIZE_DEBUG is more
+inline with what it is and understandable than
+CONFIG_DEBUG_EXPERIENCE. The "OPTIMIZE" is the key word there.
 
-=E2=80=94Andy=
+-- Steve
