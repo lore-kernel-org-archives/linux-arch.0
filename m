@@ -1,43 +1,85 @@
 From: "Du, Changbin" <changbin.du@intel.com>
-Subject: Re: [PATCH v2 3/5] kernel hacking: new config NO_AUTO_INLINE to
- disable compiler auto-inline optimizations
-Date: Thu, 3 May 2018 21:00:13 +0800
-Message-ID: <20180503130013.lcsem2xubk5jqmcg@intel.com>
+Subject: Re: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with
+ CONFIG_DEBUG_EXPERIENCE
+Date: Thu, 3 May 2018 21:25:08 +0800
+Message-ID: <20180503132508.qudxf67tyijvjndo@intel.com>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
- <1525268700-10631-4-git-send-email-changbin.du@intel.com>
- <CAK8P3a01sgKSYKmzptkNn4xfoGzV=k+uHu0+wco_-x-iMFtVYQ@mail.gmail.com>
+ <1525268700-10631-6-git-send-email-changbin.du@intel.com>
+ <20180502101930.25a5437d@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a01sgKSYKmzptkNn4xfoGzV=k+uHu0+wco_-x-iMFtVYQ@mail.gmail.com>
+In-Reply-To: <20180502101930.25a5437d@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: changbin.du@intel.com, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Randy Dunlap <rdunlap@infradead.org>, the arch/x86 maintainers <x86@kernel.org>, Liam Girdwood <lgirdwood@gmail.com>, Mark Brown <broonie@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 02, 2018 at 04:27:47PM -0400, Arnd Bergmann wrote:
-> On Wed, May 2, 2018 at 9:44 AM,  <changbin.du@intel.com> wrote:
-> > From: Changbin Du <changbin.du@intel.com>
-> >
-> > This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
-> > this option will prevent the compiler from optimizing the kernel by
-> > auto-inlining functions not marked with the inline keyword.
-> >
-> > With this option, only functions explicitly marked with "inline" will
-> > be inlined. This will allow the function tracer to trace more functions
-> > because it only traces functions that the compiler has not inlined.
-> >
-> > Signed-off-by: Changbin Du <changbin.du@intel.com>
-> > Cc: Steven Rostedt <rostedt@goodmis.org>
+On Wed, May 02, 2018 at 10:19:30AM -0400, Steven Rostedt wrote:
+> On Wed,  2 May 2018 21:45:00 +0800
+> changbin.du@intel.com wrote:
 > 
-> Should this be closer to CONFIG_OPTIMIZE_INLINING or
-> possibly mutually exclusive with it?
->
-They are not related I think. CONFIG_OPTIMIZE_INLINING only has effect on
-functions which are explicitly marked as inline.
+> > From: Changbin Du <changbin.du@intel.com>
+> > 
+> > With '-Og' optimization level, GCC would not optimize a count for a loop
+> > as a constant value. But BUILD_BUG_ON() only accept compile-time constant
+> > values.
+> > 
+> > arch/arm/mm/mmu.o: In function `fix_to_virt':
+> > /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
+> > Makefile:1051: recipe for target 'vmlinux' failed
+> > make: *** [vmlinux] Error 1
+> > 
+> > Signed-off-by: Changbin Du <changbin.du@intel.com>
+> > ---
+> >  include/asm-generic/fixmap.h | 3 ++-
+> >  1 file changed, 2 insertions(+), 1 deletion(-)
+> > 
+> > diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+> > index 827e4d3..a6576d4 100644
+> > --- a/include/asm-generic/fixmap.h
+> > +++ b/include/asm-generic/fixmap.h
+> > @@ -28,7 +28,8 @@
+> >   */
+> >  static __always_inline unsigned long fix_to_virt(const unsigned int idx)
+> >  {
+> > -	BUILD_BUG_ON(idx >= __end_of_fixed_addresses);
+> > +	BUILD_BUG_ON(__builtin_constant_p(idx) &&
+> > +		     idx >= __end_of_fixed_addresses);
+> 
+> Hmm, this changes the check slightly. Perhaps we should only do this
+> when your config is active:
+> 
+> {
+> 	BUILD_BUG_ON(
+> /* CONFIG_DEBUG_OPTIMIZE may cause idx not to be constant */
+> #ifdef CONFIG_DEBUG_OPTIMIZE
+> 		__builtin_constant_p(idx) &&
+> #endif
+> 		idx >= __end_of_fixed_addresses);
+> 
+> }
+I think fix_to_virt() is designed for constant idx only. So I think we should
+fix it at the caller side by replacing it with __fix_to_virt().
 
->        Arnd
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
+                pte_t *pte;
+                struct map_desc map;
+
+-               map.virtual = fix_to_virt(i);
++               map.virtual = __fix_to_virt(i);
+                pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
+
+> 
+> -- Steve
+> 
+> >  	return __fix_to_virt(idx);
+> >  }
+> >  
+> 
 
 -- 
 Thanks,
