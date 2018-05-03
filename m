@@ -1,45 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3-rdu2.redhat.com ([66.187.233.73]:42758 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750954AbeECOmf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 May 2018 10:42:35 -0400
-Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
- signal semantics
-References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
- <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
- <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
- <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
- <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
- <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
- <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
- <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
- <a37b7deb-7f5a-3dfa-f360-956cab8a813a@intel.com>
- <CALCETrUM7wWZh55gaLiAoPqtxLLUJ4QC8r8zj62E9avJ6ZVu0w@mail.gmail.com>
- <f9f7edc5-6426-91aa-f279-2f9f4671957a@intel.com>
- <2BE03B9A-B1E0-4707-8705-203F88B62A1C@amacapital.net>
- <cf71c470-9712-ce7c-a84a-f78468ebb4a8@intel.com>
- <AE502DA2-5B8E-4144-937F-E39DCCC57540@amacapital.net>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <63f948aa-17fe-9879-fbbc-7f2351e31028@redhat.com>
-Date: Thu, 3 May 2018 16:42:32 +0200
+Received: from mail-lf0-f65.google.com ([209.85.215.65]:42868 "EHLO
+        mail-lf0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751160AbeECQjS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 May 2018 12:39:18 -0400
+Subject: Re: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with
+ CONFIG_DEBUG_EXPERIENCE
+References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+ <1525268700-10631-6-git-send-email-changbin.du@intel.com>
+ <20180502101930.25a5437d@gandalf.local.home>
+ <20180503132508.qudxf67tyijvjndo@intel.com>
+ <20180503101920.3157f63f@gandalf.local.home>
+From: weylin <weylin.machine@gmail.com>
+Message-ID: <cfdd795e-e724-c6c7-cd47-1fea0fd9fa6b@gmail.com>
+Date: Thu, 3 May 2018 16:39:09 +0000
 MIME-Version: 1.0
-In-Reply-To: <AE502DA2-5B8E-4144-937F-E39DCCC57540@amacapital.net>
+In-Reply-To: <20180503101920.3157f63f@gandalf.local.home>
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com
+To: Steven Rostedt <rostedt@goodmis.org>, "Du, Changbin" <changbin.du@intel.com>
+Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180503163909.cAOtq3eHE25_Qp1dbiJcDNUuj9mJhC8qfOASqniMh9s@z>
 
-On 05/03/2018 03:14 AM, Andy Lutomirski wrote:
-> No, I’m saying that all threads should get the*requested*  access.  If I’m protecting the GOT, I want all threads to get RO access. If I’m writing a crypto library, I probably want all threads to have no access.  If I’m writing a database, I probably want all threads to get RO by default.  If I’m writing some doodad to sandbox some carefully constructed code, I might want all threads to have full access by default.
+Dear kernel devs,
 
-Just a clarification: This key allocation issue is *not* a blocker for 
-anything related to a safer GOT, or any other use of memory protection 
-keys by the C implementation itself.  I agree that there could be 
-application issues if threads are created early, but solving this issue 
-in a general way appears to be quite costly.
+After configuring for 2 hours settings, faced below on making :
 
-Thanks,
-Florian
+cc1: error: 
+/usr/src/linux-next-master/arch/x86/crypto/serpent-sse2-x86_64-asm_64.S: 
+Input/output error
+
+Thank you for your attantion to config matter last days, It is really 
+physically  hard every time sort sort out menu again. If it would 
+ppossible to have standard -- Conservative Unix style secure / paranoid 
+choice alongwith -- allyesconfig .
+
+
+Thank you !
+
+
+On 05/03/2018 02:19 PM, Steven Rostedt wrote:
+> On Thu, 3 May 2018 21:25:08 +0800
+> "Du, Changbin" <changbin.du@intel.com> wrote:
+>
+>> I think fix_to_virt() is designed for constant idx only. So I think we should
+>> fix it at the caller side by replacing it with __fix_to_virt().
+>>
+>> --- a/arch/arm/mm/mmu.c
+>> +++ b/arch/arm/mm/mmu.c
+>> @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
+>>                  pte_t *pte;
+>>                  struct map_desc map;
+>>
+>> -               map.virtual = fix_to_virt(i);
+>> +               map.virtual = __fix_to_virt(i);
+>>                  pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
+> That's a better solution than the current patch.
+>
+> -- Steve
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
