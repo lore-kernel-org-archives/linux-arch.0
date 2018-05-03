@@ -1,61 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:54976 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751076AbeECO21 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 May 2018 10:28:27 -0400
-Date: Thu, 3 May 2018 10:28:23 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 4/5] kernel hacking: new config DEBUG_EXPERIENCE to
- apply GCC -Og optimization
-Message-ID: <20180503102823.5b54cd56@gandalf.local.home>
-In-Reply-To: <20180503134546.5p3z4g5na7ew4fun@intel.com>
-References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
-        <1525268700-10631-5-git-send-email-changbin.du@intel.com>
-        <20180502101707.206984e9@gandalf.local.home>
-        <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
-        <20180502211956.6c9e8d7b@vmware.local.home>
-        <20180503134546.5p3z4g5na7ew4fun@intel.com>
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:37106 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751027AbeECOhk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 May 2018 10:37:40 -0400
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+ <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
+ <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+ <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <74eec76a-3587-7ff6-fa0b-d8aa78ab28a1@redhat.com>
+Date: Thu, 3 May 2018 16:37:37 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Du, Changbin" <changbin.du@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180503142823.0N2798gyl-ZiBXLBeaWgC1RQl92nqQHfajKVcp7tqu8@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@intel.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com
 
-On Thu, 3 May 2018 21:45:46 +0800
-"Du, Changbin" <changbin.du@intel.com> wrote:
-
-> > With that gcc comment, I still think CONFIG_OPTIMIZE_DEBUG is more
-> > inline with what it is and understandable than
-> > CONFIG_DEBUG_EXPERIENCE. The "OPTIMIZE" is the key word there.
-> > 
-> > -- Steve  
-> What about CONFIG_CC_OPTIMIZE_FOR_DEBUGGING? We alreay have
-> CONFIG_CC_OPTIMIZE_FOR_SIZE and CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE.
-
-Yes I like that much better.
-
+On 05/02/2018 11:23 PM, Andy Lutomirski wrote:
+>> The kernel could do*something*, probably along the membarrier system
+>> call.  I mean, I could implement a reasonable close approximation in
+>> userspace, via the setxid mechanism in glibc (but I really don't want to).
+> I beg to differ.
 > 
-> And do we need to move it to existing configuration menu "General setup->
-> Compiler optimization level"? But I also want it appear in "kernel hacking"
-> since this is a debug option.
+> Thread A:
+> old = RDPKRU();
+> WRPKRU(old & ~3);
+> ...
+> WRPKRU(old);
+> 
+> Thread B:
+> pkey_alloc().
+> 
+> If pkey_alloc() happens while thread A is in the ... part, you lose.  It
+> makes no difference what the kernel does.  The problem is that the WRPKRU
+> instruction itself is designed incorrectly.
 
-I understand why you would want it by debugging, but I think it does
-make more sense to be included with the above two other options, as
-they are all mutually exclusive.
+Even that is solvable, as long as the architecture as exact traps: You 
+can look at the program counter and patch up the registers accordingly 
+if the code is in the critical section.  Of course, this would need 
+centralizing PKRU updates in a vDSO or a single (glibc) library 
+function.  Certainly not nice and even horrible enough not to do it, but 
+I don't think it's actually impossible.
 
-This brings up the topic of creating config paradigms. That is, a way
-of saying "I want a debug kernel" and select one option that selects
-everything you would expect. Or perhaps we should have a:
+Didn't we discuss this before?
 
- make debug_config
-
-that does it.
-
-But that's a different topic. For now, I would just included it in
-init/Kconfig, and not worry about it not showing up in kernel hacking.
-
-
--- Steve
+Thanks,
+Florian
