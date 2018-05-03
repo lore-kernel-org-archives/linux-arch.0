@@ -1,43 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49846 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:54976 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751111AbeECOTX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 May 2018 10:19:23 -0400
-Date: Thu, 3 May 2018 10:19:20 -0400
+        id S1751076AbeECO21 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 May 2018 10:28:27 -0400
+Date: Thu, 3 May 2018 10:28:23 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 5/5] asm-generic: fix build error in fix_to_virt with
- CONFIG_DEBUG_EXPERIENCE
-Message-ID: <20180503101920.3157f63f@gandalf.local.home>
-In-Reply-To: <20180503132508.qudxf67tyijvjndo@intel.com>
+Subject: Re: [PATCH v2 4/5] kernel hacking: new config DEBUG_EXPERIENCE to
+ apply GCC -Og optimization
+Message-ID: <20180503102823.5b54cd56@gandalf.local.home>
+In-Reply-To: <20180503134546.5p3z4g5na7ew4fun@intel.com>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
-        <1525268700-10631-6-git-send-email-changbin.du@intel.com>
-        <20180502101930.25a5437d@gandalf.local.home>
-        <20180503132508.qudxf67tyijvjndo@intel.com>
+        <1525268700-10631-5-git-send-email-changbin.du@intel.com>
+        <20180502101707.206984e9@gandalf.local.home>
+        <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
+        <20180502211956.6c9e8d7b@vmware.local.home>
+        <20180503134546.5p3z4g5na7ew4fun@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Du, Changbin" <changbin.du@intel.com>
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180503141920.u_EqXpUQFZFVMF0WzXmy7zZ6SU8KdwnK4Q1FV8t8yqM@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180503142823.0N2798gyl-ZiBXLBeaWgC1RQl92nqQHfajKVcp7tqu8@z>
 
-On Thu, 3 May 2018 21:25:08 +0800
+On Thu, 3 May 2018 21:45:46 +0800
 "Du, Changbin" <changbin.du@intel.com> wrote:
 
-> I think fix_to_virt() is designed for constant idx only. So I think we should
-> fix it at the caller side by replacing it with __fix_to_virt().
-> 
-> --- a/arch/arm/mm/mmu.c
-> +++ b/arch/arm/mm/mmu.c
-> @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
->                 pte_t *pte;
->                 struct map_desc map;
-> 
-> -               map.virtual = fix_to_virt(i);
-> +               map.virtual = __fix_to_virt(i);
->                 pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
+> > With that gcc comment, I still think CONFIG_OPTIMIZE_DEBUG is more
+> > inline with what it is and understandable than
+> > CONFIG_DEBUG_EXPERIENCE. The "OPTIMIZE" is the key word there.
+> > 
+> > -- Steve  
+> What about CONFIG_CC_OPTIMIZE_FOR_DEBUGGING? We alreay have
+> CONFIG_CC_OPTIMIZE_FOR_SIZE and CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE.
 
-That's a better solution than the current patch.
+Yes I like that much better.
+
+> 
+> And do we need to move it to existing configuration menu "General setup->
+> Compiler optimization level"? But I also want it appear in "kernel hacking"
+> since this is a debug option.
+
+I understand why you would want it by debugging, but I think it does
+make more sense to be included with the above two other options, as
+they are all mutually exclusive.
+
+This brings up the topic of creating config paradigms. That is, a way
+of saying "I want a debug kernel" and select one option that selects
+everything you would expect. Or perhaps we should have a:
+
+ make debug_config
+
+that does it.
+
+But that's a different topic. For now, I would just included it in
+init/Kconfig, and not worry about it not showing up in kernel hacking.
+
 
 -- Steve
