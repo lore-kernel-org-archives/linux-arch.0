@@ -1,85 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:1897 "EHLO mga18.intel.com"
+Received: from mail.kernel.org ([198.145.29.99]:49166 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750947AbeECN7c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 3 May 2018 09:59:32 -0400
-Date: Thu, 3 May 2018 21:49:26 +0800
-From: "Du, Changbin" <changbin.du@intel.com>
-Subject: Re: [PATCH v2 0/5] kernel hacking: GCC optimization for debug
- experience (-Og)
-Message-ID: <20180503134925.eyqna4ydogtkmvph@intel.com>
+        id S1751220AbeECOQK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 3 May 2018 10:16:10 -0400
+Date: Thu, 3 May 2018 10:16:06 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 3/5] kernel hacking: new config NO_AUTO_INLINE to
+ disable compiler auto-inline optimizations
+Message-ID: <20180503101606.51b7a6a2@gandalf.local.home>
+In-Reply-To: <20180503130013.lcsem2xubk5jqmcg@intel.com>
 References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
- <20180502145631.bzfqpw4izlrqhda6@holly.lan>
+        <1525268700-10631-4-git-send-email-changbin.du@intel.com>
+        <CAK8P3a01sgKSYKmzptkNn4xfoGzV=k+uHu0+wco_-x-iMFtVYQ@mail.gmail.com>
+        <20180503130013.lcsem2xubk5jqmcg@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180502145631.bzfqpw4izlrqhda6@holly.lan>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Thompson <daniel.thompson@linaro.org>
-Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180503134926.ulHUAp8TEb0NSDuz2gwbKJ1iyau5-RNxG1M8s_aXTu4@z>
+To: "Du, Changbin" <changbin.du@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Randy Dunlap <rdunlap@infradead.org>, the arch/x86 maintainers <x86@kernel.org>, Liam Girdwood <lgirdwood@gmail.com>, Mark Brown <broonie@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180503141606.AIUIcWrYgkY2Gu5ah8kAluPFXAGbF0oHV7aAbONwjKg@z>
 
-On Wed, May 02, 2018 at 03:56:31PM +0100, Daniel Thompson wrote:
-> On Wed, May 02, 2018 at 09:44:55PM +0800, changbin.du@intel.com wrote:
-> > From: Changbin Du <changbin.du@intel.com>
-> > 
-> > Hi all,
-> > I know some kernel developers was searching for a method to dissable GCC
-> > optimizations, probably they want to apply GCC '-O0' option. But since Linux
-> > kernel replys on GCC optimization to remove some dead code, so '-O0' just
-> > breaks the build. They do need this because they want to debug kernel with
-> > qemu, simics, kgtp or kgdb.
-> > 
-> > Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
-> > offers a reasonable level of optimization while maintaining fast compilation
-> > and a good debugging experience. It is similar to '-O1' while perfer keeping
-> > debug ability over runtime speed. With '-Og', we can build a kernel with
-> > better debug ability and little performance drop after some simple change.
-> > 
-> > In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
-> > fixes for this new option. With this option, only functions explicitly marked
-> > with "inline" will  be inlined. This will allow the function tracer to trace
-> > more functions because it only traces functions that the compiler has not
-> > inlined.
-> > 
-> > Then introduce new config CONFIG_DEBUG_EXPERIENCE which apply '-Og'
-> > optimization level for whole kernel, with a simple fix in fix_to_virt().
-> > Currently this option is only tested on a QEMU gust and it works fine.
-> > 
-> > 
-> > Comparison of vmlinux size: a bit smaller.
-> > 
-> >     w/o CONFIG_DEBUG_EXPERIENCE
-> >     $ size vmlinux
-> >        text    data     bss     dec     hex filename
-> >     22665554   9709674  2920908 35296136        21a9388 vmlinux
-> > 
-> >     w/ CONFIG_DEBUG_EXPERIENCE
-> >     $ size vmlinux
-> >        text    data     bss     dec     hex filename
-> >     21499032   10102758 2920908 34522698        20ec64a vmlinux
-> > 
-> > 
-> > Comparison of system performance: a bit drop (~6%).
-> >     This benchmark of kernel compilation is suggested by Ingo Molnar.
-> >     https://lkml.org/lkml/2018/5/2/74
-> 
-> In my mind was the opposite question. When running on the same kernel
-> does a kernel whose config contains CONFIG_DEBUG_EXPERIENCE build faster
-> than one without (due to the disabled optimization passes).
-> 
-> To be honest this is more curiosity than a review comment though... if
-> you have the figures please share, if not then don't sweat it on my
-> account!
-> 
-> 
-> Daniel.
->
-Sorry I don't have the data yet. Per the comment in GCC, I think it should be a
-little faster but not obviously.
+On Thu, 3 May 2018 21:00:13 +0800
+"Du, Changbin" <changbin.du@intel.com> wrote:
 
+> On Wed, May 02, 2018 at 04:27:47PM -0400, Arnd Bergmann wrote:
+> > On Wed, May 2, 2018 at 9:44 AM,  <changbin.du@intel.com> wrote:  
+> > > From: Changbin Du <changbin.du@intel.com>
+> > >
+> > > This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
+> > > this option will prevent the compiler from optimizing the kernel by
+> > > auto-inlining functions not marked with the inline keyword.
+> > >
+> > > With this option, only functions explicitly marked with "inline" will
+> > > be inlined. This will allow the function tracer to trace more functions
+> > > because it only traces functions that the compiler has not inlined.
+> > >
+> > > Signed-off-by: Changbin Du <changbin.du@intel.com>
+> > > Cc: Steven Rostedt <rostedt@goodmis.org>  
+> > 
+> > Should this be closer to CONFIG_OPTIMIZE_INLINING or
+> > possibly mutually exclusive with it?
+> >  
+> They are not related I think. CONFIG_OPTIMIZE_INLINING only has effect on
+> functions which are explicitly marked as inline.
 > 
--- 
-Thanks,
-Changbin Du
+
+Agreed, as OPTIMIZE_INLINING is to make functions marked inline not to
+be inlined. And I just noticed (doing a git grep), that that config is
+now only available in arch/x86. Maybe it always was, but sparc
+undefines it for vclock_gettime.c.
+
+$ git grep OPTIMIZE_INLIN
+arch/sparc/vdso/vdso32/vclock_gettime.c:#undef  CONFIG_OPTIMIZE_INLINING
+arch/x86/Kconfig.debug:config OPTIMIZE_INLINING
+arch/x86/configs/i386_defconfig:CONFIG_OPTIMIZE_INLINING=y
+arch/x86/configs/x86_64_defconfig:CONFIG_OPTIMIZE_INLINING=y
+arch/x86/entry/vdso/vdso32/vclock_gettime.c:#undef CONFIG_OPTIMIZE_INLINING
+include/linux/compiler-gcc.h:    !defined(CONFIG_OPTIMIZE_INLINING) || (__GNUC__ < 4)
+kernel/configs/tiny.config:CONFIG_OPTIMIZE_INLINING=y
+
+-- Steve
