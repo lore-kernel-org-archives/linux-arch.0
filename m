@@ -1,91 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:55618 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751229AbeEDQFn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 4 May 2018 12:05:43 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v5 01/14] thread_info: Add update_thread_flag() helpers
-Date: Fri,  4 May 2018 17:05:22 +0100
-Message-ID: <1525449935-31424-2-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1525449935-31424-1-git-send-email-Dave.Martin@arm.com>
-References: <1525449935-31424-1-git-send-email-Dave.Martin@arm.com>
+Received: from mailout.easymail.ca ([64.68.200.34]:37809 "EHLO
+        mailout.easymail.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751527AbeEDTjo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 15:39:44 -0400
+Subject: Re: [PATCH] selftests/x86: Detect -no-pie availability
+References: <20180502121433.7F874401F1BF7@oldenburg.str.redhat.com>
+From: Shuah Khan <shuah@kernel.org>
+Message-ID: <f55777ec-53e5-ad7a-dca9-6313dc779342@kernel.org>
+Date: Fri, 4 May 2018 13:39:33 -0600
+MIME-Version: 1.0
+In-Reply-To: <20180502121433.7F874401F1BF7@oldenburg.str.redhat.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kvmarm@lists.cs.columbia.edu
-Cc: linux-arm-kernel@lists.infradead.org, Christoffer Dall <cdall@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>
-Message-ID: <20180504160522.R-QpQJOAcU8uGrCHlKurU2kqsADo7h6JEmpEWsmQ03M@z>
+To: Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: rdunlap@infradead.org, Shuah Khan <shuah@kernel.org>
 
-There are a number of bits of code sprinkled around the kernel to
-set a thread flag if a certain condition is true, and clear it
-otherwise.
+On 05/02/2018 06:10 AM, Florian Weimer wrote:
+> Some toolchains need -no-pie to build all tests, others do not support
+> the -no-pie flag at all.  Therefore, add another test for the
+> availability of the flag.
+> 
+> This amends commit 3346a6a4e5ba8c040360f753b26938cec31a4bdc
+> ("selftests: x86: sysret_ss_attrs doesn't build on a PIE build").
+> 
+> Signed-off-by: Florian Weimer <fweimer@redhat.com>
+> Acked-by: Randy Dunlap <rdunlap@infradead.org>
+> Tested-by: Randy Dunlap <rdunlap@infradead.org>
+> ---
+>  tools/testing/selftests/x86/Makefile          |  8 +++++++-
+>  tools/testing/selftests/x86/trivial_program.c | 10 ++++++++++
+>  2 files changed, 17 insertions(+), 1 deletion(-)
+>  create mode 100644 tools/testing/selftests/x86/trivial_program.c
+> 
+> diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
+> index d744991c0f4f..94c89261a236 100644
+> --- a/tools/testing/selftests/x86/Makefile
+> +++ b/tools/testing/selftests/x86/Makefile
+> @@ -8,6 +8,7 @@ include ../lib.mk
+>  UNAME_M := $(shell uname -m)
+>  CAN_BUILD_I386 := $(shell ./check_cc.sh $(CC) trivial_32bit_program.c -m32)
+>  CAN_BUILD_X86_64 := $(shell ./check_cc.sh $(CC) trivial_64bit_program.c)
+> +CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
+>  
+>  TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
+>  			check_initial_reg_state sigreturn iopl mpx-mini-test ioperm \
+> @@ -31,7 +32,12 @@ BINARIES_64 := $(TARGETS_C_64BIT_ALL:%=%_64)
+>  BINARIES_32 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_32))
+>  BINARIES_64 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_64))
+>  
+> -CFLAGS := -O2 -g -std=gnu99 -pthread -Wall -no-pie
+> +CFLAGS := -O2 -g -std=gnu99 -pthread -Wall
+> +
+> +# call32_from_64 in thunks.S uses absolute addresses.
+> +ifeq ($(CAN_BUILD_WITH_NOPIE),1)
+> +CFLAGS += -no-pie
+> +endif
+>  
+>  define gen-target-rule-32
+>  $(1) $(1)_32: $(OUTPUT)/$(1)_32
+> diff --git a/tools/testing/selftests/x86/trivial_program.c b/tools/testing/selftests/x86/trivial_program.c
+> new file mode 100644
+> index 000000000000..46a447163b93
+> --- /dev/null
+> +++ b/tools/testing/selftests/x86/trivial_program.c
+> @@ -0,0 +1,10 @@
+> +/* Trivial program to check that compilation with certain flags is working. */
+> +
+> +#include <stdio.h>
+> +
+> +int
+> +main(void)
+> +{
+> +	puts("");
+> +	return 0;
+> +}
+> 
 
-To help make those call sites terser and less cumbersome, this
-patch adds a new family of thread flag manipulators
+Thanks. I will queue this up for 4.18-rc1
 
-	update*_thread_flag([...,] flag, cond)
-
-which do the equivalent of:
-
-	if (cond)
-		set*_thread_flag([...,] flag);
-	else
-		clear*_thread_flag([...,] flag);
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
----
- include/linux/sched.h       |  6 ++++++
- include/linux/thread_info.h | 11 +++++++++++
- 2 files changed, 17 insertions(+)
-
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index b3d697f..c2c3051 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1578,6 +1578,12 @@ static inline void clear_tsk_thread_flag(struct task_struct *tsk, int flag)
- 	clear_ti_thread_flag(task_thread_info(tsk), flag);
- }
- 
-+static inline void update_tsk_thread_flag(struct task_struct *tsk, int flag,
-+					  bool value)
-+{
-+	update_ti_thread_flag(task_thread_info(tsk), flag, value);
-+}
-+
- static inline int test_and_set_tsk_thread_flag(struct task_struct *tsk, int flag)
- {
- 	return test_and_set_ti_thread_flag(task_thread_info(tsk), flag);
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index cf2862b..8d8821b 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -60,6 +60,15 @@ static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
- 	clear_bit(flag, (unsigned long *)&ti->flags);
- }
- 
-+static inline void update_ti_thread_flag(struct thread_info *ti, int flag,
-+					 bool value)
-+{
-+	if (value)
-+		set_ti_thread_flag(ti, flag);
-+	else
-+		clear_ti_thread_flag(ti, flag);
-+}
-+
- static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
- {
- 	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
-@@ -79,6 +88,8 @@ static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
- 	set_ti_thread_flag(current_thread_info(), flag)
- #define clear_thread_flag(flag) \
- 	clear_ti_thread_flag(current_thread_info(), flag)
-+#define update_thread_flag(flag, value) \
-+	update_ti_thread_flag(current_thread_info(), flag, value)
- #define test_and_set_thread_flag(flag) \
- 	test_and_set_ti_thread_flag(current_thread_info(), flag)
- #define test_and_clear_thread_flag(flag) \
--- 
-2.1.4
+thahnks,
+-- Shuah
