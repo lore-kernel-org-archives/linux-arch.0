@@ -1,51 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:12410 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751731AbeEDW5e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 4 May 2018 18:57:34 -0400
-Subject: Re: [PATCH v13 3/3] mm, powerpc, x86: introduce an additional vma bit
- for powerpc pkey
-References: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
- <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <1e37895e-5a18-11c1-58f1-834f96dfd4d5@intel.com>
-Date: Fri, 4 May 2018 15:57:33 -0700
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:43284 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751729AbeEDXxF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 19:53:05 -0400
 MIME-Version: 1.0
-In-Reply-To: <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20180504132432.GA30458@jamesdev>
+References: <20180502215107.GA9884@saruman> <CAK8P3a2y2EA1g099DXOHkfevQb=6zuWmVOq9C_wVTQ8zrAMx8w@mail.gmail.com>
+ <20180504132432.GA30458@jamesdev>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 4 May 2018 19:53:04 -0400
+Message-ID: <CAK8P3a1BvG+jHAmQu2j-_Gmmxc4s_KbccUGP0jvPGq6L+vtjdw@mail.gmail.com>
+Subject: Re: Introducing a nanoMIPS port for Linux
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de
-Message-ID: <20180504225733.iPReBpK8LQxrAZqPiYOKxJ8BepR4BBOlLt9tzvmR-MI@z>
+To: James Hogan <jhogan@kernel.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul Burton <paul.burton@mips.com>, Matt Redfearn <matt.redfearn@mips.com>, Marcin Nowakowski <marcin.nowakowski@mips.com>, Matthew Fortune <Matthew.Fortune@mips.com>
+Message-ID: <20180504235304.9t9rqaOSMDxVTd1ih-iSS_BHApcedAxvrTMdODFsEvE@z>
 
-> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> index 0c9e392..3ddddc7 100644
-> --- a/fs/proc/task_mmu.c
-> +++ b/fs/proc/task_mmu.c
-> @@ -679,6 +679,7 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
->  		[ilog2(VM_PKEY_BIT1)]	= "",
->  		[ilog2(VM_PKEY_BIT2)]	= "",
->  		[ilog2(VM_PKEY_BIT3)]	= "",
-> +		[ilog2(VM_PKEY_BIT4)]	= "",
->  #endif /* CONFIG_ARCH_HAS_PKEYS */
-...
-> +#if defined(CONFIG_PPC)
-> +# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
-> +#else 
-> +# define VM_PKEY_BIT4	0
-> +#endif
->  #endif /* CONFIG_ARCH_HAS_PKEYS */
+On Fri, May 4, 2018 at 9:24 AM, James Hogan <jhogan@kernel.org> wrote:
+> On Thu, May 03, 2018 at 06:40:07PM -0400, Arnd Bergmann wrote:
+>> On Wed, May 2, 2018 at 5:51 PM, James Hogan <jhogan@kernel.org> wrote:
+>>
+>> While I haven't looked at the individual changes, I wonder whether
+>> it would be useful to make this new ABI use 64-bit time_t from
+>> the start, using the new system calls that Deepa and I have been
+>> posting recently.
+>
+> Personally I'm all for squeezing as much API cleanup in as possible
+> before its merged, though obviously there'll be a point when the ABI may
+> need to be frozen, at which point we'll mostly have to accept what we
+> have within reason.
+>
+>> There are still a few things to be worked out:
+>> only the first of four sets of syscall patches is merged so far,
+>> and we have a couple of areas that will require further ABI changes
+>> (sound, sockets, media and maybe a couple of smaller drivers),
+>> so it depends on the overall timing. If you would otherwise merge
+>> the patches quickly, then it may be better to just follow the existing
+>> 32-bit architectures and add the 64-bit entry points when we do it
+>> for everyone.
+>
+> I think it'll likely be a couple of cycles before it gets merged anyway.
+> There's still work to do, and limited resources.
 
-That new line boils down to:
+Ok, let's plan on getting the 64-bit time_t ABIs in place early enough
+then. We will likely have very similar timing for the upcoming rv32
+ABI on arch/riscv.
 
-		[ilog2(0)]	= "",
-
-on x86.  It wasn't *obvious* to me that it is OK to do that.  The other
-possibly undefined bits (VM_SOFTDIRTY for instance) #ifdef themselves
-out of this array.
-
-I would just be a wee bit worried that this would overwrite the 0 entry
-("??") with "".
+         Arnd
