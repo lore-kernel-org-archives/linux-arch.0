@@ -1,95 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:46189 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751781AbeEDWAH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 18:00:07 -0400
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v13 1/3] mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS is enabled
-Date: Fri,  4 May 2018 14:59:41 -0700
-Message-ID: <1525471183-21277-2-git-send-email-linuxram@us.ibm.com>
-In-Reply-To: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
+Received: from mga07.intel.com ([134.134.136.100]:12410 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751731AbeEDW5e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 4 May 2018 18:57:34 -0400
+Subject: Re: [PATCH v13 3/3] mm, powerpc, x86: introduce an additional vma bit
+ for powerpc pkey
 References: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
+ <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <1e37895e-5a18-11c1-58f1-834f96dfd4d5@intel.com>
+Date: Fri, 4 May 2018 15:57:33 -0700
+MIME-Version: 1.0
+In-Reply-To: <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
-Message-ID: <20180504215941.3imvsnkVLMpwlZFfnrTL3MiA_-LL9-_KXnZWE0VMZhw@z>
+To: Ram Pai <linuxram@us.ibm.com>, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de
+Message-ID: <20180504225733.iPReBpK8LQxrAZqPiYOKxJ8BepR4BBOlLt9tzvmR-MI@z>
 
-VM_PKEY_BITx are defined only if CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
-is enabled. Powerpc also needs these bits. Hence lets define the
-VM_PKEY_BITx bits for any architecture that enables
-CONFIG_ARCH_HAS_PKEYS.
+> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+> index 0c9e392..3ddddc7 100644
+> --- a/fs/proc/task_mmu.c
+> +++ b/fs/proc/task_mmu.c
+> @@ -679,6 +679,7 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+>  		[ilog2(VM_PKEY_BIT1)]	= "",
+>  		[ilog2(VM_PKEY_BIT2)]	= "",
+>  		[ilog2(VM_PKEY_BIT3)]	= "",
+> +		[ilog2(VM_PKEY_BIT4)]	= "",
+>  #endif /* CONFIG_ARCH_HAS_PKEYS */
+...
+> +#if defined(CONFIG_PPC)
+> +# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
+> +#else 
+> +# define VM_PKEY_BIT4	0
+> +#endif
+>  #endif /* CONFIG_ARCH_HAS_PKEYS */
 
-cc: Michael Ellermen <mpe@ellerman.id.au>
-cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-cc: Andrew Morton <akpm@linux-foundation.org>
-Reviewed-by: Dave Hansen <dave.hansen@intel.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Reviewed-by: Ingo Molnar <mingo@kernel.org>
-Reviewed-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
----
- arch/powerpc/include/asm/pkeys.h |    2 ++
- fs/proc/task_mmu.c               |    4 ++--
- include/linux/mm.h               |    9 +++++----
- 3 files changed, 9 insertions(+), 6 deletions(-)
+That new line boils down to:
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 3a9b82b..425b181 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -26,6 +26,8 @@
- # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
- # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
- # define VM_PKEY_BIT4	VM_HIGH_ARCH_4
-+#elif !defined(VM_PKEY_BIT4)
-+# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
- #endif
- 
- #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 65ae546..0c9e392 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -673,13 +673,13 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_MERGEABLE)]	= "mg",
- 		[ilog2(VM_UFFD_MISSING)]= "um",
- 		[ilog2(VM_UFFD_WP)]	= "uw",
--#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
-+#ifdef CONFIG_ARCH_HAS_PKEYS
- 		/* These come out via ProtectionKey: */
- 		[ilog2(VM_PKEY_BIT0)]	= "",
- 		[ilog2(VM_PKEY_BIT1)]	= "",
- 		[ilog2(VM_PKEY_BIT2)]	= "",
- 		[ilog2(VM_PKEY_BIT3)]	= "",
--#endif
-+#endif /* CONFIG_ARCH_HAS_PKEYS */
- 	};
- 	size_t i;
- 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 1ac1f06..c6a6f24 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -228,15 +228,16 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
- #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
- #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
- 
--#if defined(CONFIG_X86)
--# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
--#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
-+#ifdef CONFIG_ARCH_HAS_PKEYS
- # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
- # define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
- # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
- # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
- # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
--#endif
-+#endif /* CONFIG_ARCH_HAS_PKEYS */
-+
-+#if defined(CONFIG_X86)
-+# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
- #elif defined(CONFIG_PPC)
- # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
- #elif defined(CONFIG_PARISC)
--- 
-1.7.1
+		[ilog2(0)]	= "",
+
+on x86.  It wasn't *obvious* to me that it is OK to do that.  The other
+possibly undefined bits (VM_SOFTDIRTY for instance) #ifdef themselves
+out of this array.
+
+I would just be a wee bit worried that this would overwrite the 0 entry
+("??") with "".
