@@ -1,86 +1,68 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v5 01/14] thread_info: Add update_thread_flag() helpers
-Date: Fri,  4 May 2018 17:05:22 +0100
-Message-ID: <1525449935-31424-2-git-send-email-Dave.Martin@arm.com>
-References: <1525449935-31424-1-git-send-email-Dave.Martin@arm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v13 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
+Date: Fri,  4 May 2018 14:59:40 -0700
+Message-ID: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525449935-31424-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: kvmarm@lists.cs.columbia.edu
-Cc: linux-arm-kernel@lists.infradead.org, Christoffer Dall <cdall@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-There are a number of bits of code sprinkled around the kernel to
-set a thread flag if a certain condition is true, and clear it
-otherwise.
+This patch series provides arch-neutral enhancements to
+enable memory-keys on new architecutes, and the corresponding
+changes in x86 and powerpc specific code to support that.
 
-To help make those call sites terser and less cumbersome, this
-patch adds a new family of thread flag manipulators
+a) Provides ability to support upto 32 keys.  PowerPC
+        can handle 32 keys and hence needs this.
 
-	update*_thread_flag([...,] flag, cond)
+b) Arch-neutral code; and not the arch-specific code,
+   determines the format of the string, that displays the key
+   for each vma in smaps.
 
-which do the equivalent of:
+History:
+-------
+version 14:
+	(1) made VM_PKEY_BIT4 unusable on x86, #defined it to 0
+		-- comment by Dave Hansen
+	(2) due to some reason this patch series continue to
+	      break some or the other build. The last series
+	      passed everything but created a merge
+	      conflict followed by build failure for
+	      Michael Ellermen. :(
 
-	if (cond)
-		set*_thread_flag([...,] flag);
-	else
-		clear*_thread_flag([...,] flag);
+version v13:
+	(1) fixed a git bisect error. :(
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
----
- include/linux/sched.h       |  6 ++++++
- include/linux/thread_info.h | 11 +++++++++++
- 2 files changed, 17 insertions(+)
+version v12:
+	(1) fixed compilation errors seen with various x86
+	    configs.
+version v11:
+	(1) code that displays key in smaps is not any more
+	    defined under CONFIG_ARCH_HAS_PKEYS.
+		- Comment by Eric W. Biederman and Michal Hocko
+	(2) merged two patches that implemented (1).
+		- comment by Michal Hocko
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index b3d697f..c2c3051 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1578,6 +1578,12 @@ static inline void clear_tsk_thread_flag(struct task_struct *tsk, int flag)
- 	clear_ti_thread_flag(task_thread_info(tsk), flag);
- }
- 
-+static inline void update_tsk_thread_flag(struct task_struct *tsk, int flag,
-+					  bool value)
-+{
-+	update_ti_thread_flag(task_thread_info(tsk), flag, value);
-+}
-+
- static inline int test_and_set_tsk_thread_flag(struct task_struct *tsk, int flag)
- {
- 	return test_and_set_ti_thread_flag(task_thread_info(tsk), flag);
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index cf2862b..8d8821b 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -60,6 +60,15 @@ static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
- 	clear_bit(flag, (unsigned long *)&ti->flags);
- }
- 
-+static inline void update_ti_thread_flag(struct thread_info *ti, int flag,
-+					 bool value)
-+{
-+	if (value)
-+		set_ti_thread_flag(ti, flag);
-+	else
-+		clear_ti_thread_flag(ti, flag);
-+}
-+
- static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
- {
- 	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
-@@ -79,6 +88,8 @@ static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
- 	set_ti_thread_flag(current_thread_info(), flag)
- #define clear_thread_flag(flag) \
- 	clear_ti_thread_flag(current_thread_info(), flag)
-+#define update_thread_flag(flag, value) \
-+	update_ti_thread_flag(current_thread_info(), flag, value)
- #define test_and_set_thread_flag(flag) \
- 	test_and_set_ti_thread_flag(current_thread_info(), flag)
- #define test_and_clear_thread_flag(flag) \
--- 
-2.1.4
+version prior to v11:
+	(1) used one additional bit from VM_HIGH_ARCH_*
+		to support 32 keys.
+		- Suggestion by Dave Hansen.
+	(2) powerpc specific changes to support memory keys.
+
+
+Ram Pai (3):
+  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
+    is enabled
+  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+  mm, x86, powerpc: display pkey in smaps only if arch supports pkeys
+
+ arch/powerpc/include/asm/mmu_context.h |    5 -----
+ arch/powerpc/include/asm/pkeys.h       |    2 ++
+ arch/x86/include/asm/mmu_context.h     |    5 -----
+ arch/x86/include/asm/pkeys.h           |    1 +
+ arch/x86/kernel/fpu/xstate.c           |    5 +++++
+ arch/x86/kernel/setup.c                |    8 --------
+ fs/proc/task_mmu.c                     |   16 +++++++++-------
+ include/linux/mm.h                     |   15 +++++++++++----
+ include/linux/pkeys.h                  |    7 ++++++-
+ 9 files changed, 34 insertions(+), 30 deletions(-)
