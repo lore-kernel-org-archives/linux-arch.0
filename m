@@ -1,85 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout.easymail.ca ([64.68.200.34]:37809 "EHLO
-        mailout.easymail.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751527AbeEDTjo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 15:39:44 -0400
-Subject: Re: [PATCH] selftests/x86: Detect -no-pie availability
-References: <20180502121433.7F874401F1BF7@oldenburg.str.redhat.com>
-From: Shuah Khan <shuah@kernel.org>
-Message-ID: <f55777ec-53e5-ad7a-dca9-6313dc779342@kernel.org>
-Date: Fri, 4 May 2018 13:39:33 -0600
-MIME-Version: 1.0
-In-Reply-To: <20180502121433.7F874401F1BF7@oldenburg.str.redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:34451 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751781AbeEDWAE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 18:00:04 -0400
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v13 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
+Date: Fri,  4 May 2018 14:59:40 -0700
+Message-ID: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: rdunlap@infradead.org, Shuah Khan <shuah@kernel.org>
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
+Message-ID: <20180504215940.yKFstsEdvsyBHUeCzogdz6tPqxY9PNhqoo29wYw4Hbs@z>
 
-On 05/02/2018 06:10 AM, Florian Weimer wrote:
-> Some toolchains need -no-pie to build all tests, others do not support
-> the -no-pie flag at all.  Therefore, add another test for the
-> availability of the flag.
-> 
-> This amends commit 3346a6a4e5ba8c040360f753b26938cec31a4bdc
-> ("selftests: x86: sysret_ss_attrs doesn't build on a PIE build").
-> 
-> Signed-off-by: Florian Weimer <fweimer@redhat.com>
-> Acked-by: Randy Dunlap <rdunlap@infradead.org>
-> Tested-by: Randy Dunlap <rdunlap@infradead.org>
-> ---
->  tools/testing/selftests/x86/Makefile          |  8 +++++++-
->  tools/testing/selftests/x86/trivial_program.c | 10 ++++++++++
->  2 files changed, 17 insertions(+), 1 deletion(-)
->  create mode 100644 tools/testing/selftests/x86/trivial_program.c
-> 
-> diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-> index d744991c0f4f..94c89261a236 100644
-> --- a/tools/testing/selftests/x86/Makefile
-> +++ b/tools/testing/selftests/x86/Makefile
-> @@ -8,6 +8,7 @@ include ../lib.mk
->  UNAME_M := $(shell uname -m)
->  CAN_BUILD_I386 := $(shell ./check_cc.sh $(CC) trivial_32bit_program.c -m32)
->  CAN_BUILD_X86_64 := $(shell ./check_cc.sh $(CC) trivial_64bit_program.c)
-> +CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
->  
->  TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
->  			check_initial_reg_state sigreturn iopl mpx-mini-test ioperm \
-> @@ -31,7 +32,12 @@ BINARIES_64 := $(TARGETS_C_64BIT_ALL:%=%_64)
->  BINARIES_32 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_32))
->  BINARIES_64 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_64))
->  
-> -CFLAGS := -O2 -g -std=gnu99 -pthread -Wall -no-pie
-> +CFLAGS := -O2 -g -std=gnu99 -pthread -Wall
-> +
-> +# call32_from_64 in thunks.S uses absolute addresses.
-> +ifeq ($(CAN_BUILD_WITH_NOPIE),1)
-> +CFLAGS += -no-pie
-> +endif
->  
->  define gen-target-rule-32
->  $(1) $(1)_32: $(OUTPUT)/$(1)_32
-> diff --git a/tools/testing/selftests/x86/trivial_program.c b/tools/testing/selftests/x86/trivial_program.c
-> new file mode 100644
-> index 000000000000..46a447163b93
-> --- /dev/null
-> +++ b/tools/testing/selftests/x86/trivial_program.c
-> @@ -0,0 +1,10 @@
-> +/* Trivial program to check that compilation with certain flags is working. */
-> +
-> +#include <stdio.h>
-> +
-> +int
-> +main(void)
-> +{
-> +	puts("");
-> +	return 0;
-> +}
-> 
+This patch series provides arch-neutral enhancements to
+enable memory-keys on new architecutes, and the corresponding
+changes in x86 and powerpc specific code to support that.
 
-Thanks. I will queue this up for 4.18-rc1
+a) Provides ability to support upto 32 keys.  PowerPC
+        can handle 32 keys and hence needs this.
 
-thahnks,
--- Shuah
+b) Arch-neutral code; and not the arch-specific code,
+   determines the format of the string, that displays the key
+   for each vma in smaps.
+
+History:
+-------
+version 14:
+	(1) made VM_PKEY_BIT4 unusable on x86, #defined it to 0
+		-- comment by Dave Hansen
+	(2) due to some reason this patch series continue to
+	      break some or the other build. The last series
+	      passed everything but created a merge
+	      conflict followed by build failure for
+	      Michael Ellermen. :(
+
+version v13:
+	(1) fixed a git bisect error. :(
+
+version v12:
+	(1) fixed compilation errors seen with various x86
+	    configs.
+version v11:
+	(1) code that displays key in smaps is not any more
+	    defined under CONFIG_ARCH_HAS_PKEYS.
+		- Comment by Eric W. Biederman and Michal Hocko
+	(2) merged two patches that implemented (1).
+		- comment by Michal Hocko
+
+version prior to v11:
+	(1) used one additional bit from VM_HIGH_ARCH_*
+		to support 32 keys.
+		- Suggestion by Dave Hansen.
+	(2) powerpc specific changes to support memory keys.
+
+
+Ram Pai (3):
+  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
+    is enabled
+  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+  mm, x86, powerpc: display pkey in smaps only if arch supports pkeys
+
+ arch/powerpc/include/asm/mmu_context.h |    5 -----
+ arch/powerpc/include/asm/pkeys.h       |    2 ++
+ arch/x86/include/asm/mmu_context.h     |    5 -----
+ arch/x86/include/asm/pkeys.h           |    1 +
+ arch/x86/kernel/fpu/xstate.c           |    5 +++++
+ arch/x86/kernel/setup.c                |    8 --------
+ fs/proc/task_mmu.c                     |   16 +++++++++-------
+ include/linux/mm.h                     |   15 +++++++++++----
+ include/linux/pkeys.h                  |    7 ++++++-
+ 9 files changed, 34 insertions(+), 30 deletions(-)
