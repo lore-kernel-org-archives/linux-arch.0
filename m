@@ -1,46 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:35021 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750752AbeEEEmk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 5 May 2018 00:42:40 -0400
-Subject: Re: [PATCH v13 3/3] mm, powerpc, x86: introduce an additional vma bit
- for powerpc pkey
-References: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
- <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
- <1e37895e-5a18-11c1-58f1-834f96dfd4d5@intel.com>
- <20180505011243.GB5617@ram.oc3035372033.ibm.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <7d1de723-f001-ebbe-6026-91bef88c566d@intel.com>
-Date: Fri, 4 May 2018 21:42:39 -0700
+Received: from condef-08.nifty.com ([202.248.20.73]:36353 "EHLO
+        condef-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750821AbeEEKZP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2018 06:25:15 -0400
+Received: from conssluserg-04.nifty.com ([10.126.8.83])by condef-08.nifty.com with ESMTP id w45AH3Sh011187
+        for <linux-arch@vger.kernel.org>; Sat, 5 May 2018 19:17:03 +0900
 MIME-Version: 1.0
-In-Reply-To: <20180505011243.GB5617@ram.oc3035372033.ibm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Sat, 5 May 2018 19:16:13 +0900
+Message-ID: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
+Subject: [RFC] Removal of CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de
-Message-ID: <20180505044239.mFORGrJHada-DzOI98KiVmHxY3VHyHnmr9sfsPTfqnA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Miao <realmz6@gmail.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20180505101613.lnVJ-okwQJcyZ1bO-LtofdqDTHeL-IZ8g8ORFJBELxQ@z>
 
-On 05/04/2018 06:12 PM, Ram Pai wrote:
->> That new line boils down to:
->>
->> 		[ilog2(0)]	= "",
->>
->> on x86.  It wasn't *obvious* to me that it is OK to do that.  The other
->> possibly undefined bits (VM_SOFTDIRTY for instance) #ifdef themselves
->> out of this array.
->>
->> I would just be a wee bit worried that this would overwrite the 0 entry
->> ("??") with "".
-> Yes it would :-( and could potentially break anything that depends on
-> 0th entry being "??"
-> 
-> Is the following fix acceptable?
-> 
-> #if VM_PKEY_BIT4
->                 [ilog2(VM_PKEY_BIT4)]   = "",
-> #endif
+Hi.
 
-Yep, I think that works for me.
+
+CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX was selected
+by BLACKFIN and METAG.
+
+Now that both architectures removed in the previous
+merge window, there is no more user of this CONFIG option.
+
+
+My question is,
+is it OK to remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX entirely?
+
+
+In other words,
+  - Is there possibility to revive Blackfin/Metag support?
+  - Do future architectures need HAVE_UNDERSCORE_SYMBOL_PREFIX?
+
+I guess (hope) they are unlikely to happen.
+
+
+
+If we can remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX,
+several tools (modpost, genksyms, adjust_autoksyms.sh, etc.)
+will be simplified.
+
+Also, VMLINUX_SYMBOL() in include/asm-generic/vmlinux.lds.h
+can be removed.  So, the linker script will become more readable.
+
+
+Is it OK to move forward the clean-ups?
+Comments are appreciated.
+
+
+-- 
+Best Regards
+Masahiro Yamada
