@@ -1,56 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef-08.nifty.com ([202.248.20.73]:36353 "EHLO
-        condef-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750821AbeEEKZP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2018 06:25:15 -0400
-Received: from conssluserg-04.nifty.com ([10.126.8.83])by condef-08.nifty.com with ESMTP id w45AH3Sh011187
-        for <linux-arch@vger.kernel.org>; Sat, 5 May 2018 19:17:03 +0900
+Received: from mail-io0-f175.google.com ([209.85.223.175]:40388 "EHLO
+        mail-io0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751118AbeEEPur (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2018 11:50:47 -0400
 MIME-Version: 1.0
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Sat, 5 May 2018 19:16:13 +0900
-Message-ID: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
-Subject: [RFC] Removal of CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+References: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
+In-Reply-To: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 05 May 2018 15:50:35 +0000
+Message-ID: <CA+55aFzX9CeRr3HZtVN5XKK2Ema5TjXo4FCgD8ukWz6Waz=pZw@mail.gmail.com>
+Subject: Re: [RFC] Removal of CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Miao <realmz6@gmail.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20180505101613.lnVJ-okwQJcyZ1bO-LtofdqDTHeL-IZ8g8ORFJBELxQ@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Steven Miao (Steven Miao)" <realmz6@gmail.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20180505155035.nHreXLgCBUgPuhvqvv6YH0ZjfWAmktmTTfBVlcdyNoQ@z>
 
-Hi.
+On Sat, May 5, 2018 at 12:17 AM Masahiro Yamada <
+yamada.masahiro@socionext.com> wrote:
 
+> My question is,
+> is it OK to remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX entirely?
 
-CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX was selected
-by BLACKFIN and METAG.
+Absolutely. Let's not keep legacy stuff that complicates things around
+unless necessary.
 
-Now that both architectures removed in the previous
-merge window, there is no more user of this CONFIG option.
+Even if there might be some unlikely future reason why it might be revived
+some day, let's not use "what if" as an argument to keep unused code around.
 
-
-My question is,
-is it OK to remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX entirely?
-
-
-In other words,
-  - Is there possibility to revive Blackfin/Metag support?
-  - Do future architectures need HAVE_UNDERSCORE_SYMBOL_PREFIX?
-
-I guess (hope) they are unlikely to happen.
-
-
-
-If we can remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX,
-several tools (modpost, genksyms, adjust_autoksyms.sh, etc.)
-will be simplified.
-
-Also, VMLINUX_SYMBOL() in include/asm-generic/vmlinux.lds.h
-can be removed.  So, the linker script will become more readable.
-
-
-Is it OK to move forward the clean-ups?
-Comments are appreciated.
-
-
--- 
-Best Regards
-Masahiro Yamada
+              Linus
