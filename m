@@ -1,42 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from heliosphere.sirena.org.uk ([172.104.155.198]:36970 "EHLO
-        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751739AbeEEBod (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 21:44:33 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: Applied "regulator: add dummy function of_find_regulator_by_node" to the regulator tree
-In-Reply-To: <1525179614-14571-3-git-send-email-changbin.du@intel.com>
-Message-ID: <20180505014413.ADEDE44007A@finisterre.ee.mobilebroadband>
-Date: Sat,  5 May 2018 02:44:13 +0100 (BST)
+Received: from mga14.intel.com ([192.55.52.115]:35021 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750752AbeEEEmk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 5 May 2018 00:42:40 -0400
+Subject: Re: [PATCH v13 3/3] mm, powerpc, x86: introduce an additional vma bit
+ for powerpc pkey
+References: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
+ <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
+ <1e37895e-5a18-11c1-58f1-834f96dfd4d5@intel.com>
+ <20180505011243.GB5617@ram.oc3035372033.ibm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <7d1de723-f001-ebbe-6026-91bef88c566d@intel.com>
+Date: Fri, 4 May 2018 21:42:39 -0700
+MIME-Version: 1.0
+In-Reply-To: <20180505011243.GB5617@ram.oc3035372033.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Changbin Du <changbin.du@intel.com>
-Cc: Mark Brown <broonie@kernel.org>, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, x86@kernel.org, lgirdwood@gmail.combroonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.orglinux-kernel@vger.kernel.org
-Message-ID: <20180505014413.xTF945ZpLfgNUGTKba17ihZ12MC8KP6n7xAWuF7CbmI@z>
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de
+Message-ID: <20180505044239.mFORGrJHada-DzOI98KiVmHxY3VHyHnmr9sfsPTfqnA@z>
 
-The patch
+On 05/04/2018 06:12 PM, Ram Pai wrote:
+>> That new line boils down to:
+>>
+>> 		[ilog2(0)]	= "",
+>>
+>> on x86.  It wasn't *obvious* to me that it is OK to do that.  The other
+>> possibly undefined bits (VM_SOFTDIRTY for instance) #ifdef themselves
+>> out of this array.
+>>
+>> I would just be a wee bit worried that this would overwrite the 0 entry
+>> ("??") with "".
+> Yes it would :-( and could potentially break anything that depends on
+> 0th entry being "??"
+> 
+> Is the following fix acceptable?
+> 
+> #if VM_PKEY_BIT4
+>                 [ilog2(VM_PKEY_BIT4)]   = "",
+> #endif
 
-   regulator: add dummy function of_find_regulator_by_node
-
-has been applied to the regulator tree at
-
-   https://git.kernel.org/pub/scm/linux/kernel/git/broonie/regulator.git 
-
-All being well this means that it will be integrated into the linux-next
-tree (usually sometime in the next 24 hours) and sent to Linus during
-the next merge window (or sooner if it is a bug fix), however if
-problems are discovered then the patch may be dropped or reverted.  
-
-You may get further e-mails resulting from automated or manual testing
-and review of the tree, please engage with people reporting problems and
-send followup patches addressing any issues that are reported if needed.
-
-If any updates are required or you are submitting further changes they
-should be sent as incremental updates against current git, existing
-patches will not be replaced.
-
-Please add any relevant lists and maintainers to the CCs when replying
-to this mail.
-
-Thanks,
-Mark
+Yep, I think that works for me.
