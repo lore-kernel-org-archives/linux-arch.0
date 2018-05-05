@@ -1,76 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:55032 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751751AbeEEBM7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 21:12:59 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4518oK5114848
-        for <linux-arch@vger.kernel.org>; Fri, 4 May 2018 21:12:58 -0400
-Received: from e06smtp15.uk.ibm.com (e06smtp15.uk.ibm.com [195.75.94.111])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hry2gpqdt-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 04 May 2018 21:12:58 -0400
-Received: from localhost
-        by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Sat, 5 May 2018 02:12:56 +0100
-Date: Fri, 4 May 2018 18:12:43 -0700
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 3/3] mm, powerpc, x86: introduce an additional vma
- bit for powerpc pkey
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
- <1525471183-21277-3-git-send-email-linuxram@us.ibm.com>
- <1e37895e-5a18-11c1-58f1-834f96dfd4d5@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1e37895e-5a18-11c1-58f1-834f96dfd4d5@intel.com>
-Message-ID: <20180505011243.GB5617@ram.oc3035372033.ibm.com>
+Received: from heliosphere.sirena.org.uk ([172.104.155.198]:36970 "EHLO
+        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751739AbeEEBod (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 May 2018 21:44:33 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: Applied "regulator: add dummy function of_find_regulator_by_node" to the regulator tree
+In-Reply-To: <1525179614-14571-3-git-send-email-changbin.du@intel.com>
+Message-ID: <20180505014413.ADEDE44007A@finisterre.ee.mobilebroadband>
+Date: Sat,  5 May 2018 02:44:13 +0100 (BST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de
-Message-ID: <20180505011243.QdCM_JoDx6ZDVatiuDN8R8EYzj_0X8M-OWwZSMEAEa0@z>
+To: Changbin Du <changbin.du@intel.com>
+Cc: Mark Brown <broonie@kernel.org>, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, x86@kernel.org, lgirdwood@gmail.combroonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.orglinux-kernel@vger.kernel.org
+Message-ID: <20180505014413.xTF945ZpLfgNUGTKba17ihZ12MC8KP6n7xAWuF7CbmI@z>
 
-On Fri, May 04, 2018 at 03:57:33PM -0700, Dave Hansen wrote:
-> > diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> > index 0c9e392..3ddddc7 100644
-> > --- a/fs/proc/task_mmu.c
-> > +++ b/fs/proc/task_mmu.c
-> > @@ -679,6 +679,7 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
-> >  		[ilog2(VM_PKEY_BIT1)]	= "",
-> >  		[ilog2(VM_PKEY_BIT2)]	= "",
-> >  		[ilog2(VM_PKEY_BIT3)]	= "",
-> > +		[ilog2(VM_PKEY_BIT4)]	= "",
-> >  #endif /* CONFIG_ARCH_HAS_PKEYS */
-> ...
-> > +#if defined(CONFIG_PPC)
-> > +# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
-> > +#else 
-> > +# define VM_PKEY_BIT4	0
-> > +#endif
-> >  #endif /* CONFIG_ARCH_HAS_PKEYS */
-> 
-> That new line boils down to:
-> 
-> 		[ilog2(0)]	= "",
-> 
-> on x86.  It wasn't *obvious* to me that it is OK to do that.  The other
-> possibly undefined bits (VM_SOFTDIRTY for instance) #ifdef themselves
-> out of this array.
-> 
-> I would just be a wee bit worried that this would overwrite the 0 entry
-> ("??") with "".
+The patch
 
-Yes it would :-( and could potentially break anything that depends on
-0th entry being "??"
+   regulator: add dummy function of_find_regulator_by_node
 
-Is the following fix acceptable?
+has been applied to the regulator tree at
 
-#if VM_PKEY_BIT4
-                [ilog2(VM_PKEY_BIT4)]   = "",
-#endif
+   https://git.kernel.org/pub/scm/linux/kernel/git/broonie/regulator.git 
 
--- 
-Ram Pai
+All being well this means that it will be integrated into the linux-next
+tree (usually sometime in the next 24 hours) and sent to Linus during
+the next merge window (or sooner if it is a bug fix), however if
+problems are discovered then the patch may be dropped or reverted.  
+
+You may get further e-mails resulting from automated or manual testing
+and review of the tree, please engage with people reporting problems and
+send followup patches addressing any issues that are reported if needed.
+
+If any updates are required or you are submitting further changes they
+should be sent as incremental updates against current git, existing
+patches will not be replaced.
+
+Please add any relevant lists and maintainers to the CCs when replying
+to this mail.
+
+Thanks,
+Mark
