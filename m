@@ -1,41 +1,64 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [RFC] Removal of CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-Date: Sat, 5 May 2018 17:55:23 +0200
-Message-ID: <20180505155523.GA17349@ravnborg.org>
-References: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
+From: "Du, Changbin" <changbin.du@intel.com>
+Subject: Re: [PATCH v2 4/5] kernel hacking: new config DEBUG_EXPERIENCE to
+ apply GCC -Og optimization
+Date: Sun, 6 May 2018 07:57:26 +0800
+Message-ID: <20180505235725.hglh6u77spw55qa5@intel.com>
+References: <1525268700-10631-1-git-send-email-changbin.du@intel.com>
+ <1525268700-10631-5-git-send-email-changbin.du@intel.com>
+ <20180502101707.206984e9@gandalf.local.home>
+ <20180502134558.1f388e097dcde6f589635404@linux-foundation.org>
+ <20180502211956.6c9e8d7b@vmware.local.home>
+ <20180503134546.5p3z4g5na7ew4fun@intel.com>
+ <20180503102823.5b54cd56@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
+In-Reply-To: <20180503102823.5b54cd56@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Miao <realmz6@gmail.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: "Du, Changbin" <changbin.du@intel.com>, Andrew Morton <akpm@linux-foundation.org>, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 05, 2018 at 07:16:13PM +0900, Masahiro Yamada wrote:
-> Hi.
+On Thu, May 03, 2018 at 10:28:23AM -0400, Steven Rostedt wrote:
+> On Thu, 3 May 2018 21:45:46 +0800
+> "Du, Changbin" <changbin.du@intel.com> wrote:
+> 
+> > > With that gcc comment, I still think CONFIG_OPTIMIZE_DEBUG is more
+> > > inline with what it is and understandable than
+> > > CONFIG_DEBUG_EXPERIENCE. The "OPTIMIZE" is the key word there.
+> > > 
+> > > -- Steve  
+> > What about CONFIG_CC_OPTIMIZE_FOR_DEBUGGING? We alreay have
+> > CONFIG_CC_OPTIMIZE_FOR_SIZE and CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE.
+> 
+> Yes I like that much better.
+> 
+> > 
+> > And do we need to move it to existing configuration menu "General setup->
+> > Compiler optimization level"? But I also want it appear in "kernel hacking"
+> > since this is a debug option.
+> 
+> I understand why you would want it by debugging, but I think it does
+> make more sense to be included with the above two other options, as
+> they are all mutually exclusive.
+> 
+> This brings up the topic of creating config paradigms. That is, a way
+> of saying "I want a debug kernel" and select one option that selects
+> everything you would expect. Or perhaps we should have a:
+> 
+>  make debug_config
+> 
+Agree, I accomplish this by running script scripts/kconfig/merge_config.sh.
+
+> that does it.
+> 
+> But that's a different topic. For now, I would just included it in
+> init/Kconfig, and not worry about it not showing up in kernel hacking.
 > 
 > 
-> CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX was selected
-> by BLACKFIN and METAG.
-> 
-> Now that both architectures removed in the previous
-> merge window, there is no more user of this CONFIG option.
+> -- Steve
 
-No need to keep this around, just in case someone steps up
-to add support for these archs again.
-There is no users so it will bit-rot over time anyway,
-and will confuse new readers.
-And if an arch shows up there is now a good incentive to
-do what everyone else does, rather than having
-special handling in the kernel.
-
-Removing the symbol has the extra benefit that the kbuild
-files becomes a little more readable, something we should
-always welcome.
-
-In other words - drop the symbol.
-And well spotted!
-
-	Sam
+-- 
+Thanks,
+Changbin Du
