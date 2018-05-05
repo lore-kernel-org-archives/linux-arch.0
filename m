@@ -1,32 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f175.google.com ([209.85.223.175]:40388 "EHLO
-        mail-io0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751118AbeEEPur (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2018 11:50:47 -0400
-MIME-Version: 1.0
-References: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
-In-Reply-To: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Sat, 05 May 2018 15:50:35 +0000
-Message-ID: <CA+55aFzX9CeRr3HZtVN5XKK2Ema5TjXo4FCgD8ukWz6Waz=pZw@mail.gmail.com>
+Received: from asavdk3.altibox.net ([109.247.116.14]:45870 "EHLO
+        asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751206AbeEEQDA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2018 12:03:00 -0400
+Date: Sat, 5 May 2018 17:55:23 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: [RFC] Removal of CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20180505155523.GA17349@ravnborg.org>
+References: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK7LNAR59KjaJdDNwJaSR_79s84hBj_MqMQ=PaFqJqzBKLUsJA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Steven Miao (Steven Miao)" <realmz6@gmail.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20180505155035.nHreXLgCBUgPuhvqvv6YH0ZjfWAmktmTTfBVlcdyNoQ@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Miao <realmz6@gmail.com>, James Hogan <jhogan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20180505155523.GOCTiTR3I__f9MeEm80Sb403HyW2e3Em8eSXddafF7E@z>
 
-On Sat, May 5, 2018 at 12:17 AM Masahiro Yamada <
-yamada.masahiro@socionext.com> wrote:
+On Sat, May 05, 2018 at 07:16:13PM +0900, Masahiro Yamada wrote:
+> Hi.
+> 
+> 
+> CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX was selected
+> by BLACKFIN and METAG.
+> 
+> Now that both architectures removed in the previous
+> merge window, there is no more user of this CONFIG option.
 
-> My question is,
-> is it OK to remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX entirely?
+No need to keep this around, just in case someone steps up
+to add support for these archs again.
+There is no users so it will bit-rot over time anyway,
+and will confuse new readers.
+And if an arch shows up there is now a good incentive to
+do what everyone else does, rather than having
+special handling in the kernel.
 
-Absolutely. Let's not keep legacy stuff that complicates things around
-unless necessary.
+Removing the symbol has the extra benefit that the kbuild
+files becomes a little more readable, something we should
+always welcome.
 
-Even if there might be some unlikely future reason why it might be revived
-some day, let's not use "what if" as an argument to keep unused code around.
+In other words - drop the symbol.
+And well spotted!
 
-              Linus
+	Sam
