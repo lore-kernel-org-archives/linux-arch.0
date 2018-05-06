@@ -1,89 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:58221 "EHLO mga02.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:25684 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751952AbeEFAan (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 5 May 2018 20:30:43 -0400
+        id S1752005AbeEFAbA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 5 May 2018 20:31:00 -0400
 From: changbin.du@intel.com
-Subject: [PATCH v3 2/5] regulator: add dummy function of_find_regulator_by_node
-Date: Sun,  6 May 2018 08:20:13 +0800
-Message-ID: <1525566016-30172-3-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v3 5/5] asm-generic: fix build error in fix_to_virt with CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+Date: Sun,  6 May 2018 08:20:16 +0800
+Message-ID: <1525566016-30172-6-git-send-email-changbin.du@intel.com>
 In-Reply-To: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 References: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
 Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
-Message-ID: <20180506002013.qXOfGv2aVXgfFx3nR4zTH9Z8oGQwl-ZghyYAf5Ydolo@z>
+Message-ID: <20180506002016.NLgrpo6YYiJmkaYt7Z0nVppmRB-k-e5v96j7qoh0t9I@z>
 
 From: Changbin Du <changbin.du@intel.com>
 
-If device tree is not enabled, of_find_regulator_by_node() should have
-a dummy function since the function call is still there.
+With '-Og' optimization level, GCC would not optimize a count for a loop
+as a constant value. But BUILD_BUG_ON() only accept compile-time constant
+values. Let's use __fix_to_virt() to avoid the error.
 
-This is to fix build error after CONFIG_NO_AUTO_INLINE is introduced.
-If this option is enabled, GCC will not auto-inline functions that are
-not explicitly marked as inline.
-
-In this case (no CONFIG_OF), the copmiler will report error in function
-regulator_dev_lookup().
-
-W/O NO_AUTO_INLINE, function of_get_regulator() is auto-inlined and then
-the call to of_find_regulator_by_node() is optimized out since
-of_get_regulator() always return NULL.
-
-W/ NO_AUTO_INLINE, the return value of of_get_regulator() is a variable
-so the call to of_find_regulator_by_node() cannot be optimized out. So
-we need a stub of_find_regulator_by_node().
-
-static struct regulator_dev *regulator_dev_lookup(struct device *dev,
-						  const char *supply)
-{
-	struct regulator_dev *r = NULL;
-	struct device_node *node;
-	struct regulator_map *map;
-	const char *devname = NULL;
-
-	regulator_supply_alias(&dev, &supply);
-
-	/* first do a dt based lookup */
-	if (dev && dev->of_node) {
-		node = of_get_regulator(dev, supply);
-		if (node) {
-			r = of_find_regulator_by_node(node);
-			if (r)
-				return r;
-	...
+arch/arm/mm/mmu.o: In function `fix_to_virt':
+/home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
+Makefile:1051: recipe for target 'vmlinux' failed
+make: *** [vmlinux] Error 1
 
 Signed-off-by: Changbin Du <changbin.du@intel.com>
----
- drivers/regulator/internal.h | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/regulator/internal.h b/drivers/regulator/internal.h
-index abfd56e..24fde1e 100644
---- a/drivers/regulator/internal.h
-+++ b/drivers/regulator/internal.h
-@@ -56,14 +56,19 @@ static inline struct regulator_dev *dev_to_rdev(struct device *dev)
- 	return container_of(dev, struct regulator_dev, dev);
- }
+---
+v2: use __fix_to_virt() to fix the issue.
+---
+ arch/arm/mm/mmu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index e46a6a4..c08d74e 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
+ 		pte_t *pte;
+ 		struct map_desc map;
  
--struct regulator_dev *of_find_regulator_by_node(struct device_node *np);
--
- #ifdef CONFIG_OF
-+struct regulator_dev *of_find_regulator_by_node(struct device_node *np);
- struct regulator_init_data *regulator_of_get_init_data(struct device *dev,
- 			         const struct regulator_desc *desc,
- 				 struct regulator_config *config,
- 				 struct device_node **node);
- #else
-+static inline struct regulator_dev *
-+of_find_regulator_by_node(struct device_node *np)
-+{
-+	return NULL;
-+}
-+
- static inline struct regulator_init_data *
- regulator_of_get_init_data(struct device *dev,
- 			   const struct regulator_desc *desc,
+-		map.virtual = fix_to_virt(i);
++		map.virtual = __fix_to_virt(i);
+ 		pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
+ 
+ 		/* Only i/o device mappings are supported ATM */
 -- 
 2.7.4
