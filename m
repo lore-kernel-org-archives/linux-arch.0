@@ -1,51 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:25684 "EHLO mga03.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:51493 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752005AbeEFAbA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 5 May 2018 20:31:00 -0400
+        id S1751984AbeEFAau (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 5 May 2018 20:30:50 -0400
 From: changbin.du@intel.com
-Subject: [PATCH v3 5/5] asm-generic: fix build error in fix_to_virt with CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-Date: Sun,  6 May 2018 08:20:16 +0800
-Message-ID: <1525566016-30172-6-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v3 3/5] kernel hacking: new config NO_AUTO_INLINE to disable compiler auto-inline optimizations
+Date: Sun,  6 May 2018 08:20:14 +0800
+Message-ID: <1525566016-30172-4-git-send-email-changbin.du@intel.com>
 In-Reply-To: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 References: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
 Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
-Message-ID: <20180506002016.NLgrpo6YYiJmkaYt7Z0nVppmRB-k-e5v96j7qoh0t9I@z>
+Message-ID: <20180506002014.bdZhX4z4VfHCtX8brV7TJ1XEIoqEiFrgkjTyqkTbz80@z>
 
 From: Changbin Du <changbin.du@intel.com>
 
-With '-Og' optimization level, GCC would not optimize a count for a loop
-as a constant value. But BUILD_BUG_ON() only accept compile-time constant
-values. Let's use __fix_to_virt() to avoid the error.
+This patch add a new kernel hacking option NO_AUTO_INLINE. Selecting
+this option will prevent the compiler from optimizing the kernel by
+auto-inlining functions not marked with the inline keyword.
 
-arch/arm/mm/mmu.o: In function `fix_to_virt':
-/home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
-Makefile:1051: recipe for target 'vmlinux' failed
-make: *** [vmlinux] Error 1
+With this option, only functions explicitly marked with "inline" will
+be inlined. This will allow the function tracer to trace more functions
+because it only traces functions that the compiler has not inlined.
 
 Signed-off-by: Changbin Du <changbin.du@intel.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>
 
 ---
-v2: use __fix_to_virt() to fix the issue.
+v2: Some grammar updates from Steven.
 ---
- arch/arm/mm/mmu.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ Makefile          |  6 ++++++
+ lib/Kconfig.debug | 17 +++++++++++++++++
+ 2 files changed, 23 insertions(+)
 
-diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
-index e46a6a4..c08d74e 100644
---- a/arch/arm/mm/mmu.c
-+++ b/arch/arm/mm/mmu.c
-@@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
- 		pte_t *pte;
- 		struct map_desc map;
+diff --git a/Makefile b/Makefile
+index 619a85a..eb694f6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -775,6 +775,12 @@ KBUILD_CFLAGS 	+= $(call cc-option, -femit-struct-debug-baseonly) \
+ 		   $(call cc-option,-fno-var-tracking)
+ endif
  
--		map.virtual = fix_to_virt(i);
-+		map.virtual = __fix_to_virt(i);
- 		pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
++ifdef CONFIG_NO_AUTO_INLINE
++KBUILD_CFLAGS   += $(call cc-option, -fno-inline-functions) \
++		   $(call cc-option, -fno-inline-small-functions) \
++		   $(call cc-option, -fno-inline-functions-called-once)
++endif
++
+ ifdef CONFIG_FUNCTION_TRACER
+ ifndef CC_FLAGS_FTRACE
+ CC_FLAGS_FTRACE := -pg
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index c40c7b7..da52243 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -198,6 +198,23 @@ config GDB_SCRIPTS
+ 	  instance. See Documentation/dev-tools/gdb-kernel-debugging.rst
+ 	  for further details.
  
- 		/* Only i/o device mappings are supported ATM */
++config NO_AUTO_INLINE
++	bool "Disable compiler auto-inline optimizations"
++	help
++	  This will prevent the compiler from optimizing the kernel by
++	  auto-inlining functions not marked with the inline keyword.
++	  With this option, only functions explicitly marked with
++	  "inline" will be inlined. This will allow the function tracer
++	  to trace more functions because it only traces functions that
++	  the compiler has not inlined.
++
++	  Enabling this function can help debugging a kernel if using
++	  the function tracer. But it can also change how the kernel
++	  works, because inlining functions may change the timing,
++	  which could make it difficult while debugging race conditions.
++
++	  If unsure, select N.
++
+ config ENABLE_WARN_DEPRECATED
+ 	bool "Enable __deprecated logic"
+ 	default y
 -- 
 2.7.4
