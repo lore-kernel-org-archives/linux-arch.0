@@ -1,189 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:51493 "EHLO mga06.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:58221 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751832AbeEFAax (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 5 May 2018 20:30:53 -0400
+        id S1751775AbeEFAak (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 5 May 2018 20:30:40 -0400
 From: changbin.du@intel.com
-Subject: [PATCH v3 4/5] kernel hacking: new config CC_OPTIMIZE_FOR_DEBUGGING to apply GCC -Og optimization
-Date: Sun,  6 May 2018 08:20:15 +0800
-Message-ID: <1525566016-30172-5-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v3 1/5] x86/mm: surround level4_kernel_pgt with #ifdef CONFIG_X86_5LEVEL...#endif
+Date: Sun,  6 May 2018 08:20:12 +0800
+Message-ID: <1525566016-30172-2-git-send-email-changbin.du@intel.com>
 In-Reply-To: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 References: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
 Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
-Message-ID: <20180506002015.PvVZv_kADqHGWexu6q9ZqtLcjEvbHKlfjypA8P8RAn4@z>
+Message-ID: <20180506002012.6XwKUGqmiLTR3brIrSCx8aFf8Z_fMe1fWR9D5c0wJYI@z>
 
 From: Changbin Du <changbin.du@intel.com>
 
-This will apply GCC '-Og' optimization level which is supported
-since GCC 4.8. This optimization level offers a reasonable level
-of optimization while maintaining fast compilation and a good
-debugging experience. It is similar to '-O1' while perferring
-to keep debug ability over runtime speed.
-
-If enabling this option breaks your kernel, you should either
-disable this or find a fix (mostly in the arch code). Currently
-this option has only been tested on x86_64 and arm platform.
-
-This option can satisfy people who was searching for a method
-to disable compiler optimizations so to achieve better kernel
-debugging experience with kgdb or qemu.
-
-The main problem of '-Og' is we must not use __attribute__((error(msg))).
-The compiler will report error though the call to error function
-still can be optimize out. So we must fallback to array tricky.
-
-Comparison of vmlinux size: a bit smaller.
-
-    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    22665554   9709674  2920908 35296136        21a9388 vmlinux
-
-    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    21499032   10102758 2920908 34522698        20ec64a vmlinux
-
-Comparison of system performance: a bit drop (~6%).
-    This benchmark of kernel compilation is suggested by Ingo Molnar.
-    https://lkml.org/lkml/2018/5/2/74
-
-    Preparation: Set cpufreq to 'performance'.
-    for ((cpu=0; cpu<120; cpu++)); do
-      G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
-      [ -f $G ] && echo performance > $G
-    done
-
-    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ perf stat --repeat 5 --null --pre                 '\
-        cp -a kernel ../kernel.copy.$(date +%s);         \
-        rm -rf *;                                        \
-        git checkout .;                                  \
-        echo 1 > /proc/sys/vm/drop_caches;               \
-        find ../kernel* -type f | xargs cat >/dev/null;  \
-        make -j kernel >/dev/null;                       \
-        make clean >/dev/null 2>&1;                      \
-        sync                                            '\
-                                                         \
-        make -j8 >/dev/null
-
-    Performance counter stats for 'make -j8' (5 runs):
-
-        219.764246652 seconds time elapsed                   ( +-  0.78% )
-
-    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ perf stat --repeat 5 --null --pre                 '\
-        cp -a kernel ../kernel.copy.$(date +%s);         \
-        rm -rf *;                                        \
-        git checkout .;                                  \
-        echo 1 > /proc/sys/vm/drop_caches;               \
-        find ../kernel* -type f | xargs cat >/dev/null;  \
-        make -j kernel >/dev/null;                       \
-        make clean >/dev/null 2>&1;                      \
-        sync                                            '\
-                                                         \
-        make -j8 >/dev/null
-
-    Performance counter stats for 'make -j8' (5 runs):
-
-         233.574187771 seconds time elapsed                  ( +-  0.19% )
+The level4_kernel_pgt is only defined when X86_5LEVEL is enabled. So
+surround level4_kernel_pgt with #ifdef CONFIG_X86_5LEVEL...#endif to
+make code correct.
 
 Signed-off-by: Changbin Du <changbin.du@intel.com>
-
 ---
-v3:
-  o Rename DEBUG_EXPERIENCE to CC_OPTIMIZE_FOR_DEBUGGING
-  o Move new configuration item to "General setup->Compiler optimization level"
-v2:
-  o Improve performance benchmark as suggested by Ingo.
-  o Grammar updates in description. (Randy Dunlap)
----
- Makefile                     |  4 ++++
- include/linux/compiler-gcc.h |  2 +-
- include/linux/compiler.h     |  2 +-
- init/Kconfig                 | 19 +++++++++++++++++++
- 4 files changed, 25 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/pgtable_64.h |  2 ++
+ arch/x86/kernel/head64.c          | 13 ++++++-------
+ 2 files changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index eb694f6..ae1dea7 100644
---- a/Makefile
-+++ b/Makefile
-@@ -639,6 +639,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
- KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
- KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
+diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
+index 877bc27..9e7f667 100644
+--- a/arch/x86/include/asm/pgtable_64.h
++++ b/arch/x86/include/asm/pgtable_64.h
+@@ -15,7 +15,9 @@
+ #include <linux/bitops.h>
+ #include <linux/threads.h>
  
-+ifdef CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-+KBUILD_CFLAGS	+= $(call cc-option, -Og)
-+else
- ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
- KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
- KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
-@@ -649,6 +652,7 @@ else
- KBUILD_CFLAGS   += -O2
- endif
- endif
-+endif
++#ifdef CONFIG_X86_5LEVEL
+ extern p4d_t level4_kernel_pgt[512];
++#endif
+ extern p4d_t level4_ident_pgt[512];
+ extern pud_t level3_kernel_pgt[512];
+ extern pud_t level3_ident_pgt[512];
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 0c408f8..775d7a6 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -143,16 +143,15 @@ unsigned long __head __startup_64(unsigned long physaddr,
  
- KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
- 			$(call cc-disable-warning,maybe-uninitialized,))
-diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-index b4bf73f..586ed11 100644
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -192,7 +192,7 @@
+ 	pgd = fixup_pointer(&early_top_pgt, physaddr);
+ 	p = pgd + pgd_index(__START_KERNEL_map);
+-	if (la57)
+-		*p = (unsigned long)level4_kernel_pgt;
+-	else
+-		*p = (unsigned long)level3_kernel_pgt;
+-	*p += _PAGE_TABLE_NOENC - __START_KERNEL_map + load_delta;
+-
++#ifdef CONFIG_X86_5LEVEL
+ 	if (la57) {
++		*p = (unsigned long)level4_kernel_pgt;
+ 		p4d = fixup_pointer(&level4_kernel_pgt, physaddr);
+ 		p4d[511] += load_delta;
+-	}
++	} else
++#endif
++		*p = (unsigned long)level3_kernel_pgt;
++	*p += _PAGE_TABLE_NOENC - __START_KERNEL_map + load_delta;
  
- #define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __COUNTER__)
- 
--#ifndef __CHECKER__
-+#if !defined(__CHECKER__) && !defined(CONFIG_CC_OPTIMIZE_FOR_DEBUGGING)
- # define __compiletime_warning(message) __attribute__((warning(message)))
- # define __compiletime_error(message) __attribute__((error(message)))
- #endif /* __CHECKER__ */
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index ab4711c..e97caf4 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -301,7 +301,7 @@ unsigned long read_word_at_a_time(const void *addr)
-  * sparse see a constant array size without breaking compiletime_assert on old
-  * versions of GCC (e.g. 4.2.4), so hide the array from sparse altogether.
-  */
--# ifndef __CHECKER__
-+# if !defined(__CHECKER__) && !defined(CONFIG_CC_OPTIMIZE_FOR_DEBUGGING)
- #  define __compiletime_error_fallback(condition) \
- 	do { ((void)sizeof(char[1 - 2 * condition])); } while (0)
- # endif
-diff --git a/init/Kconfig b/init/Kconfig
-index f013afc..aa52535 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1036,6 +1036,25 @@ config CC_OPTIMIZE_FOR_SIZE
- 
- 	  If unsure, say N.
- 
-+config CC_OPTIMIZE_FOR_DEBUGGING
-+	bool "Optimize for better debugging experience (-Og)"
-+	select NO_AUTO_INLINE
-+	help
-+	  This will apply GCC '-Og' optimization level which is supported
-+	  since GCC 4.8. This optimization level offers a reasonable level
-+	  of optimization while maintaining fast compilation and a good
-+	  debugging experience. It is similar to '-O1' while preferring to
-+	  keep debug ability over runtime speed. The overall performance
-+	  will drop a bit (~6%).
-+
-+	  Use only if you want to debug the kernel, especially if you want
-+	  to have better kernel debugging experience with gdb facilities
-+	  like kgdb or qemu. If enabling this option breaks your kernel,
-+	  you should either disable this or find a fix (mostly in the arch
-+	  code).
-+
-+	  If unsure, select N.
-+
- endchoice
- 
- config SYSCTL
+ 	pud = fixup_pointer(&level3_kernel_pgt, physaddr);
+ 	pud[510] += load_delta;
 -- 
 2.7.4
