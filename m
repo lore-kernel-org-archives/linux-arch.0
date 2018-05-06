@@ -1,7 +1,7 @@
 From: changbin.du@intel.com
-Subject: [PATCH v3 1/5] x86/mm: surround level4_kernel_pgt with #ifdef CONFIG_X86_5LEVEL...#endif
-Date: Sun,  6 May 2018 08:20:12 +0800
-Message-ID: <1525566016-30172-2-git-send-email-changbin.du@intel.com>
+Subject: [PATCH v3 2/5] regulator: add dummy function of_find_regulator_by_node
+Date: Sun,  6 May 2018 08:20:13 +0800
+Message-ID: <1525566016-30172-3-git-send-email-changbin.du@intel.com>
 References: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
@@ -12,56 +12,73 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Changbin Du <changbin.du@intel.com>
 
-The level4_kernel_pgt is only defined when X86_5LEVEL is enabled. So
-surround level4_kernel_pgt with #ifdef CONFIG_X86_5LEVEL...#endif to
-make code correct.
+If device tree is not enabled, of_find_regulator_by_node() should have
+a dummy function since the function call is still there.
+
+This is to fix build error after CONFIG_NO_AUTO_INLINE is introduced.
+If this option is enabled, GCC will not auto-inline functions that are
+not explicitly marked as inline.
+
+In this case (no CONFIG_OF), the copmiler will report error in function
+regulator_dev_lookup().
+
+W/O NO_AUTO_INLINE, function of_get_regulator() is auto-inlined and then
+the call to of_find_regulator_by_node() is optimized out since
+of_get_regulator() always return NULL.
+
+W/ NO_AUTO_INLINE, the return value of of_get_regulator() is a variable
+so the call to of_find_regulator_by_node() cannot be optimized out. So
+we need a stub of_find_regulator_by_node().
+
+static struct regulator_dev *regulator_dev_lookup(struct device *dev,
+						  const char *supply)
+{
+	struct regulator_dev *r = NULL;
+	struct device_node *node;
+	struct regulator_map *map;
+	const char *devname = NULL;
+
+	regulator_supply_alias(&dev, &supply);
+
+	/* first do a dt based lookup */
+	if (dev && dev->of_node) {
+		node = of_get_regulator(dev, supply);
+		if (node) {
+			r = of_find_regulator_by_node(node);
+			if (r)
+				return r;
+	...
 
 Signed-off-by: Changbin Du <changbin.du@intel.com>
 ---
- arch/x86/include/asm/pgtable_64.h |  2 ++
- arch/x86/kernel/head64.c          | 13 ++++++-------
- 2 files changed, 8 insertions(+), 7 deletions(-)
+ drivers/regulator/internal.h | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
-index 877bc27..9e7f667 100644
---- a/arch/x86/include/asm/pgtable_64.h
-+++ b/arch/x86/include/asm/pgtable_64.h
-@@ -15,7 +15,9 @@
- #include <linux/bitops.h>
- #include <linux/threads.h>
+diff --git a/drivers/regulator/internal.h b/drivers/regulator/internal.h
+index abfd56e..24fde1e 100644
+--- a/drivers/regulator/internal.h
++++ b/drivers/regulator/internal.h
+@@ -56,14 +56,19 @@ static inline struct regulator_dev *dev_to_rdev(struct device *dev)
+ 	return container_of(dev, struct regulator_dev, dev);
+ }
  
-+#ifdef CONFIG_X86_5LEVEL
- extern p4d_t level4_kernel_pgt[512];
-+#endif
- extern p4d_t level4_ident_pgt[512];
- extern pud_t level3_kernel_pgt[512];
- extern pud_t level3_ident_pgt[512];
-diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
-index 0c408f8..775d7a6 100644
---- a/arch/x86/kernel/head64.c
-+++ b/arch/x86/kernel/head64.c
-@@ -143,16 +143,15 @@ unsigned long __head __startup_64(unsigned long physaddr,
- 
- 	pgd = fixup_pointer(&early_top_pgt, physaddr);
- 	p = pgd + pgd_index(__START_KERNEL_map);
--	if (la57)
--		*p = (unsigned long)level4_kernel_pgt;
--	else
--		*p = (unsigned long)level3_kernel_pgt;
--	*p += _PAGE_TABLE_NOENC - __START_KERNEL_map + load_delta;
+-struct regulator_dev *of_find_regulator_by_node(struct device_node *np);
 -
-+#ifdef CONFIG_X86_5LEVEL
- 	if (la57) {
-+		*p = (unsigned long)level4_kernel_pgt;
- 		p4d = fixup_pointer(&level4_kernel_pgt, physaddr);
- 		p4d[511] += load_delta;
--	}
-+	} else
-+#endif
-+		*p = (unsigned long)level3_kernel_pgt;
-+	*p += _PAGE_TABLE_NOENC - __START_KERNEL_map + load_delta;
- 
- 	pud = fixup_pointer(&level3_kernel_pgt, physaddr);
- 	pud[510] += load_delta;
+ #ifdef CONFIG_OF
++struct regulator_dev *of_find_regulator_by_node(struct device_node *np);
+ struct regulator_init_data *regulator_of_get_init_data(struct device *dev,
+ 			         const struct regulator_desc *desc,
+ 				 struct regulator_config *config,
+ 				 struct device_node **node);
+ #else
++static inline struct regulator_dev *
++of_find_regulator_by_node(struct device_node *np)
++{
++	return NULL;
++}
++
+ static inline struct regulator_init_data *
+ regulator_of_get_init_data(struct device *dev,
+ 			   const struct regulator_desc *desc,
 -- 
 2.7.4
