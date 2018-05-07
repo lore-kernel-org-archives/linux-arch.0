@@ -1,118 +1,142 @@
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH v3 0/6] Documentation/features: Provide and apply 'features-refresh.sh'
-Date: Mon,  7 May 2018 12:43:37 +0200
-Message-ID: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: [RFC PATCH v3 1/6] Documentation/features: Add script that refreshes the arch support status files in place
+Date: Mon,  7 May 2018 12:43:38 +0200
+Message-ID: <1525689823-3340-2-git-send-email-andrea.parri@amarulasolutions.com>
+References: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
 Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+Provides the script:
 
-This series provides the script 'features-refresh.sh', which operates on
-the arch support status files, and it applies this script to refresh the
-status files in place; previous discussions about this series are at [1].
+	Documentation/features/scripts/features-refresh.sh
 
-The series is organized as follows.
+which operates on the arch-support.txt files and refreshes them in place.
 
-  - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
+This way [1],
 
-  - Patch 2/6 presents the results of running the script; this run
-    also printed the messages
+   "[...] we soft- decouple the refreshing of the entries from the
+    introduction of the features, while still making it all easy to
+    keep sync and to extend."
 
-       WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
-       WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
-       WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
-       WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
+[1] http://lkml.kernel.org/r/20180328122211.GA25420@andrea
 
-    to standard output.
-
-  - Patches 3-6/6 fix each of these warnings.
-
-(Applies on -rc4.)
-
-Cheers,
-  Andrea
-
-[1] http://lkml.kernel.org/r/1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com
-    http://lkml.kernel.org/r/1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com
-    http://lkml.kernel.org/r/20180328122211.GA25420@andrea
-
-Changes in v3:
-  - rebase on -rc4
-
-Changes in v2:
-  - support negation operators in Kconfig (suggested by Ingo Molnar)
-  - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
-  - add patches 4-6/6 (suggested by Ingo Molnar)
-
-Andrea Parri (6):
-  Documentation/features: Add script that refreshes the arch support
-    status files in place
-  Documentation/features: Refresh the arch support status files in place
-  Documentation/features/core: Add arch support status files for
-    'cBPF-JIT' and 'eBPF-JIT'
-  Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
-    Kconfig for 'rwsem-optimized'
-  Documentation/features/lib: Remove arch support status file for
-    'strncasecmp'
-  Documentation/features/vm: Remove arch support status file for
-    'pte_special'
-
- .../features/core/BPF-JIT/arch-support.txt         | 31 -------
- .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
- .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
- .../core/generic-idle-thread/arch-support.txt      |  4 +-
- .../features/core/jump-labels/arch-support.txt     |  2 +
- .../features/core/tracehook/arch-support.txt       |  2 +
- .../features/debug/KASAN/arch-support.txt          |  4 +-
- .../debug/gcov-profile-all/arch-support.txt        |  2 +
- Documentation/features/debug/kgdb/arch-support.txt |  4 +-
- .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
- .../features/debug/kprobes/arch-support.txt        |  4 +-
- .../features/debug/kretprobes/arch-support.txt     |  4 +-
- .../features/debug/optprobes/arch-support.txt      |  4 +-
- .../features/debug/stackprotector/arch-support.txt |  2 +
- .../features/debug/uprobes/arch-support.txt        |  6 +-
- .../debug/user-ret-profiler/arch-support.txt       |  2 +
- .../features/io/dma-api-debug/arch-support.txt     |  2 +
- .../features/io/dma-contiguous/arch-support.txt    |  4 +-
- .../features/io/sg-chain/arch-support.txt          |  2 +
- .../features/lib/strncasecmp/arch-support.txt      | 31 -------
- .../locking/cmpxchg-local/arch-support.txt         |  4 +-
- .../features/locking/lockdep/arch-support.txt      |  4 +-
- .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
- .../locking/queued-spinlocks/arch-support.txt      |  8 +-
- .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
- .../features/perf/kprobes-event/arch-support.txt   |  6 +-
- .../features/perf/perf-regs/arch-support.txt       |  4 +-
- .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
- .../sched/membarrier-sync-core/arch-support.txt    |  2 +
- .../features/sched/numa-balancing/arch-support.txt |  6 +-
+Suggested-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
  Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
- .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
- .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
- .../features/time/clockevents/arch-support.txt     |  4 +-
- .../time/context-tracking/arch-support.txt         |  2 +
- .../features/time/irq-time-acct/arch-support.txt   |  4 +-
- .../time/modern-timekeeping/arch-support.txt       |  2 +
- .../features/time/virt-cpuacct/arch-support.txt    |  2 +
- .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
- .../features/vm/PG_uncached/arch-support.txt       |  2 +
- Documentation/features/vm/THP/arch-support.txt     |  2 +
- Documentation/features/vm/TLB/arch-support.txt     |  2 +
- .../features/vm/huge-vmap/arch-support.txt         |  2 +
- .../features/vm/ioremap_prot/arch-support.txt      |  2 +
- .../features/vm/numa-memblock/arch-support.txt     |  4 +-
- .../features/vm/pte_special/arch-support.txt       | 31 -------
- 46 files changed, 279 insertions(+), 128 deletions(-)
- delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
- create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
- create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
- delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
+ 1 file changed, 98 insertions(+)
  create mode 100755 Documentation/features/scripts/features-refresh.sh
- delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
 
+diff --git a/Documentation/features/scripts/features-refresh.sh b/Documentation/features/scripts/features-refresh.sh
+new file mode 100755
+index 0000000000000..9e72d38a0720e
+--- /dev/null
++++ b/Documentation/features/scripts/features-refresh.sh
+@@ -0,0 +1,98 @@
++#
++# Small script that refreshes the kernel feature support status in place.
++#
++
++for F_FILE in Documentation/features/*/*/arch-support.txt; do
++	F=$(grep "^#         Kconfig:" "$F_FILE" | cut -c26-)
++
++	#
++	# Each feature F is identified by a pair (O, K), where 'O' can
++	# be either the empty string (for 'nop') or "not" (the logical
++	# negation operator '!'); other operators are not supported.
++	#
++	O=""
++	K=$F
++	if [[ "$F" == !* ]]; then
++		O="not"
++		K=$(echo $F | sed -e 's/^!//g')
++	fi
++
++	#
++	# F := (O, K) is 'valid' iff there is a Kconfig file (for some
++	# arch) which contains K.
++	#
++	# Notice that this definition entails an 'asymmetry' between
++	# the case 'O = ""' and the case 'O = "not"'. E.g., F may be
++	# _invalid_ if:
++	#
++	# [case 'O = ""']
++	#   1) no arch provides support for F,
++	#   2) K does not exist (e.g., it was renamed/mis-typed);
++	#
++	# [case 'O = "not"']
++	#   3) all archs provide support for F,
++	#   4) as in (2).
++	#
++	# The rationale for adopting this definition (and, thus, for
++	# keeping the asymmetry) is:
++	#
++	#       We want to be able to 'detect' (2) (or (4)).
++	#
++	# (1) and (3) may further warn the developers about the fact
++	# that K can be removed.
++	#
++	F_VALID="false"
++	for ARCH_DIR in arch/*/; do
++		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
++		K_GREP=$(grep "$K" $K_FILES)
++		if [ ! -z "$K_GREP" ]; then
++			F_VALID="true"
++			break
++		fi
++	done
++	if [ "$F_VALID" = "false" ]; then
++		printf "WARNING: '%s' is not a valid Kconfig\n" "$F"
++	fi
++
++	T_FILE="$F_FILE.tmp"
++	grep "^#" $F_FILE > $T_FILE
++	echo "    -----------------------" >> $T_FILE
++	echo "    |         arch |status|" >> $T_FILE
++	echo "    -----------------------" >> $T_FILE
++	for ARCH_DIR in arch/*/; do
++		ARCH=$(echo $ARCH_DIR | sed -e 's/arch//g' | sed -e 's/\///g')
++		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
++		K_GREP=$(grep "$K" $K_FILES)
++		#
++		# Arch support status values for (O, K) are updated according
++		# to the following rules.
++		#
++		#   - ("", K) is 'supported by a given arch', if there is a
++		#     Kconfig file for that arch which contains K;
++		#
++		#   - ("not", K) is 'supported by a given arch', if there is
++		#     no Kconfig file for that arch which contains K;
++		#
++		#   - otherwise: preserve the previous status value (if any),
++		#                default to 'not yet supported'.
++		#
++		# Notice that, according these rules, invalid features may be
++		# updated/modified.
++		#
++		if [ "$O" = "" ] && [ ! -z "$K_GREP" ]; then
++			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
++		elif [ "$O" = "not" ] && [ -z "$K_GREP" ]; then
++			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
++		else
++			S=$(grep -v "^#" "$F_FILE" | grep " $ARCH:")
++			if [ ! -z "$S" ]; then
++				echo "$S" >> $T_FILE
++			else
++				printf "    |%12s: | TODO |\n" "$ARCH" \
++					>> $T_FILE
++			fi
++		fi
++	done
++	echo "    -----------------------" >> $T_FILE
++	mv $T_FILE $F_FILE
++done
 -- 
 2.7.4
