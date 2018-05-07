@@ -1,68 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:55190 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752206AbeEGKob (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2018 06:44:31 -0400
-Received: by mail-wm0-f68.google.com with SMTP id f6so12613547wmc.4
-        for <linux-arch@vger.kernel.org>; Mon, 07 May 2018 03:44:30 -0700 (PDT)
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH v3 4/6] Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as Kconfig for 'rwsem-optimized'
-Date: Mon,  7 May 2018 12:43:41 +0200
-Message-ID: <1525689823-3340-5-git-send-email-andrea.parri@amarulasolutions.com>
-In-Reply-To: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
-References: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
+Received: from mail-yw0-f196.google.com ([209.85.161.196]:45841 "EHLO
+        mail-yw0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750881AbeEGPfO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2018 11:35:14 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH 0/7] Introduce the for_each_set_port_word macro
+Date: Mon,  7 May 2018 11:35:02 -0400
+Message-ID: <cover.1525704095.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
-Message-ID: <20180507104341.OJW-eBowtu4lFvQEjgfVgSQDroazNhS8ADm31mITxTw@z>
+To: linus.walleij@linaro.org
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20180507153502.c822XGdPuVUZzTTajxAg8vDT8AR2xksedYO0_7zs_G0@z>
 
-Uses '!RWSEM_GENERIC_SPINLOCK' in place of 'Optimized asm/rwsem.h' as
-Kconfig for 'rwsem-optimized': the new Kconfig expresses this feature
-equivalently, while also enabling the script 'features-refresh.sh' to
-operate on the corresponding arch support status file. Also refreshes
-the status matrix by using the script 'features-refresh.sh'.
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
-Suggested-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- Documentation/features/locking/rwsem-optimized/arch-support.txt | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+This patchset introduces the for_each_set_port_word macro and utilizes
+it in several GPIO drivers. The for_each_set_port_word macro facilitates
+a for-loop syntax that iterates over entire groups of set bits at a
+time.
 
-diff --git a/Documentation/features/locking/rwsem-optimized/arch-support.txt b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-index 8afe24ffa3ab4..e54b1f1a8091d 100644
---- a/Documentation/features/locking/rwsem-optimized/arch-support.txt
-+++ b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-@@ -1,6 +1,6 @@
- #
- # Feature name:          rwsem-optimized
--#         Kconfig:       Optimized asm/rwsem.h
-+#         Kconfig:       !RWSEM_GENERIC_SPINLOCK
- #         description:   arch provides optimized rwsem APIs
- #
-     -----------------------
-@@ -8,8 +8,8 @@
-     -----------------------
-     |       alpha: |  ok  |
-     |         arc: | TODO |
--    |         arm: | TODO |
--    |       arm64: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: | TODO |
-@@ -26,7 +26,7 @@
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
--    |          um: | TODO |
-+    |          um: |  ok  |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
-     |      xtensa: |  ok  |
+For example, suppose you would like to iterate over a 16-bit integer 4
+bits at a time, skipping over 4-bit groups with no set bit, where XXXX
+represents the current 4-bit group:
+
+    Example:        1011 1110 0000 1111
+    First loop:     1011 1110 0000 XXXX
+    Second loop:    1011 XXXX 0000 1111
+    Third loop:     XXXX 1110 0000 1111
+
+Each iteration of the loop returns the next 4-bit group that has at
+least one set bit.
+
+The for_each_set_port_word macro has six parameters:
+
+    * port_word: set to current port word index for the iteration
+    * word_index: set to current bitmap word index for the iteration
+    * word_offset: bits offset of the found port word in the bitmap word
+    * bits: bitmap to search within
+    * size: bitmap size in number of port words
+    * port_size: port word size in number of bits
+
+The port_size argument can be an arbitrary number of bits and is not
+required to be a multiple of 2.
+
+I've called the group of bits a "port word" which may be a confusing
+naming convention; I was afraid calling that them a "group" may be too
+vague. Should a different name be chosen; what would you suggest?
+
+This patchset was rebased on top of the following three commits:
+
+    * aaf96e51de11 ("gpio: pci-idio-16: Fix port memory offset for get_multiple callback")
+    * 304440aa96c6 ("gpio: pcie-idio-24: Fix port memory offset for get_multiple/set_multiple callbacks")
+    * e026646c178d ("gpio: pcie-idio-24: Fix off-by-one error in get_multiple loop")
+
+William Breathitt Gray
+
+William Breathitt Gray (7):
+  bitops: Introduce the for_each_set_port_word macro
+  gpio: 104-dio-48e: Utilize for_each_set_port_word macro
+  gpio: 104-idi-48: Utilize for_each_set_port_word macro
+  gpio: gpio-mm: Utilize for_each_set_port_word macro
+  gpio: ws16c48: Utilize for_each_set_port_word macro
+  gpio: pci-idio-16: Utilize for_each_set_port_word macro
+  gpio: pcie-idio-24: Utilize for_each_set_port_word macro
+
+ drivers/gpio/gpio-104-dio-48e.c   |  67 +++++---------------
+ drivers/gpio/gpio-104-idi-48.c    |  32 ++--------
+ drivers/gpio/gpio-gpio-mm.c       |  67 +++++---------------
+ drivers/gpio/gpio-pci-idio-16.c   |  67 ++++++--------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 102 +++++++++++-------------------
+ drivers/gpio/gpio-ws16c48.c       |  66 +++++--------------
+ include/asm-generic/bitops/find.h |  24 +++++++
+ include/linux/bitops.h            |   9 +++
+ lib/find_bit.c                    |  28 ++++++++
+ 9 files changed, 170 insertions(+), 292 deletions(-)
+
 -- 
-2.7.4
+2.17.0
