@@ -1,87 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51372 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752422AbeEGImq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 7 May 2018 04:42:46 -0400
-Date: Mon, 7 May 2018 09:42:41 +0100
-From: James Hogan <jhogan@kernel.org>
-Subject: Re: [PATCH v3 1/3] alpha: Use OPTIMIZE_INLINING instead of
- asm/compiler.h
-Message-ID: <20180507084240.GA26491@jamesdev>
-References: <cover.ebc99f68d5063a817328b9184d747f539800cff0.1523959603.git-series.jhogan@kernel.org>
- <a20761a842efe590da08e835ecc5690a4cf50213.1523959603.git-series.jhogan@kernel.org>
- <CAEdQ38HfabRWgfLTStuZDOz0yjnfMNRc5beRdVcQhFfMi1SFKg@mail.gmail.com>
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:46836 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751378AbeEGJno (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 7 May 2018 05:43:44 -0400
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+ <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <20180502211254.GA5863@ram.oc3035372033.ibm.com>
+ <CALCETrUfO=vXg5rT-n=y8pLktcq5+ORvgpsOXCHG4GaugB3k2A@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <c0288ca0-4f8f-9a38-550f-f6bbfb5a91cf@redhat.com>
+Date: Mon, 7 May 2018 11:43:40 +0200
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="4Ckj6UjgE2iN1+kY"
-Content-Disposition: inline
-In-Reply-To: <CAEdQ38HfabRWgfLTStuZDOz0yjnfMNRc5beRdVcQhFfMi1SFKg@mail.gmail.com>
+In-Reply-To: <CALCETrUfO=vXg5rT-n=y8pLktcq5+ORvgpsOXCHG4GaugB3k2A@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Turner <mattst88@gmail.com>
-Cc: linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20180507084241._ig44O-UI5ZeeS5yeQfKjsaw8MkuxVhvOVfb_Z0wsic@z>
+To: Andy Lutomirski <luto@amacapital.net>, linuxram@us.ibm.com
+Cc: Dave Hansen <dave.hansen@intel.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>
 
+On 05/02/2018 11:18 PM, Andy Lutomirski wrote:
+> I don't know about POWER's ISA, but this is crappy behavior.  If a thread
+> temporarily grants itself access to a restrictive memory key and then gets
+> a signal, the signal handler should*not*  have access to that key.
 
---4Ckj6UjgE2iN1+kY
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Sorry, that totally depends on what the signal handler does, especially 
+for synchronously delivered signals.
 
-On Sun, May 06, 2018 at 12:33:21PM -0700, Matt Turner wrote:
-> On Tue, Apr 17, 2018 at 3:11 AM, James Hogan <jhogan@kernel.org> wrote:
-> > Use CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING and CONFIG_OPTIMIZE_INLINING
-> > instead of undefining the inline macros in the alpha specific
-> > asm/compiler.h. This is to allow asm/compiler.h to become a general
-> > header that can be used for overriding linux/compiler*.h.
-> >
-> > A build of alpha's defconfig on GCC 7.3 before and after this series
-> > (i.e. this commit and "compiler.h: Allow arch-specific overrides" which
-> > includes asm/compiler.h from linux/compiler_types.h) results in the
-> > following size differences, which appear harmless to me:
-> >
-> > $ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
-> > add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
-> > Function                                     old     new   delta
-> > cap_bprm_set_creds                          1496    1664    +168
-> > cap_issubset                                   -      68     +68
-> > flex_array_put                               328     344     +16
-> > cap_capset                                   488     500     +12
-> > nonroot_raised_pE.constprop                  348       -    -348
-> > Total: Before=3D5823709, After=3D5823625, chg -0.00%
-> >
-> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> > Signed-off-by: James Hogan <jhogan@kernel.org>
-> > Cc: Richard Henderson <rth@twiddle.net>
-> > Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> > Cc: Matt Turner <mattst88@gmail.com>
-> > Cc: linux-alpha@vger.kernel.org
->=20
-> Looks fine to me.
->=20
-> Acked-by: Matt Turner <mattst88@gmail.com>
-
-Thanks
-
->=20
-> Should I take it through the alpha tree?
-
-I'll take all 3 through the MIPS tree if thats okay with you, as its a
-prerequisite to allowing MIPS to override stuff in linux/compiler-gcc.h
-using asm/compiler.h, which is needed to fix build breakage in 4.17.
-
-Thanks
-James
-
---4Ckj6UjgE2iN1+kY
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEARYIAB0WIQS7lRNBWUYtqfDOVL41zuSGKxAj8gUCWvARdwAKCRA1zuSGKxAj
-8lBgAQCP2oPVxlMnAfCr0Yo39Uxm60KcRkh2IaN7I4Yy70sTUgD/WjirGCDfJ2kX
-nBSvzFt0+SEPc8JfmbIC+plydOz0LQ4=
-=XudF
------END PGP SIGNATURE-----
-
---4Ckj6UjgE2iN1+kY--
+Thanks,
+Florian
