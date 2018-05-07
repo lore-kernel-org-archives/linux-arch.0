@@ -1,20 +1,18 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
- signal semantics
-Date: Mon, 7 May 2018 11:47:17 +0200
-Message-ID: <0bd6584e-f520-9e2d-8adb-f79d3d7e9340@redhat.com>
-References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
- <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
- <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
- <20180502211254.GA5863@ram.oc3035372033.ibm.com>
- <CALCETrUfO=vXg5rT-n=y8pLktcq5+ORvgpsOXCHG4GaugB3k2A@mail.gmail.com>
- <20180502233848.GB5863@ram.oc3035372033.ibm.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be
+ selected
+Date: Mon, 7 May 2018 19:53:14 +1000
+Message-ID: <20180507195314.6711f3b8@roar.ozlabs.ibm.com>
+References: <20180420073414.23169-1-npiggin@gmail.com>
+ <20180420073414.23169-5-npiggin@gmail.com>
+ <CA+7wUswuyn+YgNe732rQAzVmgDBohTMEqwsd76nQ_CH5h7Y5WA@mail.gmail.com>
+ <20180420204104.6e22b136@roar.ozlabs.ibm.com>
+ <CAK7LNASvOwam=AhN11sUKvBbtJbBzQULqs8kRV2KRS45jbSLcQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20180502233848.GB5863@ram.oc3035372033.ibm.com>
-Content-Language: en-US
+In-Reply-To: <CAK7LNASvOwam=AhN11sUKvBbtJbBzQULqs8kRV2KRS45jbSLcQ@mail.gmail.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -25,21 +23,62 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
  <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Ram Pai <linuxram@us.ibm.com>, Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@intel.com>, linux-x86_64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Mathieu Malaterre <malat@debian.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Nicolas Pitre <nico@fluxnic.net>
 List-Id: linux-arch.vger.kernel.org
 
-On 05/03/2018 01:38 AM, Ram Pai wrote:
-> This is a new requirement that I was not aware off. Its not documented
-> anywhere AFAICT.
+On Mon, 7 May 2018 09:46:43 +0900
+Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
 
-Correct.  All inheritance behavior was deliberately left unspecified.
+> Hi Nicholas,
+> 
+> 2018-04-20 19:41 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> > On Fri, 20 Apr 2018 12:00:49 +0200
+> > Mathieu Malaterre <malat@debian.org> wrote:
+> >  
+> >> On Fri, Apr 20, 2018 at 9:34 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
+> >> > This requires further changes to linker script to KEEP some tables
+> >> > and wildcard compiler generated sections into the right place. This
+> >> > includes pp32 modifications from Christophe Leroy.
+> >> >
+> >> > When compiling powernv_defconfig with this option:
+> >> >
+> >> > text       data      bss       dec        filename
+> >> > 11827621   4810490   1341080   17979191   vmlinux
+> >> > 11752437   4598858   1338776   17690071   vmlinux.dcde
+> >> >
+> >> > Resulting kernel is almost 400kB smaller (and still boots).
+> >> >
+> >> > [ppc32 numbers here]  
+> >>
+> >> ^^^
+> >>
+> >> Do you want somebody else to provide those numbers ?  
+> >
+> > If you have a booting kernel, yes some more numbers would be good.
+> >
+> > Thanks,
+> > Nick  
+> 
+> 
+> 
+> I applied this series because I want it to be more tested in linux-next.
 
-I'm surprised about the reluctance to fix the x86 behavior.  Are there 
-any applications at all for the current semantics?
+Thank you.
 
-I guess I can implement this particular glibc hardening on POWER only 
-for now.
+
+> Some requests:
+> 
+>  - Could you provide information to replace '[ppc32 numbers here]'?
+>    (or just remove it)
+
+Yes there were some numbers reported, I can give you an updated
+changelog.
+
+>  - V2 is welcome if you have code improvement.
+>    (I thought so from your comments)
+
+I'll see where it ended up and send you updated patches if necessary.
 
 Thanks,
-Florian
+Nick
