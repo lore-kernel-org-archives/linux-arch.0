@@ -1,35 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:38255 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752007AbeEGKoT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2018 06:44:19 -0400
-Received: by mail-wr0-f194.google.com with SMTP id 94-v6so26944825wrf.5
-        for <linux-arch@vger.kernel.org>; Mon, 07 May 2018 03:44:18 -0700 (PDT)
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:51022 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752275AbeEGKof (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2018 06:44:35 -0400
+Received: by mail-wm0-f67.google.com with SMTP id t11so12660556wmt.0
+        for <linux-arch@vger.kernel.org>; Mon, 07 May 2018 03:44:34 -0700 (PDT)
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [RFC PATCH v3 1/6] Documentation/features: Add script that refreshes the arch support status files in place
-Date: Mon,  7 May 2018 12:43:38 +0200
-Message-ID: <1525689823-3340-2-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: [RFC PATCH v3 6/6] Documentation/features/vm: Remove arch support status file for 'pte_special'
+Date: Mon,  7 May 2018 12:43:43 +0200
+Message-ID: <1525689823-3340-7-git-send-email-andrea.parri@amarulasolutions.com>
 In-Reply-To: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
 References: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
 Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
-Message-ID: <20180507104338.eCaYJxH6SsS7MTUvjAxeCQe3AXNPsEI9t3M5u3Qg3ok@z>
-
-Provides the script:
-
-	Documentation/features/scripts/features-refresh.sh
-
-which operates on the arch-support.txt files and refreshes them in place.
-
-This way [1],
-
-   "[...] we soft- decouple the refreshing of the entries from the
-    introduction of the features, while still making it all easy to
-    keep sync and to extend."
-
-[1] http://lkml.kernel.org/r/20180328122211.GA25420@andrea
+Message-ID: <20180507104343.xX9e6bmXjD-UULGCikSVP45P-fyrvSNrKYBnYMUurfA@z>
 
 Suggested-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
@@ -37,113 +23,48 @@ Cc: Ingo Molnar <mingo@kernel.org>
 Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
- 1 file changed, 98 insertions(+)
- create mode 100755 Documentation/features/scripts/features-refresh.sh
+ .../features/vm/pte_special/arch-support.txt       | 33 ----------------------
+ 1 file changed, 33 deletions(-)
+ delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
 
-diff --git a/Documentation/features/scripts/features-refresh.sh b/Documentation/features/scripts/features-refresh.sh
-new file mode 100755
-index 0000000000000..9e72d38a0720e
---- /dev/null
-+++ b/Documentation/features/scripts/features-refresh.sh
-@@ -0,0 +1,98 @@
-+#
-+# Small script that refreshes the kernel feature support status in place.
-+#
-+
-+for F_FILE in Documentation/features/*/*/arch-support.txt; do
-+	F=$(grep "^#         Kconfig:" "$F_FILE" | cut -c26-)
-+
-+	#
-+	# Each feature F is identified by a pair (O, K), where 'O' can
-+	# be either the empty string (for 'nop') or "not" (the logical
-+	# negation operator '!'); other operators are not supported.
-+	#
-+	O=""
-+	K=$F
-+	if [[ "$F" == !* ]]; then
-+		O="not"
-+		K=$(echo $F | sed -e 's/^!//g')
-+	fi
-+
-+	#
-+	# F := (O, K) is 'valid' iff there is a Kconfig file (for some
-+	# arch) which contains K.
-+	#
-+	# Notice that this definition entails an 'asymmetry' between
-+	# the case 'O = ""' and the case 'O = "not"'. E.g., F may be
-+	# _invalid_ if:
-+	#
-+	# [case 'O = ""']
-+	#   1) no arch provides support for F,
-+	#   2) K does not exist (e.g., it was renamed/mis-typed);
-+	#
-+	# [case 'O = "not"']
-+	#   3) all archs provide support for F,
-+	#   4) as in (2).
-+	#
-+	# The rationale for adopting this definition (and, thus, for
-+	# keeping the asymmetry) is:
-+	#
-+	#       We want to be able to 'detect' (2) (or (4)).
-+	#
-+	# (1) and (3) may further warn the developers about the fact
-+	# that K can be removed.
-+	#
-+	F_VALID="false"
-+	for ARCH_DIR in arch/*/; do
-+		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
-+		K_GREP=$(grep "$K" $K_FILES)
-+		if [ ! -z "$K_GREP" ]; then
-+			F_VALID="true"
-+			break
-+		fi
-+	done
-+	if [ "$F_VALID" = "false" ]; then
-+		printf "WARNING: '%s' is not a valid Kconfig\n" "$F"
-+	fi
-+
-+	T_FILE="$F_FILE.tmp"
-+	grep "^#" $F_FILE > $T_FILE
-+	echo "    -----------------------" >> $T_FILE
-+	echo "    |         arch |status|" >> $T_FILE
-+	echo "    -----------------------" >> $T_FILE
-+	for ARCH_DIR in arch/*/; do
-+		ARCH=$(echo $ARCH_DIR | sed -e 's/arch//g' | sed -e 's/\///g')
-+		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
-+		K_GREP=$(grep "$K" $K_FILES)
-+		#
-+		# Arch support status values for (O, K) are updated according
-+		# to the following rules.
-+		#
-+		#   - ("", K) is 'supported by a given arch', if there is a
-+		#     Kconfig file for that arch which contains K;
-+		#
-+		#   - ("not", K) is 'supported by a given arch', if there is
-+		#     no Kconfig file for that arch which contains K;
-+		#
-+		#   - otherwise: preserve the previous status value (if any),
-+		#                default to 'not yet supported'.
-+		#
-+		# Notice that, according these rules, invalid features may be
-+		# updated/modified.
-+		#
-+		if [ "$O" = "" ] && [ ! -z "$K_GREP" ]; then
-+			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
-+		elif [ "$O" = "not" ] && [ -z "$K_GREP" ]; then
-+			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
-+		else
-+			S=$(grep -v "^#" "$F_FILE" | grep " $ARCH:")
-+			if [ ! -z "$S" ]; then
-+				echo "$S" >> $T_FILE
-+			else
-+				printf "    |%12s: | TODO |\n" "$ARCH" \
-+					>> $T_FILE
-+			fi
-+		fi
-+	done
-+	echo "    -----------------------" >> $T_FILE
-+	mv $T_FILE $F_FILE
-+done
+diff --git a/Documentation/features/vm/pte_special/arch-support.txt b/Documentation/features/vm/pte_special/arch-support.txt
+deleted file mode 100644
+index 6a608a6dcf71d..0000000000000
+--- a/Documentation/features/vm/pte_special/arch-support.txt
++++ /dev/null
+@@ -1,33 +0,0 @@
+-#
+-# Feature name:          pte_special
+-#         Kconfig:       __HAVE_ARCH_PTE_SPECIAL
+-#         description:   arch supports the pte_special()/pte_mkspecial() VM APIs
+-#
+-    -----------------------
+-    |         arch |status|
+-    -----------------------
+-    |       alpha: | TODO |
+-    |         arc: |  ok  |
+-    |         arm: |  ok  |
+-    |       arm64: |  ok  |
+-    |         c6x: | TODO |
+-    |       h8300: | TODO |
+-    |     hexagon: | TODO |
+-    |        ia64: | TODO |
+-    |        m68k: | TODO |
+-    |  microblaze: | TODO |
+-    |        mips: | TODO |
+-    |       nds32: | TODO |
+-    |       nios2: | TODO |
+-    |    openrisc: | TODO |
+-    |      parisc: | TODO |
+-    |     powerpc: |  ok  |
+-    |       riscv: | TODO |
+-    |        s390: |  ok  |
+-    |          sh: |  ok  |
+-    |       sparc: |  ok  |
+-    |          um: | TODO |
+-    |   unicore32: | TODO |
+-    |         x86: |  ok  |
+-    |      xtensa: | TODO |
+-    -----------------------
 -- 
 2.7.4
