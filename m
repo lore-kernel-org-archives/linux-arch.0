@@ -1,60 +1,75 @@
-From: Matt Turner <mattst88@gmail.com>
-Subject: Re: [PATCH v3 1/3] alpha: Use OPTIMIZE_INLINING instead of asm/compiler.h
-Date: Mon, 7 May 2018 09:03:58 -0700
-Message-ID: <CAEdQ38FDSqRbikxZZ4uVmyT0JkV1uGOdtiEjwJafbDb9m4vDtw@mail.gmail.com>
-References: <cover.ebc99f68d5063a817328b9184d747f539800cff0.1523959603.git-series.jhogan@kernel.org>
- <a20761a842efe590da08e835ecc5690a4cf50213.1523959603.git-series.jhogan@kernel.org>
- <CAEdQ38HfabRWgfLTStuZDOz0yjnfMNRc5beRdVcQhFfMi1SFKg@mail.gmail.com> <20180507084240.GA26491@jamesdev>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH v17 5/7] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+Date: Mon,  7 May 2018 14:36:03 -0600
+Message-ID: <20180507203605.15865-6-logang@deltatee.com>
+References: <20180507203605.15865-1-logang@deltatee.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180507084240.GA26491@jamesdev>
+In-Reply-To: <20180507203605.15865-1-logang@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: James Hogan <jhogan@kernel.org>
-Cc: linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 7, 2018 at 1:42 AM, James Hogan <jhogan@kernel.org> wrote:
-> On Sun, May 06, 2018 at 12:33:21PM -0700, Matt Turner wrote:
->> On Tue, Apr 17, 2018 at 3:11 AM, James Hogan <jhogan@kernel.org> wrote:
->> > Use CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING and CONFIG_OPTIMIZE_INLINING
->> > instead of undefining the inline macros in the alpha specific
->> > asm/compiler.h. This is to allow asm/compiler.h to become a general
->> > header that can be used for overriding linux/compiler*.h.
->> >
->> > A build of alpha's defconfig on GCC 7.3 before and after this series
->> > (i.e. this commit and "compiler.h: Allow arch-specific overrides" which
->> > includes asm/compiler.h from linux/compiler_types.h) results in the
->> > following size differences, which appear harmless to me:
->> >
->> > $ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
->> > add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
->> > Function                                     old     new   delta
->> > cap_bprm_set_creds                          1496    1664    +168
->> > cap_issubset                                   -      68     +68
->> > flex_array_put                               328     344     +16
->> > cap_capset                                   488     500     +12
->> > nonroot_raised_pE.constprop                  348       -    -348
->> > Total: Before=5823709, After=5823625, chg -0.00%
->> >
->> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
->> > Signed-off-by: James Hogan <jhogan@kernel.org>
->> > Cc: Richard Henderson <rth@twiddle.net>
->> > Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
->> > Cc: Matt Turner <mattst88@gmail.com>
->> > Cc: linux-alpha@vger.kernel.org
->>
->> Looks fine to me.
->>
->> Acked-by: Matt Turner <mattst88@gmail.com>
->
-> Thanks
->
->>
->> Should I take it through the alpha tree?
->
-> I'll take all 3 through the MIPS tree if thats okay with you, as its a
-> prerequisite to allowing MIPS to override stuff in linux/compiler-gcc.h
-> using asm/compiler.h, which is needed to fix build breakage in 4.17.
+Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+we can remove the hack at the top of ntb_hw_intel.c and replace it
+with an include.
 
-Thanks. That works for me.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
+Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+Acked-by: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
+
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
+index 156b45cd4a19..5cf40ab21366 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.c
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
+@@ -59,6 +59,7 @@
+ #include <linux/random.h>
+ #include <linux/slab.h>
+ #include <linux/ntb.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ #include "ntb_hw_intel.h"
+ 
+@@ -149,35 +150,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
+ static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
+ static int xeon_init_isr(struct intel_ntb_dev *ndev);
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ static inline int pdev_is_xeon(struct pci_dev *pdev)
+ {
+ 	switch (pdev->device) {
+-- 
+2.11.0
