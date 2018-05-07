@@ -1,84 +1,37 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be
- selected
-Date: Mon, 7 May 2018 19:53:14 +1000
-Message-ID: <20180507195314.6711f3b8@roar.ozlabs.ibm.com>
-References: <20180420073414.23169-1-npiggin@gmail.com>
- <20180420073414.23169-5-npiggin@gmail.com>
- <CA+7wUswuyn+YgNe732rQAzVmgDBohTMEqwsd76nQ_CH5h7Y5WA@mail.gmail.com>
- <20180420204104.6e22b136@roar.ozlabs.ibm.com>
- <CAK7LNASvOwam=AhN11sUKvBbtJbBzQULqs8kRV2KRS45jbSLcQ@mail.gmail.com>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: dma-debug cleanups, including removing the arch hook
+Date: Mon, 7 May 2018 12:29:15 +0200
+Message-ID: <20180507102915.GA25974@lst.de>
+References: <20180424140235.9125-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <CAK7LNASvOwam=AhN11sUKvBbtJbBzQULqs8kRV2KRS45jbSLcQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Mathieu Malaterre <malat@debian.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Nicolas Pitre <nico@fluxnic.net>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20180424140235.9125-1-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 7 May 2018 09:46:43 +0900
-Masahiro Yamada <yamada.masahiro@socionext.com> wrote:
+Any comments?  I'd like to move forward with this rather sooner
+than later, so any reviews welcome!
 
-> Hi Nicholas,
+On Tue, Apr 24, 2018 at 04:02:32PM +0200, Christoph Hellwig wrote:
+> Hi all,
 > 
-> 2018-04-20 19:41 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> > On Fri, 20 Apr 2018 12:00:49 +0200
-> > Mathieu Malaterre <malat@debian.org> wrote:
-> >  
-> >> On Fri, Apr 20, 2018 at 9:34 AM, Nicholas Piggin <npiggin@gmail.com> wrote:  
-> >> > This requires further changes to linker script to KEEP some tables
-> >> > and wildcard compiler generated sections into the right place. This
-> >> > includes pp32 modifications from Christophe Leroy.
-> >> >
-> >> > When compiling powernv_defconfig with this option:
-> >> >
-> >> > text       data      bss       dec        filename
-> >> > 11827621   4810490   1341080   17979191   vmlinux
-> >> > 11752437   4598858   1338776   17690071   vmlinux.dcde
-> >> >
-> >> > Resulting kernel is almost 400kB smaller (and still boots).
-> >> >
-> >> > [ppc32 numbers here]  
-> >>
-> >> ^^^
-> >>
-> >> Do you want somebody else to provide those numbers ?  
-> >
-> > If you have a booting kernel, yes some more numbers would be good.
-> >
-> > Thanks,
-> > Nick  
-> 
-> 
-> 
-> I applied this series because I want it to be more tested in linux-next.
-
-Thank you.
-
-
-> Some requests:
-> 
->  - Could you provide information to replace '[ppc32 numbers here]'?
->    (or just remove it)
-
-Yes there were some numbers reported, I can give you an updated
-changelog.
-
->  - V2 is welcome if you have code improvement.
->    (I thought so from your comments)
-
-I'll see where it ended up and send you updated patches if necessary.
-
-Thanks,
-Nick
+> this series has a few dma-debug cleanups, most notably removing the need
+> for architectures to explicitly initialize dma-debug.
+> _______________________________________________
+> iommu mailing list
+> iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+> https://lists.linuxfoundation.org/mailman/listinfo/iommu
+---end quoted text---
