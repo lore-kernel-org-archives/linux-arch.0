@@ -1,171 +1,60 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH 7/7] gpio: pcie-idio-24: Utilize for_each_set_port_word macro
-Date: Mon,  7 May 2018 11:36:54 -0400
-Message-ID: <8467a738e42fcbbe3da0a23d5bccd61b47b561c6.1525704095.git.vilhelm.gray@gmail.com>
-References: <cover.1525704095.git.vilhelm.gray@gmail.com>
+From: Matt Turner <mattst88@gmail.com>
+Subject: Re: [PATCH v3 1/3] alpha: Use OPTIMIZE_INLINING instead of asm/compiler.h
+Date: Mon, 7 May 2018 09:03:58 -0700
+Message-ID: <CAEdQ38FDSqRbikxZZ4uVmyT0JkV1uGOdtiEjwJafbDb9m4vDtw@mail.gmail.com>
+References: <cover.ebc99f68d5063a817328b9184d747f539800cff0.1523959603.git-series.jhogan@kernel.org>
+ <a20761a842efe590da08e835ecc5690a4cf50213.1523959603.git-series.jhogan@kernel.org>
+ <CAEdQ38HfabRWgfLTStuZDOz0yjnfMNRc5beRdVcQhFfMi1SFKg@mail.gmail.com> <20180507084240.GA26491@jamesdev>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1525704095.git.vilhelm.gray@gmail.com>
+In-Reply-To: <20180507084240.GA26491@jamesdev>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+To: James Hogan <jhogan@kernel.org>
+Cc: linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Replace boilerplate code in get_multiple/set_multiple callbacks with
-for_each_set_port_word macro to simplify code and improve clarity.
+On Mon, May 7, 2018 at 1:42 AM, James Hogan <jhogan@kernel.org> wrote:
+> On Sun, May 06, 2018 at 12:33:21PM -0700, Matt Turner wrote:
+>> On Tue, Apr 17, 2018 at 3:11 AM, James Hogan <jhogan@kernel.org> wrote:
+>> > Use CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING and CONFIG_OPTIMIZE_INLINING
+>> > instead of undefining the inline macros in the alpha specific
+>> > asm/compiler.h. This is to allow asm/compiler.h to become a general
+>> > header that can be used for overriding linux/compiler*.h.
+>> >
+>> > A build of alpha's defconfig on GCC 7.3 before and after this series
+>> > (i.e. this commit and "compiler.h: Allow arch-specific overrides" which
+>> > includes asm/compiler.h from linux/compiler_types.h) results in the
+>> > following size differences, which appear harmless to me:
+>> >
+>> > $ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
+>> > add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
+>> > Function                                     old     new   delta
+>> > cap_bprm_set_creds                          1496    1664    +168
+>> > cap_issubset                                   -      68     +68
+>> > flex_array_put                               328     344     +16
+>> > cap_capset                                   488     500     +12
+>> > nonroot_raised_pE.constprop                  348       -    -348
+>> > Total: Before=5823709, After=5823625, chg -0.00%
+>> >
+>> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
+>> > Signed-off-by: James Hogan <jhogan@kernel.org>
+>> > Cc: Richard Henderson <rth@twiddle.net>
+>> > Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+>> > Cc: Matt Turner <mattst88@gmail.com>
+>> > Cc: linux-alpha@vger.kernel.org
+>>
+>> Looks fine to me.
+>>
+>> Acked-by: Matt Turner <mattst88@gmail.com>
+>
+> Thanks
+>
+>>
+>> Should I take it through the alpha tree?
+>
+> I'll take all 3 through the MIPS tree if thats okay with you, as its a
+> prerequisite to allowing MIPS to override stuff in linux/compiler-gcc.h
+> using asm/compiler.h, which is needed to fix build breakage in 4.17.
 
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-pcie-idio-24.c | 102 +++++++++++--------------------
- 1 file changed, 36 insertions(+), 66 deletions(-)
-
-diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
-index f953541e7890..a0c81724ce4d 100644
---- a/drivers/gpio/gpio-pcie-idio-24.c
-+++ b/drivers/gpio/gpio-pcie-idio-24.c
-@@ -199,41 +199,21 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
- 	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	size_t word;
-+	unsigned int offset;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
- 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
- 	};
-+	const size_t num_ports = ARRAY_SIZE(ports) + 1;
-+	unsigned long port_state;
- 	const unsigned long out_mode_mask = BIT(1);
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
-+	for_each_set_port_word(i, word, offset, mask, num_ports, 8) {
- 		/* read bits from current gpio port (port 6 is TTL GPIO) */
- 		if (i < 6)
- 			port_state = ioread8(ports[i]);
-@@ -243,7 +223,7 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
- 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
- 
- 		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= port_state << word_offset;
-+		bits[word] |= port_state << offset;
- 	}
- 
- 	return 0;
-@@ -295,58 +275,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
- 	size_t i;
--	unsigned long bits_offset;
--	unsigned long gpio_mask;
--	const unsigned int gpio_reg_size = 8;
--	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
--	unsigned long flags;
--	unsigned int out_state;
-+	size_t word;
-+	unsigned int offset;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23
- 	};
-+	const size_t num_ports = ARRAY_SIZE(ports) + 1;
-+	unsigned int iomask;
-+	unsigned int bitmask;
-+	unsigned long flags;
- 	const unsigned long out_mode_mask = BIT(1);
--	const unsigned int ttl_offset = 48;
--	const size_t ttl_i = BIT_WORD(ttl_offset);
--	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
--	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
--	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
--
--	/* set bits are processed a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* check if any set bits for current port */
--		gpio_mask = (*mask >> bits_offset) & port_mask;
--		if (!gpio_mask) {
--			/* no set bits for this port so move on to next port */
-+	unsigned int out_state;
-+
-+	for_each_set_port_word(i, word, offset, mask, num_ports, 8) {
-+		iomask = mask[word] >> offset;
-+		bitmask = iomask & (bits[word] >> offset);
-+
-+		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+
-+		/* read bits from current gpio port (port 6 is TTL GPIO) */
-+		if (i < 6) {
-+			out_state = ioread8(ports[i]) & ~iomask;
-+		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
-+			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
-+		} else {
-+			/* skip TTL GPIO if set for input */
-+			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
- 			continue;
- 		}
- 
--		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+		/* set requested bit states */
-+		out_state &= ~iomask;
-+		out_state |= bitmask;
- 
--		/* process output lines */
--		out_state = ioread8(ports[i]) & ~gpio_mask;
--		out_state |= (*bits >> bits_offset) & gpio_mask;
--		iowrite8(out_state, ports[i]);
-+		/* write bits for current gpio port (port 6 is TTL GPIO) */
-+		if (i < 6)
-+			iowrite8(out_state, ports[i]);
-+		else
-+			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
- 
- 		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
- 	}
--
--	/* check if setting TTL lines and if they are in output mode */
--	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
--		return;
--
--	/* handle TTL output */
--	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
--
--	/* process output lines */
--	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
--	out_state |= ttl_bits;
--	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
--
--	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
- }
- 
- static void idio_24_irq_ack(struct irq_data *data)
--- 
-2.17.0
+Thanks. That works for me.
