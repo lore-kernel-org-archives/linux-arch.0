@@ -1,37 +1,118 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: Re: dma-debug cleanups, including removing the arch hook
-Date: Mon, 7 May 2018 12:29:15 +0200
-Message-ID: <20180507102915.GA25974@lst.de>
-References: <20180424140235.9125-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20180424140235.9125-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: [RFC PATCH v3 0/6] Documentation/features: Provide and apply 'features-refresh.sh'
+Date: Mon,  7 May 2018 12:43:37 +0200
+Message-ID: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
+Cc: linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com, Andrea Parri <andrea.parri@amarulasolutions.com>
 List-Id: linux-arch.vger.kernel.org
 
-Any comments?  I'd like to move forward with this rather sooner
-than later, so any reviews welcome!
+Hi,
 
-On Tue, Apr 24, 2018 at 04:02:32PM +0200, Christoph Hellwig wrote:
-> Hi all,
-> 
-> this series has a few dma-debug cleanups, most notably removing the need
-> for architectures to explicitly initialize dma-debug.
-> _______________________________________________
-> iommu mailing list
-> iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-> https://lists.linuxfoundation.org/mailman/listinfo/iommu
----end quoted text---
+This series provides the script 'features-refresh.sh', which operates on
+the arch support status files, and it applies this script to refresh the
+status files in place; previous discussions about this series are at [1].
+
+The series is organized as follows.
+
+  - Patch 1/6 adds the script to 'Documentation/features/scripts/'.
+
+  - Patch 2/6 presents the results of running the script; this run
+    also printed the messages
+
+       WARNING: 'HAVE_BPF_JIT' is not a valid Kconfig
+       WARNING: '__HAVE_ARCH_STRNCASECMP' is not a valid Kconfig
+       WARNING: 'Optimized asm/rwsem.h' is not a valid Kconfig
+       WARNING: '__HAVE_ARCH_PTE_SPECIAL' is not a valid Kconfig
+
+    to standard output.
+
+  - Patches 3-6/6 fix each of these warnings.
+
+(Applies on -rc4.)
+
+Cheers,
+  Andrea
+
+[1] http://lkml.kernel.org/r/1523205027-31786-1-git-send-email-andrea.parri@amarulasolutions.com
+    http://lkml.kernel.org/r/1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com
+    http://lkml.kernel.org/r/20180328122211.GA25420@andrea
+
+Changes in v3:
+  - rebase on -rc4
+
+Changes in v2:
+  - support negation operators in Kconfig (suggested by Ingo Molnar)
+  - reorder patches 2/6 and 3/6 (suggested by Ingo Molnar)
+  - add patches 4-6/6 (suggested by Ingo Molnar)
+
+Andrea Parri (6):
+  Documentation/features: Add script that refreshes the arch support
+    status files in place
+  Documentation/features: Refresh the arch support status files in place
+  Documentation/features/core: Add arch support status files for
+    'cBPF-JIT' and 'eBPF-JIT'
+  Documentation/features/locking: Use '!RWSEM_GENERIC_SPINLOCK' as
+    Kconfig for 'rwsem-optimized'
+  Documentation/features/lib: Remove arch support status file for
+    'strncasecmp'
+  Documentation/features/vm: Remove arch support status file for
+    'pte_special'
+
+ .../features/core/BPF-JIT/arch-support.txt         | 31 -------
+ .../features/core/cBPF-JIT/arch-support.txt        | 33 ++++++++
+ .../features/core/eBPF-JIT/arch-support.txt        | 33 ++++++++
+ .../core/generic-idle-thread/arch-support.txt      |  4 +-
+ .../features/core/jump-labels/arch-support.txt     |  2 +
+ .../features/core/tracehook/arch-support.txt       |  2 +
+ .../features/debug/KASAN/arch-support.txt          |  4 +-
+ .../debug/gcov-profile-all/arch-support.txt        |  2 +
+ Documentation/features/debug/kgdb/arch-support.txt |  4 +-
+ .../debug/kprobes-on-ftrace/arch-support.txt       |  2 +
+ .../features/debug/kprobes/arch-support.txt        |  4 +-
+ .../features/debug/kretprobes/arch-support.txt     |  4 +-
+ .../features/debug/optprobes/arch-support.txt      |  4 +-
+ .../features/debug/stackprotector/arch-support.txt |  2 +
+ .../features/debug/uprobes/arch-support.txt        |  6 +-
+ .../debug/user-ret-profiler/arch-support.txt       |  2 +
+ .../features/io/dma-api-debug/arch-support.txt     |  2 +
+ .../features/io/dma-contiguous/arch-support.txt    |  4 +-
+ .../features/io/sg-chain/arch-support.txt          |  2 +
+ .../features/lib/strncasecmp/arch-support.txt      | 31 -------
+ .../locking/cmpxchg-local/arch-support.txt         |  4 +-
+ .../features/locking/lockdep/arch-support.txt      |  4 +-
+ .../locking/queued-rwlocks/arch-support.txt        | 10 ++-
+ .../locking/queued-spinlocks/arch-support.txt      |  8 +-
+ .../locking/rwsem-optimized/arch-support.txt       | 10 ++-
+ .../features/perf/kprobes-event/arch-support.txt   |  6 +-
+ .../features/perf/perf-regs/arch-support.txt       |  4 +-
+ .../features/perf/perf-stackdump/arch-support.txt  |  4 +-
+ .../sched/membarrier-sync-core/arch-support.txt    |  2 +
+ .../features/sched/numa-balancing/arch-support.txt |  6 +-
+ Documentation/features/scripts/features-refresh.sh | 98 ++++++++++++++++++++++
+ .../seccomp/seccomp-filter/arch-support.txt        |  6 +-
+ .../time/arch-tick-broadcast/arch-support.txt      |  4 +-
+ .../features/time/clockevents/arch-support.txt     |  4 +-
+ .../time/context-tracking/arch-support.txt         |  2 +
+ .../features/time/irq-time-acct/arch-support.txt   |  4 +-
+ .../time/modern-timekeeping/arch-support.txt       |  2 +
+ .../features/time/virt-cpuacct/arch-support.txt    |  2 +
+ .../features/vm/ELF-ASLR/arch-support.txt          |  4 +-
+ .../features/vm/PG_uncached/arch-support.txt       |  2 +
+ Documentation/features/vm/THP/arch-support.txt     |  2 +
+ Documentation/features/vm/TLB/arch-support.txt     |  2 +
+ .../features/vm/huge-vmap/arch-support.txt         |  2 +
+ .../features/vm/ioremap_prot/arch-support.txt      |  2 +
+ .../features/vm/numa-memblock/arch-support.txt     |  4 +-
+ .../features/vm/pte_special/arch-support.txt       | 31 -------
+ 46 files changed, 279 insertions(+), 128 deletions(-)
+ delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
+ create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
+ create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
+ delete mode 100644 Documentation/features/lib/strncasecmp/arch-support.txt
+ create mode 100755 Documentation/features/scripts/features-refresh.sh
+ delete mode 100644 Documentation/features/vm/pte_special/arch-support.txt
+
+-- 
+2.7.4
