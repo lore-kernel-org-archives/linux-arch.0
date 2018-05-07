@@ -1,53 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f196.google.com ([209.85.223.196]:42538 "EHLO
-        mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751811AbeEFTdm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 May 2018 15:33:42 -0400
+Received: from conssluserg-01.nifty.com ([210.131.2.80]:26882 "EHLO
+        conssluserg-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751849AbeEGArc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 6 May 2018 20:47:32 -0400
 MIME-Version: 1.0
-In-Reply-To: <a20761a842efe590da08e835ecc5690a4cf50213.1523959603.git-series.jhogan@kernel.org>
-References: <cover.ebc99f68d5063a817328b9184d747f539800cff0.1523959603.git-series.jhogan@kernel.org>
- <a20761a842efe590da08e835ecc5690a4cf50213.1523959603.git-series.jhogan@kernel.org>
-From: Matt Turner <mattst88@gmail.com>
-Date: Sun, 6 May 2018 12:33:21 -0700
-Message-ID: <CAEdQ38HfabRWgfLTStuZDOz0yjnfMNRc5beRdVcQhFfMi1SFKg@mail.gmail.com>
-Subject: Re: [PATCH v3 1/3] alpha: Use OPTIMIZE_INLINING instead of asm/compiler.h
+In-Reply-To: <20180420204104.6e22b136@roar.ozlabs.ibm.com>
+References: <20180420073414.23169-1-npiggin@gmail.com> <20180420073414.23169-5-npiggin@gmail.com>
+ <CA+7wUswuyn+YgNe732rQAzVmgDBohTMEqwsd76nQ_CH5h7Y5WA@mail.gmail.com> <20180420204104.6e22b136@roar.ozlabs.ibm.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 7 May 2018 09:46:43 +0900
+Message-ID: <CAK7LNASvOwam=AhN11sUKvBbtJbBzQULqs8kRV2KRS45jbSLcQ@mail.gmail.com>
+Subject: Re: [PATCH 4/4] powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <jhogan@kernel.org>
-Cc: linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, linux-alpha <linux-alpha@vger.kernel.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20180506193321.9m7vrddu-3-J7brj3gOo_uDVeq8hbANKR3NniDnZLNs@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Mathieu Malaterre <malat@debian.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>, Nicolas Pitre <nico@fluxnic.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
+Message-ID: <20180507004643.dVCgcbDEAp6t1K1EYek7OuY1GsdW5l3xbJB6dwHghzc@z>
 
-On Tue, Apr 17, 2018 at 3:11 AM, James Hogan <jhogan@kernel.org> wrote:
-> Use CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING and CONFIG_OPTIMIZE_INLINING
-> instead of undefining the inline macros in the alpha specific
-> asm/compiler.h. This is to allow asm/compiler.h to become a general
-> header that can be used for overriding linux/compiler*.h.
+Hi Nicholas,
+
+2018-04-20 19:41 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> On Fri, 20 Apr 2018 12:00:49 +0200
+> Mathieu Malaterre <malat@debian.org> wrote:
 >
-> A build of alpha's defconfig on GCC 7.3 before and after this series
-> (i.e. this commit and "compiler.h: Allow arch-specific overrides" which
-> includes asm/compiler.h from linux/compiler_types.h) results in the
-> following size differences, which appear harmless to me:
+>> On Fri, Apr 20, 2018 at 9:34 AM, Nicholas Piggin <npiggin@gmail.com> wrote:
+>> > This requires further changes to linker script to KEEP some tables
+>> > and wildcard compiler generated sections into the right place. This
+>> > includes pp32 modifications from Christophe Leroy.
+>> >
+>> > When compiling powernv_defconfig with this option:
+>> >
+>> > text       data      bss       dec        filename
+>> > 11827621   4810490   1341080   17979191   vmlinux
+>> > 11752437   4598858   1338776   17690071   vmlinux.dcde
+>> >
+>> > Resulting kernel is almost 400kB smaller (and still boots).
+>> >
+>> > [ppc32 numbers here]
+>>
+>> ^^^
+>>
+>> Do you want somebody else to provide those numbers ?
 >
-> $ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
-> add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
-> Function                                     old     new   delta
-> cap_bprm_set_creds                          1496    1664    +168
-> cap_issubset                                   -      68     +68
-> flex_array_put                               328     344     +16
-> cap_capset                                   488     500     +12
-> nonroot_raised_pE.constprop                  348       -    -348
-> Total: Before=5823709, After=5823625, chg -0.00%
+> If you have a booting kernel, yes some more numbers would be good.
 >
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: James Hogan <jhogan@kernel.org>
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Matt Turner <mattst88@gmail.com>
-> Cc: linux-alpha@vger.kernel.org
+> Thanks,
+> Nick
 
-Looks fine to me.
 
-Acked-by: Matt Turner <mattst88@gmail.com>
 
-Should I take it through the alpha tree?
+I applied this series because I want it to be more tested in linux-next.
+
+
+Some requests:
+
+ - Could you provide information to replace '[ppc32 numbers here]'?
+   (or just remove it)
+
+ - V2 is welcome if you have code improvement.
+   (I thought so from your comments)
+
+Thanks.
+
+
+-- 
+Best Regards
+Masahiro Yamada
