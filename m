@@ -1,88 +1,270 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:55120 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:55182 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754763AbeEHJuL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 May 2018 05:50:11 -0400
-Subject: Re: [PATCH 2/3] dma-debug: simplify counting of preallocated requests
-References: <20180424140235.9125-1-hch@lst.de>
- <20180424140235.9125-3-hch@lst.de>
+        id S932154AbeEHJyr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 May 2018 05:54:47 -0400
+Subject: Re: [PATCH 4/3] dma-debug: remove CONFIG_HAVE_DMA_API_DEBUG
+References: <20180424140235.9125-1-hch@lst.de> <20180427155342.GA9232@lst.de>
 From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <b50ef15a-8ffb-e8f2-11a7-b38d2ebda1c6@arm.com>
-Date: Tue, 8 May 2018 10:50:06 +0100
+Message-ID: <cfc6ac1e-56b7-0211-afa3-86865a01667d@arm.com>
+Date: Tue, 8 May 2018 10:54:42 +0100
 MIME-Version: 1.0
-In-Reply-To: <20180424140235.9125-3-hch@lst.de>
+In-Reply-To: <20180427155342.GA9232@lst.de>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-GB
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180508095006.i-mDrsxK_5EjHhZKYyefHUAVVGtxBDp5HV9ObkeUFCg@z>
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, Vincent Chen <deanbo422@gmail.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180508095442.RdgM0PcLXGCelDCPmnUlMAUjVeOLnPi8c1QnBM9oTVw@z>
 
-On 24/04/18 15:02, Christoph Hellwig wrote:
-> Just keep a single variable with a descriptive name instead of two
-> with confusing names.
+On 27/04/18 16:53, Christoph Hellwig wrote:
+> There is no arch specific code required for dma-debug, so there is no
+> need to opt into the support either.
+
+Makes sense, and a purely negative diffstat is always pleasing :)
 
 Reviewed-by: Robin Murphy <robin.murphy@arm.com>
 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > ---
->   lib/dma-debug.c | 20 ++++----------------
->   1 file changed, 4 insertions(+), 16 deletions(-)
+>   .../io/dma-api-debug/arch-support.txt         | 31 -------------------
+>   arch/Kconfig                                  |  3 --
+>   arch/arm/Kconfig                              |  1 -
+>   arch/arm64/Kconfig                            |  1 -
+>   arch/c6x/Kconfig                              |  1 -
+>   arch/ia64/Kconfig                             |  1 -
+>   arch/microblaze/Kconfig                       |  1 -
+>   arch/mips/Kconfig                             |  1 -
+>   arch/powerpc/Kconfig                          |  1 -
+>   arch/riscv/Kconfig                            |  1 -
+>   arch/s390/Kconfig                             |  1 -
+>   arch/sh/Kconfig                               |  1 -
+>   arch/sparc/Kconfig                            |  1 -
+>   arch/x86/Kconfig                              |  1 -
+>   arch/xtensa/Kconfig                           |  1 -
+>   lib/Kconfig.debug                             |  1 -
+>   16 files changed, 48 deletions(-)
+>   delete mode 100644 Documentation/features/io/dma-api-debug/arch-support.txt
 > 
-> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-> index 712a897174e4..075253cb613b 100644
-> --- a/lib/dma-debug.c
-> +++ b/lib/dma-debug.c
-> @@ -132,7 +132,7 @@ static u32 min_free_entries;
->   static u32 nr_total_entries;
+> diff --git a/Documentation/features/io/dma-api-debug/arch-support.txt b/Documentation/features/io/dma-api-debug/arch-support.txt
+> deleted file mode 100644
+> index e438ed675623..000000000000
+> --- a/Documentation/features/io/dma-api-debug/arch-support.txt
+> +++ /dev/null
+> @@ -1,31 +0,0 @@
+> -#
+> -# Feature name:          dma-api-debug
+> -#         Kconfig:       HAVE_DMA_API_DEBUG
+> -#         description:   arch supports DMA debug facilities
+> -#
+> -    -----------------------
+> -    |         arch |status|
+> -    -----------------------
+> -    |       alpha: | TODO |
+> -    |         arc: | TODO |
+> -    |         arm: |  ok  |
+> -    |       arm64: |  ok  |
+> -    |         c6x: |  ok  |
+> -    |       h8300: | TODO |
+> -    |     hexagon: | TODO |
+> -    |        ia64: |  ok  |
+> -    |        m68k: | TODO |
+> -    |  microblaze: |  ok  |
+> -    |        mips: |  ok  |
+> -    |       nios2: | TODO |
+> -    |    openrisc: | TODO |
+> -    |      parisc: | TODO |
+> -    |     powerpc: |  ok  |
+> -    |        s390: |  ok  |
+> -    |          sh: |  ok  |
+> -    |       sparc: |  ok  |
+> -    |          um: | TODO |
+> -    |   unicore32: | TODO |
+> -    |         x86: |  ok  |
+> -    |      xtensa: |  ok  |
+> -    -----------------------
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 8e0d665c8d53..f07a1a99e5db 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -278,9 +278,6 @@ config HAVE_CLK
+>   	  The <linux/clk.h> calls support software clock gating and
+>   	  thus are a key power management tool on many systems.
 >   
->   /* number of preallocated entries requested by kernel cmdline */
-> -static u32 req_entries;
-> +static u32 nr_prealloc_entries = PREALLOC_DMA_DEBUG_ENTRIES;
->   
->   /* debugfs dentry's for the stuff above */
->   static struct dentry *dma_debug_dent        __read_mostly;
-> @@ -1011,7 +1011,6 @@ void dma_debug_add_bus(struct bus_type *bus)
->   
->   static int dma_debug_init(void)
->   {
-> -	u32 num_entries;
->   	int i;
->   
->   	/* Do not use dma_debug_initialized here, since we really want to be
-> @@ -1032,12 +1031,7 @@ static int dma_debug_init(void)
->   		return 0;
->   	}
->   
-> -	if (req_entries)
-> -		num_entries = req_entries;
-> -	else
-> -		num_entries = PREALLOC_DMA_DEBUG_ENTRIES;
+> -config HAVE_DMA_API_DEBUG
+> -	bool
 > -
-> -	if (prealloc_memory(num_entries) != 0) {
-> +	if (prealloc_memory(nr_prealloc_entries) != 0) {
->   		pr_err("DMA-API: debugging out of memory error - disabled\n");
->   		global_disable = true;
+>   config HAVE_HW_BREAKPOINT
+>   	bool
+>   	depends on PERF_EVENTS
+> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+> index 676977bdfe33..c43f5bb55ac8 100644
+> --- a/arch/arm/Kconfig
+> +++ b/arch/arm/Kconfig
+> @@ -60,7 +60,6 @@ config ARM
+>   	select HAVE_CONTEXT_TRACKING
+>   	select HAVE_C_RECORDMCOUNT
+>   	select HAVE_DEBUG_KMEMLEAK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS if MMU
+>   	select HAVE_DYNAMIC_FTRACE if (!XIP_KERNEL) && !CPU_ENDIAN_BE32 && MMU
+>   	select HAVE_DYNAMIC_FTRACE_WITH_REGS if HAVE_DYNAMIC_FTRACE
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index db51b6445744..b25ed7834f6c 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -105,7 +105,6 @@ config ARM64
+>   	select HAVE_CONTEXT_TRACKING
+>   	select HAVE_DEBUG_BUGVERBOSE
+>   	select HAVE_DEBUG_KMEMLEAK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS
+>   	select HAVE_DYNAMIC_FTRACE
+>   	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+> diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
+> index c6b4dd1418b4..8c088b96e372 100644
+> --- a/arch/c6x/Kconfig
+> +++ b/arch/c6x/Kconfig
+> @@ -10,7 +10,6 @@ config C6X
+>   	select GENERIC_ATOMIC64
+>   	select GENERIC_IRQ_SHOW
+>   	select HAVE_ARCH_TRACEHOOK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_MEMBLOCK
+>   	select SPARSE_IRQ
+>   	select IRQ_DOMAIN
+> diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+> index 9485b5490eca..2067289fad4a 100644
+> --- a/arch/ia64/Kconfig
+> +++ b/arch/ia64/Kconfig
+> @@ -29,7 +29,6 @@ config IA64
+>   	select HAVE_FUNCTION_TRACER
+>   	select TTY
+>   	select HAVE_ARCH_TRACEHOOK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_MEMBLOCK
+>   	select HAVE_MEMBLOCK_NODE_MAP
+>   	select HAVE_VIRT_CPU_ACCOUNTING
+> diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+> index 3817a3e2146c..d14782100088 100644
+> --- a/arch/microblaze/Kconfig
+> +++ b/arch/microblaze/Kconfig
+> @@ -19,7 +19,6 @@ config MICROBLAZE
+>   	select HAVE_ARCH_HASH
+>   	select HAVE_ARCH_KGDB
+>   	select HAVE_DEBUG_KMEMLEAK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DYNAMIC_FTRACE
+>   	select HAVE_FTRACE_MCOUNT_RECORD
+>   	select HAVE_FUNCTION_GRAPH_TRACER
+> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+> index 0f619b8c0e9e..2dcdc13cd65d 100644
+> --- a/arch/mips/Kconfig
+> +++ b/arch/mips/Kconfig
+> @@ -42,7 +42,6 @@ config MIPS
+>   	select HAVE_C_RECORDMCOUNT
+>   	select HAVE_DEBUG_KMEMLEAK
+>   	select HAVE_DEBUG_STACKOVERFLOW
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS
+>   	select HAVE_DYNAMIC_FTRACE
+>   	select HAVE_EXIT_THREAD
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 1887f8f86a77..268fd46fc3c7 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -181,7 +181,6 @@ config PPC
+>   	select HAVE_CONTEXT_TRACKING		if PPC64
+>   	select HAVE_DEBUG_KMEMLEAK
+>   	select HAVE_DEBUG_STACKOVERFLOW
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DYNAMIC_FTRACE
+>   	select HAVE_DYNAMIC_FTRACE_WITH_REGS	if MPROFILE_KERNEL
+>   	select HAVE_EBPF_JIT			if PPC64
+> diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+> index 17212ba54ee3..95e2da34aaad 100644
+> --- a/arch/riscv/Kconfig
+> +++ b/arch/riscv/Kconfig
+> @@ -23,7 +23,6 @@ config RISCV
+>   	select GENERIC_ATOMIC64 if !64BIT || !RISCV_ISA_A
+>   	select HAVE_MEMBLOCK
+>   	select HAVE_MEMBLOCK_NODE_MAP
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS
+>   	select HAVE_GENERIC_DMA_COHERENT
+>   	select IRQ_DOMAIN
+> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> index b794a2ab6d15..6a64287ec1da 100644
+> --- a/arch/s390/Kconfig
+> +++ b/arch/s390/Kconfig
+> @@ -130,7 +130,6 @@ config S390
+>   	select HAVE_CMPXCHG_LOCAL
+>   	select HAVE_COPY_THREAD_TLS
+>   	select HAVE_DEBUG_KMEMLEAK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS
+>   	select DMA_DIRECT_OPS
+>   	select HAVE_DYNAMIC_FTRACE
+> diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+> index 9417f70e008e..7d521926041e 100644
+> --- a/arch/sh/Kconfig
+> +++ b/arch/sh/Kconfig
+> @@ -13,7 +13,6 @@ config SUPERH
+>   	select HAVE_OPROFILE
+>   	select HAVE_GENERIC_DMA_COHERENT
+>   	select HAVE_ARCH_TRACEHOOK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_PERF_EVENTS
+>   	select HAVE_DEBUG_BUGVERBOSE
+>   	select ARCH_HAVE_CUSTOM_GPIO_H
+> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+> index c1cfc17eb504..435dbc033afe 100644
+> --- a/arch/sparc/Kconfig
+> +++ b/arch/sparc/Kconfig
+> @@ -25,7 +25,6 @@ config SPARC
+>   	select RTC_CLASS
+>   	select RTC_DRV_M48T59
+>   	select RTC_SYSTOHC
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_ARCH_JUMP_LABEL if SPARC64
+>   	select GENERIC_IRQ_SHOW
+>   	select ARCH_WANT_IPC_PARSE_VERSION
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index aad35c568681..3eeca48a146b 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -135,7 +135,6 @@ config X86
+>   	select HAVE_C_RECORDMCOUNT
+>   	select HAVE_DEBUG_KMEMLEAK
+>   	select HAVE_DEBUG_STACKOVERFLOW
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS
+>   	select HAVE_DYNAMIC_FTRACE
+>   	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+> diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+> index c921e8bccdc8..17df332269b2 100644
+> --- a/arch/xtensa/Kconfig
+> +++ b/arch/xtensa/Kconfig
+> @@ -19,7 +19,6 @@ config XTENSA
+>   	select HAVE_ARCH_KASAN if MMU
+>   	select HAVE_CC_STACKPROTECTOR
+>   	select HAVE_DEBUG_KMEMLEAK
+> -	select HAVE_DMA_API_DEBUG
+>   	select HAVE_DMA_CONTIGUOUS
+>   	select HAVE_EXIT_THREAD
+>   	select HAVE_FUNCTION_TRACER
+> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> index 685ed2dd4384..d5175eb7b917 100644
+> --- a/lib/Kconfig.debug
+> +++ b/lib/Kconfig.debug
+> @@ -1634,7 +1634,6 @@ config PROVIDE_OHCI1394_DMA_INIT
 >   
-> @@ -1068,16 +1062,10 @@ static __init int dma_debug_cmdline(char *str)
->   
->   static __init int dma_debug_entries_cmdline(char *str)
->   {
-> -	int res;
-> -
->   	if (!str)
->   		return -EINVAL;
-> -
-> -	res = get_option(&str, &req_entries);
-> -
-> -	if (!res)
-> -		req_entries = 0;
-> -
-> +	if (!get_option(&str, &nr_prealloc_entries))
-> +		nr_prealloc_entries = PREALLOC_DMA_DEBUG_ENTRIES;
->   	return 0;
->   }
->   
+>   config DMA_API_DEBUG
+>   	bool "Enable debugging of DMA-API usage"
+> -	depends on HAVE_DMA_API_DEBUG
+>   	select NEED_DMA_MAP_STATE
+>   	help
+>   	  Enable this option to debug the use of the DMA API by device drivers.
 > 
