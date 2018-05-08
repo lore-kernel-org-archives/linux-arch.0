@@ -1,138 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f193.google.com ([209.85.161.193]:42784 "EHLO
-        mail-yw0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755159AbeEHN06 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2018 09:26:58 -0400
+Received: from mail-yb0-f194.google.com ([209.85.213.194]:34388 "EHLO
+        mail-yb0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932168AbeEHN2Z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2018 09:28:25 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v2 1/7] bitops: Introduce the for_each_set_port_word macro
-Date: Tue,  8 May 2018 09:26:51 -0400
-Message-ID: <c919f6c2ff54a29114bd5e566997f11e5ebf29c3.1525785532.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v2 7/7] gpio: pcie-idio-24: Utilize for_each_set_port_word macro
+Date: Tue,  8 May 2018 09:28:17 -0400
+Message-ID: <57b9e48b8aa9d80c24c6e21bf3d0383deb95e1e9.1525785532.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1525785532.git.vilhelm.gray@gmail.com>
 References: <cover.1525785532.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180508132651.Xgs22riS6zRzrdmWve4m3HiSsvjeCzW6Izy0iG0YMFs@z>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20180508132817.XEtJbYEgY8TILhoy1uBapPyRr-KQk4kT5FKqcOaIESc@z>
 
-This macro iterates for each group of bits (port word) with set bits,
-within a bitmap memory region. For each iteration, "port_word" is set to
-the found port word index, "word_index" is set to the word index of the
-bitmap containing the found port word, and "word_offset" is set to the
-bit offset of the found port word within the respective bitmap word.
+Replace boilerplate code in get_multiple/set_multiple callbacks with
+for_each_set_port_word macro to simplify code and improve clarity.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- include/asm-generic/bitops/find.h | 26 ++++++++++++++++++++++++++
- include/linux/bitops.h            |  9 +++++++++
- lib/find_bit.c                    | 28 ++++++++++++++++++++++++++++
- 3 files changed, 63 insertions(+)
+ drivers/gpio/gpio-pcie-idio-24.c | 102 +++++++++++--------------------
+ 1 file changed, 36 insertions(+), 66 deletions(-)
 
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 8a1ee10014de..c59514547e63 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_GENERIC_BITOPS_FIND_H_
- #define _ASM_GENERIC_BITOPS_FIND_H_
- 
-+#include <linux/types.h>
-+
- #ifndef find_next_bit
- /**
-  * find_next_bit - find the next set bit in a memory region
-@@ -80,4 +82,28 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
- 
- #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
- 
-+/**
-+ * find_next_port_word - find next port word with set bits in a memory region
-+ * @word_index: location to store bitmap word index of found port word
-+ * @word_offset: bits offset of the found port word in respective bitmap word
-+ * @bits: address to base the search on
-+ * @size: bitmap size in number of ports
-+ * @offset: port word index to start searching at
-+ * @port_size: port word size in bits
-+ *
-+ * Returns the port index for the next port word with set bits; the respective
-+ * bitmap word index is stored at the location pointed by @word_index, and the
-+ * bits offset of the found port word within the respective bitmap word is
-+ * stored at the location pointed by @word_offset. If no bits are set, returns
-+ * @size.
-+ */
-+size_t find_next_port_word(size_t *const word_index,
-+			   unsigned int *const word_offset,
-+			   const unsigned long *const bits, const size_t size,
-+			   const size_t offset, const unsigned int port_size);
-+
-+#define find_first_port_word(word_index, word_offset, bits, size, port_size) \
-+	find_next_port_word((word_index), (word_offset), (bits), (size), 0, \
-+			    (port_size))
-+
- #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index 4cac4e1a72ff..c3b7caf4ad2d 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -59,6 +59,15 @@ extern unsigned long __sw_hweight64(__u64 w);
- 	     (bit) < (size);					\
- 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
- 
-+#define for_each_set_port_word(port_word, word_index, word_offset, bits, size, \
-+			       port_size) \
-+	for ((port_word) = find_first_port_word(&(word_index), &(word_offset), \
-+					   (bits), (size), (port_size)); \
-+	     (port_word) < (size); \
-+	     (port_word) = find_next_port_word(&(word_index), &(word_offset), \
-+					  (bits), (size), (port_word) + 1, \
-+					  (port_size)))
-+
- static inline int get_bitmask_order(unsigned int count)
+diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
+index f953541e7890..a0c81724ce4d 100644
+--- a/drivers/gpio/gpio-pcie-idio-24.c
++++ b/drivers/gpio/gpio-pcie-idio-24.c
+@@ -199,41 +199,21 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
  {
- 	int order;
-diff --git a/lib/find_bit.c b/lib/find_bit.c
-index ee3df93ba69a..628c94d63d6b 100644
---- a/lib/find_bit.c
-+++ b/lib/find_bit.c
-@@ -20,6 +20,7 @@
- #include <linux/bitmap.h>
- #include <linux/export.h>
- #include <linux/kernel.h>
-+#include <linux/types.h>
+ 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
+ 	size_t i;
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int bits_offset;
+-	size_t word_index;
+-	unsigned int word_offset;
+-	unsigned long word_mask;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
+-	unsigned long port_state;
++	size_t word;
++	unsigned int offset;
+ 	void __iomem *ports[] = {
+ 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
+ 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
+ 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
+ 	};
++	const size_t num_ports = ARRAY_SIZE(ports) + 1;
++	unsigned long port_state;
+ 	const unsigned long out_mode_mask = BIT(1);
  
- #if !defined(find_next_bit) || !defined(find_next_zero_bit) || \
- 		!defined(find_next_and_bit)
-@@ -218,3 +219,30 @@ EXPORT_SYMBOL(find_next_bit_le);
- #endif
+ 	/* clear bits array to a clean slate */
+ 	bitmap_zero(bits, chip->ngpio);
  
- #endif /* __BIG_ENDIAN */
+-	/* get bits are evaluated a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* word index for bits array */
+-		word_index = BIT_WORD(bits_offset);
+-
+-		/* gpio offset within current word of bits array */
+-		word_offset = bits_offset % BITS_PER_LONG;
+-
+-		/* mask of get bits for current gpio within current word */
+-		word_mask = mask[word_index] & (port_mask << word_offset);
+-		if (!word_mask) {
+-			/* no get bits in this port so skip to next one */
+-			continue;
+-		}
+-
++	for_each_set_port_word(i, word, offset, mask, num_ports, 8) {
+ 		/* read bits from current gpio port (port 6 is TTL GPIO) */
+ 		if (i < 6)
+ 			port_state = ioread8(ports[i]);
+@@ -243,7 +223,7 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
+ 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
+ 
+ 		/* store acquired bits at respective bits array offset */
+-		bits[word_index] |= port_state << word_offset;
++		bits[word] |= port_state << offset;
+ 	}
+ 
+ 	return 0;
+@@ -295,58 +275,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
+ {
+ 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
+ 	size_t i;
+-	unsigned long bits_offset;
+-	unsigned long gpio_mask;
+-	const unsigned int gpio_reg_size = 8;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
+-	unsigned long flags;
+-	unsigned int out_state;
++	size_t word;
++	unsigned int offset;
+ 	void __iomem *ports[] = {
+ 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
+ 		&idio24gpio->reg->out16_23
+ 	};
++	const size_t num_ports = ARRAY_SIZE(ports) + 1;
++	unsigned int iomask;
++	unsigned int bitmask;
++	unsigned long flags;
+ 	const unsigned long out_mode_mask = BIT(1);
+-	const unsigned int ttl_offset = 48;
+-	const size_t ttl_i = BIT_WORD(ttl_offset);
+-	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
+-	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
+-	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
+-
+-	/* set bits are processed a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* check if any set bits for current port */
+-		gpio_mask = (*mask >> bits_offset) & port_mask;
+-		if (!gpio_mask) {
+-			/* no set bits for this port so move on to next port */
++	unsigned int out_state;
 +
-+size_t find_next_port_word(size_t *const word_index,
-+			   unsigned int *const word_offset,
-+			   const unsigned long *const bits, const size_t size,
-+			   const size_t offset, const unsigned int port_size)
-+{
-+	size_t i;
-+	unsigned int bits_offset;
-+	unsigned long word_mask;
-+	const unsigned long port_mask = GENMASK(port_size - 1, 0);
++	for_each_set_port_word(i, word, offset, mask, num_ports, 8) {
++		iomask = mask[word] >> offset;
++		bitmask = iomask & (bits[word] >> offset);
 +
-+	for (i = offset; i < size; i++) {
-+		bits_offset = i * port_size;
++		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
 +
-+		*word_index = BIT_WORD(bits_offset);
-+		*word_offset = bits_offset % BITS_PER_LONG;
-+
-+		word_mask = bits[*word_index] & (port_mask << *word_offset);
-+		if (!word_mask)
-+			continue;
-+
-+		return i;
-+	}
-+
-+	return size;
-+}
-+EXPORT_SYMBOL(find_next_port_word);
++		/* read bits from current gpio port (port 6 is TTL GPIO) */
++		if (i < 6) {
++			out_state = ioread8(ports[i]) & ~iomask;
++		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
++			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
++		} else {
++			/* skip TTL GPIO if set for input */
++			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+ 			continue;
+ 		}
+ 
+-		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
++		/* set requested bit states */
++		out_state &= ~iomask;
++		out_state |= bitmask;
+ 
+-		/* process output lines */
+-		out_state = ioread8(ports[i]) & ~gpio_mask;
+-		out_state |= (*bits >> bits_offset) & gpio_mask;
+-		iowrite8(out_state, ports[i]);
++		/* write bits for current gpio port (port 6 is TTL GPIO) */
++		if (i < 6)
++			iowrite8(out_state, ports[i]);
++		else
++			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
+ 
+ 		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+ 	}
+-
+-	/* check if setting TTL lines and if they are in output mode */
+-	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
+-		return;
+-
+-	/* handle TTL output */
+-	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
+-
+-	/* process output lines */
+-	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
+-	out_state |= ttl_bits;
+-	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
+-
+-	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+ }
+ 
+ static void idio_24_irq_ack(struct irq_data *data)
 -- 
 2.17.0
