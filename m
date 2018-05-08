@@ -1,128 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f195.google.com ([209.85.161.195]:43398 "EHLO
-        mail-yw0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754099AbeEHN1z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2018 09:27:55 -0400
+Received: from mail-yw0-f193.google.com ([209.85.161.193]:42784 "EHLO
+        mail-yw0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755159AbeEHN06 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2018 09:26:58 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v2 5/7] gpio: ws16c48: Utilize for_each_set_port_word macro
-Date: Tue,  8 May 2018 09:27:48 -0400
-Message-ID: <7be4cbc599a8437e031a6f0286b765620d3713e7.1525785532.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v2 1/7] bitops: Introduce the for_each_set_port_word macro
+Date: Tue,  8 May 2018 09:26:51 -0400
+Message-ID: <c919f6c2ff54a29114bd5e566997f11e5ebf29c3.1525785532.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1525785532.git.vilhelm.gray@gmail.com>
 References: <cover.1525785532.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20180508132748.CJWPHMGvER4msgesqi7I4F1a-3zJs6JktJmTUt7-SSk@z>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20180508132651.Xgs22riS6zRzrdmWve4m3HiSsvjeCzW6Izy0iG0YMFs@z>
 
-Replace boilerplate code in get_multiple/set_multiple callbacks with
-for_each_set_port_word macro to simplify code and improve clarity.
+This macro iterates for each group of bits (port word) with set bits,
+within a bitmap memory region. For each iteration, "port_word" is set to
+the found port word index, "word_index" is set to the word index of the
+bitmap containing the found port word, and "word_offset" is set to the
+bit offset of the found port word within the respective bitmap word.
 
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-ws16c48.c | 66 +++++++++----------------------------
- 1 file changed, 16 insertions(+), 50 deletions(-)
+ include/asm-generic/bitops/find.h | 26 ++++++++++++++++++++++++++
+ include/linux/bitops.h            |  9 +++++++++
+ lib/find_bit.c                    | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 63 insertions(+)
 
-diff --git a/drivers/gpio/gpio-ws16c48.c b/drivers/gpio/gpio-ws16c48.c
-index c7028eb0b8e1..ab8b36f3595c 100644
---- a/drivers/gpio/gpio-ws16c48.c
-+++ b/drivers/gpio/gpio-ws16c48.c
-@@ -134,42 +134,19 @@ static int ws16c48_gpio_get_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 8a1ee10014de..c59514547e63 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_GENERIC_BITOPS_FIND_H_
+ #define _ASM_GENERIC_BITOPS_FIND_H_
+ 
++#include <linux/types.h>
++
+ #ifndef find_next_bit
+ /**
+  * find_next_bit - find the next set bit in a memory region
+@@ -80,4 +82,28 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+ 
+ #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+ 
++/**
++ * find_next_port_word - find next port word with set bits in a memory region
++ * @word_index: location to store bitmap word index of found port word
++ * @word_offset: bits offset of the found port word in respective bitmap word
++ * @bits: address to base the search on
++ * @size: bitmap size in number of ports
++ * @offset: port word index to start searching at
++ * @port_size: port word size in bits
++ *
++ * Returns the port index for the next port word with set bits; the respective
++ * bitmap word index is stored at the location pointed by @word_index, and the
++ * bits offset of the found port word within the respective bitmap word is
++ * stored at the location pointed by @word_offset. If no bits are set, returns
++ * @size.
++ */
++size_t find_next_port_word(size_t *const word_index,
++			   unsigned int *const word_offset,
++			   const unsigned long *const bits, const size_t size,
++			   const size_t offset, const unsigned int port_size);
++
++#define find_first_port_word(word_index, word_offset, bits, size, port_size) \
++	find_next_port_word((word_index), (word_offset), (bits), (size), 0, \
++			    (port_size))
++
+ #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 4cac4e1a72ff..c3b7caf4ad2d 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -59,6 +59,15 @@ extern unsigned long __sw_hweight64(__u64 w);
+ 	     (bit) < (size);					\
+ 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+ 
++#define for_each_set_port_word(port_word, word_index, word_offset, bits, size, \
++			       port_size) \
++	for ((port_word) = find_first_port_word(&(word_index), &(word_offset), \
++					   (bits), (size), (port_size)); \
++	     (port_word) < (size); \
++	     (port_word) = find_next_port_word(&(word_index), &(word_offset), \
++					  (bits), (size), (port_word) + 1, \
++					  (port_size)))
++
+ static inline int get_bitmask_order(unsigned int count)
  {
- 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
--	const unsigned int gpio_reg_size = 8;
--	size_t i;
--	const size_t num_ports = chip->ngpio / gpio_reg_size;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
-+	size_t port;
-+	size_t word;
-+	unsigned int offset;
-+	const unsigned int port_size = 8;
-+	const size_t num_ports = chip->ngpio / port_size;
- 	unsigned long port_state;
+ 	int order;
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index ee3df93ba69a..628c94d63d6b 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -20,6 +20,7 @@
+ #include <linux/bitmap.h>
+ #include <linux/export.h>
+ #include <linux/kernel.h>
++#include <linux/types.h>
  
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
+ #if !defined(find_next_bit) || !defined(find_next_zero_bit) || \
+ 		!defined(find_next_and_bit)
+@@ -218,3 +219,30 @@ EXPORT_SYMBOL(find_next_bit_le);
+ #endif
  
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < num_ports; i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
--		/* read bits from current gpio port */
--		port_state = inb(ws16c48gpio->base + i);
--
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= port_state << word_offset;
-+	for_each_set_port_word(port, word, offset, mask, num_ports, port_size) {
-+		port_state = inb(ws16c48gpio->base + port);
-+		bits[word] |= port_state << offset;
- 	}
- 
- 	return 0;
-@@ -203,26 +180,19 @@ static void ws16c48_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct ws16c48_gpio *const ws16c48gpio = gpiochip_get_data(chip);
--	unsigned int i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int port;
-+	size_t port;
-+	size_t word;
-+	unsigned int offset;
-+	const unsigned int port_size = 8;
-+	const size_t num_ports = chip->ngpio / port_size;
- 	unsigned int iomask;
- 	unsigned int bitmask;
- 	unsigned long flags;
- 
--	/* set bits are evaluated a gpio register size at a time */
--	for (i = 0; i < chip->ngpio; i += gpio_reg_size) {
--		/* no more set bits in this mask word; skip to the next word */
--		if (!mask[BIT_WORD(i)]) {
--			i = (BIT_WORD(i) + 1) * BITS_PER_LONG - gpio_reg_size;
--			continue;
--		}
--
--		port = i / gpio_reg_size;
--
-+	for_each_set_port_word(port, word, offset, mask, num_ports, port_size) {
- 		/* mask out GPIO configured for input */
--		iomask = mask[BIT_WORD(i)] & ~ws16c48gpio->io_state[port];
--		bitmask = iomask & bits[BIT_WORD(i)];
-+		iomask = (mask[word] >> offset) & ~ws16c48gpio->io_state[port];
-+		bitmask = iomask & (bits[word] >> offset);
- 
- 		raw_spin_lock_irqsave(&ws16c48gpio->lock, flags);
- 
-@@ -232,10 +202,6 @@ static void ws16c48_gpio_set_multiple(struct gpio_chip *chip,
- 		outb(ws16c48gpio->out_state[port], ws16c48gpio->base + port);
- 
- 		raw_spin_unlock_irqrestore(&ws16c48gpio->lock, flags);
--
--		/* prepare for next gpio register set */
--		mask[BIT_WORD(i)] >>= gpio_reg_size;
--		bits[BIT_WORD(i)] >>= gpio_reg_size;
- 	}
- }
- 
+ #endif /* __BIG_ENDIAN */
++
++size_t find_next_port_word(size_t *const word_index,
++			   unsigned int *const word_offset,
++			   const unsigned long *const bits, const size_t size,
++			   const size_t offset, const unsigned int port_size)
++{
++	size_t i;
++	unsigned int bits_offset;
++	unsigned long word_mask;
++	const unsigned long port_mask = GENMASK(port_size - 1, 0);
++
++	for (i = offset; i < size; i++) {
++		bits_offset = i * port_size;
++
++		*word_index = BIT_WORD(bits_offset);
++		*word_offset = bits_offset % BITS_PER_LONG;
++
++		word_mask = bits[*word_index] & (port_mask << *word_offset);
++		if (!word_mask)
++			continue;
++
++		return i;
++	}
++
++	return size;
++}
++EXPORT_SYMBOL(find_next_port_word);
 -- 
 2.17.0
