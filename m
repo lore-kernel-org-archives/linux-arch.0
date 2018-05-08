@@ -1,33 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:41182 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753396AbeEHLXo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2018 07:23:44 -0400
-Date: Tue, 8 May 2018 04:23:21 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] mm: expland documentation over __read_mostly
-Message-ID: <20180508112321.GA30120@bombadil.infradead.org>
-References: <e2aa9491-c1e3-4ae1-1ab2-589a6642a24a@infradead.org>
- <20180507231506.4891-1-mcgrof@kernel.org>
- <32208.1525768094@warthog.procyon.org.uk>
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:43842 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751983AbeEHMkv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 May 2018 08:40:51 -0400
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+ <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
+ <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+ <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+Date: Tue, 8 May 2018 14:40:46 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <32208.1525768094@warthog.procyon.org.uk>
+In-Reply-To: <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Randy Dunlap <rdunlap@infradead.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, arnd@arndb.de, cl@linux.com, keescook@chromium.org, luto@amacapital.net, longman@redhat.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20180508112321.QvFGLtz-1Ntfuyxn1PJA6nkyvvFYziSbIQDs42VdOno@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: linuxram@us.ibm.com, Dave Hansen <dave.hansen@intel.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20180508124046.ivBDK7LqBCN_3xSNCchexmPflrsr5_pE7-4lcpmn4x4@z>
 
-On Tue, May 08, 2018 at 09:28:14AM +0100, David Howells wrote:
-> Randy Dunlap <rdunlap@infradead.org> wrote:
+On 05/08/2018 04:49 AM, Andy Lutomirski wrote:
+> On Mon, May 7, 2018 at 2:48 AM Florian Weimer <fweimer@redhat.com> wrote:
 > 
-> > > + * execute a critial path. We should be mindful and selective if its use.
-> > 
-> >                                                                  of its use.
+>> On 05/03/2018 06:05 AM, Andy Lutomirski wrote:
+>>> On Wed, May 2, 2018 at 7:11 PM Ram Pai <linuxram@us.ibm.com> wrote:
+>>>
+>>>> On Wed, May 02, 2018 at 09:23:49PM +0000, Andy Lutomirski wrote:
+>>>>>
+>>>>>> If I recall correctly, the POWER maintainer did express a strong
+>>> desire
+>>>>>> back then for (what is, I believe) their current semantics, which my
+>>>>>> PKEY_ALLOC_SIGNALINHERIT patch implements for x86, too.
+>>>>>
+>>>>> Ram, I really really don't like the POWER semantics.  Can you give
+> some
+>>>>> justification for them?  Does POWER at least have an atomic way for
+>>>>> userspace to modify just the key it wants to modify or, even better,
+>>>>> special load and store instructions to use alternate keys?
+>>>
+>>>> I wouldn't call it POWER semantics. The way I implemented it on power
+>>>> lead to the semantics, given that nothing was explicitly stated
+>>>> about how the semantics should work within a signal handler.
+>>>
+>>> I think that this is further evidence that we should introduce a new
+>>> pkey_alloc() mode and deprecate the old.  To the extent possible, this
+>>> thing should work the same way on x86 and POWER.
 > 
->                                                                    in its use.
-								     with its use.
+>> Do you propose to change POWER or to change x86?
+> 
+> Sorry for being slow to reply.  I propose to introduce a new
+> PKEY_ALLOC_something variant on x86 and POWER and to make the behavior
+> match on both.
 
-Nah, just kidding.  Let's go with "in".
+So basically implement PKEY_ALLOC_SETSIGNAL for POWER, and keep the 
+existing (different) behavior without the flag?
+
+Ram, would you be okay with that?  Could you give me a hand if 
+necessary?  (I assume we have silicon in-house because it's a 
+long-standing feature of the POWER platform which was simply dormant on 
+Linux until now.)
+
+> It should at least update the values loaded when a signal
+> is delivered and it should probably also update it for new threads.
+
+I think we should keep inheritance for new threads and fork.  pkey_alloc 
+only has a single access rights argument, which makes it hard to reuse 
+this interface if there are two (three) separate sets of access rights.
+
+Is there precedent for process state reverting on fork, besides 
+MADV_WIPEONFORK?  My gut feeling is that we should avoid that.
+
+> For glibc, for example, I assume that you want signals to be delivered with
+> write access disabled to the GOT.  Otherwise you would fail to protect
+> against exploits that occur in signal context.  Glibc controls thread
+> creation, so the initial state on thread startup doesn't really matter, but
+> there will be more users than just glibc.
+
+glibc does not control thread, or more precisely, subprocess creation. 
+Otherwise we wouldn't have face that many issues with our PID cache. 8-/
+
+Thanks,
+Florian
