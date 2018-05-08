@@ -1,128 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f195.google.com ([209.85.161.195]:35456 "EHLO
-        mail-yw0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932168AbeEHN2N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2018 09:28:13 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v2 6/7] gpio: pci-idio-16: Utilize for_each_set_port_word macro
-Date: Tue,  8 May 2018 09:28:03 -0400
-Message-ID: <60108b1e9c1a12ce16a9edc4fc7ad94125e3aad6.1525785532.git.vilhelm.gray@gmail.com>
-In-Reply-To: <cover.1525785532.git.vilhelm.gray@gmail.com>
-References: <cover.1525785532.git.vilhelm.gray@gmail.com>
+Received: from ozlabs.org ([203.11.71.1]:32887 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932375AbeEHOjS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 May 2018 10:39:18 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v13 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
+In-Reply-To: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
+References: <1525471183-21277-1-git-send-email-linuxram@us.ibm.com>
+Date: Wed, 09 May 2018 00:39:14 +1000
+Message-ID: <8736z21ab1.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20180508132803.C6UJWsv3Hx4EdnltsivUdBK7pr3ut5Zm0BcxDs6fL5E@z>
+To: Ram Pai <linuxram@us.ibm.com>, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de
+Message-ID: <20180508143914.OqPCrrbyM-WEQwUtyheD1-fD3SvWawktsToogmeEZqk@z>
 
-Replace boilerplate code in get_multiple/set_multiple callbacks with
-for_each_set_port_word macro to simplify code and improve clarity.
+Ram Pai <linuxram@us.ibm.com> writes:
 
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-pci-idio-16.c | 67 +++++++++++----------------------
- 1 file changed, 21 insertions(+), 46 deletions(-)
+> This patch series provides arch-neutral enhancements to
+> enable memory-keys on new architecutes, and the corresponding
+> changes in x86 and powerpc specific code to support that.
+>
+> a) Provides ability to support upto 32 keys.  PowerPC
+>         can handle 32 keys and hence needs this.
+>
+> b) Arch-neutral code; and not the arch-specific code,
+>    determines the format of the string, that displays the key
+>    for each vma in smaps.
+>
+> History:
+> -------
+> version 14:
 
-diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
-index 25d16b2af1c3..f5c759d70081 100644
---- a/drivers/gpio/gpio-pci-idio-16.c
-+++ b/drivers/gpio/gpio-pci-idio-16.c
-@@ -109,44 +109,20 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
- 	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	size_t word;
-+	unsigned int offset;
- 	void __iomem *ports[] = {
- 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
- 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
- 	};
-+	unsigned long port_state;
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
--		/* read bits from current gpio port */
-+	for_each_set_port_word(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
- 		port_state = ioread8(ports[i]);
--
--		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= port_state << word_offset;
-+		bits[word] |= port_state << offset;
- 	}
- 
- 	return 0;
-@@ -186,30 +162,29 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
- 	unsigned long *mask, unsigned long *bits)
- {
- 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
-+	size_t i;
-+	size_t word;
-+	unsigned int offset;
-+	void __iomem *ports[] = {
-+		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
-+	};
-+	unsigned int iomask;
-+	unsigned int bitmask;
- 	unsigned long flags;
- 	unsigned int out_state;
- 
--	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
-+	for_each_set_port_word(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
-+		iomask = mask[word] >> offset;
-+		bitmask = iomask & (bits[word] >> offset);
- 
--	/* process output lines 0-7 */
--	if (*mask & 0xFF) {
--		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out0_7);
--	}
-+		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
- 
--	/* shift to next output line word */
--	*mask >>= 8;
-+		out_state = ioread8(ports[i]) & ~iomask;
-+		out_state |= bitmask;
-+		iowrite8(out_state, ports[i]);
- 
--	/* process output lines 8-15 */
--	if (*mask & 0xFF) {
--		*bits >>= 8;
--		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
--		out_state |= *mask & *bits;
--		iowrite8(out_state, &idio16gpio->reg->out8_15);
-+		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
- 	}
--
--	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
- }
- 
- static void idio_16_irq_ack(struct irq_data *data)
--- 
-2.17.0
+This doesn't match the patch subjects, which is a little confusing :)
+
+> 	(1) made VM_PKEY_BIT4 unusable on x86, #defined it to 0
+> 		-- comment by Dave Hansen
+> 	(2) due to some reason this patch series continue to
+> 	      break some or the other build. The last series
+> 	      passed everything but created a merge
+> 	      conflict followed by build failure for
+> 	      Michael Ellermen. :(
+
+I have a fix, it involved some cleanup of headers prior to the smaps
+change.
+
+Will post it.
+
+cheers
