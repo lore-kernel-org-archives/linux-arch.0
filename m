@@ -1,90 +1,46 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v6 00/15] KVM: arm64: Optimise FPSIMD context switching
-Date: Tue,  8 May 2018 17:44:45 +0100
-Message-ID: <1525797900-5548-1-git-send-email-Dave.Martin@arm.com>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH] mm: expland documentation over __read_mostly
+Date: Tue, 8 May 2018 18:17:06 +0000
+Message-ID: <20180508181706.GI27853@wotan.suse.de>
+References: <e2aa9491-c1e3-4ae1-1ab2-589a6642a24a@infradead.org>
+ <20180507231506.4891-1-mcgrof@kernel.org>
+ <32208.1525768094@warthog.procyon.org.uk>
+ <20180508112321.GA30120@bombadil.infradead.org>
+ <7d6664dc-01f5-55d9-d309-0378ff609b8a@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <7d6664dc-01f5-55d9-d309-0378ff609b8a@infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: kvmarm@lists.cs.columbia.edu
-Cc: linux-arm-kernel@lists.infradead.org, Christoffer Dall <cdall@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: Matthew Wilcox <willy@infradead.org>, David Howells <dhowells@redhat.com>, "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, arnd@arndb.de, cl@linux.com, keescook@chromium.org, luto@amacapital.net, longman@redhat.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Note: Most of these patches are Arm-specific.  People not Cc'd on the
-whole series can find it in the linux-arm-kernel archive [3].
+On Tue, May 08, 2018 at 08:39:30AM -0700, Randy Dunlap wrote:
+> On 05/08/2018 04:23 AM, Matthew Wilcox wrote:
+> > On Tue, May 08, 2018 at 09:28:14AM +0100, David Howells wrote:
+> >> Randy Dunlap <rdunlap@infradead.org> wrote:
+> >>
+> >>>> + * execute a critial path. We should be mindful and selective if its use.
+> >>>
+> >>>                                                                  of its use.
+> >>
+> >>                                                                    in its use.
+> > 								     with its use.
+> > 
+> > Nah, just kidding.  Let's go with "in".
+> > 
+> 
+> Yeah, no, I don't care.  Just flip a 3-sided coin.
 
-This series aims to improve the way FPSIMD context is handled by KVM.
-Only minor changes have been made since the previous v5 [1].
-The changes are summarised in the individual patches.
+Heh, the coin says "of".
 
-Patch 6 is new, and does some simple refactoring to enable new bits to
-be added to an existing vcpu_arch flags field.
+I also added:
 
-Patches 1, 2, 6, 7 and 14 are still missing Reviewed-bys/Acked-bys, so
-reviewer attention on these patches would be much appreciated.
+ * ie: if you're going to use it please supply a *good* justification in your   
+ * commit log.
 
+Sending v2.
 
-Some testing done on Juno and the Arm fast model (arm64), including
-(on earlier versions of the patches) combinations of (non-)SVE and
-(non-)VHE configurations.
-
-Cheers
----Dave
-
-[1] [PATCH v5 00/14] KVM: arm64: Optimise FPSIMD context switching
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/575805.html
-
-[2] [RFC PATCH 0/6] Simplify setting thread flags to a particular value
-https://lkml.org/lkml/2018/4/19/225
-
-[3] linux-arm-kernel archive
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/thread.html
-
-
-Christoffer Dall (1):
-  KVM: arm/arm64: Introduce kvm_arch_vcpu_run_pid_change
-
-Dave Martin (14):
-  thread_info: Add update_thread_flag() helpers
-  arm64: Use update{,_tsk}_thread_flag()
-  KVM: arm64: Convert lazy FPSIMD context switch trap to C
-  arm64: fpsimd: Generalise context saving for non-task contexts
-  KVM: arm64: Repurpose vcpu_arch.debug_flags for general-purpose flags
-  KVM: arm64: Optimise FPSIMD handling to reduce guest/host thrashing
-  arm64/sve: Move read_zcr_features() out of cpufeature.h
-  arm64/sve: Switch sve_pffr() argument from task to thread
-  arm64/sve: Move sve_pffr() to fpsimd.h and make inline
-  KVM: arm64: Save host SVE context as appropriate
-  KVM: arm64: Remove eager host SVE state saving
-  KVM: arm64: Remove redundant *exit_code changes in fpsimd_guest_exit()
-  KVM: arm64: Fold redundant exit code checks out of fixup_guest_exit()
-  KVM: arm64: Invoke FPSIMD context switch trap from C
-
- arch/arm/include/asm/kvm_host.h     |   9 ++-
- arch/arm64/Kconfig                  |   7 ++
- arch/arm64/include/asm/cpufeature.h |  29 ---------
- arch/arm64/include/asm/fpsimd.h     |  20 ++++++
- arch/arm64/include/asm/kvm_asm.h    |   3 +
- arch/arm64/include/asm/kvm_host.h   |  24 ++++---
- arch/arm64/include/asm/processor.h  |   2 +
- arch/arm64/kernel/fpsimd.c          | 120 ++++++++++++++++++-----------------
- arch/arm64/kernel/ptrace.c          |   1 +
- arch/arm64/kvm/Kconfig              |   1 +
- arch/arm64/kvm/Makefile             |   2 +-
- arch/arm64/kvm/debug.c              |   8 +--
- arch/arm64/kvm/fpsimd.c             | 110 ++++++++++++++++++++++++++++++++
- arch/arm64/kvm/hyp/debug-sr.c       |   6 +-
- arch/arm64/kvm/hyp/entry.S          |  43 -------------
- arch/arm64/kvm/hyp/hyp-entry.S      |  19 ------
- arch/arm64/kvm/hyp/switch.c         | 123 +++++++++++++++++++++++++-----------
- arch/arm64/kvm/hyp/sysreg-sr.c      |   4 +-
- arch/arm64/kvm/sys_regs.c           |   8 +--
- include/linux/kvm_host.h            |   9 +++
- include/linux/sched.h               |   6 ++
- include/linux/thread_info.h         |  11 ++++
- virt/kvm/Kconfig                    |   3 +
- virt/kvm/arm/arm.c                  |  25 +++++++-
- virt/kvm/kvm_main.c                 |   7 +-
- 25 files changed, 383 insertions(+), 217 deletions(-)
- create mode 100644 arch/arm64/kvm/fpsimd.c
-
--- 
-2.1.4
+  Luis
