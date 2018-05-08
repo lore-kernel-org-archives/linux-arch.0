@@ -1,26 +1,37 @@
-From: Jonathan Corbet <corbet@lwn.net>
-Subject: Re: [RFC PATCH v3 0/6] Documentation/features: Provide and apply
- 'features-refresh.sh'
-Date: Tue, 8 May 2018 09:30:45 -0600
-Message-ID: <20180508093045.7397f31c@lwn.net>
-References: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [PATCH] mm: expland documentation over __read_mostly
+Date: Tue, 8 May 2018 08:39:30 -0700
+Message-ID: <7d6664dc-01f5-55d9-d309-0378ff609b8a@infradead.org>
+References: <e2aa9491-c1e3-4ae1-1ab2-589a6642a24a@infradead.org>
+ <20180507231506.4891-1-mcgrof@kernel.org>
+ <32208.1525768094@warthog.procyon.org.uk>
+ <20180508112321.GA30120@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525689823-3340-1-git-send-email-andrea.parri@amarulasolutions.com>
+In-Reply-To: <20180508112321.GA30120@bombadil.infradead.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
+To: Matthew Wilcox <willy@infradead.org>, David Howells <dhowells@redhat.com>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, arnd@arndb.de, cl@linux.com, keescook@chromium.org, luto@amacapital.net, longman@redhat.com, viro@zeniv.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon,  7 May 2018 12:43:37 +0200
-Andrea Parri <andrea.parri@amarulasolutions.com> wrote:
+On 05/08/2018 04:23 AM, Matthew Wilcox wrote:
+> On Tue, May 08, 2018 at 09:28:14AM +0100, David Howells wrote:
+>> Randy Dunlap <rdunlap@infradead.org> wrote:
+>>
+>>>> + * execute a critial path. We should be mindful and selective if its use.
+>>>
+>>>                                                                  of its use.
+>>
+>>                                                                    in its use.
+> 								     with its use.
+> 
+> Nah, just kidding.  Let's go with "in".
+> 
 
-> This series provides the script 'features-refresh.sh', which operates on
-> the arch support status files, and it applies this script to refresh the
-> status files in place; previous discussions about this series are at [1].
+Yeah, no, I don't care.  Just flip a 3-sided coin.
 
-Looks good, I've applied the set, thanks.
-
-jon
+-- 
+~Randy
