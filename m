@@ -1,56 +1,184 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v3 2/5] regulator: add dummy function
- of_find_regulator_by_node
-Date: Wed, 9 May 2018 17:39:51 +0900
-Message-ID: <20180509083951.GV13402@sirena.org.uk>
-References: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
- <1525566016-30172-3-git-send-email-changbin.du@intel.com>
- <20180509082114.GQ13402@sirena.org.uk>
- <20180509081341.ahx7xuqs366gmqaf@intel.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="udzYTtuEmHLUHegf"
+From: changbin.du@intel.com
+Subject: [PATCH v4 3/4] kernel hacking: new config CC_OPTIMIZE_FOR_DEBUGGING to apply GCC -Og optimization
+Date: Wed,  9 May 2018 16:43:15 +0800
+Message-ID: <1525855396-7908-4-git-send-email-changbin.du@intel.com>
+References: <1525855396-7908-1-git-send-email-changbin.du@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180509081341.ahx7xuqs366gmqaf@intel.com>
+In-Reply-To: <1525855396-7908-1-git-send-email-changbin.du@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Du, Changbin" <changbin.du@intel.com>
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org
+Cc: rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Changbin Du <changbin.du@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
+From: Changbin Du <changbin.du@intel.com>
 
---udzYTtuEmHLUHegf
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+This will apply GCC '-Og' optimization level which is supported
+since GCC 4.8. This optimization level offers a reasonable level
+of optimization while maintaining fast compilation and a good
+debugging experience. It is similar to '-O1' while perferring
+to keep debug ability over runtime speed.
 
-On Wed, May 09, 2018 at 04:13:42PM +0800, Du, Changbin wrote:
-> On Wed, May 09, 2018 at 05:21:14PM +0900, Mark Brown wrote:
+If enabling this option breaks your kernel, you should either
+disable this or find a fix (mostly in the arch code). Currently
+this option has only been tested on x86_64 and arm platform.
 
-> > Please do not submit new versions of already applied patches, please
-> > submit incremental updates to the existing code.  Modifying existing
-> > commits creates problems for other users building on top of those
-> > commits so it's best practice to only change pubished git commits if
-> > absolutely essential.
+This option can satisfy people who was searching for a method
+to disable compiler optimizations so to achieve better kernel
+debugging experience with kgdb or qemu.
 
-> Hmm, I saw your merging notification too late. Let me refresh the series. Sorry
-> for confusing.
+The main problem of '-Og' is we must not use __attribute__((error(msg))).
+The compiler will report error though the call to error function
+still can be optimize out. So we must fallback to array tricky.
 
-No problem, just wanted to make sure I wasn't missing any updates from
-this new version.
+Comparison of vmlinux size: a bit smaller.
 
---udzYTtuEmHLUHegf
-Content-Type: application/pgp-signature; name="signature.asc"
+    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    22665554   9709674  2920908 35296136        21a9388 vmlinux
 
------BEGIN PGP SIGNATURE-----
+    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    21499032   10102758 2920908 34522698        20ec64a vmlinux
 
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAlrys9YACgkQJNaLcl1U
-h9DCCAf/VP6rHeYQnotzPDF2V8drlbz4lnUv8HqZlc3BYUzCICzPWc5VAfEmVymP
-AzhWSBahraHfBfN4rfb/CGrmLNscjKn8zqrGZnoBARM1oloAKZiohRnHQVrrYJZ2
-g4cmTgQaXCv2+FdyEc4zr97eeM33gPQoWoIeOC+pO2Fmk+zSAfudKEvtwxCbLE+U
-Lx4xNH9F8CatF2VxaZuPwUfKCOh6e7uZJmHFac97NQeEYsOb95M7HKah1A77wolW
-VNvqqomOOWiztnqgd3pqGCABA/i+DwTQY+p6K+y+S43KT8zux/79x2aZgqSs/njQ
-9A4q/dG1CRplf7issZr/s1plZW0Tfg==
-=hROQ
------END PGP SIGNATURE-----
+Comparison of system performance: a bit drop (~6%).
+    This benchmark of kernel compilation is suggested by Ingo Molnar.
+    https://lkml.org/lkml/2018/5/2/74
 
---udzYTtuEmHLUHegf--
+    Preparation: Set cpufreq to 'performance'.
+    for ((cpu=0; cpu<120; cpu++)); do
+      G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
+      [ -f $G ] && echo performance > $G
+    done
+
+    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ perf stat --repeat 5 --null --pre                 '\
+        cp -a kernel ../kernel.copy.$(date +%s);         \
+        rm -rf *;                                        \
+        git checkout .;                                  \
+        echo 1 > /proc/sys/vm/drop_caches;               \
+        find ../kernel* -type f | xargs cat >/dev/null;  \
+        make -j kernel >/dev/null;                       \
+        make clean >/dev/null 2>&1;                      \
+        sync                                            '\
+                                                         \
+        make -j8 >/dev/null
+
+    Performance counter stats for 'make -j8' (5 runs):
+
+        219.764246652 seconds time elapsed                   ( +-  0.78% )
+
+    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ perf stat --repeat 5 --null --pre                 '\
+        cp -a kernel ../kernel.copy.$(date +%s);         \
+        rm -rf *;                                        \
+        git checkout .;                                  \
+        echo 1 > /proc/sys/vm/drop_caches;               \
+        find ../kernel* -type f | xargs cat >/dev/null;  \
+        make -j kernel >/dev/null;                       \
+        make clean >/dev/null 2>&1;                      \
+        sync                                            '\
+                                                         \
+        make -j8 >/dev/null
+
+    Performance counter stats for 'make -j8' (5 runs):
+
+         233.574187771 seconds time elapsed                  ( +-  0.19% )
+
+Signed-off-by: Changbin Du <changbin.du@intel.com>
+
+---
+v3:
+  o Rename DEBUG_EXPERIENCE to CC_OPTIMIZE_FOR_DEBUGGING
+  o Move new configuration item to "General setup->Compiler optimization level"
+v2:
+  o Improve performance benchmark as suggested by Ingo.
+  o Grammar updates in description. (Randy Dunlap)
+---
+ Makefile                     |  4 ++++
+ include/linux/compiler-gcc.h |  2 +-
+ include/linux/compiler.h     |  2 +-
+ init/Kconfig                 | 19 +++++++++++++++++++
+ 4 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 6720c40..977418a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -639,6 +639,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
+ 
++ifdef CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
++KBUILD_CFLAGS	+= $(call cc-option, -Og)
++else
+ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
+@@ -649,6 +652,7 @@ else
+ KBUILD_CFLAGS   += -O2
+ endif
+ endif
++endif
+ 
+ KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
+ 			$(call cc-disable-warning,maybe-uninitialized,))
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index b4bf73f..586ed11 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -192,7 +192,7 @@
+ 
+ #define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __COUNTER__)
+ 
+-#ifndef __CHECKER__
++#if !defined(__CHECKER__) && !defined(CONFIG_CC_OPTIMIZE_FOR_DEBUGGING)
+ # define __compiletime_warning(message) __attribute__((warning(message)))
+ # define __compiletime_error(message) __attribute__((error(message)))
+ #endif /* __CHECKER__ */
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index ab4711c..e97caf4 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -301,7 +301,7 @@ unsigned long read_word_at_a_time(const void *addr)
+  * sparse see a constant array size without breaking compiletime_assert on old
+  * versions of GCC (e.g. 4.2.4), so hide the array from sparse altogether.
+  */
+-# ifndef __CHECKER__
++# if !defined(__CHECKER__) && !defined(CONFIG_CC_OPTIMIZE_FOR_DEBUGGING)
+ #  define __compiletime_error_fallback(condition) \
+ 	do { ((void)sizeof(char[1 - 2 * condition])); } while (0)
+ # endif
+diff --git a/init/Kconfig b/init/Kconfig
+index f013afc..aa52535 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1036,6 +1036,25 @@ config CC_OPTIMIZE_FOR_SIZE
+ 
+ 	  If unsure, say N.
+ 
++config CC_OPTIMIZE_FOR_DEBUGGING
++	bool "Optimize for better debugging experience (-Og)"
++	select NO_AUTO_INLINE
++	help
++	  This will apply GCC '-Og' optimization level which is supported
++	  since GCC 4.8. This optimization level offers a reasonable level
++	  of optimization while maintaining fast compilation and a good
++	  debugging experience. It is similar to '-O1' while preferring to
++	  keep debug ability over runtime speed. The overall performance
++	  will drop a bit (~6%).
++
++	  Use only if you want to debug the kernel, especially if you want
++	  to have better kernel debugging experience with gdb facilities
++	  like kgdb or qemu. If enabling this option breaks your kernel,
++	  you should either disable this or find a fix (mostly in the arch
++	  code).
++
++	  If unsure, select N.
++
+ endchoice
+ 
+ config SYSCTL
+-- 
+2.7.4
