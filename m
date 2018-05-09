@@ -1,44 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-12.nifty.com ([210.131.2.79]:27164 "EHLO
-        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933715AbeEIHvt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 03:51:49 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] s390: remove no-op macro VMLINUX_SYMBOL()
-Date: Wed,  9 May 2018 16:51:39 +0900
-Message-ID: <1525852299-29134-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from heliosphere.sirena.org.uk ([172.104.155.198]:37878 "EHLO
+        heliosphere.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933805AbeEIIVs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 04:21:48 -0400
+Date: Wed, 9 May 2018 17:21:14 +0900
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v3 2/5] regulator: add dummy function
+ of_find_regulator_by_node
+Message-ID: <20180509082114.GQ13402@sirena.org.uk>
+References: <1525566016-30172-1-git-send-email-changbin.du@intel.com>
+ <1525566016-30172-3-git-send-email-changbin.du@intel.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="EkxpYdHiqGHPYbUt"
+Content-Disposition: inline
+In-Reply-To: <1525566016-30172-3-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
-Cc: linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-Message-ID: <20180509075139.nNlGSE86g5Z3h119g7F4acKb4SlpYmL_LWLckCJGSXs@z>
+To: changbin.du@intel.com
+Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rostedt@goodmis.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180509082114.Kn2BPSx42eRx-oOhIfCHobq5dfLQ1HBPjKwJkT_ZS1E@z>
 
-VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-is defined.  It has ever been selected only by BLACKFIN and METAG.
-VMLINUX_SYMBOL() is unneeded for s390-specific code.
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
+--EkxpYdHiqGHPYbUt
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
- arch/s390/kernel/vmlinux.lds.S | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+On Sun, May 06, 2018 at 08:20:13AM +0800, changbin.du@intel.com wrote:
+> From: Changbin Du <changbin.du@intel.com>
+>=20
+> If device tree is not enabled, of_find_regulator_by_node() should have
+> a dummy function since the function call is still there.
 
-diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-index 08d12cf..f0414f5 100644
---- a/arch/s390/kernel/vmlinux.lds.S
-+++ b/arch/s390/kernel/vmlinux.lds.S
-@@ -82,10 +82,10 @@ SECTIONS
- 
- 	. = ALIGN(PAGE_SIZE);
- 	.init.text : AT(ADDR(.init.text) - LOAD_OFFSET) {
--		VMLINUX_SYMBOL(_sinittext) = . ;
-+		_sinittext = .;
- 		INIT_TEXT
- 		. = ALIGN(PAGE_SIZE);
--		VMLINUX_SYMBOL(_einittext) = . ;
-+		_einittext = .;
- 	}
- 
- 	/*
--- 
-2.7.4
+Please do not submit new versions of already applied patches, please
+submit incremental updates to the existing code.  Modifying existing
+commits creates problems for other users building on top of those
+commits so it's best practice to only change pubished git commits if
+absolutely essential.
+
+--EkxpYdHiqGHPYbUt
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAlryr3kACgkQJNaLcl1U
+h9Cf1Qf/VZXV2l+LOlO9wC/dYLfOubi56ydHPoYZE4BS7u5oWeD5QkXCJHO2HBYd
+hdPcuUgmVFyhllxpd6b44kSgYP70DoyxZ0ijsXZ4bEgg76pGKz9Fl8vhJ2EGmoeW
+3LCZ6ESiYwFPoDs3dtIpiOpzVxghMHSqUvQeFEwzLvP08r5fzTmDTUUhXUrY/9f+
+5bG/l+YkEXqo05FKp85vs+EA4ck1GPqZWT+eNQUHqNuARGUNvvG1OHQIYk9BewC0
+vXPe8+U98hjHjRpQWWIZJr0rrh17am9+y4H+HHxjUHlh/KxVjeDuz2g6w6k3Chrw
+r0j4nYeUdcc/WoCxu+jv5Jerhn2TBQ==
+=MKwt
+-----END PGP SIGNATURE-----
+
+--EkxpYdHiqGHPYbUt--
