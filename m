@@ -1,68 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:40008 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934328AbeEIMw2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 May 2018 08:52:28 -0400
-Date: Wed, 9 May 2018 08:52:24 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v4 4/4] asm-generic: fix build error in fix_to_virt with
- CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-Message-ID: <20180509085224.34116e36@gandalf.local.home>
-In-Reply-To: <1525855396-7908-5-git-send-email-changbin.du@intel.com>
-References: <1525855396-7908-1-git-send-email-changbin.du@intel.com>
-        <1525855396-7908-5-git-send-email-changbin.du@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-pl0-f65.google.com ([209.85.160.65]:42346 "EHLO
+        mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934689AbeEINAM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 09:00:12 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v2 0/4] LD_DEAD_CODE_DATA_ELIMINATION fixes and enabling for powerpc
+Date: Wed,  9 May 2018 22:59:57 +1000
+Message-ID: <20180509130001.24276-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: changbin.du@intel.com
-Cc: yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180509125224.kAM7iic5YWXTAHwo7GdA3SYUmcO9CbB8TcdEErSfpto@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20180509125957.HpHbohOBcSEx16o4_ylviS0RF4TY_SQqrAxtuecKKkE@z>
 
-On Wed,  9 May 2018 16:43:16 +0800
-changbin.du@intel.com wrote:
+v2 changes only patch 4, updates the changelog with ppc32 numbers and
+Tested-by tags, and also use TEXT_MAIN in the linker script as
+Christophe suggested.
 
-> From: Changbin Du <changbin.du@intel.com>
-> 
-> With '-Og' optimization level, GCC would not optimize a count for a loop
-> as a constant value. But BUILD_BUG_ON() only accept compile-time constant
-> values. Let's use __fix_to_virt() to avoid the error.
-> 
-> arch/arm/mm/mmu.o: In function `fix_to_virt':
-> /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
-> Makefile:1051: recipe for target 'vmlinux' failed
-> make: *** [vmlinux] Error 1
+Thanks,
+Nick
 
-Perhaps we should put this patch ahead of patch 3. Why allow it to
-break?
+Nicholas Piggin (4):
+  kbuild: Fix asm-generic/vmlinux.lds.h for
+    LD_DEAD_CODE_DATA_ELIMINATION
+  kbuild: LD_DEAD_CODE_DATA_ELIMINATION no
+    -ffunction-sections/-fdata-sections for module build
+  kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if
+    enabled
+  powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
 
-Anyway, besides that, I think the series looks good.
+ Makefile                          |  4 +--
+ arch/Kconfig                      | 15 ----------
+ arch/powerpc/Kconfig              |  1 +
+ arch/powerpc/kernel/vmlinux.lds.S | 22 +++++++-------
+ include/asm-generic/vmlinux.lds.h | 49 ++++++++++++++++++-------------
+ init/Kconfig                      | 27 +++++++++++++++++
+ 6 files changed, 70 insertions(+), 48 deletions(-)
 
-For the series: Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-
--- Steve
-
-
-> 
-> Signed-off-by: Changbin Du <changbin.du@intel.com>
-> 
-> ---
-> v2: use __fix_to_virt() to fix the issue.
-> ---
->  arch/arm/mm/mmu.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
-> index e46a6a4..c08d74e 100644
-> --- a/arch/arm/mm/mmu.c
-> +++ b/arch/arm/mm/mmu.c
-> @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
->  		pte_t *pte;
->  		struct map_desc map;
->  
-> -		map.virtual = fix_to_virt(i);
-> +		map.virtual = __fix_to_virt(i);
->  		pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
->  
->  		/* Only i/o device mappings are supported ATM */
+-- 
+2.17.0
