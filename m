@@ -1,148 +1,84 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 5/8] export.h: remove code for prefixing symbols with underscore
-Date: Wed,  9 May 2018 16:23:49 +0900
-Message-ID: <1525850632-10921-6-git-send-email-yamada.masahiro@socionext.com>
-References: <1525850632-10921-1-git-send-email-yamada.masahiro@socionext.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525850632-10921-1-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kbuild@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Joe Perches <joe@perches.com>, Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [PATCH] arm64: remove no-op macro VMLINUX_SYMBOL()
+Date: Wed,  9 May 2018 16:46:26 +0900
+Message-ID: <1525851986-28631-1-git-send-email-yamada.masahiro@socionext.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Steve Capper <steve.capper@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Olof Johansson <olof@lixom.net>
 List-Id: linux-arch.vger.kernel.org
 
-CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX was selected by BLACKFIN, METAG.
-They were removed by commit 4ba66a976072 ("arch: remove blackfin port"),
-commit bb6fb6dfcc17 ("metag: Remove arch/metag/"), respectively.
-
-No more architecture enables CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX.
-Clean up the export.h headers.  I am keeping VMLINUX_SYMBOL() and
-VMLINUX_SYMBOL_STR() because they are widely used.
+VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+is defined.  It has ever been selected only by BLACKFIN and METAG.
+VMLINUX_SYMBOL() is unneeded for ARM64-specific code.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- include/asm-generic/export.h | 34 ++++++++++++----------------------
- include/linux/export.h       | 16 +++++-----------
- 2 files changed, 17 insertions(+), 33 deletions(-)
+ arch/arm64/kernel/vmlinux.lds.S | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-index 719db19..68efb95 100644
---- a/include/asm-generic/export.h
-+++ b/include/asm-generic/export.h
-@@ -19,42 +19,32 @@
- #define KCRC_ALIGN 4
- #endif
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 0221aca..605d1b6 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -34,25 +34,25 @@ jiffies = jiffies_64;
+ 	 *    4 KB (see related ASSERT() below)		\
+ 	 */						\
+ 	. = ALIGN(SZ_4K);				\
+-	VMLINUX_SYMBOL(__hyp_idmap_text_start) = .;	\
++	__hyp_idmap_text_start = .;			\
+ 	*(.hyp.idmap.text)				\
+-	VMLINUX_SYMBOL(__hyp_idmap_text_end) = .;	\
+-	VMLINUX_SYMBOL(__hyp_text_start) = .;		\
++	__hyp_idmap_text_end = .;			\
++	__hyp_text_start = .;				\
+ 	*(.hyp.text)					\
+-	VMLINUX_SYMBOL(__hyp_text_end) = .;
++	__hyp_text_end = .;
  
--#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
--#define KSYM(name) _##name
--#else
--#define KSYM(name) name
--#endif
--
- /*
-  * note on .section use: @progbits vs %progbits nastiness doesn't matter,
-  * since we immediately emit into those sections anyway.
-  */
- .macro ___EXPORT_SYMBOL name,val,sec
- #ifdef CONFIG_MODULES
--	.globl KSYM(__ksymtab_\name)
-+	.globl __ksymtab_\name
- 	.section ___ksymtab\sec+\name,"a"
- 	.balign KSYM_ALIGN
--KSYM(__ksymtab_\name):
--	__put \val, KSYM(__kstrtab_\name)
-+__ksymtab_\name:
-+	__put \val, __kstrtab_\name
- 	.previous
- 	.section __ksymtab_strings,"a"
--KSYM(__kstrtab_\name):
--#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
--	.asciz "_\name"
--#else
-+__kstrtab_\name:
- 	.asciz "\name"
--#endif
- 	.previous
- #ifdef CONFIG_MODVERSIONS
- 	.section ___kcrctab\sec+\name,"a"
- 	.balign KCRC_ALIGN
--KSYM(__kcrctab_\name):
-+__kcrctab_\name:
- #if defined(CONFIG_MODULE_REL_CRCS)
--	.long KSYM(__crc_\name) - .
-+	.long __crc_\name - .
+ #define IDMAP_TEXT					\
+ 	. = ALIGN(SZ_4K);				\
+-	VMLINUX_SYMBOL(__idmap_text_start) = .;		\
++	__idmap_text_start = .;				\
+ 	*(.idmap.text)					\
+-	VMLINUX_SYMBOL(__idmap_text_end) = .;
++	__idmap_text_end = .;
+ 
+ #ifdef CONFIG_HIBERNATION
+ #define HIBERNATE_TEXT					\
+ 	. = ALIGN(SZ_4K);				\
+-	VMLINUX_SYMBOL(__hibernate_exit_text_start) = .;\
++	__hibernate_exit_text_start = .;		\
+ 	*(.hibernate_exit.text)				\
+-	VMLINUX_SYMBOL(__hibernate_exit_text_end) = .;
++	__hibernate_exit_text_end = .;
  #else
--	.long KSYM(__crc_\name)
-+	.long __crc_\name
+ #define HIBERNATE_TEXT
  #endif
--	.weak KSYM(__crc_\name)
-+	.weak __crc_\name
- 	.previous
- #endif
- #endif
-@@ -84,12 +74,12 @@ KSYM(__kcrctab_\name):
- #endif
- 
- #define EXPORT_SYMBOL(name)					\
--	__EXPORT_SYMBOL(name, KSYM_FUNC(KSYM(name)),)
-+	__EXPORT_SYMBOL(name, KSYM_FUNC(name),)
- #define EXPORT_SYMBOL_GPL(name) 				\
--	__EXPORT_SYMBOL(name, KSYM_FUNC(KSYM(name)), _gpl)
-+	__EXPORT_SYMBOL(name, KSYM_FUNC(name), _gpl)
- #define EXPORT_DATA_SYMBOL(name)				\
--	__EXPORT_SYMBOL(name, KSYM(name),)
-+	__EXPORT_SYMBOL(name, name,)
- #define EXPORT_DATA_SYMBOL_GPL(name)				\
--	__EXPORT_SYMBOL(name, KSYM(name),_gpl)
-+	__EXPORT_SYMBOL(name, name,_gpl)
- 
- #endif
-diff --git a/include/linux/export.h b/include/linux/export.h
-index 1a1dfdb..b768d6d 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -10,14 +10,8 @@
-  * hackers place grumpy comments in header files.
-  */
- 
--/* Some toolchains use a `_' prefix for all user symbols. */
--#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
--#define __VMLINUX_SYMBOL(x) _##x
--#define __VMLINUX_SYMBOL_STR(x) "_" #x
--#else
- #define __VMLINUX_SYMBOL(x) x
- #define __VMLINUX_SYMBOL_STR(x) #x
--#endif
- 
- /* Indirect, so macros are expanded before pasting. */
- #define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
-@@ -46,14 +40,14 @@ extern struct module __this_module;
- #if defined(CONFIG_MODULE_REL_CRCS)
- #define __CRC_SYMBOL(sym, sec)						\
- 	asm("	.section \"___kcrctab" sec "+" #sym "\", \"a\"	\n"	\
--	    "	.weak	" VMLINUX_SYMBOL_STR(__crc_##sym) "	\n"	\
--	    "	.long	" VMLINUX_SYMBOL_STR(__crc_##sym) " - .	\n"	\
-+	    "	.weak	__crc_" #sym "				\n"	\
-+	    "	.long	__crc_" #sym " - .			\n"	\
- 	    "	.previous					\n");
+@@ -60,10 +60,10 @@ jiffies = jiffies_64;
+ #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+ #define TRAMP_TEXT					\
+ 	. = ALIGN(PAGE_SIZE);				\
+-	VMLINUX_SYMBOL(__entry_tramp_text_start) = .;	\
++	__entry_tramp_text_start = .;			\
+ 	*(.entry.tramp.text)				\
+ 	. = ALIGN(PAGE_SIZE);				\
+-	VMLINUX_SYMBOL(__entry_tramp_text_end) = .;
++	__entry_tramp_text_end = .;
  #else
- #define __CRC_SYMBOL(sym, sec)						\
- 	asm("	.section \"___kcrctab" sec "+" #sym "\", \"a\"	\n"	\
--	    "	.weak	" VMLINUX_SYMBOL_STR(__crc_##sym) "	\n"	\
--	    "	.long	" VMLINUX_SYMBOL_STR(__crc_##sym) "	\n"	\
-+	    "	.weak	__crc_" #sym "				\n"	\
-+	    "	.long	__crc_" #sym "				\n"	\
- 	    "	.previous					\n");
+ #define TRAMP_TEXT
  #endif
- #else
-@@ -66,7 +60,7 @@ extern struct module __this_module;
- 	__CRC_SYMBOL(sym, sec)						\
- 	static const char __kstrtab_##sym[]				\
- 	__attribute__((section("__ksymtab_strings"), aligned(1)))	\
--	= VMLINUX_SYMBOL_STR(sym);					\
-+	= #sym;								\
- 	static const struct kernel_symbol __ksymtab_##sym		\
- 	__used								\
- 	__attribute__((section("___ksymtab" sec "+" #sym), used))	\
 -- 
 2.7.4
