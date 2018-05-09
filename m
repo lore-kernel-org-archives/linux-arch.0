@@ -1,93 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:34253 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934875AbeEINAY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 09:00:24 -0400
+Received: from mail-pl0-f66.google.com ([209.85.160.66]:41495 "EHLO
+        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934710AbeEINAU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 09:00:20 -0400
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 3/4] kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if enabled
-Date: Wed,  9 May 2018 23:00:00 +1000
-Message-ID: <20180509130001.24276-4-npiggin@gmail.com>
+Subject: [PATCH v2 2/4] kbuild: LD_DEAD_CODE_DATA_ELIMINATION no -ffunction-sections/-fdata-sections for module build
+Date: Wed,  9 May 2018 22:59:59 +1000
+Message-ID: <20180509130001.24276-3-npiggin@gmail.com>
 In-Reply-To: <20180509130001.24276-1-npiggin@gmail.com>
 References: <20180509130001.24276-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masahiro Yamada <yamada.masahiro@socionext.com>
 Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20180509130000.e3xjN902-ZUgPwD0xgj7OSkX4A9-R9L7OsgZl0fycLI@z>
+Message-ID: <20180509125959.dJ_TSlEI33Gwkrab-paW-ltrgeaoukQvCYJjjZHX2Vk@z>
 
-Architectures that are capable can select
-HAVE_LD_DEAD_CODE_DATA_ELIMINATION to enable selection of that
-option (as an EXPERT kernel option).
+Modules do not tend to cope with -ffunction-sections, even though they
+do not link with -gc-sections. It may be possible for unused symbols to
+be trimmed from modules, but in general that would take much more work
+in architecture module linker scripts.
+
+For now, enable these only for kernel build.
 
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/Kconfig | 15 ---------------
- init/Kconfig | 27 +++++++++++++++++++++++++++
- 2 files changed, 27 insertions(+), 15 deletions(-)
+ Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 8e0d665c8d53..3234b73d4626 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -596,21 +596,6 @@ config CC_STACKPROTECTOR_AUTO
+diff --git a/Makefile b/Makefile
+index 619a85ad716b..9dcbfb353f81 100644
+--- a/Makefile
++++ b/Makefile
+@@ -799,8 +799,8 @@ KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
+ endif
  
- endchoice
+ ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+-KBUILD_CFLAGS	+= $(call cc-option,-ffunction-sections,)
+-KBUILD_CFLAGS	+= $(call cc-option,-fdata-sections,)
++KBUILD_CFLAGS_KERNEL	+= $(call cc-option,-ffunction-sections,)
++KBUILD_CFLAGS_KERNEL	+= $(call cc-option,-fdata-sections,)
+ endif
  
--config LD_DEAD_CODE_DATA_ELIMINATION
--	bool
--	help
--	  Select this if the architecture wants to do dead code and
--	  data elimination with the linker by compiling with
--	  -ffunction-sections -fdata-sections and linking with
--	  --gc-sections.
--
--	  This requires that the arch annotates or otherwise protects
--	  its external entry points from being discarded. Linker scripts
--	  must also merge .text.*, .data.*, and .bss.* correctly into
--	  output sections. Care must be taken not to pull in unrelated
--	  sections (e.g., '.text.init'). Typically '.' in section names
--	  is used to distinguish them from label names / C identifiers.
--
- config HAVE_ARCH_WITHIN_STACK_FRAMES
- 	bool
- 	help
-diff --git a/init/Kconfig b/init/Kconfig
-index f013afc74b11..1706d963766b 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1038,6 +1038,33 @@ config CC_OPTIMIZE_FOR_SIZE
- 
- endchoice
- 
-+config HAVE_LD_DEAD_CODE_DATA_ELIMINATION
-+	bool
-+	help
-+	  This requires that the arch annotates or otherwise protects
-+	  its external entry points from being discarded. Linker scripts
-+	  must also merge .text.*, .data.*, and .bss.* correctly into
-+	  output sections. Care must be taken not to pull in unrelated
-+	  sections (e.g., '.text.init'). Typically '.' in section names
-+	  is used to distinguish them from label names / C identifiers.
-+
-+config LD_DEAD_CODE_DATA_ELIMINATION
-+	bool "Dead code and data elimination (EXPERIMENTAL)"
-+	depends on HAVE_LD_DEAD_CODE_DATA_ELIMINATION
-+	depends on EXPERT
-+	help
-+	  Select this if the architecture wants to do dead code and
-+	  data elimination with the linker by compiling with
-+	  -ffunction-sections -fdata-sections, and linking with
-+	  --gc-sections.
-+
-+	  This can reduce on disk and in-memory size of the kernel
-+	  code and static data, particularly for small configs and
-+	  on small systems. This has the possibility of introducing
-+	  silently broken kernel if the required annotations are not
-+	  present. This option is not well tested yet, so use at your
-+	  own risk.
-+
- config SYSCTL
- 	bool
- 
+ # arch Makefile may override CC so keep this after arch Makefile is included
 -- 
 2.17.0
