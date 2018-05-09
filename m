@@ -1,43 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-11.nifty.com ([210.131.2.78]:41699 "EHLO
-        conuserg-11.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933930AbeEIHyD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 03:54:03 -0400
+Received: from conuserg-12.nifty.com ([210.131.2.79]:27164 "EHLO
+        conuserg-12.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933715AbeEIHvt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2018 03:51:49 -0400
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] sh: remove no-op macro VMLINUX_SYMBOL()
-Date: Wed,  9 May 2018 16:53:22 +0900
-Message-ID: <1525852402-29269-1-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH] s390: remove no-op macro VMLINUX_SYMBOL()
+Date: Wed,  9 May 2018 16:51:39 +0900
+Message-ID: <1525852299-29134-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
 Cc: linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-Message-ID: <20180509075322.SI5auSoipCiwSf3cSmzNkDr3-5fgwbzWLagmTbEF8WY@z>
+Message-ID: <20180509075139.nNlGSE86g5Z3h119g7F4acKb4SlpYmL_LWLckCJGSXs@z>
 
 VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
 is defined.  It has ever been selected only by BLACKFIN and METAG.
-VMLINUX_SYMBOL() is unneeded for SuperH-specific code.
+VMLINUX_SYMBOL() is unneeded for s390-specific code.
 
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/sh/include/asm/vmlinux.lds.h | 4 ++--
+ arch/s390/kernel/vmlinux.lds.S | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sh/include/asm/vmlinux.lds.h b/arch/sh/include/asm/vmlinux.lds.h
-index f312813..9929556 100644
---- a/arch/sh/include/asm/vmlinux.lds.h
-+++ b/arch/sh/include/asm/vmlinux.lds.h
-@@ -7,9 +7,9 @@
- #ifdef CONFIG_DWARF_UNWINDER
- #define DWARF_EH_FRAME							\
- 	.eh_frame : AT(ADDR(.eh_frame) - LOAD_OFFSET) {			\
--		  VMLINUX_SYMBOL(__start_eh_frame) = .;			\
-+		  __start_eh_frame = .;					\
- 		  *(.eh_frame)						\
--		  VMLINUX_SYMBOL(__stop_eh_frame) = .;			\
-+		  __stop_eh_frame = .;					\
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index 08d12cf..f0414f5 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -82,10 +82,10 @@ SECTIONS
+ 
+ 	. = ALIGN(PAGE_SIZE);
+ 	.init.text : AT(ADDR(.init.text) - LOAD_OFFSET) {
+-		VMLINUX_SYMBOL(_sinittext) = . ;
++		_sinittext = .;
+ 		INIT_TEXT
+ 		. = ALIGN(PAGE_SIZE);
+-		VMLINUX_SYMBOL(_einittext) = . ;
++		_einittext = .;
  	}
- #else
- #define DWARF_EH_FRAME
+ 
+ 	/*
 -- 
 2.7.4
