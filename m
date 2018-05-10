@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 04/27] x86: entry, annotate THUNKs
-Date: Thu, 10 May 2018 10:06:21 +0200
-Message-ID: <20180510080644.19752-5-jslaby@suse.cz>
+Subject: [PATCH -resend 27/27] x86: assembly, replace WEAK uses
+Date: Thu, 10 May 2018 10:06:44 +0200
+Message-ID: <20180510080644.19752-28-jslaby@suse.cz>
 References: <20180510080644.19752-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
@@ -10,91 +10,81 @@ To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Place SYM_CODE_START_NOALIGN and SYM_CODE_END around the THUNK macro
-body, given it generates:
-1) non-C-like functions, and
-2) was not marked as aligned.
+Use the new SYM_CODE_INNER_LABEL for WEAK entries in the middle of x86
+assembly functions.
 
-The common tail .L_restore is put inside SYM_CODE_START_LOCAL_NOALIGN
-and SYM_CODE_END too.
-
-The result:
- Value  Size Type    Bind   Vis      Ndx Name
-  0000    28 NOTYPE  GLOBAL DEFAULT    1 trace_hardirqs_on_thunk
-  001c    28 NOTYPE  GLOBAL DEFAULT    1 trace_hardirqs_off_thunk
-  0038    24 NOTYPE  GLOBAL DEFAULT    1 lockdep_sys_exit_thunk
-  0050    24 NOTYPE  GLOBAL DEFAULT    1 ___preempt_schedule
-  0068    24 NOTYPE  GLOBAL DEFAULT    1 ___preempt_schedule_notrace
+And make sure WEAK is not defined for x86 anymore as these were the last
+users.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <x86@kernel.org>
+Cc: x86@kernel.org
 ---
- arch/x86/entry/thunk_32.S | 4 ++--
- arch/x86/entry/thunk_64.S | 8 ++++----
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ arch/x86/kernel/ftrace_32.S | 2 +-
+ arch/x86/kernel/ftrace_64.S | 2 +-
+ arch/x86/kernel/head_32.S   | 2 +-
+ include/linux/linkage.h     | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/thunk_32.S b/arch/x86/entry/thunk_32.S
-index fee6bc79b987..422354b204f4 100644
---- a/arch/x86/entry/thunk_32.S
-+++ b/arch/x86/entry/thunk_32.S
-@@ -10,8 +10,7 @@
- 
- 	/* put return address in eax (arg1) */
- 	.macro THUNK name, func, put_ret_addr_in_eax=0
--	.globl \name
--\name:
-+SYM_CODE_START_NOALIGN(\name)
- 	pushl %eax
- 	pushl %ecx
- 	pushl %edx
-@@ -27,6 +26,7 @@
- 	popl %eax
- 	ret
- 	_ASM_NOKPROBE(\name)
-+SYM_CODE_END(\name)
- 	.endm
- 
- #ifdef CONFIG_TRACE_IRQFLAGS
-diff --git a/arch/x86/entry/thunk_64.S b/arch/x86/entry/thunk_64.S
-index be36bf4e0957..ea5e2b0e6611 100644
---- a/arch/x86/entry/thunk_64.S
-+++ b/arch/x86/entry/thunk_64.S
-@@ -12,9 +12,7 @@
- 
- 	/* rdi:	arg1 ... normal C conventions. rax is saved/restored. */
- 	.macro THUNK name, func, put_ret_addr_in_rdi=0
--	.globl \name
--	.type \name, @function
--\name:
-+SYM_CODE_START_NOALIGN(\name)
- 	pushq %rbp
- 	movq %rsp, %rbp
- 
-@@ -36,6 +34,7 @@
- 	call \func
- 	jmp  .L_restore
- 	_ASM_NOKPROBE(\name)
-+SYM_CODE_END(\name)
- 	.endm
- 
- #ifdef CONFIG_TRACE_IRQFLAGS
-@@ -57,7 +56,7 @@
- #if defined(CONFIG_TRACE_IRQFLAGS) \
-  || defined(CONFIG_DEBUG_LOCK_ALLOC) \
-  || defined(CONFIG_PREEMPT)
--.L_restore:
-+SYM_CODE_START_LOCAL_NOALIGN(.L_restore)
- 	popq %r11
- 	popq %r10
- 	popq %r9
-@@ -70,4 +69,5 @@
- 	popq %rbp
- 	ret
- 	_ASM_NOKPROBE(.L_restore)
-+SYM_CODE_END(.L_restore)
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index 0404a2103730..a19dff47b47b 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -98,7 +98,7 @@ ftrace_graph_call:
  #endif
+ 
+ /* This is weak to keep gas from relaxing the jumps */
+-WEAK(ftrace_stub)
++SYM_CODE_INNER_LABEL(ftrace_stub, SYM_L_WEAK)
+ 	ret
+ SYM_CODE_END(ftrace_caller)
+ 
+diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
+index 6bd43895c13e..55aa71446a4b 100644
+--- a/arch/x86/kernel/ftrace_64.S
++++ b/arch/x86/kernel/ftrace_64.S
+@@ -186,7 +186,7 @@ SYM_CODE_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
+ #endif
+ 
+ /* This is weak to keep gas from relaxing the jumps */
+-WEAK(ftrace_stub)
++SYM_CODE_INNER_LABEL(ftrace_stub, SYM_L_WEAK)
+ 	retq
+ SYM_FUNC_END(ftrace_caller)
+ 
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 7840ab96bee3..5d8b0bfcda54 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -156,7 +156,7 @@ SYM_CODE_START(startup_32)
+ 	jmp *%eax
+ 
+ .Lbad_subarch:
+-WEAK(xen_entry)
++SYM_CODE_INNER_LABEL(xen_entry, SYM_L_WEAK)
+ 	/* Unknown implementation; there's really
+ 	   nothing we can do at this point. */
+ 	ud2a
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index ff13228f3e38..2e270b8b167b 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -114,13 +114,13 @@
+ #endif /* CONFIG_X86 */
+ #endif /* LINKER_SCRIPT */
+ 
++#ifndef CONFIG_X86
+ #ifndef WEAK
+ /* deprecated, use SYM_FUNC_START_WEAK* */
+ #define WEAK(name)	   \
+ 	SYM_FUNC_START_WEAK_NOALIGN(name)
+ #endif
+ 
+-#ifndef CONFIG_X86
+ #ifndef END
+ /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
+ #define END(name) \
 -- 
 2.16.3
