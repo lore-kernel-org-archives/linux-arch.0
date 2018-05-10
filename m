@@ -1,167 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:51893 "EHLO mx2.suse.de"
+Received: from mga03.intel.com ([134.134.136.65]:5593 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756776AbeEJIHD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 May 2018 04:07:03 -0400
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 14/27] x86: purgatory, start using annotations
-Date: Thu, 10 May 2018 10:06:31 +0200
-Message-ID: <20180510080644.19752-15-jslaby@suse.cz>
-In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
-References: <20180510080644.19752-1-jslaby@suse.cz>
+        id S1757217AbeEJMj0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 May 2018 08:39:26 -0400
+Date: Thu, 10 May 2018 20:29:12 +0800
+From: "Du, Changbin" <changbin.du@intel.com>
+Subject: Re: [PATCH v4 4/4] asm-generic: fix build error in fix_to_virt with
+ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+Message-ID: <20180510122912.mqmpy4j4dj2trb5r@intel.com>
+References: <1525855396-7908-1-git-send-email-changbin.du@intel.com>
+ <1525855396-7908-5-git-send-email-changbin.du@intel.com>
+ <20180509085224.34116e36@gandalf.local.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180509085224.34116e36@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20180510080631.uanghpf70uGXaEYHZ59HjNwIVVQ5LIQkAqgIt3SHJeU@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180510122912.do9mIM5V2ysW1rYbKgmyvZAz3P0lVvdFL5Cig8XW9e0@z>
 
-purgatory used no annotations. So include linux/linkage.h and annotate
-everything:
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+On Wed, May 09, 2018 at 08:52:24AM -0400, Steven Rostedt wrote:
+> On Wed,  9 May 2018 16:43:16 +0800
+> changbin.du@intel.com wrote:
+> 
+> > From: Changbin Du <changbin.du@intel.com>
+> > 
+> > With '-Og' optimization level, GCC would not optimize a count for a loop
+> > as a constant value. But BUILD_BUG_ON() only accept compile-time constant
+> > values. Let's use __fix_to_virt() to avoid the error.
+> > 
+> > arch/arm/mm/mmu.o: In function `fix_to_virt':
+> > /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
+> > Makefile:1051: recipe for target 'vmlinux' failed
+> > make: *** [vmlinux] Error 1
+> 
+> Perhaps we should put this patch ahead of patch 3. Why allow it to
+> break?
+> 
+Agree, let me exchange the last two patches.
 
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
----
- arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 24 insertions(+), 18 deletions(-)
+> Anyway, besides that, I think the series looks good.
+> 
+> For the series: Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> 
+> -- Steve
+> 
+> 
+> > 
+> > Signed-off-by: Changbin Du <changbin.du@intel.com>
+> > 
+> > ---
+> > v2: use __fix_to_virt() to fix the issue.
+> > ---
+> >  arch/arm/mm/mmu.c | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> > 
+> > diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+> > index e46a6a4..c08d74e 100644
+> > --- a/arch/arm/mm/mmu.c
+> > +++ b/arch/arm/mm/mmu.c
+> > @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
+> >  		pte_t *pte;
+> >  		struct map_desc map;
+> >  
+> > -		map.virtual = fix_to_virt(i);
+> > +		map.virtual = __fix_to_virt(i);
+> >  		pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
+> >  
+> >  		/* Only i/o device mappings are supported ATM */
+> 
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index d1a4291d3568..c51e3c999e38 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -10,13 +10,13 @@
-  * Version 2.  See the file COPYING for more details.
-  */
- 
-+#include <linux/linkage.h>
-+
- 	.text
- 	.balign 16
- 	.code64
--	.globl entry64, entry64_regs
--
- 
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
- 
-@@ -56,10 +56,11 @@ new_cs_exit:
- 
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
- 
- 	.section ".rodata"
- 	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -77,12 +78,12 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
- 
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
-@@ -96,6 +97,8 @@ gdt:
- 
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
--stack:	.quad   0, 0
--stack_init:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index dfae9b9e60b5..f0de104d3f3a 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -9,14 +9,14 @@
-  * This source code is licensed under the GNU General Public License,
-  * Version 2.  See the file COPYING for more details.
-  */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
- 
- 	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
- 	.code64
- 
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
- 
-@@ -34,10 +34,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
- 
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
- 	 */
-@@ -50,10 +52,10 @@ gdt:	/* 0x00 unusable segment
- 
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- 	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 50a4147f91fb..987e6510a960 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -7,13 +7,14 @@
-  * Version 2.  See the file COPYING for more details.
-  */
- 
-+#include <linux/linkage.h>
-+
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
- 	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
- 
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
 -- 
-2.16.3
+Thanks,
+Changbin Du
