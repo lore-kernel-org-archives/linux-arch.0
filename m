@@ -1,155 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:51723 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:51891 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756777AbeEJIHE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 May 2018 04:07:04 -0400
+        id S1756773AbeEJIHC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 May 2018 04:07:02 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 15/27] x86: assembly, do not annotate functions by GLOBAL
-Date: Thu, 10 May 2018 10:06:32 +0200
-Message-ID: <20180510080644.19752-16-jslaby@suse.cz>
+Subject: [PATCH -resend 11/27] x86: boot, annotate data appropriatelly
+Date: Thu, 10 May 2018 10:06:28 +0200
+Message-ID: <20180510080644.19752-12-jslaby@suse.cz>
 In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
 References: <20180510080644.19752-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
-Message-ID: <20180510080632.cjBMHavWuMyqykXh_kaxzdrQAiTBEZyoH-uUcYuSsQc@z>
+Message-ID: <20180510080628.mMTElE-e3_9MxT_be5sd9UpV8zpoKn8JIxSmaRoJfGc@z>
 
-GLOBAL is meant for global symbols, but not functions. Use the new
-macros SYM_FUNC_START* and SYM_CODE_START* (depending on the type of the
-function) which are dedicated for global functions. And since they both
-require a closing by SYM_*_END, we do this here too.
+Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data.
 
-startup_64, which does not use GLOBAL, but uses .globl explicitly, is
-converted too.
+Now, the data in the object file look sane:
+Value   Size Type    Bind   Vis      Ndx Name
+  0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
+  000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
+  0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
+  001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
+  004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
 
-in_pm32 should not be global at all as it is used only locally, so
-switch to SYM_FUNC_START_LOCAL_NOALIGN.
+  0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
+  0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
+  0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
+  0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
+  0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
 
-Besides all of that, x86's custom GLOBAL macro is going to die very
-soon.
-
-"No alignments" are preserved.
+All have correct size and type now.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: <x86@kernel.org>
+Cc: x86@kernel.org
 ---
- arch/x86/boot/copy.S      | 16 ++++++++--------
- arch/x86/boot/pmjump.S    |  8 ++++----
- arch/x86/kernel/head_64.S |  5 +++--
- 3 files changed, 15 insertions(+), 14 deletions(-)
+ arch/x86/boot/compressed/efi_thunk_64.S | 21 ++++++++++++---------
+ arch/x86/boot/compressed/head_64.S      | 29 ++++++++++++++---------------
+ arch/x86/boot/compressed/mem_encrypt.S  |  6 ++----
+ 3 files changed, 28 insertions(+), 28 deletions(-)
 
-diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
-index 15d9f74b0008..73aa8307a10f 100644
---- a/arch/x86/boot/copy.S
-+++ b/arch/x86/boot/copy.S
-@@ -17,7 +17,7 @@
- 	.code16
- 	.text
+diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
+index bff9ab7c6317..d66000d23921 100644
+--- a/arch/x86/boot/compressed/efi_thunk_64.S
++++ b/arch/x86/boot/compressed/efi_thunk_64.S
+@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
  
--GLOBAL(memcpy)
-+SYM_FUNC_START_NOALIGN(memcpy)
- 	pushw	%si
- 	pushw	%di
- 	movw	%ax, %di
-@@ -31,9 +31,9 @@ GLOBAL(memcpy)
- 	popw	%di
- 	popw	%si
- 	retl
--ENDPROC(memcpy)
-+SYM_FUNC_END(memcpy)
- 
--GLOBAL(memset)
-+SYM_FUNC_START_NOALIGN(memset)
- 	pushw	%di
- 	movw	%ax, %di
- 	movzbl	%dl, %eax
-@@ -46,22 +46,22 @@ GLOBAL(memset)
- 	rep; stosb
- 	popw	%di
- 	retl
--ENDPROC(memset)
-+SYM_FUNC_END(memset)
- 
--GLOBAL(copy_from_fs)
-+SYM_FUNC_START_NOALIGN(copy_from_fs)
- 	pushw	%ds
- 	pushw	%fs
- 	popw	%ds
- 	calll	memcpy
- 	popw	%ds
- 	retl
--ENDPROC(copy_from_fs)
-+SYM_FUNC_END(copy_from_fs)
- 
--GLOBAL(copy_to_fs)
-+SYM_FUNC_START_NOALIGN(copy_to_fs)
- 	pushw	%es
- 	pushw	%fs
- 	popw	%es
- 	calll	memcpy
- 	popw	%es
- 	retl
--ENDPROC(copy_to_fs)
-+SYM_FUNC_END(copy_to_fs)
-diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
-index 3e0edc6d2a20..b90e42eb1a62 100644
---- a/arch/x86/boot/pmjump.S
-+++ b/arch/x86/boot/pmjump.S
-@@ -23,7 +23,7 @@
- /*
-  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
-  */
--GLOBAL(protected_mode_jump)
-+SYM_FUNC_START_NOALIGN(protected_mode_jump)
- 	movl	%edx, %esi		# Pointer to boot_params table
- 
- 	xorl	%ebx, %ebx
-@@ -44,11 +44,11 @@ GLOBAL(protected_mode_jump)
- 	.byte	0x66, 0xea		# ljmpl opcode
- 2:	.long	in_pm32			# offset
- 	.word	__BOOT_CS		# segment
--ENDPROC(protected_mode_jump)
-+SYM_FUNC_END(protected_mode_jump)
- 
- 	.code32
- 	.section ".text32","ax"
--GLOBAL(in_pm32)
-+SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
- 	# Set up data segments for flat 32-bit mode
- 	movl	%ecx, %ds
- 	movl	%ecx, %es
-@@ -74,4 +74,4 @@ GLOBAL(in_pm32)
- 	lldt	%cx
- 
- 	jmpl	*%eax			# Jump to the 32-bit entrypoint
--ENDPROC(in_pm32)
-+SYM_FUNC_END(in_pm32)
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 80b620c824eb..48e71043b99c 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -50,8 +50,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
- 	.text
- 	__HEAD
- 	.code64
--	.globl startup_64
--startup_64:
-+SYM_CODE_START_NOALIGN(startup_64)
- 	UNWIND_HINT_EMPTY
- 	/*
- 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
-@@ -91,6 +90,8 @@ startup_64:
- 	/* Form the CR3 value being sure to include the CR3 modifier */
- 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
- 	jmp 1f
-+SYM_CODE_END(startup_64)
+ 	.data
+ 	.balign	8
+-	.global	efi32_boot_gdt
+-efi32_boot_gdt:	.word	0
+-		.quad	0
++SYM_DATA_START(efi32_boot_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(efi32_boot_gdt)
 +
- ENTRY(secondary_startup_64)
- 	UNWIND_HINT_EMPTY
- 	/*
++SYM_DATA_START_LOCAL(save_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(save_gdt)
+ 
+-save_gdt:	.word	0
+-		.quad	0
+-func_rt_ptr:	.quad	0
++SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
+ 
+-	.global efi_gdt64
+-efi_gdt64:
++SYM_DATA_START(efi_gdt64)
+ 	.word	efi_gdt64_end - efi_gdt64
+ 	.long	0			/* Filled out by user */
+ 	.word	0
+@@ -194,4 +197,4 @@ efi_gdt64:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
+-efi_gdt64_end:
++SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 614dc4868915..a1a92f6fc8e4 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -599,12 +599,13 @@ SYM_FUNC_END(no_longmode)
+ #include "../../kernel/verify_cpu.S"
+ 
+ 	.data
+-gdt64:
++SYM_DATA_START_LOCAL(gdt64)
+ 	.word	gdt_end - gdt
+ 	.long	0
+ 	.word	0
+ 	.quad   0
+-gdt:
++SYM_DATA_END(gdt64)
++SYM_DATA_START_LOCAL(gdt)
+ 	.word	gdt_end - gdt
+ 	.long	gdt
+ 	.word	0
+@@ -613,25 +614,24 @@ gdt:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
+-gdt_end:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
+ 
+ #ifdef CONFIG_EFI_STUB
+-efi_config:
+-	.quad	0
++SYM_DATA_LOCAL(efi_config, .quad 0)
+ 
+ #ifdef CONFIG_EFI_MIXED
+-	.global efi32_config
+-efi32_config:
++SYM_DATA_START(efi32_config)
+ 	.fill	5,8,0
+ 	.quad	efi64_thunk
+ 	.byte	0
++SYM_DATA_END(efi32_config)
+ #endif
+ 
+-	.global efi64_config
+-efi64_config:
++SYM_DATA_START(efi64_config)
+ 	.fill	5,8,0
+ 	.quad	efi_call
+ 	.byte	1
++SYM_DATA_END(efi64_config)
+ #endif /* CONFIG_EFI_STUB */
+ 
+ /*
+@@ -639,16 +639,15 @@ efi64_config:
+  */
+ 	.bss
+ 	.balign 4
+-boot_heap:
+-	.fill BOOT_HEAP_SIZE, 1, 0
+-boot_stack:
++SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
++
++SYM_DATA_START_LOCAL(boot_stack)
+ 	.fill BOOT_STACK_SIZE, 1, 0
+-boot_stack_end:
++SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
+ 
+ /*
+  * Space for page tables (not in .bss so not zeroed)
+  */
+ 	.section ".pgtable","a",@nobits
+ 	.balign 4096
+-pgtable:
+-	.fill BOOT_PGT_SIZE, 1, 0
++SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
+diff --git a/arch/x86/boot/compressed/mem_encrypt.S b/arch/x86/boot/compressed/mem_encrypt.S
+index eaa843a52907..fabed28d2edd 100644
+--- a/arch/x86/boot/compressed/mem_encrypt.S
++++ b/arch/x86/boot/compressed/mem_encrypt.S
+@@ -113,11 +113,9 @@ ENTRY(set_sev_encryption_mask)
+ ENDPROC(set_sev_encryption_mask)
+ 
+ 	.data
+-enc_bit:
+-	.int	0xffffffff
++SYM_DATA_LOCAL(enc_bit, .int 0xffffffff)
+ 
+ #ifdef CONFIG_AMD_MEM_ENCRYPT
+ 	.balign	8
+-GLOBAL(sme_me_mask)
+-	.quad	0
++SYM_DATA(sme_me_mask, .quad 0)
+ #endif
 -- 
 2.16.3
