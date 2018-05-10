@@ -1,74 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:51894 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:51760 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756775AbeEJIHC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 May 2018 04:07:02 -0400
+        id S1756771AbeEJIGw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 May 2018 04:06:52 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 13/27] x86: xen-pvh, annotate data appropriatelly
-Date: Thu, 10 May 2018 10:06:30 +0200
-Message-ID: <20180510080644.19752-14-jslaby@suse.cz>
+Subject: [PATCH -resend 07/27] x86: boot, annotate local functions
+Date: Thu, 10 May 2018 10:06:24 +0200
+Message-ID: <20180510080644.19752-8-jslaby@suse.cz>
 In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
 References: <20180510080644.19752-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20180510080630.GTHolQ-g9hwsahlt5yIJlNJ37Ur3wIvsui2SNTbE3uc@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
+Message-ID: <20180510080624.zAsYNbfGrxS_bLvR2zgfMifjf2usTptGMLc3JBDSzMI@z>
 
-Use the new SYM_DATA_START_LOCAL, and SYM_DATA_END* macros:
-  0000     8 OBJECT  LOCAL  DEFAULT    6 gdt
-  0008    32 OBJECT  LOCAL  DEFAULT    6 gdt_start
-  0028     0 OBJECT  LOCAL  DEFAULT    6 gdt_end
-  0028   256 OBJECT  LOCAL  DEFAULT    6 early_stack
-  0128     0 OBJECT  LOCAL  DEFAULT    6 early_stack
+relocated, paging_enabled, and no_longmode are self-standing local
+functions, annotate them as such. paging_enabled is annotated as
+NOALIGN, since the trampoline code has to be compact.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Juergen Gross <jgross@suse.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/xen/xen-pvh.S | 11 ++++++-----
- 1 file changed, 6 insertions(+), 5 deletions(-)
+ arch/x86/boot/compressed/head_32.S | 3 ++-
+ arch/x86/boot/compressed/head_64.S | 9 ++++++---
+ 2 files changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/xen/xen-pvh.S b/arch/x86/xen/xen-pvh.S
-index e1a5fbeae08d..52b28793a625 100644
---- a/arch/x86/xen/xen-pvh.S
-+++ b/arch/x86/xen/xen-pvh.S
-@@ -137,11 +137,12 @@ END(pvh_start_xen)
- 
- 	.section ".init.data","aw"
- 	.balign 8
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	.word gdt_end - gdt_start
- 	.long _pa(gdt_start)
- 	.word 0
--gdt_start:
-+SYM_DATA_END(gdt)
-+SYM_DATA_START_LOCAL(gdt_start)
- 	.quad 0x0000000000000000            /* NULL descriptor */
- 	.quad 0x0000000000000000            /* reserved */
- #ifdef CONFIG_X86_64
-@@ -150,12 +151,12 @@ gdt_start:
- 	.quad GDT_ENTRY(0xc09a, 0, 0xfffff) /* __KERNEL_CS */
+diff --git a/arch/x86/boot/compressed/head_32.S b/arch/x86/boot/compressed/head_32.S
+index 37380c0d5999..7e8ab0bb6968 100644
+--- a/arch/x86/boot/compressed/head_32.S
++++ b/arch/x86/boot/compressed/head_32.S
+@@ -209,7 +209,7 @@ ENDPROC(efi32_stub_entry)
  #endif
- 	.quad GDT_ENTRY(0xc092, 0, 0xfffff) /* __KERNEL_DS */
--gdt_end:
-+SYM_DATA_END_LABEL(gdt_start, SYM_L_LOCAL, gdt_end)
  
- 	.balign 4
--early_stack:
-+SYM_DATA_START_LOCAL(early_stack)
- 	.fill 256, 1, 0
--early_stack_end:
-+SYM_DATA_END_LABEL(early_stack, SYM_L_LOCAL, early_stack_end)
+ 	.text
+-relocated:
++SYM_FUNC_START_LOCAL(relocated)
  
- 	ELFNOTE(Xen, XEN_ELFNOTE_PHYS32_ENTRY,
- 	             _ASM_PTR (pvh_start_xen - __START_KERNEL_map))
+ /*
+  * Clear BSS (stack is currently empty)
+@@ -260,6 +260,7 @@ relocated:
+  */
+ 	xorl	%ebx, %ebx
+ 	jmp	*%eax
++SYM_FUNC_END(relocated)
+ 
+ #ifdef CONFIG_EFI_STUB
+ 	.data
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index fca012baba19..614dc4868915 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -469,7 +469,7 @@ ENDPROC(efi64_stub_entry)
+ #endif
+ 
+ 	.text
+-relocated:
++SYM_FUNC_START_LOCAL(relocated)
+ 
+ /*
+  * Clear BSS (stack is currently empty)
+@@ -511,6 +511,7 @@ relocated:
+  * Jump to the decompressed kernel.
+  */
+ 	jmp	*%rax
++SYM_FUNC_END(relocated)
+ 
+ 	.code32
+ /*
+@@ -575,9 +576,10 @@ ENTRY(trampoline_32bit_src)
+ 	lret
+ 
+ 	.code64
+-paging_enabled:
++SYM_FUNC_START_LOCAL_NOALIGN(paging_enabled)
+ 	/* Return from the trampoline */
+ 	jmp	*%rdi
++SYM_FUNC_END(paging_enabled)
+ 
+ 	/*
+          * The trampoline code has a size limit.
+@@ -587,11 +589,12 @@ paging_enabled:
+ 	.org	trampoline_32bit_src + TRAMPOLINE_32BIT_CODE_SIZE
+ 
+ 	.code32
+-no_longmode:
++SYM_FUNC_START_LOCAL(no_longmode)
+ 	/* This isn't an x86-64 CPU, so hang intentionally, we cannot continue */
+ 1:
+ 	hlt
+ 	jmp     1b
++SYM_FUNC_END(no_longmode)
+ 
+ #include "../../kernel/verify_cpu.S"
+ 
 -- 
 2.16.3
