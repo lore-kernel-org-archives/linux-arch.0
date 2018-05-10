@@ -1,150 +1,144 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 15/27] x86: assembly, do not annotate functions by GLOBAL
-Date: Thu, 10 May 2018 10:06:32 +0200
-Message-ID: <20180510080644.19752-16-jslaby@suse.cz>
+Subject: [PATCH -resend 09/27] x86: entry, annotate interrupt symbols properly
+Date: Thu, 10 May 2018 10:06:26 +0200
+Message-ID: <20180510080644.19752-10-jslaby@suse.cz>
 References: <20180510080644.19752-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-GLOBAL is meant for global symbols, but not functions. Use the new
-macros SYM_FUNC_START* and SYM_CODE_START* (depending on the type of the
-function) which are dedicated for global functions. And since they both
-require a closing by SYM_*_END, we do this here too.
+* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
+  and SYM_CODE_END -- these are not C-like functions, so we have to
+  annotate them using CODE.
+* use SYM_CODE_INNER_LABEL* for labels being in the middle of other
+  functions
 
-startup_64, which does not use GLOBAL, but uses .globl explicitly, is
-converted too.
-
-in_pm32 should not be global at all as it is used only locally, so
-switch to SYM_FUNC_START_LOCAL_NOALIGN.
-
-Besides all of that, x86's custom GLOBAL macro is going to die very
-soon.
-
-"No alignments" are preserved.
+[v4] alignments preserved
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: <x86@kernel.org>
 ---
- arch/x86/boot/copy.S      | 16 ++++++++--------
- arch/x86/boot/pmjump.S    |  8 ++++----
- arch/x86/kernel/head_64.S |  5 +++--
- 3 files changed, 15 insertions(+), 14 deletions(-)
+ arch/x86/entry/entry_32.S | 15 ++++++++-------
+ arch/x86/entry/entry_64.S |  9 ++++-----
+ 2 files changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
-index 15d9f74b0008..73aa8307a10f 100644
---- a/arch/x86/boot/copy.S
-+++ b/arch/x86/boot/copy.S
-@@ -17,7 +17,7 @@
- 	.code16
- 	.text
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index 030fbeba5f4a..9997cbb940ec 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -340,7 +340,7 @@ ret_from_intr:
+ 	cmpl	$USER_RPL, %eax
+ 	jb	resume_kernel			# not returning to v8086 or userspace
  
--GLOBAL(memcpy)
-+SYM_FUNC_START_NOALIGN(memcpy)
- 	pushw	%si
- 	pushw	%di
- 	movw	%ax, %di
-@@ -31,9 +31,9 @@ GLOBAL(memcpy)
- 	popw	%di
- 	popw	%si
- 	retl
--ENDPROC(memcpy)
-+SYM_FUNC_END(memcpy)
+-ENTRY(resume_userspace)
++SYM_CODE_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+ 	TRACE_IRQS_OFF
+ 	movl	%esp, %eax
+@@ -579,10 +579,11 @@ restore_all:
+ 	INTERRUPT_RETURN
  
--GLOBAL(memset)
-+SYM_FUNC_START_NOALIGN(memset)
- 	pushw	%di
- 	movw	%ax, %di
- 	movzbl	%dl, %eax
-@@ -46,22 +46,22 @@ GLOBAL(memset)
- 	rep; stosb
- 	popw	%di
- 	retl
--ENDPROC(memset)
-+SYM_FUNC_END(memset)
+ .section .fixup, "ax"
+-ENTRY(iret_exc	)
++SYM_CODE_START(iret_exc)
+ 	pushl	$0				# no error code
+ 	pushl	$do_iret_error
+ 	jmp	common_exception
++SYM_CODE_END(iret_exc)
+ .previous
+ 	_ASM_EXTABLE(.Lirq_return, iret_exc)
  
--GLOBAL(copy_from_fs)
-+SYM_FUNC_START_NOALIGN(copy_from_fs)
- 	pushw	%ds
- 	pushw	%fs
- 	popw	%ds
- 	calll	memcpy
- 	popw	%ds
- 	retl
--ENDPROC(copy_from_fs)
-+SYM_FUNC_END(copy_from_fs)
- 
--GLOBAL(copy_to_fs)
-+SYM_FUNC_START_NOALIGN(copy_to_fs)
- 	pushw	%es
- 	pushw	%fs
- 	popw	%es
- 	calll	memcpy
- 	popw	%es
- 	retl
--ENDPROC(copy_to_fs)
-+SYM_FUNC_END(copy_to_fs)
-diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
-index 3e0edc6d2a20..b90e42eb1a62 100644
---- a/arch/x86/boot/pmjump.S
-+++ b/arch/x86/boot/pmjump.S
-@@ -23,7 +23,7 @@
- /*
-  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
+@@ -674,7 +675,7 @@ END(irq_entries_start)
+  * so IRQ-flags tracing has to follow that:
   */
--GLOBAL(protected_mode_jump)
-+SYM_FUNC_START_NOALIGN(protected_mode_jump)
- 	movl	%edx, %esi		# Pointer to boot_params table
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	ASM_CLAC
+ 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
+ 	SAVE_ALL
+@@ -683,7 +684,7 @@ common_interrupt:
+ 	movl	%esp, %eax
+ 	call	do_IRQ
+ 	jmp	ret_from_intr
+-ENDPROC(common_interrupt)
++SYM_CODE_END(common_interrupt)
  
- 	xorl	%ebx, %ebx
-@@ -44,11 +44,11 @@ GLOBAL(protected_mode_jump)
- 	.byte	0x66, 0xea		# ljmpl opcode
- 2:	.long	in_pm32			# offset
- 	.word	__BOOT_CS		# segment
--ENDPROC(protected_mode_jump)
-+SYM_FUNC_END(protected_mode_jump)
+ #define BUILD_INTERRUPT3(name, nr, fn)	\
+ ENTRY(name)				\
+@@ -835,7 +836,7 @@ ENTRY(xen_hypervisor_callback)
  
- 	.code32
- 	.section ".text32","ax"
--GLOBAL(in_pm32)
-+SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
- 	# Set up data segments for flat 32-bit mode
- 	movl	%ecx, %ds
- 	movl	%ecx, %es
-@@ -74,4 +74,4 @@ GLOBAL(in_pm32)
- 	lldt	%cx
+ 	jmp	xen_iret_crit_fixup
  
- 	jmpl	*%eax			# Jump to the 32-bit entrypoint
--ENDPROC(in_pm32)
-+SYM_FUNC_END(in_pm32)
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 80b620c824eb..48e71043b99c 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -50,8 +50,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
- 	.text
- 	__HEAD
- 	.code64
--	.globl startup_64
--startup_64:
-+SYM_CODE_START_NOALIGN(startup_64)
- 	UNWIND_HINT_EMPTY
+-ENTRY(xen_do_upcall)
++SYM_CODE_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
+ 1:	mov	%esp, %eax
+ 	call	xen_evtchn_do_upcall
+ #ifndef CONFIG_PREEMPT
+@@ -920,7 +921,7 @@ ENTRY(page_fault)
+ 	jmp common_exception
+ END(page_fault)
+ 
+-common_exception:
++SYM_CODE_START_LOCAL_NOALIGN(common_exception)
+ 	/* the function address is in %gs's slot on the stack */
+ 	pushl	%fs
+ 	pushl	%es
+@@ -950,7 +951,7 @@ common_exception:
+ 	movl	%esp, %eax			# pt_regs pointer
+ 	CALL_NOSPEC %edi
+ 	jmp	ret_from_exception
+-END(common_exception)
++SYM_CODE_END(common_exception)
+ 
+ ENTRY(debug)
  	/*
- 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
-@@ -91,6 +90,8 @@ startup_64:
- 	/* Form the CR3 value being sure to include the CR3 modifier */
- 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
- 	jmp 1f
-+SYM_CODE_END(startup_64)
-+
- ENTRY(secondary_startup_64)
- 	UNWIND_HINT_EMPTY
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 80045cb2f44c..0380041a5357 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -637,7 +637,7 @@ END(interrupt_entry)
+ 	 * then jump to common_interrupt.
+ 	 */
+ 	.p2align CONFIG_X86_L1_CACHE_SHIFT
+-common_interrupt:
++SYM_CODE_START_LOCAL(common_interrupt)
+ 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
+ 	call	interrupt_entry
+ 	UNWIND_HINT_REGS indirect=1
+@@ -733,7 +733,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
+ 	 */
+ 	INTERRUPT_RETURN
+ 
+-ENTRY(native_iret)
++SYM_CODE_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
+ 	UNWIND_HINT_IRET_REGS
  	/*
+ 	 * Are we returning to a stack segment from the LDT?  Note: in
+@@ -744,8 +744,7 @@ ENTRY(native_iret)
+ 	jnz	native_irq_return_ldt
+ #endif
+ 
+-.global native_irq_return_iret
+-native_irq_return_iret:
++SYM_CODE_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
+ 	/*
+ 	 * This may fault.  Non-paranoid faults on return to userspace are
+ 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
+@@ -827,7 +826,7 @@ native_irq_return_ldt:
+ 	 */
+ 	jmp	native_irq_return_iret
+ #endif
+-END(common_interrupt)
++SYM_CODE_END(common_interrupt)
+ 
+ /*
+  * APIC interrupts.
 -- 
 2.16.3
