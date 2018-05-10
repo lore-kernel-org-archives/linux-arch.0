@@ -1,149 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:51880 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:51894 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756772AbeEJIHB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 May 2018 04:07:01 -0400
+        id S1756775AbeEJIHC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 May 2018 04:07:02 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 09/27] x86: entry, annotate interrupt symbols properly
-Date: Thu, 10 May 2018 10:06:26 +0200
-Message-ID: <20180510080644.19752-10-jslaby@suse.cz>
+Subject: [PATCH -resend 13/27] x86: xen-pvh, annotate data appropriatelly
+Date: Thu, 10 May 2018 10:06:30 +0200
+Message-ID: <20180510080644.19752-14-jslaby@suse.cz>
 In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
 References: <20180510080644.19752-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20180510080626.B-9Ek7t5OuzF8yBU9Y2UV3G8Alta7SLQzaniFEMavh0@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180510080630.GTHolQ-g9hwsahlt5yIJlNJ37Ur3wIvsui2SNTbE3uc@z>
 
-* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
-  and SYM_CODE_END -- these are not C-like functions, so we have to
-  annotate them using CODE.
-* use SYM_CODE_INNER_LABEL* for labels being in the middle of other
-  functions
-
-[v4] alignments preserved
+Use the new SYM_DATA_START_LOCAL, and SYM_DATA_END* macros:
+  0000     8 OBJECT  LOCAL  DEFAULT    6 gdt
+  0008    32 OBJECT  LOCAL  DEFAULT    6 gdt_start
+  0028     0 OBJECT  LOCAL  DEFAULT    6 gdt_end
+  0028   256 OBJECT  LOCAL  DEFAULT    6 early_stack
+  0128     0 OBJECT  LOCAL  DEFAULT    6 early_stack
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <x86@kernel.org>
+Cc: x86@kernel.org
+Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/entry/entry_32.S | 15 ++++++++-------
- arch/x86/entry/entry_64.S |  9 ++++-----
- 2 files changed, 12 insertions(+), 12 deletions(-)
+ arch/x86/xen/xen-pvh.S | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 030fbeba5f4a..9997cbb940ec 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -340,7 +340,7 @@ ret_from_intr:
- 	cmpl	$USER_RPL, %eax
- 	jb	resume_kernel			# not returning to v8086 or userspace
+diff --git a/arch/x86/xen/xen-pvh.S b/arch/x86/xen/xen-pvh.S
+index e1a5fbeae08d..52b28793a625 100644
+--- a/arch/x86/xen/xen-pvh.S
++++ b/arch/x86/xen/xen-pvh.S
+@@ -137,11 +137,12 @@ END(pvh_start_xen)
  
--ENTRY(resume_userspace)
-+SYM_CODE_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
-@@ -579,10 +579,11 @@ restore_all:
- 	INTERRUPT_RETURN
- 
- .section .fixup, "ax"
--ENTRY(iret_exc	)
-+SYM_CODE_START(iret_exc)
- 	pushl	$0				# no error code
- 	pushl	$do_iret_error
- 	jmp	common_exception
-+SYM_CODE_END(iret_exc)
- .previous
- 	_ASM_EXTABLE(.Lirq_return, iret_exc)
- 
-@@ -674,7 +675,7 @@ END(irq_entries_start)
-  * so IRQ-flags tracing has to follow that:
-  */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
- 	SAVE_ALL
-@@ -683,7 +684,7 @@ common_interrupt:
- 	movl	%esp, %eax
- 	call	do_IRQ
- 	jmp	ret_from_intr
--ENDPROC(common_interrupt)
-+SYM_CODE_END(common_interrupt)
- 
- #define BUILD_INTERRUPT3(name, nr, fn)	\
- ENTRY(name)				\
-@@ -835,7 +836,7 @@ ENTRY(xen_hypervisor_callback)
- 
- 	jmp	xen_iret_crit_fixup
- 
--ENTRY(xen_do_upcall)
-+SYM_CODE_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
- 1:	mov	%esp, %eax
- 	call	xen_evtchn_do_upcall
- #ifndef CONFIG_PREEMPT
-@@ -920,7 +921,7 @@ ENTRY(page_fault)
- 	jmp common_exception
- END(page_fault)
- 
--common_exception:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception)
- 	/* the function address is in %gs's slot on the stack */
- 	pushl	%fs
- 	pushl	%es
-@@ -950,7 +951,7 @@ common_exception:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception)
-+SYM_CODE_END(common_exception)
- 
- ENTRY(debug)
- 	/*
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 80045cb2f44c..0380041a5357 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -637,7 +637,7 @@ END(interrupt_entry)
- 	 * then jump to common_interrupt.
- 	 */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
-@@ -733,7 +733,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
- 	 */
- 	INTERRUPT_RETURN
- 
--ENTRY(native_iret)
-+SYM_CODE_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
- 	UNWIND_HINT_IRET_REGS
- 	/*
- 	 * Are we returning to a stack segment from the LDT?  Note: in
-@@ -744,8 +744,7 @@ ENTRY(native_iret)
- 	jnz	native_irq_return_ldt
+ 	.section ".init.data","aw"
+ 	.balign 8
+-gdt:
++SYM_DATA_START_LOCAL(gdt)
+ 	.word gdt_end - gdt_start
+ 	.long _pa(gdt_start)
+ 	.word 0
+-gdt_start:
++SYM_DATA_END(gdt)
++SYM_DATA_START_LOCAL(gdt_start)
+ 	.quad 0x0000000000000000            /* NULL descriptor */
+ 	.quad 0x0000000000000000            /* reserved */
+ #ifdef CONFIG_X86_64
+@@ -150,12 +151,12 @@ gdt_start:
+ 	.quad GDT_ENTRY(0xc09a, 0, 0xfffff) /* __KERNEL_CS */
  #endif
+ 	.quad GDT_ENTRY(0xc092, 0, 0xfffff) /* __KERNEL_DS */
+-gdt_end:
++SYM_DATA_END_LABEL(gdt_start, SYM_L_LOCAL, gdt_end)
  
--.global native_irq_return_iret
--native_irq_return_iret:
-+SYM_CODE_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
- 	/*
- 	 * This may fault.  Non-paranoid faults on return to userspace are
- 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
-@@ -827,7 +826,7 @@ native_irq_return_ldt:
- 	 */
- 	jmp	native_irq_return_iret
- #endif
--END(common_interrupt)
-+SYM_CODE_END(common_interrupt)
+ 	.balign 4
+-early_stack:
++SYM_DATA_START_LOCAL(early_stack)
+ 	.fill 256, 1, 0
+-early_stack_end:
++SYM_DATA_END_LABEL(early_stack, SYM_L_LOCAL, early_stack_end)
  
- /*
-  * APIC interrupts.
+ 	ELFNOTE(Xen, XEN_ELFNOTE_PHYS32_ENTRY,
+ 	             _ASM_PTR (pvh_start_xen - __START_KERNEL_map))
 -- 
 2.16.3
