@@ -1,110 +1,72 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 02/27] x86: assembly, use SYM_DATA for data
-Date: Thu, 10 May 2018 10:06:19 +0200
-Message-ID: <20180510080644.19752-3-jslaby@suse.cz>
-References: <20180510080644.19752-1-jslaby@suse.cz>
+From: "Du, Changbin" <changbin.du@intel.com>
+Subject: Re: [PATCH v4 4/4] asm-generic: fix build error in fix_to_virt with
+ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+Date: Thu, 10 May 2018 20:29:12 +0800
+Message-ID: <20180510122912.mqmpy4j4dj2trb5r@intel.com>
+References: <1525855396-7908-1-git-send-email-changbin.du@intel.com>
+ <1525855396-7908-5-git-send-email-changbin.du@intel.com>
+ <20180509085224.34116e36@gandalf.local.home>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
+Content-Disposition: inline
+In-Reply-To: <20180509085224.34116e36@gandalf.local.home>
 Sender: linux-kernel-owner@vger.kernel.org
-To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-We make proper use of SYM_DATA on global data instead of marking them as
-ENTRY. ENTRY is intended for functions and shall be paired with ENDPROC.
-ENTRY also aligns symbols which creates unnecessary holes here between
-data.
+On Wed, May 09, 2018 at 08:52:24AM -0400, Steven Rostedt wrote:
+> On Wed,  9 May 2018 16:43:16 +0800
+> changbin.du@intel.com wrote:
+> 
+> > From: Changbin Du <changbin.du@intel.com>
+> > 
+> > With '-Og' optimization level, GCC would not optimize a count for a loop
+> > as a constant value. But BUILD_BUG_ON() only accept compile-time constant
+> > values. Let's use __fix_to_virt() to avoid the error.
+> > 
+> > arch/arm/mm/mmu.o: In function `fix_to_virt':
+> > /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
+> > Makefile:1051: recipe for target 'vmlinux' failed
+> > make: *** [vmlinux] Error 1
+> 
+> Perhaps we should put this patch ahead of patch 3. Why allow it to
+> break?
+> 
+Agree, let me exchange the last two patches.
 
-ENTRY from saved_eip in wakeup_32 and many saved_* in wakeup_64 is
-simply dropped, as these symbols are local only.
+> Anyway, besides that, I think the series looks good.
+> 
+> For the series: Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> 
+> -- Steve
+> 
+> 
+> > 
+> > Signed-off-by: Changbin Du <changbin.du@intel.com>
+> > 
+> > ---
+> > v2: use __fix_to_virt() to fix the issue.
+> > ---
+> >  arch/arm/mm/mmu.c | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> > 
+> > diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+> > index e46a6a4..c08d74e 100644
+> > --- a/arch/arm/mm/mmu.c
+> > +++ b/arch/arm/mm/mmu.c
+> > @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
+> >  		pte_t *pte;
+> >  		struct map_desc map;
+> >  
+> > -		map.virtual = fix_to_virt(i);
+> > +		map.virtual = __fix_to_virt(i);
+> >  		pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
+> >  
+> >  		/* Only i/o device mappings are supported ATM */
+> 
 
-Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Pavel Machek <pavel@ucw.cz>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-pm@vger.kernel.org
----
- arch/x86/kernel/acpi/wakeup_32.S |  4 ++--
- arch/x86/kernel/acpi/wakeup_64.S | 14 +++++++-------
- arch/x86/kernel/head_32.S        |  6 ++----
- arch/x86/kernel/head_64.S        |  5 ++---
- 4 files changed, 13 insertions(+), 16 deletions(-)
-
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 0c26b1b44e51..feac1e5ecba0 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -89,8 +89,8 @@ ret_point:
- 
- .data
- ALIGN
--ENTRY(saved_magic)	.long	0
--ENTRY(saved_eip)	.long	0
-+SYM_DATA(saved_magic,	.long 0)
-+saved_eip:		.long 0
- 
- # saved registers
- saved_idt:	.long	0,0
-diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index 50b8ed0317a3..551758f48eb7 100644
---- a/arch/x86/kernel/acpi/wakeup_64.S
-+++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -125,12 +125,12 @@ ENTRY(do_suspend_lowlevel)
- ENDPROC(do_suspend_lowlevel)
- 
- .data
--ENTRY(saved_rbp)	.quad	0
--ENTRY(saved_rsi)	.quad	0
--ENTRY(saved_rdi)	.quad	0
--ENTRY(saved_rbx)	.quad	0
-+saved_rbp:		.quad	0
-+saved_rsi:		.quad	0
-+saved_rdi:		.quad	0
-+saved_rbx:		.quad	0
- 
--ENTRY(saved_rip)	.quad	0
--ENTRY(saved_rsp)	.quad	0
-+saved_rip:		.quad	0
-+saved_rsp:		.quad	0
- 
--ENTRY(saved_magic)	.quad	0
-+SYM_DATA(saved_magic,	.quad	0)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index b59e4fb40fd9..80965fd75fea 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
- 
- __REFDATA
- 	.align 4
--ENTRY(initial_code)
--	.long i386_start_kernel
--ENTRY(setup_once_ref)
--	.long setup_once
-+SYM_DATA(initial_code,		.long i386_start_kernel)
-+SYM_DATA(setup_once_ref,	.long setup_once)
- 
- /*
-  * BSS section
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 8344dd2f310a..17543533642d 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -463,9 +463,8 @@ early_gdt_descr:
- early_gdt_descr_base:
- 	.quad	INIT_PER_CPU_VAR(gdt_page)
- 
--ENTRY(phys_base)
--	/* This must match the first entry in level2_kernel_pgt */
--	.quad   0x0000000000000000
-+/* This must match the first entry in level2_kernel_pgt */
-+SYM_DATA(phys_base, .quad 0x0000000000000000)
- EXPORT_SYMBOL(phys_base)
- 
- #include "../../x86/xen/xen-head.S"
 -- 
-2.16.3
+Thanks,
+Changbin Du
