@@ -1,48 +1,96 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH] mm: provide a fallback for PAGE_KERNEL_RO for
- architectures
-Date: Thu, 10 May 2018 01:24:26 +0000
-Message-ID: <20180510012426.GA27853@wotan.suse.de>
-References: <20180428001526.22475-1-mcgrof@kernel.org>
- <CAMuHMdUpc6=j62E7Xrcid6tKU5FRUZsiSVK7J=KD09epQ=9xfA@mail.gmail.com>
- <20180502151113.GB27853@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH v2 1/2] mm: provide a fallback for PAGE_KERNEL_RO for architectures
+Date: Wed,  9 May 2018 18:44:46 -0700
+Message-ID: <20180510014447.15989-2-mcgrof@kernel.org>
+References: <20180510014447.15989-1-mcgrof@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180502151113.GB27853@wotan.suse.de>
+In-Reply-To: <20180510014447.15989-1-mcgrof@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Matthew Wilcox <mawilcox@microsoft.com>, Greg KH <gregkh@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
+To: arnd@arndb.de
+Cc: gregkh@linuxfoundation.org, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 02, 2018 at 03:11:13PM +0000, Luis R. Rodriguez wrote:
-> On Wed, May 02, 2018 at 12:08:57PM +0200, Geert Uytterhoeven wrote:
-> > Hi Luis,
-> > 
-> > On Sat, Apr 28, 2018 at 2:15 AM, Luis R. Rodriguez <mcgrof@kernel.org> wrote:
-> > > Some architectures do not define PAGE_KERNEL_RO, best we can do
-> > > for them is to provide a fallback onto PAGE_KERNEL. Remove the
-> > > hack from the firmware loader and move it onto the asm-generic
-> > > header, and document while at it the affected architectures
-> > > which do not have a PAGE_KERNEL_RO:
-> > >
-> > >   o alpha
-> > >   o ia64
-> > >   o m68k
-> > >   o mips
-> > >   o sparc64
-> > >   o sparc
-> > >
-> > > Blessed-by: 0-day
-> > > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
-> > 
-> > I believe the "best we can do" is to add the missing definitions for the
-> > architectures where the hardware does support it?
-> 
-> True, but we cannot wait for every architecture to implement a feature to then
-> such generics upstream, 
+Some architectures do not define certain PAGE_KERNEL_* flags, this is
+either because:
 
-Come to think of it your point was the wording. I changed it to not be as misleading.
+a) The way to implement some these flags is *not yet ported*, or
+b) The architecture *has no way* to describe them
 
-  Luis
+Over time we have accumulated a few PAGE_KERNEL_* fallback work arounds for
+architectures in the kernel which do not define them using *relatively safe*
+equivalents. Move these scattered fallback hacks into asm-generic and
+document which architectures needs further evaluation for which
+PAGE_KERNEL_* flag.
+
+We start off with PAGE_KERNEL_RO using PAGE_KERNEL as a fallback. This
+has been in place on the firmware loader for years. Move the fallback
+into the respective asm-generic header.
+
+Architectures which don't define this yet:
+
+  o alpha
+  o ia64
+  o m68k
+  o mips
+  o sparc64
+  o sparc
+
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
+ drivers/base/firmware_loader/fallback.c |  5 -----
+ include/asm-generic/pgtable.h           | 24 ++++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/base/firmware_loader/fallback.c b/drivers/base/firmware_loader/fallback.c
+index 358354148dec..36f016b753e0 100644
+--- a/drivers/base/firmware_loader/fallback.c
++++ b/drivers/base/firmware_loader/fallback.c
+@@ -219,11 +219,6 @@ static ssize_t firmware_loading_show(struct device *dev,
+ 	return sprintf(buf, "%d\n", loading);
+ }
+ 
+-/* Some architectures don't have PAGE_KERNEL_RO */
+-#ifndef PAGE_KERNEL_RO
+-#define PAGE_KERNEL_RO PAGE_KERNEL
+-#endif
+-
+ /* one pages buffer should be mapped/unmapped only once */
+ static int map_fw_priv_pages(struct fw_priv *fw_priv)
+ {
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index f59639afaa39..890fc54f4713 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1083,6 +1083,30 @@ int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
+ static inline void init_espfix_bsp(void) { }
+ #endif
+ 
++/*
++ * Architecture PAGE_KERNEL_* fallbacks
++ *
++ * Some architectures don't define certain PAGE_KERNEL_* flags. This is either
++ * because they really don't support them, or the port needs to be updated to
++ * reflect the required functionality. Below are a set of relatively safe
++ * fallbacks, as best effort, which we can count on in lieu of the architectures
++ * not defining them on their own yet.
++ */
++
++/*
++ * Current architectures known to not define PAGE_KERNEL_RO:
++ *
++ *  o alpha
++ *  o ia64
++ *  o m68k
++ *  o mips
++ *  o sparc64
++ *  o sparc
++ */
++#ifndef PAGE_KERNEL_RO
++# define PAGE_KERNEL_RO PAGE_KERNEL
++#endif
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #ifndef io_remap_pfn_range
+-- 
+2.17.0
