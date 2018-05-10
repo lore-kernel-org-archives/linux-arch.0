@@ -1,53 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:54017 "EHLO mx2.suse.de"
+Received: from mail.kernel.org ([198.145.29.99]:44314 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751052AbeEJBY3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 May 2018 21:24:29 -0400
-Date: Thu, 10 May 2018 01:24:26 +0000
+        id S932195AbeEJBot (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 May 2018 21:44:49 -0400
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH] mm: provide a fallback for PAGE_KERNEL_RO for
- architectures
-Message-ID: <20180510012426.GA27853@wotan.suse.de>
-References: <20180428001526.22475-1-mcgrof@kernel.org>
- <CAMuHMdUpc6=j62E7Xrcid6tKU5FRUZsiSVK7J=KD09epQ=9xfA@mail.gmail.com>
- <20180502151113.GB27853@wotan.suse.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180502151113.GB27853@wotan.suse.de>
+Subject: [PATCH v2 0/2] mm: PAGE_KERNEL_* fallbacks
+Date: Wed,  9 May 2018 18:44:45 -0700
+Message-ID: <20180510014447.15989-1-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Matthew Wilcox <mawilcox@microsoft.com>, Greg KH <gregkh@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-Message-ID: <20180510012426.PWWrp-_SuOMKrUTm3-5-woa6g8eOLz9uiSDGtGkucqw@z>
+To: arnd@arndb.de
+Cc: gregkh@linuxfoundation.org, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>
+Message-ID: <20180510014445.IKwzWRNOgZVDky8g8hKGsGytQWEAyqSRKjtVHlt7YmE@z>
 
-On Wed, May 02, 2018 at 03:11:13PM +0000, Luis R. Rodriguez wrote:
-> On Wed, May 02, 2018 at 12:08:57PM +0200, Geert Uytterhoeven wrote:
-> > Hi Luis,
-> > 
-> > On Sat, Apr 28, 2018 at 2:15 AM, Luis R. Rodriguez <mcgrof@kernel.org> wrote:
-> > > Some architectures do not define PAGE_KERNEL_RO, best we can do
-> > > for them is to provide a fallback onto PAGE_KERNEL. Remove the
-> > > hack from the firmware loader and move it onto the asm-generic
-> > > header, and document while at it the affected architectures
-> > > which do not have a PAGE_KERNEL_RO:
-> > >
-> > >   o alpha
-> > >   o ia64
-> > >   o m68k
-> > >   o mips
-> > >   o sparc64
-> > >   o sparc
-> > >
-> > > Blessed-by: 0-day
-> > > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
-> > 
-> > I believe the "best we can do" is to add the missing definitions for the
-> > architectures where the hardware does support it?
-> 
-> True, but we cannot wait for every architecture to implement a feature to then
-> such generics upstream, 
+While dusting out the firmware loader closet I spotted a PAGE_KERNEL_*
+fallback hack. This hurts my eyes, and it should also be blinding
+others. Turns out we have other PAGE_KERNEL_* fallback hacks in
+other places.
 
-Come to think of it your point was the wording. I changed it to not be as misleading.
+This moves them to asm-generic, and keeps track of architectures which
+need some love or review. At least 0-day was happy with the changes.
 
-  Luis
+Matthew Wilcox did put together a PAGE_KERNEL_RO patch for ia64, that
+needs review and testing, and if it goes well it should be merged.
+
+Luis R. Rodriguez (2):
+  mm: provide a fallback for PAGE_KERNEL_RO for architectures
+  mm: provide a fallback for PAGE_KERNEL_EXEC for architectures
+
+ drivers/base/firmware_loader/fallback.c |  5 ----
+ include/asm-generic/pgtable.h           | 36 +++++++++++++++++++++++++
+ mm/nommu.c                              |  4 ---
+ mm/vmalloc.c                            |  4 ---
+ 4 files changed, 36 insertions(+), 13 deletions(-)
+
+-- 
+2.17.0
