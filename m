@@ -1,108 +1,192 @@
-From: Matt Redfearn <matt.redfearn@mips.com>
-Subject: Re: [REVIEW][PATCH 08/22] signal/mips: Use force_sig_fault where
- appropriate
-Date: Thu, 10 May 2018 08:59:26 +0100
-Message-ID: <6811e06d-ac0d-35a6-7d86-57838d5d7f8e@mips.com>
-References: <87604mhrnb.fsf@xmission.com>
- <20180420143811.9994-8-ebiederm@xmission.com>
- <e0a5bde2-7817-3e05-1c8d-c8fa8f6aa5f2@mips.com> <8736z0s087.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [PATCH -resend 00/27] New macros for assembler symbols
+Date: Thu, 10 May 2018 10:06:17 +0200
+Message-ID: <20180510080644.19752-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8736z0s087.fsf@xmission.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org
+To: mingo@redhat.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Eric,
+This series introduces new macros for assembly as was discussed [1].
+The macros are introduced in the first patch of the series. The rest
+of patches start using these new macros in x86, converting *all* uses
+of the old macros to the new ones throughout the last patch. With
+every last user of some old macro, the macro is immediatelly made
+forbidden for x86.
 
-On 10/05/18 03:39, Eric W. Biederman wrote:
-> Matt Redfearn <matt.redfearn@mips.com> writes:
-> 
->> Hi Eric,
->>
->> On 20/04/18 15:37, Eric W. Biederman wrote:
->>> Filling in struct siginfo before calling force_sig_info a tedious and
->>> error prone process, where once in a great while the wrong fields
->>> are filled out, and siginfo has been inconsistently cleared.
->>>
->>> Simplify this process by using the helper force_sig_fault.  Which
->>> takes as a parameters all of the information it needs, ensures
->>> all of the fiddly bits of filling in struct siginfo are done properly
->>> and then calls force_sig_info.
->>>
->>> In short about a 5 line reduction in code for every time force_sig_info
->>> is called, which makes the calling function clearer.
->>>
->>> Cc: Ralf Baechle <ralf@linux-mips.org>
->>> Cc: James Hogan <jhogan@kernel.org>
->>> Cc: linux-mips@linux-mips.org
->>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->>> ---
->>>    arch/mips/kernel/traps.c | 65 ++++++++++++++----------------------------------
->>>    arch/mips/mm/fault.c     | 19 ++++----------
->>>    2 files changed, 23 insertions(+), 61 deletions(-)
->>>
->>> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
->>> index 967e9e4e795e..66ec4b0b484d 100644
->>> --- a/arch/mips/kernel/traps.c
->>> +++ b/arch/mips/kernel/traps.c
->>> @@ -699,17 +699,11 @@ static int simulate_sync(struct pt_regs *regs, unsigned int opcode)
->>>    asmlinkage void do_ov(struct pt_regs *regs)
->>>    {
->>>    	enum ctx_state prev_state;
->>> -	siginfo_t info;
->>> -
->>> -	clear_siginfo(&info);
->>> -	info.si_signo = SIGFPE;
->>> -	info.si_code = FPE_INTOVF;
->>> -	info.si_addr = (void __user *)regs->cp0_epc;
->>>      	prev_state = exception_enter();
->>>    	die_if_kernel("Integer overflow", regs);
->>>    -	force_sig_info(SIGFPE, &info, current);
->>> +	force_sig_fault(SIGFPE, FPE_INTOVF, (void __user *)regs->cp0_epc, current);
->>>    	exception_exit(prev_state);
->>>    }
->>>    @@ -722,32 +716,27 @@ asmlinkage void do_ov(struct pt_regs *regs)
->>>    void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
->>>    		     struct task_struct *tsk)
->>>    {
->>> -	struct siginfo si;
->>> -
->>> -	clear_siginfo(&si);
->>> -	si.si_addr = fault_addr;
->>> -	si.si_signo = SIGFPE;
->>> +	int si_code;
->>
->> This is giving build errors in Linux next
->> (https://storage.kernelci.org/next/master/next-20180509/mips/defconfig+kselftest/build.log)
->>
->> si_code would have ended up as 0 before from the clear_siginfo(), but perhaps
-> 
-> And si_code 0 is not a valid si_code to use with a floating point
-> siginfo layout.
-> 
->> int si_code = FPE_FLTUNK;
->>
->> Would make a more sensible default?
-> 
-> FPE_FLTUNK would make a more sensible default.
-> 
-> I seem to remember someone telling me that case can never happen in
-> practice so I have simply not worried about it.  Perhaps I am
-> misremembering this.
+When this settles down, conversion of other architectures can be done
+too.
 
-It probably can't happen in practise - but the issue is that the kernel 
-doesn't even compile because -Werror=maybe-uninitialized results in a 
-build error since the compiler can't know that one of the branches will 
-definitely be taken to set si_code.
+For introduction, documentation, use and examples, please see
+Documentation/asm-annotations.rst from the first patch of the series.
 
-Thanks,
-Matt
+[1] https://lkml.org/lkml/2017/3/1/742
 
-> 
-> Eric
-> 
+Jiri Slaby (27):
+  linkage: new macros for assembler symbols
+  x86: assembly, use SYM_DATA for data
+  x86: assembly, annotate relocate_kernel
+  x86: entry, annotate THUNKs
+  x86: assembly, annotate local pseudo-functions
+  x86: crypto, annotate local functions
+  x86: boot, annotate local functions
+  x86: assembly, annotate aliases
+  x86: entry, annotate interrupt symbols properly
+  x86: head, annotate data appropriatelly
+  x86: boot, annotate data appropriatelly
+  x86: um, annotate data appropriatelly
+  x86: xen-pvh, annotate data appropriatelly
+  x86: purgatory, start using annotations
+  x86: assembly, do not annotate functions by GLOBAL
+  x86: assembly, use SYM_CODE_INNER_LABEL instead of GLOBAL
+  x86: realmode, use SYM_DATA_* instead of GLOBAL
+  x86: assembly, remove GLOBAL macro
+  x86: assembly, make some functions local
+  x86: ftrace, mark function_hook as function
+  x86_64: assembly, add ENDs to some functions and relabel with
+    SYM_CODE_*
+  x86_64: assembly, change all ENTRY+END to SYM_CODE_*
+  x86_64: assembly, change all ENTRY+ENDPROC to SYM_FUNC_*
+  x86_32: assembly, add ENDs to some functions and relabel with
+    SYM_CODE_*
+  x86_32: assembly, change all ENTRY+END to SYM_CODE_*
+  x86_32: assembly, change all ENTRY+ENDPROC to SYM_FUNC_*
+  x86: assembly, replace WEAK uses
+
+ Documentation/asm-annotations.rst                  | 218 +++++++++++++++++
+ arch/x86/boot/compressed/efi_stub_32.S             |   4 +-
+ arch/x86/boot/compressed/efi_thunk_64.S            |  33 +--
+ arch/x86/boot/compressed/head_32.S                 |  15 +-
+ arch/x86/boot/compressed/head_64.S                 |  60 ++---
+ arch/x86/boot/compressed/mem_encrypt.S             |  14 +-
+ arch/x86/boot/copy.S                               |  16 +-
+ arch/x86/boot/pmjump.S                             |   8 +-
+ arch/x86/crypto/aes-i586-asm_32.S                  |   8 +-
+ arch/x86/crypto/aes-x86_64-asm_64.S                |   4 +-
+ arch/x86/crypto/aes_ctrby8_avx-x86_64.S            |  12 +-
+ arch/x86/crypto/aesni-intel_asm.S                  | 114 ++++-----
+ arch/x86/crypto/aesni-intel_avx-x86_64.S           |  24 +-
+ arch/x86/crypto/blowfish-x86_64-asm_64.S           |  16 +-
+ arch/x86/crypto/camellia-aesni-avx-asm_64.S        |  44 ++--
+ arch/x86/crypto/camellia-aesni-avx2-asm_64.S       |  44 ++--
+ arch/x86/crypto/camellia-x86_64-asm_64.S           |  16 +-
+ arch/x86/crypto/cast5-avx-x86_64-asm_64.S          |  24 +-
+ arch/x86/crypto/cast6-avx-x86_64-asm_64.S          |  32 +--
+ arch/x86/crypto/chacha20-avx2-x86_64.S             |   4 +-
+ arch/x86/crypto/chacha20-ssse3-x86_64.S            |   8 +-
+ arch/x86/crypto/crc32-pclmul_asm.S                 |   4 +-
+ arch/x86/crypto/crc32c-pcl-intel-asm_64.S          |   4 +-
+ arch/x86/crypto/crct10dif-pcl-asm_64.S             |   4 +-
+ arch/x86/crypto/des3_ede-asm_64.S                  |   8 +-
+ arch/x86/crypto/ghash-clmulni-intel_asm.S          |  12 +-
+ arch/x86/crypto/poly1305-avx2-x86_64.S             |   4 +-
+ arch/x86/crypto/poly1305-sse2-x86_64.S             |   8 +-
+ arch/x86/crypto/salsa20-i586-asm_32.S              |   4 +-
+ arch/x86/crypto/salsa20-x86_64-asm_64.S            |   4 +-
+ arch/x86/crypto/serpent-avx-x86_64-asm_64.S        |  32 +--
+ arch/x86/crypto/serpent-avx2-asm_64.S              |  32 +--
+ arch/x86/crypto/serpent-sse2-i586-asm_32.S         |   8 +-
+ arch/x86/crypto/serpent-sse2-x86_64-asm_64.S       |   8 +-
+ arch/x86/crypto/sha1-mb/sha1_mb_mgr_flush_avx2.S   |   8 +-
+ arch/x86/crypto/sha1-mb/sha1_mb_mgr_submit_avx2.S  |   4 +-
+ arch/x86/crypto/sha1-mb/sha1_x8_avx2.S             |   4 +-
+ arch/x86/crypto/sha1_avx2_x86_64_asm.S             |   4 +-
+ arch/x86/crypto/sha1_ni_asm.S                      |   4 +-
+ arch/x86/crypto/sha1_ssse3_asm.S                   |   4 +-
+ arch/x86/crypto/sha256-avx-asm.S                   |   4 +-
+ arch/x86/crypto/sha256-avx2-asm.S                  |   4 +-
+ .../crypto/sha256-mb/sha256_mb_mgr_flush_avx2.S    |   8 +-
+ .../crypto/sha256-mb/sha256_mb_mgr_submit_avx2.S   |   4 +-
+ arch/x86/crypto/sha256-mb/sha256_x8_avx2.S         |   4 +-
+ arch/x86/crypto/sha256-ssse3-asm.S                 |   4 +-
+ arch/x86/crypto/sha256_ni_asm.S                    |   4 +-
+ arch/x86/crypto/sha512-avx-asm.S                   |   4 +-
+ arch/x86/crypto/sha512-avx2-asm.S                  |   4 +-
+ .../crypto/sha512-mb/sha512_mb_mgr_flush_avx2.S    |   8 +-
+ .../crypto/sha512-mb/sha512_mb_mgr_submit_avx2.S   |   4 +-
+ arch/x86/crypto/sha512-mb/sha512_x4_avx2.S         |   4 +-
+ arch/x86/crypto/sha512-ssse3-asm.S                 |   4 +-
+ arch/x86/crypto/twofish-avx-x86_64-asm_64.S        |  32 +--
+ arch/x86/crypto/twofish-i586-asm_32.S              |   8 +-
+ arch/x86/crypto/twofish-x86_64-asm_64-3way.S       |   8 +-
+ arch/x86/crypto/twofish-x86_64-asm_64.S            |   8 +-
+ arch/x86/entry/entry_32.S                          | 155 ++++++------
+ arch/x86/entry/entry_64.S                          | 107 ++++-----
+ arch/x86/entry/entry_64_compat.S                   |  16 +-
+ arch/x86/entry/thunk_32.S                          |   4 +-
+ arch/x86/entry/thunk_64.S                          |   8 +-
+ arch/x86/entry/vdso/vdso32/system_call.S           |   2 +-
+ arch/x86/include/asm/linkage.h                     |   4 -
+ arch/x86/kernel/acpi/wakeup_32.S                   |  11 +-
+ arch/x86/kernel/acpi/wakeup_64.S                   |  25 +-
+ arch/x86/kernel/ftrace_32.S                        |  23 +-
+ arch/x86/kernel/ftrace_64.S                        |  42 ++--
+ arch/x86/kernel/head_32.S                          |  60 ++---
+ arch/x86/kernel/head_64.S                          | 106 +++++----
+ arch/x86/kernel/relocate_kernel_32.S               |  13 +-
+ arch/x86/kernel/relocate_kernel_64.S               |  13 +-
+ arch/x86/kernel/verify_cpu.S                       |   4 +-
+ arch/x86/lib/atomic64_386_32.S                     |   4 +-
+ arch/x86/lib/atomic64_cx8_32.S                     |  32 +--
+ arch/x86/lib/checksum_32.S                         |  16 +-
+ arch/x86/lib/clear_page_64.S                       |  12 +-
+ arch/x86/lib/cmpxchg16b_emu.S                      |   4 +-
+ arch/x86/lib/cmpxchg8b_emu.S                       |   4 +-
+ arch/x86/lib/copy_page_64.S                        |   8 +-
+ arch/x86/lib/copy_user_64.S                        |  16 +-
+ arch/x86/lib/csum-copy_64.S                        |   4 +-
+ arch/x86/lib/getuser.S                             |  24 +-
+ arch/x86/lib/hweight.S                             |   8 +-
+ arch/x86/lib/iomap_copy_64.S                       |   4 +-
+ arch/x86/lib/memcpy_64.S                           |  20 +-
+ arch/x86/lib/memmove_64.S                          |   8 +-
+ arch/x86/lib/memset_64.S                           |  16 +-
+ arch/x86/lib/msr-reg.S                             |   8 +-
+ arch/x86/lib/putuser.S                             |  20 +-
+ arch/x86/lib/retpoline.S                           |   4 +-
+ arch/x86/lib/rwsem.S                               |  24 +-
+ arch/x86/math-emu/div_Xsig.S                       |   4 +-
+ arch/x86/math-emu/div_small.S                      |   4 +-
+ arch/x86/math-emu/mul_Xsig.S                       |  12 +-
+ arch/x86/math-emu/polynom_Xsig.S                   |   4 +-
+ arch/x86/math-emu/reg_norm.S                       |   8 +-
+ arch/x86/math-emu/reg_round.S                      |   4 +-
+ arch/x86/math-emu/reg_u_add.S                      |   4 +-
+ arch/x86/math-emu/reg_u_div.S                      |   4 +-
+ arch/x86/math-emu/reg_u_mul.S                      |   4 +-
+ arch/x86/math-emu/reg_u_sub.S                      |   4 +-
+ arch/x86/math-emu/round_Xsig.S                     |   8 +-
+ arch/x86/math-emu/shr_Xsig.S                       |   4 +-
+ arch/x86/math-emu/wm_shrx.S                        |   8 +-
+ arch/x86/math-emu/wm_sqrt.S                        |   4 +-
+ arch/x86/mm/mem_encrypt_boot.S                     |   8 +-
+ arch/x86/platform/efi/efi_stub_32.S                |   4 +-
+ arch/x86/platform/efi/efi_stub_64.S                |   4 +-
+ arch/x86/platform/efi/efi_thunk_64.S               |  16 +-
+ arch/x86/platform/olpc/xo1-wakeup.S                |   3 +-
+ arch/x86/power/hibernate_asm_32.S                  |   6 +-
+ arch/x86/power/hibernate_asm_64.S                  |  14 +-
+ arch/x86/purgatory/entry64.S                       |  21 +-
+ arch/x86/purgatory/setup-x86_64.S                  |  14 +-
+ arch/x86/purgatory/stack.S                         |   7 +-
+ arch/x86/realmode/rm/header.S                      |   8 +-
+ arch/x86/realmode/rm/reboot.S                      |  13 +-
+ arch/x86/realmode/rm/stack.S                       |  14 +-
+ arch/x86/realmode/rm/trampoline_32.S               |  16 +-
+ arch/x86/realmode/rm/trampoline_64.S               |  29 ++-
+ arch/x86/realmode/rm/trampoline_common.S           |   4 +-
+ arch/x86/realmode/rm/wakeup_asm.S                  |  15 +-
+ arch/x86/realmode/rmpiggy.S                        |  10 +-
+ arch/x86/um/vdso/vdso.S                            |   6 +-
+ arch/x86/xen/xen-asm.S                             |  20 +-
+ arch/x86/xen/xen-asm_32.S                          |   7 +-
+ arch/x86/xen/xen-asm_64.S                          |  34 +--
+ arch/x86/xen/xen-head.S                            |   8 +-
+ arch/x86/xen/xen-pvh.S                             |  15 +-
+ include/linux/linkage.h                            | 261 ++++++++++++++++++++-
+ 131 files changed, 1474 insertions(+), 982 deletions(-)
+ create mode 100644 Documentation/asm-annotations.rst
+
+-- 
+2.16.3
