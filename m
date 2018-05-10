@@ -1,77 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:5593 "EHLO mga03.intel.com"
+Received: from mx2.suse.de ([195.135.220.15]:56649 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1757217AbeEJMj0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 May 2018 08:39:26 -0400
-Date: Thu, 10 May 2018 20:29:12 +0800
-From: "Du, Changbin" <changbin.du@intel.com>
-Subject: Re: [PATCH v4 4/4] asm-generic: fix build error in fix_to_virt with
- CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-Message-ID: <20180510122912.mqmpy4j4dj2trb5r@intel.com>
-References: <1525855396-7908-1-git-send-email-changbin.du@intel.com>
- <1525855396-7908-5-git-send-email-changbin.du@intel.com>
- <20180509085224.34116e36@gandalf.local.home>
+        id S964827AbeEJPd4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 May 2018 11:33:56 -0400
+Date: Thu, 10 May 2018 15:33:55 +0000
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v2 2/2] mm: provide a fallback for PAGE_KERNEL_EXEC for
+ architectures
+Message-ID: <20180510153355.GB27853@wotan.suse.de>
+References: <20180510014447.15989-1-mcgrof@kernel.org>
+ <20180510014447.15989-3-mcgrof@kernel.org>
+ <CAMuHMdUJTKqqWzFi594_y_F1HdONr3+FOSTzg-n0ogoroFUqpA@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180509085224.34116e36@gandalf.local.home>
+In-Reply-To: <CAMuHMdUJTKqqWzFi594_y_F1HdONr3+FOSTzg-n0ogoroFUqpA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: changbin.du@intel.com, yamada.masahiro@socionext.com, michal.lkml@markovi.net, tglx@linutronix.de, mingo@redhat.com, akpm@linux-foundation.org, rdunlap@infradead.org, x86@kernel.org, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180510122912.do9mIM5V2ysW1rYbKgmyvZAz3P0lVvdFL5Cig8XW9e0@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg KH <gregkh@linuxfoundation.org>, Matthew Wilcox <willy@infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180510153355.sf3Z2aXrDFUy_waClOZ8fIjLPHIqKKyv8f9yPYxvywU@z>
 
-On Wed, May 09, 2018 at 08:52:24AM -0400, Steven Rostedt wrote:
-> On Wed,  9 May 2018 16:43:16 +0800
-> changbin.du@intel.com wrote:
+On Thu, May 10, 2018 at 09:45:56AM +0200, Geert Uytterhoeven wrote:
+> Hi Luis,
 > 
-> > From: Changbin Du <changbin.du@intel.com>
-> > 
-> > With '-Og' optimization level, GCC would not optimize a count for a loop
-> > as a constant value. But BUILD_BUG_ON() only accept compile-time constant
-> > values. Let's use __fix_to_virt() to avoid the error.
-> > 
-> > arch/arm/mm/mmu.o: In function `fix_to_virt':
-> > /home/changbin/work/linux/./include/asm-generic/fixmap.h:31: undefined reference to `__compiletime_assert_31'
-> > Makefile:1051: recipe for target 'vmlinux' failed
-> > make: *** [vmlinux] Error 1
+> On Thu, May 10, 2018 at 3:44 AM, Luis R. Rodriguez <mcgrof@kernel.org> wrote:
+> > Some architectures just don't have PAGE_KERNEL_EXEC. The mm/nommu.c
+> > and mm/vmalloc.c code have been using PAGE_KERNEL as a fallback for years.
+> > Move this fallback to asm-generic.
+> >
+> > Architectures which do not define PAGE_KERNEL_EXEC yet:
+> >
+> >   o alpha
+> >   o mips
+> >   o openrisc
+> >   o sparc64
 > 
-> Perhaps we should put this patch ahead of patch 3. Why allow it to
-> break?
-> 
-Agree, let me exchange the last two patches.
+> The above list seems to be far from complete?
 
-> Anyway, besides that, I think the series looks good.
-> 
-> For the series: Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> 
-> -- Steve
-> 
-> 
-> > 
-> > Signed-off-by: Changbin Du <changbin.du@intel.com>
-> > 
-> > ---
-> > v2: use __fix_to_virt() to fix the issue.
-> > ---
-> >  arch/arm/mm/mmu.c | 2 +-
-> >  1 file changed, 1 insertion(+), 1 deletion(-)
-> > 
-> > diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
-> > index e46a6a4..c08d74e 100644
-> > --- a/arch/arm/mm/mmu.c
-> > +++ b/arch/arm/mm/mmu.c
-> > @@ -1599,7 +1599,7 @@ static void __init early_fixmap_shutdown(void)
-> >  		pte_t *pte;
-> >  		struct map_desc map;
-> >  
-> > -		map.virtual = fix_to_virt(i);
-> > +		map.virtual = __fix_to_virt(i);
-> >  		pte = pte_offset_early_fixmap(pmd_off_k(map.virtual), map.virtual);
-> >  
-> >  		/* Only i/o device mappings are supported ATM */
-> 
+I'll look again. If you know of others lemme know.
 
--- 
-Thanks,
-Changbin Du
+  Luis
