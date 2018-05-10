@@ -1,86 +1,93 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [PATCH v2 2/2] mm: provide a fallback for PAGE_KERNEL_EXEC for architectures
-Date: Wed,  9 May 2018 18:44:47 -0700
-Message-ID: <20180510014447.15989-3-mcgrof@kernel.org>
-References: <20180510014447.15989-1-mcgrof@kernel.org>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [REVIEW][PATCH 08/22] signal/mips: Use force_sig_fault where appropriate
+Date: Wed, 09 May 2018 21:39:20 -0500
+Message-ID: <8736z0s087.fsf@xmission.com>
+References: <87604mhrnb.fsf@xmission.com>
+        <20180420143811.9994-8-ebiederm@xmission.com>
+        <e0a5bde2-7817-3e05-1c8d-c8fa8f6aa5f2@mips.com>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180510014447.15989-1-mcgrof@kernel.org>
+In-Reply-To: <e0a5bde2-7817-3e05-1c8d-c8fa8f6aa5f2@mips.com> (Matt Redfearn's
+        message of "Wed, 9 May 2018 16:14:40 +0100")
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: gregkh@linuxfoundation.org, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Luis R. Rodriguez" <mcgrof@kernel.org>
+To: Matt Redfearn <matt.redfearn@mips.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures just don't have PAGE_KERNEL_EXEC. The mm/nommu.c
-and mm/vmalloc.c code have been using PAGE_KERNEL as a fallback for years.
-Move this fallback to asm-generic.
+Matt Redfearn <matt.redfearn@mips.com> writes:
 
-Architectures which do not define PAGE_KERNEL_EXEC yet:
+> Hi Eric,
+>
+> On 20/04/18 15:37, Eric W. Biederman wrote:
+>> Filling in struct siginfo before calling force_sig_info a tedious and
+>> error prone process, where once in a great while the wrong fields
+>> are filled out, and siginfo has been inconsistently cleared.
+>>
+>> Simplify this process by using the helper force_sig_fault.  Which
+>> takes as a parameters all of the information it needs, ensures
+>> all of the fiddly bits of filling in struct siginfo are done properly
+>> and then calls force_sig_info.
+>>
+>> In short about a 5 line reduction in code for every time force_sig_info
+>> is called, which makes the calling function clearer.
+>>
+>> Cc: Ralf Baechle <ralf@linux-mips.org>
+>> Cc: James Hogan <jhogan@kernel.org>
+>> Cc: linux-mips@linux-mips.org
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+>> ---
+>>   arch/mips/kernel/traps.c | 65 ++++++++++++++----------------------------------
+>>   arch/mips/mm/fault.c     | 19 ++++----------
+>>   2 files changed, 23 insertions(+), 61 deletions(-)
+>>
+>> diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
+>> index 967e9e4e795e..66ec4b0b484d 100644
+>> --- a/arch/mips/kernel/traps.c
+>> +++ b/arch/mips/kernel/traps.c
+>> @@ -699,17 +699,11 @@ static int simulate_sync(struct pt_regs *regs, unsigned int opcode)
+>>   asmlinkage void do_ov(struct pt_regs *regs)
+>>   {
+>>   	enum ctx_state prev_state;
+>> -	siginfo_t info;
+>> -
+>> -	clear_siginfo(&info);
+>> -	info.si_signo = SIGFPE;
+>> -	info.si_code = FPE_INTOVF;
+>> -	info.si_addr = (void __user *)regs->cp0_epc;
+>>     	prev_state = exception_enter();
+>>   	die_if_kernel("Integer overflow", regs);
+>>   -	force_sig_info(SIGFPE, &info, current);
+>> +	force_sig_fault(SIGFPE, FPE_INTOVF, (void __user *)regs->cp0_epc, current);
+>>   	exception_exit(prev_state);
+>>   }
+>>   @@ -722,32 +716,27 @@ asmlinkage void do_ov(struct pt_regs *regs)
+>>   void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
+>>   		     struct task_struct *tsk)
+>>   {
+>> -	struct siginfo si;
+>> -
+>> -	clear_siginfo(&si);
+>> -	si.si_addr = fault_addr;
+>> -	si.si_signo = SIGFPE;
+>> +	int si_code;
+>
+> This is giving build errors in Linux next
+> (https://storage.kernelci.org/next/master/next-20180509/mips/defconfig+kselftest/build.log)
+>
+> si_code would have ended up as 0 before from the clear_siginfo(), but perhaps
 
-  o alpha
-  o mips
-  o openrisc
-  o sparc64
+And si_code 0 is not a valid si_code to use with a floating point
+siginfo layout.
 
-Suggested-by: Matthew Wilcox <willy@infradead.org>
-Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
----
- include/asm-generic/pgtable.h | 12 ++++++++++++
- mm/nommu.c                    |  4 ----
- mm/vmalloc.c                  |  4 ----
- 3 files changed, 12 insertions(+), 8 deletions(-)
+> int si_code = FPE_FLTUNK;
+>
+> Would make a more sensible default?
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 890fc54f4713..39e9bd66c786 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1107,6 +1107,18 @@ static inline void init_espfix_bsp(void) { }
- # define PAGE_KERNEL_RO PAGE_KERNEL
- #endif
- 
-+/*
-+ * Current architectures known to not define PAGE_KERNEL_EXEC:
-+ *
-+ *  o alpha
-+ *  o mips
-+ *  o openrisc
-+ *  o sparc64
-+ */
-+#ifndef PAGE_KERNEL_EXEC
-+# define PAGE_KERNEL_EXEC PAGE_KERNEL
-+#endif
-+
- #endif /* !__ASSEMBLY__ */
- 
- #ifndef io_remap_pfn_range
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 13723736d38f..08ad4dcd281d 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -364,10 +364,6 @@ void *vzalloc_node(unsigned long size, int node)
- }
- EXPORT_SYMBOL(vzalloc_node);
- 
--#ifndef PAGE_KERNEL_EXEC
--# define PAGE_KERNEL_EXEC PAGE_KERNEL
--#endif
--
- /**
-  *	vmalloc_exec  -  allocate virtually contiguous, executable memory
-  *	@size:		allocation size
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index ebff729cc956..89543d13e32a 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1920,10 +1920,6 @@ void *vzalloc_node(unsigned long size, int node)
- }
- EXPORT_SYMBOL(vzalloc_node);
- 
--#ifndef PAGE_KERNEL_EXEC
--# define PAGE_KERNEL_EXEC PAGE_KERNEL
--#endif
--
- /**
-  *	vmalloc_exec  -  allocate virtually contiguous, executable memory
-  *	@size:		allocation size
--- 
-2.17.0
+FPE_FLTUNK would make a more sensible default.
+
+I seem to remember someone telling me that case can never happen in
+practice so I have simply not worried about it.  Perhaps I am
+misremembering this.
+
+Eric
