@@ -1,115 +1,167 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:51697 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:51893 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756740AbeEJIGs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 May 2018 04:06:48 -0400
+        id S1756776AbeEJIHD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 May 2018 04:07:03 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH -resend 02/27] x86: assembly, use SYM_DATA for data
-Date: Thu, 10 May 2018 10:06:19 +0200
-Message-ID: <20180510080644.19752-3-jslaby@suse.cz>
+Subject: [PATCH -resend 14/27] x86: purgatory, start using annotations
+Date: Thu, 10 May 2018 10:06:31 +0200
+Message-ID: <20180510080644.19752-15-jslaby@suse.cz>
 In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
 References: <20180510080644.19752-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
-Message-ID: <20180510080619.KdOfPegmwW2w3p2Dxg7ma4rUj5j8mZDKRRhT6Ejv0HA@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20180510080631.uanghpf70uGXaEYHZ59HjNwIVVQ5LIQkAqgIt3SHJeU@z>
 
-We make proper use of SYM_DATA on global data instead of marking them as
-ENTRY. ENTRY is intended for functions and shall be paired with ENDPROC.
-ENTRY also aligns symbols which creates unnecessary holes here between
-data.
-
-ENTRY from saved_eip in wakeup_32 and many saved_* in wakeup_64 is
-simply dropped, as these symbols are local only.
+purgatory used no annotations. So include linux/linkage.h and annotate
+everything:
+* code by SYM_CODE_*
+* data by SYM_DATA_*
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Pavel Machek <pavel@ucw.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: linux-pm@vger.kernel.org
 ---
- arch/x86/kernel/acpi/wakeup_32.S |  4 ++--
- arch/x86/kernel/acpi/wakeup_64.S | 14 +++++++-------
- arch/x86/kernel/head_32.S        |  6 ++----
- arch/x86/kernel/head_64.S        |  5 ++---
- 4 files changed, 13 insertions(+), 16 deletions(-)
+ arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
+ arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
+ arch/x86/purgatory/stack.S        |  7 ++++---
+ 3 files changed, 24 insertions(+), 18 deletions(-)
 
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 0c26b1b44e51..feac1e5ecba0 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -89,8 +89,8 @@ ret_point:
+diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
+index d1a4291d3568..c51e3c999e38 100644
+--- a/arch/x86/purgatory/entry64.S
++++ b/arch/x86/purgatory/entry64.S
+@@ -10,13 +10,13 @@
+  * Version 2.  See the file COPYING for more details.
+  */
  
- .data
- ALIGN
--ENTRY(saved_magic)	.long	0
--ENTRY(saved_eip)	.long	0
-+SYM_DATA(saved_magic,	.long 0)
-+saved_eip:		.long 0
++#include <linux/linkage.h>
++
+ 	.text
+ 	.balign 16
+ 	.code64
+-	.globl entry64, entry64_regs
+-
  
- # saved registers
- saved_idt:	.long	0,0
-diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index 50b8ed0317a3..551758f48eb7 100644
---- a/arch/x86/kernel/acpi/wakeup_64.S
-+++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -125,12 +125,12 @@ ENTRY(do_suspend_lowlevel)
- ENDPROC(do_suspend_lowlevel)
+-entry64:
++SYM_CODE_START(entry64)
+ 	/* Setup a gdt that should be preserved */
+ 	lgdt gdt(%rip)
  
- .data
--ENTRY(saved_rbp)	.quad	0
--ENTRY(saved_rsi)	.quad	0
--ENTRY(saved_rdi)	.quad	0
--ENTRY(saved_rbx)	.quad	0
-+saved_rbp:		.quad	0
-+saved_rsi:		.quad	0
-+saved_rdi:		.quad	0
-+saved_rbx:		.quad	0
+@@ -56,10 +56,11 @@ new_cs_exit:
  
--ENTRY(saved_rip)	.quad	0
--ENTRY(saved_rsp)	.quad	0
-+saved_rip:		.quad	0
-+saved_rsp:		.quad	0
+ 	/* Jump to the new code... */
+ 	jmpq	*rip(%rip)
++SYM_CODE_END(entry64)
  
--ENTRY(saved_magic)	.quad	0
-+SYM_DATA(saved_magic,	.quad	0)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index b59e4fb40fd9..80965fd75fea 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
+ 	.section ".rodata"
+ 	.balign 4
+-entry64_regs:
++SYM_DATA_START(entry64_regs)
+ rax:	.quad 0x0
+ rcx:	.quad 0x0
+ rdx:	.quad 0x0
+@@ -77,12 +78,12 @@ r13:	.quad 0x0
+ r14:	.quad 0x0
+ r15:	.quad 0x0
+ rip:	.quad 0x0
+-	.size entry64_regs, . - entry64_regs
++SYM_DATA_END(entry64_regs)
  
- __REFDATA
- 	.align 4
--ENTRY(initial_code)
--	.long i386_start_kernel
--ENTRY(setup_once_ref)
--	.long setup_once
-+SYM_DATA(initial_code,		.long i386_start_kernel)
-+SYM_DATA(setup_once_ref,	.long setup_once)
+ 	/* GDT */
+ 	.section ".rodata"
+ 	.balign 16
+-gdt:
++SYM_DATA_START_LOCAL(gdt)
+ 	/* 0x00 unusable segment
+ 	 * 0x08 unused
+ 	 * so use them as gdt ptr
+@@ -96,6 +97,8 @@ gdt:
  
- /*
-  * BSS section
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 8344dd2f310a..17543533642d 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -463,9 +463,8 @@ early_gdt_descr:
- early_gdt_descr_base:
- 	.quad	INIT_PER_CPU_VAR(gdt_page)
+ 	/* 0x18 4GB flat data segment */
+ 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
+-gdt_end:
+-stack:	.quad   0, 0
+-stack_init:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
++
++SYM_DATA_START_LOCAL(stack)
++	.quad   0, 0
++SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
+diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
+index dfae9b9e60b5..f0de104d3f3a 100644
+--- a/arch/x86/purgatory/setup-x86_64.S
++++ b/arch/x86/purgatory/setup-x86_64.S
+@@ -9,14 +9,14 @@
+  * This source code is licensed under the GNU General Public License,
+  * Version 2.  See the file COPYING for more details.
+  */
++#include <linux/linkage.h>
+ #include <asm/purgatory.h>
  
--ENTRY(phys_base)
--	/* This must match the first entry in level2_kernel_pgt */
--	.quad   0x0000000000000000
-+/* This must match the first entry in level2_kernel_pgt */
-+SYM_DATA(phys_base, .quad 0x0000000000000000)
- EXPORT_SYMBOL(phys_base)
+ 	.text
+-	.globl purgatory_start
+ 	.balign 16
+-purgatory_start:
+ 	.code64
  
- #include "../../x86/xen/xen-head.S"
++SYM_CODE_START(purgatory_start)
+ 	/* Load a gdt so I know what the segment registers are */
+ 	lgdt	gdt(%rip)
+ 
+@@ -34,10 +34,12 @@ purgatory_start:
+ 	/* Call the C code */
+ 	call purgatory
+ 	jmp	entry64
++SYM_CODE_END(purgatory_start)
+ 
+ 	.section ".rodata"
+ 	.balign 16
+-gdt:	/* 0x00 unusable segment
++SYM_DATA_START_LOCAL(gdt)
++	/* 0x00 unusable segment
+ 	 * 0x08 unused
+ 	 * so use them as the gdt ptr
+ 	 */
+@@ -50,10 +52,10 @@ gdt:	/* 0x00 unusable segment
+ 
+ 	/* 0x18 4GB flat data segment */
+ 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
+-gdt_end:
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
+ 
+ 	.bss
+ 	.balign 4096
+-lstack:
++SYM_DATA_START_LOCAL(lstack)
+ 	.skip 4096
+-lstack_end:
++SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
+diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
+index 50a4147f91fb..987e6510a960 100644
+--- a/arch/x86/purgatory/stack.S
++++ b/arch/x86/purgatory/stack.S
+@@ -7,13 +7,14 @@
+  * Version 2.  See the file COPYING for more details.
+  */
+ 
++#include <linux/linkage.h>
++
+ 	/* A stack for the loaded kernel.
+ 	 * Separate and in the data section so it can be prepopulated.
+ 	 */
+ 	.data
+ 	.balign 4096
+-	.globl stack, stack_end
+ 
+-stack:
++SYM_DATA_START(stack)
+ 	.skip 4096
+-stack_end:
++SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
 -- 
 2.16.3
