@@ -1,55 +1,69 @@
-From: John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 04/20] arm-nommu: use generic dma_noncoherent_ops
-Date: Fri, 11 May 2018 14:56:16 +0100
-Message-ID: <73603c68-da05-22bd-efab-d0387a98225d@huawei.com>
-References: <20180511075945.16548-1-hch@lst.de>
-	<20180511075945.16548-5-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180511075945.16548-5-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH REPOST 0/5] Simplify setting thread flags to a particular value
+Date: Fri, 11 May 2018 16:04:59 +0100
+Message-ID: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 11/05/2018 08:59, Christoph Hellwig wrote:
-> Switch to the generic noncoherent direct mapping implementation for
-> the nommu dma map implementation.
->
-> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-> ---
->  arch/arc/Kconfig                |   1 +
->  arch/arm/Kconfig                |   4 +
->  arch/arm/mm/dma-mapping-nommu.c | 139 +++++---------------------------
->  3 files changed, 23 insertions(+), 121 deletions(-)
->
-> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-> index 89d47eac18b2..3a492a9aeaad 100644
-> --- a/arch/arc/Kconfig
-> +++ b/arch/arc/Kconfig
-> @@ -9,6 +9,7 @@
->  config ARC
->  	def_bool y
->  	select ARC_TIMERS
-> +	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
->  	select ARCH_HAS_SYNC_DMA_FOR_CPU
->  	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+There are a number of bits of code sprinkled around the kernel to
+set a thread flag if a certain condition is true, and clear it
+otherwise.
 
-I guess that this arc change is here by accident, no? And isn't 
-ARCH_HAS_SYNC_DMA_FOR_DEVICE already selected (by 3/20)?
+This series ports relevant bits of code to use the new
+update_thread_flag() helpers implemented in [2].
 
->  	select ARCH_HAS_SG_CHAIN
-> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> index c43f5bb55ac8..76ddd0064f87 100644
-> --- a/arch/arm/Kconfig
-> +++ b/arch/arm/Kconfig
+
+Note: This is a repost of a previous RFC [1].  Part of patch 1, and
+all of patch 4 of that series have been split out and reviewed
+separately ([2], [3] respectively).  I currently expect them to merge
+via Marc's KVM tree.
+
+The remainder of the patches from [1] are reposted here.
+
+Patch 1 ports some core code that to use the update_thread_flag()
+helpers.
+
+The remaining patches port relevant bits of arch code.
+
+Build-tested on the affected architectures; some context switch stress
+testing done on arm64, which exercises a few call sites for the new
+helpers.
+
+Comments welcome.
+
+Cheers
+---Dave
+
+
+[1] [RFC PATCH 0/6] Simplify setting thread flags to a particular value
+https://lkml.org/lkml/2018/4/19/225
+
+[2] [PATCH v7 01/16] thread_info: Add update_thread_flag() helpers
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/576596.html
+
+[3] [PATCH v7 02/16] arm64: Use update{,_tsk}_thread_flag()
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/576597.html
+
+Dave Martin (5):
+  thread_info: Port core code to use update_thread_flag() helpers
+  ARM: Use update_thread_flag()
+  MIPS: Use update{,_tsk}_thread_flag()
+  powerpc: Use update_thread_flag()
+  sparc: Use update_thread_flag()
+
+ arch/arm/kernel/elf.c           |  9 +++------
+ arch/mips/kernel/elf.c          | 10 ++--------
+ arch/mips/kernel/process.c      | 15 ++++++---------
+ arch/mips/kernel/ptrace.c       |  5 +----
+ arch/mips/kernel/syscall.c      | 10 ++--------
+ arch/powerpc/include/asm/elf.h  | 10 ++--------
+ arch/sparc/include/asm/elf_64.h |  5 +----
+ include/trace/syscall.h         |  6 ++----
+ kernel/ptrace.c                 | 13 +++++--------
+ 9 files changed, 24 insertions(+), 59 deletions(-)
+
+-- 
+2.1.4
