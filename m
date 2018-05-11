@@ -1,69 +1,72 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH REPOST 0/5] Simplify setting thread flags to a particular value
-Date: Fri, 11 May 2018 16:04:59 +0100
-Message-ID: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH REPOST 1/5] thread_info: Port core code to use update_thread_flag() helpers
+Date: Fri, 11 May 2018 16:05:00 +0100
+Message-ID: <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
+References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-There are a number of bits of code sprinkled around the kernel to
-set a thread flag if a certain condition is true, and clear it
-otherwise.
+This patch ports a couple of relevant bits of the core kernel to
+use the new update_thread_flag() helpers.
 
-This series ports relevant bits of code to use the new
-update_thread_flag() helpers implemented in [2].
+No functional change.
 
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+---
+ include/trace/syscall.h |  6 ++----
+ kernel/ptrace.c         | 13 +++++--------
+ 2 files changed, 7 insertions(+), 12 deletions(-)
 
-Note: This is a repost of a previous RFC [1].  Part of patch 1, and
-all of patch 4 of that series have been split out and reviewed
-separately ([2], [3] respectively).  I currently expect them to merge
-via Marc's KVM tree.
-
-The remainder of the patches from [1] are reposted here.
-
-Patch 1 ports some core code that to use the update_thread_flag()
-helpers.
-
-The remaining patches port relevant bits of arch code.
-
-Build-tested on the affected architectures; some context switch stress
-testing done on arm64, which exercises a few call sites for the new
-helpers.
-
-Comments welcome.
-
-Cheers
----Dave
-
-
-[1] [RFC PATCH 0/6] Simplify setting thread flags to a particular value
-https://lkml.org/lkml/2018/4/19/225
-
-[2] [PATCH v7 01/16] thread_info: Add update_thread_flag() helpers
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/576596.html
-
-[3] [PATCH v7 02/16] arm64: Use update{,_tsk}_thread_flag()
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/576597.html
-
-Dave Martin (5):
-  thread_info: Port core code to use update_thread_flag() helpers
-  ARM: Use update_thread_flag()
-  MIPS: Use update{,_tsk}_thread_flag()
-  powerpc: Use update_thread_flag()
-  sparc: Use update_thread_flag()
-
- arch/arm/kernel/elf.c           |  9 +++------
- arch/mips/kernel/elf.c          | 10 ++--------
- arch/mips/kernel/process.c      | 15 ++++++---------
- arch/mips/kernel/ptrace.c       |  5 +----
- arch/mips/kernel/syscall.c      | 10 ++--------
- arch/powerpc/include/asm/elf.h  | 10 ++--------
- arch/sparc/include/asm/elf_64.h |  5 +----
- include/trace/syscall.h         |  6 ++----
- kernel/ptrace.c                 | 13 +++++--------
- 9 files changed, 24 insertions(+), 59 deletions(-)
-
+diff --git a/include/trace/syscall.h b/include/trace/syscall.h
+index dc8ac27..dcc9bdf 100644
+--- a/include/trace/syscall.h
++++ b/include/trace/syscall.h
+@@ -37,10 +37,8 @@ struct syscall_metadata {
+ #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
+ static inline void syscall_tracepoint_update(struct task_struct *p)
+ {
+-	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+-		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
+-	else
+-		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
++	update_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT,
++			       test_thread_flag(TIF_SYSCALL_TRACEPOINT));
+ }
+ #else
+ static inline void syscall_tracepoint_update(struct task_struct *p)
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 21fec73..7a2bd8d 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -785,16 +785,13 @@ static int ptrace_resume(struct task_struct *child, long request,
+ 	if (!valid_signal(data))
+ 		return -EIO;
+ 
+-	if (request == PTRACE_SYSCALL)
+-		set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+-	else
+-		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
++	update_tsk_thread_flag(child, TIF_SYSCALL_TRACE,
++			       request == PTRACE_SYSCALL);
+ 
+ #ifdef TIF_SYSCALL_EMU
+-	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
+-		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
+-	else
+-		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
++	update_tsk_thread_flag(child, TIF_SYSCALL_EMU,
++			       request == PTRACE_SYSEMU ||
++			       request == PTRACE_SYSEMU_SINGLESTEP);
+ #endif
+ 
+ 	if (is_singleblock(request)) {
 -- 
 2.1.4
