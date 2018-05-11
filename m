@@ -1,133 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:53447 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752155AbeEKQVk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:40 -0400
-Received: by mail-wm0-f65.google.com with SMTP id a67-v6so3528452wmf.3
-        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:40 -0700 (PDT)
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:40819 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752120AbeEKQVd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:33 -0400
+Received: by mail-wr0-f195.google.com with SMTP id v60-v6so5896287wrc.7
+        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:32 -0700 (PDT)
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH 07/12] of/platform: provide a separate routine for setting up device resources
-Date: Fri, 11 May 2018 18:20:23 +0200
-Message-ID: <20180511162028.20616-8-brgl@bgdev.pl>
+Subject: [PATCH 04/12] platform: provide a separate function for initializing platform devices
+Date: Fri, 11 May 2018 18:20:20 +0200
+Message-ID: <20180511162028.20616-5-brgl@bgdev.pl>
 In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
 References: <20180511162028.20616-1-brgl@bgdev.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
 Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
-Message-ID: <20180511162023.cWAacb4sQtgroNKDLK1ii7PZ9PNF1zbsui2n-Vz-q8o@z>
+Message-ID: <20180511162020.dONwUMs18pqAYpM1lVcnZou0Fd-wJ_HTpZqJXaUDh4w@z>
 
 From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 
-The early platform driver framework will need to setup the device
-resources before the regular populating of the device tree happens.
-
-Provide a separate function for that.
+The early platform driver framework will allocate platform devices
+using its own internal mechanisms. Provide a function that allows to
+initialize a platform device object without allocating it.
 
 Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 ---
- drivers/of/platform.c       | 54 +++++++++++++++++++++++--------------
- include/linux/of_platform.h |  2 ++
- 2 files changed, 36 insertions(+), 20 deletions(-)
+ drivers/base/platform.c         | 24 ++++++++++++++++++++----
+ include/linux/platform_device.h |  2 ++
+ 2 files changed, 22 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/of/platform.c b/drivers/of/platform.c
-index c00d81dfac0b..24791e558ec5 100644
---- a/drivers/of/platform.c
-+++ b/drivers/of/platform.c
-@@ -99,24 +99,12 @@ static void of_device_make_bus_id(struct device *dev)
- 	}
+diff --git a/drivers/base/platform.c b/drivers/base/platform.c
+index 0c53e3e3e5aa..0ba4effb9618 100644
+--- a/drivers/base/platform.c
++++ b/drivers/base/platform.c
+@@ -252,6 +252,25 @@ static void platform_device_release(struct device *dev)
+ 	kfree(pa);
  }
  
--/**
-- * of_device_alloc - Allocate and initialize an of_device
-- * @np: device node to assign to device
-- * @bus_id: Name to assign to the device.  May be null to use default name.
-- * @parent: Parent device.
-- */
--struct platform_device *of_device_alloc(struct device_node *np,
--				  const char *bus_id,
--				  struct device *parent)
-+int of_device_init_resources(struct platform_device *pdev,
-+			     struct device_node *np)
- {
--	struct platform_device *dev;
- 	int rc, i, num_reg = 0, num_irq;
- 	struct resource *res, temp_res;
- 
--	dev = platform_device_alloc("", PLATFORM_DEVID_NONE);
--	if (!dev)
--		return NULL;
--
- 	/* count the io and irq resources */
- 	while (of_address_to_resource(np, num_reg, &temp_res) == 0)
- 		num_reg++;
-@@ -125,22 +113,48 @@ struct platform_device *of_device_alloc(struct device_node *np,
- 	/* Populate the resource table */
- 	if (num_irq || num_reg) {
- 		res = kzalloc(sizeof(*res) * (num_irq + num_reg), GFP_KERNEL);
--		if (!res) {
--			platform_device_put(dev);
--			return NULL;
--		}
-+		if (!res)
-+			return -ENOMEM;
++/**
++ * platform_device_init - initialize a platform device
++ * @pdev: platform device to initialize
++ * @name: base name of the device we're adding, NOTE: it's not copied
++ * @id: instance id
++ *
++ * Initiate an already allocated platform device. This routine does not set
++ * the release device callback.
++ */
++void platform_device_init(struct platform_device *pdev,
++			  const char *name, int id)
++{
++	pdev->name = name;
++	pdev->id = id;
++	device_initialize(&pdev->dev);
++	arch_setup_pdev_archdata(pdev);
++}
++EXPORT_SYMBOL_GPL(platform_device_init);
 +
-+		pdev->num_resources = num_reg + num_irq;
-+		pdev->resource = res;
- 
--		dev->num_resources = num_reg + num_irq;
--		dev->resource = res;
- 		for (i = 0; i < num_reg; i++, res++) {
- 			rc = of_address_to_resource(np, i, res);
- 			WARN_ON(rc);
- 		}
-+
- 		if (of_irq_to_resource_table(np, res, num_irq) != num_irq)
- 			pr_debug("not all legacy IRQ resources mapped for %s\n",
- 				 np->name);
+ /**
+  * platform_device_alloc - create a platform device
+  * @name: base name of the device we're adding
+@@ -267,11 +286,8 @@ struct platform_device *platform_device_alloc(const char *name, int id)
+ 	pa = kzalloc(sizeof(*pa) + strlen(name) + 1, GFP_KERNEL);
+ 	if (pa) {
+ 		strcpy(pa->name, name);
+-		pa->pdev.name = pa->name;
+-		pa->pdev.id = id;
+-		device_initialize(&pa->pdev.dev);
++		platform_device_init(&pa->pdev, pa->name, id);
+ 		pa->pdev.dev.release = platform_device_release;
+-		arch_setup_pdev_archdata(&pa->pdev);
  	}
  
-+	return 0;
-+}
-+
-+/**
-+ * of_device_alloc - Allocate and initialize an of_device
-+ * @np: device node to assign to device
-+ * @bus_id: Name to assign to the device.  May be null to use default name.
-+ * @parent: Parent device.
-+ */
-+struct platform_device *of_device_alloc(struct device_node *np,
-+				  const char *bus_id,
-+				  struct device *parent)
-+{
-+	struct platform_device *dev;
-+	int rc;
-+
-+	dev = platform_device_alloc("", PLATFORM_DEVID_NONE);
-+	if (!dev)
-+		return NULL;
-+
-+	rc = of_device_init_resources(dev, np);
-+	if (rc) {
-+		platform_device_put(dev);
-+		return NULL;
-+	}
-+
- 	dev->dev.of_node = of_node_get(np);
- 	dev->dev.fwnode = &np->fwnode;
- 	dev->dev.parent = parent ? : &platform_bus;
-diff --git a/include/linux/of_platform.h b/include/linux/of_platform.h
-index 84a966623e78..387ab4d4a210 100644
---- a/include/linux/of_platform.h
-+++ b/include/linux/of_platform.h
-@@ -52,6 +52,8 @@ extern const struct of_device_id of_default_bus_match_table[];
- extern struct platform_device *of_device_alloc(struct device_node *np,
- 					 const char *bus_id,
- 					 struct device *parent);
-+extern int of_device_init_resources(struct platform_device *pdev,
-+				    struct device_node *np);
- #ifdef CONFIG_OF
- extern struct platform_device *of_find_device_by_node(struct device_node *np);
- #else
+ 	return pa ? &pa->pdev : NULL;
+diff --git a/include/linux/platform_device.h b/include/linux/platform_device.h
+index 099aaf804b50..46bfd5ff666f 100644
+--- a/include/linux/platform_device.h
++++ b/include/linux/platform_device.h
+@@ -165,6 +165,8 @@ static inline struct platform_device *platform_device_register_data(
+ 			NULL, 0, data, size);
+ }
+ 
++extern void platform_device_init(struct platform_device *pdev,
++				 const char *name, int id);
+ extern struct platform_device *platform_device_alloc(const char *name, int id);
+ extern int platform_device_add_resources(struct platform_device *pdev,
+ 					 const struct resource *res,
 -- 
 2.17.0
