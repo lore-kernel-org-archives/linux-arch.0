@@ -1,77 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:43150 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:43238 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753145AbeEKPFy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 May 2018 11:05:54 -0400
+        id S1753421AbeEKPGE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 May 2018 11:06:04 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH REPOST 1/5] thread_info: Port core code to use update_thread_flag() helpers
-Date: Fri, 11 May 2018 16:05:00 +0100
-Message-ID: <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH REPOST 5/5] sparc: Use update_thread_flag()
+Date: Fri, 11 May 2018 16:05:04 +0100
+Message-ID: <1526051104-15995-6-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
 References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20180511150500.6KGZJSll6meRTbTzfdDBn8QRM2PF7LaZkONye8_1W5A@z>
+Message-ID: <20180511150504.gXWq6oPs4f3bHDhs3RBtUa1e8NrE2iE9LaPa8-MVs38@z>
 
-This patch ports a couple of relevant bits of the core kernel to
-use the new update_thread_flag() helpers.
+This patch uses the new update_thread_flag() helper to simplify an
+if () set; else clear; construct.
 
 No functional change.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
- include/trace/syscall.h |  6 ++----
- kernel/ptrace.c         | 13 +++++--------
- 2 files changed, 7 insertions(+), 12 deletions(-)
+ arch/sparc/include/asm/elf_64.h | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-index dc8ac27..dcc9bdf 100644
---- a/include/trace/syscall.h
-+++ b/include/trace/syscall.h
-@@ -37,10 +37,8 @@ struct syscall_metadata {
- #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
- static inline void syscall_tracepoint_update(struct task_struct *p)
- {
--	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
--		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
--	else
--		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-+	update_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT,
-+			       test_thread_flag(TIF_SYSCALL_TRACEPOINT));
- }
- #else
- static inline void syscall_tracepoint_update(struct task_struct *p)
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 21fec73..7a2bd8d 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -785,16 +785,13 @@ static int ptrace_resume(struct task_struct *child, long request,
- 	if (!valid_signal(data))
- 		return -EIO;
+diff --git a/arch/sparc/include/asm/elf_64.h b/arch/sparc/include/asm/elf_64.h
+index 7e078bc..f1ef89c 100644
+--- a/arch/sparc/include/asm/elf_64.h
++++ b/arch/sparc/include/asm/elf_64.h
+@@ -202,10 +202,7 @@ extern unsigned long sparc64_elf_hwcap;
+ #define ELF_PLATFORM	(NULL)
  
--	if (request == PTRACE_SYSCALL)
--		set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
--	else
--		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-+	update_tsk_thread_flag(child, TIF_SYSCALL_TRACE,
-+			       request == PTRACE_SYSCALL);
- 
- #ifdef TIF_SYSCALL_EMU
--	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
--		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
--	else
--		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-+	update_tsk_thread_flag(child, TIF_SYSCALL_EMU,
-+			       request == PTRACE_SYSEMU ||
-+			       request == PTRACE_SYSEMU_SINGLESTEP);
- #endif
- 
- 	if (is_singleblock(request)) {
+ #define SET_PERSONALITY(ex)				\
+-do {	if ((ex).e_ident[EI_CLASS] == ELFCLASS32)	\
+-		set_thread_flag(TIF_32BIT);		\
+-	else						\
+-		clear_thread_flag(TIF_32BIT);		\
++do {	update_thread_flag(TIF_32BIT, (ex).e_ident[EI_CLASS] == ELFCLASS32); \
+ 	/* flush_thread will update pgd cache */	\
+ 	if (personality(current->personality) != PER_LINUX32)	\
+ 		set_personality(PER_LINUX |		\
 -- 
 2.1.4
