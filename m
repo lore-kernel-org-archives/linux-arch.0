@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 18/20] xtensa: use generic dma_noncoherent_ops
-Date: Fri, 11 May 2018 09:59:43 +0200
-Message-ID: <20180511075945.16548-19-hch@lst.de>
+Subject: [PATCH 19/20] sparc: use generic dma_noncoherent_ops
+Date: Fri, 11 May 2018 09:59:44 +0200
+Message-ID: <20180511075945.16548-20-hch@lst.de>
 References: <20180511075945.16548-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,277 +23,242 @@ List-Id: linux-arch.vger.kernel.org
 
 Switch to the generic noncoherent direct mapping implementation.
 
+This removes the previous sync_single_for_device implementation, which
+looks bogus given that no syncing is happening in the similar but more
+important map_single case.
+
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/xtensa/Kconfig                   |   3 +
- arch/xtensa/include/asm/Kbuild        |   1 +
- arch/xtensa/include/asm/dma-mapping.h |  26 ------
- arch/xtensa/kernel/pci-dma.c          | 130 +++-----------------------
- 4 files changed, 19 insertions(+), 141 deletions(-)
- delete mode 100644 arch/xtensa/include/asm/dma-mapping.h
+ arch/sparc/Kconfig                   |   2 +
+ arch/sparc/include/asm/dma-mapping.h |   5 +-
+ arch/sparc/kernel/ioport.c           | 151 ++-------------------------
+ 3 files changed, 14 insertions(+), 144 deletions(-)
 
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index 17df332269b2..ef114648e954 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -5,11 +5,14 @@ config ZONE_DMA
- config XTENSA
- 	def_bool y
- 	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 435dbc033afe..0889b4eabf8b 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -48,6 +48,8 @@ config SPARC
+ 
+ config SPARC32
+ 	def_bool !64BIT
 +	select ARCH_HAS_SYNC_DMA_FOR_CPU
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select ARCH_WANT_FRAME_POINTERS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select BUILDTIME_EXTABLE_SORT
- 	select CLONE_BACKWARDS
- 	select COMMON_CLK
 +	select DMA_NONCOHERENT_OPS
  	select GENERIC_ATOMIC64
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_IRQ_SHOW
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index 436b20337168..a8d6cd3bee4b 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -2,6 +2,7 @@ generic-y += bug.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += dma-contiguous.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/xtensa/include/asm/dma-mapping.h b/arch/xtensa/include/asm/dma-mapping.h
-deleted file mode 100644
-index 44098800dad7..000000000000
---- a/arch/xtensa/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,26 +0,0 @@
--/*
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * Copyright (C) 2003 - 2005 Tensilica Inc.
-- * Copyright (C) 2015 Cadence Design Systems Inc.
-- */
--
--#ifndef _XTENSA_DMA_MAPPING_H
--#define _XTENSA_DMA_MAPPING_H
--
--#include <asm/cache.h>
--#include <asm/io.h>
--
--#include <linux/mm.h>
--#include <linux/scatterlist.h>
--
--extern const struct dma_map_ops xtensa_dma_map_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
--{
--	return &xtensa_dma_map_ops;
--}
--
--#endif	/* _XTENSA_DMA_MAPPING_H */
-diff --git a/arch/xtensa/kernel/pci-dma.c b/arch/xtensa/kernel/pci-dma.c
-index 392b4a80ebc2..a83d60e92908 100644
---- a/arch/xtensa/kernel/pci-dma.c
-+++ b/arch/xtensa/kernel/pci-dma.c
-@@ -16,26 +16,24 @@
-  */
+ 	select CLZ_TAB
+ 	select HAVE_UID16
+diff --git a/arch/sparc/include/asm/dma-mapping.h b/arch/sparc/include/asm/dma-mapping.h
+index 12ae33daf52f..e17566376934 100644
+--- a/arch/sparc/include/asm/dma-mapping.h
++++ b/arch/sparc/include/asm/dma-mapping.h
+@@ -7,7 +7,6 @@
+ #include <linux/dma-debug.h>
  
- #include <linux/dma-contiguous.h>
+ extern const struct dma_map_ops *dma_ops;
+-extern const struct dma_map_ops pci32_dma_ops;
+ 
+ extern struct bus_type pci_bus_type;
+ 
+@@ -15,11 +14,11 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ {
+ #ifdef CONFIG_SPARC_LEON
+ 	if (sparc_cpu_model == sparc_leon)
+-		return &pci32_dma_ops;
++		return &dma_noncoherent_ops;
+ #endif
+ #if defined(CONFIG_SPARC32) && defined(CONFIG_PCI)
+ 	if (bus == &pci_bus_type)
+-		return &pci32_dma_ops;
++		return &dma_noncoherent_ops;
+ #endif
+ 	return dma_ops;
+ }
+diff --git a/arch/sparc/kernel/ioport.c b/arch/sparc/kernel/ioport.c
+index 3bcef9ce74df..7954512c42e7 100644
+--- a/arch/sparc/kernel/ioport.c
++++ b/arch/sparc/kernel/ioport.c
+@@ -38,6 +38,7 @@
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+ #include <linux/scatterlist.h>
 +#include <linux/dma-noncoherent.h>
- #include <linux/dma-direct.h>
- #include <linux/gfp.h>
- #include <linux/highmem.h>
- #include <linux/mm.h>
--#include <linux/module.h>
--#include <linux/pci.h>
--#include <linux/string.h>
- #include <linux/types.h>
- #include <asm/cacheflush.h>
+ #include <linux/of_device.h>
+ 
  #include <asm/io.h>
- 
--static void do_cache_op(dma_addr_t dma_handle, size_t size,
-+static void do_cache_op(phys_addr_t paddr, size_t size,
- 			void (*fn)(unsigned long, unsigned long))
- {
--	unsigned long off = dma_handle & (PAGE_SIZE - 1);
--	unsigned long pfn = PFN_DOWN(dma_handle);
-+	unsigned long off = paddr & (PAGE_SIZE - 1);
-+	unsigned long pfn = PFN_DOWN(paddr);
- 	struct page *page = pfn_to_page(pfn);
- 
- 	if (!PageHighMem(page))
--		fn((unsigned long)bus_to_virt(dma_handle), size);
-+		fn((unsigned long)phys_to_virt(paddr), size);
- 	else
- 		while (size > 0) {
- 			size_t sz = min_t(size_t, size, PAGE_SIZE - off);
-@@ -49,14 +47,13 @@ static void do_cache_op(dma_addr_t dma_handle, size_t size,
- 		}
- }
- 
--static void xtensa_sync_single_for_cpu(struct device *dev,
--				       dma_addr_t dma_handle, size_t size,
--				       enum dma_data_direction dir)
-+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
- {
- 	switch (dir) {
- 	case DMA_BIDIRECTIONAL:
- 	case DMA_FROM_DEVICE:
--		do_cache_op(dma_handle, size, __invalidate_dcache_range);
-+		do_cache_op(paddr, size, __invalidate_dcache_range);
- 		break;
- 
- 	case DMA_NONE:
-@@ -68,15 +65,14 @@ static void xtensa_sync_single_for_cpu(struct device *dev,
- 	}
- }
- 
--static void xtensa_sync_single_for_device(struct device *dev,
--					  dma_addr_t dma_handle, size_t size,
--					  enum dma_data_direction dir)
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+		size_t size, enum dma_data_direction dir)
- {
- 	switch (dir) {
- 	case DMA_BIDIRECTIONAL:
- 	case DMA_TO_DEVICE:
- 		if (XCHAL_DCACHE_IS_WRITEBACK)
--			do_cache_op(dma_handle, size, __flush_dcache_range);
-+			do_cache_op(paddr, size, __flush_dcache_range);
- 		break;
- 
- 	case DMA_NONE:
-@@ -88,40 +84,13 @@ static void xtensa_sync_single_for_device(struct device *dev,
- 	}
- }
- 
--static void xtensa_sync_sg_for_cpu(struct device *dev,
--				   struct scatterlist *sg, int nents,
--				   enum dma_data_direction dir)
--{
--	struct scatterlist *s;
--	int i;
--
--	for_each_sg(sg, s, nents, i) {
--		xtensa_sync_single_for_cpu(dev, sg_dma_address(s),
--					   sg_dma_len(s), dir);
--	}
--}
--
--static void xtensa_sync_sg_for_device(struct device *dev,
--				      struct scatterlist *sg, int nents,
--				      enum dma_data_direction dir)
--{
--	struct scatterlist *s;
--	int i;
--
--	for_each_sg(sg, s, nents, i) {
--		xtensa_sync_single_for_device(dev, sg_dma_address(s),
--					      sg_dma_len(s), dir);
--	}
--}
--
- /*
-  * Note: We assume that the full memory space is always mapped to 'kseg'
-  *	 Otherwise we have to use page attributes (not implemented).
+@@ -434,9 +435,8 @@ arch_initcall(sparc_register_ioport);
+ /* Allocate and map kernel buffer using consistent mode DMA for a device.
+  * hwdev should be valid struct pci_dev pointer for PCI devices.
   */
- 
--static void *xtensa_dma_alloc(struct device *dev, size_t size,
--			      dma_addr_t *handle, gfp_t flag,
--			      unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+		gfp_t flag, unsigned long attrs)
- {
- 	unsigned long ret;
- 	unsigned long uncached;
-@@ -171,8 +140,8 @@ static void *xtensa_dma_alloc(struct device *dev, size_t size,
- 	return (void *)uncached;
- }
- 
--static void xtensa_dma_free(struct device *dev, size_t size, void *vaddr,
--			    dma_addr_t dma_handle, unsigned long attrs)
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
-+		dma_addr_t dma_handle, unsigned long attrs)
- {
- 	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
- 	unsigned long addr = (unsigned long)vaddr;
-@@ -192,72 +161,3 @@ static void xtensa_dma_free(struct device *dev, size_t size, void *vaddr,
- 	if (!dma_release_from_contiguous(dev, page, count))
- 		__free_pages(page, get_order(size));
- }
--
--static dma_addr_t xtensa_map_page(struct device *dev, struct page *page,
--				  unsigned long offset, size_t size,
--				  enum dma_data_direction dir,
+-static void *pci32_alloc_coherent(struct device *dev, size_t len,
+-				  dma_addr_t *pba, gfp_t gfp,
 -				  unsigned long attrs)
++void *arch_dma_alloc(struct device *dev, size_t len, dma_addr_t *pba, gfp_t gfp,
++		unsigned long attrs)
+ {
+ 	unsigned long len_total = PAGE_ALIGN(len);
+ 	void *va;
+@@ -488,8 +488,8 @@ static void *pci32_alloc_coherent(struct device *dev, size_t len,
+  * References to the memory and mappings associated with cpu_addr/dma_addr
+  * past this call are illegal.
+  */
+-static void pci32_free_coherent(struct device *dev, size_t n, void *p,
+-				dma_addr_t ba, unsigned long attrs)
++void arch_dma_free(struct device *dev, size_t n, void *p, dma_addr_t ba,
++		unsigned long attrs)
+ {
+ 	struct resource *res;
+ 
+@@ -519,146 +519,15 @@ static void pci32_free_coherent(struct device *dev, size_t n, void *p,
+ 	free_pages((unsigned long)phys_to_virt(ba), get_order(n));
+ }
+ 
+-/*
+- * Same as pci_map_single, but with pages.
+- */
+-static dma_addr_t pci32_map_page(struct device *dev, struct page *page,
+-				 unsigned long offset, size_t size,
+-				 enum dma_data_direction dir,
+-				 unsigned long attrs)
 -{
--	dma_addr_t dma_handle = page_to_phys(page) + offset;
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		xtensa_sync_single_for_device(dev, dma_handle, size, dir);
--
--	return dma_handle;
+-	/* IIep is write-through, not flushing. */
+-	return page_to_phys(page) + offset;
 -}
 -
--static void xtensa_unmap_page(struct device *dev, dma_addr_t dma_handle,
--			      size_t size, enum dma_data_direction dir,
--			      unsigned long attrs)
+-static void pci32_unmap_page(struct device *dev, dma_addr_t ba, size_t size,
+-			     enum dma_data_direction dir, unsigned long attrs)
 -{
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		xtensa_sync_single_for_cpu(dev, dma_handle, size, dir);
+-	if (dir != PCI_DMA_TODEVICE && !(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		dma_make_coherent(ba, PAGE_ALIGN(size));
 -}
 -
--static int xtensa_map_sg(struct device *dev, struct scatterlist *sg,
--			 int nents, enum dma_data_direction dir,
--			 unsigned long attrs)
+-/* Map a set of buffers described by scatterlist in streaming
+- * mode for DMA.  This is the scatter-gather version of the
+- * above pci_map_single interface.  Here the scatter gather list
+- * elements are each tagged with the appropriate dma address
+- * and length.  They are obtained via sg_dma_{address,length}(SG).
+- *
+- * NOTE: An implementation may be able to use a smaller number of
+- *       DMA address/length pairs than there are SG table elements.
+- *       (for example via virtual mapping capabilities)
+- *       The routine returns the number of addr/length pairs actually
+- *       used, at most nents.
+- *
+- * Device ownership issues as mentioned above for pci_map_single are
+- * the same here.
+- */
+-static int pci32_map_sg(struct device *device, struct scatterlist *sgl,
+-			int nents, enum dma_data_direction dir,
+-			unsigned long attrs)
 -{
--	struct scatterlist *s;
--	int i;
+-	struct scatterlist *sg;
+-	int n;
 -
--	for_each_sg(sg, s, nents, i) {
--		s->dma_address = xtensa_map_page(dev, sg_page(s), s->offset,
--						 s->length, dir, attrs);
+-	/* IIep is write-through, not flushing. */
+-	for_each_sg(sgl, sg, nents, n) {
+-		sg->dma_address = sg_phys(sg);
+-		sg->dma_length = sg->length;
 -	}
 -	return nents;
 -}
 -
--static void xtensa_unmap_sg(struct device *dev,
--			    struct scatterlist *sg, int nents,
--			    enum dma_data_direction dir,
--			    unsigned long attrs)
+-/* Unmap a set of streaming mode DMA translations.
+- * Again, cpu read rules concerning calls here are the same as for
+- * pci_unmap_single() above.
+- */
+-static void pci32_unmap_sg(struct device *dev, struct scatterlist *sgl,
+-			   int nents, enum dma_data_direction dir,
+-			   unsigned long attrs)
 -{
--	struct scatterlist *s;
--	int i;
+-	struct scatterlist *sg;
+-	int n;
 -
--	for_each_sg(sg, s, nents, i) {
--		xtensa_unmap_page(dev, sg_dma_address(s),
--				  sg_dma_len(s), dir, attrs);
+-	if (dir != PCI_DMA_TODEVICE && !(attrs & DMA_ATTR_SKIP_CPU_SYNC)) {
+-		for_each_sg(sgl, sg, nents, n) {
+-			dma_make_coherent(sg_phys(sg), PAGE_ALIGN(sg->length));
+-		}
+-	}
+-}
++/* IIep is write-through, not flushing on cpu to device transfer. */
+ 
+-/* Make physical memory consistent for a single
+- * streaming mode DMA translation before or after a transfer.
+- *
+- * If you perform a pci_map_single() but wish to interrogate the
+- * buffer using the cpu, yet do not wish to teardown the PCI dma
+- * mapping, you must call this function before doing so.  At the
+- * next point you give the PCI dma address back to the card, you
+- * must first perform a pci_dma_sync_for_device, and then the
+- * device again owns the buffer.
+- */
+-static void pci32_sync_single_for_cpu(struct device *dev, dma_addr_t ba,
+-				      size_t size, enum dma_data_direction dir)
++void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+-	if (dir != PCI_DMA_TODEVICE) {
+-		dma_make_coherent(ba, PAGE_ALIGN(size));
 -	}
 -}
 -
--int xtensa_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+-static void pci32_sync_single_for_device(struct device *dev, dma_addr_t ba,
+-					 size_t size, enum dma_data_direction dir)
 -{
--	return 0;
+-	if (dir != PCI_DMA_TODEVICE) {
+-		dma_make_coherent(ba, PAGE_ALIGN(size));
+-	}
++	if (dir != PCI_DMA_TODEVICE)
++		dma_make_coherent(paddr, PAGE_ALIGN(size));
+ }
+ 
+-/* Make physical memory consistent for a set of streaming
+- * mode DMA translations after a transfer.
+- *
+- * The same as pci_dma_sync_single_* but for a scatter-gather list,
+- * same rules and usage.
+- */
+-static void pci32_sync_sg_for_cpu(struct device *dev, struct scatterlist *sgl,
+-				  int nents, enum dma_data_direction dir)
+-{
+-	struct scatterlist *sg;
+-	int n;
+-
+-	if (dir != PCI_DMA_TODEVICE) {
+-		for_each_sg(sgl, sg, nents, n) {
+-			dma_make_coherent(sg_phys(sg), PAGE_ALIGN(sg->length));
+-		}
+-	}
 -}
 -
--const struct dma_map_ops xtensa_dma_map_ops = {
--	.alloc = xtensa_dma_alloc,
--	.free = xtensa_dma_free,
--	.map_page = xtensa_map_page,
--	.unmap_page = xtensa_unmap_page,
--	.map_sg = xtensa_map_sg,
--	.unmap_sg = xtensa_unmap_sg,
--	.sync_single_for_cpu = xtensa_sync_single_for_cpu,
--	.sync_single_for_device = xtensa_sync_single_for_device,
--	.sync_sg_for_cpu = xtensa_sync_sg_for_cpu,
--	.sync_sg_for_device = xtensa_sync_sg_for_device,
--	.mapping_error = xtensa_dma_mapping_error,
+-static void pci32_sync_sg_for_device(struct device *device, struct scatterlist *sgl,
+-				     int nents, enum dma_data_direction dir)
+-{
+-	struct scatterlist *sg;
+-	int n;
+-
+-	if (dir != PCI_DMA_TODEVICE) {
+-		for_each_sg(sgl, sg, nents, n) {
+-			dma_make_coherent(sg_phys(sg), PAGE_ALIGN(sg->length));
+-		}
+-	}
+-}
+-
+-/* note: leon re-uses pci32_dma_ops */
+-const struct dma_map_ops pci32_dma_ops = {
+-	.alloc			= pci32_alloc_coherent,
+-	.free			= pci32_free_coherent,
+-	.map_page		= pci32_map_page,
+-	.unmap_page		= pci32_unmap_page,
+-	.map_sg			= pci32_map_sg,
+-	.unmap_sg		= pci32_unmap_sg,
+-	.sync_single_for_cpu	= pci32_sync_single_for_cpu,
+-	.sync_single_for_device	= pci32_sync_single_for_device,
+-	.sync_sg_for_cpu	= pci32_sync_sg_for_cpu,
+-	.sync_sg_for_device	= pci32_sync_sg_for_device,
 -};
--EXPORT_SYMBOL(xtensa_dma_map_ops);
+-EXPORT_SYMBOL(pci32_dma_ops);
+-
+ const struct dma_map_ops *dma_ops = &sbus_dma_ops;
+ EXPORT_SYMBOL(dma_ops);
+ 
 -- 
 2.17.0
