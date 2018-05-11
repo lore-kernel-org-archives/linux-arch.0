@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 06/20] hexagon: use generic dma_noncoherent_ops
-Date: Fri, 11 May 2018 09:59:31 +0200
-Message-ID: <20180511075945.16548-7-hch@lst.de>
+Subject: [PATCH 07/20] m68k: use generic dma_noncoherent_ops
+Date: Fri, 11 May 2018 09:59:32 +0200
+Message-ID: <20180511075945.16548-8-hch@lst.de>
 References: <20180511075945.16548-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,280 +23,181 @@ List-Id: linux-arch.vger.kernel.org
 
 Switch to the generic noncoherent direct mapping implementation.
 
-This removes the previous sync_single_for_cpu implementation, which looks
-bogus given that no syncing is happening in the similar but more
-important unmap_single case.
-
-This adds the previously missing sync_sg_for_device implementation that
-matches the pre-existing sync_single_for_device implementation.
-
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/hexagon/Kconfig                   |   2 +
- arch/hexagon/include/asm/Kbuild        |   1 +
- arch/hexagon/include/asm/dma-mapping.h |  40 -------
- arch/hexagon/kernel/dma.c              | 143 ++-----------------------
- 4 files changed, 11 insertions(+), 175 deletions(-)
- delete mode 100644 arch/hexagon/include/asm/dma-mapping.h
+ arch/m68k/Kconfig                   |  2 +
+ arch/m68k/include/asm/Kbuild        |  1 +
+ arch/m68k/include/asm/dma-mapping.h | 12 -----
+ arch/m68k/kernel/dma.c              | 68 ++++-------------------------
+ 4 files changed, 11 insertions(+), 72 deletions(-)
+ delete mode 100644 arch/m68k/include/asm/dma-mapping.h
 
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 37adb2003033..bcbdcb32935c 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -4,6 +4,7 @@ comment "Linux Kernel Configuration for Hexagon"
- 
- config HEXAGON
- 	def_bool y
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select HAVE_OPROFILE
- 	# Other pending projects/to-do items.
- 	# select HAVE_REGS_AND_STACK_ACCESS_API
-@@ -28,6 +29,7 @@ config HEXAGON
- 	select GENERIC_CLOCKEVENTS_BROADCAST
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index 785612b576f7..3f61327da2d5 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -2,6 +2,7 @@
+ config M68K
+ 	bool
+ 	default y
++	select ARCH_HAS_SYNC_DMA_FOR_DEVICE if HAS_DMA
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT if ISA
+ 	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
+ 	select HAVE_IDE
+@@ -24,6 +25,7 @@ config M68K
  	select MODULES_USE_ELF_RELA
- 	select GENERIC_CPU_DEVICES
-+	select DMA_NONCOHERENT_OPS
- 	---help---
- 	  Qualcomm Hexagon is a processor architecture designed for high
- 	  performance and low power across a wide variety of applications.
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index e9743f689fb8..843a8086e980 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -5,6 +5,7 @@ generic-y += bugs.h
- generic-y += current.h
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
++	select DMA_NONCOHERENT_OPS if HAS_DMA
+ 
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
+index 88a9d27df1ac..a853c00f1374 100644
+--- a/arch/m68k/include/asm/Kbuild
++++ b/arch/m68k/include/asm/Kbuild
+@@ -1,5 +1,6 @@
+ generic-y += barrier.h
  generic-y += device.h
- generic-y += div64.h
 +generic-y += dma-mapping.h
  generic-y += emergency-restart.h
+ generic-y += exec.h
  generic-y += extable.h
- generic-y += fb.h
-diff --git a/arch/hexagon/include/asm/dma-mapping.h b/arch/hexagon/include/asm/dma-mapping.h
+diff --git a/arch/m68k/include/asm/dma-mapping.h b/arch/m68k/include/asm/dma-mapping.h
 deleted file mode 100644
-index 263f6acbfb0f..000000000000
---- a/arch/hexagon/include/asm/dma-mapping.h
+index e3722ed04fbb..000000000000
+--- a/arch/m68k/include/asm/dma-mapping.h
 +++ /dev/null
-@@ -1,40 +0,0 @@
--/*
-- * DMA operations for the Hexagon architecture
-- *
-- * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 and
-- * only version 2 as published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, write to the Free Software
-- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-- * 02110-1301, USA.
-- */
+@@ -1,12 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _M68K_DMA_MAPPING_H
+-#define _M68K_DMA_MAPPING_H
 -
--#ifndef _ASM_DMA_MAPPING_H
--#define _ASM_DMA_MAPPING_H
--
--#include <linux/types.h>
--#include <linux/cache.h>
--#include <linux/mm.h>
--#include <linux/scatterlist.h>
--#include <linux/dma-debug.h>
--#include <asm/io.h>
--
--struct device;
--
--extern const struct dma_map_ops *dma_ops;
+-extern const struct dma_map_ops m68k_dma_ops;
 -
 -static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 -{
--	return dma_ops;
+-        return &m68k_dma_ops;
 -}
 -
--#endif
-diff --git a/arch/hexagon/kernel/dma.c b/arch/hexagon/kernel/dma.c
-index 77459df34e2e..ffc4ae8e126f 100644
---- a/arch/hexagon/kernel/dma.c
-+++ b/arch/hexagon/kernel/dma.c
-@@ -18,32 +18,19 @@
-  * 02110-1301, USA.
-  */
+-#endif  /* _M68K_DMA_MAPPING_H */
+diff --git a/arch/m68k/kernel/dma.c b/arch/m68k/kernel/dma.c
+index c01b9b8f97bf..3d561c577d35 100644
+--- a/arch/m68k/kernel/dma.c
++++ b/arch/m68k/kernel/dma.c
+@@ -6,7 +6,7 @@
+ 
+ #undef DEBUG
  
 -#include <linux/dma-mapping.h>
--#include <linux/dma-direct.h>
 +#include <linux/dma-noncoherent.h>
- #include <linux/bootmem.h>
- #include <linux/genalloc.h>
--#include <asm/dma-mapping.h>
- #include <linux/module.h>
- #include <asm/page.h>
+ #include <linux/device.h>
+ #include <linux/kernel.h>
+ #include <linux/scatterlist.h>
+@@ -18,7 +18,7 @@
  
--#define HEXAGON_MAPPING_ERROR	0
--
--const struct dma_map_ops *dma_ops;
--EXPORT_SYMBOL(dma_ops);
--
--static inline void *dma_addr_to_virt(dma_addr_t dma_addr)
--{
--	return phys_to_virt((unsigned long) dma_addr);
--}
--
- static struct gen_pool *coherent_pool;
+ #if defined(CONFIG_MMU) && !defined(CONFIG_COLDFIRE)
  
+-static void *m68k_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
+ 		gfp_t flag, unsigned long attrs)
+ {
+ 	struct page *page, **map;
+@@ -61,7 +61,7 @@ static void *m68k_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
+ 	return addr;
+ }
  
- /* Allocates from a pool of uncached memory that was reserved at boot time */
+-static void m68k_dma_free(struct device *dev, size_t size, void *addr,
++void arch_dma_free(struct device *dev, size_t size, void *addr,
+ 		dma_addr_t handle, unsigned long attrs)
+ {
+ 	pr_debug("dma_free_coherent: %p, %x\n", addr, handle);
+@@ -72,8 +72,8 @@ static void m68k_dma_free(struct device *dev, size_t size, void *addr,
  
--static void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
--				 dma_addr_t *dma_addr, gfp_t flag,
--				 unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_addr,
-+		gfp_t flag, unsigned long attrs)
+ #include <asm/cacheflush.h>
+ 
+-static void *m68k_dma_alloc(struct device *dev, size_t size,
+-		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
++		gfp_t gfp, unsigned long attrs)
  {
  	void *ret;
  
-@@ -75,58 +62,17 @@ static void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
+@@ -88,7 +88,7 @@ static void *m68k_dma_alloc(struct device *dev, size_t size,
  	return ret;
  }
  
--static void hexagon_free_coherent(struct device *dev, size_t size, void *vaddr,
--				  dma_addr_t dma_addr, unsigned long attrs)
+-static void m68k_dma_free(struct device *dev, size_t size, void *vaddr,
 +void arch_dma_free(struct device *dev, size_t size, void *vaddr,
-+		dma_addr_t dma_addr, unsigned long attrs)
+ 		dma_addr_t dma_handle, unsigned long attrs)
  {
- 	gen_pool_free(coherent_pool, (unsigned long) vaddr, size);
- }
+ 	free_pages((unsigned long)vaddr, get_order(size));
+@@ -96,8 +96,8 @@ static void m68k_dma_free(struct device *dev, size_t size, void *vaddr,
  
--static int check_addr(const char *name, struct device *hwdev,
--		      dma_addr_t bus, size_t size)
--{
--	if (hwdev && hwdev->dma_mask && !dma_capable(hwdev, bus, size)) {
--		if (*hwdev->dma_mask >= DMA_BIT_MASK(32))
--			printk(KERN_ERR
--				"%s: overflow %Lx+%zu of device mask %Lx\n",
--				name, (long long)bus, size,
--				(long long)*hwdev->dma_mask);
--		return 0;
--	}
--	return 1;
--}
--
--static int hexagon_map_sg(struct device *hwdev, struct scatterlist *sg,
--			  int nents, enum dma_data_direction dir,
--			  unsigned long attrs)
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+ #endif /* CONFIG_MMU && !CONFIG_COLDFIRE */
+ 
+-static void m68k_dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
++void arch_sync_dma_for_device(struct device *dev, phys_addr_t handle,
 +		size_t size, enum dma_data_direction dir)
  {
--	struct scatterlist *s;
--	int i;
--
--	WARN_ON(nents == 0 || sg[0].length == 0);
--
--	for_each_sg(sg, s, nents, i) {
--		s->dma_address = sg_phys(s);
--		if (!check_addr("map_sg", hwdev, s->dma_address, s->length))
--			return 0;
--
--		s->dma_length = s->length;
-+	void *addr = phys_to_virt(paddr);
- 
--		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
--			continue;
--
--		flush_dcache_range(dma_addr_to_virt(s->dma_address),
--				   dma_addr_to_virt(s->dma_address + s->length));
--	}
--
--	return nents;
--}
--
--/*
-- * address is virtual
-- */
--static inline void dma_sync(void *addr, size_t size,
--			    enum dma_data_direction dir)
--{
  	switch (dir) {
- 	case DMA_TO_DEVICE:
- 		hexagon_clean_dcache_range((unsigned long) addr,
-@@ -144,76 +90,3 @@ static inline void dma_sync(void *addr, size_t size,
- 		BUG();
+ 	case DMA_BIDIRECTIONAL:
+@@ -113,55 +113,3 @@ static void m68k_dma_sync_single_for_device(struct device *dev,
+ 		break;
  	}
  }
 -
--/**
-- * hexagon_map_page() - maps an address for device DMA
-- * @dev:	pointer to DMA device
-- * @page:	pointer to page struct of DMA memory
-- * @offset:	offset within page
-- * @size:	size of memory to map
-- * @dir:	transfer direction
-- * @attrs:	pointer to DMA attrs (not used)
-- *
-- * Called to map a memory address to a DMA address prior
-- * to accesses to/from device.
-- *
-- * We don't particularly have many hoops to jump through
-- * so far.  Straight translation between phys and virtual.
-- *
-- * DMA is not cache coherent so sync is necessary; this
-- * seems to be a convenient place to do it.
-- *
-- */
--static dma_addr_t hexagon_map_page(struct device *dev, struct page *page,
--				   unsigned long offset, size_t size,
--				   enum dma_data_direction dir,
--				   unsigned long attrs)
+-static void m68k_dma_sync_sg_for_device(struct device *dev,
+-		struct scatterlist *sglist, int nents, enum dma_data_direction dir)
 -{
--	dma_addr_t bus = page_to_phys(page) + offset;
--	WARN_ON(size == 0);
+-	int i;
+-	struct scatterlist *sg;
 -
--	if (!check_addr("map_single", dev, bus, size))
--		return HEXAGON_MAPPING_ERROR;
+-	for_each_sg(sglist, sg, nents, i) {
+-		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
+-					   dir);
+-	}
+-}
+-
+-static dma_addr_t m68k_dma_map_page(struct device *dev, struct page *page,
+-		unsigned long offset, size_t size, enum dma_data_direction dir,
+-		unsigned long attrs)
+-{
+-	dma_addr_t handle = page_to_phys(page) + offset;
 -
 -	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		dma_sync(dma_addr_to_virt(bus), size, dir);
+-		dma_sync_single_for_device(dev, handle, size, dir);
 -
--	return bus;
+-	return handle;
 -}
 -
--static void hexagon_sync_single_for_cpu(struct device *dev,
--					dma_addr_t dma_handle, size_t size,
--					enum dma_data_direction dir)
+-static int m68k_dma_map_sg(struct device *dev, struct scatterlist *sglist,
+-		int nents, enum dma_data_direction dir, unsigned long attrs)
 -{
--	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
+-	int i;
+-	struct scatterlist *sg;
+-
+-	for_each_sg(sglist, sg, nents, i) {
+-		sg->dma_address = sg_phys(sg);
+-
+-		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-			continue;
+-
+-		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
+-					   dir);
+-	}
+-	return nents;
 -}
 -
--static void hexagon_sync_single_for_device(struct device *dev,
--					dma_addr_t dma_handle, size_t size,
--					enum dma_data_direction dir)
--{
--	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
--}
--
--static int hexagon_mapping_error(struct device *dev, dma_addr_t dma_addr)
--{
--	return dma_addr == HEXAGON_MAPPING_ERROR;
--}
--
--const struct dma_map_ops hexagon_dma_ops = {
--	.alloc		= hexagon_dma_alloc_coherent,
--	.free		= hexagon_free_coherent,
--	.map_sg		= hexagon_map_sg,
--	.map_page	= hexagon_map_page,
--	.sync_single_for_cpu = hexagon_sync_single_for_cpu,
--	.sync_single_for_device = hexagon_sync_single_for_device,
--	.mapping_error	= hexagon_mapping_error,
+-const struct dma_map_ops m68k_dma_ops = {
+-	.alloc			= m68k_dma_alloc,
+-	.free			= m68k_dma_free,
+-	.map_page		= m68k_dma_map_page,
+-	.map_sg			= m68k_dma_map_sg,
+-	.sync_single_for_device	= m68k_dma_sync_single_for_device,
+-	.sync_sg_for_device	= m68k_dma_sync_sg_for_device,
 -};
--
--void __init hexagon_dma_init(void)
--{
--	if (dma_ops)
--		return;
--
--	dma_ops = &hexagon_dma_ops;
--}
+-EXPORT_SYMBOL(m68k_dma_ops);
 -- 
 2.17.0
