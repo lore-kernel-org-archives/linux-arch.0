@@ -1,50 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:43172 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753145AbeEKPF5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 May 2018 11:05:57 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH REPOST 2/5] ARM: Use update_thread_flag()
-Date: Fri, 11 May 2018 16:05:01 +0100
-Message-ID: <1526051104-15995-3-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
+Received: from shards.monkeyblade.net ([184.105.139.130]:46782 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750711AbeEKPKV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 11:10:21 -0400
+Date: Fri, 11 May 2018 11:10:18 -0400 (EDT)
+Message-ID: <20180511.111018.1869809966358964133.davem@davemloft.net>
+Subject: Re: [PATCH REPOST 5/5] sparc: Use update_thread_flag()
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1526051104-15995-6-git-send-email-Dave.Martin@arm.com>
 References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
+        <1526051104-15995-6-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Russell King <linux@armlinux.org.uk>
-Message-ID: <20180511150501.m71BVjjIQdJtNKtGG1m72h-t_1R1xw4k2TEBjMLFA_0@z>
+To: Dave.Martin@arm.com
+Cc: linux-kernel@vger.kernel.org, ralf@linux-mips.org, jhogan@kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, mingo@redhat.com, peterz@infradead.org, rostedt@goodmis.org, oleg@redhat.com, linux-arch@vger.kernel.org
+Message-ID: <20180511151018.x5Tx2wwh8qnSZg2dt-308Z-lSdliljauoYzF-IkXXlk@z>
 
-This patch uses the new update_thread_flag() helper to simplify an
-if () set; else clear; construct.
+From: Dave Martin <Dave.Martin@arm.com>
+Date: Fri, 11 May 2018 16:05:04 +0100
 
-No functional change.
+> This patch uses the new update_thread_flag() helper to simplify an
+> if () set; else clear; construct.
+> 
+> No functional change.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Russell King <linux@armlinux.org.uk>
----
- arch/arm/kernel/elf.c | 9 +++------
- 1 file changed, 3 insertions(+), 6 deletions(-)
-
-diff --git a/arch/arm/kernel/elf.c b/arch/arm/kernel/elf.c
-index 1824229..aade393 100644
---- a/arch/arm/kernel/elf.c
-+++ b/arch/arm/kernel/elf.c
-@@ -68,12 +68,9 @@ void elf_set_personality(const struct elf32_hdr *x)
- 	 * binary is EABI or softfloat (and thus, guaranteed not to use
- 	 * FPA instructions.)
- 	 */
--	if (elf_hwcap & HWCAP_IWMMXT &&
--	    eflags & (EF_ARM_EABI_MASK | EF_ARM_SOFT_FLOAT)) {
--		set_thread_flag(TIF_USING_IWMMXT);
--	} else {
--		clear_thread_flag(TIF_USING_IWMMXT);
--	}
-+	update_thread_flag(TIF_USING_IWMMXT,
-+			   elf_hwcap & HWCAP_IWMMXT &&
-+			   eflags & (EF_ARM_EABI_MASK | EF_ARM_SOFT_FLOAT));
- }
- EXPORT_SYMBOL(elf_set_personality);
- 
--- 
-2.1.4
+Acked-by: David S. Miller <davem@davemloft.net>
