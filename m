@@ -1,54 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:36653 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752018AbeEKQVh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:37 -0400
-Received: by mail-wr0-f194.google.com with SMTP id p4-v6so5913541wrh.3
-        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:36 -0700 (PDT)
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:34505 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752242AbeEKQVw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:52 -0400
+Received: by mail-wr0-f195.google.com with SMTP id p18-v6so5904854wrm.1
+        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:51 -0700 (PDT)
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH 05/12] platform: export platform_device_release() locally
-Date: Fri, 11 May 2018 18:20:21 +0200
-Message-ID: <20180511162028.20616-6-brgl@bgdev.pl>
+Subject: [PATCH 12/12] of/platform: make the OF code aware of early platform drivers
+Date: Fri, 11 May 2018 18:20:28 +0200
+Message-ID: <20180511162028.20616-13-brgl@bgdev.pl>
 In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
 References: <20180511162028.20616-1-brgl@bgdev.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
 Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
-Message-ID: <20180511162021.EQMwvRzOMvUJLzVSAmPehq7CtPY0KbzKFiBPTnYNvg8@z>
+Message-ID: <20180511162028.94ZJV2tugu7thH0XbgTpOjTgK3ZtKK4kScMdvkYkjH4@z>
 
 From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 
-The early platform driver mechanism will use this function as the
-device release callback. Make it available in drivers/base.
+Check the relevant flag in the device node and skip the allocation
+part for devices that were populated early.
 
 Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 ---
- drivers/base/base.h     | 1 +
- drivers/base/platform.c | 2 +-
- 2 files changed, 2 insertions(+), 1 deletion(-)
+ drivers/of/platform.c | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/base/base.h b/drivers/base/base.h
-index 7a72ae72a98e..514a6d198f14 100644
---- a/drivers/base/base.h
-+++ b/drivers/base/base.h
-@@ -164,3 +164,4 @@ extern void device_links_unbind_consumers(struct device *dev);
+diff --git a/drivers/of/platform.c b/drivers/of/platform.c
+index 0e554fe1f325..91760e2d3dc7 100644
+--- a/drivers/of/platform.c
++++ b/drivers/of/platform.c
+@@ -21,6 +21,7 @@
+ #include <linux/of_irq.h>
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
++#include <linux/early_platform.h>
  
- /* Platform device helpers. */
- extern int platform_match(struct device *dev, struct device_driver *drv);
-+extern void platform_device_release(struct device *dev);
-diff --git a/drivers/base/platform.c b/drivers/base/platform.c
-index 0ba4effb9618..417ab6071350 100644
---- a/drivers/base/platform.c
-+++ b/drivers/base/platform.c
-@@ -239,7 +239,7 @@ void platform_device_put(struct platform_device *pdev)
- }
- EXPORT_SYMBOL_GPL(platform_device_put);
+ const struct of_device_id of_default_bus_match_table[] = {
+ 	{ .compatible = "simple-bus", },
+@@ -196,9 +197,17 @@ static struct platform_device *of_platform_device_create_pdata(
+ 	    of_node_test_and_set_flag(np, OF_POPULATED))
+ 		return NULL;
  
--static void platform_device_release(struct device *dev)
-+void platform_device_release(struct device *dev)
- {
- 	struct platform_object *pa = container_of(dev, struct platform_object,
- 						  pdev.dev);
+-	dev = of_device_alloc(np, bus_id, parent);
+-	if (!dev)
+-		goto err_clear_flag;
++	if (of_node_check_flag(np, OF_POPULATED_EARLY)) {
++		dev = of_early_to_platform_device(np);
++		if (IS_ERR(dev))
++			goto err_clear_flag;
++
++		of_device_init(dev, np, bus_id, parent);
++	} else {
++		dev = of_device_alloc(np, bus_id, parent);
++		if (!dev)
++			goto err_clear_flag;
++	}
+ 
+ 	dev->dev.bus = &platform_bus_type;
+ 	dev->dev.platform_data = platform_data;
 -- 
 2.17.0
