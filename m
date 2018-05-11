@@ -1,149 +1,130 @@
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH 11/12] misc: implement a dummy early platform driver
-Date: Fri, 11 May 2018 18:20:27 +0200
-Message-ID: <20180511162028.20616-12-brgl@bgdev.pl>
-References: <20180511162028.20616-1-brgl@bgdev.pl>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
+Subject: [PATCH 00/12] introduce support for early platform drivers
+Date: Fri, 11 May 2018 18:20:16 +0200
+Message-ID: <20180511162028.20616-1-brgl@bgdev.pl>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
+Cc: linux-arch@vger.kernel.org, devicetree@vger.kernel.org, Bartosz Golaszewski <brgl@bgdev.pl>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+This series is a follow-up to the RFC[1] posted a couple days ago.
 
-Implement a very simple early platform driver. Its purpose is to show
-how such drivers can be registered and to emit a message when probed.
+NOTE: this series applies on top of my recent patches[2] that move the previous
+implementation of early platform devices to arch/sh.
 
-It can be then added to the device tree or machine code to verify that
-the early platform devices work as expected.
+Problem:
 
-Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
----
- drivers/misc/Kconfig       |  8 ++++
- drivers/misc/Makefile      |  1 +
- drivers/misc/dummy-early.c | 82 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 91 insertions(+)
+Certain class of devices, such as timers, certain clock drivers and irq chip
+drivers need to be probed early in the boot sequence. The currently preferred
+approach is using one of the OF_DECLARE() macros. This however does not create
+a platform device which has many drawbacks - such as not being able to use
+devres routines, dev_ log functions or no way of deferring the init OF function
+if some other resources are missing.
+
+For drivers that use both platform drivers and OF_DECLARE the situation is even
+more complicated as the code needs to take into account that there can possibly
+be no struct device present. For a specific use case that we're having problems
+with, please refer to the recent DaVinci common-clock conversion patches and
+the nasty workaround that this problem implies[3].
+
+We also used to have an early platform drivers implementation but they were not
+integrated with the linux device model at all - they merely used the same data
+structures. The users could not use devres, defer probe and the early devices
+never became actual platform devices later on.
+
+Proposed solution:
+
+This series aims at solving this problem by (re-)introducing the concept of
+early platform drivers and devices - this time however in a way that seamlessly
+integrates with the existing platform drivers and also offers device-tree
+support.
+
+The idea is to provide a way for users to probe devices early, while already
+being able to use devres, devices resources and properties and also deferred
+probing.
+
+New structures are introduced: the early platform driver contains the
+early_probe callback which has the same signature as regular platform_device
+probe. This callback is called early on. The user can have both the early and
+regular probe speficied or only one of them and they both receive the same
+platform device object as argument. Any device data allocated early will be
+carried over to the normal probe.
+
+The architecture code is responsible for calling early_platform_start() in
+which the early drivers will be registered and devices populated from DT.
+
+Once the device and kobject mechanisms are ready, all early drivers and devices
+will be converted into real platform drivers and devices. Also: if any of the
+early platform registration functions will be called once early initialization
+is done, these functions will work like regular platform_device/driver ones.
+
+Patches 1-9/12 introduce changes to existing code that are necessary before
+adding support for early drivers. Patch 10/12 contains the new framwork in an
+isolated file which can be compiled only if needed by the architecture.
+
+Patch 11/12 contains a dummy early platform driver that serves as a code
+example and can be used for simple testing.
+
+The last patch finally makes the of/platform code aware of early platform
+drivers.
+
+If accepted, this new mechanism could potentially lead to consolidation of the
+code currently used by users of OF_DECLARE, since they could be converted to
+actual platform drivers.
+
+[1] https://lkml.org/lkml/2018/4/26/657
+[2] https://lkml.org/lkml/2018/4/30/547
+[3] https://lkml.org/lkml/2018/4/26/1094
+
+Bartosz Golaszewski (12):
+  platform/early: add a new field to struct device
+  platform/early: don't WARN() on non-empty devres list for early
+    devices
+  platform/early: export platform_match() locally
+  platform: provide a separate function for initializing platform
+    devices
+  platform: export platform_device_release() locally
+  of: add a new flag for OF device nodes
+  of/platform: provide a separate routine for setting up device
+    resources
+  of/platform: provide a separate routine for device initialization
+  platform/early: add an init section for early driver data
+  platform/early: implement support for early platform drivers
+  misc: implement a dummy early platform driver
+  of/platform: make the OF code aware of early platform drivers
+
+ drivers/base/Kconfig              |   3 +
+ drivers/base/Makefile             |   1 +
+ drivers/base/base.h               |   4 +
+ drivers/base/dd.c                 |   2 +-
+ drivers/base/early.c              | 332 ++++++++++++++++++++++++++++++
+ drivers/base/platform.c           |  28 ++-
+ drivers/misc/Kconfig              |   8 +
+ drivers/misc/Makefile             |   2 +
+ drivers/misc/dummy-early.c        |  82 ++++++++
+ drivers/of/platform.c             |  85 +++++---
+ include/asm-generic/vmlinux.lds.h |  11 +
+ include/linux/device.h            |   1 +
+ include/linux/early_platform.h    |  75 +++++++
+ include/linux/of.h                |   1 +
+ include/linux/of_platform.h       |   2 +
+ include/linux/platform_device.h   |   2 +
+ 16 files changed, 604 insertions(+), 35 deletions(-)
+ create mode 100644 drivers/base/early.c
  create mode 100644 drivers/misc/dummy-early.c
+ create mode 100644 include/linux/early_platform.h
 
-diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
-index 5d713008749b..60fef04eb236 100644
---- a/drivers/misc/Kconfig
-+++ b/drivers/misc/Kconfig
-@@ -91,6 +91,14 @@ config DUMMY_IRQ
- 	  The sole purpose of this module is to help with debugging of systems on
- 	  which spurious IRQs would happen on disabled IRQ vector.
- 
-+config DUMMY_EARLY
-+	bool "Dummy early platform driver"
-+	select EARLY_PLATFORM
-+	default n
-+	help
-+	  This module's only function is to register itself with the early
-+	  platform device framework and be probed early in the boot process.
-+
- config IBM_ASM
- 	tristate "Device driver for IBM RSA service processor"
- 	depends on X86 && PCI && INPUT
-diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
-index d0a8788d5151..6170855853a1 100644
---- a/drivers/misc/Makefile
-+++ b/drivers/misc/Makefile
-@@ -11,6 +11,7 @@ obj-$(CONFIG_INTEL_MID_PTI)	+= pti.o
- obj-$(CONFIG_ATMEL_SSC)		+= atmel-ssc.o
- obj-$(CONFIG_ATMEL_TCLIB)	+= atmel_tclib.o
- obj-$(CONFIG_DUMMY_IRQ)		+= dummy-irq.o
-+obj-$(CONFIG_DUMMY_EARLY)	+= dummy-early.o
- obj-$(CONFIG_ICS932S401)	+= ics932s401.o
- obj-$(CONFIG_LKDTM)		+= lkdtm/
- obj-$(CONFIG_TIFM_CORE)       	+= tifm_core.o
-diff --git a/drivers/misc/dummy-early.c b/drivers/misc/dummy-early.c
-new file mode 100644
-index 000000000000..eb8f826aea64
---- /dev/null
-+++ b/drivers/misc/dummy-early.c
-@@ -0,0 +1,82 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2018 Texas Instruments
-+ *
-+ * Author:
-+ *   Bartosz Golaszewski <bgolaszewski@baylibre.com>
-+ *
-+ * Dummy testing driver whose only purpose is to be registered and probed
-+ * using the early platform device mechanism.
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/of.h>
-+#include <linux/of_device.h>
-+#include <linux/platform_device.h>
-+#include <linux/early_platform.h>
-+
-+struct dummy_early_data {
-+	int a;
-+	int b;
-+};
-+
-+static int dummy_early_probe_early(struct platform_device *pdev)
-+{
-+	struct device *dev = &pdev->dev;
-+	struct dummy_early_data *data;
-+	struct resource *res;
-+
-+	dev_notice(dev, "dummy-early driver probed early!\n");
-+
-+	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
-+	if (!data)
-+		return -ENOMEM;
-+
-+	data->a = 123;
-+	data->b = 321;
-+
-+	dev_dbg(dev, "setting driver data early: a = %d, b = %d\n",
-+		data->a, data->b);
-+	dev_set_drvdata(dev, data);
-+
-+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-+	if (res)
-+		dev_dbg(dev, "got early resource: start = 0x%08x, end = 0x%08x\n",
-+			res->start, res->end);
-+
-+	return 0;
-+}
-+
-+static int dummy_early_probe(struct platform_device *pdev)
-+{
-+	struct device *dev = &pdev->dev;
-+	struct dummy_early_data *data;
-+
-+	dev_notice(dev, "dummy-early driver probed late!\n");
-+	data = dev_get_drvdata(dev);
-+	dev_dbg(dev, "retrieving driver data late: a = %d, b = %d\n",
-+		data->a, data->b);
-+
-+	return 0;
-+}
-+
-+static const struct of_device_id dummy_early_of_match[] = {
-+	{ .compatible = "dummy-early", },
-+	{ },
-+};
-+
-+static struct early_platform_driver dummy_early_driver = {
-+	.early_probe = dummy_early_probe_early,
-+	.pdrv = {
-+		.probe = dummy_early_probe,
-+		.driver = {
-+			.name = "dummy-early",
-+			.of_match_table = dummy_early_of_match,
-+		},
-+	}
-+};
-+module_early_platform_driver(dummy_early_driver);
-+
-+MODULE_AUTHOR("Bartosz Golaszewski <bgolaszewski@baylibre.com>");
-+MODULE_DESCRIPTION("Dummy early platform device driver");
-+MODULE_LICENSE("GPL v2");
 -- 
 2.17.0
