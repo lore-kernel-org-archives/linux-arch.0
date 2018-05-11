@@ -1,32 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:46782 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750711AbeEKPKV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 11:10:21 -0400
-Date: Fri, 11 May 2018 11:10:18 -0400 (EDT)
-Message-ID: <20180511.111018.1869809966358964133.davem@davemloft.net>
-Subject: Re: [PATCH REPOST 5/5] sparc: Use update_thread_flag()
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1526051104-15995-6-git-send-email-Dave.Martin@arm.com>
+Received: from mail.kernel.org ([198.145.29.99]:56456 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751217AbeEKPdl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 May 2018 11:33:41 -0400
+Date: Fri, 11 May 2018 11:33:38 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH REPOST 1/5] thread_info: Port core code to use
+ update_thread_flag() helpers
+Message-ID: <20180511113338.1d828a50@gandalf.local.home>
+In-Reply-To: <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
 References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
-        <1526051104-15995-6-git-send-email-Dave.Martin@arm.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+        <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave.Martin@arm.com
-Cc: linux-kernel@vger.kernel.org, ralf@linux-mips.org, jhogan@kernel.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, mingo@redhat.com, peterz@infradead.org, rostedt@goodmis.org, oleg@redhat.com, linux-arch@vger.kernel.org
-Message-ID: <20180511151018.x5Tx2wwh8qnSZg2dt-308Z-lSdliljauoYzF-IkXXlk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
+Message-ID: <20180511153338.TE_yvNmPPS-CVn5P3wb6h0mWZM8XkOuZG6NnnnwjYuk@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
-Date: Fri, 11 May 2018 16:05:04 +0100
+On Fri, 11 May 2018 16:05:00 +0100
+Dave Martin <Dave.Martin@arm.com> wrote:
 
-> This patch uses the new update_thread_flag() helper to simplify an
-> if () set; else clear; construct.
+> This patch ports a couple of relevant bits of the core kernel to
+> use the new update_thread_flag() helpers.
 > 
 > No functional change.
 > 
 > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Steven Rostedt <rostedt@goodmis.org>
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> ---
+>  include/trace/syscall.h |  6 ++----
+>  kernel/ptrace.c         | 13 +++++--------
+>  2 files changed, 7 insertions(+), 12 deletions(-)
+> 
+> diff --git a/include/trace/syscall.h b/include/trace/syscall.h
+> index dc8ac27..dcc9bdf 100644
+> --- a/include/trace/syscall.h
+> +++ b/include/trace/syscall.h
+> @@ -37,10 +37,8 @@ struct syscall_metadata {
+>  #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
+>  static inline void syscall_tracepoint_update(struct task_struct *p)
+>  {
+> -	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
+> -		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
+> -	else
+> -		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
+> +	update_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT,
+> +			       test_thread_flag(TIF_SYSCALL_TRACEPOINT));
+>  }
 
-Acked-by: David S. Miller <davem@davemloft.net>
+Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+
+-- Steve
+
+>  #else
+>  static inline void syscall_tracepoint_update(struct task_struct *p)
+> diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+> index 21fec73..7a2bd8d 100644
+> --- a/kernel/ptrace.c
+> +++ b/kernel/ptrace.c
+> @@ -785,16 +785,13 @@ static int ptrace_resume(struct task_struct *child, long request,
+>  	if (!valid_signal(data))
+>  		return -EIO;
+>  
+> -	if (request == PTRACE_SYSCALL)
+> -		set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+> -	else
+> -		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+> +	update_tsk_thread_flag(child, TIF_SYSCALL_TRACE,
+> +			       request == PTRACE_SYSCALL);
+>  
+>  #ifdef TIF_SYSCALL_EMU
+> -	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
+> -		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
+> -	else
+> -		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
+> +	update_tsk_thread_flag(child, TIF_SYSCALL_EMU,
+> +			       request == PTRACE_SYSEMU ||
+> +			       request == PTRACE_SYSEMU_SINGLESTEP);
+>  #endif
+>  
+>  	if (is_singleblock(request)) {
