@@ -1,44 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:33141 "EHLO
+Received: from mail-wr0-f194.google.com ([209.85.128.194]:36653 "EHLO
         mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752151AbeEKQVi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:38 -0400
-Received: by mail-wr0-f194.google.com with SMTP id o4-v6so5916874wrm.0
-        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:37 -0700 (PDT)
+        with ESMTP id S1752018AbeEKQVh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:37 -0400
+Received: by mail-wr0-f194.google.com with SMTP id p4-v6so5913541wrh.3
+        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:36 -0700 (PDT)
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH 06/12] of: add a new flag for OF device nodes
-Date: Fri, 11 May 2018 18:20:22 +0200
-Message-ID: <20180511162028.20616-7-brgl@bgdev.pl>
+Subject: [PATCH 05/12] platform: export platform_device_release() locally
+Date: Fri, 11 May 2018 18:20:21 +0200
+Message-ID: <20180511162028.20616-6-brgl@bgdev.pl>
 In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
 References: <20180511162028.20616-1-brgl@bgdev.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
 Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
-Message-ID: <20180511162022.Al3I85uznK5GVzKbkYfV5WXlw4U8whdqTd2673LjHJQ@z>
+Message-ID: <20180511162021.EQMwvRzOMvUJLzVSAmPehq7CtPY0KbzKFiBPTnYNvg8@z>
 
 From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 
-This flag indicates that a device node has been populated early and
-that it needs different handling when called from
-of_platform_populate().
+The early platform driver mechanism will use this function as the
+device release callback. Make it available in drivers/base.
 
 Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 ---
- include/linux/of.h | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/base/base.h     | 1 +
+ drivers/base/platform.c | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/of.h b/include/linux/of.h
-index 4d25e4f952d9..49ba6427c6b2 100644
---- a/include/linux/of.h
-+++ b/include/linux/of.h
-@@ -143,6 +143,7 @@ extern raw_spinlock_t devtree_lock;
- #define OF_DETACHED	2 /* node has been detached from the device tree */
- #define OF_POPULATED	3 /* device already created for the node */
- #define OF_POPULATED_BUS	4 /* of_platform_populate recursed to children of this node */
-+#define OF_POPULATED_EARLY	5 /* device is already allocated */
+diff --git a/drivers/base/base.h b/drivers/base/base.h
+index 7a72ae72a98e..514a6d198f14 100644
+--- a/drivers/base/base.h
++++ b/drivers/base/base.h
+@@ -164,3 +164,4 @@ extern void device_links_unbind_consumers(struct device *dev);
  
- #define OF_BAD_ADDR	((u64)-1)
+ /* Platform device helpers. */
+ extern int platform_match(struct device *dev, struct device_driver *drv);
++extern void platform_device_release(struct device *dev);
+diff --git a/drivers/base/platform.c b/drivers/base/platform.c
+index 0ba4effb9618..417ab6071350 100644
+--- a/drivers/base/platform.c
++++ b/drivers/base/platform.c
+@@ -239,7 +239,7 @@ void platform_device_put(struct platform_device *pdev)
+ }
+ EXPORT_SYMBOL_GPL(platform_device_put);
  
+-static void platform_device_release(struct device *dev)
++void platform_device_release(struct device *dev)
+ {
+ 	struct platform_object *pa = container_of(dev, struct platform_object,
+ 						  pdev.dev);
 -- 
 2.17.0
