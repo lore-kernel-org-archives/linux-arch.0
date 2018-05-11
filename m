@@ -1,83 +1,49 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH REPOST 1/5] thread_info: Port core code to use
- update_thread_flag() helpers
-Date: Fri, 11 May 2018 11:33:38 -0400
-Message-ID: <20180511113338.1d828a50@gandalf.local.home>
-References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
-        <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Subject: [PATCH 03/12] platform/early: export platform_match() locally
+Date: Fri, 11 May 2018 18:20:19 +0200
+Message-ID: <20180511162028.20616-4-brgl@bgdev.pl>
+References: <20180511162028.20616-1-brgl@bgdev.pl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 11 May 2018 16:05:00 +0100
-Dave Martin <Dave.Martin@arm.com> wrote:
+From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 
-> This patch ports a couple of relevant bits of the core kernel to
-> use the new update_thread_flag() helpers.
-> 
-> No functional change.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> ---
->  include/trace/syscall.h |  6 ++----
->  kernel/ptrace.c         | 13 +++++--------
->  2 files changed, 7 insertions(+), 12 deletions(-)
-> 
-> diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-> index dc8ac27..dcc9bdf 100644
-> --- a/include/trace/syscall.h
-> +++ b/include/trace/syscall.h
-> @@ -37,10 +37,8 @@ struct syscall_metadata {
->  #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
->  static inline void syscall_tracepoint_update(struct task_struct *p)
->  {
-> -	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
-> -		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-> -	else
-> -		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-> +	update_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT,
-> +			       test_thread_flag(TIF_SYSCALL_TRACEPOINT));
->  }
+We will use this function to match devices in the early platform core
+code. Export it locally in drivers/base.
 
-Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+---
+ drivers/base/base.h     | 3 +++
+ drivers/base/platform.c | 2 +-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
 
--- Steve
-
->  #else
->  static inline void syscall_tracepoint_update(struct task_struct *p)
-> diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-> index 21fec73..7a2bd8d 100644
-> --- a/kernel/ptrace.c
-> +++ b/kernel/ptrace.c
-> @@ -785,16 +785,13 @@ static int ptrace_resume(struct task_struct *child, long request,
->  	if (!valid_signal(data))
->  		return -EIO;
->  
-> -	if (request == PTRACE_SYSCALL)
-> -		set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-> -	else
-> -		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-> +	update_tsk_thread_flag(child, TIF_SYSCALL_TRACE,
-> +			       request == PTRACE_SYSCALL);
->  
->  #ifdef TIF_SYSCALL_EMU
-> -	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
-> -		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-> -	else
-> -		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-> +	update_tsk_thread_flag(child, TIF_SYSCALL_EMU,
-> +			       request == PTRACE_SYSEMU ||
-> +			       request == PTRACE_SYSEMU_SINGLESTEP);
->  #endif
->  
->  	if (is_singleblock(request)) {
+diff --git a/drivers/base/base.h b/drivers/base/base.h
+index d800de650fa5..7a72ae72a98e 100644
+--- a/drivers/base/base.h
++++ b/drivers/base/base.h
+@@ -161,3 +161,6 @@ extern void device_links_driver_cleanup(struct device *dev);
+ extern void device_links_no_driver(struct device *dev);
+ extern bool device_links_busy(struct device *dev);
+ extern void device_links_unbind_consumers(struct device *dev);
++
++/* Platform device helpers. */
++extern int platform_match(struct device *dev, struct device_driver *drv);
+diff --git a/drivers/base/platform.c b/drivers/base/platform.c
+index 70b156ee267a..0c53e3e3e5aa 100644
+--- a/drivers/base/platform.c
++++ b/drivers/base/platform.c
+@@ -961,7 +961,7 @@ static const struct platform_device_id *platform_match_id(
+  * and compare it against the name of the driver. Return whether they match
+  * or not.
+  */
+-static int platform_match(struct device *dev, struct device_driver *drv)
++int platform_match(struct device *dev, struct device_driver *drv)
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct platform_driver *pdrv = to_platform_driver(drv);
+-- 
+2.17.0
