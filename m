@@ -1,49 +1,82 @@
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH 02/12] platform/early: don't WARN() on non-empty devres list
- for early devices
-Date: Fri, 11 May 2018 18:20:18 +0200
-Message-ID: <20180511162028.20616-3-brgl@bgdev.pl>
+Subject: [PATCH 04/12] platform: provide a separate function for initializing platform devices
+Date: Fri, 11 May 2018 18:20:20 +0200
+Message-ID: <20180511162028.20616-5-brgl@bgdev.pl>
 References: <20180511162028.20616-1-brgl@bgdev.pl>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
-Cc: linux-arch@vger.kernel.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <bgolaszewski@baylibre.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 
-Early platform devices can have devres objects allocated in
-early_probe(). This is not a bug so don't dump stack in this case.
+The early platform driver framework will allocate platform devices
+using its own internal mechanisms. Provide a function that allows to
+initialize a platform device object without allocating it.
 
 Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 ---
- drivers/base/dd.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/base/platform.c         | 24 ++++++++++++++++++++----
+ include/linux/platform_device.h |  2 ++
+ 2 files changed, 22 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/base/dd.c b/drivers/base/dd.c
-index c9f54089429b..0b94d9426757 100644
---- a/drivers/base/dd.c
-+++ b/drivers/base/dd.c
-@@ -410,7 +410,7 @@ static int really_probe(struct device *dev, struct device_driver *drv)
- 	atomic_inc(&probe_count);
- 	pr_debug("bus: '%s': %s: probing driver %s with device %s\n",
- 		 drv->bus->name, __func__, drv->name, dev_name(dev));
--	WARN_ON(!list_empty(&dev->devres_head));
-+	WARN_ON(!dev->early && !list_empty(&dev->devres_head));
+diff --git a/drivers/base/platform.c b/drivers/base/platform.c
+index 0c53e3e3e5aa..0ba4effb9618 100644
+--- a/drivers/base/platform.c
++++ b/drivers/base/platform.c
+@@ -252,6 +252,25 @@ static void platform_device_release(struct device *dev)
+ 	kfree(pa);
+ }
  
- re_probe:
- 	dev->driver = drv;
++/**
++ * platform_device_init - initialize a platform device
++ * @pdev: platform device to initialize
++ * @name: base name of the device we're adding, NOTE: it's not copied
++ * @id: instance id
++ *
++ * Initiate an already allocated platform device. This routine does not set
++ * the release device callback.
++ */
++void platform_device_init(struct platform_device *pdev,
++			  const char *name, int id)
++{
++	pdev->name = name;
++	pdev->id = id;
++	device_initialize(&pdev->dev);
++	arch_setup_pdev_archdata(pdev);
++}
++EXPORT_SYMBOL_GPL(platform_device_init);
++
+ /**
+  * platform_device_alloc - create a platform device
+  * @name: base name of the device we're adding
+@@ -267,11 +286,8 @@ struct platform_device *platform_device_alloc(const char *name, int id)
+ 	pa = kzalloc(sizeof(*pa) + strlen(name) + 1, GFP_KERNEL);
+ 	if (pa) {
+ 		strcpy(pa->name, name);
+-		pa->pdev.name = pa->name;
+-		pa->pdev.id = id;
+-		device_initialize(&pa->pdev.dev);
++		platform_device_init(&pa->pdev, pa->name, id);
+ 		pa->pdev.dev.release = platform_device_release;
+-		arch_setup_pdev_archdata(&pa->pdev);
+ 	}
+ 
+ 	return pa ? &pa->pdev : NULL;
+diff --git a/include/linux/platform_device.h b/include/linux/platform_device.h
+index 099aaf804b50..46bfd5ff666f 100644
+--- a/include/linux/platform_device.h
++++ b/include/linux/platform_device.h
+@@ -165,6 +165,8 @@ static inline struct platform_device *platform_device_register_data(
+ 			NULL, 0, data, size);
+ }
+ 
++extern void platform_device_init(struct platform_device *pdev,
++				 const char *name, int id);
+ extern struct platform_device *platform_device_alloc(const char *name, int id);
+ extern int platform_device_add_resources(struct platform_device *pdev,
+ 					 const struct resource *res,
 -- 
 2.17.0
