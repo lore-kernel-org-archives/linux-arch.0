@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 19/20] sparc: use generic dma_noncoherent_ops
-Date: Fri, 11 May 2018 09:59:44 +0200
-Message-ID: <20180511075945.16548-20-hch@lst.de>
+Subject: [PATCH 20/20] parisc: use generic dma_noncoherent_ops
+Date: Fri, 11 May 2018 09:59:45 +0200
+Message-ID: <20180511075945.16548-21-hch@lst.de>
 References: <20180511075945.16548-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,242 +23,334 @@ List-Id: linux-arch.vger.kernel.org
 
 Switch to the generic noncoherent direct mapping implementation.
 
-This removes the previous sync_single_for_device implementation, which
-looks bogus given that no syncing is happening in the similar but more
-important map_single case.
+Parisc previously had two different non-coherent dma ops implementation
+that just different in the way coherent allocations were handled or not
+handled.  The different behavior is not selected at runtime in the
+arch_dma_alloc and arch_dma_free routines.  The non-coherent allocation
+in the pcx cases now uses the dma_direct helpers that are a little more
+sophisticated and used by a lot of other architectures.
+
+Fix sync_single_for_cpu to do skip the cache flush unless the transfer
+is to the device to match the more tested unmap_single path which should
+have the same cache coherency implications.
+
+This also now consistenly uses flush_kernel_dcache_range for cache
+flushing while previously some of the SG based operations used
+flush_kernel_vmap_range instead.
 
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/sparc/Kconfig                   |   2 +
- arch/sparc/include/asm/dma-mapping.h |   5 +-
- arch/sparc/kernel/ioport.c           | 151 ++-------------------------
- 3 files changed, 14 insertions(+), 144 deletions(-)
+ arch/parisc/Kconfig                   |   4 +
+ arch/parisc/include/asm/dma-mapping.h |   5 -
+ arch/parisc/kernel/pci-dma.c          | 184 +++-----------------------
+ arch/parisc/kernel/setup.c            |   8 +-
+ arch/parisc/mm/init.c                 |  11 +-
+ 5 files changed, 32 insertions(+), 180 deletions(-)
 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 435dbc033afe..0889b4eabf8b 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -48,6 +48,8 @@ config SPARC
- 
- config SPARC32
- 	def_bool !64BIT
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 4d8f64d48597..4993c6dc8358 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -188,6 +188,10 @@ config PA20
+ config PA11
+ 	def_bool y
+ 	depends on PA7000 || PA7100LC || PA7200 || PA7300LC
 +	select ARCH_HAS_SYNC_DMA_FOR_CPU
++	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
 +	select DMA_NONCOHERENT_OPS
- 	select GENERIC_ATOMIC64
- 	select CLZ_TAB
- 	select HAVE_UID16
-diff --git a/arch/sparc/include/asm/dma-mapping.h b/arch/sparc/include/asm/dma-mapping.h
-index 12ae33daf52f..e17566376934 100644
---- a/arch/sparc/include/asm/dma-mapping.h
-+++ b/arch/sparc/include/asm/dma-mapping.h
-@@ -7,7 +7,6 @@
- #include <linux/dma-debug.h>
++	select DMA_NONCOHERENT_CACHE_SYNC
  
- extern const struct dma_map_ops *dma_ops;
--extern const struct dma_map_ops pci32_dma_ops;
+ config PREFETCH
+ 	def_bool y
+diff --git a/arch/parisc/include/asm/dma-mapping.h b/arch/parisc/include/asm/dma-mapping.h
+index 01e1fc057c83..44a9f97194aa 100644
+--- a/arch/parisc/include/asm/dma-mapping.h
++++ b/arch/parisc/include/asm/dma-mapping.h
+@@ -21,11 +21,6 @@
+ ** flush/purge and allocate "regular" cacheable pages for everything.
+ */
  
- extern struct bus_type pci_bus_type;
+-#ifdef CONFIG_PA11
+-extern const struct dma_map_ops pcxl_dma_ops;
+-extern const struct dma_map_ops pcx_dma_ops;
+-#endif
+-
+ extern const struct dma_map_ops *hppa_dma_ops;
  
-@@ -15,11 +14,11 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- {
- #ifdef CONFIG_SPARC_LEON
- 	if (sparc_cpu_model == sparc_leon)
--		return &pci32_dma_ops;
-+		return &dma_noncoherent_ops;
- #endif
- #if defined(CONFIG_SPARC32) && defined(CONFIG_PCI)
- 	if (bus == &pci_bus_type)
--		return &pci32_dma_ops;
-+		return &dma_noncoherent_ops;
- #endif
- 	return dma_ops;
- }
-diff --git a/arch/sparc/kernel/ioport.c b/arch/sparc/kernel/ioport.c
-index 3bcef9ce74df..7954512c42e7 100644
---- a/arch/sparc/kernel/ioport.c
-+++ b/arch/sparc/kernel/ioport.c
-@@ -38,6 +38,7 @@
+ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+diff --git a/arch/parisc/kernel/pci-dma.c b/arch/parisc/kernel/pci-dma.c
+index 91bc0cac03a1..02de2eb22d85 100644
+--- a/arch/parisc/kernel/pci-dma.c
++++ b/arch/parisc/kernel/pci-dma.c
+@@ -21,13 +21,12 @@
+ #include <linux/init.h>
+ #include <linux/gfp.h>
+ #include <linux/mm.h>
+-#include <linux/pci.h>
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
- #include <linux/scatterlist.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+-#include <linux/scatterlist.h>
+-#include <linux/export.h>
++#include <linux/dma-direct.h>
 +#include <linux/dma-noncoherent.h>
- #include <linux/of_device.h>
  
- #include <asm/io.h>
-@@ -434,9 +435,8 @@ arch_initcall(sparc_register_ioport);
- /* Allocate and map kernel buffer using consistent mode DMA for a device.
-  * hwdev should be valid struct pci_dev pointer for PCI devices.
-  */
--static void *pci32_alloc_coherent(struct device *dev, size_t len,
--				  dma_addr_t *pba, gfp_t gfp,
--				  unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t len, dma_addr_t *pba, gfp_t gfp,
-+		unsigned long attrs)
- {
- 	unsigned long len_total = PAGE_ALIGN(len);
- 	void *va;
-@@ -488,8 +488,8 @@ static void *pci32_alloc_coherent(struct device *dev, size_t len,
-  * References to the memory and mappings associated with cpu_addr/dma_addr
-  * past this call are illegal.
-  */
--static void pci32_free_coherent(struct device *dev, size_t n, void *p,
--				dma_addr_t ba, unsigned long attrs)
-+void arch_dma_free(struct device *dev, size_t n, void *p, dma_addr_t ba,
-+		unsigned long attrs)
- {
- 	struct resource *res;
- 
-@@ -519,146 +519,15 @@ static void pci32_free_coherent(struct device *dev, size_t n, void *p,
- 	free_pages((unsigned long)phys_to_virt(ba), get_order(n));
+ #include <asm/cacheflush.h>
+ #include <asm/dma.h>    /* for DMA_CHUNK_SIZE */
+@@ -447,178 +446,39 @@ static void pa11_dma_free(struct device *dev, size_t size, void *vaddr,
+ 	free_pages((unsigned long)__va(dma_handle), order);
  }
  
--/*
-- * Same as pci_map_single, but with pages.
-- */
--static dma_addr_t pci32_map_page(struct device *dev, struct page *page,
--				 unsigned long offset, size_t size,
--				 enum dma_data_direction dir,
--				 unsigned long attrs)
--{
--	/* IIep is write-through, not flushing. */
--	return page_to_phys(page) + offset;
+-static dma_addr_t pa11_dma_map_page(struct device *dev, struct page *page,
+-		unsigned long offset, size_t size,
+-		enum dma_data_direction direction, unsigned long attrs)
++void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
++		size_t size, enum dma_data_direction dir)
+ {
+-	void *addr = page_address(page) + offset;
+-	BUG_ON(direction == DMA_NONE);
+-
+-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+-		flush_kernel_dcache_range((unsigned long) addr, size);
+-
+-	return virt_to_phys(addr);
 -}
 -
--static void pci32_unmap_page(struct device *dev, dma_addr_t ba, size_t size,
--			     enum dma_data_direction dir, unsigned long attrs)
+-static void pa11_dma_unmap_page(struct device *dev, dma_addr_t dma_handle,
+-		size_t size, enum dma_data_direction direction,
+-		unsigned long attrs)
 -{
--	if (dir != PCI_DMA_TODEVICE && !(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		dma_make_coherent(ba, PAGE_ALIGN(size));
+-	BUG_ON(direction == DMA_NONE);
+-
+-	if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-		return;
+-
+-	if (direction == DMA_TO_DEVICE)
+-		return;
+-
+-	/*
+-	 * For PCI_DMA_FROMDEVICE this flush is not necessary for the
+-	 * simple map/unmap case. However, it IS necessary if if
+-	 * pci_dma_sync_single_* has been called and the buffer reused.
+-	 */
+-
+-	flush_kernel_dcache_range((unsigned long) phys_to_virt(dma_handle), size);
 -}
 -
--/* Map a set of buffers described by scatterlist in streaming
-- * mode for DMA.  This is the scatter-gather version of the
-- * above pci_map_single interface.  Here the scatter gather list
-- * elements are each tagged with the appropriate dma address
-- * and length.  They are obtained via sg_dma_{address,length}(SG).
-- *
-- * NOTE: An implementation may be able to use a smaller number of
-- *       DMA address/length pairs than there are SG table elements.
-- *       (for example via virtual mapping capabilities)
-- *       The routine returns the number of addr/length pairs actually
-- *       used, at most nents.
-- *
-- * Device ownership issues as mentioned above for pci_map_single are
-- * the same here.
-- */
--static int pci32_map_sg(struct device *device, struct scatterlist *sgl,
--			int nents, enum dma_data_direction dir,
--			unsigned long attrs)
+-static int pa11_dma_map_sg(struct device *dev, struct scatterlist *sglist,
+-		int nents, enum dma_data_direction direction,
+-		unsigned long attrs)
 -{
+-	int i;
 -	struct scatterlist *sg;
--	int n;
 -
--	/* IIep is write-through, not flushing. */
--	for_each_sg(sgl, sg, nents, n) {
--		sg->dma_address = sg_phys(sg);
--		sg->dma_length = sg->length;
+-	BUG_ON(direction == DMA_NONE);
+-
+-	for_each_sg(sglist, sg, nents, i) {
+-		unsigned long vaddr = (unsigned long)sg_virt(sg);
+-
+-		sg_dma_address(sg) = (dma_addr_t) virt_to_phys(vaddr);
+-		sg_dma_len(sg) = sg->length;
+-
+-		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-			continue;
+-
+-		flush_kernel_dcache_range(vaddr, sg->length);
 -	}
 -	return nents;
 -}
 -
--/* Unmap a set of streaming mode DMA translations.
-- * Again, cpu read rules concerning calls here are the same as for
-- * pci_unmap_single() above.
-- */
--static void pci32_unmap_sg(struct device *dev, struct scatterlist *sgl,
--			   int nents, enum dma_data_direction dir,
--			   unsigned long attrs)
+-static void pa11_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
+-		int nents, enum dma_data_direction direction,
+-		unsigned long attrs)
 -{
+-	int i;
 -	struct scatterlist *sg;
--	int n;
 -
--	if (dir != PCI_DMA_TODEVICE && !(attrs & DMA_ATTR_SKIP_CPU_SYNC)) {
--		for_each_sg(sgl, sg, nents, n) {
--			dma_make_coherent(sg_phys(sg), PAGE_ALIGN(sg->length));
--		}
--	}
+-	BUG_ON(direction == DMA_NONE);
+-
+-	if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
+-		return;
+-
+-	if (direction == DMA_TO_DEVICE)
+-		return;
+-
+-	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+-
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
 -}
-+/* IIep is write-through, not flushing on cpu to device transfer. */
+-
+-static void pa11_dma_sync_single_for_cpu(struct device *dev,
+-		dma_addr_t dma_handle, size_t size,
+-		enum dma_data_direction direction)
+-{
+-	BUG_ON(direction == DMA_NONE);
+-
+-	flush_kernel_dcache_range((unsigned long) phys_to_virt(dma_handle),
+-			size);
++	flush_kernel_dcache_range((unsigned long)phys_to_virt(paddr), size);
+ }
  
--/* Make physical memory consistent for a single
-- * streaming mode DMA translation before or after a transfer.
-- *
-- * If you perform a pci_map_single() but wish to interrogate the
-- * buffer using the cpu, yet do not wish to teardown the PCI dma
-- * mapping, you must call this function before doing so.  At the
-- * next point you give the PCI dma address back to the card, you
-- * must first perform a pci_dma_sync_for_device, and then the
-- * device again owns the buffer.
-- */
--static void pci32_sync_single_for_cpu(struct device *dev, dma_addr_t ba,
--				      size_t size, enum dma_data_direction dir)
+-static void pa11_dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t dma_handle, size_t size,
+-		enum dma_data_direction direction)
 +void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
 +		size_t size, enum dma_data_direction dir)
  {
--	if (dir != PCI_DMA_TODEVICE) {
--		dma_make_coherent(ba, PAGE_ALIGN(size));
--	}
+-	BUG_ON(direction == DMA_NONE);
+-
+-	flush_kernel_dcache_range((unsigned long) phys_to_virt(dma_handle),
+-			size);
 -}
 -
--static void pci32_sync_single_for_device(struct device *dev, dma_addr_t ba,
--					 size_t size, enum dma_data_direction dir)
+-static void pa11_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nents, enum dma_data_direction direction)
 -{
--	if (dir != PCI_DMA_TODEVICE) {
--		dma_make_coherent(ba, PAGE_ALIGN(size));
--	}
-+	if (dir != PCI_DMA_TODEVICE)
-+		dma_make_coherent(paddr, PAGE_ALIGN(size));
+-	int i;
+-	struct scatterlist *sg;
+-
+-	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+-
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
++	flush_kernel_dcache_range((unsigned long)phys_to_virt(paddr), size);
  }
  
--/* Make physical memory consistent for a set of streaming
-- * mode DMA translations after a transfer.
-- *
-- * The same as pci_dma_sync_single_* but for a scatter-gather list,
-- * same rules and usage.
-- */
--static void pci32_sync_sg_for_cpu(struct device *dev, struct scatterlist *sgl,
--				  int nents, enum dma_data_direction dir)
+-static void pa11_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist, int nents, enum dma_data_direction direction)
 -{
+-	int i;
 -	struct scatterlist *sg;
--	int n;
 -
--	if (dir != PCI_DMA_TODEVICE) {
--		for_each_sg(sgl, sg, nents, n) {
--			dma_make_coherent(sg_phys(sg), PAGE_ALIGN(sg->length));
--		}
--	}
+-	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+-
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
 -}
 -
--static void pci32_sync_sg_for_device(struct device *device, struct scatterlist *sgl,
--				     int nents, enum dma_data_direction dir)
--{
--	struct scatterlist *sg;
--	int n;
--
--	if (dir != PCI_DMA_TODEVICE) {
--		for_each_sg(sgl, sg, nents, n) {
--			dma_make_coherent(sg_phys(sg), PAGE_ALIGN(sg->length));
--		}
--	}
--}
--
--/* note: leon re-uses pci32_dma_ops */
--const struct dma_map_ops pci32_dma_ops = {
--	.alloc			= pci32_alloc_coherent,
--	.free			= pci32_free_coherent,
--	.map_page		= pci32_map_page,
--	.unmap_page		= pci32_unmap_page,
--	.map_sg			= pci32_map_sg,
--	.unmap_sg		= pci32_unmap_sg,
--	.sync_single_for_cpu	= pci32_sync_single_for_cpu,
--	.sync_single_for_device	= pci32_sync_single_for_device,
--	.sync_sg_for_cpu	= pci32_sync_sg_for_cpu,
--	.sync_sg_for_device	= pci32_sync_sg_for_device,
+-static void pa11_dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++void arch_dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction)
+ {
+ 	flush_kernel_dcache_range((unsigned long)vaddr, size);
+ }
+ 
+-const struct dma_map_ops pcxl_dma_ops = {
+-	.alloc =		pa11_dma_alloc,
+-	.free =			pa11_dma_free,
+-	.map_page =		pa11_dma_map_page,
+-	.unmap_page =		pa11_dma_unmap_page,
+-	.map_sg =		pa11_dma_map_sg,
+-	.unmap_sg =		pa11_dma_unmap_sg,
+-	.sync_single_for_cpu =	pa11_dma_sync_single_for_cpu,
+-	.sync_single_for_device = pa11_dma_sync_single_for_device,
+-	.sync_sg_for_cpu =	pa11_dma_sync_sg_for_cpu,
+-	.sync_sg_for_device =	pa11_dma_sync_sg_for_device,
+-	.cache_sync =		pa11_dma_cache_sync,
 -};
--EXPORT_SYMBOL(pci32_dma_ops);
 -
- const struct dma_map_ops *dma_ops = &sbus_dma_ops;
- EXPORT_SYMBOL(dma_ops);
+-static void *pcx_dma_alloc(struct device *dev, size_t size,
+-		dma_addr_t *dma_handle, gfp_t flag, unsigned long attrs)
++void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
++		gfp_t gfp, unsigned long attrs)
+ {
+-	void *addr;
+-
+-	if ((attrs & DMA_ATTR_NON_CONSISTENT) == 0)
+-		return NULL;
+-
+-	addr = (void *)__get_free_pages(flag, get_order(size));
+-	if (addr)
+-		*dma_handle = (dma_addr_t)virt_to_phys(addr);
+-
+-	return addr;
++	if (boot_cpu_data.cpu_type == pcxl2 || boot_cpu_data.cpu_type == pcxl)
++		return pa11_dma_alloc(dev, size, dma_handle, gfp, attrs);
++	if (attrs & DMA_ATTR_NON_CONSISTENT)
++		return dma_direct_alloc(dev, size, dma_handle, gfp, attrs);
++	return NULL;
+ }
+ 
+-static void pcx_dma_free(struct device *dev, size_t size, void *vaddr,
+-		dma_addr_t iova, unsigned long attrs)
++void arch_dma_free(struct device *dev, size_t size, void *cpu_addr,
++		dma_addr_t dma_addr, unsigned long attrs)
+ {
+-	free_pages((unsigned long)vaddr, get_order(size));
+-	return;
++	if (boot_cpu_data.cpu_type == pcxl2 || boot_cpu_data.cpu_type == pcxl)
++		pa11_dma_free(dev, size, cpu_addr, dma_addr, attrs);
++	else
++		dma_direct_free(dev, size, cpu_addr, dma_addr, attrs);
+ }
+-
+-const struct dma_map_ops pcx_dma_ops = {
+-	.alloc =		pcx_dma_alloc,
+-	.free =			pcx_dma_free,
+-	.map_page =		pa11_dma_map_page,
+-	.unmap_page =		pa11_dma_unmap_page,
+-	.map_sg =		pa11_dma_map_sg,
+-	.unmap_sg =		pa11_dma_unmap_sg,
+-	.sync_single_for_cpu =	pa11_dma_sync_single_for_cpu,
+-	.sync_single_for_device = pa11_dma_sync_single_for_device,
+-	.sync_sg_for_cpu =	pa11_dma_sync_sg_for_cpu,
+-	.sync_sg_for_device =	pa11_dma_sync_sg_for_device,
+-	.cache_sync =		pa11_dma_cache_sync,
+-};
+diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
+index 8d3a7b80ac42..4e87c35c22b7 100644
+--- a/arch/parisc/kernel/setup.c
++++ b/arch/parisc/kernel/setup.c
+@@ -97,14 +97,12 @@ void __init dma_ops_init(void)
+ 		panic(	"PA-RISC Linux currently only supports machines that conform to\n"
+ 			"the PA-RISC 1.1 or 2.0 architecture specification.\n");
+ 
+-	case pcxs:
+-	case pcxt:
+-		hppa_dma_ops = &pcx_dma_ops;
+-		break;
+ 	case pcxl2:
+ 		pa7300lc_init();
+ 	case pcxl: /* falls through */
+-		hppa_dma_ops = &pcxl_dma_ops;
++	case pcxs:
++	case pcxt:
++		hppa_dma_ops = &dma_noncoherent_ops;
+ 		break;
+ 	default:
+ 		break;
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index cab32ee824d2..4ad91c28ecbe 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -19,7 +19,6 @@
+ #include <linux/gfp.h>
+ #include <linux/delay.h>
+ #include <linux/init.h>
+-#include <linux/pci.h>		/* for hppa_dma_ops and pcxl_dma_ops */
+ #include <linux/initrd.h>
+ #include <linux/swap.h>
+ #include <linux/unistd.h>
+@@ -616,17 +615,13 @@ void __init mem_init(void)
+ 	free_all_bootmem();
+ 
+ #ifdef CONFIG_PA11
+-	if (hppa_dma_ops == &pcxl_dma_ops) {
++	if (boot_cpu_data.cpu_type == pcxl2 || boot_cpu_data.cpu_type == pcxl) {
+ 		pcxl_dma_start = (unsigned long)SET_MAP_OFFSET(MAP_START);
+ 		parisc_vmalloc_start = SET_MAP_OFFSET(pcxl_dma_start
+ 						+ PCXL_DMA_MAP_SIZE);
+-	} else {
+-		pcxl_dma_start = 0;
+-		parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
+-	}
+-#else
+-	parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
++	} else
+ #endif
++		parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
+ 
+ 	mem_init_print_info(NULL);
  
 -- 
 2.17.0
