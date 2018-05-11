@@ -1,88 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56456 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751217AbeEKPdl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 May 2018 11:33:41 -0400
-Date: Fri, 11 May 2018 11:33:38 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH REPOST 1/5] thread_info: Port core code to use
- update_thread_flag() helpers
-Message-ID: <20180511113338.1d828a50@gandalf.local.home>
-In-Reply-To: <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
-References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
-        <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:39117 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751398AbeEKQVZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2018 12:21:25 -0400
+Received: by mail-wm0-f67.google.com with SMTP id f8-v6so4241290wmc.4
+        for <linux-arch@vger.kernel.org>; Fri, 11 May 2018 09:21:25 -0700 (PDT)
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Subject: [PATCH 00/12] introduce support for early platform drivers
+Date: Fri, 11 May 2018 18:20:16 +0200
+Message-ID: <20180511162028.20616-1-brgl@bgdev.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20180511153338.TE_yvNmPPS-CVn5P3wb6h0mWZM8XkOuZG6NnnnwjYuk@z>
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <brgl@bgdev.pl>
+Message-ID: <20180511162016.AuhgMA_BKDnd4muLsfpZNXlIWGt54IWAgeF-t1iQocg@z>
 
-On Fri, 11 May 2018 16:05:00 +0100
-Dave Martin <Dave.Martin@arm.com> wrote:
+This series is a follow-up to the RFC[1] posted a couple days ago.
 
-> This patch ports a couple of relevant bits of the core kernel to
-> use the new update_thread_flag() helpers.
-> 
-> No functional change.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> ---
->  include/trace/syscall.h |  6 ++----
->  kernel/ptrace.c         | 13 +++++--------
->  2 files changed, 7 insertions(+), 12 deletions(-)
-> 
-> diff --git a/include/trace/syscall.h b/include/trace/syscall.h
-> index dc8ac27..dcc9bdf 100644
-> --- a/include/trace/syscall.h
-> +++ b/include/trace/syscall.h
-> @@ -37,10 +37,8 @@ struct syscall_metadata {
->  #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
->  static inline void syscall_tracepoint_update(struct task_struct *p)
->  {
-> -	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
-> -		set_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-> -	else
-> -		clear_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT);
-> +	update_tsk_thread_flag(p, TIF_SYSCALL_TRACEPOINT,
-> +			       test_thread_flag(TIF_SYSCALL_TRACEPOINT));
->  }
+NOTE: this series applies on top of my recent patches[2] that move the previous
+implementation of early platform devices to arch/sh.
 
-Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Problem:
 
--- Steve
+Certain class of devices, such as timers, certain clock drivers and irq chip
+drivers need to be probed early in the boot sequence. The currently preferred
+approach is using one of the OF_DECLARE() macros. This however does not create
+a platform device which has many drawbacks - such as not being able to use
+devres routines, dev_ log functions or no way of deferring the init OF function
+if some other resources are missing.
 
->  #else
->  static inline void syscall_tracepoint_update(struct task_struct *p)
-> diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-> index 21fec73..7a2bd8d 100644
-> --- a/kernel/ptrace.c
-> +++ b/kernel/ptrace.c
-> @@ -785,16 +785,13 @@ static int ptrace_resume(struct task_struct *child, long request,
->  	if (!valid_signal(data))
->  		return -EIO;
->  
-> -	if (request == PTRACE_SYSCALL)
-> -		set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-> -	else
-> -		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-> +	update_tsk_thread_flag(child, TIF_SYSCALL_TRACE,
-> +			       request == PTRACE_SYSCALL);
->  
->  #ifdef TIF_SYSCALL_EMU
-> -	if (request == PTRACE_SYSEMU || request == PTRACE_SYSEMU_SINGLESTEP)
-> -		set_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-> -	else
-> -		clear_tsk_thread_flag(child, TIF_SYSCALL_EMU);
-> +	update_tsk_thread_flag(child, TIF_SYSCALL_EMU,
-> +			       request == PTRACE_SYSEMU ||
-> +			       request == PTRACE_SYSEMU_SINGLESTEP);
->  #endif
->  
->  	if (is_singleblock(request)) {
+For drivers that use both platform drivers and OF_DECLARE the situation is even
+more complicated as the code needs to take into account that there can possibly
+be no struct device present. For a specific use case that we're having problems
+with, please refer to the recent DaVinci common-clock conversion patches and
+the nasty workaround that this problem implies[3].
+
+We also used to have an early platform drivers implementation but they were not
+integrated with the linux device model at all - they merely used the same data
+structures. The users could not use devres, defer probe and the early devices
+never became actual platform devices later on.
+
+Proposed solution:
+
+This series aims at solving this problem by (re-)introducing the concept of
+early platform drivers and devices - this time however in a way that seamlessly
+integrates with the existing platform drivers and also offers device-tree
+support.
+
+The idea is to provide a way for users to probe devices early, while already
+being able to use devres, devices resources and properties and also deferred
+probing.
+
+New structures are introduced: the early platform driver contains the
+early_probe callback which has the same signature as regular platform_device
+probe. This callback is called early on. The user can have both the early and
+regular probe speficied or only one of them and they both receive the same
+platform device object as argument. Any device data allocated early will be
+carried over to the normal probe.
+
+The architecture code is responsible for calling early_platform_start() in
+which the early drivers will be registered and devices populated from DT.
+
+Once the device and kobject mechanisms are ready, all early drivers and devices
+will be converted into real platform drivers and devices. Also: if any of the
+early platform registration functions will be called once early initialization
+is done, these functions will work like regular platform_device/driver ones.
+
+Patches 1-9/12 introduce changes to existing code that are necessary before
+adding support for early drivers. Patch 10/12 contains the new framwork in an
+isolated file which can be compiled only if needed by the architecture.
+
+Patch 11/12 contains a dummy early platform driver that serves as a code
+example and can be used for simple testing.
+
+The last patch finally makes the of/platform code aware of early platform
+drivers.
+
+If accepted, this new mechanism could potentially lead to consolidation of the
+code currently used by users of OF_DECLARE, since they could be converted to
+actual platform drivers.
+
+[1] https://lkml.org/lkml/2018/4/26/657
+[2] https://lkml.org/lkml/2018/4/30/547
+[3] https://lkml.org/lkml/2018/4/26/1094
+
+Bartosz Golaszewski (12):
+  platform/early: add a new field to struct device
+  platform/early: don't WARN() on non-empty devres list for early
+    devices
+  platform/early: export platform_match() locally
+  platform: provide a separate function for initializing platform
+    devices
+  platform: export platform_device_release() locally
+  of: add a new flag for OF device nodes
+  of/platform: provide a separate routine for setting up device
+    resources
+  of/platform: provide a separate routine for device initialization
+  platform/early: add an init section for early driver data
+  platform/early: implement support for early platform drivers
+  misc: implement a dummy early platform driver
+  of/platform: make the OF code aware of early platform drivers
+
+ drivers/base/Kconfig              |   3 +
+ drivers/base/Makefile             |   1 +
+ drivers/base/base.h               |   4 +
+ drivers/base/dd.c                 |   2 +-
+ drivers/base/early.c              | 332 ++++++++++++++++++++++++++++++
+ drivers/base/platform.c           |  28 ++-
+ drivers/misc/Kconfig              |   8 +
+ drivers/misc/Makefile             |   2 +
+ drivers/misc/dummy-early.c        |  82 ++++++++
+ drivers/of/platform.c             |  85 +++++---
+ include/asm-generic/vmlinux.lds.h |  11 +
+ include/linux/device.h            |   1 +
+ include/linux/early_platform.h    |  75 +++++++
+ include/linux/of.h                |   1 +
+ include/linux/of_platform.h       |   2 +
+ include/linux/platform_device.h   |   2 +
+ 16 files changed, 604 insertions(+), 35 deletions(-)
+ create mode 100644 drivers/base/early.c
+ create mode 100644 drivers/misc/dummy-early.c
+ create mode 100644 include/linux/early_platform.h
+
+-- 
+2.17.0
