@@ -1,99 +1,60 @@
-From: Rob Herring <robh+dt@kernel.org>
-Subject: Re: [PATCH 00/12] introduce support for early platform drivers
-Date: Fri, 11 May 2018 15:13:35 -0500
-Message-ID: <CAL_JsqL3CWFSpKEGoGwQDxCQ04g4uT1hiDTxXzjz4XTjPbfsoQ@mail.gmail.com>
-References: <20180511162028.20616-1-brgl@bgdev.pl>
+From: tip-bot for Masahiro Yamada <tipbot@zytor.com>
+Subject: [tip:x86/build] x86/build: Remove no-op macro VMLINUX_SYMBOL()
+Date: Sun, 13 May 2018 06:15:47 -0700
+Message-ID: <tip-2a7ffe465769bc15cb4a77f6a71e6f071d644068@git.kernel.org>
+References: <1525852174-29022-1-git-send-email-yamada.masahiro@socionext.com>
+Reply-To: linux-arch@vger.kernel.org, yamada.masahiro@socionext.com,
+          hpa@zytor.com, mingo@kernel.org, linux-kernel@vger.kernel.org,
+          tglx@linutronix.de
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20180511162028.20616-1-brgl@bgdev.pl>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Bartosz Golaszewski <brgl@bgdev.pl>
-Cc: Mark Rutland <mark.rutland@arm.com>, Rich Felker <dalias@libc.org>, Michael Turquette <mturquette@baylibre.com>, Sekhar Nori <nsekhar@ti.com>, Frank Rowand <frowand.list@gmail.com>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Kevin Hilman <khilman@kernel.org>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Magnus Damm <magnus.damm@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Jiri Slaby <jslaby@suse.com>, devicetree@vger.kernel.org, David Lechner <david@lechnology.com>, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Johan Hovold <johan@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "moderated list:ARM/FREESCALE IMX / MXC ARM ARCHITECTURE" <linux-arm-kernel@lists.infradead.org>, Daniel Lezcano <daniel.lezcano@linar>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1525852174-29022-1-git-send-email-yamada.masahiro@socionext.com>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-tip-commits@vger.kernel.org
+Cc: hpa@zytor.com, linux-arch@vger.kernel.org, yamada.masahiro@socionext.com, tglx@linutronix.de, mingo@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 11, 2018 at 11:20 AM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
-> This series is a follow-up to the RFC[1] posted a couple days ago.
->
-> NOTE: this series applies on top of my recent patches[2] that move the previous
-> implementation of early platform devices to arch/sh.
->
-> Problem:
->
-> Certain class of devices, such as timers, certain clock drivers and irq chip
-> drivers need to be probed early in the boot sequence. The currently preferred
-> approach is using one of the OF_DECLARE() macros. This however does not create
-> a platform device which has many drawbacks - such as not being able to use
-> devres routines, dev_ log functions or no way of deferring the init OF function
-> if some other resources are missing.
+Commit-ID:  2a7ffe465769bc15cb4a77f6a71e6f071d644068
+Gitweb:     https://git.kernel.org/tip/2a7ffe465769bc15cb4a77f6a71e6f071d644068
+Author:     Masahiro Yamada <yamada.masahiro@socionext.com>
+AuthorDate: Wed, 9 May 2018 16:49:34 +0900
+Committer:  Thomas Gleixner <tglx@linutronix.de>
+CommitDate: Sun, 13 May 2018 15:11:34 +0200
 
-I skimmed though this and it doesn't look horrible (how's that for
-positive feedback? ;) ). But before going into the details, I think
-first there needs to be agreement this is the right direction.
+x86/build: Remove no-op macro VMLINUX_SYMBOL()
 
-The question does remain though as to whether this class of devices
-should be platform drivers. They can't be modules. They can't be
-hotplugged. Can they be runtime-pm enabled? So the advantage is ...
+VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+is defined.  It has ever been selected only by BLACKFIN and METAG.
+VMLINUX_SYMBOL() is unneeded for x86-specific code.
 
-I assume that the clock maintainers had some reason to move clocks to
-be platform drivers. It's just not clear to me what that was.
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Link: https://lkml.kernel.org/r/1525852174-29022-1-git-send-email-yamada.masahiro@socionext.com
 
-> For drivers that use both platform drivers and OF_DECLARE the situation is even
-> more complicated as the code needs to take into account that there can possibly
-> be no struct device present. For a specific use case that we're having problems
-> with, please refer to the recent DaVinci common-clock conversion patches and
-> the nasty workaround that this problem implies[3].
+---
+ arch/x86/kernel/vmlinux.lds.S | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-So devm_kzalloc will work with this solution? Why did we need
-devm_kzalloc in the first place? The clocks can never be removed and
-cleaning up on error paths is kind of pointless. The system would be
-hosed, right?
-
-> We also used to have an early platform drivers implementation but they were not
-> integrated with the linux device model at all - they merely used the same data
-> structures. The users could not use devres, defer probe and the early devices
-> never became actual platform devices later on.
->
-> Proposed solution:
->
-> This series aims at solving this problem by (re-)introducing the concept of
-> early platform drivers and devices - this time however in a way that seamlessly
-> integrates with the existing platform drivers and also offers device-tree
-> support.
->
-> The idea is to provide a way for users to probe devices early, while already
-> being able to use devres, devices resources and properties and also deferred
-> probing.
->
-> New structures are introduced: the early platform driver contains the
-> early_probe callback which has the same signature as regular platform_device
-> probe. This callback is called early on. The user can have both the early and
-> regular probe speficied or only one of them and they both receive the same
-> platform device object as argument. Any device data allocated early will be
-> carried over to the normal probe.
->
-> The architecture code is responsible for calling early_platform_start() in
-> which the early drivers will be registered and devices populated from DT.
-
-Can we really do this in one spot for different devices (clk, timers,
-irq). The sequence is all very carefully crafted. Platform specific
-hooks is another thing to consider.
-
-> Once the device and kobject mechanisms are ready, all early drivers and devices
-> will be converted into real platform drivers and devices. Also: if any of the
-> early platform registration functions will be called once early initialization
-> is done, these functions will work like regular platform_device/driver ones.
-
-This could leave devices in a weird state. They've successfully probed
-early, but then are on the deferred list for normal probe for example.
-
-Rob
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 795f3a80e576..5e1458f609a1 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -117,11 +117,11 @@ SECTIONS
+ 
+ #ifdef CONFIG_X86_64
+ 		. = ALIGN(PAGE_SIZE);
+-		VMLINUX_SYMBOL(__entry_trampoline_start) = .;
++		__entry_trampoline_start = .;
+ 		_entry_trampoline = .;
+ 		*(.entry_trampoline)
+ 		. = ALIGN(PAGE_SIZE);
+-		VMLINUX_SYMBOL(__entry_trampoline_end) = .;
++		__entry_trampoline_end = .;
+ 		ASSERT(. - _entry_trampoline == PAGE_SIZE, "entry trampoline is too big");
+ #endif
+ 
