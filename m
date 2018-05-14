@@ -1,36 +1,62 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 04/12] platform: provide a separate function for
- initializing platform devices
-Date: Mon, 14 May 2018 23:25:21 +0200
-Message-ID: <CAMuHMdX1F6dj5AbWB_LZRb1gDS3dqifa5+p_t5jH7ViFrTe2EA@mail.gmail.com>
-References: <20180511162028.20616-1-brgl@bgdev.pl> <20180511162028.20616-5-brgl@bgdev.pl>
+From: Martijn Coenen <maco@android.com>
+Subject: Re: [PATCH] ANDROID: binder: remove 32-bit binder interface.
+Date: Mon, 14 May 2018 23:30:52 +0200
+Message-ID: <CAB0TPYG4Jg54Hg+BWwHqjgZWepxOmcBek=aa3rc=G_h5i=5jNg@mail.gmail.com>
+References: <20180504195728.72932-1-maco@android.com>
+ <201805060540.zjwonWcp%fengguang.wu@intel.com>
+ <CAB0TPYG-Q6Ki_FMM1u+i_g+0ykQgeUTRpm00qycAUVQOqVH6eQ@mail.gmail.com>
+ <20180514120338.GA5265@infradead.org>
+ <CAMuHMdW0nxOmq7gjJiySg0fho2XDYkyrCgp88OOuULRLH+jt6w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180511162028.20616-5-brgl@bgdev.pl>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Bartosz Golaszewski <brgl@bgdev.pl>
-Cc: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <driverdev-devel-bounces@linuxdriverproject.org>
+In-Reply-To: <CAMuHMdW0nxOmq7gjJiySg0fho2XDYkyrCgp88OOuULRLH+jt6w@mail.gmail.com>
+List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/driverdev-devel>,
+ <mailto:driverdev-devel-request@linuxdriverproject.org?subject=unsubscribe>
+List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/driverdev-devel/>
+List-Post: <mailto:driverdev-devel@linuxdriverproject.org>
+List-Help: <mailto:driverdev-devel-request@linuxdriverproject.org?subject=help>
+List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/driverdev-devel>,
+ <mailto:driverdev-devel-request@linuxdriverproject.org?subject=subscribe>
+Errors-To: driverdev-devel-bounces@linuxdriverproject.org
+Sender: "devel" <driverdev-devel-bounces@linuxdriverproject.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Amit Pundir <amit.pundir@linaro.org>, "open list:ANDROID DRIVERS" <devel@driverdev.osuosl.org>, Arnd Bergmann <arnd@arndb.de>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg KH <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, =?UTF-8?B?QXJ2ZSBIasO4bm5ldsOlZw==?= <arve@android.com>, Martijn Coenen <maco@google.com>, John Stultz <john.stultz@linaro.org>, kbuild-all@01.org, Linux-Arch <linux-arch@vger.kernel.org>, Todd Kjos <tkjos@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 11, 2018 at 6:20 PM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
-> From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+On Mon, May 14, 2018 at 4:00 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> Patch sent.
+
+Thanks for the quick turn-around!
+
 >
-> The early platform driver framework will allocate platform devices
-> using its own internal mechanisms. Provide a function that allows to
-> initialize a platform device object without allocating it.
+> BTW, sh also doesn't seem to have 64-bit get_user().
+> There may be others.
+
+I checked quickly, nios2 is the only other arch that explicitly
+doesn't support it and would result in a build error; some other archs
+don't define __get_user, but in that case they just fall back to
+raw_copy_from_user().
+
 >
-> Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+> BTW2, does the Android Binder need to care about endianness when talking
+> to userspace?
 
-Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+No, I don't think it should.
 
-Gr{oetje,eeting}s,
+Thanks,
+Martijn
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+>
+> Gr{oetje,eeting}s,
+>
+>                         Geert
+>
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
