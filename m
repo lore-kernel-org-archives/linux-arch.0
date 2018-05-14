@@ -1,228 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:38792 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752482AbeENXce (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:40256 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752484AbeENXce (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 14 May 2018 19:32:34 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4ENOX5k046237
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4ENOHpZ107049
         for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
-Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hyk1ma622-1
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2hyjrktu19-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
 Received: from localhost
-        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 14 May 2018 19:32:32 -0400
+        Mon, 14 May 2018 19:32:33 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 09/19] tools/memory-model: Add scripts to test memory model
-Date: Mon, 14 May 2018 16:33:47 -0700
+Subject: [PATCH memory-model 16/19] tools/memory-model: Fix coding style in 'lock.cat'
+Date: Mon, 14 May 2018 16:33:54 -0700
 In-Reply-To: <20180514233328.GA7601@linux.vnet.ibm.com>
 References: <20180514233328.GA7601@linux.vnet.ibm.com>
-Message-ID: <1526340837-12222-9-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1526340837-12222-16-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180514233347.HNjAnmr4gOWvtv1rUomQt1EWpVPXnSCY8-PPz8Gc8z4@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180514233354.5gEJZ2K_ve1DcT4FCLsbbyT311J1mcB6GjjY_w0aa1U@z>
 
-This commit adds a pair of scripts that run the memory model on litmus
-tests, checking that the verification result of each litmus test matches
-the result flagged in the litmus test itself.  These scripts permit easier
-checking of changes to the memory model against preconceived notions.
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
-To run the scripts, go to the tools/memory-model directory and type
-"scripts/checkalllitmus.sh".  If all is well, the last line printed will
-be "All litmus tests verified as was expected."
+This commit uses tabs for indentation and adds spaces around binary
+operator.
 
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- tools/memory-model/litmus-tests/.gitignore   |  1 +
- tools/memory-model/scripts/checkalllitmus.sh | 73 +++++++++++++++++++++++
- tools/memory-model/scripts/checklitmus.sh    | 86 ++++++++++++++++++++++++++++
- 3 files changed, 160 insertions(+)
- create mode 100644 tools/memory-model/litmus-tests/.gitignore
- create mode 100755 tools/memory-model/scripts/checkalllitmus.sh
- create mode 100755 tools/memory-model/scripts/checklitmus.sh
+ tools/memory-model/lock.cat | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
 
-diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
-new file mode 100644
-index 000000000000..6e2ddc54152f
---- /dev/null
-+++ b/tools/memory-model/litmus-tests/.gitignore
-@@ -0,0 +1 @@
-+*.litmus.out
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-new file mode 100755
-index 000000000000..af0aa15ab84e
---- /dev/null
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -0,0 +1,73 @@
-+#!/bin/sh
-+#
-+# Run herd tests on all .litmus files in the specified directory (which
-+# defaults to litmus-tests) and check each file's result against a "Result:"
-+# comment within that litmus test.  If the verification result does not
-+# match that specified in the litmus test, this script prints an error
-+# message prefixed with "^^^".  It also outputs verification results to
-+# a file whose name is that of the specified litmus test, but with ".out"
-+# appended.
-+#
-+# Usage:
-+#	sh checkalllitmus.sh [ directory ]
-+#
-+# The LINUX_HERD_OPTIONS environment variable may be used to specify
-+# arguments to herd, whose default is defined by the checklitmus.sh script.
-+# Thus, one would normally run this in the directory containing the memory
-+# model, specifying the pathname of the litmus test to check.
-+#
-+# This script makes no attempt to run the litmus tests concurrently.
-+#
-+# This program is free software; you can redistribute it and/or modify
-+# it under the terms of the GNU General Public License as published by
-+# the Free Software Foundation; either version 2 of the License, or
-+# (at your option) any later version.
-+#
-+# This program is distributed in the hope that it will be useful,
-+# but WITHOUT ANY WARRANTY; without even the implied warranty of
-+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+# GNU General Public License for more details.
-+#
-+# You should have received a copy of the GNU General Public License
-+# along with this program; if not, you can access it online at
-+# http://www.gnu.org/licenses/gpl-2.0.html.
-+#
-+# Copyright IBM Corporation, 2018
-+#
-+# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+
-+litmusdir=${1-litmus-tests}
-+if test -d "$litmusdir" -a -r "$litmusdir" -a -x "$litmusdir"
-+then
-+	:
-+else
-+	echo ' --- ' error: $litmusdir is not an accessible directory
-+	exit 255
-+fi
-+
-+# Find the checklitmus script.  If it is not where we expect it, then
-+# assume that the caller has the PATH environment variable set
-+# appropriately.
-+if test -x scripts/checklitmus.sh
-+then
-+	clscript=scripts/checklitmus.sh
-+else
-+	clscript=checklitmus.sh
-+fi
-+
-+# Run the script on all the litmus tests in the specified directory
-+ret=0
-+for i in litmus-tests/*.litmus
-+do
-+	if ! $clscript $i
-+	then
-+		ret=1
-+	fi
-+done
-+if test "$ret" -ne 0
-+then
-+	echo " ^^^ VERIFICATION MISMATCHES"
-+else
-+	echo All litmus tests verified as was expected.
-+fi
-+exit $ret
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-new file mode 100755
-index 000000000000..e2e477472844
---- /dev/null
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -0,0 +1,86 @@
-+#!/bin/sh
-+#
-+# Run a herd test and check the result against a "Result:" comment within
-+# the litmus test.  If the verification result does not match that specified
-+# in the litmus test, this script prints an error message prefixed with
-+# "^^^" and exits with a non-zero status.  It also outputs verification
-+# results to a file whose name is that of the specified litmus test, but
-+# with ".out" appended.
-+#
-+# Usage:
-+#	sh checklitmus.sh file.litmus
-+#
-+# The LINUX_HERD_OPTIONS environment variable may be used to specify
-+# arguments to herd, which default to "-conf linux-kernel.cfg".  Thus,
-+# one would normally run this in the directory containing the memory model,
-+# specifying the pathname of the litmus test to check.
-+#
-+# This program is free software; you can redistribute it and/or modify
-+# it under the terms of the GNU General Public License as published by
-+# the Free Software Foundation; either version 2 of the License, or
-+# (at your option) any later version.
-+#
-+# This program is distributed in the hope that it will be useful,
-+# but WITHOUT ANY WARRANTY; without even the implied warranty of
-+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+# GNU General Public License for more details.
-+#
-+# You should have received a copy of the GNU General Public License
-+# along with this program; if not, you can access it online at
-+# http://www.gnu.org/licenses/gpl-2.0.html.
-+#
-+# Copyright IBM Corporation, 2018
-+#
-+# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+
-+litmus=$1
-+herdoptions=${LINUX_HERD_OPTIONS--conf linux-kernel.cfg}
-+
-+if test -f "$litmus" -a -r "$litmus"
-+then
-+	:
-+else
-+	echo ' --- ' error: \"$litmus\" is not a readable file
-+	exit 255
-+fi
-+if grep -q '^ \* Result: ' $litmus
-+then
-+	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
-+else
-+	outcome=specified
-+fi
-+
-+echo Herd options: $herdoptions > $litmus.out
-+/usr/bin/time herd7 -o ~/tmp $herdoptions $litmus >> $litmus.out 2>&1
-+grep "Herd options:" $litmus.out
-+grep '^Observation' $litmus.out
-+if grep -q '^Observation' $litmus.out
-+then
-+	:
-+else
-+	cat $litmus.out
-+	echo ' ^^^ Verification error'
-+	echo ' ^^^ Verification error' >> $litmus.out 2>&1
-+	exit 255
-+fi
-+if test "$outcome" = DEADLOCK
-+then
-+	echo grep 3 and 4
-+	if grep '^Observation' $litmus.out | grep -q 'Never 0 0$'
-+	then
-+		ret=0
-+	else
-+		echo " ^^^ Unexpected non-$outcome verification"
-+		echo " ^^^ Unexpected non-$outcome verification" >> $litmus.out 2>&1
-+		ret=1
-+	fi
-+elif grep '^Observation' $litmus.out | grep -q $outcome || test "$outcome" = Maybe
-+then
-+	ret=0
-+else
-+	echo " ^^^ Unexpected non-$outcome verification"
-+	echo " ^^^ Unexpected non-$outcome verification" >> $litmus.out 2>&1
-+	ret=1
-+fi
-+tail -2 $litmus.out | head -1
-+exit $ret
+diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+index cd002a33ca8a..305ded17e741 100644
+--- a/tools/memory-model/lock.cat
++++ b/tools/memory-model/lock.cat
+@@ -84,16 +84,16 @@ let rfi-lf = ([LKW] ; po-loc ; [LF]) \ ([LKW] ; po-loc ; [UL] ; po-loc)
+ 
+ (* rfe for LF events *)
+ let all-possible-rfe-lf =
+-  (*
+-   * Given an LF event r, compute the possible rfe edges for that event
+-   * (all those starting from LKW events in other threads),
+-   * and then convert that relation to a set of single-edge relations.
+-   *)
+-  let possible-rfe-lf r =
+-    let pair-to-relation p = p ++ 0
+-    in map pair-to-relation ((LKW * {r}) & loc & ext)
+-  (* Do this for each LF event r that isn't in rfi-lf *)
+-  in map possible-rfe-lf (LF \ range(rfi-lf))
++	(*
++	 * Given an LF event r, compute the possible rfe edges for that event
++	 * (all those starting from LKW events in other threads),
++	 * and then convert that relation to a set of single-edge relations.
++	 *)
++	let possible-rfe-lf r =
++		let pair-to-relation p = p ++ 0
++		in map pair-to-relation ((LKW * {r}) & loc & ext)
++	(* Do this for each LF event r that isn't in rfi-lf *)
++	in map possible-rfe-lf (LF \ range(rfi-lf))
+ 
+ (* Generate all rf relations for LF events *)
+ with rfe-lf from cross(all-possible-rfe-lf)
+@@ -110,10 +110,10 @@ let rfi-ru = ([UL] ; po-loc ; [RU]) \ ([UL] ; po-loc ; [LKW] ; po-loc)
+ 
+ (* rfe for RU events: an RU may read from an external UL or the initial write *)
+ let all-possible-rfe-ru =
+-   let possible-rfe-ru r =
+-     let pair-to-relation p = p ++ 0
+-     in map pair-to-relation (((UL|IW) * {r}) & loc & ext)
+-  in map possible-rfe-ru RU
++	let possible-rfe-ru r =
++		let pair-to-relation p = p ++ 0
++		in map pair-to-relation (((UL | IW) * {r}) & loc & ext)
++	in map possible-rfe-ru RU
+ 
+ (* Generate all rf relations for RU events *)
+ with rfe-ru from cross(all-possible-rfe-ru)
 -- 
 2.5.2
