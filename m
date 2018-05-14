@@ -1,158 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:46922 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752856AbeENRPZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 14 May 2018 13:15:25 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46990 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752856AbeENRPc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 May 2018 13:15:32 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 01/11] prctl: Support movement of arch prctls out of common code
-Date: Mon, 14 May 2018 18:14:17 +0100
-Message-ID: <1526318067-4964-2-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 07/11] powerpc: Move arch-specific prctls out of core code
+Date: Mon, 14 May 2018 18:14:23 +0100
+Message-ID: <1526318067-4964-8-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 References: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, James Hogan <jhogan@kernel.org>, Kees Cook <keescook@chromium.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, Rich Felker <dalias@libc.org>, Thomas Gleixner <tglx@linutronix.de>, Tony Luck <tony.luck@intel.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20180514171417.fFKYsJAjX3gK_wR7T-L_xzwSXRMhsAHEsHOUTseVmCo@z>
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20180514171423.8XPt3e1ighJB8kqwFvO5nmQ2rp2327JuoV6AraAtvR0@z>
 
-The core framework for the prctl() syscall is unloved and looking
-rather crusty these days.  It also relies on defining ancillary
-boilerplate macros for each prctl() in order to control conditional
-compilation of the different prctl calls.  We have better ways to
-do this now, using Kconfig.
-
-This patch defines a new arch hook arch_syscall().  Architectures
-that implemement arch-specific syscalls can now select
-HAVE_ARCH_SYSCALL in their Kconfig and define this function
-appropriately.
-
-The core prctl() implementation now matches option against the list
-of common or legacy prctls, deferring to prctl_arch() if an
-unrecognised option is encountered.
-
-(arch_prctl() would have been a nicer name, but it conflicts with the
-pre-existing syscall of the same name on x86, particularly in the um
-code.)
+This patch moves the powerpc-specific prctl call implementations
+out of core code and removes redundant boilerplate associated with
+them.
 
 No functional change.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Rich Felker <dalias@libc.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: x86@kernel.org
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/Kconfig                     |  3 +++
- include/linux/prctl.h            | 19 +++++++++++++++++++
- include/uapi/linux/prctl.h       |  6 +++---
- kernel/sys.c                     |  2 +-
- tools/include/uapi/linux/prctl.h |  6 +++---
- 5 files changed, 29 insertions(+), 7 deletions(-)
- create mode 100644 include/linux/prctl.h
+ arch/powerpc/Kconfig                 |  1 +
+ arch/powerpc/include/asm/processor.h |  6 ------
+ arch/powerpc/kernel/syscalls.c       | 17 +++++++++++++++++
+ kernel/sys.c                         | 24 ------------------------
+ 4 files changed, 18 insertions(+), 30 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 8e0d665..b34b3e8 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -969,4 +969,7 @@ config REFCOUNT_FULL
- 	  against various use-after-free conditions that can be used in
- 	  security flaw exploits.
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index c32a181..b94323e 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -218,6 +218,7 @@ config PPC
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
++	select HAVE_PRCTL_ARCH
+ 	select HAVE_RCU_TABLE_FREE		if SMP
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_SYSCALL_TRACEPOINTS
+diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+index 313dec1..e1cd7ec 100644
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -407,15 +407,9 @@ unsigned long get_wchan(struct task_struct *p);
+ #define KSTK_ESP(tsk)  ((tsk)->thread.regs? (tsk)->thread.regs->gpr[1]: 0)
  
-+config HAVE_PRCTL_ARCH
-+	bool
+ /* Get/set floating-point exception mode */
+-#define GET_FPEXC_CTL(adr) get_fpexc_mode((adr))
+-#define SET_FPEXC_CTL(val) set_fpexc_mode((val))
+-
+ extern int get_fpexc_mode(unsigned long adr);
+ extern int set_fpexc_mode(unsigned int val);
+ 
+-#define GET_ENDIAN(adr) get_endian((adr))
+-#define SET_ENDIAN(val) set_endian((val))
+-
+ extern int get_endian(unsigned long adr);
+ extern int set_endian(unsigned int val);
+ 
+diff --git a/arch/powerpc/kernel/syscalls.c b/arch/powerpc/kernel/syscalls.c
+index 4662165..0d6a914 100644
+--- a/arch/powerpc/kernel/syscalls.c
++++ b/arch/powerpc/kernel/syscalls.c
+@@ -139,3 +139,20 @@ long sys_switch_endian(void)
+ 
+ 	return 0;
+ }
 +
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/prctl.h b/include/linux/prctl.h
-new file mode 100644
-index 0000000..5ce3713
---- /dev/null
-+++ b/include/linux/prctl.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_PRCTL_H
-+#define _LINUX_PRCTL_H
-+
-+#include <linux/errno.h>
-+#include <uapi/linux/prctl.h>
-+
-+#ifdef CONFIG_HAVE_PRCTL_ARCH
-+extern int prctl_arch(int option, unsigned long arg2,
-+	unsigned long arg3, unsigned long arg4, unsigned long arg5);
-+#else
-+static inline int prctl_arch(int option, unsigned long arg2,
-+	unsigned long arg3, unsigned long arg4, unsigned long arg5)
++int prctl_arch(int option, unsigned long arg2, unsigned long arg3,
++	       unsigned long arg4, unsigned long arg5)
 +{
-+	return -EINVAL;
++	switch (option) {
++	case PR_SET_FPEXC:
++		return set_fpexc_mode(arg2);
++	case PR_GET_FPEXC:
++		return get_fpexc_mode(arg2);
++	case PR_GET_ENDIAN:
++		return get_endian(arg2);
++	case PR_SET_ENDIAN:
++		return set_endian(arg2);
++	default:
++		return -EINVAL;
++	}
 +}
-+#endif
-+
-+#endif /* ! _LINUX_PRCTL_H */
-diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-index af5f8c2..c911ff0 100644
---- a/include/uapi/linux/prctl.h
-+++ b/include/uapi/linux/prctl.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#ifndef _LINUX_PRCTL_H
--#define _LINUX_PRCTL_H
-+#ifndef _UAPI_LINUX_PRCTL_H
-+#define _UAPI_LINUX_PRCTL_H
- 
- #include <linux/types.h>
- 
-@@ -207,4 +207,4 @@ struct prctl_mm_map {
- # define PR_SVE_VL_LEN_MASK		0xffff
- # define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
- 
--#endif /* _LINUX_PRCTL_H */
-+#endif /* _UAPI_LINUX_PRCTL_H */
 diff --git a/kernel/sys.c b/kernel/sys.c
-index ad69218..5077f1e 100644
+index 44e1c47..b154561 100644
 --- a/kernel/sys.c
 +++ b/kernel/sys.c
-@@ -2451,7 +2451,7 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
- 		error = SVE_GET_VL();
+@@ -83,18 +83,6 @@
+ #ifndef GET_FPEMU_CTL
+ # define GET_FPEMU_CTL(a, b)	(-EINVAL)
+ #endif
+-#ifndef SET_FPEXC_CTL
+-# define SET_FPEXC_CTL(a, b)	(-EINVAL)
+-#endif
+-#ifndef GET_FPEXC_CTL
+-# define GET_FPEXC_CTL(a, b)	(-EINVAL)
+-#endif
+-#ifndef GET_ENDIAN
+-# define GET_ENDIAN(b)		(-EINVAL)
+-#endif
+-#ifndef SET_ENDIAN
+-# define SET_ENDIAN(b)		(-EINVAL)
+-#endif
+ 
+ /*
+  * this is where the system-wide overflow UID and GID are defined, for
+@@ -2264,12 +2252,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 	case PR_GET_FPEMU:
+ 		error = GET_FPEMU_CTL(me, arg2);
  		break;
- 	default:
--		error = -EINVAL;
-+		error = prctl_arch(option, arg2, arg3, arg4, arg5);
+-	case PR_SET_FPEXC:
+-		error = SET_FPEXC_CTL(arg2);
+-		break;
+-	case PR_GET_FPEXC:
+-		error = GET_FPEXC_CTL(arg2);
+-		break;
+ 	case PR_GET_TIMING:
+ 		error = PR_TIMING_STATISTICAL;
  		break;
- 	}
- 	return error;
-diff --git a/tools/include/uapi/linux/prctl.h b/tools/include/uapi/linux/prctl.h
-index af5f8c2..c911ff0 100644
---- a/tools/include/uapi/linux/prctl.h
-+++ b/tools/include/uapi/linux/prctl.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#ifndef _LINUX_PRCTL_H
--#define _LINUX_PRCTL_H
-+#ifndef _UAPI_LINUX_PRCTL_H
-+#define _UAPI_LINUX_PRCTL_H
- 
- #include <linux/types.h>
- 
-@@ -207,4 +207,4 @@ struct prctl_mm_map {
- # define PR_SVE_VL_LEN_MASK		0xffff
- # define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
- 
--#endif /* _LINUX_PRCTL_H */
-+#endif /* _UAPI_LINUX_PRCTL_H */
+@@ -2290,12 +2272,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 		if (copy_to_user((char __user *)arg2, comm, sizeof(comm)))
+ 			return -EFAULT;
+ 		break;
+-	case PR_GET_ENDIAN:
+-		error = GET_ENDIAN(arg2);
+-		break;
+-	case PR_SET_ENDIAN:
+-		error = SET_ENDIAN(arg2);
+-		break;
+ 	case PR_GET_SECCOMP:
+ 		error = prctl_get_seccomp();
+ 		break;
 -- 
 2.1.4
