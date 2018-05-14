@@ -1,55 +1,165 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34830 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752491AbeENXcf (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:51924 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752458AbeENXce (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 14 May 2018 19:32:35 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4ENPAxc044441
-        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
-Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2hygd6yrnt-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
-Received: from localhost
-        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Mon, 14 May 2018 19:32:34 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4ENOHhj044806
+        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
+Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2hykjah81d-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:33 -0400
+Received: from localhost
+        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 14 May 2018 19:32:32 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 06/19] tools/memory-order: smp_mb__after_atomic() orders later RMW operations
-Date: Mon, 14 May 2018 16:33:44 -0700
+Subject: [PATCH memory-model 13/19] tools/memory-model: Improve comments in lock.cat
+Date: Mon, 14 May 2018 16:33:51 -0700
 In-Reply-To: <20180514233328.GA7601@linux.vnet.ibm.com>
 References: <20180514233328.GA7601@linux.vnet.ibm.com>
-Message-ID: <1526340837-12222-6-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1526340837-12222-13-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180514233344.MTJkqkISlYO0CcRuJLAgH3TuZahTx5PE1mmD28h5rtA@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180514233351.ypKqjgmAOFTD4ZOjpn64UYAnMtS95Nk_Q5g4M8Ew8i4@z>
 
-The current cheat sheet does not claim that smp_mb__after_atomic()
-orders later RMW atomic operations, which it must, at least against
-earlier RMW atomic operations and whatever precedes them.  This commit
-therefore adds the needed "Y".
+From: Alan Stern <stern@rowland.harvard.edu>
 
+This patch improves the comments in tools/memory-model/lock.cat.  In
+addition to making the text more uniform and removing redundant
+comments, it adds a description of all the possible locking events
+that herd can generate.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+CC: Akira Yokosawa <akiyks@gmail.com>
+CC: Andrea Parri <andrea.parri@amarulasolutions.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: David Howells <dhowells@redhat.com>
+CC: Jade Alglave <j.alglave@ucl.ac.uk>
+CC: Luc Maranget <luc.maranget@inria.fr>
+CC: Nicholas Piggin <npiggin@gmail.com>
+CC: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
+Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- tools/memory-model/Documentation/cheatsheet.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/memory-model/lock.cat | 51 ++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 36 insertions(+), 15 deletions(-)
 
-diff --git a/tools/memory-model/Documentation/cheatsheet.txt b/tools/memory-model/Documentation/cheatsheet.txt
-index 46fe79afc737..33ba98d72b16 100644
---- a/tools/memory-model/Documentation/cheatsheet.txt
-+++ b/tools/memory-model/Documentation/cheatsheet.txt
-@@ -14,7 +14,7 @@ smp_wmb()                                  Y    W           Y       Y    W
- smp_mb() & synchronize_rcu()  CP        Y  Y    Y        Y  Y   Y   Y    Y
- Successful full non-void RMW  CP     Y  Y  Y    Y     Y  Y  Y   Y   Y    Y   Y
- smp_mb__before_atomic()       CP        Y  Y    Y        a  a   a   a    Y
--smp_mb__after_atomic()        CP        a  a    Y        Y  Y   Y   Y
-+smp_mb__after_atomic()        CP        a  a    Y        Y  Y   Y   Y    Y
+diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
+index 1f6d67e79065..df74de2148f6 100644
+--- a/tools/memory-model/lock.cat
++++ b/tools/memory-model/lock.cat
+@@ -4,15 +4,35 @@
+  * Copyright (C) 2017 Alan Stern <stern@rowland.harvard.edu>
+  *)
  
+-(* Generate coherence orders and handle lock operations *)
+ (*
+- * Warning, crashes with herd7 versions strictly before 7.48.
+- * spin_islocked is functional from version 7.49.
++ * Generate coherence orders and handle lock operations
+  *
++ * Warning: spin_is_locked() crashes herd7 versions strictly before 7.48.
++ * spin_is_locked() is functional from herd7 version 7.49.
+  *)
++
+ include "cross.cat"
  
- Key:	C:	Ordering is cumulative
+-(* From lock reads to their partner lock writes *)
++(*
++ * The lock-related events generated by herd are as follows:
++ *
++ * LKR		Lock-Read: the read part of a spin_lock() or successful
++ *			spin_trylock() read-modify-write event pair
++ * LKW		Lock-Write: the write part of a spin_lock() or successful
++ *			spin_trylock() RMW event pair
++ * UL		Unlock: a spin_unlock() event
++ * LF		Lock-Fail: a failed spin_trylock() event
++ * RL		Read-Locked: a spin_is_locked() event which returns True
++ * RU		Read-Unlocked: a spin_is_locked() event which returns False
++ *
++ * LKR and LKW events always come paired, like all RMW event sequences.
++ *
++ * LKR, LF, RL, and RU are read events; LKR has Acquire ordering.
++ * LKW and UL are write events; UL has Release ordering.
++ * LKW, LF, RL, and RU have no ordering properties.
++ *)
++
++(* Link Lock-Reads to their RMW-partner Lock-Writes *)
+ let lk-rmw = ([LKR] ; po-loc ; [LKW]) \ (po ; po)
+ let rmw = rmw | lk-rmw
+ 
+@@ -29,18 +49,16 @@ flag ~empty LKW \ range(lk-rmw) as unpaired-LKW
+ (* This will be allowed if we implement spin_is_locked() *)
+ flag ~empty LKR \ domain(lk-rmw) as unpaired-LKR
+ 
+-(* There should be no R or W accesses to spinlocks *)
++(* There should be no ordinary R or W accesses to spinlocks *)
+ let ALL-LOCKS = LKR | LKW | UL | LF
+ flag ~empty [M \ IW] ; loc ; [ALL-LOCKS] as mixed-lock-accesses
+ 
+ (* The final value of a spinlock should not be tested *)
+ flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
+ 
+-(*
+- * Backward compatibility
+- *)
+-let RL = try RL with emptyset (* defined herd7 >= 7.49 *)
+-let RU = try RU with emptyset (* defined herd7 >= 7.49 *)
++(* Backward compatibility *)
++let RL = try RL with emptyset
++let RU = try RU with emptyset
+ 
+ (* Treat RL as a kind of LF: a read with no ordering properties *)
+ let LF = LF | RL
+@@ -55,7 +73,6 @@ let W = W | LKW
+ let Release = Release | UL
+ let Acquire = Acquire | LKR
+ 
+-
+ (* Match LKW events to their corresponding UL events *)
+ let critical = ([LKW] ; po-loc ; [UL]) \ (po-loc ; [LKW | UL] ; po-loc)
+ 
+@@ -65,7 +82,6 @@ flag ~empty UL \ range(critical) as unmatched-unlock
+ let UNMATCHED-LKW = LKW \ domain(critical)
+ empty ([UNMATCHED-LKW] ; loc ; [UNMATCHED-LKW]) \ id as unmatched-locks
+ 
+-
+ (* rfi for LF events: link each LKW to the LF events in its critical section *)
+ let rfi-lf = ([LKW] ; po-loc ; [LF]) \ ([LKW] ; po-loc ; [UL] ; po-loc)
+ 
+@@ -86,18 +102,23 @@ let all-possible-rfe-lf =
+ with rfe-lf from cross(all-possible-rfe-lf)
+ let rf-lf = rfe-lf | rfi-lf
+ 
+-(* Read from unlock, ie islocked returning false, slightly different *)
++(*
++ * RU, i.e., spin_is_locked() returning False, is slightly different.
++ * We rely on the memory model to rule out cases where spin_is_locked()
++ * within one of the lock's critical sections returns False.
++ *)
+ 
+-(* islocked returning false can read from the last po-previous unlock *)
++(* rfi for RU events: an RU may read from the last po-previous UL *)
+ let rfi-ru = ([UL] ; po-loc ; [RU]) \ ([UL] ; po-loc ; [LKW] ; po-loc)
+ 
+-(* any islocked returning false can read from any external unlock *)
++(* rfe for RU events: an RU may read from an external UL or the initial write *)
+ let all-possible-rfe-ru =
+    let possible-rfe-ru r =
+      let pair-to-relation p = p ++ 0
+      in map pair-to-relation (((UL|IW) * {r}) & loc & ext)
+   in map possible-rfe-ru RU
+ 
++(* Generate all rf relations for RU events *)
+ with rfe-ru from cross(all-possible-rfe-ru)
+ let rf-ru = rfe-ru | rfi-ru
+ 
 -- 
 2.5.2
