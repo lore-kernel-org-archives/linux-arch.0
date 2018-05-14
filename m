@@ -1,121 +1,85 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH -resend 02/27] x86: assembly, use SYM_DATA for data
-Date: Mon, 14 May 2018 10:05:49 +0200
-Message-ID: <20180514080549.GB6607@gmail.com>
+Subject: Re: [PATCH -resend 00/27] New macros for assembler symbols
+Date: Mon, 14 May 2018 10:10:09 +0200
+Message-ID: <20180514081009.GC6607@gmail.com>
 References: <20180510080644.19752-1-jslaby@suse.cz>
- <20180510080644.19752-3-jslaby@suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180510080644.19752-3-jslaby@suse.cz>
+In-Reply-To: <20180510080644.19752-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Jiri Slaby <jslaby@suse.cz>
-Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
+Cc: mingo@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-Id: linux-arch.vger.kernel.org
 
 
 * Jiri Slaby <jslaby@suse.cz> wrote:
 
-> We make proper use of SYM_DATA on global data instead of marking them as
-> ENTRY. ENTRY is intended for functions and shall be paired with ENDPROC.
-> ENTRY also aligns symbols which creates unnecessary holes here between
-> data.
+> This series introduces new macros for assembly as was discussed [1].
+> The macros are introduced in the first patch of the series. The rest
+> of patches start using these new macros in x86, converting *all* uses
+> of the old macros to the new ones throughout the last patch. With
+> every last user of some old macro, the macro is immediatelly made
+> forbidden for x86.
 > 
-> ENTRY from saved_eip in wakeup_32 and many saved_* in wakeup_64 is
-> simply dropped, as these symbols are local only.
-
-Yeah, so this commit talks about ENTRY() and ENDPROC(), while the new methods are 
-SYM_FUNC_START()/END().
-
->  arch/x86/kernel/acpi/wakeup_32.S |  4 ++--
->  arch/x86/kernel/acpi/wakeup_64.S | 14 +++++++-------
->  arch/x86/kernel/head_32.S        |  6 ++----
->  arch/x86/kernel/head_64.S        |  5 ++---
->  4 files changed, 13 insertions(+), 16 deletions(-)
+> When this settles down, conversion of other architectures can be done
+> too.
 > 
-> diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-> index 0c26b1b44e51..feac1e5ecba0 100644
-> --- a/arch/x86/kernel/acpi/wakeup_32.S
-> +++ b/arch/x86/kernel/acpi/wakeup_32.S
-> @@ -89,8 +89,8 @@ ret_point:
->  
->  .data
->  ALIGN
-> -ENTRY(saved_magic)	.long	0
-> -ENTRY(saved_eip)	.long	0
-> +SYM_DATA(saved_magic,	.long 0)
-> +saved_eip:		.long 0
->  
->  # saved registers
->  saved_idt:	.long	0,0
-> diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-> index 50b8ed0317a3..551758f48eb7 100644
-> --- a/arch/x86/kernel/acpi/wakeup_64.S
-> +++ b/arch/x86/kernel/acpi/wakeup_64.S
-> @@ -125,12 +125,12 @@ ENTRY(do_suspend_lowlevel)
->  ENDPROC(do_suspend_lowlevel)
->  
->  .data
-> -ENTRY(saved_rbp)	.quad	0
-> -ENTRY(saved_rsi)	.quad	0
-> -ENTRY(saved_rdi)	.quad	0
-> -ENTRY(saved_rbx)	.quad	0
-> +saved_rbp:		.quad	0
-> +saved_rsi:		.quad	0
-> +saved_rdi:		.quad	0
-> +saved_rbx:		.quad	0
->  
-> -ENTRY(saved_rip)	.quad	0
-> -ENTRY(saved_rsp)	.quad	0
-> +saved_rip:		.quad	0
-> +saved_rsp:		.quad	0
->  
-> -ENTRY(saved_magic)	.quad	0
-> +SYM_DATA(saved_magic,	.quad	0)
-> diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-> index b59e4fb40fd9..80965fd75fea 100644
-> --- a/arch/x86/kernel/head_32.S
-> +++ b/arch/x86/kernel/head_32.S
-> @@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
->  
->  __REFDATA
->  	.align 4
-> -ENTRY(initial_code)
-> -	.long i386_start_kernel
-> -ENTRY(setup_once_ref)
-> -	.long setup_once
-> +SYM_DATA(initial_code,		.long i386_start_kernel)
-> +SYM_DATA(setup_once_ref,	.long setup_once)
->  
->  /*
->   * BSS section
-> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-> index 8344dd2f310a..17543533642d 100644
-> --- a/arch/x86/kernel/head_64.S
-> +++ b/arch/x86/kernel/head_64.S
-> @@ -463,9 +463,8 @@ early_gdt_descr:
->  early_gdt_descr_base:
->  	.quad	INIT_PER_CPU_VAR(gdt_page)
->  
-> -ENTRY(phys_base)
-> -	/* This must match the first entry in level2_kernel_pgt */
-> -	.quad   0x0000000000000000
-> +/* This must match the first entry in level2_kernel_pgt */
-> +SYM_DATA(phys_base, .quad 0x0000000000000000)
->  EXPORT_SYMBOL(phys_base)
->  
->  #include "../../x86/xen/xen-head.S"
+> For introduction, documentation, use and examples, please see
+> Documentation/asm-annotations.rst from the first patch of the series.
+> 
+> [1] https://lkml.org/lkml/2017/3/1/742
+> 
+> Jiri Slaby (27):
+>   linkage: new macros for assembler symbols
+>   x86: assembly, use SYM_DATA for data
+>   x86: assembly, annotate relocate_kernel
+>   x86: entry, annotate THUNKs
+>   x86: assembly, annotate local pseudo-functions
+>   x86: crypto, annotate local functions
+>   x86: boot, annotate local functions
+>   x86: assembly, annotate aliases
+>   x86: entry, annotate interrupt symbols properly
+>   x86: head, annotate data appropriatelly
+>   x86: boot, annotate data appropriatelly
+>   x86: um, annotate data appropriatelly
+>   x86: xen-pvh, annotate data appropriatelly
+>   x86: purgatory, start using annotations
+>   x86: assembly, do not annotate functions by GLOBAL
+>   x86: assembly, use SYM_CODE_INNER_LABEL instead of GLOBAL
+>   x86: realmode, use SYM_DATA_* instead of GLOBAL
+>   x86: assembly, remove GLOBAL macro
+>   x86: assembly, make some functions local
+>   x86: ftrace, mark function_hook as function
+>   x86_64: assembly, add ENDs to some functions and relabel with SYM_CODE_*
+>   x86_64: assembly, change all ENTRY+END to SYM_CODE_*
+>   x86_64: assembly, change all ENTRY+ENDPROC to SYM_FUNC_*
+>   x86_32: assembly, add ENDs to some functions and relabel with SYM_CODE_*
+>   x86_32: assembly, change all ENTRY+END to SYM_CODE_*
+>   x86_32: assembly, change all ENTRY+ENDPROC to SYM_FUNC_*
+>   x86: assembly, replace WEAK uses
 
-I'd also suggest splitting this patch into two:
+So since this is going to be a lot of commits I'd rather not edit every title, but 
+every single patch you sent has a non-standard title that looks totally out of 
+place if you look at existing commits to those same files.
 
-  - one for the renaming of the existing ENTRY() uses
+For example:
 
-  - and another one for the dropping of ENTRY() annotations
+>   x86: boot, annotate local functions
 
-Could you please also do this for other patches if necessary, i.e. there should be 
-'pure renaming' patches that are easy to review and verify, separate from patches 
-that actually change the symbol table?
+Modifies files whose existing commit title format to be:
+
+974f221c84b0: x86/boot: Move compressed kernel to the end of the decompression buffer
+c04028813221: x86/boot: Clarify purpose of functions in misc.c
+
+So could you please use the proper x86 titles?
+
+In fact I'd suggest using the same subsystem identifier for most patches, i.e.:
+
+   x86/asm: Annotate xen-pvh symbols ....
+
+because these are really mostly assembly code annotations.
 
 Thanks,
 
