@@ -1,99 +1,228 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:58726 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:38792 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752464AbeENXce (ORCPT
+        by vger.kernel.org with ESMTP id S1752482AbeENXce (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
         Mon, 14 May 2018 19:32:34 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4ENOKNl127417
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4ENOX5k046237
         for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
-Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2hyj5hkv4u-1
+Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2hyk1ma622-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:33 -0400
+        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 19:32:34 -0400
 Received: from localhost
-        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
         Mon, 14 May 2018 19:32:32 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 08/19] tools/memory-model: Fix coding style in 'linux-kernel.def'
-Date: Mon, 14 May 2018 16:33:46 -0700
+Subject: [PATCH memory-model 09/19] tools/memory-model: Add scripts to test memory model
+Date: Mon, 14 May 2018 16:33:47 -0700
 In-Reply-To: <20180514233328.GA7601@linux.vnet.ibm.com>
 References: <20180514233328.GA7601@linux.vnet.ibm.com>
-Message-ID: <1526340837-12222-8-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <1526340837-12222-9-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180514233346.MjGhLDsBhIg3ey7ai-A8inT95VxaYqMp-onNgKKdGHk@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180514233347.HNjAnmr4gOWvtv1rUomQt1EWpVPXnSCY8-PPz8Gc8z4@z>
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+This commit adds a pair of scripts that run the memory model on litmus
+tests, checking that the verification result of each litmus test matches
+the result flagged in the litmus test itself.  These scripts permit easier
+checking of changes to the memory model against preconceived notions.
 
-This commit fixes white spaces around semicolons.
+To run the scripts, go to the tools/memory-model directory and type
+"scripts/checkalllitmus.sh".  If all is well, the last line printed will
+be "All litmus tests verified as was expected."
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- tools/memory-model/linux-kernel.def | 28 ++++++++++++++--------------
- 1 file changed, 14 insertions(+), 14 deletions(-)
+ tools/memory-model/litmus-tests/.gitignore   |  1 +
+ tools/memory-model/scripts/checkalllitmus.sh | 73 +++++++++++++++++++++++
+ tools/memory-model/scripts/checklitmus.sh    | 86 ++++++++++++++++++++++++++++
+ 3 files changed, 160 insertions(+)
+ create mode 100644 tools/memory-model/litmus-tests/.gitignore
+ create mode 100755 tools/memory-model/scripts/checkalllitmus.sh
+ create mode 100755 tools/memory-model/scripts/checklitmus.sh
 
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index acf86f6f360a..6bd3bc431b3d 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -17,12 +17,12 @@ rcu_dereference(X) __load{once}(X)
- smp_store_mb(X,V) { __store{once}(X,V); __fence{mb}; }
- 
- // Fences
--smp_mb() { __fence{mb} ; }
--smp_rmb() { __fence{rmb} ; }
--smp_wmb() { __fence{wmb} ; }
--smp_mb__before_atomic() { __fence{before-atomic} ; }
--smp_mb__after_atomic() { __fence{after-atomic} ; }
--smp_mb__after_spinlock() { __fence{after-spinlock} ; }
-+smp_mb() { __fence{mb}; }
-+smp_rmb() { __fence{rmb}; }
-+smp_wmb() { __fence{wmb}; }
-+smp_mb__before_atomic() { __fence{before-atomic}; }
-+smp_mb__after_atomic() { __fence{after-atomic}; }
-+smp_mb__after_spinlock() { __fence{after-spinlock}; }
- 
- // Exchange
- xchg(X,V)  __xchg{mb}(X,V)
-@@ -35,26 +35,26 @@ cmpxchg_acquire(X,V,W) __cmpxchg{acquire}(X,V,W)
- cmpxchg_release(X,V,W) __cmpxchg{release}(X,V,W)
- 
- // Spinlocks
--spin_lock(X) { __lock(X) ; }
--spin_unlock(X) { __unlock(X) ; }
-+spin_lock(X) { __lock(X); }
-+spin_unlock(X) { __unlock(X); }
- spin_trylock(X) __trylock(X)
- 
- // RCU
- rcu_read_lock() { __fence{rcu-lock}; }
--rcu_read_unlock() { __fence{rcu-unlock};}
-+rcu_read_unlock() { __fence{rcu-unlock}; }
- synchronize_rcu() { __fence{sync-rcu}; }
- synchronize_rcu_expedited() { __fence{sync-rcu}; }
- 
- // Atomic
- atomic_read(X) READ_ONCE(*X)
--atomic_set(X,V) { WRITE_ONCE(*X,V) ; }
-+atomic_set(X,V) { WRITE_ONCE(*X,V); }
- atomic_read_acquire(X) smp_load_acquire(X)
- atomic_set_release(X,V) { smp_store_release(X,V); }
- 
--atomic_add(V,X) { __atomic_op(X,+,V) ; }
--atomic_sub(V,X) { __atomic_op(X,-,V) ; }
--atomic_inc(X)   { __atomic_op(X,+,1) ; }
--atomic_dec(X)   { __atomic_op(X,-,1) ; }
-+atomic_add(V,X) { __atomic_op(X,+,V); }
-+atomic_sub(V,X) { __atomic_op(X,-,V); }
-+atomic_inc(X)   { __atomic_op(X,+,1); }
-+atomic_dec(X)   { __atomic_op(X,-,1); }
- 
- atomic_add_return(V,X) __atomic_op_return{mb}(X,+,V)
- atomic_add_return_relaxed(V,X) __atomic_op_return{once}(X,+,V)
+diff --git a/tools/memory-model/litmus-tests/.gitignore b/tools/memory-model/litmus-tests/.gitignore
+new file mode 100644
+index 000000000000..6e2ddc54152f
+--- /dev/null
++++ b/tools/memory-model/litmus-tests/.gitignore
+@@ -0,0 +1 @@
++*.litmus.out
+diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
+new file mode 100755
+index 000000000000..af0aa15ab84e
+--- /dev/null
++++ b/tools/memory-model/scripts/checkalllitmus.sh
+@@ -0,0 +1,73 @@
++#!/bin/sh
++#
++# Run herd tests on all .litmus files in the specified directory (which
++# defaults to litmus-tests) and check each file's result against a "Result:"
++# comment within that litmus test.  If the verification result does not
++# match that specified in the litmus test, this script prints an error
++# message prefixed with "^^^".  It also outputs verification results to
++# a file whose name is that of the specified litmus test, but with ".out"
++# appended.
++#
++# Usage:
++#	sh checkalllitmus.sh [ directory ]
++#
++# The LINUX_HERD_OPTIONS environment variable may be used to specify
++# arguments to herd, whose default is defined by the checklitmus.sh script.
++# Thus, one would normally run this in the directory containing the memory
++# model, specifying the pathname of the litmus test to check.
++#
++# This script makes no attempt to run the litmus tests concurrently.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, you can access it online at
++# http://www.gnu.org/licenses/gpl-2.0.html.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
++
++litmusdir=${1-litmus-tests}
++if test -d "$litmusdir" -a -r "$litmusdir" -a -x "$litmusdir"
++then
++	:
++else
++	echo ' --- ' error: $litmusdir is not an accessible directory
++	exit 255
++fi
++
++# Find the checklitmus script.  If it is not where we expect it, then
++# assume that the caller has the PATH environment variable set
++# appropriately.
++if test -x scripts/checklitmus.sh
++then
++	clscript=scripts/checklitmus.sh
++else
++	clscript=checklitmus.sh
++fi
++
++# Run the script on all the litmus tests in the specified directory
++ret=0
++for i in litmus-tests/*.litmus
++do
++	if ! $clscript $i
++	then
++		ret=1
++	fi
++done
++if test "$ret" -ne 0
++then
++	echo " ^^^ VERIFICATION MISMATCHES"
++else
++	echo All litmus tests verified as was expected.
++fi
++exit $ret
+diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
+new file mode 100755
+index 000000000000..e2e477472844
+--- /dev/null
++++ b/tools/memory-model/scripts/checklitmus.sh
+@@ -0,0 +1,86 @@
++#!/bin/sh
++#
++# Run a herd test and check the result against a "Result:" comment within
++# the litmus test.  If the verification result does not match that specified
++# in the litmus test, this script prints an error message prefixed with
++# "^^^" and exits with a non-zero status.  It also outputs verification
++# results to a file whose name is that of the specified litmus test, but
++# with ".out" appended.
++#
++# Usage:
++#	sh checklitmus.sh file.litmus
++#
++# The LINUX_HERD_OPTIONS environment variable may be used to specify
++# arguments to herd, which default to "-conf linux-kernel.cfg".  Thus,
++# one would normally run this in the directory containing the memory model,
++# specifying the pathname of the litmus test to check.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, you can access it online at
++# http://www.gnu.org/licenses/gpl-2.0.html.
++#
++# Copyright IBM Corporation, 2018
++#
++# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
++
++litmus=$1
++herdoptions=${LINUX_HERD_OPTIONS--conf linux-kernel.cfg}
++
++if test -f "$litmus" -a -r "$litmus"
++then
++	:
++else
++	echo ' --- ' error: \"$litmus\" is not a readable file
++	exit 255
++fi
++if grep -q '^ \* Result: ' $litmus
++then
++	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
++else
++	outcome=specified
++fi
++
++echo Herd options: $herdoptions > $litmus.out
++/usr/bin/time herd7 -o ~/tmp $herdoptions $litmus >> $litmus.out 2>&1
++grep "Herd options:" $litmus.out
++grep '^Observation' $litmus.out
++if grep -q '^Observation' $litmus.out
++then
++	:
++else
++	cat $litmus.out
++	echo ' ^^^ Verification error'
++	echo ' ^^^ Verification error' >> $litmus.out 2>&1
++	exit 255
++fi
++if test "$outcome" = DEADLOCK
++then
++	echo grep 3 and 4
++	if grep '^Observation' $litmus.out | grep -q 'Never 0 0$'
++	then
++		ret=0
++	else
++		echo " ^^^ Unexpected non-$outcome verification"
++		echo " ^^^ Unexpected non-$outcome verification" >> $litmus.out 2>&1
++		ret=1
++	fi
++elif grep '^Observation' $litmus.out | grep -q $outcome || test "$outcome" = Maybe
++then
++	ret=0
++else
++	echo " ^^^ Unexpected non-$outcome verification"
++	echo " ^^^ Unexpected non-$outcome verification" >> $litmus.out 2>&1
++	ret=1
++fi
++tail -2 $litmus.out | head -1
++exit $ret
 -- 
 2.5.2
