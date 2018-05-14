@@ -1,40 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3-rdu2.redhat.com ([66.187.233.73]:48240 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751617AbeEMQMg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 13 May 2018 12:12:36 -0400
-Date: Sun, 13 May 2018 18:12:32 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH REPOST 1/5] thread_info: Port core code to use
- update_thread_flag() helpers
-Message-ID: <20180513161231.GA25642@redhat.com>
-References: <1526051104-15995-1-git-send-email-Dave.Martin@arm.com>
- <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
+Received: from conssluserg-05.nifty.com ([210.131.2.90]:46293 "EHLO
+        conssluserg-05.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750929AbeENAJx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 13 May 2018 20:09:53 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1526051104-15995-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20180509130001.24276-1-npiggin@gmail.com>
+References: <20180509130001.24276-1-npiggin@gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 14 May 2018 09:08:52 +0900
+Message-ID: <CAK7LNARVkvM1deFGbdnaTt41hDqV9pCZ1+OCB0dCqPgspLMVPw@mail.gmail.com>
+Subject: Re: [PATCH v2 0/4] LD_DEAD_CODE_DATA_ELIMINATION fixes and enabling
+ for powerpc
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
-Message-ID: <20180513161232.3ANXMbuTU0i9rNwXa6mKkUtTUGxDAnRo9YNbgzmiZ9I@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20180514000852.nTzJQ03snZy6pGnf_UklkMN9oqoUa7WMk8abH_t_Ci4@z>
 
-On 05/11, Dave Martin wrote:
->
-> This patch ports a couple of relevant bits of the core kernel to
-> use the new update_thread_flag() helpers.
->
-> No functional change.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> ---
->  include/trace/syscall.h |  6 ++----
->  kernel/ptrace.c         | 13 +++++--------
->  2 files changed, 7 insertions(+), 12 deletions(-)
+2018-05-09 21:59 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
+> v2 changes only patch 4, updates the changelog with ppc32 numbers and
+> Tested-by tags, and also use TEXT_MAIN in the linker script as
+> Christophe suggested.
 
-Acked-by: Oleg Nesterov <oleg@redhat.com>
+
+Replaced with v2.
+Thanks!
+
+
+> Thanks,
+> Nick
+>
+> Nicholas Piggin (4):
+>   kbuild: Fix asm-generic/vmlinux.lds.h for
+>     LD_DEAD_CODE_DATA_ELIMINATION
+>   kbuild: LD_DEAD_CODE_DATA_ELIMINATION no
+>     -ffunction-sections/-fdata-sections for module build
+>   kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if
+>     enabled
+>   powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
+>
+>  Makefile                          |  4 +--
+>  arch/Kconfig                      | 15 ----------
+>  arch/powerpc/Kconfig              |  1 +
+>  arch/powerpc/kernel/vmlinux.lds.S | 22 +++++++-------
+>  include/asm-generic/vmlinux.lds.h | 49 ++++++++++++++++++-------------
+>  init/Kconfig                      | 27 +++++++++++++++++
+>  6 files changed, 70 insertions(+), 48 deletions(-)
+>
+> --
+> 2.17.0
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
