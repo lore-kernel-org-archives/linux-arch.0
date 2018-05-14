@@ -1,7 +1,7 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 12/19] tools/memory-model: Remove duplicated code from lock.cat
-Date: Mon, 14 May 2018 16:33:50 -0700
-Message-ID: <1526340837-12222-12-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH memory-model 08/19] tools/memory-model: Fix coding style in 'linux-kernel.def'
+Date: Mon, 14 May 2018 16:33:46 -0700
+Message-ID: <1526340837-12222-8-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20180514233328.GA7601@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180514233328.GA7601@linux.vnet.ibm.com>
@@ -10,90 +10,73 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
 Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Alan Stern <stern@rowland.harvard.edu>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
-This patch simplifies the implementation of spin_is_locked in the
-LKMM.  It capitalizes on the fact that a failed spin_trylock() and a
-spin_is_locked() which returns True have exactly the same semantics
-(those of READ_ONCE) and ordering properties (none).  Therefore the
-two kinds of events can be combined and handled by the same code,
-instead of treated separately as they are currently.
+This commit fixes white spaces around semicolons.
 
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-CC: Akira Yokosawa <akiyks@gmail.com>
-CC: Andrea Parri <andrea.parri@amarulasolutions.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: David Howells <dhowells@redhat.com>
-CC: Jade Alglave <j.alglave@ucl.ac.uk>
-CC: Luc Maranget <luc.maranget@inria.fr>
-CC: Nicholas Piggin <npiggin@gmail.com>
-CC: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Tested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- tools/memory-model/lock.cat | 28 ++++++----------------------
- 1 file changed, 6 insertions(+), 22 deletions(-)
+ tools/memory-model/linux-kernel.def | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
 
-diff --git a/tools/memory-model/lock.cat b/tools/memory-model/lock.cat
-index 3b1439edc818..1f6d67e79065 100644
---- a/tools/memory-model/lock.cat
-+++ b/tools/memory-model/lock.cat
-@@ -41,11 +41,15 @@ flag ~empty [FW] ; loc ; [ALL-LOCKS] as lock-final
-  *)
- let RL = try RL with emptyset (* defined herd7 >= 7.49 *)
- let RU = try RU with emptyset (* defined herd7 >= 7.49 *)
-+
-+(* Treat RL as a kind of LF: a read with no ordering properties *)
-+let LF = LF | RL
-+
- (*
-  * Put lock operations in their appropriate classes, but leave UL out of W
-  * until after the co relation has been generated.
-  *)
--let R = R | LKR | LF | RL | RU
-+let R = R | LKR | LF | RU
- let W = W | LKW
+diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+index acf86f6f360a..6bd3bc431b3d 100644
+--- a/tools/memory-model/linux-kernel.def
++++ b/tools/memory-model/linux-kernel.def
+@@ -17,12 +17,12 @@ rcu_dereference(X) __load{once}(X)
+ smp_store_mb(X,V) { __store{once}(X,V); __fence{mb}; }
  
- let Release = Release | UL
-@@ -80,28 +84,8 @@ let all-possible-rfe-lf =
+ // Fences
+-smp_mb() { __fence{mb} ; }
+-smp_rmb() { __fence{rmb} ; }
+-smp_wmb() { __fence{wmb} ; }
+-smp_mb__before_atomic() { __fence{before-atomic} ; }
+-smp_mb__after_atomic() { __fence{after-atomic} ; }
+-smp_mb__after_spinlock() { __fence{after-spinlock} ; }
++smp_mb() { __fence{mb}; }
++smp_rmb() { __fence{rmb}; }
++smp_wmb() { __fence{wmb}; }
++smp_mb__before_atomic() { __fence{before-atomic}; }
++smp_mb__after_atomic() { __fence{after-atomic}; }
++smp_mb__after_spinlock() { __fence{after-spinlock}; }
  
- (* Generate all rf relations for LF events *)
- with rfe-lf from cross(all-possible-rfe-lf)
--
- let rf-lf = rfe-lf | rfi-lf
+ // Exchange
+ xchg(X,V)  __xchg{mb}(X,V)
+@@ -35,26 +35,26 @@ cmpxchg_acquire(X,V,W) __cmpxchg{acquire}(X,V,W)
+ cmpxchg_release(X,V,W) __cmpxchg{release}(X,V,W)
  
--(* rf for RL events, ie islocked returning true, similar to LF above *)
--
--(* islocked returning true inside a critical section
-- * must read from the opening lock
-- *)
--let rfi-rl = ([LKW] ; po-loc ; [RL]) \ ([LKW] ; po-loc ; [UL] ; po-loc)
--
--(* islocked returning true outside critical sections can match any
-- * external lock.
-- *)
--let all-possible-rfe-rl =
--  let possible-rfe-lf r =
--    let pair-to-relation p = p ++ 0
--    in map pair-to-relation ((LKW * {r}) & loc & ext)
--  in map possible-rfe-lf (RL \ range(rfi-rl))
--
--with rfe-rl from cross(all-possible-rfe-rl)
--let rf-rl = rfe-rl | rfi-rl
--
- (* Read from unlock, ie islocked returning false, slightly different *)
+ // Spinlocks
+-spin_lock(X) { __lock(X) ; }
+-spin_unlock(X) { __unlock(X) ; }
++spin_lock(X) { __lock(X); }
++spin_unlock(X) { __unlock(X); }
+ spin_trylock(X) __trylock(X)
  
- (* islocked returning false can read from the last po-previous unlock *)
-@@ -118,7 +102,7 @@ with rfe-ru from cross(all-possible-rfe-ru)
- let rf-ru = rfe-ru | rfi-ru
+ // RCU
+ rcu_read_lock() { __fence{rcu-lock}; }
+-rcu_read_unlock() { __fence{rcu-unlock};}
++rcu_read_unlock() { __fence{rcu-unlock}; }
+ synchronize_rcu() { __fence{sync-rcu}; }
+ synchronize_rcu_expedited() { __fence{sync-rcu}; }
  
- (* Final rf relation *)
--let rf = rf | rf-lf | rf-rl | rf-ru
-+let rf = rf | rf-lf | rf-ru
+ // Atomic
+ atomic_read(X) READ_ONCE(*X)
+-atomic_set(X,V) { WRITE_ONCE(*X,V) ; }
++atomic_set(X,V) { WRITE_ONCE(*X,V); }
+ atomic_read_acquire(X) smp_load_acquire(X)
+ atomic_set_release(X,V) { smp_store_release(X,V); }
  
- (* Generate all co relations, including LKW events but not UL *)
- let co0 = co0 | ([IW] ; loc ; [LKW]) |
+-atomic_add(V,X) { __atomic_op(X,+,V) ; }
+-atomic_sub(V,X) { __atomic_op(X,-,V) ; }
+-atomic_inc(X)   { __atomic_op(X,+,1) ; }
+-atomic_dec(X)   { __atomic_op(X,-,1) ; }
++atomic_add(V,X) { __atomic_op(X,+,V); }
++atomic_sub(V,X) { __atomic_op(X,-,V); }
++atomic_inc(X)   { __atomic_op(X,+,1); }
++atomic_dec(X)   { __atomic_op(X,-,1); }
+ 
+ atomic_add_return(V,X) __atomic_op_return{mb}(X,+,V)
+ atomic_add_return_relaxed(V,X) __atomic_op_return{once}(X,+,V)
 -- 
 2.5.2
