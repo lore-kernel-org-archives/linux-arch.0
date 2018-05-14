@@ -1,123 +1,93 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 02/11] arm64: Move arch-specific prctls out of core code
-Date: Mon, 14 May 2018 18:14:18 +0100
-Message-ID: <1526318067-4964-3-git-send-email-Dave.Martin@arm.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH 00/11] prctl: Modernise wiring for optional prctl() calls
+Date: Mon, 14 May 2018 11:28:11 -0700
+Message-ID: <CAGXu5j+5n278z-+V3yOPyqyqqwRGGf4zkXzbGjhq9FQ6JgqZRQ@mail.gmail.com>
 References: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, James Hogan <jhogan@kernel.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, Rich Felker <dalias@libc.org>, Thomas Gleixner <tglx@linutronix.de>, Tony Luck <tony.luck@intel.com>, Will Deacon <will.deacon@arm.com>, X86 ML <x86@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch moves the arm64-specific prctl call implementations out
-of core code and removes redundant boilerplate associated with
-them.
+On Mon, May 14, 2018 at 10:14 AM, Dave Martin <Dave.Martin@arm.com> wrote:
+> [Reviewer note: this is a cross-arch series.  To reduce spam, I have
+> tried not to Cc people on patches they aren't likely to care about.
+> The complete series can be found in the LKML or linux-arch archives.]
+>
+> The core framework for the prctl() syscall is unloved and looking
+> rather crusty these days.  It also relies on defining ancillary
+> boilerplate macros for each prctl() in order to control conditional
+> compilation of the different prctl calls.  We have better ways to
+> do this now.
 
-No functional change.
+This is a nice clean-up series, thanks! Some thoughts/comments below...
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
----
- arch/arm64/Kconfig                 |  1 +
- arch/arm64/include/asm/processor.h |  4 ----
- arch/arm64/kernel/sys.c            | 15 +++++++++++++++
- kernel/sys.c                       | 12 ------------
- 4 files changed, 16 insertions(+), 16 deletions(-)
+> This series attempts to modernise the code by defining a couple of new
+> Kconfig variables HAVE_PRCTL_ARCH and HAVE_ARCH_PR_SET_GET_UNALIGN to
+> allow architectures to provide hooks for arch-dependent prctls.
+>
+>
+> For now this series has had minimal testing: some basic testing of
+> arch-specific prctls using PR_SVE_SET_VL on arm64; build-tested on
+> x86; otherwise untested.
+>
+> This is not polished yet... but I'm interested to know what people
+> think about the approach.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index eb2cf49..6b706af 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -123,6 +123,7 @@ config ARM64
- 	select HAVE_PERF_EVENTS
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
-+	select HAVE_PRCTL_ARCH
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RCU_TABLE_FREE
- 	select HAVE_SYSCALL_TRACEPOINTS
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 7675989..b1d262f 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -244,9 +244,5 @@ void cpu_enable_pan(const struct arm64_cpu_capabilities *__unused);
- void cpu_enable_cache_maint_trap(const struct arm64_cpu_capabilities *__unused);
- void cpu_clear_disr(const struct arm64_cpu_capabilities *__unused);
- 
--/* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
--#define SVE_SET_VL(arg)	sve_set_current_vl(arg)
--#define SVE_GET_VL()	sve_get_current_vl()
--
- #endif /* __ASSEMBLY__ */
- #endif /* __ASM_PROCESSOR_H */
-diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-index 72981ba..597ff35 100644
---- a/arch/arm64/kernel/sys.c
-+++ b/arch/arm64/kernel/sys.c
-@@ -22,10 +22,12 @@
- #include <linux/fs.h>
- #include <linux/mm.h>
- #include <linux/export.h>
-+#include <linux/prctl.h>
- #include <linux/sched.h>
- #include <linux/slab.h>
- #include <linux/syscalls.h>
- #include <asm/cpufeature.h>
-+#include <asm/fpsimd.h>
- 
- asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
- 			 unsigned long prot, unsigned long flags,
-@@ -45,6 +47,19 @@ SYSCALL_DEFINE1(arm64_personality, unsigned int, personality)
- 	return sys_personality(personality);
- }
- 
-+int prctl_arch(int option, unsigned long arg2, unsigned long arg3,
-+	       unsigned long arg4, unsigned long arg5)
-+{
-+	switch (option) {
-+	case PR_SVE_SET_VL:
-+		return sve_set_current_vl(arg2);
-+	case PR_SVE_GET_VL:
-+		return sve_get_current_vl();
-+	default:
-+		return -EINVAL;
-+	}
-+}
-+
- /*
-  * Wrappers to pass the pt_regs argument.
-  */
-diff --git a/kernel/sys.c b/kernel/sys.c
-index 5077f1e..f917d78 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -113,12 +113,6 @@
- #ifndef SET_FP_MODE
- # define SET_FP_MODE(a,b)	(-EINVAL)
- #endif
--#ifndef SVE_SET_VL
--# define SVE_SET_VL(a)		(-EINVAL)
--#endif
--#ifndef SVE_GET_VL
--# define SVE_GET_VL()		(-EINVAL)
--#endif
- 
- /*
-  * this is where the system-wide overflow UID and GID are defined, for
-@@ -2444,12 +2438,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
- 	case PR_GET_FP_MODE:
- 		error = GET_FP_MODE(me);
- 		break;
--	case PR_SVE_SET_VL:
--		error = SVE_SET_VL(arg2);
--		break;
--	case PR_SVE_GET_VL:
--		error = SVE_GET_VL();
--		break;
- 	default:
- 		error = prctl_arch(option, arg2, arg3, arg4, arg5);
- 		break;
--- 
-2.1.4
+I'm not entirely convinced the removal of the "task not current"
+interface is very useful as I've found myself needing to adjust other
+interfaces like this to _add_ the "task not current" logic, but ... I
+can't really argue very hard for keeping the task args since nothing
+is using them... meh.
+
+I dislike this being named "prctl_arch" when everything else like this
+is "arch_foo...", but I do see the collision with the x86-specific
+"arch_prctl" syscall. Perhaps it might be better to wire things up
+differently, since x86's arch_prctl is actually "sys_arch_prctl" so I
+don't think there would be a symbol collision, and maybe the 9 options
+could be added to the global prctl list, with the x86 syscall getting
+called at the end of the new "arch_prctl"? Then the syscall could get
+deprecated in favor of just using prctl directly?
+
+Your new x86 arch_prctl (ne=C3=A9 prctl_arch) could be something like:
+
+int arch_prctl(int option, unsigned long arg2, unsigned long arg3,
+                     unsigned long arg4, unsigned long arg5)
+{
+... existing stuff in your series ...
+    case ARCH_SET_GS:
+    case ARCH_SET_FS:
+    case ARCH_GET_GS:
+    case ARCH_GET_FS:
+    case ARCH_MAP_VDSO_X32:
+    case ARCH_MAP_VDSO_32:
+    case ARCH_MAP_VDSO_64:
+        if (arg3 || arg4 || arg5)
+            return -EINVAL;
+        return do_arch_prctl_64(current, option, arg2);
+    case ARCH_GET_CPUID:
+    case ARCH_SET_CPUID:
+        if (arg3 || arg4 || arg5)
+            return -EINVAL;
+        return do_arch_prctl_common(current, option, arg2);
+    default:
+        return -EINVAL;
+    }
+}
+
+Or maybe all the logic could get ripped out of
+arch/x86/kernel/process*.c and put in arch/x86/kernel/sys.c directly?
+
+Perhaps this is all overkill, but I find it rather annoying that one
+arch's weird syscall would block "expected" naming of a cross-arch
+interface...
+
+-Kees
+
+--=20
+Kees Cook
+Pixel Security
