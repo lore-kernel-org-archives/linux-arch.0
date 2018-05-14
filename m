@@ -1,62 +1,73 @@
-From: Martijn Coenen <maco@android.com>
-Subject: Re: [PATCH] ANDROID: binder: remove 32-bit binder interface.
-Date: Mon, 14 May 2018 23:30:52 +0200
-Message-ID: <CAB0TPYG4Jg54Hg+BWwHqjgZWepxOmcBek=aa3rc=G_h5i=5jNg@mail.gmail.com>
-References: <20180504195728.72932-1-maco@android.com>
- <201805060540.zjwonWcp%fengguang.wu@intel.com>
- <CAB0TPYG-Q6Ki_FMM1u+i_g+0ykQgeUTRpm00qycAUVQOqVH6eQ@mail.gmail.com>
- <20180514120338.GA5265@infradead.org>
- <CAMuHMdW0nxOmq7gjJiySg0fho2XDYkyrCgp88OOuULRLH+jt6w@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 12/12] of/platform: make the OF code aware of early
+ platform drivers
+Date: Mon, 14 May 2018 23:32:02 +0200
+Message-ID: <CAMuHMdWrOL7gN4Uxx5KipD6ZZ971LmP2yZe3XERz8jQ4TGwDCw@mail.gmail.com>
+References: <20180511162028.20616-1-brgl@bgdev.pl> <20180511162028.20616-13-brgl@bgdev.pl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <driverdev-devel-bounces@linuxdriverproject.org>
-In-Reply-To: <CAMuHMdW0nxOmq7gjJiySg0fho2XDYkyrCgp88OOuULRLH+jt6w@mail.gmail.com>
-List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/driverdev-devel>,
- <mailto:driverdev-devel-request@linuxdriverproject.org?subject=unsubscribe>
-List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/driverdev-devel/>
-List-Post: <mailto:driverdev-devel@linuxdriverproject.org>
-List-Help: <mailto:driverdev-devel-request@linuxdriverproject.org?subject=help>
-List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/driverdev-devel>,
- <mailto:driverdev-devel-request@linuxdriverproject.org?subject=subscribe>
-Errors-To: driverdev-devel-bounces@linuxdriverproject.org
-Sender: "devel" <driverdev-devel-bounces@linuxdriverproject.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Amit Pundir <amit.pundir@linaro.org>, "open list:ANDROID DRIVERS" <devel@driverdev.osuosl.org>, Arnd Bergmann <arnd@arndb.de>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg KH <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, =?UTF-8?B?QXJ2ZSBIasO4bm5ldsOlZw==?= <arve@android.com>, Martijn Coenen <maco@google.com>, John Stultz <john.stultz@linaro.org>, kbuild-all@01.org, Linux-Arch <linux-arch@vger.kernel.org>, Todd Kjos <tkjos@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180511162028.20616-13-brgl@bgdev.pl>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Bartosz Golaszewski <brgl@bgdev.pl>
+Cc: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 14, 2018 at 4:00 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Patch sent.
+Hi Bartosz,
 
-Thanks for the quick turn-around!
-
+On Fri, May 11, 2018 at 6:20 PM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
+> From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 >
-> BTW, sh also doesn't seem to have 64-bit get_user().
-> There may be others.
-
-I checked quickly, nios2 is the only other arch that explicitly
-doesn't support it and would result in a build error; some other archs
-don't define __get_user, but in that case they just fall back to
-raw_copy_from_user().
-
+> Check the relevant flag in the device node and skip the allocation
+> part for devices that were populated early.
 >
-> BTW2, does the Android Binder need to care about endianness when talking
-> to userspace?
+> Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
 
-No, I don't think it should.
+Thanks for your patch!
 
-Thanks,
-Martijn
+> --- a/drivers/of/platform.c
+> +++ b/drivers/of/platform.c
 
+> @@ -196,9 +197,17 @@ static struct platform_device *of_platform_device_create_pdata(
+>             of_node_test_and_set_flag(np, OF_POPULATED))
+>                 return NULL;
 >
-> Gr{oetje,eeting}s,
->
->                         Geert
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
+> -       dev = of_device_alloc(np, bus_id, parent);
+> -       if (!dev)
+> -               goto err_clear_flag;
+> +       if (of_node_check_flag(np, OF_POPULATED_EARLY)) {
+> +               dev = of_early_to_platform_device(np);
+> +               if (IS_ERR(dev))
+> +                       goto err_clear_flag;
+> +
+> +               of_device_init(dev, np, bus_id, parent);
+> +       } else {
+> +               dev = of_device_alloc(np, bus_id, parent);
+> +               if (!dev)
+> +                       goto err_clear_flag;
+> +       }
+
+The above may become cleaner if:
+  1. of_early_to_platform_device() would return NULL instead -ENOENT,
+  2. of_device_alloc() would be split in alloc and init phases, too.
+
+Then you can do:
+
+        dev = of_node_check_flag(np, OF_POPULATED_EARLY)
+                ? of_early_to_platform_device(np)
+                 : __of_device_alloc(np, bus_id, parent);
+        if (!dev)
+                goto err_clear_flag;
+
+        of_device_init(dev, np, bus_id, parent);
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
