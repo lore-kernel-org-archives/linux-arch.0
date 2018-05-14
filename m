@@ -1,78 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f66.google.com ([209.85.213.66]:39771 "EHLO
-        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752582AbeENVcE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 May 2018 17:32:04 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:49384 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1752077AbeENWxb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 May 2018 18:53:31 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4EMiD4L139415
+        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 18:53:31 -0400
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2hyjry1q6c-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 14 May 2018 18:53:30 -0400
+Received: from localhost
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Mon, 14 May 2018 18:53:30 -0400
+Date: Mon, 14 May 2018 15:54:57 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH memory-model 0/8] memory-barriers.txt and atomic_ops.rst
+ updates
+Reply-To: paulmck@linux.vnet.ibm.com
 MIME-Version: 1.0
-In-Reply-To: <20180511162028.20616-13-brgl@bgdev.pl>
-References: <20180511162028.20616-1-brgl@bgdev.pl> <20180511162028.20616-13-brgl@bgdev.pl>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 14 May 2018 23:32:02 +0200
-Message-ID: <CAMuHMdWrOL7gN4Uxx5KipD6ZZ971LmP2yZe3XERz8jQ4TGwDCw@mail.gmail.com>
-Subject: Re: [PATCH 12/12] of/platform: make the OF code aware of early
- platform drivers
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20180514225457.GA5142@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bartosz Golaszewski <brgl@bgdev.pl>
-Cc: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>
-Message-ID: <20180514213202.fxPtCbnl4h0VJa3JT-grbmsoXU983_LJOt-FjzVGxcg@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180514225457.G2rqmFhlmxW21By5O6fkeHvisI9TdqSZ9ew2JP-UonA@z>
 
-Hi Bartosz,
+Hello!
 
-On Fri, May 11, 2018 at 6:20 PM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
-> From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
->
-> Check the relevant flag in the device node and skip the allocation
-> part for devices that were populated early.
->
-> Signed-off-by: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+This series contains changes to the atomic_ops.rst file and to the
+memory-barriers.txt file and its Korean translation.  These changes are
+ready for inclusion into -tip.
 
-Thanks for your patch!
+1.	Fix memory-barriers.txt's ordering example contrasting DMA to
+	MMIO, courtesy of Will Deacon.
 
-> --- a/drivers/of/platform.c
-> +++ b/drivers/of/platform.c
+2-6.	Updates to Korean translation of memory-barriers.txt, courtesy
+	of SeongJae Park.
 
-> @@ -196,9 +197,17 @@ static struct platform_device *of_platform_device_create_pdata(
->             of_node_test_and_set_flag(np, OF_POPULATED))
->                 return NULL;
->
-> -       dev = of_device_alloc(np, bus_id, parent);
-> -       if (!dev)
-> -               goto err_clear_flag;
-> +       if (of_node_check_flag(np, OF_POPULATED_EARLY)) {
-> +               dev = of_early_to_platform_device(np);
-> +               if (IS_ERR(dev))
-> +                       goto err_clear_flag;
-> +
-> +               of_device_init(dev, np, bus_id, parent);
-> +       } else {
-> +               dev = of_device_alloc(np, bus_id, parent);
-> +               if (!dev)
-> +                       goto err_clear_flag;
-> +       }
+7.	Fix example code in atomic_ops.rst, courtesy of SeongJae Park.
 
-The above may become cleaner if:
-  1. of_early_to_platform_device() would return NULL instead -ENOENT,
-  2. of_device_alloc() would be split in alloc and init phases, too.
+8.	Use `warning` rst directive in atomic_ops.rst, courtesy of
+	SeongJae Park.
 
-Then you can do:
+							Thanx, Paul
 
-        dev = of_node_check_flag(np, OF_POPULATED_EARLY)
-                ? of_early_to_platform_device(np)
-                 : __of_device_alloc(np, bus_id, parent);
-        if (!dev)
-                goto err_clear_flag;
+------------------------------------------------------------------------
 
-        of_device_init(dev, np, bus_id, parent);
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+ core-api/atomic_ops.rst                |   13 ++++---
+ memory-barriers.txt                    |   17 +++++-----
+ translations/ko_KR/memory-barriers.txt |   56 +++++++++++++++++++++------------
+ 3 files changed, 53 insertions(+), 33 deletions(-)
