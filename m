@@ -1,54 +1,53 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] ANDROID: binder: remove 32-bit binder interface.
-Date: Mon, 14 May 2018 16:00:19 +0200
-Message-ID: <CAMuHMdW0nxOmq7gjJiySg0fho2XDYkyrCgp88OOuULRLH+jt6w@mail.gmail.com>
-References: <20180504195728.72932-1-maco@android.com> <201805060540.zjwonWcp%fengguang.wu@intel.com>
- <CAB0TPYG-Q6Ki_FMM1u+i_g+0ykQgeUTRpm00qycAUVQOqVH6eQ@mail.gmail.com> <20180514120338.GA5265@infradead.org>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 0/2] mm: PAGE_KERNEL_* fallbacks
+Date: Mon, 14 May 2018 16:23:56 +0200
+Message-ID: <20180514142356.GA25793@kroah.com>
+References: <20180510014447.15989-1-mcgrof@kernel.org>
+ <20180510060733.GA23098@kroah.com>
+ <20180510171520.GD27853@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180514120338.GA5265@infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20180510171520.GD27853@wotan.suse.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Martijn Coenen <maco@android.com>, kbuild test robot <lkp@intel.com>, Greg KH <gregkh@linuxfoundation.org>, kbuild-all@01.org, John Stultz <john.stultz@linaro.org>, Todd Kjos <tkjos@google.com>, =?UTF-8?B?QXJ2ZSBIasO4bm5ldsOlZw==?= <arve@android.com>, Amit Pundir <amit.pundir@linaro.org>, Arnd Bergmann <arnd@arndb.de>, LKML <linux-kernel@vger.kernel.org>, "open list:ANDROID DRIVERS" <devel@driverdev.osuosl.org>, Martijn Coenen <maco@google.com>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: arnd@arndb.de, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+On Thu, May 10, 2018 at 05:15:20PM +0000, Luis R. Rodriguez wrote:
+> On Thu, May 10, 2018 at 08:07:33AM +0200, Greg KH wrote:
+> > On Wed, May 09, 2018 at 06:44:45PM -0700, Luis R. Rodriguez wrote:
+> > > While dusting out the firmware loader closet I spotted a PAGE_KERNEL_*
+> > > fallback hack. This hurts my eyes, and it should also be blinding
+> > > others. Turns out we have other PAGE_KERNEL_* fallback hacks in
+> > > other places.
+> > > 
+> > > This moves them to asm-generic, and keeps track of architectures which
+> > > need some love or review. At least 0-day was happy with the changes.
+> > > 
+> > > Matthew Wilcox did put together a PAGE_KERNEL_RO patch for ia64, that
+> > > needs review and testing, and if it goes well it should be merged.
+> > > 
+> > > Luis R. Rodriguez (2):
+> > >   mm: provide a fallback for PAGE_KERNEL_RO for architectures
+> > >   mm: provide a fallback for PAGE_KERNEL_EXEC for architectures
+> > > 
+> > >  drivers/base/firmware_loader/fallback.c |  5 ----
+> > >  include/asm-generic/pgtable.h           | 36 +++++++++++++++++++++++++
+> > >  mm/nommu.c                              |  4 ---
+> > >  mm/vmalloc.c                            |  4 ---
+> > >  4 files changed, 36 insertions(+), 13 deletions(-)
+> > 
+> > No list of changes that happened from v1?  :(
+> 
+> Didn't know you'd want it for such simple patch set, but I'll provide one for v3 and
+> also list the changes in v2.
 
-On Mon, May 14, 2018 at 2:03 PM, Christoph Hellwig <hch@infradead.org> wrote:
-> On Fri, May 11, 2018 at 09:57:52AM +0200, Martijn Coenen wrote:
->> On Sat, May 5, 2018 at 2:10 PM, kbuild test robot <lkp@intel.com> wrote:
->> >    drivers/android/binder.o: In function `binder_thread_write':
->> >>> binder.c:(.text+0x6a16): undefined reference to `__get_user_bad'
->>
->> Looks like m68k doesn't support 64-bit get_user(). I could just have
->> binder depend on !CONFIG_M68K, but there may be other architectures
->> still that don't support this. Another alternative would be to
->> whitelist the architectures Android supports - eg arm, arm64, x86,
->> x86_64. But I'm not sure if arch-limited drivers are considered bad
->> form. Does anybody have suggestions for how to deal with this?
->
-> The proper fix is to just support 640bit get/put_user on m68k instead
+Nothing is "trivial" really, and given the huge rate of patch
+submissions, how is anyone supposed to remember what you did in the last
+one?
 
-I hope we'll never need 640bit support in {get,put}_user() ;-)
+thanks,
 
-> of working around this.
-
-Patch sent.
-
-BTW, sh also doesn't seem to have 64-bit get_user().
-There may be others.
-
-BTW2, does the Android Binder need to care about endianness when talking
-to userspace?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+greg k-h
