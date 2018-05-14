@@ -1,59 +1,65 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v2 0/4] LD_DEAD_CODE_DATA_ELIMINATION fixes and enabling
- for powerpc
-Date: Mon, 14 May 2018 09:08:52 +0900
-Message-ID: <CAK7LNARVkvM1deFGbdnaTt41hDqV9pCZ1+OCB0dCqPgspLMVPw@mail.gmail.com>
-References: <20180509130001.24276-1-npiggin@gmail.com>
+Subject: Re: [PATCH 0/8] kbuild: remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+ and clean-up code
+Date: Mon, 14 May 2018 09:11:37 +0900
+Message-ID: <CAK7LNARRBZjvE3obyLsbeir1r57V1fFmn-dKE68E-8PfscUSRQ@mail.gmail.com>
+References: <1525850632-10921-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20180509130001.24276-1-npiggin@gmail.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1525850632-10921-1-git-send-email-yamada.masahiro@socionext.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Joe Perches <joe@perches.com>, Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michal Marek <michal.lkml@markovi.net>, Andy Whitcroft <apw@canonical.com>
 List-Id: linux-arch.vger.kernel.org
 
-2018-05-09 21:59 GMT+09:00 Nicholas Piggin <npiggin@gmail.com>:
-> v2 changes only patch 4, updates the changelog with ppc32 numbers and
-> Tested-by tags, and also use TEXT_MAIN in the linker script as
-> Christophe suggested.
-
-
-Replaced with v2.
-Thanks!
-
-
-> Thanks,
-> Nick
+2018-05-09 16:23 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
 >
-> Nicholas Piggin (4):
->   kbuild: Fix asm-generic/vmlinux.lds.h for
->     LD_DEAD_CODE_DATA_ELIMINATION
->   kbuild: LD_DEAD_CODE_DATA_ELIMINATION no
->     -ffunction-sections/-fdata-sections for module build
->   kbuild: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selectable if
->     enabled
->   powerpc: Allow LD_DEAD_CODE_DATA_ELIMINATION to be selected
+> I got acknowledge to remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX entirely.
+> (https://lkml.org/lkml/2018/5/5/148)
 >
->  Makefile                          |  4 +--
->  arch/Kconfig                      | 15 ----------
->  arch/powerpc/Kconfig              |  1 +
->  arch/powerpc/kernel/vmlinux.lds.S | 22 +++++++-------
->  include/asm-generic/vmlinux.lds.h | 49 ++++++++++++++++++-------------
->  init/Kconfig                      | 27 +++++++++++++++++
->  6 files changed, 70 insertions(+), 48 deletions(-)
+> Several tools can be cleaned-up.
+>
+> Removing the CONFIG option makes VMLINUX_SYMBOL() no-op,
+> so this macro can be removed too.
+>
+> VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR() are widely used,
+> so it will take some time to kill them entirely.
+> (I will send other patches later, splitting per-arch)
+>
+>
+>
+> Masahiro Yamada (8):
+>   modpost: remove symbol prefix support
+>   genksyms: remove symbol prefix support
+>   kallsyms: remove symbol prefix support
+>   depmod.sh: remove symbol prefix support
+>   export.h: remove code for prefixing symbols with underscore
+>   kbuild: remove CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+>   vmlinux.lds.h: remove no-op macro VMLINUX_SYMBOL()
+>   checkpatch: remove VMLINUX_SYMBOL() check
+
+
+Applied to linux-kbuild.
+
+
+>  Makefile                          |   2 +-
+>  arch/Kconfig                      |   6 -
+>  include/asm-generic/export.h      |  34 ++---
+>  include/asm-generic/vmlinux.lds.h | 289 +++++++++++++++++++-------------------
+>  include/linux/export.h            |  16 +--
+>  scripts/Makefile.build            |   9 +-
+>  scripts/adjust_autoksyms.sh       |   3 -
+>  scripts/checkpatch.pl             |  10 --
+>  scripts/depmod.sh                 |  21 +--
+>  scripts/genksyms/genksyms.c       |  11 +-
+>  scripts/kallsyms.c                |  47 ++-----
+>  scripts/link-vmlinux.sh           |   4 -
+>  scripts/mod/modpost.c             |  30 ++--
+>  13 files changed, 188 insertions(+), 294 deletions(-)
 >
 > --
-> 2.17.0
+> 2.7.4
 >
 > --
 > To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
