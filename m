@@ -1,64 +1,53 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
- signal semantics
-Date: Mon, 14 May 2018 17:34:07 +0200
-Message-ID: <c727a0da-dd5b-4ca2-375c-773ec550ab25@redhat.com>
-References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
- <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
- <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
- <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
- <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
- <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
- <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
- <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
- <20180503021058.GA5670@ram.oc3035372033.ibm.com>
- <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
- <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
- <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
- <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
- <CALCETrUGjN8mhOaLqGcau-pPKm9TQW8k05hZrh52prRNdC5yQQ@mail.gmail.com>
- <008010c1-20a1-c307-25ac-8a69d672d031@redhat.com>
- <E77C6E12-EF2A-435A-AAD4-1554459606F1@amacapital.net>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v2 1/7] bitops: Introduce the for_each_set_port_word macro
+Date: Mon, 14 May 2018 20:08:06 +0300
+Message-ID: <CAHp75VdRksnTB_Bq_3-V7h_Dd=woj9=998DsVih-MtQo2hUbaw@mail.gmail.com>
+References: <cover.1525785532.git.vilhelm.gray@gmail.com> <c919f6c2ff54a29114bd5e566997f11e5ebf29c3.1525785532.git.vilhelm.gray@gmail.com>
+ <CAHp75VdBL-K2H9tXAG2wPefCdpv913dbJOvvEkOXE7r=+2+NYQ@mail.gmail.com> <20180514130438.GB20325@sophia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <E77C6E12-EF2A-435A-AAD4-1554459606F1@amacapital.net>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com, Dave Hansen <dave.hansen@intel.com>, linux-x86_64@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180514130438.GB20325@sophia>
+Sender: linux-kernel-owner@vger.kernel.org
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On 05/14/2018 05:32 PM, Andy Lutomirski wrote:
-> 
-> 
-> 
->> On May 14, 2018, at 5:01 AM, Florian Weimer <fweimer@redhat.com> wrote:
+On Mon, May 14, 2018 at 4:04 PM, William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
+> On Sun, May 13, 2018 at 06:06:42PM +0300, Andy Shevchenko wrote:
+>>On Tue, May 8, 2018 at 4:26 PM, William Breathitt Gray
+>><vilhelm.gray@gmail.com> wrote:
+>>> This macro iterates for each group of bits (port word) with set bits,
+>>> within a bitmap memory region. For each iteration, "port_word" is set to
+>>> the found port word index, "word_index" is set to the word index of the
+>>> bitmap containing the found port word, and "word_offset" is set to the
+>>> bit offset of the found port word within the respective bitmap word.
 >>
->>> One thing we could do, though: the current initual state on process
->>> creation is all access blocked on all keys.  We could change it so that
->>> half the keys are fully blocked and half are read-only.  Then we could add
->>> a PKEY_ALLOC_STRICT or similar that allocates a key with the correct
->>> initial state*and*  does the setsignal thing.  If there are no keys left
->>> with the correct initial state, then it fails.
->>
->> The initial PKRU value can currently be configured by the system administrator.  I fear this approach has too many moving parts to be viable.
->>
->>
-> 
-> Honestly, I think we should drop that option. I don’t see how we can expect an administrator to do this usefully.
+>>Isn't that idea we discussed some time ago?
+>
+> That's right, I found the time to implement the macro suggestion you
+> made during the get_multiple/set_multiple patchset for the PC104 GPIO
+> drivers a while ago.
 
-I don't disagree—it makes things way less predictable in practice.
+So, if you find it appropriate, please add Suggested-by.
 
-Thanks,
-Florian
+> This macro greatly simplifies the callback function implementations in
+> those drivers and reduces the repeated code that kept appearing among
+> those drivers. Hopefully it can be useful for other drivers as well.
+
+Yes, I like the idea!
+
+>>In any case, part "port" is too specific for a generic function like
+>>this. Please, get rid of it completely. No-one knows what port means
+>>here. Just makes a lot of confusion.
+>
+> Okay, I'll come up with a better name and submit a version 3 of this
+> patchset.
+
+I also forgot to mention that kernel-doc should accompany function
+definition (in *.c), and not a declaration (in *.h).
+
+-- 
+With Best Regards,
+Andy Shevchenko
