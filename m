@@ -1,82 +1,85 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 08/19] tools/memory-model: Fix coding style in 'linux-kernel.def'
-Date: Mon, 14 May 2018 16:33:46 -0700
-Message-ID: <1526340837-12222-8-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH memory-model 11/19] tools/memory-model: Flag "cumulativity" and "propagation" tests
+Date: Mon, 14 May 2018 16:33:49 -0700
+Message-ID: <1526340837-12222-11-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20180514233328.GA7601@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180514233328.GA7601@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+This commit flags WRC+pooncerelease+rmbonceonce+Once.litmus
+as being forbidden by smp_store_release() A-cumulativity and
+IRIW+mbonceonces+OnceOnce.litmus as being forbidden by the LKMM
+propagation rule.
 
-This commit fixes white spaces around semicolons.
-
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Reported-by: Paolo Bonzini <pbonzini@redhat.com>
+Suggested-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+[ paulmck: Updated wording as suggested by Alan Stern. ]
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
 ---
- tools/memory-model/linux-kernel.def | 28 ++++++++++++++--------------
- 1 file changed, 14 insertions(+), 14 deletions(-)
+ tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus | 2 +-
+ tools/memory-model/litmus-tests/README                           | 9 ++++++---
+ .../litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus       | 4 +++-
+ 3 files changed, 10 insertions(+), 5 deletions(-)
 
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index acf86f6f360a..6bd3bc431b3d 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -17,12 +17,12 @@ rcu_dereference(X) __load{once}(X)
- smp_store_mb(X,V) { __store{once}(X,V); __fence{mb}; }
+diff --git a/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus b/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
+index 50d5db9ea983..98a3716efa37 100644
+--- a/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
++++ b/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
+@@ -7,7 +7,7 @@ C IRIW+mbonceonces+OnceOnce
+  * between each pairs of reads.  In other words, is smp_mb() sufficient to
+  * cause two different reading processes to agree on the order of a pair
+  * of writes, where each write is to a different variable by a different
+- * process?
++ * process?  This litmus test exercises LKMM's "propagation" rule.
+  *)
  
- // Fences
--smp_mb() { __fence{mb} ; }
--smp_rmb() { __fence{rmb} ; }
--smp_wmb() { __fence{wmb} ; }
--smp_mb__before_atomic() { __fence{before-atomic} ; }
--smp_mb__after_atomic() { __fence{after-atomic} ; }
--smp_mb__after_spinlock() { __fence{after-spinlock} ; }
-+smp_mb() { __fence{mb}; }
-+smp_rmb() { __fence{rmb}; }
-+smp_wmb() { __fence{wmb}; }
-+smp_mb__before_atomic() { __fence{before-atomic}; }
-+smp_mb__after_atomic() { __fence{after-atomic}; }
-+smp_mb__after_spinlock() { __fence{after-spinlock}; }
+ {}
+diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+index 6919909bbd0f..17eb9a8c222d 100644
+--- a/tools/memory-model/litmus-tests/README
++++ b/tools/memory-model/litmus-tests/README
+@@ -23,7 +23,8 @@ IRIW+mbonceonces+OnceOnce.litmus
+ 	between each pairs of reads.  In other words, is smp_mb()
+ 	sufficient to cause two different reading processes to agree on
+ 	the order of a pair of writes, where each write is to a different
+-	variable by a different process?
++	variable by a different process?  This litmus test is forbidden
++	by LKMM's propagation rule.
  
- // Exchange
- xchg(X,V)  __xchg{mb}(X,V)
-@@ -35,26 +35,26 @@ cmpxchg_acquire(X,V,W) __cmpxchg{acquire}(X,V,W)
- cmpxchg_release(X,V,W) __cmpxchg{release}(X,V,W)
+ IRIW+poonceonces+OnceOnce.litmus
+ 	Test of independent reads from independent writes with nothing
+@@ -119,8 +120,10 @@ S+wmbonceonce+poacquireonce.litmus
  
- // Spinlocks
--spin_lock(X) { __lock(X) ; }
--spin_unlock(X) { __unlock(X) ; }
-+spin_lock(X) { __lock(X); }
-+spin_unlock(X) { __unlock(X); }
- spin_trylock(X) __trylock(X)
+ WRC+poonceonces+Once.litmus
+ WRC+pooncerelease+rmbonceonce+Once.litmus
+-	These two are members of an extension of the MP litmus-test class
+-	in which the first write is moved to a separate process.
++	These two are members of an extension of the MP litmus-test
++	class in which the first write is moved to a separate process.
++	The second is forbidden because smp_store_release() is
++	A-cumulative in LKMM.
  
- // RCU
- rcu_read_lock() { __fence{rcu-lock}; }
--rcu_read_unlock() { __fence{rcu-unlock};}
-+rcu_read_unlock() { __fence{rcu-unlock}; }
- synchronize_rcu() { __fence{sync-rcu}; }
- synchronize_rcu_expedited() { __fence{sync-rcu}; }
+ Z6.0+pooncelock+pooncelock+pombonce.litmus
+ 	Is the ordering provided by a spin_unlock() and a subsequent
+diff --git a/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus b/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
+index 97fcbffde9a0..ad3448b941e6 100644
+--- a/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
++++ b/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
+@@ -5,7 +5,9 @@ C WRC+pooncerelease+rmbonceonce+Once
+  *
+  * This litmus test is an extension of the message-passing pattern, where
+  * the first write is moved to a separate process.  Because it features
+- * a release and a read memory barrier, it should be forbidden.
++ * a release and a read memory barrier, it should be forbidden.  More
++ * specifically, this litmus test is forbidden because smp_store_release()
++ * is A-cumulative in LKMM.
+  *)
  
- // Atomic
- atomic_read(X) READ_ONCE(*X)
--atomic_set(X,V) { WRITE_ONCE(*X,V) ; }
-+atomic_set(X,V) { WRITE_ONCE(*X,V); }
- atomic_read_acquire(X) smp_load_acquire(X)
- atomic_set_release(X,V) { smp_store_release(X,V); }
- 
--atomic_add(V,X) { __atomic_op(X,+,V) ; }
--atomic_sub(V,X) { __atomic_op(X,-,V) ; }
--atomic_inc(X)   { __atomic_op(X,+,1) ; }
--atomic_dec(X)   { __atomic_op(X,-,1) ; }
-+atomic_add(V,X) { __atomic_op(X,+,V); }
-+atomic_sub(V,X) { __atomic_op(X,-,V); }
-+atomic_inc(X)   { __atomic_op(X,+,1); }
-+atomic_dec(X)   { __atomic_op(X,-,1); }
- 
- atomic_add_return(V,X) __atomic_op_return{mb}(X,+,V)
- atomic_add_return_relaxed(V,X) __atomic_op_return{once}(X,+,V)
+ {}
 -- 
 2.5.2
