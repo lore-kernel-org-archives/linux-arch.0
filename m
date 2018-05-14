@@ -1,53 +1,60 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2 0/2] mm: PAGE_KERNEL_* fallbacks
-Date: Mon, 14 May 2018 16:23:56 +0200
-Message-ID: <20180514142356.GA25793@kroah.com>
-References: <20180510014447.15989-1-mcgrof@kernel.org>
- <20180510060733.GA23098@kroah.com>
- <20180510171520.GD27853@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180510171520.GD27853@wotan.suse.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: arnd@arndb.de, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+Date: Mon, 14 May 2018 08:32:54 -0700
+Message-ID: <E77C6E12-EF2A-435A-AAD4-1554459606F1@amacapital.net>
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+ <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
+ <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+ <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+ <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+ <CALCETrUGjN8mhOaLqGcau-pPKm9TQW8k05hZrh52prRNdC5yQQ@mail.gmail.com>
+ <008010c1-20a1-c307-25ac-8a69d672d031@redhat.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <008010c1-20a1-c307-25ac-8a69d672d031@redhat.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com, Dave Hansen <dave.hansen@intel.com>, linux-x86_64@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 10, 2018 at 05:15:20PM +0000, Luis R. Rodriguez wrote:
-> On Thu, May 10, 2018 at 08:07:33AM +0200, Greg KH wrote:
-> > On Wed, May 09, 2018 at 06:44:45PM -0700, Luis R. Rodriguez wrote:
-> > > While dusting out the firmware loader closet I spotted a PAGE_KERNEL_*
-> > > fallback hack. This hurts my eyes, and it should also be blinding
-> > > others. Turns out we have other PAGE_KERNEL_* fallback hacks in
-> > > other places.
-> > > 
-> > > This moves them to asm-generic, and keeps track of architectures which
-> > > need some love or review. At least 0-day was happy with the changes.
-> > > 
-> > > Matthew Wilcox did put together a PAGE_KERNEL_RO patch for ia64, that
-> > > needs review and testing, and if it goes well it should be merged.
-> > > 
-> > > Luis R. Rodriguez (2):
-> > >   mm: provide a fallback for PAGE_KERNEL_RO for architectures
-> > >   mm: provide a fallback for PAGE_KERNEL_EXEC for architectures
-> > > 
-> > >  drivers/base/firmware_loader/fallback.c |  5 ----
-> > >  include/asm-generic/pgtable.h           | 36 +++++++++++++++++++++++++
-> > >  mm/nommu.c                              |  4 ---
-> > >  mm/vmalloc.c                            |  4 ---
-> > >  4 files changed, 36 insertions(+), 13 deletions(-)
-> > 
-> > No list of changes that happened from v1?  :(
-> 
-> Didn't know you'd want it for such simple patch set, but I'll provide one for v3 and
-> also list the changes in v2.
 
-Nothing is "trivial" really, and given the huge rate of patch
-submissions, how is anyone supposed to remember what you did in the last
-one?
 
-thanks,
 
-greg k-h
+> On May 14, 2018, at 5:01 AM, Florian Weimer <fweimer@redhat.com> wrote:
+>=20
+>> One thing we could do, though: the current initual state on process
+>> creation is all access blocked on all keys.  We could change it so that
+>> half the keys are fully blocked and half are read-only.  Then we could ad=
+d
+>> a PKEY_ALLOC_STRICT or similar that allocates a key with the correct
+>> initial state*and*  does the setsignal thing.  If there are no keys left
+>> with the correct initial state, then it fails.
+>=20
+> The initial PKRU value can currently be configured by the system administr=
+ator.  I fear this approach has too many moving parts to be viable.
+>=20
+>=20
+
+Honestly, I think we should drop that option. I don=E2=80=99t see how we can=
+ expect an administrator to do this usefully.=
