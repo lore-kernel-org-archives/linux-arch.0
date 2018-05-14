@@ -1,33 +1,70 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 0/3] Kernel fixes to spin_is_locked()
-Date: Mon, 14 May 2018 16:01:05 -0700
-Message-ID: <20180514230105.GA6421@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH memory-model 3/3] locking: Clean up comment and #ifndef for {,queued_}spin_is_locked()
+Date: Mon, 14 May 2018 16:01:29 -0700
+Message-ID: <1526338889-7003-3-git-send-email-paulmck@linux.vnet.ibm.com>
+References: <20180514230105.GA6421@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+In-Reply-To: <20180514230105.GA6421@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Ingo Molnar <mingo@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hello!
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
-This series contains fixes to the kernel related to the semantics
-of spin_is_locked(), all courtesy of Andrea Parri, and all ready for
-inclusion in -tip:
+Removes "#ifndef queued_spin_is_locked" from the generic code: this is
+unused and it's reasonable to conclude that it will continue to be unused.
 
-1.	Document the semantics of spin_is_locked() by adding a docbook
-	header comment.
+Also removes the comment about spin_is_locked() from mutex_is_locked():
+the comment remains valid but not particularly useful.
 
-2.	Remove smp_mb() from arch_spin_is_locked(), given that the
-	new order-free spin_is_locked() semantics require no such barrier.
+Suggested-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Acked-by: Will Deacon <will.deacon@arm.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
+ include/asm-generic/qspinlock.h | 2 --
+ include/linux/mutex.h           | 3 ---
+ 2 files changed, 5 deletions(-)
 
-3.	Clean up comment and #ifndef for {,queued_}spin_is_locked().
-	The comment was "XXX think about spin_is_locked", and I can
-	attest that we have now done some serious thinking.  ;-)
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
+diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+index b37b4ad7eb94..dc4e4ac4937e 100644
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -26,7 +26,6 @@
+  * @lock: Pointer to queued spinlock structure
+  * Return: 1 if it is locked, 0 otherwise
+  */
+-#ifndef queued_spin_is_locked
+ static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
+ {
+ 	/*
+@@ -35,7 +34,6 @@ static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
+ 	 */
+ 	return atomic_read(&lock->val);
+ }
+-#endif
+ 
+ /**
+  * queued_spin_value_unlocked - is the spinlock structure unlocked?
+diff --git a/include/linux/mutex.h b/include/linux/mutex.h
+index 14bc0d5d0ee5..3093dd162424 100644
+--- a/include/linux/mutex.h
++++ b/include/linux/mutex.h
+@@ -146,9 +146,6 @@ extern void __mutex_init(struct mutex *lock, const char *name,
+  */
+ static inline bool mutex_is_locked(struct mutex *lock)
+ {
+-	/*
+-	 * XXX think about spin_is_locked
+-	 */
+ 	return __mutex_owner(lock) != NULL;
+ }
+ 
+-- 
+2.5.2
