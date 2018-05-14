@@ -1,66 +1,80 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 2/3] arm64: Remove smp_mb() from arch_spin_is_locked()
-Date: Mon, 14 May 2018 16:01:28 -0700
-Message-ID: <1526338889-7003-2-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH memory-model 1/3] locking: Document the semantics of spin_is_locked()
+Date: Mon, 14 May 2018 16:01:27 -0700
+Message-ID: <1526338889-7003-1-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20180514230105.GA6421@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180514230105.GA6421@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
-Commit 38b850a73034f ("arm64: spinlock: order spin_{is_locked,unlock_wait}
-against local locks") added an smp_mb() to arch_spin_is_locked(), in order
-"to ensure that the lock value is always loaded after any other locks have
-been taken by the current CPU", and reported one example (the "insane case"
-in ipc/sem.c) relying on such guarantee.
+There appeared to be a certain, recurrent uncertainty concerning the
+semantics of spin_is_locked(), likely a consequence of the fact that
+this semantics remains undocumented or that it has been historically
+linked to the (likewise unclear) semantics of spin_unlock_wait().
 
-It is however understood that spin_is_locked() is not required to provide
-such an ordering guarantee (a guarantee that is currently not provided by
-all the implementations/archs), and that callers relying on such ordering
-should instead insert suitable memory barriers before acting on the result
-of spin_is_locked().
-
-Following a recent auditing [1] of the callers of {,raw_}spin_is_locked(),
-revealing that none of them are relying on the ordering guarantee anymore,
-this commit removes the leading smp_mb() from the primitive thus reverting
-38b850a73034f.
+A recent auditing [1] of the callers of the primitive confirmed that
+none of them are relying on particular ordering guarantees; document
+this semantics by adding a docbook header to spin_is_locked(). Also,
+describe behaviors specific to certain CONFIG_SMP=n builds.
 
 [1] https://marc.info/?l=linux-kernel&m=151981440005264&w=2
     https://marc.info/?l=linux-kernel&m=152042843808540&w=2
     https://marc.info/?l=linux-kernel&m=152043346110262&w=2
 
+Co-Developed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Co-Developed-by: Alan Stern <stern@rowland.harvard.edu>
+Co-Developed-by: David Howells <dhowells@redhat.com>
 Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: David Howells <dhowells@redhat.com>
 Cc: Will Deacon <will.deacon@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+Cc: Luc Maranget <luc.maranget@inria.fr>
 Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Akira Yokosawa <akiyks@gmail.com>
+Cc: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Acked-by: Randy Dunlap <rdunlap@infradead.org>
 ---
- arch/arm64/include/asm/spinlock.h | 5 -----
- 1 file changed, 5 deletions(-)
+ include/linux/spinlock.h | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
 
-diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
-index ebdae15d665d..26c5bd7d88d8 100644
---- a/arch/arm64/include/asm/spinlock.h
-+++ b/arch/arm64/include/asm/spinlock.h
-@@ -122,11 +122,6 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index 4894d322d258..1e8a46435838 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -380,6 +380,24 @@ static __always_inline int spin_trylock_irq(spinlock_t *lock)
+ 	raw_spin_trylock_irqsave(spinlock_check(lock), flags); \
+ })
  
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
++/**
++ * spin_is_locked() - Check whether a spinlock is locked.
++ * @lock: Pointer to the spinlock.
++ *
++ * This function is NOT required to provide any memory ordering
++ * guarantees; it could be used for debugging purposes or, when
++ * additional synchronization is needed, accompanied with other
++ * constructs (memory barriers) enforcing the synchronization.
++ *
++ * Returns: 1 if @lock is locked, 0 otherwise.
++ *
++ * Note that the function only tells you that the spinlock is
++ * seen to be locked, not that it is locked on your CPU.
++ *
++ * Further, on CONFIG_SMP=n builds with CONFIG_DEBUG_SPINLOCK=n,
++ * the return value is always 0 (see include/linux/spinlock_up.h).
++ * Therefore you should not rely heavily on the return value.
++ */
+ static __always_inline int spin_is_locked(spinlock_t *lock)
  {
--	/*
--	 * Ensure prior spin_lock operations to other locks have completed
--	 * on this CPU before we test whether "lock" is locked.
--	 */
--	smp_mb(); /* ^^^ */
- 	return !arch_spin_value_unlocked(READ_ONCE(*lock));
- }
- 
+ 	return raw_spin_is_locked(&lock->rlock);
 -- 
 2.5.2
