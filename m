@@ -1,153 +1,166 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 01/11] prctl: Support movement of arch prctls out of common code
-Date: Mon, 14 May 2018 18:14:17 +0100
-Message-ID: <1526318067-4964-2-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 05/11] x86: Move arch-specific prctls out of core code
+Date: Mon, 14 May 2018 18:14:21 +0100
+Message-ID: <1526318067-4964-6-git-send-email-Dave.Martin@arm.com>
 References: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, James Hogan <jhogan@kernel.org>, Kees Cook <keescook@chromium.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, Rich Felker <dalias@libc.org>, Thomas Gleixner <tglx@linutronix.de>, Tony Luck <tony.luck@intel.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.>
+Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The core framework for the prctl() syscall is unloved and looking
-rather crusty these days.  It also relies on defining ancillary
-boilerplate macros for each prctl() in order to control conditional
-compilation of the different prctl calls.  We have better ways to
-do this now, using Kconfig.
-
-This patch defines a new arch hook arch_syscall().  Architectures
-that implemement arch-specific syscalls can now select
-HAVE_ARCH_SYSCALL in their Kconfig and define this function
-appropriately.
-
-The core prctl() implementation now matches option against the list
-of common or legacy prctls, deferring to prctl_arch() if an
-unrecognised option is encountered.
-
-(arch_prctl() would have been a nicer name, but it conflicts with the
-pre-existing syscall of the same name on x86, particularly in the um
-code.)
+This patch moves the x86-specific prctl call implementations out
+of core code and removes redundant boilerplate associated with
+them.
 
 No functional change.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Rich Felker <dalias@libc.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/Kconfig                     |  3 +++
- include/linux/prctl.h            | 19 +++++++++++++++++++
- include/uapi/linux/prctl.h       |  6 +++---
- kernel/sys.c                     |  2 +-
- tools/include/uapi/linux/prctl.h |  6 +++---
- 5 files changed, 29 insertions(+), 7 deletions(-)
- create mode 100644 include/linux/prctl.h
+ arch/x86/Kconfig                 |  1 +
+ arch/x86/include/asm/processor.h |  6 ------
+ arch/x86/kernel/Makefile         |  1 +
+ arch/x86/kernel/sys.c            | 26 ++++++++++++++++++++++++++
+ kernel/sys.c                     | 28 ----------------------------
+ 5 files changed, 28 insertions(+), 34 deletions(-)
+ create mode 100644 arch/x86/kernel/sys.c
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 8e0d665..b34b3e8 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -969,4 +969,7 @@ config REFCOUNT_FULL
- 	  against various use-after-free conditions that can be used in
- 	  security flaw exploits.
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c07f492..7bae36a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -176,6 +176,7 @@ config X86
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
++	select HAVE_PRCTL_ARCH
+ 	select HAVE_RCU_TABLE_FREE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && UNWINDER_FRAME_POINTER && STACK_VALIDATION
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 21a1149..0ecdda4 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -924,18 +924,12 @@ extern void start_thread(struct pt_regs *regs, unsigned long new_ip,
+ #define KSTK_EIP(task)		(task_pt_regs(task)->ip)
  
-+config HAVE_PRCTL_ARCH
-+	bool
-+
- source "kernel/gcov/Kconfig"
-diff --git a/include/linux/prctl.h b/include/linux/prctl.h
+ /* Get/set a process' ability to use the timestamp counter instruction */
+-#define GET_TSC_CTL(adr)	get_tsc_mode((adr))
+-#define SET_TSC_CTL(val)	set_tsc_mode((val))
+-
+ extern int get_tsc_mode(unsigned long adr);
+ extern int set_tsc_mode(unsigned int val);
+ 
+ DECLARE_PER_CPU(u64, msr_misc_features_shadow);
+ 
+ /* Register/unregister a process' MPX related resource */
+-#define MPX_ENABLE_MANAGEMENT()	mpx_enable_management()
+-#define MPX_DISABLE_MANAGEMENT()	mpx_disable_management()
+-
+ #ifdef CONFIG_X86_INTEL_MPX
+ extern int mpx_enable_management(void);
+ extern int mpx_disable_management(void);
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 02d6f5c..636e40d 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -52,6 +52,7 @@ obj-$(CONFIG_MODIFY_LDT_SYSCALL)	+= ldt.o
+ obj-y			+= setup.o x86_init.o i8259.o irqinit.o jump_label.o
+ obj-$(CONFIG_IRQ_WORK)  += irq_work.o
+ obj-y			+= probe_roms.o
++obj-y			+= sys.o
+ obj-$(CONFIG_X86_64)	+= sys_x86_64.o
+ obj-$(CONFIG_X86_ESPFIX64)	+= espfix_64.o
+ obj-$(CONFIG_SYSFS)	+= ksysfs.o
+diff --git a/arch/x86/kernel/sys.c b/arch/x86/kernel/sys.c
 new file mode 100644
-index 0000000..5ce3713
+index 0000000..3be4d16
 --- /dev/null
-+++ b/include/linux/prctl.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_PRCTL_H
-+#define _LINUX_PRCTL_H
++++ b/arch/x86/kernel/sys.c
+@@ -0,0 +1,26 @@
++// SPDX-License-Identifier: GPL-2.0
 +
 +#include <linux/errno.h>
-+#include <uapi/linux/prctl.h>
++#include <linux/prctl.h>
++#include <asm/processor.h>
 +
-+#ifdef CONFIG_HAVE_PRCTL_ARCH
-+extern int prctl_arch(int option, unsigned long arg2,
-+	unsigned long arg3, unsigned long arg4, unsigned long arg5);
-+#else
-+static inline int prctl_arch(int option, unsigned long arg2,
-+	unsigned long arg3, unsigned long arg4, unsigned long arg5)
++int prctl_arch(int option, unsigned long arg2, unsigned long arg3,
++	       unsigned long arg4, unsigned long arg5)
 +{
-+	return -EINVAL;
++	switch (option) {
++	case PR_GET_TSC:
++		return get_tsc_mode(arg2);
++	case PR_SET_TSC:
++		return set_tsc_mode(arg2);
++	case PR_MPX_ENABLE_MANAGEMENT:
++		if (arg2 || arg3 || arg4 || arg5)
++			return -EINVAL;
++		return mpx_enable_management();
++	case PR_MPX_DISABLE_MANAGEMENT:
++		if (arg2 || arg3 || arg4 || arg5)
++			return -EINVAL;
++		return mpx_disable_management();
++	default:
++		return -EINVAL;
++	}
 +}
-+#endif
-+
-+#endif /* ! _LINUX_PRCTL_H */
-diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-index af5f8c2..c911ff0 100644
---- a/include/uapi/linux/prctl.h
-+++ b/include/uapi/linux/prctl.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#ifndef _LINUX_PRCTL_H
--#define _LINUX_PRCTL_H
-+#ifndef _UAPI_LINUX_PRCTL_H
-+#define _UAPI_LINUX_PRCTL_H
- 
- #include <linux/types.h>
- 
-@@ -207,4 +207,4 @@ struct prctl_mm_map {
- # define PR_SVE_VL_LEN_MASK		0xffff
- # define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
- 
--#endif /* _LINUX_PRCTL_H */
-+#endif /* _UAPI_LINUX_PRCTL_H */
 diff --git a/kernel/sys.c b/kernel/sys.c
-index ad69218..5077f1e 100644
+index 63228e7..994b5711 100644
 --- a/kernel/sys.c
 +++ b/kernel/sys.c
-@@ -2451,7 +2451,7 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
- 		error = SVE_GET_VL();
+@@ -95,18 +95,6 @@
+ #ifndef SET_ENDIAN
+ # define SET_ENDIAN(a, b)	(-EINVAL)
+ #endif
+-#ifndef GET_TSC_CTL
+-# define GET_TSC_CTL(a)		(-EINVAL)
+-#endif
+-#ifndef SET_TSC_CTL
+-# define SET_TSC_CTL(a)		(-EINVAL)
+-#endif
+-#ifndef MPX_ENABLE_MANAGEMENT
+-# define MPX_ENABLE_MANAGEMENT()	(-EINVAL)
+-#endif
+-#ifndef MPX_DISABLE_MANAGEMENT
+-# define MPX_DISABLE_MANAGEMENT()	(-EINVAL)
+-#endif
+ 
+ /*
+  * this is where the system-wide overflow UID and GID are defined, for
+@@ -2314,12 +2302,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 	case PR_SET_SECCOMP:
+ 		error = prctl_set_seccomp(arg2, (char __user *)arg3);
  		break;
+-	case PR_GET_TSC:
+-		error = GET_TSC_CTL(arg2);
+-		break;
+-	case PR_SET_TSC:
+-		error = SET_TSC_CTL(arg2);
+-		break;
+ 	case PR_TASK_PERF_EVENTS_DISABLE:
+ 		error = perf_event_task_disable();
+ 		break;
+@@ -2416,16 +2398,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 			clear_bit(MMF_DISABLE_THP, &me->mm->flags);
+ 		up_write(&me->mm->mmap_sem);
+ 		break;
+-	case PR_MPX_ENABLE_MANAGEMENT:
+-		if (arg2 || arg3 || arg4 || arg5)
+-			return -EINVAL;
+-		error = MPX_ENABLE_MANAGEMENT();
+-		break;
+-	case PR_MPX_DISABLE_MANAGEMENT:
+-		if (arg2 || arg3 || arg4 || arg5)
+-			return -EINVAL;
+-		error = MPX_DISABLE_MANAGEMENT();
+-		break;
  	default:
--		error = -EINVAL;
-+		error = prctl_arch(option, arg2, arg3, arg4, arg5);
+ 		error = prctl_arch(option, arg2, arg3, arg4, arg5);
  		break;
- 	}
- 	return error;
-diff --git a/tools/include/uapi/linux/prctl.h b/tools/include/uapi/linux/prctl.h
-index af5f8c2..c911ff0 100644
---- a/tools/include/uapi/linux/prctl.h
-+++ b/tools/include/uapi/linux/prctl.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#ifndef _LINUX_PRCTL_H
--#define _LINUX_PRCTL_H
-+#ifndef _UAPI_LINUX_PRCTL_H
-+#define _UAPI_LINUX_PRCTL_H
- 
- #include <linux/types.h>
- 
-@@ -207,4 +207,4 @@ struct prctl_mm_map {
- # define PR_SVE_VL_LEN_MASK		0xffff
- # define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
- 
--#endif /* _LINUX_PRCTL_H */
-+#endif /* _UAPI_LINUX_PRCTL_H */
 -- 
 2.1.4
