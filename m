@@ -1,118 +1,60 @@
-From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: Re: [PATCH 00/12] introduce support for early platform drivers
-Date: Mon, 14 May 2018 13:38:16 +0200
-Message-ID: <CAMRc=McDNYQ5uk8EyRkDf8eh9q7tyF=t7PcUd6DBLqXcseJ3AQ@mail.gmail.com>
-References: <20180511162028.20616-1-brgl@bgdev.pl> <CAL_JsqL3CWFSpKEGoGwQDxCQ04g4uT1hiDTxXzjz4XTjPbfsoQ@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+Date: Mon, 14 May 2018 14:01:23 +0200
+Message-ID: <008010c1-20a1-c307-25ac-8a69d672d031@redhat.com>
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+ <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
+ <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+ <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+ <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+ <CALCETrUGjN8mhOaLqGcau-pPKm9TQW8k05hZrh52prRNdC5yQQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAL_JsqL3CWFSpKEGoGwQDxCQ04g4uT1hiDTxXzjz4XTjPbfsoQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Rob Herring <robh+dt@kernel.org>
-Cc: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <CALCETrUGjN8mhOaLqGcau-pPKm9TQW8k05hZrh52prRNdC5yQQ@mail.gmail.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com, Dave Hansen <dave.hansen@intel.com>, linux-x86_64@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-2018-05-11 22:13 GMT+02:00 Rob Herring <robh+dt@kernel.org>:
-> On Fri, May 11, 2018 at 11:20 AM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
->> This series is a follow-up to the RFC[1] posted a couple days ago.
->>
->> NOTE: this series applies on top of my recent patches[2] that move the previous
->> implementation of early platform devices to arch/sh.
->>
->> Problem:
->>
->> Certain class of devices, such as timers, certain clock drivers and irq chip
->> drivers need to be probed early in the boot sequence. The currently preferred
->> approach is using one of the OF_DECLARE() macros. This however does not create
->> a platform device which has many drawbacks - such as not being able to use
->> devres routines, dev_ log functions or no way of deferring the init OF function
->> if some other resources are missing.
->
-> I skimmed though this and it doesn't look horrible (how's that for
-> positive feedback? ;) ). But before going into the details, I think
-> first there needs to be agreement this is the right direction.
->
-> The question does remain though as to whether this class of devices
-> should be platform drivers. They can't be modules. They can't be
-> hotplugged. Can they be runtime-pm enabled? So the advantage is ...
->
+On 05/09/2018 04:41 PM, Andy Lutomirski wrote:
+> Hmm.  I can get on board with the idea that fork() / clone() /
+> pthread_create() are all just special cases of the idea that the thread
+> that*calls*  them should have the right pkey values, and the latter is
+> already busted given our inability to asynchronously propagate the new mode
+> in pkey_alloc().  So let's so PKEY_ALLOC_SETSIGNAL as a starting point.
 
-The main (but not the only) advantage for drivers that can both be
-platform drivers and OF_DECLARE drivers is that we get a single entry
-point and can reuse code without resorting to checking if (!dev). It
-results in more consistent code base. Another big advantage is
-consolidation of device tree and machine code for SoC drivers used in
-different boards of which some are still using board files and others
-are defined in DT (see: DaVinci).
+Ram, any suggestions for implementing this on POWER?
 
-> I assume that the clock maintainers had some reason to move clocks to
-> be platform drivers. It's just not clear to me what that was.
->
->> For drivers that use both platform drivers and OF_DECLARE the situation is even
->> more complicated as the code needs to take into account that there can possibly
->> be no struct device present. For a specific use case that we're having problems
->> with, please refer to the recent DaVinci common-clock conversion patches and
->> the nasty workaround that this problem implies[3].
->
-> So devm_kzalloc will work with this solution? Why did we need
-> devm_kzalloc in the first place? The clocks can never be removed and
-> cleaning up on error paths is kind of pointless. The system would be
-> hosed, right?
->
+> One thing we could do, though: the current initual state on process
+> creation is all access blocked on all keys.  We could change it so that
+> half the keys are fully blocked and half are read-only.  Then we could add
+> a PKEY_ALLOC_STRICT or similar that allocates a key with the correct
+> initial state*and*  does the setsignal thing.  If there are no keys left
+> with the correct initial state, then it fails.
 
-It depends - not all clocks are necessary for system to boot.
+The initial PKRU value can currently be configured by the system 
+administrator.  I fear this approach has too many moving parts to be viable.
 
->> We also used to have an early platform drivers implementation but they were not
->> integrated with the linux device model at all - they merely used the same data
->> structures. The users could not use devres, defer probe and the early devices
->> never became actual platform devices later on.
->>
->> Proposed solution:
->>
->> This series aims at solving this problem by (re-)introducing the concept of
->> early platform drivers and devices - this time however in a way that seamlessly
->> integrates with the existing platform drivers and also offers device-tree
->> support.
->>
->> The idea is to provide a way for users to probe devices early, while already
->> being able to use devres, devices resources and properties and also deferred
->> probing.
->>
->> New structures are introduced: the early platform driver contains the
->> early_probe callback which has the same signature as regular platform_device
->> probe. This callback is called early on. The user can have both the early and
->> regular probe speficied or only one of them and they both receive the same
->> platform device object as argument. Any device data allocated early will be
->> carried over to the normal probe.
->>
->> The architecture code is responsible for calling early_platform_start() in
->> which the early drivers will be registered and devices populated from DT.
->
-> Can we really do this in one spot for different devices (clk, timers,
-> irq). The sequence is all very carefully crafted. Platform specific
-> hooks is another thing to consider.
->
-
-This is why I added support for early probe deferral - so that we can
-stop caring for the order as long as the drivers are aware of other
-resources they need and we call early_platform_start() the moment the
-earliest of the early devices is needed.
-
->> Once the device and kobject mechanisms are ready, all early drivers and devices
->> will be converted into real platform drivers and devices. Also: if any of the
->> early platform registration functions will be called once early initialization
->> is done, these functions will work like regular platform_device/driver ones.
->
-> This could leave devices in a weird state. They've successfully probed
-> early, but then are on the deferred list for normal probe for example.
->
-
-It's not really a weird state - once we're past the 'early' stage, the
-drivers' "earlyness" no longer plays any role. An early deferred
-device wouldn't be any different from other deferred devices. It's
-possible that we enabled some crucial resources in the early stage and
-then failed to fully probe the device later. I don't see a problem
-with that.
-
-Best regards,
-Bartosz Golaszewski
+Thanks,
+Florian
