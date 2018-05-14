@@ -1,142 +1,171 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47006 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754145AbeENRPe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 14 May 2018 13:15:34 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46972 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752856AbeENRPa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 May 2018 13:15:30 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 09/11] ia64: Move arch-specific prctls out of core code
-Date: Mon, 14 May 2018 18:14:25 +0100
-Message-ID: <1526318067-4964-10-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 05/11] x86: Move arch-specific prctls out of core code
+Date: Mon, 14 May 2018 18:14:21 +0100
+Message-ID: <1526318067-4964-6-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 References: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
-Message-ID: <20180514171425.tby6Scq9uV5w37H6AhDwVfCA4i4mgbC8tkpsZG9NsCk@z>
+Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20180514171421.9SdZR4xUaVkBVK4iOPV2fs4rhtkAw6aoZiQSbrsKUl0@z>
 
-This patch moves the ia64-specific prctl call implementations out
+This patch moves the x86-specific prctl call implementations out
 of core code and removes redundant boilerplate associated with
 them.
 
 No functional change.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 ---
- arch/ia64/Kconfig                 |  1 +
- arch/ia64/include/asm/processor.h | 12 ------------
- arch/ia64/kernel/sys_ia64.c       | 22 ++++++++++++++++++++++
- kernel/sys.c                      | 12 ------------
- 4 files changed, 23 insertions(+), 24 deletions(-)
+ arch/x86/Kconfig                 |  1 +
+ arch/x86/include/asm/processor.h |  6 ------
+ arch/x86/kernel/Makefile         |  1 +
+ arch/x86/kernel/sys.c            | 26 ++++++++++++++++++++++++++
+ kernel/sys.c                     | 28 ----------------------------
+ 5 files changed, 28 insertions(+), 34 deletions(-)
+ create mode 100644 arch/x86/kernel/sys.c
 
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index bbe12a0..a673dd7 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -54,6 +54,7 @@ config IA64
- 	select MODULES_USE_ELF_RELA
- 	select ARCH_USE_CMPXCHG_LOCKREF
- 	select HAVE_ARCH_AUDITSYSCALL
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c07f492..7bae36a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -176,6 +176,7 @@ config X86
+ 	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
 +	select HAVE_PRCTL_ARCH
- 	default y
- 	help
- 	  The Itanium Processor Family is Intel's 64-bit successor to
-diff --git a/arch/ia64/include/asm/processor.h b/arch/ia64/include/asm/processor.h
-index 0489b80..e40242e 100644
---- a/arch/ia64/include/asm/processor.h
-+++ b/arch/ia64/include/asm/processor.h
-@@ -259,18 +259,6 @@ typedef struct {
- 		 (int __user *) (addr));							\
- })
+ 	select HAVE_RCU_TABLE_FREE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && UNWINDER_FRAME_POINTER && STACK_VALIDATION
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 21a1149..0ecdda4 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -924,18 +924,12 @@ extern void start_thread(struct pt_regs *regs, unsigned long new_ip,
+ #define KSTK_EIP(task)		(task_pt_regs(task)->ip)
  
--#define SET_FPEMU_CTL(value)									\
--({												\
--	current->thread.flags = ((current->thread.flags & ~IA64_THREAD_FPEMU_MASK)		\
--			  | (((value) << IA64_THREAD_FPEMU_SHIFT) & IA64_THREAD_FPEMU_MASK));	\
--	0;											\
--})
--#define GET_FPEMU_CTL(addr)									\
--({												\
--	put_user((current->thread.flags & IA64_THREAD_FPEMU_MASK) >> IA64_THREAD_FPEMU_SHIFT,	\
--		 (int __user *) (addr));							\
--})
+ /* Get/set a process' ability to use the timestamp counter instruction */
+-#define GET_TSC_CTL(adr)	get_tsc_mode((adr))
+-#define SET_TSC_CTL(val)	set_tsc_mode((val))
 -
- struct thread_struct {
- 	__u32 flags;			/* various thread flags (see IA64_THREAD_*) */
- 	/* writing on_ustack is performance-critical, so it's worth spending 8 bits on it... */
-diff --git a/arch/ia64/kernel/sys_ia64.c b/arch/ia64/kernel/sys_ia64.c
-index 9ebe1d6..d996585 100644
---- a/arch/ia64/kernel/sys_ia64.c
-+++ b/arch/ia64/kernel/sys_ia64.c
-@@ -15,11 +15,13 @@
- #include <linux/sched/task_stack.h>
- #include <linux/shm.h>
- #include <linux/file.h>		/* doh, must come after sched.h... */
-+#include <liunx/prctl.h>
- #include <linux/smp.h>
- #include <linux/syscalls.h>
- #include <linux/highuid.h>
- #include <linux/hugetlb.h>
+ extern int get_tsc_mode(unsigned long adr);
+ extern int set_tsc_mode(unsigned int val);
  
+ DECLARE_PER_CPU(u64, msr_misc_features_shadow);
+ 
+ /* Register/unregister a process' MPX related resource */
+-#define MPX_ENABLE_MANAGEMENT()	mpx_enable_management()
+-#define MPX_DISABLE_MANAGEMENT()	mpx_disable_management()
+-
+ #ifdef CONFIG_X86_INTEL_MPX
+ extern int mpx_enable_management(void);
+ extern int mpx_disable_management(void);
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 02d6f5c..636e40d 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -52,6 +52,7 @@ obj-$(CONFIG_MODIFY_LDT_SYSCALL)	+= ldt.o
+ obj-y			+= setup.o x86_init.o i8259.o irqinit.o jump_label.o
+ obj-$(CONFIG_IRQ_WORK)  += irq_work.o
+ obj-y			+= probe_roms.o
++obj-y			+= sys.o
+ obj-$(CONFIG_X86_64)	+= sys_x86_64.o
+ obj-$(CONFIG_X86_ESPFIX64)	+= espfix_64.o
+ obj-$(CONFIG_SYSFS)	+= ksysfs.o
+diff --git a/arch/x86/kernel/sys.c b/arch/x86/kernel/sys.c
+new file mode 100644
+index 0000000..3be4d16
+--- /dev/null
++++ b/arch/x86/kernel/sys.c
+@@ -0,0 +1,26 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/errno.h>
++#include <linux/prctl.h>
 +#include <asm/processor.h>
- #include <asm/shmparam.h>
- #include <linux/uaccess.h>
- 
-@@ -184,3 +186,23 @@ sys_pciconfig_write (unsigned long bus, unsigned long dfn, unsigned long off, un
- }
- 
- #endif /* CONFIG_PCI */
 +
 +int prctl_arch(int option, unsigned long arg2, unsigned long arg3,
 +	       unsigned long arg4, unsigned long arg5)
 +{
-+	int res;
-+
 +	switch (option) {
-+	case PR_SET_FPEMU:
-+		current->thread.flags &= ~IA64_THREAD_FPEMU_MASK;
-+		current->thread.flags |= (arg2 << IA64_THREAD_FPEMU_SHIFT) &
-+			IA64_THREAD_FPEMU_MASK;
-+		return 0;
-+	case PR_GET_FPEMU:
-+		res = (current->thread.flags & IA64_THREAD_FPEMU_MASK) >>
-+			IA64_THREAD_FPEMU_SHIFT;
-+		return put_user(res, (int __user *)arg2);
++	case PR_GET_TSC:
++		return get_tsc_mode(arg2);
++	case PR_SET_TSC:
++		return set_tsc_mode(arg2);
++	case PR_MPX_ENABLE_MANAGEMENT:
++		if (arg2 || arg3 || arg4 || arg5)
++			return -EINVAL;
++		return mpx_enable_management();
++	case PR_MPX_DISABLE_MANAGEMENT:
++		if (arg2 || arg3 || arg4 || arg5)
++			return -EINVAL;
++		return mpx_disable_management();
 +	default:
 +		return -EINVAL;
 +	}
 +}
 diff --git a/kernel/sys.c b/kernel/sys.c
-index 5549505..8111c0d 100644
+index 63228e7..994b5711 100644
 --- a/kernel/sys.c
 +++ b/kernel/sys.c
-@@ -77,12 +77,6 @@
- #ifndef GET_UNALIGN_CTL
- # define GET_UNALIGN_CTL(a, b)	(-EINVAL)
+@@ -95,18 +95,6 @@
+ #ifndef SET_ENDIAN
+ # define SET_ENDIAN(a, b)	(-EINVAL)
  #endif
--#ifndef SET_FPEMU_CTL
--# define SET_FPEMU_CTL(a)	(-EINVAL)
+-#ifndef GET_TSC_CTL
+-# define GET_TSC_CTL(a)		(-EINVAL)
 -#endif
--#ifndef GET_FPEMU_CTL
--# define GET_FPEMU_CTL(a)	(-EINVAL)
+-#ifndef SET_TSC_CTL
+-# define SET_TSC_CTL(a)		(-EINVAL)
+-#endif
+-#ifndef MPX_ENABLE_MANAGEMENT
+-# define MPX_ENABLE_MANAGEMENT()	(-EINVAL)
+-#endif
+-#ifndef MPX_DISABLE_MANAGEMENT
+-# define MPX_DISABLE_MANAGEMENT()	(-EINVAL)
 -#endif
  
  /*
   * this is where the system-wide overflow UID and GID are defined, for
-@@ -2246,12 +2240,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
- 	case PR_GET_UNALIGN:
- 		error = GET_UNALIGN_CTL(me, arg2);
+@@ -2314,12 +2302,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 	case PR_SET_SECCOMP:
+ 		error = prctl_set_seccomp(arg2, (char __user *)arg3);
  		break;
--	case PR_SET_FPEMU:
--		error = SET_FPEMU_CTL(arg2);
+-	case PR_GET_TSC:
+-		error = GET_TSC_CTL(arg2);
 -		break;
--	case PR_GET_FPEMU:
--		error = GET_FPEMU_CTL(arg2);
+-	case PR_SET_TSC:
+-		error = SET_TSC_CTL(arg2);
 -		break;
- 	case PR_GET_TIMING:
- 		error = PR_TIMING_STATISTICAL;
+ 	case PR_TASK_PERF_EVENTS_DISABLE:
+ 		error = perf_event_task_disable();
+ 		break;
+@@ -2416,16 +2398,6 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 			clear_bit(MMF_DISABLE_THP, &me->mm->flags);
+ 		up_write(&me->mm->mmap_sem);
+ 		break;
+-	case PR_MPX_ENABLE_MANAGEMENT:
+-		if (arg2 || arg3 || arg4 || arg5)
+-			return -EINVAL;
+-		error = MPX_ENABLE_MANAGEMENT();
+-		break;
+-	case PR_MPX_DISABLE_MANAGEMENT:
+-		if (arg2 || arg3 || arg4 || arg5)
+-			return -EINVAL;
+-		error = MPX_DISABLE_MANAGEMENT();
+-		break;
+ 	default:
+ 		error = prctl_arch(option, arg2, arg3, arg4, arg5);
  		break;
 -- 
 2.1.4
