@@ -1,83 +1,120 @@
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v4 0/8] Introduce the for_each_set_clump macro
-Date: Tue, 15 May 2018 12:22:13 -0400
-Message-ID: <cover.1526400945.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v4 1/8] bitops: Introduce the for_each_set_clump macro
+Date: Tue, 15 May 2018 12:22:26 -0400
+Message-ID: <87c7edee3bd6789345bd1cc6fd0cb91c2d508eda.1526400945.git.vilhelm.gray@gmail.com>
+References: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Changes in v4:
-  - Fix bitmap_set arguments (last parameter is nbits not endbit)
+This macro iterates for each group of bits (clump) with set bits, within
+a bitmap memory region. For each iteration, "clump" is set to the found
+clump index, "index" is set to the word index of the bitmap containing
+the found clump, and "offset" is set to the bit offset of the found
+clump within the respective bitmap word.
 
-While adding GPIO get_multiple/set_multiple callback support for various
-drivers, I noticed a pattern of looping manifesting that would be useful
-standardized as a macro.
+Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+ include/asm-generic/bitops/find.h |  9 +++++++
+ include/linux/bitops.h            |  7 ++++++
+ lib/find_bit.c                    | 40 +++++++++++++++++++++++++++++++
+ 3 files changed, 56 insertions(+)
 
-This patchset introduces the for_each_set_clump macro and utilizes it in
-several GPIO drivers. The for_each_set_clump macro facilitates a
-for-loop syntax that iterates over entire groups of set bits at a time.
-
-For example, suppose you would like to iterate over a 16-bit integer 4
-bits at a time, skipping over 4-bit groups with no set bit, where XXXX
-represents the current 4-bit group:
-
-    Example:        1011 1110 0000 1111
-    First loop:     1011 1110 0000 XXXX
-    Second loop:    1011 XXXX 0000 1111
-    Third loop:     XXXX 1110 0000 1111
-
-Each iteration of the loop returns the next 4-bit group that has at
-least one set bit.
-
-The for_each_set_clump macro has six parameters:
-
-    * clump: set to current clump index for the iteration
-    * index: set to current bitmap word index for the iteration
-    * offset: bits offset of the found clump in the bitmap word
-    * bits: bitmap to search within
-    * size: bitmap size in number of clumps
-    * clump_size: clump size in number of bits
-
-The clump_size argument can be an arbitrary number of bits and is not
-required to be a multiple of 2.
-
-This patchset was rebased on top of the following three commits:
-
-    * commit aaf96e51de11 ("gpio: pci-idio-16: Fix port memory offset for get_multiple callback")
-    * commit 304440aa96c6 ("gpio: pcie-idio-24: Fix port memory offset for get_multiple/set_multiple callbacks")
-    * commit e026646c178d ("gpio: pcie-idio-24: Fix off-by-one error in get_multiple loop")
-
-When I implemented the test_for_each_set_clump function, I used
-bitmap_set to set the expected bitmap for the test. This method of
-setting bits only segments at a time was rather tedious and error-prone;
-is there a better way to accomplish what I did (set a bitmap after a
-DECLARE_BITMAP)?
-
-William Breathitt Gray
-
-William Breathitt Gray (8):
-  bitops: Introduce the for_each_set_clump macro
-  lib/test_bitmap.c: Add for_each_set_clump test cases
-  gpio: 104-dio-48e: Utilize for_each_set_clump macro
-  gpio: 104-idi-48: Utilize for_each_set_clump macro
-  gpio: gpio-mm: Utilize for_each_set_clump macro
-  gpio: ws16c48: Utilize for_each_set_clump macro
-  gpio: pci-idio-16: Utilize for_each_set_clump macro
-  gpio: pcie-idio-24: Utilize for_each_set_clump macro
-
- drivers/gpio/gpio-104-dio-48e.c   |  67 +++++---------------
- drivers/gpio/gpio-104-idi-48.c    |  32 ++--------
- drivers/gpio/gpio-gpio-mm.c       |  67 +++++---------------
- drivers/gpio/gpio-pci-idio-16.c   |  67 ++++++--------------
- drivers/gpio/gpio-pcie-idio-24.c  | 102 +++++++++++-------------------
- drivers/gpio/gpio-ws16c48.c       |  66 +++++--------------
- include/asm-generic/bitops/find.h |   9 +++
- include/linux/bitops.h            |   7 ++
- lib/find_bit.c                    |  40 ++++++++++++
- lib/test_bitmap.c                 |  71 +++++++++++++++++++++
- 10 files changed, 236 insertions(+), 292 deletions(-)
-
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 8a1ee10014de..3d3b2fc34908 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_GENERIC_BITOPS_FIND_H_
+ #define _ASM_GENERIC_BITOPS_FIND_H_
+ 
++#include <linux/types.h>
++
+ #ifndef find_next_bit
+ /**
+  * find_next_bit - find the next set bit in a memory region
+@@ -80,4 +82,11 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+ 
+ #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+ 
++size_t find_next_clump(size_t *const index, unsigned int *const offset,
++		       const unsigned long *const bits, const size_t size,
++		       const size_t clump_index, const unsigned int clump_size);
++
++#define find_first_clump(index, offset, bits, size, clump_size) \
++	find_next_clump((index), (offset), (bits), (size), 0, (clump_size))
++
+ #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 4cac4e1a72ff..cfaff6a14406 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -59,6 +59,13 @@ extern unsigned long __sw_hweight64(__u64 w);
+ 	     (bit) < (size);					\
+ 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+ 
++#define for_each_set_clump(clump, index, offset, bits, size, clump_size) \
++	for ((clump) = find_first_clump(&(index), &(offset), (bits), (size), \
++					(clump_size)); \
++	     (clump) < (size); \
++	     (clump) = find_next_clump(&(index), &(offset), (bits), (size), \
++				       (clump) + 1, (clump_size)))
++
+ static inline int get_bitmask_order(unsigned int count)
+ {
+ 	int order;
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index ee3df93ba69a..1d547fe9304f 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -218,3 +218,43 @@ EXPORT_SYMBOL(find_next_bit_le);
+ #endif
+ 
+ #endif /* __BIG_ENDIAN */
++
++/**
++ * find_next_clump - find next clump with set bits in a memory region
++ * @index: location to store bitmap word index of found clump
++ * @offset: bits offset of the found clump within the respective bitmap word
++ * @bits: address to base the search on
++ * @size: bitmap size in number of clumps
++ * @clump_index: clump index at which to start searching
++ * @clump_size: clump size in bits
++ *
++ * Returns the clump index for the next clump with set bits; the respective
++ * bitmap word index is stored at the location pointed by @index, and the bits
++ * offset of the found clump within the respective bitmap word is stored at the
++ * location pointed by @offset. If no bits are set, returns @size.
++ */
++size_t find_next_clump(size_t *const index, unsigned int *const offset,
++		       const unsigned long *const bits, const size_t size,
++		       const size_t clump_index, const unsigned int clump_size)
++{
++	size_t i;
++	unsigned int bits_offset;
++	unsigned long word_mask;
++	const unsigned long clump_mask = GENMASK(clump_size - 1, 0);
++
++	for (i = clump_index; i < size; i++) {
++		bits_offset = i * clump_size;
++
++		*index = BIT_WORD(bits_offset);
++		*offset = bits_offset % BITS_PER_LONG;
++
++		word_mask = bits[*index] & (clump_mask << *offset);
++		if (!word_mask)
++			continue;
++
++		return i;
++	}
++
++	return size;
++}
++EXPORT_SYMBOL(find_next_clump);
 -- 
 2.17.0
