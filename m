@@ -1,89 +1,85 @@
-From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: Re: [PATCH 10/12] platform/early: implement support for early
- platform drivers
-Date: Tue, 15 May 2018 16:06:15 +0200
-Message-ID: <CAMRc=MdsDWb0Ve29_d=30nc1F0aVhTrG74GX=sv0iB5WycWwLw@mail.gmail.com>
-References: <20180511162028.20616-1-brgl@bgdev.pl> <20180511162028.20616-11-brgl@bgdev.pl>
- <CAL_JsqJw8UXktcLK8ADUfo1P+1un+omJ31sGcq7GFbNwJMsHKg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [PATCH v3 0/8] Introduce the for_each_set_clump macro
+Date: Tue, 15 May 2018 11:49:34 -0400
+Message-ID: <cover.1526397764.git.vilhelm.gray@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAL_JsqJw8UXktcLK8ADUfo1P+1un+omJ31sGcq7GFbNwJMsHKg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rob Herring <robh+dt@kernel.org>
-Cc: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
+To: linus.walleij@linaro.org
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-2018-05-14 15:37 GMT+02:00 Rob Herring <robh+dt@kernel.org>:
-> On Fri, May 11, 2018 at 11:20 AM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
->> From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
->>
->> This introduces the core part of support for early platform drivers
->> and devices.
->>
->
-> It looks like most of your prep patches are to separate the alloc and
-> init of platform devices because you are essentially making early
-> devices/drivers a sub-class. Maybe you could avoid doing that and
-> simplify things a bit. Comments below based on doing that...
->
+Changes in v3:
+  - Replace "port word" nomenclature with "clump"
+  - Add test cases for for_each_set_clump in lib/test_bitmap.c
+  - Move kernel-doc comment for find_next_clump above C definition
 
-My aim was to change as little as possible for everybody else while
-fixing our problem. These changes are already controversial enough
-without risky reusing of existing fields in common structures. I was
-just afraid that there are too many intricacies for it to be safe.
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
->> +/**
->> + * struct early_platform_driver
->> + *
->> + * @pdrv: real platform driver associated with this early platform driver
->> + * @list: list head for the list of early platform drivers
->> + * @early_probe: early probe callback
->> + */
->> +struct early_platform_driver {
->> +       struct platform_driver pdrv;
->> +       struct list_head list;
->
-> Couldn't you use an existing list in driver_private until you move
-> over to the normal bus infra.
->
+This patchset introduces the for_each_set_clump macro and utilizes it in
+several GPIO drivers. The for_each_set_clump macro facilitates a
+for-loop syntax that iterates over entire groups of set bits at a time.
 
-This is something that the previous implementation did. It was quite
-unreadable, so I decided to go with a separate list.
+For example, suppose you would like to iterate over a 16-bit integer 4
+bits at a time, skipping over 4-bit groups with no set bit, where XXXX
+represents the current 4-bit group:
 
->> +       int (*early_probe)(struct platform_device *);
->
-> Just add this to platform_driver.
->
+    Example:        1011 1110 0000 1111
+    First loop:     1011 1110 0000 XXXX
+    Second loop:    1011 XXXX 0000 1111
+    Third loop:     XXXX 1110 0000 1111
 
-This would extend the structure for everybody else while there'll be
-very few such devices and not all systems would even require it.
+Each iteration of the loop returns the next 4-bit group that has at
+least one set bit.
 
->> +};
->> +
->> +/**
->> + * struct early_platform_device
->> + *
->> + * @pdev: real platform device associated with this early platform device
->> + * @list: list head for the list of early platform devices
->> + * @deferred: true if this device's early probe was deferred
->> + * @deferred_drv: early platform driver with which this device was matched
->> + */
->> +struct early_platform_device {
->> +       struct platform_device pdev;
->> +       struct list_head list;
->
-> Use a list in device_private?
->
->> +       bool deferred;
->> +       struct early_platform_driver *deferred_drv;
->
-> Can't you use the existing deferred probe list?
->
+The for_each_set_clump macro has six parameters:
 
-I thought about it, but I was afraid there could be some timing issues
-with that and decided against it. The early deferral also doesn't work
-in a workque, but is synchronous instead.
+    * clump: set to current clump index for the iteration
+    * index: set to current bitmap word index for the iteration
+    * offset: bits offset of the found clump in the bitmap word
+    * bits: bitmap to search within
+    * size: bitmap size in number of clumps
+    * clump_size: clump size in number of bits
 
-Best regards,
-Bartosz Golaszewski
+The clump_size argument can be an arbitrary number of bits and is not
+required to be a multiple of 2.
+
+This patchset was rebased on top of the following three commits:
+
+    * commit aaf96e51de11 ("gpio: pci-idio-16: Fix port memory offset for get_multiple callback")
+    * commit 304440aa96c6 ("gpio: pcie-idio-24: Fix port memory offset for get_multiple/set_multiple callbacks")
+    * commit e026646c178d ("gpio: pcie-idio-24: Fix off-by-one error in get_multiple loop")
+
+When I implemented the test_for_each_set_clump function, I used
+bitmap_set to set the expected bitmap for the test. This method of
+setting bits only segments at a time was rather tedious and error-prone;
+is there a better way to accomplish what I did (set a bitmap after a
+DECLARE_BITMAP)?
+
+William Breathitt Gray
+
+William Breathitt Gray (8):
+  bitops: Introduce the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump macro
+  gpio: 104-idi-48: Utilize for_each_set_clump macro
+  gpio: gpio-mm: Utilize for_each_set_clump macro
+  gpio: ws16c48: Utilize for_each_set_clump macro
+  gpio: pci-idio-16: Utilize for_each_set_clump macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump macro
+
+ drivers/gpio/gpio-104-dio-48e.c   |  67 +++++---------------
+ drivers/gpio/gpio-104-idi-48.c    |  32 ++--------
+ drivers/gpio/gpio-gpio-mm.c       |  67 +++++---------------
+ drivers/gpio/gpio-pci-idio-16.c   |  67 ++++++--------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 102 +++++++++++-------------------
+ drivers/gpio/gpio-ws16c48.c       |  66 +++++--------------
+ include/asm-generic/bitops/find.h |   9 +++
+ include/linux/bitops.h            |   7 ++
+ lib/find_bit.c                    |  40 ++++++++++++
+ lib/test_bitmap.c                 |  71 +++++++++++++++++++++
+ 10 files changed, 236 insertions(+), 292 deletions(-)
+
+-- 
+2.17.0
