@@ -1,171 +1,204 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v4 8/8] gpio: pcie-idio-24: Utilize for_each_set_clump macro
-Date: Tue, 15 May 2018 12:23:51 -0400
-Message-ID: <7266e618f199840e54624edcefb7f2e6b320b0f7.1526400945.git.vilhelm.gray@gmail.com>
-References: <cover.1526400945.git.vilhelm.gray@gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH v9 00/24] ILP32 for ARM64
+Date: Tue, 15 May 2018 22:11:50 +0300
+Message-ID: <20180515191214.5045-1-ynorov@caviumnetworks.com>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.>
 List-Id: linux-arch.vger.kernel.org
 
-Replace verbose implementation in get_multiple/set_multiple callbacks
-with for_each_set_clump macro to simplify code and improve clarity.
+This series enables AARCH64 with ILP32 mode.
 
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
- drivers/gpio/gpio-pcie-idio-24.c | 102 +++++++++++--------------------
- 1 file changed, 36 insertions(+), 66 deletions(-)
+As supporting work, it introduces ARCH_32BIT_OFF_T configuration
+option that is enabled for existing 32-bit architectures but disabled
+for new arches (so 64-bit off_t userspace type is used by new userspace).
+Also it deprecates getrlimit and setrlimit syscalls prior to prlimit64.
 
-diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
-index f953541e7890..b4d300338a05 100644
---- a/drivers/gpio/gpio-pcie-idio-24.c
-+++ b/drivers/gpio/gpio-pcie-idio-24.c
-@@ -199,41 +199,21 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
- 	size_t i;
--	const unsigned int gpio_reg_size = 8;
--	unsigned int bits_offset;
--	size_t word_index;
--	unsigned int word_offset;
--	unsigned long word_mask;
--	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
--	unsigned long port_state;
-+	size_t word;
-+	unsigned int offset;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
- 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
- 	};
-+	const size_t num_ports = ARRAY_SIZE(ports) + 1;
-+	unsigned long port_state;
- 	const unsigned long out_mode_mask = BIT(1);
- 
- 	/* clear bits array to a clean slate */
- 	bitmap_zero(bits, chip->ngpio);
- 
--	/* get bits are evaluated a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* word index for bits array */
--		word_index = BIT_WORD(bits_offset);
--
--		/* gpio offset within current word of bits array */
--		word_offset = bits_offset % BITS_PER_LONG;
--
--		/* mask of get bits for current gpio within current word */
--		word_mask = mask[word_index] & (port_mask << word_offset);
--		if (!word_mask) {
--			/* no get bits in this port so skip to next one */
--			continue;
--		}
--
-+	for_each_set_clump(i, word, offset, mask, num_ports, 8) {
- 		/* read bits from current gpio port (port 6 is TTL GPIO) */
- 		if (i < 6)
- 			port_state = ioread8(ports[i]);
-@@ -243,7 +223,7 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
- 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
- 
- 		/* store acquired bits at respective bits array offset */
--		bits[word_index] |= port_state << word_offset;
-+		bits[word] |= port_state << offset;
- 	}
- 
- 	return 0;
-@@ -295,58 +275,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
- {
- 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
- 	size_t i;
--	unsigned long bits_offset;
--	unsigned long gpio_mask;
--	const unsigned int gpio_reg_size = 8;
--	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
--	unsigned long flags;
--	unsigned int out_state;
-+	size_t word;
-+	unsigned int offset;
- 	void __iomem *ports[] = {
- 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
- 		&idio24gpio->reg->out16_23
- 	};
-+	const size_t num_ports = ARRAY_SIZE(ports) + 1;
-+	unsigned int iomask;
-+	unsigned int bitmask;
-+	unsigned long flags;
- 	const unsigned long out_mode_mask = BIT(1);
--	const unsigned int ttl_offset = 48;
--	const size_t ttl_i = BIT_WORD(ttl_offset);
--	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
--	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
--	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
--
--	/* set bits are processed a gpio port register at a time */
--	for (i = 0; i < ARRAY_SIZE(ports); i++) {
--		/* gpio offset in bits array */
--		bits_offset = i * gpio_reg_size;
--
--		/* check if any set bits for current port */
--		gpio_mask = (*mask >> bits_offset) & port_mask;
--		if (!gpio_mask) {
--			/* no set bits for this port so move on to next port */
-+	unsigned int out_state;
-+
-+	for_each_set_clump(i, word, offset, mask, num_ports, 8) {
-+		iomask = mask[word] >> offset;
-+		bitmask = iomask & (bits[word] >> offset);
-+
-+		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+
-+		/* read bits from current gpio port (port 6 is TTL GPIO) */
-+		if (i < 6) {
-+			out_state = ioread8(ports[i]) & ~iomask;
-+		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
-+			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
-+		} else {
-+			/* skip TTL GPIO if set for input */
-+			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
- 			continue;
- 		}
- 
--		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
-+		/* set requested bit states */
-+		out_state &= ~iomask;
-+		out_state |= bitmask;
- 
--		/* process output lines */
--		out_state = ioread8(ports[i]) & ~gpio_mask;
--		out_state |= (*bits >> bits_offset) & gpio_mask;
--		iowrite8(out_state, ports[i]);
-+		/* write bits for current gpio port (port 6 is TTL GPIO) */
-+		if (i < 6)
-+			iowrite8(out_state, ports[i]);
-+		else
-+			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
- 
- 		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
- 	}
--
--	/* check if setting TTL lines and if they are in output mode */
--	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
--		return;
--
--	/* handle TTL output */
--	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
--
--	/* process output lines */
--	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
--	out_state |= ttl_bits;
--	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
--
--	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
- }
- 
- static void idio_24_irq_ack(struct irq_data *data)
+Based on kernel v4.16. Tested with LTP, glibc testsuite, trinity, lmbench,
+CPUSpec.
+
+This series on github: 
+https://github.com/norov/linux/tree/ilp32-4.16
+Linaro toolchain:
+http://snapshots.linaro.org/components/toolchain/binaries/7.3-2018.04-rc1/aarch64-linux-gnu_ilp32/
+Debian repo:
+http://people.linaro.org/~wookey/ilp32/
+OpenSUSE repo:
+https://build.opensuse.org/project/show/devel:ARM:Factory:Contrib:ILP32
+
+Changes:
+v3: https://lkml.org/lkml/2014/9/3/704
+v4: https://lkml.org/lkml/2015/4/13/691
+v5: https://lkml.org/lkml/2015/9/29/911
+v6: https://lkml.org/lkml/2016/5/23/661
+v7: https://lkml.org/lkml/2017/1/9/213
+v8: https://lkml.org/lkml/2017/6/19/624
+v9: - rebased on top of v4.16;
+    - signal subsystem reworked to avoid code duplication, as requested
+      by Dave Martin (patches 18 and 20);
+    - new files introduced in series use SPDX notation for license;
+    - linux-api and linux-arch CCed as the series changes kernel ABI;
+    - checkpatch and other minor fixes.
+
+Andrew Pinski (4):
+  arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+  arm64:uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
+  arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use
+    it
+  arm64:ilp32: add ARM64_ILP32 to Kconfig
+
+Catalin Marinas (1):
+  arm64: ilp32: Make the Kconfig option default y
+
+Dave Martin (1):
+  arm64: signal: Make parse_user_sigframe() independent of rt_sigframe
+    layout
+
+James Morse (1):
+  ptrace: Add compat PTRACE_{G,S}ETSIGMASK handlers
+
+Philipp Tomsich (1):
+  arm64:ilp32: add vdso-ilp32 and use for signal return
+
+Yury Norov (16):
+  compat ABI: use non-compat openat and open_by_handle_at variants
+  32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
+  asm-generic: Drop getrlimit and setrlimit syscalls from default list
+  thread: move thread bits accessors to separated file
+  arm64: ilp32: add documentation on the ILP32 ABI for ARM64
+  arm64: rename functions that reference compat term
+  arm64: introduce is_a32_task and is_a32_thread (for AArch32 compat)
+  arm64: ilp32: add is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64
+  arm64: introduce binfmt_elf32.c
+  arm64: change compat_elf_hwcap and compat_elf_hwcap2 prefix to a32
+  arm64: ilp32: introduce binfmt_ilp32.c
+  arm64: ilp32: share aarch32 syscall handlers
+  arm64: signal: share lp64 signal structures and routines to ilp32
+  arm64: signal32: move ilp32 and aarch32 common code to separated file
+  arm64: ilp32: introduce ilp32-specific sigframe and ucontext
+  arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
+
+ Documentation/arm64/ilp32.txt                 |  45 +++
+ arch/Kconfig                                  |  15 +
+ arch/arc/Kconfig                              |   1 +
+ arch/arc/include/uapi/asm/unistd.h            |   1 +
+ arch/arm/Kconfig                              |   1 +
+ arch/arm64/Kconfig                            |  18 +-
+ arch/arm64/Makefile                           |   3 +
+ arch/arm64/include/asm/compat.h               |  19 +-
+ arch/arm64/include/asm/elf.h                  |  36 +-
+ arch/arm64/include/asm/fpsimd.h               |   2 +-
+ arch/arm64/include/asm/ftrace.h               |   2 +-
+ arch/arm64/include/asm/hwcap.h                |   8 +-
+ arch/arm64/include/asm/is_compat.h            |  78 ++++
+ arch/arm64/include/asm/processor.h            |  15 +-
+ arch/arm64/include/asm/ptrace.h               |  12 +-
+ arch/arm64/include/asm/seccomp.h              |   2 +-
+ arch/arm64/include/asm/signal32.h             |  19 +-
+ arch/arm64/include/asm/signal32_common.h      |  13 +
+ arch/arm64/include/asm/signal_common.h        | 306 +++++++++++++++
+ arch/arm64/include/asm/signal_ilp32.h         |  23 ++
+ arch/arm64/include/asm/syscall.h              |   2 +-
+ arch/arm64/include/asm/thread_info.h          |   4 +-
+ arch/arm64/include/asm/unistd.h               |   6 +-
+ arch/arm64/include/asm/vdso.h                 |   6 +
+ arch/arm64/include/uapi/asm/bitsperlong.h     |   9 +-
+ arch/arm64/include/uapi/asm/unistd.h          |  13 +
+ arch/arm64/kernel/Makefile                    |   8 +-
+ arch/arm64/kernel/armv8_deprecated.c          |   6 +-
+ arch/arm64/kernel/asm-offsets.c               |   9 +-
+ arch/arm64/kernel/binfmt_elf32.c              |  35 ++
+ arch/arm64/kernel/binfmt_ilp32.c              |  87 +++++
+ arch/arm64/kernel/cpufeature.c                |  28 +-
+ arch/arm64/kernel/cpuinfo.c                   |  18 +-
+ arch/arm64/kernel/debug-monitors.c            |   4 +-
+ arch/arm64/kernel/entry.S                     |  37 +-
+ arch/arm64/kernel/entry32.S                   |  80 ----
+ arch/arm64/kernel/entry32_common.S            |  97 +++++
+ arch/arm64/kernel/entry_ilp32.S               |  12 +
+ arch/arm64/kernel/head.S                      |   2 +-
+ arch/arm64/kernel/hw_breakpoint.c             |   8 +-
+ arch/arm64/kernel/perf_callchain.c            |  28 +-
+ arch/arm64/kernel/perf_regs.c                 |   4 +-
+ arch/arm64/kernel/process.c                   |  11 +-
+ arch/arm64/kernel/ptrace.c                    |  36 +-
+ arch/arm64/kernel/signal.c                    | 352 +++---------------
+ arch/arm64/kernel/signal32.c                  | 111 +++---
+ arch/arm64/kernel/signal32_common.c           |  37 ++
+ arch/arm64/kernel/signal_ilp32.c              |  65 ++++
+ arch/arm64/kernel/sys_compat.c                |  10 +-
+ arch/arm64/kernel/sys_ilp32.c                 |  90 +++++
+ arch/arm64/kernel/traps.c                     |  11 +-
+ arch/arm64/kernel/vdso-ilp32/.gitignore       |   2 +
+ arch/arm64/kernel/vdso-ilp32/Makefile         |  82 ++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S     |  22 ++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S |  84 +++++
+ arch/arm64/kernel/vdso.c                      |  65 +++-
+ arch/arm64/kernel/vdso/gettimeofday.S         |  20 +-
+ arch/arm64/kernel/vdso/vdso.S                 |   6 +-
+ arch/arm64/mm/mmap.c                          |   2 +-
+ arch/blackfin/Kconfig                         |   1 +
+ arch/c6x/include/uapi/asm/unistd.h            |   1 +
+ arch/cris/Kconfig                             |   1 +
+ arch/frv/Kconfig                              |   1 +
+ arch/h8300/Kconfig                            |   1 +
+ arch/h8300/include/uapi/asm/unistd.h          |   1 +
+ arch/hexagon/Kconfig                          |   1 +
+ arch/hexagon/include/uapi/asm/unistd.h        |   1 +
+ arch/m32r/Kconfig                             |   1 +
+ arch/m68k/Kconfig                             |   1 +
+ arch/metag/Kconfig                            |   1 +
+ arch/metag/include/uapi/asm/unistd.h          |   1 +
+ arch/microblaze/Kconfig                       |   1 +
+ arch/mips/Kconfig                             |   1 +
+ arch/mn10300/Kconfig                          |   1 +
+ arch/nios2/Kconfig                            |   1 +
+ arch/nios2/include/uapi/asm/unistd.h          |   1 +
+ arch/openrisc/Kconfig                         |   1 +
+ arch/openrisc/include/uapi/asm/unistd.h       |   1 +
+ arch/parisc/Kconfig                           |   1 +
+ arch/powerpc/Kconfig                          |   1 +
+ arch/score/Kconfig                            |   1 +
+ arch/score/include/uapi/asm/unistd.h          |   1 +
+ arch/sh/Kconfig                               |   1 +
+ arch/sparc/Kconfig                            |   1 +
+ arch/tile/Kconfig                             |   1 +
+ arch/tile/include/uapi/asm/unistd.h           |   1 +
+ arch/tile/kernel/compat.c                     |   3 +
+ arch/unicore32/Kconfig                        |   1 +
+ arch/unicore32/include/uapi/asm/unistd.h      |   1 +
+ arch/x86/Kconfig                              |   1 +
+ arch/x86/um/Kconfig                           |   1 +
+ arch/xtensa/Kconfig                           |   1 +
+ drivers/clocksource/arm_arch_timer.c          |   4 +-
+ include/linux/fcntl.h                         |   2 +-
+ include/linux/sched.h                         |   1 +
+ include/linux/thread_bits.h                   |  76 ++++
+ include/linux/thread_info.h                   |  64 +---
+ include/uapi/asm-generic/unistd.h             |  10 +-
+ kernel/ptrace.c                               |  48 ++-
+ scripts/checksyscalls.sh                      |   5 +
+ 100 files changed, 1675 insertions(+), 698 deletions(-)
+ create mode 100644 Documentation/arm64/ilp32.txt
+ create mode 100644 arch/arm64/include/asm/is_compat.h
+ create mode 100644 arch/arm64/include/asm/signal32_common.h
+ create mode 100644 arch/arm64/include/asm/signal_common.h
+ create mode 100644 arch/arm64/include/asm/signal_ilp32.h
+ create mode 100644 arch/arm64/kernel/binfmt_elf32.c
+ create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+ create mode 100644 arch/arm64/kernel/entry32_common.S
+ create mode 100644 arch/arm64/kernel/entry_ilp32.S
+ create mode 100644 arch/arm64/kernel/signal32_common.c
+ create mode 100644 arch/arm64/kernel/signal_ilp32.c
+ create mode 100644 arch/arm64/kernel/sys_ilp32.c
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/Makefile
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
+ create mode 100644 include/linux/thread_bits.h
+
 -- 
 2.17.0
