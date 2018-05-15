@@ -1,134 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f193.google.com ([209.85.213.193]:37083 "EHLO
-        mail-yb0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751309AbeEOPuT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 May 2018 11:50:19 -0400
+Received: from mail-yw0-f195.google.com ([209.85.161.195]:47103 "EHLO
+        mail-yw0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754338AbeEOPv3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 May 2018 11:51:29 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v3 2/8] lib/test_bitmap.c: Add for_each_set_clump test cases
-Date: Tue, 15 May 2018 11:50:12 -0400
-Message-ID: <cd96a1716108b85eb0c5274fb88bca401afa871a.1526397764.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v3 8/8] gpio: pcie-idio-24: Utilize for_each_set_clump macro
+Date: Tue, 15 May 2018 11:51:22 -0400
+Message-ID: <9b9004a4b7f0aba33a7deac3d400d5499153d217.1526397764.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1526397764.git.vilhelm.gray@gmail.com>
 References: <cover.1526397764.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>
-Message-ID: <20180515155012.a7FVRFsi7AdQs_QiSOrkc6tqMY-JGecMutH6vl5clxE@z>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20180515155122.TXBhQQC1YEA-jt85Y0AdVAfG0hx-Cey8inY-L1_LpWk@z>
 
-The introduction of the for_each_set_clump macro warrants test cases to
-verify the implementation. This patch adds test case checks for whether
-an out-of-bounds clump index is returned, a zero clump is returned, or
-the returned clump value differs from the expected clump value. A 4-bit
-clump size is chosen in order to verify non-8-bit iteration.
+Replace verbose implementation in get_multiple/set_multiple callbacks
+with for_each_set_clump macro to simplify code and improve clarity.
 
-Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- lib/test_bitmap.c | 71 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 71 insertions(+)
+ drivers/gpio/gpio-pcie-idio-24.c | 102 +++++++++++--------------------
+ 1 file changed, 36 insertions(+), 66 deletions(-)
 
-diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
-index de16f7869fb1..395e4f4fe43d 100644
---- a/lib/test_bitmap.c
-+++ b/lib/test_bitmap.c
-@@ -88,6 +88,39 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- 	return true;
- }
- 
-+static bool __init __check_eq_clump(const char *srcfile, unsigned int line,
-+				    const size_t clump_index, const size_t size,
-+				    const unsigned char *const clump_exp,
-+				    const unsigned long *const bits,
-+				    const size_t index,
-+				    const unsigned int offset)
-+{
-+	unsigned long clump;
-+	unsigned long exp;
-+
-+	if (clump_index >= size) {
-+		pr_warn("[%s:%u] clump index out-of-bounds: expected less than %zu, got %zu\n",
-+			srcfile, line, size, clump_index);
-+		return false;
-+	}
-+
-+	exp = clump_exp[clump_index];
-+	if (!exp) {
-+		pr_warn("[%s:%u] clump index for zero clump: expected nonzero clump, got clump index %zu with clump value 0",
-+			srcfile, line, clump_index);
-+		return false;
-+	}
-+
-+	clump = (bits[index] >> offset) & 0xF;
-+	if (clump != exp) {
-+		pr_warn("[%s:%u] expected 0x%lX, got 0x%lX",
-+			srcfile, line, exp, clump);
-+		return false;
-+	}
-+
-+	return true;
-+}
-+
- #define __expect_eq(suffix, ...)					\
- 	({								\
- 		int result = 0;						\
-@@ -104,6 +137,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
- #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
- #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
-+#define expect_eq_clump(...)		__expect_eq(clump, ##__VA_ARGS__)
- 
- static void __init test_zero_clear(void)
+diff --git a/drivers/gpio/gpio-pcie-idio-24.c b/drivers/gpio/gpio-pcie-idio-24.c
+index f953541e7890..b4d300338a05 100644
+--- a/drivers/gpio/gpio-pcie-idio-24.c
++++ b/drivers/gpio/gpio-pcie-idio-24.c
+@@ -199,41 +199,21 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
  {
-@@ -352,6 +386,42 @@ static void noinline __init test_mem_optimisations(void)
- 	}
- }
- 
-+static const unsigned char clump_exp[] __initconst = {
-+	0x1,	/* 1 bit set */
-+	0x2,	/* non-edge 1 bit set */
-+	0x0,	/* zero bits set */
-+	0xE,	/* 3 bits set */
-+	0xE,	/* Repeated clump */
-+	0xF,	/* 4 bits set */
-+	0x3,	/* 2 bits set */
-+	0x5,	/* non-adjacent 2 bits set */
-+};
-+
-+static void __init test_for_each_set_clump(void)
-+{
-+	size_t clump;
-+	size_t index;
+ 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
+ 	size_t i;
+-	const unsigned int gpio_reg_size = 8;
+-	unsigned int bits_offset;
+-	size_t word_index;
+-	unsigned int word_offset;
+-	unsigned long word_mask;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
+-	unsigned long port_state;
++	size_t word;
 +	unsigned int offset;
-+#define CLUMP_BITMAP_NUMBITS 32
-+	DECLARE_BITMAP(bits, CLUMP_BITMAP_NUMBITS);
-+#define CLUMP_SIZE 4
-+	const size_t size = DIV_ROUND_UP(CLUMP_BITMAP_NUMBITS, CLUMP_SIZE);
-+
-+	/* set bitmap to test case */
-+	bitmap_zero(bits, CLUMP_BITMAP_NUMBITS);
-+	bitmap_set(bits, 0, 1);		/* 0x1 */
-+	bitmap_set(bits, 5, 6);		/* 0x2 */
-+	bitmap_set(bits, 13, 16);	/* 0xE */
-+	bitmap_set(bits, 17, 20);	/* 0xE */
-+	bitmap_set(bits, 20, 24);	/* 0xF */
-+	bitmap_set(bits, 24, 26);	/* 0x3 */
-+	bitmap_set(bits, 28, 29);	/* 0x5 - part 1 */
-+	bitmap_set(bits, 30, 31);	/* 0x5 - part 2 */
-+
-+	for_each_set_clump(clump, index, offset, bits, size, CLUMP_SIZE)
-+		expect_eq_clump(clump, size, clump_exp, bits, index, offset);
-+}
-+
- static int __init test_bitmap_init(void)
- {
- 	test_zero_clear();
-@@ -360,6 +430,7 @@ static int __init test_bitmap_init(void)
- 	test_bitmap_arr32();
- 	test_bitmap_parselist();
- 	test_mem_optimisations();
-+	test_for_each_set_clump();
+ 	void __iomem *ports[] = {
+ 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
+ 		&idio24gpio->reg->out16_23, &idio24gpio->reg->in0_7,
+ 		&idio24gpio->reg->in8_15, &idio24gpio->reg->in16_23,
+ 	};
++	const size_t num_ports = ARRAY_SIZE(ports) + 1;
++	unsigned long port_state;
+ 	const unsigned long out_mode_mask = BIT(1);
  
- 	if (failed_tests == 0)
- 		pr_info("all %u tests passed\n", total_tests);
+ 	/* clear bits array to a clean slate */
+ 	bitmap_zero(bits, chip->ngpio);
+ 
+-	/* get bits are evaluated a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports) + 1; i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* word index for bits array */
+-		word_index = BIT_WORD(bits_offset);
+-
+-		/* gpio offset within current word of bits array */
+-		word_offset = bits_offset % BITS_PER_LONG;
+-
+-		/* mask of get bits for current gpio within current word */
+-		word_mask = mask[word_index] & (port_mask << word_offset);
+-		if (!word_mask) {
+-			/* no get bits in this port so skip to next one */
+-			continue;
+-		}
+-
++	for_each_set_clump(i, word, offset, mask, num_ports, 8) {
+ 		/* read bits from current gpio port (port 6 is TTL GPIO) */
+ 		if (i < 6)
+ 			port_state = ioread8(ports[i]);
+@@ -243,7 +223,7 @@ static int idio_24_gpio_get_multiple(struct gpio_chip *chip,
+ 			port_state = ioread8(&idio24gpio->reg->ttl_in0_7);
+ 
+ 		/* store acquired bits at respective bits array offset */
+-		bits[word_index] |= port_state << word_offset;
++		bits[word] |= port_state << offset;
+ 	}
+ 
+ 	return 0;
+@@ -295,58 +275,48 @@ static void idio_24_gpio_set_multiple(struct gpio_chip *chip,
+ {
+ 	struct idio_24_gpio *const idio24gpio = gpiochip_get_data(chip);
+ 	size_t i;
+-	unsigned long bits_offset;
+-	unsigned long gpio_mask;
+-	const unsigned int gpio_reg_size = 8;
+-	const unsigned long port_mask = GENMASK(gpio_reg_size, 0);
+-	unsigned long flags;
+-	unsigned int out_state;
++	size_t word;
++	unsigned int offset;
+ 	void __iomem *ports[] = {
+ 		&idio24gpio->reg->out0_7, &idio24gpio->reg->out8_15,
+ 		&idio24gpio->reg->out16_23
+ 	};
++	const size_t num_ports = ARRAY_SIZE(ports) + 1;
++	unsigned int iomask;
++	unsigned int bitmask;
++	unsigned long flags;
+ 	const unsigned long out_mode_mask = BIT(1);
+-	const unsigned int ttl_offset = 48;
+-	const size_t ttl_i = BIT_WORD(ttl_offset);
+-	const unsigned int word_offset = ttl_offset % BITS_PER_LONG;
+-	const unsigned long ttl_mask = (mask[ttl_i] >> word_offset) & port_mask;
+-	const unsigned long ttl_bits = (bits[ttl_i] >> word_offset) & ttl_mask;
+-
+-	/* set bits are processed a gpio port register at a time */
+-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+-		/* gpio offset in bits array */
+-		bits_offset = i * gpio_reg_size;
+-
+-		/* check if any set bits for current port */
+-		gpio_mask = (*mask >> bits_offset) & port_mask;
+-		if (!gpio_mask) {
+-			/* no set bits for this port so move on to next port */
++	unsigned int out_state;
++
++	for_each_set_clump(i, word, offset, mask, num_ports, 8) {
++		iomask = mask[word] >> offset;
++		bitmask = iomask & (bits[word] >> offset);
++
++		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
++
++		/* read bits from current gpio port (port 6 is TTL GPIO) */
++		if (i < 6) {
++			out_state = ioread8(ports[i]) & ~iomask;
++		} else if (ioread8(&idio24gpio->reg->ctl) & out_mode_mask) {
++			out_state = ioread8(&idio24gpio->reg->ttl_out0_7);
++		} else {
++			/* skip TTL GPIO if set for input */
++			raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+ 			continue;
+ 		}
+ 
+-		raw_spin_lock_irqsave(&idio24gpio->lock, flags);
++		/* set requested bit states */
++		out_state &= ~iomask;
++		out_state |= bitmask;
+ 
+-		/* process output lines */
+-		out_state = ioread8(ports[i]) & ~gpio_mask;
+-		out_state |= (*bits >> bits_offset) & gpio_mask;
+-		iowrite8(out_state, ports[i]);
++		/* write bits for current gpio port (port 6 is TTL GPIO) */
++		if (i < 6)
++			iowrite8(out_state, ports[i]);
++		else
++			iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
+ 
+ 		raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+ 	}
+-
+-	/* check if setting TTL lines and if they are in output mode */
+-	if (!ttl_mask || !(ioread8(&idio24gpio->reg->ctl) & out_mode_mask))
+-		return;
+-
+-	/* handle TTL output */
+-	raw_spin_lock_irqsave(&idio24gpio->lock, flags);
+-
+-	/* process output lines */
+-	out_state = ioread8(&idio24gpio->reg->ttl_out0_7) & ~ttl_mask;
+-	out_state |= ttl_bits;
+-	iowrite8(out_state, &idio24gpio->reg->ttl_out0_7);
+-
+-	raw_spin_unlock_irqrestore(&idio24gpio->lock, flags);
+ }
+ 
+ static void idio_24_irq_ack(struct irq_data *data)
 -- 
 2.17.0
