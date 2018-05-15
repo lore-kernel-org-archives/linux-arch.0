@@ -1,46 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f194.google.com ([209.85.161.194]:35029 "EHLO
+Received: from mail-yw0-f194.google.com ([209.85.161.194]:35892 "EHLO
         mail-yw0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752750AbeEOQXF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 May 2018 12:23:05 -0400
+        with ESMTP id S1752002AbeEOQXp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 May 2018 12:23:45 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v4 4/8] gpio: 104-idi-48: Utilize for_each_set_clump macro
-Date: Tue, 15 May 2018 12:22:59 -0400
-Message-ID: <2dd756692d0fdd20be629ea341a0e563c079f374.1526400945.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v4 7/8] gpio: pci-idio-16: Utilize for_each_set_clump macro
+Date: Tue, 15 May 2018 12:23:39 -0400
+Message-ID: <ce5d0125f0b40254b3ee84aa24fc05fca1381715.1526400945.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1526400945.git.vilhelm.gray@gmail.com>
 References: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org
 Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>
-Message-ID: <20180515162259.7mYdxt56DD5iWUUkIRaQru9nQo0MHn_W_SslmpynA3k@z>
+Message-ID: <20180515162339.V41ZOFacGlaxQsOQMlT-yeCoSriFbUik9qchHKFcHaU@z>
 
 Replace verbose implementation in get_multiple/set_multiple callbacks
 with for_each_set_clump macro to simplify code and improve clarity.
 
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- drivers/gpio/gpio-104-idi-48.c | 32 ++++----------------------------
- 1 file changed, 4 insertions(+), 28 deletions(-)
+ drivers/gpio/gpio-pci-idio-16.c | 67 +++++++++++----------------------
+ 1 file changed, 21 insertions(+), 46 deletions(-)
 
-diff --git a/drivers/gpio/gpio-104-idi-48.c b/drivers/gpio/gpio-104-idi-48.c
-index 2c9738adb3a6..f8de5560174f 100644
---- a/drivers/gpio/gpio-104-idi-48.c
-+++ b/drivers/gpio/gpio-104-idi-48.c
-@@ -94,41 +94,17 @@ static int idi_48_gpio_get_multiple(struct gpio_chip *chip, unsigned long *mask,
+diff --git a/drivers/gpio/gpio-pci-idio-16.c b/drivers/gpio/gpio-pci-idio-16.c
+index 25d16b2af1c3..6d748c6e59cb 100644
+--- a/drivers/gpio/gpio-pci-idio-16.c
++++ b/drivers/gpio/gpio-pci-idio-16.c
+@@ -109,44 +109,20 @@ static int idio_16_gpio_get_multiple(struct gpio_chip *chip,
  {
- 	struct idi_48_gpio *const idi48gpio = gpiochip_get_data(chip);
+ 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
  	size_t i;
-+	size_t word;
-+	unsigned int offset;
- 	static const size_t ports[] = { 0, 1, 2, 4, 5, 6 };
 -	const unsigned int gpio_reg_size = 8;
 -	unsigned int bits_offset;
 -	size_t word_index;
 -	unsigned int word_offset;
 -	unsigned long word_mask;
 -	const unsigned long port_mask = GENMASK(gpio_reg_size - 1, 0);
- 	unsigned long port_state;
+-	unsigned long port_state;
++	size_t word;
++	unsigned int offset;
+ 	void __iomem *ports[] = {
+ 		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
+ 		&idio16gpio->reg->in0_7, &idio16gpio->reg->in8_15,
+ 	};
++	unsigned long port_state;
  
  	/* clear bits array to a clean slate */
  	bitmap_zero(bits, chip->ngpio);
@@ -65,7 +69,7 @@ index 2c9738adb3a6..f8de5560174f 100644
 -
 -		/* read bits from current gpio port */
 +	for_each_set_clump(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
- 		port_state = inb(idi48gpio->base + ports[i]);
+ 		port_state = ioread8(ports[i]);
 -
 -		/* store acquired bits at respective bits array offset */
 -		bits[word_index] |= port_state << word_offset;
@@ -73,5 +77,52 @@ index 2c9738adb3a6..f8de5560174f 100644
  	}
  
  	return 0;
+@@ -186,30 +162,29 @@ static void idio_16_gpio_set_multiple(struct gpio_chip *chip,
+ 	unsigned long *mask, unsigned long *bits)
+ {
+ 	struct idio_16_gpio *const idio16gpio = gpiochip_get_data(chip);
++	size_t i;
++	size_t word;
++	unsigned int offset;
++	void __iomem *ports[] = {
++		&idio16gpio->reg->out0_7, &idio16gpio->reg->out8_15,
++	};
++	unsigned int iomask;
++	unsigned int bitmask;
+ 	unsigned long flags;
+ 	unsigned int out_state;
+ 
+-	raw_spin_lock_irqsave(&idio16gpio->lock, flags);
++	for_each_set_clump(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
++		iomask = mask[word] >> offset;
++		bitmask = iomask & (bits[word] >> offset);
+ 
+-	/* process output lines 0-7 */
+-	if (*mask & 0xFF) {
+-		out_state = ioread8(&idio16gpio->reg->out0_7) & ~*mask;
+-		out_state |= *mask & *bits;
+-		iowrite8(out_state, &idio16gpio->reg->out0_7);
+-	}
++		raw_spin_lock_irqsave(&idio16gpio->lock, flags);
+ 
+-	/* shift to next output line word */
+-	*mask >>= 8;
++		out_state = ioread8(ports[i]) & ~iomask;
++		out_state |= bitmask;
++		iowrite8(out_state, ports[i]);
+ 
+-	/* process output lines 8-15 */
+-	if (*mask & 0xFF) {
+-		*bits >>= 8;
+-		out_state = ioread8(&idio16gpio->reg->out8_15) & ~*mask;
+-		out_state |= *mask & *bits;
+-		iowrite8(out_state, &idio16gpio->reg->out8_15);
++		raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
+ 	}
+-
+-	raw_spin_unlock_irqrestore(&idio16gpio->lock, flags);
+ }
+ 
+ static void idio_16_irq_ack(struct irq_data *data)
 -- 
 2.17.0
