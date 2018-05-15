@@ -1,134 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f194.google.com ([209.85.213.194]:40552 "EHLO
-        mail-yb0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754075AbeEOQWn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 May 2018 12:22:43 -0400
+Received: from mail-yb0-f193.google.com ([209.85.213.193]:33988 "EHLO
+        mail-yb0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753169AbeEOQWd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 May 2018 12:22:33 -0400
 From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: [PATCH v4 2/8] lib/test_bitmap.c: Add for_each_set_clump test cases
-Date: Tue, 15 May 2018 12:22:36 -0400
-Message-ID: <d31ab2199903f0771a008d3845d5146604c46db9.1526400945.git.vilhelm.gray@gmail.com>
+Subject: [PATCH v4 1/8] bitops: Introduce the for_each_set_clump macro
+Date: Tue, 15 May 2018 12:22:26 -0400
+Message-ID: <87c7edee3bd6789345bd1cc6fd0cb91c2d508eda.1526400945.git.vilhelm.gray@gmail.com>
 In-Reply-To: <cover.1526400945.git.vilhelm.gray@gmail.com>
 References: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linus.walleij@linaro.org
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>
-Message-ID: <20180515162236.rz1JyQSUeX_gMLmfy6s-qj0KyKOENN2RbiD1z0RTSa0@z>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20180515162226.pDG6xzeNANm5BS9Pn56J263T4vzqRDLjP1qfv7_6aBk@z>
 
-The introduction of the for_each_set_clump macro warrants test cases to
-verify the implementation. This patch adds test case checks for whether
-an out-of-bounds clump index is returned, a zero clump is returned, or
-the returned clump value differs from the expected clump value. A 4-bit
-clump size is chosen in order to verify non-8-bit iteration.
+This macro iterates for each group of bits (clump) with set bits, within
+a bitmap memory region. For each iteration, "clump" is set to the found
+clump index, "index" is set to the word index of the bitmap containing
+the found clump, and "offset" is set to the bit offset of the found
+clump within the respective bitmap word.
 
-Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
+Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
 ---
- lib/test_bitmap.c | 71 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 71 insertions(+)
+ include/asm-generic/bitops/find.h |  9 +++++++
+ include/linux/bitops.h            |  7 ++++++
+ lib/find_bit.c                    | 40 +++++++++++++++++++++++++++++++
+ 3 files changed, 56 insertions(+)
 
-diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
-index de16f7869fb1..fd1b9f0d5eda 100644
---- a/lib/test_bitmap.c
-+++ b/lib/test_bitmap.c
-@@ -88,6 +88,39 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- 	return true;
- }
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 8a1ee10014de..3d3b2fc34908 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_GENERIC_BITOPS_FIND_H_
+ #define _ASM_GENERIC_BITOPS_FIND_H_
  
-+static bool __init __check_eq_clump(const char *srcfile, unsigned int line,
-+				    const size_t clump_index, const size_t size,
-+				    const unsigned char *const clump_exp,
-+				    const unsigned long *const bits,
-+				    const size_t index,
-+				    const unsigned int offset)
-+{
-+	unsigned long clump;
-+	unsigned long exp;
++#include <linux/types.h>
 +
-+	if (clump_index >= size) {
-+		pr_warn("[%s:%u] clump index out-of-bounds: expected less than %zu, got %zu\n",
-+			srcfile, line, size, clump_index);
-+		return false;
-+	}
-+
-+	exp = clump_exp[clump_index];
-+	if (!exp) {
-+		pr_warn("[%s:%u] clump index for zero clump: expected nonzero clump, got clump index %zu with clump value 0",
-+			srcfile, line, clump_index);
-+		return false;
-+	}
-+
-+	clump = (bits[index] >> offset) & 0xF;
-+	if (clump != exp) {
-+		pr_warn("[%s:%u] expected 0x%lX, got 0x%lX",
-+			srcfile, line, exp, clump);
-+		return false;
-+	}
-+
-+	return true;
-+}
-+
- #define __expect_eq(suffix, ...)					\
- 	({								\
- 		int result = 0;						\
-@@ -104,6 +137,7 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
- #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
- #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
-+#define expect_eq_clump(...)		__expect_eq(clump, ##__VA_ARGS__)
+ #ifndef find_next_bit
+ /**
+  * find_next_bit - find the next set bit in a memory region
+@@ -80,4 +82,11 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
  
- static void __init test_zero_clear(void)
+ #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+ 
++size_t find_next_clump(size_t *const index, unsigned int *const offset,
++		       const unsigned long *const bits, const size_t size,
++		       const size_t clump_index, const unsigned int clump_size);
++
++#define find_first_clump(index, offset, bits, size, clump_size) \
++	find_next_clump((index), (offset), (bits), (size), 0, (clump_size))
++
+ #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 4cac4e1a72ff..cfaff6a14406 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -59,6 +59,13 @@ extern unsigned long __sw_hweight64(__u64 w);
+ 	     (bit) < (size);					\
+ 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+ 
++#define for_each_set_clump(clump, index, offset, bits, size, clump_size) \
++	for ((clump) = find_first_clump(&(index), &(offset), (bits), (size), \
++					(clump_size)); \
++	     (clump) < (size); \
++	     (clump) = find_next_clump(&(index), &(offset), (bits), (size), \
++				       (clump) + 1, (clump_size)))
++
+ static inline int get_bitmask_order(unsigned int count)
  {
-@@ -352,6 +386,42 @@ static void noinline __init test_mem_optimisations(void)
- 	}
- }
+ 	int order;
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index ee3df93ba69a..1d547fe9304f 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -218,3 +218,43 @@ EXPORT_SYMBOL(find_next_bit_le);
+ #endif
  
-+static const unsigned char clump_exp[] __initconst = {
-+	0x1,	/* 1 bit set */
-+	0x2,	/* non-edge 1 bit set */
-+	0x0,	/* zero bits set */
-+	0xE,	/* 3 bits set */
-+	0xE,	/* Repeated clump */
-+	0xF,	/* 4 bits set */
-+	0x3,	/* 2 bits set */
-+	0x5,	/* non-adjacent 2 bits set */
-+};
+ #endif /* __BIG_ENDIAN */
 +
-+static void __init test_for_each_set_clump(void)
++/**
++ * find_next_clump - find next clump with set bits in a memory region
++ * @index: location to store bitmap word index of found clump
++ * @offset: bits offset of the found clump within the respective bitmap word
++ * @bits: address to base the search on
++ * @size: bitmap size in number of clumps
++ * @clump_index: clump index at which to start searching
++ * @clump_size: clump size in bits
++ *
++ * Returns the clump index for the next clump with set bits; the respective
++ * bitmap word index is stored at the location pointed by @index, and the bits
++ * offset of the found clump within the respective bitmap word is stored at the
++ * location pointed by @offset. If no bits are set, returns @size.
++ */
++size_t find_next_clump(size_t *const index, unsigned int *const offset,
++		       const unsigned long *const bits, const size_t size,
++		       const size_t clump_index, const unsigned int clump_size)
 +{
-+	size_t clump;
-+	size_t index;
-+	unsigned int offset;
-+#define CLUMP_BITMAP_NUMBITS 32
-+	DECLARE_BITMAP(bits, CLUMP_BITMAP_NUMBITS);
-+#define CLUMP_SIZE 4
-+	const size_t size = DIV_ROUND_UP(CLUMP_BITMAP_NUMBITS, CLUMP_SIZE);
++	size_t i;
++	unsigned int bits_offset;
++	unsigned long word_mask;
++	const unsigned long clump_mask = GENMASK(clump_size - 1, 0);
 +
-+	/* set bitmap to test case */
-+	bitmap_zero(bits, CLUMP_BITMAP_NUMBITS);
-+	bitmap_set(bits, 0, 1);		/* 0x1 */
-+	bitmap_set(bits, 5, 1);		/* 0x2 */
-+	bitmap_set(bits, 13, 3);	/* 0xE */
-+	bitmap_set(bits, 17, 3);	/* 0xE */
-+	bitmap_set(bits, 20, 4);	/* 0xF */
-+	bitmap_set(bits, 24, 2);	/* 0x3 */
-+	bitmap_set(bits, 28, 1);	/* 0x5 - part 1 */
-+	bitmap_set(bits, 30, 1);	/* 0x5 - part 2 */
++	for (i = clump_index; i < size; i++) {
++		bits_offset = i * clump_size;
 +
-+	for_each_set_clump(clump, index, offset, bits, size, CLUMP_SIZE)
-+		expect_eq_clump(clump, size, clump_exp, bits, index, offset);
++		*index = BIT_WORD(bits_offset);
++		*offset = bits_offset % BITS_PER_LONG;
++
++		word_mask = bits[*index] & (clump_mask << *offset);
++		if (!word_mask)
++			continue;
++
++		return i;
++	}
++
++	return size;
 +}
-+
- static int __init test_bitmap_init(void)
- {
- 	test_zero_clear();
-@@ -360,6 +430,7 @@ static int __init test_bitmap_init(void)
- 	test_bitmap_arr32();
- 	test_bitmap_parselist();
- 	test_mem_optimisations();
-+	test_for_each_set_clump();
- 
- 	if (failed_tests == 0)
- 		pr_info("all %u tests passed\n", total_tests);
++EXPORT_SYMBOL(find_next_clump);
 -- 
 2.17.0
