@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0081.outbound.protection.outlook.com ([104.47.37.81]:12349
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0085.outbound.protection.outlook.com ([104.47.32.85]:19376
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752245AbeEPIVC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 May 2018 04:21:02 -0400
+        id S1752336AbeEPIT5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 May 2018 04:19:57 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 07/24] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
-Date: Wed, 16 May 2018 11:18:52 +0300
-Message-ID: <20180516081910.10067-8-ynorov@caviumnetworks.com>
+Subject: [PATCH 02/24] ptrace: Add compat PTRACE_{G,S}ETSIGMASK handlers
+Date: Wed, 16 May 2018 11:18:47 +0300
+Message-ID: <20180516081910.10067-3-ynorov@caviumnetworks.com>
 In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,67 +15,118 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20180516081852.5EAgQypPTGWNxSjZPqWc9Map6BMocibs4UWWq6xL_lE@z>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Vagin <avagin@openvz.org>
+Message-ID: <20180516081847.kUQpLHz12QnJK5g67q39uQG3_ya3Txi4nMR6wsw_ah0@z>
 
-Based on Andrew Pinski's patch-series.
+From: James Morse <james.morse@arm.com>
 
+compat_ptrace_request() lacks handlers for PTRACE_{G,S}ETSIGMASK,
+instead using those in ptrace_request(). The compat variant should
+read a compat_sigset_t from userspace instead of ptrace_request()s
+sigset_t.
+
+While compat_sigset_t is the same size as sigset_t, it is defined as
+2xu32, instead of a single u64. On a big-endian CPU this means that
+compat_sigset_t is passed to user-space using middle-endianness,
+where the least-significant u32 is written most significant byte
+first.
+
+If ptrace_request()s code is used userspace will read the most
+significant u32 where it expected the least significant.
+
+Instead of duplicating ptrace_request()s code as a special case in
+the arch code, handle it here.
+
+Fixes: 29000caecbe87 ("ptrace: add ability to get/set signal-blocked mask")
+CC: Andrey Vagin <avagin@openvz.org>
+Signed-off-by: James Morse <james.morse@arm.com>
+
+Yury:
+Replace sigset_{to,from}_compat() with new {get,put}_compat_sigset()
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- Documentation/arm64/ilp32.txt | 45 +++++++++++++++++++++++++++++++++++
- 1 file changed, 45 insertions(+)
- create mode 100644 Documentation/arm64/ilp32.txt
+ kernel/ptrace.c | 48 ++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 36 insertions(+), 12 deletions(-)
 
-diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
-new file mode 100644
-index 000000000000..d0fd5109c4b2
---- /dev/null
-+++ b/Documentation/arm64/ilp32.txt
-@@ -0,0 +1,45 @@
-+ILP32 AARCH64 SYSCALL ABI
-+=========================
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 21fec73d45d4..214944d7c268 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -880,6 +880,22 @@ static int ptrace_regset(struct task_struct *task, int req, unsigned int type,
+ EXPORT_SYMBOL_GPL(task_user_regset_view);
+ #endif
+ 
++static int ptrace_setsigmask(struct task_struct *child, sigset_t *new_set)
++{
++	sigdelsetmask(new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
 +
-+This document describes the ILP32 syscall ABI and where it differs
-+from the generic compat linux syscall interface.
++	/*
++	 * Every thread does recalc_sigpending() after resume, so
++	 * retarget_shared_pending() and recalc_sigpending() are not
++	 * called here.
++	 */
++	spin_lock_irq(&child->sighand->siglock);
++	child->blocked = *new_set;
++	spin_unlock_irq(&child->sighand->siglock);
 +
-+AARCH64/ILP32 userspace can pass garbage in the top halve of w0-w7 registers
-+(syscall arguments). So top 32 bits are zeroed for them.
++	return 0;
++}
 +
-+Comparing to AARCH32, AARCH64/ILP32 has 64-bit length of following types:
-+ino_t       is u64 type.
-+off_t       is s64 type.
-+blkcnt_t    is s64 type.
-+fsblkcnt_t  is u64 type.
-+fsfilcnt_t  is u64 type.
-+rlim_t      is u64 type.
+ int ptrace_request(struct task_struct *child, long request,
+ 		   unsigned long addr, unsigned long data)
+ {
+@@ -951,18 +967,7 @@ int ptrace_request(struct task_struct *child, long request,
+ 			break;
+ 		}
+ 
+-		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
+-
+-		/*
+-		 * Every thread does recalc_sigpending() after resume, so
+-		 * retarget_shared_pending() and recalc_sigpending() are not
+-		 * called here.
+-		 */
+-		spin_lock_irq(&child->sighand->siglock);
+-		child->blocked = new_set;
+-		spin_unlock_irq(&child->sighand->siglock);
+-
+-		ret = 0;
++		ret = ptrace_setsigmask(child, &new_set);
+ 		break;
+ 	}
+ 
+@@ -1181,6 +1186,7 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
+ {
+ 	compat_ulong_t __user *datap = compat_ptr(data);
+ 	compat_ulong_t word;
++	sigset_t new_set;
+ 	siginfo_t siginfo;
+ 	int ret;
+ 
+@@ -1221,6 +1227,24 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
+ 		else
+ 			ret = ptrace_setsiginfo(child, &siginfo);
+ 		break;
++	case PTRACE_GETSIGMASK:
++		if (addr != sizeof(compat_sigset_t))
++			return -EINVAL;
 +
-+AARCH64/ILP32 ABI uses standard syscall table which can be found at
-+include/uapi/asm-generic/unistd.h, with the exceptions listed below.
++		ret = put_compat_sigset((compat_sigset_t __user *) datap,
++				&child->blocked, sizeof(compat_sigset_t));
++		break;
++	case PTRACE_SETSIGMASK:
++		if (addr != sizeof(compat_sigset_t))
++			return -EINVAL;
 +
-+Syscalls which pass 64-bit values are handled by the code shared from
-+AARCH32 and pass that value as a pair. Following syscalls are affected:
-+fadvise64_64()
-+fallocate()
-+ftruncate64()
-+pread64()
-+pwrite64()
-+readahead()
-+sync_file_range()
-+truncate64()
++		ret = get_compat_sigset(&new_set,
++				(compat_sigset_t __user *) datap);
++		if (ret)
++			break;
 +
-+ptrace() syscall is handled by compat version.
-+
-+shmat() syscall is handled by non-compat handler as aarch64/ilp32 has no
-+limitation on 4-pages alignment for shared memory.
-+
-+statfs() and fstatfs() take the size of struct statfs as an argument.
-+It is calculated differently in kernel and user spaces. So AARCH32 handlers
-+are taken to handle it.
-+
-+struct rt_sigframe is redefined and contains struct compat_siginfo,
-+as compat syscalls expect, and struct ilp32_ucontext, to handle
-+AARCH64 register set and 32-bit userspace register representation.
-+
-+elf_gregset_t is taken from lp64 to handle registers properly.
++		ret = ptrace_setsigmask(child, &new_set);
++		break;
+ #ifdef CONFIG_HAVE_ARCH_TRACEHOOK
+ 	case PTRACE_GETREGSET:
+ 	case PTRACE_SETREGSET:
 -- 
 2.17.0
