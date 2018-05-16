@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0046.outbound.protection.outlook.com ([104.47.36.46]:25024
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0040.outbound.protection.outlook.com ([104.47.34.40]:8874
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751319AbeEPIWz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 May 2018 04:22:55 -0400
+        id S1752877AbeEPIWT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 May 2018 04:22:19 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 19/24] arm64: signal32: move ilp32 and aarch32 common code to separated file
-Date: Wed, 16 May 2018 11:19:04 +0300
-Message-ID: <20180516081910.10067-20-ynorov@caviumnetworks.com>
+Subject: [PATCH 15/24] arm64: ilp32: introduce binfmt_ilp32.c
+Date: Wed, 16 May 2018 11:19:00 +0300
+Message-ID: <20180516081910.10067-16-ynorov@caviumnetworks.com>
 In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,138 +16,123 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20180516081904.fg-_YN62HsPsh-k6CpQNod_XgjBoQIZfhBX1uLo8ijQ@z>
+Message-ID: <20180516081900.unM_erD9BKSI34Mf7sAVtdaq2lA4o0kfPEAIhkEne_M@z>
 
-ILP32 needs to mix 32bit struct siginfo and 64bit sigframe for its signal
-handlers. Move the existing compat code for copying siginfo to user space
-and manipulating signal masks into signal32_common.c so it can be used to
-deliver aarch32 and ilp32 signals.
+Like binfmt_elf32.c for AARCH32, binfmt_ilp32.c is needed to handle
+ILP32 binaries.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Signed-off-by: Bamvor Jian Zhang <bamv2005@gmail.com>
 ---
- arch/arm64/include/asm/signal32_common.h | 13 +++++++++
- arch/arm64/kernel/Makefile               |  2 +-
- arch/arm64/kernel/signal32.c             | 23 +--------------
- arch/arm64/kernel/signal32_common.c      | 37 ++++++++++++++++++++++++
- 4 files changed, 52 insertions(+), 23 deletions(-)
- create mode 100644 arch/arm64/include/asm/signal32_common.h
- create mode 100644 arch/arm64/kernel/signal32_common.c
+ arch/arm64/kernel/Makefile       |  1 +
+ arch/arm64/kernel/binfmt_ilp32.c | 87 ++++++++++++++++++++++++++++++++
+ 2 files changed, 88 insertions(+)
+ create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
 
-diff --git a/arch/arm64/include/asm/signal32_common.h b/arch/arm64/include/asm/signal32_common.h
-new file mode 100644
-index 000000000000..10bcdf6b8b4c
---- /dev/null
-+++ b/arch/arm64/include/asm/signal32_common.h
-@@ -0,0 +1,13 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
-+
-+#ifndef __ASM_SIGNAL32_COMMON_H
-+#define __ASM_SIGNAL32_COMMON_H
-+
-+#ifdef CONFIG_COMPAT
-+
-+int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set);
-+int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset);
-+
-+#endif /* CONFIG_COMPAT*/
-+
-+#endif /* __ASM_SIGNAL32_COMMON_H */
 diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index a6db407d4089..9e127c47a25c 100644
+index c63e0164fc12..3114191750ae 100644
 --- a/arch/arm64/kernel/Makefile
 +++ b/arch/arm64/kernel/Makefile
-@@ -29,7 +29,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+@@ -28,6 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 
  arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
  					   sys_compat.o entry32.o binfmt_elf32.o
- arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
--arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
-+arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o signal32_common.o
++arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
  arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
  arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
  arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index 739e13b54820..fdcc210028b5 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -26,6 +26,7 @@
- #include <asm/esr.h>
- #include <asm/fpsimd.h>
- #include <asm/signal32.h>
-+#include <asm/signal32_common.h>
- #include <linux/uaccess.h>
- #include <asm/unistd.h>
- 
-@@ -103,28 +104,6 @@ struct a32_rt_sigframe {
- 
- #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
- 
--static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
--{
--	compat_sigset_t	cset;
--
--	cset.sig[0] = set->sig[0] & 0xffffffffull;
--	cset.sig[1] = set->sig[0] >> 32;
--
--	return copy_to_user(uset, &cset, sizeof(*uset));
--}
--
--static inline int get_sigset_t(sigset_t *set,
--			       const compat_sigset_t __user *uset)
--{
--	compat_sigset_t s32;
--
--	if (copy_from_user(&s32, uset, sizeof(*uset)))
--		return -EFAULT;
--
--	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
--	return 0;
--}
--
- /*
-  * VFP save/restore code.
-  *
-diff --git a/arch/arm64/kernel/signal32_common.c b/arch/arm64/kernel/signal32_common.c
+diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
 new file mode 100644
-index 000000000000..21995fc4e0b4
+index 000000000000..26b2477d190d
 --- /dev/null
-+++ b/arch/arm64/kernel/signal32_common.c
-@@ -0,0 +1,37 @@
++++ b/arch/arm64/kernel/binfmt_ilp32.c
+@@ -0,0 +1,87 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +
 +/*
-+ * Based on arch/arm/kernel/signal.c
-+ *
-+ * Copyright (C) 1995-2009 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Modified by Will Deacon <will.deacon@arm.com>
++ * Support for ILP32 Linux/aarch64 ELF binaries.
 + */
++#undef CONFIG_AARCH32_EL0
++#define compat_elf_gregset_t	elf_gregset_t
 +
-+#include <linux/compat.h>
-+#include <linux/signal.h>
-+#include <linux/uaccess.h>
++#include <linux/elfcore-compat.h>
++#include <linux/time.h>
 +
-+#include <asm/signal32_common.h>
-+#include <asm/unistd.h>
++#undef	ELF_CLASS
++#define ELF_CLASS	ELFCLASS32
 +
-+int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
-+{
-+	compat_sigset_t	cset;
++#undef	elfhdr
++#undef	elf_phdr
++#undef	elf_shdr
++#undef	elf_note
++#undef	elf_addr_t
++#define elfhdr		elf32_hdr
++#define elf_phdr	elf32_phdr
++#define elf_shdr	elf32_shdr
++#define elf_note	elf32_note
++#define elf_addr_t	Elf32_Addr
 +
-+	cset.sig[0] = set->sig[0] & 0xffffffffull;
-+	cset.sig[1] = set->sig[0] >> 32;
++/*
++ * Some data types as stored in coredump.
++ */
++#define user_long_t		compat_long_t
++#define user_siginfo_t		compat_siginfo_t
++#define copy_siginfo_to_user	copy_siginfo_to_user32
 +
-+	return copy_to_user(uset, &cset, sizeof(*uset));
-+}
++/*
++ * The machine-dependent core note format types are defined in elfcore-compat.h,
++ * which requires asm/elf.h to define compat_elf_gregset_t et al.
++ */
++#define elf_prstatus	compat_elf_prstatus
++#define elf_prpsinfo	compat_elf_prpsinfo
 +
-+int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset)
-+{
-+	compat_sigset_t s32;
++/* AARCH64 ILP32 EABI. */
++#undef elf_check_arch
++#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
++					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
 +
-+	if (copy_from_user(&s32, uset, sizeof(*uset)))
-+		return -EFAULT;
++#undef SET_PERSONALITY
++#define SET_PERSONALITY(ex)						\
++do {									\
++	set_bit(TIF_32BIT, &current->mm->context.flags);	\
++	set_thread_flag(TIF_32BIT_AARCH64);				\
++	clear_thread_flag(TIF_32BIT);					\
++} while (0)
 +
-+	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
-+	return 0;
-+}
++#undef ARCH_DLINFO
++#define ARCH_DLINFO							\
++do {									\
++	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
++		    (elf_addr_t)(long)current->mm->context.vdso);	\
++} while (0)
++
++#undef ELF_PLATFORM
++#ifdef __AARCH64EB__
++#define ELF_PLATFORM		("aarch64_be:ilp32")
++#else
++#define ELF_PLATFORM		("aarch64:ilp32")
++#endif
++
++#undef ELF_ET_DYN_BASE
++#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
++
++#undef ELF_HWCAP
++#undef ELF_HWCAP2
++#define ELF_HWCAP			((u32) elf_hwcap)
++#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
++
++/*
++ * Rename a few of the symbols that binfmt_elf.c will define.
++ * These are all local so the names don't really matter, but it
++ * might make some debugging less confusing not to duplicate them.
++ */
++#define elf_format		compat_elf_format
++#define init_elf_binfmt		init_compat_elf_binfmt
++#define exit_elf_binfmt		exit_compat_elf_binfmt
++
++#undef ns_to_timeval
++#define ns_to_timeval ns_to_compat_timeval
++
++#include "../../../fs/binfmt_elf.c"
 -- 
 2.17.0
