@@ -1,67 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f170.google.com ([209.85.216.170]:38269 "EHLO
-        mail-qt0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751153AbeEPUIa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 May 2018 16:08:30 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:40610 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1750924AbeEPUfq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 May 2018 16:35:46 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4GKTYUO008047
+        for <linux-arch@vger.kernel.org>; Wed, 16 May 2018 16:35:45 -0400
+Received: from e06smtp15.uk.ibm.com (e06smtp15.uk.ibm.com [195.75.94.111])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2j0td8m7c2-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 16 May 2018 16:35:45 -0400
+Received: from localhost
+        by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Wed, 16 May 2018 21:35:43 +0100
+Date: Wed, 16 May 2018 13:35:34 -0700
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+References: <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
+ <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+ <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+ <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
-References: <cover.1526400945.git.vilhelm.gray@gmail.com> <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Wed, 16 May 2018 23:08:28 +0300
-Message-ID: <CAHp75VcGuJ0+qzUZZW=1VSeXmf_rht0tJvCH+yBsXPZz0z8qHA@mail.gmail.com>
-Subject: Re: [PATCH v4 0/8] Introduce the for_each_set_clump macro
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+Message-ID: <20180516203534.GA5479@ram.oc3035372033.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20180516200828.Z2CDub2pyjrbL0trFg49qHqyMfyXbb0yeGkzds40oUU@z>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@intel.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20180516203534.78a-8cRuc-Pf6I4zMP025EVxeajZiBfVk9dCM2NcZYo@z>
 
-On Wed, May 16, 2018 at 5:03 PM, Linus Walleij <linus.walleij@linaro.org> wrote:
-> On Tue, May 15, 2018 at 6:22 PM, William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
->
->> For example, suppose you would like to iterate over a 16-bit integer 4
->> bits at a time, skipping over 4-bit groups with no set bit, where XXXX
->> represents the current 4-bit group:
->>
->>     Example:        1011 1110 0000 1111
->>     First loop:     1011 1110 0000 XXXX
->>     Second loop:    1011 XXXX 0000 1111
->>     Third loop:     XXXX 1110 0000 1111
->>
->> Each iteration of the loop returns the next 4-bit group that has at
->> least one set bit.
->>
->> The for_each_set_clump macro has six parameters:
->>
->>     * clump: set to current clump index for the iteration
->>     * index: set to current bitmap word index for the iteration
->>     * offset: bits offset of the found clump in the bitmap word
->>     * bits: bitmap to search within
->>     * size: bitmap size in number of clumps
->>     * clump_size: clump size in number of bits
->>
->> The clump_size argument can be an arbitrary number of bits and is not
->> required to be a multiple of 2.
->
-> I must say I'm impressed. Very nice arithmetics going on there.
->
-> If I can get some ACK for the bitops patch I'd be happy to merge
-> it all through the GPIO tree. The users are pretty clear cut.
+On Tue, May 08, 2018 at 02:40:46PM +0200, Florian Weimer wrote:
+> On 05/08/2018 04:49 AM, Andy Lutomirski wrote:
+> >On Mon, May 7, 2018 at 2:48 AM Florian Weimer <fweimer@redhat.com> wrote:
+> >
+> >>On 05/03/2018 06:05 AM, Andy Lutomirski wrote:
+> >>>On Wed, May 2, 2018 at 7:11 PM Ram Pai <linuxram@us.ibm.com> wrote:
+> >>>
+> >>>>On Wed, May 02, 2018 at 09:23:49PM +0000, Andy Lutomirski wrote:
+> >>>>>
+> >>>>>>If I recall correctly, the POWER maintainer did express a strong
+> >>>desire
+> >>>>>>back then for (what is, I believe) their current semantics, which my
+> >>>>>>PKEY_ALLOC_SIGNALINHERIT patch implements for x86, too.
+> >>>>>
+> >>>>>Ram, I really really don't like the POWER semantics.  Can you give
+> >some
+> >>>>>justification for them?  Does POWER at least have an atomic way for
+> >>>>>userspace to modify just the key it wants to modify or, even better,
+> >>>>>special load and store instructions to use alternate keys?
+> >>>
+> >>>>I wouldn't call it POWER semantics. The way I implemented it on power
+> >>>>lead to the semantics, given that nothing was explicitly stated
+> >>>>about how the semantics should work within a signal handler.
+> >>>
+> >>>I think that this is further evidence that we should introduce a new
+> >>>pkey_alloc() mode and deprecate the old.  To the extent possible, this
+> >>>thing should work the same way on x86 and POWER.
+> >
+> >>Do you propose to change POWER or to change x86?
+> >
+> >Sorry for being slow to reply.  I propose to introduce a new
+> >PKEY_ALLOC_something variant on x86 and POWER and to make the behavior
+> >match on both.
+> 
+> So basically implement PKEY_ALLOC_SETSIGNAL for POWER, and keep the
+> existing (different) behavior without the flag?
+> 
+> Ram, would you be okay with that?  Could you give me a hand if
+> necessary?  (I assume we have silicon in-house because it's a
+> long-standing feature of the POWER platform which was simply dormant
+> on Linux until now.)
 
-Give me also some time to go through proposed API, I think it might
-have needed more alignment with existing find_* and for_* helpers.
+Yes. I can help you with that.
 
-> BTW: if I could, I would pull out Donald Knuth's "The Art of Computer
-> Programming vol 4A" chapter 7.1.3 "Bitwise Tricks and Techniques"
-> to see what he has to say about the subject, but I don't have
-> that book as it turns out.
+So let me see if I understand the overall idea.
 
-I can also add the Standford collection of bit algos here:
+Application can allocate new keys through a new syscall
+sys_pkey_alloc_1(flags, init_val, sig_init_val) 
 
-https://graphics.stanford.edu/~seander/bithacks.html
+'sig_init_val' is the permission-state of the key in signal context.
 
--- 
-With Best Regards,
-Andy Shevchenko
+The kernel will set the permission of each keys to their
+corresponding values when entering the signal handler and revert
+on return from the signal handler.
+
+just like init_val, sig_init_val also percolates to children threads.
+
+Is this a correct understanding?
+RP
