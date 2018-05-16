@@ -1,65 +1,55 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v3 0/2] mm: PAGE_KERNEL_* fallbacks
-Date: Wed, 16 May 2018 18:44:03 +0200
-Message-ID: <20180516164403.GI27853@wotan.suse.de>
-References: <20180510185507.2439-1-mcgrof@kernel.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+Date: Wed, 16 May 2018 10:01:59 -0700
+Message-ID: <36f7fb7b-9b78-cb41-c59a-8346b8d7509b@intel.com>
+References: <20180502132751.05B9F401F3041@oldenburg.str.redhat.com>
+ <248faadb-e484-806f-1485-c34a72a9ca0b@intel.com>
+ <822a28c9-5405-68c2-11bf-0c282887466d@redhat.com>
+ <57459C6F-C8BA-4E2D-99BA-64F35C11FC05@amacapital.net>
+ <6286ba0a-7e09-b4ec-e31f-bd091f5940ff@redhat.com>
+ <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+ <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+ <CALCETrUGjN8mhOaLqGcau-pPKm9TQW8k05hZrh52prRNdC5yQQ@mail.gmail.com>
+ <008010c1-20a1-c307-25ac-8a69d672d031@redhat.com>
+ <E77C6E12-EF2A-435A-AAD4-1554459606F1@amacapital.net>
+ <c727a0da-dd5b-4ca2-375c-773ec550ab25@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180510185507.2439-1-mcgrof@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, gregkh@linuxfoundation.org, willy@infradead.org
-Cc: mcgrof@kernel.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <c727a0da-dd5b-4ca2-375c-773ec550ab25@redhat.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Florian Weimer <fweimer@redhat.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxram@us.ibm.com, Linux-MM <linux-mm@kvack.org>, linux-x86_64@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 10, 2018 at 11:55:05AM -0700, Luis R. Rodriguez wrote:
-> This is the 3rd iteration for moving PAGE_KERNEL_* fallback
-> definitions into asm-generic headers. Greg asked for a Changelog
-> for patch iteration changes, its below.
+On 05/14/2018 08:34 AM, Florian Weimer wrote:
+>>> The initial PKRU value can currently be configured by the system
+>>> administrator.  I fear this approach has too many moving parts to be
+>>> viable.
+>>
+>> Honestly, I think we should drop that option. I don’t see how we can
+>> expect an administrator to do this usefully.
 > 
-> All these patches have been tested by 0-day.
-> 
-> Questions, and specially flames are greatly appreciated.
+> I don't disagree—it makes things way less predictable in practice.
 
-*Poke*
-
-Who's tree should this go through?
-
-  Luis
-
-> 
-> v3:
-> 
-> Removed documentation effort to keep tabs on which architectures
-> currently don't defint the respective PAGE_* flags. Keeping tabs
-> on this is just not worth it.
-> 
-> Ran a spell checker on all patches :)
-> 
-> v2:
-> 
-> I added a patch for PAGE_KERNEL_EXEC as suggested by Matthew Wilcox.
-> 
-> v1:
-> 
-> I sent out a patch just for dealing witht he fallback mechanism for
-> PAGE_KERNEL_RO.
-> 
-> Luis R. Rodriguez (2):
->   mm: provide a fallback for PAGE_KERNEL_RO for architectures
->   mm: provide a fallback for PAGE_KERNEL_EXEC for architectures
-> 
->  drivers/base/firmware_loader/fallback.c |  5 -----
->  include/asm-generic/pgtable.h           | 18 ++++++++++++++++++
->  mm/nommu.c                              |  4 ----
->  mm/vmalloc.c                            |  4 ----
->  4 files changed, 18 insertions(+), 13 deletions(-)
-> 
-> -- 
-> 2.17.0
-> 
-> 
-
--- 
-Do not panic
+I originally put that thing in there to make Andy happy with the initial
+permissions, and give us a way to back it out if something went wrong.
+I have no objections to removing it either.
