@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0068.outbound.protection.outlook.com ([104.47.37.68]:43392
+Received: from mail-cys01nam02on0081.outbound.protection.outlook.com ([104.47.37.81]:12349
         "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751664AbeEPIVa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 May 2018 04:21:30 -0400
+        id S1752245AbeEPIVC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 May 2018 04:21:02 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 10/24] arm64: uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
-Date: Wed, 16 May 2018 11:18:55 +0300
-Message-ID: <20180516081910.10067-11-ynorov@caviumnetworks.com>
+Subject: [PATCH 07/24] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
+Date: Wed, 16 May 2018 11:18:52 +0300
+Message-ID: <20180516081910.10067-8-ynorov@caviumnetworks.com>
 In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,43 +15,67 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrew Pinski <apinski@cavium.com>
-Message-ID: <20180516081855.Irw3rFPItmCvxwm46zcHpU6buDkhTaICfbmiCUuCaMM@z>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
+Message-ID: <20180516081852.5EAgQypPTGWNxSjZPqWc9Map6BMocibs4UWWq6xL_lE@z>
 
-From: Andrew Pinski <apinski@cavium.com>
+Based on Andrew Pinski's patch-series.
 
-Define __BITS_PER_LONG depending on the ABI used (i.e. check whether
-__ILP32__ or __LP64__ is defined).  This is necessary for glibc to
-determine the appropriate type definitions for the system call interface.
-
-Signed-off-by: Andrew Pinski <apinski@cavium.com>
-Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
-Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Reviewed-by: David Daney <ddaney@caviumnetworks.com>
 ---
- arch/arm64/include/uapi/asm/bitsperlong.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ Documentation/arm64/ilp32.txt | 45 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+ create mode 100644 Documentation/arm64/ilp32.txt
 
-diff --git a/arch/arm64/include/uapi/asm/bitsperlong.h b/arch/arm64/include/uapi/asm/bitsperlong.h
-index 485d60bee26c..9a05a9659e76 100644
---- a/arch/arm64/include/uapi/asm/bitsperlong.h
-+++ b/arch/arm64/include/uapi/asm/bitsperlong.h
-@@ -17,7 +17,14 @@
- #ifndef __ASM_BITSPERLONG_H
- #define __ASM_BITSPERLONG_H
- 
--#define __BITS_PER_LONG 64
-+#if defined(__LP64__)
-+/* Assuming __LP64__ will be defined for native ELF64's and not for ILP32. */
-+#  define __BITS_PER_LONG 64
-+#elif defined(__ILP32__)
-+#  define __BITS_PER_LONG 32
-+#else
-+#  error "Neither LP64 nor ILP32: unsupported ABI in asm/bitsperlong.h"
-+#endif
- 
- #include <asm-generic/bitsperlong.h>
- 
+diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
+new file mode 100644
+index 000000000000..d0fd5109c4b2
+--- /dev/null
++++ b/Documentation/arm64/ilp32.txt
+@@ -0,0 +1,45 @@
++ILP32 AARCH64 SYSCALL ABI
++=========================
++
++This document describes the ILP32 syscall ABI and where it differs
++from the generic compat linux syscall interface.
++
++AARCH64/ILP32 userspace can pass garbage in the top halve of w0-w7 registers
++(syscall arguments). So top 32 bits are zeroed for them.
++
++Comparing to AARCH32, AARCH64/ILP32 has 64-bit length of following types:
++ino_t       is u64 type.
++off_t       is s64 type.
++blkcnt_t    is s64 type.
++fsblkcnt_t  is u64 type.
++fsfilcnt_t  is u64 type.
++rlim_t      is u64 type.
++
++AARCH64/ILP32 ABI uses standard syscall table which can be found at
++include/uapi/asm-generic/unistd.h, with the exceptions listed below.
++
++Syscalls which pass 64-bit values are handled by the code shared from
++AARCH32 and pass that value as a pair. Following syscalls are affected:
++fadvise64_64()
++fallocate()
++ftruncate64()
++pread64()
++pwrite64()
++readahead()
++sync_file_range()
++truncate64()
++
++ptrace() syscall is handled by compat version.
++
++shmat() syscall is handled by non-compat handler as aarch64/ilp32 has no
++limitation on 4-pages alignment for shared memory.
++
++statfs() and fstatfs() take the size of struct statfs as an argument.
++It is calculated differently in kernel and user spaces. So AARCH32 handlers
++are taken to handle it.
++
++struct rt_sigframe is redefined and contains struct compat_siginfo,
++as compat syscalls expect, and struct ilp32_ucontext, to handle
++AARCH64 register set and 32-bit userspace register representation.
++
++elf_gregset_t is taken from lp64 to handle registers properly.
 -- 
 2.17.0
