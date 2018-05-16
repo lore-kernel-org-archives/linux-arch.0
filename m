@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0064.outbound.protection.outlook.com ([104.47.36.64]:26144
+Received: from mail-sn1nam02on0078.outbound.protection.outlook.com ([104.47.36.78]:36448
         "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752336AbeEPIUE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 May 2018 04:20:04 -0400
+        id S1752405AbeEPIWH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 16 May 2018 04:22:07 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 03/24] compat ABI: use non-compat openat and open_by_handle_at variants
-Date: Wed, 16 May 2018 11:18:48 +0300
-Message-ID: <20180516081910.10067-4-ynorov@caviumnetworks.com>
+Subject: [PATCH 14/24] arm64: change compat_elf_hwcap and compat_elf_hwcap2 prefix to a32
+Date: Wed, 16 May 2018 11:18:59 +0300
+Message-ID: <20180516081910.10067-15-ynorov@caviumnetworks.com>
 In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,59 +16,149 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 Cc: Yury Norov <ynorov@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20180516081848.jqZ05JYyRFdHvcla2GsZQQPmTe1OSB6fqAW5YKEK-EE@z>
+Message-ID: <20180516081859.jYf3I045Gns8EBl6C9CuIqx-ihKRgTax7gAFJwCnBtU@z>
 
-The only difference between native and compat openat and open_by_handle_at
-is that non-compat version forces O_LARGEFILE, and it should be the
-default behaviour for all architectures, as we are going to drop the
-support of 32-bit userspace off_t.
-
-The exception is tile32 that continues with compat version of syscalls.
+ILP32 patch series introduces new type of binaries which is also compat.
+So rename existung aarch32 compat_elf_hwcap's helps to avoid confusing.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
 ---
- arch/tile/kernel/compat.c         | 3 +++
- include/uapi/asm-generic/unistd.h | 5 ++---
- 2 files changed, 5 insertions(+), 3 deletions(-)
+ arch/arm64/include/asm/hwcap.h       |  2 +-
+ arch/arm64/kernel/binfmt_elf32.c     |  4 ++--
+ arch/arm64/kernel/cpufeature.c       | 14 +++++++-------
+ arch/arm64/kernel/cpuinfo.c          | 10 +++++-----
+ drivers/clocksource/arm_arch_timer.c |  2 +-
+ 5 files changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-index bdaf71d31a4a..3b7853c59395 100644
---- a/arch/tile/kernel/compat.c
-+++ b/arch/tile/kernel/compat.c
-@@ -103,6 +103,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
- #define compat_sys_readahead sys32_readahead
- #define sys_llseek compat_sys_llseek
+diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
+index 99dfd9277559..428b745b5386 100644
+--- a/arch/arm64/include/asm/hwcap.h
++++ b/arch/arm64/include/asm/hwcap.h
+@@ -47,7 +47,7 @@
+ #define ELF_HWCAP		(elf_hwcap)
  
-+#define sys_openat		compat_sys_openat
-+#define sys_open_by_handle_at	compat_sys_open_by_handle_at
-+
- /* Call the assembly trampolines where necessary. */
- #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
- #define sys_clone _sys_clone
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 8b87de067bc7..426a1a496d9d 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -179,7 +179,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
- #define __NR_fchown 55
- __SYSCALL(__NR_fchown, sys_fchown)
- #define __NR_openat 56
--__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
-+__SYSCALL(__NR_openat, sys_openat)
- #define __NR_close 57
- __SYSCALL(__NR_close, sys_close)
- #define __NR_vhangup 58
-@@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
- #define __NR_name_to_handle_at         264
- __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
- #define __NR_open_by_handle_at         265
--__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
--	  compat_sys_open_by_handle_at)
-+__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
- #define __NR_clock_adjtime 266
- __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
- #define __NR_syncfs 267
+ #ifdef CONFIG_AARCH32_EL0
+-extern unsigned int compat_elf_hwcap, compat_elf_hwcap2;
++extern unsigned int a32_elf_hwcap, a32_elf_hwcap2;
+ #endif
+ 
+ enum {
+diff --git a/arch/arm64/kernel/binfmt_elf32.c b/arch/arm64/kernel/binfmt_elf32.c
+index 440fa84f62b3..2b49d2a40d8b 100644
+--- a/arch/arm64/kernel/binfmt_elf32.c
++++ b/arch/arm64/kernel/binfmt_elf32.c
+@@ -20,8 +20,8 @@
+ })
+ 
+ #define COMPAT_ARCH_DLINFO
+-#define COMPAT_ELF_HWCAP		(compat_elf_hwcap)
+-#define COMPAT_ELF_HWCAP2		(compat_elf_hwcap2)
++#define COMPAT_ELF_HWCAP		(a32_elf_hwcap)
++#define COMPAT_ELF_HWCAP2		(a32_elf_hwcap2)
+ 
+ #define compat_arch_setup_additional_pages \
+ 					aarch32_setup_vectors_page
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 28b7bc582334..4867fb142e86 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -38,15 +38,15 @@ unsigned long elf_hwcap __read_mostly;
+ EXPORT_SYMBOL_GPL(elf_hwcap);
+ 
+ #ifdef CONFIG_AARCH32_EL0
+-#define COMPAT_ELF_HWCAP_DEFAULT	\
++#define AARCH32_EL0_ELF_HWCAP_DEFAULT	\
+ 				(COMPAT_HWCAP_HALF|COMPAT_HWCAP_THUMB|\
+ 				 COMPAT_HWCAP_FAST_MULT|COMPAT_HWCAP_EDSP|\
+ 				 COMPAT_HWCAP_TLS|COMPAT_HWCAP_VFP|\
+ 				 COMPAT_HWCAP_VFPv3|COMPAT_HWCAP_VFPv4|\
+ 				 COMPAT_HWCAP_NEON|COMPAT_HWCAP_IDIV|\
+ 				 COMPAT_HWCAP_LPAE)
+-unsigned int compat_elf_hwcap __read_mostly = COMPAT_ELF_HWCAP_DEFAULT;
+-unsigned int compat_elf_hwcap2 __read_mostly;
++unsigned int a32_elf_hwcap __read_mostly = AARCH32_EL0_ELF_HWCAP_DEFAULT;
++unsigned int a32_elf_hwcap2 __read_mostly;
+ #endif
+ 
+ DECLARE_BITMAP(cpu_hwcaps, ARM64_NCAPS);
+@@ -1151,10 +1151,10 @@ static void __init cap_set_elf_hwcap(const struct arm64_cpu_capabilities *cap)
+ 		break;
+ #ifdef CONFIG_AARCH32_EL0
+ 	case CAP_COMPAT_HWCAP:
+-		compat_elf_hwcap |= (u32)cap->hwcap;
++		a32_elf_hwcap |= (u32)cap->hwcap;
+ 		break;
+ 	case CAP_COMPAT_HWCAP2:
+-		compat_elf_hwcap2 |= (u32)cap->hwcap;
++		a32_elf_hwcap2 |= (u32)cap->hwcap;
+ 		break;
+ #endif
+ 	default:
+@@ -1174,10 +1174,10 @@ static bool cpus_have_elf_hwcap(const struct arm64_cpu_capabilities *cap)
+ 		break;
+ #ifdef CONFIG_AARCH32_EL0
+ 	case CAP_COMPAT_HWCAP:
+-		rc = (compat_elf_hwcap & (u32)cap->hwcap) != 0;
++		rc = (a32_elf_hwcap & (u32)cap->hwcap) != 0;
+ 		break;
+ 	case CAP_COMPAT_HWCAP2:
+-		rc = (compat_elf_hwcap2 & (u32)cap->hwcap) != 0;
++		rc = (a32_elf_hwcap2 & (u32)cap->hwcap) != 0;
+ 		break;
+ #endif
+ 	default:
+diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+index 23fdf30dc0a3..a57a6fd0afab 100644
+--- a/arch/arm64/kernel/cpuinfo.c
++++ b/arch/arm64/kernel/cpuinfo.c
+@@ -120,7 +120,7 @@ static const char *const compat_hwcap2_str[] = {
+ static int c_show(struct seq_file *m, void *v)
+ {
+ 	int i, j;
+-	bool compat = personality(current->personality) == PER_LINUX32;
++	bool aarch32 = personality(current->personality) == PER_LINUX32;
+ 
+ 	for_each_online_cpu(i) {
+ 		struct cpuinfo_arm64 *cpuinfo = &per_cpu(cpu_data, i);
+@@ -132,7 +132,7 @@ static int c_show(struct seq_file *m, void *v)
+ 		 * "processor".  Give glibc what it expects.
+ 		 */
+ 		seq_printf(m, "processor\t: %d\n", i);
+-		if (compat)
++		if (aarch32)
+ 			seq_printf(m, "model name\t: ARMv8 Processor rev %d (%s)\n",
+ 				   MIDR_REVISION(midr), COMPAT_ELF_PLATFORM);
+ 
+@@ -147,14 +147,14 @@ static int c_show(struct seq_file *m, void *v)
+ 		 * software which does already (at least for 32-bit).
+ 		 */
+ 		seq_puts(m, "Features\t:");
+-		if (compat) {
++		if (aarch32) {
+ #ifdef CONFIG_AARCH32_EL0
+ 			for (j = 0; compat_hwcap_str[j]; j++)
+-				if (compat_elf_hwcap & (1 << j))
++				if (a32_elf_hwcap & (1 << j))
+ 					seq_printf(m, " %s", compat_hwcap_str[j]);
+ 
+ 			for (j = 0; compat_hwcap2_str[j]; j++)
+-				if (compat_elf_hwcap2 & (1 << j))
++				if (a32_elf_hwcap2 & (1 << j))
+ 					seq_printf(m, " %s", compat_hwcap2_str[j]);
+ #endif /* CONFIG_AARCH32_EL0 */
+ 		} else {
+diff --git a/drivers/clocksource/arm_arch_timer.c b/drivers/clocksource/arm_arch_timer.c
+index c3c6a8d48adc..d8b12b9be97b 100644
+--- a/drivers/clocksource/arm_arch_timer.c
++++ b/drivers/clocksource/arm_arch_timer.c
+@@ -765,7 +765,7 @@ static void arch_timer_evtstrm_enable(int divider)
+ 	arch_timer_set_cntkctl(cntkctl);
+ 	elf_hwcap |= HWCAP_EVTSTRM;
+ #ifdef CONFIG_AARCH32_EL0
+-	compat_elf_hwcap |= COMPAT_HWCAP_EVTSTRM;
++	a32_elf_hwcap |= COMPAT_HWCAP_EVTSTRM;
+ #endif
+ 	cpumask_set_cpu(smp_processor_id(), &evtstrm_available);
+ }
 -- 
 2.17.0
