@@ -1,26 +1,53 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] arm64: remove no-op macro VMLINUX_SYMBOL()
-Date: Wed, 16 May 2018 11:47:32 +0100
-Message-ID: <20180516104732.dxt7di6t4hcss23e@armageddon.cambridge.arm.com>
-References: <1525851986-28631-1-git-send-email-yamada.masahiro@socionext.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v4 0/8] Introduce the for_each_set_clump macro
+Date: Wed, 16 May 2018 16:03:51 +0200
+Message-ID: <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
+References: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1525851986-28631-1-git-send-email-yamada.masahiro@socionext.com>
+In-Reply-To: <cover.1526400945.git.vilhelm.gray@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Steve Capper <steve.capper@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 09, 2018 at 04:46:26PM +0900, Masahiro Yamada wrote:
-> VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-> is defined.  It has ever been selected only by BLACKFIN and METAG.
-> VMLINUX_SYMBOL() is unneeded for ARM64-specific code.
-> 
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+On Tue, May 15, 2018 at 6:22 PM, William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
 
-Queued for 4.18. Thanks.
+> For example, suppose you would like to iterate over a 16-bit integer 4
+> bits at a time, skipping over 4-bit groups with no set bit, where XXXX
+> represents the current 4-bit group:
+>
+>     Example:        1011 1110 0000 1111
+>     First loop:     1011 1110 0000 XXXX
+>     Second loop:    1011 XXXX 0000 1111
+>     Third loop:     XXXX 1110 0000 1111
+>
+> Each iteration of the loop returns the next 4-bit group that has at
+> least one set bit.
+>
+> The for_each_set_clump macro has six parameters:
+>
+>     * clump: set to current clump index for the iteration
+>     * index: set to current bitmap word index for the iteration
+>     * offset: bits offset of the found clump in the bitmap word
+>     * bits: bitmap to search within
+>     * size: bitmap size in number of clumps
+>     * clump_size: clump size in number of bits
+>
+> The clump_size argument can be an arbitrary number of bits and is not
+> required to be a multiple of 2.
 
--- 
-Catalin
+I must say I'm impressed. Very nice arithmetics going on there.
+
+If I can get some ACK for the bitops patch I'd be happy to merge
+it all through the GPIO tree. The users are pretty clear cut.
+
+BTW: if I could, I would pull out Donald Knuth's "The Art of Computer
+Programming vol 4A" chapter 7.1.3 "Bitwise Tricks and Techniques"
+to see what he has to say about the subject, but I don't have
+that book as it turns out.
+
+Yours,
+Linus Walleij
