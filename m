@@ -1,50 +1,63 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC PATCH] UAPI: Document auxvec AT_* namespace policy and note reservations
-Date: Thu, 17 May 2018 16:40:19 +1000
-Message-ID: <8736yqokdo.fsf@concordia.ellerman.id.au>
-References: <1526480447-18185-1-git-send-email-Dave.Martin@arm.com>
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+Date: Thu, 17 May 2018 12:09:36 +0200
+Message-ID: <1a46685f-1ca7-d215-455c-c75254959684@redhat.com>
+References: <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+ <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+ <20180516203534.GA5479@ram.oc3035372033.ibm.com>
+ <CALCETrVQs=ix-w9_MLJWikzmBG-e2Fzg61TrZLNVv5R3XFOs=g@mail.gmail.com>
+ <20180516210745.GC5479@ram.oc3035372033.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1526480447-18185-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>, linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <albert@sifive.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Hei
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20180516210745.GC5479@ram.oc3035372033.ibm.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Ram Pai <linuxram@us.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@intel.com>, linux-x86_64@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On 05/16/2018 11:07 PM, Ram Pai wrote:
 
-> There are constraints on defining AT_* auxvec tags that are not
-> obvious to the casual maintainer of either the global
-> <uapi/linux/auxvec.h> or the arch-specific headers.  This is likely
-> to lead to mistakes.  (I certainly fell foul of it...)
+> what would change the key-permission-values enforced in signal-handler
+> context?  Or can it never be changed, ones set through sys_pkey_alloc()?
 
-Thanks for cleaning this up.
+The access rights can only be set by pkey_alloc and are unchanged after 
+that (so we do not have to discuss whether the signal handler access 
+rights are per-thread or not).
 
-It looks like us (powerpc) / me is the main offender here.
+> I suppose key-permission-values change done in non-signal-handler context,
+> will not apply to those in signal-handler context.
 
-My excuse is it was glibc folk who asked us to add all those new AT_
-entries in the first place. </buckpassing>
+Correct, that is the plan.
 
-> For the benefit of future maintainers, this patch collects the
-> relevant information in one place, documenting how the namespace
-> needs to be managed, and noting all the values currently in use.
->
-> Maintaining a global list may result in some merge conflicts, but
-> AT_* values are not added frequently.  I'm open to suggestions on
-> the best approach.
+> Can the signal handler change the key-permission-values from the
+> signal-handler context?
 
-Yeah I agree with Rich that having a global list would be best. That is
-the most reliable to make people think twice about adding new entries.
+Yes, changes are possible.  The access rights given to pkey_alloc only 
+specify the initial access rights when the signal handler is entered.
 
-> I also assume that values 38 and 39 may have been used for
-> historical purposes, such as an architecture that is no longer
-> supported.  If they have definitely never been used for anything,
-> they could be removed from the "reserved" list.
+We need to decide if we should restore it on exit from the signal 
+handler.  There is also the matter of siglongjmp, which currently does 
+not restore the current thread's access rights.  In general, this might 
+be difficult to implement because of the limited space in jmp_buf.
 
-I don't know why we added the new entries starting at 40, maybe Ben
-remembers. Quite likely it was just an accident.
-
-I don't see any sign of 38 or 39 in glibc history.
-
-cheers
+Thanks,
+Florian
