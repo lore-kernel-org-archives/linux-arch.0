@@ -1,55 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:47325 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751367AbeEQGkb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 May 2018 02:40:31 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC PATCH] UAPI: Document auxvec AT_* namespace policy and note reservations
-In-Reply-To: <1526480447-18185-1-git-send-email-Dave.Martin@arm.com>
-References: <1526480447-18185-1-git-send-email-Dave.Martin@arm.com>
-Date: Thu, 17 May 2018 16:40:19 +1000
-Message-ID: <8736yqokdo.fsf@concordia.ellerman.id.au>
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:59994 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751664AbeEQKJj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 May 2018 06:09:39 -0400
+Subject: Re: [PATCH] pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics
+References: <CALCETrVrm6yGiv6_z7RqdeB-324RoeMmjpf1EHsrGOh+iKb7+A@mail.gmail.com>
+ <b2df1386-9df9-2db8-0a25-51bf5ff63592@redhat.com>
+ <CALCETrW_Dt-HoG4keFJd8DSD=tvyR+bBCFrBDYdym4GQbfng4A@mail.gmail.com>
+ <20180503021058.GA5670@ram.oc3035372033.ibm.com>
+ <CALCETrXRQF08exQVZqtTLOKbC8Ywq5x4EYH_1D7r5v9bdOSwbg@mail.gmail.com>
+ <927c8325-4c98-d7af-b921-6aafcf8fe992@redhat.com>
+ <CALCETrX46wR_MDW=m9SVm=ejQmPAmD3+2oC3iapf75bPhnEAWQ@mail.gmail.com>
+ <314e1a48-db94-9b37-8793-a95a2082c9e2@redhat.com>
+ <20180516203534.GA5479@ram.oc3035372033.ibm.com>
+ <CALCETrVQs=ix-w9_MLJWikzmBG-e2Fzg61TrZLNVv5R3XFOs=g@mail.gmail.com>
+ <20180516210745.GC5479@ram.oc3035372033.ibm.com>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <1a46685f-1ca7-d215-455c-c75254959684@redhat.com>
+Date: Thu, 17 May 2018 12:09:36 +0200
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20180516210745.GC5479@ram.oc3035372033.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Palmer Dabbelt <palmer@sifive.com>, Albert Ou <albert@sifive.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20180517064019.qdKZ8DG6SM-T__MsRmR-PD0ejUJdiYcNvnWDpmdW_z8@z>
+To: Ram Pai <linuxram@us.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@intel.com>, Linux-MM <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, linux-x86_64@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20180517100936.Wz3XURt1EDXc8Ehh5fnX4O3Y6gJdCNUEygw40mdRghQ@z>
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On 05/16/2018 11:07 PM, Ram Pai wrote:
 
-> There are constraints on defining AT_* auxvec tags that are not
-> obvious to the casual maintainer of either the global
-> <uapi/linux/auxvec.h> or the arch-specific headers.  This is likely
-> to lead to mistakes.  (I certainly fell foul of it...)
+> what would change the key-permission-values enforced in signal-handler
+> context?  Or can it never be changed, ones set through sys_pkey_alloc()?
 
-Thanks for cleaning this up.
+The access rights can only be set by pkey_alloc and are unchanged after 
+that (so we do not have to discuss whether the signal handler access 
+rights are per-thread or not).
 
-It looks like us (powerpc) / me is the main offender here.
+> I suppose key-permission-values change done in non-signal-handler context,
+> will not apply to those in signal-handler context.
 
-My excuse is it was glibc folk who asked us to add all those new AT_
-entries in the first place. </buckpassing>
+Correct, that is the plan.
 
-> For the benefit of future maintainers, this patch collects the
-> relevant information in one place, documenting how the namespace
-> needs to be managed, and noting all the values currently in use.
->
-> Maintaining a global list may result in some merge conflicts, but
-> AT_* values are not added frequently.  I'm open to suggestions on
-> the best approach.
+> Can the signal handler change the key-permission-values from the
+> signal-handler context?
 
-Yeah I agree with Rich that having a global list would be best. That is
-the most reliable to make people think twice about adding new entries.
+Yes, changes are possible.  The access rights given to pkey_alloc only 
+specify the initial access rights when the signal handler is entered.
 
-> I also assume that values 38 and 39 may have been used for
-> historical purposes, such as an architecture that is no longer
-> supported.  If they have definitely never been used for anything,
-> they could be removed from the "reserved" list.
+We need to decide if we should restore it on exit from the signal 
+handler.  There is also the matter of siglongjmp, which currently does 
+not restore the current thread's access rights.  In general, this might 
+be difficult to implement because of the limited space in jmp_buf.
 
-I don't know why we added the new entries starting at 40, maybe Ben
-remembers. Quite likely it was just an accident.
-
-I don't see any sign of 38 or 39 in glibc history.
-
-cheers
+Thanks,
+Florian
