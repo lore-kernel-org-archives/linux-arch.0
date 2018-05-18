@@ -1,24 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45467 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:45410 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753165AbeERJRm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 05:17:42 -0400
+        id S1752924AbeERJR4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 May 2018 05:17:56 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 15/28] x86/asm/purgatory: start using annotations
-Date: Fri, 18 May 2018 11:17:08 +0200
-Message-ID: <20180518091721.7604-16-jslaby@suse.cz>
+Subject: [PATCH v6 28/28] x86/asm: replace WEAK uses by SYM_INNER_LABEL
+Date: Fri, 18 May 2018 11:17:21 +0200
+Message-ID: <20180518091721.7604-29-jslaby@suse.cz>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20180518091708.NM4B5UavhkT5Ka1096kBo27lMQxbZ73PNmUtdo0KzVM@z>
+Message-ID: <20180518091721.HlJAkNieYRC9-tLdlUYlnlJF5Nt9bJJYcZV8wpTBF1o@z>
 
-purgatory used no annotations at all. So include linux/linkage.h and
-annotate everything:
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+Use the new SYM_INNER_LABEL for WEAK entries in the middle of x86
+assembly functions.
+
+And make sure WEAK is not defined for x86 anymore as these were the last
+users.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
@@ -26,142 +27,69 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 ---
- arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 24 insertions(+), 18 deletions(-)
+ arch/x86/kernel/ftrace_32.S | 2 +-
+ arch/x86/kernel/ftrace_64.S | 2 +-
+ arch/x86/kernel/head_32.S   | 2 +-
+ include/linux/linkage.h     | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index d1a4291d3568..c51e3c999e38 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -10,13 +10,13 @@
-  * Version 2.  See the file COPYING for more details.
-  */
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index f519c22f6f9e..c98512e59c9b 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -98,7 +98,7 @@ ftrace_graph_call:
+ #endif
  
-+#include <linux/linkage.h>
-+
- 	.text
- 	.balign 16
- 	.code64
--	.globl entry64, entry64_regs
--
+ /* This is weak to keep gas from relaxing the jumps */
+-WEAK(ftrace_stub)
++SYM_INNER_LABEL(ftrace_stub, SYM_L_WEAK)
+ 	ret
+ SYM_CODE_END(ftrace_caller)
  
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
+diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
+index 68b8c4b3e543..1902ee43eac8 100644
+--- a/arch/x86/kernel/ftrace_64.S
++++ b/arch/x86/kernel/ftrace_64.S
+@@ -186,7 +186,7 @@ SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
+ #endif
  
-@@ -56,10 +56,11 @@ new_cs_exit:
+ /* This is weak to keep gas from relaxing the jumps */
+-WEAK(ftrace_stub)
++SYM_INNER_LABEL(ftrace_stub, SYM_L_WEAK)
+ 	retq
+ SYM_FUNC_END(ftrace_caller)
  
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 7840ab96bee3..5e9715bafbbf 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -156,7 +156,7 @@ SYM_CODE_START(startup_32)
+ 	jmp *%eax
  
- 	.section ".rodata"
- 	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -77,12 +78,12 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
+ .Lbad_subarch:
+-WEAK(xen_entry)
++SYM_INNER_LABEL(xen_entry, SYM_L_WEAK)
+ 	/* Unknown implementation; there's really
+ 	   nothing we can do at this point. */
+ 	ud2a
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index 25cba413ee71..e4cbdc034127 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -114,13 +114,13 @@
+ #endif /* CONFIG_X86 */
+ #endif /* LINKER_SCRIPT */
  
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
-@@ -96,6 +97,8 @@ gdt:
++#ifndef CONFIG_X86
+ #ifndef WEAK
+ /* deprecated, use SYM_FUNC_START_WEAK* */
+ #define WEAK(name)	   \
+ 	SYM_FUNC_START_WEAK_NOALIGN(name)
+ #endif
  
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
--stack:	.quad   0, 0
--stack_init:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index dfae9b9e60b5..f0de104d3f3a 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -9,14 +9,14 @@
-  * This source code is licensed under the GNU General Public License,
-  * Version 2.  See the file COPYING for more details.
-  */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
- 
- 	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
- 	.code64
- 
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
- 
-@@ -34,10 +34,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
- 
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
- 	 */
-@@ -50,10 +52,10 @@ gdt:	/* 0x00 unusable segment
- 
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
- 
- 	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 50a4147f91fb..987e6510a960 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -7,13 +7,14 @@
-  * Version 2.  See the file COPYING for more details.
-  */
- 
-+#include <linux/linkage.h>
-+
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
- 	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
- 
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
+-#ifndef CONFIG_X86
+ #ifndef END
+ /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
+ #define END(name) \
 -- 
 2.16.3
