@@ -1,92 +1,148 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 03/28] x86/asm/suspend: use SYM_DATA for data
-Date: Fri, 18 May 2018 11:16:56 +0200
-Message-ID: <20180518091721.7604-4-jslaby@suse.cz>
+Subject: [PATCH v6 16/28] x86/asm: do not annotate functions by GLOBAL
+Date: Fri, 18 May 2018 11:17:09 +0200
+Message-ID: <20180518091721.7604-17-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Some global data in the suspend code were marked as `ENTRY'. ENTRY was
-intended for functions and shall be paired with ENDPROC. ENTRY also
-aligns symbols which creates unnecessary holes here between data. Since
-we are dropping historical markings, make proper use of newly added
-SYM_DATA in this code.
+GLOBAL is an x86's custom macro and is going to die very soon. It was
+meant for global symbols, but here, it was used for functions. Instead,
+use the new macros SYM_FUNC_START* and SYM_CODE_START* (depending on the
+type of a function) which are dedicated for global functions. And since
+they both require a closing by SYM_*_END, we do this here too.
+
+startup_64, which does not use GLOBAL, but uses .globl explicitly, is
+converted too.
+
+in_pm32 should not be global at all as it is used only locally, so
+switch to SYM_FUNC_START_LOCAL_NOALIGN.
+
+"No alignments" are preserved.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Pavel Machek <pavel@ucw.cz>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-pm@vger.kernel.org
+Cc: <x86@kernel.org>
 ---
- arch/x86/kernel/acpi/wakeup_32.S | 2 +-
- arch/x86/kernel/acpi/wakeup_64.S | 2 +-
- arch/x86/kernel/head_32.S        | 6 ++----
- arch/x86/kernel/head_64.S        | 5 ++---
- 4 files changed, 6 insertions(+), 9 deletions(-)
+ arch/x86/boot/copy.S      | 16 ++++++++--------
+ arch/x86/boot/pmjump.S    |  8 ++++----
+ arch/x86/kernel/head_64.S |  5 +++--
+ 3 files changed, 15 insertions(+), 14 deletions(-)
 
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 4203d4f0c68d..feac1e5ecba0 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -89,7 +89,7 @@ ret_point:
+diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
+index 15d9f74b0008..73aa8307a10f 100644
+--- a/arch/x86/boot/copy.S
++++ b/arch/x86/boot/copy.S
+@@ -17,7 +17,7 @@
+ 	.code16
+ 	.text
  
- .data
- ALIGN
--ENTRY(saved_magic)	.long	0
-+SYM_DATA(saved_magic,	.long 0)
- saved_eip:		.long 0
+-GLOBAL(memcpy)
++SYM_FUNC_START_NOALIGN(memcpy)
+ 	pushw	%si
+ 	pushw	%di
+ 	movw	%ax, %di
+@@ -31,9 +31,9 @@ GLOBAL(memcpy)
+ 	popw	%di
+ 	popw	%si
+ 	retl
+-ENDPROC(memcpy)
++SYM_FUNC_END(memcpy)
  
- # saved registers
-diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index 510fa12aab73..551758f48eb7 100644
---- a/arch/x86/kernel/acpi/wakeup_64.S
-+++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -133,4 +133,4 @@ saved_rbx:		.quad	0
- saved_rip:		.quad	0
- saved_rsp:		.quad	0
+-GLOBAL(memset)
++SYM_FUNC_START_NOALIGN(memset)
+ 	pushw	%di
+ 	movw	%ax, %di
+ 	movzbl	%dl, %eax
+@@ -46,22 +46,22 @@ GLOBAL(memset)
+ 	rep; stosb
+ 	popw	%di
+ 	retl
+-ENDPROC(memset)
++SYM_FUNC_END(memset)
  
--ENTRY(saved_magic)	.quad	0
-+SYM_DATA(saved_magic,	.quad	0)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index b59e4fb40fd9..80965fd75fea 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
+-GLOBAL(copy_from_fs)
++SYM_FUNC_START_NOALIGN(copy_from_fs)
+ 	pushw	%ds
+ 	pushw	%fs
+ 	popw	%ds
+ 	calll	memcpy
+ 	popw	%ds
+ 	retl
+-ENDPROC(copy_from_fs)
++SYM_FUNC_END(copy_from_fs)
  
- __REFDATA
- 	.align 4
--ENTRY(initial_code)
--	.long i386_start_kernel
--ENTRY(setup_once_ref)
--	.long setup_once
-+SYM_DATA(initial_code,		.long i386_start_kernel)
-+SYM_DATA(setup_once_ref,	.long setup_once)
- 
+-GLOBAL(copy_to_fs)
++SYM_FUNC_START_NOALIGN(copy_to_fs)
+ 	pushw	%es
+ 	pushw	%fs
+ 	popw	%es
+ 	calll	memcpy
+ 	popw	%es
+ 	retl
+-ENDPROC(copy_to_fs)
++SYM_FUNC_END(copy_to_fs)
+diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
+index 3e0edc6d2a20..b90e42eb1a62 100644
+--- a/arch/x86/boot/pmjump.S
++++ b/arch/x86/boot/pmjump.S
+@@ -23,7 +23,7 @@
  /*
-  * BSS section
+  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
+  */
+-GLOBAL(protected_mode_jump)
++SYM_FUNC_START_NOALIGN(protected_mode_jump)
+ 	movl	%edx, %esi		# Pointer to boot_params table
+ 
+ 	xorl	%ebx, %ebx
+@@ -44,11 +44,11 @@ GLOBAL(protected_mode_jump)
+ 	.byte	0x66, 0xea		# ljmpl opcode
+ 2:	.long	in_pm32			# offset
+ 	.word	__BOOT_CS		# segment
+-ENDPROC(protected_mode_jump)
++SYM_FUNC_END(protected_mode_jump)
+ 
+ 	.code32
+ 	.section ".text32","ax"
+-GLOBAL(in_pm32)
++SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
+ 	# Set up data segments for flat 32-bit mode
+ 	movl	%ecx, %ds
+ 	movl	%ecx, %es
+@@ -74,4 +74,4 @@ GLOBAL(in_pm32)
+ 	lldt	%cx
+ 
+ 	jmpl	*%eax			# Jump to the 32-bit entrypoint
+-ENDPROC(in_pm32)
++SYM_FUNC_END(in_pm32)
 diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 8344dd2f310a..17543533642d 100644
+index 80b620c824eb..48e71043b99c 100644
 --- a/arch/x86/kernel/head_64.S
 +++ b/arch/x86/kernel/head_64.S
-@@ -463,9 +463,8 @@ early_gdt_descr:
- early_gdt_descr_base:
- 	.quad	INIT_PER_CPU_VAR(gdt_page)
- 
--ENTRY(phys_base)
--	/* This must match the first entry in level2_kernel_pgt */
--	.quad   0x0000000000000000
-+/* This must match the first entry in level2_kernel_pgt */
-+SYM_DATA(phys_base, .quad 0x0000000000000000)
- EXPORT_SYMBOL(phys_base)
- 
- #include "../../x86/xen/xen-head.S"
+@@ -50,8 +50,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
+ 	.text
+ 	__HEAD
+ 	.code64
+-	.globl startup_64
+-startup_64:
++SYM_CODE_START_NOALIGN(startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
+ 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
+@@ -91,6 +90,8 @@ startup_64:
+ 	/* Form the CR3 value being sure to include the CR3 modifier */
+ 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
++SYM_CODE_END(startup_64)
++
+ ENTRY(secondary_startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
 -- 
 2.16.3
