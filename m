@@ -1,57 +1,233 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 14/28] xen/pvh: annotate data appropriatelly
-Date: Fri, 18 May 2018 11:17:07 +0200
-Message-ID: <20180518091721.7604-15-jslaby@suse.cz>
+Subject: [PATCH v6 25/28] x86_32/asm: add ENDs to some functions and relabel with SYM_CODE_*
+Date: Fri, 18 May 2018 11:17:18 +0200
+Message-ID: <20180518091721.7604-26-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xenproject.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
-List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xenproject.org>
-List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
-List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xenproject.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, x86@kernel.org, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, linux-pm@vger.kernel.org, xen-devel@lists.xenproject.org
 List-Id: linux-arch.vger.kernel.org
 
-VXNlIHRoZSBuZXcgU1lNX0RBVEFfU1RBUlRfTE9DQUwsIGFuZCBTWU1fREFUQV9FTkQqIG1hY3Jv
-cyB0byBoYXZlOgogIDAwMDAgICAgIDggT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2IGdkdAog
-IDAwMDggICAgMzIgT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2IGdkdF9zdGFydAogIDAwMjgg
-ICAgIDAgT0JKRUNUICBMT0NBTCAgREVGQVVMVCAgICA2IGdkdF9lbmQKICAwMDI4ICAgMjU2IE9C
-SkVDVCAgTE9DQUwgIERFRkFVTFQgICAgNiBlYXJseV9zdGFjawogIDAxMjggICAgIDAgT0JKRUNU
-ICBMT0NBTCAgREVGQVVMVCAgICA2IGVhcmx5X3N0YWNrCgpTaWduZWQtb2ZmLWJ5OiBKaXJpIFNs
-YWJ5IDxqc2xhYnlAc3VzZS5jej4KUmV2aWV3ZWQtYnk6IEJvcmlzIE9zdHJvdnNreSA8Ym9yaXMu
-b3N0cm92c2t5QG9yYWNsZS5jb20+CkNjOiBCb3JpcyBPc3Ryb3Zza3kgPGJvcmlzLm9zdHJvdnNr
-eUBvcmFjbGUuY29tPgpDYzogSnVlcmdlbiBHcm9zcyA8amdyb3NzQHN1c2UuY29tPgpDYzogVGhv
-bWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+CkNjOiBJbmdvIE1vbG5hciA8bWluZ29A
-cmVkaGF0LmNvbT4KQ2M6ICJILiBQZXRlciBBbnZpbiIgPGhwYUB6eXRvci5jb20+CkNjOiB4ODZA
-a2VybmVsLm9yZwpDYzogeGVuLWRldmVsQGxpc3RzLnhlbnByb2plY3Qub3JnCi0tLQogYXJjaC94
-ODYveGVuL3hlbi1wdmguUyB8IDExICsrKysrKy0tLS0tCiAxIGZpbGUgY2hhbmdlZCwgNiBpbnNl
-cnRpb25zKCspLCA1IGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L3hlbi94ZW4t
-cHZoLlMgYi9hcmNoL3g4Ni94ZW4veGVuLXB2aC5TCmluZGV4IGUxYTVmYmVhZTA4ZC4uNTJiMjg3
-OTNhNjI1IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni94ZW4veGVuLXB2aC5TCisrKyBiL2FyY2gveDg2
-L3hlbi94ZW4tcHZoLlMKQEAgLTEzNywxMSArMTM3LDEyIEBAIEVORChwdmhfc3RhcnRfeGVuKQog
-CiAJLnNlY3Rpb24gIi5pbml0LmRhdGEiLCJhdyIKIAkuYmFsaWduIDgKLWdkdDoKK1NZTV9EQVRB
-X1NUQVJUX0xPQ0FMKGdkdCkKIAkud29yZCBnZHRfZW5kIC0gZ2R0X3N0YXJ0CiAJLmxvbmcgX3Bh
-KGdkdF9zdGFydCkKIAkud29yZCAwCi1nZHRfc3RhcnQ6CitTWU1fREFUQV9FTkQoZ2R0KQorU1lN
-X0RBVEFfU1RBUlRfTE9DQUwoZ2R0X3N0YXJ0KQogCS5xdWFkIDB4MDAwMDAwMDAwMDAwMDAwMCAg
-ICAgICAgICAgIC8qIE5VTEwgZGVzY3JpcHRvciAqLwogCS5xdWFkIDB4MDAwMDAwMDAwMDAwMDAw
-MCAgICAgICAgICAgIC8qIHJlc2VydmVkICovCiAjaWZkZWYgQ09ORklHX1g4Nl82NApAQCAtMTUw
-LDEyICsxNTEsMTIgQEAgZ2R0X3N0YXJ0OgogCS5xdWFkIEdEVF9FTlRSWSgweGMwOWEsIDAsIDB4
-ZmZmZmYpIC8qIF9fS0VSTkVMX0NTICovCiAjZW5kaWYKIAkucXVhZCBHRFRfRU5UUlkoMHhjMDky
-LCAwLCAweGZmZmZmKSAvKiBfX0tFUk5FTF9EUyAqLwotZ2R0X2VuZDoKK1NZTV9EQVRBX0VORF9M
-QUJFTChnZHRfc3RhcnQsIFNZTV9MX0xPQ0FMLCBnZHRfZW5kKQogCiAJLmJhbGlnbiA0Ci1lYXJs
-eV9zdGFjazoKK1NZTV9EQVRBX1NUQVJUX0xPQ0FMKGVhcmx5X3N0YWNrKQogCS5maWxsIDI1Niwg
-MSwgMAotZWFybHlfc3RhY2tfZW5kOgorU1lNX0RBVEFfRU5EX0xBQkVMKGVhcmx5X3N0YWNrLCBT
-WU1fTF9MT0NBTCwgZWFybHlfc3RhY2tfZW5kKQogCiAJRUxGTk9URShYZW4sIFhFTl9FTEZOT1RF
-X1BIWVMzMl9FTlRSWSwKIAkgICAgICAgICAgICAgX0FTTV9QVFIgKHB2aF9zdGFydF94ZW4gLSBf
-X1NUQVJUX0tFUk5FTF9tYXApKQotLSAKMi4xNi4zCgoKX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxA
-bGlzdHMueGVucHJvamVjdC5vcmcKaHR0cHM6Ly9saXN0cy54ZW5wcm9qZWN0Lm9yZy9tYWlsbWFu
-L2xpc3RpbmZvL3hlbi1kZXZlbA==
+All these are functions which are invoked from elsewhere, but they are
+not typical C functions. So we annotate them using the new
+SYM_CODE_START. All these were not balanced with any END, so mark their
+ends by SYM_CODE_END, appropriatelly.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
+Reviewed-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com> [hibernate]
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Len Brown <len.brown@intel.com>
+Cc: Pavel Machek <pavel@ucw.cz>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
+Cc: linux-pm@vger.kernel.org
+Cc: xen-devel@lists.xenproject.org
+---
+ arch/x86/entry/entry_32.S            | 3 ++-
+ arch/x86/kernel/acpi/wakeup_32.S     | 7 ++++---
+ arch/x86/kernel/ftrace_32.S          | 3 ++-
+ arch/x86/kernel/head_32.S            | 3 ++-
+ arch/x86/power/hibernate_asm_32.S    | 6 ++++--
+ arch/x86/realmode/rm/trampoline_32.S | 6 ++++--
+ arch/x86/xen/xen-asm_32.S            | 7 ++++---
+ 7 files changed, 22 insertions(+), 13 deletions(-)
+
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index f701541ecf10..75d9670bffd8 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -376,9 +376,10 @@ SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
+  * Xen doesn't set %esp to be precisely what the normal SYSENTER
+  * entry point expects, so fix it up before using the normal path.
+  */
+-ENTRY(xen_sysenter_target)
++SYM_CODE_START(xen_sysenter_target)
+ 	addl	$5*4, %esp			/* remove xen-provided frame */
+ 	jmp	.Lsysenter_past_esp
++SYM_CODE_END(xen_sysenter_target)
+ #endif
+ 
+ /*
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index feac1e5ecba0..71a05a6cc36a 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -8,8 +8,7 @@
+ 	.code32
+ 	ALIGN
+ 
+-ENTRY(wakeup_pmode_return)
+-wakeup_pmode_return:
++SYM_CODE_START(wakeup_pmode_return)
+ 	movw	$__KERNEL_DS, %ax
+ 	movw	%ax, %ss
+ 	movw	%ax, %fs
+@@ -38,6 +37,7 @@ wakeup_pmode_return:
+ 	# jump to place where we left off
+ 	movl	saved_eip, %eax
+ 	jmp	*%eax
++SYM_CODE_END(wakeup_pmode_return)
+ 
+ bogus_magic:
+ 	jmp	bogus_magic
+@@ -71,7 +71,7 @@ restore_registers:
+ 	popfl
+ 	ret
+ 
+-ENTRY(do_suspend_lowlevel)
++SYM_CODE_START(do_suspend_lowlevel)
+ 	call	save_processor_state
+ 	call	save_registers
+ 	pushl	$3
+@@ -86,6 +86,7 @@ ret_point:
+ 	call	restore_registers
+ 	call	restore_processor_state
+ 	ret
++SYM_CODE_END(do_suspend_lowlevel)
+ 
+ .data
+ ALIGN
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index b855dc10daeb..f4dca7df8ad6 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -102,7 +102,7 @@ WEAK(ftrace_stub)
+ 	ret
+ END(ftrace_caller)
+ 
+-ENTRY(ftrace_regs_caller)
++SYM_CODE_START(ftrace_regs_caller)
+ 	/*
+ 	 * i386 does not save SS and ESP when coming from kernel.
+ 	 * Instead, to get sp, &regs->sp is used (see ptrace.h).
+@@ -170,6 +170,7 @@ SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ 	lea	3*4(%esp), %esp			/* Skip orig_ax, ip and cs */
+ 
+ 	jmp	.Lftrace_ret
++SYM_CODE_END(ftrace_regs_caller)
+ #else /* ! CONFIG_DYNAMIC_FTRACE */
+ 
+ ENTRY(function_hook)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 1a6a6b4e4b4c..ba9df7cc545d 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -64,7 +64,7 @@ RESERVE_BRK(pagetables, INIT_MAP_SIZE)
+  * can.
+  */
+ __HEAD
+-ENTRY(startup_32)
++SYM_CODE_START(startup_32)
+ 	movl pa(initial_stack),%ecx
+ 	
+ 	/* test KEEP_SEGMENTS flag to see if the bootloader is asking
+@@ -172,6 +172,7 @@ num_subarch_entries = (. - subarch_entries) / 4
+ #else
+ 	jmp .Ldefault_entry
+ #endif /* CONFIG_PARAVIRT */
++SYM_CODE_END(startup_32)
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ /*
+diff --git a/arch/x86/power/hibernate_asm_32.S b/arch/x86/power/hibernate_asm_32.S
+index 6e56815e13a0..3cd15e34aa87 100644
+--- a/arch/x86/power/hibernate_asm_32.S
++++ b/arch/x86/power/hibernate_asm_32.S
+@@ -15,7 +15,7 @@
+ 
+ .text
+ 
+-ENTRY(swsusp_arch_suspend)
++SYM_CODE_START(swsusp_arch_suspend)
+ 	movl %esp, saved_context_esp
+ 	movl %ebx, saved_context_ebx
+ 	movl %ebp, saved_context_ebp
+@@ -26,8 +26,9 @@ ENTRY(swsusp_arch_suspend)
+ 
+ 	call swsusp_save
+ 	ret
++SYM_CODE_END(swsusp_arch_suspend)
+ 
+-ENTRY(restore_image)
++SYM_CODE_START(restore_image)
+ 	movl	mmu_cr4_features, %ecx
+ 	movl	resume_pg_dir, %eax
+ 	subl	$__PAGE_OFFSET, %eax
+@@ -83,3 +84,4 @@ done:
+ 	xorl	%eax, %eax
+ 
+ 	ret
++SYM_CODE_END(restore_image)
+diff --git a/arch/x86/realmode/rm/trampoline_32.S b/arch/x86/realmode/rm/trampoline_32.S
+index e96efcd60bf7..a3b047a44c5c 100644
+--- a/arch/x86/realmode/rm/trampoline_32.S
++++ b/arch/x86/realmode/rm/trampoline_32.S
+@@ -29,7 +29,7 @@
+ 	.code16
+ 
+ 	.balign	PAGE_SIZE
+-ENTRY(trampoline_start)
++SYM_CODE_START(trampoline_start)
+ 	wbinvd			# Needed for NUMA-Q should be harmless for others
+ 
+ 	LJMPW_RM(1f)
+@@ -57,11 +57,13 @@ ENTRY(trampoline_start)
+ 	lmsw	%dx			# into protected mode
+ 
+ 	ljmpl	$__BOOT_CS, $pa_startup_32
++SYM_CODE_END(trampoline_start)
+ 
+ 	.section ".text32","ax"
+ 	.code32
+-ENTRY(startup_32)			# note: also used from wakeup_asm.S
++SYM_CODE_START(startup_32)			# note: also used from wakeup_asm.S
+ 	jmp	*%eax
++SYM_CODE_END(startup_32)
+ 
+ 	.bss
+ 	.balign 8
+diff --git a/arch/x86/xen/xen-asm_32.S b/arch/x86/xen/xen-asm_32.S
+index c15db060a242..8b8f8355b938 100644
+--- a/arch/x86/xen/xen-asm_32.S
++++ b/arch/x86/xen/xen-asm_32.S
+@@ -56,7 +56,7 @@
+ 	_ASM_EXTABLE(1b,2b)
+ .endm
+ 
+-ENTRY(xen_iret)
++SYM_CODE_START(xen_iret)
+ 	/* test eflags for special cases */
+ 	testl $(X86_EFLAGS_VM | XEN_EFLAGS_NMI), 8(%esp)
+ 	jnz hyper_iret
+@@ -122,6 +122,7 @@ xen_iret_end_crit:
+ hyper_iret:
+ 	/* put this out of line since its very rarely used */
+ 	jmp hypercall_page + __HYPERVISOR_iret * 32
++SYM_CODE_END(xen_iret)
+ 
+ 	.globl xen_iret_start_crit, xen_iret_end_crit
+ 
+@@ -165,7 +166,7 @@ hyper_iret:
+  * SAVE_ALL state before going on, since it's usermode state which we
+  * eventually need to restore.
+  */
+-ENTRY(xen_iret_crit_fixup)
++SYM_CODE_START(xen_iret_crit_fixup)
+ 	/*
+ 	 * Paranoia: Make sure we're really coming from kernel space.
+ 	 * One could imagine a case where userspace jumps into the
+@@ -204,4 +205,4 @@ ENTRY(xen_iret_crit_fixup)
+ 
+ 	lea 4(%edi), %esp		/* point esp to new frame */
+ 2:	jmp xen_do_upcall
+-
++SYM_CODE_END(xen_iret_crit_fixup)
+-- 
+2.16.3
