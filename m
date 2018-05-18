@@ -1,102 +1,52 @@
-From: Alexey Brodkin <Alexey.Brodkin-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
-Subject: Re: dma_sync_*_for_cpu and direction=TO_DEVICE (was Re: [PATCH
-	02/20] dma-mapping: provide a generic dma-noncoherent implementation)
-Date: Fri, 18 May 2018 19:57:34 +0000
-Message-ID: <182840dedb4890a88c672b1c5d556920bf89a8fb.camel@synopsys.com>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH 02/20] dma-mapping: provide a generic dma-noncoherent
+ implementation
+Date: Fri, 18 May 2018 22:05:51 +0200
+Message-ID: <0c5d27e9-2799-eb38-8b09-47a04c48b5c7@gmx.de>
 References: <20180511075945.16548-1-hch@lst.de>
-	<20180511075945.16548-3-hch@lst.de>
-	<bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
-	<5ac5b1e3-9b96-9c7c-4dfe-f65be45ec179@synopsys.com>
-	<20180518175004.GF17671@n2100.armlinux.org.uk>
+ <20180511075945.16548-3-hch@lst.de>
+ <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180518175004.GF17671-l+eeeJia6m9URfEZ8mYm6t73F7V6hmMc@public.gmane.org>
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
 Content-Language: en-US
-Content-ID: <FBDD463EE3FC3543A056335FD62CF42C-z7JfP6tgrtVBCHUSTMH8dZqQE7yCjDx5@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: "linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org" <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>
-Cc: "linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, "sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "hch-jcswGhMUV9g@public.gmane.org" <hch-jcswGhMUV9g@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org" <linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org>, "linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org" <linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org>, "Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org" <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, "linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org" <linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org>, "openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org" <openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org>, "green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, monstr@mons
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparcl>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Russel,
+On 18.05.2018 15:03, Alexey Brodkin wrote:
+> But the real fix of my problem is:
+> ---------------------------------------->8------------------------------------
+> --- a/lib/dma-noncoherent.c
+> +++ b/lib/dma-noncoherent.c
+> @@ -35,7 +35,7 @@ static dma_addr_t dma_noncoherent_map_page(struct device *dev, struct page *page
+>  
+>         addr = dma_direct_map_page(dev, page, offset, size, dir, attrs);
+>         if (!dma_mapping_error(dev, addr) && !(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+> -               arch_sync_dma_for_device(dev, page_to_phys(page), size, dir);
+> +               arch_sync_dma_for_device(dev, page_to_phys(page) + offset, size, dir);
+>         return addr;
+>  }
+> ---------------------------------------->8------------------------------------
+> 
+> You seem to lost an offset in the page so if we happen to have a buffer not aligned to
+> a page boundary then we were obviously corrupting data outside our data :)
 
-On Fri, 2018-05-18 at 18:50 +0100, Russell King - ARM Linux wrote:
-> It's necessary.  Take a moment to think carefully about this:
-> 
->         dma_map_single(, dir)
-> 
->         dma_sync_single_for_cpu(, dir)
-> 
->         dma_sync_single_for_device(, dir)
-> 
->         dma_unmap_single(, dir)
-> 
-> In the case of a DMA-incoherent architecture, the operations done at each
-> stage depend on the direction argument:
-> 
->         map             for_cpu         for_device      unmap
-> TO_DEV  writeback       none            writeback       none
-> TO_CPU  invalidate      invalidate*     invalidate      invalidate*
-> BIDIR   writeback       invalidate      writeback       invalidate
-> 
-> * - only necessary if the CPU speculatively prefetches.
+Good.
+This patch seems to fix the dma issues I faced on my 32bit B160L parisc box.
 
-I think invalidation of DMA buffer is required on for_cpu(TO_CPU) even
-if CPU doesn't preferch - what if we reuse the same buffer for multiple
-reads from DMA device?
+So it leaves only one open issue on parisc:
+Now every 32 bit parisc system is unnecessarily non-coherent.
 
-> The multiple invalidations for the TO_CPU case handles different
-> conditions that can result in data corruption, and for some CPUs, all
-> four are necessary.
-
-I would agree that map()/unmap() a quite a special cases and so depending
-on direction we need to execute in them either for_cpu() or for_device()
-call-backs depending on direction.
-
-As for invalidation in case of for_device(TO_CPU) I still don't see
-a rationale behind it. Would be interesting to see a real example where
-we benefit from this.
-
-> This is what is implemented for 32-bit ARM, depending on the CPU
-> capabilities, as we have DMA incoherent devices and we have CPUs that
-> speculatively prefetch data, and so may load data into the caches while
-> DMA is in operation.
-> 
-> 
-> Things get more interesting if the implementation behind the DMA API has
-> to copy data between the buffer supplied to the mapping and some DMA
-> accessible buffer:
-> 
->         map             for_cpu         for_device      unmap
-> TO_DEV  copy to dma     none            copy to dma     none
-> TO_CPU  none            copy to cpu     none            copy to cpu
-> BIDIR   copy to dma     copy to cpu     copy to dma     copy to cpu
-> 
-> So, in both cases, the value of the direction argument defines what you
-> need to do in each call.
-
-Interesting enough in your seond table (which describes more complicated
-case indeed) you set "none" for for_device(TO_CPU) which looks logical
-to me.
-
-So IMHO that's what make sense:
----------------------------->8-----------------------------
-        map             for_cpu         for_device      unmap
-TO_DEV  writeback       none            writeback       none
-TO_CPU  none            invalidate      none            invalidate*
-BIDIR   writeback       invalidate      writeback       invalidate*
----------------------------->8-----------------------------
-
-* is the case for prefetching CPU.
-
--Alexey
+Helge
