@@ -1,97 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45365 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:45430 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753096AbeERJRa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 05:17:30 -0400
+        id S1753016AbeERJRi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 May 2018 05:17:38 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 03/28] x86/asm/suspend: use SYM_DATA for data
-Date: Fri, 18 May 2018 11:16:56 +0200
-Message-ID: <20180518091721.7604-4-jslaby@suse.cz>
+Subject: [PATCH v6 09/28] x86/asm: annotate aliases
+Date: Fri, 18 May 2018 11:17:02 +0200
+Message-ID: <20180518091721.7604-10-jslaby@suse.cz>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
-Message-ID: <20180518091656.IqpLmB89NXhxhsH3dKSSqs0Mdckpa77cP-TkgWo0m2A@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, linux-crypto@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180518091702.0rly3KF577TRrL0QkEOYSARl8qcKIboS8biTBRqvvKA@z>
 
-Some global data in the suspend code were marked as `ENTRY'. ENTRY was
-intended for functions and shall be paired with ENDPROC. ENTRY also
-aligns symbols which creates unnecessary holes here between data. Since
-we are dropping historical markings, make proper use of newly added
-SYM_DATA in this code.
+_key_expansion_128 is an alias to _key_expansion_256a, __memcpy to
+memcpy, xen_syscall32_target to xen_sysenter_target, and so on. Annotate
+them all using the new SYM_FUNC_START_ALIAS, SYM_FUNC_START_LOCAL_ALIAS,
+and SYM_FUNC_END_ALIAS. This will make the tools generating the
+debuginfo happy.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Pavel Machek <pavel@ucw.cz>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-pm@vger.kernel.org
+Cc: <x86@kernel.org>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
+Reviewed-by: Juergen Gross <jgross@suse.com> [xen parts]
+Cc: <linux-crypto@vger.kernel.org>
+Cc: <xen-devel@lists.xenproject.org>
 ---
- arch/x86/kernel/acpi/wakeup_32.S | 2 +-
- arch/x86/kernel/acpi/wakeup_64.S | 2 +-
- arch/x86/kernel/head_32.S        | 6 ++----
- arch/x86/kernel/head_64.S        | 5 ++---
- 4 files changed, 6 insertions(+), 9 deletions(-)
+ arch/x86/crypto/aesni-intel_asm.S | 5 ++---
+ arch/x86/lib/memcpy_64.S          | 4 ++--
+ arch/x86/lib/memmove_64.S         | 4 ++--
+ arch/x86/lib/memset_64.S          | 4 ++--
+ arch/x86/xen/xen-asm_64.S         | 4 ++--
+ 5 files changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
-index 4203d4f0c68d..feac1e5ecba0 100644
---- a/arch/x86/kernel/acpi/wakeup_32.S
-+++ b/arch/x86/kernel/acpi/wakeup_32.S
-@@ -89,7 +89,7 @@ ret_point:
+diff --git a/arch/x86/crypto/aesni-intel_asm.S b/arch/x86/crypto/aesni-intel_asm.S
+index b482ac1a1fb3..c85ecb163c78 100644
+--- a/arch/x86/crypto/aesni-intel_asm.S
++++ b/arch/x86/crypto/aesni-intel_asm.S
+@@ -1761,8 +1761,7 @@ ENDPROC(aesni_gcm_finalize)
+ #endif
  
- .data
- ALIGN
--ENTRY(saved_magic)	.long	0
-+SYM_DATA(saved_magic,	.long 0)
- saved_eip:		.long 0
  
- # saved registers
-diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index 510fa12aab73..551758f48eb7 100644
---- a/arch/x86/kernel/acpi/wakeup_64.S
-+++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -133,4 +133,4 @@ saved_rbx:		.quad	0
- saved_rip:		.quad	0
- saved_rsp:		.quad	0
+-.align 4
+-_key_expansion_128:
++SYM_FUNC_START_LOCAL_ALIAS(_key_expansion_128)
+ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	pshufd $0b11111111, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+@@ -1773,8 +1772,8 @@ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	movaps %xmm0, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_128)
+ SYM_FUNC_END(_key_expansion_256a)
++SYM_FUNC_END_ALIAS(_key_expansion_128)
  
--ENTRY(saved_magic)	.quad	0
-+SYM_DATA(saved_magic,	.quad	0)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index b59e4fb40fd9..80965fd75fea 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
+ SYM_FUNC_START_LOCAL(_key_expansion_192a)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
+index 9a53a06e5a3e..4911b1c61aa8 100644
+--- a/arch/x86/lib/memcpy_64.S
++++ b/arch/x86/lib/memcpy_64.S
+@@ -26,7 +26,7 @@
+  * Output:
+  * rax original destination
+  */
+-ENTRY(__memcpy)
++SYM_FUNC_START_ALIAS(__memcpy)
+ ENTRY(memcpy)
+ 	ALTERNATIVE_2 "jmp memcpy_orig", "", X86_FEATURE_REP_GOOD, \
+ 		      "jmp memcpy_erms", X86_FEATURE_ERMS
+@@ -40,7 +40,7 @@ ENTRY(memcpy)
+ 	rep movsb
+ 	ret
+ ENDPROC(memcpy)
+-ENDPROC(__memcpy)
++SYM_FUNC_END_ALIAS(__memcpy)
+ EXPORT_SYMBOL(memcpy)
+ EXPORT_SYMBOL(__memcpy)
  
- __REFDATA
- 	.align 4
--ENTRY(initial_code)
--	.long i386_start_kernel
--ENTRY(setup_once_ref)
--	.long setup_once
-+SYM_DATA(initial_code,		.long i386_start_kernel)
-+SYM_DATA(setup_once_ref,	.long setup_once)
+diff --git a/arch/x86/lib/memmove_64.S b/arch/x86/lib/memmove_64.S
+index bbec69d8223b..50c1648311b3 100644
+--- a/arch/x86/lib/memmove_64.S
++++ b/arch/x86/lib/memmove_64.S
+@@ -26,7 +26,7 @@
+  */
+ .weak memmove
  
- /*
-  * BSS section
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 8344dd2f310a..17543533642d 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -463,9 +463,8 @@ early_gdt_descr:
- early_gdt_descr_base:
- 	.quad	INIT_PER_CPU_VAR(gdt_page)
+-ENTRY(memmove)
++SYM_FUNC_START_ALIAS(memmove)
+ ENTRY(__memmove)
  
--ENTRY(phys_base)
--	/* This must match the first entry in level2_kernel_pgt */
--	.quad   0x0000000000000000
-+/* This must match the first entry in level2_kernel_pgt */
-+SYM_DATA(phys_base, .quad 0x0000000000000000)
- EXPORT_SYMBOL(phys_base)
+ 	/* Handle more 32 bytes in loop */
+@@ -208,6 +208,6 @@ ENTRY(__memmove)
+ 13:
+ 	retq
+ ENDPROC(__memmove)
+-ENDPROC(memmove)
++SYM_FUNC_END_ALIAS(memmove)
+ EXPORT_SYMBOL(__memmove)
+ EXPORT_SYMBOL(memmove)
+diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
+index 9bc861c71e75..927ac44d34aa 100644
+--- a/arch/x86/lib/memset_64.S
++++ b/arch/x86/lib/memset_64.S
+@@ -19,7 +19,7 @@
+  *
+  * rax   original destination
+  */
+-ENTRY(memset)
++SYM_FUNC_START_ALIAS(memset)
+ ENTRY(__memset)
+ 	/*
+ 	 * Some CPUs support enhanced REP MOVSB/STOSB feature. It is recommended
+@@ -43,8 +43,8 @@ ENTRY(__memset)
+ 	rep stosb
+ 	movq %r9,%rax
+ 	ret
+-ENDPROC(memset)
+ ENDPROC(__memset)
++SYM_FUNC_END_ALIAS(memset)
+ EXPORT_SYMBOL(memset)
+ EXPORT_SYMBOL(__memset)
  
- #include "../../x86/xen/xen-head.S"
+diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
+index 417b339e5c8e..e8f6f482bb20 100644
+--- a/arch/x86/xen/xen-asm_64.S
++++ b/arch/x86/xen/xen-asm_64.S
+@@ -164,13 +164,13 @@ ENDPROC(xen_sysenter_target)
+ 
+ #else /* !CONFIG_IA32_EMULATION */
+ 
+-ENTRY(xen_syscall32_target)
++SYM_FUNC_START_ALIAS(xen_syscall32_target)
+ ENTRY(xen_sysenter_target)
+ 	lea 16(%rsp), %rsp	/* strip %rcx, %r11 */
+ 	mov $-ENOSYS, %rax
+ 	pushq $0
+ 	jmp hypercall_iret
+-ENDPROC(xen_syscall32_target)
+ ENDPROC(xen_sysenter_target)
++SYM_FUNC_END_ALIAS(xen_syscall32_target)
+ 
+ #endif	/* CONFIG_IA32_EMULATION */
 -- 
 2.16.3
