@@ -1,35 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45372 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:45431 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753099AbeERJRa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 05:17:30 -0400
+        id S1753045AbeERJRi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 May 2018 05:17:38 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 04/28] x86/asm: annotate relocate_kernel
-Date: Fri, 18 May 2018 11:16:57 +0200
-Message-ID: <20180518091721.7604-5-jslaby@suse.cz>
+Subject: [PATCH v6 11/28] x86/asm/head: annotate data appropriatelly
+Date: Fri, 18 May 2018 11:17:04 +0200
+Message-ID: <20180518091721.7604-12-jslaby@suse.cz>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20180518091657.A1ls78j7oBd-Ayg_c9-FbRbaoMrSuJL77GebD1mkS6s@z>
+Message-ID: <20180518091704.5oKKmkJpPISMHJYO1JTLKPOeDhYXUqRKMizfJpVz5tw@z>
 
-There are functions in relocate_kernel which are not annotated. This
-makes automatic annotations rather hard. So annotate all the functions
-now.
+Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END in both 32 and 64
+bit heads.  In the 64-bit version, define also
+SYM_DATA_START_PAGE_ALIGNED locally using the new SYM_START. It is used
+in the code instead of NEXT_PAGE() which was defined in this file and
+has been using the obsolete macro GLOBAL().
 
-Note that these are not C-like functions, so we do not use FUNC, but
-CODE markers. Also they are not aligned, so we use the NOALIGN versions:
-- SYM_CODE_START_NOALIGN
-- SYM_CODE_START_LOCAL_NOALIGN
-- SYM_CODE_END
+Now, the data in the 64-bit object file look sane:
+Value   Size Type    Bind   Vis      Ndx Name
+  0000  4096 OBJECT  GLOBAL DEFAULT   15 init_level4_pgt
+  1000  4096 OBJECT  GLOBAL DEFAULT   15 level3_kernel_pgt
+  2000  2048 OBJECT  GLOBAL DEFAULT   15 level2_kernel_pgt
+  3000  4096 OBJECT  GLOBAL DEFAULT   15 level2_fixmap_pgt
+  4000  4096 OBJECT  GLOBAL DEFAULT   15 level1_fixmap_pgt
+  5000     2 OBJECT  GLOBAL DEFAULT   15 early_gdt_descr
+  5002     8 OBJECT  LOCAL  DEFAULT   15 early_gdt_descr_base
+  500a     8 OBJECT  GLOBAL DEFAULT   15 phys_base
+  0000     8 OBJECT  GLOBAL DEFAULT   17 initial_code
+  0008     8 OBJECT  GLOBAL DEFAULT   17 initial_gs
+  0010     8 OBJECT  GLOBAL DEFAULT   17 initial_stack
+  0000     4 OBJECT  GLOBAL DEFAULT   19 early_recursion_flag
+  1000  4096 OBJECT  GLOBAL DEFAULT   19 early_level4_pgt
+  2000 0x40000 OBJECT  GLOBAL DEFAULT   19 early_dynamic_pgts
+  0000  4096 OBJECT  GLOBAL DEFAULT   22 empty_zero_page
 
-In return, we get:
-  0000   108 NOTYPE  GLOBAL DEFAULT    1 relocate_kernel
-  006c   165 NOTYPE  LOCAL  DEFAULT    1 identity_mapped
-  0146   127 NOTYPE  LOCAL  DEFAULT    1 swap_pages
-  0111    53 NOTYPE  LOCAL  DEFAULT    1 virtual_mapped
+All have correct size and type.
+
+Note, that we can now see that it might be worth pushing
+early_recursion_flag after early_dynamic_pgts -- we are wasting almost
+4K of .init.data.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
@@ -37,121 +51,265 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 ---
- arch/x86/kernel/relocate_kernel_32.S | 13 ++++++++-----
- arch/x86/kernel/relocate_kernel_64.S | 13 ++++++++-----
- 2 files changed, 16 insertions(+), 10 deletions(-)
+ arch/x86/kernel/head_32.S | 29 ++++++++++--------
+ arch/x86/kernel/head_64.S | 78 +++++++++++++++++++++++++----------------------
+ 2 files changed, 58 insertions(+), 49 deletions(-)
 
-diff --git a/arch/x86/kernel/relocate_kernel_32.S b/arch/x86/kernel/relocate_kernel_32.S
-index 77630d57e7bf..74d7891fc026 100644
---- a/arch/x86/kernel/relocate_kernel_32.S
-+++ b/arch/x86/kernel/relocate_kernel_32.S
-@@ -37,8 +37,7 @@
- #define CP_PA_BACKUP_PAGES_MAP	DATA(0x1c)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 727632a20110..1a6a6b4e4b4c 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -502,8 +502,7 @@ ENDPROC(early_ignore_irq)
  
- 	.text
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
- 	/* Save the CPU context, used for jumping back */
+ __INITDATA
+ 	.align 4
+-GLOBAL(early_recursion_flag)
+-	.long 0
++SYM_DATA(early_recursion_flag, .long 0)
  
- 	pushl	%ebx
-@@ -95,8 +94,9 @@ relocate_kernel:
- 	addl    $(identity_mapped - relocate_kernel), %eax
- 	pushl   %eax
- 	ret
-+SYM_CODE_END(relocate_kernel)
- 
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushl	$0
- 	/* store the start address on the stack */
-@@ -193,8 +193,9 @@ identity_mapped:
- 	addl	$(virtual_mapped - relocate_kernel), %eax
- 	pushl	%eax
- 	ret
-+SYM_CODE_END(identity_mapped)
- 
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movl	CR4(%edi), %eax
- 	movl	%eax, %cr4
- 	movl	CR3(%edi), %eax
-@@ -210,9 +211,10 @@ virtual_mapped:
- 	popl	%esi
- 	popl	%ebx
- 	ret
-+SYM_CODE_END(virtual_mapped)
- 
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movl	8(%esp), %edx
- 	movl	4(%esp), %ecx
- 	pushl	%ebp
-@@ -272,6 +274,7 @@ swap_pages:
- 	popl	%ebx
- 	popl	%ebp
- 	ret
-+SYM_CODE_END(swap_pages)
- 
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
-diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/relocate_kernel_64.S
-index 11eda21eb697..beb78767a5b3 100644
---- a/arch/x86/kernel/relocate_kernel_64.S
-+++ b/arch/x86/kernel/relocate_kernel_64.S
-@@ -40,8 +40,7 @@
- 	.text
+ __REFDATA
+ 	.align 4
+@@ -541,7 +540,7 @@ EXPORT_SYMBOL(empty_zero_page)
+ __PAGE_ALIGNED_DATA
+ 	/* Page-aligned for the benefit of paravirt? */
  	.align PAGE_SIZE
- 	.code64
--	.globl relocate_kernel
--relocate_kernel:
-+SYM_CODE_START_NOALIGN(relocate_kernel)
+-ENTRY(initial_page_table)
++SYM_DATA_START(initial_page_table)
+ 	.long	pa(initial_pg_pmd+PGD_IDENT_ATTR),0	/* low identity map */
+ # if KPMDS == 3
+ 	.long	pa(initial_pg_pmd+PGD_IDENT_ATTR),0
+@@ -559,17 +558,18 @@ ENTRY(initial_page_table)
+ #  error "Kernel PMDs should be 1, 2 or 3"
+ # endif
+ 	.align PAGE_SIZE		/* needs to be page-sized too */
++SYM_DATA_END(initial_page_table)
+ #endif
+ 
+ .data
+ .balign 4
+-ENTRY(initial_stack)
+-	/*
+-	 * The SIZEOF_PTREGS gap is a convention which helps the in-kernel
+-	 * unwinder reliably detect the end of the stack.
+-	 */
+-	.long init_thread_union + THREAD_SIZE - SIZEOF_PTREGS - \
+-	      TOP_OF_KERNEL_STACK_PADDING;
++/*
++ * The SIZEOF_PTREGS gap is a convention which helps the in-kernel unwinder
++ * reliably detect the end of the stack.
++ */
++SYM_DATA(initial_stack,
++		.long init_thread_union + THREAD_SIZE -
++		SIZEOF_PTREGS - TOP_OF_KERNEL_STACK_PADDING)
+ 
+ __INITRODATA
+ int_msg:
+@@ -590,22 +590,25 @@ int_msg:
+ 	ALIGN
+ # early boot GDT descriptor (must use 1:1 address mapping)
+ 	.word 0				# 32 bit align gdt_desc.address
+-boot_gdt_descr:
++SYM_DATA_START(boot_gdt_descr)
+ 	.word __BOOT_DS+7
+ 	.long boot_gdt - __PAGE_OFFSET
++SYM_DATA_END(boot_gdt_descr)
+ 
+ # boot GDT descriptor (later on used by CPU#0):
+ 	.word 0				# 32 bit align gdt_desc.address
+-ENTRY(early_gdt_descr)
++SYM_DATA_START(early_gdt_descr)
+ 	.word GDT_ENTRIES*8-1
+ 	.long gdt_page			/* Overwritten for secondary CPUs */
++SYM_DATA_END(early_gdt_descr)
+ 
+ /*
+  * The boot_gdt must mirror the equivalent in setup.S and is
+  * used only for booting.
+  */
+ 	.align L1_CACHE_BYTES
+-ENTRY(boot_gdt)
++SYM_DATA_START(boot_gdt)
+ 	.fill GDT_ENTRY_BOOT_CS,8,0
+ 	.quad 0x00cf9a000000ffff	/* kernel 4GB code at 0x00000000 */
+ 	.quad 0x00cf92000000ffff	/* kernel 4GB data at 0x00000000 */
++SYM_DATA_END(boot_gdt)
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index d3a0f5b1f1b6..80b620c824eb 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -261,16 +261,14 @@ ENDPROC(start_cpu0)
+ 	/* Both SMP bootup and ACPI suspend change these variables */
+ 	__REFDATA
+ 	.balign	8
+-	GLOBAL(initial_code)
+-	.quad	x86_64_start_kernel
+-	GLOBAL(initial_gs)
+-	.quad	INIT_PER_CPU_VAR(irq_stack_union)
+-	GLOBAL(initial_stack)
+-	/*
+-	 * The SIZEOF_PTREGS gap is a convention which helps the in-kernel
+-	 * unwinder reliably detect the end of the stack.
+-	 */
+-	.quad  init_thread_union + THREAD_SIZE - SIZEOF_PTREGS
++SYM_DATA(initial_code,	.quad x86_64_start_kernel)
++SYM_DATA(initial_gs,	.quad INIT_PER_CPU_VAR(irq_stack_union))
++/*
++ * The SIZEOF_PTREGS gap is a convention which helps the in-kernel unwinder
++ * reliably detect the end of the stack.
++ */
++SYM_DATA(initial_stack,
++		.quad init_thread_union + THREAD_SIZE - SIZEOF_PTREGS)
+ 	__FINITDATA
+ 
+ 	__INIT
+@@ -339,12 +337,10 @@ SYM_CODE_END(early_idt_handler_common)
+ 	__INITDATA
+ 
+ 	.balign 4
+-GLOBAL(early_recursion_flag)
+-	.long 0
++SYM_DATA(early_recursion_flag, .long 0)
+ 
+-#define NEXT_PAGE(name) \
+-	.balign	PAGE_SIZE; \
+-GLOBAL(name)
++#define SYM_DATA_START_PAGE_ALIGNED(name)			\
++	SYM_START(name, SYM_L_GLOBAL, .balign PAGE_SIZE)
+ 
+ #ifdef CONFIG_PAGE_TABLE_ISOLATION
+ /*
+@@ -359,11 +355,11 @@ GLOBAL(name)
+  */
+ #define PTI_USER_PGD_FILL	512
+ /* This ensures they are 8k-aligned: */
+-#define NEXT_PGD_PAGE(name) \
+-	.balign 2 * PAGE_SIZE; \
+-GLOBAL(name)
++#define SYM_DATA_START_KAISER_ALIGNED(name) \
++	SYM_START(name, SYM_L_GLOBAL, .balign 2 * PAGE_SIZE)
+ #else
+-#define NEXT_PGD_PAGE(name) NEXT_PAGE(name)
++#define SYM_DATA_START_KAISER_ALIGNED(name) \
++	SYM_DATA_START_PAGE_ALIGNED(name)
+ #define PTI_USER_PGD_FILL	0
+ #endif
+ 
+@@ -376,17 +372,19 @@ GLOBAL(name)
+ 	.endr
+ 
+ 	__INITDATA
+-NEXT_PGD_PAGE(early_top_pgt)
++SYM_DATA_START_KAISER_ALIGNED(early_top_pgt)
+ 	.fill	512,8,0
+ 	.fill	PTI_USER_PGD_FILL,8,0
++SYM_DATA_END(early_top_pgt)
+ 
+-NEXT_PAGE(early_dynamic_pgts)
++SYM_DATA_START_PAGE_ALIGNED(early_dynamic_pgts)
+ 	.fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
++SYM_DATA_END(early_dynamic_pgts)
+ 
+ 	.data
+ 
+ #if defined(CONFIG_XEN_PV) || defined(CONFIG_XEN_PVH)
+-NEXT_PGD_PAGE(init_top_pgt)
++SYM_DATA_START_KAISER_ALIGNED(init_top_pgt)
+ 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+ 	.org    init_top_pgt + L4_PAGE_OFFSET*8, 0
+ 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+@@ -394,11 +392,13 @@ NEXT_PGD_PAGE(init_top_pgt)
+ 	/* (2^48-(2*1024*1024*1024))/(2^39) = 511 */
+ 	.quad   level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
+ 	.fill	PTI_USER_PGD_FILL,8,0
++SYM_DATA_END(init_top_pgt)
+ 
+-NEXT_PAGE(level3_ident_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level3_ident_pgt)
+ 	.quad	level2_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+ 	.fill	511, 8, 0
+-NEXT_PAGE(level2_ident_pgt)
++SYM_DATA_END(level3_ident_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level2_ident_pgt)
  	/*
- 	 * %rdi indirection_page
- 	 * %rsi page_list
-@@ -105,8 +104,9 @@ relocate_kernel:
- 	addq	$(identity_mapped - relocate_kernel), %r8
- 	pushq	%r8
- 	ret
-+SYM_CODE_END(relocate_kernel)
+ 	 * Since I easily can, map the first 1G.
+ 	 * Don't set NX because code runs from these pages.
+@@ -408,25 +408,29 @@ NEXT_PAGE(level2_ident_pgt)
+ 	 * the CPU should ignore the bit.
+ 	 */
+ 	PMDS(0, __PAGE_KERNEL_IDENT_LARGE_EXEC, PTRS_PER_PMD)
++SYM_DATA_END(level2_ident_pgt)
+ #else
+-NEXT_PGD_PAGE(init_top_pgt)
++SYM_DATA_START_KAISER_ALIGNED(init_top_pgt)
+ 	.fill	512,8,0
+ 	.fill	PTI_USER_PGD_FILL,8,0
++SYM_DATA_END(init_top_pgt)
+ #endif
  
--identity_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(identity_mapped)
- 	/* set return address to 0 if not preserving context */
- 	pushq	$0
- 	/* store the start address on the stack */
-@@ -211,8 +211,9 @@ identity_mapped:
- 	movq	$virtual_mapped, %rax
- 	pushq	%rax
- 	ret
-+SYM_CODE_END(identity_mapped)
+ #ifdef CONFIG_X86_5LEVEL
+-NEXT_PAGE(level4_kernel_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level4_kernel_pgt)
+ 	.fill	511,8,0
+ 	.quad	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
++SYM_DATA_END(level4_kernel_pgt)
+ #endif
  
--virtual_mapped:
-+SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
- 	movq	RSP(%r8), %rsp
- 	movq	CR4(%r8), %rax
- 	movq	%rax, %cr4
-@@ -230,9 +231,10 @@ virtual_mapped:
- 	popq	%rbp
- 	popq	%rbx
- 	ret
-+SYM_CODE_END(virtual_mapped)
+-NEXT_PAGE(level3_kernel_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level3_kernel_pgt)
+ 	.fill	L3_START_KERNEL,8,0
+ 	/* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
+ 	.quad	level2_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+ 	.quad	level2_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
++SYM_DATA_END(level3_kernel_pgt)
  
- 	/* Do the copies */
--swap_pages:
-+SYM_CODE_START_LOCAL_NOALIGN(swap_pages)
- 	movq	%rdi, %rcx 	/* Put the page_list in %rcx */
- 	xorl	%edi, %edi
- 	xorl	%esi, %esi
-@@ -285,6 +287,7 @@ swap_pages:
- 	jmp	0b
- 3:
- 	ret
-+SYM_CODE_END(swap_pages)
+-NEXT_PAGE(level2_kernel_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level2_kernel_pgt)
+ 	/*
+ 	 * 512 MB kernel mapping. We spend a full page on this pagetable
+ 	 * anyway.
+@@ -443,25 +447,26 @@ NEXT_PAGE(level2_kernel_pgt)
+ 	 */
+ 	PMDS(0, __PAGE_KERNEL_LARGE_EXEC,
+ 		KERNEL_IMAGE_SIZE/PMD_SIZE)
++SYM_DATA_END(level2_kernel_pgt)
  
- 	.globl kexec_control_code_size
- .set kexec_control_code_size, . - relocate_kernel
+-NEXT_PAGE(level2_fixmap_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level2_fixmap_pgt)
+ 	.fill	506,8,0
+ 	.quad	level1_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
+ 	/* 8MB reserved for vsyscalls + a 2MB hole = 4 + 1 entries */
+ 	.fill	5,8,0
++SYM_DATA_END(level2_fixmap_pgt)
+ 
+-NEXT_PAGE(level1_fixmap_pgt)
++SYM_DATA_START_PAGE_ALIGNED(level1_fixmap_pgt)
+ 	.fill	512,8,0
++SYM_DATA_END(level1_fixmap_pgt)
+ 
+ #undef PMDS
+ 
+ 	.data
+ 	.align 16
+-	.globl early_gdt_descr
+-early_gdt_descr:
+-	.word	GDT_ENTRIES*8-1
+-early_gdt_descr_base:
+-	.quad	INIT_PER_CPU_VAR(gdt_page)
++
++SYM_DATA(early_gdt_descr,		.word GDT_ENTRIES*8-1)
++SYM_DATA_LOCAL(early_gdt_descr_base,	.quad INIT_PER_CPU_VAR(gdt_page))
+ 
+ /* This must match the first entry in level2_kernel_pgt */
+ SYM_DATA(phys_base, .quad 0x0000000000000000)
+@@ -470,7 +475,8 @@ EXPORT_SYMBOL(phys_base)
+ #include "../../x86/xen/xen-head.S"
+ 
+ 	__PAGE_ALIGNED_BSS
+-NEXT_PAGE(empty_zero_page)
++SYM_DATA_START_PAGE_ALIGNED(empty_zero_page)
+ 	.skip PAGE_SIZE
++SYM_DATA_END(empty_zero_page)
+ EXPORT_SYMBOL(empty_zero_page)
+ 
 -- 
 2.16.3
