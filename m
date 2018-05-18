@@ -1,49 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.gmx.net ([212.227.15.15]:60089 "EHLO mout.gmx.net"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751156AbeERUG0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 16:06:26 -0400
-Subject: Re: [PATCH 02/20] dma-mapping: provide a generic dma-noncoherent
- implementation
+Received: from smtprelay6.synopsys.com ([198.182.37.59]:59177 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751952AbeERUfY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2018 16:35:24 -0400
+Subject: Re: dma_sync_*_for_cpu and direction=TO_DEVICE (was Re: [PATCH 02/20]
+ dma-mapping: provide a generic dma-noncoherent implementation)
 References: <20180511075945.16548-1-hch@lst.de>
  <20180511075945.16548-3-hch@lst.de>
  <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
-From: Helge Deller <deller@gmx.de>
-Message-ID: <0c5d27e9-2799-eb38-8b09-47a04c48b5c7@gmx.de>
-Date: Fri, 18 May 2018 22:05:51 +0200
+ <5ac5b1e3-9b96-9c7c-4dfe-f65be45ec179@synopsys.com>
+ <20180518175004.GF17671@n2100.armlinux.org.uk>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <cecfe6bd-ef1f-1e25-bfcf-992d1f828efb@synopsys.com>
+Date: Fri, 18 May 2018 13:35:08 -0700
 MIME-Version: 1.0
-In-Reply-To: <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <20180518175004.GF17671@n2100.armlinux.org.uk>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 8bit
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
-Cc: "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>
-Message-ID: <20180518200551.aByBFr8EeeSLuz_l22mTlru09Y5aj-xfbeuhDhjkPdc@z>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20180518203508.JT0jkyWHE9Q9-gNUEgz9nsaUjYwQf8tLo0XsBeNi99A@z>
 
-On 18.05.2018 15:03, Alexey Brodkin wrote:
-> But the real fix of my problem is:
-> ---------------------------------------->8------------------------------------
-> --- a/lib/dma-noncoherent.c
-> +++ b/lib/dma-noncoherent.c
-> @@ -35,7 +35,7 @@ static dma_addr_t dma_noncoherent_map_page(struct device *dev, struct page *page
->  
->         addr = dma_direct_map_page(dev, page, offset, size, dir, attrs);
->         if (!dma_mapping_error(dev, addr) && !(attrs & DMA_ATTR_SKIP_CPU_SYNC))
-> -               arch_sync_dma_for_device(dev, page_to_phys(page), size, dir);
-> +               arch_sync_dma_for_device(dev, page_to_phys(page) + offset, size, dir);
->         return addr;
->  }
-> ---------------------------------------->8------------------------------------
-> 
-> You seem to lost an offset in the page so if we happen to have a buffer not aligned to
-> a page boundary then we were obviously corrupting data outside our data :)
+On 05/18/2018 10:50 AM, Russell King - ARM Linux wrote:
+> On Fri, May 18, 2018 at 10:20:02AM -0700, Vineet Gupta wrote:
+>> I never understood the need for this direction. And if memory serves me
+>> right, at that time I was seeing twice the amount of cache flushing !
+> It's necessary.  Take a moment to think carefully about this:
+>
+> 	dma_map_single(, dir)
+>
+> 	dma_sync_single_for_cpu(, dir)
+>
+> 	dma_sync_single_for_device(, dir)
+>
+> 	dma_unmap_single(, dir)
 
-Good.
-This patch seems to fix the dma issues I faced on my 32bit B160L parisc box.
+As an aside, do these imply a state machine of sorts - does a driver needs to 
+always call map_single first ?
 
-So it leaves only one open issue on parisc:
-Now every 32 bit parisc system is unnecessarily non-coherent.
+My original point of contention/confusion is the specific combinations of API and 
+direction, specifically for_cpu(TO_DEV) and for_device(TO_CPU)
 
-Helge
+Semantically what does dma_sync_single_for_cpu(TO_DEV) even imply for a non dma 
+coherent arch.
+Your tables below have "none" for both, implying it is unlikely to be a real 
+combination (for ARM and ARC atleast).
+
+The other case, actually @dir TO_CPU, independent of for_{cpu, device}  implies 
+driver intends to touch it after the call, so it would invalidate any stray lines, 
+unconditionally (and not just for speculative prefetch case).
+
+
+> In the case of a DMA-incoherent architecture, the operations done at each
+> stage depend on the direction argument:
+>
+> 	map		for_cpu		for_device	unmap
+> TO_DEV	writeback	none		writeback	none
+> TO_CPU	invalidate	invalidate*	invalidate	invalidate*
+> BIDIR	writeback	invalidate	writeback	invalidate
+>
+> * - only necessary if the CPU speculatively prefetches.
+>
+> The multiple invalidations for the TO_CPU case handles different
+> conditions that can result in data corruption, and for some CPUs, all
+> four are necessary.
+
+Can you please explain in some more detail, TO_CPU row, why invalidate is 
+conditional sometimes.
