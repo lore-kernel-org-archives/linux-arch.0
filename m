@@ -1,42 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:40117 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751156AbeERTlN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2018 15:41:13 -0400
-Received: by mail-wr0-f194.google.com with SMTP id v60-v6so10271070wrc.7
-        for <linux-arch@vger.kernel.org>; Fri, 18 May 2018 12:41:12 -0700 (PDT)
+Received: from smtprelay.synopsys.com ([198.182.37.59]:59035 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751860AbeERT6F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2018 15:58:05 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: dma_sync_*_for_cpu and direction=TO_DEVICE (was Re: [PATCH
+ 02/20] dma-mapping: provide a generic dma-noncoherent implementation)
+Date: Fri, 18 May 2018 19:57:34 +0000
+Message-ID: <182840dedb4890a88c672b1c5d556920bf89a8fb.camel@synopsys.com>
+References: <20180511075945.16548-1-hch@lst.de>
+         <20180511075945.16548-3-hch@lst.de>
+         <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
+         <5ac5b1e3-9b96-9c7c-4dfe-f65be45ec179@synopsys.com>
+         <20180518175004.GF17671@n2100.armlinux.org.uk>
+In-Reply-To: <20180518175004.GF17671@n2100.armlinux.org.uk>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <FBDD463EE3FC3543A056335FD62CF42C@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-References: <20180518091721.7604-1-jslaby@suse.cz> <20180518091721.7604-18-jslaby@suse.cz>
-In-Reply-To: <20180518091721.7604-18-jslaby@suse.cz>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 18 May 2018 12:41:00 -0700
-Message-ID: <CALCETrXwc05073E7A8KG-2dKqNyz=C2zrAQfBqWhjuChfSd5fQ@mail.gmail.com>
-Subject: Re: [PATCH v6 17/28] x86/asm: use SYM_INNER_LABEL instead of GLOBAL
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Ingo Molnar <mingo@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>
-Message-ID: <20180518194100.JVf-rkaEEshizalrvfPmBTPDd8KSOxS_VCSEExbm0I8@z>
+To: "linux@armlinux.org.uk" <linux@armlinux.org.uk>
+Cc: "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "hch@lst.de" <hch@lst.de>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
+Message-ID: <20180518195734.59zfbcIJEaJDwaCwoDjATH2MJgO_MTEjkWiD0ARK2WE@z>
 
-On Fri, May 18, 2018 at 2:17 AM Jiri Slaby <jslaby@suse.cz> wrote:
-
-> GLOBAL had several meanings and is going away. In this patch, convert
-> all the inner function labels marked with GLOBAL to use SYM_INNER_LABEL
-> instead.
-
-> Note that retint_user needs not be global, perhaps since commit
-> 2ec67971facc ("x86/entry/64/compat: Remove most of the fast system call
-> machinery"), where entry_64_compat's caller was removed. So mark the
-> label as LOCAL.
-
-
-> -GLOBAL(entry_SYSCALL_64_after_hwframe)
-> +SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
-
-I've missed all the context here.   I agree that GLOBAL is misleading, and
-"inner label" is nice.  But this is a rather wordy macro.  Would:
-
-INNER_LABEL_GLOBAL(name)
-
-be better?  (With just INNER_LABEL(name) for the local version?)
+SGkgUnVzc2VsLA0KDQpPbiBGcmksIDIwMTgtMDUtMTggYXQgMTg6NTAgKzAxMDAsIFJ1c3NlbGwg
+S2luZyAtIEFSTSBMaW51eCB3cm90ZToNCj4gSXQncyBuZWNlc3NhcnkuICBUYWtlIGEgbW9tZW50
+IHRvIHRoaW5rIGNhcmVmdWxseSBhYm91dCB0aGlzOg0KPiANCj4gICAgICAgICBkbWFfbWFwX3Np
+bmdsZSgsIGRpcikNCj4gDQo+ICAgICAgICAgZG1hX3N5bmNfc2luZ2xlX2Zvcl9jcHUoLCBkaXIp
+DQo+IA0KPiAgICAgICAgIGRtYV9zeW5jX3NpbmdsZV9mb3JfZGV2aWNlKCwgZGlyKQ0KPiANCj4g
+ICAgICAgICBkbWFfdW5tYXBfc2luZ2xlKCwgZGlyKQ0KPiANCj4gSW4gdGhlIGNhc2Ugb2YgYSBE
+TUEtaW5jb2hlcmVudCBhcmNoaXRlY3R1cmUsIHRoZSBvcGVyYXRpb25zIGRvbmUgYXQgZWFjaA0K
+PiBzdGFnZSBkZXBlbmQgb24gdGhlIGRpcmVjdGlvbiBhcmd1bWVudDoNCj4gDQo+ICAgICAgICAg
+bWFwICAgICAgICAgICAgIGZvcl9jcHUgICAgICAgICBmb3JfZGV2aWNlICAgICAgdW5tYXANCj4g
+VE9fREVWICB3cml0ZWJhY2sgICAgICAgbm9uZSAgICAgICAgICAgIHdyaXRlYmFjayAgICAgICBu
+b25lDQo+IFRPX0NQVSAgaW52YWxpZGF0ZSAgICAgIGludmFsaWRhdGUqICAgICBpbnZhbGlkYXRl
+ICAgICAgaW52YWxpZGF0ZSoNCj4gQklESVIgICB3cml0ZWJhY2sgICAgICAgaW52YWxpZGF0ZSAg
+ICAgIHdyaXRlYmFjayAgICAgICBpbnZhbGlkYXRlDQo+IA0KPiAqIC0gb25seSBuZWNlc3Nhcnkg
+aWYgdGhlIENQVSBzcGVjdWxhdGl2ZWx5IHByZWZldGNoZXMuDQoNCkkgdGhpbmsgaW52YWxpZGF0
+aW9uIG9mIERNQSBidWZmZXIgaXMgcmVxdWlyZWQgb24gZm9yX2NwdShUT19DUFUpIGV2ZW4NCmlm
+IENQVSBkb2Vzbid0IHByZWZlcmNoIC0gd2hhdCBpZiB3ZSByZXVzZSB0aGUgc2FtZSBidWZmZXIg
+Zm9yIG11bHRpcGxlDQpyZWFkcyBmcm9tIERNQSBkZXZpY2U/DQoNCj4gVGhlIG11bHRpcGxlIGlu
+dmFsaWRhdGlvbnMgZm9yIHRoZSBUT19DUFUgY2FzZSBoYW5kbGVzIGRpZmZlcmVudA0KPiBjb25k
+aXRpb25zIHRoYXQgY2FuIHJlc3VsdCBpbiBkYXRhIGNvcnJ1cHRpb24sIGFuZCBmb3Igc29tZSBD
+UFVzLCBhbGwNCj4gZm91ciBhcmUgbmVjZXNzYXJ5Lg0KDQpJIHdvdWxkIGFncmVlIHRoYXQgbWFw
+KCkvdW5tYXAoKSBhIHF1aXRlIGEgc3BlY2lhbCBjYXNlcyBhbmQgc28gZGVwZW5kaW5nDQpvbiBk
+aXJlY3Rpb24gd2UgbmVlZCB0byBleGVjdXRlIGluIHRoZW0gZWl0aGVyIGZvcl9jcHUoKSBvciBm
+b3JfZGV2aWNlKCkNCmNhbGwtYmFja3MgZGVwZW5kaW5nIG9uIGRpcmVjdGlvbi4NCg0KQXMgZm9y
+IGludmFsaWRhdGlvbiBpbiBjYXNlIG9mIGZvcl9kZXZpY2UoVE9fQ1BVKSBJIHN0aWxsIGRvbid0
+IHNlZQ0KYSByYXRpb25hbGUgYmVoaW5kIGl0LiBXb3VsZCBiZSBpbnRlcmVzdGluZyB0byBzZWUg
+YSByZWFsIGV4YW1wbGUgd2hlcmUNCndlIGJlbmVmaXQgZnJvbSB0aGlzLg0KDQo+IFRoaXMgaXMg
+d2hhdCBpcyBpbXBsZW1lbnRlZCBmb3IgMzItYml0IEFSTSwgZGVwZW5kaW5nIG9uIHRoZSBDUFUN
+Cj4gY2FwYWJpbGl0aWVzLCBhcyB3ZSBoYXZlIERNQSBpbmNvaGVyZW50IGRldmljZXMgYW5kIHdl
+IGhhdmUgQ1BVcyB0aGF0DQo+IHNwZWN1bGF0aXZlbHkgcHJlZmV0Y2ggZGF0YSwgYW5kIHNvIG1h
+eSBsb2FkIGRhdGEgaW50byB0aGUgY2FjaGVzIHdoaWxlDQo+IERNQSBpcyBpbiBvcGVyYXRpb24u
+DQo+IA0KPiANCj4gVGhpbmdzIGdldCBtb3JlIGludGVyZXN0aW5nIGlmIHRoZSBpbXBsZW1lbnRh
+dGlvbiBiZWhpbmQgdGhlIERNQSBBUEkgaGFzDQo+IHRvIGNvcHkgZGF0YSBiZXR3ZWVuIHRoZSBi
+dWZmZXIgc3VwcGxpZWQgdG8gdGhlIG1hcHBpbmcgYW5kIHNvbWUgRE1BDQo+IGFjY2Vzc2libGUg
+YnVmZmVyOg0KPiANCj4gICAgICAgICBtYXAgICAgICAgICAgICAgZm9yX2NwdSAgICAgICAgIGZv
+cl9kZXZpY2UgICAgICB1bm1hcA0KPiBUT19ERVYgIGNvcHkgdG8gZG1hICAgICBub25lICAgICAg
+ICAgICAgY29weSB0byBkbWEgICAgIG5vbmUNCj4gVE9fQ1BVICBub25lICAgICAgICAgICAgY29w
+eSB0byBjcHUgICAgIG5vbmUgICAgICAgICAgICBjb3B5IHRvIGNwdQ0KPiBCSURJUiAgIGNvcHkg
+dG8gZG1hICAgICBjb3B5IHRvIGNwdSAgICAgY29weSB0byBkbWEgICAgIGNvcHkgdG8gY3B1DQo+
+IA0KPiBTbywgaW4gYm90aCBjYXNlcywgdGhlIHZhbHVlIG9mIHRoZSBkaXJlY3Rpb24gYXJndW1l
+bnQgZGVmaW5lcyB3aGF0IHlvdQ0KPiBuZWVkIHRvIGRvIGluIGVhY2ggY2FsbC4NCg0KSW50ZXJl
+c3RpbmcgZW5vdWdoIGluIHlvdXIgc2VvbmQgdGFibGUgKHdoaWNoIGRlc2NyaWJlcyBtb3JlIGNv
+bXBsaWNhdGVkDQpjYXNlIGluZGVlZCkgeW91IHNldCAibm9uZSIgZm9yIGZvcl9kZXZpY2UoVE9f
+Q1BVKSB3aGljaCBsb29rcyBsb2dpY2FsDQp0byBtZS4NCg0KU28gSU1ITyB0aGF0J3Mgd2hhdCBt
+YWtlIHNlbnNlOg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0NCiAgICAgICAgbWFwICAgICAgICAgICAgIGZvcl9jcHUgICAgICAgICBm
+b3JfZGV2aWNlICAgICAgdW5tYXANClRPX0RFViAgd3JpdGViYWNrICAgICAgIG5vbmUgICAgICAg
+ICAgICB3cml0ZWJhY2sgICAgICAgbm9uZQ0KVE9fQ1BVICBub25lICAgICAgICAgICAgaW52YWxp
+ZGF0ZSAgICAgIG5vbmUgICAgICAgICAgICBpbnZhbGlkYXRlKg0KQklESVIgICB3cml0ZWJhY2sg
+ICAgICAgaW52YWxpZGF0ZSAgICAgIHdyaXRlYmFjayAgICAgICBpbnZhbGlkYXRlKg0KLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0K
+KiBpcyB0aGUgY2FzZSBmb3IgcHJlZmV0Y2hpbmcgQ1BVLg0KDQotQWxleGV5
