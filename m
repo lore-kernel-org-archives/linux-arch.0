@@ -1,57 +1,197 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46176 "EHLO mail.kernel.org"
+Received: from mx2.suse.de ([195.135.220.15]:45325 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752095AbeERJCA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 05:02:00 -0400
-Date: Fri, 18 May 2018 11:01:41 +0200
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 4.9 27/33] futex: Remove duplicated code and fix
- undefined behaviour
-Message-ID: <20180518090141.GA10227@kroah.com>
-References: <20180518081535.096308218@linuxfoundation.org>
- <20180518081536.166573281@linuxfoundation.org>
- <e8dc5f94-3b52-dcf0-3b5e-b442bde7d803@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <e8dc5f94-3b52-dcf0-3b5e-b442bde7d803@suse.cz>
+        id S1753056AbeERJRZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 May 2018 05:17:25 -0400
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [PATCH v6 00/28] New macros for assembler symbols
+Date: Fri, 18 May 2018 11:16:53 +0200
+Message-ID: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: linux-kernel@vger.kernel.org, stable@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Russell King <rmk+kernel@armlinux.org.uk>, "Darren Hart (VMware)" <dvhart@infradead.org>, linux-mips@linux-mips.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, peterz@infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, sparclinux@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-xtensa@linux-xtensa.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, openrisc@lists.librecores.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Stafford Horne <shorne@gmail.com>, linux-arm-kernel@lists.infradead.org, Richard Henderson <rth@twiddle.net>, Chris Zankel <chris@zankel.net>, Michal Simek <monstr@monstr.eu>, Tony Luck <tony.luck@intel.com>, linux-parisc@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, Ralf Baechle <ralf@linux-mips.org>, Richard Kuo <rkuo@codeaurora.org>, linux-alpha@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, Ben Hutchings <ben.hutchings@codethink.co.uk>
-Message-ID: <20180518090141.UNtgddEZpFhIPY1jhh-sX_acFie-NVyWcOSK445FeIo@z>
+To: mingo@redhat.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
+Message-ID: <20180518091653.Di3o10BIatfKWGfxjrAvyuSeA345m07GQegRUvrtJvg@z>
 
-On Fri, May 18, 2018 at 10:30:24AM +0200, Jiri Slaby wrote:
-> On 05/18/2018, 10:16 AM, Greg Kroah-Hartman wrote:
-> > 4.9-stable review patch.  If anyone has any objections, please let me know.
-> > 
-> > ------------------
-> > 
-> > From: Jiri Slaby <jslaby@suse.cz>
-> > 
-> > commit 30d6e0a4190d37740e9447e4e4815f06992dd8c3 upstream.
-> ...
-> > --- a/kernel/futex.c
-> > +++ b/kernel/futex.c
-> > @@ -1458,6 +1458,45 @@ out:
-> >  	return ret;
-> >  }
-> >  
-> > +static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
-> > +{
-> > +	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
-> > +	unsigned int cmp =	  (encoded_op & 0x0f000000) >> 24;
-> > +	int oparg = sign_extend32((encoded_op & 0x00fff000) >> 12, 12);
-> > +	int cmparg = sign_extend32(encoded_op & 0x00000fff, 12);
-> 
-> 12 is wrong here – wherever you apply this, you need also a follow-up fix:
-> commit d70ef22892ed6c066e51e118b225923c9b74af34
-> Author: Jiri Slaby <jslaby@suse.cz>
-> Date:   Thu Nov 30 15:35:44 2017 +0100
-> 
->     futex: futex_wake_op, fix sign_extend32 sign bits
+This series introduces new macros for assembly as was discussed [1].
+The macros are introduced in the first patch of the series. The rest
+of patches start using these new macros in x86, converting *all* uses
+of the old macros to the new ones throughout the last patch. With
+every last user of some old macro, the macro is immediatelly made
+forbidden for x86.
 
-Thanks for letting me know, I've now queued it up to the needed trees.
+When this settles down, conversion of other architectures can be done
+too.
 
-greg k-h
+For introduction, documentation, use and examples, please see
+Documentation/asm-annotations.rst from the first patch of the series.
+
+[1] https://lkml.org/lkml/2017/3/1/742
+
+
+Jiri Slaby (28):
+  linkage: new macros for assembler symbols
+  x86/asm/suspend: drop ENTRY from local data
+  x86/asm/suspend: use SYM_DATA for data
+  x86/asm: annotate relocate_kernel
+  x86/asm/entry: annotate THUNKs
+  x86/asm: annotate local pseudo-functions
+  x86/asm/crypto: annotate local functions
+  x86/boot/compressed: annotate local functions
+  x86/asm: annotate aliases
+  x86/asm/entry: annotate interrupt symbols properly
+  x86/asm/head: annotate data appropriatelly
+  x86/boot/compressed: annotate data appropriatelly
+  um: annotate data appropriatelly
+  xen/pvh: annotate data appropriatelly
+  x86/asm/purgatory: start using annotations
+  x86/asm: do not annotate functions by GLOBAL
+  x86/asm: use SYM_INNER_LABEL instead of GLOBAL
+  x86/asm/realmode: use SYM_DATA_* instead of GLOBAL
+  x86/asm: kill the last GLOBAL user and remove the macro
+  x86/asm: make some functions local
+  x86/asm/ftrace: mark function_hook as function
+  x86_64/asm: add ENDs to some functions and relabel with SYM_CODE_*
+  x86_64/asm: change all ENTRY+END to SYM_CODE_*
+  x86_64/asm: change all ENTRY+ENDPROC to SYM_FUNC_*
+  x86_32/asm: add ENDs to some functions and relabel with SYM_CODE_*
+  x86_32/asm: change all ENTRY+END to SYM_CODE_*
+  x86_32/asm: change all ENTRY+ENDPROC to SYM_FUNC_*
+  x86/asm: replace WEAK uses by SYM_INNER_LABEL
+
+ Documentation/asm-annotations.rst                  | 217 ++++++++++++++++++
+ arch/x86/boot/compressed/efi_stub_32.S             |   4 +-
+ arch/x86/boot/compressed/efi_thunk_64.S            |  33 +--
+ arch/x86/boot/compressed/head_32.S                 |  15 +-
+ arch/x86/boot/compressed/head_64.S                 |  60 ++---
+ arch/x86/boot/compressed/mem_encrypt.S             |  14 +-
+ arch/x86/boot/copy.S                               |  16 +-
+ arch/x86/boot/pmjump.S                             |   8 +-
+ arch/x86/crypto/aes-i586-asm_32.S                  |   8 +-
+ arch/x86/crypto/aes-x86_64-asm_64.S                |   4 +-
+ arch/x86/crypto/aes_ctrby8_avx-x86_64.S            |  12 +-
+ arch/x86/crypto/aesni-intel_asm.S                  | 114 +++++-----
+ arch/x86/crypto/aesni-intel_avx-x86_64.S           |  24 +-
+ arch/x86/crypto/blowfish-x86_64-asm_64.S           |  16 +-
+ arch/x86/crypto/camellia-aesni-avx-asm_64.S        |  44 ++--
+ arch/x86/crypto/camellia-aesni-avx2-asm_64.S       |  44 ++--
+ arch/x86/crypto/camellia-x86_64-asm_64.S           |  16 +-
+ arch/x86/crypto/cast5-avx-x86_64-asm_64.S          |  24 +-
+ arch/x86/crypto/cast6-avx-x86_64-asm_64.S          |  32 +--
+ arch/x86/crypto/chacha20-avx2-x86_64.S             |   4 +-
+ arch/x86/crypto/chacha20-ssse3-x86_64.S            |   8 +-
+ arch/x86/crypto/crc32-pclmul_asm.S                 |   4 +-
+ arch/x86/crypto/crc32c-pcl-intel-asm_64.S          |   4 +-
+ arch/x86/crypto/crct10dif-pcl-asm_64.S             |   4 +-
+ arch/x86/crypto/des3_ede-asm_64.S                  |   8 +-
+ arch/x86/crypto/ghash-clmulni-intel_asm.S          |  12 +-
+ arch/x86/crypto/poly1305-avx2-x86_64.S             |   4 +-
+ arch/x86/crypto/poly1305-sse2-x86_64.S             |   8 +-
+ arch/x86/crypto/salsa20-i586-asm_32.S              |   4 +-
+ arch/x86/crypto/salsa20-x86_64-asm_64.S            |   4 +-
+ arch/x86/crypto/serpent-avx-x86_64-asm_64.S        |  32 +--
+ arch/x86/crypto/serpent-avx2-asm_64.S              |  32 +--
+ arch/x86/crypto/serpent-sse2-i586-asm_32.S         |   8 +-
+ arch/x86/crypto/serpent-sse2-x86_64-asm_64.S       |   8 +-
+ arch/x86/crypto/sha1-mb/sha1_mb_mgr_flush_avx2.S   |   8 +-
+ arch/x86/crypto/sha1-mb/sha1_mb_mgr_submit_avx2.S  |   4 +-
+ arch/x86/crypto/sha1-mb/sha1_x8_avx2.S             |   4 +-
+ arch/x86/crypto/sha1_avx2_x86_64_asm.S             |   4 +-
+ arch/x86/crypto/sha1_ni_asm.S                      |   4 +-
+ arch/x86/crypto/sha1_ssse3_asm.S                   |   4 +-
+ arch/x86/crypto/sha256-avx-asm.S                   |   4 +-
+ arch/x86/crypto/sha256-avx2-asm.S                  |   4 +-
+ .../crypto/sha256-mb/sha256_mb_mgr_flush_avx2.S    |   8 +-
+ .../crypto/sha256-mb/sha256_mb_mgr_submit_avx2.S   |   4 +-
+ arch/x86/crypto/sha256-mb/sha256_x8_avx2.S         |   4 +-
+ arch/x86/crypto/sha256-ssse3-asm.S                 |   4 +-
+ arch/x86/crypto/sha256_ni_asm.S                    |   4 +-
+ arch/x86/crypto/sha512-avx-asm.S                   |   4 +-
+ arch/x86/crypto/sha512-avx2-asm.S                  |   4 +-
+ .../crypto/sha512-mb/sha512_mb_mgr_flush_avx2.S    |   8 +-
+ .../crypto/sha512-mb/sha512_mb_mgr_submit_avx2.S   |   4 +-
+ arch/x86/crypto/sha512-mb/sha512_x4_avx2.S         |   4 +-
+ arch/x86/crypto/sha512-ssse3-asm.S                 |   4 +-
+ arch/x86/crypto/twofish-avx-x86_64-asm_64.S        |  32 +--
+ arch/x86/crypto/twofish-i586-asm_32.S              |   8 +-
+ arch/x86/crypto/twofish-x86_64-asm_64-3way.S       |   8 +-
+ arch/x86/crypto/twofish-x86_64-asm_64.S            |   8 +-
+ arch/x86/entry/entry_32.S                          | 155 ++++++-------
+ arch/x86/entry/entry_64.S                          | 107 ++++-----
+ arch/x86/entry/entry_64_compat.S                   |  16 +-
+ arch/x86/entry/thunk_32.S                          |   4 +-
+ arch/x86/entry/thunk_64.S                          |   8 +-
+ arch/x86/entry/vdso/vdso32/system_call.S           |   2 +-
+ arch/x86/include/asm/linkage.h                     |   4 -
+ arch/x86/kernel/acpi/wakeup_32.S                   |  11 +-
+ arch/x86/kernel/acpi/wakeup_64.S                   |  25 ++-
+ arch/x86/kernel/ftrace_32.S                        |  23 +-
+ arch/x86/kernel/ftrace_64.S                        |  42 ++--
+ arch/x86/kernel/head_32.S                          |  60 ++---
+ arch/x86/kernel/head_64.S                          | 106 ++++-----
+ arch/x86/kernel/relocate_kernel_32.S               |  13 +-
+ arch/x86/kernel/relocate_kernel_64.S               |  13 +-
+ arch/x86/kernel/verify_cpu.S                       |   4 +-
+ arch/x86/lib/atomic64_386_32.S                     |   4 +-
+ arch/x86/lib/atomic64_cx8_32.S                     |  32 +--
+ arch/x86/lib/checksum_32.S                         |  16 +-
+ arch/x86/lib/clear_page_64.S                       |  12 +-
+ arch/x86/lib/cmpxchg16b_emu.S                      |   4 +-
+ arch/x86/lib/cmpxchg8b_emu.S                       |   4 +-
+ arch/x86/lib/copy_page_64.S                        |   8 +-
+ arch/x86/lib/copy_user_64.S                        |  16 +-
+ arch/x86/lib/csum-copy_64.S                        |   4 +-
+ arch/x86/lib/getuser.S                             |  24 +-
+ arch/x86/lib/hweight.S                             |   8 +-
+ arch/x86/lib/iomap_copy_64.S                       |   4 +-
+ arch/x86/lib/memcpy_64.S                           |  20 +-
+ arch/x86/lib/memmove_64.S                          |   8 +-
+ arch/x86/lib/memset_64.S                           |  16 +-
+ arch/x86/lib/msr-reg.S                             |   8 +-
+ arch/x86/lib/putuser.S                             |  20 +-
+ arch/x86/lib/retpoline.S                           |   4 +-
+ arch/x86/lib/rwsem.S                               |  24 +-
+ arch/x86/math-emu/div_Xsig.S                       |   4 +-
+ arch/x86/math-emu/div_small.S                      |   4 +-
+ arch/x86/math-emu/mul_Xsig.S                       |  12 +-
+ arch/x86/math-emu/polynom_Xsig.S                   |   4 +-
+ arch/x86/math-emu/reg_norm.S                       |   8 +-
+ arch/x86/math-emu/reg_round.S                      |   4 +-
+ arch/x86/math-emu/reg_u_add.S                      |   4 +-
+ arch/x86/math-emu/reg_u_div.S                      |   4 +-
+ arch/x86/math-emu/reg_u_mul.S                      |   4 +-
+ arch/x86/math-emu/reg_u_sub.S                      |   4 +-
+ arch/x86/math-emu/round_Xsig.S                     |   8 +-
+ arch/x86/math-emu/shr_Xsig.S                       |   4 +-
+ arch/x86/math-emu/wm_shrx.S                        |   8 +-
+ arch/x86/math-emu/wm_sqrt.S                        |   4 +-
+ arch/x86/mm/mem_encrypt_boot.S                     |   8 +-
+ arch/x86/platform/efi/efi_stub_32.S                |   4 +-
+ arch/x86/platform/efi/efi_stub_64.S                |   4 +-
+ arch/x86/platform/efi/efi_thunk_64.S               |  16 +-
+ arch/x86/platform/olpc/xo1-wakeup.S                |   3 +-
+ arch/x86/power/hibernate_asm_32.S                  |   6 +-
+ arch/x86/power/hibernate_asm_64.S                  |  14 +-
+ arch/x86/purgatory/entry64.S                       |  21 +-
+ arch/x86/purgatory/setup-x86_64.S                  |  14 +-
+ arch/x86/purgatory/stack.S                         |   7 +-
+ arch/x86/realmode/rm/header.S                      |   8 +-
+ arch/x86/realmode/rm/reboot.S                      |  13 +-
+ arch/x86/realmode/rm/stack.S                       |  14 +-
+ arch/x86/realmode/rm/trampoline_32.S               |  16 +-
+ arch/x86/realmode/rm/trampoline_64.S               |  29 +--
+ arch/x86/realmode/rm/trampoline_common.S           |   4 +-
+ arch/x86/realmode/rm/wakeup_asm.S                  |  15 +-
+ arch/x86/realmode/rmpiggy.S                        |  10 +-
+ arch/x86/um/vdso/vdso.S                            |   6 +-
+ arch/x86/xen/xen-asm.S                             |  20 +-
+ arch/x86/xen/xen-asm_32.S                          |   7 +-
+ arch/x86/xen/xen-asm_64.S                          |  34 +--
+ arch/x86/xen/xen-head.S                            |   8 +-
+ arch/x86/xen/xen-pvh.S                             |  15 +-
+ include/linux/linkage.h                            | 247 ++++++++++++++++++++-
+ 131 files changed, 1459 insertions(+), 982 deletions(-)
+ create mode 100644 Documentation/asm-annotations.rst
+
+-- 
+2.16.3
