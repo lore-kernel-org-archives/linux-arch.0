@@ -1,23 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45493 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:45410 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752838AbeERJRp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 05:17:45 -0400
+        id S1753184AbeERJRq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 May 2018 05:17:46 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 19/28] x86/asm: kill the last GLOBAL user and remove the macro
-Date: Fri, 18 May 2018 11:17:12 +0200
-Message-ID: <20180518091721.7604-20-jslaby@suse.cz>
+Subject: [PATCH v6 21/28] x86/asm/ftrace: mark function_hook as function
+Date: Fri, 18 May 2018 11:17:14 +0200
+Message-ID: <20180518091721.7604-22-jslaby@suse.cz>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20180518091712.3qL5ChVxGG7IQCNFoiTHbfGWrwd1ixHSKN9T99v_bcA@z>
+Message-ID: <20180518091714.XuGCJvQ1sDh81ClKE2dEX8p4jipqXZQKtpL_nUmiGLw@z>
 
-Convert the remaining 32bit users and remove GLOBAL macro finally. In
-particular, this means to use SYM_ENTRY for the singlestepping hack
-region.
+Relabel function_hook to be marked really as a function. It is called
+from C and has the same expectations towards the stack etc.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
@@ -25,50 +24,24 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 ---
- arch/x86/entry/entry_32.S      | 4 ++--
- arch/x86/include/asm/linkage.h | 8 --------
- 2 files changed, 2 insertions(+), 10 deletions(-)
+ arch/x86/kernel/ftrace_32.S | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 4b80b2fb4de1..f701541ecf10 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -361,7 +361,7 @@ ENTRY(resume_kernel)
- END(resume_kernel)
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index 0206fc7e86b0..b855dc10daeb 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -31,9 +31,9 @@ EXPORT_SYMBOL(mcount)
+ # define MCOUNT_FRAME			0	/* using frame = false */
  #endif
  
--GLOBAL(__begin_SYSENTER_singlestep_region)
-+SYM_ENTRY(__begin_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
- /*
-  * All code from here through __end_SYSENTER_singlestep_region is subject
-  * to being single-stepped if a user program sets TF and executes SYSENTER.
-@@ -502,7 +502,7 @@ ENTRY(entry_SYSENTER_32)
- 	pushl	$X86_EFLAGS_FIXED
- 	popfl
- 	jmp	.Lsysenter_flags_fixed
--GLOBAL(__end_SYSENTER_singlestep_region)
-+SYM_ENTRY(__end_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
- ENDPROC(entry_SYSENTER_32)
+-ENTRY(function_hook)
++SYM_FUNC_START(function_hook)
+ 	ret
+-END(function_hook)
++SYM_FUNC_END(function_hook)
  
- /*
-diff --git a/arch/x86/include/asm/linkage.h b/arch/x86/include/asm/linkage.h
-index e07188e8d763..365111789cc6 100644
---- a/arch/x86/include/asm/linkage.h
-+++ b/arch/x86/include/asm/linkage.h
-@@ -13,14 +13,6 @@
+ ENTRY(ftrace_caller)
  
- #ifdef __ASSEMBLY__
- 
--/*
-- * GLOBAL is DEPRECATED
-- *
-- * use SYM_DATA_START, SYM_FUNC_START, SYM_INNER_LABEL, SYM_CODE_START, or
-- * similar
-- */
--#define GLOBAL(name)	SYM_ENTRY(name, SYM_L_GLOBAL, SYM_A_NONE)
--
- #if defined(CONFIG_X86_64) || defined(CONFIG_X86_ALIGNMENT_16)
- #define __ALIGN		.p2align 4, 0x90
- #define __ALIGN_STR	__stringify(__ALIGN)
 -- 
 2.16.3
