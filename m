@@ -1,211 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45485 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:45365 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753132AbeERJRp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 18 May 2018 05:17:45 -0400
+        id S1753096AbeERJRa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 18 May 2018 05:17:30 -0400
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 17/28] x86/asm: use SYM_INNER_LABEL instead of GLOBAL
-Date: Fri, 18 May 2018 11:17:10 +0200
-Message-ID: <20180518091721.7604-18-jslaby@suse.cz>
+Subject: [PATCH v6 03/28] x86/asm/suspend: use SYM_DATA for data
+Date: Fri, 18 May 2018 11:16:56 +0200
+Message-ID: <20180518091721.7604-4-jslaby@suse.cz>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20180518091710.ALZ2Zdha5i59TwgYtaH327wlADLDewbHmNBLL3CQ2ts@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
+Message-ID: <20180518091656.IqpLmB89NXhxhsH3dKSSqs0Mdckpa77cP-TkgWo0m2A@z>
 
-GLOBAL had several meanings and is going away. In this patch, convert
-all the inner function labels marked with GLOBAL to use SYM_INNER_LABEL
-instead.
-
-Note that retint_user needs not be global, perhaps since commit
-2ec67971facc ("x86/entry/64/compat: Remove most of the fast system call
-machinery"), where entry_64_compat's caller was removed. So mark the
-label as LOCAL.
+Some global data in the suspend code were marked as `ENTRY'. ENTRY was
+intended for functions and shall be paired with ENDPROC. ENTRY also
+aligns symbols which creates unnecessary holes here between data. Since
+we are dropping historical markings, make proper use of newly added
+SYM_DATA in this code.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Len Brown <len.brown@intel.com>
+Cc: Pavel Machek <pavel@ucw.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: linux-pm@vger.kernel.org
 ---
- arch/x86/entry/entry_64.S                |  8 ++++----
- arch/x86/entry/entry_64_compat.S         |  4 ++--
- arch/x86/entry/vdso/vdso32/system_call.S |  2 +-
- arch/x86/kernel/ftrace_32.S              |  2 +-
- arch/x86/kernel/ftrace_64.S              | 16 ++++++++--------
- arch/x86/realmode/rm/reboot.S            |  2 +-
- 6 files changed, 17 insertions(+), 17 deletions(-)
+ arch/x86/kernel/acpi/wakeup_32.S | 2 +-
+ arch/x86/kernel/acpi/wakeup_64.S | 2 +-
+ arch/x86/kernel/head_32.S        | 6 ++----
+ arch/x86/kernel/head_64.S        | 5 ++---
+ 4 files changed, 6 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index e0798c044055..d55228508e80 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -225,7 +225,7 @@ ENTRY(entry_SYSCALL_64)
- 	pushq	%r11				/* pt_regs->flags */
- 	pushq	$__USER_CS			/* pt_regs->cs */
- 	pushq	%rcx				/* pt_regs->ip */
--GLOBAL(entry_SYSCALL_64_after_hwframe)
-+SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
- 	pushq	%rax				/* pt_regs->orig_ax */
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index 4203d4f0c68d..feac1e5ecba0 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -89,7 +89,7 @@ ret_point:
  
- 	PUSH_AND_CLEAR_REGS rax=$-ENOSYS
-@@ -653,12 +653,12 @@ ret_from_intr:
- 	jz	retint_kernel
+ .data
+ ALIGN
+-ENTRY(saved_magic)	.long	0
++SYM_DATA(saved_magic,	.long 0)
+ saved_eip:		.long 0
  
- 	/* Interrupt came from user space */
--GLOBAL(retint_user)
-+SYM_INNER_LABEL(retint_user, SYM_L_LOCAL)
- 	mov	%rsp,%rdi
- 	call	prepare_exit_to_usermode
- 	TRACE_IRQS_IRETQ
+ # saved registers
+diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
+index 510fa12aab73..551758f48eb7 100644
+--- a/arch/x86/kernel/acpi/wakeup_64.S
++++ b/arch/x86/kernel/acpi/wakeup_64.S
+@@ -133,4 +133,4 @@ saved_rbx:		.quad	0
+ saved_rip:		.quad	0
+ saved_rsp:		.quad	0
  
--GLOBAL(swapgs_restore_regs_and_return_to_usermode)
-+SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
- #ifdef CONFIG_DEBUG_ENTRY
- 	/* Assert that pt_regs indicates user mode. */
- 	testb	$3, CS(%rsp)
-@@ -717,7 +717,7 @@ retint_kernel:
- 	 */
- 	TRACE_IRQS_IRETQ
+-ENTRY(saved_magic)	.quad	0
++SYM_DATA(saved_magic,	.quad	0)
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index b59e4fb40fd9..80965fd75fea 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
  
--GLOBAL(restore_regs_and_return_to_kernel)
-+SYM_INNER_LABEL(restore_regs_and_return_to_kernel, SYM_L_GLOBAL)
- #ifdef CONFIG_DEBUG_ENTRY
- 	/* Assert that pt_regs indicates kernel mode. */
- 	testb	$3, CS(%rsp)
-diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
-index 2d10f72697f3..d0880bef86c3 100644
---- a/arch/x86/entry/entry_64_compat.S
-+++ b/arch/x86/entry/entry_64_compat.S
-@@ -146,7 +146,7 @@ ENTRY(entry_SYSENTER_compat)
- 	pushq	$X86_EFLAGS_FIXED
- 	popfq
- 	jmp	.Lsysenter_flags_fixed
--GLOBAL(__end_entry_SYSENTER_compat)
-+SYM_INNER_LABEL(__end_entry_SYSENTER_compat, SYM_L_GLOBAL)
- ENDPROC(entry_SYSENTER_compat)
+ __REFDATA
+ 	.align 4
+-ENTRY(initial_code)
+-	.long i386_start_kernel
+-ENTRY(setup_once_ref)
+-	.long setup_once
++SYM_DATA(initial_code,		.long i386_start_kernel)
++SYM_DATA(setup_once_ref,	.long setup_once)
  
  /*
-@@ -215,7 +215,7 @@ ENTRY(entry_SYSCALL_compat)
- 	pushq	%r11			/* pt_regs->flags */
- 	pushq	$__USER32_CS		/* pt_regs->cs */
- 	pushq	%rcx			/* pt_regs->ip */
--GLOBAL(entry_SYSCALL_compat_after_hwframe)
-+SYM_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
- 	movl	%eax, %eax		/* discard orig_ax high bits */
- 	pushq	%rax			/* pt_regs->orig_ax */
- 	pushq	%rdi			/* pt_regs->di */
-diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
-index 263d7433dea8..de1fff7188aa 100644
---- a/arch/x86/entry/vdso/vdso32/system_call.S
-+++ b/arch/x86/entry/vdso/vdso32/system_call.S
-@@ -62,7 +62,7 @@ __kernel_vsyscall:
+  * BSS section
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 8344dd2f310a..17543533642d 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -463,9 +463,8 @@ early_gdt_descr:
+ early_gdt_descr_base:
+ 	.quad	INIT_PER_CPU_VAR(gdt_page)
  
- 	/* Enter using int $0x80 */
- 	int	$0x80
--GLOBAL(int80_landing_pad)
-+SYM_INNER_LABEL(int80_landing_pad, SYM_L_GLOBAL)
+-ENTRY(phys_base)
+-	/* This must match the first entry in level2_kernel_pgt */
+-	.quad   0x0000000000000000
++/* This must match the first entry in level2_kernel_pgt */
++SYM_DATA(phys_base, .quad 0x0000000000000000)
+ EXPORT_SYMBOL(phys_base)
  
- 	/*
- 	 * Restore EDX and ECX in case they were clobbered.  EBP is not
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index 4c8440de3355..0206fc7e86b0 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -141,7 +141,7 @@ ENTRY(ftrace_regs_caller)
- 	movl	function_trace_op, %ecx		/* Save ftrace_pos in 3rd parameter */
- 	pushl	%esp				/* Save pt_regs as 4th parameter */
- 
--GLOBAL(ftrace_regs_call)
-+SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	call	ftrace_stub
- 
- 	addl	$4, %esp			/* Skip pt_regs */
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index 91b2cff4b79a..14df6cf07b7e 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -158,14 +158,14 @@ ENTRY(ftrace_caller)
- 	/* save_mcount_regs fills in first two parameters */
- 	save_mcount_regs
- 
--GLOBAL(ftrace_caller_op_ptr)
-+SYM_INNER_LABEL(ftrace_caller_op_ptr, SYM_L_GLOBAL)
- 	/* Load the ftrace_ops into the 3rd parameter */
- 	movq function_trace_op(%rip), %rdx
- 
- 	/* regs go into 4th parameter (but make it NULL) */
- 	movq $0, %rcx
- 
--GLOBAL(ftrace_call)
-+SYM_INNER_LABEL(ftrace_call, SYM_L_GLOBAL)
- 	call ftrace_stub
- 
- 	restore_mcount_regs
-@@ -178,10 +178,10 @@ GLOBAL(ftrace_call)
- 	 * think twice before adding any new code or changing the
- 	 * layout here.
- 	 */
--GLOBAL(ftrace_epilogue)
-+SYM_INNER_LABEL(ftrace_epilogue, SYM_L_GLOBAL)
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
--GLOBAL(ftrace_graph_call)
-+SYM_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
- 	jmp ftrace_stub
- #endif
- 
-@@ -198,7 +198,7 @@ ENTRY(ftrace_regs_caller)
- 	save_mcount_regs 8
- 	/* save_mcount_regs fills in first two parameters */
- 
--GLOBAL(ftrace_regs_caller_op_ptr)
-+SYM_INNER_LABEL(ftrace_regs_caller_op_ptr, SYM_L_GLOBAL)
- 	/* Load the ftrace_ops into the 3rd parameter */
- 	movq function_trace_op(%rip), %rdx
- 
-@@ -225,7 +225,7 @@ GLOBAL(ftrace_regs_caller_op_ptr)
- 	/* regs go into 4th parameter */
- 	leaq (%rsp), %rcx
- 
--GLOBAL(ftrace_regs_call)
-+SYM_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
- 	call ftrace_stub
- 
- 	/* Copy flags back to SS, to restore them */
-@@ -255,7 +255,7 @@ GLOBAL(ftrace_regs_call)
- 	 * The trampoline will add the code to jump
- 	 * to the return.
- 	 */
--GLOBAL(ftrace_regs_caller_end)
-+SYM_INNER_LABEL(ftrace_regs_caller_end, SYM_L_GLOBAL)
- 
- 	jmp ftrace_epilogue
- 
-@@ -277,7 +277,7 @@ fgraph_trace:
- 	jnz ftrace_graph_caller
- #endif
- 
--GLOBAL(ftrace_stub)
-+SYM_INNER_LABEL(ftrace_stub, SYM_L_GLOBAL)
- 	retq
- 
- trace:
-diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
-index cd2f97b9623b..f91425a01f8f 100644
---- a/arch/x86/realmode/rm/reboot.S
-+++ b/arch/x86/realmode/rm/reboot.S
-@@ -33,7 +33,7 @@ ENTRY(machine_real_restart_asm)
- 	movl	%eax, %cr0
- 	ljmpl	$__KERNEL32_CS, $pa_machine_real_restart_paging_off
- 
--GLOBAL(machine_real_restart_paging_off)
-+SYM_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
- 	xorl	%eax, %eax
- 	xorl	%edx, %edx
- 	movl	$MSR_EFER, %ecx
+ #include "../../x86/xen/xen-head.S"
 -- 
 2.16.3
