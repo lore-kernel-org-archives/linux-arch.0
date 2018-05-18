@@ -1,7 +1,7 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v6 10/28] x86/asm/entry: annotate interrupt symbols properly
-Date: Fri, 18 May 2018 11:17:03 +0200
-Message-ID: <20180518091721.7604-11-jslaby@suse.cz>
+Subject: [PATCH v6 05/28] x86/asm/entry: annotate THUNKs
+Date: Fri, 18 May 2018 11:16:58 +0200
+Message-ID: <20180518091721.7604-6-jslaby@suse.cz>
 References: <20180518091721.7604-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180518091721.7604-1-jslaby@suse.cz>
@@ -10,12 +10,21 @@ To: mingo@redhat.com
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-* annotate functions properly by SYM_CODE_START, SYM_CODE_START_LOCAL*
-  and SYM_CODE_END -- these are not C-like functions, so we have to
-  annotate them using CODE.
-* use SYM_INNER_LABEL* for labels being in the middle of other functions
+Place SYM_CODE_START_NOALIGN and SYM_CODE_END around the THUNK macro
+body, given it generates:
+1) non-C-like functions, and
+2) was not marked as aligned.
 
-[v4] alignments preserved
+The common tail .L_restore is put inside SYM_CODE_START_LOCAL_NOALIGN
+and SYM_CODE_END too.
+
+The result:
+ Value  Size Type    Bind   Vis      Ndx Name
+  0000    28 NOTYPE  GLOBAL DEFAULT    1 trace_hardirqs_on_thunk
+  001c    28 NOTYPE  GLOBAL DEFAULT    1 trace_hardirqs_off_thunk
+  0038    24 NOTYPE  GLOBAL DEFAULT    1 lockdep_sys_exit_thunk
+  0050    24 NOTYPE  GLOBAL DEFAULT    1 ___preempt_schedule
+  0068    24 NOTYPE  GLOBAL DEFAULT    1 ___preempt_schedule_notrace
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
@@ -23,121 +32,69 @@ Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: <x86@kernel.org>
 ---
- arch/x86/entry/entry_32.S | 15 ++++++++-------
- arch/x86/entry/entry_64.S |  9 ++++-----
- 2 files changed, 12 insertions(+), 12 deletions(-)
+ arch/x86/entry/thunk_32.S | 4 ++--
+ arch/x86/entry/thunk_64.S | 8 ++++----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 030fbeba5f4a..4b80b2fb4de1 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -340,7 +340,7 @@ ret_from_intr:
- 	cmpl	$USER_RPL, %eax
- 	jb	resume_kernel			# not returning to v8086 or userspace
+diff --git a/arch/x86/entry/thunk_32.S b/arch/x86/entry/thunk_32.S
+index fee6bc79b987..422354b204f4 100644
+--- a/arch/x86/entry/thunk_32.S
++++ b/arch/x86/entry/thunk_32.S
+@@ -10,8 +10,7 @@
  
--ENTRY(resume_userspace)
-+SYM_INNER_LABEL_ALIGN(resume_userspace, SYM_L_LOCAL)
- 	DISABLE_INTERRUPTS(CLBR_ANY)
- 	TRACE_IRQS_OFF
- 	movl	%esp, %eax
-@@ -579,10 +579,11 @@ restore_all:
- 	INTERRUPT_RETURN
+ 	/* put return address in eax (arg1) */
+ 	.macro THUNK name, func, put_ret_addr_in_eax=0
+-	.globl \name
+-\name:
++SYM_CODE_START_NOALIGN(\name)
+ 	pushl %eax
+ 	pushl %ecx
+ 	pushl %edx
+@@ -27,6 +26,7 @@
+ 	popl %eax
+ 	ret
+ 	_ASM_NOKPROBE(\name)
++SYM_CODE_END(\name)
+ 	.endm
  
- .section .fixup, "ax"
--ENTRY(iret_exc	)
-+SYM_CODE_START(iret_exc)
- 	pushl	$0				# no error code
- 	pushl	$do_iret_error
- 	jmp	common_exception
-+SYM_CODE_END(iret_exc)
- .previous
- 	_ASM_EXTABLE(.Lirq_return, iret_exc)
+ #ifdef CONFIG_TRACE_IRQFLAGS
+diff --git a/arch/x86/entry/thunk_64.S b/arch/x86/entry/thunk_64.S
+index be36bf4e0957..ea5e2b0e6611 100644
+--- a/arch/x86/entry/thunk_64.S
++++ b/arch/x86/entry/thunk_64.S
+@@ -12,9 +12,7 @@
  
-@@ -674,7 +675,7 @@ END(irq_entries_start)
-  * so IRQ-flags tracing has to follow that:
-  */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	ASM_CLAC
- 	addl	$-0x80, (%esp)			/* Adjust vector into the [-256, -1] range */
- 	SAVE_ALL
-@@ -683,7 +684,7 @@ common_interrupt:
- 	movl	%esp, %eax
- 	call	do_IRQ
- 	jmp	ret_from_intr
--ENDPROC(common_interrupt)
-+SYM_CODE_END(common_interrupt)
+ 	/* rdi:	arg1 ... normal C conventions. rax is saved/restored. */
+ 	.macro THUNK name, func, put_ret_addr_in_rdi=0
+-	.globl \name
+-	.type \name, @function
+-\name:
++SYM_CODE_START_NOALIGN(\name)
+ 	pushq %rbp
+ 	movq %rsp, %rbp
  
- #define BUILD_INTERRUPT3(name, nr, fn)	\
- ENTRY(name)				\
-@@ -835,7 +836,7 @@ ENTRY(xen_hypervisor_callback)
+@@ -36,6 +34,7 @@
+ 	call \func
+ 	jmp  .L_restore
+ 	_ASM_NOKPROBE(\name)
++SYM_CODE_END(\name)
+ 	.endm
  
- 	jmp	xen_iret_crit_fixup
- 
--ENTRY(xen_do_upcall)
-+SYM_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
- 1:	mov	%esp, %eax
- 	call	xen_evtchn_do_upcall
- #ifndef CONFIG_PREEMPT
-@@ -920,7 +921,7 @@ ENTRY(page_fault)
- 	jmp common_exception
- END(page_fault)
- 
--common_exception:
-+SYM_CODE_START_LOCAL_NOALIGN(common_exception)
- 	/* the function address is in %gs's slot on the stack */
- 	pushl	%fs
- 	pushl	%es
-@@ -950,7 +951,7 @@ common_exception:
- 	movl	%esp, %eax			# pt_regs pointer
- 	CALL_NOSPEC %edi
- 	jmp	ret_from_exception
--END(common_exception)
-+SYM_CODE_END(common_exception)
- 
- ENTRY(debug)
- 	/*
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 80045cb2f44c..e0798c044055 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -637,7 +637,7 @@ END(interrupt_entry)
- 	 * then jump to common_interrupt.
- 	 */
- 	.p2align CONFIG_X86_L1_CACHE_SHIFT
--common_interrupt:
-+SYM_CODE_START_LOCAL(common_interrupt)
- 	addq	$-0x80, (%rsp)			/* Adjust vector to [-256, -1] range */
- 	call	interrupt_entry
- 	UNWIND_HINT_REGS indirect=1
-@@ -733,7 +733,7 @@ GLOBAL(restore_regs_and_return_to_kernel)
- 	 */
- 	INTERRUPT_RETURN
- 
--ENTRY(native_iret)
-+SYM_INNER_LABEL_ALIGN(native_iret, SYM_L_GLOBAL)
- 	UNWIND_HINT_IRET_REGS
- 	/*
- 	 * Are we returning to a stack segment from the LDT?  Note: in
-@@ -744,8 +744,7 @@ ENTRY(native_iret)
- 	jnz	native_irq_return_ldt
+ #ifdef CONFIG_TRACE_IRQFLAGS
+@@ -57,7 +56,7 @@
+ #if defined(CONFIG_TRACE_IRQFLAGS) \
+  || defined(CONFIG_DEBUG_LOCK_ALLOC) \
+  || defined(CONFIG_PREEMPT)
+-.L_restore:
++SYM_CODE_START_LOCAL_NOALIGN(.L_restore)
+ 	popq %r11
+ 	popq %r10
+ 	popq %r9
+@@ -70,4 +69,5 @@
+ 	popq %rbp
+ 	ret
+ 	_ASM_NOKPROBE(.L_restore)
++SYM_CODE_END(.L_restore)
  #endif
- 
--.global native_irq_return_iret
--native_irq_return_iret:
-+SYM_INNER_LABEL(native_irq_return_iret, SYM_L_GLOBAL)
- 	/*
- 	 * This may fault.  Non-paranoid faults on return to userspace are
- 	 * handled by fixup_bad_iret.  These include #SS, #GP, and #NP.
-@@ -827,7 +826,7 @@ native_irq_return_ldt:
- 	 */
- 	jmp	native_irq_return_iret
- #endif
--END(common_interrupt)
-+SYM_CODE_END(common_interrupt)
- 
- /*
-  * APIC interrupts.
 -- 
 2.16.3
