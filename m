@@ -1,56 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay6.synopsys.com ([198.182.37.59]:57870 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.37.59]:58499 "EHLO
         smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751298AbeERONy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2018 10:13:54 -0400
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH 02/20] dma-mapping: provide a generic dma-noncoherent
- implementation
-Date: Fri, 18 May 2018 14:13:47 +0000
-Message-ID: <913e288c5aabf0224cedcf2eb0c9be309745eace.camel@synopsys.com>
+        with ESMTP id S1751418AbeERRUW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2018 13:20:22 -0400
+Subject: dma_sync_*_for_cpu and direction=TO_DEVICE (was Re: [PATCH 02/20]
+ dma-mapping: provide a generic dma-noncoherent implementation)
 References: <20180511075945.16548-1-hch@lst.de>
-         <20180511075945.16548-3-hch@lst.de>
-         <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
-         <20180518132731.GA31125@lst.de>
-In-Reply-To: <20180518132731.GA31125@lst.de>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <C702843E962C4C4087A6422611F424FA@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+ <20180511075945.16548-3-hch@lst.de>
+ <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <5ac5b1e3-9b96-9c7c-4dfe-f65be45ec179@synopsys.com>
+Date: Fri, 18 May 2018 10:20:02 -0700
 MIME-Version: 1.0
+In-Reply-To: <bad125dff49f6e49c895e818c9d1abb346a46e8e.camel@synopsys.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "hch@lst.de" <hch@lst.de>
-Cc: "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>
-Message-ID: <20180518141347.cKPK3lRWdAKR_B-ey27eqQd5DQOCO8DDPGTaDc9olp8@z>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, "monstr@monstr.eu" <monstr@monstr.eu>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "green.hu@gmail.com" <green.hu@gmail.com>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "deanbo422@gmail.com" <deanbo422@gmail.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180518172002.H6OzSiySjVzRYn7i_v-juNZywRsPLzfqbgso5Q5-2l0@z>
 
-SGkgQ2hyaXN0b3BoLA0KDQpPbiBGcmksIDIwMTgtMDUtMTggYXQgMTU6MjcgKzAyMDAsIGhjaEBs
-c3QuZGUgd3JvdGU6DQo+IE9uIEZyaSwgTWF5IDE4LCAyMDE4IGF0IDAxOjAzOjQ2UE0gKzAwMDAs
-IEFsZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+IE5vdGUgbW1jX2dldF9kbWFfZGlyKCkgaXMganVz
-dCAiZGF0YS0+ZmxhZ3MgJiBNTUNfREFUQV9XUklURSA/IERNQV9UT19ERVZJQ0UgOiBETUFfRlJP
-TV9ERVZJQ0UiLg0KPiA+IEkuZS4gaWYgd2UncmUgcHJlcGFyaW5nIGZvciBzZW5kaW5nIGRhdGEg
-ZG1hX25vbmNvaGVyZW50X21hcF9zZygpIHdpbGwgaGF2ZSBETUFfVE9fREVWSUNFIHdoaWNoDQo+
-ID4gaXMgcXVpdGUgT0sgZm9yIHBhc3NpbmcgdG8gZG1hX25vbmNvaGVyZW50X3N5bmNfc2dfZm9y
-X2RldmljZSgpIGJ1dCBpbiBjYXNlIG9mIHJlYWRpbmcgd2UnbGwgaGF2ZQ0KPiA+IERNQV9GUk9N
-X0RFVklDRSB3aGljaCB3ZSdsbCBwYXNzIHRvIGRtYV9ub25jb2hlcmVudF9zeW5jX3NnX2Zvcl9k
-ZXZpY2UoKSBpbiBkbWFfbm9uY29oZXJlbnRfbWFwX3NnKCkuDQo+ID4gDQo+ID4gSSdkIHNheSB0
-aGlzIGlzIG5vdCBlbnRpcmVseSBjb3JyZWN0IGJlY2F1c2UgSU1ITyBhcmNoX3N5bmNfZG1hX2Zv
-cl9jcHUoKSBpcyBzdXBwb3NlZCB0byBvbmx5IGJlIHVzZWQNCj4gPiBpbiBjYXNlIG9mIERNQV9G
-Uk9NX0RFVklDRSBhbmQgYXJjaF9zeW5jX2RtYV9mb3JfZGV2aWNlKCkgb25seSBpbiBjYXNlIG9m
-IERNQV9UT19ERVZJQ0UuDQo+IA0KPiBhcmMgb3ZlcnJpZGVzIHRoZSBkaXIgcGFyYW10ZXIgb2Yg
-dGhlIGRtYV9zeW5jX3NpbmdsZV9mb3JfZGV2aWNlLw0KPiBkbWFfc3luY19zaW5nbGVfZm9yX2Nw
-dSBjYWxscy4gIE15IHBhdGNoZXMgZHJvcHBlZCB0aGF0LCBhbmQgSSBoYXZlDQo+IHJlc3RvcmVk
-IHRoYXQsIGFuZCBhdWRpdCBmb3IgdGhlIG90aGVyIGFyY2hpdGVjdHVyZXMgaXMgcGVuZGluZy4N
-Cg0KV2VsbCBhdCBsZWFzdCBmb3IgbWUgdGhhdCdzIGEgY29uZnVzaW9uIHdoYXQgaXMgYSByZWFz
-b24gdG8gcGFzcyBkaXJlY3Rpb24NCnRvIGZ1bmN0aW9uIHdoaWNoIHB1cnBvc2UgaXMgYWxyZWFk
-eSBrbm93bi4NCg0KSSdkIHNheSB0aGF0IFhYWF9zeW5jX2Zvcl9kZXZpY2UoKSBkb2Vzbid0IG5l
-ZWQgX3ZhcmlhYmxlXyBkaXJlY3Rpb24gYXMgYW4gYXJndW1lbnQsDQpvdGhlcndpc2Ugd2hhdCBk
-b2VzIHRoYXQgbWVhbiBpZiB3ZSBwYXNzIERNQV9GUk9NX0RFVklDRSB0byB0aGF0IGZ1bmN0aW9u
-Pw0KDQo+IFRoYXQgYmVpbmcgc2FpZCB0aGUgZXhpc3RpbmcgYXJjIGNvZGUgc3RpbGwgbG9va3Mg
-cmF0aGVyIG9kZCBhcyBpdA0KPiBkaWRuJ3QgZG8gdGhlIHNhbWUgdGhpbmcgZm9yIHRoZSBzY2F0
-dGVybGlzdCB2ZXJzaW9ucyBvZiB0aGUgY2FsbHMuDQoNClRoYXQgbWlnaHQgZWFzaWx5IGJlIHRo
-ZSBjYXNlIHNvIGdvb2Qgd2UgY2F1Z2h0IHRoYXQgbm93IGFuZCBpdCB3aWxsIGJlIGZpeGVkIDop
-DQoNCj4gSSd2ZSB0aHJvd24gaW4gYSBmZXcgcGF0Y2hlcyBpbnRvIG15IG5ldyB0cmVlIHRvIG1h
-a2UgdGhlIHNnIHZlcnNpb25zDQo+IG1ha2UgdGhlIG5vcm1hbCBjYWxscywgYW5kIHRvIGNsZWFu
-IHVwIHRoZSBhcmVhIGEgYml0Lg0KDQpJJ2xsIHRyeSB5b3VyIG5ld2VyIHNlcmllcyBub3csIHRo
-YW5rcyENCg0KLUFsZXhleQ==
+On 05/18/2018 06:11 AM, Alexey Brodkin wrote:
+>   void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+>                  size_t size, enum dma_data_direction dir)
+>   {
+> +       if (dir != DMA_TO_DEVICE){
+> +               dump_stack();
+> +               printk(" *** %s@%d: DMA direction is %s instead of %s\n",
+> +                      __func__, __LINE__, dir_to_str(dir), dir_to_str(DMA_TO_DEVICE));
+> +       }
+> +
+>          return _dma_cache_sync(dev, paddr, size, dir);
+>   }
+>   
+>   void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+>                  size_t size, enum dma_data_direction dir)
+>   {
+> +       if (dir != DMA_FROM_DEVICE) {
+> +               dump_stack();
+> +               printk(" *** %s@%d: DMA direction is %s instead of %s\n",
+> +                      __func__, __LINE__, dir_to_str(dir), dir_to_str(DMA_FROM_DEVICE));
+> +       }
+> +
+>          return _dma_cache_sync(dev, paddr, size, dir);
+>   }
+
+...
+> In case of MMC/DW_MCI (AKA DesignWare MobileStorage controller) that's an execution flow:
+> 1) __dw_mci_start_request()
+> 2) dw_mci_pre_dma_transfer()
+> 3) dma_map_sg(..., mmc_get_dma_dir(data))
+>
+> Note mmc_get_dma_dir() is just "data->flags & MMC_DATA_WRITE ? DMA_TO_DEVICE : DMA_FROM_DEVICE".
+> I.e. if we're preparing for sending data dma_noncoherent_map_sg() will have DMA_TO_DEVICE which
+> is quite OK for passing to dma_noncoherent_sync_sg_for_device() but in case of reading we'll have
+> DMA_FROM_DEVICE which we'll pass to dma_noncoherent_sync_sg_for_device() in dma_noncoherent_map_sg().
+>
+> I'd say this is not entirely correct because IMHO arch_sync_dma_for_cpu() is supposed to only be used
+> in case of DMA_FROM_DEVICE and arch_sync_dma_for_device() only in case of DMA_TO_DEVICE.
+
+So roughly 10 years ago, some kernel rookie name Vineet Gupta, asked the exact 
+same question :-)
+
+http://kernelnewbies.kernelnewbies.narkive.com/aGW1QcDv/query-about-dma-sync-for-cpu-and-direction-to-device
+
+I never understood the need for this direction. And if memory serves me right, at 
+that time I was seeing twice the amount of cache flushing !
+
+> But the real fix of my problem is:
+> ---------------------------------------->8------------------------------------
+> --- a/lib/dma-noncoherent.c
+> +++ b/lib/dma-noncoherent.c
+> @@ -35,7 +35,7 @@ static dma_addr_t dma_noncoherent_map_page(struct device *dev, struct page *page
+>   
+>          addr = dma_direct_map_page(dev, page, offset, size, dir, attrs);
+>          if (!dma_mapping_error(dev, addr) && !(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+> -               arch_sync_dma_for_device(dev, page_to_phys(page), size, dir);
+> +               arch_sync_dma_for_device(dev, page_to_phys(page) + offset, size, dir);
+>          return addr;
+>   }
+> ---------------------------------------->8------------------------------------
+>
+> You seem to lost an offset in the page so if we happen to have a buffer not aligned to
+> a page boundary then we were obviously corrupting data outside our data :)
+
+Neat !
