@@ -1,89 +1,112 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 17/25] sh: introduce a sh_cacheop_vaddr helper
-Date: Tue, 22 May 2018 14:04:22 +0200
-Message-ID: <20180522120430.28709-18-hch@lst.de>
+Subject: [PATCH 16/25] sh: simplify get_arch_dma_ops
+Date: Tue, 22 May 2018 14:04:21 +0200
+Message-ID: <20180522120430.28709-17-hch@lst.de>
 References: <20180522120430.28709-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20180522120430.28709-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Vincent Chen <deanbo422@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Greentime Hu <green.hu@gmail.com>, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, nios2-dev@lists.rocketboards.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-And use it in the maple bus code to avoid a dma API dependency.
+Remove the indirection through the dma_ops variable, and just return
+nommu_dma_ops directly from get_arch_dma_ops.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sh/include/asm/cacheflush.h | 7 +++++++
- arch/sh/mm/consistent.c          | 6 +-----
- drivers/sh/maple/maple.c         | 7 ++++---
- 3 files changed, 12 insertions(+), 8 deletions(-)
+ arch/sh/include/asm/dma-mapping.h |  5 ++---
+ arch/sh/kernel/dma-nommu.c        |  8 +-------
+ arch/sh/mm/consistent.c           |  3 ---
+ arch/sh/mm/init.c                 | 10 ----------
+ 4 files changed, 3 insertions(+), 23 deletions(-)
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index d103ab5a4e4b..b932e42ef028 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -101,5 +101,12 @@ void kunmap_coherent(void *kvaddr);
+diff --git a/arch/sh/include/asm/dma-mapping.h b/arch/sh/include/asm/dma-mapping.h
+index 41167931e5d9..149e71f95be7 100644
+--- a/arch/sh/include/asm/dma-mapping.h
++++ b/arch/sh/include/asm/dma-mapping.h
+@@ -2,12 +2,11 @@
+ #ifndef __ASM_SH_DMA_MAPPING_H
+ #define __ASM_SH_DMA_MAPPING_H
  
- void cpu_cache_init(void);
+-extern const struct dma_map_ops *dma_ops;
+-extern void no_iommu_init(void);
++extern const struct dma_map_ops nommu_dma_ops;
  
-+static inline void *sh_cacheop_vaddr(void *vaddr)
-+{
-+	if (__in_29bit_mode())
-+		vaddr = (void *)CAC_ADDR((unsigned long)vaddr);
-+	return vaddr;
-+}
-+
- #endif /* __KERNEL__ */
- #endif /* __ASM_SH_CACHEFLUSH_H */
+ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ {
+-	return dma_ops;
++	return &nommu_dma_ops;
+ }
+ 
+ extern void *dma_generic_alloc_coherent(struct device *dev, size_t size,
+diff --git a/arch/sh/kernel/dma-nommu.c b/arch/sh/kernel/dma-nommu.c
+index 3e3a32fc676e..79a9edafa5b0 100644
+--- a/arch/sh/kernel/dma-nommu.c
++++ b/arch/sh/kernel/dma-nommu.c
+@@ -79,10 +79,4 @@ const struct dma_map_ops nommu_dma_ops = {
+ 	.sync_sg_for_device	= nommu_sync_sg_for_device,
+ #endif
+ };
+-
+-void __init no_iommu_init(void)
+-{
+-	if (dma_ops)
+-		return;
+-	dma_ops = &nommu_dma_ops;
+-}
++EXPORT_SYMBOL(nommu_dma_ops);
 diff --git a/arch/sh/mm/consistent.c b/arch/sh/mm/consistent.c
-index 221832eec33b..5f86ae24025b 100644
+index 35ea3099a3b6..221832eec33b 100644
 --- a/arch/sh/mm/consistent.c
 +++ b/arch/sh/mm/consistent.c
-@@ -69,10 +69,7 @@ void dma_generic_free_coherent(struct device *dev, size_t size,
- void sh_sync_dma_for_device(void *vaddr, size_t size,
- 		    enum dma_data_direction direction)
- {
--	void *addr;
+@@ -20,9 +20,6 @@
+ #include <asm/cacheflush.h>
+ #include <asm/addrspace.h>
+ 
+-const struct dma_map_ops *dma_ops;
+-EXPORT_SYMBOL(dma_ops);
 -
--	addr = __in_29bit_mode() ?
--	       (void *)CAC_ADDR((unsigned long)vaddr) : vaddr;
-+	void *addr = sh_cacheop_vaddr(vaddr);
- 
- 	switch (direction) {
- 	case DMA_FROM_DEVICE:		/* invalidate only */
-@@ -88,7 +85,6 @@ void sh_sync_dma_for_device(void *vaddr, size_t size,
- 		BUG();
- 	}
+ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
+ 				 dma_addr_t *dma_handle, gfp_t gfp,
+ 				 unsigned long attrs)
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index ce0bbaa7e404..32e09f03e6bf 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -395,22 +395,12 @@ void __init paging_init(void)
+ 	free_area_init_nodes(max_zone_pfns);
  }
--EXPORT_SYMBOL(sh_sync_dma_for_device);
  
- static int __init memchunk_setup(char *str)
+-/*
+- * Early initialization for any I/O MMUs we might have.
+- */
+-static void __init iommu_init(void)
+-{
+-	no_iommu_init();
+-}
+-
+ unsigned int mem_init_done = 0;
+ 
+ void __init mem_init(void)
  {
-diff --git a/drivers/sh/maple/maple.c b/drivers/sh/maple/maple.c
-index 7525039d812c..c9c354bd713a 100644
---- a/drivers/sh/maple/maple.c
-+++ b/drivers/sh/maple/maple.c
-@@ -300,8 +300,8 @@ static void maple_send(void)
- 	mutex_unlock(&maple_wlist_lock);
- 	if (maple_packets > 0) {
- 		for (i = 0; i < (1 << MAPLE_DMA_PAGES); i++)
--			sh_sync_dma_for_device(maple_sendbuf + i * PAGE_SIZE,
--				       PAGE_SIZE, DMA_BIDIRECTIONAL);
-+			__flush_purge_region(maple_sendbuf + i * PAGE_SIZE,
-+					PAGE_SIZE);
- 	}
+ 	pg_data_t *pgdat;
  
- finish:
-@@ -642,7 +642,8 @@ static void maple_dma_handler(struct work_struct *work)
- 		list_for_each_entry_safe(mq, nmq, &maple_sentq, list) {
- 			mdev = mq->dev;
- 			recvbuf = mq->recvbuf->buf;
--			sh_sync_dma_for_device(recvbuf, 0x400, DMA_FROM_DEVICE);
-+			__flush_invalidate_region(sh_cacheop_vaddr(recvbuf),
-+					0x400);
- 			code = recvbuf[0];
- 			kfree(mq->sendbuf);
- 			list_del_init(&mq->list);
+-	iommu_init();
+-
+ 	high_memory = NULL;
+ 	for_each_online_pgdat(pgdat)
+ 		high_memory = max_t(void *, high_memory,
 -- 
 2.17.0
