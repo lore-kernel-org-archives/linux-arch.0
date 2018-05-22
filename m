@@ -1,197 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:51928 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:53574 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751670AbeEVME6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 May 2018 08:04:58 -0400
+        with ESMTP id S1752367AbeEVMF3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 May 2018 08:05:29 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 04/25] m68k: use generic dma_noncoherent_ops
-Date: Tue, 22 May 2018 14:04:09 +0200
-Message-ID: <20180522120430.28709-5-hch@lst.de>
+Subject: [PATCH 12/25] openrisc: remove the sync_single_for_cpu DMA operation
+Date: Tue, 22 May 2018 14:04:17 +0200
+Message-ID: <20180522120430.28709-13-hch@lst.de>
 In-Reply-To: <20180522120430.28709-1-hch@lst.de>
 References: <20180522120430.28709-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
-Message-ID: <20180522120409.SdXxOjOfr0mifxrgLraS_-RTx-jALSiEm5zxRyz3cHg@z>
+Message-ID: <20180522120417.xzBqlSwKzhy_2Z9MY3UVG9xDSI4ILAdxqB_s3QC6K7U@z>
 
-Switch to the generic noncoherent direct mapping implementation.
+openrisc does all the required cache maintainance at dma map time, and none
+at unmap time.  It thus has to implement sync_single_for_device to match
+the map cace for buffer reuse, but there is no point in doing another
+invalidation in the sync_single_cpu_case, which in terms of cache
+maintainance is equivalent to the unmap case.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/m68k/Kconfig                   |  2 +
- arch/m68k/include/asm/Kbuild        |  1 +
- arch/m68k/include/asm/dma-mapping.h | 12 -----
- arch/m68k/kernel/dma.c              | 68 ++++-------------------------
- 4 files changed, 11 insertions(+), 72 deletions(-)
- delete mode 100644 arch/m68k/include/asm/dma-mapping.h
+ arch/openrisc/kernel/dma.c | 15 ---------------
+ 1 file changed, 15 deletions(-)
 
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 785612b576f7..3f61327da2d5 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -2,6 +2,7 @@
- config M68K
- 	bool
- 	default y
-+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE if HAS_DMA
- 	select ARCH_MIGHT_HAVE_PC_PARPORT if ISA
- 	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
- 	select HAVE_IDE
-@@ -24,6 +25,7 @@ config M68K
- 	select MODULES_USE_ELF_RELA
- 	select OLD_SIGSUSPEND3
- 	select OLD_SIGACTION
-+	select DMA_NONCOHERENT_OPS if HAS_DMA
- 
- config CPU_BIG_ENDIAN
- 	def_bool y
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 88a9d27df1ac..a853c00f1374 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -1,5 +1,6 @@
- generic-y += barrier.h
- generic-y += device.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/m68k/include/asm/dma-mapping.h b/arch/m68k/include/asm/dma-mapping.h
-deleted file mode 100644
-index e3722ed04fbb..000000000000
---- a/arch/m68k/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,12 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _M68K_DMA_MAPPING_H
--#define _M68K_DMA_MAPPING_H
--
--extern const struct dma_map_ops m68k_dma_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
--{
--        return &m68k_dma_ops;
--}
--
--#endif  /* _M68K_DMA_MAPPING_H */
-diff --git a/arch/m68k/kernel/dma.c b/arch/m68k/kernel/dma.c
-index c01b9b8f97bf..3d561c577d35 100644
---- a/arch/m68k/kernel/dma.c
-+++ b/arch/m68k/kernel/dma.c
-@@ -6,7 +6,7 @@
- 
- #undef DEBUG
- 
--#include <linux/dma-mapping.h>
-+#include <linux/dma-noncoherent.h>
- #include <linux/device.h>
- #include <linux/kernel.h>
- #include <linux/scatterlist.h>
-@@ -18,7 +18,7 @@
- 
- #if defined(CONFIG_MMU) && !defined(CONFIG_COLDFIRE)
- 
--static void *m68k_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 		gfp_t flag, unsigned long attrs)
- {
- 	struct page *page, **map;
-@@ -61,7 +61,7 @@ static void *m68k_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
- 	return addr;
- }
- 
--static void m68k_dma_free(struct device *dev, size_t size, void *addr,
-+void arch_dma_free(struct device *dev, size_t size, void *addr,
- 		dma_addr_t handle, unsigned long attrs)
- {
- 	pr_debug("dma_free_coherent: %p, %x\n", addr, handle);
-@@ -72,8 +72,8 @@ static void m68k_dma_free(struct device *dev, size_t size, void *addr,
- 
- #include <asm/cacheflush.h>
- 
--static void *m68k_dma_alloc(struct device *dev, size_t size,
--		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
-+		gfp_t gfp, unsigned long attrs)
- {
- 	void *ret;
- 
-@@ -88,7 +88,7 @@ static void *m68k_dma_alloc(struct device *dev, size_t size,
- 	return ret;
- }
- 
--static void m68k_dma_free(struct device *dev, size_t size, void *vaddr,
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
- 		dma_addr_t dma_handle, unsigned long attrs)
- {
- 	free_pages((unsigned long)vaddr, get_order(size));
-@@ -96,8 +96,8 @@ static void m68k_dma_free(struct device *dev, size_t size, void *vaddr,
- 
- #endif /* CONFIG_MMU && !CONFIG_COLDFIRE */
- 
--static void m68k_dma_sync_single_for_device(struct device *dev,
--		dma_addr_t handle, size_t size, enum dma_data_direction dir)
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t handle,
-+		size_t size, enum dma_data_direction dir)
- {
- 	switch (dir) {
- 	case DMA_BIDIRECTIONAL:
-@@ -113,55 +113,3 @@ static void m68k_dma_sync_single_for_device(struct device *dev,
- 		break;
+diff --git a/arch/openrisc/kernel/dma.c b/arch/openrisc/kernel/dma.c
+index ec7fd45704d2..47601274abf7 100644
+--- a/arch/openrisc/kernel/dma.c
++++ b/arch/openrisc/kernel/dma.c
+@@ -208,20 +208,6 @@ or1k_unmap_sg(struct device *dev, struct scatterlist *sg,
  	}
  }
--
--static void m68k_dma_sync_sg_for_device(struct device *dev,
--		struct scatterlist *sglist, int nents, enum dma_data_direction dir)
+ 
+-static void
+-or1k_sync_single_for_cpu(struct device *dev,
+-			 dma_addr_t dma_handle, size_t size,
+-			 enum dma_data_direction dir)
 -{
--	int i;
--	struct scatterlist *sg;
+-	unsigned long cl;
+-	dma_addr_t addr = dma_handle;
+-	struct cpuinfo_or1k *cpuinfo = &cpuinfo_or1k[smp_processor_id()];
 -
--	for_each_sg(sglist, sg, nents, i) {
--		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
--					   dir);
--	}
+-	/* Invalidate the dcache for the requested range */
+-	for (cl = addr; cl < addr + size; cl += cpuinfo->dcache_block_size)
+-		mtspr(SPR_DCBIR, cl);
 -}
 -
--static dma_addr_t m68k_dma_map_page(struct device *dev, struct page *page,
--		unsigned long offset, size_t size, enum dma_data_direction dir,
--		unsigned long attrs)
--{
--	dma_addr_t handle = page_to_phys(page) + offset;
--
--	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
--		dma_sync_single_for_device(dev, handle, size, dir);
--
--	return handle;
--}
--
--static int m68k_dma_map_sg(struct device *dev, struct scatterlist *sglist,
--		int nents, enum dma_data_direction dir, unsigned long attrs)
--{
--	int i;
--	struct scatterlist *sg;
--
--	for_each_sg(sglist, sg, nents, i) {
--		sg->dma_address = sg_phys(sg);
--
--		if (attrs & DMA_ATTR_SKIP_CPU_SYNC)
--			continue;
--
--		dma_sync_single_for_device(dev, sg->dma_address, sg->length,
--					   dir);
--	}
--	return nents;
--}
--
--const struct dma_map_ops m68k_dma_ops = {
--	.alloc			= m68k_dma_alloc,
--	.free			= m68k_dma_free,
--	.map_page		= m68k_dma_map_page,
--	.map_sg			= m68k_dma_map_sg,
--	.sync_single_for_device	= m68k_dma_sync_single_for_device,
--	.sync_sg_for_device	= m68k_dma_sync_sg_for_device,
--};
--EXPORT_SYMBOL(m68k_dma_ops);
+ static void
+ or1k_sync_single_for_device(struct device *dev,
+ 			    dma_addr_t dma_handle, size_t size,
+@@ -243,7 +229,6 @@ const struct dma_map_ops or1k_dma_map_ops = {
+ 	.unmap_page = or1k_unmap_page,
+ 	.map_sg = or1k_map_sg,
+ 	.unmap_sg = or1k_unmap_sg,
+-	.sync_single_for_cpu = or1k_sync_single_for_cpu,
+ 	.sync_single_for_device = or1k_sync_single_for_device,
+ };
+ EXPORT_SYMBOL(or1k_dma_map_ops);
 -- 
 2.17.0
