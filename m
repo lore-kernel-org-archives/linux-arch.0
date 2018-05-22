@@ -1,100 +1,59 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 02/11] arm64: Move arch-specific prctls out of core
- code
-Date: Mon, 21 May 2018 19:30:14 +0100
-Message-ID: <20180521183014.GD19122@arm.com>
-References: <1526318067-4964-1-git-send-email-Dave.Martin@arm.com>
- <1526318067-4964-3-git-send-email-Dave.Martin@arm.com>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: [PATCH 04/20] arm-nommu: use generic dma_noncoherent_ops
+Date: Tue, 22 May 2018 13:53:20 +0200
+Message-ID: <20180522115320.GA14530@lst.de>
+References: <20180511075945.16548-1-hch@lst.de>
+	<20180511075945.16548-5-hch@lst.de>
+	<20180511091114.GA16141@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <1526318067-4964-3-git-send-email-Dave.Martin@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, marc.zyngier@arm.com
+In-Reply-To: <20180511091114.GA16141-l+eeeJia6m9URfEZ8mYm6t73F7V6hmMc@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, openrisc-cunTk1MwBs9a3B2Vnqf2dGD2FQJk+8+b@public.gmane.org, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 14, 2018 at 06:14:18PM +0100, Dave Martin wrote:
-> This patch moves the arm64-specific prctl call implementations out
-> of core code and removes redundant boilerplate associated with
-> them.
+On Fri, May 11, 2018 at 10:11:15AM +0100, Russell King - ARM Linux wrote:
+> > +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+> > +		size_t size, enum dma_data_direction dir)
 > 
-> No functional change.
+> Please no.  There is a lot of history of these (__dma_page_cpu_to_dev etc)
+> functions being abused by out of tree drivers, because they think they
+> know better.  This is stopped by making them static and ensuring that
+> drivers have no access to these functions.
 > 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/arm64/Kconfig                 |  1 +
->  arch/arm64/include/asm/processor.h |  4 ----
->  arch/arm64/kernel/sys.c            | 15 +++++++++++++++
->  kernel/sys.c                       | 12 ------------
->  4 files changed, 16 insertions(+), 16 deletions(-)
+> Please do not re-expose these to the global kernel.
 > 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index eb2cf49..6b706af 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -123,6 +123,7 @@ config ARM64
->  	select HAVE_PERF_EVENTS
->  	select HAVE_PERF_REGS
->  	select HAVE_PERF_USER_STACK_DUMP
-> +	select HAVE_PRCTL_ARCH
->  	select HAVE_REGS_AND_STACK_ACCESS_API
->  	select HAVE_RCU_TABLE_FREE
->  	select HAVE_SYSCALL_TRACEPOINTS
-> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-> index 7675989..b1d262f 100644
-> --- a/arch/arm64/include/asm/processor.h
-> +++ b/arch/arm64/include/asm/processor.h
-> @@ -244,9 +244,5 @@ void cpu_enable_pan(const struct arm64_cpu_capabilities *__unused);
->  void cpu_enable_cache_maint_trap(const struct arm64_cpu_capabilities *__unused);
->  void cpu_clear_disr(const struct arm64_cpu_capabilities *__unused);
->  
-> -/* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
-> -#define SVE_SET_VL(arg)	sve_set_current_vl(arg)
-> -#define SVE_GET_VL()	sve_get_current_vl()
-> -
->  #endif /* __ASSEMBLY__ */
->  #endif /* __ASM_PROCESSOR_H */
-> diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-> index 72981ba..597ff35 100644
-> --- a/arch/arm64/kernel/sys.c
-> +++ b/arch/arm64/kernel/sys.c
-> @@ -22,10 +22,12 @@
->  #include <linux/fs.h>
->  #include <linux/mm.h>
->  #include <linux/export.h>
-> +#include <linux/prctl.h>
->  #include <linux/sched.h>
->  #include <linux/slab.h>
->  #include <linux/syscalls.h>
->  #include <asm/cpufeature.h>
-> +#include <asm/fpsimd.h>
->  
->  asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
->  			 unsigned long prot, unsigned long flags,
-> @@ -45,6 +47,19 @@ SYSCALL_DEFINE1(arm64_personality, unsigned int, personality)
->  	return sys_personality(personality);
->  }
->  
-> +int prctl_arch(int option, unsigned long arg2, unsigned long arg3,
-> +	       unsigned long arg4, unsigned long arg5)
-> +{
-> +	switch (option) {
-> +	case PR_SVE_SET_VL:
-> +		return sve_set_current_vl(arg2);
-> +	case PR_SVE_GET_VL:
-> +		return sve_get_current_vl();
-> +	default:
-> +		return -EINVAL;
-> +	}
-> +}
+> While it may make things easier for a cross-architecture point of view,
+> it makes it a lot easier for people to abuse these private APIs.
 
-If we think this might grow, then it might be worth adding a prctl.c to
-collect these together. Anyhow:
+The point of this series, which isn't fully archived yet, is to
+consolidate the direct mapping dma code, that is all dma_map_ops
+instances except for iommus.  It is in fact in many ways modelled
+after the ARM code.  For that we need the architectures to supply
+the cache maintainance routines.
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+However, even if they now appear in dma-noncoherent.h they are NOT
+and will NOT be exported, so using them directly from drivers won't
+easily be possible.
 
-Will
+I'll drop the arm-nommu patch for now, but I will pester your with this
+again once arm is the last architecture not sharing the common code.
+
+> 
+> -- 
+> RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+> FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
+> According to speedtest.net: 8.21Mbps down 510kbps up
+---end quoted text---
