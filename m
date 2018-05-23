@@ -1,41 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t1383g.austin.hpe.com ([15.233.16.89]:22087 "EHLO
-        g2t1383g.austin.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933342AbeEWOeM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 May 2018 10:34:12 -0400
-Received: from g9t5008.houston.hpe.com (g9t5008.houston.hpe.com [15.241.48.72])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by g2t1383g.austin.hpe.com (Postfix) with ESMTPS id EEDE02898
-        for <linux-arch@vger.kernel.org>; Wed, 23 May 2018 14:34:11 +0000 (UTC)
-From: "Kani, Toshi" <toshi.kani@hpe.com>
-Subject: Re: [PATCH v9 3/4] arm64: Implement page table free interfaces
-Date: Wed, 23 May 2018 14:34:06 +0000
-Message-ID: <1527085967.14039.10.camel@hpe.com>
-References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
-         <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
-         <20180523140157.GG26965@arm.com>
-In-Reply-To: <20180523140157.GG26965@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <19B70EC0430CDD48AEAFE53AFF6E7F8E@NAMPRD84.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
+Received: from mx2.suse.de ([195.135.220.15]:41744 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S933791AbeEWVfx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 23 May 2018 17:35:53 -0400
+Date: Wed, 23 May 2018 23:35:51 +0200
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v3 0/2] mm: PAGE_KERNEL_* fallbacks
+Message-ID: <20180523213551.GF4511@wotan.suse.de>
+References: <20180510185507.2439-1-mcgrof@kernel.org>
+ <20180516164403.GI27853@wotan.suse.de>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180516164403.GI27853@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "will.deacon@arm.com" <will.deacon@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "vkuznets@redhat.com" <vkuznets@redhat.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "james.morse@arm.com" <james.morse@arm.com>, "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>, "joro@8bytes.org" <joro@8bytes.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "pelcan@codeaurora.org" <pelcan@codeaurora.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180523143406.jetg4qyQ_kqoOPy9TlHdXnU1dbKdo0y8tOlMfwwDhNo@z>
+To: gregkh@linuxfoundation.org
+Cc: arnd@arndb.de, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mcgrof@kernel.org
+Message-ID: <20180523213551.tu7ugpzx6Z0aoDryWdEF0r40Nt0nWQH8-SKftLS7118@z>
 
-T24gV2VkLCAyMDE4LTA1LTIzIGF0IDE1OjAxICswMTAwLCBXaWxsIERlYWNvbiB3cm90ZToNCj4g
-SGkgQ2hpbnRhbiwNCj4gDQo+IFthcyBhIHNpZGUgbm90ZTogSSdtIGNvbmZ1c2VkIG9uIHRoZSBz
-dGF0dXMgb2YgdGhpcyBwYXRjaCBzZXJpZXMsIGFzIHBhcnQNCj4gIG9mIGl0IHdhcyByZXBvc3Rl
-ZCBzZXBhcmF0ZWx5IGJ5IFRvc2hpLiBQbGVhc2UgY2FuIHlvdSB3b3JrIHRvZ2V0aGVyP10NCg0K
-SSBkbyBub3Qga25vdyB0aGUgc3RhdHVzIG9mIG15IHBhdGNoIHNlcmllcywgZWl0aGVyLi4uIFRo
-YXQgYmVpbmcgc2FpZCwNCkkgbWFkZSBteSB4ODYgcGF0Y2hlcyBiYXNlZCBvZmYgZnJvbSBDaGlu
-dGFuJ3MgMS80IHBhdGNoICh3aGljaCBjaGFuZ2VzDQpib3RoIHg4NiBhbmQgYXJtKSBzbyB0aGF0
-IG15IHNlcmllcyB3b24ndCBjb25mbGljdCB3aXRoIGhpcy4NCg0KQ2hpbnRhbiwNCklmIHlvdSBu
-ZWVkIHRvIHVwZGF0ZSB5b3VyIHNlcmllcyBiZWZvcmUgbWluZSdzIGFjY2VwdGVkLCBwbGVhc2Ug
-bWFrZQ0Kc3VyZSB0byB1c2UgdGhlIHVwZGF0ZWQgMS80IGJlbG93LiBJJ3ZlIHVwZGF0ZWQgdGhl
-IGRlc2NyaXB0aW9ucyBwZXINCnJldmlldyBjb21tZW50Lg0KaHR0cHM6Ly9wYXRjaHdvcmsua2Vy
-bmVsLm9yZy9wYXRjaC8xMDQwNzA2NS8NCg0KVGhhbmtzLA0KLVRvc2hpIA==
+On Wed, May 16, 2018 at 06:44:03PM +0200, Luis R. Rodriguez wrote:
+> On Thu, May 10, 2018 at 11:55:05AM -0700, Luis R. Rodriguez wrote:
+> > This is the 3rd iteration for moving PAGE_KERNEL_* fallback
+> > definitions into asm-generic headers. Greg asked for a Changelog
+> > for patch iteration changes, its below.
+> > 
+> > All these patches have been tested by 0-day.
+> > 
+> > Questions, and specially flames are greatly appreciated.
+> 
+> *Poke*
+
+Greg, since this does touch the firmware loader as well, *poke*.
+
+  Luis
