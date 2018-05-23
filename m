@@ -1,64 +1,78 @@
-From: Adam Wallis <awallis@codeaurora.org>
-Subject: Re: [PATCHv2 06/12] arm64: add basic pointer authentication support
-Date: Tue, 22 May 2018 15:06:21 -0400
-Message-ID: <daefeb1f-9553-c26d-0b35-2c4da328aeff@codeaurora.org>
-References: <20171127163806.31435-1-mark.rutland@arm.com>
- <20171127163806.31435-7-mark.rutland@arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH 01/11] prctl: Support movement of arch prctls out of
+ common code
+Date: Wed, 23 May 2018 11:14:52 +0100
+Message-ID: <20180523101451.GH13470@e103592.cambridge.arm.com>
+References: <5252accbd67022cea25e5aa80e48d95c.localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171127163806.31435-7-mark.rutland@arm.com>
-Content-Language: en-US
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Fenghua Yu <fenghua.yu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, James Hogan <jhogan@kernel.org>, Kees Cook <keescook@chromium.org>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, Rich Felker <dalias@libc.org>, Thomas Gleixner <tglx@linutronix.de>, Tony Luck <tony.luck@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/27/2017 11:38 AM, Mark Rutland wrote:
-> This patch adds basic support for pointer authentication, allowing
-> userspace to make use of APIAKey. The kernel maintains an APIAKey value
-> for each process (shared by all threads within), which is initialised to
-> a random value at exec() time.
+On Mon, May 21, 2018 at 07:28:26PM +0100, Will Deacon wrote:
+> Hi Dave,
 > 
-> To describe that address authentication instructions are available, the
-> ID_AA64ISAR0.{APA,API} fields are exposed to userspace. A new hwcap,
-> APIA, is added to describe that the kernel manages APIAKey.
+> On Mon, May 14, 2018 at 06:14:17PM +0100, Dave Martin wrote:
+> > The core framework for the prctl() syscall is unloved and looking
+> > rather crusty these days.  It also relies on defining ancillary
+> > boilerplate macros for each prctl() in order to control conditional
+> > compilation of the different prctl calls.  We have better ways to
+> > do this now, using Kconfig.
+> > 
+> > This patch defines a new arch hook arch_syscall().  Architectures
+> > that implemement arch-specific syscalls can now select
+> > HAVE_ARCH_SYSCALL in their Kconfig and define this function
+> > appropriately.
+> > 
+> > The core prctl() implementation now matches option against the list
+> > of common or legacy prctls, deferring to prctl_arch() if an
+> > unrecognised option is encountered.
+> > 
+> > (arch_prctl() would have been a nicer name, but it conflicts with the
+> > pre-existing syscall of the same name on x86, particularly in the um
+> > code.)
+> > 
+> > No functional change.
 > 
-> Instructions using other keys (APIBKey, APDAKey, APDBKey) are disabled,
-> and will behave as NOPs. These may be made use of in future patches.
+> [...]
 > 
-> No support is added for the generic key (APGAKey), though this cannot be
-> trapped or made to behave as a NOP. Its presence is not advertised with
-> a hwcap.
+> > diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> > index af5f8c2..c911ff0 100644
+> > --- a/include/uapi/linux/prctl.h
+> > +++ b/include/uapi/linux/prctl.h
+> > @@ -1,6 +1,6 @@
+> >  /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+> > -#ifndef _LINUX_PRCTL_H
+> > -#define _LINUX_PRCTL_H
+> > +#ifndef _UAPI_LINUX_PRCTL_H
+> > +#define _UAPI_LINUX_PRCTL_H
 > 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/arm64/include/asm/mmu.h          |  5 ++
->  arch/arm64/include/asm/mmu_context.h  | 25 +++++++++-
->  arch/arm64/include/asm/pointer_auth.h | 89 +++++++++++++++++++++++++++++++++++
->  arch/arm64/include/uapi/asm/hwcap.h   |  1 +
->  arch/arm64/kernel/cpufeature.c        | 17 ++++++-
->  arch/arm64/kernel/cpuinfo.c           |  1 +
->  6 files changed, 134 insertions(+), 4 deletions(-)
->  create mode 100644 arch/arm64/include/asm/pointer_auth.h
+> Is it safe to rename this #define, or is there a possibility that userspace
+> could be using it for something and relying on it not changing?
+> 
+> Other than that:
+> 
+> Acked-by: Will Deacon <will.deacon@arm.com>
 
-Mark, I was able to verify that a buffer overflow exploit results in a segfault
-with these PAC patches. When I compile the same binary without
-"-msign-return-address=none", I am able to successfully overflow the stack and
-execute malicious code.
+I think that header guards are generally viewed as being private to a
+project and not API.  codesearch.debian.net yields few hits, where there
+are actual #ifdefs on this symbol, they seem to be pastes of the kernel
+headers:
 
-Thanks
-Adam
+https://codesearch.debian.net/search?q=_LINUX_PRCTL_H&perpkg=1
 
-Tested-by: Adam Wallis <awallis@codeaurora.org>
+ -> android, linux, dietlibc ... gnome-chess (?)
 
 
--- 
-Adam Wallis
-Qualcomm Datacenter Technologies as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the Code Aurora Forum,
-a Linux Foundation Collaborative Project.
+There is plenty of precedent in the Howells special:
+
+607ca46e97a1 ("UAPI: (Scripted) Disintegrate include/linux")
+
+See for example <{,uapi/}linux/loop.h>.
+
+Cheers
+---Dave
