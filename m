@@ -1,30 +1,70 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v3 0/2] mm: PAGE_KERNEL_* fallbacks
-Date: Wed, 23 May 2018 23:35:51 +0200
-Message-ID: <20180523213551.GF4511@wotan.suse.de>
-References: <20180510185507.2439-1-mcgrof@kernel.org>
- <20180516164403.GI27853@wotan.suse.de>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: [PATCH v3 23/27] x86/modules: Adapt module loading for PIE support
+Date: Wed, 23 May 2018 15:01:38 -0700
+Message-ID: <CAJcbSZHPc2w7g8Q4UZV3sx=s6LVL_+dsomro7to6RNhd-4F4Ag@mail.gmail.com>
+References: <20180523195421.180248-1-thgarnie@google.com> <20180523195421.180248-24-thgarnie@google.com>
+ <168ebedb-7c27-d1f3-c2f9-223d44186a52@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180516164403.GI27853@wotan.suse.de>
-Sender: linux-kernel-owner@vger.kernel.org
-Cc: arnd@arndb.de, gregkh@linuxfoundation.org, willy@infradead.org, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mcgrof@kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-13377-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <168ebedb-7c27-d1f3-c2f9-223d44186a52@infradead.org>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, Yonghong Song <yhs@fb.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 16, 2018 at 06:44:03PM +0200, Luis R. Rodriguez wrote:
-> On Thu, May 10, 2018 at 11:55:05AM -0700, Luis R. Rodriguez wrote:
-> > This is the 3rd iteration for moving PAGE_KERNEL_* fallback
-> > definitions into asm-generic headers. Greg asked for a Changelog
-> > for patch iteration changes, its below.
-> > 
-> > All these patches have been tested by 0-day.
-> > 
-> > Questions, and specially flames are greatly appreciated.
-> 
-> *Poke*
+On Wed, May 23, 2018 at 2:27 PM Randy Dunlap <rdunlap@infradead.org> wrote:
 
-Greg, since this does touch the firmware loader as well, *poke*.
+> Hi,
 
-  Luis
+> (for several patches in this series:)
+> The commit message is confusing.  See below.
+
+Thanks for the edits, I will change the different commit messages.
+
+
+
+> On 05/23/2018 12:54 PM, Thomas Garnier wrote:
+> > Adapt module loading to support PIE relocations. Generate dynamic GOT if
+> > a symbol requires it but no entry exist in the kernel GOT.
+
+>                                      exists
+
+> >
+> > Position Independent Executable (PIE) support will allow to extended the
+
+>                                                  will allow us to extend
+the
+
+> > KASLR randomization range below the -2G memory limit.
+
+> Does that say "below th negative 2G memory limit"?
+> I don't get it.
+
+Yes, below 0xffffffff80000000 basically. I think I will just say that.
+
+
+
+> >
+> > Signed-off-by: Thomas Garnier <thgarnie@google.com>
+> > ---
+> >  arch/x86/Makefile               |   4 +
+> >  arch/x86/include/asm/module.h   |  11 ++
+> >  arch/x86/include/asm/sections.h |   4 +
+> >  arch/x86/kernel/module.c        | 181 +++++++++++++++++++++++++++++++-
+> >  arch/x86/kernel/module.lds      |   3 +
+> >  5 files changed, 198 insertions(+), 5 deletions(-)
+> >  create mode 100644 arch/x86/kernel/module.lds
+
+
+> Thanks,
+> --
+> ~Randy
+
+
+
+-- 
+Thomas
