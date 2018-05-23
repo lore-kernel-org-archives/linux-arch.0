@@ -1,76 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:43269 "EHLO
-        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933254AbeEWOGX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 May 2018 10:06:23 -0400
-Date: Wed, 23 May 2018 16:06:20 +0200
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [PATCH 07/24] arm64: ilp32: add documentation on the ILP32 ABI
- for ARM64
-Message-ID: <20180523140620.GA27215@amd>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20180516081910.10067-8-ynorov@caviumnetworks.com>
+Received: from g2t1383g.austin.hpe.com ([15.233.16.89]:22087 "EHLO
+        g2t1383g.austin.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933342AbeEWOeM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 May 2018 10:34:12 -0400
+Received: from g9t5008.houston.hpe.com (g9t5008.houston.hpe.com [15.241.48.72])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by g2t1383g.austin.hpe.com (Postfix) with ESMTPS id EEDE02898
+        for <linux-arch@vger.kernel.org>; Wed, 23 May 2018 14:34:11 +0000 (UTC)
+From: "Kani, Toshi" <toshi.kani@hpe.com>
+Subject: Re: [PATCH v9 3/4] arm64: Implement page table free interfaces
+Date: Wed, 23 May 2018 14:34:06 +0000
+Message-ID: <1527085967.14039.10.camel@hpe.com>
+References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
+         <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
+         <20180523140157.GG26965@arm.com>
+In-Reply-To: <20180523140157.GG26965@arm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <19B70EC0430CDD48AEAFE53AFF6E7F8E@NAMPRD84.PROD.OUTLOOK.COM>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="gBBFr7Ir9EOA20Yy"
-Content-Disposition: inline
-In-Reply-To: <20180516081910.10067-8-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20180523140620.0jKs4YUcGHr2sDTmzSZCwZdq6s7pH-cWSNbEJb8lTR8@z>
+To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "will.deacon@arm.com" <will.deacon@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "vkuznets@redhat.com" <vkuznets@redhat.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "james.morse@arm.com" <james.morse@arm.com>, "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>, "joro@8bytes.org" <joro@8bytes.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "pelcan@codeaurora.org" <pelcan@codeaurora.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180523143406.jetg4qyQ_kqoOPy9TlHdXnU1dbKdo0y8tOlMfwwDhNo@z>
 
-
---gBBFr7Ir9EOA20Yy
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Wed 2018-05-16 11:18:52, Yury Norov wrote:
-> Based on Andrew Pinski's patch-series.
->=20
-> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-
-So Andrew's signoff should be here?
-
-> ---
->  Documentation/arm64/ilp32.txt | 45 +++++++++++++++++++++++++++++++++++
->  1 file changed, 45 insertions(+)
->  create mode 100644 Documentation/arm64/ilp32.txt
->=20
-> diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
-> new file mode 100644
-> index 000000000000..d0fd5109c4b2
-> --- /dev/null
-> +++ b/Documentation/arm64/ilp32.txt
-> @@ -0,0 +1,45 @@
-> +ILP32 AARCH64 SYSCALL ABI
-> +=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D
-> +
-> +This document describes the ILP32 syscall ABI and where it differs
-> +from the generic compat linux syscall interface.
-
-I was hoping to learn what ILP32 is / what is it good for, but no,
-this does not tell me... it would be good to do a short explanation
-here, and maybe reference it from cover letter of the series...
-									Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
-
---gBBFr7Ir9EOA20Yy
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAlsFdVwACgkQMOfwapXb+vIqwQCfYjjsUAivfLJZGZGD+OxZQomb
-x7kAoKfYf3WV9YCXwGsSlCM1C9pUE3kr
-=dVu7
------END PGP SIGNATURE-----
-
---gBBFr7Ir9EOA20Yy--
+T24gV2VkLCAyMDE4LTA1LTIzIGF0IDE1OjAxICswMTAwLCBXaWxsIERlYWNvbiB3cm90ZToNCj4g
+SGkgQ2hpbnRhbiwNCj4gDQo+IFthcyBhIHNpZGUgbm90ZTogSSdtIGNvbmZ1c2VkIG9uIHRoZSBz
+dGF0dXMgb2YgdGhpcyBwYXRjaCBzZXJpZXMsIGFzIHBhcnQNCj4gIG9mIGl0IHdhcyByZXBvc3Rl
+ZCBzZXBhcmF0ZWx5IGJ5IFRvc2hpLiBQbGVhc2UgY2FuIHlvdSB3b3JrIHRvZ2V0aGVyP10NCg0K
+SSBkbyBub3Qga25vdyB0aGUgc3RhdHVzIG9mIG15IHBhdGNoIHNlcmllcywgZWl0aGVyLi4uIFRo
+YXQgYmVpbmcgc2FpZCwNCkkgbWFkZSBteSB4ODYgcGF0Y2hlcyBiYXNlZCBvZmYgZnJvbSBDaGlu
+dGFuJ3MgMS80IHBhdGNoICh3aGljaCBjaGFuZ2VzDQpib3RoIHg4NiBhbmQgYXJtKSBzbyB0aGF0
+IG15IHNlcmllcyB3b24ndCBjb25mbGljdCB3aXRoIGhpcy4NCg0KQ2hpbnRhbiwNCklmIHlvdSBu
+ZWVkIHRvIHVwZGF0ZSB5b3VyIHNlcmllcyBiZWZvcmUgbWluZSdzIGFjY2VwdGVkLCBwbGVhc2Ug
+bWFrZQ0Kc3VyZSB0byB1c2UgdGhlIHVwZGF0ZWQgMS80IGJlbG93LiBJJ3ZlIHVwZGF0ZWQgdGhl
+IGRlc2NyaXB0aW9ucyBwZXINCnJldmlldyBjb21tZW50Lg0KaHR0cHM6Ly9wYXRjaHdvcmsua2Vy
+bmVsLm9yZy9wYXRjaC8xMDQwNzA2NS8NCg0KVGhhbmtzLA0KLVRvc2hpIA==
