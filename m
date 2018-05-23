@@ -1,93 +1,71 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v9 3/4] arm64: Implement page table free interfaces
-Date: Wed, 23 May 2018 15:01:58 +0100
-Message-ID: <20180523140157.GG26965@arm.com>
-References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
- <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH 07/24] arm64: ilp32: add documentation on the ILP32 ABI
+ for ARM64
+Date: Wed, 23 May 2018 16:06:20 +0200
+Message-ID: <20180523140620.GA27215@amd>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+ <20180516081910.10067-8-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="gBBFr7Ir9EOA20Yy"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <20180516081910.10067-8-ynorov@caviumnetworks.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Chintan Pandya <cpandya@codeaurora.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Philip Elcan <pelcan@codeaurora.org>, James Morse <james.morse@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, Toshi Kani <toshi.kani@hpe.com>, Dave Hansen <dave.hansen@linux.intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Joerg Roedel <joro@8bytes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <jame>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Chintan,
 
-[as a side note: I'm confused on the status of this patch series, as part
- of it was reposted separately by Toshi. Please can you work together?]
+--gBBFr7Ir9EOA20Yy
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-On Mon, Apr 30, 2018 at 01:11:33PM +0530, Chintan Pandya wrote:
-> Implement pud_free_pmd_page() and pmd_free_pte_page().
-> 
-> Implementation requires,
->  1) Clearing off the current pud/pmd entry
->  2) Invalidate TLB which could have previously
->     valid but not stale entry
->  3) Freeing of the un-used next level page tables
-> 
-> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
+On Wed 2018-05-16 11:18:52, Yury Norov wrote:
+> Based on Andrew Pinski's patch-series.
+>=20
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+
+So Andrew's signoff should be here?
+
 > ---
->  arch/arm64/mm/mmu.c | 29 +++++++++++++++++++++++++----
->  1 file changed, 25 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index da98828..0f651db 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -45,6 +45,7 @@
->  #include <asm/memblock.h>
->  #include <asm/mmu_context.h>
->  #include <asm/ptdump.h>
-> +#include <asm/tlbflush.h>
->  
->  #define NO_BLOCK_MAPPINGS	BIT(0)
->  #define NO_CONT_MAPPINGS	BIT(1)
-> @@ -973,12 +974,32 @@ int pmd_clear_huge(pmd_t *pmdp)
->  	return 1;
->  }
->  
-> -int pud_free_pmd_page(pud_t *pud, unsigned long addr)
-> +int pmd_free_pte_page(pmd_t *pmdp, unsigned long addr)
->  {
-> -	return pud_none(*pud);
-> +	pmd_t *table;
+>  Documentation/arm64/ilp32.txt | 45 +++++++++++++++++++++++++++++++++++
+>  1 file changed, 45 insertions(+)
+>  create mode 100644 Documentation/arm64/ilp32.txt
+>=20
+> diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
+> new file mode 100644
+> index 000000000000..d0fd5109c4b2
+> --- /dev/null
+> +++ b/Documentation/arm64/ilp32.txt
+> @@ -0,0 +1,45 @@
+> +ILP32 AARCH64 SYSCALL ABI
+> +=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D
 > +
-> +	if (pmd_present(READ_ONCE(*pmdp))) {
+> +This document describes the ILP32 syscall ABI and where it differs
+> +from the generic compat linux syscall interface.
 
-Might also be worth checking pmd_table here, just in case. (same for pud)
+I was hoping to learn what ILP32 is / what is it good for, but no,
+this does not tell me... it would be good to do a short explanation
+here, and maybe reference it from cover letter of the series...
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
 
-> +		table = __va(pmd_val(*pmdp));
+--gBBFr7Ir9EOA20Yy
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-Can you avoid dereferencing *pmdp twice, and instead READ_ONCE into a local
-variable, please? (same for pud)
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
 
-> +		pmd_clear(pmdp);
-> +		__flush_tlb_kernel_pgtable(addr);
-> +		free_page((unsigned long) table);
+iEYEARECAAYFAlsFdVwACgkQMOfwapXb+vIqwQCfYjjsUAivfLJZGZGD+OxZQomb
+x7kAoKfYf3WV9YCXwGsSlCM1C9pUE3kr
+=dVu7
+-----END PGP SIGNATURE-----
 
-Shouldn't this be pte_free_kernel, to pair with pte_alloc_kernel which
-was used to allocate the page in the first place? (similarly for pud)
-
-> +	}
-> +	return 1;
->  }
->  
-> -int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
-> +int pud_free_pmd_page(pud_t *pudp, unsigned long addr)
->  {
-> -	return pmd_none(*pmd);
-> +	pmd_t *table;
-> +	int i;
-> +
-> +	if (pud_present(READ_ONCE(*pudp))) {
-> +		table = __va(pud_val(*pudp));
-> +		for (i = 0; i < PTRS_PER_PMD; i++)
-> +			pmd_free_pte_page(&table[i], addr + (i * PMD_SIZE));
-
-I think it would be cleaner to write this as a do { ... } while, for
-consistency with the ioremap and vmalloc code.
-
-Will
+--gBBFr7Ir9EOA20Yy--
