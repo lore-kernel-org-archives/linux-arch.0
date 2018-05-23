@@ -1,79 +1,93 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 3/6] arm64: Use update{,_tsk}_thread_flag()
-Date: Wed, 23 May 2018 13:02:39 +0100
-Message-ID: <20180523120239.GE26965@arm.com>
-References: <1524135528-28561-1-git-send-email-Dave.Martin@arm.com>
- <1524135528-28561-4-git-send-email-Dave.Martin@arm.com>
+Subject: Re: [PATCH v9 3/4] arm64: Implement page table free interfaces
+Date: Wed, 23 May 2018 15:01:58 +0100
+Message-ID: <20180523140157.GG26965@arm.com>
+References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
+ <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1524135528-28561-4-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
+To: Chintan Pandya <cpandya@codeaurora.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Philip Elcan <pelcan@codeaurora.org>, James Morse <james.morse@arm.com>, Kristina Martsenko <kristina.martsenko@arm.com>, Toshi Kani <toshi.kani@hpe.com>, Dave Hansen <dave.hansen@linux.intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Joerg Roedel <joro@8bytes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 19, 2018 at 11:58:45AM +0100, Dave Martin wrote:
-> This patch uses the new update_thread_flag() helpers to simplify a
-> couple of if () set; else clear; constructs.
+Hi Chintan,
+
+[as a side note: I'm confused on the status of this patch series, as part
+ of it was reposted separately by Toshi. Please can you work together?]
+
+On Mon, Apr 30, 2018 at 01:11:33PM +0530, Chintan Pandya wrote:
+> Implement pud_free_pmd_page() and pmd_free_pte_page().
 > 
-> No functional change.
+> Implementation requires,
+>  1) Clearing off the current pud/pmd entry
+>  2) Invalidate TLB which could have previously
+>     valid but not stale entry
+>  3) Freeing of the un-used next level page tables
 > 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
 > ---
->  arch/arm64/kernel/fpsimd.c | 19 +++++++------------
->  1 file changed, 7 insertions(+), 12 deletions(-)
+>  arch/arm64/mm/mmu.c | 29 +++++++++++++++++++++++++----
+>  1 file changed, 25 insertions(+), 4 deletions(-)
 > 
-> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index 87a3536..0c4e7e0 100644
-> --- a/arch/arm64/kernel/fpsimd.c
-> +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -618,10 +618,8 @@ int sve_set_vector_length(struct task_struct *task,
->  	task->thread.sve_vl = vl;
+> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+> index da98828..0f651db 100644
+> --- a/arch/arm64/mm/mmu.c
+> +++ b/arch/arm64/mm/mmu.c
+> @@ -45,6 +45,7 @@
+>  #include <asm/memblock.h>
+>  #include <asm/mmu_context.h>
+>  #include <asm/ptdump.h>
+> +#include <asm/tlbflush.h>
 >  
->  out:
-> -	if (flags & PR_SVE_VL_INHERIT)
-> -		set_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
-> -	else
-> -		clear_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
-> +	update_tsk_thread_flag(task, TIF_SVE_VL_INHERIT,
-> +			       flags & PR_SVE_VL_INHERIT);
->  
->  	return 0;
+>  #define NO_BLOCK_MAPPINGS	BIT(0)
+>  #define NO_CONT_MAPPINGS	BIT(1)
+> @@ -973,12 +974,32 @@ int pmd_clear_huge(pmd_t *pmdp)
+>  	return 1;
 >  }
-> @@ -902,7 +900,7 @@ void fpsimd_thread_switch(struct task_struct *next)
->  	if (current->mm)
->  		task_fpsimd_save();
 >  
-> -	if (next->mm) {
-> +	if (next->mm)
->  		/*
->  		 * If we are switching to a task whose most recent userland
->  		 * FPSIMD state is already in the registers of *this* cpu,
-> @@ -910,13 +908,10 @@ void fpsimd_thread_switch(struct task_struct *next)
->  		 * the TIF_FOREIGN_FPSTATE flag so the state will be loaded
->  		 * upon the next return to userland.
->  		 */
-> -		if (__this_cpu_read(fpsimd_last_state.st) ==
-> -			&next->thread.uw.fpsimd_state
-> -		    && next->thread.fpsimd_cpu == smp_processor_id())
-> -			clear_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
-> -		else
-> -			set_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
-> -	}
-> +		update_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE,
-> +			__this_cpu_read(fpsimd_last_state.st) !=
-> +				&next->thread.uw.fpsimd_state ||
-> +			next->thread.fpsimd_cpu != smp_processor_id());
+> -int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+> +int pmd_free_pte_page(pmd_t *pmdp, unsigned long addr)
+>  {
+> -	return pud_none(*pud);
+> +	pmd_t *table;
+> +
+> +	if (pmd_present(READ_ONCE(*pmdp))) {
 
-This will conflict with some patches in-flight from a chap called Dave
-Martin ;)
+Might also be worth checking pmd_table here, just in case. (same for pud)
 
-Other than that:
+> +		table = __va(pmd_val(*pmdp));
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+Can you avoid dereferencing *pmdp twice, and instead READ_ONCE into a local
+variable, please? (same for pud)
+
+> +		pmd_clear(pmdp);
+> +		__flush_tlb_kernel_pgtable(addr);
+> +		free_page((unsigned long) table);
+
+Shouldn't this be pte_free_kernel, to pair with pte_alloc_kernel which
+was used to allocate the page in the first place? (similarly for pud)
+
+> +	}
+> +	return 1;
+>  }
+>  
+> -int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+> +int pud_free_pmd_page(pud_t *pudp, unsigned long addr)
+>  {
+> -	return pmd_none(*pmd);
+> +	pmd_t *table;
+> +	int i;
+> +
+> +	if (pud_present(READ_ONCE(*pudp))) {
+> +		table = __va(pud_val(*pudp));
+> +		for (i = 0; i < PTRS_PER_PMD; i++)
+> +			pmd_free_pte_page(&table[i], addr + (i * PMD_SIZE));
+
+I think it would be cleaner to write this as a do { ... } while, for
+consistency with the ioremap and vmalloc code.
 
 Will
