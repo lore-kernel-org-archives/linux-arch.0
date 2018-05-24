@@ -1,106 +1,77 @@
-From: Petr Mladek <pmladek@suse.com>
-Subject: Re: [PATCH v3 21/27] x86/ftrace: Adapt function tracing for PIE
-	support
-Date: Thu, 24 May 2018 13:40:24 +0200
-Message-ID: <20180524114024.pa67zjipy5qcg4tm@pathway.suse.cz>
-References: <20180523195421.180248-1-thgarnie@google.com>
-	<20180523195421.180248-22-thgarnie@google.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 07/24] arm64: ilp32: add documentation on the ILP32 ABI
+ for ARM64
+Date: Thu, 24 May 2018 15:15:24 +0300
+Message-ID: <20180524121524.GA3873@yury-thinkpad>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+ <20180516081910.10067-8-ynorov@caviumnetworks.com>
+ <20180523140620.GA27215@amd>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180523195421.180248-22-thgarnie@google.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Thomas Garnier <thgarnie@google.com>, Steven Rostedt <rostedt@goodmis.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, x86@kernel.org, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, kvm@vger.kernel.org, Len Brown <len.brown@intel.com>, Peter Zijlstra <peterz@infradead.org>, Yonghong Song <yhs@fb.com>, Christopher Li <sparse@chrisli.org>, Dave Hansen <dave.hansen@linux.intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Jan Beulich <JBeulich@suse.com>, Pavel Machek <pavel@ucw.cz>, "H . Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, Christoph Lameter <cl@linux.com>, Alok Kataria <akataria@vmware.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Herbert Xu <herbert@gondor.apana.org.au>, Baoquan He <bhe@redhat.com>, David Woodhouse <dwmw@amazon.>
+In-Reply-To: <20180523140620.GA27215@amd>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <jame>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed 2018-05-23 12:54:15, Thomas Garnier wrote:
-> When using -fPIE/PIC with function tracing, the compiler generates a
-> call through the GOT (call *__fentry__@GOTPCREL). This instruction
-> takes 6 bytes instead of 5 on the usual relative call.
+Hi Pavel,
+
+On Wed, May 23, 2018 at 04:06:20PM +0200, Pavel Machek wrote:
+> On Wed 2018-05-16 11:18:52, Yury Norov wrote:
+> > Based on Andrew Pinski's patch-series.
+> > 
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 > 
-> If PIE is enabled, replace the 6th byte of the GOT call by a 1-byte nop
-> so ftrace can handle the previous 5-bytes as before.
+> So Andrew's signoff should be here?
+
+Yes it should, but it lost since v4. I'll restore it.
+ 
+> > ---
+> >  Documentation/arm64/ilp32.txt | 45 +++++++++++++++++++++++++++++++++++
+> >  1 file changed, 45 insertions(+)
+> >  create mode 100644 Documentation/arm64/ilp32.txt
+> > 
+> > diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
+> > new file mode 100644
+> > index 000000000000..d0fd5109c4b2
+> > --- /dev/null
+> > +++ b/Documentation/arm64/ilp32.txt
+> > @@ -0,0 +1,45 @@
+> > +ILP32 AARCH64 SYSCALL ABI
+> > +=========================
+> > +
+> > +This document describes the ILP32 syscall ABI and where it differs
+> > +from the generic compat linux syscall interface.
 > 
-> Position Independent Executable (PIE) support will allow to extended the
-> KASLR randomization range below the -2G memory limit.
-> 
-> Signed-off-by: Thomas Garnier <thgarnie@google.com>
-> ---
->  arch/x86/include/asm/ftrace.h   |  6 +++--
->  arch/x86/include/asm/sections.h |  4 ++++
->  arch/x86/kernel/ftrace.c        | 42 +++++++++++++++++++++++++++++++--
->  3 files changed, 48 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
-> index c18ed65287d5..8f2decce38d8 100644
-> --- a/arch/x86/include/asm/ftrace.h
-> +++ b/arch/x86/include/asm/ftrace.h
-> @@ -25,9 +25,11 @@ extern void __fentry__(void);
->  static inline unsigned long ftrace_call_adjust(unsigned long addr)
->  {
->  	/*
-> -	 * addr is the address of the mcount call instruction.
-> -	 * recordmcount does the necessary offset calculation.
-> +	 * addr is the address of the mcount call instruction. PIE has always a
-> +	 * byte added to the start of the function.
->  	 */
-> +	if (IS_ENABLED(CONFIG_X86_PIE))
-> +		addr -= 1;
+> I was hoping to learn what ILP32 is / what is it good for, but no,
+> this does not tell me... it would be good to do a short explanation
+> here, and maybe reference it from cover letter of the series...
+> 								Pavel
 
-This seems to modify the address even for modules that are _not_ compiled with
-PIE, see below.
+ILP32 is ABI acronym that means "Integers, Longs and Pointers are 32-bit".
+And LP64 means "Longs and Pointers are 64-bit".
 
->  	return addr;
->  }
->  
-> diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
-> index 01ebcb6f263e..73b3c30cb7a3 100644
-> --- a/arch/x86/kernel/ftrace.c
-> +++ b/arch/x86/kernel/ftrace.c
-> @@ -135,6 +135,44 @@ ftrace_modify_code_direct(unsigned long ip, unsigned const char *old_code,
->  	return 0;
->  }
->  
-> +/* Bytes before call GOT offset */
-> +const unsigned char got_call_preinsn[] = { 0xff, 0x15 };
-> +
-> +static int
-> +ftrace_modify_initial_code(unsigned long ip, unsigned const char *old_code,
-> +			   unsigned const char *new_code)
-> +{
-> +	unsigned char replaced[MCOUNT_INSN_SIZE + 1];
-> +
-> +	ftrace_expected = old_code;
-> +
-> +	/*
-> +	 * If PIE is not enabled or no GOT call was found, default to the
-> +	 * original approach to code modification.
-> +	 */
-> +	if (!IS_ENABLED(CONFIG_X86_PIE) ||
-> +	    probe_kernel_read(replaced, (void *)ip, sizeof(replaced)) ||
-> +	    memcmp(replaced, got_call_preinsn, sizeof(got_call_preinsn)))
-> +		return ftrace_modify_code_direct(ip, old_code, new_code);
+There's AN490 - "ILP32 for AArch64 Whitepaper" from ARM which covers
+the topic:
+http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0490a/ar01s01.html
 
-And this looks like an attempt to handle modules compiled without
-PIE. Does it works with the right ip in that case?
+And some talks:
+http://connect.linaro.org/resource/bkk16/bkk16-305b/
 
-I wonder if a better solution would be to update
-scripts/recordmcount.c to store the incremented location into the module.
+Briefly, ILP32 is 32-bit ABI that works with AARCH64 instruction set. It looks
+better in some performance tests, and is useful for compatibility with 32-bit
+legacy code.
 
-IMPORTANT: I have only vague picture about how this all works. It is
-possible that I am completely wrong. The code might be correct,
-especially if you tested this situation.
+If you're more familiar with x86 terminology, in ARM world LP64 corresponds
+to x86_64, AARCH32_EL0 corresponds to x86_32, and ILP32 corresponds to x32
+ABI.
 
-Best Regards,
-Petr
+I'll add link to AN490 in next submission.
+
+Yury
+
+> -- 
+> (english) http://www.livejournal.com/~pavelmachek
+> (cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
