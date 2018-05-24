@@ -1,107 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vegas.theobroma-systems.com ([144.76.126.164]:58507 "EHLO
-        mail.theobroma-systems.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S966142AbeEXMYe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 24 May 2018 08:24:34 -0400
-Content-Type: text/plain; charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
-Subject: Re: [PATCH 07/24] arm64: ilp32: add documentation on the ILP32 ABI
- for ARM64
-From: "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>
-In-Reply-To: <20180524121524.GA3873@yury-thinkpad>
-Date: Thu, 24 May 2018 14:24:19 +0200
-Content-Transfer-Encoding: 8BIT
-Message-ID: <ACC31423-0367-4DB4-B077-B85639FA416C@theobroma-systems.com>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20180516081910.10067-8-ynorov@caviumnetworks.com>
- <20180523140620.GA27215@amd> <20180524121524.GA3873@yury-thinkpad>
+Received: from foss.arm.com ([217.140.101.70]:47870 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1030560AbeEXQ4z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 24 May 2018 12:56:55 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH v11 00/19] KVM: arm64: Optimise FPSIMD context switching
+Date: Thu, 24 May 2018 17:56:29 +0100
+Message-ID: <1527181008-13549-1-git-send-email-Dave.Martin@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Pavel Machek <pavel@ucw.cz>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>
-Message-ID: <20180524122419.4VFAdL_Au6QnCIPsgvBWgycoaBDtwTj9ahNB1HOZiaM@z>
+To: kvmarm@lists.cs.columbia.edu
+Cc: linux-arm-kernel@lists.infradead.org, Christoffer Dall <cdall@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>
+Message-ID: <20180524165629.tt5VlcViwojECJdbyYG9D68-HrqsL-GlOwOTyfIDhd0@z>
 
-Yury & Pavel,
+Note: Most of these patches are Arm-specific.  People not Cc'd on the
+whole series can find it in the linux-arm-kernel archive [2].
 
-> On 24 May 2018, at 14:15, Yury Norov <ynorov@caviumnetworks.com> wrote:
-> 
-> Hi Pavel,
-> 
-> On Wed, May 23, 2018 at 04:06:20PM +0200, Pavel Machek wrote:
->> On Wed 2018-05-16 11:18:52, Yury Norov wrote:
->>> Based on Andrew Pinski's patch-series.
->>> 
->>> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
->> 
->> So Andrew's signoff should be here?
-> 
-> Yes it should, but it lost since v4. I'll restore it.
-> 
->>> ---
->>> Documentation/arm64/ilp32.txt | 45 +++++++++++++++++++++++++++++++++++
->>> 1 file changed, 45 insertions(+)
->>> create mode 100644 Documentation/arm64/ilp32.txt
->>> 
->>> diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
->>> new file mode 100644
->>> index 000000000000..d0fd5109c4b2
->>> --- /dev/null
->>> +++ b/Documentation/arm64/ilp32.txt
->>> @@ -0,0 +1,45 @@
->>> +ILP32 AARCH64 SYSCALL ABI
->>> +=========================
->>> +
->>> +This document describes the ILP32 syscall ABI and where it differs
->>> +from the generic compat linux syscall interface.
->> 
->> I was hoping to learn what ILP32 is / what is it good for, but no,
->> this does not tell me... it would be good to do a short explanation
->> here, and maybe reference it from cover letter of the series...
->> 								Pavel
-> 
-> ILP32 is ABI acronym that means "Integers, Longs and Pointers are 32-bit".
-> And LP64 means "Longs and Pointers are 64-bit”.
+Git: see [3]
 
-Just a nitpick: ILP32 is in fact just the memory model, but calling from ILP32
-code into the Linux kernel requires modifications to the syscall-ABI due to
-datastructure layout changing (every time a pointer or a ‘long’ is present in
-a structure). As such structures are passed between the userspace and the
-kernel (and also due to the fact that time_t is an ‘unsigned long’ in the C
-language standard), modifications to the syscall ABI in Linux are needed to
-support ILP32 processes calling into the kernel.
+This series aims to improve the way FPSIMD context is handled by KVM.
+Changes since the previous v10 [1] are minor, but one patch has been
+split.
 
-Things get a bit more involved, as the final consensus was to pass 64bit
-quantities in the lower half of 2 64bit registers instead of as a single register:
-this makes the way (on AArch64) that an ILP32 process calls into the kernel
-more dissimilar from a LP64 process calling the same syscall.
+** To Catalin Marinas, Alex Bennée: **
 
-What this rambling boils down to is: “ILP32" is the memory model, whereas
-this series deals with the “Linux/AArch64 syscall ABI for ILP32 processes”.
+I have retained your Reviewed-bys on patches 7 and 8: these were split
+from patch 7 of v9.  Although the code is (almost) the same as noted
+below, I advise you to take a look.
 
-Thanks,
-Phil.
+(all) reviewers please note:
 
-> 
-> There's AN490 - "ILP32 for AArch64 Whitepaper" from ARM which covers
-> the topic:
-> http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0490a/ar01s01.html
-> 
-> And some talks:
-> http://connect.linaro.org/resource/bkk16/bkk16-305b/
-> 
-> Briefly, ILP32 is 32-bit ABI that works with AARCH64 instruction set. It looks
-> better in some performance tests, and is useful for compatibility with 32-bit
-> legacy code.
-> 
-> If you're more familiar with x86 terminology, in ARM world LP64 corresponds
-> to x86_64, AARCH32_EL0 corresponds to x86_32, and ILP32 corresponds to x32
-> ABI.
-> 
-> I'll add link to AN490 in next submission.
-> 
-> Yury
-> 
->> -- 
->> (english) http://www.livejournal.com/~pavelmachek
->> (cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+ * Patches 7 and 8 have been split from the previous patch 7, since
+   the update to INIT_THREAD_INFO is logically a fix and deserves
+   a Fixes: tag.
+
+   I have also moved the definition of INIT_THREAD_INFO to after the
+   TIF_* definitions that it now depends on (mysteriously this wasn't
+   causing a compile error anyway, but I've not dug into why).
+
+ * Other changes are all additions or rewordings of comments, and
+   amendments commit messages.
+
+Cheers
+---Dave
+
+[1] [PATCH v10 00/18] KVM: arm64: Optimise FPSIMD context switching
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/579899.html
+
+[2] linux-arm-kernel archive
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/thread.html
+
+[3] http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/kvm-vhe-fpsimd/v11
+
+Christoffer Dall (1):
+  KVM: arm/arm64: Introduce kvm_arch_vcpu_run_pid_change
+
+Dave Martin (18):
+  arm64: fpsimd: Fix TIF_FOREIGN_FPSTATE after invalidating cpu regs
+  thread_info: Add update_thread_flag() helpers
+  arm64: Use update{,_tsk}_thread_flag()
+  KVM: arm64: Convert lazy FPSIMD context switch trap to C
+  arm64: fpsimd: Generalise context saving for non-task contexts
+  arm64: fpsimd: Avoid FPSIMD context leakage for the init task
+  arm64: fpsimd: Eliminate task->mm checks
+  arm64/sve: Refactor user SVE trap maintenance for external use
+  KVM: arm64: Repurpose vcpu_arch.debug_flags for general-purpose flags
+  KVM: arm64: Optimise FPSIMD handling to reduce guest/host thrashing
+  arm64/sve: Move read_zcr_features() out of cpufeature.h
+  arm64/sve: Switch sve_pffr() argument from task to thread
+  arm64/sve: Move sve_pffr() to fpsimd.h and make inline
+  KVM: arm64: Save host SVE context as appropriate
+  KVM: arm64: Remove eager host SVE state saving
+  KVM: arm64: Remove redundant *exit_code changes in fpsimd_guest_exit()
+  KVM: arm64: Fold redundant exit code checks out of fixup_guest_exit()
+  KVM: arm64: Invoke FPSIMD context switch trap from C
+
+ arch/arm/include/asm/kvm_host.h      |  10 +-
+ arch/arm64/Kconfig                   |   7 ++
+ arch/arm64/include/asm/cpufeature.h  |  29 ------
+ arch/arm64/include/asm/fpsimd.h      |  21 +++++
+ arch/arm64/include/asm/kvm_asm.h     |   3 -
+ arch/arm64/include/asm/kvm_host.h    |  45 +++++++--
+ arch/arm64/include/asm/processor.h   |  15 ++-
+ arch/arm64/include/asm/thread_info.h |  13 +--
+ arch/arm64/kernel/fpsimd.c           | 177 +++++++++++++++++------------------
+ arch/arm64/kernel/ptrace.c           |   1 +
+ arch/arm64/kvm/Kconfig               |   1 +
+ arch/arm64/kvm/Makefile              |   2 +-
+ arch/arm64/kvm/debug.c               |   8 +-
+ arch/arm64/kvm/fpsimd.c              | 110 ++++++++++++++++++++++
+ arch/arm64/kvm/hyp/debug-sr.c        |   6 +-
+ arch/arm64/kvm/hyp/entry.S           |  43 ---------
+ arch/arm64/kvm/hyp/hyp-entry.S       |  19 ----
+ arch/arm64/kvm/hyp/switch.c          | 124 ++++++++++++++++--------
+ arch/arm64/kvm/hyp/sysreg-sr.c       |   4 +-
+ arch/arm64/kvm/sys_regs.c            |   9 +-
+ include/linux/kvm_host.h             |   9 ++
+ include/linux/sched.h                |   6 ++
+ include/linux/thread_info.h          |  11 +++
+ virt/kvm/Kconfig                     |   3 +
+ virt/kvm/arm/arm.c                   |  14 ++-
+ virt/kvm/kvm_main.c                  |   7 +-
+ 26 files changed, 437 insertions(+), 260 deletions(-)
+ create mode 100644 arch/arm64/kvm/fpsimd.c
+
+-- 
+2.1.4
