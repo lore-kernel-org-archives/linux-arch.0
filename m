@@ -1,80 +1,52 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v3 23/27] x86/modules: Adapt module loading for PIE
- support
-Date: Wed, 23 May 2018 16:07:24 -0700
-Message-ID: <b7bd7c41-80ac-d5e9-29bb-dfca9b60eda3@infradead.org>
-References: <20180523195421.180248-1-thgarnie@google.com>
- <20180523195421.180248-24-thgarnie@google.com>
- <168ebedb-7c27-d1f3-c2f9-223d44186a52@infradead.org>
- <CAJcbSZHPc2w7g8Q4UZV3sx=s6LVL_+dsomro7to6RNhd-4F4Ag@mail.gmail.com>
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: Re: [PATCH v9 3/4] arm64: Implement page table free interfaces
+Date: Thu, 24 May 2018 12:33:13 +0530
+Message-ID: <5a0481d4-4ac0-e65a-e00e-4ac63c4306c9@codeaurora.org>
+References: <1525074094-25839-1-git-send-email-cpandya@codeaurora.org>
+ <1525074094-25839-4-git-send-email-cpandya@codeaurora.org>
+ <20180523140157.GG26965@arm.com> <1527085967.14039.10.camel@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <kernel-hardening-return-13379-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAJcbSZHPc2w7g8Q4UZV3sx=s6LVL_+dsomro7to6RNhd-4F4Ag@mail.gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1527085967.14039.10.camel@hpe.com>
 Content-Language: en-US
-To: Thomas Garnier <thgarnie@google.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, Yonghong Song <yhs@fb.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Kani, Toshi" <toshi.kani@hpe.com>, "will.deacon@arm.com" <will.deacon@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "vkuznets@redhat.com" <vkuznets@redhat.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "james.morse@arm.com" <james.morse@arm.com>, "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>, "joro@8bytes.org" <joro@8bytes.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "hpa@zytor.com" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 05/23/2018 03:01 PM, Thomas Garnier wrote:
-> On Wed, May 23, 2018 at 2:27 PM Randy Dunlap <rdunlap@infradead.org> wrote:
-> 
->> Hi,
-> 
->> (for several patches in this series:)
->> The commit message is confusing.  See below.
-> 
-> Thanks for the edits, I will change the different commit messages.
-> 
-> 
-> 
->> On 05/23/2018 12:54 PM, Thomas Garnier wrote:
->>> Adapt module loading to support PIE relocations. Generate dynamic GOT if
->>> a symbol requires it but no entry exist in the kernel GOT.
-> 
->>                                      exists
-> 
->>>
->>> Position Independent Executable (PIE) support will allow to extended the
-> 
->>                                                  will allow us to extend
-> the
-> 
->>> KASLR randomization range below the -2G memory limit.
-> 
->> Does that say "below th negative 2G memory limit"?
->> I don't get it.
-> 
-> Yes, below 0xffffffff80000000 basically. I think I will just say that.
-
-Yes, please, that's much better.
-
-> 
-> 
->>>
->>> Signed-off-by: Thomas Garnier <thgarnie@google.com>
->>> ---
->>>  arch/x86/Makefile               |   4 +
->>>  arch/x86/include/asm/module.h   |  11 ++
->>>  arch/x86/include/asm/sections.h |   4 +
->>>  arch/x86/kernel/module.c        | 181 +++++++++++++++++++++++++++++++-
->>>  arch/x86/kernel/module.lds      |   3 +
->>>  5 files changed, 198 insertions(+), 5 deletions(-)
->>>  create mode 100644 arch/x86/kernel/module.lds
-> 
-> 
->> Thanks,
->> --
->> ~Randy
-> 
-> 
-> 
 
 
+On 5/23/2018 8:04 PM, Kani, Toshi wrote:
+> On Wed, 2018-05-23 at 15:01 +0100, Will Deacon wrote:
+>> Hi Chintan,
+>>
+>> [as a side note: I'm confused on the status of this patch series, as part
+>>   of it was reposted separately by Toshi. Please can you work together?]
+> 
+> I do not know the status of my patch series, either... That being said,
+> I made my x86 patches based off from Chintan's 1/4 patch (which changes
+> both x86 and arm) so that my series won't conflict with his.
+> 
+> Chintan,
+Hi Toshi,
+
+> If you need to update your series before mine's accepted, please make
+> sure to use the updated 1/4 below. I've updated the descriptions per
+> review comment.
+> https://patchwork.kernel.org/patch/10407065/
+For the sake of completeness, I will re-push my previous 1/4 but will
+take your version of change log. I've seen this and your change log
+describes the change better.
+
+> 
+> Thanks,
+> -Toshi
+> 
+
+Chintan
 -- 
-~Randy
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
+Inc. is a member of the Code Aurora Forum, a Linux Foundation
+Collaborative Project
