@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v3 3/6] arm64: untag user addresses in access_ok and __uaccess_mask_ptr
-Date: Fri, 25 May 2018 19:21:13 +0200
-Message-ID: <13e2b2fc8d95fda2441d3ed818451e5b5570bcde.1527268727.git.andreyknvl@google.com>
+Subject: [PATCH v3 6/6] arm64: update Documentation/arm64/tagged-pointers.txt
+Date: Fri, 25 May 2018 19:21:16 +0200
+Message-ID: <e5c51f30f639adeacd4168d925048329b4d6fd32.1527268727.git.andreyknvl@google.com>
 References: <cover.1527268727.git.andreyknvl@google.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1527268727.git.andreyknvl@google.com>
@@ -10,56 +10,29 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-copy_from_user (and a few other similar functions) are used to copy data
-from user memory into the kernel memory or vice versa. Since a user can
-provided a tagged pointer to one of the syscalls that use copy_from_user,
-we need to correctly handle such pointers.
-
-Do this by untagging user pointers in access_ok and in __uaccess_mask_ptr,
-before performing access validity checks.
+Add a note that work on passing tagged user pointers to the kernel via
+syscalls has started, but might not be complete yet.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- arch/arm64/include/asm/uaccess.h | 11 +++++++----
- 1 file changed, 7 insertions(+), 4 deletions(-)
+ Documentation/arm64/tagged-pointers.txt | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 2d6451cbaa86..fa7318d3d7d5 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -105,7 +105,8 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
- #define untagged_addr(addr)		\
- 	((__typeof__(addr))sign_extend64((__u64)(addr), 55))
+diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
+index a25a99e82bb1..361481283f00 100644
+--- a/Documentation/arm64/tagged-pointers.txt
++++ b/Documentation/arm64/tagged-pointers.txt
+@@ -35,8 +35,9 @@ Using non-zero address tags in any of these locations may result in an
+ error code being returned, a (fatal) signal being raised, or other modes
+ of failure.
  
--#define access_ok(type, addr, size)	__range_ok(addr, size)
-+#define access_ok(type, addr, size)	\
-+	__range_ok(untagged_addr(addr), size)
- #define user_addr_max			get_fs
+-For these reasons, passing non-zero address tags to the kernel via
+-system calls is forbidden, and using a non-zero address tag for sp is
++Some initial work for supporting non-zero address tags passed to the
++kernel via system calls has been done, but the kernel doesn't provide
++any guarantees at this point. Using a non-zero address tag for sp is
+ strongly discouraged.
  
- #define _ASM_EXTABLE(from, to)						\
-@@ -237,7 +238,8 @@ static inline void uaccess_enable_not_uao(void)
- 
- /*
-  * Sanitise a uaccess pointer such that it becomes NULL if above the
-- * current addr_limit.
-+ * current addr_limit. In case the pointer is tagged (has the top byte set),
-+ * untag the pointer before checking.
-  */
- #define uaccess_mask_ptr(ptr) (__typeof__(ptr))__uaccess_mask_ptr(ptr)
- static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
-@@ -245,10 +247,11 @@ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
- 	void __user *safe_ptr;
- 
- 	asm volatile(
--	"	bics	xzr, %1, %2\n"
-+	"	bics	xzr, %3, %2\n"
- 	"	csel	%0, %1, xzr, eq\n"
- 	: "=&r" (safe_ptr)
--	: "r" (ptr), "r" (current_thread_info()->addr_limit)
-+	: "r" (ptr), "r" (current_thread_info()->addr_limit),
-+	  "r" (untagged_addr(ptr))
- 	: "cc");
- 
- 	csdb();
+ Programs maintaining a frame pointer and frame records that use non-zero
 -- 
 2.17.0.921.gf22659ad46-goog
