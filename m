@@ -1,81 +1,66 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: Re: [PATCH v3 09/27] x86/acpi: Adapt assembly for PIE support
-Date: Fri, 25 May 2018 10:00:04 -0700
-Message-ID: <CAJcbSZH17D01Stk4vRKKzjW6dxvK8x+S9sWL6vUopSP9=-x7Nw@mail.gmail.com>
-References: <20180523195421.180248-1-thgarnie@google.com> <20180523195421.180248-10-thgarnie@google.com>
- <20180524110306.GA20225@amd> <CAJcbSZFJ84+VC5xDQZGHctupdqwmMBgqzLzFRqCTBpi5t-2Gvw@mail.gmail.com>
- <20180525091447.GC9666@amd>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v3 0/6] arm64: untag user pointers passed to the kernel
+Date: Fri, 25 May 2018 19:21:10 +0200
+Message-ID: <cover.1527268727.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-13392-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180525091447.GC9666@amd>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, Yonghong Song <yhs@fb.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Juergen Gross <jgros>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 25, 2018 at 2:14 AM Pavel Machek <pavel@ucw.cz> wrote:
+arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+tags into the top byte of each pointer. Userspace programs (such as
+HWASan, a memory debugging tool [1]) might use this feature and pass
+tagged user pointers to the kernel through syscalls or other interfaces.
 
-> On Thu 2018-05-24 09:35:42, Thomas Garnier wrote:
-> > On Thu, May 24, 2018 at 4:03 AM Pavel Machek <pavel@ucw.cz> wrote:
-> >
-> > > On Wed 2018-05-23 12:54:03, Thomas Garnier wrote:
-> > > > Change the assembly code to use only relative references of symbols
-for
-> > the
-> > > > kernel to be PIE compatible.
-> > > >
-> > > > Position Independent Executable (PIE) support will allow to
-extended the
-> > > > KASLR randomization range below the -2G memory limit.
-> >
-> > > What testing did this get?
-> >
-> > Tested boot, hibernation and performance on qemu and dedicated machine.
+This patch makes a few of the kernel interfaces accept tagged user
+pointers. The kernel is already able to handle user faults with tagged
+pointers and has the untagged_addr macro, which this patchset reuses.
 
-> Well, this is suspend, not hibernation code.
+We're not trying to cover all possible ways the kernel accepts user
+pointers in one patchset, so this one should be considered as a start.
 
-> So "sudo pm-suspend" or "echo mem > /sys/power/state" would be good
-> way to test this.
+Thanks!
 
-Thanks, it worked. I added this to the testsuite I use for KASLR.
+[1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
 
+Changes in v3:
+- Rebased onto e5c51f30 (4.17-rc6+).
+- Added linux-arch@ to the list of recipients.
 
-> Thanks,
->                                                          Pavel
+Changes in v2:
+- Rebased onto 2d618bdf (4.17-rc3+).
+- Removed excessive untagging in gup.c.
+- Removed untagging pointers returned from __uaccess_mask_ptr.
 
-> > > > diff --git a/arch/x86/kernel/acpi/wakeup_64.S
-> > b/arch/x86/kernel/acpi/wakeup_64.S
-> > > > index 50b8ed0317a3..472659c0f811 100644
-> > > > --- a/arch/x86/kernel/acpi/wakeup_64.S
-> > > > +++ b/arch/x86/kernel/acpi/wakeup_64.S
-> > > > @@ -14,7 +14,7 @@
-> > > >        * Hooray, we are in Long 64-bit mode (but still running in
-low
-> > memory)
-> > > >        */
-> > > >  ENTRY(wakeup_long64)
-> > > > -     movq    saved_magic, %rax
-> > > > +     movq    saved_magic(%rip), %rax
-> > > >       movq    $0x123456789abcdef0, %rdx
-> > > >       cmpq    %rdx, %rax
-> > > >       jne     bogus_64_magic
-> >
-> > > Because, as comment says, this is rather tricky code.
-> >
-> > I agree, I think maintainers feedback is very important for this
-patchset.
+Changes in v1:
+- Rebased onto 4.17-rc1.
 
+Changes in RFC v2:
+- Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
+  defining it for each arch individually.
+- Updated Documentation/arm64/tagged-pointers.txt.
+- Dropped “mm, arm64: untag user addresses in memory syscalls”.
+- Rebased onto 3eb2ce82 (4.16-rc7).
 
-> --
-> (english) http://www.livejournal.com/~pavelmachek
-> (cesky, pictures)
-http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+Andrey Konovalov (6):
+  arm64: add type casts to untagged_addr macro
+  uaccess: add untagged_addr definition for other arches
+  arm64: untag user addresses in access_ok and __uaccess_mask_ptr
+  mm, arm64: untag user addresses in mm/gup.c
+  lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
+  arm64: update Documentation/arm64/tagged-pointers.txt
 
-
+ Documentation/arm64/tagged-pointers.txt |  5 +++--
+ arch/arm64/include/asm/uaccess.h        | 14 +++++++++-----
+ include/linux/uaccess.h                 |  4 ++++
+ lib/strncpy_from_user.c                 |  2 ++
+ lib/strnlen_user.c                      |  2 ++
+ mm/gup.c                                |  4 ++++
+ 6 files changed, 24 insertions(+), 7 deletions(-)
 
 -- 
-Thomas
+2.17.0.921.gf22659ad46-goog
