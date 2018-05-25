@@ -1,45 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:36379 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S967584AbeEYRV3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2018 13:21:29 -0400
-Received: by mail-wm0-f67.google.com with SMTP id n10-v6so16450680wmc.1
-        for <linux-arch@vger.kernel.org>; Fri, 25 May 2018 10:21:29 -0700 (PDT)
+Received: from mail-wr0-f196.google.com ([209.85.128.196]:43942 "EHLO
+        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754692AbeEYRVV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2018 13:21:21 -0400
+Received: by mail-wr0-f196.google.com with SMTP id r13-v6so10425712wrj.10
+        for <linux-arch@vger.kernel.org>; Fri, 25 May 2018 10:21:20 -0700 (PDT)
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v3 6/6] arm64: update Documentation/arm64/tagged-pointers.txt
-Date: Fri, 25 May 2018 19:21:16 +0200
-Message-ID: <e5c51f30f639adeacd4168d925048329b4d6fd32.1527268727.git.andreyknvl@google.com>
-In-Reply-To: <cover.1527268727.git.andreyknvl@google.com>
-References: <cover.1527268727.git.andreyknvl@google.com>
+Subject: [PATCH v3 0/6] arm64: untag user pointers passed to the kernel
+Date: Fri, 25 May 2018 19:21:10 +0200
+Message-ID: <cover.1527268727.git.andreyknvl@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180525172116.Ba1mwwgZxgS81Yp9gX7oms9iXRUFIF-JzCsLYJ5e14I@z>
+Message-ID: <20180525172110.M3YZwUmQBQ9PwdxndoTYjzP3g3psHJkZtoN34eVXGFc@z>
 
-Add a note that work on passing tagged user pointers to the kernel via
-syscalls has started, but might not be complete yet.
+arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+tags into the top byte of each pointer. Userspace programs (such as
+HWASan, a memory debugging tool [1]) might use this feature and pass
+tagged user pointers to the kernel through syscalls or other interfaces.
 
-Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
----
- Documentation/arm64/tagged-pointers.txt | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+This patch makes a few of the kernel interfaces accept tagged user
+pointers. The kernel is already able to handle user faults with tagged
+pointers and has the untagged_addr macro, which this patchset reuses.
 
-diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-index a25a99e82bb1..361481283f00 100644
---- a/Documentation/arm64/tagged-pointers.txt
-+++ b/Documentation/arm64/tagged-pointers.txt
-@@ -35,8 +35,9 @@ Using non-zero address tags in any of these locations may result in an
- error code being returned, a (fatal) signal being raised, or other modes
- of failure.
- 
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
-+Some initial work for supporting non-zero address tags passed to the
-+kernel via system calls has been done, but the kernel doesn't provide
-+any guarantees at this point. Using a non-zero address tag for sp is
- strongly discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
+We're not trying to cover all possible ways the kernel accepts user
+pointers in one patchset, so this one should be considered as a start.
+
+Thanks!
+
+[1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
+
+Changes in v3:
+- Rebased onto e5c51f30 (4.17-rc6+).
+- Added linux-arch@ to the list of recipients.
+
+Changes in v2:
+- Rebased onto 2d618bdf (4.17-rc3+).
+- Removed excessive untagging in gup.c.
+- Removed untagging pointers returned from __uaccess_mask_ptr.
+
+Changes in v1:
+- Rebased onto 4.17-rc1.
+
+Changes in RFC v2:
+- Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
+  defining it for each arch individually.
+- Updated Documentation/arm64/tagged-pointers.txt.
+- Dropped “mm, arm64: untag user addresses in memory syscalls”.
+- Rebased onto 3eb2ce82 (4.16-rc7).
+
+Andrey Konovalov (6):
+  arm64: add type casts to untagged_addr macro
+  uaccess: add untagged_addr definition for other arches
+  arm64: untag user addresses in access_ok and __uaccess_mask_ptr
+  mm, arm64: untag user addresses in mm/gup.c
+  lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
+  arm64: update Documentation/arm64/tagged-pointers.txt
+
+ Documentation/arm64/tagged-pointers.txt |  5 +++--
+ arch/arm64/include/asm/uaccess.h        | 14 +++++++++-----
+ include/linux/uaccess.h                 |  4 ++++
+ lib/strncpy_from_user.c                 |  2 ++
+ lib/strnlen_user.c                      |  2 ++
+ mm/gup.c                                |  4 ++++
+ 6 files changed, 24 insertions(+), 7 deletions(-)
+
 -- 
 2.17.0.921.gf22659ad46-goog
