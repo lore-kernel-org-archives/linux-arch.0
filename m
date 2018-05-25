@@ -1,111 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47870 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1030560AbeEXQ4z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 24 May 2018 12:56:55 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v11 00/19] KVM: arm64: Optimise FPSIMD context switching
-Date: Thu, 24 May 2018 17:56:29 +0100
-Message-ID: <1527181008-13549-1-git-send-email-Dave.Martin@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from mail-wr0-f194.google.com ([209.85.128.194]:41819 "EHLO
+        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S967463AbeEYRVZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2018 13:21:25 -0400
+Received: by mail-wr0-f194.google.com with SMTP id u12-v6so10424142wrn.8
+        for <linux-arch@vger.kernel.org>; Fri, 25 May 2018 10:21:24 -0700 (PDT)
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v3 3/6] arm64: untag user addresses in access_ok and __uaccess_mask_ptr
+Date: Fri, 25 May 2018 19:21:13 +0200
+Message-ID: <13e2b2fc8d95fda2441d3ed818451e5b5570bcde.1527268727.git.andreyknvl@google.com>
+In-Reply-To: <cover.1527268727.git.andreyknvl@google.com>
+References: <cover.1527268727.git.andreyknvl@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kvmarm@lists.cs.columbia.edu
-Cc: linux-arm-kernel@lists.infradead.org, Christoffer Dall <cdall@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>
-Message-ID: <20180524165629.tt5VlcViwojECJdbyYG9D68-HrqsL-GlOwOTyfIDhd0@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
+Message-ID: <20180525172113.cunDQsGIfdYfExVvE5i-vDwIWvoOueOJYd6HIm7O0Cw@z>
 
-Note: Most of these patches are Arm-specific.  People not Cc'd on the
-whole series can find it in the linux-arm-kernel archive [2].
+copy_from_user (and a few other similar functions) are used to copy data
+from user memory into the kernel memory or vice versa. Since a user can
+provided a tagged pointer to one of the syscalls that use copy_from_user,
+we need to correctly handle such pointers.
 
-Git: see [3]
+Do this by untagging user pointers in access_ok and in __uaccess_mask_ptr,
+before performing access validity checks.
 
-This series aims to improve the way FPSIMD context is handled by KVM.
-Changes since the previous v10 [1] are minor, but one patch has been
-split.
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+---
+ arch/arm64/include/asm/uaccess.h | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
 
-** To Catalin Marinas, Alex Bennée: **
-
-I have retained your Reviewed-bys on patches 7 and 8: these were split
-from patch 7 of v9.  Although the code is (almost) the same as noted
-below, I advise you to take a look.
-
-(all) reviewers please note:
-
- * Patches 7 and 8 have been split from the previous patch 7, since
-   the update to INIT_THREAD_INFO is logically a fix and deserves
-   a Fixes: tag.
-
-   I have also moved the definition of INIT_THREAD_INFO to after the
-   TIF_* definitions that it now depends on (mysteriously this wasn't
-   causing a compile error anyway, but I've not dug into why).
-
- * Other changes are all additions or rewordings of comments, and
-   amendments commit messages.
-
-Cheers
----Dave
-
-[1] [PATCH v10 00/18] KVM: arm64: Optimise FPSIMD context switching
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/579899.html
-
-[2] linux-arm-kernel archive
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-May/thread.html
-
-[3] http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/kvm-vhe-fpsimd/v11
-
-Christoffer Dall (1):
-  KVM: arm/arm64: Introduce kvm_arch_vcpu_run_pid_change
-
-Dave Martin (18):
-  arm64: fpsimd: Fix TIF_FOREIGN_FPSTATE after invalidating cpu regs
-  thread_info: Add update_thread_flag() helpers
-  arm64: Use update{,_tsk}_thread_flag()
-  KVM: arm64: Convert lazy FPSIMD context switch trap to C
-  arm64: fpsimd: Generalise context saving for non-task contexts
-  arm64: fpsimd: Avoid FPSIMD context leakage for the init task
-  arm64: fpsimd: Eliminate task->mm checks
-  arm64/sve: Refactor user SVE trap maintenance for external use
-  KVM: arm64: Repurpose vcpu_arch.debug_flags for general-purpose flags
-  KVM: arm64: Optimise FPSIMD handling to reduce guest/host thrashing
-  arm64/sve: Move read_zcr_features() out of cpufeature.h
-  arm64/sve: Switch sve_pffr() argument from task to thread
-  arm64/sve: Move sve_pffr() to fpsimd.h and make inline
-  KVM: arm64: Save host SVE context as appropriate
-  KVM: arm64: Remove eager host SVE state saving
-  KVM: arm64: Remove redundant *exit_code changes in fpsimd_guest_exit()
-  KVM: arm64: Fold redundant exit code checks out of fixup_guest_exit()
-  KVM: arm64: Invoke FPSIMD context switch trap from C
-
- arch/arm/include/asm/kvm_host.h      |  10 +-
- arch/arm64/Kconfig                   |   7 ++
- arch/arm64/include/asm/cpufeature.h  |  29 ------
- arch/arm64/include/asm/fpsimd.h      |  21 +++++
- arch/arm64/include/asm/kvm_asm.h     |   3 -
- arch/arm64/include/asm/kvm_host.h    |  45 +++++++--
- arch/arm64/include/asm/processor.h   |  15 ++-
- arch/arm64/include/asm/thread_info.h |  13 +--
- arch/arm64/kernel/fpsimd.c           | 177 +++++++++++++++++------------------
- arch/arm64/kernel/ptrace.c           |   1 +
- arch/arm64/kvm/Kconfig               |   1 +
- arch/arm64/kvm/Makefile              |   2 +-
- arch/arm64/kvm/debug.c               |   8 +-
- arch/arm64/kvm/fpsimd.c              | 110 ++++++++++++++++++++++
- arch/arm64/kvm/hyp/debug-sr.c        |   6 +-
- arch/arm64/kvm/hyp/entry.S           |  43 ---------
- arch/arm64/kvm/hyp/hyp-entry.S       |  19 ----
- arch/arm64/kvm/hyp/switch.c          | 124 ++++++++++++++++--------
- arch/arm64/kvm/hyp/sysreg-sr.c       |   4 +-
- arch/arm64/kvm/sys_regs.c            |   9 +-
- include/linux/kvm_host.h             |   9 ++
- include/linux/sched.h                |   6 ++
- include/linux/thread_info.h          |  11 +++
- virt/kvm/Kconfig                     |   3 +
- virt/kvm/arm/arm.c                   |  14 ++-
- virt/kvm/kvm_main.c                  |   7 +-
- 26 files changed, 437 insertions(+), 260 deletions(-)
- create mode 100644 arch/arm64/kvm/fpsimd.c
-
+diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+index 2d6451cbaa86..fa7318d3d7d5 100644
+--- a/arch/arm64/include/asm/uaccess.h
++++ b/arch/arm64/include/asm/uaccess.h
+@@ -105,7 +105,8 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
+ #define untagged_addr(addr)		\
+ 	((__typeof__(addr))sign_extend64((__u64)(addr), 55))
+ 
+-#define access_ok(type, addr, size)	__range_ok(addr, size)
++#define access_ok(type, addr, size)	\
++	__range_ok(untagged_addr(addr), size)
+ #define user_addr_max			get_fs
+ 
+ #define _ASM_EXTABLE(from, to)						\
+@@ -237,7 +238,8 @@ static inline void uaccess_enable_not_uao(void)
+ 
+ /*
+  * Sanitise a uaccess pointer such that it becomes NULL if above the
+- * current addr_limit.
++ * current addr_limit. In case the pointer is tagged (has the top byte set),
++ * untag the pointer before checking.
+  */
+ #define uaccess_mask_ptr(ptr) (__typeof__(ptr))__uaccess_mask_ptr(ptr)
+ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
+@@ -245,10 +247,11 @@ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
+ 	void __user *safe_ptr;
+ 
+ 	asm volatile(
+-	"	bics	xzr, %1, %2\n"
++	"	bics	xzr, %3, %2\n"
+ 	"	csel	%0, %1, xzr, eq\n"
+ 	: "=&r" (safe_ptr)
+-	: "r" (ptr), "r" (current_thread_info()->addr_limit)
++	: "r" (ptr), "r" (current_thread_info()->addr_limit),
++	  "r" (untagged_addr(ptr))
+ 	: "cc");
+ 
+ 	csdb();
 -- 
-2.1.4
+2.17.0.921.gf22659ad46-goog
