@@ -1,7 +1,7 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v4 16/27] ARM: kprobes: Don't call the ->break_handler() in arm kprobes code
-Date: Mon, 28 May 2018 16:07:29 +0900
-Message-ID: <152749124943.15132.13127829475140860999.stgit@devbox>
+Subject: [PATCH -tip v4 17/27] arm64: kprobes: Don't call the ->break_handler() in arm kprobes code
+Date: Mon, 28 May 2018 16:08:00 +0900
+Message-ID: <152749128042.15132.2835369804724511290.stgit@devbox>
 References: <152749074878.15132.16693721906742461289.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -18,28 +18,25 @@ because it was only used by jprobes which got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- arch/arm/probes/kprobes/core.c |   11 -----------
- 1 file changed, 11 deletions(-)
+ arch/arm64/kernel/probes/kprobes.c |    8 --------
+ 1 file changed, 8 deletions(-)
 
-diff --git a/arch/arm/probes/kprobes/core.c b/arch/arm/probes/kprobes/core.c
-index 23562111c511..3192350f389d 100644
---- a/arch/arm/probes/kprobes/core.c
-+++ b/arch/arm/probes/kprobes/core.c
-@@ -315,17 +315,6 @@ void __kprobes kprobe_handler(struct pt_regs *regs)
- 				reset_current_kprobe();
+diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
+index 3ca2351109a6..076c3c0775a6 100644
+--- a/arch/arm64/kernel/probes/kprobes.c
++++ b/arch/arm64/kernel/probes/kprobes.c
+@@ -408,14 +408,6 @@ static void __kprobes kprobe_handler(struct pt_regs *regs)
+ 				return;
  			}
  		}
--	} else if (cur) {
+-	} else if ((le32_to_cpu(*(kprobe_opcode_t *) addr) ==
+-	    BRK64_OPCODE_KPROBES) && cur_kprobe) {
 -		/* We probably hit a jprobe.  Call its break handler. */
--		if (cur->break_handler && cur->break_handler(cur, regs)) {
--			kcb->kprobe_status = KPROBE_HIT_SS;
--			singlestep(cur, regs, kcb);
--			if (cur->post_handler) {
--				kcb->kprobe_status = KPROBE_HIT_SSDONE;
--				cur->post_handler(cur, regs, 0);
--			}
+-		if (cur_kprobe->break_handler  &&
+-		     cur_kprobe->break_handler(cur_kprobe, regs)) {
+-			setup_singlestep(cur_kprobe, regs, kcb, 0);
+-			return;
 -		}
--		reset_current_kprobe();
- 	} else {
- 		/*
- 		 * The probe was removed and a race is in progress.
+ 	}
+ 	/*
+ 	 * The breakpoint instruction was removed right
