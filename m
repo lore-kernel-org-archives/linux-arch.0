@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38372 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:38746 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753657AbeE1HEt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 28 May 2018 03:04:49 -0400
+        id S1753636AbeE1HFU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 28 May 2018 03:05:20 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v4 10/27] s390/kprobes: Remove jprobe implementation
-Date: Mon, 28 May 2018 16:04:22 +0900
-Message-ID: <152749106264.15132.4817637767737065092.stgit@devbox>
+Subject: [PATCH -tip v4 11/27] sh: kprobes: Remove jprobe implementation
+Date: Mon, 28 May 2018 16:04:54 +0900
+Message-ID: <152749109389.15132.10242898017621579145.stgit@devbox>
 In-Reply-To: <152749074878.15132.16693721906742461289.stgit@devbox>
 References: <152749074878.15132.16693721906742461289.stgit@devbox>
 MIME-Version: 1.0
@@ -16,105 +16,99 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
 Cc: x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Laura Abbott <labbott@redhat.com>, Josef Bacik <jbacik@fb.com>, Alexei Starovoitov <ast@kernel.org>, Ravi Bangoria <ravi.bangoria@linux.vnet.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S . Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
-Message-ID: <20180528070422.qxRITJwMz8DoVKtDxV5BBtMWu6CQnF0idCh88TEa65M@z>
+Message-ID: <20180528070454.9SopdzS-4qsd413GXTB0AMr6cn-qDfnRB9DeuFiGKsw@z>
 
 Remove arch dependent setjump/longjump functions
 and unused fields in kprobe_ctlblk for jprobes
-from arch/s390.
+from arch/sh.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- arch/s390/include/asm/kprobes.h |    2 -
- arch/s390/kernel/kprobes.c      |   59 +--------------------------------------
- 2 files changed, 2 insertions(+), 59 deletions(-)
+ arch/sh/include/asm/kprobes.h |    4 ---
+ arch/sh/kernel/kprobes.c      |   51 -----------------------------------------
+ 2 files changed, 55 deletions(-)
 
-diff --git a/arch/s390/include/asm/kprobes.h b/arch/s390/include/asm/kprobes.h
-index 13de80cf741c..b106aa29bf55 100644
---- a/arch/s390/include/asm/kprobes.h
-+++ b/arch/s390/include/asm/kprobes.h
-@@ -68,8 +68,6 @@ struct kprobe_ctlblk {
- 	unsigned long kprobe_saved_imask;
- 	unsigned long kprobe_saved_ctl[3];
- 	struct prev_kprobe prev_kprobe;
+diff --git a/arch/sh/include/asm/kprobes.h b/arch/sh/include/asm/kprobes.h
+index 85d8bcaa8493..6171682f7798 100644
+--- a/arch/sh/include/asm/kprobes.h
++++ b/arch/sh/include/asm/kprobes.h
+@@ -27,7 +27,6 @@ struct kprobe;
+ 
+ void arch_remove_kprobe(struct kprobe *);
+ void kretprobe_trampoline(void);
+-void jprobe_return_end(void);
+ 
+ /* Architecture specific copy of original instruction*/
+ struct arch_specific_insn {
+@@ -43,9 +42,6 @@ struct prev_kprobe {
+ /* per-cpu kprobe control block */
+ struct kprobe_ctlblk {
+ 	unsigned long kprobe_status;
+-	unsigned long jprobe_saved_r15;
 -	struct pt_regs jprobe_saved_regs;
 -	kprobe_opcode_t jprobes_stack[MAX_STACK_SIZE];
+ 	struct prev_kprobe prev_kprobe;
  };
  
- void arch_remove_kprobe(struct kprobe *p);
-diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-index 60f60afa645c..0967de19f53d 100644
---- a/arch/s390/kernel/kprobes.c
-+++ b/arch/s390/kernel/kprobes.c
-@@ -321,9 +321,8 @@ static int kprobe_handler(struct pt_regs *regs)
- 			 * If we have no pre-handler or it returned 0, we
- 			 * continue with single stepping. If we have a
- 			 * pre-handler and it returned non-zero, it prepped
--			 * for calling the break_handler below on re-entry
--			 * for jprobe processing, so get out doing nothing
--			 * more here.
-+			 * for changing execution path, so get out doing
-+			 * nothing more here.
- 			 */
- 			push_kprobe(kcb, p);
- 			kcb->kprobe_status = KPROBE_HIT_ACTIVE;
-@@ -661,60 +660,6 @@ int kprobe_exceptions_notify(struct notifier_block *self,
+diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
+index 52a5e11247d1..2b5e58873b96 100644
+--- a/arch/sh/kernel/kprobes.c
++++ b/arch/sh/kernel/kprobes.c
+@@ -523,57 +523,6 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
+ 	return ret;
  }
- NOKPROBE_SYMBOL(kprobe_exceptions_notify);
  
--int setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
+-int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
 -{
 -	struct jprobe *jp = container_of(p, struct jprobe, kp);
+-	unsigned long addr;
 -	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--	unsigned long stack;
 -
--	memcpy(&kcb->jprobe_saved_regs, regs, sizeof(struct pt_regs));
--
--	/* setup return addr to the jprobe handler routine */
--	regs->psw.addr = (unsigned long) jp->entry;
--	regs->psw.mask &= ~(PSW_MASK_IO | PSW_MASK_EXT);
--
--	/* r15 is the stack pointer */
--	stack = (unsigned long) regs->gprs[15];
--
--	memcpy(kcb->jprobes_stack, (void *) stack, MIN_STACK_SIZE(stack));
+-	kcb->jprobe_saved_regs = *regs;
+-	kcb->jprobe_saved_r15 = regs->regs[15];
+-	addr = kcb->jprobe_saved_r15;
 -
 -	/*
--	 * jprobes use jprobe_return() which skips the normal return
--	 * path of the function, and this messes up the accounting of the
--	 * function graph tracer to get messed up.
--	 *
--	 * Pause function graph tracing while performing the jprobe function.
+-	 * TBD: As Linus pointed out, gcc assumes that the callee
+-	 * owns the argument space and could overwrite it, e.g.
+-	 * tailcall optimization. So, to be absolutely safe
+-	 * we also save and restore enough stack bytes to cover
+-	 * the argument area.
 -	 */
--	pause_graph_tracing();
+-	memcpy(kcb->jprobes_stack, (kprobe_opcode_t *) addr,
+-	       MIN_STACK_SIZE(addr));
+-
+-	regs->pc = (unsigned long)(jp->entry);
+-
 -	return 1;
 -}
--NOKPROBE_SYMBOL(setjmp_pre_handler);
 -
--void jprobe_return(void)
+-void __kprobes jprobe_return(void)
 -{
--	asm volatile(".word 0x0002");
+-	asm volatile ("trapa #0x3a\n\t" "jprobe_return_end:\n\t" "nop\n\t");
 -}
--NOKPROBE_SYMBOL(jprobe_return);
 -
--int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+-int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
 -{
 -	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--	unsigned long stack;
+-	unsigned long stack_addr = kcb->jprobe_saved_r15;
+-	u8 *addr = (u8 *)regs->pc;
 -
--	/* It's OK to start function graph tracing again */
--	unpause_graph_tracing();
+-	if ((addr >= (u8 *)jprobe_return) &&
+-	    (addr <= (u8 *)jprobe_return_end)) {
+-		*regs = kcb->jprobe_saved_regs;
 -
--	stack = (unsigned long) kcb->jprobe_saved_regs.gprs[15];
+-		memcpy((kprobe_opcode_t *)stack_addr, kcb->jprobes_stack,
+-		       MIN_STACK_SIZE(stack_addr));
 -
--	/* Put the regs back */
--	memcpy(regs, &kcb->jprobe_saved_regs, sizeof(struct pt_regs));
--	/* put the stack back */
--	memcpy((void *) stack, kcb->jprobes_stack, MIN_STACK_SIZE(stack));
--	preempt_enable_no_resched();
--	return 1;
+-		kcb->kprobe_status = KPROBE_HIT_SS;
+-		preempt_enable_no_resched();
+-		return 1;
+-	}
+-
+-	return 0;
 -}
--NOKPROBE_SYMBOL(longjmp_break_handler);
 -
- static struct kprobe trampoline = {
- 	.addr = (kprobe_opcode_t *) &kretprobe_trampoline,
+ static struct kprobe trampoline_p = {
+ 	.addr = (kprobe_opcode_t *)&kretprobe_trampoline,
  	.pre_handler = trampoline_probe_handler
