@@ -1,82 +1,273 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [REVIEW][PATCH 16/22] signal/sh: Use force_sig_fault where appropriate
-Date: Mon, 28 May 2018 11:19:55 +0200
-Message-ID: <CAMuHMdXxL+k_SitLXV1LJDHJmCY1HiUnZSk7MM64rcgs75nLiw@mail.gmail.com>
-References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-16-ebiederm@xmission.com>
- <20180420145514.GP3094@brightrain.aerifal.cx>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC tools/memory-model] Add litmus-test naming scheme
+Date: Mon, 28 May 2018 13:20:10 +0200
+Message-ID: <20180528112010.GA8801@andrea>
+References: <20180525191020.GA5914@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180420145514.GP3094@brightrain.aerifal.cx>
+Content-Disposition: inline
+In-Reply-To: <20180525191020.GA5914@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rich Felker <dalias@libc.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 20, 2018 at 4:55 PM, Rich Felker <dalias@libc.org> wrote:
-> On Fri, Apr 20, 2018 at 09:38:05AM -0500, Eric W. Biederman wrote:
->> Filling in struct siginfo before calling force_sig_info a tedious and
->> error prone process, where once in a great while the wrong fields
->> are filled out, and siginfo has been inconsistently cleared.
->>
->> Simplify this process by using the helper force_sig_fault.  Which
->> takes as a parameters all of the information it needs, ensures
->> all of the fiddly bits of filling in struct siginfo are done properly
->> and then calls force_sig_info.
->>
->> In short about a 5 line reduction in code for every time force_sig_info
->> is called, which makes the calling function clearer.
->>
->> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
->> Cc: Rich Felker <dalias@libc.org>
->> Cc: linux-sh@vger.kernel.org
->> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+On Fri, May 25, 2018 at 12:10:20PM -0700, Paul E. McKenney wrote:
+> This commit documents the scheme used to generate the names for the
+> litmus tests.
+> 
+> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> ---
+>  README |  136 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+>  1 file changed, 135 insertions(+), 1 deletion(-)
+> 
+> diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+> index 00140aaf58b7..b81f51054cd3 100644
+> --- a/tools/memory-model/litmus-tests/README
+> +++ b/tools/memory-model/litmus-tests/README
+> @@ -1,4 +1,6 @@
+> -This directory contains the following litmus tests:
+> +============
+> +LITMUS TESTS
+> +============
+>  
+>  CoRR+poonceonce+Once.litmus
+>  	Test of read-read coherence, that is, whether or not two
+> @@ -151,3 +153,135 @@ Z6.0+pooncerelease+poacquirerelease+mbonceonce.litmus
+>  A great many more litmus tests are available here:
+>  
+>  	https://github.com/paulmckrcu/litmus
+> +
+> +==================
+> +LITMUS TEST NAMING
+> +==================
+> +
+> +Litmus tests are usually named based on their contents, which means that
+> +looking at the name tells you what the litmus test does.  The naming
+> +scheme covers litmus tests having a single cycle that passes through
+> +each process exactly once, so litmus tests not fitting this description
+> +are named on an ad-hoc basis.
+> +
+> +The structure of a litmus-test name is the litmus-test class, a plus
+> +sign ("+"), and one string for each process, separated by plus signs.
+> +The end of the name is ".litmus".
 
->> --- a/arch/sh/kernel/traps_32.c
->> +++ b/arch/sh/kernel/traps_32.c
+We used to distinguigh between the test name and the test filename; we
+currently have only one test whose name ends with .litmus:
 
->> @@ -599,20 +593,17 @@ int is_dsp_inst(struct pt_regs *regs)
->>  #ifdef CONFIG_CPU_SH2A
->>  asmlinkage void do_divide_error(unsigned long r4)
->>  {
->> -     siginfo_t info;
->> +     int code;
->>
->> -     clear_siginfo(&info);
->>       switch (r4) {
->>       case TRAP_DIVZERO_ERROR:
->> -             info.si_code = FPE_INTDIV;
->> +             code = FPE_INTDIV;
->>               break;
->>       case TRAP_DIVOVF_ERROR:
->> -             info.si_code = FPE_INTOVF;
->> +             code = FPE_INTOVF;
->>               break;
->>       }
->> -
->> -     info.si_signo = SIGFPE;
->> -     force_sig_info(info.si_signo, &info, current);
->> +     force_sig_fault(SIGFPE, code, NULL, current);
+  ISA2+pooncelock+pooncelock+pombonce.litmus
 
-/kisskb/src/arch/sh/kernel/traps_32.c:606:17: error: 'code' may be
-used uninitialized in this function [-Werror=uninitialized]
-
-http://kisskb.ellerman.id.au/kisskb/buildresult/13366052/
-http://kisskb.ellerman.id.au/kisskb/buildresult/13366048/
-http://kisskb.ellerman.id.au/kisskb/buildresult/13366072/
-
->>  }
-
-> Acked-by: Rich Felker <dalias@libc.org>
+(that I missed until now...).
 
 
-Gr{oetje,eeting}s,
+> +
+> +The litmus-test classes may be found in the infamous test6.pdf:
+> +https://www.cl.cam.ac.uk/~pes20/ppc-supplemental/test6.pdf
+> +Each class defines the pattern of accesses and of the variables accessed.
+> +For example, if the one process writes to a pair of variables, and
+> +the other process reads from these same variables, the corresponding
+> +litmus-test class is "MP" (message passing), which may be found on the
+> +left-hand end of the second row of tests on page one of test6.pdf.
+> +
+> +The strings used to identify the actions carried out by each process are
+> +complex due to a desire to have finite-length names.
 
-                        Geert
+I'm not sure what you mean here: can you elaborate/rephrase?
 
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> Thus, there is a
+> +tool to generate these strings from a given litmus test's actions.  For
+> +example, consider the processes from SB+rfionceonce-poonceonces.litmus:
+> +
+> +	P0(int *x, int *y)
+> +	{
+> +		int r1;
+> +		int r2;
+> +
+> +		WRITE_ONCE(*x, 1);
+> +		r1 = READ_ONCE(*x);
+> +		r2 = READ_ONCE(*y);
+> +	}
+> +
+> +	P1(int *x, int *y)
+> +	{
+> +		int r3;
+> +		int r4;
+> +
+> +		WRITE_ONCE(*y, 1);
+> +		r3 = READ_ONCE(*y);
+> +		r4 = READ_ONCE(*x);
+> +	}
+> +
+> +The next step is to construct a space-separated list of descriptors,
+> +interleaving descriptions of the relation between a pair of consecutive
+> +accesses with descriptions of the second access in the pair.
+> +
+> +P0()'s WRITE_ONCE() is read by its first READ_ONCE(), which is a
+> +reads-from link (rf) and internal to the P0() process.  This is
+> +"rfi", which is an abbreviation for "reads-from internal".  Because
+> +some of the tools string these abbreviations together with space
+> +characters separating processes, the first character is capitalized,
+> +resulting in "Rfi".
+> +
+> +P0()'s second access is a READ_ONCE(), as opposed to (for example)
+> +smp_load_acquire(), so next is "Once".  Thus far, we have "Rfi Once".
+> +
+> +P0()'s third access is also a READ_ONCE(), but to y rather than x.
+> +This is related to P0()'s second access by program order ("po"),
+> +to a different variable ("d"), and both accesses are reads ("RR").
+> +The resulting descriptor is "PodRR".  Because P0()'s third access is
+> +READ_ONCE(), we add another "Once" descriptor.
+> +
+> +A from-read ("fre") relation links P0()'s third to P1()'s first
+> +access, and the resulting descriptor is "Fre".  P1()'s first access is
+> +WRITE_ONCE(), which as before gives the descriptor "Once".  The string
+> +thus far is thus "Rfi Once PodRR Once Fre Once".
+> +
+> +The remainder of P1() is similar to P0(), which means we add
+> +"Rfi Once PodRR Once".  Another fre links P1()'s last access to
+> +P0()'s first access, which is WRITE_ONCE(), so we add "Fre Once".
+> +The full string is thus:
+> +
+> +	Rfi Once PodRR Once Fre Once Rfi Once PodRR Once Fre Once
+> +
+> +This string can be given to the "norm7" and "classify7" tools to
+> +produce the name:
+> +
+> +$ norm7 -bell linux-kernel.bell Rfi Once PodRR Once Fre Once Rfi Once PodRR Once Fre Once |  classify7 -bell linux-kernel.bell -diyone | sed -e 's/:.*//g'
+> +SB+rfionceonce-poonceonces
+
+We should check for the required version of herdtools7; a quick search
+here pointed out:
+
+  ad5681da10fafb ("gen: add the tool 'norm' that normalise and name one cycle given as command line arguments.")
+
+(so after v7.49), but I do remember a 'norm7' tool during my 'Parisian
+days', mmh...
+
+I also notice that, with the current version, the above command can be
+simplified to:
+
+  $ norm7 -bell linux-kernel.bell Rfi Once PodRR Once Fre Once Rfi Once PodRR Once Fre Once | sed -e 's/:.*//g'
+
+but we might want to list other commands for backward compatibility.
+
+
+> +
+> +Adding the ".litmus" suffix: SB+rfionceonce-poonceonces.litmus
+> +
+> +
+> +=======================
+> +LITMUS TEST DESCRIPTORS
+> +=======================
+> +
+> +These descriptors cover connections between consecutive accesses:
+
+Maybe expand to recall that we're referring to a particular cycle (the
+cycle referred to in the previous section)? (the term 'consecutive' is
+overloaded ;-)
+
+
+> +
+> +Fre: From-read external.  The current process wrote a variable that
+> +	the previous process read.  Example: The SB (store buffering) test.
+> +Fri: From-read internal.  This process read a variable and then
+> +	immediately wrote to it.  Example: ???
+> +PodRR: Program-order different variable, read followed by read.
+> +	This process read a variable and again read a different variable.
+> +	Example: The read-side process in the MP (message-passing) test.
+> +PodRW: Program-order different variable, read followed by write.
+> +	This process read a variable and then wrote a different variable.
+> +	Example: The LB (load buffering) test.
+> +PodWR: Program-order different variable, write followed by read.
+> +	This process wrote a variable and then read a different variable.
+> +	Example: The SB (store buffering) test.
+> +PodWW: Program-order different variable, write followed by write.
+> +	This process wrote a variable and again wrote a different variable.
+> +	Example: The write-side process in the MP (message-passing) test.
+> +PosRR: Program-order same variable, read followed by read.
+> +	This process read a variable and again read that same variable.
+> +	Example: ???
+> +PosRW: Program-order same variable, read followed by write.
+> +	This process read a variable and then wrote that same variable.
+> +	Example: ???
+> +PosWR: Program-order same variable, write followed by read.
+> +	This process wrote a variable and then read that same variable.
+> +	Example: ???
+> +PosWW: Program-order same variable, write followed by write.
+> +	This process wrote a variable and again rrote that same variable.
+
+s/rrote/wrote
+
+
+> +	Example: ???
+> +Rfe: Read-from external.  The current process read a variable written
+> +	by the previous process.  Example: The MP (message passing) test.
+> +Rfi: Read-from internal.  The current process wrote a variable and then
+> +	immediately read the value back from it.  Example:  ???
+> +	Comparison to PosWR???
+
+I'm not sure if it is worth commenting on this, but compare, e.g., the
+'exists' clauses of the following two tests (thinking at 'coherence'):
+
+$ diyone7 -arch LISA PosWR PodRR Fre PosWR PodRR Fre
+LISA A
+"PosWR PodRR Fre PosWR PodRR Fre"
+Generator=diyone7 (version 7.49+02(dev))
+Prefetch=0:x=F,0:y=T,1:y=F,1:x=T
+Com=Fr Fr
+Orig=PosWR PodRR Fre PosWR PodRR Fre
+{
+}
+ P0       | P1       ;
+ w[] x 1  | w[] y 1  ;
+ r[] r0 x | r[] r0 y ;
+ r[] r1 y | r[] r1 x ;
+exists
+(0:r1=0 /\ 1:r1=0)
+
+$ diyone7 -arch LISA Rfi PodRR Fre Rfi PodRR Fre
+LISA A
+"Rfi PodRR Fre Rfi PodRR Fre"
+Generator=diyone7 (version 7.49+02(dev))
+Prefetch=0:x=F,0:y=T,1:y=F,1:x=T
+Com=Fr Fr
+Orig=Rfi PodRR Fre Rfi PodRR Fre
+{
+}
+ P0       | P1       ;
+ w[] x 1  | w[] y 1  ;
+ r[] r0 x | r[] r0 y ;
+ r[] r1 y | r[] r1 x ;
+exists
+(0:r0=1 /\ 0:r1=0 /\ 1:r0=1 /\ 1:r1=0)
+
+
+> +Wse: Write same external.  The current process wrote to a variable that
+> +	was also written to by the previous process.  Example:  ???
+> +Wsi: Write same internal.  The current process wrote to a variable and
+> +	then immediately wrote to it again.  Example:  ???
+
+The list of descriptors is incomplete; the command:
+
+  $ diyone7 -bell linux-kernel.bell -show edges
+
+shows other descriptors (including fences and dependencies).  We might
+want to list this command; searching the commit history, I found:
+
+   3c24730ef6c662 ("gen: Add a new command line option -show (edges|fences|annotations) that list various categories of candidate relaxations.")
+
+I also notice that our current names for tests with fences (and cycle)
+deviate from the corresponding 'norm7' results; e.g.,
+
+  $ norm7 -bell linux-kernel.bell FenceWmbdWW Once Rfe Once FenceRmbdRR Once Fre Once | sed -e 's/:.*//g'
+  MP+fencewmbonceonce+fencermbonceonce
+
+while we use 'MP+wmbonceonce+rmbonceonce' (that is, we omit the 'fence'
+prefixes).
+
+  Andrea
+
+
+> 
