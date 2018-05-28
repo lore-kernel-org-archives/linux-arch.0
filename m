@@ -1,119 +1,82 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v4 27/27] kprobes: Remove jprobe stub API
-Date: Mon, 28 May 2018 16:13:11 +0900
-Message-ID: <152749159104.15132.4654939175905593999.stgit@devbox>
-References: <152749074878.15132.16693721906742461289.stgit@devbox>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [REVIEW][PATCH 16/22] signal/sh: Use force_sig_fault where appropriate
+Date: Mon, 28 May 2018 11:19:55 +0200
+Message-ID: <CAMuHMdXxL+k_SitLXV1LJDHJmCY1HiUnZSk7MM64rcgs75nLiw@mail.gmail.com>
+References: <87604mhrnb.fsf@xmission.com> <20180420143811.9994-16-ebiederm@xmission.com>
+ <20180420145514.GP3094@brightrain.aerifal.cx>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <152749074878.15132.16693721906742461289.stgit@devbox>
+In-Reply-To: <20180420145514.GP3094@brightrain.aerifal.cx>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Laura Abbott <labbott@redhat.com>, Josef Bacik <jbacik@fb.com>, Alexei Starovoitov <ast@kernel.org>, Ravi Bangoria <ravi.bangoria@linux.vnet.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>
+To: Rich Felker <dalias@libc.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Remove jprobe stub APIs from linux/kprobes.h since
-the jprobe implementation was completely gone.
+On Fri, Apr 20, 2018 at 4:55 PM, Rich Felker <dalias@libc.org> wrote:
+> On Fri, Apr 20, 2018 at 09:38:05AM -0500, Eric W. Biederman wrote:
+>> Filling in struct siginfo before calling force_sig_info a tedious and
+>> error prone process, where once in a great while the wrong fields
+>> are filled out, and siginfo has been inconsistently cleared.
+>>
+>> Simplify this process by using the helper force_sig_fault.  Which
+>> takes as a parameters all of the information it needs, ensures
+>> all of the fiddly bits of filling in struct siginfo are done properly
+>> and then calls force_sig_info.
+>>
+>> In short about a 5 line reduction in code for every time force_sig_info
+>> is called, which makes the calling function clearer.
+>>
+>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+>> Cc: Rich Felker <dalias@libc.org>
+>> Cc: linux-sh@vger.kernel.org
+>> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
----
- include/linux/kprobes.h |   50 -----------------------------------------------
- 1 file changed, 50 deletions(-)
+>> --- a/arch/sh/kernel/traps_32.c
+>> +++ b/arch/sh/kernel/traps_32.c
 
-diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
-index b520baa65682..e909413e4e38 100644
---- a/include/linux/kprobes.h
-+++ b/include/linux/kprobes.h
-@@ -63,7 +63,6 @@ struct pt_regs;
- struct kretprobe;
- struct kretprobe_instance;
- typedef int (*kprobe_pre_handler_t) (struct kprobe *, struct pt_regs *);
--typedef int (*kprobe_break_handler_t) (struct kprobe *, struct pt_regs *);
- typedef void (*kprobe_post_handler_t) (struct kprobe *, struct pt_regs *,
- 				       unsigned long flags);
- typedef int (*kprobe_fault_handler_t) (struct kprobe *, struct pt_regs *,
-@@ -101,12 +100,6 @@ struct kprobe {
- 	 */
- 	kprobe_fault_handler_t fault_handler;
- 
--	/*
--	 * ... called if breakpoint trap occurs in probe handler.
--	 * Return 1 if it handled break, otherwise kernel will see it.
--	 */
--	kprobe_break_handler_t break_handler;
--
- 	/* Saved opcode (which has been replaced with breakpoint) */
- 	kprobe_opcode_t opcode;
- 
-@@ -155,24 +148,6 @@ static inline int kprobe_ftrace(struct kprobe *p)
- }
- 
- /*
-- * Special probe type that uses setjmp-longjmp type tricks to resume
-- * execution at a specified entry with a matching prototype corresponding
-- * to the probed function - a trick to enable arguments to become
-- * accessible seamlessly by probe handling logic.
-- * Note:
-- * Because of the way compilers allocate stack space for local variables
-- * etc upfront, regardless of sub-scopes within a function, this mirroring
-- * principle currently works only for probes placed on function entry points.
-- */
--struct jprobe {
--	struct kprobe kp;
--	void *entry;	/* probe handling code to jump to */
--};
--
--/* For backward compatibility with old code using JPROBE_ENTRY() */
--#define JPROBE_ENTRY(handler)	(handler)
--
--/*
-  * Function-return probe -
-  * Note:
-  * User needs to provide a handler function, and initialize maxactive.
-@@ -436,9 +411,6 @@ static inline void unregister_kprobe(struct kprobe *p)
- static inline void unregister_kprobes(struct kprobe **kps, int num)
- {
- }
--static inline void jprobe_return(void)
--{
--}
- static inline int register_kretprobe(struct kretprobe *rp)
- {
- 	return -ENOSYS;
-@@ -465,20 +437,6 @@ static inline int enable_kprobe(struct kprobe *kp)
- 	return -ENOSYS;
- }
- #endif /* CONFIG_KPROBES */
--static inline int register_jprobe(struct jprobe *p)
--{
--	return -ENOSYS;
--}
--static inline int register_jprobes(struct jprobe **jps, int num)
--{
--	return -ENOSYS;
--}
--static inline void unregister_jprobe(struct jprobe *p)
--{
--}
--static inline void unregister_jprobes(struct jprobe **jps, int num)
--{
--}
- static inline int disable_kretprobe(struct kretprobe *rp)
- {
- 	return disable_kprobe(&rp->kp);
-@@ -487,14 +445,6 @@ static inline int enable_kretprobe(struct kretprobe *rp)
- {
- 	return enable_kprobe(&rp->kp);
- }
--static inline int disable_jprobe(struct jprobe *jp)
--{
--	return -ENOSYS;
--}
--static inline int enable_jprobe(struct jprobe *jp)
--{
--	return -ENOSYS;
--}
- 
- #ifndef CONFIG_KPROBES
- static inline bool is_kprobe_insn_slot(unsigned long addr)
+>> @@ -599,20 +593,17 @@ int is_dsp_inst(struct pt_regs *regs)
+>>  #ifdef CONFIG_CPU_SH2A
+>>  asmlinkage void do_divide_error(unsigned long r4)
+>>  {
+>> -     siginfo_t info;
+>> +     int code;
+>>
+>> -     clear_siginfo(&info);
+>>       switch (r4) {
+>>       case TRAP_DIVZERO_ERROR:
+>> -             info.si_code = FPE_INTDIV;
+>> +             code = FPE_INTDIV;
+>>               break;
+>>       case TRAP_DIVOVF_ERROR:
+>> -             info.si_code = FPE_INTOVF;
+>> +             code = FPE_INTOVF;
+>>               break;
+>>       }
+>> -
+>> -     info.si_signo = SIGFPE;
+>> -     force_sig_info(info.si_signo, &info, current);
+>> +     force_sig_fault(SIGFPE, code, NULL, current);
+
+/kisskb/src/arch/sh/kernel/traps_32.c:606:17: error: 'code' may be
+used uninitialized in this function [-Werror=uninitialized]
+
+http://kisskb.ellerman.id.au/kisskb/buildresult/13366052/
+http://kisskb.ellerman.id.au/kisskb/buildresult/13366048/
+http://kisskb.ellerman.id.au/kisskb/buildresult/13366072/
+
+>>  }
+
+> Acked-by: Rich Felker <dalias@libc.org>
+
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
