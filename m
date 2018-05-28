@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44740 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:41364 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753621AbeE1HKb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 28 May 2018 03:10:31 -0400
+        id S1753619AbeE1HI5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 28 May 2018 03:08:57 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v4 21/27] s390/kprobes: Don't call the ->break_handler() in s390 kprobes code
-Date: Mon, 28 May 2018 16:10:04 +0900
-Message-ID: <152749140479.15132.14122696148962136409.stgit@devbox>
+Subject: [PATCH -tip v4 18/27] powerpc/kprobes: Don't call the ->break_handler() in arm kprobes code
+Date: Mon, 28 May 2018 16:08:31 +0900
+Message-ID: <152749131162.15132.7120419627022685621.stgit@devbox>
 In-Reply-To: <152749074878.15132.16693721906742461289.stgit@devbox>
 References: <152749074878.15132.16693721906742461289.stgit@devbox>
 MIME-Version: 1.0
@@ -16,44 +16,137 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
 Cc: x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Laura Abbott <labbott@redhat.com>, Josef Bacik <jbacik@fb.com>, Alexei Starovoitov <ast@kernel.org>, Ravi Bangoria <ravi.bangoria@linux.vnet.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S . Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
-Message-ID: <20180528071004.d_Vcb1TbcQMqSZUp9low69SoQT1mLelZZQxItNDN87U@z>
+Message-ID: <20180528070831.bUOlmua1WdONHoWasM5aZZ7aJXUslXnRBdmtEOA5TVU@z>
 
-Don't call the ->break_handler() from the s390 kprobes code,
+Don't call the ->break_handler() from the arm kprobes code,
 because it was only used by jprobes which got removed.
+
+This also makes skip_singlestep() a static function since
+only ftrace-kprobe.c is using this function.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- arch/s390/kernel/kprobes.c |   20 --------------------
- 1 file changed, 20 deletions(-)
+ arch/powerpc/include/asm/kprobes.h   |   10 ----------
+ arch/powerpc/kernel/kprobes-ftrace.c |   16 +++-------------
+ arch/powerpc/kernel/kprobes.c        |   31 +++++++++++--------------------
+ 3 files changed, 14 insertions(+), 43 deletions(-)
 
-diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-index 0967de19f53d..3e34018960b5 100644
---- a/arch/s390/kernel/kprobes.c
-+++ b/arch/s390/kernel/kprobes.c
-@@ -332,26 +332,6 @@ static int kprobe_handler(struct pt_regs *regs)
+diff --git a/arch/powerpc/include/asm/kprobes.h b/arch/powerpc/include/asm/kprobes.h
+index 674036db558b..785c464b6588 100644
+--- a/arch/powerpc/include/asm/kprobes.h
++++ b/arch/powerpc/include/asm/kprobes.h
+@@ -102,16 +102,6 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
+ extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
+ extern int kprobe_handler(struct pt_regs *regs);
+ extern int kprobe_post_handler(struct pt_regs *regs);
+-#ifdef CONFIG_KPROBES_ON_FTRACE
+-extern int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-			   struct kprobe_ctlblk *kcb);
+-#else
+-static inline int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-				  struct kprobe_ctlblk *kcb)
+-{
+-	return 0;
+-}
+-#endif
+ #else
+ static inline int kprobe_handler(struct pt_regs *regs) { return 0; }
+ static inline int kprobe_post_handler(struct pt_regs *regs) { return 0; }
+diff --git a/arch/powerpc/kernel/kprobes-ftrace.c b/arch/powerpc/kernel/kprobes-ftrace.c
+index 1b316331c2d9..3869b0e5d5c7 100644
+--- a/arch/powerpc/kernel/kprobes-ftrace.c
++++ b/arch/powerpc/kernel/kprobes-ftrace.c
+@@ -26,8 +26,8 @@
+ #include <linux/ftrace.h>
+ 
+ static nokprobe_inline
+-int __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-		      struct kprobe_ctlblk *kcb, unsigned long orig_nip)
++int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
++		    struct kprobe_ctlblk *kcb, unsigned long orig_nip)
+ {
+ 	/*
+ 	 * Emulate singlestep (and also recover regs->nip)
+@@ -44,16 +44,6 @@ int __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+ 	return 1;
+ }
+ 
+-int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-		    struct kprobe_ctlblk *kcb)
+-{
+-	if (kprobe_ftrace(p))
+-		return __skip_singlestep(p, regs, kcb, 0);
+-	else
+-		return 0;
+-}
+-NOKPROBE_SYMBOL(skip_singlestep);
+-
+ /* Ftrace callback handler for kprobes */
+ void kprobe_ftrace_handler(unsigned long nip, unsigned long parent_nip,
+ 			   struct ftrace_ops *ops, struct pt_regs *regs)
+@@ -82,7 +72,7 @@ void kprobe_ftrace_handler(unsigned long nip, unsigned long parent_nip,
+ 		__this_cpu_write(current_kprobe, p);
+ 		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
+ 		if (!p->pre_handler || !p->pre_handler(p, regs))
+-			__skip_singlestep(p, regs, kcb, orig_nip);
++			skip_singlestep(p, regs, kcb, orig_nip);
+ 		else {
+ 			/*
+ 			 * If pre_handler returns !0, it sets regs->nip and
+diff --git a/arch/powerpc/kernel/kprobes.c b/arch/powerpc/kernel/kprobes.c
+index 600678fce0a8..f06747e2e70d 100644
+--- a/arch/powerpc/kernel/kprobes.c
++++ b/arch/powerpc/kernel/kprobes.c
+@@ -317,25 +317,17 @@ int kprobe_handler(struct pt_regs *regs)
+ 			}
+ 			prepare_singlestep(p, regs);
+ 			return 1;
+-		} else {
+-			if (*addr != BREAKPOINT_INSTRUCTION) {
+-				/* If trap variant, then it belongs not to us */
+-				kprobe_opcode_t cur_insn = *addr;
+-				if (is_trap(cur_insn))
+-		       			goto no_kprobe;
+-				/* The breakpoint instruction was removed by
+-				 * another cpu right after we hit, no further
+-				 * handling of this interrupt is appropriate
+-				 */
+-				ret = 1;
++		} else if (*addr != BREAKPOINT_INSTRUCTION) {
++			/* If trap variant, then it belongs not to us */
++			kprobe_opcode_t cur_insn = *addr;
++
++			if (is_trap(cur_insn))
+ 				goto no_kprobe;
+-			}
+-			p = __this_cpu_read(current_kprobe);
+-			if (p->break_handler && p->break_handler(p, regs)) {
+-				if (!skip_singlestep(p, regs, kcb))
+-					goto ss_probe;
+-				ret = 1;
+-			}
++			/* The breakpoint instruction was removed by
++			 * another cpu right after we hit, no further
++			 * handling of this interrupt is appropriate
++			 */
++			ret = 1;
  		}
- 		enable_singlestep(kcb, regs, (unsigned long) p->ainsn.insn);
+ 		goto no_kprobe;
+ 	}
+@@ -350,7 +342,7 @@ int kprobe_handler(struct pt_regs *regs)
+ 			 */
+ 			kprobe_opcode_t cur_insn = *addr;
+ 			if (is_trap(cur_insn))
+-		       		goto no_kprobe;
++				goto no_kprobe;
+ 			/*
+ 			 * The breakpoint instruction was removed right
+ 			 * after we hit it.  Another cpu has removed
+@@ -370,7 +362,6 @@ int kprobe_handler(struct pt_regs *regs)
+ 		/* handler has already set things up, so skip ss setup */
  		return 1;
--	} else if (kprobe_running()) {
--		p = __this_cpu_read(current_kprobe);
--		if (p->break_handler && p->break_handler(p, regs)) {
--			/*
--			 * Continuation after the jprobe completed and
--			 * caused the jprobe_return trap. The jprobe
--			 * break_handler "returns" to the original
--			 * function that still has the kprobe breakpoint
--			 * installed. We continue with single stepping.
--			 */
--			kcb->kprobe_status = KPROBE_HIT_SS;
--			enable_singlestep(kcb, regs,
--					  (unsigned long) p->ainsn.insn);
--			return 1;
--		} /* else:
--		   * No kprobe at this address and the current kprobe
--		   * has no break handler (no jprobe!). The kernel just
--		   * exploded, let the standard trap handler pick up the
--		   * pieces.
--		   */
- 	} /* else:
- 	   * No kprobe at this address and no active kprobe. The trap has
- 	   * not been caused by a kprobe breakpoint. The race of breakpoint
+ 
+-ss_probe:
+ 	if (p->ainsn.boostable >= 0) {
+ 		ret = try_to_emulate(p, regs);
+ 
