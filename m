@@ -1,7 +1,7 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v4 26/27] Documentation: kprobes: Add how to change the execution path
-Date: Mon, 28 May 2018 16:12:40 +0900
-Message-ID: <152749156011.15132.15417205958490100087.stgit@devbox>
+Subject: [PATCH -tip v4 27/27] kprobes: Remove jprobe stub API
+Date: Mon, 28 May 2018 16:13:11 +0900
+Message-ID: <152749159104.15132.4654939175905593999.stgit@devbox>
 References: <152749074878.15132.16693721906742461289.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,42 +13,107 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
 Cc: x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Laura Abbott <labbott@redhat.com>, Josef Bacik <jbacik@fb.com>, Alexei Starovoitov <ast@kernel.org>, Ravi Bangoria <ravi.bangoria@linux.vnet.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Add a section that explaining how to change the execution
-path with kprobes.
+Remove jprobe stub APIs from linux/kprobes.h since
+the jprobe implementation was completely gone.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- Documentation/kprobes.txt |   20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+ include/linux/kprobes.h |   50 -----------------------------------------------
+ 1 file changed, 50 deletions(-)
 
-diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
-index 3e9e99ea751b..8a98eed1521b 100644
---- a/Documentation/kprobes.txt
-+++ b/Documentation/kprobes.txt
-@@ -80,6 +80,26 @@ After the instruction is single-stepped, Kprobes executes the
- "post_handler," if any, that is associated with the kprobe.
- Execution then continues with the instruction following the probepoint.
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index b520baa65682..e909413e4e38 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -63,7 +63,6 @@ struct pt_regs;
+ struct kretprobe;
+ struct kretprobe_instance;
+ typedef int (*kprobe_pre_handler_t) (struct kprobe *, struct pt_regs *);
+-typedef int (*kprobe_break_handler_t) (struct kprobe *, struct pt_regs *);
+ typedef void (*kprobe_post_handler_t) (struct kprobe *, struct pt_regs *,
+ 				       unsigned long flags);
+ typedef int (*kprobe_fault_handler_t) (struct kprobe *, struct pt_regs *,
+@@ -101,12 +100,6 @@ struct kprobe {
+ 	 */
+ 	kprobe_fault_handler_t fault_handler;
  
-+Changing Execution Path
-+-----------------------
-+
-+Since the kprobes can probe into a running kernel code, it can change
-+the register set, including instruction pointer. This operation
-+requires maximum attention, such as keeping the stack frame, recovering
-+execution path etc. Since it is operated on running kernel and need deep
-+knowladge of the archtecture and concurrent computing, you can easily
-+shot your foot.
-+
-+If you change the instruction pointer (and set up other related
-+registers) in pre_handler, you must return !0 so that the kprobes
-+stops single stepping and just returns to given address.
-+This also means post_handler should not be called anymore.
-+
-+Note that this operation may be harder on some architectures which
-+use TOC (Table of Contents) for function call, since you have to
-+setup new TOC for your function in your module, and recover old
-+one after back from it.
-+
- Return Probes
- -------------
+-	/*
+-	 * ... called if breakpoint trap occurs in probe handler.
+-	 * Return 1 if it handled break, otherwise kernel will see it.
+-	 */
+-	kprobe_break_handler_t break_handler;
+-
+ 	/* Saved opcode (which has been replaced with breakpoint) */
+ 	kprobe_opcode_t opcode;
  
+@@ -155,24 +148,6 @@ static inline int kprobe_ftrace(struct kprobe *p)
+ }
+ 
+ /*
+- * Special probe type that uses setjmp-longjmp type tricks to resume
+- * execution at a specified entry with a matching prototype corresponding
+- * to the probed function - a trick to enable arguments to become
+- * accessible seamlessly by probe handling logic.
+- * Note:
+- * Because of the way compilers allocate stack space for local variables
+- * etc upfront, regardless of sub-scopes within a function, this mirroring
+- * principle currently works only for probes placed on function entry points.
+- */
+-struct jprobe {
+-	struct kprobe kp;
+-	void *entry;	/* probe handling code to jump to */
+-};
+-
+-/* For backward compatibility with old code using JPROBE_ENTRY() */
+-#define JPROBE_ENTRY(handler)	(handler)
+-
+-/*
+  * Function-return probe -
+  * Note:
+  * User needs to provide a handler function, and initialize maxactive.
+@@ -436,9 +411,6 @@ static inline void unregister_kprobe(struct kprobe *p)
+ static inline void unregister_kprobes(struct kprobe **kps, int num)
+ {
+ }
+-static inline void jprobe_return(void)
+-{
+-}
+ static inline int register_kretprobe(struct kretprobe *rp)
+ {
+ 	return -ENOSYS;
+@@ -465,20 +437,6 @@ static inline int enable_kprobe(struct kprobe *kp)
+ 	return -ENOSYS;
+ }
+ #endif /* CONFIG_KPROBES */
+-static inline int register_jprobe(struct jprobe *p)
+-{
+-	return -ENOSYS;
+-}
+-static inline int register_jprobes(struct jprobe **jps, int num)
+-{
+-	return -ENOSYS;
+-}
+-static inline void unregister_jprobe(struct jprobe *p)
+-{
+-}
+-static inline void unregister_jprobes(struct jprobe **jps, int num)
+-{
+-}
+ static inline int disable_kretprobe(struct kretprobe *rp)
+ {
+ 	return disable_kprobe(&rp->kp);
+@@ -487,14 +445,6 @@ static inline int enable_kretprobe(struct kretprobe *rp)
+ {
+ 	return enable_kprobe(&rp->kp);
+ }
+-static inline int disable_jprobe(struct jprobe *jp)
+-{
+-	return -ENOSYS;
+-}
+-static inline int enable_jprobe(struct jprobe *jp)
+-{
+-	return -ENOSYS;
+-}
+ 
+ #ifndef CONFIG_KPROBES
+ static inline bool is_kprobe_insn_slot(unsigned long addr)
