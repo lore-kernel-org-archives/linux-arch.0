@@ -1,55 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f182.google.com ([209.85.223.182]:46795 "EHLO
-        mail-io0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966847AbeE2VQg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2018 17:16:36 -0400
-MIME-Version: 1.0
-References: <20180529190332.GO3803@linux.vnet.ibm.com> <Pine.LNX.4.44L0.1805291521570.1458-100000@iolanthe.rowland.org>
-In-Reply-To: <Pine.LNX.4.44L0.1805291521570.1458-100000@iolanthe.rowland.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 29 May 2018 16:10:02 -0500
-Message-ID: <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pl0-f68.google.com ([209.85.160.68]:43983 "EHLO
+        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S968203AbeE2WSO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2018 18:18:14 -0400
+Received: by mail-pl0-f68.google.com with SMTP id c41-v6so9749502plj.10
+        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 15:18:14 -0700 (PDT)
+From: Thomas Garnier <thgarnie@google.com>
+Subject: [PATCH v4 24/27] x86/mm: Make the x86 GOT read-only
+Date: Tue, 29 May 2018 15:15:25 -0700
+Message-ID: <20180529221625.33541-25-thgarnie@google.com>
+In-Reply-To: <20180529221625.33541-1-thgarnie@google.com>
+References: <20180529221625.33541-1-thgarnie@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
-Message-ID: <20180529211002.Lqthfs_qqHRg71bRfmPMlelgGljSD4Lc6o9lTu0TUgo@z>
+To: kernel-hardening@lists.openwall.com
+Cc: Thomas Garnier <thgarnie@google.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180529221525.364tImIZyeSVO9L-LqoAjH8SJv-cdopK2_0KjbE4big@z>
 
-On Tue, May 29, 2018 at 3:49 PM Alan Stern <stern@rowland.harvard.edu>
-wrote:
+The GOT is changed during early boot when relocations are applied. Make
+it read-only directly. This table exists only for PIE binary.
 
-> Putting this into herd would be extremely difficult, if not impossible,
-> because it involves analyzing code that was not executed.
+Position Independent Executable (PIE) support will allow to extend the
+KASLR randomization range 0xffffffff80000000.
 
-Does it?
+Signed-off-by: Thomas Garnier <thgarnie@google.com>
+---
+ include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-Can't we simplify the whole sequence as basically
-
-     A
-     if (!B)
-         D
-
-for that "not B" case, and just think about that. IOW, let's ignore the
-whole "not executed" code.
-
-If B depends on A like you state, then that already implies that the write
-in D cannot come before the read of A.
-
-You fundamentally cannot do a conditional write before the read that the
-write condition depends on. So *any* write after a conditional is dependent
-on the read.
-
-So the existence of C - whether it has a barrier or not - is entirely
-immaterial at run-time.
-
-Now, the *compiler* can use the whole existence of that memory barrier in C
-to determine whether it can re-order the write to D or not, of course, but
-that's a separate issue, and then the whole "code that isn't executed" is
-not the issue any more. The compiler obviously sees all code, whether
-executing or not.
-
-Or am I being stupid and missing something entirely? That's possible.
-
-               Linus
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index e373e2e10f6a..e5b0710fe693 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -314,6 +314,17 @@
+ 	__end_ro_after_init = .;
+ #endif
+ 
++#ifdef CONFIG_X86_PIE
++#define RO_GOT_X86							\
++	.got        : AT(ADDR(.got) - LOAD_OFFSET) {			\
++		VMLINUX_SYMBOL(__start_got) = .;			\
++		*(.got);						\
++		VMLINUX_SYMBOL(__end_got) = .;				\
++	}
++#else
++#define RO_GOT_X86
++#endif
++
+ /*
+  * Read only Data
+  */
+@@ -370,6 +381,7 @@
+ 		__end_builtin_fw = .;					\
+ 	}								\
+ 									\
++	RO_GOT_X86							\
+ 	TRACEDATA							\
+ 									\
+ 	/* Kernel symbol table: Normal symbols */			\
+-- 
+2.17.0.921.gf22659ad46-goog
