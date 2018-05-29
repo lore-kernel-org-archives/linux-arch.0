@@ -1,59 +1,69 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [PATCH] signal/sh: Stop gcc warning about an impossible case in do_divide_error
-Date: Tue, 29 May 2018 10:00:42 -0500
-Message-ID: <87h8mqo6at.fsf_-_@xmission.com>
-References: <87604mhrnb.fsf@xmission.com>
-        <20180420143811.9994-16-ebiederm@xmission.com>
-        <20180420145514.GP3094@brightrain.aerifal.cx>
-        <CAMuHMdXxL+k_SitLXV1LJDHJmCY1HiUnZSk7MM64rcgs75nLiw@mail.gmail.com>
+From: Thomas Garnier <thgarnie@google.com>
+Subject: Re: [PATCH v3 09/27] x86/acpi: Adapt assembly for PIE support
+Date: Tue, 29 May 2018 08:55:34 -0700
+Message-ID: <CAJcbSZHuR8AJVU2mENi9KD7j=dWL4PqEUUgUc880X7Nizvkjbg@mail.gmail.com>
+References: <20180523195421.180248-1-thgarnie@google.com> <20180523195421.180248-10-thgarnie@google.com>
+ <20180524110306.GA20225@amd> <CAJcbSZFJ84+VC5xDQZGHctupdqwmMBgqzLzFRqCTBpi5t-2Gvw@mail.gmail.com>
+ <20180525091447.GC9666@amd> <CAJcbSZH17D01Stk4vRKKzjW6dxvK8x+S9sWL6vUopSP9=-x7Nw@mail.gmail.com>
+ <20180529123114.GB21399@amd>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdXxL+k_SitLXV1LJDHJmCY1HiUnZSk7MM64rcgs75nLiw@mail.gmail.com>
-        (Geert Uytterhoeven's message of "Mon, 28 May 2018 11:19:55 +0200")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Rich Felker <dalias@libc.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-13428-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20180529123114.GB21399@amd>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, Yonghong Song <yhs@fb.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Juergen Gross <jgros>
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, May 29, 2018 at 5:31 AM Pavel Machek <pavel@ucw.cz> wrote:
 
-Geert Uytterhoeven <geert@linux-m68k.org> reported:
->   HOSTLD  scripts/mod/modpost
->   CC      arch/sh/kernel/traps_32.o
-> arch/sh/kernel/traps_32.c: In function 'do_divide_error':
-> arch/sh/kernel/traps_32.c:606:17: error: 'code' may be used uninitialized in this function [-Werror=uninitialized]
-> cc1: all warnings being treated as errors
+> On Fri 2018-05-25 10:00:04, Thomas Garnier wrote:
+> > On Fri, May 25, 2018 at 2:14 AM Pavel Machek <pavel@ucw.cz> wrote:
+> >
+> > > On Thu 2018-05-24 09:35:42, Thomas Garnier wrote:
+> > > > On Thu, May 24, 2018 at 4:03 AM Pavel Machek <pavel@ucw.cz> wrote:
+> > > >
+> > > > > On Wed 2018-05-23 12:54:03, Thomas Garnier wrote:
+> > > > > > Change the assembly code to use only relative references of
+symbols
+> > for
+> > > > the
+> > > > > > kernel to be PIE compatible.
+> > > > > >
+> > > > > > Position Independent Executable (PIE) support will allow to
+> > extended the
+> > > > > > KASLR randomization range below the -2G memory limit.
+> > > >
+> > > > > What testing did this get?
+> > > >
+> > > > Tested boot, hibernation and performance on qemu and dedicated
+machine.
+> >
+> > > Well, this is suspend, not hibernation code.
+> >
+> > > So "sudo pm-suspend" or "echo mem > /sys/power/state" would be good
+> > > way to test this.
+> >
+> > Thanks, it worked. I added this to the testsuite I use for KASLR.
 
-It is clear from inspection that do_divide_error is only called with
-TRAP_DIVZERO_ERROR or TRAP_DIVOVF_ERROR, as that is the way
-set_exception_table_vec is called.  So let gcc know the other cases
-should not be considered by returning in all other cases.
+> Thanks!
 
-This removes the warning and let's the code continue to build.
+> You can add my Acked-by:.
 
-Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Fixes: c65626c0cd4d ("signal/sh: Use force_sig_fault where appropriate")
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
+Will do. Thanks for the review.
 
-I am adding this fix to my tree to at least let the code build.
 
- arch/sh/kernel/traps_32.c | 3 +++
- 1 file changed, 3 insertions(+)
+>                                                                  Pavel
 
-diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
-index 660a4bc17698..60709ad17fc7 100644
---- a/arch/sh/kernel/traps_32.c
-+++ b/arch/sh/kernel/traps_32.c
-@@ -602,6 +602,9 @@ asmlinkage void do_divide_error(unsigned long r4)
- 	case TRAP_DIVOVF_ERROR:
- 		code = FPE_INTOVF;
- 		break;
-+	default:
-+		/* Let gcc know unhandled cases don't make it past here */
-+		return;
- 	}
- 	force_sig_fault(SIGFPE, code, NULL, current);
- }
+> --
+> (english) http://www.livejournal.com/~pavelmachek
+> (cesky, pictures)
+http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+
+
+
 -- 
-2.14.1
+Thomas
