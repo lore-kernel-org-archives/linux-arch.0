@@ -1,98 +1,166 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Tue, 29 May 2018 14:35:34 -0400 (EDT)
-Message-ID: <Pine.LNX.4.44L0.1805291424440.1458-100000@iolanthe.rowland.org>
-References: <20180528220811.GA5221@linux.vnet.ibm.com>
+From: Thomas Garnier via Virtualization
+	<virtualization@lists.linux-foundation.org>
+Subject: Re: [PATCH v3 21/27] x86/ftrace: Adapt function tracing for PIE
+	support
+Date: Tue, 29 May 2018 11:37:45 -0700
+Message-ID: <CAJcbSZEBW0mE7x1tOUr9y2BJUfodyjix0EjO=oE7A4M+mGvZ3g@mail.gmail.com>
+References: <20180523195421.180248-1-thgarnie@google.com>
+	<20180523195421.180248-22-thgarnie@google.com>
+	<20180524114024.pa67zjipy5qcg4tm@pathway.suse.cz>
+	<20180524161622.4202319f@gandalf.local.home>
+	<CAJcbSZGQmQM7PuER0kEqt3aG9O-8vh-g1EA2jnkVsJPx-Htvrw@mail.gmail.com>
+Reply-To: Thomas Garnier <thgarnie@google.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180528220811.GA5221@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, mingo@kernel.org, torvalds@linux-foundation.org, roman.penyaev@profitbricks.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <CAJcbSZGQmQM7PuER0kEqt3aG9O-8vh-g1EA2jnkVsJPx-Htvrw@mail.gmail.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, the arch/x86 maintainers <x86@kernel.org>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Len Brown <len.brown@intel.com>, Tom Lendacky <thomas.lendacky@amd.com>, Peter Zijlstra <peterz@infradead.org>, Yonghong Song <yhs@fb.com>, Christopher Li <sparse@chrisli.org>, Dave Hansen <dave.hansen@linux.intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Jan Beulich <JBeulich@suse.com>, Pavel Machek <pavel@ucw.cz>, "H . Peter Anvin" <hpa@zytor.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Christoph Lameter <cl@linux.com>, Alok Kataria <akataria@vmware.com>, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 28 May 2018, Paul E. McKenney wrote:
+On Thu, May 24, 2018 at 1:41 PM Thomas Garnier <thgarnie@google.com> wrote:
 
-> Hello!
-> 
-> The litmus test below is a first attempt to model Roman's rcu-rr
-> round-robin RCU-protected linked list.  His test code, which includes
-> the algorithm under test, may be found here:
-> 
-> https://github.com/rouming/rcu-rr/blob/master/rcu-rr.c
-> 
-> The P0() process below roughly corresponds to remove_conn_from_arr(),
-> with litmus-test variable "c" standing in for the per-CPU ppcpu_con.
-> Similarly, P1() roughly corresponds to get_next_conn_rr().  It claims
-> that the algorithm is safe, and also claims that it becomes unsafe if
-> either synchronize_rcu() is removed.
 
-This algorithm (the one in the litmus test; I haven't looked at Roman's
-code) does seem valid.  In addition to removing either
-synchronize_rcu(), interchanging the order of the stores in P0 (c
-first, then w) would also invalidate it.
+> On Thu, May 24, 2018 at 1:16 PM Steven Rostedt <rostedt@goodmis.org>
+wrote:
 
-This is a little unusual in that c is written by more than one thread 
-with no protection.  It works because the writes are all stores of a 
-single pointer.
+> > On Thu, 24 May 2018 13:40:24 +0200
+> > Petr Mladek <pmladek@suse.com> wrote:
 
-Why does the litmus test use smp_store_release() in three places?  
-There doesn't seem to be any need; WRITE_ONCE() would be sufficient.
+> > > On Wed 2018-05-23 12:54:15, Thomas Garnier wrote:
+> > > > When using -fPIE/PIC with function tracing, the compiler generates a
+> > > > call through the GOT (call *__fentry__@GOTPCREL). This instruction
+> > > > takes 6 bytes instead of 5 on the usual relative call.
+> > > >
+> > > > If PIE is enabled, replace the 6th byte of the GOT call by a 1-byte
+> nop
+> > > > so ftrace can handle the previous 5-bytes as before.
+> > > >
+> > > > Position Independent Executable (PIE) support will allow to extended
+> the
+> > > > KASLR randomization range below the -2G memory limit.
+> > > >
+> > > > Signed-off-by: Thomas Garnier <thgarnie@google.com>
+> > > > ---
+> > > >  arch/x86/include/asm/ftrace.h   |  6 +++--
+> > > >  arch/x86/include/asm/sections.h |  4 ++++
+> > > >  arch/x86/kernel/ftrace.c        | 42
+> +++++++++++++++++++++++++++++++--
+> > > >  3 files changed, 48 insertions(+), 4 deletions(-)
+> > > >
+> > > > diff --git a/arch/x86/include/asm/ftrace.h
+> b/arch/x86/include/asm/ftrace.h
+> > > > index c18ed65287d5..8f2decce38d8 100644
+> > > > --- a/arch/x86/include/asm/ftrace.h
+> > > > +++ b/arch/x86/include/asm/ftrace.h
+> > > > @@ -25,9 +25,11 @@ extern void __fentry__(void);
+> > > >  static inline unsigned long ftrace_call_adjust(unsigned long addr)
+> > > >  {
+> > > >     /*
+> > > > -    * addr is the address of the mcount call instruction.
+> > > > -    * recordmcount does the necessary offset calculation.
+> > > > +    * addr is the address of the mcount call instruction. PIE has
+> always a
+> > > > +    * byte added to the start of the function.
+> > > >      */
+> > > > +   if (IS_ENABLED(CONFIG_X86_PIE))
+> > > > +           addr -= 1;
+> > >
+> > > This seems to modify the address even for modules that are _not_
+> compiled with
+> > > PIE, see below.
 
-Alan
+> > Can one load a module not compiled for PIE in a kernel with PIE?
 
-> Does this in fact realistically model Roman's algorithm?  Either way,
-> is there a better approach?
-> 
-> 							Thanx, Paul
-> 
-> ------------------------------------------------------------------------
-> 
-> C C-RomanPenyaev-list-rcu-rr
-> 
-> {
-> 	int *z=1; (* List: v->w->x->y->z. Noncircular, but long enough. *)
-> 	int *y=z;
-> 	int *x=y;
-> 	int *w=x;
-> 	int *v=w; (* List head is v. *)
-> 	int *c=w; (* Cache, emulating ppcpu_con. *)
-> }
-> 
-> P0(int *c, int *v, int *w, int *x, int *y)
-> {
-> 	rcu_assign_pointer(*w, y); /* Remove x from list. */
-> 	synchronize_rcu();
-> 	r1 = READ_ONCE(*c);
-> 	if (r1 == x) {
-> 		WRITE_ONCE(*c, 0); /* Invalidate cache. */
-> 		synchronize_rcu();
-> 	}
-> 	smp_store_release(x, 0);  /* Emulate kfree(x). */
-> }
-> 
-> P1(int *c, int *v)
-> {
-> 	rcu_read_lock();
-> 	r1 = READ_ONCE(*c); /* Pick up cache. */
-> 	if (r1 == 0) {
-> 		r1 = READ_ONCE(*v); /* Cache empty, start from head. */
-> 	}
-> 	r2 = rcu_dereference(*r1); /* Advance to next element. */
-> 	smp_store_release(c, r2); /* Update cache. */
-> 	rcu_read_unlock();
-> 
-> 	/* And repeat. */
-> 	rcu_read_lock();
-> 	r3 = READ_ONCE(*c);
-> 	if (r3 == 0) {
-> 		r3 = READ_ONCE(*v);
-> 	}
-> 	r4 = rcu_dereference(*r3);
-> 	smp_store_release(c, r4);
-> 	rcu_read_unlock();
-> }
-> 
-> locations [0:r1; 1:r1; 1:r3; c; v; w; x; y]
-> exists (1:r1=0 \/ 1:r2=0 \/ 1:r3=0 \/ 1:r4=0) (* Better not be freed!!! *)
+> > >
+> > > >     return addr;
+> > > >  }
+> > > >
+> > > > diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
+> > > > index 01ebcb6f263e..73b3c30cb7a3 100644
+> > > > --- a/arch/x86/kernel/ftrace.c
+> > > > +++ b/arch/x86/kernel/ftrace.c
+> > > > @@ -135,6 +135,44 @@ ftrace_modify_code_direct(unsigned long ip,
+> unsigned const char *old_code,
+> > > >     return 0;
+> > > >  }
+> > > >
+> > > > +/* Bytes before call GOT offset */
+> > > > +const unsigned char got_call_preinsn[] = { 0xff, 0x15 };
+> > > > +
+> > > > +static int
+> > > > +ftrace_modify_initial_code(unsigned long ip, unsigned const char
+> *old_code,
+> > > > +                      unsigned const char *new_code)
+> > > > +{
+> > > > +   unsigned char replaced[MCOUNT_INSN_SIZE + 1];
+> > > > +
+> > > > +   ftrace_expected = old_code;
+> > > > +
+> > > > +   /*
+> > > > +    * If PIE is not enabled or no GOT call was found, default to
+the
+> > > > +    * original approach to code modification.
+> > > > +    */
+> > > > +   if (!IS_ENABLED(CONFIG_X86_PIE) ||
+> > > > +       probe_kernel_read(replaced, (void *)ip, sizeof(replaced)) ||
+> > > > +       memcmp(replaced, got_call_preinsn,
+sizeof(got_call_preinsn)))
+> > > > +           return ftrace_modify_code_direct(ip, old_code,
+new_code);
+> > >
+> > > And this looks like an attempt to handle modules compiled without
+> > > PIE. Does it works with the right ip in that case?
+
+> > I'm guessing the || is for the "or no GOT call was found", but it
+> > doesn't explain why no GOT would be found.
+
+> Yes, maybe I could have made it work by using text_ip_addr earlier.
+
+
+> > >
+> > > I wonder if a better solution would be to update
+> > > scripts/recordmcount.c to store the incremented location into the
+> module.
+
+> I will look into it.
+
+Found a way to properly change the __mcount_loc using the preprocessing
+(removing the need for -1 on the addr). It will be part of the next version.
+
+Thanks for the feedback.
+
+
+
+> > If recordmcount.c can handle this, then I think that's the preferred
+> > approach. Thanks!
+
+> > -- Steve
+
+> > >
+> > > IMPORTANT: I have only vague picture about how this all works. It is
+> > > possible that I am completely wrong. The code might be correct,
+> > > especially if you tested this situation.
+> > >
+> > > Best Regards,
+> > > Petr
+
+
+
+> --
+> Thomas
+
+
+
+-- 
+Thomas
