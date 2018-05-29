@@ -1,227 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:38997 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S968072AbeE2WRa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2018 18:17:30 -0400
-Received: by mail-pg0-f66.google.com with SMTP id w12-v6so5974422pgc.6
-        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 15:17:30 -0700 (PDT)
-From: Thomas Garnier <thgarnie@google.com>
-Subject: [PATCH v4 15/27] compiler: Option to default to hidden symbols
-Date: Tue, 29 May 2018 15:15:16 -0700
-Message-ID: <20180529221625.33541-16-thgarnie@google.com>
-In-Reply-To: <20180529221625.33541-1-thgarnie@google.com>
-References: <20180529221625.33541-1-thgarnie@google.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:50894 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S935806AbeE2Wvp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 May 2018 18:51:45 -0400
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4TMn88B050183
+        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 18:51:45 -0400
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2j9ewn24sw-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 18:51:45 -0400
+Received: from localhost
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 29 May 2018 18:51:44 -0400
+Date: Tue, 29 May 2018 15:53:21 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20180529190332.GO3803@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1805291521570.1458-100000@iolanthe.rowland.org>
+ <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
+Message-ID: <20180529225321.GQ3803@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: Thomas Garnier <thgarnie@google.com>, Skip Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Skip Frederic Weisbecker <frederic@kernel.org>, Skip Dominik Brodowski <linux@dominikbrodowski.net>, Skip Nicholas Piggin <npiggin@gmail.com>, Skip Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@alien8.de>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Christopher Li <sparse@chrisli.org>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Dou Liyang <douly.fnst@cn.fujitsu.com>, Lukas Wunner <lukas@wunner.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20180529221516.9zPiPHFZEXPHcqDsRx551ceIxMYPFKiOFFfjOqXPbWE@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
+Message-ID: <20180529225321.mM4gsVow6XzCA0rmasCfLHFFp5o6fgc4MrHpcuiHFs0@z>
 
-Provide an option to default visibility to hidden except for key
-symbols. This option is disabled by default and will be used by x86_64
-PIE support to remove errors between compilation units.
+On Tue, May 29, 2018 at 04:10:02PM -0500, Linus Torvalds wrote:
+> On Tue, May 29, 2018 at 3:49 PM Alan Stern <stern@rowland.harvard.edu>
+> wrote:
+> 
+> > Putting this into herd would be extremely difficult, if not impossible,
+> > because it involves analyzing code that was not executed.
 
-The default visibility is also enabled for external symbols that are
-compared as they maybe equals (start/end of sections). In this case,
-older versions of GCC will remove the comparison if the symbols are
-hidden. This issue exists at least on gcc 4.9 and before.
+One (ugly) way to handle it, assuming we are correct about what it
+happening, would be to place ordering on the other side of the "if"
+that is at least as strong as on the first side.  Probably some example
+that completely breaks this approach, though...
 
-Signed-off-by: Thomas Garnier <thgarnie@google.com>
----
- arch/x86/boot/boot.h                 |  2 +-
- arch/x86/include/asm/setup.h         |  2 +-
- arch/x86/kernel/cpu/microcode/core.c |  4 ++--
- drivers/base/firmware_loader/main.c  |  4 ++--
- include/asm-generic/sections.h       |  6 ++++++
- include/linux/compiler.h             |  7 +++++++
- init/Kconfig                         |  7 +++++++
- kernel/kallsyms.c                    | 16 ++++++++--------
- kernel/trace/trace.h                 |  4 ++--
- lib/dynamic_debug.c                  |  4 ++--
- 10 files changed, 38 insertions(+), 18 deletions(-)
+> Does it?
+> 
+> Can't we simplify the whole sequence as basically
+> 
+>      A
+>      if (!B)
+>          D
+> 
+> for that "not B" case, and just think about that. IOW, let's ignore the
+> whole "not executed" code.
+> 
+> If B depends on A like you state, then that already implies that the write
+> in D cannot come before the read of A.
+> 
+> You fundamentally cannot do a conditional write before the read that the
+> write condition depends on. So *any* write after a conditional is dependent
+> on the read.
+> 
+> So the existence of C - whether it has a barrier or not - is entirely
+> immaterial at run-time.
+> 
+> Now, the *compiler* can use the whole existence of that memory barrier in C
+> to determine whether it can re-order the write to D or not, of course, but
+> that's a separate issue, and then the whole "code that isn't executed" is
+> not the issue any more. The compiler obviously sees all code, whether
+> executing or not.
+> 
+> Or am I being stupid and missing something entirely? That's possible.
 
-diff --git a/arch/x86/boot/boot.h b/arch/x86/boot/boot.h
-index ef5a9cc66fb8..d726c35bdd96 100644
---- a/arch/x86/boot/boot.h
-+++ b/arch/x86/boot/boot.h
-@@ -193,7 +193,7 @@ static inline bool memcmp_gs(const void *s1, addr_t s2, size_t len)
- }
- 
- /* Heap -- available for dynamic lists. */
--extern char _end[];
-+extern char _end[] __default_visibility;
- extern char *HEAP;
- extern char *heap_end;
- #define RESET_HEAP() ((void *)( HEAP = _end ))
-diff --git a/arch/x86/include/asm/setup.h b/arch/x86/include/asm/setup.h
-index ae13bc974416..083a6e99b884 100644
---- a/arch/x86/include/asm/setup.h
-+++ b/arch/x86/include/asm/setup.h
-@@ -68,7 +68,7 @@ static inline void x86_ce4100_early_setup(void) { }
-  * This is set up by the setup-routine at boot-time
-  */
- extern struct boot_params boot_params;
--extern char _text[];
-+extern char _text[] __default_visibility;
- 
- static inline bool kaslr_enabled(void)
- {
-diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
-index 77e201301528..6a4f5d9d7eb6 100644
---- a/arch/x86/kernel/cpu/microcode/core.c
-+++ b/arch/x86/kernel/cpu/microcode/core.c
-@@ -149,8 +149,8 @@ static bool __init check_loader_disabled_bsp(void)
- 	return *res;
- }
- 
--extern struct builtin_fw __start_builtin_fw[];
--extern struct builtin_fw __end_builtin_fw[];
-+extern struct builtin_fw __start_builtin_fw[] __default_visibility;
-+extern struct builtin_fw __end_builtin_fw[] __default_visibility;
- 
- bool get_builtin_firmware(struct cpio_data *cd, const char *name)
- {
-diff --git a/drivers/base/firmware_loader/main.c b/drivers/base/firmware_loader/main.c
-index 0943e7065e0e..2ffd019af2d4 100644
---- a/drivers/base/firmware_loader/main.c
-+++ b/drivers/base/firmware_loader/main.c
-@@ -94,8 +94,8 @@ static struct firmware_cache fw_cache;
- 
- #ifdef CONFIG_FW_LOADER
- 
--extern struct builtin_fw __start_builtin_fw[];
--extern struct builtin_fw __end_builtin_fw[];
-+extern struct builtin_fw __start_builtin_fw[] __default_visibility;
-+extern struct builtin_fw __end_builtin_fw[] __default_visibility;
- 
- static void fw_copy_to_prealloc_buf(struct firmware *fw,
- 				    void *buf, size_t size)
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index 849cd8eb5ca0..0a0e23405ddd 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -32,6 +32,9 @@
-  *	__softirqentry_text_start, __softirqentry_text_end
-  *	__start_opd, __end_opd
-  */
-+#ifdef CONFIG_DEFAULT_HIDDEN
-+#pragma GCC visibility push(default)
-+#endif
- extern char _text[], _stext[], _etext[];
- extern char _data[], _sdata[], _edata[];
- extern char __bss_start[], __bss_stop[];
-@@ -49,6 +52,9 @@ extern char __start_once[], __end_once[];
- 
- /* Start and end of .ctors section - used for constructor calls. */
- extern char __ctors_start[], __ctors_end[];
-+#ifdef CONFIG_DEFAULT_HIDDEN
-+#pragma GCC visibility pop
-+#endif
- 
- /* Start and end of .opd section - used for function descriptors. */
- extern char __start_opd[], __end_opd[];
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index ab4711c63601..a9ac84e37af9 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -278,6 +278,13 @@ unsigned long read_word_at_a_time(const void *addr)
- 	__u.__val;					\
- })
- 
-+#ifdef CONFIG_DEFAULT_HIDDEN
-+#pragma GCC visibility push(hidden)
-+#define __default_visibility  __attribute__((visibility ("default")))
-+#else
-+#define __default_visibility
-+#endif
-+
- #endif /* __KERNEL__ */
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/init/Kconfig b/init/Kconfig
-index e4acab9f9fd1..f16247675f84 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1694,6 +1694,13 @@ config PROFILING
- config TRACEPOINTS
- 	bool
- 
-+#
-+# Default to hidden visibility for all symbols.
-+# Useful for Position Independent Code to reduce global references.
-+#
-+config DEFAULT_HIDDEN
-+	bool
-+
- source "arch/Kconfig"
- 
- endmenu		# General setup
-diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index a23e21ada81b..f4e58b7a6daf 100644
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -29,24 +29,24 @@
-  * These will be re-linked against their real values
-  * during the second link stage.
-  */
--extern const unsigned long kallsyms_addresses[] __weak;
--extern const int kallsyms_offsets[] __weak;
--extern const u8 kallsyms_names[] __weak;
-+extern const unsigned long kallsyms_addresses[] __weak __default_visibility;
-+extern const int kallsyms_offsets[] __weak __default_visibility;
-+extern const u8 kallsyms_names[] __weak __default_visibility;
- 
- /*
-  * Tell the compiler that the count isn't in the small data section if the arch
-  * has one (eg: FRV).
-  */
- extern const unsigned long kallsyms_num_syms
--__attribute__((weak, section(".rodata")));
-+__attribute__((weak, section(".rodata"))) __default_visibility;
- 
- extern const unsigned long kallsyms_relative_base
--__attribute__((weak, section(".rodata")));
-+__attribute__((weak, section(".rodata"))) __default_visibility;
- 
--extern const u8 kallsyms_token_table[] __weak;
--extern const u16 kallsyms_token_index[] __weak;
-+extern const u8 kallsyms_token_table[] __weak __default_visibility;
-+extern const u16 kallsyms_token_index[] __weak __default_visibility;
- 
--extern const unsigned long kallsyms_markers[] __weak;
-+extern const unsigned long kallsyms_markers[] __weak __default_visibility;
- 
- /*
-  * Expand a compressed symbol data into the resulting uncompressed string,
-diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
-index 6fb46a06c9dc..e659f452cf8c 100644
---- a/kernel/trace/trace.h
-+++ b/kernel/trace/trace.h
-@@ -1746,8 +1746,8 @@ extern int trace_event_enable_disable(struct trace_event_file *file,
- 				      int enable, int soft_disable);
- extern int tracing_alloc_snapshot(void);
- 
--extern const char *__start___trace_bprintk_fmt[];
--extern const char *__stop___trace_bprintk_fmt[];
-+extern const char *__start___trace_bprintk_fmt[] __default_visibility;
-+extern const char *__stop___trace_bprintk_fmt[] __default_visibility;
- 
- extern const char *__start___tracepoint_str[];
- extern const char *__stop___tracepoint_str[];
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index c7c96bc7654a..40b752b53627 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -37,8 +37,8 @@
- #include <linux/device.h>
- #include <linux/netdevice.h>
- 
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+extern struct _ddebug __start___verbose[] __default_visibility;
-+extern struct _ddebug __stop___verbose[] __default_visibility;
- 
- struct ddebug_table {
- 	struct list_head link;
--- 
-2.17.0.921.gf22659ad46-goog
+This will take some analysis, both to make sure that I got Roman's
+example correct and to get to the bottom of exactly what LKMM thinks
+can be reordered.  I am shifting timezones eastward, so I am not going
+to dig into it today.
+
+But here are a couple of things that take some getting used to:
+
+1.	The "if (r1 == x)" would likely be "if (r1 == &x)" in the Linux
+	kernel.
+
+2.	Unless there is something explicit stopping the reordering, the
+	herd tool assumes that the compiler can reorder unrelated code
+	completely across the entirety of an "if" statement.  It might
+	well have decided that it could do so in this case, due to the
+	fact that the "if" statement isn't doing anything with x (just
+	with its address).
+
+	But yes, given that r1 comes from the load from *c, it would
+	be difficult (at best) to actually apply that optimization in
+	this case.
+
+But let's find out what is really happening.  Easy to speculate, but
+much harder to speculate correctly.  ;-)
+
+							Thanx, Paul
