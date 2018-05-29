@@ -1,69 +1,98 @@
-From: Thomas Garnier <thgarnie@google.com>
-Subject: Re: [PATCH v3 09/27] x86/acpi: Adapt assembly for PIE support
-Date: Tue, 29 May 2018 08:55:34 -0700
-Message-ID: <CAJcbSZHuR8AJVU2mENi9KD7j=dWL4PqEUUgUc880X7Nizvkjbg@mail.gmail.com>
-References: <20180523195421.180248-1-thgarnie@google.com> <20180523195421.180248-10-thgarnie@google.com>
- <20180524110306.GA20225@amd> <CAJcbSZFJ84+VC5xDQZGHctupdqwmMBgqzLzFRqCTBpi5t-2Gvw@mail.gmail.com>
- <20180525091447.GC9666@amd> <CAJcbSZH17D01Stk4vRKKzjW6dxvK8x+S9sWL6vUopSP9=-x7Nw@mail.gmail.com>
- <20180529123114.GB21399@amd>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Date: Tue, 29 May 2018 14:35:34 -0400 (EDT)
+Message-ID: <Pine.LNX.4.44L0.1805291424440.1458-100000@iolanthe.rowland.org>
+References: <20180528220811.GA5221@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-13428-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180529123114.GB21399@amd>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Arnaldo Carvalho de Melo <acme@redhat.com>, Yonghong Song <yhs@fb.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>, Borislav Petkov <bp@suse.de>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Juergen Gross <jgros>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180528220811.GA5221@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, mingo@kernel.org, torvalds@linux-foundation.org, roman.penyaev@profitbricks.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 29, 2018 at 5:31 AM Pavel Machek <pavel@ucw.cz> wrote:
+On Mon, 28 May 2018, Paul E. McKenney wrote:
 
-> On Fri 2018-05-25 10:00:04, Thomas Garnier wrote:
-> > On Fri, May 25, 2018 at 2:14 AM Pavel Machek <pavel@ucw.cz> wrote:
-> >
-> > > On Thu 2018-05-24 09:35:42, Thomas Garnier wrote:
-> > > > On Thu, May 24, 2018 at 4:03 AM Pavel Machek <pavel@ucw.cz> wrote:
-> > > >
-> > > > > On Wed 2018-05-23 12:54:03, Thomas Garnier wrote:
-> > > > > > Change the assembly code to use only relative references of
-symbols
-> > for
-> > > > the
-> > > > > > kernel to be PIE compatible.
-> > > > > >
-> > > > > > Position Independent Executable (PIE) support will allow to
-> > extended the
-> > > > > > KASLR randomization range below the -2G memory limit.
-> > > >
-> > > > > What testing did this get?
-> > > >
-> > > > Tested boot, hibernation and performance on qemu and dedicated
-machine.
-> >
-> > > Well, this is suspend, not hibernation code.
-> >
-> > > So "sudo pm-suspend" or "echo mem > /sys/power/state" would be good
-> > > way to test this.
-> >
-> > Thanks, it worked. I added this to the testsuite I use for KASLR.
+> Hello!
+> 
+> The litmus test below is a first attempt to model Roman's rcu-rr
+> round-robin RCU-protected linked list.  His test code, which includes
+> the algorithm under test, may be found here:
+> 
+> https://github.com/rouming/rcu-rr/blob/master/rcu-rr.c
+> 
+> The P0() process below roughly corresponds to remove_conn_from_arr(),
+> with litmus-test variable "c" standing in for the per-CPU ppcpu_con.
+> Similarly, P1() roughly corresponds to get_next_conn_rr().  It claims
+> that the algorithm is safe, and also claims that it becomes unsafe if
+> either synchronize_rcu() is removed.
 
-> Thanks!
+This algorithm (the one in the litmus test; I haven't looked at Roman's
+code) does seem valid.  In addition to removing either
+synchronize_rcu(), interchanging the order of the stores in P0 (c
+first, then w) would also invalidate it.
 
-> You can add my Acked-by:.
+This is a little unusual in that c is written by more than one thread 
+with no protection.  It works because the writes are all stores of a 
+single pointer.
 
-Will do. Thanks for the review.
+Why does the litmus test use smp_store_release() in three places?  
+There doesn't seem to be any need; WRITE_ONCE() would be sufficient.
 
+Alan
 
->                                                                  Pavel
-
-> --
-> (english) http://www.livejournal.com/~pavelmachek
-> (cesky, pictures)
-http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
-
-
-
--- 
-Thomas
+> Does this in fact realistically model Roman's algorithm?  Either way,
+> is there a better approach?
+> 
+> 							Thanx, Paul
+> 
+> ------------------------------------------------------------------------
+> 
+> C C-RomanPenyaev-list-rcu-rr
+> 
+> {
+> 	int *z=1; (* List: v->w->x->y->z. Noncircular, but long enough. *)
+> 	int *y=z;
+> 	int *x=y;
+> 	int *w=x;
+> 	int *v=w; (* List head is v. *)
+> 	int *c=w; (* Cache, emulating ppcpu_con. *)
+> }
+> 
+> P0(int *c, int *v, int *w, int *x, int *y)
+> {
+> 	rcu_assign_pointer(*w, y); /* Remove x from list. */
+> 	synchronize_rcu();
+> 	r1 = READ_ONCE(*c);
+> 	if (r1 == x) {
+> 		WRITE_ONCE(*c, 0); /* Invalidate cache. */
+> 		synchronize_rcu();
+> 	}
+> 	smp_store_release(x, 0);  /* Emulate kfree(x). */
+> }
+> 
+> P1(int *c, int *v)
+> {
+> 	rcu_read_lock();
+> 	r1 = READ_ONCE(*c); /* Pick up cache. */
+> 	if (r1 == 0) {
+> 		r1 = READ_ONCE(*v); /* Cache empty, start from head. */
+> 	}
+> 	r2 = rcu_dereference(*r1); /* Advance to next element. */
+> 	smp_store_release(c, r2); /* Update cache. */
+> 	rcu_read_unlock();
+> 
+> 	/* And repeat. */
+> 	rcu_read_lock();
+> 	r3 = READ_ONCE(*c);
+> 	if (r3 == 0) {
+> 		r3 = READ_ONCE(*v);
+> 	}
+> 	r4 = rcu_dereference(*r3);
+> 	smp_store_release(c, r4);
+> 	rcu_read_unlock();
+> }
+> 
+> locations [0:r1; 1:r1; 1:r3; c; v; w; x; y]
+> exists (1:r1=0 \/ 1:r2=0 \/ 1:r3=0 \/ 1:r4=0) (* Better not be freed!!! *)
