@@ -1,62 +1,227 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:43983 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S968203AbeE2WSO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2018 18:18:14 -0400
-Received: by mail-pl0-f68.google.com with SMTP id c41-v6so9749502plj.10
-        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 15:18:14 -0700 (PDT)
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:38997 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S968072AbeE2WRa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 May 2018 18:17:30 -0400
+Received: by mail-pg0-f66.google.com with SMTP id w12-v6so5974422pgc.6
+        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 15:17:30 -0700 (PDT)
 From: Thomas Garnier <thgarnie@google.com>
-Subject: [PATCH v4 24/27] x86/mm: Make the x86 GOT read-only
-Date: Tue, 29 May 2018 15:15:25 -0700
-Message-ID: <20180529221625.33541-25-thgarnie@google.com>
+Subject: [PATCH v4 15/27] compiler: Option to default to hidden symbols
+Date: Tue, 29 May 2018 15:15:16 -0700
+Message-ID: <20180529221625.33541-16-thgarnie@google.com>
 In-Reply-To: <20180529221625.33541-1-thgarnie@google.com>
 References: <20180529221625.33541-1-thgarnie@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: kernel-hardening@lists.openwall.com
-Cc: Thomas Garnier <thgarnie@google.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180529221525.364tImIZyeSVO9L-LqoAjH8SJv-cdopK2_0KjbE4big@z>
+Cc: Thomas Garnier <thgarnie@google.com>, Skip Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Skip Frederic Weisbecker <frederic@kernel.org>, Skip Dominik Brodowski <linux@dominikbrodowski.net>, Skip Nicholas Piggin <npiggin@gmail.com>, Skip Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@alien8.de>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Christopher Li <sparse@chrisli.org>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, Dou Liyang <douly.fnst@cn.fujitsu.com>, Lukas Wunner <lukas@wunner.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Message-ID: <20180529221516.9zPiPHFZEXPHcqDsRx551ceIxMYPFKiOFFfjOqXPbWE@z>
 
-The GOT is changed during early boot when relocations are applied. Make
-it read-only directly. This table exists only for PIE binary.
+Provide an option to default visibility to hidden except for key
+symbols. This option is disabled by default and will be used by x86_64
+PIE support to remove errors between compilation units.
 
-Position Independent Executable (PIE) support will allow to extend the
-KASLR randomization range 0xffffffff80000000.
+The default visibility is also enabled for external symbols that are
+compared as they maybe equals (start/end of sections). In this case,
+older versions of GCC will remove the comparison if the symbols are
+hidden. This issue exists at least on gcc 4.9 and before.
 
 Signed-off-by: Thomas Garnier <thgarnie@google.com>
 ---
- include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ arch/x86/boot/boot.h                 |  2 +-
+ arch/x86/include/asm/setup.h         |  2 +-
+ arch/x86/kernel/cpu/microcode/core.c |  4 ++--
+ drivers/base/firmware_loader/main.c  |  4 ++--
+ include/asm-generic/sections.h       |  6 ++++++
+ include/linux/compiler.h             |  7 +++++++
+ init/Kconfig                         |  7 +++++++
+ kernel/kallsyms.c                    | 16 ++++++++--------
+ kernel/trace/trace.h                 |  4 ++--
+ lib/dynamic_debug.c                  |  4 ++--
+ 10 files changed, 38 insertions(+), 18 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index e373e2e10f6a..e5b0710fe693 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -314,6 +314,17 @@
- 	__end_ro_after_init = .;
- #endif
+diff --git a/arch/x86/boot/boot.h b/arch/x86/boot/boot.h
+index ef5a9cc66fb8..d726c35bdd96 100644
+--- a/arch/x86/boot/boot.h
++++ b/arch/x86/boot/boot.h
+@@ -193,7 +193,7 @@ static inline bool memcmp_gs(const void *s1, addr_t s2, size_t len)
+ }
  
-+#ifdef CONFIG_X86_PIE
-+#define RO_GOT_X86							\
-+	.got        : AT(ADDR(.got) - LOAD_OFFSET) {			\
-+		VMLINUX_SYMBOL(__start_got) = .;			\
-+		*(.got);						\
-+		VMLINUX_SYMBOL(__end_got) = .;				\
-+	}
+ /* Heap -- available for dynamic lists. */
+-extern char _end[];
++extern char _end[] __default_visibility;
+ extern char *HEAP;
+ extern char *heap_end;
+ #define RESET_HEAP() ((void *)( HEAP = _end ))
+diff --git a/arch/x86/include/asm/setup.h b/arch/x86/include/asm/setup.h
+index ae13bc974416..083a6e99b884 100644
+--- a/arch/x86/include/asm/setup.h
++++ b/arch/x86/include/asm/setup.h
+@@ -68,7 +68,7 @@ static inline void x86_ce4100_early_setup(void) { }
+  * This is set up by the setup-routine at boot-time
+  */
+ extern struct boot_params boot_params;
+-extern char _text[];
++extern char _text[] __default_visibility;
+ 
+ static inline bool kaslr_enabled(void)
+ {
+diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
+index 77e201301528..6a4f5d9d7eb6 100644
+--- a/arch/x86/kernel/cpu/microcode/core.c
++++ b/arch/x86/kernel/cpu/microcode/core.c
+@@ -149,8 +149,8 @@ static bool __init check_loader_disabled_bsp(void)
+ 	return *res;
+ }
+ 
+-extern struct builtin_fw __start_builtin_fw[];
+-extern struct builtin_fw __end_builtin_fw[];
++extern struct builtin_fw __start_builtin_fw[] __default_visibility;
++extern struct builtin_fw __end_builtin_fw[] __default_visibility;
+ 
+ bool get_builtin_firmware(struct cpio_data *cd, const char *name)
+ {
+diff --git a/drivers/base/firmware_loader/main.c b/drivers/base/firmware_loader/main.c
+index 0943e7065e0e..2ffd019af2d4 100644
+--- a/drivers/base/firmware_loader/main.c
++++ b/drivers/base/firmware_loader/main.c
+@@ -94,8 +94,8 @@ static struct firmware_cache fw_cache;
+ 
+ #ifdef CONFIG_FW_LOADER
+ 
+-extern struct builtin_fw __start_builtin_fw[];
+-extern struct builtin_fw __end_builtin_fw[];
++extern struct builtin_fw __start_builtin_fw[] __default_visibility;
++extern struct builtin_fw __end_builtin_fw[] __default_visibility;
+ 
+ static void fw_copy_to_prealloc_buf(struct firmware *fw,
+ 				    void *buf, size_t size)
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 849cd8eb5ca0..0a0e23405ddd 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -32,6 +32,9 @@
+  *	__softirqentry_text_start, __softirqentry_text_end
+  *	__start_opd, __end_opd
+  */
++#ifdef CONFIG_DEFAULT_HIDDEN
++#pragma GCC visibility push(default)
++#endif
+ extern char _text[], _stext[], _etext[];
+ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+@@ -49,6 +52,9 @@ extern char __start_once[], __end_once[];
+ 
+ /* Start and end of .ctors section - used for constructor calls. */
+ extern char __ctors_start[], __ctors_end[];
++#ifdef CONFIG_DEFAULT_HIDDEN
++#pragma GCC visibility pop
++#endif
+ 
+ /* Start and end of .opd section - used for function descriptors. */
+ extern char __start_opd[], __end_opd[];
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index ab4711c63601..a9ac84e37af9 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -278,6 +278,13 @@ unsigned long read_word_at_a_time(const void *addr)
+ 	__u.__val;					\
+ })
+ 
++#ifdef CONFIG_DEFAULT_HIDDEN
++#pragma GCC visibility push(hidden)
++#define __default_visibility  __attribute__((visibility ("default")))
 +#else
-+#define RO_GOT_X86
++#define __default_visibility
 +#endif
 +
- /*
-  * Read only Data
+ #endif /* __KERNEL__ */
+ 
+ #endif /* __ASSEMBLY__ */
+diff --git a/init/Kconfig b/init/Kconfig
+index e4acab9f9fd1..f16247675f84 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1694,6 +1694,13 @@ config PROFILING
+ config TRACEPOINTS
+ 	bool
+ 
++#
++# Default to hidden visibility for all symbols.
++# Useful for Position Independent Code to reduce global references.
++#
++config DEFAULT_HIDDEN
++	bool
++
+ source "arch/Kconfig"
+ 
+ endmenu		# General setup
+diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
+index a23e21ada81b..f4e58b7a6daf 100644
+--- a/kernel/kallsyms.c
++++ b/kernel/kallsyms.c
+@@ -29,24 +29,24 @@
+  * These will be re-linked against their real values
+  * during the second link stage.
   */
-@@ -370,6 +381,7 @@
- 		__end_builtin_fw = .;					\
- 	}								\
- 									\
-+	RO_GOT_X86							\
- 	TRACEDATA							\
- 									\
- 	/* Kernel symbol table: Normal symbols */			\
+-extern const unsigned long kallsyms_addresses[] __weak;
+-extern const int kallsyms_offsets[] __weak;
+-extern const u8 kallsyms_names[] __weak;
++extern const unsigned long kallsyms_addresses[] __weak __default_visibility;
++extern const int kallsyms_offsets[] __weak __default_visibility;
++extern const u8 kallsyms_names[] __weak __default_visibility;
+ 
+ /*
+  * Tell the compiler that the count isn't in the small data section if the arch
+  * has one (eg: FRV).
+  */
+ extern const unsigned long kallsyms_num_syms
+-__attribute__((weak, section(".rodata")));
++__attribute__((weak, section(".rodata"))) __default_visibility;
+ 
+ extern const unsigned long kallsyms_relative_base
+-__attribute__((weak, section(".rodata")));
++__attribute__((weak, section(".rodata"))) __default_visibility;
+ 
+-extern const u8 kallsyms_token_table[] __weak;
+-extern const u16 kallsyms_token_index[] __weak;
++extern const u8 kallsyms_token_table[] __weak __default_visibility;
++extern const u16 kallsyms_token_index[] __weak __default_visibility;
+ 
+-extern const unsigned long kallsyms_markers[] __weak;
++extern const unsigned long kallsyms_markers[] __weak __default_visibility;
+ 
+ /*
+  * Expand a compressed symbol data into the resulting uncompressed string,
+diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
+index 6fb46a06c9dc..e659f452cf8c 100644
+--- a/kernel/trace/trace.h
++++ b/kernel/trace/trace.h
+@@ -1746,8 +1746,8 @@ extern int trace_event_enable_disable(struct trace_event_file *file,
+ 				      int enable, int soft_disable);
+ extern int tracing_alloc_snapshot(void);
+ 
+-extern const char *__start___trace_bprintk_fmt[];
+-extern const char *__stop___trace_bprintk_fmt[];
++extern const char *__start___trace_bprintk_fmt[] __default_visibility;
++extern const char *__stop___trace_bprintk_fmt[] __default_visibility;
+ 
+ extern const char *__start___tracepoint_str[];
+ extern const char *__stop___tracepoint_str[];
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index c7c96bc7654a..40b752b53627 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -37,8 +37,8 @@
+ #include <linux/device.h>
+ #include <linux/netdevice.h>
+ 
+-extern struct _ddebug __start___verbose[];
+-extern struct _ddebug __stop___verbose[];
++extern struct _ddebug __start___verbose[] __default_visibility;
++extern struct _ddebug __stop___verbose[] __default_visibility;
+ 
+ struct ddebug_table {
+ 	struct list_head link;
 -- 
 2.17.0.921.gf22659ad46-goog
