@@ -1,101 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:50894 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S935806AbeE2Wvp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 May 2018 18:51:45 -0400
-Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w4TMn88B050183
-        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 18:51:45 -0400
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2j9ewn24sw-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 29 May 2018 18:51:45 -0400
-Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 29 May 2018 18:51:44 -0400
-Date: Tue, 29 May 2018 15:53:21 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20180529190332.GO3803@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1805291521570.1458-100000@iolanthe.rowland.org>
- <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
+Received: from mail-lf0-f65.google.com ([209.85.215.65]:42026 "EHLO
+        mail-lf0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935776AbeE3HzE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 May 2018 03:55:04 -0400
+Received: by mail-lf0-f65.google.com with SMTP id v135-v6so2788011lfa.9
+        for <linux-arch@vger.kernel.org>; Wed, 30 May 2018 00:55:03 -0700 (PDT)
+Subject: Re: [PATCH] signal/sh: Stop gcc warning about an impossible case in
+ do_divide_error
+References: <87604mhrnb.fsf@xmission.com>
+ <20180420143811.9994-16-ebiederm@xmission.com>
+ <20180420145514.GP3094@brightrain.aerifal.cx>
+ <CAMuHMdXxL+k_SitLXV1LJDHJmCY1HiUnZSk7MM64rcgs75nLiw@mail.gmail.com>
+ <87h8mqo6at.fsf_-_@xmission.com>
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Message-ID: <8a890c7c-771a-2f10-6dc1-145a9f75e48a@cogentembedded.com>
+Date: Wed, 30 May 2018 10:54:57 +0300
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
-Message-ID: <20180529225321.GQ3803@linux.vnet.ibm.com>
+In-Reply-To: <87h8mqo6at.fsf_-_@xmission.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
-Message-ID: <20180529225321.mM4gsVow6XzCA0rmasCfLHFFp5o6fgc4MrHpcuiHFs0@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Rich Felker <dalias@libc.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>
+Message-ID: <20180530075457.vnEtjTlrUhGozOKnfIrOcSCBqdg8iQLXxh11UxNJOEY@z>
 
-On Tue, May 29, 2018 at 04:10:02PM -0500, Linus Torvalds wrote:
-> On Tue, May 29, 2018 at 3:49 PM Alan Stern <stern@rowland.harvard.edu>
-> wrote:
+Hello!
+
+On 5/29/2018 6:00 PM, Eric W. Biederman wrote:
+
+> Geert Uytterhoeven <geert@linux-m68k.org> reported:
+>>    HOSTLD  scripts/mod/modpost
+>>    CC      arch/sh/kernel/traps_32.o
+>> arch/sh/kernel/traps_32.c: In function 'do_divide_error':
+>> arch/sh/kernel/traps_32.c:606:17: error: 'code' may be used uninitialized in this function [-Werror=uninitialized]
+>> cc1: all warnings being treated as errors
 > 
-> > Putting this into herd would be extremely difficult, if not impossible,
-> > because it involves analyzing code that was not executed.
-
-One (ugly) way to handle it, assuming we are correct about what it
-happening, would be to place ordering on the other side of the "if"
-that is at least as strong as on the first side.  Probably some example
-that completely breaks this approach, though...
-
-> Does it?
+> It is clear from inspection that do_divide_error is only called with
+> TRAP_DIVZERO_ERROR or TRAP_DIVOVF_ERROR, as that is the way
+> set_exception_table_vec is called.  So let gcc know the other cases
+> should not be considered by returning in all other cases.
 > 
-> Can't we simplify the whole sequence as basically
-> 
->      A
->      if (!B)
->          D
-> 
-> for that "not B" case, and just think about that. IOW, let's ignore the
-> whole "not executed" code.
-> 
-> If B depends on A like you state, then that already implies that the write
-> in D cannot come before the read of A.
-> 
-> You fundamentally cannot do a conditional write before the read that the
-> write condition depends on. So *any* write after a conditional is dependent
-> on the read.
-> 
-> So the existence of C - whether it has a barrier or not - is entirely
-> immaterial at run-time.
-> 
-> Now, the *compiler* can use the whole existence of that memory barrier in C
-> to determine whether it can re-order the write to D or not, of course, but
-> that's a separate issue, and then the whole "code that isn't executed" is
-> not the issue any more. The compiler obviously sees all code, whether
-> executing or not.
-> 
-> Or am I being stupid and missing something entirely? That's possible.
+> This removes the warning and let's the code continue to build.
 
-This will take some analysis, both to make sure that I got Roman's
-example correct and to get to the bottom of exactly what LKMM thinks
-can be reordered.  I am shifting timezones eastward, so I am not going
-to dig into it today.
+    Lets. :-)
 
-But here are a couple of things that take some getting used to:
+> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Fixes: c65626c0cd4d ("signal/sh: Use force_sig_fault where appropriate")
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+[...]
 
-1.	The "if (r1 == x)" would likely be "if (r1 == &x)" in the Linux
-	kernel.
-
-2.	Unless there is something explicit stopping the reordering, the
-	herd tool assumes that the compiler can reorder unrelated code
-	completely across the entirety of an "if" statement.  It might
-	well have decided that it could do so in this case, due to the
-	fact that the "if" statement isn't doing anything with x (just
-	with its address).
-
-	But yes, given that r1 comes from the load from *c, it would
-	be difficult (at best) to actually apply that optimization in
-	this case.
-
-But let's find out what is really happening.  Easy to speculate, but
-much harder to speculate correctly.  ;-)
-
-							Thanx, Paul
+MBR, Sergei
