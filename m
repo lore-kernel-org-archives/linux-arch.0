@@ -1,99 +1,114 @@
-From: Alan Stern <stern@rowland.harvard.edu>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Wed, 30 May 2018 16:28:56 -0400 (EDT)
-Message-ID: <Pine.LNX.4.44L0.1805301620020.1502-100000@iolanthe.rowland.org>
+Date: Wed, 30 May 2018 14:49:12 -0700
+Message-ID: <20180530214912.GN7063@linux.vnet.ibm.com>
 References: <20180530194554.GM7063@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1805301620020.1502-100000@iolanthe.rowland.org>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180530194554.GM7063@linux.vnet.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1805301620020.1502-100000@iolanthe.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Alan Stern <stern@rowland.harvard.edu>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 30 May 2018, Paul E. McKenney wrote:
-
-> > > My current guess is that we need to change the memory-model tool.  If
-> > > that is the case, here are some possible resolutions:
+On Wed, May 30, 2018 at 04:28:56PM -0400, Alan Stern wrote:
+> On Wed, 30 May 2018, Paul E. McKenney wrote:
+> 
+> > > > My current guess is that we need to change the memory-model tool.  If
+> > > > that is the case, here are some possible resolutions:
+> > > > 
+> > > > 1.	Make herd's C-language control dependencies work the same as its
+> > > > 	assembly language, so that they extend beyond the end of the
+> > > > 	"if" statement.  I believe that this would make Roman's case
+> > > > 	work, but it could claim that other situations are safe that
+> > > > 	are actually problematic due to compiler optimizations.
+> > > > 
+> > > > 	The fact that the model currently handles only READ_ONCE()
+> > > > 	and WRITE_ONCE() and not unmarked reads and writes make this
+> > > > 	option more attractive than it otherwise be, compilers not
+> > > > 	being allowed to reorder volatile accesses, but we are likely
+> > > > 	to introduce unmarked accesses sometime in the future.
 > > > 
-> > > 1.	Make herd's C-language control dependencies work the same as its
-> > > 	assembly language, so that they extend beyond the end of the
-> > > 	"if" statement.  I believe that this would make Roman's case
-> > > 	work, but it could claim that other situations are safe that
-> > > 	are actually problematic due to compiler optimizations.
+> > > Preserving the order of volatile accesses isn't sufficient.  The
+> > > compiler is still allowed to translate
 > > > 
-> > > 	The fact that the model currently handles only READ_ONCE()
-> > > 	and WRITE_ONCE() and not unmarked reads and writes make this
-> > > 	option more attractive than it otherwise be, compilers not
-> > > 	being allowed to reorder volatile accesses, but we are likely
-> > > 	to introduce unmarked accesses sometime in the future.
+> > > 	r1 = READ_ONCE(x);
+> > > 	if (r1) {
+> > > 		...
+> > > 	}
+> > > 	WRITE_ONCE(y, r2);
+> > > 
+> > > into something resembling
+> > > 
+> > > 	r1 = READ_ONCE(x);
+> > > 	WRITE_ONCE(y, r2);
+> > > 	if (r1) {
+> > > 		...
+> > > 	}
+> > > 
+> > > (provided the "..." part doesn't contain any volatile accesses,
+> > > barriers, or anything affecting r2), which would destroy any run-time
+> > > control dependency.  The CPU could then execute the write before the
+> > > read.
 > > 
-> > Preserving the order of volatile accesses isn't sufficient.  The
-> > compiler is still allowed to translate
-> > 
-> > 	r1 = READ_ONCE(x);
-> > 	if (r1) {
-> > 		...
-> > 	}
-> > 	WRITE_ONCE(y, r2);
-> > 
-> > into something resembling
-> > 
-> > 	r1 = READ_ONCE(x);
-> > 	WRITE_ONCE(y, r2);
-> > 	if (r1) {
-> > 		...
-> > 	}
-> > 
-> > (provided the "..." part doesn't contain any volatile accesses,
-> > barriers, or anything affecting r2), which would destroy any run-time
-> > control dependency.  The CPU could then execute the write before the
-> > read.
+> > True, but almost all current litmus tests do have at least one volatile
+> > access in their "if" statements.  I am guessing that this has the same
+> > memory-model tooling issues as #2 below, but I am as usual happy to be
+> > proven wrong.  ;-)
 > 
-> True, but almost all current litmus tests do have at least one volatile
-> access in their "if" statements.  I am guessing that this has the same
-> memory-model tooling issues as #2 below, but I am as usual happy to be
-> proven wrong.  ;-)
+> It shouldn't be all that bad.  The dependencies are generated by herd,
+> meaning that the code would have to be changed to make control
+> dependencies extend beyond the ends of "if" statements.  I don't think
+> the necessary changes would be tremendously big, especially since the
+> LISA front end already behaves this way.
 
-It shouldn't be all that bad.  The dependencies are generated by herd,
-meaning that the code would have to be changed to make control
-dependencies extend beyond the ends of "if" statements.  I don't think
-the necessary changes would be tremendously big, especially since the
-LISA front end already behaves this way.
+That was my thought.
 
-> > > 2.	Like #1 above, but only if something in one of the "if"'s
-> > > 	branches would prevent the compiler from reordering
-> > > 	(smp_mb(), synchronize_rcu(), value-returning non-relaxed
-> > > 	RMW atomic, ...).  Easy for me to say, but I am guessing
-> > > 	that much violence would be needed to the tooling to make
-> > > 	this work.  ;-)
+> > > > 2.	Like #1 above, but only if something in one of the "if"'s
+> > > > 	branches would prevent the compiler from reordering
+> > > > 	(smp_mb(), synchronize_rcu(), value-returning non-relaxed
+> > > > 	RMW atomic, ...).  Easy for me to say, but I am guessing
+> > > > 	that much violence would be needed to the tooling to make
+> > > > 	this work.  ;-)
+> > > 
+> > > This would be my preference.  But I'm afraid it isn't practical at the 
+> > > moment.
 > > 
-> > This would be my preference.  But I'm afraid it isn't practical at the 
-> > moment.
+> > I bet that some combination of scripting and smallish modifications to
+> > tooling could make it happen in reasonably short term.  Might be more
+> > difficult to make something more future-proof, though, agreed.
 > 
-> I bet that some combination of scripting and smallish modifications to
-> tooling could make it happen in reasonably short term.  Might be more
-> difficult to make something more future-proof, though, agreed.
+> I have no idea what sort of scripting/smallish modifications could do 
+> the job.  You could ask Luc, if you're not afraid of giving him an 
+> aneurysm.  :-)
 
-I have no idea what sort of scripting/smallish modifications could do 
-the job.  You could ask Luc, if you're not afraid of giving him an 
-aneurysm.  :-)
+Two "if" keywords, one that carries control dependencies past the end
+of the "if" (assembly-language style) and another that does not.  The
+script then rewrites the "if" statements to one style or the other
+depending on the contents of the "then" and "else" clauses.
 
-> > > If I understand Alan correctly, there is not an obvious way to make
-> > > this change within the confines of the memory model's .bell and .cat
-> > > files.
+> > > > If I understand Alan correctly, there is not an obvious way to make
+> > > > this change within the confines of the memory model's .bell and .cat
+> > > > files.
+> > > 
+> > > No way at all.  It would require significant changes to herd's internal 
+> > > workings and its external interface -- my original point.
 > > 
-> > No way at all.  It would require significant changes to herd's internal 
-> > workings and its external interface -- my original point.
+> > I was afraid of that.  ;-)
+> > 
+> > Though truth be told, I was expecting an issue like this to crop up
+> > sooner rather than later, so I was actually getting a bit nervous
+> > about the fact that it had not yet shown itself...
 > 
-> I was afraid of that.  ;-)
-> 
-> Though truth be told, I was expecting an issue like this to crop up
-> sooner rather than later, so I was actually getting a bit nervous
-> about the fact that it had not yet shown itself...
+> The fact is, herd was never meant to act like a compiler.  Some 
+> disagreements are inevitable.
 
-The fact is, herd was never meant to act like a compiler.  Some 
-disagreements are inevitable.
+Agreed, the bit about identical stores at the beginnings of "then"
+and "else" is one example.  But we should fix the ones that are more
+straightforward.
 
-Alan
+						Thanx, Paul
