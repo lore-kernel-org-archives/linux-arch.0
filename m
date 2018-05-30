@@ -1,79 +1,87 @@
-From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.2 098/153] nospec: Allow index argument to have
- const-qualified type
-Date: Wed, 30 May 2018 11:52:41 +0100
-Message-ID: <lsq.1527677561.523255589@decadent.org.uk>
-References: <lsq.1527677560.486731940@decadent.org.uk>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Date: Wed, 30 May 2018 10:29:15 -0400 (EDT)
+Message-ID: <Pine.LNX.4.44L0.1805301009340.1502-100000@iolanthe.rowland.org>
+References: <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <lsq.1527677560.486731940@decadent.org.uk>
+In-Reply-To: <CA+55aFzYca7EBTEbhJMoJcGspVGhmty243WQR_w7Eykmw9HX9w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Dan Williams <dan.j.williams@intel.com>, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, David Woodhouse <dwmw2@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
 List-Id: linux-arch.vger.kernel.org
 
-3.2.102-rc1 review patch.  If anyone has any objections, please let me know.
+On Tue, 29 May 2018, Linus Torvalds wrote:
 
-------------------
+> On Tue, May 29, 2018 at 3:49 PM Alan Stern <stern@rowland.harvard.edu>
+> wrote:
+> 
+> > Putting this into herd would be extremely difficult, if not impossible,
+> > because it involves analyzing code that was not executed.
+> 
+> Does it?
+> 
+> Can't we simplify the whole sequence as basically
+> 
+>      A
+>      if (!B)
+>          D
+> 
+> for that "not B" case, and just think about that. IOW, let's ignore the
+> whole "not executed" code.
 
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Your listing is slightly misleading.  It really should be:
 
-commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
+	A
+	if (!B)
+		; // NOP
+	D
 
-The last expression in a statement expression need not be a bare
-variable, quoting gcc docs
+In other words, D should be beyond the end of the "if" statement, not 
+inside one of the branches.  At run time, of course, it doesn't matter; 
+CPUs don't try to detect where the two branches of an "if" recombine.
+(Leaving aside issues like implementing an "if" as a move-conditional.)
 
-  The last thing in the compound statement should be an expression
-  followed by a semicolon; the value of this subexpression serves as the
-  value of the entire construct.
+> If B depends on A like you state, then that already implies that the write
+> in D cannot come before the read of A.
+> 
+> You fundamentally cannot do a conditional write before the read that the
+> write condition depends on. So *any* write after a conditional is dependent
+> on the read.
 
-and we already use that in e.g. the min/max macros which end with a
-ternary expression.
+Remember, the original code was:
 
-This way, we can allow index to have const-qualified type, which will in
-some cases avoid the need for introducing a local copy of index of
-non-const qualified type. That, in turn, can prevent readers not
-familiar with the internals of array_index_nospec from wondering about
-the seemingly redundant extra variable, and I think that's worthwhile
-considering how confusing the whole _nospec business is.
+	A
+	if (!B)
+		C
+	D
 
-The expression _i&_mask has type unsigned long (since that is the type
-of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
-that), so in order not to change the type of the whole expression, add
-a cast back to typeof(_i).
+So the execution of D is _not_ conditional, and it doesn't depend on A 
+or B.  (Again, CPUs don't make this distinction, but compilers do.)
 
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
----
- include/linux/nospec.h | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+> So the existence of C - whether it has a barrier or not - is entirely
+> immaterial at run-time.
+> 
+> Now, the *compiler* can use the whole existence of that memory barrier in C
+> to determine whether it can re-order the write to D or not, of course, but
+> that's a separate issue, and then the whole "code that isn't executed" is
+> not the issue any more. The compiler obviously sees all code, whether
+> executing or not.
+> 
+> Or am I being stupid and missing something entirely? That's possible.
 
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -53,7 +53,6 @@ static inline unsigned long array_index_
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
- 									\
--	_i &= _mask;							\
--	_i;								\
-+	(typeof(_i)) (_i & _mask);					\
- })
- #endif /* _LINUX_NOSPEC_H */
+Not at all -- that point about the compiler is exactly what I was
+trying to get at.  The object code the compiler generates depends on
+the contents of _both_ branches of the "if" statement, even though only
+one branch is executed at run time.  Hence an analysis based entirely
+on what instructions are executed in a particular run (which is what
+herd does) will necessarily be incomplete.
+
+That's what happened here.  The LKMM herd model treats statements
+beyond the end of an "if" statement as though the compiler can reorder
+them before the start of the "if", unless something in the branch which
+was taken prevents this reordering.  But herd ignores the contents of
+the untaken branch, even when they would block the reordering.
+
+Alan
