@@ -1,142 +1,185 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Wed, 30 May 2018 16:14:41 -0700
-Message-ID: <20180530231441.GO7063@linux.vnet.ibm.com>
-References: <20180530183826.GI7063@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1805301449350.1502-100000@iolanthe.rowland.org>
- <CA+55aFxXgECHW+Pekiuvt1htsDfML2ximrLrmr99xewGYpmEng@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 00/12] introduce support for early platform drivers
+Date: Thu, 31 May 2018 08:42:48 +0200
+Message-ID: <CAMuHMdUY+-_72DHg9Tim2d4E24k5KskQxm52bHSyrSYLbZDr2g@mail.gmail.com>
+References: <20180511162028.20616-1-brgl@bgdev.pl> <CAL_JsqL3CWFSpKEGoGwQDxCQ04g4uT1hiDTxXzjz4XTjPbfsoQ@mail.gmail.com>
+ <CAMRc=McDNYQ5uk8EyRkDf8eh9q7tyF=t7PcUd6DBLqXcseJ3AQ@mail.gmail.com>
+ <CAL_JsqJ=DdkDR3LtnTMHPUpwaUbjPEBgkaCV8ja+p-mTvWZuYA@mail.gmail.com>
+ <20180530194032.982.41562@harbor.lan> <CAL_Jsq+7=NGj57k=E5GAuDmW7Uu_YkHJXf8jSyc_ad3r1op4yA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxXgECHW+Pekiuvt1htsDfML2ximrLrmr99xewGYpmEng@mail.gmail.com>
+In-Reply-To: <CAL_Jsq+7=NGj57k=E5GAuDmW7Uu_YkHJXf8jSyc_ad3r1op4yA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
+To: Rob Herring <robh+dt@kernel.org>
+Cc: Michael Turquette <mturquette@baylibre.com>, Bartosz Golaszewski <brgl@bgdev.pl>, Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 30, 2018 at 05:01:01PM -0500, Linus Torvalds wrote:
-> On Wed, May 30, 2018 at 2:08 PM Alan Stern <stern@rowland.harvard.edu> wrote:
-> >
-> > Indeed.  The very first line Linus quoted in his first reply to me
-> > (elided above) was:
-> >
-> >         Putting this into herd would be extremely difficult, if not impossible,
-> >         because it involves analyzing code that was not executed.
-> >
-> > It should be clear from this that I was talking about herd.  Not gcc or
-> > real hardware.
-> 
-> So what does herd actually work on? The source code or the executable,
-> or a trace?
+Hi Rob,
 
-The source code, that is, the source code of the litmus test.
-There are definitions for the various Linux operations, partly within
-the herd tool and partly in the linux.def file in tools/memory-model.
-The problem we are having is nailing down control dependencies and
-compiler optimizations.  The bit about limiting control dependencies
-through the end of "if" statement itself works well in a great many cases,
-but this clearly is not one of them.
+On Thu, May 31, 2018 at 12:36 AM, Rob Herring <robh+dt@kernel.org> wrote:
+> On Wed, May 30, 2018 at 2:40 PM, Michael Turquette
+> <mturquette@baylibre.com> wrote:
+>> Quoting Rob Herring (2018-05-14 06:20:57)
+>>> On Mon, May 14, 2018 at 6:38 AM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
+>>> > 2018-05-11 22:13 GMT+02:00 Rob Herring <robh+dt@kernel.org>:
+>>> >> On Fri, May 11, 2018 at 11:20 AM, Bartosz Golaszewski <brgl@bgdev.pl> wrote:
+>>> >>> This series is a follow-up to the RFC[1] posted a couple days ago.
+>>> >>>
+>>> >>> NOTE: this series applies on top of my recent patches[2] that move the previous
+>>> >>> implementation of early platform devices to arch/sh.
+>>> >>>
+>>> >>> Problem:
+>>> >>>
+>>> >>> Certain class of devices, such as timers, certain clock drivers and irq chip
+>>> >>> drivers need to be probed early in the boot sequence. The currently preferred
+>>> >>> approach is using one of the OF_DECLARE() macros. This however does not create
+>>> >>> a platform device which has many drawbacks - such as not being able to use
+>>> >>> devres routines, dev_ log functions or no way of deferring the init OF function
+>>> >>> if some other resources are missing.
+>>> >>
+>>> >> I skimmed though this and it doesn't look horrible (how's that for
+>>> >> positive feedback? ;) ). But before going into the details, I think
+>>> >> first there needs to be agreement this is the right direction.
+>>> >>
+>>> >> The question does remain though as to whether this class of devices
+>>> >> should be platform drivers. They can't be modules. They can't be
+>>> >> hotplugged. Can they be runtime-pm enabled? So the advantage is ...
+>>> >>
+>>> >
+>>> > The main (but not the only) advantage for drivers that can both be
+>>> > platform drivers and OF_DECLARE drivers is that we get a single entry
+>>> > point and can reuse code without resorting to checking if (!dev). It
+>>> > results in more consistent code base. Another big advantage is
+>>> > consolidation of device tree and machine code for SoC drivers used in
+>>> > different boards of which some are still using board files and others
+>>> > are defined in DT (see: DaVinci).
+>>> >
+>>> >> I assume that the clock maintainers had some reason to move clocks to
+>>> >> be platform drivers. It's just not clear to me what that was.
+>>> >>
+>>> >>> For drivers that use both platform drivers and OF_DECLARE the situation is even
+>>> >>> more complicated as the code needs to take into account that there can possibly
+>>> >>> be no struct device present. For a specific use case that we're having problems
+>>> >>> with, please refer to the recent DaVinci common-clock conversion patches and
+>>> >>> the nasty workaround that this problem implies[3].
+>>> >>
+>>> >> So devm_kzalloc will work with this solution? Why did we need
+>>> >> devm_kzalloc in the first place? The clocks can never be removed and
+>>> >> cleaning up on error paths is kind of pointless. The system would be
+>>> >> hosed, right?
+>>> >>
+>>> >
+>>> > It depends - not all clocks are necessary for system to boot.
+>>>
+>>> That doesn't matter. You have a single driver for all/most of the
+>>> clocks, so the driver can't be removed.
+>>
+>> -ECANOFWORMS
+>>
+>> A couple of quick rebuttals, but I imagine we're going to disagree on
+>> the platform_driver thing as a matter of taste no matter what...
+>
+> It's really more should the clocksource, clockevents and primary
+> interrupt controller be drivers. Let's get agreement on that first. If
+> yes, then it probably does make sense that their dependencies are
+> drivers too. If not, then making only the dependencies drivers doesn't
+> seem right to me.
 
-> I found the herd paper, but I'm on the road helping my daughter in
-> college move, and I don't have the background to skim the paper
-> quickly and come up with the obvious answer, so I'l just ask.
+Yes, they should all be drivers.
 
-It is not a short learning curve.
+Assuming clocksources, clockevents, or primary interrupt controllers are
+special, and thus forcing everyone to use OF_DECLARE for the whole
+subsystem, doesn't fly everywhere.
 
-> Because I really think that from our memory model standpoint, we
-> really do have the rule that
-> 
->    load -> cond -> store
-> 
-> is ordered - even if the store address and store data is in no way
-> dependent on the load. The only thing that matters is that there's a
-> conditional that is dependent on the load in between the load and the
-> store.
-> 
-> Note that this is *independent* of how you get to the store. It
-> doesn't matter  if it's a fallthrough conditional jump or  a taken
-> conditional jump, or whether  there is a joining.
-> 
-> The only thing that *does* matter is whether the conditional can be
-> turned into a "select" statement. If the conditional can be turned
-> into a data dependency, then the ordering goes away. That is why it
-> was relevant whether "C" contained a barrier or not (it doesn't even
-> have to be a *memory* barrier, it just has to be a barrier for code
-> generation).
+Clockevents and interrupt controllers can have a module clock.
+All three can be part of a PM Domain, which requires a struct device to
+be handled properly.
 
-Another situation is something like this:
+>> 1) There should be multiple clk drivers in a properly modeled system.
+>> Some folks still incorrectly put all clocks in a system into a single
+>> driver because That's How We Used To Do It, and some systems (simpler
+>> ones) really only have a single clock generator IP block.
+>>
+>> Excepting those two reasons above, we really should have separate
+>> drivers for clocks controlled by the PMIC, for the (one or more) clock
+>> generator blocks inside of the AP/SoC, and then even more for the
+>> drivers that map to IP blocks that have their own clock gens.
+>
+> I agree those should be separate entities at least. But for a given
+> h/w block, if you already have to use OF_DECLARE, why would you try to
+> split that into OF_DECLARE and a driver? what advantage does putting
+> non-boot essential clocks in a driver or transitioning to a driver get
+> you?
 
-	r1 = READ_ONCE(x);
-	if (r1)
-		r2 = r1 * 3 - 1;
-	else
-		r2 = 42;
-	WRITE_ONCE(y, 5);
-	do_something(r2);
+You may want to split it because of dependencies. OF_DECLARE
+doesn't handle EPROBE_DEFER, while some critical parts may be
+needed early.
 
-Because there are no compiler barriers or volatile accesses in either
-the "then" clause or the "else" clause, the compiler is within its
-rights to do this:
+> And I've seen PMIC clocks could be inputs to the SoC's clock
+> controller(s), so the dependencies get more complicated. Then does the
+> PMIC driver and its dependencies need to be early drivers too?
 
-	r1 = READ_ONCE(x);
-	WRITE_ONCE(y, 5);
-	if (r1)
-		r2 = r1 * 3 - 1;
-	else
-		r2 = 42;
-	do_something(r2);
+Especially if there are clock loops, but that's something different.
+Cfr. cs2000 in arch/arm64/boot/dts/renesas/salvator-common.dtsi, which
+provides a clock from the main SoC, but also consumes a clock from the main
+SoC. The latter is modeled in DT as a fixed-clock as a workaround.
 
-Then weakly ordered CPUs can reorder the READ_ONCE() and WRITE_ONCE().
-The compiler of course cannot because they are both volatile accesses.
+>> Good examples of the latter are display controllers that generate their
+>> own PLL and pixel clock. Or MMC controllers that have a
+>> runtime-programmable clock divider. Examples of these are merged into
+>> mainline.
+>
+> But those are drivers of types other than a clock controller that
+> happen to register some clocks as well. I wasn't saying these cases
+> can't or shouldn't be part of the driver model. Look at irqchips. We
+> have some that use the driver model (e.g. every GPIO driver) and some
+> that don't because there's no need (e.g. GIC).
 
-> Note that the "C doesn't even have to have a memory barrier" is
-> important, because the orderin from load->cond->store doesn't actually
-> have anything to do with any memory ordering imposed by C, it's much
-> more fundamental than that.
+There is a need for using the driver model for the GIC. On some platforms,
+the GIC can be part of a clock and/or power domain.
 
-If there were volatiles or compiler barriers in the "then" or "else"
-clauses, or if the store itself was there (and there weren't identical
-stores in both), then agreed, the compiler cannot do much, nor can
-the hardware.
+For secondary GICs, that got fixed in commit 9c8edddfc9924cb4
+("irqchip/gic: Add platform driver for non-root GICs that require RPM").
+For primary GICs, it's still not fixed, so we have to live with
+CLK_IS_CRITICAL, and rely on other critical devices in the same power
+domain to avoid the power domain being powered off.
 
-> > Preserving the order of volatile accesses isn't sufficient.  The
-> > compiler is still allowed to translate
-> >
-> >         r1 = READ_ONCE(x);
-> >         if (r1) {
-> >                 ...
-> >         }
-> >         WRITE_ONCE(y, r2);
-> >
-> > into something resembling
-> >
-> >         r1 = READ_ONCE(x);
-> >         WRITE_ONCE(y, r2);
-> >         if (r1) {
-> >                 ...
-> >         }
-> 
-> Correct.
-> 
-> What matter is that the code in C (now called "..." above ;^) has a
-> build-time barrier that means that the compiler cannot do that.
-> 
-> That barrier can be pretty much anything. The important part is
-> literally that there's a guarantee that the write cannot  be migrated
-> below the conditional.
-> 
-> But I don't know what level 'herd' works on. If it doesn't see
-> compiler barriers (eg our own "barrier()" macro that literally is just
-> that), only sees the generated code, then it really has no other
-> information than what he compiler _happened_ to do - it doesn't know
-> if the compiler did the store after the conditional because it *had*
-> to do so, or whether it was just a random instruction scheduling
-> decision.
+>> 2) Stephen and I wanted clock drivers to actually be represented in the
+>> driver model. There were these gigantic clock drivers that exclusively
+>> used CLK_OF_DECLARE and they just sort of floated out there in the
+>> ether... no representation in sysfs, no struct device to map onto a
+>> clock controller struct, etc.
+>>
+>> I'd be happy to hear why you think that platform_driver is a bad fit for
+>> a device driver that generally manages memory-mapped system resources
+>> that are part of the system glue and not really tied to a specific bus.
+>> Sounds like a good fit to me.
+>>
+>> If platform_driver doesn't handle the early boot thing well, that tells
+>> me that we have a problem to solve in platform_driver, not in the clk
+>> subsystem or drivers.
+>
+> Doing things earlier is not the only way to solve the problems.
+> Perhaps we need to figure out how to start things later. Maybe it's
+> not feasible here, I don't know.
 
-The 'herd' tool works on litmus-test source, and has almost no idea of
-what compilers get up to.  In this particular case, it would be better
-off being even more ignorant of what compilers get up to.  ;-)
+The fixed probe order imposed by OF_DECLARE() limits this: if your
+OF_DECLARE() driver depends on something else, the latter must become an
+early device.
+If all subsystems would use real devices, EPROBE_DEFER would handle most of
+it automatically.
 
-							Thanx, Paul
+Then, next step would be to avoid triggering EPROBE_DEFER, e.g. by
+analyzing dependencies in DT...
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
