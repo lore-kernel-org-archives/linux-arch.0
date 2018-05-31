@@ -1,39 +1,96 @@
-From: Tony Lindgren <tony@atomide.com>
-Subject: Re: [PATCH 00/12] introduce support for early platform drivers
-Date: Thu, 31 May 2018 07:16:45 -0700
-Message-ID: <20180531141645.GM5705@atomide.com>
-References: <20180511162028.20616-1-brgl@bgdev.pl>
- <CAL_JsqL3CWFSpKEGoGwQDxCQ04g4uT1hiDTxXzjz4XTjPbfsoQ@mail.gmail.com>
- <CAMRc=McDNYQ5uk8EyRkDf8eh9q7tyF=t7PcUd6DBLqXcseJ3AQ@mail.gmail.com>
- <CAL_JsqJ=DdkDR3LtnTMHPUpwaUbjPEBgkaCV8ja+p-mTvWZuYA@mail.gmail.com>
- <20180530194032.982.41562@harbor.lan>
- <CAL_Jsq+7=NGj57k=E5GAuDmW7Uu_YkHJXf8jSyc_ad3r1op4yA@mail.gmail.com>
- <CAMuHMdUY+-_72DHg9Tim2d4E24k5KskQxm52bHSyrSYLbZDr2g@mail.gmail.com>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Date: Thu, 31 May 2018 10:27:33 -0400 (EDT)
+Message-ID: <Pine.LNX.4.44L0.1805311008460.1607-100000@iolanthe.rowland.org>
+References: <20180530231441.GO7063@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdUY+-_72DHg9Tim2d4E24k5KskQxm52bHSyrSYLbZDr2g@mail.gmail.com>
+In-Reply-To: <20180530231441.GO7063@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rich Felker <dalias@libc.org>, Michael Turquette <mturquette@baylibre.com>, Sekhar Nori <nsekhar@ti.com>, Frank Rowand <frowand.list@gmail.com>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Kevin Hilman <khilman@kernel.org>, Bartosz Golaszewski <brgl@bgdev.pl>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Magnus Damm <magnus.damm@gmail.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Jiri Slaby <jslaby@suse.com>, devicetree <devicetree@vger.kernel.org>, David Lechner <david@lechnology.com>, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Johan Hovold <johan@kerne>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
 List-Id: linux-arch.vger.kernel.org
 
-* Geert Uytterhoeven <geert@linux-m68k.org> [180531 06:45]:
-> Yes, they should all be drivers.
+On Wed, 30 May 2018, Paul E. McKenney wrote:
+
+> On Wed, May 30, 2018 at 05:01:01PM -0500, Linus Torvalds wrote:
+> > On Wed, May 30, 2018 at 2:08 PM Alan Stern <stern@rowland.harvard.edu> wrote:
+> > >
+> > > Indeed.  The very first line Linus quoted in his first reply to me
+> > > (elided above) was:
+> > >
+> > >         Putting this into herd would be extremely difficult, if not impossible,
+> > >         because it involves analyzing code that was not executed.
+> > >
+> > > It should be clear from this that I was talking about herd.  Not gcc or
+> > > real hardware.
+> > 
+> > So what does herd actually work on? The source code or the executable,
+> > or a trace?
 > 
-> Assuming clocksources, clockevents, or primary interrupt controllers are
-> special, and thus forcing everyone to use OF_DECLARE for the whole
-> subsystem, doesn't fly everywhere.
+> The source code, that is, the source code of the litmus test.
+> There are definitions for the various Linux operations, partly within
+> the herd tool and partly in the linux.def file in tools/memory-model.
+> The problem we are having is nailing down control dependencies and
+> compiler optimizations.  The bit about limiting control dependencies
+> through the end of "if" statement itself works well in a great many cases,
+> but this clearly is not one of them.
 > 
-> Clockevents and interrupt controllers can have a module clock.
-> All three can be part of a PM Domain, which requires a struct device to
-> be handled properly.
+> > I found the herd paper, but I'm on the road helping my daughter in
+> > college move, and I don't have the background to skim the paper
+> > quickly and come up with the obvious answer, so I'l just ask.
+> 
+> It is not a short learning curve.
+> 
+> > Because I really think that from our memory model standpoint, we
+> > really do have the rule that
+> > 
+> >    load -> cond -> store
+> > 
+> > is ordered - even if the store address and store data is in no way
+> > dependent on the load. The only thing that matters is that there's a
+> > conditional that is dependent on the load in between the load and the
+> > store.
 
-I agree it sure would be nice to have all these as drivers. I believe
-SoC specific clockevent using SoC specific clocks is the reason why some
-clocks cannot currently be drivers.
+This is true for all the architectures supported by the Linux kernel.  
+However, in the future it might not always hold.  I can imagine that
+CPU designers would want to include an optimization that checks a
+conditional branch to see if it skips over only the following
+instruction (and the following instruction can't affect the flow of
+control); in that situation, they might decide there doesn't need to be
+a control dependency to future stores.  Such an optimization would not
+violate the C11 memory model.
 
-Regards,
+Of course, this is purely theoretical.  And if anybody does decide to
+try doing that, the memory-model people might scream at them so hard
+they change their minds.  :-)
 
-Tony
+...
+
+> > But I don't know what level 'herd' works on. If it doesn't see
+> > compiler barriers (eg our own "barrier()" macro that literally is just
+> > that), only sees the generated code, then it really has no other
+> > information than what he compiler _happened_ to do - it doesn't know
+> > if the compiler did the store after the conditional because it *had*
+> > to do so, or whether it was just a random instruction scheduling
+> > decision.
+> 
+> The 'herd' tool works on litmus-test source, and has almost no idea of
+> what compilers get up to.  In this particular case, it would be better
+> off being even more ignorant of what compilers get up to.  ;-)
+
+In more detail, herd analyzes the source code and constructs a set of
+all possible candidate executions.  herd then checks each execution to
+see if it violates the rules of the memory model as expressed in the
+.bell and .cat files.  If any of the non-violating executions satisfies
+the litmus test's final "exists" condition, herd reports that the test
+is allowed.
+
+The point here is that when herd checks any one particular execution, 
+it pays attention _only_ to the statements which are part of that 
+execution.  Statements belonging to an untaken "if" branch are ignored 
+completely.  That's why I think it would be difficult to make herd do 
+exactly what we want in this case.
+
+Alan
