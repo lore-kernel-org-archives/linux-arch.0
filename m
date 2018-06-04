@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60350 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:57092 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751013AbeFDQBd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Jun 2018 12:01:33 -0400
+        id S1750999AbeFDPyP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Jun 2018 11:54:15 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 26/27] Documentation: kprobes: Add how to change the execution path
-Date: Tue,  5 Jun 2018 01:01:09 +0900
-Message-ID: <152812806959.10068.3756867273565043166.stgit@devbox>
+Subject: [RFC PATCH -tip v5 11/27] sh: kprobes: Remove jprobe implementation
+Date: Tue,  5 Jun 2018 00:53:51 +0900
+Message-ID: <152812763085.10068.16638990246121050854.stgit@devbox>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 MIME-Version: 1.0
@@ -15,47 +15,103 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
-Message-ID: <20180604160109.ShWVdF3NTQlj8-vyVHyw-Y3qgt4IzwGhNnaS9WTzCS4@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+Message-ID: <20180604155351.p2Y_qDj57l8wobNMknFt_iSqXOk22S5uw46J0D0eO5s@z>
 
-Add a section that explaining how to change the execution
-path with kprobes and warnings for some arch.
+Remove arch dependent setjump/longjump functions
+and unused fields in kprobe_ctlblk for jprobes
+from arch/sh.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: linux-sh@vger.kernel.org
 ---
- Documentation/kprobes.txt |   20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+ arch/sh/include/asm/kprobes.h |    4 ---
+ arch/sh/kernel/kprobes.c      |   51 -----------------------------------------
+ 2 files changed, 55 deletions(-)
 
-diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
-index 3e9e99ea751b..8a98eed1521b 100644
---- a/Documentation/kprobes.txt
-+++ b/Documentation/kprobes.txt
-@@ -80,6 +80,26 @@ After the instruction is single-stepped, Kprobes executes the
- "post_handler," if any, that is associated with the kprobe.
- Execution then continues with the instruction following the probepoint.
+diff --git a/arch/sh/include/asm/kprobes.h b/arch/sh/include/asm/kprobes.h
+index 85d8bcaa8493..6171682f7798 100644
+--- a/arch/sh/include/asm/kprobes.h
++++ b/arch/sh/include/asm/kprobes.h
+@@ -27,7 +27,6 @@ struct kprobe;
  
-+Changing Execution Path
-+-----------------------
-+
-+Since the kprobes can probe into a running kernel code, it can change
-+the register set, including instruction pointer. This operation
-+requires maximum attention, such as keeping the stack frame, recovering
-+execution path etc. Since it is operated on running kernel and need deep
-+knowladge of the archtecture and concurrent computing, you can easily
-+shot your foot.
-+
-+If you change the instruction pointer (and set up other related
-+registers) in pre_handler, you must return !0 so that the kprobes
-+stops single stepping and just returns to given address.
-+This also means post_handler should not be called anymore.
-+
-+Note that this operation may be harder on some architectures which
-+use TOC (Table of Contents) for function call, since you have to
-+setup new TOC for your function in your module, and recover old
-+one after back from it.
-+
- Return Probes
- -------------
+ void arch_remove_kprobe(struct kprobe *);
+ void kretprobe_trampoline(void);
+-void jprobe_return_end(void);
  
+ /* Architecture specific copy of original instruction*/
+ struct arch_specific_insn {
+@@ -43,9 +42,6 @@ struct prev_kprobe {
+ /* per-cpu kprobe control block */
+ struct kprobe_ctlblk {
+ 	unsigned long kprobe_status;
+-	unsigned long jprobe_saved_r15;
+-	struct pt_regs jprobe_saved_regs;
+-	kprobe_opcode_t jprobes_stack[MAX_STACK_SIZE];
+ 	struct prev_kprobe prev_kprobe;
+ };
+ 
+diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
+index 52a5e11247d1..2b5e58873b96 100644
+--- a/arch/sh/kernel/kprobes.c
++++ b/arch/sh/kernel/kprobes.c
+@@ -523,57 +523,6 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
+ 	return ret;
+ }
+ 
+-int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
+-{
+-	struct jprobe *jp = container_of(p, struct jprobe, kp);
+-	unsigned long addr;
+-	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+-
+-	kcb->jprobe_saved_regs = *regs;
+-	kcb->jprobe_saved_r15 = regs->regs[15];
+-	addr = kcb->jprobe_saved_r15;
+-
+-	/*
+-	 * TBD: As Linus pointed out, gcc assumes that the callee
+-	 * owns the argument space and could overwrite it, e.g.
+-	 * tailcall optimization. So, to be absolutely safe
+-	 * we also save and restore enough stack bytes to cover
+-	 * the argument area.
+-	 */
+-	memcpy(kcb->jprobes_stack, (kprobe_opcode_t *) addr,
+-	       MIN_STACK_SIZE(addr));
+-
+-	regs->pc = (unsigned long)(jp->entry);
+-
+-	return 1;
+-}
+-
+-void __kprobes jprobe_return(void)
+-{
+-	asm volatile ("trapa #0x3a\n\t" "jprobe_return_end:\n\t" "nop\n\t");
+-}
+-
+-int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+-{
+-	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+-	unsigned long stack_addr = kcb->jprobe_saved_r15;
+-	u8 *addr = (u8 *)regs->pc;
+-
+-	if ((addr >= (u8 *)jprobe_return) &&
+-	    (addr <= (u8 *)jprobe_return_end)) {
+-		*regs = kcb->jprobe_saved_regs;
+-
+-		memcpy((kprobe_opcode_t *)stack_addr, kcb->jprobes_stack,
+-		       MIN_STACK_SIZE(stack_addr));
+-
+-		kcb->kprobe_status = KPROBE_HIT_SS;
+-		preempt_enable_no_resched();
+-		return 1;
+-	}
+-
+-	return 0;
+-}
+-
+ static struct kprobe trampoline_p = {
+ 	.addr = (kprobe_opcode_t *)&kretprobe_trampoline,
+ 	.pre_handler = trampoline_probe_handler
