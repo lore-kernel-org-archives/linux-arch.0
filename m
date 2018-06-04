@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57092 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:57442 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750999AbeFDPyP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Jun 2018 11:54:15 -0400
+        id S1751297AbeFDPzl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Jun 2018 11:55:41 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 11/27] sh: kprobes: Remove jprobe implementation
-Date: Tue,  5 Jun 2018 00:53:51 +0900
-Message-ID: <152812763085.10068.16638990246121050854.stgit@devbox>
+Subject: [RFC PATCH -tip v5 14/27] kprobes/x86: Don't call ->break_handler() in x86 kprobes
+Date: Tue,  5 Jun 2018 00:55:17 +0900
+Message-ID: <152812771749.10068.4237461434465028276.stgit@devbox>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 MIME-Version: 1.0
@@ -15,103 +15,114 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
-Message-ID: <20180604155351.p2Y_qDj57l8wobNMknFt_iSqXOk22S5uw46J0D0eO5s@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, x86@kernel.org
+Message-ID: <20180604155517.hM_rhW1gdjiokvD399mlKRx8wiMHI6vwm2qgruqsekw@z>
 
-Remove arch dependent setjump/longjump functions
-and unused fields in kprobe_ctlblk for jprobes
-from arch/sh.
+Don't call ->break_handler() and remove break_handler
+related code since that was only used by jprobe which
+got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/sh/include/asm/kprobes.h |    4 ---
- arch/sh/kernel/kprobes.c      |   51 -----------------------------------------
- 2 files changed, 55 deletions(-)
+ arch/x86/include/asm/kprobes.h   |    2 +-
+ arch/x86/kernel/kprobes/common.h |   10 ----------
+ arch/x86/kernel/kprobes/core.c   |    7 -------
+ arch/x86/kernel/kprobes/ftrace.c |   16 ++--------------
+ 4 files changed, 3 insertions(+), 32 deletions(-)
 
-diff --git a/arch/sh/include/asm/kprobes.h b/arch/sh/include/asm/kprobes.h
-index 85d8bcaa8493..6171682f7798 100644
---- a/arch/sh/include/asm/kprobes.h
-+++ b/arch/sh/include/asm/kprobes.h
-@@ -27,7 +27,6 @@ struct kprobe;
+diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
+index 06782c2efa04..c8cec1b39b88 100644
+--- a/arch/x86/include/asm/kprobes.h
++++ b/arch/x86/include/asm/kprobes.h
+@@ -78,7 +78,7 @@ struct arch_specific_insn {
+ 	 * boostable = true: This instruction has been boosted: we have
+ 	 * added a relative jump after the instruction copy in insn,
+ 	 * so no single-step and fixup are needed (unless there's
+-	 * a post_handler or break_handler).
++	 * a post_handler).
+ 	 */
+ 	bool boostable;
+ 	bool if_modifier;
+diff --git a/arch/x86/kernel/kprobes/common.h b/arch/x86/kernel/kprobes/common.h
+index ae38dccf0c8f..2b949f4fd4d8 100644
+--- a/arch/x86/kernel/kprobes/common.h
++++ b/arch/x86/kernel/kprobes/common.h
+@@ -105,14 +105,4 @@ static inline unsigned long __recover_optprobed_insn(kprobe_opcode_t *buf, unsig
+ }
+ #endif
  
- void arch_remove_kprobe(struct kprobe *);
- void kretprobe_trampoline(void);
--void jprobe_return_end(void);
+-#ifdef CONFIG_KPROBES_ON_FTRACE
+-extern int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-			   struct kprobe_ctlblk *kcb);
+-#else
+-static inline int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-				  struct kprobe_ctlblk *kcb)
+-{
+-	return 0;
+-}
+-#endif
+ #endif
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 1b2d1acba810..0ac16a0d93e5 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -709,13 +709,6 @@ int kprobe_int3_handler(struct pt_regs *regs)
+ 		regs->ip = (unsigned long)addr;
+ 		preempt_enable_no_resched();
+ 		return 1;
+-	} else if (kprobe_running()) {
+-		p = __this_cpu_read(current_kprobe);
+-		if (p->break_handler && p->break_handler(p, regs)) {
+-			if (!skip_singlestep(p, regs, kcb))
+-				setup_singlestep(p, regs, kcb, 0);
+-			return 1;
+-		}
+ 	} /* else: not a kprobe fault; let the kernel handle it */
  
- /* Architecture specific copy of original instruction*/
- struct arch_specific_insn {
-@@ -43,9 +42,6 @@ struct prev_kprobe {
- /* per-cpu kprobe control block */
- struct kprobe_ctlblk {
- 	unsigned long kprobe_status;
--	unsigned long jprobe_saved_r15;
--	struct pt_regs jprobe_saved_regs;
--	kprobe_opcode_t jprobes_stack[MAX_STACK_SIZE];
- 	struct prev_kprobe prev_kprobe;
- };
+ 	preempt_enable_no_resched();
+diff --git a/arch/x86/kernel/kprobes/ftrace.c b/arch/x86/kernel/kprobes/ftrace.c
+index 8dc0161cec8f..c8696f2a583f 100644
+--- a/arch/x86/kernel/kprobes/ftrace.c
++++ b/arch/x86/kernel/kprobes/ftrace.c
+@@ -26,7 +26,7 @@
+ #include "common.h"
  
-diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
-index 52a5e11247d1..2b5e58873b96 100644
---- a/arch/sh/kernel/kprobes.c
-+++ b/arch/sh/kernel/kprobes.c
-@@ -523,57 +523,6 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
- 	return ret;
+ static nokprobe_inline
+-void __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
++void skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+ 		      struct kprobe_ctlblk *kcb, unsigned long orig_ip)
+ {
+ 	/*
+@@ -43,18 +43,6 @@ void __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+ 		regs->ip = orig_ip;
  }
  
--int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
+-int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-		    struct kprobe_ctlblk *kcb)
 -{
--	struct jprobe *jp = container_of(p, struct jprobe, kp);
--	unsigned long addr;
--	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--
--	kcb->jprobe_saved_regs = *regs;
--	kcb->jprobe_saved_r15 = regs->regs[15];
--	addr = kcb->jprobe_saved_r15;
--
--	/*
--	 * TBD: As Linus pointed out, gcc assumes that the callee
--	 * owns the argument space and could overwrite it, e.g.
--	 * tailcall optimization. So, to be absolutely safe
--	 * we also save and restore enough stack bytes to cover
--	 * the argument area.
--	 */
--	memcpy(kcb->jprobes_stack, (kprobe_opcode_t *) addr,
--	       MIN_STACK_SIZE(addr));
--
--	regs->pc = (unsigned long)(jp->entry);
--
--	return 1;
--}
--
--void __kprobes jprobe_return(void)
--{
--	asm volatile ("trapa #0x3a\n\t" "jprobe_return_end:\n\t" "nop\n\t");
--}
--
--int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
--{
--	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--	unsigned long stack_addr = kcb->jprobe_saved_r15;
--	u8 *addr = (u8 *)regs->pc;
--
--	if ((addr >= (u8 *)jprobe_return) &&
--	    (addr <= (u8 *)jprobe_return_end)) {
--		*regs = kcb->jprobe_saved_regs;
--
--		memcpy((kprobe_opcode_t *)stack_addr, kcb->jprobes_stack,
--		       MIN_STACK_SIZE(stack_addr));
--
--		kcb->kprobe_status = KPROBE_HIT_SS;
+-	if (kprobe_ftrace(p)) {
+-		__skip_singlestep(p, regs, kcb, 0);
 -		preempt_enable_no_resched();
 -		return 1;
 -	}
--
 -	return 0;
 -}
+-NOKPROBE_SYMBOL(skip_singlestep);
 -
- static struct kprobe trampoline_p = {
- 	.addr = (kprobe_opcode_t *)&kretprobe_trampoline,
- 	.pre_handler = trampoline_probe_handler
+ /* Ftrace callback handler for kprobes -- called under preepmt disabed */
+ void kprobe_ftrace_handler(unsigned long ip, unsigned long parent_ip,
+ 			   struct ftrace_ops *ops, struct pt_regs *regs)
+@@ -80,7 +68,7 @@ void kprobe_ftrace_handler(unsigned long ip, unsigned long parent_ip,
+ 		__this_cpu_write(current_kprobe, p);
+ 		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
+ 		if (!p->pre_handler || !p->pre_handler(p, regs)) {
+-			__skip_singlestep(p, regs, kcb, orig_ip);
++			skip_singlestep(p, regs, kcb, orig_ip);
+ 			preempt_enable_no_resched();
+ 		}
+ 		/*
