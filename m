@@ -1,15 +1,17 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
 Subject: [GIT PULL] siginfo work for v4.18-rc1
-Date: Sun, 03 Jun 2018 23:11:22 -0500
-Message-ID: <87o9grmbrp.fsf@xmission.com>
+Date: Sun, 03 Jun 2018 23:16:37 -0500
+Message-ID: <87in6zmbiy.fsf@xmission.com>
+References: <87o9grmbrp.fsf@xmission.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87o9grmbrp.fsf@xmission.com> (Eric W. Biederman's message of
+        "Sun, 03 Jun 2018 23:11:22 -0500")
 Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
-
 
 Linus,
 
@@ -18,6 +20,8 @@ Please pull the siginfo-linus branch from the git tree:
    git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-linus
 
    HEAD: 26da35010c6d6ce317d511c8186585bdd8ab6629 signal/sh: Stop gcc warning about an impossible case in do_divide_error
+
+Apologies for the resend I spaced and forgot the diffstat earlier.
 
 This set of changes close the known issues with setting si_code to an
 invalid value, and with not fully initializing struct siginfo.  There
@@ -86,5 +90,90 @@ Eric W. Biederman (44):
 
 Guenter Roeck (1):
       signal/mips: Report FPE_FLTUNK for undiagnosed floating point exceptions
+
+ arch/alpha/include/uapi/asm/siginfo.h     |  14 ---
+ arch/alpha/kernel/osf_sys.c               |  11 +-
+ arch/alpha/kernel/signal.c                |  20 +---
+ arch/alpha/kernel/traps.c                 |  79 ++++---------
+ arch/alpha/mm/fault.c                     |  13 +--
+ arch/arc/mm/fault.c                       |   2 +
+ arch/arm/kernel/ptrace.c                  |   1 +
+ arch/arm/kernel/swp_emulate.c             |   1 +
+ arch/arm/kernel/traps.c                   |   5 +
+ arch/arm/mm/alignment.c                   |   1 +
+ arch/arm/mm/fault.c                       |   4 +
+ arch/arm/vfp/vfpmodule.c                  |   3 +-
+ arch/arm64/kernel/fpsimd.c                |   2 +-
+ arch/arm64/kernel/sys_compat.c            |   1 +
+ arch/arm64/kernel/traps.c                 |   1 +
+ arch/arm64/mm/fault.c                     |  18 ++-
+ arch/c6x/kernel/traps.c                   |   9 +-
+ arch/hexagon/kernel/traps.c               |   9 +-
+ arch/hexagon/mm/vm_fault.c                |  20 ++--
+ arch/ia64/include/uapi/asm/siginfo.h      |   7 --
+ arch/ia64/kernel/brl_emu.c                |   1 +
+ arch/ia64/kernel/signal.c                 |   2 +
+ arch/ia64/kernel/traps.c                  |  31 ++++-
+ arch/ia64/kernel/unaligned.c              |   1 +
+ arch/ia64/mm/fault.c                      |   4 +-
+ arch/m68k/kernel/traps.c                  |  58 +++++-----
+ arch/m68k/mm/fault.c                      |  25 ++---
+ arch/microblaze/kernel/exceptions.c       |   8 +-
+ arch/microblaze/mm/fault.c                |  12 +-
+ arch/mips/kernel/traps.c                  |  65 +++--------
+ arch/mips/mm/fault.c                      |  18 +--
+ arch/nds32/kernel/traps.c                 |  35 ++----
+ arch/nds32/mm/fault.c                     |  18 +--
+ arch/nios2/kernel/traps.c                 |   8 +-
+ arch/openrisc/kernel/traps.c              |  30 +----
+ arch/openrisc/mm/fault.c                  |  18 +--
+ arch/parisc/kernel/ptrace.c               |  10 +-
+ arch/parisc/kernel/traps.c                |  61 ++++------
+ arch/parisc/kernel/unaligned.c            |  15 +--
+ arch/parisc/math-emu/driver.c             |   8 +-
+ arch/parisc/mm/fault.c                    |  54 +++++----
+ arch/powerpc/include/uapi/asm/siginfo.h   |  15 ---
+ arch/powerpc/kernel/process.c             |   1 +
+ arch/powerpc/kernel/traps.c               |  13 +--
+ arch/powerpc/mm/fault.c                   |   1 +
+ arch/powerpc/platforms/cell/spufs/fault.c |   2 +-
+ arch/riscv/kernel/traps.c                 |  16 +--
+ arch/s390/kernel/traps.c                  |  29 +----
+ arch/s390/mm/fault.c                      |  21 +---
+ arch/sh/kernel/hw_breakpoint.c            |   9 +-
+ arch/sh/kernel/traps_32.c                 |  20 ++--
+ arch/sh/math-emu/math.c                   |   8 +-
+ arch/sh/mm/fault.c                        |   9 +-
+ arch/sparc/include/uapi/asm/siginfo.h     |   7 --
+ arch/sparc/kernel/process_64.c            |   9 +-
+ arch/sparc/kernel/sys_sparc_32.c          |   8 +-
+ arch/sparc/kernel/sys_sparc_64.c          |   8 +-
+ arch/sparc/kernel/traps_32.c              | 104 ++++-------------
+ arch/sparc/kernel/traps_64.c              | 131 +++++----------------
+ arch/sparc/kernel/unaligned_32.c          |  11 +-
+ arch/sparc/mm/fault_32.c                  |  12 +-
+ arch/sparc/mm/fault_64.c                  |   8 +-
+ arch/um/kernel/ptrace.c                   |  13 +--
+ arch/um/kernel/trap.c                     |  62 ++++------
+ arch/unicore32/kernel/fpu-ucf64.c         |   8 +-
+ arch/unicore32/mm/fault.c                 |   3 +
+ arch/x86/entry/vsyscall/vsyscall_64.c     |   2 +-
+ arch/x86/kernel/ptrace.c                  |   2 +-
+ arch/x86/kernel/signal_compat.c           |   2 +-
+ arch/x86/kernel/traps.c                   |   3 +
+ arch/x86/kernel/umip.c                    |   1 +
+ arch/x86/kvm/mmu.c                        |   1 +
+ arch/x86/mm/fault.c                       |   1 +
+ arch/xtensa/kernel/traps.c                |   9 +-
+ arch/xtensa/mm/fault.c                    |  18 +--
+ fs/signalfd.c                             |  93 +++++++--------
+ include/linux/ptrace.h                    |   1 -
+ include/linux/signal.h                    |   3 +
+ include/linux/tracehook.h                 |   1 +
+ include/uapi/asm-generic/siginfo.h        |   3 +-
+ include/uapi/linux/signalfd.h             |   6 +-
+ kernel/signal.c                           | 181 +++++++++---------------------
+ virt/kvm/arm/mmu.c                        |   1 +
+ 83 files changed, 493 insertions(+), 1066 deletions(-)
 
 Eric
