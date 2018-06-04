@@ -1,66 +1,53 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 22/27] sh: kprobes: Don't call the ->break_handler() in SH kprobes code
-Date: Tue,  5 Jun 2018 00:59:10 +0900
-Message-ID: <152812795011.10068.14489215679738766582.stgit@devbox>
-References: <152812730943.10068.5166429445118734697.stgit@devbox>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Date: Mon, 4 Jun 2018 09:01:29 -0700
+Message-ID: <20180604160129.GP3593@linux.vnet.ibm.com>
+References: <20180602144440.GI3593@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1806041014250.1380-100000@iolanthe.rowland.org>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1806041014250.1380-100000@iolanthe.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
 List-Id: linux-arch.vger.kernel.org
 
-Don't call the ->break_handler() from the SH kprobes code,
-because it was only used by jprobes which got removed.
+On Mon, Jun 04, 2018 at 10:17:47AM -0400, Alan Stern wrote:
+> On Sat, 2 Jun 2018, Paul E. McKenney wrote:
+> 
+> > One crude but effective workaround is to replicate the code following the
+> > "if" statement into both legs of the "if" statement.  This has the effect
+> > of extending the control dependency to cover all of the code that used to
+> > follow the "if" statement, leveraging herd's current limited knowledge of
+> > compiler optimization.  This workaround would of course be hopeless for
+> > general Linux-kernel code, but should be at least semi-acceptable for the
+> > very small snippets of code that can be accommodated within litmus tests.
+> > 
+> > Please see the litmus test shown below, which uses this workaround,
+> > allowing the smp_store_release() to be downgraded to WRITE_ONCE().
+> > 
+> > Given this workaround, crude though it might be, I believe that we can
+> > take a more measured approach to identifying a longer-term solution.
+> > 
+> > Thoughts?
+> 
+> Yes, this works, although it is clearly just a stopgap.  And obviously
+> it can't be applied in situations where one of the legs of the "if"  
+> statement contains a non-trivial branch.
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
----
- arch/sh/kernel/kprobes.c |   14 +-------------
- 1 file changed, 1 insertion(+), 13 deletions(-)
+A non-trivial branch as in a goto?  If so, that could be problematic
+depending on exactly what herd does in that case.
 
-diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
-index 2b5e58873b96..4fafe0cd12c6 100644
---- a/arch/sh/kernel/kprobes.c
-+++ b/arch/sh/kernel/kprobes.c
-@@ -248,11 +248,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
- 			prepare_singlestep(p, regs);
- 			kcb->kprobe_status = KPROBE_REENTER;
- 			return 1;
--		} else {
--			p = __this_cpu_read(current_kprobe);
--			if (p->break_handler && p->break_handler(p, regs)) {
--				goto ss_probe;
--			}
- 		}
- 		goto no_kprobe;
- 	}
-@@ -281,7 +276,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
- 		/* handler has already set things up, so skip ss setup */
- 		return 1;
- 
--ss_probe:
- 	prepare_singlestep(p, regs);
- 	kcb->kprobe_status = KPROBE_HIT_SS;
- 	return 1;
-@@ -508,14 +502,8 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
- 				if (post_kprobe_handler(args->regs))
- 					ret = NOTIFY_STOP;
- 			} else {
--				if (kprobe_handler(args->regs)) {
-+				if (kprobe_handler(args->regs))
- 					ret = NOTIFY_STOP;
--				} else {
--					p = __this_cpu_read(current_kprobe);
--					if (p->break_handler &&
--					    p->break_handler(p, args->regs))
--						ret = NOTIFY_STOP;
--				}
- 			}
- 		}
- 	}
+> In the long run, I don't think this problem is solvable.  At least, not 
+> for all cases.  It requires too much guesswork about what optimizations 
+> a compiler might do.
+
+I agree that it cannot be perfect, but I bet that we can come extremely
+close.  But yes, we need to think carefully about nested "if" statements
+at the very least.  And there might well be some other way to get in
+trouble.  ;-)
+
+							Thanx, Paul
