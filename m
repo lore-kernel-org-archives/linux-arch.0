@@ -1,7 +1,7 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 02/27] kprobes: Remove jprobe API implementation
-Date: Tue,  5 Jun 2018 00:49:29 +0900
-Message-ID: <152812736902.10068.14590197723889941377.stgit@devbox>
+Subject: [RFC PATCH -tip v5 03/27] kprobes/x86: Remove jprobe implementation
+Date: Tue,  5 Jun 2018 00:49:57 +0900
+Message-ID: <152812739780.10068.9232752880126886142.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,268 +10,155 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Remove jprobe API implementations and test cases for
-those APIs which is no more used.
+Remove arch dependent setjump/longjump functions
+and unused fields in kprobe_ctlblk for jprobes
+from arch/x86.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 ---
- Changes in v4:
-  - Cleanup lib/Kconfig.debug description too.
- Changes in v3:
-  - Remove test cases.
----
- include/linux/kprobes.h |    3 --
- kernel/kprobes.c        |   78 +--------------------------------------
- kernel/test_kprobes.c   |   94 -----------------------------------------------
- lib/Kconfig.debug       |    2 +
- 4 files changed, 2 insertions(+), 175 deletions(-)
+ arch/x86/include/asm/kprobes.h |    3 -
+ arch/x86/kernel/kprobes/core.c |   96 +---------------------------------------
+ 2 files changed, 3 insertions(+), 96 deletions(-)
 
-diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
-index 9440a2fc8893..b520baa65682 100644
---- a/include/linux/kprobes.h
-+++ b/include/linux/kprobes.h
-@@ -389,9 +389,6 @@ int register_kprobe(struct kprobe *p);
- void unregister_kprobe(struct kprobe *p);
- int register_kprobes(struct kprobe **kps, int num);
- void unregister_kprobes(struct kprobe **kps, int num);
--int setjmp_pre_handler(struct kprobe *, struct pt_regs *);
--int longjmp_break_handler(struct kprobe *, struct pt_regs *);
--void jprobe_return(void);
- unsigned long arch_deref_entry_point(void *);
+diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
+index 367d99cff426..06782c2efa04 100644
+--- a/arch/x86/include/asm/kprobes.h
++++ b/arch/x86/include/asm/kprobes.h
+@@ -111,9 +111,6 @@ struct kprobe_ctlblk {
+ 	unsigned long kprobe_status;
+ 	unsigned long kprobe_old_flags;
+ 	unsigned long kprobe_saved_flags;
+-	unsigned long *jprobe_saved_sp;
+-	struct pt_regs jprobe_saved_regs;
+-	kprobe_opcode_t jprobes_stack[MAX_STACK_SIZE];
+ 	struct prev_kprobe prev_kprobe;
+ };
  
- int register_kretprobe(struct kretprobe *rp);
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index ea619021d901..69de130595f7 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -1272,7 +1272,7 @@ NOKPROBE_SYMBOL(cleanup_rp_inst);
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 6f4d42377fe5..1b2d1acba810 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -66,8 +66,6 @@
  
- /*
- * Add the new probe to ap->list. Fail if this is the
--* second jprobe at the address - two jprobes can't coexist
-+* second break_handler at the address
- */
- static int add_new_kprobe(struct kprobe *ap, struct kprobe *p)
- {
-@@ -1812,77 +1812,6 @@ unsigned long __weak arch_deref_entry_point(void *entry)
- 	return (unsigned long)entry;
+ #include "common.h"
+ 
+-void jprobe_return_end(void);
+-
+ DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
+ DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
+ 
+@@ -690,10 +688,9 @@ int kprobe_int3_handler(struct pt_regs *regs)
+ 			/*
+ 			 * If we have no pre-handler or it returned 0, we
+ 			 * continue with normal processing.  If we have a
+-			 * pre-handler and it returned non-zero, it prepped
+-			 * for calling the break_handler below on re-entry
+-			 * for jprobe processing, so get out doing nothing
+-			 * more here.
++			 * pre-handler and it returned non-zero, that means
++			 * user handler setup registers to exit to another
++			 * instruction, we must skip the single stepping.
+ 			 */
+ 			if (!p->pre_handler || !p->pre_handler(p, regs))
+ 				setup_singlestep(p, regs, kcb, 0);
+@@ -1083,93 +1080,6 @@ int kprobe_exceptions_notify(struct notifier_block *self, unsigned long val,
  }
+ NOKPROBE_SYMBOL(kprobe_exceptions_notify);
  
--#if 0
--int register_jprobes(struct jprobe **jps, int num)
+-int setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
 -{
--	int ret = 0, i;
+-	struct jprobe *jp = container_of(p, struct jprobe, kp);
+-	unsigned long addr;
+-	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
 -
--	if (num <= 0)
--		return -EINVAL;
--
--	for (i = 0; i < num; i++) {
--		ret = register_jprobe(jps[i]);
--
--		if (ret < 0) {
--			if (i > 0)
--				unregister_jprobes(jps, i);
--			break;
--		}
--	}
--
--	return ret;
--}
--EXPORT_SYMBOL_GPL(register_jprobes);
--
--int register_jprobe(struct jprobe *jp)
--{
--	unsigned long addr, offset;
--	struct kprobe *kp = &jp->kp;
+-	kcb->jprobe_saved_regs = *regs;
+-	kcb->jprobe_saved_sp = stack_addr(regs);
+-	addr = (unsigned long)(kcb->jprobe_saved_sp);
 -
 -	/*
--	 * Verify probepoint as well as the jprobe handler are
--	 * valid function entry points.
+-	 * As Linus pointed out, gcc assumes that the callee
+-	 * owns the argument space and could overwrite it, e.g.
+-	 * tailcall optimization. So, to be absolutely safe
+-	 * we also save and restore enough stack bytes to cover
+-	 * the argument area.
+-	 * Use __memcpy() to avoid KASAN stack out-of-bounds reports as we copy
+-	 * raw stack chunk with redzones:
 -	 */
--	addr = arch_deref_entry_point(jp->entry);
+-	__memcpy(kcb->jprobes_stack, (kprobe_opcode_t *)addr, MIN_STACK_SIZE(addr));
+-	regs->ip = (unsigned long)(jp->entry);
 -
--	if (kallsyms_lookup_size_offset(addr, NULL, &offset) && offset == 0 &&
--	    kprobe_on_func_entry(kp->addr, kp->symbol_name, kp->offset)) {
--		kp->pre_handler = setjmp_pre_handler;
--		kp->break_handler = longjmp_break_handler;
--		return register_kprobe(kp);
--	}
--
--	return -EINVAL;
+-	/*
+-	 * jprobes use jprobe_return() which skips the normal return
+-	 * path of the function, and this messes up the accounting of the
+-	 * function graph tracer to get messed up.
+-	 *
+-	 * Pause function graph tracing while performing the jprobe function.
+-	 */
+-	pause_graph_tracing();
+-	return 1;
 -}
--EXPORT_SYMBOL_GPL(register_jprobe);
+-NOKPROBE_SYMBOL(setjmp_pre_handler);
 -
--void unregister_jprobe(struct jprobe *jp)
+-void jprobe_return(void)
 -{
--	unregister_jprobes(&jp, 1);
--}
--EXPORT_SYMBOL_GPL(unregister_jprobe);
+-	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
 -
--void unregister_jprobes(struct jprobe **jps, int num)
--{
--	int i;
+-	/* Unpoison stack redzones in the frames we are going to jump over. */
+-	kasan_unpoison_stack_above_sp_to(kcb->jprobe_saved_sp);
 -
--	if (num <= 0)
--		return;
--	mutex_lock(&kprobe_mutex);
--	for (i = 0; i < num; i++)
--		if (__unregister_kprobe_top(&jps[i]->kp) < 0)
--			jps[i]->kp.addr = NULL;
--	mutex_unlock(&kprobe_mutex);
--
--	synchronize_sched();
--	for (i = 0; i < num; i++) {
--		if (jps[i]->kp.addr)
--			__unregister_kprobe_bottom(&jps[i]->kp);
--	}
--}
--EXPORT_SYMBOL_GPL(unregister_jprobes);
--#endif
--
- #ifdef CONFIG_KRETPROBES
- /*
-  * This kprobe pre_handler is registered with every kretprobe. When probe
-@@ -2329,8 +2258,6 @@ static void report_probe(struct seq_file *pi, struct kprobe *p,
- 
- 	if (p->pre_handler == pre_handler_kretprobe)
- 		kprobe_type = "r";
--	else if (p->pre_handler == setjmp_pre_handler)
--		kprobe_type = "j";
- 	else
- 		kprobe_type = "k";
- 
-@@ -2637,6 +2564,3 @@ late_initcall(debugfs_kprobe_init);
- #endif /* CONFIG_DEBUG_FS */
- 
- module_init(init_kprobes);
--
--/* defined in arch/.../kernel/kprobes.c */
--EXPORT_SYMBOL_GPL(jprobe_return);
-diff --git a/kernel/test_kprobes.c b/kernel/test_kprobes.c
-index dd53e354f630..7bca480151b0 100644
---- a/kernel/test_kprobes.c
-+++ b/kernel/test_kprobes.c
-@@ -162,90 +162,6 @@ static int test_kprobes(void)
- 
- }
- 
--#if 0
--static u32 jph_val;
--
--static u32 j_kprobe_target(u32 value)
--{
--	if (preemptible()) {
--		handler_errors++;
--		pr_err("jprobe-handler is preemptible\n");
--	}
--	if (value != rand1) {
--		handler_errors++;
--		pr_err("incorrect value in jprobe handler\n");
--	}
--
--	jph_val = rand1;
--	jprobe_return();
--	return 0;
--}
--
--static struct jprobe jp = {
--	.entry		= j_kprobe_target,
--	.kp.symbol_name = "kprobe_target"
--};
--
--static int test_jprobe(void)
--{
--	int ret;
--
--	ret = register_jprobe(&jp);
--	if (ret < 0) {
--		pr_err("register_jprobe returned %d\n", ret);
--		return ret;
--	}
--
--	ret = target(rand1);
--	unregister_jprobe(&jp);
--	if (jph_val == 0) {
--		pr_err("jprobe handler not called\n");
--		handler_errors++;
--	}
--
--	return 0;
--}
--
--static struct jprobe jp2 = {
--	.entry          = j_kprobe_target,
--	.kp.symbol_name = "kprobe_target2"
--};
--
--static int test_jprobes(void)
--{
--	int ret;
--	struct jprobe *jps[2] = {&jp, &jp2};
--
--	/* addr and flags should be cleard for reusing kprobe. */
--	jp.kp.addr = NULL;
--	jp.kp.flags = 0;
--	ret = register_jprobes(jps, 2);
--	if (ret < 0) {
--		pr_err("register_jprobes returned %d\n", ret);
--		return ret;
--	}
--
--	jph_val = 0;
--	ret = target(rand1);
--	if (jph_val == 0) {
--		pr_err("jprobe handler not called\n");
--		handler_errors++;
--	}
--
--	jph_val = 0;
--	ret = target2(rand1);
--	if (jph_val == 0) {
--		pr_err("jprobe handler2 not called\n");
--		handler_errors++;
--	}
--	unregister_jprobes(jps, 2);
--
--	return 0;
--}
+-	asm volatile (
+-#ifdef CONFIG_X86_64
+-			"       xchg   %%rbx,%%rsp	\n"
 -#else
--#define test_jprobe() (0)
--#define test_jprobes() (0)
+-			"       xchgl   %%ebx,%%esp	\n"
 -#endif
- #ifdef CONFIG_KRETPROBES
- static u32 krph_val;
- 
-@@ -383,16 +299,6 @@ int init_test_probes(void)
- 	if (ret < 0)
- 		errors++;
- 
--	num_tests++;
--	ret = test_jprobe();
--	if (ret < 0)
--		errors++;
+-			"       int3			\n"
+-			"       .globl jprobe_return_end\n"
+-			"       jprobe_return_end:	\n"
+-			"       nop			\n"::"b"
+-			(kcb->jprobe_saved_sp):"memory");
+-}
+-NOKPROBE_SYMBOL(jprobe_return);
+-NOKPROBE_SYMBOL(jprobe_return_end);
 -
--	num_tests++;
--	ret = test_jprobes();
--	if (ret < 0)
--		errors++;
+-int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+-{
+-	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+-	u8 *addr = (u8 *) (regs->ip - 1);
+-	struct jprobe *jp = container_of(p, struct jprobe, kp);
+-	void *saved_sp = kcb->jprobe_saved_sp;
 -
- #ifdef CONFIG_KRETPROBES
- 	num_tests++;
- 	ret = test_kretprobe();
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index c40c7b734cd1..02c289e29e6d 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -1698,7 +1698,7 @@ config KPROBES_SANITY_TEST
- 	default n
- 	help
- 	  This option provides for testing basic kprobes functionality on
--	  boot. A sample kprobe, jprobe and kretprobe are inserted and
-+	  boot. Samples of kprobe and kretprobe are inserted and
- 	  verified for functionality.
- 
- 	  Say N if you are unsure.
+-	if ((addr > (u8 *) jprobe_return) &&
+-	    (addr < (u8 *) jprobe_return_end)) {
+-		if (stack_addr(regs) != saved_sp) {
+-			struct pt_regs *saved_regs = &kcb->jprobe_saved_regs;
+-			printk(KERN_ERR
+-			       "current sp %p does not match saved sp %p\n",
+-			       stack_addr(regs), saved_sp);
+-			printk(KERN_ERR "Saved registers for jprobe %p\n", jp);
+-			show_regs(saved_regs);
+-			printk(KERN_ERR "Current registers\n");
+-			show_regs(regs);
+-			BUG();
+-		}
+-		/* It's OK to start function graph tracing again */
+-		unpause_graph_tracing();
+-		*regs = kcb->jprobe_saved_regs;
+-		__memcpy(saved_sp, kcb->jprobes_stack, MIN_STACK_SIZE(saved_sp));
+-		preempt_enable_no_resched();
+-		return 1;
+-	}
+-	return 0;
+-}
+-NOKPROBE_SYMBOL(longjmp_break_handler);
+-
+ bool arch_within_kprobe_blacklist(unsigned long addr)
+ {
+ 	bool is_in_entry_trampoline_section = false;
