@@ -1,7 +1,7 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 14/27] kprobes/x86: Don't call ->break_handler() in x86 kprobes
-Date: Tue,  5 Jun 2018 00:55:17 +0900
-Message-ID: <152812771749.10068.4237461434465028276.stgit@devbox>
+Subject: [RFC PATCH -tip v5 15/27] ARC: kprobes: Don't call the ->break_handler() in ARC kprobes code
+Date: Tue,  5 Jun 2018 00:55:46 +0900
+Message-ID: <152812774641.10068.11144829855901255813.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,114 +10,34 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, linux-snps-arc@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Don't call ->break_handler() and remove break_handler
-related code since that was only used by jprobe which
-got removed.
+Don't call the ->break_handler() from the ARC kprobes code,
+because it was only used by jprobes which got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: linux-snps-arc@lists.infradead.org
 ---
- arch/x86/include/asm/kprobes.h   |    2 +-
- arch/x86/kernel/kprobes/common.h |   10 ----------
- arch/x86/kernel/kprobes/core.c   |    7 -------
- arch/x86/kernel/kprobes/ftrace.c |   16 ++--------------
- 4 files changed, 3 insertions(+), 32 deletions(-)
+ arch/arc/kernel/kprobes.c |    7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
-index 06782c2efa04..c8cec1b39b88 100644
---- a/arch/x86/include/asm/kprobes.h
-+++ b/arch/x86/include/asm/kprobes.h
-@@ -78,7 +78,7 @@ struct arch_specific_insn {
- 	 * boostable = true: This instruction has been boosted: we have
- 	 * added a relative jump after the instruction copy in insn,
- 	 * so no single-step and fixup are needed (unless there's
--	 * a post_handler or break_handler).
-+	 * a post_handler).
- 	 */
- 	bool boostable;
- 	bool if_modifier;
-diff --git a/arch/x86/kernel/kprobes/common.h b/arch/x86/kernel/kprobes/common.h
-index ae38dccf0c8f..2b949f4fd4d8 100644
---- a/arch/x86/kernel/kprobes/common.h
-+++ b/arch/x86/kernel/kprobes/common.h
-@@ -105,14 +105,4 @@ static inline unsigned long __recover_optprobed_insn(kprobe_opcode_t *buf, unsig
- }
- #endif
+diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
+index 7811a6bbe8f0..465365696c91 100644
+--- a/arch/arc/kernel/kprobes.c
++++ b/arch/arc/kernel/kprobes.c
+@@ -234,13 +234,6 @@ int __kprobes arc_kprobe_handler(unsigned long addr, struct pt_regs *regs)
+ 		}
  
--#ifdef CONFIG_KPROBES_ON_FTRACE
--extern int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
--			   struct kprobe_ctlblk *kcb);
--#else
--static inline int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
--				  struct kprobe_ctlblk *kcb)
--{
--	return 0;
--}
--#endif
- #endif
-diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-index 1b2d1acba810..0ac16a0d93e5 100644
---- a/arch/x86/kernel/kprobes/core.c
-+++ b/arch/x86/kernel/kprobes/core.c
-@@ -709,13 +709,6 @@ int kprobe_int3_handler(struct pt_regs *regs)
- 		regs->ip = (unsigned long)addr;
- 		preempt_enable_no_resched();
  		return 1;
 -	} else if (kprobe_running()) {
 -		p = __this_cpu_read(current_kprobe);
 -		if (p->break_handler && p->break_handler(p, regs)) {
--			if (!skip_singlestep(p, regs, kcb))
--				setup_singlestep(p, regs, kcb, 0);
+-			setup_singlestep(p, regs);
+-			kcb->kprobe_status = KPROBE_HIT_SS;
 -			return 1;
 -		}
- 	} /* else: not a kprobe fault; let the kernel handle it */
+ 	}
  
- 	preempt_enable_no_resched();
-diff --git a/arch/x86/kernel/kprobes/ftrace.c b/arch/x86/kernel/kprobes/ftrace.c
-index 8dc0161cec8f..c8696f2a583f 100644
---- a/arch/x86/kernel/kprobes/ftrace.c
-+++ b/arch/x86/kernel/kprobes/ftrace.c
-@@ -26,7 +26,7 @@
- #include "common.h"
- 
- static nokprobe_inline
--void __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
-+void skip_singlestep(struct kprobe *p, struct pt_regs *regs,
- 		      struct kprobe_ctlblk *kcb, unsigned long orig_ip)
- {
- 	/*
-@@ -43,18 +43,6 @@ void __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
- 		regs->ip = orig_ip;
- }
- 
--int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
--		    struct kprobe_ctlblk *kcb)
--{
--	if (kprobe_ftrace(p)) {
--		__skip_singlestep(p, regs, kcb, 0);
--		preempt_enable_no_resched();
--		return 1;
--	}
--	return 0;
--}
--NOKPROBE_SYMBOL(skip_singlestep);
--
- /* Ftrace callback handler for kprobes -- called under preepmt disabed */
- void kprobe_ftrace_handler(unsigned long ip, unsigned long parent_ip,
- 			   struct ftrace_ops *ops, struct pt_regs *regs)
-@@ -80,7 +68,7 @@ void kprobe_ftrace_handler(unsigned long ip, unsigned long parent_ip,
- 		__this_cpu_write(current_kprobe, p);
- 		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
- 		if (!p->pre_handler || !p->pre_handler(p, regs)) {
--			__skip_singlestep(p, regs, kcb, orig_ip);
-+			skip_singlestep(p, regs, kcb, orig_ip);
- 			preempt_enable_no_resched();
- 		}
- 		/*
+ 	/* no_kprobe: */
