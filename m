@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59342 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:60512 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750985AbeFDP7e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Jun 2018 11:59:34 -0400
+        id S1751091AbeFDQCC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Jun 2018 12:02:02 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 22/27] sh: kprobes: Don't call the ->break_handler() in SH kprobes code
-Date: Tue,  5 Jun 2018 00:59:10 +0900
-Message-ID: <152812795011.10068.14489215679738766582.stgit@devbox>
+Subject: [RFC PATCH -tip v5 27/27] kprobes: Remove jprobe stub API
+Date: Tue,  5 Jun 2018 01:01:38 +0900
+Message-ID: <152812809849.10068.9356670248264515092.stgit@devbox>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 MIME-Version: 1.0
@@ -15,57 +15,110 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
-Message-ID: <20180604155910.-4bybeImoQxJl7LBwyGusS5SGt1E5DY8XYSRO9chC9U@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Message-ID: <20180604160138.z-TtWp3qcrcjYxHzLKxMId2-5lzTakpGoSX4ZX8EiwY@z>
 
-Don't call the ->break_handler() from the SH kprobes code,
-because it was only used by jprobes which got removed.
+Remove jprobe stub APIs from linux/kprobes.h since
+the jprobe implementation was completely gone.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
 ---
- arch/sh/kernel/kprobes.c |   14 +-------------
- 1 file changed, 1 insertion(+), 13 deletions(-)
+ include/linux/kprobes.h |   50 -----------------------------------------------
+ 1 file changed, 50 deletions(-)
 
-diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
-index 2b5e58873b96..4fafe0cd12c6 100644
---- a/arch/sh/kernel/kprobes.c
-+++ b/arch/sh/kernel/kprobes.c
-@@ -248,11 +248,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
- 			prepare_singlestep(p, regs);
- 			kcb->kprobe_status = KPROBE_REENTER;
- 			return 1;
--		} else {
--			p = __this_cpu_read(current_kprobe);
--			if (p->break_handler && p->break_handler(p, regs)) {
--				goto ss_probe;
--			}
- 		}
- 		goto no_kprobe;
- 	}
-@@ -281,7 +276,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
- 		/* handler has already set things up, so skip ss setup */
- 		return 1;
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index b520baa65682..e909413e4e38 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -63,7 +63,6 @@ struct pt_regs;
+ struct kretprobe;
+ struct kretprobe_instance;
+ typedef int (*kprobe_pre_handler_t) (struct kprobe *, struct pt_regs *);
+-typedef int (*kprobe_break_handler_t) (struct kprobe *, struct pt_regs *);
+ typedef void (*kprobe_post_handler_t) (struct kprobe *, struct pt_regs *,
+ 				       unsigned long flags);
+ typedef int (*kprobe_fault_handler_t) (struct kprobe *, struct pt_regs *,
+@@ -101,12 +100,6 @@ struct kprobe {
+ 	 */
+ 	kprobe_fault_handler_t fault_handler;
  
--ss_probe:
- 	prepare_singlestep(p, regs);
- 	kcb->kprobe_status = KPROBE_HIT_SS;
- 	return 1;
-@@ -508,14 +502,8 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
- 				if (post_kprobe_handler(args->regs))
- 					ret = NOTIFY_STOP;
- 			} else {
--				if (kprobe_handler(args->regs)) {
-+				if (kprobe_handler(args->regs))
- 					ret = NOTIFY_STOP;
--				} else {
--					p = __this_cpu_read(current_kprobe);
--					if (p->break_handler &&
--					    p->break_handler(p, args->regs))
--						ret = NOTIFY_STOP;
--				}
- 			}
- 		}
- 	}
+-	/*
+-	 * ... called if breakpoint trap occurs in probe handler.
+-	 * Return 1 if it handled break, otherwise kernel will see it.
+-	 */
+-	kprobe_break_handler_t break_handler;
+-
+ 	/* Saved opcode (which has been replaced with breakpoint) */
+ 	kprobe_opcode_t opcode;
+ 
+@@ -155,24 +148,6 @@ static inline int kprobe_ftrace(struct kprobe *p)
+ }
+ 
+ /*
+- * Special probe type that uses setjmp-longjmp type tricks to resume
+- * execution at a specified entry with a matching prototype corresponding
+- * to the probed function - a trick to enable arguments to become
+- * accessible seamlessly by probe handling logic.
+- * Note:
+- * Because of the way compilers allocate stack space for local variables
+- * etc upfront, regardless of sub-scopes within a function, this mirroring
+- * principle currently works only for probes placed on function entry points.
+- */
+-struct jprobe {
+-	struct kprobe kp;
+-	void *entry;	/* probe handling code to jump to */
+-};
+-
+-/* For backward compatibility with old code using JPROBE_ENTRY() */
+-#define JPROBE_ENTRY(handler)	(handler)
+-
+-/*
+  * Function-return probe -
+  * Note:
+  * User needs to provide a handler function, and initialize maxactive.
+@@ -436,9 +411,6 @@ static inline void unregister_kprobe(struct kprobe *p)
+ static inline void unregister_kprobes(struct kprobe **kps, int num)
+ {
+ }
+-static inline void jprobe_return(void)
+-{
+-}
+ static inline int register_kretprobe(struct kretprobe *rp)
+ {
+ 	return -ENOSYS;
+@@ -465,20 +437,6 @@ static inline int enable_kprobe(struct kprobe *kp)
+ 	return -ENOSYS;
+ }
+ #endif /* CONFIG_KPROBES */
+-static inline int register_jprobe(struct jprobe *p)
+-{
+-	return -ENOSYS;
+-}
+-static inline int register_jprobes(struct jprobe **jps, int num)
+-{
+-	return -ENOSYS;
+-}
+-static inline void unregister_jprobe(struct jprobe *p)
+-{
+-}
+-static inline void unregister_jprobes(struct jprobe **jps, int num)
+-{
+-}
+ static inline int disable_kretprobe(struct kretprobe *rp)
+ {
+ 	return disable_kprobe(&rp->kp);
+@@ -487,14 +445,6 @@ static inline int enable_kretprobe(struct kretprobe *rp)
+ {
+ 	return enable_kprobe(&rp->kp);
+ }
+-static inline int disable_jprobe(struct jprobe *jp)
+-{
+-	return -ENOSYS;
+-}
+-static inline int enable_jprobe(struct jprobe *jp)
+-{
+-	return -ENOSYS;
+-}
+ 
+ #ifndef CONFIG_KPROBES
+ static inline bool is_kprobe_insn_slot(unsigned long addr)
