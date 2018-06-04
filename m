@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58886 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:59342 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750723AbeFDP6g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Jun 2018 11:58:36 -0400
+        id S1750985AbeFDP7e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Jun 2018 11:59:34 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 20/27] MIPS: kprobes: Don't call the ->break_handler() in MIPS kprobes code
-Date: Tue,  5 Jun 2018 00:58:12 +0900
-Message-ID: <152812789186.10068.4347487945198034534.stgit@devbox>
+Subject: [RFC PATCH -tip v5 22/27] sh: kprobes: Don't call the ->break_handler() in SH kprobes code
+Date: Tue,  5 Jun 2018 00:59:10 +0900
+Message-ID: <152812795011.10068.14489215679738766582.stgit@devbox>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 MIME-Version: 1.0
@@ -15,56 +15,57 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org
-Message-ID: <20180604155812.4uf0xnkIYpMXyoFfcZlPdBNDwNhxHUR2goiNzdUvuwY@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
+Message-ID: <20180604155910.-4bybeImoQxJl7LBwyGusS5SGt1E5DY8XYSRO9chC9U@z>
 
-Don't call the ->break_handler() from the MIPS kprobes code,
+Don't call the ->break_handler() from the SH kprobes code,
 because it was only used by jprobes which got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: linux-mips@linux-mips.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: linux-sh@vger.kernel.org
 ---
- arch/mips/kernel/kprobes.c |   21 +++++++--------------
- 1 file changed, 7 insertions(+), 14 deletions(-)
+ arch/sh/kernel/kprobes.c |   14 +-------------
+ 1 file changed, 1 insertion(+), 13 deletions(-)
 
-diff --git a/arch/mips/kernel/kprobes.c b/arch/mips/kernel/kprobes.c
-index efdcd0b1ce12..7fd277bc59b9 100644
---- a/arch/mips/kernel/kprobes.c
-+++ b/arch/mips/kernel/kprobes.c
-@@ -326,19 +326,13 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
- 				preempt_enable_no_resched();
- 			}
+diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
+index 2b5e58873b96..4fafe0cd12c6 100644
+--- a/arch/sh/kernel/kprobes.c
++++ b/arch/sh/kernel/kprobes.c
+@@ -248,11 +248,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+ 			prepare_singlestep(p, regs);
+ 			kcb->kprobe_status = KPROBE_REENTER;
  			return 1;
 -		} else {
--			if (addr->word != breakpoint_insn.word) {
--				/*
--				 * The breakpoint instruction was removed by
--				 * another cpu right after we hit, no further
--				 * handling of this interrupt is appropriate
--				 */
--				ret = 1;
--				goto no_kprobe;
--			}
 -			p = __this_cpu_read(current_kprobe);
--			if (p->break_handler && p->break_handler(p, regs))
+-			if (p->break_handler && p->break_handler(p, regs)) {
 -				goto ss_probe;
-+		} else if (addr->word != breakpoint_insn.word) {
-+			/*
-+			 * The breakpoint instruction was removed by
-+			 * another cpu right after we hit, no further
-+			 * handling of this interrupt is appropriate
-+			 */
-+			ret = 1;
+-			}
  		}
  		goto no_kprobe;
  	}
-@@ -367,7 +361,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+@@ -281,7 +276,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+ 		/* handler has already set things up, so skip ss setup */
  		return 1;
- 	}
  
 -ss_probe:
- 	prepare_singlestep(p, regs, kcb);
- 	if (kcb->flags & SKIP_DELAYSLOT) {
- 		kcb->kprobe_status = KPROBE_HIT_SSDONE;
+ 	prepare_singlestep(p, regs);
+ 	kcb->kprobe_status = KPROBE_HIT_SS;
+ 	return 1;
+@@ -508,14 +502,8 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
+ 				if (post_kprobe_handler(args->regs))
+ 					ret = NOTIFY_STOP;
+ 			} else {
+-				if (kprobe_handler(args->regs)) {
++				if (kprobe_handler(args->regs))
+ 					ret = NOTIFY_STOP;
+-				} else {
+-					p = __this_cpu_read(current_kprobe);
+-					if (p->break_handler &&
+-					    p->break_handler(p, args->regs))
+-						ret = NOTIFY_STOP;
+-				}
+ 			}
+ 		}
+ 	}
