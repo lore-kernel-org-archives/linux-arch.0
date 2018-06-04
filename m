@@ -1,177 +1,90 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Sat, 2 Jun 2018 07:44:40 -0700
-Message-ID: <20180602144440.GI3593@linux.vnet.ibm.com>
-References: <20180530231441.GO7063@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1805311008460.1607-100000@iolanthe.rowland.org>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [GIT PULL] siginfo work for v4.18-rc1
+Date: Sun, 03 Jun 2018 23:11:22 -0500
+Message-ID: <87o9grmbrp.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1805311008460.1607-100000@iolanthe.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 31, 2018 at 10:27:33AM -0400, Alan Stern wrote:
-> On Wed, 30 May 2018, Paul E. McKenney wrote:
-> 
-> > On Wed, May 30, 2018 at 05:01:01PM -0500, Linus Torvalds wrote:
-> > > On Wed, May 30, 2018 at 2:08 PM Alan Stern <stern@rowland.harvard.edu> wrote:
-> > > >
-> > > > Indeed.  The very first line Linus quoted in his first reply to me
-> > > > (elided above) was:
-> > > >
-> > > >         Putting this into herd would be extremely difficult, if not impossible,
-> > > >         because it involves analyzing code that was not executed.
-> > > >
-> > > > It should be clear from this that I was talking about herd.  Not gcc or
-> > > > real hardware.
-> > > 
-> > > So what does herd actually work on? The source code or the executable,
-> > > or a trace?
-> > 
-> > The source code, that is, the source code of the litmus test.
-> > There are definitions for the various Linux operations, partly within
-> > the herd tool and partly in the linux.def file in tools/memory-model.
-> > The problem we are having is nailing down control dependencies and
-> > compiler optimizations.  The bit about limiting control dependencies
-> > through the end of "if" statement itself works well in a great many cases,
-> > but this clearly is not one of them.
-> > 
-> > > I found the herd paper, but I'm on the road helping my daughter in
-> > > college move, and I don't have the background to skim the paper
-> > > quickly and come up with the obvious answer, so I'l just ask.
-> > 
-> > It is not a short learning curve.
-> > 
-> > > Because I really think that from our memory model standpoint, we
-> > > really do have the rule that
-> > > 
-> > >    load -> cond -> store
-> > > 
-> > > is ordered - even if the store address and store data is in no way
-> > > dependent on the load. The only thing that matters is that there's a
-> > > conditional that is dependent on the load in between the load and the
-> > > store.
-> 
-> This is true for all the architectures supported by the Linux kernel.  
-> However, in the future it might not always hold.  I can imagine that
-> CPU designers would want to include an optimization that checks a
-> conditional branch to see if it skips over only the following
-> instruction (and the following instruction can't affect the flow of
-> control); in that situation, they might decide there doesn't need to be
-> a control dependency to future stores.  Such an optimization would not
-> violate the C11 memory model.
-> 
-> Of course, this is purely theoretical.  And if anybody does decide to
-> try doing that, the memory-model people might scream at them so hard
-> they change their minds.  :-)
-> 
-> ...
-> 
-> > > But I don't know what level 'herd' works on. If it doesn't see
-> > > compiler barriers (eg our own "barrier()" macro that literally is just
-> > > that), only sees the generated code, then it really has no other
-> > > information than what he compiler _happened_ to do - it doesn't know
-> > > if the compiler did the store after the conditional because it *had*
-> > > to do so, or whether it was just a random instruction scheduling
-> > > decision.
-> > 
-> > The 'herd' tool works on litmus-test source, and has almost no idea of
-> > what compilers get up to.  In this particular case, it would be better
-> > off being even more ignorant of what compilers get up to.  ;-)
-> 
-> In more detail, herd analyzes the source code and constructs a set of
-> all possible candidate executions.  herd then checks each execution to
-> see if it violates the rules of the memory model as expressed in the
-> .bell and .cat files.  If any of the non-violating executions satisfies
-> the litmus test's final "exists" condition, herd reports that the test
-> is allowed.
-> 
-> The point here is that when herd checks any one particular execution, 
-> it pays attention _only_ to the statements which are part of that 
-> execution.  Statements belonging to an untaken "if" branch are ignored 
-> completely.  That's why I think it would be difficult to make herd do 
-> exactly what we want in this case.
 
-One crude but effective workaround is to replicate the code following the
-"if" statement into both legs of the "if" statement.  This has the effect
-of extending the control dependency to cover all of the code that used to
-follow the "if" statement, leveraging herd's current limited knowledge of
-compiler optimization.  This workaround would of course be hopeless for
-general Linux-kernel code, but should be at least semi-acceptable for the
-very small snippets of code that can be accommodated within litmus tests.
+Linus,
 
-Please see the litmus test shown below, which uses this workaround,
-allowing the smp_store_release() to be downgraded to WRITE_ONCE().
+Please pull the siginfo-linus branch from the git tree:
 
-Given this workaround, crude though it might be, I believe that we can
-take a more measured approach to identifying a longer-term solution.
+   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-linus
 
-Thoughts?
+   HEAD: 26da35010c6d6ce317d511c8186585bdd8ab6629 signal/sh: Stop gcc warning about an impossible case in do_divide_error
 
-							Thanx, Paul
-					
-			
-	
-------------------------------------------------------------------------
+This set of changes close the known issues with setting si_code to an
+invalid value, and with not fully initializing struct siginfo.  There
+remains work to do on nds32, arc, unicore32, powerpc, arm, arm64, ia64
+and x86 to get the code that generates siginfo into a simpler and more
+maintainable state.  Most of that work involves refactoring the signal
+handling code and thus careful code review.
 
-C C-RomanPenyaev-list-rcu-rr-WA
+Also not included is the work to shrink the in kernel version of struct
+siginfo.  That depends on getting the number of places that directly
+manipulate struct siginfo under control, as it requires the introduction
+of struct kernel_siginfo for the in kernel things.
 
-(*
- * The same as C-RomanPenyaev-list-rcu-rr.litmus, but working around herd's
- * having just the wrong level of understanding of compiler optimizations
- * for that particular litmus test.  The trick is to replicate the code
- * following the "if" statement into both legs of that "if" statement.
- *)
+Overall this set of changes looks like it is making good progress,
+and with a little luck I will be wrapping up the siginfo work
+next development cycle.
 
-{
-	int *z=1; (* List: v->w->x->y->z. Noncircular, but long enough. *)
-	int *y=z;
-	int *x=y;
-	int *w=x;
-	int *v=w; (* List head is v. *)
-	int *c=w; (* Cache, emulating ppcpu_con. *)
-}
+Dmitry V. Levin (1):
+      sparc: fix compat siginfo ABI regression
 
-P0(int *c, int *v, int *w, int *x, int *y)
-{
-	rcu_assign_pointer(*w, y); /* Remove x from list. */
-	synchronize_rcu();
-	r1 = READ_ONCE(*c);
-	if (r1 == x) {
-		WRITE_ONCE(*c, 0); /* Invalidate cache. */
-		synchronize_rcu();
-		WRITE_ONCE(*x, 0);  /* Emulate kfree(x). */
-	} else {
-		WRITE_ONCE(*x, 0);  /* Emulate kfree(x). */
-	}
-}
+Eric W. Biederman (44):
+      signal/alpha: Document a conflict with SI_USER for SIGFPE
+      signal/sh: Use force_sig_fault in hw_breakpoint_handler
+      signal/nds32: Use force_sig in unhandled_interruption and unhandled_exceptions
+      signal/nds32: Use force_sig(SIGILL) in do_revisn
+      signal: Ensure every siginfo we send has all bits initialized
+      signal: Reduce copy_siginfo_to_user to just copy_to_user
+      signal: Stop special casing TRAP_FIXME and FPE_FIXME in siginfo_layout
+      signal: Remove SEGV_BNDERR ifdefs
+      signal: Remove ifdefs for BUS_MCEERR_AR and BUS_MCEERR_AO
+      signal/alpha: Replace FPE_FIXME with FPE_FLTUNK
+      signal/ia64: Replace FPE_FIXME with FPE_FLTUNK
+      signal/powerpc: Replace FPE_FIXME with FPE_FLTUNK
+      signal/unicore32: Use FPE_FLTUNK instead of 0 in ucf64_raise_sigfpe
+      signal: Add TRAP_UNK si_code for undiagnosted trap exceptions
+      signal/alpha:  Replace TRAP_FIXME with TRAP_UNK
+      signal/powerpc: Replace TRAP_FIXME with TRAP_UNK
+      signal/alpha: Use send_sig_fault where appropriate
+      signal/alpha: Use force_sig_fault where appropriate
+      signal/c6x: Use force_sig_fault where appropriate
+      signal/hexagon: Use force_sig_fault as appropriate
+      signal/m68k: Use force_sig_fault where appropriate
+      signal/microblaze: Remove the commented out force_sig_info in do_page_fault
+      signal/microblaze: Use force_sig_fault where appropriate
+      signal/mips: Use force_sig_fault where appropriate
+      signal/nds32: Use force_sig_fault where appropriate
+      signal/nios2: Use force_sig_fault where appropriate
+      signal/openrisc: Use force_sig_fault where appropriate
+      signal/parisc: Use force_sig_mceerr where appropriate
+      signal/parisc: Use force_sig_fault where appropriate
+      signal/riscv: Use force_sig_fault where appropriate
+      signal/riscv: Replace do_trap_siginfo with force_sig_fault
+      signal/s390: Use force_sig_fault where appropriate
+      signal/sh: Use force_sig_fault where appropriate
+      signal/sparc: Use send_sig_fault where appropriate
+      signal/sparc: Use force_sig_fault where appropriate
+      signal/um: Use force_sig_fault where appropriate
+      signal/xtensa: Consistenly use SIGBUS in do_unaligned_user
+      signal/xtensa: Use force_sig_fault where appropriate
+      signal/signalfd: Remove __put_user from signalfd_copyinfo
+      signal/signalfd: Add support for SIGSYS
+      signal: Remove unncessary #ifdef SEGV_PKUERR in 32bit compat code
+      signal: Extend siginfo_layout with SIL_FAULT_{MCEERR|BNDERR|PKUERR}
+      signal/um: More carefully relay signals in relay_signal.
+      signal/sh: Stop gcc warning about an impossible case in do_divide_error
 
-P1(int *c, int *v)
-{
-	rcu_read_lock();
-	r1 = READ_ONCE(*c); /* Pick up cache. */
-	if (r1 == 0) {
-		r1 = READ_ONCE(*v); /* Cache empty, start from head. */
-	}
-	r2 = rcu_dereference(*r1); /* Advance to next element. */
-	smp_store_release(c, r2); /* Update cache. */
-	rcu_read_unlock();
+Guenter Roeck (1):
+      signal/mips: Report FPE_FLTUNK for undiagnosed floating point exceptions
 
-	/* And repeat. */
-	rcu_read_lock();
-	r3 = READ_ONCE(*c);
-	if (r3 == 0) {
-		r3 = READ_ONCE(*v);
-	}
-	r4 = rcu_dereference(*r3);
-	smp_store_release(c, r4);
-	rcu_read_unlock();
-}
-
-locations [0:r1; 1:r1; 1:r3; c; v; w; x; y]
-exists (1:r1=0 \/ 1:r2=0 \/ 1:r3=0 \/ 1:r4=0) (* Better not be freed!!! *)
+Eric
