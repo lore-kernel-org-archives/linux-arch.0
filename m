@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57006 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:57206 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751098AbeFDPxq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Jun 2018 11:53:46 -0400
+        id S1751010AbeFDPyo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Jun 2018 11:54:44 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 10/27] s390/kprobes: Remove jprobe implementation
-Date: Tue,  5 Jun 2018 00:53:21 +0900
-Message-ID: <152812760168.10068.2235377345946129423.stgit@devbox>
+Subject: [RFC PATCH -tip v5 12/27] sparc64: kprobes: Remove jprobe implementation
+Date: Tue,  5 Jun 2018 00:54:20 +0900
+Message-ID: <152812765990.10068.4986702684441309090.stgit@devbox>
 In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 References: <152812730943.10068.5166429445118734697.stgit@devbox>
 MIME-Version: 1.0
@@ -15,109 +15,88 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
-Message-ID: <20180604155321.61KRiru-7yuC02QHxqlwuM5KzkJrm2ebSi4lAfqm2Wk@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20180604155420.7f_XjSL16LPU19Gjq8h7yXWVBqIb0SakQrEZ1_VwBw0@z>
 
 Remove arch dependent setjump/longjump functions
 and unused fields in kprobe_ctlblk for jprobes
-from arch/s390.
+from arch/sparc.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 ---
- arch/s390/include/asm/kprobes.h |    2 -
- arch/s390/kernel/kprobes.c      |   59 +--------------------------------------
- 2 files changed, 2 insertions(+), 59 deletions(-)
+ arch/sparc/include/asm/kprobes.h |    1 -
+ arch/sparc/kernel/kprobes.c      |   47 --------------------------------------
+ 2 files changed, 48 deletions(-)
 
-diff --git a/arch/s390/include/asm/kprobes.h b/arch/s390/include/asm/kprobes.h
-index 13de80cf741c..b106aa29bf55 100644
---- a/arch/s390/include/asm/kprobes.h
-+++ b/arch/s390/include/asm/kprobes.h
-@@ -68,8 +68,6 @@ struct kprobe_ctlblk {
- 	unsigned long kprobe_saved_imask;
- 	unsigned long kprobe_saved_ctl[3];
- 	struct prev_kprobe prev_kprobe;
+diff --git a/arch/sparc/include/asm/kprobes.h b/arch/sparc/include/asm/kprobes.h
+index 3704490b4488..bfcaa6326c20 100644
+--- a/arch/sparc/include/asm/kprobes.h
++++ b/arch/sparc/include/asm/kprobes.h
+@@ -44,7 +44,6 @@ struct kprobe_ctlblk {
+ 	unsigned long kprobe_status;
+ 	unsigned long kprobe_orig_tnpc;
+ 	unsigned long kprobe_orig_tstate_pil;
 -	struct pt_regs jprobe_saved_regs;
--	kprobe_opcode_t jprobes_stack[MAX_STACK_SIZE];
+ 	struct prev_kprobe prev_kprobe;
  };
  
- void arch_remove_kprobe(struct kprobe *p);
-diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-index 60f60afa645c..0967de19f53d 100644
---- a/arch/s390/kernel/kprobes.c
-+++ b/arch/s390/kernel/kprobes.c
-@@ -321,9 +321,8 @@ static int kprobe_handler(struct pt_regs *regs)
- 			 * If we have no pre-handler or it returned 0, we
- 			 * continue with single stepping. If we have a
- 			 * pre-handler and it returned non-zero, it prepped
--			 * for calling the break_handler below on re-entry
--			 * for jprobe processing, so get out doing nothing
--			 * more here.
-+			 * for changing execution path, so get out doing
-+			 * nothing more here.
- 			 */
- 			push_kprobe(kcb, p);
- 			kcb->kprobe_status = KPROBE_HIT_ACTIVE;
-@@ -661,60 +660,6 @@ int kprobe_exceptions_notify(struct notifier_block *self,
+diff --git a/arch/sparc/kernel/kprobes.c b/arch/sparc/kernel/kprobes.c
+index ab4ba4347941..f555711da8f1 100644
+--- a/arch/sparc/kernel/kprobes.c
++++ b/arch/sparc/kernel/kprobes.c
+@@ -441,53 +441,6 @@ asmlinkage void __kprobes kprobe_trap(unsigned long trap_level,
+ 	exception_exit(prev_state);
  }
- NOKPROBE_SYMBOL(kprobe_exceptions_notify);
  
--int setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
+-/* Jprobes support.  */
+-int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
 -{
 -	struct jprobe *jp = container_of(p, struct jprobe, kp);
 -	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--	unsigned long stack;
 -
--	memcpy(&kcb->jprobe_saved_regs, regs, sizeof(struct pt_regs));
+-	memcpy(&(kcb->jprobe_saved_regs), regs, sizeof(*regs));
 -
--	/* setup return addr to the jprobe handler routine */
--	regs->psw.addr = (unsigned long) jp->entry;
--	regs->psw.mask &= ~(PSW_MASK_IO | PSW_MASK_EXT);
+-	regs->tpc  = (unsigned long) jp->entry;
+-	regs->tnpc = ((unsigned long) jp->entry) + 0x4UL;
+-	regs->tstate |= TSTATE_PIL;
 -
--	/* r15 is the stack pointer */
--	stack = (unsigned long) regs->gprs[15];
--
--	memcpy(kcb->jprobes_stack, (void *) stack, MIN_STACK_SIZE(stack));
--
--	/*
--	 * jprobes use jprobe_return() which skips the normal return
--	 * path of the function, and this messes up the accounting of the
--	 * function graph tracer to get messed up.
--	 *
--	 * Pause function graph tracing while performing the jprobe function.
--	 */
--	pause_graph_tracing();
 -	return 1;
 -}
--NOKPROBE_SYMBOL(setjmp_pre_handler);
 -
--void jprobe_return(void)
--{
--	asm volatile(".word 0x0002");
--}
--NOKPROBE_SYMBOL(jprobe_return);
--
--int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+-void __kprobes jprobe_return(void)
 -{
 -	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--	unsigned long stack;
+-	register unsigned long orig_fp asm("g1");
 -
--	/* It's OK to start function graph tracing again */
--	unpause_graph_tracing();
--
--	stack = (unsigned long) kcb->jprobe_saved_regs.gprs[15];
--
--	/* Put the regs back */
--	memcpy(regs, &kcb->jprobe_saved_regs, sizeof(struct pt_regs));
--	/* put the stack back */
--	memcpy((void *) stack, kcb->jprobes_stack, MIN_STACK_SIZE(stack));
--	preempt_enable_no_resched();
--	return 1;
+-	orig_fp = kcb->jprobe_saved_regs.u_regs[UREG_FP];
+-	__asm__ __volatile__("\n"
+-"1:	cmp		%%sp, %0\n\t"
+-	"blu,a,pt	%%xcc, 1b\n\t"
+-	" restore\n\t"
+-	".globl		jprobe_return_trap_instruction\n"
+-"jprobe_return_trap_instruction:\n\t"
+-	"ta		0x70"
+-	: /* no outputs */
+-	: "r" (orig_fp));
 -}
--NOKPROBE_SYMBOL(longjmp_break_handler);
 -
- static struct kprobe trampoline = {
- 	.addr = (kprobe_opcode_t *) &kretprobe_trampoline,
- 	.pre_handler = trampoline_probe_handler
+-extern void jprobe_return_trap_instruction(void);
+-
+-int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+-{
+-	u32 *addr = (u32 *) regs->tpc;
+-	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+-
+-	if (addr == (u32 *) jprobe_return_trap_instruction) {
+-		memcpy(regs, &(kcb->jprobe_saved_regs), sizeof(*regs));
+-		preempt_enable_no_resched();
+-		return 1;
+-	}
+-	return 0;
+-}
+-
+ /* The value stored in the return address register is actually 2
+  * instructions before where the callee will return to.
+  * Sequences usually look something like this
