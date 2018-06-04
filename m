@@ -1,53 +1,58 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Mon, 4 Jun 2018 09:01:29 -0700
-Message-ID: <20180604160129.GP3593@linux.vnet.ibm.com>
-References: <20180602144440.GI3593@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1806041014250.1380-100000@iolanthe.rowland.org>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: [RFC PATCH -tip v5 23/27] sparc64: kprobes: Don't call the ->break_handler() in sparc64 kprobes code
+Date: Tue,  5 Jun 2018 00:59:39 +0900
+Message-ID: <152812797932.10068.11564914590596665822.stgit@devbox>
+References: <152812730943.10068.5166429445118734697.stgit@devbox>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1806041014250.1380-100000@iolanthe.rowland.org>
+In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>, Roman Pen <roman.penyaev@profitbricks.com>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 04, 2018 at 10:17:47AM -0400, Alan Stern wrote:
-> On Sat, 2 Jun 2018, Paul E. McKenney wrote:
-> 
-> > One crude but effective workaround is to replicate the code following the
-> > "if" statement into both legs of the "if" statement.  This has the effect
-> > of extending the control dependency to cover all of the code that used to
-> > follow the "if" statement, leveraging herd's current limited knowledge of
-> > compiler optimization.  This workaround would of course be hopeless for
-> > general Linux-kernel code, but should be at least semi-acceptable for the
-> > very small snippets of code that can be accommodated within litmus tests.
-> > 
-> > Please see the litmus test shown below, which uses this workaround,
-> > allowing the smp_store_release() to be downgraded to WRITE_ONCE().
-> > 
-> > Given this workaround, crude though it might be, I believe that we can
-> > take a more measured approach to identifying a longer-term solution.
-> > 
-> > Thoughts?
-> 
-> Yes, this works, although it is clearly just a stopgap.  And obviously
-> it can't be applied in situations where one of the legs of the "if"  
-> statement contains a non-trivial branch.
+Don't call the ->break_handler() from the sparc64 kprobes code,
+because it was only used by jprobes which got removed.
 
-A non-trivial branch as in a goto?  If so, that could be problematic
-depending on exactly what herd does in that case.
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
+---
+ arch/sparc/kernel/kprobes.c |   11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
 
-> In the long run, I don't think this problem is solvable.  At least, not 
-> for all cases.  It requires too much guesswork about what optimizations 
-> a compiler might do.
-
-I agree that it cannot be perfect, but I bet that we can come extremely
-close.  But yes, we need to think carefully about nested "if" statements
-at the very least.  And there might well be some other way to get in
-trouble.  ;-)
-
-							Thanx, Paul
+diff --git a/arch/sparc/kernel/kprobes.c b/arch/sparc/kernel/kprobes.c
+index f555711da8f1..c684c96ef2e9 100644
+--- a/arch/sparc/kernel/kprobes.c
++++ b/arch/sparc/kernel/kprobes.c
+@@ -147,18 +147,12 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+ 			kcb->kprobe_status = KPROBE_REENTER;
+ 			prepare_singlestep(p, regs, kcb);
+ 			return 1;
+-		} else {
+-			if (*(u32 *)addr != BREAKPOINT_INSTRUCTION) {
++		} else if (*(u32 *)addr != BREAKPOINT_INSTRUCTION) {
+ 			/* The breakpoint instruction was removed by
+ 			 * another cpu right after we hit, no further
+ 			 * handling of this interrupt is appropriate
+ 			 */
+-				ret = 1;
+-				goto no_kprobe;
+-			}
+-			p = __this_cpu_read(current_kprobe);
+-			if (p->break_handler && p->break_handler(p, regs))
+-				goto ss_probe;
++			ret = 1;
+ 		}
+ 		goto no_kprobe;
+ 	}
+@@ -184,7 +178,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+ 	if (p->pre_handler && p->pre_handler(p, regs))
+ 		return 1;
+ 
+-ss_probe:
+ 	prepare_singlestep(p, regs, kcb);
+ 	kcb->kprobe_status = KPROBE_HIT_SS;
+ 	return 1;
