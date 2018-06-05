@@ -1,143 +1,189 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57322 "EHLO mail.kernel.org"
+Received: from mga07.intel.com ([134.134.136.100]:33944 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750879AbeFDPzM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Jun 2018 11:55:12 -0400
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [RFC PATCH -tip v5 13/27] kprobes: Don't check the ->break_handler() in generic kprobes code
-Date: Tue,  5 Jun 2018 00:54:49 +0900
-Message-ID: <152812768890.10068.10235293822737888531.stgit@devbox>
-In-Reply-To: <152812730943.10068.5166429445118734697.stgit@devbox>
-References: <152812730943.10068.5166429445118734697.stgit@devbox>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+        id S1751634AbeFEIYu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 Jun 2018 04:24:50 -0400
+From: changbin.du@intel.com
+Subject: [PATCH v5 4/4] kernel hacking: new config CC_OPTIMIZE_FOR_DEBUGGING to apply GCC -Og optimization
+Date: Tue,  5 Jun 2018 16:13:40 +0800
+Message-ID: <1528186420-6615-5-git-send-email-changbin.du@intel.com>
+In-Reply-To: <1528186420-6615-1-git-send-email-changbin.du@intel.com>
+References: <1528186420-6615-1-git-send-email-changbin.du@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
-Message-ID: <20180604155449.kRb-xSY4nn5VketafKKT3SlFIhl3ynYH4f4d7kx321s@z>
+To: mingo@redhat.com, akpm@linux-foundation.org, yamada.masahiro@socionext.com, michal.lkml@markovi.net
+Cc: rostedt@goodmis.org, tglx@linutronix.de, rdunlap@infradead.org, x86@kernel.org, linux@armlinux.org.uk, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sparse@vger.kernel.org, changbin.du@gmail.com, Changbin Du <changbin.du@intel.com>
+Message-ID: <20180605081340.rrNqwQ9Hbu2mbPhIDTY-92WKBV_kCrMv9RiejZa-w8k@z>
 
-Don't check the ->break_handler() from the core kprobes code,
-because it was only used by jprobes which got removed.
+From: Changbin Du <changbin.du@intel.com>
 
-( In followup patches we'll remove the remaining calls in low level
-  arch handlers as well and remove the callback altogether. )
+This will apply GCC '-Og' optimization level which is supported
+since GCC 4.8. This optimization level offers a reasonable level
+of optimization while maintaining fast compilation and a good
+debugging experience. It is similar to '-O1' while perferring
+to keep debug ability over runtime speed.
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+If enabling this option breaks your kernel, you should either
+disable this or find a fix (mostly in the arch code). Currently
+this option has only been tested on x86_64 and arm platform.
+
+This option can satisfy people who was searching for a method
+to disable compiler optimizations so to achieve better kernel
+debugging experience with kgdb or qemu.
+
+The main problem of '-Og' is we must not use __attribute__((error(msg))).
+The compiler will report error though the call to error function
+still can be optimize out. So we must fallback to array tricky.
+
+Comparison of vmlinux size: a bit smaller.
+
+    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    22665554   9709674  2920908 35296136        21a9388 vmlinux
+
+    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ size vmlinux
+       text    data     bss     dec     hex filename
+    21499032   10102758 2920908 34522698        20ec64a vmlinux
+
+Comparison of system performance: a bit drop (~6%).
+    This benchmark of kernel compilation is suggested by Ingo Molnar.
+    https://lkml.org/lkml/2018/5/2/74
+
+    Preparation: Set cpufreq to 'performance'.
+    for ((cpu=0; cpu<120; cpu++)); do
+      G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
+      [ -f $G ] && echo performance > $G
+    done
+
+    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ perf stat --repeat 5 --null --pre                 '\
+        cp -a kernel ../kernel.copy.$(date +%s);         \
+        rm -rf *;                                        \
+        git checkout .;                                  \
+        echo 1 > /proc/sys/vm/drop_caches;               \
+        find ../kernel* -type f | xargs cat >/dev/null;  \
+        make -j kernel >/dev/null;                       \
+        make clean >/dev/null 2>&1;                      \
+        sync                                            '\
+                                                         \
+        make -j8 >/dev/null
+
+    Performance counter stats for 'make -j8' (5 runs):
+
+        219.764246652 seconds time elapsed                   ( +-  0.78% )
+
+    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+    $ perf stat --repeat 5 --null --pre                 '\
+        cp -a kernel ../kernel.copy.$(date +%s);         \
+        rm -rf *;                                        \
+        git checkout .;                                  \
+        echo 1 > /proc/sys/vm/drop_caches;               \
+        find ../kernel* -type f | xargs cat >/dev/null;  \
+        make -j kernel >/dev/null;                       \
+        make clean >/dev/null 2>&1;                      \
+        sync                                            '\
+                                                         \
+        make -j8 >/dev/null
+
+    Performance counter stats for 'make -j8' (5 runs):
+
+         233.574187771 seconds time elapsed                  ( +-  0.19% )
+
+Signed-off-by: Changbin Du <changbin.du@intel.com>
+Acked-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 ---
- Documentation/kprobes.txt |    2 +-
- kernel/kprobes.c          |   39 +++++----------------------------------
- 2 files changed, 6 insertions(+), 35 deletions(-)
+v3:
+  o Rename DEBUG_EXPERIENCE to CC_OPTIMIZE_FOR_DEBUGGING
+  o Move new configuration item to "General setup->Compiler optimization level"
+v2:
+  o Improve performance benchmark as suggested by Ingo.
+  o Grammar updates in description. (Randy Dunlap)
+---
+ Makefile                     |  4 ++++
+ include/linux/compiler-gcc.h |  2 +-
+ include/linux/compiler.h     |  2 +-
+ init/Kconfig                 | 19 +++++++++++++++++++
+ 4 files changed, 25 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
-index 5ae80baf3921..907a3017c0f2 100644
---- a/Documentation/kprobes.txt
-+++ b/Documentation/kprobes.txt
-@@ -262,7 +262,7 @@ is optimized, that modification is ignored.  Thus, if you want to
- tweak the kernel's execution path, you need to suppress optimization,
- using one of the following techniques:
+diff --git a/Makefile b/Makefile
+index 6720c40..977418a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -639,6 +639,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
  
--- Specify an empty function for the kprobe's post_handler or break_handler.
-+- Specify an empty function for the kprobe's post_handler.
++ifdef CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
++KBUILD_CFLAGS	+= $(call cc-option, -Og)
++else
+ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
+@@ -649,6 +652,7 @@ else
+ KBUILD_CFLAGS   += -O2
+ endif
+ endif
++endif
  
- or
+ KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
+ 			$(call cc-disable-warning,maybe-uninitialized,))
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index b4bf73f..586ed11 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -192,7 +192,7 @@
  
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 69de130595f7..536ab451e96d 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -627,8 +627,8 @@ static void optimize_kprobe(struct kprobe *p)
- 	    (kprobe_disabled(p) || kprobes_all_disarmed))
- 		return;
+ #define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __COUNTER__)
  
--	/* Both of break_handler and post_handler are not supported. */
--	if (p->break_handler || p->post_handler)
-+	/* kprobes with post_handler can not be optimized */
-+	if (p->post_handler)
- 		return;
+-#ifndef __CHECKER__
++#if !defined(__CHECKER__) && !defined(CONFIG_CC_OPTIMIZE_FOR_DEBUGGING)
+ # define __compiletime_warning(message) __attribute__((warning(message)))
+ # define __compiletime_error(message) __attribute__((error(message)))
+ #endif /* __CHECKER__ */
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index ab4711c..e97caf4 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -301,7 +301,7 @@ unsigned long read_word_at_a_time(const void *addr)
+  * sparse see a constant array size without breaking compiletime_assert on old
+  * versions of GCC (e.g. 4.2.4), so hide the array from sparse altogether.
+  */
+-# ifndef __CHECKER__
++# if !defined(__CHECKER__) && !defined(CONFIG_CC_OPTIMIZE_FOR_DEBUGGING)
+ #  define __compiletime_error_fallback(condition) \
+ 	do { ((void)sizeof(char[1 - 2 * condition])); } while (0)
+ # endif
+diff --git a/init/Kconfig b/init/Kconfig
+index f013afc..aa52535 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1036,6 +1036,25 @@ config CC_OPTIMIZE_FOR_SIZE
  
- 	op = container_of(p, struct optimized_kprobe, kp);
-@@ -1116,20 +1116,6 @@ static int aggr_fault_handler(struct kprobe *p, struct pt_regs *regs,
- }
- NOKPROBE_SYMBOL(aggr_fault_handler);
+ 	  If unsure, say N.
  
--static int aggr_break_handler(struct kprobe *p, struct pt_regs *regs)
--{
--	struct kprobe *cur = __this_cpu_read(kprobe_instance);
--	int ret = 0;
--
--	if (cur && cur->break_handler) {
--		if (cur->break_handler(cur, regs))
--			ret = 1;
--	}
--	reset_kprobe_instance();
--	return ret;
--}
--NOKPROBE_SYMBOL(aggr_break_handler);
--
- /* Walks the list and increments nmissed count for multiprobe case */
- void kprobes_inc_nmissed_count(struct kprobe *p)
- {
-@@ -1270,24 +1256,15 @@ static void cleanup_rp_inst(struct kretprobe *rp)
- }
- NOKPROBE_SYMBOL(cleanup_rp_inst);
++config CC_OPTIMIZE_FOR_DEBUGGING
++	bool "Optimize for better debugging experience (-Og)"
++	select NO_AUTO_INLINE
++	help
++	  This will apply GCC '-Og' optimization level which is supported
++	  since GCC 4.8. This optimization level offers a reasonable level
++	  of optimization while maintaining fast compilation and a good
++	  debugging experience. It is similar to '-O1' while preferring to
++	  keep debug ability over runtime speed. The overall performance
++	  will drop a bit (~6%).
++
++	  Use only if you want to debug the kernel, especially if you want
++	  to have better kernel debugging experience with gdb facilities
++	  like kgdb or qemu. If enabling this option breaks your kernel,
++	  you should either disable this or find a fix (mostly in the arch
++	  code).
++
++	  If unsure, select N.
++
+ endchoice
  
--/*
--* Add the new probe to ap->list. Fail if this is the
--* second break_handler at the address
--*/
-+/* Add the new probe to ap->list */
- static int add_new_kprobe(struct kprobe *ap, struct kprobe *p)
- {
- 	BUG_ON(kprobe_gone(ap) || kprobe_gone(p));
- 
--	if (p->break_handler || p->post_handler)
-+	if (p->post_handler)
- 		unoptimize_kprobe(ap, true);	/* Fall back to normal kprobe */
- 
--	if (p->break_handler) {
--		if (ap->break_handler)
--			return -EEXIST;
--		list_add_tail_rcu(&p->list, &ap->list);
--		ap->break_handler = aggr_break_handler;
--	} else
--		list_add_rcu(&p->list, &ap->list);
-+	list_add_rcu(&p->list, &ap->list);
- 	if (p->post_handler && !ap->post_handler)
- 		ap->post_handler = aggr_post_handler;
- 
-@@ -1310,8 +1287,6 @@ static void init_aggr_kprobe(struct kprobe *ap, struct kprobe *p)
- 	/* We don't care the kprobe which has gone. */
- 	if (p->post_handler && !kprobe_gone(p))
- 		ap->post_handler = aggr_post_handler;
--	if (p->break_handler && !kprobe_gone(p))
--		ap->break_handler = aggr_break_handler;
- 
- 	INIT_LIST_HEAD(&ap->list);
- 	INIT_HLIST_NODE(&ap->hlist);
-@@ -1706,8 +1681,6 @@ static int __unregister_kprobe_top(struct kprobe *p)
- 		goto disarmed;
- 	else {
- 		/* If disabling probe has special handlers, update aggrprobe */
--		if (p->break_handler && !kprobe_gone(p))
--			ap->break_handler = NULL;
- 		if (p->post_handler && !kprobe_gone(p)) {
- 			list_for_each_entry_rcu(list_p, &ap->list, list) {
- 				if ((list_p != p) && (list_p->post_handler))
-@@ -1911,7 +1884,6 @@ int register_kretprobe(struct kretprobe *rp)
- 	rp->kp.pre_handler = pre_handler_kretprobe;
- 	rp->kp.post_handler = NULL;
- 	rp->kp.fault_handler = NULL;
--	rp->kp.break_handler = NULL;
- 
- 	/* Pre-allocate memory for max kretprobe instances */
- 	if (rp->maxactive <= 0) {
-@@ -2034,7 +2006,6 @@ static void kill_kprobe(struct kprobe *p)
- 		list_for_each_entry_rcu(kp, &p->list, list)
- 			kp->flags |= KPROBE_FLAG_GONE;
- 		p->post_handler = NULL;
--		p->break_handler = NULL;
- 		kill_optimized_kprobe(p);
- 	}
- 	/*
+ config SYSCTL
+-- 
+2.7.4
