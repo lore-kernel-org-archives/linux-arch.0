@@ -1,127 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:34421 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751498AbeFEIY1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 Jun 2018 04:24:27 -0400
-From: changbin.du@intel.com
-Subject: [RESEND PATCH v5 0/4] kernel hacking: GCC optimization for better debug experience (-Og)
-Date: Tue,  5 Jun 2018 16:13:36 +0800
-Message-ID: <1528186420-6615-1-git-send-email-changbin.du@intel.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57542 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751599AbeFEPdu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 Jun 2018 11:33:50 -0400
+Date: Tue, 5 Jun 2018 16:34:21 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH -tip v5 06/27] arm64: kprobes: Remove jprobe
+ implementation
+Message-ID: <20180605153420.GA26352@arm.com>
+References: <152812730943.10068.5166429445118734697.stgit@devbox>
+ <152812748464.10068.10380156315388629319.stgit@devbox>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <152812748464.10068.10380156315388629319.stgit@devbox>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@redhat.com, akpm@linux-foundation.org, yamada.masahiro@socionext.com, michal.lkml@markovi.net
-Cc: rostedt@goodmis.org, tglx@linutronix.de, rdunlap@infradead.org, x86@kernel.org, linux@armlinux.org.uk, lgirdwood@gmail.com, broonie@kernel.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sparse@vger.kernel.org, changbin.du@gmail.com, Changbin Du <changbin.du@intel.com>
-Message-ID: <20180605081336.N3tMbyTr_REH3d3Ba2H-NR7-siwKVn8AyL0E9fO31QE@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180605153421.PHc8YyqiTvgjOfm3HEGkzXQv0JdbYdgzcVbJMWIzKb4@z>
 
-From: Changbin Du <changbin.du@intel.com>
+On Tue, Jun 05, 2018 at 12:51:24AM +0900, Masami Hiramatsu wrote:
+> Remove arch dependent setjump/longjump functions
+> and unused fields in kprobe_ctlblk for jprobes
+> from arch/arm64.
+> 
+> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> ---
+>  arch/arm64/include/asm/kprobes.h   |    1 -
+>  arch/arm64/kernel/probes/kprobes.c |   68 ------------------------------------
+>  2 files changed, 69 deletions(-)
 
-Hi all,
-I know some kernel developers was searching for a method to dissable GCC
-optimizations, probably they want to apply GCC '-O0' option. But since Linux
-kernel replys on GCC optimization to remove some dead code, so '-O0' just
-breaks the build. They do need this because they want to debug kernel with
-qemu, simics, kgtp or kgdb.
+Acked-by: Will Deacon <will.deacon@arm.com>
 
-Thanks for the GCC '-Og' optimization level introduced in GCC 4.8, which
-offers a reasonable level of optimization while maintaining fast compilation
-and a good debugging experience. It is similar to '-O1' while perferring to
-keep debug ability over runtime speed. With '-Og', we can build a kernel with
-better debug ability and little performance drop after some simple change.
-
-In this series, firstly introduce a new config CONFIG_NO_AUTO_INLINE after two
-fixes for this new option. With this option, only functions explicitly marked
-with "inline" will  be inlined. This will allow the function tracer to trace
-more functions because it only traces functions that the compiler has not
-inlined.
-
-Then introduce new config CC_OPTIMIZE_FOR_DEBUGGING which apply '-Og'
-optimization level for whole kernel, with a simple fix in fix_to_virt().
-Currently I have only tested this option on x86 and ARM platform. Other
-platforms should also work but probably need some compiling fixes as what
-having done in this series. I leave that to who want to try this debug
-option.
-
-Comparison of vmlinux size: a bit smaller.
-
-    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    22665554   9709674  2920908 35296136        21a9388 vmlinux
-
-    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ size vmlinux
-       text    data     bss     dec     hex filename
-    21499032   10102758 2920908 34522698        20ec64a vmlinux
-
-
-Comparison of system performance: a bit drop (~6%).
-    This benchmark of kernel compilation is suggested by Ingo Molnar.
-    https://lkml.org/lkml/2018/5/2/74
-
-    Preparation: Set cpufreq to 'performance'.
-    for ((cpu=0; cpu<120; cpu++)); do
-      G=/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_governor
-      [ -f $G ] && echo performance > $G
-    done
-
-    w/o CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ perf stat --repeat 5 --null --pre                 '\
-        cp -a kernel ../kernel.copy.$(date +%s);         \
-        rm -rf *;                                        \
-        git checkout .;                                  \
-        echo 1 > /proc/sys/vm/drop_caches;               \
-        find ../kernel* -type f | xargs cat >/dev/null;  \
-        make -j kernel >/dev/null;                       \
-        make clean >/dev/null 2>&1;                      \
-        sync                                            '\
-                                                         \
-        make -j8 >/dev/null
-
-     Performance counter stats for 'make -j8' (5 runs):
-
-        219.764246652 seconds time elapsed                   ( +-  0.78% )
-
-    w/ CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-    $ perf stat --repeat 5 --null --pre                 '\
-        cp -a kernel ../kernel.copy.$(date +%s);         \
-        rm -rf *;                                        \
-        git checkout .;                                  \
-        echo 1 > /proc/sys/vm/drop_caches;               \
-        find ../kernel* -type f | xargs cat >/dev/null;  \
-        make -j kernel >/dev/null;                       \
-        make clean >/dev/null 2>&1;                      \
-        sync                                            '\
-                                                         \
-        make -j8 >/dev/null
-
-    Performance counter stats for 'make -j8' (5 runs):
-
-         233.574187771 seconds time elapsed                  ( +-  0.19% )
-
-v5:
-  o Exchange the position of last two patches to avoid compiling error.
-v4:
-  o Remove aready merged one "regulator: add dummy function of_find_regulator_by_node".
-
-Changbin Du (4):
-  x86/mm: surround level4_kernel_pgt with #ifdef
-    CONFIG_X86_5LEVEL...#endif
-  kernel hacking: new config NO_AUTO_INLINE to disable compiler
-    auto-inline optimizations
-  ARM: mm: fix build error in fix_to_virt with
-    CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
-  kernel hacking: new config CC_OPTIMIZE_FOR_DEBUGGING to apply GCC -Og
-    optimization
-
- Makefile                          | 10 ++++++++++
- arch/arm/mm/mmu.c                 |  2 +-
- arch/x86/include/asm/pgtable_64.h |  2 ++
- arch/x86/kernel/head64.c          | 13 ++++++-------
- include/linux/compiler-gcc.h      |  2 +-
- include/linux/compiler.h          |  2 +-
- init/Kconfig                      | 19 +++++++++++++++++++
- lib/Kconfig.debug                 | 17 +++++++++++++++++
- 8 files changed, 57 insertions(+), 10 deletions(-)
-
--- 
-2.7.4
+Will
