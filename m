@@ -1,101 +1,96 @@
-From: Johan Hovold <johan@kernel.org>
-Subject: Re: [PATCH v5 2/4] kernel hacking: new config NO_AUTO_INLINE to
- disable compiler auto-inline optimizations
-Date: Wed, 6 Jun 2018 16:26:00 +0200
-Message-ID: <20180606142600.GN13775@localhost>
-References: <1528186420-6615-3-git-send-email-changbin.du@intel.com>
- <201806060501.btF3aJMZ%fengguang.wu@intel.com>
- <20180606095714.1d3c2def@vmware.local.home>
+From: Roman Penyaev <roman.penyaev@profitbricks.com>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Date: Wed, 6 Jun 2018 16:41:20 +0200
+Message-ID: <CAJrWOzB8hz2qzNJAWfNdW_U_ArHmvCpzZVJBebsfQ3=eEiSh7w@mail.gmail.com>
+References: <CAJrWOzBMB-6e1pKms4L216k=TN_Lr52_gWxj-ny8yitgf+K5gg@mail.gmail.com>
+ <Pine.LNX.4.44L0.1806060950050.1359-100000@iolanthe.rowland.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180606095714.1d3c2def@vmware.local.home>
+In-Reply-To: <Pine.LNX.4.44L0.1806060950050.1359-100000@iolanthe.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>, Viresh Kumar <viresh.kumar@linaro.org>
-Cc: kbuild test robot <lkp@intel.com>, linux-arch@vger.kernel.org, michal.lkml@markovi.net, linux-kernel@vger.kernel.org, arnd@arndb.de, yamada.masahiro@socionext.com, lgirdwood@gmail.com, broonie@kernel.org, rdunlap@infradead.org, x86@kernel.org, linux@armlinux.org.uk, changbin.du@intel.com, linux-sparse@vger.kernel.org, mingo@redhat.com, kbuild-all@01.org, akpm@linux-foundation.org, changbin.du@gmail.com, tglx@linutronix.de, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 06, 2018 at 09:57:14AM -0400, Steven Rostedt wrote:
-> On Wed, 6 Jun 2018 05:21:55 +0800
-> kbuild test robot <lkp@intel.com> wrote:
-> 
-> > Hi Changbin,
-> > 
-> > Thank you for the patch! Perhaps something to improve:
-> > 
-> > [auto build test WARNING on linus/master]
-> > [also build test WARNING on v4.17 next-20180605]
-> > [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
-> > 
-> > url:    https://github.com/0day-ci/linux/commits/changbin-du-intel-com/kernel-hacking-GCC-optimization-for-better-debug-experience-Og/20180606-001415
-> > config: ia64-allmodconfig (attached as .config)
-> > compiler: ia64-linux-gcc (GCC) 8.1.0
-> > reproduce:
-> >         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
-> >         chmod +x ~/bin/make.cross
-> >         # save the attached .config to linux build tree
-> >         make.cross ARCH=ia64 
-> > 
-> > All warnings (new ones prefixed by >>):
-> > 
-> >    drivers//staging/greybus/fw-management.c: In function 'fw_mgmt_load_and_validate_operation':
-> > >> drivers//staging/greybus/fw-management.c:153:2: warning: 'strncpy' specified bound 10 equals destination size [-Wstringop-truncation]  
-> >      strncpy(request.firmware_tag, tag, GB_FIRMWARE_TAG_MAX_SIZE);
-> >      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> >    drivers//staging/greybus/fw-management.c: In function 'fw_mgmt_backend_fw_update_operation':
-> >    drivers//staging/greybus/fw-management.c:304:2: warning: 'strncpy' specified bound 10 equals destination size [-Wstringop-truncation]
-> >      strncpy(request.firmware_tag, tag, GB_FIRMWARE_TAG_MAX_SIZE);
-> >      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> > --
-> >    drivers/auxdisplay/panel.c: In function 'panel_bind_key':
-> > >> drivers/auxdisplay/panel.c:1509:2: warning: 'strncpy' specified bound 12 equals destination size [-Wstringop-truncation]  
-> >      strncpy(key->u.kbd.press_str, press, sizeof(key->u.kbd.press_str));
-> >      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> >    drivers/auxdisplay/panel.c:1510:2: warning: 'strncpy' specified bound 12 equals destination size [-Wstringop-truncation]
-> >      strncpy(key->u.kbd.repeat_str, repeat, sizeof(key->u.kbd.repeat_str));
-> >      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-> 
-> Nice! This patch actually caused bugs in other areas of the code to be
-> caught by the build system.
-> 
-> The patch is not wrong. The code that has these warnings are.
+On Wed, Jun 6, 2018 at 3:54 PM, Alan Stern <stern@rowland.harvard.edu> wrote:
+> On Wed, 6 Jun 2018, Roman Penyaev wrote:
+>
+>> > Preserving the order of volatile accesses isn't sufficient.  The
+>> > compiler is still allowed to translate
+>> >
+>> >         r1 = READ_ONCE(x);
+>> >         if (r1) {
+>> >                 ...
+>> >         }
+>> >         WRITE_ONCE(y, r2);
+>> >
+>> > into something resembling
+>> >
+>> >         r1 = READ_ONCE(x);
+>> >         WRITE_ONCE(y, r2);
+>> >         if (r1) {
+>> >                 ...
+>> >         }
+>>
+>> Hi Alan,
+>>
+>> According to the standard C99 Annex C "the controlling expression of
+>> a selection statement (if or switch)" are the sequence points, just
+>> like a volatile access (READ_ONCE or WRITE_ONCE).
+>>
+>> "5.1.2.3 Program execution" states:
+>> "At certain specified points in the execution sequence called sequence
+>> points, all side effects of previous evaluations shall be complete
+>> and no side effects of subsequent evaluations shall have taken place."
+>>
+>> So in the example we have 3 sequence points: "READ_ONCE", "if" and
+>> "WRITE_ONCE", which it seems can't be reordered.  Am I mistaken
+>> interpreting standard?  Could you please clarify.
+>
+> Well, for one thing, we're talking about C11, not C99.
 
-Looks like the greybus code above is working as intended by checking for
-unterminated string after the strncpy, even if this does now triggers
-the truncation warning.
+C11 is a n1570, ISO/IEC 9899:2011 ? (according to wiki).  Found pdf on
+the web contains similar lines, so should not be any differences for
+that particular case.
 
-drivers/auxdisplay/panel.c looks broken, though.
+> For another, as far as I understand it, the standard means the program
+> should behave _as if_ the side effects are completed in the order
+> stated.  It doesn't mean that the generated code has to behave that way
+> literally.
 
-> > vim +/strncpy +153 drivers//staging/greybus/fw-management.c
-> > 
-> > 013e6653 Viresh Kumar 2016-05-14  138  
-> > 013e6653 Viresh Kumar 2016-05-14  139  static int fw_mgmt_load_and_validate_operation(struct fw_mgmt *fw_mgmt,
-> > 013e6653 Viresh Kumar 2016-05-14  140  					       u8 load_method, const char *tag)
-> > 013e6653 Viresh Kumar 2016-05-14  141  {
-> > 013e6653 Viresh Kumar 2016-05-14  142  	struct gb_fw_mgmt_load_and_validate_fw_request request;
-> > 013e6653 Viresh Kumar 2016-05-14  143  	int ret;
-> > 013e6653 Viresh Kumar 2016-05-14  144  
-> > 013e6653 Viresh Kumar 2016-05-14  145  	if (load_method != GB_FW_LOAD_METHOD_UNIPRO &&
-> > 013e6653 Viresh Kumar 2016-05-14  146  	    load_method != GB_FW_LOAD_METHOD_INTERNAL) {
-> > 013e6653 Viresh Kumar 2016-05-14  147  		dev_err(fw_mgmt->parent,
-> > 013e6653 Viresh Kumar 2016-05-14  148  			"invalid load-method (%d)\n", load_method);
-> > 013e6653 Viresh Kumar 2016-05-14  149  		return -EINVAL;
-> > 013e6653 Viresh Kumar 2016-05-14  150  	}
-> > 013e6653 Viresh Kumar 2016-05-14  151  
-> > 013e6653 Viresh Kumar 2016-05-14  152  	request.load_method = load_method;
-> > b2abeaa1 Viresh Kumar 2016-08-11 @153  	strncpy(request.firmware_tag, tag, GB_FIRMWARE_TAG_MAX_SIZE);
-> > 013e6653 Viresh Kumar 2016-05-14  154  
-> > 013e6653 Viresh Kumar 2016-05-14  155  	/*
-> > 013e6653 Viresh Kumar 2016-05-14  156  	 * The firmware-tag should be NULL terminated, otherwise throw error and
-> > 013e6653 Viresh Kumar 2016-05-14  157  	 * fail.
-> > 013e6653 Viresh Kumar 2016-05-14  158  	 */
-> > b2abeaa1 Viresh Kumar 2016-08-11  159  	if (request.firmware_tag[GB_FIRMWARE_TAG_MAX_SIZE - 1] != '\0') {
-> > 013e6653 Viresh Kumar 2016-05-14  160  		dev_err(fw_mgmt->parent, "load-and-validate: firmware-tag is not NULL terminated\n");
-> > 013e6653 Viresh Kumar 2016-05-14  161  		return -EINVAL;
-> > 013e6653 Viresh Kumar 2016-05-14  162  	}
+Then I do not understand what are the differences between "side effects
+are completed" and "code generated".  Abstract machine state should
+provide some guarantees between sequence points, e.g.:
 
-Viresh, do you want to work around the warning somehow?
+    foo();    /* function call */
+    ------------|
+    *a = 1;     |
+    *b = 12;    | Compiler in his right to reorder.
+    *c = 123;   |
+    ------------|
+    boo();    /* function call */
 
-Thanks,
-Johan
+compiler in his right to reorder memory accesses between foo() and
+boo() calls (foo and boo are sequence points, but memory accesses
+are not), but:
+
+   foo();    /* function call */
+   *(volatile int *)a = 1;
+   *(volatile int *)b = 12;
+   *(volatile int *)c = 123;
+   boo();    /* function call */
+
+are all sequence points, so compiler can't reorder them.
+
+Where am I mistaken?
+
+> And in particular, the standard is referring to the
+> behavior of a single thread, not the interaction between multiple
+> concurrent threads.
+
+Yes, that is clear: we are talking about code reordering in one
+particular function in a single threaded environment.
+
+--
+Roman
