@@ -1,46 +1,175 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:43840 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752613AbeFGJT0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 05:19:26 -0400
-Received: by mail-pf0-f195.google.com with SMTP id j20-v6so4604167pff.10
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 02:19:26 -0700 (PDT)
-Date: Thu, 7 Jun 2018 14:49:23 +0530
-From: Viresh Kumar <viresh.kumar@linaro.org>
-Subject: Re: [PATCH v5 2/4] kernel hacking: new config NO_AUTO_INLINE to
- disable compiler auto-inline optimizations
-Message-ID: <20180607091923.n5q5uzsxuymy3vov@vireshk-i7>
-References: <201806060501.btF3aJMZ%fengguang.wu@intel.com>
- <20180606095714.1d3c2def@vmware.local.home>
- <20180606142600.GN13775@localhost>
- <20180606142622.2338abf6@vmware.local.home>
- <20180607041718.qpqucjzlvcm5h3gn@vireshk-i7>
- <20180607074628.kd3iyxevwj3ypzbr@intel.com>
- <20180607083856.ealw62v3wx43zeqz@vireshk-i7>
- <1303b1abf9f9229a8d3ccbb68a3e413266b360d7.camel@petrovitsch.priv.at>
- <20180607091025.m7dfix3e2xbwx4cs@vireshk-i7>
- <20180607091816.GT13775@localhost>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:45122 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752568AbeFGJlb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 05:41:31 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w579e3hn077543
+        for <linux-arch@vger.kernel.org>; Thu, 7 Jun 2018 05:41:31 -0400
+Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2jf1b931qx-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 05:41:30 -0400
+Received: from localhost
+        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 7 Jun 2018 05:41:29 -0400
+Date: Thu, 7 Jun 2018 02:43:14 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20180530183826.GI7063@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1805301449350.1502-100000@iolanthe.rowland.org>
+ <CAJrWOzBMB-6e1pKms4L216k=TN_Lr52_gWxj-ny8yitgf+K5gg@mail.gmail.com>
+ <20180606190710.GY3593@linux.vnet.ibm.com>
+ <CA+55aFwZTAp3wZYGSJR1kPkc=QhPNMdEEPttsM4REcWPPDH9Bw@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180607091816.GT13775@localhost>
+In-Reply-To: <CA+55aFwZTAp3wZYGSJR1kPkc=QhPNMdEEPttsM4REcWPPDH9Bw@mail.gmail.com>
+Message-ID: <20180607094314.GF3593@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johan Hovold <johan@kernel.org>
-Cc: Bernd Petrovitsch <bernd@petrovitsch.priv.at>, "Du, Changbin" <changbin.du@intel.com>, Steven Rostedt <rostedt@goodmis.org>, gregkh@linuxfoundation.org, alex.elder@linaro.org, kbuild test robot <lkp@intel.com>, linux-arch@vger.kernel.org, michal.lkml@markovi.net, linux-kernel@vger.kernel.org, arnd@arndb.de, yamada.masahiro@socionext.com, lgirdwood@gmail.com, broonie@kernel.org, rdunlap@infradead.org, x86@kernel.org, linux@armlinux.org.uk, linux-sparse@vger.kernel.org, mingo@redhat.com, kbuild-all@01.org, akpm@linux-foundation.org, changbin.du@gmail.com, tglx@linutronix.de, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180607091923.BcslzNSwAXbn3xl-LPZRk3hKlN6cJt4KXRttdro4hHw@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Roman Pen <roman.penyaev@profitbricks.com>, Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20180607094314.pAudFc4rgaLTQFf_Cay1CTDsABKTiVoJ3HS6mfo0u0M@z>
 
-On 07-06-18, 11:18, Johan Hovold wrote:
-> If you want to work around the warning and think you can do it in some
-> non-contrived way, then go for it.
+On Wed, Jun 06, 2018 at 12:23:33PM -0700, Linus Torvalds wrote:
+> On Wed, Jun 6, 2018 at 12:05 PM Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >
+> > 3.      Introduce a new marking/attribute in the .def file that indicates
+> >         whether an access is volatile or implies a compiler barrier.
+> >         This might allow herd to be more selective about control dependencies,
+> >         for example, extending them past the end of "if" statements
+> >         containing compiler barriers.
+> >
+> >         One tricky aspect of this approach is working out what the
+> >         compiler can do to the "if" statement.  We definitely do not
+> >         want to put the complexity of all possible compilers into herd!
 > 
-> Clearing the request buffer, checking for termination using strnlen, and
-> then using memcpy might not be too bad.
+> This _smells_ like the right thing to do.
 > 
-> But after all, it is a false positive, so leaving things as they stand
-> is fine too.
+> Aren't the litmus-tests effectively always going to be using READ_ONCE
+> etc volatile accesses anyway?
 
-Leave it then :)
+Yes, right now LKMM handles only volatile (READ_ONCE and WRITE_ONCE)
+or stronger.
 
--- 
-viresh
+> Most of what the LKMM litmus tests test for is things with side effects, no?
+> 
+> And honestly, that is exactly the kind of litmus test behavior we
+> *want* our memory model to have, in that any CPU designer (or compiler
+> designer) that uses our LKMM litmus tests should very much be aware of
+> the fact that we expect a conditional->store memory ordering to be a
+> ordering.
+> 
+> We have real code that depends on it, so I think LKMM should expose
+> those ordering requirements.
+
+Good point.  And I did manage to advocate for control dependencies at an
+academic conference earlier this week without the need for a bodyguard,
+so perhaps things are improving.  ;-)
+
+> I'm also perfectly happy with no markings at all: all memory accesses
+> are "voiatile" as fat as C is concerned, and cannot be moved around by
+> the compiler at all - and all that LKMM tests is memory _ordering_,
+> not "compiler can do X".
+
+We are considering adding unmarked accesses, for example, accesses
+protected by locks.  One possible litmus test (not yet supported!)
+might look like this:
+
+	C Z6.0+pooncelock+pooncelock+pombonce
+
+	{}
+
+	P0(int *x, int *y, spinlock_t *mylock)
+	{
+		spin_lock(mylock);
+		WRITE_ONCE(*x, 1);
+		y = 1;
+		spin_unlock(mylock);
+	}
+
+	P1(int *y, int *z, spinlock_t *mylock)
+	{
+		int r0;
+
+		spin_lock(mylock);
+		r0 = y;
+		WRITE_ONCE(*z, 1);
+		spin_unlock(mylock);
+	}
+
+	P2(int *x, int *z)
+	{
+		int r1;
+
+		WRITE_ONCE(*z, 2);
+		smp_mb();
+		r1 = READ_ONCE(x);
+	}
+
+	exists (1:r0=1 /\ z=2 /\ 2:r1=0)
+
+Because y is only ever accessed under a lock, the compiler cannot do
+anything to mess it up.  In this particular case, the compiler would
+have a hard time messing up the other accesses, aside from extremely
+unfriendly measures such as load/store tearing, but we have seen
+Linux-kernel examples where the compiler could very reasonably repeat
+and fuse loads and stores and so on.
+
+Thoughts?
+
+> Because I think your option 1. is absolutely against everything we
+> want to happen:
+> 
+> > 1.      Status quo.  This works reasonably well, but we have already
+> >         seen that your scenario makes it ask for more synchronization
+> >         than necessary.
+> 
+> We absolutely do *not* want CPU designers etc thinking that we'll add
+> insane synchronization.
+> 
+> We were already burned by insane bad CPU design once in the form of
+> the garbage that alpha desigers gave us.
+> 
+> I am personally not at all interested in seeing our memory ordering
+> rules be "nice". They should be as tight as possible, and *not* allow
+> any crazy shit that some insane person can come up with. No more
+> "dependent reads out of ordetr" garbage, and no more "store done
+> before the condition it depends on" garbage.
+> 
+> A CPU designer (or a C++ memory ordering person) who tries to sneak
+> shit like that past us should be shunned, and not taken seriously.
+
+Given that I am writing this in a C++ Standards Committee meeting,
+I do like the call for sanity.
+
+> And our memory ordering rules should be very explicit about it, so
+> that people don't even _try_ to do insane things.
+> 
+> I want any memory ordering litmus tests to say "we depend on this, so
+> as a CPU designer don't mess it up, because then we won't run on the
+> resulting crap".
+> 
+> I'm not in the least interested in the LKMM litmus tests being an
+> excuse for unnecessarily weak memory ordering. That's the *opposite*
+> of what I would want any litmus tests to do.
+> 
+> If people are looking to use them that way, then I'm going to remove
+> them, because such litmus tests are not in the best interest of the
+> kernel.
+> 
+> Future CPU designs need to be *saner*, not perpetuate the kind of
+> garbage insanity we have seen so far.
+
+OK, I think we all agree that we need to move away from status quo.
+The workaround buys us some time, but the need to move is undisputed.
+(If someone does dispute it, this would be a great time for them to make
+their concerns known!)
+
+I will take a hard look at option #3, and see if there any hidden gotchas.
+
+							Thanx, Paul
