@@ -1,39 +1,30 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 07/10] mm: Prevent mprotect from changing shadow stack
-Date: Thu,  7 Jun 2018 07:38:04 -0700
-Message-ID: <20180607143807.3611-8-yu-cheng.yu@intel.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH 2/5] x86/fpu/xstate: Change some names to separate XSAVES
+ system and user states
+Date: Thu, 7 Jun 2018 08:38:47 -0700
+Message-ID: <CALCETrXAx4vBUxf3VaePNm3HHLZkdTFAR9TV0T+A-jb2QL7Uag@mail.gmail.com>
+References: <20180607143544.3477-1-yu-cheng.yu@intel.com> <20180607143544.3477-3-yu-cheng.yu@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+In-Reply-To: <20180607143544.3477-3-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- mm/mprotect.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+On Thu, Jun 7, 2018 at 7:40 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+> To support XSAVES system states, change some names to distinguish
+> user and system states.
+>
+> Change:
+>   supervisor to system
+>   copy_init_fpstate_to_fpregs() to copy_init_fpstate_user_settings_to_fpregs()
+>   xfeatures_mask to xfeatures_mask_user
+>   XCNTXT_MASK to SUPPORTED_XFEATURES_MASK (states supported)
 
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index 625608bc8962..128dcb880c12 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -446,6 +446,15 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
- 	error = -ENOMEM;
- 	if (!vma)
- 		goto out;
-+
-+	/*
-+	 * Do not allow changing shadow stack memory.
-+	 */
-+	if (vma->vm_flags & VM_SHSTK) {
-+		error = -EINVAL;
-+		goto out;
-+	}
-+
- 	prev = vma->vm_prev;
- 	if (unlikely(grows & PROT_GROWSDOWN)) {
- 		if (vma->vm_start >= end)
--- 
-2.15.1
+How about copy_init_user_fpstate_to_fpregs()?  It's shorter and more
+to the point.
+
+--Andy
