@@ -1,71 +1,67 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Thu, 7 Jun 2018 12:57:28 -0700
-Message-ID: <20180607195728.GM3593@linux.vnet.ibm.com>
-References: <20180530183826.GI7063@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1805301449350.1502-100000@iolanthe.rowland.org>
- <CAJrWOzBMB-6e1pKms4L216k=TN_Lr52_gWxj-ny8yitgf+K5gg@mail.gmail.com>
- <20180606190710.GY3593@linux.vnet.ibm.com>
- <CA+55aFwZTAp3wZYGSJR1kPkc=QhPNMdEEPttsM4REcWPPDH9Bw@mail.gmail.com>
- <20180607094314.GF3593@linux.vnet.ibm.com>
- <CA+55aFzs0ueN22WaKs_R6=T4HHY9j0MtpoFA8eh=t=PN7grCnA@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Cyrill Gorcunov <gorcunov@gmail.com>
+Subject: Re: [PATCH 03/10] x86/cet: Signal handling for shadow stack
+Date: Thu, 7 Jun 2018 23:07:14 +0300
+Message-ID: <20180607200714.GA2525@uranus>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+ <20180607143807.3611-4-yu-cheng.yu@intel.com>
+ <CALCETrWo77RS_wOzskw5OG-LdC1S-b_NY=uPWUmPbQEnNwANgQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CA+55aFzs0ueN22WaKs_R6=T4HHY9j0MtpoFA8eh=t=PN7grCnA@mail.gmail.com>
+In-Reply-To: <CALCETrWo77RS_wOzskw5OG-LdC1S-b_NY=uPWUmPbQEnNwANgQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Roman Pen <roman.penyaev@profitbricks.com>, Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Florian Weimer <fweimer@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 07, 2018 at 08:06:51AM -0700, Linus Torvalds wrote:
-> On Thu, Jun 7, 2018 at 2:41 AM Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
+On Thu, Jun 07, 2018 at 11:30:34AM -0700, Andy Lutomirski wrote:
+> On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 > >
-> > We are considering adding unmarked accesses, for example, accesses
-> > protected by locks.  One possible litmus test (not yet supported!)
-> > might look like this:
+> > Set and restore shadow stack pointer for signals.
 > 
-> Fair enough - you do want to have the distinction between "marked" and
-> "unmarked".
+> How does this interact with siglongjmp()?
 > 
-> And it does make sense, although at that point I think you do hit the
-> "what can a compiler do" issue more. Right now, I think the things you
-> check are all pretty much "compiler can't do a lot of movement".
+> This patch makes me extremely nervous due to the possibility of ABI
+> issues and CRIU breakage.
+> 
+> > diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/uapi/asm/sigcontext.h
+> > index 844d60eb1882..6c8997a0156a 100644
+> > --- a/arch/x86/include/uapi/asm/sigcontext.h
+> > +++ b/arch/x86/include/uapi/asm/sigcontext.h
+> > @@ -230,6 +230,7 @@ struct sigcontext_32 {
+> >         __u32                           fpstate; /* Zero when no FPU/extended context */
+> >         __u32                           oldmask;
+> >         __u32                           cr2;
+> > +       __u32                           ssp;
+> >  };
+> >
+> >  /*
+> > @@ -262,6 +263,7 @@ struct sigcontext_64 {
+> >         __u64                           trapno;
+> >         __u64                           oldmask;
+> >         __u64                           cr2;
+> > +       __u64                           ssp;
+> >
+> >         /*
+> >          * fpstate is really (struct _fpstate *) or (struct _xstate *)
+> > @@ -320,6 +322,7 @@ struct sigcontext {
+> >         struct _fpstate __user          *fpstate;
+> >         __u32                           oldmask;
+> >         __u32                           cr2;
+> > +       __u32                           ssp;
+> 
+> Is it actually okay to modify these structures like this?  They're
+> part of the user ABI, and I don't know whether any user code relies on
+> the size being constant.
 
-Agreed, and the added freedom unmarked accesses give the compiler is
-one reason why this is something being thought about as opposed to
-something already done.  The approach that looks most feasible is to
-make LKMM complain if there is a data race involving unmarked accesses.
-This is a bit annoying given the Linux kernel's large number of unmarked
-accesses to shared variable that do involve data races, however, my
-belief is that developers and maintainers of such code are under the
-obligation to make sure that the compiler cannot mess them up.  One
-way that they could do this is to list the transformations that the
-compiler could carry out, and make a separate litmus test for each,
-substituting READ_ONCE() and WRITE_ONCE() for the unmarked accesses.
+For sure it might cause problems for CRIU since we have
+similar definitions for this structure inside our code.
+That said if kernel is about to modify the structures it
+should keep backward compatibility at least if a user
+passes previous version of a structure @ssp should be
+set to something safe by the kernel itself.
 
-Then unmarked accesses would be for code protected by locks or that
-used dependencies to avoid data races.
-
-Thoughts?
-
-> But I suspect that the markings you do have are going to be fairly
-> limited. Things like "READ_ONCE()" vs "smp_read_acquire()" are still
-> fairly simple from a compiler standpoint, at least when it comes to
-> control flow - they have "side effects". So I guess that's the only
-> real difference there - a regular read doesn't have side effects, so
-> it could be moved up past a conditional, and/or duplicated for each
-> use. That sounds much more complex to the checker than the existing
-> things it supports, no?
-
-Indeed!
-
-And those sorts of compiler transformations are one of the things that
-has pushed us to the "no data races" model.  If there are no data races,
-then those compiler transformations don't affect the outcome, given that
-C11 and later compilers are not allowed to introduce data races.
-
-							Thanx, Paul
+I didn't read the whole series of patches in details
+yet, hopefully will be able tomorrow. Thanks Andy for
+CC'ing!
