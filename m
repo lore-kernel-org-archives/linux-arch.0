@@ -1,62 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33008 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933567AbeFGSY7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 14:24:59 -0400
-Received: from mail-wm0-f46.google.com (mail-wm0-f46.google.com [74.125.82.46])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id BF90A208A6
-        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 18:24:58 +0000 (UTC)
-Received: by mail-wm0-f46.google.com with SMTP id q4-v6so4205900wmq.1
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 11:24:58 -0700 (PDT)
+Received: from mail-wr0-f196.google.com ([209.85.128.196]:38450 "EHLO
+        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933924AbeFGSaq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 14:30:46 -0400
+Received: by mail-wr0-f196.google.com with SMTP id e18-v6so2585184wrs.5
+        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 11:30:46 -0700 (PDT)
 MIME-Version: 1.0
-References: <20180607143705.3531-1-yu-cheng.yu@intel.com> <20180607143705.3531-7-yu-cheng.yu@intel.com>
- <CALCETrVa8MtxP9iqYkZLnetaQiN4UaWb=jGz1+rLsCuETHKydg@mail.gmail.com> <d9939c23-bb8b-1fbc-ac65-8bf1d7cbf650@linux.intel.com>
-In-Reply-To: <d9939c23-bb8b-1fbc-ac65-8bf1d7cbf650@linux.intel.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 7 Jun 2018 11:24:45 -0700
-Message-ID: <CALCETrU=_zFvSqc4UWQ1ySgn1MAU=z9JFJbPpeK6gTQwbZGonQ@mail.gmail.com>
-Subject: Re: [PATCH 6/9] x86/mm: Introduce ptep_set_wrprotect_flush and
- related functions
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-4-yu-cheng.yu@intel.com>
+In-Reply-To: <20180607143807.3611-4-yu-cheng.yu@intel.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 7 Jun 2018 11:30:34 -0700
+Message-ID: <CALCETrWo77RS_wOzskw5OG-LdC1S-b_NY=uPWUmPbQEnNwANgQ@mail.gmail.com>
+Subject: Re: [PATCH 03/10] x86/cet: Signal handling for shadow stack
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
-Message-ID: <20180607182445.P2QsPvIrv0xyY_UjbFlBBVzCPVCiDVp6Z8fXA_GpCws@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Florian Weimer <fweimer@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+Message-ID: <20180607183034.iTkMWtlKqPzdXTeiePDLAKhQFeof7c2Sx52Lxo-Fy_4@z>
 
-On Thu, Jun 7, 2018 at 11:23 AM Dave Hansen <dave.hansen@linux.intel.com> wrote:
+On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 >
-> On 06/07/2018 09:24 AM, Andy Lutomirski wrote:
-> >> +static inline void ptep_set_wrprotect_flush(struct vm_area_struct *vma,
-> >> +                                           unsigned long addr, pte_t *ptep)
-> >> +{
-> >> +       bool rw;
-> >> +
-> >> +       rw = test_and_clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-> >> +       if (IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER)) {
-> >> +               struct mm_struct *mm = vma->vm_mm;
-> >> +               pte_t pte;
-> >> +
-> >> +               if (rw && (atomic_read(&mm->mm_users) > 1))
-> >> +                       pte = ptep_clear_flush(vma, addr, ptep);
-> > Why are you clearing the pte?
->
-> I think I insisted on this being in there.
->
-> First of all, we need to flush the TLB eventually because we need the
-> shadowstack PTE permissions to be in effect.
->
-> But, generally, we can't clear a dirty bit in a "live" PTE without
-> flushing.  The processor can keep writing until we flush, and even keep
-> setting it whenever _it_ allows a write, which it can do based on stale
-> TLB contents.  Practically, I think a walk to set the dirty bit is
-> mostly the same as a TLB miss, but that's certainly not guaranteed forever.
->
-> That's even ignoring all the fun errata we have.
+> Set and restore shadow stack pointer for signals.
 
-Maybe make it a separate patch, then?  It seems like this patch is
-doing two almost entirely separate things: adding some flushes and
-adding the magic hwdirty -> swdirty transition.  As it stands, it's
-quite difficult to read the patch and figure out what it does.
+How does this interact with siglongjmp()?
+
+This patch makes me extremely nervous due to the possibility of ABI
+issues and CRIU breakage.
+
+> diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/uapi/asm/sigcontext.h
+> index 844d60eb1882..6c8997a0156a 100644
+> --- a/arch/x86/include/uapi/asm/sigcontext.h
+> +++ b/arch/x86/include/uapi/asm/sigcontext.h
+> @@ -230,6 +230,7 @@ struct sigcontext_32 {
+>         __u32                           fpstate; /* Zero when no FPU/extended context */
+>         __u32                           oldmask;
+>         __u32                           cr2;
+> +       __u32                           ssp;
+>  };
+>
+>  /*
+> @@ -262,6 +263,7 @@ struct sigcontext_64 {
+>         __u64                           trapno;
+>         __u64                           oldmask;
+>         __u64                           cr2;
+> +       __u64                           ssp;
+>
+>         /*
+>          * fpstate is really (struct _fpstate *) or (struct _xstate *)
+> @@ -320,6 +322,7 @@ struct sigcontext {
+>         struct _fpstate __user          *fpstate;
+>         __u32                           oldmask;
+>         __u32                           cr2;
+> +       __u32                           ssp;
+
+Is it actually okay to modify these structures like this?  They're
+part of the user ABI, and I don't know whether any user code relies on
+the size being constant.
+
+> +int cet_push_shstk(int ia32, unsigned long ssp, unsigned long val)
+> +{
+> +       if (val >= TASK_SIZE)
+> +               return -EINVAL;
+
+TASK_SIZE_MAX.  But I'm a bit unsure why you need this check at all.
+
+> +int cet_restore_signal(unsigned long ssp)
+> +{
+> +       if (!current->thread.cet.shstk_enabled)
+> +               return 0;
+> +       return cet_set_shstk_ptr(ssp);
+> +}
+
+This will blow up if the shadow stack enabled state changes in a
+signal handler.  Maybe we don't care.
