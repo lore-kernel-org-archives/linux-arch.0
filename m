@@ -1,76 +1,68 @@
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 00/10] Control Flow Enforcement - Part (3)
-Date: Thu,  7 Jun 2018 07:37:57 -0700
-Message-ID: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+Subject: [PATCH 7/9] x86/mm: Shadow stack page fault error checking
+Date: Thu,  7 Jun 2018 07:37:03 -0700
+Message-ID: <20180607143705.3531-8-yu-cheng.yu@intel.com>
+References: <20180607143705.3531-1-yu-cheng.yu@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180607143705.3531-1-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This series introduces CET - Shadow stack
+If a page fault is triggered by a shadow stack access (e.g.
+call/ret) or shadow stack management instructions (e.g.
+wrussq), then bit[6] of the page fault error code is set.
 
-At the high level, shadow stack is:
+In access_error(), we check if a shadow stack page fault
+is within a shadow stack memory area.
 
-	Allocated from a task's address space with vm_flags VM_SHSTK;
-	Its PTEs must be read-only and dirty;
-	Fixed sized, but the default size can be changed by sys admin.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/include/asm/traps.h |  2 ++
+ arch/x86/mm/fault.c          | 11 +++++++++++
+ 2 files changed, 13 insertions(+)
 
-For a forked child, the shadow stack is duplicated when the next
-shadow stack access takes place.
-
-For a pthread child, a new shadow stack is allocated.
-
-The signal handler uses the same shadow stack as the main program.
-
-Yu-cheng Yu (10):
-  x86/cet: User-mode shadow stack support
-  x86/cet: Introduce WRUSS instruction
-  x86/cet: Signal handling for shadow stack
-  x86/cet: Handle thread shadow stack
-  x86/cet: ELF header parsing of Control Flow Enforcement
-  x86/cet: Add arch_prctl functions for shadow stack
-  mm: Prevent mprotect from changing shadow stack
-  mm: Prevent mremap of shadow stack
-  mm: Prevent madvise from changing shadow stack
-  mm: Prevent munmap and remap_file_pages of shadow stack
-
- arch/x86/Kconfig                              |   4 +
- arch/x86/ia32/ia32_signal.c                   |   5 +
- arch/x86/include/asm/cet.h                    |  48 ++++++
- arch/x86/include/asm/disabled-features.h      |   8 +-
- arch/x86/include/asm/elf.h                    |   5 +
- arch/x86/include/asm/mmu_context.h            |   3 +
- arch/x86/include/asm/msr-index.h              |  14 ++
- arch/x86/include/asm/processor.h              |   5 +
- arch/x86/include/asm/special_insns.h          |  44 +++++
- arch/x86/include/uapi/asm/elf_property.h      |  16 ++
- arch/x86/include/uapi/asm/prctl.h             |  15 ++
- arch/x86/include/uapi/asm/sigcontext.h        |   4 +
- arch/x86/kernel/Makefile                      |   4 +
- arch/x86/kernel/cet.c                         | 224 ++++++++++++++++++++++++
- arch/x86/kernel/cet_prctl.c                   | 203 ++++++++++++++++++++++
- arch/x86/kernel/cpu/common.c                  |  24 +++
- arch/x86/kernel/elf.c                         | 236 ++++++++++++++++++++++++++
- arch/x86/kernel/process.c                     |  10 ++
- arch/x86/kernel/process_64.c                  |   7 +
- arch/x86/kernel/signal.c                      |  11 ++
- arch/x86/lib/x86-opcode-map.txt               |   2 +-
- arch/x86/mm/fault.c                           |  13 +-
- fs/binfmt_elf.c                               |  16 ++
- fs/proc/task_mmu.c                            |   3 +
- include/uapi/linux/elf.h                      |   1 +
- mm/madvise.c                                  |   9 +
- mm/mmap.c                                     |  13 ++
- mm/mprotect.c                                 |   9 +
- mm/mremap.c                                   |   5 +-
- tools/objtool/arch/x86/lib/x86-opcode-map.txt |   2 +-
- 30 files changed, 958 insertions(+), 5 deletions(-)
- create mode 100644 arch/x86/include/asm/cet.h
- create mode 100644 arch/x86/include/uapi/asm/elf_property.h
- create mode 100644 arch/x86/kernel/cet.c
- create mode 100644 arch/x86/kernel/cet_prctl.c
- create mode 100644 arch/x86/kernel/elf.c
-
+diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+index 5196050ff3d5..58ea2f5722e9 100644
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -157,6 +157,7 @@ enum {
+  *   bit 3 ==				1: use of reserved bit detected
+  *   bit 4 ==				1: fault was an instruction fetch
+  *   bit 5 ==				1: protection keys block access
++ *   bit 6 ==				1: shadow stack access fault
+  */
+ enum x86_pf_error_code {
+ 	X86_PF_PROT	=		1 << 0,
+@@ -165,5 +166,6 @@ enum x86_pf_error_code {
+ 	X86_PF_RSVD	=		1 << 3,
+ 	X86_PF_INSTR	=		1 << 4,
+ 	X86_PF_PK	=		1 << 5,
++	X86_PF_SHSTK	=		1 << 6,
+ };
+ #endif /* _ASM_X86_TRAPS_H */
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 73bd8c95ac71..2b3b9170109c 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1166,6 +1166,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
+ 				       (error_code & X86_PF_INSTR), foreign))
+ 		return 1;
+ 
++	/*
++	 * Verify X86_PF_SHSTK is within a shadow stack VMA.
++	 * It is always an error if there is a shadow stack
++	 * fault outside a shadow stack VMA.
++	 */
++	if (error_code & X86_PF_SHSTK) {
++		if (!(vma->vm_flags & VM_SHSTK))
++			return 1;
++		return 0;
++	}
++
+ 	if (error_code & X86_PF_WRITE) {
+ 		/* write, present and write, not present: */
+ 		if (unlikely(!(vma->vm_flags & VM_WRITE)))
 -- 
 2.15.1
