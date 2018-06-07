@@ -1,55 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33118 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:33846 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752110AbeFGXAW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 19:00:22 -0400
-Received: from mail-wm0-f41.google.com (mail-wm0-f41.google.com [74.125.82.41])
+        id S1752081AbeFGXBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 19:01:37 -0400
+Received: from mail-wr0-f178.google.com (mail-wr0-f178.google.com [209.85.128.178])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 8B0EC208B4
-        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 23:00:21 +0000 (UTC)
-Received: by mail-wm0-f41.google.com with SMTP id p126-v6so126235wmb.2
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 16:00:21 -0700 (PDT)
+        by mail.kernel.org (Postfix) with ESMTPSA id 2598D208B4
+        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 23:01:37 +0000 (UTC)
+Received: by mail-wr0-f178.google.com with SMTP id w10-v6so11448881wrk.9
+        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 16:01:37 -0700 (PDT)
 MIME-Version: 1.0
-References: <20180607143855.3681-1-yu-cheng.yu@intel.com> <20180607143855.3681-6-yu-cheng.yu@intel.com>
- <CALCETrVRH8LeYoo7V1VBPqg4WS0Enxtizt=T7dPvgoeWfJrdzA@mail.gmail.com> <CAMe9rOp9YtNnTzsDPFXukK6ps7VNa2MU6o0GwnoES5Ma_AC65A@mail.gmail.com>
-In-Reply-To: <CAMe9rOp9YtNnTzsDPFXukK6ps7VNa2MU6o0GwnoES5Ma_AC65A@mail.gmail.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-7-yu-cheng.yu@intel.com>
+ <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
+ <1528403417.5265.35.camel@2b52.sc.intel.com> <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
+ <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
+In-Reply-To: <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
 From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 7 Jun 2018 16:00:08 -0700
-Message-ID: <CALCETrXOc3-2QLks3iaTTvEE=4+2Oi3PORa8HPbYiDTtKV6CLQ@mail.gmail.com>
-Subject: Re: [PATCH 5/7] x86: Insert endbr32/endbr64 to vDSO
+Date: Thu, 7 Jun 2018 16:01:23 -0700
+Message-ID: <CALCETrV1GG5rq_kwxkS-o3x8Ldr72ThdYgkJKQ9cx9Q63SxgTQ@mail.gmail.com>
+Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "H. J. Lu" <hjl.tools@gmail.com>
 Cc: Andrew Lutomirski <luto@kernel.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
-Message-ID: <20180607230008.lPAe-0ilJ8EwZNKzkhYLie-zqx61sgGPqjcvAZXD75w@z>
+Message-ID: <20180607230123.HVYAMv9OZNaUOMTJno74_LfQYsXgOc7q_SFst4UKgQo@z>
 
-On Thu, Jun 7, 2018 at 3:03 PM H.J. Lu <hjl.tools@gmail.com> wrote:
+On Thu, Jun 7, 2018 at 3:02 PM H.J. Lu <hjl.tools@gmail.com> wrote:
 >
-> On Thu, Jun 7, 2018 at 1:50 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> > On Thu, Jun 7, 2018 at 7:42 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> On Thu, Jun 7, 2018 at 2:01 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> > On Thu, Jun 7, 2018 at 1:33 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 > >>
-> >> From: "H.J. Lu" <hjl.tools@gmail.com>
+> >> On Thu, 2018-06-07 at 11:48 -0700, Andy Lutomirski wrote:
+> >> > On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> >> > >
+> >> > > The following operations are provided.
+> >> > >
+> >> > > ARCH_CET_STATUS:
+> >> > >         return the current CET status
+> >> > >
+> >> > > ARCH_CET_DISABLE:
+> >> > >         disable CET features
+> >> > >
+> >> > > ARCH_CET_LOCK:
+> >> > >         lock out CET features
+> >> > >
+> >> > > ARCH_CET_EXEC:
+> >> > >         set CET features for exec()
+> >> > >
+> >> > > ARCH_CET_ALLOC_SHSTK:
+> >> > >         allocate a new shadow stack
+> >> > >
+> >> > > ARCH_CET_PUSH_SHSTK:
+> >> > >         put a return address on shadow stack
+> >> > >
+> >> > > ARCH_CET_ALLOC_SHSTK and ARCH_CET_PUSH_SHSTK are intended only for
+> >> > > the implementation of GLIBC ucontext related APIs.
+> >> >
+> >> > Please document exactly what these all do and why.  I don't understand
+> >> > what purpose ARCH_CET_LOCK and ARCH_CET_EXEC serve.  CET is opt in for
+> >> > each ELF program, so I think there should be no need for a magic
+> >> > override.
 > >>
-> >> When Intel indirect branch tracking is enabled, functions in vDSO which
-> >> may be called indirectly should have endbr32 or endbr64 as the first
-> >> instruction.  We try to compile vDSO with -fcf-protection=branch -mibt
-> >> if possible.  Otherwise, we insert endbr32 or endbr64 by hand to assembly
-> >> codes generated by the compiler.
+> >> CET is initially enabled if the loader has CET capability.  Then the
+> >> loader decides if the application can run with CET.  If the application
+> >> cannot run with CET (e.g. a dependent library does not have CET), then
+> >> the loader turns off CET before passing to the application.  When the
+> >> loader is done, it locks out CET and the feature cannot be turned off
+> >> anymore until the next exec() call.
 > >
-> > Wow, that's... a genuine abomination.  Do we really need to support
-> > CET on kernels built with old toolchains?
-> >
+> > Why is the lockout necessary?  If user code enables CET and tries to
+> > run code that doesn't support CET, it will crash.  I don't see why we
+> > need special code in the kernel to prevent a user program from calling
+> > arch_prctl() and crashing itself.  There are already plenty of ways to
+> > do that :)
 >
-> Yes.  GCC 7 should be able to build CET kernel.
->
+> On CET enabled machine, not all programs nor shared libraries are
+> CET enabled.  But since ld.so is CET enabled, all programs start
+> as CET enabled.  ld.so will disable CET if a program or any of its shared
+> libraries aren't CET enabled.  ld.so will lock up CET once it is done CET
+> checking so that CET can't no longer be disabled afterwards.
 
-Why?  Presumably people running distros that use CET are going to have
-kernels build with a CET-supporting compiler.
+Yeah, I got that.  No one has explained *why*.
 
-If we really really need this patch, then I want some kind of
-assurance that selftests will catch the failure if something breaks it
-or a new vDSO entry point is added.  But my inclination is to NAK this
-patch and let the distros carry it if they really really want it.  As
-it stands, this sucks for maintainability.
+(Also, shouldn't the vDSO itself be marked as supporting CET?)
