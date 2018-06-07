@@ -1,25 +1,57 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH 08/10] mm: Prevent mremap of shadow stack
-Date: Thu, 07 Jun 2018 13:18:15 -0700
-Message-ID: <1528402695.5265.24.camel@2b52.sc.intel.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
-         <20180607143807.3611-9-yu-cheng.yu@intel.com>
-         <CALCETrVX8nE6oFnJH7yZCydxtnC-VAhhnYs=ekJELc07a2UKiQ@mail.gmail.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Subject: Re: [PATCH 6/9] x86/mm: Introduce ptep_set_wrprotect_flush and
+ related functions
+Date: Thu, 7 Jun 2018 13:29:03 -0700
+Message-ID: <5c39caf1-2198-3c2b-b590-8c38a525747f@linux.intel.com>
+References: <20180607143705.3531-1-yu-cheng.yu@intel.com>
+ <20180607143705.3531-7-yu-cheng.yu@intel.com>
+ <CALCETrVa8MtxP9iqYkZLnetaQiN4UaWb=jGz1+rLsCuETHKydg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrVX8nE6oFnJH7yZCydxtnC-VAhhnYs=ekJELc07a2UKiQ@mail.gmail.com>
+In-Reply-To: <CALCETrVa8MtxP9iqYkZLnetaQiN4UaWb=jGz1+rLsCuETHKydg@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+To: Andy Lutomirski <luto@amacapital.net>, Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2018-06-07 at 11:48 -0700, Andy Lutomirski wrote:
-> On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> >
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> 
-> Please justify.  This seems actively harmful to me.
+On 06/07/2018 09:24 AM, Andy Lutomirski wrote:
 
-I will remove this patch.
+>> +static inline void ptep_set_wrprotect_flush(struct vm_area_struct *vma,
+>> +                                           unsigned long addr, pte_t *ptep)
+>> +{
+>> +       bool rw;
+>> +
+>> +       rw = test_and_clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+>> +       if (IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER)) {
+>> +               struct mm_struct *mm = vma->vm_mm;
+>> +               pte_t pte;
+>> +
+>> +               if (rw && (atomic_read(&mm->mm_users) > 1))
+>> +                       pte = ptep_clear_flush(vma, addr, ptep);
+> Why are you clearing the pte?
+
+I found my notes on the subject. :)
+
+Here's the sequence that causes the problem.  This could happen any time
+we try to take a PTE from read-write to read-only.  P==Present, W=Write,
+D=Dirty:
+
+CPU0 does a write, sees PTE with P=1,W=1,D=0
+CPU0 decides to set D=1
+CPU1 comes in and sets W=0
+CPU0 does locked operation to set D=1
+	CPU0 sees P=1,W=0,D=0
+	CPU0 sets back P=1,W=0,D=1
+CPU0 loads P=1,W=0,D=1 into the TLB
+CPU0 attempts to continue the write, but sees W=0 in the TLB and a #PF
+is generated because of the write fault.
+
+The problem with this is that we end up with a shadowstack-PTE
+(Write=0,Dirty=1) where we didn't want one.  This, unfortunately,
+imposes extra TLB flushing overhead on the R/W->R/O transitions that
+does not exist before shadowstack enabling.
+
+Yu-cheng, could you please add this to the patch description?
