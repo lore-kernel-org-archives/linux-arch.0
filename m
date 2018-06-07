@@ -1,7 +1,7 @@
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 3/7] mm/mmap: Add IBT bitmap size to address space limit check
-Date: Thu,  7 Jun 2018 07:38:51 -0700
-Message-ID: <20180607143855.3681-4-yu-cheng.yu@intel.com>
+Subject: [PATCH 1/7] x86/cet: Add Kconfig option for user-mode Indirect Branch Tracking
+Date: Thu,  7 Jun 2018 07:38:49 -0700
+Message-ID: <20180607143855.3681-2-yu-cheng.yu@intel.com>
 References: <20180607143855.3681-1-yu-cheng.yu@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180607143855.3681-1-yu-cheng.yu@intel.com>
@@ -10,60 +10,38 @@ To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org,
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-The indirect branch tracking legacy bitmap takes a large address
-space.  This causes may_expand_vm() failure on the address limit
-check.  For a IBT-enabled task, add the bitmap size to the
-address limit.
+The user-mode indirect branch tracking support is done mostly by
+GCC to insert ENDBR64/ENDBR32 instructions at branch targets.
+The kernel provides CPUID enumeration, feature MSR setup and
+the allocation of legacy bitmap.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/uapi/asm/resource.h | 5 +++++
- include/uapi/asm-generic/resource.h  | 3 +++
- mm/mmap.c                            | 8 +++++++-
- 3 files changed, 15 insertions(+), 1 deletion(-)
+ arch/x86/Kconfig | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/arch/x86/include/uapi/asm/resource.h b/arch/x86/include/uapi/asm/resource.h
-index 04bc4db8921b..0741b2a6101a 100644
---- a/arch/x86/include/uapi/asm/resource.h
-+++ b/arch/x86/include/uapi/asm/resource.h
-@@ -1 +1,6 @@
-+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
-+#ifdef CONFIG_X86_INTEL_CET
-+#define rlimit_as_extra() current->thread.cet.ibt_bitmap_size
-+#endif
-+
- #include <asm-generic/resource.h>
-diff --git a/include/uapi/asm-generic/resource.h b/include/uapi/asm-generic/resource.h
-index f12db7a0da64..8a7608a09700 100644
---- a/include/uapi/asm-generic/resource.h
-+++ b/include/uapi/asm-generic/resource.h
-@@ -58,5 +58,8 @@
- # define RLIM_INFINITY		(~0UL)
- #endif
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 24339a5299da..27bfbd137fbe 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1953,6 +1953,18 @@ config X86_INTEL_SHADOW_STACK_USER
  
-+#ifndef rlimit_as_extra
-+#define rlimit_as_extra() 0
-+#endif
+ 	  If unsure, say y.
  
- #endif /* _UAPI_ASM_GENERIC_RESOURCE_H */
-diff --git a/mm/mmap.c b/mm/mmap.c
-index e7d1fcb7ec58..5c07f052bed7 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -3255,7 +3255,13 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
-  */
- bool may_expand_vm(struct mm_struct *mm, vm_flags_t flags, unsigned long npages)
- {
--	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)
-+	unsigned long as_limit = rlimit(RLIMIT_AS);
-+	unsigned long as_limit_plus = as_limit + rlimit_as_extra();
++config X86_INTEL_BRANCH_TRACKING_USER
++	prompt "Intel Indirect Branch Tracking for user-mode"
++	def_bool n
++	depends on CPU_SUP_INTEL && X86_64
++	select X86_INTEL_CET
++	select ARCH_HAS_PROGRAM_PROPERTIES
++	---help---
++	  Indirect Branch Tracking provides hardware protection against return-/jmp-
++	  oriented programing attacks.
 +
-+	if (as_limit_plus > as_limit)
-+		as_limit = as_limit_plus;
++	  If unsure, say y
 +
-+	if (mm->total_vm + npages > as_limit >> PAGE_SHIFT)
- 		return false;
- 
- 	if (is_data_mapping(flags) &&
+ config EFI
+ 	bool "EFI runtime service support"
+ 	depends on ACPI
 -- 
 2.15.1
