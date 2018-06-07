@@ -1,41 +1,69 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
-Date: Thu, 7 Jun 2018 08:06:51 -0700
-Message-ID: <CA+55aFzs0ueN22WaKs_R6=T4HHY9j0MtpoFA8eh=t=PN7grCnA@mail.gmail.com>
-References: <20180530183826.GI7063@linux.vnet.ibm.com> <Pine.LNX.4.44L0.1805301449350.1502-100000@iolanthe.rowland.org>
- <CAJrWOzBMB-6e1pKms4L216k=TN_Lr52_gWxj-ny8yitgf+K5gg@mail.gmail.com>
- <20180606190710.GY3593@linux.vnet.ibm.com> <CA+55aFwZTAp3wZYGSJR1kPkc=QhPNMdEEPttsM4REcWPPDH9Bw@mail.gmail.com>
- <20180607094314.GF3593@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH 3/7] mm/mmap: Add IBT bitmap size to address space limit check
+Date: Thu,  7 Jun 2018 07:38:51 -0700
+Message-ID: <20180607143855.3681-4-yu-cheng.yu@intel.com>
+References: <20180607143855.3681-1-yu-cheng.yu@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607094314.GF3593@linux.vnet.ibm.com>
+In-Reply-To: <20180607143855.3681-1-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Roman Pen <roman.penyaev@profitbricks.com>, Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>
+To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 7, 2018 at 2:41 AM Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
->
-> We are considering adding unmarked accesses, for example, accesses
-> protected by locks.  One possible litmus test (not yet supported!)
-> might look like this:
+The indirect branch tracking legacy bitmap takes a large address
+space.  This causes may_expand_vm() failure on the address limit
+check.  For a IBT-enabled task, add the bitmap size to the
+address limit.
 
-Fair enough - you do want to have the distinction between "marked" and
-"unmarked".
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/include/uapi/asm/resource.h | 5 +++++
+ include/uapi/asm-generic/resource.h  | 3 +++
+ mm/mmap.c                            | 8 +++++++-
+ 3 files changed, 15 insertions(+), 1 deletion(-)
 
-And it does make sense, although at that point I think you do hit the
-"what can a compiler do" issue more. Right now, I think the things you
-check are all pretty much "compiler can't do a lot of movement".
-
-But I suspect that the markings you do have are going to be fairly
-limited. Things like "READ_ONCE()" vs "smp_read_acquire()" are still
-fairly simple from a compiler standpoint, at least when it comes to
-control flow - they have "side effects". So I guess that's the only
-real difference there - a regular read doesn't have side effects, so
-it could be moved up past a conditional, and/or duplicated for each
-use. That sounds much more complex to the checker than the existing
-things it supports, no?
-
-               Linus
+diff --git a/arch/x86/include/uapi/asm/resource.h b/arch/x86/include/uapi/asm/resource.h
+index 04bc4db8921b..0741b2a6101a 100644
+--- a/arch/x86/include/uapi/asm/resource.h
++++ b/arch/x86/include/uapi/asm/resource.h
+@@ -1 +1,6 @@
++/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
++#ifdef CONFIG_X86_INTEL_CET
++#define rlimit_as_extra() current->thread.cet.ibt_bitmap_size
++#endif
++
+ #include <asm-generic/resource.h>
+diff --git a/include/uapi/asm-generic/resource.h b/include/uapi/asm-generic/resource.h
+index f12db7a0da64..8a7608a09700 100644
+--- a/include/uapi/asm-generic/resource.h
++++ b/include/uapi/asm-generic/resource.h
+@@ -58,5 +58,8 @@
+ # define RLIM_INFINITY		(~0UL)
+ #endif
+ 
++#ifndef rlimit_as_extra
++#define rlimit_as_extra() 0
++#endif
+ 
+ #endif /* _UAPI_ASM_GENERIC_RESOURCE_H */
+diff --git a/mm/mmap.c b/mm/mmap.c
+index e7d1fcb7ec58..5c07f052bed7 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -3255,7 +3255,13 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
+  */
+ bool may_expand_vm(struct mm_struct *mm, vm_flags_t flags, unsigned long npages)
+ {
+-	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)
++	unsigned long as_limit = rlimit(RLIMIT_AS);
++	unsigned long as_limit_plus = as_limit + rlimit_as_extra();
++
++	if (as_limit_plus > as_limit)
++		as_limit = as_limit_plus;
++
++	if (mm->total_vm + npages > as_limit >> PAGE_SHIFT)
+ 		return false;
+ 
+ 	if (is_data_mapping(flags) &&
+-- 
+2.15.1
