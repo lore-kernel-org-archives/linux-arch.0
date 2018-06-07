@@ -1,7 +1,7 @@
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 6/9] x86/mm: Introduce ptep_set_wrprotect_flush and related functions
-Date: Thu,  7 Jun 2018 07:37:02 -0700
-Message-ID: <20180607143705.3531-7-yu-cheng.yu@intel.com>
+Subject: [PATCH 8/9] x86/cet: Handle shadow stack page fault
+Date: Thu,  7 Jun 2018 07:37:04 -0700
+Message-ID: <20180607143705.3531-9-yu-cheng.yu@intel.com>
 References: <20180607143705.3531-1-yu-cheng.yu@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180607143705.3531-1-yu-cheng.yu@intel.com>
@@ -10,154 +10,94 @@ To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org,
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-The function ptep_set_wrprotect()/huge_ptep_set_wrprotect() is
-used by copy_page_range()/copy_hugetlb_page_range() to copy
-PTEs.
+When a task does fork(), its shadow stack must be duplicated for
+the child.  However, the child may not actually use all pages of
+of the copied shadow stack.  This patch implements a flow that
+is similar to copy-on-write of an anonymous page, but for shadow
+stack memory.  A shadow stack PTE needs to be RO and dirty.  We
+use this dirty bit requirement to effect the copying of shadow
+stack pages.
 
-On x86, when the shadow stack is enabled, only a shadow stack
-PTE has the read-only and _PAGE_DIRTY_HW combination.  Upon
-making a dirty PTE read-only, we move its _PAGE_DIRTY_HW to
-_PAGE_DIRTY_SW.
-
-When ptep_set_wrprotect() moves _PAGE_DIRTY_HW to _PAGE_DIRTY_SW,
-if the PTE is writable and the mm is shared, another task could
-race to set _PAGE_DIRTY_HW again.
-
-Introduce ptep_set_wrprotect_flush(), pmdp_set_wrprotect_flush(),
-and huge_ptep_set_wrprotect_flush() to make sure this does not
-happen.
+In copy_one_pte(), we clear the dirty bit from the shadow stack
+PTE.  On the next shadow stack access to the PTE, a page fault
+occurs.  At that time, we then copy/re-use the page and fix the
+PTE.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/pgtable.h | 56 +++++++++++++++++++++++++++++++++++-------
- include/asm-generic/pgtable.h  | 26 ++++++++++++++++++++
- 2 files changed, 73 insertions(+), 9 deletions(-)
+ mm/memory.c | 32 +++++++++++++++++++++++++++++---
+ 1 file changed, 29 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 0996f8a6979a..1053b940b35c 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1148,11 +1148,27 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
- 	return pte;
- }
+diff --git a/mm/memory.c b/mm/memory.c
+index 01f5464e0fd2..275c7fb3fc96 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1022,7 +1022,7 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 	 * in the parent and the child
+ 	 */
+ 	if (is_cow_mapping(vm_flags)) {
+-		ptep_set_wrprotect(src_mm, addr, src_pte);
++		ptep_set_wrprotect_flush(vma, addr, src_pte);
+ 		pte = pte_wrprotect(pte);
+ 	}
  
--#define __HAVE_ARCH_PTEP_SET_WRPROTECT
--static inline void ptep_set_wrprotect(struct mm_struct *mm,
--				      unsigned long addr, pte_t *ptep)
--{
--	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-+#define __HAVE_ARCH_PTEP_SET_WRPROTECT_FLUSH
-+extern pte_t ptep_clear_flush(struct vm_area_struct *vma,
-+			      unsigned long address,
-+			      pte_t *ptep);
-+static inline void ptep_set_wrprotect_flush(struct vm_area_struct *vma,
-+					    unsigned long addr, pte_t *ptep)
-+{
-+	bool rw;
+@@ -2444,7 +2444,13 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
+ 
+ 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 	entry = pte_mkyoung(vmf->orig_pte);
+-	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
 +
-+	rw = test_and_clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-+	if (IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER)) {
-+		struct mm_struct *mm = vma->vm_mm;
-+		pte_t pte;
++	if (is_shstk_mapping(vma->vm_flags))
++		entry = pte_mkdirty_shstk(entry);
++	else
++		entry = pte_mkdirty(entry);
 +
-+		if (rw && (atomic_read(&mm->mm_users) > 1))
-+			pte = ptep_clear_flush(vma, addr, ptep);
++	entry = maybe_mkwrite(entry, vma);
+ 	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -2517,7 +2523,11 @@ static int wp_page_copy(struct vm_fault *vmf)
+ 		}
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry = mk_pte(new_page, vma->vm_page_prot);
+-		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
++		if (is_shstk_mapping(vma->vm_flags))
++			entry = pte_mkdirty_shstk(entry);
 +		else
-+			pte = *ptep;
-+		pte = pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
-+		set_pte_at(mm, addr, ptep, pte);
-+	}
- }
- 
- #define flush_tlb_fix_spurious_fault(vma, address) do { } while (0)
-@@ -1198,11 +1214,33 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
- 	return native_pudp_get_and_clear(pudp);
- }
- 
--#define __HAVE_ARCH_PMDP_SET_WRPROTECT
--static inline void pmdp_set_wrprotect(struct mm_struct *mm,
--				      unsigned long addr, pmd_t *pmdp)
-+#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT_FLUSH
-+static inline void huge_ptep_set_wrprotect_flush(struct vm_area_struct *vma,
-+						 unsigned long addr, pte_t *ptep)
- {
--	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
-+	ptep_set_wrprotect_flush(vma, addr, ptep);
-+}
++			entry = pte_mkdirty(entry);
++		entry = maybe_mkwrite(entry, vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+ 		 * pte with the new entry. This will avoid a race condition
+@@ -3192,6 +3202,14 @@ static int do_anonymous_page(struct vm_fault *vmf)
+ 	mem_cgroup_commit_charge(page, memcg, false, false);
+ 	lru_cache_add_active_or_unevictable(page, vma);
+ setpte:
++	/*
++	 * If this is within a shadow stack mapping, mark
++	 * the PTE dirty.  We don't use pte_mkdirty(),
++	 * because the PTE must have _PAGE_DIRTY_HW set.
++	 */
++	if (is_shstk_mapping(vma->vm_flags))
++		entry = pte_mkdirty_shstk(entry);
 +
-+#define __HAVE_ARCH_PMDP_SET_WRPROTECT_FLUSH
-+extern pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
-+				   unsigned long address,
-+				   pmd_t *pmdp);
-+static inline void pmdp_set_wrprotect_flush(struct vm_area_struct *vma,
-+					    unsigned long addr, pmd_t *pmdp)
-+{	bool rw;
-+
-+	rw = test_and_clear_bit(_PAGE_BIT_RW, (unsigned long *)&pmdp);
-+	if (IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER)) {
-+		struct mm_struct *mm = vma->vm_mm;
-+		pmd_t pmd;
-+
-+		if (rw && (atomic_read(&mm->mm_users) > 1))
-+			pmd = pmdp_huge_clear_flush(vma, addr, pmdp);
-+		else
-+			pmd = *pmdp;
-+		pmd = pmd_move_flags(pmd, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
-+		set_pmd_at(mm, addr, pmdp, pmd);
-+	}
- }
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
  
- #define pud_write pud_write
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 3f6f998509f0..9bcfdfc045bb 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -121,6 +121,15 @@ static inline int pmdp_clear_flush_young(struct vm_area_struct *vma,
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
-+#ifndef __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT_FLUSH
-+static inline void huge_ptep_set_wrorptect_flush(struct vm_area_struct *vma,
-+						 unsigned long addr,
-+						 pte_t *ptep)
-+{
-+	huge_ptep_set_wrprotect(vma->vm_mm, addr, ptep);
-+}
-+#endif
+ 	/* No need to invalidate - it was non-present before */
+@@ -3974,6 +3992,14 @@ static int handle_pte_fault(struct vm_fault *vmf)
+ 	entry = vmf->orig_pte;
+ 	if (unlikely(!pte_same(*vmf->pte, entry)))
+ 		goto unlock;
 +
- #ifndef __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long address,
-@@ -226,6 +235,15 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
- }
- #endif
- 
-+#ifndef __HAVE_ARCH_PTEP_SET_WRPROTECT_FLUSH
-+static inline void ptep_set_wrprotect_flush(struct vm_area_struct *vma,
-+					    unsigned long address,
-+					    pte_t *ptep)
-+{
-+	ptep_set_wrprotect(vma->vm_mm, address, ptep);
-+}
-+#endif
++	/*
++	 * Shadow stack PTEs are copy-on-access, so do_wp_page()
++	 * handling on them no matter if we have write fault or not.
++	 */
++	if (is_shstk_mapping(vmf->vma->vm_flags))
++		return do_wp_page(vmf);
 +
- #ifndef pte_savedwrite
- #define pte_savedwrite pte_write
- #endif
-@@ -266,6 +284,14 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
- }
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
-+#ifndef __HAVE_ARCH_PMDP_SET_WRPROTECT_FLUSH
-+static inline void pmdp_set_wrprotect_flush(struct vm_area_struct *vma,
-+					    unsigned long address,
-+					    pmd_t *pmdp)
-+{
-+	pmdp_set_wrprotect(vma->vm_mm, address, pmdp);
-+}
-+#endif
- #ifndef __HAVE_ARCH_PUDP_SET_WRPROTECT
- #ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
- static inline void pudp_set_wrprotect(struct mm_struct *mm,
+ 	if (vmf->flags & FAULT_FLAG_WRITE) {
+ 		if (!pte_write(entry))
+ 			return do_wp_page(vmf);
 -- 
 2.15.1
