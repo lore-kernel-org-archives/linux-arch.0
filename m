@@ -1,30 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37118 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932427AbeFGSuY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 14:50:24 -0400
-Received: from mail-wm0-f47.google.com (mail-wm0-f47.google.com [74.125.82.47])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id DC67B208AC
-        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 18:50:23 +0000 (UTC)
-Received: by mail-wm0-f47.google.com with SMTP id p126-v6so19876707wmb.2
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 11:50:23 -0700 (PDT)
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:39032 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751231AbeFGS7H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 14:59:07 -0400
+Subject: Re: [PATCH 03/10] x86/cet: Signal handling for shadow stack
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+ <20180607143807.3611-4-yu-cheng.yu@intel.com>
+ <CALCETrWo77RS_wOzskw5OG-LdC1S-b_NY=uPWUmPbQEnNwANgQ@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <2b920019-cf03-334c-3b6a-b2c6b7f4dfa3@redhat.com>
+Date: Thu, 7 Jun 2018 20:58:56 +0200
 MIME-Version: 1.0
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-11-yu-cheng.yu@intel.com>
-In-Reply-To: <20180607143807.3611-11-yu-cheng.yu@intel.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 7 Jun 2018 11:50:10 -0700
-Message-ID: <CALCETrXTyXYCDJxbCA+cbzZirmMKRQq8XSS4+Lyeo_QMywdxFw@mail.gmail.com>
-Subject: Re: [PATCH 10/10] mm: Prevent munmap and remap_file_pages of shadow stack
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <CALCETrWo77RS_wOzskw5OG-LdC1S-b_NY=uPWUmPbQEnNwANgQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Andy Lutomirski <luto@amacapital.net>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Cyrill Gorcunov <gorcunov@openvz.org>
 Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
-Message-ID: <20180607185010.4IOn63-RnAMhkrxE_4EqDbzz89KNjDFEqwguYpRbUio@z>
+Message-ID: <20180607185856.Us3-95sAiP7qgsS5vBgtb2qmCI2dLQpQR6365zN0KWE@z>
 
-On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+On 06/07/2018 08:30 PM, Andy Lutomirski wrote:
+> On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>>
+>> Set and restore shadow stack pointer for signals.
+> 
+> How does this interact with siglongjmp()?
 
-blocking remap_file_pages() seems reasonable.  I'm not sure what's
-wrong with munmap().
+We plan to use some unused signal mask bits in the jump buffer (we have 
+a lot of those in glibc for some reason) to store the shadow stack pointer.
+
+> This patch makes me extremely nervous due to the possibility of ABI
+> issues and CRIU breakage.
+> 
+>> diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/uapi/asm/sigcontext.h
+>> index 844d60eb1882..6c8997a0156a 100644
+>> --- a/arch/x86/include/uapi/asm/sigcontext.h
+>> +++ b/arch/x86/include/uapi/asm/sigcontext.h
+>> @@ -230,6 +230,7 @@ struct sigcontext_32 {
+>>          __u32                           fpstate; /* Zero when no FPU/extended context */
+>>          __u32                           oldmask;
+>>          __u32                           cr2;
+>> +       __u32                           ssp;
+>>   };
+>>
+>>   /*
+>> @@ -262,6 +263,7 @@ struct sigcontext_64 {
+>>          __u64                           trapno;
+>>          __u64                           oldmask;
+>>          __u64                           cr2;
+>> +       __u64                           ssp;
+>>
+>>          /*
+>>           * fpstate is really (struct _fpstate *) or (struct _xstate *)
+>> @@ -320,6 +322,7 @@ struct sigcontext {
+>>          struct _fpstate __user          *fpstate;
+>>          __u32                           oldmask;
+>>          __u32                           cr2;
+>> +       __u32                           ssp;
+> 
+> Is it actually okay to modify these structures like this?  They're
+> part of the user ABI, and I don't know whether any user code relies on
+> the size being constant.
+
+Probably not.  Historically, these things have been tacked at the end of 
+the floating point state, see struct _xstate:
+
+         /* New processor state extensions go here: */
+
+However, I'm not sure if this is really ideal because I doubt that 
+everyone who needs the shadow stack pointer also wants to sacrifice 
+space for the AVX-512 save area (which is already a backwards 
+compatibility hazard).  Other architectures have variable offsets and 
+some TLV-style setup here.
+
+Thanks,
+Florian
