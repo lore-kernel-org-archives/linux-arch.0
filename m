@@ -1,366 +1,154 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 05/10] x86/cet: ELF header parsing of Control Flow Enforcement
-Date: Thu,  7 Jun 2018 07:38:02 -0700
-Message-ID: <20180607143807.3611-6-yu-cheng.yu@intel.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Date: Thu, 7 Jun 2018 08:40:49 -0700
+Message-ID: <CA+55aFyAYY_SDFYNVv=eZ02kt6a6zkR2urBOdx7TyD_tWHQ1SQ@mail.gmail.com>
+References: <20180607094314.GF3593@linux.vnet.ibm.com> <Pine.LNX.4.44L0.1806071023440.1416-100000@iolanthe.rowland.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+In-Reply-To: <Pine.LNX.4.44L0.1806071023440.1416-100000@iolanthe.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Roman Pen <roman.penyaev@profitbricks.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Look in .note.gnu.property of an ELF file and check if shadow stack needs
-to be enabled for the task.
+On Thu, Jun 7, 2018 at 7:57 AM Alan Stern <stern@rowland.harvard.edu> wrote:
+>
+> You can look at a memory model from three points of view:
+>
+> 1.      To a programmer, the model provides both guarantees (a certain
+>         code snippet will never yield a particular undesired result)
+>         and warnings (another snippet might yield an undesired result).
+>
+> 2.      To a CPU designer, the model provides limits on what the
+>         hardware should be allowed to do (e.g., never execute a store
+>         before the condition of a preceding conditional branch has been
+>         determined -- not even if the CPU knows that the store would be
+>         executed on both legs of the branch).
+>
+> 3.      To a compiler writer, the model provides limits on what code
+>         manipulations should be allowed.
+>
+> Linus's comments mostly fall under viewpoint 2 (AFAICT), and a lot of
+> our thinking to date has been in viewpoint 1.  But viewpoint 3 is the
+> one most relevant to the code we have been discussing here.
 
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/Kconfig                         |   4 +
- arch/x86/include/asm/elf.h               |   5 +
- arch/x86/include/uapi/asm/elf_property.h |  16 +++
- arch/x86/kernel/Makefile                 |   2 +
- arch/x86/kernel/elf.c                    | 220 +++++++++++++++++++++++++++++++
- fs/binfmt_elf.c                          |  16 +++
- include/uapi/linux/elf.h                 |   1 +
- 7 files changed, 264 insertions(+)
- create mode 100644 arch/x86/include/uapi/asm/elf_property.h
- create mode 100644 arch/x86/kernel/elf.c
+Hmm. Yes. I've been ignoring it because we've historically just
+"solved" it by having barriers (either "asm volatile" with a memory
+clobber, or just a volatile access) for the cases under discussion.
+There isn't a lot of room for compiler games there. We've had issues
+with compilers _elsewhere_, but when it comes to memory models, we've
+always solved it with "hey, let's make that access volatile", or "we
+will force the compiler to use *this* instruction and nothing else".
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index dd580d4910fc..24339a5299da 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1931,12 +1931,16 @@ config X86_INTEL_CET
- config ARCH_HAS_SHSTK
- 	def_bool n
- 
-+config ARCH_HAS_PROGRAM_PROPERTIES
-+	def_bool n
-+
- config X86_INTEL_SHADOW_STACK_USER
- 	prompt "Intel Shadow Stack for user-mode"
- 	def_bool n
- 	depends on CPU_SUP_INTEL && X86_64
- 	select X86_INTEL_CET
- 	select ARCH_HAS_SHSTK
-+	select ARCH_HAS_PROGRAM_PROPERTIES
- 	---help---
- 	  Shadow stack provides hardware protection against program stack
- 	  corruption.  Only when all the following are true will an application
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index 0d157d2a1e2a..5b5f169c5c07 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -382,4 +382,9 @@ struct va_alignment {
- 
- extern struct va_alignment va_align;
- extern unsigned long align_vdso_addr(unsigned long);
-+
-+#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
-+extern int arch_setup_features(void *ehdr, void *phdr, struct file *file,
-+			       bool interp);
-+#endif
- #endif /* _ASM_X86_ELF_H */
-diff --git a/arch/x86/include/uapi/asm/elf_property.h b/arch/x86/include/uapi/asm/elf_property.h
-new file mode 100644
-index 000000000000..343a871b8fc1
---- /dev/null
-+++ b/arch/x86/include/uapi/asm/elf_property.h
-@@ -0,0 +1,16 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _UAPI_ASM_X86_ELF_PROPERTY_H
-+#define _UAPI_ASM_X86_ELF_PROPERTY_H
-+
-+/*
-+ * pr_type
-+ */
-+#define GNU_PROPERTY_X86_FEATURE_1_AND (0xc0000002)
-+
-+/*
-+ * Bits for GNU_PROPERTY_X86_FEATURE_1_AND
-+ */
-+#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	(0x00000002)
-+#define GNU_PROPERTY_X86_FEATURE_1_IBT		(0x00000001)
-+
-+#endif /* _UAPI_ASM_X86_ELF_PROPERTY_H */
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index 7ea5e099d558..cbf983f44b61 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -140,6 +140,8 @@ obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
- 
- obj-$(CONFIG_X86_INTEL_CET)		+= cet.o
- 
-+obj-$(CONFIG_ARCH_HAS_PROGRAM_PROPERTIES) += elf.o
-+
- ###
- # 64 bit specific files
- ifeq ($(CONFIG_X86_64),y)
-diff --git a/arch/x86/kernel/elf.c b/arch/x86/kernel/elf.c
-new file mode 100644
-index 000000000000..8e2719d8dc86
---- /dev/null
-+++ b/arch/x86/kernel/elf.c
-@@ -0,0 +1,220 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Look at an ELF file's .note.gnu.property and determine if the file
-+ * supports shadow stack and/or indirect branch tracking.
-+ * The path from the ELF header to the note section is the following:
-+ * elfhdr->elf_phdr->elf_note->x86_note_gnu_property[].
-+ */
-+
-+#include <asm/cet.h>
-+#include <asm/elf_property.h>
-+#include <uapi/linux/elf-em.h>
-+#include <linux/binfmts.h>
-+#include <linux/elf.h>
-+#include <linux/slab.h>
-+#include <linux/fs.h>
-+#include <linux/uaccess.h>
-+#include <linux/string.h>
-+
-+#define ELF_NOTE_DESC_OFFSET(n, align) \
-+	round_up(sizeof(*n) + n->n_namesz, (align))
-+
-+#define ELF_NOTE_NEXT_OFFSET(n, align) \
-+	round_up(ELF_NOTE_DESC_OFFSET(n, align) + n->n_descsz, (align))
-+
-+static int find_cet(u8 *buf, u32 size, u32 align, int *shstk, int *ibt)
-+{
-+	unsigned long start = (unsigned long)buf;
-+	struct elf_note *note = (struct elf_note *)buf;
-+
-+	*shstk = 0;
-+	*ibt = 0;
-+
-+	/*
-+	 * Go through the x86_note_gnu_property array pointed by
-+	 * buf and look for shadow stack and indirect branch
-+	 * tracking features.
-+	 * The GNU_PROPERTY_X86_FEATURE_1_AND entry contains only
-+	 * one u32 as data.  Do not go beyond buf_size.
-+	 */
-+
-+	while ((unsigned long) (note + 1) - start < size) {
-+		/* Find the NT_GNU_PROPERTY_TYPE_0 note. */
-+		if (note->n_namesz == 4 &&
-+		    note->n_type == NT_GNU_PROPERTY_TYPE_0 &&
-+		    memcmp(note + 1, "GNU", 4) == 0) {
-+			u8 *ptr, *ptr_end;
-+
-+			/* Check for invalid property. */
-+			if (note->n_descsz < 8 ||
-+			   (note->n_descsz % align) != 0)
-+				return 0;
-+
-+			/* Start and end of property array. */
-+			ptr = (u8 *)(note + 1) + 4;
-+			ptr_end = ptr + note->n_descsz;
-+
-+			while (1) {
-+				u32 type = *(u32 *)ptr;
-+				u32 datasz = *(u32 *)(ptr + 4);
-+
-+				ptr += 8;
-+				if ((ptr + datasz) > ptr_end)
-+					break;
-+
-+				if (type == GNU_PROPERTY_X86_FEATURE_1_AND &&
-+				    datasz == 4) {
-+					u32 p = *(u32 *)ptr;
-+
-+					if (p & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
-+						*shstk = 1;
-+					if (p & GNU_PROPERTY_X86_FEATURE_1_IBT)
-+						*ibt = 1;
-+					return 1;
-+				}
-+			}
-+		}
-+
-+		/*
-+		 * Note sections like .note.ABI-tag and .note.gnu.build-id
-+		 * are aligned to 4 bytes in 64-bit ELF objects.
-+		 */
-+		note = (void *)note + ELF_NOTE_NEXT_OFFSET(note, align);
-+	}
-+
-+	return 0;
-+}
-+
-+static int check_pt_note_segment(struct file *file,
-+				 unsigned long note_size, loff_t *pos,
-+				 u32 align, int *shstk, int *ibt)
-+{
-+	int retval;
-+	char *note_buf;
-+
-+	/*
-+	 * Try to read in the whole PT_NOTE segment.
-+	 */
-+	note_buf = kmalloc(note_size, GFP_KERNEL);
-+	if (!note_buf)
-+		return -ENOMEM;
-+	retval = kernel_read(file, note_buf, note_size, pos);
-+	if (retval != note_size) {
-+		kfree(note_buf);
-+		return (retval < 0) ? retval : -EIO;
-+	}
-+
-+	retval = find_cet(note_buf, note_size, align, shstk, ibt);
-+	kfree(note_buf);
-+	return retval;
-+}
-+
-+#ifdef CONFIG_COMPAT
-+static int check_pt_note_32(struct file *file, struct elf32_phdr *phdr,
-+			    int phnum, int *shstk, int *ibt)
-+{
-+	int i;
-+	int found = 0;
-+
-+	/*
-+	 * Go through all PT_NOTE segments and find NT_GNU_PROPERTY_TYPE_0.
-+	 */
-+	for (i = 0; i < phnum; i++, phdr++) {
-+		loff_t pos;
-+
-+		/*
-+		 * NT_GNU_PROPERTY_TYPE_0 note is aligned to 4 bytes
-+		 * in 32-bit binaries.
-+		 */
-+		if ((phdr->p_type != PT_NOTE) || (phdr->p_align != 4))
-+			continue;
-+
-+		pos = phdr->p_offset;
-+		found = check_pt_note_segment(file, phdr->p_filesz,
-+					      &pos, phdr->p_align,
-+					      shstk, ibt);
-+		if (found)
-+			break;
-+	}
-+	return found;
-+}
-+#endif
-+
-+#ifdef CONFIG_X86_64
-+static int check_pt_note_64(struct file *file, struct elf64_phdr *phdr,
-+			    int phnum, int *shstk, int *ibt)
-+{
-+	int found = 0;
-+
-+	/*
-+	 * Go through all PT_NOTE segments and find NT_GNU_PROPERTY_TYPE_0.
-+	 */
-+	for (; phnum > 0; phnum--, phdr++) {
-+		loff_t pos;
-+
-+		/*
-+		 * NT_GNU_PROPERTY_TYPE_0 note is aligned to 8 bytes
-+		 * in 64-bit binaries.
-+		 */
-+		if ((phdr->p_type != PT_NOTE) || (phdr->p_align != 8))
-+			continue;
-+
-+		pos = phdr->p_offset;
-+		found = check_pt_note_segment(file, phdr->p_filesz,
-+					      &pos, phdr->p_align,
-+					      shstk, ibt);
-+
-+		if (found)
-+			break;
-+	}
-+	return found;
-+}
-+#endif
-+
-+int arch_setup_features(void *ehdr_p, void *phdr_p,
-+			struct file *file, bool interp)
-+{
-+	int err = 0;
-+	int shstk = 0;
-+	int ibt = 0;
-+
-+	struct elf64_hdr *ehdr64 = ehdr_p;
-+
-+	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
-+		return 0;
-+
-+	if (ehdr64->e_ident[EI_CLASS] == ELFCLASS64) {
-+		struct elf64_phdr *phdr64 = phdr_p;
-+
-+		err = check_pt_note_64(file, phdr64, ehdr64->e_phnum,
-+				       &shstk, &ibt);
-+		if (err < 0)
-+			goto out;
-+	} else {
-+#ifdef CONFIG_COMPAT
-+		struct elf32_hdr *ehdr32 = ehdr_p;
-+
-+		if (ehdr32->e_ident[EI_CLASS] == ELFCLASS32) {
-+			struct elf32_phdr *phdr32 = phdr_p;
-+
-+			err = check_pt_note_32(file, phdr32, ehdr32->e_phnum,
-+					       &shstk, &ibt);
-+			if (err < 0)
-+				goto out;
-+		}
-+#endif
-+	}
-+
-+	current->thread.cet.shstk_enabled = 0;
-+	current->thread.cet.shstk_base = 0;
-+	current->thread.cet.shstk_size = 0;
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-+		if (shstk) {
-+			err = cet_setup_shstk();
-+			if (err < 0)
-+				goto out;
-+		}
-+	}
-+out:
-+	return err;
-+}
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 4ad6f669fe34..9ddc6d01e779 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1081,6 +1081,22 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 		goto out_free_dentry;
- 	}
- 
-+#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
-+
-+	if (interpreter) {
-+		retval = arch_setup_features(&loc->interp_elf_ex,
-+					     interp_elf_phdata,
-+					     interpreter, true);
-+	} else {
-+		retval = arch_setup_features(&loc->elf_ex,
-+					     elf_phdata,
-+					     bprm->file, false);
-+	}
-+
-+	if (retval < 0)
-+		goto out_free_dentry;
-+#endif
-+
- 	if (elf_interpreter) {
- 		unsigned long interp_map_addr = 0;
- 
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index e2535d6dcec7..f69ed8702271 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -372,6 +372,7 @@ typedef struct elf64_shdr {
- #define NT_PRFPREG	2
- #define NT_PRPSINFO	3
- #define NT_TASKSTRUCT	4
-+#define NT_GNU_PROPERTY_TYPE_0 5
- #define NT_AUXV		6
- /*
-  * Note to userspace developers: size of NT_SIGINFO note may increase
--- 
-2.15.1
+So we've never actually had much worry about what a compiler could do
+for these particular issues.
+
+In fact, one of the reasons I personally doubt we will ever use the
+C++ memory model things is that I simply don't trust the stanards body
+to do the right thing. The discussion about control dependencies vs
+data dependencies made me 100% convinced that there is no way in hell
+that the C++ standards body model can ever work reliably.
+
+Writing the requirements down as English, and writing them down as an
+"abstract machine" that had a lot of syntax caused untold and
+completely unnecessary verbiage, and made the end result
+incomprehensible to any normal human. Very much so to a compiler
+writer.
+
+So honestly, I've given up on the C++ memory model. We've done quite
+well with inline asm and "volatile", and since I do not believe we
+will ever get rid of either, the C++ memory model isn't much of an
+improvement.
+
+And notice that this is very much a fundamental doubt about the whole
+approach that the standards language is taking. I'm not doubting that
+a memory model cannot be defined. I'm doubting that it can sanely be
+described with the approach that the C standards body has.
+
+Honestly, if the C++ standards body had taken a completely different
+approach of actually *definining* a virtual machine, and defining the
+actual code generation (ie the language would actually *define* what
+every operation did in the virtual machine), and defining what the
+memory ordering within that virtual machine was, I would give it a
+chance in hell of working.
+
+But that's not what the C++ standards body did. Instead, it tried to
+define things in terms of "dependency chains" and other very
+high-level abstractions.
+
+So I do not believe for a second in the C++ memory ordering. It's
+broken. It's broken for fundamental reasons, and I doubt we'll ever
+use it because no compiler writer will ever get it remotely right.
+
+> Saying that a control dependency should extend beyond the end of an
+> "if" statement is basically equivalent to saying that compiler writers
+> are forbidden to implement certain optimizations.
+
+Honestly, what I think the standard should do is *define* that
+
+     if (a) B else C
+
+is defined to generate the code
+
+      load a
+      test
+      je label1;
+      B
+      jmp label2
+ label1:
+      C
+ label2:
+
+in the virtual machine.  And then each operation (like "load" vs
+"load_acquire" vs "load_volatile") would have well-defined semantics
+in that virtual machine. And then a compiler writer would be able to
+do any optimization he dam,n well please, as long as it is
+semantically 100% equivalent.
+
+That would actually give a program well-defined semantics, and I
+guarantee it would make compiler writers happier too, because they'd
+have a definition they can follow and think about. The memory ordering
+requirements would fall out from the memory ordering defined for the
+virtual machine, and then that machine could be described sanely.
+
+In the above kind of situation, I believe we could have described what
+"control vs data dependency" means, because you could have specified
+it for the virtual machine, and then the compiler writers could
+determine from that well-defined flow (and the kind of load they had)
+whether they could turn a data dependency into a control dependency
+during optimization or not.
+
+But that's not how the C standard is written, and it's not how the
+people involved *want* to write it. They want to write it at a high
+level, not a low level.
+
+End result: I really don't trust what the C++ memory ordering
+semantics are. It's all much too wishy-washy, and I don't think a
+compiler writer can ever understand it.
+
+>  Now, my experience
+> has been that compiler writers are loathe to give up an optimization
+> unless someone can point to a specific part of the language spec and
+> show that the proposed optimization would violate it.
+
+I agree. Which is why we sometimes use the big hammer approach and
+just say "don't do this optimization at all".
+
+But it's also why the language definition being unclear is so
+horrible. It's sometimes simply not all that obvious what the standard
+actually allows and what it doesn't, and memory ordering is going to
+be way more fragile than even the existing confusion.
+
+So I agree 100% with you that the LKMM cases are not likely to affect
+the C standard, and not affect compiler writers.
+
+But I also think that's largely irrelevant, because I don't think it's
+worth worrying about. I don't believe we will be using the standard
+memory ordering, because it's not going to end up usable, and we'll
+continue to roll our own.
+
+I did hope a few years ago that that wouldn't be the case. But the
+discussions I was involved with convinced me that there's no hope.
+
+                Linus
