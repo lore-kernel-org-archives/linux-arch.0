@@ -1,64 +1,56 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH 1/7] x86/cet: Add Kconfig option for user-mode Indirect
- Branch Tracking
-Date: Thu, 7 Jun 2018 09:43:49 -0700
-Message-ID: <9c99f892-8965-8b08-4a80-506b48c2205d@infradead.org>
-References: <20180607143855.3681-1-yu-cheng.yu@intel.com>
- <20180607143855.3681-2-yu-cheng.yu@intel.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH 7/9] x86/mm: Shadow stack page fault error checking
+Date: Thu, 07 Jun 2018 09:46:09 -0700
+Message-ID: <1528389969.4636.25.camel@2b52.sc.intel.com>
+References: <20180607143705.3531-1-yu-cheng.yu@intel.com>
+         <20180607143705.3531-8-yu-cheng.yu@intel.com>
+         <CALCETrXA--XrVNvPM4-Cv6-E6OFd=TZ5Gw_MWePt7MtqCBBqRg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607143855.3681-2-yu-cheng.yu@intel.com>
-Content-Language: en-US
+In-Reply-To: <CALCETrXA--XrVNvPM4-Cv6-E6OFd=TZ5Gw_MWePt7MtqCBBqRg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On 06/07/2018 07:38 AM, Yu-cheng Yu wrote:
-> The user-mode indirect branch tracking support is done mostly by
-> GCC to insert ENDBR64/ENDBR32 instructions at branch targets.
-> The kernel provides CPUID enumeration, feature MSR setup and
-> the allocation of legacy bitmap.
+On Thu, 2018-06-07 at 09:26 -0700, Andy Lutomirski wrote:
+> On Thu, Jun 7, 2018 at 7:40 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> >
+> > If a page fault is triggered by a shadow stack access (e.g.
+> > call/ret) or shadow stack management instructions (e.g.
+> > wrussq), then bit[6] of the page fault error code is set.
+> >
+> > In access_error(), we check if a shadow stack page fault
+> > is within a shadow stack memory area.
+> >
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/Kconfig | 12 ++++++++++++
->  1 file changed, 12 insertions(+)
+> > diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+> > index 73bd8c95ac71..2b3b9170109c 100644
+> > --- a/arch/x86/mm/fault.c
+> > +++ b/arch/x86/mm/fault.c
+> > @@ -1166,6 +1166,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
+> >                                        (error_code & X86_PF_INSTR), foreign))
+> >                 return 1;
+> >
+> > +       /*
+> > +        * Verify X86_PF_SHSTK is within a shadow stack VMA.
+> > +        * It is always an error if there is a shadow stack
+> > +        * fault outside a shadow stack VMA.
+> > +        */
+> > +       if (error_code & X86_PF_SHSTK) {
+> > +               if (!(vma->vm_flags & VM_SHSTK))
+> > +                       return 1;
+> > +               return 0;
+> > +       }
+> > +
 > 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index 24339a5299da..27bfbd137fbe 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1953,6 +1953,18 @@ config X86_INTEL_SHADOW_STACK_USER
->  
->  	  If unsure, say y.
->  
-> +config X86_INTEL_BRANCH_TRACKING_USER
-> +	prompt "Intel Indirect Branch Tracking for user-mode"
-> +	def_bool n
-> +	depends on CPU_SUP_INTEL && X86_64
-> +	select X86_INTEL_CET
-> +	select ARCH_HAS_PROGRAM_PROPERTIES
-> +	---help---
-> +	  Indirect Branch Tracking provides hardware protection against 	
-> +	  oriented programing attacks.
+> What, if anything, would go wrong without this change?  It seems like
+> it might be purely an optimization.  If so, can you mention that in
+> the comment?
 
-	           programming
-
-and please just move the return/jmp parts to the next line also:
-
-	                                             protection against
-	  return-/jmp-oriented programming attacks.
-
-> +
-> +	  If unsure, say y
-> +
->  config EFI
->  	bool "EFI runtime service support"
->  	depends on ACPI
-> 
-
-
--- 
-~Randy
+Without this check, the page fault code could overlook the fact that the
+application is trying to use non shadow stack area for shadow stack.
+I will add this to the comments.
