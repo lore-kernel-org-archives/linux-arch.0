@@ -1,94 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:36283 "EHLO mga09.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:36346 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934513AbeFGOkk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 10:40:40 -0400
+        id S932931AbeFGOle (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 10:41:34 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 9/9] x86/cet: Handle THP/HugeTLB shadow stack page copying
-Date: Thu,  7 Jun 2018 07:37:05 -0700
-Message-ID: <20180607143705.3531-10-yu-cheng.yu@intel.com>
-In-Reply-To: <20180607143705.3531-1-yu-cheng.yu@intel.com>
-References: <20180607143705.3531-1-yu-cheng.yu@intel.com>
+Subject: [PATCH 04/10] x86/cet: Handle thread shadow stack
+Date: Thu,  7 Jun 2018 07:38:01 -0700
+Message-ID: <20180607143807.3611-5-yu-cheng.yu@intel.com>
+In-Reply-To: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180607143705.-LsYyBek6D3ffOMrdRe1aRSwHNLkTOjYfnc4GNKrXUA@z>
+Message-ID: <20180607143801.WaYVSGExJ7_XdXmyGca1Jy8yyMwbQl1vhTlY9krqoaY@z>
 
-This patch implements THP shadow stack memory copying in the same
-way as the previous patch for regular PTE.
-
-In copy_huge_pmd(), we clear the dirty bit from the PMD.  On the
-next shadow stack access to the PMD, a page fault occurs.  At
-that time, the page is copied/re-used and the PMD is fixed.
+When fork() specifies CLONE_VM but not CLONE_VFORK, the child
+needs a separate program stack and a separate shadow stack.
+This patch handles allocation and freeing of the thread shadow
+stack.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- mm/huge_memory.c | 10 +++++++++-
- mm/hugetlb.c     |  2 +-
- 2 files changed, 10 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/cet.h         |  2 ++
+ arch/x86/include/asm/mmu_context.h |  3 +++
+ arch/x86/kernel/cet.c              | 34 ++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/process.c          |  1 +
+ arch/x86/kernel/process_64.c       |  7 +++++++
+ 5 files changed, 47 insertions(+)
 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index a3a1815f8e11..c6e72ccc4274 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -600,6 +600,8 @@ static int __do_huge_pmd_anonymous_page(struct vm_fault *vmf, struct page *page,
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index 5507469cb803..c8fd87e13859 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -19,6 +19,7 @@ struct cet_stat {
+ unsigned long cet_get_shstk_ptr(void);
+ int cet_push_shstk(int ia32, unsigned long ssp, unsigned long val);
+ int cet_setup_shstk(void);
++int cet_setup_thread_shstk(struct task_struct *p);
+ void cet_disable_shstk(void);
+ void cet_disable_free_shstk(struct task_struct *p);
+ int cet_restore_signal(unsigned long ssp);
+@@ -28,6 +29,7 @@ static inline unsigned long cet_get_shstk_ptr(void) { return 0; }
+ static inline int cet_push_shstk(int ia32, unsigned long ssp,
+ 				 unsigned long val) { return 0; }
+ static inline int cet_setup_shstk(void) { return 0; }
++static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
+ static inline void cet_disable_shstk(void) {}
+ static inline void cet_disable_free_shstk(struct task_struct *p) {}
+ static inline int cet_restore_signal(unsigned long ssp) { return 0; }
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index cf9911b5a53c..42395257efc3 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -13,6 +13,7 @@
+ #include <asm/tlbflush.h>
+ #include <asm/paravirt.h>
+ #include <asm/mpx.h>
++#include <asm/cet.h>
  
- 		entry = mk_huge_pmd(page, vma->vm_page_prot);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		if (is_shstk_mapping(vma->vm_flags))
-+			entry = pmd_mkdirty_shstk(entry);
- 		page_add_new_anon_rmap(page, vma, haddr, true);
- 		mem_cgroup_commit_charge(page, memcg, false, true);
- 		lru_cache_add_active_or_unevictable(page, vma);
-@@ -976,7 +978,7 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	mm_inc_nr_ptes(dst_mm);
- 	pgtable_trans_huge_deposit(dst_mm, dst_pmd, pgtable);
+ extern atomic64_t last_mm_ctx_id;
  
--	pmdp_set_wrprotect(src_mm, addr, src_pmd);
-+	pmdp_set_wrprotect_flush(vma, addr, src_pmd);
- 	pmd = pmd_mkold(pmd_wrprotect(pmd));
- 	set_pmd_at(dst_mm, addr, dst_pmd, pmd);
+@@ -228,6 +229,8 @@ do {						\
+ #else
+ #define deactivate_mm(tsk, mm)			\
+ do {						\
++	if (!tsk->vfork_done)			\
++		cet_disable_free_shstk(tsk);	\
+ 	load_gs_index(0);			\
+ 	loadsegment(fs, 0);			\
+ } while (0)
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index 6f445ce94c83..156f5d88ffd5 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -103,6 +103,40 @@ int cet_setup_shstk(void)
+ 	return 0;
+ }
  
-@@ -1196,6 +1198,8 @@ static int do_huge_pmd_wp_page_fallback(struct vm_fault *vmf, pmd_t orig_pmd,
- 		pte_t entry;
- 		entry = mk_pte(pages[i], vma->vm_page_prot);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-+		if (is_shstk_mapping(vma->vm_flags))
-+			entry = pte_mkdirty_shstk(entry);
- 		memcg = (void *)page_private(pages[i]);
- 		set_page_private(pages[i], 0);
- 		page_add_new_anon_rmap(pages[i], vmf->vma, haddr, false);
-@@ -1280,6 +1284,8 @@ int do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
- 		pmd_t entry;
- 		entry = pmd_mkyoung(orig_pmd);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		if (is_shstk_mapping(vma->vm_flags))
-+			entry = pmd_mkdirty_shstk(entry);
- 		if (pmdp_set_access_flags(vma, haddr, vmf->pmd, entry,  1))
- 			update_mmu_cache_pmd(vma, vmf->address, vmf->pmd);
- 		ret |= VM_FAULT_WRITE;
-@@ -1350,6 +1356,8 @@ int do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
- 		pmd_t entry;
- 		entry = mk_huge_pmd(new_page, vma->vm_page_prot);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		if (is_shstk_mapping(vma->vm_flags))
-+			entry = pmd_mkdirty_shstk(entry);
- 		pmdp_huge_clear_flush_notify(vma, haddr, vmf->pmd);
- 		page_add_new_anon_rmap(new_page, vma, haddr, true);
- 		mem_cgroup_commit_charge(new_page, memcg, false, true);
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 218679138255..d694cfab9f90 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3293,7 +3293,7 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
- 				 *
- 				 * See Documentation/vm/mmu_notifier.txt
- 				 */
--				huge_ptep_set_wrprotect(src, addr, src_pte);
-+				huge_ptep_set_wrprotect_flush(vma, addr, src_pte);
- 			}
- 			entry = huge_ptep_get(src_pte);
- 			ptepage = pte_page(entry);
++int cet_setup_thread_shstk(struct task_struct *tsk)
++{
++	unsigned long addr, size;
++	struct cet_user_state *state;
++
++	if (!current->thread.cet.shstk_enabled)
++		return 0;
++
++	state = get_xsave_addr(&tsk->thread.fpu.state.xsave,
++			       XFEATURE_MASK_SHSTK_USER);
++
++	if (!state)
++		return -EINVAL;
++
++	size = tsk->thread.cet.shstk_size;
++	if (size == 0)
++		size = SHSTK_SIZE;
++
++	addr = shstk_mmap(0, size);
++
++	if (addr >= TASK_SIZE) {
++		tsk->thread.cet.shstk_base = 0;
++		tsk->thread.cet.shstk_size = 0;
++		tsk->thread.cet.shstk_enabled = 0;
++		return -ENOMEM;
++	}
++
++	state->user_ssp = (u64)(addr + size - sizeof(u64));
++	tsk->thread.cet.shstk_base = addr;
++	tsk->thread.cet.shstk_size = size;
++	tsk->thread.cet.shstk_enabled = 1;
++	return 0;
++}
++
+ void cet_disable_shstk(void)
+ {
+ 	u64 r;
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index b3b0b482983a..ae56caee41f9 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -127,6 +127,7 @@ void exit_thread(struct task_struct *tsk)
+ 
+ 	free_vm86(t);
+ 
++	cet_disable_free_shstk(tsk);
+ 	fpu__drop(fpu);
+ }
+ 
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 12bb445fb98d..6e493b0bcedd 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -317,6 +317,13 @@ int copy_thread_tls(unsigned long clone_flags, unsigned long sp,
+ 	if (sp)
+ 		childregs->sp = sp;
+ 
++	/* Allocate a new shadow stack for pthread */
++	if ((clone_flags & (CLONE_VFORK | CLONE_VM)) == CLONE_VM) {
++		err = cet_setup_thread_shstk(p);
++		if (err)
++			goto out;
++	}
++
+ 	err = -ENOMEM;
+ 	if (unlikely(test_tsk_thread_flag(me, TIF_IO_BITMAP))) {
+ 		p->thread.io_bitmap_ptr = kmemdup(me->thread.io_bitmap_ptr,
 -- 
 2.15.1
