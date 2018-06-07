@@ -1,35 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45554 "EHLO mail.kernel.org"
+Received: from mga09.intel.com ([134.134.136.24]:36344 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933932AbeFGPjt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 11:39:49 -0400
-Received: from mail-it0-f42.google.com (mail-it0-f42.google.com [209.85.214.42])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id CF08120874
-        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 15:39:48 +0000 (UTC)
-Received: by mail-it0-f42.google.com with SMTP id j135-v6so2931817itj.1
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 08:39:48 -0700 (PDT)
-MIME-Version: 1.0
-References: <20180607143544.3477-1-yu-cheng.yu@intel.com> <20180607143544.3477-6-yu-cheng.yu@intel.com>
-In-Reply-To: <20180607143544.3477-6-yu-cheng.yu@intel.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 7 Jun 2018 08:39:36 -0700
-Message-ID: <CALCETrWVZfWUSOy6wRyVBfP2b2TzZuPt8bCe6q0Pa5r7onO+VA@mail.gmail.com>
-Subject: Re: [PATCH 5/5] Documentation/x86: Add CET description
-Content-Type: text/plain; charset="UTF-8"
+        id S934604AbeFGOlg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 10:41:36 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH 08/10] mm: Prevent mremap of shadow stack
+Date: Thu,  7 Jun 2018 07:38:05 -0700
+Message-ID: <20180607143807.3611-9-yu-cheng.yu@intel.com>
+In-Reply-To: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
-Message-ID: <20180607153936.WaU_1AGvXSRj75ToXIxavFLJjX1iXFm4eJJk-qxvcfY@z>
+To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20180607143805.bR_8TObK6z561m8bgoZPbgOqbYgm3QvogEW4xeD_hRo@z>
 
-On Thu, Jun 7, 2018 at 7:40 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ mm/mremap.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-Fix the subject line, please.  This is more than just docs.
-
->
-> Explain how CET works and the noshstk/noibt kernel parameters.
-
-Maybe no_cet_shstk and no_cet_ibt?  noshstk sounds like gibberish and
-people might need a reminder.
+diff --git a/mm/mremap.c b/mm/mremap.c
+index 049470aa1e3e..70f20edb248e 100644
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -525,7 +525,7 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
+ 		unsigned long, new_addr)
+ {
+ 	struct mm_struct *mm = current->mm;
+-	struct vm_area_struct *vma;
++	struct vm_area_struct *vma = find_vma(mm, addr);
+ 	unsigned long ret = -EINVAL;
+ 	unsigned long charged = 0;
+ 	bool locked = false;
+@@ -533,6 +533,9 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
+ 	LIST_HEAD(uf_unmap_early);
+ 	LIST_HEAD(uf_unmap);
+ 
++	if (vma->vm_flags & VM_SHSTK)
++		return ret;
++
+ 	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
+ 		return ret;
+ 
+-- 
+2.15.1
