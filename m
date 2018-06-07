@@ -1,54 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:33942 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752172AbeFGVJK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 17:09:10 -0400
-Content-Type: text/plain; charset=utf-8
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
+Received: from mga11.intel.com ([192.55.52.93]:28726 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751365AbeFGVVU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 17:21:20 -0400
+Message-ID: <1528406288.5794.1.camel@2b52.sc.intel.com>
 Subject: Re: [PATCH 09/10] mm: Prevent madvise from changing shadow stack
-From: Nadav Amit <nadav.amit@gmail.com>
-In-Reply-To: <20180607143807.3611-10-yu-cheng.yu@intel.com>
-Date: Thu, 7 Jun 2018 14:09:05 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <D1A84B62-E971-4ECD-A873-2072F2692382@gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 07 Jun 2018 14:18:08 -0700
+In-Reply-To: <D1A84B62-E971-4ECD-A873-2072F2692382@gmail.com>
 References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
- <20180607143807.3611-10-yu-cheng.yu@intel.com>
+         <20180607143807.3611-10-yu-cheng.yu@intel.com>
+         <D1A84B62-E971-4ECD-A873-2072F2692382@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Nadav Amit <nadav.amit@gmail.com>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>, linux-arch@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20180607210905.0dzbWuFqXvVZLacwgRAYD1tA-xfKk05C7EqIqltB5aw@z>
+Message-ID: <20180607211808.NuQ_eegADwfZl8J8wEUC3dP3IPiG58T6yKYvCrIB-aI@z>
 
-Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+On Thu, 2018-06-07 at 14:09 -0700, Nadav Amit wrote:
+> Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> 
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > ---
+> > mm/madvise.c | 9 +++++++++
+> > 1 file changed, 9 insertions(+)
+> > 
+> > diff --git a/mm/madvise.c b/mm/madvise.c
+> > index 4d3c922ea1a1..2a6988badd6b 100644
+> > --- a/mm/madvise.c
+> > +++ b/mm/madvise.c
+> > @@ -839,6 +839,14 @@ SYSCALL_DEFINE3(madvise, unsigned long, start, size_t, len_in, int, behavior)
+> > 	if (vma && start > vma->vm_start)
+> > 		prev = vma;
+> > 
+> > +	/*
+> > +	 * Don't do anything on shadow stack.
+> > +	 */
+> > +	if (vma->vm_flags & VM_SHSTK) {
+> > +		error = -EINVAL;
+> > +		goto out_no_plug;
+> > +	}
+> > +
+> > 	blk_start_plug(&plug);
+> > 	for (;;) {
+> > 		/* Still start < end. */
+> 
+> What happens if the madvise() revolves multiple VMAs, the first one is not
+> VM_SHSTK, but the another one is? Shouldn’t the test be done inside the
+> loop, potentially in madvise_vma() ?
+> 
 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
-> mm/madvise.c | 9 +++++++++
-> 1 file changed, 9 insertions(+)
->=20
-> diff --git a/mm/madvise.c b/mm/madvise.c
-> index 4d3c922ea1a1..2a6988badd6b 100644
-> --- a/mm/madvise.c
-> +++ b/mm/madvise.c
-> @@ -839,6 +839,14 @@ SYSCALL_DEFINE3(madvise, unsigned long, start, =
-size_t, len_in, int, behavior)
-> 	if (vma && start > vma->vm_start)
-> 		prev =3D vma;
->=20
-> +	/*
-> +	 * Don't do anything on shadow stack.
-> +	 */
-> +	if (vma->vm_flags & VM_SHSTK) {
-> +		error =3D -EINVAL;
-> +		goto out_no_plug;
-> +	}
-> +
-> 	blk_start_plug(&plug);
-> 	for (;;) {
-> 		/* Still start < end. */
-
-What happens if the madvise() revolves multiple VMAs, the first one is =
-not
-VM_SHSTK, but the another one is? Shouldn=E2=80=99t the test be done =
-inside the
-loop, potentially in madvise_vma() ?
+I will fix it.  Thanks!
