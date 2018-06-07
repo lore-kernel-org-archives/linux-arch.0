@@ -1,52 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:61234 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933255AbeFGOma (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 10:42:30 -0400
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 1/7] x86/cet: Add Kconfig option for user-mode Indirect Branch Tracking
-Date: Thu,  7 Jun 2018 07:38:49 -0700
-Message-ID: <20180607143855.3681-2-yu-cheng.yu@intel.com>
-In-Reply-To: <20180607143855.3681-1-yu-cheng.yu@intel.com>
-References: <20180607143855.3681-1-yu-cheng.yu@intel.com>
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:40804 "EHLO
+        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932741AbeFGOrZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 10:47:25 -0400
+Content-Type: text/plain; charset="UTF-8"
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Thu, 07 Jun 2018 15:05:21 +0100
+Message-ID: <lsq.1528380321.465767219@decadent.org.uk>
+Subject: [PATCH 3.16 258/410] nospec: Allow index argument to have
+ const-qualified type
+In-Reply-To: <lsq.1528380320.647747352@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180607143849.zLXIzHQpZ3QHlj3XuPNU8W0_R5YaJLqeYOJMZxeP8lI@z>
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: akpm@linux-foundation.org, Dave Hansen <dave.hansen@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, David Woodhouse <dwmw2@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, Arjan van de Ven <arjan@linux.intel.com>
+Message-ID: <20180607140521.olVLGgHc67ZuBeE3o_ozuypNt44r3bSeJ-5PbxkVzNk@z>
 
-The user-mode indirect branch tracking support is done mostly by
-GCC to insert ENDBR64/ENDBR32 instructions at branch targets.
-The kernel provides CPUID enumeration, feature MSR setup and
-the allocation of legacy bitmap.
+3.16.57-rc1 review patch.  If anyone has any objections, please let me know.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+------------------
+
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+
+commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
+
+The last expression in a statement expression need not be a bare
+variable, quoting gcc docs
+
+  The last thing in the compound statement should be an expression
+  followed by a semicolon; the value of this subexpression serves as the
+  value of the entire construct.
+
+and we already use that in e.g. the min/max macros which end with a
+ternary expression.
+
+This way, we can allow index to have const-qualified type, which will in
+some cases avoid the need for introducing a local copy of index of
+non-const qualified type. That, in turn, can prevent readers not
+familiar with the internals of array_index_nospec from wondering about
+the seemingly redundant extra variable, and I think that's worthwhile
+considering how confusing the whole _nospec business is.
+
+The expression _i&_mask has type unsigned long (since that is the type
+of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
+that), so in order not to change the type of the whole expression, add
+a cast back to typeof(_i).
+
+Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- arch/x86/Kconfig | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ include/linux/nospec.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 24339a5299da..27bfbd137fbe 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1953,6 +1953,18 @@ config X86_INTEL_SHADOW_STACK_USER
- 
- 	  If unsure, say y.
- 
-+config X86_INTEL_BRANCH_TRACKING_USER
-+	prompt "Intel Indirect Branch Tracking for user-mode"
-+	def_bool n
-+	depends on CPU_SUP_INTEL && X86_64
-+	select X86_INTEL_CET
-+	select ARCH_HAS_PROGRAM_PROPERTIES
-+	---help---
-+	  Indirect Branch Tracking provides hardware protection against return-/jmp-
-+	  oriented programing attacks.
-+
-+	  If unsure, say y
-+
- config EFI
- 	bool "EFI runtime service support"
- 	depends on ACPI
--- 
-2.15.1
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -53,7 +53,6 @@ static inline unsigned long array_index_
+ 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
+ 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+ 									\
+-	_i &= _mask;							\
+-	_i;								\
++	(typeof(_i)) (_i & _mask);					\
+ })
+ #endif /* _LINUX_NOSPEC_H */
