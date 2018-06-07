@@ -1,63 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:36280 "EHLO mga09.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:36282 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932912AbeFGOkc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 10:40:32 -0400
+        id S934269AbeFGOkd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 10:40:33 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 0/9] Control Flow Enforcement - Part (2)
-Date: Thu,  7 Jun 2018 07:36:56 -0700
-Message-ID: <20180607143705.3531-1-yu-cheng.yu@intel.com>
+Subject: [PATCH 2/9] x86/cet: Add Kconfig option for user-mode shadow stack
+Date: Thu,  7 Jun 2018 07:36:58 -0700
+Message-ID: <20180607143705.3531-3-yu-cheng.yu@intel.com>
+In-Reply-To: <20180607143705.3531-1-yu-cheng.yu@intel.com>
+References: <20180607143705.3531-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180607143656.1w8VccJSmKtjudWq1ns0cmf3I_Tfj9sh_Wqj42sYV10@z>
+Message-ID: <20180607143658.zP4dSUR8F8oOkzKHUlMSVyYsDylB8737yRq7JvhRzWM@z>
 
-Summary of changes:
+Introduce Kconfig option X86_INTEL_SHADOW_STACK_USER.
 
-  Shadow stack kernel config option;
-  Control protection exception; and
-  Shadow stack memory management.
+An application has shadow stack protection when all the following are
+true:
 
-The shadow stack PTE needs to be read-only and dirty.  Changes
-are made to:
+  (1) The kernel has X86_INTEL_SHADOW_STACK_USER enabled,
+  (2) The running processor supports the shadow stack,
+  (3) The application is built with shadow stack enabled tools & libs
+      and, and at runtime, all dependent shared libs can support shadow
+      stack.
 
-  Use the read-only and hardware dirty combination exclusively
-  for shadow stack;
+If this kernel config option is enabled, but (2) or (3) above is not
+true, the application runs without the shadow stack protection.
+Existing legacy applications will continue to work without the shadow
+stack protection.
 
-  Use a PTE spare bit to indicate other PTE dirty conditions;
+The user-mode shadow stack protection is only implemented for the
+64-bit kernel.  Thirty-two bit applications are supported under the
+compatibility mode.
 
-  Shadow stack page fault handling.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/Kconfig | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-Yu-cheng Yu (9):
-  x86/cet: Control protection exception handler
-  x86/cet: Add Kconfig option for user-mode shadow stack
-  mm: Introduce VM_SHSTK for shadow stack memory
-  x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
-  x86/mm: Introduce _PAGE_DIRTY_SW
-  x86/mm: Introduce ptep_set_wrprotect_flush and related functions
-  x86/mm: Shadow stack page fault error checking
-  x86/cet: Handle shadow stack page fault
-  x86/cet: Handle THP/HugeTLB shadow stack page copying
-
- arch/x86/Kconfig                     |  24 ++++++
- arch/x86/entry/entry_32.S            |   5 ++
- arch/x86/entry/entry_64.S            |   2 +-
- arch/x86/include/asm/pgtable.h       | 149 ++++++++++++++++++++++++++++++-----
- arch/x86/include/asm/pgtable_types.h |  31 +++++---
- arch/x86/include/asm/traps.h         |   5 ++
- arch/x86/kernel/idt.c                |   1 +
- arch/x86/kernel/relocate_kernel_64.S |   2 +-
- arch/x86/kernel/traps.c              |  61 ++++++++++++++
- arch/x86/kvm/vmx.c                   |   2 +-
- arch/x86/mm/fault.c                  |  11 +++
- include/asm-generic/pgtable.h        |  38 +++++++++
- include/linux/mm.h                   |   8 ++
- mm/huge_memory.c                     |  10 ++-
- mm/hugetlb.c                         |   2 +-
- mm/internal.h                        |   8 ++
- mm/memory.c                          |  32 +++++++-
- 17 files changed, 353 insertions(+), 38 deletions(-)
-
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c07f492b871a..dd580d4910fc 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1925,6 +1925,30 @@ config X86_INTEL_MEMORY_PROTECTION_KEYS
+ 
+ 	  If unsure, say y.
+ 
++config X86_INTEL_CET
++	def_bool n
++
++config ARCH_HAS_SHSTK
++	def_bool n
++
++config X86_INTEL_SHADOW_STACK_USER
++	prompt "Intel Shadow Stack for user-mode"
++	def_bool n
++	depends on CPU_SUP_INTEL && X86_64
++	select X86_INTEL_CET
++	select ARCH_HAS_SHSTK
++	---help---
++	  Shadow stack provides hardware protection against program stack
++	  corruption.  Only when all the following are true will an application
++	  have the shadow stack protection: the kernel supports it (i.e. this
++	  feature is enabled), the application is compiled and linked with
++	  shadow stack enabled, and the processor supports this feature.
++	  When the kernel has this configuration enabled, existing non shadow
++	  stack applications will continue to work, but without shadow stack
++	  protection.
++
++	  If unsure, say y.
++
+ config EFI
+ 	bool "EFI runtime service support"
+ 	depends on ACPI
 -- 
 2.15.1
