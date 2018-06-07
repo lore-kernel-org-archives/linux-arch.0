@@ -1,63 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60816 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:33008 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S936236AbeFGSXb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 14:23:31 -0400
-Received: from mail-wm0-f44.google.com (mail-wm0-f44.google.com [74.125.82.44])
+        id S933567AbeFGSY7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 14:24:59 -0400
+Received: from mail-wm0-f46.google.com (mail-wm0-f46.google.com [74.125.82.46])
         (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
         (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 20781208B0
-        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 18:23:31 +0000 (UTC)
-Received: by mail-wm0-f44.google.com with SMTP id 69-v6so7970795wmf.3
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 11:23:31 -0700 (PDT)
+        by mail.kernel.org (Postfix) with ESMTPSA id BF90A208A6
+        for <linux-arch@vger.kernel.org>; Thu,  7 Jun 2018 18:24:58 +0000 (UTC)
+Received: by mail-wm0-f46.google.com with SMTP id q4-v6so4205900wmq.1
+        for <linux-arch@vger.kernel.org>; Thu, 07 Jun 2018 11:24:58 -0700 (PDT)
 MIME-Version: 1.0
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-2-yu-cheng.yu@intel.com>
- <CALCETrX4ALKbphJiZs4MXWtRFvQYD905bNAMTogbOeLh0Pp6xw@mail.gmail.com> <1528393611.4636.70.camel@2b52.sc.intel.com>
-In-Reply-To: <1528393611.4636.70.camel@2b52.sc.intel.com>
+References: <20180607143705.3531-1-yu-cheng.yu@intel.com> <20180607143705.3531-7-yu-cheng.yu@intel.com>
+ <CALCETrVa8MtxP9iqYkZLnetaQiN4UaWb=jGz1+rLsCuETHKydg@mail.gmail.com> <d9939c23-bb8b-1fbc-ac65-8bf1d7cbf650@linux.intel.com>
+In-Reply-To: <d9939c23-bb8b-1fbc-ac65-8bf1d7cbf650@linux.intel.com>
 From: Andy Lutomirski <luto@kernel.org>
-Date: Thu, 7 Jun 2018 11:23:18 -0700
-Message-ID: <CALCETrU0gXZOZ90vUSMV_csop2O4TpKW_8D17no-wp-X3nutxA@mail.gmail.com>
-Subject: Re: [PATCH 01/10] x86/cet: User-mode shadow stack support
+Date: Thu, 7 Jun 2018 11:24:45 -0700
+Message-ID: <CALCETrU=_zFvSqc4UWQ1ySgn1MAU=z9JFJbPpeK6gTQwbZGonQ@mail.gmail.com>
+Subject: Re: [PATCH 6/9] x86/mm: Introduce ptep_set_wrprotect_flush and
+ related functions
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Florian Weimer <fweimer@redhat.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
-Message-ID: <20180607182318.T1RcpHDQD8sUkPbXQ-9EDEUxu6j-EajAsSJQ-zTkwwo@z>
+To: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+Message-ID: <20180607182445.P2QsPvIrv0xyY_UjbFlBBVzCPVCiDVp6Z8fXA_GpCws@z>
 
-On Thu, Jun 7, 2018 at 10:50 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+On Thu, Jun 7, 2018 at 11:23 AM Dave Hansen <dave.hansen@linux.intel.com> wrote:
 >
-> On Thu, 2018-06-07 at 09:37 -0700, Andy Lutomirski wrote:
-> > On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > >
-> > > This patch adds basic shadow stack enabling/disabling routines.
-> > > A task's shadow stack is allocated from memory with VM_SHSTK
-> > > flag set and read-only protection.  The shadow stack is
-> > > allocated to a fixed size and that can be changed by the system
-> > > admin.
-> >
-> > How do threads work?  Can a user program mremap() its shadow stack to
-> > make it bigger?
+> On 06/07/2018 09:24 AM, Andy Lutomirski wrote:
+> >> +static inline void ptep_set_wrprotect_flush(struct vm_area_struct *vma,
+> >> +                                           unsigned long addr, pte_t *ptep)
+> >> +{
+> >> +       bool rw;
+> >> +
+> >> +       rw = test_and_clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+> >> +       if (IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER)) {
+> >> +               struct mm_struct *mm = vma->vm_mm;
+> >> +               pte_t pte;
+> >> +
+> >> +               if (rw && (atomic_read(&mm->mm_users) > 1))
+> >> +                       pte = ptep_clear_flush(vma, addr, ptep);
+> > Why are you clearing the pte?
 >
-> A pthread's shadow stack is allocated/freed by the kernel.  This patch
-> has the supporting routines that handle both non-pthread and pthread.
+> I think I insisted on this being in there.
 >
-> In [PATCH 04/10] "Handle thread shadow stack", we allocate pthread
-> shadow stack in copy_thread_tls(), and free it in deactivate_mm().
+> First of all, we need to flush the TLB eventually because we need the
+> shadowstack PTE permissions to be in effect.
 >
-> If clone of a pthread fails, shadow stack is freed in
-> cet_disable_free_shstk() below (I will add more comments):
+> But, generally, we can't clear a dirty bit in a "live" PTE without
+> flushing.  The processor can keep writing until we flush, and even keep
+> setting it whenever _it_ allows a write, which it can do based on stale
+> TLB contents.  Practically, I think a walk to set the dirty bit is
+> mostly the same as a TLB miss, but that's certainly not guaranteed forever.
 >
-> If (Current thread existing)
->         Disable and free shadow stack
->
-> If (Clone of a pthread fails)
->         Free the pthread shadow stack
->
-> We block mremap, mprotect, madvise, and munmap on a vma that has
-> VM_SHSTK (in separate patches).
+> That's even ignoring all the fun errata we have.
 
-Why?  mremap() seems like a sensible way to enlarge a shadow stack.
-munmap() seems like a good way to get rid of one, and mmap() seems
-like a nice way to create a new shadow stack if one were needed (for
-green threads or similar).
+Maybe make it a separate patch, then?  It seems like this patch is
+doing two almost entirely separate things: adding some flushes and
+adding the magic hwdirty -> swdirty transition.  As it stands, it's
+quite difficult to read the patch and figure out what it does.
