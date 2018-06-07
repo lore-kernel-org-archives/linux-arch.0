@@ -1,7 +1,7 @@
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 5/5] Documentation/x86: Add CET description
-Date: Thu,  7 Jun 2018 07:35:44 -0700
-Message-ID: <20180607143544.3477-6-yu-cheng.yu@intel.com>
+Subject: [PATCH 4/5] x86/fpu/xstate: Add XSAVES system states for shadow stack
+Date: Thu,  7 Jun 2018 07:35:43 -0700
+Message-ID: <20180607143544.3477-5-yu-cheng.yu@intel.com>
 References: <20180607143544.3477-1-yu-cheng.yu@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180607143544.3477-1-yu-cheng.yu@intel.com>
@@ -10,198 +10,139 @@ To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org,
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Explain how CET works and the noshstk/noibt kernel parameters.
+Intel Control-flow Enforcement Technology (CET) introduces the
+following MSRs into the XSAVES system states.
+
+    IA32_U_CET (user-mode CET settings),
+    IA32_PL3_SSP (user-mode shadow stack),
+    IA32_PL0_SSP (kernel-mode shadow stack),
+    IA32_PL1_SSP (ring-1 shadow stack),
+    IA32_PL2_SSP (ring-2 shadow stack).
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt |   6 +
- Documentation/x86/intel_cet.txt                 | 161 ++++++++++++++++++++++++
- 2 files changed, 167 insertions(+)
- create mode 100644 Documentation/x86/intel_cet.txt
+ arch/x86/include/asm/fpu/types.h            | 22 ++++++++++++++++++++++
+ arch/x86/include/asm/fpu/xstate.h           |  4 +++-
+ arch/x86/include/uapi/asm/processor-flags.h |  2 ++
+ arch/x86/kernel/fpu/xstate.c                | 10 ++++++++++
+ 4 files changed, 37 insertions(+), 1 deletion(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index f2040d46f095..c9a94bec1519 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2649,6 +2649,12 @@
- 			noexec=on: enable non-executable mappings (default)
- 			noexec=off: disable non-executable mappings
+diff --git a/arch/x86/include/asm/fpu/types.h b/arch/x86/include/asm/fpu/types.h
+index 202c53918ecf..e55d51d172f1 100644
+--- a/arch/x86/include/asm/fpu/types.h
++++ b/arch/x86/include/asm/fpu/types.h
+@@ -114,6 +114,9 @@ enum xfeature {
+ 	XFEATURE_Hi16_ZMM,
+ 	XFEATURE_PT_UNIMPLEMENTED_SO_FAR,
+ 	XFEATURE_PKRU,
++	XFEATURE_RESERVED,
++	XFEATURE_SHSTK_USER,
++	XFEATURE_SHSTK_KERNEL,
  
-+	noibt		[X86-64] Disable indirect branch tracking for user-mode
-+			applications
+ 	XFEATURE_MAX,
+ };
+@@ -128,6 +131,8 @@ enum xfeature {
+ #define XFEATURE_MASK_Hi16_ZMM		(1 << XFEATURE_Hi16_ZMM)
+ #define XFEATURE_MASK_PT		(1 << XFEATURE_PT_UNIMPLEMENTED_SO_FAR)
+ #define XFEATURE_MASK_PKRU		(1 << XFEATURE_PKRU)
++#define XFEATURE_MASK_SHSTK_USER	(1 << XFEATURE_SHSTK_USER)
++#define XFEATURE_MASK_SHSTK_KERNEL	(1 << XFEATURE_SHSTK_KERNEL)
+ 
+ #define XFEATURE_MASK_FPSSE		(XFEATURE_MASK_FP | XFEATURE_MASK_SSE)
+ #define XFEATURE_MASK_AVX512		(XFEATURE_MASK_OPMASK \
+@@ -229,6 +234,23 @@ struct pkru_state {
+ 	u32				pad;
+ } __packed;
+ 
++/*
++ * State component 11 is Control flow Enforcement user states
++ */
++struct cet_user_state {
++	u64 u_cet;	/* user control flow settings */
++	u64 user_ssp;	/* user shadow stack pointer */
++} __packed;
 +
-+	noshstk		[X86-64] Disable shadow stack support for user-mode
-+			applications
++/*
++ * State component 12 is Control flow Enforcement kernel states
++ */
++struct cet_kernel_state {
++	u64 kernel_ssp;	/* kernel shadow stack */
++	u64 pl1_ssp;	/* ring-1 shadow stack */
++	u64 pl2_ssp;	/* ring-2 shadow stack */
++} __packed;
 +
- 	nosmap		[X86]
- 			Disable SMAP (Supervisor Mode Access Prevention)
- 			even if it is supported by processor.
-diff --git a/Documentation/x86/intel_cet.txt b/Documentation/x86/intel_cet.txt
-new file mode 100644
-index 000000000000..1b902a6c49f4
---- /dev/null
-+++ b/Documentation/x86/intel_cet.txt
-@@ -0,0 +1,161 @@
-+-----------------------------------------
-+Control Flow Enforcement Technology (CET)
-+-----------------------------------------
-+
-+[1] Overview
-+
-+Control Flow Enforcement Technology (CET) provides protection against
-+return/jump-oriented programing (ROP) attacks.  It can be implemented to
-+protect both the kernel and applications.  In the first phase, only the
-+user-mode protection is implemented for the 64-bit kernel.  Thirty-two bit
-+applications are supported under the compatibility mode.
-+
-+CET includes shadow stack (SHSTK) and indirect branch tracking (IBT) and
-+they are enabled from two kernel configuration options:
-+
-+  INTEL_X86_SHADOW_STACK_USER, and
-+  INTEL_X86_BRANCH_TRACKING_USER.
-+
-+There are two command-line options for disabling CET features:
-+
-+  noshstk - disables shadow stack, and
-+  noibt - disables indirect branch tracking.
-+
-+At run time, /proc/cpuinfo shows the availability of SHSTK and IBT.
-+
-+[2] Application Enabling
-+
-+The design of CET user-mode interface provides maximum overall coverage
-+and compatibility with existing applications.
-+
-+To verify the CET capability of an application, use the following command
-+and look for SHSTK/IBT in the NT_GNU_PROPERTY_TYPE_0 field:
-+
-+  readelf -n <application>
-+
-+CET features are opt-in by each application.  To build a CET-capable
-+application, the following tools are needed: Binutils v2.30, GCC v8.1,
-+and GLIBC v2.29 (or later).
-+
-+If an application has CET capabilities, is statically linked, and the
-+kernel supports CET, it will run with CET enabled.  If an application
-+needs any shared libraries, the loader checks all dependencies and enables
-+CET only when all requirements are met.  Once an application starts with
-+CET enabled, the protection cannot be turned off until the next exec().
-+
-+[3] CET system calls
-+
-+The following arch_prctl() system calls are added for CET:
-+
-+(3a) arch_prctl(ARCH_CET_STATUS, unsigned long *addr)
-+
-+     Return CET feature status.
-+
-+     The parameter 'addr' is a pointer to a user buffer.
-+     On returning to the caller, the kernel fills the following
-+     information:
-+
-+     *addr = SHSTK/IBT status
-+     *(addr + 1) = SHSTK/IBT default setting on exec()
-+     *(addr + 2) = default SHSTK size on exec()
-+
-+(3b) arch_prctl(ARCH_CET_DISABLE, unsigned long features)
-+
-+     Disable SHSTK and/or IBT specified in 'features'.  Return -EPERM
-+     if CET is locked out.
-+
-+(3c) arch_prctl(ARCH_CET_LOCK)
-+
-+     Lock out CET features; disable turning off of SHSTK/IBT.
-+
-+(3d) arch_prctl(ARCH_CET_EXEC, unsigned long *addr)
-+
-+     Control how CET features should be enabled upon exec() a new
-+     image.
-+
-+     The parameter 'addr' is a pointer to a user buffer.
-+
-+     *addr = a bitmap indicating which features are being changed
-+     *(addr + 1) = how CET should be enabled upon exec().
-+                      0: Check ELF header
-+                      1: Always disable
-+                      2: Always enable
-+     *(addr + 2) = default SHSTK size on exec()
-+
-+(3e) arch_prctl(ARCH_CET_ALLOC_SHSTK, unsigned long *addr)
-+
-+     Allocate a new SHSTK.
-+
-+     The parameter 'addr' is a pointer to a user buffer and indicates
-+     the desired SHSTK size to allocate.  On returning to the caller
-+     the buffer contains the address of the new SHSTK.
-+
-+(3f) arch_prctl(ARCH_CET_PUSH_SHSTK, unsigned long *addr)
-+
-+     Push a value onto the SHSTK.
-+
-+     The parameter 'addr' is a pointer to a user buffer.
-+
-+     *addr = the SHSTK pointer
-+     *(addr + 1) = the value to push (a function return address)
-+
-+Note: ARCH_CET_ALLOC_SHSTK and ARCH_CET_PUSH_SHSTK are intended for
-+      the implementation of GLIBC getcontext(), setcontext(),
-+      makecontext(), and swapcontext().
-+
-+(3g) arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
-+
-+     If the current task does not have a legacy bitmap, setup one.
-+     Return bitmap information as the following:
-+
-+     *addr = bitmap base address
-+     *(addr + 1) = bitmap size
-+
-+[4] The implementation of the SHSTK
-+
-+A task's SHSTK is allocated from memory to a fixed size that can
-+support 32 KB nested function calls; that is 256 KB for a 64-bit
-+application and 128 KB for a 32-bit application.  The system admin
-+can change the size with the CET command line utility.
-+
-+The main program and its signal handlers use the same shadow stack.
-+
-+The SHSTK's vma has VM_SHSTK flag set; its PTEs are required to be
-+read-only and dirty.  When a SHSTK PTE is not present, RO, and dirty,
-+a SHSTK access triggers a page fault with an additional SHSTK bit set
-+in the page fault error code.
-+
-+When a task forks a child, its SHSTK PTEs are copied and both the
-+parent's and the child's SHSTK PTEs are cleared of the dirty bit.
-+Upon the next SHSTK access, the resulting SHSTK page fault is handled
-+by page copy/re-use.
-+
-+When a pthread child is created, a separate SHSTK is created for the
-+child.
-+
-+[5] The management of read-only & dirty PTEs for SHSTK
-+
-+A RO and dirty PTE exists in the following cases:
-+
-+(5a) A page is modified and then shared with a fork()'ed child;
-+(5b) access_remote_vm with (FOLL_WRITE | FOLL_FORCE) on a RO page;
-+(5c) A SHSTK page.
-+
-+The processor does not read the dirty bit for (5a) and (5b), but
-+checks the dirty bit for (5c).  To prevent accidental use of non-
-+SHSTK memory as SHSTK, we introduce the use of a spare bit of the
-+64-bit PTE as _PAGE_BIT_DIRTY_SW and exchange it with the dirty
-+bit for (5a) and (5b).  This results to the following possible
-+PTE settings:
-+
-+Modified PTE:		  (R/W + DIRTY_HW)
-+Modified and shared PTE:  (R/O + DIRTY_SW)
-+R/O PTE was (FOLL_FORCE | FOLL_WRITE): (R/O + DIRTY_SW)
-+SHSTK stack PTE:	  (R/O + DIRTY_HW)
-+Shared SHSTK PTE:	  (R/O + DIRTY_SW)
-+
-+[6] The implementation of IBT
-+
-+The kernel provides IBT support in mmap() of the legacy code bit map.
-+However, the management of the bitmap is done in the GLIBC or the
-+application.
+ struct xstate_header {
+ 	u64				xfeatures;
+ 	u64				xcomp_bv;
+diff --git a/arch/x86/include/asm/fpu/xstate.h b/arch/x86/include/asm/fpu/xstate.h
+index a32dc5f8c963..662562cbafe9 100644
+--- a/arch/x86/include/asm/fpu/xstate.h
++++ b/arch/x86/include/asm/fpu/xstate.h
+@@ -31,7 +31,9 @@
+ 				  XFEATURE_MASK_Hi16_ZMM | \
+ 				  XFEATURE_MASK_PKRU | \
+ 				  XFEATURE_MASK_BNDREGS | \
+-				  XFEATURE_MASK_BNDCSR)
++				  XFEATURE_MASK_BNDCSR | \
++				  XFEATURE_MASK_SHSTK_USER | \
++				  XFEATURE_MASK_SHSTK_KERNEL)
+ 
+ #ifdef CONFIG_X86_64
+ #define REX_PREFIX	"0x48, "
+diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+index bcba3c643e63..25311ec4b731 100644
+--- a/arch/x86/include/uapi/asm/processor-flags.h
++++ b/arch/x86/include/uapi/asm/processor-flags.h
+@@ -130,6 +130,8 @@
+ #define X86_CR4_SMAP		_BITUL(X86_CR4_SMAP_BIT)
+ #define X86_CR4_PKE_BIT		22 /* enable Protection Keys support */
+ #define X86_CR4_PKE		_BITUL(X86_CR4_PKE_BIT)
++#define X86_CR4_CET_BIT		23 /* enable Control flow Enforcement */
++#define X86_CR4_CET		_BITUL(X86_CR4_CET_BIT)
+ 
+ /*
+  * x86-64 Task Priority Register, CR8
+diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
+index dd2c561c4544..91c0f665567b 100644
+--- a/arch/x86/kernel/fpu/xstate.c
++++ b/arch/x86/kernel/fpu/xstate.c
+@@ -35,6 +35,9 @@ static const char *xfeature_names[] =
+ 	"Processor Trace (unused)"	,
+ 	"Protection Keys User registers",
+ 	"unknown xstate feature"	,
++	"Control flow User registers"	,
++	"Control flow Kernel registers"	,
++	"unknown xstate feature"	,
+ };
+ 
+ static short xsave_cpuid_features[] __initdata = {
+@@ -48,6 +51,9 @@ static short xsave_cpuid_features[] __initdata = {
+ 	X86_FEATURE_AVX512F,
+ 	X86_FEATURE_INTEL_PT,
+ 	X86_FEATURE_PKU,
++	0,		   /* Unused */
++	X86_FEATURE_SHSTK, /* XFEATURE_SHSTK_USER */
++	X86_FEATURE_SHSTK, /* XFEATURE_SHSTK_KERNEL */
+ };
+ 
+ /*
+@@ -316,6 +322,8 @@ static void __init print_xstate_features(void)
+ 	print_xstate_feature(XFEATURE_MASK_ZMM_Hi256);
+ 	print_xstate_feature(XFEATURE_MASK_Hi16_ZMM);
+ 	print_xstate_feature(XFEATURE_MASK_PKRU);
++	print_xstate_feature(XFEATURE_MASK_SHSTK_USER);
++	print_xstate_feature(XFEATURE_MASK_SHSTK_KERNEL);
+ }
+ 
+ /*
+@@ -562,6 +570,8 @@ static void check_xstate_against_struct(int nr)
+ 	XCHECK_SZ(sz, nr, XFEATURE_ZMM_Hi256, struct avx_512_zmm_uppers_state);
+ 	XCHECK_SZ(sz, nr, XFEATURE_Hi16_ZMM,  struct avx_512_hi16_state);
+ 	XCHECK_SZ(sz, nr, XFEATURE_PKRU,      struct pkru_state);
++	XCHECK_SZ(sz, nr, XFEATURE_SHSTK_USER,   struct cet_user_state);
++	XCHECK_SZ(sz, nr, XFEATURE_SHSTK_KERNEL, struct cet_kernel_state);
+ 
+ 	/*
+ 	 * Make *SURE* to add any feature numbers in below if
 -- 
 2.15.1
