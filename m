@@ -1,72 +1,80 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH 03/10] x86/cet: Signal handling for shadow stack
-Date: Thu, 7 Jun 2018 13:57:03 -0700
-Message-ID: <CALCETrXAoPsHK49c1Dpa8N0ccsxjwnVOTktKVaY++xjHxdmUzg@mail.gmail.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-4-yu-cheng.yu@intel.com>
- <CALCETrWo77RS_wOzskw5OG-LdC1S-b_NY=uPWUmPbQEnNwANgQ@mail.gmail.com> <20180607200714.GA2525@uranus>
+Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
+Date: Thu, 7 Jun 2018 14:01:18 -0700
+Message-ID: <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-7-yu-cheng.yu@intel.com>
+ <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com> <1528403417.5265.35.camel@2b52.sc.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607200714.GA2525@uranus>
+In-Reply-To: <1528403417.5265.35.camel@2b52.sc.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Cyrill Gorcunov <gorcunov@gmail.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Florian Weimer <fweimer@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Andrew Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 7, 2018 at 1:07 PM Cyrill Gorcunov <gorcunov@gmail.com> wrote:
+On Thu, Jun 7, 2018 at 1:33 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 >
-> On Thu, Jun 07, 2018 at 11:30:34AM -0700, Andy Lutomirski wrote:
+> On Thu, 2018-06-07 at 11:48 -0700, Andy Lutomirski wrote:
 > > On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 > > >
-> > > Set and restore shadow stack pointer for signals.
-> >
-> > How does this interact with siglongjmp()?
-> >
-> > This patch makes me extremely nervous due to the possibility of ABI
-> > issues and CRIU breakage.
-> >
-> > > diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/uapi/asm/sigcontext.h
-> > > index 844d60eb1882..6c8997a0156a 100644
-> > > --- a/arch/x86/include/uapi/asm/sigcontext.h
-> > > +++ b/arch/x86/include/uapi/asm/sigcontext.h
-> > > @@ -230,6 +230,7 @@ struct sigcontext_32 {
-> > >         __u32                           fpstate; /* Zero when no FPU/extended context */
-> > >         __u32                           oldmask;
-> > >         __u32                           cr2;
-> > > +       __u32                           ssp;
-> > >  };
+> > > The following operations are provided.
 > > >
-> > >  /*
-> > > @@ -262,6 +263,7 @@ struct sigcontext_64 {
-> > >         __u64                           trapno;
-> > >         __u64                           oldmask;
-> > >         __u64                           cr2;
-> > > +       __u64                           ssp;
+> > > ARCH_CET_STATUS:
+> > >         return the current CET status
 > > >
-> > >         /*
-> > >          * fpstate is really (struct _fpstate *) or (struct _xstate *)
-> > > @@ -320,6 +322,7 @@ struct sigcontext {
-> > >         struct _fpstate __user          *fpstate;
-> > >         __u32                           oldmask;
-> > >         __u32                           cr2;
-> > > +       __u32                           ssp;
+> > > ARCH_CET_DISABLE:
+> > >         disable CET features
+> > >
+> > > ARCH_CET_LOCK:
+> > >         lock out CET features
+> > >
+> > > ARCH_CET_EXEC:
+> > >         set CET features for exec()
+> > >
+> > > ARCH_CET_ALLOC_SHSTK:
+> > >         allocate a new shadow stack
+> > >
+> > > ARCH_CET_PUSH_SHSTK:
+> > >         put a return address on shadow stack
+> > >
+> > > ARCH_CET_ALLOC_SHSTK and ARCH_CET_PUSH_SHSTK are intended only for
+> > > the implementation of GLIBC ucontext related APIs.
 > >
-> > Is it actually okay to modify these structures like this?  They're
-> > part of the user ABI, and I don't know whether any user code relies on
-> > the size being constant.
+> > Please document exactly what these all do and why.  I don't understand
+> > what purpose ARCH_CET_LOCK and ARCH_CET_EXEC serve.  CET is opt in for
+> > each ELF program, so I think there should be no need for a magic
+> > override.
 >
-> For sure it might cause problems for CRIU since we have
-> similar definitions for this structure inside our code.
-> That said if kernel is about to modify the structures it
-> should keep backward compatibility at least if a user
-> passes previous version of a structure @ssp should be
-> set to something safe by the kernel itself.
->
-> I didn't read the whole series of patches in details
-> yet, hopefully will be able tomorrow. Thanks Andy for
-> CC'ing!
+> CET is initially enabled if the loader has CET capability.  Then the
+> loader decides if the application can run with CET.  If the application
+> cannot run with CET (e.g. a dependent library does not have CET), then
+> the loader turns off CET before passing to the application.  When the
+> loader is done, it locks out CET and the feature cannot be turned off
+> anymore until the next exec() call.
 
-We have uc_flags.  It might be useful to carve out some of the flag
-space (24 bits?) to indicate something like the *size* of sigcontext
-and teach the kernel that new sigcontext fields should only be parsed
-on sigreturn() if the size is large enough.
+Why is the lockout necessary?  If user code enables CET and tries to
+run code that doesn't support CET, it will crash.  I don't see why we
+need special code in the kernel to prevent a user program from calling
+arch_prctl() and crashing itself.  There are already plenty of ways to
+do that :)
+
+> When the next exec() is called, CET
+> feature is turned on/off based on the values set by ARCH_CET_EXEC.
+
+And why do we need ARCH_CET_EXEC?
+
+For background, I really really dislike adding new state that persists
+across exec().  It's nice to get as close to a clean slate as possible
+after exec() so that programs can run in a predictable environment.
+exec() is also a security boundary, and anything a task can do to
+affect itself after exec() needs to have its security implications
+considered very carefully.  (As a trivial example, you should not be
+able to use cetcmd ... sudo [malicious options here] to cause sudo to
+run with CET off and then try to exploit it via the malicious options.
+
+If a shutoff is needed for testing, how about teaching ld.so to parse
+LD_CET=no or similar and protect it the same way as LD_PRELOAD is
+protected.  Or just do LD_PRELOAD=/lib/libdoesntsupportcet.so.
+
+--Andy
