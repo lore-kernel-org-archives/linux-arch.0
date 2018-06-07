@@ -1,278 +1,355 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:61234 "EHLO mga17.intel.com"
+Received: from mga17.intel.com ([192.55.52.151]:61237 "EHLO mga17.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933527AbeFGOmb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Jun 2018 10:42:31 -0400
+        id S933832AbeFGOmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Jun 2018 10:42:32 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 2/7] x86/cet: User-mode indirect branch tracking support
-Date: Thu,  7 Jun 2018 07:38:50 -0700
-Message-ID: <20180607143855.3681-3-yu-cheng.yu@intel.com>
+Subject: [PATCH 6/7] tools: Add cetcmd
+Date: Thu,  7 Jun 2018 07:38:54 -0700
+Message-ID: <20180607143855.3681-7-yu-cheng.yu@intel.com>
 In-Reply-To: <20180607143855.3681-1-yu-cheng.yu@intel.com>
 References: <20180607143855.3681-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180607143850.B3Punexp4vN7pGQV5HbujCL1b5KY91YeWJ4Hwe3e1vI@z>
+Message-ID: <20180607143854.ZOS7RcI7d6mg1ewsJqsCZTSKYWQnNGXvV7cdnrcUKRE@z>
 
-Add user-mode indirect branch tracking enabling/disabling
-and supporting routines.
+From: "H.J. Lu" <hjl.tools@gmail.com>
+
+Introduce CET command-line utility.  This utility allows system admin
+to enable/disable CET features and set default shadow stack size.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/cet.h               |  8 ++++
- arch/x86/include/asm/disabled-features.h |  8 +++-
- arch/x86/kernel/cet.c                    | 73 ++++++++++++++++++++++++++++++++
- arch/x86/kernel/cpu/common.c             | 20 ++++++++-
- arch/x86/kernel/elf.c                    | 15 ++++++-
- arch/x86/kernel/process.c                |  1 +
- 6 files changed, 122 insertions(+), 3 deletions(-)
+ tools/Makefile                                 |  13 +--
+ tools/arch/x86/include/uapi/asm/elf_property.h |  16 +++
+ tools/arch/x86/include/uapi/asm/prctl.h        |  33 ++++++
+ tools/cet/.gitignore                           |   1 +
+ tools/cet/Makefile                             |  11 ++
+ tools/cet/cetcmd.c                             | 134 +++++++++++++++++++++++++
+ tools/include/uapi/asm/elf_property.h          |   4 +
+ tools/include/uapi/asm/prctl.h                 |   4 +
+ 8 files changed, 210 insertions(+), 6 deletions(-)
+ create mode 100644 tools/arch/x86/include/uapi/asm/elf_property.h
+ create mode 100644 tools/arch/x86/include/uapi/asm/prctl.h
+ create mode 100644 tools/cet/.gitignore
+ create mode 100644 tools/cet/Makefile
+ create mode 100644 tools/cet/cetcmd.c
+ create mode 100644 tools/include/uapi/asm/elf_property.h
+ create mode 100644 tools/include/uapi/asm/prctl.h
 
-diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index a2a53fe4d5e6..d07bdeb27db4 100644
---- a/arch/x86/include/asm/cet.h
-+++ b/arch/x86/include/asm/cet.h
-@@ -13,7 +13,10 @@ struct cet_stat {
- 	unsigned long	shstk_base;
- 	unsigned long	shstk_size;
- 	unsigned long	exec_shstk_size;
-+	unsigned long	ibt_bitmap_addr;
-+	unsigned long	ibt_bitmap_size;
- 	unsigned int	shstk_enabled:1;
-+	unsigned int	ibt_enabled:1;
- 	unsigned int	locked:1;
- 	unsigned int	exec_shstk:2;
- };
-@@ -29,6 +32,9 @@ void cet_disable_shstk(void);
- void cet_disable_free_shstk(struct task_struct *p);
- int cet_restore_signal(unsigned long ssp);
- int cet_setup_signal(int ia32, unsigned long addr);
-+int cet_setup_ibt(void);
-+int cet_setup_ibt_bitmap(void);
-+void cet_disable_ibt(void);
- #else
- static inline int prctl_cet(int option, unsigned long arg2) { return 0; }
- static inline unsigned long cet_get_shstk_ptr(void) { return 0; }
-@@ -41,6 +47,8 @@ static inline void cet_disable_shstk(void) {}
- static inline void cet_disable_free_shstk(struct task_struct *p) {}
- static inline int cet_restore_signal(unsigned long ssp) { return 0; }
- static inline int cet_setup_signal(int ia32, unsigned long addr) { return 0; }
-+static inline int cet_setup_ibt(void) { return 0; }
-+static inline void cet_disable_ibt(void) {}
- #endif
+diff --git a/tools/Makefile b/tools/Makefile
+index be02c8b904db..bdca71e61d22 100644
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -10,6 +10,7 @@ help:
+ 	@echo 'Possible targets:'
+ 	@echo ''
+ 	@echo '  acpi                   - ACPI tools'
++	@echo '  cet                    - Intel CET tools'
+ 	@echo '  cgroup                 - cgroup tools'
+ 	@echo '  cpupower               - a tool for all things x86 CPU power'
+ 	@echo '  firewire               - the userspace part of nosy, an IEEE-1394 traffic sniffer'
+@@ -59,7 +60,7 @@ acpi: FORCE
+ cpupower: FORCE
+ 	$(call descend,power/$@)
  
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index 3624a11e5ba6..ce5bdaf0f1ff 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -62,6 +62,12 @@
- #define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
- #endif
+-cgroup firewire hv guest spi usb virtio vm bpf iio gpio objtool leds wmi: FORCE
++cet cgroup firewire hv guest spi usb virtio vm bpf iio gpio objtool leds wmi: FORCE
+ 	$(call descend,$@)
  
-+#ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+#define DISABLE_IBT	0
-+#else
-+#define DISABLE_IBT	(1<<(X86_FEATURE_IBT & 31))
-+#endif
+ liblockdep: FORCE
+@@ -91,7 +92,7 @@ freefall: FORCE
+ kvm_stat: FORCE
+ 	$(call descend,kvm/$@)
+ 
+-all: acpi cgroup cpupower gpio hv firewire liblockdep \
++all: acpi cet cgroup cpupower gpio hv firewire liblockdep \
+ 		perf selftests spi turbostat usb \
+ 		virtio vm bpf x86_energy_perf_policy \
+ 		tmon freefall iio objtool kvm_stat wmi
+@@ -102,7 +103,7 @@ acpi_install:
+ cpupower_install:
+ 	$(call descend,power/$(@:_install=),install)
+ 
+-cgroup_install firewire_install gpio_install hv_install iio_install perf_install spi_install usb_install virtio_install vm_install bpf_install objtool_install wmi_install:
++cet_install cgroup_install firewire_install gpio_install hv_install iio_install perf_install spi_install usb_install virtio_install vm_install bpf_install objtool_install wmi_install:
+ 	$(call descend,$(@:_install=),install)
+ 
+ liblockdep_install:
+@@ -123,7 +124,7 @@ freefall_install:
+ kvm_stat_install:
+ 	$(call descend,kvm/$(@:_install=),install)
+ 
+-install: acpi_install cgroup_install cpupower_install gpio_install \
++install: acpi_install cet_install cgroup_install cpupower_install gpio_install \
+ 		hv_install firewire_install iio_install liblockdep_install \
+ 		perf_install selftests_install turbostat_install usb_install \
+ 		virtio_install vm_install bpf_install x86_energy_perf_policy_install \
+@@ -136,7 +137,7 @@ acpi_clean:
+ cpupower_clean:
+ 	$(call descend,power/cpupower,clean)
+ 
+-cgroup_clean hv_clean firewire_clean spi_clean usb_clean virtio_clean vm_clean wmi_clean bpf_clean iio_clean gpio_clean objtool_clean leds_clean:
++cet_clean cgroup_clean hv_clean firewire_clean spi_clean usb_clean virtio_clean vm_clean wmi_clean bpf_clean iio_clean gpio_clean objtool_clean leds_clean:
+ 	$(call descend,$(@:_clean=),clean)
+ 
+ liblockdep_clean:
+@@ -170,7 +171,7 @@ freefall_clean:
+ build_clean:
+ 	$(call descend,build,clean)
+ 
+-clean: acpi_clean cgroup_clean cpupower_clean hv_clean firewire_clean \
++clean: acpi_clean cet_clean cgroup_clean cpupower_clean hv_clean firewire_clean \
+ 		perf_clean selftests_clean turbostat_clean spi_clean usb_clean virtio_clean \
+ 		vm_clean bpf_clean iio_clean x86_energy_perf_policy_clean tmon_clean \
+ 		freefall_clean build_clean libbpf_clean libsubcmd_clean liblockdep_clean \
+diff --git a/tools/arch/x86/include/uapi/asm/elf_property.h b/tools/arch/x86/include/uapi/asm/elf_property.h
+new file mode 100644
+index 000000000000..343a871b8fc1
+--- /dev/null
++++ b/tools/arch/x86/include/uapi/asm/elf_property.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _UAPI_ASM_X86_ELF_PROPERTY_H
++#define _UAPI_ASM_X86_ELF_PROPERTY_H
 +
- /*
-  * Make sure to add features to the correct mask
-  */
-@@ -72,7 +78,7 @@
- #define DISABLED_MASK4	(DISABLE_PCID)
- #define DISABLED_MASK5	0
- #define DISABLED_MASK6	0
--#define DISABLED_MASK7	(DISABLE_PTI)
-+#define DISABLED_MASK7	(DISABLE_PTI|DISABLE_IBT)
- #define DISABLED_MASK8	0
- #define DISABLED_MASK9	(DISABLE_MPX)
- #define DISABLED_MASK10	0
-diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-index 1b7089dcf1ea..4df4b583311f 100644
---- a/arch/x86/kernel/cet.c
-+++ b/arch/x86/kernel/cet.c
-@@ -12,6 +12,8 @@
- #include <linux/slab.h>
- #include <linux/uaccess.h>
- #include <linux/sched/signal.h>
-+#include <linux/vmalloc.h>
-+#include <linux/bitops.h>
- #include <asm/msr.h>
- #include <asm/user.h>
- #include <asm/fpu/xstate.h>
-@@ -222,3 +224,74 @@ int cet_setup_signal(int ia32, unsigned long rstor_addr)
- 
- 	return cet_push_shstk(ia32, ssp, rstor_addr);
- }
++/*
++ * pr_type
++ */
++#define GNU_PROPERTY_X86_FEATURE_1_AND (0xc0000002)
 +
-+static unsigned long ibt_mmap(unsigned long addr, unsigned long len)
++/*
++ * Bits for GNU_PROPERTY_X86_FEATURE_1_AND
++ */
++#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	(0x00000002)
++#define GNU_PROPERTY_X86_FEATURE_1_IBT		(0x00000001)
++
++#endif /* _UAPI_ASM_X86_ELF_PROPERTY_H */
+diff --git a/tools/arch/x86/include/uapi/asm/prctl.h b/tools/arch/x86/include/uapi/asm/prctl.h
+new file mode 100644
+index 000000000000..fef476d2d2f6
+--- /dev/null
++++ b/tools/arch/x86/include/uapi/asm/prctl.h
+@@ -0,0 +1,33 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _ASM_X86_PRCTL_H
++#define _ASM_X86_PRCTL_H
++
++#define ARCH_SET_GS		0x1001
++#define ARCH_SET_FS		0x1002
++#define ARCH_GET_FS		0x1003
++#define ARCH_GET_GS		0x1004
++
++#define ARCH_GET_CPUID		0x1011
++#define ARCH_SET_CPUID		0x1012
++
++#define ARCH_MAP_VDSO_X32	0x2001
++#define ARCH_MAP_VDSO_32	0x2002
++#define ARCH_MAP_VDSO_64	0x2003
++
++#define ARCH_CET_STATUS		0x3001
++#define ARCH_CET_DISABLE	0x3002
++#define ARCH_CET_LOCK		0x3003
++#define ARCH_CET_EXEC		0x3004
++#define ARCH_CET_ALLOC_SHSTK	0x3005
++#define ARCH_CET_PUSH_SHSTK	0x3006
++#define ARCH_CET_LEGACY_BITMAP	0x3007
++
++/*
++ * Settings for ARCH_CET_EXEC
++ */
++#define CET_EXEC_ELF_PROPERTY	0
++#define CET_EXEC_ALWAYS_OFF	1
++#define CET_EXEC_ALWAYS_ON	2
++#define CET_EXEC_MAX CET_EXEC_ALWAYS_ON
++
++#endif /* _ASM_X86_PRCTL_H */
+diff --git a/tools/cet/.gitignore b/tools/cet/.gitignore
+new file mode 100644
+index 000000000000..bd100f593454
+--- /dev/null
++++ b/tools/cet/.gitignore
+@@ -0,0 +1 @@
++cetcmd
+diff --git a/tools/cet/Makefile b/tools/cet/Makefile
+new file mode 100644
+index 000000000000..fae42b84d796
+--- /dev/null
++++ b/tools/cet/Makefile
+@@ -0,0 +1,11 @@
++# SPDX-License-Identifier: GPL-2.0
++# Makefile for CET tools
++
++CFLAGS = -O2 -g -Wall -Wextra -I../include/uapi
++
++all: cetcmd
++%: %.c
++	$(CC) $(CFLAGS) -o $@ $^
++
++clean:
++	$(RM) cetcmd
+diff --git a/tools/cet/cetcmd.c b/tools/cet/cetcmd.c
+new file mode 100644
+index 000000000000..dbbfb5267c1f
+--- /dev/null
++++ b/tools/cet/cetcmd.c
+@@ -0,0 +1,134 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#define _GNU_SOURCE
++#include <unistd.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <getopt.h>
++#include <errno.h>
++#include <error.h>
++#include <asm/elf_property.h>
++#include <asm/prctl.h>
++
++enum command_line_switch {
++	OPTION_ELF_PROPERTY = 150,
++	OPTION_ALWAYS_OFF,
++	OPTION_ALWAYS_ON,
++	OPTION_SHSTK_SIZE
++};
++
++static const struct option options[] = {
++	{"property",	no_argument, 0, OPTION_ELF_PROPERTY},
++	{"off",		no_argument, 0, OPTION_ALWAYS_OFF},
++	{"on",		no_argument, 0, OPTION_ALWAYS_ON},
++	{"shstk-size",	required_argument, 0, OPTION_SHSTK_SIZE},
++	{"feature",	required_argument, 0, 'f'},
++	{"help",	no_argument, 0, 'h'},
++	{0,		no_argument, 0, 0}
++};
++
++__attribute__((__noreturn__))
++static void
++usage(FILE *stream, int exit_status)
 +{
-+	struct mm_struct *mm = current->mm;
-+	unsigned long populate;
++	fprintf(stream, "Usage: %s <option(s)> -- command [args]\n",
++		program_invocation_short_name);
++	fprintf(stream, " Run command with CET features\n");
++	fprintf(stream, " The options are:\n");
++	fprintf(stream,
++		"\t--property                Enable CET features based on ELF property note\n"
++		"\t--off                     Always disable CET features\n"
++		"\t--on                      Always enable CET features\n"
++		"\t-f, --feature [ibt|shstk] Control CET [IBT|SHSTK] feature\n"
++		"\t--shstk-size SIZE         Set shadow stack size\n"
++		"\t-h --help                 Display this information\n");
 +
-+	down_write(&mm->mmap_sem);
-+	addr = do_mmap(NULL, addr, len, PROT_READ | PROT_WRITE,
-+		       MAP_ANONYMOUS | MAP_PRIVATE,
-+		       VM_DONTDUMP, 0, &populate, NULL);
-+	up_write(&mm->mmap_sem);
-+
-+	if (populate)
-+		mm_populate(addr, populate);
-+
-+	return addr;
++	exit(exit_status);
 +}
 +
-+int cet_setup_ibt(void)
++extern int arch_prctl(int, unsigned long *);
++
++int
++main(int argc, char *const *argv, char *const *envp)
 +{
-+	u64 r;
++	int c;
++	unsigned long values[3] = {0, -1, 0};
++	unsigned long status[3];
++	unsigned long shstk_size = -1;
++	char **args;
++	size_t i, num_of_args;
 +
-+	if (!cpu_feature_enabled(X86_FEATURE_IBT))
-+		return -EOPNOTSUPP;
++	while ((c = getopt_long(argc, argv, "f:h",
++				options, (int *) 0)) != EOF) {
++		switch (c) {
++		case OPTION_ELF_PROPERTY:
++			values[1] = CET_EXEC_ELF_PROPERTY;
++			break;
 +
-+	rdmsrl(MSR_IA32_U_CET, r);
-+	r |= (MSR_IA32_CET_ENDBR_EN | MSR_IA32_CET_NO_TRACK_EN);
-+	wrmsrl(MSR_IA32_U_CET, r);
-+	current->thread.cet.ibt_enabled = 1;
-+	return 0;
-+}
++		case OPTION_ALWAYS_OFF:
++			values[1] = CET_EXEC_ALWAYS_OFF;
++			break;
 +
-+int cet_setup_ibt_bitmap(void)
-+{
-+	u64 r;
-+	unsigned long bitmap;
-+	unsigned long size;
++		case OPTION_ALWAYS_ON:
++			values[1] = CET_EXEC_ALWAYS_ON;
++			break;
 +
-+	if (!cpu_feature_enabled(X86_FEATURE_IBT))
-+		return -EOPNOTSUPP;
++		case OPTION_SHSTK_SIZE:
++			shstk_size = strtol(optarg, NULL, 0);
++			break;
 +
-+	size = TASK_SIZE / PAGE_SIZE / BITS_PER_BYTE;
-+	bitmap = ibt_mmap(0, size);
++		case 'f':
++			if (strcasecmp(optarg, "ibt") == 0)
++				values[0] = GNU_PROPERTY_X86_FEATURE_1_IBT;
++			else if (strcasecmp(optarg, "shstk") == 0)
++				values[0] = GNU_PROPERTY_X86_FEATURE_1_SHSTK;
++			else
++				usage(stderr, EXIT_FAILURE);
++			break;
 +
-+	if (bitmap >= TASK_SIZE)
-+		return -ENOMEM;
++		case 'h':
++			usage(stdout, EXIT_SUCCESS);
 +
-+	bitmap &= PAGE_MASK;
-+
-+	rdmsrl(MSR_IA32_U_CET, r);
-+	r |= (MSR_IA32_CET_LEG_IW_EN | bitmap);
-+	wrmsrl(MSR_IA32_U_CET, r);
-+
-+	current->thread.cet.ibt_bitmap_addr = bitmap;
-+	current->thread.cet.ibt_bitmap_size = size;
-+	return 0;
-+}
-+
-+void cet_disable_ibt(void)
-+{
-+	u64 r;
-+
-+	if (!cpu_feature_enabled(X86_FEATURE_IBT))
-+		return;
-+
-+	rdmsrl(MSR_IA32_U_CET, r);
-+	r &= ~(MSR_IA32_CET_ENDBR_EN | MSR_IA32_CET_LEG_IW_EN |
-+	       MSR_IA32_CET_NO_TRACK_EN);
-+	wrmsrl(MSR_IA32_U_CET, r);
-+	current->thread.cet.ibt_enabled = 0;
-+}
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index f54fabdaef60..4041d6b94455 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -403,7 +403,8 @@ __setup("nopku", setup_disable_pku);
- 
- static __always_inline void setup_cet(struct cpuinfo_x86 *c)
- {
--	if (cpu_feature_enabled(X86_FEATURE_SHSTK))
-+	if (cpu_feature_enabled(X86_FEATURE_SHSTK) ||
-+	    cpu_feature_enabled(X86_FEATURE_IBT))
- 		cr4_set_bits(X86_CR4_CET);
- }
- 
-@@ -424,6 +425,23 @@ static __init int setup_disable_shstk(char *s)
- __setup("noshstk", setup_disable_shstk);
- #endif
- 
-+#ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+static __init int setup_disable_ibt(char *s)
-+{
-+	/* require an exact match without trailing characters */
-+	if (strlen(s))
-+		return 0;
-+
-+	if (!boot_cpu_has(X86_FEATURE_IBT))
-+		return 1;
-+
-+	setup_clear_cpu_cap(X86_FEATURE_IBT);
-+	pr_info("x86: 'noibt' specified, disabling Branch Tracking\n");
-+	return 1;
-+}
-+__setup("noibt", setup_disable_ibt);
-+#endif
-+
- /*
-  * Some CPU features depend on higher CPUID levels, which may not always
-  * be available due to CPUID level capping or broken virtualization
-diff --git a/arch/x86/kernel/elf.c b/arch/x86/kernel/elf.c
-index de08d41971f6..a3995c8c2fc2 100644
---- a/arch/x86/kernel/elf.c
-+++ b/arch/x86/kernel/elf.c
-@@ -18,6 +18,7 @@
- #include <linux/fs.h>
- #include <linux/uaccess.h>
- #include <linux/string.h>
-+#include <linux/compat.h>
- 
- #define ELF_NOTE_DESC_OFFSET(n, align) \
- 	round_up(sizeof(*n) + n->n_namesz, (align))
-@@ -183,7 +184,8 @@ int arch_setup_features(void *ehdr_p, void *phdr_p,
- 
- 	struct elf64_hdr *ehdr64 = ehdr_p;
- 
--	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
-+	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) &&
-+	    !cpu_feature_enabled(X86_FEATURE_IBT))
- 		return 0;
- 
- 	if (ehdr64->e_ident[EI_CLASS] == ELFCLASS64) {
-@@ -211,6 +213,9 @@ int arch_setup_features(void *ehdr_p, void *phdr_p,
- 	current->thread.cet.shstk_enabled = 0;
- 	current->thread.cet.shstk_base = 0;
- 	current->thread.cet.shstk_size = 0;
-+	current->thread.cet.ibt_enabled = 0;
-+	current->thread.cet.ibt_bitmap_addr = 0;
-+	current->thread.cet.ibt_bitmap_size = 0;
- 	current->thread.cet.locked = 0;
- 	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
- 		int exec = current->thread.cet.exec_shstk;
-@@ -224,6 +229,14 @@ int arch_setup_features(void *ehdr_p, void *phdr_p,
- 		}
- 	}
- 
-+	if (cpu_feature_enabled(X86_FEATURE_IBT)) {
-+		if (ibt) {
-+			err = cet_setup_ibt();
-+			if (err < 0)
-+				goto out;
++		default:
++			usage(stderr, EXIT_FAILURE);
 +		}
 +	}
 +
- 	/*
- 	 * Lockout CET features if no interpreter
- 	 */
-diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-index 54ad1863c6d2..9bec164e7958 100644
---- a/arch/x86/kernel/process.c
-+++ b/arch/x86/kernel/process.c
-@@ -139,6 +139,7 @@ void flush_thread(void)
- 	memset(tsk->thread.tls_array, 0, sizeof(tsk->thread.tls_array));
- 
- 	cet_disable_shstk();
-+	cet_disable_ibt();
- 	fpu__clear(&tsk->thread.fpu);
- }
- 
++	if ((optind + 1) > argc ||
++	    (values[1] == (unsigned long)-1 &&
++	     shstk_size == (unsigned long)-1))
++		usage(stderr, EXIT_FAILURE);
++
++	/* If --shstk-size isn't used, get the current shadow stack size. */
++	if (shstk_size == (unsigned long)-1) {
++		if (arch_prctl(ARCH_CET_STATUS, status) < 0)
++			error(EXIT_FAILURE, errno, "arch_prctl failed\n");
++		shstk_size = status[2];
++	}
++
++	/* If --property/--off/--on aren't used, clear all features. */
++	if (values[1] == (unsigned long)-1) {
++		values[0] = 0;
++		values[1] = 0;
++	} else {
++		if (values[0] == 0)
++			values[0] = (GNU_PROPERTY_X86_FEATURE_1_IBT |
++				     GNU_PROPERTY_X86_FEATURE_1_SHSTK);
++	}
++
++	values[2] = shstk_size;
++	if (arch_prctl(ARCH_CET_EXEC, values) < 0)
++		error(EXIT_FAILURE, errno, "arch_prctl failed\n");
++
++	num_of_args = argc - optind + 1;
++	args = malloc(num_of_args * sizeof(char *));
++	if (args == NULL)
++		error(EXIT_FAILURE, errno, "malloc failed\n");
++
++	for (i = 0; i < num_of_args; i++)
++		args[i] = argv[optind + i];
++	args[i] = NULL;
++
++	return execvpe(argv[optind], args, envp);
++}
+diff --git a/tools/include/uapi/asm/elf_property.h b/tools/include/uapi/asm/elf_property.h
+new file mode 100644
+index 000000000000..1281b4e1a578
+--- /dev/null
++++ b/tools/include/uapi/asm/elf_property.h
+@@ -0,0 +1,4 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#if defined(__i386__) || defined(__x86_64__)
++#include "../../arch/x86/include/uapi/asm/elf_property.h"
++#endif
+\ No newline at end of file
+diff --git a/tools/include/uapi/asm/prctl.h b/tools/include/uapi/asm/prctl.h
+new file mode 100644
+index 000000000000..b0894b828b06
+--- /dev/null
++++ b/tools/include/uapi/asm/prctl.h
+@@ -0,0 +1,4 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#if defined(__i386__) || defined(__x86_64__)
++#include "../../arch/x86/include/uapi/asm/prctl.h"
++#endif
+\ No newline at end of file
 -- 
 2.15.1
