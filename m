@@ -1,51 +1,101 @@
-From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH -tip v5 18/27] powerpc/kprobes: Don't call the
- ->break_handler() in arm kprobes code
-Date: Thu, 07 Jun 2018 22:07:26 +0530
-Message-ID: <1528389409.62iyaqw9yn.naveen@linux.ibm.com>
-References: <152812730943.10068.5166429445118734697.stgit@devbox>
-        <152812783350.10068.4690566636762511152.stgit@devbox>
-        <1528371112.vwnh1m0k39.naveen@linux.ibm.com>
-        <20180607232802.c5fcea960e94ef2f3cd4cde8@kernel.org>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH 02/10] x86/cet: Introduce WRUSS instruction
+Date: Thu, 7 Jun 2018 09:40:02 -0700
+Message-ID: <CALCETrU45Cuzvfz3c1+-+7=9KS2N33Bpp1JqBtaGxhPo8U+Fqg@mail.gmail.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-3-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607232802.c5fcea960e94ef2f3cd4cde8@kernel.org>
+In-Reply-To: <20180607143807.3611-3-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-Masami Hiramatsu wrote:
-> On Thu, 07 Jun 2018 17:07:00 +0530
-> "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com> wrote:
-> 
->> Masami Hiramatsu wrote:
->> > Don't call the ->break_handler() from the arm kprobes code,
->> 					    ^^^ powerpc
->> 
->> > because it was only used by jprobes which got removed.
->> > 
->> > This also makes skip_singlestep() a static function since
->> > only ftrace-kprobe.c is using this function.
->> > 
->> > Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
->> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> > Cc: Paul Mackerras <paulus@samba.org>
->> > Cc: Michael Ellerman <mpe@ellerman.id.au>
->> > Cc: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
->> > Cc: linuxppc-dev@lists.ozlabs.org
->> > ---
->> >  arch/powerpc/include/asm/kprobes.h   |   10 ----------
->> >  arch/powerpc/kernel/kprobes-ftrace.c |   16 +++-------------
->> >  arch/powerpc/kernel/kprobes.c        |   31 +++++++++++--------------------
->> >  3 files changed, 14 insertions(+), 43 deletions(-)
->> 
->> With 2 small comments...
-> 
-> 2 ? or 1 ?
+On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+> WRUSS is a new kernel-mode instruction but writes directly
+> to user shadow stack memory.  This is used to construct
+> a return address on the shadow stack for the signal
+> handler.
+>
+> This instruction can fault if the user shadow stack is
+> invalid shadow stack memory.  In that case, the kernel does
+> fixup.
+>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/special_insns.h          | 44 +++++++++++++++++++++++++++
+>  arch/x86/lib/x86-opcode-map.txt               |  2 +-
+>  arch/x86/mm/fault.c                           | 13 +++++++-
+>  tools/objtool/arch/x86/lib/x86-opcode-map.txt |  2 +-
+>  4 files changed, 58 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+> index 317fc59b512c..8ce532fcc171 100644
+> --- a/arch/x86/include/asm/special_insns.h
+> +++ b/arch/x86/include/asm/special_insns.h
+> @@ -237,6 +237,50 @@ static inline void clwb(volatile void *__p)
+>                 : [pax] "a" (p));
+>  }
+>
+> +#ifdef CONFIG_X86_INTEL_CET
+> +
+> +#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +       int err;
+> +
 
-Two, with one in the commit log above :)
+Please add a comment indicating what exact opcode this is.
 
-- Naveen
+Peterz, isn't there some fancy better way we're supposed to handle the
+error return these days?
+
+> +       asm volatile("1:.byte 0x66, 0x0f, 0x38, 0xf5, 0x37\n"
+> +                    "xor %[err],%[err]\n"
+> +                    "2:\n"
+> +                    ".section .fixup,\"ax\"\n"
+> +                    "3: mov $-1,%[err]; jmp 2b\n"
+> +                    ".previous\n"
+> +                    _ASM_EXTABLE(1b, 3b)
+> +               : [err] "=a" (err)
+> +               : [val] "S" (val), [addr] "D" (addr)
+> +               : "memory");
+> +       return err;
+> +}
+> +#else
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +       return 0;
+
+BUG()?  Or just omit the ifdef?  It seems unhelpful to have a stub
+function that does nothing.
+
+> +}
+> +#endif
+> +
+> +static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
+> +{
+> +       int err;
+> +
+
+Comment here too, please.
+
+> +       asm volatile("1:.byte 0x66, 0x48, 0x0f, 0x38, 0xf5, 0x37\n"
+> +                    "xor %[err],%[err]\n"
+> +                    "2:\n"
+> +                    ".section .fixup,\"ax\"\n"
+> +                    "3: mov $-1,%[err]; jmp 2b\n"
+> +                    ".previous\n"
+> +                    _ASM_EXTABLE(1b, 3b)
+> +               : [err] "=a" (err)
+> +               : [val] "S" (val), [addr] "D" (addr)
+> +               : "memory");
+> +       return err;
+> +}
+> +#endif /* CONFIG_X86_INTEL_CET */
+> +
+>  #define nop() asm volatile ("nop")
+>
+>
