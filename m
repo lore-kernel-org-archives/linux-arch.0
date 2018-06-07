@@ -1,73 +1,79 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH 0/7] Control Flow Enforcement - Part (4)
-Date: Thu,  7 Jun 2018 07:38:48 -0700
-Message-ID: <20180607143855.3681-1-yu-cheng.yu@intel.com>
+From: Ben Hutchings <ben@decadent.org.uk>
+Subject: [PATCH 3.16 258/410] nospec: Allow index argument to have
+ const-qualified type
+Date: Thu, 07 Jun 2018 15:05:21 +0100
+Message-ID: <lsq.1528380321.465767219@decadent.org.uk>
+References: <lsq.1528380320.647747352@decadent.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <lsq.1528380320.647747352@decadent.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Cc: akpm@linux-foundation.org, Dave Hansen <dave.hansen@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, David Woodhouse <dwmw2@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, Arjan van de Ven <arjan@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This series introduces CET - indirect branch tracking
+3.16.57-rc1 review patch.  If anyone has any objections, please let me know.
 
-The major task of indirect branch tracking is for the compiler to
-insert the ENDBR instructions at all valid branch targets.
+------------------
 
-The kernel provides:
-	CPUID enumeration and feature setup;
-	Legacy bitmap allocation;
-	Some basic supporting routines.
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 
-In this patch, there are also a CET command-line utility and
-PTRACE support.
+commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
 
-H.J. Lu (2):
-  x86: Insert endbr32/endbr64 to vDSO
-  tools: Add cetcmd
+The last expression in a statement expression need not be a bare
+variable, quoting gcc docs
 
-Yu-cheng Yu (5):
-  x86/cet: Add Kconfig option for user-mode Indirect Branch Tracking
-  x86/cet: User-mode indirect branch tracking support
-  mm/mmap: Add IBT bitmap size to address space limit check
-  x86/cet: add arcp_prctl functions for indirect branch tracking
-  x86/cet: Add PTRACE interface for CET
+  The last thing in the compound statement should be an expression
+  followed by a semicolon; the value of this subexpression serves as the
+  value of the entire construct.
 
- arch/x86/Kconfig                               |  12 +++
- arch/x86/entry/vdso/.gitignore                 |   4 +
- arch/x86/entry/vdso/Makefile                   |  34 +++++++
- arch/x86/entry/vdso/endbr.sh                   |  32 ++++++
- arch/x86/include/asm/cet.h                     |   9 ++
- arch/x86/include/asm/disabled-features.h       |   8 +-
- arch/x86/include/asm/fpu/regset.h              |   7 +-
- arch/x86/include/uapi/asm/prctl.h              |   1 +
- arch/x86/include/uapi/asm/resource.h           |   5 +
- arch/x86/kernel/cet.c                          |  73 ++++++++++++++
- arch/x86/kernel/cet_prctl.c                    |  54 +++++++++-
- arch/x86/kernel/cpu/common.c                   |  20 +++-
- arch/x86/kernel/elf.c                          |  19 +++-
- arch/x86/kernel/fpu/regset.c                   |  41 ++++++++
- arch/x86/kernel/process.c                      |   2 +
- arch/x86/kernel/ptrace.c                       |  16 +++
- include/uapi/asm-generic/resource.h            |   3 +
- include/uapi/linux/elf.h                       |   1 +
- mm/mmap.c                                      |   8 +-
- tools/Makefile                                 |  13 +--
- tools/arch/x86/include/uapi/asm/elf_property.h |  16 +++
- tools/arch/x86/include/uapi/asm/prctl.h        |  33 ++++++
- tools/cet/.gitignore                           |   1 +
- tools/cet/Makefile                             |  11 ++
- tools/cet/cetcmd.c                             | 134 +++++++++++++++++++++++++
- tools/include/uapi/asm/elf_property.h          |   4 +
- tools/include/uapi/asm/prctl.h                 |   4 +
- 27 files changed, 549 insertions(+), 16 deletions(-)
- create mode 100644 arch/x86/entry/vdso/endbr.sh
- create mode 100644 tools/arch/x86/include/uapi/asm/elf_property.h
- create mode 100644 tools/arch/x86/include/uapi/asm/prctl.h
- create mode 100644 tools/cet/.gitignore
- create mode 100644 tools/cet/Makefile
- create mode 100644 tools/cet/cetcmd.c
- create mode 100644 tools/include/uapi/asm/elf_property.h
- create mode 100644 tools/include/uapi/asm/prctl.h
+and we already use that in e.g. the min/max macros which end with a
+ternary expression.
 
--- 
-2.15.1
+This way, we can allow index to have const-qualified type, which will in
+some cases avoid the need for introducing a local copy of index of
+non-const qualified type. That, in turn, can prevent readers not
+familiar with the internals of array_index_nospec from wondering about
+the seemingly redundant extra variable, and I think that's worthwhile
+considering how confusing the whole _nospec business is.
+
+The expression _i&_mask has type unsigned long (since that is the type
+of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
+that), so in order not to change the type of the whole expression, add
+a cast back to typeof(_i).
+
+Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ include/linux/nospec.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -53,7 +53,6 @@ static inline unsigned long array_index_
+ 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
+ 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+ 									\
+-	_i &= _mask;							\
+-	_i;								\
++	(typeof(_i)) (_i & _mask);					\
+ })
+ #endif /* _LINUX_NOSPEC_H */
