@@ -1,83 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:40804 "EHLO
-        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S932741AbeFGOrZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 10:47:25 -0400
-Content-Type: text/plain; charset="UTF-8"
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
+Received: from mail-it0-f44.google.com ([209.85.214.44]:35046 "EHLO
+        mail-it0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935887AbeFGPHE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jun 2018 11:07:04 -0400
 MIME-Version: 1.0
-From: Ben Hutchings <ben@decadent.org.uk>
-Date: Thu, 07 Jun 2018 15:05:21 +0100
-Message-ID: <lsq.1528380321.465767219@decadent.org.uk>
-Subject: [PATCH 3.16 258/410] nospec: Allow index argument to have
- const-qualified type
-In-Reply-To: <lsq.1528380320.647747352@decadent.org.uk>
+References: <20180530183826.GI7063@linux.vnet.ibm.com> <Pine.LNX.4.44L0.1805301449350.1502-100000@iolanthe.rowland.org>
+ <CAJrWOzBMB-6e1pKms4L216k=TN_Lr52_gWxj-ny8yitgf+K5gg@mail.gmail.com>
+ <20180606190710.GY3593@linux.vnet.ibm.com> <CA+55aFwZTAp3wZYGSJR1kPkc=QhPNMdEEPttsM4REcWPPDH9Bw@mail.gmail.com>
+ <20180607094314.GF3593@linux.vnet.ibm.com>
+In-Reply-To: <20180607094314.GF3593@linux.vnet.ibm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 7 Jun 2018 08:06:51 -0700
+Message-ID: <CA+55aFzs0ueN22WaKs_R6=T4HHY9j0MtpoFA8eh=t=PN7grCnA@mail.gmail.com>
+Subject: Re: LKMM litmus test for Roman Penyaev's rcu-rr
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Dave Hansen <dave.hansen@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, David Woodhouse <dwmw2@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, Arjan van de Ven <arjan@linux.intel.com>
-Message-ID: <20180607140521.olVLGgHc67ZuBeE3o_ozuypNt44r3bSeJ-5PbxkVzNk@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Roman Pen <roman.penyaev@profitbricks.com>, Alan Stern <stern@rowland.harvard.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, andrea.parri@amarulasolutions.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nick Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20180607150651.AMyYGX1uZy-M8jzU2ee0rjkMtKrL4SCnvRdZSayzX4I@z>
 
-3.16.57-rc1 review patch.  If anyone has any objections, please let me know.
+On Thu, Jun 7, 2018 at 2:41 AM Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>
+> We are considering adding unmarked accesses, for example, accesses
+> protected by locks.  One possible litmus test (not yet supported!)
+> might look like this:
 
-------------------
+Fair enough - you do want to have the distinction between "marked" and
+"unmarked".
 
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+And it does make sense, although at that point I think you do hit the
+"what can a compiler do" issue more. Right now, I think the things you
+check are all pretty much "compiler can't do a lot of movement".
 
-commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
+But I suspect that the markings you do have are going to be fairly
+limited. Things like "READ_ONCE()" vs "smp_read_acquire()" are still
+fairly simple from a compiler standpoint, at least when it comes to
+control flow - they have "side effects". So I guess that's the only
+real difference there - a regular read doesn't have side effects, so
+it could be moved up past a conditional, and/or duplicated for each
+use. That sounds much more complex to the checker than the existing
+things it supports, no?
 
-The last expression in a statement expression need not be a bare
-variable, quoting gcc docs
-
-  The last thing in the compound statement should be an expression
-  followed by a semicolon; the value of this subexpression serves as the
-  value of the entire construct.
-
-and we already use that in e.g. the min/max macros which end with a
-ternary expression.
-
-This way, we can allow index to have const-qualified type, which will in
-some cases avoid the need for introducing a local copy of index of
-non-const qualified type. That, in turn, can prevent readers not
-familiar with the internals of array_index_nospec from wondering about
-the seemingly redundant extra variable, and I think that's worthwhile
-considering how confusing the whole _nospec business is.
-
-The expression _i&_mask has type unsigned long (since that is the type
-of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
-that), so in order not to change the type of the whole expression, add
-a cast back to typeof(_i).
-
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
----
- include/linux/nospec.h | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -53,7 +53,6 @@ static inline unsigned long array_index_
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
- 									\
--	_i &= _mask;							\
--	_i;								\
-+	(typeof(_i)) (_i & _mask);					\
- })
- #endif /* _LINUX_NOSPEC_H */
+               Linus
