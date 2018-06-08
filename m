@@ -1,96 +1,60 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH 04/10] x86/cet: Handle thread shadow stack
-Date: Fri, 8 Jun 2018 08:01:43 -0700
-Message-ID: <CALCETrV_V68nVhCpUSGXrwUKCu4utbdp01snmG=G=+_xAo0KJA@mail.gmail.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-5-yu-cheng.yu@intel.com>
- <CALCETrUqXvh2FDXe6bveP10TFpzptEyQe2=mdfZFGKU0T+NXsA@mail.gmail.com>
- <3c1bdf85-0c52-39ed-a799-e26ac0e52391@redhat.com> <CALCETrWPDXpbVcuFK_1M5DtaCOW_LSf-XHFAD0vpc735oFWLPg@mail.gmail.com>
- <6ee29e8b-4a0a-3459-a1ee-03923ba4e15d@redhat.com>
+From: Cyrill Gorcunov <gorcunov@gmail.com>
+Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
+Date: Fri, 8 Jun 2018 18:52:25 +0300
+Message-ID: <20180608155225.GC2525@uranus>
+References: <20180607143807.3611-7-yu-cheng.yu@intel.com>
+ <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
+ <1528403417.5265.35.camel@2b52.sc.intel.com>
+ <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
+ <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
+ <CALCETrV1GG5rq_kwxkS-o3x8Ldr72ThdYgkJKQ9cx9Q63SxgTQ@mail.gmail.com>
+ <CAMe9rOpeDrkwi-AG0vsiZy4NwkmavhB5Empv58FSHxtr3rpapw@mail.gmail.com>
+ <CALCETrWhMmqGWKx-yw55YKHMJwGyLZio5f8Pskh8X69zfQMy7A@mail.gmail.com>
+ <CAMe9rOpLDzWk=xdZqN1QJVnP-c_dti5Fy=C_GqbeQpS_a=0ewA@mail.gmail.com>
+ <CALCETrUyapFiiXrHH23NW8XbqEkfKdGGU2wMUZ2DU=A+GWGqvw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6ee29e8b-4a0a-3459-a1ee-03923ba4e15d@redhat.com>
+Content-Disposition: inline
+In-Reply-To: <CALCETrUyapFiiXrHH23NW8XbqEkfKdGGU2wMUZ2DU=A+GWGqvw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Florian Weimer <fweimer@redhat.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+To: Andy Lutomirski <luto@kernel.org>
+Cc: "H. J. Lu" <hjl.tools@gmail.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 8, 2018 at 7:53 AM Florian Weimer <fweimer@redhat.com> wrote:
->
-> On 06/07/2018 10:53 PM, Andy Lutomirski wrote:
-> > On Thu, Jun 7, 2018 at 12:47 PM Florian Weimer <fweimer@redhat.com> wro=
-te:
-> >>
-> >> On 06/07/2018 08:21 PM, Andy Lutomirski wrote:
-> >>> On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wr=
-ote:
-> >>>>
-> >>>> When fork() specifies CLONE_VM but not CLONE_VFORK, the child
-> >>>> needs a separate program stack and a separate shadow stack.
-> >>>> This patch handles allocation and freeing of the thread shadow
-> >>>> stack.
-> >>>
-> >>> Aha -- you're trying to make this automatic.  I'm not convinced this
-> >>> is a good idea.  The Linux kernel has a long and storied history of
-> >>> enabling new hardware features in ways that are almost entirely
-> >>> useless for userspace.
-> >>>
-> >>> Florian, do you have any thoughts on how the user/kernel interaction
-> >>> for the shadow stack should work?
-> >>
-> >> I have not looked at this in detail, have not played with the emulator=
-,
-> >> and have not been privy to any discussions before these patches have
-> >> been posted, however =E2=80=A6
-> >>
-> >> I believe that we want as little code in userspace for shadow stack
-> >> management as possible.  One concern I have is that even with the code
-> >> we arguably need for various kinds of stack unwinding, we might have
-> >> unwittingly built a generic trampoline that leads to full CET bypass.
+On Fri, Jun 08, 2018 at 07:57:22AM -0700, Andy Lutomirski wrote:
+> On Fri, Jun 8, 2018 at 5:24 AM H.J. Lu <hjl.tools@gmail.com> wrote:
 > >
-> > I was imagining an API like "allocate a shadow stack for the current
-> > thread, fail if the current thread already has one, and turn on the
-> > shadow stack".  glibc would call clone and then call this ABI pretty
-> > much immediately (i.e. before making any calls from which it expects
-> > to return).
->
-> Ahh.  So you propose not to enable shadow stack enforcement on the new
-> thread even if it is enabled for the current thread?  For the cases
-> where CLONE_VM is involved?
->
-> It will still need a new assembler wrapper which sets up the shadow
-> stack, and it's probably required to disable signals.
->
-> I think it should be reasonable safe and actually implementable.  But
-> the benefits are not immediately obvious to me.
+> > On Thu, Jun 7, 2018 at 9:38 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> > > On Thu, Jun 7, 2018 at 9:10 PM H.J. Lu <hjl.tools@gmail.com> wrote:
+> > >>
+> > >> On Thu, Jun 7, 2018 at 4:01 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> > >>
+> > >
+> > > By the time malicious code issue its own syscalls, you've already lost
+> > > the battle.  I could probably be convinced that a lock-CET-on feature
+> > > that applies *only* to the calling thread and is not inherited by
+> > > clone() is a decent idea, but I'd want to see someone who understands
+> > > the state of the art in exploit design justify it.  You're also going
+> > > to need to figure out how to make CRIU work if you allow locking CET
+> > > on.
+> > >
+> > > A priori, I think we should just not provide a lock mechanism.
+> >
+> > We need a door for CET.  But it is a very bad idea to leave it open
+> > all the time.  I don't know much about CRIU,  If it is Checkpoint/Restore
+> > In Userspace.  Can you free any application with AVX512 on AVX512
+> > machine and restore it on non-AVX512 machine?
+> 
+> Presumably not -- if the program uses AVX512 and AVX512 goes away,
+> then the program won't be happy.
 
-Doing it this way would have been my first incliniation.  It would
-avoid all the oddities of the kernel magically creating a VMA when
-clone() is called, guessing the shadow stack size, etc.  But I'm okay
-with having the kernel do it automatically, too.  I think it would be
-very nice to have a way for user code to find out the size of the
-shadow stack and change it, though.  (And relocate it, but maybe
-that's impossible.  The CET documentation doesn't have a clear
-description of the shadow stack layout.)
+Yes. In most scenarios we require the fpu capability to be the same
+on both machines (in case of migration) or/and not being changed
+between c/r cycles.
+...
+> As an aside, where are the latest CET docs?  I've found the "CET
+> technology preview 2.0", but it doesn't seem to be very clear or
+> entirely complete.
 
->
-> > We definitely want strong enough user control that tools like CRIU can
-> > continue to work.  I haven't looked at the SDM recently enough to
-> > remember for sure, but I'm reasonably confident that user code can
-> > learn the address of its own shadow stack.  If nothing else, CRIU
-> > needs to be able to restore from a context where there's a signal on
-> > the stack and the signal frame contains a shadow stack pointer.
->
-> CRIU also needs the shadow stack *contents*, which shouldn't be directly
-> available to the process.  So it needs very special interfaces anyway.
-
-True.  I proposed in a different email that ptrace() have full control
-of the shadow stack (read, write, lock, unlock, etc).
-
->
-> Does CRIU implement MPX support?
-
-Dunno.  But given that MPX seems to be dying, I'm not sure it matters.
-
---Andy
++1
