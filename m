@@ -1,53 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:36120 "EHLO foss.arm.com"
+Received: from mail.kernel.org ([198.145.29.99]:48426 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751241AbeFHRcP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Jun 2018 13:32:15 -0400
-Date: Fri, 8 Jun 2018 18:32:07 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T
- config option
-Message-ID: <20180608173207.nwoi25jee52gpdwy@armageddon.cambridge.arm.com>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20180516081910.10067-5-ynorov@caviumnetworks.com>
+        id S1752478AbeFHUEL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Jun 2018 16:04:11 -0400
+Date: Fri, 8 Jun 2018 16:03:55 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v5 2/4] kernel hacking: new config NO_AUTO_INLINE to
+ disable compiler auto-inline optimizations
+Message-ID: <20180608160355.67712eb8@vmware.local.home>
+In-Reply-To: <20180607091816.GT13775@localhost>
+References: <1528186420-6615-3-git-send-email-changbin.du@intel.com>
+        <201806060501.btF3aJMZ%fengguang.wu@intel.com>
+        <20180606095714.1d3c2def@vmware.local.home>
+        <20180606142600.GN13775@localhost>
+        <20180606142622.2338abf6@vmware.local.home>
+        <20180607041718.qpqucjzlvcm5h3gn@vireshk-i7>
+        <20180607074628.kd3iyxevwj3ypzbr@intel.com>
+        <20180607083856.ealw62v3wx43zeqz@vireshk-i7>
+        <1303b1abf9f9229a8d3ccbb68a3e413266b360d7.camel@petrovitsch.priv.at>
+        <20180607091025.m7dfix3e2xbwx4cs@vireshk-i7>
+        <20180607091816.GT13775@localhost>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180516081910.10067-5-ynorov@caviumnetworks.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Joseph Myers <joseph@codesourcery.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Alexander Graf <agraf@suse.de>, Bamvor Zhangjian <bamv2005@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, Manuel Montezelo <manuel.montezelo@gmail.com>, James Hogan <james.hogan@imgtec.com>, Chris Metcalf <cmetcalf@mellanox.com>, Andrew Pinski <pinskia@gmail.com>, Lin Yongting <linyongting@huawei.com>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Florian Weimer <fweimer@redhat.com>, Nathan_Lynch <Nathan_Lynch@mentor.com>, James Morse <james.morse@arm.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S . Miller" <davem@davemloft.net>, Christoph Muellner <christoph.muellner@theobroma-systems.com>
-Message-ID: <20180608173207.PxoBnqe22rXFJ-QlcJnEgD9VrmM-QUbY62gio2Xqous@z>
+To: Johan Hovold <johan@kernel.org>
+Cc: Viresh Kumar <viresh.kumar@linaro.org>, Bernd Petrovitsch <bernd@petrovitsch.priv.at>, "Du, Changbin" <changbin.du@intel.com>, gregkh@linuxfoundation.org, alex.elder@linaro.org, kbuild test robot <lkp@intel.com>, linux-arch@vger.kernel.org, michal.lkml@markovi.net, linux-kernel@vger.kernel.org, arnd@arndb.de, yamada.masahiro@socionext.com, lgirdwood@gmail.com, broonie@kernel.org, rdunlap@infradead.org, x86@kernel.org, linux@armlinux.org.uk, linux-sparse@vger.kernel.org, mingo@redhat.com, kbuild-all@01.org, akpm@linux-foundation.org, changbin.du@gmail.com, tglx@linutronix.de, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180608200355.zouvqxzaQLO4nT9k7XPZxbg5VmEKJsb-i4HO5kmMj9M@z>
 
-On Wed, May 16, 2018 at 11:18:49AM +0300, Yury Norov wrote:
-> diff --git a/arch/Kconfig b/arch/Kconfig
-> index 76c0b54443b1..ee079244dc3c 100644
-> --- a/arch/Kconfig
-> +++ b/arch/Kconfig
-> @@ -264,6 +264,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
->  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
->  	bool
->  
-> +config ARCH_32BIT_OFF_T
-> +	bool
-> +	depends on !64BIT
-> +	help
-> +	  All new 32-bit architectures should have 64-bit off_t type on
-> +	  userspace side which corresponds to the loff_t kernel type. This
-> +	  is the requirement for modern ABIs. Some existing architectures
-> +	  already have 32-bit off_t. This option is enabled for all such
-> +	  architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
-> +	  h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
-> +	  nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
-> +	  unicore32, x86_32 and xtensa. This is the complete list. Any
-> +	  new 32-bit architecture should declare 64-bit off_t type on user
-> +	  side and so should not enable this option.
+On Thu, 7 Jun 2018 11:18:16 +0200
+Johan Hovold <johan@kernel.org> wrote:
 
-Do you know if this is the case for riscv and nds32, merged in the
-meantime? If not, I suggest you drop this patch altogether and just
-define force_o_largefile() for arm64/ilp32 as we don't seem to stick to
-"all new 32-bit architectures should have 64-bit off_t".
 
--- 
-Catalin
+> If you want to work around the warning and think you can do it in some
+> non-contrived way, then go for it.
+> 
+> Clearing the request buffer, checking for termination using strnlen, and
+> then using memcpy might not be too bad.
+> 
+> But after all, it is a false positive, so leaving things as they stand
+> is fine too.
+
+Not sure how contrived you think this is, but it solves the warning
+without adding extra work in the normal case.
+
+-- Steve
+
+diff --git a/drivers/staging/greybus/fw-management.c b/drivers/staging/greybus/fw-management.c
+index 71aec14f8181..4fb9f1dff47d 100644
+--- a/drivers/staging/greybus/fw-management.c
++++ b/drivers/staging/greybus/fw-management.c
+@@ -150,15 +150,18 @@ static int fw_mgmt_load_and_validate_operation(struct fw_mgmt *fw_mgmt,
+ 	}
+ 
+ 	request.load_method = load_method;
+-	strncpy(request.firmware_tag, tag, GB_FIRMWARE_TAG_MAX_SIZE);
++	strncpy(request.firmware_tag, tag, GB_FIRMWARE_TAG_MAX_SIZE - 1);
+ 
+ 	/*
+ 	 * The firmware-tag should be NULL terminated, otherwise throw error and
+ 	 * fail.
+ 	 */
+-	if (request.firmware_tag[GB_FIRMWARE_TAG_MAX_SIZE - 1] != '\0') {
+-		dev_err(fw_mgmt->parent, "load-and-validate: firmware-tag is not NULL terminated\n");
+-		return -EINVAL;
++	if (request.firmware_tag[GB_FIRMWARE_TAG_MAX_SIZE - 2] != '\0') {
++		if (tag[GB_FIRMWARE_TAG_MAX_SIZE - 1] != '\0') {
++			dev_err(fw_mgmt->parent, "load-and-validate: firmware-tag is not NULL terminated\n");
++			return -EINVAL;
++		}
++		request.firmware_tag[GB_FIRMWARE_TAG_MAX_SIZE - 1] = '\0';
+ 	}
+ 
+ 	/* Allocate ids from 1 to 255 (u8-max), 0 is an invalid id */
