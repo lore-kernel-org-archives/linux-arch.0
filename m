@@ -1,72 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:44129 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:44190 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753232AbeFINaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 Jun 2018 09:30:21 -0400
+        id S1753260AbeFINaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 9 Jun 2018 09:30:22 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH 07/11] x86/xen: Add support for Hygon's Dhyana Family 18h processor
-Date: Sat,  9 Jun 2018 21:23:37 +0800
-Message-ID: <1528550617-28395-1-git-send-email-puwen@hygon.cn>
+Subject: [PATCH 08/11] driver/acpi: Add support for Hygon's Dhyana Family 18h processor
+Date: Sat,  9 Jun 2018 21:23:53 +0800
+Message-ID: <1528550633-28441-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: boris.ostrovsky@oracle.com, jgross@suse.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, zhangpanyong@hygon.cn
-Cc: thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180609132337.47tpiENmKUzvfKAVX_qK1uJyM8vPSAFKpX7X42oSfts@z>
+To: rjw@rjwysocki.net, lenb@kernel.org, zhangpanyong@hygon.cn
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180609132353.YZlEOAla2c2Ox_i6gEO6eXEz5D5n1UjUox5sNUcWUew@z>
 
-This patch enables the Xen Hypervisor support to Hygon
-Family 18h CPU:
-- Add Hygon support in Xen PMU arch init codes.
-- Add Hygon support in PMU MSR read/write codes.
-- Add Hygon support in read PMC codes.
+This patch enables the ACPI driver support to Hygon Family 18h CPU:
+- Add Hygon support in power_saving_mwait_init().
+- Add Hygon support in lapic_timer_state_broadcast().
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/xen/pmu.c | 12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+ drivers/acpi/acpi_pad.c       | 1 +
+ drivers/acpi/processor_idle.c | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
-index 7d00d4a..e2bee70 100644
---- a/arch/x86/xen/pmu.c
-+++ b/arch/x86/xen/pmu.c
-@@ -68,7 +68,8 @@ static __read_mostly int intel_num_arch_counters, intel_num_fixed_counters;
+diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
+index 552c1f7..a47676a 100644
+--- a/drivers/acpi/acpi_pad.c
++++ b/drivers/acpi/acpi_pad.c
+@@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
  
- static void xen_pmu_arch_init(void)
+ #if defined(CONFIG_X86)
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 		/*
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index abb559c..b2131c4 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
+ static void tsc_check_state(int state)
  {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
- 
- 		switch (boot_cpu_data.x86) {
- 		case 0x15:
-@@ -285,7 +286,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
- 
- bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, val, 1))
- 				*val = native_read_msr_safe(msr, err);
-@@ -308,7 +310,8 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
- {
- 	uint64_t val = ((uint64_t)high << 32) | low;
- 
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, &val, 0))
- 				*err = native_write_msr_safe(msr, low, high);
-@@ -379,7 +382,8 @@ static unsigned long long xen_intel_read_pmc(int counter)
- 
- unsigned long long xen_read_pmc(int counter)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		return xen_amd_read_pmc(counter);
- 	else
- 		return xen_intel_read_pmc(counter);
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 	case X86_VENDOR_CENTAUR:
 -- 
 2.7.4
