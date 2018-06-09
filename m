@@ -1,90 +1,177 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:40314 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:44131 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753171AbeFIN1X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 Jun 2018 09:27:23 -0400
+        id S1753171AbeFINaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 9 Jun 2018 09:30:21 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH 00/11] Add support for Hygon's Dhyana Family 18h processor
-Date: Sat,  9 Jun 2018 21:20:10 +0800
-Message-ID: <1528550410-28080-1-git-send-email-puwen@hygon.cn>
+Subject: [PATCH 02/11] x86/pci: Add support for Hygon's Dhyana Family 18h processor
+Date: Sat,  9 Jun 2018 21:21:46 +0800
+Message-ID: <1528550506-28173-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, zhangpanyong@hygon.cn
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180609132010.rSQFfuxawtFDNhne1lRh_uLjE786tofNQowdGRZJw34@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, zhangpanyong@hygon.cn
+Cc: thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180609132146.0v9VWTFr8oDjRXSTThY7jtFKd_InwMAZEq8GHGOpNeg@z>
 
-As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
-is a Joint Venture between AMD and Haiguang Information Technology Co.,
-Ltd., and aims at providing high performance x86 processor for China
-server market.
+This patch enables the x86 PCI support to Hygon Family 18h CPU:
+- AMD Northbridge
+  - Add PCI_DEVICE_ID_HYGON_18H_ROOT, PCI_DEVICE_ID_HYGON_18H_DF_F3
+    and PCI_DEVICE_ID_HYGON_18H_DF_F4 support in amd_nb.c
+- PCI for X86
+  - Add Hygon Vendor ID(0x1D94) support.
+  - Add Hygon irq router support in pirq_routers arrays.
+  - Add Hygon support in amd_postcore_init(), early_root_info_init().
+- APIC for X86
+  - Add Hygon support in modern_apic() and sync_Arb_IDs() as Hygon
+    processors are modern processors.
+  - Add Hygon support in detect_init_API().
 
-The first generation Hygon's processor(Dhyana) originates from AMD
-technology and shares most of the architecture with AMD's family 17h,
-but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
-(0x1D94)/Family series number(Family 18h).
+Signed-off-by: Pu Wen <puwen@hygon.cn>
+---
+ arch/x86/kernel/amd_nb.c    | 11 ++++++++++-
+ arch/x86/kernel/apic/apic.c | 13 +++++++++++--
+ arch/x86/pci/amd_bus.c      |  6 ++++--
+ arch/x86/pci/irq.c          |  1 +
+ include/linux/pci_ids.h     |  2 ++
+ 5 files changed, 28 insertions(+), 5 deletions(-)
 
-To enable the support of Linux kernel to Hygon's CPU, we added a new
-vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
-asm/processor.h, and shared most of kernel support codes with AMD
-family 17h.
-
-These patches have been applied and tested successfully in Hygon's
-Dhyana SoC silicon. Also tested on AMD's EPYC (Family 17h) processor
-works fine and makes no harm to existing codes.
-
-Thanks.
-
-Pu Wen (11):
-  x86/cpu: Add support for Hygon's Dhyana Family 18h processor
-  x86/pci: Add support for Hygon's Dhyana Family 18h processor
-  x86/cpu/bug: Add support for Hygon's Dhyana Family 18h processor
-  x86/perf: Add support for Hygon's Dhyana Family 18h processor
-  x86/mce: Add support for Hygon's Dhyana Family 18h processor
-  x86/kvm: Add support for Hygon's Dhyana Family 18h processor
-  x86/xen: Add support for Hygon's Dhyana Family 18h processor
-  driver/acpi: Add support for Hygon's Dhyana Family 18h processor
-  driver/cpufreq: Add support for Hygon's Dhyana Family 18h processor
-  driver/edac: Add support for Hygon's Dhyana Family 18h processor
-  tools/cpupower: Add support for Hygon's Dhyana Family 18h processor
-
- arch/x86/events/amd/core.c                         | 10 ++++++++
- arch/x86/events/amd/uncore.c                       |  7 ++---
- arch/x86/events/core.c                             |  1 +
- arch/x86/include/asm/kvm_emulate.h                 |  4 +++
- arch/x86/include/asm/nospec-branch.h               |  4 +--
- arch/x86/include/asm/processor.h                   |  3 ++-
- arch/x86/include/asm/virtext.h                     |  5 ++--
- arch/x86/kernel/alternative.c                      |  4 +++
- arch/x86/kernel/amd_nb.c                           | 11 +++++++-
- arch/x86/kernel/apic/apic.c                        | 13 ++++++++--
- arch/x86/kernel/cpu/amd.c                          | 14 +++++++++-
- arch/x86/kernel/cpu/bugs.c                         | 30 ++++++++++++----------
- arch/x86/kernel/cpu/common.c                       |  1 +
- arch/x86/kernel/cpu/intel_cacheinfo.c              |  9 ++++---
- arch/x86/kernel/cpu/mcheck/mce-severity.c          |  3 ++-
- arch/x86/kernel/cpu/mcheck/mce.c                   | 16 +++++++++---
- arch/x86/kernel/cpu/mtrr/cleanup.c                 |  3 ++-
- arch/x86/kernel/cpu/mtrr/generic.c                 |  3 ++-
- arch/x86/kernel/cpu/mtrr/main.c                    |  2 +-
- arch/x86/kernel/cpu/perfctr-watchdog.c             |  2 ++
- arch/x86/kernel/smpboot.c                          |  4 ++-
- arch/x86/kvm/emulate.c                             |  8 +++++-
- arch/x86/pci/amd_bus.c                             |  6 +++--
- arch/x86/pci/irq.c                                 |  1 +
- arch/x86/xen/pmu.c                                 | 12 ++++++---
- drivers/acpi/acpi_pad.c                            |  1 +
- drivers/acpi/processor_idle.c                      |  1 +
- drivers/cpufreq/acpi-cpufreq.c                     |  5 +++-
- drivers/cpufreq/amd_freq_sensitivity.c             |  9 +++++--
- drivers/edac/amd64_edac.c                          | 20 ++++++++++++++-
- drivers/edac/amd64_edac.h                          |  4 +++
- drivers/edac/mce_amd.c                             |  4 ++-
- include/linux/pci_ids.h                            |  2 ++
- tools/power/cpupower/utils/cpufreq-info.c          |  6 +++--
- tools/power/cpupower/utils/helpers/cpuid.c         |  6 +++--
- tools/power/cpupower/utils/helpers/helpers.h       |  2 +-
- .../cpupower/utils/idle_monitor/mperf_monitor.c    |  3 ++-
- 37 files changed, 183 insertions(+), 56 deletions(-)
-
+diff --git a/arch/x86/kernel/amd_nb.c b/arch/x86/kernel/amd_nb.c
+index b481b95..054b7fa 100644
+--- a/arch/x86/kernel/amd_nb.c
++++ b/arch/x86/kernel/amd_nb.c
+@@ -20,6 +20,11 @@
+ #define PCI_DEVICE_ID_AMD_17H_M10H_DF_F3 0x15eb
+ #define PCI_DEVICE_ID_AMD_17H_M10H_DF_F4 0x15ec
+ 
++/* Hygon Family 18h follow AMD Family 17h's Device ID definition */
++#define PCI_DEVICE_ID_HYGON_18H_ROOT     PCI_DEVICE_ID_AMD_17H_ROOT
++#define PCI_DEVICE_ID_HYGON_18H_DF_F3    PCI_DEVICE_ID_AMD_17H_DF_F3
++#define PCI_DEVICE_ID_HYGON_18H_DF_F4    PCI_DEVICE_ID_AMD_17H_DF_F4
++
+ /* Protect the PCI config register pairs used for SMN and DF indirect access. */
+ static DEFINE_MUTEX(smn_mutex);
+ 
+@@ -28,6 +33,7 @@ static u32 *flush_words;
+ static const struct pci_device_id amd_root_ids[] = {
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_17H_ROOT) },
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_17H_M10H_ROOT) },
++	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_HYGON_18H_ROOT) },
+ 	{}
+ };
+ 
+@@ -45,6 +51,7 @@ const struct pci_device_id amd_nb_misc_ids[] = {
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_17H_DF_F3) },
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_17H_M10H_DF_F3) },
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_CNB17H_F3) },
++	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_HYGON_18H_DF_F3) },
+ 	{}
+ };
+ EXPORT_SYMBOL_GPL(amd_nb_misc_ids);
+@@ -58,6 +65,7 @@ static const struct pci_device_id amd_nb_link_ids[] = {
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_17H_DF_F4) },
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_17H_M10H_DF_F4) },
+ 	{ PCI_DEVICE(PCI_VENDOR_ID_AMD, PCI_DEVICE_ID_AMD_CNB17H_F4) },
++	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_HYGON_18H_DF_F4) },
+ 	{}
+ };
+ 
+@@ -277,7 +285,8 @@ struct resource *amd_get_mmconfig_range(struct resource *res)
+ 	u64 base, msr;
+ 	unsigned int segn_busn_bits;
+ 
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
++	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
+ 		return NULL;
+ 
+ 	/* assume all cpus from fam10h have mmconfig */
+diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
+index 2aabd4c..d8b7ac1 100644
+--- a/arch/x86/kernel/apic/apic.c
++++ b/arch/x86/kernel/apic/apic.c
+@@ -223,6 +223,11 @@ static int modern_apic(void)
+ 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
+ 	    boot_cpu_data.x86 >= 0xf)
+ 		return 1;
++
++	/* Hygon systems use modern APIC */
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		return 1;
++
+ 	return lapic_get_version() >= 0x14;
+ }
+ 
+@@ -1207,9 +1212,11 @@ void __init sync_Arb_IDs(void)
+ {
+ 	/*
+ 	 * Unsupported on P4 - see Intel Dev. Manual Vol. 3, Ch. 8.6.1 And not
+-	 * needed on AMD.
++	 * needed on AMD or Hygon.
+ 	 */
+-	if (modern_apic() || boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (modern_apic() ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		return;
+ 
+ 	/*
+@@ -1908,6 +1915,8 @@ static int __init detect_init_APIC(void)
+ 		    (boot_cpu_data.x86 >= 15))
+ 			break;
+ 		goto no_apic;
++	case X86_VENDOR_HYGON:
++		break;
+ 	case X86_VENDOR_INTEL:
+ 		if (boot_cpu_data.x86 == 6 || boot_cpu_data.x86 == 15 ||
+ 		    (boot_cpu_data.x86 == 5 && boot_cpu_has(X86_FEATURE_APIC)))
+diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
+index 649bdde..bfa50e6 100644
+--- a/arch/x86/pci/amd_bus.c
++++ b/arch/x86/pci/amd_bus.c
+@@ -93,7 +93,8 @@ static int __init early_root_info_init(void)
+ 		vendor = id & 0xffff;
+ 		device = (id>>16) & 0xffff;
+ 
+-		if (vendor != PCI_VENDOR_ID_AMD)
++		if (vendor != PCI_VENDOR_ID_AMD &&
++		    vendor != PCI_VENDOR_ID_HYGON)
+ 			continue;
+ 
+ 		if (hb_probes[i].device == device) {
+@@ -390,7 +391,8 @@ static int __init pci_io_ecs_init(void)
+ 
+ static int __init amd_postcore_init(void)
+ {
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
++	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
+ 		return 0;
+ 
+ 	early_root_info_init();
+diff --git a/arch/x86/pci/irq.c b/arch/x86/pci/irq.c
+index 52e5510..63ff5e3 100644
+--- a/arch/x86/pci/irq.c
++++ b/arch/x86/pci/irq.c
+@@ -804,6 +804,7 @@ static __initdata struct irq_router_handler pirq_routers[] = {
+ 	{ PCI_VENDOR_ID_VLSI, vlsi_router_probe },
+ 	{ PCI_VENDOR_ID_SERVERWORKS, serverworks_router_probe },
+ 	{ PCI_VENDOR_ID_AMD, amd_router_probe },
++	{ PCI_VENDOR_ID_HYGON, amd_router_probe },
+ 	{ PCI_VENDOR_ID_PICOPOWER, pico_router_probe },
+ 	/* Someone with docs needs to add the ATI Radeon IGP */
+ 	{ 0, NULL }
+diff --git a/include/linux/pci_ids.h b/include/linux/pci_ids.h
+index cc608fc5..efb5dfd 100644
+--- a/include/linux/pci_ids.h
++++ b/include/linux/pci_ids.h
+@@ -511,6 +511,8 @@
+ #define PCI_DEVICE_ID_AMI_MEGARAID	0x9010
+ #define PCI_DEVICE_ID_AMI_MEGARAID2	0x9060
+ 
++#define PCI_VENDOR_ID_HYGON		0x1d94
++
+ #define PCI_VENDOR_ID_AMD		0x1022
+ #define PCI_DEVICE_ID_AMD_K8_NB		0x1100
+ #define PCI_DEVICE_ID_AMD_K8_NB_ADDRMAP	0x1101
 -- 
 2.7.4
