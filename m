@@ -1,75 +1,77 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH 06/11] x86/kvm: Add support for Hygon's Dhyana Family 18h processor
-Date: Sat,  9 Jun 2018 21:23:23 +0800
-Message-ID: <1528550603-28351-1-git-send-email-puwen@hygon.cn>
+Subject: [PATCH 09/11] driver/cpufreq: Add support for Hygon's Dhyana Family 18h processor
+Date: Sat,  9 Jun 2018 21:24:12 +0800
+Message-ID: <1528550652-28485-1-git-send-email-puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, pbonzini@redhat.com, rkrcmar@redhat.com, zhangpanyong@hygon.cn
-Cc: thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+To: rjw@rjwysocki.net, viresh.kumar@linaro.org, zhangpanyong@hygon.cn
+Cc: lenb@kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-This patch enables the x86 KVM support to Hygon Family 18h CPU:
-- Add Hygon CPU VENDOR ID macro for KVM.
-- Add SVM support in cpu_has_svm().
-- Add support in em_syscall_is_enabled().
+This patch enables the cpufreq driver support to Hygon Family 18h CPU:
+- It recognize Hygon's boost state in boost_state(),
+  boost_set_msr(), extract_msr() functions.
+- It also add SMBUS support for Hygon Family 18h in
+  amd_freq_sensitivity_init().
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/include/asm/kvm_emulate.h | 4 ++++
- arch/x86/include/asm/virtext.h     | 5 +++--
- arch/x86/kvm/emulate.c             | 8 +++++++-
- 3 files changed, 14 insertions(+), 3 deletions(-)
+ drivers/cpufreq/acpi-cpufreq.c         | 5 ++++-
+ drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
+ 2 files changed, 11 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/kvm_emulate.h b/arch/x86/include/asm/kvm_emulate.h
-index b24b1c8..a4907e5 100644
---- a/arch/x86/include/asm/kvm_emulate.h
-+++ b/arch/x86/include/asm/kvm_emulate.h
-@@ -362,6 +362,10 @@ struct x86_emulate_ctxt {
- #define X86EMUL_CPUID_VENDOR_AMDisbetterI_ecx 0x21726574
- #define X86EMUL_CPUID_VENDOR_AMDisbetterI_edx 0x74656273
+diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
+index 9449657..04c9b81 100644
+--- a/drivers/cpufreq/acpi-cpufreq.c
++++ b/drivers/cpufreq/acpi-cpufreq.c
+@@ -95,6 +95,7 @@ static bool boost_state(unsigned int cpu)
+ 		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+ 		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+@@ -113,6 +114,7 @@ static int boost_set_msr(bool enable)
+ 		msr_addr = MSR_IA32_MISC_ENABLE;
+ 		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
+ 		break;
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		msr_addr = MSR_K7_HWCR;
+ 		msr_mask = MSR_K7_HWCR_CPB_DIS;
+@@ -223,7 +225,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
+ 	struct cpufreq_frequency_table *pos;
+ 	struct acpi_processor_performance *perf;
  
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_ebx 0x6f677948
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_ecx 0x656e6975
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_edx 0x6e65476e
-+
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_ebx 0x756e6547
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_ecx 0x6c65746e
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_edx 0x49656e69
-diff --git a/arch/x86/include/asm/virtext.h b/arch/x86/include/asm/virtext.h
-index 0116b2e..e05e0d3 100644
---- a/arch/x86/include/asm/virtext.h
-+++ b/arch/x86/include/asm/virtext.h
-@@ -83,9 +83,10 @@ static inline void cpu_emergency_vmxoff(void)
-  */
- static inline int cpu_has_svm(const char **msg)
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		msr &= AMD_MSR_RANGE;
+ 	else
+ 		msr &= INTEL_MSR_RANGE;
+diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
+index be926d9..4ac7c3c 100644
+--- a/drivers/cpufreq/amd_freq_sensitivity.c
++++ b/drivers/cpufreq/amd_freq_sensitivity.c
+@@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
  {
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON) {
- 		if (msg)
--			*msg = "not amd";
-+			*msg = "not amd or hygon";
- 		return 0;
- 	}
+ 	u64 val;
+ 	struct pci_dev *pcidev;
++	unsigned int pci_vendor;
  
-diff --git a/arch/x86/kvm/emulate.c b/arch/x86/kvm/emulate.c
-index b3705ae..fbba814 100644
---- a/arch/x86/kvm/emulate.c
-+++ b/arch/x86/kvm/emulate.c
-@@ -2702,7 +2702,13 @@ static bool em_syscall_is_enabled(struct x86_emulate_ctxt *ctxt)
- 	    edx == X86EMUL_CPUID_VENDOR_AMDisbetterI_edx)
- 		return true;
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++		pci_vendor = PCI_VENDOR_ID_AMD;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		pci_vendor = PCI_VENDOR_ID_HYGON;
++	else
+ 		return -ENODEV;
  
--	/* default: (not Intel, not AMD), apply Intel's stricter rules... */
-+	/* Hygon ("HygonGenuine") */
-+	if (ebx == X86EMUL_CPUID_VENDOR_HygonGenuine_ebx &&
-+	    ecx == X86EMUL_CPUID_VENDOR_HygonGenuine_ecx &&
-+	    edx == X86EMUL_CPUID_VENDOR_HygonGenuine_edx)
-+		return true;
-+
-+	/* default: (not Intel, not AMD or Hygon), apply Intel's stricter rules... */
- 	return false;
- }
+-	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
++	pcidev = pci_get_device(pci_vendor,
+ 			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
  
+ 	if (!pcidev) {
 -- 
 2.7.4
