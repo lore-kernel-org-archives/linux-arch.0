@@ -1,113 +1,226 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:39232 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:40313 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753171AbeFIN01 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 Jun 2018 09:26:27 -0400
+        id S1753214AbeFIN1X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 9 Jun 2018 09:27:23 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH 11/11] tools/cpupower: Add support for Hygon's Dhyana Family 18h processor
-Date: Sat,  9 Jun 2018 21:25:00 +0800
-Message-ID: <1528550700-28580-1-git-send-email-puwen@hygon.cn>
+Subject: [PATCH 01/11] x86/cpu: Add support for Hygon's Dhyana Family 18h processor
+Date: Sat,  9 Jun 2018 21:21:02 +0800
+Message-ID: <1528550462-28126-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: trenn@suse.com, shuah@kernel.org, tglx@linutronix.de, zhangpanyong@hygon.cn
-Cc: bp@alien8.de, mchehab@kernel.org, rjw@rjwysocki.net, viresh.kumar@linaro.org, lenb@kernel.org, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180609132500.jia9If0H49dpDc347R6S6YPkrZSOhT3IRkBP-Q-jSr8@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, zhangpanyong@hygon.cn
+Cc: thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180609132102.xqvo8bjIO24PR7WsV8MfPm0VuOIz6i3WDxqZam9qNVw@z>
 
-This patch enables the cpupower tool support to Hygon Family 18h CPU:
-- Add "HygonGenuine" in cpu_vendor_table[] to match Hygon vendor ID.
-- Add definition X86_VENDOR_HYGON in enum cpupower_cpu_vendor.
-- Add Hygon Family 18h support in get_boost_mode(), get_cpu_info(),
-  init_maxfreq_mode().
+This patch enables the x86 architecture support to Hygon Family
+18h CPU:
+- X86 architecture for AMD
+  - Add a new hygon_cpu_dev struct in kernel/cpu/amd.c to register
+    Hygon CPU device, with CPU vendor ID "HygonGenuine".
+  - Add amd_get_topology() hygon support to make sure LLC is at the
+    core complex level.
+  - Add Hygon support in kernel/cpu/intel_cacheinfo.c to get correct
+    cache topology and size.
+  - Add Hygon support in smp_quirk_init_udelay() to enable no delay
+    as Hygon processors are modern processor.
+  - Add Hygon support in arch_init_ideal_nops(), mwait_play_dead().
+- MTRR for X86
+  - Add MTRR enablement for Hygon processor.
+- NMI watchdog for X86
+  - Add Hygon support in nmi_perfctr_msr_to_bit() and
+    nmi_evntsel_msr_to_bit().
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- tools/power/cpupower/utils/cpufreq-info.c               | 6 ++++--
- tools/power/cpupower/utils/helpers/cpuid.c              | 6 ++++--
- tools/power/cpupower/utils/helpers/helpers.h            | 2 +-
- tools/power/cpupower/utils/idle_monitor/mperf_monitor.c | 3 ++-
- 4 files changed, 11 insertions(+), 6 deletions(-)
+ arch/x86/include/asm/processor.h       |  3 ++-
+ arch/x86/kernel/alternative.c          |  4 ++++
+ arch/x86/kernel/cpu/amd.c              | 14 +++++++++++++-
+ arch/x86/kernel/cpu/intel_cacheinfo.c  |  9 ++++++---
+ arch/x86/kernel/cpu/mtrr/cleanup.c     |  3 ++-
+ arch/x86/kernel/cpu/mtrr/generic.c     |  3 ++-
+ arch/x86/kernel/cpu/mtrr/main.c        |  2 +-
+ arch/x86/kernel/cpu/perfctr-watchdog.c |  2 ++
+ arch/x86/kernel/smpboot.c              |  4 +++-
+ 9 files changed, 35 insertions(+), 9 deletions(-)
 
-diff --git a/tools/power/cpupower/utils/cpufreq-info.c b/tools/power/cpupower/utils/cpufreq-info.c
-index df43cd4..75c2140 100644
---- a/tools/power/cpupower/utils/cpufreq-info.c
-+++ b/tools/power/cpupower/utils/cpufreq-info.c
-@@ -170,6 +170,7 @@ static int get_boost_mode(unsigned int cpu)
- 	unsigned long pstates[MAX_HW_PSTATES] = {0,};
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 21a1149..f1b659e 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -153,7 +153,8 @@ enum cpuid_regs_idx {
+ #define X86_VENDOR_CENTAUR	5
+ #define X86_VENDOR_TRANSMETA	7
+ #define X86_VENDOR_NSC		8
+-#define X86_VENDOR_NUM		9
++#define X86_VENDOR_HYGON	9
++#define X86_VENDOR_NUM		10
  
- 	if (cpupower_cpu_info.vendor != X86_VENDOR_AMD &&
-+	    cpupower_cpu_info.vendor != X86_VENDOR_HYGON &&
- 	    cpupower_cpu_info.vendor != X86_VENDOR_INTEL)
+ #define X86_VENDOR_UNKNOWN	0xff
+ 
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index a481763..8f4925b 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -222,6 +222,10 @@ void __init arch_init_ideal_nops(void)
+ 		}
+ 		break;
+ 
++	case X86_VENDOR_HYGON:
++		ideal_nops = p6_nops;
++		return;
++
+ 	case X86_VENDOR_AMD:
+ 		if (boot_cpu_data.x86 > 0xf) {
+ 			ideal_nops = p6_nops;
+diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
+index 1b18be3..76b1e7d 100644
+--- a/arch/x86/kernel/cpu/amd.c
++++ b/arch/x86/kernel/cpu/amd.c
+@@ -350,7 +350,7 @@ static void amd_get_topology(struct cpuinfo_x86 *c)
+ 		 * have an L3 cache by looking at the L3 cache CPUID leaf.
+ 		 */
+ 		if (cpuid_edx(0x80000006)) {
+-			if (c->x86 == 0x17) {
++			if (c->x86 == 0x17 || c->x86 == 0x18) {
+ 				/*
+ 				 * LLC is at the core complex level.
+ 				 * Core complex id is ApicId[3].
+@@ -988,6 +988,18 @@ static void cpu_detect_tlb_amd(struct cpuinfo_x86 *c)
+ 	tlb_lli_4m[ENTRIES] = tlb_lli_2m[ENTRIES] >> 1;
+ }
+ 
++static const struct cpu_dev hygon_cpu_dev = {
++	.c_vendor	= "Hygon",
++	.c_ident	= { "HygonGenuine" },
++	.c_early_init   = early_init_amd,
++	.c_detect_tlb	= cpu_detect_tlb_amd,
++	.c_bsp_init	= bsp_init_amd,
++	.c_init		= init_amd,
++	.c_x86_vendor	= X86_VENDOR_HYGON,
++};
++
++cpu_dev_register(hygon_cpu_dev);
++
+ static const struct cpu_dev amd_cpu_dev = {
+ 	.c_vendor	= "AMD",
+ 	.c_ident	= { "AuthenticAMD" },
+diff --git a/arch/x86/kernel/cpu/intel_cacheinfo.c b/arch/x86/kernel/cpu/intel_cacheinfo.c
+index 54d04d5..8d5d542 100644
+--- a/arch/x86/kernel/cpu/intel_cacheinfo.c
++++ b/arch/x86/kernel/cpu/intel_cacheinfo.c
+@@ -593,7 +593,8 @@ cpuid4_cache_lookup_regs(int index, struct _cpuid4_info_regs *this_leaf)
+ 	union _cpuid4_leaf_ecx	ecx;
+ 	unsigned		edx;
+ 
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+ 		if (boot_cpu_has(X86_FEATURE_TOPOEXT))
+ 			cpuid_count(0x8000001d, index, &eax.full,
+ 				    &ebx.full, &ecx.full, &edx);
+@@ -623,7 +624,8 @@ static int find_num_cache_leaves(struct cpuinfo_x86 *c)
+ 	union _cpuid4_leaf_eax	cache_eax;
+ 	int 			i = -1;
+ 
+-	if (c->x86_vendor == X86_VENDOR_AMD)
++	if (c->x86_vendor == X86_VENDOR_AMD ||
++	    c->x86_vendor == X86_VENDOR_HYGON)
+ 		op = 0x8000001d;
+ 	else
+ 		op = 4;
+@@ -871,7 +873,8 @@ static void __cache_cpumap_setup(unsigned int cpu, int index,
+ 	int index_msb, i;
+ 	struct cpuinfo_x86 *c = &cpu_data(cpu);
+ 
+-	if (c->x86_vendor == X86_VENDOR_AMD) {
++	if (c->x86_vendor == X86_VENDOR_AMD ||
++	    c->x86_vendor == X86_VENDOR_HYGON) {
+ 		if (__cache_amd_cpumap_setup(cpu, index, base))
+ 			return;
+ 	}
+diff --git a/arch/x86/kernel/cpu/mtrr/cleanup.c b/arch/x86/kernel/cpu/mtrr/cleanup.c
+index 765afd5..3cd91b0 100644
+--- a/arch/x86/kernel/cpu/mtrr/cleanup.c
++++ b/arch/x86/kernel/cpu/mtrr/cleanup.c
+@@ -831,7 +831,8 @@ int __init amd_special_default_mtrr(void)
+ {
+ 	u32 l, h;
+ 
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
++	     boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
  		return 0;
+ 	if (boot_cpu_data.x86 < 0xf)
+ 		return 0;
+diff --git a/arch/x86/kernel/cpu/mtrr/generic.c b/arch/x86/kernel/cpu/mtrr/generic.c
+index e12ee86..71f868f 100644
+--- a/arch/x86/kernel/cpu/mtrr/generic.c
++++ b/arch/x86/kernel/cpu/mtrr/generic.c
+@@ -49,7 +49,8 @@ static inline void k8_check_syscfg_dram_mod_en(void)
+ {
+ 	u32 lo, hi;
  
-@@ -190,8 +191,9 @@ static int get_boost_mode(unsigned int cpu)
- 	printf(_("    Supported: %s\n"), support ? _("yes") : _("no"));
- 	printf(_("    Active: %s\n"), active ? _("yes") : _("no"));
+-	if (!((boot_cpu_data.x86_vendor == X86_VENDOR_AMD) &&
++	if (!((boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	       boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) &&
+ 	      (boot_cpu_data.x86 >= 0x0f)))
+ 		return;
  
--	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
--	    cpupower_cpu_info.family >= 0x10) {
-+	if ((cpupower_cpu_info.vendor == X86_VENDOR_AMD ||
-+	     cpupower_cpu_info.vendor == X86_VENDOR_HYGON) &&
-+	     cpupower_cpu_info.family >= 0x10) {
- 		ret = decode_pstates(cpu, cpupower_cpu_info.family, b_states,
- 				     pstates, &pstate_no);
- 		if (ret)
-diff --git a/tools/power/cpupower/utils/helpers/cpuid.c b/tools/power/cpupower/utils/helpers/cpuid.c
-index 732b0b4..0e513b1 100644
---- a/tools/power/cpupower/utils/helpers/cpuid.c
-+++ b/tools/power/cpupower/utils/helpers/cpuid.c
-@@ -8,7 +8,7 @@
- #include "helpers/helpers.h"
+diff --git a/arch/x86/kernel/cpu/mtrr/main.c b/arch/x86/kernel/cpu/mtrr/main.c
+index 7468de4..d2a87df 100644
+--- a/arch/x86/kernel/cpu/mtrr/main.c
++++ b/arch/x86/kernel/cpu/mtrr/main.c
+@@ -126,7 +126,7 @@ static void __init set_num_var_ranges(void)
  
- static const char *cpu_vendor_table[X86_VENDOR_MAX] = {
--	"Unknown", "GenuineIntel", "AuthenticAMD",
-+	"Unknown", "GenuineIntel", "AuthenticAMD", "HygonGenuine",
- };
+ 	if (use_intel())
+ 		rdmsr(MSR_MTRRcap, config, dummy);
+-	else if (is_cpu(AMD))
++	else if (is_cpu(AMD) || is_cpu(HYGON))
+ 		config = 2;
+ 	else if (is_cpu(CYRIX) || is_cpu(CENTAUR))
+ 		config = 8;
+diff --git a/arch/x86/kernel/cpu/perfctr-watchdog.c b/arch/x86/kernel/cpu/perfctr-watchdog.c
+index d389083..9556930 100644
+--- a/arch/x86/kernel/cpu/perfctr-watchdog.c
++++ b/arch/x86/kernel/cpu/perfctr-watchdog.c
+@@ -46,6 +46,7 @@ static inline unsigned int nmi_perfctr_msr_to_bit(unsigned int msr)
+ {
+ 	/* returns the bit offset of the performance counter register */
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		if (msr >= MSR_F15H_PERF_CTR)
+ 			return (msr - MSR_F15H_PERF_CTR) >> 1;
+@@ -74,6 +75,7 @@ static inline unsigned int nmi_evntsel_msr_to_bit(unsigned int msr)
+ {
+ 	/* returns the bit offset of the event selection register */
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		if (msr >= MSR_F15H_PERF_CTL)
+ 			return (msr - MSR_F15H_PERF_CTL) >> 1;
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index 9dd324a..4304510 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -660,6 +660,7 @@ static void __init smp_quirk_init_udelay(void)
  
- #if defined(__i386__) || defined(__x86_64__)
-@@ -109,6 +109,7 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
- 	fclose(fp);
- 	/* Get some useful CPU capabilities from cpuid */
- 	if (cpu_info->vendor != X86_VENDOR_AMD &&
-+	    cpu_info->vendor != X86_VENDOR_HYGON &&
- 	    cpu_info->vendor != X86_VENDOR_INTEL)
- 		return ret;
+ 	/* if modern processor, use no delay */
+ 	if (((boot_cpu_data.x86_vendor == X86_VENDOR_INTEL) && (boot_cpu_data.x86 == 6)) ||
++	    ((boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) && (boot_cpu_data.x86 >= 0x18)) ||
+ 	    ((boot_cpu_data.x86_vendor == X86_VENDOR_AMD) && (boot_cpu_data.x86 >= 0xF))) {
+ 		init_udelay = 0;
+ 		return;
+@@ -1576,7 +1577,8 @@ static inline void mwait_play_dead(void)
+ 	void *mwait_ptr;
+ 	int i;
  
-@@ -125,7 +126,8 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
- 		cpu_info->caps |= CPUPOWER_CAP_APERF;
- 
- 	/* AMD Boost state enable/disable register */
--	if (cpu_info->vendor == X86_VENDOR_AMD) {
-+	if (cpu_info->vendor == X86_VENDOR_AMD ||
-+	    cpu_info->vendor == X86_VENDOR_HYGON) {
- 		if (ext_cpuid_level >= 0x80000007 &&
- 		    (cpuid_edx(0x80000007) & (1 << 9)))
- 			cpu_info->caps |= CPUPOWER_CAP_AMD_CBP;
-diff --git a/tools/power/cpupower/utils/helpers/helpers.h b/tools/power/cpupower/utils/helpers/helpers.h
-index 41da392..9021396 100644
---- a/tools/power/cpupower/utils/helpers/helpers.h
-+++ b/tools/power/cpupower/utils/helpers/helpers.h
-@@ -61,7 +61,7 @@ extern int be_verbose;
- 
- /* cpuid and cpuinfo helpers  **************************/
- enum cpupower_cpu_vendor {X86_VENDOR_UNKNOWN = 0, X86_VENDOR_INTEL,
--			  X86_VENDOR_AMD, X86_VENDOR_MAX};
-+			  X86_VENDOR_AMD, X86_VENDOR_HYGON, X86_VENDOR_MAX};
- 
- #define CPUPOWER_CAP_INV_TSC		0x00000001
- #define CPUPOWER_CAP_APERF		0x00000002
-diff --git a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
-index d7c2a6d..f2a7e9c 100644
---- a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
-+++ b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
-@@ -241,7 +241,8 @@ static int init_maxfreq_mode(void)
- 	if (!(cpupower_cpu_info.caps & CPUPOWER_CAP_INV_TSC))
- 		goto use_sysfs;
- 
--	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD) {
-+	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD ||
-+	    cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
- 		/* MSR_AMD_HWCR tells us whether TSC runs at P0/mperf
- 		 * freq.
- 		 * A test whether hwcr is accessable/available would be:
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		return;
+ 	if (!this_cpu_has(X86_FEATURE_MWAIT))
+ 		return;
 -- 
 2.7.4
