@@ -1,95 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:44126 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:48137 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753259AbeFINaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 Jun 2018 09:30:21 -0400
+        id S1753171AbeFINdX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 9 Jun 2018 09:33:23 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH 04/11] x86/perf: Add support for Hygon's Dhyana Family 18h processor
-Date: Sat,  9 Jun 2018 21:22:42 +0800
-Message-ID: <1528550562-28261-1-git-send-email-puwen@hygon.cn>
+Subject: [PATCH 10/11] driver/edac: Add support for Hygon's Dhyana Family 18h processor
+Date: Sat,  9 Jun 2018 21:24:30 +0800
+Message-ID: <1528550670-28529-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, zhangpanyong@hygon.cn
-Cc: thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180609132242.4GQ4tS4pzTnVdPe0BU-kgfTEOR2sBFLxA9-XBWZbaKM@z>
+To: bp@alien8.de, mchehab@kernel.org, zhangpanyong@hygon.cn
+Cc: rjw@rjwysocki.net, viresh.kumar@linaro.org, lenb@kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, trenn@suse.com, shuah@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180609132430.FnjuznqtlqREOVJcymMd7bY9SIfy5cLNDXSp6BGG8m4@z>
 
-This patch enables the AMD performance events support to Hygon
-Family 18h CPU:
-- Add Hygon Family 18h support in amd_core_pmu_init() and
-  amd_uncore_init().
-- Rename x86_pmu.name from "AMD" to "HYGON" on Hygon platforms.
-- Add Hygon support in PMU init codes in init_hw_perf_events().
+This patch enables the EDAC driver support to Hygon Family 18h CPU:
+- Add MCE support for Hygon Family 18h.
+- Add HYGON_F18_CPUS in amd_families enum to enable Hygon Family 18h support.
+- Add HYGON_F18_CPUS in family_types[] to support Hygon Family 18h.
+- Add Hygon Family 18h support in determine_memory_type(), per_family_init()
+  and scrub rate codes.
+- Add X86_VENDOR_HYGON in amd64_cpuids[].
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/events/amd/core.c   | 10 ++++++++++
- arch/x86/events/amd/uncore.c |  7 ++++---
- arch/x86/events/core.c       |  1 +
- 3 files changed, 15 insertions(+), 3 deletions(-)
+ drivers/edac/amd64_edac.c | 20 +++++++++++++++++++-
+ drivers/edac/amd64_edac.h |  4 ++++
+ drivers/edac/mce_amd.c    |  4 +++-
+ 3 files changed, 26 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/events/amd/core.c b/arch/x86/events/amd/core.c
-index c84584b..59c7b57 100644
---- a/arch/x86/events/amd/core.c
-+++ b/arch/x86/events/amd/core.c
-@@ -669,6 +669,13 @@ static int __init amd_core_pmu_init(void)
- 		 * We fallback to using default amd_get_event_constraints.
- 		 */
+diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
+index 329cb96..a2e02c5 100644
+--- a/drivers/edac/amd64_edac.c
++++ b/drivers/edac/amd64_edac.c
+@@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
+ 
+ 	scrubval = scrubrates[i].scrubval;
+ 
+-	if (pvt->fam == 0x17) {
++	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
+ 		__f17h_set_scrubval(pvt, scrubval);
+ 	} else if (pvt->fam == 0x15 && pvt->model == 0x60) {
+ 		f15h_select_dct(pvt, 0);
+@@ -264,6 +264,7 @@ static int get_scrub_rate(struct mem_ctl_info *mci)
  		break;
+ 
+ 	case 0x17:
 +	case 0x18:
-+		pr_cont("Fam18h ");
-+		/*
-+		 * In family 18h, there are no event constraints in the PMC hardware.
-+		 * We fallback to using default amd_get_event_constraints.
-+		 */
+ 		amd64_read_pci_cfg(pvt->F6, F17H_SCR_BASE_ADDR, &scrubval);
+ 		if (scrubval & BIT(0)) {
+ 			amd64_read_pci_cfg(pvt->F6, F17H_SCR_LIMIT_ADDR, &scrubval);
+@@ -1044,6 +1045,7 @@ static void determine_memory_type(struct amd64_pvt *pvt)
+ 		goto ddr3;
+ 
+ 	case 0x17:
++	case 0x18:
+ 		if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(5))
+ 			pvt->dram_type = MEM_LRDDR4;
+ 		else if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(4))
+@@ -2200,6 +2202,16 @@ static struct amd64_family_type family_types[] = {
+ 			.dbam_to_cs		= f17_base_addr_to_cs_size,
+ 		}
+ 	},
++	[HYGON_F18_CPUS] = {
++		/* Hygon F18h uses the same AMD F17h support */
++		.ctl_name = "Hygon_F18h",
++		.f0_id = PCI_DEVICE_ID_HYGON_18H_DF_F0,
++		.f6_id = PCI_DEVICE_ID_HYGON_18H_DF_F6,
++		.ops = {
++			.early_channel_count	= f17_early_channel_count,
++			.dbam_to_cs		= f17_base_addr_to_cs_size,
++		}
++	},
+ };
+ 
+ /*
+@@ -3192,6 +3204,11 @@ static struct amd64_family_type *per_family_init(struct amd64_pvt *pvt)
+ 		pvt->ops	= &family_types[F17_CPUS].ops;
+ 		break;
+ 
++	case 0x18:
++		fam_type	= &family_types[HYGON_F18_CPUS];
++		pvt->ops	= &family_types[HYGON_F18_CPUS].ops;
 +		break;
- 	default:
- 		pr_err("core perfctr but no constraints; unknown hardware!\n");
- 		return -ENODEV;
-@@ -702,6 +709,9 @@ __init int amd_pmu_init(void)
- 
- 	x86_pmu = amd_pmu;
- 
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		x86_pmu.name = "HYGON";
 +
- 	ret = amd_core_pmu_init();
- 	if (ret)
- 		return ret;
-diff --git a/arch/x86/events/amd/uncore.c b/arch/x86/events/amd/uncore.c
-index f5cbbba..f8b0890 100644
---- a/arch/x86/events/amd/uncore.c
-+++ b/arch/x86/events/amd/uncore.c
-@@ -524,15 +524,16 @@ static int __init amd_uncore_init(void)
+ 	default:
+ 		amd64_err("Unsupported family!\n");
+ 		return NULL;
+@@ -3428,6 +3445,7 @@ static const struct x86_cpu_id amd64_cpuids[] = {
+ 	{ X86_VENDOR_AMD, 0x15, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+ 	{ X86_VENDOR_AMD, 0x16, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+ 	{ X86_VENDOR_AMD, 0x17, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
++	{ X86_VENDOR_HYGON, 0x18, X86_MODEL_ANY, X86_FEATURE_ANY, 0 },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(x86cpu, amd64_cpuids);
+diff --git a/drivers/edac/amd64_edac.h b/drivers/edac/amd64_edac.h
+index 1d4b74e..3dec27d 100644
+--- a/drivers/edac/amd64_edac.h
++++ b/drivers/edac/amd64_edac.h
+@@ -116,6 +116,9 @@
+ #define PCI_DEVICE_ID_AMD_17H_DF_F0	0x1460
+ #define PCI_DEVICE_ID_AMD_17H_DF_F6	0x1466
+ 
++#define PCI_DEVICE_ID_HYGON_18H_DF_F0	PCI_DEVICE_ID_AMD_17H_DF_F0
++#define PCI_DEVICE_ID_HYGON_18H_DF_F6	PCI_DEVICE_ID_AMD_17H_DF_F6
++
+ /*
+  * Function 1 - Address Map
+  */
+@@ -281,6 +284,7 @@ enum amd_families {
+ 	F16_CPUS,
+ 	F16_M30H_CPUS,
+ 	F17_CPUS,
++	HYGON_F18_CPUS,
+ 	NUM_FAMILIES,
+ };
+ 
+diff --git a/drivers/edac/mce_amd.c b/drivers/edac/mce_amd.c
+index 2ab4d61..c605089 100644
+--- a/drivers/edac/mce_amd.c
++++ b/drivers/edac/mce_amd.c
+@@ -1059,7 +1059,8 @@ static int __init mce_amd_init(void)
  {
- 	int ret = -ENODEV;
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
  
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
+-	if (c->x86_vendor != X86_VENDOR_AMD)
++	if (c->x86_vendor != X86_VENDOR_AMD &&
++	    c->x86_vendor != X86_VENDOR_HYGON)
  		return -ENODEV;
  
- 	if (!boot_cpu_has(X86_FEATURE_TOPOEXT))
- 		return -ENODEV;
+ 	fam_ops = kzalloc(sizeof(struct amd_decoder_ops), GFP_KERNEL);
+@@ -1113,6 +1114,7 @@ static int __init mce_amd_init(void)
+ 		break;
  
--	if (boot_cpu_data.x86 == 0x17) {
-+	if (boot_cpu_data.x86 == 0x17 || boot_cpu_data.x86 == 0x18) {
- 		/*
--		 * For F17h, the Northbridge counters are repurposed as Data
-+		 * For F17h and F18h, the Northbridge counters are repurposed as Data
- 		 * Fabric counters. Also, L3 counters are supported too. The PMUs
- 		 * are exported based on  family as either L2 or L3 and NB or DF.
- 		 */
-diff --git a/arch/x86/events/core.c b/arch/x86/events/core.c
-index 45b2b1c..60efd9b 100644
---- a/arch/x86/events/core.c
-+++ b/arch/x86/events/core.c
-@@ -1773,6 +1773,7 @@ static int __init init_hw_perf_events(void)
- 	case X86_VENDOR_INTEL:
- 		err = intel_pmu_init();
- 		break;
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 		err = amd_pmu_init();
- 		break;
+ 	case 0x17:
++	case 0x18:
+ 		xec_mask = 0x3f;
+ 		if (!boot_cpu_has(X86_FEATURE_SMCA)) {
+ 			printk(KERN_WARNING "Decoding supported only on Scalable MCA processors.\n");
 -- 
 2.7.4
