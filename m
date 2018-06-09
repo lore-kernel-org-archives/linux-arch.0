@@ -1,71 +1,59 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH 5/5] Documentation/x86: Add CET description
-Date: Fri, 8 Jun 2018 17:10:13 -0700
-Message-ID: <0c91f979-85e1-6deb-9570-9749c8eaf15b@infradead.org>
-References: <20180607143544.3477-1-yu-cheng.yu@intel.com>
- <20180607143544.3477-6-yu-cheng.yu@intel.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T
+ config option
+Date: Sat, 9 Jun 2018 10:42:27 +0300
+Message-ID: <20180609074227.GA6810@yury-thinkpad>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+ <20180516081910.10067-5-ynorov@caviumnetworks.com>
+ <20180608173207.nwoi25jee52gpdwy@armageddon.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180607143544.3477-6-yu-cheng.yu@intel.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20180608173207.nwoi25jee52gpdwy@armageddon.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Joseph Myers <joseph@codesourcery.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Alexander Graf <agraf@suse.de>, Bamvor Zhangjian <bamv2005@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, Manuel Montezelo <manuel.montezelo@gmail.com>, James Hogan <james.hogan@imgtec.com>, Ch
 List-Id: linux-arch.vger.kernel.org
 
-On 06/07/2018 07:35 AM, Yu-cheng Yu wrote:
-> Explain how CET works and the noshstk/noibt kernel parameters.
+On Fri, Jun 08, 2018 at 06:32:07PM +0100, Catalin Marinas wrote:
+> On Wed, May 16, 2018 at 11:18:49AM +0300, Yury Norov wrote:
+> > diff --git a/arch/Kconfig b/arch/Kconfig
+> > index 76c0b54443b1..ee079244dc3c 100644
+> > --- a/arch/Kconfig
+> > +++ b/arch/Kconfig
+> > @@ -264,6 +264,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
+> >  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
+> >  	bool
+> >  
+> > +config ARCH_32BIT_OFF_T
+> > +	bool
+> > +	depends on !64BIT
+> > +	help
+> > +	  All new 32-bit architectures should have 64-bit off_t type on
+> > +	  userspace side which corresponds to the loff_t kernel type. This
+> > +	  is the requirement for modern ABIs. Some existing architectures
+> > +	  already have 32-bit off_t. This option is enabled for all such
+> > +	  architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
+> > +	  h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
+> > +	  nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
+> > +	  unicore32, x86_32 and xtensa. This is the complete list. Any
+> > +	  new 32-bit architecture should declare 64-bit off_t type on user
+> > +	  side and so should not enable this option.
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  Documentation/admin-guide/kernel-parameters.txt |   6 +
->  Documentation/x86/intel_cet.txt                 | 161 ++++++++++++++++++++++++
->  2 files changed, 167 insertions(+)
->  create mode 100644 Documentation/x86/intel_cet.txt
-> 
+> Do you know if this is the case for riscv and nds32, merged in the
+> meantime? If not, I suggest you drop this patch altogether and just
+> define force_o_largefile() for arm64/ilp32 as we don't seem to stick to
+> "all new 32-bit architectures should have 64-bit off_t".
 
-> diff --git a/Documentation/x86/intel_cet.txt b/Documentation/x86/intel_cet.txt
-> new file mode 100644
-> index 000000000000..1b902a6c49f4
-> --- /dev/null
-> +++ b/Documentation/x86/intel_cet.txt
-> @@ -0,0 +1,161 @@
-> +-----------------------------------------
-> +Control Flow Enforcement Technology (CET)
-> +-----------------------------------------
-> +
-> +[1] Overview
-> +
-> +Control Flow Enforcement Technology (CET) provides protection against
-> +return/jump-oriented programing (ROP) attacks.  It can be implemented to
+I wrote this patch at request of Arnd Bergmann. This is actually his
+words that all new 32-bit architectures should have 64-bit off_t. So
+I was surprized when riscv was merged with 32-bit off_t (and I didn't
+follow nds32).
 
-                        programming
+If this rule is still in force, we'd better add new exceptions to this
+patch. Otherwise, we can drop it.
 
-> +protect both the kernel and applications.  In the first phase, only the
-> +user-mode protection is implemented for the 64-bit kernel.  Thirty-two bit
-> +applications are supported under the compatibility mode.
-> +
-> +CET includes shadow stack (SHSTK) and indirect branch tracking (IBT) and
-> +they are enabled from two kernel configuration options:
-> +
-> +  INTEL_X86_SHADOW_STACK_USER, and
+Arnd, could you please comment it?
 
-no comma.
-
-> +  INTEL_X86_BRANCH_TRACKING_USER.
-> +
-> +There are two command-line options for disabling CET features:
-> +
-> +  noshstk - disables shadow stack, and
-> +  noibt - disables indirect branch tracking.
-> +
-> +At run time, /proc/cpuinfo shows the availability of SHSTK and IBT.
-> +
-
-[snip]
-
-
-thanks,
--- 
-~Randy
+Yury
