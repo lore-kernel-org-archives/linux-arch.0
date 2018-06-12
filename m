@@ -1,91 +1,73 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
-Date: Tue, 12 Jun 2018 13:15:38 -0700
-Message-ID: <1528834538.9849.13.camel@2b52.sc.intel.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
-         <bbfde1b3-5e1b-80e3-30e8-fd1e46a2ceb1@gmail.com>
-         <1528815820.8271.16.camel@2b52.sc.intel.com>
-         <CALCETrXK6hypCb5sXwxWRKr=J6_7XtS6s5GB1WPBiqi79q8-8g@mail.gmail.com>
-         <1528820489.9324.14.camel@2b52.sc.intel.com>
-         <CALCETrVOyZz72RuoRB=z_EjFTqqctSLfX30GM+MSEVtbcd=PeQ@mail.gmail.com>
-         <1528824280.9447.30.camel@2b52.sc.intel.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC PATCH 3/3] powerpc/64s/radix: optimise TLB flush with
+ precise TLB ranges in mmu_gather
+Date: Wed, 13 Jun 2018 08:31:31 +1000
+Message-ID: <20180613083131.139a3c34@roar.ozlabs.ibm.com>
+References: <20180612071621.26775-1-npiggin@gmail.com>
+ <20180612071621.26775-4-npiggin@gmail.com>
+ <CA+55aFzKBieD0Y3sgFQzt+x5esqb9vT6SEQ28xyCz5UWegfFVg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1528824280.9447.30.camel@2b52.sc.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: bsingharora@gmail.com, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <CA+55aFzKBieD0Y3sgFQzt+x5esqb9vT6SEQ28xyCz5UWegfFVg@mail.gmail.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, linux-mm <linux-mm@kvack.org>, "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-06-12 at 10:24 -0700, Yu-cheng Yu wrote:
-> On Tue, 2018-06-12 at 09:31 -0700, Andy Lutomirski wrote:
-> > On Tue, Jun 12, 2018 at 9:24 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > >
-> > > On Tue, 2018-06-12 at 09:00 -0700, Andy Lutomirski wrote:
-> > > > On Tue, Jun 12, 2018 at 8:06 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > > > >
-> > > > > On Tue, 2018-06-12 at 20:56 +1000, Balbir Singh wrote:
-> > > > > >
-> > > > > > On 08/06/18 00:37, Yu-cheng Yu wrote:
-> > > > > > > This series introduces CET - Shadow stack
-> > > > > > >
-> > > > > > > At the high level, shadow stack is:
-> > > > > > >
-> > > > > > >     Allocated from a task's address space with vm_flags VM_SHSTK;
-> > > > > > >     Its PTEs must be read-only and dirty;
-> > > > > > >     Fixed sized, but the default size can be changed by sys admin.
-> > > > > > >
-> > > > > > > For a forked child, the shadow stack is duplicated when the next
-> > > > > > > shadow stack access takes place.
-> > > > > > >
-> > > > > > > For a pthread child, a new shadow stack is allocated.
-> > > > > > >
-> > > > > > > The signal handler uses the same shadow stack as the main program.
-> > > > > > >
-> > > > > >
-> > > > > > Even with sigaltstack()?
-> > > > > >
-> > > > > >
-> > > > > > Balbir Singh.
-> > > > >
-> > > > > Yes.
-> > > > >
-> > > >
-> > > > I think we're going to need some provision to add an alternate signal
-> > > > stack to handle the case where the shadow stack overflows.
-> > >
-> > > The shadow stack stores only return addresses; its consumption will not
-> > > exceed a percentage of (program stack size + sigaltstack size) before
-> > > those overflow.  When that happens, there is usually very little we can
-> > > do.  So we set a default shadow stack size that supports certain nested
-> > > calls and allow sys admin to adjust it.
-> > >
-> > 
-> > Of course there's something you can do: add a sigaltstack-like stack
-> > switching mechanism.  Have a reserve shadow stack and, when a signal
-> > is delivered (possibly guarded by other conditions like "did the
-> > shadow stack overflow"), switch to a new shadow stack and maybe write
-> > a special token to the new shadow stack that says "signal delivery
-> > jumped here and will restore to the previous shadow stack and
-> > such-and-such address on return".
-> 
-> If (shstk size == (stack size + sigaltstack size)), then shstk will not
-> overflow before program stack overflows and sigaltstack also overflows.
-> 
-> Let me think about this.
+On Tue, 12 Jun 2018 11:18:27 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-The reserve shadow stack will help only when the shstk overflows but
-signal stack/sigaltstack still has room and we can deliver a signal.  If
-the shstk is large enough to cover any nested calls that will overflow
-both the program stack and sigaltstack then we don't need a reserve
-shstk.
+> On Tue, Jun 12, 2018 at 12:16 AM Nicholas Piggin <npiggin@gmail.com> wrot=
+e:
+> >
+> > This brings the number of tlbiel instructions required by a kernel
+> > compile from 33M to 25M, most avoided from exec->shift_arg_pages. =20
+>=20
+> And this shows that "page_start/end" is purely for powerpc and used
+> nowhere else.
+>=20
+> The previous patch should have been to purely powerpc page table
+> walking and not touch asm-generic/tlb.h
+>=20
+> I think you should make those changes to
+> arch/powerpc/include/asm/tlb.h. If that means you can't use the
+> generic header, then so be it.
 
-We can estimate how big the shstk needs to be; in the worst case it
-should not be greater than (program stack size + sigaltstack size).  The
-default shstk size we choose pass all signal tests in GLIBC.  In case
-there is a need to increase it for a very large RLIMIT_STACK or very
-large sigaltstack, the sys admin can increase the default shstk size.
+I can make it ppc specific if nobody else would use it. But at least
+mmu notifiers AFAIKS would rather use a precise range.
 
-Yu-cheng
+> Or maybe you can embed the generic case in some ppc-specific
+> structures, and use 90% of the generic code just with your added
+> wrappers for that radix invalidation on top.
+
+Would you mind another arch specific ifdefs in there?
+
+>=20
+> But don't make other architectures do pointless work that doesn't
+> matter - or make sense - for them.
+
+Okay sure, and this is the reason for the wide cc list. Intel does
+need it of course, from 4.10.3.1 of the dev manual:
+
+  =E2=80=94 The processor may create a PML4-cache entry even if there are no
+    translations for any linear address that might use that entry
+    (e.g., because the P flags are 0 in all entries in the referenced
+    page-directory-pointer table).
+
+But I'm sure others would not have paging structure caches at all
+(some don't even walk the page tables in hardware right?). Maybe
+they're all doing their own thing though.
+
+Thanks,
+Nick
