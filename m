@@ -1,76 +1,207 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>
-Subject: Re: [RFC PATCH 1/3] Revert "mm: always flush VMA ranges affected by
- zap_page_range"
-Date: Tue, 12 Jun 2018 19:23:04 +0530
-Message-ID: <87943ec8-49f8-7956-f88f-d3b5ff91bbde@linux.ibm.com>
-References: <20180612071621.26775-1-npiggin@gmail.com>
- <20180612071621.26775-2-npiggin@gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH 01/10] x86/cet: User-mode shadow stack support
+Date: Tue, 12 Jun 2018 08:03:01 -0700
+Message-ID: <1528815781.8271.15.camel@2b52.sc.intel.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+         <20180607143807.3611-2-yu-cheng.yu@intel.com>
+         <0e80c181-83b2-457f-a419-01e79f94ca1c@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20180612071621.26775-2-npiggin@gmail.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Nicholas Piggin <npiggin@gmail.com>, linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Linus Torvalds <torvalds@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Minchan Kim <minchan@kernel.org>, "Aneesh Kumar K . V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nadav Amit <nadav.amit@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <0e80c181-83b2-457f-a419-01e79f94ca1c@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Balbir Singh <bsingharora@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/12/2018 12:46 PM, Nicholas Piggin wrote:
-> This reverts commit 4647706ebeee6e50f7b9f922b095f4ec94d581c3.
+On Tue, 2018-06-12 at 21:56 +1000, Balbir Singh wrote:
 > 
-> Patch 99baac21e4585 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss
-> problem") provides a superset of the TLB flush coverage of this
-> commit, and even includes in the changelog "this patch supersedes
-> 'mm: Always flush VMA ranges affected by zap_page_range v2'".
+> On 08/06/18 00:37, Yu-cheng Yu wrote:
+> > This patch adds basic shadow stack enabling/disabling routines.
+> > A task's shadow stack is allocated from memory with VM_SHSTK
+> > flag set and read-only protection.  The shadow stack is
+> > allocated to a fixed size and that can be changed by the system
+> > admin.
+> > 
 > 
-> Reverting this avoids double flushing the TLB range, and the less
-> efficient flush_tlb_range() call (the mmu_gather API is more precise
-> about what ranges it invalidates).
-> 
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> ---
->   mm/memory.c | 14 +-------------
->   1 file changed, 1 insertion(+), 13 deletions(-)
-> 
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 7206a634270b..9d472e00fc2d 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -1603,20 +1603,8 @@ void zap_page_range(struct vm_area_struct *vma, unsigned long start,
->   	tlb_gather_mmu(&tlb, mm, start, end);
->   	update_hiwater_rss(mm);
->   	mmu_notifier_invalidate_range_start(mm, start, end);
-> -	for ( ; vma && vma->vm_start < end; vma = vma->vm_next) {
-> +	for ( ; vma && vma->vm_start < end; vma = vma->vm_next)
->   		unmap_single_vma(&tlb, vma, start, end, NULL);
-> -
-> -		/*
-> -		 * zap_page_range does not specify whether mmap_sem should be
-> -		 * held for read or write. That allows parallel zap_page_range
-> -		 * operations to unmap a PTE and defer a flush meaning that
-> -		 * this call observes pte_none and fails to flush the TLB.
-> -		 * Rather than adding a complex API, ensure that no stale
-> -		 * TLB entries exist when this call returns.
-> -		 */
-> -		flush_tlb_range(vma, start, end);
-> -	}
-> -
->   	mmu_notifier_invalidate_range_end(mm, start, end);
->   	tlb_finish_mmu(&tlb, start, end);
->   }
-> 
+> I presume a read-only permission on the kernel side, but it
+> can be written by hardware?
 
-No really related to this patch, but does 99baac21e4585 do the right 
-thing if the range start - end covers pages with multiple page sizes?
+Yes, the shadow stack is written by the processor when a call
+instruction is executed.
 
--aneesh
+...
+
+> > 
+> > diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+> > new file mode 100644
+> > index 000000000000..9d5bc1efc9b7
+> > --- /dev/null
+> > +++ b/arch/x86/include/asm/cet.h
+> > @@ -0,0 +1,32 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef _ASM_X86_CET_H
+> > +#define _ASM_X86_CET_H
+> > +
+> > +#ifndef __ASSEMBLY__
+> > +#include <linux/types.h>
+> > +
+> > +struct task_struct;
+> > +/*
+> > + * Per-thread CET status
+> > + */
+> > +struct cet_stat {
+> 
+> stat sounds like statistics, just expand out to status please
+
+I will make it 'cet_status'.
+
+> > +	unsigned long	shstk_base;
+> > +	unsigned long	shstk_size;
+> > +	unsigned int	shstk_enabled:1;
+> > +};
+> > +
+> > +#ifdef CONFIG_X86_INTEL_CET
+> > +unsigned long cet_get_shstk_ptr(void);
+> 
+> For the current task? Why does _ptr routine return an unsigned long?
+
+What about cet_get_shstk_addr()?
+
+...
+
+> > diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
+> > index fda2114197b3..428d13828ba9 100644
+> > --- a/arch/x86/include/asm/msr-index.h
+> > +++ b/arch/x86/include/asm/msr-index.h
+> > @@ -770,4 +770,18 @@
+> >  #define MSR_VM_IGNNE                    0xc0010115
+> >  #define MSR_VM_HSAVE_PA                 0xc0010117
+> >  
+> > +/* Control-flow Enforcement Technology MSRs */
+> > +#define MSR_IA32_U_CET		0x6a0
+> > +#define MSR_IA32_S_CET		0x6a2
+> > +#define MSR_IA32_PL0_SSP	0x6a4
+> > +#define MSR_IA32_PL3_SSP	0x6a7
+> > +#define MSR_IA32_INT_SSP_TAB	0x6a8
+> 
+> some comments on the purpose of the MSR would be nice
+
+Sure.
+
+...
+
+> 
+> I think there was a comment about this being TASK_SIZE_MAX
+> 
+> > +
+> > +	rdmsrl(MSR_IA32_U_CET, r);
+> > +	wrmsrl(MSR_IA32_U_CET, r | MSR_IA32_CET_SHSTK_EN);
+> > +	wrmsrl(MSR_IA32_PL3_SSP, addr);
+> 
+> Should the enable happen before setting addr? I would expect to do this in the opposite order.
+
+I will check.
+
+> > +	return 0;
+> > +}
+> > +
+> > +unsigned long cet_get_shstk_ptr(void)
+> > +{
+> > +	unsigned long ptr;
+> > +
+> > +	if (!current->thread.cet.shstk_enabled)
+> > +		return 0;
+> > +
+> > +	rdmsrl(MSR_IA32_PL3_SSP, ptr);
+> > +	return ptr;
+> > +}
+> > +
+> > +static unsigned long shstk_mmap(unsigned long addr, unsigned long len)
+> > +{
+> > +	struct mm_struct *mm = current->mm;
+> > +	unsigned long populate;
+> > +
+> > +	down_write(&mm->mmap_sem);
+> > +	addr = do_mmap(NULL, addr, len, PROT_READ,
+> > +		       MAP_ANONYMOUS | MAP_PRIVATE, VM_SHSTK,
+> > +		       0, &populate, NULL);
+> > +	up_write(&mm->mmap_sem);
+> 
+> What happens if the mmap fails for any reason? I presume the caller disables shadow stack on this process?
+
+This is from exec(), and that fails.
+
+> > +
+> > +	if (populate)
+> > +		mm_populate(addr, populate);
+> > +
+> > +	return addr;
+> > +}
+> > +
+> > +int cet_setup_shstk(void)
+> > +{
+> > +	unsigned long addr, size;
+> > +
+> > +	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
+> > +		return -EOPNOTSUPP;
+> > +
+> > +	size = SHSTK_SIZE;
+> > +	addr = shstk_mmap(0, size);
+> > +
+> > +	if (addr >= TASK_SIZE)
+> > +		return -ENOMEM;
+> > +
+> 
+> TASK_SIZE_MAX?
+
+Yes.
+
+> 
+> > +	cet_set_shstk_ptr(addr + size - sizeof(void *));
+> > +	current->thread.cet.shstk_base = addr;
+> > +	current->thread.cet.shstk_size = size;
+> > +	current->thread.cet.shstk_enabled = 1;
+> > +	return 0;
+> > +}
+> > +
+> > +void cet_disable_shstk(void)
+> > +{
+> > +	u64 r;
+> > +
+> > +	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
+> > +		return;
+> > +
+> > +	rdmsrl(MSR_IA32_U_CET, r);
+> > +	r &= ~(MSR_IA32_CET_SHSTK_EN);
+> > +	wrmsrl(MSR_IA32_U_CET, r);
+> > +	wrmsrl(MSR_IA32_PL3_SSP, 0);
+> 
+> Again, I'd expect the order to be the reverse
+> 
+> > +	current->thread.cet.shstk_enabled = 0;
+> > +}
+> > +
+> > +void cet_disable_free_shstk(struct task_struct *tsk)
+> > +{
+> > +	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) ||
+> > +	    !tsk->thread.cet.shstk_enabled)
+> > +		return;
+> > +
+> > +	if (tsk == current)
+> > +		cet_disable_shstk();
+> > +
+> > +	/*
+> > +	 * Free only when tsk is current or shares mm
+> > +	 * with current but has its own shstk.
+> > +	 */
+> > +	if (tsk->mm && (tsk->mm == current->mm) &&
+> > +	    (tsk->thread.cet.shstk_base)) {
+> 
+> Does the caller hold a reference to tsk->mm?
+
+If (tsk->mm == current->mm), i.e. it is current or it is a pthread of
+current, then yes.
+
+Yu-cheng
