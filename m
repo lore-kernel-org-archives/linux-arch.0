@@ -1,14 +1,14 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC PATCH 2/3] mm: mmu_gather track of invalidated TLB ranges
- explicitly for more precise flushing
-Date: Tue, 12 Jun 2018 11:14:10 -0700
-Message-ID: <CA+55aFxaVyTZmKdywAGVopmWeDirb1Ou49XD_SfqGQL_ox_65Q@mail.gmail.com>
+Subject: Re: [RFC PATCH 3/3] powerpc/64s/radix: optimise TLB flush with
+ precise TLB ranges in mmu_gather
+Date: Tue, 12 Jun 2018 11:18:27 -0700
+Message-ID: <CA+55aFzKBieD0Y3sgFQzt+x5esqb9vT6SEQ28xyCz5UWegfFVg@mail.gmail.com>
 References: <20180612071621.26775-1-npiggin@gmail.com>
- <20180612071621.26775-3-npiggin@gmail.com>
+ <20180612071621.26775-4-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20180612071621.26775-3-npiggin@gmail.com>
+In-Reply-To: <20180612071621.26775-4-npiggin@gmail.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -25,17 +25,24 @@ List-Id: linux-arch.vger.kernel.org
 
 On Tue, Jun 12, 2018 at 12:16 AM Nicholas Piggin <npiggin@gmail.com> wrote:
 >
-> +static inline void __tlb_adjust_page_range(struct mmu_gather *tlb,
-> +                                     unsigned long address,
-> +                                     unsigned int range_size)
-> +{
-> +       tlb->page_start = min(tlb->page_start, address);
-> +       tlb->page_end = max(tlb->page_end, address + range_size);
-> +}
+> This brings the number of tlbiel instructions required by a kernel
+> compile from 33M to 25M, most avoided from exec->shift_arg_pages.
 
-Why add this unnecessary complexity for architectures where it doesn't matter?
+And this shows that "page_start/end" is purely for powerpc and used
+nowhere else.
 
-This is not "generic". This is some crazy powerpc special case. Why
-add it to generic code, and why make everybody else take the cost?
+The previous patch should have been to purely powerpc page table
+walking and not touch asm-generic/tlb.h
 
-                    Linus
+I think you should make those changes to
+arch/powerpc/include/asm/tlb.h. If that means you can't use the
+generic header, then so be it.
+
+Or maybe you can embed the generic case in some ppc-specific
+structures, and use 90% of the generic code just with your added
+wrappers for that radix invalidation on top.
+
+But don't make other architectures do pointless work that doesn't
+matter - or make sense - for them.
+
+               Linus
