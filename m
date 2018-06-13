@@ -1,62 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f193.google.com ([209.85.223.193]:41715 "EHLO
-        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935063AbeFMBKi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2018 21:10:38 -0400
-Received: by mail-io0-f193.google.com with SMTP id t5-v6so1617084ioa.8
-        for <linux-arch@vger.kernel.org>; Tue, 12 Jun 2018 18:10:38 -0700 (PDT)
+Received: from conssluserg-03.nifty.com ([210.131.2.82]:26682 "EHLO
+        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935560AbeFMOcL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2018 10:32:11 -0400
 MIME-Version: 1.0
-References: <20180612071621.26775-1-npiggin@gmail.com> <20180612071621.26775-4-npiggin@gmail.com>
- <CA+55aFzKBieD0Y3sgFQzt+x5esqb9vT6SEQ28xyCz5UWegfFVg@mail.gmail.com>
- <20180613083131.139a3c34@roar.ozlabs.ibm.com> <CA+55aFyk9VBLUk8VYhfEUR55x0TXY9_QX1dE4wE0A_ias9tMNQ@mail.gmail.com>
- <20180613090950.50566245@roar.ozlabs.ibm.com> <CA+55aFxd97-29qi-JMxyPPoZMxw=eObQHB5XXGiLj7SNV8B-oQ@mail.gmail.com>
- <CA+55aFzbYBXUDcAGaP_HoCxjTvOgkixc0+7nJqMea0yKjLSnhw@mail.gmail.com> <20180613101241.004fd64e@roar.ozlabs.ibm.com>
-In-Reply-To: <20180613101241.004fd64e@roar.ozlabs.ibm.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 12 Jun 2018 18:10:26 -0700
-Message-ID: <CA+55aFzJRknbQD6Mv3OSOvUVozQ4H8ni8jPP7UEEi9wKXmVhQA@mail.gmail.com>
-Subject: Re: [RFC PATCH 3/3] powerpc/64s/radix: optimise TLB flush with
- precise TLB ranges in mmu_gather
+In-Reply-To: <1525852402-29269-1-git-send-email-yamada.masahiro@socionext.com>
+References: <1525852402-29269-1-git-send-email-yamada.masahiro@socionext.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Wed, 13 Jun 2018 23:31:25 +0900
+Message-ID: <CAK7LNAQjBYQ1YKGnFodng8uibRDuJ+D9iD4OLQ-qE_8xYOv6Ww@mail.gmail.com>
+Subject: Re: [PATCH] sh: remove no-op macro VMLINUX_SYMBOL()
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@gmail.com>
-Cc: linux-mm <linux-mm@kvack.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>, "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Nadav Amit <nadav.amit@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180613011026.UXT9cdssce0xu6PyFEXSaqp8dIC6AnUeVQelPVT2_ag@z>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180613143125.Fqwj48HFSzGmzuwEvqU7UUCLihVOPddldP8d0Jm6ziI@z>
 
-On Tue, Jun 12, 2018 at 5:12 PM Nicholas Piggin <npiggin@gmail.com> wrote:
-> >
-> > And in _theory_, maybe you could have just used "invalpg" with a
-> > targeted address instead. In fact, I think a single invlpg invalidates
-> > _all_ caches for the associated MM, but don't quote me on that.
+2018-05-09 16:53 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
+> VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+> is defined.  It has ever been selected only by BLACKFIN and METAG.
+> VMLINUX_SYMBOL() is unneeded for SuperH-specific code.
+>
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
 
-Confirmed. The SDK says
 
- "INVLPG also invalidates all entries in all paging-structure caches
-  associated with the current PCID, regardless of the linear addresses
-  to which they correspond"
 
-so if x86 wants to do this "separate invalidation for page directory
-entryes", then it would want to
+For information for SH maintainers just in case.
 
- (a) remove the __tlb_adjust_range() operation entirely from
-pud_free_tlb() and friends
+I already picked up this patch to my Kbuild tree.
 
- (b) instead just have a single field for "invalidate_tlb_caches",
-which could be a boolean, or could just be one of the addresses
+Thanks.
 
-and then the logic would be that IFF no other tlb invalidate is done
-due to an actual page range, then we look at that
-invalidate_tlb_caches field, and do a single INVLPG instead.
 
-I still am not sure if this would actually make a difference in
-practice, but I guess it does mean that x86 could at least participate
-in some kind of scheme where we have architecture-specific actions for
-those page directory entries.
 
-And we could make the default behavior - if no architecture-specific
-tlb page directory invalidation function exists - be the current
-"__tlb_adjust_range()" case. So the default would be to not change
-behavior, and architectures could opt in to something like this.
+>  arch/sh/include/asm/vmlinux.lds.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/sh/include/asm/vmlinux.lds.h b/arch/sh/include/asm/vmlinux.lds.h
+> index f312813..9929556 100644
+> --- a/arch/sh/include/asm/vmlinux.lds.h
+> +++ b/arch/sh/include/asm/vmlinux.lds.h
+> @@ -7,9 +7,9 @@
+>  #ifdef CONFIG_DWARF_UNWINDER
+>  #define DWARF_EH_FRAME                                                 \
+>         .eh_frame : AT(ADDR(.eh_frame) - LOAD_OFFSET) {                 \
+> -                 VMLINUX_SYMBOL(__start_eh_frame) = .;                 \
+> +                 __start_eh_frame = .;                                 \
+>                   *(.eh_frame)                                          \
+> -                 VMLINUX_SYMBOL(__stop_eh_frame) = .;                  \
+> +                 __stop_eh_frame = .;                                  \
+>         }
+>  #else
+>  #define DWARF_EH_FRAME
+> --
+> 2.7.4
+>
 
-            Linus
+
+
+-- 
+Best Regards
+Masahiro Yamada
