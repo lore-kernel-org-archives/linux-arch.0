@@ -1,60 +1,56 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH] sh: remove no-op macro VMLINUX_SYMBOL()
-Date: Wed, 13 Jun 2018 23:31:25 +0900
-Message-ID: <CAK7LNAQjBYQ1YKGnFodng8uibRDuJ+D9iD4OLQ-qE_8xYOv6Ww@mail.gmail.com>
-References: <1525852402-29269-1-git-send-email-yamada.masahiro@socionext.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH 00/11] Add support for Hygon's Dhyana Family 18h processor
+Date: Wed, 13 Jun 2018 22:51:29 +0200
+Message-ID: <20180613205129.GD26375@zn.tnic>
+References: <1528550410-28080-1-git-send-email-puwen@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1525852402-29269-1-git-send-email-yamada.masahiro@socionext.com>
+Content-Disposition: inline
+In-Reply-To: <1528550410-28080-1-git-send-email-puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, zhangpanyong@hygon.cn, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
 List-Id: linux-arch.vger.kernel.org
 
-2018-05-09 16:53 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
-> VMLINUX_SYMBOL() is no-op unless CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-> is defined.  It has ever been selected only by BLACKFIN and METAG.
-> VMLINUX_SYMBOL() is unneeded for SuperH-specific code.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
+On Sat, Jun 09, 2018 at 09:20:10PM +0800, Pu Wen wrote:
+> As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
+> is a Joint Venture between AMD and Haiguang Information Technology Co.,
+> Ltd., and aims at providing high performance x86 processor for China
+> server market.
+> 
+> The first generation Hygon's processor(Dhyana) originates from AMD
+> technology and shares most of the architecture with AMD's family 17h,
+> but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
+> (0x1D94)/Family series number(Family 18h).
+> 
+> To enable the support of Linux kernel to Hygon's CPU, we added a new
+> vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
+> asm/processor.h, and shared most of kernel support codes with AMD
+> family 17h.
+> 
+> These patches have been applied and tested successfully in Hygon's
+> Dhyana SoC silicon. Also tested on AMD's EPYC (Family 17h) processor
+> works fine and makes no harm to existing codes.
 
+Well, I don't like this diffstat:
 
+ 37 files changed, 183 insertions(+), 56 deletions(-)
 
-For information for SH maintainers just in case.
+which adds a lot of code checking this new vendor. But then it adds in
+the AMD paths and I don't see it being any different from an AMD CPU. So
+it does the same a Zen does but then it is Hygon.
 
-I already picked up this patch to my Kbuild tree.
+So I'd prefer to *not* sprinkle those X86_VENDOR_HYGON checks everywhere
+but simply have the vendor be X86_VENDOR_AMD and only the user-visible
+reporting to show that it is Hygon. Because to the kernel it is an AMD
+CPU - only the superficial attributes are something else. Oh well, and
+PCI device IDs but that's like another CPU revision.
 
-Thanks.
-
-
-
->  arch/sh/include/asm/vmlinux.lds.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/sh/include/asm/vmlinux.lds.h b/arch/sh/include/asm/vmlinux.lds.h
-> index f312813..9929556 100644
-> --- a/arch/sh/include/asm/vmlinux.lds.h
-> +++ b/arch/sh/include/asm/vmlinux.lds.h
-> @@ -7,9 +7,9 @@
->  #ifdef CONFIG_DWARF_UNWINDER
->  #define DWARF_EH_FRAME                                                 \
->         .eh_frame : AT(ADDR(.eh_frame) - LOAD_OFFSET) {                 \
-> -                 VMLINUX_SYMBOL(__start_eh_frame) = .;                 \
-> +                 __start_eh_frame = .;                                 \
->                   *(.eh_frame)                                          \
-> -                 VMLINUX_SYMBOL(__stop_eh_frame) = .;                  \
-> +                 __stop_eh_frame = .;                                  \
->         }
->  #else
->  #define DWARF_EH_FRAME
-> --
-> 2.7.4
->
-
-
+Thx.
 
 -- 
-Best Regards
-Masahiro Yamada
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
