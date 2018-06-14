@@ -1,337 +1,152 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v13 15/24] selftests/vm: powerpc implementation for generic
- abstraction
-Date: Wed, 13 Jun 2018 17:45:06 -0700
-Message-ID: <1528937115-10132-16-git-send-email-linuxram@us.ibm.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH 02/10] x86/cet: Introduce WRUSS instruction
+Date: Thu, 14 Jun 2018 11:30:07 +1000
+Message-ID: <fb30195ed6f5ab17920938192cf0b7ef8d1d4037.camel@gmail.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+         <20180607143807.3611-3-yu-cheng.yu@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180607143807.3611-3-yu-cheng.yu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-Introduce powerpc implementation for the various
-abstractions.
+On Thu, 2018-06-07 at 07:37 -0700, Yu-cheng Yu wrote:
+> WRUSS is a new kernel-mode instruction but writes directly
+> to user shadow stack memory.  This is used to construct
+> a return address on the shadow stack for the signal
+> handler.
+> 
+> This instruction can fault if the user shadow stack is
+> invalid shadow stack memory.  In that case, the kernel does
+> fixup.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/special_insns.h          | 44 +++++++++++++++++++++++++++
+>  arch/x86/lib/x86-opcode-map.txt               |  2 +-
+>  arch/x86/mm/fault.c                           | 13 +++++++-
+>  tools/objtool/arch/x86/lib/x86-opcode-map.txt |  2 +-
+>  4 files changed, 58 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+> index 317fc59b512c..8ce532fcc171 100644
+> --- a/arch/x86/include/asm/special_insns.h
+> +++ b/arch/x86/include/asm/special_insns.h
+> @@ -237,6 +237,50 @@ static inline void clwb(volatile void *__p)
+>  		: [pax] "a" (p));
+>  }
+>  
+> +#ifdef CONFIG_X86_INTEL_CET
+> +
+> +#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +	int err;
+> +
+> +	asm volatile("1:.byte 0x66, 0x0f, 0x38, 0xf5, 0x37\n"
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    |   16 ++++-
- tools/testing/selftests/vm/pkey-powerpc.h    |   91 ++++++++++++++++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        |   15 ++++
- tools/testing/selftests/vm/protection_keys.c |   62 ++++++++++--------
- 4 files changed, 156 insertions(+), 28 deletions(-)
- create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
+It would nice to use something like ASM_WRUSS/Q like ASM_CLAC/ASM_STAC.
+Is the 0x37 spurious? I don't see addr/val being used in the instructions
+either.
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 52a1152..321bbbd 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -74,8 +74,13 @@ static inline void sigsafe_printf(const char *format, ...)
- 	}					\
- } while (0)
- 
-+__attribute__((noinline)) int read_ptr(int *ptr);
-+void expected_pkey_fault(int pkey);
-+
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
-+#elif defined(__powerpc64__) /* arch */
-+#include "pkey-powerpc.h"
- #else /* arch */
- #error Architecture not supported
- #endif /* arch */
-@@ -186,7 +191,16 @@ static inline int open_hugepage_file(int flag)
- 
- static inline int get_start_key(void)
- {
--	return 1;
-+	return 0;
-+}
-+
-+static inline u32 *siginfo_get_pkey_ptr(siginfo_t *si)
-+{
-+#ifdef si_pkey
-+	return &si->si_pkey;
-+#else
-+	return (u32 *)(((u8 *)si) + si_pkey_offset);
-+#endif
- }
- 
- #endif /* _PKEYS_HELPER_H */
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-new file mode 100644
-index 0000000..ec6f5d7
---- /dev/null
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -0,0 +1,91 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _PKEYS_POWERPC_H
-+#define _PKEYS_POWERPC_H
-+
-+#ifndef SYS_mprotect_key
-+# define SYS_mprotect_key	386
-+#endif
-+#ifndef SYS_pkey_alloc
-+# define SYS_pkey_alloc		384
-+# define SYS_pkey_free		385
-+#endif
-+#define REG_IP_IDX		PT_NIP
-+#define REG_TRAPNO		PT_TRAP
-+#define gregs			gp_regs
-+#define fpregs			fp_regs
-+#define si_pkey_offset		0x20
-+
-+#ifndef PKEY_DISABLE_ACCESS
-+# define PKEY_DISABLE_ACCESS	0x3  /* disable read and write */
-+#endif
-+
-+#ifndef PKEY_DISABLE_WRITE
-+# define PKEY_DISABLE_WRITE	0x2
-+#endif
-+
-+#define NR_PKEYS		32
-+#define NR_RESERVED_PKEYS_4K	26
-+#define NR_RESERVED_PKEYS_64K	3
-+#define PKEY_BITS_PER_PKEY	2
-+#define HPAGE_SIZE		(1UL << 24)
-+#define PAGE_SIZE		(1UL << 16)
-+#define pkey_reg_t		u64
-+#define PKEY_REG_FMT		"%016lx"
-+#define HUGEPAGE_FILE		"/sys/kernel/mm/hugepages/hugepages-16384kB/nr_hugepages"
-+
-+static inline u32 pkey_bit_position(int pkey)
-+{
-+	return (NR_PKEYS - pkey - 1) * PKEY_BITS_PER_PKEY;
-+}
-+
-+static inline pkey_reg_t __read_pkey_reg(void)
-+{
-+	pkey_reg_t pkey_reg;
-+
-+	asm volatile("mfspr %0, 0xd" : "=r" (pkey_reg));
-+
-+	return pkey_reg;
-+}
-+
-+static inline void __write_pkey_reg(pkey_reg_t pkey_reg)
-+{
-+	pkey_reg_t eax = pkey_reg;
-+
-+	dprintf4("%s() changing "PKEY_REG_FMT" to "PKEY_REG_FMT"\n",
-+			 __func__, __read_pkey_reg(), pkey_reg);
-+
-+	asm volatile("mtspr 0xd, %0" : : "r" ((unsigned long)(eax)) : "memory");
-+
-+	dprintf4("%s() pkey register after changing "PKEY_REG_FMT" to "
-+			PKEY_REG_FMT"\n", __func__, __read_pkey_reg(),
-+			pkey_reg);
-+}
-+
-+static inline int cpu_has_pku(void)
-+{
-+	return 1;
-+}
-+
-+static inline int arch_reserved_keys(void)
-+{
-+	if (sysconf(_SC_PAGESIZE) == 4096)
-+		return NR_RESERVED_PKEYS_4K;
-+	else
-+		return NR_RESERVED_PKEYS_64K;
-+}
-+
-+void expect_fault_on_read_execonly_key(void *p1, u16 pkey)
-+{
-+	/* powerpc does not allow userspace to change permissions of exec-only
-+	 * keys since those keys are not allocated by userspace. The signal
-+	 * handler wont be able to reset the permissions, which means the code
-+	 * will infinitely continue to segfault here.
-+	 */
-+	return;
-+}
-+
-+/* 8-bytes of instruction * 16384bytes = 1 page */
-+#define __page_o_noops() asm(".rept 16384 ; nop; .endr")
-+
-+#endif /* _PKEYS_POWERPC_H */
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index d5fa299..95ee952 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -42,6 +42,7 @@
- #endif
- 
- #define NR_PKEYS		16
-+#define NR_RESERVED_PKEYS	1
- #define PKEY_BITS_PER_PKEY	2
- #define HPAGE_SIZE		(1UL<<21)
- #define PAGE_SIZE		4096
-@@ -161,4 +162,18 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
- 
-+static inline int arch_reserved_keys(void)
-+{
-+	return NR_RESERVED_PKEYS;
-+}
-+
-+void expect_fault_on_read_execonly_key(void *p1, u16 pkey)
-+{
-+	int ptr_contents;
-+
-+	ptr_contents = read_ptr(p1);
-+	dprintf2("ptr (%p) contents@%d: %x\n", p1, __LINE__, ptr_contents);
-+	expected_pkey_fault(pkey);
-+}
-+
- #endif /* _PKEYS_X86_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index f43a319..88dfa40 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -197,17 +197,18 @@ void dump_mem(void *dumpme, int len_bytes)
- 
- int pkey_faults;
- int last_si_pkey = -1;
-+void pkey_access_allow(int pkey);
- void signal_handler(int signum, siginfo_t *si, void *vucontext)
- {
- 	ucontext_t *uctxt = vucontext;
- 	int trapno;
- 	unsigned long ip;
- 	char *fpregs;
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
- 	pkey_reg_t *pkey_reg_ptr;
--	u64 siginfo_pkey;
-+#endif /* defined(__i386__) || defined(__x86_64__) */
-+	u32 siginfo_pkey;
- 	u32 *si_pkey_ptr;
--	int pkey_reg_offset;
--	fpregset_t fpregset;
- 
- 	dprint_in_signal = 1;
- 	dprintf1(">>>>===============SIGSEGV============================\n");
-@@ -217,12 +218,14 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 
- 	trapno = uctxt->uc_mcontext.gregs[REG_TRAPNO];
- 	ip = uctxt->uc_mcontext.gregs[REG_IP_IDX];
--	fpregset = uctxt->uc_mcontext.fpregs;
--	fpregs = (void *)fpregset;
-+	fpregs = (char *) uctxt->uc_mcontext.fpregs;
- 
- 	dprintf2("%s() trapno: %d ip: 0x%016lx info->si_code: %s/%d\n",
- 			__func__, trapno, ip, si_code_str(si->si_code),
- 			si->si_code);
-+
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
-+
- #ifdef __i386__
- 	/*
- 	 * 32-bit has some extra padding so that userspace can tell whether
-@@ -230,20 +233,28 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 	 * state.  We just assume that it is here.
- 	 */
- 	fpregs += 0x70;
--#endif
--	pkey_reg_offset = pkey_reg_xstate_offset();
--	pkey_reg_ptr = (void *)(&fpregs[pkey_reg_offset]);
-+#endif /* __i386__ */
- 
--	dprintf1("siginfo: %p\n", si);
--	dprintf1(" fpregs: %p\n", fpregs);
-+	pkey_reg_ptr = (void *)(&fpregs[pkey_reg_xstate_offset()]);
- 	/*
--	 * If we got a PKEY fault, we *HAVE* to have at least one bit set in
-+	 * If we got a key fault, we *HAVE* to have at least one bit set in
- 	 * here.
- 	 */
- 	dprintf1("pkey_reg_xstate_offset: %d\n", pkey_reg_xstate_offset());
- 	if (DEBUG_LEVEL > 4)
- 		dump_mem(pkey_reg_ptr - 128, 256);
- 	pkey_assert(*pkey_reg_ptr);
-+#endif /* defined(__i386__) || defined(__x86_64__) */
-+
-+	dprintf1("siginfo: %p\n", si);
-+	dprintf1(" fpregs: %p\n", fpregs);
-+
-+	si_pkey_ptr = siginfo_get_pkey_ptr(si);
-+	dprintf1("si_pkey_ptr: %p\n", si_pkey_ptr);
-+	dump_mem(si_pkey_ptr - 8, 24);
-+	siginfo_pkey = *si_pkey_ptr;
-+	pkey_assert(siginfo_pkey < NR_PKEYS);
-+	last_si_pkey = siginfo_pkey;
- 
- 	if ((si->si_code == SEGV_MAPERR) ||
- 	    (si->si_code == SEGV_ACCERR) ||
-@@ -252,22 +263,21 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
- 		exit(4);
- 	}
- 
--	si_pkey_ptr = (u32 *)(((u8 *)si) + si_pkey_offset);
--	dprintf1("si_pkey_ptr: %p\n", si_pkey_ptr);
--	dump_mem((u8 *)si_pkey_ptr - 8, 24);
--	siginfo_pkey = *si_pkey_ptr;
--	pkey_assert(siginfo_pkey < NR_PKEYS);
--	last_si_pkey = siginfo_pkey;
--
--	dprintf1("signal pkey_reg from xsave: "PKEY_REG_FMT"\n", *pkey_reg_ptr);
- 	/*
- 	 * need __read_pkey_reg() version so we do not do shadow_pkey_reg
- 	 * checking
- 	 */
- 	dprintf1("signal pkey_reg from  pkey_reg: "PKEY_REG_FMT"\n",
- 			__read_pkey_reg());
--	dprintf1("pkey from siginfo: %jx\n", siginfo_pkey);
--	*(u64 *)pkey_reg_ptr = 0x00000000;
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
-+	dprintf1("signal pkey_reg from xsave: "PKEY_REG_FMT"\n", *pkey_reg_ptr);
-+	*(u64 *)pkey_reg_ptr &= clear_pkey_flags(siginfo_pkey,
-+			PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE);
-+#elif __powerpc64__
-+	pkey_access_allow(siginfo_pkey);
-+#endif
-+	shadow_pkey_reg &= clear_pkey_flags(siginfo_pkey,
-+			PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE);
- 	dprintf1("WARNING: set PKEY_REG=0 to allow faulting instruction "
- 			"to continue\n");
- 	pkey_faults++;
-@@ -1331,9 +1341,8 @@ void test_executing_on_unreadable_memory(int *ptr, u16 pkey)
- 	madvise(p1, PAGE_SIZE, MADV_DONTNEED);
- 	lots_o_noops_around_write(&scratch);
- 	do_not_expect_pkey_fault("executing on PROT_EXEC memory");
--	ptr_contents = read_ptr(p1);
--	dprintf2("ptr (%p) contents@%d: %x\n", p1, __LINE__, ptr_contents);
--	expected_pkey_fault(pkey);
-+
-+	expect_fault_on_read_execonly_key(p1, pkey);
- }
- 
- void test_implicit_mprotect_exec_only_memory(int *ptr, u16 pkey)
-@@ -1360,9 +1369,8 @@ void test_implicit_mprotect_exec_only_memory(int *ptr, u16 pkey)
- 	madvise(p1, PAGE_SIZE, MADV_DONTNEED);
- 	lots_o_noops_around_write(&scratch);
- 	do_not_expect_pkey_fault("executing on PROT_EXEC memory");
--	ptr_contents = read_ptr(p1);
--	dprintf2("ptr (%p) contents@%d: %x\n", p1, __LINE__, ptr_contents);
--	expected_pkey_fault(UNKNOWN_PKEY);
-+
-+	expect_fault_on_read_execonly_key(p1, UNKNOWN_PKEY);
- 
- 	/*
- 	 * Put the memory back to non-PROT_EXEC.  Should clear the
--- 
-1.7.1
+> +		     "xor %[err],%[err]\n"
+> +		     "2:\n"
+> +		     ".section .fixup,\"ax\"\n"
+> +		     "3: mov $-1,%[err]; jmp 2b\n"
+> +		     ".previous\n"
+> +		     _ASM_EXTABLE(1b, 3b)
+> +		: [err] "=a" (err)
+> +		: [val] "S" (val), [addr] "D" (addr)
+> +		: "memory");
+> +	return err;
+> +}
+> +#else
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +	return 0;
+> +}
+> +#endif
+> +
+> +static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
+> +{
+> +	int err;
+> +
+> +	asm volatile("1:.byte 0x66, 0x48, 0x0f, 0x38, 0xf5, 0x37\n"
+> +		     "xor %[err],%[err]\n"
+> +		     "2:\n"
+> +		     ".section .fixup,\"ax\"\n"
+> +		     "3: mov $-1,%[err]; jmp 2b\n"
+> +		     ".previous\n"
+> +		     _ASM_EXTABLE(1b, 3b)
+> +		: [err] "=a" (err)
+> +		: [val] "S" (val), [addr] "D" (addr)
+> +		: "memory");
+> +	return err;
+> +}
+> +#endif /* CONFIG_X86_INTEL_CET */
+> +
+>  #define nop() asm volatile ("nop")
+>  
+>  
+> diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
+> index e0b85930dd77..72bb7c48a7df 100644
+> --- a/arch/x86/lib/x86-opcode-map.txt
+> +++ b/arch/x86/lib/x86-opcode-map.txt
+> @@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
+>  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
+>  f2: ANDN Gy,By,Ey (v)
+>  f3: Grp17 (1A)
+> -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
+> +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
+>  f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
+>  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
+>  EndTable
+> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+> index 2b3b9170109c..f157338862f8 100644
+> --- a/arch/x86/mm/fault.c
+> +++ b/arch/x86/mm/fault.c
+> @@ -640,6 +640,17 @@ static int is_f00f_bug(struct pt_regs *regs, unsigned long address)
+>  	return 0;
+>  }
+>  
+> +/*
+> + * WRUSS is a kernel instrcution and but writes to user
+> + * shadow stack memory.  When a fault occurs, both
+> + * X86_PF_USER and X86_PF_SHSTK are set.
+> + */
+> +static int is_wruss(struct pt_regs *regs, unsigned long error_code)
+> +{
+> +	return (((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
+> +		(X86_PF_USER | X86_PF_SHSTK)) && !user_mode(regs));
+> +}
+> +
+>  static const char nx_warning[] = KERN_CRIT
+>  "kernel tried to execute NX-protected page - exploit attempt? (uid: %d)\n";
+>  static const char smep_warning[] = KERN_CRIT
+> @@ -851,7 +862,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+>  	struct task_struct *tsk = current;
+>  
+>  	/* User mode accesses just cause a SIGSEGV */
+> -	if (error_code & X86_PF_USER) {
+> +	if ((error_code & X86_PF_USER) && !is_wruss(regs, error_code)) {
+>  		/*
+>  		 * It's possible to have interrupts off here:
+>  		 */
+> diff --git a/tools/objtool/arch/x86/lib/x86-opcode-map.txt b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+> index e0b85930dd77..72bb7c48a7df 100644
+> --- a/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+> +++ b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+> @@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
+>  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
+>  f2: ANDN Gy,By,Ey (v)
+>  f3: Grp17 (1A)
+> -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
+> +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
+>  f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
+>  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
+>  EndTable
+
+Balbir Singh.
