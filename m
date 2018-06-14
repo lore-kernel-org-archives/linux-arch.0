@@ -1,46 +1,187 @@
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
-Date: Thu, 14 Jun 2018 11:07:23 +1000
-Message-ID: <814fc15e80908d8630ff665be690ccbe6e69be88.camel@gmail.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
-         <bbfde1b3-5e1b-80e3-30e8-fd1e46a2ceb1@gmail.com>
-         <1528815820.8271.16.camel@2b52.sc.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1528815820.8271.16.camel@2b52.sc.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v13 07/24] selftests/vm: generic function to handle shadow key
+ register
+Date: Wed, 13 Jun 2018 17:44:58 -0700
+Message-ID: <1528937115-10132-8-git-send-email-linuxram@us.ibm.com>
+References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-06-12 at 08:03 -0700, Yu-cheng Yu wrote:
-> On Tue, 2018-06-12 at 20:56 +1000, Balbir Singh wrote:
-> > 
-> > On 08/06/18 00:37, Yu-cheng Yu wrote:
-> > > This series introduces CET - Shadow stack
-> > > 
-> > > At the high level, shadow stack is:
-> > > 
-> > > 	Allocated from a task's address space with vm_flags VM_SHSTK;
-> > > 	Its PTEs must be read-only and dirty;
-> > > 	Fixed sized, but the default size can be changed by sys admin.
-> > > 
-> > > For a forked child, the shadow stack is duplicated when the next
-> > > shadow stack access takes place.
-> > > 
-> > > For a pthread child, a new shadow stack is allocated.
-> > > 
-> > > The signal handler uses the same shadow stack as the main program.
-> > > 
-> > 
-> > Even with sigaltstack()?
-> > 
-> Yes.
+helper functions to handler shadow pkey register
 
-I am not convinced that it would work, as we switch stacks, oveflow might
-be an issue. I also forgot to bring up setcontext(2), I presume those
-will get new shadow stacks
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |   29 ++++++++++++++++++++++
+ tools/testing/selftests/vm/pkey-x86.h        |    5 ++++
+ tools/testing/selftests/vm/protection_keys.c |   34 ++++++++++++++++---------
+ 3 files changed, 56 insertions(+), 12 deletions(-)
 
-Balbir Singh.
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 2a1a024..ada0146 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -80,6 +80,35 @@ static inline void sigsafe_printf(const char *format, ...)
+ #error Architecture not supported
+ #endif /* arch */
+ 
++static inline pkey_reg_t clear_pkey_flags(int pkey, pkey_reg_t flags)
++{
++	u32 shift = pkey_bit_position(pkey);
++
++	return ~(flags << shift);
++}
++
++/*
++ * Takes pkey flags and puts them at the right bit position for the given key so
++ * that the result can be ORed into the register.
++ */
++static inline pkey_reg_t left_shift_bits(int pkey, pkey_reg_t bits)
++{
++	u32 shift = pkey_bit_position(pkey);
++
++	return (bits << shift);
++}
++
++/*
++ * Takes pkey register values and puts the flags for the given pkey at the least
++ * significant bits of the returned value.
++ */
++static inline pkey_reg_t right_shift_bits(int pkey, pkey_reg_t bits)
++{
++	u32 shift = pkey_bit_position(pkey);
++
++	return (bits >> shift);
++}
++
+ extern pkey_reg_t shadow_pkey_reg;
+ 
+ static inline pkey_reg_t _read_pkey_reg(int line)
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 5f40901..2b3780d 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -49,6 +49,11 @@
+ #define pkey_reg_t		u32
+ #define PKEY_REG_FMT		"%016x"
+ 
++static inline u32 pkey_bit_position(int pkey)
++{
++	return pkey * PKEY_BITS_PER_PKEY;
++}
++
+ static inline void __page_o_noops(void)
+ {
+ 	/* 8-bytes of instruction * 512 bytes = 1 page */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 90b3a41..57340b3 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -342,7 +342,7 @@ static u32 hw_pkey_get(int pkey, unsigned long flags)
+ 			__func__, pkey, flags, 0, 0);
+ 	dprintf2("%s() raw pkey_reg: "PKEY_REG_FMT"\n", __func__, pkey_reg);
+ 
+-	shifted_pkey_reg = (pkey_reg >> (pkey * PKEY_BITS_PER_PKEY));
++	shifted_pkey_reg = right_shift_bits(pkey, pkey_reg);
+ 	dprintf2("%s() shifted_pkey_reg: "PKEY_REG_FMT"\n", __func__,
+ 			shifted_pkey_reg);
+ 	masked_pkey_reg = shifted_pkey_reg & mask;
+@@ -366,9 +366,9 @@ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
+ 	/* copy old pkey_reg */
+ 	new_pkey_reg = old_pkey_reg;
+ 	/* mask out bits from pkey in old value: */
+-	new_pkey_reg &= ~(mask << (pkey * PKEY_BITS_PER_PKEY));
++	new_pkey_reg &= clear_pkey_flags(pkey, mask);
+ 	/* OR in new bits for pkey: */
+-	new_pkey_reg |= (rights << (pkey * PKEY_BITS_PER_PKEY));
++	new_pkey_reg |= left_shift_bits(pkey, rights);
+ 
+ 	__write_pkey_reg(new_pkey_reg);
+ 
+@@ -402,7 +402,7 @@ void pkey_disable_set(int pkey, int flags)
+ 	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
+ 	assert(!ret);
+ 	/*pkey_reg and flags have the same format */
+-	shadow_pkey_reg |= flags << (pkey * 2);
++	shadow_pkey_reg |= left_shift_bits(pkey, flags);
+ 	dprintf1("%s(%d) shadow: 0x"PKEY_REG_FMT"\n",
+ 		__func__, pkey, shadow_pkey_reg);
+ 
+@@ -436,7 +436,7 @@ void pkey_disable_clear(int pkey, int flags)
+ 	pkey_rights |= flags;
+ 
+ 	ret = hw_pkey_set(pkey, pkey_rights, 0);
+-	shadow_pkey_reg &= ~(flags << (pkey * 2));
++	shadow_pkey_reg &= clear_pkey_flags(pkey, flags);
+ 	pkey_assert(ret >= 0);
+ 
+ 	pkey_rights = hw_pkey_get(pkey, syscall_flags);
+@@ -494,6 +494,21 @@ int sys_pkey_alloc(unsigned long flags, unsigned long init_val)
+ 	return ret;
+ }
+ 
++void pkey_setup_shadow(void)
++{
++	shadow_pkey_reg = __read_pkey_reg();
++}
++
++void pkey_reset_shadow(u32 key)
++{
++	shadow_pkey_reg &= clear_pkey_flags(key, 0x3);
++}
++
++void pkey_set_shadow(u32 key, u64 init_val)
++{
++	shadow_pkey_reg |=  left_shift_bits(key, init_val);
++}
++
+ int alloc_pkey(void)
+ {
+ 	int ret;
+@@ -512,7 +527,7 @@ int alloc_pkey(void)
+ 			shadow_pkey_reg);
+ 	if (ret) {
+ 		/* clear both the bits: */
+-		shadow_pkey_reg &= ~(0x3      << (ret * 2));
++		pkey_reset_shadow(ret);
+ 		dprintf4("%s()::%d, ret: %d pkey_reg: 0x"PKEY_REG_FMT
+ 				" shadow: 0x"PKEY_REG_FMT"\n",
+ 				__func__,
+@@ -522,7 +537,7 @@ int alloc_pkey(void)
+ 		 * move the new state in from init_val
+ 		 * (remember, we cheated and init_val == pkey_reg format)
+ 		 */
+-		shadow_pkey_reg |=  (init_val << (ret * 2));
++		pkey_set_shadow(ret, init_val);
+ 	}
+ 	dprintf4("%s()::%d, ret: %d pkey_reg: 0x"PKEY_REG_FMT
+ 			" shadow: 0x"PKEY_REG_FMT"\n",
+@@ -1403,11 +1418,6 @@ void run_tests_once(void)
+ 	iteration_nr++;
+ }
+ 
+-void pkey_setup_shadow(void)
+-{
+-	shadow_pkey_reg = __read_pkey_reg();
+-}
+-
+ int main(void)
+ {
+ 	int nr_iterations = 22;
+-- 
+1.7.1
