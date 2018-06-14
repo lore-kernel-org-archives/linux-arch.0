@@ -1,157 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:45123 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935530AbeFNBaU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2018 21:30:20 -0400
-Message-ID: <fb30195ed6f5ab17920938192cf0b7ef8d1d4037.camel@gmail.com>
-Subject: Re: [PATCH 02/10] x86/cet: Introduce WRUSS instruction
-From: Balbir Singh <bsingharora@gmail.com>
-Date: Thu, 14 Jun 2018 11:30:07 +1000
-In-Reply-To: <20180607143807.3611-3-yu-cheng.yu@intel.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
-         <20180607143807.3611-3-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:40287 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935745AbeFNCtj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2018 22:49:39 -0400
+Received: by mail-pg0-f65.google.com with SMTP id l2-v6so2195158pgc.7
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jun 2018 19:49:39 -0700 (PDT)
+Date: Thu, 14 Jun 2018 12:49:31 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC PATCH 3/3] powerpc/64s/radix: optimise TLB flush with
+ precise TLB ranges in mmu_gather
+Message-ID: <20180614124931.703e5b54@roar.ozlabs.ibm.com>
+In-Reply-To: <CA+55aFzJRknbQD6Mv3OSOvUVozQ4H8ni8jPP7UEEi9wKXmVhQA@mail.gmail.com>
+References: <20180612071621.26775-1-npiggin@gmail.com>
+        <20180612071621.26775-4-npiggin@gmail.com>
+        <CA+55aFzKBieD0Y3sgFQzt+x5esqb9vT6SEQ28xyCz5UWegfFVg@mail.gmail.com>
+        <20180613083131.139a3c34@roar.ozlabs.ibm.com>
+        <CA+55aFyk9VBLUk8VYhfEUR55x0TXY9_QX1dE4wE0A_ias9tMNQ@mail.gmail.com>
+        <20180613090950.50566245@roar.ozlabs.ibm.com>
+        <CA+55aFxd97-29qi-JMxyPPoZMxw=eObQHB5XXGiLj7SNV8B-oQ@mail.gmail.com>
+        <CA+55aFzbYBXUDcAGaP_HoCxjTvOgkixc0+7nJqMea0yKjLSnhw@mail.gmail.com>
+        <20180613101241.004fd64e@roar.ozlabs.ibm.com>
+        <CA+55aFzJRknbQD6Mv3OSOvUVozQ4H8ni8jPP7UEEi9wKXmVhQA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20180614013007.eqDeOKf8PVxGecnu3io8kx66mhziGYywxgefpY2_k5g@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-mm <linux-mm@kvack.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>, "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Nadav Amit <nadav.amit@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180614024931.wMZ8fVK8cPQJ2WDGZbxj6YSU4denXSf4Ntw7quNdnD8@z>
 
-On Thu, 2018-06-07 at 07:37 -0700, Yu-cheng Yu wrote:
-> WRUSS is a new kernel-mode instruction but writes directly
-> to user shadow stack memory.  This is used to construct
-> a return address on the shadow stack for the signal
-> handler.
+On Tue, 12 Jun 2018 18:10:26 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
+
+> On Tue, Jun 12, 2018 at 5:12 PM Nicholas Piggin <npiggin@gmail.com> wrote:
+> > >
+> > > And in _theory_, maybe you could have just used "invalpg" with a
+> > > targeted address instead. In fact, I think a single invlpg invalidates
+> > > _all_ caches for the associated MM, but don't quote me on that.  
 > 
-> This instruction can fault if the user shadow stack is
-> invalid shadow stack memory.  In that case, the kernel does
-> fixup.
+> Confirmed. The SDK says
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/special_insns.h          | 44 +++++++++++++++++++++++++++
->  arch/x86/lib/x86-opcode-map.txt               |  2 +-
->  arch/x86/mm/fault.c                           | 13 +++++++-
->  tools/objtool/arch/x86/lib/x86-opcode-map.txt |  2 +-
->  4 files changed, 58 insertions(+), 3 deletions(-)
+>  "INVLPG also invalidates all entries in all paging-structure caches
+>   associated with the current PCID, regardless of the linear addresses
+>   to which they correspond"
+
+Interesting, so that's very much like powerpc.
+
+> so if x86 wants to do this "separate invalidation for page directory
+> entryes", then it would want to
 > 
-> diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
-> index 317fc59b512c..8ce532fcc171 100644
-> --- a/arch/x86/include/asm/special_insns.h
-> +++ b/arch/x86/include/asm/special_insns.h
-> @@ -237,6 +237,50 @@ static inline void clwb(volatile void *__p)
->  		: [pax] "a" (p));
->  }
->  
-> +#ifdef CONFIG_X86_INTEL_CET
-> +
-> +#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
-> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
-> +{
-> +	int err;
-> +
-> +	asm volatile("1:.byte 0x66, 0x0f, 0x38, 0xf5, 0x37\n"
+>  (a) remove the __tlb_adjust_range() operation entirely from
+> pud_free_tlb() and friends
 
-It would nice to use something like ASM_WRUSS/Q like ASM_CLAC/ASM_STAC.
-Is the 0x37 spurious? I don't see addr/val being used in the instructions
-either.
+Revised patch below (only the generic part this time, but powerpc
+implementation gives the same result as the last patch).
 
-> +		     "xor %[err],%[err]\n"
-> +		     "2:\n"
-> +		     ".section .fixup,\"ax\"\n"
-> +		     "3: mov $-1,%[err]; jmp 2b\n"
-> +		     ".previous\n"
-> +		     _ASM_EXTABLE(1b, 3b)
-> +		: [err] "=a" (err)
-> +		: [val] "S" (val), [addr] "D" (addr)
-> +		: "memory");
-> +	return err;
-> +}
-> +#else
-> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
-> +{
-> +	return 0;
-> +}
-> +#endif
-> +
-> +static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
-> +{
-> +	int err;
-> +
-> +	asm volatile("1:.byte 0x66, 0x48, 0x0f, 0x38, 0xf5, 0x37\n"
-> +		     "xor %[err],%[err]\n"
-> +		     "2:\n"
-> +		     ".section .fixup,\"ax\"\n"
-> +		     "3: mov $-1,%[err]; jmp 2b\n"
-> +		     ".previous\n"
-> +		     _ASM_EXTABLE(1b, 3b)
-> +		: [err] "=a" (err)
-> +		: [val] "S" (val), [addr] "D" (addr)
-> +		: "memory");
-> +	return err;
-> +}
-> +#endif /* CONFIG_X86_INTEL_CET */
-> +
->  #define nop() asm volatile ("nop")
->  
->  
-> diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
-> index e0b85930dd77..72bb7c48a7df 100644
-> --- a/arch/x86/lib/x86-opcode-map.txt
-> +++ b/arch/x86/lib/x86-opcode-map.txt
-> @@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
->  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
->  f2: ANDN Gy,By,Ey (v)
->  f3: Grp17 (1A)
-> -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
-> +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
->  f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
->  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
->  EndTable
-> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-> index 2b3b9170109c..f157338862f8 100644
-> --- a/arch/x86/mm/fault.c
-> +++ b/arch/x86/mm/fault.c
-> @@ -640,6 +640,17 @@ static int is_f00f_bug(struct pt_regs *regs, unsigned long address)
->  	return 0;
->  }
->  
-> +/*
-> + * WRUSS is a kernel instrcution and but writes to user
-> + * shadow stack memory.  When a fault occurs, both
-> + * X86_PF_USER and X86_PF_SHSTK are set.
-> + */
-> +static int is_wruss(struct pt_regs *regs, unsigned long error_code)
-> +{
-> +	return (((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
-> +		(X86_PF_USER | X86_PF_SHSTK)) && !user_mode(regs));
-> +}
-> +
->  static const char nx_warning[] = KERN_CRIT
->  "kernel tried to execute NX-protected page - exploit attempt? (uid: %d)\n";
->  static const char smep_warning[] = KERN_CRIT
-> @@ -851,7 +862,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
->  	struct task_struct *tsk = current;
->  
->  	/* User mode accesses just cause a SIGSEGV */
-> -	if (error_code & X86_PF_USER) {
-> +	if ((error_code & X86_PF_USER) && !is_wruss(regs, error_code)) {
->  		/*
->  		 * It's possible to have interrupts off here:
->  		 */
-> diff --git a/tools/objtool/arch/x86/lib/x86-opcode-map.txt b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-> index e0b85930dd77..72bb7c48a7df 100644
-> --- a/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-> +++ b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-> @@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
->  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
->  f2: ANDN Gy,By,Ey (v)
->  f3: Grp17 (1A)
-> -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
-> +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
->  f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
->  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
->  EndTable
+> 
+>  (b) instead just have a single field for "invalidate_tlb_caches",
+> which could be a boolean, or could just be one of the addresses
 
-Balbir Singh.
+Yeah well powerpc hijacks one of the existing bools in the mmu_gather
+for exactly that, and sets it when a page table page is to be freed.
+
+> and then the logic would be that IFF no other tlb invalidate is done
+> due to an actual page range, then we look at that
+> invalidate_tlb_caches field, and do a single INVLPG instead.
+> 
+> I still am not sure if this would actually make a difference in
+> practice, but I guess it does mean that x86 could at least participate
+> in some kind of scheme where we have architecture-specific actions for
+> those page directory entries.
+
+I think it could. But yes I don't know how much it would help, I think
+x86 tlb invalidation is very fast, and I noticed this mostly at exec
+time when you probably lose all your TLBs anyway.
+
+> 
+> And we could make the default behavior - if no architecture-specific
+> tlb page directory invalidation function exists - be the current
+> "__tlb_adjust_range()" case. So the default would be to not change
+> behavior, and architectures could opt in to something like this.
+> 
+>             Linus
+
+Yep, is this a bit more to your liking?
+
+---
+ include/asm-generic/tlb.h | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index faddde44de8c..fa44321bc8dd 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -262,36 +262,49 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
+  * architecture to do its own odd thing, not cause pain for others
+  * http://lkml.kernel.org/r/CA+55aFzBggoXtNXQeng5d_mRoDnaMBE5Y+URs+PHR67nUpMtaw@mail.gmail.com
+  *
++ * Powerpc (Book3S 64-bit) with the radix MMU has an architected "page
++ * walk cache" that is invalidated with a specific instruction. It uses
++ * need_flush_all to issue this instruction, which is set by its own
++ * __p??_free_tlb functions.
++ *
+  * For now w.r.t page table cache, mark the range_size as PAGE_SIZE
+  */
+ 
++#ifndef pte_free_tlb
+ #define pte_free_tlb(tlb, ptep, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+ 		__pte_free_tlb(tlb, ptep, address);		\
+ 	} while (0)
++#endif
+ 
++#ifndef pmd_free_tlb
+ #define pmd_free_tlb(tlb, pmdp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);		\
++		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+ 		__pmd_free_tlb(tlb, pmdp, address);		\
+ 	} while (0)
++#endif
+ 
+ #ifndef __ARCH_HAS_4LEVEL_HACK
++#ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
++#endif
+ 
+ #ifndef __ARCH_HAS_5LEVEL_HACK
++#ifndef p4d_free_tlb
+ #define p4d_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);		\
++		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+ 		__p4d_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
++#endif
+ 
+ #define tlb_migrate_finish(mm) do {} while (0)
+ 
+-- 
+2.17.0
