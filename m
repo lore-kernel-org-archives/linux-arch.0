@@ -1,56 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:58592 "EHLO mga02.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754907AbeFNO73 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 Jun 2018 10:59:29 -0400
-Message-ID: <1528988176.13101.15.camel@2b52.sc.intel.com>
-Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 14 Jun 2018 07:56:16 -0700
-In-Reply-To: <814fc15e80908d8630ff665be690ccbe6e69be88.camel@gmail.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
-         <bbfde1b3-5e1b-80e3-30e8-fd1e46a2ceb1@gmail.com>
-         <1528815820.8271.16.camel@2b52.sc.intel.com>
-         <814fc15e80908d8630ff665be690ccbe6e69be88.camel@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:35970 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1754806AbeFNUTU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 Jun 2018 16:19:20 -0400
+Subject: Re: [PATCH v13 00/24] selftests, powerpc, x86 : Memory Protection
+ Keys
+References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <c5c119b0-f5ca-4ddc-43c0-a6b597173973@redhat.com>
+Date: Thu, 14 Jun 2018 22:19:11 +0200
+MIME-Version: 1.0
+In-Reply-To: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Balbir Singh <bsingharora@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20180614145616.hGuU4z2YqD0wg7C9YDxjPUeHEnjc0f9Rwg-W_N-2t4E@z>
+To: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, dave.hansen@intel.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, aneesh.kumar@linux.vnet.ibm.com
+Message-ID: <20180614201911.0dRw2bbNL4d4uDbmlCNCj3zOG4goq4t0WXDEfULLPsk@z>
 
-On Thu, 2018-06-14 at 11:07 +1000, Balbir Singh wrote:
-> On Tue, 2018-06-12 at 08:03 -0700, Yu-cheng Yu wrote:
-> > On Tue, 2018-06-12 at 20:56 +1000, Balbir Singh wrote:
-> > > 
-> > > On 08/06/18 00:37, Yu-cheng Yu wrote:
-> > > > This series introduces CET - Shadow stack
-> > > > 
-> > > > At the high level, shadow stack is:
-> > > > 
-> > > > 	Allocated from a task's address space with vm_flags VM_SHSTK;
-> > > > 	Its PTEs must be read-only and dirty;
-> > > > 	Fixed sized, but the default size can be changed by sys admin.
-> > > > 
-> > > > For a forked child, the shadow stack is duplicated when the next
-> > > > shadow stack access takes place.
-> > > > 
-> > > > For a pthread child, a new shadow stack is allocated.
-> > > > 
-> > > > The signal handler uses the same shadow stack as the main program.
-> > > > 
-> > > 
-> > > Even with sigaltstack()?
-> > > 
-> > Yes.
-> 
-> I am not convinced that it would work, as we switch stacks, oveflow might
-> be an issue. I also forgot to bring up setcontext(2), I presume those
-> will get new shadow stacks
+On 06/14/2018 02:44 AM, Ram Pai wrote:
+> Test
+> ----
+> Verified for correctness on powerpc. Need help verifying on x86.
+> Compiles on x86.
 
-Do you mean signal stack/sigaltstack overflow or swapcontext in a signal
-handler?
+It breaks make in tools/testing/selftests/x86:
 
-Yu-cheng
+make: *** No rule to make target `protection_keys.c', needed by 
+`/home/linux/tools/testing/selftests/x86/protection_keys_64'.  Stop.
+
+The generic implementation no longer builds 32-bit binaries.  Is this 
+the intent?
+
+It's possible to build 32-bit binaries with “make CC='gcc -m32'”, so 
+perhaps this is good enough?
+
+But with that, I get a warning:
+
+protection_keys.c: In function ‘dump_mem’:
+protection_keys.c:172:3: warning: format ‘%lx’ expects argument of type 
+‘long unsigned int’, but argument 4 has type ‘uint64_t’ [-Wformat=]
+    dprintf1("dump[%03d][@%p]: %016lx\n", i, ptr, *ptr);
+    ^
+
+I suppose you could use %016llx and add a cast to unsigned long long to 
+fix this.
+
+Anyway, both the 32-bit and 64-bit tests fail here:
+
+assert() at protection_keys.c::943 test_nr: 12 iteration: 1
+running abort_hooks()...
+
+I've yet checked what causes this.  It's with the kernel headers from 
+4.17, but with other userspace headers based on glibc 2.17.  I hope to 
+look into this some more before the weekend, but I eventually have to 
+return the test machine to the pool.
+
+Thanks,
+Florian
