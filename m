@@ -1,56 +1,98 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH 00/11] Add support for Hygon's Dhyana Family 18h processor
-Date: Wed, 13 Jun 2018 22:51:29 +0200
-Message-ID: <20180613205129.GD26375@zn.tnic>
-References: <1528550410-28080-1-git-send-email-puwen@hygon.cn>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1528550410-28080-1-git-send-email-puwen@hygon.cn>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, zhangpanyong@hygon.cn, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-x86_64@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v13 00/24] selftests, powerpc, x86 : Memory Protection Keys
+Date: Wed, 13 Jun 2018 17:44:51 -0700
+Message-ID: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 09, 2018 at 09:20:10PM +0800, Pu Wen wrote:
-> As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
-> is a Joint Venture between AMD and Haiguang Information Technology Co.,
-> Ltd., and aims at providing high performance x86 processor for China
-> server market.
-> 
-> The first generation Hygon's processor(Dhyana) originates from AMD
-> technology and shares most of the architecture with AMD's family 17h,
-> but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
-> (0x1D94)/Family series number(Family 18h).
-> 
-> To enable the support of Linux kernel to Hygon's CPU, we added a new
-> vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
-> asm/processor.h, and shared most of kernel support codes with AMD
-> family 17h.
-> 
-> These patches have been applied and tested successfully in Hygon's
-> Dhyana SoC silicon. Also tested on AMD's EPYC (Family 17h) processor
-> works fine and makes no harm to existing codes.
+Memory protection keys enables an application to protect its address space from
+inadvertent access by its own code.
 
-Well, I don't like this diffstat:
+This feature is now enabled on powerpc architecture and integrated in
+4.16-rc1.  The patches move the selftests to arch neutral directory
+and enhance their test coverage.
 
- 37 files changed, 183 insertions(+), 56 deletions(-)
+Test
+----
+Verified for correctness on powerpc. Need help verifying on x86.
+Compiles on x86.
 
-which adds a lot of code checking this new vendor. But then it adds in
-the AMD paths and I don't see it being any different from an AMD CPU. So
-it does the same a Zen does but then it is Hygon.
+History:
+-------
 
-So I'd prefer to *not* sprinkle those X86_VENDOR_HYGON checks everywhere
-but simply have the vendor be X86_VENDOR_AMD and only the user-visible
-reporting to show that it is Hygon. Because to the kernel it is an AMD
-CPU - only the superficial attributes are something else. Oh well, and
-PCI device IDs but that's like another CPU revision.
+version 13:
+	(1) Incorporated comments for Dave Hansen.
+	(2)   Added one more test for correct pkey-0 behavior.
 
-Thx.
+version 12:
+        (1) fixed the offset of pkey field in the siginfo structure for
+	    x86_64 and powerpc. And tries to use the actual field
+	    if the headers have it defined.
 
--- 
-Regards/Gruss,
-    Boris.
+version 11:
+	(1) fixed a deadlock in the ptrace testcase.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+version 10 and prior:
+	(1) moved the testcase to arch neutral directory
+	(2) split the changes into incremental patches.
+
+
+Ram Pai (22):
+  selftests/x86: Move protecton key selftest to arch neutral directory
+  selftests/vm: rename all references to pkru to a generic name
+  selftests/vm: move generic definitions to header file
+  selftests/vm: typecast the pkey register
+  selftests/vm: generic function to handle shadow key register
+  selftests/vm: fix the wrong assert in pkey_disable_set()
+  selftests/vm: fixed bugs in pkey_disable_clear()
+  selftests/vm: clear the bits in shadow reg when a pkey is freed.
+  selftests/vm: fix alloc_random_pkey() to make it really random
+  selftests/vm: introduce two arch independent abstraction
+  selftests/vm: pkey register should match shadow pkey
+  selftests/vm: generic cleanup
+  selftests/vm: powerpc implementation for generic abstraction
+  selftests/vm: clear the bits in shadow reg when a pkey is freed.
+  selftests/vm: powerpc implementation to check support for pkey
+  selftests/vm: fix an assertion in test_pkey_alloc_exhaust()
+  selftests/vm: associate key on a mapped page and detect access
+    violation
+  selftests/vm: associate key on a mapped page and detect write
+    violation
+  selftests/vm: detect write violation on a mapped access-denied-key
+    page
+  selftests/vm: testcases must restore pkey-permissions
+  selftests/vm: sub-page allocator
+  selftests/vm: test correct behavior of pkey-0
+
+Thiago Jung Bauermann (2):
+  selftests/vm: move arch-specific definitions to arch-specific header
+  selftests/vm: Make gcc check arguments of sigsafe_printf()
+
+ tools/testing/selftests/vm/.gitignore         |    1 +
+ tools/testing/selftests/vm/Makefile           |    1 +
+ tools/testing/selftests/vm/pkey-helpers.h     |  214 ++++
+ tools/testing/selftests/vm/pkey-powerpc.h     |  126 ++
+ tools/testing/selftests/vm/pkey-x86.h         |  184 +++
+ tools/testing/selftests/vm/protection_keys.c  | 1598 +++++++++++++++++++++++++
+ tools/testing/selftests/x86/.gitignore        |    1 -
+ tools/testing/selftests/x86/pkey-helpers.h    |  219 ----
+ tools/testing/selftests/x86/protection_keys.c | 1485 -----------------------
+ 9 files changed, 2124 insertions(+), 1705 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+ create mode 100644 tools/testing/selftests/vm/pkey-powerpc.h
+ create mode 100644 tools/testing/selftests/vm/pkey-x86.h
+ create mode 100644 tools/testing/selftests/vm/protection_keys.c
+ delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+ delete mode 100644 tools/testing/selftests/x86/protection_keys.c
