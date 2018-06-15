@@ -1,91 +1,52 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 00/24] selftests, powerpc, x86 : Memory Protection Keys
-Date: Thu, 14 Jun 2018 17:58:54 -0700
-Message-ID: <20180615005854.GA5294@ram.oc3035372033.ibm.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <c5c119b0-f5ca-4ddc-43c0-a6b597173973@redhat.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH 5/5] Documentation/x86: Add CET description
+Date: Fri, 15 Jun 2018 13:14:24 +0200
+Message-ID: <20180615111424.GA4473@amd>
+References: <20180607143544.3477-1-yu-cheng.yu@intel.com>
+ <20180607143544.3477-6-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <c5c119b0-f5ca-4ddc-43c0-a6b597173973@redhat.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="J/dobhs11T7y2rNN"
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Florian Weimer <fweimer@redhat.com>
-Cc: linux-arch@vger.kernel.org, dave.hansen@intel.com, x86@kernel.org, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+In-Reply-To: <20180607143544.3477-6-yu-cheng.yu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 14, 2018 at 10:19:11PM +0200, Florian Weimer wrote:
-> On 06/14/2018 02:44 AM, Ram Pai wrote:
-> >Test
-> >----
-> >Verified for correctness on powerpc. Need help verifying on x86.
-> >Compiles on x86.
-> 
-> It breaks make in tools/testing/selftests/x86:
-> 
-> make: *** No rule to make target `protection_keys.c', needed by
-> `/home/linux/tools/testing/selftests/x86/protection_keys_64'.  Stop.
 
-Ah.. it has to be taken out from the Makefile of
-/home/linux/tools/testing/selftests/x86/
+--J/dobhs11T7y2rNN
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-The sources have been moved to /home/linux/tools/testing/selftests/mm/
+On Thu 2018-06-07 07:35:44, Yu-cheng Yu wrote:
+> Explain how CET works and the noshstk/noibt kernel parameters.
+>=20
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  Documentation/admin-guide/kernel-parameters.txt |   6 +
+>  Documentation/x86/intel_cet.txt                 | 161 ++++++++++++++++++=
+++++++
 
-> 
-> The generic implementation no longer builds 32-bit binaries.  Is
-> this the intent?
+Should new files be .rst formatted or something like that?
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
 
-No. But building it 32-bit after moving it to a the new directory 
-needs some special code in the Makefile. 
+--J/dobhs11T7y2rNN
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-> 
-> It's possible to build 32-bit binaries with “make CC='gcc -m32'”, so
-> perhaps this is good enough?
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
 
-Dave Hansen did mention it, but he did not complain too much. So I kept
-quite.
+iEYEARECAAYFAlsjn5AACgkQMOfwapXb+vIrLACdF8+Q8AQ/dM8fzyRDyCCmwlJ/
+HQUAoKPtdfC/Lj3jXlarYZh5kidBqA/B
+=z2+S
+-----END PGP SIGNATURE-----
 
-> 
-> But with that, I get a warning:
-> 
-> protection_keys.c: In function ‘dump_mem’:
-> protection_keys.c:172:3: warning: format ‘%lx’ expects argument of
-> type ‘long unsigned int’, but argument 4 has type ‘uint64_t’
-> [-Wformat=]
->    dprintf1("dump[%03d][@%p]: %016lx\n", i, ptr, *ptr);
->    ^
-> 
-> I suppose you could use %016llx and add a cast to unsigned long long
-> to fix this.
-
-yes.
-
-> 
-> Anyway, both the 32-bit and 64-bit tests fail here:
-> 
-> assert() at protection_keys.c::943 test_nr: 12 iteration: 1
-> running abort_hooks()...
-> 
-> I've yet checked what causes this.  It's with the kernel headers
-> from 4.17, but with other userspace headers based on glibc 2.17.  I
-> hope to look into this some more before the weekend, but I
-> eventually have to return the test machine to the pool.
-
-I wish I could get a x86 machine which could do memory keys. Had a AWS
-instance, but struggled to boot my kernel. Can't get to the console...
-gave up.  If someone can give me a ready-made machine with support for
-memkeys, I can quickly fix all the outstanding x86 issues.  But if
-someone can just fix it for me, ....  ;)
-
-RP
+--J/dobhs11T7y2rNN--
