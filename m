@@ -1,68 +1,32 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [RFC] ARC: allow to use IOC and non-IOC DMA devices
-        simultaneously
-Date: Fri, 15 Jun 2018 15:17:10 +0200
-Message-ID: <20180615131710.GA30776@lst.de>
-References: <20180615125819.527-1-Eugeniy.Paltsev@synopsys.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH 5/5] Documentation/x86: Add CET description
+Date: Fri, 15 Jun 2018 07:22:46 -0700
+Message-ID: <1529072566.17958.4.camel@2b52.sc.intel.com>
+References: <20180607143544.3477-1-yu-cheng.yu@intel.com>
+         <20180607143544.3477-6-yu-cheng.yu@intel.com> <20180615111424.GA4473@amd>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180615125819.527-1-Eugeniy.Paltsev@synopsys.com>
+In-Reply-To: <20180615111424.GA4473@amd>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de
+To: Pavel Machek <pavel@ucw.cz>
+Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-> +#ifndef ASM_ARC_DMA_MAPPING_H
-> +#define ASM_ARC_DMA_MAPPING_H
-> +
-> +#define arch_setup_dma_ops arch_setup_dma_ops
-> +
-> +#include <asm-generic/dma-mapping.h>
-> +
-> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
-> +			const struct iommu_ops *iommu, bool coherent);
+On Fri, 2018-06-15 at 13:14 +0200, Pavel Machek wrote:
+> On Thu 2018-06-07 07:35:44, Yu-cheng Yu wrote:
+> > Explain how CET works and the noshstk/noibt kernel parameters.
+> > 
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > ---
+> >  Documentation/admin-guide/kernel-parameters.txt |   6 +
+> >  Documentation/x86/intel_cet.txt                 | 161 ++++++++++++++++++++++++
+> 
+> Should new files be .rst formatted or something like that?
+> 									Pavel
 
-Can you keep the #define for arch_setup_dma_ops right next to the
-prototype?
+I will fix kernel-parameters.rst.  But currently there is no .rst in
+Documentation/x86?
 
-> index 000000000000..9d0d310bbf5a
-> --- /dev/null
-> +++ b/arch/arc/mm/dma-mapping.c
-> @@ -0,0 +1,20 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// (C) 2018 Synopsys, Inc. (www.synopsys.com)
-> +
-> +#include <linux/dma-mapping.h>
-> +
-> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
-> +			const struct iommu_ops *iommu, bool coherent)
-> +{
-> +	const struct dma_map_ops *dma_ops = &dma_noncoherent_ops;
-> +
-> +	/*
-> +	 * IOC hardware snoops all DMA traffic keeping the caches consistent
-> +	 * with memory - eliding need for any explicit cache maintenance of
-> +	 * DMA buffers - so we can use dma_direct cache ops.
-> +	 */
-> +	if (is_isa_arcv2() && ioc_enable && coherent)
-> +		dma_ops = &dma_direct_ops;
-> +
-> +	set_dma_ops(dev, dma_ops);
-> +}
-
-
-Why not just write the routines as:
-
-void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
-			const struct iommu_ops *iommu, bool coherent)
-{
-	if (is_isa_arcv2() && ioc_enable && coherent)
-		set_dma_ops(dev, &dma_direct_ops);
-	else
-		set_dma_ops(dev, &dma_noncoherent_ops);
-}
-
-Also a new file just for this routine seems a little wasteful.  Can't
-you just squeeze it into setup.c or some other file?
+Yu-cheng
