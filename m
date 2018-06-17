@@ -1,79 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f193.google.com ([209.85.213.193]:45423 "EHLO
-        mail-yb0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932542AbeFPTQg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 16 Jun 2018 15:16:36 -0400
-Date: Sat, 16 Jun 2018 15:16:24 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v4 0/8] Introduce the for_each_set_clump macro
-Message-ID: <20180616191624.GA20211@sophia>
-References: <cover.1526400945.git.vilhelm.gray@gmail.com>
- <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
- <CAHp75VcGuJ0+qzUZZW=1VSeXmf_rht0tJvCH+yBsXPZz0z8qHA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAHp75VcGuJ0+qzUZZW=1VSeXmf_rht0tJvCH+yBsXPZz0z8qHA@mail.gmail.com>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:42636 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756947AbeFQDQP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 16 Jun 2018 23:16:15 -0400
+Message-ID: <2b77abb17dfaf58b7c23fac9d8603482e1887337.camel@gmail.com>
+Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
+From: Balbir Singh <bsingharora@gmail.com>
+Date: Sun, 17 Jun 2018 13:16:02 +1000
+In-Reply-To: <1528988176.13101.15.camel@2b52.sc.intel.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+         <bbfde1b3-5e1b-80e3-30e8-fd1e46a2ceb1@gmail.com>
+         <1528815820.8271.16.camel@2b52.sc.intel.com>
+         <814fc15e80908d8630ff665be690ccbe6e69be88.camel@gmail.com>
+         <1528988176.13101.15.camel@2b52.sc.intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20180616191624.4pZeIY_9QhO5Q0EmnkbgCmW5Q0JaCYPTNF2SIbceExI@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20180617031602.iUytadkxzpkhqqVFMpNWN3INT7yyBr5O18QKdrxHY5g@z>
 
-On Wed, May 16, 2018 at 11:08:28PM +0300, Andy Shevchenko wrote:
->On Wed, May 16, 2018 at 5:03 PM, Linus Walleij <linus.walleij@linaro.org> wrote:
->> On Tue, May 15, 2018 at 6:22 PM, William Breathitt Gray
->> <vilhelm.gray@gmail.com> wrote:
->>
->>> For example, suppose you would like to iterate over a 16-bit integer 4
->>> bits at a time, skipping over 4-bit groups with no set bit, where XXXX
->>> represents the current 4-bit group:
->>>
->>>     Example:        1011 1110 0000 1111
->>>     First loop:     1011 1110 0000 XXXX
->>>     Second loop:    1011 XXXX 0000 1111
->>>     Third loop:     XXXX 1110 0000 1111
->>>
->>> Each iteration of the loop returns the next 4-bit group that has at
->>> least one set bit.
->>>
->>> The for_each_set_clump macro has six parameters:
->>>
->>>     * clump: set to current clump index for the iteration
->>>     * index: set to current bitmap word index for the iteration
->>>     * offset: bits offset of the found clump in the bitmap word
->>>     * bits: bitmap to search within
->>>     * size: bitmap size in number of clumps
->>>     * clump_size: clump size in number of bits
->>>
->>> The clump_size argument can be an arbitrary number of bits and is not
->>> required to be a multiple of 2.
->>
->> I must say I'm impressed. Very nice arithmetics going on there.
->>
->> If I can get some ACK for the bitops patch I'd be happy to merge
->> it all through the GPIO tree. The users are pretty clear cut.
+On Thu, 2018-06-14 at 07:56 -0700, Yu-cheng Yu wrote:
+> On Thu, 2018-06-14 at 11:07 +1000, Balbir Singh wrote:
+> > On Tue, 2018-06-12 at 08:03 -0700, Yu-cheng Yu wrote:
+> > > On Tue, 2018-06-12 at 20:56 +1000, Balbir Singh wrote:
+> > > > 
+> > > > On 08/06/18 00:37, Yu-cheng Yu wrote:
+> > > > > This series introduces CET - Shadow stack
+> > > > > 
+> > > > > At the high level, shadow stack is:
+> > > > > 
+> > > > > 	Allocated from a task's address space with vm_flags VM_SHSTK;
+> > > > > 	Its PTEs must be read-only and dirty;
+> > > > > 	Fixed sized, but the default size can be changed by sys admin.
+> > > > > 
+> > > > > For a forked child, the shadow stack is duplicated when the next
+> > > > > shadow stack access takes place.
+> > > > > 
+> > > > > For a pthread child, a new shadow stack is allocated.
+> > > > > 
+> > > > > The signal handler uses the same shadow stack as the main program.
+> > > > > 
+> > > > 
+> > > > Even with sigaltstack()?
+> > > > 
+> > > 
+> > > Yes.
+> > 
+> > I am not convinced that it would work, as we switch stacks, oveflow might
+> > be an issue. I also forgot to bring up setcontext(2), I presume those
+> > will get new shadow stacks
+> 
+> Do you mean signal stack/sigaltstack overflow or swapcontext in a signal
+> handler?
 >
->Give me also some time to go through proposed API, I think it might
->have needed more alignment with existing find_* and for_* helpers.
 
-Hi Andy,
+I meant any combination of that. If there is a user space threads implementation that uses sigaltstack for switching threads
 
-Are there any additional changes you would like me to make before this
-patchset is merged through the GPIO tree?
-
-William Breathitt Gray
-
->
->> BTW: if I could, I would pull out Donald Knuth's "The Art of Computer
->> Programming vol 4A" chapter 7.1.3 "Bitwise Tricks and Techniques"
->> to see what he has to say about the subject, but I don't have
->> that book as it turns out.
->
->I can also add the Standford collection of bit algos here:
->
->https://graphics.stanford.edu/~seander/bithacks.html
->
->-- 
->With Best Regards,
->Andy Shevchenko
+Balbir Singh.
+ 
+> Yu-cheng
+> 
