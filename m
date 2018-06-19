@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:47310 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:47900 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S966650AbeFSQOm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Jun 2018 12:14:42 -0400
+        id S966516AbeFSQPl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Jun 2018 12:15:41 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v6 21/27] s390/kprobes: Don't call the ->break_handler() in s390 kprobes code
-Date: Wed, 20 Jun 2018 01:14:18 +0900
-Message-ID: <152942485849.15209.16608277783809018031.stgit@devbox>
+Subject: [PATCH -tip v6 23/27] sparc64: kprobes: Don't call the ->break_handler() in sparc64 kprobes code
+Date: Wed, 20 Jun 2018 01:15:17 +0900
+Message-ID: <152942491684.15209.8114703769135529984.stgit@devbox>
 In-Reply-To: <152942424698.15209.15245996287444292393.stgit@devbox>
 References: <152942424698.15209.15245996287444292393.stgit@devbox>
 MIME-Version: 1.0
@@ -15,48 +15,49 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
-Message-ID: <20180619161418.Oi-FqgKMuft1JYE1N39h-V83LVyn_kO7-0CDfyJzMDM@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20180619161517.BxHctxTcqoamMthydYOt5ByU_bcDbg8tNmChB57ZQX4@z>
 
-Don't call the ->break_handler() from the s390 kprobes code,
+Don't call the ->break_handler() from the sparc64 kprobes code,
 because it was only used by jprobes which got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 ---
- arch/s390/kernel/kprobes.c |   20 --------------------
- 1 file changed, 20 deletions(-)
+ arch/sparc/kernel/kprobes.c |   11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
 
-diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-index 0967de19f53d..3e34018960b5 100644
---- a/arch/s390/kernel/kprobes.c
-+++ b/arch/s390/kernel/kprobes.c
-@@ -332,26 +332,6 @@ static int kprobe_handler(struct pt_regs *regs)
+diff --git a/arch/sparc/kernel/kprobes.c b/arch/sparc/kernel/kprobes.c
+index f555711da8f1..c684c96ef2e9 100644
+--- a/arch/sparc/kernel/kprobes.c
++++ b/arch/sparc/kernel/kprobes.c
+@@ -147,18 +147,12 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+ 			kcb->kprobe_status = KPROBE_REENTER;
+ 			prepare_singlestep(p, regs, kcb);
+ 			return 1;
+-		} else {
+-			if (*(u32 *)addr != BREAKPOINT_INSTRUCTION) {
++		} else if (*(u32 *)addr != BREAKPOINT_INSTRUCTION) {
+ 			/* The breakpoint instruction was removed by
+ 			 * another cpu right after we hit, no further
+ 			 * handling of this interrupt is appropriate
+ 			 */
+-				ret = 1;
+-				goto no_kprobe;
+-			}
+-			p = __this_cpu_read(current_kprobe);
+-			if (p->break_handler && p->break_handler(p, regs))
+-				goto ss_probe;
++			ret = 1;
  		}
- 		enable_singlestep(kcb, regs, (unsigned long) p->ainsn.insn);
+ 		goto no_kprobe;
+ 	}
+@@ -184,7 +178,6 @@ static int __kprobes kprobe_handler(struct pt_regs *regs)
+ 	if (p->pre_handler && p->pre_handler(p, regs))
  		return 1;
--	} else if (kprobe_running()) {
--		p = __this_cpu_read(current_kprobe);
--		if (p->break_handler && p->break_handler(p, regs)) {
--			/*
--			 * Continuation after the jprobe completed and
--			 * caused the jprobe_return trap. The jprobe
--			 * break_handler "returns" to the original
--			 * function that still has the kprobe breakpoint
--			 * installed. We continue with single stepping.
--			 */
--			kcb->kprobe_status = KPROBE_HIT_SS;
--			enable_singlestep(kcb, regs,
--					  (unsigned long) p->ainsn.insn);
--			return 1;
--		} /* else:
--		   * No kprobe at this address and the current kprobe
--		   * has no break handler (no jprobe!). The kernel just
--		   * exploded, let the standard trap handler pick up the
--		   * pieces.
--		   */
- 	} /* else:
- 	   * No kprobe at this address and no active kprobe. The trap has
- 	   * not been caused by a kprobe breakpoint. The race of breakpoint
+ 
+-ss_probe:
+ 	prepare_singlestep(p, regs, kcb);
+ 	kcb->kprobe_status = KPROBE_HIT_SS;
+ 	return 1;
