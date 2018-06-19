@@ -1,7 +1,7 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v6 13/27] kprobes: Don't check the ->break_handler() in generic kprobes code
-Date: Wed, 20 Jun 2018 01:10:27 +0900
-Message-ID: <152942462686.15209.6324404940493598980.stgit@devbox>
+Subject: [PATCH -tip v6 14/27] kprobes/x86: Don't call ->break_handler() in x86 kprobes
+Date: Wed, 20 Jun 2018 01:10:55 +0900
+Message-ID: <152942465549.15209.15889693025972771135.stgit@devbox>
 References: <152942424698.15209.15245996287444292393.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,129 +10,136 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <152942424698.15209.15245996287444292393.stgit@devbox>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Don't check the ->break_handler() from the core kprobes code,
-because it was only used by jprobes which got removed.
-
-( In followup patches we'll remove the remaining calls in low level
-  arch handlers as well and remove the callback altogether. )
+Don't call ->break_handler() and remove break_handler
+related code from x86 since that was only used by jprobe
+which got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- Documentation/kprobes.txt |    2 +-
- kernel/kprobes.c          |   39 +++++----------------------------------
- 2 files changed, 6 insertions(+), 35 deletions(-)
+ Changes in v6:
+  - Move post handler emulation code into kprobe_ftrace_handler()
+---
+ arch/x86/include/asm/kprobes.h   |    2 +-
+ arch/x86/kernel/kprobes/common.h |   10 ---------
+ arch/x86/kernel/kprobes/core.c   |    7 ------
+ arch/x86/kernel/kprobes/ftrace.c |   42 ++++++++++----------------------------
+ 4 files changed, 12 insertions(+), 49 deletions(-)
 
-diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
-index 5ae80baf3921..907a3017c0f2 100644
---- a/Documentation/kprobes.txt
-+++ b/Documentation/kprobes.txt
-@@ -262,7 +262,7 @@ is optimized, that modification is ignored.  Thus, if you want to
- tweak the kernel's execution path, you need to suppress optimization,
- using one of the following techniques:
- 
--- Specify an empty function for the kprobe's post_handler or break_handler.
-+- Specify an empty function for the kprobe's post_handler.
- 
- or
- 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 69de130595f7..536ab451e96d 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -627,8 +627,8 @@ static void optimize_kprobe(struct kprobe *p)
- 	    (kprobe_disabled(p) || kprobes_all_disarmed))
- 		return;
- 
--	/* Both of break_handler and post_handler are not supported. */
--	if (p->break_handler || p->post_handler)
-+	/* kprobes with post_handler can not be optimized */
-+	if (p->post_handler)
- 		return;
- 
- 	op = container_of(p, struct optimized_kprobe, kp);
-@@ -1116,20 +1116,6 @@ static int aggr_fault_handler(struct kprobe *p, struct pt_regs *regs,
+diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
+index 06782c2efa04..c8cec1b39b88 100644
+--- a/arch/x86/include/asm/kprobes.h
++++ b/arch/x86/include/asm/kprobes.h
+@@ -78,7 +78,7 @@ struct arch_specific_insn {
+ 	 * boostable = true: This instruction has been boosted: we have
+ 	 * added a relative jump after the instruction copy in insn,
+ 	 * so no single-step and fixup are needed (unless there's
+-	 * a post_handler or break_handler).
++	 * a post_handler).
+ 	 */
+ 	bool boostable;
+ 	bool if_modifier;
+diff --git a/arch/x86/kernel/kprobes/common.h b/arch/x86/kernel/kprobes/common.h
+index ae38dccf0c8f..2b949f4fd4d8 100644
+--- a/arch/x86/kernel/kprobes/common.h
++++ b/arch/x86/kernel/kprobes/common.h
+@@ -105,14 +105,4 @@ static inline unsigned long __recover_optprobed_insn(kprobe_opcode_t *buf, unsig
  }
- NOKPROBE_SYMBOL(aggr_fault_handler);
+ #endif
  
--static int aggr_break_handler(struct kprobe *p, struct pt_regs *regs)
+-#ifdef CONFIG_KPROBES_ON_FTRACE
+-extern int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-			   struct kprobe_ctlblk *kcb);
+-#else
+-static inline int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-				  struct kprobe_ctlblk *kcb)
 -{
--	struct kprobe *cur = __this_cpu_read(kprobe_instance);
--	int ret = 0;
--
--	if (cur && cur->break_handler) {
--		if (cur->break_handler(cur, regs))
--			ret = 1;
--	}
--	reset_kprobe_instance();
--	return ret;
+-	return 0;
 -}
--NOKPROBE_SYMBOL(aggr_break_handler);
+-#endif
+ #endif
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 1b2d1acba810..0ac16a0d93e5 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -709,13 +709,6 @@ int kprobe_int3_handler(struct pt_regs *regs)
+ 		regs->ip = (unsigned long)addr;
+ 		preempt_enable_no_resched();
+ 		return 1;
+-	} else if (kprobe_running()) {
+-		p = __this_cpu_read(current_kprobe);
+-		if (p->break_handler && p->break_handler(p, regs)) {
+-			if (!skip_singlestep(p, regs, kcb))
+-				setup_singlestep(p, regs, kcb, 0);
+-			return 1;
+-		}
+ 	} /* else: not a kprobe fault; let the kernel handle it */
+ 
+ 	preempt_enable_no_resched();
+diff --git a/arch/x86/kernel/kprobes/ftrace.c b/arch/x86/kernel/kprobes/ftrace.c
+index 8dc0161cec8f..02a6dd1b6bd0 100644
+--- a/arch/x86/kernel/kprobes/ftrace.c
++++ b/arch/x86/kernel/kprobes/ftrace.c
+@@ -25,36 +25,6 @@
+ 
+ #include "common.h"
+ 
+-static nokprobe_inline
+-void __skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-		      struct kprobe_ctlblk *kcb, unsigned long orig_ip)
+-{
+-	/*
+-	 * Emulate singlestep (and also recover regs->ip)
+-	 * as if there is a 5byte nop
+-	 */
+-	regs->ip = (unsigned long)p->addr + MCOUNT_INSN_SIZE;
+-	if (unlikely(p->post_handler)) {
+-		kcb->kprobe_status = KPROBE_HIT_SSDONE;
+-		p->post_handler(p, regs, 0);
+-	}
+-	__this_cpu_write(current_kprobe, NULL);
+-	if (orig_ip)
+-		regs->ip = orig_ip;
+-}
 -
- /* Walks the list and increments nmissed count for multiprobe case */
- void kprobes_inc_nmissed_count(struct kprobe *p)
- {
-@@ -1270,24 +1256,15 @@ static void cleanup_rp_inst(struct kretprobe *rp)
- }
- NOKPROBE_SYMBOL(cleanup_rp_inst);
- 
--/*
--* Add the new probe to ap->list. Fail if this is the
--* second break_handler at the address
--*/
-+/* Add the new probe to ap->list */
- static int add_new_kprobe(struct kprobe *ap, struct kprobe *p)
- {
- 	BUG_ON(kprobe_gone(ap) || kprobe_gone(p));
- 
--	if (p->break_handler || p->post_handler)
-+	if (p->post_handler)
- 		unoptimize_kprobe(ap, true);	/* Fall back to normal kprobe */
- 
--	if (p->break_handler) {
--		if (ap->break_handler)
--			return -EEXIST;
--		list_add_tail_rcu(&p->list, &ap->list);
--		ap->break_handler = aggr_break_handler;
--	} else
--		list_add_rcu(&p->list, &ap->list);
-+	list_add_rcu(&p->list, &ap->list);
- 	if (p->post_handler && !ap->post_handler)
- 		ap->post_handler = aggr_post_handler;
- 
-@@ -1310,8 +1287,6 @@ static void init_aggr_kprobe(struct kprobe *ap, struct kprobe *p)
- 	/* We don't care the kprobe which has gone. */
- 	if (p->post_handler && !kprobe_gone(p))
- 		ap->post_handler = aggr_post_handler;
--	if (p->break_handler && !kprobe_gone(p))
--		ap->break_handler = aggr_break_handler;
- 
- 	INIT_LIST_HEAD(&ap->list);
- 	INIT_HLIST_NODE(&ap->hlist);
-@@ -1706,8 +1681,6 @@ static int __unregister_kprobe_top(struct kprobe *p)
- 		goto disarmed;
- 	else {
- 		/* If disabling probe has special handlers, update aggrprobe */
--		if (p->break_handler && !kprobe_gone(p))
--			ap->break_handler = NULL;
- 		if (p->post_handler && !kprobe_gone(p)) {
- 			list_for_each_entry_rcu(list_p, &ap->list, list) {
- 				if ((list_p != p) && (list_p->post_handler))
-@@ -1911,7 +1884,6 @@ int register_kretprobe(struct kretprobe *rp)
- 	rp->kp.pre_handler = pre_handler_kretprobe;
- 	rp->kp.post_handler = NULL;
- 	rp->kp.fault_handler = NULL;
--	rp->kp.break_handler = NULL;
- 
- 	/* Pre-allocate memory for max kretprobe instances */
- 	if (rp->maxactive <= 0) {
-@@ -2034,7 +2006,6 @@ static void kill_kprobe(struct kprobe *p)
- 		list_for_each_entry_rcu(kp, &p->list, list)
- 			kp->flags |= KPROBE_FLAG_GONE;
- 		p->post_handler = NULL;
--		p->break_handler = NULL;
- 		kill_optimized_kprobe(p);
- 	}
- 	/*
+-int skip_singlestep(struct kprobe *p, struct pt_regs *regs,
+-		    struct kprobe_ctlblk *kcb)
+-{
+-	if (kprobe_ftrace(p)) {
+-		__skip_singlestep(p, regs, kcb, 0);
+-		preempt_enable_no_resched();
+-		return 1;
+-	}
+-	return 0;
+-}
+-NOKPROBE_SYMBOL(skip_singlestep);
+-
+ /* Ftrace callback handler for kprobes -- called under preepmt disabed */
+ void kprobe_ftrace_handler(unsigned long ip, unsigned long parent_ip,
+ 			   struct ftrace_ops *ops, struct pt_regs *regs)
+@@ -80,7 +50,17 @@ void kprobe_ftrace_handler(unsigned long ip, unsigned long parent_ip,
+ 		__this_cpu_write(current_kprobe, p);
+ 		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
+ 		if (!p->pre_handler || !p->pre_handler(p, regs)) {
+-			__skip_singlestep(p, regs, kcb, orig_ip);
++			/*
++			 * Emulate singlestep (and also recover regs->ip)
++			 * as if there is a 5byte nop
++			 */
++			regs->ip = (unsigned long)p->addr + MCOUNT_INSN_SIZE;
++			if (unlikely(p->post_handler)) {
++				kcb->kprobe_status = KPROBE_HIT_SSDONE;
++				p->post_handler(p, regs, 0);
++			}
++			regs->ip = orig_ip;
++			__this_cpu_write(current_kprobe, NULL);
+ 			preempt_enable_no_resched();
+ 		}
+ 		/*
