@@ -1,149 +1,183 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: [PATCH v2] ARC: Improve cmpxchg syscall implementation
-Date: Tue, 19 Jun 2018 17:22:05 +0300
-Message-ID: <20180619142205.20493-1-abrodkin@synopsys.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
+Date: Tue, 19 Jun 2018 07:50:43 -0700
+Message-ID: <569B4719-6283-4575-A16E-D0A78D280F4E@amacapital.net>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-7-yu-cheng.yu@intel.com>
+ <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
+ <1528403417.5265.35.camel@2b52.sc.intel.com> <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
+ <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
+ <alpine.DEB.2.21.1806121155450.2157@nanos.tec.linutronix.de>
+ <CAMe9rOoCiXQ4iVD3j_AHGrvEXtoaVVZVs7H7fCuqNEuuR5j+2Q@mail.gmail.com>
+ <CALCETrXO8R+RQPhJFk4oiA4PF77OgSS2Yro_POXQj1zvdLo61A@mail.gmail.com>
+ <CAMe9rOpLxPussn7gKvn0GgbOB4f5W+DKOGipe_8NMam+Afd+RA@mail.gmail.com>
+ <CALCETrWmGRkQvsUgRaj+j0CP4beKys+TT5aDR5+18nuphwr+Cw@mail.gmail.com>
+ <CAMe9rOpzcCdje=bUVs+C1WrY6GuwA-8AUFVLOG325LGz7KHJxw@mail.gmail.com>
+ <alpine.DEB.2.21.1806122046520.1592@nanos.tec.linutronix.de>
+ <CAMe9rOrGjJf0aMnUjAP38MqvOiW3=iXGQjcUT3O=f9pE85hXaw@mail.gmail.com>
+ <CALCETrVsh5t-V1Sm88LsZE_+DS0GE_bMWbcoX3SjD6GnrB08Pw@mail.gmail.com> <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@kernel.org>, "H. J. Lu" <hjl.tools@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com, Florian Weimer <fweimer@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
 
-arc_usr_cmpxchg syscall is supposed to be used on platforms
-that lack support of Load-Locked/Store-Conditional instructions
-in hardware. And in that case we mimic missing hardware features
-with help of kernel's sycall that "atomically" checks current
-value in memory and then if it matches caller expectation new
-value is written to that same location.
 
-What's important in the description above:
- - Check-and-exchange must be "atomical" which means
-   preemption must be disabled during entire "transaction"
- - Data accessed is from user-space, i.e. we're dealing
-   with virtual addresses
+> On Jun 18, 2018, at 5:52 PM, Kees Cook <keescook@chromium.org> wrote:
+>=20
+>> On Mon, Jun 18, 2018 at 3:03 PM, Andy Lutomirski <luto@kernel.org> wrote:=
 
-And in current implementation we have a couple of problems:
+>>> On Tue, Jun 12, 2018 at 12:34 PM H.J. Lu <hjl.tools@gmail.com> wrote:
+>>>=20
+>>>> On Tue, Jun 12, 2018 at 11:59 AM, Thomas Gleixner <tglx@linutronix.de> w=
+rote:
+>>>>> On Tue, 12 Jun 2018, H.J. Lu wrote:
+>>>>>> On Tue, Jun 12, 2018 at 9:34 AM, Andy Lutomirski <luto@kernel.org> wr=
+ote:
+>>>>>>> On Tue, Jun 12, 2018 at 9:05 AM H.J. Lu <hjl.tools@gmail.com> wrote:=
 
-1. We do disable preemprion around __get_user() & __put_user()
-   but that in its turn disables page fault handler.
-   That means if a pointer to user's data has no mapping in
-   the TLB we won't be able to access required data.
-   Instead software "exception handling" code from __get_user_fn()
-   will return -EFAULT.
+>>>>>>>> On Tue, Jun 12, 2018 at 9:01 AM, Andy Lutomirski <luto@kernel.org> w=
+rote:
+>>>>>>>>> On Tue, Jun 12, 2018 at 4:43 AM H.J. Lu <hjl.tools@gmail.com> wrot=
+e:
+>>>>>>>>>> On Tue, Jun 12, 2018 at 3:03 AM, Thomas Gleixner <tglx@linutronix=
+.de> wrote:
+>>>>>>>>>> That works for stuff which loads all libraries at start time, but=
+ what
+>>>>>>>>>> happens if the program uses dlopen() later on? If CET is force lo=
+cked and
+>>>>>>>>>> the library is not CET enabled, it will fail.
+>>>>>>>>>=20
+>>>>>>>>> That is to prevent disabling CET by dlopening a legacy shared libr=
+ary.
+>>>>>>>>>=20
+>>>>>>>>>> I don't see the point of trying to support CET by magic. It adds c=
+omplexity
+>>>>>>>>>> and you'll never be able to handle all corner cases correctly. dl=
+open() is
+>>>>>>>>>> not even a corner case.
+>>>>>>>>>=20
+>>>>>>>>> That is a price we pay for security.  To enable CET, especially sh=
+adow
+>>>>>>>>> shack, the program and all of shared libraries it uses should be C=
+ET
+>>>>>>>>> enabled.  Most of programs can be enabled with CET by compiling th=
+em
+>>>>>>>>> with -fcf-protection.
+>>>>>>>>=20
+>>>>>>>> If you charge too high a price for security, people may turn it off=
+.
+>>>>>>>> I think we're going to need a mode where a program says "I want to u=
+se
+>>>>>>>> the CET, but turn it off if I dlopen an unsupported library".  Ther=
+e
+>>>>>>>> are programs that load binary-only plugins.
+>>>>>>>=20
+>>>>>>> You can do
+>>>>>>>=20
+>>>>>>> # export GLIBC_TUNABLES=3Dglibc.tune.hwcaps=3D-SHSTK
+>>>>>>>=20
+>>>>>>> which turns off shadow stack.
+>>>>>>>=20
+>>>>>>=20
+>>>>>> Which exactly illustrates my point.  By making your security story to=
+o
+>>>>>> absolute, you'll force people to turn it off when they don't need to.=
 
-2. What's worse if we're dealing with data from not yet allocated
-   page (think of pre-copy-on-write state) we'll successfully
-   read data but on write we'll silently return to user-space
-   with correct result (which we really read just before). That leads
-   to very strange problems in user-space app further down the line
-   because new value was never written to the destination.
+>>>>>> If I'm using a fully CET-ified distro and I'm using a CET-aware
+>>>>>> program that loads binary plugins, and I may or may not have an old
+>>>>>> (binary-only, perhaps) plugin that doesn't support CET, then the
+>>>>>> behavior I want is for CET to be on until I dlopen() a program that
+>>>>>> doesn't support it.  Unless there's some ABI reason why that can't be=
 
-3. Regardless of what went wrong we'll return from syscall
-   and user-space application will continue to execute.
-   Even if user's pointer was completely bogus.
-   In case of hardware LL/SC that app would have been killed
-   by the kernel.
+>>>>>> done, but I don't think there is.
+>>>>>=20
+>>>>> We can make it opt-in via GLIBC_TUNABLES.  But by default, the legacy
+>>>>> shared object is disallowed when CET is enabled.
+>>>>=20
+>>>> That's a bad idea. Stuff has launchers which people might not be able t=
+o
+>>>> change. So they will simply turn of CET completely or it makes them hac=
+k
+>>>> horrible crap into init, e.g. the above export.
+>>>>=20
+>>>> Give them sane kernel options:
+>>>>=20
+>>>>     cet =3D off, relaxed, forced
+>>>>=20
+>>>> where relaxed allows to run binary plugins. Then let dlopen() call into=
+ the
+>>>> kernel with the filepath of the library to check for CET and that will t=
+ell
+>>>> you whether its ok or or not and do the necessary magic in the kernel w=
+hen
+>>>> CET has to be disabled due to a !CET library/application.
+>>>>=20
+>>>> That's also making the whole thing independent of magic glibc environme=
+nt
+>>>> options and allows it to be used all over the place in the same way.
+>>>=20
+>>> This is very similar to our ARCH_CET_EXEC proposal which controls how
+>>> CET should be enforced.   But Andy thinks it is a bad idea.
+>>=20
+>> I do think it's a bad idea to have a new piece of state that survives
+>> across exec().  It's going to have nasty usability problems and nasty
+>> security problems.
+>>=20
+>> We may need a mode by which glibc can turn CET *back off* even after a
+>> program had it on if it dlopens() an old binary.  Or maybe there won't
+>> be demand.  I can certainly understand why the CET_LOCK feature is
+>> there, although I think we need a way to override it using something
+>> like ptrace().  I'm not convinced that CET_LOCK is really needed, but
+>> someone who understand the thread model should chime in.
+>>=20
+>> Kees, do you know anyone who has a good enough understanding of
+>> usermode exploits and how they'll interact with CET?
+>=20
+> Adding Florian to CC, but if something gets CET enabled, it really
+> shouldn't have a way to turn it off. If there's a way to turn it off,
+> all the ROP research will suddenly turn to exactly one gadget before
+> doing the rest of the ROP: turning off CET. Right now ROP is: use
+> stack-pivot gadget, do everything else. Allowed CET to turn off will
+> just add one step: use CET-off gadget, use stack-pivot gadget, do
+> everything else. :P
 
-With that change we attempt to imrove on all 3 items above:
+Fair enough=20
 
-1. We still disable preemption around write of user's data but
-   if we happen to fail with write we're enabling preemption
-   and try to fix-up page fault so that we have a correct permission
-   for writing user's data. Then re-try again in "atomic" context.
+>=20
+> Following Linus's request for "slow introduction" of new security
+> features, likely the best approach is to default to "relaxed" (with a
+> warning about down-grades), and allow distros/end-users to pick
+> "forced" if they know their libraries are all CET-enabled.
 
-2. If real page fault fails or even access_ok() returns false
-   we send SIGSEGV to the user-space process so if something goes
-   seriously wrong we'll know about it much earlier.
+I still don=E2=80=99t get what =E2=80=9Crelaxed=E2=80=9D is for.  I think th=
+e right design is:
 
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-arch@vger.kernel.org
----
+Processes start with CET on or off depending on the ELF note, but they start=
+ with CET unlocked no matter what. They can freely switch CET on and off (su=
+bject to being clever enough not to crash if they turn it on and then return=
+ right off the end of the shadow stack) until they call ARCH_CET_LOCK.
 
-Changes v1 -> v2:
+Ptrace gets new APIs to turn CET on and off and to lock and unlock it.  If a=
+n attacker finds a =E2=80=9Cptrace me and turn off CET=E2=80=9D gadget, then=
+ they might as well just do =E2=80=9Cptrace me and write shell code=E2=80=9D=
+ instead. It=E2=80=99s basically the same gadget. Keep in mind that the actu=
+al sequence of syscalls to do this is incredibly complicated.
 
- * Peter's almost clean-room reimplmentation with less paranoid checks
-   and direct invocation of fixup_user_fault() for in-place update of
-   write permissions.
+It=E2=80=99s unclear to me that forcing CET on belongs in the kernel at all.=
+  By the time an attacker can find a non-CET ELF binary and can exec it in a=
+ context where it does their bidding, the attacker is far beyond what CET ca=
+n even try to help. At this point we=E2=80=99re talking about an attacker wh=
+o can effectively invoke system(3) with arbitrary parameters, and attackers w=
+ith *that* power don=E2=80=99t need ROP and the like.
 
- arch/arc/kernel/process.c | 48 ++++++++++++++++++++++++++++++---------
- 1 file changed, 37 insertions(+), 11 deletions(-)
-
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index 5ac3b547453f..7a7742fba77a 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -47,7 +47,9 @@ SYSCALL_DEFINE0(arc_gettls)
- SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
- {
- 	struct pt_regs *regs = current_pt_regs();
--	int uval = -EFAULT;
-+	struct page *page;
-+	u32 val;
-+	int ret;
- 
- 	/*
- 	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
-@@ -60,23 +62,47 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
- 	/* Z indicates to userspace if operation succeded */
- 	regs->status32 &= ~STATUS_Z_MASK;
- 
--	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
--		return -EFAULT;
-+	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
-+	if (!ret)
-+		 goto fail;
- 
-+again:
- 	preempt_disable();
- 
--	if (__get_user(uval, uaddr))
--		goto done;
-+	ret = __get_user(val, uaddr);
-+	if (ret)
-+		 goto fault;
- 
--	if (uval == expected) {
--		if (!__put_user(new, uaddr))
--			regs->status32 |= STATUS_Z_MASK;
--	}
-+	if (val != expected)
-+		 goto out;
-+
-+	ret = __put_user(new, uaddr);
-+	if (ret)
-+		 goto fault;
-+
-+	regs->status32 |= STATUS_Z_MASK;
-+
-+out:
-+	preempt_enable();
-+	return val;
- 
--done:
-+fault:
- 	preempt_enable();
- 
--	return uval;
-+	if (unlikely(ret != -EFAULT))
-+		 goto fail;
-+
-+	down_read(&current->mm->mmap_sem);
-+	ret = fixup_user_fault(current, current->mm, uaddr, FAULT_FLAG_WRITE,
-+			       NULL);
-+	up_read(&current->mm->mmap_sem);
-+
-+	if (likely(!ret))
-+		 goto again;
-+
-+fail:
-+	force_sig(SIGSEGV, current);
-+	return ret;
- }
- 
- #ifdef CONFIG_ISA_ARCV2
--- 
-2.17.1
+There is a new feature I=E2=80=99d like to see, though: add an ELF note to b=
+less a binary as being an ELF interpreter. And add an LSM callback to valida=
+te an ELF interpreter.  Let=E2=80=99s minimize the shenanigans that people w=
+ho control containers can get up to. (Obviously the ELF note part would need=
+ to be opt-in.)=
