@@ -1,7 +1,7 @@
-From: Kees Cook <keescook@chromium.org>
+From: Andy Lutomirski <luto@amacapital.net>
 Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
-Date: Tue, 19 Jun 2018 10:07:28 -0700
-Message-ID: <CAGXu5jJ4ivrvi-kG0iY=4C0mQQXBDXwPdfY36Dk+JqOpX19n0w@mail.gmail.com>
+Date: Tue, 19 Jun 2018 10:20:03 -0700
+Message-ID: <0AF8B71E-B6CC-42DE-B95C-93896196C3D7@amacapital.net>
 References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-7-yu-cheng.yu@intel.com>
  <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
  <1528403417.5265.35.camel@2b52.sc.intel.com> <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
@@ -17,77 +17,105 @@ References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-7
  <CALCETrVsh5t-V1Sm88LsZE_+DS0GE_bMWbcoX3SjD6GnrB08Pw@mail.gmail.com>
  <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
  <569B4719-6283-4575-A16E-D0A78D280F4E@amacapital.net> <CAGXu5jJNgu4bW_Zthqjfpe9gLxK0zxG8QFEqqK+pJNebz6tUaw@mail.gmail.com>
- <1529427588.23068.7.camel@intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+ <1529427588.23068.7.camel@intel.com> <CAGXu5jJ4ivrvi-kG0iY=4C0mQQXBDXwPdfY36Dk+JqOpX19n0w@mail.gmail.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=utf-8
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1529427588.23068.7.camel@intel.com>
+In-Reply-To: <CAGXu5jJ4ivrvi-kG0iY=4C0mQQXBDXwPdfY36Dk+JqOpX19n0w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, "H. J. Lu" <hjl.tools@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com, Florian Weimer <fweimer@redhat.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Andy Lutomirski <luto@kernel.org>, "H. J. Lu" <hjl.tools@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com, Florian Weimer <fweimer@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 19, 2018 at 9:59 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> On Tue, 2018-06-19 at 09:44 -0700, Kees Cook wrote:
->> On Tue, Jun 19, 2018 at 7:50 AM, Andy Lutomirski <luto@amacapital.net
->> > wrote:
->> >
->> > >
->> > > On Jun 18, 2018, at 5:52 PM, Kees Cook <keescook@chromium.org>
->> > > wrote:
->> > > Following Linus's request for "slow introduction" of new security
->> > > features, likely the best approach is to default to "relaxed"
->> > > (with a
->> > > warning about down-grades), and allow distros/end-users to pick
->> > > "forced" if they know their libraries are all CET-enabled.
->> > I still don=E2=80=99t get what =E2=80=9Crelaxed=E2=80=9D is for.  I th=
-ink the right design
->> > is:
->> >
->> > Processes start with CET on or off depending on the ELF note, but
->> > they start with CET unlocked no matter what. They can freely switch
->> > CET on and off (subject to being clever enough not to crash if they
->> > turn it on and then return right off the end of the shadow stack)
->> > until they call ARCH_CET_LOCK.
->> I'm fine with this. I'd expect modern loaders to just turn on CET and
->> ARCH_CET_LOCK immediately and be done with it. :P
->
-> This is the current implementation.  If the loader has CET in its ELF
-> header, it is executed with CET on.  The loader will turn off CET if
-> the application being loaded does not support it (in the ELF header).
->  The loader calls ARCH_CET_LOCK before passing to the application.  But
-> how do we handle dlopen?
 
-I thought CET_LOCK would not get set in "relaxed" mode, due to dlopen
-usage, and that would be the WARN case. People without dlopen concerns
-can boot with "enforced" mode? If a system builder knows there are no
-legacy dlopens they build with enforced enabled, etc.
 
->> > Ptrace gets new APIs to turn CET on and off and to lock and unlock
->> > it.  If an attacker finds a =E2=80=9Cptrace me and turn off CET=E2=80=
-=9D gadget,
->> > then they might as well just do =E2=80=9Cptrace me and write shell cod=
-e=E2=80=9D
->> > instead. It=E2=80=99s basically the same gadget. Keep in mind that the
->> > actual sequence of syscalls to do this is incredibly complicated.
->> Right -- if an attacker can control ptrace of the target, we're way
->> past CET. The only concern I have, though, is taking advantage of
->> expected ptracing. For example: browsers tend to have crash handlers
->> that launch a ptracer. If ptracing disabled CET for all threads, this
->> won't by safe: an attacker just gains control in two threads, crashes
->> one to get the ptracer to attach, which disables CET in the other
->> thread and the attacker continues ROP as normal. As long as the
->> ptrace
->> disabling is thread-specific, I think this will be okay.
->
-> If ptrace can turn CET on/off and it is thread-specific, do we still
-> need ptrace lock/unlock?
+> On Jun 19, 2018, at 10:07 AM, Kees Cook <keescook@chromium.org> wrote:
+>=20
+>> On Tue, Jun 19, 2018 at 9:59 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrot=
+e:
+>>> On Tue, 2018-06-19 at 09:44 -0700, Kees Cook wrote:
+>>> On Tue, Jun 19, 2018 at 7:50 AM, Andy Lutomirski <luto@amacapital.net
+>>>> wrote:
+>>>>=20
+>>>>>=20
+>>>>> On Jun 18, 2018, at 5:52 PM, Kees Cook <keescook@chromium.org>
+>>>>> wrote:
+>>>>> Following Linus's request for "slow introduction" of new security
+>>>>> features, likely the best approach is to default to "relaxed"
+>>>>> (with a
+>>>>> warning about down-grades), and allow distros/end-users to pick
+>>>>> "forced" if they know their libraries are all CET-enabled.
+>>>> I still don=E2=80=99t get what =E2=80=9Crelaxed=E2=80=9D is for.  I thi=
+nk the right design
+>>>> is:
+>>>>=20
+>>>> Processes start with CET on or off depending on the ELF note, but
+>>>> they start with CET unlocked no matter what. They can freely switch
+>>>> CET on and off (subject to being clever enough not to crash if they
+>>>> turn it on and then return right off the end of the shadow stack)
+>>>> until they call ARCH_CET_LOCK.
+>>> I'm fine with this. I'd expect modern loaders to just turn on CET and
+>>> ARCH_CET_LOCK immediately and be done with it. :P
+>>=20
+>> This is the current implementation.  If the loader has CET in its ELF
+>> header, it is executed with CET on.  The loader will turn off CET if
+>> the application being loaded does not support it (in the ELF header).
+>> The loader calls ARCH_CET_LOCK before passing to the application.  But
+>> how do we handle dlopen?
+>=20
+> I thought CET_LOCK would not get set in "relaxed" mode, due to dlopen
+> usage, and that would be the WARN case. People without dlopen concerns
+> can boot with "enforced" mode? If a system builder knows there are no
+> legacy dlopens they build with enforced enabled, etc.
 
-Does it provide anything beyond what PR_DUMPABLE does?
+I think we=E2=80=99re getting ahead of ourselves. dlopen() of a non-CET-awar=
+e library in a CET process is distinctly non-trivial, especially in a multit=
+hreaded process. I think getting it right will require *userspace* support. =
+ It certainly needs ld.so to issue to arch_prctl at a bare minimum. So I see=
+ no point to a kernel-supplied =E2=80=9Crelaxed=E2=80=9D mode. I think there=
+ may be demand for a ld.so relaxed mode, but it will have nothing to do with=
+ boot options.
 
--Kees
+It=E2=80=99s potentially helpful to add an arch_prctl that turns CET off for=
+ all threads, but only if unlocked. It would obviously be one hell of a gadg=
+et.
 
---=20
-Kees Cook
-Pixel Security
+>=20
+>>>> Ptrace gets new APIs to turn CET on and off and to lock and unlock
+>>>> it.  If an attacker finds a =E2=80=9Cptrace me and turn off CET=E2=80=9D=
+ gadget,
+>>>> then they might as well just do =E2=80=9Cptrace me and write shell code=
+=E2=80=9D
+>>>> instead. It=E2=80=99s basically the same gadget. Keep in mind that the
+>>>> actual sequence of syscalls to do this is incredibly complicated.
+>>> Right -- if an attacker can control ptrace of the target, we're way
+>>> past CET. The only concern I have, though, is taking advantage of
+>>> expected ptracing. For example: browsers tend to have crash handlers
+>>> that launch a ptracer. If ptracing disabled CET for all threads, this
+>>> won't by safe: an attacker just gains control in two threads, crashes
+>>> one to get the ptracer to attach, which disables CET in the other
+>>> thread and the attacker continues ROP as normal. As long as the
+>>> ptrace
+>>> disabling is thread-specific, I think this will be okay.
+>>=20
+>> If ptrace can turn CET on/off and it is thread-specific, do we still
+>> need ptrace lock/unlock?
+
+Let me clarify. I don=E2=80=99t think ptrace() should have any automatic eff=
+ect on CET. I think there should be an explicit way to ask ptrace to twiddle=
+ CET, and it should probably apply per thread.
+
+>=20
+> Does it provide anything beyond what PR_DUMPABLE does?
+
+What do you mean?
+
+
+>=20
+> -Kees
+>=20
+> --=20
+> Kees Cook
+> Pixel Security
