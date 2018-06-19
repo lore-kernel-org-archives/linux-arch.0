@@ -1,277 +1,125 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC] ARC: allow to use IOC and non-IOC DMA devices
- simultaneously
-Date: Mon, 18 Jun 2018 15:53:11 -0700
-Message-ID: <563bd0ab-e40c-f9ad-4e9c-dbf5b13358b5@synopsys.com>
-References: <20180615125819.527-1-Eugeniy.Paltsev@synopsys.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
+Date: Mon, 18 Jun 2018 17:52:29 -0700
+Message-ID: <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com> <20180607143807.3611-7-yu-cheng.yu@intel.com>
+ <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
+ <1528403417.5265.35.camel@2b52.sc.intel.com> <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
+ <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
+ <alpine.DEB.2.21.1806121155450.2157@nanos.tec.linutronix.de>
+ <CAMe9rOoCiXQ4iVD3j_AHGrvEXtoaVVZVs7H7fCuqNEuuR5j+2Q@mail.gmail.com>
+ <CALCETrXO8R+RQPhJFk4oiA4PF77OgSS2Yro_POXQj1zvdLo61A@mail.gmail.com>
+ <CAMe9rOpLxPussn7gKvn0GgbOB4f5W+DKOGipe_8NMam+Afd+RA@mail.gmail.com>
+ <CALCETrWmGRkQvsUgRaj+j0CP4beKys+TT5aDR5+18nuphwr+Cw@mail.gmail.com>
+ <CAMe9rOpzcCdje=bUVs+C1WrY6GuwA-8AUFVLOG325LGz7KHJxw@mail.gmail.com>
+ <alpine.DEB.2.21.1806122046520.1592@nanos.tec.linutronix.de>
+ <CAMe9rOrGjJf0aMnUjAP38MqvOiW3=iXGQjcUT3O=f9pE85hXaw@mail.gmail.com> <CALCETrVsh5t-V1Sm88LsZE_+DS0GE_bMWbcoX3SjD6GnrB08Pw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180615125819.527-1-Eugeniy.Paltsev@synopsys.com>
-Content-Language: en-US
+In-Reply-To: <CALCETrVsh5t-V1Sm88LsZE_+DS0GE_bMWbcoX3SjD6GnrB08Pw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: "H. J. Lu" <hjl.tools@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com, Florian Weimer <fweimer@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/15/2018 05:58 AM, Eugeniy Paltsev wrote:
-> The ARC HS processor provides an IOC port (I/O coherency bus
-> interface) that allows external devices such as DMA devices
-> to access memory through the cache hierarchy, providing
-> coherency between I/O transactions and the complete memory
-> hierarchy.
-
-This is really nice: having this a per device behaviour has been desirabl=
-e rather
-than the current blunt system-wide behaviour.
-
-However the patch doesn't seem to change the routing off non-coherent tra=
-ffic -
-everything would still go thru it - per the current default setting of
-CREG_AXI_M_*_SLV[0-1] registers. Ideally you would want to disable that a=
-s well,
-an addon patch is fine.
-
+On Mon, Jun 18, 2018 at 3:03 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> On Tue, Jun 12, 2018 at 12:34 PM H.J. Lu <hjl.tools@gmail.com> wrote:
+>>
+>> On Tue, Jun 12, 2018 at 11:59 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>> > On Tue, 12 Jun 2018, H.J. Lu wrote:
+>> >> On Tue, Jun 12, 2018 at 9:34 AM, Andy Lutomirski <luto@kernel.org> wrote:
+>> >> > On Tue, Jun 12, 2018 at 9:05 AM H.J. Lu <hjl.tools@gmail.com> wrote:
+>> >> >> On Tue, Jun 12, 2018 at 9:01 AM, Andy Lutomirski <luto@kernel.org> wrote:
+>> >> >> > On Tue, Jun 12, 2018 at 4:43 AM H.J. Lu <hjl.tools@gmail.com> wrote:
+>> >> >> >> On Tue, Jun 12, 2018 at 3:03 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>> >> >> >> > That works for stuff which loads all libraries at start time, but what
+>> >> >> >> > happens if the program uses dlopen() later on? If CET is force locked and
+>> >> >> >> > the library is not CET enabled, it will fail.
+>> >> >> >>
+>> >> >> >> That is to prevent disabling CET by dlopening a legacy shared library.
+>> >> >> >>
+>> >> >> >> > I don't see the point of trying to support CET by magic. It adds complexity
+>> >> >> >> > and you'll never be able to handle all corner cases correctly. dlopen() is
+>> >> >> >> > not even a corner case.
+>> >> >> >>
+>> >> >> >> That is a price we pay for security.  To enable CET, especially shadow
+>> >> >> >> shack, the program and all of shared libraries it uses should be CET
+>> >> >> >> enabled.  Most of programs can be enabled with CET by compiling them
+>> >> >> >> with -fcf-protection.
+>> >> >> >
+>> >> >> > If you charge too high a price for security, people may turn it off.
+>> >> >> > I think we're going to need a mode where a program says "I want to use
+>> >> >> > the CET, but turn it off if I dlopen an unsupported library".  There
+>> >> >> > are programs that load binary-only plugins.
+>> >> >>
+>> >> >> You can do
+>> >> >>
+>> >> >> # export GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK
+>> >> >>
+>> >> >> which turns off shadow stack.
+>> >> >>
+>> >> >
+>> >> > Which exactly illustrates my point.  By making your security story too
+>> >> > absolute, you'll force people to turn it off when they don't need to.
+>> >> > If I'm using a fully CET-ified distro and I'm using a CET-aware
+>> >> > program that loads binary plugins, and I may or may not have an old
+>> >> > (binary-only, perhaps) plugin that doesn't support CET, then the
+>> >> > behavior I want is for CET to be on until I dlopen() a program that
+>> >> > doesn't support it.  Unless there's some ABI reason why that can't be
+>> >> > done, but I don't think there is.
+>> >>
+>> >> We can make it opt-in via GLIBC_TUNABLES.  But by default, the legacy
+>> >> shared object is disallowed when CET is enabled.
+>> >
+>> > That's a bad idea. Stuff has launchers which people might not be able to
+>> > change. So they will simply turn of CET completely or it makes them hack
+>> > horrible crap into init, e.g. the above export.
+>> >
+>> > Give them sane kernel options:
+>> >
+>> >      cet = off, relaxed, forced
+>> >
+>> > where relaxed allows to run binary plugins. Then let dlopen() call into the
+>> > kernel with the filepath of the library to check for CET and that will tell
+>> > you whether its ok or or not and do the necessary magic in the kernel when
+>> > CET has to be disabled due to a !CET library/application.
+>> >
+>> > That's also making the whole thing independent of magic glibc environment
+>> > options and allows it to be used all over the place in the same way.
+>>
+>> This is very similar to our ARCH_CET_EXEC proposal which controls how
+>> CET should be enforced.   But Andy thinks it is a bad idea.
 >
-> Some recent SoC with ARC HS (like HSDK) allow to select bus
-> port (IOC or non-IOC port) for connecting DMA devices in runtime.
+> I do think it's a bad idea to have a new piece of state that survives
+> across exec().  It's going to have nasty usability problems and nasty
+> security problems.
 >
-> With this patch we can use both HW-coherent and regular DMA
-> peripherals simultaneously.
+> We may need a mode by which glibc can turn CET *back off* even after a
+> program had it on if it dlopens() an old binary.  Or maybe there won't
+> be demand.  I can certainly understand why the CET_LOCK feature is
+> there, although I think we need a way to override it using something
+> like ptrace().  I'm not convinced that CET_LOCK is really needed, but
+> someone who understand the thread model should chime in.
 >
-> For example we can connect USB and SDIO controllers through IOC port
-> (so we don't need to need to maintain cache coherency for these
-> devices manualy. All cache sync ops will be nop)
-> And we can connect Ethernet directly to RAM port (so we had to
-> maintain cache coherency manualy. Cache sync ops will be real
-> flush/invalidate operations)
->
-> Cache ops are set per-device and depends on "dma-coherent" device
-> tree property:
-> "dma_noncoherent_ops" are used if no "dma-coherent" property is
-> present (or IOC is disabled)
-> "dma_direct_ops" are used if "dma-coherent" property is present.
+> Kees, do you know anyone who has a good enough understanding of
+> usermode exploits and how they'll interact with CET?
 
-I agree with Christoph that creating a new file for this seems excessive.=
+Adding Florian to CC, but if something gets CET enabled, it really
+shouldn't have a way to turn it off. If there's a way to turn it off,
+all the ROP research will suddenly turn to exactly one gadget before
+doing the rest of the ROP: turning off CET. Right now ROP is: use
+stack-pivot gadget, do everything else. Allowed CET to turn off will
+just add one step: use CET-off gadget, use stack-pivot gadget, do
+everything else. :P
 
+Following Linus's request for "slow introduction" of new security
+features, likely the best approach is to default to "relaxed" (with a
+warning about down-grades), and allow distros/end-users to pick
+"forced" if they know their libraries are all CET-enabled.
 
-> NOTE 1:
-> It works perfectly fine only if we don't have ZONE_HIGHMEM used
-> as IOC doesn't cover all physical memory. As for today It configured
-> to cover 1GiB starting from 0x8z (which is ZONE_NORMAL memory for
-> us). Transactions outside this region are sent on the non-coherent
-> I/O bus interface.
-> We can't configure IOC to cover all physical memory as it has several
-> limitations relating to aperture size and start address.
->
-> And if we get DMA buffer from ZONE_HIGHMEM memory we need to
-> do real flush/invalidate operations on that buffer, which is obviously
-> not done by "dma_direct_ops".
->
-> So I am not sure about "dma_direct_ops" using - probably we need to
-> create our special cache ops like "arc_ioc_ops" which will handle
-> ZONE_HIGHMEM case.
->
-> (BTW: current ARC dma_noncoherent_ops implementation also has same
-> problem if IOC and HIGHMEM are enabled.)
+-Kees
 
-Can we highlight this fact, add error prints somewhere ?
-
-> NOTE 2:
-> In this RFC only hsdk.dts changes are shown to reduce patch size.
-> AXS103 device tree changes are not shown.
->
-> Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-> ---
->  arch/arc/Kconfig                   |  1 +
->  arch/arc/boot/dts/hsdk.dts         |  4 ++++
->  arch/arc/include/asm/dma-mapping.h | 14 ++++++++++++++
->  arch/arc/mm/Makefile               |  2 +-
->  arch/arc/mm/cache.c                | 15 +--------------
->  arch/arc/mm/dma-mapping.c          | 20 ++++++++++++++++++++
->  arch/arc/mm/dma.c                  | 14 +-------------
->  7 files changed, 42 insertions(+), 28 deletions(-)
->  create mode 100644 arch/arc/include/asm/dma-mapping.h
->  create mode 100644 arch/arc/mm/dma-mapping.c
->
-> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-> index e81bcd271be7..0a2fcd2a8c32 100644
-> --- a/arch/arc/Kconfig
-> +++ b/arch/arc/Kconfig
-> @@ -17,6 +17,7 @@ config ARC
->  	select CLONE_BACKWARDS
->  	select COMMON_CLK
->  	select DMA_NONCOHERENT_OPS
-> +	select DMA_DIRECT_OPS
->  	select DMA_NONCOHERENT_MMAP
->  	select GENERIC_ATOMIC64 if !ISA_ARCV2 || !(ARC_HAS_LL64 && ARC_HAS_LL=
-SC)
->  	select GENERIC_CLOCKEVENTS
-> diff --git a/arch/arc/boot/dts/hsdk.dts b/arch/arc/boot/dts/hsdk.dts
-> index 006aa3de5348..ebb686c21393 100644
-> --- a/arch/arc/boot/dts/hsdk.dts
-> +++ b/arch/arc/boot/dts/hsdk.dts
-> @@ -176,6 +176,7 @@
->  			phy-handle =3D <&phy0>;
->  			resets =3D <&cgu_rst HSDK_ETH_RESET>;
->  			reset-names =3D "stmmaceth";
-> +			dma-coherent;
-> =20
->  			mdio {
->  				#address-cells =3D <1>;
-> @@ -194,12 +195,14 @@
->  			compatible =3D "snps,hsdk-v1.0-ohci", "generic-ohci";
->  			reg =3D <0x60000 0x100>;
->  			interrupts =3D <15>;
-> +			dma-coherent;
->  		};
-> =20
->  		ehci@40000 {
->  			compatible =3D "snps,hsdk-v1.0-ehci", "generic-ehci";
->  			reg =3D <0x40000 0x100>;
->  			interrupts =3D <15>;
-> +			dma-coherent;
->  		};
-> =20
->  		mmc@a000 {
-> @@ -212,6 +215,7 @@
->  			clock-names =3D "biu", "ciu";
->  			interrupts =3D <12>;
->  			bus-width =3D <4>;
-> +			dma-coherent;
->  		};
->  	};
-> =20
-> diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/=
-dma-mapping.h
-> new file mode 100644
-> index 000000000000..640a851bd331
-> --- /dev/null
-> +++ b/arch/arc/include/asm/dma-mapping.h
-> @@ -0,0 +1,14 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// (C) 2018 Synopsys, Inc. (www.synopsys.com)
-> +
-> +#ifndef ASM_ARC_DMA_MAPPING_H
-> +#define ASM_ARC_DMA_MAPPING_H
-> +
-> +#define arch_setup_dma_ops arch_setup_dma_ops
-> +
-> +#include <asm-generic/dma-mapping.h>
-> +
-> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
-> +			const struct iommu_ops *iommu, bool coherent);
-> +
-> +#endif
-> diff --git a/arch/arc/mm/Makefile b/arch/arc/mm/Makefile
-> index 3703a4969349..45683897c27b 100644
-> --- a/arch/arc/mm/Makefile
-> +++ b/arch/arc/mm/Makefile
-> @@ -7,5 +7,5 @@
->  #
-> =20
->  obj-y	:=3D extable.o ioremap.o dma.o fault.o init.o
-> -obj-y	+=3D tlb.o tlbex.o cache.o mmap.o
-> +obj-y	+=3D tlb.o tlbex.o cache.o mmap.o dma-mapping.o
->  obj-$(CONFIG_HIGHMEM)	+=3D highmem.o
-> diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
-> index 9dbe645ee127..c5d1f2a2c4da 100644
-> --- a/arch/arc/mm/cache.c
-> +++ b/arch/arc/mm/cache.c
-> @@ -896,15 +896,6 @@ static void __dma_cache_wback_slc(phys_addr_t star=
-t, unsigned long sz)
->  	slc_op(start, sz, OP_FLUSH);
->  }
-> =20
-> -/*
-> - * DMA ops for systems with IOC
-> - * IOC hardware snoops all DMA traffic keeping the caches consistent w=
-ith
-> - * memory - eliding need for any explicit cache maintenance of DMA buf=
-fers
-> - */
-> -static void __dma_cache_wback_inv_ioc(phys_addr_t start, unsigned long=
- sz) {}
-> -static void __dma_cache_inv_ioc(phys_addr_t start, unsigned long sz) {=
-}
-> -static void __dma_cache_wback_ioc(phys_addr_t start, unsigned long sz)=
- {}
-> -
->  /*
->   * Exported DMA API
->   */
-> @@ -1253,11 +1244,7 @@ void __init arc_cache_init_master(void)
->  	if (is_isa_arcv2() && ioc_enable)
->  		arc_ioc_setup();
-> =20
-> -	if (is_isa_arcv2() && ioc_enable) {
-> -		__dma_cache_wback_inv =3D __dma_cache_wback_inv_ioc;
-> -		__dma_cache_inv =3D __dma_cache_inv_ioc;
-> -		__dma_cache_wback =3D __dma_cache_wback_ioc;
-> -	} else if (is_isa_arcv2() && l2_line_sz && slc_enable) {
-
-Maybe also tweak the boot printing in setup.c to indicate that we now do =
-per
-peripheral ioc !
-
-> +	if (is_isa_arcv2() && l2_line_sz && slc_enable) {
->  		__dma_cache_wback_inv =3D __dma_cache_wback_inv_slc;
->  		__dma_cache_inv =3D __dma_cache_inv_slc;
->  		__dma_cache_wback =3D __dma_cache_wback_slc;
-> diff --git a/arch/arc/mm/dma-mapping.c b/arch/arc/mm/dma-mapping.c
-> new file mode 100644
-> index 000000000000..9d0d310bbf5a
-> --- /dev/null
-> +++ b/arch/arc/mm/dma-mapping.c
-> @@ -0,0 +1,20 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// (C) 2018 Synopsys, Inc. (www.synopsys.com)
-> +
-> +#include <linux/dma-mapping.h>
-> +
-> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
-> +			const struct iommu_ops *iommu, bool coherent)
-> +{
-> +	const struct dma_map_ops *dma_ops =3D &dma_noncoherent_ops;
-> +
-> +	/*
-> +	 * IOC hardware snoops all DMA traffic keeping the caches consistent
-> +	 * with memory - eliding need for any explicit cache maintenance of
-> +	 * DMA buffers - so we can use dma_direct cache ops.
-> +	 */
-> +	if (is_isa_arcv2() && ioc_enable && coherent)
-> +		dma_ops =3D &dma_direct_ops;
-> +
-> +	set_dma_ops(dev, dma_ops);
-
-Add a debug printk here maybe ?
-
-> +}
-> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
-> index 8c1071840979..4fd130e786c7 100644
-> --- a/arch/arc/mm/dma.c
-> +++ b/arch/arc/mm/dma.c
-> @@ -33,19 +33,7 @@ void *arch_dma_alloc(struct device *dev, size_t size=
-, dma_addr_t *dma_handle,
->  	if (!page)
->  		return NULL;
-> =20
-> -	/*
-> -	 * IOC relies on all data (even coherent DMA data) being in cache
-> -	 * Thus allocate normal cached memory
-> -	 *
-> -	 * The gains with IOC are two pronged:
-> -	 *   -For streaming data, elides need for cache maintenance, saving
-> -	 *    cycles in flush code, and bus bandwidth as all the lines of a
-> -	 *    buffer need to be flushed out to memory
-> -	 *   -For coherent data, Read/Write to buffers terminate early in cac=
-he
-> -	 *   (vs. always going to memory - thus are faster)
-> -	 */
-> -	if ((is_isa_arcv2() && ioc_enable) ||
-> -	    (attrs & DMA_ATTR_NON_CONSISTENT))
-> +	if (attrs & DMA_ATTR_NON_CONSISTENT)
->  		need_coh =3D 0;
-> =20
->  	/*
+-- 
+Kees Cook
+Pixel Security
