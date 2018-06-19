@@ -1,97 +1,75 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH] ARC: Improve cmpxchng syscall implementation
-Date: Tue, 19 Jun 2018 07:58:12 +0000
-Message-ID: <fc12b39642a2c185a066b0e9b85910accac7865b.camel@synopsys.com>
-References: <20180319110002.27419-1-abrodkin@synopsys.com>
-         <5bc39838-b1c5-ef65-f97d-8777ed33bda0@synopsys.com>
-         <1521633274.9805.30.camel@synopsys.com>
-         <b4d35ed5-9e60-84c4-1081-c5d41498f189@synopsys.com>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
+Date: Tue, 19 Jun 2018 18:52:29 +1000
+Message-ID: <09b7cc16ee5275d4ef3dffb11942e3f2ba44aedd.camel@gmail.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+         <bbfde1b3-5e1b-80e3-30e8-fd1e46a2ceb1@gmail.com>
+         <1528815820.8271.16.camel@2b52.sc.intel.com>
+         <814fc15e80908d8630ff665be690ccbe6e69be88.camel@gmail.com>
+         <1528988176.13101.15.camel@2b52.sc.intel.com>
+         <2b77abb17dfaf58b7c23fac9d8603482e1887337.camel@gmail.com>
+         <CALCETrWCEjuM56J8dqXPR==MevJTYKan5dnAMFJaXzFMYr8Q_A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <b4d35ed5-9e60-84c4-1081-c5d41498f189@synopsys.com>
-Content-Language: en-US
-Content-ID: <992053909FB05548B46E4A12A6FB64C8@internal.synopsys.com>
+In-Reply-To: <CALCETrWCEjuM56J8dqXPR==MevJTYKan5dnAMFJaXzFMYr8Q_A@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "wbx@uclibc-ng.org" <wbx@uclibc-ng.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-SGkgVmluZWV0LA0KDQpPbiBXZWQsIDIwMTgtMDQtMTggYXQgMTE6MTYgLTA3MDAsIFZpbmVldCBH
-dXB0YSB3cm90ZToNCj4gT24gMDMvMjEvMjAxOCAwNDo1NCBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
-dGU6DQo+ID4gLyoNCj4gPiA+ID4gICAgCSAqIFRoaXMgaXMgb25seSBmb3Igb2xkIGNvcmVzIGxh
-Y2tpbmcgTExPQ0svU0NPTkQsIHdoaWNoIGJ5IGRlZmludGlvbg0KPiA+ID4gPiBAQCAtNjAsMjMg
-KzYyLDQ4IEBAIFNZU0NBTExfREVGSU5FMyhhcmNfdXNyX2NtcHhjaGcsIGludCAqLCB1YWRkciwg
-aW50LCBleHBlY3RlZCwgaW50LCBuZXcpDQo+ID4gPiA+ICAgIAkvKiBaIGluZGljYXRlcyB0byB1
-c2Vyc3BhY2UgaWYgb3BlcmF0aW9uIHN1Y2NlZGVkICovDQo+ID4gPiA+ICAgIAlyZWdzLT5zdGF0
-dXMzMiAmPSB+U1RBVFVTX1pfTUFTSzsNCj4gPiA+ID4gICAgDQo+ID4gPiA+IC0JaWYgKCFhY2Nl
-c3Nfb2soVkVSSUZZX1dSSVRFLCB1YWRkciwgc2l6ZW9mKGludCkpKQ0KPiA+ID4gPiAtCQlyZXR1
-cm4gLUVGQVVMVDsNCj4gPiA+ID4gKwlyZXQgPSBhY2Nlc3Nfb2soVkVSSUZZX1dSSVRFLCB1YWRk
-ciwgc2l6ZW9mKCp1YWRkcikpOw0KPiA+ID4gPiArCWlmICghcmV0KQ0KPiA+ID4gPiArCQlnb3Rv
-IGZhaWw7DQo+ID4gPiA+ICAgIA0KPiA+ID4gPiArYWdhaW46DQo+ID4gPiA+ICAgIAlwcmVlbXB0
-X2Rpc2FibGUoKTsNCj4gPiA+ID4gICAgDQo+ID4gPiA+IC0JaWYgKF9fZ2V0X3VzZXIodXZhbCwg
-dWFkZHIpKQ0KPiA+ID4gPiAtCQlnb3RvIGRvbmU7DQo+ID4gPiA+IC0NCj4gPiA+ID4gLQlpZiAo
-dXZhbCA9PSBleHBlY3RlZCkgew0KPiA+ID4gPiAtCQlpZiAoIV9fcHV0X3VzZXIobmV3LCB1YWRk
-cikpDQo+ID4gPiA+ICsJcmV0ID0gX19nZXRfdXNlcih2YWwsIHVhZGRyKTsNCj4gPiA+ID4gKwlp
-ZiAocmV0ID09IC1FRkFVTFQpIHsNCj4gPiA+IA0KPiA+ID4gTGV0cyBzZWUgaWYgdGhpcyB3YXJy
-YW50cyBhZGRpbmcgY29tcGxleGl0eSAhIFRoaXMgaW1wbGllcyB0aGF0IFRMQiBlbnRyeSB3aXRo
-DQo+ID4gPiBSZWFkIHBlcm1pc3Npb25zIGRpZG4ndCBleGlzdCBmb3IgcmVhZGluZyB0aGUgdmFy
-IGFuZCBwYWdlIGZhdWx0IGhhbmRsZXIgY291bGQgbm90DQo+ID4gPiB3aXJlIHVwIGV2ZW4gYSB6
-ZXJvIHBhZ2UgZHVlIHRvIHByZWVtcHRfZGlzYWJsZSwgbWVhbmluZyBpdCB3YXMgc29tZXRoaW5n
-IG5vdA0KPiA+ID4gdG91Y2hlZCBieSB1c2Vyc3BhY2UgYWxyZWFkeSAtIHNvcnQgb2YgdW5pbml0
-aWFsaXplZCB2YXJpYWJsZSBpbiB1c2VyIGNvZGUuDQo+ID4gDQo+ID4gT2sgSSBjb21wbGV0ZWx5
-IG1pc3NlZCB0aGUgZmFjdCB0aGF0IGZhc3QgcGF0aCBUTEIgbWlzcyBoYW5kbGVyIGlzIGJlaW5n
-DQo+ID4gZXhlY3V0ZWQgZXZlbiBpZiB3ZSBoYXZlIHByZWVtcHRpb24gZGlzYWJsZWQuIFNvIGdp
-dmVuIHRoZSBtYXBwaW5nIGV4aXN0DQo+ID4gd2UgZG8gbm90IG5lZWQgdG8gcmV0cnkgd2l0aCBl
-bmFibGVkIHByZWVtcHRpb24uDQo+ID4gDQo+ID4gU3RpbGwgbWF5YmUgSSdtIGEgYml0IHBhcmFu
-b2lkIGhlcmUgYnV0IElNSE8gaXQncyBnb29kIHRvIGJlIHJlYWR5IGZvciBhIGNvcm5lci1jYXNl
-DQo+ID4gd2hlbiB0aGUgcG9pbnRlciBpcyBjb21wbGV0ZWx5IGJvZ3VzIGFuZCB0aGVyZSdzIG5v
-IG1hcHBpbmcgZm9yIGhpbS4NCj4gPiBJIHVuZGVyc3RhbmQgdGhhdCB0b2RheSB3ZSBvbmx5IGV4
-cGVjdCB0aGlzIHN5c2NhbGwgdG8gYmUgdXNlZCBmcm9tIGxpYmMncw0KPiA+IGludGVybmFscyBi
-dXQgYXMgbG9uZyBhcyBzeXNjYWxsIGV4aXN0cyBub2JvZHkgc3RvcHMgYW55Ym9keSBmcm9tIHVz
-aW5nIGl0DQo+ID4gZGlyZWN0bHkgd2l0aG91dCBsaWJjLiBTbyBtYXliZSBpbnN0ZWFkIG9mIGRv
-aW5nIGdldF91c2VyX3BhZ2VzX2Zhc3QoKSBqdXN0DQo+ID4gc2VuZCBhIFNJR1NFR1YgdG8gdGhl
-IHByb2Nlc3M/IEF0IGxlYXN0IHVzZXIgd2lsbCByZWFsaXplIHRoZXJlJ3Mgc29tZSBwcm9ibGVt
-DQo+ID4gYXQgZWFybGllciBzdGFnZS4NCj4gDQo+IGlmIHRoZSBwb2ludGVyIGlzIGJvZ3VzLCB3
-ZSBjdXJyZW50bHkgcmV0dXJuIC1FRkFVTFQsIGlzIHRoYXQgbm90IGVub3VnaCAhIEknbSANCj4g
-ZmluZSBpZiB1IHdhbnQgdG8gY2hhbmdlIHRoYXQgdG8gc2Vndi4NCg0KT2sgZ29vZC4NCg0KPiA+
-ID4gT3RoZXJ3aXNlIGl0IGlzIGV4dHJlbWVseSB1bmxpa2VseSB0byBzdGFydCB3aXRoIGEgVExC
-IGVudHJ5IHdpdGggUmVhZA0KPiA+ID4gcGVybWlzc2lvbnMsIGZvbGxvd2VkIGJ5IHN5c2NhbGwg
-VHJhcCBvbmx5IHRvIGZpbmQgdGhlIGVudHJ5IG1pc3NpbmcsIHVubGVzcyBhDQo+ID4gPiBnbG9i
-YWwgVExCIGZsdXNoIGNhbWUgZnJvbSBvdGhlciBjb3JlcywgcmlnaHQgaW4gdGhlIG1pZGRsZS4g
-QnV0IHRoaXMgc3lzY2FsbCBpcw0KPiA+ID4gbm90IGd1YXJhbnRlZWQgdG8gd29yayB3aXRoIFNN
-UCBhbnl3YXlzLCBzbyBsZXRzIGlnbm9yZSBhbnkgU01QIG1pc2RvaW5ncyBoZXJlLg0KPiA+IA0K
-PiA+IFdlbGwgYnV0IHRoYXQncyBleGFjdGx5IHRoZSBzaXR1YXRpb24gSSB3YXMgZGVidWdnaW5n
-OiB3ZSBzdGFydCBmcm9tIGRhdGEgZnJvbSByZWFkLW9ubHkNCj4gPiBwYWdlIGFuZCBvbiBhdHRl
-bXB0IHRvIHdyaXRlIGJhY2sgbW9kaWZpZWQgdmFsdWUgQ09XIG1hY2hpbmVyeSBnZXRzIGludm9s
-dmVkLg0KPiANCj4gTm8gZXhhY3RseSB5b3VyIHNpdHVhdGlvbi4gSW4geW91ciBjYXNlIHRoZSBU
-TEIgZW50cnkgKmRpZCogZXhpc3Qgd2l0aCBSZWFkIA0KPiBwZXJtaXNzaW9uLiBXaGF0IEkgd2Fz
-IHBvaW50aW5nIHRvIGlzIHRoYXQgY2FzZSB3aGVyZSBpdCB3b3VkbCB2YW5pc2ggYmV0d2VlbiB1
-c2VyIA0KPiByZWFkaW5nIHRoZSBiYWNraW5nIHBhZ2UgYW5kIG1ha2luZyBhIHN5c2NhbGwgIQ0K
-DQpQcm9iYWJseSBJJ20gbWlzc2luZyBzb21ldGhpbmcgaGVyZS4gSW5kZWVkIHRoZXJlJ3MgYWxy
-ZWFkeSBUTEIgZW50cnkgd2l0aCBSRUFEIHBlcm1pc3Npb24NCmFuZCB3ZSBuZWVkIFByb3RWIGV4
-Y2VwdGlvbiB0byBoYXBwZW4gdG8gdXBkYXRlIHRoaXMgZW50cnkgc3VjaCB0aGF0IGl0IGJlY29t
-ZXMgUkVBRC1XUklURQ0KZW5hYmxlZC4gQW5kIGluIGl0cyB0dXJuIGZvciBQcm90ViBleGNlcHRp
-b24gdG8gaGFwcGVuIHdlIG5lZWQgdG8gZW5hYmxlIHByZWVtcHRpb24gYW5kDQpleGVjdXRlIF9f
-cHV0X3VzZXIoKS4NCg0KPiA+ID4gTm93IGluIGNhc2UgaXQgd2FzICphbiogdW5pbml0aWFsaXpl
-ZCB2YXIsIGRvIHdlIGhhdmUgdG8gZ3VhcmFudGVlIGFueSB3ZWxsDQo+ID4gPiBkZWZpbmVkIHNl
-bWFudGljcyBmb3IgdGhlIGtlcm5lbCBlbXVsYXRpb24gb2YgY21weGNoZyA/IElNTyBpdCBzaG91
-bGQgYmUgZmluZSB0bw0KPiA+ID4gcmV0dXJuIDAgb3IgLUVGQVVMVCBldGMuIEluZmFjdCAtRUZB
-VUxUIGlzIGJldHRlciBhcyBpdCB3aWxsIGZvcmNlIGEgcmV0cnkgbG9vcCBvbg0KPiA+ID4gdXNl
-ciBzaWRlLCBnaXZlbiB0aGUgdHlwaWNhbCBjbXB4Y2hnIHVzYWdlIHBhdHRlcm4uDQo+ID4gDQo+
-ID4gVGhlIHByb2JsZW0gaXMgbGliYyBvbmx5IGV4cGVjdHMgdG8gZ2V0IGEgdmFsdWUgcmVhZCBm
-cm9tIG1lbW9yeS4NCj4gPiBBbmQgaW4gdGhlb3J5IGV4cGVjdGVkIHZhbHVlIG1pZ2h0IGJlIC0x
-NCB3aGljaCBpcyBiYXNpY2FsbHkgLUVGQVVMVC4NCj4gPiBJJ20gbm90IHRhbGtpbmcgYWJvdXQg
-MCBhdCBhbGwgYmVjYXVzZSBpbiBzb21lIGNhc2VzIHRoYXQncyBleGFjdGx5IHdoYXQNCj4gPiB1
-c2VyLXNwYWNlIGV4cGVjdHMuDQo+ID4gDQo+ID4gU28gaWYgd2UgcmVhZCB1bmV4cGVjdGVkIHZh
-bHVlIHRoZW4gd2UnbGwganVzdCByZXR1cm4gaXQgd2l0aG91dCBldmVuIGF0dGVtcHRpbmcNCj4g
-PiB0byB3cml0ZS4NCj4gPiANCj4gPiBJZiB3ZSByZWFkIGV4cGVjdGVkIGRhdGEgYnV0IGZhaWwg
-dG8gd3JpdGUgdGhlbiB3ZSdsbCBzZW5kIGEgU0lHU0VHViBhbmQNCj4gPiByZXR1cm4gd2hhdGV2
-ZXIuLi4gbGV0IGl0IGJlIC1FRkFVTFQgLSBhbnl3YXlzIHRoZSBhcHAgd2lsbCBiZSBraWxsZWQg
-b24gZXhpdCBmcm9tDQo+ID4gdGhpcyBzeXNjYWxsLg0KPiANCj4gSSdtIG5vdCBzdXJlIHdoYXQg
-eW91IG1lYW4gaGVyZS4gSSdtIGZpbmUgd2l0aCBhZGRpbmcgc2VndiBraWxsIHNlbWFudGljcywg
-YnV0IA0KPiBkb24ndCB0aGluayBjb21wbGV4aXR5IGZvciBnZXRfdXNlciBpcyB3b3J0aCBpdCAh
-DQoNClRoaXMgY29tcGxleGl0eSBhZGRzIHByZWRpY3RhYmlsaXR5IC0gaWYgd2UgY2Fubm90IHJl
-YWQgb3Igd3JpdGUgZGF0YSB3ZSBraWxsIHRoZSBhcHAgYXMgaWYNCm91ciBub3JtYWwgTEQvU1Qg
-ZmFpbHMgZnJvIHdoYXRldmVyIHJlYXNvbi4NCg0KLUFsZXhleQ==
+On Mon, 2018-06-18 at 14:44 -0700, Andy Lutomirski wrote:
+> On Sat, Jun 16, 2018 at 8:16 PM Balbir Singh <bsingharora@gmail.com> wrote:
+> > 
+> > On Thu, 2018-06-14 at 07:56 -0700, Yu-cheng Yu wrote:
+> > > On Thu, 2018-06-14 at 11:07 +1000, Balbir Singh wrote:
+> > > > On Tue, 2018-06-12 at 08:03 -0700, Yu-cheng Yu wrote:
+> > > > > On Tue, 2018-06-12 at 20:56 +1000, Balbir Singh wrote:
+> > > > > > 
+> > > > > > On 08/06/18 00:37, Yu-cheng Yu wrote:
+> > > > > > > This series introduces CET - Shadow stack
+> > > > > > > 
+> > > > > > > At the high level, shadow stack is:
+> > > > > > > 
+> > > > > > >       Allocated from a task's address space with vm_flags VM_SHSTK;
+> > > > > > >       Its PTEs must be read-only and dirty;
+> > > > > > >       Fixed sized, but the default size can be changed by sys admin.
+> > > > > > > 
+> > > > > > > For a forked child, the shadow stack is duplicated when the next
+> > > > > > > shadow stack access takes place.
+> > > > > > > 
+> > > > > > > For a pthread child, a new shadow stack is allocated.
+> > > > > > > 
+> > > > > > > The signal handler uses the same shadow stack as the main program.
+> > > > > > > 
+> > > > > > 
+> > > > > > Even with sigaltstack()?
+> > > > > > 
+> > > > > 
+> > > > > Yes.
+> > > > 
+> > > > I am not convinced that it would work, as we switch stacks, oveflow might
+> > > > be an issue. I also forgot to bring up setcontext(2), I presume those
+> > > > will get new shadow stacks
+> > > 
+> > > Do you mean signal stack/sigaltstack overflow or swapcontext in a signal
+> > > handler?
+> > > 
+> > 
+> > I meant any combination of that. If there is a user space threads implementation that uses sigaltstack for switching threads
+> > 
+> 
+> Anyone who does that is nuts.  The whole point of user space threads
+> is speed, and signals are very slow.  For userspace threads to work,
+> we need an API to allocate new shadow stacks, and we need to use the
+> extremely awkwardly defined RSTORSSP stuff to switch.  (I assume this
+> is possible on an ISA level.  The docs are bad, and the mnemonics for
+> the relevant instructions are nonsensical.)
+
+The whole point was to ensure we don't break applications/code that work
+today. I think as long as there is a shadow stack allocated corresponding
+to the user space stack and we can Restore SSP as we switch things should be
+fine.
+
+Balbir Singh.
