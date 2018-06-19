@@ -1,58 +1,97 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
-Date: Tue, 19 Jun 2018 08:40:53 +0200
-Message-ID: <e152e1a7-e3b1-c3c4-ce1a-874e97300b37@redhat.com>
-References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
- <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
- <1528403417.5265.35.camel@2b52.sc.intel.com>
- <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
- <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
- <alpine.DEB.2.21.1806121155450.2157@nanos.tec.linutronix.de>
- <CAMe9rOoCiXQ4iVD3j_AHGrvEXtoaVVZVs7H7fCuqNEuuR5j+2Q@mail.gmail.com>
- <CALCETrXO8R+RQPhJFk4oiA4PF77OgSS2Yro_POXQj1zvdLo61A@mail.gmail.com>
- <CAMe9rOpLxPussn7gKvn0GgbOB4f5W+DKOGipe_8NMam+Afd+RA@mail.gmail.com>
- <CALCETrWmGRkQvsUgRaj+j0CP4beKys+TT5aDR5+18nuphwr+Cw@mail.gmail.com>
- <CAMe9rOpzcCdje=bUVs+C1WrY6GuwA-8AUFVLOG325LGz7KHJxw@mail.gmail.com>
- <alpine.DEB.2.21.1806122046520.1592@nanos.tec.linutronix.de>
- <CAMe9rOrGjJf0aMnUjAP38MqvOiW3=iXGQjcUT3O=f9pE85hXaw@mail.gmail.com>
- <CALCETrVsh5t-V1Sm88LsZE_+DS0GE_bMWbcoX3SjD6GnrB08Pw@mail.gmail.com>
- <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [PATCH] ARC: Improve cmpxchng syscall implementation
+Date: Tue, 19 Jun 2018 07:58:12 +0000
+Message-ID: <fc12b39642a2c185a066b0e9b85910accac7865b.camel@synopsys.com>
+References: <20180319110002.27419-1-abrodkin@synopsys.com>
+         <5bc39838-b1c5-ef65-f97d-8777ed33bda0@synopsys.com>
+         <1521633274.9805.30.camel@synopsys.com>
+         <b4d35ed5-9e60-84c4-1081-c5d41498f189@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
+In-Reply-To: <b4d35ed5-9e60-84c4-1081-c5d41498f189@synopsys.com>
 Content-Language: en-US
+Content-ID: <992053909FB05548B46E4A12A6FB64C8@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>
-Cc: "H. J. Lu" <hjl.tools@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Yu-cheng Yu <yu-cheng.yu@intel.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "wbx@uclibc-ng.org" <wbx@uclibc-ng.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/19/2018 02:52 AM, Kees Cook wrote:
-> Adding Florian to CC, but if something gets CET enabled, it really
-> shouldn't have a way to turn it off. If there's a way to turn it off,
-> all the ROP research will suddenly turn to exactly one gadget before
-> doing the rest of the ROP: turning off CET. Right now ROP is: use
-> stack-pivot gadget, do everything else. Allowed CET to turn off will
-> just add one step: use CET-off gadget, use stack-pivot gadget, do
-> everything else. :P
-> 
-> Following Linus's request for "slow introduction" of new security
-> features, likely the best approach is to default to "relaxed" (with a
-> warning about down-grades), and allow distros/end-users to pick
-> "forced" if they know their libraries are all CET-enabled.
-
-The dynamic linker can tell beforehand (before executing any user code) 
-whether a process image supports CET.  So there doesn't have to be 
-anything gradual about it per se to preserve backwards compatibility.
-
-The idea to turn off CET probably comes from the desire to support 
-dlopen.  I'm not sure if this is really necessary because the complexity 
-is rather nasty.  (We currently do something similar for executable 
-stacks.)  I'd rather have a switch to turn off the feature upon process 
-start.  Things like NSS and PAM modules need to be recompiled early.  (I 
-hope that everything that goes directly to the network via custom 
-protocols or hardware such as smartcards is proxied via daemons these days.)
-
-Thanks,
-Florian
+SGkgVmluZWV0LA0KDQpPbiBXZWQsIDIwMTgtMDQtMTggYXQgMTE6MTYgLTA3MDAsIFZpbmVldCBH
+dXB0YSB3cm90ZToNCj4gT24gMDMvMjEvMjAxOCAwNDo1NCBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
+dGU6DQo+ID4gLyoNCj4gPiA+ID4gICAgCSAqIFRoaXMgaXMgb25seSBmb3Igb2xkIGNvcmVzIGxh
+Y2tpbmcgTExPQ0svU0NPTkQsIHdoaWNoIGJ5IGRlZmludGlvbg0KPiA+ID4gPiBAQCAtNjAsMjMg
+KzYyLDQ4IEBAIFNZU0NBTExfREVGSU5FMyhhcmNfdXNyX2NtcHhjaGcsIGludCAqLCB1YWRkciwg
+aW50LCBleHBlY3RlZCwgaW50LCBuZXcpDQo+ID4gPiA+ICAgIAkvKiBaIGluZGljYXRlcyB0byB1
+c2Vyc3BhY2UgaWYgb3BlcmF0aW9uIHN1Y2NlZGVkICovDQo+ID4gPiA+ICAgIAlyZWdzLT5zdGF0
+dXMzMiAmPSB+U1RBVFVTX1pfTUFTSzsNCj4gPiA+ID4gICAgDQo+ID4gPiA+IC0JaWYgKCFhY2Nl
+c3Nfb2soVkVSSUZZX1dSSVRFLCB1YWRkciwgc2l6ZW9mKGludCkpKQ0KPiA+ID4gPiAtCQlyZXR1
+cm4gLUVGQVVMVDsNCj4gPiA+ID4gKwlyZXQgPSBhY2Nlc3Nfb2soVkVSSUZZX1dSSVRFLCB1YWRk
+ciwgc2l6ZW9mKCp1YWRkcikpOw0KPiA+ID4gPiArCWlmICghcmV0KQ0KPiA+ID4gPiArCQlnb3Rv
+IGZhaWw7DQo+ID4gPiA+ICAgIA0KPiA+ID4gPiArYWdhaW46DQo+ID4gPiA+ICAgIAlwcmVlbXB0
+X2Rpc2FibGUoKTsNCj4gPiA+ID4gICAgDQo+ID4gPiA+IC0JaWYgKF9fZ2V0X3VzZXIodXZhbCwg
+dWFkZHIpKQ0KPiA+ID4gPiAtCQlnb3RvIGRvbmU7DQo+ID4gPiA+IC0NCj4gPiA+ID4gLQlpZiAo
+dXZhbCA9PSBleHBlY3RlZCkgew0KPiA+ID4gPiAtCQlpZiAoIV9fcHV0X3VzZXIobmV3LCB1YWRk
+cikpDQo+ID4gPiA+ICsJcmV0ID0gX19nZXRfdXNlcih2YWwsIHVhZGRyKTsNCj4gPiA+ID4gKwlp
+ZiAocmV0ID09IC1FRkFVTFQpIHsNCj4gPiA+IA0KPiA+ID4gTGV0cyBzZWUgaWYgdGhpcyB3YXJy
+YW50cyBhZGRpbmcgY29tcGxleGl0eSAhIFRoaXMgaW1wbGllcyB0aGF0IFRMQiBlbnRyeSB3aXRo
+DQo+ID4gPiBSZWFkIHBlcm1pc3Npb25zIGRpZG4ndCBleGlzdCBmb3IgcmVhZGluZyB0aGUgdmFy
+IGFuZCBwYWdlIGZhdWx0IGhhbmRsZXIgY291bGQgbm90DQo+ID4gPiB3aXJlIHVwIGV2ZW4gYSB6
+ZXJvIHBhZ2UgZHVlIHRvIHByZWVtcHRfZGlzYWJsZSwgbWVhbmluZyBpdCB3YXMgc29tZXRoaW5n
+IG5vdA0KPiA+ID4gdG91Y2hlZCBieSB1c2Vyc3BhY2UgYWxyZWFkeSAtIHNvcnQgb2YgdW5pbml0
+aWFsaXplZCB2YXJpYWJsZSBpbiB1c2VyIGNvZGUuDQo+ID4gDQo+ID4gT2sgSSBjb21wbGV0ZWx5
+IG1pc3NlZCB0aGUgZmFjdCB0aGF0IGZhc3QgcGF0aCBUTEIgbWlzcyBoYW5kbGVyIGlzIGJlaW5n
+DQo+ID4gZXhlY3V0ZWQgZXZlbiBpZiB3ZSBoYXZlIHByZWVtcHRpb24gZGlzYWJsZWQuIFNvIGdp
+dmVuIHRoZSBtYXBwaW5nIGV4aXN0DQo+ID4gd2UgZG8gbm90IG5lZWQgdG8gcmV0cnkgd2l0aCBl
+bmFibGVkIHByZWVtcHRpb24uDQo+ID4gDQo+ID4gU3RpbGwgbWF5YmUgSSdtIGEgYml0IHBhcmFu
+b2lkIGhlcmUgYnV0IElNSE8gaXQncyBnb29kIHRvIGJlIHJlYWR5IGZvciBhIGNvcm5lci1jYXNl
+DQo+ID4gd2hlbiB0aGUgcG9pbnRlciBpcyBjb21wbGV0ZWx5IGJvZ3VzIGFuZCB0aGVyZSdzIG5v
+IG1hcHBpbmcgZm9yIGhpbS4NCj4gPiBJIHVuZGVyc3RhbmQgdGhhdCB0b2RheSB3ZSBvbmx5IGV4
+cGVjdCB0aGlzIHN5c2NhbGwgdG8gYmUgdXNlZCBmcm9tIGxpYmMncw0KPiA+IGludGVybmFscyBi
+dXQgYXMgbG9uZyBhcyBzeXNjYWxsIGV4aXN0cyBub2JvZHkgc3RvcHMgYW55Ym9keSBmcm9tIHVz
+aW5nIGl0DQo+ID4gZGlyZWN0bHkgd2l0aG91dCBsaWJjLiBTbyBtYXliZSBpbnN0ZWFkIG9mIGRv
+aW5nIGdldF91c2VyX3BhZ2VzX2Zhc3QoKSBqdXN0DQo+ID4gc2VuZCBhIFNJR1NFR1YgdG8gdGhl
+IHByb2Nlc3M/IEF0IGxlYXN0IHVzZXIgd2lsbCByZWFsaXplIHRoZXJlJ3Mgc29tZSBwcm9ibGVt
+DQo+ID4gYXQgZWFybGllciBzdGFnZS4NCj4gDQo+IGlmIHRoZSBwb2ludGVyIGlzIGJvZ3VzLCB3
+ZSBjdXJyZW50bHkgcmV0dXJuIC1FRkFVTFQsIGlzIHRoYXQgbm90IGVub3VnaCAhIEknbSANCj4g
+ZmluZSBpZiB1IHdhbnQgdG8gY2hhbmdlIHRoYXQgdG8gc2Vndi4NCg0KT2sgZ29vZC4NCg0KPiA+
+ID4gT3RoZXJ3aXNlIGl0IGlzIGV4dHJlbWVseSB1bmxpa2VseSB0byBzdGFydCB3aXRoIGEgVExC
+IGVudHJ5IHdpdGggUmVhZA0KPiA+ID4gcGVybWlzc2lvbnMsIGZvbGxvd2VkIGJ5IHN5c2NhbGwg
+VHJhcCBvbmx5IHRvIGZpbmQgdGhlIGVudHJ5IG1pc3NpbmcsIHVubGVzcyBhDQo+ID4gPiBnbG9i
+YWwgVExCIGZsdXNoIGNhbWUgZnJvbSBvdGhlciBjb3JlcywgcmlnaHQgaW4gdGhlIG1pZGRsZS4g
+QnV0IHRoaXMgc3lzY2FsbCBpcw0KPiA+ID4gbm90IGd1YXJhbnRlZWQgdG8gd29yayB3aXRoIFNN
+UCBhbnl3YXlzLCBzbyBsZXRzIGlnbm9yZSBhbnkgU01QIG1pc2RvaW5ncyBoZXJlLg0KPiA+IA0K
+PiA+IFdlbGwgYnV0IHRoYXQncyBleGFjdGx5IHRoZSBzaXR1YXRpb24gSSB3YXMgZGVidWdnaW5n
+OiB3ZSBzdGFydCBmcm9tIGRhdGEgZnJvbSByZWFkLW9ubHkNCj4gPiBwYWdlIGFuZCBvbiBhdHRl
+bXB0IHRvIHdyaXRlIGJhY2sgbW9kaWZpZWQgdmFsdWUgQ09XIG1hY2hpbmVyeSBnZXRzIGludm9s
+dmVkLg0KPiANCj4gTm8gZXhhY3RseSB5b3VyIHNpdHVhdGlvbi4gSW4geW91ciBjYXNlIHRoZSBU
+TEIgZW50cnkgKmRpZCogZXhpc3Qgd2l0aCBSZWFkIA0KPiBwZXJtaXNzaW9uLiBXaGF0IEkgd2Fz
+IHBvaW50aW5nIHRvIGlzIHRoYXQgY2FzZSB3aGVyZSBpdCB3b3VkbCB2YW5pc2ggYmV0d2VlbiB1
+c2VyIA0KPiByZWFkaW5nIHRoZSBiYWNraW5nIHBhZ2UgYW5kIG1ha2luZyBhIHN5c2NhbGwgIQ0K
+DQpQcm9iYWJseSBJJ20gbWlzc2luZyBzb21ldGhpbmcgaGVyZS4gSW5kZWVkIHRoZXJlJ3MgYWxy
+ZWFkeSBUTEIgZW50cnkgd2l0aCBSRUFEIHBlcm1pc3Npb24NCmFuZCB3ZSBuZWVkIFByb3RWIGV4
+Y2VwdGlvbiB0byBoYXBwZW4gdG8gdXBkYXRlIHRoaXMgZW50cnkgc3VjaCB0aGF0IGl0IGJlY29t
+ZXMgUkVBRC1XUklURQ0KZW5hYmxlZC4gQW5kIGluIGl0cyB0dXJuIGZvciBQcm90ViBleGNlcHRp
+b24gdG8gaGFwcGVuIHdlIG5lZWQgdG8gZW5hYmxlIHByZWVtcHRpb24gYW5kDQpleGVjdXRlIF9f
+cHV0X3VzZXIoKS4NCg0KPiA+ID4gTm93IGluIGNhc2UgaXQgd2FzICphbiogdW5pbml0aWFsaXpl
+ZCB2YXIsIGRvIHdlIGhhdmUgdG8gZ3VhcmFudGVlIGFueSB3ZWxsDQo+ID4gPiBkZWZpbmVkIHNl
+bWFudGljcyBmb3IgdGhlIGtlcm5lbCBlbXVsYXRpb24gb2YgY21weGNoZyA/IElNTyBpdCBzaG91
+bGQgYmUgZmluZSB0bw0KPiA+ID4gcmV0dXJuIDAgb3IgLUVGQVVMVCBldGMuIEluZmFjdCAtRUZB
+VUxUIGlzIGJldHRlciBhcyBpdCB3aWxsIGZvcmNlIGEgcmV0cnkgbG9vcCBvbg0KPiA+ID4gdXNl
+ciBzaWRlLCBnaXZlbiB0aGUgdHlwaWNhbCBjbXB4Y2hnIHVzYWdlIHBhdHRlcm4uDQo+ID4gDQo+
+ID4gVGhlIHByb2JsZW0gaXMgbGliYyBvbmx5IGV4cGVjdHMgdG8gZ2V0IGEgdmFsdWUgcmVhZCBm
+cm9tIG1lbW9yeS4NCj4gPiBBbmQgaW4gdGhlb3J5IGV4cGVjdGVkIHZhbHVlIG1pZ2h0IGJlIC0x
+NCB3aGljaCBpcyBiYXNpY2FsbHkgLUVGQVVMVC4NCj4gPiBJJ20gbm90IHRhbGtpbmcgYWJvdXQg
+MCBhdCBhbGwgYmVjYXVzZSBpbiBzb21lIGNhc2VzIHRoYXQncyBleGFjdGx5IHdoYXQNCj4gPiB1
+c2VyLXNwYWNlIGV4cGVjdHMuDQo+ID4gDQo+ID4gU28gaWYgd2UgcmVhZCB1bmV4cGVjdGVkIHZh
+bHVlIHRoZW4gd2UnbGwganVzdCByZXR1cm4gaXQgd2l0aG91dCBldmVuIGF0dGVtcHRpbmcNCj4g
+PiB0byB3cml0ZS4NCj4gPiANCj4gPiBJZiB3ZSByZWFkIGV4cGVjdGVkIGRhdGEgYnV0IGZhaWwg
+dG8gd3JpdGUgdGhlbiB3ZSdsbCBzZW5kIGEgU0lHU0VHViBhbmQNCj4gPiByZXR1cm4gd2hhdGV2
+ZXIuLi4gbGV0IGl0IGJlIC1FRkFVTFQgLSBhbnl3YXlzIHRoZSBhcHAgd2lsbCBiZSBraWxsZWQg
+b24gZXhpdCBmcm9tDQo+ID4gdGhpcyBzeXNjYWxsLg0KPiANCj4gSSdtIG5vdCBzdXJlIHdoYXQg
+eW91IG1lYW4gaGVyZS4gSSdtIGZpbmUgd2l0aCBhZGRpbmcgc2VndiBraWxsIHNlbWFudGljcywg
+YnV0IA0KPiBkb24ndCB0aGluayBjb21wbGV4aXR5IGZvciBnZXRfdXNlciBpcyB3b3J0aCBpdCAh
+DQoNClRoaXMgY29tcGxleGl0eSBhZGRzIHByZWRpY3RhYmlsaXR5IC0gaWYgd2UgY2Fubm90IHJl
+YWQgb3Igd3JpdGUgZGF0YSB3ZSBraWxsIHRoZSBhcHAgYXMgaWYNCm91ciBub3JtYWwgTEQvU1Qg
+ZmFpbHMgZnJvIHdoYXRldmVyIHJlYXNvbi4NCg0KLUFsZXhleQ==
