@@ -1,50 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45818 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S966879AbeFSQMq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Jun 2018 12:12:46 -0400
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v6 17/27] arm64: kprobes: Don't call the ->break_handler() in arm64 kprobes code
-Date: Wed, 20 Jun 2018 01:12:22 +0900
-Message-ID: <152942474231.15209.17684808374429473004.stgit@devbox>
-In-Reply-To: <152942424698.15209.15245996287444292393.stgit@devbox>
+Received: from bombadil.infradead.org ([198.137.202.133]:46284 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965953AbeFSQbx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jun 2018 12:31:53 -0400
+Subject: Re: [PATCH -tip v6 26/27] Documentation: kprobes: Add how to change
+ the execution path
 References: <152942424698.15209.15245996287444292393.stgit@devbox>
+ <152942500680.15209.12374262914863044775.stgit@devbox>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <706832c5-dab4-f806-96d6-2cdc37203d9d@infradead.org>
+Date: Tue, 19 Jun 2018 09:31:49 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <152942500680.15209.12374262914863044775.stgit@devbox>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180619161222.Iw9WSOs5_fFIn9_DM_JNzrIx5ZM0LxHpHXQ-zmc7QUs@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Message-ID: <20180619163149.ZuJiebOzjyst8S1LRrLHNcXUug6goFdj7C-LZOuJ1gE@z>
 
-Don't call the ->break_handler() from the arm64 kprobes code,
-because it was only used by jprobes which got removed.
+On 06/19/2018 09:16 AM, Masami Hiramatsu wrote:
+> Add a section that explaining how to change the execution
+> path with kprobes and warnings for some arch.
+> 
+> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> Cc: Jonathan Corbet <corbet@lwn.net>
+> Cc: linux-doc@vger.kernel.org
+> ---
+>  Documentation/kprobes.txt |   20 ++++++++++++++++++++
+>  1 file changed, 20 insertions(+)
+> 
+> diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
+> index 3e9e99ea751b..8a98eed1521b 100644
+> --- a/Documentation/kprobes.txt
+> +++ b/Documentation/kprobes.txt
+> @@ -80,6 +80,26 @@ After the instruction is single-stepped, Kprobes executes the
+>  "post_handler," if any, that is associated with the kprobe.
+>  Execution then continues with the instruction following the probepoint.
+>  
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
----
- arch/arm64/kernel/probes/kprobes.c |    8 --------
- 1 file changed, 8 deletions(-)
+Hi,
+I have a few small suggestions...
 
-diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
-index 3ca2351109a6..076c3c0775a6 100644
---- a/arch/arm64/kernel/probes/kprobes.c
-+++ b/arch/arm64/kernel/probes/kprobes.c
-@@ -408,14 +408,6 @@ static void __kprobes kprobe_handler(struct pt_regs *regs)
- 				return;
- 			}
- 		}
--	} else if ((le32_to_cpu(*(kprobe_opcode_t *) addr) ==
--	    BRK64_OPCODE_KPROBES) && cur_kprobe) {
--		/* We probably hit a jprobe.  Call its break handler. */
--		if (cur_kprobe->break_handler  &&
--		     cur_kprobe->break_handler(cur_kprobe, regs)) {
--			setup_singlestep(cur_kprobe, regs, kcb, 0);
--			return;
--		}
- 	}
- 	/*
- 	 * The breakpoint instruction was removed right
+
+> +Changing Execution Path
+> +-----------------------
+> +
+> +Since the kprobes can probe into a running kernel code, it can change
+
+   Since kprobes can probe into running kernel code, it can change
+
+> +the register set, including instruction pointer. This operation
+> +requires maximum attention, such as keeping the stack frame, recovering
+> +execution path etc. Since it is operated on running kernel and need deep
+
+                       Since it operates on a running kernel and needs deep
+
+> +knowladge of the archtecture and concurrent computing, you can easily
+
+   knowledge of the architecture
+
+> +shot your foot.
+
+   shoot
+
+> +
+> +If you change the instruction pointer (and set up other related
+> +registers) in pre_handler, you must return !0 so that the kprobes
+
+                                                 so that kprobes
+
+> +stops single stepping and just returns to given address.
+
+                                          to the given address.
+
+> +This also means post_handler should not be called anymore.
+> +
+> +Note that this operation may be harder on some architectures which
+> +use TOC (Table of Contents) for function call, since you have to
+> +setup new TOC for your function in your module, and recover old
+
+   setup a new TOC for your function in your module, and recover the old
+
+> +one after back from it.
+
+   one after returning from it.
+
+> +
+>  Return Probes
+>  -------------
+
+
+-- 
+~Randy
