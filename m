@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44876 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:45442 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S966587AbeFSQJx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Jun 2018 12:09:53 -0400
+        id S966661AbeFSQLs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Jun 2018 12:11:48 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v6 11/27] sh: kprobes: Remove jprobe implementation
-Date: Wed, 20 Jun 2018 01:09:28 +0900
-Message-ID: <152942456877.15209.5482537226935729621.stgit@devbox>
+Subject: [PATCH -tip v6 15/27] ARC: kprobes: Don't call the ->break_handler() in ARC kprobes code
+Date: Wed, 20 Jun 2018 01:11:24 +0900
+Message-ID: <152942468446.15209.13773902741600803798.stgit@devbox>
 In-Reply-To: <152942424698.15209.15245996287444292393.stgit@devbox>
 References: <152942424698.15209.15245996287444292393.stgit@devbox>
 MIME-Version: 1.0
@@ -15,103 +15,34 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org
-Message-ID: <20180619160928.jDPEsUq9p7JFbecMbBJk1ZGb_h25QfvFQAJKD-JOZ-w@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, linux-snps-arc@lists.infradead.org
+Message-ID: <20180619161124.wDarawUCMGHha20XNox89bKshOtP0OesWQgXT-nKN0Q@z>
 
-Remove arch dependent setjump/longjump functions
-and unused fields in kprobe_ctlblk for jprobes
-from arch/sh.
+Don't call the ->break_handler() from the ARC kprobes code,
+because it was only used by jprobes which got removed.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: linux-sh@vger.kernel.org
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: linux-snps-arc@lists.infradead.org
 ---
- arch/sh/include/asm/kprobes.h |    4 ---
- arch/sh/kernel/kprobes.c      |   51 -----------------------------------------
- 2 files changed, 55 deletions(-)
+ arch/arc/kernel/kprobes.c |    7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/arch/sh/include/asm/kprobes.h b/arch/sh/include/asm/kprobes.h
-index 85d8bcaa8493..6171682f7798 100644
---- a/arch/sh/include/asm/kprobes.h
-+++ b/arch/sh/include/asm/kprobes.h
-@@ -27,7 +27,6 @@ struct kprobe;
+diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
+index 7811a6bbe8f0..465365696c91 100644
+--- a/arch/arc/kernel/kprobes.c
++++ b/arch/arc/kernel/kprobes.c
+@@ -234,13 +234,6 @@ int __kprobes arc_kprobe_handler(unsigned long addr, struct pt_regs *regs)
+ 		}
  
- void arch_remove_kprobe(struct kprobe *);
- void kretprobe_trampoline(void);
--void jprobe_return_end(void);
+ 		return 1;
+-	} else if (kprobe_running()) {
+-		p = __this_cpu_read(current_kprobe);
+-		if (p->break_handler && p->break_handler(p, regs)) {
+-			setup_singlestep(p, regs);
+-			kcb->kprobe_status = KPROBE_HIT_SS;
+-			return 1;
+-		}
+ 	}
  
- /* Architecture specific copy of original instruction*/
- struct arch_specific_insn {
-@@ -43,9 +42,6 @@ struct prev_kprobe {
- /* per-cpu kprobe control block */
- struct kprobe_ctlblk {
- 	unsigned long kprobe_status;
--	unsigned long jprobe_saved_r15;
--	struct pt_regs jprobe_saved_regs;
--	kprobe_opcode_t jprobes_stack[MAX_STACK_SIZE];
- 	struct prev_kprobe prev_kprobe;
- };
- 
-diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
-index 52a5e11247d1..2b5e58873b96 100644
---- a/arch/sh/kernel/kprobes.c
-+++ b/arch/sh/kernel/kprobes.c
-@@ -523,57 +523,6 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
- 	return ret;
- }
- 
--int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
--{
--	struct jprobe *jp = container_of(p, struct jprobe, kp);
--	unsigned long addr;
--	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--
--	kcb->jprobe_saved_regs = *regs;
--	kcb->jprobe_saved_r15 = regs->regs[15];
--	addr = kcb->jprobe_saved_r15;
--
--	/*
--	 * TBD: As Linus pointed out, gcc assumes that the callee
--	 * owns the argument space and could overwrite it, e.g.
--	 * tailcall optimization. So, to be absolutely safe
--	 * we also save and restore enough stack bytes to cover
--	 * the argument area.
--	 */
--	memcpy(kcb->jprobes_stack, (kprobe_opcode_t *) addr,
--	       MIN_STACK_SIZE(addr));
--
--	regs->pc = (unsigned long)(jp->entry);
--
--	return 1;
--}
--
--void __kprobes jprobe_return(void)
--{
--	asm volatile ("trapa #0x3a\n\t" "jprobe_return_end:\n\t" "nop\n\t");
--}
--
--int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
--{
--	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
--	unsigned long stack_addr = kcb->jprobe_saved_r15;
--	u8 *addr = (u8 *)regs->pc;
--
--	if ((addr >= (u8 *)jprobe_return) &&
--	    (addr <= (u8 *)jprobe_return_end)) {
--		*regs = kcb->jprobe_saved_regs;
--
--		memcpy((kprobe_opcode_t *)stack_addr, kcb->jprobes_stack,
--		       MIN_STACK_SIZE(stack_addr));
--
--		kcb->kprobe_status = KPROBE_HIT_SS;
--		preempt_enable_no_resched();
--		return 1;
--	}
--
--	return 0;
--}
--
- static struct kprobe trampoline_p = {
- 	.addr = (kprobe_opcode_t *)&kretprobe_trampoline,
- 	.pre_handler = trampoline_probe_handler
+ 	/* no_kprobe: */
