@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45442 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:45208 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S966661AbeFSQLs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Jun 2018 12:11:48 -0400
+        id S966263AbeFSQKu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Jun 2018 12:10:50 -0400
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH -tip v6 15/27] ARC: kprobes: Don't call the ->break_handler() in ARC kprobes code
-Date: Wed, 20 Jun 2018 01:11:24 +0900
-Message-ID: <152942468446.15209.13773902741600803798.stgit@devbox>
+Subject: [PATCH -tip v6 13/27] kprobes: Don't check the ->break_handler() in generic kprobes code
+Date: Wed, 20 Jun 2018 01:10:27 +0900
+Message-ID: <152942462686.15209.6324404940493598980.stgit@devbox>
 In-Reply-To: <152942424698.15209.15245996287444292393.stgit@devbox>
 References: <152942424698.15209.15245996287444292393.stgit@devbox>
 MIME-Version: 1.0
@@ -15,34 +15,129 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, linux-snps-arc@lists.infradead.org
-Message-ID: <20180619161124.wDarawUCMGHha20XNox89bKshOtP0OesWQgXT-nKN0Q@z>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
+Message-ID: <20180619161027.56WvGLk8NFBSAbZ9a3vsDGL-3tSMCNi9QVnxd5r2n7Q@z>
 
-Don't call the ->break_handler() from the ARC kprobes code,
+Don't check the ->break_handler() from the core kprobes code,
 because it was only used by jprobes which got removed.
 
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: linux-snps-arc@lists.infradead.org
----
- arch/arc/kernel/kprobes.c |    7 -------
- 1 file changed, 7 deletions(-)
+( In followup patches we'll remove the remaining calls in low level
+  arch handlers as well and remove the callback altogether. )
 
-diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
-index 7811a6bbe8f0..465365696c91 100644
---- a/arch/arc/kernel/kprobes.c
-+++ b/arch/arc/kernel/kprobes.c
-@@ -234,13 +234,6 @@ int __kprobes arc_kprobe_handler(unsigned long addr, struct pt_regs *regs)
- 		}
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+---
+ Documentation/kprobes.txt |    2 +-
+ kernel/kprobes.c          |   39 +++++----------------------------------
+ 2 files changed, 6 insertions(+), 35 deletions(-)
+
+diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
+index 5ae80baf3921..907a3017c0f2 100644
+--- a/Documentation/kprobes.txt
++++ b/Documentation/kprobes.txt
+@@ -262,7 +262,7 @@ is optimized, that modification is ignored.  Thus, if you want to
+ tweak the kernel's execution path, you need to suppress optimization,
+ using one of the following techniques:
  
- 		return 1;
--	} else if (kprobe_running()) {
--		p = __this_cpu_read(current_kprobe);
--		if (p->break_handler && p->break_handler(p, regs)) {
--			setup_singlestep(p, regs);
--			kcb->kprobe_status = KPROBE_HIT_SS;
--			return 1;
--		}
+-- Specify an empty function for the kprobe's post_handler or break_handler.
++- Specify an empty function for the kprobe's post_handler.
+ 
+ or
+ 
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index 69de130595f7..536ab451e96d 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -627,8 +627,8 @@ static void optimize_kprobe(struct kprobe *p)
+ 	    (kprobe_disabled(p) || kprobes_all_disarmed))
+ 		return;
+ 
+-	/* Both of break_handler and post_handler are not supported. */
+-	if (p->break_handler || p->post_handler)
++	/* kprobes with post_handler can not be optimized */
++	if (p->post_handler)
+ 		return;
+ 
+ 	op = container_of(p, struct optimized_kprobe, kp);
+@@ -1116,20 +1116,6 @@ static int aggr_fault_handler(struct kprobe *p, struct pt_regs *regs,
+ }
+ NOKPROBE_SYMBOL(aggr_fault_handler);
+ 
+-static int aggr_break_handler(struct kprobe *p, struct pt_regs *regs)
+-{
+-	struct kprobe *cur = __this_cpu_read(kprobe_instance);
+-	int ret = 0;
+-
+-	if (cur && cur->break_handler) {
+-		if (cur->break_handler(cur, regs))
+-			ret = 1;
+-	}
+-	reset_kprobe_instance();
+-	return ret;
+-}
+-NOKPROBE_SYMBOL(aggr_break_handler);
+-
+ /* Walks the list and increments nmissed count for multiprobe case */
+ void kprobes_inc_nmissed_count(struct kprobe *p)
+ {
+@@ -1270,24 +1256,15 @@ static void cleanup_rp_inst(struct kretprobe *rp)
+ }
+ NOKPROBE_SYMBOL(cleanup_rp_inst);
+ 
+-/*
+-* Add the new probe to ap->list. Fail if this is the
+-* second break_handler at the address
+-*/
++/* Add the new probe to ap->list */
+ static int add_new_kprobe(struct kprobe *ap, struct kprobe *p)
+ {
+ 	BUG_ON(kprobe_gone(ap) || kprobe_gone(p));
+ 
+-	if (p->break_handler || p->post_handler)
++	if (p->post_handler)
+ 		unoptimize_kprobe(ap, true);	/* Fall back to normal kprobe */
+ 
+-	if (p->break_handler) {
+-		if (ap->break_handler)
+-			return -EEXIST;
+-		list_add_tail_rcu(&p->list, &ap->list);
+-		ap->break_handler = aggr_break_handler;
+-	} else
+-		list_add_rcu(&p->list, &ap->list);
++	list_add_rcu(&p->list, &ap->list);
+ 	if (p->post_handler && !ap->post_handler)
+ 		ap->post_handler = aggr_post_handler;
+ 
+@@ -1310,8 +1287,6 @@ static void init_aggr_kprobe(struct kprobe *ap, struct kprobe *p)
+ 	/* We don't care the kprobe which has gone. */
+ 	if (p->post_handler && !kprobe_gone(p))
+ 		ap->post_handler = aggr_post_handler;
+-	if (p->break_handler && !kprobe_gone(p))
+-		ap->break_handler = aggr_break_handler;
+ 
+ 	INIT_LIST_HEAD(&ap->list);
+ 	INIT_HLIST_NODE(&ap->hlist);
+@@ -1706,8 +1681,6 @@ static int __unregister_kprobe_top(struct kprobe *p)
+ 		goto disarmed;
+ 	else {
+ 		/* If disabling probe has special handlers, update aggrprobe */
+-		if (p->break_handler && !kprobe_gone(p))
+-			ap->break_handler = NULL;
+ 		if (p->post_handler && !kprobe_gone(p)) {
+ 			list_for_each_entry_rcu(list_p, &ap->list, list) {
+ 				if ((list_p != p) && (list_p->post_handler))
+@@ -1911,7 +1884,6 @@ int register_kretprobe(struct kretprobe *rp)
+ 	rp->kp.pre_handler = pre_handler_kretprobe;
+ 	rp->kp.post_handler = NULL;
+ 	rp->kp.fault_handler = NULL;
+-	rp->kp.break_handler = NULL;
+ 
+ 	/* Pre-allocate memory for max kretprobe instances */
+ 	if (rp->maxactive <= 0) {
+@@ -2034,7 +2006,6 @@ static void kill_kprobe(struct kprobe *p)
+ 		list_for_each_entry_rcu(kp, &p->list, list)
+ 			kp->flags |= KPROBE_FLAG_GONE;
+ 		p->post_handler = NULL;
+-		p->break_handler = NULL;
+ 		kill_optimized_kprobe(p);
  	}
- 
- 	/* no_kprobe: */
+ 	/*
