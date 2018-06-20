@@ -1,38 +1,74 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v4 6/7] arm64: update Documentation/arm64/tagged-pointers.txt
-Date: Wed, 20 Jun 2018 17:24:25 +0200
-Message-ID: <ac42b33affe34c8146ac9a882f6c6be270726dc7.1529507994.git.andreyknvl@google.com>
-References: <cover.1529507994.git.andreyknvl@google.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1529507994.git.andreyknvl@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Wed, 20 Jun 2018 17:24:19 +0200
+Message-ID: <cover.1529507994.git.andreyknvl@google.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
+Cc: Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Evgeniy Stepanov <eugenis@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add a note that work on passing tagged user pointers to the kernel via
-syscalls has started, but might not be complete yet.
-
-Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
----
- Documentation/arm64/tagged-pointers.txt | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-index a25a99e82bb1..361481283f00 100644
---- a/Documentation/arm64/tagged-pointers.txt
-+++ b/Documentation/arm64/tagged-pointers.txt
-@@ -35,8 +35,9 @@ Using non-zero address tags in any of these locations may result in an
- error code being returned, a (fatal) signal being raised, or other modes
- of failure.
- 
--For these reasons, passing non-zero address tags to the kernel via
--system calls is forbidden, and using a non-zero address tag for sp is
-+Some initial work for supporting non-zero address tags passed to the
-+kernel via system calls has been done, but the kernel doesn't provide
-+any guarantees at this point. Using a non-zero address tag for sp is
- strongly discouraged.
- 
- Programs maintaining a frame pointer and frame records that use non-zero
--- 
-2.18.0.rc1.244.gcf134e6275-goog
+YXJtNjQgaGFzIGEgZmVhdHVyZSBjYWxsZWQgVG9wIEJ5dGUgSWdub3JlLCB3aGljaCBhbGxvd3Mg
+dG8gZW1iZWQgcG9pbnRlcgp0YWdzIGludG8gdGhlIHRvcCBieXRlIG9mIGVhY2ggcG9pbnRlci4g
+VXNlcnNwYWNlIHByb2dyYW1zIChzdWNoIGFzCkhXQVNhbiwgYSBtZW1vcnkgZGVidWdnaW5nIHRv
+b2wgWzFdKSBtaWdodCB1c2UgdGhpcyBmZWF0dXJlIGFuZCBwYXNzCnRhZ2dlZCB1c2VyIHBvaW50
+ZXJzIHRvIHRoZSBrZXJuZWwgdGhyb3VnaCBzeXNjYWxscyBvciBvdGhlciBpbnRlcmZhY2VzLgoK
+VGhpcyBwYXRjaCBtYWtlcyBhIGZldyBvZiB0aGUga2VybmVsIGludGVyZmFjZXMgYWNjZXB0IHRh
+Z2dlZCB1c2VyCnBvaW50ZXJzLiBUaGUga2VybmVsIGlzIGFscmVhZHkgYWJsZSB0byBoYW5kbGUg
+dXNlciBmYXVsdHMgd2l0aCB0YWdnZWQKcG9pbnRlcnMgYW5kIGhhcyB0aGUgdW50YWdnZWRfYWRk
+ciBtYWNybywgd2hpY2ggdGhpcyBwYXRjaHNldCByZXVzZXMuCgpXZSdyZSBub3QgdHJ5aW5nIHRv
+IGNvdmVyIGFsbCBwb3NzaWJsZSB3YXlzIHRoZSBrZXJuZWwgYWNjZXB0cyB1c2VyCnBvaW50ZXJz
+IGluIG9uZSBwYXRjaHNldCwgc28gdGhpcyBvbmUgc2hvdWxkIGJlIGNvbnNpZGVyZWQgYXMgYSBz
+dGFydC4KClRoYW5rcyEKClsxXSBodHRwOi8vY2xhbmcubGx2bS5vcmcvZG9jcy9IYXJkd2FyZUFz
+c2lzdGVkQWRkcmVzc1Nhbml0aXplckRlc2lnbi5odG1sCgpDaGFuZ2VzIGluIHY0OgotIEFkZGVk
+IGEgc2VsZnRlc3QgZm9yIGNoZWNraW5nIHRoYXQgcGFzc2luZyB0YWdnZWQgcG9pbnRlcnMgdG8g
+dGhlIAogIGtlcm5lbCBzdWNjZWVkcy4KLSBSZWJhc2VkIG9udG8gODFlOTdmMDEzICg0LjE4LXJj
+MSspLgoKQ2hhbmdlcyBpbiB2MzoKLSBSZWJhc2VkIG9udG8gZTVjNTFmMzAgKDQuMTctcmM2Kyku
+Ci0gQWRkZWQgbGludXgtYXJjaEAgdG8gdGhlIGxpc3Qgb2YgcmVjaXBpZW50cy4KCkNoYW5nZXMg
+aW4gdjI6Ci0gUmViYXNlZCBvbnRvIDJkNjE4YmRmICg0LjE3LXJjMyspLgotIFJlbW92ZWQgZXhj
+ZXNzaXZlIHVudGFnZ2luZyBpbiBndXAuYy4KLSBSZW1vdmVkIHVudGFnZ2luZyBwb2ludGVycyBy
+ZXR1cm5lZCBmcm9tIF9fdWFjY2Vzc19tYXNrX3B0ci4KCkNoYW5nZXMgaW4gdjE6Ci0gUmViYXNl
+ZCBvbnRvIDQuMTctcmMxLgoKQ2hhbmdlcyBpbiBSRkMgdjI6Ci0gQWRkZWQgIiNpZm5kZWYgdW50
+YWdnZWRfYWRkci4uLiIgZmFsbGJhY2sgaW4gbGludXgvdWFjY2Vzcy5oIGluc3RlYWQgb2YKICBk
+ZWZpbmluZyBpdCBmb3IgZWFjaCBhcmNoIGluZGl2aWR1YWxseS4KLSBVcGRhdGVkIERvY3VtZW50
+YXRpb24vYXJtNjQvdGFnZ2VkLXBvaW50ZXJzLnR4dC4KLSBEcm9wcGVkIOKAnG1tLCBhcm02NDog
+dW50YWcgdXNlciBhZGRyZXNzZXMgaW4gbWVtb3J5IHN5c2NhbGxz4oCdLgotIFJlYmFzZWQgb250
+byAzZWIyY2U4MiAoNC4xNi1yYzcpLgoKQW5kcmV5IEtvbm92YWxvdiAoNyk6CiAgYXJtNjQ6IGFk
+ZCB0eXBlIGNhc3RzIHRvIHVudGFnZ2VkX2FkZHIgbWFjcm8KICB1YWNjZXNzOiBhZGQgdW50YWdn
+ZWRfYWRkciBkZWZpbml0aW9uIGZvciBvdGhlciBhcmNoZXMKICBhcm02NDogdW50YWcgdXNlciBh
+ZGRyZXNzZXMgaW4gYWNjZXNzX29rIGFuZCBfX3VhY2Nlc3NfbWFza19wdHIKICBtbSwgYXJtNjQ6
+IHVudGFnIHVzZXIgYWRkcmVzc2VzIGluIG1tL2d1cC5jCiAgbGliLCBhcm02NDogdW50YWcgYWRk
+cnMgcGFzc2VkIHRvIHN0cm5jcHlfZnJvbV91c2VyIGFuZCBzdHJubGVuX3VzZXIKICBhcm02NDog
+dXBkYXRlIERvY3VtZW50YXRpb24vYXJtNjQvdGFnZ2VkLXBvaW50ZXJzLnR4dAogIHNlbGZ0ZXN0
+cywgYXJtNjQ6IGFkZCBhIHNlbGZ0ZXN0IGZvciBwYXNzaW5nIHRhZ2dlZCBwb2ludGVycyB0byBr
+ZXJuZWwKCiBEb2N1bWVudGF0aW9uL2FybTY0L3RhZ2dlZC1wb2ludGVycy50eHQgICAgICAgfCAg
+NSArKystLQogYXJjaC9hcm02NC9pbmNsdWRlL2FzbS91YWNjZXNzLmggICAgICAgICAgICAgIHwg
+MTQgKysrKysrKysrLS0tLS0KIGluY2x1ZGUvbGludXgvdWFjY2Vzcy5oICAgICAgICAgICAgICAg
+ICAgICAgICB8ICA0ICsrKysKIGxpYi9zdHJuY3B5X2Zyb21fdXNlci5jICAgICAgICAgICAgICAg
+ICAgICAgICB8ICAyICsrCiBsaWIvc3Rybmxlbl91c2VyLmMgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgfCAgMiArKwogbW0vZ3VwLmMgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIHwgIDQgKysrKwogdG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvLmdpdGlnbm9yZSAg
+ICAgIHwgIDEgKwogdG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvTWFrZWZpbGUgICAgICAg
+IHwgMTEgKysrKysrKysrKysKIC4uLi90ZXN0aW5nL3NlbGZ0ZXN0cy9hcm02NC9ydW5fdGFnc190
+ZXN0LnNoICB8IDEyICsrKysrKysrKysrKwogdG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQv
+dGFnc190ZXN0LmMgICAgIHwgMTkgKysrKysrKysrKysrKysrKysrKwogMTAgZmlsZXMgY2hhbmdl
+ZCwgNjcgaW5zZXJ0aW9ucygrKSwgNyBkZWxldGlvbnMoLSkKIGNyZWF0ZSBtb2RlIDEwMDY0NCB0
+b29scy90ZXN0aW5nL3NlbGZ0ZXN0cy9hcm02NC8uZ2l0aWdub3JlCiBjcmVhdGUgbW9kZSAxMDA2
+NDQgdG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvTWFrZWZpbGUKIGNyZWF0ZSBtb2RlIDEw
+MDc1NSB0b29scy90ZXN0aW5nL3NlbGZ0ZXN0cy9hcm02NC9ydW5fdGFnc190ZXN0LnNoCiBjcmVh
+dGUgbW9kZSAxMDA2NDQgdG9vbHMvdGVzdGluZy9zZWxmdGVzdHMvYXJtNjQvdGFnc190ZXN0LmMK
+Ci0tIAoyLjE4LjAucmMxLjI0NC5nY2YxMzRlNjI3NS1nb29nCgoKX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxp
+c3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZy
+YWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
