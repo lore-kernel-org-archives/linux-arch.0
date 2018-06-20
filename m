@@ -1,34 +1,41 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v13 24/24] selftests/vm: test correct behavior of pkey-0
-Date: Wed, 20 Jun 2018 08:22:05 -0700
-Message-ID: <0a7c79a9-8d2d-09cb-30c6-f0f7bca526db@intel.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <1528937115-10132-25-git-send-email-linuxram@us.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1528937115-10132-25-git-send-email-linuxram@us.ibm.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v4 2/7] uaccess: add untagged_addr definition for other arches
+Date: Wed, 20 Jun 2018 17:24:21 +0200
+Message-ID: <a937551f03c4617aa400fb75130627df7ed09506.1529507994.git.andreyknvl@google.com>
+References: <cover.1529507994.git.andreyknvl@google.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1529507994.git.andreyknvl@google.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/13/2018 05:45 PM, Ram Pai wrote:
-> Ensure pkey-0 is allocated on start.  Ensure pkey-0 can be attached
-> dynamically in various modes, without failures.  Ensure pkey-0 can be
-> freed and allocated.
+To allow arm64 syscalls accept tagged pointers from userspace, we must
+untag them when they are passed to the kernel. Since untagging is done in
+generic parts of the kernel (like the mm subsystem), the untagged_addr
+macro should be defined for all architectures.
 
-I like this.  Looks very useful.
+Define it as a noop for other architectures besides arm64.
 
-Acked-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+---
+ include/linux/uaccess.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index efe79c1cdd47..c045b4eff95e 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -13,6 +13,10 @@
+ 
+ #include <asm/uaccess.h>
+ 
++#ifndef untagged_addr
++#define untagged_addr(addr) addr
++#endif
++
+ /*
+  * Architectures should provide two primitives (raw_copy_{to,from}_user())
+  * and get rid of their private instances of copy_{to,from}_user() and
+-- 
+2.18.0.rc1.244.gcf134e6275-goog
