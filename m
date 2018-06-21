@@ -1,77 +1,139 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times
-	ru_utime/ru_stime
-Date: Thu, 21 Jun 2018 18:25:33 +0200
-Message-ID: <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
-References: <20180420120605.1612248-1-arnd@arndb.de>
- <20180420120605.1612248-2-arnd@arndb.de>
- <20180621154915.GA31947@gmail.com>
- <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
- <20180621161121.GB7222@gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH 06/10] x86/cet: Add arch_prctl functions for shadow stack
+Date: Thu, 21 Jun 2018 16:07:28 -0700
+Message-ID: <1529622448.30393.22.camel@intel.com>
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+         <20180607143807.3611-7-yu-cheng.yu@intel.com>
+         <CALCETrU6axo158CiSCRRkC4GC5hib9hypC98t7LLjA3gDaacsw@mail.gmail.com>
+         <1528403417.5265.35.camel@2b52.sc.intel.com>
+         <CALCETrXz3WWgZwUXJsDTWvmqKUArQFuMH1xJdSLVKFpTysNWxg@mail.gmail.com>
+         <CAMe9rOr49V8rqRa_KVsw61PWd+crkQvPDgPKtvowazjmsfgWWQ@mail.gmail.com>
+         <alpine.DEB.2.21.1806121155450.2157@nanos.tec.linutronix.de>
+         <CAMe9rOoCiXQ4iVD3j_AHGrvEXtoaVVZVs7H7fCuqNEuuR5j+2Q@mail.gmail.com>
+         <CALCETrXO8R+RQPhJFk4oiA4PF77OgSS2Yro_POXQj1zvdLo61A@mail.gmail.com>
+         <CAMe9rOpLxPussn7gKvn0GgbOB4f5W+DKOGipe_8NMam+Afd+RA@mail.gmail.com>
+         <CALCETrWmGRkQvsUgRaj+j0CP4beKys+TT5aDR5+18nuphwr+Cw@mail.gmail.com>
+         <CAMe9rOpzcCdje=bUVs+C1WrY6GuwA-8AUFVLOG325LGz7KHJxw@mail.gmail.com>
+         <alpine.DEB.2.21.1806122046520.1592@nanos.tec.linutronix.de>
+         <CAMe9rOrGjJf0aMnUjAP38MqvOiW3=iXGQjcUT3O=f9pE85hXaw@mail.gmail.com>
+         <CALCETrVsh5t-V1Sm88LsZE_+DS0GE_bMWbcoX3SjD6GnrB08Pw@mail.gmail.com>
+         <CAGXu5jK0gospOXRpN6zYiQPXOZeE=YpVAz2qu4Zc3-32v85+EQ@mail.gmail.com>
+         <569B4719-6283-4575-A16E-D0A78D280F4E@amacapital.net>
+         <CAGXu5jJNgu4bW_Zthqjfpe9gLxK0zxG8QFEqqK+pJNebz6tUaw@mail.gmail.com>
+         <1529427588.23068.7.camel@intel.com>
+         <CAGXu5jJ4ivrvi-kG0iY=4C0mQQXBDXwPdfY36Dk+JqOpX19n0w@mail.gmail.com>
+         <0AF8B71E-B6CC-42DE-B95C-93896196C3D7@amacapital.net>
+         <CAGXu5jLEMy_T_5OtXLT+pUCt=Nk53nBbuRvrUgJBhq-4RZ=yCA@mail.gmail.com>
+         <446EB18D-EF06-4A04-AF62-E72C68D96A84@amacapital.net>
+         <1529447937.27370.33.camel@intel.com>
+         <13E3C29A-3295-4A7F-90EC-A84CF34F3E1A@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20180621161121.GB7222@gmail.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Deepa Dinamani <deepa.kernel@gmail.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, "Eric W . Biederman" <ebiederm@xmission.com>, linux-alpha@vger.kernel.org, Matt Turner <mattst88@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <13E3C29A-3295-4A7F-90EC-A84CF34F3E1A@amacapital.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>, "H. J. Lu" <hjl.tools@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com, Florian Weimer <fweimer@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBKdW4gMjEsIDIwMTggYXQgNjoxMSBQTSwgSW5nbyBNb2xuYXIgPG1pbmdvQGtlcm5l
-bC5vcmc+IHdyb3RlOgo+Cj4gKiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPiB3cm90ZToK
-Pgo+PiBTdXJlLCBubyBwcm9ibGVtLiBEbyB5b3UgaGF2ZSBhbiBvcGluaW9uIG9uIHRoZSBxdWVz
-dGlvbiBJIHJhaXNlZCBpbiB0aGUKPj4gZmlyc3QgcGF0Y2ggWzFdLCBpLmUuIHdoZXRoZXIgd2Ug
-YWN0dWFsbHkgd2FudCB0aGlzIHRvIGJlIGRvbmUgdGhpcyB3YXkgaW4gdGhlCj4+IGtlcm5lbCwg
-b3Igb25lIG9mIHRoZSBvdGhlciBhcHByb2FjaGVzIEkgZGVzY3JpYmVkIHRoZXJlPwo+Cj4gU28g
-dGhpcyBsb29rcyBsaWtlIHRoZSBtb3N0IGZvcndhcmQgbG9va2luZyB2YXJpYW50Ogo+Cj4+IGEp
-IGRlcHJlY2F0ZSB0aGUgd2FpdDQoKSBhbmQgZ2V0cnVzYWdlKCkgc3lzdGVtIGNhbGxzLCBhbmQg
-Y3JlYXRlCj4+ICAgIGEgc2V0IG9mIGtlcm5lbCBpbnRlcmZhY2VzIGJhc2VkIGFyb3VuZCBhIG5l
-d2x5IGRlZmluZWQgc3RydWN0dXJlIHRoYXQKPj4gICAgY291bGQgc29sdmUgbXVsdGlwbGUgcHJv
-YmxlbXMgYXQgb25jZSwgZS5nLiBwcm92aWRlIG1vcmUgZmluZS1ncmFpbmVkCj4+ICAgIHRpbWVz
-dGFtcHMuIFRoZSBDIGxpYnJhcnkgY291bGQgdGhlbiBpbXBsZW1lbnQgdGhlIHBvc2l4IGludGVy
-ZmFjZXMKPj4gICAgb24gdG9wIG9mIHRoZSBuZXcgc3lzdGVtIGNhbGxzLgo+Cj4gLi4uIGJ1dCBn
-aXZlbiB0aGUgcHJldHR5IGxvbmcgcHJvcGFnYXRpb24gdGltZSBvZiBuZXcgQUJJcywgaXMgdGhp
-cyBhIGdvb2QKPiBzb2x1dGlvbj8gV2hhdCB3b3VsZCB0aGUgbGltaXRhdGlvbnMvdHJhZGUtb2Zm
-cyBiZSBvbiBvbGQtQUJJIHN5c3RlbXM/CgpUaGUgbWFpbiBwdXJwb3NlIG9mIHRoaXMgaXMgdG8g
-ZW5hYmxlIGNvbnNpc3RlbnQgNjQtYml0IHRpbWVfdCBpbnRlcmZhY2VzIGluCnVzZXIgc3BhY2Us
-IGFuZCBmb3IgbW9zdCB1c2VycyB0aGlzIHdvdWxkIG5vdCBjaGFuZ2UgYW55dGhpbmcgYXMgdGhl
-CmV4aXN0aW5nIGdsaWJjIChib3RoIDY0LWJpdCBhbmQgMzItYml0KSBjYW4gY29udGludWUgY2Fs
-bGluZyB0aGUgc2FtZQppbnRlcmZhY2VzIGFzIGJlZm9yZS4KCkZvciB0aG9zZSB1c2VycyB0aGF0
-IGFyZSBpbnRlcmVzdGVkIGluIDY0LWJpdCB0aW1lX3Qgb24gMzItYml0IGJpbmFyaWVzLAp0aGUg
-Zmlyc3Qgc3RlcCB3b3VsZCBiZSB0byBjaGFuZ2UgdGhlIGdsaWJjIGltcGxlbWVudGF0aW9uIHRv
-IGVtdWxhdGUKdGhlIGV4aXN0aW5nIGludGVyZmFjZXMgd2l0aCB0aGUgbmV3IHRpbWVfdCBvbiB0
-b3Agb2YgdGhlIG5ldyBzeXNjYWxsCnJhdGhlciB0aGFuIHRoZSBvbGQgKHVuc2FmZSkgc3lzY2Fs
-bC4gVGhvc2UgdXNlcnMgYWxyZWFkeSByZXF1aXJlIGJvdGgKYSBuZXcga2VybmVsIGFuZCBhIG5l
-dyBnbGliYyB2ZXJzaW9uLgoKSWYgdGhlIG5ldyBrZXJuZWwgaW50ZXJmYWNlcyBvZmZlciBhIHJl
-YWwgYmVuZWZpdCwgb3RoZXJzIGNvdWxkIHN0YXJ0CnVzaW5nIHRoZW0gZGlyZWN0bHkgYXMgc29v
-biBhcyB0aGV5IGhhdmUgdXBkYXRlZCB0aGUgbGliYyB2ZXJzaW9uLgpOb3RlIHRoYXQgZ2xpYmMg
-aGFzIG5vdCB1cGRhdGVkIHRoZWlyIGtlcm5lbCBoZWFkZXJzIHZlcnNpb24gZm9yCmEgbG9uZyB0
-aW1lLCB0aGV5IHN0aWxsIGFsbG93IGJ1aWxkaW5nIHdpdGggbGludXgtMy4yIGhlYWRlciBmaWxl
-cy4KSG93ZXZlciwgdGhlIGdsaWJjIG1haW50YWluZXJzIGhhdmUgaW5kaWNhdGVkIHRoYXQgdGhl
-eSB3b3VsZApwcm9iYWJseSB1cGRhdGUgdGhhdCByZXF1aXJlbWVudCB0byB0aGUgdGhlbi1sYXRl
-c3QgdmVyc2lvbgp3aGVuIGFkZGluZyBzdXBwb3J0IHRvIHRoZSBuZXcgNjQtYml0IHRpbWVfdCBz
-eXNjYWxscywgc28gdGhpcwp3b3VsZCBiZWNvbWUgYXZhaWxhYmxlIGltbWVkaWF0ZWx5IHRvIGFs
-bCB1c2VycyBvZiB0aGUgbmV3IGdsaWJjCnZlcnNpb24uCgpIb3dldmVyLCB0aGUgb3RoZXIgcXVl
-c3Rpb24gdGhhdCBoYXMgdG8gYmUgYXNrZWQgdGhlbiBpcyB3aGV0aGVyCnRoZXJlIGlzIGFueXRo
-aW5nIHdyb25nIHdpdGggd2FpdDQoKS93YWl0aWQoKSBhbmQgZ2V0cnVzdWFnZSgpIHRoYXQKd2Ug
-d2FudCB0byBjaGFuZ2UgYmV5b25kIHRoZSB0aW1lIHZhbHVlIHBhc3NpbmcuIFdlIGhhdmUKYW5z
-d2VyZWQgYSBzaW1pbGFyIHF1ZXN0aW9uIHdpdGggJ3llcycgZm9yIHN0YXQoKSwgd2hpY2ggaGFz
-IGxlZAp0byB0aGUgaW50cm9kdWN0aW9uIG9mIHN0YXR4KCksIGJ1dCBzbyBmYXIgSSBleHBlY3Qg
-YWxsIG90aGVyIHN5c2NhbGxzCnRvIHN0YXJ0IGNvbXBhdGlibGUuIFNlZSBbMV0gZm9yIG15IGN1
-cnJlbnQgbGlzdC4gSW4gdGhhdCBsaXN0LCBJIGhhdmUKY3VycmVudGx5IG1hcmtlZCB3YWl0aWQo
-KSBhbmQgZ2V0cnVzdWFnZSgpIGFzIG5vdCB0byBiZSBhZGRyZXNzZWQsCmkuZS4gbXkgYXBwcm9h
-Y2ggYykgb2YgYXBwbHlpbmcgb25seSB0aGUgZmlyc3Qgb2YgdGhlIHR3byBwYXRjaGVzIGJ1dApu
-b3QgdGhlIHNlY29uZC4KCiAgICAgICBBcm5kCgpbMV0gaHR0cHM6Ly9kb2NzLmdvb2dsZS5jb20v
-c3ByZWFkc2hlZXRzL2QvMUhDWXdIWHhzNDhUc1RiNklHVWR1TmpRbm1mUnZNUHpDTjZUXzBZaVF3
-aXMvZWRpdCNnaWQ9MApfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xp
-c3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+On Tue, 2018-06-19 at 17:50 -0700, Andy Lutomirski wrote:
+> 
+> > 
+> > On Jun 19, 2018, at 3:38 PM, Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > wrote:
+> > 
+> > On Tue, 2018-06-19 at 13:47 -0700, Andy Lutomirski wrote:
+> > > 
+> > > > 
+> > > > 
+> > > > On Jun 19, 2018, at 1:12 PM, Kees Cook <keescook@chromium.org>
+> > > > wrote:
+> > > > 
+> > > > > 
+> > > > > 
+> > > > > On Tue, Jun 19, 2018 at 10:20 AM, Andy Lutomirski <luto@amaca
+> > > > > pita
+> > > > > l.net> wrote:
+> > > > > 
+> > > > > > 
+> > > > > > 
+> > > > > > On Jun 19, 2018, at 10:07 AM, Kees Cook <keescook@chromium.
+> > > > > > org>
+> > > > > > wrote:
+> > > > > > 
+> > > > > > Does it provide anything beyond what PR_DUMPABLE does?
+> > > > > What do you mean?
+> > > > I was just going by the name of it. I wasn't sure what "ptrace
+> > > > CET
+> > > > lock" meant, so I was trying to understand if it was another
+> > > > "you
+> > > > can't ptrace me" toggle, and if so, wouldn't it be redundant
+> > > > with
+> > > > PR_SET_DUMPABLE = 0, etc.
+> > > > 
+> > > No, other way around. The valid CET states are on/unlocked,
+> > > off/unlocked, on/locked, off/locked. arch_prctl can freely the
+> > > state
+> > > unless locked. ptrace can change it no matter what.  The lock is
+> > > to
+> > > prevent the existence of a gadget to disable CET (unless the
+> > > gadget
+> > > involves ptrace, but I don’t think that’s a real concern).
+> > We have the arch_prctl now and only need to add ptrace lock/unlock.
+> > 
+> > Back to the dlopen() "relaxed" mode. Would the following work?
+> > 
+> > If the lib being loaded does not use setjmp/getcontext families
+> > (the
+> > loader knows?), then the loader leaves shstk on.  
+> Will that actually work?  Are there libs that do something like
+> longjmp without actually using the glibc longjmp routine?  What about
+> compilers that statically match a throw to a catch and try to return
+> through several frames at once?
+> 
+
+The compiler throw/catch is already handled similarly to how longjmp is
+handled.
+
+To summarize the dlopen() situation,
+
+----
+(1) We don't want to fall back like the following.  One reason is
+turning off SHSTK for threads is tricky.
+
+if ((dlopen() a legacy library) && (cet_policy==relaxed)) {
+	/*
+	 * We don't care if the library will actually fault;
+	 * just turn off CET protection now.
+	 */
+	Turn off CET;
+}
+
+(2) We cannot predict what version of a library will be dlopen'ed, and
+cannot turn off CET reliably from the beginning of an application.
+----
+
+Can we mandate a signal handler (to turn off CET) when ((dlopen is used
+) && (cet_policy==relaxed))?
+
+> > 
+> > Otherwise, if the
+> > system-wide setting is "relaxed", the loader turns off shstk and
+> > issues
+> > a warning.  In addition, if (dlopen == relaxed), then cet is not
+> > locked
+> > in any time.
+> > 
+> > The system-wide setting (somewhere in /etc?) can be:
+> > 
+> >    dlopen=force|relaxed /* controls dlopen of non-cet libs */
+> >    exec=force|relaxed /* controls exec of non-cet apps */
+> > 
+> > 
+> Why do we need a whole new mechanism here?  Can’t all this use
+> regular glibc tunables?
+
+Ok, got it.
+
+Yu-cheng
