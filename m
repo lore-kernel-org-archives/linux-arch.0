@@ -1,66 +1,125 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times ru_utime/ru_stime
-Date: Fri, 22 Jun 2018 04:16:36 +0200
-Message-ID: <20180622021636.GA11266@gmail.com>
-References: <20180420120605.1612248-1-arnd@arndb.de>
- <20180420120605.1612248-2-arnd@arndb.de>
- <20180621154915.GA31947@gmail.com>
- <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
- <20180621161121.GB7222@gmail.com>
- <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH -tip v6 26/27] Documentation: kprobes: Add how to change
+ the execution path
+Date: Fri, 22 Jun 2018 15:07:40 +0900
+Message-ID: <20180622150740.bd26241032c972d86e23bf73@kernel.org>
+References: <152942424698.15209.15245996287444292393.stgit@devbox>
+        <152942500680.15209.12374262914863044775.stgit@devbox>
+        <706832c5-dab4-f806-96d6-2cdc37203d9d@infradead.org>
+        <20180620172637.35916da482442b6ab139c7dc@kernel.org>
+        <20180621103546.GA9212@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
+In-Reply-To: <20180621103546.GA9212@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, "Eric W . Biederman" <ebiederm@xmission.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Dominik Brodowski <linux@dominikbrodowski.net>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Randy Dunlap <rdunlap@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Thu, 21 Jun 2018 12:35:46 +0200
+Ingo Molnar <mingo@kernel.org> wrote:
 
-* Arnd Bergmann <arnd@arndb.de> wrote:
+> 
+> * Masami Hiramatsu <mhiramat@kernel.org> wrote:
+> 
+> > On Tue, 19 Jun 2018 09:31:49 -0700
+> > Randy Dunlap <rdunlap@infradead.org> wrote:
+> > 
+> > > On 06/19/2018 09:16 AM, Masami Hiramatsu wrote:
+> > > > Add a section that explaining how to change the execution
+> > > > path with kprobes and warnings for some arch.
+> > > > 
+> > > > Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> > > > Cc: Jonathan Corbet <corbet@lwn.net>
+> > > > Cc: linux-doc@vger.kernel.org
+> > > > ---
+> > > >  Documentation/kprobes.txt |   20 ++++++++++++++++++++
+> > > >  1 file changed, 20 insertions(+)
+> > > > 
+> > > > diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
+> > > > index 3e9e99ea751b..8a98eed1521b 100644
+> > > > --- a/Documentation/kprobes.txt
+> > > > +++ b/Documentation/kprobes.txt
+> > > > @@ -80,6 +80,26 @@ After the instruction is single-stepped, Kprobes executes the
+> > > >  "post_handler," if any, that is associated with the kprobe.
+> > > >  Execution then continues with the instruction following the probepoint.
+> > > >  
+> > > 
+> > > Hi,
+> > > I have a few small suggestions...
+> > 
+> > Hi Randy,
+> > 
+> > Thank you for your suggestions!
+> > All of those are good to me. I'll fix it:)
+> 
+> Could you please send a delta patch on top of your v6 series, with Randy credited, 
+> etc?
 
-> However, the other question that has to be asked then is whether
-> there is anything wrong with wait4()/waitid() and getrusuage() that
-> we want to change beyond the time value passing. We have
-> answered a similar question with 'yes' for stat(), which has led
-> to the introduction of statx(),
+Ok, Here's the delta patch.
 
-So we are thinking about adding wait5() in essence, right?
 
-One thing we might want to look into whether the wait4() and waitid() ABIs could 
-be 'merged', by making wait4() essentially a natural special case of waitid().
+> 
+> I've applied your series and will push it out once it passes all testing.
 
-This would mean that the only new system call we'd have to add is waitid2() in 
-essence, which would solve both the rusage layout problem and would offer a 
-unified ABI.
+Thanks!
 
-If that makes sense (it might not!!), then I'd also modernize waitid2() by making 
-it attribute structure based, have a length field and make the ABI extensible from 
-now on going forward without having to introduce a new syscall variant every time 
-we come up with something new...
 
-I.e. how the perf syscall does ABI extensions: we've had dozens of ABI extensions, 
-some of them pretty complex, and not a single time did we have to modify glibc and 
-tooling was able to adapt quickly yet in a both backwards and forwards compatible 
-fashion.
+From 103fc58ece99475b855e065bd48d780697b93bbc Mon Sep 17 00:00:00 2001
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Date: Fri, 22 Jun 2018 15:05:49 +0900
+Subject: [PATCH] Documentation/kprobes: Fix typo in Changing Execution Path
+ section
 
-Another, simpler example is the new sys_sched_setattr() syscall, that too is using 
-the perf_copy_attr() ABI method, via sched_copy_attr(). (With a minor 
-compatibility quirk of SCHED_ATTR_SIZE_VER0 that a new wait ABI wouldn't have to 
-do - i.e. it could be made even simpler.)
+Fix typo and clean it up according to the
+comment from Randy.
 
-This way we only have:
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Suggested-by: Randy Dunlap <rdunlap@infradead.org>
+---
+ Documentation/kprobes.txt | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
-SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr, unsigned int, flags)
-
-But even 'pid' and 'flags' could have been part of the attribute, i.e. one we pick 
-up an attribute structure from user-space we can have really low argument count 
-system calls. This also concentrates all the compat concerns into handling the 
-attribute structure properly - no weird per-arch artifacts and quirks with 4-5-6 
-system call arguments.
-
-Thanks,
-
-	Ingo
+diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
+index 13d8efd..10f4499 100644
+--- a/Documentation/kprobes.txt
++++ b/Documentation/kprobes.txt
+@@ -83,22 +83,22 @@ Execution then continues with the instruction following the probepoint.
+ Changing Execution Path
+ -----------------------
+ 
+-Since the kprobes can probe into a running kernel code, it can change
+-the register set, including instruction pointer. This operation
+-requires maximum attention, such as keeping the stack frame, recovering
+-execution path etc. Since it is operated on running kernel and need deep
+-knowladge of the archtecture and concurrent computing, you can easily
+-shot your foot.
++Since kprobes can probe into a running kernel code, it can change the
++register set, including instruction pointer. This operation requires
++maximum care, such as keeping the stack frame, recovering the execution
++path etc. Since it operates on a running kernel and needs deep knowledge
++of computer architecture and concurrent computing, you can easily shoot
++your foot.
+ 
+ If you change the instruction pointer (and set up other related
+-registers) in pre_handler, you must return !0 so that the kprobes
+-stops single stepping and just returns to given address.
++registers) in pre_handler, you must return !0 so that kprobes stops
++single stepping and just returns to the given address.
+ This also means post_handler should not be called anymore.
+ 
+-Note that this operation may be harder on some architectures which
+-use TOC (Table of Contents) for function call, since you have to
+-setup new TOC for your function in your module, and recover old
+-one after back from it.
++Note that this operation may be harder on some architectures which use
++TOC (Table of Contents) for function call, since you have to setup a new
++TOC for your function in your module, and recover the old one after
++returning from it.
+ 
+ Return Probes
+ -------------
+-- 
+2.7.4
