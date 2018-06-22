@@ -1,71 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:37795 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932875AbeFVCQk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jun 2018 22:16:40 -0400
-Date: Fri, 22 Jun 2018 04:16:36 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times ru_utime/ru_stime
-Message-ID: <20180622021636.GA11266@gmail.com>
-References: <20180420120605.1612248-1-arnd@arndb.de>
- <20180420120605.1612248-2-arnd@arndb.de>
- <20180621154915.GA31947@gmail.com>
- <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
- <20180621161121.GB7222@gmail.com>
- <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:40292 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750779AbeFVGHp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Jun 2018 02:07:45 -0400
+Date: Fri, 22 Jun 2018 15:07:40 +0900
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH -tip v6 26/27] Documentation: kprobes: Add how to change
+ the execution path
+Message-ID: <20180622150740.bd26241032c972d86e23bf73@kernel.org>
+In-Reply-To: <20180621103546.GA9212@gmail.com>
+References: <152942424698.15209.15245996287444292393.stgit@devbox>
+        <152942500680.15209.12374262914863044775.stgit@devbox>
+        <706832c5-dab4-f806-96d6-2cdc37203d9d@infradead.org>
+        <20180620172637.35916da482442b6ab139c7dc@kernel.org>
+        <20180621103546.GA9212@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, "Eric W . Biederman" <ebiederm@xmission.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Dominik Brodowski <linux@dominikbrodowski.net>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>
-Message-ID: <20180622021636.IM0qhWj_KWWNVeMWgzJa73hdb4hf70GI-PV42wJlfTw@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Randy Dunlap <rdunlap@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Message-ID: <20180622060740.oAdod-YBYmDZEtBMGkutTtJPp7hH-apffW2iF9Cu0TI@z>
+
+On Thu, 21 Jun 2018 12:35:46 +0200
+Ingo Molnar <mingo@kernel.org> wrote:
+
+> 
+> * Masami Hiramatsu <mhiramat@kernel.org> wrote:
+> 
+> > On Tue, 19 Jun 2018 09:31:49 -0700
+> > Randy Dunlap <rdunlap@infradead.org> wrote:
+> > 
+> > > On 06/19/2018 09:16 AM, Masami Hiramatsu wrote:
+> > > > Add a section that explaining how to change the execution
+> > > > path with kprobes and warnings for some arch.
+> > > > 
+> > > > Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> > > > Cc: Jonathan Corbet <corbet@lwn.net>
+> > > > Cc: linux-doc@vger.kernel.org
+> > > > ---
+> > > >  Documentation/kprobes.txt |   20 ++++++++++++++++++++
+> > > >  1 file changed, 20 insertions(+)
+> > > > 
+> > > > diff --git a/Documentation/kprobes.txt b/Documentation/kprobes.txt
+> > > > index 3e9e99ea751b..8a98eed1521b 100644
+> > > > --- a/Documentation/kprobes.txt
+> > > > +++ b/Documentation/kprobes.txt
+> > > > @@ -80,6 +80,26 @@ After the instruction is single-stepped, Kprobes executes the
+> > > >  "post_handler," if any, that is associated with the kprobe.
+> > > >  Execution then continues with the instruction following the probepoint.
+> > > >  
+> > > 
+> > > Hi,
+> > > I have a few small suggestions...
+> > 
+> > Hi Randy,
+> > 
+> > Thank you for your suggestions!
+> > All of those are good to me. I'll fix it:)
+> 
+> Could you please send a delta patch on top of your v6 series, with Randy credited, 
+> etc?
+
+Ok, Here's the delta patch.
 
 
-* Arnd Bergmann <arnd@arndb.de> wrote:
+> 
+> I've applied your series and will push it out once it passes all testing.
 
-> However, the other question that has to be asked then is whether
-> there is anything wrong with wait4()/waitid() and getrusuage() that
-> we want to change beyond the time value passing. We have
-> answered a similar question with 'yes' for stat(), which has led
-> to the introduction of statx(),
-
-So we are thinking about adding wait5() in essence, right?
-
-One thing we might want to look into whether the wait4() and waitid() ABIs could 
-be 'merged', by making wait4() essentially a natural special case of waitid().
-
-This would mean that the only new system call we'd have to add is waitid2() in 
-essence, which would solve both the rusage layout problem and would offer a 
-unified ABI.
-
-If that makes sense (it might not!!), then I'd also modernize waitid2() by making 
-it attribute structure based, have a length field and make the ABI extensible from 
-now on going forward without having to introduce a new syscall variant every time 
-we come up with something new...
-
-I.e. how the perf syscall does ABI extensions: we've had dozens of ABI extensions, 
-some of them pretty complex, and not a single time did we have to modify glibc and 
-tooling was able to adapt quickly yet in a both backwards and forwards compatible 
-fashion.
-
-Another, simpler example is the new sys_sched_setattr() syscall, that too is using 
-the perf_copy_attr() ABI method, via sched_copy_attr(). (With a minor 
-compatibility quirk of SCHED_ATTR_SIZE_VER0 that a new wait ABI wouldn't have to 
-do - i.e. it could be made even simpler.)
-
-This way we only have:
-
-SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr, unsigned int, flags)
-
-But even 'pid' and 'flags' could have been part of the attribute, i.e. one we pick 
-up an attribute structure from user-space we can have really low argument count 
-system calls. This also concentrates all the compat concerns into handling the 
-attribute structure properly - no weird per-arch artifacts and quirks with 4-5-6 
-system call arguments.
-
-Thanks,
-
-	Ingo
+Thanks!
