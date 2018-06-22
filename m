@@ -1,76 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:47004 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:46986 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934399AbeFVTsA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Jun 2018 15:48:00 -0400
+        id S934608AbeFVTr6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 Jun 2018 15:47:58 -0400
 From: Logan Gunthorpe <logang@deltatee.com>
-Date: Fri, 22 Jun 2018 13:47:46 -0600
-Message-ID: <20180622194752.11221-2-logang@deltatee.com>
+Date: Fri, 22 Jun 2018 13:47:52 -0600
+Message-ID: <20180622194752.11221-8-logang@deltatee.com>
 In-Reply-To: <20180622194752.11221-1-logang@deltatee.com>
 References: <20180622194752.11221-1-logang@deltatee.com>
-Subject: [PATCH v18 1/7] iomap: Use non-raw io functions for io{read|write}XXbe
+Subject: [PATCH v18 7/7] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>
-Message-ID: <20180622194746.g_FZgsRevxZucthH7lJ47uHSomrQoU4OKpDnMuuTDvA@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
+Message-ID: <20180622194752.Q0nyO2COXD9RNxwRgMEVvAz_a7X91xoOO5TwmszGC1s@z>
 
-Fix an asymmetry in the io{read|write}XXbe functions in that the
-big-endian variants make use of the raw io accessors while the
-little-endian variants use the regular accessors. Some architectures
-implement barriers to order against both spinlocks and DMA accesses
-and for these case, the big-endian variant of the API would not be
-protected.
+Clean up the ifdefs which conditionally defined the io{read|write}64
+functions in favour of the new common io-64-nonatomic-lo-hi header.
 
-Thus, change the mmio_XXXXbe macros to use the appropriate swab() function
-wrapping the regular accessor. This is similar to what was done for PIO.
-
-When this code was originally written, barriers in the IO accessors were
-not common and the accessors simply wrapped the raw functions in a
-conversion to CPU endianness. Since then, barriers have been added in
-some architectures and are now missing in the big endian variant of the
-API.
-
-This also manages to silence a few sparse warnings that check
-for using the correct endian types which the original code did
-not annotate correctly.
+Per a nit from Andy Shevchenko, the include list is also made
+alphabetical.
 
 Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
-Cc: Philippe Ombredanne <pombredanne@nexb.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Link: http://lkml.kernel.org/r/CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Jon Mason <jdmason@kudzu.us>
 ---
- lib/iomap.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 ++++------------------------------
+ 1 file changed, 4 insertions(+), 32 deletions(-)
 
-diff --git a/lib/iomap.c b/lib/iomap.c
-index 541d926da95e..2c293b22569f 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -65,8 +65,8 @@ static void bad_io_access(unsigned long port, const char *access)
- #endif
+diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+index f624ae27eabe..f403da24b833 100644
+--- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
++++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+@@ -13,12 +13,13 @@
+  *
+  */
  
- #ifndef mmio_read16be
--#define mmio_read16be(addr) be16_to_cpu(__raw_readw(addr))
--#define mmio_read32be(addr) be32_to_cpu(__raw_readl(addr))
-+#define mmio_read16be(addr) swab16(readw(addr))
-+#define mmio_read32be(addr) swab32(readl(addr))
- #endif
+-#include <linux/switchtec.h>
+-#include <linux/module.h>
++#include <linux/interrupt.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ #include <linux/delay.h>
+ #include <linux/kthread.h>
+-#include <linux/interrupt.h>
++#include <linux/module.h>
+ #include <linux/ntb.h>
++#include <linux/switchtec.h>
  
- unsigned int ioread8(void __iomem *addr)
-@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
- #endif
+ MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
+ MODULE_VERSION("0.1");
+@@ -35,35 +36,6 @@ module_param(use_lut_mws, bool, 0644);
+ MODULE_PARM_DESC(use_lut_mws,
+ 		 "Enable the use of the LUT based memory windows");
  
- #ifndef mmio_write16be
--#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
--#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
-+#define mmio_write16be(val,port) writew(swab16(val),port)
-+#define mmio_write32be(val,port) writel(swab32(val),port)
- #endif
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #define SWITCHTEC_NTB_MAGIC 0x45CC0001
+ #define MAX_MWS     128
  
- void iowrite8(u8 val, void __iomem *addr)
 -- 
 2.11.0
