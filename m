@@ -1,107 +1,138 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times ru_utime/ru_stime
-Date: Fri, 22 Jun 2018 12:45:50 -0500
-Message-ID: <87a7rm3eb5.fsf@xmission.com>
-References: <20180420120605.1612248-1-arnd@arndb.de>
-        <20180420120605.1612248-2-arnd@arndb.de>
-        <20180621154915.GA31947@gmail.com>
-        <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
-        <20180621161121.GB7222@gmail.com>
-        <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
-        <20180622021636.GA11266@gmail.com>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH v18 0/7] Add io{read|write}64 to io-64-atomic headers
+Date: Fri, 22 Jun 2018 13:47:45 -0600
+Message-ID: <20180622194752.11221-1-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180622021636.GA11266@gmail.com> (Ingo Molnar's message of
-        "Fri, 22 Jun 2018 04:16:36 +0200")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Dominik Brodowski <linux@dominikbrodowski.net>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
 List-Id: linux-arch.vger.kernel.org
 
-Ingo Molnar <mingo@kernel.org> writes:
 
-> * Arnd Bergmann <arnd@arndb.de> wrote:
->
->> However, the other question that has to be asked then is whether
->> there is anything wrong with wait4()/waitid() and getrusuage() that
->> we want to change beyond the time value passing. We have
->> answered a similar question with 'yes' for stat(), which has led
->> to the introduction of statx(),
->
-> So we are thinking about adding wait5() in essence, right?
+This is a resend of my cleanup series to push a number of instances of
+people defining their own io{read|write}64 functions into common
+headers seing they don't exist in non-64bit systems. This series adds
+inline functions to the io-64-nonatomic headers and then cleans up the
+drivers that defined their own copies.
 
-> One thing we might want to look into whether the wait4() and waitid() ABIs could 
-> be 'merged', by making wait4() essentially a natural special case of
-> waitid().
+This cleanup was originally requested by Greg after he reviewed my
+Switchtec NTB code.
 
-Essentially waitid(2) not waitid(3) has already seen this merger.
-In that there is nothing to wait for that you can not already
-expression with waitid.  status vs siginfo is a little different
-but the information is encoded in both.
+@Andrew, can you please consider merging this series as it has a
+number of cross-tree pieces? It has been around for a number of
+cycles, has had some reviews, and a few small pieces of it have been
+already accepted through various other trees.
 
-And waitid(2) optionally returns a struct rusage.
+This marks the one year aniversary since I started this series.
 
-> This would mean that the only new system call we'd have to add is waitid2() in 
-> essence, which would solve both the rusage layout problem and would offer a 
-> unified ABI.
->
-> If that makes sense (it might not!!), then I'd also modernize waitid2() by making 
-> it attribute structure based, have a length field and make the ABI extensible from 
-> now on going forward without having to introduce a new syscall variant every time 
-> we come up with something new...
+Thanks,
 
-The only part where something is not parameterized in waitid is with the
-return of rusage.
+Logan
 
-What to wait for takes an explicit type parameter.
-What is being returned in siginfo returns an si_code to describe how
-to decode it.
+--
 
-If it weren't for the zombie being gone after waitid returns I don't
-think it would make any sense to combine getrusage and waitid together
-at all.
+Changes since v17:
+- Rebased onto v4.18-rc1 (No Changes)
 
-> I.e. how the perf syscall does ABI extensions: we've had dozens of ABI extensions, 
-> some of them pretty complex, and not a single time did we have to modify glibc and 
-> tooling was able to adapt quickly yet in a both backwards and forwards compatible 
-> fashion.
->
-> Another, simpler example is the new sys_sched_setattr() syscall, that too is using 
-> the perf_copy_attr() ABI method, via sched_copy_attr(). (With a minor 
-> compatibility quirk of SCHED_ATTR_SIZE_VER0 that a new wait ABI wouldn't have to 
-> do - i.e. it could be made even simpler.)
->
-> This way we only have:
->
-> SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr, unsigned int, flags)
->
-> But even 'pid' and 'flags' could have been part of the attribute, i.e. one we pick 
-> up an attribute structure from user-space we can have really low argument count 
-> system calls. This also concentrates all the compat concerns into handling the 
-> attribute structure properly - no weird per-arch artifacts and quirks with 4-5-6 
-> system call arguments.
+Changes since v16:
+- Rebased onto v4.17-rc4 (No Changes)
 
-The trouble with attributes is that means you can't filter your system
-call arguments with seccomp.  Which most of the time is a pretty big
-downside.
+Changes since v15:
+- Rebased onto v4.17-rc1, dropping the powerpc patches which were
+  picked up by Michael
+
+Changes since v14:
+- Rebased onto v4.16-rc7
+- Replace the first two patches so that instead of correcting the
+  endianness annotations we change to using writeX() and readX() with
+  swabX() calls. This makes the big-endian functions more symmetric
+  with the little-endian versions (with respect to barriers that are
+  not included in the raw functions). As a side effect, it also fixes
+  the kbuild warnings that the first two patches tried to address.
+
+Changes since v13:
+- Changed the subject of patch 0001 to correct a nit pointed out by Luc
+
+Changes since v12:
+- Rebased onto v4.16-rc6
+- Split patch 0001 into two and reworked the commit log as requested
+  by Luc Van Oostenryck
+
+Changes since v11:
+- Rebased onto v4.16-rc5
+- Added a patch (0001) to fix some old and new sparse warnings
+  that the kbuild robot warned about this cycle. The latest version
+  of sparse was required to reproduce these.
+- Added a patch (0002) to add io{read|write}64 to parisc which the kbuild
+  robot also found errors for this cycle
+
+Changes since v10:
+- Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
+  picked up by that tree and is already in 4.16.
+
+Changes since v9:
+- Rebased onto v4.15-rc6
+- Fixed a couple of issues in the new version of the CAAM patch as
+  pointed out by Horia
+
+Changes since v8:
+- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
+  some similar cleanup in that area.
+- Added a patch to clean up the Switchtec NTB driver which landed in
+  v4.15-rc1
+
+Changes since v7:
+- Fix minor nits from Andy Shevchenko
+- Rebased onto v4.14-rc1
+
+Changes since v6:
+ ** none **
+
+Changes since v5:
+- Added a fix to the tilcdc driver to ensure it doesn't use the
+  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+  defines).
+
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+  noticed by Horia)
+
+Changes since v3:
+
+- I noticed powerpc didn't use the appropriate functions seeing
+  readq/writeq were not defined when iomap.h was included. Thus I've
+  included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+  headers
+- Fixed a typo noticed by Horia.
+
+(earlier versions were drastically different)
 
 
-From what I have seen the only truly interesting case for extending
-waitid is something file descriptor based so the parent/child
-relationship is not necessary to wait for a process to terminate.
+Logan Gunthorpe (7):
+  iomap: Use non-raw io functions for io{read|write}XXbe
+  parisc: iomap: introduce io{read|write}64
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
+    header
 
-As for getrusage.  If a sane union of the rusage limits and cgroups or
-something like cgroups could be devised.  That would be ideal.  Of
-course except for the memory cgroups the similarity to the resource
-usage measurments and limits really isn't there.  So I don't know if
-merging them would be a real possibility.
+ arch/parisc/include/asm/io.h           |   9 +++
+ arch/parisc/lib/iomap.c                |  64 +++++++++++++++
+ arch/powerpc/include/asm/io.h          |   2 +
+ drivers/crypto/caam/regs.h             |  30 +------
+ drivers/ntb/hw/intel/ntb_hw_intel.h    |  30 +------
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  36 +--------
+ include/asm-generic/iomap.h            |  26 ++++--
+ include/linux/io-64-nonatomic-hi-lo.h  |  64 +++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h  |  64 +++++++++++++++
+ lib/iomap.c                            | 140 ++++++++++++++++++++++++++++++++-
+ 10 files changed, 367 insertions(+), 98 deletions(-)
 
-So I suspect the simplest thing to do would be to set a flag in the
-idtype member of waitid that says give me rusage64 and then we would
-be done.  Alternately we could use the low bits of the resource usage
-pointer.  Assuming we don't want to introduce another syscall that is.
-I really don't see much incremental extensibility potential in the wait
-or rusage interface right now.
-
-Eric
+--
+2.11.0
