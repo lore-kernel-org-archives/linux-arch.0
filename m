@@ -1,205 +1,107 @@
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: [RFC] ARC: allow to use IOC and non-IOC DMA devices
- simultaneously
-Date: Fri, 22 Jun 2018 14:30:06 +0000
-Message-ID: <1529677805.31605.28.camel@synopsys.com>
-References: <20180615125819.527-1-Eugeniy.Paltsev@synopsys.com>
-         <563bd0ab-e40c-f9ad-4e9c-dbf5b13358b5@synopsys.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times ru_utime/ru_stime
+Date: Fri, 22 Jun 2018 12:45:50 -0500
+Message-ID: <87a7rm3eb5.fsf@xmission.com>
+References: <20180420120605.1612248-1-arnd@arndb.de>
+        <20180420120605.1612248-2-arnd@arndb.de>
+        <20180621154915.GA31947@gmail.com>
+        <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
+        <20180621161121.GB7222@gmail.com>
+        <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
+        <20180622021636.GA11266@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <563bd0ab-e40c-f9ad-4e9c-dbf5b13358b5@synopsys.com>
-Content-Language: en-US
-Content-ID: <566B5F07DAC72F429F7F96D3057F62E6@internal.synopsys.com>
+In-Reply-To: <20180622021636.GA11266@gmail.com> (Ingo Molnar's message of
+        "Fri, 22 Jun 2018 04:16:36 +0200")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "hch@lst.de" <hch@lst.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Dominik Brodowski <linux@dominikbrodowski.net>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgVmluZWV0LCBDaHJpc3RvcGgsDQp0aGFua3MgZm9yIHJlc3BvbmRpbmcuDQoNCk9uIE1vbiwg
-MjAxOC0wNi0xOCBhdCAxNTo1MyAtMDcwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPiBPbiAwNi8x
-NS8yMDE4IDA1OjU4IEFNLCBFdWdlbml5IFBhbHRzZXYgd3JvdGU6DQo+ID4gVGhlIEFSQyBIUyBw
-cm9jZXNzb3IgcHJvdmlkZXMgYW4gSU9DIHBvcnQgKEkvTyBjb2hlcmVuY3kgYnVzDQo+ID4gaW50
-ZXJmYWNlKSB0aGF0IGFsbG93cyBleHRlcm5hbCBkZXZpY2VzIHN1Y2ggYXMgRE1BIGRldmljZXMN
-Cj4gPiB0byBhY2Nlc3MgbWVtb3J5IHRocm91Z2ggdGhlIGNhY2hlIGhpZXJhcmNoeSwgcHJvdmlk
-aW5nDQo+ID4gY29oZXJlbmN5IGJldHdlZW4gSS9PIHRyYW5zYWN0aW9ucyBhbmQgdGhlIGNvbXBs
-ZXRlIG1lbW9yeQ0KPiA+IGhpZXJhcmNoeS4NCj4gDQo+IFRoaXMgaXMgcmVhbGx5IG5pY2U6IGhh
-dmluZyB0aGlzIGEgcGVyIGRldmljZSBiZWhhdmlvdXIgaGFzIGJlZW4gZGVzaXJhYmxlIHJhdGhl
-cg0KPiB0aGFuIHRoZSBjdXJyZW50IGJsdW50IHN5c3RlbS13aWRlIGJlaGF2aW91ci4NCj4gDQo+
-IEhvd2V2ZXIgdGhlIHBhdGNoIGRvZXNuJ3Qgc2VlbSB0byBjaGFuZ2UgdGhlIHJvdXRpbmcgb2Zm
-IG5vbi1jb2hlcmVudCB0cmFmZmljIC0NCj4gZXZlcnl0aGluZyB3b3VsZCBzdGlsbCBnbyB0aHJ1
-IGl0IC0gcGVyIHRoZSBjdXJyZW50IGRlZmF1bHQgc2V0dGluZyBvZg0KPiBDUkVHX0FYSV9NXypf
-U0xWWzAtMV0gcmVnaXN0ZXJzLiBJZGVhbGx5IHlvdSB3b3VsZCB3YW50IHRvIGRpc2FibGUgdGhh
-dCBhcyB3ZWxsLA0KPiBhbiBhZGRvbiBwYXRjaCBpcyBmaW5lLg0KDQpZZXAsIGluIHRoaXMgcGF0
-Y2ggSSBvbmx5IGltcGxlbWVudCBpbmZyYXN0cnVjdHVyZSB0byBiZSBhYmxlIHRvIGNob29zZQ0K
-Y29oZXJlbnQvbm9uLWNvaGVyZW50IGNhY2hlIG9wcyBwZXIgZGV2aWNlLiBBcyBmb3IgdG9kYXkg
-YWxsDQoqdXNlZCogKHN1cHBvcnRlZCBhbmQgZW5hYmxlZCBpbiB0aGUgbWFpbmxpbmUga2VybmVs
-KSBETUEgcGVyaXBoZXJhbHMgb24gQVhTMTAzDQphbmQgSFNESyBib2FyZHMgYXJlIHJvdXRlZCB2
-aWEgSU9DIHBvcnQuIFNvIGluIHRoaXMgcGF0Y2ggSSdtIGdvaW5nIHRvIHNpbXBseSBlbmFibGUN
-CmlvLWNvaGVyZW5jeSB2aWEgZGV2aWNlIHRyZWUgZm9yIGV2ZXJ5IERNQSBwZXJpcGhlcmFsIG9u
-IEFYUzEwMyBhbmQgSFNESy4NCg0KVGhlbiBJIGdvaW5nIHRvIG1vZGlmeSBhcGVydHVyZXMgY29u
-ZmlndXJhdGlvbiBpbiBzZXBhcmF0ZSBwYXRjaC4NCkl0IHdpbGwgYmUgc29tZXRoaW5nIGxpa2Ug
-aXQgaXMgZG9uZSBpbiB1LWJvb3Q6DQpodHRwczovL2VsaXhpci5ib290bGluLmNvbS91LWJvb3Qv
-djIwMTguMDctcmMyL3NvdXJjZS9ib2FyZC9zeW5vcHN5cy9oc2RrL2hzZGsuYyNMNDQxDQoNCj4g
-PiANCj4gPiBTb21lIHJlY2VudCBTb0Mgd2l0aCBBUkMgSFMgKGxpa2UgSFNESykgYWxsb3cgdG8g
-c2VsZWN0IGJ1cw0KPiA+IHBvcnQgKElPQyBvciBub24tSU9DIHBvcnQpIGZvciBjb25uZWN0aW5n
-IERNQSBkZXZpY2VzIGluIHJ1bnRpbWUuDQo+ID4gDQo+ID4gV2l0aCB0aGlzIHBhdGNoIHdlIGNh
-biB1c2UgYm90aCBIVy1jb2hlcmVudCBhbmQgcmVndWxhciBETUENCj4gPiBwZXJpcGhlcmFscyBz
-aW11bHRhbmVvdXNseS4NCj4gPiANCj4gPiBGb3IgZXhhbXBsZSB3ZSBjYW4gY29ubmVjdCBVU0Ig
-YW5kIFNESU8gY29udHJvbGxlcnMgdGhyb3VnaCBJT0MgcG9ydA0KPiA+IChzbyB3ZSBkb24ndCBu
-ZWVkIHRvIG5lZWQgdG8gbWFpbnRhaW4gY2FjaGUgY29oZXJlbmN5IGZvciB0aGVzZQ0KPiA+IGRl
-dmljZXMgbWFudWFseS4gQWxsIGNhY2hlIHN5bmMgb3BzIHdpbGwgYmUgbm9wKQ0KPiA+IEFuZCB3
-ZSBjYW4gY29ubmVjdCBFdGhlcm5ldCBkaXJlY3RseSB0byBSQU0gcG9ydCAoc28gd2UgaGFkIHRv
-DQo+ID4gbWFpbnRhaW4gY2FjaGUgY29oZXJlbmN5IG1hbnVhbHkuIENhY2hlIHN5bmMgb3BzIHdp
-bGwgYmUgcmVhbA0KPiA+IGZsdXNoL2ludmFsaWRhdGUgb3BlcmF0aW9ucykNCj4gPiANCj4gPiBD
-YWNoZSBvcHMgYXJlIHNldCBwZXItZGV2aWNlIGFuZCBkZXBlbmRzIG9uICJkbWEtY29oZXJlbnQi
-IGRldmljZQ0KPiA+IHRyZWUgcHJvcGVydHk6DQo+ID4gImRtYV9ub25jb2hlcmVudF9vcHMiIGFy
-ZSB1c2VkIGlmIG5vICJkbWEtY29oZXJlbnQiIHByb3BlcnR5IGlzDQo+ID4gcHJlc2VudCAob3Ig
-SU9DIGlzIGRpc2FibGVkKQ0KPiA+ICJkbWFfZGlyZWN0X29wcyIgYXJlIHVzZWQgaWYgImRtYS1j
-b2hlcmVudCIgcHJvcGVydHkgaXMgcHJlc2VudC4NCj4gDQo+IEkgYWdyZWUgd2l0aCBDaHJpc3Rv
-cGggdGhhdCBjcmVhdGluZyBhIG5ldyBmaWxlIGZvciB0aGlzIHNlZW1zIGV4Y2Vzc2l2ZS4NCk9r
-LCBJJ2xsIG1vdmUgaXQgdG8gYXJjaC9hcmMvbW0vZG1hLmMNCg0KPiA+IE5PVEUgMToNCj4gPiBJ
-dCB3b3JrcyBwZXJmZWN0bHkgZmluZSBvbmx5IGlmIHdlIGRvbid0IGhhdmUgWk9ORV9ISUdITUVN
-IHVzZWQNCj4gPiBhcyBJT0MgZG9lc24ndCBjb3ZlciBhbGwgcGh5c2ljYWwgbWVtb3J5LiBBcyBm
-b3IgdG9kYXkgSXQgY29uZmlndXJlZA0KPiA+IHRvIGNvdmVyIDFHaUIgc3RhcnRpbmcgZnJvbSAw
-eDh6ICh3aGljaCBpcyBaT05FX05PUk1BTCBtZW1vcnkgZm9yDQo+ID4gdXMpLiBUcmFuc2FjdGlv
-bnMgb3V0c2lkZSB0aGlzIHJlZ2lvbiBhcmUgc2VudCBvbiB0aGUgbm9uLWNvaGVyZW50DQo+ID4g
-SS9PIGJ1cyBpbnRlcmZhY2UuDQo+ID4gV2UgY2FuJ3QgY29uZmlndXJlIElPQyB0byBjb3ZlciBh
-bGwgcGh5c2ljYWwgbWVtb3J5IGFzIGl0IGhhcyBzZXZlcmFsDQo+ID4gbGltaXRhdGlvbnMgcmVs
-YXRpbmcgdG8gYXBlcnR1cmUgc2l6ZSBhbmQgc3RhcnQgYWRkcmVzcy4NCj4gPiANCj4gPiBBbmQg
-aWYgd2UgZ2V0IERNQSBidWZmZXIgZnJvbSBaT05FX0hJR0hNRU0gbWVtb3J5IHdlIG5lZWQgdG8N
-Cj4gPiBkbyByZWFsIGZsdXNoL2ludmFsaWRhdGUgb3BlcmF0aW9ucyBvbiB0aGF0IGJ1ZmZlciwg
-d2hpY2ggaXMgb2J2aW91c2x5DQo+ID4gbm90IGRvbmUgYnkgImRtYV9kaXJlY3Rfb3BzIi4NCj4g
-PiANCj4gPiBTbyBJIGFtIG5vdCBzdXJlIGFib3V0ICJkbWFfZGlyZWN0X29wcyIgdXNpbmcgLSBw
-cm9iYWJseSB3ZSBuZWVkIHRvDQo+ID4gY3JlYXRlIG91ciBzcGVjaWFsIGNhY2hlIG9wcyBsaWtl
-ICJhcmNfaW9jX29wcyIgd2hpY2ggd2lsbCBoYW5kbGUNCj4gPiBaT05FX0hJR0hNRU0gY2FzZS4N
-Cg0KQW55IGlkZWFzIGFib3V0IFpPTkVfSElHSE1FTT8gU2hvdWxkIEkgaW1wbGVtZW50IHNlcGFy
-YXRlIGNhY2hlIG9wcw0KbGlrZSAiYXJjX2lvY19vcHMiIHdoZXJlIEknbGwgY2hlY2sgYW5kIHBy
-b2Nlc3MgSElHSE1FTSBwYWdlcyBzcGVjaWFsIHdheT8NCg0KPiA+IChCVFc6IGN1cnJlbnQgQVJD
-IGRtYV9ub25jb2hlcmVudF9vcHMgaW1wbGVtZW50YXRpb24gYWxzbyBoYXMgc2FtZQ0KPiA+IHBy
-b2JsZW0gaWYgSU9DIGFuZCBISUdITUVNIGFyZSBlbmFibGVkLikNCj4gDQo+IENhbiB3ZSBoaWdo
-bGlnaHQgdGhpcyBmYWN0LCBhZGQgZXJyb3IgcHJpbnRzIHNvbWV3aGVyZSA/DQpUaGUgZWFzaWVz
-dCBzb2x1dGlvbiBpcyB0byBwYW5pYyBpZiBib3RoIElPQyBhbmQgWk9ORV9ISUdITUVNIGVuYWJs
-ZWQuDQoNCj4gPiBOT1RFIDI6DQo+ID4gSW4gdGhpcyBSRkMgb25seSBoc2RrLmR0cyBjaGFuZ2Vz
-IGFyZSBzaG93biB0byByZWR1Y2UgcGF0Y2ggc2l6ZS4NCj4gPiBBWFMxMDMgZGV2aWNlIHRyZWUg
-Y2hhbmdlcyBhcmUgbm90IHNob3duLg0KPiA+IA0KPiA+IFNpZ25lZC1vZmYtYnk6IEV1Z2VuaXkg
-UGFsdHNldiA8RXVnZW5peS5QYWx0c2V2QHN5bm9wc3lzLmNvbT4NCj4gPiAtLS0NCj4gPiAgYXJj
-aC9hcmMvS2NvbmZpZyAgICAgICAgICAgICAgICAgICB8ICAxICsNCj4gPiAgYXJjaC9hcmMvYm9v
-dC9kdHMvaHNkay5kdHMgICAgICAgICB8ICA0ICsrKysNCj4gPiAgYXJjaC9hcmMvaW5jbHVkZS9h
-c20vZG1hLW1hcHBpbmcuaCB8IDE0ICsrKysrKysrKysrKysrDQo+ID4gIGFyY2gvYXJjL21tL01h
-a2VmaWxlICAgICAgICAgICAgICAgfCAgMiArLQ0KPiA+ICBhcmNoL2FyYy9tbS9jYWNoZS5jICAg
-ICAgICAgICAgICAgIHwgMTUgKy0tLS0tLS0tLS0tLS0tDQo+ID4gIGFyY2gvYXJjL21tL2RtYS1t
-YXBwaW5nLmMgICAgICAgICAgfCAyMCArKysrKysrKysrKysrKysrKysrKw0KPiA+ICBhcmNoL2Fy
-Yy9tbS9kbWEuYyAgICAgICAgICAgICAgICAgIHwgMTQgKy0tLS0tLS0tLS0tLS0NCj4gPiAgNyBm
-aWxlcyBjaGFuZ2VkLCA0MiBpbnNlcnRpb25zKCspLCAyOCBkZWxldGlvbnMoLSkNCj4gPiAgY3Jl
-YXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJjL2luY2x1ZGUvYXNtL2RtYS1tYXBwaW5nLmgNCj4gPiAg
-Y3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvYXJjL21tL2RtYS1tYXBwaW5nLmMNCj4gPiANCj4gPiBk
-aWZmIC0tZ2l0IGEvYXJjaC9hcmMvS2NvbmZpZyBiL2FyY2gvYXJjL0tjb25maWcNCj4gPiBpbmRl
-eCBlODFiY2QyNzFiZTcuLjBhMmZjZDJhOGMzMiAxMDA2NDQNCj4gPiAtLS0gYS9hcmNoL2FyYy9L
-Y29uZmlnDQo+ID4gKysrIGIvYXJjaC9hcmMvS2NvbmZpZw0KPiA+IEBAIC0xNyw2ICsxNyw3IEBA
-IGNvbmZpZyBBUkMNCj4gPiAgCXNlbGVjdCBDTE9ORV9CQUNLV0FSRFMNCj4gPiAgCXNlbGVjdCBD
-T01NT05fQ0xLDQo+ID4gIAlzZWxlY3QgRE1BX05PTkNPSEVSRU5UX09QUw0KPiA+ICsJc2VsZWN0
-IERNQV9ESVJFQ1RfT1BTDQo+ID4gIAlzZWxlY3QgRE1BX05PTkNPSEVSRU5UX01NQVANCj4gPiAg
-CXNlbGVjdCBHRU5FUklDX0FUT01JQzY0IGlmICFJU0FfQVJDVjIgfHwgIShBUkNfSEFTX0xMNjQg
-JiYgQVJDX0hBU19MTFNDKQ0KPiA+ICAJc2VsZWN0IEdFTkVSSUNfQ0xPQ0tFVkVOVFMNCj4gPiBk
-aWZmIC0tZ2l0IGEvYXJjaC9hcmMvYm9vdC9kdHMvaHNkay5kdHMgYi9hcmNoL2FyYy9ib290L2R0
-cy9oc2RrLmR0cw0KPiA+IGluZGV4IDAwNmFhM2RlNTM0OC4uZWJiNjg2YzIxMzkzIDEwMDY0NA0K
-PiA+IC0tLSBhL2FyY2gvYXJjL2Jvb3QvZHRzL2hzZGsuZHRzDQo+ID4gKysrIGIvYXJjaC9hcmMv
-Ym9vdC9kdHMvaHNkay5kdHMNCj4gPiBAQCAtMTc2LDYgKzE3Niw3IEBADQo+ID4gIAkJCXBoeS1o
-YW5kbGUgPSA8JnBoeTA+Ow0KPiA+ICAJCQlyZXNldHMgPSA8JmNndV9yc3QgSFNES19FVEhfUkVT
-RVQ+Ow0KPiA+ICAJCQlyZXNldC1uYW1lcyA9ICJzdG1tYWNldGgiOw0KPiA+ICsJCQlkbWEtY29o
-ZXJlbnQ7DQo+ID4gIA0KPiA+ICAJCQltZGlvIHsNCj4gPiAgCQkJCSNhZGRyZXNzLWNlbGxzID0g
-PDE+Ow0KPiA+IEBAIC0xOTQsMTIgKzE5NSwxNCBAQA0KPiA+ICAJCQljb21wYXRpYmxlID0gInNu
-cHMsaHNkay12MS4wLW9oY2kiLCAiZ2VuZXJpYy1vaGNpIjsNCj4gPiAgCQkJcmVnID0gPDB4NjAw
-MDAgMHgxMDA+Ow0KPiA+ICAJCQlpbnRlcnJ1cHRzID0gPDE1PjsNCj4gPiArCQkJZG1hLWNvaGVy
-ZW50Ow0KPiA+ICAJCX07DQo+ID4gIA0KPiA+ICAJCWVoY2lANDAwMDAgew0KPiA+ICAJCQljb21w
-YXRpYmxlID0gInNucHMsaHNkay12MS4wLWVoY2kiLCAiZ2VuZXJpYy1laGNpIjsNCj4gPiAgCQkJ
-cmVnID0gPDB4NDAwMDAgMHgxMDA+Ow0KPiA+ICAJCQlpbnRlcnJ1cHRzID0gPDE1PjsNCj4gPiAr
-CQkJZG1hLWNvaGVyZW50Ow0KPiA+ICAJCX07DQo+ID4gIA0KPiA+ICAJCW1tY0BhMDAwIHsNCj4g
-PiBAQCAtMjEyLDYgKzIxNSw3IEBADQo+ID4gIAkJCWNsb2NrLW5hbWVzID0gImJpdSIsICJjaXUi
-Ow0KPiA+ICAJCQlpbnRlcnJ1cHRzID0gPDEyPjsNCj4gPiAgCQkJYnVzLXdpZHRoID0gPDQ+Ow0K
-PiA+ICsJCQlkbWEtY29oZXJlbnQ7DQo+ID4gIAkJfTsNCj4gPiAgCX07DQo+ID4gIA0KPiA+IGRp
-ZmYgLS1naXQgYS9hcmNoL2FyYy9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oIGIvYXJjaC9hcmMv
-aW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaA0KPiA+IG5ldyBmaWxlIG1vZGUgMTAwNjQ0DQo+ID4g
-aW5kZXggMDAwMDAwMDAwMDAwLi42NDBhODUxYmQzMzENCj4gPiAtLS0gL2Rldi9udWxsDQo+ID4g
-KysrIGIvYXJjaC9hcmMvaW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaA0KPiA+IEBAIC0wLDAgKzEs
-MTQgQEANCj4gPiArLy8gU1BEWC1MaWNlbnNlLUlkZW50aWZpZXI6IEdQTC0yLjANCj4gPiArLy8g
-KEMpIDIwMTggU3lub3BzeXMsIEluYy4gKHd3dy5zeW5vcHN5cy5jb20pDQo+ID4gKw0KPiA+ICsj
-aWZuZGVmIEFTTV9BUkNfRE1BX01BUFBJTkdfSA0KPiA+ICsjZGVmaW5lIEFTTV9BUkNfRE1BX01B
-UFBJTkdfSA0KPiA+ICsNCj4gPiArI2RlZmluZSBhcmNoX3NldHVwX2RtYV9vcHMgYXJjaF9zZXR1
-cF9kbWFfb3BzDQo+ID4gKw0KPiA+ICsjaW5jbHVkZSA8YXNtLWdlbmVyaWMvZG1hLW1hcHBpbmcu
-aD4NCj4gPiArDQo+ID4gK3ZvaWQgYXJjaF9zZXR1cF9kbWFfb3BzKHN0cnVjdCBkZXZpY2UgKmRl
-diwgdTY0IGRtYV9iYXNlLCB1NjQgc2l6ZSwNCj4gPiArCQkJY29uc3Qgc3RydWN0IGlvbW11X29w
-cyAqaW9tbXUsIGJvb2wgY29oZXJlbnQpOw0KPiA+ICsNCj4gPiArI2VuZGlmDQo+ID4gZGlmZiAt
-LWdpdCBhL2FyY2gvYXJjL21tL01ha2VmaWxlIGIvYXJjaC9hcmMvbW0vTWFrZWZpbGUNCj4gPiBp
-bmRleCAzNzAzYTQ5NjkzNDkuLjQ1NjgzODk3YzI3YiAxMDA2NDQNCj4gPiAtLS0gYS9hcmNoL2Fy
-Yy9tbS9NYWtlZmlsZQ0KPiA+ICsrKyBiL2FyY2gvYXJjL21tL01ha2VmaWxlDQo+ID4gQEAgLTcs
-NSArNyw1IEBADQo+ID4gICMNCj4gPiAgDQo+ID4gIG9iai15CTo9IGV4dGFibGUubyBpb3JlbWFw
-Lm8gZG1hLm8gZmF1bHQubyBpbml0Lm8NCj4gPiAtb2JqLXkJKz0gdGxiLm8gdGxiZXgubyBjYWNo
-ZS5vIG1tYXAubw0KPiA+ICtvYmoteQkrPSB0bGIubyB0bGJleC5vIGNhY2hlLm8gbW1hcC5vIGRt
-YS1tYXBwaW5nLm8NCj4gPiAgb2JqLSQoQ09ORklHX0hJR0hNRU0pCSs9IGhpZ2htZW0ubw0KPiA+
-IGRpZmYgLS1naXQgYS9hcmNoL2FyYy9tbS9jYWNoZS5jIGIvYXJjaC9hcmMvbW0vY2FjaGUuYw0K
-PiA+IGluZGV4IDlkYmU2NDVlZTEyNy4uYzVkMWYyYTJjNGRhIDEwMDY0NA0KPiA+IC0tLSBhL2Fy
-Y2gvYXJjL21tL2NhY2hlLmMNCj4gPiArKysgYi9hcmNoL2FyYy9tbS9jYWNoZS5jDQo+ID4gQEAg
-LTg5NiwxNSArODk2LDYgQEAgc3RhdGljIHZvaWQgX19kbWFfY2FjaGVfd2JhY2tfc2xjKHBoeXNf
-YWRkcl90IHN0YXJ0LCB1bnNpZ25lZCBsb25nIHN6KQ0KPiA+ICAJc2xjX29wKHN0YXJ0LCBzeiwg
-T1BfRkxVU0gpOw0KPiA+ICB9DQo+ID4gIA0KPiA+IC0vKg0KPiA+IC0gKiBETUEgb3BzIGZvciBz
-eXN0ZW1zIHdpdGggSU9DDQo+ID4gLSAqIElPQyBoYXJkd2FyZSBzbm9vcHMgYWxsIERNQSB0cmFm
-ZmljIGtlZXBpbmcgdGhlIGNhY2hlcyBjb25zaXN0ZW50IHdpdGgNCj4gPiAtICogbWVtb3J5IC0g
-ZWxpZGluZyBuZWVkIGZvciBhbnkgZXhwbGljaXQgY2FjaGUgbWFpbnRlbmFuY2Ugb2YgRE1BIGJ1
-ZmZlcnMNCj4gPiAtICovDQo+ID4gLXN0YXRpYyB2b2lkIF9fZG1hX2NhY2hlX3diYWNrX2ludl9p
-b2MocGh5c19hZGRyX3Qgc3RhcnQsIHVuc2lnbmVkIGxvbmcgc3opIHt9DQo+ID4gLXN0YXRpYyB2
-b2lkIF9fZG1hX2NhY2hlX2ludl9pb2MocGh5c19hZGRyX3Qgc3RhcnQsIHVuc2lnbmVkIGxvbmcg
-c3opIHt9DQo+ID4gLXN0YXRpYyB2b2lkIF9fZG1hX2NhY2hlX3diYWNrX2lvYyhwaHlzX2FkZHJf
-dCBzdGFydCwgdW5zaWduZWQgbG9uZyBzeikge30NCj4gPiAtDQo+ID4gIC8qDQo+ID4gICAqIEV4
-cG9ydGVkIERNQSBBUEkNCj4gPiAgICovDQo+ID4gQEAgLTEyNTMsMTEgKzEyNDQsNyBAQCB2b2lk
-IF9faW5pdCBhcmNfY2FjaGVfaW5pdF9tYXN0ZXIodm9pZCkNCj4gPiAgCWlmIChpc19pc2FfYXJj
-djIoKSAmJiBpb2NfZW5hYmxlKQ0KPiA+ICAJCWFyY19pb2Nfc2V0dXAoKTsNCj4gPiAgDQo+ID4g
-LQlpZiAoaXNfaXNhX2FyY3YyKCkgJiYgaW9jX2VuYWJsZSkgew0KPiA+IC0JCV9fZG1hX2NhY2hl
-X3diYWNrX2ludiA9IF9fZG1hX2NhY2hlX3diYWNrX2ludl9pb2M7DQo+ID4gLQkJX19kbWFfY2Fj
-aGVfaW52ID0gX19kbWFfY2FjaGVfaW52X2lvYzsNCj4gPiAtCQlfX2RtYV9jYWNoZV93YmFjayA9
-IF9fZG1hX2NhY2hlX3diYWNrX2lvYzsNCj4gPiAtCX0gZWxzZSBpZiAoaXNfaXNhX2FyY3YyKCkg
-JiYgbDJfbGluZV9zeiAmJiBzbGNfZW5hYmxlKSB7DQo+IA0KPiBNYXliZSBhbHNvIHR3ZWFrIHRo
-ZSBib290IHByaW50aW5nIGluIHNldHVwLmMgdG8gaW5kaWNhdGUgdGhhdCB3ZSBub3cgZG8gcGVy
-DQo+IHBlcmlwaGVyYWwgaW9jICENCg0KT2ssIGdvb2QgaWRlYS4NCg0KPiA+ICsJaWYgKGlzX2lz
-YV9hcmN2MigpICYmIGwyX2xpbmVfc3ogJiYgc2xjX2VuYWJsZSkgew0KPiA+ICAJCV9fZG1hX2Nh
-Y2hlX3diYWNrX2ludiA9IF9fZG1hX2NhY2hlX3diYWNrX2ludl9zbGM7DQo+ID4gIAkJX19kbWFf
-Y2FjaGVfaW52ID0gX19kbWFfY2FjaGVfaW52X3NsYzsNCj4gPiAgCQlfX2RtYV9jYWNoZV93YmFj
-ayA9IF9fZG1hX2NhY2hlX3diYWNrX3NsYzsNCj4gPiBkaWZmIC0tZ2l0IGEvYXJjaC9hcmMvbW0v
-ZG1hLW1hcHBpbmcuYyBiL2FyY2gvYXJjL21tL2RtYS1tYXBwaW5nLmMNCj4gPiBuZXcgZmlsZSBt
-b2RlIDEwMDY0NA0KPiA+IGluZGV4IDAwMDAwMDAwMDAwMC4uOWQwZDMxMGJiZjVhDQo+ID4gLS0t
-IC9kZXYvbnVsbA0KPiA+ICsrKyBiL2FyY2gvYXJjL21tL2RtYS1tYXBwaW5nLmMNCj4gPiBAQCAt
-MCwwICsxLDIwIEBADQo+ID4gKy8vIFNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBHUEwtMi4wDQo+
-ID4gKy8vIChDKSAyMDE4IFN5bm9wc3lzLCBJbmMuICh3d3cuc3lub3BzeXMuY29tKQ0KPiA+ICsN
-Cj4gPiArI2luY2x1ZGUgPGxpbnV4L2RtYS1tYXBwaW5nLmg+DQo+ID4gKw0KPiA+ICt2b2lkIGFy
-Y2hfc2V0dXBfZG1hX29wcyhzdHJ1Y3QgZGV2aWNlICpkZXYsIHU2NCBkbWFfYmFzZSwgdTY0IHNp
-emUsDQo+ID4gKwkJCWNvbnN0IHN0cnVjdCBpb21tdV9vcHMgKmlvbW11LCBib29sIGNvaGVyZW50
-KQ0KPiA+ICt7DQo+ID4gKwljb25zdCBzdHJ1Y3QgZG1hX21hcF9vcHMgKmRtYV9vcHMgPSAmZG1h
-X25vbmNvaGVyZW50X29wczsNCj4gPiArDQo+ID4gKwkvKg0KPiA+ICsJICogSU9DIGhhcmR3YXJl
-IHNub29wcyBhbGwgRE1BIHRyYWZmaWMga2VlcGluZyB0aGUgY2FjaGVzIGNvbnNpc3RlbnQNCj4g
-PiArCSAqIHdpdGggbWVtb3J5IC0gZWxpZGluZyBuZWVkIGZvciBhbnkgZXhwbGljaXQgY2FjaGUg
-bWFpbnRlbmFuY2Ugb2YNCj4gPiArCSAqIERNQSBidWZmZXJzIC0gc28gd2UgY2FuIHVzZSBkbWFf
-ZGlyZWN0IGNhY2hlIG9wcy4NCj4gPiArCSAqLw0KPiA+ICsJaWYgKGlzX2lzYV9hcmN2MigpICYm
-IGlvY19lbmFibGUgJiYgY29oZXJlbnQpDQo+ID4gKwkJZG1hX29wcyA9ICZkbWFfZGlyZWN0X29w
-czsNCj4gPiArDQo+ID4gKwlzZXRfZG1hX29wcyhkZXYsIGRtYV9vcHMpOw0KPiANCj4gQWRkIGEg
-ZGVidWcgcHJpbnRrIGhlcmUgbWF5YmUgPw0KDQpPay4NCg0KPiA+ICt9DQo+ID4gZGlmZiAtLWdp
-dCBhL2FyY2gvYXJjL21tL2RtYS5jIGIvYXJjaC9hcmMvbW0vZG1hLmMNCj4gPiBpbmRleCA4YzEw
-NzE4NDA5NzkuLjRmZDEzMGU3ODZjNyAxMDA2NDQNCj4gPiAtLS0gYS9hcmNoL2FyYy9tbS9kbWEu
-Yw0KPiA+ICsrKyBiL2FyY2gvYXJjL21tL2RtYS5jDQo+ID4gQEAgLTMzLDE5ICszMyw3IEBAIHZv
-aWQgKmFyY2hfZG1hX2FsbG9jKHN0cnVjdCBkZXZpY2UgKmRldiwgc2l6ZV90IHNpemUsIGRtYV9h
-ZGRyX3QgKmRtYV9oYW5kbGUsDQo+ID4gIAlpZiAoIXBhZ2UpDQo+ID4gIAkJcmV0dXJuIE5VTEw7
-DQo+ID4gIA0KPiA+IC0JLyoNCj4gPiAtCSAqIElPQyByZWxpZXMgb24gYWxsIGRhdGEgKGV2ZW4g
-Y29oZXJlbnQgRE1BIGRhdGEpIGJlaW5nIGluIGNhY2hlDQo+ID4gLQkgKiBUaHVzIGFsbG9jYXRl
-IG5vcm1hbCBjYWNoZWQgbWVtb3J5DQo+ID4gLQkgKg0KPiA+IC0JICogVGhlIGdhaW5zIHdpdGgg
-SU9DIGFyZSB0d28gcHJvbmdlZDoNCj4gPiAtCSAqICAgLUZvciBzdHJlYW1pbmcgZGF0YSwgZWxp
-ZGVzIG5lZWQgZm9yIGNhY2hlIG1haW50ZW5hbmNlLCBzYXZpbmcNCj4gPiAtCSAqICAgIGN5Y2xl
-cyBpbiBmbHVzaCBjb2RlLCBhbmQgYnVzIGJhbmR3aWR0aCBhcyBhbGwgdGhlIGxpbmVzIG9mIGEN
-Cj4gPiAtCSAqICAgIGJ1ZmZlciBuZWVkIHRvIGJlIGZsdXNoZWQgb3V0IHRvIG1lbW9yeQ0KPiA+
-IC0JICogICAtRm9yIGNvaGVyZW50IGRhdGEsIFJlYWQvV3JpdGUgdG8gYnVmZmVycyB0ZXJtaW5h
-dGUgZWFybHkgaW4gY2FjaGUNCj4gPiAtCSAqICAgKHZzLiBhbHdheXMgZ29pbmcgdG8gbWVtb3J5
-IC0gdGh1cyBhcmUgZmFzdGVyKQ0KPiA+IC0JICovDQo+ID4gLQlpZiAoKGlzX2lzYV9hcmN2Migp
-ICYmIGlvY19lbmFibGUpIHx8DQo+ID4gLQkgICAgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJ
-U1RFTlQpKQ0KPiA+ICsJaWYgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RFTlQpDQo+ID4g
-IAkJbmVlZF9jb2ggPSAwOw0KPiA+ICANCj4gPiAgCS8qDQo+IA0KPiANCi0tIA0KIEV1Z2VuaXkg
-UGFsdHNldg==
+Ingo Molnar <mingo@kernel.org> writes:
+
+> * Arnd Bergmann <arnd@arndb.de> wrote:
+>
+>> However, the other question that has to be asked then is whether
+>> there is anything wrong with wait4()/waitid() and getrusuage() that
+>> we want to change beyond the time value passing. We have
+>> answered a similar question with 'yes' for stat(), which has led
+>> to the introduction of statx(),
+>
+> So we are thinking about adding wait5() in essence, right?
+
+> One thing we might want to look into whether the wait4() and waitid() ABIs could 
+> be 'merged', by making wait4() essentially a natural special case of
+> waitid().
+
+Essentially waitid(2) not waitid(3) has already seen this merger.
+In that there is nothing to wait for that you can not already
+expression with waitid.  status vs siginfo is a little different
+but the information is encoded in both.
+
+And waitid(2) optionally returns a struct rusage.
+
+> This would mean that the only new system call we'd have to add is waitid2() in 
+> essence, which would solve both the rusage layout problem and would offer a 
+> unified ABI.
+>
+> If that makes sense (it might not!!), then I'd also modernize waitid2() by making 
+> it attribute structure based, have a length field and make the ABI extensible from 
+> now on going forward without having to introduce a new syscall variant every time 
+> we come up with something new...
+
+The only part where something is not parameterized in waitid is with the
+return of rusage.
+
+What to wait for takes an explicit type parameter.
+What is being returned in siginfo returns an si_code to describe how
+to decode it.
+
+If it weren't for the zombie being gone after waitid returns I don't
+think it would make any sense to combine getrusage and waitid together
+at all.
+
+> I.e. how the perf syscall does ABI extensions: we've had dozens of ABI extensions, 
+> some of them pretty complex, and not a single time did we have to modify glibc and 
+> tooling was able to adapt quickly yet in a both backwards and forwards compatible 
+> fashion.
+>
+> Another, simpler example is the new sys_sched_setattr() syscall, that too is using 
+> the perf_copy_attr() ABI method, via sched_copy_attr(). (With a minor 
+> compatibility quirk of SCHED_ATTR_SIZE_VER0 that a new wait ABI wouldn't have to 
+> do - i.e. it could be made even simpler.)
+>
+> This way we only have:
+>
+> SYSCALL_DEFINE3(sched_setattr, pid_t, pid, struct sched_attr __user *, uattr, unsigned int, flags)
+>
+> But even 'pid' and 'flags' could have been part of the attribute, i.e. one we pick 
+> up an attribute structure from user-space we can have really low argument count 
+> system calls. This also concentrates all the compat concerns into handling the 
+> attribute structure properly - no weird per-arch artifacts and quirks with 4-5-6 
+> system call arguments.
+
+The trouble with attributes is that means you can't filter your system
+call arguments with seccomp.  Which most of the time is a pretty big
+downside.
+
+
+From what I have seen the only truly interesting case for extending
+waitid is something file descriptor based so the parent/child
+relationship is not necessary to wait for a process to terminate.
+
+As for getrusage.  If a sane union of the rusage limits and cgroups or
+something like cgroups could be devised.  That would be ideal.  Of
+course except for the memory cgroups the similarity to the resource
+usage measurments and limits really isn't there.  So I don't know if
+merging them would be a real possibility.
+
+So I suspect the simplest thing to do would be to set a flag in the
+idtype member of waitid that says give me rusage64 and then we would
+be done.  Alternately we could use the low bits of the resource usage
+pointer.  Assuming we don't want to introduce another syscall that is.
+I really don't see much incremental extensibility potential in the wait
+or rusage interface right now.
+
+Eric
