@@ -1,78 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:46976 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934430AbeFVTr5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 Jun 2018 15:47:57 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Fri, 22 Jun 2018 13:47:50 -0600
-Message-ID: <20180622194752.11221-6-logang@deltatee.com>
-In-Reply-To: <20180622194752.11221-1-logang@deltatee.com>
-References: <20180622194752.11221-1-logang@deltatee.com>
-Subject: [PATCH v18 5/7] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+Received: from mail-wm0-f47.google.com ([74.125.82.47]:34970 "EHLO
+        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750737AbeFXHND (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jun 2018 03:13:03 -0400
+Date: Sun, 24 Jun 2018 09:12:58 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times ru_utime/ru_stime
+Message-ID: <20180624071258.GB29407@gmail.com>
+References: <20180420120605.1612248-1-arnd@arndb.de>
+ <20180420120605.1612248-2-arnd@arndb.de>
+ <20180621154915.GA31947@gmail.com>
+ <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
+ <20180621161121.GB7222@gmail.com>
+ <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
+ <20180622021636.GA11266@gmail.com>
+ <87a7rm3eb5.fsf@xmission.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87a7rm3eb5.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20180622194750.JUpVW-QRdm4QWAPXBN8FdMDFAXg_hllkUyPxs1N6SsM@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Dominik Brodowski <linux@dominikbrodowski.net>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>
+Message-ID: <20180624071258.LuIo6JDk9R_7C-2YKeZnSFi5R3pUEbfbWkoWDNRvkcc@z>
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+* Eric W. Biederman <ebiederm@xmission.com> wrote:
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
-index c49ff8970ce3..e071e28bca3f 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
-@@ -53,6 +53,7 @@
- 
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- /* PCI device IDs */
- #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
-@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
- 	return 0;
- }
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #endif
--- 
-2.11.0
+> The trouble with attributes is that means you can't filter your system
+> call arguments with seccomp. [...]
+
+There's nothing keeping seccomp from securely fetching those arguments and 
+extending filtering to them as well ...
+
+Allowing that would make sense for a lot of other system calls as well.
+
+Thanks,
+
+	Ingo
