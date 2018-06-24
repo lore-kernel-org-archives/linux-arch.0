@@ -1,73 +1,40 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v18 5/7] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-Date: Fri, 22 Jun 2018 13:47:50 -0600
-Message-ID: <20180622194752.11221-6-logang@deltatee.com>
-References: <20180622194752.11221-1-logang@deltatee.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180622194752.11221-1-logang@deltatee.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times
+	ru_utime/ru_stime
+Date: Sun, 24 Jun 2018 09:12:58 +0200
+Message-ID: <20180624071258.GB29407@gmail.com>
+References: <20180420120605.1612248-1-arnd@arndb.de>
+ <20180420120605.1612248-2-arnd@arndb.de>
+ <20180621154915.GA31947@gmail.com>
+ <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
+ <20180621161121.GB7222@gmail.com>
+ <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
+ <20180622021636.GA11266@gmail.com> <87a7rm3eb5.fsf@xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+Content-Disposition: inline
+In-Reply-To: <87a7rm3eb5.fsf@xmission.com>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Deepa Dinamani <deepa.kernel@gmail.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Al Viro <viro@zeniv.linux.org.uk>, linux-alpha@vger.kernel.org, Matt Turner <mattst88@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>
 List-Id: linux-arch.vger.kernel.org
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
-
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
-
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
-index c49ff8970ce3..e071e28bca3f 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
-@@ -53,6 +53,7 @@
- 
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- /* PCI device IDs */
- #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
-@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
- 	return 0;
- }
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #endif
--- 
-2.11.0
+CiogRXJpYyBXLiBCaWVkZXJtYW4gPGViaWVkZXJtQHhtaXNzaW9uLmNvbT4gd3JvdGU6Cgo+IFRo
+ZSB0cm91YmxlIHdpdGggYXR0cmlidXRlcyBpcyB0aGF0IG1lYW5zIHlvdSBjYW4ndCBmaWx0ZXIg
+eW91ciBzeXN0ZW0KPiBjYWxsIGFyZ3VtZW50cyB3aXRoIHNlY2NvbXAuIFsuLi5dCgpUaGVyZSdz
+IG5vdGhpbmcga2VlcGluZyBzZWNjb21wIGZyb20gc2VjdXJlbHkgZmV0Y2hpbmcgdGhvc2UgYXJn
+dW1lbnRzIGFuZCAKZXh0ZW5kaW5nIGZpbHRlcmluZyB0byB0aGVtIGFzIHdlbGwgLi4uCgpBbGxv
+d2luZyB0aGF0IHdvdWxkIG1ha2Ugc2Vuc2UgZm9yIGEgbG90IG9mIG90aGVyIHN5c3RlbSBjYWxs
+cyBhcyB3ZWxsLgoKVGhhbmtzLAoKCUluZ28KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5v
+cmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
