@@ -1,51 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:47877 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751979AbeFYB0d (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jun 2018 21:26:33 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20180420120605.1612248-1-arnd@arndb.de>
-        <20180420120605.1612248-2-arnd@arndb.de>
-        <20180621154915.GA31947@gmail.com>
-        <CAK8P3a1QYTfRNQt2+a29BpvgYM_pnSFrO=NBvVo=BdUa2q9ngQ@mail.gmail.com>
-        <20180621161121.GB7222@gmail.com>
-        <CAK8P3a1mx16S+DhEMQA6WBJ7efdhN5YaKKVHU6n+E6kfifM-Qg@mail.gmail.com>
-        <20180622021636.GA11266@gmail.com> <87a7rm3eb5.fsf@xmission.com>
-        <20180624071258.GB29407@gmail.com>
-Date: Sun, 24 Jun 2018 20:26:08 -0500
-In-Reply-To: <20180624071258.GB29407@gmail.com> (Ingo Molnar's message of
-        "Sun, 24 Jun 2018 09:12:58 +0200")
-Message-ID: <87y3f31wsv.fsf@xmission.com>
+Received: from mail-eopbgr700059.outbound.protection.outlook.com ([40.107.70.59]:43112
+        "EHLO NAM04-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751752AbeFYGUH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 Jun 2018 02:20:07 -0400
+Date: Mon, 25 Jun 2018 09:19:50 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T
+ config option
+Message-ID: <20180625061950.GB23998@yury-thinkpad>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+ <20180516081910.10067-5-ynorov@caviumnetworks.com>
+ <20180608173207.nwoi25jee52gpdwy@armageddon.cambridge.arm.com>
+ <20180609074227.GA6810@yury-thinkpad>
+ <CAK8P3a16ByPtCwKbdLQRDRni3qV9DXLNYZ9QJUH6uHaZYHr34g@mail.gmail.com>
+ <20180611112736.GA19952@yury-thinkpad>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH v2 2/2] rusage: allow 64-bit times ru_utime/ru_stime
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180611112736.GA19952@yury-thinkpad>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Dominik Brodowski <linux@dominikbrodowski.net>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, Deepa Dinamani <deepa.kernel@gmail.com>
-Message-ID: <20180625012608.CPfbLM37lgoBoo54GSaHocVM6DSqPXB3mkNDKE9Iz2I@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Joseph Myers <joseph@codesourcery.com>, linux-arch <linux-arch@vger.kernel.org>, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Alexander Graf <agraf@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Bamvor Zhangjian <bamv2005@gmail.com>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, Manuel Montezelo <manuel.montezelo@gmail.com>, James Hogan <james.hogan@imgtec.com>, Chris Metcalf <cmetcalf@mellanox.com>, Andrew Pinski <pinskia@gmail.com>, Lin Yongting <linyongting@huawei.com>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Florian Weimer <fweimer@redhat.com>, Linux API <linux-api@vger.kernel.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James Morse <james.morse@arm.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "David S . Miller" <davem@davemloft.net>, Christoph Muellner <christoph.muellner@theobroma-systems.com>
+Message-ID: <20180625061950.kZ9Aztx7ShvM2uJ2xK0kZORP-xYKScPxLZZ9vgVCaQw@z>
 
-Ingo Molnar <mingo@kernel.org> writes:
+On Mon, Jun 11, 2018 at 02:27:36PM +0300, Yury Norov wrote:
+> On Mon, Jun 11, 2018 at 09:48:02AM +0200, Arnd Bergmann wrote:
+> > On Sat, Jun 9, 2018 at 9:42 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> > > On Fri, Jun 08, 2018 at 06:32:07PM +0100, Catalin Marinas wrote:
+> > >> On Wed, May 16, 2018 at 11:18:49AM +0300, Yury Norov wrote:
+> > >> > diff --git a/arch/Kconfig b/arch/Kconfig
+> > >> > index 76c0b54443b1..ee079244dc3c 100644
+> > >> > --- a/arch/Kconfig
+> > >> > +++ b/arch/Kconfig
+> > >> > @@ -264,6 +264,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
+> > >> >  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
+> > >> >     bool
+> > >> >
+> > >> > +config ARCH_32BIT_OFF_T
+> > >> > +   bool
+> > >> > +   depends on !64BIT
+> > >> > +   help
+> > >> > +     All new 32-bit architectures should have 64-bit off_t type on
+> > >> > +     userspace side which corresponds to the loff_t kernel type. This
+> > >> > +     is the requirement for modern ABIs. Some existing architectures
+> > >> > +     already have 32-bit off_t. This option is enabled for all such
+> > >> > +     architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
+> > >> > +     h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
+> > >> > +     nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
+> > >> > +     unicore32, x86_32 and xtensa. This is the complete list. Any
+> > >> > +     new 32-bit architecture should declare 64-bit off_t type on user
+> > >> > +     side and so should not enable this option.
+> > >>
+> > >> Do you know if this is the case for riscv and nds32, merged in the
+> > >> meantime? If not, I suggest you drop this patch altogether and just
+> > >> define force_o_largefile() for arm64/ilp32 as we don't seem to stick to
+> > >> "all new 32-bit architectures should have 64-bit off_t".
+> > >
+> > > I wrote this patch at request of Arnd Bergmann. This is actually his
+> > > words that all new 32-bit architectures should have 64-bit off_t. So
+> > > I was surprized when riscv was merged with 32-bit off_t (and I didn't
+> > > follow nds32).
+> > >
+> > > If this rule is still in force, we'd better add new exceptions to this
+> > > patch. Otherwise, we can drop it.
+> > >
+> > > Arnd, could you please comment it?
+> > 
+> > I completely forgot about it and had assumed that it was merged long
+> > ago, sorry about that.
+> 
+> Hi Arnd,
+> 
+> There are 3 patches like this in ILP32 series that change ABI for new
+> targets. I've submitted them in separated series:
+> https://lkml.org/lkml/2017/9/25/574
+> 
+> They all seems to be acked by you. If you ready to upstream the
+> series, I can rebase it and add riscv32 and nds32 exceptions.
+> 
+> If Palmer and riscv people will decide to follow new rules, we can
+> easily drop the exception.
 
-> * Eric W. Biederman <ebiederm@xmission.com> wrote:
->
->> The trouble with attributes is that means you can't filter your system
->> call arguments with seccomp. [...]
->
-> There's nothing keeping seccomp from securely fetching those arguments and 
-> extending filtering to them as well ...
->
-> Allowing that would make sense for a lot of other system calls as
-> well.
-
-Possibly.  The challenge is that if the fetch for the kernel to use
-those arguments is different from the fetch of seccomp to test those
-arguments you have a time of test vs time of use race.
-
-Given the location of the seccomp hook at the kernel user space border
-there is no easy way for seccomp to share the fetch with the system
-call itself.
-
-So I don't see how seccomp could perform the fetch securely.
-
-Eric
+Ping?
