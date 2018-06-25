@@ -1,106 +1,93 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
 Subject: Re: [PATCH v2] ARC: Improve cmpxchg syscall implementation
-Date: Mon, 25 Jun 2018 13:03:56 -0700
-Message-ID: <bc488b10-cd54-2ef8-46d6-d6c8dc20f799@synopsys.com>
+Date: Mon, 25 Jun 2018 21:11:10 +0000
+Message-ID: <6fb4e79964418dec9f1216dabaacfb59a8937134.camel@synopsys.com>
 References: <20180619142205.20493-1-abrodkin@synopsys.com>
+         <bc488b10-cd54-2ef8-46d6-d6c8dc20f799@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180619142205.20493-1-abrodkin@synopsys.com>
+In-Reply-To: <bc488b10-cd54-2ef8-46d6-d6c8dc20f799@synopsys.com>
 Content-Language: en-US
+Content-ID: <C6E2ADFD2516454B9C3CA5582DAAB9C1@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Max Filippov <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/19/2018 07:22 AM, Alexey Brodkin wrote:
-> From: Peter Zijlstra <peterz@infradead.org>
->
-> arc_usr_cmpxchg syscall is supposed to be used on platforms
-> that lack support of Load-Locked/Store-Conditional instructions
-> in hardware. And in that case we mimic missing hardware features
-> with help of kernel's sycall that "atomically" checks current
-> value in memory and then if it matches caller expectation new
-> value is written to that same location.
->
-> What's important in the description above:
->  - Check-and-exchange must be "atomical" which means
->    preemption must be disabled during entire "transaction"
->  - Data accessed is from user-space, i.e. we're dealing
->    with virtual addresses
->
-> And in current implementation we have a couple of problems:
->
-> 1. We do disable preemprion around __get_user() & __put_user()
->    but that in its turn disables page fault handler.
->    That means if a pointer to user's data has no mapping in
->    the TLB we won't be able to access required data.
->    Instead software "exception handling" code from __get_user_fn()
->    will return -EFAULT.
->
-> 2. What's worse if we're dealing with data from not yet allocated
->    page (think of pre-copy-on-write state) we'll successfully
->    read data but on write we'll silently return to user-space
->    with correct result (which we really read just before). That leads
->    to very strange problems in user-space app further down the line
->    because new value was never written to the destination.
->
-> 3. Regardless of what went wrong we'll return from syscall
->    and user-space application will continue to execute.
->    Even if user's pointer was completely bogus.
->    In case of hardware LL/SC that app would have been killed
->    by the kernel.
->
-> With that change we attempt to imrove on all 3 items above:
->
-> 1. We still disable preemption around write of user's data but
->    if we happen to fail with write we're enabling preemption
->    and try to fix-up page fault so that we have a correct permission
->    for writing user's data. Then re-try again in "atomic" context.
->
-> 2. If real page fault fails or even access_ok() returns false
->    we send SIGSEGV to the user-space process so if something goes
->    seriously wrong we'll know about it much earlier.
->
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> Cc: linux-arch@vger.kernel.org
-> ---
->
-> Changes v1 -> v2:
->
->  * Peter's almost clean-room reimplmentation with less paranoid checks
->    and direct invocation of fixup_user_fault() for in-place update of
->    write permissions.
->
-
-I don't like the changelog - it is way too verbose and doesn't say the exact
-problem we are trying to solve. How about something like below ?
-
------>
-
-    ARC: Improve cmpxchg syscall implementation
-   
-    This is used in configs lacking hardware atomics to emulate atomic r-m-w
-    for user space, implemented by disabling preemption in kernel.
-   
-    However there are issues in current implementation:
-   
-    1. Process not terminated if invalid user pointer passed:
-       i.e. __get_user() failed.
-   
-    2. The reason for this patch was __put_user() failure not being handled,
-       for COW break scenario. The zero page is initially wired up and
-       read by __get_user() succeeds. However a write by __put_user()
-       doesn't complete the page fault handling due to the page fault
-       disabling from preempt disable. And what's worse is we silently return
-       the stale zero value from __get_user() to user space. So the fix
-       handles the specific case by re-enabling preemption and explicitly
-       fixing up the fault and retrying the whole sequence over.
-
-OK ?
-
--Vineet
+SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDYtMjUgYXQgMTM6MDMgLTA3MDAsIFZpbmVldCBH
+dXB0YSB3cm90ZToNCj4gT24gMDYvMTkvMjAxOCAwNzoyMiBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
+dGU6DQo+ID4gRnJvbTogUGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPg0KPiA+
+IA0KPiA+IGFyY191c3JfY21weGNoZyBzeXNjYWxsIGlzIHN1cHBvc2VkIHRvIGJlIHVzZWQgb24g
+cGxhdGZvcm1zDQo+ID4gdGhhdCBsYWNrIHN1cHBvcnQgb2YgTG9hZC1Mb2NrZWQvU3RvcmUtQ29u
+ZGl0aW9uYWwgaW5zdHJ1Y3Rpb25zDQo+ID4gaW4gaGFyZHdhcmUuIEFuZCBpbiB0aGF0IGNhc2Ug
+d2UgbWltaWMgbWlzc2luZyBoYXJkd2FyZSBmZWF0dXJlcw0KPiA+IHdpdGggaGVscCBvZiBrZXJu
+ZWwncyBzeWNhbGwgdGhhdCAiYXRvbWljYWxseSIgY2hlY2tzIGN1cnJlbnQNCj4gPiB2YWx1ZSBp
+biBtZW1vcnkgYW5kIHRoZW4gaWYgaXQgbWF0Y2hlcyBjYWxsZXIgZXhwZWN0YXRpb24gbmV3DQo+
+ID4gdmFsdWUgaXMgd3JpdHRlbiB0byB0aGF0IHNhbWUgbG9jYXRpb24uDQo+ID4gDQo+ID4gV2hh
+dCdzIGltcG9ydGFudCBpbiB0aGUgZGVzY3JpcHRpb24gYWJvdmU6DQo+ID4gIC0gQ2hlY2stYW5k
+LWV4Y2hhbmdlIG11c3QgYmUgImF0b21pY2FsIiB3aGljaCBtZWFucw0KPiA+ICAgIHByZWVtcHRp
+b24gbXVzdCBiZSBkaXNhYmxlZCBkdXJpbmcgZW50aXJlICJ0cmFuc2FjdGlvbiINCj4gPiAgLSBE
+YXRhIGFjY2Vzc2VkIGlzIGZyb20gdXNlci1zcGFjZSwgaS5lLiB3ZSdyZSBkZWFsaW5nDQo+ID4g
+ICAgd2l0aCB2aXJ0dWFsIGFkZHJlc3Nlcw0KPiA+IA0KPiA+IEFuZCBpbiBjdXJyZW50IGltcGxl
+bWVudGF0aW9uIHdlIGhhdmUgYSBjb3VwbGUgb2YgcHJvYmxlbXM6DQo+ID4gDQo+ID4gMS4gV2Ug
+ZG8gZGlzYWJsZSBwcmVlbXByaW9uIGFyb3VuZCBfX2dldF91c2VyKCkgJiBfX3B1dF91c2VyKCkN
+Cj4gPiAgICBidXQgdGhhdCBpbiBpdHMgdHVybiBkaXNhYmxlcyBwYWdlIGZhdWx0IGhhbmRsZXIu
+DQo+ID4gICAgVGhhdCBtZWFucyBpZiBhIHBvaW50ZXIgdG8gdXNlcidzIGRhdGEgaGFzIG5vIG1h
+cHBpbmcgaW4NCj4gPiAgICB0aGUgVExCIHdlIHdvbid0IGJlIGFibGUgdG8gYWNjZXNzIHJlcXVp
+cmVkIGRhdGEuDQo+ID4gICAgSW5zdGVhZCBzb2Z0d2FyZSAiZXhjZXB0aW9uIGhhbmRsaW5nIiBj
+b2RlIGZyb20gX19nZXRfdXNlcl9mbigpDQo+ID4gICAgd2lsbCByZXR1cm4gLUVGQVVMVC4NCj4g
+PiANCj4gPiAyLiBXaGF0J3Mgd29yc2UgaWYgd2UncmUgZGVhbGluZyB3aXRoIGRhdGEgZnJvbSBu
+b3QgeWV0IGFsbG9jYXRlZA0KPiA+ICAgIHBhZ2UgKHRoaW5rIG9mIHByZS1jb3B5LW9uLXdyaXRl
+IHN0YXRlKSB3ZSdsbCBzdWNjZXNzZnVsbHkNCj4gPiAgICByZWFkIGRhdGEgYnV0IG9uIHdyaXRl
+IHdlJ2xsIHNpbGVudGx5IHJldHVybiB0byB1c2VyLXNwYWNlDQo+ID4gICAgd2l0aCBjb3JyZWN0
+IHJlc3VsdCAod2hpY2ggd2UgcmVhbGx5IHJlYWQganVzdCBiZWZvcmUpLiBUaGF0IGxlYWRzDQo+
+ID4gICAgdG8gdmVyeSBzdHJhbmdlIHByb2JsZW1zIGluIHVzZXItc3BhY2UgYXBwIGZ1cnRoZXIg
+ZG93biB0aGUgbGluZQ0KPiA+ICAgIGJlY2F1c2UgbmV3IHZhbHVlIHdhcyBuZXZlciB3cml0dGVu
+IHRvIHRoZSBkZXN0aW5hdGlvbi4NCj4gPiANCj4gPiAzLiBSZWdhcmRsZXNzIG9mIHdoYXQgd2Vu
+dCB3cm9uZyB3ZSdsbCByZXR1cm4gZnJvbSBzeXNjYWxsDQo+ID4gICAgYW5kIHVzZXItc3BhY2Ug
+YXBwbGljYXRpb24gd2lsbCBjb250aW51ZSB0byBleGVjdXRlLg0KPiA+ICAgIEV2ZW4gaWYgdXNl
+cidzIHBvaW50ZXIgd2FzIGNvbXBsZXRlbHkgYm9ndXMuDQo+ID4gICAgSW4gY2FzZSBvZiBoYXJk
+d2FyZSBMTC9TQyB0aGF0IGFwcCB3b3VsZCBoYXZlIGJlZW4ga2lsbGVkDQo+ID4gICAgYnkgdGhl
+IGtlcm5lbC4NCj4gPiANCj4gPiBXaXRoIHRoYXQgY2hhbmdlIHdlIGF0dGVtcHQgdG8gaW1yb3Zl
+IG9uIGFsbCAzIGl0ZW1zIGFib3ZlOg0KPiA+IA0KPiA+IDEuIFdlIHN0aWxsIGRpc2FibGUgcHJl
+ZW1wdGlvbiBhcm91bmQgd3JpdGUgb2YgdXNlcidzIGRhdGEgYnV0DQo+ID4gICAgaWYgd2UgaGFw
+cGVuIHRvIGZhaWwgd2l0aCB3cml0ZSB3ZSdyZSBlbmFibGluZyBwcmVlbXB0aW9uDQo+ID4gICAg
+YW5kIHRyeSB0byBmaXgtdXAgcGFnZSBmYXVsdCBzbyB0aGF0IHdlIGhhdmUgYSBjb3JyZWN0IHBl
+cm1pc3Npb24NCj4gPiAgICBmb3Igd3JpdGluZyB1c2VyJ3MgZGF0YS4gVGhlbiByZS10cnkgYWdh
+aW4gaW4gImF0b21pYyIgY29udGV4dC4NCj4gPiANCj4gPiAyLiBJZiByZWFsIHBhZ2UgZmF1bHQg
+ZmFpbHMgb3IgZXZlbiBhY2Nlc3Nfb2soKSByZXR1cm5zIGZhbHNlDQo+ID4gICAgd2Ugc2VuZCBT
+SUdTRUdWIHRvIHRoZSB1c2VyLXNwYWNlIHByb2Nlc3Mgc28gaWYgc29tZXRoaW5nIGdvZXMNCj4g
+PiAgICBzZXJpb3VzbHkgd3Jvbmcgd2UnbGwga25vdyBhYm91dCBpdCBtdWNoIGVhcmxpZXIuDQo+
+ID4gDQo+ID4gU2lnbmVkLW9mZi1ieTogUGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQu
+b3JnPg0KPiA+IFNpZ25lZC1vZmYtYnk6IEFsZXhleSBCcm9ka2luIDxhYnJvZGtpbkBzeW5vcHN5
+cy5jb20+DQo+ID4gQ2M6IFZpbmVldCBHdXB0YSA8dmd1cHRhQHN5bm9wc3lzLmNvbT4NCj4gPiBD
+YzogTWF4IEZpbGlwcG92IDxqY212YmtiY0BnbWFpbC5jb20+DQo+ID4gQ2M6IGxpbnV4LWFyY2hA
+dmdlci5rZXJuZWwub3JnDQo+ID4gLS0tDQo+ID4gDQo+ID4gQ2hhbmdlcyB2MSAtPiB2MjoNCj4g
+PiANCj4gPiAgKiBQZXRlcidzIGFsbW9zdCBjbGVhbi1yb29tIHJlaW1wbG1lbnRhdGlvbiB3aXRo
+IGxlc3MgcGFyYW5vaWQgY2hlY2tzDQo+ID4gICAgYW5kIGRpcmVjdCBpbnZvY2F0aW9uIG9mIGZp
+eHVwX3VzZXJfZmF1bHQoKSBmb3IgaW4tcGxhY2UgdXBkYXRlIG9mDQo+ID4gICAgd3JpdGUgcGVy
+bWlzc2lvbnMuDQo+ID4gDQo+IA0KPiBJIGRvbid0IGxpa2UgdGhlIGNoYW5nZWxvZyAtIGl0IGlz
+IHdheSB0b28gdmVyYm9zZSBhbmQgZG9lc24ndCBzYXkgdGhlIGV4YWN0DQo+IHByb2JsZW0gd2Ug
+YXJlIHRyeWluZyB0byBzb2x2ZS4gSG93IGFib3V0IHNvbWV0aGluZyBsaWtlIGJlbG93ID8NCj4g
+DQo+IC0tLS0tPg0KPiANCj4gICAgIEFSQzogSW1wcm92ZSBjbXB4Y2hnIHN5c2NhbGwgaW1wbGVt
+ZW50YXRpb24NCj4gICAgDQo+ICAgICBUaGlzIGlzIHVzZWQgaW4gY29uZmlncyBsYWNraW5nIGhh
+cmR3YXJlIGF0b21pY3MgdG8gZW11bGF0ZSBhdG9taWMgci1tLXcNCj4gICAgIGZvciB1c2VyIHNw
+YWNlLCBpbXBsZW1lbnRlZCBieSBkaXNhYmxpbmcgcHJlZW1wdGlvbiBpbiBrZXJuZWwuDQo+ICAg
+IA0KPiAgICAgSG93ZXZlciB0aGVyZSBhcmUgaXNzdWVzIGluIGN1cnJlbnQgaW1wbGVtZW50YXRp
+b246DQo+ICAgIA0KPiAgICAgMS4gUHJvY2VzcyBub3QgdGVybWluYXRlZCBpZiBpbnZhbGlkIHVz
+ZXIgcG9pbnRlciBwYXNzZWQ6DQo+ICAgICAgICBpLmUuIF9fZ2V0X3VzZXIoKSBmYWlsZWQuDQo+
+ICAgIA0KPiAgICAgMi4gVGhlIHJlYXNvbiBmb3IgdGhpcyBwYXRjaCB3YXMgX19wdXRfdXNlcigp
+IGZhaWx1cmUgbm90IGJlaW5nIGhhbmRsZWQsDQo+ICAgICAgICBmb3IgQ09XIGJyZWFrIHNjZW5h
+cmlvLiBUaGUgemVybyBwYWdlIGlzIGluaXRpYWxseSB3aXJlZCB1cCBhbmQNCj4gICAgICAgIHJl
+YWQgYnkgX19nZXRfdXNlcigpIHN1Y2NlZWRzLiBIb3dldmVyIGEgd3JpdGUgYnkgX19wdXRfdXNl
+cigpDQo+ICAgICAgICBkb2Vzbid0IGNvbXBsZXRlIHRoZSBwYWdlIGZhdWx0IGhhbmRsaW5nIGR1
+ZSB0byB0aGUgcGFnZSBmYXVsdA0KPiAgICAgICAgZGlzYWJsaW5nIGZyb20gcHJlZW1wdCBkaXNh
+YmxlLiBBbmQgd2hhdCdzIHdvcnNlIGlzIHdlIHNpbGVudGx5IHJldHVybg0KPiAgICAgICAgdGhl
+IHN0YWxlIHplcm8gdmFsdWUgZnJvbSBfX2dldF91c2VyKCkgdG8gdXNlciBzcGFjZS4gU28gdGhl
+IGZpeA0KPiAgICAgICAgaGFuZGxlcyB0aGUgc3BlY2lmaWMgY2FzZSBieSByZS1lbmFibGluZyBw
+cmVlbXB0aW9uIGFuZCBleHBsaWNpdGx5DQo+ICAgICAgICBmaXhpbmcgdXAgdGhlIGZhdWx0IGFu
+ZCByZXRyeWluZyB0aGUgd2hvbGUgc2VxdWVuY2Ugb3Zlci4NCj4gDQo+IE9LID8NCg0KU3VyZSwg
+Y2FyZSB0byB1cGRhdGUgdGhlIGNvbW1pdCBsb2cgb3Igd2FudCBtZSB0byByZXNlbmQ/DQoNCi1B
+bGV4ZXk=
