@@ -1,51 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:44029 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755839AbeFZCqV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jun 2018 22:46:21 -0400
-Received: by mail-oi0-f68.google.com with SMTP id x18-v6so5144398oie.10
-        for <linux-arch@vger.kernel.org>; Mon, 25 Jun 2018 19:46:21 -0700 (PDT)
+Received: from mail.kernel.org ([198.145.29.99]:55012 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751004AbeFZF1L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 26 Jun 2018 01:27:11 -0400
+Received: from mail-wm0-f47.google.com (mail-wm0-f47.google.com [74.125.82.47])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 8D7A526526
+        for <linux-arch@vger.kernel.org>; Tue, 26 Jun 2018 05:27:10 +0000 (UTC)
+Received: by mail-wm0-f47.google.com with SMTP id z13-v6so279038wma.5
+        for <linux-arch@vger.kernel.org>; Mon, 25 Jun 2018 22:27:10 -0700 (PDT)
 MIME-Version: 1.0
 References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
 In-Reply-To: <20180607143807.3611-1-yu-cheng.yu@intel.com>
-From: Jann Horn <jannh@google.com>
-Date: Tue, 26 Jun 2018 04:46:08 +0200
-Message-ID: <CAG48ez2puLWrDDPg=ighCY+yxFoP-nN97MqVseqYabBad+eKmg@mail.gmail.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Mon, 25 Jun 2018 22:26:57 -0700
+Message-ID: <CALCETrWYx5nCtwGAqTZBWOB+aw+eEcnQhe6Sn1o+O356g7Km9A@mail.gmail.com>
 Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: yu-cheng.yu@intel.com
-Cc: kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hjl.tools@gmail.com, vedvyas.shanbhogue@intel.com, ravi.v.shankar@intel.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20180626024608.MeHZ0GwsVZwD9JEpo3EZLNa1MHiKgwOUbQQQ4hoMGC4@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Linux API <linux-api@vger.kernel.org>, Jann Horn <jannh@google.com>, Florian Weimer <fweimer@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, mike.kravetz@oracle.com
+Message-ID: <20180626052657.wWw5fDLgkFhM6m8UmHdIxhqcRLp37qDa27f4KMSHAIA@z>
 
-On Tue, Jun 26, 2018 at 4:45 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+On Thu, Jun 7, 2018 at 7:41 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 >
 > This series introduces CET - Shadow stack
->
-> At the high level, shadow stack is:
->
->         Allocated from a task's address space with vm_flags VM_SHSTK;
->         Its PTEs must be read-only and dirty;
->         Fixed sized, but the default size can be changed by sys admin.
->
-> For a forked child, the shadow stack is duplicated when the next
-> shadow stack access takes place.
->
-> For a pthread child, a new shadow stack is allocated.
->
-> The signal handler uses the same shadow stack as the main program.
->
-> Yu-cheng Yu (10):
->   x86/cet: User-mode shadow stack support
->   x86/cet: Introduce WRUSS instruction
->   x86/cet: Signal handling for shadow stack
->   x86/cet: Handle thread shadow stack
->   x86/cet: ELF header parsing of Control Flow Enforcement
->   x86/cet: Add arch_prctl functions for shadow stack
->   mm: Prevent mprotect from changing shadow stack
->   mm: Prevent mremap of shadow stack
->   mm: Prevent madvise from changing shadow stack
->   mm: Prevent munmap and remap_file_pages of shadow stack
 
-Shouldn't patches like these be CC'ed to linux-api@vger.kernel.org?
+I think you should add some mitigation against sigreturn-oriented
+programming.  How about creating some special token on the shadow
+stack that indicates the presence of a signal frame at a particular
+address when delivering a signal and verifying and popping that token
+in sigreturn?  The token could be literally the address of the signal
+frame, and you could make this unambiguous by failing sigreturn if CET
+is on and the signal frame is in executable memory.
+
+IOW, it would be a shame if sigreturn() itself became a convenient
+CET-bypassing gadget.
+
+--Andy
