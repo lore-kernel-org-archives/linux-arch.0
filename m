@@ -1,62 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:44080 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754207AbeFYXZM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jun 2018 19:25:12 -0400
-Subject: Re: [PATCH v5 15/27] compiler: Option to default to hidden symbols
-References: <20180625224014.134829-1-thgarnie@google.com>
- <20180625224014.134829-16-thgarnie@google.com>
-From: Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <8486eb8b-e233-4e2f-e976-da7b4cefc673@infradead.org>
-Date: Mon, 25 Jun 2018 16:25:03 -0700
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:44029 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755839AbeFZCqV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jun 2018 22:46:21 -0400
+Received: by mail-oi0-f68.google.com with SMTP id x18-v6so5144398oie.10
+        for <linux-arch@vger.kernel.org>; Mon, 25 Jun 2018 19:46:21 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20180625224014.134829-16-thgarnie@google.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+In-Reply-To: <20180607143807.3611-1-yu-cheng.yu@intel.com>
+From: Jann Horn <jannh@google.com>
+Date: Tue, 26 Jun 2018 04:46:08 +0200
+Message-ID: <CAG48ez2puLWrDDPg=ighCY+yxFoP-nN97MqVseqYabBad+eKmg@mail.gmail.com>
+Subject: Re: [PATCH 00/10] Control Flow Enforcement - Part (3)
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Garnier <thgarnie@google.com>, kernel-hardening@lists.openwall.com
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@alien8.de>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Christopher Li <sparse@chrisli.org>, Steven Rostedt <rostedt@goodmis.org>, Jason Baron <jbaron@akamai.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Kate Stewart <kstewart@linuxfoundation.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, Philippe Ombredanne <pombredanne@nexb.com>, Lukas Wunner <lukas@wunner.de>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20180625232503.Li5X0tUkrJK_GZupmz9xp5sH4upwaCa6XLZoHyJiqb8@z>
+To: yu-cheng.yu@intel.com
+Cc: kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, hjl.tools@gmail.com, vedvyas.shanbhogue@intel.com, ravi.v.shankar@intel.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Jonathan Corbet <corbet@lwn.net>, Oleg Nesterov <oleg@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20180626024608.MeHZ0GwsVZwD9JEpo3EZLNa1MHiKgwOUbQQQ4hoMGC4@z>
 
-On 06/25/18 15:39, Thomas Garnier wrote:
-> Provide an option to default visibility to hidden except for key
-> symbols. This option is disabled by default and will be used by x86_64
-> PIE support to remove errors between compilation units.
-> 
-> The default visibility is also enabled for external symbols that are
-> compared as they maybe equals (start/end of sections). In this case,
-> older versions of GCC will remove the comparison if the symbols are
-> hidden. This issue exists at least on gcc 4.9 and before.
-> 
-> Signed-off-by: Thomas Garnier <thgarnie@google.com>
-> ---
+On Tue, Jun 26, 2018 at 4:45 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+> This series introduces CET - Shadow stack
+>
+> At the high level, shadow stack is:
+>
+>         Allocated from a task's address space with vm_flags VM_SHSTK;
+>         Its PTEs must be read-only and dirty;
+>         Fixed sized, but the default size can be changed by sys admin.
+>
+> For a forked child, the shadow stack is duplicated when the next
+> shadow stack access takes place.
+>
+> For a pthread child, a new shadow stack is allocated.
+>
+> The signal handler uses the same shadow stack as the main program.
+>
+> Yu-cheng Yu (10):
+>   x86/cet: User-mode shadow stack support
+>   x86/cet: Introduce WRUSS instruction
+>   x86/cet: Signal handling for shadow stack
+>   x86/cet: Handle thread shadow stack
+>   x86/cet: ELF header parsing of Control Flow Enforcement
+>   x86/cet: Add arch_prctl functions for shadow stack
+>   mm: Prevent mprotect from changing shadow stack
+>   mm: Prevent mremap of shadow stack
+>   mm: Prevent madvise from changing shadow stack
+>   mm: Prevent munmap and remap_file_pages of shadow stack
 
-> diff --git a/init/Kconfig b/init/Kconfig
-> index 24b60536e26b..d4f90cc38ede 100644
-> --- a/init/Kconfig
-> +++ b/init/Kconfig
-> @@ -1718,6 +1718,13 @@ config PROFILING
->  config TRACEPOINTS
->  	bool
->  
-> +#
-> +# Default to hidden visibility for all symbols.
-> +# Useful for Position Independent Code to reduce global references.
-> +#
-> +config DEFAULT_HIDDEN
-> +	bool
-> +
-
-I certainly would appreciate a better/more descriptive kconfig symbol name
-here.
-
->  source "arch/Kconfig"
->  
->  endmenu		# General setup
-
-
-thanks,
--- 
-~Randy
+Shouldn't patches like these be CC'ed to linux-api@vger.kernel.org?
