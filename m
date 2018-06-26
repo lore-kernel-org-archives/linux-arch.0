@@ -1,160 +1,164 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH for 4.18 1/2] compat: Introduce is_compat_frame
-Date: Tue, 26 Jun 2018 17:16:16 -0400
-Message-ID: <20180626211617.8933-1-mathieu.desnoyers@efficios.com>
+Subject: Re: rseq: How to test for compat task at signal delivery
+Date: Tue, 26 Jun 2018 17:19:44 -0400 (EDT)
+Message-ID: <1453026995.6388.1530047984544.JavaMail.zimbra@efficios.com>
+References: <1514459655.4190.1530034687884.JavaMail.zimbra@efficios.com> <170076903.5015.1530038711536.JavaMail.zimbra@efficios.com> <CALCETrXimh61U7Tn9KShr6sKag7NCL3qfraN18Oy2Bk+0VRAUA@mail.gmail.com> <1277536320.5963.1530042608296.JavaMail.zimbra@efficios.com> <CALCETrWhY_+SxKt9Xq2ruiGk8GQeYvrojy84w_Quosrf5fpApQ@mail.gmail.com> <1352608225.6039.1530043932895.JavaMail.zimbra@efficios.com> <CALCETrVs57TZf4V4vrCkh2Aa_x=+HuVO5hYB5yFmS1VqE5rcuw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CALCETrVs57TZf4V4vrCkh2Aa_x=+HuVO5hYB5yFmS1VqE5rcuw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Joel Fernandes <joelaf@google.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, Andi Kleen <andi@firstfloor.org>, "H . Peter Anvin" <hpa@zytor.com>, Chris Lameter <cl@linux.com>, Russell King <linux@arm.linux.org.uk>, Andrew Hunter <ahh@google.com>, Michael Kerrisk <mtk.manpages@gmail.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Paul Turner <pjt@google.com>, Boqun Feng <boqun.feng@gmail.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Ben Maurer <bmaurer@fb.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, linux-kernel <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-x86 is moving from is_compat_task() to in_compat_syscall(). However,
-in_compat_syscall cannot be used to check whether a signal is being
-delivered on a compat task.
+----- On Jun 26, 2018, at 4:46 PM, Andy Lutomirski luto@amacapital.net wrote:
 
-Introduce is_compat_frame to allow performing this check from
-architecture agnostic code. On all architectures except x86, it
-invokes is_compat_task(). On x86, it uses is_ia32_frame() and
-is_x32_frame() to check whether the signal frame is 32-bit.
+> On Tue, Jun 26, 2018 at 1:12 PM Mathieu Desnoyers
+> <mathieu.desnoyers@efficios.com> wrote:
+>>
+>> ----- On Jun 26, 2018, at 3:55 PM, Andy Lutomirski luto@amacapital.net wrote:
+>>
+>> > On Tue, Jun 26, 2018 at 12:50 PM Mathieu Desnoyers
+>> > <mathieu.desnoyers@efficios.com> wrote:
+>> >>
+>> >> ----- On Jun 26, 2018, at 3:32 PM, Andy Lutomirski luto@amacapital.net wrote:
+>> >>
+>> >> > On Tue, Jun 26, 2018 at 11:45 AM Mathieu Desnoyers
+>> >> > <mathieu.desnoyers@efficios.com> wrote:
+>> >> >>
+>> >> >> ----- On Jun 26, 2018, at 1:38 PM, Mathieu Desnoyers
+>> >> >> mathieu.desnoyers@efficios.com wrote:
+>> >> >>
+>> >> >> > Hi Andy,
+>> >> >> >
+>> >> >> > I would like to make the behavior rseq on compat tasks more robust
+>> >> >> > by ensuring that kernel/rseq.c:rseq_get_rseq_cs() clears the high
+>> >> >> > bits of rseq_cs->abort_ip, rseq_cs->start_ip and
+>> >> >> > rseq_cs->post_commit_offset when a 32-bit binary is run on a 64-bit
+>> >> >> > kernel.
+>> >> >> >
+>> >> >> > The intent here is that if user-space has garbage rather than zeroes
+>> >> >> > in its struct rseq_cs fields padding, the behavior will be the same
+>> >> >> > whether the binary is run on 32-bit or 64 kernels.
+>> >> >> >
+>> >> >> > I know that internally, the kernel is making a transition from
+>> >> >> > is_compat_task() to in_compat_syscall().
+>> >> >> >
+>> >> >> > I'm fine with using in_compat_syscall() when rseq_get_rseq_cs() is
+>> >> >> > invoked from a system call, but is it OK to call it when it is
+>> >> >> > invoked from signal delivery ? AFAIU, signals can be delivered
+>> >> >> > upon return from interrupt as well.
+>> >> >> >
+>> >> >> > If not, what strategy do you recommend for arch-agnostic code ?
+>> >> >>
+>> >> >> I think what we're missing here is a new "is_compat_frame(struct ksignal *ksig)"
+>> >> >> which I could use in the rseq code. I'll prepare a patch and we can discuss
+>> >> >> from there.
+>> >> >>
+>> >> >
+>> >> > That sounds about right.
+>> >> >
+>> >> > I'm confused, though.  Wouldn't it be more consistent to just segfault
+>> >> > if the high 32 bits are not clear when rseq transitions to a 32-bit
+>> >> > context?  If there's garbage in 64-bit mode, the program will crash.
+>> >> > Why should 32-bit mode be any different?
+>> >>
+>> >> Currently, if a 32-bit binary puts garbage in the high bits of
+>> >> start_ip, post_commit_offset, and abort_ip in
+>> >>
+>> >> include/uapi/linux/rseq.h:
+>> >>
+>> >> struct rseq_cs {
+>> >>         /* Version of this structure. */
+>> >>         __u32 version;
+>> >>         /* enum rseq_cs_flags */
+>> >>         __u32 flags;
+>> >>         LINUX_FIELD_u32_u64(start_ip);
+>> >>         /* Offset from start_ip. */
+>> >>         LINUX_FIELD_u32_u64(post_commit_offset);
+>> >>         LINUX_FIELD_u32_u64(abort_ip);
+>> >> } __attribute__((aligned(4 * sizeof(__u64))));
+>> >
+>> > This ABI isn't real ABI until a stable kernel happens, right?  So how
+>> > about just making all those fields be u64?
+>>
+>> Good point. Unlike the rseq_cs field in the struct rseq TLS, those
+>> fields don't need to be word-sized/word-aligned, so we could simply
+>> declare them as __u64.
+>>
+>> >
+>> >>
+>> >> A 32-bit kernel just never reads the padding, thus in reality acting
+>> >> as if those were zeroes. However, a 64-bit kernel dealing with this
+>> >> 32-bit compat task will read that padding, handling those as very
+>> >> large values.
+>> >
+>> > Sounds like a design error.  Have all kernels read the fields no
+>> > matter what.  A 32-bit kernel will send SIGSEGV if the high bits are
+>> > set.  A 64-bit kernel running compat userspace should make sure that a
+>> > 32-bit task dies if the high bits are set.
+>>
+>> If we end up declaring those as __u64, that approach makes sense.
+>>
+>> >
+>> >>
+>> >> We need to improve that by introducing a consistent behavior across
+>> >> native 32-bit kernels and 32-bit compat mode on 64-bit kernels.
+>> >>
+>> >> There are two ways to achieve this: either the 32-bit kernel validates
+>> >> the padding by killing the process if padding is non-zero, or the
+>> >> 64-bit kernel treats compat mode by zeroing the high bits of padding.
+>> >>
+>> >> If we look at system call interfaces in general, I think the usual
+>> >> approach is to clear the top bits whenever a value read from a
+>> >> compat task ends up being used as a pointer. This is why I am tempted
+>> >> to go for the "clear high bits" approach rather than killing the task.
+>> >
+>> > I think the modern preference is to use fields of fixed size rather
+>> > than long when UABI is involved.
+>> >
+>> > In any event, I think the test you want is user_64bit_mode().
+>>
+>> Currently, user_64bit_mode is only implemented on x86.
+>>
+>> Should we introduce an architecture-agnostic user_64bit_mode(struct pt_regs *)
+>> which maps to is_compat_task() for non-x86 ? I'm just worried that ptrace
+>> code could try to use it from the context of another task and get mixed up.
+> 
+> I'm not sure other archs can do this.  It might need to have a
+> task_struct pointer, too.
+> 
+> But I think the only actual consideration is that a lot of
+> architectures might fail to kill the task if the task is 32-bit and
+> regs->ip or regs->sp ends up with garbage in the high bits.  Certainly
+> x86 is not consistent about this.  So maybe a helper to fully validate
+> all 64 bits of ip and sp or perhaps helpers to set them and check for
+> full validity would be better.  Like:
+> 
+> void set_task_64bit_ip_or_signal(struct task_struct *, u64 value);
+> 
+> that promises to actually signal the task if value is garbage?
+> 
+> Let's ask linux-arch here.  I'm not nearly familiar enough with the
+> nasty details of other compat-capable architectures.  x86 is very,
+> very, very inconsistent about how what the high bits of the registers
+> mean, and there are cases where the "high bits" involved are actually
+> the high 48 bits, not the high 32 bits.  Sigh.
 
-This is needed by restartable sequences to detect whether it needs
-to clear the top bits of the start_ip, abort_ip, and post_commit_offset
-rseq_cs fields on signal delivery, thus ensuring identical behavior
-for a 32-bit binary executed on 32-bit and 64-bit kernels.
+For the records, I just sent out 2 patches as RFC implementing the
+is_compat_frame() approach, and clearing the high bits for compat tasks.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Joel Fernandes <joelaf@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Dave Watson <davejwatson@fb.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Andi Kleen <andi@firstfloor.org>
-Cc: "H . Peter Anvin" <hpa@zytor.com>
-Cc: Chris Lameter <cl@linux.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Andrew Hunter <ahh@google.com>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Paul Turner <pjt@google.com>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Josh Triplett <josh@joshtriplett.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Ben Maurer <bmaurer@fb.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
----
- arch/x86/include/asm/compat.h | 24 ++++++++++++++++++++++++
- arch/x86/kernel/signal.c      | 17 -----------------
- include/linux/compat.h        | 17 +++++++++++++++++
- 3 files changed, 41 insertions(+), 17 deletions(-)
+It has the merit to be straightforward and introduce few changes at
+this stage of the -rc.
 
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index fb97cf7c4137..1405a8df5215 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -8,6 +8,7 @@
- #include <linux/types.h>
- #include <linux/sched.h>
- #include <linux/sched/task_stack.h>
-+#include <linux/signal.h>
- #include <asm/processor.h>
- #include <asm/user32.h>
- #include <asm/unistd.h>
-@@ -242,4 +243,27 @@ struct compat_siginfo;
- int __copy_siginfo_to_user32(struct compat_siginfo __user *to,
- 		const siginfo_t *from, bool x32_ABI);
- 
-+static inline int is_ia32_compat_frame(struct ksignal *ksig)
-+{
-+	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
-+		ksig->ka.sa.sa_flags & SA_IA32_ABI;
-+}
-+
-+static inline int is_ia32_frame(struct ksignal *ksig)
-+{
-+	return IS_ENABLED(CONFIG_X86_32) || is_ia32_compat_frame(ksig);
-+}
-+
-+static inline int is_x32_frame(struct ksignal *ksig)
-+{
-+	return IS_ENABLED(CONFIG_X86_X32_ABI) &&
-+		ksig->ka.sa.sa_flags & SA_X32_ABI;
-+}
-+
-+static inline bool is_compat_frame(struct ksignal *ksig)
-+{
-+	return is_ia32_frame(ksig) || is_x32_frame(ksig);
-+}
-+#define is_compat_frame	is_compat_frame		/* override the generic impl */
-+
- #endif /* _ASM_X86_COMPAT_H */
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 92a3b312a53c..cb488e3e952d 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -664,23 +664,6 @@ SYSCALL_DEFINE0(rt_sigreturn)
- 	return 0;
- }
- 
--static inline int is_ia32_compat_frame(struct ksignal *ksig)
--{
--	return IS_ENABLED(CONFIG_IA32_EMULATION) &&
--		ksig->ka.sa.sa_flags & SA_IA32_ABI;
--}
--
--static inline int is_ia32_frame(struct ksignal *ksig)
--{
--	return IS_ENABLED(CONFIG_X86_32) || is_ia32_compat_frame(ksig);
--}
--
--static inline int is_x32_frame(struct ksignal *ksig)
--{
--	return IS_ENABLED(CONFIG_X86_X32_ABI) &&
--		ksig->ka.sa.sa_flags & SA_X32_ABI;
--}
--
- static int
- setup_rt_frame(struct ksignal *ksig, struct pt_regs *regs)
- {
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index b1a5562b3215..2e1ffba65117 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -1022,6 +1022,19 @@ static inline struct compat_timeval ns_to_compat_timeval(s64 nsec)
- 	return ctv;
- }
- 
-+/*
-+ * For most but not all architectures, "is this a compat sigframe?" and
-+ * "am I a compat task?" are the same question.  For architectures on which
-+ * they aren't the same question, arch code can override is_compat_frame.
-+ */
-+
-+#ifndef is_compat_frame
-+static inline bool is_compat_frame(struct ksignal *ksig)
-+{
-+	return is_compat_task();
-+}
-+#endif
-+
- #else /* !CONFIG_COMPAT */
- 
- #define is_compat_task() (0)
-@@ -1029,6 +1042,10 @@ static inline struct compat_timeval ns_to_compat_timeval(s64 nsec)
- static inline bool in_compat_syscall(void) { return false; }
- #endif
- 
-+#ifndef is_compat_frame
-+static inline bool is_compat_frame(struct ksignal *ksig) { return false; }
-+#endif
-+
- #endif /* CONFIG_COMPAT */
- 
- #endif /* _LINUX_COMPAT_H */
+Thanks,
+
+Mathieu
+
+
 -- 
-2.11.0
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
