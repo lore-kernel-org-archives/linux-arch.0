@@ -1,26 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60424 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:49892 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S965153AbeF0NeJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 27 Jun 2018 09:34:09 -0400
+        id S1754546AbeF0N6b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 27 Jun 2018 09:58:31 -0400
 MIME-Version: 1.0
 References: <20180625140754.GB29102@dhcp22.suse.cz> <CABGGisyVpfYCz7-5AGB-3Ld9hcuikPVk=19xPc1AwffjhsV+kg@mail.gmail.com>
- <20180627112655.GD4291@rapoport-lnx>
-In-Reply-To: <20180627112655.GD4291@rapoport-lnx>
+ <20180627101144.GC4291@rapoport-lnx>
+In-Reply-To: <20180627101144.GC4291@rapoport-lnx>
 From: Rob Herring <robh@kernel.org>
-Date: Wed, 27 Jun 2018 07:33:55 -0600
-Message-ID: <CAL_JsqL6dV9+tP9CQ7XoCoaf0wUO6NgHZ2-QNUyQMZx2pny+xA@mail.gmail.com>
+Date: Wed, 27 Jun 2018 07:58:19 -0600
+Message-ID: <CAL_Jsq+evsgh9Qi6FfG4vUZWtpC0UrFjTWSrzukMxY==TD_mrg@mail.gmail.com>
 Subject: Re: why do we still need bootmem allocator?
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: rppt@linux.vnet.ibm.com
 Cc: mhocko@kernel.org, linux-mm@kvack.org, Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20180627133355.Du6b11-fzcltJuD3tPAZoFGHYrxdqH_dIvscGHtXEIg@z>
+Message-ID: <20180627135819.f24blPikO3ZLvr5q-9YR_Wlm_DrnYmOALZxf5xtexEE@z>
 
-On Wed, Jun 27, 2018 at 5:27 AM Mike Rapoport <rppt@linux.vnet.ibm.com> wrote:
->
-> Hi,
+On Wed, Jun 27, 2018 at 4:11 AM Mike Rapoport <rppt@linux.vnet.ibm.com> wrote:
 >
 > On Mon, Jun 25, 2018 at 10:09:41AM -0600, Rob Herring wrote:
 > > On Mon, Jun 25, 2018 at 8:08 AM Michal Hocko <mhocko@kernel.org> wrote:
@@ -34,40 +32,10 @@ On Wed, Jun 27, 2018 at 5:27 AM Mike Rapoport <rppt@linux.vnet.ibm.com> wrote:
 > > recently (sh, microblaze, and h8300) mainly because I broke them with
 > > some DT changes.
 >
-> I've tried running the current upstream on h8300 gdb simulator and it
-> failed:
+> I have a patch for alpha nearly ready.
+> That leaves m68k and ia64
 
-It seems my patch[1] is still not applied. The maintainer said he applied it.
-
-> [    0.000000] BUG: Bad page state in process swapper  pfn:00004
-> [    0.000000] page:007ed080 count:0 mapcount:-128 mapping:00000000
-> index:0x0
-> [    0.000000] flags: 0x0()
-> [    0.000000] raw: 00000000 0040bdac 0040bdac 00000000 00000000 00000002
-> ffffff7f 00000000
-> [    0.000000] page dumped because: nonzero mapcount
-> ---Type <return> to continue, or q <return> to quit---
-> [    0.000000] CPU: 0 PID: 0 Comm: swapper Not tainted 4.18.0-rc2+ #50
-> [    0.000000] Stack from 00401f2c:
-> [    0.000000]   00401f2c 001116cb 007ed080 00401f40 000e20e6 00401f54
-> 0004df14 00000000
-> [    0.000000]   007ed080 007ed000 00401f5c 0004df8c 00401f90 0004e982
-> 00000044 00401fd1
-> [    0.000000]   007ed000 007ed000 00000000 00000004 00000008 00000000
-> 00000003 00000011
-> [    0.000000]
-> [    0.000000] Call Trace:
-> [    0.000000]         [<000e20e6>] [<0004df14>] [<0004df8c>] [<0004e982>]
-> [    0.000000]         [<00051a28>] [<00001000>] [<00000100>]
-> [    0.000000] Disabling lock debugging due to kernel taint
->
-> With v4.13 I was able to get to "no valid init found".
->
-> I had a quick look at h8300 memory initialization and it seems it has
-> starting pfn set to 0 while fdt defines memory start at 4M.
-
-Perhaps there's another issue.
+And c6x, hexagon, mips, nios2, unicore32. Those are all the platforms
+which don't select NO_BOOTMEM.
 
 Rob
-
-[1] https://patchwork.kernel.org/patch/10290317/
