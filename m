@@ -1,83 +1,73 @@
-From: Mike Rapoport <rppt@linux.vnet.ibm.com>
-Subject: Re: why do we still need bootmem allocator?
-Date: Wed, 27 Jun 2018 19:02:07 +0300
-Message-ID: <20180627160206.GB19182@rapoport-lnx>
-References: <20180625140754.GB29102@dhcp22.suse.cz>
- <CABGGisyVpfYCz7-5AGB-3Ld9hcuikPVk=19xPc1AwffjhsV+kg@mail.gmail.com>
- <20180627112655.GD4291@rapoport-lnx>
- <CAL_JsqL6dV9+tP9CQ7XoCoaf0wUO6NgHZ2-QNUyQMZx2pny+xA@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Wed, 27 Jun 2018 18:17:58 +0100
+Message-ID: <20180627171757.amucnh5znld45cpc@armageddon.cambridge.arm.com>
+References: <cover.1529507994.git.andreyknvl@google.com>
+ <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+ <0cef1643-a523-98e7-95e2-9ec595137642@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAL_JsqL6dV9+tP9CQ7XoCoaf0wUO6NgHZ2-QNUyQMZx2pny+xA@mail.gmail.com>
+In-Reply-To: <0cef1643-a523-98e7-95e2-9ec595137642@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rob Herring <robh@kernel.org>
-Cc: mhocko@kernel.org, linux-mm@kvack.org, Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
+Cc: Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>nd <nd@arm.com>, Linux ARM <linux-arm-kernel@lists.infr>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 27, 2018 at 07:33:55AM -0600, Rob Herring wrote:
-> On Wed, Jun 27, 2018 at 5:27 AM Mike Rapoport <rppt@linux.vnet.ibm.com> wrote:
-> >
-> > Hi,
-> >
-> > On Mon, Jun 25, 2018 at 10:09:41AM -0600, Rob Herring wrote:
-> > > On Mon, Jun 25, 2018 at 8:08 AM Michal Hocko <mhocko@kernel.org> wrote:
-> > > >
-> > > > Hi,
-> > > > I am wondering why do we still keep mm/bootmem.c when most architectures
-> > > > already moved to nobootmem. Is there any fundamental reason why others
-> > > > cannot or this is just a matter of work?
-> > >
-> > > Just because no one has done the work. I did a couple of arches
-> > > recently (sh, microblaze, and h8300) mainly because I broke them with
-> > > some DT changes.
-> >
-> > I've tried running the current upstream on h8300 gdb simulator and it
-> > failed:
+On Wed, Jun 27, 2018 at 04:08:09PM +0100, Ramana Radhakrishnan wrote:
+> On 27/06/2018 16:05, Andrey Konovalov wrote:
+> > On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
+> > <catalin.marinas@arm.com> wrote:
+> >> On Tue, Jun 26, 2018 at 02:47:50PM +0200, Andrey Konovalov wrote:
+> >>> On Wed, Jun 20, 2018 at 5:24 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> >>>> arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+> >>>> tags into the top byte of each pointer. Userspace programs (such as
+> >>>> HWASan, a memory debugging tool [1]) might use this feature and pass
+> >>>> tagged user pointers to the kernel through syscalls or other interfaces.
+> >>>>
+> >>>> This patch makes a few of the kernel interfaces accept tagged user
+> >>>> pointers. The kernel is already able to handle user faults with tagged
+> >>>> pointers and has the untagged_addr macro, which this patchset reuses.
+> >>>>
+> >>>> We're not trying to cover all possible ways the kernel accepts user
+> >>>> pointers in one patchset, so this one should be considered as a start.
+> >>>>
+> >>>> Thanks!
+> >>>>
+> >>>> [1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
+> >>>
+> >>> Is there anything I should do to move forward with this?
+> >>>
+> >>> I've received zero replies to this patch set (v3 and v4) over the last
+> >>> month.
+> >>
+> >> The patches in this series look fine but my concern is that they are not
+> >> sufficient and we don't have (yet?) a way to identify where such
+> >> annotations are required. You even say in patch 6 that this is "some
+> >> initial work for supporting non-zero address tags passed to the kernel".
+> >> Unfortunately, merging (or relaxing) an ABI without a clear picture is
+> >> not really feasible.
+> >>
+> >> While I support this work, as a maintainer I'd like to understand
+> >> whether we'd be in a continuous chase of ABI breaks with every kernel
+> >> release or we have a better way to identify potential issues. Is there
+> >> any way to statically analyse conversions from __user ptr to long for
+> >> example? Or, could we get the compiler to do this for us?
+> > 
+> > OK, got it, I'll try to figure out a way to find these conversions.
 > 
-> It seems my patch[1] is still not applied. The maintainer said he applied it.
+> This sounds like the kind of thing we should be able to get sparse to do
+> already, no ? It's been many years since I last looked at it but I
+> thought sparse was the tool of choice in the kernel to do this kind of
+> checking.
 
-I've applied it manually. Without it unflatten_and_copy_device_tree() fails
-to allocate memory. It indeed can be fixed with moving bootmem_init()
-before, as you've noted in the commit message.
-
-I'll try to dig deeper into it.
- 
-> > [    0.000000] BUG: Bad page state in process swapper  pfn:00004
-> > [    0.000000] page:007ed080 count:0 mapcount:-128 mapping:00000000
-> > index:0x0
-> > [    0.000000] flags: 0x0()
-> > [    0.000000] raw: 00000000 0040bdac 0040bdac 00000000 00000000 00000002
-> > ffffff7f 00000000
-> > [    0.000000] page dumped because: nonzero mapcount
-> > ---Type <return> to continue, or q <return> to quit---
-> > [    0.000000] CPU: 0 PID: 0 Comm: swapper Not tainted 4.18.0-rc2+ #50
-> > [    0.000000] Stack from 00401f2c:
-> > [    0.000000]   00401f2c 001116cb 007ed080 00401f40 000e20e6 00401f54
-> > 0004df14 00000000
-> > [    0.000000]   007ed080 007ed000 00401f5c 0004df8c 00401f90 0004e982
-> > 00000044 00401fd1
-> > [    0.000000]   007ed000 007ed000 00000000 00000004 00000008 00000000
-> > 00000003 00000011
-> > [    0.000000]
-> > [    0.000000] Call Trace:
-> > [    0.000000]         [<000e20e6>] [<0004df14>] [<0004df8c>] [<0004e982>]
-> > [    0.000000]         [<00051a28>] [<00001000>] [<00000100>]
-> > [    0.000000] Disabling lock debugging due to kernel taint
-> >
-> > With v4.13 I was able to get to "no valid init found".
-> >
-> > I had a quick look at h8300 memory initialization and it seems it has
-> > starting pfn set to 0 while fdt defines memory start at 4M.
-> 
-> Perhaps there's another issue.
-> 
-> Rob
-> 
-> [1] https://patchwork.kernel.org/patch/10290317/
-> 
+sparse is indeed an option. The current implementation doesn't warn on
+an explicit cast from (void __user *) to (unsigned long) since that's a
+valid thing in the kernel. I couldn't figure out if there's any other
+__attribute__ that could be used to warn of such conversion.
 
 -- 
-Sincerely yours,
-Mike.
+Catalin
