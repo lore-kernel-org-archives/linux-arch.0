@@ -1,36 +1,59 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: why do we still need bootmem allocator?
-Date: Wed, 27 Jun 2018 07:58:19 -0600
-Message-ID: <CAL_Jsq+evsgh9Qi6FfG4vUZWtpC0UrFjTWSrzukMxY==TD_mrg@mail.gmail.com>
-References: <20180625140754.GB29102@dhcp22.suse.cz> <CABGGisyVpfYCz7-5AGB-3Ld9hcuikPVk=19xPc1AwffjhsV+kg@mail.gmail.com>
- <20180627101144.GC4291@rapoport-lnx>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Wed, 27 Jun 2018 17:05:57 +0200
+Message-ID: <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180627101144.GC4291@rapoport-lnx>
+In-Reply-To: <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: rppt@linux.vnet.ibm.com
-Cc: mhocko@kernel.org, linux-mm@kvack.org, Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 27, 2018 at 4:11 AM Mike Rapoport <rppt@linux.vnet.ibm.com> wrote:
+On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> Hi Andrey,
 >
-> On Mon, Jun 25, 2018 at 10:09:41AM -0600, Rob Herring wrote:
-> > On Mon, Jun 25, 2018 at 8:08 AM Michal Hocko <mhocko@kernel.org> wrote:
-> > >
-> > > Hi,
-> > > I am wondering why do we still keep mm/bootmem.c when most architectures
-> > > already moved to nobootmem. Is there any fundamental reason why others
-> > > cannot or this is just a matter of work?
-> >
-> > Just because no one has done the work. I did a couple of arches
-> > recently (sh, microblaze, and h8300) mainly because I broke them with
-> > some DT changes.
+> On Tue, Jun 26, 2018 at 02:47:50PM +0200, Andrey Konovalov wrote:
+>> On Wed, Jun 20, 2018 at 5:24 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+>> > arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+>> > tags into the top byte of each pointer. Userspace programs (such as
+>> > HWASan, a memory debugging tool [1]) might use this feature and pass
+>> > tagged user pointers to the kernel through syscalls or other interfaces.
+>> >
+>> > This patch makes a few of the kernel interfaces accept tagged user
+>> > pointers. The kernel is already able to handle user faults with tagged
+>> > pointers and has the untagged_addr macro, which this patchset reuses.
+>> >
+>> > We're not trying to cover all possible ways the kernel accepts user
+>> > pointers in one patchset, so this one should be considered as a start.
+>> >
+>> > Thanks!
+>> >
+>> > [1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
+>>
+>> Is there anything I should do to move forward with this?
+>>
+>> I've received zero replies to this patch set (v3 and v4) over the last
+>> month.
 >
-> I have a patch for alpha nearly ready.
-> That leaves m68k and ia64
+> The patches in this series look fine but my concern is that they are not
+> sufficient and we don't have (yet?) a way to identify where such
+> annotations are required. You even say in patch 6 that this is "some
+> initial work for supporting non-zero address tags passed to the kernel".
+> Unfortunately, merging (or relaxing) an ABI without a clear picture is
+> not really feasible.
+>
+> While I support this work, as a maintainer I'd like to understand
+> whether we'd be in a continuous chase of ABI breaks with every kernel
+> release or we have a better way to identify potential issues. Is there
+> any way to statically analyse conversions from __user ptr to long for
+> example? Or, could we get the compiler to do this for us?
 
-And c6x, hexagon, mips, nios2, unicore32. Those are all the platforms
-which don't select NO_BOOTMEM.
 
-Rob
+OK, got it, I'll try to figure out a way to find these conversions.
+
+Thanks!
