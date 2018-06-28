@@ -1,33 +1,57 @@
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Date: Thu, 28 Jun 2018 08:17:59 +0200
-Message-ID: <20180628061758.j6bytsaj5jk4aocg@ltop.local>
-References: <cover.1529507994.git.andreyknvl@google.com>
- <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
- <0cef1643-a523-98e7-95e2-9ec595137642@arm.com>
- <20180627171757.amucnh5znld45cpc@armageddon.cambridge.arm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC PATCH for 4.18 2/2] rseq: compat: clear high bits of rseq_cs
+ fields
+Date: Thu, 28 Jun 2018 10:04:51 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1806281002280.1778@nanos.tec.linutronix.de>
+References: <20180626211617.8933-1-mathieu.desnoyers@efficios.com> <20180626211617.8933-2-mathieu.desnoyers@efficios.com> <D9B93DE9-F61C-4488-B109-432C2DFDCEC2@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/mixed; boundary="8323329-627297609-1530173097=:1778"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180627171757.amucnh5znld45cpc@armageddon.cambridge.arm.com>
+In-Reply-To: <D9B93DE9-F61C-4488-B109-432C2DFDCEC2@amacapital.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>nd
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-kernel@vger.kernel.org, Joel Fernandes <joelaf@google.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Dave Watson <davejwatson@fb.com>, Will Deacon <will.deacon@arm.com>, Andi Kleen <andi@firstfloor.org>, "H . Peter Anvin" <hpa@zytor.com>, Chris Lameter <cl@linux.com>, Russell King <linux@arm.linux.org.uk>, Andrew Hunter <ahh@google.com>, Michael Kerrisk <mtk.manpages@gmail.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Paul Turner <pjt@google.com>, Boqun Feng <boqun.feng@gmail.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Ben Maurer <bmaurer@fb.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, x86
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 27, 2018 at 06:17:58PM +0100, Catalin Marinas wrote:
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
+
+--8323329-627297609-1530173097=:1778
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+
+On Tue, 26 Jun 2018, Andy Lutomirski wrote:
+> > On Jun 26, 2018, at 2:16 PM, Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+> > 
+> > Make the behavior rseq on compat tasks more robust by ensuring that
+> > kernel/rseq.c:rseq_get_rseq_cs() clears the high bits of
+> > rseq_cs->abort_ip, rseq_cs->start_ip and rseq_cs->post_commit_offset
+> > when a 32-bit binary is run on a 64-bit kernel.
+> > 
+> > The intent here is that if user-space has garbage rather than zeroes
+> > in its struct rseq_cs fields padding, the behavior will be the same
+> > whether the binary is run on 32-bit or 64-bit kernels.
+> > 
+> > Use in_compat_syscall() when rseq_get_rseq_cs() is invoked from
+> > system call context, and use is_compat_frame() when invoked from
+> > signal delivery.
+> > 
 > 
-> sparse is indeed an option. The current implementation doesn't warn on
-> an explicit cast from (void __user *) to (unsigned long) since that's a
-> valid thing in the kernel. I couldn't figure out if there's any other
-> __attribute__ that could be used to warn of such conversion.
+> And when it’s invoked due to preemption unrelated to a syscall or signal,
+> you malfunction?
+>
+> I think the only sane solution is to make these fields be u64, delete the
+> LINUX_FIELD_ macros, and possibly teach the x86 slowpath return to inject
+> a signal if it’s trying to return to a 32-bit context with garbage in the
+> high bits of regs->ip so that we determistically fail if the user screws
+> up.
 
-Hi,
+Right. That's the only sane solution. Trying to play games with 32/64bit
+for a dubious value is going to bite us within no time and just create ugly
+workarounds left and right. Forcing a clear handling upfront avoids all of
+that.
 
-sparse doesn't have such attribute but would an new option that would warn
-on such cast be a solution for your case?
+Thanks,
 
--- Luc
+	tglx
+--8323329-627297609-1530173097=:1778--
