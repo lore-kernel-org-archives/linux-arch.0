@@ -1,57 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out4.electric.net ([192.162.216.184]:58766 "EHLO
-        smtp-out4.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966503AbeF2PkF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2018 11:40:05 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Date: Fri, 29 Jun 2018 15:27:30 +0000
-Message-ID: <a53c13e0cff941aa85f023b0f29346af@AcuMS.aculab.com>
-References: <cover.1529507994.git.andreyknvl@google.com>
- <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
- <0cef1643-a523-98e7-95e2-9ec595137642@arm.com>
- <20180627171757.amucnh5znld45cpc@armageddon.cambridge.arm.com>
- <20180628061758.j6bytsaj5jk4aocg@ltop.local>
- <20180628102741.vk6vphfinlj3lvhv@armageddon.cambridge.arm.com>
- <20180628104610.czsnq4w3lfhxrn53@ltop.local>
- <20180628144858.2fu7kq56cxhp2kpg@armageddon.cambridge.arm.com>
-In-Reply-To: <20180628144858.2fu7kq56cxhp2kpg@armageddon.cambridge.arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:52501 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750965AbeF2RpZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2018 13:45:25 -0400
+Subject: Re: [RFC v2] ARC: allow to use IOC and non-IOC DMA devices
+ simultaneously
+References: <20180628141452.3585-1-Eugeniy.Paltsev@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <4010dc7c-7046-eddd-11cc-30099c29d640@synopsys.com>
+Date: Fri, 29 Jun 2018 10:45:13 -0700
 MIME-Version: 1.0
+In-Reply-To: <20180628141452.3585-1-Eugeniy.Paltsev@synopsys.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Catalin Marinas' <catalin.marinas@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Cc: Mark Rutland <Mark.Rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>nd <nd@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <Robin.Murphy@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20180629152730.hGjUL49ZSXBxHrhgjpmZPzHsBLwDyK9bJpl6Q6sAAa0@z>
+To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
+Message-ID: <20180629174513.MTNWOkYtFFTMvvekCX3E0Bs19eBo12VhHtXPa1uKkt0@z>
 
-From: Catalin Marinas
-> Sent: 28 June 2018 15:49
-...
-> >
-> > Mmmm yes.
-> > I tend to favor a sort of opposite approach. When we have an address
-> > that must not be dereferenced as-such (and sometimes when the address
-> > can be from both __user & __kernel space) I prefer to use a ulong
-> > which will force the use of the required operation before being
-> > able to do any sort of dereferencing and this won't need horrible
-> > casts with __force (it, of course, all depends on the full context).
-> 
-> I agree. That's what the kernel uses in functions like get_user_pages()
-> which take ulong as an argument. Similarly mmap() and friends don't
-> expect the pointer to be dereferenced, hence the ulong argument. The
-> interesting part that the man page (and the C library header
-> declaration) shows such address argument as void *. We could add a
-> syscall wrapper in the arch code, only that it doesn't feel consistent
-> with the "rule" that ulong addresses are not actually tagged pointers.
+On 06/28/2018 07:14 AM, Eugeniy Paltsev wrote:
+> The ARC HS processor provides an IOC port (I/O coherency bus
+> interface) that allows external devices such as DMA devices
+> to access memory through the cache hierarchy, providing
+> coherency between I/O transactions and the complete memory
+> hierarchy.
 
-For most modern calling conventions it would make sense to put 'user'
-addresses (and physical ones from that matter) into a structure.
-That way you get much stronger typing from C itself.
+You mention IOC port in first line, but the change has nothing to do with it -
+this is confusing.
+Make this less verbose and just expand on the subject you have - global vs. per
+device dma settings, without going into all the internal details.
 
-The patch would, of course, be huge!
+And again going back to my original point, you are changing the semantics (ioc and
+non ioc to co-exist) but everything still goes thru IOC port. That is different
+that what we had before - everything goes through IOC port and ioc dma ops ONLY if
+IOC existed.
 
-	David
+I understand the need to isolate the 2 things and that is fine. But then what you
+should do is
+1a. introduce the per ioc dma settings in ARC - and not touch the DTBs.
+1b. introduce the IO port settings in platform code
+2. Now switch the DT binding to use the per device ioc
+
+And any panic etc for IOC + highmem etc should be a separate patch - so we can
+easily revert it when time is right !
+
+>
+> Some recent SoC with ARC HS (like HSDK) allow to select bus
+> port (IOC or non-IOC port) for connecting DMA devices in runtime.
+>
+> With this patch we can use both HW-coherent and regular DMA
+> peripherals simultaneously.
+>
+> For example we can connect USB and SDIO controllers through IOC port
+> (so we don't need to need to maintain cache coherency for these
+> devices manualy. All cache sync ops will be nop)
+> And we can connect Ethernet directly to RAM port (so we had to
+> maintain cache coherency manualy. Cache sync ops will be real
+> flush/invalidate operations)
+
+I presume this has been tested with some stress testing bonie++ etc.
+
+> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+> +			const struct iommu_ops *iommu, bool coherent)
+> +{
+> +	/*
+> +	 * IOC hardware snoops all DMA traffic keeping the caches consistent
+> +	 * with memory - eliding need for any explicit cache maintenance of
+> +	 * DMA buffers - so we can use dma_direct cache ops.
+> +	 */
+> +	if (is_isa_arcv2() && ioc_enable && coherent) {
+> +		set_dma_ops(dev, &dma_direct_ops);
+> +		dev_info(dev, "use dma_direct_ops cache ops\n");
+> +	} else {
+> +		set_dma_ops(dev, &dma_noncoherent_ops);
+> +		dev_info(dev, "use dma_noncoherent_ops cache ops\n");
+> +	}
+> +}
+
+And further to Christoph's comment, if we decide to skip the branch, please add a
+comment that it is already set in generic code etc.
