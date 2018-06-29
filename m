@@ -1,74 +1,81 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [RFC v2] ARC: allow to use IOC and non-IOC DMA devices
-        simultaneously
-Date: Fri, 29 Jun 2018 10:30:51 +0200
-Message-ID: <20180629083051.GA15740@lst.de>
-References: <20180628141452.3585-1-Eugeniy.Paltsev@synopsys.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Fri, 29 Jun 2018 17:19:36 +0200
+Message-ID: <CAAeHK+x4jaN9w8O+hYJ0835Ln=rQ8VT1=ZrKLNsBOT92+iOwdQ@mail.gmail.com>
+References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com> <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180628141452.3585-1-Eugeniy.Paltsev@synopsys.com>
+In-Reply-To: <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 28, 2018 at 05:14:52PM +0300, Eugeniy Paltsev wrote:
-> And if we get DMA buffer from ZONE_HIGHMEM memory we need to
-> do real flush/invalidate operations on that buffer, which is obviously
-> not done by "dma_direct_ops".
-> 
-> So I am not sure about "dma_direct_ops" using - probably we need to
-> create our special cache ops like "arc_ioc_ops" which will handle
-> ZONE_HIGHMEM case.
+a bunch of compat
+a bunch of ioctl that use ptr to stored ints
 
-FYI, I have a plan to merge dma_direct_ops and dma_noncoherent_ops
-and make the decision to use cache flushing run time controllable
-with a flag in struct device based on existing dynamic selection
-in e.g. arm, arm64 and mips.  It will probably take a few more merge
-windows to get there, but once it is done you should be able to take
-easy advantage of it.
+ipc/shm.c:1355
+ipc/shm.c:1566
 
-> +++ b/arch/arc/mm/dma.c
-> @@ -19,6 +19,7 @@
->  #include <linux/dma-noncoherent.h>
->  #include <asm/cache.h>
->  #include <asm/cacheflush.h>
-> +#include <linux/dma-mapping.h>
+mm/process_vm_access.c:178:20
+mm/process_vm_access.c:180:19
+substraction => harmless
 
-dma-noncoherent.h already includes dma-mapping.h, so this is not
-required.
+mm/process_vm_access.c:221:4
+?
 
-> -	if ((is_isa_arcv2() && ioc_enable) ||
-> -	    (attrs & DMA_ATTR_NON_CONSISTENT))
-> +	if (attrs & DMA_ATTR_NON_CONSISTENT)
->  		need_coh = 0;
+mm/memory.c:4679:14
+should be __user pointer
 
-need_coh is only used twice, it might be cleaner to remove the
-variable and just open code the DMA_ATTR_NON_CONSISTENT check.
-And for extra points remove the need_kvaddr variable as well.
+fs/fuse/file.c:1256:9
+?
 
-Also you probably want to do the equivalent change in arch_dma_free
-as well.
+kernel/kthread.c:73:9
+?
 
-> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
-> +			const struct iommu_ops *iommu, bool coherent)
-> +{
-> +	/*
-> +	 * IOC hardware snoops all DMA traffic keeping the caches consistent
-> +	 * with memory - eliding need for any explicit cache maintenance of
-> +	 * DMA buffers - so we can use dma_direct cache ops.
-> +	 */
-> +	if (is_isa_arcv2() && ioc_enable && coherent) {
-> +		set_dma_ops(dev, &dma_direct_ops);
-> +		dev_info(dev, "use dma_direct_ops cache ops\n");
-> +	} else {
-> +		set_dma_ops(dev, &dma_noncoherent_ops);
-> +		dev_info(dev, "use dma_noncoherent_ops cache ops\n");
-> +	}
-> +}
+mm/migrate.c:1586:10
+mm/migrate.c:1660:24
 
-Note that due to your use of asm-generic/dma-mapping.h we already
-default to dma_noncoherent_ops if no per-device ops is set.  So we
-could skip the else branch here I think.
+lib/iov_iter.c
+???
+
+kernel/futex.c:502
+uses user addr as key
+
+kernel/futex.c:730
+gup, fixed
+
+lib/strncpy_from_user.c:110:13
+fixed?
+
+lib/strnlen_user.c:112
+fixed?
+
+fs/readdir.c:369
+???
+
+
+
+On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> On Wed, Jun 27, 2018 at 5:05 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+>> On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
+>> <catalin.marinas@arm.com> wrote:
+>>> While I support this work, as a maintainer I'd like to understand
+>>> whether we'd be in a continuous chase of ABI breaks with every kernel
+>>> release or we have a better way to identify potential issues. Is there
+>>> any way to statically analyse conversions from __user ptr to long for
+>>> example? Or, could we get the compiler to do this for us?
+>>
+>>
+>> OK, got it, I'll try to figure out a way to find these conversions.
+>
+> I've prototyped a checker on top of clang static analyzer (initially
+> looked at sparse, but couldn't find any documentation or examples).
+> The results are here [1], search for "warning: user pointer cast".
+> Sharing in case anybody wants to take a look, will look at them myself
+> tomorrow.
+>
+> [1] https://gist.github.com/xairy/433edd5c86456a64026247cb2fef2115
