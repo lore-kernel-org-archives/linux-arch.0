@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:40893 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:44713 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1031404AbeGARcR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2018 13:32:17 -0400
+        by vger.kernel.org with ESMTP id S1031275AbeGARcS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2018 13:32:18 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V2 12/19] csky: ELF and module probe
-Date: Mon,  2 Jul 2018 01:30:15 +0800
-Message-ID: <c6265c6280fe1d3d3bf90864e55167efbb37eddf.1530465326.git.ren_guo@c-sky.com>
+Subject: [PATCH V2 17/19] csky: Misc headers
+Date: Mon,  2 Jul 2018 01:30:20 +0800
+Message-ID: <e1c914049eb8fd5e6e0f998871192e03b0508fa4.1530465326.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
@@ -15,258 +15,574 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180701173015.OVqd466__qdvH5P1lt9w2gZPbiThydMa7xVYRQI9K18@z>
+Message-ID: <20180701173020.Qzwo3_9X9pviIKf_lecYKOctQqD9c3mZ3-c3OdRtoo0@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/elf.h | 149 ++++++++++++++++++++++++++++++++++++++++++++
- arch/csky/kernel/module.c   |  82 ++++++++++++++++++++++++
- 2 files changed, 231 insertions(+)
- create mode 100644 arch/csky/include/asm/elf.h
- create mode 100644 arch/csky/kernel/module.c
+ arch/csky/abiv1/inc/abi/reg_ops.h      |  47 ++++++
+ arch/csky/abiv1/inc/abi/regdef.h       |  15 ++
+ arch/csky/abiv2/inc/abi/reg_ops.h      |  38 +++++
+ arch/csky/abiv2/inc/abi/regdef.h       |  15 ++
+ arch/csky/include/asm/bitops.h         | 277 +++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/checksum.h       |  77 +++++++++
+ arch/csky/include/asm/reg_ops.h        |  16 ++
+ arch/csky/include/uapi/asm/byteorder.h |  14 ++
+ 8 files changed, 499 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
+ create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
+ create mode 100644 arch/csky/include/asm/bitops.h
+ create mode 100644 arch/csky/include/asm/checksum.h
+ create mode 100644 arch/csky/include/asm/reg_ops.h
+ create mode 100644 arch/csky/include/uapi/asm/byteorder.h
 
-diff --git a/arch/csky/include/asm/elf.h b/arch/csky/include/asm/elf.h
+diff --git a/arch/csky/abiv1/inc/abi/reg_ops.h b/arch/csky/abiv1/inc/abi/reg_ops.h
 new file mode 100644
-index 0000000..9a7967c
+index 0000000..7c31ac3
 --- /dev/null
-+++ b/arch/csky/include/asm/elf.h
-@@ -0,0 +1,149 @@
++++ b/arch/csky/abiv1/inc/abi/reg_ops.h
+@@ -0,0 +1,47 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASMCSKY_ELF_H
-+#define __ASMCSKY_ELF_H
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
 +
-+/*
-+ * ELF register definitions..
-+ */
++#define cprcr(reg)					\
++({							\
++	unsigned int tmp;				\
++	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
++	tmp;						\
++})
 +
-+#include <asm/ptrace.h>
-+#include <abi/regdef.h>
++#define cpwcr(reg, val)					\
++({							\
++	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
++})
 +
-+#define ELF_ARCH 39
-+
-+/* CSKY Relocations */
-+#define R_CSKY_NONE               0
-+#define R_CSKY_32                 1
-+#define R_CSKY_PCIMM8BY4          2
-+#define R_CSKY_PCIMM11BY2         3
-+#define R_CSKY_PCIMM4BY2          4
-+#define R_CSKY_PC32               5
-+#define R_CSKY_PCRELJSR_IMM11BY2  6
-+#define R_CSKY_GNU_VTINHERIT      7
-+#define R_CSKY_GNU_VTENTRY        8
-+#define R_CSKY_RELATIVE           9
-+#define R_CSKY_COPY               10
-+#define R_CSKY_GLOB_DAT           11
-+#define R_CSKY_JUMP_SLOT          12
-+#define R_CSKY_ADDR_HI16          24
-+#define R_CSKY_ADDR_LO16          25
-+#define R_CSKY_PCRELJSR_IMM26BY2  40
-+
-+typedef unsigned long elf_greg_t;
-+
-+typedef struct user_fp elf_fpregset_t;
-+
-+#define ELF_NGREG (sizeof(struct pt_regs) / sizeof(elf_greg_t))
-+
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architecture.
-+ */
-+#define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE		4096
-+#define ELF_CLASS			ELFCLASS32
-+#define ELF_PLAT_INIT(_r, load_addr)	_r->a0 = 0
-+
-+#ifdef  __cskyBE__
-+#define ELF_DATA	ELFDATA2MSB
-+#else
-+#define ELF_DATA	ELFDATA2LSB
-+#endif
-+
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE	0x0UL
-+
-+/* The member sort in array pr_reg[x] is pc, r1, r0, psr, r2, r3,r4,
-+   r5, r6...... Because GDB difine */
-+#if defined(__CSKYABIV2__)
-+   #define ELF_CORE_COPY_REGS(pr_reg, regs)     \
-+        pr_reg[0] = regs->pc;                   \
-+        pr_reg[1] = regs->a1;                   \
-+        pr_reg[2] = regs->a0;                   \
-+        pr_reg[3] = regs->sr;                   \
-+        pr_reg[4] = regs->a2;                   \
-+        pr_reg[5] = regs->a3;                   \
-+        pr_reg[6] = regs->regs[0];              \
-+        pr_reg[7] = regs->regs[1];              \
-+        pr_reg[8] = regs->regs[2];              \
-+        pr_reg[9] = regs->regs[3];              \
-+        pr_reg[10] = regs->regs[4];             \
-+        pr_reg[11] = regs->regs[5];             \
-+        pr_reg[12] = regs->regs[6];             \
-+        pr_reg[13] = regs->regs[7];             \
-+        pr_reg[14] = regs->regs[8];             \
-+        pr_reg[15] = regs->regs[9];             \
-+        pr_reg[16] = regs->usp;			\
-+        pr_reg[17] = regs->lr;			\
-+        pr_reg[18] = regs->exregs[0];           \
-+        pr_reg[19] = regs->exregs[1];           \
-+        pr_reg[20] = regs->exregs[2];           \
-+        pr_reg[21] = regs->exregs[3];           \
-+        pr_reg[22] = regs->exregs[4];           \
-+        pr_reg[23] = regs->exregs[5];           \
-+        pr_reg[24] = regs->exregs[6];           \
-+        pr_reg[25] = regs->exregs[7];           \
-+        pr_reg[26] = regs->exregs[8];           \
-+        pr_reg[27] = regs->exregs[9];           \
-+        pr_reg[28] = regs->exregs[10];          \
-+        pr_reg[29] = regs->exregs[11];          \
-+        pr_reg[30] = regs->exregs[12];          \
-+        pr_reg[31] = regs->exregs[13];          \
-+        pr_reg[32] = regs->exregs[14];          \
-+        pr_reg[33] = regs->tls;
-+#else
-+     #define ELF_CORE_COPY_REGS(pr_reg, regs)   \
-+        pr_reg[0] = regs->pc;                   \
-+        pr_reg[1] = regs->regs[9];              \
-+        pr_reg[2] = regs->usp;			\
-+        pr_reg[3] = regs->sr;                   \
-+        pr_reg[4] = regs->a0;                   \
-+        pr_reg[5] = regs->a1;                   \
-+        pr_reg[6] = regs->a2;                   \
-+        pr_reg[7] = regs->a3;                   \
-+        pr_reg[8] = regs->regs[0];              \
-+        pr_reg[9] = regs->regs[1];              \
-+        pr_reg[10] = regs->regs[2];             \
-+        pr_reg[11] = regs->regs[3];             \
-+        pr_reg[12] = regs->regs[4];             \
-+        pr_reg[13] = regs->regs[5];             \
-+        pr_reg[14] = regs->regs[6];             \
-+        pr_reg[15] = regs->regs[7];             \
-+        pr_reg[16] = regs->regs[8];             \
-+        pr_reg[17] = regs->lr;
-+#endif
-+
-+/* Similar, but for a thread other than current. */
-+struct task_struct;
-+extern int dump_task_regs(struct task_struct *, elf_gregset_t *);
-+#define ELF_CORE_COPY_TASK_REGS(tsk, elf_regs) dump_task_regs(tsk, elf_regs)
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  */
-+
-+#define ELF_HWCAP	(0)
-+
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.  */
-+
-+#define ELF_PLATFORM	(NULL)
-+#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+extern int arch_setup_additional_pages(
-+		struct linux_binprm *bprm,
-+		int uses_interp);
-+
-+#endif
-diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
-new file mode 100644
-index 0000000..a8816e1
---- /dev/null
-+++ b/arch/csky/kernel/module.c
-@@ -0,0 +1,82 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/moduleloader.h>
-+#include <linux/elf.h>
-+#include <linux/mm.h>
-+#include <linux/vmalloc.h>
-+#include <linux/slab.h>
-+#include <linux/fs.h>
-+#include <linux/string.h>
-+#include <linux/kernel.h>
-+#include <linux/spinlock.h>
-+#include <asm/pgtable.h>
-+
-+#define IS_BSR32(hi16, lo16)        (((hi16) & 0xFC00) == 0xE000)
-+#define IS_JSRI32(hi16, lo16)       ((hi16) == 0xEAE0)
-+#define CHANGE_JSRI_TO_LRW(addr)    *(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x001a; \
-+							  *((uint16_t *)(addr) + 1) = *((uint16_t *)(addr) + 1) & 0xFFFF
-+#define SET_JSR32_R26(addr)         *(uint16_t *)(addr) = 0xE8Fa; \
-+							  *((uint16_t *)(addr) + 1) = 0x0000;
-+
-+int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
-+		unsigned int symindex, unsigned int relsec, struct module *me)
++static inline unsigned int mfcr_hint(void)
 +{
-+	unsigned int i;
-+	Elf32_Rela *rel = (void *)sechdrs[relsec].sh_addr;
-+	Elf32_Sym *sym;
-+	uint32_t *location;
-+	short * temp;
-+#ifdef CONFIG_CPU_CSKYV2
-+	uint16_t *location_tmp;
-+#endif
-+
-+	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
-+		/* This is where to make the change */
-+		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-+			+ rel[i].r_offset;
-+		/* This is the symbol it is referring to.  Note that all
-+		   undefined symbols have been resolved.  */
-+		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
-+			+ ELF32_R_SYM(rel[i].r_info);
-+
-+		switch (ELF32_R_TYPE(rel[i].r_info)) {
-+		case R_CSKY_32:
-+			/* We add the value into the location given */
-+			*location = rel[i].r_addend + sym->st_value;
-+			break;
-+		case R_CSKY_PC32:
-+			/* Add the value, subtract its postition */
-+			*location = rel[i].r_addend + sym->st_value
-+				- (uint32_t)location;
-+			break;
-+		case R_CSKY_PCRELJSR_IMM11BY2:
-+			break;
-+		case R_CSKY_PCRELJSR_IMM26BY2:
-+#ifdef CONFIG_CPU_CSKYV2
-+			location_tmp = (uint16_t *)location;
-+			if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
-+				break;
-+			else if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
-+				/* jsri 0x...  --> lrw r26, 0x... */
-+				CHANGE_JSRI_TO_LRW(location);
-+				/* lsli r0, r0 --> jsr r26 */
-+				SET_JSR32_R26(location + 1);
-+			}
-+#endif
-+			break;
-+		case R_CSKY_ADDR_HI16:
-+			temp = ((short  *)location) + 1;
-+			*temp = (short)((rel[i].r_addend + sym->st_value) >> 16);
-+			break;
-+		case R_CSKY_ADDR_LO16:
-+			temp = ((short  *)location) + 1;
-+			*temp = (short)((rel[i].r_addend + sym->st_value) & 0xffff);
-+			break;
-+		default:
-+			pr_err("module %s: Unknown relocation: %u\n",
-+				me->name, ELF32_R_TYPE(rel[i].r_info));
-+			return -ENOEXEC;
-+		}
-+	}
-+	return 0;
++	return mfcr("cr30");
 +}
++
++static inline unsigned int mfcr_msa0(void)
++{
++	return cprcr("cpcr30");
++}
++
++static inline void mtcr_msa0(unsigned int value)
++{
++	cpwcr("cpcr30", value);
++}
++
++static inline unsigned int mfcr_msa1(void)
++{
++	return cprcr("cpcr31");
++}
++
++static inline void mtcr_msa1(unsigned int value)
++{
++	cpwcr("cpcr31", value);
++}
++
++static inline unsigned int mfcr_ccr2(void){return 0;}
++
++#endif /* __ABI_REG_OPS_H */
++
+diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
+new file mode 100644
+index 0000000..0c3596d
+--- /dev/null
++++ b/arch/csky/abiv1/inc/abi/regdef.h
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef  __ASM_CSKY_REGDEF_H
++#define  __ASM_CSKY_REGDEF_H
++
++#define syscallid	r1
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[9]
++
++#define DEFAULT_PSR_VALUE	0x8f000000
++
++#define SYSTRACE_SAVENUM	2
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/abiv2/inc/abi/reg_ops.h b/arch/csky/abiv2/inc/abi/reg_ops.h
+new file mode 100644
+index 0000000..a8b2a52
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/reg_ops.h
+@@ -0,0 +1,38 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
++
++static inline unsigned int mfcr_hint(void)
++{
++	return mfcr("cr31");
++}
++
++static inline unsigned int mfcr_ccr2(void)
++{
++	return mfcr("cr23");
++}
++
++static inline unsigned int mfcr_msa0(void)
++{
++	return mfcr("cr<30, 15>");
++}
++
++static inline void mtcr_msa0(unsigned int value)
++{
++	mtcr("cr<30, 15>", value);
++}
++
++static inline unsigned int mfcr_msa1(void)
++{
++	return mfcr("cr<31, 15>");
++}
++
++static inline void mtcr_msa1(unsigned int value)
++{
++	mtcr("cr<31, 15>", value);
++}
++
++#endif /* __ABI_REG_OPS_H */
++
+diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
+new file mode 100644
+index 0000000..2c36d60
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/regdef.h
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef  __ASM_CSKY_REGDEF_H
++#define  __ASM_CSKY_REGDEF_H
++
++#define syscallid	r7
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[3]
++
++#define DEFAULT_PSR_VALUE	0x8f000200
++
++#define SYSTRACE_SAVENUM	5
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
+new file mode 100644
+index 0000000..b2460c5
+--- /dev/null
++++ b/arch/csky/include/asm/bitops.h
+@@ -0,0 +1,277 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_BITOPS_H
++#define __ASM_CSKY_BITOPS_H
++
++#include <linux/compiler.h>
++
++/*
++ * asm-generic/bitops/ffs.h
++ */
++static inline int ffs(int x)
++{
++	if(!x) return 0;
++
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		"addi %0, 1\n"
++		:"=&r"(x)
++		:"0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/__ffs.h
++ */
++static __always_inline unsigned long __ffs(unsigned long x)
++{
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		:"=&r"(x)
++		:"0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/fls.h
++ */
++static __always_inline int fls(int x)
++{
++	asm volatile(
++		"ff1 %0\n"
++		:"=&r"(x)
++		:"0"(x));
++
++	return (32 - x);
++}
++
++/*
++ * asm-generic/bitops/__fls.h
++ */
++static __always_inline unsigned long __fls(unsigned long x)
++{
++	return fls(x) - 1;
++}
++
++#include <asm-generic/bitops/ffz.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
++
++#ifndef _LINUX_BITOPS_H
++#error only <linux/bitops.h> can be included directly
++#endif
++
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
++
++#ifdef CONFIG_CPU_HAS_LDSTEX
++
++/*
++ * set_bit - Atomically set a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * This function is atomic and may not be reordered.  See __set_bit()
++ * if you do not require the atomic guarantees.
++ *
++ * Note: there are no guarantees that this function will not be reordered
++ * on non x86 architectures, so if you are writing portable code,
++ * make sure not to rely on its reordering guarantees.
++ *
++ * Note that @nr may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static inline void set_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p  |= mask; */
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	or32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * clear_bit - Clears a bit in memory
++ * @nr: Bit to clear
++ * @addr: Address to start counting from
++ *
++ * clear_bit() is atomic and may not be reordered.  However, it does
++ * not contain a memory barrier, so if it is used for locking purposes,
++ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
++ * in order to ensure changes are visible on other processors.
++ */
++static inline void clear_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p &= ~mask; */
++	mask = ~mask;
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	and32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * change_bit - Toggle a bit in memory
++ * @nr: Bit to change
++ * @addr: Address to start counting from
++ *
++ * change_bit() is atomic and may not be reordered. It may be
++ * reordered on other architectures than x86.
++ * Note that @nr may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static inline void change_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p ^= mask; */
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	xor32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * test_and_set_bit - Set a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It may be reordered on other architectures than x86.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp;
++
++	/*
++	 * old = *p;
++	 * *p = old | mask;
++	 */
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	or32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++/**
++ * test_and_clear_bit - Clear a bit and return its old value
++ * @nr: Bit to clear
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It can be reorderdered on other architectures other than x86.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp, mask_not;
++
++	/*
++	 * old = *p;
++	 * *p = old & ~mask;
++	 */
++	mask_not = ~mask;
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	and32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask_not), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++/**
++ * test_and_change_bit - Change a bit and return its old value
++ * @nr: Bit to change
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp;
++
++	/*
++	 * old = *p;
++	 * *p = old ^ mask;
++	 */
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	xor32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++#else
++#include <asm-generic/bitops/atomic.h>
++#endif
++
++/*
++ * bug fix, why only could use atomic!!!!
++ */
++#include <asm-generic/bitops/non-atomic.h>
++#define __clear_bit(nr,vaddr) clear_bit(nr,vaddr)
++
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
++#endif /* __ASM_CSKY_BITOPS_H */
++
+diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
+new file mode 100644
+index 0000000..3f7d255
+--- /dev/null
++++ b/arch/csky/include/asm/checksum.h
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_CHECKSUM_H
++#define __ASM_CSKY_CHECKSUM_H
++
++#include <linux/in6.h>
++#include <asm/byteorder.h>
++
++static inline __sum16 csum_fold(__wsum csum)
++{
++	u32 tmp;
++	asm volatile(
++		"mov	%1, %0\n"
++		"rori	%0, 16\n"
++		"addu	%0, %1\n"
++		"lsri	%0, 16\n"
++		:"=r"(csum), "=r"(tmp)
++		:"0"(csum));
++	return (__force __sum16)~csum;
++}
++#define csum_fold csum_fold
++
++static inline __wsum
++csum_tcpudp_nofold(
++	__be32 saddr,
++	__be32 daddr,
++	unsigned short len,
++	unsigned short proto,
++	__wsum sum
++	)
++{
++	asm volatile(
++		"clrc\n"
++		"addc    %0, %1\n"
++		"addc    %0, %2\n"
++		"addc    %0, %3\n"
++		"inct    %0\n"
++		:"=r"(sum)
++		:"r"((__force u32)saddr),
++		"r"((__force u32)daddr),
++#ifdef __BIG_ENDIAN
++		"r"(proto + len),
++#else
++		"r"((proto + len) << 8),
++#endif
++		"0" ((__force unsigned long)sum)
++		:"cc");
++	return sum;
++}
++#define csum_tcpudp_nofold csum_tcpudp_nofold
++
++static __inline__ __sum16
++csum_ipv6_magic(
++	const struct in6_addr *saddr,
++	const struct in6_addr *daddr,
++	__u32 len,
++	unsigned short proto,
++	__wsum sum
++	)
++{
++	sum += saddr->in6_u.u6_addr32[0];
++	sum += saddr->in6_u.u6_addr32[1];
++	sum += saddr->in6_u.u6_addr32[2];
++	sum += saddr->in6_u.u6_addr32[3];
++	sum += daddr->in6_u.u6_addr32[0];
++	sum += daddr->in6_u.u6_addr32[1];
++	sum += daddr->in6_u.u6_addr32[2];
++	sum += daddr->in6_u.u6_addr32[3];
++	sum += (len + proto);
++
++	return csum_fold(sum);
++}
++#define _HAVE_ARCH_IPV6_CSUM
++
++#include <asm-generic/checksum.h>
++
++#endif /* __ASM_CSKY_CHECKSUM_H */
+diff --git a/arch/csky/include/asm/reg_ops.h b/arch/csky/include/asm/reg_ops.h
+new file mode 100644
+index 0000000..6963e5a
+--- /dev/null
++++ b/arch/csky/include/asm/reg_ops.h
+@@ -0,0 +1,16 @@
++#ifndef __ASM_REGS_OPS_H
++#define __ASM_REGS_OPS_H
++
++#define mfcr(reg)					\
++({							\
++	unsigned int tmp;				\
++	asm volatile("mfcr %0, "reg"\n":"=r"(tmp));	\
++	tmp;						\
++})
++
++#define mtcr(reg, val)					\
++({							\
++	asm volatile("mtcr %0, "reg"\n"::"r"(val));	\
++})
++
++#endif /* __ASM_REGS_OPS_H */
+diff --git a/arch/csky/include/uapi/asm/byteorder.h b/arch/csky/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..d254522
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/byteorder.h
+@@ -0,0 +1,14 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_BYTEORDER_H
++#define __ASM_CSKY_BYTEORDER_H
++
++#if defined(__cskyBE__)
++#include <linux/byteorder/big_endian.h>
++#elif defined(__cskyLE__)
++#include <linux/byteorder/little_endian.h>
++#else
++# error "There is no __cskyBE__, __cskyLE__"
++#endif
++
++#endif /* __ASM_CSKY_BYTEORDER_H */
 -- 
 2.7.4
