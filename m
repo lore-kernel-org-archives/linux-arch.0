@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V2 18/19] clocksource: add C-SKY clocksource drivers
-Date: Mon,  2 Jul 2018 01:30:21 +0800
-Message-ID: <aba005fd5005c066a2e3d760c334bb55f902d771.1530465326.git.ren_guo@c-sky.com>
+Subject: [PATCH V2 19/19] irqchip: add C-SKY irqchip drivers
+Date: Mon,  2 Jul 2018 01:30:22 +0800
+Message-ID: <b940404f1994ecb839fe6f09f6b6f3cfe81ee5fe.1530465326.git.ren_guo@c-sky.com>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
@@ -14,367 +14,489 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- drivers/clocksource/Makefile             |   1 +
- drivers/clocksource/timer-csky-v1.c      | 169 +++++++++++++++++++++++++++++++
- drivers/clocksource/timer-nationalchip.c | 165 ++++++++++++++++++++++++++++++
- 3 files changed, 335 insertions(+)
- create mode 100644 drivers/clocksource/timer-csky-v1.c
- create mode 100644 drivers/clocksource/timer-nationalchip.c
+ drivers/irqchip/Makefile           |   1 +
+ drivers/irqchip/irq-csky-v1.c      | 126 ++++++++++++++++++++++++
+ drivers/irqchip/irq-csky-v2.c      | 191 +++++++++++++++++++++++++++++++++++++
+ drivers/irqchip/irq-nationalchip.c | 131 +++++++++++++++++++++++++
+ 4 files changed, 449 insertions(+)
+ create mode 100644 drivers/irqchip/irq-csky-v1.c
+ create mode 100644 drivers/irqchip/irq-csky-v2.c
+ create mode 100644 drivers/irqchip/irq-nationalchip.c
 
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index d6dec44..bbc567b 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -76,3 +76,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
- obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
- obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
- obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
-+obj-$(CONFIG_CSKY)			+= timer-csky-v1.o timer-nationalchip.o
-diff --git a/drivers/clocksource/timer-csky-v1.c b/drivers/clocksource/timer-csky-v1.c
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index d27e3e3..51e7316 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -85,3 +85,4 @@ obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
+ obj-$(CONFIG_ARCH_SYNQUACER)		+= irq-sni-exiu.o
+ obj-$(CONFIG_MESON_IRQ_GPIO)		+= irq-meson-gpio.o
+ obj-$(CONFIG_GOLDFISH_PIC) 		+= irq-goldfish-pic.o
++obj-$(CONFIG_CSKY) 			+= irq-csky-v1.o irq-csky-v2.o irq-nationalchip.o
+diff --git a/drivers/irqchip/irq-csky-v1.c b/drivers/irqchip/irq-csky-v1.c
 new file mode 100644
-index 0000000..f3a822a
+index 0000000..64ea564
 --- /dev/null
-+++ b/drivers/clocksource/timer-csky-v1.c
-@@ -0,0 +1,169 @@
++++ b/drivers/irqchip/irq-csky-v1.c
+@@ -0,0 +1,126 @@
 +// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/kernel.h>
 +#include <linux/init.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
 +#include <linux/interrupt.h>
-+#include <linux/sched_clock.h>
-+#include <linux/cpu.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++#include <asm/traps.h>
++
++#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
 +#include <asm/reg_ops.h>
++#endif
 +
-+#include "timer-of.h"
++static void __iomem *reg_base;
 +
-+#define PTIM_CTLR	"cr<0, 14>"
-+#define PTIM_TSR	"cr<1, 14>"
-+#define PTIM_CCVR_HI	"cr<2, 14>"
-+#define PTIM_CCVR_LO	"cr<3, 14>"
-+#define PTIM_LVR	"cr<6, 14>"
++#define INTC_ICR	0x00
++#define INTC_ISR	0x00
++#define INTC_NEN31_00	0x10
++#define INTC_NEN63_32	0x28
++#define INTC_IFR31_00	0x08
++#define INTC_IFR63_32	0x20
++#define INTC_SOURCE	0x40
 +
-+#define BITS_CSKY_TIMER	56
++#define INTC_IRQS	64
 +
-+DECLARE_PER_CPU(struct timer_of, csky_to);
++#define INTC_ICR_AVE	BIT(31)
 +
-+static int csky_timer_irq;
-+static int csky_timer_rate;
++#define VEC_IRQ_BASE	32
 +
-+static inline u64 get_ccvr(void)
++static struct irq_domain *root_domain;
++
++static void __init ck_set_gc(void __iomem *reg_base, u32 irq_base,
++			     u32 mask_reg)
 +{
-+	u32 lo, hi, t;
++	struct irq_chip_generic *gc;
 +
-+	do {
-+		hi = mfcr(PTIM_CCVR_HI);
-+		lo = mfcr(PTIM_CCVR_LO);
-+		t  = mfcr(PTIM_CCVR_HI);
-+	} while(t != hi);
-+
-+	return ((u64)hi << 32) | lo;
++	gc = irq_get_domain_generic_chip(root_domain, irq_base);
++	gc->reg_base = reg_base;
++	gc->chip_types[0].regs.mask = mask_reg;
++	gc->chip_types[0].chip.irq_mask = irq_gc_mask_clr_bit;
++	gc->chip_types[0].chip.irq_unmask = irq_gc_mask_set_bit;
 +}
 +
-+static irqreturn_t timer_interrupt(int irq, void *dev)
++static struct irq_domain *root_domain;
++static void ck_irq_handler(struct pt_regs *regs)
 +{
-+	struct timer_of *to = this_cpu_ptr(&csky_to);
-+
-+	mtcr(PTIM_TSR, 0);
-+
-+	to->clkevt.event_handler(&to->clkevt);
-+
-+	return IRQ_HANDLED;
++#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
++	irq_hw_number_t irq = ((mfcr("psr") >> 16) & 0xff) - VEC_IRQ_BASE;
++#else
++	irq_hw_number_t irq = readl_relaxed(reg_base + INTC_ISR) & 0x3f;
++#endif
++	handle_domain_irq(root_domain, irq, regs);
 +}
 +
-+static int csky_timer_set_next_event(unsigned long delta, struct clock_event_device *ce)
++#define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
++static inline void setup_irq_channel(void __iomem *reg_base)
 +{
-+	mtcr(PTIM_LVR, delta);
++	int i;
 +
-+	return 0;
++	/*
++	 * There are 64 irq nums and irq-channels and one byte per channel.
++	 * Setup every channel with the same hwirq num.
++	 */
++	for (i = 0; i < INTC_IRQS; i += 4) {
++		writel_relaxed(expand_byte_to_word(i) + 0x00010203,
++			       reg_base + INTC_SOURCE + i);
++	}
 +}
 +
-+static int csky_timer_shutdown(struct clock_event_device *ce)
++static int __init
++csky_intc_v1_init(struct device_node *node, struct device_node *parent)
 +{
-+	mtcr(PTIM_CTLR, 0);
-+
-+	return 0;
-+}
-+
-+static int csky_timer_oneshot(struct clock_event_device *ce)
-+{
-+	mtcr(PTIM_CTLR, 1);
-+
-+	return 0;
-+}
-+
-+static int csky_timer_oneshot_stopped(struct clock_event_device *ce)
-+{
-+	mtcr(PTIM_CTLR, 0);
-+
-+	return 0;
-+}
-+
-+DEFINE_PER_CPU(struct timer_of, csky_to) = {
-+	.flags = TIMER_OF_CLOCK | TIMER_OF_IRQ,
-+
-+	.clkevt = {
-+		.name = "C-SKY SMP Timer V1",
-+		.rating = 300,
-+		.features = CLOCK_EVT_FEAT_PERCPU | CLOCK_EVT_FEAT_ONESHOT,
-+		.set_state_shutdown		= csky_timer_shutdown,
-+		.set_state_oneshot		= csky_timer_oneshot,
-+		.set_state_oneshot_stopped	= csky_timer_oneshot_stopped,
-+		.set_next_event			= csky_timer_set_next_event,
-+	},
-+
-+	.of_irq = {
-+		.handler = timer_interrupt,
-+		.flags = IRQF_TIMER,
-+		.percpu = 1,
-+	},
-+};
-+
-+/*** clock event for percpu ***/
-+static int csky_timer_starting_cpu(unsigned int cpu)
-+{
-+	struct timer_of *to = this_cpu_ptr(&csky_to);
-+
-+	to->clkevt.cpumask = cpumask_of(smp_processor_id());
-+
-+	clockevents_config_and_register(&to->clkevt, csky_timer_rate, 0, ULONG_MAX);
-+
-+	enable_percpu_irq(csky_timer_irq, 0);
-+
-+	return 0;
-+}
-+
-+static int csky_timer_dying_cpu(unsigned int cpu)
-+{
-+	disable_percpu_irq(csky_timer_irq);
-+
-+	return 0;
-+}
-+
-+/*** clock source ***/
-+static u64 sched_clock_read(void)
-+{
-+	return get_ccvr();
-+}
-+
-+static u64 clksrc_read(struct clocksource *c)
-+{
-+	return get_ccvr();
-+}
-+
-+struct clocksource csky_clocksource = {
-+	.name = "csky_timer_v1_clksrc",
-+	.rating = 400,
-+	.mask = CLOCKSOURCE_MASK(BITS_CSKY_TIMER),
-+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-+	.read = clksrc_read,
-+};
-+
-+static void csky_clksrc_init(void)
-+{
-+	clocksource_register_hz(&csky_clocksource, csky_timer_rate);
-+
-+	sched_clock_register(sched_clock_read, BITS_CSKY_TIMER, csky_timer_rate);
-+}
-+
-+static int __init csky_timer_v1_init(struct device_node *np)
-+{
++	u32 clr = IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
 +	int ret;
-+	struct timer_of *to = this_cpu_ptr(&csky_to);
 +
-+	ret = timer_of_init(np, to);
-+	if (ret)
-+		return ret;
-+
-+	csky_timer_irq = to->of_irq.irq;
-+	csky_timer_rate = timer_of_rate(to);
-+
-+	ret = cpuhp_setup_state(CPUHP_AP_DUMMY_TIMER_STARTING,
-+				"clockevents/csky/timer:starting",
-+				csky_timer_starting_cpu,
-+				csky_timer_dying_cpu);
-+	if (ret) {
-+		pr_err("%s: Failed to cpuhp_setup_state.\n", __func__);
-+		return ret;
++	if (parent) {
++		pr_err("C-SKY Intc not a root irq controller\n");
++		return -EINVAL;
 +	}
 +
-+	csky_clksrc_init();
++	reg_base = of_iomap(node, 0);
++	if (!reg_base) {
++		pr_err("C-SKY Intc unable to map: %p.\n", node);
++		return -EINVAL;
++	}
 +
-+	return ret;
++	writel_relaxed(0, reg_base + INTC_NEN31_00);
++	writel_relaxed(0, reg_base + INTC_NEN63_32);
++
++#ifndef CONFIG_CSKY_VECIRQ_LEGENCY
++	writel_relaxed(INTC_ICR_AVE, reg_base + INTC_ICR);
++#else
++	writel_relaxed(0, reg_base + INTC_ICR);
++#endif
++
++	setup_irq_channel(reg_base);
++
++	root_domain = irq_domain_add_linear(node, INTC_IRQS, &irq_generic_chip_ops, NULL);
++	if (!root_domain) {
++		pr_err("C-SKY Intc irq_domain_add failed.\n");
++		return -ENOMEM;
++	}
++
++	ret = irq_alloc_domain_generic_chips(root_domain, 32, 1,
++					     "csky_intc_v1", handle_level_irq,
++					     clr, 0, 0);
++	if (ret) {
++		pr_err("C-SKY Intc irq_alloc_gc failed.\n");
++		return -ENOMEM;
++	}
++
++	ck_set_gc(reg_base, 0,  INTC_NEN31_00);
++	ck_set_gc(reg_base, 32, INTC_NEN63_32);
++
++	set_handle_irq(ck_irq_handler);
++
++	return 0;
 +}
-+TIMER_OF_DECLARE(csky_timer_v1, "csky,timer-v1", csky_timer_v1_init);
++IRQCHIP_DECLARE(csky_intc_v1, "csky,intc-v1", csky_intc_v1_init);
 +
-diff --git a/drivers/clocksource/timer-nationalchip.c b/drivers/clocksource/timer-nationalchip.c
+diff --git a/drivers/irqchip/irq-csky-v2.c b/drivers/irqchip/irq-csky-v2.c
 new file mode 100644
-index 0000000..8f4e1e5
+index 0000000..b588364
 --- /dev/null
-+++ b/drivers/clocksource/timer-nationalchip.c
-@@ -0,0 +1,165 @@
++++ b/drivers/irqchip/irq-csky-v2.c
+@@ -0,0 +1,191 @@
 +// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/kernel.h>
 +#include <linux/init.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
 +#include <linux/interrupt.h>
-+#include <linux/sched_clock.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++#include <asm/traps.h>
++#include <asm/reg_ops.h>
++#include <asm/smp.h>
 +
-+#include "timer-of.h"
++static void __iomem *INTCG_base;
++static void __iomem *INTCL_base;
 +
-+#define TIMER_NAME	"nc_timer"
-+#define TIMER_FREQ	1000000
-+#define CLKSRC_OFFSET	0x40
++#define COMM_IRQ_BASE	32
 +
-+#define TIMER_STATUS	0x00
-+#define TIMER_VALUE	0x04
-+#define TIMER_CONTRL	0x10
-+#define TIMER_CONFIG	0x20
-+#define TIMER_DIV	0x24
-+#define TIMER_INI	0x28
++#define INTCG_SIZE	0x8000
++#define INTCL_SIZE	0x1000
++#define INTC_SIZE	INTCL_SIZE*nr_cpu_ids + INTCG_SIZE
 +
-+#define STATUS_clr	BIT(0)
++#define INTCG_ICTLR	0x0
++#define INTCG_CICFGR	0x100
++#define INTCG_CIDSTR	0x1000
 +
-+#define CONTRL_rst	BIT(0)
-+#define CONTRL_start	BIT(1)
++#define INTCL_PICTLR	0x0
++#define INTCL_SIGR	0x60
++#define INTCL_RDYIR	0x6c
++#define INTCL_SENR	0xa0
++#define INTCL_CENR	0xa4
++#define INTCL_CACR	0xb4
 +
-+#define CONFIG_en	BIT(0)
-+#define CONFIG_irq_en	BIT(1)
++#define INTC_IRQS	256
 +
-+static irqreturn_t timer_interrupt(int irq, void *dev)
++#define INTC_ICR_AVE	BIT(31)
++
++DEFINE_PER_CPU(void __iomem *, intcl_reg);
++
++static void csky_irq_v2_handler(struct pt_regs *regs)
 +{
-+	struct clock_event_device *ce = (struct clock_event_device *) dev;
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	static void __iomem	*reg_base;
++	irq_hw_number_t		hwirq;
 +
-+	writel_relaxed(STATUS_clr, base + TIMER_STATUS);
++	reg_base = *this_cpu_ptr(&intcl_reg);
 +
-+	ce->event_handler(ce);
-+
-+	return IRQ_HANDLED;
++	hwirq = readl_relaxed(reg_base + INTCL_RDYIR);
++	handle_domain_irq(NULL, hwirq, regs);
 +}
 +
-+static int nc_timer_set_periodic(struct clock_event_device *ce)
++static void csky_irq_v2_enable(struct irq_data *d)
 +{
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	static void __iomem	*reg_base;
 +
-+	/* reset */
-+	writel_relaxed(CONTRL_rst, base + TIMER_CONTRL);
++	reg_base = *this_cpu_ptr(&intcl_reg);
 +
-+	/* config the timeout value */
-+	writel_relaxed(ULONG_MAX - timer_of_period(to_timer_of(ce)),
-+		       base + TIMER_INI);
-+
-+	/* enable with irq and start */
-+	writel_relaxed(CONFIG_en|CONFIG_irq_en, base + TIMER_CONFIG);
-+	writel_relaxed(CONTRL_start, base + TIMER_CONTRL);
-+
-+	return 0;
++	writel_relaxed(d->hwirq, reg_base + INTCL_SENR);
 +}
 +
-+static int nc_timer_set_next_event(unsigned long delta, struct clock_event_device *ce)
++static void csky_irq_v2_disable(struct irq_data *d)
 +{
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	static void __iomem	*reg_base;
 +
-+	/* use reset to pause timer */
-+	writel_relaxed(CONTRL_rst, base + TIMER_CONTRL);
++	reg_base = *this_cpu_ptr(&intcl_reg);
 +
-+	/* config next timeout value */
-+	writel_relaxed(ULONG_MAX - delta, base + TIMER_INI);
-+	writel_relaxed(CONTRL_start, base + TIMER_CONTRL);
-+
-+	return 0;
++	writel_relaxed(d->hwirq, reg_base + INTCL_CENR);
 +}
 +
-+static int nc_timer_shutdown(struct clock_event_device *ce)
++static void csky_irq_v2_eoi(struct irq_data *d)
 +{
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	static void __iomem	*reg_base;
 +
-+	writel_relaxed(0, base + TIMER_CONTRL);
-+	writel_relaxed(0, base + TIMER_CONFIG);
++	reg_base = *this_cpu_ptr(&intcl_reg);
 +
-+	return 0;
++	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
 +}
 +
-+static struct timer_of to = {
-+	.flags = TIMER_OF_IRQ | TIMER_OF_BASE | TIMER_OF_CLOCK,
++#ifdef CONFIG_SMP
++static int csky_irq_set_affinity(struct irq_data *d,
++				 const struct cpumask *mask_val,
++				 bool force)
++{
++	unsigned int cpu;
 +
-+	.clkevt = {
-+		.name = TIMER_NAME,
-+		.rating = 300,
-+		.features = CLOCK_EVT_FEAT_DYNIRQ | CLOCK_EVT_FEAT_PERIODIC |
-+			CLOCK_EVT_FEAT_ONESHOT,
-+		.set_state_shutdown	= nc_timer_shutdown,
-+		.set_state_periodic	= nc_timer_set_periodic,
-+		.set_next_event		= nc_timer_set_next_event,
-+		.cpumask = cpu_possible_mask,
-+	},
++	if (!force)
++		cpu = cpumask_any_and(mask_val, cpu_online_mask);
++	else
++		cpu = cpumask_first(mask_val);
 +
-+	.of_irq = {
-+		.handler = timer_interrupt,
-+		.flags = IRQF_TIMER | IRQF_IRQPOLL,
-+	},
++	if (cpu >= nr_cpu_ids)
++		return -EINVAL;
++
++	/* Enable interrupt destination */
++	cpu |= BIT(31);
++
++	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + (4*(d->hwirq - COMM_IRQ_BASE)));
++
++	irq_data_update_effective_affinity(d, cpumask_of(cpu));
++
++	return IRQ_SET_MASK_OK_DONE;
++}
++#endif
++
++static struct irq_chip csky_irq_chip = {
++	.name           = "C-SKY SMP Intc V2",
++	.irq_eoi	= csky_irq_v2_eoi,
++	.irq_enable	= csky_irq_v2_enable,
++	.irq_disable	= csky_irq_v2_disable,
++#ifdef CONFIG_SMP
++	.irq_set_affinity = csky_irq_set_affinity,
++#endif
 +};
 +
-+static u64 notrace nc_sched_clock_read(void)
++static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
++			      irq_hw_number_t hwirq)
 +{
-+	void __iomem *base;
-+
-+	base = timer_of_base(&to) + CLKSRC_OFFSET; 
-+
-+	return (u64) readl_relaxed(base + TIMER_VALUE);
-+}
-+
-+static void nc_timer_set_div(void __iomem *base)
-+{
-+	unsigned int div;
-+
-+	div = timer_of_rate(&to)/TIMER_FREQ - 1;
-+
-+	writel_relaxed(div, base + TIMER_DIV);
-+}
-+
-+static void nc_clkevt_init(void __iomem *base)
-+{
-+	/* reset */
-+	writel_relaxed(CONTRL_rst, base + TIMER_CONTRL);
-+
-+	/* reset config */
-+	writel_relaxed(0, base + TIMER_CONFIG);
-+
-+	nc_timer_set_div(base);
-+
-+	clockevents_config_and_register(&to.clkevt, TIMER_FREQ, 1, ULONG_MAX);
-+}
-+
-+static void nc_clksrc_init(void __iomem *base)
-+{
-+	writel_relaxed(CONTRL_rst, base + TIMER_CONTRL);
-+
-+	writel_relaxed(CONFIG_en, base + TIMER_CONFIG);
-+
-+	nc_timer_set_div(base);
-+
-+	writel_relaxed(0, base + TIMER_INI);
-+	writel_relaxed(CONTRL_start, base + TIMER_CONTRL);
-+
-+	clocksource_mmio_init(base + TIMER_VALUE, "nationalchip", TIMER_FREQ, 200, 32,
-+			      clocksource_mmio_readl_up);
-+
-+	sched_clock_register(nc_sched_clock_read, 32, TIMER_FREQ);
-+}
-+
-+static int __init nc_timer_init(struct device_node *np)
-+{
-+	int ret;
-+
-+	ret = timer_of_init(np, &to);
-+	if (ret)
-+		return ret;
-+
-+	nc_clkevt_init(timer_of_base(&to));
-+
-+	nc_clksrc_init(timer_of_base(&to) + CLKSRC_OFFSET);
++	if(hwirq < COMM_IRQ_BASE) {
++		irq_set_percpu_devid(irq);
++		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
++	} else
++		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
 +
 +	return 0;
 +}
-+TIMER_OF_DECLARE(nc_timer, "nationalchip,timer-v1", nc_timer_init);
++
++static const struct irq_domain_ops csky_irqdomain_ops = {
++	.map	= csky_irqdomain_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++#ifdef CONFIG_SMP
++static void csky_irq_v2_send_ipi(const unsigned long *mask, unsigned long irq)
++{
++	static void __iomem	*reg_base;
++
++	reg_base = *this_cpu_ptr(&intcl_reg);
++
++	/*
++	 * INTCL_SIGR[3:0] INTID
++	 * INTCL_SIGR[8:15] CPUMASK
++	 */
++	writel_relaxed((*mask) << 8 | irq, reg_base + INTCL_SIGR);
++}
++#endif
++
++static int __init
++csky_intc_v2_init(struct device_node *node, struct device_node *parent)
++{
++	struct irq_domain *root_domain;
++	int cpu;
++
++	if (parent)
++		return 0;
++
++	if (INTCG_base == NULL) {
++		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
++		if (INTCG_base == NULL)
++			return -EIO;
++
++		INTCL_base = INTCG_base + INTCG_SIZE;
++
++		writel_relaxed(BIT(0), INTCG_base + INTCG_ICTLR);
++	}
++
++	root_domain = irq_domain_add_linear(node, INTC_IRQS,
++					&csky_irqdomain_ops, NULL);
++	if (!root_domain)
++		return -ENXIO;
++
++	irq_set_default_host(root_domain);
++
++	/* for every cpu */
++	for_each_present_cpu(cpu) {
++		per_cpu(intcl_reg, cpu) = INTCL_base + (INTCL_SIZE * cpu);
++		writel_relaxed(BIT(0), per_cpu(intcl_reg, cpu) + INTCL_PICTLR);
++	}
++
++	set_handle_irq(&csky_irq_v2_handler);
++
++#ifdef CONFIG_SMP
++	set_send_ipi(&csky_irq_v2_send_ipi);
++#endif
++
++	return 0;
++}
++IRQCHIP_DECLARE(csky_intc_v2, "csky,intc-v2", csky_intc_v2_init);
++
+diff --git a/drivers/irqchip/irq-nationalchip.c b/drivers/irqchip/irq-nationalchip.c
+new file mode 100644
+index 0000000..90b1805
+--- /dev/null
++++ b/drivers/irqchip/irq-nationalchip.c
+@@ -0,0 +1,131 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
++#include <linux/interrupt.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++#include <asm/traps.h>
++
++static void __iomem *reg_base;
++
++#define INTC_NINT31_00		0x00
++#define INTC_NINT63_32		0x04
++#define INTC_NEN31_00		0x40
++#define INTC_NEN63_32		0x44
++#define INTC_NENSET31_00	0x20
++#define INTC_NENSET63_32	0x24
++#define INTC_NENCLR31_00	0x30
++#define INTC_NENCLR63_32	0x34
++#define INTC_NMASK31_00		0x50
++#define INTC_NMASK63_32		0x54
++#define INTC_SOURCE		0x60
++
++#define INTC_IRQS		64
++
++static struct irq_domain *root_domain;
++
++static void nc_irq_handler(struct pt_regs *regs)
++{
++	u32 status, irq;
++
++	do {
++		status = readl_relaxed(reg_base + INTC_NINT31_00);
++		if (status) {
++			irq = __ffs(status);
++		} else {
++			status = readl_relaxed(reg_base + INTC_NINT63_32);
++			if (status)
++				irq = __ffs(status) + 32;
++			else
++				return;
++		}
++		handle_domain_irq(root_domain, irq, regs);
++	} while(1);
++}
++
++static void __init nc_set_gc(void __iomem *reg_base, u32 irq_base,
++			     u32 en_reg, u32 dis_reg)
++{
++	struct irq_chip_generic *gc;
++
++	gc = irq_get_domain_generic_chip(root_domain, irq_base);
++	gc->reg_base = reg_base;
++	gc->chip_types[0].regs.enable = en_reg;
++	gc->chip_types[0].regs.disable = dis_reg;
++	gc->chip_types[0].chip.irq_mask = irq_gc_mask_disable_reg;
++	gc->chip_types[0].chip.irq_unmask = irq_gc_unmask_enable_reg;
++}
++
++#define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
++static inline void setup_irq_channel(void __iomem *reg_base)
++{
++	int i;
++
++	/*
++	 * There are 64 irq nums and irq-channels and one byte per channel.
++	 * Setup every channel with the same hwirq num.
++	 */
++	for (i = 0; i < INTC_IRQS; i += 4) {
++		writel_relaxed(expand_byte_to_word(i) + 0x03020100,
++			       reg_base + INTC_SOURCE + i);
++	}
++}
++
++static int __init
++intc_init(struct device_node *node, struct device_node *parent)
++{
++	u32 clr = IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
++	int ret;
++
++	if (parent) {
++		pr_err("Nationalchip gx6605s Intc not a root irq controller\n");
++		return -EINVAL;
++	}
++
++	reg_base = of_iomap(node, 0);
++	if (!reg_base) {
++		pr_err("Nationalchip gx6605s Intc unable to map: %p.\n", node);
++		return -EINVAL;
++	}
++
++	/* Initial enable reg to disable all interrupts */
++	writel_relaxed(0x0, reg_base + INTC_NEN31_00);
++	writel_relaxed(0x0, reg_base + INTC_NEN63_32);
++
++	/* Initial mask reg with all unmasked, becasue we only use enalbe reg */
++	writel_relaxed(0x0, reg_base + INTC_NMASK31_00);
++	writel_relaxed(0x0, reg_base + INTC_NMASK63_32);
++
++	setup_irq_channel(reg_base);
++
++	root_domain = irq_domain_add_linear(node, INTC_IRQS, &irq_generic_chip_ops, NULL);
++	if (!root_domain) {
++		pr_err("Nationalchip gx6605s Intc irq_domain_add failed.\n");
++		return -ENOMEM;
++	}
++
++	ret = irq_alloc_domain_generic_chips(root_domain, 32, 1,
++					     "gx6605s_irq", handle_level_irq,
++					     clr, 0, 0);
++	if (ret) {
++		pr_err("Nationalchip gx6605s Intc irq_alloc_gc failed.\n");
++		return -ENOMEM;
++	}
++
++	nc_set_gc(reg_base, 0,  INTC_NENSET31_00, INTC_NENCLR31_00);
++	nc_set_gc(reg_base, 32, INTC_NENSET63_32, INTC_NENCLR63_32);
++
++	set_handle_irq(nc_irq_handler);
++
++	return 0;
++}
++
++IRQCHIP_DECLARE(nationalchip_intc_v1_ave, "nationalchip,intc-v1,ave", intc_init);
 +
 -- 
 2.7.4
