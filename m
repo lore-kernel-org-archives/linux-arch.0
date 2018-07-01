@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V2 08/19] csky: Process management and Signal
-Date: Mon,  2 Jul 2018 01:30:11 +0800
-Message-ID: <5f69ac3ae05b62f2112a85169fabb1910ad51d0a.1530465326.git.ren_guo@c-sky.com>
+Subject: [PATCH V2 01/19] csky: Build infrastructure
+Date: Mon,  2 Jul 2018 01:30:04 +0800
+Message-ID: <a26901aab87306c389e656a3ef200adfbc5195c0.1530465325.git.ren_guo@c-sky.com>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
@@ -14,1403 +14,623 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv2/fpu.c                   | 242 ++++++++++++++++++++++
- arch/csky/abiv2/inc/abi/fpu.h           | 219 ++++++++++++++++++++
- arch/csky/include/asm/mmu_context.h     | 158 ++++++++++++++
- arch/csky/include/asm/processor.h       | 123 +++++++++++
- arch/csky/include/asm/thread_info.h     |  73 +++++++
- arch/csky/include/uapi/asm/sigcontext.h |  13 ++
- arch/csky/kernel/process.c              | 134 ++++++++++++
- arch/csky/kernel/signal.c               | 350 ++++++++++++++++++++++++++++++++
- arch/csky/kernel/time.c                 |  12 ++
- 9 files changed, 1324 insertions(+)
- create mode 100644 arch/csky/abiv2/fpu.c
- create mode 100644 arch/csky/abiv2/inc/abi/fpu.h
- create mode 100644 arch/csky/include/asm/mmu_context.h
- create mode 100644 arch/csky/include/asm/processor.h
- create mode 100644 arch/csky/include/asm/thread_info.h
- create mode 100644 arch/csky/include/uapi/asm/sigcontext.h
- create mode 100644 arch/csky/kernel/process.c
- create mode 100644 arch/csky/kernel/signal.c
- create mode 100644 arch/csky/kernel/time.c
+ arch/csky/Kconfig                      | 211 +++++++++++++++++++++++++++++++++
+ arch/csky/Kconfig.debug                |  29 +++++
+ arch/csky/Makefile                     |  92 ++++++++++++++
+ arch/csky/abiv1/Makefile               |   8 ++
+ arch/csky/abiv2/Makefile               |   4 +
+ arch/csky/boot/Makefile                |  25 ++++
+ arch/csky/boot/dts/Makefile            |  14 +++
+ arch/csky/boot/dts/include/dt-bindings |   1 +
+ arch/csky/include/asm/Kbuild           |  72 +++++++++++
+ arch/csky/include/uapi/asm/Kbuild      |  33 ++++++
+ arch/csky/kernel/Makefile              |   8 ++
+ arch/csky/lib/Makefile                 |   1 +
+ arch/csky/mm/Makefile                  |  13 ++
+ 13 files changed, 511 insertions(+)
+ create mode 100644 arch/csky/Kconfig
+ create mode 100644 arch/csky/Kconfig.debug
+ create mode 100644 arch/csky/Makefile
+ create mode 100644 arch/csky/abiv1/Makefile
+ create mode 100644 arch/csky/abiv2/Makefile
+ create mode 100644 arch/csky/boot/Makefile
+ create mode 100644 arch/csky/boot/dts/Makefile
+ create mode 120000 arch/csky/boot/dts/include/dt-bindings
+ create mode 100644 arch/csky/include/asm/Kbuild
+ create mode 100644 arch/csky/include/uapi/asm/Kbuild
+ create mode 100644 arch/csky/kernel/Makefile
+ create mode 100644 arch/csky/lib/Makefile
+ create mode 100644 arch/csky/mm/Makefile
 
-diff --git a/arch/csky/abiv2/fpu.c b/arch/csky/abiv2/fpu.c
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
 new file mode 100644
-index 0000000..330a908
+index 0000000..cfeb312
 --- /dev/null
-+++ b/arch/csky/abiv2/fpu.c
-@@ -0,0 +1,242 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/ptrace.h>
-+#include <linux/uaccess.h>
-+#include <abi/reg_ops.h>
++++ b/arch/csky/Kconfig
+@@ -0,0 +1,211 @@
++config CSKY
++	bool
++	default y
++	select ARCH_USE_BUILTIN_BSWAP
++	select COMMON_CLK
++	select CLKSRC_MMIO
++	select CLKSRC_OF
++	select IRQ_DOMAIN
++	select HANDLE_DOMAIN_IRQ
++	select DW_APB_TIMER_OF
++	select GENERIC_ATOMIC64
++	select GENERIC_CLOCKEVENTS
++	select GENERIC_CPU_DEVICES
++	select GENERIC_IRQ_CHIP
++	select GENERIC_IRQ_PROBE
++	select GENERIC_IRQ_SHOW
++	select GENERIC_SCHED_CLOCK
++	select GENERIC_SMP_IDLE_THREAD
++	select HAVE_ARCH_TRACEHOOK
++	select HAVE_GENERIC_DMA_COHERENT
++	select HAVE_KERNEL_GZIP
++	select HAVE_KERNEL_LZO
++	select HAVE_KERNEL_LZMA
++	select HAVE_PERF_EVENTS
++	select HAVE_C_RECORDMCOUNT
++	select HAVE_KPROBES
++	select HAVE_KRETPROBES
++	select HAVE_DMA_API_DEBUG
++	select HAVE_MEMBLOCK
++	select MAY_HAVE_SPARSE_IRQ
++	select MODULES_USE_ELF_RELA if MODULES
++	select NO_BOOTMEM
++	select OF
++	select OF_EARLY_FLATTREE
++	select OF_RESERVED_MEM
++	select PERF_USE_VMALLOC
++	select RTC_LIB
++	select TIMER_OF
++	select USB_ARCH_HAS_EHCI
++	select USB_ARCH_HAS_OHCI
 +
-+#define MTCR_MASK	0xFC00FFE0
-+#define MFCR_MASK	0xFC00FFE0
-+#define MTCR_DIST	0xC0006420
-+#define MFCR_DIST	0xC0006020
++config CPU_HAS_CACHEV2
++	bool
 +
-+void __init init_fpu(void)
-+{
-+	mtcr("cr<1, 2>", 0);
-+}
++config CPU_HAS_HILO
++	bool
 +
-+/*
-+ * fpu_libc_helper() is to help libc to excute:
-+ *  - mfcr %a, cr<1, 2>
-+ *  - mfcr %a, cr<2, 2>
-+ *  - mtcr %a, cr<1, 2>
-+ *  - mtcr %a, cr<2, 2>
-+ */
-+int fpu_libc_helper(struct pt_regs * regs)
-+{
-+	int fault;
-+	unsigned long instrptr, regx = 0;
-+	unsigned long index = 0, tmp = 0;
-+	unsigned long tinstr = 0;
-+	u16 instr_hi, instr_low;
++config CPU_HAS_TLBI
++	bool
 +
-+	instrptr = instruction_pointer(regs);
-+	if (instrptr & 1) return 0;
++config CPU_HAS_LDSTEX
++	bool
++	help
++	  For SMP cpu need "ldex&stex" instrcutions to keep atomic.
 +
-+	fault = __get_user(instr_low, (u16 *)instrptr);
-+	if (fault) return 0;
++config CPU_NEED_TLBSYNC
++	bool
 +
-+	fault = __get_user(instr_hi, (u16 *)(instrptr + 2));
-+	if (fault) return 0;
++config CPU_NEED_SOFTALIGN
++	bool
 +
-+	tinstr = instr_hi | ((unsigned long)instr_low << 16);
++config CPU_NO_USER_BKPT
++	bool
++	help
++	  For abiv2 we couldn't use "trap 1" as user space bkpt in gdbserver, because
++	  abiv2 is 16/32bit instruction set and "trap 1" is 32bit.
++	  So we need a 16bit instruction as user space bkpt, and it will cause a illegal
++	  instruction exception.
++	  In kernel we parse the *regs->pc to determine wether send SIGTRAP or not.
 +
-+	if (((tinstr >> 21) & 0x1F) != 2) return 0;
++config GENERIC_CALIBRATE_DELAY
++	bool
++	default y
 +
-+	if ((tinstr & MTCR_MASK) == MTCR_DIST)
-+	{
-+		index = (tinstr >> 16) & 0x1F;
-+		if(index > 13) return 0;
++config HZ
++	int
++	default 100
 +
-+		tmp = tinstr & 0x1F;
-+		if (tmp > 2) return 0;
++config GENERIC_CSUM
++	bool
++	default y
 +
-+		regx =  *(&regs->a0 + index);
++config GENERIC_HWEIGHT
++	bool
++	default y
 +
-+		if(tmp == 1)
-+			mtcr("cr<1, 2>", regx);
-+		else if (tmp == 2)
-+			mtcr("cr<2, 2>", regx);
-+		else
-+			return 0;
++config MMU
++	bool
++	default y
 +
-+		regs->pc +=4;
-+		return 1;
-+	}
++config RWSEM_GENERIC_SPINLOCK
++	bool
++	default y
 +
-+	if ((tinstr & MFCR_MASK) == MFCR_DIST) {
-+		index = tinstr & 0x1F;
-+		if(index > 13) return 0;
++config TIME_LOW_RES
++	bool
++	default y
 +
-+		tmp = ((tinstr >> 16) & 0x1F);
-+		if (tmp > 2) return 0;
++config TRACE_IRQFLAGS_SUPPORT
++	bool
++	default y
 +
-+		if (tmp == 1)
-+			regx = mfcr("cr<1, 2>");
-+		else if (tmp == 2)
-+			regx = mfcr("cr<2, 2>");
-+		else
-+			return 0;
++source "init/Kconfig"
 +
-+		*(&regs->a0 + index) = regx;
++source "kernel/Kconfig.freezer"
 +
-+		regs->pc +=4;
-+		return 1;
-+	}
++menu "Processor type and features"
 +
-+	return 0;
-+}
++comment "Processor type"
 +
-+void fpu_fpe(struct pt_regs * regs)
-+{
-+	int sig;
-+	unsigned int fesr;
-+	siginfo_t info;
-+	asm volatile("mfcr %0, cr<2, 2>":"=r"(fesr));
++choice
++	prompt "CPU MODEL"
++	default CPU_CK610
 +
-+	if(fesr & FPE_ILLE){
-+		info.si_code = ILL_ILLOPC;
-+		sig = SIGILL;
-+	}
-+	else if(fesr & FPE_IDC){
-+		info.si_code = ILL_ILLOPN;
-+		sig = SIGILL;
-+	}
-+	else if(fesr & FPE_FEC){
-+		sig = SIGFPE;
-+		if(fesr & FPE_IOC){
-+			info.si_code = FPE_FLTINV;
-+		}
-+		else if(fesr & FPE_DZC){
-+			info.si_code = FPE_FLTDIV;
-+		}
-+		else if(fesr & FPE_UFC){
-+			info.si_code = FPE_FLTUND;
-+		}
-+		else if(fesr & FPE_OFC){
-+			info.si_code = FPE_FLTOVF;
-+		}
-+		else if(fesr & FPE_IXC){
-+			info.si_code = FPE_FLTRES;
-+		}
-+		else {
-+			info.si_code = NSIGFPE;
-+		}
-+	}
-+	else {
-+		info.si_code = NSIGFPE;
-+		sig = SIGFPE;
-+	}
-+	info.si_signo = SIGFPE;
-+	info.si_errno = 0;
-+	info.si_addr = (void *)regs->pc;
-+	force_sig_info(sig, &info, current);
-+}
++config CPU_CK610
++	bool "CSKY CPU ck610"
++	select CPU_NEED_TLBSYNC
++	select CPU_NEED_SOFTALIGN
++	select CPU_NO_USER_BKPT
 +
-+#define FMFVR_FPU_REGS(vrx, vry)	\
-+	"fmfvrl %0, "#vrx" \n"		\
-+	"fmfvrh %1, "#vrx" \n"		\
-+	"fmfvrl %2, "#vry" \n"		\
-+	"fmfvrh %3, "#vry" \n"
++config CPU_CK810
++	bool "CSKY CPU ck810"
++	select CPU_HAS_HILO
++	select CPU_NEED_TLBSYNC
 +
-+#define FMTVR_FPU_REGS(vrx, vry)	\
-+	"fmtvrl "#vrx", %0 \n"		\
-+	"fmtvrh "#vrx", %1 \n"		\
-+	"fmtvrl "#vry", %2 \n"		\
-+	"fmtvrh "#vry", %3 \n"
++config CPU_CK807
++	bool "CSKY CPU ck807"
++	select CPU_HAS_HILO
 +
-+#define STW_FPU_REGS(a, b, c, d)	\
-+	"stw    %0, (%4, "#a") \n"	\
-+	"stw    %1, (%4, "#b") \n"	\
-+	"stw    %2, (%4, "#c") \n"	\
-+	"stw    %3, (%4, "#d") \n"
++config CPU_CK860
++	bool "CSKY CPU ck860"
++	select CPU_HAS_TLBI
++	select CPU_HAS_CACHEV2
++	select CPU_HAS_LDSTEX
++endchoice
 +
-+#define LDW_FPU_REGS(a, b, c, d)	\
-+	"ldw    %0, (%4, "#a") \n"	\
-+	"ldw    %1, (%4, "#b") \n"	\
-+	"ldw    %2, (%4, "#c") \n"	\
-+	"ldw    %3, (%4, "#d") \n"
++config CPU_TLB_SIZE
++	int
++	default "128"	if(CPU_CK610 || CPU_CK807 || CPU_CK810)
++	default "1024"	if(CPU_CK860)
 +
-+void save_to_user_fp(struct user_fp *user_fp)
-+{
-+	unsigned long flg;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long *fpregs;
++config CPU_ASID_BITS
++	int
++	default "8"	if(CPU_CK610 || CPU_CK807 || CPU_CK810)
++	default "12"	if(CPU_CK860)
 +
-+	local_save_flags(flg);
++config L1_CACHE_SHIFT
++	int
++	default "4"	if(CPU_CK610)
++	default "5"	if(CPU_CK807 || CPU_CK810)
++	default "6"	if(CPU_CK860)
 +
++config HIGHMEM
++	bool "High Memory Support"
++	depends on !CPU_CK610
++	default y
 +
-+	asm volatile(
-+		"mfcr    %0, cr<1, 2> \n"
-+		"mfcr    %1, cr<2, 2> \n"
-+		:"=r"(tmp1),"=r"(tmp2));
++menuconfig CPU_HAS_FPU
++	bool "CPU has FPU coprocessor"
++	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
 +
-+	user_fp->fcr = tmp1;
-+	user_fp->fesr = tmp2;
++menuconfig CPU_HAS_TEE
++	bool "CPU has Trusted Execution Environment"
++	depends on CPU_CK810
 +
-+	fpregs = &user_fp->vr[0];
-+	asm volatile(
-+		FMFVR_FPU_REGS(vr0, vr1)
-+		STW_FPU_REGS(0, 4, 16, 20)
-+		FMFVR_FPU_REGS(vr2, vr3)
-+		STW_FPU_REGS(32, 36, 48, 52)
-+		FMFVR_FPU_REGS(vr4, vr5)
-+		STW_FPU_REGS(64, 68, 80, 84)
-+		FMFVR_FPU_REGS(vr6, vr7)
-+		STW_FPU_REGS(96, 100, 112, 116)
-+		"addi    %4, 128\n"
-+		FMFVR_FPU_REGS(vr8, vr9)
-+		STW_FPU_REGS(0, 4, 16, 20)
-+		FMFVR_FPU_REGS(vr10, vr11)
-+		STW_FPU_REGS(32, 36, 48, 52)
-+		FMFVR_FPU_REGS(vr12, vr13)
-+		STW_FPU_REGS(64, 68, 80, 84)
-+		FMFVR_FPU_REGS(vr14, vr15)
-+		STW_FPU_REGS(96, 100, 112, 116)
-+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-+		"=a"(tmp4),"+a"(fpregs));
++config SMP
++	bool "Symmetric Multi-Processing (SMP) support for C-SKY"
++	depends on CPU_CK860
++	default n
 +
-+	local_irq_restore(flg);
-+}
++config NR_CPUS
++	int "Maximum number of CPUs (2-32)"
++	range 2 32
++	depends on SMP
++	default "4"
 +
-+void restore_from_user_fp(struct user_fp *user_fp)
-+{
-+	unsigned long flg;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long *fpregs;
++comment "*****System type*****"
 +
-+	local_irq_save(flg);
++config RAM_BASE
++	hex "It must be the same with the memory section in your dts"
++	default 0x0
++endmenu
 +
-+	tmp1 = user_fp->fcr;
-+	tmp2 = user_fp->fesr;
++menu "Power management options"
 +
-+	asm volatile(
-+		"mtcr   %0, cr<1, 2>\n"
-+		"mtcr   %1, cr<2, 2>\n"
-+		::"r"(tmp1), "r"(tmp2));
++source "kernel/power/Kconfig"
 +
-+	fpregs = &user_fp->vr[0];
-+	asm volatile(
-+		LDW_FPU_REGS(0, 4, 16, 20)
-+		FMTVR_FPU_REGS(vr0, vr1)
-+		LDW_FPU_REGS(32, 36, 48, 52)
-+		FMTVR_FPU_REGS(vr2, vr3)
-+		LDW_FPU_REGS(64, 68, 80, 84)
-+		FMTVR_FPU_REGS(vr4, vr5)
-+		LDW_FPU_REGS(96, 100, 112, 116)
-+		FMTVR_FPU_REGS(vr6, vr7)
-+		"addi   %4, 128\n"
-+		LDW_FPU_REGS(0, 4, 16, 20)
-+		FMTVR_FPU_REGS(vr8, vr9)
-+		LDW_FPU_REGS(32, 36, 48, 52)
-+		FMTVR_FPU_REGS(vr10, vr11)
-+		LDW_FPU_REGS(64, 68, 80, 84)
-+		FMTVR_FPU_REGS(vr12, vr13)
-+		LDW_FPU_REGS(96, 100, 112, 116)
-+		FMTVR_FPU_REGS(vr14, vr15)
-+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-+		"=a"(tmp4),"+a"(fpregs));
++config ARCH_SUSPEND_POSSIBLE
++	bool
++	default y
++endmenu
 +
-+	local_irq_restore(flg);
-+}
++source "mm/Kconfig"
 +
++source "fs/Kconfig.binfmt"
 +
-diff --git a/arch/csky/abiv2/inc/abi/fpu.h b/arch/csky/abiv2/inc/abi/fpu.h
++source "kernel/Kconfig.preempt"
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/csky/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
+diff --git a/arch/csky/Kconfig.debug b/arch/csky/Kconfig.debug
 new file mode 100644
-index 0000000..eaa0f1c
+index 0000000..6978702
 --- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/fpu.h
-@@ -0,0 +1,219 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_FPU_H
-+#define __ASM_CSKY_FPU_H
++++ b/arch/csky/Kconfig.debug
+@@ -0,0 +1,29 @@
++menu "Kernel hacking"
 +
-+#ifndef __ASSEMBLY__ /* C source */
++menu "C-SKY Debug Options"
++config CSKY_DEBUG_INFO
++	bool "Compile the kernel with debug info, just add -g"
++	depends on !DEBUG_INFO
++	help
++	  DEBUG_INFO and COMPILE_TEST is conflict, so we provide
++	  another way to support -g.
++	  Some drivers eg: DW_MMC need COMPILE_TEST for new cpu
++	  arch :(
 +
-+#include <asm/sigcontext.h>
-+#include <asm/ptrace.h>
++config CSKY_VECIRQ_LEGENCY
++	bool "Use legency IRQ vector for interrupt, it's for SOC bugfix."
++	help
++	  It's a deprecated method for arch/csky. Don't use it, unless your
++	  SOC has bug.
 +
-+int fpu_libc_helper(struct pt_regs *regs);
-+void fpu_fpe(struct pt_regs *regs);
-+void __init init_fpu(void);
++config CSKY_BUILTIN_DTB
++	bool "Use kernel builtin dtb"
 +
-+void save_to_user_fp(struct user_fp *user_fp);
-+void restore_from_user_fp(struct user_fp *user_fp);
++config CSKY_BUILTIN_DTB_NAME
++	string "kernel builtin dtb name"
++	depends on CSKY_BUILTIN_DTB
++endmenu
 +
-+/*
-+ * Define the fesr bit for fpe handle.
-+ */
-+#define  FPE_ILLE  (1 << 16)    /* Illegal instruction  */
-+#define  FPE_FEC   (1 << 7)     /* Input float-point arithmetic exception */
-+#define  FPE_IDC   (1 << 5)     /* Input denormalized exception */
-+#define  FPE_IXC   (1 << 4)     /* Inexact exception */
-+#define  FPE_UFC   (1 << 3)     /* Underflow exception */
-+#define  FPE_OFC   (1 << 2)     /* Overflow exception */
-+#define  FPE_DZC   (1 << 1)     /* Divide by zero exception */
-+#define  FPE_IOC   (1 << 0)     /* Invalid operation exception */
-+#define  FPE_REGULAR_EXCEPTION (FPE_IXC | FPE_UFC | FPE_OFC | FPE_DZC | FPE_IOC)
++source "lib/Kconfig.debug"
 +
-+#ifdef CONFIG_OPEN_FPU_IDE
-+#define IDE_STAT   (1 << 5)
-+#else
-+#define IDE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_IXE
-+#define IXE_STAT   (1 << 4)
-+#else
-+#define IXE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_UFE
-+#define UFE_STAT   (1 << 3)
-+#else
-+#define UFE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_OFE
-+#define OFE_STAT   (1 << 2)
-+#else
-+#define OFE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_DZE
-+#define DZE_STAT   (1 << 1)
-+#else
-+#define DZE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_IOE
-+#define IOE_STAT   (1 << 0)
-+#else
-+#define IOE_STAT   0
-+#endif
-+
-+#else  /* __ASSEMBLY__ */
-+
-+#include <asm/asm-offsets.h>
-+
-+.macro  FPU_SAVE_REGS
-+	/* Save FPU control regs task struct */
-+	mfcr     r7, cr<1, 2>
-+	mfcr     r6, cr<2, 2>
-+	stw      r7, (a3, THREAD_FCR)
-+	stw      r6, (a3, THREAD_FESR)
-+	/* Save FPU general regs task struct */
-+	fmfvrl   r6, vr0
-+	fmfvrh   r7, vr0
-+	fmfvrl   r8, vr1
-+	fmfvrh   r9, vr1
-+	stw      r6, (a3, THREAD_FPREG + 0)  /* In aviv2: stw can load longer */
-+	stw      r7, (a3, THREAD_FPREG + 4)
-+	stw      r8, (a3, THREAD_FPREG + 16)
-+	stw      r9, (a3, THREAD_FPREG + 20)
-+	fmfvrl   r6, vr2
-+	fmfvrh   r7, vr2
-+	fmfvrl   r8, vr3
-+	fmfvrh   r9, vr3
-+	stw      r6, (a3, THREAD_FPREG + 32)
-+	stw      r7, (a3, THREAD_FPREG + 36)
-+	stw      r8, (a3, THREAD_FPREG + 48)
-+	stw      r9, (a3, THREAD_FPREG + 52)
-+	fmfvrl   r6, vr4
-+	fmfvrh   r7, vr4
-+	fmfvrl   r8, vr5
-+	fmfvrh   r9, vr5
-+	stw      r6, (a3, THREAD_FPREG + 64)
-+	stw      r7, (a3, THREAD_FPREG + 68)
-+	stw      r8, (a3, THREAD_FPREG + 80)
-+	stw      r9, (a3, THREAD_FPREG + 84)
-+	fmfvrl   r6, vr6
-+	fmfvrh   r7, vr6
-+	fmfvrl   r8, vr7
-+	fmfvrh   r9, vr7
-+	stw      r6, (a3, THREAD_FPREG + 96)
-+	stw      r7, (a3, THREAD_FPREG + 100)
-+	stw      r8, (a3, THREAD_FPREG + 112)
-+	stw      r9, (a3, THREAD_FPREG + 116)
-+	fmfvrl   r6, vr8
-+	fmfvrh   r7, vr8
-+	fmfvrl   r8, vr9
-+	fmfvrh   r9, vr9
-+	stw      r6, (a3, THREAD_FPREG + 128)
-+	stw      r7, (a3, THREAD_FPREG + 132)
-+	stw      r8, (a3, THREAD_FPREG + 144)
-+	stw      r9, (a3, THREAD_FPREG + 148)
-+	fmfvrl   r6, vr10
-+	fmfvrh   r7, vr10
-+	fmfvrl   r8, vr11
-+	fmfvrh   r9, vr11
-+	stw      r6, (a3, THREAD_FPREG + 160)
-+	stw      r7, (a3, THREAD_FPREG + 164)
-+	stw      r8, (a3, THREAD_FPREG + 176)
-+	stw      r9, (a3, THREAD_FPREG + 180)
-+	fmfvrl   r6, vr12
-+	fmfvrh   r7, vr12
-+	fmfvrl   r8, vr13
-+	fmfvrh   r9, vr13
-+	stw      r6, (a3, THREAD_FPREG + 192)
-+	stw      r7, (a3, THREAD_FPREG + 196)
-+	stw      r8, (a3, THREAD_FPREG + 208)
-+	stw      r9, (a3, THREAD_FPREG + 212)
-+	fmfvrl   r6, vr14
-+	fmfvrh   r7, vr14
-+	fmfvrl   r8, vr15
-+	fmfvrh   r9, vr15
-+	stw      r6, (a3, THREAD_FPREG + 224)
-+	stw      r7, (a3, THREAD_FPREG + 228)
-+	stw      r8, (a3, THREAD_FPREG + 240)
-+	stw      r9, (a3, THREAD_FPREG + 244)
-+.endm
-+
-+.macro  FPU_RESTORE_REGS
-+	/* Save FPU control regs task struct */
-+	ldw      r6, (a3, THREAD_FCR)
-+	ldw      r7, (a3, THREAD_FESR)
-+	mtcr     r6, cr<1, 2>
-+	mtcr     r7, cr<2, 2>
-+	/* restore FPU general regs task struct */
-+	ldw      r6, (a3, THREAD_FPREG + 0)
-+	ldw      r7, (a3, THREAD_FPREG + 4)
-+	ldw      r8, (a3, THREAD_FPREG + 16)
-+	ldw      r9, (a3, THREAD_FPREG + 20)
-+	fmtvrl   vr0, r6
-+	fmtvrh   vr0, r7
-+	fmtvrl   vr1, r8
-+	fmtvrh   vr1, r9
-+	ldw      r6, (a3, THREAD_FPREG + 32)
-+	ldw      r7, (a3, THREAD_FPREG + 36)
-+	ldw      r8, (a3, THREAD_FPREG + 48)
-+	ldw      r9, (a3, THREAD_FPREG + 52)
-+	fmtvrl   vr2, r6
-+	fmtvrh   vr2, r7
-+	fmtvrl   vr3, r8
-+	fmtvrh   vr3, r9
-+	ldw      r6, (a3, THREAD_FPREG + 64)
-+	ldw      r7, (a3, THREAD_FPREG + 68)
-+	ldw      r8, (a3, THREAD_FPREG + 80)
-+	ldw      r9, (a3, THREAD_FPREG + 84)
-+	fmtvrl   vr4, r6
-+	fmtvrh   vr4, r7
-+	fmtvrl   vr5, r8
-+	fmtvrh   vr5, r9
-+	ldw      r6, (a3, THREAD_FPREG + 96)
-+	ldw      r7, (a3, THREAD_FPREG + 100)
-+	ldw      r8, (a3, THREAD_FPREG + 112)
-+	ldw      r9, (a3, THREAD_FPREG + 116)
-+	fmtvrl   vr6, r6
-+	fmtvrh   vr6, r7
-+	fmtvrl   vr7, r8
-+	fmtvrh   vr7, r9
-+	ldw      r6, (a3, THREAD_FPREG + 128)
-+	ldw      r7, (a3, THREAD_FPREG + 132)
-+	ldw      r8, (a3, THREAD_FPREG + 144)
-+	ldw      r9, (a3, THREAD_FPREG + 148)
-+	fmtvrl   vr8, r6
-+	fmtvrh   vr8, r7
-+	fmtvrl   vr9, r8
-+	fmtvrh   vr9, r9
-+	ldw      r6, (a3, THREAD_FPREG + 160)
-+	ldw      r7, (a3, THREAD_FPREG + 164)
-+	ldw      r8, (a3, THREAD_FPREG + 176)
-+	ldw      r9, (a3, THREAD_FPREG + 180)
-+	fmtvrl   vr10, r6
-+	fmtvrh   vr10, r7
-+	fmtvrl   vr11, r8
-+	fmtvrh   vr11, r9
-+	ldw      r6, (a3, THREAD_FPREG + 192)
-+	ldw      r7, (a3, THREAD_FPREG + 196)
-+	ldw      r8, (a3, THREAD_FPREG + 208)
-+	ldw      r9, (a3, THREAD_FPREG + 212)
-+	fmtvrl   vr12, r6
-+	fmtvrh   vr12, r7
-+	fmtvrl   vr13, r8
-+	fmtvrh   vr13, r9
-+	ldw      r6, (a3, THREAD_FPREG + 224)
-+	ldw      r7, (a3, THREAD_FPREG + 228)
-+	ldw      r8, (a3, THREAD_FPREG + 240)
-+	ldw      r9, (a3, THREAD_FPREG + 244)
-+	fmtvrl   vr14, r6
-+	fmtvrh   vr14, r7
-+	fmtvrl   vr15, r8
-+	fmtvrh   vr15, r9
-+.endm
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_CSKY_FPU_H */
-diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/mmu_context.h
++endmenu
+diff --git a/arch/csky/Makefile b/arch/csky/Makefile
 new file mode 100644
-index 0000000..0964194
+index 0000000..c297324
 --- /dev/null
-+++ b/arch/csky/include/asm/mmu_context.h
-@@ -0,0 +1,158 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_MMU_CONTEXT_H
-+#define __ASM_CSKY_MMU_CONTEXT_H
++++ b/arch/csky/Makefile
+@@ -0,0 +1,92 @@
++OBJCOPYFLAGS	:=-O binary
++GZFLAGS		:=-9
 +
-+#include <asm-generic/mm_hooks.h>
-+#include <asm/setup.h>
-+#include <asm/page.h>
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
++ifdef CONFIG_CPU_HAS_FPU
++FPUEXT = f
++endif
 +
-+#include <linux/errno.h>
-+#include <linux/sched.h>
-+#include <abi/ckmmu.h>
++ifdef CONFIG_CPU_HAS_TEE
++TEEEXT = t
++endif
 +
-+/* misc */
-+static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
-+{
-+	pgd &= ~(1<<31);
-+	pgd += PHYS_OFFSET;
-+	pgd |= 1;
-+	setup_pgd(pgd);
-+}
++ifdef CONFIG_CPU_CK610
++CPUTYPE	= ck610
++CSKYABI	= abiv1
++endif
 +
-+static inline unsigned long tlb_get_pgd(void)
-+{
-+	return ((get_pgd()|(1<<31)) - PHYS_OFFSET) & ~1;
-+}
-+#define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
++ifdef CONFIG_CPU_CK810
++CPUTYPE = ck810$(FPUEXT)$(TEEEXT)
++CSKYABI	= abiv2
++endif
 +
-+#ifdef CONFIG_CPU_HAS_TLBI
-+/* misc */
-+static inline void tlbmiss_handler_setup_pgd_kernel(unsigned long pgd)
-+{
-+	pgd &= ~(1<<31);
-+	pgd += PHYS_OFFSET;
-+	pgd |= 1;
-+	setup_pgd_kernel(pgd);
-+}
++ifdef CONFIG_CPU_CK807
++CPUTYPE = ck807$(FPUEXT)$(TEEEXT)
++CSKYABI	= abiv2
++endif
 +
-+#define TLBMISS_HANDLER_SETUP_PGD_KERNEL(pgd) tlbmiss_handler_setup_pgd_kernel((unsigned long)pgd)
-+#endif
++ifdef CONFIG_CPU_CK860
++CPUTYPE = ck860$(FPUEXT)$(TEEEXT)
++CSKYABI	= abiv2
++endif
 +
-+#define cpu_context(cpu, mm)	((mm)->context.asid[cpu])
-+#define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)
-+#define asid_cache(cpu)		(cpu_data[cpu].asid_cache)
++ifneq ($(CSKYABI),)
++KBUILD_CFLAGS += -mcpu=$(CPUTYPE)
++KBUILD_CFLAGS += -DCSKYCPU_DEF_NAME=\"$(CPUTYPE)\"
++endif
 +
-+#define ASID_FIRST_VERSION	(1 << CONFIG_CPU_ASID_BITS)
-+#define ASID_INC		0x1
-+#define ASID_MASK		(ASID_FIRST_VERSION - 1)
-+#define ASID_VERSION_MASK	~ASID_MASK
++KBUILD_CFLAGS += -pipe
++ifeq ($(CSKYABI),abiv2)
++KBUILD_CFLAGS += -mno-stack-size
++endif
 +
-+#define destroy_context(mm)		do{}while(0)
-+#define enter_lazy_tlb(mm,tsk)		do{}while(0)
-+#define deactivate_mm(tsk,mm)		do{}while(0)
++ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
++KBUILD_CFLAGS += -g
++endif
 +
-+/*
-+ *  All unused by hardware upper bits will be considered
-+ *  as a software asid extension.
-+ */
-+static inline void
-+get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
-+{
-+	unsigned long asid = asid_cache(cpu);
++abidirs := $(patsubst %,arch/csky/%/,$(CSKYABI))
 +
-+	if (! ((asid += ASID_INC) & ASID_MASK) ) {
-+		flush_tlb_all();	/* start new asid cycle */
-+		if (!asid)		/* fix version if needed */
-+			asid = ASID_FIRST_VERSION;
-+	}
-+	cpu_context(cpu, mm) = asid_cache(cpu) = asid;
-+}
++KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(abidirs))
 +
-+/*
-+ * Initialize the context related info for a new mm_struct
-+ * instance.
-+ */
-+static inline int
-+init_new_context(struct task_struct *tsk, struct mm_struct *mm)
-+{
-+	int i;
++KBUILD_CPPFLAGS += -mlittle-endian
++LDFLAGS += -EL
 +
-+	for_each_online_cpu(i)
-+		cpu_context(i, mm) = 0;
-+	return 0;
-+}
++KBUILD_AFLAGS += $(KBUILD_CFLAGS)
 +
-+static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
-+                             struct task_struct *tsk)
-+{
-+	unsigned int cpu = smp_processor_id();
-+	unsigned long flags;
++head-y := arch/csky/kernel/head.o
 +
-+	local_irq_save(flags);
-+	/* Check if our ASID is of an older version and thus invalid */
-+	if ((cpu_context(cpu, next) ^ asid_cache(cpu)) & ASID_VERSION_MASK)
-+		get_new_mmu_context(next, cpu);
-+	write_mmu_entryhi(cpu_asid(cpu, next));
-+	TLBMISS_HANDLER_SETUP_PGD(next->pgd);
++core-y += arch/csky/kernel/
++core-y += arch/csky/mm/
++core-y += arch/csky/$(CSKYABI)/
 +
-+	/*
-+	 * Mark current->active_mm as not "active" anymore.
-+	 * We don't want to mislead possible IPI tlb flush routines.
-+	 */
-+	cpumask_clear_cpu(cpu, mm_cpumask(prev));
-+	cpumask_set_cpu(cpu, mm_cpumask(next));
++libs-y += arch/csky/lib/ \
++	$(shell $(CC) $(KBUILD_CFLAGS) $(KCFLAGS) -print-libgcc-file-name)
 +
-+	local_irq_restore(flags);
-+}
++ifdef CONFIG_CSKY_BUILTIN_DTB
++core-y += arch/csky/boot/dts/
++endif
 +
-+/*
-+ * After we have set current->mm to a new value, this activates
-+ * the context for the new mm so we see the new mappings.
-+ */
-+static inline void
-+activate_mm(struct mm_struct *prev, struct mm_struct *next)
-+{
-+	unsigned long flags;
-+	int cpu = smp_processor_id();
++all: zImage
 +
-+	local_irq_save(flags);
++boot := arch/csky/boot
 +
-+	/* Unconditionally get a new ASID.  */
-+	get_new_mmu_context(next, cpu);
++dtbs: scripts
++	$(Q)$(MAKE) $(build)=$(boot)/dts
 +
-+	write_mmu_entryhi(cpu_asid(cpu, next));
-+	TLBMISS_HANDLER_SETUP_PGD(next->pgd);
++%.dtb %.dtb.S %.dtb.o: scripts
++	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
 +
-+	/* mark mmu ownership change */
-+	cpumask_clear_cpu(cpu, mm_cpumask(prev));
-+	cpumask_set_cpu(cpu, mm_cpumask(next));
++zImage Image uImage: vmlinux dtbs
++	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 +
-+	local_irq_restore(flags);
-+}
++archmrproper:
 +
-+/*
-+ * If mm is currently active_mm, we can't really drop it. Instead,
-+ * we will get a new one for it.
-+ */
-+static inline void
-+drop_mmu_context(struct mm_struct *mm, unsigned cpu)
-+{
-+	unsigned long flags;
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++	rm -rf arch/csky/include/generated
 +
-+	local_irq_save(flags);
++define archhelp
++  echo  '* zImage       - Compressed kernel image (arch/$(ARCH)/boot/zImage)'
++  echo  '  Image        - Uncompressed kernel image (arch/$(ARCH)/boot/Image)'
++  echo  '  uImage       - U-Boot wrapped zImage'
++endef
 +
-+	if (cpumask_test_cpu(cpu, mm_cpumask(mm)))  {
-+		get_new_mmu_context(mm, cpu);
-+		write_mmu_entryhi(cpu_asid(cpu, mm));
-+	} else {
-+		/* will get a new context next time */
-+		cpu_context(cpu, mm) = 0;
-+	}
-+
-+	local_irq_restore(flags);
-+}
-+
-+#endif /* __ASM_CSKY_MMU_CONTEXT_H */
-diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
+diff --git a/arch/csky/abiv1/Makefile b/arch/csky/abiv1/Makefile
 new file mode 100644
-index 0000000..fb9d0bf
+index 0000000..c63c6d2
 --- /dev/null
-+++ b/arch/csky/include/asm/processor.h
-@@ -0,0 +1,123 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_PROCESSOR_H
-+#define __ASM_CSKY_PROCESSOR_H
++++ b/arch/csky/abiv1/Makefile
+@@ -0,0 +1,8 @@
++obj-y +=	bswapdi.o
++obj-y +=	bswapsi.o
++obj-y +=	cacheflush.o
++obj-y +=	memcpy.o
++obj-y +=	mmap.o
 +
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l;})
++obj-$(CONFIG_CPU_NEED_SOFTALIGN) +=	alignment.o
 +
-+#include <linux/bitops.h>
-+#include <asm/segment.h>
-+#include <asm/ptrace.h>
-+#include <asm/current.h>
-+#include <asm/cache.h>
-+#include <abi/reg_ops.h>
-+#include <abi/regdef.h>
-+#ifdef CONFIG_CPU_HAS_FPU
-+#include <abi/fpu.h>
-+#endif
-+
-+struct cpuinfo_csky {
-+	unsigned long udelay_val;
-+	unsigned long asid_cache;
-+	/*
-+	 * Capability and feature descriptor structure for CSKY CPU
-+	 */
-+	unsigned long options;
-+	unsigned int processor_id[4];
-+	unsigned int fpu_id;
-+} __attribute__((aligned(SMP_CACHE_BYTES)));
-+
-+extern struct cpuinfo_csky cpu_data[];
-+
-+/*
-+ * User space process size: 2GB. This is hardcoded into a few places,
-+ * so don't change it unless you know what you are doing.  TASK_SIZE
-+ * for a 64 bit kernel expandable to 8192EB, of which the current CSKY
-+ * implementations will "only" be able to use 1TB ...
-+ */
-+#define TASK_SIZE       0x7fff8000UL
-+
-+#ifdef __KERNEL__
-+#define STACK_TOP       TASK_SIZE
-+#define STACK_TOP_MAX   STACK_TOP
-+#endif
-+
-+/* This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's.
-+ */
-+#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
-+
-+struct thread_struct {
-+	unsigned long  ksp;       /* kernel stack pointer */
-+	unsigned long  sr;        /* saved status register */
-+	unsigned long  esp0;      /* points to SR of stack frame */
-+
-+	/* FPU regs */
-+	struct user_fp	user_fp;
-+
-+	unsigned long  hi;
-+	unsigned long  lo;
-+	unsigned long  dspcsr;
-+
-+	/* Other stuff associated with the thread. */
-+	unsigned long address;      /* Last user fault */
-+	unsigned long error_code;
-+	unsigned long trap_no;
-+};
-+
-+#define INIT_THREAD  { \
-+	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
-+	.sr = DEFAULT_PSR_VALUE, \
-+}
-+
-+/*
-+ * Do necessary setup to start up a newly executed thread.
-+ *
-+ * pass the data segment into user programs if it exists,
-+ * it can't hurt anything as far as I can tell
-+ */
-+#define start_thread(_regs, _pc, _usp)					\
-+do {									\
-+	set_fs(USER_DS); /* reads from user space */			\
-+	(_regs)->pc = (_pc);						\
-+	(_regs)->regs[1] = 0; /* ABIV1 is R7, uClibc_main rtdl arg */	\
-+	(_regs)->regs[2] = 0;						\
-+	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
-+	(_regs)->sr &= ~PS_S;						\
-+	(_regs)->usp = (_usp);						\
-+} while(0)
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/* Free all resources held by a thread. */
-+static inline void release_thread(struct task_struct *dead_task)
-+{
-+}
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)    do { } while (0)
-+
-+extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
-+
-+#define copy_segments(tsk, mm)		do { } while (0)
-+#define release_segments(mm)		do { } while (0)
-+#define forget_segments()		do { } while (0)
-+
-+extern unsigned long thread_saved_pc(struct task_struct *tsk);
-+
-+unsigned long get_wchan(struct task_struct *p);
-+
-+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)
-+#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
-+
-+#define task_pt_regs(p) \
-+	((struct pt_regs *)(THREAD_SIZE + p->stack) - 1)
-+
-+#define cpu_relax() barrier()
-+
-+#endif /* __ASM_CSKY_PROCESSOR_H */
-diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
+diff --git a/arch/csky/abiv2/Makefile b/arch/csky/abiv2/Makefile
 new file mode 100644
-index 0000000..fa28924
+index 0000000..c90d0fe
 --- /dev/null
-+++ b/arch/csky/include/asm/thread_info.h
-@@ -0,0 +1,73 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef _ASM_CSKY_THREAD_INFO_H
-+#define _ASM_CSKY_THREAD_INFO_H
++++ b/arch/csky/abiv2/Makefile
+@@ -0,0 +1,4 @@
++obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o
++obj-y				+= memcpy.o
++obj-y				+= cacheflush.o
 +
-+#ifndef __ASSEMBLY__
-+
-+#include <asm/types.h>
-+#include <asm/page.h>
-+#include <asm/processor.h>
-+
-+struct thread_info {
-+	struct task_struct	*task;
-+	void			*dump_exec_domain;
-+	unsigned long		flags;
-+	int			preempt_count;
-+	unsigned long		tp_value;
-+	mm_segment_t		addr_limit;
-+	struct restart_block	restart_block;
-+	struct pt_regs		*regs;
-+	unsigned int		cpu;
-+};
-+
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task		= &tsk,			\
-+	.preempt_count  = INIT_PREEMPT_COUNT,	\
-+	.addr_limit     = KERNEL_DS,		\
-+	.cpu		= 0,			\
-+	.restart_block = {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
-+
-+#define THREAD_SIZE_ORDER (THREAD_SHIFT - PAGE_SHIFT)
-+
-+static inline struct thread_info *current_thread_info(void)
-+{
-+	unsigned long sp;
-+
-+	asm volatile("mov %0, sp\n":"=r"(sp));
-+
-+	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
-+}
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+/* entry.S relies on these definitions!
-+ * bits 0-5 are tested at every exception exit
-+ */
-+#define TIF_SIGPENDING		0	/* signal pending */
-+#define TIF_NOTIFY_RESUME	1       /* callback before returning to user */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SYSCALL_TRACE	5	/* syscall trace active */
-+#define TIF_DELAYED_TRACE	14	/* single step a syscall */
-+#define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_MEMDIE		18      /* is terminating due to OOM killer */
-+#define TIF_FREEZE		19	/* thread is freezing for suspend */
-+#define TIF_RESTORE_SIGMASK	20	/* restore signal mask in do_signal() */
-+#define TIF_SECCOMP		21	/* secure computing */
-+
-+#define _TIF_SIGPENDING         (1 << TIF_SIGPENDING)
-+#define _TIF_NOTIFY_RESUME      (1 << TIF_NOTIFY_RESUME)
-+#define _TIF_NEED_RESCHED       (1 << TIF_NEED_RESCHED)
-+#define _TIF_SYSCALL_TRACE      (1 << TIF_SYSCALL_TRACE)
-+#define _TIF_DELAYED_TRACE	(1 << TIF_DELAYED_TRACE)
-+#define _TIF_POLLING_NRFLAG     (1 << TIF_POLLING_NRFLAG)
-+#define _TIF_MEMDIE		(1 << TIF_MEMDIE)
-+#define _TIF_FREEZE             (1 << TIF_FREEZE)
-+#define _TIF_RESTORE_SIGMASK    (1 << TIF_RESTORE_SIGMASK)
-+#define _TIF_SECCOMP            (1 << TIF_SECCOMP)
-+
-+#endif	/* _ASM_CSKY_THREAD_INFO_H */
-diff --git a/arch/csky/include/uapi/asm/sigcontext.h b/arch/csky/include/uapi/asm/sigcontext.h
+diff --git a/arch/csky/boot/Makefile b/arch/csky/boot/Makefile
 new file mode 100644
-index 0000000..633cb14
+index 0000000..c3301a8
 --- /dev/null
-+++ b/arch/csky/include/uapi/asm/sigcontext.h
++++ b/arch/csky/boot/Makefile
+@@ -0,0 +1,25 @@
++targets := Image zImage uImage
++targets += $(dtb-y)
++
++$(obj)/Image: vmlinux FORCE
++	$(call if_changed,objcopy)
++	@echo '  Kernel: $@ is ready'
++
++compress-$(CONFIG_KERNEL_GZIP) = gzip
++compress-$(CONFIG_KERNEL_LZO)  = lzo
++compress-$(CONFIG_KERNEL_LZMA) = lzma
++compress-$(CONFIG_KERNEL_XZ)   = xzkern
++compress-$(CONFIG_KERNEL_LZ4)  = lz4
++
++$(obj)/zImage:  $(obj)/Image FORCE
++	$(call if_changed,$(compress-y))
++	@echo '  Kernel: $@ is ready'
++
++UIMAGE_ARCH		= sandbox
++UIMAGE_COMPRESSION	= $(compress-y)
++UIMAGE_LOADADDR		= $(shell $(NM) vmlinux | awk '$$NF == "_start" {print $$1}')
++
++$(obj)/uImage: $(obj)/zImage
++	$(call if_changed,uimage)
++	@echo 'Image: $@ is ready'
++
+diff --git a/arch/csky/boot/dts/Makefile b/arch/csky/boot/dts/Makefile
+new file mode 100644
+index 0000000..9afc954
+--- /dev/null
++++ b/arch/csky/boot/dts/Makefile
+@@ -0,0 +1,14 @@
++dtstree	:= $(srctree)/$(src)
++
++ifdef CONFIG_CSKY_BUILTIN_DTB
++builtindtb-y := $(patsubst "%",%,$(CONFIG_CSKY_BUILTIN_DTB_NAME))
++dtb-y += $(builtindtb-y).dtb
++obj-y += $(builtindtb-y).dtb.o
++.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
++else
++dtb-y := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
++endif
++
++always += $(dtb-y)
++clean-files += *.dtb *.dtb.S
++
+diff --git a/arch/csky/boot/dts/include/dt-bindings b/arch/csky/boot/dts/include/dt-bindings
+new file mode 120000
+index 0000000..08c00e4
+--- /dev/null
++++ b/arch/csky/boot/dts/include/dt-bindings
+@@ -0,0 +1 @@
++../../../../../include/dt-bindings
+\ No newline at end of file
+diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+new file mode 100644
+index 0000000..5de6519
+--- /dev/null
++++ b/arch/csky/include/asm/Kbuild
+@@ -0,0 +1,72 @@
++generic-y += asm-offsets.h
++generic-y += atomic.h
++generic-y += auxvec.h
++generic-y += bitsperlong.h
++generic-y += bug.h
++generic-y += bugs.h
++generic-y += clkdev.h
++generic-y += cputime.h
++generic-y += current.h
++generic-y += delay.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += exec.h
++generic-y += fb.h
++generic-y += ftrace.h
++generic-y += futex.h
++generic-y += gpio.h
++generic-y += hardirq.h
++generic-y += hw_irq.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += irq_regs.h
++generic-y += ipcbuf.h
++generic-y += irq_work.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += kprobes.h
++generic-y += kvm_para.h
++generic-y += linkage.h
++generic-y += local.h
++generic-y += local64.h
++generic-y += mman.h
++generic-y += mm-arch-hooks.h
++generic-y += module.h
++generic-y += msgbuf.h
++generic-y += mutex.h
++generic-y += param.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += posix_types.h
++generic-y += poll.h
++generic-y += preempt.h
++generic-y += resource.h
++generic-y += scatterlist.h
++generic-y += sections.h
++generic-y += sembuf.h
++generic-y += serial.h
++generic-y += setup.h
++generic-y += shmbuf.h
++generic-y += shm.h
++generic-y += siginfo.h
++generic-y += signal.h
++generic-y += sizes.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += statfs.h
++generic-y += switch_to.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += timex.h
++generic-y += topology.h
++generic-y += trace_clock.h
++generic-y += types.h
++generic-y += ucontext.h
++generic-y += unaligned.h
++generic-y += user.h
++generic-y += vga.h
++generic-y += vmlinux.lds.h
++generic-y += word-at-a-time.h
+diff --git a/arch/csky/include/uapi/asm/Kbuild b/arch/csky/include/uapi/asm/Kbuild
+new file mode 100644
+index 0000000..b65252b
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/Kbuild
+@@ -0,0 +1,33 @@
++include include/uapi/asm-generic/Kbuild.asm
++
++header-y += cachectl.h
++header-y += stat.h
++
++generic-y += auxvec.h
++generic-y += param.h
++generic-y += bpf_perf_event.h
++generic-y += errno.h
++generic-y += fcntl.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += shmbuf.h
++generic-y += bitsperlong.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += sembuf.h
++generic-y += siginfo.h
++generic-y += signal.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += statfs.h
++generic-y += stat.h
++generic-y += setup.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += types.h
++generic-y += ucontext.h
+diff --git a/arch/csky/kernel/Makefile b/arch/csky/kernel/Makefile
+new file mode 100644
+index 0000000..5403650
+--- /dev/null
++++ b/arch/csky/kernel/Makefile
+@@ -0,0 +1,8 @@
++extra-y := head.o vmlinux.lds
++
++obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o \
++	 power.o syscall.o platform.o syscall_table.o setup.o \
++	 cskyksyms.o process.o cpu-probe.o ptrace.o dumpstack.o
++
++obj-$(CONFIG_MODULES) += module.o
++obj-$(CONFIG_SMP) += smp.o
+diff --git a/arch/csky/lib/Makefile b/arch/csky/lib/Makefile
+new file mode 100644
+index 0000000..02aefbc
+--- /dev/null
++++ b/arch/csky/lib/Makefile
+@@ -0,0 +1 @@
++lib-y  := memset.o usercopy.o delay.o
+diff --git a/arch/csky/mm/Makefile b/arch/csky/mm/Makefile
+new file mode 100644
+index 0000000..c870eb3
+--- /dev/null
++++ b/arch/csky/mm/Makefile
 @@ -0,0 +1,13 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_SIGCONTEXT_H
-+#define __ASM_CSKY_SIGCONTEXT_H
-+
-+#include <asm/ptrace.h>
-+
-+struct sigcontext {
-+	struct pt_regs	sc_pt_regs;
-+	struct user_fp	sc_user_fp;
-+};
-+
-+#endif /* __ASM_CSKY_SIGCONTEXT_H */
-diff --git a/arch/csky/kernel/process.c b/arch/csky/kernel/process.c
-new file mode 100644
-index 0000000..5b916b0
---- /dev/null
-+++ b/arch/csky/kernel/process.c
-@@ -0,0 +1,134 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/module.h>
-+#include <linux/version.h>
-+#include <linux/sched.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/sched/debug.h>
-+#include <linux/delay.h>
-+#include <linux/kallsyms.h>
-+#include <linux/uaccess.h>
-+#include <linux/ptrace.h>
-+
-+#include <asm/elf.h>
-+#include <abi/reg_ops.h>
-+
-+struct cpuinfo_csky cpu_data[NR_CPUS];
-+
-+asmlinkage void ret_from_fork(void);
-+asmlinkage void ret_from_kernel_thread(void);
-+
-+/*
-+ * Some archs flush debug and FPU info here
-+ */
-+void flush_thread(void){}
-+
-+/*
-+ * Return saved PC from a blocked thread
-+ */
-+unsigned long thread_saved_pc(struct task_struct *tsk)
-+{
-+	struct switch_stack *sw = (struct switch_stack *)tsk->thread.ksp;
-+
-+	return sw->r15;
-+}
-+
-+int copy_thread(unsigned long clone_flags,
-+		unsigned long usp,
-+		unsigned long kthread_arg,
-+		struct task_struct *p)
-+{
-+	struct switch_stack * childstack;
-+	unsigned long reg_psr = 0;
-+	struct pt_regs *childregs = task_pt_regs(p);
-+
-+	preempt_disable();
-+
-+	reg_psr = mfcr("psr");
-+
-+#ifdef CONFIG_CPU_HAS_FPU
-+	save_to_user_fp(&p->thread.user_fp);
-+#endif
-+#ifdef CONFIG_CPU_HAS_HILO
-+	asm volatile(
-+		"mfhi	%0 \n"
-+		"mflo	%1 \n"
-+		:"=r"(p->thread.hi),"=r"(p->thread.lo));
-+#endif
-+	preempt_enable();
-+
-+	childstack = ((struct switch_stack *) childregs) - 1;
-+	memset(childstack, 0, sizeof(struct switch_stack));
-+
-+	/* setup ksp for switch_to !!! */
-+	p->thread.ksp = (unsigned long)childstack;
-+
-+	if (unlikely(p->flags & PF_KTHREAD)) {
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		childstack->r15 = (unsigned long) ret_from_kernel_thread;
-+		childstack->r8 = kthread_arg;
-+		childstack->r9 = usp;
-+		childregs->sr = reg_psr;
-+
-+		return 0;
-+	} else {
-+		*childregs = *(current_pt_regs());
-+		childstack->r15 = (unsigned long) ret_from_fork;
-+	}
-+
-+	/* Return 0 for subprocess when return from fork(),vfork(),clone() */
-+	childregs->a0 = 0;
-+
-+	if (usp != 0) childregs->usp = usp;
-+
-+	if (clone_flags & CLONE_SETTLS) {
-+		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];
-+		childregs->tls = task_thread_info(p)->tp_value;
-+	}
-+
-+	return 0;
-+}
-+
-+/* Fill in the fpu structure for a core dump.  */
-+int dump_fpu (struct pt_regs *regs, struct user_fp *fpu)
-+{
-+	memcpy(fpu, &current->thread.user_fp, sizeof(*fpu));
-+	return 1;
-+}
-+EXPORT_SYMBOL(dump_fpu);
-+
-+int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
-+{
-+	struct pt_regs *regs = (struct pt_regs *)(tsk->thread.esp0);
-+
-+	/* NOTE: usp is error value. */
-+	ELF_CORE_COPY_REGS ((*pr_regs), regs)
-+
-+	return 1;
-+}
-+
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+	unsigned long esp, pc;
-+	unsigned long stack_page;
-+	int count = 0;
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
-+
-+	stack_page = (unsigned long)p;
-+	esp = p->thread.esp0;
-+	do {
-+		if (esp < stack_page+sizeof(struct task_struct) ||
-+		    esp >= 8184+stack_page)
-+			return 0;
-+		/*FIXME: There's may be error here!*/
-+		pc = ((unsigned long *)esp)[1];
-+		/* FIXME: This depends on the order of these functions. */
-+		if (!in_sched_functions(pc))
-+			return pc;
-+		esp = *(unsigned long *) esp;
-+	} while (count++ < 16);
-+	return 0;
-+}
-+
-+EXPORT_SYMBOL(get_wchan);
-diff --git a/arch/csky/kernel/signal.c b/arch/csky/kernel/signal.c
-new file mode 100644
-index 0000000..c40775a
---- /dev/null
-+++ b/arch/csky/kernel/signal.c
-@@ -0,0 +1,350 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/syscalls.h>
-+#include <linux/errno.h>
-+#include <linux/wait.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/stddef.h>
-+#include <linux/highuid.h>
-+#include <linux/personality.h>
-+#include <linux/tty.h>
-+#include <linux/binfmts.h>
-+#include <linux/tracehook.h>
-+#include <linux/freezer.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/setup.h>
-+#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/ucontext.h>
-+#include <asm/vdso.h>
-+
-+#include <abi/regdef.h>
-+
-+#ifdef CONFIG_CPU_HAS_FPU
-+#include <abi/fpu.h>
-+
-+static int restore_fpu_state(struct sigcontext *sc)
-+{
-+	int err = 0;
-+	struct user_fp user_fp;
-+
-+	err = copy_from_user(&user_fp, &sc->sc_user_fp, sizeof(user_fp));
-+
-+	restore_from_user_fp(&user_fp);
-+
-+	return err;
-+}
-+
-+static int save_fpu_state(struct sigcontext *sc)
-+{
-+	struct user_fp user_fp;
-+
-+	save_to_user_fp(&user_fp);
-+
-+	return copy_to_user(&sc->sc_user_fp, &user_fp, sizeof(user_fp));
-+}
-+#else
-+static inline int restore_fpu_state(struct sigcontext *sc){return 0;}
-+static inline int save_fpu_state(struct sigcontext *sc){return 0;}
-+#endif
-+
-+struct rt_sigframe
-+{
-+	int sig;
-+	struct siginfo *pinfo;
-+	void *puc;
-+	struct siginfo info;
-+	struct ucontext uc;
-+};
-+
-+static int
-+restore_sigframe(struct pt_regs *regs,
-+		 struct sigcontext *sc, int *pr2)
-+{
-+	int err = 0;
-+
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current_thread_info()->task->restart_block.fn = do_no_restart_syscall;
-+
-+	err |= copy_from_user(regs, &sc->sc_pt_regs, sizeof(struct pt_regs));
-+
-+	err |= restore_fpu_state(sc);
-+
-+	*pr2 = regs->a0;
-+	return err;
-+}
-+
-+asmlinkage int
-+do_rt_sigreturn(void)
-+{
-+	sigset_t set;
-+	int a0;
-+	struct pt_regs *regs = current_pt_regs();
-+	struct rt_sigframe *frame = (struct rt_sigframe *)(regs->usp);
-+
-+	if (verify_area(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	sigdelsetmask(&set, (sigmask(SIGKILL) | sigmask(SIGSTOP)));
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = set;
-+	recalc_sigpending( );
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigframe(regs, &frame->uc.uc_mcontext, &a0))
-+		goto badframe;
-+
-+	return a0;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-+
-+static int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs)
-+{
-+	int err = 0;
-+
-+	err |= copy_to_user(&sc->sc_pt_regs, regs, sizeof(struct pt_regs));
-+	err |= save_fpu_state(sc);
-+
-+	return err;
-+}
-+
-+static inline void *
-+get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
-+{
-+	unsigned long usp;
-+
-+	/* Default to using normal stack.  */
-+	usp = regs->usp;
-+
-+	/* This is the X/Open sanctioned signal stack switching.  */
-+	if ((ka->sa.sa_flags & SA_ONSTACK) && !sas_ss_flags(usp)) {
-+		if (!on_sig_stack(usp))
-+			usp = current->sas_ss_sp + current->sas_ss_size;
-+	}
-+	return (void *)((usp - frame_size) & -8UL);
-+}
-+
-+static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
-+		sigset_t *set, struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame;
-+	int err = 0;
-+
-+	struct csky_vdso *vdso = current->mm->context.vdso;
-+
-+	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	if (!frame)
-+		return 1;
-+
-+	err |= __put_user(sig, &frame->sig);
-+	err |= __put_user(&frame->info, &frame->pinfo);
-+	err |= __put_user(&frame->uc, &frame->puc);
-+	err |= copy_siginfo_to_user(&frame->info, info);
-+
-+	/* Create the ucontext.  */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, &frame->uc.uc_link);
-+	err |= __put_user((void *)current->sas_ss_sp,
-+			&frame->uc.uc_stack.ss_sp);
-+	err |= __put_user(sas_ss_flags(regs->usp),
-+			&frame->uc.uc_stack.ss_flags);
-+	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
-+	err |= setup_sigframe(&frame->uc.uc_mcontext, regs);
-+	err |= copy_to_user (&frame->uc.uc_sigmask, set, sizeof(*set));
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Set up registers for signal handler */
-+	regs->usp = (unsigned long) frame;
-+	regs->pc = (unsigned long) ka->sa.sa_handler;
-+	regs->lr = (unsigned long)vdso->rt_signal_retcode;
-+
-+adjust_stack:
-+	regs->a0 = sig; /* first arg is signo */
-+	regs->a1 = (unsigned long)(&(frame->info)); /* second arg is (siginfo_t*) */
-+	regs->a2 = (unsigned long)(&(frame->uc));/* third arg pointer to ucontext */
-+	return err;
-+
-+give_sigsegv:
-+	if (sig == SIGSEGV)
-+		ka->sa.sa_handler = SIG_DFL;
-+	force_sig(SIGSEGV, current);
-+	goto adjust_stack;
-+}
-+
-+/*
-+ * OK, we're invoking a handler
-+ */
-+static int
-+handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
-+		sigset_t *oldset, struct pt_regs *regs)
-+{
-+	struct task_struct *tsk = current;
-+	int ret;
-+
-+	/* set up the stack frame, regardless of SA_SIGINFO, and pass info anyway. */
-+	ret = setup_rt_frame(sig, ka, info, oldset, regs);
-+
-+	if (ret != 0) {
-+		force_sigsegv(sig, tsk);
-+		return ret;
-+	}
-+
-+	/* Block the signal if we were successful. */
-+	spin_lock_irq(&current->sighand->siglock);
-+	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
-+	if (!(ka->sa.sa_flags & SA_NODEFER))
-+		sigaddset(&current->blocked, sig);
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	return 0;
-+}
-+
-+/*
-+ * Note that 'init' is a special process: it doesn't get signals it doesn't
-+ * want to handle. Thus you cannot kill init even with a SIGKILL even by
-+ * mistake.
-+ *
-+ * Note that we go through the signals twice: once to check the signals
-+ * that the kernel can handle, and then we build all the user-level signal
-+ * handling stack-frames in one go after that.
-+ */
-+static void do_signal(struct pt_regs *regs, int syscall)
-+{
-+	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
-+	struct ksignal ksig;
-+
-+	/*
-+	 * We want the common case to go fast, which
-+	 * is why we may in certain cases get here from
-+	 * kernel mode. Just return without doing anything
-+	 * if so.
-+	 */
-+	if (!user_mode(regs))
-+		return;
-+
-+	current->thread.esp0 = (unsigned long)regs;
-+
-+	/*
-+	 * If we were from a system call, check for system call restarting...
-+	 */
-+	if (syscall) {
-+		continue_addr = regs->pc;
-+#if defined(__CSKYABIV2__)
-+		restart_addr = continue_addr - 4;
-+#else
-+		restart_addr = continue_addr - 2;
-+#endif
-+		retval = regs->a0;
-+
-+		/*
-+		 * Prepare for system call restart.  We do this here so that a
-+		 * debugger will see the already changed.
-+		 */
-+		switch (retval) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->a0 = regs->orig_a0;
-+			regs->pc = restart_addr;
-+			break;
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->a0 = -EINTR;
-+			break;
-+		}
-+	}
-+
-+	if (try_to_freeze())
-+		goto no_signal;
-+
-+	/*
-+	 * Get the signal to deliver.  When running under ptrace, at this
-+	 * point the debugger may change all our registers ...
-+	 */
-+	if (get_signal(&ksig)) {
-+		sigset_t *oldset;
-+
-+		/*
-+		 * Depending on the signal settings we may need to revert the
-+		 * decision to restart the system call.  But skip this if a
-+		 * debugger has chosen to restart at a different PC.
-+		 */
-+		if (regs->pc == restart_addr) {
-+			if (retval == -ERESTARTNOHAND
-+					|| (retval == -ERESTARTSYS
-+						&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
-+				regs->a0 = -EINTR;
-+				regs->pc = continue_addr;
-+			}
-+		}
-+
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+			oldset = &current->saved_sigmask;
-+		else
-+			oldset = &current->blocked;
-+		/* Whee!  Actually deliver the signal.  */
-+		if (handle_signal(ksig.sig, &ksig.ka, &ksig.info, oldset, regs) == 0) {
-+			/*
-+			 * A signal was successfully delivered; the saved
-+			 * sigmask will have been stored in the signal frame,
-+			 * and will be restored by sigreturn, so we can simply
-+			 * clear the TIF_RESTORE_SIGMASK flag.
-+			 */
-+			if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+				clear_thread_flag(TIF_RESTORE_SIGMASK);
-+		}
-+		return;
-+	}
-+
-+no_signal:
-+	if (syscall) {
-+		/*
-+		 * Handle restarting a different system call.  As above,
-+		 * if a debugger has chosen to restart at a different PC,
-+		 * ignore the restart.
-+		 */
-+		if (retval == -ERESTART_RESTARTBLOCK
-+				&& regs->pc == continue_addr) {
-+#if defined(__CSKYABIV2__)
-+			regs->regs[3] = __NR_restart_syscall;
-+			regs->pc -= 4;
-+#else
-+			regs->regs[9] = __NR_restart_syscall;
-+			regs->pc -= 2;
-+#endif
-+		}
-+
-+		/* If there's no signal to deliver, we just put the saved sigmask
-+		 * back.
-+		 */
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-+			clear_thread_flag(TIF_RESTORE_SIGMASK);
-+			sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-+		}
-+	}
-+}
-+
-+asmlinkage void
-+do_notify_resume(unsigned int thread_flags, struct pt_regs *regs, int syscall)
-+{
-+	if (thread_flags & _TIF_SIGPENDING)
-+		do_signal(regs, syscall);
-+
-+	if (thread_flags & _TIF_NOTIFY_RESUME) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(regs);
-+	}
-+}
-diff --git a/arch/csky/kernel/time.c b/arch/csky/kernel/time.c
-new file mode 100644
-index 0000000..7cbdc1e
---- /dev/null
-+++ b/arch/csky/kernel/time.c
-@@ -0,0 +1,12 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/clk-provider.h>
-+#include <linux/clocksource.h>
-+
-+void __init time_init(void)
-+{
-+	of_clk_init(NULL);
-+
-+	timer_probe();
-+}
-+
++ifeq ($(CONFIG_CPU_HAS_CACHEV2),y)
++obj-y +=			cachev2.o
++else
++obj-y +=			cachev1.o
++endif
++
++obj-y +=			dma-mapping.o
++obj-y +=			fault.o
++obj-$(CONFIG_HIGHMEM) +=	highmem.o
++obj-y +=			init.o
++obj-y +=			ioremap.o
++obj-y +=			syscache.o
++obj-y +=			tlb.o
 -- 
 2.7.4
