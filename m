@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:40584 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:43273 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1031363AbeGARcI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2018 13:32:08 -0400
+        by vger.kernel.org with ESMTP id S965961AbeGARb4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2018 13:31:56 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V2 02/19] csky: defconfig
-Date: Mon,  2 Jul 2018 01:30:05 +0800
-Message-ID: <8c855b4a175fffcb5c897865b7e3d2fe754f0099.1530465326.git.ren_guo@c-sky.com>
+Subject: [PATCH V2 14/19] csky: User access
+Date: Mon,  2 Jul 2018 01:30:17 +0800
+Message-ID: <641ce1b36d6248e3c4c025f687d029208bda821c.1530465326.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
@@ -15,1117 +15,695 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180701173005.lK_-duN8ptTM6SIDWejJEmXqIy1nT7AvCKZJJKtNybs@z>
+Message-ID: <20180701173017.h4BwEPvEcI7vUwAcctUepOEEyck_pfOJ1uUOT665HQs@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/configs/gx66xx_defconfig     | 549 +++++++++++++++++++++++++++++++++
- arch/csky/configs/qemu_ck807_defconfig | 541 ++++++++++++++++++++++++++++++++
- 2 files changed, 1090 insertions(+)
- create mode 100644 arch/csky/configs/gx66xx_defconfig
- create mode 100644 arch/csky/configs/qemu_ck807_defconfig
+ arch/csky/include/asm/uaccess.h | 397 ++++++++++++++++++++++++++++++++++++++++
+ arch/csky/lib/usercopy.c        | 271 +++++++++++++++++++++++++++
+ 2 files changed, 668 insertions(+)
+ create mode 100644 arch/csky/include/asm/uaccess.h
+ create mode 100644 arch/csky/lib/usercopy.c
 
-diff --git a/arch/csky/configs/gx66xx_defconfig b/arch/csky/configs/gx66xx_defconfig
+diff --git a/arch/csky/include/asm/uaccess.h b/arch/csky/include/asm/uaccess.h
 new file mode 100644
-index 0000000..7f2a987
+index 0000000..81063c3
 --- /dev/null
-+++ b/arch/csky/configs/gx66xx_defconfig
-@@ -0,0 +1,549 @@
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+# CONFIG_FHANDLE is not set
-+CONFIG_USELIB=y
-+CONFIG_AUDIT=y
-+CONFIG_IRQ_DOMAIN_DEBUG=y
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_RELAY=y
-+CONFIG_SYSCTL_SYSCALL=y
-+CONFIG_KALLSYMS_ALL=y
-+# CONFIG_AIO is not set
-+CONFIG_USERFAULTFD=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_PERF_EVENTS is not set
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_PROFILING=y
-+CONFIG_OPROFILE=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+CONFIG_BLK_DEV_BSGLIB=y
-+CONFIG_BLK_DEV_INTEGRITY=y
-+CONFIG_PARTITION_ADVANCED=y
-+CONFIG_ACORN_PARTITION=y
-+CONFIG_ACORN_PARTITION_ICS=y
-+CONFIG_ACORN_PARTITION_RISCIX=y
-+CONFIG_AIX_PARTITION=y
-+CONFIG_OSF_PARTITION=y
-+CONFIG_AMIGA_PARTITION=y
-+CONFIG_ATARI_PARTITION=y
-+CONFIG_MAC_PARTITION=y
-+CONFIG_BSD_DISKLABEL=y
-+CONFIG_MINIX_SUBPARTITION=y
-+CONFIG_SOLARIS_X86_PARTITION=y
-+CONFIG_UNIXWARE_DISKLABEL=y
-+CONFIG_LDM_PARTITION=y
-+CONFIG_SGI_PARTITION=y
-+CONFIG_ULTRIX_PARTITION=y
-+CONFIG_SUN_PARTITION=y
-+CONFIG_KARMA_PARTITION=y
-+CONFIG_SYSV68_PARTITION=y
-+CONFIG_CMDLINE_PARTITION=y
-+CONFIG_DEFAULT_DEADLINE=y
-+CONFIG_FB_NATIONALCHIP=y
-+CONFIG_RAM_BASE=0x10000000
-+# CONFIG_SUSPEND is not set
-+# CONFIG_COMPACTION is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+CONFIG_IP_MULTICAST=y
-+CONFIG_IP_PNP=y
-+CONFIG_IP_PNP_DHCP=y
-+CONFIG_IP_PNP_BOOTP=y
-+CONFIG_IP_PNP_RARP=y
-+# CONFIG_IPV6 is not set
-+CONFIG_CFG80211=y
-+CONFIG_CFG80211_DEBUGFS=y
-+CONFIG_CFG80211_WEXT=y
-+CONFIG_MAC80211=y
-+CONFIG_MAC80211_DEBUGFS=y
-+CONFIG_RFKILL=y
-+CONFIG_RFKILL_INPUT=y
-+CONFIG_RFKILL_GPIO=y
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_STANDALONE is not set
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_SIZE=65536
-+CONFIG_VIRTIO_BLK=y
-+CONFIG_AD525X_DPOT=m
-+CONFIG_AD525X_DPOT_I2C=m
-+CONFIG_DUMMY_IRQ=m
-+CONFIG_ICS932S401=m
-+CONFIG_ENCLOSURE_SERVICES=m
-+CONFIG_APDS9802ALS=m
-+CONFIG_ISL29003=m
-+CONFIG_ISL29020=m
-+CONFIG_SENSORS_TSL2550=m
-+CONFIG_SENSORS_BH1770=m
-+CONFIG_SENSORS_APDS990X=m
-+CONFIG_HMC6352=m
-+CONFIG_DS1682=m
-+CONFIG_USB_SWITCH_FSA9480=m
-+CONFIG_SRAM=y
-+CONFIG_C2PORT=m
-+CONFIG_EEPROM_AT24=m
-+CONFIG_EEPROM_LEGACY=m
-+CONFIG_EEPROM_MAX6875=m
-+CONFIG_SENSORS_LIS3_I2C=m
-+CONFIG_ALTERA_STAPL=m
-+CONFIG_ECHO=m
-+CONFIG_SCSI=y
-+# CONFIG_SCSI_PROC_FS is not set
-+CONFIG_BLK_DEV_SD=y
-+CONFIG_SCSI_SPI_ATTRS=y
-+CONFIG_SCSI_SAS_LIBSAS=m
-+CONFIG_SCSI_SRP_ATTRS=m
-+# CONFIG_SCSI_LOWLEVEL is not set
-+CONFIG_NETDEVICES=y
-+CONFIG_USB_RTL8150=y
-+CONFIG_USB_RTL8152=y
-+CONFIG_USB_USBNET=y
-+# CONFIG_WLAN_VENDOR_ADMTEK is not set
-+# CONFIG_WLAN_VENDOR_ATH is not set
-+# CONFIG_WLAN_VENDOR_ATMEL is not set
-+# CONFIG_WLAN_VENDOR_BROADCOM is not set
-+# CONFIG_WLAN_VENDOR_CISCO is not set
-+# CONFIG_WLAN_VENDOR_INTEL is not set
-+# CONFIG_WLAN_VENDOR_INTERSIL is not set
-+# CONFIG_WLAN_VENDOR_MARVELL is not set
-+CONFIG_MT7601U=m
-+# CONFIG_WLAN_VENDOR_RALINK is not set
-+CONFIG_RTL8187=y
-+CONFIG_RTL8XXXU=y
-+CONFIG_RTL8XXXU_UNTESTED=y
-+# CONFIG_WLAN_VENDOR_RSI is not set
-+# CONFIG_WLAN_VENDOR_ST is not set
-+# CONFIG_WLAN_VENDOR_TI is not set
-+# CONFIG_WLAN_VENDOR_ZYDAS is not set
-+CONFIG_INPUT_SPARSEKMAP=m
-+CONFIG_INPUT_EVDEV=y
-+CONFIG_KEYBOARD_ADP5588=m
-+CONFIG_KEYBOARD_ADP5589=m
-+CONFIG_KEYBOARD_QT1070=m
-+CONFIG_KEYBOARD_QT2160=m
-+CONFIG_KEYBOARD_LKKBD=m
-+CONFIG_KEYBOARD_GPIO_POLLED=m
-+CONFIG_KEYBOARD_TCA6416=m
-+CONFIG_KEYBOARD_TCA8418=m
-+CONFIG_KEYBOARD_LM8323=m
-+CONFIG_KEYBOARD_LM8333=m
-+CONFIG_KEYBOARD_MAX7359=m
-+CONFIG_KEYBOARD_MCS=m
-+CONFIG_KEYBOARD_MPR121=m
-+CONFIG_KEYBOARD_NEWTON=m
-+CONFIG_KEYBOARD_OPENCORES=m
-+CONFIG_KEYBOARD_STOWAWAY=m
-+CONFIG_KEYBOARD_SUNKBD=m
-+CONFIG_KEYBOARD_XTKBD=m
-+CONFIG_MOUSE_PS2=m
-+CONFIG_MOUSE_PS2_ELANTECH=y
-+CONFIG_MOUSE_PS2_SENTELIC=y
-+CONFIG_MOUSE_PS2_TOUCHKIT=y
-+CONFIG_MOUSE_SERIAL=m
-+CONFIG_MOUSE_CYAPA=m
-+CONFIG_MOUSE_VSXXXAA=m
-+CONFIG_MOUSE_SYNAPTICS_I2C=m
-+CONFIG_INPUT_JOYSTICK=y
-+CONFIG_JOYSTICK_ANALOG=m
-+CONFIG_JOYSTICK_A3D=m
-+CONFIG_JOYSTICK_ADI=m
-+CONFIG_JOYSTICK_COBRA=m
-+CONFIG_JOYSTICK_GF2K=m
-+CONFIG_JOYSTICK_GRIP=m
-+CONFIG_JOYSTICK_GRIP_MP=m
-+CONFIG_JOYSTICK_GUILLEMOT=m
-+CONFIG_JOYSTICK_INTERACT=m
-+CONFIG_JOYSTICK_SIDEWINDER=m
-+CONFIG_JOYSTICK_TMDC=m
-+CONFIG_JOYSTICK_IFORCE=m
-+CONFIG_JOYSTICK_IFORCE_232=y
-+CONFIG_JOYSTICK_WARRIOR=m
-+CONFIG_JOYSTICK_MAGELLAN=m
-+CONFIG_JOYSTICK_SPACEORB=m
-+CONFIG_JOYSTICK_SPACEBALL=m
-+CONFIG_JOYSTICK_STINGER=m
-+CONFIG_JOYSTICK_TWIDJOY=m
-+CONFIG_JOYSTICK_ZHENHUA=m
-+CONFIG_JOYSTICK_AS5011=m
-+CONFIG_JOYSTICK_JOYDUMP=m
-+CONFIG_INPUT_TABLET=y
-+CONFIG_INPUT_TOUCHSCREEN=y
-+CONFIG_TOUCHSCREEN_AD7879=m
-+CONFIG_TOUCHSCREEN_AD7879_I2C=m
-+CONFIG_TOUCHSCREEN_ATMEL_MXT=m
-+CONFIG_TOUCHSCREEN_BU21013=m
-+CONFIG_TOUCHSCREEN_CYTTSP_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP_I2C=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_I2C=m
-+CONFIG_TOUCHSCREEN_DYNAPRO=m
-+CONFIG_TOUCHSCREEN_HAMPSHIRE=m
-+CONFIG_TOUCHSCREEN_EETI=m
-+CONFIG_TOUCHSCREEN_FUJITSU=m
-+CONFIG_TOUCHSCREEN_ILI210X=m
-+CONFIG_TOUCHSCREEN_GUNZE=m
-+CONFIG_TOUCHSCREEN_ELO=m
-+CONFIG_TOUCHSCREEN_WACOM_W8001=m
-+CONFIG_TOUCHSCREEN_WACOM_I2C=m
-+CONFIG_TOUCHSCREEN_MAX11801=m
-+CONFIG_TOUCHSCREEN_MCS5000=m
-+CONFIG_TOUCHSCREEN_MMS114=m
-+CONFIG_TOUCHSCREEN_MTOUCH=m
-+CONFIG_TOUCHSCREEN_INEXIO=m
-+CONFIG_TOUCHSCREEN_MK712=m
-+CONFIG_TOUCHSCREEN_PENMOUNT=m
-+CONFIG_TOUCHSCREEN_EDT_FT5X06=m
-+CONFIG_TOUCHSCREEN_TOUCHRIGHT=m
-+CONFIG_TOUCHSCREEN_TOUCHWIN=m
-+CONFIG_TOUCHSCREEN_PIXCIR=m
-+CONFIG_TOUCHSCREEN_TOUCHIT213=m
-+CONFIG_TOUCHSCREEN_TSC_SERIO=m
-+CONFIG_TOUCHSCREEN_TSC2007=m
-+CONFIG_TOUCHSCREEN_ST1232=m
-+CONFIG_TOUCHSCREEN_TPS6507X=m
-+CONFIG_INPUT_MISC=y
-+CONFIG_INPUT_AD714X=m
-+CONFIG_INPUT_BMA150=m
-+CONFIG_INPUT_MMA8450=m
-+CONFIG_INPUT_MPU3050=m
-+CONFIG_INPUT_KXTJ9=m
-+CONFIG_INPUT_UINPUT=y
-+CONFIG_INPUT_PCF8574=m
-+CONFIG_INPUT_ADXL34X=m
-+CONFIG_INPUT_CMA3000=m
-+CONFIG_INPUT_CMA3000_I2C=m
-+CONFIG_SERIO_SERPORT=m
-+CONFIG_SERIO_RAW=m
-+CONFIG_SERIO_ALTERA_PS2=m
-+CONFIG_SERIO_PS2MULT=m
-+CONFIG_SERIO_ARC_PS2=m
-+CONFIG_GAMEPORT_NS558=m
-+CONFIG_GAMEPORT_L4=m
-+CONFIG_SERIAL_NONSTANDARD=y
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_8250=y
-+# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_8250_NR_UARTS=2
-+CONFIG_SERIAL_8250_RUNTIME_UARTS=2
-+CONFIG_SERIAL_8250_DW=y
-+CONFIG_SERIAL_OF_PLATFORM=y
-+CONFIG_TTY_PRINTK=y
-+CONFIG_VIRTIO_CONSOLE=y
-+CONFIG_IPMI_HANDLER=y
-+CONFIG_IPMI_DEVICE_INTERFACE=m
-+CONFIG_IPMI_SI=m
-+CONFIG_IPMI_WATCHDOG=m
-+CONFIG_IPMI_POWEROFF=m
-+CONFIG_HW_RANDOM=y
-+CONFIG_HW_RANDOM_TIMERIOMEM=m
-+CONFIG_HW_RANDOM_VIRTIO=m
-+CONFIG_HW_RANDOM_TPM=m
-+CONFIG_TCG_TIS_I2C_ATMEL=m
-+CONFIG_TCG_TIS_I2C_INFINEON=m
-+CONFIG_TCG_TIS_I2C_NUVOTON=m
-+CONFIG_TCG_ATMEL=m
-+CONFIG_I2C_CHARDEV=m
-+CONFIG_I2C_MUX_PCA9541=m
-+CONFIG_I2C_DESIGNWARE_PLATFORM=m
-+CONFIG_I2C_OCORES=m
-+CONFIG_I2C_PCA_PLATFORM=m
-+CONFIG_I2C_SIMTEC=m
-+CONFIG_I2C_XILINX=m
-+CONFIG_I2C_PARPORT_LIGHT=m
-+CONFIG_I2C_TAOS_EVM=m
-+CONFIG_I2C_STUB=m
-+CONFIG_PPS=m
-+CONFIG_PPS_CLIENT_LDISC=m
-+CONFIG_PPS_CLIENT_GPIO=m
-+CONFIG_GPIOLIB=y
-+CONFIG_DEBUG_GPIO=y
-+CONFIG_GPIO_SYSFS=y
-+CONFIG_GPIO_GENERIC_PLATFORM=y
-+CONFIG_POWER_RESET=y
-+# CONFIG_HWMON is not set
-+CONFIG_SSB=m
-+CONFIG_BCMA=m
-+CONFIG_BCMA_HOST_SOC=y
-+CONFIG_BCMA_DRIVER_GMAC_CMN=y
-+CONFIG_MEDIA_SUPPORT=y
-+CONFIG_MEDIA_CAMERA_SUPPORT=y
-+CONFIG_MEDIA_USB_SUPPORT=y
-+CONFIG_USB_VIDEO_CLASS=y
-+# CONFIG_USB_GSPCA is not set
-+CONFIG_FB=y
-+CONFIG_FB_TILEBLITTING=y
-+CONFIG_FB_SIMPLE=y
-+CONFIG_BACKLIGHT_LCD_SUPPORT=y
-+# CONFIG_LCD_CLASS_DEVICE is not set
-+# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_FRAMEBUFFER_CONSOLE=y
-+CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
-+CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
-+CONFIG_LOGO=y
-+# CONFIG_LOGO_LINUX_MONO is not set
-+# CONFIG_LOGO_LINUX_VGA16 is not set
-+CONFIG_HID_A4TECH=m
-+CONFIG_HID_ACRUX=m
-+CONFIG_HID_ACRUX_FF=y
-+CONFIG_HID_APPLE=m
-+CONFIG_HID_AUREAL=m
-+CONFIG_HID_BELKIN=m
-+CONFIG_HID_CHERRY=m
-+CONFIG_HID_CHICONY=m
-+CONFIG_HID_CYPRESS=m
-+CONFIG_HID_DRAGONRISE=m
-+CONFIG_DRAGONRISE_FF=y
-+CONFIG_HID_EMS_FF=m
-+CONFIG_HID_ELECOM=m
-+CONFIG_HID_EZKEY=m
-+CONFIG_HID_KEYTOUCH=m
-+CONFIG_HID_KYE=m
-+CONFIG_HID_WALTOP=m
-+CONFIG_HID_GYRATION=m
-+CONFIG_HID_ICADE=m
-+CONFIG_HID_TWINHAN=m
-+CONFIG_HID_KENSINGTON=m
-+CONFIG_HID_LCPOWER=m
-+CONFIG_HID_LOGITECH=m
-+CONFIG_HID_LOGITECH_HIDPP=m
-+CONFIG_LOGITECH_FF=y
-+CONFIG_LOGIRUMBLEPAD2_FF=y
-+CONFIG_LOGIG940_FF=y
-+CONFIG_HID_MAGICMOUSE=m
-+CONFIG_HID_MICROSOFT=m
-+CONFIG_HID_MONTEREY=m
-+CONFIG_HID_MULTITOUCH=m
-+CONFIG_HID_ORTEK=m
-+CONFIG_HID_PANTHERLORD=m
-+CONFIG_PANTHERLORD_FF=y
-+CONFIG_HID_PETALYNX=m
-+CONFIG_HID_PICOLCD=m
-+CONFIG_HID_PICOLCD_LEDS=y
-+CONFIG_HID_PRIMAX=m
-+CONFIG_HID_SAITEK=m
-+CONFIG_HID_SAMSUNG=m
-+CONFIG_HID_SPEEDLINK=m
-+CONFIG_HID_STEELSERIES=m
-+CONFIG_HID_SUNPLUS=m
-+CONFIG_HID_RMI=m
-+CONFIG_HID_GREENASIA=m
-+CONFIG_GREENASIA_FF=y
-+CONFIG_HID_SMARTJOYPLUS=m
-+CONFIG_SMARTJOYPLUS_FF=y
-+CONFIG_HID_TIVO=m
-+CONFIG_HID_TOPSEED=m
-+CONFIG_HID_THINGM=m
-+CONFIG_HID_THRUSTMASTER=m
-+CONFIG_THRUSTMASTER_FF=y
-+CONFIG_HID_WACOM=m
-+CONFIG_HID_WIIMOTE=m
-+CONFIG_HID_XINMO=m
-+CONFIG_HID_ZEROPLUS=m
-+CONFIG_ZEROPLUS_FF=y
-+CONFIG_HID_ZYDACRON=m
-+CONFIG_HID_SENSOR_HUB=m
-+CONFIG_HID_PID=y
-+CONFIG_I2C_HID=m
-+CONFIG_USB=y
-+CONFIG_USB_EHCI_HCD=y
-+CONFIG_USB_EHCI_HCD_PLATFORM=y
-+CONFIG_USB_OHCI_HCD=y
-+CONFIG_USB_OHCI_HCD_PLATFORM=y
-+CONFIG_USB_STORAGE=y
-+CONFIG_LEDS_CLASS=y
-+CONFIG_LEDS_LM3530=m
-+CONFIG_LEDS_LM3642=m
-+CONFIG_LEDS_PCA9532=m
-+CONFIG_LEDS_GPIO=m
-+CONFIG_LEDS_LP3944=m
-+CONFIG_LEDS_LP5521=m
-+CONFIG_LEDS_LP5523=m
-+CONFIG_LEDS_LP5562=m
-+CONFIG_LEDS_LP8501=m
-+CONFIG_LEDS_PCA955X=m
-+CONFIG_LEDS_PCA963X=m
-+CONFIG_LEDS_BD2802=m
-+CONFIG_LEDS_TCA6507=m
-+CONFIG_LEDS_LM355x=m
-+CONFIG_LEDS_BLINKM=m
-+CONFIG_LEDS_TRIGGER_TIMER=y
-+CONFIG_LEDS_TRIGGER_ONESHOT=y
-+CONFIG_LEDS_TRIGGER_HEARTBEAT=y
-+CONFIG_LEDS_TRIGGER_BACKLIGHT=y
-+CONFIG_LEDS_TRIGGER_CPU=y
-+CONFIG_LEDS_TRIGGER_GPIO=y
-+CONFIG_LEDS_TRIGGER_DEFAULT_ON=y
-+CONFIG_LEDS_TRIGGER_TRANSIENT=y
-+CONFIG_LEDS_TRIGGER_CAMERA=y
-+CONFIG_LEDS_TRIGGER_PANIC=y
-+CONFIG_VIRTIO_BALLOON=y
-+CONFIG_VIRTIO_MMIO=y
-+CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_STE_MODEM_RPROC=m
-+CONFIG_PM_DEVFREQ=y
-+CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
-+CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-+CONFIG_DEVFREQ_GOV_POWERSAVE=y
-+CONFIG_DEVFREQ_GOV_USERSPACE=y
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_EXT2_FS_POSIX_ACL=y
-+CONFIG_EXT2_FS_SECURITY=y
-+CONFIG_EXT3_FS=y
-+CONFIG_EXT3_FS_POSIX_ACL=y
-+CONFIG_EXT3_FS_SECURITY=y
-+CONFIG_FANOTIFY=y
-+CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y
-+CONFIG_QUOTA=y
-+# CONFIG_PRINT_QUOTA_WARNING is not set
-+CONFIG_FSCACHE=m
-+CONFIG_FSCACHE_STATS=y
-+CONFIG_CACHEFILES=m
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_FAT_DEFAULT_UTF8=y
-+CONFIG_NTFS_FS=y
-+CONFIG_PROC_KCORE=y
-+CONFIG_PROC_CHILDREN=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_CRAMFS=y
-+CONFIG_ROMFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_ROOT_NFS=y
-+CONFIG_NLS_DEFAULT="utf8"
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_CODEPAGE_737=y
-+CONFIG_NLS_CODEPAGE_775=y
-+CONFIG_NLS_CODEPAGE_850=y
-+CONFIG_NLS_CODEPAGE_852=y
-+CONFIG_NLS_CODEPAGE_855=y
-+CONFIG_NLS_CODEPAGE_857=y
-+CONFIG_NLS_CODEPAGE_860=y
-+CONFIG_NLS_CODEPAGE_861=y
-+CONFIG_NLS_CODEPAGE_863=y
-+CONFIG_NLS_CODEPAGE_864=y
-+CONFIG_NLS_CODEPAGE_865=y
-+CONFIG_NLS_CODEPAGE_866=y
-+CONFIG_NLS_CODEPAGE_869=y
-+CONFIG_NLS_CODEPAGE_936=y
-+CONFIG_NLS_CODEPAGE_950=y
-+CONFIG_NLS_CODEPAGE_932=y
-+CONFIG_NLS_CODEPAGE_949=m
-+CONFIG_NLS_CODEPAGE_874=m
-+CONFIG_NLS_ISO8859_8=m
-+CONFIG_NLS_CODEPAGE_1250=y
-+CONFIG_NLS_CODEPAGE_1251=y
-+CONFIG_NLS_ASCII=m
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_NLS_ISO8859_2=m
-+CONFIG_NLS_ISO8859_3=m
-+CONFIG_NLS_ISO8859_4=m
-+CONFIG_NLS_ISO8859_5=m
-+CONFIG_NLS_ISO8859_6=m
-+CONFIG_NLS_ISO8859_7=m
-+CONFIG_NLS_ISO8859_9=m
-+CONFIG_NLS_ISO8859_13=m
-+CONFIG_NLS_ISO8859_14=m
-+CONFIG_NLS_ISO8859_15=m
-+CONFIG_NLS_KOI8_R=m
-+CONFIG_NLS_KOI8_U=m
-+CONFIG_NLS_MAC_ROMAN=m
-+CONFIG_NLS_MAC_CELTIC=m
-+CONFIG_NLS_MAC_CENTEURO=m
-+CONFIG_NLS_MAC_CROATIAN=m
-+CONFIG_NLS_MAC_CYRILLIC=m
-+CONFIG_NLS_MAC_GAELIC=m
-+CONFIG_NLS_MAC_GREEK=m
-+CONFIG_NLS_MAC_ICELAND=m
-+CONFIG_NLS_MAC_INUIT=m
-+CONFIG_NLS_MAC_ROMANIAN=m
-+CONFIG_NLS_MAC_TURKISH=m
-+CONFIG_NLS_UTF8=y
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_INFO=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_UNUSED_SYMBOLS=y
-+CONFIG_DEBUG_FS=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_LOCKUP_DETECTOR=y
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_RBTREE_TEST=m
-+CONFIG_INTERVAL_TREE_TEST=m
-+CONFIG_PERCPU_TEST=m
-+CONFIG_TEST_STRING_HELPERS=m
-+CONFIG_TEST_KSTRTOX=m
-+CONFIG_PERSISTENT_KEYRINGS=y
-+CONFIG_TRUSTED_KEYS=y
-+CONFIG_SECURITY=y
-+CONFIG_SECURITY_NETWORK=y
-+CONFIG_SECURITY_PATH=y
-+CONFIG_SECURITY_YAMA=y
-+CONFIG_INTEGRITY_SIGNATURE=y
-+CONFIG_INTEGRITY_ASYMMETRIC_KEYS=y
-+CONFIG_IMA=y
-+CONFIG_IMA_APPRAISE=y
-+CONFIG_EVM=y
-+CONFIG_CRYPTO_CRYPTD=m
-+CONFIG_CRYPTO_AUTHENC=m
-+CONFIG_CRYPTO_TEST=m
-+CONFIG_CRYPTO_CTS=m
-+CONFIG_CRYPTO_ECB=y
-+CONFIG_CRYPTO_LRW=m
-+CONFIG_CRYPTO_PCBC=m
-+CONFIG_CRYPTO_XTS=m
-+CONFIG_CRYPTO_CMAC=m
-+CONFIG_CRYPTO_XCBC=m
-+CONFIG_CRYPTO_VMAC=m
-+CONFIG_CRYPTO_CRC32=m
-+CONFIG_CRYPTO_MD4=m
-+CONFIG_CRYPTO_MICHAEL_MIC=m
-+CONFIG_CRYPTO_RMD128=m
-+CONFIG_CRYPTO_RMD160=m
-+CONFIG_CRYPTO_RMD256=m
-+CONFIG_CRYPTO_RMD320=m
-+CONFIG_CRYPTO_SHA512=y
-+CONFIG_CRYPTO_TGR192=m
-+CONFIG_CRYPTO_WP512=m
-+CONFIG_CRYPTO_ANUBIS=m
-+CONFIG_CRYPTO_BLOWFISH=m
-+CONFIG_CRYPTO_CAMELLIA=m
-+CONFIG_CRYPTO_CAST5=m
-+CONFIG_CRYPTO_CAST6=m
-+CONFIG_CRYPTO_DES=m
-+CONFIG_CRYPTO_FCRYPT=m
-+CONFIG_CRYPTO_KHAZAD=m
-+CONFIG_CRYPTO_SALSA20=m
-+CONFIG_CRYPTO_SEED=m
-+CONFIG_CRYPTO_SERPENT=m
-+CONFIG_CRYPTO_TEA=m
-+CONFIG_CRYPTO_TWOFISH=m
-+CONFIG_CRYPTO_DEFLATE=m
-+CONFIG_CRYPTO_LZO=y
-+CONFIG_CRYPTO_LZ4=m
-+CONFIG_CRYPTO_LZ4HC=m
-+CONFIG_CRYPTO_ANSI_CPRNG=m
-+CONFIG_CRC_CCITT=m
-+CONFIG_CRC7=m
-+CONFIG_LIBCRC32C=m
-+CONFIG_CRC8=m
-+CONFIG_XZ_DEC=y
-+CONFIG_XZ_DEC_TEST=m
-+CONFIG_CORDIC=m
-+CONFIG_DDR=y
-diff --git a/arch/csky/configs/qemu_ck807_defconfig b/arch/csky/configs/qemu_ck807_defconfig
++++ b/arch/csky/include/asm/uaccess.h
+@@ -0,0 +1,397 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_UACCESS_H
++#define __ASM_CSKY_UACCESS_H
++
++/*
++ * User space memory access functions
++ */
++#include <linux/compiler.h>
++#include <linux/errno.h>
++#include <linux/types.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/string.h>
++#include <linux/version.h>
++#include <asm/segment.h>
++
++#define VERIFY_READ	0
++#define VERIFY_WRITE	1
++
++static inline int access_ok(int type, const void * addr, unsigned long size)
++{
++    return (((unsigned long)addr < current_thread_info()->addr_limit.seg) &&
++              ((unsigned long)(addr + size) < current_thread_info()->addr_limit.seg));
++}
++
++static inline int verify_area(int type, const void * addr, unsigned long size)
++{
++    return access_ok(type, addr, size) ? 0 : -EFAULT;
++}
++
++#define __addr_ok(addr) (access_ok(VERIFY_READ, addr,0))
++
++extern int __put_user_bad(void);
++
++/*
++ * Tell gcc we read from memory instead of writing: this is because
++ * we do not write to any memory gcc knows about, so there are no
++ * aliasing issues.
++ */
++
++/*
++ * These are the main single-value transfer routines.  They automatically
++ * use the right size if we just have the right pointer type.
++ *
++ * This gets kind of ugly. We want to return _two_ values in "get_user()"
++ * and yet we don't want to do any pointers, because that is too much
++ * of a performance impact. Thus we have a few rather ugly macros here,
++ * and hide all the ugliness from the user.
++ *
++ * The "__xxx" versions of the user access functions are versions that
++ * do not verify the address space, that must have been done previously
++ * with a separate "access_ok()" call (this is used when we do multiple
++ * accesses to the same area of user memory).
++ *
++ * As we use the same address space for kernel and user data on
++ * Ckcore, we can just do these as direct assignments.  (Of course, the
++ * exception handling means that it's no longer "just"...)
++ */
++
++#define put_user(x,ptr) \
++  __put_user_check((x), (ptr), sizeof(*(ptr)))
++
++#define __put_user(x,ptr) \
++  __put_user_nocheck((x), (ptr), sizeof(*(ptr)))
++
++#define __ptr(x) ((unsigned long *)(x))
++
++#define get_user(x,ptr) \
++  __get_user_check((x), (ptr), sizeof(*(ptr)))
++
++#define __get_user(x,ptr) \
++  __get_user_nocheck((x), (ptr), sizeof(*(ptr)))
++
++#define __put_user_nocheck(x, ptr, size)                                \
++({                                                                      \
++	long __pu_err=0;                                                \
++	typeof(*(ptr)) *__pu_addr = (ptr);                              \
++	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
++	if(__pu_addr){                                                  \
++	    __put_user_size(__pu_val, (__pu_addr), (size), __pu_err);   \
++	}                                                               \
++	__pu_err;                                                       \
++})
++
++#define __put_user_check(x,ptr,size)                                    \
++({                                                                      \
++	long __pu_err = -EFAULT;                                        \
++	typeof(*(ptr)) *__pu_addr = (ptr);                              \
++	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
++	if (access_ok(VERIFY_WRITE, __pu_addr, size) && __pu_addr)      \
++		__put_user_size(__pu_val, __pu_addr, (size), __pu_err); \
++	__pu_err;                                                       \
++})
++
++#define __put_user_size(x,ptr,size,retval)                              \
++do {                                                                    \
++	retval = 0;                                                     \
++	switch (size) {                                                 \
++		case 1: __put_user_asm_b(x, ptr, retval); break;        \
++		case 2: __put_user_asm_h(x, ptr, retval); break;        \
++		case 4: __put_user_asm_w(x, ptr, retval); break;        \
++		case 8: __put_user_asm_64(x, ptr, retval); break;       \
++		default: __put_user_bad();                              \
++	}	                                                        \
++} while (0)
++
++/*
++ * We don't tell gcc that we are accessing memory, but this is OK
++ * because we do not write to any memory gcc knows about, so there
++ * are no aliasing issues.
++ *
++ * Note that PC at a fault is the address *after* the faulting
++ * instruction.
++ */
++#define __put_user_asm_b(x, ptr, err)                           \
++do{                                                             \
++	int errcode;                                            \
++	asm volatile(                                           \
++	         "1:     stb   %1, (%2,0)        \n"            \
++	         "       br    3f                \n"            \
++	         "2:     mov   %0, %3            \n"            \
++	         "       br    3f                \n"            \
++	         ".section __ex_table,\"a\"      \n"            \
++	         ".align   2                     \n"            \
++	         ".long    1b,2b                 \n"            \
++	         ".previous                      \n"            \
++	          "3:                            \n"            \
++	         : "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode) \
++	         : "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)     \
++	         : "memory");                                   \
++}while(0)
++
++#define __put_user_asm_h(x, ptr, err)                           \
++do{                                                             \
++	int errcode;                                            \
++	asm volatile(                                           \
++	         "1:     sth   %1, (%2,0)        \n"            \
++	         "       br    3f                \n"            \
++	         "2:     mov   %0, %3            \n"            \
++	         "       br    3f                \n"            \
++	         ".section __ex_table,\"a\"      \n"            \
++	         ".align   2                     \n"            \
++	         ".long    1b,2b                 \n"            \
++	         ".previous                      \n"            \
++	          "3:                            \n"            \
++	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
++	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
++	         : "memory");                                   \
++}while(0)
++
++#define __put_user_asm_w(x, ptr, err)                           \
++do{                                                             \
++	int errcode;                                            \
++	asm volatile(                                           \
++	         "1:     stw   %1, (%2,0)        \n"            \
++	         "       br    3f                \n"            \
++	         "2:     mov   %0, %3            \n"            \
++	         "       br    3f                \n"            \
++	         ".section __ex_table,\"a\"      \n"            \
++	         ".align   2                     \n"            \
++	         ".long    1b,2b                 \n"            \
++	         ".previous                      \n"            \
++	          "3:                            \n"            \
++	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
++	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
++	         : "memory");                                   \
++}while(0)
++
++
++#define __put_user_asm_64(x, ptr, err)                          \
++do{                                                             \
++	int tmp;                                                \
++	int errcode;                                            \
++	typeof(*(ptr)) src = ( typeof(*(ptr)))x;                \
++	typeof(*(ptr)) *psrc = &src;                            \
++	                                                        \
++	asm volatile(                                           \
++	        "     ldw     %3, (%1, 0)     \n"               \
++	        "1:   stw     %3, (%2, 0)     \n"               \
++	        "     ldw     %3, (%1, 4)     \n"               \
++	        "2:   stw     %3, (%2, 4)     \n"               \
++	        "     br      4f              \n"               \
++	        "3:   mov     %0, %4          \n"               \
++	        "     br      4f              \n"               \
++	        ".section __ex_table, \"a\"   \n"               \
++	        ".align   2                   \n"               \
++	        ".long    1b, 3b              \n"               \
++	        ".long    2b, 3b              \n"               \
++	        ".previous                    \n"               \
++	        "4:                           \n"               \
++	        :"=r"(err),"=r"(psrc),"=r"(ptr),"=r"(tmp),"=r"(errcode) \
++	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT) \
++	        : "memory" );                                   \
++}while (0)
++
++#define __get_user_nocheck(x, ptr, size)                        \
++({                                                              \
++	long  __gu_err;	                                        \
++	__get_user_size(x, (ptr), (size), __gu_err);            \
++	__gu_err;                                               \
++})
++
++#define __get_user_check(x, ptr, size)                          \
++({                                                              \
++	int __gu_err = -EFAULT;	                                \
++	const __typeof__(*(ptr)) __user * __gu_ptr = (ptr);     \
++	if (access_ok(VERIFY_READ, __gu_ptr, size) && __gu_ptr) \
++		__get_user_size(x, __gu_ptr, (size), __gu_err); \
++	__gu_err;                                               \
++})
++
++#define __get_user_size(x, ptr, size, retval)                   \
++do {                                                            \
++	switch (size) {                                         \
++		case 1: __get_user_asm_common((x),ptr,"ldb",retval); break; \
++		case 2: __get_user_asm_common((x),ptr,"ldh",retval); break; \
++		case 4: __get_user_asm_common((x),ptr,"ldw",retval); break; \
++		default:                                        \
++			x=0;                                    \
++			(retval) = __get_user_bad();            \
++	}                                                       \
++} while (0)
++
++#define __get_user_asm_common(x, ptr, ins, err)                 \
++do{                                                             \
++	int errcode;                                            \
++	asm volatile(                                           \
++	        "1:   " ins "   %1, (%4,0)      \n"             \
++	        "       br    3f                \n"             \
++	        /* Fix up codes */                              \
++	        "2:     mov   %0, %2            \n"             \
++	        "       movi  %1, 0             \n"             \
++	        "       br    3f                \n"             \
++	        ".section __ex_table,\"a\"      \n"             \
++	        ".align   2                     \n"             \
++	        ".long    1b,2b                 \n"             \
++	        ".previous                      \n"             \
++	        "3:                            \n"              \
++	        :"=r"(err), "=r"(x), "=r"(errcode)              \
++	        :"0"(0), "r"(ptr), "2"(-EFAULT)                 \
++	        : "memory");                                    \
++}while(0)
++
++extern int __get_user_bad(void);
++
++#define __copy_user(to, from, n)                                \
++do{                                                             \
++	int w0, w1, w2, w3;                                     \
++	asm volatile(                                           \
++		"0:     cmpnei  %1, 0           \n"             \
++		"       bf      8f              \n"             \
++		"       mov     %3, %1          \n"             \
++		"       or      %3, %2          \n"             \
++		"       andi    %3, 3           \n"             \
++		"       cmpnei  %3, 0           \n"             \
++		"       bf      1f              \n"             \
++		"       br      5f              \n"             \
++		"1:     cmplti  %0, 16          \n"   /* 4W */  \
++		"       bt      3f              \n"             \
++		"       ldw     %3, (%2, 0)     \n"             \
++		"       ldw     %4, (%2, 4)     \n"             \
++		"       ldw     %5, (%2, 8)     \n"             \
++		"       ldw     %6, (%2, 12)    \n"             \
++		"2:     stw     %3, (%1, 0)     \n"             \
++		"9:     stw     %4, (%1, 4)     \n"             \
++		"10:    stw     %5, (%1, 8)     \n"             \
++		"11:    stw     %6, (%1, 12)    \n"             \
++		"       addi    %2, 16          \n"             \
++		"       addi    %1, 16          \n"             \
++		"       subi    %0, 16          \n"             \
++		"       br      1b              \n"             \
++		"3:     cmplti  %0, 4           \n"  /* 1W */   \
++		"       bt      5f              \n"             \
++		"       ldw     %3, (%2, 0)     \n"             \
++		"4:     stw     %3, (%1, 0)     \n"             \
++		"       addi    %2, 4           \n"             \
++		"       addi    %1, 4           \n"             \
++		"       subi    %0, 4           \n"             \
++		"       br      3b              \n"             \
++		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
++		"       bf      8f              \n"             \
++		"       ldb     %3, (%2, 0)     \n"             \
++		"6:     stb     %3, (%1, 0)     \n"             \
++		"       addi    %2,  1          \n"             \
++		"       addi    %1,  1          \n"             \
++		"       subi    %0,  1          \n"             \
++		"       br      5b              \n"             \
++		"7:     br      8f              \n"             \
++		".section __ex_table, \"a\"     \n"             \
++		".align   2                     \n"             \
++		".long    2b, 7b                \n"             \
++		".long    9b, 7b                \n"             \
++		".long   10b, 7b                \n"             \
++		".long   11b, 7b                \n"             \
++		".long    4b, 7b                \n"             \
++		".long    6b, 7b                \n"             \
++		".previous                      \n"             \
++		"8:                             \n"             \
++	        : "=r"(n), "=r"(to), "=r"(from), "=r"(w0), "=r"(w1), "=r"(w2), "=r"(w3)   \
++		: "0"(n), "1"(to), "2"(from)                    \
++		: "memory" );                                   \
++} while (0)
++
++#define __copy_user_zeroing(to, from, n) \
++do{                                                             \
++	int tmp;                                                \
++	int nsave;                                              \
++	asm volatile(                                           \
++		"0:     cmpnei  %1, 0           \n"             \
++		"       bf      7f              \n"             \
++		"       mov     %3, %1          \n"             \
++		"       or      %3, %2          \n"             \
++		"       andi    %3, 3           \n"             \
++		"       cmpnei  %3, 0           \n"             \
++		"       bf      1f              \n"             \
++		"       br      5f              \n"             \
++		"1:     cmplti  %0, 16          \n"   /* 4W */  \
++		"       bt      3f              \n"             \
++		"2:     ldw     %3, (%2, 0)     \n"             \
++		"10:    ldw     %4, (%2, 4)     \n"             \
++		"       stw     %3, (%1, 0)     \n"             \
++		"       stw     %4, (%1, 4)     \n"             \
++		"11:    ldw     %3, (%2, 8)     \n"             \
++		"12:    ldw     %4, (%2, 12)    \n"             \
++		"       stw     %3, (%1, 8)     \n"             \
++		"       stw     %4, (%1, 12)    \n"             \
++		"       addi    %2, 16          \n"             \
++		"       addi    %1, 16          \n"             \
++		"       subi    %0, 16          \n"             \
++		"       br      1b              \n"             \
++		"3:     cmplti  %0, 4           \n"  /* 1W */   \
++		"       bt      5f              \n"             \
++		"4:     ldw     %3, (%2, 0)     \n"             \
++		"       stw     %3, (%1, 0)     \n"             \
++		"       addi    %2, 4           \n"             \
++		"       addi    %1, 4           \n"             \
++		"       subi    %0, 4           \n"             \
++		"       br      3b              \n"             \
++		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
++		"       bf      7f              \n"             \
++		"6:     ldb     %3, (%2, 0)     \n"             \
++		"       stb     %3, (%1, 0)     \n"             \
++		"       addi    %2,  1          \n"             \
++		"       addi    %1,  1          \n"             \
++		"       subi    %0,  1          \n"             \
++		"       br      5b              \n"             \
++		"8:     mov     %3, %0          \n" /* zero */  \
++		"       movi    %4, 0           \n"             \
++		"9:     stb     %4, (%1, 0)     \n"             \
++		"       addi    %1, 1           \n"             \
++		"       subi    %3, 1           \n"             \
++		"       cmpnei  %3, 0           \n"             \
++		"       bt      9b              \n"             \
++		"       br      7f              \n"             \
++		".section __ex_table, \"a\"     \n"             \
++		".align   2                     \n"             \
++		".long    2b, 8b                \n"             \
++		".long   10b, 8b                \n"             \
++		".long   11b, 8b                \n"             \
++		".long   12b, 8b                \n"             \
++		".long    4b, 8b                \n"             \
++		".long    6b, 8b                \n"             \
++		".previous                      \n"             \
++		"7:                             \n"             \
++		: "=r"(n), "=r"(to), "=r"(from), "=r"(nsave), "=r"(tmp)   \
++		: "0"(n), "1"(to), "2"(from)                    \
++		: "memory" );                                   \
++} while (0)
++
++unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);
++unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
++
++unsigned long clear_user(void *to, unsigned long n);
++unsigned long __clear_user(void __user *to, unsigned long n);
++
++long strncpy_from_user(char *dst, const char *src, long count);
++long __strncpy_from_user(char *dst, const char *src, long count);
++
++/*
++ * Return the size of a string (including the ending 0)
++ *
++ * Return 0 on exception, a value greater than N if too long
++ */
++long strnlen_user(const char *src, long n);
++
++#define strlen_user(str) strnlen_user(str, 32767)
++
++struct exception_table_entry
++{
++	unsigned long insn;
++	unsigned long nextinsn;
++};
++
++extern int fixup_exception(struct pt_regs *regs);
++
++#endif /* __ASM_CSKY_UACCESS_H */
+diff --git a/arch/csky/lib/usercopy.c b/arch/csky/lib/usercopy.c
 new file mode 100644
-index 0000000..0591cbc
+index 0000000..ace4190
 --- /dev/null
-+++ b/arch/csky/configs/qemu_ck807_defconfig
-@@ -0,0 +1,541 @@
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+# CONFIG_FHANDLE is not set
-+CONFIG_USELIB=y
-+CONFIG_AUDIT=y
-+CONFIG_IRQ_DOMAIN_DEBUG=y
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_RELAY=y
-+CONFIG_SYSCTL_SYSCALL=y
-+CONFIG_KALLSYMS_ALL=y
-+# CONFIG_AIO is not set
-+CONFIG_USERFAULTFD=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_PERF_EVENTS is not set
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_PROFILING=y
-+CONFIG_OPROFILE=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+CONFIG_BLK_DEV_BSGLIB=y
-+CONFIG_BLK_DEV_INTEGRITY=y
-+CONFIG_PARTITION_ADVANCED=y
-+CONFIG_ACORN_PARTITION=y
-+CONFIG_ACORN_PARTITION_ICS=y
-+CONFIG_ACORN_PARTITION_RISCIX=y
-+CONFIG_AIX_PARTITION=y
-+CONFIG_OSF_PARTITION=y
-+CONFIG_AMIGA_PARTITION=y
-+CONFIG_ATARI_PARTITION=y
-+CONFIG_MAC_PARTITION=y
-+CONFIG_BSD_DISKLABEL=y
-+CONFIG_MINIX_SUBPARTITION=y
-+CONFIG_SOLARIS_X86_PARTITION=y
-+CONFIG_UNIXWARE_DISKLABEL=y
-+CONFIG_LDM_PARTITION=y
-+CONFIG_SGI_PARTITION=y
-+CONFIG_ULTRIX_PARTITION=y
-+CONFIG_SUN_PARTITION=y
-+CONFIG_KARMA_PARTITION=y
-+CONFIG_SYSV68_PARTITION=y
-+CONFIG_CMDLINE_PARTITION=y
-+CONFIG_DEFAULT_DEADLINE=y
-+CONFIG_NATIONALCHIP_TIMER=y
-+CONFIG_NATIONALCHIP_IRQ=y
-+CONFIG_CSKY_IRQ=y
-+CONFIG_CSKYMAC=y
-+CONFIG_CPU_CK807=y
-+CONFIG_CPU_HAS_FPU=y
-+CONFIG_RAM_BASE=0x0
-+# CONFIG_SUSPEND is not set
-+# CONFIG_COMPACTION is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+CONFIG_IP_MULTICAST=y
-+CONFIG_IP_PNP=y
-+CONFIG_IP_PNP_DHCP=y
-+CONFIG_IP_PNP_BOOTP=y
-+CONFIG_IP_PNP_RARP=y
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_STANDALONE is not set
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_SIZE=65536
-+CONFIG_VIRTIO_BLK=y
-+CONFIG_AD525X_DPOT=m
-+CONFIG_AD525X_DPOT_I2C=m
-+CONFIG_DUMMY_IRQ=m
-+CONFIG_ICS932S401=m
-+CONFIG_ENCLOSURE_SERVICES=m
-+CONFIG_APDS9802ALS=m
-+CONFIG_ISL29003=m
-+CONFIG_ISL29020=m
-+CONFIG_SENSORS_TSL2550=m
-+CONFIG_SENSORS_BH1770=m
-+CONFIG_SENSORS_APDS990X=m
-+CONFIG_HMC6352=m
-+CONFIG_DS1682=m
-+CONFIG_USB_SWITCH_FSA9480=m
-+CONFIG_SRAM=y
-+CONFIG_C2PORT=m
-+CONFIG_EEPROM_AT24=m
-+CONFIG_EEPROM_LEGACY=m
-+CONFIG_EEPROM_MAX6875=m
-+CONFIG_EEPROM_93CX6=m
-+CONFIG_SENSORS_LIS3_I2C=m
-+CONFIG_ALTERA_STAPL=m
-+CONFIG_ECHO=m
-+CONFIG_SCSI=y
-+# CONFIG_SCSI_PROC_FS is not set
-+CONFIG_BLK_DEV_SD=y
-+CONFIG_SCSI_SPI_ATTRS=y
-+CONFIG_SCSI_SAS_LIBSAS=m
-+CONFIG_SCSI_SRP_ATTRS=m
-+# CONFIG_SCSI_LOWLEVEL is not set
-+CONFIG_NETDEVICES=y
-+# CONFIG_NET_VENDOR_ARC is not set
-+# CONFIG_NET_CADENCE is not set
-+# CONFIG_NET_VENDOR_BROADCOM is not set
-+# CONFIG_NET_VENDOR_EZCHIP is not set
-+# CONFIG_NET_VENDOR_INTEL is not set
-+# CONFIG_NET_VENDOR_MARVELL is not set
-+# CONFIG_NET_VENDOR_MICREL is not set
-+# CONFIG_NET_VENDOR_NATSEMI is not set
-+# CONFIG_NET_VENDOR_NETRONOME is not set
-+# CONFIG_NET_VENDOR_QUALCOMM is not set
-+# CONFIG_NET_VENDOR_RENESAS is not set
-+# CONFIG_NET_VENDOR_ROCKER is not set
-+# CONFIG_NET_VENDOR_SAMSUNG is not set
-+# CONFIG_NET_VENDOR_SEEQ is not set
-+CONFIG_STMMAC_ETH=y
-+# CONFIG_NET_VENDOR_SYNOPSYS is not set
-+# CONFIG_NET_VENDOR_VIA is not set
-+# CONFIG_NET_VENDOR_WIZNET is not set
-+# CONFIG_USB_NET_DRIVERS is not set
-+# CONFIG_WLAN is not set
-+CONFIG_INPUT_SPARSEKMAP=m
-+CONFIG_INPUT_JOYDEV=m
-+CONFIG_INPUT_EVDEV=y
-+CONFIG_INPUT_EVBUG=m
-+CONFIG_KEYBOARD_ADP5588=m
-+CONFIG_KEYBOARD_ADP5589=m
-+CONFIG_KEYBOARD_QT1070=m
-+CONFIG_KEYBOARD_QT2160=m
-+CONFIG_KEYBOARD_LKKBD=m
-+CONFIG_KEYBOARD_TCA6416=m
-+CONFIG_KEYBOARD_TCA8418=m
-+CONFIG_KEYBOARD_LM8323=m
-+CONFIG_KEYBOARD_LM8333=m
-+CONFIG_KEYBOARD_MAX7359=m
-+CONFIG_KEYBOARD_MCS=m
-+CONFIG_KEYBOARD_MPR121=m
-+CONFIG_KEYBOARD_NEWTON=m
-+CONFIG_KEYBOARD_OPENCORES=m
-+CONFIG_KEYBOARD_STOWAWAY=m
-+CONFIG_KEYBOARD_SUNKBD=m
-+CONFIG_KEYBOARD_XTKBD=m
-+CONFIG_MOUSE_PS2=m
-+CONFIG_MOUSE_PS2_ELANTECH=y
-+CONFIG_MOUSE_PS2_SENTELIC=y
-+CONFIG_MOUSE_PS2_TOUCHKIT=y
-+CONFIG_MOUSE_SERIAL=m
-+CONFIG_MOUSE_CYAPA=m
-+CONFIG_MOUSE_VSXXXAA=m
-+CONFIG_MOUSE_SYNAPTICS_I2C=m
-+CONFIG_INPUT_JOYSTICK=y
-+CONFIG_JOYSTICK_ANALOG=m
-+CONFIG_JOYSTICK_A3D=m
-+CONFIG_JOYSTICK_ADI=m
-+CONFIG_JOYSTICK_COBRA=m
-+CONFIG_JOYSTICK_GF2K=m
-+CONFIG_JOYSTICK_GRIP=m
-+CONFIG_JOYSTICK_GRIP_MP=m
-+CONFIG_JOYSTICK_GUILLEMOT=m
-+CONFIG_JOYSTICK_INTERACT=m
-+CONFIG_JOYSTICK_SIDEWINDER=m
-+CONFIG_JOYSTICK_TMDC=m
-+CONFIG_JOYSTICK_IFORCE=m
-+CONFIG_JOYSTICK_IFORCE_232=y
-+CONFIG_JOYSTICK_WARRIOR=m
-+CONFIG_JOYSTICK_MAGELLAN=m
-+CONFIG_JOYSTICK_SPACEORB=m
-+CONFIG_JOYSTICK_SPACEBALL=m
-+CONFIG_JOYSTICK_STINGER=m
-+CONFIG_JOYSTICK_TWIDJOY=m
-+CONFIG_JOYSTICK_ZHENHUA=m
-+CONFIG_JOYSTICK_AS5011=m
-+CONFIG_JOYSTICK_JOYDUMP=m
-+CONFIG_INPUT_TABLET=y
-+CONFIG_INPUT_TOUCHSCREEN=y
-+CONFIG_TOUCHSCREEN_AD7879=m
-+CONFIG_TOUCHSCREEN_AD7879_I2C=m
-+CONFIG_TOUCHSCREEN_ATMEL_MXT=m
-+CONFIG_TOUCHSCREEN_BU21013=m
-+CONFIG_TOUCHSCREEN_CYTTSP_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP_I2C=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_I2C=m
-+CONFIG_TOUCHSCREEN_DYNAPRO=m
-+CONFIG_TOUCHSCREEN_HAMPSHIRE=m
-+CONFIG_TOUCHSCREEN_EETI=m
-+CONFIG_TOUCHSCREEN_FUJITSU=m
-+CONFIG_TOUCHSCREEN_ILI210X=m
-+CONFIG_TOUCHSCREEN_GUNZE=m
-+CONFIG_TOUCHSCREEN_ELO=m
-+CONFIG_TOUCHSCREEN_WACOM_W8001=m
-+CONFIG_TOUCHSCREEN_WACOM_I2C=m
-+CONFIG_TOUCHSCREEN_MAX11801=m
-+CONFIG_TOUCHSCREEN_MCS5000=m
-+CONFIG_TOUCHSCREEN_MMS114=m
-+CONFIG_TOUCHSCREEN_MTOUCH=m
-+CONFIG_TOUCHSCREEN_INEXIO=m
-+CONFIG_TOUCHSCREEN_MK712=m
-+CONFIG_TOUCHSCREEN_PENMOUNT=m
-+CONFIG_TOUCHSCREEN_EDT_FT5X06=m
-+CONFIG_TOUCHSCREEN_TOUCHRIGHT=m
-+CONFIG_TOUCHSCREEN_TOUCHWIN=m
-+CONFIG_TOUCHSCREEN_PIXCIR=m
-+CONFIG_TOUCHSCREEN_TOUCHIT213=m
-+CONFIG_TOUCHSCREEN_TSC_SERIO=m
-+CONFIG_TOUCHSCREEN_TSC2007=m
-+CONFIG_TOUCHSCREEN_ST1232=m
-+CONFIG_TOUCHSCREEN_TPS6507X=m
-+CONFIG_INPUT_MISC=y
-+CONFIG_INPUT_AD714X=m
-+CONFIG_INPUT_BMA150=m
-+CONFIG_INPUT_MMA8450=m
-+CONFIG_INPUT_MPU3050=m
-+CONFIG_INPUT_KXTJ9=m
-+CONFIG_INPUT_UINPUT=y
-+CONFIG_INPUT_PCF8574=m
-+CONFIG_INPUT_ADXL34X=m
-+CONFIG_INPUT_CMA3000=m
-+CONFIG_INPUT_CMA3000_I2C=m
-+CONFIG_SERIO_SERPORT=m
-+CONFIG_SERIO_RAW=m
-+CONFIG_SERIO_ALTERA_PS2=m
-+CONFIG_SERIO_PS2MULT=m
-+CONFIG_SERIO_ARC_PS2=m
-+CONFIG_GAMEPORT_NS558=m
-+CONFIG_GAMEPORT_L4=m
-+CONFIG_VT_HW_CONSOLE_BINDING=y
-+CONFIG_SERIAL_NONSTANDARD=y
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_8250=y
-+# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_OF_PLATFORM=y
-+CONFIG_TTY_PRINTK=y
-+CONFIG_VIRTIO_CONSOLE=y
-+CONFIG_IPMI_HANDLER=y
-+CONFIG_IPMI_DEVICE_INTERFACE=m
-+CONFIG_IPMI_SI=m
-+CONFIG_IPMI_WATCHDOG=m
-+CONFIG_IPMI_POWEROFF=m
-+CONFIG_HW_RANDOM=y
-+CONFIG_HW_RANDOM_TIMERIOMEM=m
-+CONFIG_HW_RANDOM_VIRTIO=m
-+CONFIG_HW_RANDOM_TPM=m
-+CONFIG_TCG_TIS_I2C_ATMEL=m
-+CONFIG_TCG_TIS_I2C_INFINEON=m
-+CONFIG_TCG_TIS_I2C_NUVOTON=m
-+CONFIG_TCG_ATMEL=m
-+CONFIG_I2C_CHARDEV=m
-+CONFIG_I2C_MUX_PCA9541=m
-+CONFIG_I2C_DESIGNWARE_PLATFORM=m
-+CONFIG_I2C_OCORES=m
-+CONFIG_I2C_PCA_PLATFORM=m
-+CONFIG_I2C_SIMTEC=m
-+CONFIG_I2C_XILINX=m
-+CONFIG_I2C_PARPORT_LIGHT=m
-+CONFIG_I2C_TAOS_EVM=m
-+CONFIG_I2C_STUB=m
-+CONFIG_PPS_CLIENT_LDISC=m
-+CONFIG_PPS_CLIENT_GPIO=m
-+CONFIG_POWER_RESET=y
-+# CONFIG_HWMON is not set
-+CONFIG_SSB=m
-+CONFIG_BCMA=m
-+CONFIG_BCMA_HOST_SOC=y
-+CONFIG_BCMA_DRIVER_GMAC_CMN=y
-+CONFIG_MEDIA_SUPPORT=y
-+CONFIG_MEDIA_CAMERA_SUPPORT=y
-+CONFIG_MEDIA_USB_SUPPORT=y
-+CONFIG_USB_VIDEO_CLASS=y
-+# CONFIG_USB_GSPCA is not set
-+CONFIG_BACKLIGHT_LCD_SUPPORT=y
-+CONFIG_LCD_PLATFORM=m
-+CONFIG_BACKLIGHT_CLASS_DEVICE=y
-+CONFIG_BACKLIGHT_GENERIC=m
-+CONFIG_BACKLIGHT_ADP8860=m
-+CONFIG_BACKLIGHT_ADP8870=m
-+CONFIG_BACKLIGHT_LM3639=m
-+CONFIG_BACKLIGHT_LV5207LP=m
-+CONFIG_BACKLIGHT_BD6107=m
-+# CONFIG_VGA_CONSOLE is not set
-+# CONFIG_HID_GENERIC is not set
-+CONFIG_HID_A4TECH=m
-+CONFIG_HID_ACRUX=m
-+CONFIG_HID_ACRUX_FF=y
-+CONFIG_HID_APPLE=m
-+CONFIG_HID_AUREAL=m
-+CONFIG_HID_BELKIN=m
-+CONFIG_HID_CHERRY=m
-+CONFIG_HID_CHICONY=m
-+CONFIG_HID_CYPRESS=m
-+CONFIG_HID_DRAGONRISE=m
-+CONFIG_DRAGONRISE_FF=y
-+CONFIG_HID_EMS_FF=m
-+CONFIG_HID_ELECOM=m
-+CONFIG_HID_EZKEY=m
-+CONFIG_HID_KEYTOUCH=m
-+CONFIG_HID_KYE=m
-+CONFIG_HID_WALTOP=m
-+CONFIG_HID_GYRATION=m
-+CONFIG_HID_ICADE=m
-+CONFIG_HID_TWINHAN=m
-+CONFIG_HID_KENSINGTON=m
-+CONFIG_HID_LCPOWER=m
-+CONFIG_HID_LOGITECH=m
-+CONFIG_HID_LOGITECH_HIDPP=m
-+CONFIG_LOGITECH_FF=y
-+CONFIG_LOGIRUMBLEPAD2_FF=y
-+CONFIG_LOGIG940_FF=y
-+CONFIG_HID_MAGICMOUSE=m
-+CONFIG_HID_MICROSOFT=m
-+CONFIG_HID_MONTEREY=m
-+CONFIG_HID_MULTITOUCH=m
-+CONFIG_HID_ORTEK=m
-+CONFIG_HID_PANTHERLORD=m
-+CONFIG_PANTHERLORD_FF=y
-+CONFIG_HID_PETALYNX=m
-+CONFIG_HID_PICOLCD=m
-+CONFIG_HID_PICOLCD_BACKLIGHT=y
-+CONFIG_HID_PICOLCD_LCD=y
-+CONFIG_HID_PICOLCD_LEDS=y
-+CONFIG_HID_PRIMAX=m
-+CONFIG_HID_SAITEK=m
-+CONFIG_HID_SAMSUNG=m
-+CONFIG_HID_SPEEDLINK=m
-+CONFIG_HID_STEELSERIES=m
-+CONFIG_HID_SUNPLUS=m
-+CONFIG_HID_RMI=m
-+CONFIG_HID_GREENASIA=m
-+CONFIG_GREENASIA_FF=y
-+CONFIG_HID_SMARTJOYPLUS=m
-+CONFIG_SMARTJOYPLUS_FF=y
-+CONFIG_HID_TIVO=m
-+CONFIG_HID_TOPSEED=m
-+CONFIG_HID_THINGM=m
-+CONFIG_HID_THRUSTMASTER=m
-+CONFIG_THRUSTMASTER_FF=y
-+CONFIG_HID_WACOM=m
-+CONFIG_HID_WIIMOTE=m
-+CONFIG_HID_XINMO=m
-+CONFIG_HID_ZEROPLUS=m
-+CONFIG_ZEROPLUS_FF=y
-+CONFIG_HID_ZYDACRON=m
-+CONFIG_HID_SENSOR_HUB=m
-+CONFIG_I2C_HID=m
-+CONFIG_USB=y
-+CONFIG_USB_EHCI_HCD=y
-+CONFIG_USB_EHCI_HCD_PLATFORM=y
-+CONFIG_USB_OHCI_HCD=y
-+CONFIG_USB_STORAGE=y
-+CONFIG_LEDS_CLASS=y
-+CONFIG_LEDS_LM3530=m
-+CONFIG_LEDS_LM3642=m
-+CONFIG_LEDS_PCA9532=m
-+CONFIG_LEDS_LP3944=m
-+CONFIG_LEDS_LP5521=m
-+CONFIG_LEDS_LP5523=m
-+CONFIG_LEDS_LP5562=m
-+CONFIG_LEDS_LP8501=m
-+CONFIG_LEDS_PCA955X=m
-+CONFIG_LEDS_PCA963X=m
-+CONFIG_LEDS_BD2802=m
-+CONFIG_LEDS_TCA6507=m
-+CONFIG_LEDS_LM355x=m
-+CONFIG_LEDS_BLINKM=m
-+CONFIG_LEDS_TRIGGER_TIMER=m
-+CONFIG_LEDS_TRIGGER_ONESHOT=m
-+CONFIG_LEDS_TRIGGER_HEARTBEAT=m
-+CONFIG_LEDS_TRIGGER_BACKLIGHT=m
-+CONFIG_LEDS_TRIGGER_CPU=y
-+CONFIG_LEDS_TRIGGER_DEFAULT_ON=m
-+CONFIG_LEDS_TRIGGER_TRANSIENT=m
-+CONFIG_LEDS_TRIGGER_CAMERA=m
-+CONFIG_VIRTIO_BALLOON=y
-+CONFIG_VIRTIO_MMIO=y
-+CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_STE_MODEM_RPROC=m
-+CONFIG_PM_DEVFREQ=y
-+CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
-+CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-+CONFIG_DEVFREQ_GOV_POWERSAVE=y
-+CONFIG_DEVFREQ_GOV_USERSPACE=y
-+CONFIG_GENERIC_PHY=y
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_EXT2_FS_POSIX_ACL=y
-+CONFIG_EXT2_FS_SECURITY=y
-+CONFIG_EXT3_FS=y
-+CONFIG_EXT3_FS_POSIX_ACL=y
-+CONFIG_EXT3_FS_SECURITY=y
-+CONFIG_FANOTIFY=y
-+CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y
-+CONFIG_QUOTA=y
-+# CONFIG_PRINT_QUOTA_WARNING is not set
-+CONFIG_FSCACHE=m
-+CONFIG_FSCACHE_STATS=y
-+CONFIG_CACHEFILES=m
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_FAT_DEFAULT_UTF8=y
-+CONFIG_NTFS_FS=y
-+CONFIG_PROC_KCORE=y
-+CONFIG_PROC_CHILDREN=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_CRAMFS=y
-+CONFIG_ROMFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_ROOT_NFS=y
-+CONFIG_NLS_DEFAULT="utf8"
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_CODEPAGE_737=y
-+CONFIG_NLS_CODEPAGE_775=y
-+CONFIG_NLS_CODEPAGE_850=y
-+CONFIG_NLS_CODEPAGE_852=y
-+CONFIG_NLS_CODEPAGE_855=y
-+CONFIG_NLS_CODEPAGE_857=y
-+CONFIG_NLS_CODEPAGE_860=y
-+CONFIG_NLS_CODEPAGE_861=y
-+CONFIG_NLS_CODEPAGE_863=y
-+CONFIG_NLS_CODEPAGE_864=y
-+CONFIG_NLS_CODEPAGE_865=y
-+CONFIG_NLS_CODEPAGE_866=y
-+CONFIG_NLS_CODEPAGE_869=y
-+CONFIG_NLS_CODEPAGE_936=y
-+CONFIG_NLS_CODEPAGE_950=y
-+CONFIG_NLS_CODEPAGE_932=y
-+CONFIG_NLS_CODEPAGE_949=m
-+CONFIG_NLS_CODEPAGE_874=m
-+CONFIG_NLS_ISO8859_8=m
-+CONFIG_NLS_CODEPAGE_1250=y
-+CONFIG_NLS_CODEPAGE_1251=y
-+CONFIG_NLS_ASCII=m
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_NLS_ISO8859_2=m
-+CONFIG_NLS_ISO8859_3=m
-+CONFIG_NLS_ISO8859_4=m
-+CONFIG_NLS_ISO8859_5=m
-+CONFIG_NLS_ISO8859_6=m
-+CONFIG_NLS_ISO8859_7=m
-+CONFIG_NLS_ISO8859_9=m
-+CONFIG_NLS_ISO8859_13=m
-+CONFIG_NLS_ISO8859_14=m
-+CONFIG_NLS_ISO8859_15=m
-+CONFIG_NLS_KOI8_R=m
-+CONFIG_NLS_KOI8_U=m
-+CONFIG_NLS_MAC_ROMAN=m
-+CONFIG_NLS_MAC_CELTIC=m
-+CONFIG_NLS_MAC_CENTEURO=m
-+CONFIG_NLS_MAC_CROATIAN=m
-+CONFIG_NLS_MAC_CYRILLIC=m
-+CONFIG_NLS_MAC_GAELIC=m
-+CONFIG_NLS_MAC_GREEK=m
-+CONFIG_NLS_MAC_ICELAND=m
-+CONFIG_NLS_MAC_INUIT=m
-+CONFIG_NLS_MAC_ROMANIAN=m
-+CONFIG_NLS_MAC_TURKISH=m
-+CONFIG_NLS_UTF8=y
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_INFO=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_UNUSED_SYMBOLS=y
-+CONFIG_DEBUG_FS=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_LOCKUP_DETECTOR=y
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_RBTREE_TEST=m
-+CONFIG_INTERVAL_TREE_TEST=m
-+CONFIG_PERCPU_TEST=m
-+CONFIG_TEST_STRING_HELPERS=m
-+CONFIG_TEST_KSTRTOX=m
-+CONFIG_PERSISTENT_KEYRINGS=y
-+CONFIG_TRUSTED_KEYS=y
-+CONFIG_SECURITY=y
-+CONFIG_SECURITY_NETWORK=y
-+CONFIG_SECURITY_PATH=y
-+CONFIG_SECURITY_YAMA=y
-+CONFIG_INTEGRITY_SIGNATURE=y
-+CONFIG_INTEGRITY_ASYMMETRIC_KEYS=y
-+CONFIG_IMA=y
-+CONFIG_IMA_APPRAISE=y
-+CONFIG_EVM=y
-+CONFIG_CRYPTO_CRYPTD=m
-+CONFIG_CRYPTO_AUTHENC=m
-+CONFIG_CRYPTO_TEST=m
-+CONFIG_CRYPTO_CCM=m
-+CONFIG_CRYPTO_GCM=m
-+CONFIG_CRYPTO_CTS=m
-+CONFIG_CRYPTO_ECB=y
-+CONFIG_CRYPTO_LRW=m
-+CONFIG_CRYPTO_PCBC=m
-+CONFIG_CRYPTO_XTS=m
-+CONFIG_CRYPTO_CMAC=m
-+CONFIG_CRYPTO_XCBC=m
-+CONFIG_CRYPTO_VMAC=m
-+CONFIG_CRYPTO_CRC32=m
-+CONFIG_CRYPTO_MD4=m
-+CONFIG_CRYPTO_MICHAEL_MIC=m
-+CONFIG_CRYPTO_RMD128=m
-+CONFIG_CRYPTO_RMD160=m
-+CONFIG_CRYPTO_RMD256=m
-+CONFIG_CRYPTO_RMD320=m
-+CONFIG_CRYPTO_SHA512=y
-+CONFIG_CRYPTO_TGR192=m
-+CONFIG_CRYPTO_WP512=m
-+CONFIG_CRYPTO_ANUBIS=m
-+CONFIG_CRYPTO_ARC4=m
-+CONFIG_CRYPTO_BLOWFISH=m
-+CONFIG_CRYPTO_CAMELLIA=m
-+CONFIG_CRYPTO_CAST5=m
-+CONFIG_CRYPTO_CAST6=m
-+CONFIG_CRYPTO_DES=m
-+CONFIG_CRYPTO_FCRYPT=m
-+CONFIG_CRYPTO_KHAZAD=m
-+CONFIG_CRYPTO_SALSA20=m
-+CONFIG_CRYPTO_SEED=m
-+CONFIG_CRYPTO_SERPENT=m
-+CONFIG_CRYPTO_TEA=m
-+CONFIG_CRYPTO_TWOFISH=m
-+CONFIG_CRYPTO_DEFLATE=m
-+CONFIG_CRYPTO_LZO=y
-+CONFIG_CRYPTO_LZ4=m
-+CONFIG_CRYPTO_LZ4HC=m
-+CONFIG_CRYPTO_ANSI_CPRNG=m
-+CONFIG_CRC_CCITT=m
-+CONFIG_CRC7=m
-+CONFIG_LIBCRC32C=m
-+CONFIG_CRC8=m
-+CONFIG_XZ_DEC=y
-+CONFIG_XZ_DEC_TEST=m
-+CONFIG_CORDIC=m
-+CONFIG_DDR=y
++++ b/arch/csky/lib/usercopy.c
+@@ -0,0 +1,271 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/uaccess.h>
++#include <linux/types.h>
++
++unsigned long
++raw_copy_from_user(
++		void *to,
++		const void *from,
++		unsigned long n)
++{
++	if (access_ok(VERIFY_READ, from, n))
++		__copy_user_zeroing(to,from,n); 
++	else
++		memset(to,0, n);
++	return n;
++}
++EXPORT_SYMBOL(raw_copy_from_user);
++
++unsigned long
++raw_copy_to_user(
++		void *to,
++		const void *from,
++		unsigned long n)
++{
++	if (access_ok(VERIFY_WRITE, to, n))
++		__copy_user(to,from,n);
++	return n;
++}
++EXPORT_SYMBOL(raw_copy_to_user);
++
++
++/*
++ * copy a null terminated string from userspace.	
++ */
++#define __do_strncpy_from_user(dst,src,count,res)       \
++do{                                                     \
++        int tmp;                                        \
++        long faultres;                                  \
++        asm volatile(                           \
++        "       cmpnei  %3, 0           \n"             \
++        "       bf      4f              \n"             \
++        "1:     cmpnei  %1, 0          	\n"             \
++        "       bf      5f              \n"             \
++        "2:     ldb     %4, (%3, 0)     \n"             \
++        "       stb     %4, (%2, 0)     \n"             \
++        "       cmpnei  %4, 0           \n"             \
++        "       bf      3f              \n"             \
++        "       addi    %3,  1          \n"             \
++        "       addi    %2,  1          \n"             \
++        "       subi    %1,  1          \n"             \
++        "       br      1b              \n"             \
++        "3:     subu	%0, %1          \n"             \
++        "       br      5f              \n"             \
++        "4:     mov     %0, %5          \n"             \
++        "       br      5f              \n"             \
++        ".section __ex_table, \"a\"     \n"             \
++        ".align   2                     \n"             \
++        ".long    2b, 4b                \n"             \
++        ".previous                      \n"             \
++        "5:                             \n"             \
++          :"=r"(res),"=r"(count),"=r"(dst),"=r"(src), "=r"(tmp),"=r"(faultres) \
++          : "5"(-EFAULT),"0"(count), "1"(count), "2"(dst),"3"(src)     	       \
++          : "memory" );	                                \
++} while(0)		
++
++/*
++ * __strncpy_from_user: - Copy a NUL terminated string from userspace, with less checking.
++ * @dst:   Destination address, in kernel space.  This buffer must be at
++ *         least @count bytes long.
++ * @src:   Source address, in user space.
++ * @count: Maximum number of bytes to copy, including the trailing NUL.
++ * 
++ * Copies a NUL-terminated string from userspace to kernel space.
++ * Caller must check the specified block with access_ok() before calling
++ * this function.
++ *
++ * On success, returns the length of the string (not including the trailing
++ * NUL).
++ *
++ * If access to userspace fails, returns -EFAULT (some data may have been
++ * copied).
++ *
++ * If @count is smaller than the length of the string, copies @count bytes
++ * and returns @count.
++ */
++long
++__strncpy_from_user(
++	char *dst,
++	const char *src,
++	long count)
++{
++	long res;
++	__do_strncpy_from_user(dst, src, count, res);
++	return res;
++}
++EXPORT_SYMBOL(__strncpy_from_user);
++
++/*
++ * strncpy_from_user: - Copy a NUL terminated string from userspace.
++ * @dst:   Destination address, in kernel space.  This buffer must be at
++ *         least @count bytes long.
++ * @src:   Source address, in user space.
++ * @count: Maximum number of bytes to copy, including the trailing NUL.
++ * 
++ * Copies a NUL-terminated string from userspace to kernel space.
++ *
++ * On success, returns the length of the string (not including the trailing
++ * NUL).
++ *
++ * If access to userspace fails, returns -EFAULT (some data may have been
++ * copied).
++ *
++ * If @count is smaller than the length of the string, copies @count bytes
++ * and returns @count.
++ */
++long
++strncpy_from_user(
++	char *dst,
++	const char *src,
++	long count)
++{
++	long res = -EFAULT;
++	if (access_ok(VERIFY_READ, src, 1))
++		__do_strncpy_from_user(dst, src, count, res);
++	return res;
++}
++EXPORT_SYMBOL(strncpy_from_user);
++
++/*
++ * strlen_user: - Get the size of a string in user space.
++ * @str: The string to measure.
++ * @n:   The maximum valid length
++ *
++ * Get the size of a NUL-terminated string in user space.
++ *
++ * Returns the size of the string INCLUDING the terminating NUL.
++ * On exception, returns 0.
++ * If the string is too long, returns a value greater than @n.
++ */
++long strnlen_user(const char *s, long n)
++{
++
++	unsigned long res,tmp;
++	if(s){
++	asm volatile(
++        "       cmpnei  %1, 0           \n"
++        "       bf      3f              \n"
++        "1:     cmpnei  %0, 0           \n"              
++        "       bf      3f              \n"
++        "2:     ldb     %3, (%1, 0)     \n"             
++        "       cmpnei  %3, 0           \n"             
++        "       bf      3f              \n"             
++        "       subi    %0,  1          \n"             
++        "       addi    %1,  1          \n"             
++        "       br      1b              \n"
++        "3:     subu    %2, %0          \n"
++        "       addi    %2,  1          \n"             
++        "       br      5f              \n"             
++        "4:     movi    %0, 0           \n"             
++        "       br      5f              \n"             
++        ".section __ex_table, \"a\"     \n"             
++        ".align   2                     \n"
++        ".long    2b, 4b                \n"             
++        ".previous                      \n"             
++        "5:                             \n"             
++        :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)   
++        : "0"(n), "1"(s), "2"(n)      
++        : "cc" );
++		return res;     
++	}
++	return 0;     
++}
++EXPORT_SYMBOL(strnlen_user);
++
++#define __do_clear_user(addr, size)                             \
++do {                                                            \
++	int __d0;                                               \
++	int zvalue;                                             \
++	int tmp;                                                \
++	asm volatile(						\
++		"0:     cmpnei  %1, 0           \n"             \
++		"       bf      7f              \n"             \
++		"       mov     %3, %1          \n"             \
++		"       andi    %3, 3           \n"             \
++		"       cmpnei  %3, 0           \n"             \
++		"       bf      1f              \n"             \
++		"       br      5f              \n"             \
++		"1:     cmplti  %0, 32          \n"   /* 4W */  \
++		"       bt      3f              \n"             \
++		"8:     stw     %2, (%1, 0)     \n"             \
++		"10:    stw     %2, (%1, 4)     \n"             \
++		"11:    stw     %2, (%1, 8)     \n"             \
++		"12:    stw     %2, (%1, 12)    \n"             \
++		"13:    stw     %2, (%1, 16)    \n"             \
++		"14:    stw     %2, (%1, 20)    \n"             \
++		"15:    stw     %2, (%1, 24)    \n"             \
++		"16:    stw     %2, (%1, 28)    \n"             \
++		"       addi    %1, 32          \n"             \
++		"       subi    %0, 32          \n"             \
++		"       br      1b              \n"             \
++		"3:     cmplti  %0, 4           \n"  /* 1W */   \
++		"       bt      5f              \n"             \
++		"4:     stw     %2, (%1, 0)     \n"             \
++		"       addi    %1, 4           \n"             \
++		"       subi    %0, 4           \n"             \
++		"       br      3b              \n"             \
++		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
++		"9:     bf      7f              \n"             \
++		"6:     stb     %2, (%1, 0)     \n"             \
++		"       addi    %1,  1          \n"             \
++		"       subi    %0,  1          \n"             \
++		"       br      5b              \n"             \
++		".section __ex_table,\"a\"      \n"             \
++		".align   2                     \n"             \
++		".long    8b, 9b                \n"             \
++		".long    10b, 9b               \n"             \
++		".long    11b, 9b               \n"             \
++		".long    12b, 9b               \n"             \
++		".long    13b, 9b               \n"             \
++		".long    14b, 9b               \n"             \
++		".long    15b, 9b               \n"             \
++		".long    16b, 9b               \n"             \
++		".long    4b, 9b                \n"             \
++		".long    6b, 9b                \n"             \
++		".previous                      \n"             \
++		"7:                             \n"             \
++		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp) \
++		: "0"(size), "1"(addr), "2"(0)                  \
++		: "memory"                                      \
++	);                                                      \
++} while (0)
++
++/*
++ * clear_user: - Zero a block of memory in user space.
++ * @to:   Destination address, in user space.
++ * @n:    Number of bytes to zero.
++ *
++ * Zero a block of memory in user space.
++ *
++ * Returns number of bytes that could not be cleared.
++ * On success, this will be zero.
++ */	
++unsigned long 
++clear_user(void __user *to, unsigned long n)
++{
++	if (access_ok(VERIFY_WRITE, to, n))
++		__do_clear_user(to, n);
++	return n;
++}
++EXPORT_SYMBOL(clear_user);
++
++/*
++ * __clear_user: - Zero a block of memory in user space, with less checking.
++ * @to:   Destination address, in user space.
++ * @n:    Number of bytes to zero.
++ *
++ * Zero a block of memory in user space.  Caller must check
++ * the specified block with access_ok() before calling this function.
++ *
++ * Returns number of bytes that could not be cleared.
++ * On success, this will be zero.
++ */
++unsigned long
++__clear_user(void __user *to, unsigned long n)
++{
++	__do_clear_user(to, n);
++	return n;
++}
++EXPORT_SYMBOL(__clear_user);
++
 -- 
 2.7.4
