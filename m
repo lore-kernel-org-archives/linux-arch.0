@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V2 05/19] csky: System Call
-Date: Mon,  2 Jul 2018 01:30:08 +0800
-Message-ID: <1005fef6031efbee4b5041ee286c053dd97670e6.1530465326.git.ren_guo@c-sky.com>
+Subject: [PATCH V2 17/19] csky: Misc headers
+Date: Mon,  2 Jul 2018 01:30:20 +0800
+Message-ID: <e1c914049eb8fd5e6e0f998871192e03b0508fa4.1530465326.git.ren_guo@c-sky.com>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
@@ -14,268 +14,570 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/syscall.h     | 69 +++++++++++++++++++++++++++++++++++++
- arch/csky/include/asm/syscalls.h    | 14 ++++++++
- arch/csky/include/uapi/asm/unistd.h | 63 +++++++++++++++++++++++++++++++++
- arch/csky/kernel/syscall.c          | 63 +++++++++++++++++++++++++++++++++
- arch/csky/kernel/syscall_table.c    | 12 +++++++
- 5 files changed, 221 insertions(+)
- create mode 100644 arch/csky/include/asm/syscall.h
- create mode 100644 arch/csky/include/asm/syscalls.h
- create mode 100644 arch/csky/include/uapi/asm/unistd.h
- create mode 100644 arch/csky/kernel/syscall.c
- create mode 100644 arch/csky/kernel/syscall_table.c
+ arch/csky/abiv1/inc/abi/reg_ops.h      |  47 ++++++
+ arch/csky/abiv1/inc/abi/regdef.h       |  15 ++
+ arch/csky/abiv2/inc/abi/reg_ops.h      |  38 +++++
+ arch/csky/abiv2/inc/abi/regdef.h       |  15 ++
+ arch/csky/include/asm/bitops.h         | 277 +++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/checksum.h       |  77 +++++++++
+ arch/csky/include/asm/reg_ops.h        |  16 ++
+ arch/csky/include/uapi/asm/byteorder.h |  14 ++
+ 8 files changed, 499 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
+ create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
+ create mode 100644 arch/csky/include/asm/bitops.h
+ create mode 100644 arch/csky/include/asm/checksum.h
+ create mode 100644 arch/csky/include/asm/reg_ops.h
+ create mode 100644 arch/csky/include/uapi/asm/byteorder.h
 
-diff --git a/arch/csky/include/asm/syscall.h b/arch/csky/include/asm/syscall.h
+diff --git a/arch/csky/abiv1/inc/abi/reg_ops.h b/arch/csky/abiv1/inc/abi/reg_ops.h
 new file mode 100644
-index 0000000..8966739
+index 0000000..7c31ac3
 --- /dev/null
-+++ b/arch/csky/include/asm/syscall.h
-@@ -0,0 +1,69 @@
-+#ifndef __ASM_SYSCALL_H
-+#define __ASM_SYSCALL_H
++++ b/arch/csky/abiv1/inc/abi/reg_ops.h
+@@ -0,0 +1,47 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
 +
-+#include <linux/sched.h>
-+#include <linux/err.h>
-+#include <abi/regdef.h>
++#define cprcr(reg)					\
++({							\
++	unsigned int tmp;				\
++	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
++	tmp;						\
++})
 +
-+static inline int
-+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++#define cpwcr(reg, val)					\
++({							\
++	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
++})
++
++static inline unsigned int mfcr_hint(void)
 +{
-+	return regs_syscallid(regs);
++	return mfcr("cr30");
 +}
 +
-+static inline void
-+syscall_rollback(struct task_struct *task, struct pt_regs *regs)
++static inline unsigned int mfcr_msa0(void)
 +{
-+	regs->a0 = regs->orig_a0;
++	return cprcr("cpcr30");
 +}
 +
-+static inline long
-+syscall_get_error(struct task_struct *task, struct pt_regs *regs)
++static inline void mtcr_msa0(unsigned int value)
 +{
-+	unsigned long error = regs->a0;
-+
-+	return IS_ERR_VALUE(error) ? error : 0;
++	cpwcr("cpcr30", value);
 +}
 +
-+static inline long
-+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
++static inline unsigned int mfcr_msa1(void)
 +{
-+	return regs->a0;
++	return cprcr("cpcr31");
 +}
 +
-+static inline void
-+syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
-+			 int error, long val)
++static inline void mtcr_msa1(unsigned int value)
 +{
-+	regs->a0 = (long) error ?: val;
++	cpwcr("cpcr31", value);
 +}
 +
-+static inline void
-+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-+		      unsigned int i, unsigned int n, unsigned long *args)
-+{
-+	BUG_ON(i + n > 6);
-+	if (i == 0) {
-+		args[0] = regs->orig_a0;
-+		args++;
-+		i++;
-+		n--;
-+	}
-+	memcpy(args, &regs->a1 + i * sizeof(regs->a1), n * sizeof(args[0]));
-+}
++static inline unsigned int mfcr_ccr2(void){return 0;}
 +
-+static inline void
-+syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-+		      unsigned int i, unsigned int n, const unsigned long *args)
-+{
-+	BUG_ON(i + n > 6);
-+        if (i == 0) {
-+		regs->orig_a0 = args[0];
-+		args++;
-+		i++;
-+		n--;
-+        }
-+	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
-+}
++#endif /* __ABI_REG_OPS_H */
 +
-+#endif	/* __ASM_SYSCALL_H */
-diff --git a/arch/csky/include/asm/syscalls.h b/arch/csky/include/asm/syscalls.h
+diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
 new file mode 100644
-index 0000000..c478830
+index 0000000..0c3596d
 --- /dev/null
-+++ b/arch/csky/include/asm/syscalls.h
++++ b/arch/csky/abiv1/inc/abi/regdef.h
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef  __ASM_CSKY_REGDEF_H
++#define  __ASM_CSKY_REGDEF_H
++
++#define syscallid	r1
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[9]
++
++#define DEFAULT_PSR_VALUE	0x8f000000
++
++#define SYSTRACE_SAVENUM	2
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/abiv2/inc/abi/reg_ops.h b/arch/csky/abiv2/inc/abi/reg_ops.h
+new file mode 100644
+index 0000000..a8b2a52
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/reg_ops.h
+@@ -0,0 +1,38 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
++
++static inline unsigned int mfcr_hint(void)
++{
++	return mfcr("cr31");
++}
++
++static inline unsigned int mfcr_ccr2(void)
++{
++	return mfcr("cr23");
++}
++
++static inline unsigned int mfcr_msa0(void)
++{
++	return mfcr("cr<30, 15>");
++}
++
++static inline void mtcr_msa0(unsigned int value)
++{
++	mtcr("cr<30, 15>", value);
++}
++
++static inline unsigned int mfcr_msa1(void)
++{
++	return mfcr("cr<31, 15>");
++}
++
++static inline void mtcr_msa1(unsigned int value)
++{
++	mtcr("cr<31, 15>", value);
++}
++
++#endif /* __ABI_REG_OPS_H */
++
+diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
+new file mode 100644
+index 0000000..2c36d60
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/regdef.h
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef  __ASM_CSKY_REGDEF_H
++#define  __ASM_CSKY_REGDEF_H
++
++#define syscallid	r7
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[3]
++
++#define DEFAULT_PSR_VALUE	0x8f000200
++
++#define SYSTRACE_SAVENUM	5
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
+new file mode 100644
+index 0000000..b2460c5
+--- /dev/null
++++ b/arch/csky/include/asm/bitops.h
+@@ -0,0 +1,277 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_BITOPS_H
++#define __ASM_CSKY_BITOPS_H
++
++#include <linux/compiler.h>
++
++/*
++ * asm-generic/bitops/ffs.h
++ */
++static inline int ffs(int x)
++{
++	if(!x) return 0;
++
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		"addi %0, 1\n"
++		:"=&r"(x)
++		:"0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/__ffs.h
++ */
++static __always_inline unsigned long __ffs(unsigned long x)
++{
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		:"=&r"(x)
++		:"0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/fls.h
++ */
++static __always_inline int fls(int x)
++{
++	asm volatile(
++		"ff1 %0\n"
++		:"=&r"(x)
++		:"0"(x));
++
++	return (32 - x);
++}
++
++/*
++ * asm-generic/bitops/__fls.h
++ */
++static __always_inline unsigned long __fls(unsigned long x)
++{
++	return fls(x) - 1;
++}
++
++#include <asm-generic/bitops/ffz.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
++
++#ifndef _LINUX_BITOPS_H
++#error only <linux/bitops.h> can be included directly
++#endif
++
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
++
++#ifdef CONFIG_CPU_HAS_LDSTEX
++
++/*
++ * set_bit - Atomically set a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * This function is atomic and may not be reordered.  See __set_bit()
++ * if you do not require the atomic guarantees.
++ *
++ * Note: there are no guarantees that this function will not be reordered
++ * on non x86 architectures, so if you are writing portable code,
++ * make sure not to rely on its reordering guarantees.
++ *
++ * Note that @nr may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static inline void set_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p  |= mask; */
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	or32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * clear_bit - Clears a bit in memory
++ * @nr: Bit to clear
++ * @addr: Address to start counting from
++ *
++ * clear_bit() is atomic and may not be reordered.  However, it does
++ * not contain a memory barrier, so if it is used for locking purposes,
++ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
++ * in order to ensure changes are visible on other processors.
++ */
++static inline void clear_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p &= ~mask; */
++	mask = ~mask;
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	and32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * change_bit - Toggle a bit in memory
++ * @nr: Bit to change
++ * @addr: Address to start counting from
++ *
++ * change_bit() is atomic and may not be reordered. It may be
++ * reordered on other architectures than x86.
++ * Note that @nr may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static inline void change_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p ^= mask; */
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	xor32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * test_and_set_bit - Set a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It may be reordered on other architectures than x86.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp;
++
++	/*
++	 * old = *p;
++	 * *p = old | mask;
++	 */
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	or32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++/**
++ * test_and_clear_bit - Clear a bit and return its old value
++ * @nr: Bit to clear
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It can be reorderdered on other architectures other than x86.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp, mask_not;
++
++	/*
++	 * old = *p;
++	 * *p = old & ~mask;
++	 */
++	mask_not = ~mask;
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	and32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask_not), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++/**
++ * test_and_change_bit - Change a bit and return its old value
++ * @nr: Bit to change
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp;
++
++	/*
++	 * old = *p;
++	 * *p = old ^ mask;
++	 */
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	xor32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++#else
++#include <asm-generic/bitops/atomic.h>
++#endif
++
++/*
++ * bug fix, why only could use atomic!!!!
++ */
++#include <asm-generic/bitops/non-atomic.h>
++#define __clear_bit(nr,vaddr) clear_bit(nr,vaddr)
++
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
++#endif /* __ASM_CSKY_BITOPS_H */
++
+diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
+new file mode 100644
+index 0000000..3f7d255
+--- /dev/null
++++ b/arch/csky/include/asm/checksum.h
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_CHECKSUM_H
++#define __ASM_CSKY_CHECKSUM_H
++
++#include <linux/in6.h>
++#include <asm/byteorder.h>
++
++static inline __sum16 csum_fold(__wsum csum)
++{
++	u32 tmp;
++	asm volatile(
++		"mov	%1, %0\n"
++		"rori	%0, 16\n"
++		"addu	%0, %1\n"
++		"lsri	%0, 16\n"
++		:"=r"(csum), "=r"(tmp)
++		:"0"(csum));
++	return (__force __sum16)~csum;
++}
++#define csum_fold csum_fold
++
++static inline __wsum
++csum_tcpudp_nofold(
++	__be32 saddr,
++	__be32 daddr,
++	unsigned short len,
++	unsigned short proto,
++	__wsum sum
++	)
++{
++	asm volatile(
++		"clrc\n"
++		"addc    %0, %1\n"
++		"addc    %0, %2\n"
++		"addc    %0, %3\n"
++		"inct    %0\n"
++		:"=r"(sum)
++		:"r"((__force u32)saddr),
++		"r"((__force u32)daddr),
++#ifdef __BIG_ENDIAN
++		"r"(proto + len),
++#else
++		"r"((proto + len) << 8),
++#endif
++		"0" ((__force unsigned long)sum)
++		:"cc");
++	return sum;
++}
++#define csum_tcpudp_nofold csum_tcpudp_nofold
++
++static __inline__ __sum16
++csum_ipv6_magic(
++	const struct in6_addr *saddr,
++	const struct in6_addr *daddr,
++	__u32 len,
++	unsigned short proto,
++	__wsum sum
++	)
++{
++	sum += saddr->in6_u.u6_addr32[0];
++	sum += saddr->in6_u.u6_addr32[1];
++	sum += saddr->in6_u.u6_addr32[2];
++	sum += saddr->in6_u.u6_addr32[3];
++	sum += daddr->in6_u.u6_addr32[0];
++	sum += daddr->in6_u.u6_addr32[1];
++	sum += daddr->in6_u.u6_addr32[2];
++	sum += daddr->in6_u.u6_addr32[3];
++	sum += (len + proto);
++
++	return csum_fold(sum);
++}
++#define _HAVE_ARCH_IPV6_CSUM
++
++#include <asm-generic/checksum.h>
++
++#endif /* __ASM_CSKY_CHECKSUM_H */
+diff --git a/arch/csky/include/asm/reg_ops.h b/arch/csky/include/asm/reg_ops.h
+new file mode 100644
+index 0000000..6963e5a
+--- /dev/null
++++ b/arch/csky/include/asm/reg_ops.h
+@@ -0,0 +1,16 @@
++#ifndef __ASM_REGS_OPS_H
++#define __ASM_REGS_OPS_H
++
++#define mfcr(reg)					\
++({							\
++	unsigned int tmp;				\
++	asm volatile("mfcr %0, "reg"\n":"=r"(tmp));	\
++	tmp;						\
++})
++
++#define mtcr(reg, val)					\
++({							\
++	asm volatile("mtcr %0, "reg"\n"::"r"(val));	\
++})
++
++#endif /* __ASM_REGS_OPS_H */
+diff --git a/arch/csky/include/uapi/asm/byteorder.h b/arch/csky/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..d254522
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/byteorder.h
 @@ -0,0 +1,14 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_SYSCALLS_H
-+#define __ASM_CSKY_SYSCALLS_H
++#ifndef __ASM_CSKY_BYTEORDER_H
++#define __ASM_CSKY_BYTEORDER_H
 +
-+#include <asm-generic/syscalls.h>
++#if defined(__cskyBE__)
++#include <linux/byteorder/big_endian.h>
++#elif defined(__cskyLE__)
++#include <linux/byteorder/little_endian.h>
++#else
++# error "There is no __cskyBE__, __cskyLE__"
++#endif
 +
-+long sys_cacheflush(void __user *, unsigned long, int);
-+
-+long sys_set_thread_area(unsigned long addr);
-+
-+long sys_csky_fadvise64_64(int fd, int advice, loff_t offset, loff_t len);
-+
-+#endif /* __ASM_CSKY_SYSCALLS_H */
-diff --git a/arch/csky/include/uapi/asm/unistd.h b/arch/csky/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..0ea9b5a
---- /dev/null
-+++ b/arch/csky/include/uapi/asm/unistd.h
-@@ -0,0 +1,63 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#define __ARCH_WANT_OLD_READDIR
-+#define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
-+#define __ARCH_WANT_SYS_ALARM
-+#define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_FORK
-+#define __ARCH_WANT_SYS_GETHOSTNAME
-+#define __ARCH_WANT_SYS_GETPGRP
-+#define __ARCH_WANT_SYS_IPC
-+#define __ARCH_WANT_SYS_LLSEEK
-+#define __ARCH_WANT_SYS_NICE
-+#define __ARCH_WANT_SYS_OLD_GETRLIMIT
-+#define __ARCH_WANT_SYS_OLDUMOUNT
-+#define __ARCH_WANT_SYS_PAUSE
-+#define __ARCH_WANT_SYS_SIGNAL
-+#define __ARCH_WANT_SYS_SIGPENDING
-+#define __ARCH_WANT_SYS_SIGPROCMASK
-+#define __ARCH_WANT_SYS_SOCKETCALL
-+#define __ARCH_WANT_SYS_TIME
-+#define __ARCH_WANT_SYS_UTIME
-+#define __ARCH_WANT_SYS_VFORK
-+#define __ARCH_WANT_SYS_WAITPID
-+
-+#include <asm-generic/unistd.h>
-+
-+/*
-+ * other define
-+ */
-+#define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
-+__SYSCALL(__NR_set_thread_area, sys_set_thread_area)
-+#define __NR_ipc		(__NR_arch_specific_syscall + 1)
-+__SYSCALL(__NR_ipc, sys_ipc)
-+#define __NR_socketcall		(__NR_arch_specific_syscall + 2)
-+__SYSCALL(__NR_socketcall, sys_socketcall)
-+#define __NR_ugetrlimit		(__NR_arch_specific_syscall + 3)
-+__SYSCALL(__NR_ugetrlimit, sys_getrlimit)
-+#define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
-+__SYSCALL(__NR_cacheflush, sys_cacheflush)
-+#define __NR_sysfs		(__NR_arch_specific_syscall + 5)
-+__SYSCALL(__NR_sysfs, sys_sysfs)
-+
-+__SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
-+
-+#define __NR_setgroups32	__NR_setgroups
-+#define __NR_getgid32		__NR_getgid
-+#define __NR_getgroups32	__NR_getgroups
-+#define __NR_setuid32		__NR_setuid
-+#define __NR_setgid32		__NR_setgid
-+#define __NR_getresgid32	__NR_getresgid
-+#define __NR_setfsuid32		__NR_setfsuid
-+#define __NR_setfsgid32		__NR_setfsgid
-+#define __NR_fchown32		__NR_fchown
-+#define __NR_geteuid32		__NR_geteuid
-+#define __NR_getegid32		__NR_getegid
-+#define __NR_getresuid32	__NR_getresuid
-+#define __NR_setresuid32	__NR_setresuid
-+#define __NR_setresgid32	__NR_setresgid
-+#define __NR_setreuid32		__NR_setreuid
-+#define __NR_setregid32		__NR_setregid
-+#define __NR__llseek		__NR_llseek
-+
-diff --git a/arch/csky/kernel/syscall.c b/arch/csky/kernel/syscall.c
-new file mode 100644
-index 0000000..f0a1294
---- /dev/null
-+++ b/arch/csky/kernel/syscall.c
-@@ -0,0 +1,63 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/syscalls.h>
-+
-+SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)
-+{
-+	struct thread_info *ti = task_thread_info(current);
-+	struct pt_regs *reg = current_pt_regs();
-+
-+	reg->tls = addr;
-+	ti->tp_value = addr;
-+
-+	return 0;
-+}
-+
-+SYSCALL_DEFINE6(mmap2,
-+	unsigned long, addr,
-+	unsigned long, len,
-+	unsigned long, prot,
-+	unsigned long, flags,
-+	unsigned long, fd,
-+	off_t, offset)
-+{
-+	if (unlikely(offset & (~PAGE_MASK >> 12)))
-+		return -EINVAL;
-+	return sys_mmap_pgoff(addr, len, prot, flags, fd,
-+		offset >> (PAGE_SHIFT - 12));
-+}
-+
-+struct mmap_arg_struct {
-+	unsigned long addr;
-+	unsigned long len;
-+	unsigned long prot;
-+	unsigned long flags;
-+	unsigned long fd;
-+	unsigned long offset;
-+};
-+
-+SYSCALL_DEFINE1(mmap,
-+	struct mmap_arg_struct *, arg)
-+{
-+	struct mmap_arg_struct a;
-+
-+	if (copy_from_user(&a, arg, sizeof(a)))
-+		return -EINVAL;
-+
-+	if (unlikely(a.offset & ~PAGE_MASK))
-+		return -EINVAL;
-+
-+	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset >> PAGE_SHIFT);
-+}
-+
-+/*
-+ * for abiv1 the 64bits args should be even th, So we need mov the advice forward.
-+ */
-+SYSCALL_DEFINE4(csky_fadvise64_64,
-+	int, fd,
-+	int, advice,
-+	loff_t, offset,
-+	loff_t, len)
-+{
-+	return sys_fadvise64_64(fd, offset, len, advice);
-+}
-diff --git a/arch/csky/kernel/syscall_table.c b/arch/csky/kernel/syscall_table.c
-new file mode 100644
-index 0000000..bea8558
---- /dev/null
-+++ b/arch/csky/kernel/syscall_table.c
-@@ -0,0 +1,12 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/syscalls.h>
-+#include <asm/syscalls.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+void * const sys_call_table[__NR_syscalls] __page_aligned_data = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
++#endif /* __ASM_CSKY_BYTEORDER_H */
 -- 
 2.7.4
