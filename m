@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V2 12/19] csky: ELF and module probe
-Date: Mon,  2 Jul 2018 01:30:15 +0800
-Message-ID: <c6265c6280fe1d3d3bf90864e55167efbb37eddf.1530465326.git.ren_guo@c-sky.com>
+Subject: [PATCH V2 11/19] csky: Atomic operations
+Date: Mon,  2 Jul 2018 01:30:14 +0800
+Message-ID: <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
@@ -14,254 +14,388 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/elf.h | 149 ++++++++++++++++++++++++++++++++++++++++++++
- arch/csky/kernel/module.c   |  82 ++++++++++++++++++++++++
- 2 files changed, 231 insertions(+)
- create mode 100644 arch/csky/include/asm/elf.h
- create mode 100644 arch/csky/kernel/module.c
+ arch/csky/include/asm/cmpxchg.h        |  68 +++++++++++++
+ arch/csky/include/asm/spinlock.h       | 174 +++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/spinlock_types.h |  20 ++++
+ arch/csky/kernel/atomic.S              |  87 +++++++++++++++++
+ 4 files changed, 349 insertions(+)
+ create mode 100644 arch/csky/include/asm/cmpxchg.h
+ create mode 100644 arch/csky/include/asm/spinlock.h
+ create mode 100644 arch/csky/include/asm/spinlock_types.h
+ create mode 100644 arch/csky/kernel/atomic.S
 
-diff --git a/arch/csky/include/asm/elf.h b/arch/csky/include/asm/elf.h
+diff --git a/arch/csky/include/asm/cmpxchg.h b/arch/csky/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..9a7967c
+index 0000000..1c30a28
 --- /dev/null
-+++ b/arch/csky/include/asm/elf.h
-@@ -0,0 +1,149 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASMCSKY_ELF_H
-+#define __ASMCSKY_ELF_H
++++ b/arch/csky/include/asm/cmpxchg.h
+@@ -0,0 +1,68 @@
++#ifndef __ASM_CSKY_CMPXCHG_H
++#define __ASM_CSKY_CMPXCHG_H
 +
-+/*
-+ * ELF register definitions..
-+ */
++#ifdef CONFIG_CPU_HAS_LDSTEX
++#include <linux/bug.h>
++#include <asm/barrier.h>
 +
-+#include <asm/ptrace.h>
-+#include <abi/regdef.h>
++#define __xchg(new, ptr, size)					\
++({								\
++	__typeof__(ptr) __ptr = (ptr);				\
++	__typeof__(new) __new = (new);				\
++	__typeof__(*(ptr)) __ret;				\
++	unsigned long tmp;					\
++	switch (size) {						\
++	case 4:							\
++		asm volatile (					\
++		"1:	ldex.w		%0, (%3) \n"		\
++		"	mov		%1, %2   \n"		\
++		"	stex.w		%1, (%3) \n"		\
++		"	bez		%1, 1b   \n"		\
++			: "=&r" (__ret), "=&r" (tmp)		\
++			: "r" (__new), "r"(__ptr)		\
++			: "memory");				\
++		smp_mb();					\
++		break;						\
++	default:						\
++		BUILD_BUG();					\
++	}							\
++	__ret;							\
++})
 +
-+#define ELF_ARCH 39
++#define xchg(ptr, x)	(__xchg((x), (ptr), sizeof(*(ptr))))
 +
-+/* CSKY Relocations */
-+#define R_CSKY_NONE               0
-+#define R_CSKY_32                 1
-+#define R_CSKY_PCIMM8BY4          2
-+#define R_CSKY_PCIMM11BY2         3
-+#define R_CSKY_PCIMM4BY2          4
-+#define R_CSKY_PC32               5
-+#define R_CSKY_PCRELJSR_IMM11BY2  6
-+#define R_CSKY_GNU_VTINHERIT      7
-+#define R_CSKY_GNU_VTENTRY        8
-+#define R_CSKY_RELATIVE           9
-+#define R_CSKY_COPY               10
-+#define R_CSKY_GLOB_DAT           11
-+#define R_CSKY_JUMP_SLOT          12
-+#define R_CSKY_ADDR_HI16          24
-+#define R_CSKY_ADDR_LO16          25
-+#define R_CSKY_PCRELJSR_IMM26BY2  40
++#define __cmpxchg(ptr, old, new, size)				\
++({								\
++	__typeof__(ptr) __ptr = (ptr);				\
++	__typeof__(new) __new = (new);				\
++	__typeof__(new) __tmp;					\
++	__typeof__(old) __old = (old);				\
++	__typeof__(*(ptr)) __ret;				\
++	switch (size) {						\
++	case 4:							\
++		asm volatile (					\
++		"1:	ldex.w		%0, (%3) \n"		\
++		"	cmpne		%0, %4   \n"		\
++		"	bt		2f       \n"		\
++		"	mov		%1, %2   \n"		\
++		"	stex.w		%1, (%3) \n"		\
++		"	bez		%1, 1b   \n"		\
++		"2:				 \n"		\
++			: "=&r" (__ret), "=&r" (__tmp)		\
++			: "r" (__new), "r"(__ptr), "r"(__old)	\
++			: "memory");				\
++		smp_mb();					\
++		break;						\
++	default:						\
++		BUILD_BUG();					\
++	}							\
++	__ret;							\
++})
 +
-+typedef unsigned long elf_greg_t;
-+
-+typedef struct user_fp elf_fpregset_t;
-+
-+#define ELF_NGREG (sizeof(struct pt_regs) / sizeof(elf_greg_t))
-+
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architecture.
-+ */
-+#define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE		4096
-+#define ELF_CLASS			ELFCLASS32
-+#define ELF_PLAT_INIT(_r, load_addr)	_r->a0 = 0
-+
-+#ifdef  __cskyBE__
-+#define ELF_DATA	ELFDATA2MSB
++#define cmpxchg(ptr, o, n) \
++	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr))))
 +#else
-+#define ELF_DATA	ELFDATA2LSB
++#include <asm-generic/cmpxchg.h>
 +#endif
 +
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE	0x0UL
-+
-+/* The member sort in array pr_reg[x] is pc, r1, r0, psr, r2, r3,r4,
-+   r5, r6...... Because GDB difine */
-+#if defined(__CSKYABIV2__)
-+   #define ELF_CORE_COPY_REGS(pr_reg, regs)     \
-+        pr_reg[0] = regs->pc;                   \
-+        pr_reg[1] = regs->a1;                   \
-+        pr_reg[2] = regs->a0;                   \
-+        pr_reg[3] = regs->sr;                   \
-+        pr_reg[4] = regs->a2;                   \
-+        pr_reg[5] = regs->a3;                   \
-+        pr_reg[6] = regs->regs[0];              \
-+        pr_reg[7] = regs->regs[1];              \
-+        pr_reg[8] = regs->regs[2];              \
-+        pr_reg[9] = regs->regs[3];              \
-+        pr_reg[10] = regs->regs[4];             \
-+        pr_reg[11] = regs->regs[5];             \
-+        pr_reg[12] = regs->regs[6];             \
-+        pr_reg[13] = regs->regs[7];             \
-+        pr_reg[14] = regs->regs[8];             \
-+        pr_reg[15] = regs->regs[9];             \
-+        pr_reg[16] = regs->usp;			\
-+        pr_reg[17] = regs->lr;			\
-+        pr_reg[18] = regs->exregs[0];           \
-+        pr_reg[19] = regs->exregs[1];           \
-+        pr_reg[20] = regs->exregs[2];           \
-+        pr_reg[21] = regs->exregs[3];           \
-+        pr_reg[22] = regs->exregs[4];           \
-+        pr_reg[23] = regs->exregs[5];           \
-+        pr_reg[24] = regs->exregs[6];           \
-+        pr_reg[25] = regs->exregs[7];           \
-+        pr_reg[26] = regs->exregs[8];           \
-+        pr_reg[27] = regs->exregs[9];           \
-+        pr_reg[28] = regs->exregs[10];          \
-+        pr_reg[29] = regs->exregs[11];          \
-+        pr_reg[30] = regs->exregs[12];          \
-+        pr_reg[31] = regs->exregs[13];          \
-+        pr_reg[32] = regs->exregs[14];          \
-+        pr_reg[33] = regs->tls;
-+#else
-+     #define ELF_CORE_COPY_REGS(pr_reg, regs)   \
-+        pr_reg[0] = regs->pc;                   \
-+        pr_reg[1] = regs->regs[9];              \
-+        pr_reg[2] = regs->usp;			\
-+        pr_reg[3] = regs->sr;                   \
-+        pr_reg[4] = regs->a0;                   \
-+        pr_reg[5] = regs->a1;                   \
-+        pr_reg[6] = regs->a2;                   \
-+        pr_reg[7] = regs->a3;                   \
-+        pr_reg[8] = regs->regs[0];              \
-+        pr_reg[9] = regs->regs[1];              \
-+        pr_reg[10] = regs->regs[2];             \
-+        pr_reg[11] = regs->regs[3];             \
-+        pr_reg[12] = regs->regs[4];             \
-+        pr_reg[13] = regs->regs[5];             \
-+        pr_reg[14] = regs->regs[6];             \
-+        pr_reg[15] = regs->regs[7];             \
-+        pr_reg[16] = regs->regs[8];             \
-+        pr_reg[17] = regs->lr;
-+#endif
-+
-+/* Similar, but for a thread other than current. */
-+struct task_struct;
-+extern int dump_task_regs(struct task_struct *, elf_gregset_t *);
-+#define ELF_CORE_COPY_TASK_REGS(tsk, elf_regs) dump_task_regs(tsk, elf_regs)
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  */
-+
-+#define ELF_HWCAP	(0)
-+
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.  */
-+
-+#define ELF_PLATFORM	(NULL)
-+#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+extern int arch_setup_additional_pages(
-+		struct linux_binprm *bprm,
-+		int uses_interp);
-+
-+#endif
-diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
++#endif /* __ASM_CSKY_CMPXCHG_H */
+diff --git a/arch/csky/include/asm/spinlock.h b/arch/csky/include/asm/spinlock.h
 new file mode 100644
-index 0000000..a8816e1
+index 0000000..ca10d0e
 --- /dev/null
-+++ b/arch/csky/kernel/module.c
-@@ -0,0 +1,82 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/moduleloader.h>
-+#include <linux/elf.h>
-+#include <linux/mm.h>
-+#include <linux/vmalloc.h>
-+#include <linux/slab.h>
-+#include <linux/fs.h>
-+#include <linux/string.h>
-+#include <linux/kernel.h>
-+#include <linux/spinlock.h>
-+#include <asm/pgtable.h>
++++ b/arch/csky/include/asm/spinlock.h
+@@ -0,0 +1,174 @@
++#ifndef __ASM_CSKY_SPINLOCK_H
++#define __ASM_CSKY_SPINLOCK_H
 +
-+#define IS_BSR32(hi16, lo16)        (((hi16) & 0xFC00) == 0xE000)
-+#define IS_JSRI32(hi16, lo16)       ((hi16) == 0xEAE0)
-+#define CHANGE_JSRI_TO_LRW(addr)    *(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x001a; \
-+							  *((uint16_t *)(addr) + 1) = *((uint16_t *)(addr) + 1) & 0xFFFF
-+#define SET_JSR32_R26(addr)         *(uint16_t *)(addr) = 0xE8Fa; \
-+							  *((uint16_t *)(addr) + 1) = 0x0000;
++#include <linux/spinlock_types.h>
++#include <asm/barrier.h>
 +
-+int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
-+		unsigned int symindex, unsigned int relsec, struct module *me)
++#define arch_spin_is_locked(x)	(READ_ONCE((x)->lock) != 0)
++
++/****** spin lock/unlock/trylock ******/
++static inline void arch_spin_lock(arch_spinlock_t *lock)
 +{
-+	unsigned int i;
-+	Elf32_Rela *rel = (void *)sechdrs[relsec].sh_addr;
-+	Elf32_Sym *sym;
-+	uint32_t *location;
-+	short * temp;
-+#ifdef CONFIG_CPU_CSKYV2
-+	uint16_t *location_tmp;
-+#endif
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
 +
-+	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
-+		/* This is where to make the change */
-+		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-+			+ rel[i].r_offset;
-+		/* This is the symbol it is referring to.  Note that all
-+		   undefined symbols have been resolved.  */
-+		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
-+			+ ELF32_R_SYM(rel[i].r_info);
-+
-+		switch (ELF32_R_TYPE(rel[i].r_info)) {
-+		case R_CSKY_32:
-+			/* We add the value into the location given */
-+			*location = rel[i].r_addend + sym->st_value;
-+			break;
-+		case R_CSKY_PC32:
-+			/* Add the value, subtract its postition */
-+			*location = rel[i].r_addend + sym->st_value
-+				- (uint32_t)location;
-+			break;
-+		case R_CSKY_PCRELJSR_IMM11BY2:
-+			break;
-+		case R_CSKY_PCRELJSR_IMM26BY2:
-+#ifdef CONFIG_CPU_CSKYV2
-+			location_tmp = (uint16_t *)location;
-+			if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
-+				break;
-+			else if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
-+				/* jsri 0x...  --> lrw r26, 0x... */
-+				CHANGE_JSRI_TO_LRW(location);
-+				/* lsli r0, r0 --> jsr r26 */
-+				SET_JSR32_R26(location + 1);
-+			}
-+#endif
-+			break;
-+		case R_CSKY_ADDR_HI16:
-+			temp = ((short  *)location) + 1;
-+			*temp = (short)((rel[i].r_addend + sym->st_value) >> 16);
-+			break;
-+		case R_CSKY_ADDR_LO16:
-+			temp = ((short  *)location) + 1;
-+			*temp = (short)((rel[i].r_addend + sym->st_value) & 0xffff);
-+			break;
-+		default:
-+			pr_err("module %s: Unknown relocation: %u\n",
-+				me->name, ELF32_R_TYPE(rel[i].r_info));
-+			return -ENOEXEC;
-+		}
-+	}
-+	return 0;
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 1b   \n"
++		"	movi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++	smp_mb();
 +}
++
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	movi		%0, 0    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++}
++
++static inline int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 2f   \n"
++		"	movi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		"	movi		%0, 0    \n"
++		"2:				 \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++	smp_mb();
++
++	return !tmp;
++}
++
++/****** read lock/unlock/trylock ******/
++static inline void arch_read_lock(arch_rwlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	blz		%0, 1b   \n"
++		"	addi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++static inline void arch_read_unlock(arch_rwlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	subi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++}
++
++static inline int arch_read_trylock(arch_rwlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	blz		%0, 2f   \n"
++		"	addi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		"	movi		%0, 0    \n"
++		"2:				 \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++	smp_mb();
++
++	return !tmp;
++}
++
++/****** write lock/unlock/trylock ******/
++static inline void arch_write_lock(arch_rwlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 1b   \n"
++		"	subi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++static inline void arch_write_unlock(arch_rwlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	movi		%0, 0    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++}
++
++static inline int arch_write_trylock(arch_rwlock_t *lock)
++{
++	unsigned int *p = &lock->lock;
++	unsigned int tmp;
++
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 2f   \n"
++		"	subi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		"	movi		%0, 0    \n"
++		"2:				 \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "memory");
++	smp_mb();
++
++	return !tmp;
++}
++
++#endif /* __ASM_CSKY_SPINLOCK_H */
+diff --git a/arch/csky/include/asm/spinlock_types.h b/arch/csky/include/asm/spinlock_types.h
+new file mode 100644
+index 0000000..ea890ef
+--- /dev/null
++++ b/arch/csky/include/asm/spinlock_types.h
+@@ -0,0 +1,20 @@
++#ifndef __ASM_CSKY_SPINLOCK_TYPES_H
++#define __ASM_CSKY_SPINLOCK_TYPES_H
++
++#ifndef __LINUX_SPINLOCK_TYPES_H
++# error "please don't include this file directly"
++#endif
++
++typedef struct {
++	unsigned int lock;
++} arch_spinlock_t;
++
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
++
++typedef struct {
++	unsigned int lock;
++} arch_rwlock_t;
++
++#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
++
++#endif
+diff --git a/arch/csky/kernel/atomic.S b/arch/csky/kernel/atomic.S
+new file mode 100644
+index 0000000..95ae696
+--- /dev/null
++++ b/arch/csky/kernel/atomic.S
+@@ -0,0 +1,87 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/linkage.h>
++#include <abi/entry.h>
++
++.text
++
++/*
++ * int csky_cmpxchg(int oldval, int newval, int *ptr)
++ *
++ * If *ptr != oldval && return 1,
++ * else *ptr = newval return 0.
++ */
++#ifdef CONFIG_CPU_HAS_LDSTEX
++ENTRY(csky_cmpxchg)
++	USPTOKSP
++	mfcr	a3, epc
++	INCTRAP	a3
++
++	subi    sp, 8
++	stw     a3, (sp, 0)
++	mfcr    a3, epsr
++	stw     a3, (sp, 4)
++
++	psrset	ee
++1:
++	ldex	a3, (a2)
++	cmpne	a0, a3
++	bt16	2f
++	mov	a3, a1
++	stex	a3, (a2)
++	bez	a3, 1b
++2:
++	sync.is
++	mvc	a0
++	ldw	a3, (sp, 0)
++	mtcr	a3, epc
++	ldw     a3, (sp, 4)
++	mtcr	a3, epsr
++	addi	sp, 8
++	KSPTOUSP
++	rte
++END(csky_cmpxchg)
++#else
++ENTRY(csky_cmpxchg)
++	USPTOKSP
++	mfcr	a3, epc
++	INCTRAP	a3
++
++	subi    sp, 8
++	stw     a3, (sp, 0)
++	mfcr    a3, epsr
++	stw     a3, (sp, 4)
++
++	psrset	ee
++1:
++	ldw	a3, (a2)
++	cmpne	a0, a3
++	bt16	3f
++2:
++	stw	a1, (a2)
++3:
++	mvc	a0
++	ldw	a3, (sp, 0)
++	mtcr	a3, epc
++	ldw     a3, (sp, 4)
++	mtcr	a3, epsr
++	addi	sp, 8
++	KSPTOUSP
++	rte
++END(csky_cmpxchg)
++
++/*
++ * Called from tlbmodified exception
++ */
++ENTRY(csky_cmpxchg_fixup)
++	mfcr	a0, epc
++	lrw	a1, 2b
++	cmpne	a1, a0
++	bt	1f
++	subi	a1, (2b - 1b)
++	stw	a1, (sp, LSAVE_PC)
++1:
++	rts
++END(csky_cmpxchg_fixup)
++#endif
++
 -- 
 2.7.4
