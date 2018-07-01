@@ -1,96 +1,323 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:60868 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752119AbeGAMWz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2018 08:22:55 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w61CIqaf013304
-        for <linux-arch@vger.kernel.org>; Sun, 1 Jul 2018 08:22:54 -0400
-Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2jxq3d2eab-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Sun, 01 Jul 2018 08:22:54 -0400
-Received: from localhost
-        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <rppt@linux.vnet.ibm.com>;
-        Sun, 1 Jul 2018 13:22:52 +0100
-Date: Sun, 1 Jul 2018 15:22:46 +0300
-From: Mike Rapoport <rppt@linux.vnet.ibm.com>
-Subject: h8300: BUG: Bad page state in process swapper (was: Re: why do we
- still need bootmem allocator?)
-References: <20180625140754.GB29102@dhcp22.suse.cz>
- <CABGGisyVpfYCz7-5AGB-3Ld9hcuikPVk=19xPc1AwffjhsV+kg@mail.gmail.com>
- <20180627112655.GD4291@rapoport-lnx>
- <CAL_JsqL6dV9+tP9CQ7XoCoaf0wUO6NgHZ2-QNUyQMZx2pny+xA@mail.gmail.com>
- <20180627160206.GB19182@rapoport-lnx>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180627160206.GB19182@rapoport-lnx>
-Message-ID: <20180701122245.GA28969@rapoport-lnx>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:39345 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S965958AbeGARby (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2018 13:31:54 -0400
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V2 16/19] csky: SMP support
+Date: Mon,  2 Jul 2018 01:30:19 +0800
+Message-ID: <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robh@kernel.org>
-Cc: mhocko@kernel.org, linux-mm@kvack.org, Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20180701122246.ALn97D5Er0dsnwGsWIbEj7BqEyfDsfsAQFJQqPPrQL8@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
+Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
+Message-ID: <20180701173019.WviqSYvCDavi8sA4Iit70St1Pg1g1Oi2jXX15oNKIco@z>
 
-(added Yoshinori Sato, here's the beginning of the discussion:
-https://lore.kernel.org/lkml/20180625140754.GB29102@dhcp22.suse.cz/)
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/include/asm/smp.h |  26 +++++
+ arch/csky/kernel/smp.c      | 256 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 282 insertions(+)
+ create mode 100644 arch/csky/include/asm/smp.h
+ create mode 100644 arch/csky/kernel/smp.c
 
-On Wed, Jun 27, 2018 at 07:02:06PM +0300, Mike Rapoport wrote:
-> On Wed, Jun 27, 2018 at 07:33:55AM -0600, Rob Herring wrote:
-> > On Wed, Jun 27, 2018 at 5:27 AM Mike Rapoport <rppt@linux.vnet.ibm.com> wrote:
-> > >
-> > > I've tried running the current upstream on h8300 gdb simulator and it
-> > > failed:
-> > 
-> > It seems my patch[1] is still not applied. The maintainer said he applied it.
-> 
-> I've applied it manually. Without it unflatten_and_copy_device_tree() fails
-> to allocate memory. It indeed can be fixed with moving bootmem_init()
-> before, as you've noted in the commit message.
-> 
-> I'll try to dig deeper into it.
->  
-> > > [    0.000000] BUG: Bad page state in process swapper  pfn:00004
-> > > [    0.000000] page:007ed080 count:0 mapcount:-128 mapping:00000000
-> > > index:0x0
-> > > [    0.000000] flags: 0x0()
-> > > [    0.000000] raw: 00000000 0040bdac 0040bdac 00000000 00000000 00000002
-> > > ffffff7f 00000000
-> > > [    0.000000] page dumped because: nonzero mapcount
-> > > ---Type <return> to continue, or q <return> to quit---
-> > > [    0.000000] CPU: 0 PID: 0 Comm: swapper Not tainted 4.18.0-rc2+ #50
-> > > [    0.000000] Stack from 00401f2c:
-> > > [    0.000000]   00401f2c 001116cb 007ed080 00401f40 000e20e6 00401f54
-> > > 0004df14 00000000
-> > > [    0.000000]   007ed080 007ed000 00401f5c 0004df8c 00401f90 0004e982
-> > > 00000044 00401fd1
-> > > [    0.000000]   007ed000 007ed000 00000000 00000004 00000008 00000000
-> > > 00000003 00000011
-> > > [    0.000000]
-> > > [    0.000000] Call Trace:
-> > > [    0.000000]         [<000e20e6>] [<0004df14>] [<0004df8c>] [<0004e982>]
-> > > [    0.000000]         [<00051a28>] [<00001000>] [<00000100>]
-> > > [    0.000000] Disabling lock debugging due to kernel taint
-> > >
-> > > With v4.13 I was able to get to "no valid init found".
-> > >
-> > > I had a quick look at h8300 memory initialization and it seems it has
-> > > starting pfn set to 0 while fdt defines memory start at 4M.
-> > 
-> > Perhaps there's another issue.
-
-In my setup this is caused by __ffs() clobbering start pfn in
-nobootmem.c::__free_pages_memory().
-
-If I change the __ffs() implementation from the inline assembly to generic
-bitops everything is fine.
-
-I'm using gcc 8.1.0 from [1] and gdb 8.1.0.20180625-git
-
-[1] http://cdn.kernel.org/pub/tools/crosstool/files/bin/x86_64/
-
-
+diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
+new file mode 100644
+index 0000000..9a53abf
+--- /dev/null
++++ b/arch/csky/include/asm/smp.h
+@@ -0,0 +1,26 @@
++#ifndef __ASM_CSKY_SMP_H
++#define __ASM_CSKY_SMP_H
++
++#include <linux/cpumask.h>
++#include <linux/irqreturn.h>
++#include <linux/threads.h>
++
++#ifdef CONFIG_SMP
++
++void __init setup_smp(void);
++
++void __init setup_smp_ipi(void);
++
++void __init enable_smp_ipi(void);
++
++void arch_send_call_function_ipi_mask(struct cpumask *mask);
++
++void arch_send_call_function_single_ipi(int cpu);
++
++void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long));
++
++#define raw_smp_processor_id()	(current_thread_info()->cpu)
++
++#endif /* CONFIG_SMP */
++
++#endif /* __ASM_CSKY_SMP_H */
+diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
+new file mode 100644
+index 0000000..42308cd
+--- /dev/null
++++ b/arch/csky/kernel/smp.c
+@@ -0,0 +1,256 @@
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <linux/kernel_stat.h>
++#include <linux/notifier.h>
++#include <linux/cpu.h>
++#include <linux/percpu.h>
++#include <linux/delay.h>
++#include <linux/err.h>
++#include <linux/irq.h>
++#include <linux/irqdomain.h>
++#include <linux/of.h>
++#include <linux/sched/task_stack.h>
++#include <linux/sched/mm.h>
++#include <asm/irq.h>
++#include <asm/traps.h>
++#include <asm/sections.h>
++#include <asm/mmu_context.h>
++#include <asm/pgalloc.h>
++
++#define IPI_IRQ	15
++
++static struct {
++	unsigned long bits ____cacheline_aligned;
++} ipi_data[NR_CPUS] __cacheline_aligned;
++
++enum ipi_message_type {
++	IPI_EMPTY,
++	IPI_RESCHEDULE,
++	IPI_CALL_FUNC,
++	IPI_MAX
++};
++
++static irqreturn_t handle_ipi(int irq, void *dev)
++{
++	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
++
++	while (true) {
++		unsigned long ops;
++
++		/* Order bit clearing and data access. */
++		mb();
++
++		ops = xchg(pending_ipis, 0);
++		if (ops == 0)
++			return IRQ_HANDLED;
++
++		if (ops & (1 << IPI_RESCHEDULE))
++			scheduler_ipi();
++
++		if (ops & (1 << IPI_CALL_FUNC))
++			generic_smp_call_function_interrupt();
++
++		BUG_ON((ops >> IPI_MAX) != 0);
++
++		/* Order data access and bit testing. */
++		mb();
++	}
++
++	return IRQ_HANDLED;
++}
++
++static void (*send_arch_ipi)(const unsigned long *mask, unsigned long irq) = NULL;
++
++void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long))
++{
++	if (send_arch_ipi)
++		return;
++
++	send_arch_ipi = func;
++}
++
++static void
++send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
++{
++	int i;
++
++	mb();
++	for_each_cpu(i, to_whom)
++		set_bit(operation, &ipi_data[i].bits);
++
++	mb();
++	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
++}
++
++void arch_send_call_function_ipi_mask(struct cpumask *mask)
++{
++	send_ipi_message(mask, IPI_CALL_FUNC);
++}
++
++void arch_send_call_function_single_ipi(int cpu)
++{
++	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
++}
++
++static void ipi_stop(void *unused)
++{
++	while (1);
++}
++
++void smp_send_stop(void)
++{
++	on_each_cpu(ipi_stop, NULL, 1);
++}
++
++void smp_send_reschedule(int cpu)
++{
++	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
++}
++
++void *__cpu_up_stack_pointer[NR_CPUS];
++void *__cpu_up_task_pointer[NR_CPUS];
++
++void __init smp_prepare_boot_cpu(void)
++{
++}
++
++void __init smp_prepare_cpus(unsigned int max_cpus)
++{
++}
++
++static int ipi_dummy_dev;
++
++void __init enable_smp_ipi(void)
++{
++	enable_percpu_irq(IPI_IRQ, 0);
++}
++
++void __init setup_smp_ipi(void)
++{
++	int rc;
++
++	irq_create_mapping(NULL, IPI_IRQ);
++
++	rc = request_percpu_irq(IPI_IRQ, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
++	if (rc)
++		panic("%s IRQ request failed\n", __func__);
++
++	enable_smp_ipi();
++}
++
++static int csky_of_cpu(struct device_node *node)
++{
++	const char *status;
++	int cpu;
++
++	if (of_property_read_u32(node, "reg", &cpu))
++		goto error;
++
++	if (cpu >= NR_CPUS)
++		goto error;
++
++	if (of_property_read_string(node, "status", &status))
++		status = "enable";
++
++	if (strcmp(status, "disable") == 0)
++		goto error;
++
++	return cpu;
++error:
++	return -ENODEV;
++}
++
++void __init setup_smp(void)
++{
++	struct device_node *node = NULL;
++	int cpu;
++
++	while ((node = of_find_node_by_type(node, "cpu"))) {
++		cpu = csky_of_cpu(node);
++		if (cpu >= 0) {
++			set_cpu_possible(cpu, true);
++			set_cpu_present(cpu, true);
++		}
++	}
++}
++
++extern void _start_smp_secondary(void);
++
++static unsigned int secondary_hint;
++static unsigned int secondary_ccr;
++
++unsigned int secondary_stack;
++
++int __cpu_up(unsigned int cpu, struct task_struct *tidle)
++{
++	unsigned int tmp;
++
++	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
++
++	secondary_hint = mfcr("cr31");
++
++	secondary_ccr  = mfcr("cr18");
++
++	pr_info("%s: CPU%u\n", __func__, cpu);
++
++	tmp = mfcr("cr<29, 0>");
++	tmp |= 1 << cpu;
++	mtcr("cr<29, 0>", tmp);
++
++	while (!cpu_online(cpu));
++
++	secondary_stack = 0;
++
++	return 0;
++}
++
++void __init smp_cpus_done(unsigned int max_cpus)
++{
++}
++
++int setup_profiling_timer(unsigned int multiplier)
++{
++	return -EINVAL;
++}
++
++void csky_start_secondary(void)
++{
++	struct mm_struct *mm = &init_mm;
++	unsigned int cpu = smp_processor_id();
++
++	mtcr("cr31", secondary_hint);
++	mtcr("cr18", secondary_ccr);
++
++	mtcr("vbr", vec_base);
++
++	flush_tlb_all();
++	write_mmu_pagemask(0);
++	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
++	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
++
++	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
++
++#ifdef CONFIG_CPU_HAS_FPU
++	init_fpu();
++#endif
++
++	enable_smp_ipi();
++
++	mmget(mm);
++	mmgrab(mm);
++	current->active_mm = mm;
++	cpumask_set_cpu(cpu, mm_cpumask(mm));
++
++	notify_cpu_starting(cpu);
++	set_cpu_online(cpu, true);
++
++	pr_info("CPU%u Online: %s...\n", cpu, __func__);
++
++	local_irq_enable();
++	preempt_disable();
++	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
++}
++
 -- 
-Sincerely yours,
+2.7.4
