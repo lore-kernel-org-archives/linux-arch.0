@@ -1,120 +1,133 @@
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v2 6/8] x86/kernel: jump_table: use relative references
-Date: Mon,  2 Jul 2018 20:11:43 +0200
-Message-ID: <20180702181145.4799-7-ard.biesheuvel@linaro.org>
+Subject: [PATCH v2 5/8] x86: jump_label: switch to jump_entry accessors
+Date: Mon,  2 Jul 2018 20:11:42 +0200
+Message-ID: <20180702181145.4799-6-ard.biesheuvel@linaro.org>
 References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Will Deacon <will.deacon@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Similar to the arm64 case, 64-bit x86 can benefit from using relative
-references rather than absolute ones when emitting struct jump_entry
-instances. Not only does this reduce the memory footprint of the entries
-themselves by 33%, it also removes the need for carrying relocation
-metadata on relocatable builds (i.e., for KASLR) which saves a fair
-chunk of .init space as well (although the savings are not as dramatic
-as on arm64)
+In preparation of switching x86 to use place-relative references for
+the code, target and key members of struct jump_entry, replace direct
+references to the struct members with invocations of the new accessors.
+This will allow us to make the switch by modifying the accessors only.
 
+This incorporates a cleanup of __jump_label_transform() proposed by
+Peter.
+
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 ---
- arch/x86/Kconfig                  |  1 +
- arch/x86/include/asm/jump_label.h | 24 +++++++-------------
- tools/objtool/special.c           |  4 ++--
- 3 files changed, 11 insertions(+), 18 deletions(-)
+ arch/x86/kernel/jump_label.c | 62 ++++++++------------
+ 1 file changed, 25 insertions(+), 37 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index e10a3542db7e..dd71258ec1cc 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -118,6 +118,7 @@ config X86
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_HUGE_VMAP		if X86_64 || X86_PAE
- 	select HAVE_ARCH_JUMP_LABEL
-+	select HAVE_ARCH_JUMP_LABEL_RELATIVE
- 	select HAVE_ARCH_KASAN			if X86_64
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_MMAP_RND_BITS		if MMU
-diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
-index 8c0de4282659..21efc9d07ed9 100644
---- a/arch/x86/include/asm/jump_label.h
-+++ b/arch/x86/include/asm/jump_label.h
-@@ -37,7 +37,8 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- 		".byte " __stringify(STATIC_KEY_INIT_NOP) "\n\t"
- 		".pushsection __jump_table,  \"aw\" \n\t"
- 		_ASM_ALIGN "\n\t"
--		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
-+		".long 1b - ., %l[l_yes] - . \n\t"
-+		_ASM_PTR "%c0 + %c1 - .\n\t"
- 		".popsection \n\t"
- 		: :  "i" (key), "i" (branch) : : l_yes);
+diff --git a/arch/x86/kernel/jump_label.c b/arch/x86/kernel/jump_label.c
+index e56c95be2808..023768222a94 100644
+--- a/arch/x86/kernel/jump_label.c
++++ b/arch/x86/kernel/jump_label.c
+@@ -42,52 +42,37 @@ static void __jump_label_transform(struct jump_entry *entry,
+ 				   void *(*poker)(void *, const void *, size_t),
+ 				   int init)
+ {
+-	union jump_code_union code;
++	union jump_code_union jmp;
+ 	const unsigned char default_nop[] = { STATIC_KEY_INIT_NOP };
+ 	const unsigned char *ideal_nop = ideal_nops[NOP_ATOMIC5];
++	const void *expect, *code;
++	int line;
++
++	jmp.jump = 0xe9;
++	jmp.offset = jump_entry_target(entry) -
++		     (jump_entry_code(entry) + JUMP_LABEL_NOP_SIZE);
  
-@@ -53,7 +54,8 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 		"2:\n\t"
- 		".pushsection __jump_table,  \"aw\" \n\t"
- 		_ASM_ALIGN "\n\t"
--		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
-+		".long 1b - ., %l[l_yes] - . \n\t"
-+		_ASM_PTR "%c0 + %c1 - .\n\t"
- 		".popsection \n\t"
- 		: :  "i" (key), "i" (branch) : : l_yes);
+ 	if (type == JUMP_LABEL_JMP) {
+ 		if (init) {
+-			/*
+-			 * Jump label is enabled for the first time.
+-			 * So we expect a default_nop...
+-			 */
+-			if (unlikely(memcmp((void *)entry->code, default_nop, 5)
+-				     != 0))
+-				bug_at((void *)entry->code, __LINE__);
++			expect = default_nop; line = __LINE__;
+ 		} else {
+-			/*
+-			 * ...otherwise expect an ideal_nop. Otherwise
+-			 * something went horribly wrong.
+-			 */
+-			if (unlikely(memcmp((void *)entry->code, ideal_nop, 5)
+-				     != 0))
+-				bug_at((void *)entry->code, __LINE__);
++			expect = ideal_nop; line = __LINE__;
+ 		}
  
-@@ -62,18 +64,6 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 	return true;
+-		code.jump = 0xe9;
+-		code.offset = entry->target -
+-				(entry->code + JUMP_LABEL_NOP_SIZE);
++		code = &jmp.code;
+ 	} else {
+-		/*
+-		 * We are disabling this jump label. If it is not what
+-		 * we think it is, then something must have gone wrong.
+-		 * If this is the first initialization call, then we
+-		 * are converting the default nop to the ideal nop.
+-		 */
+ 		if (init) {
+-			if (unlikely(memcmp((void *)entry->code, default_nop, 5) != 0))
+-				bug_at((void *)entry->code, __LINE__);
++			expect = default_nop; line = __LINE__;
+ 		} else {
+-			code.jump = 0xe9;
+-			code.offset = entry->target -
+-				(entry->code + JUMP_LABEL_NOP_SIZE);
+-			if (unlikely(memcmp((void *)entry->code, &code, 5) != 0))
+-				bug_at((void *)entry->code, __LINE__);
++			expect = &jmp.code; line = __LINE__;
+ 		}
+-		memcpy(&code, ideal_nops[NOP_ATOMIC5], JUMP_LABEL_NOP_SIZE);
++
++		code = ideal_nop;
+ 	}
+ 
++	if (memcmp((void *)jump_entry_code(entry), expect, JUMP_LABEL_NOP_SIZE))
++		bug_at((void *)jump_entry_code(entry), line);
++
+ 	/*
+ 	 * Make text_poke_bp() a default fallback poker.
+ 	 *
+@@ -96,11 +81,14 @@ static void __jump_label_transform(struct jump_entry *entry,
+ 	 * always nop being the 'currently valid' instruction
+ 	 *
+ 	 */
+-	if (poker)
+-		(*poker)((void *)entry->code, &code, JUMP_LABEL_NOP_SIZE);
+-	else
+-		text_poke_bp((void *)entry->code, &code, JUMP_LABEL_NOP_SIZE,
+-			     (void *)entry->code + JUMP_LABEL_NOP_SIZE);
++	if (poker) {
++		(*poker)((void *)jump_entry_code(entry), code,
++			 JUMP_LABEL_NOP_SIZE);
++		return;
++	}
++
++	text_poke_bp((void *)jump_entry_code(entry), code, JUMP_LABEL_NOP_SIZE,
++		     (void *)jump_entry_code(entry) + JUMP_LABEL_NOP_SIZE);
  }
  
--#ifdef CONFIG_X86_64
--typedef u64 jump_label_t;
--#else
--typedef u32 jump_label_t;
--#endif
--
--struct jump_entry {
--	jump_label_t code;
--	jump_label_t target;
--	jump_label_t key;
--};
--
- #else	/* __ASSEMBLY__ */
- 
- .macro STATIC_JUMP_IF_TRUE target, key, def
-@@ -88,7 +78,8 @@ struct jump_entry {
- 	.endif
- 	.pushsection __jump_table, "aw"
- 	_ASM_ALIGN
--	_ASM_PTR	.Lstatic_jump_\@, \target, \key
-+	.long		.Lstatic_jump_\@ - ., \target - .
-+	_ASM_PTR	\key - .
- 	.popsection
- .endm
- 
-@@ -104,7 +95,8 @@ struct jump_entry {
- 	.endif
- 	.pushsection __jump_table, "aw"
- 	_ASM_ALIGN
--	_ASM_PTR	.Lstatic_jump_\@, \target, \key + 1
-+	.long		.Lstatic_jump_\@ - ., \target - .
-+	_ASM_PTR	\key + 1 - .
- 	.popsection
- .endm
- 
-diff --git a/tools/objtool/special.c b/tools/objtool/special.c
-index 84f001d52322..50af4e1274b3 100644
---- a/tools/objtool/special.c
-+++ b/tools/objtool/special.c
-@@ -30,9 +30,9 @@
- #define EX_ORIG_OFFSET		0
- #define EX_NEW_OFFSET		4
- 
--#define JUMP_ENTRY_SIZE		24
-+#define JUMP_ENTRY_SIZE		16
- #define JUMP_ORIG_OFFSET	0
--#define JUMP_NEW_OFFSET		8
-+#define JUMP_NEW_OFFSET		4
- 
- #define ALT_ENTRY_SIZE		13
- #define ALT_ORIG_OFFSET		0
+ void arch_jump_label_transform(struct jump_entry *entry,
 -- 
 2.17.1
