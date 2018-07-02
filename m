@@ -1,99 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:55928 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753327AbeGBSLx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2018 14:11:53 -0400
-Received: by mail-wm0-f68.google.com with SMTP id v16-v6so9988402wmv.5
-        for <linux-arch@vger.kernel.org>; Mon, 02 Jul 2018 11:11:52 -0700 (PDT)
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:46114 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753329AbeGBSLz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2018 14:11:55 -0400
+Received: by mail-wr0-f193.google.com with SMTP id s11-v6so7187912wra.13
+        for <linux-arch@vger.kernel.org>; Mon, 02 Jul 2018 11:11:54 -0700 (PDT)
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v2 0/8] add support for relative references in jump tables
-Date: Mon,  2 Jul 2018 20:11:37 +0200
-Message-ID: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
+Subject: [PATCH v2 1/8] kernel/jump_label: abstract jump_entry member accessors
+Date: Mon,  2 Jul 2018 20:11:38 +0200
+Message-ID: <20180702181145.4799-2-ard.biesheuvel@linaro.org>
+In-Reply-To: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
+References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20180702181137.1GNoTtyhYKV0FTlGx-R-wzdvJ04xFkCq8SjWoCjJCE0@z>
+Message-ID: <20180702181138.lp2yWbrVmPTx_PzCAvTYwt0zAr-KKDmNxydEvefNwok@z>
 
-This series implements support for emitting the data structures associated
-with jump tables as 32-bit relative references instead of absolute
-references, which take up more space on builds that target 64-bit
-architectures, or implement self relocation [or both].
+In preparation of allowing architectures to use relative references
+in jump_label entries [which can dramatically reduce the memory
+footprint], introduce abstractions for references to the 'code',
+'target' and 'key' members of struct jump_entry.
 
-This series enables it for arm64 and x86, although other architectures
-might benefit as well.
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+ include/linux/jump_label.h | 34 +++++++++++++++++
+ kernel/jump_label.c        | 40 ++++++++------------
+ 2 files changed, 49 insertions(+), 25 deletions(-)
 
-Patch #1 does some preparatory refactoring before patch #2 introduces the
-generic pieces required for using relative references.
-
-Patch #3 wires everything up for arm64.
-
-Patch #4 introduces support for handling 64-bit place relative relocations
-on x86_64 (see 'Changes since v1' below)
-
-For x86, patch #5 applies some preparatory changes for the arch specific
-jump label C code, which is a lot more involved than on arm64, which is
-why it is split off in this case. Patch #6 wires it up for x86 as well.
-
-Patch #7 and #8 implement the changes so that the jump_entry arrays reside
-in ro_after_init memory rather than remain fully writable all of the time.
-
-Changes since v1:
-- change the relative reference to the static key to a 64-bit wide one on 64
-  bit architectures; this is necessary on arm64, which allows modules to
-  reside anywhere within a 4 GB window covering the core kernel text, which
-  means a 32-bit signed quantity with its +/- 2 GB range is insufficient.
-  Note that x86_64 changes are in preparation that widen the relocation
-  range as well (using the PIE linker), so I assumed that the same change
-  is appropriate for x86 as well.
-- add patch #4 to handle the relocations emitted by the compiler as a result
-  of the change above
-- added patches to move the jump_entry arrays to ro_after_init memory, so
-  that they are not as easily corrupted or manipulated.
-- add Will's ack to patch #3
-
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ingo Molnar <mingo@redhat.com> 
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Jessica Yu <jeyu@kernel.org> 
-Cc: Peter Zijlstra <peterz@infradead.org>
-
-Ard Biesheuvel (8):
-  kernel/jump_label: abstract jump_entry member accessors
-  kernel/jump_label: implement generic support for relative references
-  arm64/kernel: jump_label: switch to relative references
-  x86: add support for 64-bit place relative relocations
-  x86: jump_label: switch to jump_entry accessors
-  x86/kernel: jump_table: use relative references
-  jump_label: annotate entries that operate on __init code earlier
-  jump_table: move entries into ro_after_init region
-
- arch/Kconfig                        |   3 +
- arch/arm/kernel/vmlinux-xip.lds.S   |   1 +
- arch/arm64/Kconfig                  |   1 +
- arch/arm64/include/asm/jump_label.h |  36 ++++---
- arch/arm64/kernel/jump_label.c      |   6 +-
- arch/s390/kernel/vmlinux.lds.S      |   1 +
- arch/x86/Kconfig                    |   1 +
- arch/x86/include/asm/elf.h          |   1 +
- arch/x86/include/asm/jump_label.h   |  24 ++---
- arch/x86/kernel/jump_label.c        |  62 +++++-------
- arch/x86/kernel/machine_kexec_64.c  |   4 +
- arch/x86/kernel/module.c            |   6 ++
- arch/x86/tools/relocs.c             |  10 ++
- include/asm-generic/vmlinux.lds.h   |  11 ++-
- include/linux/jump_label.h          |  65 ++++++++++++-
- init/main.c                         |   1 -
- kernel/jump_label.c                 | 100 +++++++++-----------
- kernel/module.c                     |   9 ++
- tools/objtool/special.c             |   4 +-
- 19 files changed, 205 insertions(+), 141 deletions(-)
-
+diff --git a/include/linux/jump_label.h b/include/linux/jump_label.h
+index b46b541c67c4..4603a1c88e48 100644
+--- a/include/linux/jump_label.h
++++ b/include/linux/jump_label.h
+@@ -119,6 +119,40 @@ struct static_key {
+ 
+ #ifdef HAVE_JUMP_LABEL
+ #include <asm/jump_label.h>
++
++#ifndef __ASSEMBLY__
++
++static inline unsigned long jump_entry_code(const struct jump_entry *entry)
++{
++	return entry->code;
++}
++
++static inline unsigned long jump_entry_target(const struct jump_entry *entry)
++{
++	return entry->target;
++}
++
++static inline struct static_key *jump_entry_key(const struct jump_entry *entry)
++{
++	return (struct static_key *)((unsigned long)entry->key & ~1UL);
++}
++
++static inline bool jump_entry_is_branch(const struct jump_entry *entry)
++{
++	return (unsigned long)entry->key & 1UL;
++}
++
++static inline bool jump_entry_is_init(const struct jump_entry *entry)
++{
++	return entry->code == 0;
++}
++
++static inline void jump_entry_set_init(struct jump_entry *entry)
++{
++	entry->code = 0;
++}
++
++#endif
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/kernel/jump_label.c b/kernel/jump_label.c
+index 01ebdf1f9f40..8a3ac4f5f490 100644
+--- a/kernel/jump_label.c
++++ b/kernel/jump_label.c
+@@ -38,10 +38,10 @@ static int jump_label_cmp(const void *a, const void *b)
+ 	const struct jump_entry *jea = a;
+ 	const struct jump_entry *jeb = b;
+ 
+-	if (jea->key < jeb->key)
++	if (jump_entry_key(jea) < jump_entry_key(jeb))
+ 		return -1;
+ 
+-	if (jea->key > jeb->key)
++	if (jump_entry_key(jea) > jump_entry_key(jeb))
+ 		return 1;
+ 
+ 	return 0;
+@@ -261,8 +261,8 @@ EXPORT_SYMBOL_GPL(jump_label_rate_limit);
+ 
+ static int addr_conflict(struct jump_entry *entry, void *start, void *end)
+ {
+-	if (entry->code <= (unsigned long)end &&
+-		entry->code + JUMP_LABEL_NOP_SIZE > (unsigned long)start)
++	if (jump_entry_code(entry) <= (unsigned long)end &&
++	    jump_entry_code(entry) + JUMP_LABEL_NOP_SIZE > (unsigned long)start)
+ 		return 1;
+ 
+ 	return 0;
+@@ -321,16 +321,6 @@ static inline void static_key_set_linked(struct static_key *key)
+ 	key->type |= JUMP_TYPE_LINKED;
+ }
+ 
+-static inline struct static_key *jump_entry_key(struct jump_entry *entry)
+-{
+-	return (struct static_key *)((unsigned long)entry->key & ~1UL);
+-}
+-
+-static bool jump_entry_branch(struct jump_entry *entry)
+-{
+-	return (unsigned long)entry->key & 1UL;
+-}
+-
+ /***
+  * A 'struct static_key' uses a union such that it either points directly
+  * to a table of 'struct jump_entry' or to a linked list of modules which in
+@@ -355,7 +345,7 @@ static enum jump_label_type jump_label_type(struct jump_entry *entry)
+ {
+ 	struct static_key *key = jump_entry_key(entry);
+ 	bool enabled = static_key_enabled(key);
+-	bool branch = jump_entry_branch(entry);
++	bool branch = jump_entry_is_branch(entry);
+ 
+ 	/* See the comment in linux/jump_label.h */
+ 	return enabled ^ branch;
+@@ -370,12 +360,12 @@ static void __jump_label_update(struct static_key *key,
+ 		 * An entry->code of 0 indicates an entry which has been
+ 		 * disabled because it was in an init text area.
+ 		 */
+-		if (entry->code) {
+-			if (kernel_text_address(entry->code))
++		if (!jump_entry_is_init(entry)) {
++			if (kernel_text_address(jump_entry_code(entry)))
+ 				arch_jump_label_transform(entry, jump_label_type(entry));
+ 			else
+ 				WARN_ONCE(1, "can't patch jump_label at %pS",
+-					  (void *)(unsigned long)entry->code);
++					  (void *)jump_entry_code(entry));
+ 		}
+ 	}
+ }
+@@ -430,8 +420,8 @@ void __init jump_label_invalidate_initmem(void)
+ 	struct jump_entry *iter;
+ 
+ 	for (iter = iter_start; iter < iter_stop; iter++) {
+-		if (init_section_contains((void *)(unsigned long)iter->code, 1))
+-			iter->code = 0;
++		if (init_section_contains((void *)jump_entry_code(iter), 1))
++			jump_entry_set_init(iter);
+ 	}
+ }
+ 
+@@ -441,7 +431,7 @@ static enum jump_label_type jump_label_init_type(struct jump_entry *entry)
+ {
+ 	struct static_key *key = jump_entry_key(entry);
+ 	bool type = static_key_type(key);
+-	bool branch = jump_entry_branch(entry);
++	bool branch = jump_entry_is_branch(entry);
+ 
+ 	/* See the comment in linux/jump_label.h */
+ 	return type ^ branch;
+@@ -565,7 +555,7 @@ static int jump_label_add_module(struct module *mod)
+ 			continue;
+ 
+ 		key = iterk;
+-		if (within_module(iter->key, mod)) {
++		if (within_module((unsigned long)key, mod)) {
+ 			static_key_set_entries(key, iter);
+ 			continue;
+ 		}
+@@ -615,7 +605,7 @@ static void jump_label_del_module(struct module *mod)
+ 
+ 		key = jump_entry_key(iter);
+ 
+-		if (within_module(iter->key, mod))
++		if (within_module((unsigned long)key, mod))
+ 			continue;
+ 
+ 		/* No memory during module load */
+@@ -659,8 +649,8 @@ static void jump_label_invalidate_module_init(struct module *mod)
+ 	struct jump_entry *iter;
+ 
+ 	for (iter = iter_start; iter < iter_stop; iter++) {
+-		if (within_module_init(iter->code, mod))
+-			iter->code = 0;
++		if (within_module_init(jump_entry_code(iter), mod))
++			jump_entry_set_init(iter);
+ 	}
+ }
+ 
 -- 
 2.17.1
