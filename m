@@ -1,25 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:35772 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752110AbeGBNpP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2018 09:45:15 -0400
-Date: Mon, 2 Jul 2018 06:29:15 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH V2 07/19] csky: MMU and page table management
-Message-ID: <20180702132915.GA6578@infradead.org>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <d07f919cb41ebb500c2e6f6defa6ea5760c22dc5.1530465326.git.ren_guo@c-sky.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <d07f919cb41ebb500c2e6f6defa6ea5760c22dc5.1530465326.git.ren_guo@c-sky.com>
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:34615 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753372AbeGBSMC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2018 14:12:02 -0400
+Received: by mail-wr0-f193.google.com with SMTP id a12-v6so16441015wro.1
+        for <linux-arch@vger.kernel.org>; Mon, 02 Jul 2018 11:12:01 -0700 (PDT)
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: [PATCH v2 4/8] x86: add support for 64-bit place relative relocations
+Date: Mon,  2 Jul 2018 20:11:41 +0200
+Message-ID: <20180702181145.4799-5-ard.biesheuvel@linaro.org>
+In-Reply-To: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
+References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180702132915.K_pJpDTupYi3UYaONEbh7ZUVDZ2-eIN_l2asFyVSrS8@z>
+To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180702181141.F3W4o8na7sHXn8dZa868peMdKWk7AG8oTvaJG7oOpSI@z>
 
-This commit is missing an explanation.
+Add support for R_X86_64_PC64 relocations, which operate on 64-bit
+quantities holding a relative symbol reference. This allows jump
+table entries to be emitted in a way that makes them invariant under
+runtime relocation, which means that no metadata needs to be emitted
+into the kernel image to describe such data structures, resulting in
+a size reduction.
 
-For the dma-mapping code please use the generic kernel/dma/noncoherent.c
-code instead of duplicating it.
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+ arch/x86/include/asm/elf.h         |  1 +
+ arch/x86/kernel/machine_kexec_64.c |  4 ++++
+ arch/x86/kernel/module.c           |  6 ++++++
+ arch/x86/tools/relocs.c            | 10 ++++++++++
+ 4 files changed, 21 insertions(+)
+
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 0d157d2a1e2a..d3925d684296 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -62,6 +62,7 @@ typedef struct user_fxsr_struct elf_fpxregset_t;
+ #define R_X86_64_PC16		13	/* 16 bit sign extended pc relative */
+ #define R_X86_64_8		14	/* Direct 8 bit sign extended  */
+ #define R_X86_64_PC8		15	/* 8 bit sign extended pc relative */
++#define R_X86_64_PC64		24	/* Place relative 64-bit signed */
+ 
+ #define R_X86_64_NUM		16
+ 
+diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
+index 4c8acdfdc5a7..6638d1edb2be 100644
+--- a/arch/x86/kernel/machine_kexec_64.c
++++ b/arch/x86/kernel/machine_kexec_64.c
+@@ -496,6 +496,10 @@ int arch_kexec_apply_relocations_add(struct purgatory_info *pi,
+ 			value -= (u64)address;
+ 			*(u32 *)location = value;
+ 			break;
++		case R_X86_64_PC64:
++			value -= (u64)address;
++			*(u64 *)location = value;
++			break;
+ 		default:
+ 			pr_err("Unknown rela relocation: %llu\n",
+ 			       ELF64_R_TYPE(rel[i].r_info));
+diff --git a/arch/x86/kernel/module.c b/arch/x86/kernel/module.c
+index f58336af095c..b052e883dd8c 100644
+--- a/arch/x86/kernel/module.c
++++ b/arch/x86/kernel/module.c
+@@ -201,6 +201,12 @@ int apply_relocate_add(Elf64_Shdr *sechdrs,
+ 				goto overflow;
+ #endif
+ 			break;
++		case R_X86_64_PC64:
++			if (*(u64 *)loc != 0)
++				goto invalid_relocation;
++			val -= (u64)loc;
++			*(u64 *)loc = val;
++			break;
+ 		default:
+ 			pr_err("%s: Unknown rela relocation: %llu\n",
+ 			       me->name, ELF64_R_TYPE(rel[i].r_info));
+diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
+index 220e97841e49..a4075bc37e8f 100644
+--- a/arch/x86/tools/relocs.c
++++ b/arch/x86/tools/relocs.c
+@@ -195,6 +195,7 @@ static const char *rel_type(unsigned type)
+ #if ELF_BITS == 64
+ 		REL_TYPE(R_X86_64_NONE),
+ 		REL_TYPE(R_X86_64_64),
++		REL_TYPE(R_X86_64_PC64),
+ 		REL_TYPE(R_X86_64_PC32),
+ 		REL_TYPE(R_X86_64_GOT32),
+ 		REL_TYPE(R_X86_64_PLT32),
+@@ -781,6 +782,15 @@ static int do_reloc64(struct section *sec, Elf_Rel *rel, ElfW(Sym) *sym,
+ 			add_reloc(&relocs32neg, offset);
+ 		break;
+ 
++	case R_X86_64_PC64:
++		/*
++		 * Only used by jump labels
++		 */
++		if (is_percpu_sym(sym, symname))
++			die("Invalid R_X86_64_PC64 relocation against per-CPU symbol %s\n",
++			    symname);
++		break;
++
+ 	case R_X86_64_32:
+ 	case R_X86_64_32S:
+ 	case R_X86_64_64:
+-- 
+2.17.1
