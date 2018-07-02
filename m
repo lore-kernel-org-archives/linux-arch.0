@@ -1,151 +1,112 @@
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v2 3/8] arm64/kernel: jump_label: switch to relative references
-Date: Mon,  2 Jul 2018 20:11:40 +0200
-Message-ID: <20180702181145.4799-4-ard.biesheuvel@linaro.org>
+Subject: [PATCH v2 8/8] jump_table: move entries into ro_after_init region
+Date: Mon,  2 Jul 2018 20:11:45 +0200
+Message-ID: <20180702181145.4799-9-ard.biesheuvel@linaro.org>
 References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Will Deacon <will.deacon@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On a randomly chosen distro kernel build for arm64, vmlinux.o shows the
-following sections, containing jump label entries, and the associated
-RELA relocation records, respectively:
+The __jump_table sections emitted into the core kernel and into
+each module consist of statically initialized references into
+other parts of the code, and with the exception of entries that
+point into init code, which are defused at post-init time, these
+data structures are never modified.
 
-  ...
-  [38088] __jump_table      PROGBITS         0000000000000000  00e19f30
-       000000000002ea10  0000000000000000  WA       0     0     8
-  [38089] .rela__jump_table RELA             0000000000000000  01fd8bb0
-       000000000008be30  0000000000000018   I      38178   38088     8
-  ...
+So let's move them into the ro_after_init section, to prevent them
+from being corrupted inadvertently by buggy code, or deliberately
+by an attacker.
 
-In other words, we have 190 KB worth of 'struct jump_entry' instances,
-and 573 KB worth of RELA entries to relocate each entry's code, target
-and key members. This means the RELA section occupies 10% of the .init
-segment, and the two sections combined represent 5% of vmlinux's entire
-memory footprint.
-
-So let's switch from 64-bit absolute references to 32-bit relative
-references for the code and target field, and a 64-bit relative
-reference for the 'key' field (which may reside in another module or the
-core kernel, which may be more than 4 GB way on arm64 when running with
-KASLR enable): this reduces the size of the __jump_table by 33%, and
-gets rid of the RELA section entirely.
-
-Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 ---
- arch/arm64/Kconfig                  |  1 +
- arch/arm64/include/asm/jump_label.h | 36 +++++++++-----------
- arch/arm64/kernel/jump_label.c      |  6 ++--
- 3 files changed, 20 insertions(+), 23 deletions(-)
+ arch/arm/kernel/vmlinux-xip.lds.S |  1 +
+ arch/s390/kernel/vmlinux.lds.S    |  1 +
+ include/asm-generic/vmlinux.lds.h | 11 +++++++----
+ kernel/module.c                   |  9 +++++++++
+ 4 files changed, 18 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 1940c6405d04..d17aa9614e69 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -91,6 +91,7 @@ config ARM64
- 	select HAVE_ARCH_BITREVERSE
- 	select HAVE_ARCH_HUGE_VMAP
- 	select HAVE_ARCH_JUMP_LABEL
-+	select HAVE_ARCH_JUMP_LABEL_RELATIVE
- 	select HAVE_ARCH_KASAN if !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_MMAP_RND_BITS
-diff --git a/arch/arm64/include/asm/jump_label.h b/arch/arm64/include/asm/jump_label.h
-index 1b5e0e843c3a..bb6d15b34668 100644
---- a/arch/arm64/include/asm/jump_label.h
-+++ b/arch/arm64/include/asm/jump_label.h
-@@ -26,13 +26,15 @@
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 3593d5c1acd2..763c41068ecc 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -118,6 +118,7 @@ SECTIONS
+ 	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
+ 	.data.ro_after_init : AT(ADDR(.data.ro_after_init) - LOAD_OFFSET) {
+ 		*(.data..ro_after_init)
++		JUMP_TABLE_DATA
+ 	}
+ 	_edata = .;
  
- #define JUMP_LABEL_NOP_SIZE		AARCH64_INSN_SIZE
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index f0414f52817b..a7cf61e46f88 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -67,6 +67,7 @@ SECTIONS
+ 	__start_ro_after_init = .;
+ 	.data..ro_after_init : {
+ 		 *(.data..ro_after_init)
++		JUMP_TABLE_DATA
+ 	}
+ 	EXCEPTION_TABLE(16)
+ 	. = ALIGN(PAGE_SIZE);
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index e373e2e10f6a..ed6befa4c47b 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -256,10 +256,6 @@
+ 	STRUCT_ALIGN();							\
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+-	. = ALIGN(8);                                                   \
+-	__start___jump_table = .;					\
+-	KEEP(*(__jump_table))                                           \
+-	__stop___jump_table = .;					\
+ 	. = ALIGN(8);							\
+ 	__start___verbose = .;						\
+ 	KEEP(*(__verbose))                                              \
+@@ -303,6 +299,12 @@
+ 	. = __start_init_task + THREAD_SIZE;				\
+ 	__end_init_task = .;
  
--static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
-+static __always_inline bool arch_static_branch(struct static_key *key,
-+					       bool branch)
- {
--	asm goto("1: nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
--		 ".align 3\n\t"
--		 ".quad 1b, %l[l_yes], %c0\n\t"
--		 ".popsection\n\t"
-+	asm goto("1:	nop					\n\t"
-+		 "	.pushsection	__jump_table, \"aw\"	\n\t"
-+		 "	.align		3			\n\t"
-+		 "	.long		1b - ., %l[l_yes] - .	\n\t"
-+		 "	.quad		%c0 - .			\n\t"
-+		 "	.popsection				\n\t"
- 		 :  :  "i"(&((char *)key)[branch]) :  : l_yes);
++#define JUMP_TABLE_DATA							\
++	. = ALIGN(8);							\
++	__start___jump_table = .;					\
++	KEEP(*(__jump_table))						\
++	__stop___jump_table = .;
++
+ /*
+  * Allow architectures to handle ro_after_init data on their
+  * own by defining an empty RO_AFTER_INIT_DATA.
+@@ -311,6 +313,7 @@
+ #define RO_AFTER_INIT_DATA						\
+ 	__start_ro_after_init = .;					\
+ 	*(.data..ro_after_init)						\
++	JUMP_TABLE_DATA							\
+ 	__end_ro_after_init = .;
+ #endif
  
- 	return false;
-@@ -40,13 +42,15 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- 	return true;
- }
+diff --git a/kernel/module.c b/kernel/module.c
+index 7cb82e0fcac0..0d4e320e41cd 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3349,6 +3349,15 @@ static struct module *layout_and_allocate(struct load_info *info, int flags)
+ 	 * Note: ro_after_init sections also have SHF_{WRITE,ALLOC} set.
+ 	 */
+ 	ndx = find_sec(info, ".data..ro_after_init");
++	if (ndx)
++		info->sechdrs[ndx].sh_flags |= SHF_RO_AFTER_INIT;
++	/*
++	 * Mark the __jump_table section as ro_after_init as well: these data
++	 * structures are never modified, with the exception of entries that
++	 * refer to code in the __init section, which are annotated as such
++	 * at module load time.
++	 */
++	ndx = find_sec(info, "__jump_table");
+ 	if (ndx)
+ 		info->sechdrs[ndx].sh_flags |= SHF_RO_AFTER_INIT;
  
--static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
-+static __always_inline bool arch_static_branch_jump(struct static_key *key,
-+						    bool branch)
- {
--	asm goto("1: b %l[l_yes]\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
--		 ".align 3\n\t"
--		 ".quad 1b, %l[l_yes], %c0\n\t"
--		 ".popsection\n\t"
-+	asm goto("1:	b		%l[l_yes]		\n\t"
-+		 "	.pushsection	__jump_table, \"aw\"	\n\t"
-+		 "	.align		3			\n\t"
-+		 "	.long		1b - ., %l[l_yes] - .	\n\t"
-+		 "	.quad		%c0 - .			\n\t"
-+		 "	.popsection				\n\t"
- 		 :  :  "i"(&((char *)key)[branch]) :  : l_yes);
- 
- 	return false;
-@@ -54,13 +58,5 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 	return true;
- }
- 
--typedef u64 jump_label_t;
--
--struct jump_entry {
--	jump_label_t code;
--	jump_label_t target;
--	jump_label_t key;
--};
--
- #endif  /* __ASSEMBLY__ */
- #endif	/* __ASM_JUMP_LABEL_H */
-diff --git a/arch/arm64/kernel/jump_label.c b/arch/arm64/kernel/jump_label.c
-index c2dd1ad3e648..903d17023d77 100644
---- a/arch/arm64/kernel/jump_label.c
-+++ b/arch/arm64/kernel/jump_label.c
-@@ -25,12 +25,12 @@
- void arch_jump_label_transform(struct jump_entry *entry,
- 			       enum jump_label_type type)
- {
--	void *addr = (void *)entry->code;
-+	void *addr = (void *)jump_entry_code(entry);
- 	u32 insn;
- 
- 	if (type == JUMP_LABEL_JMP) {
--		insn = aarch64_insn_gen_branch_imm(entry->code,
--						   entry->target,
-+		insn = aarch64_insn_gen_branch_imm(jump_entry_code(entry),
-+						   jump_entry_target(entry),
- 						   AARCH64_INSN_BRANCH_NOLINK);
- 	} else {
- 		insn = aarch64_insn_gen_nop();
 -- 
 2.17.1
