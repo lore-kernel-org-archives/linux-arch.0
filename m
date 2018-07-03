@@ -1,7 +1,8 @@
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 1/3] ARM: add endianness option to LDFLAGS instead of LD
-Date: Tue,  3 Jul 2018 10:21:59 +0900
-Message-ID: <1530580921-23340-2-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH 3/3] microblaze: add endianness options to LDFLAGS instead of
+ LD
+Date: Tue,  3 Jul 2018 10:22:01 +0900
+Message-ID: <1530580921-23340-4-git-send-email-yamada.masahiro@socionext.com>
 References: <1530580921-23340-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,7 +19,7 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Michal Simek <monstr@monstr.eu>, Russell King <rmk+kernel@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Sam Ravnborg <sam@ravnborg.org>, Russell King <linux@armlinux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
 With the recent syntax extension, Kconfig is now able to evaluate the
@@ -33,27 +34,26 @@ between Makefile and Kconfig.
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
 
- arch/arm/Makefile | 4 ++--
+ arch/microblaze/Makefile | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-index fc26c3d..62ebeae 100644
---- a/arch/arm/Makefile
-+++ b/arch/arm/Makefile
-@@ -46,12 +46,12 @@ ifeq ($(CONFIG_CPU_BIG_ENDIAN),y)
- KBUILD_CPPFLAGS	+= -mbig-endian
- CHECKFLAGS	+= -D__ARMEB__
- AS		+= -EB
--LD		+= -EB
-+LDFLAGS		+= -EB
+diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
+index d269dd4b..7333036 100644
+--- a/arch/microblaze/Makefile
++++ b/arch/microblaze/Makefile
+@@ -40,11 +40,11 @@ CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP_INSTR) += -mxl-pattern-compare
+ ifdef CONFIG_CPU_BIG_ENDIAN
+ KBUILD_CFLAGS += -mbig-endian
+ KBUILD_AFLAGS += -mbig-endian
+-LD += -EB
++LDFLAGS += -EB
  else
- KBUILD_CPPFLAGS	+= -mlittle-endian
- CHECKFLAGS	+= -D__ARMEL__
- AS		+= -EL
--LD		+= -EL
-+LDFLAGS		+= -EL
+ KBUILD_CFLAGS += -mlittle-endian
+ KBUILD_AFLAGS += -mlittle-endian
+-LD += -EL
++LDFLAGS += -EL
  endif
  
- #
+ CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
 -- 
 2.7.4
