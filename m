@@ -1,56 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-11.nifty.com ([210.131.2.78]:46643 "EHLO
-        conuserg-11.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753643AbeGCBYk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2018 21:24:40 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH 2/3] arm64: add endianness option to LDFLAGS instead of LD
-Date: Tue,  3 Jul 2018 10:22:00 +0900
-Message-ID: <1530580921-23340-3-git-send-email-yamada.masahiro@socionext.com>
-In-Reply-To: <1530580921-23340-1-git-send-email-yamada.masahiro@socionext.com>
-References: <1530580921-23340-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:33192 "EHLO
+        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753108AbeGCBcF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2018 21:32:05 -0400
+Received: by mail-pl0-f67.google.com with SMTP id 6-v6so178284plb.0
+        for <linux-arch@vger.kernel.org>; Mon, 02 Jul 2018 18:32:04 -0700 (PDT)
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH] mm: allow arch to supply p??_free_tlb functions
+Date: Tue,  3 Jul 2018 11:31:31 +1000
+Message-ID: <20180703013131.2807-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>, Russell King <rmk+kernel@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Nicholas Piggin <npiggin@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kernel@vger.kernel.org
-Message-ID: <20180703012200.IS_wwxB-RDtTu77D8KUglNptxYBcGyw2wOYb8PAsIIE@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-mm <linux-mm@kvack.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch <linux-arch@vger.kernel.org>, "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Nadav Amit <nadav.amit@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180703013131.d5nLIJiFYutPIicj8n6UW7J_Uji-3mnd-7WcWfkltq8@z>
 
-With the recent syntax extension, Kconfig is now able to evaluate the
-compiler / toolchain capability.
+The mmu_gather APIs keep track of the invalidated address range
+including the span covered by invalidated page table pages. Ranges
+covered by page tables but not ptes (and therefore no TLBs) still need
+to be invalidated because some architectures (x86) can cache
+intermediate page table entries, and invalidate those with normal TLB
+invalidation instructions to be almost-backward-compatible.
 
-However, accumulating flags to 'LD' is not compatible with the way
-it works; 'LD' must be passed to Kconfig to call $(ld-option,...)
-from Kconfig files.  If you tweak 'LD' in arch Makefile depending on
-CONFIG_CPU_BIG_ENDIAN, this would end up with circular dependency
-between Makefile and Kconfig.
+Architectures which don't cache intermediate page table entries, or
+which invalidate these caches separately from TLB invalidation, do not
+require TLB invalidation range expanded over page tables.
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+Allow architectures to supply their own p??_free_tlb functions, which
+can avoid the __tlb_adjust_range.
+
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
+Just wanted your ack/nack on this approach, I just tidied the patch
+and re-did the changelog. We left off with you wondering if overriding
+__tlb_adjust_range for page tables would be the better option, but I
+couldn't see any real benefit over this way. Actually I think this is
+cleaner, powerpc will simply switch the name of its function from
+__pte_free_tlb to pte_free_tlb to take over the tlb management for it.
 
- arch/arm64/Makefile | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+And is this something that you'd merge at this point of the cycle, so
+that arch changes for next window won't include generic code changes or
+have cross tree dependencies?
 
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 4527226..8f73da3 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -60,15 +60,13 @@ ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
- KBUILD_CPPFLAGS	+= -mbig-endian
- CHECKFLAGS	+= -D__AARCH64EB__
- AS		+= -EB
--LD		+= -EB
--LDFLAGS		+= -maarch64linuxb
-+LDFLAGS		+= -EB -maarch64linuxb
- UTS_MACHINE	:= aarch64_be
- else
- KBUILD_CPPFLAGS	+= -mlittle-endian
- CHECKFLAGS	+= -D__AARCH64EL__
- AS		+= -EL
--LD		+= -EL
--LDFLAGS		+= -maarch64linux
-+LDFLAGS		+= -EL -maarch64linux
- UTS_MACHINE	:= aarch64
- endif
+Thanks,
+Nick
+
+ include/asm-generic/tlb.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index faddde44de8c..3063125197ad 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -265,33 +265,41 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
+  * For now w.r.t page table cache, mark the range_size as PAGE_SIZE
+  */
+ 
++#ifndef pte_free_tlb
+ #define pte_free_tlb(tlb, ptep, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+ 		__pte_free_tlb(tlb, ptep, address);		\
+ 	} while (0)
++#endif
+ 
++#ifndef pmd_free_tlb
+ #define pmd_free_tlb(tlb, pmdp, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);		\
+ 		__pmd_free_tlb(tlb, pmdp, address);		\
+ 	} while (0)
++#endif
+ 
+ #ifndef __ARCH_HAS_4LEVEL_HACK
++#ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
++#endif
+ 
+ #ifndef __ARCH_HAS_5LEVEL_HACK
++#ifndef p4d_free_tlb
+ #define p4d_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);		\
+ 		__p4d_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
++#endif
+ 
+ #define tlb_migrate_finish(mm) do {} while (0)
  
 -- 
-2.7.4
+2.17.0
