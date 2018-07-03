@@ -1,47 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49872 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932198AbeGCDeE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 2 Jul 2018 23:34:04 -0400
-Received: from mail-wm0-f43.google.com (mail-wm0-f43.google.com [74.125.82.43])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id DA49F24EE1
-        for <linux-arch@vger.kernel.org>; Tue,  3 Jul 2018 03:34:03 +0000 (UTC)
-Received: by mail-wm0-f43.google.com with SMTP id w16-v6so669187wmc.2
-        for <linux-arch@vger.kernel.org>; Mon, 02 Jul 2018 20:34:03 -0700 (PDT)
-MIME-Version: 1.0
-References: <cover.1530465325.git.ren_guo@c-sky.com> <a26901aab87306c389e656a3ef200adfbc5195c0.1530465325.git.ren_guo@c-sky.com>
-In-Reply-To: <a26901aab87306c389e656a3ef200adfbc5195c0.1530465325.git.ren_guo@c-sky.com>
-From: Rob Herring <robh@kernel.org>
-Date: Mon, 2 Jul 2018 21:33:51 -0600
-Message-ID: <CABGGiswb+SmdAi9qV80Yum3Uf=ohrSMpZKWkvJXK8n=GjTzxhQ@mail.gmail.com>
-Subject: Re: [PATCH V2 01/19] csky: Build infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:43709 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754329AbeGCFos (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jul 2018 01:44:48 -0400
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH 0/6] Introduce struct __kernel_timex
+Date: Mon,  2 Jul 2018 22:44:16 -0700
+Message-ID: <20180703054422.12089-1-deepa.kernel@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ren_guo@c-sky.com
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, Arnd Bergmann <arnd@arndb.de>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180703033351.BUsYso4M1svlNgRLKnj77mQgp4DqzhQgliBY8-3RSy4@z>
+To: tglx@linutronix.de, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, y2038@lists.linaro.org, catalin.marinas@arm.com, davem@davemloft.net, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20180703054416.cSDvWfPciEoUA9wfPQRoY1MuS4b12KkulpLuEfr7VHQ@z>
 
-On Sun, Jul 1, 2018 at 11:36 AM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> ---
+The series introduces struct __kernel_timex as a substitute for
+the non y2038 safe struct timex.
 
-[...]
+The series is based on the original series posted by Arnd Bergmann
+in [1].
 
-> +config CSKY_BUILTIN_DTB
-> +       bool "Use kernel builtin dtb"
-> +
-> +config CSKY_BUILTIN_DTB_NAME
-> +       string "kernel builtin dtb name"
-> +       depends on CSKY_BUILTIN_DTB
-> +endmenu
+The overview of the series is as below:
+1. Prepare for the compat timex interfaces to be used unconditionally.
+2. Introduce struct __kernel_timex.
+3. Use struct __kernel_timex in place of struct timex.
+4. Switch syscalls to use struct __kernel_timex.
 
-These options generally exist for backwards compatibility with legacy
-bootloaders that don't support DT which shouldn't apply here given
-this is a new arch. If we need this for other reasons, it should not
-be an architecture specific option.
+Deepa Dinamani (6):
+  arm64: Make basic compat_* types always available
+  sparc: Make thread_info.h available directly
+  timex: prepare compat helpers for y2038 changes
+  time: Add struct __kernel_timex
+  timex: use __kernel_timex internally
+  timex: change syscalls to use struct __kernel_timex
 
-Rob
+ arch/alpha/kernel/osf_sys.c     |  2 +-
+ arch/arm64/include/asm/compat.h | 22 ++++-----
+ arch/sparc/include/asm/compat.h |  2 +
+ drivers/ptp/ptp_clock.c         |  2 +-
+ include/asm-generic/compat.h    |  8 +++-
+ include/linux/compat.h          | 33 --------------
+ include/linux/compat_time.h     | 34 ++++++++++++++
+ include/linux/posix-clock.h     |  2 +-
+ include/linux/syscalls.h        |  5 +--
+ include/linux/timex.h           |  9 +++-
+ include/uapi/linux/timex.h      | 41 +++++++++++++++++
+ kernel/compat.c                 | 63 --------------------------
+ kernel/time/ntp.c               | 12 ++---
+ kernel/time/ntp_internal.h      |  2 +-
+ kernel/time/posix-clock.c       |  2 +-
+ kernel/time/posix-timers.c      | 14 ++----
+ kernel/time/posix-timers.h      |  2 +-
+ kernel/time/time.c              | 80 ++++++++++++++++++++++++++++++---
+ kernel/time/timekeeping.c       |  4 +-
+ 19 files changed, 198 insertions(+), 141 deletions(-)
+
+
+base-commit: 69877f06915f1c7a9f1704442993bcc12c13ace2
+-- 
+2.17.1
+
+Cc: catalin.marinas@arm.com
+Cc: davem@davemloft.net
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: netdev@vger.kernel.org
