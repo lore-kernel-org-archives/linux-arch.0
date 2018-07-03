@@ -1,128 +1,58 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 8/8] jump_table: move entries into ro_after_init region
-Date: Mon, 2 Jul 2018 11:29:55 -0700
-Message-ID: <CAGXu5jK0_vjuaig1Wz=TGyWh81LXg0zbGkoJDR-_YYig6yTqng@mail.gmail.com>
-References: <20180702181145.4799-1-ard.biesheuvel@linaro.org> <20180702181145.4799-9-ard.biesheuvel@linaro.org>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH 0/3] arm, arm64,
+ microblaze: add endianness options to LDFLAGS instead of LD
+Date: Tue,  3 Jul 2018 10:21:58 +0900
+Message-ID: <1530580921-23340-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180702181145.4799-9-ard.biesheuvel@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Michal Simek <monstr@monstr.eu>, Russell King <rmk+kernel@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Russell King <linux@armlinux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 2, 2018 at 11:11 AM, Ard Biesheuvel
-<ard.biesheuvel@linaro.org> wrote:
-> The __jump_table sections emitted into the core kernel and into
-> each module consist of statically initialized references into
-> other parts of the code, and with the exception of entries that
-> point into init code, which are defused at post-init time, these
-> data structures are never modified.
->
-> So let's move them into the ro_after_init section, to prevent them
-> from being corrupted inadvertently by buggy code, or deliberately
-> by an attacker.
->
-> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 
-Yay more things read-only! :)
+We are able to evaluate compiler / toolchain capability in the
+Kconfig phase.
+(If you do not know the background of this work, please read
+ the commit log of 316d55d55f49eca442e4fd948f5fa92bab0c8312)
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+To achieve this, 'CC', 'LD', etc. must be passed to Kconfig.
 
-> ---
->  arch/arm/kernel/vmlinux-xip.lds.S |  1 +
->  arch/s390/kernel/vmlinux.lds.S    |  1 +
->  include/asm-generic/vmlinux.lds.h | 11 +++++++----
->  kernel/module.c                   |  9 +++++++++
->  4 files changed, 18 insertions(+), 4 deletions(-)
->
-> diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-> index 3593d5c1acd2..763c41068ecc 100644
-> --- a/arch/arm/kernel/vmlinux-xip.lds.S
-> +++ b/arch/arm/kernel/vmlinux-xip.lds.S
-> @@ -118,6 +118,7 @@ SECTIONS
->         RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
->         .data.ro_after_init : AT(ADDR(.data.ro_after_init) - LOAD_OFFSET) {
->                 *(.data..ro_after_init)
-> +               JUMP_TABLE_DATA
->         }
->         _edata = .;
->
-> diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-> index f0414f52817b..a7cf61e46f88 100644
-> --- a/arch/s390/kernel/vmlinux.lds.S
-> +++ b/arch/s390/kernel/vmlinux.lds.S
-> @@ -67,6 +67,7 @@ SECTIONS
->         __start_ro_after_init = .;
->         .data..ro_after_init : {
->                  *(.data..ro_after_init)
-> +               JUMP_TABLE_DATA
->         }
->         EXCEPTION_TABLE(16)
->         . = ALIGN(PAGE_SIZE);
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index e373e2e10f6a..ed6befa4c47b 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -256,10 +256,6 @@
->         STRUCT_ALIGN();                                                 \
->         *(__tracepoints)                                                \
->         /* implement dynamic printk debug */                            \
-> -       . = ALIGN(8);                                                   \
-> -       __start___jump_table = .;                                       \
-> -       KEEP(*(__jump_table))                                           \
-> -       __stop___jump_table = .;                                        \
->         . = ALIGN(8);                                                   \
->         __start___verbose = .;                                          \
->         KEEP(*(__verbose))                                              \
-> @@ -303,6 +299,12 @@
->         . = __start_init_task + THREAD_SIZE;                            \
->         __end_init_task = .;
->
-> +#define JUMP_TABLE_DATA                                                        \
-> +       . = ALIGN(8);                                                   \
-> +       __start___jump_table = .;                                       \
-> +       KEEP(*(__jump_table))                                           \
-> +       __stop___jump_table = .;
-> +
->  /*
->   * Allow architectures to handle ro_after_init data on their
->   * own by defining an empty RO_AFTER_INIT_DATA.
-> @@ -311,6 +313,7 @@
->  #define RO_AFTER_INIT_DATA                                             \
->         __start_ro_after_init = .;                                      \
->         *(.data..ro_after_init)                                         \
-> +       JUMP_TABLE_DATA                                                 \
->         __end_ro_after_init = .;
->  #endif
->
-> diff --git a/kernel/module.c b/kernel/module.c
-> index 7cb82e0fcac0..0d4e320e41cd 100644
-> --- a/kernel/module.c
-> +++ b/kernel/module.c
-> @@ -3349,6 +3349,15 @@ static struct module *layout_and_allocate(struct load_info *info, int flags)
->          * Note: ro_after_init sections also have SHF_{WRITE,ALLOC} set.
->          */
->         ndx = find_sec(info, ".data..ro_after_init");
-> +       if (ndx)
-> +               info->sechdrs[ndx].sh_flags |= SHF_RO_AFTER_INIT;
-> +       /*
-> +        * Mark the __jump_table section as ro_after_init as well: these data
-> +        * structures are never modified, with the exception of entries that
-> +        * refer to code in the __init section, which are annotated as such
-> +        * at module load time.
-> +        */
-> +       ndx = find_sec(info, "__jump_table");
->         if (ndx)
->                 info->sechdrs[ndx].sh_flags |= SHF_RO_AFTER_INIT;
->
-> --
-> 2.17.1
->
+arch/*/Makefile should not tweak such environment variables
+depending on CONFIG options - this would cause circular dependency.
+  - We want to pass $(LD) from Makefile to Kconfig
+  - CONFIG_CPU_BIG_ENDIAN is defined by Kconfig, then given
+    back to Makefile
+
+Nicholas already fixed this issue for PowerPC in commit 1421dc6d48296a.
+
+I need to fix arm, arm64, microblaze as well
+before I start moving linker option tests to Kconfig from Makefile.
+
+arch maintainers:
+Please pick up a proper patch for your tree.
 
 
+
+Masahiro Yamada (3):
+  ARM: add endianness option to LDFLAGS instead of LD
+  arm64: add endianness option to LDFLAGS instead of LD
+  microblaze: add endianness options to LDFLAGS instead of LD
+
+ arch/arm/Makefile        | 4 ++--
+ arch/arm64/Makefile      | 6 ++----
+ arch/microblaze/Makefile | 4 ++--
+ 3 files changed, 6 insertions(+), 8 deletions(-)
 
 -- 
-Kees Cook
-Pixel Security
+2.7.4
