@@ -1,35 +1,57 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH V2 01/19] csky: Build infrastructure
-Date: Mon, 2 Jul 2018 21:33:51 -0600
-Message-ID: <CABGGiswb+SmdAi9qV80Yum3Uf=ohrSMpZKWkvJXK8n=GjTzxhQ@mail.gmail.com>
-References: <cover.1530465325.git.ren_guo@c-sky.com> <a26901aab87306c389e656a3ef200adfbc5195c0.1530465325.git.ren_guo@c-sky.com>
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH 0/6] Introduce struct __kernel_timex
+Date: Mon,  2 Jul 2018 22:44:16 -0700
+Message-ID: <20180703054422.12089-1-deepa.kernel@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <a26901aab87306c389e656a3ef200adfbc5195c0.1530465325.git.ren_guo@c-sky.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: ren_guo@c-sky.com
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, Arnd Bergmann <arnd@arndb.de>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: tglx@linutronix.de, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, catalin.marinas@arm.com, linux-alpha@vger.kernel.org, netdev@vger.kernel.org, linux-api@vger.kernel.org, davem@davemloft.net
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jul 1, 2018 at 11:36 AM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> ---
-
-[...]
-
-> +config CSKY_BUILTIN_DTB
-> +       bool "Use kernel builtin dtb"
-> +
-> +config CSKY_BUILTIN_DTB_NAME
-> +       string "kernel builtin dtb name"
-> +       depends on CSKY_BUILTIN_DTB
-> +endmenu
-
-These options generally exist for backwards compatibility with legacy
-bootloaders that don't support DT which shouldn't apply here given
-this is a new arch. If we need this for other reasons, it should not
-be an architecture specific option.
-
-Rob
+VGhlIHNlcmllcyBpbnRyb2R1Y2VzIHN0cnVjdCBfX2tlcm5lbF90aW1leCBhcyBhIHN1YnN0aXR1
+dGUgZm9yCnRoZSBub24geTIwMzggc2FmZSBzdHJ1Y3QgdGltZXguCgpUaGUgc2VyaWVzIGlzIGJh
+c2VkIG9uIHRoZSBvcmlnaW5hbCBzZXJpZXMgcG9zdGVkIGJ5IEFybmQgQmVyZ21hbm4KaW4gWzFd
+LgoKVGhlIG92ZXJ2aWV3IG9mIHRoZSBzZXJpZXMgaXMgYXMgYmVsb3c6CjEuIFByZXBhcmUgZm9y
+IHRoZSBjb21wYXQgdGltZXggaW50ZXJmYWNlcyB0byBiZSB1c2VkIHVuY29uZGl0aW9uYWxseS4K
+Mi4gSW50cm9kdWNlIHN0cnVjdCBfX2tlcm5lbF90aW1leC4KMy4gVXNlIHN0cnVjdCBfX2tlcm5l
+bF90aW1leCBpbiBwbGFjZSBvZiBzdHJ1Y3QgdGltZXguCjQuIFN3aXRjaCBzeXNjYWxscyB0byB1
+c2Ugc3RydWN0IF9fa2VybmVsX3RpbWV4LgoKRGVlcGEgRGluYW1hbmkgKDYpOgogIGFybTY0OiBN
+YWtlIGJhc2ljIGNvbXBhdF8qIHR5cGVzIGFsd2F5cyBhdmFpbGFibGUKICBzcGFyYzogTWFrZSB0
+aHJlYWRfaW5mby5oIGF2YWlsYWJsZSBkaXJlY3RseQogIHRpbWV4OiBwcmVwYXJlIGNvbXBhdCBo
+ZWxwZXJzIGZvciB5MjAzOCBjaGFuZ2VzCiAgdGltZTogQWRkIHN0cnVjdCBfX2tlcm5lbF90aW1l
+eAogIHRpbWV4OiB1c2UgX19rZXJuZWxfdGltZXggaW50ZXJuYWxseQogIHRpbWV4OiBjaGFuZ2Ug
+c3lzY2FsbHMgdG8gdXNlIHN0cnVjdCBfX2tlcm5lbF90aW1leAoKIGFyY2gvYWxwaGEva2VybmVs
+L29zZl9zeXMuYyAgICAgfCAgMiArLQogYXJjaC9hcm02NC9pbmNsdWRlL2FzbS9jb21wYXQuaCB8
+IDIyICsrKystLS0tLQogYXJjaC9zcGFyYy9pbmNsdWRlL2FzbS9jb21wYXQuaCB8ICAyICsKIGRy
+aXZlcnMvcHRwL3B0cF9jbG9jay5jICAgICAgICAgfCAgMiArLQogaW5jbHVkZS9hc20tZ2VuZXJp
+Yy9jb21wYXQuaCAgICB8ICA4ICsrKy0KIGluY2x1ZGUvbGludXgvY29tcGF0LmggICAgICAgICAg
+fCAzMyAtLS0tLS0tLS0tLS0tLQogaW5jbHVkZS9saW51eC9jb21wYXRfdGltZS5oICAgICB8IDM0
+ICsrKysrKysrKysrKysrCiBpbmNsdWRlL2xpbnV4L3Bvc2l4LWNsb2NrLmggICAgIHwgIDIgKy0K
+IGluY2x1ZGUvbGludXgvc3lzY2FsbHMuaCAgICAgICAgfCAgNSArLS0KIGluY2x1ZGUvbGludXgv
+dGltZXguaCAgICAgICAgICAgfCAgOSArKystCiBpbmNsdWRlL3VhcGkvbGludXgvdGltZXguaCAg
+ICAgIHwgNDEgKysrKysrKysrKysrKysrKysKIGtlcm5lbC9jb21wYXQuYyAgICAgICAgICAgICAg
+ICAgfCA2MyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQoga2VybmVsL3RpbWUvbnRwLmMgICAg
+ICAgICAgICAgICB8IDEyICsrLS0tCiBrZXJuZWwvdGltZS9udHBfaW50ZXJuYWwuaCAgICAgIHwg
+IDIgKy0KIGtlcm5lbC90aW1lL3Bvc2l4LWNsb2NrLmMgICAgICAgfCAgMiArLQoga2VybmVsL3Rp
+bWUvcG9zaXgtdGltZXJzLmMgICAgICB8IDE0ICsrLS0tLQoga2VybmVsL3RpbWUvcG9zaXgtdGlt
+ZXJzLmggICAgICB8ICAyICstCiBrZXJuZWwvdGltZS90aW1lLmMgICAgICAgICAgICAgIHwgODAg
+KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrLS0tCiBrZXJuZWwvdGltZS90aW1la2VlcGlu
+Zy5jICAgICAgIHwgIDQgKy0KIDE5IGZpbGVzIGNoYW5nZWQsIDE5OCBpbnNlcnRpb25zKCspLCAx
+NDEgZGVsZXRpb25zKC0pCgoKYmFzZS1jb21taXQ6IDY5ODc3ZjA2OTE1ZjFjN2E5ZjE3MDQ0NDI5
+OTNiY2MxMmMxM2FjZTIKLS0gCjIuMTcuMQoKQ2M6IGNhdGFsaW4ubWFyaW5hc0Bhcm0uY29tCkNj
+OiBkYXZlbUBkYXZlbWxvZnQubmV0CkNjOiBsaW51eC1hbHBoYUB2Z2VyLmtlcm5lbC5vcmcKQ2M6
+IGxpbnV4LWFwaUB2Z2VyLmtlcm5lbC5vcmcKQ2M6IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3Jn
+CkNjOiBuZXRkZXZAdmdlci5rZXJuZWwub3JnCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8u
+b3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
