@@ -1,8 +1,9 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:37892 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:37944 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752387AbeGCX6G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 3 Jul 2018 19:58:06 -0400
+        id S1753179AbeGDADE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Jul 2018 20:03:04 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
 References: <20180622194752.11221-1-logang@deltatee.com>
  <20180622194752.11221-7-logang@deltatee.com>
  <CAOMZO5DpwPsidKQ9wfe8mNTgdOpkdHHgqHMa4yQBx9uRrfFmww@mail.gmail.com>
@@ -15,11 +16,11 @@ References: <20180622194752.11221-1-logang@deltatee.com>
  <CAOMZO5CJ_iG=p_+xL=Q_Rv3F5vtGggsgatar4XVTL+UFVnHBTA@mail.gmail.com>
  <7ddda181-6337-32cc-7a0d-43fc6a7ba78b@deltatee.com>
  <CAHp75VcN=pUkFK6=_7yErMRGNS3WsgBhkWMSwP0Cw_ZmGR=RJg@mail.gmail.com>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com>
-Date: Tue, 3 Jul 2018 17:57:55 -0600
+ <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com>
+Message-ID: <6d8df4be-a2da-5ddb-3b13-ca47d903ac80@deltatee.com>
+Date: Tue, 3 Jul 2018 18:02:53 -0600
 MIME-Version: 1.0
-In-Reply-To: <CAHp75VcN=pUkFK6=_7yErMRGNS3WsgBhkWMSwP0Cw_ZmGR=RJg@mail.gmail.com>
+In-Reply-To: <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
@@ -29,36 +30,25 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andy Shevchenko <andy.shevchenko@gmail.com>
 Cc: Fabio Estevam <festevam@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20180703235755.KILIUiF1sqsxnH3j4coocbe8UtcjmD_VBi_V1GaDoZQ@z>
+Message-ID: <20180704000253.JUlhzhDG_GbFcoXu6Eia-BFHn1-Wftc4uRBz1ECzRyc@z>
 
 
 
-On 03/07/18 04:21 PM, Andy Shevchenko wrote:
-> It is an explicit call to BUG().
-> That's why we see wrong instruction trap.
+On 03/07/18 05:57 PM, Logan Gunthorpe wrote:
+> To confirm, can you try the patch below?
 
-Ok, I think I see the problem... the code is rather confusing:
-
-Prior to the patch, IOs were BE depending on caam_little_end but if
-caam_imx was set, then it wrote two LE writes with the high one first.
-After the patch, it writes two BE writes with the high one first.
-
-To confirm, can you try the patch below?
-
-If this is the case, we can either revert the commit or fold in this
-patch depending on what others think is clearer.
-
-Thanks,
+Actually, scratch that: try this patch as I forgot the read side on the
+previous one.
 
 Logan
 
 --
 
 diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
-index 5826acd9194e..5f70c460da25 100644
+index 5826acd9194e..796ff764dcbf 100644
 --- a/drivers/crypto/caam/regs.h
 +++ b/drivers/crypto/caam/regs.h
-@@ -138,10 +138,14 @@ static inline void clrsetbits_32(void __iomem
+@@ -138,18 +138,26 @@ static inline void clrsetbits_32(void __iomem
 *reg, u32 clear, u32 set)
   */
  static inline void wr_reg64(void __iomem *reg, u64 data)
@@ -76,3 +66,17 @@ index 5826acd9194e..5f70c460da25 100644
  }
 
  static inline u64 rd_reg64(void __iomem *reg)
+ {
+-       if (!caam_imx && caam_little_end)
++       if (caam_imx && caam_little_end) {
++               return ((u64)ioread32(reg) << 32) |
++                       (u64)ioread32(reg + sizeof(u32));
++       } else if (caam_little_end) {
+                return ioread64(reg);
+-       else
++       } else {
+                return ioread64be(reg);
++       }
+ }
+
+ static inline u64 cpu_to_caam_dma64(dma_addr_t value)
