@@ -1,144 +1,28 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 05/19] csky: System Call
-Date: Wed, 4 Jul 2018 19:49:52 +0800
-Message-ID: <20180704114952.GB22857@guoren>
+Subject: Re: [PATCH V2 19/19] irqchip: add C-SKY irqchip drivers
+Date: Wed, 4 Jul 2018 19:58:17 +0800
+Message-ID: <20180704115817.GA24372@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <1005fef6031efbee4b5041ee286c053dd97670e6.1530465326.git.ren_guo@c-sky.com>
- <CAK8P3a3djWfXAKBL6WnJb4t5C2bcYGE-JT+zCoefLBUnksduXw@mail.gmail.com>
+ <b940404f1994ecb839fe6f09f6b6f3cfe81ee5fe.1530465326.git.ren_guo@c-sky.com>
+ <alpine.DEB.2.21.1807031100280.1601@nanos.tec.linutronix.de>
+ <20180704050822.GA23536@guoren>
+ <alpine.DEB.2.21.1807040841080.1816@nanos.tec.linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a3djWfXAKBL6WnJb4t5C2bcYGE-JT+zCoefLBUnksduXw@mail.gmail.com>
+In-Reply-To: <alpine.DEB.2.21.1807040841080.1816@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 03, 2018 at 09:53:48PM +0200, Arnd Bergmann wrote:
-> We really need all new architectures to use the generic syscall ABI,
-> see below for the details.
-Ok, follow the rules.
-
-> > +#define __ARCH_WANT_OLD_READDIR
-> > +#define __ARCH_WANT_RENAMEAT
-> > +#define __ARCH_WANT_STAT64
-> > +#define __ARCH_WANT_SYS_ALARM
-> > +#define __ARCH_WANT_SYS_CLONE
-> > +#define __ARCH_WANT_SYS_FORK
-> > +#define __ARCH_WANT_SYS_GETHOSTNAME
-> > +#define __ARCH_WANT_SYS_GETPGRP
-> > +#define __ARCH_WANT_SYS_IPC
-> > +#define __ARCH_WANT_SYS_LLSEEK
-> > +#define __ARCH_WANT_SYS_NICE
-> > +#define __ARCH_WANT_SYS_OLD_GETRLIMIT
-> > +#define __ARCH_WANT_SYS_OLDUMOUNT
-> > +#define __ARCH_WANT_SYS_PAUSE
-> > +#define __ARCH_WANT_SYS_SIGNAL
-> > +#define __ARCH_WANT_SYS_SIGPENDING
-> > +#define __ARCH_WANT_SYS_SIGPROCMASK
-> > +#define __ARCH_WANT_SYS_SOCKETCALL
-> > +#define __ARCH_WANT_SYS_TIME
-> > +#define __ARCH_WANT_SYS_UTIME
-> > +#define __ARCH_WANT_SYS_VFORK
-> > +#define __ARCH_WANT_SYS_WAITPID
+On Wed, Jul 04, 2018 at 08:43:29AM +0200, Thomas Gleixner wrote:
+> > Do you mean merge irq-csky-v1.c irq-csky-v2.c irq-nationalchip.c into
+> > one file eg: irq-csky.c? 
 > 
-> I think these all need to be removed, with the exception of
-> __ARCH_WANT_SYS_CLONE. It would be nice though to change
-> the imlpementation in the kernel so we no longer need to set that
-> either.
-Ok.
-
- 
-> > +#define __NR_set_thread_area   (__NR_arch_specific_syscall + 0)
-> > +__SYSCALL(__NR_set_thread_area, sys_set_thread_area)
-> > +#define __NR_ipc               (__NR_arch_specific_syscall + 1)
-> > +__SYSCALL(__NR_ipc, sys_ipc)
-> > +#define __NR_socketcall                (__NR_arch_specific_syscall + 2)
-> > +__SYSCALL(__NR_socketcall, sys_socketcall)
-> > +#define __NR_ugetrlimit                (__NR_arch_specific_syscall + 3)
-> > +__SYSCALL(__NR_ugetrlimit, sys_getrlimit)
-> > +#define __NR_cacheflush                (__NR_arch_specific_syscall + 4)
-> > +__SYSCALL(__NR_cacheflush, sys_cacheflush)
-> > +#define __NR_sysfs             (__NR_arch_specific_syscall + 5)
-> > +__SYSCALL(__NR_sysfs, sys_sysfs)
-> > +
-> > +__SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
-> 
-> We definitely don't want ipc, socketcall, ugetrlimit, or sysfs.
-Ok, remove them.
- 
-> For fadvise64_64, please redefine the symbol name so the
-> table points at the right entry.
-We need exchange the args for abiv1. loff_t is 64bit and abiv1 need
-8-bytes align in args.
-/*
- * for abiv1 the 64bits args should be even th, So we need mov the advice forward.
- */
-SYSCALL_DEFINE4(csky_fadvise64_64,
-	int, fd,
-	int, advice,
-	loff_t, offset,
-	loff_t, len)
-{
-	return sys_fadvise64_64(fd, offset, len, advice);
-}
-
-> 
-> I'm not completely sure about set_thread_area, can you explain
-> what you need that for?
-In abiv1 there is no tls register, so we use "trap 3" for csky_get_tls
-defined in arch/csky/kernel/entry.S to get tls.
-
-Also we use set_thread_area to set tls in kernel.
-
-For abiv2 it has r31 for tls-reg, but we still keep the mechanism.
-
-> > +#define __NR_setgroups32       __NR_setgroups
-> > +#define __NR_getgid32          __NR_getgid
-> > +#define __NR_getgroups32       __NR_getgroups
-> > +#define __NR_setuid32          __NR_setuid
-> > +#define __NR_setgid32          __NR_setgid
-> > +#define __NR_getresgid32       __NR_getresgid
-> > +#define __NR_setfsuid32                __NR_setfsuid
-> > +#define __NR_setfsgid32                __NR_setfsgid
-> > +#define __NR_fchown32          __NR_fchown
-> > +#define __NR_geteuid32         __NR_geteuid
-> > +#define __NR_getegid32         __NR_getegid
-> > +#define __NR_getresuid32       __NR_getresuid
-> > +#define __NR_setresuid32       __NR_setresuid
-> > +#define __NR_setresgid32       __NR_setresgid
-> > +#define __NR_setreuid32                __NR_setreuid
-> > +#define __NR_setregid32                __NR_setregid
-> > +#define __NR__llseek           __NR_llseek
-> 
-> These should also get removed.
-Ok.
-
-> > +struct mmap_arg_struct {
-> > +       unsigned long addr;
-> > +       unsigned long len;
-> > +       unsigned long prot;
-> > +       unsigned long flags;
-> > +       unsigned long fd;
-> > +       unsigned long offset;
-> > +};
-> > +
-> > +SYSCALL_DEFINE1(mmap,
-> > +       struct mmap_arg_struct *, arg)
-> > +{
-> > +       struct mmap_arg_struct a;
-> > +
-> > +       if (copy_from_user(&a, arg, sizeof(a)))
-> > +               return -EINVAL;
-> > +
-> > +       if (unlikely(a.offset & ~PAGE_MASK))
-> > +               return -EINVAL;
-> > +
-> > +       return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset >> PAGE_SHIFT);
-> > +}
-> 
-> This can be removed since there is mmap2()
-Ok.
+> Yes, but only if there is enough code to share without creating an ifdef
+> mess. But that looks doable
+Ok, I'll try.
 
  Guo Ren
