@@ -1,184 +1,154 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH v2 0/8] add support for relative references in jump tables
-Date: Wed, 4 Jul 2018 10:50:02 +0200
-Message-ID: <CAKv+Gu-O3mMJHH2P7L9anXeKZtEQYcN8Am4-3xkzAQSFWUN+=w@mail.gmail.com>
-References: <20180702181145.4799-1-ard.biesheuvel@linaro.org> <20180704075923.GF3701@osiris>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 18/19] clocksource: add C-SKY clocksource drivers
+Date: Wed, 4 Jul 2018 18:49:58 +0800
+Message-ID: <20180704104957.GB23536@guoren>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+ <aba005fd5005c066a2e3d760c334bb55f902d771.1530465326.git.ren_guo@c-sky.com>
+ <alpine.DEB.2.21.1807031130050.1601@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180704075923.GF3701@osiris>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.21.1807031130050.1601@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 4 July 2018 at 09:59, Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
-> On Mon, Jul 02, 2018 at 08:11:37PM +0200, Ard Biesheuvel wrote:
->> This series implements support for emitting the data structures associated
->> with jump tables as 32-bit relative references instead of absolute
->> references, which take up more space on builds that target 64-bit
->> architectures, or implement self relocation [or both].
->>
->> This series enables it for arm64 and x86, although other architectures
->> might benefit as well.
->
-> Hello Ard,
->
-> feel free to add the patch below which adds support for s390 to your series.
->
+On Tue, Jul 03, 2018 at 11:39:05AM +0200, Thomas Gleixner wrote:
+> -EEMPTYCHANGELOG
+Ok
 
-Thanks, I will incorporate it into v3 and beyond.
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
+> 
+> newline please
+Ok
 
->> Changes since v1:
->> - change the relative reference to the static key to a 64-bit wide one on 64
->>   bit architectures; this is necessary on arm64, which allows modules to
->>   reside anywhere within a 4 GB window covering the core kernel text, which
->>   means a 32-bit signed quantity with its +/- 2 GB range is insufficient.
->>   Note that x86_64 changes are in preparation that widen the relocation
->>   range as well (using the PIE linker), so I assumed that the same change
->>   is appropriate for x86 as well.
->
-> FWIW, kernel modules on s390 are since ages more than 2GB away from the
-> core kernel text. So this is required for s390 as well.
->
+> > +#define BITS_CSKY_TIMER	56
+> > +
+> > +DECLARE_PER_CPU(struct timer_of, csky_to);
+> 
+> static?
+Ok.
 
-OK, good to know.
+> 
+> > +
+> > +static int csky_timer_irq;
+> > +static int csky_timer_rate;
+> > +
+> > +static inline u64 get_ccvr(void)
+> > +{
+> > +	u32 lo, hi, t;
+> > +
+> > +	do {
+> > +		hi = mfcr(PTIM_CCVR_HI);
+> > +		lo = mfcr(PTIM_CCVR_LO);
+> > +		t  = mfcr(PTIM_CCVR_HI);
+> > +	} while(t != hi);
+> 
+> No idea which frequency this timer ticks at, but if the 32 bit wrap does
+> not come too fast, then you really should avoid that loop. That function is
+> called very frequently.
 
--- 
-Ard.
+0000006c <clksrc_read>:
+		hi = mfcr(PTIM_CCVR_HI);
+  6c:	c1c26023 	mfcr      	r3, cr<2, 14>
+		lo = mfcr(PTIM_CCVR_LO);
+  70:	c1c36021 	mfcr      	r1, cr<3, 14>
+		t  = mfcr(PTIM_CCVR_HI);
+  74:	c1c26022 	mfcr      	r2, cr<2, 14>
+	} while(t != hi);
+  78:	648e      	cmpne      	r3, r2
+  7a:	0bf9      	bt      	0x6c	// 6c <clksrc_read>
 
+When two read cr<2, 14> is not equal, we'll retry. So only when
+CCVR_LO is at 0xffffffff between the two read of CCVR_HI. That's very
+very small probability event for "bt 0x6c".
 
-> From 77d87236f3d5474f33c25534d8ba2c7c54c88c55 Mon Sep 17 00:00:00 2001
-> From: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Date: Wed, 4 Jul 2018 09:13:37 +0200
-> Subject: [PATCH] s390/jump_label: switch to relative references
->
-> Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
-> ---
->  arch/s390/Kconfig                  |  1 +
->  arch/s390/include/asm/jump_label.h | 40 +++++++++++++++-----------------------
->  arch/s390/kernel/jump_label.c      | 11 ++++++-----
->  3 files changed, 23 insertions(+), 29 deletions(-)
->
-> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-> index baed39772c84..0349fb06a2ec 100644
-> --- a/arch/s390/Kconfig
-> +++ b/arch/s390/Kconfig
-> @@ -121,6 +121,7 @@ config S390
->         select HAVE_ALIGNED_STRUCT_PAGE if SLUB
->         select HAVE_ARCH_AUDITSYSCALL
->         select HAVE_ARCH_JUMP_LABEL
-> +       select HAVE_ARCH_JUMP_LABEL_RELATIVE
->         select CPU_NO_EFFICIENT_FFS if !HAVE_MARCH_Z9_109_FEATURES
->         select HAVE_ARCH_SECCOMP_FILTER
->         select HAVE_ARCH_SOFT_DIRTY
-> diff --git a/arch/s390/include/asm/jump_label.h b/arch/s390/include/asm/jump_label.h
-> index 40f651292aa7..e2d3e6c43395 100644
-> --- a/arch/s390/include/asm/jump_label.h
-> +++ b/arch/s390/include/asm/jump_label.h
-> @@ -14,41 +14,33 @@
->   * We use a brcl 0,2 instruction for jump labels at compile time so it
->   * can be easily distinguished from a hotpatch generated instruction.
->   */
-> -static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
-> +static inline bool arch_static_branch(struct static_key *key, bool branch)
->  {
-> -       asm_volatile_goto("0:   brcl 0,"__stringify(JUMP_LABEL_NOP_OFFSET)"\n"
-> -               ".pushsection __jump_table, \"aw\"\n"
-> -               ".balign 8\n"
-> -               ".quad 0b, %l[label], %0\n"
-> -               ".popsection\n"
-> -               : : "X" (&((char *)key)[branch]) : : label);
-> -
-> +       asm_volatile_goto("0:   brcl    0,"__stringify(JUMP_LABEL_NOP_OFFSET)"\n"
-> +                         ".pushsection __jump_table,\"aw\"\n"
-> +                         ".balign      8\n"
-> +                         ".long        0b-.,%l[label]-.\n"
-> +                         ".quad        %0-.\n"
-> +                         ".popsection\n"
-> +                         : : "X" (&((char *)key)[branch]) : : label);
->         return false;
->  label:
->         return true;
->  }
->
-> -static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
-> +static inline bool arch_static_branch_jump(struct static_key *key, bool branch)
->  {
-> -       asm_volatile_goto("0:   brcl 15, %l[label]\n"
-> -               ".pushsection __jump_table, \"aw\"\n"
-> -               ".balign 8\n"
-> -               ".quad 0b, %l[label], %0\n"
-> -               ".popsection\n"
-> -               : : "X" (&((char *)key)[branch]) : : label);
-> -
-> +       asm_volatile_goto("0:   brcl 15,%l[label]\n"
-> +                         ".pushsection __jump_table,\"aw\"\n"
-> +                         ".balign      8\n"
-> +                         ".long        0b-.,%l[label]-.\n"
-> +                         ".quad        %0-.\n"
-> +                         ".popsection\n"
-> +                         : : "X" (&((char *)key)[branch]) : : label);
->         return false;
->  label:
->         return true;
->  }
->
-> -typedef unsigned long jump_label_t;
-> -
-> -struct jump_entry {
-> -       jump_label_t code;
-> -       jump_label_t target;
-> -       jump_label_t key;
-> -};
-> -
->  #endif  /* __ASSEMBLY__ */
->  #endif
-> diff --git a/arch/s390/kernel/jump_label.c b/arch/s390/kernel/jump_label.c
-> index 43f8430fb67d..50a1798604a8 100644
-> --- a/arch/s390/kernel/jump_label.c
-> +++ b/arch/s390/kernel/jump_label.c
-> @@ -33,13 +33,13 @@ static void jump_label_make_branch(struct jump_entry *entry, struct insn *insn)
->  {
->         /* brcl 15,offset */
->         insn->opcode = 0xc0f4;
-> -       insn->offset = (entry->target - entry->code) >> 1;
-> +       insn->offset = (jump_entry_target(entry) - jump_entry_code(entry)) >> 1;
->  }
->
->  static void jump_label_bug(struct jump_entry *entry, struct insn *expected,
->                            struct insn *new)
->  {
-> -       unsigned char *ipc = (unsigned char *)entry->code;
-> +       unsigned char *ipc = (unsigned char *)jump_entry_code(entry);
->         unsigned char *ipe = (unsigned char *)expected;
->         unsigned char *ipn = (unsigned char *)new;
->
-> @@ -59,6 +59,7 @@ static void __jump_label_transform(struct jump_entry *entry,
->                                    enum jump_label_type type,
->                                    int init)
->  {
-> +       void *code = (void *)jump_entry_code(entry);
->         struct insn old, new;
->
->         if (type == JUMP_LABEL_JMP) {
-> @@ -69,13 +70,13 @@ static void __jump_label_transform(struct jump_entry *entry,
->                 jump_label_make_nop(entry, &new);
->         }
->         if (init) {
-> -               if (memcmp((void *)entry->code, &orignop, sizeof(orignop)))
-> +               if (memcmp(code, &orignop, sizeof(orignop)))
->                         jump_label_bug(entry, &orignop, &new);
->         } else {
-> -               if (memcmp((void *)entry->code, &old, sizeof(old)))
-> +               if (memcmp(code, &old, sizeof(old)))
->                         jump_label_bug(entry, &old, &new);
->         }
-> -       s390_kernel_write((void *)entry->code, &new, sizeof(new));
-> +       s390_kernel_write(code, &new, sizeof(new));
->  }
->
->  static int __sm_arch_jump_label_transform(void *data)
-> --
-> 2.16.4
->
+Don't worry about the "do {...} whie(t != hi)", it's no performance issue.
+
+> > +DEFINE_PER_CPU(struct timer_of, csky_to) = {
+> 
+> static
+Ok.
+
+> > +	.flags = TIMER_OF_CLOCK | TIMER_OF_IRQ,
+> > +
+> > +	.clkevt = {
+> > +		.name = "C-SKY SMP Timer V1",
+> > +		.rating = 300,
+> > +		.features = CLOCK_EVT_FEAT_PERCPU | CLOCK_EVT_FEAT_ONESHOT,
+> > +		.set_state_shutdown		= csky_timer_shutdown,
+> > +		.set_state_oneshot		= csky_timer_oneshot,
+> > +		.set_state_oneshot_stopped	= csky_timer_oneshot_stopped,
+> > +		.set_next_event			= csky_timer_set_next_event,
+> > +	},
+> > +
+> > +	.of_irq = {
+> > +		.handler = timer_interrupt,
+> > +		.flags = IRQF_TIMER,
+> > +		.percpu = 1,
+> 
+> This is inconsistent. You made it half tabular and half not. Please use
+> tabular style consistently.
+Ok.
+	.clkevt = {
+		.name				= "C-SKY SMP Timer V1",
+		.features			= CLOCK_EVT_FEAT_PERCPU |
+						  CLOCK_EVT_FEAT_ONESHOT,
+		.rating				= 300,
+		.set_state_shutdown		= csky_timer_shutdown,
+		.set_state_oneshot		= csky_timer_oneshot,
+		.set_state_oneshot_stopped	= csky_timer_oneshot_stopped,
+		.set_next_event			= csky_timer_set_next_event,
+	},
+
+	.of_irq = {
+		.handler			= timer_interrupt,
+		.flags				= IRQF_TIMER,
+		.percpu				= 1,
+
+> > +/*** clock event for percpu ***/
+> 
+> Please refrain from inventing new horrible comment styles.
+Ok.
+/* clock event for percpu */
+
+> > +struct clocksource csky_clocksource = {
+> > +	.name = "csky_timer_v1_clksrc",
+> > +	.rating = 400,
+> > +	.mask = CLOCKSOURCE_MASK(BITS_CSKY_TIMER),
+> > +	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+> > +	.read = clksrc_read,
+> 
+> tabular style please
+Ok.
+
+> > +	ret = cpuhp_setup_state(CPUHP_AP_DUMMY_TIMER_STARTING,
+> > +				"clockevents/csky/timer:starting",
+> > +				csky_timer_starting_cpu,
+> > +				csky_timer_dying_cpu);
+> 
+> Oh no. Just picking a random hotplug event is not how it works. Add your
+> own please and make sure it's at the proper place.
+like this?
+include/linux/cpuhotplug.h:
+	CPUHP_AP_KVM_ARM_TIMER_STARTING,
++	CPUHP_AP_CSKY_TIMER_STARTING,
+	/* Must be the last timer callback */
+	CPUHP_AP_DUMMY_TIMER_STARTING,
+
+> > +	struct clock_event_device *ce = (struct clock_event_device *) dev;
+> 
+> Pointless type cast.
+Ok.
+struct clock_event_device *ce = dev;
+
+> > +		.flags = IRQF_TIMER | IRQF_IRQPOLL,
+> > +	},
+> 
+> See above
+Ok, tabular
+
+Guo Ren
