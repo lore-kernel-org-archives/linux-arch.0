@@ -1,55 +1,74 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH V2 18/19] clocksource: add C-SKY clocksource drivers
-Date: Wed, 4 Jul 2018 16:35:43 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1807041632140.1752@nanos.tec.linutronix.de>
-References: <cover.1530465325.git.ren_guo@c-sky.com> <aba005fd5005c066a2e3d760c334bb55f902d771.1530465326.git.ren_guo@c-sky.com> <alpine.DEB.2.21.1807031130050.1601@nanos.tec.linutronix.de> <20180704104957.GB23536@guoren>
+From: Fabio Estevam <festevam@gmail.com>
+Subject: Re: [PATCH v18 6/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when
+ using io{read|write}64
+Date: Wed, 4 Jul 2018 12:06:14 -0300
+Message-ID: <CAOMZO5C7V4_SpXOcAz0KbGYScpos0HRD-aa-Zh_6M3p9EqLsLQ@mail.gmail.com>
+References: <20180622194752.11221-1-logang@deltatee.com> <20180622194752.11221-7-logang@deltatee.com>
+ <CAOMZO5DpwPsidKQ9wfe8mNTgdOpkdHHgqHMa4yQBx9uRrfFmww@mail.gmail.com>
+ <CAHp75VcCNsx2sHcYG2aNiw354exTvO=NUOS9P_BTmcM3siAepg@mail.gmail.com>
+ <13ea3f97-4a33-3a24-1b7e-b819be73d867@deltatee.com> <CAOMZO5CfUfNZd0kG=VVnH4BjP+XMpGh3bPCUrTwi_4w6YEGX7g@mail.gmail.com>
+ <CAHp75VcDudrwV4kRnVR+vtddFhxHsU672YqOJgPPchuLvPV3nA@mail.gmail.com>
+ <CAOMZO5A4bsu9dXCPb4QeSbnnLi=pr1=WYWn8p2AfU3rEG=RWXg@mail.gmail.com>
+ <6e5224b9-343f-990c-19bd-fe37c6fbdc9b@deltatee.com> <CAOMZO5CJ_iG=p_+xL=Q_Rv3F5vtGggsgatar4XVTL+UFVnHBTA@mail.gmail.com>
+ <7ddda181-6337-32cc-7a0d-43fc6a7ba78b@deltatee.com> <CAHp75VcN=pUkFK6=_7yErMRGNS3WsgBhkWMSwP0Cw_ZmGR=RJg@mail.gmail.com>
+ <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com> <VI1PR0402MB3485F76DD56D221EB256B4F698410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180704104957.GB23536@guoren>
+In-Reply-To: <VI1PR0402MB3485F76DD56D221EB256B4F698410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+To: Horia Geanta <horia.geanta@nxp.com>
+Cc: Logan Gunthorpe <logang@deltatee.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Aymen Sghaier <aymen.sghaier@nxp.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 4 Jul 2018, Guo Ren wrote:
-> On Tue, Jul 03, 2018 at 11:39:05AM +0200, Thomas Gleixner wrote:
-> > > +static inline u64 get_ccvr(void)
-> > > +{
-> > > +	u32 lo, hi, t;
-> > > +
-> > > +	do {
-> > > +		hi = mfcr(PTIM_CCVR_HI);
-> > > +		lo = mfcr(PTIM_CCVR_LO);
-> > > +		t  = mfcr(PTIM_CCVR_HI);
-> > > +	} while(t != hi);
-> > 
-> > No idea which frequency this timer ticks at, but if the 32 bit wrap does
-> > not come too fast, then you really should avoid that loop. That function is
-> > called very frequently.
-> 
-> 0000006c <clksrc_read>:
-> 		hi = mfcr(PTIM_CCVR_HI);
->   6c:	c1c26023 	mfcr      	r3, cr<2, 14>
-> 		lo = mfcr(PTIM_CCVR_LO);
->   70:	c1c36021 	mfcr      	r1, cr<3, 14>
-> 		t  = mfcr(PTIM_CCVR_HI);
->   74:	c1c26022 	mfcr      	r2, cr<2, 14>
-> 	} while(t != hi);
->   78:	648e      	cmpne      	r3, r2
->   7a:	0bf9      	bt      	0x6c	// 6c <clksrc_read>
-> 
-> When two read cr<2, 14> is not equal, we'll retry. So only when
-> CCVR_LO is at 0xffffffff between the two read of CCVR_HI. That's very
-> very small probability event for "bt 0x6c".
-> 
-> Don't worry about the "do {...} whie(t != hi)", it's no performance issue.
+Hi Horia,
 
-But _three_ mfcr plus a conditional jump which _cannot_ be predicted are a
-performance issue. When you can replace that with a single mfcr, then you
-win a lot, really. The time keeping and the sched clock code can handle
-that nicely unless you really have fast wrap arounds on the LO word.
+On Wed, Jul 4, 2018 at 8:45 AM, Horia Geanta <horia.geanta@nxp.com> wrote:
 
-Thanks,
+> I think there are two separate issues here:
+>
+> 1. Semantics of operations in io-64-nonatomic-lo-hi.h, io-64-nonatomic-hi-lo.h
+>
+> Logan, you mentioned the following (which unfortunately I somehow missed):
+> https://lore.kernel.org/lkml/c3f2e061-5ed1-5c74-b955-3d2bfb0da074@deltatee.com
+> The lo_hi/hi_lo functions seem to always refer to the data being written
+> or read not to the address operated on.
+>
+> OTOH, initial commit that added asm-generic/io-64-nonatomic-lo-hi.h and
+> asm-generic/io-64-nonatomic-hi-lo.h mentions:
+> 797a796a13df6 ("asm-generic: architecture independent readq/writeq for 32bit
+> environment")
+> - <asm-generic/io-64-nonatomic-lo-hi.h> provides non-atomic readq/ writeq with
+> the order of lower address -> higher address
+> - <asm-generic/io-64-nonatomic-hi-lo.h> provides non-atomic readq/ writeq with
+> reversed order
+>
+> I think we should keep the initial semantics when adding support for
+> io{read|write}64, i.e. "lo" and "hi" to refer to address and not to value.
+>
+> Actually this is the semantics intended for the CAAM patch, see the note at the
+> end of the commit message that refers to addresses, not values:
+> To be consistent with CAAM engine HW spec: in case of 64-bit registers,
+> irrespective of device endianness, the lower address should be read from
+> / written to first, followed by the upper address.
+>
+>
+> 2. CAAM driver I/O accessors for i.MX case
+>
+> CAAM block in some i.MX parts has broken endianness for 64b registers.
+> For e.g. for i.MX6S/SL/D/Q even though CAAM is little endian, BARs for I/O rings
+> have to be programmed as:
+> I/O Ring BAR+0: unused
+> I/O Ring BAR+4: IOVA (32-bit little endian)
+> when the proper layout (for a 64b register) would have been to program IOVA at
+> BAR+0.
+>
+> This explains why I/O accessors in CAAM driver handle things differently in case
+> caam_imx=true.
+>
+> Since this quirk cannot be accommodated in generic fashion, code dealing with
+> caam_imx has to stay.
 
-	tglx
+Should I sent a revert of patch 46e4bf08f6388 for the boot regression for now?
+
+Then the two issues you pointed out could be fixed later.
