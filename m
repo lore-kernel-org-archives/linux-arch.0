@@ -1,43 +1,71 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH v18 6/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Wed, 4 Jul 2018 11:36:37 -0600
-Message-ID: <50740401-c46e-79ab-807b-c3d1a7226f89@deltatee.com>
-References: <20180622194752.11221-1-logang@deltatee.com>
- <20180622194752.11221-7-logang@deltatee.com>
- <CAOMZO5DpwPsidKQ9wfe8mNTgdOpkdHHgqHMa4yQBx9uRrfFmww@mail.gmail.com>
- <CAHp75VcCNsx2sHcYG2aNiw354exTvO=NUOS9P_BTmcM3siAepg@mail.gmail.com>
- <13ea3f97-4a33-3a24-1b7e-b819be73d867@deltatee.com>
- <CAOMZO5CfUfNZd0kG=VVnH4BjP+XMpGh3bPCUrTwi_4w6YEGX7g@mail.gmail.com>
- <CAHp75VcDudrwV4kRnVR+vtddFhxHsU672YqOJgPPchuLvPV3nA@mail.gmail.com>
- <CAOMZO5A4bsu9dXCPb4QeSbnnLi=pr1=WYWn8p2AfU3rEG=RWXg@mail.gmail.com>
- <6e5224b9-343f-990c-19bd-fe37c6fbdc9b@deltatee.com>
- <CAOMZO5CJ_iG=p_+xL=Q_Rv3F5vtGggsgatar4XVTL+UFVnHBTA@mail.gmail.com>
- <7ddda181-6337-32cc-7a0d-43fc6a7ba78b@deltatee.com>
- <CAHp75VcN=pUkFK6=_7yErMRGNS3WsgBhkWMSwP0Cw_ZmGR=RJg@mail.gmail.com>
- <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com>
- <VI1PR0402MB3485F76DD56D221EB256B4F698410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
- <CAHp75VdcPORzYzw+Q7EdnwEzWE3Adkqc-XcZVS6Z9W6ibNmhtQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH V2 05/19] csky: System Call
+Date: Wed, 4 Jul 2018 23:04:37 +0200
+Message-ID: <CAK8P3a38u4=m2Zvn5a607PFZXtGYjQKZRAFr2tbgQFuqMmz6xQ@mail.gmail.com>
+References: <cover.1530465325.git.ren_guo@c-sky.com> <1005fef6031efbee4b5041ee286c053dd97670e6.1530465326.git.ren_guo@c-sky.com>
+ <CAK8P3a3djWfXAKBL6WnJb4t5C2bcYGE-JT+zCoefLBUnksduXw@mail.gmail.com> <20180704114952.GB22857@guoren>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHp75VdcPORzYzw+Q7EdnwEzWE3Adkqc-XcZVS6Z9W6ibNmhtQ@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <20180704114952.GB22857@guoren>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Shevchenko <andy.shevchenko@gmail.com>, Horia Geanta <horia.geanta@nxp.com>
-Cc: Fabio Estevam <festevam@gmail.com>, Aymen Sghaier <aymen.sghaier@nxp.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 7/4/2018 11:32 AM, Andy Shevchenko wrote:
-> It means it would be invariant to LE BE accessors, right?
-> 
-> lo-hi: LE (0x0 0x4) BE (0x4 0x0)
-> hi-lo: LE (0x4 0x0) BE (0x0 0x4)
+On Wed, Jul 4, 2018 at 1:49 PM, Guo Ren <ren_guo@c-sky.com> wrote:
 
+>
+>> > +#define __NR_set_thread_area   (__NR_arch_specific_syscall + 0)
+>> > +__SYSCALL(__NR_set_thread_area, sys_set_thread_area)
+>> > +#define __NR_ipc               (__NR_arch_specific_syscall + 1)
+>> > +__SYSCALL(__NR_ipc, sys_ipc)
+>> > +#define __NR_socketcall                (__NR_arch_specific_syscall + 2)
+>> > +__SYSCALL(__NR_socketcall, sys_socketcall)
+>> > +#define __NR_ugetrlimit                (__NR_arch_specific_syscall + 3)
+>> > +__SYSCALL(__NR_ugetrlimit, sys_getrlimit)
+>> > +#define __NR_cacheflush                (__NR_arch_specific_syscall + 4)
+>> > +__SYSCALL(__NR_cacheflush, sys_cacheflush)
+>> > +#define __NR_sysfs             (__NR_arch_specific_syscall + 5)
+>> > +__SYSCALL(__NR_sysfs, sys_sysfs)
+>> > +
+>> > +__SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
+>>
+>> We definitely don't want ipc, socketcall, ugetrlimit, or sysfs.
+> Ok, remove them.
+>
+>> For fadvise64_64, please redefine the symbol name so the
+>> table points at the right entry.
+> We need exchange the args for abiv1. loff_t is 64bit and abiv1 need
+> 8-bytes align in args.
+> /*
+>  * for abiv1 the 64bits args should be even th, So we need mov the advice forward.
+>  */
+> SYSCALL_DEFINE4(csky_fadvise64_64,
+>         int, fd,
+>         int, advice,
+>         loff_t, offset,
+>         loff_t, len)
+> {
+>         return sys_fadvise64_64(fd, offset, len, advice);
+> }
 
-Ok, well, given that this is what I implemented originally and the
-argument seems a little bike-sheddy. I vote we just leave the current
-patch as is.
+Right, I do understand what it's used for, my point was that you
+don't really need a separate system call number for it, just redirect
+the entry point using the same trick that nds32 has in
+arch/nds32/kernel/syscall_table.c:
 
-Logan
+#define sys_fadvise64_64 csky_fadvise64_64
+
+>> I'm not completely sure about set_thread_area, can you explain
+>> what you need that for?
+> In abiv1 there is no tls register, so we use "trap 3" for csky_get_tls
+> defined in arch/csky/kernel/entry.S to get tls.
+>
+> Also we use set_thread_area to set tls in kernel.
+>
+> For abiv2 it has r31 for tls-reg, but we still keep the mechanism.
+
+ok.
+
+            Arnd
