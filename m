@@ -1,181 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay2-d.mail.gandi.net ([217.70.183.194]:36443 "EHLO
-        relay2-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933206AbeGDGwY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jul 2018 02:52:24 -0400
-Subject: Re: [PATCH 05/11] hugetlb: Introduce generic version of
- huge_ptep_clear_flush
-References: <20180704055207.27978-1-alex@ghiti.fr>
- <20180704055207.27978-6-alex@ghiti.fr>
-From: Alexandre Ghiti <alex@ghiti.fr>
-Message-ID: <6f468be6-6d6b-407a-eb3d-8d1fa7d3673e@ghiti.fr>
-Date: Wed, 4 Jul 2018 08:51:43 +0200
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:52832 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S933799AbeGDH7c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jul 2018 03:59:32 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w647wi2J020941
+        for <linux-arch@vger.kernel.org>; Wed, 4 Jul 2018 03:59:31 -0400
+Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2k0qae712q-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 04 Jul 2018 03:59:31 -0400
+Received: from localhost
+        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Wed, 4 Jul 2018 08:59:29 +0100
+Date: Wed, 4 Jul 2018 09:59:23 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH v2 0/8] add support for relative references in jump tables
+References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
 MIME-Version: 1.0
-In-Reply-To: <20180704055207.27978-6-alex@ghiti.fr>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+In-Reply-To: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
+Message-ID: <20180704075923.GF3701@osiris>
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180704065143.PkiYn-50HDU1Y7epd1KNifi_d0-pgulHqcCWwIs-mOo@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180704075923.V0GqA_wBd0gyLd_0z56HAmbJGnio80jRHy1qm0Vq7rE@z>
 
-Just discovered my email provider limit of mails per minute, please drop 
-this serie, I'll send a v2 using --batch-size option of git send-email. 
-Sorry about that.
+On Mon, Jul 02, 2018 at 08:11:37PM +0200, Ard Biesheuvel wrote:
+> This series implements support for emitting the data structures associated
+> with jump tables as 32-bit relative references instead of absolute
+> references, which take up more space on builds that target 64-bit
+> architectures, or implement self relocation [or both].
+> 
+> This series enables it for arm64 and x86, although other architectures
+> might benefit as well.
 
+Hello Ard,
 
-On 07/04/2018 07:52 AM, Alexandre Ghiti wrote:
-> arm, x86 architectures use the same version of
-> huge_ptep_clear_flush, so move this generic implementation into
-> asm-generic/hugetlb.h.
->
-> Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
-> ---
->   arch/arm/include/asm/hugetlb-3level.h | 6 ------
->   arch/arm64/include/asm/hugetlb.h      | 1 +
->   arch/ia64/include/asm/hugetlb.h       | 1 +
->   arch/mips/include/asm/hugetlb.h       | 1 +
->   arch/parisc/include/asm/hugetlb.h     | 1 +
->   arch/powerpc/include/asm/hugetlb.h    | 1 +
->   arch/sh/include/asm/hugetlb.h         | 1 +
->   arch/sparc/include/asm/hugetlb.h      | 1 +
->   arch/x86/include/asm/hugetlb.h        | 6 ------
->   include/asm-generic/hugetlb.h         | 8 ++++++++
->   10 files changed, 15 insertions(+), 12 deletions(-)
->
-> diff --git a/arch/arm/include/asm/hugetlb-3level.h b/arch/arm/include/asm/hugetlb-3level.h
-> index ad36e84b819a..b897541520ef 100644
-> --- a/arch/arm/include/asm/hugetlb-3level.h
-> +++ b/arch/arm/include/asm/hugetlb-3level.h
-> @@ -37,12 +37,6 @@ static inline pte_t huge_ptep_get(pte_t *ptep)
->   	return retval;
->   }
->   
-> -static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-> -					 unsigned long addr, pte_t *ptep)
-> -{
-> -	ptep_clear_flush(vma, addr, ptep);
-> -}
-> -
->   static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
->   					   unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/arm64/include/asm/hugetlb.h b/arch/arm64/include/asm/hugetlb.h
-> index 6ae0bcafe162..4c8dd488554d 100644
-> --- a/arch/arm64/include/asm/hugetlb.h
-> +++ b/arch/arm64/include/asm/hugetlb.h
-> @@ -71,6 +71,7 @@ extern pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
->   				     unsigned long addr, pte_t *ptep);
->   extern void huge_ptep_set_wrprotect(struct mm_struct *mm,
->   				    unsigned long addr, pte_t *ptep);
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   extern void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   				  unsigned long addr, pte_t *ptep);
->   #define __HAVE_ARCH_HUGE_PTE_CLEAR
-> diff --git a/arch/ia64/include/asm/hugetlb.h b/arch/ia64/include/asm/hugetlb.h
-> index 6719c74da0de..41b5f6adeee4 100644
-> --- a/arch/ia64/include/asm/hugetlb.h
-> +++ b/arch/ia64/include/asm/hugetlb.h
-> @@ -20,6 +20,7 @@ static inline int is_hugepage_only_range(struct mm_struct *mm,
->   		REGION_NUMBER((addr)+(len)-1) == RGN_HPAGE);
->   }
->   
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   					 unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/mips/include/asm/hugetlb.h b/arch/mips/include/asm/hugetlb.h
-> index 0959cc5a41fa..7df1f116a3cc 100644
-> --- a/arch/mips/include/asm/hugetlb.h
-> +++ b/arch/mips/include/asm/hugetlb.h
-> @@ -48,6 +48,7 @@ static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
->   	return pte;
->   }
->   
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   					 unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/parisc/include/asm/hugetlb.h b/arch/parisc/include/asm/hugetlb.h
-> index 6e281e1bb336..9afff26747a1 100644
-> --- a/arch/parisc/include/asm/hugetlb.h
-> +++ b/arch/parisc/include/asm/hugetlb.h
-> @@ -32,6 +32,7 @@ static inline int prepare_hugepage_range(struct file *file,
->   	return 0;
->   }
->   
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   					 unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/powerpc/include/asm/hugetlb.h b/arch/powerpc/include/asm/hugetlb.h
-> index ec3e0c2e78f8..de0769f0b5b2 100644
-> --- a/arch/powerpc/include/asm/hugetlb.h
-> +++ b/arch/powerpc/include/asm/hugetlb.h
-> @@ -143,6 +143,7 @@ static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
->   #endif
->   }
->   
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   					 unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/sh/include/asm/hugetlb.h b/arch/sh/include/asm/hugetlb.h
-> index 08ee6c00b5e9..9abf9c86b769 100644
-> --- a/arch/sh/include/asm/hugetlb.h
-> +++ b/arch/sh/include/asm/hugetlb.h
-> @@ -25,6 +25,7 @@ static inline int prepare_hugepage_range(struct file *file,
->   	return 0;
->   }
->   
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   					 unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/sparc/include/asm/hugetlb.h b/arch/sparc/include/asm/hugetlb.h
-> index 944e3a4bfaff..651a9593fcee 100644
-> --- a/arch/sparc/include/asm/hugetlb.h
-> +++ b/arch/sparc/include/asm/hugetlb.h
-> @@ -42,6 +42,7 @@ static inline int prepare_hugepage_range(struct file *file,
->   	return 0;
->   }
->   
-> +#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
->   static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
->   					 unsigned long addr, pte_t *ptep)
->   {
-> diff --git a/arch/x86/include/asm/hugetlb.h b/arch/x86/include/asm/hugetlb.h
-> index 48b8d9b13cc6..8347d5abf882 100644
-> --- a/arch/x86/include/asm/hugetlb.h
-> +++ b/arch/x86/include/asm/hugetlb.h
-> @@ -27,12 +27,6 @@ static inline int prepare_hugepage_range(struct file *file,
->   	return 0;
->   }
->   
-> -static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-> -					 unsigned long addr, pte_t *ptep)
-> -{
-> -	ptep_clear_flush(vma, addr, ptep);
-> -}
-> -
->   static inline int huge_pte_none(pte_t pte)
->   {
->   	return pte_none(pte);
-> diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
-> index 0f6f151780dd..ffa63fd8388d 100644
-> --- a/include/asm-generic/hugetlb.h
-> +++ b/include/asm-generic/hugetlb.h
-> @@ -65,4 +65,12 @@ static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
->   }
->   #endif
->   
-> +#ifndef __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
-> +static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-> +		unsigned long addr, pte_t *ptep)
-> +{
-> +	ptep_clear_flush(vma, addr, ptep);
-> +}
-> +#endif
-> +
->   #endif /* _ASM_GENERIC_HUGETLB_H */
+feel free to add the patch below which adds support for s390 to your series.
+
+> Changes since v1:
+> - change the relative reference to the static key to a 64-bit wide one on 64
+>   bit architectures; this is necessary on arm64, which allows modules to
+>   reside anywhere within a 4 GB window covering the core kernel text, which
+>   means a 32-bit signed quantity with its +/- 2 GB range is insufficient.
+>   Note that x86_64 changes are in preparation that widen the relocation
+>   range as well (using the PIE linker), so I assumed that the same change
+>   is appropriate for x86 as well.
+
+FWIW, kernel modules on s390 are since ages more than 2GB away from the
+core kernel text. So this is required for s390 as well.
