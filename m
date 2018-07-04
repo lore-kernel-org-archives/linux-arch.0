@@ -1,104 +1,98 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 01/19] csky: Build infrastructure
-Date: Wed, 4 Jul 2018 19:40:45 +0800
-Message-ID: <20180704114045.GA22857@guoren>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <a26901aab87306c389e656a3ef200adfbc5195c0.1530465325.git.ren_guo@c-sky.com>
- <CAK8P3a0v2Dq7-FhSmo5sKrU6JZ2kyqX2zveL-CN3PqVSQRmckg@mail.gmail.com>
+From: Horia Geanta <horia.geanta@nxp.com>
+Subject: Re: [PATCH v18 6/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when
+ using io{read|write}64
+Date: Wed, 4 Jul 2018 11:45:44 +0000
+Message-ID: <VI1PR0402MB3485F76DD56D221EB256B4F698410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
+References: <20180622194752.11221-1-logang@deltatee.com>
+ <20180622194752.11221-7-logang@deltatee.com>
+ <CAOMZO5DpwPsidKQ9wfe8mNTgdOpkdHHgqHMa4yQBx9uRrfFmww@mail.gmail.com>
+ <CAHp75VcCNsx2sHcYG2aNiw354exTvO=NUOS9P_BTmcM3siAepg@mail.gmail.com>
+ <13ea3f97-4a33-3a24-1b7e-b819be73d867@deltatee.com>
+ <CAOMZO5CfUfNZd0kG=VVnH4BjP+XMpGh3bPCUrTwi_4w6YEGX7g@mail.gmail.com>
+ <CAHp75VcDudrwV4kRnVR+vtddFhxHsU672YqOJgPPchuLvPV3nA@mail.gmail.com>
+ <CAOMZO5A4bsu9dXCPb4QeSbnnLi=pr1=WYWn8p2AfU3rEG=RWXg@mail.gmail.com>
+ <6e5224b9-343f-990c-19bd-fe37c6fbdc9b@deltatee.com>
+ <CAOMZO5CJ_iG=p_+xL=Q_Rv3F5vtGggsgatar4XVTL+UFVnHBTA@mail.gmail.com>
+ <7ddda181-6337-32cc-7a0d-43fc6a7ba78b@deltatee.com>
+ <CAHp75VcN=pUkFK6=_7yErMRGNS3WsgBhkWMSwP0Cw_ZmGR=RJg@mail.gmail.com>
+ <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0v2Dq7-FhSmo5sKrU6JZ2kyqX2zveL-CN3PqVSQRmckg@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
+To: Logan Gunthorpe <logang@deltatee.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Fabio Estevam <festevam@gmail.com>, Aymen Sghaier <aymen.sghaier@nxp.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 03, 2018 at 06:03:04PM +0200, Arnd Bergmann wrote:
-> It looks like the CK8xx CPUs are basically compatible, so it would
-> be nice to have a way to configure a kernel that can run on all
-> of them, picking a safe default for options that depend on a
-> particular CPU. E.g. when only CK860 supports SMP, you might
-> start out by making SMP "depend on !(CPU_CK807 || CPU_CK810)",
-> as an alternative to implementing a way for an SMP-enabled kernel
-> to run on non-SMP CPUs (arm has that, but it's probably too complex
-> for your needs).
-> 
-> Similarly, you can set L1_CACHE_BYTES to the largest possible
-> size, and make things like CPU_TLB_SIZE dynamically detected.
-We talked about this topic in the last patchsets. Ck807/810/860 are mutually
-incompatible in kernel level but both can run user space programs in
-ck807/810.
-
-On Wed, Mar 28, 2018 at 09:40:49AM +0200, Arnd Bergmann wrote:
-> Ok, thanks for the clarification. Obviously if they are mutually incompatible,
-> there is no point in using a common kernel, so your current version is
-> absolutely fine, and this is similar to how we cannot have a common kernel
-> between ARMv5, ARMv7-A and ARMv7-M, which are all incompatible
-> at the kernel level.
-Yes.
-
-> One more question for my understanding: Are the three types of ck8xx
-> CPUs mutually incompatible in user space as well, or are the differences
-> only for the kernel? For the ARM example, ARMv5 and ARMv7
-> fundamentally require separate kernels, but both can run user space
-> programs built for ARMv5.
-
- -mcpu=ck807 app could run on ck807, ck810, ck860.
- -mcpu=ck810 app could run on ck807, ck810, ck860.
- -mcpu=ck860 app only  run on ck860.
-
-They are all incompatible at the kernel level.
-
- 
-> > +menu "C-SKY Debug Options"
-> > +config CSKY_DEBUG_INFO
-> > +       bool "Compile the kernel with debug info, just add -g"
-> > +       depends on !DEBUG_INFO
-> > +       help
-> > +         DEBUG_INFO and COMPILE_TEST is conflict, so we provide
-> > +         another way to support -g.
-> > +         Some drivers eg: DW_MMC need COMPILE_TEST for new cpu
-> > +         arch :(
-> 
-> Just send a patch to change those dependencies, there is no reason
-> not to apply those. Generally speaking, the kernel should not contain
-> workarounds for particular (mis-)features of the kernel, when you can
-> just change those.
-Ok.
-
-> > +generic-y += atomic.h
-> 
-> The asm-generic version of atomic.h is a bit inefficient,
-> you might want to provide an optimized version for your
-> architecture.
-Ok.
-
-> > +generic-y += auxvec.h
-> 
-> You should not need asm/auxvec.h or uapi/asm/auxvec.h
-Ok.
-
-> > +generic-y += bug.h
-> 
-> providing your own bug.h might be helpful too.
-> Have a look
-Ok.
-
-> > +generic-y += cputime.h
-> 
-> asm-generic/cputime.h no loinger exists
-Ok, remove it.
-
-> > +generic-y += kvm_para.h
-> 
-> Do you support KVM?
-No, remove it, thx.
- 
-> > +generic-y += sizes.h
-> 
-> Deprecated and should not be needed
-Ok, remove it.
-
- Guo Ren
+On 7/4/2018 2:58 AM, Logan Gunthorpe wrote:=0A=
+> =0A=
+> =0A=
+> On 03/07/18 04:21 PM, Andy Shevchenko wrote:=0A=
+>> It is an explicit call to BUG().=0A=
+>> That's why we see wrong instruction trap.=0A=
+> =0A=
+> Ok, I think I see the problem... the code is rather confusing:=0A=
+> =0A=
+> Prior to the patch, IOs were BE depending on caam_little_end but if=0A=
+> caam_imx was set, then it wrote two LE writes with the high one first.=0A=
+> After the patch, it writes two BE writes with the high one first.=0A=
+> =0A=
+I think there are two separate issues here:=0A=
+=0A=
+1. Semantics of operations in io-64-nonatomic-lo-hi.h, io-64-nonatomic-hi-l=
+o.h=0A=
+=0A=
+Logan, you mentioned the following (which unfortunately I somehow missed):=
+=0A=
+https://lore.kernel.org/lkml/c3f2e061-5ed1-5c74-b955-3d2bfb0da074@deltatee.=
+com=0A=
+The lo_hi/hi_lo functions seem to always refer to the data being written=0A=
+or read not to the address operated on.=0A=
+=0A=
+OTOH, initial commit that added asm-generic/io-64-nonatomic-lo-hi.h and=0A=
+asm-generic/io-64-nonatomic-hi-lo.h mentions:=0A=
+797a796a13df6 ("asm-generic: architecture independent readq/writeq for 32bi=
+t=0A=
+environment")=0A=
+- <asm-generic/io-64-nonatomic-lo-hi.h> provides non-atomic readq/ writeq w=
+ith=0A=
+the order of lower address -> higher address=0A=
+- <asm-generic/io-64-nonatomic-hi-lo.h> provides non-atomic readq/ writeq w=
+ith=0A=
+reversed order=0A=
+=0A=
+I think we should keep the initial semantics when adding support for=0A=
+io{read|write}64, i.e. "lo" and "hi" to refer to address and not to value.=
+=0A=
+=0A=
+Actually this is the semantics intended for the CAAM patch, see the note at=
+ the=0A=
+end of the commit message that refers to addresses, not values:=0A=
+To be consistent with CAAM engine HW spec: in case of 64-bit registers,=0A=
+irrespective of device endianness, the lower address should be read from=0A=
+/ written to first, followed by the upper address.=0A=
+=0A=
+=0A=
+2. CAAM driver I/O accessors for i.MX case=0A=
+=0A=
+CAAM block in some i.MX parts has broken endianness for 64b registers.=0A=
+For e.g. for i.MX6S/SL/D/Q even though CAAM is little endian, BARs for I/O =
+rings=0A=
+have to be programmed as:=0A=
+I/O Ring BAR+0: unused=0A=
+I/O Ring BAR+4: IOVA (32-bit little endian)=0A=
+when the proper layout (for a 64b register) would have been to program IOVA=
+ at=0A=
+BAR+0.=0A=
+=0A=
+This explains why I/O accessors in CAAM driver handle things differently in=
+ case=0A=
+caam_imx=3Dtrue.=0A=
+=0A=
+Since this quirk cannot be accommodated in generic fashion, code dealing wi=
+th=0A=
+caam_imx has to stay.=0A=
+=0A=
+Horia=0A=
