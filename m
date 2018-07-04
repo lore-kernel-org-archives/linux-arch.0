@@ -1,31 +1,70 @@
-From: Fabio Estevam <festevam@gmail.com>
-Subject: Re: [PATCH v18 6/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Wed, 4 Jul 2018 13:16:07 -0300
-Message-ID: <CAOMZO5BJXtpy+fmWxHqQWf_GwzoeQ=nTD8wWFAfw3vs6e0eV0g@mail.gmail.com>
-References: <20180622194752.11221-1-logang@deltatee.com> <20180622194752.11221-7-logang@deltatee.com>
- <CAOMZO5DpwPsidKQ9wfe8mNTgdOpkdHHgqHMa4yQBx9uRrfFmww@mail.gmail.com>
- <CAHp75VcCNsx2sHcYG2aNiw354exTvO=NUOS9P_BTmcM3siAepg@mail.gmail.com>
- <13ea3f97-4a33-3a24-1b7e-b819be73d867@deltatee.com> <CAOMZO5CfUfNZd0kG=VVnH4BjP+XMpGh3bPCUrTwi_4w6YEGX7g@mail.gmail.com>
- <CAHp75VcDudrwV4kRnVR+vtddFhxHsU672YqOJgPPchuLvPV3nA@mail.gmail.com>
- <CAOMZO5A4bsu9dXCPb4QeSbnnLi=pr1=WYWn8p2AfU3rEG=RWXg@mail.gmail.com>
- <6e5224b9-343f-990c-19bd-fe37c6fbdc9b@deltatee.com> <CAOMZO5CJ_iG=p_+xL=Q_Rv3F5vtGggsgatar4XVTL+UFVnHBTA@mail.gmail.com>
- <7ddda181-6337-32cc-7a0d-43fc6a7ba78b@deltatee.com> <CAHp75VcN=pUkFK6=_7yErMRGNS3WsgBhkWMSwP0Cw_ZmGR=RJg@mail.gmail.com>
- <991b2298-bb3f-dad3-c93b-b43ee5f372de@deltatee.com> <VI1PR0402MB3485F76DD56D221EB256B4F698410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
- <CAOMZO5C7V4_SpXOcAz0KbGYScpos0HRD-aa-Zh_6M3p9EqLsLQ@mail.gmail.com> <VI1PR0402MB3485AB652FBD61CE27965D3798410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 2/3] arm64: add endianness option to LDFLAGS instead of LD
+Date: Wed, 4 Jul 2018 17:30:37 +0100
+Message-ID: <20180704163036.GA8370@arm.com>
+References: <1530580921-23340-1-git-send-email-yamada.masahiro@socionext.com>
+ <1530580921-23340-3-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <VI1PR0402MB3485AB652FBD61CE27965D3798410@VI1PR0402MB3485.eurprd04.prod.outlook.com>
+Content-Disposition: inline
+In-Reply-To: <1530580921-23340-3-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Horia Geanta <horia.geanta@nxp.com>
-Cc: Logan Gunthorpe <logang@deltatee.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Aymen Sghaier <aymen.sghaier@nxp.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Michal Simek <monstr@monstr.eu>, Russell King <rmk+kernel@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 4, 2018 at 12:59 PM, Horia Geanta <horia.geanta@nxp.com> wrote:
+On Tue, Jul 03, 2018 at 10:22:00AM +0900, Masahiro Yamada wrote:
+> With the recent syntax extension, Kconfig is now able to evaluate the
+> compiler / toolchain capability.
+> 
+> However, accumulating flags to 'LD' is not compatible with the way
+> it works; 'LD' must be passed to Kconfig to call $(ld-option,...)
+> from Kconfig files.  If you tweak 'LD' in arch Makefile depending on
+> CONFIG_CPU_BIG_ENDIAN, this would end up with circular dependency
+> between Makefile and Kconfig.
+> 
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
 
-> I guess it would be better this way.
+Acked-by: Will Deacon <will.deacon@arm.com>
 
-Sounds good. I will submit the revert patch then.
+But note that this will conflict with:
 
-Thanks
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-July/587726.html
+
+Catalin -- I'm assuming you're taking both of these and will resolve the
+conflict in the arm64 for-next/fixes branch.
+
+Cheers,
+
+Will
+
+>  arch/arm64/Makefile | 6 ++----
+>  1 file changed, 2 insertions(+), 4 deletions(-)
+> 
+> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+> index 4527226..8f73da3 100644
+> --- a/arch/arm64/Makefile
+> +++ b/arch/arm64/Makefile
+> @@ -60,15 +60,13 @@ ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
+>  KBUILD_CPPFLAGS	+= -mbig-endian
+>  CHECKFLAGS	+= -D__AARCH64EB__
+>  AS		+= -EB
+> -LD		+= -EB
+> -LDFLAGS		+= -maarch64linuxb
+> +LDFLAGS		+= -EB -maarch64linuxb
+>  UTS_MACHINE	:= aarch64_be
+>  else
+>  KBUILD_CPPFLAGS	+= -mlittle-endian
+>  CHECKFLAGS	+= -D__AARCH64EL__
+>  AS		+= -EL
+> -LD		+= -EL
+> -LDFLAGS		+= -maarch64linux
+> +LDFLAGS		+= -EL -maarch64linux
+>  UTS_MACHINE	:= aarch64
+>  endif
+>  
+> -- 
+> 2.7.4
+> 
