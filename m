@@ -1,28 +1,55 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 19/19] irqchip: add C-SKY irqchip drivers
-Date: Wed, 4 Jul 2018 19:58:17 +0800
-Message-ID: <20180704115817.GA24372@guoren>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <b940404f1994ecb839fe6f09f6b6f3cfe81ee5fe.1530465326.git.ren_guo@c-sky.com>
- <alpine.DEB.2.21.1807031100280.1601@nanos.tec.linutronix.de>
- <20180704050822.GA23536@guoren>
- <alpine.DEB.2.21.1807040841080.1816@nanos.tec.linutronix.de>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH V2 18/19] clocksource: add C-SKY clocksource drivers
+Date: Wed, 4 Jul 2018 16:35:43 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1807041632140.1752@nanos.tec.linutronix.de>
+References: <cover.1530465325.git.ren_guo@c-sky.com> <aba005fd5005c066a2e3d760c334bb55f902d771.1530465326.git.ren_guo@c-sky.com> <alpine.DEB.2.21.1807031130050.1601@nanos.tec.linutronix.de> <20180704104957.GB23536@guoren>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1807040841080.1816@nanos.tec.linutronix.de>
+In-Reply-To: <20180704104957.GB23536@guoren>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
+To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 04, 2018 at 08:43:29AM +0200, Thomas Gleixner wrote:
-> > Do you mean merge irq-csky-v1.c irq-csky-v2.c irq-nationalchip.c into
-> > one file eg: irq-csky.c? 
+On Wed, 4 Jul 2018, Guo Ren wrote:
+> On Tue, Jul 03, 2018 at 11:39:05AM +0200, Thomas Gleixner wrote:
+> > > +static inline u64 get_ccvr(void)
+> > > +{
+> > > +	u32 lo, hi, t;
+> > > +
+> > > +	do {
+> > > +		hi = mfcr(PTIM_CCVR_HI);
+> > > +		lo = mfcr(PTIM_CCVR_LO);
+> > > +		t  = mfcr(PTIM_CCVR_HI);
+> > > +	} while(t != hi);
+> > 
+> > No idea which frequency this timer ticks at, but if the 32 bit wrap does
+> > not come too fast, then you really should avoid that loop. That function is
+> > called very frequently.
 > 
-> Yes, but only if there is enough code to share without creating an ifdef
-> mess. But that looks doable
-Ok, I'll try.
+> 0000006c <clksrc_read>:
+> 		hi = mfcr(PTIM_CCVR_HI);
+>   6c:	c1c26023 	mfcr      	r3, cr<2, 14>
+> 		lo = mfcr(PTIM_CCVR_LO);
+>   70:	c1c36021 	mfcr      	r1, cr<3, 14>
+> 		t  = mfcr(PTIM_CCVR_HI);
+>   74:	c1c26022 	mfcr      	r2, cr<2, 14>
+> 	} while(t != hi);
+>   78:	648e      	cmpne      	r3, r2
+>   7a:	0bf9      	bt      	0x6c	// 6c <clksrc_read>
+> 
+> When two read cr<2, 14> is not equal, we'll retry. So only when
+> CCVR_LO is at 0xffffffff between the two read of CCVR_HI. That's very
+> very small probability event for "bt 0x6c".
+> 
+> Don't worry about the "do {...} whie(t != hi)", it's no performance issue.
 
- Guo Ren
+But _three_ mfcr plus a conditional jump which _cannot_ be predicted are a
+performance issue. When you can replace that with a single mfcr, then you
+win a lot, really. The time keeping and the sched clock code can handle
+that nicely unless you really have fast wrap arounds on the LO word.
+
+Thanks,
+
+	tglx
