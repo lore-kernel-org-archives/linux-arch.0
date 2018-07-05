@@ -1,64 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:33226 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:35178 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753397AbeGERlE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jul 2018 13:41:04 -0400
-Date: Thu, 5 Jul 2018 19:40:25 +0200
+        with ESMTP id S1753442AbeGERvU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jul 2018 13:51:20 -0400
+Date: Thu, 5 Jul 2018 19:50:59 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH V2 06/19] csky: Cache and TLB routines
-Message-ID: <20180705174025.GD2530@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH V2 11/19] csky: Atomic operations
+Message-ID: <20180705175059.GE2530@hirez.programming.kicks-ass.net>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <a2c153fa2e585e4ba54a339f13442881553ab6a4.1530465326.git.ren_guo@c-sky.com>
+ <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <a2c153fa2e585e4ba54a339f13442881553ab6a4.1530465326.git.ren_guo@c-sky.com>
+In-Reply-To: <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20180705174025.lPtOvPMTwgmNtJNgkQWzosUt4jIWhQT9pryvDf7kH3E@z>
+Message-ID: <20180705175059.grbL7sgca-UQYoW1dyjjdTRPysrAQd9yOw3EY08Jokc@z>
 
-On Mon, Jul 02, 2018 at 01:30:09AM +0800, Guo Ren wrote:
-> diff --git a/arch/csky/include/asm/barrier.h b/arch/csky/include/asm/barrier.h
-> new file mode 100644
-> index 0000000..7254527
-> --- /dev/null
-> +++ b/arch/csky/include/asm/barrier.h
-> @@ -0,0 +1,19 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-> +#ifndef __ASM_CSKY_BARRIER_H
-> +#define __ASM_CSKY_BARRIER_H
+On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
+
+> +#include <asm/barrier.h>
 > +
-> +#ifndef __ASSEMBLY__
+> +#define __xchg(new, ptr, size)					\
+> +({								\
+> +	__typeof__(ptr) __ptr = (ptr);				\
+> +	__typeof__(new) __new = (new);				\
+> +	__typeof__(*(ptr)) __ret;				\
+> +	unsigned long tmp;					\
+> +	switch (size) {						\
+> +	case 4:							\
+> +		asm volatile (					\
+> +		"1:	ldex.w		%0, (%3) \n"		\
+> +		"	mov		%1, %2   \n"		\
+> +		"	stex.w		%1, (%3) \n"		\
+> +		"	bez		%1, 1b   \n"		\
+> +			: "=&r" (__ret), "=&r" (tmp)		\
+> +			: "r" (__new), "r"(__ptr)		\
+> +			: "memory");				\
+> +		smp_mb();					\
+> +		break;						\
+> +	default:						\
+> +		BUILD_BUG();					\
+> +	}							\
+> +	__ret;							\
+> +})
 > +
-> +#define nop()	asm volatile ("nop")
+> +#define xchg(ptr, x)	(__xchg((x), (ptr), sizeof(*(ptr))))
 > +
-> +#ifdef CONFIG_SMP
-> +#define mb()	asm volatile ("sync.is":::"memory")
-> +#else
-> +#define mb()	asm volatile ("sync":::"memory")
-> +#endif
-
-This is very suspect, please elaborate.
-
-What I would've expected is:
-
-#define mb() asm volatile ("sync" ::: "memory")
-
-#ifdef CONFIG_SMP
-#define __smp_mb() asm volatile ("sync.is" ::: "memory")
-#endif
-
-Is that in fact what you meant?
-
-Do you have a reference to your architecture manual and memory model
-description somewhere?
-
-
+> +#define __cmpxchg(ptr, old, new, size)				\
+> +({								\
+> +	__typeof__(ptr) __ptr = (ptr);				\
+> +	__typeof__(new) __new = (new);				\
+> +	__typeof__(new) __tmp;					\
+> +	__typeof__(old) __old = (old);				\
+> +	__typeof__(*(ptr)) __ret;				\
+> +	switch (size) {						\
+> +	case 4:							\
+> +		asm volatile (					\
+> +		"1:	ldex.w		%0, (%3) \n"		\
+> +		"	cmpne		%0, %4   \n"		\
+> +		"	bt		2f       \n"		\
+> +		"	mov		%1, %2   \n"		\
+> +		"	stex.w		%1, (%3) \n"		\
+> +		"	bez		%1, 1b   \n"		\
+> +		"2:				 \n"		\
+> +			: "=&r" (__ret), "=&r" (__tmp)		\
+> +			: "r" (__new), "r"(__ptr), "r"(__old)	\
+> +			: "memory");				\
+> +		smp_mb();					\
+> +		break;						\
+> +	default:						\
+> +		BUILD_BUG();					\
+> +	}							\
+> +	__ret;							\
+> +})
 > +
-> +#include <asm-generic/barrier.h>
-> +
-> +#endif /* __ASSEMBLY__ */
-> +#endif /* __ASM_CSKY_BARRIER_H */
+> +#define cmpxchg(ptr, o, n) \
+> +	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr))))
+
+What's the memory ordering rules for your LDEX/STEX ?
+
+The mandated semantics for xchg() / cmpxchg() is an effective smp_mb()
+before _and_ after.
+
+The above implementation suggests LDEX implies a SYNC.IS, is this
+correct?
