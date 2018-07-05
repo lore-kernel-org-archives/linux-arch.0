@@ -1,11 +1,23 @@
 From: Alexandre Ghiti <alex@ghiti.fr>
-Subject: [PATCH v3 06/11] hugetlb: Introduce generic version of huge_pte_none
-Date: Thu,  5 Jul 2018 05:16:35 +0000
-Message-ID: <20180705051640.790-7-alex@ghiti.fr>
-References: <20180705051640.790-1-alex@ghiti.fr>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180705051640.790-1-alex@ghiti.fr>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v2 06/11] hugetlb: Introduce generic version of huge_pte_none
+Date: Thu,  5 Jul 2018 05:12:37 +0000
+Message-ID: <20180705051242.694-6-alex@ghiti.fr>
+References: <20180705050323.301-1-alex@ghiti.fr>
+ <20180705051242.694-1-alex@ghiti.fr>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20180705051242.694-1-alex@ghiti.fr>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Alexandre Ghiti <alex@ghiti.fr>
 List-Id: linux-arch.vger.kernel.org
