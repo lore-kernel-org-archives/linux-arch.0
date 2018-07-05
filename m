@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH V2 11/19] csky: Atomic operations
-Date: Thu, 5 Jul 2018 19:59:02 +0200
-Message-ID: <20180705175902.GF2530@hirez.programming.kicks-ass.net>
+Date: Thu, 5 Jul 2018 20:00:08 +0200
+Message-ID: <20180705180008.GG2530@hirez.programming.kicks-ass.net>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
  <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
@@ -15,78 +15,36 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
-
-> +static inline void arch_spin_lock(arch_spinlock_t *lock)
-> +{
-> +	unsigned int *p = &lock->lock;
-> +	unsigned int tmp;
+> +#ifdef CONFIG_CPU_HAS_LDSTEX
+> +ENTRY(csky_cmpxchg)
+> +	USPTOKSP
+> +	mfcr	a3, epc
+> +	INCTRAP	a3
 > +
-> +	asm volatile (
-> +		"1:	ldex.w		%0, (%1) \n"
-> +		"	bnez		%0, 1b   \n"
-> +		"	movi		%0, 1    \n"
-> +		"	stex.w		%0, (%1) \n"
-> +		"	bez		%0, 1b   \n"
-> +		: "=&r" (tmp)
-> +		: "r"(p)
-> +		: "memory");
-> +	smp_mb();
-> +}
-
-Test-and-set with MB acting as ACQUIRE, ok.
-
-> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
-> +{
-> +	unsigned int *p = &lock->lock;
-> +	unsigned int tmp;
+> +	subi    sp, 8
+> +	stw     a3, (sp, 0)
+> +	mfcr    a3, epsr
+> +	stw     a3, (sp, 4)
 > +
-> +	smp_mb();
-> +	asm volatile (
-> +		"1:	ldex.w		%0, (%1) \n"
-> +		"	movi		%0, 0    \n"
-> +		"	stex.w		%0, (%1) \n"
-> +		"	bez		%0, 1b   \n"
-> +		: "=&r" (tmp)
-> +		: "r"(p)
-> +		: "memory");
-> +}
+> +	psrset	ee
+> +1:
+> +	ldex	a3, (a2)
+> +	cmpne	a0, a3
+> +	bt16	2f
+> +	mov	a3, a1
+> +	stex	a3, (a2)
+> +	bez	a3, 1b
+> +2:
+> +	sync.is
+> +	mvc	a0
+> +	ldw	a3, (sp, 0)
+> +	mtcr	a3, epc
+> +	ldw     a3, (sp, 4)
+> +	mtcr	a3, epsr
+> +	addi	sp, 8
+> +	KSPTOUSP
+> +	rte
+> +END(csky_cmpxchg)
+> +#else
 
-MB acting for RELEASE, but _why_ are you using a LDEX/STEX to clear the
-lock word? Would not a normal store work?
-
-Also, the fact that you need MB for release implies your LDEX does not
-in fact imply anything and your xchg/cmpxchg implementation is broken.
-
-> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
-> +{
-> +	unsigned int *p = &lock->lock;
-> +	unsigned int tmp;
-> +
-> +	asm volatile (
-> +		"1:	ldex.w		%0, (%1) \n"
-> +		"	bnez		%0, 2f   \n"
-> +		"	movi		%0, 1    \n"
-> +		"	stex.w		%0, (%1) \n"
-> +		"	bez		%0, 1b   \n"
-> +		"	movi		%0, 0    \n"
-> +		"2:				 \n"
-> +		: "=&r" (tmp)
-> +		: "r"(p)
-> +		: "memory");
-> +	smp_mb();
-> +
-> +	return !tmp;
-> +}
-
-Strictly speaking you can avoid the MB on failure. You only need to
-provide ACQUIRE semantics on success.
-
-That said, I would really suggest you implement a ticket lock instead of
-a test-and-set lock. They're not really all that complicated and do
-provide better worst case behaviour.
-
-
-> +/****** read lock/unlock/trylock ******/
-
-Please have a look at using qrwlock -- esp. if you implement a ticket
-lock, then the rwlock comes for 'free'.
+Please explain... if the CPU has LDEX/STEX, then _why_ do you need this?
