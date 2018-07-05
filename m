@@ -1,93 +1,58 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 18/19] clocksource: add C-SKY clocksource drivers
-Date: Thu, 5 Jul 2018 13:03:12 +0800
-Message-ID: <20180705050311.GA20088@guoren>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <aba005fd5005c066a2e3d760c334bb55f902d771.1530465326.git.ren_guo@c-sky.com>
- <alpine.DEB.2.21.1807031130050.1601@nanos.tec.linutronix.de>
- <20180704104957.GB23536@guoren>
- <alpine.DEB.2.21.1807041632140.1752@nanos.tec.linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Alexandre Ghiti <alex@ghiti.fr>
+Subject: [PATCH v2 00/11] hugetlb: Factorize architecture hugetlb primitives
+Date: Thu,  5 Jul 2018 05:03:12 +0000
+Message-ID: <20180705050323.301-1-alex@ghiti.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.21.1807041632140.1752@nanos.tec.linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+To: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Alexandre Ghiti <alex@ghiti.fr>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 04, 2018 at 04:35:43PM +0200, Thomas Gleixner wrote:
-> On Wed, 4 Jul 2018, Guo Ren wrote:
-> > On Tue, Jul 03, 2018 at 11:39:05AM +0200, Thomas Gleixner wrote:
-> > > > +static inline u64 get_ccvr(void)
-> > > > +{
-> > > > +	u32 lo, hi, t;
-> > > > +
-> > > > +	do {
-> > > > +		hi = mfcr(PTIM_CCVR_HI);
-> > > > +		lo = mfcr(PTIM_CCVR_LO);
-> > > > +		t  = mfcr(PTIM_CCVR_HI);
-> > > > +	} while(t != hi);
-> > > 
-> > > No idea which frequency this timer ticks at, but if the 32 bit wrap does
-> > > not come too fast, then you really should avoid that loop. That function is
-> > > called very frequently.
-> > 
-> > 0000006c <clksrc_read>:
-> > 		hi = mfcr(PTIM_CCVR_HI);
-> >   6c:	c1c26023 	mfcr      	r3, cr<2, 14>
-> > 		lo = mfcr(PTIM_CCVR_LO);
-> >   70:	c1c36021 	mfcr      	r1, cr<3, 14>
-> > 		t  = mfcr(PTIM_CCVR_HI);
-> >   74:	c1c26022 	mfcr      	r2, cr<2, 14>
-> > 	} while(t != hi);
-> >   78:	648e      	cmpne      	r3, r2
-> >   7a:	0bf9      	bt      	0x6c	// 6c <clksrc_read>
-> > 
-> > When two read cr<2, 14> is not equal, we'll retry. So only when
-> > CCVR_LO is at 0xffffffff between the two read of CCVR_HI. That's very
-> > very small probability event for "bt 0x6c".
-> > 
-> > Don't worry about the "do {...} whie(t != hi)", it's no performance issue.
-> 
-> But _three_ mfcr plus a conditional jump which _cannot_ be predicted are a
-> performance issue. When you can replace that with a single mfcr, then you
-> win a lot, really. The time keeping and the sched clock code can handle
-> that nicely unless you really have fast wrap arounds on the LO word.
-Timer's frequency is about 50Mhz-100Mhz and LO word wrap arounds timer is
-about 42s ~ 84s.
+In order to reduce copy/paste of functions across architectures and then
+make riscv hugetlb port (and future ports) simpler and smaller, this
+patchset intends to factorize the numerous hugetlb primitives that are defined
+across all the architectures.
 
-Our Branch prediction buffer will let the CPU speculative execute
-continually. So the "bt" won't be the performance issue.
+Except for prepare_hugepage_range, this patchset moves the versions that
+are just pass-through to standard pte primitives into
+asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
 
-And I could modify it like this:
+s390 architecture has not been tackled in this serie since it does not
+use asm-generic/hugetlb.h at all.
+powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
 
-static inline u64 get_ccvr(void)
-{
-	u32 lo, hi, t;
+This patchset has been compiled on x86 only.
 
-	t  = mfcr(PTIM_CCVR_LO);
-	hi = mfcr(PTIM_CCVR_HI);
-	lo = mfcr(PTIM_CCVR_LO);
+Alexandre Ghiti (11):
+  hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+  hugetlb: Introduce generic version of hugetlb_free_pgd_range
+  hugetlb: Introduce generic version of set_huge_pte_at
+  hugetlb: Introduce generic version of huge_ptep_get_and_clear
+  hugetlb: Introduce generic version of huge_ptep_clear_flush
+  hugetlb: Introduce generic version of huge_pte_none
+  hugetlb: Introduce generic version of huge_pte_wrprotect
+  hugetlb: Introduce generic version of prepare_hugepage_range
+  hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+  hugetlb: Introduce generic version of huge_ptep_set_access_flags
+  hugetlb: Introduce generic version of huge_ptep_get
 
-	if (lo < t) hi++;
+ arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+ arch/arm/include/asm/hugetlb.h               | 33 +----------
+ arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+ arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+ arch/mips/include/asm/hugetlb.h              | 40 +++----------
+ arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+ arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
+ arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+ arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+ arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
+ arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+ arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+ arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+ arch/x86/include/asm/hugetlb.h               | 72 +----------------------
+ include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+ 15 files changed, 143 insertions(+), 384 deletions(-)
 
-	return ((u64)hi << 32) | lo;
-}
-
-	t  = mfcr(PTIM_CCVR_LO);
-  50:	c1c36023 	mfcr      	r3, cr<3, 14>
-	hi = mfcr(PTIM_CCVR_HI);
-  54:	c1c26021 	mfcr      	r1, cr<2, 14>
-	lo = mfcr(PTIM_CCVR_LO);
-  58:	c1c3602c 	mfcr      	r12, cr<3, 14>
-	if (lo < t) hi++;
-  5c:	64f0      	cmphs      	r12, r3
-  5e:	c4210c21 	incf      	r1, r1, 1
-	return ((u64)hi << 32) | lo;
-  62:	3200      	movi      	r2, 0
- 
-Hmm? (No jump at all)
-
- Guo Ren
+-- 
+2.16.2
