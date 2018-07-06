@@ -1,118 +1,121 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 11/19] csky: Atomic operations
-Date: Fri, 6 Jul 2018 19:01:31 +0800
-Message-ID: <20180706110129.GC8707@guoren>
+Subject: Re: [PATCH V2 16/19] csky: SMP support
+Date: Fri, 6 Jul 2018 19:32:01 +0800
+Message-ID: <20180706113200.GA27148@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
- <20180705175059.GE2530@hirez.programming.kicks-ass.net>
+ <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
+ <20180706052432.q74gql32dtj5gj3b@salmiak>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180705175059.GE2530@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180706052432.q74gql32dtj5gj3b@salmiak>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Will Deacon <will.deacon@arm.com>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 05, 2018 at 07:50:59PM +0200, Peter Zijlstra wrote:
-> On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
+On Fri, Jul 06, 2018 at 06:24:33AM +0100, Mark Rutland wrote:
+> > +	if (cpu >= NR_CPUS)
+> > +		goto error;
+> > +
+> > +	if (of_property_read_string(node, "status", &status))
+> > +		status = "enable";
+> > +
+> > +	if (strcmp(status, "disable") == 0)
+> > +		goto error;
 > 
-> > +#include <asm/barrier.h>
-> > +
-> > +#define __xchg(new, ptr, size)					\
-> > +({								\
-> > +	__typeof__(ptr) __ptr = (ptr);				\
-> > +	__typeof__(new) __new = (new);				\
-> > +	__typeof__(*(ptr)) __ret;				\
-> > +	unsigned long tmp;					\
-> > +	switch (size) {						\
-> > +	case 4:							\
-> > +		asm volatile (					\
-> > +		"1:	ldex.w		%0, (%3) \n"		\
-> > +		"	mov		%1, %2   \n"		\
-> > +		"	stex.w		%1, (%3) \n"		\
-> > +		"	bez		%1, 1b   \n"		\
-> > +			: "=&r" (__ret), "=&r" (tmp)		\
-> > +			: "r" (__new), "r"(__ptr)		\
-> > +			: "memory");				\
-> > +		smp_mb();					\
-> > +		break;						\
-> > +	default:						\
-> > +		BUILD_BUG();					\
-> > +	}							\
-> > +	__ret;							\
-> > +})
-> > +
-> > +#define xchg(ptr, x)	(__xchg((x), (ptr), sizeof(*(ptr))))
-> > +
-> > +#define __cmpxchg(ptr, old, new, size)				\
-> > +({								\
-> > +	__typeof__(ptr) __ptr = (ptr);				\
-> > +	__typeof__(new) __new = (new);				\
-> > +	__typeof__(new) __tmp;					\
-> > +	__typeof__(old) __old = (old);				\
-> > +	__typeof__(*(ptr)) __ret;				\
-> > +	switch (size) {						\
-> > +	case 4:							\
-> > +		asm volatile (					\
-> > +		"1:	ldex.w		%0, (%3) \n"		\
-> > +		"	cmpne		%0, %4   \n"		\
-> > +		"	bt		2f       \n"		\
-> > +		"	mov		%1, %2   \n"		\
-> > +		"	stex.w		%1, (%3) \n"		\
-> > +		"	bez		%1, 1b   \n"		\
-> > +		"2:				 \n"		\
-> > +			: "=&r" (__ret), "=&r" (__tmp)		\
-> > +			: "r" (__new), "r"(__ptr), "r"(__old)	\
-> > +			: "memory");				\
-> > +		smp_mb();					\
-> > +		break;						\
-> > +	default:						\
-> > +		BUILD_BUG();					\
-> > +	}							\
-> > +	__ret;							\
-> > +})
-> > +
-> > +#define cmpxchg(ptr, o, n) \
-> > +	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr))))
+> Please use of_device_is_available(node); 
+Ok.
+
+> "enable" is not a sensible value for
+> the status property, and "disable" (rather than "disabled") is simply unusual.
 > 
-> What's the memory ordering rules for your LDEX/STEX ?
-Every CPU has a local exclusive monitor.
+> Neither "enable" nor "disable" are correct values for the status property.
 
-"Ldex rz, (rx, #off)" will add an entry into the local monitor, and the 
-entry is composed of a address tag and a exclusive flag (inited with 1). 
-Any stores (include other cores') will break the exclusive flag to 0 in
-the entry which could be indexed by the address tag.
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		cpu@0 {
+			device_type = "cpu";
+			reg = <0>;
+			status = "on";
+		};
 
-"Stex rz, (rx, #off)" has two condition:
-1. Store Success: When the entry's exclusive flag is 1, it will store rz
-to the [rx + off] address and the rz will be set to 1.
-2. Store Failure: When the entry's exclusive flag is 0, just rz will be
-set to 0.
+		cpu@1 {
+			device_type = "cpu";
+			reg = <1>;
+			status = "off";
+		};
+	};
 
-> The mandated semantics for xchg() / cmpxchg() is an effective smp_mb()
-> before _and_ after.
+> What is the value in the reg property, exactly?
+See above, I'll remove the reg property and it's no use.
 
-	switch (size) {						\
-	case 4:							\
-		smp_mb();					\
-		asm volatile (					\
-		"1:	ldex.w		%0, (%3) \n"		\
-		"	mov		%1, %2   \n"		\
-		"	stex.w		%1, (%3) \n"		\
-		"	bez		%1, 1b   \n"		\
-			: "=&r" (__ret), "=&r" (tmp)		\
-			: "r" (__new), "r"(__ptr)		\
-			: "memory");				\
-		smp_mb();					\
-		break;						\
-Hmm?
-But I couldn't undertand what's wrong without the 1th smp_mb()?
-1th smp_mb will make all ld/st finish before ldex.w. Is it necessary?
+> Is there a unique ID in
+> hardware for each CPU in the system?
+There is no unique ID in current CPU: ck860.
 
-> The above implementation suggests LDEX implies a SYNC.IS, is this
-> correct?
-No, ldex doesn't imply a sync.is.
+> 
+> It would be good to document this, e.g. as arm does in
+> Documentation/devicetree/bindings/arm/cpus.txt
+Ok.
+
+> > +
+> > +	return cpu;
+> > +error:
+> > +	return -ENODEV;
+> > +}
+> > +
+> > +void __init setup_smp(void)
+> > +{
+> > +	struct device_node *node = NULL;
+> > +	int cpu;
+> > +
+> > +	while ((node = of_find_node_by_type(node, "cpu"))) {
+> > +		cpu = csky_of_cpu(node);
+> > +		if (cpu >= 0) {
+> > +			set_cpu_possible(cpu, true);
+> > +			set_cpu_present(cpu, true);
+> > +		}
+> > +	}
+> > +}
+> 
+> What happens if/when the value in the reg property is larger than NR_CPUS?
+Bug. I'll add NR_CPUS limit.
+
+> > +int __cpu_up(unsigned int cpu, struct task_struct *tidle)
+> > +{
+> > +	unsigned int tmp;
+> > +
+> > +	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
+> > +
+> > +	secondary_hint = mfcr("cr31");
+> > +
+> > +	secondary_ccr  = mfcr("cr18");
+> > +
+> > +	pr_info("%s: CPU%u\n", __func__, cpu);
+> > +
+> > +	tmp = mfcr("cr<29, 0>");
+> > +	tmp |= 1 << cpu;
+> > +	mtcr("cr<29, 0>", tmp);
+> > +
+> > +	while (!cpu_online(cpu));
+> > +
+> > +	secondary_stack = 0;
+> > +
+> > +	return 0;
+> > +}
+> 
+> I don't see a start address being setup here, so I assume that CPUs branch to a
+> fixed address out-of-reset. Does that mean that the kernel has to be loaded at
+> a particular physical address on a given platform?
+No, not a fixed address. I put it arch/csky/kernel/traps.c:79-83
+trap_init()
+#ifdef CONFIG_SMP
+	mtcr("cr<28, 0>", virt_to_phys(vec_base));
+
+	VEC_INIT(VEC_RESET, (void *)virt_to_phys(_start_smp_secondary));
+#endi
 
  Guo Ren
