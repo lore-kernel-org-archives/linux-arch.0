@@ -1,60 +1,52 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH V2 11/19] csky: Atomic operations
-Date: Fri, 6 Jul 2018 14:05:32 +0200
-Message-ID: <20180706120532.GX2476@hirez.programming.kicks-ass.net>
+Date: Fri, 6 Jul 2018 14:17:16 +0200
+Message-ID: <20180706121716.GO2512@hirez.programming.kicks-ass.net>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
  <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
- <20180705180008.GG2530@hirez.programming.kicks-ass.net>
- <20180706114812.GC27148@guoren>
+ <20180705175059.GE2530@hirez.programming.kicks-ass.net>
+ <20180706110129.GC8707@guoren>
+ <20180706115614.GV2476@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180706114812.GC27148@guoren>
+In-Reply-To: <20180706115614.GV2476@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 06, 2018 at 07:48:12PM +0800, Guo Ren wrote:
-> On Thu, Jul 05, 2018 at 08:00:08PM +0200, Peter Zijlstra wrote:
-> > On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
-> > > +#ifdef CONFIG_CPU_HAS_LDSTEX
-> > > +ENTRY(csky_cmpxchg)
-> > > +	USPTOKSP
-> > > +	mfcr	a3, epc
-> > > +	INCTRAP	a3
-> > > +
-> > > +	subi    sp, 8
-> > > +	stw     a3, (sp, 0)
-> > > +	mfcr    a3, epsr
-> > > +	stw     a3, (sp, 4)
-> > > +
-> > > +	psrset	ee
-> > > +1:
-> > > +	ldex	a3, (a2)
-> > > +	cmpne	a0, a3
-> > > +	bt16	2f
-> > > +	mov	a3, a1
-> > > +	stex	a3, (a2)
-> > > +	bez	a3, 1b
-> > > +2:
-> > > +	sync.is
-> > > +	mvc	a0
-> > > +	ldw	a3, (sp, 0)
-> > > +	mtcr	a3, epc
-> > > +	ldw     a3, (sp, 4)
-> > > +	mtcr	a3, epsr
-> > > +	addi	sp, 8
-> > > +	KSPTOUSP
-> > > +	rte
-> > > +END(csky_cmpxchg)
-> > > +#else
-> > 
-> > Please explain... if the CPU has LDEX/STEX, then _why_ do you need this?
-> Our libc use csky_cmpxchg and we want it compatible. Of course, we'll
-> also implement the ldex/stex atomic operations in libs in future.
+On Fri, Jul 06, 2018 at 01:56:14PM +0200, Peter Zijlstra wrote:
 
-I would strongly suggest not providing this syscall on SMP systems from
-the get go. There is no point in starting with legacy problems without
-an actual legacy.
+> > But I couldn't undertand what's wrong without the 1th smp_mb()?
+> > 1th smp_mb will make all ld/st finish before ldex.w. Is it necessary?
+> 
+> Yes.
+> 
+> 	CPU0			CPU1
+> 
+> 	r1 = READ_ONCE(x);	WRITE_ONCE(y, 1);
+> 	r2 = xchg(&y, 2);	smp_store_release(&x, 1);
+> 
+> must not allow: r1==1 && r2==0
+
+Also, since you said "SYNC.IS" is a pipeline flush, those
+instruction-sync primitives normally do not imply a store-buffer flush,
+does yours? If not it is not a valid smp_mb() implementation.
+
+Notably:
+
+	CPU0				CPU1
+
+	WRITE_ONCE(x, 1);		WRITE_ONCE(y, 1);
+	smp_mb();			smp_mb();
+	r0 = READ_ONCE(y);		r1 = READ_ONCE(x);
+
+must not allow: r0==0 && r1==0
+
+Which would be possible with a regular instruction-sync barrier, but
+must absolutely not be true with a full memory barrier.
+
+(and you can replace the smp_mb(); r = READ_ONCE(); with r = xchg() to
+again see why you need that first smp_mb()).
