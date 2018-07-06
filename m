@@ -1,101 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58748 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932199AbeGFFYm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Jul 2018 01:24:42 -0400
-Date: Fri, 6 Jul 2018 06:24:33 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH V2 16/19] csky: SMP support
-Message-ID: <20180706052432.q74gql32dtj5gj3b@salmiak>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:53040 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932778AbeGFF5o (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 01:57:44 -0400
+Date: Fri, 6 Jul 2018 13:57:09 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 18/19] clocksource: add C-SKY clocksource drivers
+Message-ID: <20180706055709.GA8707@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
+ <aba005fd5005c066a2e3d760c334bb55f902d771.1530465326.git.ren_guo@c-sky.com>
+ <bc765809-2d97-5ff8-d2ac-65479ce91ef2@linaro.org>
+ <20180705033020.GA8023@guoren>
+ <afdcf591-31cd-7610-0ff6-e345895ce4a4@linaro.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
+In-Reply-To: <afdcf591-31cd-7610-0ff6-e345895ce4a4@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180706052433.RSoJmmX67c3UMLnyFx0vtPHn9sE8kdOpqQ7u7xDK_hY@z>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180706055709.5meM86aMeSqa4kPrf-iuBEaOolhJWDovJmgSLjy0v88@z>
 
-On Mon, Jul 02, 2018 at 01:30:19AM +0800, Guo Ren wrote:
-> +static int csky_of_cpu(struct device_node *node)
-> +{
-> +	const char *status;
-> +	int cpu;
-> +
-> +	if (of_property_read_u32(node, "reg", &cpu))
-> +		goto error;
-> +
-> +	if (cpu >= NR_CPUS)
-> +		goto error;
-> +
-> +	if (of_property_read_string(node, "status", &status))
-> +		status = "enable";
-> +
-> +	if (strcmp(status, "disable") == 0)
-> +		goto error;
+On Thu, Jul 05, 2018 at 11:23:36AM +0200, Daniel Lezcano wrote:
+> > So I still need "for_each_cpu(cpu, cpu_possible_mask)" to init every
+> > csky_to ...
+> 
+> That is what is unclear for me. percpu or IRQF_PERCPU ?
+IRQF_PERCPU
+ 
+> Have a look at the commit 9995f4f184613fb02ee73092b03545520a72b104,
+> changelog and the comment in the init function.
+> 
+> Can you give a similar description for this timer ?
+Ok, thx for the tip.
 
-Please use of_device_is_available(node); "enable" is not a sensible value for
-the status property, and "disable" (rather than "disabled") is simply unusual.
+> > #define STATUS_CLR	BIT(0)
+> > 
+> > #define CONTRL_RST	BIT(0)
+> > #define CONTRL_START	BIT(1)
+> > 
+> > #define CONFIG_EN	BIT(0)
+> > #define CONFIG_IRQ_EN	BIT(1)
+> 
+> NATCHIP_STATUS_CLR
+> NATCHIP_CONTROL_RST
+> NATCHIP_CONTROL_START
+> 
+> NATCHIP_CONFIG_EN
+> NATCHIP_CONFIG_IRQ_EN
+Ok
 
-Neither "enable" nor "disable" are correct values for the status property.
+> >>> +		.rating = 300,
+> >>> +		.features = CLOCK_EVT_FEAT_DYNIRQ | CLOCK_EVT_FEAT_PERIODIC |
+> >>> +			CLOCK_EVT_FEAT_ONESHOT,
+> >>> +		.set_state_shutdown	= nc_timer_shutdown,
+> >>> +		.set_state_periodic	= nc_timer_set_periodic,
+> >>> +		.set_next_event		= nc_timer_set_next_event,
+> >>
+> >> set_oneshot ?
+> > Yes oneshort, but also could support periodic. But in fact, it only
+> > works with oneshort.
+> 
+> In the flags, it is specified periodic and oneshot but only the
+> set_periodic ops is set.
+Got it, add set_oneshot.
 
-What is the value in the reg property, exactly? Is there a unique ID in
-hardware for each CPU in the system?
+> > Thx, I'll modify it like this:
+> > div = (timer_of_rate(&to) / TIMER_FREQ) - 1;
+> 
+> I wanted to be sure it wasn't the latter. In this case, you don't need
+> parenthesis, so just add the spaces around the '/' operator.
+Ok
 
-It would be good to document this, e.g. as arm does in
-Documentation/devicetree/bindings/arm/cpus.txt
-
-> +
-> +	return cpu;
-> +error:
-> +	return -ENODEV;
-> +}
-> +
-> +void __init setup_smp(void)
-> +{
-> +	struct device_node *node = NULL;
-> +	int cpu;
-> +
-> +	while ((node = of_find_node_by_type(node, "cpu"))) {
-> +		cpu = csky_of_cpu(node);
-> +		if (cpu >= 0) {
-> +			set_cpu_possible(cpu, true);
-> +			set_cpu_present(cpu, true);
-> +		}
-> +	}
-> +}
-
-What happens if/when the value in the reg property is larger than NR_CPUS?
-
-> +int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-> +{
-> +	unsigned int tmp;
-> +
-> +	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
-> +
-> +	secondary_hint = mfcr("cr31");
-> +
-> +	secondary_ccr  = mfcr("cr18");
-> +
-> +	pr_info("%s: CPU%u\n", __func__, cpu);
-> +
-> +	tmp = mfcr("cr<29, 0>");
-> +	tmp |= 1 << cpu;
-> +	mtcr("cr<29, 0>", tmp);
-> +
-> +	while (!cpu_online(cpu));
-> +
-> +	secondary_stack = 0;
-> +
-> +	return 0;
-> +}
-
-I don't see a start address being setup here, so I assume that CPUs branch to a
-fixed address out-of-reset. Does that mean that the kernel has to be loaded at
-a particular physical address on a given platform?
-
-Thanks,
-Mark.
+ Guo Ren
