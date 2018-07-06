@@ -1,31 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:33824 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932886AbeGFNB2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 09:01:28 -0400
-Date: Fri, 6 Jul 2018 15:01:10 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH V2 11/19] csky: Atomic operations
-Message-ID: <20180706130110.GP2512@hirez.programming.kicks-ass.net>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:43104 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1753616AbeGFNW0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 09:22:26 -0400
+Date: Fri, 6 Jul 2018 21:22:15 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 16/19] csky: SMP support
+Message-ID: <20180706132215.GB30265@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
- <20180705175902.GF2530@hirez.programming.kicks-ass.net>
- <20180706114402.GB27148@guoren>
- <20180706120323.GW2476@hirez.programming.kicks-ass.net>
+ <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
+ <20180705180503.GH2530@hirez.programming.kicks-ass.net>
+ <20180706060740.GB8707@guoren>
+ <20180706093932.GT2476@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180706120323.GW2476@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180706093932.GT2476@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180706130110.6TYXa7xWQgslE8f1XG-RjCCjnRmCLVFC2CQ5HeUTpQs@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Will Deacon <will.deacon@arm.com>
+Message-ID: <20180706132215.IKf5N6JEsOViwsPfyUKnB6sjBkNuu-6MC6_zPcoKhuk@z>
 
-On Fri, Jul 06, 2018 at 02:03:23PM +0200, Peter Zijlstra wrote:
-> > Ok, I'll try to implement ticket lock in next version patch.
+On Fri, Jul 06, 2018 at 11:39:32AM +0200, Peter Zijlstra wrote:
+> On Fri, Jul 06, 2018 at 02:07:40PM +0800, Guo Ren wrote:
 > 
-> If you need inspiration, look at:
+> > > Please explain those mb()'s... I'm thinking you meant to use smp_mb().
+> > Yes, smp_mb(). Current smp_mb()&mb() is the same: sync.is.
+> > 
+> > In next version patch, I'll seperate smp_mb() and mb() and use ld/st.barrier
+> > instead of sync.is. Sync.is is expensive that it flush cpu's pipeline.
 > 
+> I'll second my own call for documentation, because now there's three
+> memory ordering instructions:
+> 
+>  "SYNC", "SYNC.IS" and "LD/ST.BARRIER"
+> 
+> None of which have yet been explained.
+In C-SKY there are:
 
-My bad, just look at the arm (not arm64) version.
+sync:        completion barrier
+sync.s:      completion barrier and shareable to other cores
+sync.i:      completion barrier with flush cpu pipeline
+sync.is:     completion barrier with flush cpu pipeline and shareable to other cores 
+
+bar.brwarw:  ordering barrier for all load/store instructions before it
+bar.brwarws: ordering barrier for all load/store instructions before it and shareable to other cores
+bar.brar:    ordering barrier for all load       instructions before it
+bar.brars:   ordering barrier for all load       instructions before it and shareable to other cores
+bar.bwaw:    ordering barrier for all store      instructions before it
+bar.bwaws:   ordering barrier for all store      instructions before it and shareable to other cores
