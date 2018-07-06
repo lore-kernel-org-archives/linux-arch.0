@@ -1,82 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:43748 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753611AbeGFL46 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 07:56:58 -0400
-Date: Fri, 6 Jul 2018 13:56:14 +0200
+Received: from bombadil.infradead.org ([198.137.202.133]:52400 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932343AbeGFMDt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 08:03:49 -0400
+Date: Fri, 6 Jul 2018 14:03:23 +0200
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH V2 11/19] csky: Atomic operations
-Message-ID: <20180706115614.GV2476@hirez.programming.kicks-ass.net>
+Message-ID: <20180706120323.GW2476@hirez.programming.kicks-ass.net>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
  <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
- <20180705175059.GE2530@hirez.programming.kicks-ass.net>
- <20180706110129.GC8707@guoren>
+ <20180705175902.GF2530@hirez.programming.kicks-ass.net>
+ <20180706114402.GB27148@guoren>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180706110129.GC8707@guoren>
+In-Reply-To: <20180706114402.GB27148@guoren>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20180706115614.NIh65x7vUVdMcsSQ_EUYnvz8D9xXCLqdgEKdnNYMKt8@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180706120323.Zous8nckfPSZpbdB6ZqGrDx7P0f1NVL0o22liS3Rpis@z>
 
-On Fri, Jul 06, 2018 at 07:01:31PM +0800, Guo Ren wrote:
-> On Thu, Jul 05, 2018 at 07:50:59PM +0200, Peter Zijlstra wrote:
+On Fri, Jul 06, 2018 at 07:44:03PM +0800, Guo Ren wrote:
+> On Thu, Jul 05, 2018 at 07:59:02PM +0200, Peter Zijlstra wrote:
+> > On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
+> > 
+> > > +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> > > +{
+> > > +	unsigned int *p = &lock->lock;
+> > > +	unsigned int tmp;
+> > > +
+> > > +	asm volatile (
+> > > +		"1:	ldex.w		%0, (%1) \n"
+> > > +		"	bnez		%0, 1b   \n"
+> > > +		"	movi		%0, 1    \n"
+> > > +		"	stex.w		%0, (%1) \n"
+> > > +		"	bez		%0, 1b   \n"
+> > > +		: "=&r" (tmp)
+> > > +		: "r"(p)
+> > > +		: "memory");
+> > > +	smp_mb();
+> > > +}
+> > 
+> > Test-and-set with MB acting as ACQUIRE, ok.
+> Em ... Ok, I'll try to use test-and-set function instead of it.
 
-> > What's the memory ordering rules for your LDEX/STEX ?
-> Every CPU has a local exclusive monitor.
-> 
-> "Ldex rz, (rx, #off)" will add an entry into the local monitor, and the 
-> entry is composed of a address tag and a exclusive flag (inited with 1). 
-> Any stores (include other cores') will break the exclusive flag to 0 in
-> the entry which could be indexed by the address tag.
-> 
-> "Stex rz, (rx, #off)" has two condition:
-> 1. Store Success: When the entry's exclusive flag is 1, it will store rz
-> to the [rx + off] address and the rz will be set to 1.
-> 2. Store Failure: When the entry's exclusive flag is 0, just rz will be
-> set to 0.
+"test-and-set" is just the name of this type of spinlock implementation.
 
-That's how LL/SC works. What I was asking is if they have any effect on
-memory ordering. Some architectures have LL/SC imply memory ordering,
-most do not.
+You _could_ use the linux test_and_set bitop, but those are defined on
+unsigned long and spinlock_t is generally assumed to be of unsigned int
+size.
 
-Going by your spinlock implementation they don't imply any memory
-ordering.
+Go with the ticket locks as per below.
 
-> > The mandated semantics for xchg() / cmpxchg() is an effective smp_mb()
-> > before _and_ after.
-> 
-> 	switch (size) {						\
-> 	case 4:							\
-> 		smp_mb();					\
-> 		asm volatile (					\
-> 		"1:	ldex.w		%0, (%3) \n"		\
-> 		"	mov		%1, %2   \n"		\
-> 		"	stex.w		%1, (%3) \n"		\
-> 		"	bez		%1, 1b   \n"		\
-> 			: "=&r" (__ret), "=&r" (tmp)		\
-> 			: "r" (__new), "r"(__ptr)		\
-> 			: "memory");				\
-> 		smp_mb();					\
-> 		break;						\
-> Hmm?
-> But I couldn't undertand what's wrong without the 1th smp_mb()?
-> 1th smp_mb will make all ld/st finish before ldex.w. Is it necessary?
+> > Also, the fact that you need MB for release implies your LDEX does not
+> > in fact imply anything and your xchg/cmpxchg implementation is broken.
+> xchg/cmxchg broken without 1th smp_mb()? Why we need protect the
+> instructions flow before the ldex.w?
 
-Yes.
+See the email I send earlier in that thread.
 
-	CPU0			CPU1
+> Ok, I'll try to implement ticket lock in next version patch.
 
-	r1 = READ_ONCE(x);	WRITE_ONCE(y, 1);
-	r2 = xchg(&y, 2);	smp_store_release(&x, 1);
+If you need inspiration, look at:
 
-must not allow: r1==1 && r2==0
+  git show 81bb5c6420635dfd058c210bd342c29c95ccd145^1:arch/arm64/include/asm/spinlock.h
 
-> > The above implementation suggests LDEX implies a SYNC.IS, is this
-> > correct?
-> No, ldex doesn't imply a sync.is.
+Or look at the current version of that file and ignore the LSE version.
 
-Right, as per the spinlock emails, then your proposed primitives are
-incorrect.
+Note that unlock is a store half-word (u16), not having seen your arch
+manual yet I don't know if you even have that.
