@@ -1,110 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:39658 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932483AbeGFQVI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Jul 2018 12:21:08 -0400
-Date: Fri, 6 Jul 2018 17:21:00 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH V2 16/19] csky: SMP support
-Message-ID: <20180706162100.3iimik242cied2c6@lakrids.cambridge.arm.com>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
- <20180706052432.q74gql32dtj5gj3b@salmiak>
- <20180706113200.GA27148@guoren>
- <20180706114352.6r7zkjunoafqtr3s@lakrids.cambridge.arm.com>
- <20180706122631.GA30265@guoren>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180706122631.GA30265@guoren>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:39275 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933714AbeGFRPP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 13:15:15 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [PATCH] devres: Really align data field to unsigned long long
+Date: Fri,  6 Jul 2018 20:15:04 +0300
+Message-ID: <20180706171504.10265-1-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180706162100.lVhP3ANeAYO-GkqqFJUWE1lg9UXgIt0sL01UX3UVS9w@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, stable@vger.kernel.org
+Message-ID: <20180706171504.hAOpyFUgJ_cNukbVSnha70qb2bXbjGz6pZkmcxWryGY@z>
 
-On Fri, Jul 06, 2018 at 08:26:31PM +0800, Guo Ren wrote:
-> On Fri, Jul 06, 2018 at 12:43:52PM +0100, Mark Rutland wrote:
-> > Please see the devicetree spec [1], section 2.3.4. Valid values are:
-> > 
-> > * "okay" // equivalent to no status property present
-> > * "disabled"
-> > * "fail"
-> > * "fail-sss"
-> Nice tip, thx.
-> 
-> > I'm a bit confused. You write (1 << cpu) into cv<29, 0>, to enable a
-> > particular CPU, so I assume that bit uniquely identifies a CPU,
-> Yes, you're right and cr<29, 0>'s bit uniquely identifies a cpu.
-> 
-> > and
-> > therefore the reg is some unique ID for the CPU.
-> static int csky_of_cpu(struct device_node *node)
-> {
-> 	const char *status;
-> 
-> 	if (of_property_read_string(node, "status", &status))
-> 		status = "okay";
-> 
-> 	if (strcmp(status, "disabled") == 0)
-> 		goto error;
-> 
-> 	return 1;
-> error:
-> 	return 0;
-> }
+It looks like on most of architectures "data" member of devres struture
+gets aligned to 8-byte "unsigned long long" boundary as one may expect:
+if we don't explicitly pack a structure then natural alignment
+(which matches each member data type) is used.
 
-Please don't open-code this. Use of_device_is_available(), which checks
-the status property itself. e.g.
+But at least on 32-bit ARC architecture ABI requires "long long" types
+to be aligned by normal 32-bit word. This makes "data" field aligned to
+12 bytes. This is still OK as long as we use 32-bit data only.
 
-void __init setup_smp(void)
-{
-	struct device_node *node = NULL;
+But once we want to use native atomic64_t type (i.e. when we use special
+instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
+misaligned access exception.
 
-	while ((node = of_find_node_by_type(node, "cpu"))) {
-		if (!of_device_is_available(node))
-			continue;
+That's because even on CPUs capable of non-aligned data access LL/SC
+instructions require strict alignment.
 
-		...
-	}
-}
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Cc: stable@vger.kernel.org
+---
+ drivers/base/devres.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-> void __init setup_smp(void)
-> {
-> 	struct device_node *node = NULL;
-> 	int i = 0;
-> 
-> 	while ((node = of_find_node_by_type(node, "cpu"))) {
-> 		if (!csky_of_cpu(node))
-> 			continue;
-> 
-> 		set_cpu_possible(i, true);
-> 		set_cpu_present(i, true);
-> 
-> 		i++;
-> 	}
-> }
-> Hmm?
-> 
-> No <reg> in next version patch, it's no use.
-
-Please use the reg property, you need it to describe which particular
-CPUs are available.
-
-You probably also want a mapping from Linux logical CPU id to your
-physical CPU id, and a sanity check on this. See arm64 for an example.
-
-> > I see.
-> > 
-> > Is this SMP bringup mechanism architectual, or are you likely to need
-> > another mechanism to turn on CPUs on future chips?
-> It's the only SMP bringup mechanism architectual for C-SKY SMP. There is
-> no another way in future and SOC vendor couldn't change it.
-> 
-> > You probably want to use an enable-method property to describe this.
-> No, thx.
-
-Fair enough.
-
-Thanks,
-Mark.
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+index f98a097e73f2..35ddc8b66bc9 100644
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -25,7 +25,7 @@ struct devres_node {
+ struct devres {
+ 	struct devres_node		node;
+ 	/* -- 3 pointers */
+-	unsigned long long		data[];	/* guarantee ull alignment */
++	unsigned long long		data[] __aligned(sizeof(unsigned long long));
+ };
+ 
+ struct devres_group {
+-- 
+2.17.1
