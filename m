@@ -1,64 +1,45 @@
 From: Guo Ren <ren_guo@c-sky.com>
 Subject: Re: [PATCH V2 11/19] csky: Atomic operations
-Date: Fri, 6 Jul 2018 21:46:16 +0800
-Message-ID: <20180706134616.GA25190@guoren>
+Date: Fri, 6 Jul 2018 22:06:59 +0800
+Message-ID: <20180706140659.GB25190@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
  <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
- <20180705180008.GG2530@hirez.programming.kicks-ass.net>
- <20180706114812.GC27148@guoren>
- <20180706120532.GX2476@hirez.programming.kicks-ass.net>
+ <20180705175902.GF2530@hirez.programming.kicks-ass.net>
+ <20180706114402.GB27148@guoren>
+ <20180706120323.GW2476@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180706120532.GX2476@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180706120323.GW2476@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 06, 2018 at 02:05:32PM +0200, Peter Zijlstra wrote:
-> On Fri, Jul 06, 2018 at 07:48:12PM +0800, Guo Ren wrote:
-> > On Thu, Jul 05, 2018 at 08:00:08PM +0200, Peter Zijlstra wrote:
-> > > On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
-> > > > +#ifdef CONFIG_CPU_HAS_LDSTEX
-> > > > +ENTRY(csky_cmpxchg)
-> > > > +	USPTOKSP
-> > > > +	mfcr	a3, epc
-> > > > +	INCTRAP	a3
-> > > > +
-> > > > +	subi    sp, 8
-> > > > +	stw     a3, (sp, 0)
-> > > > +	mfcr    a3, epsr
-> > > > +	stw     a3, (sp, 4)
-> > > > +
-> > > > +	psrset	ee
-> > > > +1:
-> > > > +	ldex	a3, (a2)
-> > > > +	cmpne	a0, a3
-> > > > +	bt16	2f
-> > > > +	mov	a3, a1
-> > > > +	stex	a3, (a2)
-> > > > +	bez	a3, 1b
-> > > > +2:
-> > > > +	sync.is
-> > > > +	mvc	a0
-> > > > +	ldw	a3, (sp, 0)
-> > > > +	mtcr	a3, epc
-> > > > +	ldw     a3, (sp, 4)
-> > > > +	mtcr	a3, epsr
-> > > > +	addi	sp, 8
-> > > > +	KSPTOUSP
-> > > > +	rte
-> > > > +END(csky_cmpxchg)
-> > > > +#else
-> > > 
-> > > Please explain... if the CPU has LDEX/STEX, then _why_ do you need this?
-> > Our libc use csky_cmpxchg and we want it compatible. Of course, we'll
-> > also implement the ldex/stex atomic operations in libs in future.
+On Fri, Jul 06, 2018 at 02:03:23PM +0200, Peter Zijlstra wrote:
+> > > Test-and-set with MB acting as ACQUIRE, ok.
+> > Em ... Ok, I'll try to use test-and-set function instead of it.
 > 
-> I would strongly suggest not providing this syscall on SMP systems from
-> the get go. There is no point in starting with legacy problems without
-> an actual legacy.
-Ok.
- 
+> "test-and-set" is just the name of this type of spinlock implementation.
+> 
+> You _could_ use the linux test_and_set bitop, but those are defined on
+> unsigned long and spinlock_t is generally assumed to be of unsigned int
+> size.
+> 
+> Go with the ticket locks as per below.
+Ok, I'll learn it.
+
+> > Ok, I'll try to implement ticket lock in next version patch.
+> 
+> If you need inspiration, look at:
+> 
+arch/arm/include/asm/spinlock.h
+> 
+> Or look at the current version of that file and ignore the LSE version.
+> 
+> Note that unlock is a store half-word (u16), not having seen your arch
+> manual yet I don't know if you even have that.
+Nice tips, thank you very much.
+
+ Guo Ren
