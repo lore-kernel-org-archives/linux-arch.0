@@ -1,47 +1,64 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 16/19] csky: SMP support
-Date: Fri, 6 Jul 2018 21:22:15 +0800
-Message-ID: <20180706132215.GB30265@guoren>
+Subject: Re: [PATCH V2 11/19] csky: Atomic operations
+Date: Fri, 6 Jul 2018 21:46:16 +0800
+Message-ID: <20180706134616.GA25190@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
- <20180705180503.GH2530@hirez.programming.kicks-ass.net>
- <20180706060740.GB8707@guoren>
- <20180706093932.GT2476@hirez.programming.kicks-ass.net>
+ <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
+ <20180705180008.GG2530@hirez.programming.kicks-ass.net>
+ <20180706114812.GC27148@guoren>
+ <20180706120532.GX2476@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180706093932.GT2476@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180706120532.GX2476@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 06, 2018 at 11:39:32AM +0200, Peter Zijlstra wrote:
-> On Fri, Jul 06, 2018 at 02:07:40PM +0800, Guo Ren wrote:
+On Fri, Jul 06, 2018 at 02:05:32PM +0200, Peter Zijlstra wrote:
+> On Fri, Jul 06, 2018 at 07:48:12PM +0800, Guo Ren wrote:
+> > On Thu, Jul 05, 2018 at 08:00:08PM +0200, Peter Zijlstra wrote:
+> > > On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
+> > > > +#ifdef CONFIG_CPU_HAS_LDSTEX
+> > > > +ENTRY(csky_cmpxchg)
+> > > > +	USPTOKSP
+> > > > +	mfcr	a3, epc
+> > > > +	INCTRAP	a3
+> > > > +
+> > > > +	subi    sp, 8
+> > > > +	stw     a3, (sp, 0)
+> > > > +	mfcr    a3, epsr
+> > > > +	stw     a3, (sp, 4)
+> > > > +
+> > > > +	psrset	ee
+> > > > +1:
+> > > > +	ldex	a3, (a2)
+> > > > +	cmpne	a0, a3
+> > > > +	bt16	2f
+> > > > +	mov	a3, a1
+> > > > +	stex	a3, (a2)
+> > > > +	bez	a3, 1b
+> > > > +2:
+> > > > +	sync.is
+> > > > +	mvc	a0
+> > > > +	ldw	a3, (sp, 0)
+> > > > +	mtcr	a3, epc
+> > > > +	ldw     a3, (sp, 4)
+> > > > +	mtcr	a3, epsr
+> > > > +	addi	sp, 8
+> > > > +	KSPTOUSP
+> > > > +	rte
+> > > > +END(csky_cmpxchg)
+> > > > +#else
+> > > 
+> > > Please explain... if the CPU has LDEX/STEX, then _why_ do you need this?
+> > Our libc use csky_cmpxchg and we want it compatible. Of course, we'll
+> > also implement the ldex/stex atomic operations in libs in future.
 > 
-> > > Please explain those mb()'s... I'm thinking you meant to use smp_mb().
-> > Yes, smp_mb(). Current smp_mb()&mb() is the same: sync.is.
-> > 
-> > In next version patch, I'll seperate smp_mb() and mb() and use ld/st.barrier
-> > instead of sync.is. Sync.is is expensive that it flush cpu's pipeline.
-> 
-> I'll second my own call for documentation, because now there's three
-> memory ordering instructions:
-> 
->  "SYNC", "SYNC.IS" and "LD/ST.BARRIER"
-> 
-> None of which have yet been explained.
-In C-SKY there are:
-
-sync:        completion barrier
-sync.s:      completion barrier and shareable to other cores
-sync.i:      completion barrier with flush cpu pipeline
-sync.is:     completion barrier with flush cpu pipeline and shareable to other cores 
-
-bar.brwarw:  ordering barrier for all load/store instructions before it
-bar.brwarws: ordering barrier for all load/store instructions before it and shareable to other cores
-bar.brar:    ordering barrier for all load       instructions before it
-bar.brars:   ordering barrier for all load       instructions before it and shareable to other cores
-bar.bwaw:    ordering barrier for all store      instructions before it
-bar.bwaws:   ordering barrier for all store      instructions before it and shareable to other cores
+> I would strongly suggest not providing this syscall on SMP systems from
+> the get go. There is no point in starting with legacy problems without
+> an actual legacy.
+Ok.
+ 
