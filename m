@@ -1,125 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35198 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932348AbeGFLn5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Jul 2018 07:43:57 -0400
-Date: Fri, 6 Jul 2018 12:43:52 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH V2 16/19] csky: SMP support
-Message-ID: <20180706114352.6r7zkjunoafqtr3s@lakrids.cambridge.arm.com>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:56843 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932348AbeGFLog (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 07:44:36 -0400
+Date: Fri, 6 Jul 2018 19:44:03 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 11/19] csky: Atomic operations
+Message-ID: <20180706114402.GB27148@guoren>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
- <20180706052432.q74gql32dtj5gj3b@salmiak>
- <20180706113200.GA27148@guoren>
+ <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
+ <20180705175902.GF2530@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180706113200.GA27148@guoren>
+In-Reply-To: <20180705175902.GF2530@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180706114352.qOskwNkdOSS0MhgMiwQJBdCQPyWSJsTHf_oMqwcZKZk@z>
+Message-ID: <20180706114403.UFZaS7H62gIVNVa382VYZ5VwDhGHUrbboGONnZD5l8k@z>
 
-On Fri, Jul 06, 2018 at 07:32:01PM +0800, Guo Ren wrote:
-> On Fri, Jul 06, 2018 at 06:24:33AM +0100, Mark Rutland wrote:
-> > > +	if (cpu >= NR_CPUS)
-> > > +		goto error;
-> > > +
-> > > +	if (of_property_read_string(node, "status", &status))
-> > > +		status = "enable";
-> > > +
-> > > +	if (strcmp(status, "disable") == 0)
-> > > +		goto error;
-> > 
-> > Please use of_device_is_available(node); 
-> Ok.
+On Thu, Jul 05, 2018 at 07:59:02PM +0200, Peter Zijlstra wrote:
+> On Mon, Jul 02, 2018 at 01:30:14AM +0800, Guo Ren wrote:
 > 
-> > "enable" is not a sensible value for
-> > the status property, and "disable" (rather than "disabled") is simply unusual.
-> > 
-> > Neither "enable" nor "disable" are correct values for the status property.
+> > +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> > +{
+> > +	unsigned int *p = &lock->lock;
+> > +	unsigned int tmp;
+> > +
+> > +	asm volatile (
+> > +		"1:	ldex.w		%0, (%1) \n"
+> > +		"	bnez		%0, 1b   \n"
+> > +		"	movi		%0, 1    \n"
+> > +		"	stex.w		%0, (%1) \n"
+> > +		"	bez		%0, 1b   \n"
+> > +		: "=&r" (tmp)
+> > +		: "r"(p)
+> > +		: "memory");
+> > +	smp_mb();
+> > +}
 > 
-> 	cpus {
-> 		#address-cells = <1>;
-> 		#size-cells = <0>;
-> 		cpu@0 {
-> 			device_type = "cpu";
-> 			reg = <0>;
-> 			status = "on";
-> 		};
+> Test-and-set with MB acting as ACQUIRE, ok.
+Em ... Ok, I'll try to use test-and-set function instead of it.
+
+> > +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> > +{
+> > +	unsigned int *p = &lock->lock;
+> > +	unsigned int tmp;
+> > +
+> > +	smp_mb();
+> > +	asm volatile (
+> > +		"1:	ldex.w		%0, (%1) \n"
+> > +		"	movi		%0, 0    \n"
+> > +		"	stex.w		%0, (%1) \n"
+> > +		"	bez		%0, 1b   \n"
+> > +		: "=&r" (tmp)
+> > +		: "r"(p)
+> > +		: "memory");
+> > +}
 > 
-> 		cpu@1 {
-> 			device_type = "cpu";
-> 			reg = <1>;
-> 			status = "off";
-> 		};
-> 	};
+> MB acting for RELEASE, but _why_ are you using a LDEX/STEX to clear the
+> lock word? Would not a normal store work?
+Normal store is enough, I'll fixup it in next version patch.
+ 
+> Also, the fact that you need MB for release implies your LDEX does not
+> in fact imply anything and your xchg/cmpxchg implementation is broken.
+xchg/cmxchg broken without 1th smp_mb()? Why we need protect the
+instructions flow before the ldex.w?
 
-Neither "on" nor "off" are standard status values either.
-
-Please see the devicetree spec [1], section 2.3.4. Valid values are:
-
-* "okay" // equivalent to no status property present
-* "disabled"
-* "fail"
-* "fail-sss"
-
-> > What is the value in the reg property, exactly?
-> See above, I'll remove the reg property and it's no use.
+> > +static inline int arch_spin_trylock(arch_spinlock_t *lock)
+> > +{
+> > +	unsigned int *p = &lock->lock;
+> > +	unsigned int tmp;
+> > +
+> > +	asm volatile (
+> > +		"1:	ldex.w		%0, (%1) \n"
+> > +		"	bnez		%0, 2f   \n"
+> > +		"	movi		%0, 1    \n"
+> > +		"	stex.w		%0, (%1) \n"
+> > +		"	bez		%0, 1b   \n"
+> > +		"	movi		%0, 0    \n"
+> > +		"2:				 \n"
+> > +		: "=&r" (tmp)
+> > +		: "r"(p)
+> > +		: "memory");
+> > +	smp_mb();
+> > +
+> > +	return !tmp;
+> > +}
 > 
-> > Is there a unique ID in
-> > hardware for each CPU in the system?
-> There is no unique ID in current CPU: ck860.
-
-I'm a bit confused. You write (1 << cpu) into cv<29, 0>, to enable a
-particular CPU, so I assume that bit uniquely identifies a CPU, and
-therefore the reg is some unique ID for the CPU.
-
-[...]
-
-> > > +int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-> > > +{
-> > > +	unsigned int tmp;
-> > > +
-> > > +	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
-> > > +
-> > > +	secondary_hint = mfcr("cr31");
-> > > +
-> > > +	secondary_ccr  = mfcr("cr18");
-> > > +
-> > > +	pr_info("%s: CPU%u\n", __func__, cpu);
-> > > +
-> > > +	tmp = mfcr("cr<29, 0>");
-> > > +	tmp |= 1 << cpu;
-> > > +	mtcr("cr<29, 0>", tmp);
-> > > +
-> > > +	while (!cpu_online(cpu));
-> > > +
-> > > +	secondary_stack = 0;
-> > > +
-> > > +	return 0;
-> > > +}
-> > 
-> > I don't see a start address being setup here, so I assume that CPUs branch to a
-> > fixed address out-of-reset. Does that mean that the kernel has to be loaded at
-> > a particular physical address on a given platform?
-> No, not a fixed address. I put it arch/csky/kernel/traps.c:79-83
-> trap_init()
-> #ifdef CONFIG_SMP
-> 	mtcr("cr<28, 0>", virt_to_phys(vec_base));
+> Strictly speaking you can avoid the MB on failure. You only need to
+> provide ACQUIRE semantics on success.
 > 
-> 	VEC_INIT(VEC_RESET, (void *)virt_to_phys(_start_smp_secondary));
-> #endi
+> That said, I would really suggest you implement a ticket lock instead of
+> a test-and-set lock. They're not really all that complicated and do
+> provide better worst case behaviour.
+Ok, I'll try to implement ticket lock in next version patch.
 
-I see.
+> 
+> 
+> > +/****** read lock/unlock/trylock ******/
+> 
+> Please have a look at using qrwlock -- esp. if you implement a ticket
+> lock, then the rwlock comes for 'free'.
+Ok, I'll try it.
 
-Is this SMP bringup mechanism architectual, or are you likely to need
-another mechanism to turn on CPUs on future chips?
-
-You probably want to use an enable-method property to describe this.
-
-Thanks,
-Mark.
-
-[1] https://www.devicetree.org/specifications/
+ Guo Ren
