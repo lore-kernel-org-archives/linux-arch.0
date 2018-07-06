@@ -1,84 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:39068 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S932732AbeGFM0o (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 08:26:44 -0400
-Date: Fri, 6 Jul 2018 20:26:31 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 16/19] csky: SMP support
-Message-ID: <20180706122631.GA30265@guoren>
+Received: from bombadil.infradead.org ([198.137.202.133]:33824 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932886AbeGFNB2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2018 09:01:28 -0400
+Date: Fri, 6 Jul 2018 15:01:10 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH V2 11/19] csky: Atomic operations
+Message-ID: <20180706130110.GP2512@hirez.programming.kicks-ass.net>
 References: <cover.1530465325.git.ren_guo@c-sky.com>
- <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
- <20180706052432.q74gql32dtj5gj3b@salmiak>
- <20180706113200.GA27148@guoren>
- <20180706114352.6r7zkjunoafqtr3s@lakrids.cambridge.arm.com>
+ <860b8db036b33d7b3648cb1f4ec827a53dc1a01b.1530465326.git.ren_guo@c-sky.com>
+ <20180705175902.GF2530@hirez.programming.kicks-ass.net>
+ <20180706114402.GB27148@guoren>
+ <20180706120323.GW2476@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180706114352.6r7zkjunoafqtr3s@lakrids.cambridge.arm.com>
+In-Reply-To: <20180706120323.GW2476@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
+To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180706122631.m8GuMPz_Anxu7c6HtoFU149dofusEzIqsSGCgUN8UxM@z>
+Message-ID: <20180706130110.6TYXa7xWQgslE8f1XG-RjCCjnRmCLVFC2CQ5HeUTpQs@z>
 
-On Fri, Jul 06, 2018 at 12:43:52PM +0100, Mark Rutland wrote:
-> Please see the devicetree spec [1], section 2.3.4. Valid values are:
+On Fri, Jul 06, 2018 at 02:03:23PM +0200, Peter Zijlstra wrote:
+> > Ok, I'll try to implement ticket lock in next version patch.
 > 
-> * "okay" // equivalent to no status property present
-> * "disabled"
-> * "fail"
-> * "fail-sss"
-Nice tip, thx.
-
-> I'm a bit confused. You write (1 << cpu) into cv<29, 0>, to enable a
-> particular CPU, so I assume that bit uniquely identifies a CPU,
-Yes, you're right and cr<29, 0>'s bit uniquely identifies a cpu.
-
-> and
-> therefore the reg is some unique ID for the CPU.
-static int csky_of_cpu(struct device_node *node)
-{
-	const char *status;
-
-	if (of_property_read_string(node, "status", &status))
-		status = "okay";
-
-	if (strcmp(status, "disabled") == 0)
-		goto error;
-
-	return 1;
-error:
-	return 0;
-}
-
-void __init setup_smp(void)
-{
-	struct device_node *node = NULL;
-	int i = 0;
-
-	while ((node = of_find_node_by_type(node, "cpu"))) {
-		if (!csky_of_cpu(node))
-			continue;
-
-		set_cpu_possible(i, true);
-		set_cpu_present(i, true);
-
-		i++;
-	}
-}
-Hmm?
-
-No <reg> in next version patch, it's no use.
-
-> I see.
+> If you need inspiration, look at:
 > 
-> Is this SMP bringup mechanism architectual, or are you likely to need
-> another mechanism to turn on CPUs on future chips?
-It's the only SMP bringup mechanism architectual for C-SKY SMP. There is
-no another way in future and SOC vendor couldn't change it.
 
-> You probably want to use an enable-method property to describe this.
-No, thx.
-
- Guo Ren
+My bad, just look at the arm (not arm64) version.
