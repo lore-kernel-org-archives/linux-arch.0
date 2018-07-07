@@ -1,80 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:44839 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750762AbeGGFnV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Jul 2018 01:43:21 -0400
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v3 0/7] Introduce struct __kernel_timex
-Date: Fri,  6 Jul 2018 22:42:40 -0700
-Message-ID: <20180707054247.19802-1-deepa.kernel@gmail.com>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:35555 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1750949AbeGGGQl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Jul 2018 02:16:41 -0400
+Date: Sat, 7 Jul 2018 14:16:06 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 16/19] csky: SMP support
+Message-ID: <20180707061606.GA26276@guoren>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+ <21d859826fe19aecaa2aefe3103d6d33e6f1b925.1530465326.git.ren_guo@c-sky.com>
+ <20180706052432.q74gql32dtj5gj3b@salmiak>
+ <20180706113200.GA27148@guoren>
+ <20180706114352.6r7zkjunoafqtr3s@lakrids.cambridge.arm.com>
+ <20180706122631.GA30265@guoren>
+ <20180706162100.3iimik242cied2c6@lakrids.cambridge.arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180706162100.3iimik242cied2c6@lakrids.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, y2038@lists.linaro.org, catalin.marinas@arm.com, davem@davemloft.net, linux-alpha@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org, netdev@vger.kernel.org, palmer@sifive.com
-Message-ID: <20180707054240.f1BE0zFfpkJlCn9ne05DZRzFDomby57JVoFUopwDpgI@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180707061606.j9xw2nkK7WjHwHzRneFNqh78CHxklT8uuL4Z-t-k-zw@z>
 
-The series introduces struct __kernel_timex as a substitute for
-the non y2038 safe struct timex.
+On Fri, Jul 06, 2018 at 05:21:00PM +0100, Mark Rutland wrote:
+> Please don't open-code this. Use of_device_is_available(), which checks
+> the status property itself. e.g.
+> 
+> void __init setup_smp(void)
+> {
+> 	struct device_node *node = NULL;
+> 
+> 	while ((node = of_find_node_by_type(node, "cpu"))) {
+> 		if (!of_device_is_available(node))
+> 			continue;
+> 
+> 		...
+> 	}
+> }
+Ok, approve.
 
-The series is based on the original series posted by Arnd Bergmann
-in [1].
+> Please use the reg property, you need it to describe which particular
+> CPUs are available.
+> 
+> You probably also want a mapping from Linux logical CPU id to your
+> physical CPU id, and a sanity check on this. See arm64 for an example.
+Yes, you are right. Reg property could determine which bit of CPU in
+cr<0, 29> could be booted.
 
-The overview of the series is as below:
-1. Prepare for the compat timex interfaces to be used unconditionally.
-2. Introduce struct __kernel_timex.
-3. Use struct __kernel_timex in place of struct timex.
-4. Switch syscalls to use struct __kernel_timex.
+Thx for the tips.
 
-[1] https://sourceware.org/ml/libc-alpha/2015-05/msg00070.html
-
-Changes since v2:
-* Use only generic compat.h for riscv
-Changes since v1:
-* Fix riscv asm/compat.h to pick up generic compat types
-
-Deepa Dinamani (7):
-  arm64: Make basic compat_* types always available
-  sparc: Make thread_info.h available directly
-  riscv: Delete asm/compat.h
-  timex: prepare compat helpers for y2038 changes
-  time: Add struct __kernel_timex
-  timex: use __kernel_timex internally
-  timex: change syscalls to use struct __kernel_timex
-
- arch/alpha/kernel/osf_sys.c     |  2 +-
- arch/arm64/include/asm/compat.h | 22 ++++-----
- arch/riscv/include/asm/Kbuild   |  1 +
- arch/riscv/include/asm/compat.h | 29 ------------
- arch/sparc/include/asm/compat.h |  2 +
- drivers/ptp/ptp_clock.c         |  2 +-
- include/asm-generic/compat.h    |  8 +++-
- include/linux/compat.h          | 33 --------------
- include/linux/compat_time.h     | 34 ++++++++++++++
- include/linux/posix-clock.h     |  2 +-
- include/linux/syscalls.h        |  5 +--
- include/linux/timex.h           |  9 +++-
- include/uapi/linux/timex.h      | 41 +++++++++++++++++
- kernel/compat.c                 | 63 --------------------------
- kernel/time/ntp.c               | 12 ++---
- kernel/time/ntp_internal.h      |  2 +-
- kernel/time/posix-clock.c       |  2 +-
- kernel/time/posix-timers.c      | 14 ++----
- kernel/time/posix-timers.h      |  2 +-
- kernel/time/time.c              | 80 ++++++++++++++++++++++++++++++---
- kernel/time/timekeeping.c       |  4 +-
- 21 files changed, 199 insertions(+), 170 deletions(-)
- delete mode 100644 arch/riscv/include/asm/compat.h
-
-
-base-commit: 526674536360a4c508e84f67314c2028e45e1bf2
--- 
-2.17.1
-
-Cc: catalin.marinas@arm.com
-Cc: davem@davemloft.net
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-riscv@lists.infradead.org
-Cc: netdev@vger.kernel.org
-Cc: palmer@sifive.com
+ Guo Ren
