@@ -1,39 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:40570 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750996AbeGIHWL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 03:22:11 -0400
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Received: from out1-smtp.messagingengine.com ([66.111.4.25]:36297 "EHLO
+        out1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932231AbeGIHdM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 03:33:12 -0400
+Date: Mon, 9 Jul 2018 09:33:10 +0200
+From: "greg@kroah.com" <greg@kroah.com>
 Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Date: Mon, 9 Jul 2018 07:22:08 +0000
-Message-ID: <71dfb71de86ebe365897b2069bec0cb40b376928.camel@synopsys.com>
+Message-ID: <20180709073310.GA9448@kroah.com>
 References: <20180709044444.6397-1-abrodkin@synopsys.com>
-         <20180709054842.GB7618@kroah.com>
-         <CAMuHMdVBBu6gho_JVQTiOHxVFHqX2MUxS_c-6-x50OEu4OqpRQ@mail.gmail.com>
-In-Reply-To: <CAMuHMdVBBu6gho_JVQTiOHxVFHqX2MUxS_c-6-x50OEu4OqpRQ@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <A9F84045480B6D46A3A36428C8A395AC@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+ <20180709054842.GB7618@kroah.com>
+ <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
+ <20180709070635.GB13285@kroah.com>
+ <e1f959eb900b0c825842b0c28340bef9d1d2cf3e.camel@synopsys.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <e1f959eb900b0c825842b0c28340bef9d1d2cf3e.camel@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "geert@linux-m68k.org" <geert@linux-m68k.org>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180709072208.Z1O140BxW_x-eqlDPhRaNwDbbT6rSesl7xxGmYjHzcw@z>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Message-ID: <20180709073310.UgIzdeEu40Bi3Vk_JFcwhsWWvsapMFRnVeE0kTQi9J0@z>
 
-SGkgR2VlcnQsDQoNCk9uIE1vbiwgMjAxOC0wNy0wOSBhdCAwOTowNyArMDIwMCwgR2VlcnQgVXl0
-dGVyaG9ldmVuIHdyb3RlOg0KPiBPbiBNb24sIEp1bCA5LCAyMDE4IGF0IDc6NDkgQU0gR3JlZyBL
-SCA8Z3JlZ0Brcm9haC5jb20+IHdyb3RlOg0KPiA+IE9uIE1vbiwgSnVsIDA5LCAyMDE4IGF0IDA3
-OjQ0OjQ0QU0gKzAzMDAsIEFsZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+ID4gRGVwZW5kaW5nIG9u
-IEFCSSAibG9uZyBsb25nIiB0eXBlIG9mIGEgcGFydGljdWxhciAzMi1iaXQgQ1BVDQo+ID4gPiBt
-aWdodCBiZSBhbGlnbmVkIGJ5IGVpdGhlciB3b3JkICgzMi1iaXRzKSBvciBkb3VibGUgd29yZCAo
-NjQtYml0cykuDQo+IA0KPiBPciBldmVuIDE2LWJpdCAob24gZS5nLiBtNjhrKS4NCg0KSW5kZWVk
-LCB0aGFua3MgZm9yIHRoZSBub3RlIQ0KV2lsbCBhZGQgdGhpcyBpbiBteSB2My4NCg0KRm9yIEFS
-QyBJJ2QgbGlrZSB0aGlzIGZpeCB0byBiZSBiYWNrLXBvcnRlZCBzdGFydGluZw0KZnJvbSB2NC44
-IHdoZXJlIHdlIGFkZGVkIHN1cHBvcnQgb2YgIm5hdGl2ZSIgYXRvbWljNjRfdCwgc2VlIGNvbW1p
-dA0KY2U2MzY1MjcwZWNkICgiIEFSQ3YyOiBJbXBsZW1lbnQgYXRvbWljNjQgYmFzZWQgb24gTExP
-Q0tEL1NDT05ERCBpbnN0cnVjdGlvbnMiKS4NCg0KV2hhdCBhYm91dCBtNjhrLCBkbyB5b3UgaGF2
-ZSBhbnkgcHJlZmVyZW5jZSBvZiBlYXJsaWVzdCBrZXJuZWwgdmVyc2lvbg0Kd2hlcmUgdGhpcyBm
-aXggbWlnaHQgYmUgdXNlZnVsPw0KDQotQWxleGV5
+On Mon, Jul 09, 2018 at 07:17:11AM +0000, Alexey Brodkin wrote:
+> Hi Greg,
+> 
+> On Mon, 2018-07-09 at 09:06 +0200, greg@kroah.com wrote:
+> > On Mon, Jul 09, 2018 at 06:46:50AM +0000, Alexey Brodkin wrote:
+> > > Hi Greg,
+> > > 
+> > > On Mon, 2018-07-09 at 07:48 +0200, Greg KH wrote:
+> > > > On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
+> > > > > Depending on ABI "long long" type of a particular 32-bit CPU
+> > > > > might be aligned by either word (32-bits) or double word (64-bits).
+> > > > > Make sure "data" is really 64-bit aligned for any 32-bit CPU.
+> > > > > 
+> > > > > At least for 32-bit ARC cores ABI requires "long long" types
+> > > > > to be aligned by normal 32-bit word. This makes "data" field aligned to
+> > > > > 12 bytes. Which is still OK as long as we use 32-bit data only.
+> > > > > 
+> > > > > But once we want to use native atomic64_t type (i.e. when we use special
+> > > > > instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
+> > > > > misaligned access exception.
+> > > > 
+> > > > So is this something you hit today?  If not, why is this needed for
+> > > > stable kernels?
+> > > 
+> > > Indeed we hit that problem recently when Etnaviv driver was switched to
+> > > DRM GPU scheduler, see
+> > > commit e93b6deeb45a ("drm/etnaviv: hook up DRM GPU scheduler").
+> > > The most important part of DRM GPU scheduler is "job_id_count" member of
+> > > "drm_gpu_scheduler" structure of type "atomic64_t". This structure is put
+> > > in a buffer allocated by devm_kzalloc() and if "job_id_count" is not 64-bit
+> > > aligned atomic instruction fails with an exception.
+> > > 
+> > > As for stable requirements - mentioned commit was a part of 4.17 kernel
+> > > which broke GPU driver for one of our HSDK board so I guess back-porting
+> > > to 4.17 is a no-brainer.
+> > 
+> > Ok, so 4.17 is as far back as you need?  Please try to be specific when
+> > asking for stable backports.
+> 
+> Well in that particular case I really wanted to get this fix back-ported
+> starting from v4.8 so I guess that's what I need to add in Cc tag, right?
+> ----------------------------->8---------------------
+> Cc: <stable@vger.kernel.org> # 4.8+
+> ----------------------------->8---------------------
+
+Yes.
