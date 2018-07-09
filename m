@@ -1,62 +1,60 @@
-From: Greg KH <greg@kroah.com>
-Subject: Re: [PATCH v2] devres: Really align data field to unsigned long long
-Date: Mon, 9 Jul 2018 06:18:05 +0200
-Message-ID: <20180709041805.GA5983@kroah.com>
-References: <20180708175621.6951-1-abrodkin@synopsys.com>
- <20180708184049.GA1645@kroah.com>
- <CAML3pwV8YMa0269fLH-+SNhOYCWdymqTE-XYMuRJktH-=UXH8g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <CAML3pwV8YMa0269fLH-+SNhOYCWdymqTE-XYMuRJktH-=UXH8g@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: =?utf-8?B?0JDQu9C10LrRgdC10Lkg0JHRgNC+0LTQutC40L0=?= <alexey.brodkin@gmail.com>
-Cc: linux-arch@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, linux-snps-arc@lists.infradead.org
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [RESEND PATCH v2] devres: Really align data field to unsigned long long
+Date: Mon,  9 Jul 2018 07:44:44 +0300
+Message-ID: <20180709044444.6397-1-abrodkin@synopsys.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, stable@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gU3VuLCBKdWwgMDgsIDIwMTggYXQgMDk6NDU6MzFQTSArMDMwMCwg0JDQu9C10LrRgdC10Lkg
-0JHRgNC+0LTQutC40L0gd3JvdGU6Cj4gSGkgR3JlZywKPiAKPiDQstGBLCA4INC40Y7Quy4gMjAx
-OCDQsy4g0LIgMjE6NDAsIEdyZWcgS0ggPGdyZWdAa3JvYWguY29tPjoKPiA+Cj4gPiBPbiBTdW4s
-IEp1bCAwOCwgMjAxOCBhdCAwODo1NjoyMVBNICswMzAwLCBBbGV4ZXkgQnJvZGtpbiB3cm90ZToK
-PiA+ID4gRGVwZW5kaW5nIG9uIEFCSSAibG9uZyBsb25nIiB0eXBlIG9mIGEgcGFydGljdWxhciAz
-Mi1iaXQgQ1BVCj4gPiA+IG1pZ2h0IGJlIGFsaWduZWQgYnkgZWl0aGVyIHdvcmQgKDMyLWJpdHMp
-IG9yIGRvdWJsZSB3b3JkICg2NC1iaXRzKS4KPiA+ID4gTWFrZSBzdXJlICJkYXRhIiBpcyByZWFs
-bHkgNjQtYml0IGFsaWduZWQgZm9yIGFueSAzMi1iaXQgQ1BVLgo+ID4gPgo+ID4gPiBBdCBsZWFz
-dCBmb3IgMzItYml0IEFSQyBjb3JlcyBBQkkgcmVxdWlyZXMgImxvbmcgbG9uZyIgdHlwZXMKPiA+
-ID4gdG8gYmUgYWxpZ25lZCBieSBub3JtYWwgMzItYml0IHdvcmQuIFRoaXMgbWFrZXMgImRhdGEi
-IGZpZWxkIGFsaWduZWQgdG8KPiA+ID4gMTIgYnl0ZXMuIFdoaWNoIGlzIHN0aWxsIE9LIGFzIGxv
-bmcgYXMgd2UgdXNlIDMyLWJpdCBkYXRhIG9ubHkuCj4gPiA+Cj4gPiA+IEJ1dCBvbmNlIHdlIHdh
-bnQgdG8gdXNlIG5hdGl2ZSBhdG9taWM2NF90IHR5cGUgKGkuZS4gd2hlbiB3ZSB1c2Ugc3BlY2lh
-bAo+ID4gPiBpbnN0cnVjdGlvbnMgTExPQ0tEL1NDT05ERCBmb3IgYWNjZXNzaW5nIDY0LWJpdCBk
-YXRhKSB3ZSBlYXNpbHkgaGl0Cj4gPiA+IG1pc2FsaWduZWQgYWNjZXNzIGV4Y2VwdGlvbi4KPiA+
-ID4KPiA+ID4gVGhhdCdzIGJlY2F1c2UgZXZlbiBvbiBDUFVzIGNhcGFibGUgb2Ygbm9uLWFsaWdu
-ZWQgZGF0YSBhY2Nlc3MgTEwvU0MKPiA+ID4gaW5zdHJ1Y3Rpb25zIHJlcXVpcmUgc3RyaWN0IGFs
-aWdubWVudC4KPiA+ID4KPiA+ID4gU2lnbmVkLW9mZi1ieTogQWxleGV5IEJyb2RraW4gPGFicm9k
-a2luQHN5bm9wc3lzLmNvbT4KPiA+ID4gQ2M6IFRob21hcyBHbGVpeG5lciA8dGdseEBsaW51dHJv
-bml4LmRlPgo+ID4gPiBDYzogc3RhYmxlQHZnZXIua2VybmVsLm9yZwo+ID4gPiAtLS0KPiA+ID4K
-PiA+ID4gQ2hhbmdlcyB2MSAtPiB2MjoKPiA+ID4KPiA+ID4gICogUmV3b3JkZWQgY29tbWl0IG1l
-c3NhZ2UKPiA+ID4gICogSW5zZXJ0ZWQgY29tbWVudCByaWdodCBpbiBzb3VyY2UgW1Rob21hc10K
-PiA+ID4KPiA+ID4gIGRyaXZlcnMvYmFzZS9kZXZyZXMuYyB8IDggKysrKysrLS0KPiA+ID4gIDEg
-ZmlsZSBjaGFuZ2VkLCA2IGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25zKC0pCj4gPgo+ID4gQWx3
-YXlzIHVzZSBzY3JpcHRzL2dldF9tYWludGFpbmVyLnBsIHRvIHByb3Blcmx5IGNjOiB0aGUgbmVl
-ZGVkCj4gPiBkZXZlbG9wZXIvbWFpbnRhaW5lci4gIEFzIGl0IGlzLCB0aGlzIHBhdGNoIGlzIGdv
-aW5nIHRvIGdldCBkcm9wcGVkIG9uCj4gPiB0aGUgZmxvb3IsIHNvcnJ5Li4uCj4gCj4gUmlnaHQg
-SSB3YXMgd2F5IHRvbyByZWxheGVkIGRlYWxpbmcgd2l0aCB2ZXJ5IGdlbmVyaWMgc3R1ZmYgd2hp
-Y2ggbWlnaHQgZ2V0Cj4gbm90IHRoYXQgbXVjaCBvZiBhdHRlbnRpb24gYXMgbW9yZSBuYXJyb3cg
-dG9waWNzIG9yIHN1YnN5c3RlbXMuIEJ1dCBhbnl3YXlzCj4gZ2V0X21haW50YWluZXIucGwgc2F5
-cyB5b3UncmUgdGhlIGd1eSBzbyBkbyBJIG5lZWQgdG8gZG8gYW55dGhpbmcgZXh0cmEgc3RpbGwg
-b3IKPiBpdCdzIE9LIGZvciB0aGlzIHRpbWU/CgpQbGVhc2UgcmVzZW5kIGl0IHByb3Blcmx5LCBp
-dCBpcyBub3QgaW4gbXkgcGF0Y2ggcXVldWUgYW55d2hlcmUuLi4KCmdyZWcgay1oCgpfX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1zbnBzLWFyYyBt
-YWlsaW5nIGxpc3QKbGludXgtc25wcy1hcmNAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlz
-dHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LXNucHMtYXJj
+Depending on ABI "long long" type of a particular 32-bit CPU
+might be aligned by either word (32-bits) or double word (64-bits).
+Make sure "data" is really 64-bit aligned for any 32-bit CPU.
+
+At least for 32-bit ARC cores ABI requires "long long" types
+to be aligned by normal 32-bit word. This makes "data" field aligned to
+12 bytes. Which is still OK as long as we use 32-bit data only.
+
+But once we want to use native atomic64_t type (i.e. when we use special
+instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
+misaligned access exception.
+
+That's because even on CPUs capable of non-aligned data access LL/SC
+instructions require strict alignment.
+
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: stable@vger.kernel.org
+---
+
+Changes v1 -> v2:
+
+ * Reworded commit message
+ * Inserted comment right in source [Thomas]
+
+ drivers/base/devres.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+index f98a097e73f2..466fa59c866a 100644
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -24,8 +24,12 @@ struct devres_node {
+ 
+ struct devres {
+ 	struct devres_node		node;
+-	/* -- 3 pointers */
+-	unsigned long long		data[];	/* guarantee ull alignment */
++	/*
++	 * Depending on ABI "long long" type of a particular 32-bit CPU
++	 * might be aligned by either word (32-bits) or double word (64-bits).
++	 * Make sure "data" is really 64-bit aligned for any 32-bit CPU.
++	 */
++	unsigned long long		data[] __aligned(sizeof(unsigned long long));
+ };
+ 
+ struct devres_group {
+-- 
+2.17.1
