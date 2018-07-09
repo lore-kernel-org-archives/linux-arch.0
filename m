@@ -1,66 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:33284 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754474AbeGINgT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 09:36:19 -0400
-Date: Mon, 9 Jul 2018 15:35:42 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] atomic{64}_t: Explicitly specify data storage length and
- alignment
-Message-ID: <20180709133542.GP2476@hirez.programming.kicks-ass.net>
-References: <20180709124741.21037-1-abrodkin@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180709124741.21037-1-abrodkin@synopsys.com>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:50569 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754474AbeGINqC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 09:46:02 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [PATCH v3] devres: Explicitly align datai[] to 64-bit
+Date: Mon,  9 Jul 2018 16:45:50 +0300
+Message-ID: <20180709134550.29541-1-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Boqun Feng <boqun.feng@gmail.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Darren Hart <dvhart@infradead.org>, Shuah Khan <shuah@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, David Laight <David.Laight@ACULAB.COM>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20180709133542.rSnuOU4mdWgWAWcDZ8J860ZZJMWgbfpkFefIrDhrXXc@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, David Laight <David.Laight@ACULAB.COM>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Greg KH <greg@kroah.com>, stable@vger.kernel.org
+Message-ID: <20180709134550.l0T2o2ERSJOS9uSEA50f0Xwgc4_dVod5_S-1CoUbjzM@z>
 
-On Mon, Jul 09, 2018 at 03:47:41PM +0300, Alexey Brodkin wrote:
-> diff --git a/include/asm-generic/atomic64.h b/include/asm-generic/atomic64.h
-> index 8d28eb010d0d..b94b749b5952 100644
-> --- a/include/asm-generic/atomic64.h
-> +++ b/include/asm-generic/atomic64.h
-> @@ -13,7 +13,7 @@
->  #define _ASM_GENERIC_ATOMIC64_H
->  
->  typedef struct {
-> -	long long counter;
-> +	u64 __aligned(8) counter;
->  } atomic64_t;
+data[] must be 64-bit aligned even on 32-bit architectures because
+it might be accessed by instructions that require aligned memory arguments.
 
-The type is wrong, atomic is signed, the alignment also really doesn't
-matter, generic atomic64 is utter crap.
+One example is "atomic64_t" type accessed by special atomic instructions
+which may read/write entire 64-bit word.
 
->  #define ATOMIC64_INIT(i)	{ (i) }
-> diff --git a/include/linux/types.h b/include/linux/types.h
-> index 9834e90aa010..e2f631782621 100644
-> --- a/include/linux/types.h
-> +++ b/include/linux/types.h
-> @@ -174,12 +174,12 @@ typedef phys_addr_t resource_size_t;
->  typedef unsigned long irq_hw_number_t;
->  
->  typedef struct {
-> -	int counter;
-> +	u32 __aligned(4) counter;
->  } atomic_t;
+Atomic instructions are a bit special compared to normal loads and stores.
+Even if normal loads and stores may deal with unaligned data, atomic
+instructions still require data to be aligned because it's hard to manage
+atomic value that spans through multiple cache lines or even MMU pages.
+And hardware just raises an alignment fault exception.
 
-u32 is wrong, the atomic type is signed.
+The problem with previously used approach is that depending on ABI
+"long long" type of a particular 32-bit CPU might be aligned to
+8-, 16-, 32- or 64-bit boundary. Which will get in the way of mentioned
+above atomic instructions.
 
-Also, if an architecture doesn't properly align its native machine word
-size but requires alignment for atomics it's a broken architecture.
+Consider the following snippet:
+|        struct mystruct {
+|                atomic64_t myvar;
+|        }
+|
+|        struct mystruct *p;
+|        p = devm_kzalloc(dev, sizeof(*p), GFP_KERNEL);
 
->  
->  #ifdef CONFIG_64BIT
->  typedef struct {
-> -	long counter;
-> +	u64 __aligned(8) counter;
->  } atomic64_t;
->  #endif
->  
+Here address of "myvar" will match  data[] in "struct devres",
+that said if "data" is not 64-bit aligned atomic instruction will
+fail on the first access to "myvar".
 
-Similar for this one, on 64bit archs that support atomics the native
-64bit types (long included) had better already imply this alignment.
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: David Laight <David.Laight@ACULAB.COM>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Greg KH <greg@kroah.com>
+Cc: <stable@vger.kernel.org> # 4.8+
+---
+
+Changes v2 -> v3:
+
+ * Align explicitly to 8 bytes [David]
+ * Rephrased in-line comment [David]
+ * Added more techinical details to commit message [Greg]
+ * Mention more alignment options in commit message [Geert]
+
+Changes v1 -> v2:
+
+ * Reworded commit message
+ * Inserted comment right in source [Thomas]
+
+ drivers/base/devres.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+index f98a097e73f2..d65327cb83c9 100644
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -24,8 +24,12 @@ struct devres_node {
+ 
+ struct devres {
+ 	struct devres_node		node;
+-	/* -- 3 pointers */
+-	unsigned long long		data[];	/* guarantee ull alignment */
++	/*
++	 * data[] must be 64 bit aligned even on 32 bit architectures
++	 * because it might be accessed by instructions that require
++	 * aligned memory arguments such as atomic64_t.
++	 */
++	u8 __aligned(8)			data[];
+ };
+ 
+ struct devres_group {
+-- 
+2.17.1
