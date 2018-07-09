@@ -1,57 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f194.google.com ([209.85.217.194]:44046 "EHLO
-        mail-ua0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754437AbeGINt0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 09:49:26 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:54350 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754437AbeGINyk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 09:54:40 -0400
+Date: Mon, 9 Jul 2018 15:54:09 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
+Message-ID: <20180709135409.GQ2476@hirez.programming.kicks-ass.net>
+References: <20180709134550.29541-1-abrodkin@synopsys.com>
 MIME-Version: 1.0
-References: <20180709124741.21037-1-abrodkin@synopsys.com> <3d3ec70d99524a6fa7a38e7d2e0fdf98@AcuMS.aculab.com>
-In-Reply-To: <3d3ec70d99524a6fa7a38e7d2e0fdf98@AcuMS.aculab.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 9 Jul 2018 15:49:14 +0200
-Message-ID: <CAMuHMdWQNZ-Dpakqk7mTJ-O_H0QnCd-KUWpWNJC_d6Yw8GH0Kg@mail.gmail.com>
-Subject: Re: [PATCH] atomic{64}_t: Explicitly specify data storage length and alignment
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180709134550.29541-1-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@aculab.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Darren Hart <dvhart@infradead.org>, Shuah Khan <shuah@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Greg KH <gregkh@linuxfoundation.org>
-Message-ID: <20180709134914.MBC7-Fi6_NSEKZL1hI3k0VKv-Qe9Mf3kI_Ja5T2z-Es@z>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, David Laight <David.Laight@ACULAB.COM>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Greg KH <greg@kroah.com>, stable@vger.kernel.org
+Message-ID: <20180709135409.1SthS0PLwQSgRyAZdPrantuXEXwg6UhF6n_K4zvmigk@z>
 
-On Mon, Jul 9, 2018 at 3:29 PM David Laight <David.Laight@aculab.com> wrote:
-> From: Alexey Brodkin
-> > Sent: 09 July 2018 13:48
-> > Atomic instructions require data they operate on to be aligned
-> > according to data size. I.e. 32-bit atomic values must be 32-bit
-> > aligned while 64-bit values must be 64-bit aligned.
-> >
-> > Otherwise even if CPU may handle not-aligend normal data access,
-> > still atomic instructions fail and typically raise an exception
-> > leaving us dead in the water.
-> ...
-> > diff --git a/include/asm-generic/atomic64.h b/include/asm-generic/atomic64.h
-> > index 8d28eb010d0d..b94b749b5952 100644
-> > --- a/include/asm-generic/atomic64.h
-> > +++ b/include/asm-generic/atomic64.h
-> > @@ -13,7 +13,7 @@
-> >  #define _ASM_GENERIC_ATOMIC64_H
-> >
-> >  typedef struct {
-> > -     long long counter;
-> > +     u64 __aligned(8) counter;
-> >  } atomic64_t;
->
-> Apart from the fact that this changes the value from signed to unsigned
-> should most of the architectures be using this generic definition?
-
-64-bit architectures use the one from include/linux/types.h instead.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+On Mon, Jul 09, 2018 at 04:45:50PM +0300, Alexey Brodkin wrote:
+> diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+> index f98a097e73f2..d65327cb83c9 100644
+> --- a/drivers/base/devres.c
+> +++ b/drivers/base/devres.c
+> @@ -24,8 +24,12 @@ struct devres_node {
+>  
+>  struct devres {
+>  	struct devres_node		node;
+> -	/* -- 3 pointers */
+> -	unsigned long long		data[];	/* guarantee ull alignment */
+> +	/*
+> +	 * data[] must be 64 bit aligned even on 32 bit architectures
+> +	 * because it might be accessed by instructions that require
+> +	 * aligned memory arguments such as atomic64_t.
+> +	 */
+> +	u8 __aligned(8)			data[];
+>  };
