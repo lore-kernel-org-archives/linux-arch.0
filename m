@@ -1,80 +1,82 @@
-From: Greg KH <greg@kroah.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
 Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Date: Mon, 9 Jul 2018 07:48:42 +0200
-Message-ID: <20180709054842.GB7618@kroah.com>
+Date: Mon, 9 Jul 2018 06:46:50 +0000
+Message-ID: <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
 References: <20180709044444.6397-1-abrodkin@synopsys.com>
+         <20180709054842.GB7618@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180709044444.6397-1-abrodkin@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, stable@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180709054842.GB7618@kroah.com>
+Content-Language: en-US
+Content-ID: <2978DF69C2E7CB40AA3E1F5D269194CD@internal.synopsys.com>
+Sender: stable-owner@vger.kernel.org
+To: "greg@kroah.com" <greg@kroah.com>
+Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
-> Depending on ABI "long long" type of a particular 32-bit CPU
-> might be aligned by either word (32-bits) or double word (64-bits).
-> Make sure "data" is really 64-bit aligned for any 32-bit CPU.
-> 
-> At least for 32-bit ARC cores ABI requires "long long" types
-> to be aligned by normal 32-bit word. This makes "data" field aligned to
-> 12 bytes. Which is still OK as long as we use 32-bit data only.
-> 
-> But once we want to use native atomic64_t type (i.e. when we use special
-> instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
-> misaligned access exception.
-
-So is this something you hit today?  If not, why is this needed for
-stable kernels?
-
-> That's because even on CPUs capable of non-aligned data access LL/SC
-> instructions require strict alignment.
-
-Are you going to hit this code with all types of structures?  What
-happens when you do have an unaligned access?
-
-> 
-> Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
-You didn't cc: this address :(
-
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: stable@vger.kernel.org
-> ---
-> 
-> Changes v1 -> v2:
-> 
->  * Reworded commit message
->  * Inserted comment right in source [Thomas]
-> 
->  drivers/base/devres.c | 8 ++++++--
->  1 file changed, 6 insertions(+), 2 deletions(-)
-> 
-> diff --git a/drivers/base/devres.c b/drivers/base/devres.c
-> index f98a097e73f2..466fa59c866a 100644
-> --- a/drivers/base/devres.c
-> +++ b/drivers/base/devres.c
-> @@ -24,8 +24,12 @@ struct devres_node {
->  
->  struct devres {
->  	struct devres_node		node;
-> -	/* -- 3 pointers */
-> -	unsigned long long		data[];	/* guarantee ull alignment */
-> +	/*
-> +	 * Depending on ABI "long long" type of a particular 32-bit CPU
-> +	 * might be aligned by either word (32-bits) or double word (64-bits).
-> +	 * Make sure "data" is really 64-bit aligned for any 32-bit CPU.
-> +	 */
-> +	unsigned long long		data[] __aligned(sizeof(unsigned long long));
->  };
-
-Does this change the padding today for any other arches?  If so, does
-the increased memory usage cause any noticable issues?
-
-thanks,
-
-greg k-h
+SGkgR3JlZywNCg0KT24gTW9uLCAyMDE4LTA3LTA5IGF0IDA3OjQ4ICswMjAwLCBHcmVnIEtIIHdy
+b3RlOg0KPiBPbiBNb24sIEp1bCAwOSwgMjAxOCBhdCAwNzo0NDo0NEFNICswMzAwLCBBbGV4ZXkg
+QnJvZGtpbiB3cm90ZToNCj4gPiBEZXBlbmRpbmcgb24gQUJJICJsb25nIGxvbmciIHR5cGUgb2Yg
+YSBwYXJ0aWN1bGFyIDMyLWJpdCBDUFUNCj4gPiBtaWdodCBiZSBhbGlnbmVkIGJ5IGVpdGhlciB3
+b3JkICgzMi1iaXRzKSBvciBkb3VibGUgd29yZCAoNjQtYml0cykuDQo+ID4gTWFrZSBzdXJlICJk
+YXRhIiBpcyByZWFsbHkgNjQtYml0IGFsaWduZWQgZm9yIGFueSAzMi1iaXQgQ1BVLg0KPiA+IA0K
+PiA+IEF0IGxlYXN0IGZvciAzMi1iaXQgQVJDIGNvcmVzIEFCSSByZXF1aXJlcyAibG9uZyBsb25n
+IiB0eXBlcw0KPiA+IHRvIGJlIGFsaWduZWQgYnkgbm9ybWFsIDMyLWJpdCB3b3JkLiBUaGlzIG1h
+a2VzICJkYXRhIiBmaWVsZCBhbGlnbmVkIHRvDQo+ID4gMTIgYnl0ZXMuIFdoaWNoIGlzIHN0aWxs
+IE9LIGFzIGxvbmcgYXMgd2UgdXNlIDMyLWJpdCBkYXRhIG9ubHkuDQo+ID4gDQo+ID4gQnV0IG9u
+Y2Ugd2Ugd2FudCB0byB1c2UgbmF0aXZlIGF0b21pYzY0X3QgdHlwZSAoaS5lLiB3aGVuIHdlIHVz
+ZSBzcGVjaWFsDQo+ID4gaW5zdHJ1Y3Rpb25zIExMT0NLRC9TQ09OREQgZm9yIGFjY2Vzc2luZyA2
+NC1iaXQgZGF0YSkgd2UgZWFzaWx5IGhpdA0KPiA+IG1pc2FsaWduZWQgYWNjZXNzIGV4Y2VwdGlv
+bi4NCj4gDQo+IFNvIGlzIHRoaXMgc29tZXRoaW5nIHlvdSBoaXQgdG9kYXk/ICBJZiBub3QsIHdo
+eSBpcyB0aGlzIG5lZWRlZCBmb3INCj4gc3RhYmxlIGtlcm5lbHM/DQoNCkluZGVlZCB3ZSBoaXQg
+dGhhdCBwcm9ibGVtIHJlY2VudGx5IHdoZW4gRXRuYXZpdiBkcml2ZXIgd2FzIHN3aXRjaGVkIHRv
+DQpEUk0gR1BVIHNjaGVkdWxlciwgc2VlDQpjb21taXQgZTkzYjZkZWViNDVhICgiZHJtL2V0bmF2
+aXY6IGhvb2sgdXAgRFJNIEdQVSBzY2hlZHVsZXIiKS4NClRoZSBtb3N0IGltcG9ydGFudCBwYXJ0
+IG9mIERSTSBHUFUgc2NoZWR1bGVyIGlzICJqb2JfaWRfY291bnQiIG1lbWJlciBvZg0KImRybV9n
+cHVfc2NoZWR1bGVyIiBzdHJ1Y3R1cmUgb2YgdHlwZSAiYXRvbWljNjRfdCIuIFRoaXMgc3RydWN0
+dXJlIGlzIHB1dA0KaW4gYSBidWZmZXIgYWxsb2NhdGVkIGJ5IGRldm1fa3phbGxvYygpIGFuZCBp
+ZiAiam9iX2lkX2NvdW50IiBpcyBub3QgNjQtYml0DQphbGlnbmVkIGF0b21pYyBpbnN0cnVjdGlv
+biBmYWlscyB3aXRoIGFuIGV4Y2VwdGlvbi4NCg0KQXMgZm9yIHN0YWJsZSByZXF1aXJlbWVudHMg
+LSBtZW50aW9uZWQgY29tbWl0IHdhcyBhIHBhcnQgb2YgNC4xNyBrZXJuZWwNCndoaWNoIGJyb2tl
+IEdQVSBkcml2ZXIgZm9yIG9uZSBvZiBvdXIgSFNESyBib2FyZCBzbyBJIGd1ZXNzIGJhY2stcG9y
+dGluZw0KdG8gNC4xNyBpcyBhIG5vLWJyYWluZXIuDQoNCk5vdyBnaXZlbiBhIG5hdHVyZSBvZiB0
+aGUgcHJvYmxlbSBhdCBoYW5kIEkgbWF5IGV4cGVjdCBvdGhlciBicmVha2FnZXMNCndoZW5ldmVy
+IGFub3RoZXIgZHJpdmVyL2ZzIGV0YyB0aGF0IHVzZSAiYXRvbWljNjRfdCIgZ2V0cyBlbmFibGVk
+Lg0KDQo+ID4gVGhhdCdzIGJlY2F1c2UgZXZlbiBvbiBDUFVzIGNhcGFibGUgb2Ygbm9uLWFsaWdu
+ZWQgZGF0YSBhY2Nlc3MgTEwvU0MNCj4gPiBpbnN0cnVjdGlvbnMgcmVxdWlyZSBzdHJpY3QgYWxp
+Z25tZW50Lg0KPiANCj4gQXJlIHlvdSBnb2luZyB0byBoaXQgdGhpcyBjb2RlIHdpdGggYWxsIHR5
+cGVzIG9mIHN0cnVjdHVyZXM/DQoNCklmIHRoZXJlJ3JlIG90aGVyIGNhc2VzIHdoaWNoIGxlYWQg
+dG8gNC1ieXRlIGFsaWduZWQgImF0b21pYzY0X3QiIHZhcmlhYmxlcw0KdGhlcmUgd2lsbCBiZSBh
+IHByb2JsZW0gYXMgd2VsbCBidXQgaXQncyBxdWl0ZSBoYXJkIHRvIHByZWRpY3QgdGhvc2UgY2Fz
+ZXMuDQpUaGF0IHNhaWQgaWYgd2UgbWFuYWdlIHRvIHJlcHJvZHVjZSBtb3JlIHNpbWlsYXIgaXNz
+dWVzIHRoZXJlIHdpbGwgYmUgbW9yZQ0KcGF0Y2hlcyB3aXRoIGZpeGVzIDopDQoNCj4gV2hhdCBo
+YXBwZW5zIHdoZW4geW91IGRvIGhhdmUgYW4gdW5hbGlnbmVkIGFjY2Vzcz8NCg0KQXRvbWljIGlu
+c3RydWN0aW9ucyBhcmUgYSBiaXQgc3BlY2lhbCBhcyBjb21wYXJlZCB0byBub3JtYWwgbG9hZHMg
+YW5kIHN0b3Jlcy4NCkV2ZW4gaWYgbm9ybWFsIGxvYWRzIGFuZCBzdG9yZXMgbWF5IGRlYWwgd2l0
+aCB1bmFsaWduZWQgZGF0YSBhdG9taWMgaW5zdHJ1Y3Rpb25zDQpzdGlsbCByZXF1aXJlIGRhdGEg
+dG8gYmUgYWxpZ25lZCBiZWNhdXNlIGl0J3MgaGFyZCB0byBtYW5hZ2UgYXRvbWljIHZhbHVlIHRo
+YXQNCnNwYW5zIHRocm91Z2ggbXVsdGlwbGUgY2FjaGUgbGluZXMgb3IgZXZlbiBNTVUgcGFnZXMu
+IEFuZCBoYXJkd2FyZSBqdXN0DQpyYWlzZXMgYW4gYWxpZ25tZW50IGZhdWx0IGV4Y2VwdGlvbi4N
+Cg0KQW5kIHRoYXQncyBub3Qgc29tZXRoaW5nIHNwZWNpYWwgZm9yIEFSQywgSSBndWVzcyBhbGwg
+Q1BVcyBhcmUgdGhlIHNhbWUgaW4NCnRoYXQgcmVnYXJkLCBzZWUgaGVyZSdzIGFuIGV4dHJhY3Qg
+ZnJvbSBBUk0ocikgQXJjaGl0ZWN0dXJlIFJlZmVyZW5jZQ0KTWFudWFsIEFSTXY3LUEgYW5kIEFS
+TXY3LVIgZWRpdGlvbjogaHR0cHM6Ly9sa21sLm9yZy9sa21sLzIwMTcvMTIvNS80NDANCkZyb20g
+IlRhYmxlIEEzLTEgQWxpZ25tZW50IHJlcXVpcmVtZW50cyBvZiBsb2FkL3N0b3JlIGluc3RydWN0
+aW9ucyINCml0J3Mgc2VlbiB0aGF0IExEUkVYRCwgU1RSRVhEIGluc3RydWN0aW9ucyB3aWxsIGNh
+dXNlIGFsaWdubWVudCBmYXVsdA0KZXZlbiBpZiBTQ1RMUi5BPTAgKHN0cmljdCBhbGlnbm1lbnQg
+ZmF1bHQgY2hlY2tpbmcgZGlzYWJsZWQpIGZvciBub24NCmRvdWJsZS13b3JkLWFsaWduZWQgZGF0
+YS4NCg0KPiA+IA0KPiA+IFNpZ25lZC1vZmYtYnk6IEFsZXhleSBCcm9ka2luIDxhYnJvZGtpbkBz
+eW5vcHN5cy5jb20+DQo+ID4gQ2M6IEdyZWcgS3JvYWgtSGFydG1hbiA8Z3JlZ2toQGxpbnV4Zm91
+bmRhdGlvbi5vcmc+DQo+IA0KPiBZb3UgZGlkbid0IGNjOiB0aGlzIGFkZHJlc3MgOigNCg0KU29y
+cnksIHdoaWNoIG9uZT8NClRoYXQgd2hhdCBJIGhhdmUgaW4gLm1ib3gsIHNlZSBodHRwczovL3Bh
+dGNod29yay5vemxhYnMub3JnL3BhdGNoLzk0MTA5Mi9tYm94LzoNCi0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQpDYzogbGludXgt
+YXJjaEB2Z2VyLmtlcm5lbC5vcmcsIEdyZWcgS0ggPGdyZWdAa3JvYWguY29tPiwNCiBBbGV4ZXkg
+QnJvZGtpbiA8QWxleGV5LkJyb2RraW5Ac3lub3BzeXMuY29tPiwgc3RhYmxlQHZnZXIua2VybmVs
+Lm9yZywgDQogR3JlZyBLcm9haC1IYXJ0bWFuIDxncmVna2hAbGludXhmb3VuZGF0aW9uLm9yZz4s
+DQogVGhvbWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+LCBsaW51eC1zbnBzLWFyY0Bs
+aXN0cy5pbmZyYWRlYWQub3JnDQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQotQWxleGV5
