@@ -1,52 +1,49 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] atomic{64}_t: Explicitly specify data storage length and alignment
-Date: Mon, 9 Jul 2018 15:49:14 +0200
-Message-ID: <CAMuHMdWQNZ-Dpakqk7mTJ-O_H0QnCd-KUWpWNJC_d6Yw8GH0Kg@mail.gmail.com>
-References: <20180709124741.21037-1-abrodkin@synopsys.com> <3d3ec70d99524a6fa7a38e7d2e0fdf98@AcuMS.aculab.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
+Date: Mon, 9 Jul 2018 15:54:09 +0200
+Message-ID: <20180709135409.GQ2476@hirez.programming.kicks-ass.net>
+References: <20180709134550.29541-1-abrodkin@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3d3ec70d99524a6fa7a38e7d2e0fdf98@AcuMS.aculab.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Laight <David.Laight@aculab.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Darren Hart <dvhart@infradead.org>, Shuah Khan <shuah@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Greg KH <gregkh@linuxfoundatio>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20180709134550.29541-1-abrodkin@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, David Laight <David.Laight@ACULAB.COM>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg KH <greg@kroah.com>, Thomas Gleixner <tglx@linutronix.de>, linux-snps-arc@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 9, 2018 at 3:29 PM David Laight <David.Laight@aculab.com> wrote:
-> From: Alexey Brodkin
-> > Sent: 09 July 2018 13:48
-> > Atomic instructions require data they operate on to be aligned
-> > according to data size. I.e. 32-bit atomic values must be 32-bit
-> > aligned while 64-bit values must be 64-bit aligned.
-> >
-> > Otherwise even if CPU may handle not-aligend normal data access,
-> > still atomic instructions fail and typically raise an exception
-> > leaving us dead in the water.
-> ...
-> > diff --git a/include/asm-generic/atomic64.h b/include/asm-generic/atomic64.h
-> > index 8d28eb010d0d..b94b749b5952 100644
-> > --- a/include/asm-generic/atomic64.h
-> > +++ b/include/asm-generic/atomic64.h
-> > @@ -13,7 +13,7 @@
-> >  #define _ASM_GENERIC_ATOMIC64_H
-> >
-> >  typedef struct {
-> > -     long long counter;
-> > +     u64 __aligned(8) counter;
-> >  } atomic64_t;
->
-> Apart from the fact that this changes the value from signed to unsigned
-> should most of the architectures be using this generic definition?
+On Mon, Jul 09, 2018 at 04:45:50PM +0300, Alexey Brodkin wrote:
+> diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+> index f98a097e73f2..d65327cb83c9 100644
+> --- a/drivers/base/devres.c
+> +++ b/drivers/base/devres.c
+> @@ -24,8 +24,12 @@ struct devres_node {
+>  
+>  struct devres {
+>  	struct devres_node		node;
+> -	/* -- 3 pointers */
+> -	unsigned long long		data[];	/* guarantee ull alignment */
+> +	/*
+> +	 * data[] must be 64 bit aligned even on 32 bit architectures
+> +	 * because it might be accessed by instructions that require
+> +	 * aligned memory arguments such as atomic64_t.
+> +	 */
+> +	u8 __aligned(8)			data[];
+>  };
 
-64-bit architectures use the one from include/linux/types.h instead.
+From a quick reading in Documentation/driver-model/devres.txt this
+devres muck is supposed to be device memory, right?
 
-Gr{oetje,eeting}s,
+atomics (as in atomic*_t) are not defined for use on mmio.
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+wth kind of code is relying on this?
