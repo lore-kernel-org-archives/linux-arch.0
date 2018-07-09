@@ -1,36 +1,43 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
-Date: Mon, 9 Jul 2018 14:53:36 +0000
-Message-ID: <4f6e9e8bf60f05872afaed4a1d8e516331e95ea7.camel@synopsys.com>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v3] devres: Explicitly align datai[] to 64-bit
+Date: Mon, 9 Jul 2018 15:02:08 +0000
+Message-ID: <dd7f96e4b08644769865adb302eb7d53@AcuMS.aculab.com>
 References: <20180709134550.29541-1-abrodkin@synopsys.com>
-         <20180709140717.GR2476@hirez.programming.kicks-ass.net>
-         <20180709141056.GR2512@hirez.programming.kicks-ass.net>
-         <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
-         <20180709144925.GU2476@hirez.programming.kicks-ass.net>
+ <20180709140717.GR2476@hirez.programming.kicks-ass.net>
+ <20180709141056.GR2512@hirez.programming.kicks-ass.net>
+ <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
+ <20180709144925.GU2476@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <stable-owner@vger.kernel.org>
 In-Reply-To: <20180709144925.GU2476@hirez.programming.kicks-ass.net>
 Content-Language: en-US
-Content-ID: <965FC01BD20DB94FB99BA57AF9B8ADFA@internal.synopsys.com>
 Sender: stable-owner@vger.kernel.org
-To: "peterz@infradead.org" <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "greg@kroah.com" <greg@kroah.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>
+To: 'Peter Zijlstra' <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgUGV0ZXIsDQoNCk9uIE1vbiwgMjAxOC0wNy0wOSBhdCAxNjo0OSArMDIwMCwgUGV0ZXIgWmlq
-bHN0cmEgd3JvdGU6DQo+IE9uIE1vbiwgSnVsIDA5LCAyMDE4IGF0IDAyOjMzOjI2UE0gKzAwMDAs
-IEFsZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+ID4gSW4gZmFjdCwgc2luY2UgYWxsb2NfZHIoKSB1
-c2VzIGttYWxsb2MoKSB0byBhbGxvY2F0ZSB0aGUgZW50aXJlIHRoaW5nLA0KPiA+ID4gaXQgaXMg
-aW1wb3NzaWJsZSB0byBndWFyYW50ZWUgYSBsYXJnZXIgYWxpZ25tZW50IHRoYW4ga21hbGxvYyBk
-b2VzLg0KPiA+IA0KPiA+IFdlbGwgYnV0IDQtYnl0ZXMgW3doaWNoIGlzIGNyaXRpY2FsIGZvciBh
-dG9taWM2NF90XSBzaG91bGQgYmUgbXVjaCBsZXNzDQo+ID4gdGhhbiBhIHNhbmUgY2FjaGUgbGlu
-ZSBsZW5ndGggc28gYWJvdmUgc2hvdWxkIHdvcmsuDQo+IA0KPiBBRkFJQ1QgQVJDSF9LTUFMTE9D
-X01JTkFMSUdOIGVuZHMgdXAgYmVpbmcgNCBvbiB4ODZfMzIgKGl0IGRvZXNuJ3QNCj4gZGVmaW5l
-IEFSQ0hfRE1BX01JTkFMSUdOIGFuZCBkb2Vzbid0IHNlZW0gdG8gb3RoZXJ3aXNlIG92ZXJyaWRl
-IHRoZQ0KPiB0aGluZykuDQo+IA0KPiBTbyB1bmNvbmRpdGlvbmFsbHkgc2V0dGluZyB0aGUgYWxp
-Z25tZW50IG9mIGRldnJlczo6ZGF0YSB0byA4IHNlZW1zDQo+IGJyb2tlbi4NCg0KV2VsbCBidXQg
-dGhlbiB3aGF0IG90aGVyIG9wdGlvbnMgZG8gd2UgaGF2ZSB0byBmaXggYSBwcm9ibGVtIHdpdGgN
-Cm1pc2FsaWduZWQgYWNjZXNzIHRvIGF0b21pYzY0X3QgaW4gZHJtX2dwdV9zY2hlZHVsZXI/DQoN
-Ci1BbGV4ZXk=
+From: Peter Zijlstra
+> Sent: 09 July 2018 15:49
+> On Mon, Jul 09, 2018 at 02:33:26PM +0000, Alexey Brodkin wrote:
+> > > In fact, since alloc_dr() uses kmalloc() to allocate the entire thing,
+> > > it is impossible to guarantee a larger alignment than kmalloc does.
+> >
+> > Well but 4-bytes [which is critical for atomic64_t] should be much less
+> > than a sane cache line length so above should work.
+> 
+> AFAICT ARCH_KMALLOC_MINALIGN ends up being 4 on x86_32 (it doesn't
+> define ARCH_DMA_MINALIGN and doesn't seem to otherwise override the
+> thing).
+
+That seems broken.
+
+I wonder what the minimal alignment really is?
+I suspect some code expects (and gets) 8-byte alignment.
+The min alignment might even be 16 or 32 bytes.
+There aren't many x86 instructions that fault on mis-aligned addresses,
+but there are a few.
+Mostly related to the fpu - probably including the fpu save area.
+
+	David
