@@ -1,87 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:39831 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750952AbeGIGqx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 02:46:53 -0400
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Received: from out1-smtp.messagingengine.com ([66.111.4.25]:58091 "EHLO
+        out1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1750974AbeGIHGk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 03:06:40 -0400
+Date: Mon, 9 Jul 2018 09:06:35 +0200
+From: "greg@kroah.com" <greg@kroah.com>
 Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Date: Mon, 9 Jul 2018 06:46:50 +0000
-Message-ID: <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
+Message-ID: <20180709070635.GB13285@kroah.com>
 References: <20180709044444.6397-1-abrodkin@synopsys.com>
-         <20180709054842.GB7618@kroah.com>
-In-Reply-To: <20180709054842.GB7618@kroah.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <2978DF69C2E7CB40AA3E1F5D269194CD@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+ <20180709054842.GB7618@kroah.com>
+ <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "greg@kroah.com" <greg@kroah.com>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180709064650.FCZ2kLSRrnSc5F7NqypZo3ido48nESbcONf7IEZLuzg@z>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Message-ID: <20180709070635.dRLUXq_zNJ-NYuOONcUMYYyQr5TfDXq9S4FRnN8H5QM@z>
 
-SGkgR3JlZywNCg0KT24gTW9uLCAyMDE4LTA3LTA5IGF0IDA3OjQ4ICswMjAwLCBHcmVnIEtIIHdy
-b3RlOg0KPiBPbiBNb24sIEp1bCAwOSwgMjAxOCBhdCAwNzo0NDo0NEFNICswMzAwLCBBbGV4ZXkg
-QnJvZGtpbiB3cm90ZToNCj4gPiBEZXBlbmRpbmcgb24gQUJJICJsb25nIGxvbmciIHR5cGUgb2Yg
-YSBwYXJ0aWN1bGFyIDMyLWJpdCBDUFUNCj4gPiBtaWdodCBiZSBhbGlnbmVkIGJ5IGVpdGhlciB3
-b3JkICgzMi1iaXRzKSBvciBkb3VibGUgd29yZCAoNjQtYml0cykuDQo+ID4gTWFrZSBzdXJlICJk
-YXRhIiBpcyByZWFsbHkgNjQtYml0IGFsaWduZWQgZm9yIGFueSAzMi1iaXQgQ1BVLg0KPiA+IA0K
-PiA+IEF0IGxlYXN0IGZvciAzMi1iaXQgQVJDIGNvcmVzIEFCSSByZXF1aXJlcyAibG9uZyBsb25n
-IiB0eXBlcw0KPiA+IHRvIGJlIGFsaWduZWQgYnkgbm9ybWFsIDMyLWJpdCB3b3JkLiBUaGlzIG1h
-a2VzICJkYXRhIiBmaWVsZCBhbGlnbmVkIHRvDQo+ID4gMTIgYnl0ZXMuIFdoaWNoIGlzIHN0aWxs
-IE9LIGFzIGxvbmcgYXMgd2UgdXNlIDMyLWJpdCBkYXRhIG9ubHkuDQo+ID4gDQo+ID4gQnV0IG9u
-Y2Ugd2Ugd2FudCB0byB1c2UgbmF0aXZlIGF0b21pYzY0X3QgdHlwZSAoaS5lLiB3aGVuIHdlIHVz
-ZSBzcGVjaWFsDQo+ID4gaW5zdHJ1Y3Rpb25zIExMT0NLRC9TQ09OREQgZm9yIGFjY2Vzc2luZyA2
-NC1iaXQgZGF0YSkgd2UgZWFzaWx5IGhpdA0KPiA+IG1pc2FsaWduZWQgYWNjZXNzIGV4Y2VwdGlv
-bi4NCj4gDQo+IFNvIGlzIHRoaXMgc29tZXRoaW5nIHlvdSBoaXQgdG9kYXk/ICBJZiBub3QsIHdo
-eSBpcyB0aGlzIG5lZWRlZCBmb3INCj4gc3RhYmxlIGtlcm5lbHM/DQoNCkluZGVlZCB3ZSBoaXQg
-dGhhdCBwcm9ibGVtIHJlY2VudGx5IHdoZW4gRXRuYXZpdiBkcml2ZXIgd2FzIHN3aXRjaGVkIHRv
-DQpEUk0gR1BVIHNjaGVkdWxlciwgc2VlDQpjb21taXQgZTkzYjZkZWViNDVhICgiZHJtL2V0bmF2
-aXY6IGhvb2sgdXAgRFJNIEdQVSBzY2hlZHVsZXIiKS4NClRoZSBtb3N0IGltcG9ydGFudCBwYXJ0
-IG9mIERSTSBHUFUgc2NoZWR1bGVyIGlzICJqb2JfaWRfY291bnQiIG1lbWJlciBvZg0KImRybV9n
-cHVfc2NoZWR1bGVyIiBzdHJ1Y3R1cmUgb2YgdHlwZSAiYXRvbWljNjRfdCIuIFRoaXMgc3RydWN0
-dXJlIGlzIHB1dA0KaW4gYSBidWZmZXIgYWxsb2NhdGVkIGJ5IGRldm1fa3phbGxvYygpIGFuZCBp
-ZiAiam9iX2lkX2NvdW50IiBpcyBub3QgNjQtYml0DQphbGlnbmVkIGF0b21pYyBpbnN0cnVjdGlv
-biBmYWlscyB3aXRoIGFuIGV4Y2VwdGlvbi4NCg0KQXMgZm9yIHN0YWJsZSByZXF1aXJlbWVudHMg
-LSBtZW50aW9uZWQgY29tbWl0IHdhcyBhIHBhcnQgb2YgNC4xNyBrZXJuZWwNCndoaWNoIGJyb2tl
-IEdQVSBkcml2ZXIgZm9yIG9uZSBvZiBvdXIgSFNESyBib2FyZCBzbyBJIGd1ZXNzIGJhY2stcG9y
-dGluZw0KdG8gNC4xNyBpcyBhIG5vLWJyYWluZXIuDQoNCk5vdyBnaXZlbiBhIG5hdHVyZSBvZiB0
-aGUgcHJvYmxlbSBhdCBoYW5kIEkgbWF5IGV4cGVjdCBvdGhlciBicmVha2FnZXMNCndoZW5ldmVy
-IGFub3RoZXIgZHJpdmVyL2ZzIGV0YyB0aGF0IHVzZSAiYXRvbWljNjRfdCIgZ2V0cyBlbmFibGVk
-Lg0KDQo+ID4gVGhhdCdzIGJlY2F1c2UgZXZlbiBvbiBDUFVzIGNhcGFibGUgb2Ygbm9uLWFsaWdu
-ZWQgZGF0YSBhY2Nlc3MgTEwvU0MNCj4gPiBpbnN0cnVjdGlvbnMgcmVxdWlyZSBzdHJpY3QgYWxp
-Z25tZW50Lg0KPiANCj4gQXJlIHlvdSBnb2luZyB0byBoaXQgdGhpcyBjb2RlIHdpdGggYWxsIHR5
-cGVzIG9mIHN0cnVjdHVyZXM/DQoNCklmIHRoZXJlJ3JlIG90aGVyIGNhc2VzIHdoaWNoIGxlYWQg
-dG8gNC1ieXRlIGFsaWduZWQgImF0b21pYzY0X3QiIHZhcmlhYmxlcw0KdGhlcmUgd2lsbCBiZSBh
-IHByb2JsZW0gYXMgd2VsbCBidXQgaXQncyBxdWl0ZSBoYXJkIHRvIHByZWRpY3QgdGhvc2UgY2Fz
-ZXMuDQpUaGF0IHNhaWQgaWYgd2UgbWFuYWdlIHRvIHJlcHJvZHVjZSBtb3JlIHNpbWlsYXIgaXNz
-dWVzIHRoZXJlIHdpbGwgYmUgbW9yZQ0KcGF0Y2hlcyB3aXRoIGZpeGVzIDopDQoNCj4gV2hhdCBo
-YXBwZW5zIHdoZW4geW91IGRvIGhhdmUgYW4gdW5hbGlnbmVkIGFjY2Vzcz8NCg0KQXRvbWljIGlu
-c3RydWN0aW9ucyBhcmUgYSBiaXQgc3BlY2lhbCBhcyBjb21wYXJlZCB0byBub3JtYWwgbG9hZHMg
-YW5kIHN0b3Jlcy4NCkV2ZW4gaWYgbm9ybWFsIGxvYWRzIGFuZCBzdG9yZXMgbWF5IGRlYWwgd2l0
-aCB1bmFsaWduZWQgZGF0YSBhdG9taWMgaW5zdHJ1Y3Rpb25zDQpzdGlsbCByZXF1aXJlIGRhdGEg
-dG8gYmUgYWxpZ25lZCBiZWNhdXNlIGl0J3MgaGFyZCB0byBtYW5hZ2UgYXRvbWljIHZhbHVlIHRo
-YXQNCnNwYW5zIHRocm91Z2ggbXVsdGlwbGUgY2FjaGUgbGluZXMgb3IgZXZlbiBNTVUgcGFnZXMu
-IEFuZCBoYXJkd2FyZSBqdXN0DQpyYWlzZXMgYW4gYWxpZ25tZW50IGZhdWx0IGV4Y2VwdGlvbi4N
-Cg0KQW5kIHRoYXQncyBub3Qgc29tZXRoaW5nIHNwZWNpYWwgZm9yIEFSQywgSSBndWVzcyBhbGwg
-Q1BVcyBhcmUgdGhlIHNhbWUgaW4NCnRoYXQgcmVnYXJkLCBzZWUgaGVyZSdzIGFuIGV4dHJhY3Qg
-ZnJvbSBBUk0ocikgQXJjaGl0ZWN0dXJlIFJlZmVyZW5jZQ0KTWFudWFsIEFSTXY3LUEgYW5kIEFS
-TXY3LVIgZWRpdGlvbjogaHR0cHM6Ly9sa21sLm9yZy9sa21sLzIwMTcvMTIvNS80NDANCkZyb20g
-IlRhYmxlIEEzLTEgQWxpZ25tZW50IHJlcXVpcmVtZW50cyBvZiBsb2FkL3N0b3JlIGluc3RydWN0
-aW9ucyINCml0J3Mgc2VlbiB0aGF0IExEUkVYRCwgU1RSRVhEIGluc3RydWN0aW9ucyB3aWxsIGNh
-dXNlIGFsaWdubWVudCBmYXVsdA0KZXZlbiBpZiBTQ1RMUi5BPTAgKHN0cmljdCBhbGlnbm1lbnQg
-ZmF1bHQgY2hlY2tpbmcgZGlzYWJsZWQpIGZvciBub24NCmRvdWJsZS13b3JkLWFsaWduZWQgZGF0
-YS4NCg0KPiA+IA0KPiA+IFNpZ25lZC1vZmYtYnk6IEFsZXhleSBCcm9ka2luIDxhYnJvZGtpbkBz
-eW5vcHN5cy5jb20+DQo+ID4gQ2M6IEdyZWcgS3JvYWgtSGFydG1hbiA8Z3JlZ2toQGxpbnV4Zm91
-bmRhdGlvbi5vcmc+DQo+IA0KPiBZb3UgZGlkbid0IGNjOiB0aGlzIGFkZHJlc3MgOigNCg0KU29y
-cnksIHdoaWNoIG9uZT8NClRoYXQgd2hhdCBJIGhhdmUgaW4gLm1ib3gsIHNlZSBodHRwczovL3Bh
-dGNod29yay5vemxhYnMub3JnL3BhdGNoLzk0MTA5Mi9tYm94LzoNCi0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQpDYzogbGludXgt
-YXJjaEB2Z2VyLmtlcm5lbC5vcmcsIEdyZWcgS0ggPGdyZWdAa3JvYWguY29tPiwNCiBBbGV4ZXkg
-QnJvZGtpbiA8QWxleGV5LkJyb2RraW5Ac3lub3BzeXMuY29tPiwgc3RhYmxlQHZnZXIua2VybmVs
-Lm9yZywgDQogR3JlZyBLcm9haC1IYXJ0bWFuIDxncmVna2hAbGludXhmb3VuZGF0aW9uLm9yZz4s
-DQogVGhvbWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+LCBsaW51eC1zbnBzLWFyY0Bs
-aXN0cy5pbmZyYWRlYWQub3JnDQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQotQWxleGV5
+On Mon, Jul 09, 2018 at 06:46:50AM +0000, Alexey Brodkin wrote:
+> Hi Greg,
+> 
+> On Mon, 2018-07-09 at 07:48 +0200, Greg KH wrote:
+> > On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
+> > > Depending on ABI "long long" type of a particular 32-bit CPU
+> > > might be aligned by either word (32-bits) or double word (64-bits).
+> > > Make sure "data" is really 64-bit aligned for any 32-bit CPU.
+> > > 
+> > > At least for 32-bit ARC cores ABI requires "long long" types
+> > > to be aligned by normal 32-bit word. This makes "data" field aligned to
+> > > 12 bytes. Which is still OK as long as we use 32-bit data only.
+> > > 
+> > > But once we want to use native atomic64_t type (i.e. when we use special
+> > > instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
+> > > misaligned access exception.
+> > 
+> > So is this something you hit today?  If not, why is this needed for
+> > stable kernels?
+> 
+> Indeed we hit that problem recently when Etnaviv driver was switched to
+> DRM GPU scheduler, see
+> commit e93b6deeb45a ("drm/etnaviv: hook up DRM GPU scheduler").
+> The most important part of DRM GPU scheduler is "job_id_count" member of
+> "drm_gpu_scheduler" structure of type "atomic64_t". This structure is put
+> in a buffer allocated by devm_kzalloc() and if "job_id_count" is not 64-bit
+> aligned atomic instruction fails with an exception.
+> 
+> As for stable requirements - mentioned commit was a part of 4.17 kernel
+> which broke GPU driver for one of our HSDK board so I guess back-porting
+> to 4.17 is a no-brainer.
+
+Ok, so 4.17 is as far back as you need?  Please try to be specific when
+asking for stable backports.
+
+> > > That's because even on CPUs capable of non-aligned data access LL/SC
+> > > instructions require strict alignment.
+> > 
+> > Are you going to hit this code with all types of structures?
+> 
+> If there're other cases which lead to 4-byte aligned "atomic64_t" variables
+> there will be a problem as well but it's quite hard to predict those cases.
+> That said if we manage to reproduce more similar issues there will be more
+> patches with fixes :)
+> 
+> > What happens when you do have an unaligned access?
+> 
+> Atomic instructions are a bit special as compared to normal loads and stores.
+> Even if normal loads and stores may deal with unaligned data atomic instructions
+> still require data to be aligned because it's hard to manage atomic value that
+> spans through multiple cache lines or even MMU pages. And hardware just
+> raises an alignment fault exception.
+> 
+> And that's not something special for ARC, I guess all CPUs are the same in
+> that regard, see here's an extract from ARM(r) Architecture Reference
+> Manual ARMv7-A and ARMv7-R edition: https://lkml.org/lkml/2017/12/5/440
+> From "Table A3-1 Alignment requirements of load/store instructions"
+> it's seen that LDREXD, STREXD instructions will cause alignment fault
+> even if SCTLR.A=0 (strict alignment fault checking disabled) for non
+> double-word-aligned data.
+
+Thanks for the better explaination, that helps out a lot.  Can you redo
+the patch with all of that information so that others do not have the
+same questions as I did?
+
+thanks,
+
+greg k-h
