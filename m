@@ -1,36 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:56932 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752112AbeGIOtq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 10:49:46 -0400
-Date: Mon, 9 Jul 2018 16:49:25 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
-Message-ID: <20180709144925.GU2476@hirez.programming.kicks-ass.net>
-References: <20180709134550.29541-1-abrodkin@synopsys.com>
- <20180709140717.GR2476@hirez.programming.kicks-ass.net>
- <20180709141056.GR2512@hirez.programming.kicks-ass.net>
- <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:37974 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750818AbeGIEo6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 00:44:58 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [RESEND PATCH v2] devres: Really align data field to unsigned long long
+Date: Mon,  9 Jul 2018 07:44:44 +0300
+Message-ID: <20180709044444.6397-1-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>
-Message-ID: <20180709144925.utW2MVhRupXko-UTe8rCe1fahcTx2OvzszNio5qzu7M@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Greg KH <greg@kroah.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, stable@vger.kernel.org
+Message-ID: <20180709044444.Ua1zbdDnYuhVDq558xKeJ4vWzWuuAJ3jMuB9ib1VI1c@z>
 
-On Mon, Jul 09, 2018 at 02:33:26PM +0000, Alexey Brodkin wrote:
-> > In fact, since alloc_dr() uses kmalloc() to allocate the entire thing,
-> > it is impossible to guarantee a larger alignment than kmalloc does.
-> 
-> Well but 4-bytes [which is critical for atomic64_t] should be much less
-> than a sane cache line length so above should work.
+Depending on ABI "long long" type of a particular 32-bit CPU
+might be aligned by either word (32-bits) or double word (64-bits).
+Make sure "data" is really 64-bit aligned for any 32-bit CPU.
 
-AFAICT ARCH_KMALLOC_MINALIGN ends up being 4 on x86_32 (it doesn't
-define ARCH_DMA_MINALIGN and doesn't seem to otherwise override the
-thing).
+At least for 32-bit ARC cores ABI requires "long long" types
+to be aligned by normal 32-bit word. This makes "data" field aligned to
+12 bytes. Which is still OK as long as we use 32-bit data only.
 
-So unconditionally setting the alignment of devres::data to 8 seems
-broken.
+But once we want to use native atomic64_t type (i.e. when we use special
+instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
+misaligned access exception.
+
+That's because even on CPUs capable of non-aligned data access LL/SC
+instructions require strict alignment.
+
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: stable@vger.kernel.org
+---
+
+Changes v1 -> v2:
+
+ * Reworded commit message
+ * Inserted comment right in source [Thomas]
+
+ drivers/base/devres.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+index f98a097e73f2..466fa59c866a 100644
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -24,8 +24,12 @@ struct devres_node {
+ 
+ struct devres {
+ 	struct devres_node		node;
+-	/* -- 3 pointers */
+-	unsigned long long		data[];	/* guarantee ull alignment */
++	/*
++	 * Depending on ABI "long long" type of a particular 32-bit CPU
++	 * might be aligned by either word (32-bits) or double word (64-bits).
++	 * Make sure "data" is really 64-bit aligned for any 32-bit CPU.
++	 */
++	unsigned long long		data[] __aligned(sizeof(unsigned long long));
+ };
+ 
+ struct devres_group {
+-- 
+2.17.1
