@@ -1,91 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out1-smtp.messagingengine.com ([66.111.4.25]:58091 "EHLO
-        out1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1750974AbeGIHGk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 03:06:40 -0400
-Date: Mon, 9 Jul 2018 09:06:35 +0200
-From: "greg@kroah.com" <greg@kroah.com>
+Received: from mail-ua0-f195.google.com ([209.85.217.195]:46068 "EHLO
+        mail-ua0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752894AbeGIHHZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 03:07:25 -0400
+MIME-Version: 1.0
+References: <20180709044444.6397-1-abrodkin@synopsys.com> <20180709054842.GB7618@kroah.com>
+In-Reply-To: <20180709054842.GB7618@kroah.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 9 Jul 2018 09:07:13 +0200
+Message-ID: <CAMuHMdVBBu6gho_JVQTiOHxVFHqX2MUxS_c-6-x50OEu4OqpRQ@mail.gmail.com>
 Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Message-ID: <20180709070635.GB13285@kroah.com>
-References: <20180709044444.6397-1-abrodkin@synopsys.com>
- <20180709054842.GB7618@kroah.com>
- <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1d34b6addd98c3219f902e0dc0c2922309e1de93.camel@synopsys.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180709070635.dRLUXq_zNJ-NYuOONcUMYYyQr5TfDXq9S4FRnN8H5QM@z>
+To: Greg KH <greg@kroah.com>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, stable <stable@vger.kernel.org>
+Message-ID: <20180709070713.Vpd_J9KT2ZUoJcsFDtYI73oeVlabnocHZBCPKfCDS-o@z>
 
-On Mon, Jul 09, 2018 at 06:46:50AM +0000, Alexey Brodkin wrote:
-> Hi Greg,
-> 
-> On Mon, 2018-07-09 at 07:48 +0200, Greg KH wrote:
-> > On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
-> > > Depending on ABI "long long" type of a particular 32-bit CPU
-> > > might be aligned by either word (32-bits) or double word (64-bits).
-> > > Make sure "data" is really 64-bit aligned for any 32-bit CPU.
-> > > 
-> > > At least for 32-bit ARC cores ABI requires "long long" types
-> > > to be aligned by normal 32-bit word. This makes "data" field aligned to
-> > > 12 bytes. Which is still OK as long as we use 32-bit data only.
-> > > 
-> > > But once we want to use native atomic64_t type (i.e. when we use special
-> > > instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
-> > > misaligned access exception.
-> > 
-> > So is this something you hit today?  If not, why is this needed for
-> > stable kernels?
-> 
-> Indeed we hit that problem recently when Etnaviv driver was switched to
-> DRM GPU scheduler, see
-> commit e93b6deeb45a ("drm/etnaviv: hook up DRM GPU scheduler").
-> The most important part of DRM GPU scheduler is "job_id_count" member of
-> "drm_gpu_scheduler" structure of type "atomic64_t". This structure is put
-> in a buffer allocated by devm_kzalloc() and if "job_id_count" is not 64-bit
-> aligned atomic instruction fails with an exception.
-> 
-> As for stable requirements - mentioned commit was a part of 4.17 kernel
-> which broke GPU driver for one of our HSDK board so I guess back-porting
-> to 4.17 is a no-brainer.
+On Mon, Jul 9, 2018 at 7:49 AM Greg KH <greg@kroah.com> wrote:
+> On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
+> > Depending on ABI "long long" type of a particular 32-bit CPU
+> > might be aligned by either word (32-bits) or double word (64-bits).
 
-Ok, so 4.17 is as far back as you need?  Please try to be specific when
-asking for stable backports.
+Or even 16-bit (on e.g. m68k).
 
-> > > That's because even on CPUs capable of non-aligned data access LL/SC
-> > > instructions require strict alignment.
-> > 
-> > Are you going to hit this code with all types of structures?
-> 
-> If there're other cases which lead to 4-byte aligned "atomic64_t" variables
-> there will be a problem as well but it's quite hard to predict those cases.
-> That said if we manage to reproduce more similar issues there will be more
-> patches with fixes :)
-> 
-> > What happens when you do have an unaligned access?
-> 
-> Atomic instructions are a bit special as compared to normal loads and stores.
-> Even if normal loads and stores may deal with unaligned data atomic instructions
-> still require data to be aligned because it's hard to manage atomic value that
-> spans through multiple cache lines or even MMU pages. And hardware just
-> raises an alignment fault exception.
-> 
-> And that's not something special for ARC, I guess all CPUs are the same in
-> that regard, see here's an extract from ARM(r) Architecture Reference
-> Manual ARMv7-A and ARMv7-R edition: https://lkml.org/lkml/2017/12/5/440
-> From "Table A3-1 Alignment requirements of load/store instructions"
-> it's seen that LDREXD, STREXD instructions will cause alignment fault
-> even if SCTLR.A=0 (strict alignment fault checking disabled) for non
-> double-word-aligned data.
+> > --- a/drivers/base/devres.c
+> > +++ b/drivers/base/devres.c
+> > @@ -24,8 +24,12 @@ struct devres_node {
+> >
+> >  struct devres {
+> >       struct devres_node              node;
+> > -     /* -- 3 pointers */
+> > -     unsigned long long              data[]; /* guarantee ull alignment */
+> > +     /*
+> > +      * Depending on ABI "long long" type of a particular 32-bit CPU
+> > +      * might be aligned by either word (32-bits) or double word (64-bits).
 
-Thanks for the better explaination, that helps out a lot.  Can you redo
-the patch with all of that information so that others do not have the
-same questions as I did?
+or even 16-bit (on e.g. m68k).
 
-thanks,
+> > +      * Make sure "data" is really 64-bit aligned for any 32-bit CPU.
+> > +      */
+> > +     unsigned long long              data[] __aligned(sizeof(unsigned long long));
+> >  };
+>
+> Does this change the padding today for any other arches?  If so, does
+> the increased memory usage cause any noticable issues?
 
-greg k-h
+Yes it does. struct devres_node contains an odd number of pointers, so
+there will be a hole between node and data on all 32-bit architectures.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
