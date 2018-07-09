@@ -1,60 +1,75 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
-Date: Mon, 9 Jul 2018 15:04:39 +0100
-Message-ID: <20180709140438.ashvw4otyusj3nfa@lakrids.cambridge.arm.com>
-References: <20180709134550.29541-1-abrodkin@synopsys.com>
- <20180709135409.GQ2476@hirez.programming.kicks-ass.net>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH] atomic{64}_t: Explicitly specify data storage length and
+ alignment
+Date: Mon, 9 Jul 2018 15:04:21 +0100
+Message-ID: <20180709140421.GF17271@n2100.armlinux.org.uk>
+References: <20180709124741.21037-1-abrodkin@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <stable-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180709135409.GQ2476@hirez.programming.kicks-ass.net>
-Sender: stable-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, David Laight <David.Laight@ACULAB.COM>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Greg KH <greg@kroah.com>, stable@vger.kernel.org
+In-Reply-To: <20180709124741.21037-1-abrodkin@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Darren Hart <dvhart@infradead.org>, Shuah Khan <shuah@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Josh Triplett <josh@joshtriplett.org>, Steven Rostedt <rostedt@goodmis.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Lai Jiangshan <jiangshanlai@gmail.com>, David Laight <David.Laight@ACULAB.COM>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 09, 2018 at 03:54:09PM +0200, Peter Zijlstra wrote:
-> On Mon, Jul 09, 2018 at 04:45:50PM +0300, Alexey Brodkin wrote:
-> > diff --git a/drivers/base/devres.c b/drivers/base/devres.c
-> > index f98a097e73f2..d65327cb83c9 100644
-> > --- a/drivers/base/devres.c
-> > +++ b/drivers/base/devres.c
-> > @@ -24,8 +24,12 @@ struct devres_node {
-> >  
-> >  struct devres {
-> >  	struct devres_node		node;
-> > -	/* -- 3 pointers */
-> > -	unsigned long long		data[];	/* guarantee ull alignment */
-> > +	/*
-> > +	 * data[] must be 64 bit aligned even on 32 bit architectures
-> > +	 * because it might be accessed by instructions that require
-> > +	 * aligned memory arguments such as atomic64_t.
-> > +	 */
-> > +	u8 __aligned(8)			data[];
-> >  };
+On Mon, Jul 09, 2018 at 03:47:41PM +0300, Alexey Brodkin wrote:
+> Atomic instructions require data they operate on to be aligned
+> according to data size. I.e. 32-bit atomic values must be 32-bit
+> aligned while 64-bit values must be 64-bit aligned.
 > 
-> From a quick reading in Documentation/driver-model/devres.txt this
-> devres muck is supposed to be device memory, right?
+> Otherwise even if CPU may handle not-aligend normal data access,
+> still atomic instructions fail and typically raise an exception
+> leaving us dead in the water.
+> 
+> This came-up during lengthly discussion here:
+> http://lists.infradead.org/pipermail/linux-snps-arc/2018-July/004022.html
+> 
+> Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Boqun Feng <boqun.feng@gmail.com>
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Darren Hart <dvhart@infradead.org>
+> Cc: Shuah Khan <shuah@kernel.org>
+> Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+> Cc: Josh Triplett <josh@joshtriplett.org>
+> Cc: Steven Rostedt <rostedt@goodmis.org>
+> Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+> Cc: Lai Jiangshan <jiangshanlai@gmail.com>
+> Cc: David Laight <David.Laight@ACULAB.COM>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> ---
+>  arch/arm/include/asm/atomic.h                                 | 2 +-
+>  include/asm-generic/atomic64.h                                | 2 +-
+>  include/linux/types.h                                         | 4 ++--
+>  tools/include/linux/types.h                                   | 2 +-
+>  tools/testing/selftests/futex/include/atomic.h                | 2 +-
+>  .../rcutorture/formal/srcu-cbmc/include/linux/types.h         | 4 ++--
+>  6 files changed, 8 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
+> index 66d0e215a773..2ed6d7cf1407 100644
+> --- a/arch/arm/include/asm/atomic.h
+> +++ b/arch/arm/include/asm/atomic.h
+> @@ -267,7 +267,7 @@ ATOMIC_OPS(xor, ^=, eor)
+>  
+>  #ifndef CONFIG_GENERIC_ATOMIC64
+>  typedef struct {
+> -	long long counter;
+> +	u64 __aligned(8) counter;
+>  } atomic64_t;
 
-It's for associating resources (e.g. memory allocations) with a struct
-device.
+ARM doesn't need or require this change, and you're changing the type
+from signed to unsigned, which is likely to break stuff.  So, NAK on
+this from the ARM point of view.
 
-e.g. you do:
-
-	devm_kmalloc(dev, size, GFP_KERNEL);
-
-... and that allocates sizeof(struct devres) + size, putting some
-accounting data into that devres, and returning a pointer to the
-remaining size bytes.
-
-The data[] thing is a hack to ensure that the structure is padded to
-64-bit alignment, in case you'd done:
-
-struct foo {
-	atomic64_t counter;
-}
-
-struct foo *f = devm_kmalloc(dev, sizeof(*f), GFP_KERNEL);
-
-Mark.
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 13.8Mbps down 630kbps up
+According to speedtest.net: 13Mbps down 490kbps up
