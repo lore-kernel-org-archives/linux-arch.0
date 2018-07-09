@@ -1,52 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f196.google.com ([209.85.217.196]:35858 "EHLO
-        mail-ua0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932431AbeGIJXb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 05:23:31 -0400
-MIME-Version: 1.0
-References: <20180709044444.6397-1-abrodkin@synopsys.com> <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
-In-Reply-To: <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 9 Jul 2018 11:23:19 +0200
-Message-ID: <CAMuHMdUdTNpt6G1gzdd6tg9cTo4+kOQCP0Ekouhogug_1sJNPg@mail.gmail.com>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:46796 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754383AbeGIJ7i (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 05:59:38 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
 Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 9 Jul 2018 09:59:35 +0000
+Message-ID: <c95ac7435736d93843c45628ba4d41a4a4988074.camel@synopsys.com>
+References: <20180709044444.6397-1-abrodkin@synopsys.com>
+         <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+In-Reply-To: <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <7B5B9CC9727DAC43BA3405D0BA84E0F2@internal.synopsys.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@aculab.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Greg KH <greg@kroah.com>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, stable <stable@vger.kernel.org>
-Message-ID: <20180709092319.y5ZEEAXNxrkdvzGUSO8ogOWzfvwiW4byqEVvvAo1QOw@z>
+To: "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>
+Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+Message-ID: <20180709095935.KZYrJxWdpGwarn7Q8W1Pj3BZt2FCGgoybvENrJRLO6c@z>
 
-On Mon, Jul 9, 2018 at 11:15 AM David Laight <David.Laight@aculab.com> wrote:
-> From: Alexey Brodkin
-> > Sent: 09 July 2018 05:45
-> > Depending on ABI "long long" type of a particular 32-bit CPU
-> > might be aligned by either word (32-bits) or double word (64-bits).
-> > Make sure "data" is really 64-bit aligned for any 32-bit CPU.
-> >
-> > At least for 32-bit ARC cores ABI requires "long long" types
-> > to be aligned by normal 32-bit word. This makes "data" field aligned to
-> > 12 bytes. Which is still OK as long as we use 32-bit data only.
-> >
-> > But once we want to use native atomic64_t type (i.e. when we use special
-> > instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
-> > misaligned access exception.
->
-> Shouldn't there be a typedef for the actual type.
-> Perhaps it is even atomic64_t ?
-> And have the __aligned(8) applied to that typedef ??
-
-That indeed sounds like the best thing to do, as it will fix this issue in other
-places, too.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+SGkgRGF2aWQsDQoNCk9uIE1vbiwgMjAxOC0wNy0wOSBhdCAwOToxNiArMDAwMCwgRGF2aWQgTGFp
+Z2h0IHdyb3RlOg0KPiBGcm9tOiBBbGV4ZXkgQnJvZGtpbg0KPiA+IFNlbnQ6IDA5IEp1bHkgMjAx
+OCAwNTo0NQ0KPiA+IERlcGVuZGluZyBvbiBBQkkgImxvbmcgbG9uZyIgdHlwZSBvZiBhIHBhcnRp
+Y3VsYXIgMzItYml0IENQVQ0KPiA+IG1pZ2h0IGJlIGFsaWduZWQgYnkgZWl0aGVyIHdvcmQgKDMy
+LWJpdHMpIG9yIGRvdWJsZSB3b3JkICg2NC1iaXRzKS4NCj4gPiBNYWtlIHN1cmUgImRhdGEiIGlz
+IHJlYWxseSA2NC1iaXQgYWxpZ25lZCBmb3IgYW55IDMyLWJpdCBDUFUuDQo+ID4gDQo+ID4gQXQg
+bGVhc3QgZm9yIDMyLWJpdCBBUkMgY29yZXMgQUJJIHJlcXVpcmVzICJsb25nIGxvbmciIHR5cGVz
+DQo+ID4gdG8gYmUgYWxpZ25lZCBieSBub3JtYWwgMzItYml0IHdvcmQuIFRoaXMgbWFrZXMgImRh
+dGEiIGZpZWxkIGFsaWduZWQgdG8NCj4gPiAxMiBieXRlcy4gV2hpY2ggaXMgc3RpbGwgT0sgYXMg
+bG9uZyBhcyB3ZSB1c2UgMzItYml0IGRhdGEgb25seS4NCj4gPiANCj4gPiBCdXQgb25jZSB3ZSB3
+YW50IHRvIHVzZSBuYXRpdmUgYXRvbWljNjRfdCB0eXBlIChpLmUuIHdoZW4gd2UgdXNlIHNwZWNp
+YWwNCj4gPiBpbnN0cnVjdGlvbnMgTExPQ0tEL1NDT05ERCBmb3IgYWNjZXNzaW5nIDY0LWJpdCBk
+YXRhKSB3ZSBlYXNpbHkgaGl0DQo+ID4gbWlzYWxpZ25lZCBhY2Nlc3MgZXhjZXB0aW9uLg0KPiAN
+Cj4gU2hvdWxkbid0IHRoZXJlIGJlIGEgdHlwZWRlZiBmb3IgdGhlIGFjdHVhbCB0eXBlLg0KPiBQ
+ZXJoYXBzIGl0IGlzIGV2ZW4gYXRvbWljNjRfdCA/DQo+IEFuZCBoYXZlIHRoZSBfX2FsaWduZWQo
+OCkgYXBwbGllZCB0byB0aGF0IHR5cGVkZWYgPz8NCg0KVGhhdCdzIGEgZ29vZCBpZGVhIGluZGVl
+ZCBidXQgaXQgZG9lc24ndCBzb2x2ZSB0aGUgcHJvYmxlbSB3aXRoDQpzdHJ1Y3QgZGV2cmVzX25v
+ZGUuIENvbnNpZGVyIHRoZSBmb2xsb3dpbmcgc25pcHBldDoNCi0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoJc3RydWN0IG15
+c3RydWN0IHsNCgkJYXRvbWljNjRfdCBteXZhcjsNCgl9DQoNCglzdHJ1Y3QgbXlzdHJ1Y3QgKnA7
+DQoJcCA9IGRldm1fa3phbGxvYyhkZXYsIHNpemVvZigqcCksIEdGUF9LRVJORUwpOw0KLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0NCg0KSGVyZSBteXZhciBhZGRyZXNzIHdpbGwgbWF0Y2ggYWRkcmVzcyBvZiAiZGF0YSIgbWVt
+YmVyIG9mIHN0cnVjdCBkZXZyZXNfbm9kZS4NClNvIGlmICJkYXRhIiBpcyBoYXMgb2Zmc2V0IG9m
+IDEyIGJ5dGVzIGZyb20gdGhlIGJlZ2lubmluZyBvZiBhIHBhZ2UgdGhlbg0KbXl2YXIgd29uJ3Qg
+YmUgNjQtYml0IGFsaWduZWQgcmVnYXJkbGVzcyBvZiBteXZhcidzIGF0dHJpYnV0ZSwgcmlnaHQ/
+DQoNCg0KPiA+IFRoYXQncyBiZWNhdXNlIGV2ZW4gb24gQ1BVcyBjYXBhYmxlIG9mIG5vbi1hbGln
+bmVkIGRhdGEgYWNjZXNzIExML1NDDQo+ID4gaW5zdHJ1Y3Rpb25zIHJlcXVpcmUgc3RyaWN0IGFs
+aWdubWVudC4NCj4gDQo+IC4uLg0KPiA+IC0tLSBhL2RyaXZlcnMvYmFzZS9kZXZyZXMuYw0KPiA+
+ICsrKyBiL2RyaXZlcnMvYmFzZS9kZXZyZXMuYw0KPiA+IEBAIC0yNCw4ICsyNCwxMiBAQCBzdHJ1
+Y3QgZGV2cmVzX25vZGUgew0KPiA+IA0KPiA+ICBzdHJ1Y3QgZGV2cmVzIHsNCj4gPiAgCXN0cnVj
+dCBkZXZyZXNfbm9kZQkJbm9kZTsNCj4gPiAtCS8qIC0tIDMgcG9pbnRlcnMgKi8NCj4gPiAtCXVu
+c2lnbmVkIGxvbmcgbG9uZwkJZGF0YVtdOwkvKiBndWFyYW50ZWUgdWxsIGFsaWdubWVudCAqLw0K
+PiA+ICsJLyoNCj4gPiArCSAqIERlcGVuZGluZyBvbiBBQkkgImxvbmcgbG9uZyIgdHlwZSBvZiBh
+IHBhcnRpY3VsYXIgMzItYml0IENQVQ0KPiA+ICsJICogbWlnaHQgYmUgYWxpZ25lZCBieSBlaXRo
+ZXIgd29yZCAoMzItYml0cykgb3IgZG91YmxlIHdvcmQgKDY0LWJpdHMpLg0KPiA+ICsJICogTWFr
+ZSBzdXJlICJkYXRhIiBpcyByZWFsbHkgNjQtYml0IGFsaWduZWQgZm9yIGFueSAzMi1iaXQgQ1BV
+Lg0KPiANCj4gSnVzdDoNCj4gCS8qIGRhdGFbXSBtdXN0IGJlIDY0IGJpdCBhbGlnbmVkIGV2ZW4g
+b24gMzIgYml0IGFyY2hpdGVjdHVyZXMNCj4gCSAqIGJlY2F1c2UgaXQgbWlnaHQgYmUgYWNjZXNz
+ZWQgYnkgaW5zdHJ1Y3Rpb25zIHRoYXQgcmVxdWlyZQ0KPiAJICogYWxpZ25lZCBtZW1vcnkgYXJn
+dW1lbnRzLg0KPiANCj4gPiArCSAqLw0KPiA+ICsJdW5zaWduZWQgbG9uZyBsb25nCQlkYXRhW10g
+X19hbGlnbmVkKHNpemVvZih1bnNpZ25lZCBsb25nIGxvbmcpKTsNCj4gDQo+IE9uZSBkYXkgYXNz
+dW1pbmcgdGhhdCAndW5zaWduZWQgbG9uZyBsb25nJyBpcyBleGFjdGx5IDY0IGJpdHMgd2lsbCBi
+aXRlLg0KPiBUaGlzIHByb2JhYmx5IG91Z2h0IHRvIGJlIHU2NCAob3Igc2ltaWxhcikuDQoNCkkg
+YWdyZWUuIEluaXRpYWxseSBJIHdhbnRlZCB0byBrZWVwIGFzIGZldyBjaGFuZ2VzIGFzIHBvc3Np
+YmxlIGJ1dA0KSU1ITyBzd2l0Y2hpbmcgdG8gbW9yZSBwcmVkaWN0YWJsZSBkYXRhIHR5cGUgbWFr
+ZXMgc2Vuc2UuDQoNCi1BbGV4ZXk=
