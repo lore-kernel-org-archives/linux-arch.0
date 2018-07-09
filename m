@@ -1,66 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:45199 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754525AbeGIIhI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 04:37:08 -0400
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Received: from mail-vk0-f66.google.com ([209.85.213.66]:43481 "EHLO
+        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932422AbeGIJEG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 05:04:06 -0400
+MIME-Version: 1.0
+References: <20180709044444.6397-1-abrodkin@synopsys.com> <20180709054842.GB7618@kroah.com>
+ <CAMuHMdVBBu6gho_JVQTiOHxVFHqX2MUxS_c-6-x50OEu4OqpRQ@mail.gmail.com>
+ <71dfb71de86ebe365897b2069bec0cb40b376928.camel@synopsys.com>
+ <CAMuHMdULgdLsETpZ9+RC6d2ZoARPs72Fn=SRboM-8Xm7t1Qd2g@mail.gmail.com> <cabc2aa35ecf81dc7a47d4ec7bd5dcb1c3d566c3.camel@synopsys.com>
+In-Reply-To: <cabc2aa35ecf81dc7a47d4ec7bd5dcb1c3d566c3.camel@synopsys.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 9 Jul 2018 11:03:54 +0200
+Message-ID: <CAMuHMdXJ7izWV2iRYogYzoufrOtqo43c54X78D2FSH8yd2_oaQ@mail.gmail.com>
 Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Date: Mon, 9 Jul 2018 08:37:03 +0000
-Message-ID: <cabc2aa35ecf81dc7a47d4ec7bd5dcb1c3d566c3.camel@synopsys.com>
-References: <20180709044444.6397-1-abrodkin@synopsys.com>
-         <20180709054842.GB7618@kroah.com>
-         <CAMuHMdVBBu6gho_JVQTiOHxVFHqX2MUxS_c-6-x50OEu4OqpRQ@mail.gmail.com>
-         <71dfb71de86ebe365897b2069bec0cb40b376928.camel@synopsys.com>
-         <CAMuHMdULgdLsETpZ9+RC6d2ZoARPs72Fn=SRboM-8Xm7t1Qd2g@mail.gmail.com>
-In-Reply-To: <CAMuHMdULgdLsETpZ9+RC6d2ZoARPs72Fn=SRboM-8Xm7t1Qd2g@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <8FB46D824A85094695C2F5BA0064F527@internal.synopsys.com>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "geert@linux-m68k.org" <geert@linux-m68k.org>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180709083703.rhTXJ42Wkm1xATcpEssldT8WrS31b_RP0ZL81Q8D8Wk@z>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, stable <stable@vger.kernel.org>, Greg KH <greg@kroah.com>, arcml <linux-snps-arc@lists.infradead.org>
+Message-ID: <20180709090354.saIx7ggnCuVHUjdgcn_suBcad2Lwoy60m4Dqybp0H4Q@z>
 
-SGkgR2VlcnQsDQoNCk9uIE1vbiwgMjAxOC0wNy0wOSBhdCAwOTo1MiArMDIwMCwgR2VlcnQgVXl0
-dGVyaG9ldmVuIHdyb3RlOg0KPiBIaSBBbGV4ZXksDQo+IA0KPiBPbiBNb24sIEp1bCA5LCAyMDE4
-IGF0IDk6MjIgQU0gQWxleGV5IEJyb2RraW4NCj4gPEFsZXhleS5Ccm9ka2luQHN5bm9wc3lzLmNv
-bT4gd3JvdGU6DQo+ID4gT24gTW9uLCAyMDE4LTA3LTA5IGF0IDA5OjA3ICswMjAwLCBHZWVydCBV
-eXR0ZXJob2V2ZW4gd3JvdGU6DQo+ID4gPiBPbiBNb24sIEp1bCA5LCAyMDE4IGF0IDc6NDkgQU0g
-R3JlZyBLSCA8Z3JlZ0Brcm9haC5jb20+IHdyb3RlOg0KPiA+ID4gPiBPbiBNb24sIEp1bCAwOSwg
-MjAxOCBhdCAwNzo0NDo0NEFNICswMzAwLCBBbGV4ZXkgQnJvZGtpbiB3cm90ZToNCj4gPiA+ID4g
-PiBEZXBlbmRpbmcgb24gQUJJICJsb25nIGxvbmciIHR5cGUgb2YgYSBwYXJ0aWN1bGFyIDMyLWJp
-dCBDUFUNCj4gPiA+ID4gPiBtaWdodCBiZSBhbGlnbmVkIGJ5IGVpdGhlciB3b3JkICgzMi1iaXRz
-KSBvciBkb3VibGUgd29yZCAoNjQtYml0cykuDQo+ID4gPiANCj4gPiA+IE9yIGV2ZW4gMTYtYml0
-IChvbiBlLmcuIG02OGspLg0KPiA+IA0KPiA+IEluZGVlZCwgdGhhbmtzIGZvciB0aGUgbm90ZSEN
-Cj4gPiBXaWxsIGFkZCB0aGlzIGluIG15IHYzLg0KPiANCj4gTm90ZSB0aGF0IGluIHRoaXMgcGFy
-dGljdWxhciBjYXNlLCB0aGUgZmllbGQgd2lsbCBwcm9iYWJseSBhbHdheXMgYmUNCj4gYWxpZ25l
-ZCB0byA0IGJ5dGVzLA0KPiBhcyB0aGUgc3RydWN0IHdpbGwgYmUgYWxsb2NhdGVkIHVzaW5nICph
-bGxvYygpLg0KDQpXZWxsIEkgdGhpbmsgbWF5YmUgaXQgd29ydGggbWVudGlvbmluZyBvbmx5IDMy
-LWJpdCBhbmQgNjQtYml0IGFsaWdubWVudHMgaW4NCnRoaXMgcGFydGljdWxhciBjYXNlIGJlY2F1
-c2UgYXMgaXQgd2FzIG1lbnRpb25lZCBpbml0aWFsbHkgaW4gdGhlIGNvbW1lbnQgdGhlcmUncmUN
-CjMgcG9pbnRlcnMgYmVmb3JlICJkYXRhIiBmaWVsZCBhbmQgZm9yIDMyLWJpdCBtYWNoaW5lcyBJ
-IGd1ZXNzIHdlIG1heSBzYWZlbHkNCmFzc3VtZSB0aGF0IGEgcG9pbnRlciBzaXplIGlzIDMyLWJp
-dC4NCg0KVGhpcyBsZWF2ZXMgdXMgb25seSBvbmUgcHJvYmxlbWF0aWMgc2l0dWF0aW9uIDMyLWJp
-dCBpbnN0ZWFkIG9mIDY0LWJpdCBhbGlnbm1lbnQuDQoNCj4gPiBGb3IgQVJDIEknZCBsaWtlIHRo
-aXMgZml4IHRvIGJlIGJhY2stcG9ydGVkIHN0YXJ0aW5nDQo+ID4gZnJvbSB2NC44IHdoZXJlIHdl
-IGFkZGVkIHN1cHBvcnQgb2YgIm5hdGl2ZSIgYXRvbWljNjRfdCwgc2VlIGNvbW1pdA0KPiA+IGNl
-NjM2NTI3MGVjZCAoIiBBUkN2MjogSW1wbGVtZW50IGF0b21pYzY0IGJhc2VkIG9uIExMT0NLRC9T
-Q09OREQgaW5zdHJ1Y3Rpb25zIikuDQo+ID4gDQo+ID4gV2hhdCBhYm91dCBtNjhrLCBkbyB5b3Ug
-aGF2ZSBhbnkgcHJlZmVyZW5jZSBvZiBlYXJsaWVzdCBrZXJuZWwgdmVyc2lvbg0KPiA+IHdoZXJl
-IHRoaXMgZml4IG1pZ2h0IGJlIHVzZWZ1bD8NCj4gDQo+IEdpdmVuIG02OGsgaXMgMzItYml0LCBp
-dCB3aWxsIGFjY2VzcyBhdG9taWM2NF90IHZhcmlhYmxlcyB3aGlsZQ0KPiBob2xkaW5nIGEgc3Bp
-bmxvY2ssDQo+IHNvIGl0IHNob3VsZCBzdGlsbCBiZSBzYWZlIHdpdGhvdXQgdGhpcyBjaGFuZ2Uu
-DQoNCldlbGwgQVJDIGFuZCBBUk12NyBhcmUgMzItYml0IG1hY2hpbmVzIGFzIHdlbGwgc3RpbGwg
-Ym90aCBoYXZlDQphIHNwZWNpYWwgaW5zdHJ1Y3Rpb25zIHRvIHJlYWQvd3JpdGUgNjQtYml0IGRh
-dGEuDQoNCj4gTm90IHRvIG1lbnRpb24gbm8gb25lIHdpbGwgdHJ5IGV0bmF2aXYgb24gbTY4ayA7
-LSkNCg0KU2VlIGl0IHdhcyBqdXN0IGEgdHJpZ2dlciBjYXNlIGJ1dCBvdGhlciBHUFVzIHRoYXQg
-dXNlIG9yIHdpbGwgdXNlDQpEUk0gR1BVIHNjaGVkdWxlciBhcmUgZ29vZCBjYW5kaWRhdGVzIHRv
-IGl0IHRoYXQgcHJvYmxlbSBhbmQgbm90IHRvDQptZW50aW9uIHNvbWUgb3RoZXIgdXNlcnMgb2Yg
-YXRvbWljNjRfdC4NCg0KQnV0IGZyb20geW91IGFib3ZlIGNvbW1lbnQgSSBtYXkgZGVkdWNlIHRo
-YXQgbTY4ayBkb2Vzbid0IGhhdmUNCmluc3RydWN0aW9ucyBmb3IgNjQtYml0IGRhdGE7IGluIHRo
-YXQgY2FzZSB0aGVyZSdzIG5vIHJlYXNvbiB0byB3b3JyeQ0KYXQgbGVhc3QgYWJvdXQgc3RydWN0
-IGRldnJlc19ub2RlIDopDQoNCi1BbGV4ZXk=
+Hi Alexey,
+
+On Mon, Jul 9, 2018 at 10:37 AM Alexey Brodkin
+<Alexey.Brodkin@synopsys.com> wrote:
+> On Mon, 2018-07-09 at 09:52 +0200, Geert Uytterhoeven wrote:
+> > On Mon, Jul 9, 2018 at 9:22 AM Alexey Brodkin
+> > <Alexey.Brodkin@synopsys.com> wrote:
+> > > On Mon, 2018-07-09 at 09:07 +0200, Geert Uytterhoeven wrote:
+> > > > On Mon, Jul 9, 2018 at 7:49 AM Greg KH <greg@kroah.com> wrote:
+> > > > > On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
+> > > > > > Depending on ABI "long long" type of a particular 32-bit CPU
+> > > > > > might be aligned by either word (32-bits) or double word (64-bits).
+> > > >
+> > > > Or even 16-bit (on e.g. m68k).
+> > >
+> > > Indeed, thanks for the note!
+> > > Will add this in my v3.
+> >
+> > Note that in this particular case, the field will probably always be
+> > aligned to 4 bytes,
+> > as the struct will be allocated using *alloc().
+>
+> Well I think maybe it worth mentioning only 32-bit and 64-bit alignments in
+> this particular case because as it was mentioned initially in the comment there're
+> 3 pointers before "data" field and for 32-bit machines I guess we may safely
+> assume that a pointer size is 32-bit.
+>
+> This leaves us only one problematic situation 32-bit instead of 64-bit alignment.
+>
+> > > For ARC I'd like this fix to be back-ported starting
+> > > from v4.8 where we added support of "native" atomic64_t, see commit
+> > > ce6365270ecd (" ARCv2: Implement atomic64 based on LLOCKD/SCONDD instructions").
+> > >
+> > > What about m68k, do you have any preference of earliest kernel version
+> > > where this fix might be useful?
+> >
+> > Given m68k is 32-bit, it will access atomic64_t variables while
+> > holding a spinlock,
+> > so it should still be safe without this change.
+>
+> Well ARC and ARMv7 are 32-bit machines as well still both have
+> a special instructions to read/write 64-bit data.
+
+Sure.
+
+> > Not to mention no one will try etnaviv on m68k ;-)
+>
+> See it was just a trigger case but other GPUs that use or will use
+> DRM GPU scheduler are good candidates to it that problem and not to
+> mention some other users of atomic64_t.
+>
+> But from you above comment I may deduce that m68k doesn't have
+> instructions for 64-bit data; in that case there's no reason to worry
+> at least about struct devres_node :)
+
+That's correct: m68k has no instructions for 64-bit data.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
