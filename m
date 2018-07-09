@@ -1,47 +1,42 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Date: Mon, 9 Jul 2018 11:23:19 +0200
-Message-ID: <CAMuHMdUdTNpt6G1gzdd6tg9cTo4+kOQCP0Ekouhogug_1sJNPg@mail.gmail.com>
-References: <20180709044444.6397-1-abrodkin@synopsys.com> <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+Date: Mon, 9 Jul 2018 09:54:54 +0000
+Message-ID: <3e34f94963ff442ca09cef84fdf160fd@AcuMS.aculab.com>
+References: <20180709044444.6397-1-abrodkin@synopsys.com>
+ <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+ <CAMuHMdUdTNpt6G1gzdd6tg9cTo4+kOQCP0Ekouhogug_1sJNPg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+In-Reply-To: <CAMuHMdUdTNpt6G1gzdd6tg9cTo4+kOQCP0Ekouhogug_1sJNPg@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Laight <David.Laight@aculab.com>
+To: 'Geert Uytterhoeven' <geert@linux-m68k.org>
 Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Greg KH <greg@kroah.com>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, stable <stable@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 9, 2018 at 11:15 AM David Laight <David.Laight@aculab.com> wrote:
-> From: Alexey Brodkin
-> > Sent: 09 July 2018 05:45
-> > Depending on ABI "long long" type of a particular 32-bit CPU
-> > might be aligned by either word (32-bits) or double word (64-bits).
-> > Make sure "data" is really 64-bit aligned for any 32-bit CPU.
-> >
-> > At least for 32-bit ARC cores ABI requires "long long" types
-> > to be aligned by normal 32-bit word. This makes "data" field aligned to
-> > 12 bytes. Which is still OK as long as we use 32-bit data only.
-> >
-> > But once we want to use native atomic64_t type (i.e. when we use special
-> > instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
-> > misaligned access exception.
->
-> Shouldn't there be a typedef for the actual type.
-> Perhaps it is even atomic64_t ?
-> And have the __aligned(8) applied to that typedef ??
-
-That indeed sounds like the best thing to do, as it will fix this issue in other
-places, too.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+RnJvbTogR2VlcnQgVXl0dGVyaG9ldmVuDQo+IFNlbnQ6IDA5IEp1bHkgMjAxOCAxMDoyMw0KPiBP
+biBNb24sIEp1bCA5LCAyMDE4IGF0IDExOjE1IEFNIERhdmlkIExhaWdodCA8RGF2aWQuTGFpZ2h0
+QGFjdWxhYi5jb20+IHdyb3RlOg0KPiA+IEZyb206IEFsZXhleSBCcm9ka2luDQo+ID4gPiBTZW50
+OiAwOSBKdWx5IDIwMTggMDU6NDUNCj4gPiA+IERlcGVuZGluZyBvbiBBQkkgImxvbmcgbG9uZyIg
+dHlwZSBvZiBhIHBhcnRpY3VsYXIgMzItYml0IENQVQ0KPiA+ID4gbWlnaHQgYmUgYWxpZ25lZCBi
+eSBlaXRoZXIgd29yZCAoMzItYml0cykgb3IgZG91YmxlIHdvcmQgKDY0LWJpdHMpLg0KPiA+ID4g
+TWFrZSBzdXJlICJkYXRhIiBpcyByZWFsbHkgNjQtYml0IGFsaWduZWQgZm9yIGFueSAzMi1iaXQg
+Q1BVLg0KPiA+ID4NCj4gPiA+IEF0IGxlYXN0IGZvciAzMi1iaXQgQVJDIGNvcmVzIEFCSSByZXF1
+aXJlcyAibG9uZyBsb25nIiB0eXBlcw0KPiA+ID4gdG8gYmUgYWxpZ25lZCBieSBub3JtYWwgMzIt
+Yml0IHdvcmQuIFRoaXMgbWFrZXMgImRhdGEiIGZpZWxkIGFsaWduZWQgdG8NCj4gPiA+IDEyIGJ5
+dGVzLiBXaGljaCBpcyBzdGlsbCBPSyBhcyBsb25nIGFzIHdlIHVzZSAzMi1iaXQgZGF0YSBvbmx5
+Lg0KPiA+ID4NCj4gPiA+IEJ1dCBvbmNlIHdlIHdhbnQgdG8gdXNlIG5hdGl2ZSBhdG9taWM2NF90
+IHR5cGUgKGkuZS4gd2hlbiB3ZSB1c2Ugc3BlY2lhbA0KPiA+ID4gaW5zdHJ1Y3Rpb25zIExMT0NL
+RC9TQ09OREQgZm9yIGFjY2Vzc2luZyA2NC1iaXQgZGF0YSkgd2UgZWFzaWx5IGhpdA0KPiA+ID4g
+bWlzYWxpZ25lZCBhY2Nlc3MgZXhjZXB0aW9uLg0KPiA+DQo+ID4gU2hvdWxkbid0IHRoZXJlIGJl
+IGEgdHlwZWRlZiBmb3IgdGhlIGFjdHVhbCB0eXBlLg0KPiA+IFBlcmhhcHMgaXQgaXMgZXZlbiBh
+dG9taWM2NF90ID8NCj4gPiBBbmQgaGF2ZSB0aGUgX19hbGlnbmVkKDgpIGFwcGxpZWQgdG8gdGhh
+dCB0eXBlZGVmID8/DQo+IA0KPiBUaGF0IGluZGVlZCBzb3VuZHMgbGlrZSB0aGUgYmVzdCB0aGlu
+ZyB0byBkbywgYXMgaXQgd2lsbCBmaXggdGhpcyBpc3N1ZSBpbiBvdGhlcg0KPiBwbGFjZXMsIHRv
+by4NCg0KU29tZXRoaW5nIGxpa2U6DQp0eXBlZGVmIHN0cnVjdCB7DQoJdTY0IHZhbCBfX2FsaWdu
+ZWQoOCk7DQp9IGF0b21pYzY0X3Q7DQoNCndvdWxkIHBpY2sgdXAgbW9zdCBlcnJvcnMuDQpJbmNs
+dWRpbmcgYWxsIHRoZSBwbGFjZXMgdGhhdCBmYWlsIHRvIHVzZSBhdG9taWNfcmVhZCgpLg0KDQoJ
+RGF2aWQNCg0K
