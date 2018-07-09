@@ -1,24 +1,31 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] atomic{64}_t: Explicitly specify data storage length and
- alignment
-Date: Mon, 9 Jul 2018 16:45:46 +0200
-Message-ID: <20180709144546.GT2476@hirez.programming.kicks-ass.net>
-References: <20180709124741.21037-1-abrodkin@synopsys.com>
- <20180709133542.GP2476@hirez.programming.kicks-ass.net>
- <6762443004f96d279cba77b7c412163769c930fe.camel@synopsys.com>
+Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
+Date: Mon, 9 Jul 2018 16:49:25 +0200
+Message-ID: <20180709144925.GU2476@hirez.programming.kicks-ass.net>
+References: <20180709134550.29541-1-abrodkin@synopsys.com>
+ <20180709140717.GR2476@hirez.programming.kicks-ass.net>
+ <20180709141056.GR2512@hirez.programming.kicks-ass.net>
+ <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <stable-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <6762443004f96d279cba77b7c412163769c930fe.camel@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
+Sender: stable-owner@vger.kernel.org
 To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "josh@joshtriplett.org" <josh@joshtriplett.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "tglx@linutronix.de" <tglx@linutronix.de>, "dvhart@infradead.org" <dvhart@infradead.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "jiangshanlai@gmail.com" <jiangshanlai@gmail.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, "mingo@redhat.com" <mingo@redhat.com>, "shuah@kernel.org" <shuah@kernel.org>, arn
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 09, 2018 at 02:30:41PM +0000, Alexey Brodkin wrote:
-> Hm, any thoughts on why it's "u64" for 32-bit x86?
+On Mon, Jul 09, 2018 at 02:33:26PM +0000, Alexey Brodkin wrote:
+> > In fact, since alloc_dr() uses kmalloc() to allocate the entire thing,
+> > it is impossible to guarantee a larger alignment than kmalloc does.
+> 
+> Well but 4-bytes [which is critical for atomic64_t] should be much less
+> than a sane cache line length so above should work.
 
-Accident probably. It probably doesn't really matter all that much
-because the kernel hard assumes 2s complement, but it is somewhat
-inconsistent.
+AFAICT ARCH_KMALLOC_MINALIGN ends up being 4 on x86_32 (it doesn't
+define ARCH_DMA_MINALIGN and doesn't seem to otherwise override the
+thing).
+
+So unconditionally setting the alignment of devres::data to 8 seems
+broken.
