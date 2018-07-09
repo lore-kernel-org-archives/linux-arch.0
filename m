@@ -1,90 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f66.google.com ([209.85.213.66]:43481 "EHLO
-        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932422AbeGIJEG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 05:04:06 -0400
-MIME-Version: 1.0
-References: <20180709044444.6397-1-abrodkin@synopsys.com> <20180709054842.GB7618@kroah.com>
- <CAMuHMdVBBu6gho_JVQTiOHxVFHqX2MUxS_c-6-x50OEu4OqpRQ@mail.gmail.com>
- <71dfb71de86ebe365897b2069bec0cb40b376928.camel@synopsys.com>
- <CAMuHMdULgdLsETpZ9+RC6d2ZoARPs72Fn=SRboM-8Xm7t1Qd2g@mail.gmail.com> <cabc2aa35ecf81dc7a47d4ec7bd5dcb1c3d566c3.camel@synopsys.com>
-In-Reply-To: <cabc2aa35ecf81dc7a47d4ec7bd5dcb1c3d566c3.camel@synopsys.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 9 Jul 2018 11:03:54 +0200
-Message-ID: <CAMuHMdXJ7izWV2iRYogYzoufrOtqo43c54X78D2FSH8yd2_oaQ@mail.gmail.com>
-Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
+Received: from smtp-out4.electric.net ([192.162.216.195]:59097 "EHLO
+        smtp-out4.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754142AbeGIJPG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2018 05:15:06 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [RESEND PATCH v2] devres: Really align data field to unsigned
  long long
-Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 9 Jul 2018 09:16:38 +0000
+Message-ID: <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+References: <20180709044444.6397-1-abrodkin@synopsys.com>
+In-Reply-To: <20180709044444.6397-1-abrodkin@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, stable <stable@vger.kernel.org>, Greg KH <greg@kroah.com>, arcml <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180709090354.saIx7ggnCuVHUjdgcn_suBcad2Lwoy60m4Dqybp0H4Q@z>
+To: 'Alexey Brodkin' <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg KH <greg@kroah.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+Message-ID: <20180709091638.PNcoErjwFw3sXKDCXV-SzISL82wiaPDAQmqismJebeg@z>
 
-Hi Alexey,
+From: Alexey Brodkin
+> Sent: 09 July 2018 05:45
+> Depending on ABI "long long" type of a particular 32-bit CPU
+> might be aligned by either word (32-bits) or double word (64-bits).
+> Make sure "data" is really 64-bit aligned for any 32-bit CPU.
+> 
+> At least for 32-bit ARC cores ABI requires "long long" types
+> to be aligned by normal 32-bit word. This makes "data" field aligned to
+> 12 bytes. Which is still OK as long as we use 32-bit data only.
+> 
+> But once we want to use native atomic64_t type (i.e. when we use special
+> instructions LLOCKD/SCONDD for accessing 64-bit data) we easily hit
+> misaligned access exception.
 
-On Mon, Jul 9, 2018 at 10:37 AM Alexey Brodkin
-<Alexey.Brodkin@synopsys.com> wrote:
-> On Mon, 2018-07-09 at 09:52 +0200, Geert Uytterhoeven wrote:
-> > On Mon, Jul 9, 2018 at 9:22 AM Alexey Brodkin
-> > <Alexey.Brodkin@synopsys.com> wrote:
-> > > On Mon, 2018-07-09 at 09:07 +0200, Geert Uytterhoeven wrote:
-> > > > On Mon, Jul 9, 2018 at 7:49 AM Greg KH <greg@kroah.com> wrote:
-> > > > > On Mon, Jul 09, 2018 at 07:44:44AM +0300, Alexey Brodkin wrote:
-> > > > > > Depending on ABI "long long" type of a particular 32-bit CPU
-> > > > > > might be aligned by either word (32-bits) or double word (64-bits).
-> > > >
-> > > > Or even 16-bit (on e.g. m68k).
-> > >
-> > > Indeed, thanks for the note!
-> > > Will add this in my v3.
-> >
-> > Note that in this particular case, the field will probably always be
-> > aligned to 4 bytes,
-> > as the struct will be allocated using *alloc().
->
-> Well I think maybe it worth mentioning only 32-bit and 64-bit alignments in
-> this particular case because as it was mentioned initially in the comment there're
-> 3 pointers before "data" field and for 32-bit machines I guess we may safely
-> assume that a pointer size is 32-bit.
->
-> This leaves us only one problematic situation 32-bit instead of 64-bit alignment.
->
-> > > For ARC I'd like this fix to be back-ported starting
-> > > from v4.8 where we added support of "native" atomic64_t, see commit
-> > > ce6365270ecd (" ARCv2: Implement atomic64 based on LLOCKD/SCONDD instructions").
-> > >
-> > > What about m68k, do you have any preference of earliest kernel version
-> > > where this fix might be useful?
-> >
-> > Given m68k is 32-bit, it will access atomic64_t variables while
-> > holding a spinlock,
-> > so it should still be safe without this change.
->
-> Well ARC and ARMv7 are 32-bit machines as well still both have
-> a special instructions to read/write 64-bit data.
+Shouldn't there be a typedef for the actual type.
+Perhaps it is even atomic64_t ?
+And have the __aligned(8) applied to that typedef ??
 
-Sure.
+> That's because even on CPUs capable of non-aligned data access LL/SC
+> instructions require strict alignment.
+...
+> --- a/drivers/base/devres.c
+> +++ b/drivers/base/devres.c
+> @@ -24,8 +24,12 @@ struct devres_node {
+> 
+>  struct devres {
+>  	struct devres_node		node;
+> -	/* -- 3 pointers */
+> -	unsigned long long		data[];	/* guarantee ull alignment */
+> +	/*
+> +	 * Depending on ABI "long long" type of a particular 32-bit CPU
+> +	 * might be aligned by either word (32-bits) or double word (64-bits).
+> +	 * Make sure "data" is really 64-bit aligned for any 32-bit CPU.
 
-> > Not to mention no one will try etnaviv on m68k ;-)
->
-> See it was just a trigger case but other GPUs that use or will use
-> DRM GPU scheduler are good candidates to it that problem and not to
-> mention some other users of atomic64_t.
->
-> But from you above comment I may deduce that m68k doesn't have
-> instructions for 64-bit data; in that case there's no reason to worry
-> at least about struct devres_node :)
+Just:
+	/* data[] must be 64 bit aligned even on 32 bit architectures
+	 * because it might be accessed by instructions that require
+	 * aligned memory arguments.
 
-That's correct: m68k has no instructions for 64-bit data.
+> +	 */
+> +	unsigned long long		data[] __aligned(sizeof(unsigned long long));
 
-Gr{oetje,eeting}s,
+One day assuming that 'unsigned long long' is exactly 64 bits will bite.
+This probably ought to be u64 (or similar).
+(If not atomic64_t)
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	David
