@@ -1,69 +1,47 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
- long long
-Date: Tue, 10 Jul 2018 06:42:55 +0000
-Message-ID: <f73763e1375693777cd6d95a2133a36618e9412d.camel@synopsys.com>
-References: <20180709044444.6397-1-abrodkin@synopsys.com>
-         <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
-         <c95ac7435736d93843c45628ba4d41a4a4988074.camel@synopsys.com>
-         <91c57eeba2134dd99a9f0e11fa883c7c@AcuMS.aculab.com>
-         <82d2b36fa913bca6d56c7bf32a653324970817b8.camel@synopsys.com>
-         <e98bd4ab-ea20-0b42-bda9-eae8a6030c8f@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: [PATCH] doc: Replace smp_cond_acquire() with smp_cond_load_acquire()
+Date: Tue, 10 Jul 2018 12:02:23 +0200
+Message-ID: <1531216943-6382-1-git-send-email-andrea.parri@amarulasolutions.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <e98bd4ab-ea20-0b42-bda9-eae8a6030c8f@synopsys.com>
-Content-Language: en-US
-Content-ID: <85BF71212F3A5B47B6BDBEC3970980CA@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDctMDkgYXQgMTE6MjcgLTA3MDAsIFZpbmVldCBH
-dXB0YSB3cm90ZToNCj4gT24gMDcvMDkvMjAxOCAwMzoyMyBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
-dGU6DQo+ID4gSGkgRGF2aWQsDQo+ID4gDQo+ID4gT24gTW9uLCAyMDE4LTA3LTA5IGF0IDEwOjE4
-ICswMDAwLCBEYXZpZCBMYWlnaHQgd3JvdGU6DQo+ID4gPiBGcm9tOiBBbGV4ZXkgQnJvZGtpbg0K
-PiA+ID4gPiBTZW50OiAwOSBKdWx5IDIwMTggMTE6MDANCj4gPiA+IA0KPiA+ID4gLi4uDQo+ID4g
-PiA+IFRoYXQncyBhIGdvb2QgaWRlYSBpbmRlZWQgYnV0IGl0IGRvZXNuJ3Qgc29sdmUgdGhlIHBy
-b2JsZW0gd2l0aA0KPiA+ID4gPiBzdHJ1Y3QgZGV2cmVzX25vZGUuIENvbnNpZGVyIHRoZSBmb2xs
-b3dpbmcgc25pcHBldDoNCj4gPiA+ID4gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+
-OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gPiA+ID4gCXN0cnVjdCBteXN0cnVj
-dCB7DQo+ID4gPiA+IAkJYXRvbWljNjRfdCBteXZhcjsNCj4gPiA+ID4gCX0NCj4gPiA+ID4gDQo+
-ID4gPiA+IAlzdHJ1Y3QgbXlzdHJ1Y3QgKnA7DQo+ID4gPiA+IAlwID0gZGV2bV9remFsbG9jKGRl
-diwgc2l6ZW9mKCpwKSwgR0ZQX0tFUk5FTCk7DQo+ID4gPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+ID4gPiA+IA0K
-PiA+ID4gPiBIZXJlIG15dmFyIGFkZHJlc3Mgd2lsbCBtYXRjaCBhZGRyZXNzIG9mICJkYXRhIiBt
-ZW1iZXIgb2Ygc3RydWN0IGRldnJlc19ub2RlLg0KPiA+ID4gPiBTbyBpZiAiZGF0YSIgaXMgaGFz
-IG9mZnNldCBvZiAxMiBieXRlcyBmcm9tIHRoZSBiZWdpbm5pbmcgb2YgYSBwYWdlIHRoZW4NCj4g
-PiA+ID4gbXl2YXIgd29uJ3QgYmUgNjQtYml0IGFsaWduZWQgcmVnYXJkbGVzcyBvZiBteXZhcidz
-IGF0dHJpYnV0ZSwgcmlnaHQ/DQo+ID4gPiANCj4gPiA+IC4uLg0KPiA+ID4gPiA+ID4gLQl1bnNp
-Z25lZCBsb25nIGxvbmcJCWRhdGFbXTsJLyogZ3VhcmFudGVlIHVsbCBhbGlnbm1lbnQgKi8NCj4g
-PiA+IA0KPiA+ID4gQWhoLCB0aGF0IGxpbmUgc2hvdWxkIGJlOg0KPiA+ID4gCXU4IGRhdGFbXSBf
-X2FsaWduZWQoOCk7IC8qIEd1YXJhbnRlZSA2NGJpdCBhbGlnbm1lbnQgKi8NCj4gPiANCj4gPiBB
-bmQgdGhhdCBwcmV0dHkgbXVjaCB3aGF0IEkgc3VnZ2VzdGVkIGluIG15IGluaXRpYWwgcGF0Y2gg
-OikNCj4gPiANCj4gPiBGb3IgdGhlIHJlY29yZCB4ODYgaGFzIGV4YWN0bHkgdGhlIHNhbWUgYXRv
-bWljNjRfdCBhcyB5b3Ugc3VnZ2VzdGVkLA0KPiA+IHNlZSBodHRwczovL2VsaXhpci5ib290bGlu
-LmNvbS9saW51eC9sYXRlc3Qvc291cmNlL2FyY2gveDg2L2luY2x1ZGUvYXNtL2F0b21pYzY0XzMy
-LmgjTDEzOg0KPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLQ0K
-PiA+IHR5cGVkZWYgc3RydWN0IHsNCj4gPiAJdTY0IF9fYWxpZ25lZCg4KSBjb3VudGVyOw0KPiA+
-IH0gYXRvbWljNjRfdDsNCj4gPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0t
-LS0tLS0NCj4gDQo+IEFuZCBzbyBkb2VzIHRoZSBBUkMgdmVyc2lvbiBzaW5jZSB3aGVuIHRoZSBh
-dG9taWM2NF90IHN1cHBvcnQgd2FzIGFkZGVkIGJ5IGNvbW1pdA0KPiBjZTYzNjUyNzBlY2QNCj4g
-DQo+IEFsc28sIHlvdSBzaG91bGQgY29uc2lkZXIgdXNpbmcgdGhlIHByZS1jYW5uZWQgdHlwZSBh
-bGlnbmVkX3U2NC4NCj4gDQo+IHR5cGVkZWYgc3RydWN0IHsNCj4gICAgICAgIGFsaWduZWRfdTY0
-IGNvdW50ZXI7DQo+ICAgICAgICBeXl5eXl5eXl5eXg0KPiB9IGF0b21pYzY0X3Q7DQoNCkFzIFBl
-dGVyIG1lbnRpb25lZCBlYXJsaWVyIGF0b21pYyBpcyBzaWduZWQsIHNlZToNCmh0dHA6Ly9saXN0
-cy5pbmZyYWRlYWQub3JnL3BpcGVybWFpbC9saW51eC1zbnBzLWFyYy8yMDE4LUp1bHkvMDA0MDMw
-Lmh0bWwNCg0KU28gbG9va3MgbGlrZSB3ZSBuZWVkIHRoaXMgZml4IGZvciBBUkMgaW5zdGVhZDoN
-Ci0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLQ0KZGlmZiAtLWdpdCBhL2FyY2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oIGIvYXJj
-aC9hcmMvaW5jbHVkZS9hc20vYXRvbWljLmgNCmluZGV4IDExODU5Mjg3YzUyYS4uZWY5NGI3Mzcx
-ZGU2IDEwMDY0NA0KLS0tIGEvYXJjaC9hcmMvaW5jbHVkZS9hc20vYXRvbWljLmgNCisrKyBiL2Fy
-Y2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oDQpAQCAtMzY3LDcgKzM2Nyw3IEBAIEFUT01JQ19P
-UFMoeG9yLCBePSwgQ1RPUF9JTlNUX0FYT1JfRElfUjJfUjJfUjMpDQogICovDQogDQogdHlwZWRl
-ZiBzdHJ1Y3Qgew0KLSAgICAgICBhbGlnbmVkX3U2NCBjb3VudGVyOw0KKyAgICAgICBsb25nIGxv
-bmcgX19hbGlnbmVkKDgpIGNvdW50ZXI7DQogfSBhdG9taWM2NF90Ow0KIA0KICNkZWZpbmUgQVRP
-TUlDNjRfSU5JVChhKSB7IChhKSB9DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+
-OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KLUFsZXhleQ==
+Amend commit 1f03e8d2919270 ("locking/barriers: Replace smp_cond_acquire()
+with smp_cond_load_acquire()") by updating the documentation accordingly.
+
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+Cc: Luc Maranget <luc.maranget@inria.fr>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Akira Yokosawa <akiyks@gmail.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+---
+ Documentation/memory-barriers.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 0d8d7ef131e9a..987a4e6cc0cd8 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -471,8 +471,8 @@ And a couple of implicit varieties:
+      operations after the ACQUIRE operation will appear to happen after the
+      ACQUIRE operation with respect to the other components of the system.
+      ACQUIRE operations include LOCK operations and both smp_load_acquire()
+-     and smp_cond_acquire() operations. The later builds the necessary ACQUIRE
+-     semantics from relying on a control dependency and smp_rmb().
++     and smp_cond_load_acquire() operations. The later builds the necessary
++     ACQUIRE semantics from relying on a control dependency and smp_rmb().
+ 
+      Memory operations that occur before an ACQUIRE operation may appear to
+      happen after it completes.
+-- 
+2.7.4
