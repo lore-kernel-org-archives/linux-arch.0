@@ -1,105 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga12.intel.com ([192.55.52.136]:33776 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732444AbeGJWcZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Jul 2018 18:32:25 -0400
+        id S1732385AbeGJWcX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Jul 2018 18:32:23 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v2 16/27] mm: Modify can_follow_write_pte/pmd for shadow stack
-Date: Tue, 10 Jul 2018 15:26:28 -0700
-Message-ID: <20180710222639.8241-17-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v2 12/27] x86/mm: Shadow stack page fault error checking
+Date: Tue, 10 Jul 2018 15:26:24 -0700
+Message-ID: <20180710222639.8241-13-yu-cheng.yu@intel.com>
 In-Reply-To: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180710222628.7p6H_VMAmQyyZWT034yPE5jRSDFqDgb1BjvObtGg5A4@z>
+Message-ID: <20180710222624.SyhFVjdOVb18yeouaD1rZ2AfaU6zNwJcbYT7dgeglro@z>
 
-There are three possible shadow stack PTE settings:
+If a page fault is triggered by a shadow stack access (e.g.
+call/ret) or shadow stack management instructions (e.g.
+wrussq), then bit[6] of the page fault error code is set.
 
-  Normal SHSTK PTE: (R/O + DIRTY_HW)
-  SHSTK PTE COW'ed: (R/O + DIRTY_HW)
-  SHSTK PTE shared as R/O data: (R/O + DIRTY_SW)
-
-Update can_follow_write_pte/pmd for the shadow stack.
+In access_error(), we check if a shadow stack page fault
+is within a shadow stack memory area.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- mm/gup.c         | 11 ++++++++---
- mm/huge_memory.c | 10 +++++++---
- 2 files changed, 15 insertions(+), 6 deletions(-)
+ arch/x86/include/asm/traps.h |  2 ++
+ arch/x86/mm/fault.c          | 11 +++++++++++
+ 2 files changed, 13 insertions(+)
 
-diff --git a/mm/gup.c b/mm/gup.c
-index b70d7ba7cc13..00171ee847af 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -64,10 +64,13 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
-  * FOLL_FORCE can write to even unwritable pte's, but only
-  * after we've gone through a COW cycle and they are dirty.
+diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+index 5196050ff3d5..58ea2f5722e9 100644
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -157,6 +157,7 @@ enum {
+  *   bit 3 ==				1: use of reserved bit detected
+  *   bit 4 ==				1: fault was an instruction fetch
+  *   bit 5 ==				1: protection keys block access
++ *   bit 6 ==				1: shadow stack access fault
   */
--static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
-+static inline bool can_follow_write_pte(pte_t pte, unsigned int flags,
-+					bool shstk)
- {
-+	bool pte_cowed = shstk ? is_shstk_pte(pte):pte_dirty(pte);
+ enum x86_pf_error_code {
+ 	X86_PF_PROT	=		1 << 0,
+@@ -165,5 +166,6 @@ enum x86_pf_error_code {
+ 	X86_PF_RSVD	=		1 << 3,
+ 	X86_PF_INSTR	=		1 << 4,
+ 	X86_PF_PK	=		1 << 5,
++	X86_PF_SHSTK	=		1 << 6,
+ };
+ #endif /* _ASM_X86_TRAPS_H */
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 2aafa6ab6103..fcd5739151f9 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1163,6 +1163,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
+ 				       (error_code & X86_PF_INSTR), foreign))
+ 		return 1;
+ 
++	/*
++	 * Verify X86_PF_SHSTK is within a shadow stack VMA.
++	 * It is always an error if there is a shadow stack
++	 * fault outside a shadow stack VMA.
++	 */
++	if (error_code & X86_PF_SHSTK) {
++		if (!(vma->vm_flags & VM_SHSTK))
++			return 1;
++		return 0;
++	}
 +
- 	return pte_write(pte) ||
--		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
-+		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_cowed);
- }
- 
- static struct page *follow_page_pte(struct vm_area_struct *vma,
-@@ -78,7 +81,9 @@ static struct page *follow_page_pte(struct vm_area_struct *vma,
- 	struct page *page;
- 	spinlock_t *ptl;
- 	pte_t *ptep, pte;
-+	bool shstk;
- 
-+	shstk = is_shstk_mapping(vma->vm_flags);
- retry:
- 	if (unlikely(pmd_bad(*pmd)))
- 		return no_page_table(vma, flags);
-@@ -105,7 +110,7 @@ static struct page *follow_page_pte(struct vm_area_struct *vma,
- 	}
- 	if ((flags & FOLL_NUMA) && pte_protnone(pte))
- 		goto no_page;
--	if ((flags & FOLL_WRITE) && !can_follow_write_pte(pte, flags)) {
-+	if ((flags & FOLL_WRITE) && !can_follow_write_pte(pte, flags, shstk)) {
- 		pte_unmap_unlock(ptep, ptl);
- 		return NULL;
- 	}
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 7f3e11d3b64a..db4c689a960a 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1389,10 +1389,13 @@ int do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
-  * FOLL_FORCE can write to even unwritable pmd's, but only
-  * after we've gone through a COW cycle and they are dirty.
-  */
--static inline bool can_follow_write_pmd(pmd_t pmd, unsigned int flags)
-+static inline bool can_follow_write_pmd(pmd_t pmd, unsigned int flags,
-+					bool shstk)
- {
-+	bool pmd_cowed = shstk ? is_shstk_pmd(pmd):pmd_dirty(pmd);
-+
- 	return pmd_write(pmd) ||
--	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) && pmd_dirty(pmd));
-+	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) && pmd_cowed);
- }
- 
- struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
-@@ -1402,10 +1405,11 @@ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
- {
- 	struct mm_struct *mm = vma->vm_mm;
- 	struct page *page = NULL;
-+	bool shstk = is_shstk_mapping(vma->vm_flags);
- 
- 	assert_spin_locked(pmd_lockptr(mm, pmd));
- 
--	if (flags & FOLL_WRITE && !can_follow_write_pmd(*pmd, flags))
-+	if (flags & FOLL_WRITE && !can_follow_write_pmd(*pmd, flags, shstk))
- 		goto out;
- 
- 	/* Avoid dumping huge zero page */
+ 	if (error_code & X86_PF_WRITE) {
+ 		/* write, present and write, not present: */
+ 		if (unlikely(!(vma->vm_flags & VM_WRITE)))
 -- 
 2.17.1
