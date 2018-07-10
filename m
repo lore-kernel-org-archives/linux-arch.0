@@ -1,117 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50612 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751007AbeGJGM4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Jul 2018 02:12:56 -0400
-Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6A68r1b090407
-        for <linux-arch@vger.kernel.org>; Tue, 10 Jul 2018 02:12:56 -0400
-Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2k4kfx7hh3-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 10 Jul 2018 02:12:55 -0400
-Received: from localhost
-        by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Tue, 10 Jul 2018 07:12:53 +0100
-Date: Tue, 10 Jul 2018 08:12:49 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: Can people please check this patch out for cross-arch issues
-In-Reply-To: <CA+55aFxWZuFNHKpE0iA+vDJHTyPofSX3BPPOt2UUB2zXSSBZHQ@mail.gmail.com>
-References: <CA+55aFxWZuFNHKpE0iA+vDJHTyPofSX3BPPOt2UUB2zXSSBZHQ@mail.gmail.com>
-Message-Id: <20180710081249.73ccaac5@mschwideX1>
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:37641 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751219AbeGJGm7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2018 02:42:59 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
+ long long
+Date: Tue, 10 Jul 2018 06:42:55 +0000
+Message-ID: <f73763e1375693777cd6d95a2133a36618e9412d.camel@synopsys.com>
+References: <20180709044444.6397-1-abrodkin@synopsys.com>
+         <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+         <c95ac7435736d93843c45628ba4d41a4a4988074.camel@synopsys.com>
+         <91c57eeba2134dd99a9f0e11fa883c7c@AcuMS.aculab.com>
+         <82d2b36fa913bca6d56c7bf32a653324970817b8.camel@synopsys.com>
+         <e98bd4ab-ea20-0b42-bda9-eae8a6030c8f@synopsys.com>
+In-Reply-To: <e98bd4ab-ea20-0b42-bda9-eae8a6030c8f@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <85BF71212F3A5B47B6BDBEC3970980CA@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180710064255.aT8o7fdwzubXoPf1Fw707KC4wPT_SzAZ0wdSP_-F3lQ@z>
 
-On Mon, 9 Jul 2018 16:57:46 -0700
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> We have a funny new bugzilla entry for an issue that is 12 years old,
-> and not really all that critical, but one that *can* become a problem
-> for people who do very specific things.
-> 
-> What happens is that 'fork()' will cause a re-try (with
-> ERESTARTNOINTR) if a signal has come in between the point where the
-> fork() started, but before we add the process to the process table.
-> The reason is that the signal possibly *should* affect the new child
-> process too, but it was never queued to it because we were obviously
-> in the process of creating it.
-> 
-> That's normally entirely a non-issue, and I don't think anybody ever
-> imagined it could matter in practice, but apparently there are loads
-> where this becomes problematic.
-> 
-> See kernel bugzilla at
-> 
->     https://bugzilla.kernel.org/show_bug.cgi?id=200447
-> 
-> which has a trial balloon patch for this issue already, to at least
-> limit that retry to only signals that actually might affect the child
-> (ie not any random signals sent explicitly and directly only to the
-> parent process).
-> 
-> HOWEVER.
-> 
-> The very first thing I noticed while looking at this was that one of
-> the more expensive parts of the fork() retry is actually marking all
-> the parent page tables read-only. Now, it's one of _many_ expensive
-> parts, and it's not nearly as expensive as all the reference counting
-> we do for each page, but it's actually very easy to avoid. When we
-> have repeated fork() calls, there's just no point in repeatedly
-> marking pages read-only.
-> 
-> This the attached one-liner patch.
-> 
-> The reason I'm sending it to the arch people is that while this is a
-> totally trivial patch on x86 ("pte_write()" literally tests exactly
-> the same bit that "pte_wrprotect()" and "ptep_set_wrprotect()"
-> clears), the same is not necessarily always true on other
-> architectures.
-> 
-> Some other architectures make "ptep_set_wrprotect()" do more than just
-> clear the one bit we test with "pte_write()".
-> 
-> Honestly, I don't think it could possibly matter: if "pte_write()"
-> returns false, then whatever "ptep_set_writeprotect()" does can not
-> really matter (at least for a COW mapping). But I thought I'd send
-> this out for comments anyway, despite how trivial it looks.
-> 
-> So. Comments?
-> 
-> It doesn't make a huge difference, honestly, and the real fix for the
-> "retry too eagerly" is completely different, but at the same time this
-> one-liner trivial fix does feel like the RightThing(tm) regardless.
-
-s390 does software dirty-bit tracking which makes the logic for the
-page protection more bit more complicated. But !pte_write() always
-implies not writable.
-
-As a follow up patch we could remove the pte_write() check in the
-s390 version of ptep_set_wrprotect.
-
-diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
-index 5ab636089c60..e8f9f3cc676a 100644
---- a/arch/s390/include/asm/pgtable.h
-+++ b/arch/s390/include/asm/pgtable.h
-@@ -1069,8 +1069,7 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm,
- {
-        pte_t pte = *ptep;
- 
--       if (pte_write(pte))
--               ptep_xchg_lazy(mm, addr, ptep, pte_wrprotect(pte));
-+       ptep_xchg_lazy(mm, addr, ptep, pte_wrprotect(pte));
- }
- 
- #define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDctMDkgYXQgMTE6MjcgLTA3MDAsIFZpbmVldCBH
+dXB0YSB3cm90ZToNCj4gT24gMDcvMDkvMjAxOCAwMzoyMyBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
+dGU6DQo+ID4gSGkgRGF2aWQsDQo+ID4gDQo+ID4gT24gTW9uLCAyMDE4LTA3LTA5IGF0IDEwOjE4
+ICswMDAwLCBEYXZpZCBMYWlnaHQgd3JvdGU6DQo+ID4gPiBGcm9tOiBBbGV4ZXkgQnJvZGtpbg0K
+PiA+ID4gPiBTZW50OiAwOSBKdWx5IDIwMTggMTE6MDANCj4gPiA+IA0KPiA+ID4gLi4uDQo+ID4g
+PiA+IFRoYXQncyBhIGdvb2QgaWRlYSBpbmRlZWQgYnV0IGl0IGRvZXNuJ3Qgc29sdmUgdGhlIHBy
+b2JsZW0gd2l0aA0KPiA+ID4gPiBzdHJ1Y3QgZGV2cmVzX25vZGUuIENvbnNpZGVyIHRoZSBmb2xs
+b3dpbmcgc25pcHBldDoNCj4gPiA+ID4gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+
+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gPiA+ID4gCXN0cnVjdCBteXN0cnVj
+dCB7DQo+ID4gPiA+IAkJYXRvbWljNjRfdCBteXZhcjsNCj4gPiA+ID4gCX0NCj4gPiA+ID4gDQo+
+ID4gPiA+IAlzdHJ1Y3QgbXlzdHJ1Y3QgKnA7DQo+ID4gPiA+IAlwID0gZGV2bV9remFsbG9jKGRl
+diwgc2l6ZW9mKCpwKSwgR0ZQX0tFUk5FTCk7DQo+ID4gPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+ID4gPiA+IA0K
+PiA+ID4gPiBIZXJlIG15dmFyIGFkZHJlc3Mgd2lsbCBtYXRjaCBhZGRyZXNzIG9mICJkYXRhIiBt
+ZW1iZXIgb2Ygc3RydWN0IGRldnJlc19ub2RlLg0KPiA+ID4gPiBTbyBpZiAiZGF0YSIgaXMgaGFz
+IG9mZnNldCBvZiAxMiBieXRlcyBmcm9tIHRoZSBiZWdpbm5pbmcgb2YgYSBwYWdlIHRoZW4NCj4g
+PiA+ID4gbXl2YXIgd29uJ3QgYmUgNjQtYml0IGFsaWduZWQgcmVnYXJkbGVzcyBvZiBteXZhcidz
+IGF0dHJpYnV0ZSwgcmlnaHQ/DQo+ID4gPiANCj4gPiA+IC4uLg0KPiA+ID4gPiA+ID4gLQl1bnNp
+Z25lZCBsb25nIGxvbmcJCWRhdGFbXTsJLyogZ3VhcmFudGVlIHVsbCBhbGlnbm1lbnQgKi8NCj4g
+PiA+IA0KPiA+ID4gQWhoLCB0aGF0IGxpbmUgc2hvdWxkIGJlOg0KPiA+ID4gCXU4IGRhdGFbXSBf
+X2FsaWduZWQoOCk7IC8qIEd1YXJhbnRlZSA2NGJpdCBhbGlnbm1lbnQgKi8NCj4gPiANCj4gPiBB
+bmQgdGhhdCBwcmV0dHkgbXVjaCB3aGF0IEkgc3VnZ2VzdGVkIGluIG15IGluaXRpYWwgcGF0Y2gg
+OikNCj4gPiANCj4gPiBGb3IgdGhlIHJlY29yZCB4ODYgaGFzIGV4YWN0bHkgdGhlIHNhbWUgYXRv
+bWljNjRfdCBhcyB5b3Ugc3VnZ2VzdGVkLA0KPiA+IHNlZSBodHRwczovL2VsaXhpci5ib290bGlu
+LmNvbS9saW51eC9sYXRlc3Qvc291cmNlL2FyY2gveDg2L2luY2x1ZGUvYXNtL2F0b21pYzY0XzMy
+LmgjTDEzOg0KPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLQ0K
+PiA+IHR5cGVkZWYgc3RydWN0IHsNCj4gPiAJdTY0IF9fYWxpZ25lZCg4KSBjb3VudGVyOw0KPiA+
+IH0gYXRvbWljNjRfdDsNCj4gPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0t
+LS0tLS0NCj4gDQo+IEFuZCBzbyBkb2VzIHRoZSBBUkMgdmVyc2lvbiBzaW5jZSB3aGVuIHRoZSBh
+dG9taWM2NF90IHN1cHBvcnQgd2FzIGFkZGVkIGJ5IGNvbW1pdA0KPiBjZTYzNjUyNzBlY2QNCj4g
+DQo+IEFsc28sIHlvdSBzaG91bGQgY29uc2lkZXIgdXNpbmcgdGhlIHByZS1jYW5uZWQgdHlwZSBh
+bGlnbmVkX3U2NC4NCj4gDQo+IHR5cGVkZWYgc3RydWN0IHsNCj4gICAgICAgIGFsaWduZWRfdTY0
+IGNvdW50ZXI7DQo+ICAgICAgICBeXl5eXl5eXl5eXg0KPiB9IGF0b21pYzY0X3Q7DQoNCkFzIFBl
+dGVyIG1lbnRpb25lZCBlYXJsaWVyIGF0b21pYyBpcyBzaWduZWQsIHNlZToNCmh0dHA6Ly9saXN0
+cy5pbmZyYWRlYWQub3JnL3BpcGVybWFpbC9saW51eC1zbnBzLWFyYy8yMDE4LUp1bHkvMDA0MDMw
+Lmh0bWwNCg0KU28gbG9va3MgbGlrZSB3ZSBuZWVkIHRoaXMgZml4IGZvciBBUkMgaW5zdGVhZDoN
+Ci0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLQ0KZGlmZiAtLWdpdCBhL2FyY2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oIGIvYXJj
+aC9hcmMvaW5jbHVkZS9hc20vYXRvbWljLmgNCmluZGV4IDExODU5Mjg3YzUyYS4uZWY5NGI3Mzcx
+ZGU2IDEwMDY0NA0KLS0tIGEvYXJjaC9hcmMvaW5jbHVkZS9hc20vYXRvbWljLmgNCisrKyBiL2Fy
+Y2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oDQpAQCAtMzY3LDcgKzM2Nyw3IEBAIEFUT01JQ19P
+UFMoeG9yLCBePSwgQ1RPUF9JTlNUX0FYT1JfRElfUjJfUjJfUjMpDQogICovDQogDQogdHlwZWRl
+ZiBzdHJ1Y3Qgew0KLSAgICAgICBhbGlnbmVkX3U2NCBjb3VudGVyOw0KKyAgICAgICBsb25nIGxv
+bmcgX19hbGlnbmVkKDgpIGNvdW50ZXI7DQogfSBhdG9taWM2NF90Ow0KIA0KICNkZWZpbmUgQVRP
+TUlDNjRfSU5JVChhKSB7IChhKSB9DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+
+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KLUFsZXhleQ==
