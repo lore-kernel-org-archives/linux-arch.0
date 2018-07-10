@@ -1,99 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:45805 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750931AbeGJFdU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2018 01:33:20 -0400
-Date: Tue, 10 Jul 2018 15:04:10 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: mm,tlb: revert 4647706ebeee?
-Message-ID: <20180710150410.4207bbfa@roar.ozlabs.ibm.com>
-In-Reply-To: <20180709171356.87d834e125f06e0cdaa72f85@linux-foundation.org>
-References: <1530896635.5350.25.camel@surriel.com>
-        <20180708012538.51b2c672@roar.ozlabs.ibm.com>
-        <20180709171356.87d834e125f06e0cdaa72f85@linux-foundation.org>
-MIME-Version: 1.0
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:50612 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751007AbeGJGM4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Jul 2018 02:12:56 -0400
+Received: from pps.filterd (m0098421.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6A68r1b090407
+        for <linux-arch@vger.kernel.org>; Tue, 10 Jul 2018 02:12:56 -0400
+Received: from e06smtp02.uk.ibm.com (e06smtp02.uk.ibm.com [195.75.94.98])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2k4kfx7hh3-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 10 Jul 2018 02:12:55 -0400
+Received: from localhost
+        by e06smtp02.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+        Tue, 10 Jul 2018 07:12:53 +0100
+Date: Tue, 10 Jul 2018 08:12:49 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: Can people please check this patch out for cross-arch issues
+In-Reply-To: <CA+55aFxWZuFNHKpE0iA+vDJHTyPofSX3BPPOt2UUB2zXSSBZHQ@mail.gmail.com>
+References: <CA+55aFxWZuFNHKpE0iA+vDJHTyPofSX3BPPOt2UUB2zXSSBZHQ@mail.gmail.com>
+Message-Id: <20180710081249.73ccaac5@mschwideX1>
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rik van Riel <riel@surriel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Michal Hocko <mhocko@suse.com>, "kirill.shutemov" <kirill.shutemov@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, kernel-team <kernel-team@fb.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Nadav Amit <nadav.amit@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20180710050410.DjG4AE1VOXiFrH32wGUJphee8yiD__R9FmEOuKKA_5c@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>
 
-On Mon, 9 Jul 2018 17:13:56 -0700
-Andrew Morton <akpm@linux-foundation.org> wrote:
+On Mon, 9 Jul 2018 16:57:46 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> On Sun, 8 Jul 2018 01:25:38 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
+> We have a funny new bugzilla entry for an issue that is 12 years old,
+> and not really all that critical, but one that *can* become a problem
+> for people who do very specific things.
 > 
-> > On Fri, 06 Jul 2018 13:03:55 -0400
-> > Rik van Riel <riel@surriel.com> wrote:
-> >   
-> > > Hello,
-> > > 
-> > > It looks like last summer, there were 2 sets of patches
-> > > in flight to fix the issue of simultaneous mprotect/madvise
-> > > calls unmapping PTEs, and some pages not being flushed from
-> > > the TLB before returning to userspace.
-> > > 
-> > > Minchan posted these patches:
-> > > 56236a59556c ("mm: refactor TLB gathering API")
-> > > 99baac21e458 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem")
-> > > 
-> > > Around the same time, Mel posted:
-> > > 4647706ebeee ("mm: always flush VMA ranges affected by zap_page_range")
-> > > 
-> > > They both appear to solve the same bug.
-> > > 
-> > > Only one of the two solutions is needed.
-> > > 
-> > > However, 4647706ebeee appears to introduce extra TLB
-> > > flushes - one per VMA, instead of one over the entire
-> > > range unmapped, and also extra flushes when there are
-> > > no simultaneous unmappers of the same mm.
-> > > 
-> > > For that reason, it seems like we should revert
-> > > 4647706ebeee and keep only Minchan's solution in
-> > > the kernel.
-> > > 
-> > > Am I overlooking any reason why we should not revert
-> > > 4647706ebeee?  
-> > 
-> > Yes I think so. Discussed here recently:
-> > 
-> > https://marc.info/?l=linux-mm&m=152878780528037&w=2  
+> What happens is that 'fork()' will cause a re-try (with
+> ERESTARTNOINTR) if a signal has come in between the point where the
+> fork() started, but before we add the process to the process table.
+> The reason is that the signal possibly *should* affect the new child
+> process too, but it was never queued to it because we were obviously
+> in the process of creating it.
 > 
-> Unclear if that was an ack ;)
->
+> That's normally entirely a non-issue, and I don't think anybody ever
+> imagined it could matter in practice, but apparently there are loads
+> where this becomes problematic.
+> 
+> See kernel bugzilla at
+> 
+>     https://bugzilla.kernel.org/show_bug.cgi?id=200447
+> 
+> which has a trial balloon patch for this issue already, to at least
+> limit that retry to only signals that actually might affect the child
+> (ie not any random signals sent explicitly and directly only to the
+> parent process).
+> 
+> HOWEVER.
+> 
+> The very first thing I noticed while looking at this was that one of
+> the more expensive parts of the fork() retry is actually marking all
+> the parent page tables read-only. Now, it's one of _many_ expensive
+> parts, and it's not nearly as expensive as all the reference counting
+> we do for each page, but it's actually very easy to avoid. When we
+> have repeated fork() calls, there's just no point in repeatedly
+> marking pages read-only.
+> 
+> This the attached one-liner patch.
+> 
+> The reason I'm sending it to the arch people is that while this is a
+> totally trivial patch on x86 ("pte_write()" literally tests exactly
+> the same bit that "pte_wrprotect()" and "ptep_set_wrprotect()"
+> clears), the same is not necessarily always true on other
+> architectures.
+> 
+> Some other architectures make "ptep_set_wrprotect()" do more than just
+> clear the one bit we test with "pte_write()".
+> 
+> Honestly, I don't think it could possibly matter: if "pte_write()"
+> returns false, then whatever "ptep_set_writeprotect()" does can not
+> really matter (at least for a COW mapping). But I thought I'd send
+> this out for comments anyway, despite how trivial it looks.
+> 
+> So. Comments?
+> 
+> It doesn't make a huge difference, honestly, and the real fix for the
+> "retry too eagerly" is completely different, but at the same time this
+> one-liner trivial fix does feel like the RightThing(tm) regardless.
 
-Sure, I'm thinking Rik's mail is a ack for my patch :)
+s390 does software dirty-bit tracking which makes the logic for the
+page protection more bit more complicated. But !pte_write() always
+implies not writable.
 
-No actually I think it's okay, but was in the middle of testing
-my series when Aneesh pointed out a bit was missing from powerpc,
-so I had to go off and fix that, I think that's upstream now. So
-need to go back and re-test this revert.
+As a follow up patch we could remove the pte_write() check in the
+s390 version of ptep_set_wrprotect.
 
-Wouldn't hurt for other arch maintainers to have a look I guess
-(cc linux-arch):
+diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+index 5ab636089c60..e8f9f3cc676a 100644
+--- a/arch/s390/include/asm/pgtable.h
++++ b/arch/s390/include/asm/pgtable.h
+@@ -1069,8 +1069,7 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ {
+        pte_t pte = *ptep;
+ 
+-       if (pte_write(pte))
+-               ptep_xchg_lazy(mm, addr, ptep, pte_wrprotect(pte));
++       ptep_xchg_lazy(mm, addr, ptep, pte_wrprotect(pte));
+ }
+ 
+ #define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
 
-The problem powerpc had is that mmu_gather flushing will flush a
-single page size based on the ptes it encounters when we zap. If
-we hit a different page size, it flushes and switches to the new
-size. If we have concurrent zaps on the same range, the other
-thread may have cleared a large page pte so we won't see that and
-will only do a small page flush for that range. Which means we can
-return before the other thread invalidated our TLB for the large
-pages in the range we wanted to flush.
+-- 
+blue skies,
+   Martin.
 
-I suspect most arches are probably okay, but if you make any TLB
-flush choices based on the pte contents, then you could be exposed.
-Except in the case of archs like sparc and powerpc/hash which do
-the flushing in arch_leave_lazy_mmu_mode(), because that is called
-under the same page table lock, so there can't be concurrent zap.
-
-A quick look through the archs doesn't show anything obvious, but
-please take a look at your arch.
-
-And I'll try to do a bit more testing.
-
-Thanks,
-Nick
+"Reality continues to ruin my life." - Calvin.
