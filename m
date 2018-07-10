@@ -1,161 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:16477 "EHLO mga09.intel.com"
+Received: from mga12.intel.com ([192.55.52.136]:33776 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732354AbeGJWcX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Jul 2018 18:32:23 -0400
+        id S1732408AbeGJWc0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Jul 2018 18:32:26 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v2 06/27] x86/cet: Control protection exception handler
-Date: Tue, 10 Jul 2018 15:26:18 -0700
-Message-ID: <20180710222639.8241-7-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v2 18/27] x86/cet/shstk: Introduce WRUSS instruction
+Date: Tue, 10 Jul 2018 15:26:30 -0700
+Message-ID: <20180710222639.8241-19-yu-cheng.yu@intel.com>
 In-Reply-To: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180710222618.tNohS6AY06uOs2v9Iynhui4XZuLT0UBJEGCp4lhg3LQ@z>
+Message-ID: <20180710222630.PCaZO_b4t7keK-GhymrWXr0H8isgBAjsKnP0gZa_GgY@z>
 
-A control protection exception is triggered when a control flow transfer
-attempt violated shadow stack or indirect branch tracking constraints.
-For example, the return address for a RET instruction differs from the
-safe copy on the shadow stack; or a JMP instruction arrives at a non-
-ENDBR instruction.
+WRUSS is a new kernel-mode instruction but writes directly
+to user shadow stack memory.  This is used to construct
+a return address on the shadow stack for the signal
+handler.
 
-The control protection exception handler works in a similar way as the
-general protection fault handler.
+This instruction can fault if the user shadow stack is
+invalid shadow stack memory.  In that case, the kernel does
+fixup.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/entry/entry_64.S    |  2 +-
- arch/x86/include/asm/traps.h |  3 ++
- arch/x86/kernel/idt.c        |  4 +++
- arch/x86/kernel/traps.c      | 58 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 66 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/special_insns.h          | 45 +++++++++++++++++++
+ arch/x86/lib/x86-opcode-map.txt               |  2 +-
+ arch/x86/mm/fault.c                           | 13 +++++-
+ tools/objtool/arch/x86/lib/x86-opcode-map.txt |  2 +-
+ 4 files changed, 59 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 73a522d53b53..99398a27fe0b 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -999,7 +999,7 @@ idtentry spurious_interrupt_bug		do_spurious_interrupt_bug	has_error_code=0
- idtentry coprocessor_error		do_coprocessor_error		has_error_code=0
- idtentry alignment_check		do_alignment_check		has_error_code=1
- idtentry simd_coprocessor_error		do_simd_coprocessor_error	has_error_code=0
--
-+idtentry control_protection		do_control_protection		has_error_code=1
- 
- 	/*
- 	 * Reload gs selector with exception handling
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index 3de69330e6c5..5196050ff3d5 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -26,6 +26,7 @@ asmlinkage void invalid_TSS(void);
- asmlinkage void segment_not_present(void);
- asmlinkage void stack_segment(void);
- asmlinkage void general_protection(void);
-+asmlinkage void control_protection(void);
- asmlinkage void page_fault(void);
- asmlinkage void async_page_fault(void);
- asmlinkage void spurious_interrupt_bug(void);
-@@ -77,6 +78,7 @@ dotraplinkage void do_stack_segment(struct pt_regs *, long);
- dotraplinkage void do_double_fault(struct pt_regs *, long);
- #endif
- dotraplinkage void do_general_protection(struct pt_regs *, long);
-+dotraplinkage void do_control_protection(struct pt_regs *, long);
- dotraplinkage void do_page_fault(struct pt_regs *, unsigned long);
- dotraplinkage void do_spurious_interrupt_bug(struct pt_regs *, long);
- dotraplinkage void do_coprocessor_error(struct pt_regs *, long);
-@@ -142,6 +144,7 @@ enum {
- 	X86_TRAP_AC,		/* 17, Alignment Check */
- 	X86_TRAP_MC,		/* 18, Machine Check */
- 	X86_TRAP_XF,		/* 19, SIMD Floating-Point Exception */
-+	X86_TRAP_CP = 21,	/* 21 Control Protection Fault */
- 	X86_TRAP_IRET = 32,	/* 32, IRET Exception */
- };
- 
-diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
-index 74383a3780dc..aa0229e1962d 100644
---- a/arch/x86/kernel/idt.c
-+++ b/arch/x86/kernel/idt.c
-@@ -103,6 +103,10 @@ static const __initconst struct idt_data def_idts[] = {
- #elif defined(CONFIG_X86_32)
- 	SYSG(IA32_SYSCALL_VECTOR,	entry_INT80_32),
- #endif
-+
-+#ifdef CONFIG_X86_INTEL_CET
-+	INTG(X86_TRAP_CP,		control_protection),
-+#endif
- };
- 
- /*
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index e6db475164ed..21a713b96148 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -578,6 +578,64 @@ do_general_protection(struct pt_regs *regs, long error_code)
+diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+index 317fc59b512c..c69d8d6b457f 100644
+--- a/arch/x86/include/asm/special_insns.h
++++ b/arch/x86/include/asm/special_insns.h
+@@ -237,6 +237,51 @@ static inline void clwb(volatile void *__p)
+ 		: [pax] "a" (p));
  }
- NOKPROBE_SYMBOL(do_general_protection);
  
-+static const char *control_protection_err[] =
++#ifdef CONFIG_X86_INTEL_CET
++
++#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
 +{
-+	"unknown",
-+	"near-ret",
-+	"far-ret/iret",
-+	"endbranch",
-+	"rstorssp",
-+	"setssbsy",
-+};
++	int err;
 +
-+/*
-+ * When a control protection exception occurs, send a signal
-+ * to the responsible application.  Currently, control
-+ * protection is only enabled for the user mode.  This
-+ * exception should not come from the kernel mode.
-+ */
-+dotraplinkage void
-+do_control_protection(struct pt_regs *regs, long error_code)
-+{
-+	struct task_struct *tsk;
++	asm volatile("1: wrussd %[val], (%[addr])\n"
++		     "xor %[err], %[err]\n"
++		     "2:\n"
++		     ".section .fixup,\"ax\"\n"
++		     "3: mov $-1, %[err]; jmp 2b\n"
++		     ".previous\n"
++		     _ASM_EXTABLE(1b, 3b)
++		     : [err] "=a" (err)
++		     : [val] "S" (val), [addr] "D" (addr));
 +
-+	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
-+	if (notify_die(DIE_TRAP, "control protection fault", regs,
-+		       error_code, X86_TRAP_CP, SIGSEGV) == NOTIFY_STOP)
-+		return;
-+	cond_local_irq_enable(regs);
-+
-+	if (!user_mode(regs))
-+		die("kernel control protection fault", regs, error_code);
-+
-+	if (!static_cpu_has(X86_FEATURE_SHSTK) &&
-+	    !static_cpu_has(X86_FEATURE_IBT))
-+		WARN_ONCE(1, "CET is disabled but got control "
-+			  "protection fault\n");
-+
-+	tsk = current;
-+	tsk->thread.error_code = error_code;
-+	tsk->thread.trap_nr = X86_TRAP_CP;
-+
-+	if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
-+	    printk_ratelimit()) {
-+		unsigned int max_err;
-+
-+		max_err = ARRAY_SIZE(control_protection_err) - 1;
-+		if ((error_code < 0) || (error_code > max_err))
-+			error_code = 0;
-+		pr_info("%s[%d] control protection ip:%lx sp:%lx error:%lx(%s)",
-+			tsk->comm, task_pid_nr(tsk),
-+			regs->ip, regs->sp, error_code,
-+			control_protection_err[error_code]);
-+		print_vma_addr(" in ", regs->ip);
-+		pr_cont("\n");
-+	}
-+
-+	force_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
++	return err;
 +}
-+NOKPROBE_SYMBOL(do_control_protection);
++#else
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
++{
++	BUG();
++	return 0;
++}
++#endif
 +
- dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
- {
- #ifdef CONFIG_DYNAMIC_FTRACE
++static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
++{
++	int err = 0;
++
++	asm volatile("1: wrussq %[val], (%[addr])\n"
++		     "xor %[err], %[err]\n"
++		     "2:\n"
++		     ".section .fixup,\"ax\"\n"
++		     "3: mov $-1, %[err]; jmp 2b\n"
++		     ".previous\n"
++		     _ASM_EXTABLE(1b, 3b)
++		     : [err] "=a" (err)
++		     : [val] "S" (val), [addr] "D" (addr));
++
++	return err;
++}
++#endif /* CONFIG_X86_INTEL_CET */
++
+ #define nop() asm volatile ("nop")
+ 
+ 
+diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
+index e0b85930dd77..72bb7c48a7df 100644
+--- a/arch/x86/lib/x86-opcode-map.txt
++++ b/arch/x86/lib/x86-opcode-map.txt
+@@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
+ f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
+ f2: ANDN Gy,By,Ey (v)
+ f3: Grp17 (1A)
+-f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
++f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
+ f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
+ f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
+ EndTable
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index fcd5739151f9..92f178b8b598 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -641,6 +641,17 @@ static int is_f00f_bug(struct pt_regs *regs, unsigned long address)
+ 	return 0;
+ }
+ 
++/*
++ * WRUSS is a kernel instrcution and but writes to user
++ * shadow stack memory.  When a fault occurs, both
++ * X86_PF_USER and X86_PF_SHSTK are set.
++ */
++static int is_wruss(struct pt_regs *regs, unsigned long error_code)
++{
++	return (((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
++		(X86_PF_USER | X86_PF_SHSTK)) && !user_mode(regs));
++}
++
+ static void
+ show_fault_oops(struct pt_regs *regs, unsigned long error_code,
+ 		unsigned long address)
+@@ -848,7 +859,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+ 	struct task_struct *tsk = current;
+ 
+ 	/* User mode accesses just cause a SIGSEGV */
+-	if (error_code & X86_PF_USER) {
++	if ((error_code & X86_PF_USER) && !is_wruss(regs, error_code)) {
+ 		/*
+ 		 * It's possible to have interrupts off here:
+ 		 */
+diff --git a/tools/objtool/arch/x86/lib/x86-opcode-map.txt b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+index e0b85930dd77..72bb7c48a7df 100644
+--- a/tools/objtool/arch/x86/lib/x86-opcode-map.txt
++++ b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
+@@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
+ f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
+ f2: ANDN Gy,By,Ey (v)
+ f3: Grp17 (1A)
+-f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
++f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
+ f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
+ f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
+ EndTable
 -- 
 2.17.1
