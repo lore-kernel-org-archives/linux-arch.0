@@ -1,70 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f68.google.com ([209.85.221.68]:34753 "EHLO
-        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933330AbeGJOfI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2018 10:35:08 -0400
-Received: by mail-wr1-f68.google.com with SMTP id c13-v6so14840748wrt.1
-        for <linux-arch@vger.kernel.org>; Tue, 10 Jul 2018 07:35:08 -0700 (PDT)
-Date: Tue, 10 Jul 2018 16:34:59 +0200
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH] doc: Replace smp_cond_acquire() with
- smp_cond_load_acquire()
-Message-ID: <20180710143459.GA10527@andrea>
-References: <1531216943-6382-1-git-send-email-andrea.parri@amarulasolutions.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1531216943-6382-1-git-send-email-andrea.parri@amarulasolutions.com>
+Received: from mga09.intel.com ([134.134.136.24]:16477 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732469AbeGJWc0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Jul 2018 18:32:26 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v2 08/27] mm: Introduce VM_SHSTK for shadow stack memory
+Date: Tue, 10 Jul 2018 15:26:20 -0700
+Message-ID: <20180710222639.8241-9-yu-cheng.yu@intel.com>
+In-Reply-To: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>
-Message-ID: <20180710143459.IMIvK9SiMXvnLBaX9MjqkWFYHpsZ4p4t0NkRnf0VrCI@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20180710222620.YrFTrk9JXd50G041IVt7v4bGkYik5TX3QRKPjmlZi-8@z>
 
-On Tue, Jul 10, 2018 at 12:02:23PM +0200, Andrea Parri wrote:
-> Amend commit 1f03e8d2919270 ("locking/barriers: Replace smp_cond_acquire()
-> with smp_cond_load_acquire()") by updating the documentation accordingly.
-> 
-> Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Boqun Feng <boqun.feng@gmail.com>
-> Cc: Nicholas Piggin <npiggin@gmail.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-> Cc: Luc Maranget <luc.maranget@inria.fr>
-> Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> Cc: Akira Yokosawa <akiyks@gmail.com>
-> Cc: Daniel Lustig <dlustig@nvidia.com>
-> Cc: Jonathan Corbet <corbet@lwn.net>
-> ---
->  Documentation/memory-barriers.txt | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 0d8d7ef131e9a..987a4e6cc0cd8 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -471,8 +471,8 @@ And a couple of implicit varieties:
->       operations after the ACQUIRE operation will appear to happen after the
->       ACQUIRE operation with respect to the other components of the system.
->       ACQUIRE operations include LOCK operations and both smp_load_acquire()
-> -     and smp_cond_acquire() operations. The later builds the necessary ACQUIRE
-> -     semantics from relying on a control dependency and smp_rmb().
-> +     and smp_cond_load_acquire() operations. The later builds the necessary
-> +     ACQUIRE semantics from relying on a control dependency and smp_rmb().
+VM_SHSTK indicates a shadow stack memory area.
 
-Still not completely accurate: smp_rmb() would better be replaced by
-smp_acquire__after_ctrl_dep() (arm64 excluded).  Mmh... I think I'll
-just remove that "The latter builds the [...]" and resend; thoughts?
+A shadow stack PTE must be read-only and dirty.  For non shadow
+stack, we use a spare bit of the 64-bit PTE for dirty.  The PTE
+changes are in the next patch.
 
-  Andrea
+There is no more spare bit in the 32-bit PTE (except for PAE) and
+the shadow stack is not implemented for the 32-bit kernel.
 
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ include/linux/mm.h | 8 ++++++++
+ mm/internal.h      | 8 ++++++++
+ 2 files changed, 16 insertions(+)
 
->  
->       Memory operations that occur before an ACQUIRE operation may appear to
->       happen after it completes.
-> -- 
-> 2.7.4
-> 
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index a0fbb9ffe380..d7b338b41593 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -222,11 +222,13 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+ #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
++#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+ 
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+@@ -264,6 +266,12 @@ extern unsigned int kobjsize(const void *objp);
+ # define VM_MPX		VM_NONE
+ #endif
+ 
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++# define VM_SHSTK	VM_HIGH_ARCH_5
++#else
++# define VM_SHSTK	VM_NONE
++#endif
++
+ #ifndef VM_GROWSUP
+ # define VM_GROWSUP	VM_NONE
+ #endif
+diff --git a/mm/internal.h b/mm/internal.h
+index 9e3654d70289..b09c29762d85 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -280,6 +280,14 @@ static inline bool is_data_mapping(vm_flags_t flags)
+ 	return (flags & (VM_WRITE | VM_SHARED | VM_STACK)) == VM_WRITE;
+ }
+ 
++/*
++ * Shadow stack area
++ */
++static inline bool is_shstk_mapping(vm_flags_t flags)
++{
++	return (flags & VM_SHSTK);
++}
++
+ /* mm/util.c */
+ void __vma_link_list(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		struct vm_area_struct *prev, struct rb_node *rb_parent);
+-- 
+2.17.1
