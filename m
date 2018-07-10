@@ -1,94 +1,69 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: mm,tlb: revert 4647706ebeee?
-Date: Tue, 10 Jul 2018 15:04:10 +1000
-Message-ID: <20180710150410.4207bbfa@roar.ozlabs.ibm.com>
-References: <1530896635.5350.25.camel@surriel.com>
-        <20180708012538.51b2c672@roar.ozlabs.ibm.com>
-        <20180709171356.87d834e125f06e0cdaa72f85@linux-foundation.org>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [RESEND PATCH v2] devres: Really align data field to unsigned
+ long long
+Date: Tue, 10 Jul 2018 06:42:55 +0000
+Message-ID: <f73763e1375693777cd6d95a2133a36618e9412d.camel@synopsys.com>
+References: <20180709044444.6397-1-abrodkin@synopsys.com>
+         <f7499a811ba54c00a11f7525ae216213@AcuMS.aculab.com>
+         <c95ac7435736d93843c45628ba4d41a4a4988074.camel@synopsys.com>
+         <91c57eeba2134dd99a9f0e11fa883c7c@AcuMS.aculab.com>
+         <82d2b36fa913bca6d56c7bf32a653324970817b8.camel@synopsys.com>
+         <e98bd4ab-ea20-0b42-bda9-eae8a6030c8f@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180709171356.87d834e125f06e0cdaa72f85@linux-foundation.org>
+In-Reply-To: <e98bd4ab-ea20-0b42-bda9-eae8a6030c8f@synopsys.com>
+Content-Language: en-US
+Content-ID: <85BF71212F3A5B47B6BDBEC3970980CA@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rik van Riel <riel@surriel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Michal Hocko <mhocko@suse.com>, "kirill.shutemov" <kirill.shutemov@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, kernel-team <kernel-team@fb.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Nadav Amit <nadav.amit@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 9 Jul 2018 17:13:56 -0700
-Andrew Morton <akpm@linux-foundation.org> wrote:
-
-> On Sun, 8 Jul 2018 01:25:38 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
-> 
-> > On Fri, 06 Jul 2018 13:03:55 -0400
-> > Rik van Riel <riel@surriel.com> wrote:
-> >   
-> > > Hello,
-> > > 
-> > > It looks like last summer, there were 2 sets of patches
-> > > in flight to fix the issue of simultaneous mprotect/madvise
-> > > calls unmapping PTEs, and some pages not being flushed from
-> > > the TLB before returning to userspace.
-> > > 
-> > > Minchan posted these patches:
-> > > 56236a59556c ("mm: refactor TLB gathering API")
-> > > 99baac21e458 ("mm: fix MADV_[FREE|DONTNEED] TLB flush miss problem")
-> > > 
-> > > Around the same time, Mel posted:
-> > > 4647706ebeee ("mm: always flush VMA ranges affected by zap_page_range")
-> > > 
-> > > They both appear to solve the same bug.
-> > > 
-> > > Only one of the two solutions is needed.
-> > > 
-> > > However, 4647706ebeee appears to introduce extra TLB
-> > > flushes - one per VMA, instead of one over the entire
-> > > range unmapped, and also extra flushes when there are
-> > > no simultaneous unmappers of the same mm.
-> > > 
-> > > For that reason, it seems like we should revert
-> > > 4647706ebeee and keep only Minchan's solution in
-> > > the kernel.
-> > > 
-> > > Am I overlooking any reason why we should not revert
-> > > 4647706ebeee?  
-> > 
-> > Yes I think so. Discussed here recently:
-> > 
-> > https://marc.info/?l=linux-mm&m=152878780528037&w=2  
-> 
-> Unclear if that was an ack ;)
->
-
-Sure, I'm thinking Rik's mail is a ack for my patch :)
-
-No actually I think it's okay, but was in the middle of testing
-my series when Aneesh pointed out a bit was missing from powerpc,
-so I had to go off and fix that, I think that's upstream now. So
-need to go back and re-test this revert.
-
-Wouldn't hurt for other arch maintainers to have a look I guess
-(cc linux-arch):
-
-The problem powerpc had is that mmu_gather flushing will flush a
-single page size based on the ptes it encounters when we zap. If
-we hit a different page size, it flushes and switches to the new
-size. If we have concurrent zaps on the same range, the other
-thread may have cleared a large page pte so we won't see that and
-will only do a small page flush for that range. Which means we can
-return before the other thread invalidated our TLB for the large
-pages in the range we wanted to flush.
-
-I suspect most arches are probably okay, but if you make any TLB
-flush choices based on the pte contents, then you could be exposed.
-Except in the case of archs like sparc and powerpc/hash which do
-the flushing in arch_leave_lazy_mmu_mode(), because that is called
-under the same page table lock, so there can't be concurrent zap.
-
-A quick look through the archs doesn't show anything obvious, but
-please take a look at your arch.
-
-And I'll try to do a bit more testing.
-
-Thanks,
-Nick
+SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDctMDkgYXQgMTE6MjcgLTA3MDAsIFZpbmVldCBH
+dXB0YSB3cm90ZToNCj4gT24gMDcvMDkvMjAxOCAwMzoyMyBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
+dGU6DQo+ID4gSGkgRGF2aWQsDQo+ID4gDQo+ID4gT24gTW9uLCAyMDE4LTA3LTA5IGF0IDEwOjE4
+ICswMDAwLCBEYXZpZCBMYWlnaHQgd3JvdGU6DQo+ID4gPiBGcm9tOiBBbGV4ZXkgQnJvZGtpbg0K
+PiA+ID4gPiBTZW50OiAwOSBKdWx5IDIwMTggMTE6MDANCj4gPiA+IA0KPiA+ID4gLi4uDQo+ID4g
+PiA+IFRoYXQncyBhIGdvb2QgaWRlYSBpbmRlZWQgYnV0IGl0IGRvZXNuJ3Qgc29sdmUgdGhlIHBy
+b2JsZW0gd2l0aA0KPiA+ID4gPiBzdHJ1Y3QgZGV2cmVzX25vZGUuIENvbnNpZGVyIHRoZSBmb2xs
+b3dpbmcgc25pcHBldDoNCj4gPiA+ID4gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+
+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gPiA+ID4gCXN0cnVjdCBteXN0cnVj
+dCB7DQo+ID4gPiA+IAkJYXRvbWljNjRfdCBteXZhcjsNCj4gPiA+ID4gCX0NCj4gPiA+ID4gDQo+
+ID4gPiA+IAlzdHJ1Y3QgbXlzdHJ1Y3QgKnA7DQo+ID4gPiA+IAlwID0gZGV2bV9remFsbG9jKGRl
+diwgc2l6ZW9mKCpwKSwgR0ZQX0tFUk5FTCk7DQo+ID4gPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+ID4gPiA+IA0K
+PiA+ID4gPiBIZXJlIG15dmFyIGFkZHJlc3Mgd2lsbCBtYXRjaCBhZGRyZXNzIG9mICJkYXRhIiBt
+ZW1iZXIgb2Ygc3RydWN0IGRldnJlc19ub2RlLg0KPiA+ID4gPiBTbyBpZiAiZGF0YSIgaXMgaGFz
+IG9mZnNldCBvZiAxMiBieXRlcyBmcm9tIHRoZSBiZWdpbm5pbmcgb2YgYSBwYWdlIHRoZW4NCj4g
+PiA+ID4gbXl2YXIgd29uJ3QgYmUgNjQtYml0IGFsaWduZWQgcmVnYXJkbGVzcyBvZiBteXZhcidz
+IGF0dHJpYnV0ZSwgcmlnaHQ/DQo+ID4gPiANCj4gPiA+IC4uLg0KPiA+ID4gPiA+ID4gLQl1bnNp
+Z25lZCBsb25nIGxvbmcJCWRhdGFbXTsJLyogZ3VhcmFudGVlIHVsbCBhbGlnbm1lbnQgKi8NCj4g
+PiA+IA0KPiA+ID4gQWhoLCB0aGF0IGxpbmUgc2hvdWxkIGJlOg0KPiA+ID4gCXU4IGRhdGFbXSBf
+X2FsaWduZWQoOCk7IC8qIEd1YXJhbnRlZSA2NGJpdCBhbGlnbm1lbnQgKi8NCj4gPiANCj4gPiBB
+bmQgdGhhdCBwcmV0dHkgbXVjaCB3aGF0IEkgc3VnZ2VzdGVkIGluIG15IGluaXRpYWwgcGF0Y2gg
+OikNCj4gPiANCj4gPiBGb3IgdGhlIHJlY29yZCB4ODYgaGFzIGV4YWN0bHkgdGhlIHNhbWUgYXRv
+bWljNjRfdCBhcyB5b3Ugc3VnZ2VzdGVkLA0KPiA+IHNlZSBodHRwczovL2VsaXhpci5ib290bGlu
+LmNvbS9saW51eC9sYXRlc3Qvc291cmNlL2FyY2gveDg2L2luY2x1ZGUvYXNtL2F0b21pYzY0XzMy
+LmgjTDEzOg0KPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLQ0K
+PiA+IHR5cGVkZWYgc3RydWN0IHsNCj4gPiAJdTY0IF9fYWxpZ25lZCg4KSBjb3VudGVyOw0KPiA+
+IH0gYXRvbWljNjRfdDsNCj4gPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0t
+LS0tLS0NCj4gDQo+IEFuZCBzbyBkb2VzIHRoZSBBUkMgdmVyc2lvbiBzaW5jZSB3aGVuIHRoZSBh
+dG9taWM2NF90IHN1cHBvcnQgd2FzIGFkZGVkIGJ5IGNvbW1pdA0KPiBjZTYzNjUyNzBlY2QNCj4g
+DQo+IEFsc28sIHlvdSBzaG91bGQgY29uc2lkZXIgdXNpbmcgdGhlIHByZS1jYW5uZWQgdHlwZSBh
+bGlnbmVkX3U2NC4NCj4gDQo+IHR5cGVkZWYgc3RydWN0IHsNCj4gICAgICAgIGFsaWduZWRfdTY0
+IGNvdW50ZXI7DQo+ICAgICAgICBeXl5eXl5eXl5eXg0KPiB9IGF0b21pYzY0X3Q7DQoNCkFzIFBl
+dGVyIG1lbnRpb25lZCBlYXJsaWVyIGF0b21pYyBpcyBzaWduZWQsIHNlZToNCmh0dHA6Ly9saXN0
+cy5pbmZyYWRlYWQub3JnL3BpcGVybWFpbC9saW51eC1zbnBzLWFyYy8yMDE4LUp1bHkvMDA0MDMw
+Lmh0bWwNCg0KU28gbG9va3MgbGlrZSB3ZSBuZWVkIHRoaXMgZml4IGZvciBBUkMgaW5zdGVhZDoN
+Ci0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLQ0KZGlmZiAtLWdpdCBhL2FyY2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oIGIvYXJj
+aC9hcmMvaW5jbHVkZS9hc20vYXRvbWljLmgNCmluZGV4IDExODU5Mjg3YzUyYS4uZWY5NGI3Mzcx
+ZGU2IDEwMDY0NA0KLS0tIGEvYXJjaC9hcmMvaW5jbHVkZS9hc20vYXRvbWljLmgNCisrKyBiL2Fy
+Y2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oDQpAQCAtMzY3LDcgKzM2Nyw3IEBAIEFUT01JQ19P
+UFMoeG9yLCBePSwgQ1RPUF9JTlNUX0FYT1JfRElfUjJfUjJfUjMpDQogICovDQogDQogdHlwZWRl
+ZiBzdHJ1Y3Qgew0KLSAgICAgICBhbGlnbmVkX3U2NCBjb3VudGVyOw0KKyAgICAgICBsb25nIGxv
+bmcgX19hbGlnbmVkKDgpIGNvdW50ZXI7DQogfSBhdG9taWM2NF90Ow0KIA0KICNkZWZpbmUgQVRP
+TUlDNjRfSU5JVChhKSB7IChhKSB9DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+
+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KLUFsZXhleQ==
