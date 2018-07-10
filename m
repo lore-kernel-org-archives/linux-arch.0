@@ -1,73 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga12.intel.com ([192.55.52.136]:33776 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732385AbeGJWcX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Jul 2018 18:32:23 -0400
+        id S1732355AbeGJWcY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Jul 2018 18:32:24 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v2 12/27] x86/mm: Shadow stack page fault error checking
-Date: Tue, 10 Jul 2018 15:26:24 -0700
-Message-ID: <20180710222639.8241-13-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v2 13/27] mm: Handle shadow stack page fault
+Date: Tue, 10 Jul 2018 15:26:25 -0700
+Message-ID: <20180710222639.8241-14-yu-cheng.yu@intel.com>
 In-Reply-To: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180710222624.SyhFVjdOVb18yeouaD1rZ2AfaU6zNwJcbYT7dgeglro@z>
+Message-ID: <20180710222625.1X4C60tgGMQ4YJIdOpbE2OrXjzdPKTA8fV3nusJVVXs@z>
 
-If a page fault is triggered by a shadow stack access (e.g.
-call/ret) or shadow stack management instructions (e.g.
-wrussq), then bit[6] of the page fault error code is set.
+When a task does fork(), its shadow stack must be duplicated for
+the child.  However, the child may not actually use all pages of
+of the copied shadow stack.  This patch implements a flow that
+is similar to copy-on-write of an anonymous page, but for shadow
+stack memory.  A shadow stack PTE needs to be RO and dirty.  We
+use this dirty bit requirement to effect the copying of shadow
+stack pages.
 
-In access_error(), we check if a shadow stack page fault
-is within a shadow stack memory area.
+In copy_one_pte(), we clear the dirty bit from the shadow stack
+PTE.  On the next shadow stack access to the PTE, a page fault
+occurs.  At that time, we then copy/re-use the page and fix the
+PTE.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/traps.h |  2 ++
- arch/x86/mm/fault.c          | 11 +++++++++++
- 2 files changed, 13 insertions(+)
+ mm/memory.c | 30 ++++++++++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index 5196050ff3d5..58ea2f5722e9 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -157,6 +157,7 @@ enum {
-  *   bit 3 ==				1: use of reserved bit detected
-  *   bit 4 ==				1: fault was an instruction fetch
-  *   bit 5 ==				1: protection keys block access
-+ *   bit 6 ==				1: shadow stack access fault
-  */
- enum x86_pf_error_code {
- 	X86_PF_PROT	=		1 << 0,
-@@ -165,5 +166,6 @@ enum x86_pf_error_code {
- 	X86_PF_RSVD	=		1 << 3,
- 	X86_PF_INSTR	=		1 << 4,
- 	X86_PF_PK	=		1 << 5,
-+	X86_PF_SHSTK	=		1 << 6,
- };
- #endif /* _ASM_X86_TRAPS_H */
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 2aafa6ab6103..fcd5739151f9 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -1163,6 +1163,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
- 				       (error_code & X86_PF_INSTR), foreign))
- 		return 1;
+diff --git a/mm/memory.c b/mm/memory.c
+index 7206a634270b..a2695dbc0418 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2453,7 +2453,13 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
  
-+	/*
-+	 * Verify X86_PF_SHSTK is within a shadow stack VMA.
-+	 * It is always an error if there is a shadow stack
-+	 * fault outside a shadow stack VMA.
-+	 */
-+	if (error_code & X86_PF_SHSTK) {
-+		if (!(vma->vm_flags & VM_SHSTK))
-+			return 1;
-+		return 0;
-+	}
+ 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 	entry = pte_mkyoung(vmf->orig_pte);
+-	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
 +
- 	if (error_code & X86_PF_WRITE) {
- 		/* write, present and write, not present: */
- 		if (unlikely(!(vma->vm_flags & VM_WRITE)))
++	if (is_shstk_mapping(vma->vm_flags))
++		entry = pte_mkdirty_shstk(entry);
++	else
++		entry = pte_mkdirty(entry);
++
++	entry = maybe_mkwrite(entry, vma);
+ 	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -2526,7 +2532,11 @@ static int wp_page_copy(struct vm_fault *vmf)
+ 		}
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry = mk_pte(new_page, vma->vm_page_prot);
+-		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
++		if (is_shstk_mapping(vma->vm_flags))
++			entry = pte_mkdirty_shstk(entry);
++		else
++			entry = pte_mkdirty(entry);
++		entry = maybe_mkwrite(entry, vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+ 		 * pte with the new entry. This will avoid a race condition
+@@ -3201,6 +3211,14 @@ static int do_anonymous_page(struct vm_fault *vmf)
+ 	mem_cgroup_commit_charge(page, memcg, false, false);
+ 	lru_cache_add_active_or_unevictable(page, vma);
+ setpte:
++	/*
++	 * If this is within a shadow stack mapping, mark
++	 * the PTE dirty.  We don't use pte_mkdirty(),
++	 * because the PTE must have _PAGE_DIRTY_HW set.
++	 */
++	if (is_shstk_mapping(vma->vm_flags))
++		entry = pte_mkdirty_shstk(entry);
++
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
+ 
+ 	/* No need to invalidate - it was non-present before */
+@@ -3983,6 +4001,14 @@ static int handle_pte_fault(struct vm_fault *vmf)
+ 	entry = vmf->orig_pte;
+ 	if (unlikely(!pte_same(*vmf->pte, entry)))
+ 		goto unlock;
++
++	/*
++	 * Shadow stack PTEs are copy-on-access, so do_wp_page()
++	 * handling on them no matter if we have write fault or not.
++	 */
++	if (is_shstk_mapping(vmf->vma->vm_flags))
++		return do_wp_page(vmf);
++
+ 	if (vmf->flags & FAULT_FLAG_WRITE) {
+ 		if (!pte_write(entry))
+ 			return do_wp_page(vmf);
 -- 
 2.17.1
