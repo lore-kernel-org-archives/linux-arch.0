@@ -1,62 +1,92 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
-Date: Mon, 9 Jul 2018 13:28:08 -0700
-Message-ID: <dda3e81c-cd16-5ebd-8c88-3fddd03108c4@synopsys.com>
-References: <20180709134550.29541-1-abrodkin@synopsys.com>
- <20180709140717.GR2476@hirez.programming.kicks-ass.net>
- <20180709141056.GR2512@hirez.programming.kicks-ass.net>
- <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
- <20180709144925.GU2476@hirez.programming.kicks-ass.net>
- <20180709152958.565weccfaktqauef@lakrids.cambridge.arm.com>
- <20180709153427.GY2476@hirez.programming.kicks-ass.net>
- <20180709154521.GS2512@hirez.programming.kicks-ass.net>
- <20180709154844.5p5yk34ezw2gbt3y@lakrids.cambridge.arm.com>
- <b42f7223e0e54a5589f75fc21039f348@AcuMS.aculab.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: Can people please check this patch out for cross-arch issues
+Date: Tue, 10 Jul 2018 14:49:08 +1000
+Message-ID: <20180710144908.4a2bb2cc@roar.ozlabs.ibm.com>
+References: <CA+55aFxWZuFNHKpE0iA+vDJHTyPofSX3BPPOt2UUB2zXSSBZHQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <b42f7223e0e54a5589f75fc21039f348@AcuMS.aculab.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Laight <David.Laight@ACULAB.COM>, 'Mark Rutland' <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "greg@kroah.com" <greg@kroah.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <CA+55aFxWZuFNHKpE0iA+vDJHTyPofSX3BPPOt2UUB2zXSSBZHQ@mail.gmail.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 07/09/2018 09:10 AM, David Laight wrote:
-> From: Mark Rutland
->> Sent: 09 July 2018 16:49
->>
->> On Mon, Jul 09, 2018 at 05:45:21PM +0200, Peter Zijlstra wrote:
->>> On Mon, Jul 09, 2018 at 05:34:27PM +0200, Peter Zijlstra wrote:
->>>> On Mon, Jul 09, 2018 at 04:29:58PM +0100, Mark Rutland wrote:
->>>>> Shouldn't that be 8? AFAICT, __alignof__(unsigned long long) is 8 on
->>>>> x86_32:
->>>>
->>>> Curious, I wonder why we put that align in atomic64_32 then.
->>>
->>> Shiny, look at this: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54188
->>>
->>
->> Ouch.
-> 
-> Indeed.
-> 
-> changing the definition to:
-> struct ull {
->         unsigned long long v __attribute__((aligned(__alignof__(long long))));
-> };
-> 
-> prints 8 for the structure alignment.
+On Mon, 9 Jul 2018 16:57:46 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-So this will help force alignment of outer structures triggered by inner members,
-but only for globals and perhaps those on stack. I'm not sure how this helps
-aligning such  a struct allocated dynamically - we are not passing this extra
-alignment info the the allocator API here. Surely the size will increase and we
-end up with extra padding in the end as intended originally and pointed to by
-Mark, but how does it help with alignment ? What am I missing ?
+> We have a funny new bugzilla entry for an issue that is 12 years old,
+> and not really all that critical, but one that *can* become a problem
+> for people who do very specific things.
+> 
+> What happens is that 'fork()' will cause a re-try (with
+> ERESTARTNOINTR) if a signal has come in between the point where the
+> fork() started, but before we add the process to the process table.
+> The reason is that the signal possibly *should* affect the new child
+> process too, but it was never queued to it because we were obviously
+> in the process of creating it.
+> 
+> That's normally entirely a non-issue, and I don't think anybody ever
+> imagined it could matter in practice, but apparently there are loads
+> where this becomes problematic.
+> 
+> See kernel bugzilla at
+> 
+>     https://bugzilla.kernel.org/show_bug.cgi?id=200447
+> 
+> which has a trial balloon patch for this issue already, to at least
+> limit that retry to only signals that actually might affect the child
+> (ie not any random signals sent explicitly and directly only to the
+> parent process).
+> 
+> HOWEVER.
+> 
+> The very first thing I noticed while looking at this was that one of
+> the more expensive parts of the fork() retry is actually marking all
+> the parent page tables read-only. Now, it's one of _many_ expensive
+> parts, and it's not nearly as expensive as all the reference counting
+> we do for each page, but it's actually very easy to avoid. When we
+> have repeated fork() calls, there's just no point in repeatedly
+> marking pages read-only.
+> 
+> This the attached one-liner patch.
+> 
+> The reason I'm sending it to the arch people is that while this is a
+> totally trivial patch on x86 ("pte_write()" literally tests exactly
+> the same bit that "pte_wrprotect()" and "ptep_set_wrprotect()"
+> clears), the same is not necessarily always true on other
+> architectures.
+> 
+> Some other architectures make "ptep_set_wrprotect()" do more than just
+> clear the one bit we test with "pte_write()".
+> 
+> Honestly, I don't think it could possibly matter: if "pte_write()"
+> returns false, then whatever "ptep_set_writeprotect()" does can not
+> really matter (at least for a COW mapping). But I thought I'd send
+> this out for comments anyway, despite how trivial it looks.
+> 
+> So. Comments?
 
-> 
-> Time to audit uses of __alignof__().
-> 
-> #define actual_alignof(type) __alignof__(struct { type jsdjdhjdjh; })
+Looks good to me (after the huge page bits are done?)
+
+If pte_write returns false here, surely any later write access has to
+fault otherwise we've got bigger problems right? powerpc/64/radix is
+pretty unsurprising so no problems there (it just modifies the pte, so
+shouldn't change anything in this case). Hash will actually schedule
+the hash table entry to be invalidated, but it can't be writable.
+
+> It doesn't make a huge difference, honestly, and the real fix for the
+> "retry too eagerly" is completely different, but at the same time this
+> one-liner trivial fix does feel like the RightThing(tm) regardless.
+
+Acked-by: Nicholas Piggin <npiggin@gmail.com>
