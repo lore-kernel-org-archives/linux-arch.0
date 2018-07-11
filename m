@@ -1,63 +1,109 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH] doc: Replace smp_cond_acquire() with
- smp_cond_load_acquire()
-Date: Wed, 11 Jul 2018 08:38:40 -0700
-Message-ID: <20180711153840.GS3593@linux.vnet.ibm.com>
-References: <1531216943-6382-1-git-send-email-andrea.parri@amarulasolutions.com>
- <1531314530-11624-1-git-send-email-andrea.parri@amarulasolutions.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v2 25/27] x86/cet: Add PTRACE interface for CET
+Date: Wed, 11 Jul 2018 08:40:38 -0700
+Message-ID: <1531323638.13297.24.camel@intel.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+         <20180710222639.8241-26-yu-cheng.yu@intel.com>
+         <20180711102035.GB8574@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1531314530-11624-1-git-send-email-andrea.parri@amarulasolutions.com>
+In-Reply-To: <20180711102035.GB8574@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 11, 2018 at 03:08:50PM +0200, Andrea Parri wrote:
-> Amend commit 1f03e8d2919270 ("locking/barriers: Replace smp_cond_acquire()
-> with smp_cond_load_acquire()") by updating the documentation accordingly.
-> Also remove some obsolete information related to the implementation.
+On Wed, 2018-07-11 at 12:20 +0200, Ingo Molnar wrote:
+> * Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 > 
-> Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-> Cc: Alan Stern <stern@rowland.harvard.edu>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Boqun Feng <boqun.feng@gmail.com>
-> Cc: Nicholas Piggin <npiggin@gmail.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-> Cc: Luc Maranget <luc.maranget@inria.fr>
-> Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> Cc: Akira Yokosawa <akiyks@gmail.com>
-> Cc: Daniel Lustig <dlustig@nvidia.com>
-> Cc: Jonathan Corbet <corbet@lwn.net>
-> ---
->  Documentation/memory-barriers.txt | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
+> > 
+> > Add PTRACE interface for CET MSRs.
+> Please *always* describe new ABIs in the changelog, in a precise,
+> well-documented 
+> way.
 
-I have queued this for further review, thank you!  Just to confirm,
-the reason that the old passage was obsolete is because ARMv8 implements
-smp_cond_load_acquire() as a straight acquire load, correct?
+Ok!
 
-							Thanx, Paul
+> > 
+> > diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+> > index e2ee403865eb..ac2bc3a18427 100644
+> > --- a/arch/x86/kernel/ptrace.c
+> > +++ b/arch/x86/kernel/ptrace.c
+> > @@ -49,7 +49,9 @@ enum x86_regset {
+> >  	REGSET_IOPERM64 = REGSET_XFP,
+> >  	REGSET_XSTATE,
+> >  	REGSET_TLS,
+> > +	REGSET_CET64 = REGSET_TLS,
+> >  	REGSET_IOPERM32,
+> > +	REGSET_CET32,
+> >  };
+> Why does REGSET_CET64 alias on REGSET_TLS?
 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 0d8d7ef131e9a..c1d913944ad8b 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -471,8 +471,7 @@ And a couple of implicit varieties:
->       operations after the ACQUIRE operation will appear to happen after the
->       ACQUIRE operation with respect to the other components of the system.
->       ACQUIRE operations include LOCK operations and both smp_load_acquire()
-> -     and smp_cond_acquire() operations. The later builds the necessary ACQUIRE
-> -     semantics from relying on a control dependency and smp_rmb().
-> +     and smp_cond_load_acquire() operations.
+In x86_64_regsets[], there is no [REGSET_TLS].  The core dump code
+cannot handle holes in the array.
+
 > 
->       Memory operations that occur before an ACQUIRE operation may appear to
->       happen after it completes.
-> -- 
-> 2.7.4
+> > 
+> >  struct pt_regs_offset {
+> > @@ -1276,6 +1278,13 @@ static struct user_regset x86_64_regsets[]
+> > __ro_after_init = {
+> >  		.size = sizeof(long), .align = sizeof(long),
+> >  		.active = ioperm_active, .get = ioperm_get
+> >  	},
+> > +	[REGSET_CET64] = {
+> > +		.core_note_type = NT_X86_CET,
+> > +		.n = sizeof(struct cet_user_state) / sizeof(u64),
+> > +		.size = sizeof(u64), .align = sizeof(u64),
+> > +		.active = cetregs_active, .get = cetregs_get,
+> > +		.set = cetregs_set
+> > +	},
+> Ok, could we first please make this part of the regset code more
+> readable and 
+> start the series with a standalone clean-up patch that changes these
+> initializers 
+> to something more readable:
 > 
+> 	[REGSET_CET64] = {
+> 		.core_note_type	= NT_X86_CET,
+> 		.n		= sizeof(struct cet_user_state) /
+> sizeof(u64),
+> 		.size		= sizeof(u64),
+> 		.align		= sizeof(u64),
+> 		.active		= cetregs_active,
+> 		.get		= cetregs_get,
+> 		.set		= cetregs_set
+> 	},
+> 
+> ? (I'm demonstrating the cleanup based on REGSET_CET64, but this
+> should be done on 
+> every other entry first.)
+> 
+
+I will fix it.
+
+> 
+> > 
+> > --- a/include/uapi/linux/elf.h
+> > +++ b/include/uapi/linux/elf.h
+> > @@ -401,6 +401,7 @@ typedef struct elf64_shdr {
+> >  #define NT_386_TLS	0x200		/* i386 TLS slots
+> > (struct user_desc) */
+> >  #define NT_386_IOPERM	0x201		/* x86 io
+> > permission bitmap (1=deny) */
+> >  #define NT_X86_XSTATE	0x202		/* x86 extended
+> > state using xsave */
+> > +#define NT_X86_CET	0x203		/* x86 cet state */
+> Acronyms in comments should be in capital letters.
+> 
+> Also, I think I asked this before: why does "Control Flow
+> Enforcement" abbreviate 
+> to "CET" (which is a well-known acronym for "Central European Time"),
+> not to CFE?
+> 
+
+I don't know if I can change that, will find out.
+
+Thanks,
+Yu-cheng
