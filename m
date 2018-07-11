@@ -1,7 +1,7 @@
 From: Ludovic Desroches <ludovic.desroches@microchip.com>
 Subject: [PATCH 3/3] tty/serial: atmel: manage shutdown in case of RS485 or ISO7816 mode
-Date: Wed, 11 Jul 2018 15:16:38 +0200
-Message-ID: <20180711131638.12622-4-ludovic.desroches@microchip.com>
+Date: Wed, 11 Jul 2018 15:26:23 +0200
+Message-ID: <20180711132623.13227-1-ludovic.desroches@microchip.com>
 References: <20180711131638.12622-1-ludovic.desroches@microchip.com>
 Mime-Version: 1.0
 Content-Type: text/plain
