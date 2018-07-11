@@ -1,38 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:42344 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726340AbeGKJt1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jul 2018 05:49:27 -0400
-Date: Wed, 11 Jul 2018 11:45:49 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v2 18/27] x86/cet/shstk: Introduce WRUSS instruction
-Message-ID: <20180711094549.GA2476@hirez.programming.kicks-ass.net>
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
- <20180710222639.8241-19-yu-cheng.yu@intel.com>
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:60400 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726388AbeGKJzG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Jul 2018 05:55:06 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <cover.1530465325.git.ren_guo@c-sky.com>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180710222639.8241-19-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <27029.1531302693.1@warthog.procyon.org.uk>
+Date: Wed, 11 Jul 2018 10:51:33 +0100
+Message-ID: <27030.1531302693@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180711094549.U6_9woDvS7f7vyNg5QYS9UOcjVjuE7bKqWQUSbNLinw@z>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180711095133.JtiIQBbIbpxmoiZg_KmJ4tYBN_wQyGrdIoU5o7dWzn0@z>
 
-On Tue, Jul 10, 2018 at 03:26:30PM -0700, Yu-cheng Yu wrote:
-> diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
-> index e0b85930dd77..72bb7c48a7df 100644
-> --- a/arch/x86/lib/x86-opcode-map.txt
-> +++ b/arch/x86/lib/x86-opcode-map.txt
-> @@ -789,7 +789,7 @@ f0: MOVBE Gy,My | MOVBE Gw,Mw (66) | CRC32 Gd,Eb (F2) | CRC32 Gd,Eb (66&F2)
->  f1: MOVBE My,Gy | MOVBE Mw,Gw (66) | CRC32 Gd,Ey (F2) | CRC32 Gd,Ew (66&F2)
->  f2: ANDN Gy,By,Ey (v)
->  f3: Grp17 (1A)
-> -f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v)
-> +f5: BZHI Gy,Ey,By (v) | PEXT Gy,By,Ey (F3),(v) | PDEP Gy,By,Ey (F2),(v) | WRUSS Pq,Qq (66),REX.W
->  f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v)
->  f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
->  EndTable
+Can you say what the --target tuple should be so that I can add the arch to my
+collection of Fedora cross-binutils and cross-gcc tools built from upstream
+binutils and gcc sources?
 
-Where are all the other instructions? ISTR that documentation patch
-listing a whole bunch of new instructions, not just wuss.
+Thanks,
+David
