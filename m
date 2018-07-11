@@ -1,35 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:50317 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732935AbeGKPxk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Jul 2018 11:53:40 -0400
-Message-ID: <1531323904.13297.26.camel@intel.com>
-Subject: Re: [RFC PATCH v2 17/27] x86/cet/shstk: User-mode shadow stack
- support
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Wed, 11 Jul 2018 08:45:04 -0700
-In-Reply-To: <20180711093454.GX2476@hirez.programming.kicks-ass.net>
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
-         <20180710222639.8241-18-yu-cheng.yu@intel.com>
-         <20180711093454.GX2476@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:52115 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726575AbeGKP7B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jul 2018 11:59:01 -0400
+Received: by mail-wm0-f66.google.com with SMTP id s12-v6so2913443wmc.1
+        for <linux-arch@vger.kernel.org>; Wed, 11 Jul 2018 08:54:02 -0700 (PDT)
+Date: Wed, 11 Jul 2018 17:53:55 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH] doc: Replace smp_cond_acquire() with
+ smp_cond_load_acquire()
+Message-ID: <20180711154830.GA14348@andrea>
+References: <1531216943-6382-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <1531314530-11624-1-git-send-email-andrea.parri@amarulasolutions.com>
+ <20180711153840.GS3593@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180711153840.GS3593@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180711154504.sSW8kCqPQSF3YggPfNF5OaQDbEhOs6iGajSVt2xBfY0@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>
+Message-ID: <20180711155355.h5I0qGLhTxFWd2YqQ_IjLVG-CyQpV0DipjJVraEhR_U@z>
 
-On Wed, 2018-07-11 at 11:34 +0200, Peter Zijlstra wrote:
-> On Tue, Jul 10, 2018 at 03:26:29PM -0700, Yu-cheng Yu wrote:
+On Wed, Jul 11, 2018 at 08:38:40AM -0700, Paul E. McKenney wrote:
+> On Wed, Jul 11, 2018 at 03:08:50PM +0200, Andrea Parri wrote:
+> > Amend commit 1f03e8d2919270 ("locking/barriers: Replace smp_cond_acquire()
+> > with smp_cond_load_acquire()") by updating the documentation accordingly.
+> > Also remove some obsolete information related to the implementation.
 > > 
-> > +/* MSR_IA32_U_CET and MSR_IA32_S_CET bits */
-> > +#define MSR_IA32_CET_SHSTK_EN		0x0000000000000001
-> > +#define MSR_IA32_CET_WRSS_EN		0x0000000000000002
-> > +#define MSR_IA32_CET_ENDBR_EN		0x0000000000000004
-> > +#define MSR_IA32_CET_LEG_IW_EN		0x0000000000000008
-> > +#define MSR_IA32_CET_NO_TRACK_EN	0x0000000000000010
-> Do those want a ULL literal suffix?
+> > Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > Cc: Alan Stern <stern@rowland.harvard.edu>
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: Boqun Feng <boqun.feng@gmail.com>
+> > Cc: Nicholas Piggin <npiggin@gmail.com>
+> > Cc: David Howells <dhowells@redhat.com>
+> > Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+> > Cc: Luc Maranget <luc.maranget@inria.fr>
+> > Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+> > Cc: Akira Yokosawa <akiyks@gmail.com>
+> > Cc: Daniel Lustig <dlustig@nvidia.com>
+> > Cc: Jonathan Corbet <corbet@lwn.net>
+> > ---
+> >  Documentation/memory-barriers.txt | 3 +--
+> >  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> I have queued this for further review, thank you!  Just to confirm,
+> the reason that the old passage was obsolete is because ARMv8 implements
+> smp_cond_load_acquire() as a straight acquire load, correct?
 
-I will fix it.
+Thanks.  Yes; the generic code builds on a control dependency and an
+smp_acquire__after_ctrl_dep() (which defaults to smp_rmb()); but the
+required ordering on arm64 is given by (its) smp_load_acquire().
+
+I thought that entering this level of details (and keeping it up-to-
+date ;) wasn't really worth/needed for this high-level doc.
+
+  Andrea
+
+
+> 
+> 							Thanx, Paul
+> 
+> > diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> > index 0d8d7ef131e9a..c1d913944ad8b 100644
+> > --- a/Documentation/memory-barriers.txt
+> > +++ b/Documentation/memory-barriers.txt
+> > @@ -471,8 +471,7 @@ And a couple of implicit varieties:
+> >       operations after the ACQUIRE operation will appear to happen after the
+> >       ACQUIRE operation with respect to the other components of the system.
+> >       ACQUIRE operations include LOCK operations and both smp_load_acquire()
+> > -     and smp_cond_acquire() operations. The later builds the necessary ACQUIRE
+> > -     semantics from relying on a control dependency and smp_rmb().
+> > +     and smp_cond_load_acquire() operations.
+> > 
+> >       Memory operations that occur before an ACQUIRE operation may appear to
+> >       happen after it completes.
+> > -- 
+> > 2.7.4
+> > 
+> 
