@@ -1,45 +1,64 @@
-From: Sandra Loosemore <sandra@codesourcery.com>
-Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
-Date: Thu, 12 Jul 2018 10:04:10 -0600
-Message-ID: <5731b5c4-e29d-30f6-095f-4a74f52cb72d@codesourcery.com>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <27030.1531302693@warthog.procyon.org.uk> <20180712125152.GA5226@guoren>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v2 25/27] x86/cet: Add PTRACE interface for CET
+Date: Thu, 12 Jul 2018 15:37:14 -0700
+Message-ID: <1531435034.2965.15.camel@intel.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+         <20180710222639.8241-26-yu-cheng.yu@intel.com>
+         <20180711102035.GB8574@gmail.com> <1531323638.13297.24.camel@intel.com>
+         <20180712140327.GA7810@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180712125152.GA5226@guoren>
-Content-Language: en-US
+In-Reply-To: <20180712140327.GA7810@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <ren_guo@c-sky.com>, David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+To: Ingo Molnar <mingo@kernel.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
 List-Id: linux-arch.vger.kernel.org
 
-On 07/12/2018 06:51 AM, Guo Ren wrote:
-> On Wed, Jul 11, 2018 at 10:51:33AM +0100, David Howells wrote:
->> Can you say what the --target tuple should be so that I can add the arch to my
->> collection of Fedora cross-binutils and cross-gcc tools built from upstream
->> binutils and gcc sources?
-> Metor Graghics are helping us upstream gcc and binutils.
+On Thu, 2018-07-12 at 16:03 +0200, Ingo Molnar wrote:
+> * Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 > 
-> @Sandra,
+> > 
+> > > 
+> > > > 
+> > > > diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+> > > > index e2ee403865eb..ac2bc3a18427 100644
+> > > > --- a/arch/x86/kernel/ptrace.c
+> > > > +++ b/arch/x86/kernel/ptrace.c
+> > > > @@ -49,7 +49,9 @@ enum x86_regset {
+> > > >  	REGSET_IOPERM64 = REGSET_XFP,
+> > > >  	REGSET_XSTATE,
+> > > >  	REGSET_TLS,
+> > > > +	REGSET_CET64 = REGSET_TLS,
+> > > >  	REGSET_IOPERM32,
+> > > > +	REGSET_CET32,
+> > > >  };
+> > > Why does REGSET_CET64 alias on REGSET_TLS?
+> > In x86_64_regsets[], there is no [REGSET_TLS].  The core dump code
+> > cannot handle holes in the array.
+> Is there a fundamental (ABI) reason for that?
+
+What I did was, ran Linux with 'slub_debug', and forced a core dump
+(kill -abrt <pid>), then there was a red zone warning in the dmesg.
+My feeling is there could be issues in the core dump code.  These
+enum's are only local to arch/x86/kernel/ptrace.c and not exported.
+I am not aware this is in the ABI.
+
 > 
-> Could you help me to reply the question?
+> > 
+> > > 
+> > > to "CET" (which is a well-known acronym for "Central European Time"),
+> > > not to CFE?
+> > > 
+> > I don't know if I can change that, will find out.
+> So what I'd suggest is something pretty simple: to use CFT/cft in kernel internal 
+> names, except for the Intel feature bit and any MSR enumeration which can be CET 
+> if Intel named it that way, and a short comment explaining the acronym difference.
+> 
+> Or something like that.
 
-Neither binutils nor gcc support for C-SKY are in the upstream 
-repositories yet.  We should be resubmitting the binutils port soon 
-(with bug fixes to address the test failures that caused it to be 
-rejected the last time), and the gcc port will follow that shortly.
+Ok, I will make changes in the next version and probably revise
+from that if still not optimal.
 
-The target triplets we have been testing are csky-elf, csky-linux-gnu, 
-and csky-linux-uclibc.  Note that the gcc port will only support v2 
-processors/ABI so that is the default ABI for these triplets.
-
-I'm not familiar with the Fedora tools, but to build a complete 
-toolchain you'll need library support as well and I'm not sure what the 
-submission status/plans for that are.  E.g. Mentor did a newlib/libgloss 
-port for local testing of the ELF toolchain and provided it to C-SKY, 
-but pushing that to the upstream repository ourselves is not on our todo 
-list.
-
--Sandra
+Yu-cheng
