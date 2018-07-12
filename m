@@ -1,31 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:56361 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727113AbeGLNBw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Jul 2018 09:01:52 -0400
-Date: Thu, 12 Jul 2018 20:51:52 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
-Message-ID: <20180712125152.GA5226@guoren>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <27030.1531302693@warthog.procyon.org.uk>
+Received: from mail-wr1-f67.google.com ([209.85.221.67]:34170 "EHLO
+        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727002AbeGLONP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jul 2018 10:13:15 -0400
+Date: Thu, 12 Jul 2018 16:03:27 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [RFC PATCH v2 25/27] x86/cet: Add PTRACE interface for CET
+Message-ID: <20180712140327.GA7810@gmail.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+ <20180710222639.8241-26-yu-cheng.yu@intel.com>
+ <20180711102035.GB8574@gmail.com>
+ <1531323638.13297.24.camel@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <27030.1531302693@warthog.procyon.org.uk>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1531323638.13297.24.camel@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>, sandra@codesourcery.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180712125152.OcFhEKmv-SQ3_RQMGykEp9m10GoMfRRBpp076stcsm8@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20180712140327.CUihe8blFT9BDzuTitg5VrPXTSILBrISUv3mlT911CU@z>
 
-On Wed, Jul 11, 2018 at 10:51:33AM +0100, David Howells wrote:
-> Can you say what the --target tuple should be so that I can add the arch to my
-> collection of Fedora cross-binutils and cross-gcc tools built from upstream
-> binutils and gcc sources?
-Metor Graghics are helping us upstream gcc and binutils.
 
-@Sandra,
+* Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 
-Could you help me to reply the question?
+> > > diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+> > > index e2ee403865eb..ac2bc3a18427 100644
+> > > --- a/arch/x86/kernel/ptrace.c
+> > > +++ b/arch/x86/kernel/ptrace.c
+> > > @@ -49,7 +49,9 @@ enum x86_regset {
+> > >  	REGSET_IOPERM64 = REGSET_XFP,
+> > >  	REGSET_XSTATE,
+> > >  	REGSET_TLS,
+> > > +	REGSET_CET64 = REGSET_TLS,
+> > >  	REGSET_IOPERM32,
+> > > +	REGSET_CET32,
+> > >  };
+> > Why does REGSET_CET64 alias on REGSET_TLS?
+> 
+> In x86_64_regsets[], there is no [REGSET_TLS].  The core dump code
+> cannot handle holes in the array.
+
+Is there a fundamental (ABI) reason for that?
+
+> > to "CET" (which is a well-known acronym for "Central European Time"),
+> > not to CFE?
+> > 
+> 
+> I don't know if I can change that, will find out.
+
+So what I'd suggest is something pretty simple: to use CFT/cft in kernel internal 
+names, except for the Intel feature bit and any MSR enumeration which can be CET 
+if Intel named it that way, and a short comment explaining the acronym difference.
+
+Or something like that.
+
+Thanks,
+
+	Ingo
