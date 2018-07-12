@@ -1,50 +1,45 @@
-From: Ludovic Desroches <ludovic.desroches@microchip.com>
-Subject: Re: [PATCH 3/3] tty/serial: atmel: manage shutdown in case of RS485
- or ISO7816 mode
-Date: Thu, 12 Jul 2018 17:23:41 +0200
-Message-ID: <20180712152341.p4lmjyldujv6et56@M43218.corp.atmel.com>
-References: <20180711131638.12622-1-ludovic.desroches@microchip.com>
- <20180711132623.13227-1-ludovic.desroches@microchip.com>
- <20180712145827.GB22502@kroah.com>
+From: Sandra Loosemore <sandra@codesourcery.com>
+Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
+Date: Thu, 12 Jul 2018 10:04:10 -0600
+Message-ID: <5731b5c4-e29d-30f6-095f-4a74f52cb72d@codesourcery.com>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+ <27030.1531302693@warthog.procyon.org.uk> <20180712125152.GA5226@guoren>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180712145827.GB22502@kroah.com>
+In-Reply-To: <20180712125152.GA5226@guoren>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: linux-arch@vger.kernel.org, alexandre.belloni@bootlin.com, arnd@arndb.de, richard.genoud@gmail.com, linux-kernel@vger.kernel.org, linux-serial@vger.kernel.org, jslaby@suse.com, linux-arm-kernel@lists.infradead.org
+To: Guo Ren <ren_guo@c-sky.com>, David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 12, 2018 at 04:58:27PM +0200, Greg KH wrote:
-> On Wed, Jul 11, 2018 at 03:26:23PM +0200, Ludovic Desroches wrote:
-> > From: Nicolas Ferre <nicolas.ferre@microchip.com>
-> > 
-> > In atmel_shutdown() we call atmel_stop_rx() and atmel_stop_tx() functions.
-> > Prevent the rx restart that is implemented in RS485 or ISO7816 modes when
-> > calling atmel_stop_tx() by using the atomic information tasklet_shutdown
-> > that is already in place for this purpose.
-> > 
-> > Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> > ---
-> >  drivers/tty/serial/atmel_serial.c | 4 +++-
-> >  1 file changed, 3 insertions(+), 1 deletion(-)
+On 07/12/2018 06:51 AM, Guo Ren wrote:
+> On Wed, Jul 11, 2018 at 10:51:33AM +0100, David Howells wrote:
+>> Can you say what the --target tuple should be so that I can add the arch to my
+>> collection of Fedora cross-binutils and cross-gcc tools built from upstream
+>> binutils and gcc sources?
+> Metor Graghics are helping us upstream gcc and binutils.
 > 
-> Did you send this patch twice?
+> @Sandra,
 > 
-> confused,
+> Could you help me to reply the question?
 
-Yes sorry, as I didn't receive patch 3/3, I resend it. At the end, it
-was sent twice.
+Neither binutils nor gcc support for C-SKY are in the upstream 
+repositories yet.  We should be resubmitting the binutils port soon 
+(with bug fixes to address the test failures that caused it to be 
+rejected the last time), and the gcc port will follow that shortly.
 
-Regards
+The target triplets we have been testing are csky-elf, csky-linux-gnu, 
+and csky-linux-uclibc.  Note that the gcc port will only support v2 
+processors/ABI so that is the default ABI for these triplets.
 
-Ludovic
+I'm not familiar with the Fedora tools, but to build a complete 
+toolchain you'll need library support as well and I'm not sure what the 
+submission status/plans for that are.  E.g. Mentor did a newlib/libgloss 
+port for local testing of the ELF toolchain and provided it to C-SKY, 
+but pushing that to the upstream repository ourselves is not on our todo 
+list.
 
-> 
-> greg k-h
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+-Sandra
