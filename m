@@ -1,95 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:32793 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725995AbeGLHpB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jul 2018 03:45:01 -0400
-Received: by mail-pl0-f68.google.com with SMTP id 6-v6so10317369plb.0
-        for <linux-arch@vger.kernel.org>; Thu, 12 Jul 2018 00:36:41 -0700 (PDT)
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH] mm: optimise pte dirty/accessed bits handling in fork
-Date: Thu, 12 Jul 2018 17:36:33 +1000
-Message-ID: <20180712073633.1702-1-npiggin@gmail.com>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:56361 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727113AbeGLNBw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Jul 2018 09:01:52 -0400
+Date: Thu, 12 Jul 2018 20:51:52 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
+Message-ID: <20180712125152.GA5226@guoren>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+ <27030.1531302693@warthog.procyon.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <27030.1531302693@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20180712073633.bImb2oW625a4MBXinQBELWD2xcNvoEvXWEbynwRT958@z>
+To: David Howells <dhowells@redhat.com>, sandra@codesourcery.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180712125152.OcFhEKmv-SQ3_RQMGykEp9m10GoMfRRBpp076stcsm8@z>
 
-fork clears dirty/accessed bits from new ptes in the child, even
-though the mapping allows such accesses. This logic has existed
-for ~ever, and certainly well before physical page reclaim and
-cleaning was not strongly tied to pte access state as it is today.
-Now that is the case, this access bit clearing logic does not do
-much.
+On Wed, Jul 11, 2018 at 10:51:33AM +0100, David Howells wrote:
+> Can you say what the --target tuple should be so that I can add the arch to my
+> collection of Fedora cross-binutils and cross-gcc tools built from upstream
+> binutils and gcc sources?
+Metor Graghics are helping us upstream gcc and binutils.
 
-Other than this case, Linux is "eager" to set dirty/accessed bits
-when setting up mappings, which avoids micro-faults (and page
-faults on CPUs that implement these bits in software). With this
-patch, there are no cases I could instrument where dirty/accessed
-bits do not match the access permissions without memory pressure
-(and without more exotic things like migration).
+@Sandra,
 
-This speeds up a fork/exit microbenchmark by about 5% on POWER9
-(which uses a software fault fallback mechanism to set these bits).
-I expect x86 CPUs will barely be noticable, but would be interesting
-to see. Other archs might care more, and anyway it's always good if
-we can remove code and make things a bit faster.
-
-I don't *think* I'm missing anything fundamental, but would be good
-to be sure. Comments?
-
-Thanks,
-Nick
-
----
-
- mm/huge_memory.c |  4 ++--
- mm/memory.c      | 10 +++++-----
- 2 files changed, 7 insertions(+), 7 deletions(-)
-
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 1cd7c1a57a14..c1d41cad9aad 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -974,7 +974,7 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	pgtable_trans_huge_deposit(dst_mm, dst_pmd, pgtable);
- 
- 	pmdp_set_wrprotect(src_mm, addr, src_pmd);
--	pmd = pmd_mkold(pmd_wrprotect(pmd));
-+	pmd = pmd_wrprotect(pmd);
- 	set_pmd_at(dst_mm, addr, dst_pmd, pmd);
- 
- 	ret = 0;
-@@ -1065,7 +1065,7 @@ int copy_huge_pud(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	}
- 
- 	pudp_set_wrprotect(src_mm, addr, src_pud);
--	pud = pud_mkold(pud_wrprotect(pud));
-+	pud = pud_wrprotect(pud);
- 	set_pud_at(dst_mm, addr, dst_pud, pud);
- 
- 	ret = 0;
-diff --git a/mm/memory.c b/mm/memory.c
-index 7206a634270b..3fea40da3a58 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1023,12 +1023,12 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	}
- 
- 	/*
--	 * If it's a shared mapping, mark it clean in
--	 * the child
-+	 * Child inherits dirty and young bits from parent. There is no
-+	 * point clearing them because any cleaning or aging has to walk
-+	 * all ptes anyway, and it will notice the bits set in the parent.
-+	 * Leaving them set avoids stalls and even page faults on CPUs that
-+	 * handle these bits in software.
- 	 */
--	if (vm_flags & VM_SHARED)
--		pte = pte_mkclean(pte);
--	pte = pte_mkold(pte);
- 
- 	page = vm_normal_page(vma, addr, pte);
- 	if (page) {
--- 
-2.17.0
+Could you help me to reply the question?
