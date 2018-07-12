@@ -1,135 +1,163 @@
 From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 2/3] tty/serial: atmel: add ISO7816 support
-Date: Thu, 12 Jul 2018 17:01:53 +0200
-Message-ID: <20180712150153.GD22502@kroah.com>
+Subject: Re: [PATCH 1/3] tty/serial_core: add ISO7816 infrastructure
+Date: Thu, 12 Jul 2018 17:02:29 +0200
+Message-ID: <20180712150229.GE22502@kroah.com>
 References: <20180711131638.12622-1-ludovic.desroches@microchip.com>
- <20180711131638.12622-3-ludovic.desroches@microchip.com>
+ <20180711131638.12622-2-ludovic.desroches@microchip.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180711131638.12622-3-ludovic.desroches@microchip.com>
+In-Reply-To: <20180711131638.12622-2-ludovic.desroches@microchip.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ludovic Desroches <ludovic.desroches@microchip.com>
 Cc: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 11, 2018 at 03:16:37PM +0200, Ludovic Desroches wrote:
+On Wed, Jul 11, 2018 at 03:16:36PM +0200, Ludovic Desroches wrote:
 > From: Nicolas Ferre <nicolas.ferre@microchip.com>
 > 
-> When mode is set in atmel_config_iso7816() we backup last RS232 mode
-> for coming back to this mode if requested.
-> Also allow setup of T=0 and T=1 parameter and basic support in set_termios
-> function as well.
-> Report NACK and ITER errors in irq handler.
+> Add the ISO7816 ioctl and associated accessors and data structure.
+> Drivers can then use this common implementation to handle ISO7816.
 > 
 > Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> [ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
+> [ludovic.desroches@microchip.com: squash and rebase, removal of gpios, checkpatch fixes]
 > Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
 > ---
->  drivers/tty/serial/atmel_serial.c | 175 +++++++++++++++++++++++++++++++++++---
->  drivers/tty/serial/atmel_serial.h |   3 +-
->  2 files changed, 167 insertions(+), 11 deletions(-)
+>  drivers/tty/serial/serial_core.c  | 49 +++++++++++++++++++++++++++++++++++++++
+>  include/linux/serial_core.h       |  3 +++
+>  include/uapi/asm-generic/ioctls.h |  2 ++
+>  include/uapi/linux/serial.h       | 17 ++++++++++++++
+>  4 files changed, 71 insertions(+)
 > 
-> diff --git a/drivers/tty/serial/atmel_serial.c b/drivers/tty/serial/atmel_serial.c
-> index 8e4428725848..0118b219f3a8 100644
-> --- a/drivers/tty/serial/atmel_serial.c
-> +++ b/drivers/tty/serial/atmel_serial.c
-> @@ -34,6 +34,7 @@
->  #include <linux/suspend.h>
->  #include <linux/mm.h>
->  
-> +#include <asm/div64.h>
->  #include <asm/io.h>
->  #include <asm/ioctls.h>
->  
-> @@ -147,6 +148,8 @@ struct atmel_uart_port {
->  	struct circ_buf		rx_ring;
->  
->  	struct mctrl_gpios	*gpios;
-> +	u32			backup_mode;	/* MR saved during iso7816 operations */
-> +	u32			backup_brgr;	/* BRGR saved during iso7816 operations */
->  	unsigned int		tx_done_mask;
->  	u32			fifo_size;
->  	u32			rts_high;
-> @@ -362,6 +365,136 @@ static int atmel_config_rs485(struct uart_port *port,
+> diff --git a/drivers/tty/serial/serial_core.c b/drivers/tty/serial/serial_core.c
+> index 9c14a453f73c..c89ac59f6f8c 100644
+> --- a/drivers/tty/serial/serial_core.c
+> +++ b/drivers/tty/serial/serial_core.c
+> @@ -1301,6 +1301,47 @@ static int uart_set_rs485_config(struct uart_port *port,
 >  	return 0;
 >  }
 >  
-> +static unsigned int atmel_calc_cd(struct uart_port *port,
-> +				  struct serial_iso7816 *iso7816conf)
+> +static int uart_get_iso7816_config(struct uart_port *port,
+> +				   struct serial_iso7816 __user *iso7816)
 > +{
-> +	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
-> +	unsigned int cd;
-> +	u64 mck_rate;
+> +	unsigned long flags;
+> +	struct serial_iso7816 aux;
 > +
-> +	mck_rate = (u64)clk_get_rate(atmel_port->clk);
-> +	dev_dbg(port->dev, "ISO7816 mck_rate = %lld\n", mck_rate);
-> +	do_div(mck_rate, iso7816conf->clk);
-> +	cd = mck_rate;
-> +	dev_dbg(port->dev, "ISO7816 clk = %d. CD = %d\n", iso7816conf->clk, cd);
-> +	return cd;
+> +	spin_lock_irqsave(&port->lock, flags);
+> +	aux = port->iso7816;
+> +	spin_unlock_irqrestore(&port->lock, flags);
+> +
+> +	if (copy_to_user(iso7816, &aux, sizeof(aux)))
+> +		return -EFAULT;
+> +
+> +	return 0;
 > +}
 > +
-> +static unsigned int atmel_calc_fidi(struct uart_port *port,
-> +				    struct serial_iso7816 *iso7816conf)
+> +static int uart_set_iso7816_config(struct uart_port *port,
+> +				   struct serial_iso7816 __user *iso7816_user)
 > +{
-> +	u64 fidi = 0;
+> +	struct serial_iso7816 iso7816;
+> +	int ret;
+> +	unsigned long flags;
 > +
-> +	dev_dbg(port->dev, "ISO7816 fi(%d) / di(%d)\n",
-> +		iso7816conf->sc_fi, iso7816conf->sc_di);
-
-Do you still need all of the debugging code?  Shouldn't ftrace give you
-all of this?
-
-
-
-> +	if (iso7816conf->sc_fi && iso7816conf->sc_di) {
-> +		fidi = (u64)iso7816conf->sc_fi;
-> +		do_div(fidi, iso7816conf->sc_di);
-> +	}
-> +	dev_dbg(port->dev, "ISO7816 fidi = 0x%x\n", (u32)fidi);
-> +	return (u32)fidi;
+> +	if (!port->iso7816_config)
+> +		return -ENOIOCTLCMD;
+> +
+> +	if (copy_from_user(&iso7816, iso7816_user, sizeof(*iso7816_user)))
+> +		return -EFAULT;
+> +
+> +	spin_lock_irqsave(&port->lock, flags);
+> +	ret = port->iso7816_config(port, &iso7816);
+> +	spin_unlock_irqrestore(&port->lock, flags);
+> +	if (ret)
+> +		return ret;
+> +
+> +	if (copy_to_user(iso7816_user, &port->iso7816, sizeof(port->iso7816)))
+> +		return -EFAULT;
+> +
+> +	return 0;
 > +}
 > +
-> +/* Enable or disable the iso7816 support */
-> +/* Called with interrupts disabled */
-> +static int atmel_config_iso7816(struct uart_port *port,
-> +				struct serial_iso7816 *iso7816conf)
-> +{
-> +	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
-> +	unsigned int mode, t;
-> +	unsigned int cd, fidi;
-> +	int ret = 0;
+>  /*
+>   * Called via sys_ioctl.  We can use spin_lock_irq() here.
+>   */
+> @@ -1385,6 +1426,14 @@ uart_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg)
+>  	case TIOCSRS485:
+>  		ret = uart_set_rs485_config(uport, uarg);
+>  		break;
 > +
-> +	/* Disable RX and TX */
-> +	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_RXDIS | ATMEL_US_TXDIS);
-> +	/* Disable interrupts */
-> +	atmel_uart_writel(port, ATMEL_US_IDR, atmel_port->tx_done_mask);
+> +	case TIOCSISO7816:
+> +		ret = uart_set_iso7816_config(state->uart_port, uarg);
+> +		break;
 > +
-> +	mode = atmel_uart_readl(port, ATMEL_US_MR);
-> +
-> +	if (!(port->iso7816.flags & SER_ISO7816_ENABLED)) {
-> +		/* port not yet in iso7816 mode: store configuration */
-> +		atmel_port->backup_mode = mode;
-> +		atmel_port->backup_brgr = atmel_uart_readl(port, ATMEL_US_BRGR);
-> +	}
+> +	case TIOCGISO7816:
+> +		ret = uart_get_iso7816_config(state->uart_port, uarg);
+> +		break;
+>  	default:
+>  		if (uport->ops->ioctl)
+>  			ret = uport->ops->ioctl(uport, cmd, arg);
+> diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+> index 06ea4eeb09ab..d6e7747ffd46 100644
+> --- a/include/linux/serial_core.h
+> +++ b/include/linux/serial_core.h
+> @@ -137,6 +137,8 @@ struct uart_port {
+>  	void			(*handle_break)(struct uart_port *);
+>  	int			(*rs485_config)(struct uart_port *,
+>  						struct serial_rs485 *rs485);
+> +	int			(*iso7816_config)(struct uart_port *,
+> +						  struct serial_iso7816 *iso7816);
+>  	unsigned int		irq;			/* irq number */
+>  	unsigned long		irqflags;		/* irq flags  */
+>  	unsigned int		uartclk;		/* base uart clock */
+> @@ -253,6 +255,7 @@ struct uart_port {
+>  	struct attribute_group	*attr_group;		/* port specific attributes */
+>  	const struct attribute_group **tty_groups;	/* all attributes (serial core use only) */
+>  	struct serial_rs485     rs485;
+> +	struct serial_iso7816   iso7816;
+>  	void			*private_data;		/* generic platform data pointer */
+>  };
+>  
+> diff --git a/include/uapi/asm-generic/ioctls.h b/include/uapi/asm-generic/ioctls.h
+> index 040651735662..0e5c79726c2d 100644
+> --- a/include/uapi/asm-generic/ioctls.h
+> +++ b/include/uapi/asm-generic/ioctls.h
+> @@ -66,6 +66,8 @@
+>  #ifndef TIOCSRS485
+>  #define TIOCSRS485	0x542F
+>  #endif
+> +#define TIOCGISO7816	0x5430
+> +#define TIOCSISO7816	0x5431
+>  #define TIOCGPTN	_IOR('T', 0x30, unsigned int) /* Get Pty Number (of pty-mux device) */
+>  #define TIOCSPTLCK	_IOW('T', 0x31, int)  /* Lock/unlock Pty */
+>  #define TIOCGDEV	_IOR('T', 0x32, unsigned int) /* Get primary device node of /dev/console */
+> diff --git a/include/uapi/linux/serial.h b/include/uapi/linux/serial.h
+> index 3fdd0dee8b41..93eb3c496ff1 100644
+> --- a/include/uapi/linux/serial.h
+> +++ b/include/uapi/linux/serial.h
+> @@ -132,4 +132,21 @@ struct serial_rs485 {
+>  					   are a royal PITA .. */
+>  };
+>  
+> +/*
+> + * Serial interface for controlling ISO7816 settings on chips with suitable
+> + * support. Set with TIOCSISO7816 and get with TIOCGISO7816 if supported by
+> + * your platform.
+> + */
+> +struct serial_iso7816 {
+> +	__u32	flags;			/* ISO7816 feature flags */
+> +#define SER_ISO7816_ENABLED		(1 << 0)
+> +#define SER_ISO7816_T_PARAM		(0x0f << 4)
+> +#define SER_ISO7816_T(t)		(((t) & 0x0f) << 4)
+> +	__u32	tg;
+> +	__u32	sc_fi;
+> +	__u32	sc_di;
+> +	__u32	clk;
+> +	__u32	reserved[5];
 
-Are you really validating all of the fields in this structure for valid
-values correctly?  It feels like you are missing some here...
-
-> @@ -1281,6 +1417,9 @@ atmel_handle_status(struct uart_port *port, unsigned int pending,
->  			wake_up_interruptible(&port->state->port.delta_msr_wait);
->  		}
->  	}
-> +
-> +	if (pending & (ATMEL_US_NACK | ATMEL_US_ITERATION))
-> +		dev_err(port->dev, "ISO7816 ERROR (0x%08x)\n", pending);
-
-What can someone do with this?
-
-If nothing, then why check or tell the user about it?  They will ignore
-it :(
+You need to verify that reserved[] is all set to 0, otherwise people
+will put crud in there and you can never use it for anything in the
+future.
 
 thanks,
 
