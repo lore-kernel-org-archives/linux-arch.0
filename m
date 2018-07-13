@@ -1,56 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:57542 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729963AbeGMSmd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Jul 2018 14:42:33 -0400
-Subject: Re: [RFC PATCH v2 16/27] mm: Modify can_follow_write_pte/pmd for
- shadow stack
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
- <20180710222639.8241-17-yu-cheng.yu@intel.com>
- <de510df6-7ea9-edc6-9c49-2f80f16472b4@linux.intel.com>
- <1531328731.15351.3.camel@intel.com>
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <45a85b01-e005-8cb6-af96-b23ce9b5fca7@linux.intel.com>
-Date: Fri, 13 Jul 2018 11:26:46 -0700
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:44407 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727506AbeGMXzW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jul 2018 19:55:22 -0400
+Date: Fri, 13 Jul 2018 16:38:31 -0700
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [v18,3/7] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+Message-ID: <20180713233831.GA2946@roeck-us.net>
+References: <20180622194752.11221-4-logang@deltatee.com>
 MIME-Version: 1.0
-In-Reply-To: <1531328731.15351.3.camel@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180622194752.11221-4-logang@deltatee.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180713182646.0_M9RtpA0poEpjTYz3Qt5G_mmZQT_zBdTlf-Khy7DPU@z>
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>
+Message-ID: <20180713233831.hJV8sUHs3Tz5fgzHJgSWNTsGNdcHEe0IOZoPmX8_fH8@z>
 
-On 07/11/2018 10:05 AM, Yu-cheng Yu wrote:
-> My understanding is that we don't want to follow write pte if the page
-> is shared as read-only.  For a SHSTK page, that is (R/O + DIRTY_SW),
-> which means the SHSTK page has not been COW'ed.  Is that right?
+Hi,
 
-Let's look at the code again:
+On Fri, Jun 22, 2018 at 01:47:48PM -0600, Logan Gunthorpe wrote:
+> In order to provide non-atomic functions for io{read|write}64 that will
+> use readq and writeq when appropriate. We define a number of variants
+> of these functions in the generic iomap that will do non-atomic
+> operations on pio but atomic operations on mmio.
+> 
+> These functions are only defined if readq and writeq are defined. If
+> they are not, then the wrappers that always use non-atomic operations
+> from include/linux/io-64-nonatomic*.h will be used.
+> 
 
-> -static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
-> +static inline bool can_follow_write_pte(pte_t pte, unsigned int flags,
-> +					bool shstk)
->  {
-> +	bool pte_cowed = shstk ? is_shstk_pte(pte):pte_dirty(pte);
-> +
->  	return pte_write(pte) ||
-> -		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
-> +		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_cowed);
->  }
+This patch causes a build failure in -next when building
+ppc:corenet64_smp_defconfig.
 
-This is another case where the naming of pte_*() is biting us vs. the
-perversion of the PTE bits.  The lack of comments and explanation inthe
-patch is compounding the confusion.
+In file included from drivers/crypto/caam/qi.c:14:0:
+drivers/crypto/caam/regs.h: In function 'wr_reg64':
+drivers/crypto/caam/regs.h:143:3:
+	error: implicit declaration of function 'iowrite64'; did you mean 'iowrite32'?
 
-We need to find a way to differentiate "someone can write to this PTE"
-from "the write bit is set in this PTE".
+Several files are afected; this is only the first error reported.
 
-In this particular hunk, we need to make it clear that pte_write() is
-*never* true for shadowstack PTEs.  In other words, shadow stack VMAs
-will (should?) never even *see* a pte_write() PTE.
+Bisect log is attached.
 
-I think this is a case where you just need to bite the bullet and
-bifurcate can_follow_write_pte().  Just separate the shadowstack and
-non-shadowstack parts.
+Guenter
+
+---
+# bad: [483d835c8189f0566a4cbbe47e74ffa314430e98] Add linux-next specific files for 20180713
+# good: [1e4b044d22517cae7047c99038abb444423243ca] Linux 4.18-rc4
+git bisect start 'HEAD' 'v4.18-rc4'
+# good: [a5da8bf5df4436f40f4e28f0be51a4678830fe23] Merge remote-tracking branch 'crypto/master'
+git bisect good a5da8bf5df4436f40f4e28f0be51a4678830fe23
+# good: [34f19afdf1f94450c325da94559d07f746e9043d] Merge remote-tracking branch 'tip/auto-latest'
+git bisect good 34f19afdf1f94450c325da94559d07f746e9043d
+# good: [7aac4471307ac631685599b820616fd4c47edf29] Merge remote-tracking branch 'staging/staging-next'
+git bisect good 7aac4471307ac631685599b820616fd4c47edf29
+# good: [6b674574d58a738035fdf29008a308bee9235a16] Merge remote-tracking branch 'ntb/ntb-next'
+git bisect good 6b674574d58a738035fdf29008a308bee9235a16
+# bad: [013d0c6f50169c75eb37549f705604103cbeaa0b] module: allow symbol exports to be disabled
+git bisect bad 013d0c6f50169c75eb37549f705604103cbeaa0b
+# good: [205a106bac127145a4defae7d0d35945001fe924] kernel/memremap, kasan: make ZONE_DEVICE with work with KASAN
+git bisect good 205a106bac127145a4defae7d0d35945001fe924
+# good: [89ce5b41242240e43de867b0469b71c6b8aa9d5f] mm, swap: fix race between swapoff and some swap operations
+git bisect good 89ce5b41242240e43de867b0469b71c6b8aa9d5f
+# good: [9760a955e6173bd0c2f58f1507fec8c88aaffc68] proc: fix BUILD_BUG_ON breakage on powerpc64-allyesconfig
+git bisect good 9760a955e6173bd0c2f58f1507fec8c88aaffc68
+# good: [696b14958b4d620ae7431351b667fd79397d550d] include/asm-generic/bug.h: clarify valid uses of WARN()
+git bisect good 696b14958b4d620ae7431351b667fd79397d550d
+# good: [e018a02ca17fbe4c34515bec58eceb8b0be94ec6] parisc: iomap: introduce io{read|write}64
+git bisect good e018a02ca17fbe4c34515bec58eceb8b0be94ec6
+# bad: [e18963b65c6397fdba51416ff70c33197f6c1a84] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+git bisect bad e18963b65c6397fdba51416ff70c33197f6c1a84
+# bad: [8f6432de3dbe1d1d222d2998380a495e04ba5fef] io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+git bisect bad 8f6432de3dbe1d1d222d2998380a495e04ba5fef
+# bad: [d189c7f6b4a0dec224652af6d868eebb57553345] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+git bisect bad d189c7f6b4a0dec224652af6d868eebb57553345
+# first bad commit: [d189c7f6b4a0dec224652af6d868eebb57553345] iomap: introduce io{read|write}64_{lo_hi|hi_lo}
