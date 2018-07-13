@@ -1,69 +1,50 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: [RFC PATCH v2 18/27] x86/cet/shstk: Introduce WRUSS instruction
-Date: Thu, 12 Jul 2018 16:49:56 -0700
-Message-ID: <46784af0-6fbb-522d-6acb-c6248e5e0e0d@linux.intel.com>
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
- <20180710222639.8241-19-yu-cheng.yu@intel.com>
- <bbb487cc-ac1c-f734-eee3-2463a0ba7efc@linux.intel.com>
- <1531436398.2965.18.camel@intel.com>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
+Date: Fri, 13 Jul 2018 09:30:13 +0800
+Message-ID: <20180713013013.GA25852@guoren>
+References: <cover.1530465325.git.ren_guo@c-sky.com>
+ <27030.1531302693@warthog.procyon.org.uk>
+ <20180712125152.GA5226@guoren>
+ <5731b5c4-e29d-30f6-095f-4a74f52cb72d@codesourcery.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1531436398.2965.18.camel@intel.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <5731b5c4-e29d-30f6-095f-4a74f52cb72d@codesourcery.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <pet>
+To: Sandra Loosemore <sandra@codesourcery.com>
+Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 07/12/2018 03:59 PM, Yu-cheng Yu wrote:
-> On Tue, 2018-07-10 at 16:48 -0700, Dave Hansen wrote:
->>>
->>> +/*
->>> + * WRUSS is a kernel instrcution and but writes to user
->>> + * shadow stack memory.  When a fault occurs, both
->>> + * X86_PF_USER and X86_PF_SHSTK are set.
->>> + */
->>> +static int is_wruss(struct pt_regs *regs, unsigned long error_code)
->>> +{
->>> +	return (((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
->>> +		(X86_PF_USER | X86_PF_SHSTK)) && !user_mode(regs));
->>> +}
->> I thought X86_PF_USER was set based on the mode in which the fault
->> occurred.  Does this mean that the architecture of this bit is different
->> now?
+On Thu, Jul 12, 2018 at 10:04:10AM -0600, Sandra Loosemore wrote:
+> On 07/12/2018 06:51 AM, Guo Ren wrote:
+> >On Wed, Jul 11, 2018 at 10:51:33AM +0100, David Howells wrote:
+> >>Can you say what the --target tuple should be so that I can add the arch to my
+> >>collection of Fedora cross-binutils and cross-gcc tools built from upstream
+> >>binutils and gcc sources?
+> >Metor Graghics are helping us upstream gcc and binutils.
+> >
+> >@Sandra,
+> >
+> >Could you help me to reply the question?
 > 
-> Yes.
+> Neither binutils nor gcc support for C-SKY are in the upstream repositories
+> yet.  We should be resubmitting the binutils port soon (with bug fixes to
+> address the test failures that caused it to be rejected the last time), and
+> the gcc port will follow that shortly.
 > 
->> That seems like something we need to call out if so.  It also means we
->> need to update the SDM because some of the text is wrong.
+> The target triplets we have been testing are csky-elf, csky-linux-gnu, and
+> csky-linux-uclibc.  Note that the gcc port will only support v2
+> processors/ABI so that is the default ABI for these triplets.
 > 
-> It needs to mention the WRUSS case.
+> I'm not familiar with the Fedora tools, but to build a complete toolchain
+> you'll need library support as well and I'm not sure what the submission
+> status/plans for that are.  E.g. Mentor did a newlib/libgloss port for local
+> testing of the ELF toolchain and provided it to C-SKY, but pushing that to
+> the upstream repository ourselves is not on our todo list.
+> 
+> -Sandra
 
-Ugh.  The documentation for this is not pretty.  But, I guess this is
-not fundamentally different from access to U=1 pages when SMAP is in
-place and we've set EFLAGS.AC=1.
+Thank you, Sandra.
 
-But, sheesh, we need to call this out really explicitly and make it
-crystal clear what is going on.
-
-We need to go through the page fault code very carefully and audit all
-the X86_PF_USER spots and make sure there's no impact to those.  SMAP
-should mean that we already dealt with these, but we still need an audit.
-
-The docs[1] are clear as mud on this though: "Page entry has user
-privilege (U=1) for a supervisor-level shadow-stack-load,
-shadow-stack-store-intent or shadow-stack-store access except those that
-originate from the WRUSS instruction."
-
-Or, in short:
-
-	"Page has U=1 ... except those that originate from the WRUSS 	
-	instruction."
-
-Which is backwards from what you said.  I really wish those docs had
-reused the established SDM language instead of reinventing their own way
-of saying things.
-
-1.
-https://software.intel.com/sites/default/files/managed/4d/2a/control-flow-enforcement-technology-preview.pdf
+ Guo Ren
