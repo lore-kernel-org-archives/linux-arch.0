@@ -1,50 +1,42 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V2 00/19] C-SKY(csky) Linux Kernel Port
-Date: Fri, 13 Jul 2018 09:30:13 +0800
-Message-ID: <20180713013013.GA25852@guoren>
-References: <cover.1530465325.git.ren_guo@c-sky.com>
- <27030.1531302693@warthog.procyon.org.uk>
- <20180712125152.GA5226@guoren>
- <5731b5c4-e29d-30f6-095f-4a74f52cb72d@codesourcery.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [RFC PATCH v2 18/27] x86/cet/shstk: Introduce WRUSS instruction
+Date: Thu, 12 Jul 2018 18:50:29 -0700
+Message-ID: <167645aa-f1c7-bd6a-c7e0-2da317cbbaba@intel.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+ <20180710222639.8241-19-yu-cheng.yu@intel.com>
+ <bbb487cc-ac1c-f734-eee3-2463a0ba7efc@linux.intel.com>
+ <1531436398.2965.18.camel@intel.com>
+ <46784af0-6fbb-522d-6acb-c6248e5e0e0d@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <5731b5c4-e29d-30f6-095f-4a74f52cb72d@codesourcery.com>
+In-Reply-To: <46784af0-6fbb-522d-6acb-c6248e5e0e0d@linux.intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sandra Loosemore <sandra@codesourcery.com>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+To: Dave Hansen <dave.hansen@linux.intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 12, 2018 at 10:04:10AM -0600, Sandra Loosemore wrote:
-> On 07/12/2018 06:51 AM, Guo Ren wrote:
-> >On Wed, Jul 11, 2018 at 10:51:33AM +0100, David Howells wrote:
-> >>Can you say what the --target tuple should be so that I can add the arch to my
-> >>collection of Fedora cross-binutils and cross-gcc tools built from upstream
-> >>binutils and gcc sources?
-> >Metor Graghics are helping us upstream gcc and binutils.
-> >
-> >@Sandra,
-> >
-> >Could you help me to reply the question?
-> 
-> Neither binutils nor gcc support for C-SKY are in the upstream repositories
-> yet.  We should be resubmitting the binutils port soon (with bug fixes to
-> address the test failures that caused it to be rejected the last time), and
-> the gcc port will follow that shortly.
-> 
-> The target triplets we have been testing are csky-elf, csky-linux-gnu, and
-> csky-linux-uclibc.  Note that the gcc port will only support v2
-> processors/ABI so that is the default ABI for these triplets.
-> 
-> I'm not familiar with the Fedora tools, but to build a complete toolchain
-> you'll need library support as well and I'm not sure what the submission
-> status/plans for that are.  E.g. Mentor did a newlib/libgloss port for local
-> testing of the ELF toolchain and provided it to C-SKY, but pushing that to
-> the upstream repository ourselves is not on our todo list.
-> 
-> -Sandra
+On 07/12/2018 04:49 PM, Dave Hansen wrote:
+>>> That seems like something we need to call out if so.  It also means we
+>>> need to update the SDM because some of the text is wrong.
+>> It needs to mention the WRUSS case.
+> Ugh.  The documentation for this is not pretty.  But, I guess this is
+> not fundamentally different from access to U=1 pages when SMAP is in
+> place and we've set EFLAGS.AC=1.
 
-Thank you, Sandra.
+I was wrong and misread the docs.  We do not get X86_PF_USER set when
+EFLAGS.AC=1.
 
- Guo Ren
+But, we *do* get X86_PF_USER (otherwise defined to be set when in ring3)
+when running in ring0 with the WRUSS instruction and some other various
+shadow-stack-access-related things.  I'm sure folks had a good reason
+for this architecture, but it is a pretty fundamentally *new*
+architecture that we have to account for.
+
+This new architecture is also not spelled out or accounted for in the
+SDM as of yet.  It's only called out here as far as I know:
+https://software.intel.com/sites/default/files/managed/4d/2a/control-flow-enforcement-technology-preview.pdf
+
+Which reminds me:  Yu-cheng, do you have a link to the docs anywhere in
+your set?  If not, you really should.
