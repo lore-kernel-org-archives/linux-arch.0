@@ -1,96 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:39742 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728026AbeGPKv3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 06:51:29 -0400
-Received: by mail-pl0-f68.google.com with SMTP id p23-v6so3802839plo.6
-        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 03:24:45 -0700 (PDT)
+Received: from mail-pl0-f66.google.com ([209.85.160.66]:38499 "EHLO
+        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727128AbeGPKvl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 06:51:41 -0400
+Received: by mail-pl0-f66.google.com with SMTP id b1-v6so15056955pls.5
+        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 03:24:56 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 2/6] alpha: Add CONFIG_OSF4_COMPAT for compat syscall support
-Date: Mon, 16 Jul 2018 15:53:54 +0530
-Message-ID: <1531736638-15294-3-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 4/6] alpha: Replace NR_SYSCALLS macro from asm/unistd.h
+Date: Mon, 16 Jul 2018 15:53:56 +0530
+Message-ID: <1531736638-15294-5-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
 References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-alpha@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, Firoz Khan <firoz.khan@linaro.org>
-Message-ID: <20180716102354.r21yf2dzkLmwLNQ1YeJvaPrL-SNJoOUs6dXXB3i2BzM@z>
+Message-ID: <20180716102356.BJIXfsG23wQ9Es2kRZF8a0_qhAri2ZHTRwyczvEiREM@z>
 
-Removed the CONFIG_OSF4_COMPAT check from systbls.S and
-kept it in osf_sys.c, so it will provide the same system
-call support. To do so, we can keep a generic formatted
-system call table file across all architectures.
+Replace NR_SYSCALLS from asm/unistd.h and keep equivalent macro
+__NR_syscalls in uapi/asm/unistd.h and this will make a unified
+implementation across all the architecture and we can use a system
+call generation script to generate __NR_syscalls.
+
+While __NR_syscalls isn't strictly part of the uapi, having it as
+part of the generated header to simplifies the implementation.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/alpha/kernel/osf_sys.c | 9 ++++++---
- arch/alpha/kernel/systbls.S | 5 -----
- 2 files changed, 6 insertions(+), 8 deletions(-)
+ arch/alpha/include/asm/unistd.h      | 2 --
+ arch/alpha/include/uapi/asm/unistd.h | 2 ++
+ arch/alpha/kernel/entry.S            | 4 ++--
+ arch/alpha/kernel/systbls.S          | 2 +-
+ 4 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-index 6e92175..696a6b7 100644
---- a/arch/alpha/kernel/osf_sys.c
-+++ b/arch/alpha/kernel/osf_sys.c
-@@ -1349,7 +1349,6 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
- }
+diff --git a/arch/alpha/include/asm/unistd.h b/arch/alpha/include/asm/unistd.h
+index 1d19087..92c3f2e 100644
+--- a/arch/alpha/include/asm/unistd.h
++++ b/arch/alpha/include/asm/unistd.h
+@@ -4,8 +4,6 @@
  
- #ifdef CONFIG_OSF4_COMPAT
+ #include <uapi/asm/unistd.h>
+ 
+-#define NR_SYSCALLS			523
 -
- /* Clear top 32 bits of iov_len in the user's buffer for
-    compatibility with old versions of OSF/1 where iov_len
-    was defined as int. */
-@@ -1366,27 +1365,31 @@ osf_fix_iov_len(const struct iovec __user *iov, unsigned long count)
- 	}
- 	return 0;
- }
-+#endif
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_GETHOSTNAME
+diff --git a/arch/alpha/include/uapi/asm/unistd.h b/arch/alpha/include/uapi/asm/unistd.h
+index 3bb6ac1..5d4b51e 100644
+--- a/arch/alpha/include/uapi/asm/unistd.h
++++ b/arch/alpha/include/uapi/asm/unistd.h
+@@ -481,4 +481,6 @@
+ #define __NR_pwritev2			521
+ #define __NR_statx			522
  
- SYSCALL_DEFINE3(osf_readv, unsigned long, fd,
- 		const struct iovec __user *, vector, unsigned long, count)
- {
-+#ifdef CONFIG_OSF4_COMPAT
- 	if (unlikely(personality(current->personality) == PER_OSF4))
- 		if (osf_fix_iov_len(vector, count))
- 			return -EFAULT;
-+#endif
++#define __NR_syscalls                   523
 +
- 	return sys_readv(fd, vector, count);
- }
+ #endif /* _UAPI_ALPHA_UNISTD_H */
+diff --git a/arch/alpha/kernel/entry.S b/arch/alpha/kernel/entry.S
+index c64806a..8f0d706 100644
+--- a/arch/alpha/kernel/entry.S
++++ b/arch/alpha/kernel/entry.S
+@@ -454,7 +454,7 @@ entSys:
+ 	SAVE_ALL
+ 	lda	$8, 0x3fff
+ 	bic	$sp, $8, $8
+-	lda	$4, NR_SYSCALLS($31)
++	lda	$4, __NR_syscalls($31)
+ 	stq	$16, SP_OFF+24($sp)
+ 	lda	$5, sys_call_table
+ 	lda	$27, sys_ni_syscall
+@@ -585,7 +585,7 @@ strace:
+ 	ldq	$21, 88($sp)
  
- SYSCALL_DEFINE3(osf_writev, unsigned long, fd,
- 		const struct iovec __user *, vector, unsigned long, count)
- {
-+#ifdef CONFIG_OSF4_COMPAT
- 	if (unlikely(personality(current->personality) == PER_OSF4))
- 		if (osf_fix_iov_len(vector, count))
- 			return -EFAULT;
-+#endif
- 	return sys_writev(fd, vector, count);
- }
- 
--#endif
--
- SYSCALL_DEFINE2(osf_getpriority, int, which, int, who)
- {
- 	int prio = sys_getpriority(which, who);
+ 	/* get the system call pointer.. */
+-	lda	$1, NR_SYSCALLS($31)
++	lda	$1, __NR_syscalls($31)
+ 	lda	$2, sys_call_table
+ 	lda	$27, alpha_ni_syscall
+ 	cmpult	$0, $1, $1
 diff --git a/arch/alpha/kernel/systbls.S b/arch/alpha/kernel/systbls.S
-index 1374e59..fcf2f60 100644
+index 7ef6925..de79de3 100644
 --- a/arch/alpha/kernel/systbls.S
 +++ b/arch/alpha/kernel/systbls.S
-@@ -132,13 +132,8 @@ sys_call_table:
- 	.quad sys_osf_getrusage
- 	.quad sys_getsockopt
- 	.quad alpha_ni_syscall
--#ifdef CONFIG_OSF4_COMPAT
- 	.quad sys_osf_readv			/* 120 */
- 	.quad sys_osf_writev
--#else
--	.quad sys_readv				/* 120 */
--	.quad sys_writev
--#endif
- 	.quad sys_osf_settimeofday
- 	.quad sys_fchown
- 	.quad sys_fchmod
+@@ -544,6 +544,6 @@ sys_call_table:
+ 	.type sys_call_table, @object
+ 
+ /* Remember to update everything, kids.  */
+-.ifne (. - sys_call_table) - (NR_SYSCALLS * 8)
++.ifne (. - sys_call_table) - (__NR_syscalls * 8)
+ .err
+ .endif
 -- 
 2.7.4
