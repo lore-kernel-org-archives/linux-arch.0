@@ -1,100 +1,168 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:37015 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729606AbeGPLw7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 07:52:59 -0400
-Received: by mail-it0-f65.google.com with SMTP id p17-v6so20750968itc.2
-        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 04:26:01 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
-References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com> <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Mon, 16 Jul 2018 13:25:59 +0200
-Message-ID: <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-ed1-f66.google.com ([209.85.208.66]:43205 "EHLO
+        mail-ed1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731228AbeGPMsw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 08:48:52 -0400
+Received: by mail-ed1-f66.google.com with SMTP id b20-v6so4264122edt.10
+        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 05:21:39 -0700 (PDT)
+From: Martijn Coenen <maco@android.com>
+Subject: [PATCH 5/6] scripts: Coccinelle script for namespace dependencies.
+Date: Mon, 16 Jul 2018 14:21:24 +0200
+Message-ID: <20180716122125.175792-6-maco@android.com>
+In-Reply-To: <20180716122125.175792-1-maco@android.com>
+References: <20180716122125.175792-1-maco@android.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Evgeniy Stepanov <eugenis@google.com>
-Message-ID: <20180716112559.wvIjWac40rK1PmQfWLgo3v14a-3fzz8YnZEzxI4X7lg@z>
+To: linux-kernel@vger.kernel.org
+Cc: Martijn Coenen <maco@android.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, maco@google.com, sspatil@google.com, malchev@google.com, joelaf@google.com
+Message-ID: <20180716122124.JjOqJUL6tk4s2msVRdEBf64CU130WBDJK7aQgW-52eM@z>
 
-On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
-> On Wed, Jun 27, 2018 at 5:05 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
->> <catalin.marinas@arm.com> wrote:
->>> While I support this work, as a maintainer I'd like to understand
->>> whether we'd be in a continuous chase of ABI breaks with every kernel
->>> release or we have a better way to identify potential issues. Is there
->>> any way to statically analyse conversions from __user ptr to long for
->>> example? Or, could we get the compiler to do this for us?
->>
->>
->> OK, got it, I'll try to figure out a way to find these conversions.
->
-> I've prototyped a checker on top of clang static analyzer (initially
-> looked at sparse, but couldn't find any documentation or examples).
-> The results are here [1], search for "warning: user pointer cast".
-> Sharing in case anybody wants to take a look, will look at them myself
-> tomorrow.
->
-> [1] https://gist.github.com/xairy/433edd5c86456a64026247cb2fef2115
+A script that uses the '<module>.ns_deps' file generated by modpost to
+automatically add the required symbol namespace dependencies to each
+module.
 
-So the checker reports ~100 different places where a __user pointer
-being casted. I've looked through them and found 3 places where we
-need to add untagging. Source code lines below come from 4.18-rc2+
-(6f0d349d).
+Usage:
+1) Move some symbols to a namespace with EXPORT_SYMBOL_NS()
+2) Run 'make' (or 'make modules'), get warnings about modules not
+   importing that namespace
+3) Run 'make nsdeps' to automatically add required import statements
+   to said modules
 
-Place 1:
+This makes it easer for subsystem maintainers to introduce and maintain
+symbol namespaces into their codebase.
 
-arch/arm64/mm/fault.c:302:34: warning: user pointer cast
-current->thread.fault_address = (unsigned long)info->si_addr;
+Signed-off-by: Martijn Coenen <maco@android.com>
+---
+ Makefile                    | 11 ++++++++++
+ scripts/Makefile.modpost    |  4 +++-
+ scripts/add_namespace.cocci | 19 +++++++++++++++++
+ scripts/nsdeps              | 41 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 74 insertions(+), 1 deletion(-)
+ create mode 100644 scripts/add_namespace.cocci
+ create mode 100644 scripts/nsdeps
 
-Compare a pointer with TASK_SIZE (1 << 48) to check whether it lies in
-the kernel or in user space. Need to untag the address before
-performing a comparison.
-
-Place 2:
-
-fs/namespace.c:2736:21: warning: user pointer cast
-size = TASK_SIZE - (unsigned long)data;
-
-A similar check performed by subtracting a pointer from TASK_SIZE.
-Need to untag before subtracting.
-
-Place 3:
-
-drivers/usb/core/devio.c:1407:29: warning: user pointer cast
-unsigned long uurb_start = (unsigned long)uurb->buffer;
-drivers/usb/core/devio.c:1636:31: warning: user pointer cast
-unsigned long uurb_start = (unsigned long)uurb->buffer;
-drivers/usb/core/devio.c:1715:30: warning: user pointer cast
-unsigned long uurb_start = (unsigned long)uurb->buffer;
-
-The device keeps list of mmapped areas and searches them for provided
-__user pointer. Need to untag before searching.
-
-There are also a few cases of memory syscalls operating on __user
-pointers instead of unsigned longs like mmap:
-
-ipc/shm.c:1355:23: warning: user pointer cast
-unsigned long addr = (unsigned long)shmaddr;
-ipc/shm.c:1566:23: warning: user pointer cast
-unsigned long addr = (unsigned long)shmaddr;
-mm/migrate.c:1586:10: warning: user pointer cast
-addr = (unsigned long)p;
-mm/migrate.c:1660:24: warning: user pointer cast
-unsigned long addr = (unsigned long)(*pages);
-
-If we don't add untagging to mmap, we probably don't need it here.
-
-The rest of reported places look fine as is. Full annotated results of
-running the checker are here [2].
-
-I'll add the 3 patches with fixes to v5 of this patchset.
-
-Catalin, WDYT?
-
-[2] https://gist.github.com/xairy/aabda57741919df67d79895356ba9b58
+diff --git a/Makefile b/Makefile
+index 925c55f2524f..96e62d732a3b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1391,6 +1391,9 @@ help:
+ 	@echo  '  headerdep       - Detect inclusion cycles in headers'
+ 	@echo  '  coccicheck      - Check with Coccinelle'
+ 	@echo  ''
++	@echo  'Tools:'
++	@echo  '  nsdeps          - Generate missing symbol namespace dependencies'
++	@echo  ''
+ 	@echo  'Kernel selftest:'
+ 	@echo  '  kselftest       - Build and run kernel selftest (run as root)'
+ 	@echo  '                    Build, install, and boot kernel before'
+@@ -1566,6 +1569,14 @@ quiet_cmd_tags = GEN     $@
+ tags TAGS cscope gtags: FORCE
+ 	$(call cmd,tags)
+ 
++# Script to generate missing namespace dependencies
++
++PHONY += nsdeps
++
++nsdeps:
++	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost nsdeps
++	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/$@
++
+ # Scripts to check various things for consistency
+ # ---------------------------------------------------------------------------
+ 
+diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
+index df4174405feb..a9a90c3e3879 100644
+--- a/scripts/Makefile.modpost
++++ b/scripts/Makefile.modpost
+@@ -79,7 +79,8 @@ modpost = scripts/mod/modpost                    \
+  $(if $(KBUILD_EXTMOD),-o $(modulesymfile))      \
+  $(if $(CONFIG_DEBUG_SECTION_MISMATCH),,-S)      \
+  $(if $(CONFIG_SECTION_MISMATCH_WARN_ONLY),,-E)  \
+- $(if $(KBUILD_EXTMOD)$(KBUILD_MODPOST_WARN),-w)
++ $(if $(KBUILD_EXTMOD)$(KBUILD_MODPOST_WARN),-w) \
++ $(if $(filter nsdeps,$(MAKECMDGOALS)),-d)
+ 
+ MODPOST_OPT=$(subst -i,-n,$(filter -i,$(MAKEFLAGS)))
+ 
+@@ -130,6 +131,7 @@ $(modules): %.ko :%.o %.mod.o FORCE
+ 
+ targets += $(modules)
+ 
++nsdeps: _modpost
+ 
+ # Add FORCE to the prequisites of a target to force it to be always rebuilt.
+ # ---------------------------------------------------------------------------
+diff --git a/scripts/add_namespace.cocci b/scripts/add_namespace.cocci
+new file mode 100644
+index 000000000000..a6d33e066067
+--- /dev/null
++++ b/scripts/add_namespace.cocci
+@@ -0,0 +1,19 @@
++@has_ns_import@
++declarer name MODULE_IMPORT_NS;
++identifier virtual.ns;
++@@
++MODULE_IMPORT_NS(ns);
++
++@has_module_license@
++declarer name MODULE_LICENSE;
++expression license;
++@@
++MODULE_LICENSE(license);
++
++@do_import depends on has_module_license && !has_ns_import@
++declarer name MODULE_LICENSE;
++expression license;
++identifier virtual.ns;
++@@
++MODULE_LICENSE(license);
+++ MODULE_IMPORT_NS(ns);
+diff --git a/scripts/nsdeps b/scripts/nsdeps
+new file mode 100644
+index 000000000000..5678e02626b3
+--- /dev/null
++++ b/scripts/nsdeps
+@@ -0,0 +1,41 @@
++#!/bin/bash
++# SPDX-License-Identifier: GPL-2.0
++# Linux kernel symbol namespace import generator
++#
++# This script requires at least spatch
++# version 1.0.6.
++SPATCH_REQ_VERSION="1.0.6"
++
++DIR="$(dirname $(readlink -f $0))/.."
++SPATCH="`which ${SPATCH:=spatch}`"
++if [ ! -x "$SPATCH" ]; then
++    echo 'spatch is part of the Coccinelle project and is available at http://coccinelle.lip6.fr/'
++    exit 1
++fi
++
++SPATCH_REQ_VERSION_NUM=$(echo $SPATCH_REQ_VERSION | ${DIR}/scripts/ld-version.sh)
++SPATCH_VERSION=$($SPATCH --version | head -1 | awk '{print $3}')
++SPATCH_VERSION_NUM=$(echo $SPATCH_VERSION | ${DIR}/scripts/ld-version.sh)
++
++if [ "$SPATCH_VERSION_NUM" -lt "$SPATCH_REQ_VERSION_NUM" ] ; then
++    echo 'spatch needs to be version 1.06 or higher'
++    exit 1
++fi
++
++generate_deps_for_ns() {
++    $SPATCH --very-quiet --in-place --sp-file $srctree/scripts/add_namespace.cocci -D ns=$1 $2
++}
++
++generate_deps() {
++    local mod_file=`echo $@ | sed -e 's/\.ns_deps/\.mod/'`
++    local mod_name=`cat $mod_file | sed -n 1p | sed -e 's/\/[^.]*$//'`
++    local mod_source_files=`cat $mod_file | sed -n 2p | sed -e 's/\.o/\.c/'`
++    for ns in `cat $@`; do
++	echo "Adding namespace $ns to module $mod_name (if needed)."
++        generate_deps_for_ns $ns $mod_source_files
++    done
++}
++
++for f in `find $srctree/.tmp_versions/ -name *.ns_deps`; do
++    generate_deps $f
++done
+-- 
+2.18.0.203.gfac676dfb9-goog
