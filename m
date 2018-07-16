@@ -1,182 +1,170 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.133]:59874 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.187]:54564 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730229AbeGPQkJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:09 -0400
+        with ESMTP id S1730229AbeGPQkH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:07 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 12/17] y2038: aio: Prepare sys_io_{p,}getevents for __kernel_timespec
-Date: Mon, 16 Jul 2018 18:10:58 +0200
-Message-ID: <20180716161103.16239-13-arnd@arndb.de>
+Subject: [PATCH v2 03/17] y2038: Remove stat64 family from default syscall set
+Date: Mon, 16 Jul 2018 18:10:49 +0200
+Message-ID: <20180716161103.16239-4-arnd@arndb.de>
 In-Reply-To: <20180716161103.16239-1-arnd@arndb.de>
 References: <20180716161103.16239-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: y2038@lists.linaro.org, hch@infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, albert.aribaud@3adev.fr, netdev@vger.kernel.org, viro@zeniv.linux.org.uk, peterz@infradead.org, dvhart@infradead.org, ebiederm@xmission.com, linux@dominikbrodowski.net, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180716161058.rAeJPkIxQVTCQGIXV_vioxJAf9BJ3DOuyy2zhmwpdhI@z>
+Message-ID: <20180716161049.wxzVVdQDHZjbTJsEqAj4V0sAv4nUxDXyceM_jwpqiPo@z>
 
-This is a preparation patch for converting sys_io_pgetevents to
-work with 64-bit time_t on 32-bit architectures. The 'timeout' argument
-is changed to struct __kernel_timespec, which will be redefined using
-64-bit time_t in the future. The compat version of the system call in
-turn is enabled for compilation with CONFIG_COMPAT_32BIT_TIME so
-the individual 32-bit architectures can share the handling of the
-traditional argument with 64-bit architectures providing it for their
-compat mode.
+New architectures should no longer need stat64, which is not y2038
+safe and has been replaced by statx(). This removes the 'select
+__ARCH_WANT_STAT64' statement from asm-generic/unistd.h and instead
+moves it into the respective asm/unistd.h UAPI header files for each
+architecture that uses it today.
 
-We now have five entry points into do_io_getevents(). Until we set
-CONFIG_64BIT_TIME, the arguments are
+In the generic file, the system call number and entry points are now
+made conditional, so newly added architectures (e.g. riscv32 or csky)
+will never need to carry backwards compatiblity for it.
 
-sys_io_getevents():	    native aio_context_t, old-style timespec
-sys_io_pgetevents():	    like sys_io_getevents(), but with added
-			    aio_sigset argument
-compat_sys_io_getevents():  32-bit aio_context_t, 32-bit timespec
-compat_sys_io_pgetevents(): like compat_sys_io_getevents(), but with
-			    added aio_sigset argument
-compat_sys_io_pgetevents_time64(): like compat_sys_io_pgetevents(),
-			    but with 64-bit timespec
-
-Once a 32-bit architecture sets CONFIG_64BIT_TIME, sys_io_getevents()
-is no longer available, and sys_io_pgetevents() takes a 64-bit timespec
-argument, whiel compat_sys_io_getevents() and compat_sys_io_pgetevents()
-implement the traditional behavior. compat_sys_io_pgetevents_time64()
-is only used on 64-bit architectures, to provide compatibility with
-the new 32-bit version of sys_io_pgetevents() taking a 64-bit timespec
-combined with a __compat_aio_sigset.
+arm64 is the only 64-bit architecture using the asm-generic/unistd.h
+file, and it already sets __ARCH_WANT_NEW_STAT in its headers, and I
+use the same #ifdef here: future 64-bit architectures therefore won't
+see newstat or stat64 any more. They don't suffer from the y2038 time_t
+overflow, but for consistency it seems best to also let them use statx().
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- fs/aio.c                 | 77 +++++++++++++++++++++++++++++++++++++++++++-----
- include/linux/syscalls.h |  4 +--
- 2 files changed, 71 insertions(+), 10 deletions(-)
+ arch/arc/include/uapi/asm/unistd.h       | 1 +
+ arch/c6x/include/uapi/asm/unistd.h       | 1 +
+ arch/h8300/include/uapi/asm/unistd.h     | 1 +
+ arch/hexagon/include/uapi/asm/unistd.h   | 1 +
+ arch/nds32/include/uapi/asm/unistd.h     | 1 +
+ arch/nios2/include/uapi/asm/unistd.h     | 1 +
+ arch/openrisc/include/uapi/asm/unistd.h  | 1 +
+ arch/unicore32/include/uapi/asm/unistd.h | 1 +
+ include/asm-generic/unistd.h             | 1 -
+ include/uapi/asm-generic/unistd.h        | 2 ++
+ 10 files changed, 10 insertions(+), 1 deletion(-)
 
-diff --git a/fs/aio.c b/fs/aio.c
-index 76def7523ece..f306a48b0a9f 100644
---- a/fs/aio.c
-+++ b/fs/aio.c
-@@ -1869,7 +1869,7 @@ SYSCALL_DEFINE5(io_getevents, aio_context_t, ctx_id,
- 		long, min_nr,
- 		long, nr,
- 		struct io_event __user *, events,
--		struct timespec __user *, timeout)
-+		struct __kernel_timespec __user *, timeout)
- {
- 	struct timespec64	ts;
- 	int			ret;
-@@ -1888,7 +1888,7 @@ SYSCALL_DEFINE6(io_pgetevents,
- 		long, min_nr,
- 		long, nr,
- 		struct io_event __user *, events,
--		struct timespec __user *, timeout,
-+		struct __kernel_timespec __user *, timeout,
- 		const struct __aio_sigset __user *, usig)
- {
- 	struct __aio_sigset	ksig = { NULL, };
-@@ -1929,6 +1929,73 @@ SYSCALL_DEFINE6(io_pgetevents,
- }
+diff --git a/arch/arc/include/uapi/asm/unistd.h b/arch/arc/include/uapi/asm/unistd.h
+index 517178b1daef..3b3543fd151c 100644
+--- a/arch/arc/include/uapi/asm/unistd.h
++++ b/arch/arc/include/uapi/asm/unistd.h
+@@ -17,6 +17,7 @@
+ #define _UAPI_ASM_ARC_UNISTD_H
  
- #ifdef CONFIG_COMPAT
-+struct __compat_aio_sigset {
-+	compat_sigset_t __user	*sigmask;
-+	compat_size_t		sigsetsize;
-+};
-+
-+COMPAT_SYSCALL_DEFINE6(io_pgetevents_time64,
-+		compat_aio_context_t, ctx_id,
-+		compat_long_t, min_nr,
-+		compat_long_t, nr,
-+		struct io_event __user *, events,
-+		struct __kernel_timespec __user *, timeout,
-+		const struct __compat_aio_sigset __user *, usig)
-+{
-+	struct __compat_aio_sigset ksig = { NULL, };
-+	sigset_t ksigmask, sigsaved;
-+	struct timespec64 t;
-+	int ret;
-+
-+	if (timeout && get_timespec64(&t, timeout))
-+		return -EFAULT;
-+
-+	if (usig && copy_from_user(&ksig, usig, sizeof(ksig)))
-+		return -EFAULT;
-+
-+	if (ksig.sigmask) {
-+		if (ksig.sigsetsize != sizeof(compat_sigset_t))
-+			return -EINVAL;
-+		if (get_compat_sigset(&ksigmask, ksig.sigmask))
-+			return -EFAULT;
-+		sigdelsetmask(&ksigmask, sigmask(SIGKILL) | sigmask(SIGSTOP));
-+		sigprocmask(SIG_SETMASK, &ksigmask, &sigsaved);
-+	}
-+
-+	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &t : NULL);
-+	if (signal_pending(current)) {
-+		if (ksig.sigmask) {
-+			current->saved_sigmask = sigsaved;
-+			set_restore_sigmask();
-+		}
-+		if (!ret)
-+			ret = -ERESTARTNOHAND;
-+	} else {
-+		if (ksig.sigmask)
-+			sigprocmask(SIG_SETMASK, &sigsaved, NULL);
-+	}
-+
-+	return ret;
-+}
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_EXECVE
+ #define __ARCH_WANT_SYS_CLONE
+ #define __ARCH_WANT_SYS_VFORK
+diff --git a/arch/c6x/include/uapi/asm/unistd.h b/arch/c6x/include/uapi/asm/unistd.h
+index 0d2daf7f9809..6b2fe792de9d 100644
+--- a/arch/c6x/include/uapi/asm/unistd.h
++++ b/arch/c6x/include/uapi/asm/unistd.h
+@@ -16,6 +16,7 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_CLONE
+ 
+ /* Use the standard ABI for syscalls. */
+diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
+index 7dd20ef7625a..628195823816 100644
+--- a/arch/h8300/include/uapi/asm/unistd.h
++++ b/arch/h8300/include/uapi/asm/unistd.h
+@@ -1,5 +1,6 @@
+ #define __ARCH_NOMMU
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_STAT64
+ 
+ #include <asm-generic/unistd.h>
+diff --git a/arch/hexagon/include/uapi/asm/unistd.h b/arch/hexagon/include/uapi/asm/unistd.h
+index ea181e79162e..c91ca7d02461 100644
+--- a/arch/hexagon/include/uapi/asm/unistd.h
++++ b/arch/hexagon/include/uapi/asm/unistd.h
+@@ -29,6 +29,7 @@
+ 
+ #define sys_mmap2 sys_mmap_pgoff
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_EXECVE
+ #define __ARCH_WANT_SYS_CLONE
+ #define __ARCH_WANT_SYS_VFORK
+diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
+index 6e95901cabe3..603e826e0449 100644
+--- a/arch/nds32/include/uapi/asm/unistd.h
++++ b/arch/nds32/include/uapi/asm/unistd.h
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0
+ // Copyright (C) 2005-2017 Andes Technology Corporation
+ 
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYNC_FILE_RANGE2
+ 
+ /* Use the standard ABI for syscalls */
+diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
+index b6bdae04bc84..d9948d88790b 100644
+--- a/arch/nios2/include/uapi/asm/unistd.h
++++ b/arch/nios2/include/uapi/asm/unistd.h
+@@ -19,6 +19,7 @@
+  #define sys_mmap2 sys_mmap_pgoff
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_STAT64
+ 
+ /* Use the standard ABI for syscalls */
+ #include <asm-generic/unistd.h>
+diff --git a/arch/openrisc/include/uapi/asm/unistd.h b/arch/openrisc/include/uapi/asm/unistd.h
+index 11c5a58ab333..ec37df18d8ed 100644
+--- a/arch/openrisc/include/uapi/asm/unistd.h
++++ b/arch/openrisc/include/uapi/asm/unistd.h
+@@ -20,6 +20,7 @@
+ #define sys_mmap2 sys_mmap_pgoff
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_FORK
+ #define __ARCH_WANT_SYS_CLONE
+ 
+diff --git a/arch/unicore32/include/uapi/asm/unistd.h b/arch/unicore32/include/uapi/asm/unistd.h
+index 65856eaab163..1e8fe5941b8a 100644
+--- a/arch/unicore32/include/uapi/asm/unistd.h
++++ b/arch/unicore32/include/uapi/asm/unistd.h
+@@ -15,4 +15,5 @@
+ 
+ /* Use the standard ABI for syscalls. */
+ #include <asm-generic/unistd.h>
++#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_CLONE
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index cdf904265caf..ea74eca8463f 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -8,6 +8,5 @@
+  * be selected by default.
+  */
+ #if __BITS_PER_LONG == 32
+-#define __ARCH_WANT_STAT64
+ #define __ARCH_WANT_SYS_LLSEEK
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index df4bedb9b01c..538546edbfbd 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -242,10 +242,12 @@ __SYSCALL(__NR_tee, sys_tee)
+ /* fs/stat.c */
+ #define __NR_readlinkat 78
+ __SYSCALL(__NR_readlinkat, sys_readlinkat)
++#if defined(__ARCH_WANT_NEW_STAT) || defined(__ARCH_WANT_STAT64)
+ #define __NR3264_fstatat 79
+ __SC_3264(__NR3264_fstatat, sys_fstatat64, sys_newfstatat)
+ #define __NR3264_fstat 80
+ __SC_3264(__NR3264_fstat, sys_fstat64, sys_newfstat)
 +#endif
-+
-+#ifdef CONFIG_COMPAT_32BIT_TIME
-+#ifndef CONFIG_COMPAT
-+#define compat_sigset_t sigset_t
-+struct __compat_aio_sigset {
-+	compat_sigset_t __user	*sigmask;
-+	compat_size_t		sigsetsize;
-+};
-+
-+static inline int get_compat_sigset(sigset_t *set, const sigset_t __user *compat)
-+{
-+        if (copy_from_user(set, compat, sizeof *set))
-+                return -EFAULT;
-+
-+        return 0;
-+}
-+#endif
-+
- COMPAT_SYSCALL_DEFINE5(io_getevents, compat_aio_context_t, ctx_id,
- 		       compat_long_t, min_nr,
- 		       compat_long_t, nr,
-@@ -1947,12 +2014,6 @@ COMPAT_SYSCALL_DEFINE5(io_getevents, compat_aio_context_t, ctx_id,
- 	return ret;
- }
  
--
--struct __compat_aio_sigset {
--	compat_sigset_t __user	*sigmask;
--	compat_size_t		sigsetsize;
--};
--
- COMPAT_SYSCALL_DEFINE6(io_pgetevents,
- 		compat_aio_context_t, ctx_id,
- 		compat_long_t, min_nr,
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 1a22bb4285bf..4fc93fbc0d00 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -296,12 +296,12 @@ asmlinkage long sys_io_getevents(aio_context_t ctx_id,
- 				long min_nr,
- 				long nr,
- 				struct io_event __user *events,
--				struct timespec __user *timeout);
-+				struct __kernel_timespec __user *timeout);
- asmlinkage long sys_io_pgetevents(aio_context_t ctx_id,
- 				long min_nr,
- 				long nr,
- 				struct io_event __user *events,
--				struct timespec __user *timeout,
-+				struct __kernel_timespec __user *timeout,
- 				const struct __aio_sigset *sig);
- 
- /* fs/xattr.c */
+ /* fs/sync.c */
+ #define __NR_sync 81
 -- 
 2.9.0
