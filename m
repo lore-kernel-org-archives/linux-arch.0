@@ -1,93 +1,83 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Date: Mon, 16 Jul 2018 13:25:59 +0200
-Message-ID: <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
-References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com> <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Martijn Coenen <maco@android.com>
+Subject: [PATCH 0/6] Symbol namespaces
+Date: Mon, 16 Jul 2018 14:21:19 +0200
+Message-ID: <20180716122125.175792-1-maco@android.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben
+To: linux-kernel@vger.kernel.org
+Cc: Martijn Coenen <maco@android.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
-> On Wed, Jun 27, 2018 at 5:05 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
->> <catalin.marinas@arm.com> wrote:
->>> While I support this work, as a maintainer I'd like to understand
->>> whether we'd be in a continuous chase of ABI breaks with every kernel
->>> release or we have a better way to identify potential issues. Is there
->>> any way to statically analyse conversions from __user ptr to long for
->>> example? Or, could we get the compiler to do this for us?
->>
->>
->> OK, got it, I'll try to figure out a way to find these conversions.
->
-> I've prototyped a checker on top of clang static analyzer (initially
-> looked at sparse, but couldn't find any documentation or examples).
-> The results are here [1], search for "warning: user pointer cast".
-> Sharing in case anybody wants to take a look, will look at them myself
-> tomorrow.
->
-> [1] https://gist.github.com/xairy/433edd5c86456a64026247cb2fef2115
+As of Linux 4.17, there are more than 30000 exported symbols
+in the kernel. There seems to be some consensus amongst
+kernel devs that the export surface is too large, and hard
+to reason about.
 
-So the checker reports ~100 different places where a __user pointer
-being casted. I've looked through them and found 3 places where we
-need to add untagging. Source code lines below come from 4.18-rc2+
-(6f0d349d).
+Generally, these symbols fall in one of these categories:
+1) Symbols actually meant for drivers
+2) Symbols that are only exported because functionality is
+   split over multiple modules, yet they really shouldn't
+   be used by modules outside of their own subsystem
+3) Symbols really only meant for in-tree use
 
-Place 1:
+When module developers try to upstream their code, it
+regularly turns out that they are using exported symbols
+that they really shouldn't be using. This problem is even
+bigger for drivers that are currently out-of-tree, which
+may be using many symbols that they shouldn't be using,
+and that break when those symbols are removed or modified.
 
-arch/arm64/mm/fault.c:302:34: warning: user pointer cast
-current->thread.fault_address = (unsigned long)info->si_addr;
+This patch allows subsystem maintainers to partition their
+exported symbols into separate namespaces, and module
+authors to import such namespaces only when needed.
 
-Compare a pointer with TASK_SIZE (1 << 48) to check whether it lies in
-the kernel or in user space. Need to untag the address before
-performing a comparison.
+This allows subsystem maintainers to more easily limit
+availability of these namespaced symbols to other parts of
+the kernel. It can also be used to partition the set of
+exported symbols for documentation purposes; for example,
+a set of symbols that is really only used for debugging
+could be in a "SUBSYSTEM_DEBUG" namespace.
 
-Place 2:
+Martijn Coenen (6):
+  export: explicitly align struct kernel_symbol.
+  module: add support for symbol namespaces.
+  modpost: add support for checking symbol namespaces.
+  modpost: add support for generating namespace dependencies.
+  scripts: Coccinelle script for namespace dependencies.
+  RFC: USB: storage: move symbols into USB_STORAGE namespace.
 
-fs/namespace.c:2736:21: warning: user pointer cast
-size = TASK_SIZE - (unsigned long)data;
+ Makefile                            |  11 +++
+ arch/m68k/include/asm/export.h      |   1 -
+ arch/x86/include/asm/Kbuild         |   1 +
+ arch/x86/include/asm/export.h       |   5 --
+ drivers/usb/storage/alauda.c        |   1 +
+ drivers/usb/storage/cypress_atacb.c |   1 +
+ drivers/usb/storage/datafab.c       |   1 +
+ drivers/usb/storage/ene_ub6250.c    |   1 +
+ drivers/usb/storage/freecom.c       |   1 +
+ drivers/usb/storage/isd200.c        |   1 +
+ drivers/usb/storage/jumpshot.c      |   1 +
+ drivers/usb/storage/karma.c         |   1 +
+ drivers/usb/storage/onetouch.c      |   1 +
+ drivers/usb/storage/realtek_cr.c    |   1 +
+ drivers/usb/storage/sddr09.c        |   1 +
+ drivers/usb/storage/sddr55.c        |   1 +
+ drivers/usb/storage/shuttle_usbat.c |   1 +
+ drivers/usb/storage/uas.c           |   1 +
+ drivers/usb/storage/usb.c           |  20 ++---
+ include/asm-generic/export.h        |   2 +-
+ include/linux/export.h              |  84 ++++++++++++++-----
+ include/linux/module.h              |  13 +++
+ kernel/module.c                     |  79 ++++++++++++++++++
+ scripts/Makefile.modpost            |   4 +-
+ scripts/add_namespace.cocci         |  19 +++++
+ scripts/mod/modpost.c               | 120 ++++++++++++++++++++++++++--
+ scripts/mod/modpost.h               |   9 +++
+ scripts/nsdeps                      |  41 ++++++++++
+ 28 files changed, 379 insertions(+), 44 deletions(-)
+ delete mode 100644 arch/x86/include/asm/export.h
+ create mode 100644 scripts/add_namespace.cocci
+ create mode 100644 scripts/nsdeps
 
-A similar check performed by subtracting a pointer from TASK_SIZE.
-Need to untag before subtracting.
-
-Place 3:
-
-drivers/usb/core/devio.c:1407:29: warning: user pointer cast
-unsigned long uurb_start = (unsigned long)uurb->buffer;
-drivers/usb/core/devio.c:1636:31: warning: user pointer cast
-unsigned long uurb_start = (unsigned long)uurb->buffer;
-drivers/usb/core/devio.c:1715:30: warning: user pointer cast
-unsigned long uurb_start = (unsigned long)uurb->buffer;
-
-The device keeps list of mmapped areas and searches them for provided
-__user pointer. Need to untag before searching.
-
-There are also a few cases of memory syscalls operating on __user
-pointers instead of unsigned longs like mmap:
-
-ipc/shm.c:1355:23: warning: user pointer cast
-unsigned long addr = (unsigned long)shmaddr;
-ipc/shm.c:1566:23: warning: user pointer cast
-unsigned long addr = (unsigned long)shmaddr;
-mm/migrate.c:1586:10: warning: user pointer cast
-addr = (unsigned long)p;
-mm/migrate.c:1660:24: warning: user pointer cast
-unsigned long addr = (unsigned long)(*pages);
-
-If we don't add untagging to mmap, we probably don't need it here.
-
-The rest of reported places look fine as is. Full annotated results of
-running the checker are here [2].
-
-I'll add the 3 patches with fixes to v5 of this patchset.
-
-Catalin, WDYT?
-
-[2] https://gist.github.com/xairy/aabda57741919df67d79895356ba9b58
+-- 
+2.18.0.203.gfac676dfb9-goog
