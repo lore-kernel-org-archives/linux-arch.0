@@ -1,79 +1,63 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [RFC PATCH v2 25/27] x86/cet: Add PTRACE interface for CET
-Date: Sat, 14 Jul 2018 08:27:37 +0200
-Message-ID: <20180714062737.GA13242@amd>
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
- <20180710222639.8241-26-yu-cheng.yu@intel.com>
- <20180711102035.GB8574@gmail.com>
- <1531323638.13297.24.camel@intel.com>
- <20180712140327.GA7810@gmail.com>
- <20180713062804.GA6905@amd>
- <20180713133357.GB13602@gmail.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="ikeVEW9yuYc//A+q"
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH 0/6] System call table generation support
+Date: Mon, 16 Jul 2018 15:53:52 +0530
+Message-ID: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180713133357.GB13602@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>
+To: linux-alpha@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, Firoz Khan <firoz.khan@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
+The goal of this patch series is to easily add/modify/delete a
+system call by changing entry in syscall.tbl file. No need
+to manually edit many files.
 
---ikeVEW9yuYc//A+q
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+The another goal of this patch series is to to unify the system
+call implementation across all the architectures. ARM, s390 and 
+x86 architecuture does have the similar support. I leverage their 
+implementation to come up with a generic solution.
 
-On Fri 2018-07-13 15:33:58, Ingo Molnar wrote:
->=20
-> * Pavel Machek <pavel@ucw.cz> wrote:
->=20
-> >=20
-> > > > > to "CET" (which is a well-known acronym for "Central European Tim=
-e"),
-> > > > > not to CFE?
-> > > > >=20
-> > > >=20
-> > > > I don't know if I can change that, will find out.
-> > >=20
-> > > So what I'd suggest is something pretty simple: to use CFT/cft in ker=
-nel internal=20
-> > > names, except for the Intel feature bit and any MSR enumeration which=
- can be CET=20
-> > > if Intel named it that way, and a short comment explaining the acrony=
-m difference.
-> > >=20
-> > > Or something like that.
-> >=20
-> > Actually, I don't think CFT is much better -- there's limited number
-> > of TLAs (*). "ENFORCE_FLOW"? "FLOWE"? "EFLOW"?
->=20
-> Erm, I wanted to say 'CFE', i.e. the abbreviation of 'Control Flow Enforc=
-ement'.
->=20
-> But I guess I can live with CET as well ...
+I have done the same support for work for ia64, m68k, microblaze, 
+mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
 
-Yeah, and I am trying to say that perhaps we should use something
-longer than three letters. It will make code longer but easier to
-read.
-									Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to change two dozen of system calls to solve Y2038 issue. So
+this implementation will help to easily modify from existing system
+call to Y2038 compatible system calls.
 
---ikeVEW9yuYc//A+q
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+Firoz Khan (6):
+  alpha: Move __IGNORE* entries to non uapi header
+  alpha: Add CONFIG_OSF4_COMPAT for compat syscall support
+  alpha: Unify the not-implemented system call entry name
+  alpha: Replace NR_SYSCALLS macro from asm/unistd.h
+  alpha: Add system call table generation support
+  alpha: uapi header and system call table file generation
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+ arch/alpha/Makefile                      |   3 +
+ arch/alpha/include/asm/Kbuild            |   3 +-
+ arch/alpha/include/asm/unistd.h          |   7 +-
+ arch/alpha/include/uapi/asm/Kbuild       |   2 +
+ arch/alpha/include/uapi/asm/unistd.h     | 489 ---------------------------
+ arch/alpha/kernel/Makefile               |   2 +-
+ arch/alpha/kernel/entry.S                |   4 +-
+ arch/alpha/kernel/osf_sys.c              |   9 +-
+ arch/alpha/kernel/syscall.S              |  20 ++
+ arch/alpha/kernel/syscalls/Makefile      |  37 +++
+ arch/alpha/kernel/syscalls/syscall.tbl   | 450 +++++++++++++++++++++++++
+ arch/alpha/kernel/syscalls/syscallhdr.sh |  33 ++
+ arch/alpha/kernel/syscalls/syscalltbl.sh |  28 ++
+ arch/alpha/kernel/systbls.S              | 552 -------------------------------
+ 14 files changed, 589 insertions(+), 1050 deletions(-)
+ delete mode 100644 arch/alpha/include/uapi/asm/unistd.h
+ create mode 100644 arch/alpha/kernel/syscall.S
+ create mode 100644 arch/alpha/kernel/syscalls/Makefile
+ create mode 100644 arch/alpha/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/alpha/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/alpha/kernel/syscalls/syscalltbl.sh
+ delete mode 100644 arch/alpha/kernel/systbls.S
 
-iEYEARECAAYFAltJl9kACgkQMOfwapXb+vJ/zwCglPFXsNNzgW0ML/M0vPlj5C0a
-To0AoJ4qd5n1bRykjwlqyW6Hs34O+tnJ
-=7LRO
------END PGP SIGNATURE-----
-
---ikeVEW9yuYc//A+q--
+-- 
+2.7.4
