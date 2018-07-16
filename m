@@ -1,66 +1,59 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/6] System call table generation support
-Date: Mon, 16 Jul 2018 16:09:15 +0200
-Message-ID: <CAK8P3a113b4uKsw2qKbgggk2S1=m3a7REN5_qoVuLPfT_7jdSw@mail.gmail.com>
-References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 0/6] Symbol namespaces
+Date: Mon, 16 Jul 2018 17:33:56 +0200
+Message-ID: <20180716153356.GA8034@kroah.com>
+References: <20180716122125.175792-1-maco@android.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
+Content-Disposition: inline
+In-Reply-To: <20180716122125.175792-1-maco@android.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Martijn Coenen <maco@android.com>
+Cc: linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, maco@goo
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 16, 2018 at 12:23 PM, Firoz Khan <firoz.khan@linaro.org> wrote:
-> The goal of this patch series is to easily add/modify/delete a
-> system call by changing entry in syscall.tbl file. No need
-> to manually edit many files.
->
-> The another goal of this patch series is to to unify the system
-> call implementation across all the architectures. ARM, s390 and
-> x86 architecuture does have the similar support. I leverage their
-> implementation to come up with a generic solution.
->
-> I have done the same support for work for ia64, m68k, microblaze,
-> mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending
-> the patch for one architecuture for review. Below mentioned git
-> repository contains more details.
-> Git repo:- https://github.com/frzkhn/system_call_table_generator/
->
-> Finally, this is the ground work for solving the Y2038 issue. We
-> need to change two dozen of system calls to solve Y2038 issue. So
-> this implementation will help to easily modify from existing system
-> call to Y2038 compatible system calls.
+On Mon, Jul 16, 2018 at 02:21:19PM +0200, Martijn Coenen wrote:
+> As of Linux 4.17, there are more than 30000 exported symbols
+> in the kernel. There seems to be some consensus amongst
+> kernel devs that the export surface is too large, and hard
+> to reason about.
+> 
+> Generally, these symbols fall in one of these categories:
+> 1) Symbols actually meant for drivers
+> 2) Symbols that are only exported because functionality is
+>    split over multiple modules, yet they really shouldn't
+>    be used by modules outside of their own subsystem
+> 3) Symbols really only meant for in-tree use
+> 
+> When module developers try to upstream their code, it
+> regularly turns out that they are using exported symbols
+> that they really shouldn't be using. This problem is even
+> bigger for drivers that are currently out-of-tree, which
+> may be using many symbols that they shouldn't be using,
+> and that break when those symbols are removed or modified.
+> 
+> This patch allows subsystem maintainers to partition their
+> exported symbols into separate namespaces, and module
+> authors to import such namespaces only when needed.
+> 
+> This allows subsystem maintainers to more easily limit
+> availability of these namespaced symbols to other parts of
+> the kernel. It can also be used to partition the set of
+> exported symbols for documentation purposes; for example,
+> a set of symbols that is really only used for debugging
+> could be in a "SUBSYSTEM_DEBUG" namespace.
 
-Thanks a lot Firoz for getting this started!
+To give people a bit more background here, this is something that both
+Andi Kleen and I talked about over a decade ago.  Martijn based his work
+on Andi's original patches and made them all work well, something that I
+was unable to do :)
 
-(adding Marcin to Cc)
+His addition of using the build system to automatically generate a patch
+for a subsystem based on the symbol namespace changes is frickin
+amazing.
 
-I think doing this for all architectures will help in a number of ways.
-As we need to do a relatively complex conversion for the system
-calls for y2038 support (changing old calls into compat ones,
-and adding the new ones at the end), this will give us some
-confidence.
+Great work here, this is something that I have wanted for the kernel for
+a long time.
 
-I also hope that this makes scripting easier when we can check
-which calls are implemented on which architecture, and maybe get
-to a common baseline again by adding the missing calls on
-all architectures that are rarely updated, now that we have thrown
-out the architectures that were simply unmaintained. (looking
-at the syscall table used to be a good way to see how well
-maintained an architecture is). Once the y2038 calls are added,
-glibc and others will have to set a new minimum version of kernel
-headers (e.g. changing from linux-3.2 to 4.20) to get the new calls,
-and that at that time, it would be great to have all the recently
-added calls available on all architectures, so a future glibc version
-that takes linux-4.20 as the minimum runtime version doesn't have
-to emulate those calls through older ones. In particular, this
-would be helpful for the new mount() API and the rseq() call that
-have recently been added.
-
-We might run into a few problems on architectures while we
-transition to generated tables at the same as as adding new
-calls, we'll have to see how to deal with that.
-
-      Arnd
+greg k-h
