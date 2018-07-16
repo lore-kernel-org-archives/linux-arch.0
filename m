@@ -1,88 +1,66 @@
-From: Martijn Coenen <maco@android.com>
-Subject: [PATCH 1/6] export: explicitly align struct kernel_symbol.
-Date: Mon, 16 Jul 2018 14:21:20 +0200
-Message-ID: <20180716122125.175792-2-maco@android.com>
-References: <20180716122125.175792-1-maco@android.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/6] System call table generation support
+Date: Mon, 16 Jul 2018 16:09:15 +0200
+Message-ID: <CAK8P3a113b4uKsw2qKbgggk2S1=m3a7REN5_qoVuLPfT_7jdSw@mail.gmail.com>
+References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180716122125.175792-1-maco@android.com>
+In-Reply-To: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Martijn Coenen <maco@android.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-This change allows growing struct kernel_symbol without wasting bytes to
-alignment.
+On Mon, Jul 16, 2018 at 12:23 PM, Firoz Khan <firoz.khan@linaro.org> wrote:
+> The goal of this patch series is to easily add/modify/delete a
+> system call by changing entry in syscall.tbl file. No need
+> to manually edit many files.
+>
+> The another goal of this patch series is to to unify the system
+> call implementation across all the architectures. ARM, s390 and
+> x86 architecuture does have the similar support. I leverage their
+> implementation to come up with a generic solution.
+>
+> I have done the same support for work for ia64, m68k, microblaze,
+> mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending
+> the patch for one architecuture for review. Below mentioned git
+> repository contains more details.
+> Git repo:- https://github.com/frzkhn/system_call_table_generator/
+>
+> Finally, this is the ground work for solving the Y2038 issue. We
+> need to change two dozen of system calls to solve Y2038 issue. So
+> this implementation will help to easily modify from existing system
+> call to Y2038 compatible system calls.
 
-struct kernel_symbol was already implicitly being aligned to the word
-size, except on x86_64 and m68k, where it is aligned to 16 and 2 bytes,
-respectively.
+Thanks a lot Firoz for getting this started!
 
-As far as I can tell there is no requirement for aligning struct
-kernel_symbol to 16 bytes on x86_64, but gcc aligns structs to their
-size, and the linker aligns the custom __ksymtab sections to the largest
-data type contained within, so setting KSYM_ALIGN to 16 was necessary to
-stay consistent with the code generated for non-ASM EXPORT_SYMBOL(). Now
-that non-ASM EXPORT_SYMBOL() explicitly aligns to word size (8),
-KSYM_ALIGN is no longer necessary.
+(adding Marcin to Cc)
 
-As for m68k, struct kernel_symbol is aligned to 2 bytes even though the
-structure itself is 8 bytes; using a 4-byte alignment shouldn't hurt.
+I think doing this for all architectures will help in a number of ways.
+As we need to do a relatively complex conversion for the system
+calls for y2038 support (changing old calls into compat ones,
+and adding the new ones at the end), this will give us some
+confidence.
 
-I manually verified the output of the __ksymtab sections didn't change
-on x86, x86_64, arm, arm64 and m68k. As expected, the section contents
-didn't change, and the ELF section alignment only changed on x86_64 and
-m68k. Feedback from other archs more than welcome.
+I also hope that this makes scripting easier when we can check
+which calls are implemented on which architecture, and maybe get
+to a common baseline again by adding the missing calls on
+all architectures that are rarely updated, now that we have thrown
+out the architectures that were simply unmaintained. (looking
+at the syscall table used to be a good way to see how well
+maintained an architecture is). Once the y2038 calls are added,
+glibc and others will have to set a new minimum version of kernel
+headers (e.g. changing from linux-3.2 to 4.20) to get the new calls,
+and that at that time, it would be great to have all the recently
+added calls available on all architectures, so a future glibc version
+that takes linux-4.20 as the minimum runtime version doesn't have
+to emulate those calls through older ones. In particular, this
+would be helpful for the new mount() API and the rseq() call that
+have recently been added.
 
-Signed-off-by: Martijn Coenen <maco@android.com>
----
- arch/m68k/include/asm/export.h | 1 -
- arch/x86/include/asm/Kbuild    | 1 +
- arch/x86/include/asm/export.h  | 5 -----
- include/linux/export.h         | 1 +
- 4 files changed, 2 insertions(+), 6 deletions(-)
- delete mode 100644 arch/x86/include/asm/export.h
+We might run into a few problems on architectures while we
+transition to generated tables at the same as as adding new
+calls, we'll have to see how to deal with that.
 
-diff --git a/arch/m68k/include/asm/export.h b/arch/m68k/include/asm/export.h
-index 0af20f48bd07..b53008b67ce1 100644
---- a/arch/m68k/include/asm/export.h
-+++ b/arch/m68k/include/asm/export.h
-@@ -1,3 +1,2 @@
--#define KSYM_ALIGN 2
- #define KCRC_ALIGN 2
- #include <asm-generic/export.h>
-diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
-index de690c2d2e33..a0ab9ab61c75 100644
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -8,5 +8,6 @@ generated-y += xen-hypercalls.h
- 
- generic-y += dma-contiguous.h
- generic-y += early_ioremap.h
-+generic-y += export.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
-diff --git a/arch/x86/include/asm/export.h b/arch/x86/include/asm/export.h
-deleted file mode 100644
-index 2a51d66689c5..000000000000
---- a/arch/x86/include/asm/export.h
-+++ /dev/null
-@@ -1,5 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifdef CONFIG_64BIT
--#define KSYM_ALIGN 16
--#endif
--#include <asm-generic/export.h>
-diff --git a/include/linux/export.h b/include/linux/export.h
-index b768d6dd3c90..ad6b8e697b27 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -64,6 +64,7 @@ extern struct module __this_module;
- 	static const struct kernel_symbol __ksymtab_##sym		\
- 	__used								\
- 	__attribute__((section("___ksymtab" sec "+" #sym), used))	\
-+	__attribute__((aligned(sizeof(void *))))                        \
- 	= { (unsigned long)&sym, __kstrtab_##sym }
- 
- #if defined(__KSYM_DEPS__)
--- 
-2.18.0.203.gfac676dfb9-goog
+      Arnd
