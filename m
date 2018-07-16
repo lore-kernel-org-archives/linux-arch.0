@@ -1,165 +1,207 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.133]:43334 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.134]:35478 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730598AbeGPQkK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:10 -0400
+        with ESMTP id S1730079AbeGPQkL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:11 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 00/17] y2038: system calls, part 3
-Date: Mon, 16 Jul 2018 18:10:46 +0200
-Message-ID: <20180716161103.16239-1-arnd@arndb.de>
+Subject: [PATCH v2 08/17] y2038: utimes: Rework #ifdef guards for compat syscalls
+Date: Mon, 16 Jul 2018 18:10:54 +0200
+Message-ID: <20180716161103.16239-9-arnd@arndb.de>
+In-Reply-To: <20180716161103.16239-1-arnd@arndb.de>
+References: <20180716161103.16239-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: y2038@lists.linaro.org, hch@infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, albert.aribaud@3adev.fr, netdev@vger.kernel.org, viro@zeniv.linux.org.uk, peterz@infradead.org, dvhart@infradead.org, ebiederm@xmission.com, linux@dominikbrodowski.net, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180716161046.r-CbEwxFhtkPHvY71a8Frw2drISxhzTGm7MkbeMZwnU@z>
+Message-ID: <20180716161054.2DW-aWH1_GyKuyZzvvhdTT0I9es1RP5mtMZLQF9Vgp4@z>
 
-This is a mostly unchanged copy of a series I sent back in April for
-an initial review. All the earlier syscall patches that Deepa or I sent
-got merged now, and this is the largest chunk of remaining patches.
+After changing over to 64-bit time_t syscalls, many architectures will
+want compat_sys_utimensat() but not respective handlers for utime(),
+utimes() and futimesat(). This adds a new __ARCH_WANT_COMPAT_SYS_UTIME
+to complement __ARCH_WANT_SYS_UTIME. For now, all 64-bit architectures
+that support CONFIG_COMPAT set it, but future 64-bit architectures will
+not (tile would not have needed it either, but got removed).
 
-Changes this time are:
+As older 32-bit architectures get converted to using CONFIG_64BIT_TIME,
+they will have to use __ARCH_WANT_COMPAT_SYS_UTIME instead of
+__ARCH_WANT_SYS_UTIME. Architectures using the generic syscall ABI
+don't need either of them as they never had a utime syscall.
 
-- This is actually tested with the LTP syscalls test suite,
-  both before and after the CONFIG_64BIT_TIME change (which is not
-  included here). I have created a patch series for musl libc to use
-  64-bit time_t and change all the system calls over to the new entry
-  points for this. The only bugs I found during that testing were in
-  later parts of the conversion that I have not posted yet.
+Since the compat_utimbuf structure is now required outside of
+CONFIG_COMPAT, I'm moving it into compat_time.h.
 
-- I rewrote the sys_io_getevents conversion after the
-  introduction of sys_sys_io_getevents. We obviously don't need to have
-  two of each, so we will only provide sys_io_pgetevents() with 64-bit
-  time_t but not sys_io_getevents(), which the libc can implement on
-  top of the former.
-
-- While we have Deepa's POSIX timer conversion merged now, we
-  still need to decide on how we want to do the replacement
-  ABI for getitimer()/setitimer(). Like getrusage()/waitid() and
-  clock_adjtime() and unlike the system calls I'm posting here,
-  there is no one obvious ABI.
-
-- For ppoll()/pselect6(), the ABI is fairly clear, but the
-  implementation still needs to be done. I tested with a simple
-  prototype based on the existing compat code, but we can
-  probably improve that. This is something that Deepa still
-  wants to work on.
-
-- Finally, Christoph Hellwig objected to the idea of reusing the
-  compat_ namespace for the 32-bit native case. Changing that
-  would be a departure from our plans so far[2], and would make
-  some things end up differently. Until we have decided on how this
-  is to be done, I've decided to not change the code for this
-  post. We can clearly rename all the symbols and I've implemented
-  that in [3] for the current linux-next (not including the
-  series here). This is something we can definitely do, but I'd
-  need to know soon whether we can merge this series unchanged
-  for 4.19 or if I should rebase it on top of that patch with the
-  alternative naming.
-
-      Arnd
-
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
-Previous cover letter announcement below, see [4] for the full
-series:
+If we proceed with Christoph's suggestion of renaming all the compat
+time handling to something that doesn't have compat in the name,
+the new macro here would have to get renamed as well.
+---
+ arch/arm64/include/asm/unistd.h   | 1 +
+ arch/mips/include/asm/unistd.h    | 1 +
+ arch/parisc/include/asm/unistd.h  | 1 +
+ arch/powerpc/include/asm/unistd.h | 1 +
+ arch/s390/include/asm/unistd.h    | 1 +
+ arch/sparc/include/asm/unistd.h   | 1 +
+ arch/x86/include/asm/unistd.h     | 1 +
+ fs/utimes.c                       | 6 +++++-
+ include/linux/compat.h            | 5 -----
+ include/linux/compat_time.h       | 5 +++++
+ 10 files changed, 17 insertions(+), 6 deletions(-)
 
-After the first timekeeping series from Deepa (merged into -tip now)
-and my follow-up for IPC system calls, this is a third set of system
-call conversions following the same principle.
-
-Most of the changes are straightforward, so I'm grouping them into a
-larger series even though the system calls are mostly unrelated to one
-another. After this series, the remaining calls that need to be changed
-are getrusage()/waitid(), pselect6/ppoll(), timer{,fd}_{get,set}time()
-and getitimer()/setitimer(). Those will be sent separately, once they
-are matured enough.
-
-To put the changes into perspective, a list of all system calls that
-require changes is available in a spreadsheet[5] and I have made
-another experimental patch that changes over x86[6] and arm[7] to
-actually use them.
-
-Link [1] https://lore.kernel.org/lkml/20180712082034.GA8802@infradead.org/
-Link [2] https://lwn.net/Articles/643234/
-Link [3] https://lore.kernel.org/lkml/20180713133204.3123939-1-arnd@arndb.de/
-Link [4] https://lore.kernel.org/lkml/20180425160311.2718314-1-arnd@arndb.de/
-Link [5] https://docs.google.com/spreadsheets/d/1HCYwHXxs48TsTb6IGUduNjQnmfRvMPzCN6T_0YiQwis
-Link [6] https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/commit/?h=y2038-4.18-rc5-next&id=2c995de3bdd5
-Link [7] https://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git/commit/?h=y2038-4.18-rc5-next&id=e73061da2f80
-
-
-
-Arnd Bergmann (17):
-  y2038: compat: Move common compat types to asm-generic/compat.h
-  y2038: Remove newstat family from default syscall set
-  y2038: Remove stat64 family from default syscall set
-  asm-generic: Remove unneeded __ARCH_WANT_SYS_LLSEEK macro
-  asm-generic: Remove empty asm/unistd.h
-  y2038: Change sys_utimensat() to use __kernel_timespec
-  y2038: Compile utimes()/futimesat() conditionally
-  y2038: utimes: Rework #ifdef guards for compat syscalls
-  y2038: futex: Move compat implementation into futex.c
-  y2038: futex: Add support for __kernel_timespec
-  y2038: Prepare sched_rr_get_interval for __kernel_timespec
-  y2038: aio: Prepare sys_io_{p,}getevents for __kernel_timespec
-  y2038: socket: Convert recvmmsg to __kernel_timespec
-  y2038: socket: Add compat_sys_recvmmsg_time64
-  y2038: signal: Change rt_sigtimedwait to use __kernel_timespec
-  y2038: Make compat_sys_rt_sigtimedwait usable on 32-bit
-  y2038: signal: Add compat_sys_rt_sigtimedwait_time64
-
- arch/alpha/include/asm/unistd.h          |   2 +
- arch/arc/include/uapi/asm/unistd.h       |   1 +
- arch/arm/include/asm/unistd.h            |   4 +-
- arch/arm64/include/asm/compat.h          |  20 +--
- arch/arm64/include/asm/unistd.h          |   2 +-
- arch/arm64/include/uapi/asm/unistd.h     |   1 +
- arch/c6x/include/uapi/asm/unistd.h       |   1 +
- arch/h8300/include/uapi/asm/unistd.h     |   1 +
- arch/hexagon/include/uapi/asm/unistd.h   |   1 +
- arch/ia64/include/asm/unistd.h           |   3 +
- arch/m68k/include/asm/unistd.h           |   2 +-
- arch/microblaze/include/asm/unistd.h     |   2 +-
- arch/mips/include/asm/compat.h           |  22 +---
- arch/mips/include/asm/unistd.h           |   3 +-
- arch/nds32/include/uapi/asm/unistd.h     |   1 +
- arch/nios2/include/uapi/asm/unistd.h     |   1 +
- arch/openrisc/include/uapi/asm/unistd.h  |   1 +
- arch/parisc/include/asm/compat.h         |  18 +--
- arch/parisc/include/asm/unistd.h         |   3 +-
- arch/powerpc/include/asm/compat.h        |  18 +--
- arch/powerpc/include/asm/unistd.h        |   3 +-
- arch/s390/include/asm/compat.h           |  18 +--
- arch/s390/include/asm/unistd.h           |   3 +-
- arch/sh/include/asm/unistd.h             |   2 +-
- arch/sparc/include/asm/compat.h          |  19 +--
- arch/sparc/include/asm/unistd.h          |   3 +-
- arch/unicore32/include/uapi/asm/unistd.h |   1 +
- arch/x86/include/asm/compat.h            |  19 +--
- arch/x86/include/asm/unistd.h            |   3 +-
- arch/xtensa/include/asm/unistd.h         |   2 +-
- fs/aio.c                                 |  77 ++++++++++--
- fs/read_write.c                          |   2 +-
- fs/stat.c                                |   3 +
- fs/utimes.c                              |  59 +++++----
- include/asm-generic/compat.h             |  24 +++-
- include/asm-generic/unistd.h             |  13 --
- include/linux/compat.h                   |  12 +-
- include/linux/compat_time.h              |   5 +
- include/linux/futex.h                    |   8 --
- include/linux/socket.h                   |  19 ++-
- include/linux/syscalls.h                 |  25 ++--
- include/uapi/asm-generic/unistd.h        |   2 +
- kernel/Makefile                          |   3 -
- kernel/futex.c                           | 207 +++++++++++++++++++++++++++++--
- kernel/futex_compat.c                    | 202 ------------------------------
- kernel/sched/core.c                      |   4 +-
- kernel/signal.c                          |  68 ++++++++--
- kernel/sys_ni.c                          |   1 +
- net/compat.c                             |  16 +--
- net/socket.c                             |  55 ++++++--
- 50 files changed, 524 insertions(+), 461 deletions(-)
- delete mode 100644 include/asm-generic/unistd.h
- delete mode 100644 kernel/futex_compat.c
-
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index 2af308f13463..17f2211e20f2 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -22,6 +22,7 @@
+ #define __ARCH_WANT_SYS_SIGPENDING
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
++#define __ARCH_WANT_COMPAT_SYS_UTIME
+ #define __ARCH_WANT_SYS_FORK
+ #define __ARCH_WANT_SYS_VFORK
+ 
+diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
+index c2174b80e50e..f47058485f7f 100644
+--- a/arch/mips/include/asm/unistd.h
++++ b/arch/mips/include/asm/unistd.h
+@@ -31,6 +31,7 @@
+ #define __ARCH_WANT_SYS_IPC
+ #define __ARCH_WANT_SYS_PAUSE
+ #define __ARCH_WANT_SYS_UTIME
++#define __ARCH_WANT_COMPAT_SYS_UTIME
+ #define __ARCH_WANT_SYS_WAITPID
+ #define __ARCH_WANT_SYS_SOCKETCALL
+ #define __ARCH_WANT_SYS_GETPGRP
+diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
+index a0c38374fff0..62ffafda0d50 100644
+--- a/arch/parisc/include/asm/unistd.h
++++ b/arch/parisc/include/asm/unistd.h
+@@ -152,6 +152,7 @@ type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)	\
+ #define __ARCH_WANT_COMPAT_SYS_TIME
+ #define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
+ #define __ARCH_WANT_SYS_UTIME
++#define __ARCH_WANT_COMPAT_SYS_UTIME
+ #define __ARCH_WANT_SYS_WAITPID
+ #define __ARCH_WANT_SYS_SOCKETCALL
+ #define __ARCH_WANT_SYS_FADVISE64
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index 9326c9133516..51e56d85815a 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -47,6 +47,7 @@
+ #endif
+ #ifdef CONFIG_PPC64
+ #define __ARCH_WANT_COMPAT_SYS_TIME
++#define __ARCH_WANT_COMPAT_SYS_UTIME
+ #define __ARCH_WANT_SYS_NEWFSTATAT
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
+ #endif
+diff --git a/arch/s390/include/asm/unistd.h b/arch/s390/include/asm/unistd.h
+index a2d583ea526d..b4ba7781d396 100644
+--- a/arch/s390/include/asm/unistd.h
++++ b/arch/s390/include/asm/unistd.h
+@@ -34,6 +34,7 @@
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ # ifdef CONFIG_COMPAT
+ #   define __ARCH_WANT_COMPAT_SYS_TIME
++#   define __ARCH_WANT_COMPAT_SYS_UTIME
+ # endif
+ #define __ARCH_WANT_SYS_FORK
+ #define __ARCH_WANT_SYS_VFORK
+diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
+index f7514d3eae7b..610f6a8a14de 100644
+--- a/arch/sparc/include/asm/unistd.h
++++ b/arch/sparc/include/asm/unistd.h
+@@ -42,6 +42,7 @@
+ #define __ARCH_WANT_SYS_IPC
+ #else
+ #define __ARCH_WANT_COMPAT_SYS_TIME
++#define __ARCH_WANT_COMPAT_SYS_UTIME
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
+ #endif
+ 
+diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
+index 153d2a5e6b02..7d784b8bceb4 100644
+--- a/arch/x86/include/asm/unistd.h
++++ b/arch/x86/include/asm/unistd.h
+@@ -24,6 +24,7 @@
+ #  include <asm/unistd_64.h>
+ #  include <asm/unistd_64_x32.h>
+ #  define __ARCH_WANT_COMPAT_SYS_TIME
++#  define __ARCH_WANT_COMPAT_SYS_UTIME
+ #  define __ARCH_WANT_COMPAT_SYS_PREADV64
+ #  define __ARCH_WANT_COMPAT_SYS_PWRITEV64
+ #  define __ARCH_WANT_COMPAT_SYS_PREADV64V2
+diff --git a/fs/utimes.c b/fs/utimes.c
+index ebc7fb713d91..6318443de15d 100644
+--- a/fs/utimes.c
++++ b/fs/utimes.c
+@@ -218,11 +218,12 @@ SYSCALL_DEFINE2(utime, char __user *, filename, struct utimbuf __user *, times)
+ }
+ #endif
+ 
+-#ifdef CONFIG_COMPAT
++#ifdef CONFIG_COMPAT_32BIT_TIME
+ /*
+  * Not all architectures have sys_utime, so implement this in terms
+  * of sys_utimes.
+  */
++#ifdef __ARCH_WANT_COMPAT_SYS_UTIME
+ COMPAT_SYSCALL_DEFINE2(utime, const char __user *, filename,
+ 		       struct compat_utimbuf __user *, t)
+ {
+@@ -237,6 +238,7 @@ COMPAT_SYSCALL_DEFINE2(utime, const char __user *, filename,
+ 	}
+ 	return do_utimes(AT_FDCWD, filename, t ? tv : NULL, 0);
+ }
++#endif
+ 
+ COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filename, struct compat_timespec __user *, t, int, flags)
+ {
+@@ -253,6 +255,7 @@ COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filena
+ 	return do_utimes(dfd, filename, t ? tv : NULL, flags);
+ }
+ 
++#ifdef __ARCH_WANT_COMPAT_SYS_UTIME
+ static long do_compat_futimesat(unsigned int dfd, const char __user *filename,
+ 				struct compat_timeval __user *t)
+ {
+@@ -285,3 +288,4 @@ COMPAT_SYSCALL_DEFINE2(utimes, const char __user *, filename, struct compat_time
+ 	return do_compat_futimesat(AT_FDCWD, filename, t);
+ }
+ #endif
++#endif
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index c40bc39fe05f..ab0b1f48dc5b 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -113,11 +113,6 @@ typedef __compat_gid32_t	compat_gid_t;
+ struct compat_sel_arg_struct;
+ struct rusage;
+ 
+-struct compat_utimbuf {
+-	compat_time_t		actime;
+-	compat_time_t		modtime;
+-};
+-
+ struct compat_itimerval {
+ 	struct compat_timeval	it_interval;
+ 	struct compat_timeval	it_value;
+diff --git a/include/linux/compat_time.h b/include/linux/compat_time.h
+index e70bfd1d2c3f..df1b2c638f32 100644
+--- a/include/linux/compat_time.h
++++ b/include/linux/compat_time.h
+@@ -22,6 +22,11 @@ struct compat_itimerspec {
+ 	struct compat_timespec it_value;
+ };
+ 
++struct compat_utimbuf {
++	compat_time_t	actime;
++	compat_time_t	modtime;
++};
++
+ extern int compat_get_timespec64(struct timespec64 *, const void __user *);
+ extern int compat_put_timespec64(const struct timespec64 *, void __user *);
+ extern int get_compat_itimerspec64(struct itimerspec64 *its,
 -- 
 2.9.0
