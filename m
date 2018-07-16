@@ -1,188 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57312 "EHLO
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57436 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728415AbeGPScV (ORCPT
+        by vger.kernel.org with ESMTP id S1729810AbeGPScW (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Jul 2018 14:32:21 -0400
+        Mon, 16 Jul 2018 14:32:22 -0400
 Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6GHxGrH117935
-        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 14:03:49 -0400
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2k9031gj1u-1
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6GHxHt2118025
+        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 14:03:50 -0400
+Received: from e17.ny.us.ibm.com (e17.ny.us.ibm.com [129.33.205.207])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2k9031gj2h-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 14:03:48 -0400
+        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 14:03:49 -0400
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Mon, 16 Jul 2018 14:03:48 -0400
+        Mon, 16 Jul 2018 14:03:49 -0400
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 11/14] locking: Clarify requirements for smp_mb__after_spinlock()
-Date: Mon, 16 Jul 2018 11:06:02 -0700
+Subject: [PATCH memory-model 05/14] tools/memory-model: Remove ACCESS_ONCE() from recipes
+Date: Mon, 16 Jul 2018 11:05:56 -0700
 In-Reply-To: <20180716180540.GA14222@linux.vnet.ibm.com>
 References: <20180716180540.GA14222@linux.vnet.ibm.com>
-Message-ID: <20180716180605.16115-11-paulmck@linux.vnet.ibm.com>
+Message-ID: <20180716180605.16115-5-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Ingo Molnar <mingo@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180716180602.kYDg0xp5I6aRjyRvMskuimso1tvE4FALEC6fXqafVPY@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Mark Rutland <mark.rutland@arm.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180716180556.bvkb77UTGSNSePKllQPg-27O_u3wQsvYhBD8QqEO7KM@z>
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+From: Mark Rutland <mark.rutland@arm.com>
 
-There are 11 interpretations of the requirements described in the header
-comment for smp_mb__after_spinlock(): one for each LKMM maintainer, and
-one currently encoded in the Cat file. Stick to the latter (until a more
-satisfactory solution is available).
+Since commit:
 
-This also reworks some snippets related to the barrier to illustrate the
-requirements and to link them to the idioms which are relied upon at its
-call sites.
+  b899a850431e2dd0 ("compiler.h: Remove ACCESS_ONCE()")
 
-Suggested-by: Boqun Feng <boqun.feng@gmail.com>
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Acked-by: Peter Zijlstra <peterz@infradead.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>
+... there has been no definition of ACCESS_ONCE() in the kernel tree,
+and it has been necessary to use READ_ONCE() or WRITE_ONCE() instead.
+
+Let's update the exmaples in recipes.txt likewise for consistency, using
+READ_ONCE() for reads.
+
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
 Cc: Will Deacon <will.deacon@arm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+Cc: Luc Maranget <luc.maranget@inria.fr>
+Cc: Akira Yokosawa <akiyks@gmail.com>
+Acked-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- include/linux/spinlock.h | 53 +++++++++++++++++++++++++++-------------
- kernel/sched/core.c      | 41 ++++++++++++++++---------------
- 2 files changed, 57 insertions(+), 37 deletions(-)
+ tools/memory-model/Documentation/recipes.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
-index 1e8a46435838..d70a06ff2bdd 100644
---- a/include/linux/spinlock.h
-+++ b/include/linux/spinlock.h
-@@ -114,29 +114,48 @@ do {								\
- #endif /*arch_spin_is_contended*/
+diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
+index ee4309a87fc4..1fea8ef2b184 100644
+--- a/tools/memory-model/Documentation/recipes.txt
++++ b/tools/memory-model/Documentation/recipes.txt
+@@ -322,9 +322,9 @@ the following write-side code fragment:
+ And the xlog_valid_lsn() function in fs/xfs/xfs_log_priv.h contains
+ the corresponding read-side code fragment:
  
- /*
-- * This barrier must provide two things:
-+ * smp_mb__after_spinlock() provides the equivalent of a full memory barrier
-+ * between program-order earlier lock acquisitions and program-order later
-+ * memory accesses.
-  *
-- *   - it must guarantee a STORE before the spin_lock() is ordered against a
-- *     LOAD after it, see the comments at its two usage sites.
-+ * This guarantees that the following two properties hold:
-  *
-- *   - it must ensure the critical section is RCsc.
-+ *   1) Given the snippet:
-  *
-- * The latter is important for cases where we observe values written by other
-- * CPUs in spin-loops, without barriers, while being subject to scheduling.
-+ *	  { X = 0;  Y = 0; }
-  *
-- * CPU0			CPU1			CPU2
-+ *	  CPU0				CPU1
-  *
-- *			for (;;) {
-- *			  if (READ_ONCE(X))
-- *			    break;
-- *			}
-- * X=1
-- *			<sched-out>
-- *						<sched-in>
-- *						r = X;
-+ *	  WRITE_ONCE(X, 1);		WRITE_ONCE(Y, 1);
-+ *	  spin_lock(S);			smp_mb();
-+ *	  smp_mb__after_spinlock();	r1 = READ_ONCE(X);
-+ *	  r0 = READ_ONCE(Y);
-+ *	  spin_unlock(S);
-  *
-- * without transitivity it could be that CPU1 observes X!=0 breaks the loop,
-- * we get migrated and CPU2 sees X==0.
-+ *      it is forbidden that CPU0 does not observe CPU1's store to Y (r0 = 0)
-+ *      and CPU1 does not observe CPU0's store to X (r1 = 0); see the comments
-+ *      preceding the call to smp_mb__after_spinlock() in __schedule() and in
-+ *      try_to_wake_up().
-+ *
-+ *   2) Given the snippet:
-+ *
-+ *  { X = 0;  Y = 0; }
-+ *
-+ *  CPU0		CPU1				CPU2
-+ *
-+ *  spin_lock(S);	spin_lock(S);			r1 = READ_ONCE(Y);
-+ *  WRITE_ONCE(X, 1);	smp_mb__after_spinlock();	smp_rmb();
-+ *  spin_unlock(S);	r0 = READ_ONCE(X);		r2 = READ_ONCE(X);
-+ *			WRITE_ONCE(Y, 1);
-+ *			spin_unlock(S);
-+ *
-+ *      it is forbidden that CPU0's critical section executes before CPU1's
-+ *      critical section (r0 = 1), CPU2 observes CPU1's store to Y (r1 = 1)
-+ *      and CPU2 does not observe CPU0's store to X (r2 = 0); see the comments
-+ *      preceding the calls to smp_rmb() in try_to_wake_up() for similar
-+ *      snippets but "projected" onto two CPUs.
-+ *
-+ * Property (2) upgrades the lock to an RCsc lock.
-  *
-  * Since most load-store architectures implement ACQUIRE with an smp_mb() after
-  * the LL/SC loop, they need no further barriers. Similarly all our TSO
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 78d8facba456..7db0662360f1 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -1999,21 +1999,20 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
- 	 * be possible to, falsely, observe p->on_rq == 0 and get stuck
- 	 * in smp_cond_load_acquire() below.
- 	 *
--	 * sched_ttwu_pending()                 try_to_wake_up()
--	 *   [S] p->on_rq = 1;                  [L] P->state
--	 *       UNLOCK rq->lock  -----.
--	 *                              \
--	 *				 +---   RMB
--	 * schedule()                   /
--	 *       LOCK rq->lock    -----'
--	 *       UNLOCK rq->lock
-+	 * sched_ttwu_pending()			try_to_wake_up()
-+	 *   STORE p->on_rq = 1			  LOAD p->state
-+	 *   UNLOCK rq->lock
-+	 *
-+	 * __schedule() (switch to task 'p')
-+	 *   LOCK rq->lock			  smp_rmb();
-+	 *   smp_mb__after_spinlock();
-+	 *   UNLOCK rq->lock
- 	 *
- 	 * [task p]
--	 *   [S] p->state = UNINTERRUPTIBLE     [L] p->on_rq
-+	 *   STORE p->state = UNINTERRUPTIBLE	  LOAD p->on_rq
- 	 *
--	 * Pairs with the UNLOCK+LOCK on rq->lock from the
--	 * last wakeup of our task and the schedule that got our task
--	 * current.
-+	 * Pairs with the LOCK+smp_mb__after_spinlock() on rq->lock in
-+	 * __schedule().  See the comment for smp_mb__after_spinlock().
- 	 */
+-	cur_cycle = ACCESS_ONCE(log->l_curr_cycle);
++	cur_cycle = READ_ONCE(log->l_curr_cycle);
  	smp_rmb();
- 	if (p->on_rq && ttwu_remote(p, wake_flags))
-@@ -2027,15 +2026,17 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
- 	 * One must be running (->on_cpu == 1) in order to remove oneself
- 	 * from the runqueue.
- 	 *
--	 *  [S] ->on_cpu = 1;	[L] ->on_rq
--	 *      UNLOCK rq->lock
--	 *			RMB
--	 *      LOCK   rq->lock
--	 *  [S] ->on_rq = 0;    [L] ->on_cpu
-+	 * __schedule() (switch to task 'p')	try_to_wake_up()
-+	 *   STORE p->on_cpu = 1		  LOAD p->on_rq
-+	 *   UNLOCK rq->lock
-+	 *
-+	 * __schedule() (put 'p' to sleep)
-+	 *   LOCK rq->lock			  smp_rmb();
-+	 *   smp_mb__after_spinlock();
-+	 *   STORE p->on_rq = 0			  LOAD p->on_cpu
- 	 *
--	 * Pairs with the full barrier implied in the UNLOCK+LOCK on rq->lock
--	 * from the consecutive calls to schedule(); the first switching to our
--	 * task, the second putting it to sleep.
-+	 * Pairs with the LOCK+smp_mb__after_spinlock() on rq->lock in
-+	 * __schedule().  See the comment for smp_mb__after_spinlock().
- 	 */
- 	smp_rmb();
+-	cur_block = ACCESS_ONCE(log->l_curr_block);
++	cur_block = READ_ONCE(log->l_curr_block);
  
+ Alternatively, consider the following comment in function
+ perf_output_put_handle() in kernel/events/ring_buffer.c:
 -- 
 2.17.1
