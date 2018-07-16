@@ -1,207 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:35478 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.130]:36886 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730079AbeGPQkL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:11 -0400
+        with ESMTP id S1730897AbeGPQkN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:13 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 08/17] y2038: utimes: Rework #ifdef guards for compat syscalls
-Date: Mon, 16 Jul 2018 18:10:54 +0200
-Message-ID: <20180716161103.16239-9-arnd@arndb.de>
+Subject: [PATCH v2 13/17] y2038: socket: Convert recvmmsg to __kernel_timespec
+Date: Mon, 16 Jul 2018 18:10:59 +0200
+Message-ID: <20180716161103.16239-14-arnd@arndb.de>
 In-Reply-To: <20180716161103.16239-1-arnd@arndb.de>
 References: <20180716161103.16239-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: y2038@lists.linaro.org, hch@infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, albert.aribaud@3adev.fr, netdev@vger.kernel.org, viro@zeniv.linux.org.uk, peterz@infradead.org, dvhart@infradead.org, ebiederm@xmission.com, linux@dominikbrodowski.net, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180716161054.2DW-aWH1_GyKuyZzvvhdTT0I9es1RP5mtMZLQF9Vgp4@z>
+Message-ID: <20180716161059.rWOpRTVunXEzScQ9TidIdaEPuFGQ5aha9lqN2VXg6Jk@z>
 
-After changing over to 64-bit time_t syscalls, many architectures will
-want compat_sys_utimensat() but not respective handlers for utime(),
-utimes() and futimesat(). This adds a new __ARCH_WANT_COMPAT_SYS_UTIME
-to complement __ARCH_WANT_SYS_UTIME. For now, all 64-bit architectures
-that support CONFIG_COMPAT set it, but future 64-bit architectures will
-not (tile would not have needed it either, but got removed).
-
-As older 32-bit architectures get converted to using CONFIG_64BIT_TIME,
-they will have to use __ARCH_WANT_COMPAT_SYS_UTIME instead of
-__ARCH_WANT_SYS_UTIME. Architectures using the generic syscall ABI
-don't need either of them as they never had a utime syscall.
-
-Since the compat_utimbuf structure is now required outside of
-CONFIG_COMPAT, I'm moving it into compat_time.h.
+This converts the recvmmsg() system call in all its variations to use
+'timespec64' internally for its timeout, and have a __kernel_timespec64
+argument in the native entry point. This lets us change the type to use
+64-bit time_t at a later point while using the 32-bit compat system call
+emulation for existing user space.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
-If we proceed with Christoph's suggestion of renaming all the compat
-time handling to something that doesn't have compat in the name,
-the new macro here would have to get renamed as well.
----
- arch/arm64/include/asm/unistd.h   | 1 +
- arch/mips/include/asm/unistd.h    | 1 +
- arch/parisc/include/asm/unistd.h  | 1 +
- arch/powerpc/include/asm/unistd.h | 1 +
- arch/s390/include/asm/unistd.h    | 1 +
- arch/sparc/include/asm/unistd.h   | 1 +
- arch/x86/include/asm/unistd.h     | 1 +
- fs/utimes.c                       | 6 +++++-
- include/linux/compat.h            | 5 -----
- include/linux/compat_time.h       | 5 +++++
- 10 files changed, 17 insertions(+), 6 deletions(-)
+ include/linux/socket.h   |  4 ++--
+ include/linux/syscalls.h |  2 +-
+ net/compat.c             |  6 +++---
+ net/socket.c             | 18 ++++++++----------
+ 4 files changed, 14 insertions(+), 16 deletions(-)
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index 2af308f13463..17f2211e20f2 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -22,6 +22,7 @@
- #define __ARCH_WANT_SYS_SIGPENDING
- #define __ARCH_WANT_SYS_SIGPROCMASK
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
-+#define __ARCH_WANT_COMPAT_SYS_UTIME
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 7ed4713d5337..8b571e9b9f76 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -348,7 +348,7 @@ struct ucred {
+ extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr_storage *kaddr);
+ extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
  
-diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
-index c2174b80e50e..f47058485f7f 100644
---- a/arch/mips/include/asm/unistd.h
-+++ b/arch/mips/include/asm/unistd.h
-@@ -31,6 +31,7 @@
- #define __ARCH_WANT_SYS_IPC
- #define __ARCH_WANT_SYS_PAUSE
- #define __ARCH_WANT_SYS_UTIME
-+#define __ARCH_WANT_COMPAT_SYS_UTIME
- #define __ARCH_WANT_SYS_WAITPID
- #define __ARCH_WANT_SYS_SOCKETCALL
- #define __ARCH_WANT_SYS_GETPGRP
-diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
-index a0c38374fff0..62ffafda0d50 100644
---- a/arch/parisc/include/asm/unistd.h
-+++ b/arch/parisc/include/asm/unistd.h
-@@ -152,6 +152,7 @@ type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)	\
- #define __ARCH_WANT_COMPAT_SYS_TIME
- #define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
- #define __ARCH_WANT_SYS_UTIME
-+#define __ARCH_WANT_COMPAT_SYS_UTIME
- #define __ARCH_WANT_SYS_WAITPID
- #define __ARCH_WANT_SYS_SOCKETCALL
- #define __ARCH_WANT_SYS_FADVISE64
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index 9326c9133516..51e56d85815a 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -47,6 +47,7 @@
- #endif
- #ifdef CONFIG_PPC64
- #define __ARCH_WANT_COMPAT_SYS_TIME
-+#define __ARCH_WANT_COMPAT_SYS_UTIME
- #define __ARCH_WANT_SYS_NEWFSTATAT
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
- #endif
-diff --git a/arch/s390/include/asm/unistd.h b/arch/s390/include/asm/unistd.h
-index a2d583ea526d..b4ba7781d396 100644
---- a/arch/s390/include/asm/unistd.h
-+++ b/arch/s390/include/asm/unistd.h
-@@ -34,6 +34,7 @@
- #define __ARCH_WANT_SYS_SIGPROCMASK
- # ifdef CONFIG_COMPAT
- #   define __ARCH_WANT_COMPAT_SYS_TIME
-+#   define __ARCH_WANT_COMPAT_SYS_UTIME
- # endif
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
-diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
-index f7514d3eae7b..610f6a8a14de 100644
---- a/arch/sparc/include/asm/unistd.h
-+++ b/arch/sparc/include/asm/unistd.h
-@@ -42,6 +42,7 @@
- #define __ARCH_WANT_SYS_IPC
- #else
- #define __ARCH_WANT_COMPAT_SYS_TIME
-+#define __ARCH_WANT_COMPAT_SYS_UTIME
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
- #endif
+-struct timespec;
++struct timespec64;
  
-diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
-index 153d2a5e6b02..7d784b8bceb4 100644
---- a/arch/x86/include/asm/unistd.h
-+++ b/arch/x86/include/asm/unistd.h
-@@ -24,6 +24,7 @@
- #  include <asm/unistd_64.h>
- #  include <asm/unistd_64_x32.h>
- #  define __ARCH_WANT_COMPAT_SYS_TIME
-+#  define __ARCH_WANT_COMPAT_SYS_UTIME
- #  define __ARCH_WANT_COMPAT_SYS_PREADV64
- #  define __ARCH_WANT_COMPAT_SYS_PWRITEV64
- #  define __ARCH_WANT_COMPAT_SYS_PREADV64V2
-diff --git a/fs/utimes.c b/fs/utimes.c
-index ebc7fb713d91..6318443de15d 100644
---- a/fs/utimes.c
-+++ b/fs/utimes.c
-@@ -218,11 +218,12 @@ SYSCALL_DEFINE2(utime, char __user *, filename, struct utimbuf __user *, times)
- }
- #endif
+ /* The __sys_...msg variants allow MSG_CMSG_COMPAT iff
+  * forbid_cmsg_compat==false
+@@ -358,7 +358,7 @@ extern long __sys_recvmsg(int fd, struct user_msghdr __user *msg,
+ extern long __sys_sendmsg(int fd, struct user_msghdr __user *msg,
+ 			  unsigned int flags, bool forbid_cmsg_compat);
+ extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+-			  unsigned int flags, struct timespec *timeout);
++			  unsigned int flags, struct timespec64 *timeout);
+ extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
+ 			  unsigned int vlen, unsigned int flags,
+ 			  bool forbid_cmsg_compat);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 4fc93fbc0d00..6871f6901a70 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -830,7 +830,7 @@ asmlinkage long sys_perf_event_open(
+ asmlinkage long sys_accept4(int, struct sockaddr __user *, int __user *, int);
+ asmlinkage long sys_recvmmsg(int fd, struct mmsghdr __user *msg,
+ 			     unsigned int vlen, unsigned flags,
+-			     struct timespec __user *timeout);
++			     struct __kernel_timespec __user *timeout);
  
--#ifdef CONFIG_COMPAT
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- /*
-  * Not all architectures have sys_utime, so implement this in terms
-  * of sys_utimes.
+ asmlinkage long sys_wait4(pid_t pid, int __user *stat_addr,
+ 				int options, struct rusage __user *ru);
+diff --git a/net/compat.c b/net/compat.c
+index 7242cce5631b..0380fbb9a321 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -817,18 +817,18 @@ static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+ 				 struct compat_timespec __user *timeout)
+ {
+ 	int datagrams;
+-	struct timespec ktspec;
++	struct timespec64 ktspec;
+ 
+ 	if (timeout == NULL)
+ 		return __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
+ 				      flags | MSG_CMSG_COMPAT, NULL);
+ 
+-	if (compat_get_timespec(&ktspec, timeout))
++	if (compat_get_timespec64(&ktspec, timeout))
+ 		return -EFAULT;
+ 
+ 	datagrams = __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
+ 				   flags | MSG_CMSG_COMPAT, &ktspec);
+-	if (datagrams > 0 && compat_put_timespec(&ktspec, timeout))
++	if (datagrams > 0 && compat_put_timespec64(&ktspec, timeout))
+ 		datagrams = -EFAULT;
+ 
+ 	return datagrams;
+diff --git a/net/socket.c b/net/socket.c
+index 173d7c949218..c0838a278cfd 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -2333,7 +2333,7 @@ SYSCALL_DEFINE3(recvmsg, int, fd, struct user_msghdr __user *, msg,
   */
-+#ifdef __ARCH_WANT_COMPAT_SYS_UTIME
- COMPAT_SYSCALL_DEFINE2(utime, const char __user *, filename,
- 		       struct compat_utimbuf __user *, t)
+ 
+ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+-		   unsigned int flags, struct timespec *timeout)
++		   unsigned int flags, struct timespec64 *timeout)
  {
-@@ -237,6 +238,7 @@ COMPAT_SYSCALL_DEFINE2(utime, const char __user *, filename,
- 	}
- 	return do_utimes(AT_FDCWD, filename, t ? tv : NULL, 0);
- }
-+#endif
+ 	int fput_needed, err, datagrams;
+ 	struct socket *sock;
+@@ -2398,8 +2398,7 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
  
- COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filename, struct compat_timespec __user *, t, int, flags)
+ 		if (timeout) {
+ 			ktime_get_ts64(&timeout64);
+-			*timeout = timespec64_to_timespec(
+-					timespec64_sub(end_time, timeout64));
++			*timeout = timespec64_sub(end_time, timeout64);
+ 			if (timeout->tv_sec < 0) {
+ 				timeout->tv_sec = timeout->tv_nsec = 0;
+ 				break;
+@@ -2445,10 +2444,10 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+ 
+ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+ 			   unsigned int vlen, unsigned int flags,
+-			   struct timespec __user *timeout)
++			   struct __kernel_timespec __user *timeout)
  {
-@@ -253,6 +255,7 @@ COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filena
- 	return do_utimes(dfd, filename, t ? tv : NULL, flags);
- }
+ 	int datagrams;
+-	struct timespec timeout_sys;
++	struct timespec64 timeout_sys;
  
-+#ifdef __ARCH_WANT_COMPAT_SYS_UTIME
- static long do_compat_futimesat(unsigned int dfd, const char __user *filename,
- 				struct compat_timeval __user *t)
+ 	if (flags & MSG_CMSG_COMPAT)
+ 		return -EINVAL;
+@@ -2456,13 +2455,12 @@ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+ 	if (!timeout)
+ 		return __sys_recvmmsg(fd, mmsg, vlen, flags, NULL);
+ 
+-	if (copy_from_user(&timeout_sys, timeout, sizeof(timeout_sys)))
++	if (get_timespec64(&timeout_sys, timeout))
+ 		return -EFAULT;
+ 
+ 	datagrams = __sys_recvmmsg(fd, mmsg, vlen, flags, &timeout_sys);
+ 
+-	if (datagrams > 0 &&
+-	    copy_to_user(timeout, &timeout_sys, sizeof(timeout_sys)))
++	if (datagrams > 0 && put_timespec64(&timeout_sys, timeout))
+ 		datagrams = -EFAULT;
+ 
+ 	return datagrams;
+@@ -2470,7 +2468,7 @@ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+ 
+ SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
+ 		unsigned int, vlen, unsigned int, flags,
+-		struct timespec __user *, timeout)
++		struct __kernel_timespec __user *, timeout)
  {
-@@ -285,3 +288,4 @@ COMPAT_SYSCALL_DEFINE2(utimes, const char __user *, filename, struct compat_time
- 	return do_compat_futimesat(AT_FDCWD, filename, t);
+ 	return do_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
  }
- #endif
-+#endif
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index c40bc39fe05f..ab0b1f48dc5b 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -113,11 +113,6 @@ typedef __compat_gid32_t	compat_gid_t;
- struct compat_sel_arg_struct;
- struct rusage;
- 
--struct compat_utimbuf {
--	compat_time_t		actime;
--	compat_time_t		modtime;
--};
--
- struct compat_itimerval {
- 	struct compat_timeval	it_interval;
- 	struct compat_timeval	it_value;
-diff --git a/include/linux/compat_time.h b/include/linux/compat_time.h
-index e70bfd1d2c3f..df1b2c638f32 100644
---- a/include/linux/compat_time.h
-+++ b/include/linux/compat_time.h
-@@ -22,6 +22,11 @@ struct compat_itimerspec {
- 	struct compat_timespec it_value;
- };
- 
-+struct compat_utimbuf {
-+	compat_time_t	actime;
-+	compat_time_t	modtime;
-+};
-+
- extern int compat_get_timespec64(struct timespec64 *, const void __user *);
- extern int compat_put_timespec64(const struct timespec64 *, void __user *);
- extern int get_compat_itimerspec64(struct itimerspec64 *its,
+@@ -2593,7 +2591,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		break;
+ 	case SYS_RECVMMSG:
+ 		err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
+-				      a[3], (struct timespec __user *)a[4]);
++				      a[3], (struct __kernel_timespec __user *)a[4]);
+ 		break;
+ 	case SYS_ACCEPT4:
+ 		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
 -- 
 2.9.0
