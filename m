@@ -1,119 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:41887 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.134]:56147 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728300AbeGPQkL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:11 -0400
+        with ESMTP id S1727970AbeGPQkD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 12:40:03 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 10/17] y2038: futex: Add support for __kernel_timespec
-Date: Mon, 16 Jul 2018 18:10:56 +0200
-Message-ID: <20180716161103.16239-11-arnd@arndb.de>
+Subject: [PATCH v2 05/17] asm-generic: Remove empty asm/unistd.h
+Date: Mon, 16 Jul 2018 18:10:51 +0200
+Message-ID: <20180716161103.16239-6-arnd@arndb.de>
 In-Reply-To: <20180716161103.16239-1-arnd@arndb.de>
 References: <20180716161103.16239-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: y2038@lists.linaro.org, hch@infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, albert.aribaud@3adev.fr, netdev@vger.kernel.org, viro@zeniv.linux.org.uk, peterz@infradead.org, dvhart@infradead.org, ebiederm@xmission.com, linux@dominikbrodowski.net, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180716161056.UVU9eJjADju0XKr_opJlLq2QXqzKcvn92uByfR72T70@z>
+Message-ID: <20180716161051.oICuZ9OMWMuo50f93SsVAgNwbUGXk04qwcCf-aie1Cc@z>
 
-This prepares sys_futex for y2038 safe calling: the native
-syscall is changed to receive a __kernel_timespec argument, which
-will be switched to 64-bit time_t in the future. All the internal
-time handling gets changed to timespec64, and the compat_sys_futex
-entry point is moved under the CONFIG_COMPAT_32BIT_TIME check
-to provide compatibility for existing 32-bit architectures.
+Nothing is left in asm/unistd.h except for the redirect to
+uapi/asm/unistd.h, so removing the file simply leads to that one being
+used directly.  The linux/export.h inclusion is a leftover from commit
+e1b5bb6d1236 ("consolidate cond_syscall and SYSCALL_ALIAS declarations")
+and should not be used anyway.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/syscalls.h |  2 +-
- kernel/futex.c           | 22 ++++++++++++----------
- 2 files changed, 13 insertions(+), 11 deletions(-)
+ include/asm-generic/unistd.h | 3 ---
+ 1 file changed, 3 deletions(-)
+ delete mode 100644 include/asm-generic/unistd.h
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 312c248f1fe6..fc98024d3b5e 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -541,7 +541,7 @@ asmlinkage long sys_unshare(unsigned long unshare_flags);
- 
- /* kernel/futex.c */
- asmlinkage long sys_futex(u32 __user *uaddr, int op, u32 val,
--			struct timespec __user *utime, u32 __user *uaddr2,
-+			struct __kernel_timespec __user *utime, u32 __user *uaddr2,
- 			u32 val3);
- asmlinkage long sys_get_robust_list(int pid,
- 				    struct robust_list_head __user * __user *head_ptr,
-diff --git a/kernel/futex.c b/kernel/futex.c
-index e9013d1e65a1..129555a3b64d 100644
---- a/kernel/futex.c
-+++ b/kernel/futex.c
-@@ -3556,10 +3556,10 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
- 
- 
- SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
--		struct timespec __user *, utime, u32 __user *, uaddr2,
-+		struct __kernel_timespec __user *, utime, u32 __user *, uaddr2,
- 		u32, val3)
- {
--	struct timespec ts;
-+	struct timespec64 ts;
- 	ktime_t t, *tp = NULL;
- 	u32 val2 = 0;
- 	int cmd = op & FUTEX_CMD_MASK;
-@@ -3569,12 +3569,12 @@ SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
- 		      cmd == FUTEX_WAIT_REQUEUE_PI)) {
- 		if (unlikely(should_fail_futex(!(op & FUTEX_PRIVATE_FLAG))))
- 			return -EFAULT;
--		if (copy_from_user(&ts, utime, sizeof(ts)) != 0)
-+		if (get_timespec64(&ts, utime))
- 			return -EFAULT;
--		if (!timespec_valid(&ts))
-+		if (!timespec64_valid(&ts))
- 			return -EINVAL;
- 
--		t = timespec_to_ktime(ts);
-+		t = timespec64_to_ktime(ts);
- 		if (cmd == FUTEX_WAIT)
- 			t = ktime_add_safe(ktime_get(), t);
- 		tp = &t;
-@@ -3745,12 +3745,14 @@ COMPAT_SYSCALL_DEFINE3(get_robust_list, int, pid,
- 
- 	return ret;
- }
-+#endif /* CONFIG_COMPAT */
- 
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
- 		struct compat_timespec __user *, utime, u32 __user *, uaddr2,
- 		u32, val3)
- {
--	struct timespec ts;
-+	struct timespec64 ts;
- 	ktime_t t, *tp = NULL;
- 	int val2 = 0;
- 	int cmd = op & FUTEX_CMD_MASK;
-@@ -3758,12 +3760,12 @@ COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
- 	if (utime && (cmd == FUTEX_WAIT || cmd == FUTEX_LOCK_PI ||
- 		      cmd == FUTEX_WAIT_BITSET ||
- 		      cmd == FUTEX_WAIT_REQUEUE_PI)) {
--		if (compat_get_timespec(&ts, utime))
-+		if (compat_get_timespec64(&ts, utime))
- 			return -EFAULT;
--		if (!timespec_valid(&ts))
-+		if (!timespec64_valid(&ts))
- 			return -EINVAL;
- 
--		t = timespec_to_ktime(ts);
-+		t = timespec64_to_ktime(ts);
- 		if (cmd == FUTEX_WAIT)
- 			t = ktime_add_safe(ktime_get(), t);
- 		tp = &t;
-@@ -3774,7 +3776,7 @@ COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
- 
- 	return do_futex(uaddr, op, val, tp, uaddr2, val2, val3);
- }
--#endif /* CONFIG_COMPAT */
-+#endif /* CONFIG_COMPAT_32BIT_TIME */
- 
- static void __init futex_detect_cmpxchg(void)
- {
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+deleted file mode 100644
+index 71d2fcf9dbcd..000000000000
+--- a/include/asm-generic/unistd.h
++++ /dev/null
+@@ -1,3 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#include <uapi/asm-generic/unistd.h>
+-#include <linux/export.h>
 -- 
 2.9.0
