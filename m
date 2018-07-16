@@ -1,151 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f66.google.com ([209.85.208.66]:34964 "EHLO
-        mail-ed1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731128AbeGPMsv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 08:48:51 -0400
-Received: by mail-ed1-f66.google.com with SMTP id b10-v6so29800479edi.2
-        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 05:21:38 -0700 (PDT)
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:39251 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727953AbeGPMsp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jul 2018 08:48:45 -0400
+Received: by mail-ed1-f67.google.com with SMTP id w14-v6so29805280eds.6
+        for <linux-arch@vger.kernel.org>; Mon, 16 Jul 2018 05:21:33 -0700 (PDT)
 From: Martijn Coenen <maco@android.com>
-Subject: [PATCH 4/6] modpost: add support for generating namespace dependencies.
-Date: Mon, 16 Jul 2018 14:21:23 +0200
-Message-ID: <20180716122125.175792-5-maco@android.com>
-In-Reply-To: <20180716122125.175792-1-maco@android.com>
-References: <20180716122125.175792-1-maco@android.com>
+Subject: [PATCH 0/6] Symbol namespaces
+Date: Mon, 16 Jul 2018 14:21:19 +0200
+Message-ID: <20180716122125.175792-1-maco@android.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Martijn Coenen <maco@android.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, maco@google.com, sspatil@google.com, malchev@google.com, joelaf@google.com
-Message-ID: <20180716122123.8J9xFMJP49Zn6p242FAcZ8YhxH8eaMKjV4K8NnXhyr8@z>
+Message-ID: <20180716122119.0nOeVgWiy_ySPZKq61L1CN3gDR7LJ23KXMQJIJ01_ZM@z>
 
-This patch adds an option to modpost to generate a .ns_deps file per
-module, containing the namespace depedencies for that module.
+As of Linux 4.17, there are more than 30000 exported symbols
+in the kernel. There seems to be some consensus amongst
+kernel devs that the export surface is too large, and hard
+to reason about.
 
-This file can subsequently be used by other tools to automatically add
-newly introduced namespaces to the modules that require them, saving a
-lot of manual work.
+Generally, these symbols fall in one of these categories:
+1) Symbols actually meant for drivers
+2) Symbols that are only exported because functionality is
+   split over multiple modules, yet they really shouldn't
+   be used by modules outside of their own subsystem
+3) Symbols really only meant for in-tree use
 
-Signed-off-by: Martijn Coenen <maco@android.com>
----
- scripts/mod/modpost.c | 58 +++++++++++++++++++++++++++++++++++++++----
- scripts/mod/modpost.h |  2 ++
- 2 files changed, 55 insertions(+), 5 deletions(-)
+When module developers try to upstream their code, it
+regularly turns out that they are using exported symbols
+that they really shouldn't be using. This problem is even
+bigger for drivers that are currently out-of-tree, which
+may be using many symbols that they shouldn't be using,
+and that break when those symbols are removed or modified.
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index a56a8461a96a..be33d60d5527 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -39,6 +39,8 @@ static int sec_mismatch_verbose = 1;
- static int sec_mismatch_fatal = 0;
- /* ignore missing files */
- static int ignore_missing_files;
-+/* Write namespace dependencies */
-+static int write_ns_deps;
- 
- enum export {
- 	export_plain,      export_unused,     export_gpl,
-@@ -2151,10 +2153,15 @@ static void check_exports(struct module *mod)
- 		else
- 			basename = mod->name;
- 
--		if (exp->ns && !module_imports_namespace(mod, exp->ns)) {
--			warn("module %s uses symbol %s from namespace %s, "
--			     "but does not import it.\n",
--			     basename, exp->name, exp->ns);
-+		if (exp->ns) {
-+			add_namespace(&mod->required_namespaces, exp->ns);
-+
-+			if (!write_ns_deps &&
-+			    !module_imports_namespace(mod, exp->ns)) {
-+				warn("module %s uses symbol %s from namespace "
-+				     "%s, but does not import it.\n",
-+				     basename, exp->name, exp->ns);
-+			}
- 		}
- 
- 		if (!mod->gpl_compatible)
-@@ -2457,6 +2464,38 @@ static void write_dump(const char *fname)
- 	free(buf.p);
- }
- 
-+static void write_ns_deps_files(void)
-+{
-+	struct module *mod;
-+	struct namespace_list *ns;
-+	struct buffer ns_deps_buf = { };
-+
-+	for (mod = modules; mod; mod = mod->next) {
-+		char fname[PATH_MAX];
-+		const char *basename;
-+
-+		if (mod->skip)
-+			continue;
-+
-+		ns_deps_buf.pos = 0;
-+
-+		for (ns = mod->required_namespaces; ns; ns = ns->next)
-+			buf_printf(&ns_deps_buf, "%s\n", ns->namespace);
-+
-+		if (ns_deps_buf.pos == 0)
-+			continue;
-+
-+		basename = strrchr(mod->name, '/');
-+		if (basename)
-+			basename++;
-+		else
-+			basename = mod->name;
-+
-+		sprintf(fname, ".tmp_versions/%s.ns_deps", basename);
-+		write_if_changed(&ns_deps_buf, fname);
-+	}
-+}
-+
- struct ext_sym_list {
- 	struct ext_sym_list *next;
- 	const char *file;
-@@ -2473,7 +2512,7 @@ int main(int argc, char **argv)
- 	struct ext_sym_list *extsym_iter;
- 	struct ext_sym_list *extsym_start = NULL;
- 
--	while ((opt = getopt(argc, argv, "i:I:e:mnsST:o:awM:K:E")) != -1) {
-+	while ((opt = getopt(argc, argv, "i:I:e:mnsST:o:awM:K:Ed")) != -1) {
- 		switch (opt) {
- 		case 'i':
- 			kernel_read = optarg;
-@@ -2517,6 +2556,9 @@ int main(int argc, char **argv)
- 		case 'E':
- 			sec_mismatch_fatal = 1;
- 			break;
-+		case 'd':
-+			write_ns_deps = 1;
-+			break;
- 		default:
- 			exit(1);
- 		}
-@@ -2545,6 +2587,12 @@ int main(int argc, char **argv)
- 		check_exports(mod);
- 	}
- 
-+	if (write_ns_deps) {
-+		/* Just write namespace dependencies and exit */
-+		write_ns_deps_files();
-+		return 0;
-+	}
-+
- 	err = 0;
- 
- 	for (mod = modules; mod; mod = mod->next) {
-diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
-index 9626bf3e7424..92a926d375d2 100644
---- a/scripts/mod/modpost.h
-+++ b/scripts/mod/modpost.h
-@@ -126,6 +126,8 @@ struct module {
- 	struct buffer dev_table_buf;
- 	char	     srcversion[25];
- 	int is_dot_o;
-+	// Required namespace dependencies
-+	struct namespace_list *required_namespaces;
- 	// Actual imported namespaces
- 	struct namespace_list *imported_namespaces;
- };
+This patch allows subsystem maintainers to partition their
+exported symbols into separate namespaces, and module
+authors to import such namespaces only when needed.
+
+This allows subsystem maintainers to more easily limit
+availability of these namespaced symbols to other parts of
+the kernel. It can also be used to partition the set of
+exported symbols for documentation purposes; for example,
+a set of symbols that is really only used for debugging
+could be in a "SUBSYSTEM_DEBUG" namespace.
+
+Martijn Coenen (6):
+  export: explicitly align struct kernel_symbol.
+  module: add support for symbol namespaces.
+  modpost: add support for checking symbol namespaces.
+  modpost: add support for generating namespace dependencies.
+  scripts: Coccinelle script for namespace dependencies.
+  RFC: USB: storage: move symbols into USB_STORAGE namespace.
+
+ Makefile                            |  11 +++
+ arch/m68k/include/asm/export.h      |   1 -
+ arch/x86/include/asm/Kbuild         |   1 +
+ arch/x86/include/asm/export.h       |   5 --
+ drivers/usb/storage/alauda.c        |   1 +
+ drivers/usb/storage/cypress_atacb.c |   1 +
+ drivers/usb/storage/datafab.c       |   1 +
+ drivers/usb/storage/ene_ub6250.c    |   1 +
+ drivers/usb/storage/freecom.c       |   1 +
+ drivers/usb/storage/isd200.c        |   1 +
+ drivers/usb/storage/jumpshot.c      |   1 +
+ drivers/usb/storage/karma.c         |   1 +
+ drivers/usb/storage/onetouch.c      |   1 +
+ drivers/usb/storage/realtek_cr.c    |   1 +
+ drivers/usb/storage/sddr09.c        |   1 +
+ drivers/usb/storage/sddr55.c        |   1 +
+ drivers/usb/storage/shuttle_usbat.c |   1 +
+ drivers/usb/storage/uas.c           |   1 +
+ drivers/usb/storage/usb.c           |  20 ++---
+ include/asm-generic/export.h        |   2 +-
+ include/linux/export.h              |  84 ++++++++++++++-----
+ include/linux/module.h              |  13 +++
+ kernel/module.c                     |  79 ++++++++++++++++++
+ scripts/Makefile.modpost            |   4 +-
+ scripts/add_namespace.cocci         |  19 +++++
+ scripts/mod/modpost.c               | 120 ++++++++++++++++++++++++++--
+ scripts/mod/modpost.h               |   9 +++
+ scripts/nsdeps                      |  41 ++++++++++
+ 28 files changed, 379 insertions(+), 44 deletions(-)
+ delete mode 100644 arch/x86/include/asm/export.h
+ create mode 100644 scripts/add_namespace.cocci
+ create mode 100644 scripts/nsdeps
+
 -- 
 2.18.0.203.gfac676dfb9-goog
