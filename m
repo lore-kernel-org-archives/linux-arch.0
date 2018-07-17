@@ -1,10 +1,18 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v14 22/22] selftests/vm: test correct behavior of pkey-0
-Date: Tue, 17 Jul 2018 06:49:25 -0700
-Message-ID: <1531835365-32387-23-git-send-email-linuxram@us.ibm.com>
-References: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
+Subject: Re: [PATCH v13 08/24] selftests/vm: fix the wrong assert in
+ pkey_disable_set()
+Date: Tue, 17 Jul 2018 08:58:48 -0700
+Message-ID: <20180717155848.GA5790@ram.oc3035372033.ibm.com>
+References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+ <1528937115-10132-9-git-send-email-linuxram@us.ibm.com>
+ <3c441309-1d35-eead-0c5d-1d7d20018219@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <3c441309-1d35-eead-0c5d-1d7d20018219@intel.com>
+Content-Disposition: inline
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -15,111 +23,38 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
  <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-Ensure pkey-0 is allocated on start.  Ensure pkey-0 can be attached
-dynamically in various modes, without failures.  Ensure pkey-0 can be
-freed and allocated.
+On Wed, Jun 20, 2018 at 07:47:02AM -0700, Dave Hansen wrote:
+> On 06/13/2018 05:44 PM, Ram Pai wrote:
+> > If the flag is 0, no bits will be set. Hence we cant expect
+> > the resulting bitmap to have a higher value than what it
+> > was earlier
+> ...
+> >  	if (flags)
+> > -		pkey_assert(read_pkey_reg() > orig_pkey_reg);
+> > +		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
+> >  	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+> >  		pkey, flags);
+> >  }
+> 
+> This is the kind of thing where I'd love to hear the motivation and
+> background.  This "disable a key that was already disabled" operation
+> obviously doesn't happen today.  What motivated you to change it now?
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- tools/testing/selftests/vm/protection_keys.c |   66 +++++++++++++++++++++++++-
- 1 files changed, 64 insertions(+), 2 deletions(-)
+On powerpc, hardware supports READ_DISABLE and WRITE_DISABLE.
+ACCESS_DISABLE is basically READ_DISABLE|WRITE_DISABLE on powerpc.
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 569faf1..156b449 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -999,6 +999,67 @@ void close_test_fds(void)
- 	return *ptr;
- }
- 
-+void test_pkey_alloc_free_attach_pkey0(int *ptr, u16 pkey)
-+{
-+	int i, err;
-+	int max_nr_pkey_allocs;
-+	int alloced_pkeys[NR_PKEYS];
-+	int nr_alloced = 0;
-+	int newpkey;
-+	long size;
-+
-+	assert(pkey_last_malloc_record);
-+	size = pkey_last_malloc_record->size;
-+	/*
-+	 * This is a bit of a hack.  But mprotect() requires
-+	 * huge-page-aligned sizes when operating on hugetlbfs.
-+	 * So, make sure that we use something that's a multiple
-+	 * of a huge page when we can.
-+	 */
-+	if (size >= HPAGE_SIZE)
-+		size = HPAGE_SIZE;
-+
-+
-+	/* allocate every possible key and make sure key-0 never got allocated */
-+	max_nr_pkey_allocs = NR_PKEYS;
-+	for (i = 0; i < max_nr_pkey_allocs; i++) {
-+		int new_pkey = alloc_pkey();
-+		assert(new_pkey != 0);
-+
-+		if (new_pkey < 0)
-+			break;
-+		alloced_pkeys[nr_alloced++] = new_pkey;
-+	}
-+	/* free all the allocated keys */
-+	for (i = 0; i < nr_alloced; i++) {
-+		int free_ret;
-+
-+		if (!alloced_pkeys[i])
-+			continue;
-+		free_ret = sys_pkey_free(alloced_pkeys[i]);
-+		pkey_assert(!free_ret);
-+	}
-+
-+	/* attach key-0 in various modes */
-+	err = sys_mprotect_pkey(ptr, size, PROT_READ, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_WRITE, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_EXEC, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE|PROT_EXEC, 0);
-+	pkey_assert(!err);
-+
-+	/* free key-0 */
-+	err = sys_pkey_free(0);
-+	pkey_assert(!err);
-+
-+	newpkey = sys_pkey_alloc(0, 0x0);
-+	assert(newpkey == 0);
-+}
-+
- void test_read_of_write_disabled_region(int *ptr, u16 pkey)
- {
- 	int ptr_contents;
-@@ -1144,10 +1205,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
- void test_pkey_syscalls_on_non_allocated_pkey(int *ptr, u16 pkey)
- {
- 	int err;
--	int i = get_start_key();
-+	int i;
- 
- 	/* Note: 0 is the default pkey, so don't mess with it */
--	for (; i < NR_PKEYS; i++) {
-+	for (i=1; i < NR_PKEYS; i++) {
- 		if (pkey == i)
- 			continue;
- 
-@@ -1455,6 +1516,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	test_pkey_syscalls_on_non_allocated_pkey,
- 	test_pkey_syscalls_bad_args,
- 	test_pkey_alloc_exhaust,
-+	test_pkey_alloc_free_attach_pkey0,
- };
- 
- void run_tests_once(void)
+If access disable is called on a key followed by a write disable, the
+second operation becomes a nop. In such cases, 
+       read_pkey_reg() == orig_pkey_reg
+
+
+Hence the code above is modified to 
+	pkey_assert(read_pkey_reg() >= orig_pkey_reg);
+
+
 -- 
-1.7.1
+Ram Pai
