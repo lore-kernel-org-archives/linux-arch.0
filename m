@@ -1,64 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:34098 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730052AbeGQTov (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Jul 2018 15:44:51 -0400
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6HIx5oa130094
-        for <linux-arch@vger.kernel.org>; Tue, 17 Jul 2018 15:10:50 -0400
-Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2k9kcmfagt-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 17 Jul 2018 15:10:49 -0400
-Received: from localhost
-        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Tue, 17 Jul 2018 20:10:47 +0100
-Date: Tue, 17 Jul 2018 12:10:36 -0700
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 19/24] selftests/vm: associate key on a mapped page
- and detect access violation
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <1528937115-10132-20-git-send-email-linuxram@us.ibm.com>
- <048b1de9-85f8-22ff-a31a-b06a382769bb@intel.com>
- <20180717161332.GH5790@ram.oc3035372033.ibm.com>
- <febe6668-c66a-4601-63da-44501faf12ee@intel.com>
-MIME-Version: 1.0
-In-Reply-To: <febe6668-c66a-4601-63da-44501faf12ee@intel.com>
-Message-ID: <20180717191036.GI5790@ram.oc3035372033.ibm.com>
-Content-Type: text/plain; charset=us-ascii
+Received: from mga17.intel.com ([192.55.52.151]:34308 "EHLO mga17.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730055AbeGQXjP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Jul 2018 19:39:15 -0400
+Message-ID: <1531868435.3541.18.camel@intel.com>
+Subject: Re: [RFC PATCH v2 16/27] mm: Modify can_follow_write_pte/pmd for
+ shadow stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Tue, 17 Jul 2018 16:00:35 -0700
+In-Reply-To: <20180711092951.GW2476@hirez.programming.kicks-ass.net>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+         <20180710222639.8241-17-yu-cheng.yu@intel.com>
+         <20180711092951.GW2476@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, fweimer@redhat.com, msuchanek@suse.de, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20180717191036.YONoAYZwFRgjlNeNnSc3kmndzHp4VYloNcC9AnibgC8@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20180717230035.ktE9cbWtCq0FYypyhP0kuTEjN0vRPcEzlKGoxLZ4SMo@z>
 
-On Tue, Jul 17, 2018 at 10:56:08AM -0700, Dave Hansen wrote:
-> On 07/17/2018 09:13 AM, Ram Pai wrote:
-> > I have incorporated almost all of your comments. But there are some
-> > comments that take some effort to implement. Shall we get the patches
-> > merged in the current form?  This code has been sitting out for a while.
+On Wed, 2018-07-11 at 11:29 +0200, Peter Zijlstra wrote:
+> On Tue, Jul 10, 2018 at 03:26:28PM -0700, Yu-cheng Yu wrote:
 > > 
-> > In the current form its tested and works on powerpc and on x86, and
-> > incorporates about 95% of your suggestions. The rest I will take care
-> > as we go.
+> > There are three possible shadow stack PTE settings:
+> > 
+> >   Normal SHSTK PTE: (R/O + DIRTY_HW)
+> >   SHSTK PTE COW'ed: (R/O + DIRTY_HW)
+> >   SHSTK PTE shared as R/O data: (R/O + DIRTY_SW)
+> I count _2_ distinct states there.
 > 
-> What constitutes the remaining 5%?
+> > 
+> > Update can_follow_write_pte/pmd for the shadow stack.
+> So the below disallows can_follow_write when shstk && _PAGE_DIRTY_SW,
+> but this here Changelog doesn't explain why. Doesn't even get close.
 
-Mostly your comments on code-organization in the signal handler. There
-are still some #if defined(__i386__)  ..... Can be cleaned up and
-abstracted further.
+Can we add the following to the log:
 
-Also your questions on some of the code changes, the rationale for which
-is not obvious. Will help to spinkle in some descriptive comments there.
+When a SHSTK PTE is shared, it is (R/O + DIRTY_SW); otherwise it is
+(R/O + DIRTY_HW).
 
-Have fixed up a lot of codying style issues. But there could till be a
-few that may spew warning by checkpatch.pl.
+When we (FOLL_WRITE | FOLL_FORCE) on a SHSTK PTE, the following
+must be true:
 
-There are no functional issues AFAICT.
+  - It has been COW'ed at least once (FOLL_COW is set);
+  - It still is not shared, i.e. PTE is (R/O + DIRTY_HW);
 
-RP
+> 
+> Also, the code is a right mess :/ Can't we try harder to not let this
+> shadow stack stuff escape arch code.
+
+We either check here if the VMA is SHSTK mapping or move the logic
+to pte_dirty().  The latter would be less obvious.  Or can we
+create a can_follow_write_shstk_pte()?
+
+Yu-cheng
