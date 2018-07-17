@@ -1,56 +1,53 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 19/24] selftests/vm: associate key on a mapped page
- and detect access violation
-Date: Tue, 17 Jul 2018 12:10:36 -0700
-Message-ID: <20180717191036.GI5790@ram.oc3035372033.ibm.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <1528937115-10132-20-git-send-email-linuxram@us.ibm.com>
- <048b1de9-85f8-22ff-a31a-b06a382769bb@intel.com>
- <20180717161332.GH5790@ram.oc3035372033.ibm.com>
- <febe6668-c66a-4601-63da-44501faf12ee@intel.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v2 16/27] mm: Modify can_follow_write_pte/pmd for
+ shadow stack
+Date: Tue, 17 Jul 2018 16:00:35 -0700
+Message-ID: <1531868435.3541.18.camel@intel.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+         <20180710222639.8241-17-yu-cheng.yu@intel.com>
+         <20180711092951.GW2476@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <febe6668-c66a-4601-63da-44501faf12ee@intel.com>
-Content-Disposition: inline
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180711092951.GW2476@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Ravi V. Shan
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 17, 2018 at 10:56:08AM -0700, Dave Hansen wrote:
-> On 07/17/2018 09:13 AM, Ram Pai wrote:
-> > I have incorporated almost all of your comments. But there are some
-> > comments that take some effort to implement. Shall we get the patches
-> > merged in the current form?  This code has been sitting out for a while.
+On Wed, 2018-07-11 at 11:29 +0200, Peter Zijlstra wrote:
+> On Tue, Jul 10, 2018 at 03:26:28PM -0700, Yu-cheng Yu wrote:
 > > 
-> > In the current form its tested and works on powerpc and on x86, and
-> > incorporates about 95% of your suggestions. The rest I will take care
-> > as we go.
+> > There are three possible shadow stack PTE settings:
+> > 
+> >   Normal SHSTK PTE: (R/O + DIRTY_HW)
+> >   SHSTK PTE COW'ed: (R/O + DIRTY_HW)
+> >   SHSTK PTE shared as R/O data: (R/O + DIRTY_SW)
+> I count _2_ distinct states there.
 > 
-> What constitutes the remaining 5%?
+> > 
+> > Update can_follow_write_pte/pmd for the shadow stack.
+> So the below disallows can_follow_write when shstk && _PAGE_DIRTY_SW,
+> but this here Changelog doesn't explain why. Doesn't even get close.
 
-Mostly your comments on code-organization in the signal handler. There
-are still some #if defined(__i386__)  ..... Can be cleaned up and
-abstracted further.
+Can we add the following to the log:
 
-Also your questions on some of the code changes, the rationale for which
-is not obvious. Will help to spinkle in some descriptive comments there.
+When a SHSTK PTE is shared, it is (R/O + DIRTY_SW); otherwise it is
+(R/O + DIRTY_HW).
 
-Have fixed up a lot of codying style issues. But there could till be a
-few that may spew warning by checkpatch.pl.
+When we (FOLL_WRITE | FOLL_FORCE) on a SHSTK PTE, the following
+must be true:
 
-There are no functional issues AFAICT.
+  - It has been COW'ed at least once (FOLL_COW is set);
+  - It still is not shared, i.e. PTE is (R/O + DIRTY_HW);
 
-RP
+> 
+> Also, the code is a right mess :/ Can't we try harder to not let this
+> shadow stack stuff escape arch code.
+
+We either check here if the VMA is SHSTK mapping or move the logic
+to pte_dirty().  The latter would be less obvious.  Or can we
+create a can_follow_write_shstk_pte()?
+
+Yu-cheng
