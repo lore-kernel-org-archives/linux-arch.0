@@ -1,17 +1,17 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 10/24] selftests/vm: clear the bits in shadow reg
- when a pkey is freed.
-Date: Tue, 17 Jul 2018 09:00:36 -0700
-Message-ID: <20180717160036.GB5790@ram.oc3035372033.ibm.com>
+Subject: Re: [PATCH v13 13/24] selftests/vm: pkey register should match
+ shadow pkey
+Date: Tue, 17 Jul 2018 09:02:18 -0700
+Message-ID: <20180717160218.GC5790@ram.oc3035372033.ibm.com>
 References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <1528937115-10132-11-git-send-email-linuxram@us.ibm.com>
- <41034628-c643-7a4b-006d-9606201ded6e@intel.com>
+ <1528937115-10132-14-git-send-email-linuxram@us.ibm.com>
+ <6246f823-77d9-6727-097e-73f103078a44@intel.com>
 Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 8bit
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <41034628-c643-7a4b-006d-9606201ded6e@intel.com>
+In-Reply-To: <6246f823-77d9-6727-097e-73f103078a44@intel.com>
 Content-Disposition: inline
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
@@ -27,30 +27,30 @@ To: Dave Hansen <dave.hansen@intel.com>
 Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 20, 2018 at 07:49:31AM -0700, Dave Hansen wrote:
+On Wed, Jun 20, 2018 at 07:53:57AM -0700, Dave Hansen wrote:
 > On 06/13/2018 05:45 PM, Ram Pai wrote:
-> > When a key is freed, the  key  is  no  more  effective.
-> > Clear the bits corresponding to the pkey in the shadow
-> > register. Otherwise  it  will carry some spurious bits
-> > which can trigger false-positive asserts.
-> ...--- a/tools/testing/selftests/vm/protection_keys.c
 > > +++ b/tools/testing/selftests/vm/protection_keys.c
-> > @@ -556,6 +556,9 @@ int alloc_pkey(void)
-> >  int sys_pkey_free(unsigned long pkey)
-> >  {
-> >  	int ret = syscall(SYS_pkey_free, pkey);
-> > +
-> > +	if (!ret)
-> > +		shadow_pkey_reg &= clear_pkey_flags(pkey, PKEY_DISABLE_ACCESS);
-> >  	dprintf1("%s(pkey=%ld) syscall ret: %d\n", __func__, pkey, ret);
-> >  	return ret;
-> >  }
+> > @@ -916,10 +916,10 @@ void expected_pkey_fault(int pkey)
+> >  		pkey_assert(last_si_pkey == pkey);
+> >  
+> >  	/*
+> > -	 * The signal handler shold have cleared out PKEY register to let the
+> > +	 * The signal handler should have cleared out pkey-register to let the
+> >  	 * test program continue.  We now have to restore it.
+> >  	 */
+> > -	if (__read_pkey_reg() != 0)
+> > +	if (__read_pkey_reg() != shadow_pkey_reg)
+> >  		pkey_assert(0);
+> >  
+> >  	__write_pkey_reg(shadow_pkey_reg);
 > 
-> This would be great code for an actual application.  But, I'm not
-> immediately convinced we want sane, kind behavior in our selftest.  x86
-> doesn't clear the hardware register at pkey_free, so wouldn't this cause
-> the shadow and the hardware register to diverge?
+> I think this is wrong on x86.
+> 
+> When we leave the signal handler, we zero out PKRU so that the faulting
+> instruction can continue, that's why we have the check against zero.
+> I'm actually kinda surprised this works.
 
-Have deleted the code in the newer version.
+The code is modified to zero out only the violated key in the signal
+handler. Hence it works. Have verified it to work on x86 aswell.
 
 RP
