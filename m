@@ -1,62 +1,95 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 06/17] y2038: Change sys_utimensat() to use __kernel_timespec
-Date: Tue, 17 Jul 2018 16:27:26 +0200
-Message-ID: <CAK8P3a2eQJMDUpB7FdXYDm9LDD2puLCcW-XShBhhccsm9bbYrw@mail.gmail.com>
-References: <20180716161103.16239-1-arnd@arndb.de> <20180716161103.16239-7-arnd@arndb.de>
- <20180717125243.GE25416@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20180717125243.GE25416@infradead.org>
-Sender: netdev-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Networking <netdev@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W . Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v14 11/22] selftests/vm: introduce two arch independent
+ abstraction
+Date: Tue, 17 Jul 2018 06:49:14 -0700
+Message-ID: <1531835365-32387-12-git-send-email-linuxram@us.ibm.com>
+References: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 17, 2018 at 2:52 PM, Christoph Hellwig <hch@infradead.org> wrote:
-> On Mon, Jul 16, 2018 at 06:10:52PM +0200, Arnd Bergmann wrote:
->> When 32-bit architectures get changed to support 64-bit time_t,
->> utimensat() needs to use the new __kernel_timespec structure as its
->> argument.
->>
->> The older utime(), utimes() and futimesat() system calls don't need a
->> corresponding change as they are no longer used on C libraries that have
->> 64-bit time support.
->>
->> As we do for the other syscalls that have timespec arguments, we reuse
->> the 'compat' syscall entry points to implement the traditional four
->> interfaces, and only leave the new utimensat() as a native handler,
->> so that the same code gets used on both 32-bit and 64-bit kernels
->> on each syscall.
->
-> I wonder about the direction here:  wouldn't it be easier to just
-> leave th existing syscall names as-is and introduce a new utimesat64
-> which uses the new timespec?  We can then drop the old legacy utimesat
-> for new architectures added after the cutover.
+open_hugepage_file() <- opens the huge page file
+get_start_key() <--  provides the first non-reserved key.
 
-We have debated both approaches over several years, but for
-most syscalls, we picked the approach described above, for multiple
-reasons:
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Reviewed-by: Dave Hansen <dave.hansen@intel.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |   10 ++++++++++
+ tools/testing/selftests/vm/pkey-x86.h        |    1 +
+ tools/testing/selftests/vm/protection_keys.c |    6 +++---
+ 3 files changed, 14 insertions(+), 3 deletions(-)
 
-- For any system call that takes a time_t derived argument, we
-  already have two implementations (native and compat), so adding a
-  third one requires duplicating some code.
-
-- I want to avoid adding an implementation that is not well tested
-  if possible, to make it less likely to introduce security holes or
-  subtle bugs that we can't fix later without breaking the ABI.
-  Using the same implementation for the new 32-bit case that
-  we have for the existing 64-bit case means that this code is
-  much better exercised, while reusing the compat code for the
-  traditional native syscall means it gets exercised by all current
-  user space, which makes it more likely to catch bugs early.
-
-- Looking at the end result, I find it more logical to have each
-  of the converted syscalls implement the same binary interface
-  on both 32-bit and 64-bit architectures with the same code,
-  and have the old 32-bit implementation be similarly shared.
-  This is even more important once we add new architectures
-  that don't even provide the 32-bit time_t interfaces and just
-  leave out the old entry points.
-
-    Arnd
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index ada0146..52a1152 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -179,4 +179,14 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ #define __stringify_1(x...)     #x
+ #define __stringify(x...)       __stringify_1(x)
+ 
++static inline int open_hugepage_file(int flag)
++{
++	return open(HUGEPAGE_FILE, flag);
++}
++
++static inline int get_start_key(void)
++{
++	return 1;
++}
++
+ #endif /* _PKEYS_HELPER_H */
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 2b3780d..d5fa299 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -48,6 +48,7 @@
+ #define MB			(1<<20)
+ #define pkey_reg_t		u32
+ #define PKEY_REG_FMT		"%016x"
++#define HUGEPAGE_FILE		"/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
+ 
+ static inline u32 pkey_bit_position(int pkey)
+ {
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 2565b4c..2e448e0 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -788,7 +788,7 @@ void setup_hugetlbfs(void)
+ 	 * Now go make sure that we got the pages and that they
+ 	 * are 2M pages.  Someone might have made 1G the default.
+ 	 */
+-	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
++	fd = open_hugepage_file(O_RDONLY);
+ 	if (fd < 0) {
+ 		perror("opening sysfs 2M hugetlb config");
+ 		return;
+@@ -1075,10 +1075,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
+ void test_pkey_syscalls_on_non_allocated_pkey(int *ptr, u16 pkey)
+ {
+ 	int err;
+-	int i;
++	int i = get_start_key();
+ 
+ 	/* Note: 0 is the default pkey, so don't mess with it */
+-	for (i = 1; i < NR_PKEYS; i++) {
++	for (; i < NR_PKEYS; i++) {
+ 		if (pkey == i)
+ 			continue;
+ 
+-- 
+1.7.1
