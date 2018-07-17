@@ -1,65 +1,55 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 19/24] selftests/vm: associate key on a mapped page
- and detect access violation
-Date: Tue, 17 Jul 2018 09:13:32 -0700
-Message-ID: <20180717161332.GH5790@ram.oc3035372033.ibm.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <1528937115-10132-20-git-send-email-linuxram@us.ibm.com>
- <048b1de9-85f8-22ff-a31a-b06a382769bb@intel.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH RFC tools/memory-model] Model effects of volatile on ctrl
+Date: Tue, 17 Jul 2018 10:10:42 -0700
+Message-ID: <20180717171042.GA2299@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <048b1de9-85f8-22ff-a31a-b06a382769bb@intel.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 20, 2018 at 08:16:44AM -0700, Dave Hansen wrote:
-> On 06/13/2018 05:45 PM, Ram Pai wrote:
-> > +void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
-> > +		u16 pkey)
-> > +{
-> > +	int ptr_contents;
-> > +
-> > +	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
-> > +				pkey, ptr);
-> > +	ptr_contents = read_ptr(ptr);
-> > +	dprintf1("reading ptr before disabling the read : %d\n",
-> > +			ptr_contents);
-> > +	read_pkey_reg();
-> > +	pkey_access_deny(pkey);
-> > +	ptr_contents = read_ptr(ptr);
-> > +	dprintf1("*ptr: %d\n", ptr_contents);
-> > +	expected_pkey_fault(pkey);
-> > +}
-> 
-> Looks fine to me.  I'm a bit surprised we didn't do this already, which
-> is a good thing for this patch.
-> 
-> FWIW, if you took patches like this and put them first, you could
-> probably get it merged now.  Yes, I know it would mean redoing some of
-> the later code move and rename ones.
+This commit models the fact that compilers are not allowed to reorder
+volatile accesses.  This modeling is at best approximate, although it
+does correctly handle C-RomanPenyaev-list-rcu-rr.litmus from the litmus
+github archive.  The approach is to extend control dependencies to
+subsequent volatiles accesses.
 
-I have incorporated almost all of your comments. But there are some
-comments that take some effort to implement. Shall we get the patches
-merged in the current form?  This code has been sitting out for a while.
+Probable issues with this change:
 
-In the current form its tested and works on powerpc and on x86, and
-incorporates about 95% of your suggestions. The rest I will take care
-as we go.
+1.	It does not correctly handle the case of identical WRITE_ONCE()
+	invocations at the beginning of both legs of an "if" statement.
+	(Of course, the current state does not correctly handle this
+	either.)
+    
+2.	It might not correctly handle the ARMv8 conditional-move instruction.
+    
+3.	It is probably missing some handling of atomic RWM operations.
+    
+4.	It does not insist that the initial ctrl dependency end in
+	a volatile access.  This is not yet a problem because we
+	don't yet model unmarked accesses.
 
--- 
-Ram Pai
+That said, this patch is not intended for inclusion, but rather in the
+hope that it inspires someone to come up with something better.
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index 882fc33274ac..f745337ba10e 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -57,7 +57,9 @@ empty rmw & (fre ; coe) as atomic
+ 
+ (* Preserved Program Order *)
+ let dep = addr | data
+-let rwdep = (dep | ctrl) ; [W]
++let volatile = [Once] | [Release] | [Acquire] (* No unmarked accesses. *)
++let ctrl-volatile = ctrl ; (po ; volatile)*
++let rwdep = (dep | ctrl-volatile) ; [W]
+ let overwrite = co | fr
+ let to-w = rwdep | (overwrite & int)
+ let to-r = addr | (dep ; rfi)
