@@ -1,121 +1,121 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH memory-model 10/14] sched: Use smp_mb() in wake_woken_function()
-Date: Mon, 16 Jul 2018 11:06:01 -0700
-Message-ID: <20180716180605.16115-10-paulmck@linux.vnet.ibm.com>
-References: <20180716180540.GA14222@linux.vnet.ibm.com>
+From: Zong Li <zong@andestech.com>
+Subject: [PATCH] module: Add the print format of Elf_Addr for 32/64-bit compatibly
+Date: Tue, 17 Jul 2018 11:05:56 +0800
+Message-ID: <1531796756-16982-1-git-send-email-zong@andestech.com>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180716180540.GA14222@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Ingo Molnar <mingo@redhat.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+To: palmer@sifive.com, aou@eecs.berkeley.edu, arnd@arndb.de, schwab@suse.de, hch@infradead.org, linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: zongbox@gmail.com, greentime@andestech.com, Zong Li <zong@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Use a similar way like fixed width integer types in inttypes.h.
 
-wake_woken_function() synchronizes with wait_woken() as follows:
+For the ELF, the Elf32_Addr is int type and Elf64_Addr is long long
+type. It is opposite to definition of inttypes.h, so the Elf_Addr cannot
+re-use the header.
 
-  [wait_woken]                       [wake_woken_function]
+In many architectures, the module loader only print the message of
+module name and relocation type except the address information. We can
+print the address correctly without compile warning by using PRIdEA,
+PRIxEA and so on.
 
-  entry->flags &= ~wq_flag_woken;    condition = true;
-  smp_mb();                          smp_wmb();
-  if (condition)                     wq_entry->flags |= wq_flag_woken;
-     break;
-
-This commit replaces the above smp_wmb() with an smp_mb() in order to
-guarantee that either wait_woken() sees the wait condition being true
-or the store to wq_entry->flags in woken_wake_function() follows the
-store in wait_woken() in the coherence order (so that the former can
-eventually be observed by wait_woken()).
-
-The commit also fixes a comment associated to set_current_state() in
-wait_woken(): the comment pairs the barrier in set_current_state() to
-the above smp_wmb(), while the actual pairing involves the barrier in
-set_current_state() and the barrier executed by the try_to_wake_up()
-in wake_woken_function().
-
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Signed-off-by: Zong Li <zong@andestech.com>
 ---
- kernel/sched/wait.c | 47 ++++++++++++++++++++-------------------------
- 1 file changed, 21 insertions(+), 26 deletions(-)
+ arch/riscv/kernel/module.c   | 13 +++++++------
+ include/asm-generic/module.h |  9 +++++++++
+ 2 files changed, 16 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/sched/wait.c b/kernel/sched/wait.c
-index 928be527477e..a7a2aaa3026a 100644
---- a/kernel/sched/wait.c
-+++ b/kernel/sched/wait.c
-@@ -392,35 +392,36 @@ static inline bool is_kthread_should_stop(void)
-  *     if (condition)
-  *         break;
-  *
-- *     p->state = mode;				condition = true;
-- *     smp_mb(); // A				smp_wmb(); // C
-- *     if (!wq_entry->flags & WQ_FLAG_WOKEN)	wq_entry->flags |= WQ_FLAG_WOKEN;
-- *         schedule()				try_to_wake_up();
-- *     p->state = TASK_RUNNING;		    ~~~~~~~~~~~~~~~~~~
-- *     wq_entry->flags &= ~WQ_FLAG_WOKEN;		condition = true;
-- *     smp_mb() // B				smp_wmb(); // C
-- *						wq_entry->flags |= WQ_FLAG_WOKEN;
-- * }
-- * remove_wait_queue(&wq_head, &wait);
-+ *     // in wait_woken()			// in woken_wake_function()
-  *
-+ *     p->state = mode;				wq_entry->flags |= WQ_FLAG_WOKEN;
-+ *     smp_mb(); // A				try_to_wake_up():
-+ *     if (!(wq_entry->flags & WQ_FLAG_WOKEN))	   <full barrier>
-+ *         schedule()				   if (p->state & mode)
-+ *     p->state = TASK_RUNNING;			      p->state = TASK_RUNNING;
-+ *     wq_entry->flags &= ~WQ_FLAG_WOKEN;	~~~~~~~~~~~~~~~~~~
-+ *     smp_mb(); // B				condition = true;
-+ * }						smp_mb(); // C
-+ * remove_wait_queue(&wq_head, &wait);		wq_entry->flags |= WQ_FLAG_WOKEN;
-  */
- long wait_woken(struct wait_queue_entry *wq_entry, unsigned mode, long timeout)
+diff --git a/arch/riscv/kernel/module.c b/arch/riscv/kernel/module.c
+index 3303ed2cd419..d839528e491a 100644
+--- a/arch/riscv/kernel/module.c
++++ b/arch/riscv/kernel/module.c
+@@ -16,11 +16,12 @@
+ #include <linux/err.h>
+ #include <linux/errno.h>
+ #include <linux/moduleloader.h>
++#include <asm-generic/module.h>
+ 
+ static int apply_r_riscv_32_rela(struct module *me, u32 *location, Elf_Addr v)
  {
--	set_current_state(mode); /* A */
- 	/*
--	 * The above implies an smp_mb(), which matches with the smp_wmb() from
--	 * woken_wake_function() such that if we observe WQ_FLAG_WOKEN we must
--	 * also observe all state before the wakeup.
-+	 * The below executes an smp_mb(), which matches with the full barrier
-+	 * executed by the try_to_wake_up() in woken_wake_function() such that
-+	 * either we see the store to wq_entry->flags in woken_wake_function()
-+	 * or woken_wake_function() sees our store to current->state.
- 	 */
-+	set_current_state(mode); /* A */
- 	if (!(wq_entry->flags & WQ_FLAG_WOKEN) && !is_kthread_should_stop())
- 		timeout = schedule_timeout(timeout);
- 	__set_current_state(TASK_RUNNING);
+ 	if (v != (u32)v) {
+-		pr_err("%s: value %016llx out of range for 32-bit field\n",
++		pr_err("%s: value %016" PRIxEA "out of range for 32-bit field\n",
+ 		       me->name, v);
+ 		return -EINVAL;
+ 	}
+@@ -101,7 +102,7 @@ static int apply_r_riscv_pcrel_hi20_rela(struct module *me, u32 *location,
  
- 	/*
--	 * The below implies an smp_mb(), it too pairs with the smp_wmb() from
--	 * woken_wake_function() such that we must either observe the wait
--	 * condition being true _OR_ WQ_FLAG_WOKEN such that we will not miss
--	 * an event.
-+	 * The below executes an smp_mb(), which matches with the smp_mb() (C)
-+	 * in woken_wake_function() such that either we see the wait condition
-+	 * being true or the store to wq_entry->flags in woken_wake_function()
-+	 * follows ours in the coherence order.
- 	 */
- 	smp_store_mb(wq_entry->flags, wq_entry->flags & ~WQ_FLAG_WOKEN); /* B */
+ 	if (offset != (s32)offset) {
+ 		pr_err(
+-		  "%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n",
++		  "%s: target %016" PRIxEA "can not be addressed by the 32-bit offset from PC = %p\n",
+ 		  me->name, v, location);
+ 		return -EINVAL;
+ 	}
+@@ -143,7 +144,7 @@ static int apply_r_riscv_hi20_rela(struct module *me, u32 *location,
  
-@@ -430,14 +431,8 @@ EXPORT_SYMBOL(wait_woken);
+ 	if (IS_ENABLED(CMODEL_MEDLOW)) {
+ 		pr_err(
+-		  "%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n",
++		  "%s: target %016" PRIxEA "can not be addressed by the 32-bit offset from PC = %p\n",
+ 		  me->name, v, location);
+ 		return -EINVAL;
+ 	}
+@@ -187,7 +188,7 @@ static int apply_r_riscv_got_hi20_rela(struct module *me, u32 *location,
+ 		offset = (void *)offset - (void *)location;
+ 	} else {
+ 		pr_err(
+-		  "%s: can not generate the GOT entry for symbol = %016llx from PC = %p\n",
++		  "%s: can not generate the GOT entry for symbol = %016" PRIxEA "from PC = %p\n",
+ 		  me->name, v, location);
+ 		return -EINVAL;
+ 	}
+@@ -211,7 +212,7 @@ static int apply_r_riscv_call_plt_rela(struct module *me, u32 *location,
+ 			offset = (void *)offset - (void *)location;
+ 		} else {
+ 			pr_err(
+-			  "%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n",
++			  "%s: target %016" PRIxEA "can not be addressed by the 32-bit offset from PC = %p\n",
+ 			  me->name, v, location);
+ 			return -EINVAL;
+ 		}
+@@ -233,7 +234,7 @@ static int apply_r_riscv_call_rela(struct module *me, u32 *location,
  
- int woken_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, int sync, void *key)
- {
--	/*
--	 * Although this function is called under waitqueue lock, LOCK
--	 * doesn't imply write barrier and the users expects write
--	 * barrier semantics on wakeup functions.  The following
--	 * smp_wmb() is equivalent to smp_wmb() in try_to_wake_up()
--	 * and is paired with smp_store_mb() in wait_woken().
--	 */
--	smp_wmb(); /* C */
-+	/* Pairs with the smp_store_mb() in wait_woken(). */
-+	smp_mb(); /* C */
- 	wq_entry->flags |= WQ_FLAG_WOKEN;
+ 	if (offset != fill_v) {
+ 		pr_err(
+-		  "%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n",
++		  "%s: target %016" PRIxEA "can not be addressed by the 32-bit offset from PC = %p\n",
+ 		  me->name, v, location);
+ 		return -EINVAL;
+ 	}
+diff --git a/include/asm-generic/module.h b/include/asm-generic/module.h
+index 98e1541b72b7..d358f2414e5e 100644
+--- a/include/asm-generic/module.h
++++ b/include/asm-generic/module.h
+@@ -27,6 +27,7 @@ struct mod_arch_specific
+ #endif
+ #define ELF_R_TYPE(X)	ELF64_R_TYPE(X)
+ #define ELF_R_SYM(X)	ELF64_R_SYM(X)
++#define ELF_ADDR_PREFIX "ll"
  
- 	return default_wake_function(wq_entry, mode, sync, key);
+ #else /* CONFIG_64BIT */
+ 
+@@ -44,6 +45,14 @@ struct mod_arch_specific
+ #endif
+ #define ELF_R_TYPE(X)	ELF32_R_TYPE(X)
+ #define ELF_R_SYM(X)	ELF32_R_SYM(X)
++#define ELF_ADDR_PREFIX
+ #endif
+ 
++#define PRIdEA	ELF_ADDR_PREFIX "d" /* signed decimal */
++#define PRIiEA	ELF_ADDR_PREFIX "i" /* signed decimal */
++#define PRIuEA	ELF_ADDR_PREFIX "u" /* unsigned decimal */
++#define PRIoEA	ELF_ADDR_PREFIX "o" /* unsigned octal */
++#define PRIxEA	ELF_ADDR_PREFIX "x" /* unsigned lowercase hexadecimal */
++#define PRIXEA	ELF_ADDR_PREFIX "X" /* unsigned uppercase hexadecimal */
++
+ #endif /* __ASM_GENERIC_MODULE_H */
 -- 
-2.17.1
+2.16.1
