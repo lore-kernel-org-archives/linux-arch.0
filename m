@@ -1,55 +1,56 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC tools/memory-model] Model effects of volatile on ctrl
-Date: Tue, 17 Jul 2018 10:10:42 -0700
-Message-ID: <20180717171042.GA2299@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v13 08/24] selftests/vm: fix the wrong assert in
+ pkey_disable_set()
+Date: Tue, 17 Jul 2018 10:53:57 -0700
+Message-ID: <07869e1f-5022-92e3-416d-15c5f52d3b41@intel.com>
+References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
+ <1528937115-10132-9-git-send-email-linuxram@us.ibm.com>
+ <3c441309-1d35-eead-0c5d-1d7d20018219@intel.com>
+ <20180717155848.GA5790@ram.oc3035372033.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <20180717155848.GA5790@ram.oc3035372033.ibm.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, shuahkh@osg.samsung.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-This commit models the fact that compilers are not allowed to reorder
-volatile accesses.  This modeling is at best approximate, although it
-does correctly handle C-RomanPenyaev-list-rcu-rr.litmus from the litmus
-github archive.  The approach is to extend control dependencies to
-subsequent volatiles accesses.
+On 07/17/2018 08:58 AM, Ram Pai wrote:
+> On Wed, Jun 20, 2018 at 07:47:02AM -0700, Dave Hansen wrote:
+>> On 06/13/2018 05:44 PM, Ram Pai wrote:
+>>> If the flag is 0, no bits will be set. Hence we cant expect
+>>> the resulting bitmap to have a higher value than what it
+>>> was earlier
+>> ...
+>>>  	if (flags)
+>>> -		pkey_assert(read_pkey_reg() > orig_pkey_reg);
+>>> +		pkey_assert(read_pkey_reg() >= orig_pkey_reg);
+>>>  	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+>>>  		pkey, flags);
+>>>  }
+>> This is the kind of thing where I'd love to hear the motivation and
+>> background.  This "disable a key that was already disabled" operation
+>> obviously doesn't happen today.  What motivated you to change it now?
+> On powerpc, hardware supports READ_DISABLE and WRITE_DISABLE.
+> ACCESS_DISABLE is basically READ_DISABLE|WRITE_DISABLE on powerpc.
+> 
+> If access disable is called on a key followed by a write disable, the
+> second operation becomes a nop. In such cases, 
+>        read_pkey_reg() == orig_pkey_reg
+> 
+> Hence the code above is modified to 
+> 	pkey_assert(read_pkey_reg() >= orig_pkey_reg);
 
-Probable issues with this change:
-
-1.	It does not correctly handle the case of identical WRITE_ONCE()
-	invocations at the beginning of both legs of an "if" statement.
-	(Of course, the current state does not correctly handle this
-	either.)
-    
-2.	It might not correctly handle the ARMv8 conditional-move instruction.
-    
-3.	It is probably missing some handling of atomic RWM operations.
-    
-4.	It does not insist that the initial ctrl dependency end in
-	a volatile access.  This is not yet a problem because we
-	don't yet model unmarked accesses.
-
-That said, this patch is not intended for inclusion, but rather in the
-hope that it inspires someone to come up with something better.
-
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 882fc33274ac..f745337ba10e 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -57,7 +57,9 @@ empty rmw & (fre ; coe) as atomic
- 
- (* Preserved Program Order *)
- let dep = addr | data
--let rwdep = (dep | ctrl) ; [W]
-+let volatile = [Once] | [Release] | [Acquire] (* No unmarked accesses. *)
-+let ctrl-volatile = ctrl ; (po ; volatile)*
-+let rwdep = (dep | ctrl-volatile) ; [W]
- let overwrite = co | fr
- let to-w = rwdep | (overwrite & int)
- let to-r = addr | (dep ; rfi)
+Makes sense.  Do we have a comment for that now?
