@@ -1,121 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:45079 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731755AbeGQOXg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jul 2018 10:23:36 -0400
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:36937 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731691AbeGQOXN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jul 2018 10:23:13 -0400
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v14 22/22] selftests/vm: test correct behavior of pkey-0
-Date: Tue, 17 Jul 2018 06:49:25 -0700
-Message-ID: <1531835365-32387-23-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v14 11/22] selftests/vm: introduce two arch independent abstraction
+Date: Tue, 17 Jul 2018 06:49:14 -0700
+Message-ID: <1531835365-32387-12-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
 References: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, dave.hansen@intel.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, linuxram@us.ibm.com, fweimer@redhat.com, msuchanek@suse.de, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20180717134925.9x5GkpbN_jnN9xPnPKNOqGkIcjXcv0hgYbjSXjv4Dic@z>
+Message-ID: <20180717134914.U3gQOhowT4t_oRTwHIHgkXXvq9gNwG5Skgga9nYmbK4@z>
 
-Ensure pkey-0 is allocated on start.  Ensure pkey-0 can be attached
-dynamically in various modes, without failures.  Ensure pkey-0 can be
-freed and allocated.
+open_hugepage_file() <- opens the huge page file
+get_start_key() <--  provides the first non-reserved key.
 
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Reviewed-by: Dave Hansen <dave.hansen@intel.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   66 +++++++++++++++++++++++++-
- 1 files changed, 64 insertions(+), 2 deletions(-)
+ tools/testing/selftests/vm/pkey-helpers.h    |   10 ++++++++++
+ tools/testing/selftests/vm/pkey-x86.h        |    1 +
+ tools/testing/selftests/vm/protection_keys.c |    6 +++---
+ 3 files changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 569faf1..156b449 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -999,6 +999,67 @@ void close_test_fds(void)
- 	return *ptr;
- }
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index ada0146..52a1152 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -179,4 +179,14 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ #define __stringify_1(x...)     #x
+ #define __stringify(x...)       __stringify_1(x)
  
-+void test_pkey_alloc_free_attach_pkey0(int *ptr, u16 pkey)
++static inline int open_hugepage_file(int flag)
 +{
-+	int i, err;
-+	int max_nr_pkey_allocs;
-+	int alloced_pkeys[NR_PKEYS];
-+	int nr_alloced = 0;
-+	int newpkey;
-+	long size;
-+
-+	assert(pkey_last_malloc_record);
-+	size = pkey_last_malloc_record->size;
-+	/*
-+	 * This is a bit of a hack.  But mprotect() requires
-+	 * huge-page-aligned sizes when operating on hugetlbfs.
-+	 * So, make sure that we use something that's a multiple
-+	 * of a huge page when we can.
-+	 */
-+	if (size >= HPAGE_SIZE)
-+		size = HPAGE_SIZE;
-+
-+
-+	/* allocate every possible key and make sure key-0 never got allocated */
-+	max_nr_pkey_allocs = NR_PKEYS;
-+	for (i = 0; i < max_nr_pkey_allocs; i++) {
-+		int new_pkey = alloc_pkey();
-+		assert(new_pkey != 0);
-+
-+		if (new_pkey < 0)
-+			break;
-+		alloced_pkeys[nr_alloced++] = new_pkey;
-+	}
-+	/* free all the allocated keys */
-+	for (i = 0; i < nr_alloced; i++) {
-+		int free_ret;
-+
-+		if (!alloced_pkeys[i])
-+			continue;
-+		free_ret = sys_pkey_free(alloced_pkeys[i]);
-+		pkey_assert(!free_ret);
-+	}
-+
-+	/* attach key-0 in various modes */
-+	err = sys_mprotect_pkey(ptr, size, PROT_READ, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_WRITE, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_EXEC, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE, 0);
-+	pkey_assert(!err);
-+	err = sys_mprotect_pkey(ptr, size, PROT_READ|PROT_WRITE|PROT_EXEC, 0);
-+	pkey_assert(!err);
-+
-+	/* free key-0 */
-+	err = sys_pkey_free(0);
-+	pkey_assert(!err);
-+
-+	newpkey = sys_pkey_alloc(0, 0x0);
-+	assert(newpkey == 0);
++	return open(HUGEPAGE_FILE, flag);
 +}
 +
- void test_read_of_write_disabled_region(int *ptr, u16 pkey)
++static inline int get_start_key(void)
++{
++	return 1;
++}
++
+ #endif /* _PKEYS_HELPER_H */
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 2b3780d..d5fa299 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -48,6 +48,7 @@
+ #define MB			(1<<20)
+ #define pkey_reg_t		u32
+ #define PKEY_REG_FMT		"%016x"
++#define HUGEPAGE_FILE		"/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
+ 
+ static inline u32 pkey_bit_position(int pkey)
  {
- 	int ptr_contents;
-@@ -1144,10 +1205,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 2565b4c..2e448e0 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -788,7 +788,7 @@ void setup_hugetlbfs(void)
+ 	 * Now go make sure that we got the pages and that they
+ 	 * are 2M pages.  Someone might have made 1G the default.
+ 	 */
+-	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
++	fd = open_hugepage_file(O_RDONLY);
+ 	if (fd < 0) {
+ 		perror("opening sysfs 2M hugetlb config");
+ 		return;
+@@ -1075,10 +1075,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
  void test_pkey_syscalls_on_non_allocated_pkey(int *ptr, u16 pkey)
  {
  	int err;
--	int i = get_start_key();
-+	int i;
+-	int i;
++	int i = get_start_key();
  
  	/* Note: 0 is the default pkey, so don't mess with it */
--	for (; i < NR_PKEYS; i++) {
-+	for (i=1; i < NR_PKEYS; i++) {
+-	for (i = 1; i < NR_PKEYS; i++) {
++	for (; i < NR_PKEYS; i++) {
  		if (pkey == i)
  			continue;
  
-@@ -1455,6 +1516,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	test_pkey_syscalls_on_non_allocated_pkey,
- 	test_pkey_syscalls_bad_args,
- 	test_pkey_alloc_exhaust,
-+	test_pkey_alloc_free_attach_pkey0,
- };
- 
- void run_tests_once(void)
 -- 
 1.7.1
