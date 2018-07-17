@@ -1,73 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:50850 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729688AbeGQQrL (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:47246 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729648AbeGQRl7 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Jul 2018 12:47:11 -0400
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6HG9Itb077672
-        for <linux-arch@vger.kernel.org>; Tue, 17 Jul 2018 12:13:47 -0400
-Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2k9kcm94jh-1
+        Tue, 17 Jul 2018 13:41:59 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w6HH4AND028667
+        for <linux-arch@vger.kernel.org>; Tue, 17 Jul 2018 13:08:23 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2k9jcex6m6-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 17 Jul 2018 12:13:47 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 17 Jul 2018 13:08:22 -0400
 Received: from localhost
-        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Tue, 17 Jul 2018 17:13:45 +0100
-Date: Tue, 17 Jul 2018 09:13:32 -0700
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v13 19/24] selftests/vm: associate key on a mapped page
- and detect access violation
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1528937115-10132-1-git-send-email-linuxram@us.ibm.com>
- <1528937115-10132-20-git-send-email-linuxram@us.ibm.com>
- <048b1de9-85f8-22ff-a31a-b06a382769bb@intel.com>
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 17 Jul 2018 13:08:22 -0400
+Date: Tue, 17 Jul 2018 10:10:42 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH RFC tools/memory-model] Model effects of volatile on ctrl
+Reply-To: paulmck@linux.vnet.ibm.com
 MIME-Version: 1.0
-In-Reply-To: <048b1de9-85f8-22ff-a31a-b06a382769bb@intel.com>
-Message-ID: <20180717161332.GH5790@ram.oc3035372033.ibm.com>
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8bit
 Content-Disposition: inline
+Message-ID: <20180717171042.GA2299@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, fweimer@redhat.com, msuchanek@suse.de, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20180717161332.SiLqs_l5_HQBc07ZbzHx9zs2glfQola7m1HvCRkBu6Y@z>
+To: stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180717171042.BOlTWMFqp6bxzTf19fnsgIp_IlTMXupaiZzSE_haAKA@z>
 
-On Wed, Jun 20, 2018 at 08:16:44AM -0700, Dave Hansen wrote:
-> On 06/13/2018 05:45 PM, Ram Pai wrote:
-> > +void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
-> > +		u16 pkey)
-> > +{
-> > +	int ptr_contents;
-> > +
-> > +	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
-> > +				pkey, ptr);
-> > +	ptr_contents = read_ptr(ptr);
-> > +	dprintf1("reading ptr before disabling the read : %d\n",
-> > +			ptr_contents);
-> > +	read_pkey_reg();
-> > +	pkey_access_deny(pkey);
-> > +	ptr_contents = read_ptr(ptr);
-> > +	dprintf1("*ptr: %d\n", ptr_contents);
-> > +	expected_pkey_fault(pkey);
-> > +}
-> 
-> Looks fine to me.  I'm a bit surprised we didn't do this already, which
-> is a good thing for this patch.
-> 
-> FWIW, if you took patches like this and put them first, you could
-> probably get it merged now.  Yes, I know it would mean redoing some of
-> the later code move and rename ones.
+This commit models the fact that compilers are not allowed to reorder
+volatile accesses.  This modeling is at best approximate, although it
+does correctly handle C-RomanPenyaev-list-rcu-rr.litmus from the litmus
+github archive.  The approach is to extend control dependencies to
+subsequent volatiles accesses.
 
-I have incorporated almost all of your comments. But there are some
-comments that take some effort to implement. Shall we get the patches
-merged in the current form?  This code has been sitting out for a while.
+Probable issues with this change:
 
-In the current form its tested and works on powerpc and on x86, and
-incorporates about 95% of your suggestions. The rest I will take care
-as we go.
+1.	It does not correctly handle the case of identical WRITE_ONCE()
+	invocations at the beginning of both legs of an "if" statement.
+	(Of course, the current state does not correctly handle this
+	either.)
+    
+2.	It might not correctly handle the ARMv8 conditional-move instruction.
+    
+3.	It is probably missing some handling of atomic RWM operations.
+    
+4.	It does not insist that the initial ctrl dependency end in
+	a volatile access.  This is not yet a problem because we
+	don't yet model unmarked accesses.
 
--- 
-Ram Pai
+That said, this patch is not intended for inclusion, but rather in the
+hope that it inspires someone to come up with something better.
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index 882fc33274ac..f745337ba10e 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -57,7 +57,9 @@ empty rmw & (fre ; coe) as atomic
+ 
+ (* Preserved Program Order *)
+ let dep = addr | data
+-let rwdep = (dep | ctrl) ; [W]
++let volatile = [Once] | [Release] | [Acquire] (* No unmarked accesses. *)
++let ctrl-volatile = ctrl ; (po ; volatile)*
++let rwdep = (dep | ctrl-volatile) ; [W]
+ let overwrite = co | fr
+ let to-w = rwdep | (overwrite & int)
+ let to-r = addr | (dep ; rfi)
