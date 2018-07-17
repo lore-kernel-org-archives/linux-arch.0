@@ -1,187 +1,180 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v14 07/22] selftests/vm: generic function to handle shadow key
- register
-Date: Tue, 17 Jul 2018 06:49:10 -0700
-Message-ID: <1531835365-32387-8-git-send-email-linuxram@us.ibm.com>
-References: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, msuchanek@suse.de, linuxppc-dev@lists.ozlabs.org
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 02/17] y2038: Remove newstat family from default
+ syscall set
+Date: Tue, 17 Jul 2018 16:18:41 +0200
+Message-ID: <CAK8P3a3a8Fyi3e24CE=SPmdEKskEjeDr9YZte7DU_jT2svF3Uw@mail.gmail.com>
+References: <20180716161103.16239-1-arnd@arndb.de> <20180716161103.16239-3-arnd@arndb.de>
+ <20180717125039.GB25416@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20180717125039.GB25416@infradead.org>
+Sender: netdev-owner@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Networking <netdev@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, "Eric W . Biederman" <ebiederm@xmission.com>, Dominik Brodowski <linux@dominikbrodowski.net>
 List-Id: linux-arch.vger.kernel.org
 
-helper functions to handler shadow pkey register
+On Tue, Jul 17, 2018 at 2:50 PM, Christoph Hellwig <hch@infradead.org> wrote:
+> On Mon, Jul 16, 2018 at 06:10:48PM +0200, Arnd Bergmann wrote:
+>> We have four generations of stat() syscalls:
+>> - the oldstat syscalls that are only used on the older architectures
+>> - the newstat family that is used on all 64-bit architectures but
+>>   lacked support for large files on 32-bit architectures.
+>> - the stat64 family that is used mostly on 32-bit architectures to
+>>   replace newstat
+>> - statx() to replace all of the above, adding 64-bit timestamps among
+>>   other things.
+>>
+>> We already compile stat64 only on those architectures that need it,
+>> but newstat is always built, including on those that don't reference
+>> it. This adds a new __ARCH_WANT_NEW_STAT symbol along the lines of
+>> __ARCH_WANT_OLD_STAT and __ARCH_WANT_STAT64 to control compilation of
+>> newstat. All architectures that need it use an explict define, the
+>> others now get a little bit smaller, and future architecture (including
+>> 64-bit targets) won't ever see it.
+>>
+>> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>
+> Do I read this right that you only want to provide statx by default?
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    |   29 ++++++++++++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        |    5 ++++
- tools/testing/selftests/vm/protection_keys.c |   34 ++++++++++++++++---------
- 3 files changed, 56 insertions(+), 12 deletions(-)
+Yes, that is correct.
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 2a1a024..ada0146 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -80,6 +80,35 @@ static inline void sigsafe_printf(const char *format, ...)
- #error Architecture not supported
- #endif /* arch */
- 
-+static inline pkey_reg_t clear_pkey_flags(int pkey, pkey_reg_t flags)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+
-+	return ~(flags << shift);
-+}
-+
-+/*
-+ * Takes pkey flags and puts them at the right bit position for the given key so
-+ * that the result can be ORed into the register.
-+ */
-+static inline pkey_reg_t left_shift_bits(int pkey, pkey_reg_t bits)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+
-+	return (bits << shift);
-+}
-+
-+/*
-+ * Takes pkey register values and puts the flags for the given pkey at the least
-+ * significant bits of the returned value.
-+ */
-+static inline pkey_reg_t right_shift_bits(int pkey, pkey_reg_t bits)
-+{
-+	u32 shift = pkey_bit_position(pkey);
-+
-+	return (bits >> shift);
-+}
-+
- extern pkey_reg_t shadow_pkey_reg;
- 
- static inline pkey_reg_t _read_pkey_reg(int line)
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index 5f40901..2b3780d 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -49,6 +49,11 @@
- #define pkey_reg_t		u32
- #define PKEY_REG_FMT		"%016x"
- 
-+static inline u32 pkey_bit_position(int pkey)
-+{
-+	return pkey * PKEY_BITS_PER_PKEY;
-+}
-+
- static inline void __page_o_noops(void)
+> It is a little different from the traditional stat calls, so I'd like
+> to know this is actually ok from libc folks first.
+
+That would definitely help. See below for the stat implementation
+I did in my musl libc prototype based on statx(). It passes the
+LTP syscall tests, but that doesn't mean all the corner cases
+are correct.
+
+       Arnd
+
+diff --git a/src/stat/fstat.c b/src/stat/fstat.c
+index ab4afc0..b4f2027 100644
+--- a/src/stat/fstat.c
++++ b/src/stat/fstat.c
+@@ -1,3 +1,4 @@
++#define _BSD_SOURCE
+ #include <sys/stat.h>
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -8,6 +9,9 @@ void __procfdname(char *, unsigned);
+
+ int fstat(int fd, struct stat *st)
  {
- 	/* 8-bytes of instruction * 512 bytes = 1 page */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index d95fe20..fb7dd32 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -342,7 +342,7 @@ static u32 hw_pkey_get(int pkey, unsigned long flags)
- 			__func__, pkey, flags, 0, 0);
- 	dprintf2("%s() raw pkey_reg: "PKEY_REG_FMT"\n", __func__, pkey_reg);
- 
--	shifted_pkey_reg = (pkey_reg >> (pkey * PKEY_BITS_PER_PKEY));
-+	shifted_pkey_reg = right_shift_bits(pkey, pkey_reg);
- 	dprintf2("%s() shifted_pkey_reg: "PKEY_REG_FMT"\n", __func__,
- 			shifted_pkey_reg);
- 	masked_pkey_reg = shifted_pkey_reg & mask;
-@@ -366,9 +366,9 @@ static int hw_pkey_set(int pkey, unsigned long rights, unsigned long flags)
- 	/* copy old pkey_reg */
- 	new_pkey_reg = old_pkey_reg;
- 	/* mask out bits from pkey in old value: */
--	new_pkey_reg &= ~(mask << (pkey * PKEY_BITS_PER_PKEY));
-+	new_pkey_reg &= clear_pkey_flags(pkey, mask);
- 	/* OR in new bits for pkey: */
--	new_pkey_reg |= (rights << (pkey * PKEY_BITS_PER_PKEY));
-+	new_pkey_reg |= left_shift_bits(pkey, rights);
- 
- 	__write_pkey_reg(new_pkey_reg);
- 
-@@ -402,7 +402,7 @@ void pkey_disable_set(int pkey, int flags)
- 	ret = hw_pkey_set(pkey, pkey_rights, syscall_flags);
- 	assert(!ret);
- 	/*pkey_reg and flags have the same format */
--	shadow_pkey_reg |= flags << (pkey * 2);
-+	shadow_pkey_reg |= left_shift_bits(pkey, flags);
- 	dprintf1("%s(%d) shadow: 0x"PKEY_REG_FMT"\n",
- 		__func__, pkey, shadow_pkey_reg);
- 
-@@ -436,7 +436,7 @@ void pkey_disable_clear(int pkey, int flags)
- 	pkey_rights |= flags;
- 
- 	ret = hw_pkey_set(pkey, pkey_rights, 0);
--	shadow_pkey_reg &= ~(flags << (pkey * 2));
-+	shadow_pkey_reg &= clear_pkey_flags(pkey, flags);
- 	pkey_assert(ret >= 0);
- 
- 	pkey_rights = hw_pkey_get(pkey, syscall_flags);
-@@ -494,6 +494,21 @@ int sys_pkey_alloc(unsigned long flags, unsigned long init_val)
- 	return ret;
++#ifdef __USE_TIME_BITS64
++       return __statx(fd, "", st, AT_EMPTY_PATH | AT_STATX_SYNC_AS_STAT);
++#else
+        int ret = __syscall(SYS_fstat, fd, st);
+        if (ret != -EBADF || __syscall(SYS_fcntl, fd, F_GETFD) < 0)
+                return __syscall_ret(ret);
+@@ -19,6 +23,7 @@ int fstat(int fd, struct stat *st)
+ #else
+        return syscall(SYS_fstatat, AT_FDCWD, buf, st, 0);
+ #endif
++#endif
  }
- 
-+void pkey_setup_shadow(void)
-+{
-+	shadow_pkey_reg = __read_pkey_reg();
-+}
+
+ LFS64(fstat);
+diff --git a/src/stat/fstatat.c b/src/stat/fstatat.c
+index 863d526..80add64 100644
+--- a/src/stat/fstatat.c
++++ b/src/stat/fstatat.c
+@@ -1,10 +1,53 @@
++#define _BSD_SOURCE
+ #include <sys/stat.h>
++#include <statx.h>
++#include <fcntl.h>
++#include <errno.h>
+ #include "syscall.h"
+ #include "libc.h"
+
++#ifdef __USE_TIME_BITS64
 +
-+void pkey_reset_shadow(u32 key)
-+{
-+	shadow_pkey_reg &= clear_pkey_flags(key, 0x3);
-+}
++#define AT_FLAGS (AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT | AT_EMPTY_PATH)
 +
-+void pkey_set_shadow(u32 key, u64 init_val)
++int __statx(int fd, const char *restrict path, struct stat *restrict
+buf, int flag)
 +{
-+	shadow_pkey_reg |=  left_shift_bits(key, init_val);
-+}
++       struct statx stx;
++       int ret;
 +
- int alloc_pkey(void)
++       ret = syscall(SYS_statx, fd, path, flag, STATX_BASIC_STATS, &stx);
++
++       buf->st_dev = (dev_t)stx.stx_dev_major << 32 | stx.stx_dev_minor;
++       buf->st_ino = stx.stx_ino;
++       buf->st_mode = stx.stx_mode;
++       buf->st_nlink = stx.stx_nlink;
++       buf->st_uid = stx.stx_uid;
++       buf->st_gid = stx.stx_gid;
++       buf->st_rdev = (dev_t)stx.stx_rdev_major << 32 | stx.stx_rdev_minor;
++       buf->st_size = stx.stx_size;
++       buf->st_blksize = stx.stx_blksize;
++       buf->st_blocks = stx.stx_blocks;
++       buf->st_atim.tv_sec = stx.stx_atime.tv_sec;
++       buf->st_mtim.tv_sec = stx.stx_atime.tv_sec;
++       buf->st_ctim.tv_sec = stx.stx_atime.tv_sec;
++       buf->st_atim.tv_nsec = stx.stx_atime.tv_nsec;
++       buf->st_mtim.tv_nsec = stx.stx_atime.tv_nsec;
++       buf->st_ctim.tv_nsec = stx.stx_atime.tv_nsec;
++
++       return ret;
++}
++#endif
++
+ int fstatat(int fd, const char *restrict path, struct stat *restrict
+buf, int flag)
  {
- 	int ret;
-@@ -512,7 +527,7 @@ int alloc_pkey(void)
- 			shadow_pkey_reg);
- 	if (ret) {
- 		/* clear both the bits: */
--		shadow_pkey_reg &= ~(0x3      << (ret * 2));
-+		pkey_reset_shadow(ret);
- 		dprintf4("%s()::%d, ret: %d pkey_reg: 0x"PKEY_REG_FMT
- 				" shadow: 0x"PKEY_REG_FMT"\n",
- 				__func__,
-@@ -522,7 +537,7 @@ int alloc_pkey(void)
- 		 * move the new state in from init_val
- 		 * (remember, we cheated and init_val == pkey_reg format)
- 		 */
--		shadow_pkey_reg |=  (init_val << (ret * 2));
-+		pkey_set_shadow(ret, init_val);
- 	}
- 	dprintf4("%s()::%d, ret: %d pkey_reg: 0x"PKEY_REG_FMT
- 			" shadow: 0x"PKEY_REG_FMT"\n",
-@@ -1403,11 +1418,6 @@ void run_tests_once(void)
- 	iteration_nr++;
++#ifdef __USE_TIME_BITS64
++       if (flag & ~AT_FLAGS)
++               return __syscall_ret(-EINVAL);
++
++       return __statx(fd, path, buf, flag);
++#else
+        return syscall(SYS_fstatat, fd, path, buf, flag);
++#endif
  }
- 
--void pkey_setup_shadow(void)
--{
--	shadow_pkey_reg = __read_pkey_reg();
--}
--
- int main(void)
+
+ LFS64(fstatat);
+diff --git a/src/stat/lstat.c b/src/stat/lstat.c
+index 5e8b84f..ad2bddd 100644
+--- a/src/stat/lstat.c
++++ b/src/stat/lstat.c
+@@ -1,3 +1,4 @@
++#define _BSD_SOURCE
+ #include <sys/stat.h>
+ #include <fcntl.h>
+ #include "syscall.h"
+@@ -5,7 +6,9 @@
+
+ int lstat(const char *restrict path, struct stat *restrict buf)
  {
- 	int nr_iterations = 22;
--- 
-1.7.1
+-#ifdef SYS_lstat
++#ifdef __USE_TIME_BITS64
++       return __statx(AT_FDCWD, path, buf, AT_SYMLINK_NOFOLLOW |
+AT_STATX_SYNC_AS_STAT);
++#elif defined(SYS_lstat)
+        return syscall(SYS_lstat, path, buf);
+ #else
+        return syscall(SYS_fstatat, AT_FDCWD, path, buf, AT_SYMLINK_NOFOLLOW);
+diff --git a/src/stat/stat.c b/src/stat/stat.c
+index b4433a0..599903a 100644
+--- a/src/stat/stat.c
++++ b/src/stat/stat.c
+@@ -1,3 +1,4 @@
++#define _BSD_SOURCE
+ #include <sys/stat.h>
+ #include <fcntl.h>
+ #include "syscall.h"
+@@ -5,7 +6,9 @@
+
+ int stat(const char *restrict path, struct stat *restrict buf)
+ {
+-#ifdef SYS_stat
++#ifdef __USE_TIME_BITS64
++       return __statx(AT_FDCWD, path, buf, AT_STATX_SYNC_AS_STAT);
++#elif defined(SYS_stat)
+        return syscall(SYS_stat, path, buf);
+ #else
+        return syscall(SYS_fstatat, AT_FDCWD, path, buf, 0);
