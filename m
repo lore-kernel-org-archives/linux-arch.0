@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:18770 "EHLO mga07.intel.com"
+Received: from mga07.intel.com ([134.134.136.100]:19149 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730885AbeGRQit (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Jul 2018 12:38:49 -0400
-Subject: Re: [PATCH v14 12/22] selftests/vm: pkey register should match shadow
- pkey
+        id S1726613AbeGRQp1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Jul 2018 12:45:27 -0400
+Subject: Re: [PATCH v14 13/22] selftests/vm: generic cleanup
 References: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
- <1531835365-32387-13-git-send-email-linuxram@us.ibm.com>
+ <1531835365-32387-14-git-send-email-linuxram@us.ibm.com>
 From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <13e29efb-6a75-d6c8-e9a8-9e7495b88e00@intel.com>
-Date: Wed, 18 Jul 2018 09:00:11 -0700
+Message-ID: <07f89e3b-a538-0466-cf5c-b975c0cc0aa8@intel.com>
+Date: Wed, 18 Jul 2018 09:06:26 -0700
 MIME-Version: 1.0
-In-Reply-To: <1531835365-32387-13-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1531835365-32387-14-git-send-email-linuxram@us.ibm.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 8bit
@@ -19,61 +18,100 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, fweimer@redhat.com, msuchanek@suse.de, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20180718160011.NyQpShMU40fnaiKUknPKZslZq9QA_WH0oFUmAZJdwBE@z>
+Message-ID: <20180718160626.Oj2nTmnID69rgvVdldO35ju0IhnXDUopPVshzJS_sew@z>
 
 On 07/17/2018 06:49 AM, Ram Pai wrote:
-> expected_pkey_fault() is comparing the contents of pkey
-> register with 0. This may not be true all the time. There
-> could be bits set by default by the architecture
-> which can never be changed. Hence compare the value against
-> shadow pkey register, which is supposed to track the bits
-> accurately all throughout
-
-This is getting dangerously close to full sentences that actually
-describe the patch.  You forgot a period, but much this is a substantial
-improvement over earlier parts of the series.  Thanks for writing this,
-seriously.
-
+> cleanup the code to satisfy coding styles.
+> 
 > cc: Dave Hansen <dave.hansen@intel.com>
 > cc: Florian Weimer <fweimer@redhat.com>
 > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 > ---
->  tools/testing/selftests/vm/protection_keys.c |    4 ++--
->  1 files changed, 2 insertions(+), 2 deletions(-)
+>  tools/testing/selftests/vm/protection_keys.c |   64 +++++++++++++++++--------
+>  1 files changed, 43 insertions(+), 21 deletions(-)
 > 
 > diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-> index 2e448e0..f50cce8 100644
+> index f50cce8..304f74f 100644
 > --- a/tools/testing/selftests/vm/protection_keys.c
 > +++ b/tools/testing/selftests/vm/protection_keys.c
-> @@ -913,10 +913,10 @@ void expected_pkey_fault(int pkey)
->  		pkey_assert(last_si_pkey == pkey);
+> @@ -4,7 +4,7 @@
+>   *
+>   * There are examples in here of:
+>   *  * how to set protection keys on memory
+> - *  * how to set/clear bits in pkey registers (the rights register)
+> + *  * how to set/clear bits in Protection Key registers (the rights register)
+
+Huh?  Which coding style says that we can't say "pkey"?
+
+>   *  * how to handle SEGV_PKUERR signals and extract pkey-relevant
+>   *    information from the siginfo
+>   *
+> @@ -13,13 +13,18 @@
+>   *	prefault pages in at malloc, or not
+>   *	protect MPX bounds tables with protection keys?
+>   *	make sure VMA splitting/merging is working correctly
+> - *	OOMs can destroy mm->mmap (see exit_mmap()), so make sure it is immune to pkeys
+> - *	look for pkey "leaks" where it is still set on a VMA but "freed" back to the kernel
+> - *	do a plain mprotect() to a mprotect_pkey() area and make sure the pkey sticks
+> + *	OOMs can destroy mm->mmap (see exit_mmap()),
+> + *			so make sure it is immune to pkeys
+> + *	look for pkey "leaks" where it is still set on a VMA
+> + *			 but "freed" back to the kernel
+> + *	do a plain mprotect() to a mprotect_pkey() area and make
+> + *			 sure the pkey sticks
+
+This makes it work substantially worse.  That's not acceptable, even if
+you did move it under 80 columns.
+
+>   * Compile like this:
+> - *	gcc      -o protection_keys    -O2 -g -std=gnu99 -pthread -Wall protection_keys.c -lrt -ldl -lm
+> - *	gcc -m32 -o protection_keys_32 -O2 -g -std=gnu99 -pthread -Wall protection_keys.c -lrt -ldl -lm
+> + *	gcc      -o protection_keys    -O2 -g -std=gnu99
+> + *			 -pthread -Wall protection_keys.c -lrt -ldl -lm
+> + *	gcc -m32 -o protection_keys_32 -O2 -g -std=gnu99
+> + *			 -pthread -Wall protection_keys.c -lrt -ldl -lm
+>   */
+
+Why was this on one line?  Because it was easier to copy and paste.
+Please leave it on one line, CodingStyle be damned.
+
+>  #define _GNU_SOURCE
+>  #include <errno.h>
+> @@ -263,10 +268,12 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
+>  			__read_pkey_reg());
+>  	dprintf1("pkey from siginfo: %jx\n", siginfo_pkey);
+>  	*(u64 *)pkey_reg_ptr = 0x00000000;
+> -	dprintf1("WARNING: set PRKU=0 to allow faulting instruction to continue\n");
+> +	dprintf1("WARNING: set PKEY_REG=0 to allow faulting instruction "
+> +			"to continue\n");
+
+It's actually totally OK to let printk strings go over 80 columns.
+
+>  	pkey_faults++;
+>  	dprintf1("<<<<==================================================\n");
+>  	dprint_in_signal = 0;
+> +	return;
+>  }
+
+Now we're just being silly.
+
 >  
->  	/*
-> -	 * The signal handler shold have cleared out PKEY register to let the
-> +	 * The signal handler should have cleared out pkey-register to let the
->  	 * test program continue.  We now have to restore it.
->  	 */
+>  int wait_all_children(void)
+> @@ -384,7 +391,7 @@ void pkey_disable_set(int pkey, int flags)
+>  {
+>  	unsigned long syscall_flags = 0;
+>  	int ret;
+> -	int pkey_rights;
+> +	u32 pkey_rights;
 
-... while I appreciate the spelling corrections, and I would totally ack
-a patch that fixed them in one fell swoop, could we please segregate the
-random spelling corrections from code fixes unless you touch those lines
-otherwise?
+This is not CodingStyle.  Shouldn't this be the pkey_reg_t that you
+introduced earlier in the series?
 
-> -	if (__read_pkey_reg() != 0)
-> +	if (__read_pkey_reg() != shadow_pkey_reg)
->  		pkey_assert(0);
->  
->  	__write_pkey_reg(shadow_pkey_reg);
+> -int sys_pkey_alloc(unsigned long flags, unsigned long init_val)
+> +int sys_pkey_alloc(unsigned long flags, u64 init_val)
+>  {
 
-I know this is a one-line change, but I don't fully understand it.
+Um, this is actually a 'unsigned long' in the ABI.
 
-On x86, if we take a pkey fault, we clear PKRU entirely (via the
-on-stack XSAVE state that is restored at sigreturn) which allows the
-faulting instruction to resume and execute normally.  That's what this
-check is looking for: Did the signal handler clear PKRU?
-
-Now, you're saying that powerpc might not clear it.  That makes sense.
-
-While PKRU's state here is obvious, it isn't patently obvious to me what
-shadow_pkey_reg's state is.  In fact, looking at it, I don't see the
-signal handler manipulating the shadow.  So, how can this patch work?
+Can you go back through this and actually make sure that these are real
+coding style cleanups?
