@@ -1,15 +1,15 @@
 From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v14 10/22] selftests/vm: fix alloc_random_pkey() to make
- it really random
-Date: Wed, 18 Jul 2018 08:45:26 -0700
-Message-ID: <b33e0850-f3ec-86b8-69e8-9e6afb289058@intel.com>
+Subject: Re: [PATCH v14 11/22] selftests/vm: introduce two arch independent
+ abstraction
+Date: Wed, 18 Jul 2018 08:52:57 -0700
+Message-ID: <5c557b14-8898-9afc-ba9e-3e5ab2e0aa31@intel.com>
 References: <1531835365-32387-1-git-send-email-linuxram@us.ibm.com>
- <1531835365-32387-11-git-send-email-linuxram@us.ibm.com>
+ <1531835365-32387-12-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1531835365-32387-11-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1531835365-32387-12-git-send-email-linuxram@us.ibm.com>
 Content-Language: en-US
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
@@ -26,10 +26,92 @@ Cc: linux-arch@vger.kernel.org, fweimer@redhat.com, x86@kernel.org, mhocko@kerne
 List-Id: linux-arch.vger.kernel.org
 
 On 07/17/2018 06:49 AM, Ram Pai wrote:
-> alloc_random_pkey() was allocating the same pkey every time.
-> Not all pkeys were geting tested. fixed it.
+> open_hugepage_file() <- opens the huge page file
 
-This fixes a real issue but also unnecessarily munges whitespace.  If
-you rev these again, please fix the munging.  Otherwise:
+Folks, a sentence here would be nice:
 
-Acked-by: Dave Hansen <dave.hansen@intel.com>
+	Different architectures have different huge page sizes and thus
+	have different sysfs filees to manipulate when allocating huge
+	pages.
+
+> get_start_key() <--  provides the first non-reserved key.
+
+Does powerpc not start on key 0?  Why do you need this?
+
+> cc: Dave Hansen <dave.hansen@intel.com>
+> cc: Florian Weimer <fweimer@redhat.com>
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+> Reviewed-by: Dave Hansen <dave.hansen@intel.com>
+> ---
+>  tools/testing/selftests/vm/pkey-helpers.h    |   10 ++++++++++
+>  tools/testing/selftests/vm/pkey-x86.h        |    1 +
+>  tools/testing/selftests/vm/protection_keys.c |    6 +++---
+>  3 files changed, 14 insertions(+), 3 deletions(-)
+> 
+> diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+> index ada0146..52a1152 100644
+> --- a/tools/testing/selftests/vm/pkey-helpers.h
+> +++ b/tools/testing/selftests/vm/pkey-helpers.h
+> @@ -179,4 +179,14 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+>  #define __stringify_1(x...)     #x
+>  #define __stringify(x...)       __stringify_1(x)
+>  
+> +static inline int open_hugepage_file(int flag)
+> +{
+> +	return open(HUGEPAGE_FILE, flag);
+> +}
+
+open_nr_hugepages_file() if you revise this, please
+> +
+> +static inline int get_start_key(void)
+> +{
+> +	return 1;
+> +}
+
+get_first_user_pkey(), please.
+
+>  #endif /* _PKEYS_HELPER_H */
+> diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+> index 2b3780d..d5fa299 100644
+> --- a/tools/testing/selftests/vm/pkey-x86.h
+> +++ b/tools/testing/selftests/vm/pkey-x86.h
+> @@ -48,6 +48,7 @@
+>  #define MB			(1<<20)
+>  #define pkey_reg_t		u32
+>  #define PKEY_REG_FMT		"%016x"
+> +#define HUGEPAGE_FILE		"/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
+>  
+>  static inline u32 pkey_bit_position(int pkey)
+>  {
+> diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+> index 2565b4c..2e448e0 100644
+> --- a/tools/testing/selftests/vm/protection_keys.c
+> +++ b/tools/testing/selftests/vm/protection_keys.c
+> @@ -788,7 +788,7 @@ void setup_hugetlbfs(void)
+>  	 * Now go make sure that we got the pages and that they
+>  	 * are 2M pages.  Someone might have made 1G the default.
+>  	 */
+> -	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
+> +	fd = open_hugepage_file(O_RDONLY);
+>  	if (fd < 0) {
+>  		perror("opening sysfs 2M hugetlb config");
+>  		return;
+
+This is fine, and obviously necessary.
+
+> @@ -1075,10 +1075,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
+>  void test_pkey_syscalls_on_non_allocated_pkey(int *ptr, u16 pkey)
+>  {
+>  	int err;
+> -	int i;
+> +	int i = get_start_key();
+>  
+>  	/* Note: 0 is the default pkey, so don't mess with it */
+> -	for (i = 1; i < NR_PKEYS; i++) {
+> +	for (; i < NR_PKEYS; i++) {
+>  		if (pkey == i)
+>  			continue;
+
+Grumble, grumble, you moved the code away from the comment connected to
+it.
