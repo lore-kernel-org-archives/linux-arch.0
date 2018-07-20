@@ -1,121 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:52113 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726951AbeGTFpR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Jul 2018 01:45:17 -0400
-Message-ID: <3987274f49523b23971d0252141ae3f335d1f5ce.camel@kernel.crashing.org>
-Subject: Re: [PATCH 4/7] x86,tlb: make lazy TLB mode lazier
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Fri, 20 Jul 2018 14:57:40 +1000
-In-Reply-To: <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
-References: <20180716190337.26133-1-riel@surriel.com>
-         <20180716190337.26133-5-riel@surriel.com>
-         <CALCETrUMntRe_LYX5wj9YD4xZ+84QExK+ZNb3yxEBDEKa7nePQ@mail.gmail.com>
-         <B6566AA4-2E8A-43BD-A224-0F6D4747B8FB@surriel.com>
-         <F93A3335-4830-4E36-9179-D0FA5D640C8A@amacapital.net>
-         <B976CC13-D014-433A-83DE-F8DF9AB4F421@surriel.com>
-         <CALCETrWDiMhgiR3f8n0jdWcW31EDJ+Waq0wh5sMDutfigANGnA@mail.gmail.com>
-         <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:37898 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727201AbeGTIlT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jul 2018 04:41:19 -0400
+Received: by mail-io0-f195.google.com with SMTP id v26-v6so9250175iog.5
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jul 2018 00:54:17 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20180719163208.5xvrafugpcbhh7kj@linux-8ccs>
+References: <20180716122125.175792-1-maco@android.com> <20180716122125.175792-3-maco@android.com>
+ <20180719163208.5xvrafugpcbhh7kj@linux-8ccs>
+From: Martijn Coenen <maco@android.com>
+Date: Fri, 20 Jul 2018 09:54:16 +0200
+Message-ID: <CAB0TPYFVSWtJ6RPRUZ1bpS-rBaV7YyPR-4B2Ogxs+FNAbiScNw@mail.gmail.com>
+Subject: Re: [PATCH 2/6] module: add support for symbol namespaces.
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>, Rik van Riel <riel@surriel.com>, Peter Zijlstra <peterz@infradead.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-s390@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Mike Galbraith <efault@gmx.de>, kernel-team <kernel-team@fb.com>, Ingo Molnar <mingo@kernel.org>, Dave Hansen <dave.hansen@intel.com>, Nick Piggin <npiggin@au1.ibm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Message-ID: <20180720045740.xcfaK_5X8mhtDs89uPtvsr-vvpsS5rPVD98fXM8oOkE@z>
+To: Jessica Yu <jeyu@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, USB list <linux-usb@vger.kernel.org>, USB Storage list <usb-storage@lists.one-eyed-alien.net>, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Martijn Coenen <maco@google.com>, Sandeep Patil <sspatil@google.com>, Iliyan Malchev <malchev@google.com>, Joel Fernandes <joelaf@google.com>
+Message-ID: <20180720075416.Yan3_UQqnIZ2ji9bKS7K16Q3SX_I_2gfY9rrZlislnU@z>
 
-On Thu, 2018-07-19 at 10:04 -0700, Andy Lutomirski wrote:
-> On Thu, Jul 19, 2018 at 9:45 AM, Andy Lutomirski <luto@amacapital.net> wrote:
-> > [I added PeterZ and Vitaly -- can you see any way in which this would
-> > break something obscure?  I don't.]
+Hi Jessica,
 
-Added Nick and Aneesh. We do have HW remote flushes on powerpc.
+On Thu, Jul 19, 2018 at 6:32 PM, Jessica Yu <jeyu@kernel.org> wrote:
+> First, thanks a lot for the patchset. This is definitely something that
+> will help distros as well to declutter the exported symbol space and
+> provide a more cleanly defined kernel interface.
 
-> > On Thu, Jul 19, 2018 at 7:14 AM, Rik van Riel <riel@surriel.com> wrote:
-> > > I guess we can skip both switch_ldt and load_mm_cr4 if real_prev equals
-> > > next?
-> > 
-> > Yes, AFAICS.
-> > 
-> > > 
-> > > On to the lazy TLB mm_struct refcounting stuff :)
-> > > 
-> > > > 
-> > > > Which refcount?  mm_users shouldn’t be hot, so I assume you’re talking about
-> > > > mm_count. My suggestion is to get rid of mm_count instead of trying to
-> > > > optimize it.
-> > > 
-> > > 
-> > > Do you have any suggestions on how? :)
-> > > 
-> > > The TLB shootdown sent at __exit_mm time does not get rid of the
-> > > kernelthread->active_mm
-> > > pointer pointing at the mm that is exiting.
-> > > 
-> > 
-> > Ah, but that's conceptually very easy to fix.  Add a #define like
-> > ARCH_NO_TASK_ACTIVE_MM.  Then just get rid of active_mm if that
-> > #define is set.  After some grepping, there are very few users.  The
-> > only nontrivial ones are the ones in kernel/ and mm/mmu_context.c that
-> > are involved in the rather complicated dance of refcounting active_mm.
-> > If that field goes away, it doesn't need to be refcounted.  Instead, I
-> > think the refcounting can get replaced with something like:
-> > 
-> > /*
-> >  * Release any arch-internal references to mm.  Only called when
-> > mm_users is zero
-> >  * and all tasks using mm have either been switch_mm()'d away or have had
-> >  * enter_lazy_tlb() called.
-> >  */
-> > extern void arch_shoot_down_dead_mm(struct mm_struct *mm);
-> > 
-> > which the kernel calls in __mmput() after tearing down all the page
-> > tables.  The body can be something like:
-> > 
-> > if (WARN_ON(cpumask_any_but(mm_cpumask(...), ...)) {
-> >   /* send an IPI.  Maybe just call tlb_flush_remove_tables() */
-> > }
-> > 
-> > (You'll also have to fix up the highly questionable users in
-> > arch/x86/platform/efi/efi_64.c, but that's easy.)
-> > 
-> > Does all that make sense?  Basically, as I understand it, the
-> > expensive atomic ops you're seeing are all pointless because they're
-> > enabling an optimization that hasn't actually worked for a long time,
-> > if ever.
-> 
-> Hmm.  Xen PV has a big hack in xen_exit_mmap(), which is called from
-> arch_exit_mmap(), I think.  It's a heavier weight version of more or
-> less the same thing that arch_shoot_down_dead_mm() would be, except
-> that it happens before exit_mmap().  But maybe Xen actually has the
-> right idea.  In other words, rather doing the big pagetable free in
-> exit_mmap() while there may still be other CPUs pointing at the page
-> tables, the other order might make more sense.  So maybe, if
-> ARCH_NO_TASK_ACTIVE_MM is set, arch_exit_mmap() should be responsible
-> for getting rid of all secret arch references to the mm.
-> 
-> Hmm.  ARCH_FREE_UNUSED_MM_IMMEDIATELY might be a better name.
-> 
-> I added some more arch maintainers.  The idea here is that, on x86 at
-> least, task->active_mm and all its refcounting is pure overhead.  When
-> a process exits, __mmput() gets called, but the core kernel has a
-> longstanding "optimization" in which other tasks (kernel threads and
-> idle tasks) may have ->active_mm pointing at this mm.  This is nasty,
-> complicated, and hurts performance on large systems, since it requires
-> extra atomic operations whenever a CPU switches between real users
-> threads and idle/kernel threads.
-> 
-> It's also almost completely worthless on x86 at least, since __mmput()
-> frees pagetables, and that operation *already* forces a remote TLB
-> flush, so we might as well zap all the active_mm references at the
-> same time.
-> 
-> But arm64 has real HW remote flushes.  Does arm64 actually benefit
-> from the active_mm optimization?  What happens on arm64 when a process
-> exits?  How about s390?  I suspect that x390 has rather larger systems
-> than arm64, where the cost of the reference counting can be much
-> higher.
-> 
-> (Also, Rik, x86 on Hyper-V has remote flushes, too. How does that
-> interact with your previous patch set?)
+Thanks, that's good to hear!
+
+
+> Hm, I'm wondering if we could avoid all this extra module-ns-dependency
+> checking work if we just put the import stuff as a modinfo tag, like
+> have MODULE_IMPORT_NS() insert an "import:" tag like we already do for
+> module parameters, author, license, aliases, etc. Then we'd have that
+> information pretty much from the start of load_module() and we don't
+> need to wait for relocations to be applied to __knsimport. Then you
+> could do the namespace checking right at resolve_symbol() instead of
+> going through the extra step of building a dependency list to be
+> verified later.
+
+I believe I did consider modinfo when I started with this a while
+back, but don't recall right now why I didn't decide to use it;
+perhaps it was the lack of support for multiple identical tags. Since
+both modpost and the module loader have access to them, I don't see
+why it wouldn't work, and indeed I suspect it would make the module
+loader a bit simpler. I'll rework this and see what it looks like.
+
+Thanks,
+Martijn
+
+>
+> Also, this would get rid of the extra __knsimport section, the extra
+> ns_dependencies field in struct module, and all those helper functions that
+> manage it. In addition, having the modinfo tag may potentially help with
+> debugging as we have the namespace imports clearly listed if we don't have
+> the source code for a module. We'd probably need to modify get_modinfo() to
+> handle multiple import: tags though. Luis [1] had written some code a while
+> ago to handle multiple (of the same) modinfo tags.
+>
+> Thoughts on this?
+>
+> Thanks,
+>
+> Jessica
+>
+> [1] https://lkml.kernel.org/r/20171130023605.29568-3-mcgrof@kernel.org
+>
+>
+>> getname:
+>>         /* We must make copy under the lock if we failed to get ref. */
+>>         strncpy(ownername, module_name(owner), MODULE_NAME_LEN);
+>> @@ -3061,6 +3118,11 @@ static int find_module_sections(struct module *mod,
+>> struct load_info *info)
+>>                                      sizeof(*mod->gpl_syms),
+>>                                      &mod->num_gpl_syms);
+>>         mod->gpl_crcs = section_addr(info, "__kcrctab_gpl");
+>> +
+>> +       mod->ns_imports = section_objs(info, "__knsimport",
+>> +                                      sizeof(*mod->ns_imports),
+>> +                                      &mod->num_ns_imports);
+>> +
+>>         mod->gpl_future_syms = section_objs(info,
+>>                                             "__ksymtab_gpl_future",
+>>                                             sizeof(*mod->gpl_future_syms),
+>> @@ -3381,6 +3443,19 @@ static int post_relocation(struct module *mod,
+>> const struct load_info *info)
+>>         return module_finalize(info->hdr, info->sechdrs, mod);
+>> }
+>>
+>> +static void verify_namespace_dependencies(struct module *mod)
+>> +{
+>> +       struct module_ns_dep *ns_dep;
+>> +
+>> +       list_for_each_entry(ns_dep, &mod->ns_dependencies, ns_dep) {
+>> +               if (!module_imports_ns(mod, ns_dep->namespace)) {
+>> +                       pr_warn("%s: module uses symbols from namespace
+>> %s,"
+>> +                               " but does not import it.\n",
+>> +                               mod->name, ns_dep->namespace);
+>> +               }
+>> +       }
+>> +}
+>> +
+>> /* Is this module of this name done loading?  No locks held. */
+>> static bool finished_loading(const char *name)
+>> {
+>> @@ -3682,6 +3757,8 @@ static int load_module(struct load_info *info, const
+>> char __user *uargs,
+>>         if (err)
+>>                 goto free_module;
+>>
+>> +       INIT_LIST_HEAD(&mod->ns_dependencies);
+>> +
+>> #ifdef CONFIG_MODULE_SIG
+>>         mod->sig_ok = info->sig_ok;
+>>         if (!mod->sig_ok) {
+>> @@ -3730,6 +3807,8 @@ static int load_module(struct load_info *info, const
+>> char __user *uargs,
+>>         if (err < 0)
+>>                 goto free_modinfo;
+>>
+>> +       verify_namespace_dependencies(mod);
+>> +
+>>         flush_module_icache(mod);
+>>
+>>         /* Now copy in args */
+>> --
+>> 2.18.0.203.gfac676dfb9-goog
+>>
+>
