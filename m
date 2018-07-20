@@ -1,47 +1,63 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 4/7] x86,tlb: make lazy TLB mode lazier
-Date: Fri, 20 Jul 2018 10:30:16 +0200
-Message-ID: <20180720083016.GN2494@hirez.programming.kicks-ass.net>
-References: <20180716190337.26133-1-riel@surriel.com>
- <20180716190337.26133-5-riel@surriel.com>
- <CALCETrUMntRe_LYX5wj9YD4xZ+84QExK+ZNb3yxEBDEKa7nePQ@mail.gmail.com>
- <B6566AA4-2E8A-43BD-A224-0F6D4747B8FB@surriel.com>
- <F93A3335-4830-4E36-9179-D0FA5D640C8A@amacapital.net>
- <B976CC13-D014-433A-83DE-F8DF9AB4F421@surriel.com>
- <CALCETrWDiMhgiR3f8n0jdWcW31EDJ+Waq0wh5sMDutfigANGnA@mail.gmail.com>
- <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Subject: Re: [RFC PATCH v2 14/27] mm: Handle THP/HugeTLB shadow stack page
+ fault
+Date: Fri, 20 Jul 2018 07:20:25 -0700
+Message-ID: <adc8f0b0-e2a5-d3e9-edaf-8d5b3be6a5b6@linux.intel.com>
+References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
+ <20180710222639.8241-15-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
+In-Reply-To: <20180710222639.8241-15-yu-cheng.yu@intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Rik van Riel <riel@surriel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Mike Galbraith <efault@gmx.de>, kernel-team <kernel-team@fb.com>, Ingo Molnar <mingo@kernel.org>, Dave Hansen <dave.hansen@intel.com>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <pet>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 19, 2018 at 10:04:09AM -0700, Andy Lutomirski wrote:
-> I added some more arch maintainers.  The idea here is that, on x86 at
-> least, task->active_mm and all its refcounting is pure overhead.  When
-> a process exits, __mmput() gets called, but the core kernel has a
-> longstanding "optimization" in which other tasks (kernel threads and
-> idle tasks) may have ->active_mm pointing at this mm.  This is nasty,
-> complicated, and hurts performance on large systems, since it requires
-> extra atomic operations whenever a CPU switches between real users
-> threads and idle/kernel threads.
-> 
-> It's also almost completely worthless on x86 at least, since __mmput()
-> frees pagetables, and that operation *already* forces a remote TLB
-> flush, so we might as well zap all the active_mm references at the
-> same time.
+On 07/10/2018 03:26 PM, Yu-cheng Yu wrote:
+> @@ -1193,6 +1195,8 @@ static int do_huge_pmd_wp_page_fallback(struct vm_fault *vmf, pmd_t orig_pmd,
+>  		pte_t entry;
+>  		entry = mk_pte(pages[i], vma->vm_page_prot);
+>  		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+> +		if (is_shstk_mapping(vma->vm_flags))
+> +			entry = pte_mkdirty_shstk(entry);
 
-So I disagree that active_mm is complicated (the code is less than ideal
-but that is actually fixable). And aside from the process exit case, it
-does avoid CR3 writes when switching between user and kernel threads
-(which can be far more often than exit if you have longer running
-tasks).
+Peter Z was pointing out that we should get rid of all this generic code
+manipulation.  We might not easily be able to do it *all*, but we can do
+better than what we've got here.
 
-Now agreed, recent x86 work has made that less important.
+Basically, if you have code outside of arch/x86 in your patch set that
+refers to shadow stacks, you should consider it a bug (for now),
+especially if you have to hack .c files.
 
-And I of course also agree that not doing those refcount atomics is
-better.
+For instance, in the code above, you could move the is_shstk_mapping() into:
+
+static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
+{
+        if (likely(vma->vm_flags & VM_WRITE))
+                pte = pte_mkwrite(pte);
+	
++	pte = arch_pte_mkwrite(pte, vma);
++
+        return pte;
+}
+
+... and add an arch callback that does:
+
+static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
+{
+	if (!is_shstk_mapping(vma->vm_flags))
+		return pte;
+
+	WARN_ON(... pte bits incompatible with shadow stacks?);
+
+	/* Lots of comments of course */
+	entry = pte_mkdirty_shstk(entry);
+}
+
+This is just one example.  You are probably going to need a couple of
+similar things.  Just remember: the bar is very high to make changes to
+.c files outside of arch/x86.  You can do a _bit_ more in non-x86
+headers, but you have the most freedom to patch what you want as long as
+it's in arch/x86.
