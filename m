@@ -1,83 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:7402 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731731AbeGTPum (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Jul 2018 11:50:42 -0400
-Message-ID: <1532098688.23487.0.camel@intel.com>
-Subject: Re: [RFC PATCH v2 14/27] mm: Handle THP/HugeTLB shadow stack page
- fault
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 20 Jul 2018 07:58:08 -0700
-In-Reply-To: <adc8f0b0-e2a5-d3e9-edaf-8d5b3be6a5b6@linux.intel.com>
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
-         <20180710222639.8241-15-yu-cheng.yu@intel.com>
-         <adc8f0b0-e2a5-d3e9-edaf-8d5b3be6a5b6@linux.intel.com>
+Received: from mail-it0-f66.google.com ([209.85.214.66]:32845 "EHLO
+        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387855AbeGTQbA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jul 2018 12:31:00 -0400
+Received: by mail-it0-f66.google.com with SMTP id y124-v6so5530265itc.0
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jul 2018 08:42:08 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20180720144916.fyqpmrtgt23sax6n@linux-8ccs>
+References: <20180716122125.175792-1-maco@android.com> <20180716122125.175792-3-maco@android.com>
+ <20180719163208.5xvrafugpcbhh7kj@linux-8ccs> <CAB0TPYFVSWtJ6RPRUZ1bpS-rBaV7YyPR-4B2Ogxs+FNAbiScNw@mail.gmail.com>
+ <20180720144916.fyqpmrtgt23sax6n@linux-8ccs>
+From: Martijn Coenen <maco@android.com>
+Date: Fri, 20 Jul 2018 17:42:07 +0200
+Message-ID: <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
+Subject: Re: [PATCH 2/6] module: add support for symbol namespaces.
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180720145808.tG1FNYnyV_xTPpbRdvYhJZoV8Yx1AkuodyTadm1MyDI@z>
+To: Jessica Yu <jeyu@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, USB list <linux-usb@vger.kernel.org>, USB Storage list <usb-storage@lists.one-eyed-alien.net>, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Martijn Coenen <maco@google.com>, Sandeep Patil <sspatil@google.com>, Iliyan Malchev <malchev@google.com>, Joel Fernandes <joelaf@google.com>
+Message-ID: <20180720154207.TT9pqXhd_QYilaJwmskWAwhbDttA3w4s7kjZbIMx1l8@z>
 
-On Fri, 2018-07-20 at 07:20 -0700, Dave Hansen wrote:
-> On 07/10/2018 03:26 PM, Yu-cheng Yu wrote:
-> > 
-> > @@ -1193,6 +1195,8 @@ static int
-> > do_huge_pmd_wp_page_fallback(struct vm_fault *vmf, pmd_t orig_pmd,
-> >  		pte_t entry;
-> >  		entry = mk_pte(pages[i], vma->vm_page_prot);
-> >  		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-> > +		if (is_shstk_mapping(vma->vm_flags))
-> > +			entry = pte_mkdirty_shstk(entry);
-> Peter Z was pointing out that we should get rid of all this generic
-> code
-> manipulation.  We might not easily be able to do it *all*, but we
-> can do
-> better than what we've got here.
-> 
-> Basically, if you have code outside of arch/x86 in your patch set
-> that
-> refers to shadow stacks, you should consider it a bug (for now),
-> especially if you have to hack .c files.
-> 
-> For instance, in the code above, you could move the
-> is_shstk_mapping() into:
-> 
-> static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct
-> *vma)
-> {
->         if (likely(vma->vm_flags & VM_WRITE))
->                 pte = pte_mkwrite(pte);
-> 	
-> +	pte = arch_pte_mkwrite(pte, vma);
-> +
->         return pte;
-> }
-> 
-> ... and add an arch callback that does:
-> 
-> static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct
-> *vma)
-> {
-> 	if (!is_shstk_mapping(vma->vm_flags))
-> 		return pte;
-> 
-> 	WARN_ON(... pte bits incompatible with shadow stacks?);
-> 
-> 	/* Lots of comments of course */
-> 	entry = pte_mkdirty_shstk(entry);
-> }
-> 
-> This is just one example.  You are probably going to need a couple
-> of
-> similar things.  Just remember: the bar is very high to make changes
-> to
-> .c files outside of arch/x86.  You can do a _bit_ more in non-x86
-> headers, but you have the most freedom to patch what you want as
-> long as
-> it's in arch/x86.
+On Fri, Jul 20, 2018 at 4:49 PM, Jessica Yu <jeyu@kernel.org> wrote:
+> Thanks. Also, it looks like we're currently just warning (in both
+> modpost and on module load) if a module uses symbols from a namespace
+> it doesn't import. Are you also planning to eventually introduce
+> namespace enforcement?
 
-Ok, I will work on that.  Thanks!
+This is something I've definitely been thinking about, and was curious
+what others would think. My main concern with enforcement is that it
+will start failing to load out-of-tree modules that use newly
+namespaced symbols. On the other hand, I think those modules will need
+to be rebuilt anyway to be able to load, because the changes to struct
+kernel_symbol make them incompatible with the current kernel. That
+could be another reason for having these symbols in a special section
+(with its own struct namespaced_kernel_symbol); but on the other hand,
+it would make the module loader more complex just to facilitate
+out-of-tree drivers, and I'm not sure where the trade-off between
+those two falls.
 
-Yu-cheng
+> It'd be trivial to fail the module build in
+> modpost as well as reject the module on load if it uses an exported
+> symbol belonging to a namespace it doesn't import. Although, I'd go
+> with the warnings for a development cycle or two, to gently introduce
+> the change in API and let other subsystems as well as out-of-tree
+> module developers catch up.
+
+An approach like that makes sense to me. Another alternative would be
+to make it a CONFIG_ option, and let distros/etc. decide what they are
+comfortable with.
+
+Thanks,
+Martijn
+
+>
+>
+> Jessica
+>
+>
+>>> Also, this would get rid of the extra __knsimport section, the extra
+>>> ns_dependencies field in struct module, and all those helper functions
+>>> that
+>>> manage it. In addition, having the modinfo tag may potentially help with
+>>> debugging as we have the namespace imports clearly listed if we don't
+>>> have
+>>> the source code for a module. We'd probably need to modify get_modinfo()
+>>> to
+>>> handle multiple import: tags though. Luis [1] had written some code a
+>>> while
+>>> ago to handle multiple (of the same) modinfo tags.
+>>>
+>>> Thoughts on this?
+>>>
+>>> Thanks,
+>>>
+>>> Jessica
+>>>
+>>> [1] https://lkml.kernel.org/r/20171130023605.29568-3-mcgrof@kernel.org
+>>>
+>>>
+>>>> getname:
+>>>>         /* We must make copy under the lock if we failed to get ref. */
+>>>>         strncpy(ownername, module_name(owner), MODULE_NAME_LEN);
+>>>> @@ -3061,6 +3118,11 @@ static int find_module_sections(struct module
+>>>> *mod,
+>>>> struct load_info *info)
+>>>>                                      sizeof(*mod->gpl_syms),
+>>>>                                      &mod->num_gpl_syms);
+>>>>         mod->gpl_crcs = section_addr(info, "__kcrctab_gpl");
+>>>> +
+>>>> +       mod->ns_imports = section_objs(info, "__knsimport",
+>>>> +                                      sizeof(*mod->ns_imports),
+>>>> +                                      &mod->num_ns_imports);
+>>>> +
+>>>>         mod->gpl_future_syms = section_objs(info,
+>>>>                                             "__ksymtab_gpl_future",
+>>>>
+>>>> sizeof(*mod->gpl_future_syms),
+>>>> @@ -3381,6 +3443,19 @@ static int post_relocation(struct module *mod,
+>>>> const struct load_info *info)
+>>>>         return module_finalize(info->hdr, info->sechdrs, mod);
+>>>> }
+>>>>
+>>>> +static void verify_namespace_dependencies(struct module *mod)
+>>>> +{
+>>>> +       struct module_ns_dep *ns_dep;
+>>>> +
+>>>> +       list_for_each_entry(ns_dep, &mod->ns_dependencies, ns_dep) {
+>>>> +               if (!module_imports_ns(mod, ns_dep->namespace)) {
+>>>> +                       pr_warn("%s: module uses symbols from namespace
+>>>> %s,"
+>>>> +                               " but does not import it.\n",
+>>>> +                               mod->name, ns_dep->namespace);
+>>>> +               }
+>>>> +       }
+>>>> +}
+>>>> +
+>>>> /* Is this module of this name done loading?  No locks held. */
+>>>> static bool finished_loading(const char *name)
+>>>> {
+>>>> @@ -3682,6 +3757,8 @@ static int load_module(struct load_info *info,
+>>>> const
+>>>> char __user *uargs,
+>>>>         if (err)
+>>>>                 goto free_module;
+>>>>
+>>>> +       INIT_LIST_HEAD(&mod->ns_dependencies);
+>>>> +
+>>>> #ifdef CONFIG_MODULE_SIG
+>>>>         mod->sig_ok = info->sig_ok;
+>>>>         if (!mod->sig_ok) {
+>>>> @@ -3730,6 +3807,8 @@ static int load_module(struct load_info *info,
+>>>> const
+>>>> char __user *uargs,
+>>>>         if (err < 0)
+>>>>                 goto free_modinfo;
+>>>>
+>>>> +       verify_namespace_dependencies(mod);
+>>>> +
+>>>>         flush_module_icache(mod);
+>>>>
+>>>>         /* Now copy in args */
+>>>> --
+>>>> 2.18.0.203.gfac676dfb9-goog
+>>>>
+>>>
+>
