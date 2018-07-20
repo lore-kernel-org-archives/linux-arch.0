@@ -1,148 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f66.google.com ([209.85.214.66]:32845 "EHLO
-        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387855AbeGTQbA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jul 2018 12:31:00 -0400
-Received: by mail-it0-f66.google.com with SMTP id y124-v6so5530265itc.0
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jul 2018 08:42:08 -0700 (PDT)
+Received: from relay5-d.mail.gandi.net ([217.70.183.197]:59203 "EHLO
+        relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388043AbeGTT1g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jul 2018 15:27:36 -0400
+From: Alex Ghiti <alex@ghiti.fr>
+Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+References: <20180705110716.3919-1-alex@ghiti.fr>
+ <20180709141621.GD22297@dhcp22.suse.cz>
+Message-ID: <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
+Date: Fri, 20 Jul 2018 18:37:51 +0000
 MIME-Version: 1.0
-In-Reply-To: <20180720144916.fyqpmrtgt23sax6n@linux-8ccs>
-References: <20180716122125.175792-1-maco@android.com> <20180716122125.175792-3-maco@android.com>
- <20180719163208.5xvrafugpcbhh7kj@linux-8ccs> <CAB0TPYFVSWtJ6RPRUZ1bpS-rBaV7YyPR-4B2Ogxs+FNAbiScNw@mail.gmail.com>
- <20180720144916.fyqpmrtgt23sax6n@linux-8ccs>
-From: Martijn Coenen <maco@android.com>
-Date: Fri, 20 Jul 2018 17:42:07 +0200
-Message-ID: <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
-Subject: Re: [PATCH 2/6] module: add support for symbol namespaces.
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180709141621.GD22297@dhcp22.suse.cz>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jessica Yu <jeyu@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, USB list <linux-usb@vger.kernel.org>, USB Storage list <usb-storage@lists.one-eyed-alien.net>, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Martijn Coenen <maco@google.com>, Sandeep Patil <sspatil@google.com>, Iliyan Malchev <malchev@google.com>, Joel Fernandes <joelaf@google.com>
-Message-ID: <20180720154207.TT9pqXhd_QYilaJwmskWAwhbDttA3w4s7kjZbIMx1l8@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20180720183751.Dx9us4q4KJtGFcyTZLXB78aoOmlUfU1Uh3Y0cHV7Wbs@z>
 
-On Fri, Jul 20, 2018 at 4:49 PM, Jessica Yu <jeyu@kernel.org> wrote:
-> Thanks. Also, it looks like we're currently just warning (in both
-> modpost and on module load) if a module uses symbols from a namespace
-> it doesn't import. Are you also planning to eventually introduce
-> namespace enforcement?
+Does anyone have any suggestion about those patches ?
 
-This is something I've definitely been thinking about, and was curious
-what others would think. My main concern with enforcement is that it
-will start failing to load out-of-tree modules that use newly
-namespaced symbols. On the other hand, I think those modules will need
-to be rebuilt anyway to be able to load, because the changes to struct
-kernel_symbol make them incompatible with the current kernel. That
-could be another reason for having these symbols in a special section
-(with its own struct namespaced_kernel_symbol); but on the other hand,
-it would make the module loader more complex just to facilitate
-out-of-tree drivers, and I'm not sure where the trade-off between
-those two falls.
-
-> It'd be trivial to fail the module build in
-> modpost as well as reject the module on load if it uses an exported
-> symbol belonging to a namespace it doesn't import. Although, I'd go
-> with the warnings for a development cycle or two, to gently introduce
-> the change in API and let other subsystems as well as out-of-tree
-> module developers catch up.
-
-An approach like that makes sense to me. Another alternative would be
-to make it a CONFIG_ option, and let distros/etc. decide what they are
-comfortable with.
-
-Thanks,
-Martijn
-
+On 07/09/2018 02:16 PM, Michal Hocko wrote:
+> [CC hugetlb guys - http://lkml.kernel.org/r/20180705110716.3919-1-alex@ghiti.fr]
 >
->
-> Jessica
->
->
->>> Also, this would get rid of the extra __knsimport section, the extra
->>> ns_dependencies field in struct module, and all those helper functions
->>> that
->>> manage it. In addition, having the modinfo tag may potentially help with
->>> debugging as we have the namespace imports clearly listed if we don't
->>> have
->>> the source code for a module. We'd probably need to modify get_modinfo()
->>> to
->>> handle multiple import: tags though. Luis [1] had written some code a
->>> while
->>> ago to handle multiple (of the same) modinfo tags.
->>>
->>> Thoughts on this?
->>>
->>> Thanks,
->>>
->>> Jessica
->>>
->>> [1] https://lkml.kernel.org/r/20171130023605.29568-3-mcgrof@kernel.org
->>>
->>>
->>>> getname:
->>>>         /* We must make copy under the lock if we failed to get ref. */
->>>>         strncpy(ownername, module_name(owner), MODULE_NAME_LEN);
->>>> @@ -3061,6 +3118,11 @@ static int find_module_sections(struct module
->>>> *mod,
->>>> struct load_info *info)
->>>>                                      sizeof(*mod->gpl_syms),
->>>>                                      &mod->num_gpl_syms);
->>>>         mod->gpl_crcs = section_addr(info, "__kcrctab_gpl");
->>>> +
->>>> +       mod->ns_imports = section_objs(info, "__knsimport",
->>>> +                                      sizeof(*mod->ns_imports),
->>>> +                                      &mod->num_ns_imports);
->>>> +
->>>>         mod->gpl_future_syms = section_objs(info,
->>>>                                             "__ksymtab_gpl_future",
->>>>
->>>> sizeof(*mod->gpl_future_syms),
->>>> @@ -3381,6 +3443,19 @@ static int post_relocation(struct module *mod,
->>>> const struct load_info *info)
->>>>         return module_finalize(info->hdr, info->sechdrs, mod);
->>>> }
->>>>
->>>> +static void verify_namespace_dependencies(struct module *mod)
->>>> +{
->>>> +       struct module_ns_dep *ns_dep;
->>>> +
->>>> +       list_for_each_entry(ns_dep, &mod->ns_dependencies, ns_dep) {
->>>> +               if (!module_imports_ns(mod, ns_dep->namespace)) {
->>>> +                       pr_warn("%s: module uses symbols from namespace
->>>> %s,"
->>>> +                               " but does not import it.\n",
->>>> +                               mod->name, ns_dep->namespace);
->>>> +               }
->>>> +       }
->>>> +}
->>>> +
->>>> /* Is this module of this name done loading?  No locks held. */
->>>> static bool finished_loading(const char *name)
->>>> {
->>>> @@ -3682,6 +3757,8 @@ static int load_module(struct load_info *info,
->>>> const
->>>> char __user *uargs,
->>>>         if (err)
->>>>                 goto free_module;
->>>>
->>>> +       INIT_LIST_HEAD(&mod->ns_dependencies);
->>>> +
->>>> #ifdef CONFIG_MODULE_SIG
->>>>         mod->sig_ok = info->sig_ok;
->>>>         if (!mod->sig_ok) {
->>>> @@ -3730,6 +3807,8 @@ static int load_module(struct load_info *info,
->>>> const
->>>> char __user *uargs,
->>>>         if (err < 0)
->>>>                 goto free_modinfo;
->>>>
->>>> +       verify_namespace_dependencies(mod);
->>>> +
->>>>         flush_module_icache(mod);
->>>>
->>>>         /* Now copy in args */
->>>> --
->>>> 2.18.0.203.gfac676dfb9-goog
->>>>
->>>
->
+> On Thu 05-07-18 11:07:05, Alexandre Ghiti wrote:
+>> In order to reduce copy/paste of functions across architectures and then
+>> make riscv hugetlb port (and future ports) simpler and smaller, this
+>> patchset intends to factorize the numerous hugetlb primitives that are
+>> defined across all the architectures.
+>>
+>> Except for prepare_hugepage_range, this patchset moves the versions that
+>> are just pass-through to standard pte primitives into
+>> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+>> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
+>>
+>> s390 architecture has not been tackled in this serie since it does not
+>> use asm-generic/hugetlb.h at all.
+>> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
+>>
+>> This patchset has been compiled on x86 only.
+>>
+>> Changelog:
+>>
+>> v4:
+>>    Fix powerpc build error due to misplacing of #include
+>>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
+>>    pointed by Christophe Leroy.
+>>
+>> v1, v2, v3:
+>>    Same version, just problems with email provider and misuse of
+>>    --batch-size option of git send-email
+>>
+>> Alexandre Ghiti (11):
+>>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+>>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
+>>    hugetlb: Introduce generic version of set_huge_pte_at
+>>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
+>>    hugetlb: Introduce generic version of huge_ptep_clear_flush
+>>    hugetlb: Introduce generic version of huge_pte_none
+>>    hugetlb: Introduce generic version of huge_pte_wrprotect
+>>    hugetlb: Introduce generic version of prepare_hugepage_range
+>>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+>>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
+>>    hugetlb: Introduce generic version of huge_ptep_get
+>>
+>>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+>>   arch/arm/include/asm/hugetlb.h               | 33 +----------
+>>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+>>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+>>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
+>>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+>>   arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
+>>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+>>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+>>   arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
+>>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+>>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+>>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+>>   arch/x86/include/asm/hugetlb.h               | 72 +----------------------
+>>   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+>>   15 files changed, 143 insertions(+), 384 deletions(-)
+>>
+>> -- 
+>> 2.16.2
