@@ -1,141 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:45752 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:45710 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2388136AbeGWOlj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S2388097AbeGWOlj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 23 Jul 2018 10:41:39 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v2 16/17] driver/edac: enable Hygon support to AMD64 EDAC driver
-Date: Mon, 23 Jul 2018 21:20:36 +0800
-Message-ID: <1532352037-7151-17-git-send-email-puwen@hygon.cn>
-In-Reply-To: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
-References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+Subject: [PATCH v2 00/17] Add support for Hygon Dhyana Family 18h processor
+Date: Mon, 23 Jul 2018 21:20:20 +0800
+Message-ID: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20180723132036.X5rD12rsfHqOhisg2wRIXf4O-o7tLp6c65s0NncK4h0@z>
+Message-ID: <20180723132020.DvAEESFyTZVS89TzTLcXUH5IyHTz3QgiprFgYj1HBbU@z>
 
-To make AMD64 MCE and EDAC drivers working on Hygon platforms, add Hygon
-vendor check for them. Also Hygon PCI Device ID DF_F0/DF_F6(0x1460/0x1466)
-of Host bridge is needed for these drivers. And support Dhyana processors
-by using AMD 0x17 codes.
+As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
+is a Joint Venture between AMD and Haiguang Information Technology Co.,
+Ltd., and aims at providing high performance x86 processor for China
+server market.
 
-Signed-off-by: Pu Wen <puwen@hygon.cn>
----
- drivers/edac/amd64_edac.c | 20 +++++++++++++++++++-
- drivers/edac/amd64_edac.h |  4 ++++
- drivers/edac/mce_amd.c    |  4 +++-
- 3 files changed, 26 insertions(+), 2 deletions(-)
+The first generation Hygon's processor(Dhyana) originates from AMD
+technology and shares most of the architecture with AMD's family 17h,
+but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
+(0x1D94)/Family series number (Family 18h).
 
-diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
-index 18aeabb..d8b4b0e 100644
---- a/drivers/edac/amd64_edac.c
-+++ b/drivers/edac/amd64_edac.c
-@@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
- 
- 	scrubval = scrubrates[i].scrubval;
- 
--	if (pvt->fam == 0x17) {
-+	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
- 		__f17h_set_scrubval(pvt, scrubval);
- 	} else if (pvt->fam == 0x15 && pvt->model == 0x60) {
- 		f15h_select_dct(pvt, 0);
-@@ -264,6 +264,7 @@ static int get_scrub_rate(struct mem_ctl_info *mci)
- 		break;
- 
- 	case 0x17:
-+	case 0x18:
- 		amd64_read_pci_cfg(pvt->F6, F17H_SCR_BASE_ADDR, &scrubval);
- 		if (scrubval & BIT(0)) {
- 			amd64_read_pci_cfg(pvt->F6, F17H_SCR_LIMIT_ADDR, &scrubval);
-@@ -1044,6 +1045,7 @@ static void determine_memory_type(struct amd64_pvt *pvt)
- 		goto ddr3;
- 
- 	case 0x17:
-+	case 0x18:
- 		if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(5))
- 			pvt->dram_type = MEM_LRDDR4;
- 		else if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(4))
-@@ -2200,6 +2202,16 @@ static struct amd64_family_type family_types[] = {
- 			.dbam_to_cs		= f17_base_addr_to_cs_size,
- 		}
- 	},
-+	[HYGON_F18_CPUS] = {
-+		/* Hygon F18h uses the same AMD F17h support */
-+		.ctl_name = "Hygon_F18h",
-+		.f0_id = PCI_DEVICE_ID_HYGON_18H_DF_F0,
-+		.f6_id = PCI_DEVICE_ID_HYGON_18H_DF_F6,
-+		.ops = {
-+			.early_channel_count	= f17_early_channel_count,
-+			.dbam_to_cs		= f17_base_addr_to_cs_size,
-+		}
-+	},
- };
- 
- /*
-@@ -3192,6 +3204,11 @@ static struct amd64_family_type *per_family_init(struct amd64_pvt *pvt)
- 		pvt->ops	= &family_types[F17_CPUS].ops;
- 		break;
- 
-+	case 0x18:
-+		fam_type	= &family_types[HYGON_F18_CPUS];
-+		pvt->ops	= &family_types[HYGON_F18_CPUS].ops;
-+		break;
-+
- 	default:
- 		amd64_err("Unsupported family!\n");
- 		return NULL;
-@@ -3428,6 +3445,7 @@ static const struct x86_cpu_id amd64_cpuids[] = {
- 	{ X86_VENDOR_AMD, 0x15, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
- 	{ X86_VENDOR_AMD, 0x16, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
- 	{ X86_VENDOR_AMD, 0x17, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
-+	{ X86_VENDOR_HYGON, 0x18, X86_MODEL_ANY, X86_FEATURE_ANY, 0 },
- 	{ }
- };
- MODULE_DEVICE_TABLE(x86cpu, amd64_cpuids);
-diff --git a/drivers/edac/amd64_edac.h b/drivers/edac/amd64_edac.h
-index 1d4b74e..6e5f609 100644
---- a/drivers/edac/amd64_edac.h
-+++ b/drivers/edac/amd64_edac.h
-@@ -116,6 +116,9 @@
- #define PCI_DEVICE_ID_AMD_17H_DF_F0	0x1460
- #define PCI_DEVICE_ID_AMD_17H_DF_F6	0x1466
- 
-+#define PCI_DEVICE_ID_HYGON_18H_DF_F0	0x1460
-+#define PCI_DEVICE_ID_HYGON_18H_DF_F6	0x1466
-+
- /*
-  * Function 1 - Address Map
-  */
-@@ -281,6 +284,7 @@ enum amd_families {
- 	F16_CPUS,
- 	F16_M30H_CPUS,
- 	F17_CPUS,
-+	HYGON_F18_CPUS,
- 	NUM_FAMILIES,
- };
- 
-diff --git a/drivers/edac/mce_amd.c b/drivers/edac/mce_amd.c
-index 2ab4d61..c605089 100644
---- a/drivers/edac/mce_amd.c
-+++ b/drivers/edac/mce_amd.c
-@@ -1059,7 +1059,8 @@ static int __init mce_amd_init(void)
- {
- 	struct cpuinfo_x86 *c = &boot_cpu_data;
- 
--	if (c->x86_vendor != X86_VENDOR_AMD)
-+	if (c->x86_vendor != X86_VENDOR_AMD &&
-+	    c->x86_vendor != X86_VENDOR_HYGON)
- 		return -ENODEV;
- 
- 	fam_ops = kzalloc(sizeof(struct amd_decoder_ops), GFP_KERNEL);
-@@ -1113,6 +1114,7 @@ static int __init mce_amd_init(void)
- 		break;
- 
- 	case 0x17:
-+	case 0x18:
- 		xec_mask = 0x3f;
- 		if (!boot_cpu_has(X86_FEATURE_SMCA)) {
- 			printk(KERN_WARNING "Decoding supported only on Scalable MCA processors.\n");
+To enable the support of Linux kernel to Hygon's CPU, we added a new
+vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
+asm/processor.h, and shared most of kernel support codes with AMD
+family 17h.
+
+This patch series have been applied and tested successfully in Hygon's
+Dhyana SoC silicon. Also tested on AMD's EPYC (Family 17h) processor
+works fine and makes no harm to existing codes.
+
+
+v1->v2:
+  - Rebased on 4.18-rc6 and tested against it.
+  - Split the patchset to small series of patches.
+  - Rework patch descriptions.
+  - Create a separated arch/x86/kernel/cpu/hygon.c for Dhyana CPU
+    initialization to reduce long-term maintenance effort.
+
+
+Pu Wen (17):
+  x86/cpu: create Dhyana init file and register new cpu_dev to system
+  x86/cache: get Dhyana cache size/leaves and setup cache cpumap
+  x86/mtrr: get MTRR number and support TOP_MEM2
+  x86/smpboot: smp init nodelay and no flush caches before sleep
+  x86/perfctr: return perf counter and event selection bit offset
+  x86/nops: init ideal_nops for Hygon
+  x86/pci: add Hygon PCI vendor and northbridge support
+  x86/apic: add modern APIC support for Hygon
+  x86/bugs: add lfence mitigation to spectre v2 and no meltdown for
+    Hygon
+  x86/events: enable Hygon support to PMU infrastructure
+  x86/mce: enable Hygon support to MCE infrastructure
+  x86/kvm: enable Hygon support to KVM infrastructure
+  x86/xen: enable Hygon support to Xen
+  driver/acpi: enable Hygon support to ACPI driver
+  driver/cpufreq: enable Hygon support to cpufreq driver
+  driver/edac: enable Hygon support to AMD64 EDAC driver
+  tools/cpupower: enable Hygon support to cpupower tool
+
+ MAINTAINERS                                        |   6 +
+ arch/x86/Kconfig                                   |   2 +-
+ arch/x86/Kconfig.cpu                               |  13 +
+ arch/x86/events/amd/core.c                         |   4 +
+ arch/x86/events/amd/uncore.c                       |  12 +-
+ arch/x86/events/core.c                             |   4 +
+ arch/x86/include/asm/cacheinfo.h                   |   1 +
+ arch/x86/include/asm/kvm_emulate.h                 |   4 +
+ arch/x86/include/asm/mce.h                         |   5 +
+ arch/x86/include/asm/nospec-branch.h               |   4 +-
+ arch/x86/include/asm/processor.h                   |   3 +-
+ arch/x86/include/asm/virtext.h                     |   5 +-
+ arch/x86/kernel/alternative.c                      |   4 +
+ arch/x86/kernel/amd_nb.c                           |  54 ++-
+ arch/x86/kernel/apic/apic.c                        |  13 +-
+ arch/x86/kernel/cpu/Makefile                       |   1 +
+ arch/x86/kernel/cpu/bugs.c                         |  28 +-
+ arch/x86/kernel/cpu/cacheinfo.c                    |  31 +-
+ arch/x86/kernel/cpu/common.c                       |   1 +
+ arch/x86/kernel/cpu/cpu.h                          |   1 +
+ arch/x86/kernel/cpu/hygon.c                        | 404 +++++++++++++++++++++
+ arch/x86/kernel/cpu/mcheck/mce-severity.c          |   3 +-
+ arch/x86/kernel/cpu/mcheck/mce.c                   |  20 +-
+ arch/x86/kernel/cpu/mtrr/cleanup.c                 |   3 +-
+ arch/x86/kernel/cpu/mtrr/generic.c                 |   3 +-
+ arch/x86/kernel/cpu/mtrr/mtrr.c                    |   2 +-
+ arch/x86/kernel/cpu/perfctr-watchdog.c             |   8 +
+ arch/x86/kernel/smpboot.c                          |   4 +-
+ arch/x86/kvm/emulate.c                             |  11 +-
+ arch/x86/pci/amd_bus.c                             |   6 +-
+ arch/x86/xen/pmu.c                                 |  12 +-
+ drivers/acpi/acpi_pad.c                            |   1 +
+ drivers/acpi/processor_idle.c                      |   1 +
+ drivers/cpufreq/acpi-cpufreq.c                     |  11 +
+ drivers/cpufreq/amd_freq_sensitivity.c             |   9 +-
+ drivers/edac/amd64_edac.c                          |  20 +-
+ drivers/edac/amd64_edac.h                          |   4 +
+ drivers/edac/mce_amd.c                             |   4 +-
+ include/linux/pci_ids.h                            |   2 +
+ tools/power/cpupower/utils/cpufreq-info.c          |   6 +-
+ tools/power/cpupower/utils/helpers/amd.c           |   2 +-
+ tools/power/cpupower/utils/helpers/cpuid.c         |   8 +-
+ tools/power/cpupower/utils/helpers/helpers.h       |   2 +-
+ tools/power/cpupower/utils/helpers/misc.c          |   2 +-
+ .../cpupower/utils/idle_monitor/mperf_monitor.c    |   3 +-
+ 45 files changed, 682 insertions(+), 65 deletions(-)
+ create mode 100644 arch/x86/kernel/cpu/hygon.c
+
 -- 
 2.7.4
