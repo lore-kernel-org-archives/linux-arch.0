@@ -1,71 +1,90 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v2 10/17] x86/events: enable Hygon support to
- PMU infrastructure
-Date: Mon, 23 Jul 2018 21:20:30 +0800
-Message-ID: <1532352037-7151-11-git-send-email-puwen@hygon.cn>
-References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture primitives
+Date: Tue, 24 Jul 2018 00:00:37 +1000
+Message-ID: <87d0vehx16.fsf@concordia.ellerman.id.au>
+References: <20180705110716.3919-1-alex@ghiti.fr> <20180709141621.GD22297@dhcp22.suse.cz> <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xenproject.org>
-In-Reply-To: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
-List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xenproject.org>
-List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
-List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xenproject.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
-To: tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
-Cc: linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, linux-kernel@vger.kernel.org, kvm@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Ghiti <alex@ghiti.fr>, Michal Hocko <mhocko@kernel.org>
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-SHlnb24gUE1VIGFyY2ggaXMgc2ltaWxhciB0byBBTUQgRmFtaWx5IDE3aC4gVG8gc3VwcG9ydCBI
-eWdvbiBQTVUsIHRoZQppbml0aWFsaXphdGlvbiBmbG93IGZvciBpdCBqdXN0IGNhbGwgYW1kX3Bt
-dV9pbml0KCkgYW5kIGNoYW5nZSBQTVUgbmFtZQp0byAiSFlHT04iLiBUbyBzaGFyZSBBTUQncyBm
-bG93LCBhZGQgY29kZSBjaGVjayBmb3IgSHlnb24gZmFtaWx5IElEIDE4aAp0byBydW4gdGhlIGNv
-ZGUgcGF0aCBvZiBBTUQgZmFtaWx5IDE3aCBpbiBjb3JlL3VuY29yZSBmdW5jdGlvbnMuCgpTaWdu
-ZWQtb2ZmLWJ5OiBQdSBXZW4gPHB1d2VuQGh5Z29uLmNuPgotLS0KIGFyY2gveDg2L2V2ZW50cy9h
-bWQvY29yZS5jICAgfCAgNCArKysrCiBhcmNoL3g4Ni9ldmVudHMvYW1kL3VuY29yZS5jIHwgMTIg
-KysrKysrKy0tLS0tCiBhcmNoL3g4Ni9ldmVudHMvY29yZS5jICAgICAgIHwgIDQgKysrKwogMyBm
-aWxlcyBjaGFuZ2VkLCAxNSBpbnNlcnRpb25zKCspLCA1IGRlbGV0aW9ucygtKQoKZGlmZiAtLWdp
-dCBhL2FyY2gveDg2L2V2ZW50cy9hbWQvY29yZS5jIGIvYXJjaC94ODYvZXZlbnRzL2FtZC9jb3Jl
-LmMKaW5kZXggYzg0NTg0Yi4uZDJiMjliZiAxMDA2NDQKLS0tIGEvYXJjaC94ODYvZXZlbnRzL2Ft
-ZC9jb3JlLmMKKysrIGIvYXJjaC94ODYvZXZlbnRzL2FtZC9jb3JlLmMKQEAgLTY2OSw2ICs2Njks
-MTAgQEAgc3RhdGljIGludCBfX2luaXQgYW1kX2NvcmVfcG11X2luaXQodm9pZCkKIAkJICogV2Ug
-ZmFsbGJhY2sgdG8gdXNpbmcgZGVmYXVsdCBhbWRfZ2V0X2V2ZW50X2NvbnN0cmFpbnRzLgogCQkg
-Ki8KIAkJYnJlYWs7CisJY2FzZSAweDE4OgorCQlwcl9jb250KCJGYW0xOGggIik7CisJCS8qIEZh
-bGxiYWNrIHRvIHVzaW5nIGRlZmF1bHQgYW1kX2dldF9ldmVudF9jb25zdHJhaW50cy4gKi8KKwkJ
-YnJlYWs7CiAJZGVmYXVsdDoKIAkJcHJfZXJyKCJjb3JlIHBlcmZjdHIgYnV0IG5vIGNvbnN0cmFp
-bnRzOyB1bmtub3duIGhhcmR3YXJlIVxuIik7CiAJCXJldHVybiAtRU5PREVWOwpkaWZmIC0tZ2l0
-IGEvYXJjaC94ODYvZXZlbnRzL2FtZC91bmNvcmUuYyBiL2FyY2gveDg2L2V2ZW50cy9hbWQvdW5j
-b3JlLmMKaW5kZXggOTgxYmE1ZS4uOTJlYTI4MCAxMDA2NDQKLS0tIGEvYXJjaC94ODYvZXZlbnRz
-L2FtZC91bmNvcmUuYworKysgYi9hcmNoL3g4Ni9ldmVudHMvYW1kL3VuY29yZS5jCkBAIC01MDcs
-MTcgKzUwNywxOSBAQCBzdGF0aWMgaW50IF9faW5pdCBhbWRfdW5jb3JlX2luaXQodm9pZCkKIHsK
-IAlpbnQgcmV0ID0gLUVOT0RFVjsKIAotCWlmIChib290X2NwdV9kYXRhLng4Nl92ZW5kb3IgIT0g
-WDg2X1ZFTkRPUl9BTUQpCisJaWYgKGJvb3RfY3B1X2RhdGEueDg2X3ZlbmRvciAhPSBYODZfVkVO
-RE9SX0FNRCAmJgorCSAgICBib290X2NwdV9kYXRhLng4Nl92ZW5kb3IgIT0gWDg2X1ZFTkRPUl9I
-WUdPTikKIAkJcmV0dXJuIC1FTk9ERVY7CiAKIAlpZiAoIWJvb3RfY3B1X2hhcyhYODZfRkVBVFVS
-RV9UT1BPRVhUKSkKIAkJcmV0dXJuIC1FTk9ERVY7CiAKLQlpZiAoYm9vdF9jcHVfZGF0YS54ODYg
-PT0gMHgxNykgeworCWlmIChib290X2NwdV9kYXRhLng4NiA9PSAweDE3IHx8IGJvb3RfY3B1X2Rh
-dGEueDg2ID09IDB4MTgpIHsKIAkJLyoKLQkJICogRm9yIEYxN2gsIHRoZSBOb3J0aGJyaWRnZSBj
-b3VudGVycyBhcmUgcmVwdXJwb3NlZCBhcyBEYXRhCi0JCSAqIEZhYnJpYyBjb3VudGVycy4gQWxz
-bywgTDMgY291bnRlcnMgYXJlIHN1cHBvcnRlZCB0b28uIFRoZSBQTVVzCi0JCSAqIGFyZSBleHBv
-cnRlZCBiYXNlZCBvbiAgZmFtaWx5IGFzIGVpdGhlciBMMiBvciBMMyBhbmQgTkIgb3IgREYuCisJ
-CSAqIEZvciBGMTdoIG9yIEYxOGgsIHRoZSBOb3J0aGJyaWRnZSBjb3VudGVycyBhcmUKKwkJICog
-cmVwdXJwb3NlZCBhcyBEYXRhRmFicmljIGNvdW50ZXJzLiBBbHNvLCBMMyBjb3VudGVycworCQkg
-KiBhcmUgc3VwcG9ydGVkIHRvby4gVGhlIFBNVXMgYXJlIGV4cG9ydGVkIGJhc2VkIG9uCisJCSAq
-IGZhbWlseSBhcyBlaXRoZXIgTDIgb3IgTDMgYW5kIE5CIG9yIERGLgogCQkgKi8KIAkJbnVtX2Nv
-dW50ZXJzX25iCQkgID0gTlVNX0NPVU5URVJTX05COwogCQludW1fY291bnRlcnNfbGxjCSAgPSBO
-VU1fQ09VTlRFUlNfTDM7CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9ldmVudHMvY29yZS5jIGIvYXJj
-aC94ODYvZXZlbnRzL2NvcmUuYwppbmRleCA1ZjQ4MjlmLi45M2UwMjZiIDEwMDY0NAotLS0gYS9h
-cmNoL3g4Ni9ldmVudHMvY29yZS5jCisrKyBiL2FyY2gveDg2L2V2ZW50cy9jb3JlLmMKQEAgLTE3
-NzYsNiArMTc3NiwxMCBAQCBzdGF0aWMgaW50IF9faW5pdCBpbml0X2h3X3BlcmZfZXZlbnRzKHZv
-aWQpCiAJY2FzZSBYODZfVkVORE9SX0FNRDoKIAkJZXJyID0gYW1kX3BtdV9pbml0KCk7CiAJCWJy
-ZWFrOworCWNhc2UgWDg2X1ZFTkRPUl9IWUdPTjoKKwkJZXJyID0gYW1kX3BtdV9pbml0KCk7CisJ
-CXg4Nl9wbXUubmFtZSA9ICJIWUdPTiI7CisJCWJyZWFrOwogCWRlZmF1bHQ6CiAJCWVyciA9IC1F
-Tk9UU1VQUDsKIAl9Ci0tIAoyLjcuNAoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5nIGxpc3QKWGVuLWRldmVsQGxpc3RzLnhl
-bnByb2plY3Qub3JnCmh0dHBzOi8vbGlzdHMueGVucHJvamVjdC5vcmcvbWFpbG1hbi9saXN0aW5m
-by94ZW4tZGV2ZWw=
+Alex Ghiti <alex@ghiti.fr> writes:
+
+> Does anyone have any suggestion about those patches ?
+
+Cross compiling it for some non-x86 arches would be a good start :)
+
+There are cross compilers available here:
+
+  https://mirrors.edge.kernel.org/pub/tools/crosstool/
+
+
+cheers
+
+> On 07/09/2018 02:16 PM, Michal Hocko wrote:
+>> [CC hugetlb guys - http://lkml.kernel.org/r/20180705110716.3919-1-alex@ghiti.fr]
+>>
+>> On Thu 05-07-18 11:07:05, Alexandre Ghiti wrote:
+>>> In order to reduce copy/paste of functions across architectures and then
+>>> make riscv hugetlb port (and future ports) simpler and smaller, this
+>>> patchset intends to factorize the numerous hugetlb primitives that are
+>>> defined across all the architectures.
+>>>
+>>> Except for prepare_hugepage_range, this patchset moves the versions that
+>>> are just pass-through to standard pte primitives into
+>>> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+>>> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
+>>>
+>>> s390 architecture has not been tackled in this serie since it does not
+>>> use asm-generic/hugetlb.h at all.
+>>> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
+>>>
+>>> This patchset has been compiled on x86 only.
+>>>
+>>> Changelog:
+>>>
+>>> v4:
+>>>    Fix powerpc build error due to misplacing of #include
+>>>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
+>>>    pointed by Christophe Leroy.
+>>>
+>>> v1, v2, v3:
+>>>    Same version, just problems with email provider and misuse of
+>>>    --batch-size option of git send-email
+>>>
+>>> Alexandre Ghiti (11):
+>>>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+>>>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
+>>>    hugetlb: Introduce generic version of set_huge_pte_at
+>>>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
+>>>    hugetlb: Introduce generic version of huge_ptep_clear_flush
+>>>    hugetlb: Introduce generic version of huge_pte_none
+>>>    hugetlb: Introduce generic version of huge_pte_wrprotect
+>>>    hugetlb: Introduce generic version of prepare_hugepage_range
+>>>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+>>>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
+>>>    hugetlb: Introduce generic version of huge_ptep_get
+>>>
+>>>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+>>>   arch/arm/include/asm/hugetlb.h               | 33 +----------
+>>>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+>>>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+>>>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
+>>>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+>>>   arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
+>>>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+>>>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+>>>   arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
+>>>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+>>>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+>>>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+>>>   arch/x86/include/asm/hugetlb.h               | 72 +----------------------
+>>>   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+>>>   15 files changed, 143 insertions(+), 384 deletions(-)
+>>>
+>>> -- 
+>>> 2.16.2
