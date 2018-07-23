@@ -1,100 +1,156 @@
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Date: Fri, 20 Jul 2018 17:24:12 -0700
-Message-ID: <75195a7d-3d0f-4e55-92cc-4ad772683c75@oracle.com>
-References: <20180705110716.3919-1-alex@ghiti.fr>
- <20180709141621.GD22297@dhcp22.suse.cz>
- <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
+From: Jessica Yu <jeyu@kernel.org>
+Subject: Re: [PATCH 4/6] modpost: add support for generating namespace
+ dependencies.
+Date: Mon, 23 Jul 2018 08:49:21 +0200
+Message-ID: <20180723064921.wepzdsj7tb7ptjbz@linux-8ccs>
+References: <20180716122125.175792-1-maco@android.com>
+ <20180716122125.175792-5-maco@android.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Alex Ghiti <alex@ghiti.fr>, Michal Hocko <mhocko@kernel.org>
-Cc: linux-mips@linux-mips.org, dalias@libc.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, benh@kernel.crashing.org, will.deacon@arm.com, jejb@parisc-linux.org, paulus@samba.org, hpa@zytor.com, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, ysato@users.sourceforge.jp, mpe@ellerman.id.au, deller@gmx.de, x86@kernel.org, linux@armlinux.org.uk, mingo@redhat.com, catalin.marinas@arm.com, jhogan@kernel.org, fenghua.yu@intel.com, arnd@arndb.de, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, tony.luck@intel.com, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, paul.burton@mips.com, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180716122125.175792-5-maco@android.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Martijn Coenen <maco@android.com>
+Cc: linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi@vger.kernel.org, linux-arc
 List-Id: linux-arch.vger.kernel.org
 
-On 07/20/2018 11:37 AM, Alex Ghiti wrote:
-> Does anyone have any suggestion about those patches ?
++++ Martijn Coenen [16/07/18 14:21 +0200]:
+>This patch adds an option to modpost to generate a .ns_deps file per
+>module, containing the namespace depedencies for that module.
+>
+>This file can subsequently be used by other tools to automatically add
+>newly introduced namespaces to the modules that require them, saving a
+>lot of manual work.
+>
+>Signed-off-by: Martijn Coenen <maco@android.com>
 
-I only took a quick look.  From the hugetlb perspective, I like the
-idea of moving routines to a common file.  If any of the arch owners
-(or anyone else) agree, I can do a review of the series.
--- 
-Mike Kravetz
+Regarding modpost, I think it may also be helpful to additionally
+output the namespace an exported symbol belongs to (if any) in the
+Module.symvers file.
 
-> On 07/09/2018 02:16 PM, Michal Hocko wrote:
->> [CC hugetlb guys - http://lkml.kernel.org/r/20180705110716.3919-1-alex@ghiti.fr]
->>
->> On Thu 05-07-18 11:07:05, Alexandre Ghiti wrote:
->>> In order to reduce copy/paste of functions across architectures and then
->>> make riscv hugetlb port (and future ports) simpler and smaller, this
->>> patchset intends to factorize the numerous hugetlb primitives that are
->>> defined across all the architectures.
->>>
->>> Except for prepare_hugepage_range, this patchset moves the versions that
->>> are just pass-through to standard pte primitives into
->>> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
->>> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
->>>
->>> s390 architecture has not been tackled in this serie since it does not
->>> use asm-generic/hugetlb.h at all.
->>> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
->>>
->>> This patchset has been compiled on x86 only.
->>>
->>> Changelog:
->>>
->>> v4:
->>>    Fix powerpc build error due to misplacing of #include
->>>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
->>>    pointed by Christophe Leroy.
->>>
->>> v1, v2, v3:
->>>    Same version, just problems with email provider and misuse of
->>>    --batch-size option of git send-email
->>>
->>> Alexandre Ghiti (11):
->>>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
->>>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
->>>    hugetlb: Introduce generic version of set_huge_pte_at
->>>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
->>>    hugetlb: Introduce generic version of huge_ptep_clear_flush
->>>    hugetlb: Introduce generic version of huge_pte_none
->>>    hugetlb: Introduce generic version of huge_pte_wrprotect
->>>    hugetlb: Introduce generic version of prepare_hugepage_range
->>>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
->>>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
->>>    hugetlb: Introduce generic version of huge_ptep_get
->>>
->>>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
->>>   arch/arm/include/asm/hugetlb.h               | 33 +----------
->>>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
->>>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
->>>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
->>>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
->>>   arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
->>>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
->>>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
->>>   arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
->>>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
->>>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
->>>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
->>>   arch/x86/include/asm/hugetlb.h               | 72 +----------------------
->>>   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
->>>   15 files changed, 143 insertions(+), 384 deletions(-)
->>>
->>> -- 
->>> 2.16.2
-> 
+>---
+> scripts/mod/modpost.c | 58 +++++++++++++++++++++++++++++++++++++++----
+> scripts/mod/modpost.h |  2 ++
+> 2 files changed, 55 insertions(+), 5 deletions(-)
+>
+>diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+>index a56a8461a96a..be33d60d5527 100644
+>--- a/scripts/mod/modpost.c
+>+++ b/scripts/mod/modpost.c
+>@@ -39,6 +39,8 @@ static int sec_mismatch_verbose = 1;
+> static int sec_mismatch_fatal = 0;
+> /* ignore missing files */
+> static int ignore_missing_files;
+>+/* Write namespace dependencies */
+>+static int write_ns_deps;
+>
+> enum export {
+> 	export_plain,      export_unused,     export_gpl,
+>@@ -2151,10 +2153,15 @@ static void check_exports(struct module *mod)
+> 		else
+> 			basename = mod->name;
+>
+>-		if (exp->ns && !module_imports_namespace(mod, exp->ns)) {
+>-			warn("module %s uses symbol %s from namespace %s, "
+>-			     "but does not import it.\n",
+>-			     basename, exp->name, exp->ns);
+>+		if (exp->ns) {
+>+			add_namespace(&mod->required_namespaces, exp->ns);
+>+
+>+			if (!write_ns_deps &&
+>+			    !module_imports_namespace(mod, exp->ns)) {
+>+				warn("module %s uses symbol %s from namespace "
+>+				     "%s, but does not import it.\n",
+>+				     basename, exp->name, exp->ns);
+>+			}
+> 		}
+>
+> 		if (!mod->gpl_compatible)
+>@@ -2457,6 +2464,38 @@ static void write_dump(const char *fname)
+> 	free(buf.p);
+> }
+>
+>+static void write_ns_deps_files(void)
+>+{
+>+	struct module *mod;
+>+	struct namespace_list *ns;
+>+	struct buffer ns_deps_buf = { };
+>+
+>+	for (mod = modules; mod; mod = mod->next) {
+>+		char fname[PATH_MAX];
+>+		const char *basename;
+>+
+>+		if (mod->skip)
+>+			continue;
+>+
+>+		ns_deps_buf.pos = 0;
+>+
+>+		for (ns = mod->required_namespaces; ns; ns = ns->next)
+>+			buf_printf(&ns_deps_buf, "%s\n", ns->namespace);
+>+
+>+		if (ns_deps_buf.pos == 0)
+>+			continue;
+>+
+>+		basename = strrchr(mod->name, '/');
+>+		if (basename)
+>+			basename++;
+>+		else
+>+			basename = mod->name;
+>+
+>+		sprintf(fname, ".tmp_versions/%s.ns_deps", basename);
+>+		write_if_changed(&ns_deps_buf, fname);
+>+	}
+>+}
+>+
+> struct ext_sym_list {
+> 	struct ext_sym_list *next;
+> 	const char *file;
+>@@ -2473,7 +2512,7 @@ int main(int argc, char **argv)
+> 	struct ext_sym_list *extsym_iter;
+> 	struct ext_sym_list *extsym_start = NULL;
+>
+>-	while ((opt = getopt(argc, argv, "i:I:e:mnsST:o:awM:K:E")) != -1) {
+>+	while ((opt = getopt(argc, argv, "i:I:e:mnsST:o:awM:K:Ed")) != -1) {
+> 		switch (opt) {
+> 		case 'i':
+> 			kernel_read = optarg;
+>@@ -2517,6 +2556,9 @@ int main(int argc, char **argv)
+> 		case 'E':
+> 			sec_mismatch_fatal = 1;
+> 			break;
+>+		case 'd':
+>+			write_ns_deps = 1;
+>+			break;
+> 		default:
+> 			exit(1);
+> 		}
+>@@ -2545,6 +2587,12 @@ int main(int argc, char **argv)
+> 		check_exports(mod);
+> 	}
+>
+>+	if (write_ns_deps) {
+>+		/* Just write namespace dependencies and exit */
+>+		write_ns_deps_files();
+>+		return 0;
+>+	}
+>+
+> 	err = 0;
+>
+> 	for (mod = modules; mod; mod = mod->next) {
+>diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
+>index 9626bf3e7424..92a926d375d2 100644
+>--- a/scripts/mod/modpost.h
+>+++ b/scripts/mod/modpost.h
+>@@ -126,6 +126,8 @@ struct module {
+> 	struct buffer dev_table_buf;
+> 	char	     srcversion[25];
+> 	int is_dot_o;
+>+	// Required namespace dependencies
+>+	struct namespace_list *required_namespaces;
+> 	// Actual imported namespaces
+> 	struct namespace_list *imported_namespaces;
+> };
+>-- 
+>2.18.0.203.gfac676dfb9-goog
+>
