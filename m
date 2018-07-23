@@ -1,95 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:60391 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388125AbeGWPCJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Jul 2018 11:02:09 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture primitives
-In-Reply-To: <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
-References: <20180705110716.3919-1-alex@ghiti.fr> <20180709141621.GD22297@dhcp22.suse.cz> <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
-Date: Tue, 24 Jul 2018 00:00:37 +1000
-Message-ID: <87d0vehx16.fsf@concordia.ellerman.id.au>
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:44128 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388556AbeGWPaN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2018 11:30:13 -0400
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20180716122125.175792-1-maco@android.com>
+References: <20180716122125.175792-1-maco@android.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 23 Jul 2018 16:28:41 +0200
+Message-ID: <CAK8P3a1F2j3PL2ng7xw9TbCQqwn_U+1D5ChH+v8qWVrxOfW3xw@mail.gmail.com>
+Subject: Re: [PATCH 0/6] Symbol namespaces
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Ghiti <alex@ghiti.fr>, Michal Hocko <mhocko@kernel.org>
-Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <20180723140037.pnz_5VRwhKuwCKKSsxqkryf7CHJ-Adhy8gF3r6_rjBk@z>
+To: Martijn Coenen <maco@android.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Jessica Yu <jeyu@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Martijn Coenen <maco@google.com>, Sandeep Patil <sspatil@google.com>, malchev@google.com, Joel Fernandes <joelaf@google.com>
+Message-ID: <20180723142841._2JK1ygrNzwvMAJiVGNjXEnDNY7RVUXvx7NrO5njN7I@z>
 
-Alex Ghiti <alex@ghiti.fr> writes:
+On Mon, Jul 16, 2018 at 2:21 PM, Martijn Coenen <maco@android.com> wrote:
+> As of Linux 4.17, there are more than 30000 exported symbols
+> in the kernel. There seems to be some consensus amongst
+> kernel devs that the export surface is too large, and hard
+> to reason about.
+>
+> Generally, these symbols fall in one of these categories:
+> 1) Symbols actually meant for drivers
+> 2) Symbols that are only exported because functionality is
+>    split over multiple modules, yet they really shouldn't
+>    be used by modules outside of their own subsystem
+> 3) Symbols really only meant for in-tree use
+>
+> When module developers try to upstream their code, it
+> regularly turns out that they are using exported symbols
+> that they really shouldn't be using. This problem is even
+> bigger for drivers that are currently out-of-tree, which
+> may be using many symbols that they shouldn't be using,
+> and that break when those symbols are removed or modified.
+>
+> This patch allows subsystem maintainers to partition their
+> exported symbols into separate namespaces, and module
+> authors to import such namespaces only when needed.
+>
+> This allows subsystem maintainers to more easily limit
+> availability of these namespaced symbols to other parts of
+> the kernel. It can also be used to partition the set of
+> exported symbols for documentation purposes; for example,
+> a set of symbols that is really only used for debugging
+> could be in a "SUBSYSTEM_DEBUG" namespace.
 
-> Does anyone have any suggestion about those patches ?
+This looks nice. I don't want to overload you with additional
+requests, but it might be good to think about how this can
+be taken further, if we want to actually convert large
+parts of the kernel to it. I have two ideas:
 
-Cross compiling it for some non-x86 arches would be a good start :)
+- It would be nice to have a simple mechanism in Kconfig
+  to put all symbols in a module into a namespace that is
+  derived from KBUILD_MODNAME, to avoid having to
+  annotate every symbol separately. This could be similar
+  to how we ended up dealing with EXPORT_NO_SYMBOLS
+  in the linux-2.4 days, with the goal of eventually having
+  a namespace for each symbol. Similarly, we could pass
+  a number of default namespaces through the Makefile,
+  e.g. if we have a directory that has lots of drivers that all
+  import the symbols from a common subsystem module.
 
-There are cross compilers available here:
+- If this is possible to implement, it would be great to have
+  a way to limit the globally visible symbols in a module
+  to the ones that are explicitly exported  even when a that
+  module is built-in rather than loadable. Not sure how this
+  is best done though. A couple of things can be done with
+  objcopy, or possibly by reintroducing partial linking (which
+  was removed not too long ago).
 
-  https://mirrors.edge.kernel.org/pub/tools/crosstool/
-
-
-cheers
-
-> On 07/09/2018 02:16 PM, Michal Hocko wrote:
->> [CC hugetlb guys - http://lkml.kernel.org/r/20180705110716.3919-1-alex@ghiti.fr]
->>
->> On Thu 05-07-18 11:07:05, Alexandre Ghiti wrote:
->>> In order to reduce copy/paste of functions across architectures and then
->>> make riscv hugetlb port (and future ports) simpler and smaller, this
->>> patchset intends to factorize the numerous hugetlb primitives that are
->>> defined across all the architectures.
->>>
->>> Except for prepare_hugepage_range, this patchset moves the versions that
->>> are just pass-through to standard pte primitives into
->>> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
->>> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
->>>
->>> s390 architecture has not been tackled in this serie since it does not
->>> use asm-generic/hugetlb.h at all.
->>> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
->>>
->>> This patchset has been compiled on x86 only.
->>>
->>> Changelog:
->>>
->>> v4:
->>>    Fix powerpc build error due to misplacing of #include
->>>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
->>>    pointed by Christophe Leroy.
->>>
->>> v1, v2, v3:
->>>    Same version, just problems with email provider and misuse of
->>>    --batch-size option of git send-email
->>>
->>> Alexandre Ghiti (11):
->>>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
->>>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
->>>    hugetlb: Introduce generic version of set_huge_pte_at
->>>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
->>>    hugetlb: Introduce generic version of huge_ptep_clear_flush
->>>    hugetlb: Introduce generic version of huge_pte_none
->>>    hugetlb: Introduce generic version of huge_pte_wrprotect
->>>    hugetlb: Introduce generic version of prepare_hugepage_range
->>>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
->>>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
->>>    hugetlb: Introduce generic version of huge_ptep_get
->>>
->>>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
->>>   arch/arm/include/asm/hugetlb.h               | 33 +----------
->>>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
->>>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
->>>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
->>>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
->>>   arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
->>>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
->>>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
->>>   arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
->>>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
->>>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
->>>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
->>>   arch/x86/include/asm/hugetlb.h               | 72 +----------------------
->>>   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
->>>   15 files changed, 143 insertions(+), 384 deletions(-)
->>>
->>> -- 
->>> 2.16.2
+        Arnd
