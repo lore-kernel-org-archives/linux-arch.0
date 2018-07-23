@@ -1,90 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:52155 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:52150 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2388190AbeGWO3h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S2388471AbeGWO3h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 23 Jul 2018 10:29:37 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v2 10/17] x86/events: enable Hygon support to PMU infrastructure
-Date: Mon, 23 Jul 2018 21:20:30 +0800
-Message-ID: <1532352037-7151-11-git-send-email-puwen@hygon.cn>
+Subject: [PATCH v2 13/17] x86/xen: enable Hygon support to Xen
+Date: Mon, 23 Jul 2018 21:20:33 +0800
+Message-ID: <1532352037-7151-14-git-send-email-puwen@hygon.cn>
 In-Reply-To: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20180723132030.qC0bV2yDgBvnK7tGN0ZWrgTPGIvG0alMgWppn9mQVZY@z>
+Message-ID: <20180723132033.LDR7DGpShwfCtjQLBy5p9VatqoaKhfUGk6YcCGgPq4c@z>
 
-Hygon PMU arch is similar to AMD Family 17h. To support Hygon PMU, the
-initialization flow for it just call amd_pmu_init() and change PMU name
-to "HYGON". To share AMD's flow, add code check for Hygon family ID 18h
-to run the code path of AMD family 17h in core/uncore functions.
+To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
+code path and add vendor check for Hygon along with AMD.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/events/amd/core.c   |  4 ++++
- arch/x86/events/amd/uncore.c | 12 +++++++-----
- arch/x86/events/core.c       |  4 ++++
- 3 files changed, 15 insertions(+), 5 deletions(-)
+ arch/x86/xen/pmu.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/events/amd/core.c b/arch/x86/events/amd/core.c
-index c84584b..d2b29bf 100644
---- a/arch/x86/events/amd/core.c
-+++ b/arch/x86/events/amd/core.c
-@@ -669,6 +669,10 @@ static int __init amd_core_pmu_init(void)
- 		 * We fallback to using default amd_get_event_constraints.
- 		 */
- 		break;
-+	case 0x18:
-+		pr_cont("Fam18h ");
-+		/* Fallback to using default amd_get_event_constraints. */
-+		break;
- 	default:
- 		pr_err("core perfctr but no constraints; unknown hardware!\n");
- 		return -ENODEV;
-diff --git a/arch/x86/events/amd/uncore.c b/arch/x86/events/amd/uncore.c
-index 981ba5e..92ea280 100644
---- a/arch/x86/events/amd/uncore.c
-+++ b/arch/x86/events/amd/uncore.c
-@@ -507,17 +507,19 @@ static int __init amd_uncore_init(void)
+diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
+index 7d00d4a..e2bee70 100644
+--- a/arch/x86/xen/pmu.c
++++ b/arch/x86/xen/pmu.c
+@@ -68,7 +68,8 @@ static __read_mostly int intel_num_arch_counters, intel_num_fixed_counters;
+ 
+ static void xen_pmu_arch_init(void)
  {
- 	int ret = -ENODEV;
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
  
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
- 		return -ENODEV;
+ 		switch (boot_cpu_data.x86) {
+ 		case 0x15:
+@@ -285,7 +286,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
  
- 	if (!boot_cpu_has(X86_FEATURE_TOPOEXT))
- 		return -ENODEV;
+ bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
+ {
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+ 		if (is_amd_pmu_msr(msr)) {
+ 			if (!xen_amd_pmu_emulate(msr, val, 1))
+ 				*val = native_read_msr_safe(msr, err);
+@@ -308,7 +310,8 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
+ {
+ 	uint64_t val = ((uint64_t)high << 32) | low;
  
--	if (boot_cpu_data.x86 == 0x17) {
-+	if (boot_cpu_data.x86 == 0x17 || boot_cpu_data.x86 == 0x18) {
- 		/*
--		 * For F17h, the Northbridge counters are repurposed as Data
--		 * Fabric counters. Also, L3 counters are supported too. The PMUs
--		 * are exported based on  family as either L2 or L3 and NB or DF.
-+		 * For F17h or F18h, the Northbridge counters are
-+		 * repurposed as DataFabric counters. Also, L3 counters
-+		 * are supported too. The PMUs are exported based on
-+		 * family as either L2 or L3 and NB or DF.
- 		 */
- 		num_counters_nb		  = NUM_COUNTERS_NB;
- 		num_counters_llc	  = NUM_COUNTERS_L3;
-diff --git a/arch/x86/events/core.c b/arch/x86/events/core.c
-index 5f4829f..93e026b 100644
---- a/arch/x86/events/core.c
-+++ b/arch/x86/events/core.c
-@@ -1776,6 +1776,10 @@ static int __init init_hw_perf_events(void)
- 	case X86_VENDOR_AMD:
- 		err = amd_pmu_init();
- 		break;
-+	case X86_VENDOR_HYGON:
-+		err = amd_pmu_init();
-+		x86_pmu.name = "HYGON";
-+		break;
- 	default:
- 		err = -ENOTSUPP;
- 	}
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+ 		if (is_amd_pmu_msr(msr)) {
+ 			if (!xen_amd_pmu_emulate(msr, &val, 0))
+ 				*err = native_write_msr_safe(msr, low, high);
+@@ -379,7 +382,8 @@ static unsigned long long xen_intel_read_pmc(int counter)
+ 
+ unsigned long long xen_read_pmc(int counter)
+ {
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		return xen_amd_read_pmc(counter);
+ 	else
+ 		return xen_intel_read_pmc(counter);
 -- 
 2.7.4
