@@ -1,92 +1,131 @@
-From: Rik van Riel <riel@surriel.com>
-Subject: Re: [PATCH 4/7] x86,tlb: make lazy TLB mode lazier
-Date: Mon, 23 Jul 2018 08:26:16 -0400
-Message-ID: <1532348776.26425.7.camel@surriel.com>
-References: <20180716190337.26133-1-riel@surriel.com>
-         <20180716190337.26133-5-riel@surriel.com>
-         <CALCETrUMntRe_LYX5wj9YD4xZ+84QExK+ZNb3yxEBDEKa7nePQ@mail.gmail.com>
-         <B6566AA4-2E8A-43BD-A224-0F6D4747B8FB@surriel.com>
-         <F93A3335-4830-4E36-9179-D0FA5D640C8A@amacapital.net>
-         <B976CC13-D014-433A-83DE-F8DF9AB4F421@surriel.com>
-         <CALCETrWDiMhgiR3f8n0jdWcW31EDJ+Waq0wh5sMDutfigANGnA@mail.gmail.com>
-         <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
-         <20180720083016.GN2494@hirez.programming.kicks-ass.net>
+From: Pu Wen <puwen@hygon.cn>
+Subject: [PATCH v2 07/17] x86/pci: add Hygon PCI vendor and
+ northbridge support
+Date: Mon, 23 Jul 2018 21:20:27 +0800
+Message-ID: <1532352037-7151-8-git-send-email-puwen@hygon.cn>
+References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-4vkrqBG7jdk4C2JsdnAu"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180720083016.GN2494@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>
-Cc: Vitaly Kuznetsov <vkuznets@redhat.com>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Mike Galbraith <efault@gmx.de>, kernel-team <kernel-team@fb.com>, Ingo Molnar <mingo@kernel.org>, Dave Hansen <dave.hansen@intel.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xenproject.org>
+In-Reply-To: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xenproject.org>
+List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
+List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xenproject.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
+To: tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, linux-kernel@vger.kernel.org, kvm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-
---=-4vkrqBG7jdk4C2JsdnAu
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-On Fri, 2018-07-20 at 10:30 +0200, Peter Zijlstra wrote:
-> On Thu, Jul 19, 2018 at 10:04:09AM -0700, Andy Lutomirski wrote:
-> > I added some more arch maintainers.  The idea here is that, on x86
-> > at
-> > least, task->active_mm and all its refcounting is pure
-> > overhead.  When
-> > a process exits, __mmput() gets called, but the core kernel has a
-> > longstanding "optimization" in which other tasks (kernel threads
-> > and
-> > idle tasks) may have ->active_mm pointing at this mm.  This is
-> > nasty,
-> > complicated, and hurts performance on large systems, since it
-> > requires
-> > extra atomic operations whenever a CPU switches between real users
-> > threads and idle/kernel threads.
-> >=20
-> > It's also almost completely worthless on x86 at least, since
-> > __mmput()
-> > frees pagetables, and that operation *already* forces a remote TLB
-> > flush, so we might as well zap all the active_mm references at the
-> > same time.
->=20
-> So I disagree that active_mm is complicated (the code is less than
-> ideal
-> but that is actually fixable). And aside from the process exit case,
-> it
-> does avoid CR3 writes when switching between user and kernel threads
-> (which can be far more often than exit if you have longer running
-> tasks).
->=20
-> Now agreed, recent x86 work has made that less important.
->=20
-> And I of course also agree that not doing those refcount atomics is
-> better.
-
-It might be cleaner to keep the ->active_mm pointer
-in place for now (at least in the first patch), even=20
-on architectures where we end up dropping the refcounting.
-
-That way the code is more similar everywhere, and
-we just get rid of the expensive instructions.
-
-Let me try coding this up...
-
---=20
-All Rights Reversed.
---=-4vkrqBG7jdk4C2JsdnAu
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAltVyWkACgkQznnekoTE
-3oNp5ggAhb/ScHMhsqjYPCfu5/gdUlsB46K5xr9f8ZxmVN0LNF0x4n0AROsADMQw
-LLsM+EagLWYMdXjKeI5xCsMu2nwcm9aAqdONRkyjGbgIbupzjHNNMqRNa4NxB+dZ
-t9mMgAbnGv+2HLxbIsb6zhb1ckdHkaLipv8llItk8orYkdb5WWtnvdQC6UHBr+0e
-5eJuQiarWkHorhoqlXCh3Zc1ZinxSTlOFzmVAf+Vw0n0qjMcq1pPelsA9ynJPJM+
-9NwXsdodm38ppTpXIPKAQb4NF73JgxtqaUZuPQmiasaUo3czZq67uQZin6v7iC+H
-g2oK4ygHmep6StVwfzfx/FtsnTsqbg==
-=BJ7M
------END PGP SIGNATURE-----
-
---=-4vkrqBG7jdk4C2JsdnAu--
+QXMgSHlnb24gcmVnaXN0ZXIgaXRzIFBDSSBWZW5kb3IgSUQgYXMgYSBuZXcgb25lICIweDFkOTQi
+LCBzbyBhZGQgYSBuZXcKZGVmaW5pdGlvbiBQQ0lfVkVORE9SX0lEX0hZR09OIGluIGluY2x1ZGUv
+bGludXgvcGNpX2lkcy5oLgoKQWxzbyBIeWdvbiBQQ0kgRGV2aWNlIElEKDB4MTQ1MC8weDE0NjMv
+MHgxNDY0KSBmb3IgSG9zdCBicmlkZ2UgaXMgYWRkZWQKdG8gYW1kX25iLmMuIEFuZCBpdCBuZWVk
+IHRvIGRlZmluZSBuZXcgYXJyYXlzIGZvciBIeWdvbjoKaHlnb25fcm9vdF9pZHNbXSwgaHlnb25f
+bmJfbWlzY19pZHNbXSwgaHlnb25fbmJfbGlua19pZHNbXS4KClRvIGVuYWJsZSBIeWdvbiBub3J0
+aCBicmlkZ2Ugc3VwcG9ydCwgYWRkIG5ldyB2YXJpYWJsZSByb290X2lkcywgYW5kCmFzc2lnbiBp
+dHMgdmFsdWUgYmFzZWQgb24gd2hldGhlciBDUFUgdmVuZG9yIGlzIEFNRCBvciBIeWdvbi4gTW9k
+aWZ5CnRoZSBDT05GSUdfQU1EX05CIHRvIGRlcGVuZHMgb24gZWl0aGVyIEFNRCBvciBIeWdvbi4K
+CkFkZCBIeWdvbiBzdXBwb3J0IGluIGFtZF9wb3N0Y29yZV9pbml0KCksIGVhcmx5X3Jvb3RfaW5m
+b19pbml0KCkuCgpTaWduZWQtb2ZmLWJ5OiBQdSBXZW4gPHB1d2VuQGh5Z29uLmNuPgotLS0KIGFy
+Y2gveDg2L0tjb25maWcgICAgICAgICB8ICAyICstCiBhcmNoL3g4Ni9rZXJuZWwvYW1kX25iLmMg
+fCA1NCArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKy0tLS0tLS0KIGFy
+Y2gveDg2L3BjaS9hbWRfYnVzLmMgICB8ICA2ICsrKystLQogaW5jbHVkZS9saW51eC9wY2lfaWRz
+LmggIHwgIDIgKysKIDQgZmlsZXMgY2hhbmdlZCwgNTQgaW5zZXJ0aW9ucygrKSwgMTAgZGVsZXRp
+b25zKC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvS2NvbmZpZyBiL2FyY2gveDg2L0tjb25maWcK
+aW5kZXggODg3ZDNhNy4uYzcxZTA4YmYgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L0tjb25maWcKKysr
+IGIvYXJjaC94ODYvS2NvbmZpZwpAQCAtMjgyMiw3ICsyODIyLDcgQEAgZW5kaWYgIyBYODZfMzIK
+IAogY29uZmlnIEFNRF9OQgogCWRlZl9ib29sIHkKLQlkZXBlbmRzIG9uIENQVV9TVVBfQU1EICYm
+IFBDSQorCWRlcGVuZHMgb24gKENQVV9TVVBfQU1EIHx8IENQVV9TVVBfSFlHT04pICYmIFBDSQog
+CiBzb3VyY2UgImRyaXZlcnMvcGNtY2lhL0tjb25maWciCiAKZGlmZiAtLWdpdCBhL2FyY2gveDg2
+L2tlcm5lbC9hbWRfbmIuYyBiL2FyY2gveDg2L2tlcm5lbC9hbWRfbmIuYwppbmRleCBiNDgxYjk1
+Li44ODRkZDRhIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9rZXJuZWwvYW1kX25iLmMKKysrIGIvYXJj
+aC94ODYva2VybmVsL2FtZF9uYi5jCkBAIC0yMCw2ICsyMCwxMCBAQAogI2RlZmluZSBQQ0lfREVW
+SUNFX0lEX0FNRF8xN0hfTTEwSF9ERl9GMyAweDE1ZWIKICNkZWZpbmUgUENJX0RFVklDRV9JRF9B
+TURfMTdIX00xMEhfREZfRjQgMHgxNWVjCiAKKyNkZWZpbmUgUENJX0RFVklDRV9JRF9IWUdPTl8x
+OEhfUk9PVCAgICAgMHgxNDUwCisjZGVmaW5lIFBDSV9ERVZJQ0VfSURfSFlHT05fMThIX0RGX0Yz
+ICAgIDB4MTQ2MworI2RlZmluZSBQQ0lfREVWSUNFX0lEX0hZR09OXzE4SF9ERl9GNCAgICAweDE0
+NjQKKwogLyogUHJvdGVjdCB0aGUgUENJIGNvbmZpZyByZWdpc3RlciBwYWlycyB1c2VkIGZvciBT
+TU4gYW5kIERGIGluZGlyZWN0IGFjY2Vzcy4gKi8KIHN0YXRpYyBERUZJTkVfTVVURVgoc21uX211
+dGV4KTsKIApAQCAtNjEsNiArNjUsMjEgQEAgc3RhdGljIGNvbnN0IHN0cnVjdCBwY2lfZGV2aWNl
+X2lkIGFtZF9uYl9saW5rX2lkc1tdID0gewogCXt9CiB9OwogCitzdGF0aWMgY29uc3Qgc3RydWN0
+IHBjaV9kZXZpY2VfaWQgaHlnb25fcm9vdF9pZHNbXSA9IHsKKwl7IFBDSV9ERVZJQ0UoUENJX1ZF
+TkRPUl9JRF9IWUdPTiwgUENJX0RFVklDRV9JRF9IWUdPTl8xOEhfUk9PVCkgfSwKKwl7fQorfTsK
+KworY29uc3Qgc3RydWN0IHBjaV9kZXZpY2VfaWQgaHlnb25fbmJfbWlzY19pZHNbXSA9IHsKKwl7
+IFBDSV9ERVZJQ0UoUENJX1ZFTkRPUl9JRF9IWUdPTiwgUENJX0RFVklDRV9JRF9IWUdPTl8xOEhf
+REZfRjMpIH0sCisJe30KK307CisKK3N0YXRpYyBjb25zdCBzdHJ1Y3QgcGNpX2RldmljZV9pZCBo
+eWdvbl9uYl9saW5rX2lkc1tdID0geworCXsgUENJX0RFVklDRShQQ0lfVkVORE9SX0lEX0hZR09O
+LCBQQ0lfREVWSUNFX0lEX0hZR09OXzE4SF9ERl9GNCkgfSwKKwl7fQorfTsKKwogY29uc3Qgc3Ry
+dWN0IGFtZF9uYl9idXNfZGV2X3JhbmdlIGFtZF9uYl9idXNfZGV2X3Jhbmdlc1tdIF9faW5pdGNv
+bnN0ID0gewogCXsgMHgwMCwgMHgxOCwgMHgyMCB9LAogCXsgMHhmZiwgMHgwMCwgMHgyMCB9LApA
+QCAtMTk3LDEyICsyMTYsMjUgQEAgaW50IGFtZF9jYWNoZV9ub3J0aGJyaWRnZXModm9pZCkKIAl1
+MTYgaSA9IDA7CiAJc3RydWN0IGFtZF9ub3J0aGJyaWRnZSAqbmI7CiAJc3RydWN0IHBjaV9kZXYg
+KnJvb3QsICptaXNjLCAqbGluazsKKwljb25zdCBzdHJ1Y3QgcGNpX2RldmljZV9pZCAqcm9vdF9p
+ZHMgPSBOVUxMOworCWNvbnN0IHN0cnVjdCBwY2lfZGV2aWNlX2lkICptaXNjX2lkcyA9IE5VTEw7
+CisJY29uc3Qgc3RydWN0IHBjaV9kZXZpY2VfaWQgKmxpbmtfaWRzID0gTlVMTDsKKworCWlmIChi
+b290X2NwdV9kYXRhLng4Nl92ZW5kb3IgPT0gWDg2X1ZFTkRPUl9BTUQpIHsKKwkJcm9vdF9pZHMg
+PSBhbWRfcm9vdF9pZHM7CisJCW1pc2NfaWRzID0gYW1kX25iX21pc2NfaWRzOworCQlsaW5rX2lk
+cyA9IGFtZF9uYl9saW5rX2lkczsKKwl9IGVsc2UgaWYgKGJvb3RfY3B1X2RhdGEueDg2X3ZlbmRv
+ciA9PSBYODZfVkVORE9SX0hZR09OKSB7CisJCXJvb3RfaWRzID0gaHlnb25fcm9vdF9pZHM7CisJ
+CW1pc2NfaWRzID0gaHlnb25fbmJfbWlzY19pZHM7CisJCWxpbmtfaWRzID0gaHlnb25fbmJfbGlu
+a19pZHM7CisJfQogCiAJaWYgKGFtZF9ub3J0aGJyaWRnZXMubnVtKQogCQlyZXR1cm4gMDsKIAog
+CW1pc2MgPSBOVUxMOwotCXdoaWxlICgobWlzYyA9IG5leHRfbm9ydGhicmlkZ2UobWlzYywgYW1k
+X25iX21pc2NfaWRzKSkgIT0gTlVMTCkKKwl3aGlsZSAoKG1pc2MgPSBuZXh0X25vcnRoYnJpZGdl
+KG1pc2MsIG1pc2NfaWRzKSkgIT0gTlVMTCkKIAkJaSsrOwogCiAJaWYgKCFpKQpAQCAtMjE4LDEx
+ICsyNTAsMTEgQEAgaW50IGFtZF9jYWNoZV9ub3J0aGJyaWRnZXModm9pZCkKIAlsaW5rID0gbWlz
+YyA9IHJvb3QgPSBOVUxMOwogCWZvciAoaSA9IDA7IGkgIT0gYW1kX25vcnRoYnJpZGdlcy5udW07
+IGkrKykgewogCQlub2RlX3RvX2FtZF9uYihpKS0+cm9vdCA9IHJvb3QgPQotCQkJbmV4dF9ub3J0
+aGJyaWRnZShyb290LCBhbWRfcm9vdF9pZHMpOworCQkJbmV4dF9ub3J0aGJyaWRnZShyb290LCBy
+b290X2lkcyk7CiAJCW5vZGVfdG9fYW1kX25iKGkpLT5taXNjID0gbWlzYyA9Ci0JCQluZXh0X25v
+cnRoYnJpZGdlKG1pc2MsIGFtZF9uYl9taXNjX2lkcyk7CisJCQluZXh0X25vcnRoYnJpZGdlKG1p
+c2MsIG1pc2NfaWRzKTsKIAkJbm9kZV90b19hbWRfbmIoaSktPmxpbmsgPSBsaW5rID0KLQkJCW5l
+eHRfbm9ydGhicmlkZ2UobGluaywgYW1kX25iX2xpbmtfaWRzKTsKKwkJCW5leHRfbm9ydGhicmlk
+Z2UobGluaywgbGlua19pZHMpOwogCX0KIAogCWlmIChhbWRfZ2FydF9wcmVzZW50KCkpCkBAIC0y
+NjMsOSArMjk1LDE1IEBAIGJvb2wgX19pbml0IGVhcmx5X2lzX2FtZF9uYih1MzIgZGV2aWNlKQog
+ewogCWNvbnN0IHN0cnVjdCBwY2lfZGV2aWNlX2lkICppZDsKIAl1MzIgdmVuZG9yID0gZGV2aWNl
+ICYgMHhmZmZmOworCWNvbnN0IHN0cnVjdCBwY2lfZGV2aWNlX2lkICptaXNjX2lkcyA9IE5VTEw7
+CisKKwlpZiAoYm9vdF9jcHVfZGF0YS54ODZfdmVuZG9yID09IFg4Nl9WRU5ET1JfQU1EKQorCQlt
+aXNjX2lkcyA9IGFtZF9uYl9taXNjX2lkczsKKwllbHNlIGlmIChib290X2NwdV9kYXRhLng4Nl92
+ZW5kb3IgPT0gWDg2X1ZFTkRPUl9IWUdPTikKKwkJbWlzY19pZHMgPSBoeWdvbl9uYl9taXNjX2lk
+czsKIAogCWRldmljZSA+Pj0gMTY7Ci0JZm9yIChpZCA9IGFtZF9uYl9taXNjX2lkczsgaWQtPnZl
+bmRvcjsgaWQrKykKKwlmb3IgKGlkID0gbWlzY19pZHM7IGlkLT52ZW5kb3I7IGlkKyspCiAJCWlm
+ICh2ZW5kb3IgPT0gaWQtPnZlbmRvciAmJiBkZXZpY2UgPT0gaWQtPmRldmljZSkKIAkJCXJldHVy
+biB0cnVlOwogCXJldHVybiBmYWxzZTsKQEAgLTI3Nyw3ICszMTUsOCBAQCBzdHJ1Y3QgcmVzb3Vy
+Y2UgKmFtZF9nZXRfbW1jb25maWdfcmFuZ2Uoc3RydWN0IHJlc291cmNlICpyZXMpCiAJdTY0IGJh
+c2UsIG1zcjsKIAl1bnNpZ25lZCBpbnQgc2Vnbl9idXNuX2JpdHM7CiAKLQlpZiAoYm9vdF9jcHVf
+ZGF0YS54ODZfdmVuZG9yICE9IFg4Nl9WRU5ET1JfQU1EKQorCWlmIChib290X2NwdV9kYXRhLng4
+Nl92ZW5kb3IgIT0gWDg2X1ZFTkRPUl9BTUQgJiYKKwkgICAgYm9vdF9jcHVfZGF0YS54ODZfdmVu
+ZG9yICE9IFg4Nl9WRU5ET1JfSFlHT04pCiAJCXJldHVybiBOVUxMOwogCiAJLyogYXNzdW1lIGFs
+bCBjcHVzIGZyb20gZmFtMTBoIGhhdmUgbW1jb25maWcgKi8KQEAgLTQyNiw3ICs0NjUsOCBAQCBz
+dGF0aWMgX19pbml0IHZvaWQgZml4X2VycmF0dW1fNjg4KHZvaWQpCiAJc3RydWN0IHBjaV9kZXYg
+KkY0OwogCXUzMiB2YWw7CiAKLQlpZiAoYm9vdF9jcHVfZGF0YS54ODYgIT0gMHgxNCkKKwlpZiAo
+Ym9vdF9jcHVfZGF0YS54ODZfdmVuZG9yICE9IFg4Nl9WRU5ET1JfQU1EIHx8CisJICAgIGJvb3Rf
+Y3B1X2RhdGEueDg2ICE9IDB4MTQpCiAJCXJldHVybjsKIAogCWlmICghYW1kX25vcnRoYnJpZGdl
+cy5udW0pCmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9wY2kvYW1kX2J1cy5jIGIvYXJjaC94ODYvcGNp
+L2FtZF9idXMuYwppbmRleCA2NDliZGRlLi5iZmE1MGU2IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9w
+Y2kvYW1kX2J1cy5jCisrKyBiL2FyY2gveDg2L3BjaS9hbWRfYnVzLmMKQEAgLTkzLDcgKzkzLDgg
+QEAgc3RhdGljIGludCBfX2luaXQgZWFybHlfcm9vdF9pbmZvX2luaXQodm9pZCkKIAkJdmVuZG9y
+ID0gaWQgJiAweGZmZmY7CiAJCWRldmljZSA9IChpZD4+MTYpICYgMHhmZmZmOwogCi0JCWlmICh2
+ZW5kb3IgIT0gUENJX1ZFTkRPUl9JRF9BTUQpCisJCWlmICh2ZW5kb3IgIT0gUENJX1ZFTkRPUl9J
+RF9BTUQgJiYKKwkJICAgIHZlbmRvciAhPSBQQ0lfVkVORE9SX0lEX0hZR09OKQogCQkJY29udGlu
+dWU7CiAKIAkJaWYgKGhiX3Byb2Jlc1tpXS5kZXZpY2UgPT0gZGV2aWNlKSB7CkBAIC0zOTAsNyAr
+MzkxLDggQEAgc3RhdGljIGludCBfX2luaXQgcGNpX2lvX2Vjc19pbml0KHZvaWQpCiAKIHN0YXRp
+YyBpbnQgX19pbml0IGFtZF9wb3N0Y29yZV9pbml0KHZvaWQpCiB7Ci0JaWYgKGJvb3RfY3B1X2Rh
+dGEueDg2X3ZlbmRvciAhPSBYODZfVkVORE9SX0FNRCkKKwlpZiAoYm9vdF9jcHVfZGF0YS54ODZf
+dmVuZG9yICE9IFg4Nl9WRU5ET1JfQU1EICYmCisJICAgIGJvb3RfY3B1X2RhdGEueDg2X3ZlbmRv
+ciAhPSBYODZfVkVORE9SX0hZR09OKQogCQlyZXR1cm4gMDsKIAogCWVhcmx5X3Jvb3RfaW5mb19p
+bml0KCk7CmRpZmYgLS1naXQgYS9pbmNsdWRlL2xpbnV4L3BjaV9pZHMuaCBiL2luY2x1ZGUvbGlu
+dXgvcGNpX2lkcy5oCmluZGV4IDI5NTAyMjMuLmQwZTk4YTkgMTAwNjQ0Ci0tLSBhL2luY2x1ZGUv
+bGludXgvcGNpX2lkcy5oCisrKyBiL2luY2x1ZGUvbGludXgvcGNpX2lkcy5oCkBAIC01MTEsNiAr
+NTExLDggQEAKICNkZWZpbmUgUENJX0RFVklDRV9JRF9BTUlfTUVHQVJBSUQJMHg5MDEwCiAjZGVm
+aW5lIFBDSV9ERVZJQ0VfSURfQU1JX01FR0FSQUlEMgkweDkwNjAKIAorI2RlZmluZSBQQ0lfVkVO
+RE9SX0lEX0hZR09OCQkweDFkOTQKKwogI2RlZmluZSBQQ0lfVkVORE9SX0lEX0FNRAkJMHgxMDIy
+CiAjZGVmaW5lIFBDSV9ERVZJQ0VfSURfQU1EX0s4X05CCQkweDExMDAKICNkZWZpbmUgUENJX0RF
+VklDRV9JRF9BTURfSzhfTkJfQUREUk1BUAkweDExMDEKLS0gCjIuNy40CgoKX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlz
+dApYZW4tZGV2ZWxAbGlzdHMueGVucHJvamVjdC5vcmcKaHR0cHM6Ly9saXN0cy54ZW5wcm9qZWN0
+Lm9yZy9tYWlsbWFuL2xpc3RpbmZvL3hlbi1kZXZlbA==
