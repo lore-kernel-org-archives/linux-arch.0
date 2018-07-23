@@ -1,63 +1,92 @@
-From: Jessica Yu <jeyu@kernel.org>
-Subject: Re: [PATCH 2/6] module: add support for symbol namespaces.
-Date: Mon, 23 Jul 2018 13:12:51 +0200
-Message-ID: <20180723111251.x2cam6bcuglr4hhz@linux-8ccs>
-References: <20180716122125.175792-1-maco@android.com>
- <20180716122125.175792-3-maco@android.com>
- <20180719163208.5xvrafugpcbhh7kj@linux-8ccs>
- <CAB0TPYFVSWtJ6RPRUZ1bpS-rBaV7YyPR-4B2Ogxs+FNAbiScNw@mail.gmail.com>
- <20180720144916.fyqpmrtgt23sax6n@linux-8ccs>
- <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
+From: Rik van Riel <riel@surriel.com>
+Subject: Re: [PATCH 4/7] x86,tlb: make lazy TLB mode lazier
+Date: Mon, 23 Jul 2018 08:26:16 -0400
+Message-ID: <1532348776.26425.7.camel@surriel.com>
+References: <20180716190337.26133-1-riel@surriel.com>
+         <20180716190337.26133-5-riel@surriel.com>
+         <CALCETrUMntRe_LYX5wj9YD4xZ+84QExK+ZNb3yxEBDEKa7nePQ@mail.gmail.com>
+         <B6566AA4-2E8A-43BD-A224-0F6D4747B8FB@surriel.com>
+         <F93A3335-4830-4E36-9179-D0FA5D640C8A@amacapital.net>
+         <B976CC13-D014-433A-83DE-F8DF9AB4F421@surriel.com>
+         <CALCETrWDiMhgiR3f8n0jdWcW31EDJ+Waq0wh5sMDutfigANGnA@mail.gmail.com>
+         <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
+         <20180720083016.GN2494@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-4vkrqBG7jdk4C2JsdnAu"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
+In-Reply-To: <20180720083016.GN2494@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Martijn Coenen <maco@android.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, USB list <linux-usb@vger.kernel.org>USB
+To: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>
+Cc: Vitaly Kuznetsov <vkuznets@redhat.com>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Mike Galbraith <efault@gmx.de>, kernel-team <kernel-team@fb.com>, Ingo Molnar <mingo@kernel.org>, Dave Hansen <dave.hansen@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-+++ Martijn Coenen [20/07/18 17:42 +0200]:
->On Fri, Jul 20, 2018 at 4:49 PM, Jessica Yu <jeyu@kernel.org> wrote:
->> Thanks. Also, it looks like we're currently just warning (in both
->> modpost and on module load) if a module uses symbols from a namespace
->> it doesn't import. Are you also planning to eventually introduce
->> namespace enforcement?
->
->This is something I've definitely been thinking about, and was curious
->what others would think. My main concern with enforcement is that it
->will start failing to load out-of-tree modules that use newly
->namespaced symbols. On the other hand, I think those modules will need
->to be rebuilt anyway to be able to load, because the changes to struct
->kernel_symbol make them incompatible with the current kernel. That
->could be another reason for having these symbols in a special section
->(with its own struct namespaced_kernel_symbol); but on the other hand,
->it would make the module loader more complex just to facilitate
->out-of-tree drivers, and I'm not sure where the trade-off between
->those two falls.
 
-IMO I don't think we should bend over backwards to accommodate
-out-of-tree modules - modifying the module loader to recognize even
-more special sections to accommodate these OOT modules would be where
-we'd draw the line I think.
+--=-4vkrqBG7jdk4C2JsdnAu
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
->> It'd be trivial to fail the module build in
->> modpost as well as reject the module on load if it uses an exported
->> symbol belonging to a namespace it doesn't import. Although, I'd go
->> with the warnings for a development cycle or two, to gently introduce
->> the change in API and let other subsystems as well as out-of-tree
->> module developers catch up.
->
->An approach like that makes sense to me. Another alternative would be
->to make it a CONFIG_ option, and let distros/etc. decide what they are
->comfortable with.
+On Fri, 2018-07-20 at 10:30 +0200, Peter Zijlstra wrote:
+> On Thu, Jul 19, 2018 at 10:04:09AM -0700, Andy Lutomirski wrote:
+> > I added some more arch maintainers.  The idea here is that, on x86
+> > at
+> > least, task->active_mm and all its refcounting is pure
+> > overhead.  When
+> > a process exits, __mmput() gets called, but the core kernel has a
+> > longstanding "optimization" in which other tasks (kernel threads
+> > and
+> > idle tasks) may have ->active_mm pointing at this mm.  This is
+> > nasty,
+> > complicated, and hurts performance on large systems, since it
+> > requires
+> > extra atomic operations whenever a CPU switches between real users
+> > threads and idle/kernel threads.
+> >=20
+> > It's also almost completely worthless on x86 at least, since
+> > __mmput()
+> > frees pagetables, and that operation *already* forces a remote TLB
+> > flush, so we might as well zap all the active_mm references at the
+> > same time.
+>=20
+> So I disagree that active_mm is complicated (the code is less than
+> ideal
+> but that is actually fixable). And aside from the process exit case,
+> it
+> does avoid CR3 writes when switching between user and kernel threads
+> (which can be far more often than exit if you have longer running
+> tasks).
+>=20
+> Now agreed, recent x86 work has made that less important.
+>=20
+> And I of course also agree that not doing those refcount atomics is
+> better.
 
-I think going forward I would prefer to have export namespaces to be a
-normal and regular part of kernel API (as in, we shouldn't require a
-new option for it), and that the warnings for 1-2 cycles are courteous
-enough - but anyone with stronger opinions about this should speak up.
+It might be cleaner to keep the ->active_mm pointer
+in place for now (at least in the first patch), even=20
+on architectures where we end up dropping the refcounting.
 
-Thanks,
+That way the code is more similar everywhere, and
+we just get rid of the expensive instructions.
 
-Jessica
+Let me try coding this up...
+
+--=20
+All Rights Reversed.
+--=-4vkrqBG7jdk4C2JsdnAu
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAltVyWkACgkQznnekoTE
+3oNp5ggAhb/ScHMhsqjYPCfu5/gdUlsB46K5xr9f8ZxmVN0LNF0x4n0AROsADMQw
+LLsM+EagLWYMdXjKeI5xCsMu2nwcm9aAqdONRkyjGbgIbupzjHNNMqRNa4NxB+dZ
+t9mMgAbnGv+2HLxbIsb6zhb1ckdHkaLipv8llItk8orYkdb5WWtnvdQC6UHBr+0e
+5eJuQiarWkHorhoqlXCh3Zc1ZinxSTlOFzmVAf+Vw0n0qjMcq1pPelsA9ynJPJM+
+9NwXsdodm38ppTpXIPKAQb4NF73JgxtqaUZuPQmiasaUo3czZq67uQZin6v7iC+H
+g2oK4ygHmep6StVwfzfx/FtsnTsqbg==
+=BJ7M
+-----END PGP SIGNATURE-----
+
+--=-4vkrqBG7jdk4C2JsdnAu--
