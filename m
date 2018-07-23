@@ -1,152 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:52041 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:45752 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2387986AbeGWO3f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Jul 2018 10:29:35 -0400
+        id S2388136AbeGWOlj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Jul 2018 10:41:39 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v2 02/17] x86/cache: get Dhyana cache size/leaves and setup cache cpumap
-Date: Mon, 23 Jul 2018 21:20:22 +0800
-Message-ID: <1532352037-7151-3-git-send-email-puwen@hygon.cn>
+Subject: [PATCH v2 16/17] driver/edac: enable Hygon support to AMD64 EDAC driver
+Date: Mon, 23 Jul 2018 21:20:36 +0800
+Message-ID: <1532352037-7151-17-git-send-email-puwen@hygon.cn>
 In-Reply-To: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20180723132022.LW65uOaVn4Bzl7U8Bps91X0iI0z4BPq69GOcNcwMLsw@z>
+Message-ID: <20180723132036.X5rD12rsfHqOhisg2wRIXf4O-o7tLp6c65s0NncK4h0@z>
 
-Hygon Dhyana processor has the topology extensions bit in CPUID.
-With this bit kernel can get the cache info. So add support
-in cpuid4_cache_lookup_regs() to get the correct cache size.
-
-Dhyana also find num_cache_leaves via CPUID leaf 0x8000001d, so
-add Hygon support in find_num_cache_leaves().
-
-Also add cacheinfo_hygon_init_llc_id() and init_hygon_cacheinfo()
-functions to initialize Dhyana cache info. Setup cache cpumap in
-the same way as AMD does.
+To make AMD64 MCE and EDAC drivers working on Hygon platforms, add Hygon
+vendor check for them. Also Hygon PCI Device ID DF_F0/DF_F6(0x1460/0x1466)
+of Host bridge is needed for these drivers. And support Dhyana processors
+by using AMD 0x17 codes.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/include/asm/cacheinfo.h |  1 +
- arch/x86/kernel/cpu/cacheinfo.c  | 31 +++++++++++++++++++++++++++++--
- arch/x86/kernel/cpu/cpu.h        |  1 +
- arch/x86/kernel/cpu/hygon.c      |  3 +++
- 4 files changed, 34 insertions(+), 2 deletions(-)
+ drivers/edac/amd64_edac.c | 20 +++++++++++++++++++-
+ drivers/edac/amd64_edac.h |  4 ++++
+ drivers/edac/mce_amd.c    |  4 +++-
+ 3 files changed, 26 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/cacheinfo.h b/arch/x86/include/asm/cacheinfo.h
-index e958e28..86b63c7 100644
---- a/arch/x86/include/asm/cacheinfo.h
-+++ b/arch/x86/include/asm/cacheinfo.h
-@@ -3,5 +3,6 @@
- #define _ASM_X86_CACHEINFO_H
+diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
+index 18aeabb..d8b4b0e 100644
+--- a/drivers/edac/amd64_edac.c
++++ b/drivers/edac/amd64_edac.c
+@@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
  
- void cacheinfo_amd_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id);
-+void cacheinfo_hygon_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id);
+ 	scrubval = scrubrates[i].scrubval;
  
- #endif /* _ASM_X86_CACHEINFO_H */
-diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
-index 0c5fcbd..dc1b934 100644
---- a/arch/x86/kernel/cpu/cacheinfo.c
-+++ b/arch/x86/kernel/cpu/cacheinfo.c
-@@ -602,6 +602,10 @@ cpuid4_cache_lookup_regs(int index, struct _cpuid4_info_regs *this_leaf)
- 		else
- 			amd_cpuid4(index, &eax, &ebx, &ecx);
- 		amd_init_l3_cache(this_leaf, index);
-+	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+		cpuid_count(0x8000001d, index, &eax.full,
-+			    &ebx.full, &ecx.full, &edx);
-+		amd_init_l3_cache(this_leaf, index);
- 	} else {
- 		cpuid_count(4, index, &eax.full, &ebx.full, &ecx.full, &edx);
- 	}
-@@ -625,7 +629,8 @@ static int find_num_cache_leaves(struct cpuinfo_x86 *c)
- 	union _cpuid4_leaf_eax	cache_eax;
- 	int 			i = -1;
+-	if (pvt->fam == 0x17) {
++	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
+ 		__f17h_set_scrubval(pvt, scrubval);
+ 	} else if (pvt->fam == 0x15 && pvt->model == 0x60) {
+ 		f15h_select_dct(pvt, 0);
+@@ -264,6 +264,7 @@ static int get_scrub_rate(struct mem_ctl_info *mci)
+ 		break;
  
--	if (c->x86_vendor == X86_VENDOR_AMD)
-+	if (c->x86_vendor == X86_VENDOR_AMD ||
-+	    c->x86_vendor == X86_VENDOR_HYGON)
- 		op = 0x8000001d;
- 	else
- 		op = 4;
-@@ -678,6 +683,22 @@ void cacheinfo_amd_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id)
- 	}
- }
+ 	case 0x17:
++	case 0x18:
+ 		amd64_read_pci_cfg(pvt->F6, F17H_SCR_BASE_ADDR, &scrubval);
+ 		if (scrubval & BIT(0)) {
+ 			amd64_read_pci_cfg(pvt->F6, F17H_SCR_LIMIT_ADDR, &scrubval);
+@@ -1044,6 +1045,7 @@ static void determine_memory_type(struct amd64_pvt *pvt)
+ 		goto ddr3;
  
-+void cacheinfo_hygon_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id)
-+{
-+	/*
-+	 * We may have multiple LLCs if L3 caches exist, so check if we
-+	 * have an L3 cache by looking at the L3 cache CPUID leaf.
-+	 */
-+	if (!cpuid_edx(0x80000006))
-+		return;
+ 	case 0x17:
++	case 0x18:
+ 		if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(5))
+ 			pvt->dram_type = MEM_LRDDR4;
+ 		else if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(4))
+@@ -2200,6 +2202,16 @@ static struct amd64_family_type family_types[] = {
+ 			.dbam_to_cs		= f17_base_addr_to_cs_size,
+ 		}
+ 	},
++	[HYGON_F18_CPUS] = {
++		/* Hygon F18h uses the same AMD F17h support */
++		.ctl_name = "Hygon_F18h",
++		.f0_id = PCI_DEVICE_ID_HYGON_18H_DF_F0,
++		.f6_id = PCI_DEVICE_ID_HYGON_18H_DF_F6,
++		.ops = {
++			.early_channel_count	= f17_early_channel_count,
++			.dbam_to_cs		= f17_base_addr_to_cs_size,
++		}
++	},
+ };
+ 
+ /*
+@@ -3192,6 +3204,11 @@ static struct amd64_family_type *per_family_init(struct amd64_pvt *pvt)
+ 		pvt->ops	= &family_types[F17_CPUS].ops;
+ 		break;
+ 
++	case 0x18:
++		fam_type	= &family_types[HYGON_F18_CPUS];
++		pvt->ops	= &family_types[HYGON_F18_CPUS].ops;
++		break;
 +
-+	/*
-+	 * LLC is at the core complex level.
-+	 * Core complex ID is ApicId[3] for these processors.
-+	 */
-+	per_cpu(cpu_llc_id, cpu) = c->apicid >> 3;
-+}
+ 	default:
+ 		amd64_err("Unsupported family!\n");
+ 		return NULL;
+@@ -3428,6 +3445,7 @@ static const struct x86_cpu_id amd64_cpuids[] = {
+ 	{ X86_VENDOR_AMD, 0x15, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+ 	{ X86_VENDOR_AMD, 0x16, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+ 	{ X86_VENDOR_AMD, 0x17, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
++	{ X86_VENDOR_HYGON, 0x18, X86_MODEL_ANY, X86_FEATURE_ANY, 0 },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(x86cpu, amd64_cpuids);
+diff --git a/drivers/edac/amd64_edac.h b/drivers/edac/amd64_edac.h
+index 1d4b74e..6e5f609 100644
+--- a/drivers/edac/amd64_edac.h
++++ b/drivers/edac/amd64_edac.h
+@@ -116,6 +116,9 @@
+ #define PCI_DEVICE_ID_AMD_17H_DF_F0	0x1460
+ #define PCI_DEVICE_ID_AMD_17H_DF_F6	0x1466
+ 
++#define PCI_DEVICE_ID_HYGON_18H_DF_F0	0x1460
++#define PCI_DEVICE_ID_HYGON_18H_DF_F6	0x1466
 +
- void init_amd_cacheinfo(struct cpuinfo_x86 *c)
+ /*
+  * Function 1 - Address Map
+  */
+@@ -281,6 +284,7 @@ enum amd_families {
+ 	F16_CPUS,
+ 	F16_M30H_CPUS,
+ 	F17_CPUS,
++	HYGON_F18_CPUS,
+ 	NUM_FAMILIES,
+ };
+ 
+diff --git a/drivers/edac/mce_amd.c b/drivers/edac/mce_amd.c
+index 2ab4d61..c605089 100644
+--- a/drivers/edac/mce_amd.c
++++ b/drivers/edac/mce_amd.c
+@@ -1059,7 +1059,8 @@ static int __init mce_amd_init(void)
  {
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
  
-@@ -691,6 +712,11 @@ void init_amd_cacheinfo(struct cpuinfo_x86 *c)
- 	}
- }
+-	if (c->x86_vendor != X86_VENDOR_AMD)
++	if (c->x86_vendor != X86_VENDOR_AMD &&
++	    c->x86_vendor != X86_VENDOR_HYGON)
+ 		return -ENODEV;
  
-+void init_hygon_cacheinfo(struct cpuinfo_x86 *c)
-+{
-+	num_cache_leaves = find_num_cache_leaves(c);
-+}
-+
- void init_intel_cacheinfo(struct cpuinfo_x86 *c)
- {
- 	/* Cache sizes */
-@@ -913,7 +939,8 @@ static void __cache_cpumap_setup(unsigned int cpu, int index,
- 	int index_msb, i;
- 	struct cpuinfo_x86 *c = &cpu_data(cpu);
+ 	fam_ops = kzalloc(sizeof(struct amd_decoder_ops), GFP_KERNEL);
+@@ -1113,6 +1114,7 @@ static int __init mce_amd_init(void)
+ 		break;
  
--	if (c->x86_vendor == X86_VENDOR_AMD) {
-+	if (c->x86_vendor == X86_VENDOR_AMD ||
-+	    c->x86_vendor == X86_VENDOR_HYGON) {
- 		if (__cache_amd_cpumap_setup(cpu, index, base))
- 			return;
- 	}
-diff --git a/arch/x86/kernel/cpu/cpu.h b/arch/x86/kernel/cpu/cpu.h
-index 38216f6..c2ba596 100644
---- a/arch/x86/kernel/cpu/cpu.h
-+++ b/arch/x86/kernel/cpu/cpu.h
-@@ -53,6 +53,7 @@ extern u32 get_scattered_cpuid_leaf(unsigned int level,
- 				    enum cpuid_regs_idx reg);
- extern void init_intel_cacheinfo(struct cpuinfo_x86 *c);
- extern void init_amd_cacheinfo(struct cpuinfo_x86 *c);
-+extern void init_hygon_cacheinfo(struct cpuinfo_x86 *c);
- 
- extern void detect_num_cpu_cores(struct cpuinfo_x86 *c);
- extern int detect_extended_topology(struct cpuinfo_x86 *c);
-diff --git a/arch/x86/kernel/cpu/hygon.c b/arch/x86/kernel/cpu/hygon.c
-index cc296e5..0d77b91 100644
---- a/arch/x86/kernel/cpu/hygon.c
-+++ b/arch/x86/kernel/cpu/hygon.c
-@@ -85,6 +85,7 @@ static void hygon_get_topology(struct cpuinfo_x86 *c)
- 		if (!err)
- 			c->x86_coreid_bits = get_count_order(c->x86_max_cores);
- 
-+		cacheinfo_amd_init_llc_id(c, cpu, node_id);
- 	} else if (cpu_has(c, X86_FEATURE_NODEID_MSR)) {
- 		u64 value;
- 
-@@ -315,6 +316,8 @@ static void init_hygon(struct cpuinfo_x86 *c)
- 		srat_detect_node(c);
- 	}
- 
-+	init_hygon_cacheinfo(c);
-+
- 	set_cpu_cap(c, X86_FEATURE_K8);
- 
- 	if (cpu_has(c, X86_FEATURE_XMM2)) {
+ 	case 0x17:
++	case 0x18:
+ 		xec_mask = 0x3f;
+ 		if (!boot_cpu_has(X86_FEATURE_SMCA)) {
+ 			printk(KERN_WARNING "Decoding supported only on Scalable MCA processors.\n");
 -- 
 2.7.4
