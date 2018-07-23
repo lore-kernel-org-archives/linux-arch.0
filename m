@@ -1,97 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shelob.surriel.com ([96.67.55.147]:52720 "EHLO
-        shelob.surriel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387965AbeGWNnQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2018 09:43:16 -0400
-Message-ID: <1532348776.26425.7.camel@surriel.com>
-Subject: Re: [PATCH 4/7] x86,tlb: make lazy TLB mode lazier
-From: Rik van Riel <riel@surriel.com>
-Date: Mon, 23 Jul 2018 08:26:16 -0400
-In-Reply-To: <20180720083016.GN2494@hirez.programming.kicks-ass.net>
-References: <20180716190337.26133-1-riel@surriel.com>
-         <20180716190337.26133-5-riel@surriel.com>
-         <CALCETrUMntRe_LYX5wj9YD4xZ+84QExK+ZNb3yxEBDEKa7nePQ@mail.gmail.com>
-         <B6566AA4-2E8A-43BD-A224-0F6D4747B8FB@surriel.com>
-         <F93A3335-4830-4E36-9179-D0FA5D640C8A@amacapital.net>
-         <B976CC13-D014-433A-83DE-F8DF9AB4F421@surriel.com>
-         <CALCETrWDiMhgiR3f8n0jdWcW31EDJ+Waq0wh5sMDutfigANGnA@mail.gmail.com>
-         <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
-         <20180720083016.GN2494@hirez.programming.kicks-ass.net>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-4vkrqBG7jdk4C2JsdnAu"
-Mime-Version: 1.0
+Received: from smtp21.cstnet.cn ([159.226.251.21]:52042 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2388097AbeGWO3e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Jul 2018 10:29:34 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: [PATCH v2 05/17] x86/perfctr: return perf counter and event selection bit offset
+Date: Mon, 23 Jul 2018 21:20:25 +0800
+Message-ID: <1532352037-7151-6-git-send-email-puwen@hygon.cn>
+In-Reply-To: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>
-Cc: Vitaly Kuznetsov <vkuznets@redhat.com>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Mike Galbraith <efault@gmx.de>, kernel-team <kernel-team@fb.com>, Ingo Molnar <mingo@kernel.org>, Dave Hansen <dave.hansen@intel.com>
-Message-ID: <20180723122616.rqzrh7eUm9YbDdG_oybRXH2Iiert2QkKMKCqqP-WfE8@z>
+To: tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, pbonzini@redhat.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180723132025.apduTrKw4cKA_wjWrwaTL4nGdXPA8A2hRHNY2Q8g968@z>
 
+Hygon Dhyana shares similar perfctr arch with AMD family 17h.
+It returns the bit offset of the performance counter register and the
+event selection register for Hygon CPU in the similar way as AMD does.
 
---=-4vkrqBG7jdk4C2JsdnAu
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Signed-off-by: Pu Wen <puwen@hygon.cn>
+---
+ arch/x86/kernel/cpu/perfctr-watchdog.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-On Fri, 2018-07-20 at 10:30 +0200, Peter Zijlstra wrote:
-> On Thu, Jul 19, 2018 at 10:04:09AM -0700, Andy Lutomirski wrote:
-> > I added some more arch maintainers.  The idea here is that, on x86
-> > at
-> > least, task->active_mm and all its refcounting is pure
-> > overhead.  When
-> > a process exits, __mmput() gets called, but the core kernel has a
-> > longstanding "optimization" in which other tasks (kernel threads
-> > and
-> > idle tasks) may have ->active_mm pointing at this mm.  This is
-> > nasty,
-> > complicated, and hurts performance on large systems, since it
-> > requires
-> > extra atomic operations whenever a CPU switches between real users
-> > threads and idle/kernel threads.
-> >=20
-> > It's also almost completely worthless on x86 at least, since
-> > __mmput()
-> > frees pagetables, and that operation *already* forces a remote TLB
-> > flush, so we might as well zap all the active_mm references at the
-> > same time.
->=20
-> So I disagree that active_mm is complicated (the code is less than
-> ideal
-> but that is actually fixable). And aside from the process exit case,
-> it
-> does avoid CR3 writes when switching between user and kernel threads
-> (which can be far more often than exit if you have longer running
-> tasks).
->=20
-> Now agreed, recent x86 work has made that less important.
->=20
-> And I of course also agree that not doing those refcount atomics is
-> better.
-
-It might be cleaner to keep the ->active_mm pointer
-in place for now (at least in the first patch), even=20
-on architectures where we end up dropping the refcounting.
-
-That way the code is more similar everywhere, and
-we just get rid of the expensive instructions.
-
-Let me try coding this up...
-
---=20
-All Rights Reversed.
---=-4vkrqBG7jdk4C2JsdnAu
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAltVyWkACgkQznnekoTE
-3oNp5ggAhb/ScHMhsqjYPCfu5/gdUlsB46K5xr9f8ZxmVN0LNF0x4n0AROsADMQw
-LLsM+EagLWYMdXjKeI5xCsMu2nwcm9aAqdONRkyjGbgIbupzjHNNMqRNa4NxB+dZ
-t9mMgAbnGv+2HLxbIsb6zhb1ckdHkaLipv8llItk8orYkdb5WWtnvdQC6UHBr+0e
-5eJuQiarWkHorhoqlXCh3Zc1ZinxSTlOFzmVAf+Vw0n0qjMcq1pPelsA9ynJPJM+
-9NwXsdodm38ppTpXIPKAQb4NF73JgxtqaUZuPQmiasaUo3czZq67uQZin6v7iC+H
-g2oK4ygHmep6StVwfzfx/FtsnTsqbg==
-=BJ7M
------END PGP SIGNATURE-----
-
---=-4vkrqBG7jdk4C2JsdnAu--
+diff --git a/arch/x86/kernel/cpu/perfctr-watchdog.c b/arch/x86/kernel/cpu/perfctr-watchdog.c
+index d389083..df46708 100644
+--- a/arch/x86/kernel/cpu/perfctr-watchdog.c
++++ b/arch/x86/kernel/cpu/perfctr-watchdog.c
+@@ -50,6 +50,10 @@ static inline unsigned int nmi_perfctr_msr_to_bit(unsigned int msr)
+ 		if (msr >= MSR_F15H_PERF_CTR)
+ 			return (msr - MSR_F15H_PERF_CTR) >> 1;
+ 		return msr - MSR_K7_PERFCTR0;
++	case X86_VENDOR_HYGON:
++		if (msr >= MSR_F15H_PERF_CTR)
++			return (msr - MSR_F15H_PERF_CTR) >> 1;
++		return msr - MSR_K7_PERFCTR0;
+ 	case X86_VENDOR_INTEL:
+ 		if (cpu_has(&boot_cpu_data, X86_FEATURE_ARCH_PERFMON))
+ 			return msr - MSR_ARCH_PERFMON_PERFCTR0;
+@@ -78,6 +82,10 @@ static inline unsigned int nmi_evntsel_msr_to_bit(unsigned int msr)
+ 		if (msr >= MSR_F15H_PERF_CTL)
+ 			return (msr - MSR_F15H_PERF_CTL) >> 1;
+ 		return msr - MSR_K7_EVNTSEL0;
++	case X86_VENDOR_HYGON:
++		if (msr >= MSR_F15H_PERF_CTL)
++			return (msr - MSR_F15H_PERF_CTL) >> 1;
++		return msr - MSR_K7_EVNTSEL0;
+ 	case X86_VENDOR_INTEL:
+ 		if (cpu_has(&boot_cpu_data, X86_FEATURE_ARCH_PERFMON))
+ 			return msr - MSR_ARCH_PERFMON_EVENTSEL0;
+-- 
+2.7.4
