@@ -1,161 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37610 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:37686 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2387828AbeGWHtM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Jul 2018 03:49:12 -0400
-Date: Mon, 23 Jul 2018 08:49:21 +0200
+        id S2387823AbeGWMNk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Jul 2018 08:13:40 -0400
+Date: Mon, 23 Jul 2018 13:12:51 +0200
 From: Jessica Yu <jeyu@kernel.org>
-Subject: Re: [PATCH 4/6] modpost: add support for generating namespace
- dependencies.
-Message-ID: <20180723064921.wepzdsj7tb7ptjbz@linux-8ccs>
+Subject: Re: [PATCH 2/6] module: add support for symbol namespaces.
+Message-ID: <20180723111251.x2cam6bcuglr4hhz@linux-8ccs>
 References: <20180716122125.175792-1-maco@android.com>
- <20180716122125.175792-5-maco@android.com>
+ <20180716122125.175792-3-maco@android.com>
+ <20180719163208.5xvrafugpcbhh7kj@linux-8ccs>
+ <CAB0TPYFVSWtJ6RPRUZ1bpS-rBaV7YyPR-4B2Ogxs+FNAbiScNw@mail.gmail.com>
+ <20180720144916.fyqpmrtgt23sax6n@linux-8ccs>
+ <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Disposition: inline
-In-Reply-To: <20180716122125.175792-5-maco@android.com>
+In-Reply-To: <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Martijn Coenen <maco@android.com>
-Cc: linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-usb@vger.kernel.org, usb-storage@lists.one-eyed-alien.net, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, maco@google.com, sspatil@google.com, malchev@google.com, joelaf@google.com
-Message-ID: <20180723064921.Xz_Hj3uCWrelC2b-_1kaAAdaaksCoXIwpvBnN9UeEuM@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, USB list <linux-usb@vger.kernel.org>, USB Storage list <usb-storage@lists.one-eyed-alien.net>, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Martijn Coenen <maco@google.com>, Sandeep Patil <sspatil@google.com>, Iliyan Malchev <malchev@google.com>, Joel Fernandes <joelaf@google.com>
+Message-ID: <20180723111251.lMVrusMhWOVnT2B2v4va86o-hXaQhizcPfyt9gZkF4E@z>
 
-+++ Martijn Coenen [16/07/18 14:21 +0200]:
->This patch adds an option to modpost to generate a .ns_deps file per
->module, containing the namespace depedencies for that module.
++++ Martijn Coenen [20/07/18 17:42 +0200]:
+>On Fri, Jul 20, 2018 at 4:49 PM, Jessica Yu <jeyu@kernel.org> wrote:
+>> Thanks. Also, it looks like we're currently just warning (in both
+>> modpost and on module load) if a module uses symbols from a namespace
+>> it doesn't import. Are you also planning to eventually introduce
+>> namespace enforcement?
 >
->This file can subsequently be used by other tools to automatically add
->newly introduced namespaces to the modules that require them, saving a
->lot of manual work.
->
->Signed-off-by: Martijn Coenen <maco@android.com>
+>This is something I've definitely been thinking about, and was curious
+>what others would think. My main concern with enforcement is that it
+>will start failing to load out-of-tree modules that use newly
+>namespaced symbols. On the other hand, I think those modules will need
+>to be rebuilt anyway to be able to load, because the changes to struct
+>kernel_symbol make them incompatible with the current kernel. That
+>could be another reason for having these symbols in a special section
+>(with its own struct namespaced_kernel_symbol); but on the other hand,
+>it would make the module loader more complex just to facilitate
+>out-of-tree drivers, and I'm not sure where the trade-off between
+>those two falls.
 
-Regarding modpost, I think it may also be helpful to additionally
-output the namespace an exported symbol belongs to (if any) in the
-Module.symvers file.
+IMO I don't think we should bend over backwards to accommodate
+out-of-tree modules - modifying the module loader to recognize even
+more special sections to accommodate these OOT modules would be where
+we'd draw the line I think.
 
->---
-> scripts/mod/modpost.c | 58 +++++++++++++++++++++++++++++++++++++++----
-> scripts/mod/modpost.h |  2 ++
-> 2 files changed, 55 insertions(+), 5 deletions(-)
+>> It'd be trivial to fail the module build in
+>> modpost as well as reject the module on load if it uses an exported
+>> symbol belonging to a namespace it doesn't import. Although, I'd go
+>> with the warnings for a development cycle or two, to gently introduce
+>> the change in API and let other subsystems as well as out-of-tree
+>> module developers catch up.
 >
->diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
->index a56a8461a96a..be33d60d5527 100644
->--- a/scripts/mod/modpost.c
->+++ b/scripts/mod/modpost.c
->@@ -39,6 +39,8 @@ static int sec_mismatch_verbose = 1;
-> static int sec_mismatch_fatal = 0;
-> /* ignore missing files */
-> static int ignore_missing_files;
->+/* Write namespace dependencies */
->+static int write_ns_deps;
->
-> enum export {
-> 	export_plain,      export_unused,     export_gpl,
->@@ -2151,10 +2153,15 @@ static void check_exports(struct module *mod)
-> 		else
-> 			basename = mod->name;
->
->-		if (exp->ns && !module_imports_namespace(mod, exp->ns)) {
->-			warn("module %s uses symbol %s from namespace %s, "
->-			     "but does not import it.\n",
->-			     basename, exp->name, exp->ns);
->+		if (exp->ns) {
->+			add_namespace(&mod->required_namespaces, exp->ns);
->+
->+			if (!write_ns_deps &&
->+			    !module_imports_namespace(mod, exp->ns)) {
->+				warn("module %s uses symbol %s from namespace "
->+				     "%s, but does not import it.\n",
->+				     basename, exp->name, exp->ns);
->+			}
-> 		}
->
-> 		if (!mod->gpl_compatible)
->@@ -2457,6 +2464,38 @@ static void write_dump(const char *fname)
-> 	free(buf.p);
-> }
->
->+static void write_ns_deps_files(void)
->+{
->+	struct module *mod;
->+	struct namespace_list *ns;
->+	struct buffer ns_deps_buf = { };
->+
->+	for (mod = modules; mod; mod = mod->next) {
->+		char fname[PATH_MAX];
->+		const char *basename;
->+
->+		if (mod->skip)
->+			continue;
->+
->+		ns_deps_buf.pos = 0;
->+
->+		for (ns = mod->required_namespaces; ns; ns = ns->next)
->+			buf_printf(&ns_deps_buf, "%s\n", ns->namespace);
->+
->+		if (ns_deps_buf.pos == 0)
->+			continue;
->+
->+		basename = strrchr(mod->name, '/');
->+		if (basename)
->+			basename++;
->+		else
->+			basename = mod->name;
->+
->+		sprintf(fname, ".tmp_versions/%s.ns_deps", basename);
->+		write_if_changed(&ns_deps_buf, fname);
->+	}
->+}
->+
-> struct ext_sym_list {
-> 	struct ext_sym_list *next;
-> 	const char *file;
->@@ -2473,7 +2512,7 @@ int main(int argc, char **argv)
-> 	struct ext_sym_list *extsym_iter;
-> 	struct ext_sym_list *extsym_start = NULL;
->
->-	while ((opt = getopt(argc, argv, "i:I:e:mnsST:o:awM:K:E")) != -1) {
->+	while ((opt = getopt(argc, argv, "i:I:e:mnsST:o:awM:K:Ed")) != -1) {
-> 		switch (opt) {
-> 		case 'i':
-> 			kernel_read = optarg;
->@@ -2517,6 +2556,9 @@ int main(int argc, char **argv)
-> 		case 'E':
-> 			sec_mismatch_fatal = 1;
-> 			break;
->+		case 'd':
->+			write_ns_deps = 1;
->+			break;
-> 		default:
-> 			exit(1);
-> 		}
->@@ -2545,6 +2587,12 @@ int main(int argc, char **argv)
-> 		check_exports(mod);
-> 	}
->
->+	if (write_ns_deps) {
->+		/* Just write namespace dependencies and exit */
->+		write_ns_deps_files();
->+		return 0;
->+	}
->+
-> 	err = 0;
->
-> 	for (mod = modules; mod; mod = mod->next) {
->diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
->index 9626bf3e7424..92a926d375d2 100644
->--- a/scripts/mod/modpost.h
->+++ b/scripts/mod/modpost.h
->@@ -126,6 +126,8 @@ struct module {
-> 	struct buffer dev_table_buf;
-> 	char	     srcversion[25];
-> 	int is_dot_o;
->+	// Required namespace dependencies
->+	struct namespace_list *required_namespaces;
-> 	// Actual imported namespaces
-> 	struct namespace_list *imported_namespaces;
-> };
->-- 
->2.18.0.203.gfac676dfb9-goog
->
+>An approach like that makes sense to me. Another alternative would be
+>to make it a CONFIG_ option, and let distros/etc. decide what they are
+>comfortable with.
+
+I think going forward I would prefer to have export namespaces to be a
+normal and regular part of kernel API (as in, we shouldn't require a
+new option for it), and that the warnings for 1-2 cycles are courteous
+enough - but anyone with stronger opinions about this should speak up.
+
+Thanks,
+
+Jessica
