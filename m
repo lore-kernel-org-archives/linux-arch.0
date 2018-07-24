@@ -1,68 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:57387 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388194AbeGXC6P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2018 22:58:15 -0400
+Received: from mail-it0-f65.google.com ([209.85.214.65]:34869 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388421AbeGXItf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2018 04:49:35 -0400
+Received: by mail-it0-f65.google.com with SMTP id q20-v6so2427954ith.0
+        for <linux-arch@vger.kernel.org>; Tue, 24 Jul 2018 00:44:26 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1530580921-23340-4-git-send-email-yamada.masahiro@socionext.com>
-References: <1530580921-23340-1-git-send-email-yamada.masahiro@socionext.com> <1530580921-23340-4-git-send-email-yamada.masahiro@socionext.com>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Tue, 24 Jul 2018 10:53:10 +0900
-Message-ID: <CAK7LNAS7NE5ZOm1ojCK3Y5LthwDfm5OiEGYMcZC8Pkm2_YkKbQ@mail.gmail.com>
-Subject: Re: [PATCH 3/3] microblaze: add endianness options to LDFLAGS instead
- of LD
+In-Reply-To: <20180723111251.x2cam6bcuglr4hhz@linux-8ccs>
+References: <20180716122125.175792-1-maco@android.com> <20180716122125.175792-3-maco@android.com>
+ <20180719163208.5xvrafugpcbhh7kj@linux-8ccs> <CAB0TPYFVSWtJ6RPRUZ1bpS-rBaV7YyPR-4B2Ogxs+FNAbiScNw@mail.gmail.com>
+ <20180720144916.fyqpmrtgt23sax6n@linux-8ccs> <CAB0TPYFQvkTsMvfJCTSFSJAoCbmOUJz7mCQGoORs6nRcC3Fhdg@mail.gmail.com>
+ <20180723111251.x2cam6bcuglr4hhz@linux-8ccs>
+From: Martijn Coenen <maco@android.com>
+Date: Tue, 24 Jul 2018 09:44:25 +0200
+Message-ID: <CAB0TPYHu2tDuefRCfdUd_A8XqRQ_ym811ua-Cu3C=xUPnyHTGw@mail.gmail.com>
+Subject: Re: [PATCH 2/6] module: add support for symbol namespaces.
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20180724015310.FW4fOoZZoqD7YWw1FFlHSipkkDu39E782LYHDq4S27U@z>
+To: Jessica Yu <jeyu@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Michal Marek <michal.lkml@markovi.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oliver Neukum <oneukum@suse.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, USB list <linux-usb@vger.kernel.org>, USB Storage list <usb-storage@lists.one-eyed-alien.net>, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Martijn Coenen <maco@google.com>, Sandeep Patil <sspatil@google.com>, Iliyan Malchev <malchev@google.com>, Joel Fernandes <joelaf@google.com>
+Message-ID: <20180724074425.UjaNr90J0V34-78dH32_lEc0iGvNgPffgJLVBgfLCQA@z>
 
-Hi Michal,
+On Mon, Jul 23, 2018 at 1:12 PM, Jessica Yu <jeyu@kernel.org> wrote:
+> IMO I don't think we should bend over backwards to accommodate
+> out-of-tree modules - modifying the module loader to recognize even
+> more special sections to accommodate these OOT modules would be where
+> we'd draw the line I think.
 
-Ping?
+I agree with you, I really don't like making the module loader more
+complex (which is why I didn't opt to create separate sections in the
+first place), and in the end this change will in some ways benefit
+out-of-tree drivers too, even though it will be a bit painful now.
 
+> I think going forward I would prefer to have export namespaces to be a
+> normal and regular part of kernel API (as in, we shouldn't require a
+> new option for it), and that the warnings for 1-2 cycles are courteous
+> enough - but anyone with stronger opinions about this should speak up.
 
-2018-07-03 10:22 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
-> With the recent syntax extension, Kconfig is now able to evaluate the
-> compiler / toolchain capability.
+That aligns with how I think about this; if we want this to be a
+standard thing in the kernel, we should at some point enforce it,
+because it's pretty easy to ignore the warning. The good thing is that
+it's not a big on/off switch, but subsystem maintainers can just
+introduce namespaces when it makes sense.
+
+Thanks,
+Martijn
+
 >
-> However, accumulating flags to 'LD' is not compatible with the way
-> it works; 'LD' must be passed to Kconfig to call $(ld-option,...)
-> from Kconfig files.  If you tweak 'LD' in arch Makefile depending on
-> CONFIG_CPU_BIG_ENDIAN, this would end up with circular dependency
-> between Makefile and Kconfig.
+> Thanks,
 >
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
->
->  arch/microblaze/Makefile | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-> index d269dd4b..7333036 100644
-> --- a/arch/microblaze/Makefile
-> +++ b/arch/microblaze/Makefile
-> @@ -40,11 +40,11 @@ CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP_INSTR) += -mxl-pattern-compare
->  ifdef CONFIG_CPU_BIG_ENDIAN
->  KBUILD_CFLAGS += -mbig-endian
->  KBUILD_AFLAGS += -mbig-endian
-> -LD += -EB
-> +LDFLAGS += -EB
->  else
->  KBUILD_CFLAGS += -mlittle-endian
->  KBUILD_AFLAGS += -mlittle-endian
-> -LD += -EL
-> +LDFLAGS += -EL
->  endif
->
->  CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
-> --
-> 2.7.4
->
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+> Jessica
