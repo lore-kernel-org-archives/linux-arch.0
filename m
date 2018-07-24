@@ -1,63 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:40123 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:42396 "EHLO
         smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388251AbeGXLQT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2018 07:16:19 -0400
+        with ESMTP id S2388251AbeGXLQ1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2018 07:16:27 -0400
 From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: [PATCH 0/4] ARC: allow to use IOC and non-IOC DMA devices simultaneously
-Date: Tue, 24 Jul 2018 13:09:57 +0300
-Message-ID: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
+Subject: [PATCH 4/4] ARC: IOC: panic if both IOC and ZONE_HIGHMEM enabled
+Date: Tue, 24 Jul 2018 13:10:01 +0300
+Message-ID: <20180724101001.31965-5-Eugeniy.Paltsev@synopsys.com>
+In-Reply-To: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
+References: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-snps-arc@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Message-ID: <20180724100957.7O0zOQ3JClNRE2pylyiHkf1zAuQw_PyoPmi6zp-zuPw@z>
+Message-ID: <20180724101001.mzR4CJ1FVGiyq4Fk5U0XbOPbcst05mOD8RQqtkT-JhE@z>
 
-The ARC HS processor provides an IOC port (I/O coherency bus
-interface) that allows external devices such as DMA devices
-to access memory through the cache hierarchy, providing
-coherency between I/O transactions and the complete memory
-hierarchy.
+Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+---
+ arch/arc/mm/cache.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-Some recent SoC with ARC HS (like HSDK) allow to select bus
-port (IOC or non-IOC port) for connecting DMA devices in runtime.
-
-With this patch we can use both HW-coherent and regular DMA
-peripherals simultaneously.
-
-NOTE:
-This patch series was stress tested on HSDK with iperf3 (ethernet)
-and bonie++ (usb and sdio).
-
-NOTE:
-If you want to test some device without IOC it is not enough
-to remove "dma-coherent" property from dts. You had to remap this
-device to regular DDR AXI port intead of IOC AXI port.
-You also need to take into account that all DMA devices on ARC will
-not work without IOC after commit:
-a8eb92d02dd7 - arc: fix arc_dma_{map,unmap}_page <Christoph Hellwig>
-(I will create fix soon, see STAR 9001374807)
-
-NOTE:
-We don't touch any aperture configuration in this patch series. So we
-don't switch any devices between IOC and non-IOC AXI ports on any board.
-It can be done later if it is required.
-
-Eugeniy Paltsev (4):
-  ARC: DTS: mark DMA devices connected through IOC port as dma-coherent
-  ARC: allow to use IOC and non-IOC DMA devices simultaneously
-  ARC: refactor arch/arc/mm/dma.c
-  ARC: IOC: panic if both IOC and ZONE_HIGHMEM enabled
-
- arch/arc/Kconfig                   |  1 +
- arch/arc/boot/dts/axc003.dtsi      | 26 +++++++++++++++++
- arch/arc/boot/dts/axc003_idu.dtsi  | 26 +++++++++++++++++
- arch/arc/boot/dts/hsdk.dts         |  4 +++
- arch/arc/include/asm/dma-mapping.h | 13 +++++++++
- arch/arc/mm/cache.c                | 30 ++++++++++----------
- arch/arc/mm/dma.c                  | 58 ++++++++++++++++++--------------------
- 7 files changed, 112 insertions(+), 46 deletions(-)
- create mode 100644 arch/arc/include/asm/dma-mapping.h
-
+diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
+index 34935ce38631..e0b3484641c3 100644
+--- a/arch/arc/mm/cache.c
++++ b/arch/arc/mm/cache.c
+@@ -1143,6 +1143,19 @@ noinline void __init arc_ioc_setup(void)
+ {
+ 	unsigned int ioc_base, mem_sz;
+ 
++	/*
++	 * As for today we don't support both IOC and ZONE_HIGHMEM enabled
++	 * simultaneously. This happens because as of today IOC aperture covers
++	 * only ZONE_NORMAL (low mem) and any dma transactions outside this
++	 * region won't be HW coherent.
++	 * If we want to use both IOC and ZONE_HIGHMEM we can use
++	 * bounce_buffer to handle dma transactions to HIGHMEM.
++	 * Also it is possible to modify dma_direct cache ops or increase IOC
++	 * aperture size if we are planning to use HIGHMEM without PAE.
++	 */
++	if (IS_ENABLED(CONFIG_HIGHMEM))
++		panic("IOC and HIGHMEM can't be used simultaneously");
++
+ 	/* Flush + invalidate + disable L1 dcache */
+ 	__dc_disable();
+ 
 -- 
 2.14.4
