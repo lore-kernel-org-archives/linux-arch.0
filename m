@@ -1,80 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0077.outbound.protection.outlook.com ([104.47.38.77]:14080
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:50864 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2388409AbeGXSsJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Jul 2018 14:48:09 -0400
-Date: Tue, 24 Jul 2018 20:39:57 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
-Message-ID: <20180724173957.GA22106@yury-thinkpad>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+        id S2388366AbeGXTWT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Jul 2018 15:22:19 -0400
+Subject: Re: [PATCH v2 01/17] x86/cpu: create Dhyana init file and register
+ new cpu_dev to system
+References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+ <1532352037-7151-2-git-send-email-puwen@hygon.cn>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <ed090643-09da-cde7-6edd-970d973afd4d@redhat.com>
+Date: Tue, 24 Jul 2018 20:14:29 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+In-Reply-To: <1532352037-7151-2-git-send-email-puwen@hygon.cn>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Cc: Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Pavel Machek <pavel@ucw.cz>, Palmer Dabbelt <palmer@sifive.com>, Wookey <wookey@wookware.org>
-Message-ID: <20180724173957.pXy6Hco5XJueEcXVFNR7L4tCqv7IM8ZcU3O-o-jPvug@z>
+To: Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180724181429.X9LCi2Bk2O8eNKm21ghrKG3xIRa5izJVCS5u4t6r3ik@z>
 
-Hi all,
-
-+ Pavel Machek, Palmer Dabbelt, Wookey.
-
-On Wed, May 16, 2018 at 11:18:45AM +0300, Yury Norov wrote:
-> This series enables AARCH64 with ILP32 mode.
+On 23/07/2018 15:20, Pu Wen wrote:
+> Add x86 architecture support for new processor Hygon Dhyana Family 18h.
+> Rework to create a separated file(arch/x86/kernel/cpu/hygon.c) from the
+> AMD init one(arch/x86/kernel/cpu/amd.c) to initialize Dhyana CPU. In
+> this way we can remove old AMD architecture support codes from Hygon
+> code path and generate a clear initialization flow for Hygon processors,
+> it also reduce long-term maintenance effort.
+> Also add hygon.c Maintainer information in accordance.
 > 
-> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
-> option that is enabled for existing 32-bit architectures but disabled
-> for new arches (so 64-bit off_t userspace type is used by new userspace).
-> Also it deprecates getrlimit and setrlimit syscalls prior to prlimit64.
+> To identify Hygon processors, add a new vendor type X86_VENDOR_HYGON(9)
+> for system recognition.
 > 
-> Based on kernel v4.16. Tested with LTP, glibc testsuite, trinity, lmbench,
-> CPUSpec.
-> 
-> This series on github: 
-> https://github.com/norov/linux/tree/ilp32-4.16
-> Linaro toolchain:
-> http://snapshots.linaro.org/components/toolchain/binaries/7.3-2018.04-rc1/aarch64-linux-gnu_ilp32/
-> Debian repo:
-> http://people.linaro.org/~wookey/ilp32/
-> OpenSUSE repo:
-> https://build.opensuse.org/project/show/devel:ARM:Factory:Contrib:ILP32
-> 
-> Changes:
-> v3: https://lkml.org/lkml/2014/9/3/704
-> v4: https://lkml.org/lkml/2015/4/13/691
-> v5: https://lkml.org/lkml/2015/9/29/911
-> v6: https://lkml.org/lkml/2016/5/23/661
-> v7: https://lkml.org/lkml/2017/1/9/213
-> v8: https://lkml.org/lkml/2017/6/19/624
-> v9: - rebased on top of v4.16;
->     - signal subsystem reworked to avoid code duplication, as requested
->       by Dave Martin (patches 18 and 20);
->     - new files introduced in series use SPDX notation for license;
->     - linux-api and linux-arch CCed as the series changes kernel ABI;
->     - checkpatch and other minor fixes.
->     - Zhou Chengming's reported-by for patch 2 and signed-off-by for
->       patch 21 removed because his email became invalid. Zhou, please
->       share your new email.
+> To enable Hygon processor config, add a separated Kconfig entry(CPU_SUP_
+> HYGON) for Dhyana CPU in kernel config setup.
 
-This is the update of the series based on 4.17 kernel
-https://github.com/norov/linux/tree/ilp32-4.17
-with the following non-critical changes:
- - documentation patch extended with few words about ILP32 in general, and
-   the link to ARM document about it added;
- - nds32 and riscv32 exceptions added for ARCH_32BIT_OFF_T and
-   {get,set}rlimit (patches 4 and 5).
- - changes to architectures that are unsupported anymore are dropped.
- - Chris Metcalf's ack for patch #3 removed, as it is related to
-   tile32 which is unsupported now.
+If Hygon processors are currently the same as AMD, I don't see the point
+in creating a new file just for them.  Likewise for example in patch 6
 
-Reminder to Arnd. There's arch subseries acked by you but still
-without progress. Could you consider taking it upstream?
-[PATCH 03/24] compat ABI: use non-compat openat and open_by_handle_at variants
-[PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
-[PATCH 05/24] asm-generic: Drop getrlimit and setrlimit syscalls from default list
 
-Yury
++	case X86_VENDOR_HYGON:
++		ideal_nops = p6_nops;
++		return;
++
+ 	case X86_VENDOR_AMD:
+ 		if (boot_cpu_data.x86 > 0xf) {
+ 			ideal_nops = p6_nops;
+
+Should only need to add "case X86_VENDOR_HYGON:".  Or you could even
+reuse X86_VENDOR_AMD.
+
+Paolo
