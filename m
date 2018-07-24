@@ -1,83 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:40133 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:46355 "EHLO
         smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388251AbeGXLQZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2018 07:16:25 -0400
+        with ESMTP id S2388315AbeGXPTq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2018 11:19:46 -0400
 From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: [PATCH 3/4] ARC: refactor arch/arc/mm/dma.c
-Date: Tue, 24 Jul 2018 13:10:00 +0300
-Message-ID: <20180724101001.31965-4-Eugeniy.Paltsev@synopsys.com>
-In-Reply-To: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
-References: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
+Subject: [PATCH] ARC: fix broken noncoherent cache ops
+Date: Tue, 24 Jul 2018 17:13:02 +0300
+Message-ID: <20180724141302.4305-1-Eugeniy.Paltsev@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-snps-arc@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Message-ID: <20180724101000.bwqmUoMWHOJOMF6fDmjq4CPsUROi9uV9-s4k8uXMwXI@z>
+Message-ID: <20180724141302.IK2PH_t6-0tgOohGbjj4lNzpEQwL24iSfO1N3VFWXVM@z>
 
-Refactoring, no functional change intended.
+All DMA devices on ARC haven't worked with SW cache control
+since commit a8eb92d02dd7 ("arc: fix arc_dma_{map,unmap}_page")
+This happens because we don't check direction argument at all in
+new implementation. Fix that.
 
+Fixies: commit a8eb92d02dd7 ("arc: fix arc_dma_{map,unmap}_page")
 Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
 ---
- arch/arc/mm/dma.c | 28 ++++++++++------------------
- 1 file changed, 10 insertions(+), 18 deletions(-)
+NOTE:
+ * This patch was stress tested on HSDK with bonie++ (usb and sdio)
+   with IOC disabled. The ethernet wasn't tested because it doesn't
+   work with SW cache control as for today (see STAR 9001336019)
+
+ arch/arc/mm/dma.c | 46 ++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 44 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
-index b693818cd8e5..46584c7c2858 100644
+index 8c1071840979..cefb776a99ff 100644
 --- a/arch/arc/mm/dma.c
 +++ b/arch/arc/mm/dma.c
-@@ -27,30 +27,24 @@ void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
- 	struct page *page;
- 	phys_addr_t paddr;
- 	void *kvaddr;
--	int need_coh = 1, need_kvaddr = 0;
-+	bool need_coh = !(attrs & DMA_ATTR_NON_CONSISTENT);
+@@ -129,14 +129,56 @@ int arch_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+ 	return ret;
+ }
  
- 	page = alloc_pages(gfp, order);
- 	if (!page)
- 		return NULL;
- 
--	if (attrs & DMA_ATTR_NON_CONSISTENT)
--		need_coh = 0;
--
--	/*
--	 * - A coherent buffer needs MMU mapping to enforce non-cachability
--	 * - A highmem page needs a virtual handle (hence MMU mapping)
--	 *   independent of cachability
--	 */
--	if (PageHighMem(page) || need_coh)
--		need_kvaddr = 1;
--
- 	/* This is linear addr (0x8000_0000 based) */
- 	paddr = page_to_phys(page);
- 
- 	*dma_handle = paddr;
- 
--	/* This is kernel Virtual address (0x7000_0000 based) */
--	if (need_kvaddr) {
-+	/*
-+	 * - A coherent buffer needs MMU mapping to enforce non-cachability
-+	 * - A highmem page needs a virtual handle (hence MMU mapping)
-+	 *   independent of cachability.
-+	 * kvaddr is kernel Virtual address (0x7000_0000 based)
-+	 */
-+	if (PageHighMem(page) || need_coh) {
- 		kvaddr = ioremap_nocache(paddr, size);
- 		if (kvaddr == NULL) {
- 			__free_pages(page, order);
-@@ -81,11 +75,9 @@ void arch_dma_free(struct device *dev, size_t size, void *vaddr,
++/*
++ * Cache operations depending on function and direction argument, inspired by
++ * https://lkml.org/lkml/2018/5/18/979
++ * "dma_sync_*_for_cpu and direction=TO_DEVICE (was Re: [PATCH 02/20]
++ * dma-mapping: provide a generic dma-noncoherent implementation)"
++ *
++ *          |   map          ==  for_device     |   unmap     ==  for_cpu
++ *          |----------------------------------------------------------------
++ * TO_DEV   |   writeback        writeback      |   none          none
++ * FROM_DEV |   invalidate       invalidate     |   invalidate    invalidate
++ * BIDIR    |   writeback+inv    writeback+inv  |   invalidate    invalidate
++ *
++ * NOTE: we don't check the validity of direction argument as it is done in
++ * upper layer functions (in include/linux/dma-mapping.h)
++ */
++
+ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+ 		size_t size, enum dma_data_direction dir)
  {
- 	phys_addr_t paddr = dma_handle;
- 	struct page *page = virt_to_page(paddr);
--	int is_non_coh = 1;
--
--	is_non_coh = (attrs & DMA_ATTR_NON_CONSISTENT);
-+	bool is_coh = !(attrs & DMA_ATTR_NON_CONSISTENT);
+-	dma_cache_wback(paddr, size);
++	switch (dir) {
++	case DMA_TO_DEVICE:
++		dma_cache_wback(paddr, size);
++		break;
++
++	case DMA_FROM_DEVICE:
++		dma_cache_inv(paddr, size);
++		break;
++
++	case DMA_BIDIRECTIONAL:
++		dma_cache_wback_inv(paddr, size);
++		break;
++
++	default:
++		break;
++	}
+ }
  
--	if (PageHighMem(page) || !is_non_coh)
-+	if (PageHighMem(page) || is_coh)
- 		iounmap((void __force __iomem *)vaddr);
- 
- 	__free_pages(page, get_order(size));
+ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+ 		size_t size, enum dma_data_direction dir)
+ {
+-	dma_cache_inv(paddr, size);
++	switch (dir) {
++	case DMA_TO_DEVICE:
++		break;
++
++	case DMA_FROM_DEVICE:
++	case DMA_BIDIRECTIONAL:
++		dma_cache_inv(paddr, size);
++		break;
++
++	default:
++		break;
++	}
+ }
 -- 
 2.14.4
