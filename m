@@ -1,130 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:54800 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388409AbeGXRkr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Jul 2018 13:40:47 -0400
-Date: Tue, 24 Jul 2018 17:33:30 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 4/7] x86,tlb: make lazy TLB mode lazier
-Message-ID: <20180724163330.GC25888@arm.com>
-References: <20180716190337.26133-1-riel@surriel.com>
- <20180716190337.26133-5-riel@surriel.com>
- <CALCETrUMntRe_LYX5wj9YD4xZ+84QExK+ZNb3yxEBDEKa7nePQ@mail.gmail.com>
- <B6566AA4-2E8A-43BD-A224-0F6D4747B8FB@surriel.com>
- <F93A3335-4830-4E36-9179-D0FA5D640C8A@amacapital.net>
- <B976CC13-D014-433A-83DE-F8DF9AB4F421@surriel.com>
- <CALCETrWDiMhgiR3f8n0jdWcW31EDJ+Waq0wh5sMDutfigANGnA@mail.gmail.com>
- <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
+Received: from mail-bl2nam02on0077.outbound.protection.outlook.com ([104.47.38.77]:14080
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2388409AbeGXSsJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Jul 2018 14:48:09 -0400
+Date: Tue, 24 Jul 2018 20:39:57 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
+Message-ID: <20180724173957.GA22106@yury-thinkpad>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CALCETrXLMsSBChDvrms-omwYV4LHT30GenDjbnD-+LTg55yPow@mail.gmail.com>
+In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Rik van Riel <riel@surriel.com>, Peter Zijlstra <peterz@infradead.org>, Vitaly Kuznetsov <vkuznets@redhat.com>, Juergen Gross <jgross@suse.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-s390@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Mike Galbraith <efault@gmx.de>, kernel-team <kernel-team@fb.com>, Ingo Molnar <mingo@kernel.org>, Dave Hansen <dave.hansen@intel.com>
-Message-ID: <20180724163330.7i80zUkwaX8zXVzf8BNvf7tPbKbq7Lo6fz883IVEGFs@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Cc: Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Pavel Machek <pavel@ucw.cz>, Palmer Dabbelt <palmer@sifive.com>, Wookey <wookey@wookware.org>
+Message-ID: <20180724173957.pXy6Hco5XJueEcXVFNR7L4tCqv7IM8ZcU3O-o-jPvug@z>
 
-Hi Andy,
+Hi all,
 
-Sorry, I missed the arm64 question at the end of this...
++ Pavel Machek, Palmer Dabbelt, Wookey.
 
-On Thu, Jul 19, 2018 at 10:04:09AM -0700, Andy Lutomirski wrote:
-> On Thu, Jul 19, 2018 at 9:45 AM, Andy Lutomirski <luto@amacapital.net> wrote:
-> > [I added PeterZ and Vitaly -- can you see any way in which this would
-> > break something obscure?  I don't.]
-> >
-> > On Thu, Jul 19, 2018 at 7:14 AM, Rik van Riel <riel@surriel.com> wrote:
-> >> I guess we can skip both switch_ldt and load_mm_cr4 if real_prev equals
-> >> next?
-> >
-> > Yes, AFAICS.
-> >
-> >>
-> >> On to the lazy TLB mm_struct refcounting stuff :)
-> >>
-> >>>
-> >>> Which refcount?  mm_users shouldn’t be hot, so I assume you’re talking about
-> >>> mm_count. My suggestion is to get rid of mm_count instead of trying to
-> >>> optimize it.
-> >>
-> >>
-> >> Do you have any suggestions on how? :)
-> >>
-> >> The TLB shootdown sent at __exit_mm time does not get rid of the
-> >> kernelthread->active_mm
-> >> pointer pointing at the mm that is exiting.
-> >>
-> >
-> > Ah, but that's conceptually very easy to fix.  Add a #define like
-> > ARCH_NO_TASK_ACTIVE_MM.  Then just get rid of active_mm if that
-> > #define is set.  After some grepping, there are very few users.  The
-> > only nontrivial ones are the ones in kernel/ and mm/mmu_context.c that
-> > are involved in the rather complicated dance of refcounting active_mm.
-> > If that field goes away, it doesn't need to be refcounted.  Instead, I
-> > think the refcounting can get replaced with something like:
-> >
-> > /*
-> >  * Release any arch-internal references to mm.  Only called when
-> > mm_users is zero
-> >  * and all tasks using mm have either been switch_mm()'d away or have had
-> >  * enter_lazy_tlb() called.
-> >  */
-> > extern void arch_shoot_down_dead_mm(struct mm_struct *mm);
-> >
-> > which the kernel calls in __mmput() after tearing down all the page
-> > tables.  The body can be something like:
-> >
-> > if (WARN_ON(cpumask_any_but(mm_cpumask(...), ...)) {
-> >   /* send an IPI.  Maybe just call tlb_flush_remove_tables() */
-> > }
-> >
-> > (You'll also have to fix up the highly questionable users in
-> > arch/x86/platform/efi/efi_64.c, but that's easy.)
-> >
-> > Does all that make sense?  Basically, as I understand it, the
-> > expensive atomic ops you're seeing are all pointless because they're
-> > enabling an optimization that hasn't actually worked for a long time,
-> > if ever.
+On Wed, May 16, 2018 at 11:18:45AM +0300, Yury Norov wrote:
+> This series enables AARCH64 with ILP32 mode.
 > 
-> Hmm.  Xen PV has a big hack in xen_exit_mmap(), which is called from
-> arch_exit_mmap(), I think.  It's a heavier weight version of more or
-> less the same thing that arch_shoot_down_dead_mm() would be, except
-> that it happens before exit_mmap().  But maybe Xen actually has the
-> right idea.  In other words, rather doing the big pagetable free in
-> exit_mmap() while there may still be other CPUs pointing at the page
-> tables, the other order might make more sense.  So maybe, if
-> ARCH_NO_TASK_ACTIVE_MM is set, arch_exit_mmap() should be responsible
-> for getting rid of all secret arch references to the mm.
+> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
+> option that is enabled for existing 32-bit architectures but disabled
+> for new arches (so 64-bit off_t userspace type is used by new userspace).
+> Also it deprecates getrlimit and setrlimit syscalls prior to prlimit64.
 > 
-> Hmm.  ARCH_FREE_UNUSED_MM_IMMEDIATELY might be a better name.
+> Based on kernel v4.16. Tested with LTP, glibc testsuite, trinity, lmbench,
+> CPUSpec.
 > 
-> I added some more arch maintainers.  The idea here is that, on x86 at
-> least, task->active_mm and all its refcounting is pure overhead.  When
-> a process exits, __mmput() gets called, but the core kernel has a
-> longstanding "optimization" in which other tasks (kernel threads and
-> idle tasks) may have ->active_mm pointing at this mm.  This is nasty,
-> complicated, and hurts performance on large systems, since it requires
-> extra atomic operations whenever a CPU switches between real users
-> threads and idle/kernel threads.
+> This series on github: 
+> https://github.com/norov/linux/tree/ilp32-4.16
+> Linaro toolchain:
+> http://snapshots.linaro.org/components/toolchain/binaries/7.3-2018.04-rc1/aarch64-linux-gnu_ilp32/
+> Debian repo:
+> http://people.linaro.org/~wookey/ilp32/
+> OpenSUSE repo:
+> https://build.opensuse.org/project/show/devel:ARM:Factory:Contrib:ILP32
 > 
-> It's also almost completely worthless on x86 at least, since __mmput()
-> frees pagetables, and that operation *already* forces a remote TLB
-> flush, so we might as well zap all the active_mm references at the
-> same time.
-> 
-> But arm64 has real HW remote flushes.  Does arm64 actually benefit
-> from the active_mm optimization?  What happens on arm64 when a process
-> exits?  How about s390?  I suspect that x390 has rather larger systems
-> than arm64, where the cost of the reference counting can be much
-> higher.
+> Changes:
+> v3: https://lkml.org/lkml/2014/9/3/704
+> v4: https://lkml.org/lkml/2015/4/13/691
+> v5: https://lkml.org/lkml/2015/9/29/911
+> v6: https://lkml.org/lkml/2016/5/23/661
+> v7: https://lkml.org/lkml/2017/1/9/213
+> v8: https://lkml.org/lkml/2017/6/19/624
+> v9: - rebased on top of v4.16;
+>     - signal subsystem reworked to avoid code duplication, as requested
+>       by Dave Martin (patches 18 and 20);
+>     - new files introduced in series use SPDX notation for license;
+>     - linux-api and linux-arch CCed as the series changes kernel ABI;
+>     - checkpatch and other minor fixes.
+>     - Zhou Chengming's reported-by for patch 2 and signed-off-by for
+>       patch 21 removed because his email became invalid. Zhou, please
+>       share your new email.
 
-IIRC, the TLB invalidation on task exit has the fullmm field set in the
-mmu_gather structure, so we don't actually do any TLB invalidation at all.
-Instead, we just don't re-allocate the ASID and invalidate the whole TLB
-when we run out of ASIDs (they're 16-bit on most Armv8 CPUs).
+This is the update of the series based on 4.17 kernel
+https://github.com/norov/linux/tree/ilp32-4.17
+with the following non-critical changes:
+ - documentation patch extended with few words about ILP32 in general, and
+   the link to ARM document about it added;
+ - nds32 and riscv32 exceptions added for ARCH_32BIT_OFF_T and
+   {get,set}rlimit (patches 4 and 5).
+ - changes to architectures that are unsupported anymore are dropped.
+ - Chris Metcalf's ack for patch #3 removed, as it is related to
+   tile32 which is unsupported now.
 
-Does that answer your question?
+Reminder to Arnd. There's arch subseries acked by you but still
+without progress. Could you consider taking it upstream?
+[PATCH 03/24] compat ABI: use non-compat openat and open_by_handle_at variants
+[PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
+[PATCH 05/24] asm-generic: Drop getrlimit and setrlimit syscalls from default list
 
-Will
+Yury
