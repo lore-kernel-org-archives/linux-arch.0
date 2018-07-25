@@ -1,128 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:34225 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728397AbeGYPS4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jul 2018 11:18:56 -0400
-Received: by mail-pf1-f193.google.com with SMTP id k19-v6so1796176pfi.1
-        for <linux-arch@vger.kernel.org>; Wed, 25 Jul 2018 07:07:06 -0700 (PDT)
+Received: from mail-pg1-f173.google.com ([209.85.215.173]:35369 "EHLO
+        mail-pg1-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728341AbeGYRFL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jul 2018 13:05:11 -0400
+Received: by mail-pg1-f173.google.com with SMTP id e6-v6so5600679pgv.2
+        for <linux-arch@vger.kernel.org>; Wed, 25 Jul 2018 08:52:55 -0700 (PDT)
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 4/4] powerpc/64s/radix: optimise TLB flush with precise TLB ranges in mmu_gather
-Date: Thu, 26 Jul 2018 00:06:41 +1000
-Message-ID: <20180725140641.30372-5-npiggin@gmail.com>
-In-Reply-To: <20180725140641.30372-1-npiggin@gmail.com>
-References: <20180725140641.30372-1-npiggin@gmail.com>
+Subject: [RFC PATCH 0/4] possibilities for improving invalidations
+Date: Thu, 26 Jul 2018 01:52:42 +1000
+Message-Id: <20180725155246.1085-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180725140641.QqQ1u4ErsYhMWB1Dig0FAW3b8RkjlAjfinqKFAlWH3k@z>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org
 
-The mmu_gather APIs keep track of the invalidated address range, and
-the generic page table freeing accessors expand the invalidated range
-to cover the addresses corresponding to the page tables even if there
-are no ptes and therefore no TLB entries to invalidate. This is done
-for architectures that have paging structure caches that are
-invalidated with their TLB invalidate instructions (e.g., x86).
+I wonder if we could make some improvements to zapping pages to
+reduce TLB flushes under PTL, and to single threaded pte updates
+to reduce atomic operations.
 
-powerpc/64s/radix does have a "page walk cache" (PWC), but it is
-invalidated with a specific instruction and tracked independently in
-the mmu_gather (using the need_flush_all flag to indicate PWC must be
-flushed). Therefore TLB invalidation does not have to be expanded to
-cover freed page tables.
+This might require some changes to arch code, particularly the
+last patch. I'd just like to see if I've missed something
+fundamental with the mm or with pte/tlb behaviour.
 
-This patch defines p??_free_tlb functions for 64s, which do not expand
-the TLB flush range over page table pages. This brings the number of
-tlbiel instructions required by a kernel compile from 33M to 25M, most
-avoided from exec => shift_arg_pages().
+Thanks,
+Nick
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/include/asm/tlb.h | 34 ++++++++++++++++++++++++++++++++++
- arch/powerpc/mm/tlb-radix.c    | 10 ++++++++++
- include/asm-generic/tlb.h      |  5 +++++
- 3 files changed, 49 insertions(+)
+Nicholas Piggin (4):
+  mm: munmap optimise single threaded page freeing
+  mm: zap_pte_range only flush under ptl if a dirty shared page was
+    unmapped
+  mm: zap_pte_range optimise fullmm handling for dirty shared pages
+  mm: optimise flushing and pte manipulation for single threaded access
 
-diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
-index 9138baccebb0..5d3107f2b014 100644
---- a/arch/powerpc/include/asm/tlb.h
-+++ b/arch/powerpc/include/asm/tlb.h
-@@ -30,6 +30,40 @@
- #define __tlb_remove_tlb_entry	__tlb_remove_tlb_entry
- #define tlb_remove_check_page_size_change tlb_remove_check_page_size_change
- 
-+#ifdef CONFIG_PPC_BOOK3S_64
-+/*
-+ * powerpc book3s hash does not have page table structure caches, and
-+ * radix requires explicit management with PWC invalidate tlb type, so
-+ * there is no need to expand the mmu_gather range over invalidated page
-+ * table pages like the generic code does.
-+ */
-+
-+#define pte_free_tlb(tlb, ptep, address)			\
-+	do {							\
-+		__pte_free_tlb(tlb, ptep, address);		\
-+	} while (0)
-+
-+#define pmd_free_tlb(tlb, pmdp, address)			\
-+	do {							\
-+		__pmd_free_tlb(tlb, pmdp, address);		\
-+	} while (0)
-+
-+#define pud_free_tlb(tlb, pudp, address)			\
-+	do {							\
-+		__pud_free_tlb(tlb, pudp, address);		\
-+	} while (0)
-+
-+/*
-+ * Radix sets need_flush_all when page table pages have been unmapped
-+ * and the PWC needs flushing. Generic code must call our tlb_flush
-+ * even on empty ranges in this case.
-+ *
-+ * This will always be false for hash.
-+ */
-+#define arch_tlb_mustflush(tlb) (tlb->need_flush_all)
-+
-+#endif
-+
- extern void tlb_flush(struct mmu_gather *tlb);
- 
- /* Get the generic bits... */
-diff --git a/arch/powerpc/mm/tlb-radix.c b/arch/powerpc/mm/tlb-radix.c
-index 1135b43a597c..238b20a513e7 100644
---- a/arch/powerpc/mm/tlb-radix.c
-+++ b/arch/powerpc/mm/tlb-radix.c
-@@ -862,6 +862,16 @@ void radix__tlb_flush(struct mmu_gather *tlb)
- 	unsigned long start = tlb->start;
- 	unsigned long end = tlb->end;
- 
-+	/*
-+	 * This can happen if need_flush_all is set due to a page table
-+	 * invalidate, but no ptes under it freed (see arch_tlb_mustflush).
-+	 * Set end = start to prevent any TLB flushing here (only PWC).
-+	 */
-+	if (!end) {
-+		WARN_ON_ONCE(!tlb->need_flush_all);
-+		end = start;
-+	}
-+
- 	/*
- 	 * if page size is not something we understand, do a full mm flush
- 	 *
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index b320c0cc8996..a55ef1425f0d 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -285,6 +285,11 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
-  * http://lkml.kernel.org/r/CA+55aFzBggoXtNXQeng5d_mRoDnaMBE5Y+URs+PHR67nUpMtaw@mail.gmail.com
-  *
-  * For now w.r.t page table cache, mark the range_size as PAGE_SIZE
-+ *
-+ * Update: powerpc (Book3S 64-bit, radix MMU) has an architected page table
-+ * cache (called PWC), and invalidates it specifically. It sets the
-+ * need_flush_all flag to indicate the PWC requires flushing, so it defines
-+ * its own p??_free_tlb functions which do not expand the TLB range.
-  */
- 
- #ifndef pte_free_tlb
+ include/asm-generic/tlb.h |  3 +++
+ mm/huge_memory.c          |  4 ++--
+ mm/madvise.c              |  4 ++--
+ mm/memory.c               | 40 ++++++++++++++++++++++++++++++++-------
+ 4 files changed, 40 insertions(+), 11 deletions(-)
+
 -- 
 2.17.0
