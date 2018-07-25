@@ -1,53 +1,32 @@
-From: Alexandre Ghiti <alex@ghiti.fr>
-Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Date: Wed, 25 Jul 2018 09:38:57 +0200
-Message-ID: <7c187058-12c7-ee2d-3ceb-d17ba94875b8@ghiti.fr>
-References: <20180705110716.3919-1-alex@ghiti.fr>
- <20180725003428.jsklz7pj4m7lj3m4@pburton-laptop>
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
+Date: Wed, 25 Jul 2018 11:48:29 +0200
+Message-ID: <mvm4lgnzlw2.fsf@suse.de>
+References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
+        <20180724173957.GA22106@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180725003428.jsklz7pj4m7lj3m4@pburton-laptop>
-Content-Language: en-US
+In-Reply-To: <20180724173957.GA22106@yury-thinkpad> (Yury Norov's message of
+        "Tue, 24 Jul 2018 20:39:57 +0300")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Mike Kravetz <mike.kravetz@oracle.com>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>James
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
+On Jul 24 2018, Yury Norov <ynorov@caviumnetworks.com> wrote:
 
-Thanks for having tested it, I remove mips from my list.
+> This is the update of the series based on 4.17 kernel
+> https://github.com/norov/linux/tree/ilp32-4.17
 
-Thanks again,
+Note that commit 947bd8e7cd (arm64: ilp32: add
+is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64) conflicts with
+commit 9dd9614f54 (arm64: ssbd: Introduce thread flag to control
+userspace mitigation) (which has been backported to stable).
 
-Alex
+Andreas.
 
-
-On 07/25/2018 02:34 AM, Paul Burton wrote:
-> Hi Alexandre,
->
-> On Thu, Jul 05, 2018 at 11:07:05AM +0000, Alexandre Ghiti wrote:
->> In order to reduce copy/paste of functions across architectures and then
->> make riscv hugetlb port (and future ports) simpler and smaller, this
->> patchset intends to factorize the numerous hugetlb primitives that are
->> defined across all the architectures.
->>
->> Except for prepare_hugepage_range, this patchset moves the versions that
->> are just pass-through to standard pte primitives into
->> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
->> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
->>
->> s390 architecture has not been tackled in this serie since it does not
->> use asm-generic/hugetlb.h at all.
->> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
->>
->> This patchset has been compiled on x86 only.
-> For MIPS these look good - I don't see any issues & they pass a build
-> test (using cavium_octeon_defconfig which enables huge pages), so:
->
->      Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
->
-> Thanks,
->      Paul
+-- 
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
