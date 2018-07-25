@@ -1,136 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:40361 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388386AbeGXTmJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2018 15:42:09 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] ARC: fix broken noncoherent cache ops
-Date: Tue, 24 Jul 2018 18:34:22 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B08382A@us01wembx1.internal.synopsys.com>
-References: <20180724141302.4305-1-Eugeniy.Paltsev@synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-by2nam01on0092.outbound.protection.outlook.com ([104.47.34.92]:19485
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2388441AbeGYBng (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Jul 2018 21:43:36 -0400
+Date: Tue, 24 Jul 2018 17:34:29 -0700
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+Message-ID: <20180725003428.jsklz7pj4m7lj3m4@pburton-laptop>
+References: <20180705110716.3919-1-alex@ghiti.fr>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180705110716.3919-1-alex@ghiti.fr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
-Message-ID: <20180724183422.WYv6ALtRIZh7i1Rebt70ZMi5KCbocKHpZy4Uh-S8baI@z>
+To: Alexandre Ghiti <alex@ghiti.fr>
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <20180725003429.BBsilv9bq3L_QYSztfuyhDnML71NcD6qSJyMueBD__0@z>
 
-On 07/24/2018 07:13 AM, Eugeniy Paltsev wrote:=0A=
-> All DMA devices on ARC haven't worked with SW cache control=0A=
-> since commit a8eb92d02dd7 ("arc: fix arc_dma_{map,unmap}_page")=0A=
-> This happens because we don't check direction argument at all in=0A=
-> new implementation. Fix that.=0A=
-=0A=
-Good find and I presume painful to debug.=0A=
-=0A=
-Interesting though how the error tricked finally as the root cause was=0A=
-arc_dma_sync_single*() were broken to begin with.=0A=
-=0A=
-Prior to common ops rework, arc_dma_sync_single_for_device() would uncondit=
-ionally=0A=
-do cache wback, independent of the direction (by calling _dma_cache_sync he=
-lper=0A=
-with TO_DEVICE). In 713a74624bba ("arc: simplify=0A=
-arc_dma_sync_single_for_{cpu,device}") Christoph changed this to skip the h=
-elper.=0A=
-And then in a8eb92d02dd7, the usage of these routines was prolifirated to t=
-he more=0A=
-common kernel API dma_*map_page() API and that is where the original defici=
-ency=0A=
-showed up. I'll add this bit of history to changelog to remember this bette=
-r.=0A=
-=0A=
-=0A=
-> Fixies: commit a8eb92d02dd7 ("arc: fix arc_dma_{map,unmap}_page")=0A=
-> Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>=0A=
-> ---=0A=
-> NOTE:=0A=
->  * This patch was stress tested on HSDK with bonie++ (usb and sdio)=0A=
->    with IOC disabled. The ethernet wasn't tested because it doesn't=0A=
->    work with SW cache control as for today (see STAR 9001336019)=0A=
->=0A=
->  arch/arc/mm/dma.c | 46 ++++++++++++++++++++++++++++++++++++++++++++--=0A=
->  1 file changed, 44 insertions(+), 2 deletions(-)=0A=
->=0A=
-> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c=0A=
-> index 8c1071840979..cefb776a99ff 100644=0A=
-> --- a/arch/arc/mm/dma.c=0A=
-> +++ b/arch/arc/mm/dma.c=0A=
-> @@ -129,14 +129,56 @@ int arch_dma_mmap(struct device *dev, struct vm_are=
-a_struct *vma,=0A=
->  	return ret;=0A=
->  }=0A=
->  =0A=
-> +/*=0A=
-> + * Cache operations depending on function and direction argument, inspir=
-ed by=0A=
-> + * https://lkml.org/lkml/2018/5/18/979=0A=
-> + * "dma_sync_*_for_cpu and direction=3DTO_DEVICE (was Re: [PATCH 02/20]=
-=0A=
-> + * dma-mapping: provide a generic dma-noncoherent implementation)"=0A=
-> + *=0A=
-> + *          |   map          =3D=3D  for_device     |   unmap     =3D=3D=
-  for_cpu=0A=
-> + *          |-----------------------------------------------------------=
------=0A=
-> + * TO_DEV   |   writeback        writeback      |   none          none=
-=0A=
-> + * FROM_DEV |   invalidate       invalidate     |   invalidate    invali=
-date=0A=
-> + * BIDIR    |   writeback+inv    writeback+inv  |   invalidate    invali=
-date=0A=
-> + *=0A=
-> + * NOTE: we don't check the validity of direction argument as it is done=
- in=0A=
-> + * upper layer functions (in include/linux/dma-mapping.h)=0A=
-> + */=0A=
-> +=0A=
-=0A=
-Very nice !  Added to for-curr=0A=
-=0A=
-Thx,=0A=
--Vineet=0A=
-=0A=
->  void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,=0A=
->  		size_t size, enum dma_data_direction dir)=0A=
->  {=0A=
-> -	dma_cache_wback(paddr, size);=0A=
-> +	switch (dir) {=0A=
-> +	case DMA_TO_DEVICE:=0A=
-> +		dma_cache_wback(paddr, size);=0A=
-> +		break;=0A=
-> +=0A=
-> +	case DMA_FROM_DEVICE:=0A=
-> +		dma_cache_inv(paddr, size);=0A=
-> +		break;=0A=
-> +=0A=
-> +	case DMA_BIDIRECTIONAL:=0A=
-> +		dma_cache_wback_inv(paddr, size);=0A=
-> +		break;=0A=
-> +=0A=
-> +	default:=0A=
-> +		break;=0A=
-> +	}=0A=
->  }=0A=
->  =0A=
->  void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,=0A=
->  		size_t size, enum dma_data_direction dir)=0A=
->  {=0A=
-> -	dma_cache_inv(paddr, size);=0A=
-> +	switch (dir) {=0A=
-> +	case DMA_TO_DEVICE:=0A=
-> +		break;=0A=
-> +=0A=
-> +	case DMA_FROM_DEVICE:=0A=
-> +	case DMA_BIDIRECTIONAL:=0A=
-> +		dma_cache_inv(paddr, size);=0A=
-> +		break;=0A=
-> +=0A=
-> +	default:=0A=
-> +		break;=0A=
-> +	}=0A=
->  }=0A=
-=0A=
+Hi Alexandre,
+
+On Thu, Jul 05, 2018 at 11:07:05AM +0000, Alexandre Ghiti wrote:
+> In order to reduce copy/paste of functions across architectures and then
+> make riscv hugetlb port (and future ports) simpler and smaller, this
+> patchset intends to factorize the numerous hugetlb primitives that are
+> defined across all the architectures.
+> 
+> Except for prepare_hugepage_range, this patchset moves the versions that
+> are just pass-through to standard pte primitives into
+> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
+> 
+> s390 architecture has not been tackled in this serie since it does not
+> use asm-generic/hugetlb.h at all.
+> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
+> 
+> This patchset has been compiled on x86 only. 
+
+For MIPS these look good - I don't see any issues & they pass a build
+test (using cavium_octeon_defconfig which enables huge pages), so:
+
+    Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
+
+Thanks,
+    Paul
