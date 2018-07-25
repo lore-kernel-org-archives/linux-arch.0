@@ -1,37 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:55618 "EHLO mx1.suse.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728651AbeGYK7d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 25 Jul 2018 06:59:33 -0400
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
-        <20180724173957.GA22106@yury-thinkpad>
-Date: Wed, 25 Jul 2018 11:48:29 +0200
-In-Reply-To: <20180724173957.GA22106@yury-thinkpad> (Yury Norov's message of
-        "Tue, 24 Jul 2018 20:39:57 +0300")
-Message-ID: <mvm4lgnzlw2.fsf@suse.de>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:33006 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728243AbeGYPSm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jul 2018 11:18:42 -0400
+Received: by mail-pg1-f194.google.com with SMTP id r5-v6so5411252pgv.0
+        for <linux-arch@vger.kernel.org>; Wed, 25 Jul 2018 07:06:52 -0700 (PDT)
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [RFC PATCH 0/4] mm: mmu_gather changes to support explicit paging
+Date: Thu, 26 Jul 2018 00:06:37 +1000
+Message-ID: <20180725140641.30372-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Pavel Machek <pavel@ucw.cz>, Palmer Dabbelt <palmer@sifive.com>, Wookey <wookey@wookware.org>
-Message-ID: <20180725094829.0N1DuhOLEQxsr_IpAc9bGVC6gmu9NQrtfUb2alclS14@z>
+To: linux-mm@kvack.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180725140637.sP4qkBjrHUB8-vejVZl9Je3fDqwoKoPlsbf7X8XalSc@z>
 
-On Jul 24 2018, Yury Norov <ynorov@caviumnetworks.com> wrote:
+The first 3 patches in this series are some generic mm changes I
+would like to make, including a possible fix which may(?) be needed
+for ARM64. Other than the bugfix, these first 3 patches should not
+change anything so hopefully they aren't too controversial.
 
-> This is the update of the series based on 4.17 kernel
-> https://github.com/norov/linux/tree/ilp32-4.17
+The powerpc patch is also there for reference. 
 
-Note that commit 947bd8e7cd (arm64: ilp32: add
-is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64) conflicts with
-commit 9dd9614f54 (arm64: ssbd: Introduce thread flag to control
-userspace mitigation) (which has been backported to stable).
+Thanks,
+Nick
 
-Andreas.
+Nicholas Piggin (4):
+  mm: move tlb_table_flush to tlb_flush_mmu_free
+  mm: mmu_notifier fix for tlb_end_vma
+  mm: allow arch to have tlb_flush caled on an empty TLB range
+  powerpc/64s/radix: optimise TLB flush with precise TLB ranges in
+    mmu_gather
+
+ arch/powerpc/include/asm/tlb.h | 34 +++++++++++++++++++++++++++++++++
+ arch/powerpc/mm/tlb-radix.c    | 10 ++++++++++
+ include/asm-generic/tlb.h      | 35 ++++++++++++++++++++++++++++++----
+ mm/memory.c                    | 14 ++------------
+ 4 files changed, 77 insertions(+), 16 deletions(-)
 
 -- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+2.17.0
