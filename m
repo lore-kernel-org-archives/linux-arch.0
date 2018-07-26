@@ -1,49 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:56583 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729074AbeGZMZK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jul 2018 08:25:10 -0400
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: [PATCH 2/2] ARC: add SMP_CACHE_BYTES value validate
-Date: Thu, 26 Jul 2018 14:08:39 +0300
-Message-ID: <20180726110839.1915-2-Eugeniy.Paltsev@synopsys.com>
-In-Reply-To: <20180726110839.1915-1-Eugeniy.Paltsev@synopsys.com>
-References: <20180726110839.1915-1-Eugeniy.Paltsev@synopsys.com>
+Received: from ozlabs.org ([203.11.71.1]:45353 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729882AbeGZNCr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Jul 2018 09:02:47 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture primitives
+In-Reply-To: <75195a7d-3d0f-4e55-92cc-4ad772683c75@oracle.com>
+References: <20180705110716.3919-1-alex@ghiti.fr> <20180709141621.GD22297@dhcp22.suse.cz> <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr> <75195a7d-3d0f-4e55-92cc-4ad772683c75@oracle.com>
+Date: Thu, 26 Jul 2018 21:46:00 +1000
+Message-ID: <87tvomgqyv.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Message-ID: <20180726110839.ftEzOZ7aUDC1jmQTEOny6uMnJMh18IEufIxCml3s2Ms@z>
+To: Mike Kravetz <mike.kravetz@oracle.com>, Alex Ghiti <alex@ghiti.fr>, Michal Hocko <mhocko@kernel.org>
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>
+Message-ID: <20180726114600.gLL-Lz0YCc1wn609kBPtHJUS3_M_HeCKkP8DHPmz0PY@z>
 
-Check that SMP_CACHE_BYTES (and hence ARCH_DMA_MINALIGN) is larger
-or equal to any cache line length by comparing it with values
-previously read from ARC cache BCR registers.
+Mike Kravetz <mike.kravetz@oracle.com> writes:
 
-Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
----
- arch/arc/mm/cache.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+> On 07/20/2018 11:37 AM, Alex Ghiti wrote:
+>> Does anyone have any suggestion about those patches ?
+>
+> I only took a quick look.  From the hugetlb perspective, I like the
+> idea of moving routines to a common file.  If any of the arch owners
+> (or anyone else) agree, I can do a review of the series.
 
-diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
-index 9dbe645ee127..b95365e1253a 100644
---- a/arch/arc/mm/cache.c
-+++ b/arch/arc/mm/cache.c
-@@ -1246,6 +1246,16 @@ void __init arc_cache_init_master(void)
- 		}
- 	}
- 
-+	/*
-+	 * Check that SMP_CACHE_BYTES (and hence ARCH_DMA_MINALIGN) is larger
-+	 * or equal to any cache line length.
-+	 */
-+	BUILD_BUG_ON_MSG(L1_CACHE_BYTES > SMP_CACHE_BYTES,
-+			 "SMP_CACHE_BYTES must be >= any cache line length");
-+	if (is_isa_arcv2() && (l2_line_sz > SMP_CACHE_BYTES))
-+		panic("L2 Cache line [%d] > kernel Config [%d]\n",
-+		      l2_line_sz, SMP_CACHE_BYTES);
-+
- 	/* Note that SLC disable not formally supported till HS 3.0 */
- 	if (is_isa_arcv2() && l2_line_sz && !slc_enable)
- 		arc_slc_disable();
--- 
-2.14.4
+The conversions look pretty good to me. If you want to give it a review
+then from my point of view it could go in -mm to shake out any bugs.
+
+cheers
