@@ -1,52 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:58490 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730095AbeGZOcl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jul 2018 10:32:41 -0400
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: [PATCH v2 2/2] ARC: add SMP_CACHE_BYTES value validate
-Date: Thu, 26 Jul 2018 16:15:44 +0300
-Message-ID: <20180726131544.3780-2-Eugeniy.Paltsev@synopsys.com>
-In-Reply-To: <20180726131544.3780-1-Eugeniy.Paltsev@synopsys.com>
-References: <20180726131544.3780-1-Eugeniy.Paltsev@synopsys.com>
+Received: from pegase1.c-s.fr ([93.17.236.30]:5196 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729801AbeGZQbS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Jul 2018 12:31:18 -0400
+Date: Thu, 26 Jul 2018 17:13:55 +0200
+Message-ID: <20180726171355.Horde.KlFUG9wXmbRDCiyhk5bHsw8@messagerie.si.c-s.fr>
+From: LEROY Christophe <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v4 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+References: <20180705110716.3919-1-alex@ghiti.fr>
+ <20180709141621.GD22297@dhcp22.suse.cz>
+ <2173685f-7f85-7acb-4685-2383210c5fa2@ghiti.fr>
+ <87d0vehx16.fsf@concordia.ellerman.id.au>
+ <67aba0f0-c0d4-b06f-5fbc-f4d113ce5033@ghiti.fr>
+In-Reply-To: <67aba0f0-c0d4-b06f-5fbc-f4d113ce5033@ghiti.fr>
+Content-Type: text/plain; charset=UTF-8; format=flowed; DelSp=Yes
+MIME-Version: 1.0
+Content-Disposition: inline
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Message-ID: <20180726131544.7KyiK5wLII3mP0BjqRnGa36EmXhXWre1gPnAxTmhjLg@z>
+To: Alex Ghiti <alex@ghiti.fr>
+Cc: Mike Kravetz <mike.kravetz@oracle.com>, davem@davemloft.net, linuxppc-dev@lists.ozlabs.org, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, paul.burton@mips.com, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, tglx@linutronix.de, arnd@arndb.de, fenghua.yu@intel.com, jhogan@kernel.org, catalin.marinas@arm.com, mingo@redhat.com, linux@armlinux.org.uk, x86@kernel.org, deller@gmx.de, ysato@users.sourceforge.jp, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, hpa@zytor.com, paulus@samba.org, jejb@parisc-linux.org, will.deacon@arm.com, linux-sh@vger.kernel.org, linux-ia64@vger.kernel.org, dalias@libc.org, linux-mips@linux-mips.org, Michal Hocko <mhocko@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20180726151355.goDmtANcW41_KTJ7jrW3Sl7EmnMN5DWPneyLInsfA_Y@z>
 
-Check that SMP_CACHE_BYTES (and hence ARCH_DMA_MINALIGN) is larger
-or equal to any cache line length by comparing it with values
-previously read from ARC cache BCR registers.
+Alex Ghiti <alex@ghiti.fr> a écrit :
 
-Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
----
-Changes v1->v2:
- * None.
+> Hi everyone,
+>
+> This is the result of the build for all arches tackled in this  
+> series rebased on 4.18-rc6:
+>
+> arm:
+>         versatile_defconfig: without huge page OK
+>         keystone_defconfig: with huge page OK
+> arm64:
+>         defconfig: with huge page OK
+> ia64:
+>         generic_defconfig: with huge page OK
+> mips:
+>         Paul Burton tested cavium octeon with huge page OK
+> parisc:
+>         generic-64bit_defconfig: with huge page does not link
+>         generic-64bit_defconfig: without huge page does not link
+>         BUT not because of this series, any feedback welcome.
+> powerpc:
+>         ppc64_defconfig: without huge page OK
+>         ppc64_defconfig: with huge page OK
 
- arch/arc/mm/cache.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+Can you also test ppc32 both with and without hugepage (mpc885_ads_defconfig)
 
-diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
-index 9dbe645ee127..b95365e1253a 100644
---- a/arch/arc/mm/cache.c
-+++ b/arch/arc/mm/cache.c
-@@ -1246,6 +1246,16 @@ void __init arc_cache_init_master(void)
- 		}
- 	}
- 
-+	/*
-+	 * Check that SMP_CACHE_BYTES (and hence ARCH_DMA_MINALIGN) is larger
-+	 * or equal to any cache line length.
-+	 */
-+	BUILD_BUG_ON_MSG(L1_CACHE_BYTES > SMP_CACHE_BYTES,
-+			 "SMP_CACHE_BYTES must be >= any cache line length");
-+	if (is_isa_arcv2() && (l2_line_sz > SMP_CACHE_BYTES))
-+		panic("L2 Cache line [%d] > kernel Config [%d]\n",
-+		      l2_line_sz, SMP_CACHE_BYTES);
-+
- 	/* Note that SLC disable not formally supported till HS 3.0 */
- 	if (is_isa_arcv2() && l2_line_sz && !slc_enable)
- 		arc_slc_disable();
--- 
-2.14.4
+Thanks
+Christophe
+
+> sh:
+>         dreamcast_defconfig: with huge page OK
+> sparc:
+>         sparc32_defconfig: without huge page OK
+> sparc64:
+>         sparc64_defconfig: with huge page OK
+> x86:
+>         with huge page OK
+>
+> Alex
+>
+> On 07/23/2018 02:00 PM, Michael Ellerman wrote:
+>> Alex Ghiti <alex@ghiti.fr> writes:
+>>
+>>> Does anyone have any suggestion about those patches ?
+>> Cross compiling it for some non-x86 arches would be a good start :)
+>>
+>> There are cross compilers available here:
+>>
+>>   https://mirrors.edge.kernel.org/pub/tools/crosstool/
+>>
+>>
+>> cheers
+>>
+>>> On 07/09/2018 02:16 PM, Michal Hocko wrote:
+>>>> [CC hugetlb guys -  
+>>>> http://lkml.kernel.org/r/20180705110716.3919-1-alex@ghiti.fr]
+>>>>
+>>>> On Thu 05-07-18 11:07:05, Alexandre Ghiti wrote:
+>>>>> In order to reduce copy/paste of functions across architectures and then
+>>>>> make riscv hugetlb port (and future ports) simpler and smaller, this
+>>>>> patchset intends to factorize the numerous hugetlb primitives that are
+>>>>> defined across all the architectures.
+>>>>>
+>>>>> Except for prepare_hugepage_range, this patchset moves the versions that
+>>>>> are just pass-through to standard pte primitives into
+>>>>> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+>>>>> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
+>>>>>
+>>>>> s390 architecture has not been tackled in this serie since it does not
+>>>>> use asm-generic/hugetlb.h at all.
+>>>>> powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
+>>>>>
+>>>>> This patchset has been compiled on x86 only.
+>>>>>
+>>>>> Changelog:
+>>>>>
+>>>>> v4:
+>>>>>    Fix powerpc build error due to misplacing of #include
+>>>>>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
+>>>>>    pointed by Christophe Leroy.
+>>>>>
+>>>>> v1, v2, v3:
+>>>>>    Same version, just problems with email provider and misuse of
+>>>>>    --batch-size option of git send-email
+>>>>>
+>>>>> Alexandre Ghiti (11):
+>>>>>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+>>>>>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
+>>>>>    hugetlb: Introduce generic version of set_huge_pte_at
+>>>>>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
+>>>>>    hugetlb: Introduce generic version of huge_ptep_clear_flush
+>>>>>    hugetlb: Introduce generic version of huge_pte_none
+>>>>>    hugetlb: Introduce generic version of huge_pte_wrprotect
+>>>>>    hugetlb: Introduce generic version of prepare_hugepage_range
+>>>>>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+>>>>>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
+>>>>>    hugetlb: Introduce generic version of huge_ptep_get
+>>>>>
+>>>>>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+>>>>>   arch/arm/include/asm/hugetlb.h               | 33 +----------
+>>>>>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+>>>>>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+>>>>>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
+>>>>>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+>>>>>   arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
+>>>>>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+>>>>>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+>>>>>   arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
+>>>>>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+>>>>>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+>>>>>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+>>>>>   arch/x86/include/asm/hugetlb.h               | 72  
+>>>>> +----------------------
+>>>>>   include/asm-generic/hugetlb.h                | 88  
+>>>>> +++++++++++++++++++++++++++-
+>>>>>   15 files changed, 143 insertions(+), 384 deletions(-)
+>>>>>
+>>>>> -- 
+>>>>> 2.16.2
