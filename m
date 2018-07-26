@@ -1,56 +1,71 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 2/2] ARC: add SMP_CACHE_BYTES value validate
-Date: Thu, 26 Jul 2018 17:30:40 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B08404E@us01wembx1.internal.synopsys.com>
-References: <20180726131544.3780-1-Eugeniy.Paltsev@synopsys.com>
- <20180726131544.3780-2-Eugeniy.Paltsev@synopsys.com>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Subject: Re: [PATCH v4 01/11] hugetlb: Harmonize hugetlb.h arch specific
+ defines with pgtable.h
+Date: Thu, 26 Jul 2018 11:40:49 -0700
+Message-ID: <1f95fdc7-378b-9c2a-15ae-da78578a27bf@oracle.com>
+References: <20180705110716.3919-1-alex@ghiti.fr>
+ <20180705110716.3919-2-alex@ghiti.fr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20180705110716.3919-2-alex@ghiti.fr>
 Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Alexandre Ghiti <alex@ghiti.fr>, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 07/26/2018 06:15 AM, Eugeniy Paltsev wrote:=0A=
-> Check that SMP_CACHE_BYTES (and hence ARCH_DMA_MINALIGN) is larger=0A=
-> or equal to any cache line length by comparing it with values=0A=
-> previously read from ARC cache BCR registers.=0A=
->=0A=
-> Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>=0A=
-> ---=0A=
-> Changes v1->v2:=0A=
->  * None.=0A=
->=0A=
->  arch/arc/mm/cache.c | 10 ++++++++++=0A=
->  1 file changed, 10 insertions(+)=0A=
->=0A=
-> diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c=0A=
-> index 9dbe645ee127..b95365e1253a 100644=0A=
-> --- a/arch/arc/mm/cache.c=0A=
-> +++ b/arch/arc/mm/cache.c=0A=
-> @@ -1246,6 +1246,16 @@ void __init arc_cache_init_master(void)=0A=
->  		}=0A=
->  	}=0A=
->  =0A=
-> +	/*=0A=
-> +	 * Check that SMP_CACHE_BYTES (and hence ARCH_DMA_MINALIGN) is larger=
-=0A=
-> +	 * or equal to any cache line length.=0A=
-> +	 */=0A=
-> +	BUILD_BUG_ON_MSG(L1_CACHE_BYTES > SMP_CACHE_BYTES,=0A=
-> +			 "SMP_CACHE_BYTES must be >=3D any cache line length");=0A=
-> +	if (is_isa_arcv2() && (l2_line_sz > SMP_CACHE_BYTES))=0A=
-> +		panic("L2 Cache line [%d] > kernel Config [%d]\n",=0A=
-> +		      l2_line_sz, SMP_CACHE_BYTES);=0A=
-> +=0A=
->  	/* Note that SLC disable not formally supported till HS 3.0 */=0A=
->  	if (is_isa_arcv2() && l2_line_sz && !slc_enable)=0A=
->  		arc_slc_disable();=0A=
-=0A=
-LGTM. Both applied.=0A=
-=0A=
-Thx,=0A=
--Vineet=0A=
+On 07/05/2018 04:07 AM, Alexandre Ghiti wrote:
+> asm-generic/hugetlb.h proposes generic implementations of hugetlb
+> related functions: use __HAVE_ARCH_HUGE* defines in order to make arch
+> specific implementations of hugetlb functions consistent with pgtable.h
+> scheme.
+> 
+
+Reviewed-by: Mike Kravetz <mike.kravetz@oracle.com>
+-- 
+Mike Kravetz
+
+> Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
+> ---
+>  arch/arm64/include/asm/hugetlb.h | 2 +-
+>  include/asm-generic/hugetlb.h    | 2 +-
+>  2 files changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/hugetlb.h b/arch/arm64/include/asm/hugetlb.h
+> index e73f68569624..3fcf14663dfa 100644
+> --- a/arch/arm64/include/asm/hugetlb.h
+> +++ b/arch/arm64/include/asm/hugetlb.h
+> @@ -81,9 +81,9 @@ extern void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>  				    unsigned long addr, pte_t *ptep);
+>  extern void huge_ptep_clear_flush(struct vm_area_struct *vma,
+>  				  unsigned long addr, pte_t *ptep);
+> +#define __HAVE_ARCH_HUGE_PTE_CLEAR
+>  extern void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+>  			   pte_t *ptep, unsigned long sz);
+> -#define huge_pte_clear huge_pte_clear
+>  extern void set_huge_swap_pte_at(struct mm_struct *mm, unsigned long addr,
+>  				 pte_t *ptep, pte_t pte, unsigned long sz);
+>  #define set_huge_swap_pte_at set_huge_swap_pte_at
+> diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
+> index 9d0cde8ab716..3da7cff52360 100644
+> --- a/include/asm-generic/hugetlb.h
+> +++ b/include/asm-generic/hugetlb.h
+> @@ -32,7 +32,7 @@ static inline pte_t huge_pte_modify(pte_t pte, pgprot_t newprot)
+>  	return pte_modify(pte, newprot);
+>  }
+>  
+> -#ifndef huge_pte_clear
+> +#ifndef __HAVE_ARCH_HUGE_PTE_CLEAR
+>  static inline void huge_pte_clear(struct mm_struct *mm, unsigned long addr,
+>  		    pte_t *ptep, unsigned long sz)
+>  {
+> 
