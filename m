@@ -1,349 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout02.posteo.de ([185.67.36.142]:35681 "EHLO mout02.posteo.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732097AbeG0QIv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Jul 2018 12:08:51 -0400
-Received: from submission (posteo.de [89.146.220.130])
-        by mout02.posteo.de (Postfix) with ESMTPS id DEF59210EC
-        for <linux-arch@vger.kernel.org>; Fri, 27 Jul 2018 16:39:21 +0200 (CEST)
-Subject: Re: [PATCH v2 2/2] tty/serial: atmel: add ISO7816 support
-References: <20180719084737.1490-1-ludovic.desroches@microchip.com>
- <20180719084737.1490-3-ludovic.desroches@microchip.com>
-From: Richard Genoud <richard.genoud@gmail.com>
-Message-ID: <1353b166-c1d0-6be6-a873-a54d210869fd@sorico.fr>
-Date: Fri, 27 Jul 2018 16:39:17 +0200
+Received: from mx3-rdu2.redhat.com ([66.187.233.73]:32798 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1731480AbeG2BKl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 28 Jul 2018 21:10:41 -0400
+Subject: Re: [PATCH v2 16/17] driver/edac: enable Hygon support to AMD64 EDAC
+ driver
+References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+ <1532352037-7151-17-git-send-email-puwen@hygon.cn>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <b24739e8-0833-8509-0850-815758accaee@redhat.com>
+Date: Sun, 29 Jul 2018 01:42:17 +0200
 MIME-Version: 1.0
-In-Reply-To: <20180719084737.1490-3-ludovic.desroches@microchip.com>
+In-Reply-To: <1532352037-7151-17-git-send-email-puwen@hygon.cn>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ludovic Desroches <ludovic.desroches@microchip.com>, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: gregkh@linuxfoundation.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org
-Message-ID: <20180727143917.A70aQJy6NSYrc2fSs2ZszZxTwNApY7cTsiwUqFC8OJ8@z>
+To: Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, JBeulich@suse.com, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180728234217.7gvPpkQNBxxQQeUzsAs0n1cPr0bHZbUYpiM7mFDH5Q4@z>
 
-Hi Ludovic,
+On 23/07/2018 15:20, Pu Wen wrote:
+> @@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
+>  
+>  	scrubval = scrubrates[i].scrubval;
+>  
+> -	if (pvt->fam == 0x17) {
+> +	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
+>  		__f17h_set_scrubval(pvt, scrubval);
+>  	} else if (pvt->fam == 0x15 && pvt->model == 0x60) {
+>  		f15h_select_dct(pvt, 0);
 
-On 19/07/2018 10:47, Ludovic Desroches wrote:
-> From: Nicolas Ferre <nicolas.ferre@microchip.com>
-> 
-> When mode is set in atmel_config_iso7816() we backup last RS232 mode
-> for coming back to this mode if requested.
-> Also allow setup of T=0 and T=1 parameter and basic support in set_termios
-> function as well.
-> Report NACK and ITER errors in irq handler.
-> 
-> Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
-> ---
->  drivers/tty/serial/atmel_serial.c | 170 +++++++++++++++++++++++++++++++++++---
->  drivers/tty/serial/atmel_serial.h |   3 +-
->  2 files changed, 162 insertions(+), 11 deletions(-)
-> 
-> diff --git a/drivers/tty/serial/atmel_serial.c b/drivers/tty/serial/atmel_serial.c
-> index 8e4428725848..cec958f1e7d4 100644
-> --- a/drivers/tty/serial/atmel_serial.c
-> +++ b/drivers/tty/serial/atmel_serial.c
-> @@ -34,6 +34,7 @@
->  #include <linux/suspend.h>
->  #include <linux/mm.h>
->  
-> +#include <asm/div64.h>
->  #include <asm/io.h>
->  #include <asm/ioctls.h>
->  
-> @@ -147,6 +148,8 @@ struct atmel_uart_port {
->  	struct circ_buf		rx_ring;
->  
->  	struct mctrl_gpios	*gpios;
-> +	u32			backup_mode;	/* MR saved during iso7816 operations */
-> +	u32			backup_brgr;	/* BRGR saved during iso7816 operations */
->  	unsigned int		tx_done_mask;
->  	u32			fifo_size;
->  	u32			rts_high;
-> @@ -362,6 +365,132 @@ static int atmel_config_rs485(struct uart_port *port,
->  	return 0;
->  }
->  
-> +static unsigned int atmel_calc_cd(struct uart_port *port,
-> +				  struct serial_iso7816 *iso7816conf)
-> +{
-> +	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
-> +	unsigned int cd;
-> +	u64 mck_rate;
-> +
-> +	mck_rate = (u64)clk_get_rate(atmel_port->clk);
-> +	do_div(mck_rate, iso7816conf->clk);
-> +	cd = mck_rate;
-> +	return cd;
-> +}
-> +
-> +static unsigned int atmel_calc_fidi(struct uart_port *port,
-> +				    struct serial_iso7816 *iso7816conf)
-> +{
-> +	u64 fidi = 0;
-> +
-> +	if (iso7816conf->sc_fi && iso7816conf->sc_di) {
-> +		fidi = (u64)iso7816conf->sc_fi;
-> +		do_div(fidi, iso7816conf->sc_di);
-> +	}
-> +	return (u32)fidi;
-> +}
-> +
-> +/* Enable or disable the iso7816 support */
-> +/* Called with interrupts disabled */
-> +static int atmel_config_iso7816(struct uart_port *port,
-> +				struct serial_iso7816 *iso7816conf)
-> +{
-> +	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
-> +	unsigned int mode, t;
-> +	unsigned int cd, fidi;
-> +	int ret = 0;
-> +
-> +	/* Disable RX and TX */
-> +	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_RXDIS | ATMEL_US_TXDIS);
-> +	/* Disable interrupts */
-> +	atmel_uart_writel(port, ATMEL_US_IDR, atmel_port->tx_done_mask);
-> +
-> +	mode = atmel_uart_readl(port, ATMEL_US_MR);
-> +
-> +	if (iso7816conf->flags & SER_ISO7816_ENABLED) {
-> +		mode &= ~ATMEL_US_USMODE;
-> +
-> +		if ((iso7816conf->flags & SER_ISO7816_T_PARAM)
-> +					== SER_ISO7816_T(0)) {
-> +			mode |= ATMEL_US_USMODE_ISO7816_T0;
-> +			t = 0;
-> +		} else if ((iso7816conf->flags & SER_ISO7816_T_PARAM)
-> +					== SER_ISO7816_T(1)) {
-> +			mode |= ATMEL_US_USMODE_ISO7816_T1;
-> +			t = 1;
-> +		} else {
-> +			dev_warn(port->dev, "ISO7816 Type not supported. Resetting\n");
-> +			memset(iso7816conf, 0, sizeof(struct serial_iso7816));
-> +			goto err_out;
-> +		}
-> +
-> +		dev_dbg(port->dev, "Setting USART to ISO7816 mode T%d\n", t);
-> +
-> +		mode &= ~(ATMEL_US_USCLKS | ATMEL_US_CHRL
-> +			| ATMEL_US_NBSTOP | ATMEL_US_PAR);
-This could be merged in the mode &= line above.
+This, and many other occurrences in this file, should in my opinion
+avoid testing family 18h without also checking for Hygon as a vendor.
+You probably need to add a vendor field to struct amd64_pvt and
+initialize it in per_family_init.
 
-> +
-> +		/* NACK configuration */
-> +		if ((iso7816conf->flags & SER_ISO7816_T_PARAM)
-> +					== SER_ISO7816_T(0))
-> +			mode |= ATMEL_US_DSNACK;
-> +		else
-> +			mode |= ATMEL_US_INACK;
-This could be also part of the if () above.
-
-> +		/* select mck clock, and output  */
-> +		mode |= ATMEL_US_USCLKS_MCK | ATMEL_US_CLKO;
-> +		/* set parity for normal/inverse mode + max iterations */
-> +		mode |= ATMEL_US_PAR_EVEN | ATMEL_US_NBSTOP_1 | (3 << 24);
-Is this really needed ?
-In the documentation, I found:
-"The configuration is 8 data bits, even parity and 1 or 2 stop bits,
-regardless of the values programmed in the CHRL, MODE9, PAR and CHMODE
-fields."
-And, for MAX_ITERATIONS, could you add a macro instead of (x << 24) ?
-(ATMEL_US_MAX_ITER mask is already defined).
-And why 3 ? Should the user-space be allowed to control the max
-automatic iteration ? or is it more like a "same-value-for-every-one"
-thing ?
-
-> +
-> +		cd = atmel_calc_cd(port, iso7816conf);
-> +		fidi = atmel_calc_fidi(port, iso7816conf);
-> +		if (fidi < 0) {
-I guess you meant (fidi == 0)
-Because fidi is unsigned and atmel_calc_fidi() returns also an unsigned.
-
-> +			dev_warn(port->dev, "ISO7816 fidi = 0, Generator generates no signal\n");
-> +		} else if (fidi == 1 || fidi == 2) {
-> +			dev_err(port->dev, "ISO7816 fidi = %u, value not supported\n", fidi);
-> +			ret = -EINVAL;
-> +			goto err_out;
-> +		}
-And you may also want to check upper values ( <2048 or <65536, depending
-on the SoC)
-
-> +
-> +		if (!(port->iso7816.flags & SER_ISO7816_ENABLED)) {
-> +			/* port not yet in iso7816 mode: store configuration */
-> +			atmel_port->backup_mode = atmel_uart_readl(port, ATMEL_US_MR);
-> +			atmel_port->backup_brgr = atmel_uart_readl(port, ATMEL_US_BRGR);
-> +		}
-> +
-> +		/* Actually set ISO7816 mode */
-> +		atmel_uart_writel(port, ATMEL_US_TTGR, iso7816conf->tg);
-iso7816conf->tg comes from user-space unchecked. AFAIK, max value is 255
-
-> +		atmel_uart_writel(port, ATMEL_US_BRGR, cd);
-> +		atmel_uart_writel(port, ATMEL_US_FIDIR, fidi);
-> +
-> +		atmel_port->tx_done_mask = ATMEL_US_TXEMPTY | ATMEL_US_NACK | ATMEL_US_ITERATION;
-> +	} else {
-> +		dev_dbg(port->dev, "Setting UART to RS232\n");
-> +		/* back to last RS232 settings */
-> +		mode = atmel_port->backup_mode;
-> +		memset(iso7816conf, 0, sizeof(struct serial_iso7816));
-> +		atmel_uart_writel(port, ATMEL_US_TTGR, 0);
-> +		atmel_uart_writel(port, ATMEL_US_BRGR, atmel_port->backup_brgr);
-> +		atmel_uart_writel(port, ATMEL_US_FIDIR, 0x174);
-> +
-> +		if (atmel_use_pdc_tx(port))
-> +			atmel_port->tx_done_mask = ATMEL_US_ENDTX |
-> +						   ATMEL_US_TXBUFE;
-> +		else
-> +			atmel_port->tx_done_mask = ATMEL_US_TXRDY;
-> +	}
-> +
-> +	port->iso7816 = *iso7816conf;
-> +
-> +	atmel_uart_writel(port, ATMEL_US_MR, mode);
-> +
-> +err_out:
-> +	/* Enable interrupts */
-> +	atmel_uart_writel(port, ATMEL_US_IER, atmel_port->tx_done_mask);
-> +	/* Enable RX and TX */
-> +	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_RXEN | ATMEL_US_TXEN);
-Is it all right to enable RX/TX unconditionally here ?
-
-> +
-> +	return ret;
-> +}
-> +
->  /*
->   * Return TIOCSER_TEMT when transmitter FIFO and Shift register is empty.
->   */
-> @@ -481,8 +610,9 @@ static void atmel_stop_tx(struct uart_port *port)
->  	/* Disable interrupts */
->  	atmel_uart_writel(port, ATMEL_US_IDR, atmel_port->tx_done_mask);
->  
-> -	if ((port->rs485.flags & SER_RS485_ENABLED) &&
-> -	    !(port->rs485.flags & SER_RS485_RX_DURING_TX))
-> +	if (((port->rs485.flags & SER_RS485_ENABLED) &&
-> +	     !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
-> +	    port->iso7816.flags & SER_ISO7816_ENABLED)
->  		atmel_start_rx(port);
->  }
->  
-> @@ -500,8 +630,9 @@ static void atmel_start_tx(struct uart_port *port)
->  		return;
->  
->  	if (atmel_use_pdc_tx(port) || atmel_use_dma_tx(port))
-> -		if ((port->rs485.flags & SER_RS485_ENABLED) &&
-> -		    !(port->rs485.flags & SER_RS485_RX_DURING_TX))
-> +		if (((port->rs485.flags & SER_RS485_ENABLED) &&
-> +		     !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
-> +		    port->iso7816.flags & SER_ISO7816_ENABLED)
->  			atmel_stop_rx(port);
->  
->  	if (atmel_use_pdc_tx(port))
-> @@ -799,8 +930,9 @@ static void atmel_complete_tx_dma(void *arg)
->  	 */
->  	if (!uart_circ_empty(xmit))
->  		atmel_tasklet_schedule(atmel_port, &atmel_port->tasklet_tx);
-> -	else if ((port->rs485.flags & SER_RS485_ENABLED) &&
-> -		 !(port->rs485.flags & SER_RS485_RX_DURING_TX)) {
-> +	else if (((port->rs485.flags & SER_RS485_ENABLED) &&
-> +		  !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
-> +		 port->iso7816.flags & SER_ISO7816_ENABLED) {
->  		/* DMA done, stop TX, start RX for RS485 */
->  		atmel_start_rx(port);
->  	}
-> @@ -1281,6 +1413,9 @@ atmel_handle_status(struct uart_port *port, unsigned int pending,
->  			wake_up_interruptible(&port->state->port.delta_msr_wait);
->  		}
->  	}
-> +
-> +	if (pending & (ATMEL_US_NACK | ATMEL_US_ITERATION))
-> +		dev_dbg(port->dev, "ISO7816 ERROR (0x%08x)\n", pending);
->  }
->  
->  /*
-> @@ -1373,8 +1508,9 @@ static void atmel_tx_pdc(struct uart_port *port)
->  		atmel_uart_writel(port, ATMEL_US_IER,
->  				  atmel_port->tx_done_mask);
->  	} else {
-> -		if ((port->rs485.flags & SER_RS485_ENABLED) &&
-> -		    !(port->rs485.flags & SER_RS485_RX_DURING_TX)) {
-> +		if (((port->rs485.flags & SER_RS485_ENABLED) &&
-> +		     !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
-> +		    port->iso7816.flags & SER_ISO7816_ENABLED) {
->  			/* DMA done, stop TX, start RX for RS485 */
->  			atmel_start_rx(port);
->  		}
-> @@ -2099,6 +2235,17 @@ static void atmel_set_termios(struct uart_port *port, struct ktermios *termios,
->  		atmel_uart_writel(port, ATMEL_US_TTGR,
->  				  port->rs485.delay_rts_after_send);
->  		mode |= ATMEL_US_USMODE_RS485;
-> +	} else if (port->iso7816.flags & SER_ISO7816_ENABLED) {
-> +		atmel_uart_writel(port, ATMEL_US_TTGR, port->iso7816.tg);
-> +		/* select mck clock, and output  */
-> +		mode |= ATMEL_US_USCLKS_MCK | ATMEL_US_CLKO;
-> +		/* set max iterations */
-> +		mode |= (3 << 24);
-Same remark for macro / hardcoded value.
-
-> +		if ((port->iso7816.flags & SER_ISO7816_T_PARAM)
-> +				== SER_ISO7816_T(0))
-> +			mode |= ATMEL_US_USMODE_ISO7816_T0;
-> +		else
-> +			mode |= ATMEL_US_USMODE_ISO7816_T1;
->  	} else if (termios->c_cflag & CRTSCTS) {
->  		/* RS232 with hardware handshake (RTS/CTS) */
->  		if (atmel_use_fifo(port) &&
-> @@ -2175,7 +2322,8 @@ static void atmel_set_termios(struct uart_port *port, struct ktermios *termios,
->  	}
->  	quot = cd | fp << ATMEL_US_FP_OFFSET;
->  
-> -	atmel_uart_writel(port, ATMEL_US_BRGR, quot);
-> +	if (!(port->iso7816.flags & SER_ISO7816_ENABLED))
-> +		atmel_uart_writel(port, ATMEL_US_BRGR, quot);
->  	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_RSTSTA | ATMEL_US_RSTRX);
->  	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_TXEN | ATMEL_US_RXEN);
->  	atmel_port->tx_stopped = false;
-> @@ -2355,6 +2503,7 @@ static int atmel_init_port(struct atmel_uart_port *atmel_port,
->  	port->mapbase	= pdev->resource[0].start;
->  	port->irq	= pdev->resource[1].start;
->  	port->rs485_config	= atmel_config_rs485;
-> +	port->iso7816_config	= atmel_config_iso7816;
->  	port->membase	= NULL;
->  
->  	memset(&atmel_port->rx_ring, 0, sizeof(atmel_port->rx_ring));
-> @@ -2379,7 +2528,8 @@ static int atmel_init_port(struct atmel_uart_port *atmel_port,
->  	}
->  
->  	/* Use TXEMPTY for interrupt when rs485 else TXRDY or ENDTX|TXBUFE */
-> -	if (port->rs485.flags & SER_RS485_ENABLED)
-> +	if (port->rs485.flags & SER_RS485_ENABLED ||
-> +	    port->iso7816.flags & SER_ISO7816_ENABLED)
-please update the comment above.
-
->  		atmel_port->tx_done_mask = ATMEL_US_TXEMPTY;
->  	else if (atmel_use_pdc_tx(port)) {
->  		port->fifosize = PDC_BUFFER_SIZE;
-> diff --git a/drivers/tty/serial/atmel_serial.h b/drivers/tty/serial/atmel_serial.h
-> index ba3a2437cde4..fff51f5fe8bc 100644
-> --- a/drivers/tty/serial/atmel_serial.h
-> +++ b/drivers/tty/serial/atmel_serial.h
-> @@ -124,7 +124,8 @@
->  #define ATMEL_US_TTGR		0x28	/* Transmitter Timeguard Register */
->  #define	ATMEL_US_TG		GENMASK(7, 0)	/* Timeguard Value */
->  
-> -#define ATMEL_US_FIDI		0x40	/* FI DI Ratio Register */
-> +#define ATMEL_US_FIDIR		0x40	/* FI DI Ratio Register */
-> +#define ATMEL_US_FIDI		GENMASK(15, 0)	/* FIDI ratio */
->  #define ATMEL_US_NER		0x44	/* Number of Errors Register */
->  #define ATMEL_US_IF		0x4c	/* IrDA Filter Register */
->  
-> 
-
-Thanks !
-
-Richard.
+Paolo
