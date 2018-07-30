@@ -1,7 +1,7 @@
 From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: [PATCH v2 1/4] ARC: DTS: mark DMA devices connected through IOC port as dma-coherent
-Date: Mon, 30 Jul 2018 19:26:33 +0300
-Message-ID: <20180730162636.3556-2-Eugeniy.Paltsev@synopsys.com>
+Subject: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices simultaneously
+Date: Mon, 30 Jul 2018 19:26:34 +0300
+Message-ID: <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
 References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
@@ -10,127 +10,160 @@ To: linux-snps-arc@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-Mark DMA devices on AXS103 and HSDK boards connected through IOC
-port as dma-coherent.
+The ARC HS processor provides an IOC port (I/O coherency bus
+interface) that allows external devices such as DMA devices
+to access memory through the cache hierarchy, providing
+coherency between I/O transactions and the complete memory
+hierarchy.
 
+Some recent SoC with ARC HS (like HSDK) allow to select bus
+port (IOC or non-IOC port) for connecting DMA devices in runtime.
+
+With this patch we can use both HW-coherent and regular DMA
+peripherals simultaneously.
+
+For example we can connect USB and SDIO controllers through IOC port
+(so we don't need to need to maintain cache coherency for these
+devices manualy. All cache sync ops will be nop)
+And we can connect Ethernet directly to RAM port (so we had to
+maintain cache coherency manualy. Cache sync ops will be real
+flush/invalidate operations)
+
+Cache ops are set per-device and depends on "dma-coherent" device
+tree property:
+"dma_noncoherent_ops" are used if no "dma-coherent" property is
+present (or IOC is disabled)
+"dma_direct_ops" are used if "dma-coherent" property is present.
+
+Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
 ---
-Changes v1->v2:
- * None.
+Changes v1->v2 (Thanks to Christoph):
+ * Don't select DMA_DIRECT_OPS explicitly as it is already selected by
+   DMA_NONCOHERENT_OPS
 
- arch/arc/boot/dts/axc003.dtsi     | 26 ++++++++++++++++++++++++++
- arch/arc/boot/dts/axc003_idu.dtsi | 26 ++++++++++++++++++++++++++
- arch/arc/boot/dts/hsdk.dts        |  4 ++++
- 3 files changed, 56 insertions(+)
+ arch/arc/include/asm/dma-mapping.h | 13 +++++++++++++
+ arch/arc/mm/cache.c                | 17 ++---------------
+ arch/arc/mm/dma.c                  | 34 +++++++++++++++++++---------------
+ 3 files changed, 34 insertions(+), 30 deletions(-)
+ create mode 100644 arch/arc/include/asm/dma-mapping.h
 
-diff --git a/arch/arc/boot/dts/axc003.dtsi b/arch/arc/boot/dts/axc003.dtsi
-index dc91c663bcc0..d75d65ddf8e3 100644
---- a/arch/arc/boot/dts/axc003.dtsi
-+++ b/arch/arc/boot/dts/axc003.dtsi
-@@ -93,6 +93,32 @@
- 		};
- 	};
+diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/dma-mapping.h
+new file mode 100644
+index 000000000000..c946c0a83e76
+--- /dev/null
++++ b/arch/arc/include/asm/dma-mapping.h
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier:  GPL-2.0
++// (C) 2018 Synopsys, Inc. (www.synopsys.com)
++
++#ifndef ASM_ARC_DMA_MAPPING_H
++#define ASM_ARC_DMA_MAPPING_H
++
++#include <asm-generic/dma-mapping.h>
++
++void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
++			const struct iommu_ops *iommu, bool coherent);
++#define arch_setup_dma_ops arch_setup_dma_ops
++
++#endif
+diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
+index b95365e1253a..dac12afbb93a 100644
+--- a/arch/arc/mm/cache.c
++++ b/arch/arc/mm/cache.c
+@@ -65,7 +65,7 @@ char *arc_cache_mumbojumbo(int c, char *buf, int len)
  
-+	/*
-+	 * Mark DMA peripherals connected via IOC port as dma-coherent. We do
-+	 * it via overlay because peripherals defined in axs10x_mb.dtsi are
-+	 * used for both AXS101 and AXS103 boards and only AXS103 has IOC (so
-+	 * only AXS103 board has HW-coherent DMA peripherals)
-+	 * We don't need to mark pgu@17000 as dma-coherent because it uses
-+	 * external DMA buffer located outside of IOC aperture.
-+	 */
-+	axs10x_mb {
-+		ethernet@0x18000 {
-+			dma-coherent;
-+		};
-+
-+		ehci@0x40000 {
-+			dma-coherent;
-+		};
-+
-+		ohci@0x60000 {
-+			dma-coherent;
-+		};
-+
-+		mmc@0x15000 {
-+			dma-coherent;
-+		};
-+	};
-+
+ 	n += scnprintf(buf + n, len - n, "Peripherals\t: %#lx%s%s\n",
+ 		       perip_base,
+-		       IS_AVAIL3(ioc_exists, ioc_enable, ", IO-Coherency "));
++		       IS_AVAIL3(ioc_exists, ioc_enable, ", per device IO-Coherency "));
+ 
+ 	return buf;
+ }
+@@ -896,15 +896,6 @@ static void __dma_cache_wback_slc(phys_addr_t start, unsigned long sz)
+ 	slc_op(start, sz, OP_FLUSH);
+ }
+ 
+-/*
+- * DMA ops for systems with IOC
+- * IOC hardware snoops all DMA traffic keeping the caches consistent with
+- * memory - eliding need for any explicit cache maintenance of DMA buffers
+- */
+-static void __dma_cache_wback_inv_ioc(phys_addr_t start, unsigned long sz) {}
+-static void __dma_cache_inv_ioc(phys_addr_t start, unsigned long sz) {}
+-static void __dma_cache_wback_ioc(phys_addr_t start, unsigned long sz) {}
+-
+ /*
+  * Exported DMA API
+  */
+@@ -1263,11 +1254,7 @@ void __init arc_cache_init_master(void)
+ 	if (is_isa_arcv2() && ioc_enable)
+ 		arc_ioc_setup();
+ 
+-	if (is_isa_arcv2() && ioc_enable) {
+-		__dma_cache_wback_inv = __dma_cache_wback_inv_ioc;
+-		__dma_cache_inv = __dma_cache_inv_ioc;
+-		__dma_cache_wback = __dma_cache_wback_ioc;
+-	} else if (is_isa_arcv2() && l2_line_sz && slc_enable) {
++	if (is_isa_arcv2() && l2_line_sz && slc_enable) {
+ 		__dma_cache_wback_inv = __dma_cache_wback_inv_slc;
+ 		__dma_cache_inv = __dma_cache_inv_slc;
+ 		__dma_cache_wback = __dma_cache_wback_slc;
+diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
+index cefb776a99ff..4d1466905e48 100644
+--- a/arch/arc/mm/dma.c
++++ b/arch/arc/mm/dma.c
+@@ -33,19 +33,7 @@ void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
+ 	if (!page)
+ 		return NULL;
+ 
+-	/*
+-	 * IOC relies on all data (even coherent DMA data) being in cache
+-	 * Thus allocate normal cached memory
+-	 *
+-	 * The gains with IOC are two pronged:
+-	 *   -For streaming data, elides need for cache maintenance, saving
+-	 *    cycles in flush code, and bus bandwidth as all the lines of a
+-	 *    buffer need to be flushed out to memory
+-	 *   -For coherent data, Read/Write to buffers terminate early in cache
+-	 *   (vs. always going to memory - thus are faster)
+-	 */
+-	if ((is_isa_arcv2() && ioc_enable) ||
+-	    (attrs & DMA_ATTR_NON_CONSISTENT))
++	if (attrs & DMA_ATTR_NON_CONSISTENT)
+ 		need_coh = 0;
+ 
  	/*
- 	 * The DW APB ICTL intc on MB is connected to CPU intc via a
- 	 * DT "invisible" DW APB GPIO block, configured to simply pass thru
-diff --git a/arch/arc/boot/dts/axc003_idu.dtsi b/arch/arc/boot/dts/axc003_idu.dtsi
-index 69ff4895f2ba..a05bb737ea63 100644
---- a/arch/arc/boot/dts/axc003_idu.dtsi
-+++ b/arch/arc/boot/dts/axc003_idu.dtsi
-@@ -100,6 +100,32 @@
- 		};
- 	};
+@@ -95,8 +83,7 @@ void arch_dma_free(struct device *dev, size_t size, void *vaddr,
+ 	struct page *page = virt_to_page(paddr);
+ 	int is_non_coh = 1;
  
+-	is_non_coh = (attrs & DMA_ATTR_NON_CONSISTENT) ||
+-			(is_isa_arcv2() && ioc_enable);
++	is_non_coh = (attrs & DMA_ATTR_NON_CONSISTENT);
+ 
+ 	if (PageHighMem(page) || !is_non_coh)
+ 		iounmap((void __force __iomem *)vaddr);
+@@ -182,3 +169,20 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+ 		break;
+ 	}
+ }
++
++void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
++			const struct iommu_ops *iommu, bool coherent)
++{
 +	/*
-+	 * Mark DMA peripherals connected via IOC port as dma-coherent. We do
-+	 * it via overlay because peripherals defined in axs10x_mb.dtsi are
-+	 * used for both AXS101 and AXS103 boards and only AXS103 has IOC (so
-+	 * only AXS103 board has HW-coherent DMA peripherals)
-+	 * We don't need to mark pgu@17000 as dma-coherent because it uses
-+	 * external DMA buffer located outside of IOC aperture.
++	 * IOC hardware snoops all DMA traffic keeping the caches consistent
++	 * with memory - eliding need for any explicit cache maintenance of
++	 * DMA buffers - so we can use dma_direct cache ops.
 +	 */
-+	axs10x_mb {
-+		ethernet@0x18000 {
-+			dma-coherent;
-+		};
-+
-+		ehci@0x40000 {
-+			dma-coherent;
-+		};
-+
-+		ohci@0x60000 {
-+			dma-coherent;
-+		};
-+
-+		mmc@0x15000 {
-+			dma-coherent;
-+		};
-+	};
-+
- 	/*
- 	 * This INTC is actually connected to DW APB GPIO
- 	 * which acts as a wire between MB INTC and CPU INTC.
-diff --git a/arch/arc/boot/dts/hsdk.dts b/arch/arc/boot/dts/hsdk.dts
-index 006aa3de5348..ebb686c21393 100644
---- a/arch/arc/boot/dts/hsdk.dts
-+++ b/arch/arc/boot/dts/hsdk.dts
-@@ -176,6 +176,7 @@
- 			phy-handle = <&phy0>;
- 			resets = <&cgu_rst HSDK_ETH_RESET>;
- 			reset-names = "stmmaceth";
-+			dma-coherent;
- 
- 			mdio {
- 				#address-cells = <1>;
-@@ -194,12 +195,14 @@
- 			compatible = "snps,hsdk-v1.0-ohci", "generic-ohci";
- 			reg = <0x60000 0x100>;
- 			interrupts = <15>;
-+			dma-coherent;
- 		};
- 
- 		ehci@40000 {
- 			compatible = "snps,hsdk-v1.0-ehci", "generic-ehci";
- 			reg = <0x40000 0x100>;
- 			interrupts = <15>;
-+			dma-coherent;
- 		};
- 
- 		mmc@a000 {
-@@ -212,6 +215,7 @@
- 			clock-names = "biu", "ciu";
- 			interrupts = <12>;
- 			bus-width = <4>;
-+			dma-coherent;
- 		};
- 	};
- 
++	if (is_isa_arcv2() && ioc_enable && coherent) {
++		set_dma_ops(dev, &dma_direct_ops);
++		dev_info(dev, "use dma_direct_ops cache ops\n");
++	} else {
++		set_dma_ops(dev, &dma_noncoherent_ops);
++		dev_info(dev, "use dma_noncoherent_ops cache ops\n");
++	}
++}
 -- 
 2.14.4
