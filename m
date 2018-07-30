@@ -1,92 +1,126 @@
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: [PATCH v2 4/4] ARC: don't check for HIGHMEM pages in arch_dma_alloc
-Date: Mon, 30 Jul 2018 19:26:36 +0300
-Message-ID: <20180730162636.3556-5-Eugeniy.Paltsev@synopsys.com>
-References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v2 01/17] x86/cpu: create Dhyana init file and register
+ new cpu_dev to system
+Date: Tue, 31 Jul 2018 00:42:37 +0800
+Message-ID: <fcf29dd2-f7ea-40de-b8db-4327abd0d5f4@hygon.cn>
+References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+ <1532352037-7151-2-git-send-email-puwen@hygon.cn>
+ <ed090643-09da-cde7-6edd-970d973afd4d@redhat.com>
+ <201807290021145963620@hygon.cn>
+ <bd73d865-acb3-66e5-a37a-dc4859e5f002@gnu.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+In-Reply-To: <bd73d865-acb3-66e5-a37a-dc4859e5f002@gnu.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+To: Paolo Bonzini <bonzini@gnu.org>, tglx <tglx@linutronix.de>, bp <bp@alien8.de>, "thomas.lendacky" <thomas.lendacky@amd.com>, mingo <mingo@redhat.com>, hpa <hpa@zytor.com>, peterz <peterz@infradead.org>, "tony.luck" <tony.luck@intel.com>, rkrcmar <rkrcmar@redhat.com>, "boris.ostrovsky" <boris.ostrovsky@oracle.com>, jgross <jgross@suse.com>, rjw <rjw@rjwysocki.net>, lenb <lenb@kernel.org>, "viresh.kumar" <viresh.kumar@linaro.org>, mchehab <mchehab@kernel.org>, trenn <trenn@suse.com>, shuah <shuah@kernel.org>, x86 <x86@kernel.org>
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kvm <kvm@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-__GFP_HIGHMEM flag is cleared by upper layer functions
-(in include/linux/dma-mapping.h) so we'll never get a
-__GFP_HIGHMEM flag in arch_dma_alloc gfp argument.
-That's why alloc_pages will never return highmem page
-here.
+On 2018-07-29 07:42, Paolo Bonzini wrote:
+>If the maintainers are okay with X86_FEATURE_HYGON that's certainly
+>fine, however I think you can improve the consistency of the patches in
+>a few ways.
 
-Get rid of highmem pages handling and cleanup arch_dma_alloc
-and arch_dma_free functions.
+Thanks for your suggestion.
+To improve code consistency , will rework the patches.
 
-Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
----
-Changes v1->v2 (Thanks to Christoph):
- * Remove check for HIGHMEM pages from arch_dma_{alloc, free}
+>
+>Lack of SME/SEV is not an issue, since there are AMD Zen chips without
+>SME/SEV too, but potential incompatibility with future AMD fam18h chips
+>is important.  Therefore, code like this one in amd_uncore_init
+>
+>
+>-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
+>+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
+>+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
+> return -ENODEV;
+>
+> if (!boot_cpu_has(X86_FEATURE_TOPOEXT))
+> return -ENODEV;
+>
+>-	if (boot_cpu_data.x86 == 0x17) {
+>+	if (boot_cpu_data.x86 == 0x17 || boot_cpu_data.x86 == 0x18) {
+>
+>should check explicitly for Hygon before checking for family 18h.  The
+>same applies to the edac patch that I've just sent an answer to.
 
- arch/arc/mm/dma.c | 32 ++++++++++++++------------------
- 1 file changed, 14 insertions(+), 18 deletions(-)
+For the family number, As a JV company, to keep the consistency usage of
+CPU family convention, Hygon will negotiate with AMD to make sure the CPU
+family numbers both company used will not overlap. So as Hygon will use
+the family 18h for Dhyana, AMD will skip the family 18h and directly use
+family 19h for its new product.
 
-diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
-index 4d1466905e48..46129d7a298d 100644
---- a/arch/arc/mm/dma.c
-+++ b/arch/arc/mm/dma.c
-@@ -27,30 +27,29 @@ void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
- 	struct page *page;
- 	phys_addr_t paddr;
- 	void *kvaddr;
--	int need_coh = 1, need_kvaddr = 0;
-+	bool need_coh = !(attrs & DMA_ATTR_NON_CONSISTENT);
-+
-+	/*
-+	 * __GFP_HIGHMEM flag is cleared by upper layer functions
-+	 * (in include/linux/dma-mapping.h) so we should never get a
-+	 * __GFP_HIGHMEM here.
-+	 */
-+	BUG_ON(gfp & __GFP_HIGHMEM);
- 
- 	page = alloc_pages(gfp, order);
- 	if (!page)
- 		return NULL;
- 
--	if (attrs & DMA_ATTR_NON_CONSISTENT)
--		need_coh = 0;
--
--	/*
--	 * - A coherent buffer needs MMU mapping to enforce non-cachability
--	 * - A highmem page needs a virtual handle (hence MMU mapping)
--	 *   independent of cachability
--	 */
--	if (PageHighMem(page) || need_coh)
--		need_kvaddr = 1;
--
- 	/* This is linear addr (0x8000_0000 based) */
- 	paddr = page_to_phys(page);
- 
- 	*dma_handle = paddr;
- 
--	/* This is kernel Virtual address (0x7000_0000 based) */
--	if (need_kvaddr) {
-+	/*
-+	 * A coherent buffer needs MMU mapping to enforce non-cachability.
-+	 * kvaddr is kernel Virtual address (0x7000_0000 based).
-+	 */
-+	if (need_coh) {
- 		kvaddr = ioremap_nocache(paddr, size);
- 		if (kvaddr == NULL) {
- 			__free_pages(page, order);
-@@ -81,11 +80,8 @@ void arch_dma_free(struct device *dev, size_t size, void *vaddr,
- {
- 	phys_addr_t paddr = dma_handle;
- 	struct page *page = virt_to_page(paddr);
--	int is_non_coh = 1;
--
--	is_non_coh = (attrs & DMA_ATTR_NON_CONSISTENT);
- 
--	if (PageHighMem(page) || !is_non_coh)
-+	if (!(attrs & DMA_ATTR_NON_CONSISTENT))
- 		iounmap((void __force __iomem *)vaddr);
- 
- 	__free_pages(page, get_order(size));
--- 
-2.14.4
+Based on this assumption, this patch set direct check the family number
+for 18h to see if it is Hygon processor to create a minimal patch set.
+
+For the consistency, will modify the codes as follows:
+-       if (boot_cpu_data.x86 == 0x17) {
++       if (boot_cpu_data.x86 == 0x17 ||
++          (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON &&
++           boot_cpu_data.x86 == 0x18)) {
+
+>
+>On the other hand, in many cases the AMD code is testing something like
+>"AMD && family >= 0x0f".  In this case you have a mix of:
+>
+>- duplicate code for HYGON, such as modern_apic or mce_is_correctable
+>
+>- change the condition to (AMD || HYGON) && family >= 0x0f, such as
+>k8_check_syscfg_dram_mod_en and amd_special_default_mtrr
+>
+>- change the condition to (AMD && family >= 0x0f) || (HYGON && family >=
+>0x18), such as smp_quirk_init_udelay
+>
+>I couldn't find any case where you used (AMD && family >= 0x0f) ||
+>HYGON, but I think it would be clearer in most cases than all the above
+>three alternatives.
+
+Your suggestion is correct, will try to make the code more consistent and
+update the next patch set to use (AMD && family >= 0x0f) || HYGON.
+
+>
+>In general, I would duplicate code if and only if the AMD code is a maze
+>of if/elseif/elseif.  In particular, code like this
+>
+>	case X86_VENDOR_AMD:
+> if (msr >= MSR_F15H_PERF_CTL)
+> return (msr - MSR_F15H_PERF_CTL) >> 1;
+> return msr - MSR_K7_EVNTSEL0;
+>+	case X86_VENDOR_HYGON:
+>+	if (msr >= MSR_F15H_PERF_CTL)
+>+	return (msr - MSR_F15H_PERF_CTL) >> 1;
+>+	return msr - MSR_K7_EVNTSEL0;
+>
+
+>or this
+>
+>	case X86_VENDOR_AMD:
+> rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
+> msr = lo | ((u64)hi << 32);
+> return !(msr & MSR_K7_HWCR_CPB_DIS);
+>+	case X86_VENDOR_HYGON:
+>+	rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
+>+	msr = lo | ((u64)hi << 32);
+>+	return !(msr & MSR_K7_HWCR_CPB_DIS);
+>
+>looks a bit silly, and you already have several cases when you are not
+>introducing duplication (e.g. __mcheck_cpu_init_early).  On the other
+>hand, code like xen_pmu_arch_init can be very simple for Hygon and so it
+>may be useful to have a separate branch.
+
+Thanks for the suggestion, will change this by directly reusing condition
+check if reused codes are direct:
++	case X86_VENDOR_HYGON:
+	case X86_VENDOR_AMD:
+		if (msr >= MSR_F15H_PERF_CTR)
+			return (msr - MSR_F15H_PERF_CTR) >> 1;
+		return msr - MSR_K7_PERFCTR0;
+
+Also will branch codes for Hygon in case of complicated checking condition
+such as in xen_pmu_arch_init().
+
+Thanks,
+Pu Wen
