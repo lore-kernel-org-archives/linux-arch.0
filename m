@@ -1,53 +1,66 @@
 From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: [PATCH 3/4] ARC: refactor arch/arc/mm/dma.c
-Date: Mon, 30 Jul 2018 10:34:20 +0000
-Message-ID: <1532946859.3059.8.camel@synopsys.com>
-References: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
-         <20180724101001.31965-4-Eugeniy.Paltsev@synopsys.com>
-         <20180726091731.GC24209@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Subject: [PATCH v2 0/4] ARC: allow to use IOC and non-IOC DMA devices simultaneously
+Date: Mon, 30 Jul 2018 19:26:32 +0300
+Message-ID: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180726091731.GC24209@lst.de>
-Content-Language: en-US
-Content-ID: <AAD9DEFCFE16EA4C980E8F3C30C8875F@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "hch@lst.de" <hch@lst.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "Eugeniy.Paltsev@synopsys.com" <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: linux-snps-arc@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCAyMDE4LTA3LTI2IGF0IDExOjE3ICswMjAwLCBDaHJpc3RvcGggSGVsbHdpZyB3cm90
-ZToNCj4gT24gVHVlLCBKdWwgMjQsIDIwMTggYXQgMDE6MTA6MDBQTSArMDMwMCwgRXVnZW5peSBQ
-YWx0c2V2IHdyb3RlOg0KPiA+IFJlZmFjdG9yaW5nLCBubyBmdW5jdGlvbmFsIGNoYW5nZSBpbnRl
-bmRlZC4NCj4gPiAgDQpbc25pcF0NCj4gPiAgDQo+ID4gIAkqZG1hX2hhbmRsZSA9IHBhZGRyOw0K
-PiA+ICANCj4gPiArCS8qDQo+ID4gKwkgKiAtIEEgY29oZXJlbnQgYnVmZmVyIG5lZWRzIE1NVSBt
-YXBwaW5nIHRvIGVuZm9yY2Ugbm9uLWNhY2hhYmlsaXR5DQo+ID4gKwkgKiAtIEEgaGlnaG1lbSBw
-YWdlIG5lZWRzIGEgdmlydHVhbCBoYW5kbGUgKGhlbmNlIE1NVSBtYXBwaW5nKQ0KPiA+ICsJICog
-ICBpbmRlcGVuZGVudCBvZiBjYWNoYWJpbGl0eS4NCj4gPiArCSAqIGt2YWRkciBpcyBrZXJuZWwg
-VmlydHVhbCBhZGRyZXNzICgweDcwMDBfMDAwMCBiYXNlZCkNCj4gPiArCSAqLw0KPiA+ICsJaWYg
-KFBhZ2VIaWdoTWVtKHBhZ2UpIHx8IG5lZWRfY29oKSB7DQo+IA0KPiBkbWFfYWxsb2NfYXR0cnMg
-Y2xlYXJzIF9fR0ZQX0hJR0hNRU0gZnJvbSB0aGUgcGFzc2VkIGluIGdmcCBtYXNrLCBzbw0KPiB5
-b3UnbGwgbmV2ZXIgZ2V0IGEgaGlnaG1lbSBwYWdlIGhlcmUuDQo+IA0KDQpOaWNlIGNhdGNoLCB0
-aGFua3MuDQpXaWxsIHJlbW92ZSBjaGVjayBmb3IgaGlnaG1lbSBwYWdlIGluIG5leHQgcGF0Y2gg
-dmVyc2lvbi4gDQoNCj4gVGhhdCBhbHNvIG1lYW5zIHlvdSBjYW4gbWVyZ2UgdGhpcyBjb25kaXRp
-b25hbCB3aXRoIHRoZSBvbmUgZm9yIHRoZSBjYWNoZQ0KPiB3cml0ZWJhY2sgYW5kIGludmFsaWRh
-dGlvbiBhbmQga2lsbCB0aGUgbmVlZF9jb2ggZmxhZyBlbnRpcmVseS4NCj4gDQo+ID4gIAkJa3Zh
-ZGRyID0gaW9yZW1hcF9ub2NhY2hlKHBhZGRyLCBzaXplKTsNCj4gPiAgCQlpZiAoa3ZhZGRyID09
-IE5VTEwpIHsNCj4gPiAgCQkJX19mcmVlX3BhZ2VzKHBhZ2UsIG9yZGVyKTsNCj4gPiBAQCAtODEs
-MTEgKzc1LDkgQEAgdm9pZCBhcmNoX2RtYV9mcmVlKHN0cnVjdCBkZXZpY2UgKmRldiwgc2l6ZV90
-IHNpemUsIHZvaWQgKnZhZGRyLA0KPiA+ICB7DQo+ID4gIAlwaHlzX2FkZHJfdCBwYWRkciA9IGRt
-YV9oYW5kbGU7DQo+ID4gIAlzdHJ1Y3QgcGFnZSAqcGFnZSA9IHZpcnRfdG9fcGFnZShwYWRkcik7
-DQo+ID4gLQlpbnQgaXNfbm9uX2NvaCA9IDE7DQo+ID4gLQ0KPiA+IC0JaXNfbm9uX2NvaCA9IChh
-dHRycyAmIERNQV9BVFRSX05PTl9DT05TSVNURU5UKTsNCj4gPiArCWJvb2wgaXNfY29oID0gIShh
-dHRycyAmIERNQV9BVFRSX05PTl9DT05TSVNURU5UKTsNCj4gPiAgDQo+ID4gLQlpZiAoUGFnZUhp
-Z2hNZW0ocGFnZSkgfHwgIWlzX25vbl9jb2gpDQo+ID4gKwlpZiAoUGFnZUhpZ2hNZW0ocGFnZSkg
-fHwgaXNfY29oKQ0KPiA+ICAJCWlvdW5tYXAoKHZvaWQgX19mb3JjZSBfX2lvbWVtICopdmFkZHIp
-Ow0KPiA+ICANCj4gDQo+IFNhbWUgaGVyZS4NCj4gDQo+IEFsc28gaWYgeW91IGNsZWFuIHRoaXMg
-dXAgaXQgd291bGQgYmUgZ3JlYXQgdG8gdGFrZSB0aGUgcGVyLWRldmljZSBwZm4gb2Zmc2V0DQo+
-IGludG8gYWNjb3VudCwgZXZlbiBpZiB0aGF0IGlzbid0IHVzZWQgYW55d2hlcmUgb24gYXJjIHll
-dCwgdGhhdCBpcyBjYWxsDQo+IHBoeXNfdG9fZG1hIGFuZCBkbWFfdG9fcGh5cyB0byBjb252ZXJ0
-IHRvIGFuIGZyb20gdGhlIGRtYSBhZGRyZXNzLg0KDQpPaywgSSdsbCBsb29rIGF0IGl0Lg0KUHJv
-YmFibHkgSSdsbCBpbXBsZW1lbnQgaXQgYXMgYSBzZXBhcmF0ZSBwYXRjaCBhcyBpdCBpcyBpcnJl
-bGV2YW50IHRvIHRoaXMNCnBhdGNoIHNlcmllcyB0b3BpYy4NCg0KLS0gDQogRXVnZW5peSBQYWx0
-c2V2
+The ARC HS processor provides an IOC port (I/O coherency bus
+interface) that allows external devices such as DMA devices
+to access memory through the cache hierarchy, providing
+coherency between I/O transactions and the complete memory
+hierarchy.
+
+Some recent SoC with ARC HS (like HSDK) allow to select bus
+port (IOC or non-IOC port) for connecting DMA devices in runtime.
+
+With this patch we can use both HW-coherent and regular DMA
+peripherals simultaneously.
+
+NOTE:
+This patch series was stress tested on HSDK with iperf3 (ethernet)
+and bonie++ (usb and sdio) in three configurations:
+ * IOC enabled globaly
+ * IOC disabled globaly
+ * IOC enabled partially (USB & SDIO are connected via IOC AXI port,
+   ethernet is connected to DDR AXI port (non-IOC port) 
+
+NOTE:
+If you want to test some device without IOC it is not enough
+to remove "dma-coherent" property from dts. You had to remap this
+device to regular DDR AXI port intead of IOC AXI port.
+You also need to apply 3 following patches firstly:
+https://www.mail-archive.com/linux-snps-arc@lists.infradead.org/msg03865.html
+https://www.mail-archive.com/linux-snps-arc@lists.infradead.org/msg03889.html
+https://www.mail-archive.com/linux-snps-arc@lists.infradead.org/msg03887.html
+
+NOTE:
+We don't touch any aperture configuration in this patch series. So we
+don't switch any devices between IOC and non-IOC AXI ports on any board.
+It can be done later if it is required.
+
+Changes v1->v2 (Thanks to Christoph):
+ * Don't select DMA_DIRECT_OPS explicitly as it is already selected by
+   DMA_NONCOHERENT_OPS
+ * Remove check for HIGHMEM pages from arch_dma_{alloc, free}
+
+Eugeniy Paltsev (4):
+  ARC: DTS: mark DMA devices connected through IOC port as dma-coherent
+  ARC: allow to use IOC and non-IOC DMA devices simultaneously
+  ARC: IOC: panic if both IOC and ZONE_HIGHMEM enabled
+  ARC: don't check for HIGHMEM pages in arch_dma_alloc
+
+ arch/arc/boot/dts/axc003.dtsi      | 26 ++++++++++++++++
+ arch/arc/boot/dts/axc003_idu.dtsi  | 26 ++++++++++++++++
+ arch/arc/boot/dts/hsdk.dts         |  4 +++
+ arch/arc/include/asm/dma-mapping.h | 13 ++++++++
+ arch/arc/mm/cache.c                | 30 +++++++++---------
+ arch/arc/mm/dma.c                  | 62 +++++++++++++++++++-------------------
+ 6 files changed, 115 insertions(+), 46 deletions(-)
+ create mode 100644 arch/arc/include/asm/dma-mapping.h
+
+-- 
+2.14.4
