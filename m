@@ -1,99 +1,53 @@
-From: Paolo Bonzini <bonzini@gnu.org>
-Subject: Re: [PATCH v2 01/17] x86/cpu: create Dhyana init file and register
- new cpu_dev to system
-Date: Sun, 29 Jul 2018 01:42:46 +0200
-Message-ID: <bd73d865-acb3-66e5-a37a-dc4859e5f002@gnu.org>
-References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
- <1532352037-7151-2-git-send-email-puwen@hygon.cn>
- <ed090643-09da-cde7-6edd-970d973afd4d@redhat.com>
- <201807290021145963620@hygon.cn>
+From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+Subject: Re: [PATCH 3/4] ARC: refactor arch/arc/mm/dma.c
+Date: Mon, 30 Jul 2018 10:34:20 +0000
+Message-ID: <1532946859.3059.8.camel@synopsys.com>
+References: <20180724101001.31965-1-Eugeniy.Paltsev@synopsys.com>
+         <20180724101001.31965-4-Eugeniy.Paltsev@synopsys.com>
+         <20180726091731.GC24209@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201807290021145963620@hygon.cn>
+In-Reply-To: <20180726091731.GC24209@lst.de>
 Content-Language: en-US
+Content-ID: <AAD9DEFCFE16EA4C980E8F3C30C8875F@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "puwen@hygon.cn" <puwen@hygon.cn>, tglx <tglx@linutronix.de>, bp <bp@alien8.de>, "thomas.lendacky" <thomas.lendacky@amd.com>, mingo <mingo@redhat.com>, hpa <hpa@zytor.com>, peterz <peterz@infradead.org>, "tony.luck" <tony.luck@intel.com>, rkrcmar <rkrcmar@redhat.com>, "boris.ostrovsky" <boris.ostrovsky@oracle.com>, jgross <jgross@suse.com>, rjw <rjw@rjwysocki.net>, lenb <lenb@kernel.org>, "viresh.kumar" <viresh.kumar@linaro.org>, mchehab <mchehab@kernel.org>, trenn <trenn@suse.com>, shuah <shuah@kernel.org>, x86 <x86@kernel.org>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kvm <kvm@vger.kernel.org>
+To: "hch@lst.de" <hch@lst.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "Eugeniy.Paltsev@synopsys.com" <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 28/07/2018 18:48, puwen@hygon.cn wrote:
-> Hi Paolo,
-> 
-> Thanks for your feedback.
-> 
-> As we described in the patch description, current Hygon Family 18h share
-> most architecture with AMD Family 17h. But Hygon Family 18h are not the
-> same with AMD family 17h, as it removed some features such as SME/SEV in
-> Dhyana.
-
-If the maintainers are okay with X86_FEATURE_HYGON that's certainly
-fine, however I think you can improve the consistency of the patches in
-a few ways.
-
-Lack of SME/SEV is not an issue, since there are AMD Zen chips without
-SME/SEV too, but potential incompatibility with future AMD fam18h chips
-is important.  Therefore, code like this one in amd_uncore_init
-
-
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
- 		return -ENODEV;
-
- 	if (!boot_cpu_has(X86_FEATURE_TOPOEXT))
- 		return -ENODEV;
-
--	if (boot_cpu_data.x86 == 0x17) {
-+	if (boot_cpu_data.x86 == 0x17 || boot_cpu_data.x86 == 0x18) {
-
-should check explicitly for Hygon before checking for family 18h.  The
-same applies to the edac patch that I've just sent an answer to.
-
-On the other hand, in many cases the AMD code is testing something like
-"AMD && family >= 0x0f".  In this case you have a mix of:
-
-- duplicate code for HYGON, such as modern_apic or mce_is_correctable
-
-- change the condition to (AMD || HYGON) && family >= 0x0f, such as
-k8_check_syscfg_dram_mod_en and amd_special_default_mtrr
-
-- change the condition to (AMD && family >= 0x0f) || (HYGON && family >=
-0x18), such as smp_quirk_init_udelay
-
-I couldn't find any case where you used (AMD && family >= 0x0f) ||
-HYGON, but I think it would be clearer in most cases than all the above
-three alternatives.
-
-In general, I would duplicate code if and only if the AMD code is a maze
-of if/elseif/elseif.  In particular, code like this
-
-	case X86_VENDOR_AMD:
- 		if (msr >= MSR_F15H_PERF_CTL)
- 			return (msr - MSR_F15H_PERF_CTL) >> 1;
- 		return msr - MSR_K7_EVNTSEL0;
-+	case X86_VENDOR_HYGON:
-+		if (msr >= MSR_F15H_PERF_CTL)
-+			return (msr - MSR_F15H_PERF_CTL) >> 1;
-+		return msr - MSR_K7_EVNTSEL0;
-
-or this
-
-	case X86_VENDOR_AMD:
- 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
- 		msr = lo | ((u64)hi << 32);
- 		return !(msr & MSR_K7_HWCR_CPB_DIS);
-+	case X86_VENDOR_HYGON:
-+		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
-+		msr = lo | ((u64)hi << 32);
-+		return !(msr & MSR_K7_HWCR_CPB_DIS);
-
-looks a bit silly, and you already have several cases when you are not
-introducing duplication (e.g. __mcheck_cpu_init_early).  On the other
-hand, code like xen_pmu_arch_init can be very simple for Hygon and so it
-may be useful to have a separate branch.
-
-Thanks,
-
-Paolo
+T24gVGh1LCAyMDE4LTA3LTI2IGF0IDExOjE3ICswMjAwLCBDaHJpc3RvcGggSGVsbHdpZyB3cm90
+ZToNCj4gT24gVHVlLCBKdWwgMjQsIDIwMTggYXQgMDE6MTA6MDBQTSArMDMwMCwgRXVnZW5peSBQ
+YWx0c2V2IHdyb3RlOg0KPiA+IFJlZmFjdG9yaW5nLCBubyBmdW5jdGlvbmFsIGNoYW5nZSBpbnRl
+bmRlZC4NCj4gPiAgDQpbc25pcF0NCj4gPiAgDQo+ID4gIAkqZG1hX2hhbmRsZSA9IHBhZGRyOw0K
+PiA+ICANCj4gPiArCS8qDQo+ID4gKwkgKiAtIEEgY29oZXJlbnQgYnVmZmVyIG5lZWRzIE1NVSBt
+YXBwaW5nIHRvIGVuZm9yY2Ugbm9uLWNhY2hhYmlsaXR5DQo+ID4gKwkgKiAtIEEgaGlnaG1lbSBw
+YWdlIG5lZWRzIGEgdmlydHVhbCBoYW5kbGUgKGhlbmNlIE1NVSBtYXBwaW5nKQ0KPiA+ICsJICog
+ICBpbmRlcGVuZGVudCBvZiBjYWNoYWJpbGl0eS4NCj4gPiArCSAqIGt2YWRkciBpcyBrZXJuZWwg
+VmlydHVhbCBhZGRyZXNzICgweDcwMDBfMDAwMCBiYXNlZCkNCj4gPiArCSAqLw0KPiA+ICsJaWYg
+KFBhZ2VIaWdoTWVtKHBhZ2UpIHx8IG5lZWRfY29oKSB7DQo+IA0KPiBkbWFfYWxsb2NfYXR0cnMg
+Y2xlYXJzIF9fR0ZQX0hJR0hNRU0gZnJvbSB0aGUgcGFzc2VkIGluIGdmcCBtYXNrLCBzbw0KPiB5
+b3UnbGwgbmV2ZXIgZ2V0IGEgaGlnaG1lbSBwYWdlIGhlcmUuDQo+IA0KDQpOaWNlIGNhdGNoLCB0
+aGFua3MuDQpXaWxsIHJlbW92ZSBjaGVjayBmb3IgaGlnaG1lbSBwYWdlIGluIG5leHQgcGF0Y2gg
+dmVyc2lvbi4gDQoNCj4gVGhhdCBhbHNvIG1lYW5zIHlvdSBjYW4gbWVyZ2UgdGhpcyBjb25kaXRp
+b25hbCB3aXRoIHRoZSBvbmUgZm9yIHRoZSBjYWNoZQ0KPiB3cml0ZWJhY2sgYW5kIGludmFsaWRh
+dGlvbiBhbmQga2lsbCB0aGUgbmVlZF9jb2ggZmxhZyBlbnRpcmVseS4NCj4gDQo+ID4gIAkJa3Zh
+ZGRyID0gaW9yZW1hcF9ub2NhY2hlKHBhZGRyLCBzaXplKTsNCj4gPiAgCQlpZiAoa3ZhZGRyID09
+IE5VTEwpIHsNCj4gPiAgCQkJX19mcmVlX3BhZ2VzKHBhZ2UsIG9yZGVyKTsNCj4gPiBAQCAtODEs
+MTEgKzc1LDkgQEAgdm9pZCBhcmNoX2RtYV9mcmVlKHN0cnVjdCBkZXZpY2UgKmRldiwgc2l6ZV90
+IHNpemUsIHZvaWQgKnZhZGRyLA0KPiA+ICB7DQo+ID4gIAlwaHlzX2FkZHJfdCBwYWRkciA9IGRt
+YV9oYW5kbGU7DQo+ID4gIAlzdHJ1Y3QgcGFnZSAqcGFnZSA9IHZpcnRfdG9fcGFnZShwYWRkcik7
+DQo+ID4gLQlpbnQgaXNfbm9uX2NvaCA9IDE7DQo+ID4gLQ0KPiA+IC0JaXNfbm9uX2NvaCA9IChh
+dHRycyAmIERNQV9BVFRSX05PTl9DT05TSVNURU5UKTsNCj4gPiArCWJvb2wgaXNfY29oID0gIShh
+dHRycyAmIERNQV9BVFRSX05PTl9DT05TSVNURU5UKTsNCj4gPiAgDQo+ID4gLQlpZiAoUGFnZUhp
+Z2hNZW0ocGFnZSkgfHwgIWlzX25vbl9jb2gpDQo+ID4gKwlpZiAoUGFnZUhpZ2hNZW0ocGFnZSkg
+fHwgaXNfY29oKQ0KPiA+ICAJCWlvdW5tYXAoKHZvaWQgX19mb3JjZSBfX2lvbWVtICopdmFkZHIp
+Ow0KPiA+ICANCj4gDQo+IFNhbWUgaGVyZS4NCj4gDQo+IEFsc28gaWYgeW91IGNsZWFuIHRoaXMg
+dXAgaXQgd291bGQgYmUgZ3JlYXQgdG8gdGFrZSB0aGUgcGVyLWRldmljZSBwZm4gb2Zmc2V0DQo+
+IGludG8gYWNjb3VudCwgZXZlbiBpZiB0aGF0IGlzbid0IHVzZWQgYW55d2hlcmUgb24gYXJjIHll
+dCwgdGhhdCBpcyBjYWxsDQo+IHBoeXNfdG9fZG1hIGFuZCBkbWFfdG9fcGh5cyB0byBjb252ZXJ0
+IHRvIGFuIGZyb20gdGhlIGRtYSBhZGRyZXNzLg0KDQpPaywgSSdsbCBsb29rIGF0IGl0Lg0KUHJv
+YmFibHkgSSdsbCBpbXBsZW1lbnQgaXQgYXMgYSBzZXBhcmF0ZSBwYXRjaCBhcyBpdCBpcyBpcnJl
+bGV2YW50IHRvIHRoaXMNCnBhdGNoIHNlcmllcyB0b3BpYy4NCg0KLS0gDQogRXVnZW5peSBQYWx0
+c2V2
