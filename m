@@ -1,36 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:56131 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728227AbeGaJnl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Jul 2018 05:43:41 -0400
-Date: Tue, 31 Jul 2018 10:08:57 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v2 4/4] ARC: don't check for HIGHMEM pages in
-        arch_dma_alloc
-Message-ID: <20180731080857.GB23303@lst.de>
-References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com> <20180730162636.3556-5-Eugeniy.Paltsev@synopsys.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:50774 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729982AbeGaLGH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Jul 2018 07:06:07 -0400
+Date: Tue, 31 Jul 2018 10:26:34 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v5 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+Message-ID: <20180731092634.m4wpbhyn54r7fxmb@armageddon.cambridge.arm.com>
+References: <20180731060155.16915-1-alex@ghiti.fr>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180730162636.3556-5-Eugeniy.Paltsev@synopsys.com>
+In-Reply-To: <20180731060155.16915-1-alex@ghiti.fr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de
-Message-ID: <20180731080857.GZ3gZuyRJZrCqqDIQgDAaSaqJQNsGgUrSXnSZf6d1_w@z>
+To: Alexandre Ghiti <alex@ghiti.fr>
+Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180731092634.-19rs547JuxwcHyO46qb7QcU7G2r3UOdtaR-9fAW5f8@z>
 
-On Mon, Jul 30, 2018 at 07:26:36PM +0300, Eugeniy Paltsev wrote:
-> __GFP_HIGHMEM flag is cleared by upper layer functions
-> (in include/linux/dma-mapping.h) so we'll never get a
-> __GFP_HIGHMEM flag in arch_dma_alloc gfp argument.
-> That's why alloc_pages will never return highmem page
-> here.
-> 
-> Get rid of highmem pages handling and cleanup arch_dma_alloc
-> and arch_dma_free functions.
-> 
-> Signed-off-by: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+On Tue, Jul 31, 2018 at 06:01:44AM +0000, Alexandre Ghiti wrote:
+> Alexandre Ghiti (11):
+>   hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+>   hugetlb: Introduce generic version of hugetlb_free_pgd_range
+>   hugetlb: Introduce generic version of set_huge_pte_at
+>   hugetlb: Introduce generic version of huge_ptep_get_and_clear
+>   hugetlb: Introduce generic version of huge_ptep_clear_flush
+>   hugetlb: Introduce generic version of huge_pte_none
+>   hugetlb: Introduce generic version of huge_pte_wrprotect
+>   hugetlb: Introduce generic version of prepare_hugepage_range
+>   hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+>   hugetlb: Introduce generic version of huge_ptep_set_access_flags
+>   hugetlb: Introduce generic version of huge_ptep_get
+[...]
+>  arch/arm64/include/asm/hugetlb.h             | 39 +++---------
 
-Looks good,
+For the arm64 bits in this series:
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
