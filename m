@@ -1,73 +1,80 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v2 16/17] driver/edac: enable Hygon support to AMD64 EDAC
- driver
-Date: Tue, 31 Jul 2018 00:43:18 +0800
-Message-ID: <c8f53708-bd57-fb41-8300-115ac5083094@hygon.cn>
-References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
- <1532352037-7151-17-git-send-email-puwen@hygon.cn>
- <b24739e8-0833-8509-0850-815758accaee@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Alexandre Ghiti <alex@ghiti.fr>
+Subject: [PATCH v5 00/11] hugetlb: Factorize hugetlb architecture primitives
+Date: Tue, 31 Jul 2018 06:01:44 +0000
+Message-ID: <20180731060155.16915-1-alex@ghiti.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <b24739e8-0833-8509-0850-815758accaee@redhat.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paolo Bonzini <pbonzini@redhat.com>, tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
+To: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Alexandre Ghiti <alex@ghiti.fr>
 List-Id: linux-arch.vger.kernel.org
 
-On 2018-07-29 07:42, Paolo Bonzini wrote:
->On 23/07/2018 15:20, Pu Wen wrote:
->>  scrubval = scrubrates[i].scrubval;
->>
->> -	if (pvt->fam == 0x17) {
->> +	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
->>  __f17h_set_scrubval(pvt, scrubval);
->>  } else if (pvt->fam == 0x15 && pvt->model == 0x60) {
->>  f15h_select_dct(pvt, 0);
->
->This, and many other occurrences in this file, should in my opinion
->avoid testing family 18h without also checking for Hygon as a vendor.
->You probably need to add a vendor field to struct amd64_pvt and
->initialize it in per_family_init.
+[CC linux-mm for inclusion in -mm tree] 
 
-Thanks for the suggestion.
+In order to reduce copy/paste of functions across architectures and then
+make riscv hugetlb port (and future ports) simpler and smaller, this
+patchset intends to factorize the numerous hugetlb primitives that are
+defined across all the architectures.
 
-As AMD and Hygon will negotiate the usage of CPU family number
-to make sure the unique of family numbers in both company's processors.
-As Hygon will use family 18h for Dhyana, AMD will not use family 18h
-and jump to family 19h for new product. So if family number if 18h,
-processor should be Hygon Dhyana. Based on this assumption, we created
-this patch set.
+Except for prepare_hugepage_range, this patchset moves the versions that
+are just pass-through to standard pte primitives into
+asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
 
-To keep consistency, surely can modify the patchset as suggested, but
-will introduce some additional vendor checking codes.
+s390 architecture has not been tackled in this serie since it does not
+use asm-generic/hugetlb.h at all.
+powerpc could be factorized a bit more (cf huge_ptep_set_wrprotect).
 
-If the vendor field is added to amd64_pvt, and check the vendor in 0x18
-codes, then the codes may like:
--	if (pvt->fam == 0x17) {
-+	if (pvt->fam == 0x17 || pvt->vendor == X86_VENDOR_HYGON) {
+This patchset has been compiled on all addressed architectures with
+success (except for parisc, but the problem does not come from this series). 
 
-switch cases will be modified similar to:
-+	case 0x18:
-+		if(pvt->vendor == X86_VENDOR_HYGON) {
-+			fam_type	= &family_types[HYGON_F18_CPUS];
-+			pvt->ops	= &family_types[HYGON_F18_CPUS].ops;
-+			break;
-+		}
-+
+Tested-by: Helge Deller <deller@gmx.de> # parisc
+Acked-by: Paul Burton <paul.burton@mips.com> # MIPS parts
 
-and:
-	case 0x17:
-+	case 0x18:
-+		/* Family 18h is only for Hygon now */
-+		if(pvt->fam == 0x18 && pvt->vendor == X86_VENDOR_AMD)
-+			break;
-+
-		Do something here both for AMD 17h and Hygon 18h...
+Changelog:
 
-Any suggestions for that?
+v5:
+  As suggested by Mike Kravetz, no need to move the #include
+  <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at
+  the top of the file.
 
-Thanks,
-Pu Wen
+v4:
+  Fix powerpc build error due to misplacing of #include
+  <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
+  pointed by Christophe Leroy.
+
+v1, v2, v3:
+  Same version, just problems with email provider and misuse of
+  --batch-size option of git send-email
+
+Alexandre Ghiti (11):
+  hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+  hugetlb: Introduce generic version of hugetlb_free_pgd_range
+  hugetlb: Introduce generic version of set_huge_pte_at
+  hugetlb: Introduce generic version of huge_ptep_get_and_clear
+  hugetlb: Introduce generic version of huge_ptep_clear_flush
+  hugetlb: Introduce generic version of huge_pte_none
+  hugetlb: Introduce generic version of huge_pte_wrprotect
+  hugetlb: Introduce generic version of prepare_hugepage_range
+  hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+  hugetlb: Introduce generic version of huge_ptep_set_access_flags
+  hugetlb: Introduce generic version of huge_ptep_get
+
+ arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+ arch/arm/include/asm/hugetlb.h               | 30 ----------
+ arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+ arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+ arch/mips/include/asm/hugetlb.h              | 40 +++----------
+ arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+ arch/powerpc/include/asm/book3s/32/pgtable.h |  2 +
+ arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+ arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+ arch/powerpc/include/asm/nohash/32/pgtable.h |  2 +
+ arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+ arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+ arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+ arch/x86/include/asm/hugetlb.h               | 69 ----------------------
+ include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+ 15 files changed, 139 insertions(+), 382 deletions(-)
+
+-- 
+2.16.2
