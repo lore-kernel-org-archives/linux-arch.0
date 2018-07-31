@@ -1,81 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:36632 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732198AbeGaPDm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jul 2018 11:03:42 -0400
-Received: by mail-it0-f65.google.com with SMTP id p81-v6so4316833itp.1
-        for <linux-arch@vger.kernel.org>; Tue, 31 Jul 2018 06:23:22 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
-References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
- <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com> <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Tue, 31 Jul 2018 15:23:21 +0200
-Message-ID: <CAAeHK+y95YJZ6yEw0icsz7ScFYP=x5V+__8J0BG9T3vyB1J1xA@mail.gmail.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Content-Type: text/plain; charset="UTF-8"
+Received: from bombadil.infradead.org ([198.137.202.133]:46356 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728968AbeGaTB7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jul 2018 15:01:59 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH] ia64: fix barrier placement for write* / dma mapping
+Date: Tue, 31 Jul 2018 19:20:31 +0200
+Message-ID: <20180731172031.4447-2-hch@lst.de>
+In-Reply-To: <20180731172031.4447-1-hch@lst.de>
+References: <20180731172031.4447-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-doc@vger.kernel.org, Linux Memory Management List <linux-mm@kvack.org>, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Evgeniy Stepanov <eugenis@google.com>
-Message-ID: <20180731132321.1eFZR4k6sd5YFDL9uZw4BUssMLwKTLSjQ-5anPXFtqQ@z>
+To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
+Cc: Sinan Kaya <okaya@codeaurora.org>, Arnd Bergmann <arnd@arndb.de>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org
+Message-ID: <20180731172031.adI8ESs9IQE-AQJb5VvjflV_gTQJXiczAMU9F0lkxS0@z>
 
-On Mon, Jul 16, 2018 at 1:25 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
-> So the checker reports ~100 different places where a __user pointer
-> being casted. I've looked through them and found 3 places where we
-> need to add untagging. Source code lines below come from 4.18-rc2+
-> (6f0d349d).
->
-> Place 1:
->
-> arch/arm64/mm/fault.c:302:34: warning: user pointer cast
-> current->thread.fault_address = (unsigned long)info->si_addr;
->
-> Compare a pointer with TASK_SIZE (1 << 48) to check whether it lies in
-> the kernel or in user space. Need to untag the address before
-> performing a comparison.
->
-> Place 2:
->
-> fs/namespace.c:2736:21: warning: user pointer cast
-> size = TASK_SIZE - (unsigned long)data;
->
-> A similar check performed by subtracting a pointer from TASK_SIZE.
-> Need to untag before subtracting.
->
-> Place 3:
->
-> drivers/usb/core/devio.c:1407:29: warning: user pointer cast
-> unsigned long uurb_start = (unsigned long)uurb->buffer;
-> drivers/usb/core/devio.c:1636:31: warning: user pointer cast
-> unsigned long uurb_start = (unsigned long)uurb->buffer;
-> drivers/usb/core/devio.c:1715:30: warning: user pointer cast
-> unsigned long uurb_start = (unsigned long)uurb->buffer;
->
-> The device keeps list of mmapped areas and searches them for provided
-> __user pointer. Need to untag before searching.
->
-> There are also a few cases of memory syscalls operating on __user
-> pointers instead of unsigned longs like mmap:
->
-> ipc/shm.c:1355:23: warning: user pointer cast
-> unsigned long addr = (unsigned long)shmaddr;
-> ipc/shm.c:1566:23: warning: user pointer cast
-> unsigned long addr = (unsigned long)shmaddr;
-> mm/migrate.c:1586:10: warning: user pointer cast
-> addr = (unsigned long)p;
-> mm/migrate.c:1660:24: warning: user pointer cast
-> unsigned long addr = (unsigned long)(*pages);
->
-> If we don't add untagging to mmap, we probably don't need it here.
->
-> The rest of reported places look fine as is. Full annotated results of
-> running the checker are here [2].
->
-> I'll add the 3 patches with fixes to v5 of this patchset.
->
-> Catalin, WDYT?
+memory-barriers.txt has been updated with the following requirement.
 
-ping
+"When using writel(), a prior wmb() is not needed to guarantee that the
+cache coherent memory writes have completed before writing to the MMIO
+region."
+
+The current writeX() and iowriteX() implementations on ia64 are not
+satisfying this requirement as the barrier is after the register write.
+
+This adds the missing memory barriers, and instead drops them from the
+dma sync routine where they are misplaced (and were missing in the
+more important map/unmap cases anyway).
+
+All this doesn't affect the SN2 platform, which already has barrier
+in the I/O accessors, and none in dma mapping (but then again
+swiotlb doesn't have any either).
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/ia64/hp/common/sba_iommu.c     |  4 ----
+ arch/ia64/include/asm/dma-mapping.h |  5 -----
+ arch/ia64/include/asm/io.h          |  5 +++++
+ arch/ia64/kernel/machvec.c          | 16 ----------------
+ arch/ia64/kernel/pci-dma.c          |  5 -----
+ 5 files changed, 5 insertions(+), 30 deletions(-)
+
+diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
+index ee5b652d320a..e8da6503ed2f 100644
+--- a/arch/ia64/hp/common/sba_iommu.c
++++ b/arch/ia64/hp/common/sba_iommu.c
+@@ -2207,10 +2207,6 @@ const struct dma_map_ops sba_dma_ops = {
+ 	.unmap_page		= sba_unmap_page,
+ 	.map_sg			= sba_map_sg_attrs,
+ 	.unmap_sg		= sba_unmap_sg_attrs,
+-	.sync_single_for_cpu	= machvec_dma_sync_single,
+-	.sync_sg_for_cpu	= machvec_dma_sync_sg,
+-	.sync_single_for_device	= machvec_dma_sync_single,
+-	.sync_sg_for_device	= machvec_dma_sync_sg,
+ 	.dma_supported		= sba_dma_supported,
+ 	.mapping_error		= sba_dma_mapping_error,
+ };
+diff --git a/arch/ia64/include/asm/dma-mapping.h b/arch/ia64/include/asm/dma-mapping.h
+index 76e4d6632d68..2b8cd4a6d958 100644
+--- a/arch/ia64/include/asm/dma-mapping.h
++++ b/arch/ia64/include/asm/dma-mapping.h
+@@ -16,11 +16,6 @@ extern const struct dma_map_ops *dma_ops;
+ extern struct ia64_machine_vector ia64_mv;
+ extern void set_iommu_machvec(void);
+ 
+-extern void machvec_dma_sync_single(struct device *, dma_addr_t, size_t,
+-				    enum dma_data_direction);
+-extern void machvec_dma_sync_sg(struct device *, struct scatterlist *, int,
+-				enum dma_data_direction);
+-
+ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ {
+ 	return platform_dma_get_ops(NULL);
+diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
+index fb0651961e2c..ba5523b67eaf 100644
+--- a/arch/ia64/include/asm/io.h
++++ b/arch/ia64/include/asm/io.h
+@@ -22,6 +22,7 @@
+ 
+ #include <asm/unaligned.h>
+ #include <asm/early_ioremap.h>
++#include <asm/barrier.h>
+ 
+ /* We don't use IO slowdowns on the ia64, but.. */
+ #define __SLOW_DOWN_IO	do { } while (0)
+@@ -345,24 +346,28 @@ ___ia64_readq (const volatile void __iomem *addr)
+ static inline void
+ __writeb (unsigned char val, volatile void __iomem *addr)
+ {
++	mb();
+ 	*(volatile unsigned char __force *) addr = val;
+ }
+ 
+ static inline void
+ __writew (unsigned short val, volatile void __iomem *addr)
+ {
++	mb();
+ 	*(volatile unsigned short __force *) addr = val;
+ }
+ 
+ static inline void
+ __writel (unsigned int val, volatile void __iomem *addr)
+ {
++	mb();
+ 	*(volatile unsigned int __force *) addr = val;
+ }
+ 
+ static inline void
+ __writeq (unsigned long val, volatile void __iomem *addr)
+ {
++	mb();
+ 	*(volatile unsigned long __force *) addr = val;
+ }
+ 
+diff --git a/arch/ia64/kernel/machvec.c b/arch/ia64/kernel/machvec.c
+index 7bfe98859911..1b604d02250b 100644
+--- a/arch/ia64/kernel/machvec.c
++++ b/arch/ia64/kernel/machvec.c
+@@ -73,19 +73,3 @@ machvec_timer_interrupt (int irq, void *dev_id)
+ {
+ }
+ EXPORT_SYMBOL(machvec_timer_interrupt);
+-
+-void
+-machvec_dma_sync_single(struct device *hwdev, dma_addr_t dma_handle, size_t size,
+-			enum dma_data_direction dir)
+-{
+-	mb();
+-}
+-EXPORT_SYMBOL(machvec_dma_sync_single);
+-
+-void
+-machvec_dma_sync_sg(struct device *hwdev, struct scatterlist *sg, int n,
+-		    enum dma_data_direction dir)
+-{
+-	mb();
+-}
+-EXPORT_SYMBOL(machvec_dma_sync_sg);
+diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
+index 3c2884bef3d4..2512aa3029f5 100644
+--- a/arch/ia64/kernel/pci-dma.c
++++ b/arch/ia64/kernel/pci-dma.c
+@@ -55,11 +55,6 @@ void __init pci_iommu_alloc(void)
+ {
+ 	dma_ops = &intel_dma_ops;
+ 
+-	intel_dma_ops.sync_single_for_cpu = machvec_dma_sync_single;
+-	intel_dma_ops.sync_sg_for_cpu = machvec_dma_sync_sg;
+-	intel_dma_ops.sync_single_for_device = machvec_dma_sync_single;
+-	intel_dma_ops.sync_sg_for_device = machvec_dma_sync_sg;
+-
+ 	/*
+ 	 * The order of these functions is important for
+ 	 * fall-back/fail-over reasons
+-- 
+2.18.0
