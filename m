@@ -1,40 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:50774 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729982AbeGaLGH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Jul 2018 07:06:07 -0400
-Date: Tue, 31 Jul 2018 10:26:34 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Message-ID: <20180731092634.m4wpbhyn54r7fxmb@armageddon.cambridge.arm.com>
-References: <20180731060155.16915-1-alex@ghiti.fr>
+Received: from smtp17.cstnet.cn ([159.226.251.17]:54712 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727409AbeGaM1f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Jul 2018 08:27:35 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v2 16/17] driver/edac: enable Hygon support to AMD64 EDAC
+ driver
+References: <1532352037-7151-1-git-send-email-puwen@hygon.cn>
+ <1532352037-7151-17-git-send-email-puwen@hygon.cn>
+ <b24739e8-0833-8509-0850-815758accaee@redhat.com>
+ <c8f53708-bd57-fb41-8300-115ac5083094@hygon.cn>
+ <1360de2a-5aae-bfd7-ced1-f707b29e7b1f@redhat.com>
+Message-ID: <62003623-b4ee-9ddd-261a-d48b7cf2ce36@hygon.cn>
+Date: Tue, 31 Jul 2018 18:46:54 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180731060155.16915-1-alex@ghiti.fr>
+In-Reply-To: <1360de2a-5aae-bfd7-ced1-f707b29e7b1f@redhat.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180731092634.-19rs547JuxwcHyO46qb7QcU7G2r3UOdtaR-9fAW5f8@z>
+To: Paolo Bonzini <pbonzini@redhat.com>, tglx@linutronix.de, bp@alien8.de, thomas.lendacky@amd.com, mingo@redhat.com, hpa@zytor.com, peterz@infradead.org, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
+Message-ID: <20180731104654.VRX17QgnMKp-ZnRyi04gUQ7sDn2w0ys7lJlmQhOv1hE@z>
 
-On Tue, Jul 31, 2018 at 06:01:44AM +0000, Alexandre Ghiti wrote:
-> Alexandre Ghiti (11):
->   hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
->   hugetlb: Introduce generic version of hugetlb_free_pgd_range
->   hugetlb: Introduce generic version of set_huge_pte_at
->   hugetlb: Introduce generic version of huge_ptep_get_and_clear
->   hugetlb: Introduce generic version of huge_ptep_clear_flush
->   hugetlb: Introduce generic version of huge_pte_none
->   hugetlb: Introduce generic version of huge_pte_wrprotect
->   hugetlb: Introduce generic version of prepare_hugepage_range
->   hugetlb: Introduce generic version of huge_ptep_set_wrprotect
->   hugetlb: Introduce generic version of huge_ptep_set_access_flags
->   hugetlb: Introduce generic version of huge_ptep_get
-[...]
->  arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+On 2018/7/31 15:38, Paolo Bonzini wrote:
+> But if that's the case, it doesn't make sense to have a new vendor!  If
+> AMD's 17h and Hygon's 18h ever diverge, you could always choose the
+> right behavior based on the family, without checking the vendor.
+> 
+> However, if the x86 maintainers prefer to have a new X86_VENDOR_*
+> constant, I'd just ignore the fact that AMD will skip family 18h, and
+> introduce vendor checks along the lines below.  This has the advantage
+> that it's not an issue if AMD ends up _not_ skipping family 18h.
 
-For the arm64 bits in this series:
+Thanks for the suggestion. It's reasonable for the fully consideration.
+For code consistency, will check explicitly for Hygon before testing
+family 18h in next patch set.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Thanks,
+Pu Wen
