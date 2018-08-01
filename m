@@ -1,74 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:57270 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:57290 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389550AbeHARtg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:36 -0400
+        with ESMTP id S2389550AbeHARtm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:42 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 7/9] ia64/sn2: remove no-ops dma sync methods
-Date: Wed,  1 Aug 2018 18:02:50 +0200
-Message-ID: <20180801160252.25629-8-hch@lst.de>
+Subject: [PATCH 9/9] intel-iommu: mark intel_dma_ops static
+Date: Wed,  1 Aug 2018 18:02:52 +0200
+Message-ID: <20180801160252.25629-10-hch@lst.de>
 In-Reply-To: <20180801160252.25629-1-hch@lst.de>
 References: <20180801160252.25629-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 Cc: David Woodhouse <dwmw2@infradead.org>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org
-Message-ID: <20180801160250.Z3NkoN6IxzMsfqFFlBdea8HlZS5tO_FmHD6MuVOF6z4@z>
+Message-ID: <20180801160252.Nq6PpJH2mf6wyIOT0fZcEqzkQoN7jc_Fv1eFYrIRAJ0@z>
 
-These do nothing but duplicating an assert that would have triggered
-earlier on setting the dma mask, so remove them.
+ia64 currently explicitly assigns it to dma_ops, but that same work is
+already done by intel_iommu_init a little later, so we can remove the
+duplicate assignment and mark the variable static.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/sn/pci/pci_dma.c | 29 -----------------------------
- 1 file changed, 29 deletions(-)
+ arch/ia64/kernel/pci-dma.c  | 4 ----
+ drivers/iommu/intel-iommu.c | 2 +-
+ 2 files changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/arch/ia64/sn/pci/pci_dma.c b/arch/ia64/sn/pci/pci_dma.c
-index 74c934a997bb..3b944fba0a3e 100644
---- a/arch/ia64/sn/pci/pci_dma.c
-+++ b/arch/ia64/sn/pci/pci_dma.c
-@@ -314,31 +314,6 @@ static int sn_dma_map_sg(struct device *dev, struct scatterlist *sgl,
- 	return nhwentries;
+diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
+index 5a5bf5a82ac2..fe988c49f01c 100644
+--- a/arch/ia64/kernel/pci-dma.c
++++ b/arch/ia64/kernel/pci-dma.c
+@@ -24,8 +24,6 @@ int force_iommu __read_mostly;
+ 
+ int iommu_pass_through;
+ 
+-extern struct dma_map_ops intel_dma_ops;
+-
+ static int __init pci_iommu_init(void)
+ {
+ 	if (iommu_detected)
+@@ -39,8 +37,6 @@ fs_initcall(pci_iommu_init);
+ 
+ void __init pci_iommu_alloc(void)
+ {
+-	dma_ops = &intel_dma_ops;
+-
+ 	/*
+ 	 * The order of these functions is important for
+ 	 * fall-back/fail-over reasons
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 1be2609bd094..2da100e042fb 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -3889,7 +3889,7 @@ static int intel_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ 	return !dma_addr;
  }
  
--static void sn_dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
--				       size_t size, enum dma_data_direction dir)
--{
--	BUG_ON(!dev_is_pci(dev));
--}
--
--static void sn_dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
--					  size_t size,
--					  enum dma_data_direction dir)
--{
--	BUG_ON(!dev_is_pci(dev));
--}
--
--static void sn_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
--				   int nelems, enum dma_data_direction dir)
--{
--	BUG_ON(!dev_is_pci(dev));
--}
--
--static void sn_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
--				      int nelems, enum dma_data_direction dir)
--{
--	BUG_ON(!dev_is_pci(dev));
--}
--
- static int sn_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
- {
- 	return 0;
-@@ -467,10 +442,6 @@ static struct dma_map_ops sn_dma_ops = {
- 	.unmap_page		= sn_dma_unmap_page,
- 	.map_sg			= sn_dma_map_sg,
- 	.unmap_sg		= sn_dma_unmap_sg,
--	.sync_single_for_cpu 	= sn_dma_sync_single_for_cpu,
--	.sync_sg_for_cpu	= sn_dma_sync_sg_for_cpu,
--	.sync_single_for_device = sn_dma_sync_single_for_device,
--	.sync_sg_for_device	= sn_dma_sync_sg_for_device,
- 	.mapping_error		= sn_dma_mapping_error,
- 	.dma_supported		= sn_dma_supported,
- };
+-const struct dma_map_ops intel_dma_ops = {
++static const struct dma_map_ops intel_dma_ops = {
+ 	.alloc = intel_alloc_coherent,
+ 	.free = intel_free_coherent,
+ 	.map_sg = intel_map_sg,
 -- 
 2.18.0
