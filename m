@@ -1,45 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:32929 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732300AbeHAJJf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Aug 2018 05:09:35 -0400
-Date: Wed, 1 Aug 2018 09:29:47 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH] ia64: fix barrier placement for write* / dma mapping
-Message-ID: <20180801072947.GD20224@lst.de>
-References: <20180731172031.4447-1-hch@lst.de> <20180731172031.4447-2-hch@lst.de> <c7ecb31e9a79d26ce9edb15f58e0880f@codeaurora.org>
+Received: from mail-ua0-f196.google.com ([209.85.217.196]:37124 "EHLO
+        mail-ua0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387553AbeHAJ0g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 05:26:36 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <c7ecb31e9a79d26ce9edb15f58e0880f@codeaurora.org>
+References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
+In-Reply-To: <20180731051519.101249-1-ysato@users.sourceforge.jp>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 1 Aug 2018 09:42:02 +0200
+Message-ID: <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+Subject: Re: [PATCH] sh: remove unneeded constructor.
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: okaya@codeaurora.org
-Cc: Christoph Hellwig <hch@lst.de>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, okaya@kernel.org
-Message-ID: <20180801072947.SHVRKLfiiltSaK1vT83GsjslpFalitUQ4oKQ21gzeEw@z>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Matthew Wilcox <willy@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Tue, Jul 31, 2018 at 11:41:23PM -0700, okaya@codeaurora.org wrote:
-> I asked this question to Tony Luck before. If I remember right,
-> his answer was:
+Hi Sato-san,
+
+CC Rob , Willy, linux-arch
+
+On Tue, Jul 31, 2018 at 7:15 AM Yoshinori Sato
+<ysato@users.sourceforge.jp> wrote:
+> pgd_cache specifies __GFP_ZERO when allocating.
+> This constructor is meaningless.
 >
-> CPU guarantees outstanding writes to be flushed when a register write
-> instruction is executed and an additional barrier instruction is not
-> needed.
+> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-That would be great.  It still doesn't explain the barriers in the
-dma sync routines.  Those have been there since the following commit
-in the history tree:
+Thanks for your patch!
 
-commit 66b99421d118a5ddd98a72913670b0fcf0a38d45
-Author: Andrew Morton <akpm@osdl.org>
-Date:   Sat Mar 13 17:05:37 2004 -0800
+> --- a/arch/sh/mm/pgtable.c
+> +++ b/arch/sh/mm/pgtable.c
+> @@ -9,20 +9,11 @@ static struct kmem_cache *pgd_cachep;
+>  static struct kmem_cache *pmd_cachep;
+>  #endif
+>
+> -void pgd_ctor(void *x)
+> -{
+> -       pgd_t *pgd = x;
+> -
+> -       memcpy(pgd + USER_PTRS_PER_PGD,
+> -              swapper_pg_dir + USER_PTRS_PER_PGD,
+> -              (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
+> -}
+> -
+>  void pgtable_cache_init(void)
+>  {
+>         pgd_cachep = kmem_cache_create("pgd_cache",
+>                                        PTRS_PER_PGD * (1<<PTE_MAGNITUDE),
+> -                                      PAGE_SIZE, SLAB_PANIC, pgd_ctor);
+> +                                      PAGE_SIZE, SLAB_PANIC, NULL);
+>  #if PAGETABLE_LEVELS > 2
+>         pmd_cachep = kmem_cache_create("pmd_cache",
+>                                        PTRS_PER_PMD * (1<<PTE_MAGNITUDE),
 
-    [PATCH] DMA: Fill gaping hole in DMA API interfaces.
+While I can confirm your patch fixes the
 
-    From: "David S. Miller" <davem@redhat.com>
+    WARNING: CPU: 0 PID: 1 at mm/slub.c:2412
+___slab_alloc.constprop.34+0x196/0x288
 
-which in fact only added them for the HP zx1 platform, and doesn't
-contain any good explanation of why we need a barrier.
+seen since commit 128227e7fe4087b6 ("slab: __GFP_ZERO is incompatible
+with a constructor"), I'm not 100% sure this is the correct fix.
 
-So I guess the right answer might be to just remove these barriers
-without replacement.
+swapper_pg_dir[] does have two non-zero entries (768 and 895), which were
+copied by the constructor.  Perhaps SH does have a need for these two
+entries, and thus for the constructor?
+
+Unfortunately I'm too SH-illiterate to answer this myself.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
