@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 4/9] ia64: remove the unused bad_dma_address symbol
-Date: Wed,  1 Aug 2018 18:02:47 +0200
-Message-ID: <20180801160252.25629-5-hch@lst.de>
+Subject: [PATCH 5/9] ia64: remove the unused pci_iommu_shutdown function
+Date: Wed,  1 Aug 2018 18:02:48 +0200
+Message-ID: <20180801160252.25629-6-hch@lst.de>
 References: <20180801160252.25629-1-hch@lst.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180801160252.25629-1-hch@lst.de>
@@ -12,22 +12,37 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/kernel/pci-dma.c | 3 ---
- 1 file changed, 3 deletions(-)
+ arch/ia64/include/asm/iommu.h | 1 -
+ arch/ia64/kernel/pci-dma.c    | 5 -----
+ 2 files changed, 6 deletions(-)
 
+diff --git a/arch/ia64/include/asm/iommu.h b/arch/ia64/include/asm/iommu.h
+index 156b9d8e1932..5397e5aa3704 100644
+--- a/arch/ia64/include/asm/iommu.h
++++ b/arch/ia64/include/asm/iommu.h
+@@ -5,7 +5,6 @@
+ /* 10 seconds */
+ #define DMAR_OPERATION_TIMEOUT (((cycles_t) local_cpu_data->itc_freq)*10)
+ 
+-extern void pci_iommu_shutdown(void);
+ extern void no_iommu_init(void);
+ #ifdef	CONFIG_INTEL_IOMMU
+ extern int force_iommu, no_iommu;
 diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
-index 3c2884bef3d4..924966e5aa25 100644
+index 924966e5aa25..936af0ec7f8f 100644
 --- a/arch/ia64/kernel/pci-dma.c
 +++ b/arch/ia64/kernel/pci-dma.c
-@@ -15,9 +15,6 @@
- #include <linux/kernel.h>
- #include <asm/page.h>
+@@ -37,11 +37,6 @@ static int __init pci_iommu_init(void)
+ /* Must execute after PCI subsystem */
+ fs_initcall(pci_iommu_init);
  
--dma_addr_t bad_dma_address __read_mostly;
--EXPORT_SYMBOL(bad_dma_address);
+-void pci_iommu_shutdown(void)
+-{
+-	return;
+-}
 -
- int no_iommu __read_mostly;
- #ifdef CONFIG_IOMMU_DEBUG
- int force_iommu __read_mostly = 1;
+ void __init
+ iommu_dma_init(void)
+ {
 -- 
 2.18.0
