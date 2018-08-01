@@ -1,73 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:57226 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:57210 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389663AbeHARt0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:26 -0400
+        with ESMTP id S2389663AbeHARtY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:24 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 3/9] ia64: remove iommu_dma_supported
-Date: Wed,  1 Aug 2018 18:02:46 +0200
-Message-ID: <20180801160252.25629-4-hch@lst.de>
+Subject: [PATCH 2/9] ia64: remove the dead iommu_sac_force variable
+Date: Wed,  1 Aug 2018 18:02:45 +0200
+Message-ID: <20180801160252.25629-3-hch@lst.de>
 In-Reply-To: <20180801160252.25629-1-hch@lst.de>
 References: <20180801160252.25629-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 Cc: David Woodhouse <dwmw2@infradead.org>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org
-Message-ID: <20180801160246.u1ZurTsOVJss1sGo7At6-c3nI5EOjrhmWhE0FNcKcj8@z>
+Message-ID: <20180801160245.Y-vGHZ6Yu9tJjUamCAJI3ityISmT6n90cA4D2v0Ermo@z>
 
-The generic dma_direct_supported helper already used by intel-iommu on
-x86 does a better job than the ia64 reimplementation.
+Looks like copy and paste from x86 that never actually got used.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/kernel/pci-dma.c  | 13 -------------
- drivers/iommu/intel-iommu.c |  2 --
- 2 files changed, 15 deletions(-)
+ arch/ia64/kernel/pci-dma.c | 19 -------------------
+ 1 file changed, 19 deletions(-)
 
 diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
-index 50b6ad282a90..3c2884bef3d4 100644
+index b5df084c0af4..50b6ad282a90 100644
 --- a/arch/ia64/kernel/pci-dma.c
 +++ b/arch/ia64/kernel/pci-dma.c
-@@ -51,18 +51,6 @@ iommu_dma_init(void)
- 	return;
- }
+@@ -18,8 +18,6 @@
+ dma_addr_t bad_dma_address __read_mostly;
+ EXPORT_SYMBOL(bad_dma_address);
  
--int iommu_dma_supported(struct device *dev, u64 mask)
--{
--	/* Copied from i386. Doesn't make much sense, because it will
--	   only work for pci_alloc_coherent.
--	   The caller just has to use GFP_DMA in this case. */
--	if (mask < DMA_BIT_MASK(24))
+-static int iommu_sac_force __read_mostly;
+-
+ int no_iommu __read_mostly;
+ #ifdef CONFIG_IOMMU_DEBUG
+ int force_iommu __read_mostly = 1;
+@@ -61,23 +59,6 @@ int iommu_dma_supported(struct device *dev, u64 mask)
+ 	if (mask < DMA_BIT_MASK(24))
+ 		return 0;
+ 
+-	/* Tell the device to use SAC when IOMMU force is on.  This
+-	   allows the driver to use cheaper accesses in some cases.
+-
+-	   Problem with this is that if we overflow the IOMMU area and
+-	   return DAC as fallback address the device may not handle it
+-	   correctly.
+-
+-	   As a special case some controllers have a 39bit address
+-	   mode that is as efficient as 32bit (aic79xx). Don't force
+-	   SAC for these.  Assume all masks <= 40 bits are of this
+-	   type. Normally this doesn't make any difference, but gives
+-	   more gentle handling of IOMMU overflow. */
+-	if (iommu_sac_force && (mask >= DMA_BIT_MASK(40))) {
+-		dev_info(dev, "Force SAC with mask %llx\n", mask);
 -		return 0;
+-	}
 -
--	return 1;
--}
--EXPORT_SYMBOL(iommu_dma_supported);
--
- void __init pci_iommu_alloc(void)
- {
- 	dma_ops = &intel_dma_ops;
-@@ -71,7 +59,6 @@ void __init pci_iommu_alloc(void)
- 	intel_dma_ops.sync_sg_for_cpu = machvec_dma_sync_sg;
- 	intel_dma_ops.sync_single_for_device = machvec_dma_sync_single;
- 	intel_dma_ops.sync_sg_for_device = machvec_dma_sync_sg;
--	intel_dma_ops.dma_supported = iommu_dma_supported;
- 
- 	/*
- 	 * The order of these functions is important for
-diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index 115ff26e9ced..1be2609bd094 100644
---- a/drivers/iommu/intel-iommu.c
-+++ b/drivers/iommu/intel-iommu.c
-@@ -3897,9 +3897,7 @@ const struct dma_map_ops intel_dma_ops = {
- 	.map_page = intel_map_page,
- 	.unmap_page = intel_unmap_page,
- 	.mapping_error = intel_mapping_error,
--#ifdef CONFIG_X86
- 	.dma_supported = dma_direct_supported,
--#endif
- };
- 
- static inline int iommu_domain_cache_init(void)
+ 	return 1;
+ }
+ EXPORT_SYMBOL(iommu_dma_supported);
 -- 
 2.18.0
