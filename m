@@ -1,34 +1,54 @@
-From: Luiz Capitulino <lcapitulino@redhat.com>
-Subject: Re: [PATCH v5 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Date: Tue, 31 Jul 2018 16:06:40 -0400
-Message-ID: <20180731160640.11306628@doriath>
-References: <20180731060155.16915-1-alex@ghiti.fr>
+From: okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org
+Subject: Re: [PATCH] ia64: fix barrier placement for write* / dma mapping
+Date: Tue, 31 Jul 2018 23:41:23 -0700
+Message-ID: <c7ecb31e9a79d26ce9edb15f58e0880f@codeaurora.org>
+References: <20180731172031.4447-1-hch@lst.de>
+	<20180731172031.4447-2-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180731060155.16915-1-alex@ghiti.fr>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20180731172031.4447-2-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Fenghua Yu <fenghua.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, okaya-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 31 Jul 2018 06:01:44 +0000
-Alexandre Ghiti <alex@ghiti.fr> wrote:
++ my new email
 
-> [CC linux-mm for inclusion in -mm tree] 
+On 2018-07-31 10:20, Christoph Hellwig wrote:
+> memory-barriers.txt has been updated with the following requirement.
 > 
-> In order to reduce copy/paste of functions across architectures and then
-> make riscv hugetlb port (and future ports) simpler and smaller, this
-> patchset intends to factorize the numerous hugetlb primitives that are
-> defined across all the architectures.
+> "When using writel(), a prior wmb() is not needed to guarantee that the
+> cache coherent memory writes have completed before writing to the MMIO
+> region."
+> 
+> The current writeX() and iowriteX() implementations on ia64 are not
+> satisfying this requirement as the barrier is after the register write.
+> 
 
-[...]
+I asked this question to Tony Luck before. If I remember right,
+his answer was:
 
->  15 files changed, 139 insertions(+), 382 deletions(-)
+CPU guarantees outstanding writes to be flushed when a register write
+instruction is executed and an additional barrier instruction is not
+needed.
 
-I imagine you're mostly interested in non-x86 review at this point, but
-as this series is looking amazing:
-
-Reviewed-by: Luiz Capitulino <lcapitulino@redhat.com>
+> This adds the missing memory barriers, and instead drops them from the
+> dma sync routine where they are misplaced (and were missing in the
+> more important map/unmap cases anyway).
+> 
+> All this doesn't affect the SN2 platform, which already has barrier
+> in the I/O accessors, and none in dma mapping (but then again
+> swiotlb doesn't have any either).
+> 
+> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+> ---
