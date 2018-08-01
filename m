@@ -1,39 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3-rdu2.redhat.com ([66.187.233.73]:53242 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1732373AbeGaVsu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Jul 2018 17:48:50 -0400
-Date: Tue, 31 Jul 2018 16:06:40 -0400
-From: Luiz Capitulino <lcapitulino@redhat.com>
-Subject: Re: [PATCH v5 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Message-ID: <20180731160640.11306628@doriath>
-In-Reply-To: <20180731060155.16915-1-alex@ghiti.fr>
-References: <20180731060155.16915-1-alex@ghiti.fr>
+Received: from smtp.codeaurora.org ([198.145.29.96]:43680 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387444AbeHAIZc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 04:25:32 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII;
+ format=flowed
 Content-Transfer-Encoding: 7bit
+Date: Tue, 31 Jul 2018 23:41:23 -0700
+From: okaya@codeaurora.org
+Subject: Re: [PATCH] ia64: fix barrier placement for write* / dma mapping
+In-Reply-To: <20180731172031.4447-2-hch@lst.de>
+References: <20180731172031.4447-1-hch@lst.de>
+ <20180731172031.4447-2-hch@lst.de>
+Message-ID: <c7ecb31e9a79d26ce9edb15f58e0880f@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180731200640.Bay9bktfDtPf-4KoZO2u20588oCScBsS1Ml4LkUXtK0@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, okaya@kernel.org
+Message-ID: <20180801064123.0h1DaoJTELVyTaPmcTberHRCADTUl78AdbGqm1IXNTY@z>
 
-On Tue, 31 Jul 2018 06:01:44 +0000
-Alexandre Ghiti <alex@ghiti.fr> wrote:
++ my new email
 
-> [CC linux-mm for inclusion in -mm tree] 
+On 2018-07-31 10:20, Christoph Hellwig wrote:
+> memory-barriers.txt has been updated with the following requirement.
 > 
-> In order to reduce copy/paste of functions across architectures and then
-> make riscv hugetlb port (and future ports) simpler and smaller, this
-> patchset intends to factorize the numerous hugetlb primitives that are
-> defined across all the architectures.
+> "When using writel(), a prior wmb() is not needed to guarantee that the
+> cache coherent memory writes have completed before writing to the MMIO
+> region."
+> 
+> The current writeX() and iowriteX() implementations on ia64 are not
+> satisfying this requirement as the barrier is after the register write.
+> 
 
-[...]
+I asked this question to Tony Luck before. If I remember right,
+his answer was:
 
->  15 files changed, 139 insertions(+), 382 deletions(-)
+CPU guarantees outstanding writes to be flushed when a register write
+instruction is executed and an additional barrier instruction is not
+needed.
 
-I imagine you're mostly interested in non-x86 review at this point, but
-as this series is looking amazing:
-
-Reviewed-by: Luiz Capitulino <lcapitulino@redhat.com>
+> This adds the missing memory barriers, and instead drops them from the
+> dma sync routine where they are misplaced (and were missing in the
+> more important map/unmap cases anyway).
+> 
+> All this doesn't affect the SN2 platform, which already has barrier
+> in the I/O accessors, and none in dma mapping (but then again
+> swiotlb doesn't have any either).
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
