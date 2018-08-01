@@ -1,38 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:57198 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:57226 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389663AbeHARtV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:21 -0400
+        with ESMTP id S2389663AbeHARt0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:26 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/9] ia64: remove the kern_mem_attribute export
-Date: Wed,  1 Aug 2018 18:02:44 +0200
-Message-ID: <20180801160252.25629-2-hch@lst.de>
+Subject: [PATCH 3/9] ia64: remove iommu_dma_supported
+Date: Wed,  1 Aug 2018 18:02:46 +0200
+Message-ID: <20180801160252.25629-4-hch@lst.de>
 In-Reply-To: <20180801160252.25629-1-hch@lst.de>
 References: <20180801160252.25629-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 Cc: David Woodhouse <dwmw2@infradead.org>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org
-Message-ID: <20180801160244.GiycsowlDG6gVnRuYXKEJhvViLr1uW50Tvr9ux_U3YQ@z>
+Message-ID: <20180801160246.u1ZurTsOVJss1sGo7At6-c3nI5EOjrhmWhE0FNcKcj8@z>
 
-No actually used anywhere.
+The generic dma_direct_supported helper already used by intel-iommu on
+x86 does a better job than the ia64 reimplementation.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/kernel/efi.c | 1 -
- 1 file changed, 1 deletion(-)
+ arch/ia64/kernel/pci-dma.c  | 13 -------------
+ drivers/iommu/intel-iommu.c |  2 --
+ 2 files changed, 15 deletions(-)
 
-diff --git a/arch/ia64/kernel/efi.c b/arch/ia64/kernel/efi.c
-index 9c09bf390cce..f77d80edddfe 100644
---- a/arch/ia64/kernel/efi.c
-+++ b/arch/ia64/kernel/efi.c
-@@ -842,7 +842,6 @@ kern_mem_attribute (unsigned long phys_addr, unsigned long size)
- 	} while (md);
- 	return 0;	/* never reached */
+diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
+index 50b6ad282a90..3c2884bef3d4 100644
+--- a/arch/ia64/kernel/pci-dma.c
++++ b/arch/ia64/kernel/pci-dma.c
+@@ -51,18 +51,6 @@ iommu_dma_init(void)
+ 	return;
  }
--EXPORT_SYMBOL(kern_mem_attribute);
  
- int
- valid_phys_addr_range (phys_addr_t phys_addr, unsigned long size)
+-int iommu_dma_supported(struct device *dev, u64 mask)
+-{
+-	/* Copied from i386. Doesn't make much sense, because it will
+-	   only work for pci_alloc_coherent.
+-	   The caller just has to use GFP_DMA in this case. */
+-	if (mask < DMA_BIT_MASK(24))
+-		return 0;
+-
+-	return 1;
+-}
+-EXPORT_SYMBOL(iommu_dma_supported);
+-
+ void __init pci_iommu_alloc(void)
+ {
+ 	dma_ops = &intel_dma_ops;
+@@ -71,7 +59,6 @@ void __init pci_iommu_alloc(void)
+ 	intel_dma_ops.sync_sg_for_cpu = machvec_dma_sync_sg;
+ 	intel_dma_ops.sync_single_for_device = machvec_dma_sync_single;
+ 	intel_dma_ops.sync_sg_for_device = machvec_dma_sync_sg;
+-	intel_dma_ops.dma_supported = iommu_dma_supported;
+ 
+ 	/*
+ 	 * The order of these functions is important for
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 115ff26e9ced..1be2609bd094 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -3897,9 +3897,7 @@ const struct dma_map_ops intel_dma_ops = {
+ 	.map_page = intel_map_page,
+ 	.unmap_page = intel_unmap_page,
+ 	.mapping_error = intel_mapping_error,
+-#ifdef CONFIG_X86
+ 	.dma_supported = dma_direct_supported,
+-#endif
+ };
+ 
+ static inline int iommu_domain_cache_init(void)
 -- 
 2.18.0
