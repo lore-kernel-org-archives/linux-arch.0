@@ -1,63 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:37236 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387610AbeHANFl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 09:05:41 -0400
-Date: Wed, 1 Aug 2018 04:20:19 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] sh: remove unneeded constructor.
-Message-ID: <20180801112019.GA2666@bombadil.infradead.org>
-References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
- <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+Received: from relay3-d.mail.gandi.net ([217.70.183.195]:48725 "EHLO
+        relay3-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387799AbeHANhp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 09:37:45 -0400
+Subject: Re: [PATCH v5 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+References: <20180731060155.16915-1-alex@ghiti.fr>
+ <20180731160640.11306628@doriath>
+From: Alexandre Ghiti <alex@ghiti.fr>
+Message-ID: <1cee9f98-4cff-3e42-6cc8-088310e406d9@ghiti.fr>
+Date: Wed, 1 Aug 2018 13:50:49 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+In-Reply-To: <20180731160640.11306628@doriath>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Luiz Capitulino <lcapitulino@redhat.com>
+Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180801115049.Jl5YsBtiGXEXAx4dIqBY0AQIO8oekn3uAHPX-nYFb7Y@z>
 
-On Wed, Aug 01, 2018 at 09:42:02AM +0200, Geert Uytterhoeven wrote:
-> Hi Sato-san,
-> 
-> CC Rob , Willy, linux-arch
+On 07/31/2018 10:06 PM, Luiz Capitulino wrote:
+> On Tue, 31 Jul 2018 06:01:44 +0000
+> Alexandre Ghiti <alex@ghiti.fr> wrote:
+>
+>> [CC linux-mm for inclusion in -mm tree]
+>>
+>> In order to reduce copy/paste of functions across architectures and then
+>> make riscv hugetlb port (and future ports) simpler and smaller, this
+>> patchset intends to factorize the numerous hugetlb primitives that are
+>> defined across all the architectures.
+> [...]
+>
+>>   15 files changed, 139 insertions(+), 382 deletions(-)
+> I imagine you're mostly interested in non-x86 review at this point, but
+> as this series is looking amazing:
+>
+> Reviewed-by: Luiz Capitulino <lcapitulino@redhat.com>
 
-Thanks!
+It's always good to have another feedback :)
+Thanks for your review Luiz,
 
-> > -void pgd_ctor(void *x)
-> > -{
-> > -       pgd_t *pgd = x;
-> > -
-> > -       memcpy(pgd + USER_PTRS_PER_PGD,
-> > -              swapper_pg_dir + USER_PTRS_PER_PGD,
-> > -              (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-> > -}
-> > -
-> >  void pgtable_cache_init(void)
-> >  {
-> >         pgd_cachep = kmem_cache_create("pgd_cache",
-> >                                        PTRS_PER_PGD * (1<<PTE_MAGNITUDE),
-> > -                                      PAGE_SIZE, SLAB_PANIC, pgd_ctor);
-> > +                                      PAGE_SIZE, SLAB_PANIC, NULL);
-> >  #if PAGETABLE_LEVELS > 2
-> >         pmd_cachep = kmem_cache_create("pmd_cache",
-> >                                        PTRS_PER_PMD * (1<<PTE_MAGNITUDE),
-> 
-> While I can confirm your patch fixes the
-> 
->     WARNING: CPU: 0 PID: 1 at mm/slub.c:2412
-> ___slab_alloc.constprop.34+0x196/0x288
-> 
-> seen since commit 128227e7fe4087b6 ("slab: __GFP_ZERO is incompatible
-> with a constructor"), I'm not 100% sure this is the correct fix.
-> 
-> swapper_pg_dir[] does have two non-zero entries (768 and 895), which were
-> copied by the constructor.  Perhaps SH does have a need for these two
-> entries, and thus for the constructor?
-
-__GFP_ZERO overrode the constructor.  That is, before 128227e7fe40,
-if you specified both a constructor and __GFP_ZERO, first the slab
-code would invoke the constructor, then it would zero the allocation.
-So this patch is preserving the existing behaviour.  Whether the existing
-behaviour is correct or not, I cannot say.
+Alex
