@@ -1,63 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:57210 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389663AbeHARtY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 13:49:24 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/9] ia64: remove the dead iommu_sac_force variable
-Date: Wed,  1 Aug 2018 18:02:45 +0200
-Message-ID: <20180801160252.25629-3-hch@lst.de>
-In-Reply-To: <20180801160252.25629-1-hch@lst.de>
-References: <20180801160252.25629-1-hch@lst.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46000 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389882AbeHAT3v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Aug 2018 15:29:51 -0400
+Date: Wed, 1 Aug 2018 18:42:56 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Message-ID: <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
+References: <cover.1529507994.git.andreyknvl@google.com>
+ <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+ <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
+ <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org
-Message-ID: <20180801160245.Y-vGHZ6Yu9tJjUamCAJI3ityISmT6n90cA4D2v0Ermo@z>
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20180801174256.hpeEZYuei8z9s-lvx_fRN1N4NB81tXVAl4hhhTMcVuM@z>
 
-Looks like copy and paste from x86 that never actually got used.
+On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
+> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> > On Wed, Jun 27, 2018 at 5:05 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> >> On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
+> >> <catalin.marinas@arm.com> wrote:
+> >>> While I support this work, as a maintainer I'd like to understand
+> >>> whether we'd be in a continuous chase of ABI breaks with every kernel
+> >>> release or we have a better way to identify potential issues. Is there
+> >>> any way to statically analyse conversions from __user ptr to long for
+> >>> example? Or, could we get the compiler to do this for us?
+> >>
+> >> OK, got it, I'll try to figure out a way to find these conversions.
+> >
+> > I've prototyped a checker on top of clang static analyzer (initially
+> > looked at sparse, but couldn't find any documentation or examples).
+> > The results are here [1], search for "warning: user pointer cast".
+> > Sharing in case anybody wants to take a look, will look at them myself
+> > tomorrow.
+> >
+> > [1] https://gist.github.com/xairy/433edd5c86456a64026247cb2fef2115
+> 
+> So the checker reports ~100 different places where a __user pointer
+> being casted. I've looked through them and found 3 places where we
+> need to add untagging. Source code lines below come from 4.18-rc2+
+> (6f0d349d).
+[...]
+> I'll add the 3 patches with fixes to v5 of this patchset.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/ia64/kernel/pci-dma.c | 19 -------------------
- 1 file changed, 19 deletions(-)
+Thanks for investigating. You can fix those three places in your code
+but I was rather looking for a way to check such casting in the future
+for newly added code. While for the khwasan we can assume it's a debug
+option, the tagged user pointers are ABI and we need to keep it stable.
 
-diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
-index b5df084c0af4..50b6ad282a90 100644
---- a/arch/ia64/kernel/pci-dma.c
-+++ b/arch/ia64/kernel/pci-dma.c
-@@ -18,8 +18,6 @@
- dma_addr_t bad_dma_address __read_mostly;
- EXPORT_SYMBOL(bad_dma_address);
- 
--static int iommu_sac_force __read_mostly;
--
- int no_iommu __read_mostly;
- #ifdef CONFIG_IOMMU_DEBUG
- int force_iommu __read_mostly = 1;
-@@ -61,23 +59,6 @@ int iommu_dma_supported(struct device *dev, u64 mask)
- 	if (mask < DMA_BIT_MASK(24))
- 		return 0;
- 
--	/* Tell the device to use SAC when IOMMU force is on.  This
--	   allows the driver to use cheaper accesses in some cases.
--
--	   Problem with this is that if we overflow the IOMMU area and
--	   return DAC as fallback address the device may not handle it
--	   correctly.
--
--	   As a special case some controllers have a 39bit address
--	   mode that is as efficient as 32bit (aic79xx). Don't force
--	   SAC for these.  Assume all masks <= 40 bits are of this
--	   type. Normally this doesn't make any difference, but gives
--	   more gentle handling of IOMMU overflow. */
--	if (iommu_sac_force && (mask >= DMA_BIT_MASK(40))) {
--		dev_info(dev, "Force SAC with mask %llx\n", mask);
--		return 0;
--	}
--
- 	return 1;
- }
- EXPORT_SYMBOL(iommu_dma_supported);
+We could we actually add some macros for explicit conversion between
+__user ptr and long and silence the warning there (I guess this would
+work better for sparse). We can then detect new ptr to long casts as
+they appear. I just hope that's not too intrusive.
+
+(I haven't tried the sparse patch yet, hopefully sometime this week)
+
 -- 
-2.18.0
+Catalin
