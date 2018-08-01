@@ -1,111 +1,62 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 8/9] ia64: remove machvec_dma_sync_{single,sg}
-Date: Wed,  1 Aug 2018 18:02:51 +0200
-Message-ID: <20180801160252.25629-9-hch@lst.de>
-References: <20180801160252.25629-1-hch@lst.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Wed, 1 Aug 2018 18:42:56 +0100
+Message-ID: <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
+References: <cover.1529507994.git.andreyknvl@google.com>
+ <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+ <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
+ <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180801160252.25629-1-hch@lst.de>
+Content-Disposition: inline
+In-Reply-To: <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundati>
 List-Id: linux-arch.vger.kernel.org
 
-The original form of these was added (to the HP zx1 platform only) by
-the following bitkeeper commit (by the way of the historic.git tree):
+On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
+> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> > On Wed, Jun 27, 2018 at 5:05 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> >> On Tue, Jun 26, 2018 at 7:29 PM, Catalin Marinas
+> >> <catalin.marinas@arm.com> wrote:
+> >>> While I support this work, as a maintainer I'd like to understand
+> >>> whether we'd be in a continuous chase of ABI breaks with every kernel
+> >>> release or we have a better way to identify potential issues. Is there
+> >>> any way to statically analyse conversions from __user ptr to long for
+> >>> example? Or, could we get the compiler to do this for us?
+> >>
+> >> OK, got it, I'll try to figure out a way to find these conversions.
+> >
+> > I've prototyped a checker on top of clang static analyzer (initially
+> > looked at sparse, but couldn't find any documentation or examples).
+> > The results are here [1], search for "warning: user pointer cast".
+> > Sharing in case anybody wants to take a look, will look at them myself
+> > tomorrow.
+> >
+> > [1] https://gist.github.com/xairy/433edd5c86456a64026247cb2fef2115
+> 
+> So the checker reports ~100 different places where a __user pointer
+> being casted. I've looked through them and found 3 places where we
+> need to add untagging. Source code lines below come from 4.18-rc2+
+> (6f0d349d).
+[...]
+> I'll add the 3 patches with fixes to v5 of this patchset.
 
-commit 66b99421d118a5ddd98a72913670b0fcf0a38d45
-Author: Andrew Morton <akpm@osdl.org>
-Date:   Sat Mar 13 17:05:37 2004 -0800
+Thanks for investigating. You can fix those three places in your code
+but I was rather looking for a way to check such casting in the future
+for newly added code. While for the khwasan we can assume it's a debug
+option, the tagged user pointers are ABI and we need to keep it stable.
 
-    [PATCH] DMA: Fill gaping hole in DMA API interfaces.
+We could we actually add some macros for explicit conversion between
+__user ptr and long and silence the warning there (I guess this would
+work better for sparse). We can then detect new ptr to long casts as
+they appear. I just hope that's not too intrusive.
 
-    From: "David S. Miller" <davem@redhat.com>
+(I haven't tried the sparse patch yet, hopefully sometime this week)
 
-The commit does not explain why we'd need the memory barrier on ia64,
-it never included the swiotlb or SGI IOMMU based platforms, and also
-failed to address the map/unmap parts of the dma mapping interface,
-which should provide the same ordering semantics and actually are
-commonly used.  The conclusion of this is that they were added in
-error and should be removed.
-
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/ia64/hp/common/sba_iommu.c     |  4 ----
- arch/ia64/include/asm/dma-mapping.h |  5 -----
- arch/ia64/kernel/machvec.c          | 16 ----------------
- arch/ia64/kernel/pci-dma.c          |  5 -----
- 4 files changed, 30 deletions(-)
-
-diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
-index ee5b652d320a..e8da6503ed2f 100644
---- a/arch/ia64/hp/common/sba_iommu.c
-+++ b/arch/ia64/hp/common/sba_iommu.c
-@@ -2207,10 +2207,6 @@ const struct dma_map_ops sba_dma_ops = {
- 	.unmap_page		= sba_unmap_page,
- 	.map_sg			= sba_map_sg_attrs,
- 	.unmap_sg		= sba_unmap_sg_attrs,
--	.sync_single_for_cpu	= machvec_dma_sync_single,
--	.sync_sg_for_cpu	= machvec_dma_sync_sg,
--	.sync_single_for_device	= machvec_dma_sync_single,
--	.sync_sg_for_device	= machvec_dma_sync_sg,
- 	.dma_supported		= sba_dma_supported,
- 	.mapping_error		= sba_dma_mapping_error,
- };
-diff --git a/arch/ia64/include/asm/dma-mapping.h b/arch/ia64/include/asm/dma-mapping.h
-index 76e4d6632d68..2b8cd4a6d958 100644
---- a/arch/ia64/include/asm/dma-mapping.h
-+++ b/arch/ia64/include/asm/dma-mapping.h
-@@ -16,11 +16,6 @@ extern const struct dma_map_ops *dma_ops;
- extern struct ia64_machine_vector ia64_mv;
- extern void set_iommu_machvec(void);
- 
--extern void machvec_dma_sync_single(struct device *, dma_addr_t, size_t,
--				    enum dma_data_direction);
--extern void machvec_dma_sync_sg(struct device *, struct scatterlist *, int,
--				enum dma_data_direction);
--
- static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- {
- 	return platform_dma_get_ops(NULL);
-diff --git a/arch/ia64/kernel/machvec.c b/arch/ia64/kernel/machvec.c
-index 7bfe98859911..1b604d02250b 100644
---- a/arch/ia64/kernel/machvec.c
-+++ b/arch/ia64/kernel/machvec.c
-@@ -73,19 +73,3 @@ machvec_timer_interrupt (int irq, void *dev_id)
- {
- }
- EXPORT_SYMBOL(machvec_timer_interrupt);
--
--void
--machvec_dma_sync_single(struct device *hwdev, dma_addr_t dma_handle, size_t size,
--			enum dma_data_direction dir)
--{
--	mb();
--}
--EXPORT_SYMBOL(machvec_dma_sync_single);
--
--void
--machvec_dma_sync_sg(struct device *hwdev, struct scatterlist *sg, int n,
--		    enum dma_data_direction dir)
--{
--	mb();
--}
--EXPORT_SYMBOL(machvec_dma_sync_sg);
-diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
-index afb43677f9ca..5a5bf5a82ac2 100644
---- a/arch/ia64/kernel/pci-dma.c
-+++ b/arch/ia64/kernel/pci-dma.c
-@@ -41,11 +41,6 @@ void __init pci_iommu_alloc(void)
- {
- 	dma_ops = &intel_dma_ops;
- 
--	intel_dma_ops.sync_single_for_cpu = machvec_dma_sync_single;
--	intel_dma_ops.sync_sg_for_cpu = machvec_dma_sync_sg;
--	intel_dma_ops.sync_single_for_device = machvec_dma_sync_single;
--	intel_dma_ops.sync_sg_for_device = machvec_dma_sync_sg;
--
- 	/*
- 	 * The order of these functions is important for
- 	 * fall-back/fail-over reasons
 -- 
-2.18.0
+Catalin
