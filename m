@@ -1,55 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:59160 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726972AbeHBA6z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 20:58:55 -0400
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:55304 "EHLO
+        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726972AbeHBBDK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Aug 2018 21:03:10 -0400
+Date: Wed, 1 Aug 2018 19:02:05 -0400
+From: Rich Felker <dalias@libc.org>
+Subject: Re: [PATCH] sh: remove unneeded constructor.
+Message-ID: <20180801230205.GI1392@brightrain.aerifal.cx>
+References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
+ <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+ <20180801112019.GA2666@bombadil.infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <20180731113935.6105-1-hch@lst.de>
-References: <20180731113935.6105-1-hch@lst.de>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Thu, 2 Aug 2018 08:10:00 +0900
-Message-ID: <CAK7LNASpOWQqNREQ_XN22QQM6Jx4F1Lrf76=_WHupPCFmOB2gA@mail.gmail.com>
-Subject: Re: include architecture Kconfig files from top-level Kconfig v4
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180801112019.GA2666@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Randy Dunlap <rdunlap@infradead.org>, Richard Weinberger <richard@nod.at>, Ley Foon Tan <lftan@altera.com>, Michal Simek <monstr@monstr.eu>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-um@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20180801231000.TpCJWlqCNgLuHf1pTfA8j3ZM1dYhh8nQbb7GHWOmV_M@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Linux-Arch <linux-arch@vger.kernel.org>
 
-2018-07-31 20:39 GMT+09:00 Christoph Hellwig <hch@lst.de>:
-> Hi Masahiro,
->
-> what do you think about the series below, which moves the includes
-> of all the architecture independ Kconfig files to the top-level
-> Kconfig instead of duplicating the includes in all architectures?
->
-> Note that this only handles the low-hanging fruite, there are a lot
-> of other bits that should probably be cleaned up to be common,
-> but those will be not entirely trivial.
->
-> Changes since v3:
->  - don't allow to select PREEMPT_COUNT for architectures that don't
->    implement it
->  - fix usage of SUBARCH=i386 and SUBARCH=x86_64 for um
->
-> Changes since v2:
->  - fix the missing sh conversion
->  - handle the lack of CONFIG_SWAP support in microblaze and nios2
->    properly
->
-> Changes since v1:
->  - add back a remove source statement from arch/arm/Kconfig
->  - various fixes from Randy
->  - various UML patches to be able to use the common Kconfig
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+On Wed, Aug 01, 2018 at 04:20:19AM -0700, Matthew Wilcox wrote:
+> On Wed, Aug 01, 2018 at 09:42:02AM +0200, Geert Uytterhoeven wrote:
+> > Hi Sato-san,
+> > 
+> > CC Rob , Willy, linux-arch
+> 
+> Thanks!
+> 
+> > > -void pgd_ctor(void *x)
+> > > -{
+> > > -       pgd_t *pgd = x;
+> > > -
+> > > -       memcpy(pgd + USER_PTRS_PER_PGD,
+> > > -              swapper_pg_dir + USER_PTRS_PER_PGD,
+> > > -              (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
+> > > -}
+> > > -
+> > >  void pgtable_cache_init(void)
+> > >  {
+> > >         pgd_cachep = kmem_cache_create("pgd_cache",
+> > >                                        PTRS_PER_PGD * (1<<PTE_MAGNITUDE),
+> > > -                                      PAGE_SIZE, SLAB_PANIC, pgd_ctor);
+> > > +                                      PAGE_SIZE, SLAB_PANIC, NULL);
+> > >  #if PAGETABLE_LEVELS > 2
+> > >         pmd_cachep = kmem_cache_create("pmd_cache",
+> > >                                        PTRS_PER_PMD * (1<<PTE_MAGNITUDE),
+> > 
+> > While I can confirm your patch fixes the
+> > 
+> >     WARNING: CPU: 0 PID: 1 at mm/slub.c:2412
+> > ___slab_alloc.constprop.34+0x196/0x288
+> > 
+> > seen since commit 128227e7fe4087b6 ("slab: __GFP_ZERO is incompatible
+> > with a constructor"), I'm not 100% sure this is the correct fix.
+> > 
+> > swapper_pg_dir[] does have two non-zero entries (768 and 895), which were
+> > copied by the constructor.  Perhaps SH does have a need for these two
+> > entries, and thus for the constructor?
+> 
+> __GFP_ZERO overrode the constructor.  That is, before 128227e7fe40,
+> if you specified both a constructor and __GFP_ZERO, first the slab
+> code would invoke the constructor, then it would zero the allocation.
+> So this patch is preserving the existing behaviour.  Whether the existing
+> behaviour is correct or not, I cannot say.
 
+Then I think we should really try to figure out whether this is a
+buried bug before deleting the evidence of it...
 
-Applied.  Thanks!
-
--- 
-Best Regards
-Masahiro Yamada
+Rich
