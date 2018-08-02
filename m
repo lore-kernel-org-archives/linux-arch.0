@@ -1,50 +1,46 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: include architecture Kconfig files from top-level Kconfig v4
-Date: Thu, 2 Aug 2018 08:10:00 +0900
-Message-ID: <CAK7LNASpOWQqNREQ_XN22QQM6Jx4F1Lrf76=_WHupPCFmOB2gA@mail.gmail.com>
-References: <20180731113935.6105-1-hch@lst.de>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Thu, 2 Aug 2018 17:00:25 +0200
+Message-ID: <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
+References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+ <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
+ <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com> <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180731113935.6105-1-hch@lst.de>
+In-Reply-To: <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Randy Dunlap <rdunlap@infradead.org>, Richard Weinberger <richard@nod.at>, Ley Foon Tan <lftan@altera.com>, Michal Simek <monstr@monstr.eu>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-um@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundati>
 List-Id: linux-arch.vger.kernel.org
 
-2018-07-31 20:39 GMT+09:00 Christoph Hellwig <hch@lst.de>:
-> Hi Masahiro,
+On Wed, Aug 1, 2018 at 7:42 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
+>> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+>> So the checker reports ~100 different places where a __user pointer
+>> being casted. I've looked through them and found 3 places where we
+>> need to add untagging. Source code lines below come from 4.18-rc2+
+>> (6f0d349d).
+> [...]
+>> I'll add the 3 patches with fixes to v5 of this patchset.
 >
-> what do you think about the series below, which moves the includes
-> of all the architecture independ Kconfig files to the top-level
-> Kconfig instead of duplicating the includes in all architectures?
->
-> Note that this only handles the low-hanging fruite, there are a lot
-> of other bits that should probably be cleaned up to be common,
-> but those will be not entirely trivial.
->
-> Changes since v3:
->  - don't allow to select PREEMPT_COUNT for architectures that don't
->    implement it
->  - fix usage of SUBARCH=i386 and SUBARCH=x86_64 for um
->
-> Changes since v2:
->  - fix the missing sh conversion
->  - handle the lack of CONFIG_SWAP support in microblaze and nios2
->    properly
->
-> Changes since v1:
->  - add back a remove source statement from arch/arm/Kconfig
->  - various fixes from Randy
->  - various UML patches to be able to use the common Kconfig
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Thanks for investigating. You can fix those three places in your code
 
+OK, will do.
 
-Applied.  Thanks!
+> but I was rather looking for a way to check such casting in the future
+> for newly added code. While for the khwasan we can assume it's a debug
+> option, the tagged user pointers are ABI and we need to keep it stable.
+>
+> We could we actually add some macros for explicit conversion between
+> __user ptr and long and silence the warning there (I guess this would
+> work better for sparse). We can then detect new ptr to long casts as
+> they appear. I just hope that's not too intrusive.
+>
+> (I haven't tried the sparse patch yet, hopefully sometime this week)
 
--- 
-Best Regards
-Masahiro Yamada
+Haven't look at that sparse patch yet myself, but sounds doable.
+Should these macros go into this patchset or should they go
+separately?
