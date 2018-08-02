@@ -1,53 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:37488 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732520AbeHBQwA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2018 12:52:00 -0400
-Received: by mail-it0-f65.google.com with SMTP id h20-v6so3683936itf.2
-        for <linux-arch@vger.kernel.org>; Thu, 02 Aug 2018 08:00:26 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
-References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
- <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
- <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com> <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Thu, 2 Aug 2018 17:00:25 +0200
-Message-ID: <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:34479 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387760AbeHBUXO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2018 16:23:14 -0400
+Received: by mail-pg1-f195.google.com with SMTP id y5-v6so1611158pgv.1
+        for <linux-arch@vger.kernel.org>; Thu, 02 Aug 2018 11:30:57 -0700 (PDT)
+Date: Thu, 02 Aug 2018 11:30:55 -0700 (PDT)
+Subject: Re: [PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
+In-Reply-To: <20180625061950.GB23998@yury-thinkpad>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-96b7425f-3358-4b26-bd80-2a8957100f9a@palmer-si-x1c4>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20180802150025.d5zAB1Mx1ndWewOn-jZrl72RQU6GfiRuGOCCc3EtaGs@z>
+To: ynorov@caviumnetworks.com
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, sellcey@caviumnetworks.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, geert@linux-m68k.org, bamv2005@gmail.com, Dave.Martin@arm.com, kilobyte@angband.pl, manuel.montezelo@gmail.com, james.hogan@imgtec.com, cmetcalf@mellanox.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, fweimer@redhat.com, linux-api@vger.kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, james.morse@arm.com, ramana.gcc@googlemail.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Message-ID: <20180802183055.vf58ter3dnlVWx8m8KTJuEev5hHt-AQOJcVryGR8Qrw@z>
 
-On Wed, Aug 1, 2018 at 7:42 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
->> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> So the checker reports ~100 different places where a __user pointer
->> being casted. I've looked through them and found 3 places where we
->> need to add untagging. Source code lines below come from 4.18-rc2+
->> (6f0d349d).
-> [...]
->> I'll add the 3 patches with fixes to v5 of this patchset.
+On Sun, 24 Jun 2018 23:19:50 PDT (-0700), ynorov@caviumnetworks.com wrote:
+> On Mon, Jun 11, 2018 at 02:27:36PM +0300, Yury Norov wrote:
+>> On Mon, Jun 11, 2018 at 09:48:02AM +0200, Arnd Bergmann wrote:
+>> > On Sat, Jun 9, 2018 at 9:42 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+>> > > On Fri, Jun 08, 2018 at 06:32:07PM +0100, Catalin Marinas wrote:
+>> > >> On Wed, May 16, 2018 at 11:18:49AM +0300, Yury Norov wrote:
+>> > >> > diff --git a/arch/Kconfig b/arch/Kconfig
+>> > >> > index 76c0b54443b1..ee079244dc3c 100644
+>> > >> > --- a/arch/Kconfig
+>> > >> > +++ b/arch/Kconfig
+>> > >> > @@ -264,6 +264,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
+>> > >> >  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
+>> > >> >     bool
+>> > >> >
+>> > >> > +config ARCH_32BIT_OFF_T
+>> > >> > +   bool
+>> > >> > +   depends on !64BIT
+>> > >> > +   help
+>> > >> > +     All new 32-bit architectures should have 64-bit off_t type on
+>> > >> > +     userspace side which corresponds to the loff_t kernel type. This
+>> > >> > +     is the requirement for modern ABIs. Some existing architectures
+>> > >> > +     already have 32-bit off_t. This option is enabled for all such
+>> > >> > +     architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
+>> > >> > +     h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
+>> > >> > +     nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
+>> > >> > +     unicore32, x86_32 and xtensa. This is the complete list. Any
+>> > >> > +     new 32-bit architecture should declare 64-bit off_t type on user
+>> > >> > +     side and so should not enable this option.
+>> > >>
+>> > >> Do you know if this is the case for riscv and nds32, merged in the
+>> > >> meantime? If not, I suggest you drop this patch altogether and just
+>> > >> define force_o_largefile() for arm64/ilp32 as we don't seem to stick to
+>> > >> "all new 32-bit architectures should have 64-bit off_t".
+>> > >
+>> > > I wrote this patch at request of Arnd Bergmann. This is actually his
+>> > > words that all new 32-bit architectures should have 64-bit off_t. So
+>> > > I was surprized when riscv was merged with 32-bit off_t (and I didn't
+>> > > follow nds32).
+>> > >
+>> > > If this rule is still in force, we'd better add new exceptions to this
+>> > > patch. Otherwise, we can drop it.
+>> > >
+>> > > Arnd, could you please comment it?
+>> >
+>> > I completely forgot about it and had assumed that it was merged long
+>> > ago, sorry about that.
+>>
+>> Hi Arnd,
+>>
+>> There are 3 patches like this in ILP32 series that change ABI for new
+>> targets. I've submitted them in separated series:
+>> https://lkml.org/lkml/2017/9/25/574
+>>
+>> They all seems to be acked by you. If you ready to upstream the
+>> series, I can rebase it and add riscv32 and nds32 exceptions.
+>>
+>> If Palmer and riscv people will decide to follow new rules, we can
+>> easily drop the exception.
 >
-> Thanks for investigating. You can fix those three places in your code
+> Ping?
 
-OK, will do.
-
-> but I was rather looking for a way to check such casting in the future
-> for newly added code. While for the khwasan we can assume it's a debug
-> option, the tagged user pointers are ABI and we need to keep it stable.
->
-> We could we actually add some macros for explicit conversion between
-> __user ptr and long and silence the warning there (I guess this would
-> work better for sparse). We can then detect new ptr to long casts as
-> they appear. I just hope that's not too intrusive.
->
-> (I haven't tried the sparse patch yet, hopefully sometime this week)
-
-Haven't look at that sparse patch yet myself, but sounds doable.
-Should these macros go into this patchset or should they go
-separately?
+Sorry to be a bit slow, but we just decided to skip this current glibc release 
+for rv32i and instead focus on getting the 32-bit ABI nice and clean for the 
+next release.  Thus we in RISC-V land are OK with taking these changes to the 
+32-bit kernel ABI.
