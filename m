@@ -1,68 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:34560 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725765AbeHBEg4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2018 00:36:56 -0400
-Date: Wed, 1 Aug 2018 19:47:59 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] sh: remove unneeded constructor.
-Message-ID: <20180802024759.GB25338@bombadil.infradead.org>
-References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
- <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
- <20180801112019.GA2666@bombadil.infradead.org>
- <20180801230205.GI1392@brightrain.aerifal.cx>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:37488 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732520AbeHBQwA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2018 12:52:00 -0400
+Received: by mail-it0-f65.google.com with SMTP id h20-v6so3683936itf.2
+        for <linux-arch@vger.kernel.org>; Thu, 02 Aug 2018 08:00:26 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180801230205.GI1392@brightrain.aerifal.cx>
+In-Reply-To: <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
+References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+ <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
+ <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com> <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Thu, 2 Aug 2018 17:00:25 +0200
+Message-ID: <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rich Felker <dalias@libc.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Fleming <matt@codeblueprint.co.uk>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20180802150025.d5zAB1Mx1ndWewOn-jZrl72RQU6GfiRuGOCCc3EtaGs@z>
 
-On Wed, Aug 01, 2018 at 07:02:05PM -0400, Rich Felker wrote:
-> On Wed, Aug 01, 2018 at 04:20:19AM -0700, Matthew Wilcox wrote:
-> > __GFP_ZERO overrode the constructor.  That is, before 128227e7fe40,
-> > if you specified both a constructor and __GFP_ZERO, first the slab
-> > code would invoke the constructor, then it would zero the allocation.
-> > So this patch is preserving the existing behaviour.  Whether the existing
-> > behaviour is correct or not, I cannot say.
-> 
-> Then I think we should really try to figure out whether this is a
-> buried bug before deleting the evidence of it...
+On Wed, Aug 1, 2018 at 7:42 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
+>> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+>> So the checker reports ~100 different places where a __user pointer
+>> being casted. I've looked through them and found 3 places where we
+>> need to add untagging. Source code lines below come from 4.18-rc2+
+>> (6f0d349d).
+> [...]
+>> I'll add the 3 patches with fixes to v5 of this patchset.
+>
+> Thanks for investigating. You can fix those three places in your code
 
-Archaeology suggests the bug was introduced in commit 2a5eacca85d3 ("sh:
-Move page table allocation out of line") in 2009.  Previous code:
+OK, will do.
 
--       pgd = kzalloc(sizeof(*pgd) * PTRS_PER_PGD, GFP_KERNEL | __GFP_REPEAT);
--
--       for (i = USER_PTRS_PER_PGD; i < PTRS_PER_PGD; i++)
--               pgd[i] = swapper_pg_dir[i];
+> but I was rather looking for a way to check such casting in the future
+> for newly added code. While for the khwasan we can assume it's a debug
+> option, the tagged user pointers are ABI and we need to keep it stable.
+>
+> We could we actually add some macros for explicit conversion between
+> __user ptr and long and silence the warning there (I guess this would
+> work better for sparse). We can then detect new ptr to long casts as
+> they appear. I just hope that's not too intrusive.
+>
+> (I haven't tried the sparse patch yet, hopefully sometime this week)
 
-Replacement code:
-
-+#define PGALLOC_GFP GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO
-
-+void pgd_ctor(void *x)
-+{
-+       pgd_t *pgd = x;
-+
-+       memcpy(pgd + USER_PTRS_PER_PGD,
-+              swapper_pg_dir + USER_PTRS_PER_PGD,
-+              (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-+}
-
-+       pgd_cachep = kmem_cache_create("pgd_cache",
-+                                      PTRS_PER_PGD * (1<<PTE_MAGNITUDE),
-+                                      PAGE_SIZE, SLAB_PANIC, pgd_ctor);
-
-+pgd_t *pgd_alloc(struct mm_struct *mm)
-+{
-+       return kmem_cache_alloc(pgd_cachep, PGALLOC_GFP);
-
-It clearly doesn't cause any bugs to zero the PGD entries (... or somebody
-would have noticed since 2009?), but I suspect it causes various PMD
-entries to not be shared.
-
-I'm really happy we decided to introduce this check.  It caught a really
-old and completely unrelated bug!
+Haven't look at that sparse patch yet myself, but sounds doable.
+Should these macros go into this patchset or should they go
+separately?
