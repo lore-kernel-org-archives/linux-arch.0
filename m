@@ -1,81 +1,51 @@
-From: Alexandre Ghiti <alex@ghiti.fr>
-Subject: Re: [PATCH v5 09/11] hugetlb: Introduce generic version of
- huge_ptep_set_wrprotect
-Date: Fri, 3 Aug 2018 11:47:10 +0200
-Message-ID: <ef7fbd80-84a9-0b39-f948-413dea6f6469@ghiti.fr>
-References: <20180731060155.16915-1-alex@ghiti.fr>
- <20180731060155.16915-10-alex@ghiti.fr>
- <87h8kfhg7o.fsf@concordia.ellerman.id.au>
- <6acb1389-6998-bafb-cf69-174fd522c04c@ghiti.fr>
- <90bf556f-144d-24b8-d2f6-70fee4a30559@ghiti.fr>
- <87muu3hlzc.fsf@concordia.ellerman.id.au>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
+Date: Fri, 3 Aug 2018 16:59:18 +0200
+Message-ID: <CAAeHK+xTxPhfbVTNxcbsx7VdwQ21Bt-vo2ZU1tEM1_JX7uKnng@mail.gmail.com>
+References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
+ <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
+ <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
+ <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
+ <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
+ <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com> <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87muu3hlzc.fsf@concordia.ellerman.id.au>
-Content-Language: en-US
+In-Reply-To: <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.c>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundati>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michael,
-
-Thanks, I will then remove those two specific implementations and we'll 
-use the generic ones.
-
-I send a v6 asap.
-
-Thanks again,
-
-Alex
-
-
-On 08/03/2018 10:51 AM, Michael Ellerman wrote:
-> Hi Alex,
->
-> Sorry missed your previous mail.
->
-> Alex Ghiti <alex@ghiti.fr> writes:
->> Ok, I tried every defconfig available:
+On Thu, Aug 2, 2018 at 5:00 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> On Wed, Aug 1, 2018 at 7:42 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+>> On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
+>>> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+>>> So the checker reports ~100 different places where a __user pointer
+>>> being casted. I've looked through them and found 3 places where we
+>>> need to add untagging. Source code lines below come from 4.18-rc2+
+>>> (6f0d349d).
+>> [...]
+>>> I'll add the 3 patches with fixes to v5 of this patchset.
 >>
->> - for the nohash/32, I found that I could use mpc885_ads_defconfig and I
->> activated HUGETLBFS.
->> I removed the definition of huge_ptep_set_wrprotect from
->> nohash/32/pgtable.h, add an #error in
->> include/asm-generic/hugetlb.h right before the generic definition of
->> huge_ptep_set_wrprotect,
->> and fell onto it at compile-time:
->> => I'm pretty confident then that removing the definition of
->> huge_ptep_set_wrprotect does not
->> break anythingin this case.
-> Thanks, that sounds good.
+>> Thanks for investigating. You can fix those three places in your code
 >
->> - regardind book3s/32, I did not find any defconfig with
->> CONFIG_PPC_BOOK3S_32, CONFIG_PPC32
->> allowing to enable huge page support (ie CONFIG_SYS_SUPPORTS_HUGETLBFS)
->> => Do you have a defconfig that would allow me to try the same as above ?
-> I think you're right, it's dead code AFAICS.
+> OK, will do.
 >
-> We have:
+>> but I was rather looking for a way to check such casting in the future
+>> for newly added code. While for the khwasan we can assume it's a debug
+>> option, the tagged user pointers are ABI and we need to keep it stable.
+>>
+>> We could we actually add some macros for explicit conversion between
+>> __user ptr and long and silence the warning there (I guess this would
+>> work better for sparse). We can then detect new ptr to long casts as
+>> they appear. I just hope that's not too intrusive.
+>>
+>> (I haven't tried the sparse patch yet, hopefully sometime this week)
 >
-> config PPC_BOOK3S_64
->          ...
-> 	select SYS_SUPPORTS_HUGETLBFS
->
-> config PPC_FSL_BOOK3E
->          ...
-> 	select SYS_SUPPORTS_HUGETLBFS if PHYS_64BIT || PPC64
->
-> config PPC_8xx
-> 	...
-> 	select SYS_SUPPORTS_HUGETLBFS
->
->
-> So we can't ever enable HUGETLBFS for Book3S 32.
->
-> Presumably the code got copied when we split the headers apart.
->
-> So I think you can just ignore that one, and we'll delete it.
->
-> cheers
+> Haven't look at that sparse patch yet myself, but sounds doable.
+> Should these macros go into this patchset or should they go
+> separately?
+
+Started looking at this. When I run sparse with default checks enabled
+(make C=1) I get countless warnings. Does anybody actually use it?
