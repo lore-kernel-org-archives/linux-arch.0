@@ -1,77 +1,297 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [PATCH 04/24] 32-bit userspace ABI: introduce ARCH_32BIT_OFF_T config option
-Date: Thu, 02 Aug 2018 11:30:55 -0700 (PDT)
-Message-ID: <mhng-96b7425f-3358-4b26-bd80-2a8957100f9a@palmer-si-x1c4>
-References: <20180625061950.GB23998@yury-thinkpad>
+From: Alex Ghiti <alex@ghiti.fr>
+Subject: Re: [PATCH v5 09/11] hugetlb: Introduce generic version of
+ huge_ptep_set_wrprotect
+Date: Fri, 3 Aug 2018 05:24:29 +0000
+Message-ID: <90bf556f-144d-24b8-d2f6-70fee4a30559@ghiti.fr>
+References: <20180731060155.16915-1-alex@ghiti.fr>
+ <20180731060155.16915-10-alex@ghiti.fr>
+ <87h8kfhg7o.fsf@concordia.ellerman.id.au>
+ <6acb1389-6998-bafb-cf69-174fd522c04c@ghiti.fr>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180625061950.GB23998@yury-thinkpad>
+In-Reply-To: <6acb1389-6998-bafb-cf69-174fd522c04c@ghiti.fr>
+Content-Language: fr
 Sender: linux-kernel-owner@vger.kernel.org
-To: ynorov@caviumnetworks.com
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, sellcey@caviumnetworks.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, geert@linux-m68k.org, bamv2005@gmail.com, Dave.Martin@arm.com, kilobyte@angband.pl, manuel.montezelo@gmail.com, james.hogan@imgtec.com, cmetcalf@mellanox.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, fweimer@redhat.com, linux-api@vger.kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, james.morse@arm.com, ramana.gcc@googlemail.com, schwi
+To: Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.c>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 24 Jun 2018 23:19:50 PDT (-0700), ynorov@caviumnetworks.com wrote:
-> On Mon, Jun 11, 2018 at 02:27:36PM +0300, Yury Norov wrote:
->> On Mon, Jun 11, 2018 at 09:48:02AM +0200, Arnd Bergmann wrote:
->> > On Sat, Jun 9, 2018 at 9:42 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
->> > > On Fri, Jun 08, 2018 at 06:32:07PM +0100, Catalin Marinas wrote:
->> > >> On Wed, May 16, 2018 at 11:18:49AM +0300, Yury Norov wrote:
->> > >> > diff --git a/arch/Kconfig b/arch/Kconfig
->> > >> > index 76c0b54443b1..ee079244dc3c 100644
->> > >> > --- a/arch/Kconfig
->> > >> > +++ b/arch/Kconfig
->> > >> > @@ -264,6 +264,21 @@ config ARCH_THREAD_STACK_ALLOCATOR
->> > >> >  config ARCH_WANTS_DYNAMIC_TASK_STRUCT
->> > >> >     bool
->> > >> >
->> > >> > +config ARCH_32BIT_OFF_T
->> > >> > +   bool
->> > >> > +   depends on !64BIT
->> > >> > +   help
->> > >> > +     All new 32-bit architectures should have 64-bit off_t type on
->> > >> > +     userspace side which corresponds to the loff_t kernel type. This
->> > >> > +     is the requirement for modern ABIs. Some existing architectures
->> > >> > +     already have 32-bit off_t. This option is enabled for all such
->> > >> > +     architectures explicitly. Namely: arc, arm, blackfin, cris, frv,
->> > >> > +     h8300, hexagon, m32r, m68k, metag, microblaze, mips32, mn10300,
->> > >> > +     nios2, openrisc, parisc32, powerpc32, score, sh, sparc, tile32,
->> > >> > +     unicore32, x86_32 and xtensa. This is the complete list. Any
->> > >> > +     new 32-bit architecture should declare 64-bit off_t type on user
->> > >> > +     side and so should not enable this option.
->> > >>
->> > >> Do you know if this is the case for riscv and nds32, merged in the
->> > >> meantime? If not, I suggest you drop this patch altogether and just
->> > >> define force_o_largefile() for arm64/ilp32 as we don't seem to stick to
->> > >> "all new 32-bit architectures should have 64-bit off_t".
->> > >
->> > > I wrote this patch at request of Arnd Bergmann. This is actually his
->> > > words that all new 32-bit architectures should have 64-bit off_t. So
->> > > I was surprized when riscv was merged with 32-bit off_t (and I didn't
->> > > follow nds32).
->> > >
->> > > If this rule is still in force, we'd better add new exceptions to this
->> > > patch. Otherwise, we can drop it.
->> > >
->> > > Arnd, could you please comment it?
->> >
->> > I completely forgot about it and had assumed that it was merged long
->> > ago, sorry about that.
->>
->> Hi Arnd,
->>
->> There are 3 patches like this in ILP32 series that change ABI for new
->> targets. I've submitted them in separated series:
->> https://lkml.org/lkml/2017/9/25/574
->>
->> They all seems to be acked by you. If you ready to upstream the
->> series, I can rebase it and add riscv32 and nds32 exceptions.
->>
->> If Palmer and riscv people will decide to follow new rules, we can
->> easily drop the exception.
->
-> Ping?
+Ok, I tried every defconfig available:
 
-Sorry to be a bit slow, but we just decided to skip this current glibc release 
-for rv32i and instead focus on getting the 32-bit ABI nice and clean for the 
-next release.  Thus we in RISC-V land are OK with taking these changes to the 
-32-bit kernel ABI.
+- for the nohash/32, I found that I could use mpc885_ads_defconfig and I 
+activated HUGETLBFS.
+I removed the definition of huge_ptep_set_wrprotect from 
+nohash/32/pgtable.h, add an #error in
+include/asm-generic/hugetlb.h right before the generic definition of 
+huge_ptep_set_wrprotect,
+and fell onto it at compile-time:
+=> I'm pretty confident then that removing the definition of 
+huge_ptep_set_wrprotect does not
+break anythingin this case.
+
+- regardind book3s/32, I did not find any defconfig with 
+CONFIG_PPC_BOOK3S_32, CONFIG_PPC32
+allowing to enable huge page support (ie CONFIG_SYS_SUPPORTS_HUGETLBFS)
+=> Do you have a defconfig that would allow me to try the same as above ?
+
+Thanks,
+
+Alex
+
+
+On 07/31/2018 11:17 AM, Alexandre Ghiti wrote:
+>
+> On 07/31/2018 12:06 PM, Michael Ellerman wrote:
+>> Alexandre Ghiti <alex@ghiti.fr> writes:
+>>
+>>> arm, ia64, mips, sh, x86 architectures use the same version
+>>> of huge_ptep_set_wrprotect, so move this generic implementation into
+>>> asm-generic/hugetlb.h.
+>>> Note: powerpc uses twice for book3s/32 and nohash/32 the same 
+>>> version as
+>>> the above architectures, but the modification was not straightforward
+>>> and hence has not been done.
+>> Do you remember what the problem was there?
+>>
+>> It looks like you should just be able to drop them like the others. I
+>> assume there's some header spaghetti that causes problems though?
+>
+> Yes, the header spaghetti frightened me a bit. Maybe I should have 
+> tried harder: I can try to remove them and find the right defconfigs 
+> to compile both to begin with. And to guarantee the functionality is 
+> preserved, can I use the testsuite of libhugetlbfs with qemu ?
+>
+> Alex
+>
+>>
+>> cheers
+>>
+>>
+>>> Signed-off-by: Alexandre Ghiti <alex@ghiti.fr>
+>>> Reviewed-by: Mike Kravetz <mike.kravetz@oracle.com>
+>>> ---
+>>>   arch/arm/include/asm/hugetlb-3level.h        | 6 ------
+>>>   arch/arm64/include/asm/hugetlb.h             | 1 +
+>>>   arch/ia64/include/asm/hugetlb.h              | 6 ------
+>>>   arch/mips/include/asm/hugetlb.h              | 6 ------
+>>>   arch/parisc/include/asm/hugetlb.h            | 1 +
+>>>   arch/powerpc/include/asm/book3s/32/pgtable.h | 2 ++
+>>>   arch/powerpc/include/asm/book3s/64/pgtable.h | 1 +
+>>>   arch/powerpc/include/asm/nohash/32/pgtable.h | 2 ++
+>>>   arch/powerpc/include/asm/nohash/64/pgtable.h | 1 +
+>>>   arch/sh/include/asm/hugetlb.h                | 6 ------
+>>>   arch/sparc/include/asm/hugetlb.h             | 1 +
+>>>   arch/x86/include/asm/hugetlb.h               | 6 ------
+>>>   include/asm-generic/hugetlb.h                | 8 ++++++++
+>>>   13 files changed, 17 insertions(+), 30 deletions(-)
+>>>
+>>> diff --git a/arch/arm/include/asm/hugetlb-3level.h 
+>>> b/arch/arm/include/asm/hugetlb-3level.h
+>>> index b897541520ef..8247cd6a2ac6 100644
+>>> --- a/arch/arm/include/asm/hugetlb-3level.h
+>>> +++ b/arch/arm/include/asm/hugetlb-3level.h
+>>> @@ -37,12 +37,6 @@ static inline pte_t huge_ptep_get(pte_t *ptep)
+>>>       return retval;
+>>>   }
+>>>   -static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>> -                       unsigned long addr, pte_t *ptep)
+>>> -{
+>>> -    ptep_set_wrprotect(mm, addr, ptep);
+>>> -}
+>>> -
+>>>   static inline int huge_ptep_set_access_flags(struct vm_area_struct 
+>>> *vma,
+>>>                            unsigned long addr, pte_t *ptep,
+>>>                            pte_t pte, int dirty)
+>>> diff --git a/arch/arm64/include/asm/hugetlb.h 
+>>> b/arch/arm64/include/asm/hugetlb.h
+>>> index 3e7f6e69b28d..f4f69ae5466e 100644
+>>> --- a/arch/arm64/include/asm/hugetlb.h
+>>> +++ b/arch/arm64/include/asm/hugetlb.h
+>>> @@ -48,6 +48,7 @@ extern int huge_ptep_set_access_flags(struct 
+>>> vm_area_struct *vma,
+>>>   #define __HAVE_ARCH_HUGE_PTEP_GET_AND_CLEAR
+>>>   extern pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+>>>                        unsigned long addr, pte_t *ptep);
+>>> +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   extern void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                       unsigned long addr, pte_t *ptep);
+>>>   #define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
+>>> diff --git a/arch/ia64/include/asm/hugetlb.h 
+>>> b/arch/ia64/include/asm/hugetlb.h
+>>> index cbe296271030..49d1f7949f3a 100644
+>>> --- a/arch/ia64/include/asm/hugetlb.h
+>>> +++ b/arch/ia64/include/asm/hugetlb.h
+>>> @@ -27,12 +27,6 @@ static inline void huge_ptep_clear_flush(struct 
+>>> vm_area_struct *vma,
+>>>   {
+>>>   }
+>>>   -static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>> -                       unsigned long addr, pte_t *ptep)
+>>> -{
+>>> -    ptep_set_wrprotect(mm, addr, ptep);
+>>> -}
+>>> -
+>>>   static inline int huge_ptep_set_access_flags(struct vm_area_struct 
+>>> *vma,
+>>>                            unsigned long addr, pte_t *ptep,
+>>>                            pte_t pte, int dirty)
+>>> diff --git a/arch/mips/include/asm/hugetlb.h 
+>>> b/arch/mips/include/asm/hugetlb.h
+>>> index 6ff2531cfb1d..3dcf5debf8c4 100644
+>>> --- a/arch/mips/include/asm/hugetlb.h
+>>> +++ b/arch/mips/include/asm/hugetlb.h
+>>> @@ -63,12 +63,6 @@ static inline int huge_pte_none(pte_t pte)
+>>>       return !val || (val == (unsigned long)invalid_pte_table);
+>>>   }
+>>>   -static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>> -                       unsigned long addr, pte_t *ptep)
+>>> -{
+>>> -    ptep_set_wrprotect(mm, addr, ptep);
+>>> -}
+>>> -
+>>>   static inline int huge_ptep_set_access_flags(struct vm_area_struct 
+>>> *vma,
+>>>                            unsigned long addr,
+>>>                            pte_t *ptep, pte_t pte,
+>>> diff --git a/arch/parisc/include/asm/hugetlb.h 
+>>> b/arch/parisc/include/asm/hugetlb.h
+>>> index fb7e0fd858a3..9c3950ca2974 100644
+>>> --- a/arch/parisc/include/asm/hugetlb.h
+>>> +++ b/arch/parisc/include/asm/hugetlb.h
+>>> @@ -39,6 +39,7 @@ static inline void huge_ptep_clear_flush(struct 
+>>> vm_area_struct *vma,
+>>>   {
+>>>   }
+>>>   +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                          unsigned long addr, pte_t *ptep);
+>>>   diff --git a/arch/powerpc/include/asm/book3s/32/pgtable.h 
+>>> b/arch/powerpc/include/asm/book3s/32/pgtable.h
+>>> index 02f5acd7ccc4..d2cd1d0226e9 100644
+>>> --- a/arch/powerpc/include/asm/book3s/32/pgtable.h
+>>> +++ b/arch/powerpc/include/asm/book3s/32/pgtable.h
+>>> @@ -228,6 +228,8 @@ static inline void ptep_set_wrprotect(struct 
+>>> mm_struct *mm, unsigned long addr,
+>>>   {
+>>>       pte_update(ptep, (_PAGE_RW | _PAGE_HWWRITE), _PAGE_RO);
+>>>   }
+>>> +
+>>> +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                          unsigned long addr, pte_t *ptep)
+>>>   {
+>>> diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h 
+>>> b/arch/powerpc/include/asm/book3s/64/pgtable.h
+>>> index 42aafba7a308..7d957f7c47cd 100644
+>>> --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
+>>> +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+>>> @@ -451,6 +451,7 @@ static inline void ptep_set_wrprotect(struct 
+>>> mm_struct *mm, unsigned long addr,
+>>>           pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 0);
+>>>   }
+>>>   +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                          unsigned long addr, pte_t *ptep)
+>>>   {
+>>> diff --git a/arch/powerpc/include/asm/nohash/32/pgtable.h 
+>>> b/arch/powerpc/include/asm/nohash/32/pgtable.h
+>>> index 7c46a98cc7f4..f39e200d9591 100644
+>>> --- a/arch/powerpc/include/asm/nohash/32/pgtable.h
+>>> +++ b/arch/powerpc/include/asm/nohash/32/pgtable.h
+>>> @@ -249,6 +249,8 @@ static inline void ptep_set_wrprotect(struct 
+>>> mm_struct *mm, unsigned long addr,
+>>>   {
+>>>       pte_update(ptep, (_PAGE_RW | _PAGE_HWWRITE), _PAGE_RO);
+>>>   }
+>>> +
+>>> +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                          unsigned long addr, pte_t *ptep)
+>>>   {
+>>> diff --git a/arch/powerpc/include/asm/nohash/64/pgtable.h 
+>>> b/arch/powerpc/include/asm/nohash/64/pgtable.h
+>>> index dd0c7236208f..69fbf7e9b4db 100644
+>>> --- a/arch/powerpc/include/asm/nohash/64/pgtable.h
+>>> +++ b/arch/powerpc/include/asm/nohash/64/pgtable.h
+>>> @@ -238,6 +238,7 @@ static inline void ptep_set_wrprotect(struct 
+>>> mm_struct *mm, unsigned long addr,
+>>>       pte_update(mm, addr, ptep, _PAGE_RW, 0, 0);
+>>>   }
+>>>   +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                          unsigned long addr, pte_t *ptep)
+>>>   {
+>>> diff --git a/arch/sh/include/asm/hugetlb.h 
+>>> b/arch/sh/include/asm/hugetlb.h
+>>> index f1bbd255ee43..8df4004977b9 100644
+>>> --- a/arch/sh/include/asm/hugetlb.h
+>>> +++ b/arch/sh/include/asm/hugetlb.h
+>>> @@ -32,12 +32,6 @@ static inline void huge_ptep_clear_flush(struct 
+>>> vm_area_struct *vma,
+>>>   {
+>>>   }
+>>>   -static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>> -                       unsigned long addr, pte_t *ptep)
+>>> -{
+>>> -    ptep_set_wrprotect(mm, addr, ptep);
+>>> -}
+>>> -
+>>>   static inline int huge_ptep_set_access_flags(struct vm_area_struct 
+>>> *vma,
+>>>                            unsigned long addr, pte_t *ptep,
+>>>                            pte_t pte, int dirty)
+>>> diff --git a/arch/sparc/include/asm/hugetlb.h 
+>>> b/arch/sparc/include/asm/hugetlb.h
+>>> index 2101ea217f33..c41754a113f3 100644
+>>> --- a/arch/sparc/include/asm/hugetlb.h
+>>> +++ b/arch/sparc/include/asm/hugetlb.h
+>>> @@ -32,6 +32,7 @@ static inline void huge_ptep_clear_flush(struct 
+>>> vm_area_struct *vma,
+>>>   {
+>>>   }
+>>>   +#define __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>>   static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>>                          unsigned long addr, pte_t *ptep)
+>>>   {
+>>> diff --git a/arch/x86/include/asm/hugetlb.h 
+>>> b/arch/x86/include/asm/hugetlb.h
+>>> index 59c056adb3c9..a3f781f7a264 100644
+>>> --- a/arch/x86/include/asm/hugetlb.h
+>>> +++ b/arch/x86/include/asm/hugetlb.h
+>>> @@ -13,12 +13,6 @@ static inline int is_hugepage_only_range(struct 
+>>> mm_struct *mm,
+>>>       return 0;
+>>>   }
+>>>   -static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>> -                       unsigned long addr, pte_t *ptep)
+>>> -{
+>>> -    ptep_set_wrprotect(mm, addr, ptep);
+>>> -}
+>>> -
+>>>   static inline int huge_ptep_set_access_flags(struct vm_area_struct 
+>>> *vma,
+>>>                            unsigned long addr, pte_t *ptep,
+>>>                            pte_t pte, int dirty)
+>>> diff --git a/include/asm-generic/hugetlb.h 
+>>> b/include/asm-generic/hugetlb.h
+>>> index 6c0c8b0c71e0..9b9039845278 100644
+>>> --- a/include/asm-generic/hugetlb.h
+>>> +++ b/include/asm-generic/hugetlb.h
+>>> @@ -102,4 +102,12 @@ static inline int prepare_hugepage_range(struct 
+>>> file *file,
+>>>   }
+>>>   #endif
+>>>   +#ifndef __HAVE_ARCH_HUGE_PTEP_SET_WRPROTECT
+>>> +static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
+>>> +        unsigned long addr, pte_t *ptep)
+>>> +{
+>>> +    ptep_set_wrprotect(mm, addr, ptep);
+>>> +}
+>>> +#endif
+>>> +
+>>>   #endif /* _ASM_GENERIC_HUGETLB_H */
+>>> -- 
+>>> 2.16.2
+>
