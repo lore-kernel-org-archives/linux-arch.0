@@ -1,41 +1,87 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Date: Fri, 3 Aug 2018 18:54:57 +0200
-Message-ID: <CAAeHK+zqVTOSFD5yZ0E5Z3HZPVn8KYQJMGjBvin8rEfugBdfag@mail.gmail.com>
-References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
- <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
- <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
- <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
- <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
- <CAAeHK+xTxPhfbVTNxcbsx7VdwQ21Bt-vo2ZU1tEM1_JX7uKnng@mail.gmail.com>
- <20180803150945.GC9297@kroah.com> <20180803164337.GB4718@bombadil.infradead.org>
+Subject: [PATCH v5 00/10] arm64: untag user pointers passed to the kernel
+Date: Mon,  6 Aug 2018 18:40:35 +0200
+Message-ID: <cover.1533573460.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180803164337.GB4718@bombadil.infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 3, 2018 at 6:43 PM, Matthew Wilcox <willy@infradead.org> wrote:
-> On Fri, Aug 03, 2018 at 05:09:45PM +0200, Greg Kroah-Hartman wrote:
->> On Fri, Aug 03, 2018 at 04:59:18PM +0200, Andrey Konovalov wrote:
->> > Started looking at this. When I run sparse with default checks enabled
->> > (make C=1) I get countless warnings. Does anybody actually use it?
->>
->> Try using a more up-to-date version of sparse.  Odds are you are using
->> an old one, there is a newer version in a different branch on kernel.org
->> somewhere...
->
-> That's not true.  Building the current version of sparse from
-> git://git.kernel.org/pub/scm/devel/sparse/sparse.git leaves me with a
-> thousand errors just building the mm/ directory.  A sample:
+arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+tags into the top byte of each pointer. Userspace programs (such as
+HWASan, a memory debugging tool [1]) might use this feature and pass
+tagged user pointers to the kernel through syscalls or other interfaces.
 
-I'm running the one from https://github.com/lucvoo/sparse-dev which
-seems to be even more up to date. Defconfig on x86 gives me ~3000
-warnings:
+This patch makes a few of the kernel interfaces accept tagged user
+pointers. The kernel is already able to handle user faults with tagged
+pointers and has the untagged_addr macro, which this patchset reuses.
 
-https://gist.github.com/xairy/8adace989f64462e18ffb5cb7d096b73
+Thanks!
+
+[1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
+
+Changes in v5:
+- Added 3 new patches that add untagging to places found with static
+  analysis.
+- Rebased onto 44c929e1 (4.18-rc8).
+
+Changes in v4:
+- Added a selftest for checking that passing tagged pointers to the
+  kernel succeeds.
+- Rebased onto 81e97f013 (4.18-rc1+).
+
+Changes in v3:
+- Rebased onto e5c51f30 (4.17-rc6+).
+- Added linux-arch@ to the list of recipients.
+
+Changes in v2:
+- Rebased onto 2d618bdf (4.17-rc3+).
+- Removed excessive untagging in gup.c.
+- Removed untagging pointers returned from __uaccess_mask_ptr.
+
+Changes in v1:
+- Rebased onto 4.17-rc1.
+
+Changes in RFC v2:
+- Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
+  defining it for each arch individually.
+- Updated Documentation/arm64/tagged-pointers.txt.
+- Dropped "mm, arm64: untag user addresses in memory syscalls".
+- Rebased onto 3eb2ce82 (4.16-rc7).
+
+Andrey Konovalov (10):
+  arm64: add type casts to untagged_addr macro
+  uaccess: add untagged_addr definition for other arches
+  arm64: untag user addresses in access_ok and __uaccess_mask_ptr
+  mm, arm64: untag user addresses in mm/gup.c
+  lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
+  arm64: untag user address in __do_user_fault
+  fs, arm64: untag user address in copy_mount_options
+  usb, arm64: untag user addresses in devio
+  arm64: update Documentation/arm64/tagged-pointers.txt
+  selftests, arm64: add a selftest for passing tagged pointers to kernel
+
+ Documentation/arm64/tagged-pointers.txt       |  5 +++--
+ arch/arm64/include/asm/uaccess.h              | 14 +++++++++-----
+ arch/arm64/mm/fault.c                         |  2 +-
+ drivers/usb/core/devio.c                      |  8 +++++---
+ fs/namespace.c                                |  2 +-
+ include/linux/uaccess.h                       |  4 ++++
+ lib/strncpy_from_user.c                       |  2 ++
+ lib/strnlen_user.c                            |  2 ++
+ mm/gup.c                                      |  4 ++++
+ tools/testing/selftests/arm64/.gitignore      |  1 +
+ tools/testing/selftests/arm64/Makefile        | 11 +++++++++++
+ .../testing/selftests/arm64/run_tags_test.sh  | 12 ++++++++++++
+ tools/testing/selftests/arm64/tags_test.c     | 19 +++++++++++++++++++
+ 13 files changed, 74 insertions(+), 12 deletions(-)
+ create mode 100644 tools/testing/selftests/arm64/.gitignore
+ create mode 100644 tools/testing/selftests/arm64/Makefile
+ create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
+ create mode 100644 tools/testing/selftests/arm64/tags_test.c
+
+-- 
+2.18.0.597.ga71716f1ad-goog
