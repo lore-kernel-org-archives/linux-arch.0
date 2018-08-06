@@ -1,79 +1,86 @@
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH v4 0/7] arm64: untag user pointers passed to the kernel
-Date: Mon, 6 Aug 2018 21:12:53 +0200
-Message-ID: <CAExDi1T=s1ASPz6wMbV-G+Wiq8u9zu9cFztaCQ1kDy_TDQkXvg@mail.gmail.com>
-References: <cover.1529507994.git.andreyknvl@google.com> <CAAeHK+zqtyGzd_CZ7qKZKU-uZjZ1Pkmod5h8zzbN0xCV26nSfg@mail.gmail.com>
- <20180626172900.ufclp2pfrhwkxjco@armageddon.cambridge.arm.com>
- <CAAeHK+yqWKTdTG+ymZ2-5XKiDANV+fmUjnQkRy-5tpgphuLJRA@mail.gmail.com>
- <CAAeHK+wJbbCZd+-X=9oeJgsqQJiq8h+Aagz3SQMPaAzCD+pvFw@mail.gmail.com>
- <CAAeHK+yWF05XoU+0iuJoXAL3cWgdtxbeLoBz169yP12W4LkcQw@mail.gmail.com>
- <20180801174256.5mbyf33eszml4nmu@armageddon.cambridge.arm.com>
- <CAAeHK+zb7vcehuX9=oxLUJVJr1ZcgmRTODQz7wsPy+rJb=3kbQ@mail.gmail.com>
- <CAAeHK+xTxPhfbVTNxcbsx7VdwQ21Bt-vo2ZU1tEM1_JX7uKnng@mail.gmail.com> <20180803150945.GC9297@kroah.com>
+From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Subject: Re: [PATCH v2 14/19] [media] uvcvideo: prevent bounds-check bypass via speculative execution
+Date: Tue, 07 Aug 2018 00:40:52 +0300
+Message-ID: <1624792.F9dcxCXkCx@avalon>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com> <151571806069.27429.6683179525235570687.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180803150945.GC9297@kroah.com>
+In-Reply-To: <151571806069.27429.6683179525235570687.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, alan@linux.intel.com, kernel-hardening@lists.openwall.com, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 3, 2018 at 5:09 PM, Greg Kroah-Hartman
-<gregkh@linuxfoundation.org> wrote:
-> On Fri, Aug 03, 2018 at 04:59:18PM +0200, Andrey Konovalov wrote:
->> On Thu, Aug 2, 2018 at 5:00 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> > On Wed, Aug 1, 2018 at 7:42 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
->> >> On Mon, Jul 16, 2018 at 01:25:59PM +0200, Andrey Konovalov wrote:
->> >>> On Thu, Jun 28, 2018 at 9:30 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> >>> So the checker reports ~100 different places where a __user pointer
->> >>> being casted. I've looked through them and found 3 places where we
->> >>> need to add untagging. Source code lines below come from 4.18-rc2+
->> >>> (6f0d349d).
->> >> [...]
->> >>> I'll add the 3 patches with fixes to v5 of this patchset.
->> >>
->> >> Thanks for investigating. You can fix those three places in your code
->> >
->> > OK, will do.
->> >
->> >> but I was rather looking for a way to check such casting in the future
->> >> for newly added code. While for the khwasan we can assume it's a debug
->> >> option, the tagged user pointers are ABI and we need to keep it stable.
->> >>
->> >> We could we actually add some macros for explicit conversion between
->> >> __user ptr and long and silence the warning there (I guess this would
->> >> work better for sparse). We can then detect new ptr to long casts as
->> >> they appear. I just hope that's not too intrusive.
->> >>
->> >> (I haven't tried the sparse patch yet, hopefully sometime this week)
->> >
->> > Haven't look at that sparse patch yet myself, but sounds doable.
->> > Should these macros go into this patchset or should they go
->> > separately?
->>
->> Started looking at this. When I run sparse with default checks enabled
->> (make C=1) I get countless warnings. Does anybody actually use it?
->
-> Try using a more up-to-date version of sparse.  Odds are you are using
-> an old one, there is a newer version in a different branch on kernel.org
-> somewhere...
->
-> greg k-h
->
+Hi Dan,
 
-Quoting Linus in [1]:
+Thank you for the patch.
 
-Honestly, I'd like to just encourage people to get the sparse update
-from Luc Van Oostenryck instead.
+On Friday, 12 January 2018 02:47:40 EEST Dan Williams wrote:
+> Static analysis reports that 'index' may be a user controlled value that
+> is used as a data dependency to read 'pin' from the
+> 'selector->baSourceID' array. In order to avoid potential leaks of
+> kernel memory values, block speculative execution of the instruction
+> stream that could issue reads based on an invalid value of 'pin'.
+> 
+> Based on an original patch by Elena Reshetova.
+> 
+> Laurent notes:
+> 
+>     "...as this is nowhere close to being a fast path, I think we can close
+>     this potential hole as proposed in the patch"
+> 
+> Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+> Cc: linux-media@vger.kernel.org
+> Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 
-For a while there it looked like Chris Li would just pull from Luc,
-and we'd have timely releases, but that really doesn't seem to have
-ended up happening after all. So right now it's probably just best to
-get Luc's tree instead from
+What's the status of this series (and of this patch in particular) ?
 
-    https://github.com/lucvoo/sparse-dev
+> ---
+>  drivers/media/usb/uvc/uvc_v4l2.c |    9 +++++++--
+>  1 file changed, 7 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/media/usb/uvc/uvc_v4l2.c
+> b/drivers/media/usb/uvc/uvc_v4l2.c index 3e7e283a44a8..30ee200206ee 100644
+> --- a/drivers/media/usb/uvc/uvc_v4l2.c
+> +++ b/drivers/media/usb/uvc/uvc_v4l2.c
+> @@ -22,6 +22,7 @@
+>  #include <linux/mm.h>
+>  #include <linux/wait.h>
+>  #include <linux/atomic.h>
+> +#include <linux/nospec.h>
+> 
+>  #include <media/v4l2-common.h>
+>  #include <media/v4l2-ctrls.h>
+> @@ -809,8 +810,12 @@ static int uvc_ioctl_enum_input(struct file *file, void
+> *fh, const struct uvc_entity *selector = chain->selector;
+>  	struct uvc_entity *iterm = NULL;
+>  	u32 index = input->index;
+> +	__u8 *elem = NULL;
+>  	int pin = 0;
+> 
+> +	if (selector)
+> +		elem = array_ptr(selector->baSourceID, index,
+> +				selector->bNrInPins);
+>  	if (selector == NULL ||
+>  	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
+>  		if (index != 0)
+> @@ -820,8 +825,8 @@ static int uvc_ioctl_enum_input(struct file *file, void
+> *fh, break;
+>  		}
+>  		pin = iterm->id;
+> -	} else if (index < selector->bNrInPins) {
+> -		pin = selector->baSourceID[index];
+> +	} else if (elem) {
+> +		pin = *elem;
+>  		list_for_each_entry(iterm, &chain->entities, chain) {
+>  			if (!UVC_ENTITY_IS_ITERM(iterm))
+>  				continue;
 
-which also ends up fixing a lot of other issues.
+-- 
+Regards,
 
-[1] https://lore.kernel.org/lkml/CA+55aFzYEnZR2GZLR-DwpONjMNYGYoDy+6AWLCVNayWiaZuqoA@mail.gmail.com/T/#u
+Laurent Pinchart
