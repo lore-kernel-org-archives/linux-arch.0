@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:54922 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387690AbeHFSu6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Aug 2018 14:50:58 -0400
-Received: by mail-wm0-f66.google.com with SMTP id c14-v6so14471324wmb.4
-        for <linux-arch@vger.kernel.org>; Mon, 06 Aug 2018 09:41:03 -0700 (PDT)
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:38271 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387721AbeHFSvA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Aug 2018 14:51:00 -0400
+Received: by mail-wm0-f68.google.com with SMTP id t25-v6so14971450wmi.3
+        for <linux-arch@vger.kernel.org>; Mon, 06 Aug 2018 09:41:06 -0700 (PDT)
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v5 06/10] arm64: untag user address in __do_user_fault
-Date: Mon,  6 Aug 2018 18:40:41 +0200
-Message-ID: <d22f893405349d7d26d67161f9577eabfee27214.1533573460.git.andreyknvl@google.com>
+Subject: [PATCH v5 08/10] usb, arm64: untag user addresses in devio
+Date: Mon,  6 Aug 2018 18:40:43 +0200
+Message-ID: <39bbae2c9d880bd3c27ac3ee03d4be72e161491c.1533573460.git.andreyknvl@google.com>
 In-Reply-To: <cover.1533573460.git.andreyknvl@google.com>
 References: <cover.1533573460.git.andreyknvl@google.com>
 MIME-Version: 1.0
@@ -17,31 +17,54 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180806164041.-F8vL8Npn2v6zh0egew_-8Hts6oHHsasfvkFzgOUSGs@z>
+Message-ID: <20180806164043.b4HLaOb8lWvJU7ZKeOgyN3a9delHhZEeMiS7Ms9h304@z>
 
-In __do_user_fault the fault address is being compared to TASK_SIZE to
-find out whether the address lies in the kernel or in user space. Since
-the fault address is coming from a user it can be tagged.
+devio allows to mmap memory regions and keeps them in a list. It also
+accepts a user address through an ioctl call and searches the memory
+region list for the region that contains this address. Since the addresses
+provided to mmap must not be tagged, and the addresses provided to ioctl
+might be tagged, we might compare tagged and untagged addresses during the
+search.
 
-Untag the pointer before comparing.
+Untag the provided addresses before searching.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- arch/arm64/mm/fault.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/usb/core/devio.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index b8eecc7b9531..89033d992d28 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -313,7 +313,7 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
- 	 * type", so we ignore this wrinkle and just return the translation
- 	 * fault.)
- 	 */
--	if (current->thread.fault_address >= TASK_SIZE) {
-+	if (untagged_addr(current->thread.fault_address) >= TASK_SIZE) {
- 		switch (ESR_ELx_EC(esr)) {
- 		case ESR_ELx_EC_DABT_LOW:
- 			/*
+diff --git a/drivers/usb/core/devio.c b/drivers/usb/core/devio.c
+index 476dcc5f2da3..357c2e7b87b8 100644
+--- a/drivers/usb/core/devio.c
++++ b/drivers/usb/core/devio.c
+@@ -1404,7 +1404,7 @@ find_memory_area(struct usb_dev_state *ps, const struct usbdevfs_urb *uurb)
+ {
+ 	struct usb_memory *usbm = NULL, *iter;
+ 	unsigned long flags;
+-	unsigned long uurb_start = (unsigned long)uurb->buffer;
++	unsigned long uurb_start = (unsigned long)untagged_addr(uurb->buffer);
+ 
+ 	spin_lock_irqsave(&ps->lock, flags);
+ 	list_for_each_entry(iter, &ps->memory_list, memlist) {
+@@ -1633,7 +1633,8 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
+ 		}
+ 	} else if (uurb->buffer_length > 0) {
+ 		if (as->usbm) {
+-			unsigned long uurb_start = (unsigned long)uurb->buffer;
++			unsigned long uurb_start =
++				(unsigned long)untagged_addr(uurb->buffer);
+ 
+ 			as->urb->transfer_buffer = as->usbm->mem +
+ 					(uurb_start - as->usbm->vm_start);
+@@ -1712,7 +1713,8 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
+ 	as->ps = ps;
+ 	as->userurb = arg;
+ 	if (as->usbm) {
+-		unsigned long uurb_start = (unsigned long)uurb->buffer;
++		unsigned long uurb_start =
++			(unsigned long)untagged_addr(uurb->buffer);
+ 
+ 		as->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+ 		as->urb->transfer_dma = as->usbm->dma_handle +
 -- 
 2.18.0.597.ga71716f1ad-goog
