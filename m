@@ -1,65 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:34111 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726628AbeHFLBU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Aug 2018 07:01:20 -0400
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:37328 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2387521AbeHFSus (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Aug 2018 14:50:48 -0400
+Received: by mail-wr1-f68.google.com with SMTP id u12-v6so12994493wrr.4
+        for <linux-arch@vger.kernel.org>; Mon, 06 Aug 2018 09:40:53 -0700 (PDT)
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v5 00/10] arm64: untag user pointers passed to the kernel
+Date: Mon,  6 Aug 2018 18:40:35 +0200
+Message-ID: <cover.1533573460.git.andreyknvl@google.com>
 MIME-Version: 1.0
-References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
- <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
- <87600us5k9.wl-ysato@users.sourceforge.jp> <20180804103550.GA3183@bombadil.infradead.org>
- <CAMuHMdXsz-+zsxouaLP5tTKA46G34iAACSce+RXrD8AiiQc2+A@mail.gmail.com>
- <20180804105149.GB3183@bombadil.infradead.org> <4e9e1599-9dbf-75dc-561e-77d5cb063714@landley.net>
- <20180805163234.GR1392@brightrain.aerifal.cx> <61a157f1-7d43-6554-5d26-84d47ce6cabe@landley.net>
- <20180805233349.GS1392@brightrain.aerifal.cx> <CAMuHMdUgy8B4d4rAAvixB66cxaN9OiWxnXJKL17J1c47MfU76Q@mail.gmail.com>
-In-Reply-To: <CAMuHMdUgy8B4d4rAAvixB66cxaN9OiWxnXJKL17J1c47MfU76Q@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 6 Aug 2018 10:53:00 +0200
-Message-ID: <CAK8P3a0JWqW-Z8EJ2BWL-Ez0=ombxrynmptxv7HT_WjSCFbV6w@mail.gmail.com>
-Subject: Re: [PATCH] sh: remove unneeded constructor.
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Rich Felker <dalias@libc.org>, Rob Landley <rob@landley.net>, Matthew Wilcox <willy@infradead.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
+Message-ID: <20180806164035.L80l_U9GCPheGkrPQQmROoJojZ2dtflaZ6MP3pGO0Ag@z>
 
-On Mon, Aug 6, 2018 at 8:57 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> On Mon, Aug 6, 2018 at 1:34 AM Rich Felker <dalias@libc.org> wrote:
-> > On Sun, Aug 05, 2018 at 05:48:52PM -0500, Rob Landley wrote:
-> > > On 08/05/2018 11:32 AM, Rich Felker wrote:
-> >
-> > Yes, if there's a lot of arch-specific infrastructure for boot time
-> > setup, platform devices, behavior of mmu and cache, etc. that's the
-> > same for 32- and 64-bit "variants" of an arch, and especially if the
-> > 32-bit variant is mostly a legacy userspace that actually runs on
-> > 64-bit hardware that's capable of doing both, then there's a good
-> > argument for having them use a shared tree. That last part makes sense
-> > for SH -- I think we'd certainly want 32-bit userspace to be able to
-> > run on a 64-bit kernel. But it seems like it's possible to split that
-> > across archs since ARM did.
-> >
-> > Really it's sort of a historical accident/misfactoring that
-> > "user-to-kernel interface for ISA X" and "kernel internals for the
-> > machine arch using ISA X" are conflated as the same thing. If this had
-> > been done in a more clean manner the "compat syscall" stuff wouldn't
-> > be such a mess.
->
-> Obviously you know more about eventual 64-bit j-core support than me,
-> but if you intend to run 32-bit userspace on 64-bit j-core, having it
-> shared makes sense, especially if you'll maintain both.
->
-> On the platform side, there will be a big difference between mostly legacy
-> SH and new DT-based j-core on the 32-bit bit side, and mostly new DT-based
-> j-core on the 64-bit side.
->
-> Arnd probably has a better view on this.
+arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+tags into the top byte of each pointer. Userspace programs (such as
+HWASan, a memory debugging tool [1]) might use this feature and pass
+tagged user pointers to the kernel through syscalls or other interfaces.
 
-I suspect arch/sh is in a similar state to what arch/arm was in when we added
-arch/arm64, where 90% of the code is there to deal with concepts that no longer
-apply to the new code base, in particular board support for pre-DT machines.
+This patch makes a few of the kernel interfaces accept tagged user
+pointers. The kernel is already able to handle user faults with tagged
+pointers and has the untagged_addr macro, which this patchset reuses.
 
-Starting a new arch/j64 would then make it look more like a clean arch/riscv/ or
-arch/nds32, which are the most recently added ones. However, if you do
-that, you should really start from scratch instead of copying the existing
-arch code, which was the mistake that arch/arm64 did.
+Thanks!
 
-       Arnd
+[1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
+
+Changes in v5:
+- Added 3 new patches that add untagging to places found with static
+  analysis.
+- Rebased onto 44c929e1 (4.18-rc8).
+
+Changes in v4:
+- Added a selftest for checking that passing tagged pointers to the
+  kernel succeeds.
+- Rebased onto 81e97f013 (4.18-rc1+).
+
+Changes in v3:
+- Rebased onto e5c51f30 (4.17-rc6+).
+- Added linux-arch@ to the list of recipients.
+
+Changes in v2:
+- Rebased onto 2d618bdf (4.17-rc3+).
+- Removed excessive untagging in gup.c.
+- Removed untagging pointers returned from __uaccess_mask_ptr.
+
+Changes in v1:
+- Rebased onto 4.17-rc1.
+
+Changes in RFC v2:
+- Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
+  defining it for each arch individually.
+- Updated Documentation/arm64/tagged-pointers.txt.
+- Dropped "mm, arm64: untag user addresses in memory syscalls".
+- Rebased onto 3eb2ce82 (4.16-rc7).
+
+Andrey Konovalov (10):
+  arm64: add type casts to untagged_addr macro
+  uaccess: add untagged_addr definition for other arches
+  arm64: untag user addresses in access_ok and __uaccess_mask_ptr
+  mm, arm64: untag user addresses in mm/gup.c
+  lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
+  arm64: untag user address in __do_user_fault
+  fs, arm64: untag user address in copy_mount_options
+  usb, arm64: untag user addresses in devio
+  arm64: update Documentation/arm64/tagged-pointers.txt
+  selftests, arm64: add a selftest for passing tagged pointers to kernel
+
+ Documentation/arm64/tagged-pointers.txt       |  5 +++--
+ arch/arm64/include/asm/uaccess.h              | 14 +++++++++-----
+ arch/arm64/mm/fault.c                         |  2 +-
+ drivers/usb/core/devio.c                      |  8 +++++---
+ fs/namespace.c                                |  2 +-
+ include/linux/uaccess.h                       |  4 ++++
+ lib/strncpy_from_user.c                       |  2 ++
+ lib/strnlen_user.c                            |  2 ++
+ mm/gup.c                                      |  4 ++++
+ tools/testing/selftests/arm64/.gitignore      |  1 +
+ tools/testing/selftests/arm64/Makefile        | 11 +++++++++++
+ .../testing/selftests/arm64/run_tags_test.sh  | 12 ++++++++++++
+ tools/testing/selftests/arm64/tags_test.c     | 19 +++++++++++++++++++
+ 13 files changed, 74 insertions(+), 12 deletions(-)
+ create mode 100644 tools/testing/selftests/arm64/.gitignore
+ create mode 100644 tools/testing/selftests/arm64/Makefile
+ create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
+ create mode 100644 tools/testing/selftests/arm64/tags_test.c
+
+-- 
+2.18.0.597.ga71716f1ad-goog
