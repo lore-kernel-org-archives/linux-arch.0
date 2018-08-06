@@ -1,39 +1,81 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v5 01/10] arm64: add type casts to untagged_addr macro
-Date: Mon,  6 Aug 2018 18:40:36 +0200
-Message-ID: <b3ec523879cca4f08d0a27065cfb5583470cdadb.1533573460.git.andreyknvl@google.com>
-References: <cover.1533573460.git.andreyknvl@google.com>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+From: Alexandre Ghiti <alex@ghiti.fr>
+Subject: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture primitives
+Date: Mon,  6 Aug 2018 17:57:00 +0000
+Message-ID: <20180806175711.24438-1-alex@ghiti.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1533573460.git.andreyknvl@google.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrey Konovalov <andreyknvl@google.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
+To: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Alexandre Ghiti <alex@ghiti.fr>
 List-Id: linux-arch.vger.kernel.org
 
-This patch makes the untagged_addr macro accept all kinds of address types
-(void *, unsigned long, etc.) and allows not to specify type casts in each
-place where it is used. This is done by using __typeof__.
+[CC linux-mm for inclusion in -mm tree]                                          
+                                                                                 
+In order to reduce copy/paste of functions across architectures and then         
+make riscv hugetlb port (and future ports) simpler and smaller, this             
+patchset intends to factorize the numerous hugetlb primitives that are           
+defined across all the architectures.                                            
+                                                                                 
+Except for prepare_hugepage_range, this patchset moves the versions that         
+are just pass-through to standard pte primitives into                            
+asm-generic/hugetlb.h by using the same #ifdef semantic that can be              
+found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.                            
+                                                                                 
+s390 architecture has not been tackled in this serie since it does not           
+use asm-generic/hugetlb.h at all.                                                
+                                                                                 
+This patchset has been compiled on all addressed architectures with              
+success (except for parisc, but the problem does not come from this              
+series).                                                                         
+                                                                                 
+v6:                                                                              
+  - Remove nohash/32 and book3s/32 powerpc specific implementations in
+    order to use the generic ones.                                                        
+  - Add all the Reviewed-by, Acked-by and Tested-by in the commits,              
+    thanks to everyone.                                                          
+                                                                                 
+v5:                                                                              
+  As suggested by Mike Kravetz, no need to move the #include                     
+  <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at          
+  the top of the file.                                                           
+                                                                                 
+v4:                                                                              
+  Fix powerpc build error due to misplacing of #include                          
+  <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as              
+  pointed by Christophe Leroy.                                                   
+                                                                                 
+v1, v2, v3:                                                                      
+  Same version, just problems with email provider and misuse of                  
+  --batch-size option of git send-email
 
-Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
----
- arch/arm64/include/asm/uaccess.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+Alexandre Ghiti (11):
+  hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+  hugetlb: Introduce generic version of hugetlb_free_pgd_range
+  hugetlb: Introduce generic version of set_huge_pte_at
+  hugetlb: Introduce generic version of huge_ptep_get_and_clear
+  hugetlb: Introduce generic version of huge_ptep_clear_flush
+  hugetlb: Introduce generic version of huge_pte_none
+  hugetlb: Introduce generic version of huge_pte_wrprotect
+  hugetlb: Introduce generic version of prepare_hugepage_range
+  hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+  hugetlb: Introduce generic version of huge_ptep_set_access_flags
+  hugetlb: Introduce generic version of huge_ptep_get
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index e66b0fca99c2..2d6451cbaa86 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -102,7 +102,8 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
-  * up with a tagged userland pointer. Clear the tag to get a sane pointer to
-  * pass on to access_ok(), for instance.
-  */
--#define untagged_addr(addr)		sign_extend64(addr, 55)
-+#define untagged_addr(addr)		\
-+	((__typeof__(addr))sign_extend64((__u64)(addr), 55))
- 
- #define access_ok(type, addr, size)	__range_ok(addr, size)
- #define user_addr_max			get_fs
+ arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+ arch/arm/include/asm/hugetlb.h               | 30 ----------
+ arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+ arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+ arch/mips/include/asm/hugetlb.h              | 40 +++----------
+ arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+ arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
+ arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+ arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+ arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
+ arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+ arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+ arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+ arch/x86/include/asm/hugetlb.h               | 69 ----------------------
+ include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+ 15 files changed, 135 insertions(+), 394 deletions(-)
+
 -- 
-2.18.0.597.ga71716f1ad-goog
+2.16.2
