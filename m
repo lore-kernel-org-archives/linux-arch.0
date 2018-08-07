@@ -1,86 +1,95 @@
-From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Subject: Re: [PATCH v2 14/19] [media] uvcvideo: prevent bounds-check bypass via speculative execution
-Date: Tue, 07 Aug 2018 00:40:52 +0300
-Message-ID: <1624792.F9dcxCXkCx@avalon>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com> <151571806069.27429.6683179525235570687.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+Date: Tue, 7 Aug 2018 11:54:02 +0200
+Message-ID: <20180807095402.GA12200@gmail.com>
+References: <20180806175711.24438-1-alex@ghiti.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <151571806069.27429.6683179525235570687.stgit@dwillia2-desk3.amr.corp.intel.com>
+Content-Disposition: inline
+In-Reply-To: <20180806175711.24438-1-alex@ghiti.fr>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, alan@linux.intel.com, kernel-hardening@lists.openwall.com, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
+To: Alexandre Ghiti <alex@ghiti.fr>
+Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Dan,
 
-Thank you for the patch.
+* Alexandre Ghiti <alex@ghiti.fr> wrote:
 
-On Friday, 12 January 2018 02:47:40 EEST Dan Williams wrote:
-> Static analysis reports that 'index' may be a user controlled value that
-> is used as a data dependency to read 'pin' from the
-> 'selector->baSourceID' array. In order to avoid potential leaks of
-> kernel memory values, block speculative execution of the instruction
-> stream that could issue reads based on an invalid value of 'pin'.
+> [CC linux-mm for inclusion in -mm tree]                                          
+>                                                                                  
+> In order to reduce copy/paste of functions across architectures and then         
+> make riscv hugetlb port (and future ports) simpler and smaller, this             
+> patchset intends to factorize the numerous hugetlb primitives that are           
+> defined across all the architectures.                                            
+>                                                                                  
+> Except for prepare_hugepage_range, this patchset moves the versions that         
+> are just pass-through to standard pte primitives into                            
+> asm-generic/hugetlb.h by using the same #ifdef semantic that can be              
+> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.                            
+>                                                                                  
+> s390 architecture has not been tackled in this serie since it does not           
+> use asm-generic/hugetlb.h at all.                                                
+>                                                                                  
+> This patchset has been compiled on all addressed architectures with              
+> success (except for parisc, but the problem does not come from this              
+> series).                                                                         
+>                                                                                  
+> v6:                                                                              
+>   - Remove nohash/32 and book3s/32 powerpc specific implementations in
+>     order to use the generic ones.                                                        
+>   - Add all the Reviewed-by, Acked-by and Tested-by in the commits,              
+>     thanks to everyone.                                                          
+>                                                                                  
+> v5:                                                                              
+>   As suggested by Mike Kravetz, no need to move the #include                     
+>   <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at          
+>   the top of the file.                                                           
+>                                                                                  
+> v4:                                                                              
+>   Fix powerpc build error due to misplacing of #include                          
+>   <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as              
+>   pointed by Christophe Leroy.                                                   
+>                                                                                  
+> v1, v2, v3:                                                                      
+>   Same version, just problems with email provider and misuse of                  
+>   --batch-size option of git send-email
 > 
-> Based on an original patch by Elena Reshetova.
+> Alexandre Ghiti (11):
+>   hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+>   hugetlb: Introduce generic version of hugetlb_free_pgd_range
+>   hugetlb: Introduce generic version of set_huge_pte_at
+>   hugetlb: Introduce generic version of huge_ptep_get_and_clear
+>   hugetlb: Introduce generic version of huge_ptep_clear_flush
+>   hugetlb: Introduce generic version of huge_pte_none
+>   hugetlb: Introduce generic version of huge_pte_wrprotect
+>   hugetlb: Introduce generic version of prepare_hugepage_range
+>   hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+>   hugetlb: Introduce generic version of huge_ptep_set_access_flags
+>   hugetlb: Introduce generic version of huge_ptep_get
 > 
-> Laurent notes:
-> 
->     "...as this is nowhere close to being a fast path, I think we can close
->     this potential hole as proposed in the patch"
-> 
-> Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
-> Cc: linux-media@vger.kernel.org
-> Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>  arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+>  arch/arm/include/asm/hugetlb.h               | 30 ----------
+>  arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+>  arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+>  arch/mips/include/asm/hugetlb.h              | 40 +++----------
+>  arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+>  arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
+>  arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+>  arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+>  arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
+>  arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+>  arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+>  arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+>  arch/x86/include/asm/hugetlb.h               | 69 ----------------------
+>  include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+>  15 files changed, 135 insertions(+), 394 deletions(-)
 
-What's the status of this series (and of this patch in particular) ?
+The x86 bits look good to me (assuming it's all tested on all relevant architectures, etc.)
 
-> ---
->  drivers/media/usb/uvc/uvc_v4l2.c |    9 +++++++--
->  1 file changed, 7 insertions(+), 2 deletions(-)
-> 
-> diff --git a/drivers/media/usb/uvc/uvc_v4l2.c
-> b/drivers/media/usb/uvc/uvc_v4l2.c index 3e7e283a44a8..30ee200206ee 100644
-> --- a/drivers/media/usb/uvc/uvc_v4l2.c
-> +++ b/drivers/media/usb/uvc/uvc_v4l2.c
-> @@ -22,6 +22,7 @@
->  #include <linux/mm.h>
->  #include <linux/wait.h>
->  #include <linux/atomic.h>
-> +#include <linux/nospec.h>
-> 
->  #include <media/v4l2-common.h>
->  #include <media/v4l2-ctrls.h>
-> @@ -809,8 +810,12 @@ static int uvc_ioctl_enum_input(struct file *file, void
-> *fh, const struct uvc_entity *selector = chain->selector;
->  	struct uvc_entity *iterm = NULL;
->  	u32 index = input->index;
-> +	__u8 *elem = NULL;
->  	int pin = 0;
-> 
-> +	if (selector)
-> +		elem = array_ptr(selector->baSourceID, index,
-> +				selector->bNrInPins);
->  	if (selector == NULL ||
->  	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
->  		if (index != 0)
-> @@ -820,8 +825,8 @@ static int uvc_ioctl_enum_input(struct file *file, void
-> *fh, break;
->  		}
->  		pin = iterm->id;
-> -	} else if (index < selector->bNrInPins) {
-> -		pin = selector->baSourceID[index];
-> +	} else if (elem) {
-> +		pin = *elem;
->  		list_for_each_entry(iterm, &chain->entities, chain) {
->  			if (!UVC_ENTITY_IS_ITERM(iterm))
->  				continue;
+Acked-by: Ingo Molnar <mingo@kernel.org>
 
--- 
-Regards,
+Thanks,
 
-Laurent Pinchart
+	Ingo
