@@ -1,95 +1,57 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Date: Tue, 7 Aug 2018 11:54:02 +0200
-Message-ID: <20180807095402.GA12200@gmail.com>
-References: <20180806175711.24438-1-alex@ghiti.fr>
+From: Ludovic Desroches <ludovic.desroches@microchip.com>
+Subject: [PATCH v3 0/2] add ISO7816 support
+Date: Tue, 7 Aug 2018 15:00:47 +0200
+Message-ID: <20180807130049.5957-1-ludovic.desroches@microchip.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180806175711.24438-1-alex@ghiti.fr>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexandre Ghiti <alex@ghiti.fr>
-Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: gregkh@linuxfoundation.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org, Ludovic Desroches <ludovic.desroches@microchip.com>
 List-Id: linux-arch.vger.kernel.org
 
+Hi,
 
-* Alexandre Ghiti <alex@ghiti.fr> wrote:
+This patchset adds support for the ISO7816 standard. The USART devices in
+Microchip SoCs have an ISO7816 mode. It allows to let the USART managing
+the CLK and I/O signals of a smart card.
 
-> [CC linux-mm for inclusion in -mm tree]                                          
->                                                                                  
-> In order to reduce copy/paste of functions across architectures and then         
-> make riscv hugetlb port (and future ports) simpler and smaller, this             
-> patchset intends to factorize the numerous hugetlb primitives that are           
-> defined across all the architectures.                                            
->                                                                                  
-> Except for prepare_hugepage_range, this patchset moves the versions that         
-> are just pass-through to standard pte primitives into                            
-> asm-generic/hugetlb.h by using the same #ifdef semantic that can be              
-> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.                            
->                                                                                  
-> s390 architecture has not been tackled in this serie since it does not           
-> use asm-generic/hugetlb.h at all.                                                
->                                                                                  
-> This patchset has been compiled on all addressed architectures with              
-> success (except for parisc, but the problem does not come from this              
-> series).                                                                         
->                                                                                  
-> v6:                                                                              
->   - Remove nohash/32 and book3s/32 powerpc specific implementations in
->     order to use the generic ones.                                                        
->   - Add all the Reviewed-by, Acked-by and Tested-by in the commits,              
->     thanks to everyone.                                                          
->                                                                                  
-> v5:                                                                              
->   As suggested by Mike Kravetz, no need to move the #include                     
->   <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at          
->   the top of the file.                                                           
->                                                                                  
-> v4:                                                                              
->   Fix powerpc build error due to misplacing of #include                          
->   <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as              
->   pointed by Christophe Leroy.                                                   
->                                                                                  
-> v1, v2, v3:                                                                      
->   Same version, just problems with email provider and misuse of                  
->   --batch-size option of git send-email
-> 
-> Alexandre Ghiti (11):
->   hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
->   hugetlb: Introduce generic version of hugetlb_free_pgd_range
->   hugetlb: Introduce generic version of set_huge_pte_at
->   hugetlb: Introduce generic version of huge_ptep_get_and_clear
->   hugetlb: Introduce generic version of huge_ptep_clear_flush
->   hugetlb: Introduce generic version of huge_pte_none
->   hugetlb: Introduce generic version of huge_pte_wrprotect
->   hugetlb: Introduce generic version of prepare_hugepage_range
->   hugetlb: Introduce generic version of huge_ptep_set_wrprotect
->   hugetlb: Introduce generic version of huge_ptep_set_access_flags
->   hugetlb: Introduce generic version of huge_ptep_get
-> 
->  arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
->  arch/arm/include/asm/hugetlb.h               | 30 ----------
->  arch/arm64/include/asm/hugetlb.h             | 39 +++---------
->  arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
->  arch/mips/include/asm/hugetlb.h              | 40 +++----------
->  arch/parisc/include/asm/hugetlb.h            | 33 +++--------
->  arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
->  arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
->  arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
->  arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
->  arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
->  arch/sh/include/asm/hugetlb.h                | 54 ++---------------
->  arch/sparc/include/asm/hugetlb.h             | 40 +++----------
->  arch/x86/include/asm/hugetlb.h               | 69 ----------------------
->  include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
->  15 files changed, 135 insertions(+), 394 deletions(-)
+Changes:
+- v3
+  - add IOCTLs to parisc arch.
+  - rework atmel_config_iso7816 according to the comments by Richard
+  - keep max iteration hard coded. Will see later if the user need to set
+  this value. It may also concern the normal/inverse mode.
+  - improve the checking of the value from the user space.
+- v2
+  - uart_get_iso7816_config: check there is an iso7816_config function
+  - use IOCTL macros to generate the IOCTL number
+  - check that reserved field is not used
+  - remove debug logs
+  - check that the iso7816_config is right before doing any action
+  - change the error from nack and max iteration status to a debug message
+  - remove patch 3 as it concerns both rs485 and iso7816 to think more
+  about the need of adding a lock or not
 
-The x86 bits look good to me (assuming it's all tested on all relevant architectures, etc.)
 
-Acked-by: Ingo Molnar <mingo@kernel.org>
+Nicolas Ferre (2):
+  tty/serial_core: add ISO7816 infrastructure
+  tty/serial: atmel: add ISO7816 support
 
-Thanks,
+ arch/alpha/include/uapi/asm/ioctls.h   |   2 +
+ arch/mips/include/uapi/asm/ioctls.h    |   2 +
+ arch/parisc/include/uapi/asm/ioctls.h  |   2 +
+ arch/powerpc/include/uapi/asm/ioctls.h |   2 +
+ arch/sh/include/uapi/asm/ioctls.h      |   2 +
+ arch/sparc/include/uapi/asm/ioctls.h   |   2 +
+ arch/xtensa/include/uapi/asm/ioctls.h  |   2 +
+ drivers/tty/serial/atmel_serial.c      | 211 ++++++++++++++++++++++++++++++---
+ drivers/tty/serial/atmel_serial.h      |   6 +-
+ drivers/tty/serial/serial_core.c       |  60 ++++++++++
+ include/linux/serial_core.h            |   3 +
+ include/uapi/asm-generic/ioctls.h      |   2 +
+ include/uapi/linux/serial.h            |  17 +++
+ 13 files changed, 297 insertions(+), 16 deletions(-)
 
-	Ingo
+-- 
+2.12.2
