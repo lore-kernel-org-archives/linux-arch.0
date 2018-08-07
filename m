@@ -1,48 +1,45 @@
-From: Andy Lutomirski <luto@amacapital.net>
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
 Subject: Re: [PATCH v1 2/3] zinc: Introduce minimal cryptography library
-Date: Tue, 7 Aug 2018 12:43:35 -0700
-Message-ID: <CALCETrWo-vCt_bHMBPAEHEr3P4=AJq-95Bf=00aAEAcE839wLw@mail.gmail.com>
+Date: Tue, 7 Aug 2018 16:48:17 -0700
+Message-ID: <CAHmME9qPay3O7Yh-R66EDhon4dJz1cuy69dWUxf3Xkt8seqLZA@mail.gmail.com>
 References: <20180801072246.GA15677@sol.localdomain> <CALCETrXD_VyoyW5C1U34o-ySJ4nFcO6PQ+ZNBVYxCpJ-f65CHw@mail.gmail.com>
  <CAHmME9oThR-dE3gTW0UyqAGZO80qu19ktG4YTb4iL6CNpzNNaw@mail.gmail.com>
  <CALCETrVziUpAU4nTaZ=t5ct=1jsWswWOy7KDNxXGPD1L=tMTGQ@mail.gmail.com>
- <CAHmME9pt3PxKQmc8E-arA-W0p2tp9z_oJ-uXQwis3qD=Zvpnsg@mail.gmail.com> <CAHmME9rA_nb9Le4VQhtcqCfNSuHpFjZVOV6=vE12FydJD9CmAQ@mail.gmail.com>
+ <CAHmME9pt3PxKQmc8E-arA-W0p2tp9z_oJ-uXQwis3qD=Zvpnsg@mail.gmail.com>
+ <CAHmME9rA_nb9Le4VQhtcqCfNSuHpFjZVOV6=vE12FydJD9CmAQ@mail.gmail.com> <CALCETrWo-vCt_bHMBPAEHEr3P4=AJq-95Bf=00aAEAcE839wLw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAHmME9rA_nb9Le4VQhtcqCfNSuHpFjZVOV6=vE12FydJD9CmAQ@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>
-Cc: Eric Biggers <ebiggers3@gmail.com>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, "Daniel J . Bernstein" <djb@cr.yp.to>, Tanja Lange <tanja@hyperelliptic.org>, Jean-Philippe Aumasson <jeanphilippe.aumasson@gmail.com>, Karthikeyan Bhargavan <karthik.bhargavan@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CALCETrWo-vCt_bHMBPAEHEr3P4=AJq-95Bf=00aAEAcE839wLw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Eric Biggers <ebiggers3@gmail.com>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, "Daniel J . Bernstein" <djb@cr.yp.to>, Tanja Lange <tanja@hyperelliptic.org>, Jean-Philippe Aumasson <jeanphilippe.aumasson@gmail.com>, Karthikeyan Bhargavan <karthik.bhargavan@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 7, 2018 at 11:54 AM, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
-> Hey Andy, Eric, & all,
->
-> I've started the work of separating this out into 16 individual
-> commits, have addressed numerous other things brought up like the
-> ifdef maze, and have begun rewriting (parts of) the original commit
-> message. It's still a work in progress, and I still have some work to
-> do, but if you want to follow along, things are happening here:
->
-> https://git.zx2c4.com/linux-dev/log/?h=jd/wireguard
->
-> I'll be rebasing and reworking this continuously, but that's how it's
-> shaping up.
->
-> As I'm still working on it, I won't be submitting v2 today, but if you
-> have suggestions or concerns or want to poke me while I'm working on
-> v2, don't hesitate to send me private email or ping me in IRC (I'm
-> "zx2c4" there) to chat.
->
-> Regards,
-> Jason
+Hey Andy,
 
-For "zinc: add simd helper", I think it should be in include/linux,
-and include/linux/simd.h should (immediately or maybe in the future)
-include <asm/simd.h> to pick up arch-specific stuff.  And the patch
-should get sent to linux-arch@vger.kernel.org.
+On Tue, Aug 7, 2018 at 12:43 PM Andy Lutomirski <luto@amacapital.net> wrote:
+> For "zinc: add simd helper", I think it should be in include/linux,
+> and include/linux/simd.h should (immediately or maybe in the future)
+> include <asm/simd.h> to pick up arch-specific stuff.  And the patch
+> should get sent to linux-arch@vger.kernel.org.
 
-In your blake2s_arch() implementation, you're not passing in a
-simd_context_t.  Is that still a work in progress?  I thought the plan
-was to pass it in rather than doing the check in the _arch()
-functions.
+I guess you saw my prompt about that in the previous commit message?
+Based on your encouragement, I implemented it:
+https://git.zx2c4.com/linux-dev/commit/?h=simd This is _far_ more
+invasive than I wanted to be, as I don't want this patch submission to
+grow unwieldy and never be merged, but I guess we can roll with this
+for now...
+
+> In your blake2s_arch() implementation, you're not passing in a
+> simd_context_t.  Is that still a work in progress?  I thought the plan
+> was to pass it in rather than doing the check in the _arch()
+> functions.
+
+I'm inclined to do the explicit context passing only when a function
+is likely to be used in that kind of environment, and adjust as
+needed. Long term, anyway, that API will be removed once the x86 guys
+figure out lazy FPU restoration and the amortization doesn't add
+anything.
+
+Jason
