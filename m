@@ -2,12 +2,14 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-eopbgr710132.outbound.protection.outlook.com ([40.107.71.132]:8262
         "EHLO NAM05-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1729729AbeHIBSq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Aug 2018 21:18:46 -0400
+        id S1729729AbeHIBSr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Aug 2018 21:18:47 -0400
 From: Paul Burton <paul.burton@mips.com>
-Subject: [PATCH v5 0/4] MIPS: Override barrier_before_unreachable() to fix microMIPS
-Date: Wed,  8 Aug 2018 15:52:21 -0700
-Message-Id: <20180808225225.24450-1-paul.burton@mips.com>
+Subject: [PATCH v5 2/4] um: Add generated/ to MODE_INCLUDE
+Date: Wed,  8 Aug 2018 15:52:23 -0700
+Message-Id: <20180808225225.24450-3-paul.burton@mips.com>
+In-Reply-To: <20180808225225.24450-1-paul.burton@mips.com>
+References: <20180808225225.24450-1-paul.burton@mips.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
@@ -15,96 +17,44 @@ List-ID: <linux-arch.vger.kernel.org>
 To: linux-mips@linux-mips.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-arch@vger.kernel.org, Paul Burton <paul.burton@mips.com>
 
-This series overrides barrier_before_unreachable() for MIPS to add a
-.insn assembler directive.
+From: James Hogan <jhogan@kernel.org>
 
-Due to the subsequent __builtin_unreachable(), the assembler can't tell
-that a label on the empty inline asm is code rather than data, so any
-microMIPS branches targeting it (which sadly can't be removed) raise
-errors due to the mismatching ISA mode, Adding the .insn in patch 4
-tells the assembler that it should be treated as code.
+Add the um specific generated includes directory to MODE_INCLUDE so that
+asm/compiler.h can be used for overriding linux/compiler*.h which is
+included automatically, with um using a generated asm-generic wrapper at
+arch/um/include/generated/asm/compiler.h.
 
-To do this we add a new standard asm/compiler.h for architecture
-overrides in patch 3. There are a few existing asm/compiler.h files
-already existing, most of which are fairly simple and don't include
-anything else (arm, arm64, mips). Unfortunately the alpha one includes
-linux/compiler.h though, so it can undefine some inline macros. On
-Arnd's suggestion this is converted to use OPTIMIZE_INLINING instead in
-patch 1. A build of alpha's defconfig on GCC 7.3 before and after this
-series results in the following size differences, which appear harmless
-to me:
+Reported-by: kbuild test robot <lkp@intel.com>
+Signed-off-by: James Hogan <jhogan@kernel.org>
+Signed-off-by: Paul Burton <paul.burton@mips.com>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
+---
+I've been unable to reproduce the error the kbuild test robot reported
+for v4 [1], so I'm hoping it may disappear with the rebased series or at
+least give me more information if not...
 
-$ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
-add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
-Function                                     old     new   delta
-cap_bprm_set_creds                          1496    1664    +168
-cap_issubset                                   -      68     +68
-flex_array_put                               328     344     +16
-cap_capset                                   488     500     +12
-nonroot_raised_pE.constprop                  348       -    -348
-Total: Before=5823709, After=5823625, chg -0.00%
+[1] https://www.linux-mips.org/archives/linux-mips/2018-05/msg00094.html
 
-Also um needs the generated/ include directory adding to the include
-paths in patch 2 so that an asm-generic wrapper asm/compiler.h can be
-included from automatically included headers.
+Changes in v5: None
+Changes in v4:
+- New patch in v4.
 
-Applies cleanly atop v4.18-rc8.
+ arch/um/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
 
-Changes in v5 (Paul):
-- Rebase atop v4.18-rc8.
-
-Changes in v4 (James):
-- Fix asm-generic/compiler.h include from check, compiler_types.h is
-  included on the command line so linux/compiler.h may not be included
-  (kbuild test robot).
-- New patch 2 to fix um (kbuild test robot).
-
-Changes in v3 (James):
-- New patch 1.
-- Rebase after 4.17 arch removal and update commit messages.
-- Use asm/compiler.h instead of compiler-gcc.h (Arnd).
-- Drop stable tag for now.
-
-Changes in v2 (Paul):
-- Add generic-y entries to arch Kbuild files. Oops!
-
-James Hogan (2):
-  alpha: Use OPTIMIZE_INLINING instead of asm/compiler.h
-  um: Add generated/ to MODE_INCLUDE
-
-Paul Burton (2):
-  compiler.h: Allow arch-specific overrides
-  MIPS: Workaround GCC __builtin_unreachable reordering bug
-
- arch/alpha/Kconfig                 |  6 ++++++
- arch/alpha/include/asm/compiler.h  | 11 -----------
- arch/arc/include/asm/Kbuild        |  1 +
- arch/c6x/include/asm/Kbuild        |  1 +
- arch/h8300/include/asm/Kbuild      |  1 +
- arch/hexagon/include/asm/Kbuild    |  1 +
- arch/ia64/include/asm/Kbuild       |  1 +
- arch/m68k/include/asm/Kbuild       |  1 +
- arch/microblaze/include/asm/Kbuild |  1 +
- arch/mips/include/asm/compiler.h   | 30 ++++++++++++++++++++++++++++++
- arch/nds32/include/asm/Kbuild      |  1 +
- arch/nios2/include/asm/Kbuild      |  1 +
- arch/openrisc/include/asm/Kbuild   |  1 +
- arch/parisc/include/asm/Kbuild     |  1 +
- arch/powerpc/include/asm/Kbuild    |  1 +
- arch/riscv/include/asm/Kbuild      |  1 +
- arch/s390/include/asm/Kbuild       |  1 +
- arch/sh/include/asm/Kbuild         |  1 +
- arch/sparc/include/asm/Kbuild      |  1 +
- arch/um/Makefile                   |  1 +
- arch/um/include/asm/Kbuild         |  1 +
- arch/unicore32/include/asm/Kbuild  |  1 +
- arch/x86/include/asm/Kbuild        |  1 +
- arch/xtensa/include/asm/Kbuild     |  1 +
- include/asm-generic/compiler.h     | 10 ++++++++++
- include/linux/compiler-gcc.h       |  2 ++
- include/linux/compiler_types.h     |  3 +++
- 27 files changed, 72 insertions(+), 11 deletions(-)
- create mode 100644 include/asm-generic/compiler.h
-
+diff --git a/arch/um/Makefile b/arch/um/Makefile
+index e54dda8a0363..543d12d230ab 100644
+--- a/arch/um/Makefile
++++ b/arch/um/Makefile
+@@ -30,6 +30,7 @@ core-y			+= $(ARCH_DIR)/kernel/		\
+ 			   $(ARCH_DIR)/os-$(OS)/
+ 
+ MODE_INCLUDE	+= -I$(srctree)/$(ARCH_DIR)/include/shared/skas
++MODE_INCLUDE	+= -I$(srctree)/$(ARCH_DIR)/include/generated
+ 
+ HEADER_ARCH 	:= $(SUBARCH)
+ 
 -- 
 2.18.0
