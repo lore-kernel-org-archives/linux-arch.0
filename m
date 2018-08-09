@@ -1,99 +1,89 @@
-From: Alex Ghiti <alex@ghiti.fr>
-Subject: Re: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Date: Wed, 8 Aug 2018 05:36:07 +0000
-Message-ID: <e144d038-330a-8b23-c058-94764430ff31@ghiti.fr>
-References: <20180806175711.24438-1-alex@ghiti.fr>
- <20180807095402.GA12200@gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH 0/5] System call table generation support
+Date: Thu,  9 Aug 2018 10:35:10 +0530
+Message-ID: <1533791115-3681-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180807095402.GA12200@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, deepa.kernel@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Thanks for your time,
-
-Alex
-
-Le 07/08/2018 à 09:54, Ingo Molnar a écrit :
-> * Alexandre Ghiti <alex@ghiti.fr> wrote:
->
->> [CC linux-mm for inclusion in -mm tree]
->>                                                                                   
->> In order to reduce copy/paste of functions across architectures and then
->> make riscv hugetlb port (and future ports) simpler and smaller, this
->> patchset intends to factorize the numerous hugetlb primitives that are
->> defined across all the architectures.
->>                                                                                   
->> Except for prepare_hugepage_range, this patchset moves the versions that
->> are just pass-through to standard pte primitives into
->> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
->> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
->>                                                                                   
->> s390 architecture has not been tackled in this serie since it does not
->> use asm-generic/hugetlb.h at all.
->>                                                                                   
->> This patchset has been compiled on all addressed architectures with
->> success (except for parisc, but the problem does not come from this
->> series).
->>                                                                                   
->> v6:
->>    - Remove nohash/32 and book3s/32 powerpc specific implementations in
->>      order to use the generic ones.
->>    - Add all the Reviewed-by, Acked-by and Tested-by in the commits,
->>      thanks to everyone.
->>                                                                                   
->> v5:
->>    As suggested by Mike Kravetz, no need to move the #include
->>    <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at
->>    the top of the file.
->>                                                                                   
->> v4:
->>    Fix powerpc build error due to misplacing of #include
->>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
->>    pointed by Christophe Leroy.
->>                                                                                   
->> v1, v2, v3:
->>    Same version, just problems with email provider and misuse of
->>    --batch-size option of git send-email
->>
->> Alexandre Ghiti (11):
->>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
->>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
->>    hugetlb: Introduce generic version of set_huge_pte_at
->>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
->>    hugetlb: Introduce generic version of huge_ptep_clear_flush
->>    hugetlb: Introduce generic version of huge_pte_none
->>    hugetlb: Introduce generic version of huge_pte_wrprotect
->>    hugetlb: Introduce generic version of prepare_hugepage_range
->>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
->>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
->>    hugetlb: Introduce generic version of huge_ptep_get
->>
->>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
->>   arch/arm/include/asm/hugetlb.h               | 30 ----------
->>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
->>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
->>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
->>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
->>   arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
->>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
->>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
->>   arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
->>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
->>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
->>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
->>   arch/x86/include/asm/hugetlb.h               | 69 ----------------------
->>   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
->>   15 files changed, 135 insertions(+), 394 deletions(-)
-> The x86 bits look good to me (assuming it's all tested on all relevant architectures, etc.)
->
-> Acked-by: Ingo Molnar <mingo@kernel.org>
->
-> Thanks,
->
-> 	Ingo
+VGhlIHB1cnBvc2Ugb2YgdGhpcyBwYXRjaCBzZXJpZXMgaXM6CjEuIFdlIGNhbiBlYXNpbHkgYWRk
+L21vZGlmeS9kZWxldGUgc3lzdGVtIGNhbGwgYnkgY2hhbmdpbmcgZW50cnkgCmluIHN5c2NhbGwu
+dGJsIGZpbGUuIE5vIG5lZWQgdG8gbWFudWFsbHkgZWRpdCBtYW55IGZpbGVzLgoKMi4gSXQgaXMg
+ZWFzeSB0byB1bmlmeSB0aGUgc3lzdGVtIGNhbGwgaW1wbGVtZW50YXRpb24gYWNyb3NzIGFsbCAK
+dGhlIGFyY2hpdGVjdHVyZXMuIAoKVGhlIHN5c3RlbSBjYWxsIHRhYmxlcyBhcmUgaW4gZGlmZmVy
+ZW50IGZvcm1hdCBpbiBhbGwgYXJjaGl0ZWN0dXJlIAphbmQgaXQgd2lsbCBiZSBkaWZmaWN1bHQg
+dG8gbWFudWFsbHkgYWRkIG9yIG1vZGlmeSB0aGUgc3lzdGVtIGNhbGxzCm1hbnVhbGx5IGluIHRo
+ZSByZXNwZWN0aXZlIGZpbGVzLiBUbyBtYWtlIGl0IGVhc3kgYnkga2VlcGluZyBhIHNjcmlwdCAK
+YW5kIHdoaWNoJ2xsIGdlbmVyYXRlIHRoZSBoZWFkZXIgZmlsZSBhbmQgc3lzY2FsbCB0YWJsZSBm
+aWxlIHNvIHRoaXMgCmNoYW5nZSB3aWxsIHVuaWZ5IHRoZSBpbXBsZW1lbnRhdGlvbiBhY3Jvc3Mg
+YWxsIGFyY2hpdGVjdHVyZXMuCgpzeXNjYWxsLnRibCBjb250YWlucyB0aGUgbGlzdCBvZiBhdmFp
+bGFibGUgc3lzdGVtIGNhbGxzIGFsb25nIHdpdGggCnN5c3RlbSBjYWxsIG51bWJlciBhbmQgY29y
+cmVzcG9uZGluZyBlbnRyeSBwb2ludC4gQWRkIGEgbmV3IHN5c3RlbSAKY2FsbCBpbiB0aGlzIGFy
+Y2hpdGVjdHVyZSB3aWxsIGJlIHBvc3NpYmxlIGJ5IGFkZGluZyBuZXcgZW50cnkgaW4gCnRoZSBz
+eXNjYWxsLnRibCBmaWxlLgoKQWRkaW5nIGEgbmV3IHRhYmxlIGVudHJ5IGNvbnNpc3Rpbmcgb2Y6
+CiAgICAgICAgLSBTeXN0ZW0gY2FsbCBudW1iZXIuCiAgICAgICAgLSBBQkkuCiAgICAgICAgLSBT
+eXN0ZW0gY2FsbCBuYW1lLgogICAgICAgIC0gRW50cnkgcG9pbnQgbmFtZS4KCkFSTSwgczM5MCBh
+bmQgeDg2IGFyY2hpdGVjdXR1cmUgZG9lcyBleGlzdCB0aGUgc2ltaWxhciBzdXBwb3J0LiBJIAps
+ZXZlcmFnZSB0aGVpciBpbXBsZW1lbnRhdGlvbiB0byBjb21lIHVwIHdpdGggYSBnZW5lcmljIHNv
+bHV0aW9uLgoKSSBoYXZlIGRvbmUgdGhlIHNhbWUgc3VwcG9ydCBmb3Igd29yayBmb3IgYWxwaGEs
+IG02OGssIG1pY3JvYmxhemUsIAptaXBzLCBwYXJpc2MsIHBvd2VycGMsIHNoLCBzcGFyYywgYW5k
+IHh0ZW5zYS4gQnV0IEkgc3RhcnRlZCBzZW5kaW5nIAp0aGUgcGF0Y2ggZm9yIG9uZSBhcmNoaXRl
+Y3V0dXJlIGZvciByZXZpZXcuIEJlbG93IG1lbnRpb25lZCBnaXQKcmVwb3NpdG9yeSBjb250YWlu
+cyBtb3JlIGRldGFpbHMuCkdpdCByZXBvOi0gaHR0cHM6Ly9naXRodWIuY29tL2Zyemtobi9zeXN0
+ZW1fY2FsbF90YWJsZV9nZW5lcmF0b3IvCgpGaW5hbGx5LCB0aGlzIGlzIHRoZSBncm91bmQgd29y
+ayBmb3Igc29sdmluZyB0aGUgWTIwMzggaXNzdWUuIFdlIApuZWVkIHRvIGFkZC9jaGFuZ2UgdHdv
+IGRvemVuIG9mIHN5c3RlbSBjYWxscyB0byBzb2x2ZSBZMjAzOCBpc3N1ZS4gClNvIHRoaXMgcGF0
+Y2ggc2VyaWVzIHdpbGwgaGVscCB0byBlYXNpbHkgbW9kaWZ5IGZyb20gZXhpc3RpbmcgCnN5c3Rl
+bSBjYWxsIHRvIFkyMDM4IGNvbXBhdGlibGUgc3lzdGVtIGNhbGxzLgoKSSBzdGFydGVkIHdvcmtp
+bmcgc3lzdGVtIGNhbGwgdGFibGUgZ2VuZXJhdGlvbiBvbiA0LjE3LXJjMS4gSSB1c2VkIAptYXJj
+aW4ncyBzY3JpcHQgLSBodHRwczovL2dpdGh1Yi5jb20vaHJ3L3N5c2NhbGxzLXRhYmxlIHRvIGdl
+bmVyYXRlIAp0aGUgc3lzY2FsbC50YmwgZmlsZS4gQW5kIHRoaXMgd2lsbCBiZSB0aGUgaW5wdXQg
+dG8gdGhlIHN5c3RlbSBjYWxsIAp0YWJsZSBnZW5lcmF0aW9uIHNjcmlwdC4gQnV0IHRoZXJlIGFy
+ZSBjb3VwbGUgc3lzdGVtIGNhbGwgZ290IGFkZCAKaW4gdGhlIGxhdGVzdCByYyByZWxlYXNlLiBJ
+ZiBydW4gTWFyY2luJ3Mgc2NyaXB0IG9uIGxhdGVzdCByZWxlYXNlLAppdCB3aWxsIGdlbmVyYXRl
+IGEgZGlmZmVyZW50IHN5c2NhbGwudGJsLiBCdXQgSSBzdGlsbCB1c2UgdGhlIG9sZCAKZmlsZSAt
+IHN5c2NhbGwudGJsIGFuZCBvbmNlIGFsbCByZXZpZXcgZ290IG92ZXIgSSdsbCB1cGRhdGUgCnN5
+c2NhbGwudGJsIGFsb25lIHcuci50byB0aGUgdGlwIG9mIHRoZSBrZXJuZWwuIFRoZSBpbXBhY3Qg
+b2YgdGhpcwppcywgZmV3IG9mIHRoZSBzeXN0ZW0gY2FsbCB3b24ndCB3b3JrLgoKRmlyb3ogS2hh
+biAoNSk6CiAgaWE2NDogUmVwbGFjZSBOUl9zeXNjYWxscyBtYWNybyBmcm9tIGFzbS91bmlzdGQu
+aAogIGlhNjQ6IEFkZGVkIGFuIG9mZnNldCBmb3Igc3lzdGVtIGNhbGwgbnVtYmVyCiAgaWE2NDog
+UmVwbGFjZWQgdGhlIHN5c3RlbSBjYWxsIHRhYmxlIGVudHJ5IGZyb20gZW50cnkuUwogIGlhNjQ6
+IEFkZGVkIHN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRpb24gc3VwcG9ydAogIGlhNjQ6IHVhcGkg
+aGVhZGVyIGFuZCBzeXN0ZW0gY2FsbCB0YWJsZSBmaWxlIGdlbmVyYXRpb24KCiBhcmNoL2lhNjQv
+TWFrZWZpbGUgICAgICAgICAgICAgICAgICAgICAgfCAgIDMgKwogYXJjaC9pYTY0L2luY2x1ZGUv
+YXNtL0tidWlsZCAgICAgICAgICAgIHwgICAyICsKIGFyY2gvaWE2NC9pbmNsdWRlL2FzbS91bmlz
+dGQuaCAgICAgICAgICB8ICAgNCAtCiBhcmNoL2lhNjQvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQg
+ICAgICAgfCAgIDIgKwogYXJjaC9pYTY0L2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmggICAgIHwg
+MzMxICstLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KIGFyY2gvaWE2NC9rZXJuZWwvZW50
+cnkuUyAgICAgICAgICAgICAgICB8IDMzNSArLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LQogYXJjaC9pYTY0L2tlcm5lbC9mc3lzLlMgICAgICAgICAgICAgICAgIHwgICAyICstCiBhcmNo
+L2lhNjQva2VybmVsL2dhdGUuUyAgICAgICAgICAgICAgICAgfCAgIDQgKy0KIGFyY2gvaWE2NC9r
+ZXJuZWwvaXZ0LlMgICAgICAgICAgICAgICAgICB8ICAgMiArLQogYXJjaC9pYTY0L2tlcm5lbC9w
+YXRjaC5jICAgICAgICAgICAgICAgIHwgICAyICstCiBhcmNoL2lhNjQva2VybmVsL3N5c2NhbGwu
+UyAgICAgICAgICAgICAgfCAgMTMgKysKIGFyY2gvaWE2NC9rZXJuZWwvc3lzY2FsbHMvTWFrZWZp
+bGUgICAgICB8ICA0MCArKysrCiBhcmNoL2lhNjQva2VybmVsL3N5c2NhbGxzL3N5c2NhbGwudGJs
+ICAgfCAzMzQgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKwogYXJjaC9pYTY0L2tlcm5l
+bC9zeXNjYWxscy9zeXNjYWxsaGRyLnNoIHwgIDMzICsrKysKIGFyY2gvaWE2NC9rZXJuZWwvc3lz
+Y2FsbHMvc3lzY2FsbHRibC5zaCB8ICAzNCArKysrCiBhcmNoL2lhNjQvbW0vaW5pdC5jICAgICAg
+ICAgICAgICAgICAgICAgfCAgIDYgKy0KIDE2IGZpbGVzIGNoYW5nZWQsIDQ3NCBpbnNlcnRpb25z
+KCspLCA2NzMgZGVsZXRpb25zKC0pCiBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9pYTY0L2tlcm5l
+bC9zeXNjYWxsLlMKIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL2lhNjQva2VybmVsL3N5c2NhbGxz
+L01ha2VmaWxlCiBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9pYTY0L2tlcm5lbC9zeXNjYWxscy9z
+eXNjYWxsLnRibAogY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvaWE2NC9rZXJuZWwvc3lzY2FsbHMv
+c3lzY2FsbGhkci5zaAogY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvaWE2NC9rZXJuZWwvc3lzY2Fs
+bHMvc3lzY2FsbHRibC5zaAoKLS0gCjEuOS4xCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJv
+Lm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
