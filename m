@@ -1,139 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:36879 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728431AbeHIHjD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2018 03:39:03 -0400
-Received: by mail-pf1-f195.google.com with SMTP id a26-v6so2260050pfo.4
-        for <linux-arch@vger.kernel.org>; Wed, 08 Aug 2018 22:16:04 -0700 (PDT)
+Received: from mail-pl0-f51.google.com ([209.85.160.51]:34582 "EHLO
+        mail-pl0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728056AbeHIHvS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2018 03:51:18 -0400
+Received: by mail-pl0-f51.google.com with SMTP id f6-v6so2056218plo.1
+        for <linux-arch@vger.kernel.org>; Wed, 08 Aug 2018 22:28:16 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
-Date: Thu,  9 Aug 2018 10:45:21 +0530
-Message-ID: <1533791723-3882-3-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
-References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 0/3] System call table generation support
+Date: Thu,  9 Aug 2018 10:57:43 +0530
+Message-ID: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-m68k@lists.linux-m68k.org, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20180809051521.8rdwf_gHu3aMcr9AmTxguCufNjO24u7tTb_U45ZUzPg@z>
+Message-ID: <20180809052743.aCMDRJO8iosQAkvhG02-wii_5J0ROu-yHu4JEBoOet0@z>
 
-NR_syscalls macro holds the number of system call exist in m68k
-architecture. This macro is currently the part of asm/unistd.h file.
-We have to change the value of NR_syscalls, if we add or delete a
-system call.
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-One of patch in this patch series has a script which will generate
-a uapi header based on syscall.tbl file. The syscall.tbl file
-contains the number of system call information. So we have two
-option to update NR_syscalls value.
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
-1. Update NR_syscalls in asm/unistd.h manually by counting the
-   no.of system calls. No need to update NR_syscalls untill
-   we either add a new system call or delete an existing system
-   call.
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+manually in the respective files. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify the implementation across all architectures.
 
-2. We can keep this feature it above mentioned script, that'll
-   count the number of syscalls and keep it in a generated file.
-   In this case we don't need to explicitly update NR_syscalls
-   in asm/unistd.h file.
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
 
-The 2nd option will be the recommended one. For that, I moved the
-NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
-name also changed form NR_syscalls to __NR_syscalls for making the
-name convention same across all architecture. While __NR_syscalls
-isn't strictly part of the uapi, having it as part of the generated
-header to simplifies the implementation.
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/m68k/68000/entry.S             | 4 ++--
- arch/m68k/coldfire/entry.S          | 2 +-
- arch/m68k/include/asm/unistd.h      | 3 ---
- arch/m68k/include/uapi/asm/unistd.h | 2 ++
- arch/m68k/kernel/entry.S            | 4 ++--
- 5 files changed, 7 insertions(+), 8 deletions(-)
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
 
-diff --git a/arch/m68k/68000/entry.S b/arch/m68k/68000/entry.S
-index 259b366..91522e9 100644
---- a/arch/m68k/68000/entry.S
-+++ b/arch/m68k/68000/entry.S
-@@ -49,7 +49,7 @@ do_trace:
- 	addql	#4,%sp
- 	movel	%sp@(PT_OFF_ORIG_D0),%d1
- 	movel	#-ENOSYS,%d0
--	cmpl	#NR_syscalls,%d1
-+	cmpl	#__NR_syscalls,%d1
- 	jcc	1f
- 	lsl	#2,%d1
- 	lea	sys_call_table, %a0
-@@ -80,7 +80,7 @@ ENTRY(system_call)
- 	movel	%d1,%a2
- 	btst	#(TIF_SYSCALL_TRACE%8),%a2@(TINFO_FLAGS+(31-TIF_SYSCALL_TRACE)/8)
- 	jne	do_trace
--	cmpl	#NR_syscalls,%d0
-+	cmpl	#__NR_syscalls,%d0
- 	jcc	badsys
- 	lsl	#2,%d0
- 	lea	sys_call_table,%a0
-diff --git a/arch/m68k/coldfire/entry.S b/arch/m68k/coldfire/entry.S
-index 52d312d..efe777d 100644
---- a/arch/m68k/coldfire/entry.S
-+++ b/arch/m68k/coldfire/entry.S
-@@ -64,7 +64,7 @@ ENTRY(system_call)
- 	move	#0x2000,%sr		/* enable intrs again */
- 	GET_CURRENT(%d2)
- 
--	cmpl	#NR_syscalls,%d0
-+	cmpl	#__NR_syscalls,%d0
- 	jcc	enosys
- 	lea	sys_call_table,%a0
- 	lsll	#2,%d0			/* movel %a0@(%d0:l:4),%d3 */
-diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
-index 30d0d3f..52111fb 100644
---- a/arch/m68k/include/asm/unistd.h
-+++ b/arch/m68k/include/asm/unistd.h
-@@ -4,9 +4,6 @@
- 
- #include <uapi/asm/unistd.h>
- 
--
--#define NR_syscalls		380
--
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_OLD_STAT
- #define __ARCH_WANT_STAT64
-diff --git a/arch/m68k/include/uapi/asm/unistd.h b/arch/m68k/include/uapi/asm/unistd.h
-index de3054f..b17ae53 100644
---- a/arch/m68k/include/uapi/asm/unistd.h
-+++ b/arch/m68k/include/uapi/asm/unistd.h
-@@ -387,4 +387,6 @@
- #define __NR_pwritev2		378
- #define __NR_statx		379
- 
-+#define __NR_syscalls		380
-+
- #endif /* _UAPI_ASM_M68K_UNISTD_H_ */
-diff --git a/arch/m68k/kernel/entry.S b/arch/m68k/kernel/entry.S
-index 97cd3ea..dab0cfd 100644
---- a/arch/m68k/kernel/entry.S
-+++ b/arch/m68k/kernel/entry.S
-@@ -161,7 +161,7 @@ do_trace_entry:
- 	RESTORE_SWITCH_STACK
- 	addql	#4,%sp
- 	movel	%sp@(PT_OFF_ORIG_D0),%d0
--	cmpl	#NR_syscalls,%d0
-+	cmpl	#__NR_syscalls,%d0
- 	jcs	syscall
- badsys:
- 	movel	#-ENOSYS,%sp@(PT_OFF_D0)
-@@ -206,7 +206,7 @@ ENTRY(system_call)
- 	| syscall trace?
- 	tstb	%a1@(TINFO_FLAGS+2)
- 	jmi	do_trace_entry
--	cmpl	#NR_syscalls,%d0
-+	cmpl	#__NR_syscalls,%d0
- 	jcc	badsys
- syscall:
- 	jbsr	@(sys_call_table,%d0:l:4)@(0)
+I have done the same support for work for alpha, ia64,m68k, mips,
+parisc, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+I started working system call table generation on 4.17-rc1. I used 
+marcin's script - https://github.com/hrw/syscalls-table to generate 
+the syscall.tbl file. And this will be the input to the system call 
+table generation script. But there are couple system call got add 
+in the latest rc release. If run Marcin's script on latest release,
+it will generate a different syscall.tbl. But I still use the old 
+file - syscall.tbl and once all review got over I'll update 
+syscall.tbl alone w.r.to the tip of the kernel. The impact of this
+is, few of the system call won't work.
+
+Firoz Khan (3):
+  microblaze: Replace NR_syscalls macro from asm/unistd.h
+  microblaze: Added system call table generation support
+  microblaze: uapi header and system call table file generation
+
+ arch/microblaze/Makefile                      |   3 +
+ arch/microblaze/include/asm/Kbuild            |   2 +
+ arch/microblaze/include/asm/unistd.h          |   2 -
+ arch/microblaze/include/uapi/asm/Kbuild       |   2 +
+ arch/microblaze/include/uapi/asm/unistd.h     | 407 +-------------------------
+ arch/microblaze/kernel/syscall_table.S        | 406 +------------------------
+ arch/microblaze/kernel/syscalls/Makefile      |  37 +++
+ arch/microblaze/kernel/syscalls/syscall.tbl   | 404 +++++++++++++++++++++++++
+ arch/microblaze/kernel/syscalls/syscallhdr.sh |  33 +++
+ arch/microblaze/kernel/syscalls/syscalltbl.sh |  28 ++
+ 10 files changed, 514 insertions(+), 810 deletions(-)
+ create mode 100644 arch/microblaze/kernel/syscalls/Makefile
+ create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
+
 -- 
 1.9.1
