@@ -1,100 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr730101.outbound.protection.outlook.com ([40.107.73.101]:45037
-        "EHLO NAM05-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1732399AbeHIULh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Aug 2018 16:11:37 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: [PATCH v6 1/4] alpha: Use OPTIMIZE_INLINING instead of asm/compiler.h
-Date: Thu,  9 Aug 2018 10:44:41 -0700
-Message-Id: <20180809174444.31705-2-paul.burton@mips.com>
-In-Reply-To: <20180809174444.31705-1-paul.burton@mips.com>
-References: <20180809174444.31705-1-paul.burton@mips.com>
+Received: from mail.kernel.org ([198.145.29.99]:38440 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727025AbeHIUes (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Aug 2018 16:34:48 -0400
+Received: from mail-wr1-f50.google.com (mail-wr1-f50.google.com [209.85.221.50])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 4C71322398
+        for <linux-arch@vger.kernel.org>; Thu,  9 Aug 2018 18:08:48 +0000 (UTC)
+Received: by mail-wr1-f50.google.com with SMTP id c13-v6so5950802wrt.1
+        for <linux-arch@vger.kernel.org>; Thu, 09 Aug 2018 11:08:48 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <CAHmME9rG8VFfuuCy=rCVmxb1CdneYGv1d4xmsyqSPooBozoOJw@mail.gmail.com>
+References: <20180801072246.GA15677@sol.localdomain> <CALCETrXD_VyoyW5C1U34o-ySJ4nFcO6PQ+ZNBVYxCpJ-f65CHw@mail.gmail.com>
+ <CAHmME9oThR-dE3gTW0UyqAGZO80qu19ktG4YTb4iL6CNpzNNaw@mail.gmail.com>
+ <CALCETrVziUpAU4nTaZ=t5ct=1jsWswWOy7KDNxXGPD1L=tMTGQ@mail.gmail.com>
+ <CAHmME9pt3PxKQmc8E-arA-W0p2tp9z_oJ-uXQwis3qD=Zvpnsg@mail.gmail.com>
+ <CAHmME9rA_nb9Le4VQhtcqCfNSuHpFjZVOV6=vE12FydJD9CmAQ@mail.gmail.com>
+ <CALCETrWo-vCt_bHMBPAEHEr3P4=AJq-95Bf=00aAEAcE839wLw@mail.gmail.com>
+ <CAHmME9qPay3O7Yh-R66EDhon4dJz1cuy69dWUxf3Xkt8seqLZA@mail.gmail.com>
+ <A44CAA94-415C-476C-9523-2D19F28EDC6D@amacapital.net> <CAHmME9rG8VFfuuCy=rCVmxb1CdneYGv1d4xmsyqSPooBozoOJw@mail.gmail.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 9 Aug 2018 11:08:25 -0700
+Message-ID: <CALCETrUgOk7veQavAWayY7vQUY0fJkwGsYxNhLxK-v3F-BEmsg@mail.gmail.com>
+Subject: Re: [PATCH v1 2/3] zinc: Introduce minimal cryptography library
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mips@linux-mips.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-um@lists.infradead.org, Paul Burton <paul.burton@mips.com>
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Eric Biggers <ebiggers3@gmail.com>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, "Daniel J . Bernstein" <djb@cr.yp.to>, Tanja Lange <tanja@hyperelliptic.org>, Jean-Philippe Aumasson <jeanphilippe.aumasson@gmail.com>, Karthikeyan Bhargavan <karthik.bhargavan@gmail.com>
+Message-ID: <20180809180825.H_f9CDbp8q0Akqk_tWewQ1GSgHElq4GTzOXw7pxSBZA@z>
 
-From: James Hogan <jhogan@kernel.org>
+On Tue, Aug 7, 2018 at 6:51 PM, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+> On Tue, Aug 7, 2018 at 6:49 PM Andy Lutomirski <luto@amacapital.net> wrot=
+e:
+>> I really wish we had a way to see that we use asm-generic=E2=80=99s copy=
+ of a header in all cases except where an arch opts out.
+>
+> It's really not that hard to do -- symlink asm-generic to a target
+> called "asm" inside an otherwise empty directory, and add that
+> otherwise empty directory to the -I paths just after arch/include.
+> Since it's searched second, it's only used if the first fails. Maybe
+> I'm missing something though, as this seems a bit too obvious. Perhaps
+> a project for another day.
 
-Use CONFIG_ARCH_SUPPORTS_OPTIMIZED_INLINING and CONFIG_OPTIMIZE_INLINING
-instead of undefining the inline macros in the alpha specific
-asm/compiler.h. This is to allow asm/compiler.h to become a general
-header that can be used for overriding linux/compiler*.h.
-
-A build of alpha's defconfig on GCC 7.3 before and after this series
-(i.e. this commit and "compiler.h: Allow arch-specific overrides" which
-includes asm/compiler.h from linux/compiler_types.h) results in the
-following size differences, which appear harmless to me:
-
-$ ./scripts/bloat-o-meter vmlinux.1 vmlinux.2
-add/remove: 1/1 grow/shrink: 3/0 up/down: 264/-348 (-84)
-Function                                     old     new   delta
-cap_bprm_set_creds                          1496    1664    +168
-cap_issubset                                   -      68     +68
-flex_array_put                               328     344     +16
-cap_capset                                   488     500     +12
-nonroot_raised_pE.constprop                  348       -    -348
-Total: Before=5823709, After=5823625, chg -0.00%
-
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: James Hogan <jhogan@kernel.org>
-Acked-by: Matt Turner <mattst88@gmail.com>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: linux-alpha@vger.kernel.org
-
-Signed-off-by: Paul Burton <paul.burton@mips.com>
----
-
-Changes in v6: None
-Changes in v5: None
-Changes in v4: None
-Changes in v3:
-- New patch in v3.
-
- arch/alpha/Kconfig                |  6 ++++++
- arch/alpha/include/asm/compiler.h | 11 -----------
- 2 files changed, 6 insertions(+), 11 deletions(-)
-
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 04a4a138ed13..649b41621520 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -74,6 +74,12 @@ config PGTABLE_LEVELS
- 	int
- 	default 3
- 
-+config ARCH_SUPPORTS_OPTIMIZED_INLINING
-+	def_bool y
-+
-+config OPTIMIZE_INLINING
-+	def_bool y
-+
- source "init/Kconfig"
- source "kernel/Kconfig.freezer"
- 
-diff --git a/arch/alpha/include/asm/compiler.h b/arch/alpha/include/asm/compiler.h
-index 5159ba259d65..ae645959018a 100644
---- a/arch/alpha/include/asm/compiler.h
-+++ b/arch/alpha/include/asm/compiler.h
-@@ -4,15 +4,4 @@
- 
- #include <uapi/asm/compiler.h>
- 
--/* Some idiots over in <linux/compiler.h> thought inline should imply
--   always_inline.  This breaks stuff.  We'll include this file whenever
--   we run into such problems.  */
--
--#include <linux/compiler.h>
--#undef inline
--#undef __inline__
--#undef __inline
--#undef __always_inline
--#define __always_inline		inline __attribute__((always_inline))
--
- #endif /* __ALPHA_COMPILER_H */
--- 
-2.18.0
+The problem here (I think) is that it's preferable for stray files in
+the kernel tree to have no effect and, with this scheme, stray files
+in arch/*/include/asm could affect the build.  So something explicit
+has an advantage.  I just think there should be way to say "this
+asm-generic file should affect all arches unless they generic-n or
+override-generic-y it or whatever".
