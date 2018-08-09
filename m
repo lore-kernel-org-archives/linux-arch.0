@@ -1,70 +1,59 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH 3/3] microblaze: uapi header and system call
- table file generation
-Date: Thu, 9 Aug 2018 09:12:31 +0200
-Message-ID: <27544098-abc8-db2e-5625-179d13fa63df@xilinx.com>
-References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
- <1533792466-4227-4-git-send-email-firoz.khan@linaro.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
+Date: Thu, 9 Aug 2018 09:30:45 +0200
+Message-ID: <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
+References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org> <1533791723-3882-3-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1533792466-4227-4-git-send-email-firoz.khan@linaro.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, deepa.kernel@gmail.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1533791723-3882-3-git-send-email-firoz.khan@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: firoz.khan@linaro.org
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gOS44LjIwMTggMDc6MjcsIEZpcm96IEtoYW4gd3JvdGU6Cj4gU3lzdGVtIGNhbGwgdGFibGUg
-Z2VuZXJhdGlvbiBzY3JpcHQgbXVzdCBiZSBydW4gdG8gZ2VuZXJhdGUKPiB1bmlzdGRfMzIuaCBh
-bmQgc3lzY2FsbF90YWJsZS5oIGZpbGVzLiBUaGlzIHBhdGNoIHdpbGwgaGF2ZQo+IGNoYW5nZXMg
-d2hpY2ggd2lsbCBpbnZva2VzIHRoZSBzY3JpcHQuCj4gCj4gVGhpcyBwYXRjaCB3aWxsIGdlbmVy
-YXRlIHVuaXN0ZF8zMi5oIGFuZCBzeXNjYWxsX3RhYmxlLmgKPiBmaWxlcyBieSB0aGUgc3lzY2Fs
-bCB0YWJsZSBnZW5lcmF0aW9uIHNjcmlwdCBpbnZva2VkIGJ5Cj4gYXJjaC9taWNyb2JsYXplL01h
-a2VmaWxlIGFuZCB0aGUgZ2VuZXJhdGVkIGZpbGVzIGFnYWluc3QgdGhlCj4gcmVtb3ZlZCBmaWxl
-cyB3aWxsIGJlIGlkZW50aWNhbC4KPiAKPiBUaGUgZ2VuZXJhdGVkIHVhcGkgaGVhZGVyIGZpbGUg
-d2lsbCBiZSBpbmNsdWRlZCBpbgo+IHVhcGkvYXNtL3VuaXN0ZC5oIGFuZCBnZW5lcmF0ZWQgc3lz
-dGVtIGNhbGwgdGFibGUgc3VwcG9ydAo+IGZpbGUgd2lsbCBiZSBpbmNsdWRlZCBieSBtaWNyb2Js
-YXplL2tlcm5lbC9zeXNjYWxsLlMgZmlsZS4KPiAKPiBTaWduZWQtb2ZmLWJ5OiBGaXJveiBLaGFu
-IDxmaXJvei5raGFuQGxpbmFyby5vcmc+Cj4gLS0tCj4gIGFyY2gvbWljcm9ibGF6ZS9NYWtlZmls
-ZSAgICAgICAgICAgICAgICAgIHwgICAzICsKPiAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvYXNt
-L0tidWlsZCAgICAgICAgfCAgIDIgKwo+ICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2Fz
-bS9LYnVpbGQgICB8ICAgMiArCj4gIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL3VhcGkvYXNtL3Vu
-aXN0ZC5oIHwgNDA5ICstLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQo+ICBhcmNoL21pY3Jv
-YmxhemUva2VybmVsL3N5c2NhbGxfdGFibGUuUyAgICB8IDQwNiArLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLQo+ICA1IGZpbGVzIGNoYW5nZWQsIDEyIGluc2VydGlvbnMoKyksIDgxMCBkZWxl
-dGlvbnMoLSkKPiAKPiBkaWZmIC0tZ2l0IGEvYXJjaC9taWNyb2JsYXplL01ha2VmaWxlIGIvYXJj
-aC9taWNyb2JsYXplL01ha2VmaWxlCj4gaW5kZXggZDI2OWRkNGIuLjYxMjFhMmIgMTAwNjQ0Cj4g
-LS0tIGEvYXJjaC9taWNyb2JsYXplL01ha2VmaWxlCj4gKysrIGIvYXJjaC9taWNyb2JsYXplL01h
-a2VmaWxlCj4gQEAgLTgxLDYgKzgxLDkgQEAgYWxsOiBsaW51eC5iaW4KPiAgYXJjaGNsZWFuOgo+
-ICAJJChRKSQoTUFLRSkgJChjbGVhbik9JChib290KQo+ICAKPiArYXJjaGhlYWRlcnM6Cj4gKwkk
-KFEpJChNQUtFKSAkKGJ1aWxkKT1hcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzIGFsbAo+
-ICsKPiAgbGludXguYmluIGxpbnV4LmJpbi5neiBsaW51eC5iaW4udWI6IHZtbGludXgKPiAgCSQo
-USkkKE1BS0UpICQoYnVpbGQpPSQoYm9vdCkgJChib290KS8kQAo+ICAKPiBkaWZmIC0tZ2l0IGEv
-YXJjaC9taWNyb2JsYXplL2luY2x1ZGUvYXNtL0tidWlsZCBiL2FyY2gvbWljcm9ibGF6ZS9pbmNs
-dWRlL2FzbS9LYnVpbGQKPiBpbmRleCBmZTZhNmM2Li45OTIyNWFiIDEwMDY0NAo+IC0tLSBhL2Fy
-Y2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9LYnVpbGQKPiArKysgYi9hcmNoL21pY3JvYmxhemUv
-aW5jbHVkZS9hc20vS2J1aWxkCj4gQEAgLTMwLDMgKzMwLDUgQEAgZ2VuZXJpYy15ICs9IHRyYWNl
-X2Nsb2NrLmgKPiAgZ2VuZXJpYy15ICs9IHZnYS5oCj4gIGdlbmVyaWMteSArPSB3b3JkLWF0LWEt
-dGltZS5oCj4gIGdlbmVyaWMteSArPSB4b3IuaAo+ICsKPiArZ2VuZXJhdGVkLXkgKz0gc3lzY2Fs
-bF90YWJsZS5oCj4gXCBObyBuZXdsaW5lIGF0IGVuZCBvZiBmaWxlCgpUaGlzIGRvZXNuJ3QgbG9v
-ayByaWdodC4KCgo+IGRpZmYgLS1naXQgYS9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2Fz
-bS9LYnVpbGQgYi9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQKPiBpbmRl
-eCAyYzZhNmJmLi44ZmUyNmEzIDEwMDY0NAo+IC0tLSBhL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRl
-L3VhcGkvYXNtL0tidWlsZAo+ICsrKyBiL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL3VhcGkvYXNt
-L0tidWlsZAo+IEBAIC0yOCwzICsyOCw1IEBAIGdlbmVyaWMteSArPSB0ZXJtYml0cy5oCj4gIGdl
-bmVyaWMteSArPSB0ZXJtaW9zLmgKPiAgZ2VuZXJpYy15ICs9IHR5cGVzLmgKPiAgZ2VuZXJpYy15
-ICs9IHVjb250ZXh0LmgKPiArCj4gK2dlbmVyYXRlZC15ICs9IHVuaXN0ZF8zMi5oCj4gXCBObyBu
-ZXdsaW5lIGF0IGVuZCBvZiBmaWxlCgpkaXR0by4KClRoYW5rcywKTWljaGFsCgpfX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QK
-WTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9s
-aXN0aW5mby95MjAzOAo=
+Hi Firoz,
+
+One first comment below...
+
+On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> NR_syscalls macro holds the number of system call exist in m68k
+> architecture. This macro is currently the part of asm/unistd.h file.
+> We have to change the value of NR_syscalls, if we add or delete a
+> system call.
+>
+> One of patch in this patch series has a script which will generate
+> a uapi header based on syscall.tbl file. The syscall.tbl file
+> contains the number of system call information. So we have two
+> option to update NR_syscalls value.
+>
+> 1. Update NR_syscalls in asm/unistd.h manually by counting the
+>    no.of system calls. No need to update NR_syscalls untill
+>    we either add a new system call or delete an existing system
+>    call.
+>
+> 2. We can keep this feature it above mentioned script, that'll
+>    count the number of syscalls and keep it in a generated file.
+>    In this case we don't need to explicitly update NR_syscalls
+>    in asm/unistd.h file.
+>
+> The 2nd option will be the recommended one. For that, I moved the
+> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+> name also changed form NR_syscalls to __NR_syscalls for making the
+> name convention same across all architecture. While __NR_syscalls
+> isn't strictly part of the uapi, having it as part of the generated
+> header to simplifies the implementation.
+
+It can indeed not be part of the UAPI, as UAPI definitions can never change,
+while new syscalls will be added in the future, increasing the number ;-)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
