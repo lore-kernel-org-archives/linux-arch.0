@@ -1,64 +1,112 @@
 From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH 1/3] microblaze: Replace NR_syscalls macro from
- asm/unistd.h
-Date: Thu, 9 Aug 2018 08:48:30 +0200
-Message-ID: <f1e95c4d-4f02-263d-7f35-cc87bc657fbb@xilinx.com>
+Subject: Re: [PATCH 2/3] microblaze: Added system call table
+ generation support
+Date: Thu, 9 Aug 2018 09:05:10 +0200
+Message-ID: <80094eae-05b8-a96f-b631-cc3b81e0e425@xilinx.com>
 References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
- <1533792466-4227-2-git-send-email-firoz.khan@linaro.org>
+ <1533792466-4227-3-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1533792466-4227-2-git-send-email-firoz.khan@linaro.org>
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <1533792466-4227-3-git-send-email-firoz.khan@linaro.org>
 Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
 To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, deepa.kernel@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 9.8.2018 07:27, Firoz Khan wrote:
-> __NR_syscalls macro holds the number of system call exist in this
-> architecture. This macro is currently the part of asm/unistd.h file.
-> We have change the value of __NR_syscalls, if we add or delete a
-> system call.
-> 
-> One of the patch in this patch series has a script which will
-> generate a uapi header based on syscall.tbl file. The syscall.tbl
-> file contains the number of system call information. So we have
-> two option to update __NR_syscalls value.
-> 
-> 1. Update __NR_syscalls in asm/unistd.h manually by counting the
->    no.of system calls. No need to update __NR_syscalls untill
->    we either add a new system call or delete an existing system
->    call.
-> 
-> 2. We can keep this feature it above mentioned script, that'll
->    count the number of syscalls and keep it in a generated file.
->    In this case we don't need to explicitly update __NR_syscalls
->    in asm/unistd.h file.
-> 
-> The 2nd option will be the recommended one. For that, I moved the
-> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
-> name also changed form NR_syscalls to __NR_syscalls for making the
-> name convention same across all architecture. While __NR_syscalls
-> isn't strictly part of the uapi, having it as part of the generated
-> header to simplifies the implementation.
-
-This macro was in unistd.h in past but it was moved out because it was
-causing problem with strace.
-
-commit 40c2702a02b755e0183b702778331b351f3be20c
-Author:     Michal Simek <michal.simek@xilinx.com>
-AuthorDate: Mon Jul 8 09:50:24 2013 +0200
-Commit:     Michal Simek <michal.simek@xilinx.com>
-CommitDate: Wed Jul 10 07:32:09 2013 +0200
-
-    microblaze: Move __NR_syscalls from uapi
-
-
-That's why I don't think this is the right thing to do.
-I have grepped strace and glibc and none is using this macro that's why
-I think it shouldn't be exported via uapi.
-
-Thanks,
-Michal
+T24gOS44LjIwMTggMDc6MjcsIEZpcm96IEtoYW4gd3JvdGU6Cj4gVGhlIHN5c3RlbSBjYWxsIHRh
+YmxlcyBhcmUgaW4gZGlmZmVyZW50IGZvcm1hdCBpbiBhbGwKPiBhcmNoaXRlY3R1cmUgYW5kIGl0
+IHdpbGwgYmUgZGlmZmljdWx0IHRvIG1hbnVhbGx5IGFkZCBvcgo+IG1vZGlmeSB0aGUgc3lzdGVt
+IGNhbGxzIGluIHRoZSByZXNwZWN0aXZlIGZpbGVzLiBUbyBtYWtlCj4gaXQgZWFzeSBieSBrZWVw
+aW5nIGEgc2NyaXB0IGFuZCB3aGljaCdsbCBnZW5lcmF0ZSB0aGUKPiBoZWFkZXIgZmlsZSBhbmQg
+c3lzY2FsbCB0YWJsZSBmaWxlIHNvIHRoaXMgY2hhbmdlIHdpbGwKPiB1bmlmeSB0aGVtIGFjcm9z
+cyBhbGwgYXJjaGl0ZWN0dXJlcy4KPiAKPiBUaGUgc3lzdGVtIGNhbGwgdGFibGUgZ2VuZXJhdGlv
+biBzY3JpcHQgaXMgYWRkZWQgaW4KPiBzeXNjYWxscyBkaXJlY3Rvcnkgd2hpY2ggY29udGFpbiB0
+aGUgc2NyaXB0IHRvIGdlbmVyYXRlCj4gYm90aCB1YXBpIGhlYWRlciBmaWxlIHN5c3RlbSBjYWxs
+IHRhYmxlIGdlbmVyYXRpb24gZmlsZQo+IGFuZCBzeXNjYWxsLnRibCBmaWxlIHdoaWNoJ2xsIGJl
+IHRoZSBpbnB1dCBmb3IgdGhlIHNjcmlwdHMuCj4gCj4gc3lzY2FsbC50YmwgY29udGFpbnMgdGhl
+IGxpc3Qgb2YgYXZhaWxhYmxlIHN5c3RlbSBjYWxscwo+IGFsb25nIHdpdGggc3lzdGVtIGNhbGwg
+bnVtYmVyIGFuZCBjb3JyZXNwb25kaW5nIGVudHJ5IHBvaW50Lgo+IEFkZCBhIG5ldyBzeXN0ZW0g
+Y2FsbCBpbiB0aGlzIGFyY2hpdGVjdHVyZSB3aWxsIGJlIHBvc3NpYmxlCj4gYnkgYWRkaW5nIG5l
+dyBlbnRyeSBpbiB0aGUgc3lzY2FsbC50YmwgZmlsZS4KPiAKPiBBZGRpbmcgYSBuZXcgdGFibGUg
+ZW50cnkgY29uc2lzdGluZyBvZjoKPiAgICAgICAgIC0gU3lzdGVtIGNhbGwgbnVtYmVyLgo+ICAg
+ICAgICAgLSBBQkkuCj4gICAgICAgICAtIFN5c3RlbSBjYWxsIG5hbWUuCj4gICAgICAgICAtIEVu
+dHJ5IHBvaW50IG5hbWUuCj4gCj4gc3lzY2FsbGhkci5zaCBhbmQgc3lzY2FsbHRibC5zaCB3aWxs
+IGdlbmVyYXRlIHVhcGkgaGVhZGVyLQo+IHVuaXN0ZC5oIGFuZCBzeXNjYWxsX3RhYmxlLmggZmls
+ZXMgcmVzcGVjdGl2ZWx5LiBGaWxlCj4gc3lzY2FsbF90YWJsZS5oIGlzIGluY2x1ZGVkIGJ5IHN5
+c2NhbGwuUyAtIHRoZSByZWFsIHN5c3RlbQo+IGNhbGwgdGFibGUuIEJvdGggLnNoIGZpbGVzIHdp
+bGwgcGFyc2UgdGhlIGNvbnRlbnQgc3lzY2FsbC50YmwKPiB0byBnZW5lcmF0ZSB0aGUgaGVhZGVy
+IGFuZCB0YWJsZSBmaWxlcy4KPiAKPiBBUk0sIHMzOTAgYW5kIHg4NiBhcmNoaXRlY3V0dXJlIGRv
+ZXMgaGF2ZSB0aGUgc2ltaWxhciBzdXBwb3J0Lgo+IEkgbGV2ZXJhZ2UgdGhlaXIgaW1wbGVtZW50
+YXRpb24gdG8gY29tZSB1cCB3aXRoIGEgZ2VuZXJpYwo+IHNvbHV0aW9uLiBBbmQgdGhpcyBpcyB0
+aGUgZ3JvdW5kIHdvcmsgZm9yIHkyMDM4IGlzc3VlLiBXZSBuZWVkCj4gdG8gY2hhbmdlIDUyIHN5
+c3RlbSBjYWxsIGltcGxlbWVudGF0aW9uIGFuZCB0aGlzIHdvcmsgd2lsbAo+IHJlZHVjZSB0aGUg
+ZWZmb3J0IGJ5IHNpbXBseSBtb2RpZnkgNTIgZW50cmllcyBpbiBzeXNjYWxsLnRibC4KPiAKPiBT
+aWduZWQtb2ZmLWJ5OiBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5vcmc+Cj4gLS0tCj4g
+IGFyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMvTWFrZWZpbGUgICAgICB8ICAzNyArKysK
+PiAgYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibCAgIHwgNDA0ICsr
+KysrKysrKysrKysrKysrKysrKysrKysrCj4gIGFyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lzY2Fs
+bHMvc3lzY2FsbGhkci5zaCB8ICAzMyArKysKPiAgYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNj
+YWxscy9zeXNjYWxsdGJsLnNoIHwgIDI4ICsrCj4gIDQgZmlsZXMgY2hhbmdlZCwgNTAyIGluc2Vy
+dGlvbnMoKykKPiAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lz
+Y2FsbHMvTWFrZWZpbGUKPiAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvbWljcm9ibGF6ZS9rZXJu
+ZWwvc3lzY2FsbHMvc3lzY2FsbC50YmwKPiAgY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gvbWljcm9i
+bGF6ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaAoKaXQgaXMgaW50ZXJlc3RpbmcgdGhh
+dCBhcm0gYW5kIHg4NiBzY3JpcHRzIGFuZCB0aGV5IGFyZSAiYWxtb3N0IiB0aGUKc2FtZS4gSXMg
+dGhlcmUgYW55IHBsYW4gdG8gcHV0IHRoZXNlIHNjcmlwdCB0byBnZW5lcmljIGxvY2F0aW9uIGlu
+c3RlYWQKb2Yga2VlcGluZyB0aGUgc2FtZSBjb3B5IGluIGFyY2hpdGVjdHVyZT8KCmZpbGVndWFy
+ZCBuYW1lIGNvbnRhaW5zIGhhcmRjb2RlZCBtYWNybyBwcmVmaXggd2hlcmUgaW4gYXJtIHRoZXJl
+IGlzCnVhcGkgZGV0ZWN0aW9uLiBUaGUgc2FtZSBzaG91bGQgYmUgZG9uZSBhcmNoaXRlY3R1cmUg
+YW5kIHNob2xkbid0IG1hdHRlcgppZiB5b3UgZGVmaW5lIG1hY3JvIHdpdGggb3Igd2l0aG91dCB2
+YWx1ZS4KCgoKCj4gIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL21pY3JvYmxhemUva2VybmVsL3N5
+c2NhbGxzL3N5c2NhbGx0Ymwuc2gKPiAKPiBkaWZmIC0tZ2l0IGEvYXJjaC9taWNyb2JsYXplL2tl
+cm5lbC9zeXNjYWxscy9NYWtlZmlsZSBiL2FyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMv
+TWFrZWZpbGUKPiBuZXcgZmlsZSBtb2RlIDEwMDY0NAo+IGluZGV4IDAwMDAwMDAuLjc2MjQwNDQK
+PiAtLS0gL2Rldi9udWxsCj4gKysrIGIvYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxscy9N
+YWtlZmlsZQo+IEBAIC0wLDAgKzEsMzcgQEAKPiArIyBTUERYLUxpY2Vuc2UtSWRlbnRpZmllcjog
+R1BMLTIuMAo+ICtvdXQgOj0gYXJjaC8kKFNSQ0FSQ0gpL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbQo+
+ICt1YXBpIDo9IGFyY2gvJChTUkNBUkNIKS9pbmNsdWRlL2dlbmVyYXRlZC91YXBpL2FzbQo+ICsK
+PiArX2R1bW15IDo9ICQoc2hlbGwgWyAtZCAnJCh1YXBpKScgXSB8fCBta2RpciAtcCAnJCh1YXBp
+KScpIFwKPiArCSAgJChzaGVsbCBbIC1kICckKG91dCknIF0gfHwgbWtkaXIgLXAgJyQob3V0KScp
+Cj4gKwo+ICtzeXNjYWxsIDo9ICQoc3JjdHJlZSkvJChzcmMpL3N5c2NhbGwudGJsCj4gKwo+ICtz
+eXNoZHIgOj0gJChzcmN0cmVlKS8kKHNyYykvc3lzY2FsbGhkci5zaAo+ICtzeXN0YmwgOj0gJChz
+cmN0cmVlKS8kKHNyYykvc3lzY2FsbHRibC5zaAo+ICsKPiArcXVpZXRfY21kX3N5c2hkciA9IFNZ
+U0hEUiAgJEAKPiArICAgICAgY21kX3N5c2hkciA9ICQoQ09ORklHX1NIRUxMKSAnJChzeXNoZHIp
+JyAnJDwnICckQCcgIFwKPiArCQkgICAnJChzeXNoZHJfYWJpXyQoYmFzZXRhcmdldCkpJyAgICAg
+ICAgICBcCj4gKwkJICAgJyQoc3lzaGRyX3BmeF8kKGJhc2V0YXJnZXQpKScgICAgICAgICAgXAo+
+ICsJCSAgICckKHN5c2hkcl9vZmZzZXRfJChiYXNldGFyZ2V0KSknCj4gKwo+ICtxdWlldF9jbWRf
+c3lzdGJsID0gU1lTVEJMICAkQAo+ICsgICAgICBjbWRfc3lzdGJsID0gJChDT05GSUdfU0hFTEwp
+ICckKHN5c3RibCknICckPCcgJyRAJyAgXAo+ICsJCSAgICckKHN5c3RibF9hYmlfJChiYXNldGFy
+Z2V0KSknCj4gKwo+ICskKHVhcGkpL3VuaXN0ZF8zMi5oOiAkKHN5c2NhbGwpICQoc3lzaGRyKQo+
+ICsJJChjYWxsIGlmX2NoYW5nZWQsc3lzaGRyKQo+ICsKPiArJChvdXQpL3N5c2NhbGxfdGFibGUu
+aDogJChzeXNjYWxsKSAkKHN5c3RibCkKPiArCSQoY2FsbCBpZl9jaGFuZ2VkLHN5c3RibCkKPiAr
+Cj4gK3VhcGlzeXNoZHIteQkJCSs9IHVuaXN0ZF8zMi5oCj4gK3N5c2hkci15CQkJKz0gc3lzY2Fs
+bF90YWJsZS5oCj4gKwo+ICt0YXJnZXRzCSs9ICQodWFwaXN5c2hkci15KSAkKHN5c2hkci15KQo+
+ICsKPiArUEhPTlkgKz0gYWxsCj4gK2FsbDogJChhZGRwcmVmaXggJCh1YXBpKS8sJCh1YXBpc3lz
+aGRyLXkpKQo+ICthbGw6ICQoYWRkcHJlZml4ICQob3V0KS8sJChzeXNoZHIteSkpCj4gKwlAOgo+
+IGRpZmYgLS1naXQgYS9hcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzL3N5c2NhbGwudGJs
+IGIvYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibAo+IG5ldyBmaWxl
+IG1vZGUgMTAwNjQ0Cj4gaW5kZXggMDAwMDAwMC4uMjE5ZDk0MAo+IC0tLSAvZGV2L251bGwKPiAr
+KysgYi9hcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzL3N5c2NhbGwudGJsCj4gQEAgLTAs
+MCArMSw0MDQgQEAKPiArIwo+ICsjIExpbnV4IHN5c3RlbSBjYWxsIG51bWJlcnMgYW5kIGVudHJ5
+IHZlY3RvcnMKPiArIwo+ICsjIFRoZSBmb3JtYXQgaXM6Cj4gKyMgPG51bWJlcj4gPGFiaT4gPG5h
+bWU+IDxlbnRyeSBwb2ludD4KPiArIwo+ICsjIFRoZSBhYmkgaXMgYWx3YXlzIGNvbW1vbiBmb3Ig
+dGhpcyBmaWxlLgo+ICsjCj4gKzAgICAgICAgY29tbW9uICByZXN0YXJ0X3N5c2NhbGwgICAgICAg
+ICAgICAgICAgIHN5c19yZXN0YXJ0X3N5c2NhbGwKPiArMSAgICAgICBjb21tb24gIGV4aXQgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2V4aXQKPiArMiAgICAgICBjb21tb24gIGZvcmsg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2ZvcmsKPiArMyAgICAgICBjb21tb24gIHJl
+YWQgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3JlYWQKCkFybShhbmQgcGFydGlhbGx5
+IHMzOTApIGFyZSB1c2luZyB0YWJzIGZvciBpbmRlbnRhdGlvbi4gQW55IHJlYXNvbiBub3QKdG8g
+dXNlIGl0IGhlcmUgdG9vPwoKVGhhbmtzLApNaWNoYWwKX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxp
+bmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
