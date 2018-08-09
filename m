@@ -1,92 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr710059.outbound.protection.outlook.com ([40.107.71.59]:56083
-        "EHLO NAM05-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725878AbeHIJgd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Aug 2018 05:36:33 -0400
-Subject: Re: [PATCH 3/3] microblaze: uapi header and system call table file
- generation
-References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
- <1533792466-4227-4-git-send-email-firoz.khan@linaro.org>
-From: Michal Simek <michal.simek@xilinx.com>
-Message-ID: <27544098-abc8-db2e-5625-179d13fa63df@xilinx.com>
-Date: Thu, 9 Aug 2018 09:12:31 +0200
+Received: from mail-lf1-f67.google.com ([209.85.167.67]:46209 "EHLO
+        mail-lf1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727768AbeHIJyd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2018 05:54:33 -0400
 MIME-Version: 1.0
-In-Reply-To: <1533792466-4227-4-git-send-email-firoz.khan@linaro.org>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org> <1533791723-3882-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1533791723-3882-3-git-send-email-firoz.khan@linaro.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Thu, 9 Aug 2018 09:30:45 +0200
+Message-ID: <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
+Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
-Message-ID: <20180809071231.bPRO0h89iXGR6I58EdYN8tcuFr5zUtk2xAe0yXQi0GM@z>
+To: firoz.khan@linaro.org
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
+Message-ID: <20180809073045.AVtfWizHpXsy6WKg4ux3mGeL8Qa0yFnBTJIQubhFO6Q@z>
 
-On 9.8.2018 07:27, Firoz Khan wrote:
-> System call table generation script must be run to generate
-> unistd_32.h and syscall_table.h files. This patch will have
-> changes which will invokes the script.
-> 
-> This patch will generate unistd_32.h and syscall_table.h
-> files by the syscall table generation script invoked by
-> arch/microblaze/Makefile and the generated files against the
-> removed files will be identical.
-> 
-> The generated uapi header file will be included in
-> uapi/asm/unistd.h and generated system call table support
-> file will be included by microblaze/kernel/syscall.S file.
-> 
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> ---
->  arch/microblaze/Makefile                  |   3 +
->  arch/microblaze/include/asm/Kbuild        |   2 +
->  arch/microblaze/include/uapi/asm/Kbuild   |   2 +
->  arch/microblaze/include/uapi/asm/unistd.h | 409 +-----------------------------
->  arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
->  5 files changed, 12 insertions(+), 810 deletions(-)
-> 
-> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-> index d269dd4b..6121a2b 100644
-> --- a/arch/microblaze/Makefile
-> +++ b/arch/microblaze/Makefile
-> @@ -81,6 +81,9 @@ all: linux.bin
->  archclean:
->  	$(Q)$(MAKE) $(clean)=$(boot)
->  
-> +archheaders:
-> +	$(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
-> +
->  linux.bin linux.bin.gz linux.bin.ub: vmlinux
->  	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
->  
-> diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-> index fe6a6c6..99225ab 100644
-> --- a/arch/microblaze/include/asm/Kbuild
-> +++ b/arch/microblaze/include/asm/Kbuild
-> @@ -30,3 +30,5 @@ generic-y += trace_clock.h
->  generic-y += vga.h
->  generic-y += word-at-a-time.h
->  generic-y += xor.h
-> +
-> +generated-y += syscall_table.h
-> \ No newline at end of file
+Hi Firoz,
 
-This doesn't look right.
+One first comment below...
 
+On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> NR_syscalls macro holds the number of system call exist in m68k
+> architecture. This macro is currently the part of asm/unistd.h file.
+> We have to change the value of NR_syscalls, if we add or delete a
+> system call.
+>
+> One of patch in this patch series has a script which will generate
+> a uapi header based on syscall.tbl file. The syscall.tbl file
+> contains the number of system call information. So we have two
+> option to update NR_syscalls value.
+>
+> 1. Update NR_syscalls in asm/unistd.h manually by counting the
+>    no.of system calls. No need to update NR_syscalls untill
+>    we either add a new system call or delete an existing system
+>    call.
+>
+> 2. We can keep this feature it above mentioned script, that'll
+>    count the number of syscalls and keep it in a generated file.
+>    In this case we don't need to explicitly update NR_syscalls
+>    in asm/unistd.h file.
+>
+> The 2nd option will be the recommended one. For that, I moved the
+> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+> name also changed form NR_syscalls to __NR_syscalls for making the
+> name convention same across all architecture. While __NR_syscalls
+> isn't strictly part of the uapi, having it as part of the generated
+> header to simplifies the implementation.
 
-> diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-> index 2c6a6bf..8fe26a3 100644
-> --- a/arch/microblaze/include/uapi/asm/Kbuild
-> +++ b/arch/microblaze/include/uapi/asm/Kbuild
-> @@ -28,3 +28,5 @@ generic-y += termbits.h
->  generic-y += termios.h
->  generic-y += types.h
->  generic-y += ucontext.h
-> +
-> +generated-y += unistd_32.h
-> \ No newline at end of file
+It can indeed not be part of the UAPI, as UAPI definitions can never change,
+while new syscalls will be added in the future, increasing the number ;-)
 
-ditto.
+Gr{oetje,eeting}s,
 
-Thanks,
-Michal
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
