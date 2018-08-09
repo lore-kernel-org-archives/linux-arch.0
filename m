@@ -1,93 +1,97 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 0/3] System call table generation support
-Date: Thu,  9 Aug 2018 11:06:42 +0530
-Message-ID: <1533793005-4525-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 1/3] sh: Rename NR_syscalls macro to __NR_syscalls
+Date: Thu,  9 Aug 2018 11:06:43 +0530
+Message-ID: <1533793005-4525-2-git-send-email-firoz.khan@linaro.org>
+References: <1533793005-4525-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1533793005-4525-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-sh@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is:
-1. We can easily add/modify/delete system call by changing entry 
-in syscall.tbl file. No need to manually edit many files.
+NR_syscalls macro holds the number of system call exist in SH arch-
+itecture. One of the patch in this patch series has a script which
+will generate a uapi header based on syscall.tbl file. The syscall.tbl
+file contains the total number of system call information, which will
+be used to update NR_syscalls.
 
-2. It is easy to unify the system call implementation across all 
-the architectures. 
+The macro name also changed form NR_syscalls to __NR_syscalls for
+making the name convention same across all architecture. While
+__NR_syscalls isn't strictly part of the uapi, having it as part of
+the generated header to simplifies the implementation.
 
-The system call tables are in different format in all architecture 
-and it will be difficult to manually add or modify the system calls
-manually in the respective files. To make it easy by keeping a script 
-and which'll generate the header file and syscall table file so this 
-change will unify the implementation across all architectures.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/sh/include/asm/ftrace.h         | 2 +-
+ arch/sh/include/uapi/asm/unistd_32.h | 2 +-
+ arch/sh/include/uapi/asm/unistd_64.h | 2 +-
+ arch/sh/kernel/cpu/sh5/entry.S       | 2 +-
+ arch/sh/kernel/entry-common.S        | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
-
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-
-Important thing to note, I have added this support only for 32-bit
-ABI. It seems like no one using 64-bit ABI for long time. But it is
-very easy to add the support for64-bit. Please let me know if any-
-one need this support:)
-
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
-
-I have done the same support for work for alpha, m68k, microblaze, 
-ia64, mips, parisc, powerpc, sparc, and xtensa. But I started sending 
-the patch for one architecuture for review. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work for solving the Y2038 issue. We 
-need to add/change two dozen of system calls to solve Y2038 issue. 
-So this patch series will help to easily modify from existing 
-system call to Y2038 compatible system calls.
-
-I started working system call table generation on 4.17-rc1. I used 
-marcin's script - https://github.com/hrw/syscalls-table to generate 
-the syscall.tbl file. And this will be the input to the system call 
-table generation script. But there are couple system call got add 
-in the latest rc release. If run Marcin's script on latest release,
-it will generate a different syscall.tbl. But I still use the old 
-file - syscall.tbl and once all review got over I'll update 
-syscall.tbl alone w.r.to the tip of the kernel. The impact of this
-is, few of the system call won't work.
-
-Firoz Khan (3):
-  sh: Rename NR_syscalls macro to __NR_syscalls
-  sh: Added system call table generation support
-  sh: uapi header and system call table file generation
-
- arch/sh/Makefile                      |   3 +
- arch/sh/include/asm/Kbuild            |   2 +
- arch/sh/include/asm/ftrace.h          |   2 +-
- arch/sh/include/uapi/asm/Kbuild       |   2 +
- arch/sh/include/uapi/asm/unistd_32.h  |   2 +-
- arch/sh/include/uapi/asm/unistd_64.h  |   2 +-
- arch/sh/kernel/Makefile               |   2 +-
- arch/sh/kernel/cpu/sh5/entry.S        |   2 +-
- arch/sh/kernel/entry-common.S         |   2 +-
- arch/sh/kernel/syscall.S              |   9 +
- arch/sh/kernel/syscalls/Makefile      |  37 ++++
- arch/sh/kernel/syscalls/syscall.tbl   | 388 ++++++++++++++++++++++++++++++++
- arch/sh/kernel/syscalls/syscallhdr.sh |  33 +++
- arch/sh/kernel/syscalls/syscalltbl.sh |  28 +++
- arch/sh/kernel/syscalls_32.S          | 402 ----------------------------------
- 15 files changed, 508 insertions(+), 408 deletions(-)
- create mode 100644 arch/sh/kernel/syscall.S
- create mode 100644 arch/sh/kernel/syscalls/Makefile
- create mode 100644 arch/sh/kernel/syscalls/syscall.tbl
- create mode 100644 arch/sh/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/sh/kernel/syscalls/syscalltbl.sh
- delete mode 100644 arch/sh/kernel/syscalls_32.S
-
+diff --git a/arch/sh/include/asm/ftrace.h b/arch/sh/include/asm/ftrace.h
+index b1c1dc0..968a9bb 100644
+--- a/arch/sh/include/asm/ftrace.h
++++ b/arch/sh/include/asm/ftrace.h
+@@ -5,7 +5,7 @@
+ #ifdef CONFIG_FUNCTION_TRACER
+ 
+ #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
+-#define FTRACE_SYSCALL_MAX	NR_syscalls
++#define FTRACE_SYSCALL_MAX	__NR_syscalls
+ 
+ #ifndef __ASSEMBLY__
+ extern void mcount(void);
+diff --git a/arch/sh/include/uapi/asm/unistd_32.h b/arch/sh/include/uapi/asm/unistd_32.h
+index 58f04cf..2c4f087 100644
+--- a/arch/sh/include/uapi/asm/unistd_32.h
++++ b/arch/sh/include/uapi/asm/unistd_32.h
+@@ -396,6 +396,6 @@
+ #define __NR_preadv2		381
+ #define __NR_pwritev2		382
+ 
+-#define NR_syscalls 383
++#define __NR_syscalls 383
+ 
+ #endif /* __ASM_SH_UNISTD_32_H */
+diff --git a/arch/sh/include/uapi/asm/unistd_64.h b/arch/sh/include/uapi/asm/unistd_64.h
+index 6f809a5..9e6e8cb 100644
+--- a/arch/sh/include/uapi/asm/unistd_64.h
++++ b/arch/sh/include/uapi/asm/unistd_64.h
+@@ -416,6 +416,6 @@
+ #define __NR_preadv2		392
+ #define __NR_pwritev2		393
+ 
+-#define NR_syscalls 394
++#define __NR_syscalls 394
+ 
+ #endif /* __ASM_SH_UNISTD_64_H */
+diff --git a/arch/sh/kernel/cpu/sh5/entry.S b/arch/sh/kernel/cpu/sh5/entry.S
+index 0c8d037..d2ff022 100644
+--- a/arch/sh/kernel/cpu/sh5/entry.S
++++ b/arch/sh/kernel/cpu/sh5/entry.S
+@@ -1192,7 +1192,7 @@ system_call:
+ 	STI()
+ 
+ 	pta	syscall_allowed, tr0
+-	movi	NR_syscalls - 1, r4	/* Last valid */
++	movi	__NR_syscalls - 1, r4	/* Last valid */
+ 	bgeu/l	r4, r5, tr0
+ 
+ syscall_bad:
+diff --git a/arch/sh/kernel/entry-common.S b/arch/sh/kernel/entry-common.S
+index 28cc612..80ea3c4 100644
+--- a/arch/sh/kernel/entry-common.S
++++ b/arch/sh/kernel/entry-common.S
+@@ -396,7 +396,7 @@ syscall_exit:
+ #if !defined(CONFIG_CPU_SH2)
+ 1:	.long	TRA
+ #endif
+-2:	.long	NR_syscalls
++2:	.long	__NR_syscalls
+ 3:	.long	sys_call_table
+ 7:	.long	do_syscall_trace_enter
+ 8:	.long	do_syscall_trace_leave
 -- 
 1.9.1
