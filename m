@@ -1,56 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0117.outbound.protection.outlook.com ([104.47.42.117]:57579
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726927AbeHIVWX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Aug 2018 17:22:23 -0400
-Date: Thu, 9 Aug 2018 11:56:04 -0700
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v6 4/4] MIPS: Workaround GCC __builtin_unreachable
- reordering bug
-Message-ID: <20180809185604.qqamyfd3etdacy3a@pburton-laptop>
-References: <20180809174444.31705-1-paul.burton@mips.com>
- <20180809174444.31705-5-paul.burton@mips.com>
- <CAK8P3a2WVrPc0yu3SXL4qRHsC0C8y=t_4srEy1ELdSBYx4ME=w@mail.gmail.com>
+Received: from mail-it0-f68.google.com ([209.85.214.68]:55659 "EHLO
+        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727013AbeHJDDg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Aug 2018 23:03:36 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a2WVrPc0yu3SXL4qRHsC0C8y=t_4srEy1ELdSBYx4ME=w@mail.gmail.com>
+References: <1531796756-16982-1-git-send-email-zong@andestech.com>
+In-Reply-To: <1531796756-16982-1-git-send-email-zong@andestech.com>
+From: Zong Li <zongbox@gmail.com>
+Date: Fri, 10 Aug 2018 08:36:03 +0800
+Message-ID: <CA+ZOyahU_D616x_PjB=6tzDagWJOf_=bgFOUSx2t2Q3HcNEB5g@mail.gmail.com>
+Subject: Re: [PATCH] module: Add the print format of Elf_Addr for 32/64-bit compatibly
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Matthew Fortune <mfortune@gmail.com>
-Cc: "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, linux-arch <linux-arch@vger.kernel.org>, linux-um@lists.infradead.org
+To: Zong Li <zong@andestech.com>
+Cc: Palmer Dabbelt <palmer@sifive.com>, aou@eecs.berkeley.edu, arnd@arndb.de, schwab@suse.de, hch@infradead.org, linux-riscv@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, greentime@andestech.com
+Message-ID: <20180810003603.jNA_KQq7NB-WdAX1piINpMrKvMeOLB6wmgq4ZCykoQw@z>
 
-Hi Arnd,
+Zong Li <zong@andestech.com> =E6=96=BC 2018=E5=B9=B47=E6=9C=8817=E6=97=A5 =
+=E9=80=B1=E4=BA=8C =E4=B8=8A=E5=8D=8811:06=E5=AF=AB=E9=81=93=EF=BC=9A
+>
+> Use a similar way like fixed width integer types in inttypes.h.
+>
+> For the ELF, the Elf32_Addr is int type and Elf64_Addr is long long
+> type. It is opposite to definition of inttypes.h, so the Elf_Addr cannot
+> re-use the header.
+>
+> In many architectures, the module loader only print the message of
+> module name and relocation type except the address information. We can
+> print the address correctly without compile warning by using PRIdEA,
+> PRIxEA and so on.
+>
+> Signed-off-by: Zong Li <zong@andestech.com>
+> ---
+>  arch/riscv/kernel/module.c   | 13 +++++++------
+>  include/asm-generic/module.h |  9 +++++++++
+>  2 files changed, 16 insertions(+), 6 deletions(-)
+>
+> diff --git a/arch/riscv/kernel/module.c b/arch/riscv/kernel/module.c
+> index 3303ed2cd419..d839528e491a 100644
+> --- a/arch/riscv/kernel/module.c
+> +++ b/arch/riscv/kernel/module.c
+> @@ -16,11 +16,12 @@
+>  #include <linux/err.h>
+>  #include <linux/errno.h>
+>  #include <linux/moduleloader.h>
+> +#include <asm-generic/module.h>
+>
+>  static int apply_r_riscv_32_rela(struct module *me, u32 *location, Elf_A=
+ddr v)
+>  {
+>         if (v !=3D (u32)v) {
+> -               pr_err("%s: value %016llx out of range for 32-bit field\n=
+",
+> +               pr_err("%s: value %016" PRIxEA "out of range for 32-bit f=
+ield\n",
+>                        me->name, v);
+>                 return -EINVAL;
+>         }
+> @@ -101,7 +102,7 @@ static int apply_r_riscv_pcrel_hi20_rela(struct modul=
+e *me, u32 *location,
+>
+>         if (offset !=3D (s32)offset) {
+>                 pr_err(
+> -                 "%s: target %016llx can not be addressed by the 32-bit =
+offset from PC =3D %p\n",
+> +                 "%s: target %016" PRIxEA "can not be addressed by the 3=
+2-bit offset from PC =3D %p\n",
+>                   me->name, v, location);
+>                 return -EINVAL;
+>         }
+> @@ -143,7 +144,7 @@ static int apply_r_riscv_hi20_rela(struct module *me,=
+ u32 *location,
+>
+>         if (IS_ENABLED(CMODEL_MEDLOW)) {
+>                 pr_err(
+> -                 "%s: target %016llx can not be addressed by the 32-bit =
+offset from PC =3D %p\n",
+> +                 "%s: target %016" PRIxEA "can not be addressed by the 3=
+2-bit offset from PC =3D %p\n",
+>                   me->name, v, location);
+>                 return -EINVAL;
+>         }
+> @@ -187,7 +188,7 @@ static int apply_r_riscv_got_hi20_rela(struct module =
+*me, u32 *location,
+>                 offset =3D (void *)offset - (void *)location;
+>         } else {
+>                 pr_err(
+> -                 "%s: can not generate the GOT entry for symbol =3D %016=
+llx from PC =3D %p\n",
+> +                 "%s: can not generate the GOT entry for symbol =3D %016=
+" PRIxEA "from PC =3D %p\n",
+>                   me->name, v, location);
+>                 return -EINVAL;
+>         }
+> @@ -211,7 +212,7 @@ static int apply_r_riscv_call_plt_rela(struct module =
+*me, u32 *location,
+>                         offset =3D (void *)offset - (void *)location;
+>                 } else {
+>                         pr_err(
+> -                         "%s: target %016llx can not be addressed by the=
+ 32-bit offset from PC =3D %p\n",
+> +                         "%s: target %016" PRIxEA "can not be addressed =
+by the 32-bit offset from PC =3D %p\n",
+>                           me->name, v, location);
+>                         return -EINVAL;
+>                 }
+> @@ -233,7 +234,7 @@ static int apply_r_riscv_call_rela(struct module *me,=
+ u32 *location,
+>
+>         if (offset !=3D fill_v) {
+>                 pr_err(
+> -                 "%s: target %016llx can not be addressed by the 32-bit =
+offset from PC =3D %p\n",
+> +                 "%s: target %016" PRIxEA "can not be addressed by the 3=
+2-bit offset from PC =3D %p\n",
+>                   me->name, v, location);
+>                 return -EINVAL;
+>         }
+> diff --git a/include/asm-generic/module.h b/include/asm-generic/module.h
+> index 98e1541b72b7..d358f2414e5e 100644
+> --- a/include/asm-generic/module.h
+> +++ b/include/asm-generic/module.h
+> @@ -27,6 +27,7 @@ struct mod_arch_specific
+>  #endif
+>  #define ELF_R_TYPE(X)  ELF64_R_TYPE(X)
+>  #define ELF_R_SYM(X)   ELF64_R_SYM(X)
+> +#define ELF_ADDR_PREFIX "ll"
+>
+>  #else /* CONFIG_64BIT */
+>
+> @@ -44,6 +45,14 @@ struct mod_arch_specific
+>  #endif
+>  #define ELF_R_TYPE(X)  ELF32_R_TYPE(X)
+>  #define ELF_R_SYM(X)   ELF32_R_SYM(X)
+> +#define ELF_ADDR_PREFIX
+>  #endif
+>
+> +#define PRIdEA ELF_ADDR_PREFIX "d" /* signed decimal */
+> +#define PRIiEA ELF_ADDR_PREFIX "i" /* signed decimal */
+> +#define PRIuEA ELF_ADDR_PREFIX "u" /* unsigned decimal */
+> +#define PRIoEA ELF_ADDR_PREFIX "o" /* unsigned octal */
+> +#define PRIxEA ELF_ADDR_PREFIX "x" /* unsigned lowercase hexadecimal */
+> +#define PRIXEA ELF_ADDR_PREFIX "X" /* unsigned uppercase hexadecimal */
+> +
+>  #endif /* __ASM_GENERIC_MODULE_H */
+> --
+> 2.16.1
+>
 
-On Thu, Aug 09, 2018 at 08:12:27PM +0200, Arnd Bergmann wrote:
-> On Thu, Aug 9, 2018 at 7:45 PM Paul Burton <paul.burton@mips.com> wrote:
-> 
-> > +/*
-> > + * With GCC v4.5 onwards can use __builtin_unreachable to indicate to the
-> > + * compiler that a particular code path will never be hit. This allows it to be
-> > + * optimised out of the generated binary.
-> > + *
-> > + * Unfortunately GCC from at least v4.9.2 to current head of tree as of May
-> > + * 2016 suffer from a bug that can lead to instructions from beyond an
-> 
-> Has anything happened to address this in gcc in the meantime?
-> Could you update this text to reflect whatever is in current gcc-9?
-
-Good question. I can reproduce the problem using the test case from [1]
-using both GCC 6.4.0 & 7.3.0, but 8.1.0 generates wildly different code
-which looks good.
-
-Nothing relevant is listed in the release notes for GCC 8.x though, and
-I can't see anything obvious in gcc's commit logs. It doesn't looks like
-the fix Robert suggested went in. So I don't know whether current GCC's
-have resolved the problem or just get lucky enough not to hit it with
-the existing testcase.
-
-I've copied Matthew (GCC MIPS maintainer) in case he has any relevant
-information.
-
-Thanks,
-    Paul
-
-[1] https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
+ping
