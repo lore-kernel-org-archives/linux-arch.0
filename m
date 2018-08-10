@@ -1,140 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr730126.outbound.protection.outlook.com ([40.107.73.126]:22944
-        "EHLO NAM05-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727381AbeHJTg2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Aug 2018 15:36:28 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: [PATCH v7 4/4] MIPS: Workaround GCC __builtin_unreachable reordering bug
-Date: Fri, 10 Aug 2018 10:05:11 -0700
-Message-Id: <20180810170511.10621-1-paul.burton@mips.com>
-In-Reply-To: <20180809185604.qqamyfd3etdacy3a@pburton-laptop>
-References: <20180809185604.qqamyfd3etdacy3a@pburton-laptop>
+Received: from mail-it0-f67.google.com ([209.85.214.67]:52771 "EHLO
+        mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726432AbeHJUtg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Aug 2018 16:49:36 -0400
+Received: by mail-it0-f67.google.com with SMTP id d9-v6so3827511itf.2
+        for <linux-arch@vger.kernel.org>; Fri, 10 Aug 2018 11:18:38 -0700 (PDT)
+Subject: Re: [PATCH] sh: remove unneeded constructor.
+References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
+ <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+ <87600us5k9.wl-ysato@users.sourceforge.jp>
+ <20180804103550.GA3183@bombadil.infradead.org>
+ <CAMuHMdXsz-+zsxouaLP5tTKA46G34iAACSce+RXrD8AiiQc2+A@mail.gmail.com>
+ <20180804105149.GB3183@bombadil.infradead.org>
+ <4e9e1599-9dbf-75dc-561e-77d5cb063714@landley.net>
+ <20180805163234.GR1392@brightrain.aerifal.cx>
+ <61a157f1-7d43-6554-5d26-84d47ce6cabe@landley.net>
+ <20180805233349.GS1392@brightrain.aerifal.cx>
+ <CAMuHMdUgy8B4d4rAAvixB66cxaN9OiWxnXJKL17J1c47MfU76Q@mail.gmail.com>
+From: Rob Landley <rob@landley.net>
+Message-ID: <a7d1d866-2d0f-2a1e-5275-ecdbb707bf84@landley.net>
+Date: Fri, 10 Aug 2018 13:18:34 -0500
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <CAMuHMdUgy8B4d4rAAvixB66cxaN9OiWxnXJKL17J1c47MfU76Q@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, James Hogan <jhogan@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-um@lists.infradead.org, Paul Burton <paul.burton@mips.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Rich Felker <dalias@libc.org>
+Cc: Matthew Wilcox <willy@infradead.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-Some versions of GCC for the MIPS architecture suffer from a bug which
-can lead to instructions from beyond an unreachable statement being
-incorrectly reordered into earlier branch delay slots if the unreachable
-statement is the only content of a case in a switch statement. This can
-lead to seemingly random behaviour, such as invalid memory accesses from
-incorrectly reordered loads or stores, and link failures on microMIPS
-builds.
+On 08/06/2018 01:57 AM, Geert Uytterhoeven wrote:
+> On the platform side, there will be a big difference between mostly legacy
+> SH and new DT-based j-core on the 32-bit bit side, and mostly new DT-based
+> j-core on the 64-bit side.
 
-See this potential GCC fix for details:
+At $DAYJOB I'm working on a sh7760 board with platform data (the open source
+release of the linux patches for which looks like it'll miss this merge window
+but might hit next one; they only want to run everything through the lawyers
+once so legal clearance waits until we're done fiddling).
 
-    https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
+The device tree people break platform data support because they only test device
+tree, and then refuse patches to make the existing platform data work again. For
+example, I have this bookmarked:
 
-This bug can be worked around by placing a volatile asm statement, which
-GCC is prevented from reordering past, prior to the
-__builtin_unreachable call.
+  http://lkml.iu.edu/hypermail/linux/kernel/1807.0/05252.html
 
-This was actually done already for other reasons by commit 173a3efd3edb
-("bug.h: work around GCC PR82365 in BUG()"), but without the MIPS
-specific .insn, which broke microMIPS builds on newer GCC 7.2 toolchains
-with errors like the following:
+In case I ever have time to go back and look at it, but I've moved on to other
+things already. (My current "circle back to poke at it as I have time" is trying
+to get DMAEngine working for sh7760 with the smc91x.c.) The fix I sent upstream
+for the LEDs is the fix we're shipping with. It's the simple, obvious, "make it
+work exactly like it used to work", and they went "nah, we don't want to do
+that, do something else that will require changing the platform data that worked
+before our commit". (See longish thread, above. The reply I bookmarked was the
+polite one.)
 
-    arch/mips/mm/dma-default.s:3265: Error: branch to a symbol in another ISA mode
-    arch/mips/mm/dma-default.s:5027: Error: branch to a symbol in another ISA mode
+I'm aware there's a problem regression testing old hardware, which limits
+conversion of that old hardware to device tree. But the people who _have_ old
+hardware continue to run old kernels because upgrading to current kernels
+doesn't _work_. And then when we make it work, our patches to make it work get
+rejected presumably on the grounds that the device tree people want to make not
+having already migrated everything to systemd painful. So current kernels won't
+"just work" for the _next_ person either, and nobody upgrades, and then if
+somebody tries their hand at converting a board to device tree there's no
+testers. Or if there are they go "it didn't boot" because of some unrelated
+regression elsewhere in the code because the kernel they're using (and still
+maintaining in-house) is years old...
 
-Add a MIPS-specific definition of barrier_before_unreachable() which
-includes the .insn directive in order to satisfy the assembler that
-branch targets are in fact code.
+This is something like the eighth company I've seen that at. :P
 
-The original bug affects at least a maltasmvp_defconfig kernel built
-from the v4.4 tag using GCC 4.9.2 (from a Codescape SDK 2015.06-05
-toolchain), with the result being an address exception taken after log
-messages about the L1 caches (during probe of the L2 cache):
-
-    Initmem setup node 0 [mem 0x0000000080000000-0x000000009fffffff]
-    VPE topology {2,2} total 4
-    Primary instruction cache 64kB, VIPT, 4-way, linesize 32 bytes.
-    Primary data cache 64kB, 4-way, PIPT, no aliases, linesize 32 bytes
-    <AdEL exception here>
-
-This is early enough that the kernel exception vectors are not in use,
-so any further output depends upon the bootloader. This is reproducible
-in QEMU where no further output occurs - ie. the system hangs here.
-Given the nature of the bug it may potentially be hit with differing
-symptoms.
-
-Fixes: 173a3efd3edb ("bug.h: work around GCC PR82365 in BUG()")
-Signed-off-by: Paul Burton <paul.burton@mips.com>
-[jhogan@kernel.org: Forward port and use asm/compiler.h instead of
- asm/compiler-gcc.h]
-Signed-off-by: James Hogan <jhogan@kernel.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-mips@linux-mips.org
-
----
-
-Changes in v7:
-- Elaborate on affected GCC versions in comment.
-
-Changes in v6: None
-Changes in v5:
-- Comment & commit message tweaks.
-
-Changes in v4: None
-Changes in v3:
-- Forward port to v4.17-rc and update commit message.
-- Drop stable tag for now.
-
-Changes in v2:
-- Remove generic-y entry.
-
- arch/mips/include/asm/compiler.h | 34 ++++++++++++++++++++++++++++++++
- 1 file changed, 34 insertions(+)
-
-diff --git a/arch/mips/include/asm/compiler.h b/arch/mips/include/asm/compiler.h
-index e081a265f422..4c06b41cd258 100644
---- a/arch/mips/include/asm/compiler.h
-+++ b/arch/mips/include/asm/compiler.h
-@@ -8,6 +8,40 @@
- #ifndef _ASM_COMPILER_H
- #define _ASM_COMPILER_H
- 
-+/*
-+ * With GCC 4.5 onwards can use __builtin_unreachable to indicate to the
-+ * compiler that a particular code path will never be hit. This allows it to be
-+ * optimised out of the generated binary.
-+ *
-+ * Unfortunately at least GCC 4.6.3 through 7.3.0 inclusive suffer from a bug
-+ * that can lead to instructions from beyond an unreachable statement being
-+ * incorrectly reordered into earlier delay slots if the unreachable statement
-+ * is the only content of a case in a switch statement. This can lead to
-+ * seemingly random behaviour, such as invalid memory accesses from incorrectly
-+ * reordered loads or stores. See this potential GCC fix for details:
-+ *
-+ *   https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
-+ *
-+ * It is unclear whether GCC 8 onwards suffer from the same issue - nothing
-+ * relevant is mentioned in GCC 8 release notes and nothing obviously relevant
-+ * stands out in GCC commit logs, but these newer GCC versions generate very
-+ * different code for the testcase which doesn't exhibit the bug.
-+ *
-+ * GCC also handles stack allocation suboptimally when calling noreturn
-+ * functions or calling __builtin_unreachable():
-+ *
-+ *   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82365
-+ *
-+ * We work around both of these issues by placing a volatile asm statement,
-+ * which GCC is prevented from reordering past, prior to __builtin_unreachable
-+ * calls.
-+ *
-+ * The .insn statement is required to ensure that any branches to the
-+ * statement, which sadly must be kept due to the asm statement, are known to
-+ * be branches to code and satisfy linker requirements for microMIPS kernels.
-+ */
-+#define barrier_before_unreachable() asm volatile(".insn")
-+
- #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
- #define GCC_IMM_ASM() "n"
- #define GCC_REG_ACCUM "$0"
--- 
-2.18.0
+Rob
