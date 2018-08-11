@@ -1,171 +1,309 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 1/3] sh: Rename NR_syscalls macro to __NR_syscalls
-Date: Fri, 10 Aug 2018 15:38:52 -0400
-Message-ID: <20180810153852.720e2143@gandalf.local.home>
-References: <1533793005-4525-2-git-send-email-firoz.khan@linaro.org>
-        <201808092020.H3Qhfo8m%fengguang.wu@intel.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 3/6] alpha: Unify the not-implemented system
+ call entry name
+Date: Sat, 11 Aug 2018 01:04:55 +0100
+Message-ID: <20180811000455.GC6515@ZenIV.linux.org.uk>
+References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
+ <1531736638-15294-4-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201808092020.H3Qhfo8m%fengguang.wu@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: kbuild test robot <lkp@intel.com>
-Cc: Firoz Khan <firoz.khan@linaro.org>, kbuild-all@01.org, linux-sh@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+Content-Disposition: inline
+In-Reply-To: <1531736638-15294-4-git-send-email-firoz.khan@linaro.org>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, ink@jurassic.park.msu.ru, deepa.kernel@gmail.com, linux-alpha@vger.kernel.org, mattst88@gmail.com, rth@twiddle.net
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 9 Aug 2018 20:58:58 +0800
-kbuild test robot <lkp@intel.com> wrote:
-
-> Hi Firoz,
-> 
-> Thank you for the patch! Yet something to improve:
-> 
-> [auto build test ERROR on linus/master]
-> [also build test ERROR on v4.18-rc8 next-20180808]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
-> 
-> url:    https://github.com/0day-ci/linux/commits/Firoz-Khan/sh-Rename-NR_syscalls-macro-to-__NR_syscalls/20180809-171759
-> config: sh-allmodconfig (attached as .config)
-> compiler: sh4-linux-gnu-gcc (Debian 7.2.0-11) 7.2.0
-> reproduce:
->         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         # save the attached .config to linux build tree
->         GCC_VERSION=7.2.0 make.cross ARCH=sh 
-> 
-> All errors (new ones prefixed by >>):
-> 
->    In file included from kernel/trace/trace_selftest_dynamic.c:3:0:
-> >> kernel/trace/trace.h:243:53: error: 'NR_syscalls' undeclared here (not in a function); did you mean '__NR_syscalls'?  
->      struct trace_event_file __rcu *enter_syscall_files[NR_syscalls];
->                                                         ^~~~~~~~~~~
->                                                         __NR_syscalls
-> --
->    In file included from kernel/trace/trace_output.h:6:0,
->                     from kernel/trace/trace_syscalls.c:12:
-> >> kernel/trace/trace.h:243:53: error: 'NR_syscalls' undeclared here (not in a function); did you mean '__NR_syscalls'?  
->      struct trace_event_file __rcu *enter_syscall_files[NR_syscalls];
->                                                         ^~~~~~~~~~~
->                                                         __NR_syscalls
-
-Most archs have a:
-
-#define NR_syscalls __NR_syscalls
-
--- Steve
-
->    In file included from include/linux/smp.h:11:0,
->                     from include/linux/tracepoint.h:17,
->                     from include/trace/syscall.h:5,
->                     from kernel/trace/trace_syscalls.c:2:
->    kernel/trace/trace_syscalls.c:559:23: warning: 'enabled_perf_exit_syscalls' defined but not used [-Wunused-variable]
->     static DECLARE_BITMAP(enabled_perf_exit_syscalls, NR_syscalls);
->                           ^
->    include/linux/types.h:11:16: note: in definition of macro 'DECLARE_BITMAP'
->      unsigned long name[BITS_TO_LONGS(bits)]
->                    ^~~~
->    kernel/trace/trace_syscalls.c:558:23: warning: 'enabled_perf_enter_syscalls' defined but not used [-Wunused-variable]
->     static DECLARE_BITMAP(enabled_perf_enter_syscalls, NR_syscalls);
->                           ^
->    include/linux/types.h:11:16: note: in definition of macro 'DECLARE_BITMAP'
->      unsigned long name[BITS_TO_LONGS(bits)]
->                    ^~~~
-> 
-> vim +243 kernel/trace/trace.h
-> 
-> 490901078 Steven Rostedt (Red Hat  2015-09-24  196) 
-> bc0c38d13 Steven Rostedt           2008-05-12  197  /*
-> bc0c38d13 Steven Rostedt           2008-05-12  198   * The trace array - an array of per-CPU trace arrays. This is the
-> bc0c38d13 Steven Rostedt           2008-05-12  199   * highest level data structure that individual tracers deal with.
-> bc0c38d13 Steven Rostedt           2008-05-12  200   * They have on/off state as well:
-> bc0c38d13 Steven Rostedt           2008-05-12  201   */
-> bc0c38d13 Steven Rostedt           2008-05-12  202  struct trace_array {
-> ae63b31e4 Steven Rostedt           2012-05-03  203  	struct list_head	list;
-> 277ba0446 Steven Rostedt           2012-08-03  204  	char			*name;
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  205) 	struct trace_buffer	trace_buffer;
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  206) #ifdef CONFIG_TRACER_MAX_TRACE
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  207) 	/*
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  208) 	 * The max_buffer is used to snapshot the trace when a maximum
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  209) 	 * latency is reached, or when the user initiates a snapshot.
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  210) 	 * Some tracers will use this to store a maximum trace while
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  211) 	 * it continues examining live traces.
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  212) 	 *
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  213) 	 * The buffers for the max_buffer are set up the same as the trace_buffer
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  214) 	 * When a snapshot is taken, the buffer of the max_buffer is swapped
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  215) 	 * with the buffer of the trace_buffer and the buffers are reset for
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  216) 	 * the trace_buffer so the tracing can continue.
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  217) 	 */
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  218) 	struct trace_buffer	max_buffer;
-> 45ad21ca5 Steven Rostedt (Red Hat  2013-03-05  219) 	bool			allocated_snapshot;
-> f971cc9aa Steven Rostedt (Red Hat  2016-09-07  220) #endif
-> f971cc9aa Steven Rostedt (Red Hat  2016-09-07  221) #if defined(CONFIG_TRACER_MAX_TRACE) || defined(CONFIG_HWLAT_TRACER)
-> 6d9b3fa5e Steven Rostedt (Red Hat  2014-01-14  222) 	unsigned long		max_latency;
-> 12883efb6 Steven Rostedt (Red Hat  2013-03-05  223) #endif
-> 490901078 Steven Rostedt (Red Hat  2015-09-24  224) 	struct trace_pid_list	__rcu *filtered_pids;
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  225) 	/*
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  226) 	 * max_lock is used to protect the swapping of buffers
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  227) 	 * when taking a max snapshot. The buffers themselves are
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  228) 	 * protected by per_cpu spinlocks. But the action of the swap
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  229) 	 * needs its own lock.
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  230) 	 *
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  231) 	 * This is defined as a arch_spinlock_t in order to help
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  232) 	 * with performance when lockdep debugging is enabled.
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  233) 	 *
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  234) 	 * It is also used in other places outside the update_max_tr
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  235) 	 * so it needs to be defined outside of the
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  236) 	 * CONFIG_TRACER_MAX_TRACE.
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  237) 	 */
-> 0b9b12c1b Steven Rostedt (Red Hat  2014-01-14  238) 	arch_spinlock_t		max_lock;
-> 499e54705 Steven Rostedt           2012-02-22  239  	int			buffer_disabled;
-> 12ab74ee0 Steven Rostedt           2012-08-08  240  #ifdef CONFIG_FTRACE_SYSCALLS
-> 12ab74ee0 Steven Rostedt           2012-08-08  241  	int			sys_refcount_enter;
-> 12ab74ee0 Steven Rostedt           2012-08-08  242  	int			sys_refcount_exit;
-> 7f1d2f821 Steven Rostedt (Red Hat  2015-05-05 @243) 	struct trace_event_file __rcu *enter_syscall_files[NR_syscalls];
-> 7f1d2f821 Steven Rostedt (Red Hat  2015-05-05  244) 	struct trace_event_file __rcu *exit_syscall_files[NR_syscalls];
-> 12ab74ee0 Steven Rostedt           2012-08-08  245  #endif
-> 2b6080f28 Steven Rostedt           2012-05-11  246  	int			stop_count;
-> 2b6080f28 Steven Rostedt           2012-05-11  247  	int			clock_id;
-> 37aea98b8 Steven Rostedt (Red Hat  2015-09-30  248) 	int			nr_topts;
-> 065e63f95 Steven Rostedt (VMware   2017-08-31  249) 	bool			clear_trace;
-> 2b6080f28 Steven Rostedt           2012-05-11  250  	struct tracer		*current_trace;
-> 983f938ae Steven Rostedt (Red Hat  2015-09-30  251) 	unsigned int		trace_flags;
-> 9a38a8856 Steven Rostedt (Red Hat  2015-09-30  252) 	unsigned char		trace_flags_index[TRACE_FLAGS_MAX_SIZE];
-> ae63b31e4 Steven Rostedt           2012-05-03  253  	unsigned int		flags;
-> 2b6080f28 Steven Rostedt           2012-05-11  254  	raw_spinlock_t		start_lock;
-> ae63b31e4 Steven Rostedt           2012-05-03  255  	struct dentry		*dir;
-> 2b6080f28 Steven Rostedt           2012-05-11  256  	struct dentry		*options;
-> 2b6080f28 Steven Rostedt           2012-05-11  257  	struct dentry		*percpu_dir;
-> ae63b31e4 Steven Rostedt           2012-05-03  258  	struct dentry		*event_dir;
-> 37aea98b8 Steven Rostedt (Red Hat  2015-09-30  259) 	struct trace_options	*topts;
-> ae63b31e4 Steven Rostedt           2012-05-03  260  	struct list_head	systems;
-> ae63b31e4 Steven Rostedt           2012-05-03  261  	struct list_head	events;
-> 3dd809536 Steven Rostedt (VMware   2018-05-09  262) 	struct trace_event_file *trace_marker_file;
-> ccfe9e42e Alexander Z Lam          2013-08-08  263  	cpumask_var_t		tracing_cpumask; /* only trace on set CPUs */
-> a695cb581 Steven Rostedt (Red Hat  2013-03-06  264) 	int			ref;
-> f20a58062 Steven Rostedt (Red Hat  2013-11-07  265) #ifdef CONFIG_FUNCTION_TRACER
-> f20a58062 Steven Rostedt (Red Hat  2013-11-07  266) 	struct ftrace_ops	*ops;
-> 345ddcc88 Steven Rostedt (Red Hat  2016-04-22  267) 	struct trace_pid_list	__rcu *function_pids;
-> 04ec7bb64 Steven Rostedt (VMware   2017-04-05  268) #ifdef CONFIG_DYNAMIC_FTRACE
-> 673feb9d7 Steven Rostedt (VMware   2017-06-23  269) 	/* All of these are protected by the ftrace_lock */
-> 04ec7bb64 Steven Rostedt (VMware   2017-04-05  270) 	struct list_head	func_probes;
-> 673feb9d7 Steven Rostedt (VMware   2017-06-23  271) 	struct list_head	mod_trace;
-> 673feb9d7 Steven Rostedt (VMware   2017-06-23  272) 	struct list_head	mod_notrace;
-> 04ec7bb64 Steven Rostedt (VMware   2017-04-05  273) #endif
-> f20a58062 Steven Rostedt (Red Hat  2013-11-07  274) 	/* function tracing enabled */
-> f20a58062 Steven Rostedt (Red Hat  2013-11-07  275) 	int			function_enabled;
-> f20a58062 Steven Rostedt (Red Hat  2013-11-07  276) #endif
-> 00b414529 Tom Zanussi              2018-01-15  277  	int			time_stamp_abs_ref;
-> 067fe038e Tom Zanussi              2018-01-15  278  	struct list_head	hist_vars;
-> bc0c38d13 Steven Rostedt           2008-05-12  279  };
-> bc0c38d13 Steven Rostedt           2008-05-12  280  
-> 
-> :::::: The code at line 243 was first introduced by commit
-> :::::: 7f1d2f8210195c8c309d424a77dbf06a6d2186f4 tracing: Rename ftrace_event_file to trace_event_file
-> 
-> :::::: TO: Steven Rostedt (Red Hat) <rostedt@goodmis.org>
-> :::::: CC: Steven Rostedt <rostedt@goodmis.org>
-> 
-> ---
-> 0-DAY kernel test infrastructure                Open Source Technology Center
-> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+T24gTW9uLCBKdWwgMTYsIDIwMTggYXQgMDM6NTM6NTVQTSArMDUzMCwgRmlyb3ogS2hhbiB3cm90
+ZToKPiBzeXN0YmwuUyBjb250YWluIHR3byB0eXBlcyBvZiBzeXN0ZW0gY2FsbCBlbnRyeSBuYW1l
+IHdoaWNoIGFyZQo+IGFscGhhX25pX3N5c2NhbGwgYW5kIHN5c19uaV9zeXNjYWxsLiBTbyB0aGlz
+IHBhdGNoIHdpbGwgdW5pZnkKPiB0aGUgbm90LWltcGxlbWVudGVkIHN5c3RlbSBjYWxsIGVudHJ5
+IG5hbWUgYXMgYWxwaGFfbmlfc3lzY2FsbC4KClVtbS4uLiAgVGhlIHRoaW5nIGlzLCBhbHBoYV9u
+aV9zeXNjYWxsIHNob3VsZCByZWFsbHkgYmUgY2FsbGVkCmFscGhhX3N5c2NhbGxfMC4gIEl0cyB1
+c2UgZm9yIG90aGVyIG5vdCBpbXBsZW1lbnRlZCBzeXNjYWxscyBpbgpPU0Ygc3lzY2FsbCBudW1i
+ZXJzIHJhbmdlIGlzIGEgaGlzdG9yaWNhbCBhY2NpZGVudC4KCldoYXQgdGhhdCB0aGluZyBkb2Vz
+IGlzLCBpbiBhZGRpdGlvbiB1c3VhbCByZXR1cm4gLUVOT1NZUywgaXMKdGhlIG9wcG9zaXRlIG9m
+IGZvcmNlX3N1Y2Nlc3NmdWxfc3lzY2FsbF9yZXR1cm4oKS4KCk9uIGFscGhhIHRoZSBzeXNjYWxs
+IG51bWJlciBpcyBwYXNzZWQgaW4gcjAuICBTbyBmb3IgZXZlcnkKcmVhbCBzeXNjYWxsIHdlIGhh
+dmUgbm9uLXplcm8gY3VycmVudF9wdF9yZWdzKCktPnIwCmFuZCBmb3JjZV9zdWNjZXNzZnVsX3N5
+c2NhbGxfcmV0dXJuKCkgc2ltcGx5IGFzc2lnbnMgMCB0bwp0aGF0LgoKUmV0dXJuIHZhbHVlIGdv
+ZXMgaW4gdGhlIHNhbWUgcmVnaXN0ZXI7IGFkZGl0aW9uYWxseSwgcmVnaXN0ZXIgIzE5CihhMykg
+aXMgbGVmdCAwIG9uIHN1Y2Nlc3MgYW5kIDEgb24gZXJyb3IuICBOb3JtYWxseSBpdCdzIGNvbnRy
+b2xsZWQKYnkgdGhlIHNpZ24gb2Ygc3lzX3NvbWV0aGluZygpIHJldHVybiB2YWx1ZSAobGVmdCBp
+biByMCksIGJ1dCBmb3IKc29tZSBzeXNjYWxscyB3ZSB3YW50IHRvIGJlIGFibGUgdG8gdGVsbCB0
+aGUgdXNlcmxhbmQgdGhhdCB0aGUgZGFtbgp0aGluZyBoYXMgc3VjY2VlZGVkLCBuZWdhdGl2ZSBy
+ZXN1bHQgYmUgZGFtbmVkLgoKVGhlIG9yaWdpbmFsIHZhbHVlIG9mIHIwIGlzIGxlZnQgaW4gcHRf
+cmVnczsgaXQgd2lsbCBiZSB1c2VkIG9ubHkKaW4gY2FzZSBvZiBzeXNjYWxsIHJlc3RhcnRzLCBp
+LmUuICpub3QqIGluICJ0aGF0J3Mgbm8gZXJyb3IiIGNhc2UuCkFuZCBpdCdzIG5vbi16ZXJvIG9u
+IGFueSByZWFsIHN5c2NhbGwsIHNvIGl0IHNlcnZlcyBhcyBhIG5pY2UKYXZhaWxhYmxlIHBsYWNl
+IGZvciBzdG9yaW5nIHRoZSAiaXQncyBub3QgYW4gZXJyb3IiIGZsYWcuCgpUaGF0IHdvcmtzIG5p
+Y2VseSwgYnV0IGxlYXZlcyBhIGJpdCBvZiBhIHR3aXN0IGluIG9uZSBjYXNlOiBpZiB3ZQp0cmll
+ZCB0byBpc3N1ZSBzeXNjYWxsIDAsIHdlIHdhbnQgaXQgdG8gcmV0dXJuIC1FTk9TWVMgYW5kIHdl
+IHdhbnQKdGhhdCB0byBiZSB0cmVhdGVkIGFzIGFuIGVycm9yLCBUWVZNLiAgVGhhdCdzIHdoZXJl
+IHRoaXMgdHJpY2sKY29tZXMgdG8gYml0ZSAtIHVubGlrZSB0aGUgbm9ybWFsIGNhc2UsIHdlIGhh
+dmUgcHRfcmVncy0+cjAKY29udGFpbmluZyB6ZXJvLCB3aGljaCB3b3VsZCB0cmlnZ2VyIHRoZSAi
+dGhhdCdzIG5vIGVycm9yIiBsb2dpY3MuCgpTaW5jZSAtRU5PU1lTIGlzIG5vdCBhIHJlc3RhcnQt
+dHJpZ2dlcmluZyBlcnJvciwgd2UgZG9uJ3QgbmVlZCB0bwpwcmVzZXJ2ZSB0aGUgb3JpZ2luYWwg
+dmFsdWUgb2YgcHRfcmVncy0+cjAgaW4gdGhpcyBjYXNlIGVpdGhlci4KU29sdXRpb246CgphbHBo
+YV9uaV9zeXNjYWxsOgoJbWFrZSBjdXJyZW50X3B0X3JlZ3MoKS0+cjAgbm9uLXplcm8KCXJldHVy
+biAtRU5PU1lTCgpUaGF0J3Mgd2hhdCB0aGUgY29tbWVudCBpbgphbHBoYV9uaV9zeXNjYWxsOgog
+ICAgICAgIC5wcm9sb2d1ZSAwCiAgICAgICAgLyogU3BlY2lhbCBiZWNhdXNlIGl0IGFsc28gaW1w
+bGVtZW50cyBvdmVyZmxvdyBoYW5kbGluZyB2aWEKICAgICAgICAgICBzeXNjYWxsIG51bWJlciAw
+LiAgQW5kIGlmIHlvdSByZWNhbGwsIHplcm8gaXMgYSBzcGVjaWFsCiAgICAgICAgICAgdHJpZ2dl
+ciBmb3IgIm5vdCBhbiBlcnJvciIuICBTdG9yZSBsYXJnZSBub24temVybyB0aGVyZS4gICovCiAg
+ICAgICAgbGRhICAgICAkMCwgLUVOT1NZUwogICAgICAgIHVub3AKICAgICAgICBzdHEgICAgICQw
+LCAwKCRzcCkKICAgICAgICByZXQKaXMgYWJvdXQuCgpPbmNlIHVwb24gYSB0aW1lIGl0IHVzZWQg
+dG8gaGF2ZSBhIEMgcGFydCB0aGF0IHByaW50ZWQgYSB3YXJuaW5nCmFib3V0IHVuaW1wbGVtZW50
+ZWQgT1NGIHN5c2NhbGxzLiAgVGhhdCdzIHdoYXQgaXQncyBiZWVuIGRvaW5nCmFsbCBvdmVyIHRo
+ZSBPU0Ygc3lzY2FsbCByYW5nZSwgd2hpbGUgdGhlIG5hdGl2ZSBMaW51eCBzeXNjYWxsCnJhbmdl
+IHVzZXMgc3lzX25pX3N5c2NhbGwoKS4KCldpdGggdGhvc2Ugd2FybmluZ3MgYWJvdXQgdW5pbXBs
+ZW1lbnRlZCBPU0Ygc3lzY2FsbHMgZ29uZSAoY2lyY2EgMi40KSwKYWxwaGFfbmlfc3lzY2FsbCgp
+IGhhcyBzaHJ1bmsgdG8gdGhhdCBsaXR0bGUgYml0IG9mIGFzbSBhbmQgdGhlCm9ubHkgcmVhc29u
+IGl0IGhhc24ndCBiZWVuIHJlcGxhY2VkIHdpdGggc3lzX25pX3N5c2NhbGwoKSBldmVyeXdoZXJl
+CmlzIHRoYXQgZXh0cmEgdHdpc3QgbmVlZGVkIGluIGNhc2Ugb2Ygc3lzY2FsbCAjMC4KCkxldCdz
+IGtlZXAgaXQgb25seSBmb3Igc3lzY2FsbCAjMCBhbmQgcmVwbGFjZSB0aGUgcmVzdCB3aXRoIHN5
+c19uaV9zeXNjYWxsLgpBbmQgdXNlIHN5c19uaV9zeXNjYWxsIGZvciAibnVtYmVyIG91dCByYW5n
+ZSIgaW4gcHRyYWNlZC1jYWxsIGNhc2UsIGFzCndlJ2QgYmVlbiBkb2luZyBmb3Igbm9ybWFsIGNv
+ZGVwYXRoIHNpbmNlIDIuMS44Ni4uLgoKU2lnbmVkLW9mZi1ieTogQWwgVmlybyA8dmlyb0B6ZW5p
+di5saW51eC5vcmcudWs+Ci0tLQpkaWZmIC0tZ2l0IGEvYXJjaC9hbHBoYS9rZXJuZWwvZW50cnku
+UyBiL2FyY2gvYWxwaGEva2VybmVsL2VudHJ5LlMKaW5kZXggYzY0ODA2YTJkYWY1Li4yMTg0MGU3
+MDQyZjMgMTAwNjQ0Ci0tLSBhL2FyY2gvYWxwaGEva2VybmVsL2VudHJ5LlMKKysrIGIvYXJjaC9h
+bHBoYS9rZXJuZWwvZW50cnkuUwpAQCAtNDczLDcgKzQ3Myw3IEBAIGVudFN5czoKIAlibmUgICAg
+ICQzLCBzdHJhY2UKIAliZXEJJDQsIDFmCiAJbGRxCSQyNywgMCgkNSkKLTE6CWpzcgkkMjYsICgk
+MjcpLCBhbHBoYV9uaV9zeXNjYWxsCisxOglqc3IJJDI2LCAoJDI3KSwgc3lzX25pX3N5c2NhbGwK
+IAlsZGdwCSRncCwgMCgkMjYpCiAJYmx0CSQwLCAkc3lzY2FsbF9lcnJvcgkvKiB0aGUgY2FsbCBm
+YWlsZWQgKi8KIAlzdHEJJDAsIDAoJHNwKQpAQCAtNTg3LDcgKzU4Nyw3IEBAIHN0cmFjZToKIAkv
+KiBnZXQgdGhlIHN5c3RlbSBjYWxsIHBvaW50ZXIuLiAqLwogCWxkYQkkMSwgTlJfU1lTQ0FMTFMo
+JDMxKQogCWxkYQkkMiwgc3lzX2NhbGxfdGFibGUKLQlsZGEJJDI3LCBhbHBoYV9uaV9zeXNjYWxs
+CisJbGRhCSQyNywgc3lzX25pX3N5c2NhbGwKIAljbXB1bHQJJDAsICQxLCAkMQogCXM4YWRkcQkk
+MCwgJDIsICQyCiAJYmVxCSQxLCAxZgpAQCAtODQzLDE1ICs4NDMsMjAgQEAgc3lzX3J0X3NpZ3Jl
+dHVybjoKIC5lbmQgc3lzX3J0X3NpZ3JldHVybgogCiAJLmFsaWduCTQKLQkuZ2xvYmwJYWxwaGFf
+bmlfc3lzY2FsbAotCS5lbnQJYWxwaGFfbmlfc3lzY2FsbAotYWxwaGFfbmlfc3lzY2FsbDoKKwku
+Z2xvYmwJYWxwaGFfc3lzY2FsbF96ZXJvCisJLmVudAlhbHBoYV9zeXNjYWxsX3plcm8KK2FscGhh
+X3N5c2NhbGxfemVybzoKIAkucHJvbG9ndWUgMAotCS8qIFNwZWNpYWwgYmVjYXVzZSBpdCBhbHNv
+IGltcGxlbWVudHMgb3ZlcmZsb3cgaGFuZGxpbmcgdmlhCi0JICAgc3lzY2FsbCBudW1iZXIgMC4g
+IEFuZCBpZiB5b3UgcmVjYWxsLCB6ZXJvIGlzIGEgc3BlY2lhbAotCSAgIHRyaWdnZXIgZm9yICJu
+b3QgYW4gZXJyb3IiLiAgU3RvcmUgbGFyZ2Ugbm9uLXplcm8gdGhlcmUuICAqLworCS8qIFNwZWNp
+YWwgYmVjYXVzZSBpdCBuZWVkcyB0byBkbyBzb21ldGhpbmcgb3Bwb3NpdGUgdG8KKwkgICBmb3Jj
+ZV9zdWNjZXNzZnVsX3N5c2NhbGxfcmV0dXJuKCkuICBXZSB1c2UgdGhlIHNhdmVkCisJICAgc3lz
+Y2FsbCBudW1iZXIgZm9yIHRoYXQsIHplcm8gbWVhbmluZyAibm90IGFuIGVycm9yIi4KKwkgICBU
+aGF0IHdvcmtzIG5pY2VseSwgYnV0IGZvciByZWFsIHN5c2NhbGwgMCB3ZSBuZWVkIHRvCisJICAg
+bWFrZSBzdXJlIHRoYXQgdGhpcyBsb2dpY3MgZG9lc24ndCBnZXQgY29uZnVzZWQuCisJICAgU3Rv
+cmUgYSBub24temVybyB0aGVyZSAtIC1FTk9TWVMgd2UgbmVlZCBpbiByZWdpc3RlcgorCSAgIGZv
+ciBvdXIgcmV0dXJuIHZhbHVlIHdpbGwgZG8ganVzdCBmaW5lLgorCSAgKi8KIAlsZGEJJDAsIC1F
+Tk9TWVMKIAl1bm9wCiAJc3RxCSQwLCAwKCRzcCkKIAlyZXQKLS5lbmQgYWxwaGFfbmlfc3lzY2Fs
+bAorLmVuZCBhbHBoYV9zeXNjYWxsX3plcm8KZGlmZiAtLWdpdCBhL2FyY2gvYWxwaGEva2VybmVs
+L3N5c3RibHMuUyBiL2FyY2gvYWxwaGEva2VybmVsL3N5c3RibHMuUwppbmRleCAxMzc0ZTU5MTUx
+MWYuLjViMmU4ZWNiN2NlMyAxMDA2NDQKLS0tIGEvYXJjaC9hbHBoYS9rZXJuZWwvc3lzdGJscy5T
+CisrKyBiL2FyY2gvYWxwaGEva2VybmVsL3N5c3RibHMuUwpAQCAtMTEsOTMgKzExLDkzIEBACiAJ
+LmFsaWduIDMKIAkuZ2xvYmwgc3lzX2NhbGxfdGFibGUKIHN5c19jYWxsX3RhYmxlOgotCS5xdWFk
+IGFscGhhX25pX3N5c2NhbGwJCQkvKiAwICovCisJLnF1YWQgYWxwaGFfc3lzY2FsbF96ZXJvCQkv
+KiAwICovCiAJLnF1YWQgc3lzX2V4aXQKIAkucXVhZCBhbHBoYV9mb3JrCiAJLnF1YWQgc3lzX3Jl
+YWQKIAkucXVhZCBzeXNfd3JpdGUKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyogNSAqLwor
+CS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyogNSAqLwogCS5xdWFkIHN5c19jbG9zZQogCS5xdWFk
+IHN5c19vc2Zfd2FpdDQKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5
+c2NhbGwKIAkucXVhZCBzeXNfbGluawogCS5xdWFkIHN5c191bmxpbmsJCQkvKiAxMCAqLwotCS5x
+dWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFkIHN5c19j
+aGRpcgogCS5xdWFkIHN5c19mY2hkaXIKIAkucXVhZCBzeXNfbWtub2QKIAkucXVhZCBzeXNfY2ht
+b2QJCQkJLyogMTUgKi8KIAkucXVhZCBzeXNfY2hvd24KIAkucXVhZCBzeXNfb3NmX2JyawotCS5x
+dWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFkIHN5c19s
+c2VlawogCS5xdWFkIHN5c19nZXR4cGlkCQkJLyogMjAgKi8KIAkucXVhZCBzeXNfb3NmX21vdW50
+CiAJLnF1YWQgc3lzX3Vtb3VudAogCS5xdWFkIHN5c19zZXR1aWQKIAkucXVhZCBzeXNfZ2V0eHVp
+ZAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwJCQkvKiAyNSAqLworCS5xdWFkIHN5c19uaV9zeXNj
+YWxsCQkJLyogMjUgKi8KIAkucXVhZCBzeXNfcHRyYWNlCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2Fs
+bAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1
+YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDMwICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAot
+CS5xdWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5
+c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2Fs
+bAkJCS8qIDMwICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2Fs
+bAogCS5xdWFkIHN5c19hY2Nlc3MKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxw
+aGFfbmlfc3lzY2FsbAkJCS8qIDM1ICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBz
+eXNfbmlfc3lzY2FsbAkJCS8qIDM1ICovCiAJLnF1YWQgc3lzX3N5bmMKIAkucXVhZCBzeXNfa2ls
+bAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFk
+IHN5c19zZXRwZ2lkCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDQwICovCisJLnF1YWQg
+c3lzX25pX3N5c2NhbGwJCQkvKiA0MCAqLwogCS5xdWFkIHN5c19kdXAKIAkucXVhZCBzeXNfYWxw
+aGFfcGlwZQogCS5xdWFkIHN5c19vc2Zfc2V0X3Byb2dyYW1fYXR0cmlidXRlcwotCS5xdWFkIGFs
+cGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFkIHN5c19vcGVuCQkJ
+CS8qIDQ1ICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxs
+CiAJLnF1YWQgc3lzX2dldHhnaWQKIAkucXVhZCBzeXNfb3NmX3NpZ3Byb2NtYXNrCi0JLnF1YWQg
+YWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwJCQkvKiA1MCAqLworCS5x
+dWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiA1MCAqLwogCS5x
+dWFkIHN5c19hY2N0CiAJLnF1YWQgc3lzX3NpZ3BlbmRpbmcKLQkucXVhZCBhbHBoYV9uaV9zeXNj
+YWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKIAkucXVhZCBzeXNfaW9jdGwKLQkucXVhZCBhbHBo
+YV9uaV9zeXNjYWxsCQkJLyogNTUgKi8KLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCisJLnF1YWQg
+c3lzX25pX3N5c2NhbGwJCQkvKiA1NSAqLworCS5xdWFkIHN5c19uaV9zeXNjYWxsCiAJLnF1YWQg
+c3lzX3N5bWxpbmsKIAkucXVhZCBzeXNfcmVhZGxpbmsKIAkucXVhZCBzeXNfZXhlY3ZlCiAJLnF1
+YWQgc3lzX3VtYXNrCQkJCS8qIDYwICovCiAJLnF1YWQgc3lzX2Nocm9vdAotCS5xdWFkIGFscGhh
+X25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFkIHN5c19nZXRwZ3JwCiAJ
+LnF1YWQgc3lzX2dldHBhZ2VzaXplCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDY1ICov
+CisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiA2NSAqLwogCS5xdWFkIGFscGhhX3Zmb3JrCiAJ
+LnF1YWQgc3lzX25ld3N0YXQKIAkucXVhZCBzeXNfbmV3bHN0YXQKLQkucXVhZCBhbHBoYV9uaV9z
+eXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDcwICovCisJLnF1YWQgc3lzX25p
+X3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAkJCS8qIDcwICovCiAJLnF1YWQgc3lzX29z
+Zl9tbWFwCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCiAJ
+LnF1YWQgc3lzX211bm1hcAogCS5xdWFkIHN5c19tcHJvdGVjdAogCS5xdWFkIHN5c19tYWR2aXNl
+CQkJLyogNzUgKi8KIAkucXVhZCBzeXNfdmhhbmd1cAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwK
+LQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBz
+eXNfbmlfc3lzY2FsbAogCS5xdWFkIHN5c19nZXRncm91cHMKIAkvKiBtYXAgQlNEJ3Mgc2V0cGdy
+cCB0byBzeXNfc2V0cGdpZCBmb3IgYmluYXJ5IGNvbXBhdGliaWxpdHk6ICovCiAJLnF1YWQgc3lz
+X3NldGdyb3VwcwkJCS8qIDgwICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5xdWFkIHN5
+c19uaV9zeXNjYWxsCiAJLnF1YWQgc3lzX3NldHBnaWQKIAkucXVhZCBzeXNfb3NmX3NldGl0aW1l
+cgotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyog
+ODUgKi8KKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyog
+ODUgKi8KIAkucXVhZCBzeXNfb3NmX2dldGl0aW1lcgogCS5xdWFkIHN5c19nZXRob3N0bmFtZQog
+CS5xdWFkIHN5c19zZXRob3N0bmFtZQpAQCAtMTE5LDE5ICsxMTksMTkgQEAgc3lzX2NhbGxfdGFi
+bGU6CiAJLnF1YWQgc3lzX2JpbmQKIAkucXVhZCBzeXNfc2V0c29ja29wdAkJCS8qIDEwNSAqLwog
+CS5xdWFkIHN5c19saXN0ZW4KLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFf
+bmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNj
+YWxsCQkJLyogMTEwICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lz
+Y2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAx
+MTAgKi8KIAkucXVhZCBzeXNfc2lnc3VzcGVuZAogCS5xdWFkIHN5c19vc2Zfc2lnc3RhY2sKIAku
+cXVhZCBzeXNfcmVjdm1zZwogCS5xdWFkIHN5c19zZW5kbXNnCi0JLnF1YWQgYWxwaGFfbmlfc3lz
+Y2FsbAkJCS8qIDExNSAqLworCS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyogMTE1ICovCiAJLnF1
+YWQgc3lzX29zZl9nZXR0aW1lb2ZkYXkKIAkucXVhZCBzeXNfb3NmX2dldHJ1c2FnZQogCS5xdWFk
+IHN5c19nZXRzb2Nrb3B0Ci0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9z
+eXNjYWxsCiAjaWZkZWYgQ09ORklHX09TRjRfQ09NUEFUCiAJLnF1YWQgc3lzX29zZl9yZWFkdgkJ
+CS8qIDEyMCAqLwogCS5xdWFkIHN5c19vc2Zfd3JpdGV2CkBAIC0xNTYsNjYgKzE1Niw2NiBAQCBz
+eXNfY2FsbF90YWJsZToKIAkucXVhZCBzeXNfbWtkaXIKIAkucXVhZCBzeXNfcm1kaXIKIAkucXVh
+ZCBzeXNfb3NmX3V0aW1lcwotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9u
+aV9zeXNjYWxsCQkJLyogMTQwICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNf
+bmlfc3lzY2FsbAkJCS8qIDE0MCAqLwogCS5xdWFkIHN5c19nZXRwZWVybmFtZQotCS5xdWFkIGFs
+cGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5
+c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFkIHN5c19nZXRybGltaXQKIAkucXVh
+ZCBzeXNfc2V0cmxpbWl0CQkJLyogMTQ1ICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5x
+dWFkIHN5c19uaV9zeXNjYWxsCiAJLnF1YWQgc3lzX3NldHNpZAogCS5xdWFkIHN5c19xdW90YWN0
+bAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAogCS5xdWFk
+IHN5c19nZXRzb2NrbmFtZQkJCS8qIDE1MCAqLwotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQku
+cXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFs
+cGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyogMTU1ICovCisJLnF1
+YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9z
+eXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAkJCS8q
+IDE1NSAqLwogCS5xdWFkIHN5c19vc2Zfc2lnYWN0aW9uCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2Fs
+bAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFk
+IHN5c19uaV9zeXNjYWxsCiAJLnF1YWQgc3lzX29zZl9nZXRkaXJlbnRyaWVzCiAJLnF1YWQgc3lz
+X29zZl9zdGF0ZnMJCQkvKiAxNjAgKi8KIAkucXVhZCBzeXNfb3NmX2ZzdGF0ZnMKLQkucXVhZCBh
+bHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25p
+X3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJ
+LnF1YWQgc3lzX25pX3N5c2NhbGwKIAkucXVhZCBzeXNfb3NmX2dldGRvbWFpbm5hbWUJCS8qIDE2
+NSAqLwogCS5xdWFkIHN5c19zZXRkb21haW5uYW1lCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAot
+CS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQg
+YWxwaGFfbmlfc3lzY2FsbAkJCS8qIDE3MCAqLwotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQku
+cXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFs
+cGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyogMTc1ICovCi0JLnF1
+YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBo
+YV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5
+c2NhbGwJCQkvKiAxODAgKi8KLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFf
+bmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNj
+YWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDE4NSAqLwotCS5xdWFkIGFscGhhX25p
+X3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2Fs
+bAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyog
+MTkwICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwK
+LQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFk
+IGFscGhhX25pX3N5c2NhbGwJCQkvKiAxOTUgKi8KLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0J
+LnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKKwkucXVhZCBz
+eXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2Nh
+bGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAkJCS8qIDE3MCAqLworCS5xdWFkIHN5c19uaV9zeXNj
+YWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFk
+IHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAxNzUgKi8KKwkucXVh
+ZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5
+c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyog
+MTgwICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5x
+dWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlf
+c3lzY2FsbAkJCS8qIDE4NSAqLworCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25p
+X3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJ
+LnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAxOTAgKi8KKwkucXVhZCBzeXNfbmlfc3lzY2FsbAor
+CS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNf
+bmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyogMTk1ICovCisJLnF1YWQgc3lz
+X25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxs
+CiAJLyogVGhlIE9TRiBzd2Fwb24gaGFzIHR3byBleHRyYSBhcmd1bWVudHMsIGJ1dCB3ZSBpZ25v
+cmUgdGhlbS4gICovCiAJLnF1YWQgc3lzX3N3YXBvbgogCS5xdWFkIHN5c19tc2djdGwJCQkvKiAy
+MDAgKi8KQEAgLTIzMSw5MyArMjMxLDkzIEBAIHN5c19jYWxsX3RhYmxlOgogCS5xdWFkIHN5c19z
+aG1jdGwJCQkvKiAyMTAgKi8KIAkucXVhZCBzeXNfc2htZHQKIAkucXVhZCBzeXNfc2htZ2V0Ci0J
+LnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBh
+bHBoYV9uaV9zeXNjYWxsCQkJLyogMjE1ICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5x
+dWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlf
+c3lzY2FsbAkJCS8qIDIxNSAqLworCS5xdWFkIHN5c19uaV9zeXNjYWxsCiAJLnF1YWQgc3lzX21z
+eW5jCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQku
+cXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyogMjIwICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2Fs
+bAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCisJLnF1
+YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9z
+eXNjYWxsCQkJLyogMjIwICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlf
+c3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCiAJLnF1YWQgc3lzX29zZl9zdGF0CiAJLnF1
+YWQgc3lzX29zZl9sc3RhdAkJCS8qIDIyNSAqLwogCS5xdWFkIHN5c19vc2ZfZnN0YXQKIAkucXVh
+ZCBzeXNfb3NmX3N0YXRmczY0CiAJLnF1YWQgc3lzX29zZl9mc3RhdGZzNjQKLQkucXVhZCBhbHBo
+YV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDIzMCAqLwotCS5xdWFk
+IGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25p
+X3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAkJCS8qIDIzMCAqLworCS5xdWFkIHN5c19u
+aV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKIAkucXVhZCBzeXNfZ2V0cGdpZAogCS5x
+dWFkIHN5c19nZXRzaWQKIAkucXVhZCBzeXNfc2lnYWx0c3RhY2sJCQkvKiAyMzUgKi8KLQkucXVh
+ZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhh
+X25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lz
+Y2FsbAkJCS8qIDI0MCAqLworCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5
+c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1
+YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAyNDAgKi8KIAkucXVhZCBzeXNfb3NmX3N5c2luZm8KLQku
+cXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5xdWFkIHN5
+c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKIAkucXVhZCBzeXNfb3NmX3Byb3Bs
+aXN0X3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJLyogMjQ1ICovCi0JLnF1YWQg
+YWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9u
+aV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2Nh
+bGwJCQkvKiAyNTAgKi8KKwkucXVhZCBzeXNfbmlfc3lzY2FsbAkJCS8qIDI0NSAqLworCS5xdWFk
+IHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lz
+Y2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAy
+NTAgKi8KIAkucXVhZCBzeXNfb3NmX3VzbGVlcF90aHJlYWQKLQkucXVhZCBhbHBoYV9uaV9zeXNj
+YWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1
+YWQgc3lzX25pX3N5c2NhbGwKIAkucXVhZCBzeXNfc3lzZnMKLQkucXVhZCBhbHBoYV9uaV9zeXNj
+YWxsCQkJLyogMjU1ICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAyNTUgKi8KIAkucXVh
+ZCBzeXNfb3NmX2dldHN5c2luZm8KIAkucXVhZCBzeXNfb3NmX3NldHN5c2luZm8KLQkucXVhZCBh
+bHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25p
+X3N5c2NhbGwJCQkvKiAyNjAgKi8KLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxw
+aGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9z
+eXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDI2NSAqLwotCS5xdWFkIGFscGhh
+X25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lz
+Y2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCQkJ
+LyogMjcwICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2Nh
+bGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5x
+dWFkIGFscGhhX25pX3N5c2NhbGwJCQkvKiAyNzUgKi8KLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxs
+Ci0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVh
+ZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJCS8qIDI4MCAqLwot
+CS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQg
+YWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9u
+aV9zeXNjYWxsCQkJLyogMjg1ICovCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFs
+cGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlf
+c3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwJCQkvKiAyOTAgKi8KLQkucXVhZCBhbHBo
+YV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5
+c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNjYWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAkJ
+CS8qIDI5NSAqLwotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKLQkucXVhZCBhbHBoYV9uaV9zeXNj
+YWxsCi0JLnF1YWQgYWxwaGFfbmlfc3lzY2FsbAotCS5xdWFkIGFscGhhX25pX3N5c2NhbGwKKwku
+cXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25p
+X3N5c2NhbGwJCQkvKiAyNjAgKi8KKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19u
+aV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAor
+CS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyogMjY1ICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwK
+KwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lz
+X25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAkJCS8qIDI3MCAqLworCS5xdWFkIHN5
+c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2Fs
+bAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAyNzUg
+Ki8KKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQg
+c3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNj
+YWxsCQkJLyogMjgwICovCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lz
+Y2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVh
+ZCBzeXNfbmlfc3lzY2FsbAkJCS8qIDI4NSAqLworCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1
+YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9z
+eXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwJCQkvKiAyOTAgKi8KKwkucXVhZCBzeXNfbmlf
+c3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKKwku
+cXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19uaV9zeXNjYWxsCQkJLyogMjk1ICovCisJ
+LnF1YWQgc3lzX25pX3N5c2NhbGwKKwkucXVhZCBzeXNfbmlfc3lzY2FsbAorCS5xdWFkIHN5c19u
+aV9zeXNjYWxsCisJLnF1YWQgc3lzX25pX3N5c2NhbGwKIC8qIGxpbnV4LXNwZWNpZmljIHN5c3Rl
+bSBjYWxscyBzdGFydCBhdCAzMDAgKi8KIAkucXVhZCBzeXNfYmRmbHVzaAkJCS8qIDMwMCAqLwog
+CS5xdWFkIHN5c19zZXRoYWUKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5vcmcKaHR0cHM6
+Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
