@@ -1,47 +1,86 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 1/6] alpha: Move __IGNORE* entries to non uapi
-	header
-Date: Sat, 11 Aug 2018 20:28:04 +0100
-Message-ID: <20180811192804.GI6515@ZenIV.linux.org.uk>
-References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
- <1531736638-15294-2-git-send-email-firoz.khan@linaro.org>
+From: Michael Jin <mikhail.jin@gmail.com>
+Subject: Re: [PATCH v3 16/17] driver/edac: enable Hygon support to AMD64 EDAC driver
+Date: Sat, 11 Aug 2018 15:56:17 -0400
+Message-ID: <CAO6F7DkdV1p59igFY3atTCRK62KH3_J-874oQw1v6ighaHOTXA@mail.gmail.com>
+References: <cover.1533989492.git.puwen@hygon.cn> <cb1a56c95bbcc4d65a98378274ae34d826704a16.1533989493.git.puwen@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-Content-Disposition: inline
-In-Reply-To: <1531736638-15294-2-git-send-email-firoz.khan@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, ink@jurassic.park.msu.ru, deepa.kernel@gmail.com, linux-alpha@vger.kernel.org, mattst88@gmail.com, rth@twiddle.net
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cb1a56c95bbcc4d65a98378274ae34d826704a16.1533989493.git.puwen@hygon.cn>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, Mauro Carvalho Chehab <mchehab@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gTW9uLCBKdWwgMTYsIDIwMTggYXQgMDM6NTM6NTNQTSArMDUzMCwgRmlyb3ogS2hhbiB3cm90
-ZToKPiBJdCBpcyBjb3JyZWN0IHRvIGtlZXAgX19JR05PUkUqIGVudHJ5IGluIG5vbiB1YXBpIGhl
-YWRlcgo+IGFzbS91bmlzdGQuaCB3aGlsZSB1YXBpL2FzbS91bmlzdGQuaCBtdXN0IGhvbGQgaW5m
-b3JtYXRpb24KPiBvbmx5IHVzZWZ1bCBmb3IgdXNlciBzcGFjZSBhcHBsaWNhdGlvbnMuCgo+IGRp
-ZmYgLS1naXQgYS9hcmNoL2FscGhhL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmggYi9hcmNoL2Fs
-cGhhL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmgKPiBpbmRleCBlMTUzY2E2Li4zYmI2YWMxIDEw
-MDY0NAo+IC0tLSBhL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaAo+ICsrKyBi
-L2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaAo+IEBAIC00ODEsOSArNDgxLDQg
-QEAKPiAgI2RlZmluZSBfX05SX3B3cml0ZXYyCQkJNTIxCj4gICNkZWZpbmUgX19OUl9zdGF0eAkJ
-CTUyMgo+ICAKPiAtLyogQWxwaGEgZG9lc24ndCBoYXZlIHByb3RlY3Rpb24ga2V5cy4gKi8KPiAt
-I2RlZmluZSBfX0lHTk9SRV9wa2V5X21wcm90ZWN0Cj4gLSNkZWZpbmUgX19JR05PUkVfcGtleV9h
-bGxvYwo+IC0jZGVmaW5lIF9fSUdOT1JFX3BrZXlfZnJlZQo+IC0KPiAgI2VuZGlmIC8qIF9VQVBJ
-X0FMUEhBX1VOSVNURF9IICovCgpIbW0uLi4gIFRoZXJlJ3MgYWxzbwoKI2RlZmluZSBfX0lHTk9S
-RV9hbGFybQojZGVmaW5lIF9fSUdOT1JFX2NyZWF0CiNkZWZpbmUgX19JR05PUkVfZ2V0ZWdpZAoj
-ZGVmaW5lIF9fSUdOT1JFX2dldGV1aWQKI2RlZmluZSBfX0lHTk9SRV9nZXRnaWQKI2RlZmluZSBf
-X0lHTk9SRV9nZXRwaWQKI2RlZmluZSBfX0lHTk9SRV9nZXRwcGlkCiNkZWZpbmUgX19JR05PUkVf
-Z2V0dWlkCiNkZWZpbmUgX19JR05PUkVfcGF1c2UKI2RlZmluZSBfX0lHTk9SRV90aW1lCiNkZWZp
-bmUgX19JR05PUkVfdXRpbWUKI2RlZmluZSBfX0lHTk9SRV91bW91bnQyCgppbiB0aGVyZS4uLgpf
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWls
-aW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcv
-bWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+On Sat, Aug 11, 2018 at 9:30 AM, Pu Wen <puwen@hygon.cn> wrote:
+> diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
+> index 18aeabb..fb81354 100644
+> --- a/drivers/edac/amd64_edac.c
+> +++ b/drivers/edac/amd64_edac.c
+> @@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
+>
+>         scrubval = scrubrates[i].scrubval;
+>
+> -       if (pvt->fam == 0x17) {
+> +       if (pvt->fam == 0x17 || pvt->vendor == X86_VENDOR_HYGON) {
+>                 __f17h_set_scrubval(pvt, scrubval);
+
+Separating the vendor check as an "else if (pvt->vendor ==
+X86_VENDOR_HYGON)" block would make architectural changes (future
+hygon models, i.e. 19h, 20h, etc) less confusing.
+
+
+
+> +                       amd64_read_pci_cfg(pvt->F6,
+> +                               F17H_SCR_BASE_ADDR, &scrubval);
+> +                       if (scrubval & BIT(0)) {
+> +                               amd64_read_pci_cfg(pvt->F6,
+
+The new lines after "amd64_read_pci_cfg(pvt->F6," can be removed.
+
+
+
+> @@ -1051,6 +1065,16 @@ static void determine_memory_type(struct amd64_pvt *pvt)
+>                 else
+>                         pvt->dram_type = MEM_DDR4;
+>                 return;
+> +       case 0x18:
+> +               if (pvt->vendor == X86_VENDOR_HYGON) {
+
+This vendor checking is not necessary as there are no other known
+family 18h processors.
+
+
+>         switch (pvt->fam) {
+> @@ -3192,6 +3227,13 @@ static struct amd64_family_type *per_family_init(struct amd64_pvt *pvt)
+>                 pvt->ops        = &family_types[F17_CPUS].ops;
+>                 break;
+>
+> +       case 0x18:
+> +               if (pvt->vendor == X86_VENDOR_HYGON) {
+> +                       fam_type        = &family_types[HYGON_F18_CPUS];
+> +                       pvt->ops        = &family_types[HYGON_F18_CPUS].ops;
+> +                       break;
+> +               }
+
+There is a missing second 'break' statement after the "if (pvt->vendor
+== X86_VENDOR_HYGON)" block for case 0x18, see case 0x15 and case 0x16
+for comparison.
+
+
+
+> diff --git a/drivers/edac/mce_amd.c b/drivers/edac/mce_amd.c
+> index 2ab4d61..f7adc47 100644
+> +       case 0x18:
+> +               if (c->x86_vendor == X86_VENDOR_HYGON) {
+> +                       xec_mask = 0x3f;
+> +                       if (!boot_cpu_has(X86_FEATURE_SMCA)) {
+> +                               pr_warn("Decoding supported only on Scalable MCA processors.\n");
+> +                               goto err_out;
+> +                       }
+> +                       break;
+> +               }
+
+The 'break' statement could be moved outside of the "if (c->x86_vendor
+== X86_VENDOR_HYGON)" block, this is to allow case 0x18 to reach the
+'break' statement if the vendor is not X86_VENDOR_HYGON.
