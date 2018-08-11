@@ -1,78 +1,69 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v3 12/17] x86/kvm: enable Hygon support to KVM infrastructure
-Date: Sat, 11 Aug 2018 21:29:08 +0800
-Message-ID: <eacb5892319c76c05efaa9de1011a76c456c9d96.1533989493.git.puwen@hygon.cn>
+Subject: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
+Date: Sat, 11 Aug 2018 21:29:24 +0800
+Message-ID: <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
 References: <cover.1533989492.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1533989492.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, JBeulich@suse.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-Hygon Dhyana CPU has the SVM feature as AMD family 17h does.
-Add Hygon support in the KVM infrastructure.
+To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
+code path and add vendor check for Hygon along with AMD.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/include/asm/kvm_emulate.h |  4 ++++
- arch/x86/include/asm/virtext.h     |  5 +++--
- arch/x86/kvm/emulate.c             | 11 ++++++++++-
- 3 files changed, 17 insertions(+), 3 deletions(-)
+ arch/x86/xen/pmu.c | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/kvm_emulate.h b/arch/x86/include/asm/kvm_emulate.h
-index 0f82cd9..93c4bf5 100644
---- a/arch/x86/include/asm/kvm_emulate.h
-+++ b/arch/x86/include/asm/kvm_emulate.h
-@@ -364,6 +364,10 @@ struct x86_emulate_ctxt {
- #define X86EMUL_CPUID_VENDOR_AMDisbetterI_ecx 0x21726574
- #define X86EMUL_CPUID_VENDOR_AMDisbetterI_edx 0x74656273
+diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
+index 7d00d4a..1053dda 100644
+--- a/arch/x86/xen/pmu.c
++++ b/arch/x86/xen/pmu.c
+@@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
+ 			k7_counters_mirrored = 0;
+ 			break;
+ 		}
++	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
++		amd_num_counters = F10H_NUM_COUNTERS;
++		amd_counters_base = MSR_K7_PERFCTR0;
++		amd_ctrls_base = MSR_K7_EVNTSEL0;
++		amd_msr_step = 1;
++		k7_counters_mirrored = 0;
+ 	} else {
+ 		uint32_t eax, ebx, ecx, edx;
  
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_ebx 0x6f677948
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_ecx 0x656e6975
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_edx 0x6e65476e
-+
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_ebx 0x756e6547
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_ecx 0x6c65746e
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_edx 0x49656e69
-diff --git a/arch/x86/include/asm/virtext.h b/arch/x86/include/asm/virtext.h
-index 0116b2e..e05e0d3 100644
---- a/arch/x86/include/asm/virtext.h
-+++ b/arch/x86/include/asm/virtext.h
-@@ -83,9 +83,10 @@ static inline void cpu_emergency_vmxoff(void)
-  */
- static inline int cpu_has_svm(const char **msg)
+@@ -285,7 +291,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
+ 
+ bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
  {
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON) {
- 		if (msg)
--			*msg = "not amd";
-+			*msg = "not amd or hygon";
- 		return 0;
- 	}
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+ 		if (is_amd_pmu_msr(msr)) {
+ 			if (!xen_amd_pmu_emulate(msr, val, 1))
+ 				*val = native_read_msr_safe(msr, err);
+@@ -308,7 +315,8 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
+ {
+ 	uint64_t val = ((uint64_t)high << 32) | low;
  
-diff --git a/arch/x86/kvm/emulate.c b/arch/x86/kvm/emulate.c
-index 4c4f426..1ab7758 100644
---- a/arch/x86/kvm/emulate.c
-+++ b/arch/x86/kvm/emulate.c
-@@ -2711,7 +2711,16 @@ static bool em_syscall_is_enabled(struct x86_emulate_ctxt *ctxt)
- 	    edx == X86EMUL_CPUID_VENDOR_AMDisbetterI_edx)
- 		return true;
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+ 		if (is_amd_pmu_msr(msr)) {
+ 			if (!xen_amd_pmu_emulate(msr, &val, 0))
+ 				*err = native_write_msr_safe(msr, low, high);
+@@ -379,7 +387,8 @@ static unsigned long long xen_intel_read_pmc(int counter)
  
--	/* default: (not Intel, not AMD), apply Intel's stricter rules... */
-+	/* Hygon ("HygonGenuine") */
-+	if (ebx == X86EMUL_CPUID_VENDOR_HygonGenuine_ebx &&
-+	    ecx == X86EMUL_CPUID_VENDOR_HygonGenuine_ecx &&
-+	    edx == X86EMUL_CPUID_VENDOR_HygonGenuine_edx)
-+		return true;
-+
-+	/*
-+	 * default: (not Intel, not AMD, not Hygon), apply Intel's
-+	 * stricter rules...
-+	 */
- 	return false;
- }
- 
+ unsigned long long xen_read_pmc(int counter)
+ {
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		return xen_amd_read_pmc(counter);
+ 	else
+ 		return xen_intel_read_pmc(counter);
 -- 
 2.7.4
