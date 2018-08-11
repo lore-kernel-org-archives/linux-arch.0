@@ -1,147 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:40086 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727304AbeHKQCp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 11 Aug 2018 12:02:45 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v3 09/17] x86/bugs: add lfence mitigation to spectre v2 and no meltdown for Hygon
-Date: Sat, 11 Aug 2018 21:28:12 +0800
-Message-ID: <685681e672352445cd64bd28eceeaaa4ae0e8b70.1533989493.git.puwen@hygon.cn>
-In-Reply-To: <cover.1533989492.git.puwen@hygon.cn>
+Received: from userp2120.oracle.com ([156.151.31.85]:52148 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727324AbeHKRIo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 11 Aug 2018 13:08:44 -0400
+Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
 References: <cover.1533989492.git.puwen@hygon.cn>
+ <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Message-ID: <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
+Date: Sat, 11 Aug 2018 10:34:18 -0400
+MIME-Version: 1.0
+In-Reply-To: <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180811132812.PB1FtRm-GJMeG59H7puRbp0D2JaDgwHCCDtI0URgBhU@z>
+To: Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, jgross@suse.com, JBeulich@suse.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180811143418.FN1egg215Ddgtj3c2jzHZL5m3fBvFPbYeXA_BlOx5j4@z>
 
-To share codes between AMD and Hygon to mitigate Spectre V2 Retpoline
-vulnerability, rename macros SPECTRE_V2_RETPOLINE_MINIMAL_AMD to
-SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE, and SPECTRE_V2_CMD_RETPOLINE_AMD
-to SPECTRE_V2_CMD_RETPOLINE_LFENCE.
+On 08/11/2018 09:29 AM, Pu Wen wrote:
+> To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
+> code path and add vendor check for Hygon along with AMD.
+>
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/xen/pmu.c | 15 ++++++++++++---
+>  1 file changed, 12 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
+> index 7d00d4a..1053dda 100644
+> --- a/arch/x86/xen/pmu.c
+> +++ b/arch/x86/xen/pmu.c
+> @@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
+>  			k7_counters_mirrored = 0;
+>  			break;
+>  		}
+> +	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+> +		amd_num_counters = F10H_NUM_COUNTERS;
 
-As Hygon processors are not affected by meltdown vulnerability as AMD's,
-so add exception in array cpu_no_meltdown[] for Hygon.
+I haven't looked in details at Zen's PMU but the PMC section in the spec
+starts with
+  "There are six core performance events counters per thread..."
 
-Signed-off-by: Pu Wen <puwen@hygon.cn>
----
- arch/x86/include/asm/nospec-branch.h |  4 ++--
- arch/x86/kernel/cpu/bugs.c           | 28 +++++++++++++++-------------
- arch/x86/kernel/cpu/common.c         |  1 +
- 3 files changed, 18 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/include/asm/nospec-branch.h b/arch/x86/include/asm/nospec-branch.h
-index f6f6c63..aad6b9c 100644
---- a/arch/x86/include/asm/nospec-branch.h
-+++ b/arch/x86/include/asm/nospec-branch.h
-@@ -211,9 +211,9 @@
- enum spectre_v2_mitigation {
- 	SPECTRE_V2_NONE,
- 	SPECTRE_V2_RETPOLINE_MINIMAL,
--	SPECTRE_V2_RETPOLINE_MINIMAL_AMD,
-+	SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE,
- 	SPECTRE_V2_RETPOLINE_GENERIC,
--	SPECTRE_V2_RETPOLINE_AMD,
-+	SPECTRE_V2_RETPOLINE_LFENCE,
- 	SPECTRE_V2_IBRS,
- };
- 
-diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-index 5c0ea39..d477aa1 100644
---- a/arch/x86/kernel/cpu/bugs.c
-+++ b/arch/x86/kernel/cpu/bugs.c
-@@ -121,15 +121,15 @@ enum spectre_v2_mitigation_cmd {
- 	SPECTRE_V2_CMD_FORCE,
- 	SPECTRE_V2_CMD_RETPOLINE,
- 	SPECTRE_V2_CMD_RETPOLINE_GENERIC,
--	SPECTRE_V2_CMD_RETPOLINE_AMD,
-+	SPECTRE_V2_CMD_RETPOLINE_LFENCE,
- };
- 
- static const char *spectre_v2_strings[] = {
- 	[SPECTRE_V2_NONE]			= "Vulnerable",
- 	[SPECTRE_V2_RETPOLINE_MINIMAL]		= "Vulnerable: Minimal generic ASM retpoline",
--	[SPECTRE_V2_RETPOLINE_MINIMAL_AMD]	= "Vulnerable: Minimal AMD ASM retpoline",
-+	[SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE]	= "Vulnerable: Minimal LFENCE ASM retpoline",
- 	[SPECTRE_V2_RETPOLINE_GENERIC]		= "Mitigation: Full generic retpoline",
--	[SPECTRE_V2_RETPOLINE_AMD]		= "Mitigation: Full AMD retpoline",
-+	[SPECTRE_V2_RETPOLINE_LFENCE]		= "Mitigation: Full LFENCE retpoline",
- };
- 
- #undef pr_fmt
-@@ -260,7 +260,7 @@ static const struct {
- 	{ "off",               SPECTRE_V2_CMD_NONE,              false },
- 	{ "on",                SPECTRE_V2_CMD_FORCE,             true },
- 	{ "retpoline",         SPECTRE_V2_CMD_RETPOLINE,         false },
--	{ "retpoline,amd",     SPECTRE_V2_CMD_RETPOLINE_AMD,     false },
-+	{ "retpoline,lfence",     SPECTRE_V2_CMD_RETPOLINE_LFENCE,     false },
- 	{ "retpoline,generic", SPECTRE_V2_CMD_RETPOLINE_GENERIC, false },
- 	{ "auto",              SPECTRE_V2_CMD_AUTO,              false },
- };
-@@ -292,16 +292,17 @@ static enum spectre_v2_mitigation_cmd __init spectre_v2_parse_cmdline(void)
- 	}
- 
- 	if ((cmd == SPECTRE_V2_CMD_RETPOLINE ||
--	     cmd == SPECTRE_V2_CMD_RETPOLINE_AMD ||
-+	     cmd == SPECTRE_V2_CMD_RETPOLINE_LFENCE ||
- 	     cmd == SPECTRE_V2_CMD_RETPOLINE_GENERIC) &&
- 	    !IS_ENABLED(CONFIG_RETPOLINE)) {
- 		pr_err("%s selected but not compiled in. Switching to AUTO select\n", mitigation_options[i].option);
- 		return SPECTRE_V2_CMD_AUTO;
- 	}
- 
--	if (cmd == SPECTRE_V2_CMD_RETPOLINE_AMD &&
-+	if (cmd == SPECTRE_V2_CMD_RETPOLINE_LFENCE &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON &&
- 	    boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
--		pr_err("retpoline,amd selected but CPU is not AMD. Switching to AUTO select\n");
-+		pr_err("retpoline,lfence selected but CPU is not AMD or Hygon. Switching to AUTO select\n");
- 		return SPECTRE_V2_CMD_AUTO;
- 	}
- 
-@@ -352,9 +353,9 @@ static void __init spectre_v2_select_mitigation(void)
- 		if (IS_ENABLED(CONFIG_RETPOLINE))
- 			goto retpoline_auto;
- 		break;
--	case SPECTRE_V2_CMD_RETPOLINE_AMD:
-+	case SPECTRE_V2_CMD_RETPOLINE_LFENCE:
- 		if (IS_ENABLED(CONFIG_RETPOLINE))
--			goto retpoline_amd;
-+			goto retpoline_lfence;
- 		break;
- 	case SPECTRE_V2_CMD_RETPOLINE_GENERIC:
- 		if (IS_ENABLED(CONFIG_RETPOLINE))
-@@ -369,14 +370,15 @@ static void __init spectre_v2_select_mitigation(void)
- 	return;
- 
- retpoline_auto:
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
--	retpoline_amd:
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+	retpoline_lfence:
- 		if (!boot_cpu_has(X86_FEATURE_LFENCE_RDTSC)) {
- 			pr_err("Spectre mitigation: LFENCE not serializing, switching to generic retpoline\n");
- 			goto retpoline_generic;
- 		}
--		mode = retp_compiler() ? SPECTRE_V2_RETPOLINE_AMD :
--					 SPECTRE_V2_RETPOLINE_MINIMAL_AMD;
-+		mode = retp_compiler() ? SPECTRE_V2_RETPOLINE_LFENCE :
-+					 SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE;
- 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE_AMD);
- 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE);
- 	} else {
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index eb4cb3e..06b3168 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -968,6 +968,7 @@ static const __initconst struct x86_cpu_id cpu_no_speculation[] = {
- 
- static const __initconst struct x86_cpu_id cpu_no_meltdown[] = {
- 	{ X86_VENDOR_AMD },
-+	{ X86_VENDOR_HYGON },
- 	{}
- };
- 
--- 
-2.7.4
+
+> +		amd_counters_base = MSR_K7_PERFCTR0;
+> +		amd_ctrls_base = MSR_K7_EVNTSEL0;
+> +		amd_msr_step = 1;
+> +		k7_counters_mirrored = 0;
+>  	} else {
+>  		uint32_t eax, ebx, ecx, edx;
+>  
+> @@ -285,7 +291,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
+>  
+>  bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
+>  {
+> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
+> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+
+
+'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
+
+
+-boris
+
+>  		if (is_amd_pmu_msr(msr)) {
+>  			if (!xen_amd_pmu_emulate(msr, val, 1))
+>  				*val = native_read_msr_safe(msr, err);
+> @@ -308,7 +315,8 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
+>  {
+>  	uint64_t val = ((uint64_t)high << 32) | low;
+>  
+> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
+> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+>  		if (is_amd_pmu_msr(msr)) {
+>  			if (!xen_amd_pmu_emulate(msr, &val, 0))
+>  				*err = native_write_msr_safe(msr, low, high);
+> @@ -379,7 +387,8 @@ static unsigned long long xen_intel_read_pmc(int counter)
+>  
+>  unsigned long long xen_read_pmc(int counter)
+>  {
+> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+>  		return xen_amd_read_pmc(counter);
+>  	else
+>  		return xen_intel_read_pmc(counter);
