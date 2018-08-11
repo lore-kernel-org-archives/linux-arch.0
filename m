@@ -1,136 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:40980 "EHLO cstnet.cn"
+Received: from smtp17.cstnet.cn ([159.226.251.17]:40086 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727304AbeHKQDV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 11 Aug 2018 12:03:21 -0400
+        id S1727304AbeHKQCp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 11 Aug 2018 12:02:45 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v3 11/17] x86/mce: enable Hygon support to MCE infrastructure
-Date: Sat, 11 Aug 2018 21:28:49 +0800
-Message-ID: <d9ade02d30a6b6357fc32254cfa1c6bf8232a019.1533989493.git.puwen@hygon.cn>
+Subject: [PATCH v3 09/17] x86/bugs: add lfence mitigation to spectre v2 and no meltdown for Hygon
+Date: Sat, 11 Aug 2018 21:28:12 +0800
+Message-ID: <685681e672352445cd64bd28eceeaaa4ae0e8b70.1533989493.git.puwen@hygon.cn>
 In-Reply-To: <cover.1533989492.git.puwen@hygon.cn>
 References: <cover.1533989492.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, tony.luck@intel.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180811132849.HjEJ6EoyBA8s8ZrYhNzW4kCaUL9CquFsrqUrYLfU8TM@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180811132812.PB1FtRm-GJMeG59H7puRbp0D2JaDgwHCCDtI0URgBhU@z>
 
-Hygon machine check arch is similar to AMD family 17h. To enable the MCE
-infrastructure support, add CPU vendor check for Hygon to share the code
-path of AMD.
+To share codes between AMD and Hygon to mitigate Spectre V2 Retpoline
+vulnerability, rename macros SPECTRE_V2_RETPOLINE_MINIMAL_AMD to
+SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE, and SPECTRE_V2_CMD_RETPOLINE_AMD
+to SPECTRE_V2_CMD_RETPOLINE_LFENCE.
 
-Add hygon mce init function mce_hygon_feature_init() to minimize further
-maintenance effort.
+As Hygon processors are not affected by meltdown vulnerability as AMD's,
+so add exception in array cpu_no_meltdown[] for Hygon.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/include/asm/mce.h                |  5 +++++
- arch/x86/kernel/cpu/mcheck/mce-severity.c |  3 ++-
- arch/x86/kernel/cpu/mcheck/mce.c          | 21 +++++++++++++++------
- 3 files changed, 22 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/nospec-branch.h |  4 ++--
+ arch/x86/kernel/cpu/bugs.c           | 28 +++++++++++++++-------------
+ arch/x86/kernel/cpu/common.c         |  1 +
+ 3 files changed, 18 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/include/asm/mce.h b/arch/x86/include/asm/mce.h
-index 8c7b3e5..0af3b0e 100644
---- a/arch/x86/include/asm/mce.h
-+++ b/arch/x86/include/asm/mce.h
-@@ -213,6 +213,11 @@ static inline void mce_amd_feature_init(struct cpuinfo_x86 *c) { }
- static inline int umc_normaddr_to_sysaddr(u64 norm_addr, u16 nid, u8 umc, u64 *sys_addr) { return -EINVAL; };
- #endif
+diff --git a/arch/x86/include/asm/nospec-branch.h b/arch/x86/include/asm/nospec-branch.h
+index f6f6c63..aad6b9c 100644
+--- a/arch/x86/include/asm/nospec-branch.h
++++ b/arch/x86/include/asm/nospec-branch.h
+@@ -211,9 +211,9 @@
+ enum spectre_v2_mitigation {
+ 	SPECTRE_V2_NONE,
+ 	SPECTRE_V2_RETPOLINE_MINIMAL,
+-	SPECTRE_V2_RETPOLINE_MINIMAL_AMD,
++	SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE,
+ 	SPECTRE_V2_RETPOLINE_GENERIC,
+-	SPECTRE_V2_RETPOLINE_AMD,
++	SPECTRE_V2_RETPOLINE_LFENCE,
+ 	SPECTRE_V2_IBRS,
+ };
  
-+static inline void mce_hygon_feature_init(struct cpuinfo_x86 *c)
-+{
-+	return mce_amd_feature_init(c);
-+}
-+
- int mce_available(struct cpuinfo_x86 *c);
- bool mce_is_memory_error(struct mce *m);
+diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+index 5c0ea39..d477aa1 100644
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -121,15 +121,15 @@ enum spectre_v2_mitigation_cmd {
+ 	SPECTRE_V2_CMD_FORCE,
+ 	SPECTRE_V2_CMD_RETPOLINE,
+ 	SPECTRE_V2_CMD_RETPOLINE_GENERIC,
+-	SPECTRE_V2_CMD_RETPOLINE_AMD,
++	SPECTRE_V2_CMD_RETPOLINE_LFENCE,
+ };
  
-diff --git a/arch/x86/kernel/cpu/mcheck/mce-severity.c b/arch/x86/kernel/cpu/mcheck/mce-severity.c
-index f34d89c..44396d5 100644
---- a/arch/x86/kernel/cpu/mcheck/mce-severity.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce-severity.c
-@@ -336,7 +336,8 @@ int (*mce_severity)(struct mce *m, int tolerant, char **msg, bool is_excp) =
+ static const char *spectre_v2_strings[] = {
+ 	[SPECTRE_V2_NONE]			= "Vulnerable",
+ 	[SPECTRE_V2_RETPOLINE_MINIMAL]		= "Vulnerable: Minimal generic ASM retpoline",
+-	[SPECTRE_V2_RETPOLINE_MINIMAL_AMD]	= "Vulnerable: Minimal AMD ASM retpoline",
++	[SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE]	= "Vulnerable: Minimal LFENCE ASM retpoline",
+ 	[SPECTRE_V2_RETPOLINE_GENERIC]		= "Mitigation: Full generic retpoline",
+-	[SPECTRE_V2_RETPOLINE_AMD]		= "Mitigation: Full AMD retpoline",
++	[SPECTRE_V2_RETPOLINE_LFENCE]		= "Mitigation: Full LFENCE retpoline",
+ };
  
- void __init mcheck_vendor_init_severity(void)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+ #undef pr_fmt
+@@ -260,7 +260,7 @@ static const struct {
+ 	{ "off",               SPECTRE_V2_CMD_NONE,              false },
+ 	{ "on",                SPECTRE_V2_CMD_FORCE,             true },
+ 	{ "retpoline",         SPECTRE_V2_CMD_RETPOLINE,         false },
+-	{ "retpoline,amd",     SPECTRE_V2_CMD_RETPOLINE_AMD,     false },
++	{ "retpoline,lfence",     SPECTRE_V2_CMD_RETPOLINE_LFENCE,     false },
+ 	{ "retpoline,generic", SPECTRE_V2_CMD_RETPOLINE_GENERIC, false },
+ 	{ "auto",              SPECTRE_V2_CMD_AUTO,              false },
+ };
+@@ -292,16 +292,17 @@ static enum spectre_v2_mitigation_cmd __init spectre_v2_parse_cmdline(void)
+ 	}
+ 
+ 	if ((cmd == SPECTRE_V2_CMD_RETPOLINE ||
+-	     cmd == SPECTRE_V2_CMD_RETPOLINE_AMD ||
++	     cmd == SPECTRE_V2_CMD_RETPOLINE_LFENCE ||
+ 	     cmd == SPECTRE_V2_CMD_RETPOLINE_GENERIC) &&
+ 	    !IS_ENABLED(CONFIG_RETPOLINE)) {
+ 		pr_err("%s selected but not compiled in. Switching to AUTO select\n", mitigation_options[i].option);
+ 		return SPECTRE_V2_CMD_AUTO;
+ 	}
+ 
+-	if (cmd == SPECTRE_V2_CMD_RETPOLINE_AMD &&
++	if (cmd == SPECTRE_V2_CMD_RETPOLINE_LFENCE &&
++	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON &&
+ 	    boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
+-		pr_err("retpoline,amd selected but CPU is not AMD. Switching to AUTO select\n");
++		pr_err("retpoline,lfence selected but CPU is not AMD or Hygon. Switching to AUTO select\n");
+ 		return SPECTRE_V2_CMD_AUTO;
+ 	}
+ 
+@@ -352,9 +353,9 @@ static void __init spectre_v2_select_mitigation(void)
+ 		if (IS_ENABLED(CONFIG_RETPOLINE))
+ 			goto retpoline_auto;
+ 		break;
+-	case SPECTRE_V2_CMD_RETPOLINE_AMD:
++	case SPECTRE_V2_CMD_RETPOLINE_LFENCE:
+ 		if (IS_ENABLED(CONFIG_RETPOLINE))
+-			goto retpoline_amd;
++			goto retpoline_lfence;
+ 		break;
+ 	case SPECTRE_V2_CMD_RETPOLINE_GENERIC:
+ 		if (IS_ENABLED(CONFIG_RETPOLINE))
+@@ -369,14 +370,15 @@ static void __init spectre_v2_select_mitigation(void)
+ 	return;
+ 
+ retpoline_auto:
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
+-	retpoline_amd:
 +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		mce_severity = mce_severity_amd;
- }
- 
-diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
-index 8c50754..65d13f8 100644
---- a/arch/x86/kernel/cpu/mcheck/mce.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce.c
-@@ -274,7 +274,8 @@ static void print_mce(struct mce *m)
- {
- 	__print_mce(m);
- 
--	if (m->cpuvendor != X86_VENDOR_AMD)
-+	if (m->cpuvendor != X86_VENDOR_AMD &&
-+	    m->cpuvendor != X86_VENDOR_HYGON)
- 		pr_emerg_ratelimited(HW_ERR "Run the above through 'mcelog --ascii'\n");
- }
- 
-@@ -512,9 +513,9 @@ static int mce_usable_address(struct mce *m)
- 
- bool mce_is_memory_error(struct mce *m)
- {
--	if (m->cpuvendor == X86_VENDOR_AMD) {
-+	if (m->cpuvendor == X86_VENDOR_AMD ||
-+	    m->cpuvendor == X86_VENDOR_HYGON) {
- 		return amd_mce_is_memory_error(m);
--
- 	} else if (m->cpuvendor == X86_VENDOR_INTEL) {
- 		/*
- 		 * Intel SDM Volume 3B - 15.9.2 Compound Error Codes
-@@ -540,7 +541,9 @@ EXPORT_SYMBOL_GPL(mce_is_memory_error);
- 
- static bool mce_is_correctable(struct mce *m)
- {
--	if (m->cpuvendor == X86_VENDOR_AMD && m->status & MCI_STATUS_DEFERRED)
-+	if ((m->cpuvendor == X86_VENDOR_AMD ||
-+	     m->cpuvendor == X86_VENDOR_HYGON) &&
-+	    (m->status & MCI_STATUS_DEFERRED))
- 		return false;
- 
- 	if (m->status & MCI_STATUS_UC)
-@@ -1725,7 +1728,8 @@ static int __mcheck_cpu_ancient_init(struct cpuinfo_x86 *c)
-  */
- static void __mcheck_cpu_init_early(struct cpuinfo_x86 *c)
- {
--	if (c->x86_vendor == X86_VENDOR_AMD) {
-+	if (c->x86_vendor == X86_VENDOR_AMD ||
-+	    c->x86_vendor == X86_VENDOR_HYGON) {
- 		mce_flags.overflow_recov = !!cpu_has(c, X86_FEATURE_OVERFLOW_RECOV);
- 		mce_flags.succor	 = !!cpu_has(c, X86_FEATURE_SUCCOR);
- 		mce_flags.smca		 = !!cpu_has(c, X86_FEATURE_SMCA);
-@@ -1766,6 +1770,9 @@ static void __mcheck_cpu_init_vendor(struct cpuinfo_x86 *c)
- 		mce_amd_feature_init(c);
- 		break;
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
++	retpoline_lfence:
+ 		if (!boot_cpu_has(X86_FEATURE_LFENCE_RDTSC)) {
+ 			pr_err("Spectre mitigation: LFENCE not serializing, switching to generic retpoline\n");
+ 			goto retpoline_generic;
  		}
-+	case X86_VENDOR_HYGON:
-+		mce_hygon_feature_init(c);
-+		break;
- 	case X86_VENDOR_CENTAUR:
- 		mce_centaur_feature_init(c);
- 		break;
-@@ -1991,12 +1998,14 @@ static void mce_disable_error_reporting(void)
- static void vendor_disable_error_reporting(void)
- {
- 	/*
--	 * Don't clear on Intel or AMD CPUs. Some of these MSRs are socket-wide.
-+	 * Don't clear on Intel or AMD or Hygon CPUs. Some of these MSRs
-+	 * are socket-wide.
- 	 * Disabling them for just a single offlined CPU is bad, since it will
- 	 * inhibit reporting for all shared resources on the socket like the
- 	 * last level cache (LLC), the integrated memory controller (iMC), etc.
- 	 */
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON ||
- 	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
- 		return;
+-		mode = retp_compiler() ? SPECTRE_V2_RETPOLINE_AMD :
+-					 SPECTRE_V2_RETPOLINE_MINIMAL_AMD;
++		mode = retp_compiler() ? SPECTRE_V2_RETPOLINE_LFENCE :
++					 SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE;
+ 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE_AMD);
+ 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE);
+ 	} else {
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index eb4cb3e..06b3168 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -968,6 +968,7 @@ static const __initconst struct x86_cpu_id cpu_no_speculation[] = {
+ 
+ static const __initconst struct x86_cpu_id cpu_no_meltdown[] = {
+ 	{ X86_VENDOR_AMD },
++	{ X86_VENDOR_HYGON },
+ 	{}
+ };
  
 -- 
 2.7.4
