@@ -1,74 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:42043 "EHLO cstnet.cn"
+Received: from smtp17.cstnet.cn ([159.226.251.17]:43372 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727325AbeHKQEC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 11 Aug 2018 12:04:02 -0400
+        id S1727280AbeHKQFL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 11 Aug 2018 12:05:11 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
-Date: Sat, 11 Aug 2018 21:29:24 +0800
-Message-ID: <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+Subject: [PATCH v3 17/17] tools/cpupower: enable Hygon support to cpupower tool
+Date: Sat, 11 Aug 2018 21:30:26 +0800
+Message-ID: <cf9a584f4ef3c5c693470c33f1021d73307aa404.1533989493.git.puwen@hygon.cn>
 In-Reply-To: <cover.1533989492.git.puwen@hygon.cn>
 References: <cover.1533989492.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, JBeulich@suse.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180811132924.ck60YxSEUvEge4SrFgd7kWACa7jhLZdqit6TiLHD0H8@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, trenn@suse.com, shuah@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180811133026.AHGBZm-AXLYcuXM6HGWQapd1EwsTYqTGXFSwffqajt4@z>
 
-To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
-code path and add vendor check for Hygon along with AMD.
+Tool cpupower is useful to get CPU frequency information and monitor
+power stats on Hygon platforms. So enable platform support to cpupower
+for Hygon Dhyana Family 18h processors by checking vendor ID and vendor
+string.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/xen/pmu.c | 15 ++++++++++++---
- 1 file changed, 12 insertions(+), 3 deletions(-)
+ tools/power/cpupower/utils/cpufreq-info.c               | 6 ++++--
+ tools/power/cpupower/utils/helpers/amd.c                | 4 ++--
+ tools/power/cpupower/utils/helpers/cpuid.c              | 8 +++++---
+ tools/power/cpupower/utils/helpers/helpers.h            | 2 +-
+ tools/power/cpupower/utils/helpers/misc.c               | 3 ++-
+ tools/power/cpupower/utils/idle_monitor/mperf_monitor.c | 3 ++-
+ 6 files changed, 16 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
-index 7d00d4a..1053dda 100644
---- a/arch/x86/xen/pmu.c
-+++ b/arch/x86/xen/pmu.c
-@@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
- 			k7_counters_mirrored = 0;
- 			break;
- 		}
-+	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+		amd_num_counters = F10H_NUM_COUNTERS;
-+		amd_counters_base = MSR_K7_PERFCTR0;
-+		amd_ctrls_base = MSR_K7_EVNTSEL0;
-+		amd_msr_step = 1;
-+		k7_counters_mirrored = 0;
- 	} else {
- 		uint32_t eax, ebx, ecx, edx;
+diff --git a/tools/power/cpupower/utils/cpufreq-info.c b/tools/power/cpupower/utils/cpufreq-info.c
+index df43cd4..56e54ea 100644
+--- a/tools/power/cpupower/utils/cpufreq-info.c
++++ b/tools/power/cpupower/utils/cpufreq-info.c
+@@ -170,6 +170,7 @@ static int get_boost_mode(unsigned int cpu)
+ 	unsigned long pstates[MAX_HW_PSTATES] = {0,};
  
-@@ -285,7 +291,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
+ 	if (cpupower_cpu_info.vendor != X86_VENDOR_AMD &&
++	    cpupower_cpu_info.vendor != X86_VENDOR_HYGON &&
+ 	    cpupower_cpu_info.vendor != X86_VENDOR_INTEL)
+ 		return 0;
  
- bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, val, 1))
- 				*val = native_read_msr_safe(msr, err);
-@@ -308,7 +315,8 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
- {
- 	uint64_t val = ((uint64_t)high << 32) | low;
+@@ -190,8 +191,9 @@ static int get_boost_mode(unsigned int cpu)
+ 	printf(_("    Supported: %s\n"), support ? _("yes") : _("no"));
+ 	printf(_("    Active: %s\n"), active ? _("yes") : _("no"));
  
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, &val, 0))
- 				*err = native_write_msr_safe(msr, low, high);
-@@ -379,7 +387,8 @@ static unsigned long long xen_intel_read_pmc(int counter)
+-	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
+-	    cpupower_cpu_info.family >= 0x10) {
++	if ((cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
++	     cpupower_cpu_info.family >= 0x10) ||
++	     cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
+ 		ret = decode_pstates(cpu, cpupower_cpu_info.family, b_states,
+ 				     pstates, &pstate_no);
+ 		if (ret)
+diff --git a/tools/power/cpupower/utils/helpers/amd.c b/tools/power/cpupower/utils/helpers/amd.c
+index bb41cdd..cf1197f 100644
+--- a/tools/power/cpupower/utils/helpers/amd.c
++++ b/tools/power/cpupower/utils/helpers/amd.c
+@@ -45,7 +45,7 @@ static int get_did(int family, union msr_pstate pstate)
  
- unsigned long long xen_read_pmc(int counter)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		return xen_amd_read_pmc(counter);
+ 	if (family == 0x12)
+ 		t = pstate.val & 0xf;
+-	else if (family == 0x17)
++	else if (family == 0x17 || cpupower_cpu_info.vendor == X86_VENDOR_HYGON)
+ 		t = pstate.fam17h_bits.did;
  	else
- 		return xen_intel_read_pmc(counter);
+ 		t = pstate.bits.did;
+@@ -59,7 +59,7 @@ static int get_cof(int family, union msr_pstate pstate)
+ 	int fid, did, cof;
+ 
+ 	did = get_did(family, pstate);
+-	if (family == 0x17) {
++	if (family == 0x17 || cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
+ 		fid = pstate.fam17h_bits.fid;
+ 		cof = 200 * fid / did;
+ 	} else {
+diff --git a/tools/power/cpupower/utils/helpers/cpuid.c b/tools/power/cpupower/utils/helpers/cpuid.c
+index 732b0b4..5cc39d4 100644
+--- a/tools/power/cpupower/utils/helpers/cpuid.c
++++ b/tools/power/cpupower/utils/helpers/cpuid.c
+@@ -8,7 +8,7 @@
+ #include "helpers/helpers.h"
+ 
+ static const char *cpu_vendor_table[X86_VENDOR_MAX] = {
+-	"Unknown", "GenuineIntel", "AuthenticAMD",
++	"Unknown", "GenuineIntel", "AuthenticAMD", "HygonGenuine",
+ };
+ 
+ #if defined(__i386__) || defined(__x86_64__)
+@@ -109,6 +109,7 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
+ 	fclose(fp);
+ 	/* Get some useful CPU capabilities from cpuid */
+ 	if (cpu_info->vendor != X86_VENDOR_AMD &&
++	    cpu_info->vendor != X86_VENDOR_HYGON &&
+ 	    cpu_info->vendor != X86_VENDOR_INTEL)
+ 		return ret;
+ 
+@@ -124,8 +125,9 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
+ 	if (cpuid_level >= 6 && (cpuid_ecx(6) & 0x1))
+ 		cpu_info->caps |= CPUPOWER_CAP_APERF;
+ 
+-	/* AMD Boost state enable/disable register */
+-	if (cpu_info->vendor == X86_VENDOR_AMD) {
++	/* AMD or Hygon Boost state enable/disable register */
++	if (cpu_info->vendor == X86_VENDOR_AMD ||
++	    cpu_info->vendor == X86_VENDOR_HYGON) {
+ 		if (ext_cpuid_level >= 0x80000007 &&
+ 		    (cpuid_edx(0x80000007) & (1 << 9)))
+ 			cpu_info->caps |= CPUPOWER_CAP_AMD_CBP;
+diff --git a/tools/power/cpupower/utils/helpers/helpers.h b/tools/power/cpupower/utils/helpers/helpers.h
+index 41da392..9021396 100644
+--- a/tools/power/cpupower/utils/helpers/helpers.h
++++ b/tools/power/cpupower/utils/helpers/helpers.h
+@@ -61,7 +61,7 @@ extern int be_verbose;
+ 
+ /* cpuid and cpuinfo helpers  **************************/
+ enum cpupower_cpu_vendor {X86_VENDOR_UNKNOWN = 0, X86_VENDOR_INTEL,
+-			  X86_VENDOR_AMD, X86_VENDOR_MAX};
++			  X86_VENDOR_AMD, X86_VENDOR_HYGON, X86_VENDOR_MAX};
+ 
+ #define CPUPOWER_CAP_INV_TSC		0x00000001
+ #define CPUPOWER_CAP_APERF		0x00000002
+diff --git a/tools/power/cpupower/utils/helpers/misc.c b/tools/power/cpupower/utils/helpers/misc.c
+index 80fdf55..3cf170d 100644
+--- a/tools/power/cpupower/utils/helpers/misc.c
++++ b/tools/power/cpupower/utils/helpers/misc.c
+@@ -26,7 +26,8 @@ int cpufreq_has_boost_support(unsigned int cpu, int *support, int *active,
+ 		 * has Hardware determined variable increments instead.
+ 		 */
+ 
+-		if (cpu_info.family == 0x17) {
++		if (cpu_info.family == 0x17 ||
++		    cpu_info.vendor == X86_VENDOR_HYGON) {
+ 			if (!read_msr(cpu, MSR_AMD_HWCR, &val)) {
+ 				if (!(val & CPUPOWER_AMD_CPBDIS))
+ 					*active = 1;
+diff --git a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
+index d7c2a6d..f2a7e9c 100644
+--- a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
++++ b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
+@@ -241,7 +241,8 @@ static int init_maxfreq_mode(void)
+ 	if (!(cpupower_cpu_info.caps & CPUPOWER_CAP_INV_TSC))
+ 		goto use_sysfs;
+ 
+-	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD) {
++	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD ||
++	    cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
+ 		/* MSR_AMD_HWCR tells us whether TSC runs at P0/mperf
+ 		 * freq.
+ 		 * A test whether hwcr is accessable/available would be:
 -- 
 2.7.4
