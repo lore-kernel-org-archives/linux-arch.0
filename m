@@ -1,87 +1,103 @@
-From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
-Date: Sat, 11 Aug 2018 10:34:18 -0400
-Message-ID: <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
-References: <cover.1533989492.git.puwen@hygon.cn>
- <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 3/6] alpha: Unify the not-implemented system call entry
+ name
+Date: Sat, 11 Aug 2018 16:07:31 +0100
+Message-ID: <20180811150731.GG6515@ZenIV.linux.org.uk>
+References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
+ <1531736638-15294-4-git-send-email-firoz.khan@linaro.org>
+ <20180811000455.GC6515@ZenIV.linux.org.uk>
+ <98937991-cefa-b7f3-11c3-12727b3159b1@twiddle.net>
+ <20180811024553.GF6515@ZenIV.linux.org.uk>
+ <d223ad23-04ae-408f-2a73-d5fa641ad725@twiddle.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <d223ad23-04ae-408f-2a73-d5fa641ad725@twiddle.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, jgross@suse.com, JBeulich@suse.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
+To: Richard Henderson <rth@twiddle.net>
+Cc: Firoz Khan <firoz.khan@linaro.org>, linux-alpha@vger.kernel.org, ink@jurassic.park.msu.ru, mattst88@gmail.com, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 08/11/2018 09:29 AM, Pu Wen wrote:
-> To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
-> code path and add vendor check for Hygon along with AMD.
->
-> Signed-off-by: Pu Wen <puwen@hygon.cn>
-> ---
->  arch/x86/xen/pmu.c | 15 ++++++++++++---
->  1 file changed, 12 insertions(+), 3 deletions(-)
->
-> diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
-> index 7d00d4a..1053dda 100644
-> --- a/arch/x86/xen/pmu.c
-> +++ b/arch/x86/xen/pmu.c
-> @@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
->  			k7_counters_mirrored = 0;
->  			break;
->  		}
-> +	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-> +		amd_num_counters = F10H_NUM_COUNTERS;
+On Fri, Aug 10, 2018 at 09:10:04PM -0700, Richard Henderson wrote:
+> On 08/10/2018 07:45 PM, Al Viro wrote:
+> > BTW, seeing that it's your code - why was unop used in
+> > alpha_ni_syscall?  I don't remember the rules re pipeline
+> > stalls; is it that some earlier variants prefer unop to
+> > nop in such places?  It's not that microoptimizing that
+> > one makes any difference, but just out of curiosity -
+> > would something like
+> > 	lda     $0, -ENOSYS
+> > 	stq     $sp, 0($sp)	/* sp != 0 */
+> > 	ret
+> > do just as well there?
+> 
+> Oh that.  Well, unop is a "load" and pairs with everything
+> on all cpus, where nop is an integer and doesn't always
+> pair.  So I got into the habit of using unop for everything.
+> 
+> The extra nop was so that lda + unop // stq + ret paired up
+> in in two cycles as opposed to lda /stall/ stq // ret in
+> three cycles on ev4+ev5.  ev6 didn't care.  FWIW.
 
-I haven't looked in details at Zen's PMU but the PMC section in the spec
-starts with
-  "There are six core performance events counters per thread..."
+BTW, looking through old patches around entry.S, are you OK with this
+one?  Same kind of macro as that for fork/vfork/clone glue...
 
-
-
-> +		amd_counters_base = MSR_K7_PERFCTR0;
-> +		amd_ctrls_base = MSR_K7_EVNTSEL0;
-> +		amd_msr_step = 1;
-> +		k7_counters_mirrored = 0;
->  	} else {
->  		uint32_t eax, ebx, ecx, edx;
->  
-> @@ -285,7 +291,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
->  
->  bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
->  {
-> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-
-
-'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
-
-
--boris
-
->  		if (is_amd_pmu_msr(msr)) {
->  			if (!xen_amd_pmu_emulate(msr, val, 1))
->  				*val = native_read_msr_safe(msr, err);
-> @@ -308,7 +315,8 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
->  {
->  	uint64_t val = ((uint64_t)high << 32) | low;
->  
-> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
->  		if (is_amd_pmu_msr(msr)) {
->  			if (!xen_amd_pmu_emulate(msr, &val, 0))
->  				*err = native_write_msr_safe(msr, low, high);
-> @@ -379,7 +387,8 @@ static unsigned long long xen_intel_read_pmc(int counter)
->  
->  unsigned long long xen_read_pmc(int counter)
->  {
-> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
->  		return xen_amd_read_pmc(counter);
->  	else
->  		return xen_intel_read_pmc(counter);
+diff --git a/arch/alpha/kernel/entry.S b/arch/alpha/kernel/entry.S
+index c64806a2daf5..828d641b4410 100644
+--- a/arch/alpha/kernel/entry.S
++++ b/arch/alpha/kernel/entry.S
+@@ -791,7 +791,7 @@ ret_from_kernel_thread:
+ 
+ /*
+  * Special system calls.  Most of these are special in that they either
+- * have to play switch_stack games or in some way use the pt_regs struct.
++ * have to play switch_stack games.
+  */
+ 
+ .macro	fork_like name
+@@ -812,35 +812,25 @@ fork_like fork
+ fork_like vfork
+ fork_like clone
+ 
++.macro	sigreturn_like name
+ 	.align	4
+-	.globl	sys_sigreturn
+-	.ent	sys_sigreturn
+-sys_sigreturn:
++	.globl	sys_\name
++	.ent	sys_\name
++sys_\name:
+ 	.prologue 0
+ 	lda	$9, ret_from_straced
+ 	cmpult	$26, $9, $9
+ 	lda	$sp, -SWITCH_STACK_SIZE($sp)
+-	jsr	$26, do_sigreturn
++	jsr	$26, do_\name
+ 	bne	$9, 1f
+ 	jsr	$26, syscall_trace_leave
+ 1:	br	$1, undo_switch_stack
+ 	br	ret_from_sys_call
+-.end sys_sigreturn
++.end sys_\name
++.endm
+ 
+-	.align	4
+-	.globl	sys_rt_sigreturn
+-	.ent	sys_rt_sigreturn
+-sys_rt_sigreturn:
+-	.prologue 0
+-	lda	$9, ret_from_straced
+-	cmpult	$26, $9, $9
+-	lda	$sp, -SWITCH_STACK_SIZE($sp)
+-	jsr	$26, do_rt_sigreturn
+-	bne	$9, 1f
+-	jsr	$26, syscall_trace_leave
+-1:	br	$1, undo_switch_stack
+-	br	ret_from_sys_call
+-.end sys_rt_sigreturn
++sigreturn_like sigreturn
++sigreturn_like rt_sigreturn
+ 
+ 	.align	4
+ 	.globl	alpha_ni_syscall
