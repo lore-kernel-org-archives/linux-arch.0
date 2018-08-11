@@ -1,48 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f66.google.com ([209.85.160.66]:37450 "EHLO
-        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726656AbeHKGmv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 11 Aug 2018 02:42:51 -0400
-Subject: Re: [PATCH 3/6] alpha: Unify the not-implemented system call entry
- name
-References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
- <1531736638-15294-4-git-send-email-firoz.khan@linaro.org>
- <20180811000455.GC6515@ZenIV.linux.org.uk>
- <98937991-cefa-b7f3-11c3-12727b3159b1@twiddle.net>
- <20180811024553.GF6515@ZenIV.linux.org.uk>
-From: Richard Henderson <rth@twiddle.net>
-Message-ID: <d223ad23-04ae-408f-2a73-d5fa641ad725@twiddle.net>
-Date: Fri, 10 Aug 2018 21:10:04 -0700
-MIME-Version: 1.0
-In-Reply-To: <20180811024553.GF6515@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from smtp17.cstnet.cn ([159.226.251.17]:35787 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727324AbeHKQAd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 11 Aug 2018 12:00:33 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: [PATCH v3 00/17] Add support for Hygon Dhyana Family 18h processor
+Date: Sat, 11 Aug 2018 21:25:16 +0800
+Message-ID: <cover.1533989492.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Firoz Khan <firoz.khan@linaro.org>, linux-alpha@vger.kernel.org, ink@jurassic.park.msu.ru, mattst88@gmail.com, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com
-Message-ID: <20180811041004.rBueWTvAf6qTL_XVanyifBZ26ay0q0yEbir3xIPfbP0@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180811132516.Rp0oJNiU9hK-l33d6RwYy_e_dT1z7yyA9Glz6ZsTvSk@z>
 
-On 08/10/2018 07:45 PM, Al Viro wrote:
-> BTW, seeing that it's your code - why was unop used in
-> alpha_ni_syscall?  I don't remember the rules re pipeline
-> stalls; is it that some earlier variants prefer unop to
-> nop in such places?  It's not that microoptimizing that
-> one makes any difference, but just out of curiosity -
-> would something like
-> 	lda     $0, -ENOSYS
-> 	stq     $sp, 0($sp)	/* sp != 0 */
-> 	ret
-> do just as well there?
+As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
+is a Joint Venture between AMD and Haiguang Information Technology Co.,
+Ltd., and aims at providing high performance x86 processor for China
+server market.
 
-Oh that.  Well, unop is a "load" and pairs with everything
-on all cpus, where nop is an integer and doesn't always
-pair.  So I got into the habit of using unop for everything.
+The first generation Hygon's processor(Dhyana) originates from AMD
+technology and shares most of the architecture with AMD's family 17h,
+but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
+(0x1D94)/Family series number (Family 18h).
 
-The extra nop was so that lda + unop // stq + ret paired up
-in in two cycles as opposed to lda /stall/ stq // ret in
-three cycles on ev4+ev5.  ev6 didn't care.  FWIW.
+To enable the support of Linux kernel to Hygon's CPU, we added a new
+vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
+asm/processor.h, and shared most of kernel support codes with AMD
+family 17h.
+
+This patch series have been applied and tested successfully in Hygon's
+Dhyana SoC silicon. Also tested on AMD's EPYC (Family 17h) processor
+works fine and makes no harm to existing codes.
 
 
-r~
+v2->v3:
+  - Rebased on 4.18-rc8 and tested against it.
+  - Rework vendor checking codes to improve consistency.
+
+v1->v2:
+  - Rebased on 4.18-rc6 and tested against it.
+  - Split the patchset to small series of patches.
+  - Rework patch descriptions.
+  - Create a separated arch/x86/kernel/cpu/hygon.c for Dhyana CPU
+    initialization to reduce long-term maintenance effort.
+
+
+Pu Wen (17):
+  x86/cpu: create Dhyana init file and register new cpu_dev to system
+  x86/cache: get cache size/leaves and setup cache cpumap for Dhyana
+  x86/mtrr: get MTRR number and support TOP_MEM2
+  x86/smpboot: smp init nodelay and no flush caches before sleep
+  x86/perfctr: return perf counter and event selection bit offset
+  x86/nops: init ideal_nops for Hygon
+  x86/pci: add Hygon PCI vendor and northbridge support
+  x86/apic: add modern APIC support for Hygon
+  x86/bugs: add lfence mitigation to spectre v2 and no meltdown for
+    Hygon
+  x86/events: enable Hygon support to PMU infrastructure
+  x86/mce: enable Hygon support to MCE infrastructure
+  x86/kvm: enable Hygon support to KVM infrastructure
+  x86/xen: enable Hygon support to Xen
+  driver/acpi: enable Hygon support to ACPI driver
+  driver/cpufreq: enable Hygon support to cpufreq driver
+  driver/edac: enable Hygon support to AMD64 EDAC driver
+  tools/cpupower: enable Hygon support to cpupower tool
+
+ MAINTAINERS                                        |   6 +
+ arch/x86/Kconfig                                   |   2 +-
+ arch/x86/Kconfig.cpu                               |  13 +
+ arch/x86/events/amd/core.c                         |   6 +
+ arch/x86/events/amd/uncore.c                       |  15 +-
+ arch/x86/events/core.c                             |   4 +
+ arch/x86/include/asm/cacheinfo.h                   |   1 +
+ arch/x86/include/asm/kvm_emulate.h                 |   4 +
+ arch/x86/include/asm/mce.h                         |   5 +
+ arch/x86/include/asm/nospec-branch.h               |   4 +-
+ arch/x86/include/asm/processor.h                   |   3 +-
+ arch/x86/include/asm/virtext.h                     |   5 +-
+ arch/x86/kernel/alternative.c                      |   4 +
+ arch/x86/kernel/amd_nb.c                           |  51 ++-
+ arch/x86/kernel/apic/apic.c                        |  19 +-
+ arch/x86/kernel/apic/probe_32.c                    |   1 +
+ arch/x86/kernel/cpu/Makefile                       |   1 +
+ arch/x86/kernel/cpu/bugs.c                         |  28 +-
+ arch/x86/kernel/cpu/cacheinfo.c                    |  31 +-
+ arch/x86/kernel/cpu/common.c                       |   1 +
+ arch/x86/kernel/cpu/cpu.h                          |   1 +
+ arch/x86/kernel/cpu/hygon.c                        | 404 +++++++++++++++++++++
+ arch/x86/kernel/cpu/mcheck/mce-severity.c          |   3 +-
+ arch/x86/kernel/cpu/mcheck/mce.c                   |  21 +-
+ arch/x86/kernel/cpu/mtrr/cleanup.c                 |   3 +-
+ arch/x86/kernel/cpu/mtrr/generic.c                 |   5 +-
+ arch/x86/kernel/cpu/mtrr/mtrr.c                    |   2 +-
+ arch/x86/kernel/cpu/perfctr-watchdog.c             |   2 +
+ arch/x86/kernel/smpboot.c                          |   6 +-
+ arch/x86/kvm/emulate.c                             |  11 +-
+ arch/x86/pci/amd_bus.c                             |   6 +-
+ arch/x86/xen/pmu.c                                 |  15 +-
+ drivers/acpi/acpi_pad.c                            |   1 +
+ drivers/acpi/processor_idle.c                      |   1 +
+ drivers/cpufreq/acpi-cpufreq.c                     |   5 +
+ drivers/cpufreq/amd_freq_sensitivity.c             |   9 +-
+ drivers/edac/amd64_edac.c                          |  45 ++-
+ drivers/edac/amd64_edac.h                          |   5 +
+ drivers/edac/mce_amd.c                             |  12 +-
+ include/linux/pci_ids.h                            |   2 +
+ tools/power/cpupower/utils/cpufreq-info.c          |   6 +-
+ tools/power/cpupower/utils/helpers/amd.c           |   4 +-
+ tools/power/cpupower/utils/helpers/cpuid.c         |   8 +-
+ tools/power/cpupower/utils/helpers/helpers.h       |   2 +-
+ tools/power/cpupower/utils/helpers/misc.c          |   3 +-
+ .../cpupower/utils/idle_monitor/mperf_monitor.c    |   3 +-
+ 46 files changed, 719 insertions(+), 70 deletions(-)
+ create mode 100644 arch/x86/kernel/cpu/hygon.c
+
+-- 
+2.7.4
