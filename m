@@ -1,71 +1,67 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/6] alpha: Move __IGNORE* entries to non uapi
-	header
-Date: Sun, 12 Aug 2018 00:27:23 +0200
-Message-ID: <CAK8P3a1mfnM6qTuxAqJ3_cUv4bZHNScS+VTytyU9oqmo00r7Kg@mail.gmail.com>
-References: <1531736638-15294-1-git-send-email-firoz.khan@linaro.org>
- <1531736638-15294-2-git-send-email-firoz.khan@linaro.org>
- <20180811192804.GI6515@ZenIV.linux.org.uk>
- <20180811205901.gxbcn5vf4z36cozi@tower>
+From: Juergen Gross <jgross@suse.com>
+Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
+Date: Sun, 12 Aug 2018 10:55:39 +0200
+Message-ID: <0aa44410-47ec-27e2-10d9-c0dc5d2e457a@suse.com>
+References: <cover.1533989492.git.puwen@hygon.cn>
+ <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+ <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20180811205901.gxbcn5vf4z36cozi@tower>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: mcree@orcon.net.nz, Al Viro <viro@zeniv.linux.org.uk>, Firoz Khan <firoz.khan@linaro.org>, linux-alpha@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
+Content-Language: de-DE
+Sender: linux-kernel-owner@vger.kernel.org
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, JBeulich@suse.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gU2F0LCBBdWcgMTEsIDIwMTggYXQgMTA6NTkgUE0gTWljaGFlbCBDcmVlIDxtY3JlZUBvcmNv
-bi5uZXQubno+IHdyb3RlOgo+Cj4gT24gU2F0LCBBdWcgMTEsIDIwMTggYXQgMDg6Mjg6MDRQTSAr
-MDEwMCwgQWwgVmlybyB3cm90ZToKPiA+IE9uIE1vbiwgSnVsIDE2LCAyMDE4IGF0IDAzOjUzOjUz
-UE0gKzA1MzAsIEZpcm96IEtoYW4gd3JvdGU6Cj4gPiA+IEl0IGlzIGNvcnJlY3QgdG8ga2VlcCBf
-X0lHTk9SRSogZW50cnkgaW4gbm9uIHVhcGkgaGVhZGVyCj4gPiA+IGFzbS91bmlzdGQuaCB3aGls
-ZSB1YXBpL2FzbS91bmlzdGQuaCBtdXN0IGhvbGQgaW5mb3JtYXRpb24KPiA+ID4gb25seSB1c2Vm
-dWwgZm9yIHVzZXIgc3BhY2UgYXBwbGljYXRpb25zLgo+ID4KPiA+ID4gZGlmZiAtLWdpdCBhL2Fy
-Y2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaCBiL2FyY2gvYWxwaGEvaW5jbHVkZS91
-YXBpL2FzbS91bmlzdGQuaAo+ID4gPiBpbmRleCBlMTUzY2E2Li4zYmI2YWMxIDEwMDY0NAo+ID4g
-PiAtLS0gYS9hcmNoL2FscGhhL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmgKPiA+ID4gKysrIGIv
-YXJjaC9hbHBoYS9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCj4gPiA+IEBAIC00ODEsOSArNDgx
-LDQgQEAKPiA+ID4gICNkZWZpbmUgX19OUl9wd3JpdGV2MiAgICAgICAgICAgICAgICAgICAgICA1
-MjEKPiA+ID4gICNkZWZpbmUgX19OUl9zdGF0eCAgICAgICAgICAgICAgICAgNTIyCj4gPiA+Cj4g
-PiA+IC0vKiBBbHBoYSBkb2Vzbid0IGhhdmUgcHJvdGVjdGlvbiBrZXlzLiAqLwo+ID4gPiAtI2Rl
-ZmluZSBfX0lHTk9SRV9wa2V5X21wcm90ZWN0Cj4gPiA+IC0jZGVmaW5lIF9fSUdOT1JFX3BrZXlf
-YWxsb2MKPiA+ID4gLSNkZWZpbmUgX19JR05PUkVfcGtleV9mcmVlCj4gPiA+IC0KPiA+ID4gICNl
-bmRpZiAvKiBfVUFQSV9BTFBIQV9VTklTVERfSCAqLwo+ID4KPiA+IEhtbS4uLiAgVGhlcmUncyBh
-bHNvCj4gPgo+ID4gI2RlZmluZSBfX0lHTk9SRV9hbGFybQo+ID4gI2RlZmluZSBfX0lHTk9SRV9j
-cmVhdAo+Cj4gVGVsbCB5b3Ugd2hhdCwgSSB3b3VsZG4ndCBtaW5kIGlmIHRoZSBmb2xsb3dpbmcg
-b25lcyB3ZXJlIGFjdHVhbGx5Cj4gaW1wbGVtZW50ZWQgYXMgc3lzY2FsbHMgaW4gdGhlIGtlcm5l
-bCBvbiBBbHBoYToKPgo+ID4gI2RlZmluZSBfX0lHTk9SRV9nZXRlZ2lkCj4gPiAjZGVmaW5lIF9f
-SUdOT1JFX2dldGV1aWQKPiA+ICNkZWZpbmUgX19JR05PUkVfZ2V0Z2lkCj4gPiAjZGVmaW5lIF9f
-SUdOT1JFX2dldHBpZAo+ID4gI2RlZmluZSBfX0lHTk9SRV9nZXRwcGlkCj4gPiAjZGVmaW5lIF9f
-SUdOT1JFX2dldHVpZAo+Cj4gVGhlcmUncyBhIGdyb3dpbmcgbnVtYmVyIG9mIHNvZnR3YXJlIHBh
-Y2thZ2VzIHRoYXQgYXJlIGRlY2lkaW5nCj4gdG8gc2lkZXNraXAgZ2xpYmMgYW5kIGNhbGwgdGhl
-c2Ugc3lzY2FsbHMgZGlyZWN0bHkuICBTdXBwb3J0aW5nCj4gT1NGJ3MgQyBBQkkgaW5jb21wbGlh
-bnQgZ2V0eHBpZCwgZXRjLiwgaW4gc3VjaCBwYWNrYWdlcyBpcyBub3QKPiBlYXN5IGFuZCByYXRo
-ZXIgaW50cnVzaXZlLgoKVGhhdCBzb3VuZHMgbGlrZSBhIGdvb2QgaWRlYSB0byBtZS4gSXQgd291
-bGQgYWxzbyBoZWxwIHNpbXBsaWZ5IGxpYmMKaW1wbGVtZW50YXRpb25zIGluIHRoZSBsb25nIHJ1
-biwgYXMgd2Ugd2lsbCBwcm9iYWJseSBzb29uIGhhdmUgYQpuZXcgYmFzZWxpbmUga2VybmVsIGhl
-YWRlciB2ZXJzaW9uIG9uY2UgdGhlIHkyMDM4IHN5c2NhbGxzCmFyZSBhZGRlZCwgd2l0aCBnbGli
-YyAoYW5kIG1heWJlIG90aGVycykgcmVxdWlyaW5nIGF0IGxlYXQgdGhhdApuZXcgdmVyc2lvbiBh
-cyBhIGJ1aWxkIHRpbWUgZGVwZW5kZW5jeSByYXRoZXIgdGhhbiByZXF1aXJpbmcKbGludXgtMy4y
-KyBmb3IgYm90aCBoZWFkZXJzIGFuZCBydW50aW1lLgoKSW4gYSBudW1iZXIgb2YgeWVhcnMsIHRo
-ZSBsYXRlc3QgZ2xpYmMgbWlnaHQgdGhlbiB1c2UgdGhhdCBzYW1lCnZlcnNpb24gYWdhaW4gZm9y
-IGJvdGggdGhlIGhlYWRlciB2ZXJzaW9uIGFuZCB0aGUga2VybmVsIHJ1bnRpbWUsCmFuZCBhdCB0
-aGF0IHBvaW50LCBpdCBjYW4gZHJvcCB0aGUgYWxwaGEgc3BlY2lmaWMgd3JhcHBlci4KCkZvciB0
-aGUgb3RoZXIgX19JR05PUkVfIGVudHJpZXMsIEkgdGhpbmsgd2UgY2FuIGp1c3QgZHJvcCB0aGUg
-b25lcwpmb3IgYWxhcm0sIGNyZWF0LCBwYXVzZSwgdGltZSBhbmQgdXRpbWUsIGFzIHRoZXkgYXJl
-IGFscmVhZHkgcHJlc2VudAppbiBzY3JpcHRzL2NoZWNrc3lzY2FsbHMuc2guIF9fSUdOT1JFX21v
-dW50MiBpcyBzdGlsbCByZXF1aXJlZCBoZXJlLApzaW5jZSBhbHBoYSBjYWxscyBpdCBfX05SX21v
-dW50IHJhdGhlciB0aGFuIF9fTlJfbW91bnQyLgoKICAgIEFybmQKX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxp
-c3RzLmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8v
-eTIwMzgK
+On 11/08/18 16:34, Boris Ostrovsky wrote:
+> On 08/11/2018 09:29 AM, Pu Wen wrote:
+>> To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
+>> code path and add vendor check for Hygon along with AMD.
+>>
+>> Signed-off-by: Pu Wen <puwen@hygon.cn>
+>> ---
+>>  arch/x86/xen/pmu.c | 15 ++++++++++++---
+>>  1 file changed, 12 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
+>> index 7d00d4a..1053dda 100644
+>> --- a/arch/x86/xen/pmu.c
+>> +++ b/arch/x86/xen/pmu.c
+>> @@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
+>>  			k7_counters_mirrored = 0;
+>>  			break;
+>>  		}
+>> +	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+>> +		amd_num_counters = F10H_NUM_COUNTERS;
+> 
+> I haven't looked in details at Zen's PMU but the PMC section in the spec
+> starts with
+>   "There are six core performance events counters per thread..."
+> 
+> 
+> 
+>> +		amd_counters_base = MSR_K7_PERFCTR0;
+>> +		amd_ctrls_base = MSR_K7_EVNTSEL0;
+>> +		amd_msr_step = 1;
+>> +		k7_counters_mirrored = 0;
+>>  	} else {
+>>  		uint32_t eax, ebx, ecx, edx;
+>>  
+>> @@ -285,7 +291,8 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
+>>  
+>>  bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
+>>  {
+>> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
+>> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+>> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+> 
+> 
+> 'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
+
+Really? Xen supports Centaur, too.
+
+
+Juergen
