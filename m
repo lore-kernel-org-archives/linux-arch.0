@@ -1,63 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f67.google.com ([209.85.218.67]:45547 "EHLO
-        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727549AbeHLMug (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Aug 2018 08:50:36 -0400
+Received: from aserp2120.oracle.com ([141.146.126.78]:47252 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727814AbeHLQFS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Aug 2018 12:05:18 -0400
+Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
+References: <cover.1533989492.git.puwen@hygon.cn>
+ <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+ <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
+ <0aa44410-47ec-27e2-10d9-c0dc5d2e457a@suse.com>
+From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Message-ID: <150f6a8d-33e8-a84d-f34b-17bdb7264ebe@oracle.com>
+Date: Sun, 12 Aug 2018 09:26:58 -0400
 MIME-Version: 1.0
-References: <cover.1533989492.git.puwen@hygon.cn> <e282c406c34d5cdc92f7ec0bc12e9406405544d8.1533989493.git.puwen@hygon.cn>
-In-Reply-To: <e282c406c34d5cdc92f7ec0bc12e9406405544d8.1533989493.git.puwen@hygon.cn>
-From: "Rafael J. Wysocki" <rafael@kernel.org>
-Date: Sun, 12 Aug 2018 12:12:54 +0200
-Message-ID: <CAJZ5v0i=KMjQEqkJmO-XSgnjTUYBepXzOTohQV62sUqXLi+QJw@mail.gmail.com>
-Subject: Re: [PATCH v3 14/17] driver/acpi: enable Hygon support to ACPI driver
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <0aa44410-47ec-27e2-10d9-c0dc5d2e457a@suse.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: puwen@hygon.cn
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, thomas.lendacky@amd.com, Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>, Len Brown <lenb@kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>
-Message-ID: <20180812101254.23vKKCegWmWGIUQLZJ8P9Op-qPxaZJd5H3-GYTIu3Gc@z>
+To: Juergen Gross <jgross@suse.com>, Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, JBeulich@suse.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20180812132658.-4Elorgo68vHipQiiFG2sMDFxqRJnhHE_63it4s5jtc@z>
 
-On Sat, Aug 11, 2018 at 3:36 PM Pu Wen <puwen@hygon.cn> wrote:
->
-> For Dhyana processors have NONSTOP TSC feature, so enable the support
-> to ACPI driver.
->
-> Signed-off-by: Pu Wen <puwen@hygon.cn>
+On 08/12/2018 04:55 AM, Juergen Gross wrote:
+> On 11/08/18 16:34, Boris Ostrovsky wrote:
+>> On 08/11/2018 09:29 AM, Pu Wen wrote:
+>>
+>>>  
+>>>  bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
+>>>  {
+>>> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
+>>> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+>>> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+>>
+>> 'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
+> Really? Xen supports Centaur, too.
 
-This patch is fine by me, but I'm assuming that the series will be
-handled as a whole, so
+VPMU doesn't --- hypervisor will not initialize it. Besides, the
+existing code will steer non-AMD execution to Intel, which is not right
+either.
 
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+I'll add a check to bail if VPMU is not initialized properly, we seem to
+ignore xen_pmu_init() failures. Which, BTW, makes this patch rather
+pointless until there is support for Hygon Xen.
 
-> ---
->  drivers/acpi/acpi_pad.c       | 1 +
->  drivers/acpi/processor_idle.c | 1 +
->  2 files changed, 2 insertions(+)
->
-> diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
-> index 552c1f7..a47676a 100644
-> --- a/drivers/acpi/acpi_pad.c
-> +++ b/drivers/acpi/acpi_pad.c
-> @@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
->
->  #if defined(CONFIG_X86)
->         switch (boot_cpu_data.x86_vendor) {
-> +       case X86_VENDOR_HYGON:
->         case X86_VENDOR_AMD:
->         case X86_VENDOR_INTEL:
->                 /*
-> diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
-> index abb559c..b2131c4 100644
-> --- a/drivers/acpi/processor_idle.c
-> +++ b/drivers/acpi/processor_idle.c
-> @@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
->  static void tsc_check_state(int state)
->  {
->         switch (boot_cpu_data.x86_vendor) {
-> +       case X86_VENDOR_HYGON:
->         case X86_VENDOR_AMD:
->         case X86_VENDOR_INTEL:
->         case X86_VENDOR_CENTAUR:
-> --
-> 2.7.4
->
+-boris
