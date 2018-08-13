@@ -1,46 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f53.google.com ([209.85.214.53]:52780 "EHLO
-        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728293AbeHMTaU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2018 15:30:20 -0400
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:53434 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728772AbeHMTvT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2018 15:51:19 -0400
+From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
+ simultaneously
+Date: Mon, 13 Aug 2018 17:08:10 +0000
+Message-ID: <1534180089.3962.68.camel@synopsys.com>
+References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+         <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
+         <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <5A3D85E4A242D94C9FF74AF83992F416@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-In-Reply-To: <68538d23-8880-29a2-decd-f63b48667274@hygon.cn>
-References: <cover.1533989492.git.puwen@hygon.cn> <cb1a56c95bbcc4d65a98378274ae34d826704a16.1533989493.git.puwen@hygon.cn>
- <CAO6F7DkdV1p59igFY3atTCRK62KH3_J-874oQw1v6ighaHOTXA@mail.gmail.com> <68538d23-8880-29a2-decd-f63b48667274@hygon.cn>
-From: Michael Jin <mikhail.jin@gmail.com>
-Date: Mon, 13 Aug 2018 12:47:19 -0400
-Message-ID: <CAO6F7DnU=nB+mf458sRBH0ozub8bog9-zi8-awYBJumkEjDdXg@mail.gmail.com>
-Subject: Re: [PATCH v3 16/17] driver/edac: enable Hygon support to AMD64 EDAC driver
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pu Wen <puwen@hygon.cn>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, Mauro Carvalho Chehab <mchehab@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
-Message-ID: <20180813164719.0sqSDvH2DzvcDupdAjUPuTPxxwHBYuNnUq0i4huDQug@z>
+To: "Eugeniy.Paltsev@synopsys.com" <Eugeniy.Paltsev@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "hch@lst.de" <hch@lst.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Message-ID: <20180813170810.yeLUJHapIAoaishNAeFPeqi72wg5KolWJ4UmF8S4CsM@z>
 
-On Mon, Aug 13, 2018 at 12:17 PM, Pu Wen <puwen@hygon.cn> wrote:
-> On 2018/8/12 3:56, Michael Jin wrote:
->>
->> On Sat, Aug 11, 2018 at 9:30 AM, Pu Wen <puwen@hygon.cn> wrote:
->>>
->>> diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
->>> -       if (pvt->fam == 0x17) {
->>> +       if (pvt->fam == 0x17 || pvt->vendor == X86_VENDOR_HYGON) {
->>>                  __f17h_set_scrubval(pvt, scrubval);
->>
->>
->> Separating the vendor check as an "else if (pvt->vendor ==
->> X86_VENDOR_HYGON)" block would make architectural changes (future
->> hygon models, i.e. 19h, 20h, etc) less confusing.
->
->
-> Your suggestion is reasonable, but that might make the branch a little
-> complicated.If we explicitly testing Hygon family in condition case,
-> will that be ok?
-> +    if (pvt->fam == 0x17 ||
-> +       (pvt->vendor == X86_VENDOR_HYGON && pvt->fam == 0x18))
-
-The condition case for family 18h and vendor Hygon looks better
-because it is more clear.
-
-Michael
+T24gTW9uLCAyMDE4LTA4LTEzIGF0IDE2OjI0ICswMDAwLCBWaW5lZXQgR3VwdGEgd3JvdGU6DQo+
+IE9uIDA3LzMwLzIwMTggMDk6MjYgQU0sIEV1Z2VuaXkgUGFsdHNldiB3cm90ZToNCj4gPiBAQCAt
+MTI2MywxMSArMTI1NCw3IEBAIHZvaWQgX19pbml0IGFyY19jYWNoZV9pbml0X21hc3Rlcih2b2lk
+KQ0KPiA+ICAJaWYgKGlzX2lzYV9hcmN2MigpICYmIGlvY19lbmFibGUpDQo+ID4gIAkJYXJjX2lv
+Y19zZXR1cCgpOw0KPiA+ICANCj4gPiAtCWlmIChpc19pc2FfYXJjdjIoKSAmJiBpb2NfZW5hYmxl
+KSB7DQo+ID4gLQkJX19kbWFfY2FjaGVfd2JhY2tfaW52ID0gX19kbWFfY2FjaGVfd2JhY2tfaW52
+X2lvYzsNCj4gPiAtCQlfX2RtYV9jYWNoZV9pbnYgPSBfX2RtYV9jYWNoZV9pbnZfaW9jOw0KPiA+
+IC0JCV9fZG1hX2NhY2hlX3diYWNrID0gX19kbWFfY2FjaGVfd2JhY2tfaW9jOw0KPiA+IC0JfSBl
+bHNlIGlmIChpc19pc2FfYXJjdjIoKSAmJiBsMl9saW5lX3N6ICYmIHNsY19lbmFibGUpIHsNCj4g
+PiArCWlmIChpc19pc2FfYXJjdjIoKSAmJiBsMl9saW5lX3N6ICYmIHNsY19lbmFibGUpIHsNCj4g
+PiAgCQlfX2RtYV9jYWNoZV93YmFja19pbnYgPSBfX2RtYV9jYWNoZV93YmFja19pbnZfc2xjOw0K
+PiA+ICAJCV9fZG1hX2NhY2hlX2ludiA9IF9fZG1hX2NhY2hlX2ludl9zbGM7DQo+ID4gIAkJX19k
+bWFfY2FjaGVfd2JhY2sgPSBfX2RtYV9jYWNoZV93YmFja19zbGM7DQo+ID4gZGlmZiAtLWdpdCBh
+L2FyY2gvYXJjL21tL2RtYS5jIGIvYXJjaC9hcmMvbW0vZG1hLmMNCj4gPiBpbmRleCBjZWZiNzc2
+YTk5ZmYuLjRkMTQ2NjkwNWU0OCAxMDA2NDQNCj4gPiAtLS0gYS9hcmNoL2FyYy9tbS9kbWEuYw0K
+PiA+ICsrKyBiL2FyY2gvYXJjL21tL2RtYS5jDQo+ID4gQEAgLTMzLDE5ICszMyw3IEBAIHZvaWQg
+KmFyY2hfZG1hX2FsbG9jKHN0cnVjdCBkZXZpY2UgKmRldiwgc2l6ZV90IHNpemUsIGRtYV9hZGRy
+X3QgKmRtYV9oYW5kbGUsDQo+ID4gIAlpZiAoIXBhZ2UpDQo+ID4gIAkJcmV0dXJuIE5VTEw7DQo+
+ID4gIA0KPiA+IC0JLyoNCj4gPiAtCSAqIElPQyByZWxpZXMgb24gYWxsIGRhdGEgKGV2ZW4gY29o
+ZXJlbnQgRE1BIGRhdGEpIGJlaW5nIGluIGNhY2hlDQo+ID4gLQkgKiBUaHVzIGFsbG9jYXRlIG5v
+cm1hbCBjYWNoZWQgbWVtb3J5DQo+ID4gLQkgKg0KPiA+IC0JICogVGhlIGdhaW5zIHdpdGggSU9D
+IGFyZSB0d28gcHJvbmdlZDoNCj4gPiAtCSAqICAgLUZvciBzdHJlYW1pbmcgZGF0YSwgZWxpZGVz
+IG5lZWQgZm9yIGNhY2hlIG1haW50ZW5hbmNlLCBzYXZpbmcNCj4gPiAtCSAqICAgIGN5Y2xlcyBp
+biBmbHVzaCBjb2RlLCBhbmQgYnVzIGJhbmR3aWR0aCBhcyBhbGwgdGhlIGxpbmVzIG9mIGENCj4g
+PiAtCSAqICAgIGJ1ZmZlciBuZWVkIHRvIGJlIGZsdXNoZWQgb3V0IHRvIG1lbW9yeQ0KPiA+IC0J
+ICogICAtRm9yIGNvaGVyZW50IGRhdGEsIFJlYWQvV3JpdGUgdG8gYnVmZmVycyB0ZXJtaW5hdGUg
+ZWFybHkgaW4gY2FjaGUNCj4gPiAtCSAqICAgKHZzLiBhbHdheXMgZ29pbmcgdG8gbWVtb3J5IC0g
+dGh1cyBhcmUgZmFzdGVyKQ0KPiA+IC0JICovDQo+ID4gLQlpZiAoKGlzX2lzYV9hcmN2MigpICYm
+IGlvY19lbmFibGUpIHx8DQo+ID4gLQkgICAgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RF
+TlQpKQ0KPiA+ICsJaWYgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RFTlQpDQo+ID4gIAkJ
+bmVlZF9jb2ggPSAwOw0KPiA+ICANCj4gPiAgCS8qDQo+ID4gQEAgLTk1LDggKzgzLDcgQEAgdm9p
+ZCBhcmNoX2RtYV9mcmVlKHN0cnVjdCBkZXZpY2UgKmRldiwgc2l6ZV90IHNpemUsIHZvaWQgKnZh
+ZGRyLA0KPiA+ICAJc3RydWN0IHBhZ2UgKnBhZ2UgPSB2aXJ0X3RvX3BhZ2UocGFkZHIpOw0KPiA+
+ICAJaW50IGlzX25vbl9jb2ggPSAxOw0KPiA+ICANCj4gPiAtCWlzX25vbl9jb2ggPSAoYXR0cnMg
+JiBETUFfQVRUUl9OT05fQ09OU0lTVEVOVCkgfHwNCj4gPiAtCQkJKGlzX2lzYV9hcmN2MigpICYm
+IGlvY19lbmFibGUpOw0KPiA+ICsJaXNfbm9uX2NvaCA9IChhdHRycyAmIERNQV9BVFRSX05PTl9D
+T05TSVNURU5UKTsNCj4gPiAgDQo+ID4gIAlpZiAoUGFnZUhpZ2hNZW0ocGFnZSkgfHwgIWlzX25v
+bl9jb2gpDQo+ID4gIAkJaW91bm1hcCgodm9pZCBfX2ZvcmNlIF9faW9tZW0gKil2YWRkcik7DQo+
+ID4gQEAgLTE4MiwzICsxNjksMjAgQEAgdm9pZCBhcmNoX3N5bmNfZG1hX2Zvcl9jcHUoc3RydWN0
+IGRldmljZSAqZGV2LCBwaHlzX2FkZHJfdCBwYWRkciwNCj4gPiAgCQlicmVhazsNCj4gPiAgCX0N
+Cj4gPiAgfQ0KPiANCj4gSSB0aGluayB3ZSBoYXZlIHNvbWUgc2hlbmFuaWdhbnMgd2l0aCBAaW9j
+X2VuYWJsZSBub3cuDQo+IERvIG5vdGUgdGhhdCBpdCB3YXMgbW9yZSBvZiBhIGRlYnVnIGhhY2sg
+dXNpbmcgd2hlbiB0aGUgaHcgZmVhdHVyZSB3YXMgaW50cm9kdWNlZA0KPiB0byBiZSBhYmxlIHRv
+IHJ1biBzYW1lIGtlcm5lbCBvbiB2YXJpb3VzIEZQR0EgYml0ZmlsZXMgYnV0IGp1c3QgZmxpY2tp
+bmcgYSBnbG9iYWwNCj4gdmFyaWFibGUgdmlhIHRoZSBkZWJ1Z2dlci4NCj4gDQo+IFNvIHBlciBj
+b2RlIGJlbG93LCBpZiBAaW9jX2VuYWJsZSBpcyBOT1Qgc2V0LCB3ZSBzdGlsbCB1c2Ugc29mdHdh
+cmUgYXNzaXN0ZWQgY2FjaGUNCj4gbWFpbnRlbmFuY2UsIGJ1dCBkbWFfe2FsbG9jLGZyZWV9IGRv
+bid0IGRvIHVzZSB0aGF0IHZhcmlhYmxlLiBIYXZlIHlvdSB0cmllZA0KPiB0ZXN0aW5nIHRoZSBj
+b21iaW5hdGlvbiB3aGVuIEBpb2NfZW5hYmxlIGlzIHNldCB0byAwIGJlZm9yZSBib290ID8gQW5k
+IGlzIHRoYXQgd29ya3MgPw0KDQpZZXAsIEkgdGVzdGVkIHRoYXQuDQpBbmQgaXQgd29ya3MgZmlu
+ZSB3aXRoIGJvdGggQGlvY19lbmFibGUgPT0gMCBhbmQgQGlvY19lbmFibGUgPT0gMQ0KTm90ZSB0
+aGF0IHdlIGNoZWNrIHRoaXMgdmFyaWFibGUgaW4gYXJjaF9zZXR1cF9kbWFfb3BzKCkgZnVuY3Rp
+b24gbm93Lg0KDQpTbyB0aGlzIGFyY2hfZG1hX3thbGxvYyxmcmVlfSBhcmUgdXNlZCBPTkxZIGlu
+IGNhc2Ugb2Ygc29mdHdhcmUgYXNzaXN0ZWQgY2FjaGUgbWFpbnRlbmFuY2UuDQpUaGF0J3Mgd2h5
+IHdlIGhhZCB0byBkbyBNTVUgbWFwcGluZyB0byBlbmZvcmNlIG5vbi1jYWNoYWJpbGl0eSByZWdh
+cmRsZXNzIG9mIEBpb2NfZW5hYmxlLg0KDQoNClByZXZpb3VzbHkgW2JlZm9yZSB0aGlzIHBhdGNo
+XSB3ZSB1c2VkIHRoaXMgb3BzIGZvciBib3RoIEhXL1NXIGFzc2lzdGVkIGNhY2hlIG1haW50ZW5h
+bmNlDQp0aGF0J3Mgd2h5IHdlIGNoZWNrZWQgQGlvY19lbmFibGUgaW4gYXJjaF9kbWFfe2FsbG9j
+LGZyZWV9LiAoaW4gY2FzZSBvZiBIVyBhc3Npc3RlZCBjYWNoZQ0KbWFpbnRlbmFuY2Ugd2Ugb25s
+eSBhbGxvY2F0ZSBtZW1vcnksIGFuZCBpbiBjYXNlIG9mIFNXIGFzc2lzdGVkIGNhY2hlIG1haW50
+ZW5hbmNlIHdlIA0KYWxsb2NhdGUgbWVtb3J5IGFuZCBkbyBNTVUgbWFwcGluZyB0byBlbmZvcmNl
+IG5vbi1jYWNoYWJpbGl0eSkNCg0KPiA+ICsNCj4gPiArdm9pZCBhcmNoX3NldHVwX2RtYV9vcHMo
+c3RydWN0IGRldmljZSAqZGV2LCB1NjQgZG1hX2Jhc2UsIHU2NCBzaXplLA0KPiA+ICsJCQljb25z
+dCBzdHJ1Y3QgaW9tbXVfb3BzICppb21tdSwgYm9vbCBjb2hlcmVudCkNCj4gPiArew0KPiA+ICsJ
+LyoNCj4gPiArCSAqIElPQyBoYXJkd2FyZSBzbm9vcHMgYWxsIERNQSB0cmFmZmljIGtlZXBpbmcg
+dGhlIGNhY2hlcyBjb25zaXN0ZW50DQo+ID4gKwkgKiB3aXRoIG1lbW9yeSAtIGVsaWRpbmcgbmVl
+ZCBmb3IgYW55IGV4cGxpY2l0IGNhY2hlIG1haW50ZW5hbmNlIG9mDQo+ID4gKwkgKiBETUEgYnVm
+ZmVycyAtIHNvIHdlIGNhbiB1c2UgZG1hX2RpcmVjdCBjYWNoZSBvcHMuDQo+ID4gKwkgKi8NCj4g
+PiArCWlmIChpc19pc2FfYXJjdjIoKSAmJiBpb2NfZW5hYmxlICYmIGNvaGVyZW50KSB7DQo+ID4g
+KwkJc2V0X2RtYV9vcHMoZGV2LCAmZG1hX2RpcmVjdF9vcHMpOw0KPiA+ICsJCWRldl9pbmZvKGRl
+diwgInVzZSBkbWFfZGlyZWN0X29wcyBjYWNoZSBvcHNcbiIpOw0KPiA+ICsJfSBlbHNlIHsNCj4g
+PiArCQlzZXRfZG1hX29wcyhkZXYsICZkbWFfbm9uY29oZXJlbnRfb3BzKTsNCj4gPiArCQlkZXZf
+aW5mbyhkZXYsICJ1c2UgZG1hX25vbmNvaGVyZW50X29wcyBjYWNoZSBvcHNcbiIpOw0KPiA+ICsJ
+fQ0KPiA+ICt9DQo+IA0KPiANCi0tIA0KIEV1Z2VuaXkgUGFsdHNldg==
