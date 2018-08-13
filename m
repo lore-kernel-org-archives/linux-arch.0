@@ -1,8 +1,8 @@
 From: Pu Wen <puwen@hygon.cn>
 Subject: Re: [PATCH v3 16/17] driver/edac: enable Hygon support to AMD64 EDAC
  driver
-Date: Tue, 14 Aug 2018 00:17:55 +0800
-Message-ID: <68538d23-8880-29a2-decd-f63b48667274@hygon.cn>
+Date: Tue, 14 Aug 2018 00:18:27 +0800
+Message-ID: <49bec5ba-3a54-a9ee-f965-5f361e9711d2@hygon.cn>
 References: <cover.1533989492.git.puwen@hygon.cn>
  <cb1a56c95bbcc4d65a98378274ae34d826704a16.1533989493.git.puwen@hygon.cn>
  <CAO6F7DkdV1p59igFY3atTCRK62KH3_J-874oQw1v6ighaHOTXA@mail.gmail.com>
