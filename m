@@ -1,78 +1,107 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v3 15/17] driver/cpufreq: enable Hygon support to cpufreq
- driver
-Date: Tue, 14 Aug 2018 00:22:16 +0800
-Message-ID: <04744a9f-5865-bbc8-7735-e92c6cf6472d@hygon.cn>
-References: <cover.1533989492.git.puwen@hygon.cn>
- <36b1edf4bd9e203f8e14fa5b90a5a197fdf13898.1533989493.git.puwen@hygon.cn>
- <CAJZ5v0izyq2SoUspLPDRM9U7W+-bZPCcQ4C5Zu1hVFDoUj=w1g@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
+ simultaneously
+Date: Mon, 13 Aug 2018 16:24:02 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
+References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+ <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAJZ5v0izyq2SoUspLPDRM9U7W+-bZPCcQ4C5Zu1hVFDoUj=w1g@mail.gmail.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Rafael J. Wysocki" <rafael@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, thomas.lendacky@amd.com, Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Viresh Kumar <viresh.kumar@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux PM <linux-pm@vger.kernel.org>
+To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/8/12 17:55, Rafael J. Wysocki wrote:
-> On Sat, Aug 11, 2018 at 3:36 PM Pu Wen <puwen@hygon.cn> wrote:
->>
->> Enable ACPI cpufreq driver support for Hygon by adding family ID check
->> along with AMD.
->>
->> As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
->> support to function amd_freq_sensitivity_init().
->>
->> Signed-off-by: Pu Wen <puwen@hygon.cn>
-> 
-> Is there any technical difference between HYGON and AMD?
-
-For ACPI cpufreq patch, you are right. But for the whole point of view,
-there has some technical difference between Hygon Dhyana and AMD Family
-17h.
-For cpufreq if not added X86_VENDOR_HYGON codes, this driver will not
-work functionally on Hygon platforms.
-
-> 
-> You seem to be mechanically adding X86_VENDOR_HYGON wherever
-> X86_VENDOR_AMD is used.
-
-X86_VENDOR_HYGON is not mechanically added wherever X86_VENDOR_AMD is
-used, we have reviewed and tested the features wherever X86_VENDOR_HYGON
-is needed.
-
-As Hygon Dhyana can share code path with AMD family 17h, to minimize the
-code duplication, we choose to reuse the AMD's codes here.
-
-Thanks,
-Pu Wen
-
-> 
->> ---
->>   drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
->>   drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
->>   2 files changed, 12 insertions(+), 2 deletions(-)
->>
->> diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
->> index b61f4ec..d62fd37 100644
->> --- a/drivers/cpufreq/acpi-cpufreq.c
->> +++ b/drivers/cpufreq/acpi-cpufreq.c
->> @@ -61,6 +61,7 @@ enum {
->>
->>   #define INTEL_MSR_RANGE                (0xffff)
->>   #define AMD_MSR_RANGE          (0x7)
->> +#define HYGON_MSR_RANGE                (0x7)
->>
->>   #define MSR_K7_HWCR_CPB_DIS    (1ULL << 25)
->>
->> @@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
->>                  rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
->>                  msr = lo | ((u64)hi << 32);
->>                  return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
->> +       case X86_VENDOR_HYGON:
->>          case X86_VENDOR_AMD:
->>                  rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
->>                  msr = lo | ((u64)hi << 32);
+On 07/30/2018 09:26 AM, Eugeniy Paltsev wrote:=0A=
+> @@ -1263,11 +1254,7 @@ void __init arc_cache_init_master(void)=0A=
+>  	if (is_isa_arcv2() && ioc_enable)=0A=
+>  		arc_ioc_setup();=0A=
+>  =0A=
+> -	if (is_isa_arcv2() && ioc_enable) {=0A=
+> -		__dma_cache_wback_inv =3D __dma_cache_wback_inv_ioc;=0A=
+> -		__dma_cache_inv =3D __dma_cache_inv_ioc;=0A=
+> -		__dma_cache_wback =3D __dma_cache_wback_ioc;=0A=
+> -	} else if (is_isa_arcv2() && l2_line_sz && slc_enable) {=0A=
+> +	if (is_isa_arcv2() && l2_line_sz && slc_enable) {=0A=
+>  		__dma_cache_wback_inv =3D __dma_cache_wback_inv_slc;=0A=
+>  		__dma_cache_inv =3D __dma_cache_inv_slc;=0A=
+>  		__dma_cache_wback =3D __dma_cache_wback_slc;=0A=
+> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c=0A=
+> index cefb776a99ff..4d1466905e48 100644=0A=
+> --- a/arch/arc/mm/dma.c=0A=
+> +++ b/arch/arc/mm/dma.c=0A=
+> @@ -33,19 +33,7 @@ void *arch_dma_alloc(struct device *dev, size_t size, =
+dma_addr_t *dma_handle,=0A=
+>  	if (!page)=0A=
+>  		return NULL;=0A=
+>  =0A=
+> -	/*=0A=
+> -	 * IOC relies on all data (even coherent DMA data) being in cache=0A=
+> -	 * Thus allocate normal cached memory=0A=
+> -	 *=0A=
+> -	 * The gains with IOC are two pronged:=0A=
+> -	 *   -For streaming data, elides need for cache maintenance, saving=0A=
+> -	 *    cycles in flush code, and bus bandwidth as all the lines of a=0A=
+> -	 *    buffer need to be flushed out to memory=0A=
+> -	 *   -For coherent data, Read/Write to buffers terminate early in cache=
+=0A=
+> -	 *   (vs. always going to memory - thus are faster)=0A=
+> -	 */=0A=
+> -	if ((is_isa_arcv2() && ioc_enable) ||=0A=
+> -	    (attrs & DMA_ATTR_NON_CONSISTENT))=0A=
+> +	if (attrs & DMA_ATTR_NON_CONSISTENT)=0A=
+>  		need_coh =3D 0;=0A=
+>  =0A=
+>  	/*=0A=
+> @@ -95,8 +83,7 @@ void arch_dma_free(struct device *dev, size_t size, voi=
+d *vaddr,=0A=
+>  	struct page *page =3D virt_to_page(paddr);=0A=
+>  	int is_non_coh =3D 1;=0A=
+>  =0A=
+> -	is_non_coh =3D (attrs & DMA_ATTR_NON_CONSISTENT) ||=0A=
+> -			(is_isa_arcv2() && ioc_enable);=0A=
+> +	is_non_coh =3D (attrs & DMA_ATTR_NON_CONSISTENT);=0A=
+>  =0A=
+>  	if (PageHighMem(page) || !is_non_coh)=0A=
+>  		iounmap((void __force __iomem *)vaddr);=0A=
+> @@ -182,3 +169,20 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_=
+addr_t paddr,=0A=
+>  		break;=0A=
+>  	}=0A=
+>  }=0A=
+=0A=
+I think we have some shenanigans with @ioc_enable now.=0A=
+Do note that it was more of a debug hack using when the hw feature was intr=
+oduced=0A=
+to be able to run same kernel on various FPGA bitfiles but just flicking a =
+global=0A=
+variable via the debugger.=0A=
+=0A=
+So per code below, if @ioc_enable is NOT set, we still use software assiste=
+d cache=0A=
+maintenance, but dma_{alloc,free} don't do use that variable. Have you trie=
+d=0A=
+testing the combination when @ioc_enable is set to 0 before boot ? And is t=
+hat works ?=0A=
+=0A=
+> +=0A=
+> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,=0A=
+> +			const struct iommu_ops *iommu, bool coherent)=0A=
+> +{=0A=
+> +	/*=0A=
+> +	 * IOC hardware snoops all DMA traffic keeping the caches consistent=0A=
+> +	 * with memory - eliding need for any explicit cache maintenance of=0A=
+> +	 * DMA buffers - so we can use dma_direct cache ops.=0A=
+> +	 */=0A=
+> +	if (is_isa_arcv2() && ioc_enable && coherent) {=0A=
+> +		set_dma_ops(dev, &dma_direct_ops);=0A=
+> +		dev_info(dev, "use dma_direct_ops cache ops\n");=0A=
+> +	} else {=0A=
+> +		set_dma_ops(dev, &dma_noncoherent_ops);=0A=
+> +		dev_info(dev, "use dma_noncoherent_ops cache ops\n");=0A=
+> +	}=0A=
+> +}=0A=
+=0A=
