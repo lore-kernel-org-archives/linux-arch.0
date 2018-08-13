@@ -1,100 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay8-d.mail.gandi.net ([217.70.183.201]:36999 "EHLO
-        relay8-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729748AbeHMVTb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2018 17:19:31 -0400
-Subject: Re: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-References: <20180806175711.24438-1-alex@ghiti.fr>
-From: Alex Ghiti <alex@ghiti.fr>
-Message-ID: <55833b7d-3c29-d7ac-41f1-82f1ac228e4a@ghiti.fr>
-Date: Mon, 13 Aug 2018 18:35:53 +0000
+Received: from mail.kernel.org ([198.145.29.99]:44524 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730921AbeHNA6s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Aug 2018 20:58:48 -0400
+Date: Mon, 13 Aug 2018 17:14:36 -0500
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v3 07/17] x86/pci: add Hygon PCI vendor and northbridge
+ support
+Message-ID: <20180813221436.GN113140@bhelgaas-glaptop.roam.corp.google.com>
+References: <cover.1533989492.git.puwen@hygon.cn>
+ <0b8f3a7c5ba8b4f496f8f790e3dafa8d612ffc81.1533989492.git.puwen@hygon.cn>
 MIME-Version: 1.0
-In-Reply-To: <20180806175711.24438-1-alex@ghiti.fr>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: fr
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <0b8f3a7c5ba8b4f496f8f790e3dafa8d612ffc81.1533989492.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180813183553.pqnWDfSCHW3VegvCfCye15GTPbRO8YI2B7sdqCiftxI@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
+Message-ID: <20180813221436.Eq_KHGYPMZHTuMWkeLPAnyPn7e6EPnJt-LG21dHV73o@z>
 
-Hi everyone,
+On Sat, Aug 11, 2018 at 09:27:42PM +0800, Pu Wen wrote:
+> As Hygon register its PCI Vendor ID as a new one "0x1d94", so add a new
+> definition PCI_VENDOR_ID_HYGON in include/linux/pci_ids.h.
+> 
+> Also Hygon PCI Device ID(0x1450/0x1463/0x1464) for Host bridge is added
+> to amd_nb.c. And it need to define new arrays for Hygon:
+> hygon_root_ids[], hygon_nb_misc_ids[], hygon_nb_link_ids[].
+> 
+> To enable Hygon north bridge support, add new variable root_ids, and
+> assign its value based on whether CPU vendor is AMD or Hygon. Modify
+> the CONFIG_AMD_NB to depends on either AMD or Hygon.
+> 
+> Add Hygon support in amd_postcore_init(), early_root_info_init().
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/Kconfig         |  2 +-
+>  arch/x86/kernel/amd_nb.c | 51 ++++++++++++++++++++++++++++++++++++++++++------
+>  arch/x86/pci/amd_bus.c   |  6 ++++--
+>  include/linux/pci_ids.h  |  2 ++
+>  4 files changed, 52 insertions(+), 9 deletions(-)
 
-Does someone need anything more to be done regarding this series ?
+> diff --git a/include/linux/pci_ids.h b/include/linux/pci_ids.h
+> index 2950223..d0e98a9 100644
+> --- a/include/linux/pci_ids.h
+> +++ b/include/linux/pci_ids.h
+> @@ -511,6 +511,8 @@
+>  #define PCI_DEVICE_ID_AMI_MEGARAID	0x9010
+>  #define PCI_DEVICE_ID_AMI_MEGARAID2	0x9060
+>  
+> +#define PCI_VENDOR_ID_HYGON		0x1d94
 
-Thanks,
+Please add this entry so pci_ids.h remains sorted by Vendor ID, then Device
+ID, as the comment at the top suggests.
 
-Alex
+With that changed,
 
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
 
-On 08/06/2018 05:57 PM, Alexandre Ghiti wrote:
-> [CC linux-mm for inclusion in -mm tree]
->                                                                                   
-> In order to reduce copy/paste of functions across architectures and then
-> make riscv hugetlb port (and future ports) simpler and smaller, this
-> patchset intends to factorize the numerous hugetlb primitives that are
-> defined across all the architectures.
->                                                                                   
-> Except for prepare_hugepage_range, this patchset moves the versions that
-> are just pass-through to standard pte primitives into
-> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
-> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
->                                                                                   
-> s390 architecture has not been tackled in this serie since it does not
-> use asm-generic/hugetlb.h at all.
->                                                                                   
-> This patchset has been compiled on all addressed architectures with
-> success (except for parisc, but the problem does not come from this
-> series).
->                                                                                   
-> v6:
->    - Remove nohash/32 and book3s/32 powerpc specific implementations in
->      order to use the generic ones.
->    - Add all the Reviewed-by, Acked-by and Tested-by in the commits,
->      thanks to everyone.
->                                                                                   
-> v5:
->    As suggested by Mike Kravetz, no need to move the #include
->    <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at
->    the top of the file.
->                                                                                   
-> v4:
->    Fix powerpc build error due to misplacing of #include
->    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
->    pointed by Christophe Leroy.
->                                                                                   
-> v1, v2, v3:
->    Same version, just problems with email provider and misuse of
->    --batch-size option of git send-email
->
-> Alexandre Ghiti (11):
->    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
->    hugetlb: Introduce generic version of hugetlb_free_pgd_range
->    hugetlb: Introduce generic version of set_huge_pte_at
->    hugetlb: Introduce generic version of huge_ptep_get_and_clear
->    hugetlb: Introduce generic version of huge_ptep_clear_flush
->    hugetlb: Introduce generic version of huge_pte_none
->    hugetlb: Introduce generic version of huge_pte_wrprotect
->    hugetlb: Introduce generic version of prepare_hugepage_range
->    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
->    hugetlb: Introduce generic version of huge_ptep_set_access_flags
->    hugetlb: Introduce generic version of huge_ptep_get
->
->   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
->   arch/arm/include/asm/hugetlb.h               | 30 ----------
->   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
->   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
->   arch/mips/include/asm/hugetlb.h              | 40 +++----------
->   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
->   arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
->   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
->   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
->   arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
->   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
->   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
->   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
->   arch/x86/include/asm/hugetlb.h               | 69 ----------------------
->   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
->   15 files changed, 135 insertions(+), 394 deletions(-)
->
+>  #define PCI_VENDOR_ID_AMD		0x1022
+>  #define PCI_DEVICE_ID_AMD_K8_NB		0x1100
+>  #define PCI_DEVICE_ID_AMD_K8_NB_ADDRMAP	0x1101
+> -- 
+> 2.7.4
+> 
