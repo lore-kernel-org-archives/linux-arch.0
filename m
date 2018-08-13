@@ -1,112 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:56045 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728293AbeHMTG7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2018 15:06:59 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
- simultaneously
-Date: Mon, 13 Aug 2018 16:24:02 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
-References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
- <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-it0-f53.google.com ([209.85.214.53]:52780 "EHLO
+        mail-it0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728293AbeHMTaU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Aug 2018 15:30:20 -0400
 MIME-Version: 1.0
+In-Reply-To: <68538d23-8880-29a2-decd-f63b48667274@hygon.cn>
+References: <cover.1533989492.git.puwen@hygon.cn> <cb1a56c95bbcc4d65a98378274ae34d826704a16.1533989493.git.puwen@hygon.cn>
+ <CAO6F7DkdV1p59igFY3atTCRK62KH3_J-874oQw1v6ighaHOTXA@mail.gmail.com> <68538d23-8880-29a2-decd-f63b48667274@hygon.cn>
+From: Michael Jin <mikhail.jin@gmail.com>
+Date: Mon, 13 Aug 2018 12:47:19 -0400
+Message-ID: <CAO6F7DnU=nB+mf458sRBH0ozub8bog9-zi8-awYBJumkEjDdXg@mail.gmail.com>
+Subject: Re: [PATCH v3 16/17] driver/edac: enable Hygon support to AMD64 EDAC driver
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "hch@lst.de" <hch@lst.de>
-Message-ID: <20180813162402.We5Na6s8j-H7QzNAqM0-Ms3t52gdZYgIoo2tXQO4oE4@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, Mauro Carvalho Chehab <mchehab@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180813164719.0sqSDvH2DzvcDupdAjUPuTPxxwHBYuNnUq0i4huDQug@z>
 
-On 07/30/2018 09:26 AM, Eugeniy Paltsev wrote:=0A=
-> @@ -1263,11 +1254,7 @@ void __init arc_cache_init_master(void)=0A=
->  	if (is_isa_arcv2() && ioc_enable)=0A=
->  		arc_ioc_setup();=0A=
->  =0A=
-> -	if (is_isa_arcv2() && ioc_enable) {=0A=
-> -		__dma_cache_wback_inv =3D __dma_cache_wback_inv_ioc;=0A=
-> -		__dma_cache_inv =3D __dma_cache_inv_ioc;=0A=
-> -		__dma_cache_wback =3D __dma_cache_wback_ioc;=0A=
-> -	} else if (is_isa_arcv2() && l2_line_sz && slc_enable) {=0A=
-> +	if (is_isa_arcv2() && l2_line_sz && slc_enable) {=0A=
->  		__dma_cache_wback_inv =3D __dma_cache_wback_inv_slc;=0A=
->  		__dma_cache_inv =3D __dma_cache_inv_slc;=0A=
->  		__dma_cache_wback =3D __dma_cache_wback_slc;=0A=
-> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c=0A=
-> index cefb776a99ff..4d1466905e48 100644=0A=
-> --- a/arch/arc/mm/dma.c=0A=
-> +++ b/arch/arc/mm/dma.c=0A=
-> @@ -33,19 +33,7 @@ void *arch_dma_alloc(struct device *dev, size_t size, =
-dma_addr_t *dma_handle,=0A=
->  	if (!page)=0A=
->  		return NULL;=0A=
->  =0A=
-> -	/*=0A=
-> -	 * IOC relies on all data (even coherent DMA data) being in cache=0A=
-> -	 * Thus allocate normal cached memory=0A=
-> -	 *=0A=
-> -	 * The gains with IOC are two pronged:=0A=
-> -	 *   -For streaming data, elides need for cache maintenance, saving=0A=
-> -	 *    cycles in flush code, and bus bandwidth as all the lines of a=0A=
-> -	 *    buffer need to be flushed out to memory=0A=
-> -	 *   -For coherent data, Read/Write to buffers terminate early in cache=
-=0A=
-> -	 *   (vs. always going to memory - thus are faster)=0A=
-> -	 */=0A=
-> -	if ((is_isa_arcv2() && ioc_enable) ||=0A=
-> -	    (attrs & DMA_ATTR_NON_CONSISTENT))=0A=
-> +	if (attrs & DMA_ATTR_NON_CONSISTENT)=0A=
->  		need_coh =3D 0;=0A=
->  =0A=
->  	/*=0A=
-> @@ -95,8 +83,7 @@ void arch_dma_free(struct device *dev, size_t size, voi=
-d *vaddr,=0A=
->  	struct page *page =3D virt_to_page(paddr);=0A=
->  	int is_non_coh =3D 1;=0A=
->  =0A=
-> -	is_non_coh =3D (attrs & DMA_ATTR_NON_CONSISTENT) ||=0A=
-> -			(is_isa_arcv2() && ioc_enable);=0A=
-> +	is_non_coh =3D (attrs & DMA_ATTR_NON_CONSISTENT);=0A=
->  =0A=
->  	if (PageHighMem(page) || !is_non_coh)=0A=
->  		iounmap((void __force __iomem *)vaddr);=0A=
-> @@ -182,3 +169,20 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_=
-addr_t paddr,=0A=
->  		break;=0A=
->  	}=0A=
->  }=0A=
-=0A=
-I think we have some shenanigans with @ioc_enable now.=0A=
-Do note that it was more of a debug hack using when the hw feature was intr=
-oduced=0A=
-to be able to run same kernel on various FPGA bitfiles but just flicking a =
-global=0A=
-variable via the debugger.=0A=
-=0A=
-So per code below, if @ioc_enable is NOT set, we still use software assiste=
-d cache=0A=
-maintenance, but dma_{alloc,free} don't do use that variable. Have you trie=
-d=0A=
-testing the combination when @ioc_enable is set to 0 before boot ? And is t=
-hat works ?=0A=
-=0A=
-> +=0A=
-> +void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,=0A=
-> +			const struct iommu_ops *iommu, bool coherent)=0A=
-> +{=0A=
-> +	/*=0A=
-> +	 * IOC hardware snoops all DMA traffic keeping the caches consistent=0A=
-> +	 * with memory - eliding need for any explicit cache maintenance of=0A=
-> +	 * DMA buffers - so we can use dma_direct cache ops.=0A=
-> +	 */=0A=
-> +	if (is_isa_arcv2() && ioc_enable && coherent) {=0A=
-> +		set_dma_ops(dev, &dma_direct_ops);=0A=
-> +		dev_info(dev, "use dma_direct_ops cache ops\n");=0A=
-> +	} else {=0A=
-> +		set_dma_ops(dev, &dma_noncoherent_ops);=0A=
-> +		dev_info(dev, "use dma_noncoherent_ops cache ops\n");=0A=
-> +	}=0A=
-> +}=0A=
-=0A=
+On Mon, Aug 13, 2018 at 12:17 PM, Pu Wen <puwen@hygon.cn> wrote:
+> On 2018/8/12 3:56, Michael Jin wrote:
+>>
+>> On Sat, Aug 11, 2018 at 9:30 AM, Pu Wen <puwen@hygon.cn> wrote:
+>>>
+>>> diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
+>>> -       if (pvt->fam == 0x17) {
+>>> +       if (pvt->fam == 0x17 || pvt->vendor == X86_VENDOR_HYGON) {
+>>>                  __f17h_set_scrubval(pvt, scrubval);
+>>
+>>
+>> Separating the vendor check as an "else if (pvt->vendor ==
+>> X86_VENDOR_HYGON)" block would make architectural changes (future
+>> hygon models, i.e. 19h, 20h, etc) less confusing.
+>
+>
+> Your suggestion is reasonable, but that might make the branch a little
+> complicated.If we explicitly testing Hygon family in condition case,
+> will that be ok?
+> +    if (pvt->fam == 0x17 ||
+> +       (pvt->vendor == X86_VENDOR_HYGON && pvt->fam == 0x18))
+
+The condition case for family 18h and vendor Hygon looks better
+because it is more clear.
+
+Michael
