@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 024/104] kprobes/x86: Fix %p uses in error messages
-Date: Tue, 14 Aug 2018 19:16:38 +0200
-Message-ID: <20180814171516.794323333@linuxfoundation.org>
-References: <20180814171515.270692185@linuxfoundation.org>
+Subject: [PATCH 4.9 025/107] kprobes/x86: Fix %p uses in error messages
+Date: Tue, 14 Aug 2018 19:16:48 +0200
+Message-ID: <20180814171522.260150789@linuxfoundation.org>
+References: <20180814171520.883143803@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180814171515.270692185@linuxfoundation.org>
+In-Reply-To: <20180814171520.883143803@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -48,21 +48,20 @@ Signed-off-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 ---
- arch/x86/kernel/kprobes/core.c |    5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+ arch/x86/kernel/kprobes/core.c |    4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
 --- a/arch/x86/kernel/kprobes/core.c
 +++ b/arch/x86/kernel/kprobes/core.c
-@@ -394,8 +394,6 @@ int __copy_instruction(u8 *dest, u8 *src
- 			  - (u8 *) dest;
+@@ -396,7 +396,6 @@ int __copy_instruction(u8 *dest, u8 *src
+ 		newdisp = (u8 *) src + (s64) insn.displacement.value - (u8 *) dest;
  		if ((s64) (s32) newdisp != newdisp) {
  			pr_err("Kprobes error: new displacement does not fit into s32 (%llx)\n", newdisp);
--			pr_err("\tSrc: %p, Dest: %p, old disp: %x\n",
--				src, dest, insn->displacement.value);
+-			pr_err("\tSrc: %p, Dest: %p, old disp: %x\n", src, dest, insn.displacement.value);
  			return 0;
  		}
- 		disp = (u8 *) dest + insn_offset_displacement(insn);
-@@ -621,8 +619,7 @@ static int reenter_kprobe(struct kprobe
+ 		disp = (u8 *) dest + insn_offset_displacement(&insn);
+@@ -612,8 +611,7 @@ static int reenter_kprobe(struct kprobe
  		 * Raise a BUG or we'll continue in an endless reentering loop
  		 * and eventually a stack overflow.
  		 */
