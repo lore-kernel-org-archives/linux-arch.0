@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52770 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51598 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387930AbeHNURC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2018 16:17:02 -0400
+        with ESMTP id S2387804AbeHNUNW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2018 16:13:22 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.17 20/97] kprobes/x86: Fix %p uses in error messages
-Date: Tue, 14 Aug 2018 19:16:32 +0200
-Message-ID: <20180814171433.952815843@linuxfoundation.org>
-In-Reply-To: <20180814171433.160434170@linuxfoundation.org>
-References: <20180814171433.160434170@linuxfoundation.org>
+Subject: [PATCH 4.18 03/79] kprobes/x86: Fix %p uses in error messages
+Date: Tue, 14 Aug 2018 19:16:22 +0200
+Message-ID: <20180814171336.924800339@linuxfoundation.org>
+In-Reply-To: <20180814171336.799314117@linuxfoundation.org>
+References: <20180814171336.799314117@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180814171632.4kdQ6lJcqANew5PXASR-MZjeNoW4ofiakEM6LDt4wHU@z>
+Message-ID: <20180814171622.Iv_IVMWbeM004qgm5NNmrD0FTgqKL_r9Flj5S31A5k8@z>
 
-4.17-stable review patch.  If anyone has any objections, please let me know.
+4.18-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
