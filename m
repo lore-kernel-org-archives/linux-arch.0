@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:60430 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:58656 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390473AbeHNUel (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2018 16:34:41 -0400
+        with ESMTP id S1731979AbeHNU2V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2018 16:28:21 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 19/43] kprobes/x86: Fix %p uses in error messages
-Date: Tue, 14 Aug 2018 19:17:55 +0200
-Message-ID: <20180814171518.394579359@linuxfoundation.org>
-In-Reply-To: <20180814171517.014285600@linuxfoundation.org>
-References: <20180814171517.014285600@linuxfoundation.org>
+Subject: [PATCH 4.9 025/107] kprobes/x86: Fix %p uses in error messages
+Date: Tue, 14 Aug 2018 19:16:48 +0200
+Message-ID: <20180814171522.260150789@linuxfoundation.org>
+In-Reply-To: <20180814171520.883143803@linuxfoundation.org>
+References: <20180814171520.883143803@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180814171755.cFIfBZYM4YwqLP4VaNtDX8-l-l4g-AjXvMehmzrtIMY@z>
+Message-ID: <20180814171648.G45KgiRpXHH-3WutoNsQ8l3PJ78V84TS2Y4vRXDhxo8@z>
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -58,7 +58,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/arch/x86/kernel/kprobes/core.c
 +++ b/arch/x86/kernel/kprobes/core.c
-@@ -393,7 +393,6 @@ int __copy_instruction(u8 *dest, u8 *src
+@@ -396,7 +396,6 @@ int __copy_instruction(u8 *dest, u8 *src
  		newdisp = (u8 *) src + (s64) insn.displacement.value - (u8 *) dest;
  		if ((s64) (s32) newdisp != newdisp) {
  			pr_err("Kprobes error: new displacement does not fit into s32 (%llx)\n", newdisp);
@@ -66,7 +66,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  			return 0;
  		}
  		disp = (u8 *) dest + insn_offset_displacement(&insn);
-@@ -609,8 +608,7 @@ static int reenter_kprobe(struct kprobe
+@@ -612,8 +611,7 @@ static int reenter_kprobe(struct kprobe
  		 * Raise a BUG or we'll continue in an endless reentering loop
  		 * and eventually a stack overflow.
  		 */
