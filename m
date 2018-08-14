@@ -1,51 +1,51 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v3 07/17] x86/pci: add Hygon PCI vendor and northbridge
- support
-Date: Tue, 14 Aug 2018 12:56:51 +0800
-Message-ID: <ec0ef867-3254-9e17-bf37-de697e9d0709@hygon.cn>
-References: <cover.1533989492.git.puwen@hygon.cn>
- <0b8f3a7c5ba8b4f496f8f790e3dafa8d612ffc81.1533989492.git.puwen@hygon.cn>
- <20180813221436.GN113140@bhelgaas-glaptop.roam.corp.google.com>
+From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Subject: Re: [PATCH v3 15/17] driver/cpufreq: enable Hygon support to cpufreq driver
+Date: Tue, 14 Aug 2018 12:11:44 +0200
+Message-ID: <2048121.dGp66DhuPz@aspire.rjw.lan>
+References: <cover.1533989492.git.puwen@hygon.cn> <CAJZ5v0izyq2SoUspLPDRM9U7W+-bZPCcQ4C5Zu1hVFDoUj=w1g@mail.gmail.com> <04744a9f-5865-bbc8-7735-e92c6cf6472d@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180813221436.GN113140@bhelgaas-glaptop.roam.corp.google.com>
-Content-Language: en-US
+In-Reply-To: <04744a9f-5865-bbc8-7735-e92c6cf6472d@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
+To: Pu Wen <puwen@hygon.cn>
+Cc: "Rafael J. Wysocki" <rafael@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, thomas.lendacky@amd.com, Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>, Viresh Kumar <viresh.kumar@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux PM <linux-pm@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/8/14 6:14, Bjorn Helgaas wrote:
-> On Sat, Aug 11, 2018 at 09:27:42PM +0800, Pu Wen wrote:
->> diff --git a/include/linux/pci_ids.h b/include/linux/pci_ids.h
->> index 2950223..d0e98a9 100644
->> --- a/include/linux/pci_ids.h
->> +++ b/include/linux/pci_ids.h
->> @@ -511,6 +511,8 @@
->>   #define PCI_DEVICE_ID_AMI_MEGARAID	0x9010
->>   #define PCI_DEVICE_ID_AMI_MEGARAID2	0x9060
->>   
->> +#define PCI_VENDOR_ID_HYGON		0x1d94
+On Monday, August 13, 2018 6:22:16 PM CEST Pu Wen wrote:
+> On 2018/8/12 17:55, Rafael J. Wysocki wrote:
+> > On Sat, Aug 11, 2018 at 3:36 PM Pu Wen <puwen@hygon.cn> wrote:
+> >>
+> >> Enable ACPI cpufreq driver support for Hygon by adding family ID check
+> >> along with AMD.
+> >>
+> >> As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
+> >> support to function amd_freq_sensitivity_init().
+> >>
+> >> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> > 
+> > Is there any technical difference between HYGON and AMD?
 > 
-> Please add this entry so pci_ids.h remains sorted by Vendor ID, then Device
-> ID, as the comment at the top suggests.
+> For ACPI cpufreq patch, you are right. But for the whole point of view,
+> there has some technical difference between Hygon Dhyana and AMD Family
+> 17h.
+> For cpufreq if not added X86_VENDOR_HYGON codes, this driver will not
+> work functionally on Hygon platforms.
+> 
+> > 
+> > You seem to be mechanically adding X86_VENDOR_HYGON wherever
+> > X86_VENDOR_AMD is used.
+> 
+> X86_VENDOR_HYGON is not mechanically added wherever X86_VENDOR_AMD is
+> used, we have reviewed and tested the features wherever X86_VENDOR_HYGON
+> is needed.
+> 
+> As Hygon Dhyana can share code path with AMD family 17h, to minimize the
+> code duplication, we choose to reuse the AMD's codes here.
 
-Thanks for the suggestion. Will place PCI_VENDOR_ID_HYGON between 
-PCI_VENDOR_ID_AMAZON(0x1d0f) and PCI_VENDOR_ID_TEKRAM(0x1de1) in next
-patch set.
+OK
 
-Pu Wen
+The cpufreq changes are fine by me.
 
-> 
-> With that changed,
-> 
-> Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
-> 
->>   #define PCI_VENDOR_ID_AMD		0x1022
->>   #define PCI_DEVICE_ID_AMD_K8_NB		0x1100
->>   #define PCI_DEVICE_ID_AMD_K8_NB_ADDRMAP	0x1101
->> -- 
->> 2.7.4
->>
+Thanks!
