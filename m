@@ -1,91 +1,74 @@
-From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [PATCH v3 15/17] driver/cpufreq: enable Hygon support to cpufreq driver
-Date: Tue, 14 Aug 2018 12:12:29 +0200
-Message-ID: <4011042.yx3xh8JzSX@aspire.rjw.lan>
-References: <cover.1533989492.git.puwen@hygon.cn> <36b1edf4bd9e203f8e14fa5b90a5a197fdf13898.1533989493.git.puwen@hygon.cn>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.18 03/79] kprobes/x86: Fix %p uses in error messages
+Date: Tue, 14 Aug 2018 19:16:22 +0200
+Message-ID: <20180814171336.924800339@linuxfoundation.org>
+References: <20180814171336.799314117@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <36b1edf4bd9e203f8e14fa5b90a5a197fdf13898.1533989493.git.puwen@hygon.cn>
+In-Reply-To: <20180814171336.799314117@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, viresh.kumar@linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org
 List-Id: linux-arch.vger.kernel.org
 
-On Saturday, August 11, 2018 3:29:52 PM CEST Pu Wen wrote:
-> Enable ACPI cpufreq driver support for Hygon by adding family ID check
-> along with AMD.
-> 
-> As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
-> support to function amd_freq_sensitivity_init().
-> 
-> Signed-off-by: Pu Wen <puwen@hygon.cn>
-> ---
->  drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
->  drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
->  2 files changed, 12 insertions(+), 2 deletions(-)
-> 
-> diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
-> index b61f4ec..d62fd37 100644
-> --- a/drivers/cpufreq/acpi-cpufreq.c
-> +++ b/drivers/cpufreq/acpi-cpufreq.c
-> @@ -61,6 +61,7 @@ enum {
->  
->  #define INTEL_MSR_RANGE		(0xffff)
->  #define AMD_MSR_RANGE		(0x7)
-> +#define HYGON_MSR_RANGE		(0x7)
->  
->  #define MSR_K7_HWCR_CPB_DIS	(1ULL << 25)
->  
-> @@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
->  		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
->  		msr = lo | ((u64)hi << 32);
->  		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
-> +	case X86_VENDOR_HYGON:
->  	case X86_VENDOR_AMD:
->  		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
->  		msr = lo | ((u64)hi << 32);
-> @@ -113,6 +115,7 @@ static int boost_set_msr(bool enable)
->  		msr_addr = MSR_IA32_MISC_ENABLE;
->  		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
->  		break;
-> +	case X86_VENDOR_HYGON:
->  	case X86_VENDOR_AMD:
->  		msr_addr = MSR_K7_HWCR;
->  		msr_mask = MSR_K7_HWCR_CPB_DIS;
-> @@ -225,6 +228,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
->  
->  	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
->  		msr &= AMD_MSR_RANGE;
-> +	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-> +		msr &= HYGON_MSR_RANGE;
->  	else
->  		msr &= INTEL_MSR_RANGE;
->  
-> diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
-> index be926d9..4ac7c3c 100644
-> --- a/drivers/cpufreq/amd_freq_sensitivity.c
-> +++ b/drivers/cpufreq/amd_freq_sensitivity.c
-> @@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
->  {
->  	u64 val;
->  	struct pci_dev *pcidev;
-> +	unsigned int pci_vendor;
->  
-> -	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-> +		pci_vendor = PCI_VENDOR_ID_AMD;
-> +	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-> +		pci_vendor = PCI_VENDOR_ID_HYGON;
-> +	else
->  		return -ENODEV;
->  
-> -	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
-> +	pcidev = pci_get_device(pci_vendor,
->  			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
->  
->  	if (!pcidev) {
-> 
+4.18-stable review patch.  If anyone has any objections, please let me know.
 
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+------------------
+
+From: Masami Hiramatsu <mhiramat@kernel.org>
+
+commit 0ea063306eecf300fcf06d2f5917474b580f666f upstream.
+
+Remove all %p uses in error messages in kprobes/x86.
+
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>
+Cc: David S . Miller <davem@davemloft.net>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Jon Medhurst <tixy@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Thomas Richter <tmricht@linux.ibm.com>
+Cc: Tobin C . Harding <me@tobin.cc>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: acme@kernel.org
+Cc: akpm@linux-foundation.org
+Cc: brueckner@linux.vnet.ibm.com
+Cc: linux-arch@vger.kernel.org
+Cc: rostedt@goodmis.org
+Cc: schwidefsky@de.ibm.com
+Cc: stable@vger.kernel.org
+Link: https://lkml.kernel.org/lkml/152491902310.9916.13355297638917767319.stgit@devbox
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ arch/x86/kernel/kprobes/core.c |    5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -395,8 +395,6 @@ int __copy_instruction(u8 *dest, u8 *src
+ 			  - (u8 *) real;
+ 		if ((s64) (s32) newdisp != newdisp) {
+ 			pr_err("Kprobes error: new displacement does not fit into s32 (%llx)\n", newdisp);
+-			pr_err("\tSrc: %p, Dest: %p, old disp: %x\n",
+-				src, real, insn->displacement.value);
+ 			return 0;
+ 		}
+ 		disp = (u8 *) dest + insn_offset_displacement(insn);
+@@ -640,8 +638,7 @@ static int reenter_kprobe(struct kprobe
+ 		 * Raise a BUG or we'll continue in an endless reentering loop
+ 		 * and eventually a stack overflow.
+ 		 */
+-		printk(KERN_WARNING "Unrecoverable kprobe detected at %p.\n",
+-		       p->addr);
++		pr_err("Unrecoverable kprobe detected.\n");
+ 		dump_kprobe(p);
+ 		BUG();
+ 	default:
