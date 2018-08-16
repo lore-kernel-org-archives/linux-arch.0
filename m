@@ -1,81 +1,53 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v2 13/27] mm: Handle shadow stack page fault
-Date: Tue, 14 Aug 2018 14:28:45 -0700
-Message-ID: <1534282125.24160.9.camel@intel.com>
-References: <20180710222639.8241-1-yu-cheng.yu@intel.com>
-         <20180710222639.8241-14-yu-cheng.yu@intel.com>
-         <2f3ff321-c629-3e00-59f6-8bca510650d4@linux.intel.com>
-         <20180711090656.GS2476@hirez.programming.kicks-ass.net>
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
+Date: Thu, 16 Aug 2018 21:22:01 +0800
+Message-ID: <d8e2dfb0-a2ff-5376-c39f-83626f257fda@hygon.cn>
+References: <cover.1533989492.git.puwen@hygon.cn>
+ <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
+ <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180711090656.GS2476@hirez.programming.kicks-ass.net>
+In-Reply-To: <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@linux.intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, jgross@suse.com, JBeulich@suse.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2018-07-11 at 11:06 +0200, Peter Zijlstra wrote:
-> On Tue, Jul 10, 2018 at 04:06:25PM -0700, Dave Hansen wrote:
-> > 
-> > On 07/10/2018 03:26 PM, Yu-cheng Yu wrote:
-> > > 
-> > > +	if (is_shstk_mapping(vma->vm_flags))
-> > > +		entry = pte_mkdirty_shstk(entry);
-> > > +	else
-> > > +		entry = pte_mkdirty(entry);
-> > > +
-> > > +	entry = maybe_mkwrite(entry, vma);
-> > >  	if (ptep_set_access_flags(vma, vmf->address, vmf->pte,
-> > > entry, 1))
-> > >  		update_mmu_cache(vma, vmf->address, vmf->pte);
-> > >  	pte_unmap_unlock(vmf->pte, vmf->ptl);
-> > > @@ -2526,7 +2532,11 @@ static int wp_page_copy(struct vm_fault
-> > > *vmf)
-> > >  		}
-> > >  		flush_cache_page(vma, vmf->address,
-> > > pte_pfn(vmf->orig_pte));
-> > >  		entry = mk_pte(new_page, vma->vm_page_prot);
-> > > -		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-> > > +		if (is_shstk_mapping(vma->vm_flags))
-> > > +			entry = pte_mkdirty_shstk(entry);
-> > > +		else
-> > > +			entry = pte_mkdirty(entry);
-> > > +		entry = maybe_mkwrite(entry, vma);
-> > Do we want to lift this hunk of code and put it elsewhere?  Maybe:
-> > 
-> > 	entry = pte_set_vma_features(entry, vma);
-> > 
-> > and then:
-> > 
-> > pte_t pte_set_vma_features(pte_t entry, struct vm_area_struct)
-> > {
-> > 		/*
-> > 		 * Shadow stack PTEs are always dirty and always
-> > 		 * writable.  They have a different encoding for
-> > 		 * this than normal PTEs, though.
-> > 		 */
-> > 		if (is_shstk_mapping(vma->vm_flags))
-> > 			entry = pte_mkdirty_shstk(entry);
-> > 		else
-> > 			entry = pte_mkdirty(entry);
-> > 
-> > 		entry = maybe_mkwrite(entry, vma);
-> > 
-> > 	return entry;
-> > }
-> Yes, that wants a helper like that. Not sold on the name, but
-> whatever.
+On 2018/8/11 22:34, Boris Ostrovsky wrote:
+> On 08/11/2018 09:29 AM, Pu Wen wrote:
+>> To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
+>> code path and add vendor check for Hygon along with AMD.
+>>
+>> Signed-off-by: Pu Wen <puwen@hygon.cn>
+>> ---
+>>   arch/x86/xen/pmu.c | 15 ++++++++++++---
+>>   1 file changed, 12 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
+>> index 7d00d4a..1053dda 100644
+>> --- a/arch/x86/xen/pmu.c
+>> +++ b/arch/x86/xen/pmu.c
+>> @@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
+>>   			k7_counters_mirrored = 0;
+>>   			break;
+>>   		}
+>> +	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+>> +		amd_num_counters = F10H_NUM_COUNTERS;
 > 
-> Is there any way we can hide all the shadow stack magic in arch
-> code?
+> I haven't looked in details at Zen's PMU but the PMC section in the spec
+> starts with
+>    "There are six core performance events counters per thread..."
 
-We use is_shstk_mapping() only to determine PAGE_DIRTY_SW or
-PAGE_DIRTY_HW should be set in a PTE.  One way to remove this shadow
-stack code from generic code is changing pte_mkdirty(pte) to
-pte_mkdirty(pte, vma), and in the arch code we handle shadow stack.
-Is this acceptable?
+There are six core performance events counters per thread, so there are
+six MSRs for these counters(0-5). Also there are four legacy PMC MSRs,
+they are alias of the counters(0-3).
+
+In this version of kernel Zen use the lagacy version of PMU MSRs for Xen.
+For safety consideration, Dhyana just fullow this stategy. And it works
+fine when VPMU enabled in Xen on Hygon platforms by testing with perf.
 
 Thanks,
-Yu-cheng
+Pu Wen
