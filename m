@@ -1,58 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:48696 "EHLO cstnet.cn"
+Received: from smtp20.cstnet.cn ([159.226.251.20]:50538 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731048AbeHPQVM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Aug 2018 12:21:12 -0400
+        id S1727244AbeHPQ2M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Aug 2018 12:28:12 -0400
 From: Pu Wen <puwen@hygon.cn>
 Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
 References: <cover.1533989492.git.puwen@hygon.cn>
  <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
  <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
-Message-ID: <d8e2dfb0-a2ff-5376-c39f-83626f257fda@hygon.cn>
-Date: Thu, 16 Aug 2018 21:22:01 +0800
+ <0aa44410-47ec-27e2-10d9-c0dc5d2e457a@suse.com>
+ <150f6a8d-33e8-a84d-f34b-17bdb7264ebe@oracle.com>
+Message-ID: <16c21c53-2a03-d5fe-9232-8c0e377566a7@hygon.cn>
+Date: Thu, 16 Aug 2018 21:29:13 +0800
 MIME-Version: 1.0
-In-Reply-To: <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
+In-Reply-To: <150f6a8d-33e8-a84d-f34b-17bdb7264ebe@oracle.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, jgross@suse.com, JBeulich@suse.com
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, JBeulich@suse.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20180816132201.l1wLo7QT7kt_NVwUV7__cfywZ54pgy_27U5K0lXYfX4@z>
+Message-ID: <20180816132913.nR-XiDf7WcUUYYenGDKrs_g2U4-rXhcF4APLuh4F4cY@z>
 
-On 2018/8/11 22:34, Boris Ostrovsky wrote:
-> On 08/11/2018 09:29 AM, Pu Wen wrote:
->> To make Xen work correctly on Hygon platforms, reuse AMD's Xen support
->> code path and add vendor check for Hygon along with AMD.
->>
->> Signed-off-by: Pu Wen <puwen@hygon.cn>
->> ---
->>   arch/x86/xen/pmu.c | 15 ++++++++++++---
->>   1 file changed, 12 insertions(+), 3 deletions(-)
->>
->> diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
->> index 7d00d4a..1053dda 100644
->> --- a/arch/x86/xen/pmu.c
->> +++ b/arch/x86/xen/pmu.c
->> @@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
->>   			k7_counters_mirrored = 0;
->>   			break;
->>   		}
->> +	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
->> +		amd_num_counters = F10H_NUM_COUNTERS;
+On 2018/8/12 21:26, Boris Ostrovsky wrote:
+> On 08/12/2018 04:55 AM, Juergen Gross wrote:
+>> On 11/08/18 16:34, Boris Ostrovsky wrote:
+>>> On 08/11/2018 09:29 AM, Pu Wen wrote:
+>>>>   bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
+>>>>   {
+>>>> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
+>>>> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+>>>> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+>>>
+>>> 'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
+>> Really? Xen supports Centaur, too.
 > 
-> I haven't looked in details at Zen's PMU but the PMC section in the spec
-> starts with
->    "There are six core performance events counters per thread..."
+> VPMU doesn't --- hypervisor will not initialize it. Besides, the
+> existing code will steer non-AMD execution to Intel, which is not right
+> either.
+> 
+> I'll add a check to bail if VPMU is not initialized properly, we seem to
+> ignore xen_pmu_init() failures. Which, BTW, makes this patch rather
+> pointless until there is support for Hygon Xen.
 
-There are six core performance events counters per thread, so there are
-six MSRs for these counters(0-5). Also there are four legacy PMC MSRs,
-they are alias of the counters(0-3).
-
-In this version of kernel Zen use the lagacy version of PMU MSRs for Xen.
-For safety consideration, Dhyana just fullow this stategy. And it works
-fine when VPMU enabled in Xen on Hygon platforms by testing with perf.
+So should it still need to test vendor Hygon here or wait for your check
+done?
 
 Thanks,
 Pu Wen
