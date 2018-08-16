@@ -1,46 +1,73 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
-Date: Thu, 16 Aug 2018 21:29:13 +0800
-Message-ID: <16c21c53-2a03-d5fe-9232-8c0e377566a7@hygon.cn>
-References: <cover.1533989492.git.puwen@hygon.cn>
- <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
- <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
- <0aa44410-47ec-27e2-10d9-c0dc5d2e457a@suse.com>
- <150f6a8d-33e8-a84d-f34b-17bdb7264ebe@oracle.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 3.18 06/15] kprobes/x86: Fix %p uses in error messages
+Date: Thu, 16 Aug 2018 20:41:43 +0200
+Message-ID: <20180816171633.784233812@linuxfoundation.org>
+References: <20180816171633.546734046@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <150f6a8d-33e8-a84d-f34b-17bdb7264ebe@oracle.com>
-Content-Language: en-US
+In-Reply-To: <20180816171633.546734046@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, JBeulich@suse.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/8/12 21:26, Boris Ostrovsky wrote:
-> On 08/12/2018 04:55 AM, Juergen Gross wrote:
->> On 11/08/18 16:34, Boris Ostrovsky wrote:
->>> On 08/11/2018 09:29 AM, Pu Wen wrote:
->>>>   bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
->>>>   {
->>>> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
->>>> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
->>>> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
->>>
->>> 'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
->> Really? Xen supports Centaur, too.
-> 
-> VPMU doesn't --- hypervisor will not initialize it. Besides, the
-> existing code will steer non-AMD execution to Intel, which is not right
-> either.
-> 
-> I'll add a check to bail if VPMU is not initialized properly, we seem to
-> ignore xen_pmu_init() failures. Which, BTW, makes this patch rather
-> pointless until there is support for Hygon Xen.
+3.18-stable review patch.  If anyone has any objections, please let me know.
 
-So should it still need to test vendor Hygon here or wait for your check
-done?
+------------------
 
-Thanks,
-Pu Wen
+From: Masami Hiramatsu <mhiramat@kernel.org>
+
+commit 0ea063306eecf300fcf06d2f5917474b580f666f upstream.
+
+Remove all %p uses in error messages in kprobes/x86.
+
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>
+Cc: David S . Miller <davem@davemloft.net>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Jon Medhurst <tixy@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Thomas Richter <tmricht@linux.ibm.com>
+Cc: Tobin C . Harding <me@tobin.cc>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: acme@kernel.org
+Cc: akpm@linux-foundation.org
+Cc: brueckner@linux.vnet.ibm.com
+Cc: linux-arch@vger.kernel.org
+Cc: rostedt@goodmis.org
+Cc: schwidefsky@de.ibm.com
+Cc: stable@vger.kernel.org
+Link: https://lkml.kernel.org/lkml/152491902310.9916.13355297638917767319.stgit@devbox
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ arch/x86/kernel/kprobes/core.c |    4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -365,7 +365,6 @@ int __copy_instruction(u8 *dest, u8 *src
+ 		newdisp = (u8 *) src + (s64) insn.displacement.value - (u8 *) dest;
+ 		if ((s64) (s32) newdisp != newdisp) {
+ 			pr_err("Kprobes error: new displacement does not fit into s32 (%llx)\n", newdisp);
+-			pr_err("\tSrc: %p, Dest: %p, old disp: %x\n", src, dest, insn.displacement.value);
+ 			return 0;
+ 		}
+ 		disp = (u8 *) dest + insn_offset_displacement(&insn);
+@@ -568,8 +567,7 @@ static int reenter_kprobe(struct kprobe
+ 		 * Raise a BUG or we'll continue in an endless reentering loop
+ 		 * and eventually a stack overflow.
+ 		 */
+-		printk(KERN_WARNING "Unrecoverable kprobe detected at %p.\n",
+-		       p->addr);
++		pr_err("Unrecoverable kprobe detected.\n");
+ 		dump_kprobe(p);
+ 		BUG();
+ 	default:
