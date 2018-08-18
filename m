@@ -1,108 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0134.outbound.protection.outlook.com ([104.47.37.134]:49386
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726300AbeHRVTz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 18 Aug 2018 17:19:55 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
-Date: Sat, 18 Aug 2018 11:10:16 -0700
-Message-ID: <20180818181017.1246-2-paul.burton@mips.com>
-In-Reply-To: <20180818181017.1246-1-paul.burton@mips.com>
-References: <20180818181017.1246-1-paul.burton@mips.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from conuserg-09.nifty.com ([210.131.2.76]:18937 "EHLO
+        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726385AbeHSBpo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Aug 2018 21:45:44 -0400
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH] export.h: remove VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR()
+Date: Sun, 19 Aug 2018 07:34:47 +0900
+Message-ID: <1534631687-18347-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mips@linux-mips.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20180818181016.8U5kJNlwcF8yeoLp9-d7aQsjP-XDmsdzQQTl9jrQSAo@z>
+To: linux-kbuild@vger.kernel.org
+Cc: Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, keyrings@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>
+Message-ID: <20180818223447.U4XO1gHIwKUJvTb_84SD6XtjzhHh0xobovQGmz-jh4g@z>
 
-We have a need to override the definition of
-barrier_before_unreachable() for MIPS, which means we either need to add
-architecture-specific code into linux/compiler-gcc.h or we need to allow
-the architecture to provide a header that can define the macro before
-the generic definition. The latter seems like the better approach.
+With the special case handling for Blackfin and Metag was removed by
+commit 94e58e0ac312 ("export.h: remove code for prefixing symbols with
+underscore"), VMLINUX_SYMBOL() is no-no.
 
-A straightforward approach to the per-arch header is to make use of
-asm-generic to provide a default empty header & adjust architectures
-which don't need anything specific to make use of that by adding the
-header to generic-y. Unfortunately this doesn't work so well due to
-commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
-<linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
-cflags using the -include compiler flag.
+Replace the remaining usages, then remove the definition of
+VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR().
 
-Because the -include flag is present for all C files we compile, we need
-the architecture-provided header to be present before any C files are
-compiled. If any C files can be compiled prior to the asm-generic header
-wrappers being generated then we hit a build failure due to missing
-header. Such cases do exist - one pointed out by the kbuild test robot
-is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
-of the archprepare target [1].
+<asm-generic/vmlinux.lds.h> no longer needs to include <linux/export.h>.
 
-This leaves us with a few options:
-
-  1) Use generic-y & fix any build failures we find by enforcing
-     ordering such that the asm-generic target occurs before any C
-     compilation, such that linux/compiler_types.h can always include
-     the generated asm-generic wrapper which in turn includes the empty
-     asm-generic header. This would rely on us finding all the
-     problematic cases - I don't know for sure that the ia64 issue is
-     the only one.
-
-  2) Add an actual empty header to each architecture, so that we don't
-     need the generated asm-generic wrapper. This seems messy.
-
-  3) Give up & add #ifdef CONFIG_MIPS or similar to
-     linux/compiler_types.h. This seems messy too.
-
-  4) Include the arch header only when it's actually needed, removing
-     the need for the asm-generic wrapper for all other architectures.
-
-This patch allows us to use approach 4, by including an
-asm/compiler_types.h header using the -include flag in the same way we
-do for linux/compiler_types.h, but only if the header actually exists.
-
-[1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
-
-Signed-off-by: Paul Burton <paul.burton@mips.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kbuild@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 ---
-Any thoughts anyone?
 
-This isn't the prettiest it could possibly be but it's a small change &
-clearly shouldn't break anything, which are good qualities for a patch
-fixing build failures that we'd ideally backport as far as 4.16.
+ certs/system_certificates.S       | 16 ++++++++--------
+ include/asm-generic/vmlinux.lds.h |  2 --
+ include/linux/export.h            |  7 -------
+ usr/initramfs_data.S              |  4 ++--
+ 4 files changed, 10 insertions(+), 19 deletions(-)
 
-Changes in v8:
-- New patch.
-
- scripts/Makefile.lib | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 1bb594fcfe12..4e7b41ef029b 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -151,8 +151,11 @@ __a_flags	= $(call flags,_a_flags)
- __cpp_flags     = $(call flags,_cpp_flags)
- endif
+diff --git a/certs/system_certificates.S b/certs/system_certificates.S
+index 3918ff7..8f29058 100644
+--- a/certs/system_certificates.S
++++ b/certs/system_certificates.S
+@@ -5,8 +5,8 @@
+ 	__INITRODATA
  
-+c_includes	= $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/compiler_types.h)
-+c_includes	+= $(srctree)/include/linux/compiler_types.h
-+
- c_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
--		 -include $(srctree)/include/linux/compiler_types.h       \
-+		 $(addprefix -include ,$(c_includes))                     \
- 		 $(__c_flags) $(modkern_cflags)                           \
- 		 $(basename_flags) $(modname_flags)
+ 	.align 8
+-	.globl VMLINUX_SYMBOL(system_certificate_list)
+-VMLINUX_SYMBOL(system_certificate_list):
++	.globl system_certificate_list
++system_certificate_list:
+ __cert_list_start:
+ #ifdef CONFIG_MODULE_SIG
+ 	.incbin "certs/signing_key.x509"
+@@ -15,21 +15,21 @@ __cert_list_start:
+ __cert_list_end:
  
+ #ifdef CONFIG_SYSTEM_EXTRA_CERTIFICATE
+-	.globl VMLINUX_SYMBOL(system_extra_cert)
++	.globl system_extra_cert
+ 	.size system_extra_cert, CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE
+-VMLINUX_SYMBOL(system_extra_cert):
++system_extra_cert:
+ 	.fill CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE, 1, 0
+ 
+ 	.align 4
+-	.globl VMLINUX_SYMBOL(system_extra_cert_used)
+-VMLINUX_SYMBOL(system_extra_cert_used):
++	.globl system_extra_cert_used
++system_extra_cert_used:
+ 	.int 0
+ 
+ #endif /* CONFIG_SYSTEM_EXTRA_CERTIFICATE */
+ 
+ 	.align 8
+-	.globl VMLINUX_SYMBOL(system_certificate_list_size)
+-VMLINUX_SYMBOL(system_certificate_list_size):
++	.globl system_certificate_list_size
++system_certificate_list_size:
+ #ifdef CONFIG_64BIT
+ 	.quad __cert_list_end - __cert_list_start
+ #else
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index f173b5f..7b75ff6 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -54,8 +54,6 @@
+ #define LOAD_OFFSET 0
+ #endif
+ 
+-#include <linux/export.h>
+-
+ /* Align . to a 8 byte boundary equals to maximum function alignment. */
+ #define ALIGN_FUNCTION()  . = ALIGN(8)
+ 
+diff --git a/include/linux/export.h b/include/linux/export.h
+index b768d6d..c363bde 100644
+--- a/include/linux/export.h
++++ b/include/linux/export.h
+@@ -10,13 +10,6 @@
+  * hackers place grumpy comments in header files.
+  */
+ 
+-#define __VMLINUX_SYMBOL(x) x
+-#define __VMLINUX_SYMBOL_STR(x) #x
+-
+-/* Indirect, so macros are expanded before pasting. */
+-#define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
+-#define VMLINUX_SYMBOL_STR(x) __VMLINUX_SYMBOL_STR(x)
+-
+ #ifndef __ASSEMBLY__
+ struct kernel_symbol
+ {
+diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
+index b28da79..d07648f 100644
+--- a/usr/initramfs_data.S
++++ b/usr/initramfs_data.S
+@@ -30,8 +30,8 @@ __irf_start:
+ .incbin __stringify(INITRAMFS_IMAGE)
+ __irf_end:
+ .section .init.ramfs.info,"a"
+-.globl VMLINUX_SYMBOL(__initramfs_size)
+-VMLINUX_SYMBOL(__initramfs_size):
++.globl __initramfs_size
++__initramfs_size:
+ #ifdef CONFIG_64BIT
+ 	.quad __irf_end - __irf_start
+ #else
 -- 
-2.18.0
+2.7.4
