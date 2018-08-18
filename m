@@ -1,52 +1,83 @@
-From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Subject: Re: [PATCH v3 13/17] x86/xen: enable Hygon support to Xen
-Date: Fri, 17 Aug 2018 00:37:53 -0400
-Message-ID: <5ce011d7-3905-8b0b-e13e-0ee5163ad5bb@oracle.com>
-References: <cover.1533989492.git.puwen@hygon.cn>
- <2747ad959f07459000f2693a98d237e2b3149ca1.1533989493.git.puwen@hygon.cn>
- <b32887e0-df6e-fb31-d9cd-6b31961c9c2b@oracle.com>
- <0aa44410-47ec-27e2-10d9-c0dc5d2e457a@suse.com>
- <150f6a8d-33e8-a84d-f34b-17bdb7264ebe@oracle.com>
- <16c21c53-2a03-d5fe-9232-8c0e377566a7@hygon.cn>
+From: Paul Burton <paul.burton@mips.com>
+Subject: [PATCH v8 0/2] MIPS: Override barrier_before_unreachable() to fix microMIPS
+Date: Sat, 18 Aug 2018 11:10:15 -0700
+Message-ID: <20180818181017.1246-1-paul.burton@mips.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <16c21c53-2a03-d5fe-9232-8c0e377566a7@hygon.cn>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>, Juergen Gross <jgross@suse.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, JBeulich@suse.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org
+To: linux-mips@linux-mips.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 08/16/2018 09:29 AM, Pu Wen wrote:
-> On 2018/8/12 21:26, Boris Ostrovsky wrote:
->> On 08/12/2018 04:55 AM, Juergen Gross wrote:
->>> On 11/08/18 16:34, Boris Ostrovsky wrote:
->>>> On 08/11/2018 09:29 AM, Pu Wen wrote:
->>>>>   bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
->>>>>   {
->>>>> -    if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
->>>>> +    if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
->>>>> +        boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
->>>>
->>>> 'if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)' please.
->>> Really? Xen supports Centaur, too.
->>
->> VPMU doesn't --- hypervisor will not initialize it. Besides, the
->> existing code will steer non-AMD execution to Intel, which is not right
->> either.
->>
->> I'll add a check to bail if VPMU is not initialized properly, we seem to
->> ignore xen_pmu_init() failures. Which, BTW, makes this patch rather
->> pointless until there is support for Hygon Xen.
->
-> So should it still need to test vendor Hygon here or wait for your check
-> done?
+This series overrides barrier_before_unreachable() for MIPS to add a
+.insn assembler directive.
 
+Due to the subsequent __builtin_unreachable(), the assembler can't tell
+that a label on the empty inline asm is code rather than data, so any
+microMIPS branches targeting it (which sadly can't be removed) raise
+errors due to the mismatching ISA mode, Adding the .insn in patch 2
+tells the assembler that it should be treated as code.
 
-I'd prefer checking for !Intel, as I suggested above. Centaur will fail
-either way, but because we use safe versions of MSR access I now think
-we don't need any extra checks for xen_pmu_init() result.
+Applies cleanly atop v4.18.
 
--boris
+Changes in v8 (Paul):
+- Try something different... including a header that might be an
+  asm-generic wrapper in linux/compiler_types.h creates build ordering
+  problems for any C file which can be built before the asm-generic
+  target. Patch 1 changes tact to avoid asm-generic & the ordering
+  problem.
+- Commit message improvements in patch 2.
+
+Changes in v7 (Paul):
+- Elaborate on affected GCC versions in patch 4.
+
+Changes in v6 (Paul):
+- Fix patch 2 to find the generated headers in $(objtree).
+- Remove CC's for defunct MIPS email addresses (Matthew & Robert).
+- CC linux-um@lists.infradead.org.
+
+Changes in v5 (Paul):
+- Rebase atop v4.18-rc8.
+- Comment & commit message tweaks.
+- Add SPDX-License-Identifier to asm-generic/compiler.h.
+
+Changes in v4 (James):
+- Fix asm-generic/compiler.h include from check, compiler_types.h is
+  included on the command line so linux/compiler.h may not be included
+  (kbuild test robot).
+- New patch 2 to fix um (kbuild test robot).
+
+Changes in v3 (James):
+- New patch 1.
+- Rebase after 4.17 arch removal and update commit messages.
+- Use asm/compiler.h instead of compiler-gcc.h (Arnd).
+- Drop stable tag for now.
+
+Changes in v2 (Paul):
+- Add generic-y entries to arch Kbuild files. Oops!
+
+Previous versions:
+v1: https://www.linux-mips.org/archives/linux-mips/2016-05/msg00399.html
+v2: https://www.linux-mips.org/archives/linux-mips/2016-05/msg00401.html
+v3: https://lkml.org/lkml/2018/4/17/228
+v4: https://www.linux-mips.org/archives/linux-mips/2018-05/msg00069.html
+v5: https://www.spinics.net/lists/mips/msg74408.html
+v6: https://www.spinics.net/lists/mips/msg74425.html
+v7: https://www.spinics.net/lists/linux-arch/msg47934.html
+
+Older #ifdef-based attempt:
+https://marc.info/?l=linux-mips&m=145555921408274&w=2
+
+Paul Burton (2):
+  kbuild: Allow asm-specific compiler_types.h
+  MIPS: Workaround GCC __builtin_unreachable reordering bug
+
+ arch/mips/include/asm/compiler_types.h | 39 ++++++++++++++++++++++++++
+ include/linux/compiler-gcc.h           |  2 ++
+ scripts/Makefile.lib                   |  5 +++-
+ 3 files changed, 45 insertions(+), 1 deletion(-)
+ create mode 100644 arch/mips/include/asm/compiler_types.h
+
+-- 
+2.18.0
