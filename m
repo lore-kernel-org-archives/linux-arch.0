@@ -1,83 +1,102 @@
 From: Paul Burton <paul.burton@mips.com>
-Subject: [PATCH v8 0/2] MIPS: Override barrier_before_unreachable() to fix microMIPS
-Date: Sat, 18 Aug 2018 11:10:15 -0700
-Message-ID: <20180818181017.1246-1-paul.burton@mips.com>
+Subject: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
+Date: Sat, 18 Aug 2018 11:10:16 -0700
+Message-ID: <20180818181017.1246-2-paul.burton@mips.com>
+References: <20180818181017.1246-1-paul.burton@mips.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180818181017.1246-1-paul.burton@mips.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-mips@linux-mips.org
 Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-This series overrides barrier_before_unreachable() for MIPS to add a
-.insn assembler directive.
+We have a need to override the definition of
+barrier_before_unreachable() for MIPS, which means we either need to add
+architecture-specific code into linux/compiler-gcc.h or we need to allow
+the architecture to provide a header that can define the macro before
+the generic definition. The latter seems like the better approach.
 
-Due to the subsequent __builtin_unreachable(), the assembler can't tell
-that a label on the empty inline asm is code rather than data, so any
-microMIPS branches targeting it (which sadly can't be removed) raise
-errors due to the mismatching ISA mode, Adding the .insn in patch 2
-tells the assembler that it should be treated as code.
+A straightforward approach to the per-arch header is to make use of
+asm-generic to provide a default empty header & adjust architectures
+which don't need anything specific to make use of that by adding the
+header to generic-y. Unfortunately this doesn't work so well due to
+commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
+<linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
+cflags using the -include compiler flag.
 
-Applies cleanly atop v4.18.
+Because the -include flag is present for all C files we compile, we need
+the architecture-provided header to be present before any C files are
+compiled. If any C files can be compiled prior to the asm-generic header
+wrappers being generated then we hit a build failure due to missing
+header. Such cases do exist - one pointed out by the kbuild test robot
+is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
+of the archprepare target [1].
 
-Changes in v8 (Paul):
-- Try something different... including a header that might be an
-  asm-generic wrapper in linux/compiler_types.h creates build ordering
-  problems for any C file which can be built before the asm-generic
-  target. Patch 1 changes tact to avoid asm-generic & the ordering
-  problem.
-- Commit message improvements in patch 2.
+This leaves us with a few options:
 
-Changes in v7 (Paul):
-- Elaborate on affected GCC versions in patch 4.
+  1) Use generic-y & fix any build failures we find by enforcing
+     ordering such that the asm-generic target occurs before any C
+     compilation, such that linux/compiler_types.h can always include
+     the generated asm-generic wrapper which in turn includes the empty
+     asm-generic header. This would rely on us finding all the
+     problematic cases - I don't know for sure that the ia64 issue is
+     the only one.
 
-Changes in v6 (Paul):
-- Fix patch 2 to find the generated headers in $(objtree).
-- Remove CC's for defunct MIPS email addresses (Matthew & Robert).
-- CC linux-um@lists.infradead.org.
+  2) Add an actual empty header to each architecture, so that we don't
+     need the generated asm-generic wrapper. This seems messy.
 
-Changes in v5 (Paul):
-- Rebase atop v4.18-rc8.
-- Comment & commit message tweaks.
-- Add SPDX-License-Identifier to asm-generic/compiler.h.
+  3) Give up & add #ifdef CONFIG_MIPS or similar to
+     linux/compiler_types.h. This seems messy too.
 
-Changes in v4 (James):
-- Fix asm-generic/compiler.h include from check, compiler_types.h is
-  included on the command line so linux/compiler.h may not be included
-  (kbuild test robot).
-- New patch 2 to fix um (kbuild test robot).
+  4) Include the arch header only when it's actually needed, removing
+     the need for the asm-generic wrapper for all other architectures.
 
-Changes in v3 (James):
-- New patch 1.
-- Rebase after 4.17 arch removal and update commit messages.
-- Use asm/compiler.h instead of compiler-gcc.h (Arnd).
-- Drop stable tag for now.
+This patch allows us to use approach 4, by including an
+asm/compiler_types.h header using the -include flag in the same way we
+do for linux/compiler_types.h, but only if the header actually exists.
 
-Changes in v2 (Paul):
-- Add generic-y entries to arch Kbuild files. Oops!
+[1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
 
-Previous versions:
-v1: https://www.linux-mips.org/archives/linux-mips/2016-05/msg00399.html
-v2: https://www.linux-mips.org/archives/linux-mips/2016-05/msg00401.html
-v3: https://lkml.org/lkml/2018/4/17/228
-v4: https://www.linux-mips.org/archives/linux-mips/2018-05/msg00069.html
-v5: https://www.spinics.net/lists/mips/msg74408.html
-v6: https://www.spinics.net/lists/mips/msg74425.html
-v7: https://www.spinics.net/lists/linux-arch/msg47934.html
+Signed-off-by: Paul Burton <paul.burton@mips.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <jhogan@kernel.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kbuild@vger.kernel.org
+Cc: linux-mips@linux-mips.org
 
-Older #ifdef-based attempt:
-https://marc.info/?l=linux-mips&m=145555921408274&w=2
+---
+Any thoughts anyone?
 
-Paul Burton (2):
-  kbuild: Allow asm-specific compiler_types.h
-  MIPS: Workaround GCC __builtin_unreachable reordering bug
+This isn't the prettiest it could possibly be but it's a small change &
+clearly shouldn't break anything, which are good qualities for a patch
+fixing build failures that we'd ideally backport as far as 4.16.
 
- arch/mips/include/asm/compiler_types.h | 39 ++++++++++++++++++++++++++
- include/linux/compiler-gcc.h           |  2 ++
- scripts/Makefile.lib                   |  5 +++-
- 3 files changed, 45 insertions(+), 1 deletion(-)
- create mode 100644 arch/mips/include/asm/compiler_types.h
+Changes in v8:
+- New patch.
 
+ scripts/Makefile.lib | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 1bb594fcfe12..4e7b41ef029b 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -151,8 +151,11 @@ __a_flags	= $(call flags,_a_flags)
+ __cpp_flags     = $(call flags,_cpp_flags)
+ endif
+ 
++c_includes	= $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/compiler_types.h)
++c_includes	+= $(srctree)/include/linux/compiler_types.h
++
+ c_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+-		 -include $(srctree)/include/linux/compiler_types.h       \
++		 $(addprefix -include ,$(c_includes))                     \
+ 		 $(__c_flags) $(modkern_cflags)                           \
+ 		 $(basename_flags) $(modname_flags)
+ 
 -- 
 2.18.0
