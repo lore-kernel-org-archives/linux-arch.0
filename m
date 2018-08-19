@@ -1,124 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conuserg-09.nifty.com ([210.131.2.76]:18937 "EHLO
-        conuserg-09.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726385AbeHSBpo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Aug 2018 21:45:44 -0400
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] export.h: remove VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR()
-Date: Sun, 19 Aug 2018 07:34:47 +0900
-Message-ID: <1534631687-18347-1-git-send-email-yamada.masahiro@socionext.com>
+Received: from smtp20.cstnet.cn ([159.226.251.20]:44568 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726583AbeHSTU4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 19 Aug 2018 15:20:56 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: [PATCH v4 00/16] Add support for Hygon Dhyana Family 18h processor
+Date: Mon, 20 Aug 2018 00:07:49 +0800
+Message-ID: <cover.1534599097.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kbuild@vger.kernel.org
-Cc: Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org, keyrings@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>
-Message-ID: <20180818223447.U4XO1gHIwKUJvTb_84SD6XtjzhHh0xobovQGmz-jh4g@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180819160749.RCz7D_V3RoUlQhCeEzb-Xod2jsIeDZJz1Me_8S2TKcw@z>
 
-With the special case handling for Blackfin and Metag was removed by
-commit 94e58e0ac312 ("export.h: remove code for prefixing symbols with
-underscore"), VMLINUX_SYMBOL() is no-no.
+As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
+is a Joint Venture between AMD and Haiguang Information Technology Co.,
+Ltd., and aims at providing high performance x86 processor for China
+server market.
 
-Replace the remaining usages, then remove the definition of
-VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR().
+The first generation Hygon's processor(Dhyana) originates from AMD
+technology and shares most of the architecture with AMD's family 17h,
+but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
+(0x1D94)/Family series number (Family 18h).
 
-<asm-generic/vmlinux.lds.h> no longer needs to include <linux/export.h>.
+To enable the support of Linux kernel to Hygon's CPU, we added a new
+vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
+asm/processor.h, and shared most of kernel support codes with AMD
+family 17h.
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
+This patch series have been applied and tested successfully in Hygon's
+Dhyana SoC silicon. Also tested on AMD's EPYC (Family 17h) processor
+works fine and makes no harm to existing codes.
 
- certs/system_certificates.S       | 16 ++++++++--------
- include/asm-generic/vmlinux.lds.h |  2 --
- include/linux/export.h            |  7 -------
- usr/initramfs_data.S              |  4 ++--
- 4 files changed, 10 insertions(+), 19 deletions(-)
 
-diff --git a/certs/system_certificates.S b/certs/system_certificates.S
-index 3918ff7..8f29058 100644
---- a/certs/system_certificates.S
-+++ b/certs/system_certificates.S
-@@ -5,8 +5,8 @@
- 	__INITRODATA
- 
- 	.align 8
--	.globl VMLINUX_SYMBOL(system_certificate_list)
--VMLINUX_SYMBOL(system_certificate_list):
-+	.globl system_certificate_list
-+system_certificate_list:
- __cert_list_start:
- #ifdef CONFIG_MODULE_SIG
- 	.incbin "certs/signing_key.x509"
-@@ -15,21 +15,21 @@ __cert_list_start:
- __cert_list_end:
- 
- #ifdef CONFIG_SYSTEM_EXTRA_CERTIFICATE
--	.globl VMLINUX_SYMBOL(system_extra_cert)
-+	.globl system_extra_cert
- 	.size system_extra_cert, CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE
--VMLINUX_SYMBOL(system_extra_cert):
-+system_extra_cert:
- 	.fill CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE, 1, 0
- 
- 	.align 4
--	.globl VMLINUX_SYMBOL(system_extra_cert_used)
--VMLINUX_SYMBOL(system_extra_cert_used):
-+	.globl system_extra_cert_used
-+system_extra_cert_used:
- 	.int 0
- 
- #endif /* CONFIG_SYSTEM_EXTRA_CERTIFICATE */
- 
- 	.align 8
--	.globl VMLINUX_SYMBOL(system_certificate_list_size)
--VMLINUX_SYMBOL(system_certificate_list_size):
-+	.globl system_certificate_list_size
-+system_certificate_list_size:
- #ifdef CONFIG_64BIT
- 	.quad __cert_list_end - __cert_list_start
- #else
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index f173b5f..7b75ff6 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -54,8 +54,6 @@
- #define LOAD_OFFSET 0
- #endif
- 
--#include <linux/export.h>
--
- /* Align . to a 8 byte boundary equals to maximum function alignment. */
- #define ALIGN_FUNCTION()  . = ALIGN(8)
- 
-diff --git a/include/linux/export.h b/include/linux/export.h
-index b768d6d..c363bde 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -10,13 +10,6 @@
-  * hackers place grumpy comments in header files.
-  */
- 
--#define __VMLINUX_SYMBOL(x) x
--#define __VMLINUX_SYMBOL_STR(x) #x
--
--/* Indirect, so macros are expanded before pasting. */
--#define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
--#define VMLINUX_SYMBOL_STR(x) __VMLINUX_SYMBOL_STR(x)
--
- #ifndef __ASSEMBLY__
- struct kernel_symbol
- {
-diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
-index b28da79..d07648f 100644
---- a/usr/initramfs_data.S
-+++ b/usr/initramfs_data.S
-@@ -30,8 +30,8 @@ __irf_start:
- .incbin __stringify(INITRAMFS_IMAGE)
- __irf_end:
- .section .init.ramfs.info,"a"
--.globl VMLINUX_SYMBOL(__initramfs_size)
--VMLINUX_SYMBOL(__initramfs_size):
-+.globl __initramfs_size
-+__initramfs_size:
- #ifdef CONFIG_64BIT
- 	.quad __irf_end - __irf_start
- #else
+v3->v4:
+  - Rebased on 4.18.3 and tested against it.
+  - Merge patchs 05/17 perfctr and 10/17 events in v3 to patch 05/16
+    PMU for better patch function group.
+  - Add hygon_get_topology_early() in patch 01/16.
+  - Rework vendor checking and refine coding style.
+  - Add Acked-by from Bjorn Helgaas for pci.
+  - Add Acked-by from Rafael J. Wysocki for cpufreq and acpi.
+
+v2->v3:
+  - Rebased on 4.18-rc8 and tested against it.
+  - Rework vendor checking codes to improve consistency.
+
+v1->v2:
+  - Rebased on 4.18-rc6 and tested against it.
+  - Split the patchset to small series of patches.
+  - Rework patch descriptions.
+  - Create a separated arch/x86/kernel/cpu/hygon.c for Dhyana CPU
+    initialization to reduce long-term maintenance effort.
+
+
+Pu Wen (16):
+  x86/cpu: create Dhyana init file and register new cpu_dev to system
+  x86/cache: get cache size/leaves and setup cache cpumap for Dhyana
+  x86/mtrr: get MTRR number and support TOP_MEM2
+  x86/smpboot: smp init nodelay and no flush caches before sleep
+  x86/pmu: enable Hygon support to PMU infrastructure
+  x86/nops: init ideal_nops for Hygon
+  x86/pci: add Hygon PCI vendor and northbridge support
+  x86/apic: add modern APIC support for Hygon
+  x86/bugs: add lfence mitigation to spectre v2 and no meltdown for
+    Hygon
+  x86/mce: enable Hygon support to MCE infrastructure
+  x86/kvm: enable Hygon support to KVM infrastructure
+  x86/xen: enable Hygon support to Xen
+  driver/acpi: enable Hygon support to ACPI driver
+  driver/cpufreq: enable Hygon support to cpufreq driver
+  driver/edac: enable Hygon support to AMD64 EDAC driver
+  tools/cpupower: enable Hygon support to cpupower tool
+
+ MAINTAINERS                                        |   6 +
+ arch/x86/Kconfig                                   |   2 +-
+ arch/x86/Kconfig.cpu                               |  13 +
+ arch/x86/events/amd/core.c                         |   6 +
+ arch/x86/events/amd/uncore.c                       |  15 +-
+ arch/x86/events/core.c                             |   4 +
+ arch/x86/include/asm/cacheinfo.h                   |   1 +
+ arch/x86/include/asm/kvm_emulate.h                 |   4 +
+ arch/x86/include/asm/mce.h                         |   5 +
+ arch/x86/include/asm/nospec-branch.h               |   4 +-
+ arch/x86/include/asm/processor.h                   |   3 +-
+ arch/x86/include/asm/virtext.h                     |   5 +-
+ arch/x86/kernel/alternative.c                      |   4 +
+ arch/x86/kernel/amd_nb.c                           |  51 ++-
+ arch/x86/kernel/apic/apic.c                        |  19 +-
+ arch/x86/kernel/apic/probe_32.c                    |   1 +
+ arch/x86/kernel/cpu/Makefile                       |   1 +
+ arch/x86/kernel/cpu/bugs.c                         |  28 +-
+ arch/x86/kernel/cpu/cacheinfo.c                    |  31 +-
+ arch/x86/kernel/cpu/common.c                       |   1 +
+ arch/x86/kernel/cpu/cpu.h                          |   1 +
+ arch/x86/kernel/cpu/hygon.c                        | 409 +++++++++++++++++++++
+ arch/x86/kernel/cpu/mcheck/mce-severity.c          |   3 +-
+ arch/x86/kernel/cpu/mcheck/mce.c                   |  21 +-
+ arch/x86/kernel/cpu/mtrr/cleanup.c                 |   3 +-
+ arch/x86/kernel/cpu/mtrr/generic.c                 |   5 +-
+ arch/x86/kernel/cpu/mtrr/mtrr.c                    |   2 +-
+ arch/x86/kernel/cpu/perfctr-watchdog.c             |   2 +
+ arch/x86/kernel/smpboot.c                          |   4 +-
+ arch/x86/kvm/emulate.c                             |  11 +-
+ arch/x86/pci/amd_bus.c                             |   6 +-
+ arch/x86/xen/pmu.c                                 |  12 +-
+ drivers/acpi/acpi_pad.c                            |   1 +
+ drivers/acpi/processor_idle.c                      |   1 +
+ drivers/cpufreq/acpi-cpufreq.c                     |   5 +
+ drivers/cpufreq/amd_freq_sensitivity.c             |   9 +-
+ drivers/edac/amd64_edac.c                          |  52 ++-
+ drivers/edac/amd64_edac.h                          |   5 +
+ drivers/edac/mce_amd.c                             |  15 +-
+ include/linux/pci_ids.h                            |   2 +
+ tools/power/cpupower/utils/cpufreq-info.c          |   6 +-
+ tools/power/cpupower/utils/helpers/amd.c           |   6 +-
+ tools/power/cpupower/utils/helpers/cpuid.c         |   8 +-
+ tools/power/cpupower/utils/helpers/helpers.h       |   2 +-
+ tools/power/cpupower/utils/helpers/misc.c          |   3 +-
+ .../cpupower/utils/idle_monitor/mperf_monitor.c    |   3 +-
+ 46 files changed, 732 insertions(+), 69 deletions(-)
+ create mode 100644 arch/x86/kernel/cpu/hygon.c
+
 -- 
 2.7.4
