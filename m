@@ -1,48 +1,87 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v4 13/16] driver/acpi: enable Hygon support to ACPI driver
-Date: Mon, 20 Aug 2018 00:14:17 +0800
-Message-ID: <3264be92a112b331094f60ef9b5e8c3e4a8e5034.1534599097.git.puwen@hygon.cn>
+Subject: [PATCH v4 14/16] driver/cpufreq: enable Hygon support to cpufreq driver
+Date: Mon, 20 Aug 2018 00:14:28 +0800
+Message-ID: <ba12d5ecb16dfb99c7ab99d4305a326880d31b96.1534599097.git.puwen@hygon.cn>
 References: <cover.1534599097.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1534599097.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, lenb@kernel.org, rjw@rjwysocki.net, rafael@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, rjw@rjwysocki.net, viresh.kumar@linaro.org, rafael@kernel.org, rafael.j.wysocki@intel.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-For Dhyana processors have NONSTOP TSC feature, so enable the support
-to ACPI driver.
+Enable ACPI cpufreq driver support for Hygon by adding family ID check
+along with AMD.
+
+As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
+support to function amd_freq_sensitivity_init().
 
 Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- drivers/acpi/acpi_pad.c       | 1 +
- drivers/acpi/processor_idle.c | 1 +
- 2 files changed, 2 insertions(+)
+ drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
+ drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
+ 2 files changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
-index 552c1f7..a47676a 100644
---- a/drivers/acpi/acpi_pad.c
-+++ b/drivers/acpi/acpi_pad.c
-@@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
+diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
+index b61f4ec..d62fd37 100644
+--- a/drivers/cpufreq/acpi-cpufreq.c
++++ b/drivers/cpufreq/acpi-cpufreq.c
+@@ -61,6 +61,7 @@ enum {
  
- #if defined(CONFIG_X86)
- 	switch (boot_cpu_data.x86_vendor) {
+ #define INTEL_MSR_RANGE		(0xffff)
+ #define AMD_MSR_RANGE		(0x7)
++#define HYGON_MSR_RANGE		(0x7)
+ 
+ #define MSR_K7_HWCR_CPB_DIS	(1ULL << 25)
+ 
+@@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
+ 		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+ 		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
 +	case X86_VENDOR_HYGON:
  	case X86_VENDOR_AMD:
- 	case X86_VENDOR_INTEL:
- 		/*
-diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
-index abb559c..b2131c4 100644
---- a/drivers/acpi/processor_idle.c
-+++ b/drivers/acpi/processor_idle.c
-@@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
- static void tsc_check_state(int state)
+ 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+@@ -113,6 +115,7 @@ static int boost_set_msr(bool enable)
+ 		msr_addr = MSR_IA32_MISC_ENABLE;
+ 		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
+ 		break;
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		msr_addr = MSR_K7_HWCR;
+ 		msr_mask = MSR_K7_HWCR_CPB_DIS;
+@@ -225,6 +228,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
+ 
+ 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+ 		msr &= AMD_MSR_RANGE;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		msr &= HYGON_MSR_RANGE;
+ 	else
+ 		msr &= INTEL_MSR_RANGE;
+ 
+diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
+index be926d9..4ac7c3c 100644
+--- a/drivers/cpufreq/amd_freq_sensitivity.c
++++ b/drivers/cpufreq/amd_freq_sensitivity.c
+@@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
  {
- 	switch (boot_cpu_data.x86_vendor) {
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 	case X86_VENDOR_INTEL:
- 	case X86_VENDOR_CENTAUR:
+ 	u64 val;
+ 	struct pci_dev *pcidev;
++	unsigned int pci_vendor;
+ 
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++		pci_vendor = PCI_VENDOR_ID_AMD;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		pci_vendor = PCI_VENDOR_ID_HYGON;
++	else
+ 		return -ENODEV;
+ 
+-	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
++	pcidev = pci_get_device(pci_vendor,
+ 			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
+ 
+ 	if (!pcidev) {
 -- 
 2.7.4
