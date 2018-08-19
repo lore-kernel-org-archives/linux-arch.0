@@ -1,79 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:55245 "EHLO cstnet.cn"
+Received: from smtp20.cstnet.cn ([159.226.251.20]:57154 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726618AbeHST0X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 19 Aug 2018 15:26:23 -0400
+        id S1726587AbeHST1R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 19 Aug 2018 15:27:17 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v4 12/16] x86/xen: enable Hygon support to Xen
-Date: Mon, 20 Aug 2018 00:13:41 +0800
-Message-ID: <044e5e9082d57c10a36a16a9da6404f976d7ae55.1534599097.git.puwen@hygon.cn>
+Subject: [PATCH v4 14/16] driver/cpufreq: enable Hygon support to cpufreq driver
+Date: Mon, 20 Aug 2018 00:14:28 +0800
+Message-ID: <ba12d5ecb16dfb99c7ab99d4305a326880d31b96.1534599097.git.puwen@hygon.cn>
 In-Reply-To: <cover.1534599097.git.puwen@hygon.cn>
 References: <cover.1534599097.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, JBeulich@suse.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180819161341.bff720esPWd3oIQHtANbZAJgUairDwhKgdEJJoR7Ajs@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, rjw@rjwysocki.net, viresh.kumar@linaro.org, rafael@kernel.org, rafael.j.wysocki@intel.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180819161428.YmOfktGG2rgn3uTVOLbOLc1ITGqnp3IhX9j1V_U6gUY@z>
 
-To make Xen works functionly on Hygon platforms, reuse AMD's Xen support
-code path for Hygon.
+Enable ACPI cpufreq driver support for Hygon by adding family ID check
+along with AMD.
 
-There are six core performance events counters per thread, so there are
-six MSRs for these counters(0-5). Also there are four legacy PMC MSRs,
-they are alias of the counters(0-3).
+As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
+support to function amd_freq_sensitivity_init().
 
-In this version of kernel Hygon use the lagacy and safe versions of MSR
-access. It works fine when VPMU enabled in Xen on Hygon platforms by
-testing with perf.
-
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/xen/pmu.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
+ drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
+ 2 files changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
-index 7d00d4a..9403854 100644
---- a/arch/x86/xen/pmu.c
-+++ b/arch/x86/xen/pmu.c
-@@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
- 			k7_counters_mirrored = 0;
- 			break;
- 		}
-+	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+		amd_num_counters = F10H_NUM_COUNTERS;
-+		amd_counters_base = MSR_K7_PERFCTR0;
-+		amd_ctrls_base = MSR_K7_EVNTSEL0;
-+		amd_msr_step = 1;
-+		k7_counters_mirrored = 0;
- 	} else {
- 		uint32_t eax, ebx, ecx, edx;
+diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
+index b61f4ec..d62fd37 100644
+--- a/drivers/cpufreq/acpi-cpufreq.c
++++ b/drivers/cpufreq/acpi-cpufreq.c
+@@ -61,6 +61,7 @@ enum {
  
-@@ -285,7 +291,7 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
+ #define INTEL_MSR_RANGE		(0xffff)
+ #define AMD_MSR_RANGE		(0x7)
++#define HYGON_MSR_RANGE		(0x7)
  
- bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, val, 1))
- 				*val = native_read_msr_safe(msr, err);
-@@ -308,7 +314,7 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
- {
- 	uint64_t val = ((uint64_t)high << 32) | low;
+ #define MSR_K7_HWCR_CPB_DIS	(1ULL << 25)
  
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, &val, 0))
- 				*err = native_write_msr_safe(msr, low, high);
-@@ -379,7 +385,7 @@ static unsigned long long xen_intel_read_pmc(int counter)
+@@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
+ 		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+ 		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+@@ -113,6 +115,7 @@ static int boost_set_msr(bool enable)
+ 		msr_addr = MSR_IA32_MISC_ENABLE;
+ 		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
+ 		break;
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		msr_addr = MSR_K7_HWCR;
+ 		msr_mask = MSR_K7_HWCR_CPB_DIS;
+@@ -225,6 +228,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
  
- unsigned long long xen_read_pmc(int counter)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)
- 		return xen_amd_read_pmc(counter);
+ 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+ 		msr &= AMD_MSR_RANGE;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		msr &= HYGON_MSR_RANGE;
  	else
- 		return xen_intel_read_pmc(counter);
+ 		msr &= INTEL_MSR_RANGE;
+ 
+diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
+index be926d9..4ac7c3c 100644
+--- a/drivers/cpufreq/amd_freq_sensitivity.c
++++ b/drivers/cpufreq/amd_freq_sensitivity.c
+@@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
+ {
+ 	u64 val;
+ 	struct pci_dev *pcidev;
++	unsigned int pci_vendor;
+ 
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++		pci_vendor = PCI_VENDOR_ID_AMD;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		pci_vendor = PCI_VENDOR_ID_HYGON;
++	else
+ 		return -ENODEV;
+ 
+-	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
++	pcidev = pci_get_device(pci_vendor,
+ 			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
+ 
+ 	if (!pcidev) {
 -- 
 2.7.4
