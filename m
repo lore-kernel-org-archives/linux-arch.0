@@ -1,137 +1,100 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
-Date: Mon, 20 Aug 2018 14:04:24 +0900
-Message-ID: <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
-References: <20180818181017.1246-1-paul.burton@mips.com> <20180818181017.1246-2-paul.burton@mips.com>
+From: Alexandre Ghiti <alex@ghiti.fr>
+Subject: Re: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture
+ primitives
+Date: Mon, 20 Aug 2018 08:45:10 +0200
+Message-ID: <81078a7f-09cf-7f19-f6bb-8a1f4968d6fb@ghiti.fr>
+References: <20180806175711.24438-1-alex@ghiti.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180818181017.1246-2-paul.burton@mips.com>
+In-Reply-To: <20180806175711.24438-1-alex@ghiti.fr>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Burton <paul.burton@mips.com>
-Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: linux-mm@kvack.org, Mike Kravetz <mike.kravetz@oracle.com>, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
+Hi Michal,
+
+This patchset got acked, tested and reviewed by quite a few people, and 
+it has been suggested
+that it should be included in -mm tree: could you tell me if something 
+else needs to be done for
+its inclusion ?
+
+Thanks for your time,
+
+Alex
 
 
-2018-08-19 3:10 GMT+09:00 Paul Burton <paul.burton@mips.com>:
-> We have a need to override the definition of
-> barrier_before_unreachable() for MIPS, which means we either need to add
-> architecture-specific code into linux/compiler-gcc.h or we need to allow
-> the architecture to provide a header that can define the macro before
-> the generic definition. The latter seems like the better approach.
+On 08/06/2018 07:57 PM, Alexandre Ghiti wrote:
+> [CC linux-mm for inclusion in -mm tree]
+>                                                                                   
+> In order to reduce copy/paste of functions across architectures and then
+> make riscv hugetlb port (and future ports) simpler and smaller, this
+> patchset intends to factorize the numerous hugetlb primitives that are
+> defined across all the architectures.
+>                                                                                   
+> Except for prepare_hugepage_range, this patchset moves the versions that
+> are just pass-through to standard pte primitives into
+> asm-generic/hugetlb.h by using the same #ifdef semantic that can be
+> found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.
+>                                                                                   
+> s390 architecture has not been tackled in this serie since it does not
+> use asm-generic/hugetlb.h at all.
+>                                                                                   
+> This patchset has been compiled on all addressed architectures with
+> success (except for parisc, but the problem does not come from this
+> series).
+>                                                                                   
+> v6:
+>    - Remove nohash/32 and book3s/32 powerpc specific implementations in
+>      order to use the generic ones.
+>    - Add all the Reviewed-by, Acked-by and Tested-by in the commits,
+>      thanks to everyone.
+>                                                                                   
+> v5:
+>    As suggested by Mike Kravetz, no need to move the #include
+>    <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at
+>    the top of the file.
+>                                                                                   
+> v4:
+>    Fix powerpc build error due to misplacing of #include
+>    <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as
+>    pointed by Christophe Leroy.
+>                                                                                   
+> v1, v2, v3:
+>    Same version, just problems with email provider and misuse of
+>    --batch-size option of git send-email
 >
-> A straightforward approach to the per-arch header is to make use of
-> asm-generic to provide a default empty header & adjust architectures
-> which don't need anything specific to make use of that by adding the
-> header to generic-y. Unfortunately this doesn't work so well due to
-> commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
-> <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
-> cflags using the -include compiler flag.
+> Alexandre Ghiti (11):
+>    hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+>    hugetlb: Introduce generic version of hugetlb_free_pgd_range
+>    hugetlb: Introduce generic version of set_huge_pte_at
+>    hugetlb: Introduce generic version of huge_ptep_get_and_clear
+>    hugetlb: Introduce generic version of huge_ptep_clear_flush
+>    hugetlb: Introduce generic version of huge_pte_none
+>    hugetlb: Introduce generic version of huge_pte_wrprotect
+>    hugetlb: Introduce generic version of prepare_hugepage_range
+>    hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+>    hugetlb: Introduce generic version of huge_ptep_set_access_flags
+>    hugetlb: Introduce generic version of huge_ptep_get
 >
-> Because the -include flag is present for all C files we compile, we need
-> the architecture-provided header to be present before any C files are
-> compiled. If any C files can be compiled prior to the asm-generic header
-> wrappers being generated then we hit a build failure due to missing
-> header. Such cases do exist - one pointed out by the kbuild test robot
-> is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
-> of the archprepare target [1].
+>   arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+>   arch/arm/include/asm/hugetlb.h               | 30 ----------
+>   arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+>   arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+>   arch/mips/include/asm/hugetlb.h              | 40 +++----------
+>   arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+>   arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
+>   arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+>   arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+>   arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
+>   arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+>   arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+>   arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+>   arch/x86/include/asm/hugetlb.h               | 69 ----------------------
+>   include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+>   15 files changed, 135 insertions(+), 394 deletions(-)
 >
-> This leaves us with a few options:
->
->   1) Use generic-y & fix any build failures we find by enforcing
->      ordering such that the asm-generic target occurs before any C
->      compilation, such that linux/compiler_types.h can always include
->      the generated asm-generic wrapper which in turn includes the empty
->      asm-generic header. This would rely on us finding all the
->      problematic cases - I don't know for sure that the ia64 issue is
->      the only one.
->
->   2) Add an actual empty header to each architecture, so that we don't
->      need the generated asm-generic wrapper. This seems messy.
->
->   3) Give up & add #ifdef CONFIG_MIPS or similar to
->      linux/compiler_types.h. This seems messy too.
->
->   4) Include the arch header only when it's actually needed, removing
->      the need for the asm-generic wrapper for all other architectures.
->
-> This patch allows us to use approach 4, by including an
-> asm/compiler_types.h header using the -include flag in the same way we
-> do for linux/compiler_types.h, but only if the header actually exists.
-
-
-I agree with the approach 4),
-but I am of two minds about how to implement it.
-
-
-I guess the cost of evaluating 'wildcard' for each C file
-is unnoticeable level, but I am slightly in favor of
-including <asm/compilr_types.h> from <linux/compiler_types.h>
-conditionally.
-
-I am not sure about the CONFIG name, but for example, like this.
-
-#ifdef CONFIG_HAVE_ARCH_COMPILER_TYPES
-#include <asm/compiler_types.h>
-#endif
-
-
-What do you think?
-
-
-
-
-
-
-> [1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
->
-> Signed-off-by: Paul Burton <paul.burton@mips.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: James Hogan <jhogan@kernel.org>
-> Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-kbuild@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
->
-> ---
-> Any thoughts anyone?
->
-> This isn't the prettiest it could possibly be but it's a small change &
-> clearly shouldn't break anything, which are good qualities for a patch
-> fixing build failures that we'd ideally backport as far as 4.16.
->
-> Changes in v8:
-> - New patch.
->
->  scripts/Makefile.lib | 5 ++++-
->  1 file changed, 4 insertions(+), 1 deletion(-)
->
-> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-> index 1bb594fcfe12..4e7b41ef029b 100644
-> --- a/scripts/Makefile.lib
-> +++ b/scripts/Makefile.lib
-> @@ -151,8 +151,11 @@ __a_flags  = $(call flags,_a_flags)
->  __cpp_flags     = $(call flags,_cpp_flags)
->  endif
->
-> +c_includes     = $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/compiler_types.h)
-> +c_includes     += $(srctree)/include/linux/compiler_types.h
-> +
->  c_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
-> -                -include $(srctree)/include/linux/compiler_types.h       \
-> +                $(addprefix -include ,$(c_includes))                     \
->                  $(__c_flags) $(modkern_cflags)                           \
->                  $(basename_flags) $(modname_flags)
->
-> --
-> 2.18.0
->
-
-
-
--- 
-Best Regards
-Masahiro Yamada
