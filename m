@@ -1,82 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:37144 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726498AbeHUBwK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Aug 2018 21:52:10 -0400
-Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
- simultaneously
-References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
- <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
- <1534180089.3962.68.camel@synopsys.com>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <81ddd506-1f7e-db82-4c77-ff08b1c15dd3@synopsys.com>
-Date: Mon, 20 Aug 2018 15:34:31 -0700
+Received: from mail-by2nam03on0092.outbound.protection.outlook.com ([104.47.42.92]:33719
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726620AbeHUByd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Aug 2018 21:54:33 -0400
+From: Paul Burton <paul.burton@mips.com>
+Subject: [PATCH v9 0/2] MIPS: Override barrier_before_unreachable() to fix microMIPS
+Date: Mon, 20 Aug 2018 15:36:16 -0700
+Message-ID: <20180820223618.22319-1-paul.burton@mips.com>
+In-Reply-To: <20180820183417.dejfsluih7elbclu@pburton-laptop>
+References: <20180820183417.dejfsluih7elbclu@pburton-laptop>
 MIME-Version: 1.0
-In-Reply-To: <1534180089.3962.68.camel@synopsys.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "hch@lst.de" <hch@lst.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Message-ID: <20180820223431.3unHYclPDF79Y49mL8_x_50VjNgC2KVYu_QLWj7WJDY@z>
+To: linux-mips@linux-mips.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20180820223616.v1KGGyX-UENp0rlIEhVmd-SDJuDuMhe1oMk-CA7ExAs@z>
 
-On 08/13/2018 10:08 AM, Eugeniy Paltsev wrote:
-> On Mon, 2018-08-13 at 16:24 +0000, Vineet Gupta wrote:
->> On 07/30/2018 09:26 AM, Eugeniy Paltsev wrote:
->>> @@ -1263,11 +1254,7 @@ void __init arc_cache_init_master(void)
->>>  	if (is_isa_arcv2() && ioc_enable)
->>>  		arc_ioc_setup();
->>>  
->>> -	if (is_isa_arcv2() && ioc_enable) {
->>> -		__dma_cache_wback_inv = __dma_cache_wback_inv_ioc;
->>> -		__dma_cache_inv = __dma_cache_inv_ioc;
->>> -		__dma_cache_wback = __dma_cache_wback_ioc;
->>> -	} else if (is_isa_arcv2() && l2_line_sz && slc_enable) {
+This series overrides barrier_before_unreachable() for MIPS to add a
+.insn assembler directive.
 
-For the casual reader I'd add a comment why this was deleted.
+Due to the subsequent __builtin_unreachable(), the assembler can't tell
+that a label on the empty inline asm is code rather than data, so any
+microMIPS branches targeting it (which sadly can't be removed) raise
+errors due to the mismatching ISA mode, Adding the .insn in patch 2
+tells the assembler that it should be treated as code.
 
->>> +	if (is_isa_arcv2() && l2_line_sz && slc_enable) {
->>>  		__dma_cache_wback_inv = __dma_cache_wback_inv_slc;
->>>  		__dma_cache_inv = __dma_cache_inv_slc;
->>>  		__dma_cache_wback = __dma_cache_wback_slc;
+Applies cleanly atop v4.18.
 
-[snip]
+Changes in v9 (Paul):
+- Use a simple #include conditional upon a Kconfig symbol, as suggested
+  by Masahiro.
+- Move back to asm/compiler.h instead of asm/compiler_types.h.
 
->>>  
->>> -	/*
->>> -	 * IOC relies on all data (even coherent DMA data) being in cache
->>> -	 * Thus allocate normal cached memory
->>> -	 *
->>> -	 * The gains with IOC are two pronged:
->>> -	 *   -For streaming data, elides need for cache maintenance, saving
->>> -	 *    cycles in flush code, and bus bandwidth as all the lines of a
->>> -	 *    buffer need to be flushed out to memory
->>> -	 *   -For coherent data, Read/Write to buffers terminate early in cache
->>> -	 *   (vs. always going to memory - thus are faster)
->>> -	 */
->>> -	if ((is_isa_arcv2() && ioc_enable) ||
->>> -	    (attrs & DMA_ATTR_NON_CONSISTENT))
->>> +	if (attrs & DMA_ATTR_NON_CONSISTENT)
->>>  		need_coh = 0;
->>>  
+Changes in v8 (Paul):
+- Try something different... including a header that might be an
+  asm-generic wrapper in linux/compiler_types.h creates build ordering
+  problems for any C file which can be built before the asm-generic
+  target. Patch 1 changes tact to avoid asm-generic & the ordering
+  problem.
+- Commit message improvements in patch 2.
 
-[snip]
+Changes in v7 (Paul):
+- Elaborate on affected GCC versions in patch 4.
 
-> Yep, I tested that.
-> And it works fine with both @ioc_enable == 0 and @ioc_enable == 1
-> Note that we check this variable in arch_setup_dma_ops() function now.
-> 
-> So this arch_dma_{alloc,free} are used ONLY in case of software assisted cache maintenance.
-> That's why we had to do MMU mapping to enforce non-cachability regardless of @ioc_enable.
+Changes in v6 (Paul):
+- Fix patch 2 to find the generated headers in $(objtree).
+- Remove CC's for defunct MIPS email addresses (Matthew & Robert).
+- CC linux-um@lists.infradead.org.
 
-Reading kernel/dma/* I see what you mean. We check @ioc_enable at the time of
-registering the dma op for coherent vs. non coherent case, so there's common vs.
-ARC versions of alloc/free for coherent vs. noncoherent. But then I'm curious why
-do we bother to check the following in new arch_dma_(alloc|free) at all.
+Changes in v5 (Paul):
+- Rebase atop v4.18-rc8.
+- Comment & commit message tweaks.
+- Add SPDX-License-Identifier to asm-generic/compiler.h.
 
-	if (attrs & DMA_ATTR_NON_CONSISTENT)
+Changes in v4 (James):
+- Fix asm-generic/compiler.h include from check, compiler_types.h is
+  included on the command line so linux/compiler.h may not be included
+  (kbuild test robot).
+- New patch 2 to fix um (kbuild test robot).
 
-Isn't it supposed to be NON_CONSISTENT always given the way new code works ?
+Changes in v3 (James):
+- New patch 1.
+- Rebase after 4.17 arch removal and update commit messages.
+- Use asm/compiler.h instead of compiler-gcc.h (Arnd).
+- Drop stable tag for now.
+
+Changes in v2 (Paul):
+- Add generic-y entries to arch Kbuild files. Oops!
+
+Previous versions:
+v1: https://www.linux-mips.org/archives/linux-mips/2016-05/msg00399.html
+v2: https://www.linux-mips.org/archives/linux-mips/2016-05/msg00401.html
+v3: https://lkml.org/lkml/2018/4/17/228
+v4: https://www.linux-mips.org/archives/linux-mips/2018-05/msg00069.html
+v5: https://www.spinics.net/lists/mips/msg74408.html
+v6: https://www.spinics.net/lists/mips/msg74425.html
+v7: https://www.spinics.net/lists/linux-arch/msg47934.html
+v8: https://www.spinics.net/lists/mips/msg74562.html
+
+Older #ifdef-based attempt:
+https://marc.info/?l=linux-mips&m=145555921408274&w=2
+
+Paul Burton (2):
+  kbuild: Allow arch-specific asm/compiler.h
+  MIPS: Workaround GCC __builtin_unreachable reordering bug
+
+ arch/Kconfig                     |  8 ++++++++
+ arch/mips/Kconfig                |  1 +
+ arch/mips/include/asm/compiler.h | 35 ++++++++++++++++++++++++++++++++
+ include/linux/compiler_types.h   | 12 +++++++++++
+ 4 files changed, 56 insertions(+)
+
+-- 
+2.18.0
