@@ -1,86 +1,104 @@
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
-Date: Mon, 20 Aug 2018 11:34:17 -0700
-Message-ID: <20180820183417.dejfsluih7elbclu@pburton-laptop>
-References: <20180818181017.1246-1-paul.burton@mips.com>
- <20180818181017.1246-2-paul.burton@mips.com>
- <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: [PATCH] x86/mm: Simplify p[g4um]d_page() macros
+Date: Mon, 20 Aug 2018 13:37:05 -0700
+Message-ID: <20180820203705.16212-2-andi@firstfloor.org>
+References: <20180820203705.16212-1-andi@firstfloor.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180820203705.16212-1-andi@firstfloor.org>
+Sender: stable-owner@vger.kernel.org
+To: stable@vger.kernel.org
+Cc: Andi Kleen <ak@linux.intel.com>, Tom Lendacky <thomas.lendacky@amd.com>, Alexander Potapenko <glider@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Dave Young <dyoung@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Jonathan Corbet <corbet@lwn.net>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Larry Woodman <lwoodman@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S . Tsirkin" <mst@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Ri
 List-Id: linux-arch.vger.kernel.org
 
-Hi Masahiro,
+From: Andi Kleen <ak@linux.intel.com>
 
-On Mon, Aug 20, 2018 at 02:04:24PM +0900, Masahiro Yamada wrote:
-> 2018-08-19 3:10 GMT+09:00 Paul Burton <paul.burton@mips.com>:
-> > We have a need to override the definition of
-> > barrier_before_unreachable() for MIPS, which means we either need to add
-> > architecture-specific code into linux/compiler-gcc.h or we need to allow
-> > the architecture to provide a header that can define the macro before
-> > the generic definition. The latter seems like the better approach.
-> >
-> > A straightforward approach to the per-arch header is to make use of
-> > asm-generic to provide a default empty header & adjust architectures
-> > which don't need anything specific to make use of that by adding the
-> > header to generic-y. Unfortunately this doesn't work so well due to
-> > commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
-> > <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
-> > cflags using the -include compiler flag.
-> >
-> > Because the -include flag is present for all C files we compile, we need
-> > the architecture-provided header to be present before any C files are
-> > compiled. If any C files can be compiled prior to the asm-generic header
-> > wrappers being generated then we hit a build failure due to missing
-> > header. Such cases do exist - one pointed out by the kbuild test robot
-> > is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
-> > of the archprepare target [1].
-> >
-> > This leaves us with a few options:
-> >
-> >   1) Use generic-y & fix any build failures we find by enforcing
-> >      ordering such that the asm-generic target occurs before any C
-> >      compilation, such that linux/compiler_types.h can always include
-> >      the generated asm-generic wrapper which in turn includes the empty
-> >      asm-generic header. This would rely on us finding all the
-> >      problematic cases - I don't know for sure that the ia64 issue is
-> >      the only one.
-> >
-> >   2) Add an actual empty header to each architecture, so that we don't
-> >      need the generated asm-generic wrapper. This seems messy.
-> >
-> >   3) Give up & add #ifdef CONFIG_MIPS or similar to
-> >      linux/compiler_types.h. This seems messy too.
-> >
-> >   4) Include the arch header only when it's actually needed, removing
-> >      the need for the asm-generic wrapper for all other architectures.
-> >
-> > This patch allows us to use approach 4, by including an
-> > asm/compiler_types.h header using the -include flag in the same way we
-> > do for linux/compiler_types.h, but only if the header actually exists.
-> 
-> I agree with the approach 4),
-> but I am of two minds about how to implement it.
-> 
-> I guess the cost of evaluating 'wildcard' for each C file
-> is unnoticeable level, but I am slightly in favor of
-> including <asm/compilr_types.h> from <linux/compiler_types.h>
-> conditionally.
-> 
-> I am not sure about the CONFIG name, but for example, like this.
-> 
-> #ifdef CONFIG_HAVE_ARCH_COMPILER_TYPES
-> #include <asm/compiler_types.h>
-> #endif
-> 
-> What do you think?
+Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
+use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
+duplicating the code.
 
-That sounds fine to me - I'll submit a v9 shortly :)
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Cc: Alexander Potapenko <glider@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brijesh Singh <brijesh.singh@amd.com>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Larry Woodman <lwoodman@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Radim Krčmář <rkrcmar@redhat.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Toshimitsu Kani <toshi.kani@hpe.com>
+Cc: kasan-dev@googlegroups.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-efi@vger.kernel.org
+Cc: linux-mm@kvack.org
+Link: http://lkml.kernel.org/r/e61eb533a6d0aac941db2723d8aa63ef6b882dee.1500319216.git.thomas.lendacky@amd.com
+[Backported to 4.9 stable by AK, suggested by Michael Hocko]
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ arch/x86/include/asm/pgtable.h | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
 
-Thanks,
-    Paul
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 4de6c282c02a..68a55273ce0f 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -173,6 +173,11 @@ static inline unsigned long pud_pfn(pud_t pud)
+ 	return (pfn & pud_pfn_mask(pud)) >> PAGE_SHIFT;
+ }
+ 
++static inline unsigned long pgd_pfn(pgd_t pgd)
++{
++	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
++}
++
+ #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
+ 
+ static inline int pmd_large(pmd_t pte)
+@@ -578,8 +583,7 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pmd_page(pmd)		\
+-	pfn_to_page((pmd_val(pmd) & pmd_pfn_mask(pmd)) >> PAGE_SHIFT)
++#define pmd_page(pmd)	pfn_to_page(pmd_pfn(pmd))
+ 
+ /*
+  * the pmd page can be thought of an array like this: pmd_t[PTRS_PER_PMD]
+@@ -647,8 +651,7 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pud_page(pud)		\
+-	pfn_to_page((pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT)
++#define pud_page(pud)	pfn_to_page(pud_pfn(pud))
+ 
+ /* Find an entry in the second-level page table.. */
+ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
+@@ -688,7 +691,7 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
+  * Currently stuck as a macro due to indirect forward reference to
+  * linux/mmzone.h's __section_mem_map_addr() definition:
+  */
+-#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
++#define pgd_page(pgd)		pfn_to_page(pgd_pfn(pgd))
+ 
+ /* to find an entry in a page-table-directory. */
+ static inline unsigned long pud_index(unsigned long address)
+-- 
+2.17.1
