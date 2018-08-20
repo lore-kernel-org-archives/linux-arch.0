@@ -1,136 +1,116 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH] export.h: remove VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR()
-Date: Tue, 21 Aug 2018 01:12:02 +0900
-Message-ID: <CAK7LNAQHcKJLahTssT8tG6i0YM_UpM2A+vKOeeuwryx2UwVWeQ@mail.gmail.com>
-References: <1534631687-18347-1-git-send-email-yamada.masahiro@socionext.com>
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH] locking: Remove an insn from spin and write locks
+Date: Mon, 20 Aug 2018 09:26:39 -0700
+Message-ID: <20180820162639.GC25153@bombadil.infradead.org>
+References: <20180820150652.29482-1-willy@infradead.org>
+ <f24a32be-6a4f-0df8-4289-14adc1046f50@redhat.com>
+ <20180820155002.GB25153@bombadil.infradead.org>
+ <20180820155650.GG24082@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1534631687-18347-1-git-send-email-yamada.masahiro@socionext.com>
+Content-Disposition: inline
+In-Reply-To: <20180820155650.GG24082@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, keyrings@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <longman@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-2018-08-19 7:34 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
-> With the special case handling for Blackfin and Metag was removed by
-> commit 94e58e0ac312 ("export.h: remove code for prefixing symbols with
-> underscore"), VMLINUX_SYMBOL() is no-no.
->
-> Replace the remaining usages, then remove the definition of
-> VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR().
->
-> <asm-generic/vmlinux.lds.h> no longer needs to include <linux/export.h>.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
+On Mon, Aug 20, 2018 at 05:56:50PM +0200, Peter Zijlstra wrote:
+> Yeah, _acquire should be retained; sorry about loosing that. I'm neck
+> deep into tlb invalidate stuff and wrote this without much thinking
+> involved.
 
+NP.  Here's the current version I've got, with some updated likely()
+hints.
 
-Fixed the typo no-no -> no-op,
-then applied  to linux-kbuild.
+From 337298a88266f7b21492f893c2bf05409a5392c8 Mon Sep 17 00:00:00 2001
+From: Matthew Wilcox <willy@infradead.org>
+Date: Mon, 20 Aug 2018 10:19:14 -0400
+Subject: [PATCH] locking: Remove an insn from spin and write locks
 
+Both spin locks and write locks currently do:
 
->  certs/system_certificates.S       | 16 ++++++++--------
->  include/asm-generic/vmlinux.lds.h |  2 --
->  include/linux/export.h            |  7 -------
->  usr/initramfs_data.S              |  4 ++--
->  4 files changed, 10 insertions(+), 19 deletions(-)
->
-> diff --git a/certs/system_certificates.S b/certs/system_certificates.S
-> index 3918ff7..8f29058 100644
-> --- a/certs/system_certificates.S
-> +++ b/certs/system_certificates.S
-> @@ -5,8 +5,8 @@
->         __INITRODATA
->
->         .align 8
-> -       .globl VMLINUX_SYMBOL(system_certificate_list)
-> -VMLINUX_SYMBOL(system_certificate_list):
-> +       .globl system_certificate_list
-> +system_certificate_list:
->  __cert_list_start:
->  #ifdef CONFIG_MODULE_SIG
->         .incbin "certs/signing_key.x509"
-> @@ -15,21 +15,21 @@ __cert_list_start:
->  __cert_list_end:
->
->  #ifdef CONFIG_SYSTEM_EXTRA_CERTIFICATE
-> -       .globl VMLINUX_SYMBOL(system_extra_cert)
-> +       .globl system_extra_cert
->         .size system_extra_cert, CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE
-> -VMLINUX_SYMBOL(system_extra_cert):
-> +system_extra_cert:
->         .fill CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE, 1, 0
->
->         .align 4
-> -       .globl VMLINUX_SYMBOL(system_extra_cert_used)
-> -VMLINUX_SYMBOL(system_extra_cert_used):
-> +       .globl system_extra_cert_used
-> +system_extra_cert_used:
->         .int 0
->
->  #endif /* CONFIG_SYSTEM_EXTRA_CERTIFICATE */
->
->         .align 8
-> -       .globl VMLINUX_SYMBOL(system_certificate_list_size)
-> -VMLINUX_SYMBOL(system_certificate_list_size):
-> +       .globl system_certificate_list_size
-> +system_certificate_list_size:
->  #ifdef CONFIG_64BIT
->         .quad __cert_list_end - __cert_list_start
->  #else
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index f173b5f..7b75ff6 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -54,8 +54,6 @@
->  #define LOAD_OFFSET 0
->  #endif
->
-> -#include <linux/export.h>
-> -
->  /* Align . to a 8 byte boundary equals to maximum function alignment. */
->  #define ALIGN_FUNCTION()  . = ALIGN(8)
->
-> diff --git a/include/linux/export.h b/include/linux/export.h
-> index b768d6d..c363bde 100644
-> --- a/include/linux/export.h
-> +++ b/include/linux/export.h
-> @@ -10,13 +10,6 @@
->   * hackers place grumpy comments in header files.
->   */
->
-> -#define __VMLINUX_SYMBOL(x) x
-> -#define __VMLINUX_SYMBOL_STR(x) #x
-> -
-> -/* Indirect, so macros are expanded before pasting. */
-> -#define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
-> -#define VMLINUX_SYMBOL_STR(x) __VMLINUX_SYMBOL_STR(x)
-> -
->  #ifndef __ASSEMBLY__
->  struct kernel_symbol
->  {
-> diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
-> index b28da79..d07648f 100644
-> --- a/usr/initramfs_data.S
-> +++ b/usr/initramfs_data.S
-> @@ -30,8 +30,8 @@ __irf_start:
->  .incbin __stringify(INITRAMFS_IMAGE)
->  __irf_end:
->  .section .init.ramfs.info,"a"
-> -.globl VMLINUX_SYMBOL(__initramfs_size)
-> -VMLINUX_SYMBOL(__initramfs_size):
-> +.globl __initramfs_size
-> +__initramfs_size:
->  #ifdef CONFIG_64BIT
->         .quad __irf_end - __irf_start
->  #else
-> --
-> 2.7.4
->
+ f0 0f b1 17             lock cmpxchg %edx,(%rdi)
+ 85 c0                   test   %eax,%eax
+ 75 05                   jne    [slowpath]
 
+This 'test' insn is superfluous; the cmpxchg insn sets the Z flag
+appropriately.  Peter pointed out that using atomic_try_cmpxchg_acquire()
+will let the compiler know this is true.  Comparing before/after
+disassemblies show the only effect is to remove this insn.
 
+Take this opportunity to make the spin & write lock code resemble each
+other more closely and have similar likely() hints.
 
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Matthew Wilcox <willy@infradead.org>
+---
+ include/asm-generic/qrwlock.h   |  7 ++++---
+ include/asm-generic/qspinlock.h | 17 ++++++++++-------
+ 2 files changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 0f7062bd55e5..36254d2da8e0 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -71,8 +71,8 @@ static inline int queued_write_trylock(struct qrwlock *lock)
+ 	if (unlikely(cnts))
+ 		return 0;
+ 
+-	return likely(atomic_cmpxchg_acquire(&lock->cnts,
+-					     cnts, cnts | _QW_LOCKED) == cnts);
++	return likely(atomic_try_cmpxchg_acquire(&lock->cnts, &cnts,
++				_QW_LOCKED));
+ }
+ /**
+  * queued_read_lock - acquire read lock of a queue rwlock
+@@ -96,8 +96,9 @@ static inline void queued_read_lock(struct qrwlock *lock)
+  */
+ static inline void queued_write_lock(struct qrwlock *lock)
+ {
++	u32 cnts = 0;
+ 	/* Optimize for the unfair lock case where the fair flag is 0. */
+-	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
++	if (likely(atomic_try_cmpxchg_acquire(&lock->cnts, &cnts, _QW_LOCKED)))
+ 		return;
+ 
+ 	queued_write_lock_slowpath(lock);
+diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+index 95263e943fcc..24e7915eee56 100644
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -68,10 +68,14 @@ int queued_spin_is_contended(const struct qspinlock *lock)
+  */
+ static __always_inline int queued_spin_trylock(struct qspinlock *lock)
+ {
+-	if (!atomic_read(&lock->val) &&
+-	   (atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL) == 0))
+-		return 1;
+-	return 0;
++	u32 val;
++
++	val = atomic_read(&lock->val);
++	if (unlikely(val))
++		return 0;
++
++	return likely(atomic_try_cmpxchg_acquire(&lock->val, &val,
++				_Q_LOCKED_VAL));
+ }
+ 
+ extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+@@ -82,10 +86,9 @@ extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+  */
+ static __always_inline void queued_spin_lock(struct qspinlock *lock)
+ {
+-	u32 val;
++	u32 val = 0;
+ 
+-	val = atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL);
+-	if (likely(val == 0))
++	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
+ 		return;
+ 	queued_spin_lock_slowpath(lock, val);
+ }
 -- 
-Best Regards
-Masahiro Yamada
+2.18.0
