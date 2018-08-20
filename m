@@ -1,116 +1,86 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] locking: Remove an insn from spin and write locks
-Date: Mon, 20 Aug 2018 09:26:39 -0700
-Message-ID: <20180820162639.GC25153@bombadil.infradead.org>
-References: <20180820150652.29482-1-willy@infradead.org>
- <f24a32be-6a4f-0df8-4289-14adc1046f50@redhat.com>
- <20180820155002.GB25153@bombadil.infradead.org>
- <20180820155650.GG24082@hirez.programming.kicks-ass.net>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
+Date: Mon, 20 Aug 2018 11:34:17 -0700
+Message-ID: <20180820183417.dejfsluih7elbclu@pburton-laptop>
+References: <20180818181017.1246-1-paul.burton@mips.com>
+ <20180818181017.1246-2-paul.burton@mips.com>
+ <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180820155650.GG24082@hirez.programming.kicks-ass.net>
+In-Reply-To: <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <longman@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 20, 2018 at 05:56:50PM +0200, Peter Zijlstra wrote:
-> Yeah, _acquire should be retained; sorry about loosing that. I'm neck
-> deep into tlb invalidate stuff and wrote this without much thinking
-> involved.
+Hi Masahiro,
 
-NP.  Here's the current version I've got, with some updated likely()
-hints.
+On Mon, Aug 20, 2018 at 02:04:24PM +0900, Masahiro Yamada wrote:
+> 2018-08-19 3:10 GMT+09:00 Paul Burton <paul.burton@mips.com>:
+> > We have a need to override the definition of
+> > barrier_before_unreachable() for MIPS, which means we either need to add
+> > architecture-specific code into linux/compiler-gcc.h or we need to allow
+> > the architecture to provide a header that can define the macro before
+> > the generic definition. The latter seems like the better approach.
+> >
+> > A straightforward approach to the per-arch header is to make use of
+> > asm-generic to provide a default empty header & adjust architectures
+> > which don't need anything specific to make use of that by adding the
+> > header to generic-y. Unfortunately this doesn't work so well due to
+> > commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
+> > <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
+> > cflags using the -include compiler flag.
+> >
+> > Because the -include flag is present for all C files we compile, we need
+> > the architecture-provided header to be present before any C files are
+> > compiled. If any C files can be compiled prior to the asm-generic header
+> > wrappers being generated then we hit a build failure due to missing
+> > header. Such cases do exist - one pointed out by the kbuild test robot
+> > is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
+> > of the archprepare target [1].
+> >
+> > This leaves us with a few options:
+> >
+> >   1) Use generic-y & fix any build failures we find by enforcing
+> >      ordering such that the asm-generic target occurs before any C
+> >      compilation, such that linux/compiler_types.h can always include
+> >      the generated asm-generic wrapper which in turn includes the empty
+> >      asm-generic header. This would rely on us finding all the
+> >      problematic cases - I don't know for sure that the ia64 issue is
+> >      the only one.
+> >
+> >   2) Add an actual empty header to each architecture, so that we don't
+> >      need the generated asm-generic wrapper. This seems messy.
+> >
+> >   3) Give up & add #ifdef CONFIG_MIPS or similar to
+> >      linux/compiler_types.h. This seems messy too.
+> >
+> >   4) Include the arch header only when it's actually needed, removing
+> >      the need for the asm-generic wrapper for all other architectures.
+> >
+> > This patch allows us to use approach 4, by including an
+> > asm/compiler_types.h header using the -include flag in the same way we
+> > do for linux/compiler_types.h, but only if the header actually exists.
+> 
+> I agree with the approach 4),
+> but I am of two minds about how to implement it.
+> 
+> I guess the cost of evaluating 'wildcard' for each C file
+> is unnoticeable level, but I am slightly in favor of
+> including <asm/compilr_types.h> from <linux/compiler_types.h>
+> conditionally.
+> 
+> I am not sure about the CONFIG name, but for example, like this.
+> 
+> #ifdef CONFIG_HAVE_ARCH_COMPILER_TYPES
+> #include <asm/compiler_types.h>
+> #endif
+> 
+> What do you think?
 
-From 337298a88266f7b21492f893c2bf05409a5392c8 Mon Sep 17 00:00:00 2001
-From: Matthew Wilcox <willy@infradead.org>
-Date: Mon, 20 Aug 2018 10:19:14 -0400
-Subject: [PATCH] locking: Remove an insn from spin and write locks
+That sounds fine to me - I'll submit a v9 shortly :)
 
-Both spin locks and write locks currently do:
-
- f0 0f b1 17             lock cmpxchg %edx,(%rdi)
- 85 c0                   test   %eax,%eax
- 75 05                   jne    [slowpath]
-
-This 'test' insn is superfluous; the cmpxchg insn sets the Z flag
-appropriately.  Peter pointed out that using atomic_try_cmpxchg_acquire()
-will let the compiler know this is true.  Comparing before/after
-disassemblies show the only effect is to remove this insn.
-
-Take this opportunity to make the spin & write lock code resemble each
-other more closely and have similar likely() hints.
-
-Suggested-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Matthew Wilcox <willy@infradead.org>
----
- include/asm-generic/qrwlock.h   |  7 ++++---
- include/asm-generic/qspinlock.h | 17 ++++++++++-------
- 2 files changed, 14 insertions(+), 10 deletions(-)
-
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 0f7062bd55e5..36254d2da8e0 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -71,8 +71,8 @@ static inline int queued_write_trylock(struct qrwlock *lock)
- 	if (unlikely(cnts))
- 		return 0;
- 
--	return likely(atomic_cmpxchg_acquire(&lock->cnts,
--					     cnts, cnts | _QW_LOCKED) == cnts);
-+	return likely(atomic_try_cmpxchg_acquire(&lock->cnts, &cnts,
-+				_QW_LOCKED));
- }
- /**
-  * queued_read_lock - acquire read lock of a queue rwlock
-@@ -96,8 +96,9 @@ static inline void queued_read_lock(struct qrwlock *lock)
-  */
- static inline void queued_write_lock(struct qrwlock *lock)
- {
-+	u32 cnts = 0;
- 	/* Optimize for the unfair lock case where the fair flag is 0. */
--	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
-+	if (likely(atomic_try_cmpxchg_acquire(&lock->cnts, &cnts, _QW_LOCKED)))
- 		return;
- 
- 	queued_write_lock_slowpath(lock);
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index 95263e943fcc..24e7915eee56 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -68,10 +68,14 @@ int queued_spin_is_contended(const struct qspinlock *lock)
-  */
- static __always_inline int queued_spin_trylock(struct qspinlock *lock)
- {
--	if (!atomic_read(&lock->val) &&
--	   (atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL) == 0))
--		return 1;
--	return 0;
-+	u32 val;
-+
-+	val = atomic_read(&lock->val);
-+	if (unlikely(val))
-+		return 0;
-+
-+	return likely(atomic_try_cmpxchg_acquire(&lock->val, &val,
-+				_Q_LOCKED_VAL));
- }
- 
- extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-@@ -82,10 +86,9 @@ extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-  */
- static __always_inline void queued_spin_lock(struct qspinlock *lock)
- {
--	u32 val;
-+	u32 val = 0;
- 
--	val = atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL);
--	if (likely(val == 0))
-+	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
- 		return;
- 	queued_spin_lock_slowpath(lock, val);
- }
--- 
-2.18.0
+Thanks,
+    Paul
