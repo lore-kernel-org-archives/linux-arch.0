@@ -1,92 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:57154 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726587AbeHST1R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 19 Aug 2018 15:27:17 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v4 14/16] driver/cpufreq: enable Hygon support to cpufreq driver
-Date: Mon, 20 Aug 2018 00:14:28 +0800
-Message-ID: <ba12d5ecb16dfb99c7ab99d4305a326880d31b96.1534599097.git.puwen@hygon.cn>
-In-Reply-To: <cover.1534599097.git.puwen@hygon.cn>
-References: <cover.1534599097.git.puwen@hygon.cn>
+Received: from conssluserg-06.nifty.com ([210.131.2.91]:63364 "EHLO
+        conssluserg-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726005AbeHTITY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Aug 2018 04:19:24 -0400
+MIME-Version: 1.0
+In-Reply-To: <20180818181017.1246-2-paul.burton@mips.com>
+References: <20180818181017.1246-1-paul.burton@mips.com> <20180818181017.1246-2-paul.burton@mips.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Mon, 20 Aug 2018 14:04:24 +0900
+Message-ID: <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
+Subject: Re: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, rjw@rjwysocki.net, viresh.kumar@linaro.org, rafael@kernel.org, rafael.j.wysocki@intel.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180819161428.YmOfktGG2rgn3uTVOLbOLc1ITGqnp3IhX9j1V_U6gUY@z>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20180820050424.bVKA1qRa-7_JpuL8vaBz2E2W1PcrLzqt6j1sdlKmcEo@z>
 
-Enable ACPI cpufreq driver support for Hygon by adding family ID check
-along with AMD.
+Hi Paul,
 
-As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
-support to function amd_freq_sensitivity_init().
 
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-Signed-off-by: Pu Wen <puwen@hygon.cn>
----
- drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
- drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
- 2 files changed, 12 insertions(+), 2 deletions(-)
+2018-08-19 3:10 GMT+09:00 Paul Burton <paul.burton@mips.com>:
+> We have a need to override the definition of
+> barrier_before_unreachable() for MIPS, which means we either need to add
+> architecture-specific code into linux/compiler-gcc.h or we need to allow
+> the architecture to provide a header that can define the macro before
+> the generic definition. The latter seems like the better approach.
+>
+> A straightforward approach to the per-arch header is to make use of
+> asm-generic to provide a default empty header & adjust architectures
+> which don't need anything specific to make use of that by adding the
+> header to generic-y. Unfortunately this doesn't work so well due to
+> commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
+> <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
+> cflags using the -include compiler flag.
+>
+> Because the -include flag is present for all C files we compile, we need
+> the architecture-provided header to be present before any C files are
+> compiled. If any C files can be compiled prior to the asm-generic header
+> wrappers being generated then we hit a build failure due to missing
+> header. Such cases do exist - one pointed out by the kbuild test robot
+> is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
+> of the archprepare target [1].
+>
+> This leaves us with a few options:
+>
+>   1) Use generic-y & fix any build failures we find by enforcing
+>      ordering such that the asm-generic target occurs before any C
+>      compilation, such that linux/compiler_types.h can always include
+>      the generated asm-generic wrapper which in turn includes the empty
+>      asm-generic header. This would rely on us finding all the
+>      problematic cases - I don't know for sure that the ia64 issue is
+>      the only one.
+>
+>   2) Add an actual empty header to each architecture, so that we don't
+>      need the generated asm-generic wrapper. This seems messy.
+>
+>   3) Give up & add #ifdef CONFIG_MIPS or similar to
+>      linux/compiler_types.h. This seems messy too.
+>
+>   4) Include the arch header only when it's actually needed, removing
+>      the need for the asm-generic wrapper for all other architectures.
+>
+> This patch allows us to use approach 4, by including an
+> asm/compiler_types.h header using the -include flag in the same way we
+> do for linux/compiler_types.h, but only if the header actually exists.
 
-diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
-index b61f4ec..d62fd37 100644
---- a/drivers/cpufreq/acpi-cpufreq.c
-+++ b/drivers/cpufreq/acpi-cpufreq.c
-@@ -61,6 +61,7 @@ enum {
- 
- #define INTEL_MSR_RANGE		(0xffff)
- #define AMD_MSR_RANGE		(0x7)
-+#define HYGON_MSR_RANGE		(0x7)
- 
- #define MSR_K7_HWCR_CPB_DIS	(1ULL << 25)
- 
-@@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
- 		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
- 		msr = lo | ((u64)hi << 32);
- 		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
- 		msr = lo | ((u64)hi << 32);
-@@ -113,6 +115,7 @@ static int boost_set_msr(bool enable)
- 		msr_addr = MSR_IA32_MISC_ENABLE;
- 		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
- 		break;
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 		msr_addr = MSR_K7_HWCR;
- 		msr_mask = MSR_K7_HWCR_CPB_DIS;
-@@ -225,6 +228,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
- 
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
- 		msr &= AMD_MSR_RANGE;
-+	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		msr &= HYGON_MSR_RANGE;
- 	else
- 		msr &= INTEL_MSR_RANGE;
- 
-diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
-index be926d9..4ac7c3c 100644
---- a/drivers/cpufreq/amd_freq_sensitivity.c
-+++ b/drivers/cpufreq/amd_freq_sensitivity.c
-@@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
- {
- 	u64 val;
- 	struct pci_dev *pcidev;
-+	unsigned int pci_vendor;
- 
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+		pci_vendor = PCI_VENDOR_ID_AMD;
-+	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		pci_vendor = PCI_VENDOR_ID_HYGON;
-+	else
- 		return -ENODEV;
- 
--	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
-+	pcidev = pci_get_device(pci_vendor,
- 			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
- 
- 	if (!pcidev) {
+
+I agree with the approach 4),
+but I am of two minds about how to implement it.
+
+
+I guess the cost of evaluating 'wildcard' for each C file
+is unnoticeable level, but I am slightly in favor of
+including <asm/compilr_types.h> from <linux/compiler_types.h>
+conditionally.
+
+I am not sure about the CONFIG name, but for example, like this.
+
+#ifdef CONFIG_HAVE_ARCH_COMPILER_TYPES
+#include <asm/compiler_types.h>
+#endif
+
+
+What do you think?
+
+
+
+
+
+
+> [1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
+>
+> Signed-off-by: Paul Burton <paul.burton@mips.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: James Hogan <jhogan@kernel.org>
+> Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-mips@linux-mips.org
+>
+> ---
+> Any thoughts anyone?
+>
+> This isn't the prettiest it could possibly be but it's a small change &
+> clearly shouldn't break anything, which are good qualities for a patch
+> fixing build failures that we'd ideally backport as far as 4.16.
+>
+> Changes in v8:
+> - New patch.
+>
+>  scripts/Makefile.lib | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 1bb594fcfe12..4e7b41ef029b 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -151,8 +151,11 @@ __a_flags  = $(call flags,_a_flags)
+>  __cpp_flags     = $(call flags,_cpp_flags)
+>  endif
+>
+> +c_includes     = $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/compiler_types.h)
+> +c_includes     += $(srctree)/include/linux/compiler_types.h
+> +
+>  c_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+> -                -include $(srctree)/include/linux/compiler_types.h       \
+> +                $(addprefix -include ,$(c_includes))                     \
+>                  $(__c_flags) $(modkern_cflags)                           \
+>                  $(basename_flags) $(modname_flags)
+>
+> --
+> 2.18.0
+>
+
+
+
 -- 
-2.7.4
+Best Regards
+Masahiro Yamada
