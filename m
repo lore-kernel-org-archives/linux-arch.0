@@ -1,151 +1,137 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v4 16/16] tools/cpupower: enable Hygon support to cpupower tool
-Date: Mon, 20 Aug 2018 00:15:18 +0800
-Message-ID: <eb25ab4111577cbdcaff71300620b1f702c924dc.1534599097.git.puwen@hygon.cn>
-References: <cover.1534599097.git.puwen@hygon.cn>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH v8 1/2] kbuild: Allow asm-specific compiler_types.h
+Date: Mon, 20 Aug 2018 14:04:24 +0900
+Message-ID: <CAK7LNASM_ZThZRwFQJFaYqurqUVayNGPM6c7gnuHERYN7T4M3g@mail.gmail.com>
+References: <20180818181017.1246-1-paul.burton@mips.com> <20180818181017.1246-2-paul.burton@mips.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1534599097.git.puwen@hygon.cn>
+In-Reply-To: <20180818181017.1246-2-paul.burton@mips.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, trenn@suse.com, shuah@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-Tool cpupower is useful to get CPU frequency information and monitor
-power stats on Hygon platforms. So enable platform support to cpupower
-for Hygon Dhyana Family 18h processors by checking vendor ID & family
-and vendor string along with AMD.
+Hi Paul,
 
-Signed-off-by: Pu Wen <puwen@hygon.cn>
----
- tools/power/cpupower/utils/cpufreq-info.c               | 6 ++++--
- tools/power/cpupower/utils/helpers/amd.c                | 6 ++++--
- tools/power/cpupower/utils/helpers/cpuid.c              | 8 +++++---
- tools/power/cpupower/utils/helpers/helpers.h            | 2 +-
- tools/power/cpupower/utils/helpers/misc.c               | 3 ++-
- tools/power/cpupower/utils/idle_monitor/mperf_monitor.c | 3 ++-
- 6 files changed, 18 insertions(+), 10 deletions(-)
 
-diff --git a/tools/power/cpupower/utils/cpufreq-info.c b/tools/power/cpupower/utils/cpufreq-info.c
-index df43cd4..56e54ea 100644
---- a/tools/power/cpupower/utils/cpufreq-info.c
-+++ b/tools/power/cpupower/utils/cpufreq-info.c
-@@ -170,6 +170,7 @@ static int get_boost_mode(unsigned int cpu)
- 	unsigned long pstates[MAX_HW_PSTATES] = {0,};
- 
- 	if (cpupower_cpu_info.vendor != X86_VENDOR_AMD &&
-+	    cpupower_cpu_info.vendor != X86_VENDOR_HYGON &&
- 	    cpupower_cpu_info.vendor != X86_VENDOR_INTEL)
- 		return 0;
- 
-@@ -190,8 +191,9 @@ static int get_boost_mode(unsigned int cpu)
- 	printf(_("    Supported: %s\n"), support ? _("yes") : _("no"));
- 	printf(_("    Active: %s\n"), active ? _("yes") : _("no"));
- 
--	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
--	    cpupower_cpu_info.family >= 0x10) {
-+	if ((cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
-+	     cpupower_cpu_info.family >= 0x10) ||
-+	     cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
- 		ret = decode_pstates(cpu, cpupower_cpu_info.family, b_states,
- 				     pstates, &pstate_no);
- 		if (ret)
-diff --git a/tools/power/cpupower/utils/helpers/amd.c b/tools/power/cpupower/utils/helpers/amd.c
-index bb41cdd..d9327ee 100644
---- a/tools/power/cpupower/utils/helpers/amd.c
-+++ b/tools/power/cpupower/utils/helpers/amd.c
-@@ -45,7 +45,8 @@ static int get_did(int family, union msr_pstate pstate)
- 
- 	if (family == 0x12)
- 		t = pstate.val & 0xf;
--	else if (family == 0x17)
-+	else if (family == 0x17 ||
-+		(cpupower_cpu_info.vendor == X86_VENDOR_HYGON && family == 0x18))
- 		t = pstate.fam17h_bits.did;
- 	else
- 		t = pstate.bits.did;
-@@ -59,7 +60,8 @@ static int get_cof(int family, union msr_pstate pstate)
- 	int fid, did, cof;
- 
- 	did = get_did(family, pstate);
--	if (family == 0x17) {
-+	if (family == 0x17 ||
-+	   (cpupower_cpu_info.vendor == X86_VENDOR_HYGON && family == 0x18)) {
- 		fid = pstate.fam17h_bits.fid;
- 		cof = 200 * fid / did;
- 	} else {
-diff --git a/tools/power/cpupower/utils/helpers/cpuid.c b/tools/power/cpupower/utils/helpers/cpuid.c
-index 732b0b4..5cc39d4 100644
---- a/tools/power/cpupower/utils/helpers/cpuid.c
-+++ b/tools/power/cpupower/utils/helpers/cpuid.c
-@@ -8,7 +8,7 @@
- #include "helpers/helpers.h"
- 
- static const char *cpu_vendor_table[X86_VENDOR_MAX] = {
--	"Unknown", "GenuineIntel", "AuthenticAMD",
-+	"Unknown", "GenuineIntel", "AuthenticAMD", "HygonGenuine",
- };
- 
- #if defined(__i386__) || defined(__x86_64__)
-@@ -109,6 +109,7 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
- 	fclose(fp);
- 	/* Get some useful CPU capabilities from cpuid */
- 	if (cpu_info->vendor != X86_VENDOR_AMD &&
-+	    cpu_info->vendor != X86_VENDOR_HYGON &&
- 	    cpu_info->vendor != X86_VENDOR_INTEL)
- 		return ret;
- 
-@@ -124,8 +125,9 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
- 	if (cpuid_level >= 6 && (cpuid_ecx(6) & 0x1))
- 		cpu_info->caps |= CPUPOWER_CAP_APERF;
- 
--	/* AMD Boost state enable/disable register */
--	if (cpu_info->vendor == X86_VENDOR_AMD) {
-+	/* AMD or Hygon Boost state enable/disable register */
-+	if (cpu_info->vendor == X86_VENDOR_AMD ||
-+	    cpu_info->vendor == X86_VENDOR_HYGON) {
- 		if (ext_cpuid_level >= 0x80000007 &&
- 		    (cpuid_edx(0x80000007) & (1 << 9)))
- 			cpu_info->caps |= CPUPOWER_CAP_AMD_CBP;
-diff --git a/tools/power/cpupower/utils/helpers/helpers.h b/tools/power/cpupower/utils/helpers/helpers.h
-index 41da392..9021396 100644
---- a/tools/power/cpupower/utils/helpers/helpers.h
-+++ b/tools/power/cpupower/utils/helpers/helpers.h
-@@ -61,7 +61,7 @@ extern int be_verbose;
- 
- /* cpuid and cpuinfo helpers  **************************/
- enum cpupower_cpu_vendor {X86_VENDOR_UNKNOWN = 0, X86_VENDOR_INTEL,
--			  X86_VENDOR_AMD, X86_VENDOR_MAX};
-+			  X86_VENDOR_AMD, X86_VENDOR_HYGON, X86_VENDOR_MAX};
- 
- #define CPUPOWER_CAP_INV_TSC		0x00000001
- #define CPUPOWER_CAP_APERF		0x00000002
-diff --git a/tools/power/cpupower/utils/helpers/misc.c b/tools/power/cpupower/utils/helpers/misc.c
-index 80fdf55..596bbb4 100644
---- a/tools/power/cpupower/utils/helpers/misc.c
-+++ b/tools/power/cpupower/utils/helpers/misc.c
-@@ -26,7 +26,8 @@ int cpufreq_has_boost_support(unsigned int cpu, int *support, int *active,
- 		 * has Hardware determined variable increments instead.
- 		 */
- 
--		if (cpu_info.family == 0x17) {
-+		if (cpu_info.family == 0x17 ||
-+		   (cpu_info.vendor == X86_VENDOR_HYGON && cpu_info.family == 0x18)) {
- 			if (!read_msr(cpu, MSR_AMD_HWCR, &val)) {
- 				if (!(val & CPUPOWER_AMD_CPBDIS))
- 					*active = 1;
-diff --git a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
-index d7c2a6d..f2a7e9c 100644
---- a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
-+++ b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
-@@ -241,7 +241,8 @@ static int init_maxfreq_mode(void)
- 	if (!(cpupower_cpu_info.caps & CPUPOWER_CAP_INV_TSC))
- 		goto use_sysfs;
- 
--	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD) {
-+	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD ||
-+	    cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
- 		/* MSR_AMD_HWCR tells us whether TSC runs at P0/mperf
- 		 * freq.
- 		 * A test whether hwcr is accessable/available would be:
+2018-08-19 3:10 GMT+09:00 Paul Burton <paul.burton@mips.com>:
+> We have a need to override the definition of
+> barrier_before_unreachable() for MIPS, which means we either need to add
+> architecture-specific code into linux/compiler-gcc.h or we need to allow
+> the architecture to provide a header that can define the macro before
+> the generic definition. The latter seems like the better approach.
+>
+> A straightforward approach to the per-arch header is to make use of
+> asm-generic to provide a default empty header & adjust architectures
+> which don't need anything specific to make use of that by adding the
+> header to generic-y. Unfortunately this doesn't work so well due to
+> commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
+> <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
+> cflags using the -include compiler flag.
+>
+> Because the -include flag is present for all C files we compile, we need
+> the architecture-provided header to be present before any C files are
+> compiled. If any C files can be compiled prior to the asm-generic header
+> wrappers being generated then we hit a build failure due to missing
+> header. Such cases do exist - one pointed out by the kbuild test robot
+> is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
+> of the archprepare target [1].
+>
+> This leaves us with a few options:
+>
+>   1) Use generic-y & fix any build failures we find by enforcing
+>      ordering such that the asm-generic target occurs before any C
+>      compilation, such that linux/compiler_types.h can always include
+>      the generated asm-generic wrapper which in turn includes the empty
+>      asm-generic header. This would rely on us finding all the
+>      problematic cases - I don't know for sure that the ia64 issue is
+>      the only one.
+>
+>   2) Add an actual empty header to each architecture, so that we don't
+>      need the generated asm-generic wrapper. This seems messy.
+>
+>   3) Give up & add #ifdef CONFIG_MIPS or similar to
+>      linux/compiler_types.h. This seems messy too.
+>
+>   4) Include the arch header only when it's actually needed, removing
+>      the need for the asm-generic wrapper for all other architectures.
+>
+> This patch allows us to use approach 4, by including an
+> asm/compiler_types.h header using the -include flag in the same way we
+> do for linux/compiler_types.h, but only if the header actually exists.
+
+
+I agree with the approach 4),
+but I am of two minds about how to implement it.
+
+
+I guess the cost of evaluating 'wildcard' for each C file
+is unnoticeable level, but I am slightly in favor of
+including <asm/compilr_types.h> from <linux/compiler_types.h>
+conditionally.
+
+I am not sure about the CONFIG name, but for example, like this.
+
+#ifdef CONFIG_HAVE_ARCH_COMPILER_TYPES
+#include <asm/compiler_types.h>
+#endif
+
+
+What do you think?
+
+
+
+
+
+
+> [1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
+>
+> Signed-off-by: Paul Burton <paul.burton@mips.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: James Hogan <jhogan@kernel.org>
+> Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-mips@linux-mips.org
+>
+> ---
+> Any thoughts anyone?
+>
+> This isn't the prettiest it could possibly be but it's a small change &
+> clearly shouldn't break anything, which are good qualities for a patch
+> fixing build failures that we'd ideally backport as far as 4.16.
+>
+> Changes in v8:
+> - New patch.
+>
+>  scripts/Makefile.lib | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 1bb594fcfe12..4e7b41ef029b 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -151,8 +151,11 @@ __a_flags  = $(call flags,_a_flags)
+>  __cpp_flags     = $(call flags,_cpp_flags)
+>  endif
+>
+> +c_includes     = $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/compiler_types.h)
+> +c_includes     += $(srctree)/include/linux/compiler_types.h
+> +
+>  c_flags        = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+> -                -include $(srctree)/include/linux/compiler_types.h       \
+> +                $(addprefix -include ,$(c_includes))                     \
+>                  $(__c_flags) $(modkern_cflags)                           \
+>                  $(basename_flags) $(modname_flags)
+>
+> --
+> 2.18.0
+>
+
+
+
 -- 
-2.7.4
+Best Regards
+Masahiro Yamada
