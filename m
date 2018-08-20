@@ -1,41 +1,84 @@
-From: Alexandre Ghiti <alex@ghiti.fr>
-Subject: Re: [PATCH v6 00/11] hugetlb: Factorize hugetlb architecture
- primitives
-Date: Mon, 20 Aug 2018 09:36:35 +0200
-Message-ID: <00b8c047-3ab5-f86b-41e5-d87950f10c21@ghiti.fr>
-References: <20180806175711.24438-1-alex@ghiti.fr>
- <81078a7f-09cf-7f19-f6bb-8a1f4968d6fb@ghiti.fr>
- <20180820071730.GC29735@dhcp22.suse.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Matthew Wilcox <willy@infradead.org>
+Subject: [PATCH] locking: Remove an insn from spin and write locks
+Date: Mon, 20 Aug 2018 08:06:52 -0700
+Message-ID: <20180820150652.29482-1-willy@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180820071730.GC29735@dhcp22.suse.cz>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org, Mike Kravetz <mike.kravetz@oracle.com>, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Matthew Wilcox <willy@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Ok, my bad, sorry about that, I have just added Andrew as CC then.
+Both spin locks and write locks currently do:
 
-Thank you,
+ f0 0f b1 17             lock cmpxchg %edx,(%rdi)
+ 85 c0                   test   %eax,%eax
+ 75 05                   jne    [slowpath]
 
-Alex
+This 'test' insn is superfluous; the cmpxchg insn sets the Z flag
+appropriately.  Peter pointed out that using atomic_try_cmpxchg()
+will let the compiler know this is true.  Comparing before/after
+disassemblies show the only effect is to remove this insn.
 
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Matthew Wilcox <willy@infradead.org>
+---
+ include/asm-generic/qrwlock.h   | 6 +++---
+ include/asm-generic/qspinlock.h | 9 +++++----
+ 2 files changed, 8 insertions(+), 7 deletions(-)
 
-On 08/20/2018 09:17 AM, Michal Hocko wrote:
-> On Mon 20-08-18 08:45:10, Alexandre Ghiti wrote:
->> Hi Michal,
->>
->> This patchset got acked, tested and reviewed by quite a few people, and it
->> has been suggested
->> that it should be included in -mm tree: could you tell me if something else
->> needs to be done for
->> its inclusion ?
->>
->> Thanks for your time,
-> I didn't really get to look at the series but seeing an Ack from Mike
-> and arch maintainers should be good enough for it to go. This email
-> doesn't have Andrew Morton in the CC list so you should add him if you
-> want the series to land into the mm tree.
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 0f7062bd55e5..9a1beb7ad0de 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -71,8 +71,7 @@ static inline int queued_write_trylock(struct qrwlock *lock)
+ 	if (unlikely(cnts))
+ 		return 0;
+ 
+-	return likely(atomic_cmpxchg_acquire(&lock->cnts,
+-					     cnts, cnts | _QW_LOCKED) == cnts);
++	return likely(atomic_try_cmpxchg(&lock->cnts, &cnts, _QW_LOCKED));
+ }
+ /**
+  * queued_read_lock - acquire read lock of a queue rwlock
+@@ -96,8 +95,9 @@ static inline void queued_read_lock(struct qrwlock *lock)
+  */
+ static inline void queued_write_lock(struct qrwlock *lock)
+ {
++	u32 cnts = 0;
+ 	/* Optimize for the unfair lock case where the fair flag is 0. */
+-	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
++	if (atomic_try_cmpxchg_acquire(&lock->cnts, &cnts, _QW_LOCKED))
+ 		return;
+ 
+ 	queued_write_lock_slowpath(lock);
+diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+index 95263e943fcc..d125f0c0b3d9 100644
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -68,8 +68,10 @@ int queued_spin_is_contended(const struct qspinlock *lock)
+  */
+ static __always_inline int queued_spin_trylock(struct qspinlock *lock)
+ {
++	u32 val = 0;
++
+ 	if (!atomic_read(&lock->val) &&
+-	   (atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL) == 0))
++	    (atomic_try_cmpxchg(&lock->val, &val, _Q_LOCKED_VAL)))
+ 		return 1;
+ 	return 0;
+ }
+@@ -82,10 +84,9 @@ extern void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+  */
+ static __always_inline void queued_spin_lock(struct qspinlock *lock)
+ {
+-	u32 val;
++	u32 val = 0;
+ 
+-	val = atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL);
+-	if (likely(val == 0))
++	if (likely(atomic_try_cmpxchg(&lock->val, &val, _Q_LOCKED_VAL)))
+ 		return;
+ 	queued_spin_lock_slowpath(lock, val);
+ }
+-- 
+2.18.0
