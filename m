@@ -1,49 +1,136 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] locking: Remove an insn from spin and write locks
-Date: Mon, 20 Aug 2018 17:56:50 +0200
-Message-ID: <20180820155650.GG24082@hirez.programming.kicks-ass.net>
-References: <20180820150652.29482-1-willy@infradead.org>
- <f24a32be-6a4f-0df8-4289-14adc1046f50@redhat.com>
- <20180820155002.GB25153@bombadil.infradead.org>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] export.h: remove VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR()
+Date: Tue, 21 Aug 2018 01:12:02 +0900
+Message-ID: <CAK7LNAQHcKJLahTssT8tG6i0YM_UpM2A+vKOeeuwryx2UwVWeQ@mail.gmail.com>
+References: <1534631687-18347-1-git-send-email-yamada.masahiro@socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180820155002.GB25153@bombadil.infradead.org>
+In-Reply-To: <1534631687-18347-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Waiman Long <longman@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, keyrings@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 20, 2018 at 08:50:02AM -0700, Matthew Wilcox wrote:
-> On Mon, Aug 20, 2018 at 11:14:04AM -0400, Waiman Long wrote:
-> > On 08/20/2018 11:06 AM, Matthew Wilcox wrote:
-> > > Both spin locks and write locks currently do:
-> > >
-> > >  f0 0f b1 17             lock cmpxchg %edx,(%rdi)
-> > >  85 c0                   test   %eax,%eax
-> > >  75 05                   jne    [slowpath]
-> > >
-> > > This 'test' insn is superfluous; the cmpxchg insn sets the Z flag
-> > > appropriately.  Peter pointed out that using atomic_try_cmpxchg()
-> > > will let the compiler know this is true.  Comparing before/after
-> > > disassemblies show the only effect is to remove this insn.
-> ...
-> > >  static __always_inline int queued_spin_trylock(struct qspinlock *lock)
-> > >  {
-> > > +	u32 val = 0;
-> > > +
-> > >  	if (!atomic_read(&lock->val) &&
-> > > -	   (atomic_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL) == 0))
-> > > +	    (atomic_try_cmpxchg(&lock->val, &val, _Q_LOCKED_VAL)))
-> > 
-> > Should you keep the _acquire suffix?
-> 
-> I don't know ;-)  Probably.  Peter didn't include it as part of his
-> suggested fix, but on reviewing the documentation, it seems likely that
-> it should be retained.  I put them back in and (as expected) it changes
-> nothing on x86-64.
+2018-08-19 7:34 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
+> With the special case handling for Blackfin and Metag was removed by
+> commit 94e58e0ac312 ("export.h: remove code for prefixing symbols with
+> underscore"), VMLINUX_SYMBOL() is no-no.
+>
+> Replace the remaining usages, then remove the definition of
+> VMLINUX_SYMBOL() and VMLINUX_SYMBOL_STR().
+>
+> <asm-generic/vmlinux.lds.h> no longer needs to include <linux/export.h>.
+>
+> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+> ---
 
-Yeah, _acquire should be retained; sorry about loosing that. I'm neck
-deep into tlb invalidate stuff and wrote this without much thinking
-involved.
+
+Fixed the typo no-no -> no-op,
+then applied  to linux-kbuild.
+
+
+>  certs/system_certificates.S       | 16 ++++++++--------
+>  include/asm-generic/vmlinux.lds.h |  2 --
+>  include/linux/export.h            |  7 -------
+>  usr/initramfs_data.S              |  4 ++--
+>  4 files changed, 10 insertions(+), 19 deletions(-)
+>
+> diff --git a/certs/system_certificates.S b/certs/system_certificates.S
+> index 3918ff7..8f29058 100644
+> --- a/certs/system_certificates.S
+> +++ b/certs/system_certificates.S
+> @@ -5,8 +5,8 @@
+>         __INITRODATA
+>
+>         .align 8
+> -       .globl VMLINUX_SYMBOL(system_certificate_list)
+> -VMLINUX_SYMBOL(system_certificate_list):
+> +       .globl system_certificate_list
+> +system_certificate_list:
+>  __cert_list_start:
+>  #ifdef CONFIG_MODULE_SIG
+>         .incbin "certs/signing_key.x509"
+> @@ -15,21 +15,21 @@ __cert_list_start:
+>  __cert_list_end:
+>
+>  #ifdef CONFIG_SYSTEM_EXTRA_CERTIFICATE
+> -       .globl VMLINUX_SYMBOL(system_extra_cert)
+> +       .globl system_extra_cert
+>         .size system_extra_cert, CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE
+> -VMLINUX_SYMBOL(system_extra_cert):
+> +system_extra_cert:
+>         .fill CONFIG_SYSTEM_EXTRA_CERTIFICATE_SIZE, 1, 0
+>
+>         .align 4
+> -       .globl VMLINUX_SYMBOL(system_extra_cert_used)
+> -VMLINUX_SYMBOL(system_extra_cert_used):
+> +       .globl system_extra_cert_used
+> +system_extra_cert_used:
+>         .int 0
+>
+>  #endif /* CONFIG_SYSTEM_EXTRA_CERTIFICATE */
+>
+>         .align 8
+> -       .globl VMLINUX_SYMBOL(system_certificate_list_size)
+> -VMLINUX_SYMBOL(system_certificate_list_size):
+> +       .globl system_certificate_list_size
+> +system_certificate_list_size:
+>  #ifdef CONFIG_64BIT
+>         .quad __cert_list_end - __cert_list_start
+>  #else
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index f173b5f..7b75ff6 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -54,8 +54,6 @@
+>  #define LOAD_OFFSET 0
+>  #endif
+>
+> -#include <linux/export.h>
+> -
+>  /* Align . to a 8 byte boundary equals to maximum function alignment. */
+>  #define ALIGN_FUNCTION()  . = ALIGN(8)
+>
+> diff --git a/include/linux/export.h b/include/linux/export.h
+> index b768d6d..c363bde 100644
+> --- a/include/linux/export.h
+> +++ b/include/linux/export.h
+> @@ -10,13 +10,6 @@
+>   * hackers place grumpy comments in header files.
+>   */
+>
+> -#define __VMLINUX_SYMBOL(x) x
+> -#define __VMLINUX_SYMBOL_STR(x) #x
+> -
+> -/* Indirect, so macros are expanded before pasting. */
+> -#define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
+> -#define VMLINUX_SYMBOL_STR(x) __VMLINUX_SYMBOL_STR(x)
+> -
+>  #ifndef __ASSEMBLY__
+>  struct kernel_symbol
+>  {
+> diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
+> index b28da79..d07648f 100644
+> --- a/usr/initramfs_data.S
+> +++ b/usr/initramfs_data.S
+> @@ -30,8 +30,8 @@ __irf_start:
+>  .incbin __stringify(INITRAMFS_IMAGE)
+>  __irf_end:
+>  .section .init.ramfs.info,"a"
+> -.globl VMLINUX_SYMBOL(__initramfs_size)
+> -VMLINUX_SYMBOL(__initramfs_size):
+> +.globl __initramfs_size
+> +__initramfs_size:
+>  #ifdef CONFIG_64BIT
+>         .quad __irf_end - __irf_start
+>  #else
+> --
+> 2.7.4
+>
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
