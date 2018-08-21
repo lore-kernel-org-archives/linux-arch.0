@@ -1,45 +1,70 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v4 15/16] driver/edac: enable Hygon support to AMD64 EDAC
- driver
-Date: Tue, 21 Aug 2018 15:04:30 +0200
-Message-ID: <20180821130430.GB30528@nazgul.tnic>
-References: <cover.1534599097.git.puwen@hygon.cn>
- <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
- <20180821081331.GC24940@nazgul.tnic>
- <ccbc6572-c16f-7a9b-ab27-54fffac1ba0d@hygon.cn>
- <20180821112020.GB29972@nazgul.tnic>
- <6e17958a-6cd8-4c6c-c890-f5f48b084d6f@redhat.com>
+From: Alexander Pateenok <pateenoc@gmail.com>
+Subject: [PATCH] percpu: cleanup PER_CPU_DEF_ATTRIBUTES macro
+Date: Tue, 21 Aug 2018 16:40:30 +0300
+Message-ID: <20180821134030.lycgq7l7czetdngs@K55DR>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <6e17958a-6cd8-4c6c-c890-f5f48b084d6f@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>, Dennis Zhou <dennisszhou@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 21, 2018 at 01:26:13PM +0200, Paolo Bonzini wrote:
-> But then I don't see the point of adding the Hygon vendor, since any
-> check can be simplified:
+The macro is not used:
 
-I think Hygon wanted to superficially show it is not really an AMD. For
-example, the Hygon thing doesn't do SME/SEV. AFAIK.
+  $ grep -r PER_CPU_DEF_ATTRIBUTES
+  include/linux/percpu-defs.h:	__PCPU_ATTRS(sec) PER_CPU_DEF_ATTRIBUTES __weak		\
+  include/linux/percpu-defs.h:	__PCPU_ATTRS(sec) PER_CPU_DEF_ATTRIBUTES		\
+  include/asm-generic/percpu.h:#ifndef PER_CPU_DEF_ATTRIBUTES
+  include/asm-generic/percpu.h:#define PER_CPU_DEF_ATTRIBUTES
 
-So we can just as well check only family but I'd say the vendor thing is
-laying the grounds for the future where reportedly it will differ more
-from an AMD. And then we can start splitting code more based on vendor
-and not look at family at all.
+It was added with b01e8dc34379 ("alpha: fix percpu build breakage") and
+removed in 2009 with b01e8dc34379..6088464cf1ae.
 
-But for right now I think we should strive to keep the changes as small
-as possible and only do real splitting when they start adding new
-functionality. Which would mean having a hygon_edac.c too, for example.
+Signed-off-by: Alexander Pateenok <pateenoc@gmail.com>
+---
+ include/asm-generic/percpu.h | 4 ----
+ include/linux/percpu-defs.h  | 6 ++----
+ 2 files changed, 2 insertions(+), 8 deletions(-)
 
-All, IMHO, of course. Sharing code between vendors is always yucky.
-
+diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
+index 1817a8415a5e..c2de013b2cf4 100644
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -62,10 +62,6 @@ extern void setup_per_cpu_areas(void);
+ #define PER_CPU_ATTRIBUTES
+ #endif
+ 
+-#ifndef PER_CPU_DEF_ATTRIBUTES
+-#define PER_CPU_DEF_ATTRIBUTES
+-#endif
+-
+ #define raw_cpu_generic_read(pcp)					\
+ ({									\
+ 	*raw_cpu_ptr(&(pcp));						\
+diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
+index 2d2096ba1cfe..1ce8e264a269 100644
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -91,8 +91,7 @@
+ 	extern __PCPU_DUMMY_ATTRS char __pcpu_unique_##name;		\
+ 	__PCPU_DUMMY_ATTRS char __pcpu_unique_##name;			\
+ 	extern __PCPU_ATTRS(sec) __typeof__(type) name;			\
+-	__PCPU_ATTRS(sec) PER_CPU_DEF_ATTRIBUTES __weak			\
+-	__typeof__(type) name
++	__PCPU_ATTRS(sec) __weak __typeof__(type) name
+ #else
+ /*
+  * Normal declaration and definition macros.
+@@ -101,8 +100,7 @@
+ 	extern __PCPU_ATTRS(sec) __typeof__(type) name
+ 
+ #define DEFINE_PER_CPU_SECTION(type, name, sec)				\
+-	__PCPU_ATTRS(sec) PER_CPU_DEF_ATTRIBUTES			\
+-	__typeof__(type) name
++	__PCPU_ATTRS(sec) __typeof__(type) name
+ #endif
+ 
+ /*
 -- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
---
+2.17.1
