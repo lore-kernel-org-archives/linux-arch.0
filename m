@@ -1,41 +1,54 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH] percpu: cleanup PER_CPU_DEF_ATTRIBUTES macro
-Date: Tue, 21 Aug 2018 08:56:11 -0700
-Message-ID: <20180821155611.GN3978217@devbig004.ftw2.facebook.com>
-References: <20180821134030.lycgq7l7czetdngs@K55DR>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH v9 1/2] kbuild: Allow arch-specific asm/compiler.h
+Date: Tue, 21 Aug 2018 10:00:34 -0700
+Message-ID: <20180821170034.rpnwukgnpyrpxytw@pburton-laptop>
+References: <20180820183417.dejfsluih7elbclu@pburton-laptop>
+ <20180820223618.22319-1-paul.burton@mips.com>
+ <20180820223618.22319-2-paul.burton@mips.com>
+ <CAK7LNASarMBH8af=oTPoanEvJOS3zWTKx4MpGZe-AJiP2Wu41g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180821134030.lycgq7l7czetdngs@K55DR>
+In-Reply-To: <CAK7LNASarMBH8af=oTPoanEvJOS3zWTKx4MpGZe-AJiP2Wu41g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexander Pateenok <pateenoc@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux.com>, Dennis Zhou <dennisszhou@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Hi Masahiro,
 
-On Tue, Aug 21, 2018 at 04:40:30PM +0300, Alexander Pateenok wrote:
-> The macro is not used:
+On Tue, Aug 21, 2018 at 11:49:48AM +0900, Masahiro Yamada wrote:
+> The code diff looks good to me.
 > 
->   $ grep -r PER_CPU_DEF_ATTRIBUTES
->   include/linux/percpu-defs.h:	__PCPU_ATTRS(sec) PER_CPU_DEF_ATTRIBUTES __weak		\
->   include/linux/percpu-defs.h:	__PCPU_ATTRS(sec) PER_CPU_DEF_ATTRIBUTES		\
->   include/asm-generic/percpu.h:#ifndef PER_CPU_DEF_ATTRIBUTES
->   include/asm-generic/percpu.h:#define PER_CPU_DEF_ATTRIBUTES
+> Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+
+Thanks :)
+
+> > A straightforward approach to the per-arch header is to make use of
+> > asm-generic to provide a default empty header & adjust architectures
+> > which don't need anything specific to make use of that by adding the
+> > header to generic-y. Unfortunately this doesn't work so well due to
+> > commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
+> > <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
+> > cflags using the -include compiler flag.
+>
+> I doubt this statement.
 > 
-> It was added with b01e8dc34379 ("alpha: fix percpu build breakage") and
-> removed in 2009 with b01e8dc34379..6088464cf1ae.
+> Commit a95b37e20db9 is not the cause of the problem.
 > 
-> Signed-off-by: Alexander Pateenok <pateenoc@gmail.com>
+>%
+> 
+> The change happened in commit 28128c61e08e.
 
-I'm not sure this is a meaningful cleanup, but then again, why not?
-Can you please repost the patch to Andrew so that it can go through
--mm tree?  Please feel free to add
+You're correct - I'll fix that up.
 
- Acked-by: Tejun Heo <tj@kernel.org>
+> One more thing, you are not touching any makefile in this version.
+> 
+> Maybe, you can prefix the subject with "compiler.h:" or something
+> instead of "kbuild:".
 
-Thanks.
+Will do.
 
--- 
-tejun
+Thanks,
+    Paul
