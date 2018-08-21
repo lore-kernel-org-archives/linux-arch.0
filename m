@@ -1,54 +1,49 @@
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH v9 1/2] kbuild: Allow arch-specific asm/compiler.h
-Date: Tue, 21 Aug 2018 10:00:34 -0700
-Message-ID: <20180821170034.rpnwukgnpyrpxytw@pburton-laptop>
-References: <20180820183417.dejfsluih7elbclu@pburton-laptop>
- <20180820223618.22319-1-paul.burton@mips.com>
- <20180820223618.22319-2-paul.burton@mips.com>
- <CAK7LNASarMBH8af=oTPoanEvJOS3zWTKx4MpGZe-AJiP2Wu41g@mail.gmail.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v4 15/16] driver/edac: enable Hygon support to AMD64 EDAC
+ driver
+Date: Tue, 21 Aug 2018 20:07:43 +0200
+Message-ID: <20180821180743.GA14431@atrey.karlin.mff.cuni.cz>
+References: <cover.1534599097.git.puwen@hygon.cn>
+ <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
+ <20180821081331.GC24940@nazgul.tnic>
+ <ccbc6572-c16f-7a9b-ab27-54fffac1ba0d@hygon.cn>
+ <20180821112020.GB29972@nazgul.tnic>
+ <6e17958a-6cd8-4c6c-c890-f5f48b084d6f@redhat.com>
+ <20180821130430.GB30528@nazgul.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK7LNASarMBH8af=oTPoanEvJOS3zWTKx4MpGZe-AJiP2Wu41g@mail.gmail.com>
+In-Reply-To: <20180821130430.GB30528@nazgul.tnic>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Paolo Bonzini <pbonzini@redhat.com>, Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Masahiro,
-
-On Tue, Aug 21, 2018 at 11:49:48AM +0900, Masahiro Yamada wrote:
-> The code diff looks good to me.
+> On Tue, Aug 21, 2018 at 01:26:13PM +0200, Paolo Bonzini wrote:
+> > But then I don't see the point of adding the Hygon vendor, since any
+> > check can be simplified:
 > 
-> Reviewed-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-
-Thanks :)
-
-> > A straightforward approach to the per-arch header is to make use of
-> > asm-generic to provide a default empty header & adjust architectures
-> > which don't need anything specific to make use of that by adding the
-> > header to generic-y. Unfortunately this doesn't work so well due to
-> > commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
-> > <linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
-> > cflags using the -include compiler flag.
->
-> I doubt this statement.
+> I think Hygon wanted to superficially show it is not really an AMD. For
+> example, the Hygon thing doesn't do SME/SEV. AFAIK.
 > 
-> Commit a95b37e20db9 is not the cause of the problem.
+> So we can just as well check only family but I'd say the vendor thing is
+> laying the grounds for the future where reportedly it will differ more
+> from an AMD. And then we can start splitting code more based on vendor
+> and not look at family at all.
 > 
->%
+> But for right now I think we should strive to keep the changes as small
+> as possible and only do real splitting when they start adding new
+> functionality. Which would mean having a hygon_edac.c too, for example.
 > 
-> The change happened in commit 28128c61e08e.
+> All, IMHO, of course. Sharing code between vendors is always yucky.
 
-You're correct - I'll fix that up.
+Dunno, people do not know that 0x18 is reserved on AMD, so resulting
+code is quite confusing.
 
-> One more thing, you are not touching any makefile in this version.
-> 
-> Maybe, you can prefix the subject with "compiler.h:" or something
-> instead of "kbuild:".
+Explicit vendor check is way to go, long term.
+									Pavel
 
-Will do.
-
-Thanks,
-    Paul
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
