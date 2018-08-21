@@ -1,54 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out1-smtp.messagingengine.com ([66.111.4.25]:48351 "EHLO
-        out1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726175AbeHUIir (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Aug 2018 04:38:47 -0400
-Date: Tue, 21 Aug 2018 07:20:00 +0200
-From: Greg KH <greg@kroah.com>
-Subject: Re: [PATCH] x86/mm: Simplify p[g4um]d_page() macros
-Message-ID: <20180821052000.GB23615@kroah.com>
-References: <20180820203705.16212-1-andi@firstfloor.org>
- <20180820203705.16212-2-andi@firstfloor.org>
- <CA+55aFyo_MFz2Qg3pEbLMf3zhvAQbpZf3mQf98bTRJx28drbeQ@mail.gmail.com>
- <20180820220422.7qrayn7wivmejr24@two.firstfloor.org>
+Received: from mail.skyhub.de ([5.9.137.197]:36944 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726343AbeHULcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Aug 2018 07:32:39 -0400
+Date: Tue, 21 Aug 2018 10:13:31 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 15/16] driver/edac: enable Hygon support to AMD64 EDAC
+ driver
+Message-ID: <20180821081331.GC24940@nazgul.tnic>
+References: <cover.1534599097.git.puwen@hygon.cn>
+ <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20180820220422.7qrayn7wivmejr24@two.firstfloor.org>
+In-Reply-To: <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, stable <stable@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Tom Lendacky <thomas.lendacky@amd.com>, Alexander Potapenko <glider@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andrew Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Dave Young <dyoung@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Jonathan Corbet <corbet@lwn.net>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Larry Woodman <lwoodman@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Rik van Riel <riel@redhat.com>, Toshi Kani <toshi.kani@hpe.com>, kasan-dev <kasan-dev@googlegroups.com>, KVM list <kvm@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180821052000.6-cOZR0Jx_0Xg5zlyk1Ko6tfsdDNqhIUhRiFDrqpWX4@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180821081331.7Xr0KYvQpz0r7p4obGPQrN7JZO2Xhzs-MwHg3FVZ6zc@z>
 
-On Mon, Aug 20, 2018 at 03:04:23PM -0700, Andi Kleen wrote:
-> On Mon, Aug 20, 2018 at 02:57:39PM -0700, Linus Torvalds wrote:
-> > On Mon, Aug 20, 2018 at 1:37 PM Andi Kleen <andi@firstfloor.org> wrote:
-> > >
-> > > From: Andi Kleen <ak@linux.intel.com>
-> > >
-> > > Create a pgd_pfn() macro similar to the p[4um]d_pfn() macros and then
-> > > use the p[g4um]d_pfn() macros in the p[g4um]d_page() macros instead of
-> > > duplicating the code.
-> > 
-> > When doing backports, _please_ explicitly specify which commit this is
-> > upstream too.
+On Mon, Aug 20, 2018 at 12:14:58AM +0800, Pu Wen wrote:
+> To make AMD64 EDAC and MCE drivers working on Hygon platforms, add
+> vendor checking for Hygon by using the code path of AMD 0x17. Add a
+> vendor field to struct amd64_pvt and initialize it in per_family_init
+> for vendor checking.
 > 
-> Ok.
+> Also Hygon PCI Device ID DF_F0/DF_F6(0x1460/0x1466) of Host bridges
+> is needed for edac driver.
 > 
-> > 
-> > Also, the original upstream patch is credited to Tom Lendacky.
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  drivers/edac/amd64_edac.c | 52 ++++++++++++++++++++++++++++++++++++++++++++++-
+>  drivers/edac/amd64_edac.h |  5 +++++
+>  drivers/edac/mce_amd.c    | 15 +++++++++++++-
+>  3 files changed, 70 insertions(+), 2 deletions(-)
 > 
-> Okay.
-> 
-> > 
-> > Or is there something I'm not seeing, and this is different from
-> > commit fd7e315988b7 ("x86/mm: Simplify p[g4um]d_page() macros")?
-> 
-> No it's Tom's patch just ported to the older tree with some minor
-> changes. I just fat fingered it while doing the commit
+> diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
+> index 18aeabb..3cefb25 100644
+> --- a/drivers/edac/amd64_edac.c
+> +++ b/drivers/edac/amd64_edac.c
+> @@ -211,7 +211,8 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
+>  
+>  	scrubval = scrubrates[i].scrubval;
+>  
+> -	if (pvt->fam == 0x17) {
+> +	if (pvt->fam == 0x17 ||
+> +	   (pvt->vendor == X86_VENDOR_HYGON && pvt->fam == 0x18)) {
 
-Ok, I've fixed this up by hand now, please be more careful next time.
+Didn't we say that AMD won't do family 0x18 so you don't need the vendor check?
 
-greg k-h
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
+--
