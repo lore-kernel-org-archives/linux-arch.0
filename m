@@ -1,144 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0135.outbound.protection.outlook.com ([104.47.42.135]:42758
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726620AbeHUByf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Aug 2018 21:54:35 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: [PATCH v9 1/2] kbuild: Allow arch-specific asm/compiler.h
-Date: Mon, 20 Aug 2018 15:36:17 -0700
-Message-ID: <20180820223618.22319-2-paul.burton@mips.com>
-In-Reply-To: <20180820223618.22319-1-paul.burton@mips.com>
-References: <20180820183417.dejfsluih7elbclu@pburton-laptop>
- <20180820223618.22319-1-paul.burton@mips.com>
+Received: from aserp2120.oracle.com ([141.146.126.78]:52486 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725731AbeHUFBL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2018 01:01:11 -0400
+Subject: Re: [Xen-devel] [PATCH v4 12/16] x86/xen: enable Hygon support to Xen
+References: <cover.1534599097.git.puwen@hygon.cn>
+ <044e5e9082d57c10a36a16a9da6404f976d7ae55.1534599097.git.puwen@hygon.cn>
+From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Message-ID: <5917160e-4cbe-7940-ee73-70fc8086df12@oracle.com>
+Date: Mon, 20 Aug 2018 21:43:43 -0400
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <044e5e9082d57c10a36a16a9da6404f976d7ae55.1534599097.git.puwen@hygon.cn>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mips@linux-mips.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Burton <paul.burton@mips.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20180820223617.eJwuzHiB_k6MGtrunZtgrnyUoD1MjfHOTvhhZNZFk2k@z>
+To: Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, jgross@suse.com, JBeulich@suse.com
+Cc: linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, linux-kernel@vger.kernel.org
+Message-ID: <20180821014343.FSN4cN_8L1MatGamjmvGDRr6ogvx_yk9F9kl78HPZYM@z>
 
-We have a need to override the definition of
-barrier_before_unreachable() for MIPS, which means we either need to add
-architecture-specific code into linux/compiler-gcc.h or we need to allow
-the architecture to provide a header that can define the macro before
-the generic definition. The latter seems like the better approach.
+On 08/19/2018 12:13 PM, Pu Wen wrote:
+> To make Xen works functionly on Hygon platforms, reuse AMD's Xen support
+> code path for Hygon.
+>
+> There are six core performance events counters per thread, so there are
+> six MSRs for these counters(0-5). Also there are four legacy PMC MSRs,
+> they are alias of the counters(0-3).
+>
+> In this version of kernel Hygon use the lagacy and safe versions of MSR
+> access. It works fine when VPMU enabled in Xen on Hygon platforms by
+> testing with perf.
+>
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
 
-A straightforward approach to the per-arch header is to make use of
-asm-generic to provide a default empty header & adjust architectures
-which don't need anything specific to make use of that by adding the
-header to generic-y. Unfortunately this doesn't work so well due to
-commit a95b37e20db9 ("kbuild: get <linux/compiler_types.h> out of
-<linux/kconfig.h>") which moved the inclusion of linux/compiler.h to
-cflags using the -include compiler flag.
-
-Because the -include flag is present for all C files we compile, we need
-the architecture-provided header to be present before any C files are
-compiled. If any C files can be compiled prior to the asm-generic header
-wrappers being generated then we hit a build failure due to missing
-header. Such cases do exist - one pointed out by the kbuild test robot
-is the compilation of arch/ia64/kernel/nr-irqs.c, which occurs as part
-of the archprepare target [1].
-
-This leaves us with a few options:
-
-  1) Use generic-y & fix any build failures we find by enforcing
-     ordering such that the asm-generic target occurs before any C
-     compilation, such that linux/compiler_types.h can always include
-     the generated asm-generic wrapper which in turn includes the empty
-     asm-generic header. This would rely on us finding all the
-     problematic cases - I don't know for sure that the ia64 issue is
-     the only one.
-
-  2) Add an actual empty header to each architecture, so that we don't
-     need the generated asm-generic wrapper. This seems messy.
-
-  3) Give up & add #ifdef CONFIG_MIPS or similar to
-     linux/compiler_types.h. This seems messy too.
-
-  4) Include the arch header only when it's actually needed, removing
-     the need for the asm-generic wrapper for all other architectures.
-
-This patch allows us to use approach 4, by including an asm/compiler.h
-header from linux/compiler_types.h after the inclusion of the
-compiler-specific linux/compiler-*.h header(s). We do this
-conditionally, only when CONFIG_HAVE_ARCH_COMPILER_H is selected, in
-order to avoid the need for asm-generic wrappers & the associated build
-ordering issue described above. The asm/compiler.h header is included
-after the generic linux/compiler-*.h header(s) for consistency with the
-way linux/compiler-intel.h & linux/compiler-clang.h are included after
-the linux/compiler-gcc.h header that they override.
-
-[1] https://lists.01.org/pipermail/kbuild-all/2018-August/051175.html
-
-Signed-off-by: Paul Burton <paul.burton@mips.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <jhogan@kernel.org>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kbuild@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-
----
-
-Changes in v9:
-- Use Kconfig & a #include directive as Masahiro suggested.
-- Go with asm/compiler.h rather than asm/compiler_types.h as it's really
-  definitions from linux/compiler-*.h that we want to override & the
-  conditional include means we don't need to worry about existing
-  asm/compiler.h headers.
-- Tweak subject & commit message to reflect the changes above.
-
-Changes in v8:
-- New patch.
-
- arch/Kconfig                   |  8 ++++++++
- include/linux/compiler_types.h | 12 ++++++++++++
- 2 files changed, 20 insertions(+)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index c6148166a7b4..c0b56b0d86b0 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -841,6 +841,14 @@ config REFCOUNT_FULL
- 	  against various use-after-free conditions that can be used in
- 	  security flaw exploits.
- 
-+config HAVE_ARCH_COMPILER_H
-+	bool
-+	help
-+	  An architecture can select this if it provides an
-+	  asm/compiler.h header that should be included after
-+	  linux/compiler-*.h in order to override macro definitions that those
-+	  headers generally provide.
-+
- source "kernel/gcov/Kconfig"
- 
- source "scripts/gcc-plugins/Kconfig"
-diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index fbf337933fd8..66239549d240 100644
---- a/include/linux/compiler_types.h
-+++ b/include/linux/compiler_types.h
-@@ -78,6 +78,18 @@ extern void __chk_io_ptr(const volatile void __iomem *);
- #include <linux/compiler-clang.h>
- #endif
- 
-+/*
-+ * Some architectures need to provide custom definitions of macros provided
-+ * by linux/compiler-*.h, and can do so using asm/compiler.h. We include that
-+ * conditionally rather than using an asm-generic wrapper in order to avoid
-+ * build failures if any C compilation, which will include this file via an
-+ * -include argument in c_flags, occurs prior to the asm-generic wrappers being
-+ * generated.
-+ */
-+#ifdef CONFIG_HAVE_ARCH_COMPILER_H
-+#include <asm/compiler.h>
-+#endif
-+
- /*
-  * Generic compiler-dependent macros required for kernel
-  * build go below this comment. Actual compiler/compiler version
--- 
-2.18.0
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
