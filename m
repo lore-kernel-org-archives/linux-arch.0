@@ -1,8 +1,8 @@
 From: Pu Wen <puwen@hygon.cn>
 Subject: Re: [PATCH v4 15/16] driver/edac: enable Hygon support to AMD64 EDAC
  driver
-Date: Wed, 22 Aug 2018 21:07:20 +0800
-Message-ID: <36de11c7-8448-2967-2032-ef31d8e8a979@hygon.cn>
+Date: Wed, 22 Aug 2018 21:18:40 +0800
+Message-ID: <3be72c3c-1177-886f-8cbc-dec49905ca95@hygon.cn>
 References: <cover.1534599097.git.puwen@hygon.cn>
  <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
  <20180821081331.GC24940@nazgul.tnic>
@@ -10,45 +10,50 @@ References: <cover.1534599097.git.puwen@hygon.cn>
  <20180821112020.GB29972@nazgul.tnic>
  <6e17958a-6cd8-4c6c-c890-f5f48b084d6f@redhat.com>
  <20180821130430.GB30528@nazgul.tnic>
+ <20180821180743.GA14431@atrey.karlin.mff.cuni.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180821130430.GB30528@nazgul.tnic>
+In-Reply-To: <20180821180743.GA14431@atrey.karlin.mff.cuni.cz>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+To: Pavel Machek <pavel@ucw.cz>, Borislav Petkov <bp@alien8.de>
+Cc: Paolo Bonzini <pbonzini@redhat.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/8/21 21:04, Borislav Petkov wrote:
-> On Tue, Aug 21, 2018 at 01:26:13PM +0200, Paolo Bonzini wrote:
->> But then I don't see the point of adding the Hygon vendor, since any
->> check can be simplified:
+On 2018/8/22 2:07, Pavel Machek wrote>> But for right now I think we 
+should strive to keep the changes as small
+>> as possible and only do real splitting when they start adding new
+>> functionality. Which would mean having a hygon_edac.c too, for example.
+>>
+>> All, IMHO, of course. Sharing code between vendors is always yucky.
 > 
-> I think Hygon wanted to superficially show it is not really an AMD. For
-> example, the Hygon thing doesn't do SME/SEV. AFAIK.
+> Dunno, people do not know that 0x18 is reserved on AMD, so resulting
+> code is quite confusing.
 > 
-> So we can just as well check only family but I'd say the vendor thing is
-> laying the grounds for the future where reportedly it will differ more
-> from an AMD. And then we can start splitting code more based on vendor
-> and not look at family at all.
-> 
-> But for right now I think we should strive to keep the changes as small
-> as possible and only do real splitting when they start adding new
-> functionality. Which would mean having a hygon_edac.c too, for example.
-> 
-> All, IMHO, of course. Sharing code between vendors is always yucky.
+> Explicit vendor check is way to go, long term.
+> 									Pavel
 
-Thanks for Boris's clarification.
+Hi Pavel,
 
-It's hard to find the balance between short term(sharing codes) and long
-term(splitting codes).
-Current I think we'd better try to follow the following way:
-For current version, we will try to minimize the modification and share
-codes,
-For later big modification, will try to split codes to make code path
-more clear.
+For amd64_edac_init() entry, there will be a x86_match_cpu(amd64_cpuids)
+which checking whether amd64_edac module fit current CPU. Only Hygon has
+registered X86_VENDOR_HYGON with family 0x18h in amd64_cpuids[] to use
+AMD edac codes.
 
-Regards
+Also with the assumption that Hygon will negotiate with AMD that only
+Hygon will use Family 18h. So we assume in later codes vendor checking
+can be omitted.
+
+You are right, for short term, we are trying to keep the tight change and
+enable Dhyana with minimal effort. For long term, agreed with that.
+
+So based on the assumption that only Hygon will use family 0x18, we will
+rework the patch, make the assumption clear and try to keep it small.
+If that's ok, we will rework this patch.
+
+Thanks for all the suggestions.
+
+Regards,
 Pu Wen
