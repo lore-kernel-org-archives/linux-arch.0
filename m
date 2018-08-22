@@ -1,83 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3-rdu2.redhat.com ([66.187.233.73]:54624 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727466AbeHVVNA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Aug 2018 17:13:00 -0400
-Date: Wed, 22 Aug 2018 13:47:07 -0400 (EDT)
-From: Mikulas Patocka <mpatocka@redhat.com>
-Subject: Re: Alpha Avanti broken by
- 9ce8654323d69273b4977f76f11c9e2d345ab130
-In-Reply-To: <CAK8P3a20xrD3C2uGPm6dawp_02kbbZaocK5nTZLoUyeiaCkRgw@mail.gmail.com>
-Message-ID: <alpine.LRH.2.02.1808221336400.12083@file01.intranet.prod.int.rdu2.redhat.com>
-References: <alpine.LRH.2.02.1808161556450.13597@file01.intranet.prod.int.rdu2.redhat.com> <28597e7477418ac7cb646e2edb5e6da2@codeaurora.org> <alpine.LRH.2.02.1808201010200.15146@file01.intranet.prod.int.rdu2.redhat.com> <CAK8P3a3ribyvLwXaB=J4dcTwD9aYc64hfw+ORTFtyvOHuS-U0g@mail.gmail.com>
- <alpine.LRH.2.02.1808201740170.2948@file01.intranet.prod.int.rdu2.redhat.com> <CAK8P3a1E2V-zFN5PpJ868L=6CgTykkyjtF6-aTsCCh6QqryUig@mail.gmail.com> <alpine.LRH.2.02.1808210814250.24287@file01.intranet.prod.int.rdu2.redhat.com>
- <CAK8P3a3vJK1caKpDqkEhMG=8n8N3U6ckqe=0f2fjUJwk-9K0XA@mail.gmail.com> <alpine.LRH.2.02.1808220743270.12730@file01.intranet.prod.int.rdu2.redhat.com> <21c0bd37-0ae7-db8f-76b8-6552c30faa4f@codeaurora.org> <alpine.LFD.2.21.1808221609000.26277@eddie.linux-mips.org>
- <alpine.LRH.2.02.1808221136480.18647@file01.intranet.prod.int.rdu2.redhat.com> <CAK8P3a20xrD3C2uGPm6dawp_02kbbZaocK5nTZLoUyeiaCkRgw@mail.gmail.com>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:46438 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727602AbeHVWGb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Aug 2018 18:06:31 -0400
+From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
+Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
+ simultaneously
+Date: Wed, 22 Aug 2018 18:40:27 +0000
+Message-ID: <1534963226.3962.215.camel@synopsys.com>
+References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+         <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
+         <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
+         <1534180089.3962.68.camel@synopsys.com>
+         <81ddd506-1f7e-db82-4c77-ff08b1c15dd3@synopsys.com>
+In-Reply-To: <81ddd506-1f7e-db82-4c77-ff08b1c15dd3@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <782B7B2CFC7553469BA8F1DD9EBA45B6@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, Sinan Kaya <okaya@codeaurora.org>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org, okaya@kernel.org, Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: "hch@lst.de" <hch@lst.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
+Message-ID: <20180822184027.0KXyQjt-UL__NmgNFgfJoAZPRFWB5qoW1vUqPF2Iy6Y@z>
 
-
-
-On Wed, 22 Aug 2018, Arnd Bergmann wrote:
-
-> On Wed, Aug 22, 2018 at 5:50 PM Mikulas Patocka <mpatocka@redhat.com> wrote:
-> > On Wed, 22 Aug 2018, Maciej W. Rozycki wrote:
-> > > On Wed, 22 Aug 2018, Sinan Kaya wrote:
-> >
-> > According to the Alpha handbook, non-overlapping accesses may be
-> > reordered.
-> >
-> > So if someone does
-> > writel(REG1);
-> > readl(REG2);
-> >
-> > readl may (according to the spec) reach the device before writel. Although
-> > actual experiments suggests that the read flushes the queued writes.
-> >
-> > I would be quite interested why did Linux developers decide that readl
-> > should be implemented as "read+barrier" and writel should be implemented
-> > as "barrier+write". Why is there this assymetry in the barriers?
-> 
-> I can explain this part: those two barriers are used specifically do order
-> an MMIO access against a DMA access: a writel() may be used to start
-> a DMA operation copying data from RAM to the device, so we must
-> have a barrier between the store to that data and the store to the register
-> to ensure the data is visible to the device.
-> Similarly, a readl() may check the status of a register that tells us when
-> a DMA from device to RAM has completed. We must have a read
-> barrier between that mmio load and the load from RAM to prevent
-> the data to be prefetched while the MMIO is still in progress.
-
-Then - the question is - why not just use barriers before and after 
-accesses to DMA'd memory? For DMA into non-coheren memory, the barrier 
-could be injected into dma_map_* and dma_unmap_* functions (with no change 
-in drivers) - and for DMA into coherent memory you could have something 
-like dma_coherent_barrier().
-
-Why does Linux add the barriers between every read and write to memory 
-mapped registers?
-
-> > Does ARM have some hardware magic that prevents reordering the write and
-> > the read in this case?
-> 
-> Most architecture have this AFAICT, ARM and x86 definitely do, and
-> PCI requires this to be true on the bus:
-> 
-> All MMIO accesses from a given CPU to a given device (according
-> to an architecture-specific definition of "device") are ordered with respect
-> to one another.
-
-If ARM guarantees that the accesses to a given device are not reordered - 
-then the barriers in readl and writel are superfluous.
-
-> If the hardware does not guarantee that, for simple load/store operations
-> on uncached device memory, then we need a full barrier after each store
-> in addition to the write barrier needed for the DMA synchronization.
-> 
->       Arnd
-
-Mikulas
+SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDgtMjAgYXQgMTU6MzQgLTA3MDAsIFZpbmVldCBH
+dXB0YSB3cm90ZToNCj4gT24gMDgvMTMvMjAxOCAxMDowOCBBTSwgRXVnZW5peSBQYWx0c2V2IHdy
+b3RlOg0KPiA+IE9uIE1vbiwgMjAxOC0wOC0xMyBhdCAxNjoyNCArMDAwMCwgVmluZWV0IEd1cHRh
+IHdyb3RlOg0KPiA+ID4gT24gMDcvMzAvMjAxOCAwOToyNiBBTSwgRXVnZW5peSBQYWx0c2V2IHdy
+b3RlOg0KPiA+ID4gPiBAQCAtMTI2MywxMSArMTI1NCw3IEBAIHZvaWQgX19pbml0IGFyY19jYWNo
+ZV9pbml0X21hc3Rlcih2b2lkKQ0KPiA+ID4gPiAgCWlmIChpc19pc2FfYXJjdjIoKSAmJiBpb2Nf
+ZW5hYmxlKQ0KPiA+ID4gPiAgCQlhcmNfaW9jX3NldHVwKCk7DQo+ID4gPiA+ICANCj4gPiA+ID4g
+LQlpZiAoaXNfaXNhX2FyY3YyKCkgJiYgaW9jX2VuYWJsZSkgew0KPiA+ID4gPiAtCQlfX2RtYV9j
+YWNoZV93YmFja19pbnYgPSBfX2RtYV9jYWNoZV93YmFja19pbnZfaW9jOw0KPiA+ID4gPiAtCQlf
+X2RtYV9jYWNoZV9pbnYgPSBfX2RtYV9jYWNoZV9pbnZfaW9jOw0KPiA+ID4gPiAtCQlfX2RtYV9j
+YWNoZV93YmFjayA9IF9fZG1hX2NhY2hlX3diYWNrX2lvYzsNCj4gPiA+ID4gLQl9IGVsc2UgaWYg
+KGlzX2lzYV9hcmN2MigpICYmIGwyX2xpbmVfc3ogJiYgc2xjX2VuYWJsZSkgew0KPiANCj4gRm9y
+IHRoZSBjYXN1YWwgcmVhZGVyIEknZCBhZGQgYSBjb21tZW50IHdoeSB0aGlzIHdhcyBkZWxldGVk
+Lg0KRG8geW91IG1lYW4gY29tbWVudCBpbiBjb21taXQgZGVzY3JpcHRpb24gb3IgY29tbWVudCBy
+aWdodCBpbiBzb3VyY2VzPw0KDQo+IA0KPiA+ID4gPiArCWlmIChpc19pc2FfYXJjdjIoKSAmJiBs
+Ml9saW5lX3N6ICYmIHNsY19lbmFibGUpIHsNCj4gPiA+ID4gIAkJX19kbWFfY2FjaGVfd2JhY2tf
+aW52ID0gX19kbWFfY2FjaGVfd2JhY2tfaW52X3NsYzsNCj4gPiA+ID4gIAkJX19kbWFfY2FjaGVf
+aW52ID0gX19kbWFfY2FjaGVfaW52X3NsYzsNCj4gPiA+ID4gIAkJX19kbWFfY2FjaGVfd2JhY2sg
+PSBfX2RtYV9jYWNoZV93YmFja19zbGM7DQo+IA0KPiBbc25pcF0NCj4gDQo+ID4gPiA+ICANCj4g
+PiA+ID4gLQkvKg0KPiA+ID4gPiAtCSAqIElPQyByZWxpZXMgb24gYWxsIGRhdGEgKGV2ZW4gY29o
+ZXJlbnQgRE1BIGRhdGEpIGJlaW5nIGluIGNhY2hlDQo+ID4gPiA+IC0JICogVGh1cyBhbGxvY2F0
+ZSBub3JtYWwgY2FjaGVkIG1lbW9yeQ0KPiA+ID4gPiAtCSAqDQo+ID4gPiA+IC0JICogVGhlIGdh
+aW5zIHdpdGggSU9DIGFyZSB0d28gcHJvbmdlZDoNCj4gPiA+ID4gLQkgKiAgIC1Gb3Igc3RyZWFt
+aW5nIGRhdGEsIGVsaWRlcyBuZWVkIGZvciBjYWNoZSBtYWludGVuYW5jZSwgc2F2aW5nDQo+ID4g
+PiA+IC0JICogICAgY3ljbGVzIGluIGZsdXNoIGNvZGUsIGFuZCBidXMgYmFuZHdpZHRoIGFzIGFs
+bCB0aGUgbGluZXMgb2YgYQ0KPiA+ID4gPiAtCSAqICAgIGJ1ZmZlciBuZWVkIHRvIGJlIGZsdXNo
+ZWQgb3V0IHRvIG1lbW9yeQ0KPiA+ID4gPiAtCSAqICAgLUZvciBjb2hlcmVudCBkYXRhLCBSZWFk
+L1dyaXRlIHRvIGJ1ZmZlcnMgdGVybWluYXRlIGVhcmx5IGluIGNhY2hlDQo+ID4gPiA+IC0JICog
+ICAodnMuIGFsd2F5cyBnb2luZyB0byBtZW1vcnkgLSB0aHVzIGFyZSBmYXN0ZXIpDQo+ID4gPiA+
+IC0JICovDQo+ID4gPiA+IC0JaWYgKChpc19pc2FfYXJjdjIoKSAmJiBpb2NfZW5hYmxlKSB8fA0K
+PiA+ID4gPiAtCSAgICAoYXR0cnMgJiBETUFfQVRUUl9OT05fQ09OU0lTVEVOVCkpDQo+ID4gPiA+
+ICsJaWYgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RFTlQpDQo+ID4gPiA+ICAJCW5lZWRf
+Y29oID0gMDsNCj4gPiA+ID4gIA0KPiANCj4gW3NuaXBdDQo+IA0KPiA+IFllcCwgSSB0ZXN0ZWQg
+dGhhdC4NCj4gPiBBbmQgaXQgd29ya3MgZmluZSB3aXRoIGJvdGggQGlvY19lbmFibGUgPT0gMCBh
+bmQgQGlvY19lbmFibGUgPT0gMQ0KPiA+IE5vdGUgdGhhdCB3ZSBjaGVjayB0aGlzIHZhcmlhYmxl
+IGluIGFyY2hfc2V0dXBfZG1hX29wcygpIGZ1bmN0aW9uIG5vdy4NCj4gPiANCj4gPiBTbyB0aGlz
+IGFyY2hfZG1hX3thbGxvYyxmcmVlfSBhcmUgdXNlZCBPTkxZIGluIGNhc2Ugb2Ygc29mdHdhcmUg
+YXNzaXN0ZWQgY2FjaGUgbWFpbnRlbmFuY2UuDQo+ID4gVGhhdCdzIHdoeSB3ZSBoYWQgdG8gZG8g
+TU1VIG1hcHBpbmcgdG8gZW5mb3JjZSBub24tY2FjaGFiaWxpdHkgcmVnYXJkbGVzcyBvZiBAaW9j
+X2VuYWJsZS4NCj4gDQo+IFJlYWRpbmcga2VybmVsL2RtYS8qIEkgc2VlIHdoYXQgeW91IG1lYW4u
+IFdlIGNoZWNrIEBpb2NfZW5hYmxlIGF0IHRoZSB0aW1lIG9mDQo+IHJlZ2lzdGVyaW5nIHRoZSBk
+bWEgb3AgZm9yIGNvaGVyZW50IHZzLiBub24gY29oZXJlbnQgY2FzZSwgc28gdGhlcmUncyBjb21t
+b24gdnMuDQo+IEFSQyB2ZXJzaW9ucyBvZiBhbGxvYy9mcmVlIGZvciBjb2hlcmVudCB2cy4gbm9u
+Y29oZXJlbnQuDQoNCkp1c3QgdG8gYmUgc3VyZSB0aGF0IHdlIHVuZGVyc3RhbmQgYm90aCBlYWNo
+IG90aGVyIGFuZCBzb3VyY2UgY29kZSBjb3JyZWN0bHk6IA0KLSBJbiBjb2hlcmVudCBjYXNlIHdl
+IHVzZSBkbWFfZGlyZWN0Xyogb3BzIHdoaWNoIGRvZXNuJ3QgdXNlIEFSQyBhbGxvYyBmdW5jdGlv
+bnMgKGFyY2hfZG1hX3thbGxvY3xmcmVlfSkNCi0gSW4gbm9uLWNvaGVyZW50IGNhc2Ugd2UgdXNl
+IGRtYV9ub25jb2hlcmVudF8qIG9wcyB3aGljaCB1c2VzIEFSQyBhbGxvYyBmdW5jdGlvbnMgKGFy
+Y2hfZG1hX3thbGxvY3xmcmVlfSkNCg0KPiBCdXQgdGhlbiBJJ20gY3VyaW91cyB3aHkNCj4gZG8g
+d2UgYm90aGVyIHRvIGNoZWNrIHRoZSBmb2xsb3dpbmcgaW4gbmV3IGFyY2hfZG1hXyhhbGxvY3xm
+cmVlKSBhdCBhbGwuDQo+IA0KPiAJaWYgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RFTlQp
+DQo+IA0KPiBJc24ndCBpdCBzdXBwb3NlZCB0byBiZSBOT05fQ09OU0lTVEVOVCBhbHdheXMgZ2l2
+ZW4gdGhlIHdheSBuZXcgY29kZSB3b3JrcyA/DQoNCkRNQV9BVFRSX05PTl9DT05TSVNURU5UIGZs
+YWcgaXMgbm90IHJlbGF0ZWQgdG8gSU9DIHRvcGljLg0KSXQgaXMgYSBmbGFnIHdoaWNoIHdlIGNh
+biBwYXNzIHRvIGRtYV97YWxsb2N8ZnJlZX1fYXR0cnMgZnVuY3Rpb24gZnJvbSBkcml2ZXIgc2lk
+ZS4NCg0KQWNjb3JkaW5nIHRvIGRvY3VtZW50YXRpb246DQogIERNQV9BVFRSX05PTl9DT05TSVNU
+RU5UOiBMZXRzIHRoZSBwbGF0Zm9ybSB0byBjaG9vc2UgdG8gcmV0dXJuIGVpdGhlcg0KICBjb25z
+aXN0ZW50IG9yIG5vbi1jb25zaXN0ZW50IG1lbW9yeSBhcyBpdCBzZWVzIGZpdC4NCg0KV2UgY2hl
+Y2sgdGhpcyBmbGFnIGluIGFyY2hfZG1hX2FsbG9jICh3aGljaCBhcmUgdXNlZCBpbiBub24tY29o
+ZXJlbnQgY2FzZSkgdG8NCnNraXAgTU1VIG1hcHBpbmcgaWYgd2UgYXJlIGFkdmVydGlzZWQgdGhh
+dCBjb25zaXN0ZW5jeSBpcyBub3QgcmVxdWlyZWQuDQoNClNvLCBhY3R1YWxseSB3ZSBjYW4gZ2V0
+IHJpZCBvZiB0aGlzIGZsYWcgY2hlY2tpbmcgaW4gYXJjaF9kbWFfYWxsb2MgYW5kIA0Kc2ltcGx5
+IGFsd2F5cyBkbyBNTVUgbWFwcGluZyB0byBlbmZvcmNlIG5vbi1jYWNoYWJpbGl0eSBhbmQgcmV0
+dXJuDQpub24tY2FjaGVhYmxlIG1lbW9yeSBldmVuIGlmIERNQV9BVFRSX05PTl9DT05TSVNURU5U
+IGlzIHBhc3NlZC4NCkJ1dCBJIGRvbid0IHN1cmUgd2Ugd2FudCB0byBkbyB0aGF0Lg0KDQpCVFc6
+IGRtYV9hbGxvY19jb2hlcmVudCBpcyBzaW1wbHkgZG1hX2FsbG9jX2F0dHJzIHdpdGggYXR0cnMg
+PT0gMC4NCg0KLS0gDQogRXVnZW5peSBQYWx0c2V2
