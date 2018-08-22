@@ -1,13 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:33746 "EHLO
-        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726898AbeHUV25 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2018 17:28:57 -0400
-Date: Tue, 21 Aug 2018 20:07:43 +0200
-From: Pavel Machek <pavel@ucw.cz>
+Received: from smtp20.cstnet.cn ([159.226.251.20]:56606 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728946AbeHVQcb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Aug 2018 12:32:31 -0400
 Subject: Re: [PATCH v4 15/16] driver/edac: enable Hygon support to AMD64 EDAC
  driver
-Message-ID: <20180821180743.GA14431@atrey.karlin.mff.cuni.cz>
 References: <cover.1534599097.git.puwen@hygon.cn>
  <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
  <20180821081331.GC24940@nazgul.tnic>
@@ -15,19 +12,24 @@ References: <cover.1534599097.git.puwen@hygon.cn>
  <20180821112020.GB29972@nazgul.tnic>
  <6e17958a-6cd8-4c6c-c890-f5f48b084d6f@redhat.com>
  <20180821130430.GB30528@nazgul.tnic>
+From: Pu Wen <puwen@hygon.cn>
+Message-ID: <36de11c7-8448-2967-2032-ef31d8e8a979@hygon.cn>
+Date: Wed, 22 Aug 2018 21:07:20 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 In-Reply-To: <20180821130430.GB30528@nazgul.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Paolo Bonzini <pbonzini@redhat.com>, Pu Wen <puwen@hygon.cn>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
-Message-ID: <20180821180743.HnPHtI0fr0jyVIFUE-kCEj1XVNpKYN9iGo6b340f_cU@z>
+To: Borislav Petkov <bp@alien8.de>, Paolo Bonzini <pbonzini@redhat.com>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180822130720.dWB8rXaVs6BM78nyQjzKyzLw1zJZow8_-hcbIhYqTMA@z>
 
+On 2018/8/21 21:04, Borislav Petkov wrote:
 > On Tue, Aug 21, 2018 at 01:26:13PM +0200, Paolo Bonzini wrote:
-> > But then I don't see the point of adding the Hygon vendor, since any
-> > check can be simplified:
+>> But then I don't see the point of adding the Hygon vendor, since any
+>> check can be simplified:
 > 
 > I think Hygon wanted to superficially show it is not really an AMD. For
 > example, the Hygon thing doesn't do SME/SEV. AFAIK.
@@ -43,12 +45,15 @@ Message-ID: <20180821180743.HnPHtI0fr0jyVIFUE-kCEj1XVNpKYN9iGo6b340f_cU@z>
 > 
 > All, IMHO, of course. Sharing code between vendors is always yucky.
 
-Dunno, people do not know that 0x18 is reserved on AMD, so resulting
-code is quite confusing.
+Thanks for Boris's clarification.
 
-Explicit vendor check is way to go, long term.
-									Pavel
+It's hard to find the balance between short term(sharing codes) and long
+term(splitting codes).
+Current I think we'd better try to follow the following way:
+For current version, we will try to minimize the modification and share
+codes,
+For later big modification, will try to split codes to make code path
+more clear.
 
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+Regards
+Pu Wen
