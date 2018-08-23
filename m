@@ -1,89 +1,122 @@
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
- simultaneously
-Date: Wed, 22 Aug 2018 18:40:27 +0000
-Message-ID: <1534963226.3962.215.camel@synopsys.com>
-References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
-         <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
-         <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
-         <1534180089.3962.68.camel@synopsys.com>
-         <81ddd506-1f7e-db82-4c77-ff08b1c15dd3@synopsys.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.9 093/130] ARC: Improve cmpxchg syscall implementation
+Date: Thu, 23 Aug 2018 09:53:29 +0200
+Message-ID: <20180823074933.188720395@linuxfoundation.org>
+References: <20180823074927.161454870@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <81ddd506-1f7e-db82-4c77-ff08b1c15dd3@synopsys.com>
-Content-Language: en-US
-Content-ID: <782B7B2CFC7553469BA8F1DD9EBA45B6@internal.synopsys.com>
+In-Reply-To: <20180823074927.161454870@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "hch@lst.de" <hch@lst.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Vineet Gupta <vgupta@synopsys.com>, Sasha Levin <alexander.levin@microsoft.com>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDgtMjAgYXQgMTU6MzQgLTA3MDAsIFZpbmVldCBH
-dXB0YSB3cm90ZToNCj4gT24gMDgvMTMvMjAxOCAxMDowOCBBTSwgRXVnZW5peSBQYWx0c2V2IHdy
-b3RlOg0KPiA+IE9uIE1vbiwgMjAxOC0wOC0xMyBhdCAxNjoyNCArMDAwMCwgVmluZWV0IEd1cHRh
-IHdyb3RlOg0KPiA+ID4gT24gMDcvMzAvMjAxOCAwOToyNiBBTSwgRXVnZW5peSBQYWx0c2V2IHdy
-b3RlOg0KPiA+ID4gPiBAQCAtMTI2MywxMSArMTI1NCw3IEBAIHZvaWQgX19pbml0IGFyY19jYWNo
-ZV9pbml0X21hc3Rlcih2b2lkKQ0KPiA+ID4gPiAgCWlmIChpc19pc2FfYXJjdjIoKSAmJiBpb2Nf
-ZW5hYmxlKQ0KPiA+ID4gPiAgCQlhcmNfaW9jX3NldHVwKCk7DQo+ID4gPiA+ICANCj4gPiA+ID4g
-LQlpZiAoaXNfaXNhX2FyY3YyKCkgJiYgaW9jX2VuYWJsZSkgew0KPiA+ID4gPiAtCQlfX2RtYV9j
-YWNoZV93YmFja19pbnYgPSBfX2RtYV9jYWNoZV93YmFja19pbnZfaW9jOw0KPiA+ID4gPiAtCQlf
-X2RtYV9jYWNoZV9pbnYgPSBfX2RtYV9jYWNoZV9pbnZfaW9jOw0KPiA+ID4gPiAtCQlfX2RtYV9j
-YWNoZV93YmFjayA9IF9fZG1hX2NhY2hlX3diYWNrX2lvYzsNCj4gPiA+ID4gLQl9IGVsc2UgaWYg
-KGlzX2lzYV9hcmN2MigpICYmIGwyX2xpbmVfc3ogJiYgc2xjX2VuYWJsZSkgew0KPiANCj4gRm9y
-IHRoZSBjYXN1YWwgcmVhZGVyIEknZCBhZGQgYSBjb21tZW50IHdoeSB0aGlzIHdhcyBkZWxldGVk
-Lg0KRG8geW91IG1lYW4gY29tbWVudCBpbiBjb21taXQgZGVzY3JpcHRpb24gb3IgY29tbWVudCBy
-aWdodCBpbiBzb3VyY2VzPw0KDQo+IA0KPiA+ID4gPiArCWlmIChpc19pc2FfYXJjdjIoKSAmJiBs
-Ml9saW5lX3N6ICYmIHNsY19lbmFibGUpIHsNCj4gPiA+ID4gIAkJX19kbWFfY2FjaGVfd2JhY2tf
-aW52ID0gX19kbWFfY2FjaGVfd2JhY2tfaW52X3NsYzsNCj4gPiA+ID4gIAkJX19kbWFfY2FjaGVf
-aW52ID0gX19kbWFfY2FjaGVfaW52X3NsYzsNCj4gPiA+ID4gIAkJX19kbWFfY2FjaGVfd2JhY2sg
-PSBfX2RtYV9jYWNoZV93YmFja19zbGM7DQo+IA0KPiBbc25pcF0NCj4gDQo+ID4gPiA+ICANCj4g
-PiA+ID4gLQkvKg0KPiA+ID4gPiAtCSAqIElPQyByZWxpZXMgb24gYWxsIGRhdGEgKGV2ZW4gY29o
-ZXJlbnQgRE1BIGRhdGEpIGJlaW5nIGluIGNhY2hlDQo+ID4gPiA+IC0JICogVGh1cyBhbGxvY2F0
-ZSBub3JtYWwgY2FjaGVkIG1lbW9yeQ0KPiA+ID4gPiAtCSAqDQo+ID4gPiA+IC0JICogVGhlIGdh
-aW5zIHdpdGggSU9DIGFyZSB0d28gcHJvbmdlZDoNCj4gPiA+ID4gLQkgKiAgIC1Gb3Igc3RyZWFt
-aW5nIGRhdGEsIGVsaWRlcyBuZWVkIGZvciBjYWNoZSBtYWludGVuYW5jZSwgc2F2aW5nDQo+ID4g
-PiA+IC0JICogICAgY3ljbGVzIGluIGZsdXNoIGNvZGUsIGFuZCBidXMgYmFuZHdpZHRoIGFzIGFs
-bCB0aGUgbGluZXMgb2YgYQ0KPiA+ID4gPiAtCSAqICAgIGJ1ZmZlciBuZWVkIHRvIGJlIGZsdXNo
-ZWQgb3V0IHRvIG1lbW9yeQ0KPiA+ID4gPiAtCSAqICAgLUZvciBjb2hlcmVudCBkYXRhLCBSZWFk
-L1dyaXRlIHRvIGJ1ZmZlcnMgdGVybWluYXRlIGVhcmx5IGluIGNhY2hlDQo+ID4gPiA+IC0JICog
-ICAodnMuIGFsd2F5cyBnb2luZyB0byBtZW1vcnkgLSB0aHVzIGFyZSBmYXN0ZXIpDQo+ID4gPiA+
-IC0JICovDQo+ID4gPiA+IC0JaWYgKChpc19pc2FfYXJjdjIoKSAmJiBpb2NfZW5hYmxlKSB8fA0K
-PiA+ID4gPiAtCSAgICAoYXR0cnMgJiBETUFfQVRUUl9OT05fQ09OU0lTVEVOVCkpDQo+ID4gPiA+
-ICsJaWYgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RFTlQpDQo+ID4gPiA+ICAJCW5lZWRf
-Y29oID0gMDsNCj4gPiA+ID4gIA0KPiANCj4gW3NuaXBdDQo+IA0KPiA+IFllcCwgSSB0ZXN0ZWQg
-dGhhdC4NCj4gPiBBbmQgaXQgd29ya3MgZmluZSB3aXRoIGJvdGggQGlvY19lbmFibGUgPT0gMCBh
-bmQgQGlvY19lbmFibGUgPT0gMQ0KPiA+IE5vdGUgdGhhdCB3ZSBjaGVjayB0aGlzIHZhcmlhYmxl
-IGluIGFyY2hfc2V0dXBfZG1hX29wcygpIGZ1bmN0aW9uIG5vdy4NCj4gPiANCj4gPiBTbyB0aGlz
-IGFyY2hfZG1hX3thbGxvYyxmcmVlfSBhcmUgdXNlZCBPTkxZIGluIGNhc2Ugb2Ygc29mdHdhcmUg
-YXNzaXN0ZWQgY2FjaGUgbWFpbnRlbmFuY2UuDQo+ID4gVGhhdCdzIHdoeSB3ZSBoYWQgdG8gZG8g
-TU1VIG1hcHBpbmcgdG8gZW5mb3JjZSBub24tY2FjaGFiaWxpdHkgcmVnYXJkbGVzcyBvZiBAaW9j
-X2VuYWJsZS4NCj4gDQo+IFJlYWRpbmcga2VybmVsL2RtYS8qIEkgc2VlIHdoYXQgeW91IG1lYW4u
-IFdlIGNoZWNrIEBpb2NfZW5hYmxlIGF0IHRoZSB0aW1lIG9mDQo+IHJlZ2lzdGVyaW5nIHRoZSBk
-bWEgb3AgZm9yIGNvaGVyZW50IHZzLiBub24gY29oZXJlbnQgY2FzZSwgc28gdGhlcmUncyBjb21t
-b24gdnMuDQo+IEFSQyB2ZXJzaW9ucyBvZiBhbGxvYy9mcmVlIGZvciBjb2hlcmVudCB2cy4gbm9u
-Y29oZXJlbnQuDQoNCkp1c3QgdG8gYmUgc3VyZSB0aGF0IHdlIHVuZGVyc3RhbmQgYm90aCBlYWNo
-IG90aGVyIGFuZCBzb3VyY2UgY29kZSBjb3JyZWN0bHk6IA0KLSBJbiBjb2hlcmVudCBjYXNlIHdl
-IHVzZSBkbWFfZGlyZWN0Xyogb3BzIHdoaWNoIGRvZXNuJ3QgdXNlIEFSQyBhbGxvYyBmdW5jdGlv
-bnMgKGFyY2hfZG1hX3thbGxvY3xmcmVlfSkNCi0gSW4gbm9uLWNvaGVyZW50IGNhc2Ugd2UgdXNl
-IGRtYV9ub25jb2hlcmVudF8qIG9wcyB3aGljaCB1c2VzIEFSQyBhbGxvYyBmdW5jdGlvbnMgKGFy
-Y2hfZG1hX3thbGxvY3xmcmVlfSkNCg0KPiBCdXQgdGhlbiBJJ20gY3VyaW91cyB3aHkNCj4gZG8g
-d2UgYm90aGVyIHRvIGNoZWNrIHRoZSBmb2xsb3dpbmcgaW4gbmV3IGFyY2hfZG1hXyhhbGxvY3xm
-cmVlKSBhdCBhbGwuDQo+IA0KPiAJaWYgKGF0dHJzICYgRE1BX0FUVFJfTk9OX0NPTlNJU1RFTlQp
-DQo+IA0KPiBJc24ndCBpdCBzdXBwb3NlZCB0byBiZSBOT05fQ09OU0lTVEVOVCBhbHdheXMgZ2l2
-ZW4gdGhlIHdheSBuZXcgY29kZSB3b3JrcyA/DQoNCkRNQV9BVFRSX05PTl9DT05TSVNURU5UIGZs
-YWcgaXMgbm90IHJlbGF0ZWQgdG8gSU9DIHRvcGljLg0KSXQgaXMgYSBmbGFnIHdoaWNoIHdlIGNh
-biBwYXNzIHRvIGRtYV97YWxsb2N8ZnJlZX1fYXR0cnMgZnVuY3Rpb24gZnJvbSBkcml2ZXIgc2lk
-ZS4NCg0KQWNjb3JkaW5nIHRvIGRvY3VtZW50YXRpb246DQogIERNQV9BVFRSX05PTl9DT05TSVNU
-RU5UOiBMZXRzIHRoZSBwbGF0Zm9ybSB0byBjaG9vc2UgdG8gcmV0dXJuIGVpdGhlcg0KICBjb25z
-aXN0ZW50IG9yIG5vbi1jb25zaXN0ZW50IG1lbW9yeSBhcyBpdCBzZWVzIGZpdC4NCg0KV2UgY2hl
-Y2sgdGhpcyBmbGFnIGluIGFyY2hfZG1hX2FsbG9jICh3aGljaCBhcmUgdXNlZCBpbiBub24tY29o
-ZXJlbnQgY2FzZSkgdG8NCnNraXAgTU1VIG1hcHBpbmcgaWYgd2UgYXJlIGFkdmVydGlzZWQgdGhh
-dCBjb25zaXN0ZW5jeSBpcyBub3QgcmVxdWlyZWQuDQoNClNvLCBhY3R1YWxseSB3ZSBjYW4gZ2V0
-IHJpZCBvZiB0aGlzIGZsYWcgY2hlY2tpbmcgaW4gYXJjaF9kbWFfYWxsb2MgYW5kIA0Kc2ltcGx5
-IGFsd2F5cyBkbyBNTVUgbWFwcGluZyB0byBlbmZvcmNlIG5vbi1jYWNoYWJpbGl0eSBhbmQgcmV0
-dXJuDQpub24tY2FjaGVhYmxlIG1lbW9yeSBldmVuIGlmIERNQV9BVFRSX05PTl9DT05TSVNURU5U
-IGlzIHBhc3NlZC4NCkJ1dCBJIGRvbid0IHN1cmUgd2Ugd2FudCB0byBkbyB0aGF0Lg0KDQpCVFc6
-IGRtYV9hbGxvY19jb2hlcmVudCBpcyBzaW1wbHkgZG1hX2FsbG9jX2F0dHJzIHdpdGggYXR0cnMg
-PT0gMC4NCg0KLS0gDQogRXVnZW5peSBQYWx0c2V2
+4.9-stable review patch.  If anyone has any objections, please let me know.
+
+------------------
+
+From: Peter Zijlstra <peterz@infradead.org>
+
+[ Upstream commit e8708786d4fe21c043d38d760f768949a3d71185 ]
+
+This is used in configs lacking hardware atomics to emulate atomic r-m-w
+for user space, implemented by disabling preemption in kernel.
+
+However there are issues in current implementation:
+
+1. Process not terminated if invalid user pointer passed:
+   i.e. __get_user() failed.
+
+2. The reason for this patch was __put_user() failure not being handled
+   either, specifically for the COW break scenario.
+   The zero page is initially wired up and read from __get_user()
+   succeeds. A subsequent write by __put_user() induces a
+   Protection Violation, but COW can't finish as Linux page fault
+   handler is disabled due to preempt disable.
+   And what's worse is we silently return the stale value to user space.
+   Fix this specific case by re-enabling preemption and explicitly
+   fixing up the fault and retrying the whole sequence over.
+
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+[vgupta: rewrote the changelog]
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/arc/kernel/process.c |   47 +++++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 36 insertions(+), 11 deletions(-)
+
+--- a/arch/arc/kernel/process.c
++++ b/arch/arc/kernel/process.c
+@@ -44,7 +44,8 @@ SYSCALL_DEFINE0(arc_gettls)
+ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+-	int uval = -EFAULT;
++	u32 uval;
++	int ret;
+ 
+ 	/*
+ 	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
+@@ -57,23 +58,47 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *,
+ 	/* Z indicates to userspace if operation succeded */
+ 	regs->status32 &= ~STATUS_Z_MASK;
+ 
+-	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
+-		return -EFAULT;
++	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
++	if (!ret)
++		 goto fail;
+ 
++again:
+ 	preempt_disable();
+ 
+-	if (__get_user(uval, uaddr))
+-		goto done;
++	ret = __get_user(uval, uaddr);
++	if (ret)
++		 goto fault;
+ 
+-	if (uval == expected) {
+-		if (!__put_user(new, uaddr))
+-			regs->status32 |= STATUS_Z_MASK;
+-	}
++	if (uval != expected)
++		 goto out;
+ 
+-done:
+-	preempt_enable();
++	ret = __put_user(new, uaddr);
++	if (ret)
++		 goto fault;
++
++	regs->status32 |= STATUS_Z_MASK;
+ 
++out:
++	preempt_enable();
+ 	return uval;
++
++fault:
++	preempt_enable();
++
++	if (unlikely(ret != -EFAULT))
++		 goto fail;
++
++	down_read(&current->mm->mmap_sem);
++	ret = fixup_user_fault(current, current->mm, (unsigned long) uaddr,
++			       FAULT_FLAG_WRITE, NULL);
++	up_read(&current->mm->mmap_sem);
++
++	if (likely(!ret))
++		 goto again;
++
++fail:
++	force_sig(SIGSEGV, current);
++	return ret;
+ }
+ 
+ void arch_cpu_idle(void)
