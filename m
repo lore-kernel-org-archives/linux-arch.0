@@ -1,31 +1,41 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC PATCH 0/2] minor mmu_gather patches
-Date: Thu, 23 Aug 2018 12:37:58 -0700
-Message-ID: <CA+55aFwEZftzAd9k-kjiaXonP2XeTDYshjY56jmd1CFBaXmGHA@mail.gmail.com>
-References: <20180823084709.19717-1-npiggin@gmail.com> <CA+55aFxaiv3SMvFUSEnd_p6nuGttUnv2_O3v_G2zCnnc0pV2pA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH v3 1/2] kbuild: pass LDFLAGS to recordmcount.pl
+Date: Fri, 24 Aug 2018 08:20:38 +0900
+Message-ID: <1535066439-11259-1-git-send-email-yamada.masahiro@socionext.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFxaiv3SMvFUSEnd_p6nuGttUnv2_O3v_G2zCnnc0pV2pA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Piggin <npiggin@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Borislav Petkov <bp@alien8.de>, Will Deacon <will.deacon@arm.com>, Rik van Riel <riel@surriel.com>, Jann Horn <jannh@google.com>, Adin Scannell <ascannell@google.com>, Dave Hansen <dave.hansen@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch <linux-arch@vger.kernel.org>
+To: linux-kbuild@vger.kernel.org
+Cc: Michal Simek <michal.simek@xilinx.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 23, 2018 at 12:15 PM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> So right now my "tlb-fixes" branch looks like this:
-> [..]
->
-> I'll do a few more test builds and boots, but I think I'm going to
-> merge it in this cleaned-up and re-ordered form.
+Since commit 0fbe9a245c60 ("microblaze: add endianness options to
+LDFLAGS instead of LD"), you cannot build the kernel for microblaze
+with CONFIG_DYNAMIC_FTRACE.
 
-In the meantime, I decided to push out that branch in case anybody
-wants to look at it.
+Fixes: 0fbe9a245c60 ("microblaze: add endianness options to LDFLAGS instead of LD")
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
 
-I may rebase it if I - or anybody else - find anything bad there, so
-consider it non-stable, but I think it's in its final shape modulo
-issues.
+Changes in v3:
+  - New patch
 
-              Linus
+Changes in v2: None
+
+ scripts/Makefile.build | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 93b8e24..f5d7612 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -220,7 +220,7 @@ sub_cmd_record_mcount = set -e ; perl $(srctree)/scripts/recordmcount.pl "$(ARCH
+ 	"$(if $(CONFIG_CPU_BIG_ENDIAN),big,little)" \
+ 	"$(if $(CONFIG_64BIT),64,32)" \
+ 	"$(OBJDUMP)" "$(OBJCOPY)" "$(CC) $(KBUILD_CFLAGS)" \
+-	"$(LD)" "$(NM)" "$(RM)" "$(MV)" \
++	"$(LD) $(LDFLAGS)" "$(NM)" "$(RM)" "$(MV)" \
+ 	"$(if $(part-of-module),1,0)" "$(@)";
+ recordmcount_source := $(srctree)/scripts/recordmcount.pl
+ endif # BUILD_C_RECORDMCOUNT
+-- 
+2.7.4
