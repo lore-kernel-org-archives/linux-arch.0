@@ -1,91 +1,122 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 2/2] mm: mmu_notifier fix for tlb_end_vma
-Date: Thu, 23 Aug 2018 18:47:09 +1000
-Message-ID: <20180823084709.19717-3-npiggin@gmail.com>
-References: <20180823084709.19717-1-npiggin@gmail.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.17 227/324] ARC: Improve cmpxchg syscall implementation
+Date: Thu, 23 Aug 2018 09:54:53 +0200
+Message-ID: <20180823075007.498311965@linuxfoundation.org>
+References: <20180823074955.885811006@linuxfoundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180823084709.19717-1-npiggin@gmail.com>
+In-Reply-To: <20180823074955.885811006@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, torvalds@linux-foundation.org, luto@kernel.org, x86@kernel.org, bp@alien8.de, will.deacon@arm.com, riel@surriel.com, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Vineet Gupta <vgupta@synopsys.com>, Sasha Levin <alexander.levin@microsoft.com>
 List-Id: linux-arch.vger.kernel.org
 
-The generic tlb_end_vma does not call invalidate_range mmu notifier,
-and it resets resets the mmu_gather range, which means the notifier
-won't be called on part of the range in case of an unmap that spans
-multiple vmas.
+4.17-stable review patch.  If anyone has any objections, please let me know.
 
-ARM64 seems to be the only arch I could see that has notifiers and
-uses the generic tlb_end_vma. I have not actually tested it.
+------------------
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+
+[ Upstream commit e8708786d4fe21c043d38d760f768949a3d71185 ]
+
+This is used in configs lacking hardware atomics to emulate atomic r-m-w
+for user space, implemented by disabling preemption in kernel.
+
+However there are issues in current implementation:
+
+1. Process not terminated if invalid user pointer passed:
+   i.e. __get_user() failed.
+
+2. The reason for this patch was __put_user() failure not being handled
+   either, specifically for the COW break scenario.
+   The zero page is initially wired up and read from __get_user()
+   succeeds. A subsequent write by __put_user() induces a
+   Protection Violation, but COW can't finish as Linux page fault
+   handler is disabled due to preempt disable.
+   And what's worse is we silently return the stale value to user space.
+   Fix this specific case by re-enabling preemption and explicitly
+   fixing up the fault and retrying the whole sequence over.
+
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+[vgupta: rewrote the changelog]
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- include/asm-generic/tlb.h | 17 +++++++++++++----
- mm/memory.c               | 10 ----------
- 2 files changed, 13 insertions(+), 14 deletions(-)
+ arch/arc/kernel/process.c |   47 +++++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 36 insertions(+), 11 deletions(-)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index e811ef7b8350..79cb76b89c26 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -15,6 +15,7 @@
- #ifndef _ASM_GENERIC__TLB_H
- #define _ASM_GENERIC__TLB_H
+--- a/arch/arc/kernel/process.c
++++ b/arch/arc/kernel/process.c
+@@ -47,7 +47,8 @@ SYSCALL_DEFINE0(arc_gettls)
+ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+-	int uval = -EFAULT;
++	u32 uval;
++	int ret;
  
-+#include <linux/mmu_notifier.h>
- #include <linux/swap.h>
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
-@@ -138,6 +139,16 @@ static inline void __tlb_reset_range(struct mmu_gather *tlb)
- 	}
+ 	/*
+ 	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
+@@ -60,23 +61,47 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *,
+ 	/* Z indicates to userspace if operation succeded */
+ 	regs->status32 &= ~STATUS_Z_MASK;
+ 
+-	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
+-		return -EFAULT;
++	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
++	if (!ret)
++		 goto fail;
+ 
++again:
+ 	preempt_disable();
+ 
+-	if (__get_user(uval, uaddr))
+-		goto done;
++	ret = __get_user(uval, uaddr);
++	if (ret)
++		 goto fault;
+ 
+-	if (uval == expected) {
+-		if (!__put_user(new, uaddr))
+-			regs->status32 |= STATUS_Z_MASK;
+-	}
++	if (uval != expected)
++		 goto out;
+ 
+-done:
+-	preempt_enable();
++	ret = __put_user(new, uaddr);
++	if (ret)
++		 goto fault;
++
++	regs->status32 |= STATUS_Z_MASK;
+ 
++out:
++	preempt_enable();
+ 	return uval;
++
++fault:
++	preempt_enable();
++
++	if (unlikely(ret != -EFAULT))
++		 goto fail;
++
++	down_read(&current->mm->mmap_sem);
++	ret = fixup_user_fault(current, current->mm, (unsigned long) uaddr,
++			       FAULT_FLAG_WRITE, NULL);
++	up_read(&current->mm->mmap_sem);
++
++	if (likely(!ret))
++		 goto again;
++
++fail:
++	force_sig(SIGSEGV, current);
++	return ret;
  }
  
-+static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
-+{
-+	if (!tlb->end)
-+		return;
-+
-+	tlb_flush(tlb);
-+	mmu_notifier_invalidate_range(tlb->mm, tlb->start, tlb->end);
-+	__tlb_reset_range(tlb);
-+}
-+
- static inline void tlb_remove_page_size(struct mmu_gather *tlb,
- 					struct page *page, int page_size)
- {
-@@ -186,10 +197,8 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
- 
- #define __tlb_end_vma(tlb, vma)					\
- 	do {							\
--		if (!tlb->fullmm && tlb->end) {			\
--			tlb_flush(tlb);				\
--			__tlb_reset_range(tlb);			\
--		}						\
-+		if (!tlb->fullmm)				\
-+			tlb_flush_mmu_tlbonly(tlb);		\
- 	} while (0)
- 
- #ifndef tlb_end_vma
-diff --git a/mm/memory.c b/mm/memory.c
-index 7c58310734eb..c4a7b6cb17c8 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -238,16 +238,6 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 	__tlb_reset_range(tlb);
- }
- 
--static void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
--{
--	if (!tlb->end)
--		return;
--
--	tlb_flush(tlb);
--	mmu_notifier_invalidate_range(tlb->mm, tlb->start, tlb->end);
--	__tlb_reset_range(tlb);
--}
--
- static void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
- 	struct mmu_gather_batch *batch;
--- 
-2.17.0
+ #ifdef CONFIG_ISA_ARCV2
