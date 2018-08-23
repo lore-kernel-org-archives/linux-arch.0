@@ -1,122 +1,29 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.17 227/324] ARC: Improve cmpxchg syscall implementation
-Date: Thu, 23 Aug 2018 09:54:53 +0200
-Message-ID: <20180823075007.498311965@linuxfoundation.org>
-References: <20180823074955.885811006@linuxfoundation.org>
+From: Vaibhav Jain <vaibhav@linux.ibm.com>
+Subject: Re: [Skiboot] [PATCH] opal/hmi: Wakeup the cpu before reading core_fir
+Date: Thu, 23 Aug 2018 17:02:51 +0530
+Message-ID: <877ekhnwrg.fsf@vajain21.in.ibm.com>
+References: <20180820183417.dejfsluih7elbclu@pburton-laptop> <20180820223618.22319-1-paul.burton@mips.com> <20180820223618.22319-2-paul.burton@mips.com> <20180820140605.11846-1-vaibhav@linux.ibm.com> <20180821133842.1b13e972@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180823074955.885811006@linuxfoundation.org>
+In-Reply-To: <20180821133842.1b13e972@roar.ozlabs.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Vineet Gupta <vgupta@synopsys.com>, Sasha Levin <alexander.levin@microsoft.com>
+To: Nicholas Piggin <npiggin@gmail.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
+Cc: "Gautham R . Shenoy" <ego@linux.vnet.ibm.com>, Michael Neuling <mikey@neuling.org>, Stewart Smith <stewart@linux.ibm.com>, Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.17-stable review patch.  If anyone has any objections, please let me know.
+Thanks for reviewing this patch Nick
 
-------------------
+Nicholas Piggin <npiggin@gmail.com> writes:
+>
+> Would it be feasible to enumerate the ranges of scoms that require
+> special wakeup and check for those in xscom_read/write, and warn if
+> spwkup was not set?
+>
+I think that might be racy (Vaidy please correct if I am wrong) as a
+core can change its state when we read its sleep state and when we do
+the actual xscom to read the core_fir.
 
-From: Peter Zijlstra <peterz@infradead.org>
-
-[ Upstream commit e8708786d4fe21c043d38d760f768949a3d71185 ]
-
-This is used in configs lacking hardware atomics to emulate atomic r-m-w
-for user space, implemented by disabling preemption in kernel.
-
-However there are issues in current implementation:
-
-1. Process not terminated if invalid user pointer passed:
-   i.e. __get_user() failed.
-
-2. The reason for this patch was __put_user() failure not being handled
-   either, specifically for the COW break scenario.
-   The zero page is initially wired up and read from __get_user()
-   succeeds. A subsequent write by __put_user() induces a
-   Protection Violation, but COW can't finish as Linux page fault
-   handler is disabled due to preempt disable.
-   And what's worse is we silently return the stale value to user space.
-   Fix this specific case by re-enabling preemption and explicitly
-   fixing up the fault and retrying the whole sequence over.
-
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-[vgupta: rewrote the changelog]
-Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/arc/kernel/process.c |   47 +++++++++++++++++++++++++++++++++++-----------
- 1 file changed, 36 insertions(+), 11 deletions(-)
-
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -47,7 +47,8 @@ SYSCALL_DEFINE0(arc_gettls)
- SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
- {
- 	struct pt_regs *regs = current_pt_regs();
--	int uval = -EFAULT;
-+	u32 uval;
-+	int ret;
- 
- 	/*
- 	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
-@@ -60,23 +61,47 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *,
- 	/* Z indicates to userspace if operation succeded */
- 	regs->status32 &= ~STATUS_Z_MASK;
- 
--	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
--		return -EFAULT;
-+	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
-+	if (!ret)
-+		 goto fail;
- 
-+again:
- 	preempt_disable();
- 
--	if (__get_user(uval, uaddr))
--		goto done;
-+	ret = __get_user(uval, uaddr);
-+	if (ret)
-+		 goto fault;
- 
--	if (uval == expected) {
--		if (!__put_user(new, uaddr))
--			regs->status32 |= STATUS_Z_MASK;
--	}
-+	if (uval != expected)
-+		 goto out;
- 
--done:
--	preempt_enable();
-+	ret = __put_user(new, uaddr);
-+	if (ret)
-+		 goto fault;
-+
-+	regs->status32 |= STATUS_Z_MASK;
- 
-+out:
-+	preempt_enable();
- 	return uval;
-+
-+fault:
-+	preempt_enable();
-+
-+	if (unlikely(ret != -EFAULT))
-+		 goto fail;
-+
-+	down_read(&current->mm->mmap_sem);
-+	ret = fixup_user_fault(current, current->mm, (unsigned long) uaddr,
-+			       FAULT_FLAG_WRITE, NULL);
-+	up_read(&current->mm->mmap_sem);
-+
-+	if (likely(!ret))
-+		 goto again;
-+
-+fail:
-+	force_sig(SIGSEGV, current);
-+	return ret;
- }
- 
- #ifdef CONFIG_ISA_ARCV2
+-- 
+Vaibhav Jain <vaibhav@linux.vnet.ibm.com>
+Linux Technology Center, IBM India Pvt. Ltd.
