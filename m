@@ -1,29 +1,34 @@
-From: Vaibhav Jain <vaibhav@linux.ibm.com>
-Subject: Re: [Skiboot] [PATCH] opal/hmi: Wakeup the cpu before reading core_fir
-Date: Thu, 23 Aug 2018 17:02:51 +0530
-Message-ID: <877ekhnwrg.fsf@vajain21.in.ibm.com>
-References: <20180820183417.dejfsluih7elbclu@pburton-laptop> <20180820223618.22319-1-paul.burton@mips.com> <20180820223618.22319-2-paul.burton@mips.com> <20180820140605.11846-1-vaibhav@linux.ibm.com> <20180821133842.1b13e972@roar.ozlabs.ibm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH 2/2] mm: mmu_notifier fix for tlb_end_vma
+Date: Thu, 23 Aug 2018 13:46:50 +0100
+Message-ID: <20180823124649.sopnukdu4mfz6e46@armageddon.cambridge.arm.com>
+References: <20180823084709.19717-1-npiggin@gmail.com>
+ <20180823084709.19717-3-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180821133842.1b13e972@roar.ozlabs.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <20180823084709.19717-3-npiggin@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
-Cc: "Gautham R . Shenoy" <ego@linux.vnet.ibm.com>, Michael Neuling <mikey@neuling.org>, Stewart Smith <stewart@linux.ibm.com>, Linux-MIPS <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, James Hogan <jhogan@kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, luto@kernel.org, x86@kernel.org, bp@alien8.de, will.deacon@arm.com, riel@surriel.com, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Thanks for reviewing this patch Nick
+On Thu, Aug 23, 2018 at 06:47:09PM +1000, Nicholas Piggin wrote:
+> The generic tlb_end_vma does not call invalidate_range mmu notifier,
+> and it resets resets the mmu_gather range, which means the notifier
+> won't be called on part of the range in case of an unmap that spans
+> multiple vmas.
+> 
+> ARM64 seems to be the only arch I could see that has notifiers and
+> uses the generic tlb_end_vma. I have not actually tested it.
 
-Nicholas Piggin <npiggin@gmail.com> writes:
->
-> Would it be feasible to enumerate the ranges of scoms that require
-> special wakeup and check for those in xscom_read/write, and warn if
-> spwkup was not set?
->
-I think that might be racy (Vaidy please correct if I am wrong) as a
-core can change its state when we read its sleep state and when we do
-the actual xscom to read the core_fir.
+We only care about notifiers for KVM but I think it only makes use of
+mmu_notifier_invalidate_range_(start|end) which are not affected by the
+range reset in mmu_gather.
+
+Your patch looks ok from an arm64 perspective (it would be good if Will
+has a look as well since he was the last to touch this part for arm64).
 
 -- 
-Vaibhav Jain <vaibhav@linux.vnet.ibm.com>
-Linux Technology Center, IBM India Pvt. Ltd.
+Catalin
