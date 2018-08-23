@@ -1,122 +1,40 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 093/130] ARC: Improve cmpxchg syscall implementation
-Date: Thu, 23 Aug 2018 09:53:29 +0200
-Message-ID: <20180823074933.188720395@linuxfoundation.org>
-References: <20180823074927.161454870@linuxfoundation.org>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 15/16] driver/edac: enable Hygon support to AMD64 EDAC
+ driver
+Date: Thu, 23 Aug 2018 10:27:15 +0200
+Message-ID: <20180823082715.GA11742@nazgul.tnic>
+References: <cover.1534599097.git.puwen@hygon.cn>
+ <6275a5a0a0cfbd2c1abc09a5bb41caabecd02e27.1534599097.git.puwen@hygon.cn>
+ <20180821081331.GC24940@nazgul.tnic>
+ <ccbc6572-c16f-7a9b-ab27-54fffac1ba0d@hygon.cn>
+ <20180821112020.GB29972@nazgul.tnic>
+ <6e17958a-6cd8-4c6c-c890-f5f48b084d6f@redhat.com>
+ <20180821130430.GB30528@nazgul.tnic>
+ <36de11c7-8448-2967-2032-ef31d8e8a979@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180823074927.161454870@linuxfoundation.org>
+Content-Disposition: inline
+In-Reply-To: <36de11c7-8448-2967-2032-ef31d8e8a979@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Vineet Gupta <vgupta@synopsys.com>, Sasha Levin <alexander.levin@microsoft.com>
+To: Pu Wen <puwen@hygon.cn>
+Cc: Paolo Bonzini <pbonzini@redhat.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+On Wed, Aug 22, 2018 at 09:07:20PM +0800, Pu Wen wrote:
+> Current I think we'd better try to follow the following way:
+> For current version, we will try to minimize the modification and share
+> codes,
+> For later big modification, will try to split codes to make code path
+> more clear.
 
-------------------
+Yes, makes sense.
 
-From: Peter Zijlstra <peterz@infradead.org>
+Thx.
 
-[ Upstream commit e8708786d4fe21c043d38d760f768949a3d71185 ]
+-- 
+Regards/Gruss,
+    Boris.
 
-This is used in configs lacking hardware atomics to emulate atomic r-m-w
-for user space, implemented by disabling preemption in kernel.
-
-However there are issues in current implementation:
-
-1. Process not terminated if invalid user pointer passed:
-   i.e. __get_user() failed.
-
-2. The reason for this patch was __put_user() failure not being handled
-   either, specifically for the COW break scenario.
-   The zero page is initially wired up and read from __get_user()
-   succeeds. A subsequent write by __put_user() induces a
-   Protection Violation, but COW can't finish as Linux page fault
-   handler is disabled due to preempt disable.
-   And what's worse is we silently return the stale value to user space.
-   Fix this specific case by re-enabling preemption and explicitly
-   fixing up the fault and retrying the whole sequence over.
-
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-[vgupta: rewrote the changelog]
-Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/arc/kernel/process.c |   47 +++++++++++++++++++++++++++++++++++-----------
- 1 file changed, 36 insertions(+), 11 deletions(-)
-
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -44,7 +44,8 @@ SYSCALL_DEFINE0(arc_gettls)
- SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
- {
- 	struct pt_regs *regs = current_pt_regs();
--	int uval = -EFAULT;
-+	u32 uval;
-+	int ret;
- 
- 	/*
- 	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
-@@ -57,23 +58,47 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *,
- 	/* Z indicates to userspace if operation succeded */
- 	regs->status32 &= ~STATUS_Z_MASK;
- 
--	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
--		return -EFAULT;
-+	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
-+	if (!ret)
-+		 goto fail;
- 
-+again:
- 	preempt_disable();
- 
--	if (__get_user(uval, uaddr))
--		goto done;
-+	ret = __get_user(uval, uaddr);
-+	if (ret)
-+		 goto fault;
- 
--	if (uval == expected) {
--		if (!__put_user(new, uaddr))
--			regs->status32 |= STATUS_Z_MASK;
--	}
-+	if (uval != expected)
-+		 goto out;
- 
--done:
--	preempt_enable();
-+	ret = __put_user(new, uaddr);
-+	if (ret)
-+		 goto fault;
-+
-+	regs->status32 |= STATUS_Z_MASK;
- 
-+out:
-+	preempt_enable();
- 	return uval;
-+
-+fault:
-+	preempt_enable();
-+
-+	if (unlikely(ret != -EFAULT))
-+		 goto fail;
-+
-+	down_read(&current->mm->mmap_sem);
-+	ret = fixup_user_fault(current, current->mm, (unsigned long) uaddr,
-+			       FAULT_FLAG_WRITE, NULL);
-+	up_read(&current->mm->mmap_sem);
-+
-+	if (likely(!ret))
-+		 goto again;
-+
-+fail:
-+	force_sig(SIGSEGV, current);
-+	return ret;
- }
- 
- void arch_cpu_idle(void)
+ECO tip #101: Trim your mails when you reply.
+--
