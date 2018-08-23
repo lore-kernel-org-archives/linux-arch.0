@@ -1,64 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46630 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730895AbeHWRKm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Aug 2018 13:10:42 -0400
-Date: Thu, 23 Aug 2018 14:40:53 +0100
+Received: from foss.arm.com ([217.140.101.70]:46652 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730895AbeHWRKy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Aug 2018 13:10:54 -0400
+Date: Thu, 23 Aug 2018 14:41:05 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 1/2] mm: move tlb_table_flush to tlb_flush_mmu_free
-Message-ID: <20180823134052.GC1496@brain-police>
+Subject: Re: [RFC PATCH 2/2] mm: mmu_notifier fix for tlb_end_vma
+Message-ID: <20180823134104.GD1496@brain-police>
 References: <20180823084709.19717-1-npiggin@gmail.com>
- <20180823084709.19717-2-npiggin@gmail.com>
+ <20180823084709.19717-3-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180823084709.19717-2-npiggin@gmail.com>
+In-Reply-To: <20180823084709.19717-3-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, luto@kernel.org, x86@kernel.org, bp@alien8.de, riel@surriel.com, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org
-Message-ID: <20180823134053.MYufi7tZbY3onNtT64yHHFi5fMV2g7NV9Xh2g__xykc@z>
+Message-ID: <20180823134105.dW1hUy4qhA1OWD_DRmdCW_L06W_58Ouosu5e8sh80Tc@z>
 
-On Thu, Aug 23, 2018 at 06:47:08PM +1000, Nicholas Piggin wrote:
-> There is no need to call this from tlb_flush_mmu_tlbonly, it
-> logically belongs with tlb_flush_mmu_free. This allows some
-> code consolidation with a subsequent fix.
+On Thu, Aug 23, 2018 at 06:47:09PM +1000, Nicholas Piggin wrote:
+> The generic tlb_end_vma does not call invalidate_range mmu notifier,
+> and it resets resets the mmu_gather range, which means the notifier
+> won't be called on part of the range in case of an unmap that spans
+> multiple vmas.
+> 
+> ARM64 seems to be the only arch I could see that has notifiers and
+> uses the generic tlb_end_vma. I have not actually tested it.
 > 
 > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
->  mm/memory.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
+>  include/asm-generic/tlb.h | 17 +++++++++++++----
+>  mm/memory.c               | 10 ----------
+>  2 files changed, 13 insertions(+), 14 deletions(-)
 
-Looks good to me, thanks:
+I think we only use the notifiers in the KVM code, which appears to leave
+the ->invalidate_range() callback empty, so that at least explains why we
+haven't run into problems here.
+
+But the change looks correct to me, so:
 
 Acked-by: Will Deacon <will.deacon@arm.com>
 
-Will
+Thanks,
 
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 19f47d7b9b86..7c58310734eb 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -245,9 +245,6 @@ static void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
->  
->  	tlb_flush(tlb);
->  	mmu_notifier_invalidate_range(tlb->mm, tlb->start, tlb->end);
-> -#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-> -	tlb_table_flush(tlb);
-> -#endif
->  	__tlb_reset_range(tlb);
->  }
->  
-> @@ -255,6 +252,9 @@ static void tlb_flush_mmu_free(struct mmu_gather *tlb)
->  {
->  	struct mmu_gather_batch *batch;
->  
-> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-> +	tlb_table_flush(tlb);
-> +#endif
->  	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
->  		free_pages_and_swap_cache(batch->pages, batch->nr);
->  		batch->nr = 0;
-> -- 
-> 2.17.0
-> 
+Will
