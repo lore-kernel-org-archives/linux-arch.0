@@ -1,112 +1,36 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [RFC PATCH 2/2] mm: mmu_notifier fix for tlb_end_vma (build failures)
-Date: Fri, 24 Aug 2018 16:32:12 -0700 (PDT)
-Message-ID: <mhng-86a3cd0c-c3dc-42a9-a955-01fbce9d2797@palmer-si-x1c4>
-References: <20180824135048.GF11868@brain-police>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180824135048.GF11868@brain-police>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux@roeck-us.net, npiggin@gmail.com, peterz@infradead.org, Linus Torvalds <torvalds@linux-foundation.org>, luto@kernel.org, x86@kernel.org, bp@alien8.de, riel@surriel.com, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, davem@davemloft.net, schwidefsky@de.ibm.com, mpe@ellerman.id.au, linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 01/17] asm: simd context helper API
+Date: Sun, 26 Aug 2018 14:10:35 +0200 (CEST)
+Message-ID: <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de>
+References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20180824213849.23647-2-Jason@zx2c4.com>
+Sender: netdev-owner@vger.kernel.org
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, netdev@vger.kernel.org, David Miller <davem@davemloft.net>, Andy Lutomirski <luto@kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 24 Aug 2018 06:50:48 PDT (-0700), Will Deacon wrote:
-> On Fri, Aug 24, 2018 at 02:34:27PM +0100, Will Deacon wrote:
->> On Fri, Aug 24, 2018 at 06:24:19AM -0700, Guenter Roeck wrote:
->> > On Fri, Aug 24, 2018 at 02:10:27PM +0100, Will Deacon wrote:
->> > > On Fri, Aug 24, 2018 at 06:07:22AM -0700, Guenter Roeck wrote:
->> > > > On Thu, Aug 23, 2018 at 06:47:09PM +1000, Nicholas Piggin wrote:
->> > > > > The generic tlb_end_vma does not call invalidate_range mmu notifier,
->> > > > > and it resets resets the mmu_gather range, which means the notifier
->> > > > > won't be called on part of the range in case of an unmap that spans
->> > > > > multiple vmas.
->> > > > >
->> > > > > ARM64 seems to be the only arch I could see that has notifiers and
->> > > > > uses the generic tlb_end_vma. I have not actually tested it.
->> > > > >
->> > > > > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
->> > > > > Acked-by: Will Deacon <will.deacon@arm.com>
->> > > >
->> > > > This patch breaks riscv builds in mainline.
->> > >
->> > > Looks very similar to the breakage we hit on arm64. diff below should fix
->> > > it.
->> > >
->> >
->> > Unfortunately it doesn't.
->> >
->> > In file included from ./arch/riscv/include/asm/pgtable.h:26:0,
->> >                  from ./include/linux/memremap.h:7,
->> >                  from ./include/linux/mm.h:27,
->> >                  from arch/riscv/mm/fault.c:23:
->> > ./arch/riscv/include/asm/tlb.h: In function ‘tlb_flush’:
->> > ./arch/riscv/include/asm/tlb.h:19:18: error: dereferencing pointer to incomplete type ‘struct mmu_gather’
->> >   flush_tlb_mm(tlb->mm);
->> >                   ^
->>
->> Sorry, I was a bit quick of the mark there. You'll need a forward
->> declaration for the paramater type. Here it is with a commit message,
->> although still untested because I haven't got round to setting up a riscv
->> toolchain yet.
+On Fri, 24 Aug 2018, Jason A. Donenfeld wrote:
 
-FWIW, Arnd built them last time he updated the cross tools so you should be 
-able to get GCC 8.1.0 for RISC-V from there.  I use this make.cross script that 
-I stole from the Intel 0-day robot
+> Sometimes it's useful to amortize calls to XSAVE/XRSTOR and the related
+> FPU/SIMD functions over a number of calls, because FPU restoration is
+> quite expensive. This adds a simple header for carrying out this pattern:
+> 
+>     simd_context_t simd_context = simd_get();
+>     while ((item = get_item_from_queue()) != NULL) {
+>         encrypt_item(item, simd_context);
+>         simd_context = simd_relax(simd_context);
+>     }
+>     simd_put(simd_context);
 
-    https://github.com/palmer-dabbelt/home/blob/master/.local/src/local-scripts/make.cross.bash
+I'm not too fond of this simply because it requires that relax() step in
+all code pathes. I'd rather make that completely transparent by just
+marking the task as FPU using and let the context switch code deal with it
+in case that it gets preempted. I'll let one of my engineers look into
+that next week.
 
-If I'm reading it correctly the tools come from here
+Thanks,
 
-    http://cdn.kernel.org/pub/tools/crosstool/files/bin/x86_64/8.1.0/x86_64-gcc-8.1.0-nolibc-riscv64-linux.tar.gz
-
-I use the make.cross script as it makes it super easy to test my 
-across-the-tree patches on other people's ports.
-
->>
->> Will
->>
->> --->8
->>
->> From adb9be33d68320edcda80d540a97a647792894d2 Mon Sep 17 00:00:00 2001
->> From: Will Deacon <will.deacon@arm.com>
->> Date: Fri, 24 Aug 2018 14:33:48 +0100
->> Subject: [PATCH] riscv: tlb: Provide definition of tlb_flush() before
->>  including tlb.h
->>
->> As of commit fd1102f0aade ("mm: mmu_notifier fix for tlb_end_vma"),
->> asm-generic/tlb.h now calls tlb_flush() from a static inline function,
->> so we need to make sure that it's declared before #including the
->> asm-generic header in the arch header.
->>
->> Since tlb_flush() is a one-liner for riscv, we can define it before
->> including asm-generic/tlb.h as long as we provide a forward declaration
->> of struct mmu_gather.
->>
->> Reported-by: Guenter Roeck <linux@roeck-us.net>
->> Signed-off-by: Will Deacon <will.deacon@arm.com>
->> ---
->>  arch/riscv/include/asm/tlb.h | 4 +++-
->>  1 file changed, 3 insertions(+), 1 deletion(-)
->>
->> diff --git a/arch/riscv/include/asm/tlb.h b/arch/riscv/include/asm/tlb.h
->> index c229509288ea..a3d1380ad970 100644
->> --- a/arch/riscv/include/asm/tlb.h
->> +++ b/arch/riscv/include/asm/tlb.h
->> @@ -14,11 +14,13 @@
->>  #ifndef _ASM_RISCV_TLB_H
->>  #define _ASM_RISCV_TLB_H
->>
->> -#include <asm-generic/tlb.h>
->> +struct mmu_gather;
->>
->>  static inline void tlb_flush(struct mmu_gather *tlb)
->>  {
->>  	flush_tlb_mm(tlb->mm);
->
-> Bah, didn't spot the dereference so this won't work either. You basically
-> just need to copy what I did for arm64 in d475fac95779.
->
-> Will
+	tglx
