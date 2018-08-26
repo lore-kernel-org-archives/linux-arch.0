@@ -1,97 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:34125 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726694AbeHZSHq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Aug 2018 14:07:46 -0400
-Received: by mail-pg1-f193.google.com with SMTP id u10-v6so4532493pgr.1
-        for <linux-arch@vger.kernel.org>; Sun, 26 Aug 2018 07:25:03 -0700 (PDT)
-Content-Type: text/plain;
-        charset=utf-8
-Mime-Version: 1.0 (1.0)
+Received: from shelob.surriel.com ([96.67.55.147]:43992 "EHLO
+        shelob.surriel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726643AbeHZUgk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Aug 2018 16:36:40 -0400
+Message-ID: <3983fcb4c663e8dc05f13cac32ff56ec15c3dac1.camel@surriel.com>
 Subject: Re: [PATCH v2 01/17] asm: simd context helper API
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <CAHmME9q+JcT9pnZ5jgowf15O4BkVF-2-QkHA2o1ZKbVe4nAg6g@mail.gmail.com>
-Date: Sun, 26 Aug 2018 07:25:01 -0700
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <01BF319B-D6F3-432F-AE1A-1B8B4E3A36A4@amacapital.net>
-References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com> <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de> <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com> <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de> <CAHmME9q+JcT9pnZ5jgowf15O4BkVF-2-QkHA2o1ZKbVe4nAg6g@mail.gmail.com>
+From: Rik van Riel <riel@surriel.com>
+Date: Sun, 26 Aug 2018 12:53:29 -0400
+In-Reply-To: <2532E417-DDD2-4E2C-9F21-3B8D9B96370D@amacapital.net>
+References: <20180824213849.23647-1-Jason@zx2c4.com>
+         <20180824213849.23647-2-Jason@zx2c4.com>
+         <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de>
+         <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com>
+         <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
+         <2532E417-DDD2-4E2C-9F21-3B8D9B96370D@amacapital.net>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-4L9haMCxh2AgKTDDi3f4"
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
-Message-ID: <20180826142501.UNji1Owvsmvt4bQtWpWX-dIEC29NaFHhHR3HRv3xudE@z>
+To: Andy Lutomirski <luto@amacapital.net>, Thomas Gleixner <tglx@linutronix.de>
+Cc: "Jason A. Donenfeld" <Jason@zx2c4.com>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
+Message-ID: <20180826165329.EjCLjOdvKK_3q7HtgQZbAm5wx01Qzsur6M-K-OR5DEQ@z>
 
 
+--=-4L9haMCxh2AgKTDDi3f4
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-
-> On Aug 26, 2018, at 7:18 AM, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+On Sun, 2018-08-26 at 07:18 -0700, Andy Lutomirski wrote:
+> > On Aug 26, 2018, at 7:06 AM, Thomas Gleixner <tglx@linutronix.de>
+> > wrote:
+> >=20
+> > Jason,
+> >=20
+> > > On Sun, 26 Aug 2018, Jason A. Donenfeld wrote:
+> > > > On Sun, Aug 26, 2018 at 6:10 AM Thomas Gleixner <
+> > > > tglx@linutronix.de> wrote:
+> > > > I'm not too fond of this simply because it requires that
+> > > > relax() step in
+> > > > all code pathes. I'd rather make that completely transparent by
+> > > > just
+> > > > marking the task as FPU using and let the context switch code
+> > > > deal with it
+> > > > in case that it gets preempted. I'll let one of my engineers
+> > > > look into
+> > > > that next week.
+> > >=20
+> > > Do you mean to say you intend to make kernel_fpu_end() and
+> > > kernel_neon_end() only actually do something upon context switch,
+> > > but
+> > > not when it's actually called? So that multiple calls to
+> > > kernel_fpu_begin() and kernel_neon_begin() can be made without
+> > > penalty?
+> >=20
+> > On context switch and exit to user. That allows to keep those code
+> > pathes
+> > fully preemptible. Still twisting my brain around the details.
 >=20
-> On Sun, Aug 26, 2018 at 8:06 AM Thomas Gleixner <tglx@linutronix.de> wrote=
-:
->>> Do you mean to say you intend to make kernel_fpu_end() and
->>> kernel_neon_end() only actually do something upon context switch, but
->>> not when it's actually called? So that multiple calls to
->>> kernel_fpu_begin() and kernel_neon_begin() can be made without
->>> penalty?
->>=20
->> On context switch and exit to user. That allows to keep those code pathes=
+> I think you=E2=80=99ll have to treat exit to user and context switch as
+> different things. For exit to user, we want to restore the *user*
+> state, but, for context switch, we=E2=80=99ll need to restore *kernel* st=
+ate.
 
->> fully preemptible. Still twisting my brain around the details.
->=20
-> Just to make sure we're on the same page, the goal is so that this code:
->=20
-> kernel_fpu_begin();
-> kernel_fpu_end();
-> kernel_fpu_begin();
-> kernel_fpu_end();
-> kernel_fpu_begin();
-> kernel_fpu_end();
-> kernel_fpu_begin();
-> kernel_fpu_end();
-> kernel_fpu_begin();
-> kernel_fpu_end();
-> kernel_fpu_begin();
-> kernel_fpu_end();
-> ...
->=20
-> has the same performance as this code:
->=20
-> kernel_fpu_begin();
-> kernel_fpu_end();
->=20
-> (Unless of course the process is preempted or the like.)
->=20
-> Currently the present situation makes the performance of the above
-> wildly different, since kernel_fpu_end() does something immediately.
->=20
-> What about something like this:
-> - Add a tristate flag connected to task_struct (or in the global fpu
-> struct in the case that this happens in irq and there isn't a valid
-> current).
-> - On kernel_fpu_begin(), if the flag is 0, do the usual expensive
-> XSAVE stuff, and set the flag to 1.
-> - On kernel_fpu_begin(), if the flag is non-0, just set the flag to 1
-> and return.
-> - On kernel_fpu_end(), if the flag is non-0, set the flag to 2.
-> (Otherwise WARN() or BUG() or something.)
-> - On context switch / preemption / etc away from the task, if the flag
-> is non-0, XRSTOR and such.
+For non-preemptible kernel_fpu_begin/end (which seems
+like a good starting point since since it gets the
+code halfway to where Thomas would like it to go), the
+rules would be a little simpler:
 
-It=E2=80=99s not that simple. First, these states need names, at least for t=
-hinking about. 0 is =E2=80=9Cuser state in regs=E2=80=9D. 1 is =E2=80=9Ckern=
-el state active=E2=80=9D. 2 is =E2=80=9Cnothing active=E2=80=9D.
+- For exit to userspace, restore the user FPU state.
+- At kernel_fpu_begin(), save the user FPU state (if still loaded).
+- At context switch time, save the user FPU state (if still loaded).
 
-The actual encoding will be something like TIF_XSTATE_UNLOADED: user state i=
-s not in regs.  TIF_KERNEL_XSTATE: kernel is using FPU. And this fundamental=
-ly doubles the size of struct fpu.
-
-Tglx, that doubling-the-size-of-fpu makes me question the idea of letting th=
-e kernel use the fpu while preemptible.
-
-> - On context switch / preemption / etc back to the task, if the flag
-> is 1, XSAVE and such. If the flag is 2, set it to 0.
+> Do user first as its own patch set. It=E2=80=99ll be less painful that wa=
+y.
 >=20
+> And someone needs to rework PKRU for this to make sense. See previous
+> threads.
 
+I sent Thomas the patches I worked on in the past.
 
+That series is likely incomplete, but should be a
+reasonable starting point.
 
-> Jason
+--=20
+All Rights Reversed.
+
+--=-4L9haMCxh2AgKTDDi3f4
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAluC2wkACgkQznnekoTE
+3oMupAgAoVxpSsYCJN2MhLQcQl3qjjHMMA+97fqkh1tEuTyhgmRONEm+6JXGfv8+
+7lkwhKcr5zruvj1PcC/W+XJK6KD5Ev/4W2/+dcv0vH2zbbB4qSPXxmQni//eQhC9
+Pw5eNJO80UrifFayRm9axhF+sZZrgU4TFoUckRM55F3Jj62x7TqQHkvHKeMBfDSl
+MQ86ytVZsnTvqmREoXqwjBnANtMeV/2nao5ZQiUpuXPjt1BKSBvgZfQBXUTs0fAp
+VL7/GBKToQwrVIqzvL733a/1590Pmt86wxUN7ZLQee2b9gpF7NxenK8IcVNq1Wxc
+Ah2B+zCFVS4VzWKCVdshWyePIyGxdA==
+=4lZP
+-----END PGP SIGNATURE-----
+
+--=-4L9haMCxh2AgKTDDi3f4--
