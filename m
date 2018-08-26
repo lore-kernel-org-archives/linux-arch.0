@@ -1,73 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from frisell.zx2c4.com ([192.95.5.64]:45681 "EHLO frisell.zx2c4.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726685AbeHZSBL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 26 Aug 2018 14:01:11 -0400
-MIME-Version: 1.0
-References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com>
- <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de>
- <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com> <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
-In-Reply-To: <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
-From: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Date: Sun, 26 Aug 2018 08:18:15 -0600
-Message-ID: <CAHmME9q+JcT9pnZ5jgowf15O4BkVF-2-QkHA2o1ZKbVe4nAg6g@mail.gmail.com>
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:44874 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726685AbeHZSBf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Aug 2018 14:01:35 -0400
+Received: by mail-pl1-f193.google.com with SMTP id ba4-v6so2999340plb.11
+        for <linux-arch@vger.kernel.org>; Sun, 26 Aug 2018 07:18:54 -0700 (PDT)
+Content-Type: text/plain;
+        charset=utf-8
+Mime-Version: 1.0 (1.0)
 Subject: Re: [PATCH v2 01/17] asm: simd context helper API
-Content-Type: text/plain; charset="UTF-8"
+From: Andy Lutomirski <luto@amacapital.net>
+In-Reply-To: <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
+Date: Sun, 26 Aug 2018 07:18:52 -0700
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <2532E417-DDD2-4E2C-9F21-3B8D9B96370D@amacapital.net>
+References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com> <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de> <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com> <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
-Message-ID: <20180826141815.PB53Bv144IGCkhW2F9a8tplScrK3RYdMvvpjGrilHl0@z>
+Cc: "Jason A. Donenfeld" <Jason@zx2c4.com>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
+Message-ID: <20180826141852.9pnPwohct_4brP2xbj_NxIaPbkLWWERcvUnthLWM9QE@z>
 
-On Sun, Aug 26, 2018 at 8:06 AM Thomas Gleixner <tglx@linutronix.de> wrote:
-> > Do you mean to say you intend to make kernel_fpu_end() and
-> > kernel_neon_end() only actually do something upon context switch, but
-> > not when it's actually called? So that multiple calls to
-> > kernel_fpu_begin() and kernel_neon_begin() can be made without
-> > penalty?
->
+
+
+> On Aug 26, 2018, at 7:06 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>=20
+> Jason,
+>=20
+>> On Sun, 26 Aug 2018, Jason A. Donenfeld wrote:
+>>> On Sun, Aug 26, 2018 at 6:10 AM Thomas Gleixner <tglx@linutronix.de> wro=
+te:
+>>> I'm not too fond of this simply because it requires that relax() step in=
+
+>>> all code pathes. I'd rather make that completely transparent by just
+>>> marking the task as FPU using and let the context switch code deal with i=
+t
+>>> in case that it gets preempted. I'll let one of my engineers look into
+>>> that next week.
+>>=20
+>> Do you mean to say you intend to make kernel_fpu_end() and
+>> kernel_neon_end() only actually do something upon context switch, but
+>> not when it's actually called? So that multiple calls to
+>> kernel_fpu_begin() and kernel_neon_begin() can be made without
+>> penalty?
+>=20
 > On context switch and exit to user. That allows to keep those code pathes
 > fully preemptible. Still twisting my brain around the details.
 
-Just to make sure we're on the same page, the goal is so that this code:
+I think you=E2=80=99ll have to treat exit to user and context switch as diff=
+erent things. For exit to user, we want to restore the *user* state, but, fo=
+r context switch, we=E2=80=99ll need to restore *kernel* state.
 
-kernel_fpu_begin();
-kernel_fpu_end();
-kernel_fpu_begin();
-kernel_fpu_end();
-kernel_fpu_begin();
-kernel_fpu_end();
-kernel_fpu_begin();
-kernel_fpu_end();
-kernel_fpu_begin();
-kernel_fpu_end();
-kernel_fpu_begin();
-kernel_fpu_end();
-...
+Do user first as its own patch set. It=E2=80=99ll be less painful that way.
 
-has the same performance as this code:
-
-kernel_fpu_begin();
-kernel_fpu_end();
-
-(Unless of course the process is preempted or the like.)
-
-Currently the present situation makes the performance of the above
-wildly different, since kernel_fpu_end() does something immediately.
-
-What about something like this:
-- Add a tristate flag connected to task_struct (or in the global fpu
-struct in the case that this happens in irq and there isn't a valid
-current).
-- On kernel_fpu_begin(), if the flag is 0, do the usual expensive
-XSAVE stuff, and set the flag to 1.
-- On kernel_fpu_begin(), if the flag is non-0, just set the flag to 1
-and return.
-- On kernel_fpu_end(), if the flag is non-0, set the flag to 2.
-(Otherwise WARN() or BUG() or something.)
-- On context switch / preemption / etc away from the task, if the flag
-is non-0, XRSTOR and such.
-- On context switch / preemption / etc back to the task, if the flag
-is 1, XSAVE and such. If the flag is 2, set it to 0.
-
-Jason
+And someone needs to rework PKRU for this to make sense. See previous thread=
+s.
