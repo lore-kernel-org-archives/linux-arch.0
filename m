@@ -1,135 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:45271 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.73]:39705 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726895AbeH0Xdp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 19:33:45 -0400
+        with ESMTP id S1727468AbeH0Xdu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 19:33:50 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 02/14] y2038: Make do_gettimeofday() and get_seconds() inline
-Date: Mon, 27 Aug 2018 21:45:19 +0200
-Message-ID: <20180827194531.3796559-3-arnd@arndb.de>
+Subject: [PATCH 13/14] y2038: socket: Change recvmmsg to use __kernel_timespec
+Date: Mon, 27 Aug 2018 21:45:30 +0200
+Message-ID: <20180827194531.3796559-14-arnd@arndb.de>
 In-Reply-To: <20180827194531.3796559-1-arnd@arndb.de>
 References: <20180827194531.3796559-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: y2038@lists.linaro.org, linux-api@vger.kernel.org, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, deepa.kernel@gmail.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180827194519.f0a2_JSNHRnNpRy5Pg6MoskHKGV66CEktA9mj-LxGK4@z>
+Message-ID: <20180827194530.YYTGbsxTn5lFyqYbQUd98qv0Zj2aOtpCZYSsizzOhIg@z>
 
-get_seconds() and do_gettimeofday() are only used by a few modules now any
-more (waiting for the respective patches to get accepted), and they are
-among the last holdouts of code that is not y2038 safe in the core kernel.
-
-Move the implementation into the timekeeping32.h header to clean up
-the core kernel and isolate the old interfaces further.
+This converts the recvmmsg() system call in all its variations to use
+'timespec64' internally for its timeout, and have a __kernel_timespec64
+argument in the native entry point. This lets us change the type to use
+64-bit time_t at a later point while using the 32-bit compat system call
+emulation for existing user space.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/timekeeping32.h | 15 +++++++++++++--
- kernel/time/time.c            | 15 +++++++++------
- kernel/time/timekeeping.c     | 24 ------------------------
- 3 files changed, 22 insertions(+), 32 deletions(-)
+ include/linux/socket.h   |  4 ++--
+ include/linux/syscalls.h |  2 +-
+ net/compat.c             |  6 +++---
+ net/socket.c             | 18 ++++++++----------
+ 4 files changed, 14 insertions(+), 16 deletions(-)
 
-diff --git a/include/linux/timekeeping32.h b/include/linux/timekeeping32.h
-index a4a4991160fb..a502616f7e1c 100644
---- a/include/linux/timekeeping32.h
-+++ b/include/linux/timekeeping32.h
-@@ -6,8 +6,19 @@
-  * over time so we can remove the file here.
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 7ed4713d5337..8b571e9b9f76 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -348,7 +348,7 @@ struct ucred {
+ extern int move_addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr_storage *kaddr);
+ extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
+ 
+-struct timespec;
++struct timespec64;
+ 
+ /* The __sys_...msg variants allow MSG_CMSG_COMPAT iff
+  * forbid_cmsg_compat==false
+@@ -358,7 +358,7 @@ extern long __sys_recvmsg(int fd, struct user_msghdr __user *msg,
+ extern long __sys_sendmsg(int fd, struct user_msghdr __user *msg,
+ 			  unsigned int flags, bool forbid_cmsg_compat);
+ extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+-			  unsigned int flags, struct timespec *timeout);
++			  unsigned int flags, struct timespec64 *timeout);
+ extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
+ 			  unsigned int vlen, unsigned int flags,
+ 			  bool forbid_cmsg_compat);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 5642016a312d..fb3a05fab8aa 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -830,7 +830,7 @@ asmlinkage long sys_perf_event_open(
+ asmlinkage long sys_accept4(int, struct sockaddr __user *, int __user *, int);
+ asmlinkage long sys_recvmmsg(int fd, struct mmsghdr __user *msg,
+ 			     unsigned int vlen, unsigned flags,
+-			     struct timespec __user *timeout);
++			     struct __kernel_timespec __user *timeout);
+ 
+ asmlinkage long sys_wait4(pid_t pid, int __user *stat_addr,
+ 				int options, struct rusage __user *ru);
+diff --git a/net/compat.c b/net/compat.c
+index 2ef160876bc1..47a614b370cd 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -815,18 +815,18 @@ static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+ 				 struct old_timespec32 __user *timeout)
+ {
+ 	int datagrams;
+-	struct timespec ktspec;
++	struct timespec64 ktspec;
+ 
+ 	if (timeout == NULL)
+ 		return __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
+ 				      flags | MSG_CMSG_COMPAT, NULL);
+ 
+-	if (compat_get_timespec(&ktspec, timeout))
++	if (compat_get_timespec64(&ktspec, timeout))
+ 		return -EFAULT;
+ 
+ 	datagrams = __sys_recvmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
+ 				   flags | MSG_CMSG_COMPAT, &ktspec);
+-	if (datagrams > 0 && compat_put_timespec(&ktspec, timeout))
++	if (datagrams > 0 && compat_put_timespec64(&ktspec, timeout))
+ 		datagrams = -EFAULT;
+ 
+ 	return datagrams;
+diff --git a/net/socket.c b/net/socket.c
+index e6945e318f02..b9d71b503720 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -2340,7 +2340,7 @@ SYSCALL_DEFINE3(recvmsg, int, fd, struct user_msghdr __user *, msg,
   */
  
--extern void do_gettimeofday(struct timeval *tv);
--unsigned long get_seconds(void);
-+static inline void do_gettimeofday(struct timeval *tv)
-+{
-+	struct timespec64 now;
-+
-+	ktime_get_real_ts64(&now);
-+	tv->tv_sec = now.tv_sec;
-+	tv->tv_usec = now.tv_nsec/1000;
-+}
-+
-+static inline unsigned long get_seconds(void)
-+{
-+	return ktime_get_real_seconds();
-+}
+ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+-		   unsigned int flags, struct timespec *timeout)
++		   unsigned int flags, struct timespec64 *timeout)
+ {
+ 	int fput_needed, err, datagrams;
+ 	struct socket *sock;
+@@ -2405,8 +2405,7 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
  
- static inline void getnstimeofday(struct timespec *ts)
- {
-diff --git a/kernel/time/time.c b/kernel/time/time.c
-index 712543011106..de332250d6fa 100644
---- a/kernel/time/time.c
-+++ b/kernel/time/time.c
-@@ -144,9 +144,11 @@ SYSCALL_DEFINE2(gettimeofday, struct timeval __user *, tv,
- 		struct timezone __user *, tz)
- {
- 	if (likely(tv != NULL)) {
--		struct timeval ktv;
--		do_gettimeofday(&ktv);
--		if (copy_to_user(tv, &ktv, sizeof(ktv)))
-+		struct timespec64 ts;
-+
-+		ktime_get_real_ts64(&ts);
-+		if (put_user(ts.tv_sec, &tv->tv_sec) ||
-+		    put_user(ts.tv_nsec / 1000, &tv->tv_usec))
- 			return -EFAULT;
- 	}
- 	if (unlikely(tz != NULL)) {
-@@ -227,10 +229,11 @@ COMPAT_SYSCALL_DEFINE2(gettimeofday, struct compat_timeval __user *, tv,
- 		       struct timezone __user *, tz)
- {
- 	if (tv) {
--		struct timeval ktv;
-+		struct timespec64 ts;
+ 		if (timeout) {
+ 			ktime_get_ts64(&timeout64);
+-			*timeout = timespec64_to_timespec(
+-					timespec64_sub(end_time, timeout64));
++			*timeout = timespec64_sub(end_time, timeout64);
+ 			if (timeout->tv_sec < 0) {
+ 				timeout->tv_sec = timeout->tv_nsec = 0;
+ 				break;
+@@ -2452,10 +2451,10 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
  
--		do_gettimeofday(&ktv);
--		if (compat_put_timeval(&ktv, tv))
-+		ktime_get_real_ts64(&ts);
-+		if (put_user(ts.tv_sec, &tv->tv_sec) ||
-+		    put_user(ts.tv_nsec / 1000, &tv->tv_usec))
- 			return -EFAULT;
- 	}
- 	if (tz) {
-diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
-index f3b22f456fac..2d110c948805 100644
---- a/kernel/time/timekeeping.c
-+++ b/kernel/time/timekeeping.c
-@@ -1211,22 +1211,6 @@ int get_device_system_crosststamp(int (*get_time_fn)
+ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+ 			   unsigned int vlen, unsigned int flags,
+-			   struct timespec __user *timeout)
++			   struct __kernel_timespec __user *timeout)
+ {
+ 	int datagrams;
+-	struct timespec timeout_sys;
++	struct timespec64 timeout_sys;
+ 
+ 	if (flags & MSG_CMSG_COMPAT)
+ 		return -EINVAL;
+@@ -2463,13 +2462,12 @@ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+ 	if (!timeout)
+ 		return __sys_recvmmsg(fd, mmsg, vlen, flags, NULL);
+ 
+-	if (copy_from_user(&timeout_sys, timeout, sizeof(timeout_sys)))
++	if (get_timespec64(&timeout_sys, timeout))
+ 		return -EFAULT;
+ 
+ 	datagrams = __sys_recvmmsg(fd, mmsg, vlen, flags, &timeout_sys);
+ 
+-	if (datagrams > 0 &&
+-	    copy_to_user(timeout, &timeout_sys, sizeof(timeout_sys)))
++	if (datagrams > 0 && put_timespec64(&timeout_sys, timeout))
+ 		datagrams = -EFAULT;
+ 
+ 	return datagrams;
+@@ -2477,7 +2475,7 @@ static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
+ 
+ SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
+ 		unsigned int, vlen, unsigned int, flags,
+-		struct timespec __user *, timeout)
++		struct __kernel_timespec __user *, timeout)
+ {
+ 	return do_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
  }
- EXPORT_SYMBOL_GPL(get_device_system_crosststamp);
- 
--/**
-- * do_gettimeofday - Returns the time of day in a timeval
-- * @tv:		pointer to the timeval to be set
-- *
-- * NOTE: Users should be converted to using getnstimeofday()
-- */
--void do_gettimeofday(struct timeval *tv)
--{
--	struct timespec64 now;
--
--	getnstimeofday64(&now);
--	tv->tv_sec = now.tv_sec;
--	tv->tv_usec = now.tv_nsec/1000;
--}
--EXPORT_SYMBOL(do_gettimeofday);
--
- /**
-  * do_settimeofday64 - Sets the time of day.
-  * @ts:     pointer to the timespec64 variable containing the new time
-@@ -2174,14 +2158,6 @@ void getboottime64(struct timespec64 *ts)
- }
- EXPORT_SYMBOL_GPL(getboottime64);
- 
--unsigned long get_seconds(void)
--{
--	struct timekeeper *tk = &tk_core.timekeeper;
--
--	return tk->xtime_sec;
--}
--EXPORT_SYMBOL(get_seconds);
--
- void ktime_get_coarse_real_ts64(struct timespec64 *ts)
- {
- 	struct timekeeper *tk = &tk_core.timekeeper;
+@@ -2601,7 +2599,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		break;
+ 	case SYS_RECVMMSG:
+ 		err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
+-				      a[3], (struct timespec __user *)a[4]);
++				      a[3], (struct __kernel_timespec __user *)a[4]);
+ 		break;
+ 	case SYS_ACCEPT4:
+ 		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
 -- 
 2.18.0
