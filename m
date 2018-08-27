@@ -1,245 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:34837 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726939AbeH0Xdq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 19:33:46 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 04/14] y2038: Remove newstat family from default syscall set
-Date: Mon, 27 Aug 2018 21:45:21 +0200
-Message-ID: <20180827194531.3796559-5-arnd@arndb.de>
-In-Reply-To: <20180827194531.3796559-1-arnd@arndb.de>
-References: <20180827194531.3796559-1-arnd@arndb.de>
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:36213 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727124AbeH0Xih (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 19:38:37 -0400
+Received: by mail-pl1-f196.google.com with SMTP id e11-v6so68212plb.3
+        for <linux-arch@vger.kernel.org>; Mon, 27 Aug 2018 12:50:35 -0700 (PDT)
+Date: Mon, 27 Aug 2018 12:50:34 -0700 (PDT)
+Subject: Re: [PATCH v2 01/17] asm: simd context helper API
+In-Reply-To: <20180824213849.23647-2-Jason@zx2c4.com>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-7989f094-cc42-4d36-9db5-a6e6a7747048@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: y2038@lists.linaro.org, linux-api@vger.kernel.org, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, deepa.kernel@gmail.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180827194521.9eKGS6igJxMQR8waq9wU-7XMyLjBZnvOEmcDUVI8IEI@z>
+Cc: linux-kernel@vger.kernel.org, netdev@vger.kernel.org, davem@davemloft.net, Jason@zx2c4.com, luto@kernel.org, Greg KH <gregkh@linuxfoundation.org>, sneves@dei.uc.pt, linux-arch@vger.kernel.org
+Message-ID: <20180827195034.1HvUvZ4qeVYwQcHDnaBKpyF7H9zN2amg21bbHXSrFGI@z>
 
-We have four generations of stat() syscalls:
-- the oldstat syscalls that are only used on the older architectures
-- the newstat family that is used on all 64-bit architectures but
-  lacked support for large files on 32-bit architectures.
-- the stat64 family that is used mostly on 32-bit architectures to
-  replace newstat
-- statx() to replace all of the above, adding 64-bit timestamps among
-  other things.
+On Fri, 24 Aug 2018 14:38:33 PDT (-0700), Jason@zx2c4.com wrote:
+> Sometimes it's useful to amortize calls to XSAVE/XRSTOR and the related
+> FPU/SIMD functions over a number of calls, because FPU restoration is
+> quite expensive. This adds a simple header for carrying out this pattern:
+>
+>     simd_context_t simd_context = simd_get();
+>     while ((item = get_item_from_queue()) != NULL) {
+>         encrypt_item(item, simd_context);
+>         simd_context = simd_relax(simd_context);
+>     }
+>     simd_put(simd_context);
+>
+> The relaxation step ensures that we don't trample over preemption, and
+> the get/put API should be a familiar paradigm in the kernel.
+>
+> Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Cc: Greg KH <gregkh@linuxfoundation.org>
+> Cc: Samuel Neves <sneves@dei.uc.pt>
+> Cc: linux-arch@vger.kernel.org
+> ---
+>  arch/alpha/include/asm/Kbuild      |  5 ++--
+>  arch/arc/include/asm/Kbuild        |  1 +
+>  arch/arm/include/asm/simd.h        | 42 ++++++++++++++++++++++++++++++
+>  arch/arm64/include/asm/simd.h      | 37 +++++++++++++++++++++-----
+>  arch/c6x/include/asm/Kbuild        |  3 ++-
+>  arch/h8300/include/asm/Kbuild      |  3 ++-
+>  arch/hexagon/include/asm/Kbuild    |  1 +
+>  arch/ia64/include/asm/Kbuild       |  1 +
+>  arch/m68k/include/asm/Kbuild       |  1 +
+>  arch/microblaze/include/asm/Kbuild |  1 +
+>  arch/mips/include/asm/Kbuild       |  1 +
+>  arch/nds32/include/asm/Kbuild      |  7 ++---
+>  arch/nios2/include/asm/Kbuild      |  1 +
+>  arch/openrisc/include/asm/Kbuild   |  7 ++---
+>  arch/parisc/include/asm/Kbuild     |  1 +
+>  arch/powerpc/include/asm/Kbuild    |  3 ++-
+>  arch/riscv/include/asm/Kbuild      |  3 ++-
+>  arch/s390/include/asm/Kbuild       |  3 ++-
+>  arch/sh/include/asm/Kbuild         |  1 +
+>  arch/sparc/include/asm/Kbuild      |  1 +
+>  arch/um/include/asm/Kbuild         |  3 ++-
+>  arch/unicore32/include/asm/Kbuild  |  1 +
+>  arch/x86/include/asm/simd.h        | 30 ++++++++++++++++++++-
+>  arch/xtensa/include/asm/Kbuild     |  1 +
+>  include/asm-generic/simd.h         | 15 +++++++++++
+>  include/linux/simd.h               | 28 ++++++++++++++++++++
+>  26 files changed, 180 insertions(+), 21 deletions(-)
+>  create mode 100644 arch/arm/include/asm/simd.h
+>  create mode 100644 include/linux/simd.h
 
-We already compile stat64 only on those architectures that need it,
-but newstat is always built, including on those that don't reference
-it. This adds a new __ARCH_WANT_NEW_STAT symbol along the lines of
-__ARCH_WANT_OLD_STAT and __ARCH_WANT_STAT64 to control compilation of
-newstat. All architectures that need it use an explict define, the
-others now get a little bit smaller, and future architecture (including
-64-bit targets) won't ever see it.
+...
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/alpha/include/asm/unistd.h      | 1 +
- arch/arm/include/asm/unistd.h        | 1 +
- arch/arm64/include/uapi/asm/unistd.h | 1 +
- arch/ia64/include/asm/unistd.h       | 2 ++
- arch/m68k/include/asm/unistd.h       | 1 +
- arch/microblaze/include/asm/unistd.h | 1 +
- arch/mips/include/asm/unistd.h       | 1 +
- arch/parisc/include/asm/unistd.h     | 1 +
- arch/powerpc/include/asm/unistd.h    | 1 +
- arch/s390/include/asm/unistd.h       | 1 +
- arch/sh/include/asm/unistd.h         | 1 +
- arch/sparc/include/asm/unistd.h      | 1 +
- arch/x86/include/asm/unistd.h        | 1 +
- arch/xtensa/include/asm/unistd.h     | 1 +
- fs/stat.c                            | 3 +++
- 15 files changed, 18 insertions(+)
+> diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+> index 576ffdca06ba..8d3e7aef3234 100644
+> --- a/arch/riscv/include/asm/Kbuild
+> +++ b/arch/riscv/include/asm/Kbuild
+> @@ -4,9 +4,9 @@ generic-y += checksum.h
+>  generic-y += cputime.h
+>  generic-y += device.h
+>  generic-y += div64.h
+> -generic-y += dma.h
+>  generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+> +generic-y += dma.h
+>  generic-y += emergency-restart.h
+>  generic-y += errno.h
+>  generic-y += exec.h
 
-diff --git a/arch/alpha/include/asm/unistd.h b/arch/alpha/include/asm/unistd.h
-index d6e29a1de4cc..edc090470023 100644
---- a/arch/alpha/include/asm/unistd.h
-+++ b/arch/alpha/include/asm/unistd.h
-@@ -6,6 +6,7 @@
- 
- #define NR_SYSCALLS			523
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_GETHOSTNAME
-diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
-index 076090d2dbf5..07e58010d597 100644
---- a/arch/arm/include/asm/unistd.h
-+++ b/arch/arm/include/asm/unistd.h
-@@ -16,6 +16,7 @@
- #include <uapi/asm/unistd.h>
- #include <asm/unistd-nr.h>
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_GETHOSTNAME
- #define __ARCH_WANT_SYS_PAUSE
-diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
-index 5072cbd15c82..dae1584cf017 100644
---- a/arch/arm64/include/uapi/asm/unistd.h
-+++ b/arch/arm64/include/uapi/asm/unistd.h
-@@ -16,5 +16,6 @@
-  */
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_NEW_STAT
- 
- #include <asm-generic/unistd.h>
-diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
-index ffb705dc9c13..c5b2620c4a4c 100644
---- a/arch/ia64/include/asm/unistd.h
-+++ b/arch/ia64/include/asm/unistd.h
-@@ -28,6 +28,8 @@
- #define __IGNORE_vfork		/* clone() */
- #define __IGNORE_umount2	/* umount() */
- 
-+#define __ARCH_WANT_NEW_STAT
-+
- #if !defined(__ASSEMBLY__) && !defined(ASSEMBLER)
- 
- #include <linux/types.h>
-diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
-index 30d0d3fbd4ef..db22cdadc38a 100644
---- a/arch/m68k/include/asm/unistd.h
-+++ b/arch/m68k/include/asm/unistd.h
-@@ -7,6 +7,7 @@
- 
- #define NR_syscalls		380
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_OLD_STAT
- #define __ARCH_WANT_STAT64
-diff --git a/arch/microblaze/include/asm/unistd.h b/arch/microblaze/include/asm/unistd.h
-index a62d09420a47..a28dc770c9b2 100644
---- a/arch/microblaze/include/asm/unistd.h
-+++ b/arch/microblaze/include/asm/unistd.h
-@@ -15,6 +15,7 @@
- 
- /* #define __ARCH_WANT_OLD_READDIR */
- /* #define __ARCH_WANT_OLD_STAT */
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_ALARM
- #define __ARCH_WANT_SYS_GETHOSTNAME
-diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
-index 3c09450908aa..d7878b3e16d8 100644
---- a/arch/mips/include/asm/unistd.h
-+++ b/arch/mips/include/asm/unistd.h
-@@ -24,6 +24,7 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_SYS_ALARM
- #define __ARCH_WANT_SYS_GETHOSTNAME
-diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
-index 3d507d04eb4c..b36273bacca7 100644
---- a/arch/parisc/include/asm/unistd.h
-+++ b/arch/parisc/include/asm/unistd.h
-@@ -141,6 +141,7 @@ type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)	\
-     return K_INLINE_SYSCALL(name, 5, arg1, arg2, arg3, arg4, arg5);	\
- }
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_ALARM
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index c19379f0a32e..8b37e01817be 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -22,6 +22,7 @@
- #include <linux/compiler.h>
- #include <linux/linkage.h>
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_ALARM
-diff --git a/arch/s390/include/asm/unistd.h b/arch/s390/include/asm/unistd.h
-index fd79c0d35dc4..1d181373288a 100644
---- a/arch/s390/include/asm/unistd.h
-+++ b/arch/s390/include/asm/unistd.h
-@@ -15,6 +15,7 @@
- #define __IGNORE_pkey_alloc
- #define __IGNORE_pkey_free
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_SYS_ALARM
- #define __ARCH_WANT_SYS_GETHOSTNAME
-diff --git a/arch/sh/include/asm/unistd.h b/arch/sh/include/asm/unistd.h
-index b36200af9ce7..a845b57eac69 100644
---- a/arch/sh/include/asm/unistd.h
-+++ b/arch/sh/include/asm/unistd.h
-@@ -5,6 +5,7 @@
- #  include <asm/unistd_64.h>
- # endif
- 
-+# define __ARCH_WANT_NEW_STAT
- # define __ARCH_WANT_OLD_READDIR
- # define __ARCH_WANT_OLD_STAT
- # define __ARCH_WANT_STAT64
-diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
-index b2a6a955113e..3544244685e1 100644
---- a/arch/sparc/include/asm/unistd.h
-+++ b/arch/sparc/include/asm/unistd.h
-@@ -21,6 +21,7 @@
- #else
- #define __NR_time		231 /* Linux sparc32                               */
- #endif
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_ALARM
-diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
-index 51c4eee00732..35b66bbf8028 100644
---- a/arch/x86/include/asm/unistd.h
-+++ b/arch/x86/include/asm/unistd.h
-@@ -31,6 +31,7 @@
- 
- # endif
- 
-+# define __ARCH_WANT_NEW_STAT
- # define __ARCH_WANT_OLD_READDIR
- # define __ARCH_WANT_OLD_STAT
- # define __ARCH_WANT_SYS_ALARM
-diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
-index ed66db3bc9bb..0d532ab60b37 100644
---- a/arch/xtensa/include/asm/unistd.h
-+++ b/arch/xtensa/include/asm/unistd.h
-@@ -5,6 +5,7 @@
- #define __ARCH_WANT_SYS_CLONE
- #include <uapi/asm/unistd.h>
- 
-+#define __ARCH_WANT_NEW_STAT
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_UTIME
- #define __ARCH_WANT_SYS_LLSEEK
-diff --git a/fs/stat.c b/fs/stat.c
-index f8e6fb2c3657..adbfcd86c81b 100644
---- a/fs/stat.c
-+++ b/fs/stat.c
-@@ -280,6 +280,8 @@ SYSCALL_DEFINE2(fstat, unsigned int, fd, struct __old_kernel_stat __user *, stat
- 
- #endif /* __ARCH_WANT_OLD_STAT */
- 
-+#ifdef __ARCH_WANT_NEW_STAT
-+
- #if BITS_PER_LONG == 32
- #  define choose_32_64(a,b) a
- #else
-@@ -378,6 +380,7 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
- 
- 	return error;
- }
-+#endif
- 
- static int do_readlinkat(int dfd, const char __user *pathname,
- 			 char __user *buf, int bufsiz)
--- 
-2.18.0
+If this is the canonical ordering and doing so makes your life easier then I'm 
+OK taking this as a separate patch into the RISC-V tree, but if not then feel 
+free to roll something like this up into your next patch set.
+
+> @@ -45,6 +45,7 @@ generic-y += setup.h
+>  generic-y += shmbuf.h
+>  generic-y += shmparam.h
+>  generic-y += signal.h
+> +generic-y += simd.h
+>  generic-y += socket.h
+>  generic-y += sockios.h
+>  generic-y += stat.h
+
+Either way, this looks fine for as far as the RISC-V stuff goes as it's pretty 
+much a NOP.  As long as it stays a NOP then feel free to add a 
+
+Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+
+as far as the RISC-V parts are conceded.  It looks like there's a lot of other 
+issues, though, so it's not much of a review :)
