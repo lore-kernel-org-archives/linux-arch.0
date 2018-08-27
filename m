@@ -1,106 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shelob.surriel.com ([96.67.55.147]:43992 "EHLO
-        shelob.surriel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726643AbeHZUgk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Aug 2018 16:36:40 -0400
-Message-ID: <3983fcb4c663e8dc05f13cac32ff56ec15c3dac1.camel@surriel.com>
-Subject: Re: [PATCH v2 01/17] asm: simd context helper API
-From: Rik van Riel <riel@surriel.com>
-Date: Sun, 26 Aug 2018 12:53:29 -0400
-In-Reply-To: <2532E417-DDD2-4E2C-9F21-3B8D9B96370D@amacapital.net>
-References: <20180824213849.23647-1-Jason@zx2c4.com>
-         <20180824213849.23647-2-Jason@zx2c4.com>
-         <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de>
-         <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com>
-         <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
-         <2532E417-DDD2-4E2C-9F21-3B8D9B96370D@amacapital.net>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-4L9haMCxh2AgKTDDi3f4"
-Mime-Version: 1.0
+Received: from mail-wr1-f67.google.com ([209.85.221.67]:39305 "EHLO
+        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726802AbeH0Mwr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 08:52:47 -0400
+Received: by mail-wr1-f67.google.com with SMTP id o37-v6so12885323wrf.6
+        for <linux-arch@vger.kernel.org>; Mon, 27 Aug 2018 02:06:59 -0700 (PDT)
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Subject: [RESEND PATCH v3 0/3] sh: make early_platform code SuperH-specific
+Date: Mon, 27 Aug 2018 11:06:48 +0200
+Message-ID: <20180827090651.25062-1-brgl@bgdev.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, Thomas Gleixner <tglx@linutronix.de>
-Cc: "Jason A. Donenfeld" <Jason@zx2c4.com>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
-Message-ID: <20180826165329.EjCLjOdvKK_3q7HtgQZbAm5wx01Qzsur6M-K-OR5DEQ@z>
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Bartosz Golaszewski <brgl@bgdev.pl>
+Message-ID: <20180827090648.m_yoX0KIK8dwwEIrCPUlv_7UI5CJc6ueV78-eruEMWE@z>
 
+I recently started a discussion about the need for a proper early device
+probing mechanism[1]. One that would be based on real platform drivers
+and support both platform data and device tree.
 
---=-4L9haMCxh2AgKTDDi3f4
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+While we're far from reaching any consensus on the implementation, Arnd
+suggested that I start off by moving the SuperH-specific early platform
+drivers implementation to arch/sh[2].
 
-On Sun, 2018-08-26 at 07:18 -0700, Andy Lutomirski wrote:
-> > On Aug 26, 2018, at 7:06 AM, Thomas Gleixner <tglx@linutronix.de>
-> > wrote:
-> >=20
-> > Jason,
-> >=20
-> > > On Sun, 26 Aug 2018, Jason A. Donenfeld wrote:
-> > > > On Sun, Aug 26, 2018 at 6:10 AM Thomas Gleixner <
-> > > > tglx@linutronix.de> wrote:
-> > > > I'm not too fond of this simply because it requires that
-> > > > relax() step in
-> > > > all code pathes. I'd rather make that completely transparent by
-> > > > just
-> > > > marking the task as FPU using and let the context switch code
-> > > > deal with it
-> > > > in case that it gets preempted. I'll let one of my engineers
-> > > > look into
-> > > > that next week.
-> > >=20
-> > > Do you mean to say you intend to make kernel_fpu_end() and
-> > > kernel_neon_end() only actually do something upon context switch,
-> > > but
-> > > not when it's actually called? So that multiple calls to
-> > > kernel_fpu_begin() and kernel_neon_begin() can be made without
-> > > penalty?
-> >=20
-> > On context switch and exit to user. That allows to keep those code
-> > pathes
-> > fully preemptible. Still twisting my brain around the details.
->=20
-> I think you=E2=80=99ll have to treat exit to user and context switch as
-> different things. For exit to user, we want to restore the *user*
-> state, but, for context switch, we=E2=80=99ll need to restore *kernel* st=
-ate.
+This series is the first attempt at making way for a new, less hacky
+implementation.
 
-For non-preemptible kernel_fpu_begin/end (which seems
-like a good starting point since since it gets the
-code halfway to where Thomas would like it to go), the
-rules would be a little simpler:
+The first patch removes the last instance of a non-sh driver using the
+early_platform API. It can be removed since ARM no longer probes early
+drivers.
 
-- For exit to userspace, restore the user FPU state.
-- At kernel_fpu_begin(), save the user FPU state (if still loaded).
-- At context switch time, save the user FPU state (if still loaded).
+The second patch moves all the early_platform code to arch/sh.
 
-> Do user first as its own patch set. It=E2=80=99ll be less painful that wa=
-y.
->=20
-> And someone needs to rework PKRU for this to make sense. See previous
-> threads.
+The last patch prefixes all early_platform symbols with 'sh_'.
 
-I sent Thomas the patches I worked on in the past.
+[1] https://lkml.org/lkml/2018/4/26/657
+[2] https://lkml.org/lkml/2018/4/27/239
 
-That series is likely incomplete, but should be a
-reasonable starting point.
+v1 -> v2:
+- certain drivers are compiled for arm/mach-shmobile too - we need to
+  add ifdefs for CONFIG_SUPERH around early_platform calls
 
---=20
-All Rights Reversed.
+v2 -> v3:
+- added a stub for is_early_platform_device() which always returns false
+  on non-SuperH architectures
 
---=-4L9haMCxh2AgKTDDi3f4
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
+RESEND: rebased on top of v4.18-rc1 and verified that there are no build
+failures.
 
------BEGIN PGP SIGNATURE-----
+RESEND AGAIN: rebased on top of v4.19-rc1 and verified builds again.
 
-iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAluC2wkACgkQznnekoTE
-3oMupAgAoVxpSsYCJN2MhLQcQl3qjjHMMA+97fqkh1tEuTyhgmRONEm+6JXGfv8+
-7lkwhKcr5zruvj1PcC/W+XJK6KD5Ev/4W2/+dcv0vH2zbbB4qSPXxmQni//eQhC9
-Pw5eNJO80UrifFayRm9axhF+sZZrgU4TFoUckRM55F3Jj62x7TqQHkvHKeMBfDSl
-MQ86ytVZsnTvqmREoXqwjBnANtMeV/2nao5ZQiUpuXPjt1BKSBvgZfQBXUTs0fAp
-VL7/GBKToQwrVIqzvL733a/1590Pmt86wxUN7ZLQee2b9gpF7NxenK8IcVNq1Wxc
-Ah2B+zCFVS4VzWKCVdshWyePIyGxdA==
-=4lZP
------END PGP SIGNATURE-----
+Bartosz Golaszewski (3):
+  clocksource: timer-ti-dm: remove the early platform driver
+    registration
+  platform: move the early platform device support to arch/sh
+  sh: add the sh_ prefix to early platform symbols
 
---=-4L9haMCxh2AgKTDDi3f4--
+ arch/sh/drivers/Makefile               |   2 +-
+ arch/sh/drivers/platform_early.c       | 347 +++++++++++++++++++++++++
+ arch/sh/include/asm/platform_early.h   |  61 +++++
+ arch/sh/kernel/cpu/sh2/setup-sh7619.c  |   3 +-
+ arch/sh/kernel/cpu/sh2a/setup-mxg.c    |   3 +-
+ arch/sh/kernel/cpu/sh2a/setup-sh7201.c |   3 +-
+ arch/sh/kernel/cpu/sh2a/setup-sh7203.c |   3 +-
+ arch/sh/kernel/cpu/sh2a/setup-sh7206.c |   3 +-
+ arch/sh/kernel/cpu/sh2a/setup-sh7264.c |   3 +-
+ arch/sh/kernel/cpu/sh2a/setup-sh7269.c |   3 +-
+ arch/sh/kernel/cpu/sh3/setup-sh3.c     |   1 +
+ arch/sh/kernel/cpu/sh3/setup-sh7705.c  |   3 +-
+ arch/sh/kernel/cpu/sh3/setup-sh770x.c  |   3 +-
+ arch/sh/kernel/cpu/sh3/setup-sh7710.c  |   3 +-
+ arch/sh/kernel/cpu/sh3/setup-sh7720.c  |   3 +-
+ arch/sh/kernel/cpu/sh4/setup-sh4-202.c |   3 +-
+ arch/sh/kernel/cpu/sh4/setup-sh7750.c  |   9 +-
+ arch/sh/kernel/cpu/sh4/setup-sh7760.c  |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7343.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7366.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7722.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7723.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7724.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7734.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7757.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7763.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7770.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7780.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7785.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-sh7786.c |   3 +-
+ arch/sh/kernel/cpu/sh4a/setup-shx3.c   |   3 +-
+ arch/sh/kernel/cpu/sh5/setup-sh5.c     |   3 +-
+ arch/sh/kernel/setup.c                 |   3 +-
+ arch/sh/kernel/time.c                  |   5 +-
+ drivers/base/platform.c                | 288 --------------------
+ drivers/clocksource/sh_cmt.c           |  13 +-
+ drivers/clocksource/sh_mtu2.c          |  13 +-
+ drivers/clocksource/sh_tmu.c           |  14 +-
+ drivers/clocksource/timer-ti-dm.c      |   1 -
+ drivers/tty/serial/sh-sci.c            |  11 +-
+ include/linux/platform_device.h        |  64 +----
+ 41 files changed, 525 insertions(+), 388 deletions(-)
+ create mode 100644 arch/sh/drivers/platform_early.c
+ create mode 100644 arch/sh/include/asm/platform_early.h
+
+-- 
+2.18.0
