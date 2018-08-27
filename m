@@ -1,125 +1,103 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 05/14] y2038: Remove stat64 family from default
-	syscall set
-Date: Mon, 27 Aug 2018 21:45:22 +0200
-Message-ID: <20180827194531.3796559-6-arnd@arndb.de>
-References: <20180827194531.3796559-1-arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <20180827194531.3796559-1-arnd@arndb.de>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: tglx@linutronix.de
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, y2038@lists.linaro.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, deepa.kernel@gmail.com, torvalds@linux-foundation.org, Christoph Hellwig <hch@lst.de>
+From: Palmer Dabbelt <palmer@sifive.com>
+Subject: Re: [PATCH v2 01/17] asm: simd context helper API
+Date: Mon, 27 Aug 2018 12:50:34 -0700 (PDT)
+Message-ID: <mhng-7989f094-cc42-4d36-9db5-a6e6a7747048@palmer-si-x1c4>
+References: <20180824213849.23647-2-Jason@zx2c4.com>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180824213849.23647-2-Jason@zx2c4.com>
+Sender: linux-kernel-owner@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, netdev@vger.kernel.org, davem@davemloft.net, Jason@zx2c4.com, luto@kernel.org, Greg KH <gregkh@linuxfoundation.org>, sneves@dei.uc.pt, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-TmV3IGFyY2hpdGVjdHVyZXMgc2hvdWxkIG5vIGxvbmdlciBuZWVkIHN0YXQ2NCwgd2hpY2ggaXMg
-bm90IHkyMDM4CnNhZmUgYW5kIGhhcyBiZWVuIHJlcGxhY2VkIGJ5IHN0YXR4KCkuIFRoaXMgcmVt
-b3ZlcyB0aGUgJ3NlbGVjdApfX0FSQ0hfV0FOVF9TVEFUNjQnIHN0YXRlbWVudCBmcm9tIGFzbS1n
-ZW5lcmljL3VuaXN0ZC5oIGFuZCBpbnN0ZWFkCm1vdmVzIGl0IGludG8gdGhlIHJlc3BlY3RpdmUg
-YXNtL3VuaXN0ZC5oIFVBUEkgaGVhZGVyIGZpbGVzIGZvciBlYWNoCmFyY2hpdGVjdHVyZSB0aGF0
-IHVzZXMgaXQgdG9kYXkuCgpJbiB0aGUgZ2VuZXJpYyBmaWxlLCB0aGUgc3lzdGVtIGNhbGwgbnVt
-YmVyIGFuZCBlbnRyeSBwb2ludHMgYXJlIG5vdwptYWRlIGNvbmRpdGlvbmFsLCBzbyBuZXdseSBh
-ZGRlZCBhcmNoaXRlY3R1cmVzIChlLmcuIHJpc2N2MzIgb3IgY3NreSkKd2lsbCBuZXZlciBuZWVk
-IHRvIGNhcnJ5IGJhY2t3YXJkcyBjb21wYXRpYmxpdHkgZm9yIGl0LgoKYXJtNjQgaXMgdGhlIG9u
-bHkgNjQtYml0IGFyY2hpdGVjdHVyZSB1c2luZyB0aGUgYXNtLWdlbmVyaWMvdW5pc3RkLmgKZmls
-ZSwgYW5kIGl0IGFscmVhZHkgc2V0cyBfX0FSQ0hfV0FOVF9ORVdfU1RBVCBpbiBpdHMgaGVhZGVy
-cywgYW5kIEkKdXNlIHRoZSBzYW1lICNpZmRlZiBoZXJlOiBmdXR1cmUgNjQtYml0IGFyY2hpdGVj
-dHVyZXMgdGhlcmVmb3JlIHdvbid0CnNlZSBuZXdzdGF0IG9yIHN0YXQ2NCBhbnkgbW9yZS4gVGhl
-eSBkb24ndCBzdWZmZXIgZnJvbSB0aGUgeTIwMzggdGltZV90Cm92ZXJmbG93LCBidXQgZm9yIGNv
-bnNpc3RlbmN5IGl0IHNlZW1zIGJlc3QgdG8gYWxzbyBsZXQgdGhlbSB1c2Ugc3RhdHgoKS4KClNp
-Z25lZC1vZmYtYnk6IEFybmQgQmVyZ21hbm4gPGFybmRAYXJuZGIuZGU+Ci0tLQogYXJjaC9hcmMv
-aW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaCAgICAgICB8IDEgKwogYXJjaC9jNngvaW5jbHVkZS91
-YXBpL2FzbS91bmlzdGQuaCAgICAgICB8IDEgKwogYXJjaC9oODMwMC9pbmNsdWRlL3VhcGkvYXNt
-L3VuaXN0ZC5oICAgICB8IDEgKwogYXJjaC9oZXhhZ29uL2luY2x1ZGUvdWFwaS9hc20vdW5pc3Rk
-LmggICB8IDEgKwogYXJjaC9uZHMzMi9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oICAgICB8IDEg
-KwogYXJjaC9uaW9zMi9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oICAgICB8IDEgKwogYXJjaC9v
-cGVucmlzYy9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oICB8IDEgKwogYXJjaC91bmljb3JlMzIv
-aW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaCB8IDEgKwogaW5jbHVkZS9hc20tZ2VuZXJpYy91bmlz
-dGQuaCAgICAgICAgICAgICB8IDEgLQogaW5jbHVkZS91YXBpL2FzbS1nZW5lcmljL3VuaXN0ZC5o
-ICAgICAgICB8IDIgKysKIDEwIGZpbGVzIGNoYW5nZWQsIDEwIGluc2VydGlvbnMoKyksIDEgZGVs
-ZXRpb24oLSkKCmRpZmYgLS1naXQgYS9hcmNoL2FyYy9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5o
-IGIvYXJjaC9hcmMvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaAppbmRleCA1MTcxNzhiMWRhZWYu
-LjNiMzU0M2ZkMTUxYyAxMDA2NDQKLS0tIGEvYXJjaC9hcmMvaW5jbHVkZS91YXBpL2FzbS91bmlz
-dGQuaAorKysgYi9hcmNoL2FyYy9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCkBAIC0xNyw2ICsx
-Nyw3IEBACiAjZGVmaW5lIF9VQVBJX0FTTV9BUkNfVU5JU1REX0gKIAogI2RlZmluZSBfX0FSQ0hf
-V0FOVF9SRU5BTUVBVAorI2RlZmluZSBfX0FSQ0hfV0FOVF9TVEFUNjQKICNkZWZpbmUgX19BUkNI
-X1dBTlRfU1lTX0VYRUNWRQogI2RlZmluZSBfX0FSQ0hfV0FOVF9TWVNfQ0xPTkUKICNkZWZpbmUg
-X19BUkNIX1dBTlRfU1lTX1ZGT1JLCmRpZmYgLS1naXQgYS9hcmNoL2M2eC9pbmNsdWRlL3VhcGkv
-YXNtL3VuaXN0ZC5oIGIvYXJjaC9jNngvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaAppbmRleCAw
-ZDJkYWY3Zjk4MDkuLjZiMmZlNzkyZGU5ZCAxMDA2NDQKLS0tIGEvYXJjaC9jNngvaW5jbHVkZS91
-YXBpL2FzbS91bmlzdGQuaAorKysgYi9hcmNoL2M2eC9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5o
-CkBAIC0xNiw2ICsxNiw3IEBACiAgKi8KIAogI2RlZmluZSBfX0FSQ0hfV0FOVF9SRU5BTUVBVAor
-I2RlZmluZSBfX0FSQ0hfV0FOVF9TVEFUNjQKICNkZWZpbmUgX19BUkNIX1dBTlRfU1lTX0NMT05F
-CiAKIC8qIFVzZSB0aGUgc3RhbmRhcmQgQUJJIGZvciBzeXNjYWxscy4gKi8KZGlmZiAtLWdpdCBh
-L2FyY2gvaDgzMDAvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaCBiL2FyY2gvaDgzMDAvaW5jbHVk
-ZS91YXBpL2FzbS91bmlzdGQuaAppbmRleCA3ZGQyMGVmNzYyNWEuLjYyODE5NTgyMzgxNiAxMDA2
-NDQKLS0tIGEvYXJjaC9oODMwMC9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCisrKyBiL2FyY2gv
-aDgzMDAvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaApAQCAtMSw1ICsxLDYgQEAKICNkZWZpbmUg
-X19BUkNIX05PTU1VCiAKICNkZWZpbmUgX19BUkNIX1dBTlRfUkVOQU1FQVQKKyNkZWZpbmUgX19B
-UkNIX1dBTlRfU1RBVDY0CiAKICNpbmNsdWRlIDxhc20tZ2VuZXJpYy91bmlzdGQuaD4KZGlmZiAt
-LWdpdCBhL2FyY2gvaGV4YWdvbi9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oIGIvYXJjaC9oZXhh
-Z29uL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmgKaW5kZXggZWExODFlNzkxNjJlLi5jOTFjYTdk
-MDI0NjEgMTAwNjQ0Ci0tLSBhL2FyY2gvaGV4YWdvbi9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5o
-CisrKyBiL2FyY2gvaGV4YWdvbi9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCkBAIC0yOSw2ICsy
-OSw3IEBACiAKICNkZWZpbmUgc3lzX21tYXAyIHN5c19tbWFwX3Bnb2ZmCiAjZGVmaW5lIF9fQVJD
-SF9XQU5UX1JFTkFNRUFUCisjZGVmaW5lIF9fQVJDSF9XQU5UX1NUQVQ2NAogI2RlZmluZSBfX0FS
-Q0hfV0FOVF9TWVNfRVhFQ1ZFCiAjZGVmaW5lIF9fQVJDSF9XQU5UX1NZU19DTE9ORQogI2RlZmlu
-ZSBfX0FSQ0hfV0FOVF9TWVNfVkZPUksKZGlmZiAtLWdpdCBhL2FyY2gvbmRzMzIvaW5jbHVkZS91
-YXBpL2FzbS91bmlzdGQuaCBiL2FyY2gvbmRzMzIvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaApp
-bmRleCA2ZTk1OTAxY2FiZTMuLjYwM2U4MjZlMDQ0OSAxMDA2NDQKLS0tIGEvYXJjaC9uZHMzMi9p
-bmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCisrKyBiL2FyY2gvbmRzMzIvaW5jbHVkZS91YXBpL2Fz
-bS91bmlzdGQuaApAQCAtMSw2ICsxLDcgQEAKIC8vIFNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBH
-UEwtMi4wCiAvLyBDb3B5cmlnaHQgKEMpIDIwMDUtMjAxNyBBbmRlcyBUZWNobm9sb2d5IENvcnBv
-cmF0aW9uCiAKKyNkZWZpbmUgX19BUkNIX1dBTlRfU1RBVDY0CiAjZGVmaW5lIF9fQVJDSF9XQU5U
-X1NZTkNfRklMRV9SQU5HRTIKIAogLyogVXNlIHRoZSBzdGFuZGFyZCBBQkkgZm9yIHN5c2NhbGxz
-ICovCmRpZmYgLS1naXQgYS9hcmNoL25pb3MyL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmggYi9h
-cmNoL25pb3MyL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmgKaW5kZXggYjZiZGFlMDRiYzg0Li5k
-OTk0OGQ4ODc5MGIgMTAwNjQ0Ci0tLSBhL2FyY2gvbmlvczIvaW5jbHVkZS91YXBpL2FzbS91bmlz
-dGQuaAorKysgYi9hcmNoL25pb3MyL2luY2x1ZGUvdWFwaS9hc20vdW5pc3RkLmgKQEAgLTE5LDYg
-KzE5LDcgQEAKICAjZGVmaW5lIHN5c19tbWFwMiBzeXNfbW1hcF9wZ29mZgogCiAjZGVmaW5lIF9f
-QVJDSF9XQU5UX1JFTkFNRUFUCisjZGVmaW5lIF9fQVJDSF9XQU5UX1NUQVQ2NAogCiAvKiBVc2Ug
-dGhlIHN0YW5kYXJkIEFCSSBmb3Igc3lzY2FsbHMgKi8KICNpbmNsdWRlIDxhc20tZ2VuZXJpYy91
-bmlzdGQuaD4KZGlmZiAtLWdpdCBhL2FyY2gvb3BlbnJpc2MvaW5jbHVkZS91YXBpL2FzbS91bmlz
-dGQuaCBiL2FyY2gvb3BlbnJpc2MvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaAppbmRleCAxMWM1
-YTU4YWIzMzMuLmVjMzdkZjE4ZDhlZCAxMDA2NDQKLS0tIGEvYXJjaC9vcGVucmlzYy9pbmNsdWRl
-L3VhcGkvYXNtL3VuaXN0ZC5oCisrKyBiL2FyY2gvb3BlbnJpc2MvaW5jbHVkZS91YXBpL2FzbS91
-bmlzdGQuaApAQCAtMjAsNiArMjAsNyBAQAogI2RlZmluZSBzeXNfbW1hcDIgc3lzX21tYXBfcGdv
-ZmYKIAogI2RlZmluZSBfX0FSQ0hfV0FOVF9SRU5BTUVBVAorI2RlZmluZSBfX0FSQ0hfV0FOVF9T
-VEFUNjQKICNkZWZpbmUgX19BUkNIX1dBTlRfU1lTX0ZPUksKICNkZWZpbmUgX19BUkNIX1dBTlRf
-U1lTX0NMT05FCiAKZGlmZiAtLWdpdCBhL2FyY2gvdW5pY29yZTMyL2luY2x1ZGUvdWFwaS9hc20v
-dW5pc3RkLmggYi9hcmNoL3VuaWNvcmUzMi9pbmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCmluZGV4
-IDY1ODU2ZWFhYjE2My4uMWU4ZmU1OTQxYjhhIDEwMDY0NAotLS0gYS9hcmNoL3VuaWNvcmUzMi9p
-bmNsdWRlL3VhcGkvYXNtL3VuaXN0ZC5oCisrKyBiL2FyY2gvdW5pY29yZTMyL2luY2x1ZGUvdWFw
-aS9hc20vdW5pc3RkLmgKQEAgLTE1LDQgKzE1LDUgQEAKIAogLyogVXNlIHRoZSBzdGFuZGFyZCBB
-QkkgZm9yIHN5c2NhbGxzLiAqLwogI2luY2x1ZGUgPGFzbS1nZW5lcmljL3VuaXN0ZC5oPgorI2Rl
-ZmluZSBfX0FSQ0hfV0FOVF9TVEFUNjQKICNkZWZpbmUgX19BUkNIX1dBTlRfU1lTX0NMT05FCmRp
-ZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5lcmljL3VuaXN0ZC5oIGIvaW5jbHVkZS9hc20tZ2Vu
-ZXJpYy91bmlzdGQuaAppbmRleCBjZGY5MDQyNjVjYWYuLmVhNzRlY2E4NDYzZiAxMDA2NDQKLS0t
-IGEvaW5jbHVkZS9hc20tZ2VuZXJpYy91bmlzdGQuaAorKysgYi9pbmNsdWRlL2FzbS1nZW5lcmlj
-L3VuaXN0ZC5oCkBAIC04LDYgKzgsNSBAQAogICogYmUgc2VsZWN0ZWQgYnkgZGVmYXVsdC4KICAq
-LwogI2lmIF9fQklUU19QRVJfTE9ORyA9PSAzMgotI2RlZmluZSBfX0FSQ0hfV0FOVF9TVEFUNjQK
-ICNkZWZpbmUgX19BUkNIX1dBTlRfU1lTX0xMU0VFSwogI2VuZGlmCmRpZmYgLS1naXQgYS9pbmNs
-dWRlL3VhcGkvYXNtLWdlbmVyaWMvdW5pc3RkLmggYi9pbmNsdWRlL3VhcGkvYXNtLWdlbmVyaWMv
-dW5pc3RkLmgKaW5kZXggZGY0YmVkYjliMDFjLi41Mzg1NDZlZGJmYmQgMTAwNjQ0Ci0tLSBhL2lu
-Y2x1ZGUvdWFwaS9hc20tZ2VuZXJpYy91bmlzdGQuaAorKysgYi9pbmNsdWRlL3VhcGkvYXNtLWdl
-bmVyaWMvdW5pc3RkLmgKQEAgLTI0MiwxMCArMjQyLDEyIEBAIF9fU1lTQ0FMTChfX05SX3RlZSwg
-c3lzX3RlZSkKIC8qIGZzL3N0YXQuYyAqLwogI2RlZmluZSBfX05SX3JlYWRsaW5rYXQgNzgKIF9f
-U1lTQ0FMTChfX05SX3JlYWRsaW5rYXQsIHN5c19yZWFkbGlua2F0KQorI2lmIGRlZmluZWQoX19B
-UkNIX1dBTlRfTkVXX1NUQVQpIHx8IGRlZmluZWQoX19BUkNIX1dBTlRfU1RBVDY0KQogI2RlZmlu
-ZSBfX05SMzI2NF9mc3RhdGF0IDc5CiBfX1NDXzMyNjQoX19OUjMyNjRfZnN0YXRhdCwgc3lzX2Zz
-dGF0YXQ2NCwgc3lzX25ld2ZzdGF0YXQpCiAjZGVmaW5lIF9fTlIzMjY0X2ZzdGF0IDgwCiBfX1ND
-XzMyNjQoX19OUjMyNjRfZnN0YXQsIHN5c19mc3RhdDY0LCBzeXNfbmV3ZnN0YXQpCisjZW5kaWYK
-IAogLyogZnMvc3luYy5jICovCiAjZGVmaW5lIF9fTlJfc3luYyA4MQotLSAKMi4xOC4wCgpfX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5n
-IGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFp
-bG1hbi9saXN0aW5mby95MjAzOAo=
+On Fri, 24 Aug 2018 14:38:33 PDT (-0700), Jason@zx2c4.com wrote:
+> Sometimes it's useful to amortize calls to XSAVE/XRSTOR and the related
+> FPU/SIMD functions over a number of calls, because FPU restoration is
+> quite expensive. This adds a simple header for carrying out this pattern:
+>
+>     simd_context_t simd_context = simd_get();
+>     while ((item = get_item_from_queue()) != NULL) {
+>         encrypt_item(item, simd_context);
+>         simd_context = simd_relax(simd_context);
+>     }
+>     simd_put(simd_context);
+>
+> The relaxation step ensures that we don't trample over preemption, and
+> the get/put API should be a familiar paradigm in the kernel.
+>
+> Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Cc: Greg KH <gregkh@linuxfoundation.org>
+> Cc: Samuel Neves <sneves@dei.uc.pt>
+> Cc: linux-arch@vger.kernel.org
+> ---
+>  arch/alpha/include/asm/Kbuild      |  5 ++--
+>  arch/arc/include/asm/Kbuild        |  1 +
+>  arch/arm/include/asm/simd.h        | 42 ++++++++++++++++++++++++++++++
+>  arch/arm64/include/asm/simd.h      | 37 +++++++++++++++++++++-----
+>  arch/c6x/include/asm/Kbuild        |  3 ++-
+>  arch/h8300/include/asm/Kbuild      |  3 ++-
+>  arch/hexagon/include/asm/Kbuild    |  1 +
+>  arch/ia64/include/asm/Kbuild       |  1 +
+>  arch/m68k/include/asm/Kbuild       |  1 +
+>  arch/microblaze/include/asm/Kbuild |  1 +
+>  arch/mips/include/asm/Kbuild       |  1 +
+>  arch/nds32/include/asm/Kbuild      |  7 ++---
+>  arch/nios2/include/asm/Kbuild      |  1 +
+>  arch/openrisc/include/asm/Kbuild   |  7 ++---
+>  arch/parisc/include/asm/Kbuild     |  1 +
+>  arch/powerpc/include/asm/Kbuild    |  3 ++-
+>  arch/riscv/include/asm/Kbuild      |  3 ++-
+>  arch/s390/include/asm/Kbuild       |  3 ++-
+>  arch/sh/include/asm/Kbuild         |  1 +
+>  arch/sparc/include/asm/Kbuild      |  1 +
+>  arch/um/include/asm/Kbuild         |  3 ++-
+>  arch/unicore32/include/asm/Kbuild  |  1 +
+>  arch/x86/include/asm/simd.h        | 30 ++++++++++++++++++++-
+>  arch/xtensa/include/asm/Kbuild     |  1 +
+>  include/asm-generic/simd.h         | 15 +++++++++++
+>  include/linux/simd.h               | 28 ++++++++++++++++++++
+>  26 files changed, 180 insertions(+), 21 deletions(-)
+>  create mode 100644 arch/arm/include/asm/simd.h
+>  create mode 100644 include/linux/simd.h
+
+...
+
+> diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+> index 576ffdca06ba..8d3e7aef3234 100644
+> --- a/arch/riscv/include/asm/Kbuild
+> +++ b/arch/riscv/include/asm/Kbuild
+> @@ -4,9 +4,9 @@ generic-y += checksum.h
+>  generic-y += cputime.h
+>  generic-y += device.h
+>  generic-y += div64.h
+> -generic-y += dma.h
+>  generic-y += dma-contiguous.h
+>  generic-y += dma-mapping.h
+> +generic-y += dma.h
+>  generic-y += emergency-restart.h
+>  generic-y += errno.h
+>  generic-y += exec.h
+
+If this is the canonical ordering and doing so makes your life easier then I'm 
+OK taking this as a separate patch into the RISC-V tree, but if not then feel 
+free to roll something like this up into your next patch set.
+
+> @@ -45,6 +45,7 @@ generic-y += setup.h
+>  generic-y += shmbuf.h
+>  generic-y += shmparam.h
+>  generic-y += signal.h
+> +generic-y += simd.h
+>  generic-y += socket.h
+>  generic-y += sockios.h
+>  generic-y += stat.h
+
+Either way, this looks fine for as far as the RISC-V stuff goes as it's pretty 
+much a NOP.  As long as it stays a NOP then feel free to add a 
+
+Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
+
+as far as the RISC-V parts are conceded.  It looks like there's a lot of other 
+issues, though, so it's not much of a review :)
