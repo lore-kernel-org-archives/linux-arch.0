@@ -1,170 +1,245 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:38759 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:46339 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726823AbeH0Xdq (ORCPT
+        with ESMTP id S1726826AbeH0Xdq (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 19:33:46 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 05/14] y2038: Remove stat64 family from default syscall set
-Date: Mon, 27 Aug 2018 21:45:22 +0200
-Message-ID: <20180827194531.3796559-6-arnd@arndb.de>
+Subject: [PATCH 01/14] y2038: Remove unused time interfaces
+Date: Mon, 27 Aug 2018 21:45:18 +0200
+Message-ID: <20180827194531.3796559-2-arnd@arndb.de>
 In-Reply-To: <20180827194531.3796559-1-arnd@arndb.de>
 References: <20180827194531.3796559-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: y2038@lists.linaro.org, linux-api@vger.kernel.org, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, deepa.kernel@gmail.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180827194522.N7vm1lHakBj0LmQ4stXhGNtADdar89ucRuc5G16LcyQ@z>
+Message-ID: <20180827194518.jwoFXBBaqmJTszWcLyDLBDXnkjhxwGW3bX0QY5PTwGw@z>
 
-New architectures should no longer need stat64, which is not y2038
-safe and has been replaced by statx(). This removes the 'select
-__ARCH_WANT_STAT64' statement from asm-generic/unistd.h and instead
-moves it into the respective asm/unistd.h UAPI header files for each
-architecture that uses it today.
+After many small patches, at least some of the deprecated interfaces
+have no remaining users any more and can be removed:
 
-In the generic file, the system call number and entry points are now
-made conditional, so newly added architectures (e.g. riscv32 or csky)
-will never need to carry backwards compatiblity for it.
+  current_kernel_time
+  do_settimeofday
+  get_monotonic_boottime
+  get_monotonic_boottime64
+  get_monotonic_coarse
+  get_monotonic_coarse64
+  getrawmonotonic64
+  ktime_get_real_ts
+  timekeeping_clocktai
+  timespec_trunc
+  timespec_valid_strict
+  time_to_tm
 
-arm64 is the only 64-bit architecture using the asm-generic/unistd.h
-file, and it already sets __ARCH_WANT_NEW_STAT in its headers, and I
-use the same #ifdef here: future 64-bit architectures therefore won't
-see newstat or stat64 any more. They don't suffer from the y2038 time_t
-overflow, but for consistency it seems best to also let them use statx().
+For many of the remaining time functions, we are missing one or
+two patches that failed to make it into 4.19, they will be removed
+in the following merge window.
+
+The replacement functions for the removed interfaces are documented in
+Documentation/core-api/timekeeping.rst.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/include/uapi/asm/unistd.h       | 1 +
- arch/c6x/include/uapi/asm/unistd.h       | 1 +
- arch/h8300/include/uapi/asm/unistd.h     | 1 +
- arch/hexagon/include/uapi/asm/unistd.h   | 1 +
- arch/nds32/include/uapi/asm/unistd.h     | 1 +
- arch/nios2/include/uapi/asm/unistd.h     | 1 +
- arch/openrisc/include/uapi/asm/unistd.h  | 1 +
- arch/unicore32/include/uapi/asm/unistd.h | 1 +
- include/asm-generic/unistd.h             | 1 -
- include/uapi/asm-generic/unistd.h        | 2 ++
- 10 files changed, 10 insertions(+), 1 deletion(-)
+ include/linux/time32.h        | 25 ------------------
+ include/linux/timekeeping.h   | 12 ---------
+ include/linux/timekeeping32.h | 50 -----------------------------------
+ kernel/time/time.c            | 24 -----------------
+ 4 files changed, 111 deletions(-)
 
-diff --git a/arch/arc/include/uapi/asm/unistd.h b/arch/arc/include/uapi/asm/unistd.h
-index 517178b1daef..3b3543fd151c 100644
---- a/arch/arc/include/uapi/asm/unistd.h
-+++ b/arch/arc/include/uapi/asm/unistd.h
-@@ -17,6 +17,7 @@
- #define _UAPI_ASM_ARC_UNISTD_H
+diff --git a/include/linux/time32.h b/include/linux/time32.h
+index d1ae43c13e25..92c0ca092d93 100644
+--- a/include/linux/time32.h
++++ b/include/linux/time32.h
+@@ -105,16 +105,6 @@ static inline bool timespec_valid(const struct timespec *ts)
+ 	return true;
+ }
  
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_EXECVE
- #define __ARCH_WANT_SYS_CLONE
- #define __ARCH_WANT_SYS_VFORK
-diff --git a/arch/c6x/include/uapi/asm/unistd.h b/arch/c6x/include/uapi/asm/unistd.h
-index 0d2daf7f9809..6b2fe792de9d 100644
---- a/arch/c6x/include/uapi/asm/unistd.h
-+++ b/arch/c6x/include/uapi/asm/unistd.h
-@@ -16,6 +16,7 @@
+-static inline bool timespec_valid_strict(const struct timespec *ts)
+-{
+-	if (!timespec_valid(ts))
+-		return false;
+-	/* Disallow values that could overflow ktime_t */
+-	if ((unsigned long long)ts->tv_sec >= KTIME_SEC_MAX)
+-		return false;
+-	return true;
+-}
+-
+ /**
+  * timespec_to_ns - Convert timespec to nanoseconds
+  * @ts:		pointer to the timespec variable to be converted
+@@ -149,19 +139,6 @@ static __always_inline void timespec_add_ns(struct timespec *a, u64 ns)
+ 	a->tv_nsec = ns;
+ }
+ 
+-/**
+- * time_to_tm - converts the calendar time to local broken-down time
+- *
+- * @totalsecs	the number of seconds elapsed since 00:00:00 on January 1, 1970,
+- *		Coordinated Universal Time (UTC).
+- * @offset	offset seconds adding to totalsecs.
+- * @result	pointer to struct tm variable to receive broken-down time
+- */
+-static inline void time_to_tm(time_t totalsecs, int offset, struct tm *result)
+-{
+-	time64_to_tm(totalsecs, offset, result);
+-}
+-
+ static inline unsigned long mktime(const unsigned int year,
+ 			const unsigned int mon, const unsigned int day,
+ 			const unsigned int hour, const unsigned int min,
+@@ -183,8 +160,6 @@ static inline bool timeval_valid(const struct timeval *tv)
+ 	return true;
+ }
+ 
+-extern struct timespec timespec_trunc(struct timespec t, unsigned int gran);
+-
+ /**
+  * timeval_to_ns - Convert timeval to nanoseconds
+  * @ts:		pointer to the timeval variable to be converted
+diff --git a/include/linux/timekeeping.h b/include/linux/timekeeping.h
+index 5d738804e3d6..3faba06411aa 100644
+--- a/include/linux/timekeeping.h
++++ b/include/linux/timekeeping.h
+@@ -266,9 +266,6 @@ extern int update_persistent_clock64(struct timespec64 now);
+  * deprecated aliases, don't use in new code
   */
+ #define getnstimeofday64(ts)		ktime_get_real_ts64(ts)
+-#define get_monotonic_boottime64(ts)	ktime_get_boottime_ts64(ts)
+-#define getrawmonotonic64(ts)		ktime_get_raw_ts64(ts)
+-#define timekeeping_clocktai64(ts)	ktime_get_clocktai_ts64(ts)
  
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_CLONE
+ static inline struct timespec64 current_kernel_time64(void)
+ {
+@@ -279,13 +276,4 @@ static inline struct timespec64 current_kernel_time64(void)
+ 	return ts;
+ }
  
- /* Use the standard ABI for syscalls. */
-diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
-index 7dd20ef7625a..628195823816 100644
---- a/arch/h8300/include/uapi/asm/unistd.h
-+++ b/arch/h8300/include/uapi/asm/unistd.h
-@@ -1,5 +1,6 @@
- #define __ARCH_NOMMU
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
- 
- #include <asm-generic/unistd.h>
-diff --git a/arch/hexagon/include/uapi/asm/unistd.h b/arch/hexagon/include/uapi/asm/unistd.h
-index ea181e79162e..c91ca7d02461 100644
---- a/arch/hexagon/include/uapi/asm/unistd.h
-+++ b/arch/hexagon/include/uapi/asm/unistd.h
-@@ -29,6 +29,7 @@
- 
- #define sys_mmap2 sys_mmap_pgoff
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_EXECVE
- #define __ARCH_WANT_SYS_CLONE
- #define __ARCH_WANT_SYS_VFORK
-diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-index 6e95901cabe3..603e826e0449 100644
---- a/arch/nds32/include/uapi/asm/unistd.h
-+++ b/arch/nds32/include/uapi/asm/unistd.h
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0
- // Copyright (C) 2005-2017 Andes Technology Corporation
- 
-+#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYNC_FILE_RANGE2
- 
- /* Use the standard ABI for syscalls */
-diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
-index b6bdae04bc84..d9948d88790b 100644
---- a/arch/nios2/include/uapi/asm/unistd.h
-+++ b/arch/nios2/include/uapi/asm/unistd.h
-@@ -19,6 +19,7 @@
-  #define sys_mmap2 sys_mmap_pgoff
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
- 
- /* Use the standard ABI for syscalls */
- #include <asm-generic/unistd.h>
-diff --git a/arch/openrisc/include/uapi/asm/unistd.h b/arch/openrisc/include/uapi/asm/unistd.h
-index 11c5a58ab333..ec37df18d8ed 100644
---- a/arch/openrisc/include/uapi/asm/unistd.h
-+++ b/arch/openrisc/include/uapi/asm/unistd.h
-@@ -20,6 +20,7 @@
- #define sys_mmap2 sys_mmap_pgoff
- 
- #define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_CLONE
- 
-diff --git a/arch/unicore32/include/uapi/asm/unistd.h b/arch/unicore32/include/uapi/asm/unistd.h
-index 65856eaab163..1e8fe5941b8a 100644
---- a/arch/unicore32/include/uapi/asm/unistd.h
-+++ b/arch/unicore32/include/uapi/asm/unistd.h
-@@ -15,4 +15,5 @@
- 
- /* Use the standard ABI for syscalls. */
- #include <asm-generic/unistd.h>
-+#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_CLONE
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index cdf904265caf..ea74eca8463f 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -8,6 +8,5 @@
-  * be selected by default.
-  */
- #if __BITS_PER_LONG == 32
--#define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_LLSEEK
+-static inline struct timespec64 get_monotonic_coarse64(void)
+-{
+-	struct timespec64 ts;
+-
+-	ktime_get_coarse_ts64(&ts);
+-
+-	return ts;
+-}
+-
  #endif
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index df4bedb9b01c..538546edbfbd 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -242,10 +242,12 @@ __SYSCALL(__NR_tee, sys_tee)
- /* fs/stat.c */
- #define __NR_readlinkat 78
- __SYSCALL(__NR_readlinkat, sys_readlinkat)
-+#if defined(__ARCH_WANT_NEW_STAT) || defined(__ARCH_WANT_STAT64)
- #define __NR3264_fstatat 79
- __SC_3264(__NR3264_fstatat, sys_fstatat64, sys_newfstatat)
- #define __NR3264_fstat 80
- __SC_3264(__NR3264_fstat, sys_fstat64, sys_newfstat)
-+#endif
+diff --git a/include/linux/timekeeping32.h b/include/linux/timekeeping32.h
+index 8762c2f45f8b..a4a4991160fb 100644
+--- a/include/linux/timekeeping32.h
++++ b/include/linux/timekeeping32.h
+@@ -9,26 +9,6 @@
+ extern void do_gettimeofday(struct timeval *tv);
+ unsigned long get_seconds(void);
  
- /* fs/sync.c */
- #define __NR_sync 81
+-static inline struct timespec current_kernel_time(void)
+-{
+-	struct timespec64 ts64;
+-
+-	ktime_get_coarse_real_ts64(&ts64);
+-
+-	return timespec64_to_timespec(ts64);
+-}
+-
+-/**
+- * Deprecated. Use do_settimeofday64().
+- */
+-static inline int do_settimeofday(const struct timespec *ts)
+-{
+-	struct timespec64 ts64;
+-
+-	ts64 = timespec_to_timespec64(*ts);
+-	return do_settimeofday64(&ts64);
+-}
+-
+ static inline void getnstimeofday(struct timespec *ts)
+ {
+ 	struct timespec64 ts64;
+@@ -45,14 +25,6 @@ static inline void ktime_get_ts(struct timespec *ts)
+ 	*ts = timespec64_to_timespec(ts64);
+ }
+ 
+-static inline void ktime_get_real_ts(struct timespec *ts)
+-{
+-	struct timespec64 ts64;
+-
+-	ktime_get_real_ts64(&ts64);
+-	*ts = timespec64_to_timespec(ts64);
+-}
+-
+ static inline void getrawmonotonic(struct timespec *ts)
+ {
+ 	struct timespec64 ts64;
+@@ -61,15 +33,6 @@ static inline void getrawmonotonic(struct timespec *ts)
+ 	*ts = timespec64_to_timespec(ts64);
+ }
+ 
+-static inline struct timespec get_monotonic_coarse(void)
+-{
+-	struct timespec64 ts64;
+-
+-	ktime_get_coarse_ts64(&ts64);
+-
+-	return timespec64_to_timespec(ts64);
+-}
+-
+ static inline void getboottime(struct timespec *ts)
+ {
+ 	struct timespec64 ts64;
+@@ -78,19 +41,6 @@ static inline void getboottime(struct timespec *ts)
+ 	*ts = timespec64_to_timespec(ts64);
+ }
+ 
+-/*
+- * Timespec interfaces utilizing the ktime based ones
+- */
+-static inline void get_monotonic_boottime(struct timespec *ts)
+-{
+-	*ts = ktime_to_timespec(ktime_get_boottime());
+-}
+-
+-static inline void timekeeping_clocktai(struct timespec *ts)
+-{
+-	*ts = ktime_to_timespec(ktime_get_clocktai());
+-}
+-
+ /*
+  * Persistent clock related interfaces
+  */
+diff --git a/kernel/time/time.c b/kernel/time/time.c
+index ccdb351277ee..712543011106 100644
+--- a/kernel/time/time.c
++++ b/kernel/time/time.c
+@@ -342,30 +342,6 @@ unsigned int jiffies_to_usecs(const unsigned long j)
+ }
+ EXPORT_SYMBOL(jiffies_to_usecs);
+ 
+-/**
+- * timespec_trunc - Truncate timespec to a granularity
+- * @t: Timespec
+- * @gran: Granularity in ns.
+- *
+- * Truncate a timespec to a granularity. Always rounds down. gran must
+- * not be 0 nor greater than a second (NSEC_PER_SEC, or 10^9 ns).
+- */
+-struct timespec timespec_trunc(struct timespec t, unsigned gran)
+-{
+-	/* Avoid division in the common cases 1 ns and 1 s. */
+-	if (gran == 1) {
+-		/* nothing */
+-	} else if (gran == NSEC_PER_SEC) {
+-		t.tv_nsec = 0;
+-	} else if (gran > 1 && gran < NSEC_PER_SEC) {
+-		t.tv_nsec -= t.tv_nsec % gran;
+-	} else {
+-		WARN(1, "illegal file time granularity: %u", gran);
+-	}
+-	return t;
+-}
+-EXPORT_SYMBOL(timespec_trunc);
+-
+ /*
+  * mktime64 - Converts date to seconds.
+  * Converts Gregorian date to seconds since 1970-01-01 00:00:00.
 -- 
 2.18.0
