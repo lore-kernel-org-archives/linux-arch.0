@@ -1,109 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:34249 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727579AbeH1PME (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Aug 2018 11:12:04 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 2/3] mm/cow: optimise pte dirty/accessed bits handling in fork
-Date: Tue, 28 Aug 2018 21:20:33 +1000
-Message-ID: <20180828112034.30875-3-npiggin@gmail.com>
-In-Reply-To: <20180828112034.30875-1-npiggin@gmail.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
+Received: from mail-it0-f66.google.com ([209.85.214.66]:39510 "EHLO
+        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727712AbeH1RsL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Aug 2018 13:48:11 -0400
+Received: by mail-it0-f66.google.com with SMTP id h1-v6so641898itj.4
+        for <linux-arch@vger.kernel.org>; Tue, 28 Aug 2018 06:56:23 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20180828140632.593291cf@roar.ozlabs.ibm.com>
+References: <87bm9n68gq.fsf@igel.home> <20180828140632.593291cf@roar.ozlabs.ibm.com>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Date: Tue, 28 Aug 2018 15:56:22 +0200
+Message-ID: <CAKv+Gu8ROLamoxFZzbqrzSHq1cUQg5hn02HrKGB_0AT=EcBJpg@mail.gmail.com>
+Subject: Re: Oops running iptables -F OUTPUT
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180828112033.BvhAzRsInKQomqows-_aJVsMzv88C3iQrXO_KQoSLZE@z>
+To: Nicholas Piggin <nicholas.piggin@gmail.com>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, "<netdev@vger.kernel.org>" <netdev@vger.kernel.org>, linuxppc-dev@ozlabs.org, Jessica Yu <jeyu@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180828135622.PrRdqM80AhExcJHl_gjhIRwUqEhzlkbtEAYmXCTrtFI@z>
 
-fork clears dirty/accessed bits from new ptes in the child. This logic
-has existed since mapped page reclaim was done by scanning ptes when
-it may have been quite important. Today with physical based pte
-scanning, there is less reason to clear these bits. Dirty bits are all
-tested and cleared together and any dirty bit is the same as many
-dirty bits. Any young bit is treated similarly to many young bits, but
-not quite the same. A comment has been added where there is some
-difference.
+Hello Andreas, Nick,
 
-This eliminates a major source of faults powerpc/radix requires to set
-dirty/accessed bits in ptes, speeding up a fork/exit microbenchmark by
-about 5% on POWER9 (16600 -> 17500 fork/execs per second).
+On 28 August 2018 at 06:06, Nicholas Piggin <nicholas.piggin@gmail.com> wro=
+te:
+> On Mon, 27 Aug 2018 19:11:01 +0200
+> Andreas Schwab <schwab@linux-m68k.org> wrote:
+>
+>> I'm getting this Oops when running iptables -F OUTPUT:
+>>
+>> [   91.139409] Unable to handle kernel paging request for data at addres=
+s 0xd0000001fff12f34
+>> [   91.139414] Faulting instruction address: 0xd0000000016a5718
+>> [   91.139419] Oops: Kernel access of bad area, sig: 11 [#1]
+>> [   91.139426] BE SMP NR_CPUS=3D2 PowerMac
+>> [   91.139434] Modules linked in: iptable_filter ip_tables x_tables bpfi=
+lter nfsd auth_rpcgss lockd grace nfs_acl sunrpc tun af_packet snd_aoa_code=
+c_tas snd_aoa_fabric_layout snd_aoa snd_aoa_i2sbus snd_aoa_soundbus snd_pcm=
+_oss snd_pcm snd_seq snd_timer snd_seq_device snd_mixer_oss snd sungem sr_m=
+od firewire_ohci cdrom sungem_phy soundcore firewire_core pata_macio crc_it=
+u_t sg hid_generic usbhid linear md_mod ohci_pci ohci_hcd ehci_pci ehci_hcd=
+ usbcore usb_common dm_snapshot dm_bufio dm_mirror dm_region_hash dm_log dm=
+_mod sata_svw
+>> [   91.139522] CPU: 1 PID: 3620 Comm: iptables Not tainted 4.19.0-rc1 #1
+>> [   91.139526] NIP:  d0000000016a5718 LR: d0000000016a569c CTR: c0000000=
+006f560c
+>> [   91.139531] REGS: c0000001fa577670 TRAP: 0300   Not tainted  (4.19.0-=
+rc1)
+>> [   91.139534] MSR:  900000000200b032 <SF,HV,VEC,EE,FP,ME,IR,DR,RI>  CR:=
+ 84002484  XER: 20000000
+>> [   91.139553] DAR: d0000001fff12f34 DSISR: 40000000 IRQMASK: 0
+>> GPR00: d0000000016a569c c0000001fa5778f0 d0000000016b0400 00000000000000=
+00
+>> GPR04: 0000000000000002 0000000000000000 80000001fa46418e c0000001fa0d05=
+c8
+>> GPR08: d0000000016b0400 d00037fffff13000 00000001ff3e7000 d0000000016a6f=
+b8
+>> GPR12: c0000000006f560c c00000000ffff780 0000000000000000 00000000000000=
+00
+>> GPR16: 0000000011635010 00003fffa1b7aa68 0000000000000000 00000000000000=
+00
+>> GPR20: 0000000000000003 0000000010013918 00000000116350c0 c000000000b889=
+90
+>> GPR24: c000000000b88ba4 0000000000000000 d0000001fff12f34 00000000000000=
+00
+>> GPR28: d0000000016b8000 c0000001fa20f400 c0000001fa20f440 00000000000000=
+00
+>> [   91.139627] NIP [d0000000016a5718] .alloc_counters.isra.10+0xbc/0x140=
+ [ip_tables]
+>> [   91.139634] LR [d0000000016a569c] .alloc_counters.isra.10+0x40/0x140 =
+[ip_tables]
+>> [   91.139638] Call Trace:
+>> [   91.139645] [c0000001fa5778f0] [d0000000016a569c] .alloc_counters.isr=
+a.10+0x40/0x140 [ip_tables] (unreliable)
+>> [   91.139655] [c0000001fa5779b0] [d0000000016a5b54] .do_ipt_get_ctl+0x1=
+10/0x2ec [ip_tables]
+>> [   91.139666] [c0000001fa577aa0] [c0000000006233e0] .nf_getsockopt+0x68=
+/0x88
+>> [   91.139674] [c0000001fa577b40] [c000000000631608] .ip_getsockopt+0xbc=
+/0x128
+>> [   91.139682] [c0000001fa577bf0] [c00000000065adf4] .raw_getsockopt+0x1=
+8/0x5c
+>> [   91.139690] [c0000001fa577c60] [c0000000005b5f60] .sock_common_getsoc=
+kopt+0x2c/0x40
+>> [   91.139697] [c0000001fa577cd0] [c0000000005b3394] .__sys_getsockopt+0=
+xa4/0xd0
+>> [   91.139704] [c0000001fa577d80] [c0000000005b5ab0] .__se_sys_socketcal=
+l+0x238/0x2b4
+>> [   91.139712] [c0000001fa577e30] [c00000000000a31c] system_call+0x5c/0x=
+70
+>> [   91.139716] Instruction dump:
+>> [   91.139721] 39290040 7d3d4a14 7fbe4840 409cff98 81380000 2b890001 419=
+d000c 393e0060
+>> [   91.139736] 48000010 7d57c82a e93e0060 7d295214 <815a0000> 794807e1 4=
+1e20010 7c210b78
+>> [   91.139752] ---[ end trace f5d1d5431651845d ]---
+>
+> This is due to 7290d58095 ("module: use relative references for
+> __ksymtab entries"). This part of kernel/module.c -
+>
+>    /* Divert to percpu allocation if a percpu var. */
+>    if (sym[i].st_shndx =3D=3D info->index.pcpu)
+>        secbase =3D (unsigned long)mod_percpu(mod);
+>    else
+>        secbase =3D info->sechdrs[sym[i].st_shndx].sh_addr;
+>    sym[i].st_value +=3D secbase;
+>
+> Causes the distance to the target to exceed 32-bits on powerpc, so
+> it doesn't fit in a rel32 reloc. Not sure how other archs cope.
+>
 
-Skylake appears to have a micro-fault overhead too -- a test which
-allocates 4GB anonymous memory, reads each page, then forks, and times
-the child reading a byte from each page. The first pass over the pages
-takes about 1000 cycles per page, the second pass takes about 27
-cycles (TLB miss). With no additional minor faults measured due to
-either child pass, and the page array well exceeding TLB capacity, the
-large cost must be caused by micro faults caused by setting accessed
-bit.
+Apologies for the breakage. It does indeed appear to affect all
+architectures, and I'm a bit puzzled why you are the first one to spot
+it.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- mm/huge_memory.c |  2 --
- mm/memory.c      | 10 +++++-----
- mm/vmscan.c      |  8 ++++++++
- 3 files changed, 13 insertions(+), 7 deletions(-)
-
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index d9bae12978ef..5fb1a43e12e0 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -977,7 +977,6 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 		pmdp_set_wrprotect(src_mm, addr, src_pmd);
- 		pmd = pmd_wrprotect(pmd);
- 	}
--	pmd = pmd_mkold(pmd);
- 	set_pmd_at(dst_mm, addr, dst_pmd, pmd);
- 
- 	ret = 0;
-@@ -1071,7 +1070,6 @@ int copy_huge_pud(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 		pudp_set_wrprotect(src_mm, addr, src_pud);
- 		pud = pud_wrprotect(pud);
- 	}
--	pud = pud_mkold(pud);
- 	set_pud_at(dst_mm, addr, dst_pud, pud);
- 
- 	ret = 0;
-diff --git a/mm/memory.c b/mm/memory.c
-index b616a69ad770..3d8bf8220bd0 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1038,12 +1038,12 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	}
- 
- 	/*
--	 * If it's a shared mapping, mark it clean in
--	 * the child
-+	 * Child inherits dirty and young bits from parent. There is no
-+	 * point clearing them because any cleaning or aging has to walk
-+	 * all ptes anyway, and it will notice the bits set in the parent.
-+	 * Leaving them set avoids stalls and even page faults on CPUs that
-+	 * handle these bits in software.
- 	 */
--	if (vm_flags & VM_SHARED)
--		pte = pte_mkclean(pte);
--	pte = pte_mkold(pte);
- 
- 	page = vm_normal_page(vma, addr, pte);
- 	if (page) {
-diff --git a/mm/vmscan.c b/mm/vmscan.c
-index 7e7d25504651..52fe64af3d80 100644
---- a/mm/vmscan.c
-+++ b/mm/vmscan.c
-@@ -1021,6 +1021,14 @@ static enum page_references page_check_references(struct page *page,
- 		 * to look twice if a mapped file page is used more
- 		 * than once.
- 		 *
-+		 * fork() will set referenced bits in child ptes despite
-+		 * not having been accessed, to avoid micro-faults of
-+		 * setting accessed bits. This heuristic is not perfectly
-+		 * accurate in other ways -- multiple map/unmap in the
-+		 * same time window would be treated as multiple references
-+		 * despite same number of actual memory accesses made by
-+		 * the program.
-+		 *
- 		 * Mark it and spare it for another trip around the
- 		 * inactive list.  Another page table reference will
- 		 * lead to its activation.
--- 
-2.18.0
+I will try to find a clean way to special case the per-CPU variable
+__ksymtab references in the generic module code, and if that is too
+cumbersome, we can switch to 64-bit relative references (or rather,
+native word size relative references) instead. Or revert the whole
+thing ...
