@@ -1,113 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:38105 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727579AbeH1PMH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Aug 2018 11:12:07 -0400
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:44842 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727579AbeH1PMA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Aug 2018 11:12:00 -0400
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by demand based pte insertion
-Date: Tue, 28 Aug 2018 21:20:34 +1000
-Message-ID: <20180828112034.30875-4-npiggin@gmail.com>
+Subject: [PATCH 1/3] mm/cow: don't bother write protectig already write-protected huge pages
+Date: Tue, 28 Aug 2018 21:20:32 +1000
+Message-ID: <20180828112034.30875-2-npiggin@gmail.com>
 In-Reply-To: <20180828112034.30875-1-npiggin@gmail.com>
 References: <20180828112034.30875-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
 Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180828112034.mwVf9O69mAN5C8b9cu6u-Oc7l3rCJ9eA9npE-10IlbE@z>
+Message-ID: <20180828112032.E7PapWIB7sIJMLplpOahwN-5g7XcvJclOIfqQEKdsis@z>
 
-Similarly to the previous patch, this tries to optimise dirty/accessed
-bits in ptes to avoid access costs of hardware setting them.
+This is the THP equivalent for 1b2de5d039c8 ("mm/cow: don't bother write
+protecting already write-protected pages").
+
+Explicit hugetlb pages don't get the same treatment because they don't
+appear to have the right accessor functions.
 
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- mm/huge_memory.c | 12 +++++++-----
- mm/memory.c      |  8 +++++---
- 2 files changed, 12 insertions(+), 8 deletions(-)
+ mm/huge_memory.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 5fb1a43e12e0..2c169041317f 100644
+index 9592cbd8530a..d9bae12978ef 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -1197,6 +1197,7 @@ static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
- 	for (i = 0; i < HPAGE_PMD_NR; i++, haddr += PAGE_SIZE) {
- 		pte_t entry;
- 		entry = mk_pte(pages[i], vma->vm_page_prot);
-+		entry = pte_mkyoung(entry);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 		memcg = (void *)page_private(pages[i]);
- 		set_page_private(pages[i], 0);
-@@ -2067,7 +2068,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	struct page *page;
- 	pgtable_t pgtable;
- 	pmd_t old_pmd, _pmd;
--	bool young, write, soft_dirty, pmd_migration = false;
-+	bool young, write, dirty, soft_dirty, pmd_migration = false;
- 	unsigned long addr;
- 	int i;
+@@ -973,8 +973,11 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 	mm_inc_nr_ptes(dst_mm);
+ 	pgtable_trans_huge_deposit(dst_mm, dst_pmd, pgtable);
  
-@@ -2145,8 +2146,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 		page = pmd_page(old_pmd);
- 	VM_BUG_ON_PAGE(!page_count(page), page);
- 	page_ref_add(page, HPAGE_PMD_NR - 1);
--	if (pmd_dirty(old_pmd))
--		SetPageDirty(page);
-+	dirty = pmd_dirty(old_pmd);
- 	write = pmd_write(old_pmd);
- 	young = pmd_young(old_pmd);
- 	soft_dirty = pmd_soft_dirty(old_pmd);
-@@ -2176,8 +2176,10 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 			entry = maybe_mkwrite(entry, vma);
- 			if (!write)
- 				entry = pte_wrprotect(entry);
--			if (!young)
--				entry = pte_mkold(entry);
-+			if (young)
-+				entry = pte_mkyoung(entry);
-+			if (dirty)
-+				entry = pte_mkdirty(entry);
- 			if (soft_dirty)
- 				entry = pte_mksoft_dirty(entry);
- 		}
-diff --git a/mm/memory.c b/mm/memory.c
-index 3d8bf8220bd0..d205ba69918c 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1830,10 +1830,9 @@ static int insert_pfn(struct vm_area_struct *vma, unsigned long addr,
- 		entry = pte_mkspecial(pfn_t_pte(pfn, prot));
+-	pmdp_set_wrprotect(src_mm, addr, src_pmd);
+-	pmd = pmd_mkold(pmd_wrprotect(pmd));
++	if (pmd_write(pmd)) {
++		pmdp_set_wrprotect(src_mm, addr, src_pmd);
++		pmd = pmd_wrprotect(pmd);
++	}
++	pmd = pmd_mkold(pmd);
+ 	set_pmd_at(dst_mm, addr, dst_pmd, pmd);
  
- out_mkwrite:
--	if (mkwrite) {
--		entry = pte_mkyoung(entry);
-+	entry = pte_mkyoung(entry);
-+	if (mkwrite)
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
--	}
+ 	ret = 0;
+@@ -1064,8 +1067,11 @@ int copy_huge_pud(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 		/* No huge zero pud yet */
+ 	}
  
- 	set_pte_at(mm, addr, pte, entry);
- 	update_mmu_cache(vma, addr, pte); /* XXX: why not for insert_page? */
-@@ -2560,6 +2559,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
- 		}
- 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
- 		entry = mk_pte(new_page, vma->vm_page_prot);
-+		entry = pte_mkyoung(entry);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 		/*
- 		 * Clear the pte entry and flush it first, before updating the
-@@ -3069,6 +3069,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
- 	inc_mm_counter_fast(vma->vm_mm, MM_ANONPAGES);
- 	dec_mm_counter_fast(vma->vm_mm, MM_SWAPENTS);
- 	pte = mk_pte(page, vma->vm_page_prot);
-+	pte = pte_mkyoung(pte);
- 	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
- 		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
- 		vmf->flags &= ~FAULT_FLAG_WRITE;
-@@ -3479,6 +3480,7 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, struct mem_cgroup *memcg,
+-	pudp_set_wrprotect(src_mm, addr, src_pud);
+-	pud = pud_mkold(pud_wrprotect(pud));
++	if (pud_write(pud)) {
++		pudp_set_wrprotect(src_mm, addr, src_pud);
++		pud = pud_wrprotect(pud);
++	}
++	pud = pud_mkold(pud);
+ 	set_pud_at(dst_mm, addr, dst_pud, pud);
  
- 	flush_icache_page(vma, page);
- 	entry = mk_pte(page, vma->vm_page_prot);
-+	entry = pte_mkyoung(entry);
- 	if (write)
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 	/* copy-on-write page */
+ 	ret = 0;
 -- 
 2.18.0
