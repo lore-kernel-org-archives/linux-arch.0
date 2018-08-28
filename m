@@ -1,57 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.10]:42572 "EHLO
-        mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726996AbeH1VVS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Aug 2018 17:21:18 -0400
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: Oops running iptables -F OUTPUT
-References: <87bm9n68gq.fsf@igel.home>
-        <20180828140632.593291cf@roar.ozlabs.ibm.com>
-        <CAKv+Gu8ROLamoxFZzbqrzSHq1cUQg5hn02HrKGB_0AT=EcBJpg@mail.gmail.com>
-        <CAKv+Gu_hPaxrVtsBOoviRraYk4FWnT9zQVCVF=i27xd_nGHryw@mail.gmail.com>
-Date: Tue, 28 Aug 2018 19:28:32 +0200
-In-Reply-To: <CAKv+Gu_hPaxrVtsBOoviRraYk4FWnT9zQVCVF=i27xd_nGHryw@mail.gmail.com>
-        (Ard Biesheuvel's message of "Tue, 28 Aug 2018 18:09:09 +0200")
-Message-ID: <87y3cqbdtr.fsf@igel.home>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from ale.deltatee.com ([207.54.116.67]:56088 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727216AbeH2Dme (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Aug 2018 23:42:34 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Tue, 28 Aug 2018 17:48:25 -0600
+Message-ID: <20180828234826.22215-6-logang@deltatee.com>
+In-Reply-To: <20180828234826.22215-1-logang@deltatee.com>
+References: <20180828234826.22215-1-logang@deltatee.com>
+Subject: [PATCH v20 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Nicholas Piggin <nicholas.piggin@gmail.com>, "<netdev@vger.kernel.org>" <netdev@vger.kernel.org>, linuxppc-dev@ozlabs.org, Jessica Yu <jeyu@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20180828172832.uY0hbKwytBs6C5g3kro8eWTvJXKPfgQFzcgM_MsTBcY@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20180828234825.MqCV4CUbqJV17UbBZ_jMfjmF6FFcQZ8URRu308rbFZA@z>
 
-On Aug 28 2018, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+we can remove the hack at the top of ntb_hw_intel.c and replace it
+with an include.
 
-> diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
-> index 6a501b25dd85..57d09d5ceb1a 100644
-> --- a/arch/powerpc/kernel/setup_64.c
-> +++ b/arch/powerpc/kernel/setup_64.c
-> @@ -779,7 +779,6 @@ EXPORT_SYMBOL(__per_cpu_offset);
->
->  void __init setup_per_cpu_areas(void)
->  {
-> -       const size_t dyn_size = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE;
->         size_t atom_size;
->         unsigned long delta;
->         unsigned int cpu;
-> @@ -795,7 +794,9 @@ void __init setup_per_cpu_areas(void)
->         else
->                 atom_size = 1 << 20;
->
-> -       rc = pcpu_embed_first_chunk(0, dyn_size, atom_size, pcpu_cpu_distance,
-> +       rc = pcpu_embed_first_chunk(PERCPU_MODULE_RESERVE,
-> +                                   PERCPU_DYNAMIC_RESERVE,
-> +                                   atom_size, pcpu_cpu_distance,
->                                     pcpu_fc_alloc, pcpu_fc_free);
->         if (rc < 0)
->                 panic("cannot initialize percpu area (err=%d)", rc);
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
+Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+Acked-by: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +-----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
 
-That didn't help.
-
-Andreas.
-
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
+index c49ff8970ce3..e071e28bca3f 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.h
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
+@@ -53,6 +53,7 @@
+ 
+ #include <linux/ntb.h>
+ #include <linux/pci.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ /* PCI device IDs */
+ #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
+@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
+ 	return 0;
+ }
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #endif
 -- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 7578 EB47 D4E5 4D69 2510  2552 DF73 E780 A9DA AEC1
-"And now for something completely different."
+2.11.0
