@@ -1,218 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:57557 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726826AbeH0Xdt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Aug 2018 19:33:49 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 11/14] y2038: utimes: Rework #ifdef guards for compat syscalls
-Date: Mon, 27 Aug 2018 21:45:28 +0200
-Message-ID: <20180827194531.3796559-12-arnd@arndb.de>
-In-Reply-To: <20180827194531.3796559-1-arnd@arndb.de>
-References: <20180827194531.3796559-1-arnd@arndb.de>
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:40665 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726997AbeH1H4W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Aug 2018 03:56:22 -0400
+Date: Tue, 28 Aug 2018 14:06:32 +1000
+From: Nicholas Piggin <nicholas.piggin@gmail.com>
+Subject: Re: Oops running iptables -F OUTPUT
+Message-ID: <20180828140632.593291cf@roar.ozlabs.ibm.com>
+In-Reply-To: <87bm9n68gq.fsf@igel.home>
+References: <87bm9n68gq.fsf@igel.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: y2038@lists.linaro.org, linux-api@vger.kernel.org, Christoph Hellwig <hch@lst.de>, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, deepa.kernel@gmail.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20180827194528.Lu8j_4xKeUdEOlyWQSFijGmxED3h9TKj-IBXxDks_o0@z>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: netdev@vger.kernel.org, linuxppc-dev@ozlabs.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jessica Yu <jeyu@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180828040632.09JB7lUn6GsHOz_NoKegZ40P7mlaRaKRZ7XHbJqKhOY@z>
 
-After changing over to 64-bit time_t syscalls, many architectures will
-want compat_sys_utimensat() but not respective handlers for utime(),
-utimes() and futimesat(). This adds a new __ARCH_WANT_SYS_UTIME32 to
-complement __ARCH_WANT_SYS_UTIME. For now, all 64-bit architectures that
-support CONFIG_COMPAT set it, but future 64-bit architectures will not
-(tile would not have needed it either, but got removed).
+On Mon, 27 Aug 2018 19:11:01 +0200
+Andreas Schwab <schwab@linux-m68k.org> wrote:
 
-As older 32-bit architectures get converted to using CONFIG_64BIT_TIME,
-they will have to use __ARCH_WANT_SYS_UTIME32 instead of
-__ARCH_WANT_SYS_UTIME. Architectures using the generic syscall ABI don't
-need either of them as they never had a utime syscall.
+> I'm getting this Oops when running iptables -F OUTPUT:
+> 
+> [   91.139409] Unable to handle kernel paging request for data at address 0xd0000001fff12f34
+> [   91.139414] Faulting instruction address: 0xd0000000016a5718
+> [   91.139419] Oops: Kernel access of bad area, sig: 11 [#1]
+> [   91.139426] BE SMP NR_CPUS=2 PowerMac
+> [   91.139434] Modules linked in: iptable_filter ip_tables x_tables bpfilter nfsd auth_rpcgss lockd grace nfs_acl sunrpc tun af_packet snd_aoa_codec_tas snd_aoa_fabric_layout snd_aoa snd_aoa_i2sbus snd_aoa_soundbus snd_pcm_oss snd_pcm snd_seq snd_timer snd_seq_device snd_mixer_oss snd sungem sr_mod firewire_ohci cdrom sungem_phy soundcore firewire_core pata_macio crc_itu_t sg hid_generic usbhid linear md_mod ohci_pci ohci_hcd ehci_pci ehci_hcd usbcore usb_common dm_snapshot dm_bufio dm_mirror dm_region_hash dm_log dm_mod sata_svw
+> [   91.139522] CPU: 1 PID: 3620 Comm: iptables Not tainted 4.19.0-rc1 #1
+> [   91.139526] NIP:  d0000000016a5718 LR: d0000000016a569c CTR: c0000000006f560c
+> [   91.139531] REGS: c0000001fa577670 TRAP: 0300   Not tainted  (4.19.0-rc1)
+> [   91.139534] MSR:  900000000200b032 <SF,HV,VEC,EE,FP,ME,IR,DR,RI>  CR: 84002484  XER: 20000000
+> [   91.139553] DAR: d0000001fff12f34 DSISR: 40000000 IRQMASK: 0 
+> GPR00: d0000000016a569c c0000001fa5778f0 d0000000016b0400 0000000000000000 
+> GPR04: 0000000000000002 0000000000000000 80000001fa46418e c0000001fa0d05c8 
+> GPR08: d0000000016b0400 d00037fffff13000 00000001ff3e7000 d0000000016a6fb8 
+> GPR12: c0000000006f560c c00000000ffff780 0000000000000000 0000000000000000 
+> GPR16: 0000000011635010 00003fffa1b7aa68 0000000000000000 0000000000000000 
+> GPR20: 0000000000000003 0000000010013918 00000000116350c0 c000000000b88990 
+> GPR24: c000000000b88ba4 0000000000000000 d0000001fff12f34 0000000000000000 
+> GPR28: d0000000016b8000 c0000001fa20f400 c0000001fa20f440 0000000000000000 
+> [   91.139627] NIP [d0000000016a5718] .alloc_counters.isra.10+0xbc/0x140 [ip_tables]
+> [   91.139634] LR [d0000000016a569c] .alloc_counters.isra.10+0x40/0x140 [ip_tables]
+> [   91.139638] Call Trace:
+> [   91.139645] [c0000001fa5778f0] [d0000000016a569c] .alloc_counters.isra.10+0x40/0x140 [ip_tables] (unreliable)
+> [   91.139655] [c0000001fa5779b0] [d0000000016a5b54] .do_ipt_get_ctl+0x110/0x2ec [ip_tables]
+> [   91.139666] [c0000001fa577aa0] [c0000000006233e0] .nf_getsockopt+0x68/0x88
+> [   91.139674] [c0000001fa577b40] [c000000000631608] .ip_getsockopt+0xbc/0x128
+> [   91.139682] [c0000001fa577bf0] [c00000000065adf4] .raw_getsockopt+0x18/0x5c
+> [   91.139690] [c0000001fa577c60] [c0000000005b5f60] .sock_common_getsockopt+0x2c/0x40
+> [   91.139697] [c0000001fa577cd0] [c0000000005b3394] .__sys_getsockopt+0xa4/0xd0
+> [   91.139704] [c0000001fa577d80] [c0000000005b5ab0] .__se_sys_socketcall+0x238/0x2b4
+> [   91.139712] [c0000001fa577e30] [c00000000000a31c] system_call+0x5c/0x70
+> [   91.139716] Instruction dump:
+> [   91.139721] 39290040 7d3d4a14 7fbe4840 409cff98 81380000 2b890001 419d000c 393e0060 
+> [   91.139736] 48000010 7d57c82a e93e0060 7d295214 <815a0000> 794807e1 41e20010 7c210b78 
+> [   91.139752] ---[ end trace f5d1d5431651845d ]---
 
-Since the compat_utimbuf structure is now required outside of
-CONFIG_COMPAT, I'm moving it into compat_time.h.
+This is due to 7290d58095 ("module: use relative references for
+__ksymtab entries"). This part of kernel/module.c -
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
-changed from last version:
-- renamed __ARCH_WANT_COMPAT_SYS_UTIME to __ARCH_WANT_SYS_UTIME32
----
- arch/arm64/include/asm/unistd.h   | 1 +
- arch/mips/include/asm/unistd.h    | 1 +
- arch/parisc/include/asm/unistd.h  | 1 +
- arch/powerpc/include/asm/unistd.h | 1 +
- arch/s390/include/asm/unistd.h    | 1 +
- arch/sparc/include/asm/unistd.h   | 1 +
- arch/x86/include/asm/unistd.h     | 1 +
- fs/utimes.c                       | 8 ++++++--
- include/linux/compat.h            | 7 +------
- include/linux/time32.h            | 5 +++++
- 10 files changed, 19 insertions(+), 8 deletions(-)
+   /* Divert to percpu allocation if a percpu var. */
+   if (sym[i].st_shndx == info->index.pcpu)
+       secbase = (unsigned long)mod_percpu(mod);
+   else
+       secbase = info->sechdrs[sym[i].st_shndx].sh_addr;
+   sym[i].st_value += secbase;
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index 2af308f13463..b13ca091f833 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -22,6 +22,7 @@
- #define __ARCH_WANT_SYS_SIGPENDING
- #define __ARCH_WANT_SYS_SIGPROCMASK
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
-+#define __ARCH_WANT_SYS_UTIME32
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
- 
-diff --git a/arch/mips/include/asm/unistd.h b/arch/mips/include/asm/unistd.h
-index c2174b80e50e..c68b8ae3efcb 100644
---- a/arch/mips/include/asm/unistd.h
-+++ b/arch/mips/include/asm/unistd.h
-@@ -31,6 +31,7 @@
- #define __ARCH_WANT_SYS_IPC
- #define __ARCH_WANT_SYS_PAUSE
- #define __ARCH_WANT_SYS_UTIME
-+#define __ARCH_WANT_SYS_UTIME32
- #define __ARCH_WANT_SYS_WAITPID
- #define __ARCH_WANT_SYS_SOCKETCALL
- #define __ARCH_WANT_SYS_GETPGRP
-diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
-index a0c38374fff0..bc37a4953eaa 100644
---- a/arch/parisc/include/asm/unistd.h
-+++ b/arch/parisc/include/asm/unistd.h
-@@ -152,6 +152,7 @@ type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)	\
- #define __ARCH_WANT_COMPAT_SYS_TIME
- #define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
- #define __ARCH_WANT_SYS_UTIME
-+#define __ARCH_WANT_SYS_UTIME32
- #define __ARCH_WANT_SYS_WAITPID
- #define __ARCH_WANT_SYS_SOCKETCALL
- #define __ARCH_WANT_SYS_FADVISE64
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index 9326c9133516..b0de85b477e1 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -47,6 +47,7 @@
- #endif
- #ifdef CONFIG_PPC64
- #define __ARCH_WANT_COMPAT_SYS_TIME
-+#define __ARCH_WANT_SYS_UTIME32
- #define __ARCH_WANT_SYS_NEWFSTATAT
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
- #endif
-diff --git a/arch/s390/include/asm/unistd.h b/arch/s390/include/asm/unistd.h
-index a2d583ea526d..a1fbf15d53aa 100644
---- a/arch/s390/include/asm/unistd.h
-+++ b/arch/s390/include/asm/unistd.h
-@@ -34,6 +34,7 @@
- #define __ARCH_WANT_SYS_SIGPROCMASK
- # ifdef CONFIG_COMPAT
- #   define __ARCH_WANT_COMPAT_SYS_TIME
-+#   define __ARCH_WANT_SYS_UTIME32
- # endif
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
-diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
-index f7514d3eae7b..00f87dbd0b17 100644
---- a/arch/sparc/include/asm/unistd.h
-+++ b/arch/sparc/include/asm/unistd.h
-@@ -42,6 +42,7 @@
- #define __ARCH_WANT_SYS_IPC
- #else
- #define __ARCH_WANT_COMPAT_SYS_TIME
-+#define __ARCH_WANT_SYS_UTIME32
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
- #endif
- 
-diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
-index 153d2a5e6b02..dc4ed8bc2382 100644
---- a/arch/x86/include/asm/unistd.h
-+++ b/arch/x86/include/asm/unistd.h
-@@ -24,6 +24,7 @@
- #  include <asm/unistd_64.h>
- #  include <asm/unistd_64_x32.h>
- #  define __ARCH_WANT_COMPAT_SYS_TIME
-+#  define __ARCH_WANT_SYS_UTIME32
- #  define __ARCH_WANT_COMPAT_SYS_PREADV64
- #  define __ARCH_WANT_COMPAT_SYS_PWRITEV64
- #  define __ARCH_WANT_COMPAT_SYS_PREADV64V2
-diff --git a/fs/utimes.c b/fs/utimes.c
-index 2f6f08061a26..bdcf2daf39c1 100644
---- a/fs/utimes.c
-+++ b/fs/utimes.c
-@@ -218,13 +218,14 @@ SYSCALL_DEFINE2(utime, char __user *, filename, struct utimbuf __user *, times)
- }
- #endif
- 
--#ifdef CONFIG_COMPAT
-+#ifdef CONFIG_COMPAT_32BIT_TIME
- /*
-  * Not all architectures have sys_utime, so implement this in terms
-  * of sys_utimes.
-  */
-+#ifdef __ARCH_WANT_SYS_UTIME32
- COMPAT_SYSCALL_DEFINE2(utime, const char __user *, filename,
--		       struct compat_utimbuf __user *, t)
-+		       struct old_utimbuf32 __user *, t)
- {
- 	struct timespec64 tv[2];
- 
-@@ -237,6 +238,7 @@ COMPAT_SYSCALL_DEFINE2(utime, const char __user *, filename,
- 	}
- 	return do_utimes(AT_FDCWD, filename, t ? tv : NULL, 0);
- }
-+#endif
- 
- COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filename, struct old_timespec32 __user *, t, int, flags)
- {
-@@ -253,6 +255,7 @@ COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filena
- 	return do_utimes(dfd, filename, t ? tv : NULL, flags);
- }
- 
-+#ifdef __ARCH_WANT_SYS_UTIME32
- static long do_compat_futimesat(unsigned int dfd, const char __user *filename,
- 				struct old_timeval32 __user *t)
- {
-@@ -285,3 +288,4 @@ COMPAT_SYSCALL_DEFINE2(utimes, const char __user *, filename, struct old_timeval
- 	return do_compat_futimesat(AT_FDCWD, filename, t);
- }
- #endif
-+#endif
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index d376fa8be00d..6fb5abdb87be 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -113,11 +113,6 @@ typedef __compat_gid32_t	compat_gid_t;
- struct compat_sel_arg_struct;
- struct rusage;
- 
--struct compat_utimbuf {
--	old_time32_t		actime;
--	old_time32_t		modtime;
--};
--
- struct compat_itimerval {
- 	struct old_timeval32	it_interval;
- 	struct old_timeval32	it_value;
-@@ -942,7 +937,7 @@ asmlinkage long compat_sys_newlstat(const char __user *filename,
- /* __ARCH_WANT_SYSCALL_DEPRECATED */
- asmlinkage long compat_sys_time(old_time32_t __user *tloc);
- asmlinkage long compat_sys_utime(const char __user *filename,
--				 struct compat_utimbuf __user *t);
-+				 struct old_utimbuf32 __user *t);
- asmlinkage long compat_sys_futimesat(unsigned int dfd,
- 				     const char __user *filename,
- 				     struct old_timeval32 __user *t);
-diff --git a/include/linux/time32.h b/include/linux/time32.h
-index 0e0d7304d1a8..61904a6c098f 100644
---- a/include/linux/time32.h
-+++ b/include/linux/time32.h
-@@ -30,6 +30,11 @@ struct old_itimerspec32 {
- 	struct old_timespec32 it_value;
- };
- 
-+struct old_utimbuf32 {
-+	old_time32_t	actime;
-+	old_time32_t	modtime;
-+};
-+
- extern int get_old_timespec32(struct timespec64 *, const void __user *);
- extern int put_old_timespec32(const struct timespec64 *, void __user *);
- extern int get_old_itimerspec32(struct itimerspec64 *its,
--- 
-2.18.0
+Causes the distance to the target to exceed 32-bits on powerpc, so
+it doesn't fit in a rel32 reloc. Not sure how other archs cope.
+
+Thanks,
+Nick
