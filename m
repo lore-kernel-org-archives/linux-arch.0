@@ -1,108 +1,114 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by demand based pte insertion
-Date: Tue, 28 Aug 2018 21:20:34 +1000
-Message-ID: <20180828112034.30875-4-npiggin@gmail.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180828112034.30875-1-npiggin@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: Re: Oops running iptables -F OUTPUT
+Date: Tue, 28 Aug 2018 15:56:22 +0200
+Message-ID: <CAKv+Gu8ROLamoxFZzbqrzSHq1cUQg5hn02HrKGB_0AT=EcBJpg@mail.gmail.com>
+References: <87bm9n68gq.fsf@igel.home> <20180828140632.593291cf@roar.ozlabs.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20180828140632.593291cf@roar.ozlabs.ibm.com>
+Sender: netdev-owner@vger.kernel.org
+To: Nicholas Piggin <nicholas.piggin@gmail.com>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, "<netdev@vger.kernel.org>" <netdev@vger.kernel.org>, linuxppc-dev@ozlabs.org, Jessica Yu <jeyu@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Similarly to the previous patch, this tries to optimise dirty/accessed
-bits in ptes to avoid access costs of hardware setting them.
+Hello Andreas, Nick,
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- mm/huge_memory.c | 12 +++++++-----
- mm/memory.c      |  8 +++++---
- 2 files changed, 12 insertions(+), 8 deletions(-)
+On 28 August 2018 at 06:06, Nicholas Piggin <nicholas.piggin@gmail.com> wro=
+te:
+> On Mon, 27 Aug 2018 19:11:01 +0200
+> Andreas Schwab <schwab@linux-m68k.org> wrote:
+>
+>> I'm getting this Oops when running iptables -F OUTPUT:
+>>
+>> [   91.139409] Unable to handle kernel paging request for data at addres=
+s 0xd0000001fff12f34
+>> [   91.139414] Faulting instruction address: 0xd0000000016a5718
+>> [   91.139419] Oops: Kernel access of bad area, sig: 11 [#1]
+>> [   91.139426] BE SMP NR_CPUS=3D2 PowerMac
+>> [   91.139434] Modules linked in: iptable_filter ip_tables x_tables bpfi=
+lter nfsd auth_rpcgss lockd grace nfs_acl sunrpc tun af_packet snd_aoa_code=
+c_tas snd_aoa_fabric_layout snd_aoa snd_aoa_i2sbus snd_aoa_soundbus snd_pcm=
+_oss snd_pcm snd_seq snd_timer snd_seq_device snd_mixer_oss snd sungem sr_m=
+od firewire_ohci cdrom sungem_phy soundcore firewire_core pata_macio crc_it=
+u_t sg hid_generic usbhid linear md_mod ohci_pci ohci_hcd ehci_pci ehci_hcd=
+ usbcore usb_common dm_snapshot dm_bufio dm_mirror dm_region_hash dm_log dm=
+_mod sata_svw
+>> [   91.139522] CPU: 1 PID: 3620 Comm: iptables Not tainted 4.19.0-rc1 #1
+>> [   91.139526] NIP:  d0000000016a5718 LR: d0000000016a569c CTR: c0000000=
+006f560c
+>> [   91.139531] REGS: c0000001fa577670 TRAP: 0300   Not tainted  (4.19.0-=
+rc1)
+>> [   91.139534] MSR:  900000000200b032 <SF,HV,VEC,EE,FP,ME,IR,DR,RI>  CR:=
+ 84002484  XER: 20000000
+>> [   91.139553] DAR: d0000001fff12f34 DSISR: 40000000 IRQMASK: 0
+>> GPR00: d0000000016a569c c0000001fa5778f0 d0000000016b0400 00000000000000=
+00
+>> GPR04: 0000000000000002 0000000000000000 80000001fa46418e c0000001fa0d05=
+c8
+>> GPR08: d0000000016b0400 d00037fffff13000 00000001ff3e7000 d0000000016a6f=
+b8
+>> GPR12: c0000000006f560c c00000000ffff780 0000000000000000 00000000000000=
+00
+>> GPR16: 0000000011635010 00003fffa1b7aa68 0000000000000000 00000000000000=
+00
+>> GPR20: 0000000000000003 0000000010013918 00000000116350c0 c000000000b889=
+90
+>> GPR24: c000000000b88ba4 0000000000000000 d0000001fff12f34 00000000000000=
+00
+>> GPR28: d0000000016b8000 c0000001fa20f400 c0000001fa20f440 00000000000000=
+00
+>> [   91.139627] NIP [d0000000016a5718] .alloc_counters.isra.10+0xbc/0x140=
+ [ip_tables]
+>> [   91.139634] LR [d0000000016a569c] .alloc_counters.isra.10+0x40/0x140 =
+[ip_tables]
+>> [   91.139638] Call Trace:
+>> [   91.139645] [c0000001fa5778f0] [d0000000016a569c] .alloc_counters.isr=
+a.10+0x40/0x140 [ip_tables] (unreliable)
+>> [   91.139655] [c0000001fa5779b0] [d0000000016a5b54] .do_ipt_get_ctl+0x1=
+10/0x2ec [ip_tables]
+>> [   91.139666] [c0000001fa577aa0] [c0000000006233e0] .nf_getsockopt+0x68=
+/0x88
+>> [   91.139674] [c0000001fa577b40] [c000000000631608] .ip_getsockopt+0xbc=
+/0x128
+>> [   91.139682] [c0000001fa577bf0] [c00000000065adf4] .raw_getsockopt+0x1=
+8/0x5c
+>> [   91.139690] [c0000001fa577c60] [c0000000005b5f60] .sock_common_getsoc=
+kopt+0x2c/0x40
+>> [   91.139697] [c0000001fa577cd0] [c0000000005b3394] .__sys_getsockopt+0=
+xa4/0xd0
+>> [   91.139704] [c0000001fa577d80] [c0000000005b5ab0] .__se_sys_socketcal=
+l+0x238/0x2b4
+>> [   91.139712] [c0000001fa577e30] [c00000000000a31c] system_call+0x5c/0x=
+70
+>> [   91.139716] Instruction dump:
+>> [   91.139721] 39290040 7d3d4a14 7fbe4840 409cff98 81380000 2b890001 419=
+d000c 393e0060
+>> [   91.139736] 48000010 7d57c82a e93e0060 7d295214 <815a0000> 794807e1 4=
+1e20010 7c210b78
+>> [   91.139752] ---[ end trace f5d1d5431651845d ]---
+>
+> This is due to 7290d58095 ("module: use relative references for
+> __ksymtab entries"). This part of kernel/module.c -
+>
+>    /* Divert to percpu allocation if a percpu var. */
+>    if (sym[i].st_shndx =3D=3D info->index.pcpu)
+>        secbase =3D (unsigned long)mod_percpu(mod);
+>    else
+>        secbase =3D info->sechdrs[sym[i].st_shndx].sh_addr;
+>    sym[i].st_value +=3D secbase;
+>
+> Causes the distance to the target to exceed 32-bits on powerpc, so
+> it doesn't fit in a rel32 reloc. Not sure how other archs cope.
+>
 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 5fb1a43e12e0..2c169041317f 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1197,6 +1197,7 @@ static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
- 	for (i = 0; i < HPAGE_PMD_NR; i++, haddr += PAGE_SIZE) {
- 		pte_t entry;
- 		entry = mk_pte(pages[i], vma->vm_page_prot);
-+		entry = pte_mkyoung(entry);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 		memcg = (void *)page_private(pages[i]);
- 		set_page_private(pages[i], 0);
-@@ -2067,7 +2068,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 	struct page *page;
- 	pgtable_t pgtable;
- 	pmd_t old_pmd, _pmd;
--	bool young, write, soft_dirty, pmd_migration = false;
-+	bool young, write, dirty, soft_dirty, pmd_migration = false;
- 	unsigned long addr;
- 	int i;
- 
-@@ -2145,8 +2146,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 		page = pmd_page(old_pmd);
- 	VM_BUG_ON_PAGE(!page_count(page), page);
- 	page_ref_add(page, HPAGE_PMD_NR - 1);
--	if (pmd_dirty(old_pmd))
--		SetPageDirty(page);
-+	dirty = pmd_dirty(old_pmd);
- 	write = pmd_write(old_pmd);
- 	young = pmd_young(old_pmd);
- 	soft_dirty = pmd_soft_dirty(old_pmd);
-@@ -2176,8 +2176,10 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
- 			entry = maybe_mkwrite(entry, vma);
- 			if (!write)
- 				entry = pte_wrprotect(entry);
--			if (!young)
--				entry = pte_mkold(entry);
-+			if (young)
-+				entry = pte_mkyoung(entry);
-+			if (dirty)
-+				entry = pte_mkdirty(entry);
- 			if (soft_dirty)
- 				entry = pte_mksoft_dirty(entry);
- 		}
-diff --git a/mm/memory.c b/mm/memory.c
-index 3d8bf8220bd0..d205ba69918c 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1830,10 +1830,9 @@ static int insert_pfn(struct vm_area_struct *vma, unsigned long addr,
- 		entry = pte_mkspecial(pfn_t_pte(pfn, prot));
- 
- out_mkwrite:
--	if (mkwrite) {
--		entry = pte_mkyoung(entry);
-+	entry = pte_mkyoung(entry);
-+	if (mkwrite)
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
--	}
- 
- 	set_pte_at(mm, addr, pte, entry);
- 	update_mmu_cache(vma, addr, pte); /* XXX: why not for insert_page? */
-@@ -2560,6 +2559,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
- 		}
- 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
- 		entry = mk_pte(new_page, vma->vm_page_prot);
-+		entry = pte_mkyoung(entry);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 		/*
- 		 * Clear the pte entry and flush it first, before updating the
-@@ -3069,6 +3069,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
- 	inc_mm_counter_fast(vma->vm_mm, MM_ANONPAGES);
- 	dec_mm_counter_fast(vma->vm_mm, MM_SWAPENTS);
- 	pte = mk_pte(page, vma->vm_page_prot);
-+	pte = pte_mkyoung(pte);
- 	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
- 		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
- 		vmf->flags &= ~FAULT_FLAG_WRITE;
-@@ -3479,6 +3480,7 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, struct mem_cgroup *memcg,
- 
- 	flush_icache_page(vma, page);
- 	entry = mk_pte(page, vma->vm_page_prot);
-+	entry = pte_mkyoung(entry);
- 	if (write)
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 	/* copy-on-write page */
--- 
-2.18.0
+Apologies for the breakage. It does indeed appear to affect all
+architectures, and I'm a bit puzzled why you are the first one to spot
+it.
+
+I will try to find a clean way to special case the per-CPU variable
+__ksymtab references in the generic module code, and if that is too
+cumbersome, we can switch to 64-bit relative references (or rather,
+native word size relative references) instead. Or revert the whole
+thing ...
