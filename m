@@ -1,81 +1,54 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [RFC PATCH 2/6] x86/mm: temporary mm struct
-Date: Wed, 29 Aug 2018 08:46:35 -0700
-Message-ID: <CALCETrX39hY28W9aFsFHGWO7f0qjzpwk5YDMFvfzLXON=PqPdw@mail.gmail.com>
-References: <20180829081147.184610-1-namit@vmware.com> <20180829081147.184610-3-namit@vmware.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 5/6] x86/alternatives: use temporary mm for text
+ poking
+Date: Wed, 29 Aug 2018 18:14:00 +0200
+Message-ID: <20180829161400.GV24124@hirez.programming.kicks-ass.net>
+References: <20180829081147.184610-1-namit@vmware.com>
+ <20180829081147.184610-6-namit@vmware.com>
+ <20180829092839.GP24124@hirez.programming.kicks-ass.net>
+ <CALCETrXe9CUMo3c44UtmkxD4w68PvmoypdCyvCFvWiZVuxy=sQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180829081147.184610-3-namit@vmware.com>
+Content-Disposition: inline
+In-Reply-To: <CALCETrXe9CUMo3c44UtmkxD4w68PvmoypdCyvCFvWiZVuxy=sQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>, Rik van Riel <riel@surriel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Nadav Amit <namit@vmware.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Dave Hansen <dave.hansen@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Rik, this is the patch I was referring to.
+On Wed, Aug 29, 2018 at 08:46:04AM -0700, Andy Lutomirski wrote:
+> On Wed, Aug 29, 2018 at 2:28 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > On Wed, Aug 29, 2018 at 01:11:46AM -0700, Nadav Amit wrote:
+> 
+> >> +     pte_clear(poking_mm, poking_addr, ptep);
+> >> +
+> >> +     /*
+> >> +      * __flush_tlb_one_user() performs a redundant TLB flush when PTI is on,
+> >> +      * as it also flushes the corresponding "user" address spaces, which
+> >> +      * does not exist.
+> >> +      *
+> >> +      * Poking, however, is already very inefficient since it does not try to
+> >> +      * batch updates, so we ignore this problem for the time being.
+> >> +      *
+> >> +      * Since the PTEs do not exist in other kernel address-spaces, we do
+> >> +      * not use __flush_tlb_one_kernel(), which when PTI is on would cause
+> >> +      * more unwarranted TLB flushes.
+> >> +      */
+> >
+> > yuck :-), but yeah.
+> 
+> I'm sure we covered this ad nauseum when PTI was being developed, but
+> we were kind of in a rush, so:
+> 
+> Why do we do INVPCID at all?  The fallback path for non-INVPCID
+> systems uses invalidate_user_asid(), which should be faster than the
+> invpcid path.  And doesn't do a redundant flush in this case.
 
-On Wed, Aug 29, 2018 at 1:11 AM, Nadav Amit <namit@vmware.com> wrote:
-> From: Andy Lutomirski <luto@kernel.org>
->
-> Sometimes we want to set a temporary page-table entries (PTEs) in one of
-> the cores, without allowing other cores to use - even speculatively -
-> these mappings. There are two benefits for doing so:
->
-> (1) Security: if sensitive PTEs are set, temporary mm prevents their use
-> in other cores. This hardens the security as it prevents exploding a
-> dangling pointer to overwrite sensitive data using the sensitive PTE.
->
-> (2) Avoiding TLB shootdowns: the PTEs do not need to be flushed in
-> remote page-tables.
->
-> To do so a temporary mm_struct can be used. Mappings which are private
-> for this mm can be set in the userspace part of the address-space.
-> During the whole time in which the temporary mm is loaded, interrupts
-> must be disabled.
->
-> The first use-case for temporary PTEs, which will follow, is for poking
-> the kernel text.
->
-> [ Commit message was written by Nadav ]
->
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Cc: Masami Hiramatsu <mhiramat@kernel.org>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: Nadav Amit <namit@vmware.com>
-> ---
->  arch/x86/include/asm/mmu_context.h | 20 ++++++++++++++++++++
->  1 file changed, 20 insertions(+)
->
-> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-> index eeeb9289c764..96afc8c0cf15 100644
-> --- a/arch/x86/include/asm/mmu_context.h
-> +++ b/arch/x86/include/asm/mmu_context.h
-> @@ -338,4 +338,24 @@ static inline unsigned long __get_current_cr3_fast(void)
->         return cr3;
->  }
->
-> +typedef struct {
-> +       struct mm_struct *prev;
-> +} temporary_mm_state_t;
-> +
-> +static inline temporary_mm_state_t use_temporary_mm(struct mm_struct *mm)
-> +{
-> +       temporary_mm_state_t state;
-> +
-> +       lockdep_assert_irqs_disabled();
-> +       state.prev = this_cpu_read(cpu_tlbstate.loaded_mm);
-> +       switch_mm_irqs_off(NULL, mm, current);
-> +       return state;
-> +}
-> +
-> +static inline void unuse_temporary_mm(temporary_mm_state_t prev)
-> +{
-> +       lockdep_assert_irqs_disabled();
-> +       switch_mm_irqs_off(NULL, prev.prev, current);
-> +}
-> +
->  #endif /* _ASM_X86_MMU_CONTEXT_H */
-> --
-> 2.17.1
->
+I don't remember; and you forgot to (re)add dhansen.
+
+Logically INVPCID_SINGLE should be faster since it pokes out a single
+translation in another PCID instead of killing all user translations.
+
+Is it just a matter of (current) chips implementing INVLPCID_SINGLE
+inefficient, or something else?
