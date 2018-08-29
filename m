@@ -1,101 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr720052.outbound.protection.outlook.com ([40.107.72.52]:9248
-        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
+Received: from mail-eopbgr690084.outbound.protection.outlook.com ([40.107.69.84]:26016
+        "EHLO NAM04-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727245AbeH2UwE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Aug 2018 16:52:04 -0400
+        id S1728481AbeH2VJt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Aug 2018 17:09:49 -0400
 From: Nadav Amit <namit@vmware.com>
-Subject: Re: [RFC PATCH 2/6] x86/mm: temporary mm struct
-Date: Wed, 29 Aug 2018 16:54:13 +0000
-Message-ID: <A7F037E7-6FA1-418D-A8D9-E8752663EF86@vmware.com>
+Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
+Date: Wed, 29 Aug 2018 17:11:53 +0000
+Message-ID: <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
 References: <20180829081147.184610-1-namit@vmware.com>
- <20180829081147.184610-3-namit@vmware.com>
- <20180829184925.64caee4dadf705080373f84f@kernel.org>
- <CALCETrWF5XQndPikmBgo9t1UWKS7T0K2kFGOpzX-tavFVis5_Q@mail.gmail.com>
-In-Reply-To: <CALCETrWF5XQndPikmBgo9t1UWKS7T0K2kFGOpzX-tavFVis5_Q@mail.gmail.com>
+ <20180829081147.184610-2-namit@vmware.com>
+ <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
+In-Reply-To: <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
 Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <64481C5D4380F94F95B21EF5D2D69D6C@namprd05.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <2B964218AB06114B91FD319FEB7F8020@namprd05.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20180829165413.Ex4iywj2cpaqfULVScEpVDe9XoVJEz6T13d6LCTUIqE@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>
+Message-ID: <20180829171153.CMFiIsI-wlMGlFv7jw6lUo2cY-4cu7Ht4Z-uVR1oiqM@z>
 
-at 8:41 AM, Andy Lutomirski <luto@kernel.org> wrote:
-
-> On Wed, Aug 29, 2018 at 2:49 AM, Masami Hiramatsu <mhiramat@kernel.org> w=
-rote:
->> On Wed, 29 Aug 2018 01:11:43 -0700
->> Nadav Amit <namit@vmware.com> wrote:
->>=20
->>> From: Andy Lutomirski <luto@kernel.org>
->>>=20
->>> Sometimes we want to set a temporary page-table entries (PTEs) in one o=
-f
->>> the cores, without allowing other cores to use - even speculatively -
->>> these mappings. There are two benefits for doing so:
->>>=20
->>> (1) Security: if sensitive PTEs are set, temporary mm prevents their us=
-e
->>> in other cores. This hardens the security as it prevents exploding a
->>> dangling pointer to overwrite sensitive data using the sensitive PTE.
->>>=20
->>> (2) Avoiding TLB shootdowns: the PTEs do not need to be flushed in
->>> remote page-tables.
->>>=20
->>> To do so a temporary mm_struct can be used. Mappings which are private
->>> for this mm can be set in the userspace part of the address-space.
->>> During the whole time in which the temporary mm is loaded, interrupts
->>> must be disabled.
->>>=20
->>> The first use-case for temporary PTEs, which will follow, is for poking
->>> the kernel text.
->>>=20
->>> [ Commit message was written by Nadav ]
->>>=20
->>> Cc: Andy Lutomirski <luto@kernel.org>
->>> Cc: Masami Hiramatsu <mhiramat@kernel.org>
->>> Cc: Kees Cook <keescook@chromium.org>
->>> Cc: Peter Zijlstra <peterz@infradead.org>
->>> Signed-off-by: Nadav Amit <namit@vmware.com>
->>> ---
->>> arch/x86/include/asm/mmu_context.h | 20 ++++++++++++++++++++
->>> 1 file changed, 20 insertions(+)
->>>=20
->>> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/=
-mmu_context.h
->>> index eeeb9289c764..96afc8c0cf15 100644
->>> --- a/arch/x86/include/asm/mmu_context.h
->>> +++ b/arch/x86/include/asm/mmu_context.h
->>> @@ -338,4 +338,24 @@ static inline unsigned long __get_current_cr3_fast=
-(void)
->>>      return cr3;
->>> }
->>>=20
->>> +typedef struct {
->>> +     struct mm_struct *prev;
->>> +} temporary_mm_state_t;
->>> +
->>> +static inline temporary_mm_state_t use_temporary_mm(struct mm_struct *=
-mm)
->>> +{
->>> +     temporary_mm_state_t state;
->>> +
->>> +     lockdep_assert_irqs_disabled();
->>> +     state.prev =3D this_cpu_read(cpu_tlbstate.loaded_mm);
->>> +     switch_mm_irqs_off(NULL, mm, current);
->>> +     return state;
->>> +}
->>=20
->> Hmm, why don't we return mm_struct *prev directly?
->=20
-> I did it this way to make it easier to add future debugging stuff
-> later.  Also, when I first wrote this, I stashed the old CR3 instead
-> of the old mm_struct, and it seemed like callers should be insulated
-> from details like this.
-
-Andy, please let me know if you want me to change it somehow, and please
-provide your signed-off-by.
+YXQgMTo1OSBBTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6
+DQoNCj4gT24gV2VkLCAyOSBBdWcgMjAxOCAwMToxMTo0MiAtMDcwMA0KPiBOYWRhdiBBbWl0IDxu
+YW1pdEB2bXdhcmUuY29tPiB3cm90ZToNCj4gDQo+PiBVc2UgbG9ja2RlcCB0byBlbnN1cmUgdGhh
+dCB0ZXh0X211dGV4IGlzIHRha2VuIHdoZW4gdGV4dF9wb2tlKCkgaXMNCj4+IGNhbGxlZC4NCj4+
+IA0KPj4gQWN0dWFsbHkgaXQgaXMgbm90IGFsd2F5cyB0YWtlbiwgc3BlY2lmaWNhbGx5IHdoZW4g
+aXQgaXMgY2FsbGVkIGJ5IGtnZGIsDQo+PiBzbyB0YWtlIHRoZSBsb2NrIGluIHRoZXNlIGNhc2Vz
+Lg0KPiANCj4gQ2FuIHdlIHJlYWxseSB0YWtlIGEgbXV0ZXggaW4ga2dkYiBjb250ZXh0Pw0KPiAN
+Cj4ga2dkYl9hcmNoX3JlbW92ZV9icmVha3BvaW50DQo+ICA8LSBkYmdfZGVhY3RpdmF0ZV9zd19i
+cmVha3BvaW50cw0KPiAgICA8LSBrZ2RiX3JlZW50ZXJfY2hlY2sNCj4gICAgICAgPC0ga2dkYl9o
+YW5kbGVfZXhjZXB0aW9uDQo+ICAgICAgICAgIDwtIF9fa2dkYl9ub3RpZnkNCj4gICAgICAgICAg
+ICA8LSBrZ2RiX2xsX3RyYXANCj4gICAgICAgICAgICAgIDwtIGRvX2ludDMNCj4gICAgICAgICAg
+ICA8LSBrZ2RiX25vdGlmeQ0KPiAgICAgICAgICAgICAgPC0gZGllIG5vdGlmaWVyDQo+IA0KPiBr
+Z2RiX2FyY2hfc2V0X2JyZWFrcG9pbnQNCj4gIDwtIGRiZ19hY3RpdmF0ZV9zd19icmVha3BvaW50
+cw0KPiAgICA8LSBrZ2RiX3JlZW50ZXJfY2hlY2sNCj4gICAgICAgPC0ga2dkYl9oYW5kbGVfZXhj
+ZXB0aW9uDQo+ICAgICAgICAgICAuLi4NCj4gDQo+IEJvdGggc2VlbXMgY2FsbGVkIGluIGV4Y2Vw
+dGlvbiBjb250ZXh0LCBzbyB3ZSBjYW4gbm90IHRha2UgYSBtdXRleCBsb2NrLg0KPiBJIHRoaW5r
+IGtnZGIgbmVlZHMgYSBzcGVjaWFsIHBhdGguDQoNCllvdSBhcmUgY29ycmVjdCwgYnV0IEkgZG9u
+4oCZdCB3YW50IGEgc3BlY2lhbCBwYXRoLiBQcmVzdW1hYmx5IHRleHRfbXV0ZXggaXMNCmd1YXJh
+bnRlZWQgbm90IHRvIGJlIHRha2VuIGFjY29yZGluZyB0byB0aGUgY29kZS4NCg0KU28gSSBndWVz
+cyB0aGUgb25seSBjb25jZXJuIGlzIGxvY2tkZXAuIERvIHlvdSBzZWUgYW55IHByb2JsZW0gaWYg
+SSBjaGFuZ2UNCm11dGV4X2xvY2soKSBpbnRvIG11dGV4X3RyeWxvY2soKT8gSXQgc2hvdWxkIGFs
+d2F5cyBzdWNjZWVkLCBhbmQgSSBjYW4gYWRkIGENCndhcm5pbmcgYW5kIGEgZmFpbHVyZSBwYXRo
+IGlmIGl0IGZhaWxzIGZvciBzb21lIHJlYXNvbi4NCg0K
