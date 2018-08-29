@@ -1,51 +1,91 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Date: Wed, 29 Aug 2018 21:16:43 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
-References: <1535567633.4465.23.camel@synopsys.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [RFC PATCH 2/6] x86/mm: temporary mm struct
+Date: Wed, 29 Aug 2018 14:38:13 -0700
+Message-ID: <CALCETrW3WnhRQ+R9-TEwaKZbupq_WoazT+7UqbLD=zmWML7MNQ@mail.gmail.com>
+References: <20180829081147.184610-1-namit@vmware.com> <20180829081147.184610-3-namit@vmware.com>
+ <20180829184925.64caee4dadf705080373f84f@kernel.org> <CALCETrWF5XQndPikmBgo9t1UWKS7T0K2kFGOpzX-tavFVis5_Q@mail.gmail.com>
+ <A7F037E7-6FA1-418D-A8D9-E8752663EF86@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+In-Reply-To: <A7F037E7-6FA1-418D-A8D9-E8752663EF86@vmware.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Nadav Amit <namit@vmware.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 08/29/2018 11:33 AM, Eugeniy Paltsev wrote:=0A=
-> Hi Guys,=0A=
-> Since v4.19-rc1 we are getting a serious regression on platforms with ARC=
- architecture.=0A=
-> The kernel have become unstable and spontaneously crashes on LTP tests ex=
-ecution / IO tests or=0A=
-> even on boot.=0A=
->=0A=
-> I don't know exactly what breaks but bisect clearly assign the blame to t=
-his commit:=0A=
-> 84c6591103db ("locking/atomics, asm-generic/bitops/lock.h: Rewrite using =
-atomic_fetch_*()")=0A=
-> https://github.com/torvalds/linux/commit/84c6591103dbeaf393a092a3fc7b0951=
-0825f6b9=0A=
->=0A=
-> Reverting the commit solves this problem.=0A=
->=0A=
-> I tested v4.19-rc1 on ARM (wandboard, i.mx6, 32bit, quard core, ARMv7) wh=
-ich uses same=0A=
-> generic bitops implementation and it works fine.=0A=
->=0A=
-> Do you have any ideas what went wrong?=0A=
-=0A=
-Back in 2016, Peter had fixed this file due to a problem I reported on ARC.=
- See=0A=
-commit f75d48644c56a ("bitops: Do not default to __clear_bit() for=0A=
-__clear_bit_unlock()")=0A=
-That made __clear_bit_unlock() use the atomic clear_bit() vs. non-atomic=0A=
-__clear_bit(), effectively making clear_bit_unlock() and __clear_bit_unlock=
-() same.=0A=
-=0A=
-This patch undoes that which could explain the issues you see. @Peter, @Wil=
-l ?=0A=
-=0A=
--Vineet=0A=
+On Wed, Aug 29, 2018 at 9:54 AM, Nadav Amit <namit@vmware.com> wrote:
+> at 8:41 AM, Andy Lutomirski <luto@kernel.org> wrote:
+>
+>> On Wed, Aug 29, 2018 at 2:49 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
+>>> On Wed, 29 Aug 2018 01:11:43 -0700
+>>> Nadav Amit <namit@vmware.com> wrote:
+>>>
+>>>> From: Andy Lutomirski <luto@kernel.org>
+>>>>
+>>>> Sometimes we want to set a temporary page-table entries (PTEs) in one of
+>>>> the cores, without allowing other cores to use - even speculatively -
+>>>> these mappings. There are two benefits for doing so:
+>>>>
+>>>> (1) Security: if sensitive PTEs are set, temporary mm prevents their use
+>>>> in other cores. This hardens the security as it prevents exploding a
+>>>> dangling pointer to overwrite sensitive data using the sensitive PTE.
+>>>>
+>>>> (2) Avoiding TLB shootdowns: the PTEs do not need to be flushed in
+>>>> remote page-tables.
+>>>>
+>>>> To do so a temporary mm_struct can be used. Mappings which are private
+>>>> for this mm can be set in the userspace part of the address-space.
+>>>> During the whole time in which the temporary mm is loaded, interrupts
+>>>> must be disabled.
+>>>>
+>>>> The first use-case for temporary PTEs, which will follow, is for poking
+>>>> the kernel text.
+>>>>
+>>>> [ Commit message was written by Nadav ]
+>>>>
+>>>> Cc: Andy Lutomirski <luto@kernel.org>
+>>>> Cc: Masami Hiramatsu <mhiramat@kernel.org>
+>>>> Cc: Kees Cook <keescook@chromium.org>
+>>>> Cc: Peter Zijlstra <peterz@infradead.org>
+>>>> Signed-off-by: Nadav Amit <namit@vmware.com>
+>>>> ---
+>>>> arch/x86/include/asm/mmu_context.h | 20 ++++++++++++++++++++
+>>>> 1 file changed, 20 insertions(+)
+>>>>
+>>>> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+>>>> index eeeb9289c764..96afc8c0cf15 100644
+>>>> --- a/arch/x86/include/asm/mmu_context.h
+>>>> +++ b/arch/x86/include/asm/mmu_context.h
+>>>> @@ -338,4 +338,24 @@ static inline unsigned long __get_current_cr3_fast(void)
+>>>>      return cr3;
+>>>> }
+>>>>
+>>>> +typedef struct {
+>>>> +     struct mm_struct *prev;
+>>>> +} temporary_mm_state_t;
+>>>> +
+>>>> +static inline temporary_mm_state_t use_temporary_mm(struct mm_struct *mm)
+>>>> +{
+>>>> +     temporary_mm_state_t state;
+>>>> +
+>>>> +     lockdep_assert_irqs_disabled();
+>>>> +     state.prev = this_cpu_read(cpu_tlbstate.loaded_mm);
+>>>> +     switch_mm_irqs_off(NULL, mm, current);
+>>>> +     return state;
+>>>> +}
+>>>
+>>> Hmm, why don't we return mm_struct *prev directly?
+>>
+>> I did it this way to make it easier to add future debugging stuff
+>> later.  Also, when I first wrote this, I stashed the old CR3 instead
+>> of the old mm_struct, and it seemed like callers should be insulated
+>> from details like this.
+>
+> Andy, please let me know if you want me to change it somehow, and please
+> provide your signed-off-by.
+>
+
+I'm happy with it.
+
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
