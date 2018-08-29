@@ -1,75 +1,77 @@
-From: Nicholas Piggin <nicholas.piggin@gmail.com>
-Subject: Re: [PATCH] powerpc: disable support for relative ksymtab references
-Date: Wed, 29 Aug 2018 18:09:12 +1000
-Message-ID: <20180829180912.7a7b39a6@roar.ozlabs.ibm.com>
-References: <20180829064753.7133-1-ard.biesheuvel@linaro.org>
+From: Nadav Amit <namit@vmware.com>
+Subject: [RFC PATCH 2/6] x86/mm: temporary mm struct
+Date: Wed, 29 Aug 2018 01:11:43 -0700
+Message-ID: <20180829081147.184610-3-namit@vmware.com>
+References: <20180829081147.184610-1-namit@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20180829064753.7133-1-ard.biesheuvel@linaro.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: linux-arch@vger.kernel.org, will.deacon@arm.com, linuxppc-dev@ozlabs.org, schwab@linux-m68k.org, jeyu@kernel.org, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, mingo@kernel.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180829081147.184610-1-namit@vmware.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Nadav Amit <namit@vmware.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 29 Aug 2018 08:47:53 +0200
-Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+From: Andy Lutomirski <luto@kernel.org>
 
-> The newly added code that emits ksymtab entries as pairs of 32-bit
-> relative references interacts poorly with the way powerpc lays out
-> its address space: when a module exports a per-CPU variable, the
-> primary module region covering the ksymtab entry -and thus the 32-bit
-> relative reference- is too far away from the actual per-CPU variable's
-> base address (to which the per-CPU offsets are applied to obtain the
-> respective address of each CPU's copy), resulting in corruption when
-> the module loader attempts to resolve symbol references of modules
-> that are loaded on top and link to the exported per-CPU symbol.
-> 
-> So let's disable this feature on powerpc. Even though it implements
-> CONFIG_RELOCATABLE, it does not implement CONFIG_RANDOMIZE_BASE and
-> so KASLR kernels (which are the main target of the feature) do not
-> exist on powerpc anyway.
+Sometimes we want to set a temporary page-table entries (PTEs) in one of
+the cores, without allowing other cores to use - even speculatively -
+these mappings. There are two benefits for doing so:
 
-Let's go with this for now. We have a bit more work to do with module
-loader, linker, percpu, or all of the above. Thanks everyone.
+(1) Security: if sensitive PTEs are set, temporary mm prevents their use
+in other cores. This hardens the security as it prevents exploding a
+dangling pointer to overwrite sensitive data using the sensitive PTE.
 
-Linus can you merge this? I think Michael is on vacation this week and
-things are pretty crashy without it here. Don't need to call him off
-the beach for it.
+(2) Avoiding TLB shootdowns: the PTEs do not need to be flushed in
+remote page-tables.
 
-Thanks,
-Nick
+To do so a temporary mm_struct can be used. Mappings which are private
+for this mm can be set in the userspace part of the address-space.
+During the whole time in which the temporary mm is loaded, interrupts
+must be disabled.
 
-> 
-> Reported-by: Andreas Schwab <schwab@linux-m68k.org>
-> Suggested-by: Nicholas Piggin <nicholas.piggin@gmail.com>
-> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-> ---
->  arch/powerpc/Kconfig | 1 -
->  1 file changed, 1 deletion(-)
-> 
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index db0b6eebbfa5..a80669209155 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -177,7 +177,6 @@ config PPC
->  	select HAVE_ARCH_KGDB
->  	select HAVE_ARCH_MMAP_RND_BITS
->  	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if COMPAT
-> -	select HAVE_ARCH_PREL32_RELOCATIONS
->  	select HAVE_ARCH_SECCOMP_FILTER
->  	select HAVE_ARCH_TRACEHOOK
->  	select HAVE_CBPF_JIT			if !PPC64
-> -- 
-> 2.17.1
-> 
+The first use-case for temporary PTEs, which will follow, is for poking
+the kernel text.
+
+[ Commit message was written by Nadav ]
+
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/include/asm/mmu_context.h | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index eeeb9289c764..96afc8c0cf15 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -338,4 +338,24 @@ static inline unsigned long __get_current_cr3_fast(void)
+ 	return cr3;
+ }
+ 
++typedef struct {
++	struct mm_struct *prev;
++} temporary_mm_state_t;
++
++static inline temporary_mm_state_t use_temporary_mm(struct mm_struct *mm)
++{
++	temporary_mm_state_t state;
++
++	lockdep_assert_irqs_disabled();
++	state.prev = this_cpu_read(cpu_tlbstate.loaded_mm);
++	switch_mm_irqs_off(NULL, mm, current);
++	return state;
++}
++
++static inline void unuse_temporary_mm(temporary_mm_state_t prev)
++{
++	lockdep_assert_irqs_disabled();
++	switch_mm_irqs_off(NULL, prev.prev, current);
++}
++
+ #endif /* _ASM_X86_MMU_CONTEXT_H */
+-- 
+2.17.1
