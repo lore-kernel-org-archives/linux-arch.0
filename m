@@ -1,26 +1,48 @@
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: [PATCH v5 01/16] x86/cpu: create Dhyana init file and register new cpu_dev to system
-Date: Wed, 29 Aug 2018 12:35:59 -0700
-Message-ID: <87mut52cf4.fsf@linux.intel.com>
-References: <cover.1535459012.git.puwen@hygon.cn>
-        <c4610c537e5e5774d8d7486e0867ced8ebf0fba1.1535459012.git.puwen@hygon.cn>
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
+Date: Wed, 29 Aug 2018 19:36:22 +0000
+Message-ID: <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
+References: <20180829081147.184610-1-namit@vmware.com>
+ <20180829081147.184610-2-namit@vmware.com>
+ <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
+ <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <c4610c537e5e5774d8d7486e0867ced8ebf0fba1.1535459012.git.puwen@hygon.cn>
-        (Pu Wen's message of "Wed, 29 Aug 2018 20:42:49 +0800")
+In-Reply-To: <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
+Content-Language: en-US
+Content-ID: <5EB384EFAAD5E143B8B5DF9F349AB8AB@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-Pu Wen <puwen@hygon.cn> writes:
-
-> Add x86 architecture support for new processor Hygon Dhyana Family 18h.
-> Rework to create a separated file(arch/x86/kernel/cpu/hygon.c) from the
-> AMD init one(arch/x86/kernel/cpu/amd.c) to initialize Dhyana CPU.
-
-Standard approach would be to move the shared code into a different
-file and call it from both amd.c and hygon.c instead of duplicating.
-
--Andi
+YXQgMTA6MTEgQU0sIE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0KDQo+IGF0
+IDE6NTkgQU0sIE1hc2FtaSBIaXJhbWF0c3UgPG1oaXJhbWF0QGtlcm5lbC5vcmc+IHdyb3RlOg0K
+PiANCj4+IE9uIFdlZCwgMjkgQXVnIDIwMTggMDE6MTE6NDIgLTA3MDANCj4+IE5hZGF2IEFtaXQg
+PG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0KPj4gDQo+Pj4gVXNlIGxvY2tkZXAgdG8gZW5zdXJl
+IHRoYXQgdGV4dF9tdXRleCBpcyB0YWtlbiB3aGVuIHRleHRfcG9rZSgpIGlzDQo+Pj4gY2FsbGVk
+Lg0KPj4+IA0KPj4+IEFjdHVhbGx5IGl0IGlzIG5vdCBhbHdheXMgdGFrZW4sIHNwZWNpZmljYWxs
+eSB3aGVuIGl0IGlzIGNhbGxlZCBieSBrZ2RiLA0KPj4+IHNvIHRha2UgdGhlIGxvY2sgaW4gdGhl
+c2UgY2FzZXMuDQo+PiANCj4+IENhbiB3ZSByZWFsbHkgdGFrZSBhIG11dGV4IGluIGtnZGIgY29u
+dGV4dD8NCj4+IA0KPj4ga2dkYl9hcmNoX3JlbW92ZV9icmVha3BvaW50DQo+PiA8LSBkYmdfZGVh
+Y3RpdmF0ZV9zd19icmVha3BvaW50cw0KPj4gICA8LSBrZ2RiX3JlZW50ZXJfY2hlY2sNCj4+ICAg
+ICAgPC0ga2dkYl9oYW5kbGVfZXhjZXB0aW9uDQo+PiAgICAgICAgIDwtIF9fa2dkYl9ub3RpZnkN
+Cj4+ICAgICAgICAgICA8LSBrZ2RiX2xsX3RyYXANCj4+ICAgICAgICAgICAgIDwtIGRvX2ludDMN
+Cj4+ICAgICAgICAgICA8LSBrZ2RiX25vdGlmeQ0KPj4gICAgICAgICAgICAgPC0gZGllIG5vdGlm
+aWVyDQo+PiANCj4+IGtnZGJfYXJjaF9zZXRfYnJlYWtwb2ludA0KPj4gPC0gZGJnX2FjdGl2YXRl
+X3N3X2JyZWFrcG9pbnRzDQo+PiAgIDwtIGtnZGJfcmVlbnRlcl9jaGVjaw0KPj4gICAgICA8LSBr
+Z2RiX2hhbmRsZV9leGNlcHRpb24NCj4+ICAgICAgICAgIC4uLg0KPj4gDQo+PiBCb3RoIHNlZW1z
+IGNhbGxlZCBpbiBleGNlcHRpb24gY29udGV4dCwgc28gd2UgY2FuIG5vdCB0YWtlIGEgbXV0ZXgg
+bG9jay4NCj4+IEkgdGhpbmsga2dkYiBuZWVkcyBhIHNwZWNpYWwgcGF0aC4NCj4gDQo+IFlvdSBh
+cmUgY29ycmVjdCwgYnV0IEkgZG9u4oCZdCB3YW50IGEgc3BlY2lhbCBwYXRoLiBQcmVzdW1hYmx5
+IHRleHRfbXV0ZXggaXMNCj4gZ3VhcmFudGVlZCBub3QgdG8gYmUgdGFrZW4gYWNjb3JkaW5nIHRv
+IHRoZSBjb2RlLg0KPiANCj4gU28gSSBndWVzcyB0aGUgb25seSBjb25jZXJuIGlzIGxvY2tkZXAu
+IERvIHlvdSBzZWUgYW55IHByb2JsZW0gaWYgSSBjaGFuZ2UNCj4gbXV0ZXhfbG9jaygpIGludG8g
+bXV0ZXhfdHJ5bG9jaygpPyBJdCBzaG91bGQgYWx3YXlzIHN1Y2NlZWQsIGFuZCBJIGNhbiBhZGQg
+YQ0KPiB3YXJuaW5nIGFuZCBhIGZhaWx1cmUgcGF0aCBpZiBpdCBmYWlscyBmb3Igc29tZSByZWFz
+b24uDQoNCkVyci4uIFRoaXMgd2lsbCBub3Qgd29yay4gSSB0aGluayBJIHdpbGwgZHJvcCB0aGlz
+IHBhdGNoLCBzaW5jZSBJIGNhbm5vdA0KZmluZCBhIHByb3BlciB5ZXQgc2ltcGxlIGFzc2VydGlv
+bi4gQ3JlYXRpbmcgc3BlY2lhbCBwYXRoIGp1c3QgZm9yIHRoZQ0KYXNzZXJ0aW9uIHNlZW1zIHdy
+b25nLg==
