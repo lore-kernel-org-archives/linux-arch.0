@@ -1,71 +1,64 @@
-From: Sean Christopherson <sean.j.christopherson@intel.com>
+From: Nadav Amit <namit@vmware.com>
 Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
-Date: Wed, 29 Aug 2018 13:13:10 -0700
-Message-ID: <20180829201309.GA7142@linux.intel.com>
+Date: Wed, 29 Aug 2018 20:44:47 +0000
+Message-ID: <58345C1F-8FF3-4F49-AF2F-B4789DF50CC7@vmware.com>
 References: <20180829081147.184610-1-namit@vmware.com>
  <20180829081147.184610-2-namit@vmware.com>
  <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
  <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
  <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
+ <20180829201309.GA7142@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
+In-Reply-To: <20180829201309.GA7142@linux.intel.com>
+Content-Language: en-US
+Content-ID: <85D59516B8C2B74CB6642023BF9AFF72@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>
+To: Sean Christopherson <sean.j.christopherson@intel.com>
 Cc: Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 29, 2018 at 07:36:22PM +0000, Nadav Amit wrote:
-> at 10:11 AM, Nadav Amit <namit@vmware.com> wrote:
-> 
-> > at 1:59 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
-> > 
-> >> On Wed, 29 Aug 2018 01:11:42 -0700
-> >> Nadav Amit <namit@vmware.com> wrote:
-> >> 
-> >>> Use lockdep to ensure that text_mutex is taken when text_poke() is
-> >>> called.
-> >>> 
-> >>> Actually it is not always taken, specifically when it is called by kgdb,
-> >>> so take the lock in these cases.
-> >> 
-> >> Can we really take a mutex in kgdb context?
-> >> 
-> >> kgdb_arch_remove_breakpoint
-> >> <- dbg_deactivate_sw_breakpoints
-> >>   <- kgdb_reenter_check
-> >>      <- kgdb_handle_exception
-> >>         <- __kgdb_notify
-> >>           <- kgdb_ll_trap
-> >>             <- do_int3
-> >>           <- kgdb_notify
-> >>             <- die notifier
-> >> 
-> >> kgdb_arch_set_breakpoint
-> >> <- dbg_activate_sw_breakpoints
-> >>   <- kgdb_reenter_check
-> >>      <- kgdb_handle_exception
-> >>          ...
-> >> 
-> >> Both seems called in exception context, so we can not take a mutex lock.
-> >> I think kgdb needs a special path.
-> > 
-> > You are correct, but I don’t want a special path. Presumably text_mutex is
-> > guaranteed not to be taken according to the code.
-> > 
-> > So I guess the only concern is lockdep. Do you see any problem if I change
-> > mutex_lock() into mutex_trylock()? It should always succeed, and I can add a
-> > warning and a failure path if it fails for some reason.
-> 
-> Err.. This will not work. I think I will drop this patch, since I cannot
-> find a proper yet simple assertion. Creating special path just for the
-> assertion seems wrong.
-
-It's probably worth expanding the comment for text_poke() to call out
-the kgdb case and reference kgdb_arch_{set,remove}_breakpoint(), whose
-code and comments make it explicitly clear why its safe for them to
-call text_poke() without acquiring the lock.  Might prevent someone
-from going down this path again in the future.
+YXQgMToxMyBQTSwgU2VhbiBDaHJpc3RvcGhlcnNvbiA8c2Vhbi5qLmNocmlzdG9waGVyc29uQGlu
+dGVsLmNvbT4gd3JvdGU6DQoNCj4gT24gV2VkLCBBdWcgMjksIDIwMTggYXQgMDc6MzY6MjJQTSAr
+MDAwMCwgTmFkYXYgQW1pdCB3cm90ZToNCj4+IGF0IDEwOjExIEFNLCBOYWRhdiBBbWl0IDxuYW1p
+dEB2bXdhcmUuY29tPiB3cm90ZToNCj4+IA0KPj4+IGF0IDE6NTkgQU0sIE1hc2FtaSBIaXJhbWF0
+c3UgPG1oaXJhbWF0QGtlcm5lbC5vcmc+IHdyb3RlOg0KPj4+IA0KPj4+PiBPbiBXZWQsIDI5IEF1
+ZyAyMDE4IDAxOjExOjQyIC0wNzAwDQo+Pj4+IE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+
+IHdyb3RlOg0KPj4+PiANCj4+Pj4+IFVzZSBsb2NrZGVwIHRvIGVuc3VyZSB0aGF0IHRleHRfbXV0
+ZXggaXMgdGFrZW4gd2hlbiB0ZXh0X3Bva2UoKSBpcw0KPj4+Pj4gY2FsbGVkLg0KPj4+Pj4gDQo+
+Pj4+PiBBY3R1YWxseSBpdCBpcyBub3QgYWx3YXlzIHRha2VuLCBzcGVjaWZpY2FsbHkgd2hlbiBp
+dCBpcyBjYWxsZWQgYnkga2dkYiwNCj4+Pj4+IHNvIHRha2UgdGhlIGxvY2sgaW4gdGhlc2UgY2Fz
+ZXMuDQo+Pj4+IA0KPj4+PiBDYW4gd2UgcmVhbGx5IHRha2UgYSBtdXRleCBpbiBrZ2RiIGNvbnRl
+eHQ/DQo+Pj4+IA0KPj4+PiBrZ2RiX2FyY2hfcmVtb3ZlX2JyZWFrcG9pbnQNCj4+Pj4gPC0gZGJn
+X2RlYWN0aXZhdGVfc3dfYnJlYWtwb2ludHMNCj4+Pj4gIDwtIGtnZGJfcmVlbnRlcl9jaGVjaw0K
+Pj4+PiAgICAgPC0ga2dkYl9oYW5kbGVfZXhjZXB0aW9uDQo+Pj4+ICAgICAgICA8LSBfX2tnZGJf
+bm90aWZ5DQo+Pj4+ICAgICAgICAgIDwtIGtnZGJfbGxfdHJhcA0KPj4+PiAgICAgICAgICAgIDwt
+IGRvX2ludDMNCj4+Pj4gICAgICAgICAgPC0ga2dkYl9ub3RpZnkNCj4+Pj4gICAgICAgICAgICA8
+LSBkaWUgbm90aWZpZXINCj4+Pj4gDQo+Pj4+IGtnZGJfYXJjaF9zZXRfYnJlYWtwb2ludA0KPj4+
+PiA8LSBkYmdfYWN0aXZhdGVfc3dfYnJlYWtwb2ludHMNCj4+Pj4gIDwtIGtnZGJfcmVlbnRlcl9j
+aGVjaw0KPj4+PiAgICAgPC0ga2dkYl9oYW5kbGVfZXhjZXB0aW9uDQo+Pj4+ICAgICAgICAgLi4u
+DQo+Pj4+IA0KPj4+PiBCb3RoIHNlZW1zIGNhbGxlZCBpbiBleGNlcHRpb24gY29udGV4dCwgc28g
+d2UgY2FuIG5vdCB0YWtlIGEgbXV0ZXggbG9jay4NCj4+Pj4gSSB0aGluayBrZ2RiIG5lZWRzIGEg
+c3BlY2lhbCBwYXRoLg0KPj4+IA0KPj4+IFlvdSBhcmUgY29ycmVjdCwgYnV0IEkgZG9u4oCZdCB3
+YW50IGEgc3BlY2lhbCBwYXRoLiBQcmVzdW1hYmx5IHRleHRfbXV0ZXggaXMNCj4+PiBndWFyYW50
+ZWVkIG5vdCB0byBiZSB0YWtlbiBhY2NvcmRpbmcgdG8gdGhlIGNvZGUuDQo+Pj4gDQo+Pj4gU28g
+SSBndWVzcyB0aGUgb25seSBjb25jZXJuIGlzIGxvY2tkZXAuIERvIHlvdSBzZWUgYW55IHByb2Js
+ZW0gaWYgSSBjaGFuZ2UNCj4+PiBtdXRleF9sb2NrKCkgaW50byBtdXRleF90cnlsb2NrKCk/IEl0
+IHNob3VsZCBhbHdheXMgc3VjY2VlZCwgYW5kIEkgY2FuIGFkZCBhDQo+Pj4gd2FybmluZyBhbmQg
+YSBmYWlsdXJlIHBhdGggaWYgaXQgZmFpbHMgZm9yIHNvbWUgcmVhc29uLg0KPj4gDQo+PiBFcnIu
+LiBUaGlzIHdpbGwgbm90IHdvcmsuIEkgdGhpbmsgSSB3aWxsIGRyb3AgdGhpcyBwYXRjaCwgc2lu
+Y2UgSSBjYW5ub3QNCj4+IGZpbmQgYSBwcm9wZXIgeWV0IHNpbXBsZSBhc3NlcnRpb24uIENyZWF0
+aW5nIHNwZWNpYWwgcGF0aCBqdXN0IGZvciB0aGUNCj4+IGFzc2VydGlvbiBzZWVtcyB3cm9uZy4N
+Cj4gDQo+IEl0J3MgcHJvYmFibHkgd29ydGggZXhwYW5kaW5nIHRoZSBjb21tZW50IGZvciB0ZXh0
+X3Bva2UoKSB0byBjYWxsIG91dA0KPiB0aGUga2dkYiBjYXNlIGFuZCByZWZlcmVuY2Uga2dkYl9h
+cmNoX3tzZXQscmVtb3ZlfV9icmVha3BvaW50KCksIHdob3NlDQo+IGNvZGUgYW5kIGNvbW1lbnRz
+IG1ha2UgaXQgZXhwbGljaXRseSBjbGVhciB3aHkgaXRzIHNhZmUgZm9yIHRoZW0gdG8NCj4gY2Fs
+bCB0ZXh0X3Bva2UoKSB3aXRob3V0IGFjcXVpcmluZyB0aGUgbG9jay4gIE1pZ2h0IHByZXZlbnQg
+c29tZW9uZQ0KPiBmcm9tIGdvaW5nIGRvd24gdGhpcyBwYXRoIGFnYWluIGluIHRoZSBmdXR1cmUu
+DQoNCkkgdGhvdWdodCB0aGF0IHRoZSB3aG9sZSBwb2ludCBvZiB0aGUgcGF0Y2ggd2FzIHRvIGF2
+b2lkIGNvbW1lbnRzLCBhbmQNCmluc3RlYWQgZW5mb3JjZSB0aGUgcmlnaHQgYmVoYXZpb3IuIEkg
+ZG9u4oCZdCB1bmRlcnN0YW5kIHdlbGwgZW5vdWdoIGtnZGINCmNvZGUsIHNvIEkgY2Fubm90IGF0
+dGVzdCBpdCBkb2VzIHRoZSByaWdodCB0aGluZy4gV2hhdCBoYXBwZW5zIGlmDQprZ2RiX2RvX3Jv
+dW5kdXA9PTA/DQoNCg0K
