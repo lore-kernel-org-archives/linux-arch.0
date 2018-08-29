@@ -1,74 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:36149 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726656AbeH2MFK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Aug 2018 08:05:10 -0400
-Received: by mail-pg1-f195.google.com with SMTP id d1-v6so1990093pgo.3
-        for <linux-arch@vger.kernel.org>; Wed, 29 Aug 2018 01:09:30 -0700 (PDT)
-Date: Wed, 29 Aug 2018 18:09:12 +1000
-From: Nicholas Piggin <nicholas.piggin@gmail.com>
-Subject: Re: [PATCH] powerpc: disable support for relative ksymtab
- references
-Message-ID: <20180829180912.7a7b39a6@roar.ozlabs.ibm.com>
-In-Reply-To: <20180829064753.7133-1-ard.biesheuvel@linaro.org>
-References: <20180829064753.7133-1-ard.biesheuvel@linaro.org>
+Received: from ex13-edg-ou-001.vmware.com ([208.91.0.189]:43187 "EHLO
+        EX13-EDG-OU-001.vmware.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727948AbeH2MJI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Aug 2018 08:09:08 -0400
+From: Nadav Amit <namit@vmware.com>
+Subject: [RFC PATCH 4/6] x86/alternatives: initializing temporary mm for patching
+Date: Wed, 29 Aug 2018 01:11:45 -0700
+Message-ID: <20180829081147.184610-5-namit@vmware.com>
+In-Reply-To: <20180829081147.184610-1-namit@vmware.com>
+References: <20180829081147.184610-1-namit@vmware.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: linuxppc-dev@ozlabs.org, schwab@linux-m68k.org, jeyu@kernel.org, mpe@ellerman.id.au, will.deacon@arm.com, mingo@kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180829080912.8bDpUI8gCTX2hCsbH7D_vkOn9fBOktebf-T13fTRv-Q@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Nadav Amit <namit@vmware.com>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180829081145.mHTKYXk-KYg8G-4ZfaPPcM-eonzvs3Tqb1mxx0dAnpM@z>
 
-On Wed, 29 Aug 2018 08:47:53 +0200
-Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+To prevent improper use of the PTEs that are used for text patching, we
+want to use a temporary mm struct. We initailize it by copying the init
+mm.
 
-> The newly added code that emits ksymtab entries as pairs of 32-bit
-> relative references interacts poorly with the way powerpc lays out
-> its address space: when a module exports a per-CPU variable, the
-> primary module region covering the ksymtab entry -and thus the 32-bit
-> relative reference- is too far away from the actual per-CPU variable's
-> base address (to which the per-CPU offsets are applied to obtain the
-> respective address of each CPU's copy), resulting in corruption when
-> the module loader attempts to resolve symbol references of modules
-> that are loaded on top and link to the exported per-CPU symbol.
-> 
-> So let's disable this feature on powerpc. Even though it implements
-> CONFIG_RELOCATABLE, it does not implement CONFIG_RANDOMIZE_BASE and
-> so KASLR kernels (which are the main target of the feature) do not
-> exist on powerpc anyway.
+The address that will be used for patching is taken from the lower area
+that is usually used for the task memory. Doing so prevents the need to
+frequently synchronize the temporary-mm (e.g., when BPF programs are
+installed), since different PGDs are used for the task memory.
 
-Let's go with this for now. We have a bit more work to do with module
-loader, linker, percpu, or all of the above. Thanks everyone.
+Finally, we randomize the address of the PTEs to harden against exploits
+that use these PTEs.
 
-Linus can you merge this? I think Michael is on vacation this week and
-things are pretty crashy without it here. Don't need to call him off
-the beach for it.
+Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Suggested-by: Andy Lutomirski <luto@kernel.org>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/include/asm/pgtable.h       |  4 ++++
+ arch/x86/include/asm/text-patching.h |  2 ++
+ arch/x86/mm/init_64.c                | 35 ++++++++++++++++++++++++++++
+ include/asm-generic/pgtable.h        |  4 ++++
+ init/main.c                          |  1 +
+ 5 files changed, 46 insertions(+)
 
-Thanks,
-Nick
-
-> 
-> Reported-by: Andreas Schwab <schwab@linux-m68k.org>
-> Suggested-by: Nicholas Piggin <nicholas.piggin@gmail.com>
-> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-> ---
->  arch/powerpc/Kconfig | 1 -
->  1 file changed, 1 deletion(-)
-> 
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index db0b6eebbfa5..a80669209155 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -177,7 +177,6 @@ config PPC
->  	select HAVE_ARCH_KGDB
->  	select HAVE_ARCH_MMAP_RND_BITS
->  	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if COMPAT
-> -	select HAVE_ARCH_PREL32_RELOCATIONS
->  	select HAVE_ARCH_SECCOMP_FILTER
->  	select HAVE_ARCH_TRACEHOOK
->  	select HAVE_CBPF_JIT			if !PPC64
-> -- 
-> 2.17.1
-> 
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index e4ffa565a69f..c65d2b146ff6 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1022,6 +1022,10 @@ static inline void __meminit init_trampoline_default(void)
+ 	/* Default trampoline pgd value */
+ 	trampoline_pgd_entry = init_top_pgt[pgd_index(__PAGE_OFFSET)];
+ }
++
++void __init poking_init(void);
++#define poking_init poking_init
++
+ # ifdef CONFIG_RANDOMIZE_MEMORY
+ void __meminit init_trampoline(void);
+ # else
+diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
+index e85ff65c43c3..ffe7902cc326 100644
+--- a/arch/x86/include/asm/text-patching.h
++++ b/arch/x86/include/asm/text-patching.h
+@@ -38,5 +38,7 @@ extern void *text_poke(void *addr, const void *opcode, size_t len);
+ extern int poke_int3_handler(struct pt_regs *regs);
+ extern void *text_poke_bp(void *addr, const void *opcode, size_t len, void *handler);
+ extern int after_bootmem;
++extern __ro_after_init struct mm_struct *poking_mm;
++extern __ro_after_init unsigned long poking_addr;
+ 
+ #endif /* _ASM_X86_TEXT_PATCHING_H */
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index dd519f372169..ed4a46a89946 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -33,6 +33,7 @@
+ #include <linux/nmi.h>
+ #include <linux/gfp.h>
+ #include <linux/kcore.h>
++#include <linux/sched/mm.h>
+ 
+ #include <asm/processor.h>
+ #include <asm/bios_ebda.h>
+@@ -54,6 +55,7 @@
+ #include <asm/init.h>
+ #include <asm/uv/uv.h>
+ #include <asm/setup.h>
++#include <asm/text-patching.h>
+ 
+ #include "mm_internal.h"
+ 
+@@ -1389,6 +1391,39 @@ unsigned long memory_block_size_bytes(void)
+ 	return memory_block_size_probed;
+ }
+ 
++/*
++ * Initialize an mm_struct to be used during poking and a pointer to be used
++ * during patching. If anything fails during initialization, poking will be done
++ * using the fixmap, which is unsafe, so warn the user about it.
++ */
++void __init poking_init(void)
++{
++	unsigned long poking_addr;
++
++	poking_mm = copy_init_mm();
++	if (!poking_mm)
++		goto error;
++
++	/*
++	 * Randomize the poking address, but make sure that the following page
++	 * will be mapped at the same PMD. We need 2 pages, so find space for 3,
++	 * and adjust the address if the PMD ends after the first one.
++	 */
++	poking_addr = TASK_UNMAPPED_BASE +
++		(kaslr_get_random_long("Poking") & PAGE_MASK) %
++		(TASK_SIZE - TASK_UNMAPPED_BASE - 3 * PAGE_SIZE);
++
++	if (((poking_addr + PAGE_SIZE) & ~PMD_MASK) == 0)
++		poking_addr += PAGE_SIZE;
++
++	return;
++error:
++	if (poking_mm)
++		mmput(poking_mm);
++	poking_mm = NULL;
++	pr_err("x86/mm: error setting a separate poking address space\n");
++}
++
+ #ifdef CONFIG_SPARSEMEM_VMEMMAP
+ /*
+  * Initialise the sparsemem vmemmap using huge-pages at the PMD level.
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 88ebc6102c7c..c66579d0ee67 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1111,6 +1111,10 @@ static inline bool arch_has_pfn_modify_check(void)
+ 
+ #ifndef PAGE_KERNEL_EXEC
+ # define PAGE_KERNEL_EXEC PAGE_KERNEL
++
++#ifndef poking_init
++static inline void poking_init(void) { }
++#endif
+ #endif
+ 
+ #endif /* !__ASSEMBLY__ */
+diff --git a/init/main.c b/init/main.c
+index 18f8f0140fa0..6754ff2687c8 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -725,6 +725,7 @@ asmlinkage __visible void __init start_kernel(void)
+ 	taskstats_init_early();
+ 	delayacct_init();
+ 
++	poking_init();
+ 	check_bugs();
+ 
+ 	acpi_subsystem_init();
+-- 
+2.17.1
