@@ -1,82 +1,51 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC LKMM 7/7] EXP tools/memory-model: Add .cfg and .cat files for s390
-Date: Wed, 29 Aug 2018 14:10:53 -0700
-Message-ID: <20180829211053.20531-7-paulmck@linux.vnet.ibm.com>
-References: <20180829211018.GA19646@linux.vnet.ibm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
+ causes kernel crash
+Date: Wed, 29 Aug 2018 21:16:43 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
+References: <1535567633.4465.23.camel@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180829211018.GA19646@linux.vnet.ibm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-This commit adds s390.cat and s390.cfg files to allow users to check
-litmus tests for s390-specific code.  Note that this change only enables
-herd7 checking of C-language litmus tests.  Larger changes are required
-to enable the litmus7 and klitmus7 tools to check litmus tests on real
-hardare.
-
-Suggested-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Suggested-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-[ paulmck: Add fixes suggested by Alan Stern. ]
----
- tools/memory-model/s390.cat | 18 ++++++++++++++++++
- tools/memory-model/s390.cfg | 21 +++++++++++++++++++++
- 2 files changed, 39 insertions(+)
- create mode 100644 tools/memory-model/s390.cat
- create mode 100644 tools/memory-model/s390.cfg
-
-diff --git a/tools/memory-model/s390.cat b/tools/memory-model/s390.cat
-new file mode 100644
-index 000000000000..216bf33d3ffe
---- /dev/null
-+++ b/tools/memory-model/s390.cat
-@@ -0,0 +1,18 @@
-+s390
-+
-+include "fences.cat"
-+include "cos.cat"
-+
-+(* Fundamental coherence ordering *)
-+let com = rf | co | fr
-+acyclic po-loc | com as coherence
-+
-+(* Atomic *)
-+empty rmw & (fre;coe) as atom
-+
-+(* Fences *)
-+let mb = [M] ; fencerel(Mb) ; [M]
-+
-+(* TSO with multicopy atomicity (tso-mca) *)
-+let po-ghb = ([R] ; po ; [M]) | ([M] ; po ; [W])
-+acyclic mb | po-ghb | fr | rf | co as tso-mca
-diff --git a/tools/memory-model/s390.cfg b/tools/memory-model/s390.cfg
-new file mode 100644
-index 000000000000..d77e05d2395c
---- /dev/null
-+++ b/tools/memory-model/s390.cfg
-@@ -0,0 +1,21 @@
-+macros linux-kernel.def
-+bell linux-kernel.bell
-+model s390.cat
-+graph columns
-+squished true
-+showevents noregs
-+movelabel true
-+fontsize 8
-+xscale 2.0
-+yscale 1.5
-+arrowsize 0.8
-+showinitrf false
-+showfinalrf false
-+showinitwrites false
-+splines spline
-+pad 0.1
-+edgeattr hb,color,indigo
-+edgeattr co,color,blue
-+edgeattr mb,color,darkgreen
-+edgeattr wmb,color,darkgreen
-+edgeattr rmb,color,darkgreen
--- 
-2.17.1
+On 08/29/2018 11:33 AM, Eugeniy Paltsev wrote:=0A=
+> Hi Guys,=0A=
+> Since v4.19-rc1 we are getting a serious regression on platforms with ARC=
+ architecture.=0A=
+> The kernel have become unstable and spontaneously crashes on LTP tests ex=
+ecution / IO tests or=0A=
+> even on boot.=0A=
+>=0A=
+> I don't know exactly what breaks but bisect clearly assign the blame to t=
+his commit:=0A=
+> 84c6591103db ("locking/atomics, asm-generic/bitops/lock.h: Rewrite using =
+atomic_fetch_*()")=0A=
+> https://github.com/torvalds/linux/commit/84c6591103dbeaf393a092a3fc7b0951=
+0825f6b9=0A=
+>=0A=
+> Reverting the commit solves this problem.=0A=
+>=0A=
+> I tested v4.19-rc1 on ARM (wandboard, i.mx6, 32bit, quard core, ARMv7) wh=
+ich uses same=0A=
+> generic bitops implementation and it works fine.=0A=
+>=0A=
+> Do you have any ideas what went wrong?=0A=
+=0A=
+Back in 2016, Peter had fixed this file due to a problem I reported on ARC.=
+ See=0A=
+commit f75d48644c56a ("bitops: Do not default to __clear_bit() for=0A=
+__clear_bit_unlock()")=0A=
+That made __clear_bit_unlock() use the atomic clear_bit() vs. non-atomic=0A=
+__clear_bit(), effectively making clear_bit_unlock() and __clear_bit_unlock=
+() same.=0A=
+=0A=
+This patch undoes that which could explain the issues you see. @Peter, @Wil=
+l ?=0A=
+=0A=
+-Vineet=0A=
