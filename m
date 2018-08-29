@@ -1,42 +1,37 @@
 From: Nadav Amit <namit@vmware.com>
-Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
-Date: Wed, 29 Aug 2018 17:11:53 +0000
-Message-ID: <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
+Subject: Re: [RFC PATCH 6/6] x86/alternatives: remove text_poke() return value
+Date: Wed, 29 Aug 2018 17:15:28 +0000
+Message-ID: <F9672E89-C01C-443C-A1FB-6EA2B66CBB4D@vmware.com>
 References: <20180829081147.184610-1-namit@vmware.com>
- <20180829081147.184610-2-namit@vmware.com>
- <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
+ <20180829081147.184610-7-namit@vmware.com>
+ <20180829185222.e85026ff22638002a1df70e0@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
+In-Reply-To: <20180829185222.e85026ff22638002a1df70e0@kernel.org>
 Content-Language: en-US
-Content-ID: <2B964218AB06114B91FD319FEB7F8020@namprd05.prod.outlook.com>
+Content-ID: <62C9C6614C839649A17A51265DEFD93E@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-YXQgMTo1OSBBTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6
-DQoNCj4gT24gV2VkLCAyOSBBdWcgMjAxOCAwMToxMTo0MiAtMDcwMA0KPiBOYWRhdiBBbWl0IDxu
-YW1pdEB2bXdhcmUuY29tPiB3cm90ZToNCj4gDQo+PiBVc2UgbG9ja2RlcCB0byBlbnN1cmUgdGhh
-dCB0ZXh0X211dGV4IGlzIHRha2VuIHdoZW4gdGV4dF9wb2tlKCkgaXMNCj4+IGNhbGxlZC4NCj4+
-IA0KPj4gQWN0dWFsbHkgaXQgaXMgbm90IGFsd2F5cyB0YWtlbiwgc3BlY2lmaWNhbGx5IHdoZW4g
-aXQgaXMgY2FsbGVkIGJ5IGtnZGIsDQo+PiBzbyB0YWtlIHRoZSBsb2NrIGluIHRoZXNlIGNhc2Vz
-Lg0KPiANCj4gQ2FuIHdlIHJlYWxseSB0YWtlIGEgbXV0ZXggaW4ga2dkYiBjb250ZXh0Pw0KPiAN
-Cj4ga2dkYl9hcmNoX3JlbW92ZV9icmVha3BvaW50DQo+ICA8LSBkYmdfZGVhY3RpdmF0ZV9zd19i
-cmVha3BvaW50cw0KPiAgICA8LSBrZ2RiX3JlZW50ZXJfY2hlY2sNCj4gICAgICAgPC0ga2dkYl9o
-YW5kbGVfZXhjZXB0aW9uDQo+ICAgICAgICAgIDwtIF9fa2dkYl9ub3RpZnkNCj4gICAgICAgICAg
-ICA8LSBrZ2RiX2xsX3RyYXANCj4gICAgICAgICAgICAgIDwtIGRvX2ludDMNCj4gICAgICAgICAg
-ICA8LSBrZ2RiX25vdGlmeQ0KPiAgICAgICAgICAgICAgPC0gZGllIG5vdGlmaWVyDQo+IA0KPiBr
-Z2RiX2FyY2hfc2V0X2JyZWFrcG9pbnQNCj4gIDwtIGRiZ19hY3RpdmF0ZV9zd19icmVha3BvaW50
-cw0KPiAgICA8LSBrZ2RiX3JlZW50ZXJfY2hlY2sNCj4gICAgICAgPC0ga2dkYl9oYW5kbGVfZXhj
-ZXB0aW9uDQo+ICAgICAgICAgICAuLi4NCj4gDQo+IEJvdGggc2VlbXMgY2FsbGVkIGluIGV4Y2Vw
-dGlvbiBjb250ZXh0LCBzbyB3ZSBjYW4gbm90IHRha2UgYSBtdXRleCBsb2NrLg0KPiBJIHRoaW5r
-IGtnZGIgbmVlZHMgYSBzcGVjaWFsIHBhdGguDQoNCllvdSBhcmUgY29ycmVjdCwgYnV0IEkgZG9u
-4oCZdCB3YW50IGEgc3BlY2lhbCBwYXRoLiBQcmVzdW1hYmx5IHRleHRfbXV0ZXggaXMNCmd1YXJh
-bnRlZWQgbm90IHRvIGJlIHRha2VuIGFjY29yZGluZyB0byB0aGUgY29kZS4NCg0KU28gSSBndWVz
-cyB0aGUgb25seSBjb25jZXJuIGlzIGxvY2tkZXAuIERvIHlvdSBzZWUgYW55IHByb2JsZW0gaWYg
-SSBjaGFuZ2UNCm11dGV4X2xvY2soKSBpbnRvIG11dGV4X3RyeWxvY2soKT8gSXQgc2hvdWxkIGFs
-d2F5cyBzdWNjZWVkLCBhbmQgSSBjYW4gYWRkIGENCndhcm5pbmcgYW5kIGEgZmFpbHVyZSBwYXRo
-IGlmIGl0IGZhaWxzIGZvciBzb21lIHJlYXNvbi4NCg0K
+at 2:52 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
+
+>> --- a/arch/x86/kernel/alternative.c
+>> +++ b/arch/x86/kernel/alternative.c
+>> @@ -795,7 +795,7 @@ static void text_poke_safe(void *addr, const void *o=
+pcode, size_t len,
+>>  *
+>>  * Note: Must be called under text_mutex.
+>>  */
+>> -void *text_poke(void *addr, const void *opcode, size_t len)
+>> +void text_poke(void *addr, const void *opcode, size_t len)
+>> {
+>> 	bool cross_page_boundary =3D offset_in_page(addr) + len > PAGE_SIZE;
+>> 	struct page *pages[2] =3D {0};
+>=20
+> Could you also remove "return addr;" in this patch ?
+
+Oops. Thanks!
