@@ -1,37 +1,46 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 2/3] mm/cow: optimise pte dirty/accessed bits handling in fork
-Date: Wed, 29 Aug 2018 08:42:09 -0700
-Message-ID: <CA+55aFwbZrsdZEh0ds1W3AWUeTamDRheQPKSi9O=--cEOSjr5g@mail.gmail.com>
-References: <20180828112034.30875-1-npiggin@gmail.com> <20180828112034.30875-3-npiggin@gmail.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [RFC PATCH 5/6] x86/alternatives: use temporary mm for text poking
+Date: Wed, 29 Aug 2018 08:46:04 -0700
+Message-ID: <CALCETrXe9CUMo3c44UtmkxD4w68PvmoypdCyvCFvWiZVuxy=sQ@mail.gmail.com>
+References: <20180829081147.184610-1-namit@vmware.com> <20180829081147.184610-6-namit@vmware.com>
+ <20180829092839.GP24124@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180828112034.30875-3-npiggin@gmail.com>
+In-Reply-To: <20180829092839.GP24124@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nick Piggin <npiggin@gmail.com>
-Cc: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Nadav Amit <namit@vmware.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 28, 2018 at 4:20 AM Nicholas Piggin <npiggin@gmail.com> wrote:
+On Wed, Aug 29, 2018 at 2:28 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, Aug 29, 2018 at 01:11:46AM -0700, Nadav Amit wrote:
+
+>> +     pte_clear(poking_mm, poking_addr, ptep);
+>> +
+>> +     /*
+>> +      * __flush_tlb_one_user() performs a redundant TLB flush when PTI is on,
+>> +      * as it also flushes the corresponding "user" address spaces, which
+>> +      * does not exist.
+>> +      *
+>> +      * Poking, however, is already very inefficient since it does not try to
+>> +      * batch updates, so we ignore this problem for the time being.
+>> +      *
+>> +      * Since the PTEs do not exist in other kernel address-spaces, we do
+>> +      * not use __flush_tlb_one_kernel(), which when PTI is on would cause
+>> +      * more unwarranted TLB flushes.
+>> +      */
 >
-> fork clears dirty/accessed bits from new ptes in the child. This logic
-> has existed since mapped page reclaim was done by scanning ptes when
-> it may have been quite important. Today with physical based pte
-> scanning, there is less reason to clear these bits.
+> yuck :-), but yeah.
 
-Can you humor me, and make the dirty/accessed bit patches separate?
+I'm sure we covered this ad nauseum when PTI was being developed, but
+we were kind of in a rush, so:
 
-There is actually a difference wrt the dirty bit: if we unmap an area
-with dirty pages, we have to do the special synchronous flush.
+Why do we do INVPCID at all?  The fallback path for non-INVPCID
+systems uses invalidate_user_asid(), which should be faster than the
+invpcid path.  And doesn't do a redundant flush in this case.
 
-So a clean page in the virtual mapping is _literally_ cheaper to have.
+Can we just drop the INVPCID?  While we're at it, we could drop
+X86_FEATURE_INVPCID_SINGLE entirely, since that's the only user.
 
-> This eliminates a major source of faults powerpc/radix requires to set
-> dirty/accessed bits in ptes, speeding up a fork/exit microbenchmark by
-> about 5% on POWER9 (16600 -> 17500 fork/execs per second).
-
-I don't think the dirty bit matters.
-
-The accessed bit I think may be worth keeping, so by all means remove the mkold.
-
-                  Linus
+--Andy
