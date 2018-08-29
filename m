@@ -1,38 +1,82 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC LKMM 4/7] tools/memory-model: Fix a README typo
-Date: Wed, 29 Aug 2018 14:10:50 -0700
-Message-ID: <20180829211053.20531-4-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH RFC LKMM 7/7] EXP tools/memory-model: Add .cfg and .cat files for s390
+Date: Wed, 29 Aug 2018 14:10:53 -0700
+Message-ID: <20180829211053.20531-7-paulmck@linux.vnet.ibm.com>
 References: <20180829211018.GA19646@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180829211018.GA19646@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, SeongJae Park <sj38.park@gmail.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: SeongJae Park <sj38.park@gmail.com>
+This commit adds s390.cat and s390.cfg files to allow users to check
+litmus tests for s390-specific code.  Note that this change only enables
+herd7 checking of C-language litmus tests.  Larger changes are required
+to enable the litmus7 and klitmus7 tools to check litmus tests on real
+hardare.
 
-This commit fixes a duplicate-"the" typo in README.
-
-Signed-off-by: SeongJae Park <sj38.park@gmail.com>
+Suggested-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Suggested-by: Christian Borntraeger <borntraeger@de.ibm.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
+[ paulmck: Add fixes suggested by Alan Stern. ]
 ---
- tools/memory-model/Documentation/recipes.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/memory-model/s390.cat | 18 ++++++++++++++++++
+ tools/memory-model/s390.cfg | 21 +++++++++++++++++++++
+ 2 files changed, 39 insertions(+)
+ create mode 100644 tools/memory-model/s390.cat
+ create mode 100644 tools/memory-model/s390.cfg
 
-diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
-index af72700cc20a..7fe8d7aa3029 100644
---- a/tools/memory-model/Documentation/recipes.txt
-+++ b/tools/memory-model/Documentation/recipes.txt
-@@ -311,7 +311,7 @@ The smp_wmb() macro orders prior stores against later stores, and the
- smp_rmb() macro orders prior loads against later loads.  Therefore, if
- the final value of r0 is 1, the final value of r1 must also be 1.
- 
--The the xlog_state_switch_iclogs() function in fs/xfs/xfs_log.c contains
-+The xlog_state_switch_iclogs() function in fs/xfs/xfs_log.c contains
- the following write-side code fragment:
- 
- 	log->l_curr_block -= log->l_logBBsize;
+diff --git a/tools/memory-model/s390.cat b/tools/memory-model/s390.cat
+new file mode 100644
+index 000000000000..216bf33d3ffe
+--- /dev/null
++++ b/tools/memory-model/s390.cat
+@@ -0,0 +1,18 @@
++s390
++
++include "fences.cat"
++include "cos.cat"
++
++(* Fundamental coherence ordering *)
++let com = rf | co | fr
++acyclic po-loc | com as coherence
++
++(* Atomic *)
++empty rmw & (fre;coe) as atom
++
++(* Fences *)
++let mb = [M] ; fencerel(Mb) ; [M]
++
++(* TSO with multicopy atomicity (tso-mca) *)
++let po-ghb = ([R] ; po ; [M]) | ([M] ; po ; [W])
++acyclic mb | po-ghb | fr | rf | co as tso-mca
+diff --git a/tools/memory-model/s390.cfg b/tools/memory-model/s390.cfg
+new file mode 100644
+index 000000000000..d77e05d2395c
+--- /dev/null
++++ b/tools/memory-model/s390.cfg
+@@ -0,0 +1,21 @@
++macros linux-kernel.def
++bell linux-kernel.bell
++model s390.cat
++graph columns
++squished true
++showevents noregs
++movelabel true
++fontsize 8
++xscale 2.0
++yscale 1.5
++arrowsize 0.8
++showinitrf false
++showfinalrf false
++showinitwrites false
++splines spline
++pad 0.1
++edgeattr hb,color,indigo
++edgeattr co,color,blue
++edgeattr mb,color,darkgreen
++edgeattr wmb,color,darkgreen
++edgeattr rmb,color,darkgreen
 -- 
 2.17.1
