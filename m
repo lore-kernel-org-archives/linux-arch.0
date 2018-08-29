@@ -1,91 +1,80 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [RFC PATCH 2/6] x86/mm: temporary mm struct
-Date: Wed, 29 Aug 2018 14:38:13 -0700
-Message-ID: <CALCETrW3WnhRQ+R9-TEwaKZbupq_WoazT+7UqbLD=zmWML7MNQ@mail.gmail.com>
-References: <20180829081147.184610-1-namit@vmware.com> <20180829081147.184610-3-namit@vmware.com>
- <20180829184925.64caee4dadf705080373f84f@kernel.org> <CALCETrWF5XQndPikmBgo9t1UWKS7T0K2kFGOpzX-tavFVis5_Q@mail.gmail.com>
- <A7F037E7-6FA1-418D-A8D9-E8752663EF86@vmware.com>
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
+Date: Wed, 29 Aug 2018 22:56:23 +0000
+Message-ID: <DFC5DCBA-A572-4603-82C8-77A6C1303630@vmware.com>
+References: <20180829081147.184610-1-namit@vmware.com>
+ <20180829081147.184610-2-namit@vmware.com>
+ <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
+ <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
+ <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
+ <20180829201309.GA7142@linux.intel.com>
+ <58345C1F-8FF3-4F49-AF2F-B4789DF50CC7@vmware.com>
+ <20180829210006.GA7166@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <A7F037E7-6FA1-418D-A8D9-E8752663EF86@vmware.com>
+In-Reply-To: <20180829210006.GA7166@linux.intel.com>
+Content-Language: en-US
+Content-ID: <CC2DDA7049F1294F8FCFA8632F950D27@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+To: Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 29, 2018 at 9:54 AM, Nadav Amit <namit@vmware.com> wrote:
-> at 8:41 AM, Andy Lutomirski <luto@kernel.org> wrote:
->
->> On Wed, Aug 29, 2018 at 2:49 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
->>> On Wed, 29 Aug 2018 01:11:43 -0700
->>> Nadav Amit <namit@vmware.com> wrote:
->>>
->>>> From: Andy Lutomirski <luto@kernel.org>
->>>>
->>>> Sometimes we want to set a temporary page-table entries (PTEs) in one of
->>>> the cores, without allowing other cores to use - even speculatively -
->>>> these mappings. There are two benefits for doing so:
->>>>
->>>> (1) Security: if sensitive PTEs are set, temporary mm prevents their use
->>>> in other cores. This hardens the security as it prevents exploding a
->>>> dangling pointer to overwrite sensitive data using the sensitive PTE.
->>>>
->>>> (2) Avoiding TLB shootdowns: the PTEs do not need to be flushed in
->>>> remote page-tables.
->>>>
->>>> To do so a temporary mm_struct can be used. Mappings which are private
->>>> for this mm can be set in the userspace part of the address-space.
->>>> During the whole time in which the temporary mm is loaded, interrupts
->>>> must be disabled.
->>>>
->>>> The first use-case for temporary PTEs, which will follow, is for poking
->>>> the kernel text.
->>>>
->>>> [ Commit message was written by Nadav ]
->>>>
->>>> Cc: Andy Lutomirski <luto@kernel.org>
->>>> Cc: Masami Hiramatsu <mhiramat@kernel.org>
->>>> Cc: Kees Cook <keescook@chromium.org>
->>>> Cc: Peter Zijlstra <peterz@infradead.org>
->>>> Signed-off-by: Nadav Amit <namit@vmware.com>
->>>> ---
->>>> arch/x86/include/asm/mmu_context.h | 20 ++++++++++++++++++++
->>>> 1 file changed, 20 insertions(+)
->>>>
->>>> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
->>>> index eeeb9289c764..96afc8c0cf15 100644
->>>> --- a/arch/x86/include/asm/mmu_context.h
->>>> +++ b/arch/x86/include/asm/mmu_context.h
->>>> @@ -338,4 +338,24 @@ static inline unsigned long __get_current_cr3_fast(void)
->>>>      return cr3;
->>>> }
->>>>
->>>> +typedef struct {
->>>> +     struct mm_struct *prev;
->>>> +} temporary_mm_state_t;
->>>> +
->>>> +static inline temporary_mm_state_t use_temporary_mm(struct mm_struct *mm)
->>>> +{
->>>> +     temporary_mm_state_t state;
->>>> +
->>>> +     lockdep_assert_irqs_disabled();
->>>> +     state.prev = this_cpu_read(cpu_tlbstate.loaded_mm);
->>>> +     switch_mm_irqs_off(NULL, mm, current);
->>>> +     return state;
->>>> +}
->>>
->>> Hmm, why don't we return mm_struct *prev directly?
->>
->> I did it this way to make it easier to add future debugging stuff
->> later.  Also, when I first wrote this, I stashed the old CR3 instead
->> of the old mm_struct, and it seemed like callers should be insulated
->> from details like this.
->
-> Andy, please let me know if you want me to change it somehow, and please
-> provide your signed-off-by.
->
-
-I'm happy with it.
-
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
+YXQgMjowMCBQTSwgU2VhbiBDaHJpc3RvcGhlcnNvbiA8c2Vhbi5qLmNocmlzdG9waGVyc29uQGlu
+dGVsLmNvbT4gd3JvdGU6DQoNCj4gT24gV2VkLCBBdWcgMjksIDIwMTggYXQgMDg6NDQ6NDdQTSAr
+MDAwMCwgTmFkYXYgQW1pdCB3cm90ZToNCj4+IGF0IDE6MTMgUE0sIFNlYW4gQ2hyaXN0b3BoZXJz
+b24gPHNlYW4uai5jaHJpc3RvcGhlcnNvbkBpbnRlbC5jb20+IHdyb3RlOg0KPj4gDQo+Pj4gT24g
+V2VkLCBBdWcgMjksIDIwMTggYXQgMDc6MzY6MjJQTSArMDAwMCwgTmFkYXYgQW1pdCB3cm90ZToN
+Cj4+Pj4gYXQgMTA6MTEgQU0sIE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0K
+Pj4+PiANCj4+Pj4+IGF0IDE6NTkgQU0sIE1hc2FtaSBIaXJhbWF0c3UgPG1oaXJhbWF0QGtlcm5l
+bC5vcmc+IHdyb3RlOg0KPj4+Pj4gDQo+Pj4+Pj4gT24gV2VkLCAyOSBBdWcgMjAxOCAwMToxMTo0
+MiAtMDcwMA0KPj4+Pj4+IE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0KPj4+
+Pj4+IA0KPj4+Pj4+PiBVc2UgbG9ja2RlcCB0byBlbnN1cmUgdGhhdCB0ZXh0X211dGV4IGlzIHRh
+a2VuIHdoZW4gdGV4dF9wb2tlKCkgaXMNCj4+Pj4+Pj4gY2FsbGVkLg0KPj4+Pj4+PiANCj4+Pj4+
+Pj4gQWN0dWFsbHkgaXQgaXMgbm90IGFsd2F5cyB0YWtlbiwgc3BlY2lmaWNhbGx5IHdoZW4gaXQg
+aXMgY2FsbGVkIGJ5IGtnZGIsDQo+Pj4+Pj4+IHNvIHRha2UgdGhlIGxvY2sgaW4gdGhlc2UgY2Fz
+ZXMuDQo+Pj4+Pj4gDQo+Pj4+Pj4gQ2FuIHdlIHJlYWxseSB0YWtlIGEgbXV0ZXggaW4ga2dkYiBj
+b250ZXh0Pw0KPj4+Pj4+IA0KPj4+Pj4+IGtnZGJfYXJjaF9yZW1vdmVfYnJlYWtwb2ludA0KPj4+
+Pj4+IDwtIGRiZ19kZWFjdGl2YXRlX3N3X2JyZWFrcG9pbnRzDQo+Pj4+Pj4gPC0ga2dkYl9yZWVu
+dGVyX2NoZWNrDQo+Pj4+Pj4gICAgPC0ga2dkYl9oYW5kbGVfZXhjZXB0aW9uDQo+Pj4+Pj4gICAg
+ICAgPC0gX19rZ2RiX25vdGlmeQ0KPj4+Pj4+ICAgICAgICAgPC0ga2dkYl9sbF90cmFwDQo+Pj4+
+Pj4gICAgICAgICAgIDwtIGRvX2ludDMNCj4+Pj4+PiAgICAgICAgIDwtIGtnZGJfbm90aWZ5DQo+
+Pj4+Pj4gICAgICAgICAgIDwtIGRpZSBub3RpZmllcg0KPj4+Pj4+IA0KPj4+Pj4+IGtnZGJfYXJj
+aF9zZXRfYnJlYWtwb2ludA0KPj4+Pj4+IDwtIGRiZ19hY3RpdmF0ZV9zd19icmVha3BvaW50cw0K
+Pj4+Pj4+IDwtIGtnZGJfcmVlbnRlcl9jaGVjaw0KPj4+Pj4+ICAgIDwtIGtnZGJfaGFuZGxlX2V4
+Y2VwdGlvbg0KPj4+Pj4+ICAgICAgICAuLi4NCj4+Pj4+PiANCj4+Pj4+PiBCb3RoIHNlZW1zIGNh
+bGxlZCBpbiBleGNlcHRpb24gY29udGV4dCwgc28gd2UgY2FuIG5vdCB0YWtlIGEgbXV0ZXggbG9j
+ay4NCj4+Pj4+PiBJIHRoaW5rIGtnZGIgbmVlZHMgYSBzcGVjaWFsIHBhdGguDQo+Pj4+PiANCj4+
+Pj4+IFlvdSBhcmUgY29ycmVjdCwgYnV0IEkgZG9u4oCZdCB3YW50IGEgc3BlY2lhbCBwYXRoLiBQ
+cmVzdW1hYmx5IHRleHRfbXV0ZXggaXMNCj4+Pj4+IGd1YXJhbnRlZWQgbm90IHRvIGJlIHRha2Vu
+IGFjY29yZGluZyB0byB0aGUgY29kZS4NCj4+Pj4+IA0KPj4+Pj4gU28gSSBndWVzcyB0aGUgb25s
+eSBjb25jZXJuIGlzIGxvY2tkZXAuIERvIHlvdSBzZWUgYW55IHByb2JsZW0gaWYgSSBjaGFuZ2UN
+Cj4+Pj4+IG11dGV4X2xvY2soKSBpbnRvIG11dGV4X3RyeWxvY2soKT8gSXQgc2hvdWxkIGFsd2F5
+cyBzdWNjZWVkLCBhbmQgSSBjYW4gYWRkIGENCj4+Pj4+IHdhcm5pbmcgYW5kIGEgZmFpbHVyZSBw
+YXRoIGlmIGl0IGZhaWxzIGZvciBzb21lIHJlYXNvbi4NCj4+Pj4gDQo+Pj4+IEVyci4uIFRoaXMg
+d2lsbCBub3Qgd29yay4gSSB0aGluayBJIHdpbGwgZHJvcCB0aGlzIHBhdGNoLCBzaW5jZSBJIGNh
+bm5vdA0KPj4+PiBmaW5kIGEgcHJvcGVyIHlldCBzaW1wbGUgYXNzZXJ0aW9uLiBDcmVhdGluZyBz
+cGVjaWFsIHBhdGgganVzdCBmb3IgdGhlDQo+Pj4+IGFzc2VydGlvbiBzZWVtcyB3cm9uZy4NCj4+
+PiANCj4+PiBJdCdzIHByb2JhYmx5IHdvcnRoIGV4cGFuZGluZyB0aGUgY29tbWVudCBmb3IgdGV4
+dF9wb2tlKCkgdG8gY2FsbCBvdXQNCj4+PiB0aGUga2dkYiBjYXNlIGFuZCByZWZlcmVuY2Uga2dk
+Yl9hcmNoX3tzZXQscmVtb3ZlfV9icmVha3BvaW50KCksIHdob3NlDQo+Pj4gY29kZSBhbmQgY29t
+bWVudHMgbWFrZSBpdCBleHBsaWNpdGx5IGNsZWFyIHdoeSBpdHMgc2FmZSBmb3IgdGhlbSB0bw0K
+Pj4+IGNhbGwgdGV4dF9wb2tlKCkgd2l0aG91dCBhY3F1aXJpbmcgdGhlIGxvY2suICBNaWdodCBw
+cmV2ZW50IHNvbWVvbmUNCj4+PiBmcm9tIGdvaW5nIGRvd24gdGhpcyBwYXRoIGFnYWluIGluIHRo
+ZSBmdXR1cmUuDQo+PiANCj4+IEkgdGhvdWdodCB0aGF0IHRoZSB3aG9sZSBwb2ludCBvZiB0aGUg
+cGF0Y2ggd2FzIHRvIGF2b2lkIGNvbW1lbnRzLCBhbmQNCj4+IGluc3RlYWQgZW5mb3JjZSB0aGUg
+cmlnaHQgYmVoYXZpb3IuIEkgZG9u4oCZdCB1bmRlcnN0YW5kIHdlbGwgZW5vdWdoIGtnZGINCj4+
+IGNvZGUsIHNvIEkgY2Fubm90IGF0dGVzdCBpdCBkb2VzIHRoZSByaWdodCB0aGluZy4gV2hhdCBo
+YXBwZW5zIGlmDQo+PiBrZ2RiX2RvX3JvdW5kdXA9PTA/DQo+IA0KPiBBcyBpcywgdGhlIGNvbW1l
+bnQgaXMgd3JvbmcgYmVjYXVzZSB0aGVyZSBhcmUgb2J2aW91c2x5IGNhc2VzIHdoZXJlDQo+IHRl
+eHRfcG9rZSgpIGlzIGNhbGxlZCB3aXRob3V0IHRleHRfbXV0ZXggYmVpbmcgaGVsZC4gIEkgY2Fu
+J3QgYXR0ZXN0DQo+IHRvIHRoZSBrZ2RiIGNvZGUgZWl0aGVyLiAgTXkgdGhvdWdodCB3YXMgdG8g
+ZG9jdW1lbnQgdGhlIGV4Y2VwdGlvbiBzbw0KPiB0aGF0IGlmIHNvbWVvbmUgZG9lcyB3YW50IHRv
+IHRyeSBhbmQgZW5mb3JjZSB0aGUgcmlnaHQgYmVoYXZpb3IgdGhleQ0KPiBjYW4gZGl2ZSByaWdo
+dCBpbnRvIHRoZSBwcm9ibGVtIGluc3RlYWQgb2YgaGF2aW5nIHRvIGxlYXJuIG9mIHRoZSBrZ2Ri
+DQo+IGdvdGNoYSB0aGUgaGFyZCB3YXkuICBNYXliZSBhIEZJWE1FIGlzIHRoZSByaWdodCBhcHBy
+b2FjaD8NCg0KT2suIEnigJlsbCBhZGQgYSBGSVhNRSBjb21tZW50IGFzIHlvdSBwcm9wb3NlLCBi
+dXQgdGhpcyBkb2VzIG5vdCBkZXNlcnZlIGENCnNlcGFyYXRlIHBhdGNoLiBJ4oCZbGwgc3F1YXNo
+IGl0IGludG8gcGF0Y2ggNS4NCg0K
