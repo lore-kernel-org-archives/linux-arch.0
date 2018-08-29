@@ -1,73 +1,89 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v20 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-Date: Tue, 28 Aug 2018 17:48:25 -0600
-Message-ID: <20180828234826.22215-6-logang@deltatee.com>
-References: <20180828234826.22215-1-logang@deltatee.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180828234826.22215-1-logang@deltatee.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: Oops running iptables -F OUTPUT
+Date: Wed, 29 Aug 2018 13:28:27 +1000
+Message-ID: <20180829132827.6dbc4352@roar.ozlabs.ibm.com>
+References: <87bm9n68gq.fsf@igel.home>
+        <20180828140632.593291cf@roar.ozlabs.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20180828140632.593291cf@roar.ozlabs.ibm.com>
+Sender: netdev-owner@vger.kernel.org
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: netdev@vger.kernel.org, linuxppc-dev@ozlabs.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jessica Yu <jeyu@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+On Tue, 28 Aug 2018 14:06:32 +1000
+Nicholas Piggin <nicholas.piggin@gmail.com> wrote:
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+> On Mon, 27 Aug 2018 19:11:01 +0200
+> Andreas Schwab <schwab@linux-m68k.org> wrote:
+> 
+> > I'm getting this Oops when running iptables -F OUTPUT:
+> > 
+> > [   91.139409] Unable to handle kernel paging request for data at address 0xd0000001fff12f34
+> > [   91.139414] Faulting instruction address: 0xd0000000016a5718
+> > [   91.139419] Oops: Kernel access of bad area, sig: 11 [#1]
+> > [   91.139426] BE SMP NR_CPUS=2 PowerMac
+> > [   91.139434] Modules linked in: iptable_filter ip_tables x_tables bpfilter nfsd auth_rpcgss lockd grace nfs_acl sunrpc tun af_packet snd_aoa_codec_tas snd_aoa_fabric_layout snd_aoa snd_aoa_i2sbus snd_aoa_soundbus snd_pcm_oss snd_pcm snd_seq snd_timer snd_seq_device snd_mixer_oss snd sungem sr_mod firewire_ohci cdrom sungem_phy soundcore firewire_core pata_macio crc_itu_t sg hid_generic usbhid linear md_mod ohci_pci ohci_hcd ehci_pci ehci_hcd usbcore usb_common dm_snapshot dm_bufio dm_mirror dm_region_hash dm_log dm_mod sata_svw
+> > [   91.139522] CPU: 1 PID: 3620 Comm: iptables Not tainted 4.19.0-rc1 #1
+> > [   91.139526] NIP:  d0000000016a5718 LR: d0000000016a569c CTR: c0000000006f560c
+> > [   91.139531] REGS: c0000001fa577670 TRAP: 0300   Not tainted  (4.19.0-rc1)
+> > [   91.139534] MSR:  900000000200b032 <SF,HV,VEC,EE,FP,ME,IR,DR,RI>  CR: 84002484  XER: 20000000
+> > [   91.139553] DAR: d0000001fff12f34 DSISR: 40000000 IRQMASK: 0 
+> > GPR00: d0000000016a569c c0000001fa5778f0 d0000000016b0400 0000000000000000 
+> > GPR04: 0000000000000002 0000000000000000 80000001fa46418e c0000001fa0d05c8 
+> > GPR08: d0000000016b0400 d00037fffff13000 00000001ff3e7000 d0000000016a6fb8 
+> > GPR12: c0000000006f560c c00000000ffff780 0000000000000000 0000000000000000 
+> > GPR16: 0000000011635010 00003fffa1b7aa68 0000000000000000 0000000000000000 
+> > GPR20: 0000000000000003 0000000010013918 00000000116350c0 c000000000b88990 
+> > GPR24: c000000000b88ba4 0000000000000000 d0000001fff12f34 0000000000000000 
+> > GPR28: d0000000016b8000 c0000001fa20f400 c0000001fa20f440 0000000000000000 
+> > [   91.139627] NIP [d0000000016a5718] .alloc_counters.isra.10+0xbc/0x140 [ip_tables]
+> > [   91.139634] LR [d0000000016a569c] .alloc_counters.isra.10+0x40/0x140 [ip_tables]
+> > [   91.139638] Call Trace:
+> > [   91.139645] [c0000001fa5778f0] [d0000000016a569c] .alloc_counters.isra.10+0x40/0x140 [ip_tables] (unreliable)
+> > [   91.139655] [c0000001fa5779b0] [d0000000016a5b54] .do_ipt_get_ctl+0x110/0x2ec [ip_tables]
+> > [   91.139666] [c0000001fa577aa0] [c0000000006233e0] .nf_getsockopt+0x68/0x88
+> > [   91.139674] [c0000001fa577b40] [c000000000631608] .ip_getsockopt+0xbc/0x128
+> > [   91.139682] [c0000001fa577bf0] [c00000000065adf4] .raw_getsockopt+0x18/0x5c
+> > [   91.139690] [c0000001fa577c60] [c0000000005b5f60] .sock_common_getsockopt+0x2c/0x40
+> > [   91.139697] [c0000001fa577cd0] [c0000000005b3394] .__sys_getsockopt+0xa4/0xd0
+> > [   91.139704] [c0000001fa577d80] [c0000000005b5ab0] .__se_sys_socketcall+0x238/0x2b4
+> > [   91.139712] [c0000001fa577e30] [c00000000000a31c] system_call+0x5c/0x70
+> > [   91.139716] Instruction dump:
+> > [   91.139721] 39290040 7d3d4a14 7fbe4840 409cff98 81380000 2b890001 419d000c 393e0060 
+> > [   91.139736] 48000010 7d57c82a e93e0060 7d295214 <815a0000> 794807e1 41e20010 7c210b78 
+> > [   91.139752] ---[ end trace f5d1d5431651845d ]---  
+> 
+> This is due to 7290d58095 ("module: use relative references for
+> __ksymtab entries"). This part of kernel/module.c -
+> 
+>    /* Divert to percpu allocation if a percpu var. */
+>    if (sym[i].st_shndx == info->index.pcpu)
+>        secbase = (unsigned long)mod_percpu(mod);
+>    else
+>        secbase = info->sechdrs[sym[i].st_shndx].sh_addr;
+>    sym[i].st_value += secbase;
+> 
+> Causes the distance to the target to exceed 32-bits on powerpc, so
+> it doesn't fit in a rel32 reloc. Not sure how other archs cope.
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
-index c49ff8970ce3..e071e28bca3f 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
-@@ -53,6 +53,7 @@
- 
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- /* PCI device IDs */
- #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
-@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
- 	return 0;
- }
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #endif
--- 
-2.11.0
+Any progress on this one? I had a bit of a look but can't see a really
+trivial fix and don't have a lot of time to work on it. Maybe use 64
+bit relative offsets for per-cpu exports, or better might be apply the
+per-cpu fixup when linking against the symbol rather than when writing
+the module symbol table.
+
+Until then I'd like to just remove HAVE_ARCH_PREL32_RELOCATIONS from
+powerpc/Kconfig, but if other archs are going to have issues too, we
+could just revert
+
+271ca788774aa ("arch: enable relative relocations for arm64, power and x86")
+
+arm64, x86 -- can the distance between your module percpu data link
+location -> module percpu runtime allocation location exceed 31 bits?
+
+Thanks,
+Nick
