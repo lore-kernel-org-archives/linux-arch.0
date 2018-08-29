@@ -1,37 +1,175 @@
 From: Nadav Amit <namit@vmware.com>
-Subject: Re: [RFC PATCH 6/6] x86/alternatives: remove text_poke() return value
-Date: Wed, 29 Aug 2018 17:15:28 +0000
-Message-ID: <F9672E89-C01C-443C-A1FB-6EA2B66CBB4D@vmware.com>
+Subject: Re: [RFC PATCH 4/6] x86/alternatives: initializing temporary mm for
+ patching
+Date: Wed, 29 Aug 2018 17:45:21 +0000
+Message-ID: <08328D6F-0380-4FCC-A99C-C7CD281DF582@vmware.com>
 References: <20180829081147.184610-1-namit@vmware.com>
- <20180829081147.184610-7-namit@vmware.com>
- <20180829185222.e85026ff22638002a1df70e0@kernel.org>
+ <20180829081147.184610-5-namit@vmware.com>
+ <20180829222149.adfeee806322a332bb1e4ab9@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180829185222.e85026ff22638002a1df70e0@kernel.org>
+In-Reply-To: <20180829222149.adfeee806322a332bb1e4ab9@kernel.org>
 Content-Language: en-US
-Content-ID: <62C9C6614C839649A17A51265DEFD93E@namprd05.prod.outlook.com>
+Content-ID: <E12148A2DF791048AC8EF18E3981D9A9@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-at 2:52 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
+at 6:21 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
 
->> --- a/arch/x86/kernel/alternative.c
->> +++ b/arch/x86/kernel/alternative.c
->> @@ -795,7 +795,7 @@ static void text_poke_safe(void *addr, const void *o=
-pcode, size_t len,
->>  *
->>  * Note: Must be called under text_mutex.
->>  */
->> -void *text_poke(void *addr, const void *opcode, size_t len)
->> +void text_poke(void *addr, const void *opcode, size_t len)
->> {
->> 	bool cross_page_boundary =3D offset_in_page(addr) + len > PAGE_SIZE;
->> 	struct page *pages[2] =3D {0};
+> On Wed, 29 Aug 2018 01:11:45 -0700
+> Nadav Amit <namit@vmware.com> wrote:
 >=20
-> Could you also remove "return addr;" in this patch ?
+>> To prevent improper use of the PTEs that are used for text patching, we
+>> want to use a temporary mm struct. We initailize it by copying the init
+>> mm.
+>>=20
+>> The address that will be used for patching is taken from the lower area
+>> that is usually used for the task memory. Doing so prevents the need to
+>> frequently synchronize the temporary-mm (e.g., when BPF programs are
+>> installed), since different PGDs are used for the task memory.
+>>=20
+>> Finally, we randomize the address of the PTEs to harden against exploits
+>> that use these PTEs.
+>>=20
+>> Cc: Masami Hiramatsu <mhiramat@kernel.org>
+>> Cc: Kees Cook <keescook@chromium.org>
+>> Cc: Peter Zijlstra <peterz@infradead.org>
+>> Suggested-by: Andy Lutomirski <luto@kernel.org>
+>> Signed-off-by: Nadav Amit <namit@vmware.com>
+>> ---
+>> arch/x86/include/asm/pgtable.h       |  4 ++++
+>> arch/x86/include/asm/text-patching.h |  2 ++
+>> arch/x86/mm/init_64.c                | 35 ++++++++++++++++++++++++++++
+>> include/asm-generic/pgtable.h        |  4 ++++
+>> init/main.c                          |  1 +
+>> 5 files changed, 46 insertions(+)
+>>=20
+>> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtab=
+le.h
+>> index e4ffa565a69f..c65d2b146ff6 100644
+>> --- a/arch/x86/include/asm/pgtable.h
+>> +++ b/arch/x86/include/asm/pgtable.h
+>> @@ -1022,6 +1022,10 @@ static inline void __meminit init_trampoline_defa=
+ult(void)
+>> 	/* Default trampoline pgd value */
+>> 	trampoline_pgd_entry =3D init_top_pgt[pgd_index(__PAGE_OFFSET)];
+>> }
+>> +
+>> +void __init poking_init(void);
+>> +#define poking_init poking_init
+>=20
+> Would we need this macro?
+>=20
+>> +
+>> # ifdef CONFIG_RANDOMIZE_MEMORY
+>> void __meminit init_trampoline(void);
+>> # else
+>> diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm=
+/text-patching.h
+>> index e85ff65c43c3..ffe7902cc326 100644
+>> --- a/arch/x86/include/asm/text-patching.h
+>> +++ b/arch/x86/include/asm/text-patching.h
+>> @@ -38,5 +38,7 @@ extern void *text_poke(void *addr, const void *opcode,=
+ size_t len);
+>> extern int poke_int3_handler(struct pt_regs *regs);
+>> extern void *text_poke_bp(void *addr, const void *opcode, size_t len, vo=
+id *handler);
+>> extern int after_bootmem;
+>> +extern __ro_after_init struct mm_struct *poking_mm;
+>> +extern __ro_after_init unsigned long poking_addr;
+>>=20
+>> #endif /* _ASM_X86_TEXT_PATCHING_H */
+>> diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+>> index dd519f372169..ed4a46a89946 100644
+>> --- a/arch/x86/mm/init_64.c
+>> +++ b/arch/x86/mm/init_64.c
+>> @@ -33,6 +33,7 @@
+>> #include <linux/nmi.h>
+>> #include <linux/gfp.h>
+>> #include <linux/kcore.h>
+>> +#include <linux/sched/mm.h>
+>>=20
+>> #include <asm/processor.h>
+>> #include <asm/bios_ebda.h>
+>> @@ -54,6 +55,7 @@
+>> #include <asm/init.h>
+>> #include <asm/uv/uv.h>
+>> #include <asm/setup.h>
+>> +#include <asm/text-patching.h>
+>>=20
+>> #include "mm_internal.h"
+>>=20
+>> @@ -1389,6 +1391,39 @@ unsigned long memory_block_size_bytes(void)
+>> 	return memory_block_size_probed;
+>> }
+>>=20
+>> +/*
+>> + * Initialize an mm_struct to be used during poking and a pointer to be=
+ used
+>> + * during patching. If anything fails during initialization, poking wil=
+l be done
+>> + * using the fixmap, which is unsafe, so warn the user about it.
+>> + */
+>> +void __init poking_init(void)
+>> +{
+>> +	unsigned long poking_addr;
+>> +
+>> +	poking_mm =3D copy_init_mm();
+>> +	if (!poking_mm)
+>> +		goto error;
+>> +
+>> +	/*
+>> +	 * Randomize the poking address, but make sure that the following page
+>> +	 * will be mapped at the same PMD. We need 2 pages, so find space for =
+3,
+>> +	 * and adjust the address if the PMD ends after the first one.
+>> +	 */
+>> +	poking_addr =3D TASK_UNMAPPED_BASE +
+>> +		(kaslr_get_random_long("Poking") & PAGE_MASK) %
+>> +		(TASK_SIZE - TASK_UNMAPPED_BASE - 3 * PAGE_SIZE);
+>> +
+>> +	if (((poking_addr + PAGE_SIZE) & ~PMD_MASK) =3D=3D 0)
+>> +		poking_addr +=3D PAGE_SIZE;
+>> +
+>> +	return;
+>> +error:
+>> +	if (poking_mm)
+>> +		mmput(poking_mm);
+>> +	poking_mm =3D NULL;
+>=20
+> At this point, only poking_mm =3D=3D NULL case jumps into error. So we do=
+n't
+> need above 3 lines.
 
-Oops. Thanks!
+Right. Will be fixed in the next version.=20
+
+>=20
+>> +	pr_err("x86/mm: error setting a separate poking address space\n");
+>> +}
+>> +
+>> #ifdef CONFIG_SPARSEMEM_VMEMMAP
+>> /*
+>>  * Initialise the sparsemem vmemmap using huge-pages at the PMD level.
+>> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable=
+.h
+>> index 88ebc6102c7c..c66579d0ee67 100644
+>> --- a/include/asm-generic/pgtable.h
+>> +++ b/include/asm-generic/pgtable.h
+>> @@ -1111,6 +1111,10 @@ static inline bool arch_has_pfn_modify_check(void=
+)
+>>=20
+>> #ifndef PAGE_KERNEL_EXEC
+>> # define PAGE_KERNEL_EXEC PAGE_KERNEL
+>> +
+>> +#ifndef poking_init
+>> +static inline void poking_init(void) { }
+>> +#endif
+>=20
+> Hmm, this seems a bit tricky. Maybe we can make an __weak function
+> in init/main.c.
+
+Of course - __weak is much better. Thanks!
