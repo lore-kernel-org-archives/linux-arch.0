@@ -1,62 +1,49 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC memory-model 0/7] Memory-model changes
-Date: Wed, 29 Aug 2018 14:10:18 -0700
-Message-ID: <20180829211018.GA19646@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH RFC LKMM 6/7] EXP tools/memory-model: Make scripts take "-j" abbreviation for "--jobs"
+Date: Wed, 29 Aug 2018 14:10:52 -0700
+Message-ID: <20180829211053.20531-6-paulmck@linux.vnet.ibm.com>
+References: <20180829211018.GA19646@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+In-Reply-To: <20180829211018.GA19646@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hello!
+The "--jobs" argument to the litmus-test scripts is similar to the "-jN"
+argument to "make", so this commit allows the "-jN" form as well.  While
+in the area, it also prohibits the various forms of "-j0".
 
-This series contains memory-model updates, not yet ready for inclusion:
+Suggested-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
+ tools/memory-model/scripts/parseargs.sh | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
-1.	Add extra ordering for locks and remove it for ordinary
-	release/acquire, courtesy of Alan Stern.  There is some
-	remaining disagreement as to whether or not locks and ordinary
-	release/acquire should have identical ordering properties.
-
-2.	Replace smp_cond_acquire() with smp_cond_load_acquire(),
-	courtesy of Andrea Parri.
-
-3.	Expand the list of LKMM limitations.
-
-4.	Fix a README typo, courtesy of SeongJae Park.
-
-5.	Add scripts to check github litmus tests.
-
-6.	Make scripts take "-j" abbreviation for "--jobs".
-
-7.	Add .cfg and .cat files for s390, which is a not-for-mainline
-	placeholder.
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
- Documentation/memory-barriers.txt                                          |    3 
- tools/memory-model/.gitignore                                              |    1 
- tools/memory-model/Documentation/explanation.txt                           |  186 +++++++---
- tools/memory-model/Documentation/recipes.txt                               |    2 
- tools/memory-model/README                                                  |   41 ++
- tools/memory-model/linux-kernel.cat                                        |    8 
- tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus |    7 
- tools/memory-model/s390.cat                                                |   18 
- tools/memory-model/s390.cfg                                                |   21 +
- tools/memory-model/scripts/README                                          |   70 +++
- tools/memory-model/scripts/checkalllitmus.sh                               |   53 +-
- tools/memory-model/scripts/checkghlitmus.sh                                |   65 +++
- tools/memory-model/scripts/checklitmus.sh                                  |   74 ---
- tools/memory-model/scripts/checklitmushist.sh                              |   60 +++
- tools/memory-model/scripts/cmplitmushist.sh                                |   87 ++++
- tools/memory-model/scripts/initlitmushist.sh                               |   68 +++
- tools/memory-model/scripts/judgelitmus.sh                                  |   78 ++++
- tools/memory-model/scripts/newlitmushist.sh                                |   61 +++
- tools/memory-model/scripts/parseargs.sh                                    |  140 +++++++
- tools/memory-model/scripts/runlitmushist.sh                                |   87 ++++
- 20 files changed, 981 insertions(+), 149 deletions(-)
+diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
+index 96b307c8d64a..859e1d581e05 100755
+--- a/tools/memory-model/scripts/parseargs.sh
++++ b/tools/memory-model/scripts/parseargs.sh
+@@ -95,8 +95,18 @@ do
+ 		LKMM_HERD_OPTIONS="$2"
+ 		shift
+ 		;;
+-	--jobs|--job)
+-		checkarg --jobs "(number)" "$#" "$2" '^[0-9]\+$' '^--'
++	-j[1-9]*)
++		njobs="`echo $1 | sed -e 's/^-j//'`"
++		trailchars="`echo $njobs | sed -e 's/[0-9]\+\(.*\)$/\1/'`"
++		if test -n "$trailchars"
++		then
++			echo $1 trailing characters "'$trailchars'"
++			usagehelp
++		fi
++		LKMM_JOBS="`echo $njobs | sed -e 's/^\([0-9]\+\).*$/\1/'`"
++		;;
++	--jobs|--job|-j)
++		checkarg --jobs "(number)" "$#" "$2" '^[1-9][0-9]\+$' '^--'
+ 		LKMM_JOBS="$2"
+ 		shift
+ 		;;
+-- 
+2.17.1
