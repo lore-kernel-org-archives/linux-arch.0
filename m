@@ -1,136 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:49449 "EHLO cstnet.cn"
+Received: from smtp17.cstnet.cn ([159.226.251.17]:50639 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727452AbeH2Ql7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Aug 2018 12:41:59 -0400
+        id S1728144AbeH2Qmo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Aug 2018 12:42:44 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v5 10/16] x86/mce: enable Hygon support to MCE infrastructure
-Date: Wed, 29 Aug 2018 20:44:54 +0800
-Message-ID: <c1e803bc54984e54ca67278930588e85b65bb26f.1535459013.git.puwen@hygon.cn>
+Subject: [PATCH v5 14/16] driver/cpufreq: enable Hygon support to cpufreq driver
+Date: Wed, 29 Aug 2018 20:45:34 +0800
+Message-ID: <452666ee87984f2e4c2107dc0c8b84a498d93571.1535459013.git.puwen@hygon.cn>
 In-Reply-To: <cover.1535459012.git.puwen@hygon.cn>
 References: <cover.1535459012.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, tony.luck@intel.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180829124454.lYVF9OeQQnaqgTtL-oS040q_AoZlf9wB4bRC1fSHSLA@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, rjw@rjwysocki.net, viresh.kumar@linaro.org, rafael@kernel.org, rafael.j.wysocki@intel.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180829124534.A5RAM8tJCrTRggjoDeLf8Il0bQQF6wtQKGbujTvAzjw@z>
 
-Hygon machine check arch is similar to AMD family 17h. To enable the MCE
-infrastructure support, add CPU vendor check for Hygon to share the code
-path of AMD.
+Enable ACPI cpufreq driver support for Hygon by adding family ID check
+along with AMD.
 
-Add hygon mce init function mce_hygon_feature_init() to minimize further
-maintenance effort.
+As Hygon platforms have SMBus device(PCI device ID 0x790b), enable Hygon
+support to function amd_freq_sensitivity_init().
 
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/include/asm/mce.h                |  5 +++++
- arch/x86/kernel/cpu/mcheck/mce-severity.c |  3 ++-
- arch/x86/kernel/cpu/mcheck/mce.c          | 21 +++++++++++++++------
- 3 files changed, 22 insertions(+), 7 deletions(-)
+ drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
+ drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
+ 2 files changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/mce.h b/arch/x86/include/asm/mce.h
-index 3a17107..12357aa 100644
---- a/arch/x86/include/asm/mce.h
-+++ b/arch/x86/include/asm/mce.h
-@@ -214,6 +214,11 @@ static inline void mce_amd_feature_init(struct cpuinfo_x86 *c) { }
- static inline int umc_normaddr_to_sysaddr(u64 norm_addr, u16 nid, u8 umc, u64 *sys_addr) { return -EINVAL; };
- #endif
+diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
+index b61f4ec..d62fd37 100644
+--- a/drivers/cpufreq/acpi-cpufreq.c
++++ b/drivers/cpufreq/acpi-cpufreq.c
+@@ -61,6 +61,7 @@ enum {
  
-+static inline void mce_hygon_feature_init(struct cpuinfo_x86 *c)
-+{
-+	return mce_amd_feature_init(c);
-+}
-+
- int mce_available(struct cpuinfo_x86 *c);
- bool mce_is_memory_error(struct mce *m);
+ #define INTEL_MSR_RANGE		(0xffff)
+ #define AMD_MSR_RANGE		(0x7)
++#define HYGON_MSR_RANGE		(0x7)
  
-diff --git a/arch/x86/kernel/cpu/mcheck/mce-severity.c b/arch/x86/kernel/cpu/mcheck/mce-severity.c
-index f34d89c..44396d5 100644
---- a/arch/x86/kernel/cpu/mcheck/mce-severity.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce-severity.c
-@@ -336,7 +336,8 @@ int (*mce_severity)(struct mce *m, int tolerant, char **msg, bool is_excp) =
+ #define MSR_K7_HWCR_CPB_DIS	(1ULL << 25)
  
- void __init mcheck_vendor_init_severity(void)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		mce_severity = mce_severity_amd;
- }
- 
-diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
-index 953b3ce..12408a1 100644
---- a/arch/x86/kernel/cpu/mcheck/mce.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce.c
-@@ -270,7 +270,8 @@ static void print_mce(struct mce *m)
- {
- 	__print_mce(m);
- 
--	if (m->cpuvendor != X86_VENDOR_AMD)
-+	if (m->cpuvendor != X86_VENDOR_AMD &&
-+	    m->cpuvendor != X86_VENDOR_HYGON)
- 		pr_emerg_ratelimited(HW_ERR "Run the above through 'mcelog --ascii'\n");
- }
- 
-@@ -508,9 +509,9 @@ static int mce_usable_address(struct mce *m)
- 
- bool mce_is_memory_error(struct mce *m)
- {
--	if (m->cpuvendor == X86_VENDOR_AMD) {
-+	if (m->cpuvendor == X86_VENDOR_AMD ||
-+	    m->cpuvendor == X86_VENDOR_HYGON) {
- 		return amd_mce_is_memory_error(m);
--
- 	} else if (m->cpuvendor == X86_VENDOR_INTEL) {
- 		/*
- 		 * Intel SDM Volume 3B - 15.9.2 Compound Error Codes
-@@ -536,7 +537,9 @@ EXPORT_SYMBOL_GPL(mce_is_memory_error);
- 
- static bool mce_is_correctable(struct mce *m)
- {
--	if (m->cpuvendor == X86_VENDOR_AMD && m->status & MCI_STATUS_DEFERRED)
-+	if ((m->cpuvendor == X86_VENDOR_AMD ||
-+	     m->cpuvendor == X86_VENDOR_HYGON) &&
-+	    (m->status & MCI_STATUS_DEFERRED))
- 		return false;
- 
- 	if (m->status & MCI_STATUS_UC)
-@@ -1705,7 +1708,8 @@ static int __mcheck_cpu_ancient_init(struct cpuinfo_x86 *c)
-  */
- static void __mcheck_cpu_init_early(struct cpuinfo_x86 *c)
- {
--	if (c->x86_vendor == X86_VENDOR_AMD) {
-+	if (c->x86_vendor == X86_VENDOR_AMD ||
-+	    c->x86_vendor == X86_VENDOR_HYGON) {
- 		mce_flags.overflow_recov = !!cpu_has(c, X86_FEATURE_OVERFLOW_RECOV);
- 		mce_flags.succor	 = !!cpu_has(c, X86_FEATURE_SUCCOR);
- 		mce_flags.smca		 = !!cpu_has(c, X86_FEATURE_SMCA);
-@@ -1746,6 +1750,9 @@ static void __mcheck_cpu_init_vendor(struct cpuinfo_x86 *c)
- 		mce_amd_feature_init(c);
- 		break;
- 		}
+@@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
+ 		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+ 		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
 +	case X86_VENDOR_HYGON:
-+		mce_hygon_feature_init(c);
-+		break;
- 	case X86_VENDOR_CENTAUR:
- 		mce_centaur_feature_init(c);
+ 	case X86_VENDOR_AMD:
+ 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
+ 		msr = lo | ((u64)hi << 32);
+@@ -113,6 +115,7 @@ static int boost_set_msr(bool enable)
+ 		msr_addr = MSR_IA32_MISC_ENABLE;
+ 		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
  		break;
-@@ -1971,12 +1978,14 @@ static void mce_disable_error_reporting(void)
- static void vendor_disable_error_reporting(void)
- {
- 	/*
--	 * Don't clear on Intel or AMD CPUs. Some of these MSRs are socket-wide.
-+	 * Don't clear on Intel or AMD or Hygon CPUs. Some of these MSRs
-+	 * are socket-wide.
- 	 * Disabling them for just a single offlined CPU is bad, since it will
- 	 * inhibit reporting for all shared resources on the socket like the
- 	 * last level cache (LLC), the integrated memory controller (iMC), etc.
- 	 */
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON ||
- 	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
- 		return;
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 		msr_addr = MSR_K7_HWCR;
+ 		msr_mask = MSR_K7_HWCR_CPB_DIS;
+@@ -225,6 +228,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
  
+ 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+ 		msr &= AMD_MSR_RANGE;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		msr &= HYGON_MSR_RANGE;
+ 	else
+ 		msr &= INTEL_MSR_RANGE;
+ 
+diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
+index be926d9..4ac7c3c 100644
+--- a/drivers/cpufreq/amd_freq_sensitivity.c
++++ b/drivers/cpufreq/amd_freq_sensitivity.c
+@@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
+ {
+ 	u64 val;
+ 	struct pci_dev *pcidev;
++	unsigned int pci_vendor;
+ 
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++		pci_vendor = PCI_VENDOR_ID_AMD;
++	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
++		pci_vendor = PCI_VENDOR_ID_HYGON;
++	else
+ 		return -ENODEV;
+ 
+-	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
++	pcidev = pci_get_device(pci_vendor,
+ 			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
+ 
+ 	if (!pcidev) {
 -- 
 2.7.4
