@@ -1,89 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:48715 "EHLO cstnet.cn"
+Received: from smtp17.cstnet.cn ([159.226.251.17]:50386 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727590AbeH2Qlc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Aug 2018 12:41:32 -0400
+        id S1728144AbeH2Qmb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Aug 2018 12:42:31 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v5 08/16] x86/apic: add modern APIC support for Hygon
-Date: Wed, 29 Aug 2018 20:44:30 +0800
-Message-ID: <969a367a0b2d58f3e68bc6f97b6e8238e2390991.1535459013.git.puwen@hygon.cn>
+Subject: [PATCH v5 13/16] driver/acpi: enable Hygon support to ACPI driver
+Date: Wed, 29 Aug 2018 20:45:25 +0800
+Message-ID: <b13718275dc136f9eda85fdfb65628bc055ec6aa.1535459013.git.puwen@hygon.cn>
 In-Reply-To: <cover.1535459012.git.puwen@hygon.cn>
 References: <cover.1535459012.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180829124430.0lPuADwcwqlHCNQdYouNvCXnNi6JRmHE1a9ihC83RkE@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, lenb@kernel.org, rjw@rjwysocki.net, rafael@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180829124525.SKmGD-6dvavFFMZVqQfASkeByBnCFGZ2GNLWAK89Kqo@z>
 
-Hygon processors use modern APIC, so just return in modern_apic() and
-sync_Arb_IDs(). And should break in switch case in detect_init_API().
+For Dhyana processors have NONSTOP TSC feature, so enable the support
+to ACPI driver.
 
-When running on 32 bit mode, should set bigsmp if there are more than
-8 cores.
-
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/kernel/apic/apic.c     | 19 ++++++++++++++-----
- arch/x86/kernel/apic/probe_32.c |  1 +
- 2 files changed, 15 insertions(+), 5 deletions(-)
+ drivers/acpi/acpi_pad.c       | 1 +
+ drivers/acpi/processor_idle.c | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
-index 84132ed..a62968e 100644
---- a/arch/x86/kernel/apic/apic.c
-+++ b/arch/x86/kernel/apic/apic.c
-@@ -220,10 +220,15 @@ static inline int lapic_is_integrated(void)
-  */
- static int modern_apic(void)
- {
--	/* AMD systems use old APIC versions, so check the CPU */
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
--	    boot_cpu_data.x86 >= 0xf)
-+	/*
-+	 * Old AMD systems use old APIC versions, newer AMD systems
-+	 * and Hygon systems use modern APIC, so check the CPU
-+	 */
-+	if ((boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
-+	     boot_cpu_data.x86 >= 0xf) ||
-+	     boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		return 1;
-+
- 	return lapic_get_version() >= 0x14;
- }
+diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
+index 552c1f7..a47676a 100644
+--- a/drivers/acpi/acpi_pad.c
++++ b/drivers/acpi/acpi_pad.c
+@@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
  
-@@ -1211,9 +1216,11 @@ void __init sync_Arb_IDs(void)
- {
- 	/*
- 	 * Unsupported on P4 - see Intel Dev. Manual Vol. 3, Ch. 8.6.1 And not
--	 * needed on AMD.
-+	 * needed on AMD or Hygon.
- 	 */
--	if (modern_apic() || boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (modern_apic() ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		return;
- 
- 	/*
-@@ -1912,6 +1919,8 @@ static int __init detect_init_APIC(void)
- 		    (boot_cpu_data.x86 >= 15))
- 			break;
- 		goto no_apic;
+ #if defined(CONFIG_X86)
+ 	switch (boot_cpu_data.x86_vendor) {
 +	case X86_VENDOR_HYGON:
-+		break;
+ 	case X86_VENDOR_AMD:
  	case X86_VENDOR_INTEL:
- 		if (boot_cpu_data.x86 == 6 || boot_cpu_data.x86 == 15 ||
- 		    (boot_cpu_data.x86 == 5 && boot_cpu_has(X86_FEATURE_APIC)))
-diff --git a/arch/x86/kernel/apic/probe_32.c b/arch/x86/kernel/apic/probe_32.c
-index 02e8acb..47ff297 100644
---- a/arch/x86/kernel/apic/probe_32.c
-+++ b/arch/x86/kernel/apic/probe_32.c
-@@ -185,6 +185,7 @@ void __init default_setup_apic_routing(void)
- 				break;
- 			}
- 			/* If P4 and above fall through */
-+		case X86_VENDOR_HYGON:
- 		case X86_VENDOR_AMD:
- 			def_to_bigsmp = 1;
- 		}
+ 		/*
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index abb559c..b2131c4 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
+ static void tsc_check_state(int state)
+ {
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 	case X86_VENDOR_CENTAUR:
 -- 
 2.7.4
