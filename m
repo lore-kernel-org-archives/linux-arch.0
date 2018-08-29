@@ -1,80 +1,54 @@
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
-Date: Wed, 29 Aug 2018 22:56:23 +0000
-Message-ID: <DFC5DCBA-A572-4603-82C8-77A6C1303630@vmware.com>
-References: <20180829081147.184610-1-namit@vmware.com>
- <20180829081147.184610-2-namit@vmware.com>
- <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
- <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
- <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
- <20180829201309.GA7142@linux.intel.com>
- <58345C1F-8FF3-4F49-AF2F-B4789DF50CC7@vmware.com>
- <20180829210006.GA7166@linux.intel.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 2/3] mm/cow: optimise pte dirty/accessed bits handling
+ in fork
+Date: Thu, 30 Aug 2018 09:12:13 +1000
+Message-ID: <20180830091213.78b64354@roar.ozlabs.ibm.com>
+References: <20180828112034.30875-1-npiggin@gmail.com>
+        <20180828112034.30875-3-npiggin@gmail.com>
+        <CA+55aFwbZrsdZEh0ds1W3AWUeTamDRheQPKSi9O=--cEOSjr5g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180829210006.GA7166@linux.intel.com>
-Content-Language: en-US
-Content-ID: <CC2DDA7049F1294F8FCFA8632F950D27@namprd05.prod.outlook.com>
+In-Reply-To: <CA+55aFwbZrsdZEh0ds1W3AWUeTamDRheQPKSi9O=--cEOSjr5g@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sean Christopherson <sean.j.christopherson@intel.com>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-YXQgMjowMCBQTSwgU2VhbiBDaHJpc3RvcGhlcnNvbiA8c2Vhbi5qLmNocmlzdG9waGVyc29uQGlu
-dGVsLmNvbT4gd3JvdGU6DQoNCj4gT24gV2VkLCBBdWcgMjksIDIwMTggYXQgMDg6NDQ6NDdQTSAr
-MDAwMCwgTmFkYXYgQW1pdCB3cm90ZToNCj4+IGF0IDE6MTMgUE0sIFNlYW4gQ2hyaXN0b3BoZXJz
-b24gPHNlYW4uai5jaHJpc3RvcGhlcnNvbkBpbnRlbC5jb20+IHdyb3RlOg0KPj4gDQo+Pj4gT24g
-V2VkLCBBdWcgMjksIDIwMTggYXQgMDc6MzY6MjJQTSArMDAwMCwgTmFkYXYgQW1pdCB3cm90ZToN
-Cj4+Pj4gYXQgMTA6MTEgQU0sIE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0K
-Pj4+PiANCj4+Pj4+IGF0IDE6NTkgQU0sIE1hc2FtaSBIaXJhbWF0c3UgPG1oaXJhbWF0QGtlcm5l
-bC5vcmc+IHdyb3RlOg0KPj4+Pj4gDQo+Pj4+Pj4gT24gV2VkLCAyOSBBdWcgMjAxOCAwMToxMTo0
-MiAtMDcwMA0KPj4+Pj4+IE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0KPj4+
-Pj4+IA0KPj4+Pj4+PiBVc2UgbG9ja2RlcCB0byBlbnN1cmUgdGhhdCB0ZXh0X211dGV4IGlzIHRh
-a2VuIHdoZW4gdGV4dF9wb2tlKCkgaXMNCj4+Pj4+Pj4gY2FsbGVkLg0KPj4+Pj4+PiANCj4+Pj4+
-Pj4gQWN0dWFsbHkgaXQgaXMgbm90IGFsd2F5cyB0YWtlbiwgc3BlY2lmaWNhbGx5IHdoZW4gaXQg
-aXMgY2FsbGVkIGJ5IGtnZGIsDQo+Pj4+Pj4+IHNvIHRha2UgdGhlIGxvY2sgaW4gdGhlc2UgY2Fz
-ZXMuDQo+Pj4+Pj4gDQo+Pj4+Pj4gQ2FuIHdlIHJlYWxseSB0YWtlIGEgbXV0ZXggaW4ga2dkYiBj
-b250ZXh0Pw0KPj4+Pj4+IA0KPj4+Pj4+IGtnZGJfYXJjaF9yZW1vdmVfYnJlYWtwb2ludA0KPj4+
-Pj4+IDwtIGRiZ19kZWFjdGl2YXRlX3N3X2JyZWFrcG9pbnRzDQo+Pj4+Pj4gPC0ga2dkYl9yZWVu
-dGVyX2NoZWNrDQo+Pj4+Pj4gICAgPC0ga2dkYl9oYW5kbGVfZXhjZXB0aW9uDQo+Pj4+Pj4gICAg
-ICAgPC0gX19rZ2RiX25vdGlmeQ0KPj4+Pj4+ICAgICAgICAgPC0ga2dkYl9sbF90cmFwDQo+Pj4+
-Pj4gICAgICAgICAgIDwtIGRvX2ludDMNCj4+Pj4+PiAgICAgICAgIDwtIGtnZGJfbm90aWZ5DQo+
-Pj4+Pj4gICAgICAgICAgIDwtIGRpZSBub3RpZmllcg0KPj4+Pj4+IA0KPj4+Pj4+IGtnZGJfYXJj
-aF9zZXRfYnJlYWtwb2ludA0KPj4+Pj4+IDwtIGRiZ19hY3RpdmF0ZV9zd19icmVha3BvaW50cw0K
-Pj4+Pj4+IDwtIGtnZGJfcmVlbnRlcl9jaGVjaw0KPj4+Pj4+ICAgIDwtIGtnZGJfaGFuZGxlX2V4
-Y2VwdGlvbg0KPj4+Pj4+ICAgICAgICAuLi4NCj4+Pj4+PiANCj4+Pj4+PiBCb3RoIHNlZW1zIGNh
-bGxlZCBpbiBleGNlcHRpb24gY29udGV4dCwgc28gd2UgY2FuIG5vdCB0YWtlIGEgbXV0ZXggbG9j
-ay4NCj4+Pj4+PiBJIHRoaW5rIGtnZGIgbmVlZHMgYSBzcGVjaWFsIHBhdGguDQo+Pj4+PiANCj4+
-Pj4+IFlvdSBhcmUgY29ycmVjdCwgYnV0IEkgZG9u4oCZdCB3YW50IGEgc3BlY2lhbCBwYXRoLiBQ
-cmVzdW1hYmx5IHRleHRfbXV0ZXggaXMNCj4+Pj4+IGd1YXJhbnRlZWQgbm90IHRvIGJlIHRha2Vu
-IGFjY29yZGluZyB0byB0aGUgY29kZS4NCj4+Pj4+IA0KPj4+Pj4gU28gSSBndWVzcyB0aGUgb25s
-eSBjb25jZXJuIGlzIGxvY2tkZXAuIERvIHlvdSBzZWUgYW55IHByb2JsZW0gaWYgSSBjaGFuZ2UN
-Cj4+Pj4+IG11dGV4X2xvY2soKSBpbnRvIG11dGV4X3RyeWxvY2soKT8gSXQgc2hvdWxkIGFsd2F5
-cyBzdWNjZWVkLCBhbmQgSSBjYW4gYWRkIGENCj4+Pj4+IHdhcm5pbmcgYW5kIGEgZmFpbHVyZSBw
-YXRoIGlmIGl0IGZhaWxzIGZvciBzb21lIHJlYXNvbi4NCj4+Pj4gDQo+Pj4+IEVyci4uIFRoaXMg
-d2lsbCBub3Qgd29yay4gSSB0aGluayBJIHdpbGwgZHJvcCB0aGlzIHBhdGNoLCBzaW5jZSBJIGNh
-bm5vdA0KPj4+PiBmaW5kIGEgcHJvcGVyIHlldCBzaW1wbGUgYXNzZXJ0aW9uLiBDcmVhdGluZyBz
-cGVjaWFsIHBhdGgganVzdCBmb3IgdGhlDQo+Pj4+IGFzc2VydGlvbiBzZWVtcyB3cm9uZy4NCj4+
-PiANCj4+PiBJdCdzIHByb2JhYmx5IHdvcnRoIGV4cGFuZGluZyB0aGUgY29tbWVudCBmb3IgdGV4
-dF9wb2tlKCkgdG8gY2FsbCBvdXQNCj4+PiB0aGUga2dkYiBjYXNlIGFuZCByZWZlcmVuY2Uga2dk
-Yl9hcmNoX3tzZXQscmVtb3ZlfV9icmVha3BvaW50KCksIHdob3NlDQo+Pj4gY29kZSBhbmQgY29t
-bWVudHMgbWFrZSBpdCBleHBsaWNpdGx5IGNsZWFyIHdoeSBpdHMgc2FmZSBmb3IgdGhlbSB0bw0K
-Pj4+IGNhbGwgdGV4dF9wb2tlKCkgd2l0aG91dCBhY3F1aXJpbmcgdGhlIGxvY2suICBNaWdodCBw
-cmV2ZW50IHNvbWVvbmUNCj4+PiBmcm9tIGdvaW5nIGRvd24gdGhpcyBwYXRoIGFnYWluIGluIHRo
-ZSBmdXR1cmUuDQo+PiANCj4+IEkgdGhvdWdodCB0aGF0IHRoZSB3aG9sZSBwb2ludCBvZiB0aGUg
-cGF0Y2ggd2FzIHRvIGF2b2lkIGNvbW1lbnRzLCBhbmQNCj4+IGluc3RlYWQgZW5mb3JjZSB0aGUg
-cmlnaHQgYmVoYXZpb3IuIEkgZG9u4oCZdCB1bmRlcnN0YW5kIHdlbGwgZW5vdWdoIGtnZGINCj4+
-IGNvZGUsIHNvIEkgY2Fubm90IGF0dGVzdCBpdCBkb2VzIHRoZSByaWdodCB0aGluZy4gV2hhdCBo
-YXBwZW5zIGlmDQo+PiBrZ2RiX2RvX3JvdW5kdXA9PTA/DQo+IA0KPiBBcyBpcywgdGhlIGNvbW1l
-bnQgaXMgd3JvbmcgYmVjYXVzZSB0aGVyZSBhcmUgb2J2aW91c2x5IGNhc2VzIHdoZXJlDQo+IHRl
-eHRfcG9rZSgpIGlzIGNhbGxlZCB3aXRob3V0IHRleHRfbXV0ZXggYmVpbmcgaGVsZC4gIEkgY2Fu
-J3QgYXR0ZXN0DQo+IHRvIHRoZSBrZ2RiIGNvZGUgZWl0aGVyLiAgTXkgdGhvdWdodCB3YXMgdG8g
-ZG9jdW1lbnQgdGhlIGV4Y2VwdGlvbiBzbw0KPiB0aGF0IGlmIHNvbWVvbmUgZG9lcyB3YW50IHRv
-IHRyeSBhbmQgZW5mb3JjZSB0aGUgcmlnaHQgYmVoYXZpb3IgdGhleQ0KPiBjYW4gZGl2ZSByaWdo
-dCBpbnRvIHRoZSBwcm9ibGVtIGluc3RlYWQgb2YgaGF2aW5nIHRvIGxlYXJuIG9mIHRoZSBrZ2Ri
-DQo+IGdvdGNoYSB0aGUgaGFyZCB3YXkuICBNYXliZSBhIEZJWE1FIGlzIHRoZSByaWdodCBhcHBy
-b2FjaD8NCg0KT2suIEnigJlsbCBhZGQgYSBGSVhNRSBjb21tZW50IGFzIHlvdSBwcm9wb3NlLCBi
-dXQgdGhpcyBkb2VzIG5vdCBkZXNlcnZlIGENCnNlcGFyYXRlIHBhdGNoLiBJ4oCZbGwgc3F1YXNo
-IGl0IGludG8gcGF0Y2ggNS4NCg0K
+On Wed, 29 Aug 2018 08:42:09 -0700
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
+
+> On Tue, Aug 28, 2018 at 4:20 AM Nicholas Piggin <npiggin@gmail.com> wrote:
+> >
+> > fork clears dirty/accessed bits from new ptes in the child. This logic
+> > has existed since mapped page reclaim was done by scanning ptes when
+> > it may have been quite important. Today with physical based pte
+> > scanning, there is less reason to clear these bits.  
+> 
+> Can you humor me, and make the dirty/accessed bit patches separate?
+
+Yeah sure.
+
+> There is actually a difference wrt the dirty bit: if we unmap an area
+> with dirty pages, we have to do the special synchronous flush.
+> 
+> So a clean page in the virtual mapping is _literally_ cheaper to have.
+
+Oh yeah true, that blasted thing. Good point.
+
+Dirty micro fault seems to be the big one for my Skylake, takes 300
+nanoseconds per access. Accessed takes about 100. (I think, have to
+go over my benchmark a bit more carefully and re-test).
+
+Dirty will happen less often though, particularly as most places we
+do write to (stack, heap, etc) will be write protected for COW anyway,
+I think. Worst case might be a big shared shm segment like a database
+buffer cache, but those kind of forks should happen very very
+infrequently I would hope.
+
+Yes maybe we can do that. I'll split them up and try to get some
+numbers for them individually.
+
+Thanks,
+Nick
