@@ -1,113 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33474 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727133AbeH2Mze (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Aug 2018 08:55:34 -0400
-Date: Wed, 29 Aug 2018 17:59:36 +0900
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
-Message-ID: <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
-In-Reply-To: <20180829081147.184610-2-namit@vmware.com>
+Received: from merlin.infradead.org ([205.233.59.134]:50484 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726858AbeH2NYu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Aug 2018 09:24:50 -0400
+Date: Wed, 29 Aug 2018 11:28:39 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 5/6] x86/alternatives: use temporary mm for text
+ poking
+Message-ID: <20180829092839.GP24124@hirez.programming.kicks-ass.net>
 References: <20180829081147.184610-1-namit@vmware.com>
-        <20180829081147.184610-2-namit@vmware.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+ <20180829081147.184610-6-namit@vmware.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180829081147.184610-6-namit@vmware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nadav Amit <namit@vmware.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20180829085936.ySVcL3TTWrBetIJgRcPjIpLZJ03cFBggx48uo4H-BpU@z>
+Message-ID: <20180829092839.U0xjVAcJSHPDDyX40hl6xCOj4KPGv4vWb8jiudmFxNQ@z>
 
-On Wed, 29 Aug 2018 01:11:42 -0700
-Nadav Amit <namit@vmware.com> wrote:
-
-> Use lockdep to ensure that text_mutex is taken when text_poke() is
-> called.
-> 
-> Actually it is not always taken, specifically when it is called by kgdb,
-> so take the lock in these cases.
-
-Can we really take a mutex in kgdb context?
-
-kgdb_arch_remove_breakpoint
-  <- dbg_deactivate_sw_breakpoints
-    <- kgdb_reenter_check
-       <- kgdb_handle_exception
-          <- __kgdb_notify
-            <- kgdb_ll_trap
-              <- do_int3
-            <- kgdb_notify
-              <- die notifier
-
-kgdb_arch_set_breakpoint
-  <- dbg_activate_sw_breakpoints
-    <- kgdb_reenter_check
-       <- kgdb_handle_exception
-           ...
-
-Both seems called in exception context, so we can not take a mutex lock.
-I think kgdb needs a special path.
-
-Thanks,
-
-> 
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Cc: Masami Hiramatsu <mhiramat@kernel.org>
-> Cc: Kees Cook <keescook@chromium.org>
-> Suggested-by: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: Nadav Amit <namit@vmware.com>
-> ---
->  arch/x86/kernel/alternative.c | 1 +
->  arch/x86/kernel/kgdb.c        | 9 +++++++++
->  2 files changed, 10 insertions(+)
-> 
-> diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-> index 014f214da581..916c11b410c4 100644
-> --- a/arch/x86/kernel/alternative.c
-> +++ b/arch/x86/kernel/alternative.c
-> @@ -699,6 +699,7 @@ void *text_poke(void *addr, const void *opcode, size_t len)
->  	 * pages as they are not yet initialized.
->  	 */
->  	BUG_ON(!after_bootmem);
-> +	lockdep_assert_held(&text_mutex);
->  
->  	if (!core_kernel_text((unsigned long)addr)) {
->  		pages[0] = vmalloc_to_page(addr);
-> diff --git a/arch/x86/kernel/kgdb.c b/arch/x86/kernel/kgdb.c
-> index 8e36f249646e..60b99c76086c 100644
-> --- a/arch/x86/kernel/kgdb.c
-> +++ b/arch/x86/kernel/kgdb.c
-> @@ -768,8 +768,12 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
->  	 */
->  	if (mutex_is_locked(&text_mutex))
->  		return -EBUSY;
+On Wed, Aug 29, 2018 at 01:11:46AM -0700, Nadav Amit wrote:
+> +static void text_poke_fixmap(void *addr, const void *opcode, size_t len,
+> +			     struct page *pages[2])
+> +{
+> +	u8 *vaddr;
 > +
-> +	/* Take the mutex to avoid lockdep assertion failures. */
-> +	mutex_lock(&text_mutex);
->  	text_poke((void *)bpt->bpt_addr, arch_kgdb_ops.gdb_bpt_instr,
->  		  BREAK_INSTR_SIZE);
-> +	mutex_unlock(&text_mutex);
->  	err = probe_kernel_read(opc, (char *)bpt->bpt_addr, BREAK_INSTR_SIZE);
->  	if (err)
->  		return err;
-> @@ -793,7 +797,12 @@ int kgdb_arch_remove_breakpoint(struct kgdb_bkpt *bpt)
->  	 */
->  	if (mutex_is_locked(&text_mutex))
->  		goto knl_write;
+> +	set_fixmap(FIX_TEXT_POKE0, page_to_phys(pages[0]));
+> +	if (pages[1])
+> +		set_fixmap(FIX_TEXT_POKE1, page_to_phys(pages[1]));
+> +	vaddr = (u8 *)fix_to_virt(FIX_TEXT_POKE0);
+> +	memcpy(vaddr + offset_in_page(addr), opcode, len);
 > +
-> +	/* Take the mutex to avoid lockdep assertion failures. */
-> +	mutex_lock(&text_mutex);
->  	text_poke((void *)bpt->bpt_addr, bpt->saved_instr, BREAK_INSTR_SIZE);
-> +	mutex_unlock(&text_mutex);
+> +	/*
+> +	 * clear_fixmap() performs a TLB flush, so no additional TLB
+> +	 * flush is needed.
+> +	 */
+> +	clear_fixmap(FIX_TEXT_POKE0);
+> +	if (pages[1])
+> +		clear_fixmap(FIX_TEXT_POKE1);
+> +	sync_core();
+> +	/* Could also do a CLFLUSH here to speed up CPU recovery; but
+> +	   that causes hangs on some VIA CPUs. */
+
+Please take this opportunity to fix that comment style.
+
+> +}
 > +
->  	err = probe_kernel_read(opc, (char *)bpt->bpt_addr, BREAK_INSTR_SIZE);
->  	if (err || memcmp(opc, bpt->saved_instr, BREAK_INSTR_SIZE))
->  		goto knl_write;
-> -- 
-> 2.17.1
-> 
+> +__ro_after_init struct mm_struct *poking_mm;
+> +__ro_after_init unsigned long poking_addr;
+> +
+> +/**
+> + * text_poke_safe() - Pokes the text using a separate address space.
+> + *
+> + * This is the preferable way for patching the kernel after boot, as it does not
+> + * allow other cores to accidentally or maliciously modify the code using the
+> + * temporary PTEs.
+> + */
+> +static void text_poke_safe(void *addr, const void *opcode, size_t len,
+> +			   struct page *pages[2])
+> +{
+> +	temporary_mm_state_t prev;
+> +	pte_t pte, *ptep;
+> +	spinlock_t *ptl;
+> +
+> +	/*
+> +	 * The lock is not really needed, but this allows to avoid open-coding.
+> +	 */
+> +	ptep = get_locked_pte(poking_mm, poking_addr, &ptl);
+> +
+> +	pte = mk_pte(pages[0], PAGE_KERNEL);
+> +	set_pte_at(poking_mm, poking_addr, ptep, pte);
+> +
+> +	if (pages[1]) {
+> +		pte = mk_pte(pages[1], PAGE_KERNEL);
+> +		set_pte_at(poking_mm, poking_addr + PAGE_SIZE, ptep + 1, pte);
+> +	}
+> +
+> +	/*
+> +	 * Loading the temporary mm behaves as a compiler barrier, which
+> +	 * guarantees that the PTE will be set at the time memcpy() is done.
+> +	 */
+> +	prev = use_temporary_mm(poking_mm);
+> +
+> +	memcpy((u8 *)poking_addr + offset_in_page(addr), opcode, len);
+> +
+> +	/*
+> +	 * Ensure that the PTE is only cleared after copying is done by using a
+> +	 * compiler barrier.
+> +	 */
+> +	barrier();
 
+I tripped over the use of 'done', because even with TSO the store isn't
+done once the instruction retires.
 
--- 
-Masami Hiramatsu <mhiramat@kernel.org>
+All we want to ensure is that the pte_clear() store is issued after the
+copy, and that is indeed guaranteed by this.
+
+> +	pte_clear(poking_mm, poking_addr, ptep);
+> +
+> +	/*
+> +	 * __flush_tlb_one_user() performs a redundant TLB flush when PTI is on,
+> +	 * as it also flushes the corresponding "user" address spaces, which
+> +	 * does not exist.
+> +	 *
+> +	 * Poking, however, is already very inefficient since it does not try to
+> +	 * batch updates, so we ignore this problem for the time being.
+> +	 *
+> +	 * Since the PTEs do not exist in other kernel address-spaces, we do
+> +	 * not use __flush_tlb_one_kernel(), which when PTI is on would cause
+> +	 * more unwarranted TLB flushes.
+> +	 */
+
+yuck :-), but yeah.
+
+> +	__flush_tlb_one_user(poking_addr);
+> +	if (pages[1]) {
+> +		pte_clear(poking_mm, poking_addr + PAGE_SIZE, ptep + 1);
+> +		__flush_tlb_one_user(poking_addr + PAGE_SIZE);
+> +	}
+> +	/*
+> +	 * Loading the previous page-table hierarchy requires a serializing
+> +	 * instruction that already allows the core to see the updated version.
+> +	 * Xen-PV is assumed to serialize execution in a similar manner.
+> +	 */
+> +	unuse_temporary_mm(prev);
+> +
+> +	pte_unmap_unlock(ptep, ptl);
+> +}
