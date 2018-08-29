@@ -1,75 +1,48 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v5 12/16] x86/xen: enable Hygon support to Xen
-Date: Wed, 29 Aug 2018 20:45:14 +0800
-Message-ID: <e281da9e1b9c55747ad05a182d0517d1a9501f92.1535459013.git.puwen@hygon.cn>
+Subject: [PATCH v5 13/16] driver/acpi: enable Hygon support to ACPI driver
+Date: Wed, 29 Aug 2018 20:45:25 +0800
+Message-ID: <b13718275dc136f9eda85fdfb65628bc055ec6aa.1535459013.git.puwen@hygon.cn>
 References: <cover.1535459012.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1535459012.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, JBeulich@suse.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, lenb@kernel.org, rjw@rjwysocki.net, rafael@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-To make Xen works functionly on Hygon platforms, reuse AMD's Xen support
-code path for Hygon.
+For Dhyana processors have NONSTOP TSC feature, so enable the support
+to ACPI driver.
 
-There are six core performance events counters per thread, so there are
-six MSRs for these counters(0-5). Also there are four legacy PMC MSRs,
-they are alias of the counters(0-3).
-
-In this version of kernel Hygon use the lagacy and safe versions of MSR
-access. It works fine when VPMU enabled in Xen on Hygon platforms by
-testing with perf.
-
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/xen/pmu.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ drivers/acpi/acpi_pad.c       | 1 +
+ drivers/acpi/processor_idle.c | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/arch/x86/xen/pmu.c b/arch/x86/xen/pmu.c
-index 7d00d4a..9403854 100644
---- a/arch/x86/xen/pmu.c
-+++ b/arch/x86/xen/pmu.c
-@@ -90,6 +90,12 @@ static void xen_pmu_arch_init(void)
- 			k7_counters_mirrored = 0;
- 			break;
- 		}
-+	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+		amd_num_counters = F10H_NUM_COUNTERS;
-+		amd_counters_base = MSR_K7_PERFCTR0;
-+		amd_ctrls_base = MSR_K7_EVNTSEL0;
-+		amd_msr_step = 1;
-+		k7_counters_mirrored = 0;
- 	} else {
- 		uint32_t eax, ebx, ecx, edx;
+diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
+index 552c1f7..a47676a 100644
+--- a/drivers/acpi/acpi_pad.c
++++ b/drivers/acpi/acpi_pad.c
+@@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
  
-@@ -285,7 +291,7 @@ static bool xen_amd_pmu_emulate(unsigned int msr, u64 *val, bool is_read)
- 
- bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err)
+ #if defined(CONFIG_X86)
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 		/*
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index abb559c..b2131c4 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
+ static void tsc_check_state(int state)
  {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, val, 1))
- 				*val = native_read_msr_safe(msr, err);
-@@ -308,7 +314,7 @@ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err)
- {
- 	uint64_t val = ((uint64_t)high << 32) | low;
- 
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL) {
- 		if (is_amd_pmu_msr(msr)) {
- 			if (!xen_amd_pmu_emulate(msr, &val, 0))
- 				*err = native_write_msr_safe(msr, low, high);
-@@ -379,7 +385,7 @@ static unsigned long long xen_intel_read_pmc(int counter)
- 
- unsigned long long xen_read_pmc(int counter)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)
- 		return xen_amd_read_pmc(counter);
- 	else
- 		return xen_intel_read_pmc(counter);
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 	case X86_VENDOR_CENTAUR:
 -- 
 2.7.4
