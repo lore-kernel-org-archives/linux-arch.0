@@ -1,58 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:38823 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726235AbeH3Vdk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 17:33:40 -0400
-Message-ID: <1535649960.26689.15.camel@intel.com>
-Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
- pmdp_set_wrprotect for _PAGE_DIRTY_SW
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 30 Aug 2018 10:26:00 -0700
-In-Reply-To: <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-         <20180830143904.3168-13-yu-cheng.yu@intel.com>
-         <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
-         <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com>
-         <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
-         <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from ex13-edg-ou-001.vmware.com ([208.91.0.189]:48535 "EHLO
+        EX13-EDG-OU-001.vmware.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725836AbeH3VhT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 17:37:19 -0400
+From: Nadav Amit <namit@vmware.com>
+Subject: [PATCH 0/6] x86/alternatives: text_poke() fixes
+Date: Thu, 30 Aug 2018 10:32:12 -0700
+Message-ID: <20180830173218.238900-1-namit@vmware.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>, Jann Horn <jannh@google.com>
-Cc: the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
-Message-ID: <20180830172600.6jiaX8IzXlxNfs3i24-auz-wqmMdamTOw3bLEK77l4E@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <namit@vmware.com>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180830173212.y1tkIYpaYZxMAm8A71PseG7zeDHE4efWMV72ioz90S4@z>
 
-On Thu, 2018-08-30 at 10:19 -0700, Dave Hansen wrote:
-> On 08/30/2018 09:23 AM, Jann Horn wrote:
-> > 
-> > Three threads (A, B, C) run with the same CR3.
-> > 
-> > 1. a dirty+writable PTE is placed directly in front of B's shadow
-> > stack.
-> >    (this can happen, right? or is there a guard page?)
-> > 2. C's TLB caches the dirty+writable PTE.
-> > 3. A performs some syscall that triggers ptep_set_wrprotect().
-> > 4. A's syscall calls clear_bit().
-> > 5. B's TLB caches the transient shadow stack.
-> > [now C has write access to B's transiently-extended shadow stack]
-> > 6. B recurses into the transiently-extended shadow stack
-> > 7. C overwrites the transiently-extended shadow stack area.
-> > 8. B returns through the transiently-extended shadow stack, giving
-> >     the attacker instruction pointer control in B.
-> > 9. A's syscall broadcasts a TLB flush.
-> Heh, that's a good point.  The shadow stack permissions are *not*
-> strictly reduced because a page getting marked as shadow-stack has
-> *increased* permissions when being used as a shadow stack.  Fun.
-> 
-> For general hardening, it seems like we want to ensure that there's
-> a
-> guard page at the bottom of the shadow stack.  Yu-cheng, do we have
-> a
-> guard page?
+This patch-set addresses some issues that were raised in a recent
+correspondence and might affect the security and the correctness of code
+patching. (Note that patching performance is not addressed by this
+patch-set).
 
-We don't have the guard page now, but there is a shadow stack token
-there, which cannot be used as a return address.
+The main issue that the patches deal with is the fact that the fixmap
+PTEs that are used for patching are available for access from other
+cores and might be exploited. They are not even flushed from the TLB in
+remote cores, so the risk is even higher. Address this issue by
+introducing a temporary mm that is only used during patching.
+Unfortunately, due to init ordering, fixmap is still used during
+boot-time patching. Future patches can eliminate the need for it.
 
-Yu-cheng
+The second issue is the missing lockdep assertion to ensure text_mutex
+is taken. It is actually not always taken, so fix the instances that
+were found not to take the lock (although they should be safe even
+without taking the lock).
+
+Finally, try to be more conservative and to map a single page, instead
+of two, when possible. This helps both security and performance.
+
+In addition, there is some cleanup of the patching code to make it more
+readable.
+
+RFC->v1:
+- Added handling of error in get_locked_pte()
+- Remove lockdep assertion, clarify text_mutex use instead [masami]
+- Comment fix [peterz]
+- Removed remainders of text_poke return value [masami]
+- Use __weak for poking_init instead of macros [masami]
+- Simplify error handling in poking_init [masami]  
+
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Link: https://lkml.org/lkml/2018/8/24/586
+
+Andy Lutomirski (1):
+  x86/mm: temporary mm struct
+
+Nadav Amit (5):
+  x86/alternatives: clarify text_mutex use in text_poke
+  fork: provide a function for copying init_mm
+  x86/alternatives: initializing temporary mm for patching
+  x86/alternatives: use temporary mm for text poking
+  x86/alternatives: remove text_poke() return value
+
+ arch/x86/include/asm/mmu_context.h   |  20 ++++
+ arch/x86/include/asm/pgtable.h       |   3 +
+ arch/x86/include/asm/text-patching.h |   4 +-
+ arch/x86/kernel/alternative.c        | 173 +++++++++++++++++++++++----
+ arch/x86/mm/init_64.c                |  29 +++++
+ include/linux/sched/task.h           |   1 +
+ init/main.c                          |   3 +
+ kernel/fork.c                        |  24 +++-
+ 8 files changed, 226 insertions(+), 31 deletions(-)
+
+-- 
+2.17.1
