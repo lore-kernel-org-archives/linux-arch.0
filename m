@@ -1,47 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:41118 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725893AbeH3VSY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 17:18:24 -0400
-Date: Thu, 30 Aug 2018 19:15:10 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Message-ID: <20180830171510.GQ24082@hirez.programming.kicks-ass.net>
-References: <1535567633.4465.23.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <20180830095148.GB5942@arm.com>
- <1535629996.4465.44.camel@synopsys.com>
- <20180830141713.GN24082@hirez.programming.kicks-ass.net>
- <1535640375.4465.68.camel@synopsys.com>
+Received: from mga11.intel.com ([192.55.52.93]:52821 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726122AbeH3V13 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 17:27:29 -0400
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+ <20180830143904.3168-13-yu-cheng.yu@intel.com>
+ <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
+ <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com>
+ <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
+Date: Thu, 30 Aug 2018 10:19:12 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1535640375.4465.68.camel@synopsys.com>
+In-Reply-To: <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180830171510.ir1lp1PWhUrOawSlGEMCOJArZGFtGD1HFYzzO4Ly2KM@z>
+To: Jann Horn <jannh@google.com>
+Cc: yu-cheng.yu@intel.com, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180830171912.hwwDY33dtkIi8UzKwmkGN797A06aWoovf6zqvbXl2_4@z>
 
-On Thu, Aug 30, 2018 at 02:46:16PM +0000, Eugeniy Paltsev wrote:
-> On Thu, 2018-08-30 at 16:17 +0200, Peter Zijlstra wrote:
-> > On Thu, Aug 30, 2018 at 11:53:17AM +0000, Eugeniy Paltsev wrote:
-> > > I can see crashes with LLSC enabled in both SMP running on 4 cores
-> > > and SMP running on 1 core.
-> > 
-> > So you're running on LL/SC enabled hardware; that would make Will's
-> > patch irrelevant (although still a good idea for the hardware that does
-> > care about that spinlocked atomic crud).
-> > 
-> > Does something like the below cure things? That would confirm the
-> > suggestion that the change to __clear_bit_unlock() is the curprit.
+On 08/30/2018 09:23 AM, Jann Horn wrote:
+> Three threads (A, B, C) run with the same CR3.
 > 
-> I tested it - this doesn't change anything, the problem still reproduces.
+> 1. a dirty+writable PTE is placed directly in front of B's shadow stack.
+>    (this can happen, right? or is there a guard page?)
+> 2. C's TLB caches the dirty+writable PTE.
+> 3. A performs some syscall that triggers ptep_set_wrprotect().
+> 4. A's syscall calls clear_bit().
+> 5. B's TLB caches the transient shadow stack.
+> [now C has write access to B's transiently-extended shadow stack]
+> 6. B recurses into the transiently-extended shadow stack
+> 7. C overwrites the transiently-extended shadow stack area.
+> 8. B returns through the transiently-extended shadow stack, giving
+>     the attacker instruction pointer control in B.
+> 9. A's syscall broadcasts a TLB flush.
 
-OK, 'good' :-)
+Heh, that's a good point.  The shadow stack permissions are *not*
+strictly reduced because a page getting marked as shadow-stack has
+*increased* permissions when being used as a shadow stack.  Fun.
 
-> I'll test it with last Will fix.
+For general hardening, it seems like we want to ensure that there's a
+guard page at the bottom of the shadow stack.  Yu-cheng, do we have a
+guard page?
 
-Yes, that missing "bnz 1b" is very very suspect.
+But, to keep B's TLB from picking up the entry, I think we can just make
+it !Present for a moment.  No TLB can cache it, and I believe the same
+"don't set Dirty on a !Writable entry" logic also holds for !Present
+(modulo a weird erratum or two).
+
+If we do that, we just need to make sure that the fault handler knows it
+can get spurious faults from it, and might even run into the !Present
+PTE for a moment.  It might be a bit confusing because it won't be a
+PROT_NONE, migration, or swap PTE, but will be !Present.  We'll also
+have to make sure that we're doing this in a way which is friendly to
+the L1TF PTE handling.
