@@ -1,56 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:32972 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729035AbeH3Sbu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 14:31:50 -0400
-Date: Thu, 30 Aug 2018 16:29:20 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Message-ID: <20180830142920.GO24082@hirez.programming.kicks-ass.net>
-References: <1535567633.4465.23.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <20180830095148.GB5942@arm.com>
- <1535629996.4465.44.camel@synopsys.com>
- <20180830141713.GN24082@hirez.programming.kicks-ass.net>
- <20180830142354.GB13005@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180830142354.GB13005@arm.com>
+Received: from mga17.intel.com ([192.55.52.151]:62771 "EHLO mga17.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729172AbeH3SqN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:46:13 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 08/24] mm: Introduce VM_SHSTK for shadow stack memory
+Date: Thu, 30 Aug 2018 07:38:48 -0700
+Message-ID: <20180830143904.3168-9-yu-cheng.yu@intel.com>
+In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180830142920.ZDRAWaQYlmZJHV9TtZ0ha6TCzPXSdZx1UoclybttYBg@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20180830143848.BK2n0qIkGcWgBJw0tN7mIBl7f8nWNYNhX4WT2mv4iVw@z>
 
-On Thu, Aug 30, 2018 at 03:23:55PM +0100, Will Deacon wrote:
+VM_SHSTK indicates a shadow stack memory area.
+The shadow stack is implemented only for the 64-bit kernel.
 
-> Yes, that would be worth trying. However, I also just noticed that the
-> fetch-ops (which are now used to implement test_and_set_bit_lock()) seem
-> to be missing the backwards branch in the LL/SC case. Yet another diff
-> below.
-> 
-> Will
-> 
-> --->8
-> 
-> diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
-> index 4e0072730241..f06c5ed672b3 100644
-> --- a/arch/arc/include/asm/atomic.h
-> +++ b/arch/arc/include/asm/atomic.h
-> @@ -84,7 +84,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
->  	"1:	llock   %[orig], [%[ctr]]		\n"		\
->  	"	" #asm_op " %[val], %[orig], %[i]	\n"		\
->  	"	scond   %[val], [%[ctr]]		\n"		\
-> -	"						\n"		\
-> +	"	bnz	1b				\n"		\
->  	: [val]	"=&r"	(val),						\
->  	  [orig] "=&r" (orig)						\
->  	: [ctr]	"r"	(&v->counter),					\
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ include/linux/mm.h | 8 ++++++++
+ mm/internal.h      | 8 ++++++++
+ 2 files changed, 16 insertions(+)
 
-ACK!! sorry about that, no idea how I messed that up.
-
-Also, once it all works, they should look at switching to _relaxed
-atomics for LL/SC.
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index a61ebe8ad4ca..f40387ecd920 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -224,11 +224,13 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
+ #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
++#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+ 
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+@@ -266,6 +268,12 @@ extern unsigned int kobjsize(const void *objp);
+ # define VM_MPX		VM_NONE
+ #endif
+ 
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++# define VM_SHSTK	VM_HIGH_ARCH_5
++#else
++# define VM_SHSTK	VM_NONE
++#endif
++
+ #ifndef VM_GROWSUP
+ # define VM_GROWSUP	VM_NONE
+ #endif
+diff --git a/mm/internal.h b/mm/internal.h
+index 87256ae1bef8..d5ee0c04a6c4 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -280,6 +280,14 @@ static inline bool is_data_mapping(vm_flags_t flags)
+ 	return (flags & (VM_WRITE | VM_SHARED | VM_STACK)) == VM_WRITE;
+ }
+ 
++/*
++ * Shadow stack area
++ */
++static inline bool is_shstk_mapping(vm_flags_t flags)
++{
++	return (flags & VM_SHSTK);
++}
++
+ /* mm/util.c */
+ void __vma_link_list(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		struct vm_area_struct *prev, struct rb_node *rb_parent);
+-- 
+2.17.1
