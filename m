@@ -1,136 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:18694 "EHLO mga09.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:38430 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729764AbeH3SrP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 14:47:15 -0400
+        id S1729224AbeH3SqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:46:18 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 4/8] x86/cet/ibt: Add arch_prctl functions for IBT
-Date: Thu, 30 Aug 2018 07:40:05 -0700
-Message-ID: <20180830144009.3314-5-yu-cheng.yu@intel.com>
-In-Reply-To: <20180830144009.3314-1-yu-cheng.yu@intel.com>
-References: <20180830144009.3314-1-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 07/24] x86/cet/shstk: Add Kconfig option for user-mode shadow stack
+Date: Thu, 30 Aug 2018 07:38:47 -0700
+Message-ID: <20180830143904.3168-8-yu-cheng.yu@intel.com>
+In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180830144005.c9-eSyBSNe2rCJNIbPy7onHRaGu41y6ZPluI_ajjjYY@z>
+Message-ID: <20180830143847.kRvqy6bybrXeOURk7KuH8deeCH8avxViTBPbsVoh1cY@z>
 
-Update ARCH_CET_STATUS and ARCH_CET_DISABLE to include Indirect
-Branch Tracking features.
+Introduce Kconfig option X86_INTEL_SHADOW_STACK_USER.
 
-Introduce:
+An application has shadow stack protection when all the following are
+true:
 
-arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
-    Enable the Indirect Branch Tracking legacy code bitmap.
+  (1) The kernel has X86_INTEL_SHADOW_STACK_USER enabled,
+  (2) The running processor supports the shadow stack,
+  (3) The application is built with shadow stack enabled tools & libs
+      and, and at runtime, all dependent shared libs can support shadow
+      stack.
 
-    The parameter 'addr' is a pointer to a user buffer.
-    On returning to the caller, the kernel fills the following:
+If this kernel config option is enabled, but (2) or (3) above is not
+true, the application runs without the shadow stack protection.
+Existing legacy applications will continue to work without the shadow
+stack protection.
 
-    *addr = IBT bitmap base address
-    *(addr + 1) = IBT bitmap size
+The user-mode shadow stack protection is only implemented for the
+64-bit kernel.  Thirty-two bit applications are supported under the
+compatibility mode.
 
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/uapi/asm/prctl.h |  1 +
- arch/x86/kernel/cet_prctl.c       | 38 ++++++++++++++++++++++++++++++-
- arch/x86/kernel/process.c         |  1 +
- 3 files changed, 39 insertions(+), 1 deletion(-)
+ arch/x86/Kconfig  | 24 ++++++++++++++++++++++++
+ arch/x86/Makefile |  7 +++++++
+ 2 files changed, 31 insertions(+)
 
-diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
-index 3aec1088e01d..31d2465f9caf 100644
---- a/arch/x86/include/uapi/asm/prctl.h
-+++ b/arch/x86/include/uapi/asm/prctl.h
-@@ -18,5 +18,6 @@
- #define ARCH_CET_DISABLE	0x3002
- #define ARCH_CET_LOCK		0x3003
- #define ARCH_CET_ALLOC_SHSTK	0x3004
-+#define ARCH_CET_LEGACY_BITMAP	0x3005
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c5ff296bc5d1..017b3ba70807 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1913,6 +1913,30 @@ config X86_INTEL_MEMORY_PROTECTION_KEYS
  
- #endif /* _ASM_X86_PRCTL_H */
-diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
-index c4b7c19f5040..df47b5ebc3f4 100644
---- a/arch/x86/kernel/cet_prctl.c
-+++ b/arch/x86/kernel/cet_prctl.c
-@@ -20,6 +20,8 @@ static int handle_get_status(unsigned long arg2)
+ 	  If unsure, say y.
  
- 	if (current->thread.cet.shstk_enabled)
- 		features |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
-+	if (current->thread.cet.ibt_enabled)
-+		features |= GNU_PROPERTY_X86_FEATURE_1_IBT;
- 
- 	shstk_base = current->thread.cet.shstk_base;
- 	shstk_size = current->thread.cet.shstk_size;
-@@ -49,9 +51,35 @@ static int handle_alloc_shstk(unsigned long arg2)
- 	return 0;
- }
- 
-+static int handle_bitmap(unsigned long arg2)
-+{
-+	unsigned long addr, size;
++config X86_INTEL_CET
++	def_bool n
 +
-+	if (current->thread.cet.ibt_enabled) {
-+		int err;
++config ARCH_HAS_SHSTK
++	def_bool n
 +
-+		err  = cet_setup_ibt_bitmap();
-+		if (err)
-+			return err;
++config X86_INTEL_SHADOW_STACK_USER
++	prompt "Intel Shadow Stack for user-mode"
++	def_bool n
++	depends on CPU_SUP_INTEL && X86_64
++	select X86_INTEL_CET
++	select ARCH_HAS_SHSTK
++	---help---
++	  Shadow stack provides hardware protection against program stack
++	  corruption.  Only when all the following are true will an application
++	  have the shadow stack protection: the kernel supports it (i.e. this
++	  feature is enabled), the application is compiled and linked with
++	  shadow stack enabled, and the processor supports this feature.
++	  When the kernel has this configuration enabled, existing non shadow
++	  stack applications will continue to work, but without shadow stack
++	  protection.
 +
-+		addr = current->thread.cet.ibt_bitmap_addr;
-+		size = current->thread.cet.ibt_bitmap_size;
-+	} else {
-+		addr = 0;
-+		size = 0;
-+	}
++	  If unsure, say y.
 +
-+	if (put_user(addr, (unsigned long __user *)arg2) ||
-+	    put_user(size, (unsigned long __user *)arg2 + 1))
-+		return -EFAULT;
-+
-+	return 0;
-+}
-+
- int prctl_cet(int option, unsigned long arg2)
- {
--	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
-+	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) &&
-+	    !cpu_feature_enabled(X86_FEATURE_IBT))
- 		return -EINVAL;
+ config EFI
+ 	bool "EFI runtime service support"
+ 	depends on ACPI
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index 94859241bc3e..00927853e409 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -152,6 +152,13 @@ ifdef CONFIG_X86_X32
+ endif
+ export CONFIG_X86_X32_ABI
  
- 	switch (option) {
-@@ -63,6 +91,8 @@ int prctl_cet(int option, unsigned long arg2)
- 			return -EPERM;
- 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
- 			cet_disable_free_shstk(current);
-+		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
-+			cet_disable_ibt();
- 
- 		return 0;
- 
-@@ -73,6 +103,12 @@ int prctl_cet(int option, unsigned long arg2)
- 	case ARCH_CET_ALLOC_SHSTK:
- 		return handle_alloc_shstk(arg2);
- 
-+	/*
-+	 * Allocate legacy bitmap and return address & size to user.
-+	 */
-+	case ARCH_CET_LEGACY_BITMAP:
-+		return handle_bitmap(arg2);
++# Check assembler shadow stack suppot
++ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++  ifeq ($(call as-instr, saveprevssp, y),)
++      $(error CONFIG_X86_INTEL_SHADOW_STACK_USER not supported by the assembler)
++  endif
++endif
 +
- 	default:
- 		return -EINVAL;
- 	}
-diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-index ac0ea9c7e89f..aea15a9b6a3e 100644
---- a/arch/x86/kernel/process.c
-+++ b/arch/x86/kernel/process.c
-@@ -797,6 +797,7 @@ long do_arch_prctl_common(struct task_struct *task, int option,
- 	case ARCH_CET_DISABLE:
- 	case ARCH_CET_LOCK:
- 	case ARCH_CET_ALLOC_SHSTK:
-+	case ARCH_CET_LEGACY_BITMAP:
- 		return prctl_cet(option, cpuid_enabled);
- 	}
- 
+ #
+ # If the function graph tracer is used with mcount instead of fentry,
+ # '-maccumulate-outgoing-args' is needed to prevent a GCC bug
 -- 
 2.17.1
