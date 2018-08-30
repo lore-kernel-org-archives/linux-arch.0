@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38376 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727988AbeH3NgR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 09:36:17 -0400
-Date: Thu, 30 Aug 2018 10:35:13 +0100
-From: Will Deacon <will.deacon@arm.com>
+Received: from merlin.infradead.org ([205.233.59.134]:32932 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726419AbeH3Npn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 09:45:43 -0400
+Date: Thu, 30 Aug 2018 11:44:11 +0200
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
  causes kernel crash
-Message-ID: <20180830093513.GA5942@arm.com>
+Message-ID: <20180830094411.GX24124@hirez.programming.kicks-ass.net>
 References: <1535567633.4465.23.camel@synopsys.com>
  <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
 MIME-Version: 1.0
@@ -17,8 +17,8 @@ In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.syn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180830093513.FSOOihH1_o-w3GfzpIHqCH7HjgmpCHpSrmjXe8JPaGo@z>
+Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180830094411.jo-tQBBB-SzFkBE1hJ8h3581CPDPUL3r2jRh3s9zmyU@z>
 
 On Wed, Aug 29, 2018 at 09:16:43PM +0000, Vineet Gupta wrote:
 > On 08/29/2018 11:33 AM, Eugeniy Paltsev wrote:
@@ -46,9 +46,9 @@ On Wed, Aug 29, 2018 at 09:16:43PM +0000, Vineet Gupta wrote:
 > 
 > This patch undoes that which could explain the issues you see. @Peter, @Will ?
 
-/me grabs arc toolchain (incidentally, make.cross fuzzy matches "arc" to
-"sparc", so that was fun for a few minutes).
+Right, so the thinking is that on platforms that suffer that issue,
+atomic_set*() should DTRT. And if you look at your spinlock based atomic
+implementation, you'll note that atomic_set() does indeed do the right
+thing.
 
-I'll take a look today, thanks for the report.
-
-Will
+arch/arc/include/asm/atomic.h:108
