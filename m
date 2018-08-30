@@ -1,161 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:38433 "EHLO mga01.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:38430 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729538AbeH3SqR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 14:46:17 -0400
+        id S1729627AbeH3SqU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:46:20 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 06/24] x86/cet: Control protection exception handler
-Date: Thu, 30 Aug 2018 07:38:46 -0700
-Message-ID: <20180830143904.3168-7-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 19/24] x86/cet/shstk: Introduce WRUSS instruction
+Date: Thu, 30 Aug 2018 07:38:59 -0700
+Message-ID: <20180830143904.3168-20-yu-cheng.yu@intel.com>
 In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180830143846.L76G8KDZ1cG_2kksy2VhleS125yBQ0bnSR8TGwoAvMI@z>
+Message-ID: <20180830143859.V-vVDoHg4rHvFLw5CdzTW_lRiDI6cMFlCtFoOhUOD0g@z>
 
-A control protection exception is triggered when a control flow transfer
-attempt violated shadow stack or indirect branch tracking constraints.
-For example, the return address for a RET instruction differs from the
-safe copy on the shadow stack; or a JMP instruction arrives at a non-
-ENDBR instruction.
+WRUSS is a new kernel-mode instruction but writes directly
+to user shadow stack memory.  This is used to construct
+a return address on the shadow stack for the signal
+handler.
 
-The control protection exception handler works in a similar way as the
-general protection fault handler.
+This instruction can fault if the user shadow stack is
+invalid shadow stack memory.  In that case, the kernel does
+fixup.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/entry/entry_64.S    |  2 +-
- arch/x86/include/asm/traps.h |  3 ++
- arch/x86/kernel/idt.c        |  4 +++
- arch/x86/kernel/traps.c      | 58 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 66 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/special_insns.h | 37 ++++++++++++++++++++++++++++
+ arch/x86/mm/extable.c                | 11 +++++++++
+ arch/x86/mm/fault.c                  |  9 +++++++
+ 3 files changed, 57 insertions(+)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 957dfb693ecc..5f4914e988df 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -1000,7 +1000,7 @@ idtentry spurious_interrupt_bug		do_spurious_interrupt_bug	has_error_code=0
- idtentry coprocessor_error		do_coprocessor_error		has_error_code=0
- idtentry alignment_check		do_alignment_check		has_error_code=1
- idtentry simd_coprocessor_error		do_simd_coprocessor_error	has_error_code=0
--
-+idtentry control_protection		do_control_protection		has_error_code=1
- 
- 	/*
- 	 * Reload gs selector with exception handling
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index 3de69330e6c5..5196050ff3d5 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -26,6 +26,7 @@ asmlinkage void invalid_TSS(void);
- asmlinkage void segment_not_present(void);
- asmlinkage void stack_segment(void);
- asmlinkage void general_protection(void);
-+asmlinkage void control_protection(void);
- asmlinkage void page_fault(void);
- asmlinkage void async_page_fault(void);
- asmlinkage void spurious_interrupt_bug(void);
-@@ -77,6 +78,7 @@ dotraplinkage void do_stack_segment(struct pt_regs *, long);
- dotraplinkage void do_double_fault(struct pt_regs *, long);
- #endif
- dotraplinkage void do_general_protection(struct pt_regs *, long);
-+dotraplinkage void do_control_protection(struct pt_regs *, long);
- dotraplinkage void do_page_fault(struct pt_regs *, unsigned long);
- dotraplinkage void do_spurious_interrupt_bug(struct pt_regs *, long);
- dotraplinkage void do_coprocessor_error(struct pt_regs *, long);
-@@ -142,6 +144,7 @@ enum {
- 	X86_TRAP_AC,		/* 17, Alignment Check */
- 	X86_TRAP_MC,		/* 18, Machine Check */
- 	X86_TRAP_XF,		/* 19, SIMD Floating-Point Exception */
-+	X86_TRAP_CP = 21,	/* 21 Control Protection Fault */
- 	X86_TRAP_IRET = 32,	/* 32, IRET Exception */
- };
- 
-diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
-index 01adea278a71..2d02fdd599a2 100644
---- a/arch/x86/kernel/idt.c
-+++ b/arch/x86/kernel/idt.c
-@@ -104,6 +104,10 @@ static const __initconst struct idt_data def_idts[] = {
- #elif defined(CONFIG_X86_32)
- 	SYSG(IA32_SYSCALL_VECTOR,	entry_INT80_32),
- #endif
-+
-+#ifdef CONFIG_X86_INTEL_CET
-+	INTG(X86_TRAP_CP,		control_protection),
-+#endif
- };
- 
- /*
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index e6db475164ed..21a713b96148 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -578,6 +578,64 @@ do_general_protection(struct pt_regs *regs, long error_code)
+diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+index 317fc59b512c..9f609e802c5c 100644
+--- a/arch/x86/include/asm/special_insns.h
++++ b/arch/x86/include/asm/special_insns.h
+@@ -237,6 +237,43 @@ static inline void clwb(volatile void *__p)
+ 		: [pax] "a" (p));
  }
- NOKPROBE_SYMBOL(do_general_protection);
  
-+static const char *control_protection_err[] =
++#ifdef CONFIG_X86_INTEL_CET
++
++#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
 +{
-+	"unknown",
-+	"near-ret",
-+	"far-ret/iret",
-+	"endbranch",
-+	"rstorssp",
-+	"setssbsy",
-+};
++	int err = 0;
 +
-+/*
-+ * When a control protection exception occurs, send a signal
-+ * to the responsible application.  Currently, control
-+ * protection is only enabled for the user mode.  This
-+ * exception should not come from the kernel mode.
-+ */
-+dotraplinkage void
-+do_control_protection(struct pt_regs *regs, long error_code)
-+{
-+	struct task_struct *tsk;
++	asm volatile("1: wrussd %1, (%0)\n"
++		     "2:\n"
++		     _ASM_EXTABLE_HANDLE(1b, 2b, ex_handler_wruss)
++		     :
++		     : "r" (addr), "r" (val));
 +
-+	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
-+	if (notify_die(DIE_TRAP, "control protection fault", regs,
-+		       error_code, X86_TRAP_CP, SIGSEGV) == NOTIFY_STOP)
-+		return;
-+	cond_local_irq_enable(regs);
-+
-+	if (!user_mode(regs))
-+		die("kernel control protection fault", regs, error_code);
-+
-+	if (!static_cpu_has(X86_FEATURE_SHSTK) &&
-+	    !static_cpu_has(X86_FEATURE_IBT))
-+		WARN_ONCE(1, "CET is disabled but got control "
-+			  "protection fault\n");
-+
-+	tsk = current;
-+	tsk->thread.error_code = error_code;
-+	tsk->thread.trap_nr = X86_TRAP_CP;
-+
-+	if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
-+	    printk_ratelimit()) {
-+		unsigned int max_err;
-+
-+		max_err = ARRAY_SIZE(control_protection_err) - 1;
-+		if ((error_code < 0) || (error_code > max_err))
-+			error_code = 0;
-+		pr_info("%s[%d] control protection ip:%lx sp:%lx error:%lx(%s)",
-+			tsk->comm, task_pid_nr(tsk),
-+			regs->ip, regs->sp, error_code,
-+			control_protection_err[error_code]);
-+		print_vma_addr(" in ", regs->ip);
-+		pr_cont("\n");
-+	}
-+
-+	force_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
++	return err;
 +}
-+NOKPROBE_SYMBOL(do_control_protection);
++#else
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
++{
++	BUG();
++	return 0;
++}
++#endif
 +
- dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
++static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
++{
++	int err = 0;
++
++	asm volatile("1: wrussq %1, (%0)\n"
++		     "2:\n"
++		     _ASM_EXTABLE_HANDLE(1b, 2b, ex_handler_wruss)
++		     :
++		     : "r" (addr), "r" (val));
++
++	return err;
++}
++#endif /* CONFIG_X86_INTEL_CET */
++
+ #define nop() asm volatile ("nop")
+ 
+ 
+diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
+index 45f5d6cf65ae..e06ff851b671 100644
+--- a/arch/x86/mm/extable.c
++++ b/arch/x86/mm/extable.c
+@@ -157,6 +157,17 @@ __visible bool ex_handler_clear_fs(const struct exception_table_entry *fixup,
+ }
+ EXPORT_SYMBOL(ex_handler_clear_fs);
+ 
++#ifdef CONFIG_X86_INTEL_CET
++__visible bool ex_handler_wruss(const struct exception_table_entry *fixup,
++				struct pt_regs *regs, int trapnr)
++{
++	regs->ip = ex_fixup_addr(fixup);
++	regs->ax = -1;
++	return true;
++}
++EXPORT_SYMBOL(ex_handler_wruss);
++#endif
++
+ __visible bool ex_has_fault_handler(unsigned long ip)
  {
- #ifdef CONFIG_DYNAMIC_FTRACE
+ 	const struct exception_table_entry *e;
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 3842353fb4a3..10dbb5c9aaef 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1305,6 +1305,15 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 		error_code |= X86_PF_USER;
+ 		flags |= FAULT_FLAG_USER;
+ 	} else {
++		/*
++		 * WRUSS is a kernel instrcution and but writes
++		 * to user shadow stack.  When a fault occurs,
++		 * both X86_PF_USER and X86_PF_SHSTK are set.
++		 * Clear X86_PF_USER here.
++		 */
++		if ((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
++		    (X86_PF_USER | X86_PF_SHSTK))
++			error_code &= ~X86_PF_USER;
+ 		if (regs->flags & X86_EFLAGS_IF)
+ 			local_irq_enable();
+ 	}
 -- 
 2.17.1
