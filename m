@@ -1,88 +1,156 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
- pmdp_set_wrprotect for _PAGE_DIRTY_SW
-Date: Thu, 30 Aug 2018 23:47:16 +0200
-Message-ID: <CAG48ez3S3+DzAyo_SnoUW1GO0Cpd_x0A83MOx2p_MkogoAatLQ@mail.gmail.com>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-13-yu-cheng.yu@intel.com>
- <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
- <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com> <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
- <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com> <1535649960.26689.15.camel@intel.com>
- <33d45a12-513c-eba2-a2de-3d6b630e928e@linux.intel.com> <1535651666.27823.6.camel@intel.com>
- <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
- <1535660494.28258.36.camel@intel.com> <CAG48ez0yOuDhqxB779aO3Kss3gQ3cZTJL1VphDXQm+_M9jFPvQ@mail.gmail.com>
- <1535662366.28781.6.camel@intel.com> <CAG48ez0mkr95_TbLQnDGuGUd6G+eJVLZ-fEjDkwA6dSrm+9tLw@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC LKMM 3/7] EXP tools/memory-model: Add more LKMM
+ limitations
+Date: Thu, 30 Aug 2018 15:18:14 -0700
+Message-ID: <20180830221814.GQ4225@linux.vnet.ibm.com>
+References: <20180829211018.GA19646@linux.vnet.ibm.com>
+ <20180829211053.20531-3-paulmck@linux.vnet.ibm.com>
+ <20180830091713.GA4617@andrea>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAG48ez0mkr95_TbLQnDGuGUd6G+eJVLZ-fEjDkwA6dSrm+9tLw@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <20180830091713.GA4617@andrea>
 Sender: linux-kernel-owner@vger.kernel.org
-To: yu-cheng.yu@intel.com
-Cc: Dave Hansen <dave.hansen@linux.intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>Pavel Machek <pa>
+To: Andrea Parri <parri.andrea@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 30, 2018 at 11:01 PM Jann Horn <jannh@google.com> wrote:
->
-> On Thu, Aug 30, 2018 at 10:57 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> >
-> > On Thu, 2018-08-30 at 22:44 +0200, Jann Horn wrote:
-> > > On Thu, Aug 30, 2018 at 10:25 PM Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > > wrote:
-> > ...
-> > > > In the flow you described, if C writes to the overflow page before
-> > > > B
-> > > > gets in with a 'call', the return address is still correct for
-> > > > B.  To
-> > > > make an attack, C needs to write again before the TLB flush.  I
-> > > > agree
-> > > > that is possible.
-> > > >
-> > > > Assume we have a guard page, can someone in the short window do
-> > > > recursive calls in B, move ssp to the end of the guard page, and
-> > > > trigger the same again?  He can simply take the incssp route.
-> > > I don't understand what you're saying. If the shadow stack is
-> > > between
-> > > guard pages, you should never be able to move SSP past that area's
-> > > guard pages without an appropriate shadow stack token (not even with
-> > > INCSSP, since that has a maximum range of PAGE_SIZE/2), and
-> > > therefore,
-> > > it shouldn't matter whether memory outside that range is incorrectly
-> > > marked as shadow stack. Am I missing something?
-> >
-> > INCSSP has a range of 256, but we can do multiple of that.
-> > But I realize the key is not to have the transient SHSTK page at all.
-> > The guard page is !pte_write() and even we have flaws in
-> > ptep_set_wrprotect(), there will not be any transient SHSTK pages. I
-> > will add guard pages to both ends.
-> >
-> > Still thinking how to fix ptep_set_wrprotect().
->
-> cmpxchg loop? Or is that slow?
+On Thu, Aug 30, 2018 at 11:17:13AM +0200, Andrea Parri wrote:
+> On Wed, Aug 29, 2018 at 02:10:49PM -0700, Paul E. McKenney wrote:
+> > This commit adds more detail about compiler optimizations and
+> > not-yet-modeled Linux-kernel APIs.
+> > 
+> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > ---
+> >  tools/memory-model/README | 39 +++++++++++++++++++++++++++++++++++++++
+> >  1 file changed, 39 insertions(+)
+> > 
+> > diff --git a/tools/memory-model/README b/tools/memory-model/README
+> > index ee987ce20aae..acf9077cffaa 100644
+> > --- a/tools/memory-model/README
+> > +++ b/tools/memory-model/README
+> > @@ -171,6 +171,12 @@ The Linux-kernel memory model has the following limitations:
+> >  	particular, the "THE PROGRAM ORDER RELATION: po AND po-loc"
+> >  	and "A WARNING" sections).
+> >  
+> > +	Note that this limitation in turn limits LKMM's ability to
+> > +	accurately model address, control, and data dependencies.
+> > +	For example, if the compiler can deduce the value of some variable
+> > +	carrying a dependency, then the compiler can break that dependency
+> > +	by substituting a constant of that value.
+> > +
+> >  2.	Multiple access sizes for a single variable are not supported,
+> >  	and neither are misaligned or partially overlapping accesses.
+> >  
+> > @@ -190,6 +196,36 @@ The Linux-kernel memory model has the following limitations:
+> >  	However, a substantial amount of support is provided for these
+> >  	operations, as shown in the linux-kernel.def file.
+> >  
+> > +	a.	When rcu_assign_pointer() is passed NULL, the Linux
+> > +		kernel provides no ordering, but LKMM models this
+> > +		case as a store release.
+> > +
+> > +	b.	The "unless" RMW operations are not currently modeled:
+> > +		atomic_long_add_unless(), atomic_add_unless(),
+> > +		atomic_inc_unless_negative(), and
+> > +		atomic_dec_unless_positive().  These can be emulated
+> > +		in litmus tests, for example, by using atomic_cmpxchg().
+> 
+> There is a prototype atomic_add_unless(): with current herd7,
+> 
+> $ cat atomic_add_unless.litmus
+> C atomic_add_unless
+> 
+> {}
+> 
+> P0(atomic_t *u, atomic_t *v)
+> {
+> 	int r0;
+> 	int r1;
+> 
+> 	r0 = atomic_add_unless(u, 1, 2);
+> 	r1 = atomic_read(v);
+> }
+> 
+> P1(atomic_t *u, atomic_t *v)
+> {
+> 	int r0;
+> 	int r1;
+> 
+> 	r0 = atomic_add_unless(v, 1, 2);
+> 	r1 = atomic_read(u);
+> }
+> 
+> exists (0:r1=0 /\ 1:r1=0)
+> 
+> $ herd7 -conf linux-kernel.cfg atomic_add_unless.litmus
+> Test atomic_add_unless Allowed
+> States 3
+> 0:r1=0; 1:r1=1;
+> 0:r1=1; 1:r1=0;
+> 0:r1=1; 1:r1=1;
+> No
+> Witnesses
+> Positive: 0 Negative: 3
+> Condition exists (0:r1=0 /\ 1:r1=0)
+> Observation atomic_add_unless Never 0 3
+> Time atomic_add_unless 0.00
+> Hash=fa37a2359831690299e4cc394e45d966
+> 
+> The last commit in the herdtools7 repo. related to this implementation
+> (AFAICT) is:
+> 
+>   9523c340917b6a ("herd/linux: make atomic_add_unless a primitive, so as to yield more precise dependencies for the returned boolean.")
+> 
+> but I can only vaguely remember those dependencies issues now :/  ...;
+> maybe we can now solve these issues?  or should we change herd7 to re-
+> turn a warning?  (Notice that this primitive is currently not exported
+> to the linux-kernel.def file.)
 
-Something like this:
+Cool!  It would be good to add this to the .def file once the underlying
+herd7 machinery is ready.  And then I would update the documentation
+accordingly.  Or happily accept a patch updating the documentation,
+as the case might be.  ;-)
 
-static inline void ptep_set_wrprotect(struct mm_struct *mm,
-                                      unsigned long addr, pte_t *ptep)
-{
-        pte_t pte = READ_ONCE(*ptep), new_pte;
+							Thanx, Paul
 
-        /* ... your comment about not needing a TLB shootdown here ... */
-        do {
-                pte = pte_wrprotect(pte);
-                /* note: relies on _PAGE_DIRTY_HW < _PAGE_DIRTY_SW */
-                /* dirty direct bit-twiddling; you can probably write
-this in a nicer way */
-                pte.pte |= (pte.pte & _PAGE_DIRTY_HW) >>
-_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
-                pte.pte &= ~_PAGE_DIRTY_HW;
-                pte = cmpxchg(ptep, pte, new_pte);
-        } while (pte != new_pte);
-}
-
-I think this has the advantage of not generating weird spurious pagefaults.
-It's not compatible with Xen PV, but I'm guessing that this whole
-feature isn't going to support Xen PV anyway? So you could switch
-between two implementations of ptep_set_wrprotect using the pvop
-mechanism or so - one for environments that support shadow stacks, one
-for all other environments.
-Or is there some arcane reason why cmpxchg doesn't work here the way I
-think it should?
+>   Andrea
+> 
+> 
+> > +
+> > +	c.	The call_rcu() function is not modeled.  It can be
+> > +		emulated in litmus tests by adding another process that
+> > +		invokes synchronize_rcu() and the body of the callback
+> > +		function, with (for example) a release-acquire from
+> > +		the site of the emulated call_rcu() to the beginning
+> > +		of the additional process.
+> > +
+> > +	d.	The rcu_barrier() function is not modeled.  It can be
+> > +		emulated in litmus tests emulating call_rcu() via
+> > +		(for example) a release-acquire from the end of each
+> > +		additional call_rcu() process to the site of the
+> > +		emulated rcu-barrier().
+> > +
+> > +	e.	Sleepable RCU (SRCU) is not modeled.  It can be
+> > +		emulated, but perhaps not simply.
+> > +
+> > +	f.	Reader-writer locking is not modeled.  It can be
+> > +		emulated in litmus tests using atomic read-modify-write
+> > +		operations.
+> > +
+> >  The "herd7" tool has some additional limitations of its own, apart from
+> >  the memory model:
+> >  
+> > @@ -204,3 +240,6 @@ the memory model:
+> >  Some of these limitations may be overcome in the future, but others are
+> >  more likely to be addressed by incorporating the Linux-kernel memory model
+> >  into other tools.
+> > +
+> > +Finally, please note that LKMM is subject to change as hardware, use cases,
+> > +and compilers evolve.
+> > -- 
+> > 2.17.1
+> > 
+> 
