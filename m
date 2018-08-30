@@ -1,106 +1,98 @@
-From: Masami Hiramatsu <mhiramat@kernel.org>
+From: Nadav Amit <namit@vmware.com>
 Subject: Re: [RFC PATCH 1/6] x86/alternative: assert text_mutex is taken
-Date: Thu, 30 Aug 2018 11:26:49 +0900
-Message-ID: <20180830112649.4b774f401d99a8b98e12008c@kernel.org>
+Date: Thu, 30 Aug 2018 05:23:01 +0000
+Message-ID: <A729271C-5646-470D-B200-7C552EB18FC8@vmware.com>
 References: <20180829081147.184610-1-namit@vmware.com>
-        <20180829081147.184610-2-namit@vmware.com>
-        <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
-        <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
-        <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
-        <20180829201309.GA7142@linux.intel.com>
-        <58345C1F-8FF3-4F49-AF2F-B4789DF50CC7@vmware.com>
-        <20180829210006.GA7166@linux.intel.com>
+ <20180829081147.184610-2-namit@vmware.com>
+ <20180829175936.fb27b3bf13da819a9a971f07@kernel.org>
+ <1F547CEE-B5D9-42A0-8093-2C5555BACE26@vmware.com>
+ <2694AE6F-2212-46C6-A570-6BAF265364FB@vmware.com>
+ <20180829201309.GA7142@linux.intel.com>
+ <58345C1F-8FF3-4F49-AF2F-B4789DF50CC7@vmware.com>
+ <20180829210006.GA7166@linux.intel.com>
+ <20180830112649.4b774f401d99a8b98e12008c@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-2022-JP
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180829210006.GA7166@linux.intel.com>
+In-Reply-To: <20180830112649.4b774f401d99a8b98e12008c@kernel.org>
+Content-Language: en-US
+Content-ID: <D8A06A81AAD89B41863DAE788D505729@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sean Christopherson <sean.j.christopherson@intel.com>
-Cc: Nadav Amit <namit@vmware.com>, Masami Hiramatsu <mhiramat@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Jason Wessel <jason.wessel@windriver.com>
+To: Masami Hiramatsu <mhiramat@kernel.org>, Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Jason Wessel <jason.wessel@windriver.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 29 Aug 2018 14:00:06 -0700
-Sean Christopherson <sean.j.christopherson@intel.com> wrote:
-
-> On Wed, Aug 29, 2018 at 08:44:47PM +0000, Nadav Amit wrote:
-> > at 1:13 PM, Sean Christopherson <sean.j.christopherson@intel.com> wrote:
-> > 
-> > > On Wed, Aug 29, 2018 at 07:36:22PM +0000, Nadav Amit wrote:
-> > >> at 10:11 AM, Nadav Amit <namit@vmware.com> wrote:
-> > >> 
-> > >>> at 1:59 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
-> > >>> 
-> > >>>> On Wed, 29 Aug 2018 01:11:42 -0700
-> > >>>> Nadav Amit <namit@vmware.com> wrote:
-> > >>>> 
-> > >>>>> Use lockdep to ensure that text_mutex is taken when text_poke() is
-> > >>>>> called.
-> > >>>>> 
-> > >>>>> Actually it is not always taken, specifically when it is called by kgdb,
-> > >>>>> so take the lock in these cases.
-> > >>>> 
-> > >>>> Can we really take a mutex in kgdb context?
-> > >>>> 
-> > >>>> kgdb_arch_remove_breakpoint
-> > >>>> <- dbg_deactivate_sw_breakpoints
-> > >>>>  <- kgdb_reenter_check
-> > >>>>     <- kgdb_handle_exception
-> > >>>>        <- __kgdb_notify
-> > >>>>          <- kgdb_ll_trap
-> > >>>>            <- do_int3
-> > >>>>          <- kgdb_notify
-> > >>>>            <- die notifier
-> > >>>> 
-> > >>>> kgdb_arch_set_breakpoint
-> > >>>> <- dbg_activate_sw_breakpoints
-> > >>>>  <- kgdb_reenter_check
-> > >>>>     <- kgdb_handle_exception
-> > >>>>         ...
-> > >>>> 
-> > >>>> Both seems called in exception context, so we can not take a mutex lock.
-> > >>>> I think kgdb needs a special path.
-> > >>> 
-> > >>> You are correct, but I don’t want a special path. Presumably text_mutex is
-> > >>> guaranteed not to be taken according to the code.
-> > >>> 
-> > >>> So I guess the only concern is lockdep. Do you see any problem if I change
-> > >>> mutex_lock() into mutex_trylock()? It should always succeed, and I can add a
-> > >>> warning and a failure path if it fails for some reason.
-> > >> 
-> > >> Err.. This will not work. I think I will drop this patch, since I cannot
-> > >> find a proper yet simple assertion. Creating special path just for the
-> > >> assertion seems wrong.
-> > > 
-> > > It's probably worth expanding the comment for text_poke() to call out
-> > > the kgdb case and reference kgdb_arch_{set,remove}_breakpoint(), whose
-> > > code and comments make it explicitly clear why its safe for them to
-> > > call text_poke() without acquiring the lock.  Might prevent someone
-> > > from going down this path again in the future.
-> > 
-> > I thought that the whole point of the patch was to avoid comments, and
-> > instead enforce the right behavior. I don’t understand well enough kgdb
-> > code, so I cannot attest it does the right thing. What happens if
-> > kgdb_do_roundup==0?
-> 
-> As is, the comment is wrong because there are obviously cases where
-> text_poke() is called without text_mutex being held.  I can't attest
-> to the kgdb code either.  My thought was to document the exception so
-> that if someone does want to try and enforce the right behavior they
-> can dive right into the problem instead of having to learn of the kgdb
-> gotcha the hard way.  Maybe a FIXME is the right approach?
-
-No, kgdb ensures that the text_mutex has not been held right before
-calling text_poke. So they also take care the text_mutex. I guess
-kgdb_arch_{set,remove}_breakpoint() is supposed to be run under
-a special circumstance, like stopping all other threads/cores.
-In that case, we can just check the text_mutex is not locked.
- 
-Anyway, kgdb is a very rare courner case. I think if CONFIG_KGDB is
-enabled, lockdep and any assertion should be disabled, since kgdb
-can tweak anything in the kernel with unexpected ways...
-
-Thank you,
-
--- 
-Masami Hiramatsu <mhiramat@kernel.org>
+YXQgNzoyNiBQTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6
+DQoNCj4gT24gV2VkLCAyOSBBdWcgMjAxOCAxNDowMDowNiAtMDcwMA0KPiBTZWFuIENocmlzdG9w
+aGVyc29uIDxzZWFuLmouY2hyaXN0b3BoZXJzb25AaW50ZWwuY29tPiB3cm90ZToNCj4gDQo+PiBP
+biBXZWQsIEF1ZyAyOSwgMjAxOCBhdCAwODo0NDo0N1BNICswMDAwLCBOYWRhdiBBbWl0IHdyb3Rl
+Og0KPj4+IGF0IDE6MTMgUE0sIFNlYW4gQ2hyaXN0b3BoZXJzb24gPHNlYW4uai5jaHJpc3RvcGhl
+cnNvbkBpbnRlbC5jb20+IHdyb3RlOg0KPj4+IA0KPj4+PiBPbiBXZWQsIEF1ZyAyOSwgMjAxOCBh
+dCAwNzozNjoyMlBNICswMDAwLCBOYWRhdiBBbWl0IHdyb3RlOg0KPj4+Pj4gYXQgMTA6MTEgQU0s
+IE5hZGF2IEFtaXQgPG5hbWl0QHZtd2FyZS5jb20+IHdyb3RlOg0KPj4+Pj4gDQo+Pj4+Pj4gYXQg
+MTo1OSBBTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6DQo+
+Pj4+Pj4gDQo+Pj4+Pj4+IE9uIFdlZCwgMjkgQXVnIDIwMTggMDE6MTE6NDIgLTA3MDANCj4+Pj4+
+Pj4gTmFkYXYgQW1pdCA8bmFtaXRAdm13YXJlLmNvbT4gd3JvdGU6DQo+Pj4+Pj4+IA0KPj4+Pj4+
+Pj4gVXNlIGxvY2tkZXAgdG8gZW5zdXJlIHRoYXQgdGV4dF9tdXRleCBpcyB0YWtlbiB3aGVuIHRl
+eHRfcG9rZSgpIGlzDQo+Pj4+Pj4+PiBjYWxsZWQuDQo+Pj4+Pj4+PiANCj4+Pj4+Pj4+IEFjdHVh
+bGx5IGl0IGlzIG5vdCBhbHdheXMgdGFrZW4sIHNwZWNpZmljYWxseSB3aGVuIGl0IGlzIGNhbGxl
+ZCBieSBrZ2RiLA0KPj4+Pj4+Pj4gc28gdGFrZSB0aGUgbG9jayBpbiB0aGVzZSBjYXNlcy4NCj4+
+Pj4+Pj4gDQo+Pj4+Pj4+IENhbiB3ZSByZWFsbHkgdGFrZSBhIG11dGV4IGluIGtnZGIgY29udGV4
+dD8NCj4+Pj4+Pj4gDQo+Pj4+Pj4+IGtnZGJfYXJjaF9yZW1vdmVfYnJlYWtwb2ludA0KPj4+Pj4+
+PiA8LSBkYmdfZGVhY3RpdmF0ZV9zd19icmVha3BvaW50cw0KPj4+Pj4+PiA8LSBrZ2RiX3JlZW50
+ZXJfY2hlY2sNCj4+Pj4+Pj4gICAgPC0ga2dkYl9oYW5kbGVfZXhjZXB0aW9uDQo+Pj4+Pj4+ICAg
+ICAgIDwtIF9fa2dkYl9ub3RpZnkNCj4+Pj4+Pj4gICAgICAgICA8LSBrZ2RiX2xsX3RyYXANCj4+
+Pj4+Pj4gICAgICAgICAgIDwtIGRvX2ludDMNCj4+Pj4+Pj4gICAgICAgICA8LSBrZ2RiX25vdGlm
+eQ0KPj4+Pj4+PiAgICAgICAgICAgPC0gZGllIG5vdGlmaWVyDQo+Pj4+Pj4+IA0KPj4+Pj4+PiBr
+Z2RiX2FyY2hfc2V0X2JyZWFrcG9pbnQNCj4+Pj4+Pj4gPC0gZGJnX2FjdGl2YXRlX3N3X2JyZWFr
+cG9pbnRzDQo+Pj4+Pj4+IDwtIGtnZGJfcmVlbnRlcl9jaGVjaw0KPj4+Pj4+PiAgICA8LSBrZ2Ri
+X2hhbmRsZV9leGNlcHRpb24NCj4+Pj4+Pj4gICAgICAgIC4uLg0KPj4+Pj4+PiANCj4+Pj4+Pj4g
+Qm90aCBzZWVtcyBjYWxsZWQgaW4gZXhjZXB0aW9uIGNvbnRleHQsIHNvIHdlIGNhbiBub3QgdGFr
+ZSBhIG11dGV4IGxvY2suDQo+Pj4+Pj4+IEkgdGhpbmsga2dkYiBuZWVkcyBhIHNwZWNpYWwgcGF0
+aC4NCj4+Pj4+PiANCj4+Pj4+PiBZb3UgYXJlIGNvcnJlY3QsIGJ1dCBJIGRvbuKAmXQgd2FudCBh
+IHNwZWNpYWwgcGF0aC4gUHJlc3VtYWJseSB0ZXh0X211dGV4IGlzDQo+Pj4+Pj4gZ3VhcmFudGVl
+ZCBub3QgdG8gYmUgdGFrZW4gYWNjb3JkaW5nIHRvIHRoZSBjb2RlLg0KPj4+Pj4+IA0KPj4+Pj4+
+IFNvIEkgZ3Vlc3MgdGhlIG9ubHkgY29uY2VybiBpcyBsb2NrZGVwLiBEbyB5b3Ugc2VlIGFueSBw
+cm9ibGVtIGlmIEkgY2hhbmdlDQo+Pj4+Pj4gbXV0ZXhfbG9jaygpIGludG8gbXV0ZXhfdHJ5bG9j
+aygpPyBJdCBzaG91bGQgYWx3YXlzIHN1Y2NlZWQsIGFuZCBJIGNhbiBhZGQgYQ0KPj4+Pj4+IHdh
+cm5pbmcgYW5kIGEgZmFpbHVyZSBwYXRoIGlmIGl0IGZhaWxzIGZvciBzb21lIHJlYXNvbi4NCj4+
+Pj4+IA0KPj4+Pj4gRXJyLi4gVGhpcyB3aWxsIG5vdCB3b3JrLiBJIHRoaW5rIEkgd2lsbCBkcm9w
+IHRoaXMgcGF0Y2gsIHNpbmNlIEkgY2Fubm90DQo+Pj4+PiBmaW5kIGEgcHJvcGVyIHlldCBzaW1w
+bGUgYXNzZXJ0aW9uLiBDcmVhdGluZyBzcGVjaWFsIHBhdGgganVzdCBmb3IgdGhlDQo+Pj4+PiBh
+c3NlcnRpb24gc2VlbXMgd3JvbmcuDQo+Pj4+IA0KPj4+PiBJdCdzIHByb2JhYmx5IHdvcnRoIGV4
+cGFuZGluZyB0aGUgY29tbWVudCBmb3IgdGV4dF9wb2tlKCkgdG8gY2FsbCBvdXQNCj4+Pj4gdGhl
+IGtnZGIgY2FzZSBhbmQgcmVmZXJlbmNlIGtnZGJfYXJjaF97c2V0LHJlbW92ZX1fYnJlYWtwb2lu
+dCgpLCB3aG9zZQ0KPj4+PiBjb2RlIGFuZCBjb21tZW50cyBtYWtlIGl0IGV4cGxpY2l0bHkgY2xl
+YXIgd2h5IGl0cyBzYWZlIGZvciB0aGVtIHRvDQo+Pj4+IGNhbGwgdGV4dF9wb2tlKCkgd2l0aG91
+dCBhY3F1aXJpbmcgdGhlIGxvY2suICBNaWdodCBwcmV2ZW50IHNvbWVvbmUNCj4+Pj4gZnJvbSBn
+b2luZyBkb3duIHRoaXMgcGF0aCBhZ2FpbiBpbiB0aGUgZnV0dXJlLg0KPj4+IA0KPj4+IEkgdGhv
+dWdodCB0aGF0IHRoZSB3aG9sZSBwb2ludCBvZiB0aGUgcGF0Y2ggd2FzIHRvIGF2b2lkIGNvbW1l
+bnRzLCBhbmQNCj4+PiBpbnN0ZWFkIGVuZm9yY2UgdGhlIHJpZ2h0IGJlaGF2aW9yLiBJIGRvbuKA
+mXQgdW5kZXJzdGFuZCB3ZWxsIGVub3VnaCBrZ2RiDQo+Pj4gY29kZSwgc28gSSBjYW5ub3QgYXR0
+ZXN0IGl0IGRvZXMgdGhlIHJpZ2h0IHRoaW5nLiBXaGF0IGhhcHBlbnMgaWYNCj4+PiBrZ2RiX2Rv
+X3JvdW5kdXA9PTA/DQo+PiANCj4+IEFzIGlzLCB0aGUgY29tbWVudCBpcyB3cm9uZyBiZWNhdXNl
+IHRoZXJlIGFyZSBvYnZpb3VzbHkgY2FzZXMgd2hlcmUNCj4+IHRleHRfcG9rZSgpIGlzIGNhbGxl
+ZCB3aXRob3V0IHRleHRfbXV0ZXggYmVpbmcgaGVsZC4gIEkgY2FuJ3QgYXR0ZXN0DQo+PiB0byB0
+aGUga2dkYiBjb2RlIGVpdGhlci4gIE15IHRob3VnaHQgd2FzIHRvIGRvY3VtZW50IHRoZSBleGNl
+cHRpb24gc28NCj4+IHRoYXQgaWYgc29tZW9uZSBkb2VzIHdhbnQgdG8gdHJ5IGFuZCBlbmZvcmNl
+IHRoZSByaWdodCBiZWhhdmlvciB0aGV5DQo+PiBjYW4gZGl2ZSByaWdodCBpbnRvIHRoZSBwcm9i
+bGVtIGluc3RlYWQgb2YgaGF2aW5nIHRvIGxlYXJuIG9mIHRoZSBrZ2RiDQo+PiBnb3RjaGEgdGhl
+IGhhcmQgd2F5LiAgTWF5YmUgYSBGSVhNRSBpcyB0aGUgcmlnaHQgYXBwcm9hY2g/DQo+IA0KPiBO
+bywga2dkYiBlbnN1cmVzIHRoYXQgdGhlIHRleHRfbXV0ZXggaGFzIG5vdCBiZWVuIGhlbGQgcmln
+aHQgYmVmb3JlDQo+IGNhbGxpbmcgdGV4dF9wb2tlLiBTbyB0aGV5IGFsc28gdGFrZSBjYXJlIHRo
+ZSB0ZXh0X211dGV4LiBJIGd1ZXNzDQo+IGtnZGJfYXJjaF97c2V0LHJlbW92ZX1fYnJlYWtwb2lu
+dCgpIGlzIHN1cHBvc2VkIHRvIGJlIHJ1biB1bmRlcg0KPiBhIHNwZWNpYWwgY2lyY3Vtc3RhbmNl
+LCBsaWtlIHN0b3BwaW5nIGFsbCBvdGhlciB0aHJlYWRzL2NvcmVzLg0KPiBJbiB0aGF0IGNhc2Us
+IHdlIGNhbiBqdXN0IGNoZWNrIHRoZSB0ZXh0X211dGV4IGlzIG5vdCBsb2NrZWQuDQoNCkkgYXNz
+dW1lZCBzbyB0b28sIGJ1dCBhZnRlciBsb29raW5nIGF0IHRoZSBjb2RlLCBJIGFtIG5vdCBzdXJl
+IHRoYXQgdGhpcyBpcw0KdGhlIGNhc2Ugd2hlbiBnZGJfZG9fcm91bmR1cD09MC4NCg0KPiBBbnl3
+YXksIGtnZGIgaXMgYSB2ZXJ5IHJhcmUgY291cm5lciBjYXNlLiBJIHRoaW5rIGlmIENPTkZJR19L
+R0RCIGlzDQo+IGVuYWJsZWQsIGxvY2tkZXAgYW5kIGFueSBhc3NlcnRpb24gc2hvdWxkIGJlIGRp
+c2FibGVkLCBzaW5jZSBrZ2RiDQo+IGNhbiB0d2VhayBhbnl0aGluZyBpbiB0aGUga2VybmVsIHdp
+dGggdW5leHBlY3RlZCB3YXlzLi4uDQoNCkNhbGwgbWUgbGF6eSwgYnV0IEkgcmVhbGx5IGRvIG5v
+dCB3YW50IHRvIGRlYnVnIHN5emthbGxlciBmYWlsdXJlcyBkdWUgdG8NCnRoaXMgaXNzdWUgKG5v
+dyBvciBpbiB0aGUgZnV0dXJlKS4gSWYgdGhlIGFzc2VydGlvbiBpcyBrbm93biB0byBiZQ0KaW5j
+b3JyZWN0LCBldmVuIGluIGEgY29ybmVyIGNhc2UsIEkgc2VlIG5vIHJlYXNvbiB0byBoYXZlIGl0
+IGFuZCBJIGNlcnRhaW5seQ0KZG8gbm90IHdhbnQgdG8gYmUgdGhlIG9uZSB0aGF0IGFkZGVkIGl0
+4oCmDQoNCg==
