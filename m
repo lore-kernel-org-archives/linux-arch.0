@@ -1,176 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:48588 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728115AbeH3PzH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 11:55:07 -0400
-From: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Date: Thu, 30 Aug 2018 11:53:17 +0000
-Message-ID: <1535629996.4465.44.camel@synopsys.com>
-References: <1535567633.4465.23.camel@synopsys.com>
-         <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
-         <20180830094411.GX24124@hirez.programming.kicks-ass.net>
-         <20180830095148.GB5942@arm.com>
-In-Reply-To: <20180830095148.GB5942@arm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <A5025634F43EB4479EC15F8AF01E4B1F@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+Received: from mail.skyhub.de ([5.9.137.197]:49912 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728115AbeH3Qhn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 12:37:43 -0400
+Date: Thu, 30 Aug 2018 14:35:59 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 01/16] x86/cpu: create Dhyana init file and register
+ new cpu_dev to system
+Message-ID: <20180830123559.GF20005@nazgul.tnic>
+References: <cover.1535459012.git.puwen@hygon.cn>
+ <c4610c537e5e5774d8d7486e0867ced8ebf0fba1.1535459012.git.puwen@hygon.cn>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <c4610c537e5e5774d8d7486e0867ced8ebf0fba1.1535459012.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "peterz@infradead.org" <peterz@infradead.org>, "will.deacon@arm.com" <will.deacon@arm.com>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "Eugeniy.Paltsev@synopsys.com" <Eugeniy.Paltsev@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180830115317.wRihgmTR2TWGfOVTAUPr4yW6O-L1JjQX_vUeOLeZp_c@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180830123559.azPr0q6Qf9yOByUxVyOSRCQjrj6Y-ysPE1RBv9PcD_4@z>
 
-SGkgV2lsbCwNCg0KT24gVGh1LCAyMDE4LTA4LTMwIGF0IDEwOjUxICswMTAwLCBXaWxsIERlYWNv
-biB3cm90ZToNCj4gT24gVGh1LCBBdWcgMzAsIDIwMTggYXQgMTE6NDQ6MTFBTSArMDIwMCwgUGV0
-ZXIgWmlqbHN0cmEgd3JvdGU6DQo+ID4gT24gV2VkLCBBdWcgMjksIDIwMTggYXQgMDk6MTY6NDNQ
-TSArMDAwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPiA+ID4gT24gMDgvMjkvMjAxOCAxMTozMyBB
-TSwgRXVnZW5peSBQYWx0c2V2IHdyb3RlOg0KPiA+ID4gPiBIaSBHdXlzLA0KPiA+ID4gPiBTaW5j
-ZSB2NC4xOS1yYzEgd2UgYXJlIGdldHRpbmcgYSBzZXJpb3VzIHJlZ3Jlc3Npb24gb24gcGxhdGZv
-cm1zIHdpdGggQVJDIGFyY2hpdGVjdHVyZS4NCj4gPiA+ID4gVGhlIGtlcm5lbCBoYXZlIGJlY29t
-ZSB1bnN0YWJsZSBhbmQgc3BvbnRhbmVvdXNseSBjcmFzaGVzIG9uIExUUCB0ZXN0cyBleGVjdXRp
-b24gLyBJTyB0ZXN0cyBvcg0KPiA+ID4gPiBldmVuIG9uIGJvb3QuDQo+ID4gPiA+IA0KPiA+ID4g
-PiBJIGRvbid0IGtub3cgZXhhY3RseSB3aGF0IGJyZWFrcyBidXQgYmlzZWN0IGNsZWFybHkgYXNz
-aWduIHRoZSBibGFtZSB0byB0aGlzIGNvbW1pdDoNCj4gPiA+ID4gODRjNjU5MTEwM2RiICgibG9j
-a2luZy9hdG9taWNzLCBhc20tZ2VuZXJpYy9iaXRvcHMvbG9jay5oOiBSZXdyaXRlIHVzaW5nIGF0
-b21pY19mZXRjaF8qKCkiKQ0KPiA+ID4gPiBodHRwczovL3VybGRlZmVuc2UucHJvb2Zwb2ludC5j
-b20vdjIvdXJsP3U9aHR0cHMtM0FfX2dpdGh1Yi5jb21fdG9ydmFsZHNfbGludXhfY29tbWl0Xzg0
-YzY1OTExMDNkYmVhZjM5M2EwOTJhM2ZjN2IwOTUxMDgyNWY2YjkmZD1Ed0lCQWcmYz1EUEw2DQo+
-ID4gPiA+IF9YXzZKa1hGeDdBWFdxQjB0ZyZyPVpsSk4xTXJpUFVUa0JLQ3JQU3g2N0dtYXBsRVVH
-Y0FFazl5UHRDTGRVWEkmbT02eTBGRnZrR2RJUTZrWDJsWjMxVjk5bE1mTVYtDQo+ID4gPiA+IFJ5
-V3lZaGlVR3poMEJpMCZzPUdOd21oU3luSWNXcWdaaGlPd0ZFRUhfQXRiWkFINDQzX0w2UUg0bndf
-bHMmZT0NCj4gPiA+ID4gDQo+ID4gPiA+IFJldmVydGluZyB0aGUgY29tbWl0IHNvbHZlcyB0aGlz
-IHByb2JsZW0uDQo+ID4gPiA+IA0KPiA+ID4gPiBJIHRlc3RlZCB2NC4xOS1yYzEgb24gQVJNICh3
-YW5kYm9hcmQsIGkubXg2LCAzMmJpdCwgcXVhcmQgY29yZSwgQVJNdjcpIHdoaWNoIHVzZXMgc2Ft
-ZQ0KPiA+ID4gPiBnZW5lcmljIGJpdG9wcyBpbXBsZW1lbnRhdGlvbiBhbmQgaXQgd29ya3MgZmlu
-ZS4NCj4gPiA+ID4gDQo+ID4gPiA+IERvIHlvdSBoYXZlIGFueSBpZGVhcyB3aGF0IHdlbnQgd3Jv
-bmc/DQo+ID4gPiANCj4gPiA+IEJhY2sgaW4gMjAxNiwgUGV0ZXIgaGFkIGZpeGVkIHRoaXMgZmls
-ZSBkdWUgdG8gYSBwcm9ibGVtIEkgcmVwb3J0ZWQgb24gQVJDLiBTZWUNCj4gPiA+IGNvbW1pdCBm
-NzVkNDg2NDRjNTZhICgiYml0b3BzOiBEbyBub3QgZGVmYXVsdCB0byBfX2NsZWFyX2JpdCgpIGZv
-cg0KPiA+ID4gX19jbGVhcl9iaXRfdW5sb2NrKCkiKQ0KPiA+ID4gVGhhdCBtYWRlIF9fY2xlYXJf
-Yml0X3VubG9jaygpIHVzZSB0aGUgYXRvbWljIGNsZWFyX2JpdCgpIHZzLiBub24tYXRvbWljDQo+
-ID4gPiBfX2NsZWFyX2JpdCgpLCBlZmZlY3RpdmVseSBtYWtpbmcgY2xlYXJfYml0X3VubG9jaygp
-IGFuZCBfX2NsZWFyX2JpdF91bmxvY2soKSBzYW1lLg0KPiA+ID4gDQo+ID4gPiBUaGlzIHBhdGNo
-IHVuZG9lcyB0aGF0IHdoaWNoIGNvdWxkIGV4cGxhaW4gdGhlIGlzc3VlcyB5b3Ugc2VlLiBAUGV0
-ZXIsIEBXaWxsID8NCj4gPiANCj4gPiBSaWdodCwgc28gdGhlIHRoaW5raW5nIGlzIHRoYXQgb24g
-cGxhdGZvcm1zIHRoYXQgc3VmZmVyIHRoYXQgaXNzdWUsDQo+ID4gYXRvbWljX3NldCooKSBzaG91
-bGQgRFRSVC4gQW5kIGlmIHlvdSBsb29rIGF0IHlvdXIgc3BpbmxvY2sgYmFzZWQgYXRvbWljDQo+
-ID4gaW1wbGVtZW50YXRpb24sIHlvdSdsbCBub3RlIHRoYXQgYXRvbWljX3NldCgpIGRvZXMgaW5k
-ZWVkIGRvIHRoZSByaWdodA0KPiA+IHRoaW5nLg0KPiA+IA0KPiA+IGFyY2gvYXJjL2luY2x1ZGUv
-YXNtL2F0b21pYy5oOjEwOA0KPiANCj4gWWVhaCwgdGhlIGJpdF9zcGluX2xvY2soKS9fX2JpdF9z
-cGluX3VubG9jaygpIHJhY2UgZGVzY3JpYmVkIGluIGY3NWQ0ODY0NGM1NmENCj4gYm9pbHMgZG93
-biB0byBjb25jdXJyZW50IGF0b21pY19sb25nX3NldF9yZWxlYXNlKCkgdnMNCj4gYXRvbWljX2xv
-bmdfZmV0Y2hfb3JfYWNxdWlyZSgpLCB3aGljaCByZWFsbHkgbmVlZHMgdG8gd29yay4NCj4gDQo+
-IEknbGwga2VlcCBkaWdnaW5nLiBJbiB0aGUgbWVhbnRpbWUsIFZpbmVldCwgZG8geW91IGhhdmUg
-YW55IHVzZWZ1bCBjcmFzaA0KPiBsb2dzIGFuZCBkbyB5b3Ugb25seSBzZWUgdGhlIGNyYXNoZXMg
-aW4gY2VydGFpbiBjb25maWd1cmF0aW9ucyAoZS5nLiBTTVAgYnV0DQo+ICFDT05GSUdfQVJDX0hB
-U19MTFNDKT8NCg0KV2UgZG9uJ3QgaGF2ZSBzdWNoIGNvbmZpZ3VyYXRpb24gKFNNUCB3aXRoICFD
-T05GSUdfQVJDX0hBU19MTFNDKS4NCg0KSSBjYW4gc2VlIGNyYXNoZXMgd2l0aCBMTFNDIGVuYWJs
-ZWQgaW4gYm90aCBTTVAgcnVubmluZyBvbiA0IGNvcmVzDQphbmQgU01QIHJ1bm5pbmcgb24gMSBj
-b3JlLg0KDQoNClRoZXJlIGFyZSBzb21lIGNyYXNoIGxvZ3MgKG5vdCBzdXJlIGlmIHRoZXkgYXJl
-IHJlYWxseSB1c2VmdWwpOg0KQ3Jhc2hlcyBhcmUgcXVpdGUgc3BvbnRhbmVvdXMgYW5kIG1vc3Rs
-eSBoYXBwZW5zIGluIElPLXJlbGF0ZWQgY29kZTogDQoNCkNyYXNoIG9uIGJvb3Q6DQotLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCnVzYiAxLTE6
-IG5ldyBoaWdoLXNwZWVkIFVTQiBkZXZpY2UgbnVtYmVyIDIgdXNpbmcgZWhjaS1wbGF0Zm9ybQ0K
-aHViIDEtMToxLjA6IFVTQiBodWIgZm91bmQNCmh1YiAxLTE6MS4wOiAyIHBvcnRzIGRldGVjdGVk
-DQp1c2IgMS0xLjE6IG5ldyBoaWdoLXNwZWVkIFVTQiBkZXZpY2UgbnVtYmVyIDMgdXNpbmcgZWhj
-aS1wbGF0Zm9ybQ0KdXNiLXN0b3JhZ2UgMS0xLjE6MS4wOiBVU0IgTWFzcyBTdG9yYWdlIGRldmlj
-ZSBkZXRlY3RlZA0Kc2NzaSBob3N0MDogdXNiLXN0b3JhZ2UgMS0xLjE6MS4wDQpzY3NpIDA6MDow
-OjA6IERpcmVjdC1BY2Nlc3MgICAgIEdlbmVyaWMgIFNUT1JBR0UgREVWSUNFICAgMDI3MiBQUTog
-MCBBTlNJOiAwDQpzZCAwOjA6MDowOiBbc2RhXSAxNTc1OTM2MCA1MTItYnl0ZSBsb2dpY2FsIGJs
-b2NrczogKDguMDcgR0IvNy41MSBHaUIpDQpzZCAwOjA6MDowOiBbc2RhXSBXcml0ZSBQcm90ZWN0
-IGlzIG9mZg0Kc2QgMDowOjA6MDogW3NkYV0gTW9kZSBTZW5zZTogMGIgMDAgMDAgMDgNCnNkIDA6
-MDowOjA6IFtzZGFdIE5vIENhY2hpbmcgbW9kZSBwYWdlIGZvdW5kDQpzZCAwOjA6MDowOiBbc2Rh
-XSBBc3N1bWluZyBkcml2ZSBjYWNoZTogd3JpdGUgdGhyb3VnaA0KIHNkYTogc2RhMSBzZGEyIHNk
-YTMgc2RhNA0Kc2QgMDowOjA6MDogW3NkYV0gQXR0YWNoZWQgU0NTSSByZW1vdmFibGUgZGlzaw0K
-SU5GTzogdGFzayBzdGFydC1zdG9wLWRhZW06ODUgYmxvY2tlZCBmb3IgbW9yZSB0aGFuIDEwIHNl
-Y29uZHMuDQogICAgICBOb3QgdGFpbnRlZCA0LjE5LjAtcmMxICMyDQoiZWNobyAwID4gL3Byb2Mv
-c3lzL2tlcm5lbC9odW5nX3Rhc2tfdGltZW91dF9zZWNzIiBkaXNhYmxlcyB0aGlzIG1lc3NhZ2Uu
-DQpzdGFydC1zdG9wLWRhZW0gRCAgICAwICAgIDg1ICAgICA4MSAweDAwMDAwMDAwDQoNClN0YWNr
-IFRyYWNlOg0KICBfX3N3aXRjaF90bysweDAvMHhhYw0KICBfX3NjaGVkdWxlKzB4MWIyLzB4NzMw
-DQogIGlvX3NjaGVkdWxlKzB4NWMvMHhjMA0KICBfX2xvY2tfcGFnZSsweDk4LzB4ZGMNCiAgZmlu
-ZF9sb2NrX2VudHJ5KzB4MzgvMHgxMDANCiAgc2htZW1fZ2V0cGFnZV9nZnAuaXNyYS4zKzB4ODIv
-MHhiZmMNCiAgc2htZW1fZmF1bHQrMHg0Ni8weDEzOA0KICBoYW5kbGVfbW1fZmF1bHQrMHg1YmMv
-MHg5MjQNCiAgZG9fcGFnZV9mYXVsdCsweGZjLzB4Mjk0DQogIHJldF9mcm9tX2V4Y2VwdGlvbisw
-eDAvMHg4DQpJTkZPOiB0YXNrIHN0YXJ0LXN0b3AtZGFlbTo4NSBibG9ja2VkIGZvciBtb3JlIHRo
-YW4gMTAgc2Vjb25kcy4NCiAgICAgIE5vdCB0YWludGVkIDQuMTkuMC1yYzEgIzINCiJlY2hvIDAg
-PiAvcHJvYy9zeXMva2VybmVsL2h1bmdfdGFza190aW1lb3V0X3NlY3MiIGRpc2FibGVzIHRoaXMg
-bWVzc2FnZS4NCnN0YXJ0LXN0b3AtZGFlbSBEICAgIDAgICAgODUgICAgIDgxIDB4MDAwMDAwMDAN
-Ci0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0K
-DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0N
-CkJVRzogZmFpbHVyZSBhdCBtbS9wYWdlLXdyaXRlYmFjay5jOjI2NTIvY2xlYXJfcGFnZV9kaXJ0
-eV9mb3JfaW8oKSENCg0KZ2NjIGdlbmVyYXRlZCBfX2J1aWx0aW5fdHJhcA0KUGF0aDogKG51bGwp
-DQpDUFU6IDMgUElEOiA3IENvbW06IGt3b3JrZXIvdTg6MCBOb3QgdGFpbnRlZCA0LjE4LjAtMDY5
-OTUtZzU0ZGJlNzViYmYxZSAjMjINCldvcmtxdWV1ZTogd3JpdGViYWNrIHdiX3dvcmtmbiAoZmx1
-c2gtODowKQ0KDQpbRUNSICAgXTogMHgwMDA5MDAwNSA9PiBnY2MgZ2VuZXJhdGVkIF9fYnVpbHRp
-bl90cmFwDQpbRUZBICAgXTogMHg5MDE2MmI1MA0KW0JMSU5LIF06IGNsZWFyX3BhZ2VfZGlydHlf
-Zm9yX2lvKzB4MTNhLzB4MTY0DQpbRVJFVCAgXTogYWJvcnQrMHgyLzB4NA0KW1NUQVQzMl06IDB4
-ODAwODA4MDIgOiBJRSBLICAgIA0KQlRBOiAweDkwMjFlMzU2ICBTUDogMHhiZjA0NWM2NCAgRlA6
-IDB4MDAwMDAwMDANCkxQUzogMHg5MDY3ZmE2OCBMUEU6IDB4OTA2N2ZhN2MgTFBDOiAweDAwMDAw
-MDAwDQpyMDA6IDB4MDAwMDAwNDMgcjAxOiAweGJmYjQ2MmQ0IHIwMjogMHgwMDAwMDAwMA0KcjAz
-OiAweDkwMTU3Nzg4IHIwNDogMHgwMDAwMDAwMCByMDU6IDB4OTA4MGMwNDANCnIwNjogMHgwMDAw
-MDAzMSByMDc6IDB4MDAwMDAwMDAgcjA4OiAweGE5ZWU4NDAwDQpyMDk6IDB4MDAwMDAwMWUgcjEw
-OiAweDAwMDAwMTAwIHIxMTogMHgwMDAwMDAwMA0KcjEyOiAweDkwMjFlMzVhIHIxMzogMHhiZmYz
-M2E1NCByMTQ6IDB4YmU4N2UxMjQNCnIxNTogMHhiZjA0NWU1MCByMTY6IDB4YmU4N2UxMjQgcjE3
-OiAweDAwMDA0NzBjDQpyMTg6IDB4MDAwMDAwMGYgcjE5OiAweDkwMmFmZWU0IHIyMDogMHhiZjA0
-NWNmNA0KcjIxOiAweGZmZmZmZmZmIHIyMjogMHg5MDgwZTQ3NCByMjM6IDB4MDAwMDAwMDANCnIy
-NDogMHhiZmYzM2E1NCByMjU6IDB4YmYwMzE2ODANCg0KDQoNClN0YWNrIFRyYWNlOg0KIGFib3J0
-KzB4Mi8weDQNCiBjbGVhcl9wYWdlX2RpcnR5X2Zvcl9pbysweDEzYS8weDE2NA0KIHdyaXRlX2Nh
-Y2hlX3BhZ2VzKzB4MTBhLzB4MzI4DQogbXBhZ2Vfd3JpdGVwYWdlcysweDNjLzB4OTQNCiBkb193
-cml0ZXBhZ2VzKzB4NDIvMHgzOTgNCiBfX3dyaXRlYmFja19zaW5nbGVfaW5vZGUrMHgyYS8weDE1
-NA0KIHdiX3dyaXRlYmFjaysweDUyNC8weGFjOA0KIHdiX3dvcmtmbisweDE3Yy8weDM0Yw0KIHBy
-b2Nlc3Nfb25lX3dvcmsrMHgxYTAvMHgzNTQNCiB3b3JrZXJfdGhyZWFkKzB4MTA4LzB4NGEwDQog
-a3RocmVhZCsweDEwYy8weDExMA0KIHJldF9mcm9tX2ZvcmsrMHgxOC8weDFjDQotLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQojIA0KIyBta2Rp
-ciAtcCAvbW50L21tYzIvdHR0ICYmIG1vdW50IC9kZXYvc2RhMSAvbW50L21tYzIvdHR0ICYmIGRm
-IC1oIC9tbnQvbW1jMi90dHQNCiAmJiBib25uaWUrKyAtdSByb290IC1yIDI1NiAtcyA1MTIgLXgg
-MSAtZCAvbW50L21tYzIvdHR0ICYmIGVjaG8NCidPSycgJg0KIyBGQVQtZnMgKHNkYTEpOiBWb2x1
-bWUgd2FzIG5vdCBwcm9wZXJseSB1bm1vdW50ZWQuIFNvbWUgZGF0YSBtYXkgYmUgY29ycnVwdC4g
-UGxlYXNlIHJ1biBmc2NrLg0KRmlsZXN5c3RlbSAgICAgICAgICAgICAgICBTaXplICAgICAgVXNl
-ZCBBdmFpbGFibGUNClVzZSUgTW91bnRlZCBvbg0KL2Rldi9zZGExICAgICAgICAgICAgICAgICAy
-LjBHICAgICAgNC4wSyAgICAgIDIuMEcgICAwJSAvbW50L21tYzIvdHR0DQpVc2luZyB1aWQ6MCwg
-Z2lkOjAuDQpXcml0aW5nIHdpdGggcHV0YygpLi4ucmFuZG9tOiBjcm5nIGluaXQgZG9uZQ0KZG9u
-DQplDQpXcml0aW5nIGludGVsbGlnZW50bHkuLi5kb25lDQpSZXdyaXRpbmcuLi5kb25lDQpSZWFk
-aW5nIHdpdGggZ2V0YygpLi4uZG9uZQ0KUmVhZGluZyBpbnRlbGxpZ2VudGx5Li4uZG9uZQ0Kc3Rh
-cnQgJ2VtLi4uZG9uZS4uLmRvbmUuLi5kb25lLi4uDQpDcmVhdGUgZmlsZXMgaW4NCnNlcXVlbnRp
-YWwgb3JkZXIuLi5kb25lLg0KU3RhdCBmaWxlcyBpbiBzZXF1ZW50aWFsIG9yZGVyLi4uZG9uZS4N
-CkRlbGV0ZSBmaWxlcyBpbiBzZXF1ZW50aWFsIG9yZGVyLi4uZG9uZS4NCkNyZWF0ZSBmaWxlcyBp
-biByYW5kb20gb3JkZXIuLi5kb25lLg0KU3RhdCBmaWxlcw0KaW4gcmFuZG9tIG9yZGVyLi4uZG9u
-ZS4NCkRlbGV0ZSBmaWxlcyBpbiByYW5kb20gb3JkZXIuLi5JTkZPOiB0YXNrIGt3b3JrZXIvdTg6
-MDo3IGJsb2NrZWQgZm9yIG1vcmUgdGhhbiAxMCBzZWNvbmRzLg0KICAgICAgTm90IHRhaW50ZWQg
-NC4xOS4wLXJjMSAjNDENCiJlY2hvDQowID4gL3Byb2Mvc3lzL2tlcm5lbC9odW5nX3Rhc2tfdGlt
-ZW91dF9zZWNzIiBkaXNhYmxlcyB0aGlzIG1lc3NhZ2UuDQprd29ya2VyL3U4OjAgICAgRCAgICAw
-ICAgICA3ICAgICAgMiAweDAwMDAwMDAwDQpXb3JrcXVldWU6IHdyaXRlYmFjayB3Yl93b3JrZm4N
-CihmbHVzaC04OjApDQoNClN0YWNrIFRyYWNlOg0KICBfX3N3aXRjaF90bysweDAvMHhhYw0KICBf
-X3NjaGVkdWxlKzB4MWI4LzB4NzM0DQogIGlvX3NjaGVkdWxlKzB4NWMvMHhjMA0KICBfX2xvY2tf
-cGFnZSsweDlhLzB4ZGMNCiAgZ2VuZXJpY193cml0ZXBhZ2VzKzB4YzYvMHgzODQNCiAgZG9fd3Jp
-dGVwYWdlcysweDQyLzB4Mzk4DQogIF9fd3JpdGViYWNrX3NpbmdsZV9pbm9kZSsweDJhLzB4MTU0
-DQogIHdiX3dyaXRlYmFjaysweDUyNC8weGFjOA0KICB3Yl93b3JrZm4rMHgyMWEvMHgzNGMNCiAg
-cHJvY2Vzc19vbmVfd29yaysweDFhMC8weDM1NA0KICB3b3JrZXJfdGhyZWFkKzB4MTA4LzB4NGEw
-DQogIGt0aHJlYWQrMHgxMGMvMHgxMTANCiAgcmV0X2Zyb21fZm9yaysweDE4LzB4MWMNCklORk86
-IHRhc2sga3dvcmtlci91ODowOjcgYmxvY2tlZCBmb3IgbW9yZSB0aGFuIDEwIHNlY29uZHMuDQog
-ICAgICBOb3QgdGFpbnRlZCA0LjE5LjAtcmMxICM0MQ0KImVjaG8gMCA+IC9wcm9jL3N5cy9rZXJu
-ZWwvaHVuZ190YXNrX3RpbWVvdXRfc2VjcyIgZGlzYWJsZXMgdGhpcyBtZXNzYWdlLg0Ka3dvcmtl
-ci91ODowICAgIEQgICAgMCAgICAgNyAgICAgIDIgMHgwMDAwMDAwMA0KV29ya3F1ZXVlOiB3cml0
-ZWJhY2sgd2Jfd29ya2ZuIChmbHVzaC04OjApDQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgt
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQojIA0KIyBoYWNrYmVuY2gNClJ1bm5pbmcgaW4g
-cHJvY2VzcyBtb2RlIHdpdGggMTAgZ3JvdXBzIHVzaW5nIDQwIGZpbGUgZGVzY3JpcHRvcnMgZWFj
-aCAoPT0gNDAwIHRhc2tzKQ0KRWFjaCBzZW5kZXIgd2lsbCBwYXNzIDEwMCBtZXNzYWdlcyBvZiAx
-MDAgYnl0ZXMNCklORk86IHRhc2sgaGFja2JlbmNoOjUxOSBibG9ja2VkIGZvciBtb3JlIHRoYW4g
-MTAgc2Vjb25kcy4NCiAgICAgIE5vdCB0YWludGVkIDQuMTkuMC1yYzEgIzINCiJlY2hvIDAgPiAv
-cHJvYy9zeXMva2VybmVsL2h1bmdfdGFza190aW1lb3V0X3NlY3MiIGRpc2FibGVzIHRoaXMgbWVz
-c2FnZS4NCmhhY2tiZW5jaCAgICAgICBEICAgIDAgICA1MTkgICAgMTEwIDB4MDAwMDAwMDANCg0K
-U3RhY2sgVHJhY2U6DQogIF9fc3dpdGNoX3RvKzB4MC8weGFjDQogIF9fc2NoZWR1bGUrMHgxYjIv
-MHg3MzANCiAgaW9fc2NoZWR1bGUrMHg1Yy8weGMwDQogIF9fbG9ja19wYWdlKzB4OTgvMHhkYw0K
-ICBoYW5kbGVfbW1fZmF1bHQrMHg1OTQvMHhlMWMNCiAgZG9fcGFnZV9mYXVsdCsweGZjLzB4Mjk0
-DQogIHJldF9mcm9tX2V4Y2VwdGlvbisweDAvMHg4DQpJTkZPOiB0YXNrIGhhY2tiZW5jaDo1MTkg
-YmxvY2tlZCBmb3IgbW9yZSB0aGFuIDEwIHNlY29uZHMuDQogICAgICBOb3QgdGFpbnRlZCA0LjE5
-LjAtcmMxICMyDQoiZWNobyAwID4gL3Byb2Mvc3lzL2tlcm5lbC9odW5nX3Rhc2tfdGltZW91dF9z
-ZWNzIiBkaXNhYmxlcyB0aGlzIG1lc3NhZ2UuDQpoYWNrYmVuY2ggICAgICAgRCAgICAwICAgNTE5
-ICAgIDExMCAweDAwMDAwMDAwDQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0NCg0KDQotLSANCiBFdWdlbml5IFBhbHRzZXY=
+On Wed, Aug 29, 2018 at 08:42:49PM +0800, Pu Wen wrote:
+> Add x86 architecture support for new processor Hygon Dhyana Family 18h.
+> Rework to create a separated file(arch/x86/kernel/cpu/hygon.c) from the
+> AMD init one(arch/x86/kernel/cpu/amd.c) to initialize Dhyana CPU. In
+> this way we can remove old AMD architecture support codes from Hygon
+> code path and generate a clear initialization flow for Hygon processors.
+> It also reduce long-term maintenance effort.
+> Also add Maintainer information for hygon.c in accordance.
+> 
+> To identify Hygon processors, add a new vendor type X86_VENDOR_HYGON(9)
+> for system recognition.
+> 
+> To enable Hygon processor config, add a separated Kconfig entry
+> (CPU_SUP_HYGON) for Dhyana CPU in kernel config setup.
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  MAINTAINERS                      |   6 +
+>  arch/x86/Kconfig.cpu             |  13 ++
+>  arch/x86/include/asm/processor.h |   3 +-
+>  arch/x86/kernel/cpu/Makefile     |   1 +
+>  arch/x86/kernel/cpu/hygon.c      | 408 +++++++++++++++++++++++++++++++++++++++
+>  5 files changed, 430 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/x86/kernel/cpu/hygon.c
+> 
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index a5b256b..9c1d920 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -6759,6 +6759,12 @@ S:	Maintained
+>  F:	mm/memory-failure.c
+>  F:	mm/hwpoison-inject.c
+>  
+> +HYGON PROCESSOR SUPPORT
+> +M:	Pu Wen <puwen@hygon.cn>
+> +L:	linux-arch@vger.kernel.org
+
+This is probably the wrong ML. You either have your own or use lkml, I'd
+say.
+
+> +S:	Supported
+> +F:	arch/x86/kernel/cpu/hygon.c
+> +
+>  Hyper-V CORE AND DRIVERS
+>  M:	"K. Y. Srinivasan" <kys@microsoft.com>
+>  M:	Haiyang Zhang <haiyangz@microsoft.com>
+> diff --git a/arch/x86/Kconfig.cpu b/arch/x86/Kconfig.cpu
+> index 638411f..2e92267 100644
+> --- a/arch/x86/Kconfig.cpu
+> +++ b/arch/x86/Kconfig.cpu
+> @@ -426,6 +426,19 @@ config CPU_SUP_AMD
+>  
+>  	  If unsure, say N.
+>  
+> +config CPU_SUP_HYGON
+> +	default y
+> +	bool "Support Hygon processors" if PROCESSOR_SELECT
+> +	help
+> +	  This enables detection, tunings and quirks for Hygon processors
+> +
+> +	  You need this enabled if you want your kernel to run on an
+> +	  Hygon CPU. Disabling this option on other types of CPUs
+> +	  makes the kernel a tiny bit smaller. Disabling it on an Hygon
+> +	  CPU might render the kernel unbootable.
+> +
+> +	  If unsure, say N.
+> +
+>  config CPU_SUP_CENTAUR
+>  	default y
+>  	bool "Support Centaur processors" if PROCESSOR_SELECT
+> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+> index c242972..9f18cdb 100644
+> --- a/arch/x86/include/asm/processor.h
+> +++ b/arch/x86/include/asm/processor.h
+> @@ -153,7 +153,8 @@ enum cpuid_regs_idx {
+>  #define X86_VENDOR_CENTAUR	5
+>  #define X86_VENDOR_TRANSMETA	7
+>  #define X86_VENDOR_NSC		8
+> -#define X86_VENDOR_NUM		9
+> +#define X86_VENDOR_HYGON	9
+> +#define X86_VENDOR_NUM		10
+>  
+>  #define X86_VENDOR_UNKNOWN	0xff
+>  
+> diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
+> index 347137e..1f5d229 100644
+> --- a/arch/x86/kernel/cpu/Makefile
+> +++ b/arch/x86/kernel/cpu/Makefile
+> @@ -30,6 +30,7 @@ obj-$(CONFIG_X86_FEATURE_NAMES) += capflags.o powerflags.o
+>  
+>  obj-$(CONFIG_CPU_SUP_INTEL)		+= intel.o intel_pconfig.o
+>  obj-$(CONFIG_CPU_SUP_AMD)		+= amd.o
+> +obj-$(CONFIG_CPU_SUP_HYGON)		+= hygon.o
+>  obj-$(CONFIG_CPU_SUP_CYRIX_32)		+= cyrix.o
+>  obj-$(CONFIG_CPU_SUP_CENTAUR)		+= centaur.o
+>  obj-$(CONFIG_CPU_SUP_TRANSMETA_32)	+= transmeta.o
+> diff --git a/arch/x86/kernel/cpu/hygon.c b/arch/x86/kernel/cpu/hygon.c
+> new file mode 100644
+> index 0000000..ae90d1f
+> --- /dev/null
+> +++ b/arch/x86/kernel/cpu/hygon.c
+> @@ -0,0 +1,408 @@
+> +// SPDX-License-Identifier: GPL-2.0+
+> +/*
+> + * Hygon Processor Support for Linux
+> + *
+> + * Copyright (c) Chengdu Haiguang IC Design Co., Ltd.
+> + *
+> + * Author: 2018 Pu Wen <puwen@hygon.cn>
+
+Year goes with the copyright.
+
+Otherwise looks ok.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
+--
