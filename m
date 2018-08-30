@@ -1,128 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:41674 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729570AbeH3SqS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 14:46:18 -0400
-Date: Thu, 30 Aug 2018 16:43:44 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Message-ID: <20180830144344.GW24142@hirez.programming.kicks-ass.net>
-References: <1535567633.4465.23.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <20180830095148.GB5942@arm.com>
- <1535629996.4465.44.camel@synopsys.com>
- <20180830141713.GN24082@hirez.programming.kicks-ass.net>
- <20180830142354.GB13005@arm.com>
- <20180830142920.GO24082@hirez.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180830142920.GO24082@hirez.programming.kicks-ass.net>
+Received: from mga01.intel.com ([192.55.52.88]:38433 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729569AbeH3SqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:46:18 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 13/24] x86/mm: Shadow stack page fault error checking
+Date: Thu, 30 Aug 2018 07:38:53 -0700
+Message-ID: <20180830143904.3168-14-yu-cheng.yu@intel.com>
+In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180830144344.igd3arTin1Y8WTl35G9hdi5p1qjz9GvYipCGXZu59dw@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20180830143853.ypEQrOCzs67ipJFIuQN7dIIN_zhvu3Zk-7PTn54fIms@z>
 
-On Thu, Aug 30, 2018 at 04:29:20PM +0200, Peter Zijlstra wrote:
+If a page fault is triggered by a shadow stack access (e.g.
+call/ret) or shadow stack management instructions (e.g.
+wrussq), then bit[6] of the page fault error code is set.
 
-> Also, once it all works, they should look at switching to _relaxed
-> atomics for LL/SC.
+In access_error(), we check if a shadow stack page fault
+is within a shadow stack memory area.
 
-A little something like so.. should save a few smp_mb().
-
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
+ arch/x86/include/asm/traps.h |  2 ++
+ arch/x86/mm/fault.c          | 18 ++++++++++++++++++
+ 2 files changed, 20 insertions(+)
 
-diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
-index 4e0072730241..714b54c308b0 100644
---- a/arch/arc/include/asm/atomic.h
-+++ b/arch/arc/include/asm/atomic.h
-@@ -44,7 +44,7 @@ static inline void atomic_##op(int i, atomic_t *v)			\
- }									\
+diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+index 5196050ff3d5..58ea2f5722e9 100644
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -157,6 +157,7 @@ enum {
+  *   bit 3 ==				1: use of reserved bit detected
+  *   bit 4 ==				1: fault was an instruction fetch
+  *   bit 5 ==				1: protection keys block access
++ *   bit 6 ==				1: shadow stack access fault
+  */
+ enum x86_pf_error_code {
+ 	X86_PF_PROT	=		1 << 0,
+@@ -165,5 +166,6 @@ enum x86_pf_error_code {
+ 	X86_PF_RSVD	=		1 << 3,
+ 	X86_PF_INSTR	=		1 << 4,
+ 	X86_PF_PK	=		1 << 5,
++	X86_PF_SHSTK	=		1 << 6,
+ };
+ #endif /* _ASM_X86_TRAPS_H */
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index b9123c497e0a..3842353fb4a3 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1162,6 +1162,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
+ 				       (error_code & X86_PF_INSTR), foreign))
+ 		return 1;
  
- #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
--static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
- {									\
- 	unsigned int val;						\
- 									\
-@@ -69,8 +69,11 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
- 	return val;							\
- }
++	/*
++	 * Verify X86_PF_SHSTK is within a shadow stack VMA.
++	 * It is always an error if there is a shadow stack
++	 * fault outside a shadow stack VMA.
++	 */
++	if (error_code & X86_PF_SHSTK) {
++		if (!(vma->vm_flags & VM_SHSTK))
++			return 1;
++		return 0;
++	}
++
+ 	if (error_code & X86_PF_WRITE) {
+ 		/* write, present and write, not present: */
+ 		if (unlikely(!(vma->vm_flags & VM_WRITE)))
+@@ -1300,6 +1311,13 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
  
-+#define atomic_add_return_relaxed	atomic_add_return_relaxed
-+#define atomic_sub_return_relaxed	atomic_sub_return_relaxed
-+
- #define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
--static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
- {									\
- 	unsigned int val, orig;						\
- 									\
-@@ -96,6 +99,14 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
- 	return orig;							\
- }
+ 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
  
-+#define atomic_fetch_add_relaxed	atomic_fetch_add_relaxed
-+#define atomic_fetch_sub_relaxed	atomic_fetch_sub_relaxed
-+
-+#define atomic_fetch_and_relaxed	atomic_fetch_and_relaxed
-+#define atomic_fetch_andnot_relaxed	atomic_fetch_andnot_relaxed
-+#define atomic_fetch_or_relaxed		atomic_fetch_or_relaxed
-+#define atomic_fetch_xor_relaxed	atomic_fetch_xor_relaxed
-+
- #else	/* !CONFIG_ARC_HAS_LLSC */
- 
- #ifndef CONFIG_SMP
-@@ -379,7 +390,7 @@ static inline void atomic64_##op(long long a, atomic64_t *v)		\
- }									\
- 
- #define ATOMIC64_OP_RETURN(op, op1, op2)		        	\
--static inline long long atomic64_##op##_return(long long a, atomic64_t *v)	\
-+static inline long long atomic64_##op##_return_relaxed(long long a, atomic64_t *v)	\
- {									\
- 	unsigned long long val;						\
- 									\
-@@ -401,8 +412,11 @@ static inline long long atomic64_##op##_return(long long a, atomic64_t *v)	\
- 	return val;							\
- }
- 
-+#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
-+#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
-+
- #define ATOMIC64_FETCH_OP(op, op1, op2)		        		\
--static inline long long atomic64_fetch_##op(long long a, atomic64_t *v)	\
-+static inline long long atomic64_fetch_##op##_relaxed(long long a, atomic64_t *v)	\
- {									\
- 	unsigned long long val, orig;					\
- 									\
-@@ -424,6 +438,14 @@ static inline long long atomic64_fetch_##op(long long a, atomic64_t *v)	\
- 	return orig;							\
- }
- 
-+#define atomic64_fetch_add_relaxed	atomic64_fetch_add_relaxed
-+#define atomic64_fetch_sub_relaxed	atomic64_fetch_sub_relaxed
-+
-+#define atomic64_fetch_and_relaxed	atomic64_fetch_and_relaxed
-+#define atomic64_fetch_andnot_relaxed	atomic64_fetch_andnot_relaxed
-+#define atomic64_fetch_or_relaxed	atomic64_fetch_or_relaxed
-+#define atomic64_fetch_xor_relaxed	atomic64_fetch_xor_relaxed
-+
- #define ATOMIC64_OPS(op, op1, op2)					\
- 	ATOMIC64_OP(op, op1, op2)					\
- 	ATOMIC64_OP_RETURN(op, op1, op2)				\
-@@ -434,6 +456,12 @@ static inline long long atomic64_fetch_##op(long long a, atomic64_t *v)	\
- 
- ATOMIC64_OPS(add, add.f, adc)
- ATOMIC64_OPS(sub, sub.f, sbc)
-+
-+#undef ATOMIC64_OPS
-+#define ATOMIC64_OPS(op, op1, op2)					\
-+	ATOMIC64_OP(op, op1, op2)					\
-+	ATOMIC64_FETCH_OP(op, op1, op2)
-+
- ATOMIC64_OPS(and, and, and)
- ATOMIC64_OPS(andnot, bic, bic)
- ATOMIC64_OPS(or, or, or)
++	/*
++	 * If the fault is caused by a shadow stack access,
++	 * i.e. CALL/RET/SAVEPREVSSP/RSTORSSP, then set
++	 * FAULT_FLAG_WRITE to effect copy-on-write.
++	 */
++	if (error_code & X86_PF_SHSTK)
++		flags |= FAULT_FLAG_WRITE;
+ 	if (error_code & X86_PF_WRITE)
+ 		flags |= FAULT_FLAG_WRITE;
+ 	if (error_code & X86_PF_INSTR)
+-- 
+2.17.1
