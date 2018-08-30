@@ -1,18 +1,27 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
  causes kernel crash
-Date: Thu, 30 Aug 2018 10:35:13 +0100
-Message-ID: <20180830093513.GA5942@arm.com>
+Date: Thu, 30 Aug 2018 11:44:11 +0200
+Message-ID: <20180830094411.GX24124@hirez.programming.kicks-ass.net>
 References: <1535567633.4465.23.camel@synopsys.com>
  <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
 In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
 On Wed, Aug 29, 2018 at 09:16:43PM +0000, Vineet Gupta wrote:
@@ -41,9 +50,9 @@ On Wed, Aug 29, 2018 at 09:16:43PM +0000, Vineet Gupta wrote:
 > 
 > This patch undoes that which could explain the issues you see. @Peter, @Will ?
 
-/me grabs arc toolchain (incidentally, make.cross fuzzy matches "arc" to
-"sparc", so that was fun for a few minutes).
+Right, so the thinking is that on platforms that suffer that issue,
+atomic_set*() should DTRT. And if you look at your spinlock based atomic
+implementation, you'll note that atomic_set() does indeed do the right
+thing.
 
-I'll take a look today, thanks for the report.
-
-Will
+arch/arc/include/asm/atomic.h:108
