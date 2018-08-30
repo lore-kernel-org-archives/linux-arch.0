@@ -1,105 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:38433 "EHLO mga01.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:18694 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729487AbeH3SqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 14:46:18 -0400
+        id S1729764AbeH3SrP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:47:15 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 15/24] mm: Handle THP/HugeTLB shadow stack page fault
-Date: Thu, 30 Aug 2018 07:38:55 -0700
-Message-ID: <20180830143904.3168-16-yu-cheng.yu@intel.com>
-In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 4/8] x86/cet/ibt: Add arch_prctl functions for IBT
+Date: Thu, 30 Aug 2018 07:40:05 -0700
+Message-ID: <20180830144009.3314-5-yu-cheng.yu@intel.com>
+In-Reply-To: <20180830144009.3314-1-yu-cheng.yu@intel.com>
+References: <20180830144009.3314-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180830143855.SR9sO-pMI33Qnc7GEi5n5P6MLWEXg1QEvO_NxLmWseo@z>
+Message-ID: <20180830144005.c9-eSyBSNe2rCJNIbPy7onHRaGu41y6ZPluI_ajjjYY@z>
 
-This patch implements THP shadow stack memory copying in the same
-way as the previous patch for regular PTE.
+Update ARCH_CET_STATUS and ARCH_CET_DISABLE to include Indirect
+Branch Tracking features.
 
-In copy_huge_pmd(), we clear the dirty bit from the PMD.  On the
-next shadow stack access to the PMD, a page fault occurs.  At
-that time, the page is copied/re-used and the PMD is fixed.
+Introduce:
 
+arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
+    Enable the Indirect Branch Tracking legacy code bitmap.
+
+    The parameter 'addr' is a pointer to a user buffer.
+    On returning to the caller, the kernel fills the following:
+
+    *addr = IBT bitmap base address
+    *(addr + 1) = IBT bitmap size
+
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/mm/pgtable.c         | 8 ++++++++
- include/asm-generic/pgtable.h | 6 ++++++
- mm/huge_memory.c              | 4 ++++
- 3 files changed, 18 insertions(+)
+ arch/x86/include/uapi/asm/prctl.h |  1 +
+ arch/x86/kernel/cet_prctl.c       | 38 ++++++++++++++++++++++++++++++-
+ arch/x86/kernel/process.c         |  1 +
+ 3 files changed, 39 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index c63261128ac3..0ab38bfbedfc 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -881,4 +881,12 @@ inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
- 	else
- 		return pte;
+diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
+index 3aec1088e01d..31d2465f9caf 100644
+--- a/arch/x86/include/uapi/asm/prctl.h
++++ b/arch/x86/include/uapi/asm/prctl.h
+@@ -18,5 +18,6 @@
+ #define ARCH_CET_DISABLE	0x3002
+ #define ARCH_CET_LOCK		0x3003
+ #define ARCH_CET_ALLOC_SHSTK	0x3004
++#define ARCH_CET_LEGACY_BITMAP	0x3005
+ 
+ #endif /* _ASM_X86_PRCTL_H */
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+index c4b7c19f5040..df47b5ebc3f4 100644
+--- a/arch/x86/kernel/cet_prctl.c
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -20,6 +20,8 @@ static int handle_get_status(unsigned long arg2)
+ 
+ 	if (current->thread.cet.shstk_enabled)
+ 		features |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
++	if (current->thread.cet.ibt_enabled)
++		features |= GNU_PROPERTY_X86_FEATURE_1_IBT;
+ 
+ 	shstk_base = current->thread.cet.shstk_base;
+ 	shstk_size = current->thread.cet.shstk_size;
+@@ -49,9 +51,35 @@ static int handle_alloc_shstk(unsigned long arg2)
+ 	return 0;
  }
-+
-+inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
+ 
++static int handle_bitmap(unsigned long arg2)
 +{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pmd_mkdirty_shstk(pmd);
-+	else
-+		return pmd;
++	unsigned long addr, size;
++
++	if (current->thread.cet.ibt_enabled) {
++		int err;
++
++		err  = cet_setup_ibt_bitmap();
++		if (err)
++			return err;
++
++		addr = current->thread.cet.ibt_bitmap_addr;
++		size = current->thread.cet.ibt_bitmap_size;
++	} else {
++		addr = 0;
++		size = 0;
++	}
++
++	if (put_user(addr, (unsigned long __user *)arg2) ||
++	    put_user(size, (unsigned long __user *)arg2 + 1))
++		return -EFAULT;
++
++	return 0;
 +}
- #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 558a485617cd..0f25186cd38d 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1151,8 +1151,14 @@ static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
++
+ int prctl_cet(int option, unsigned long arg2)
  {
- 	return pte;
- }
+-	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
++	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) &&
++	    !cpu_feature_enabled(X86_FEATURE_IBT))
+ 		return -EINVAL;
+ 
+ 	switch (option) {
+@@ -63,6 +91,8 @@ int prctl_cet(int option, unsigned long arg2)
+ 			return -EPERM;
+ 		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
+ 			cet_disable_free_shstk(current);
++		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_IBT)
++			cet_disable_ibt();
+ 
+ 		return 0;
+ 
+@@ -73,6 +103,12 @@ int prctl_cet(int option, unsigned long arg2)
+ 	case ARCH_CET_ALLOC_SHSTK:
+ 		return handle_alloc_shstk(arg2);
+ 
++	/*
++	 * Allocate legacy bitmap and return address & size to user.
++	 */
++	case ARCH_CET_LEGACY_BITMAP:
++		return handle_bitmap(arg2);
 +
-+static inline pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	return pmd;
-+}
- #else
- pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
-+pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
- #endif
+ 	default:
+ 		return -EINVAL;
+ 	}
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index ac0ea9c7e89f..aea15a9b6a3e 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -797,6 +797,7 @@ long do_arch_prctl_common(struct task_struct *task, int option,
+ 	case ARCH_CET_DISABLE:
+ 	case ARCH_CET_LOCK:
+ 	case ARCH_CET_ALLOC_SHSTK:
++	case ARCH_CET_LEGACY_BITMAP:
+ 		return prctl_cet(option, cpuid_enabled);
+ 	}
  
- #endif /* _ASM_GENERIC_PGTABLE_H */
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index c3bc7e9c9a2a..5b4c8f2fb85e 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -597,6 +597,7 @@ static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
- 
- 		entry = mk_huge_pmd(page, vma->vm_page_prot);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		entry = pmd_set_vma_features(entry, vma);
- 		page_add_new_anon_rmap(page, vma, haddr, true);
- 		mem_cgroup_commit_charge(page, memcg, false, true);
- 		lru_cache_add_active_or_unevictable(page, vma);
-@@ -1194,6 +1195,7 @@ static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
- 		pte_t entry;
- 		entry = mk_pte(pages[i], vma->vm_page_prot);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-+		entry = pte_set_vma_features(entry, vma);
- 		memcg = (void *)page_private(pages[i]);
- 		set_page_private(pages[i], 0);
- 		page_add_new_anon_rmap(pages[i], vmf->vma, haddr, false);
-@@ -1278,6 +1280,7 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
- 		pmd_t entry;
- 		entry = pmd_mkyoung(orig_pmd);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		entry = pmd_set_vma_features(entry, vma);
- 		if (pmdp_set_access_flags(vma, haddr, vmf->pmd, entry,  1))
- 			update_mmu_cache_pmd(vma, vmf->address, vmf->pmd);
- 		ret |= VM_FAULT_WRITE;
-@@ -1349,6 +1352,7 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
- 		pmd_t entry;
- 		entry = mk_huge_pmd(new_page, vma->vm_page_prot);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-+		entry = pmd_set_vma_features(entry, vma);
- 		pmdp_huge_clear_flush_notify(vma, haddr, vmf->pmd);
- 		page_add_new_anon_rmap(new_page, vma, haddr, true);
- 		mem_cgroup_commit_charge(new_page, memcg, false, true);
 -- 
 2.17.1
