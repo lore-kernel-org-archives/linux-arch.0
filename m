@@ -1,135 +1,51 @@
-From: Nadav Amit <namit@vmware.com>
-Subject: [PATCH 4/6] x86/alternatives: initializing temporary mm for patching
-Date: Thu, 30 Aug 2018 10:32:16 -0700
-Message-ID: <20180830173218.238900-5-namit@vmware.com>
-References: <20180830173218.238900-1-namit@vmware.com>
-Mime-Version: 1.0
-Content-Type: text/plain
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and pmdp_set_wrprotect for _PAGE_DIRTY_SW
+Date: Thu, 30 Aug 2018 10:34:37 -0700
+Message-ID: <B2222C69-337B-44F2-9DA6-69E685AA469B@amacapital.net>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-13-yu-cheng.yu@intel.com> <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com> <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com> <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com> <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180830173218.238900-1-namit@vmware.com>
+In-Reply-To: <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <namit@vmware.com>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>
+To: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Jann Horn <jannh@google.com>, yu-cheng.yu@intel.com, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <pe>
 List-Id: linux-arch.vger.kernel.org
 
-To prevent improper use of the PTEs that are used for text patching, we
-want to use a temporary mm struct. We initailize it by copying the init
-mm.
 
-The address that will be used for patching is taken from the lower area
-that is usually used for the task memory. Doing so prevents the need to
-frequently synchronize the temporary-mm (e.g., when BPF programs are
-installed), since different PGDs are used for the task memory.
 
-Finally, we randomize the address of the PTEs to harden against exploits
-that use these PTEs.
+> On Aug 30, 2018, at 10:19 AM, Dave Hansen <dave.hansen@linux.intel.com> wr=
+ote:
+>=20
+>> On 08/30/2018 09:23 AM, Jann Horn wrote:
+>> Three threads (A, B, C) run with the same CR3.
+>>=20
+>> 1. a dirty+writable PTE is placed directly in front of B's shadow stack.
+>>   (this can happen, right? or is there a guard page?)
+>> 2. C's TLB caches the dirty+writable PTE.
+>> 3. A performs some syscall that triggers ptep_set_wrprotect().
+>> 4. A's syscall calls clear_bit().
+>> 5. B's TLB caches the transient shadow stack.
+>> [now C has write access to B's transiently-extended shadow stack]
+>> 6. B recurses into the transiently-extended shadow stack
+>> 7. C overwrites the transiently-extended shadow stack area.
+>> 8. B returns through the transiently-extended shadow stack, giving
+>>    the attacker instruction pointer control in B.
+>> 9. A's syscall broadcasts a TLB flush.
+>=20
+> Heh, that's a good point.  The shadow stack permissions are *not*
+> strictly reduced because a page getting marked as shadow-stack has
+> *increased* permissions when being used as a shadow stack.  Fun.
+>=20
+> For general hardening, it seems like we want to ensure that there's a
+> guard page at the bottom of the shadow stack.  Yu-cheng, do we have a
+> guard page?
+>=20
+> But, to keep B's TLB from picking up the entry, I think we can just make
+> it !Present for a moment.  No TLB can cache it, and I believe the same
+> "don't set Dirty on a !Writable entry" logic also holds for !Present
+> (modulo a weird erratum or two).
 
-Cc: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Dave Hansen <dave.hansen@intel.com>
-Suggested-by: Andy Lutomirski <luto@kernel.org>
-Signed-off-by: Nadav Amit <namit@vmware.com>
----
- arch/x86/include/asm/pgtable.h       |  3 +++
- arch/x86/include/asm/text-patching.h |  2 ++
- arch/x86/mm/init_64.c                | 29 ++++++++++++++++++++++++++++
- init/main.c                          |  3 +++
- 4 files changed, 37 insertions(+)
-
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index e4ffa565a69f..3de9a1fb7a9a 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1022,6 +1022,9 @@ static inline void __meminit init_trampoline_default(void)
- 	/* Default trampoline pgd value */
- 	trampoline_pgd_entry = init_top_pgt[pgd_index(__PAGE_OFFSET)];
- }
-+
-+void __init poking_init(void);
-+
- # ifdef CONFIG_RANDOMIZE_MEMORY
- void __meminit init_trampoline(void);
- # else
-diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
-index e85ff65c43c3..ffe7902cc326 100644
---- a/arch/x86/include/asm/text-patching.h
-+++ b/arch/x86/include/asm/text-patching.h
-@@ -38,5 +38,7 @@ extern void *text_poke(void *addr, const void *opcode, size_t len);
- extern int poke_int3_handler(struct pt_regs *regs);
- extern void *text_poke_bp(void *addr, const void *opcode, size_t len, void *handler);
- extern int after_bootmem;
-+extern __ro_after_init struct mm_struct *poking_mm;
-+extern __ro_after_init unsigned long poking_addr;
- 
- #endif /* _ASM_X86_TEXT_PATCHING_H */
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index dd519f372169..db33a724a054 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -54,6 +54,7 @@
- #include <asm/init.h>
- #include <asm/uv/uv.h>
- #include <asm/setup.h>
-+#include <asm/text-patching.h>
- 
- #include "mm_internal.h"
- 
-@@ -1389,6 +1390,34 @@ unsigned long memory_block_size_bytes(void)
- 	return memory_block_size_probed;
- }
- 
-+/*
-+ * Initialize an mm_struct to be used during poking and a pointer to be used
-+ * during patching. If anything fails during initialization, poking will be done
-+ * using the fixmap, which is unsafe, so warn the user about it.
-+ */
-+void __init poking_init(void)
-+{
-+	unsigned long poking_addr;
-+
-+	poking_mm = copy_init_mm();
-+	if (!poking_mm) {
-+		pr_err("x86/mm: error setting a separate poking address space");
-+		return;
-+	}
-+
-+	/*
-+	 * Randomize the poking address, but make sure that the following page
-+	 * will be mapped at the same PMD. We need 2 pages, so find space for 3,
-+	 * and adjust the address if the PMD ends after the first one.
-+	 */
-+	poking_addr = TASK_UNMAPPED_BASE +
-+		(kaslr_get_random_long("Poking") & PAGE_MASK) %
-+		(TASK_SIZE - TASK_UNMAPPED_BASE - 3 * PAGE_SIZE);
-+
-+	if (((poking_addr + PAGE_SIZE) & ~PMD_MASK) == 0)
-+		poking_addr += PAGE_SIZE;
-+}
-+
- #ifdef CONFIG_SPARSEMEM_VMEMMAP
- /*
-  * Initialise the sparsemem vmemmap using huge-pages at the PMD level.
-diff --git a/init/main.c b/init/main.c
-index 18f8f0140fa0..8c6dd8d88fca 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -496,6 +496,8 @@ void __init __weak thread_stack_cache_init(void)
- 
- void __init __weak mem_encrypt_init(void) { }
- 
-+void __init __weak poking_init(void) { }
-+
- bool initcall_debug;
- core_param(initcall_debug, initcall_debug, bool, 0644);
- 
-@@ -725,6 +727,7 @@ asmlinkage __visible void __init start_kernel(void)
- 	taskstats_init_early();
- 	delayacct_init();
- 
-+	poking_init();
- 	check_bugs();
- 
- 	acpi_subsystem_init();
--- 
-2.17.1
+Can we get documentation?  Pretty please?
