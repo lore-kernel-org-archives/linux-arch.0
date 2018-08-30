@@ -1,78 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ex13-edg-ou-001.vmware.com ([208.91.0.189]:48535 "EHLO
-        EX13-EDG-OU-001.vmware.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725836AbeH3VhT (ORCPT
+Received: from ex13-edg-ou-002.vmware.com ([208.91.0.190]:14372 "EHLO
+        EX13-EDG-OU-002.vmware.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726674AbeH3VhU (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 17:37:19 -0400
+        Thu, 30 Aug 2018 17:37:20 -0400
 From: Nadav Amit <namit@vmware.com>
-Subject: [PATCH 0/6] x86/alternatives: text_poke() fixes
-Date: Thu, 30 Aug 2018 10:32:12 -0700
-Message-ID: <20180830173218.238900-1-namit@vmware.com>
+Subject: [PATCH 3/6] fork: provide a function for copying init_mm
+Date: Thu, 30 Aug 2018 10:32:15 -0700
+Message-ID: <20180830173218.238900-4-namit@vmware.com>
+In-Reply-To: <20180830173218.238900-1-namit@vmware.com>
+References: <20180830173218.238900-1-namit@vmware.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <namit@vmware.com>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20180830173212.y1tkIYpaYZxMAm8A71PseG7zeDHE4efWMV72ioz90S4@z>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <namit@vmware.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>
+Message-ID: <20180830173215.eEhQARPpp8pQmGeE-Yg4ijkRpuXGd4Ypp-amvBgivDs@z>
 
-This patch-set addresses some issues that were raised in a recent
-correspondence and might affect the security and the correctness of code
-patching. (Note that patching performance is not addressed by this
-patch-set).
-
-The main issue that the patches deal with is the fact that the fixmap
-PTEs that are used for patching are available for access from other
-cores and might be exploited. They are not even flushed from the TLB in
-remote cores, so the risk is even higher. Address this issue by
-introducing a temporary mm that is only used during patching.
-Unfortunately, due to init ordering, fixmap is still used during
-boot-time patching. Future patches can eliminate the need for it.
-
-The second issue is the missing lockdep assertion to ensure text_mutex
-is taken. It is actually not always taken, so fix the instances that
-were found not to take the lock (although they should be safe even
-without taking the lock).
-
-Finally, try to be more conservative and to map a single page, instead
-of two, when possible. This helps both security and performance.
-
-In addition, there is some cleanup of the patching code to make it more
-readable.
-
-RFC->v1:
-- Added handling of error in get_locked_pte()
-- Remove lockdep assertion, clarify text_mutex use instead [masami]
-- Comment fix [peterz]
-- Removed remainders of text_poke return value [masami]
-- Use __weak for poking_init instead of macros [masami]
-- Simplify error handling in poking_init [masami]  
+Provide a function for copying init_mm. This function will be later used
+for setting a temporary mm.
 
 Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>
 Cc: Kees Cook <keescook@chromium.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Link: https://lkml.org/lkml/2018/8/24/586
+Cc: Dave Hansen <dave.hansen@intel.com>
+Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ include/linux/sched/task.h |  1 +
+ kernel/fork.c              | 24 ++++++++++++++++++------
+ 2 files changed, 19 insertions(+), 6 deletions(-)
 
-Andy Lutomirski (1):
-  x86/mm: temporary mm struct
-
-Nadav Amit (5):
-  x86/alternatives: clarify text_mutex use in text_poke
-  fork: provide a function for copying init_mm
-  x86/alternatives: initializing temporary mm for patching
-  x86/alternatives: use temporary mm for text poking
-  x86/alternatives: remove text_poke() return value
-
- arch/x86/include/asm/mmu_context.h   |  20 ++++
- arch/x86/include/asm/pgtable.h       |   3 +
- arch/x86/include/asm/text-patching.h |   4 +-
- arch/x86/kernel/alternative.c        | 173 +++++++++++++++++++++++----
- arch/x86/mm/init_64.c                |  29 +++++
- include/linux/sched/task.h           |   1 +
- init/main.c                          |   3 +
- kernel/fork.c                        |  24 +++-
- 8 files changed, 226 insertions(+), 31 deletions(-)
-
+diff --git a/include/linux/sched/task.h b/include/linux/sched/task.h
+index 108ede99e533..ac0a675678f5 100644
+--- a/include/linux/sched/task.h
++++ b/include/linux/sched/task.h
+@@ -74,6 +74,7 @@ extern void exit_itimers(struct signal_struct *);
+ extern long _do_fork(unsigned long, unsigned long, unsigned long, int __user *, int __user *, unsigned long);
+ extern long do_fork(unsigned long, unsigned long, unsigned long, int __user *, int __user *);
+ struct task_struct *fork_idle(int);
++struct mm_struct *copy_init_mm(void);
+ extern pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
+ extern long kernel_wait4(pid_t, int __user *, int, struct rusage *);
+ 
+diff --git a/kernel/fork.c b/kernel/fork.c
+index d896e9ca38b0..a1c637b903c1 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1254,13 +1254,20 @@ void mm_release(struct task_struct *tsk, struct mm_struct *mm)
+ 		complete_vfork_done(tsk);
+ }
+ 
+-/*
+- * Allocate a new mm structure and copy contents from the
+- * mm structure of the passed in task structure.
++/**
++ * dup_mm() - duplicates an existing mm structure
++ * @tsk: the task_struct with which the new mm will be associated.
++ * @oldmm: the mm to duplicate.
++ *
++ * Allocates a new mm structure and copy contents from the provided
++ * @oldmm structure.
++ *
++ * Return: the duplicated mm or NULL on failure.
+  */
+-static struct mm_struct *dup_mm(struct task_struct *tsk)
++static struct mm_struct *dup_mm(struct task_struct *tsk,
++				struct mm_struct *oldmm)
+ {
+-	struct mm_struct *mm, *oldmm = current->mm;
++	struct mm_struct *mm;
+ 	int err;
+ 
+ 	mm = allocate_mm();
+@@ -1327,7 +1334,7 @@ static int copy_mm(unsigned long clone_flags, struct task_struct *tsk)
+ 	}
+ 
+ 	retval = -ENOMEM;
+-	mm = dup_mm(tsk);
++	mm = dup_mm(tsk, current->mm);
+ 	if (!mm)
+ 		goto fail_nomem;
+ 
+@@ -2127,6 +2134,11 @@ struct task_struct *fork_idle(int cpu)
+ 	return task;
+ }
+ 
++struct mm_struct *copy_init_mm(void)
++{
++	return dup_mm(NULL, &init_mm);
++}
++
+ /*
+  *  Ok, this is the main fork-routine.
+  *
 -- 
 2.17.1
