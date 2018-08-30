@@ -1,103 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:38433 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729545AbeH3SqU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 14:46:20 -0400
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 14/24] mm: Handle shadow stack page fault
-Date: Thu, 30 Aug 2018 07:38:54 -0700
-Message-ID: <20180830143904.3168-15-yu-cheng.yu@intel.com>
-In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:34047 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727398AbeH3Tmq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 15:42:46 -0400
+Received: by mail-oi0-f68.google.com with SMTP id 13-v6so16250190ois.1
+        for <linux-arch@vger.kernel.org>; Thu, 30 Aug 2018 08:40:02 -0700 (PDT)
+MIME-Version: 1.0
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-20-yu-cheng.yu@intel.com>
+In-Reply-To: <20180830143904.3168-20-yu-cheng.yu@intel.com>
+From: Jann Horn <jannh@google.com>
+Date: Thu, 30 Aug 2018 17:39:35 +0200
+Message-ID: <CAG48ez3uZrC-9uJ0uMoVPTtxRXRN8D+3zs5FknZD2woTT6mazg@mail.gmail.com>
+Subject: Re: [RFC PATCH v3 19/24] x86/cet/shstk: Introduce WRUSS instruction
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180830143854.j8OWMRhZGcEtMycnuEULgiWthb5eEfb2YIjFkXCcqDU@z>
+To: yu-cheng.yu@intel.com
+Cc: the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180830153935.S7OO4EfvnbapezM5kZCALbFyeJCqGl1YG4xfOPW6GdI@z>
 
-When a task does fork(), its shadow stack must be duplicated for
-the child.  However, the child may not actually use all pages of
-of the copied shadow stack.  This patch implements a flow that
-is similar to copy-on-write of an anonymous page, but for shadow
-stack memory.  A shadow stack PTE needs to be RO and dirty.  We
-use this dirty bit requirement to effect the copying of shadow
-stack pages.
+On Thu, Aug 30, 2018 at 4:44 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+> WRUSS is a new kernel-mode instruction but writes directly
+> to user shadow stack memory.  This is used to construct
+> a return address on the shadow stack for the signal
+> handler.
+>
+> This instruction can fault if the user shadow stack is
+> invalid shadow stack memory.  In that case, the kernel does
+> fixup.
+>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+[...]
+> +static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
+> +{
+> +       int err = 0;
+> +
+> +       asm volatile("1: wrussq %1, (%0)\n"
+> +                    "2:\n"
+> +                    _ASM_EXTABLE_HANDLE(1b, 2b, ex_handler_wruss)
+> +                    :
+> +                    : "r" (addr), "r" (val));
+> +
+> +       return err;
+> +}
 
-In copy_one_pte(), we clear the dirty bit from the shadow stack
-PTE.  On the next shadow stack access to the PTE, a page fault
-occurs.  At that time, we then copy/re-use the page and fix the
-PTE.
+What's up with "err"? You set it to zero, and then you return it, but
+nothing can ever set it to non-zero, right?
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/mm/pgtable.c         | 10 ++++++++++
- include/asm-generic/pgtable.h |  7 +++++++
- mm/memory.c                   |  3 +++
- 3 files changed, 20 insertions(+)
+> +__visible bool ex_handler_wruss(const struct exception_table_entry *fixup,
+> +                               struct pt_regs *regs, int trapnr)
+> +{
+> +       regs->ip = ex_fixup_addr(fixup);
+> +       regs->ax = -1;
+> +       return true;
+> +}
 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index e848a4811785..c63261128ac3 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -872,3 +872,13 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
- 
- #endif /* CONFIG_X86_64 */
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
-+
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
-+{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pte_mkdirty_shstk(pte);
-+	else
-+		return pte;
-+}
-+#endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index aa5271717126..558a485617cd 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1146,6 +1146,13 @@ static inline bool pmd_dirty_hw(pmd_t pmd)
- {
- 	return false;
- }
-+
-+static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
-+{
-+	return pte;
-+}
-+#else
-+pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
- #endif
- 
- #endif /* _ASM_GENERIC_PGTABLE_H */
-diff --git a/mm/memory.c b/mm/memory.c
-index c467102a5cbc..9b4e11944b5d 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2462,6 +2462,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
- 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
- 	entry = pte_mkyoung(vmf->orig_pte);
- 	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-+	entry = pte_set_vma_features(entry, vma);
- 	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
- 		update_mmu_cache(vma, vmf->address, vmf->pte);
- 	pte_unmap_unlock(vmf->pte, vmf->ptl);
-@@ -2535,6 +2536,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
- 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
- 		entry = mk_pte(new_page, vma->vm_page_prot);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-+		entry = pte_set_vma_features(entry, vma);
- 		/*
- 		 * Clear the pte entry and flush it first, before updating the
- 		 * pte with the new entry. This will avoid a race condition
-@@ -3187,6 +3189,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
- 	entry = mk_pte(page, vma->vm_page_prot);
- 	if (vma->vm_flags & VM_WRITE)
- 		entry = pte_mkwrite(pte_mkdirty(entry));
-+	entry = pte_set_vma_features(entry, vma);
- 
- 	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
- 			&vmf->ptl);
--- 
-2.17.1
+And here you just write into regs->ax, but your "asm volatile" doesn't
+reserve that register. This looks wrong to me.
+
+I think you probably want to add something like an explicit
+`"+&a"(err)` output to the asm statements.
+
+> @@ -1305,6 +1305,15 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+>                 error_code |= X86_PF_USER;
+>                 flags |= FAULT_FLAG_USER;
+>         } else {
+> +               /*
+> +                * WRUSS is a kernel instrcution and but writes
+
+Nits: typo ("instrcution"), weird grammar ("and but writes")
