@@ -1,87 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:60715 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1727235AbeHaBmY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 21:42:24 -0400
-Date: Thu, 30 Aug 2018 17:31:32 -0400 (EDT)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-In-Reply-To: <20180830125045.GA6936@andrea>
-Message-ID: <Pine.LNX.4.44L0.1808301712230.31183-100000@netrider.rowland.org>
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:34075 "EHLO
+        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727181AbeHaBv5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 21:51:57 -0400
+Received: by mail-oi0-f67.google.com with SMTP id 13-v6so18235895ois.1
+        for <linux-arch@vger.kernel.org>; Thu, 30 Aug 2018 14:47:43 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-13-yu-cheng.yu@intel.com>
+ <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
+ <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com> <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
+ <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com> <1535649960.26689.15.camel@intel.com>
+ <33d45a12-513c-eba2-a2de-3d6b630e928e@linux.intel.com> <1535651666.27823.6.camel@intel.com>
+ <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
+ <1535660494.28258.36.camel@intel.com> <CAG48ez0yOuDhqxB779aO3Kss3gQ3cZTJL1VphDXQm+_M9jFPvQ@mail.gmail.com>
+ <1535662366.28781.6.camel@intel.com> <CAG48ez0mkr95_TbLQnDGuGUd6G+eJVLZ-fEjDkwA6dSrm+9tLw@mail.gmail.com>
+In-Reply-To: <CAG48ez0mkr95_TbLQnDGuGUd6G+eJVLZ-fEjDkwA6dSrm+9tLw@mail.gmail.com>
+From: Jann Horn <jannh@google.com>
+Date: Thu, 30 Aug 2018 23:47:16 +0200
+Message-ID: <CAG48ez3S3+DzAyo_SnoUW1GO0Cpd_x0A83MOx2p_MkogoAatLQ@mail.gmail.com>
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <parri.andrea@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180830213132.WdT8c5PLpXVPPzUgVcnFjAXFM8nSTn1oGgaJQL5OSNo@z>
+To: yu-cheng.yu@intel.com
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180830214716.8hllVYGIGoDYOaCuJUJe-x-gEW7fXVEwCcHNim6PNMU@z>
 
-On Thu, 30 Aug 2018, Andrea Parri wrote:
+On Thu, Aug 30, 2018 at 11:01 PM Jann Horn <jannh@google.com> wrote:
+>
+> On Thu, Aug 30, 2018 at 10:57 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> >
+> > On Thu, 2018-08-30 at 22:44 +0200, Jann Horn wrote:
+> > > On Thu, Aug 30, 2018 at 10:25 PM Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > > wrote:
+> > ...
+> > > > In the flow you described, if C writes to the overflow page before
+> > > > B
+> > > > gets in with a 'call', the return address is still correct for
+> > > > B.  To
+> > > > make an attack, C needs to write again before the TLB flush.  I
+> > > > agree
+> > > > that is possible.
+> > > >
+> > > > Assume we have a guard page, can someone in the short window do
+> > > > recursive calls in B, move ssp to the end of the guard page, and
+> > > > trigger the same again?  He can simply take the incssp route.
+> > > I don't understand what you're saying. If the shadow stack is
+> > > between
+> > > guard pages, you should never be able to move SSP past that area's
+> > > guard pages without an appropriate shadow stack token (not even with
+> > > INCSSP, since that has a maximum range of PAGE_SIZE/2), and
+> > > therefore,
+> > > it shouldn't matter whether memory outside that range is incorrectly
+> > > marked as shadow stack. Am I missing something?
+> >
+> > INCSSP has a range of 256, but we can do multiple of that.
+> > But I realize the key is not to have the transient SHSTK page at all.
+> > The guard page is !pte_write() and even we have flaws in
+> > ptep_set_wrprotect(), there will not be any transient SHSTK pages. I
+> > will add guard pages to both ends.
+> >
+> > Still thinking how to fix ptep_set_wrprotect().
+>
+> cmpxchg loop? Or is that slow?
 
-> > All the architectures supported by the Linux kernel (including RISC-V)
-> > do provide this ordering for locks, albeit for varying reasons.
-> > Therefore this patch changes the model in accordance with the
-> > developers' wishes.
-> > 
-> > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > Reviewed-by: Will Deacon <will.deacon@arm.com>
-> > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> 
-> Round 2 ;-), I guess...  Let me start from the uncontroversial points:
-> 
->   1) being able to use the LKMM to reason about generic locking code
->      is useful and desirable (paraphrasing Peter in [1]);
-> 
->   2) strengthening the ordering requirements of such code isn't going
->      to boost performance (that's "real maths").
-> 
-> This patch is taking (1) away from us and it is formalizing (2), with
-> almost _no_ reason (no reason at all, if we stick to the commit msg.).
+Something like this:
 
-That's not quite fair.  Generic code isn't always universally
-applicable; some of it is opt-in -- meant only for the architectures
-that can support it.  In general, the LKMM allows us to reason about
-higher abstractions (such as locking) at a higher level, without
-necessarily being able to verify the architecture-specific details of
-the implementations.
+static inline void ptep_set_wrprotect(struct mm_struct *mm,
+                                      unsigned long addr, pte_t *ptep)
+{
+        pte_t pte = READ_ONCE(*ptep), new_pte;
 
-> In [2], Will wrote:
-> 
->   "[...] having them [the RMWs] closer to RCsc[/to the semantics of
->    locks] would make it easier to implement and reason about generic
->    locking implementations (i.e. reduce the number of special ordering
->    cases and/or magic barrier macros)"
-> 
-> "magic barrier macros" as in "mmh, if we accept this patch, we _should_
-> be auditing the various implementations/code to decide where to place a
-> 
->   smp_barrier_promote_ordinary_release_acquire_to_unlock_lock()" ;-)
-> 
-> or the like, and "special ordering cases" as in "arrgh, (otherwise) we
-> are forced to reason on a per-arch basis while looking at generic code".
+        /* ... your comment about not needing a TLB shootdown here ... */
+        do {
+                pte = pte_wrprotect(pte);
+                /* note: relies on _PAGE_DIRTY_HW < _PAGE_DIRTY_SW */
+                /* dirty direct bit-twiddling; you can probably write
+this in a nicer way */
+                pte.pte |= (pte.pte & _PAGE_DIRTY_HW) >>
+_PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
+                pte.pte &= ~_PAGE_DIRTY_HW;
+                pte = cmpxchg(ptep, pte, new_pte);
+        } while (pte != new_pte);
+}
 
-Currently the LKMM does not permit architecture-specific reasoning.  It 
-would have to be extended (in a different way for each architecture) 
-first.
-
-For example, one could use herd's POWER model combined with the POWER 
-compilation scheme and the POWER-specific implementation of spinlocks 
-for such reasoning.  The LKMM alone is not sufficient.
-
-Sure, programming and reasoning about the kernel would be easier if all
-architectures were the same.  Unfortunately, we (and the kernel) have
-to live in the real world.
-
-> (Remark: ordinary release/acquire are building blocks for code such as
->  qspinlock, (q)rwlock, mutex, rwsem, ... and what else??).
-
-But are these building blocks used the same way for all architectures?
-
-> To avoid further repetition, I conclude by confirming all the concerns
-> and my assessment of this patch as pointed out in [3]; the subsequent
-> discussion, although not conclusive, presented several suggestions for
-> improvement (IMO).
-
-Alan
+I think this has the advantage of not generating weird spurious pagefaults.
+It's not compatible with Xen PV, but I'm guessing that this whole
+feature isn't going to support Xen PV anyway? So you could switch
+between two implementations of ptep_set_wrprotect using the pvop
+mechanism or so - one for environments that support shadow stacks, one
+for all other environments.
+Or is there some arcane reason why cmpxchg doesn't work here the way I
+think it should?
