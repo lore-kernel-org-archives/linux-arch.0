@@ -1,62 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:38430 "EHLO mga01.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:38433 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729495AbeH3SqQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 14:46:16 -0400
+        id S1729545AbeH3SqU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:46:20 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 01/24] x86/cpufeatures: Add CPUIDs for Control-flow Enforcement Technology (CET)
-Date: Thu, 30 Aug 2018 07:38:41 -0700
-Message-ID: <20180830143904.3168-2-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 14/24] mm: Handle shadow stack page fault
+Date: Thu, 30 Aug 2018 07:38:54 -0700
+Message-ID: <20180830143904.3168-15-yu-cheng.yu@intel.com>
 In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180830143841.itCrjIAFy93FgAH1D26jVAEyeDIoX7hypra2Q4KE88Q@z>
+Message-ID: <20180830143854.j8OWMRhZGcEtMycnuEULgiWthb5eEfb2YIjFkXCcqDU@z>
 
-Add CPUIDs for Control-flow Enforcement Technology (CET).
+When a task does fork(), its shadow stack must be duplicated for
+the child.  However, the child may not actually use all pages of
+of the copied shadow stack.  This patch implements a flow that
+is similar to copy-on-write of an anonymous page, but for shadow
+stack memory.  A shadow stack PTE needs to be RO and dirty.  We
+use this dirty bit requirement to effect the copying of shadow
+stack pages.
 
-CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
-CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect branch tracking
+In copy_one_pte(), we clear the dirty bit from the shadow stack
+PTE.  On the next shadow stack access to the PTE, a page fault
+occurs.  At that time, we then copy/re-use the page and fix the
+PTE.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/cpufeatures.h | 2 ++
- arch/x86/kernel/cpu/scattered.c    | 1 +
- 2 files changed, 3 insertions(+)
+ arch/x86/mm/pgtable.c         | 10 ++++++++++
+ include/asm-generic/pgtable.h |  7 +++++++
+ mm/memory.c                   |  3 +++
+ 3 files changed, 20 insertions(+)
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index 89a048c2faec..fa69651a017e 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -221,6 +221,7 @@
- #define X86_FEATURE_ZEN			( 7*32+28) /* "" CPU is AMD family 0x17 (Zen) */
- #define X86_FEATURE_L1TF_PTEINV		( 7*32+29) /* "" L1TF workaround PTE inversion */
- #define X86_FEATURE_IBRS_ENHANCED	( 7*32+30) /* Enhanced IBRS */
-+#define X86_FEATURE_IBT			( 7*32+31) /* Indirect Branch Tracking */
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index e848a4811785..c63261128ac3 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -872,3 +872,13 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
  
- /* Virtualization flags: Linux defined, word 8 */
- #define X86_FEATURE_TPR_SHADOW		( 8*32+ 0) /* Intel TPR Shadow */
-@@ -321,6 +322,7 @@
- #define X86_FEATURE_PKU			(16*32+ 3) /* Protection Keys for Userspace */
- #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
- #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
-+#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
- #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
- #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
- #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
-diff --git a/arch/x86/kernel/cpu/scattered.c b/arch/x86/kernel/cpu/scattered.c
-index 772c219b6889..63cbb4d9938e 100644
---- a/arch/x86/kernel/cpu/scattered.c
-+++ b/arch/x86/kernel/cpu/scattered.c
-@@ -21,6 +21,7 @@ struct cpuid_bit {
- static const struct cpuid_bit cpuid_bits[] = {
- 	{ X86_FEATURE_APERFMPERF,       CPUID_ECX,  0, 0x00000006, 0 },
- 	{ X86_FEATURE_EPB,		CPUID_ECX,  3, 0x00000006, 0 },
-+	{ X86_FEATURE_IBT,		CPUID_EDX, 20, 0x00000007, 0},
- 	{ X86_FEATURE_CAT_L3,		CPUID_EBX,  1, 0x00000010, 0 },
- 	{ X86_FEATURE_CAT_L2,		CPUID_EBX,  2, 0x00000010, 0 },
- 	{ X86_FEATURE_CDP_L3,		CPUID_ECX,  2, 0x00000010, 1 },
+ #endif /* CONFIG_X86_64 */
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
++
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & VM_SHSTK)
++		return pte_mkdirty_shstk(pte);
++	else
++		return pte;
++}
++#endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index aa5271717126..558a485617cd 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1146,6 +1146,13 @@ static inline bool pmd_dirty_hw(pmd_t pmd)
+ {
+ 	return false;
+ }
++
++static inline pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma)
++{
++	return pte;
++}
++#else
++pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
+ #endif
+ 
+ #endif /* _ASM_GENERIC_PGTABLE_H */
+diff --git a/mm/memory.c b/mm/memory.c
+index c467102a5cbc..9b4e11944b5d 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2462,6 +2462,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
+ 	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 	entry = pte_mkyoung(vmf->orig_pte);
+ 	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
++	entry = pte_set_vma_features(entry, vma);
+ 	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+ 		update_mmu_cache(vma, vmf->address, vmf->pte);
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+@@ -2535,6 +2536,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry = mk_pte(new_page, vma->vm_page_prot);
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
++		entry = pte_set_vma_features(entry, vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+ 		 * pte with the new entry. This will avoid a race condition
+@@ -3187,6 +3189,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	entry = mk_pte(page, vma->vm_page_prot);
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry = pte_mkwrite(pte_mkdirty(entry));
++	entry = pte_set_vma_features(entry, vma);
+ 
+ 	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+ 			&vmf->ptl);
 -- 
 2.17.1
