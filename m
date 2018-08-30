@@ -1,54 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:58701 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727471AbeH3WGY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 18:06:24 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 01/16] x86/cpu: create Dhyana init file and register
- new cpu_dev to system
-References: <cover.1535459012.git.puwen@hygon.cn>
- <c4610c537e5e5774d8d7486e0867ced8ebf0fba1.1535459012.git.puwen@hygon.cn>
- <20180830123559.GF20005@nazgul.tnic>
-Message-ID: <c22c3058-6a0b-f043-0263-e9767a54c2f2@hygon.cn>
-Date: Fri, 31 Aug 2018 02:02:55 +0800
+Received: from mga18.intel.com ([134.134.136.126]:54642 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728020AbeH3W7Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 18:59:16 -0400
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+ <20180830143904.3168-13-yu-cheng.yu@intel.com>
+ <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
+ <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com>
+ <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
+ <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
+ <B2222C69-337B-44F2-9DA6-69E685AA469B@amacapital.net>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <e164a320-25a4-a9fc-3256-901b778468f3@linux.intel.com>
+Date: Thu, 30 Aug 2018 11:55:14 -0700
 MIME-Version: 1.0
-In-Reply-To: <20180830123559.GF20005@nazgul.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <B2222C69-337B-44F2-9DA6-69E685AA469B@amacapital.net>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180830180255.0vklzqSJ50VzlkAIermibstAUwyaZWJu5ogrbyIFmS0@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Jann Horn <jannh@google.com>, yu-cheng.yu@intel.com, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180830185514.TiqynW7drJWPRjhvOLFzv8BV0GKRSV2ZvR2EL-bPEsU@z>
 
-On 2018-08-30 20:35, Borislav Petkov wrote:
->> +HYGON PROCESSOR SUPPORT
->> +M:	Pu Wen <puwen@hygon.cn>
->> +L:	linux-arch@vger.kernel.org
->
->This is probably the wrong ML. You either have your own or use lkml,
->I'd say.
+On 08/30/2018 10:34 AM, Andy Lutomirski wrote:
+>> But, to keep B's TLB from picking up the entry, I think we can just make
+>> it !Present for a moment.  No TLB can cache it, and I believe the same
+>> "don't set Dirty on a !Writable entry" logic also holds for !Present
+>> (modulo a weird erratum or two).
+> Can we get documentation?  Pretty please?
 
-That's all right, I'll use linux-kernel@vger.kernel.org instead.
+The accessed bit description in the SDM looks pretty good to me today:
 
->> +++ b/arch/x86/kernel/cpu/hygon.c
->> @@ -0,0 +1,408 @@
->> +// SPDX-License-Identifier: GPL-2.0+
->> +/*
->> + * Hygon Processor Support for Linux
->> + *
->> + * Copyright (c) Chengdu Haiguang IC Design Co., Ltd.
->> + *
->> + * Author: 2018 Pu Wen <puwen@hygon.cn>
->
->Year goes with the copyright.
+> Whenever the processor uses a paging-structure entry as part of
+> linear-address translation, it sets the accessed flag in that entry
+> (if it is not already set).
+If it's !Present, it can't used as part of a translation so can't be
+set.  I think that covers the thing I was unsure about.
 
-OK, will change it as below: (in next version of patches)
-+ * Copyright (c) 2018 Chengdu Haiguang IC Design Co., Ltd.
-+ * Author: Pu Wen <puwen@hygon.cn>
+But, Dirty is a bit, er, muddier, but mostly because it only gets set on
+leaf entries:
 
-Thanks,
-Pu Wen
+> Whenever there is a write to a linear address, the processor sets the
+> dirty flag (if it is not already set) in the paging- structure entry
+> that identifies the final physical address for the linear address
+> (either a PTE or a paging-structure entry in which the PS flag is
+> 1).
 
->Otherwise looks ok.
+That little hunk will definitely need to get updated with something like:
+
+	On processors enumerating support for CET, the processor will on
+	set the dirty flag on paging structure entries in which the W
+	flag is 1.
