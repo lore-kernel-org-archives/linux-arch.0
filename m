@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v6 06/11] arm64: untag user address in __do_user_fault
-Date: Thu, 30 Aug 2018 13:41:11 +0200
-Message-ID: <b0f447bbf035a5b0a6cffa9035f1f922266a9f35.1535629099.git.andreyknvl@google.com>
+Subject: [PATCH v6 09/11] arm64: update Documentation/arm64/tagged-pointers.txt
+Date: Thu, 30 Aug 2018 13:41:14 +0200
+Message-ID: <594756b2aa9fea948f4da3cd01ffa8a5acbc5805.1535629099.git.andreyknvl@google.com>
 References: <cover.1535629099.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,29 +12,29 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-In __do_user_fault the fault address is being compared to TASK_SIZE to
-find out whether the address lies in the kernel or in user space. Since
-the fault address is coming from a user it can be tagged.
-
-Untag the pointer before comparing.
+Add a note that work on passing tagged user pointers to the kernel via
+syscalls has started, but might not be complete yet.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- arch/arm64/mm/fault.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ Documentation/arm64/tagged-pointers.txt | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index 50b30ff30de4..871fb3c38b23 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -313,7 +313,7 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
- 	 * type", so we ignore this wrinkle and just return the translation
- 	 * fault.)
- 	 */
--	if (current->thread.fault_address >= TASK_SIZE) {
-+	if (untagged_addr(current->thread.fault_address) >= TASK_SIZE) {
- 		switch (ESR_ELx_EC(esr)) {
- 		case ESR_ELx_EC_DABT_LOW:
- 			/*
+diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
+index a25a99e82bb1..361481283f00 100644
+--- a/Documentation/arm64/tagged-pointers.txt
++++ b/Documentation/arm64/tagged-pointers.txt
+@@ -35,8 +35,9 @@ Using non-zero address tags in any of these locations may result in an
+ error code being returned, a (fatal) signal being raised, or other modes
+ of failure.
+ 
+-For these reasons, passing non-zero address tags to the kernel via
+-system calls is forbidden, and using a non-zero address tag for sp is
++Some initial work for supporting non-zero address tags passed to the
++kernel via system calls has been done, but the kernel doesn't provide
++any guarantees at this point. Using a non-zero address tag for sp is
+ strongly discouraged.
+ 
+ Programs maintaining a frame pointer and frame records that use non-zero
 -- 
 2.19.0.rc0.228.g281dcd1b4d0-goog
