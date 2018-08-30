@@ -1,395 +1,132 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 10/24] x86/mm: Introduce _PAGE_DIRTY_SW
-Date: Thu, 30 Aug 2018 07:38:50 -0700
-Message-ID: <20180830143904.3168-11-yu-cheng.yu@intel.com>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
+ causes kernel crash
+Date: Thu, 30 Aug 2018 16:43:44 +0200
+Message-ID: <20180830144344.GW24142@hirez.programming.kicks-ass.net>
+References: <1535567633.4465.23.camel@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
+ <20180830094411.GX24124@hirez.programming.kicks-ass.net>
+ <20180830095148.GB5942@arm.com>
+ <1535629996.4465.44.camel@synopsys.com>
+ <20180830141713.GN24082@hirez.programming.kicks-ass.net>
+ <20180830142354.GB13005@arm.com>
+ <20180830142920.GO24082@hirez.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20180830142920.GO24082@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-A RO and dirty PTE exists in the following cases:
+On Thu, Aug 30, 2018 at 04:29:20PM +0200, Peter Zijlstra wrote:
 
-(a) A page is modified and then shared with a fork()'ed child;
-(b) A R/O page that has been COW'ed;
-(c) A SHSTK page.
+> Also, once it all works, they should look at switching to _relaxed
+> atomics for LL/SC.
 
-The processor does not read the dirty bit for (a) and (b), but
-checks the dirty bit for (c).  To prevent the use of non-SHSTK
-memory as SHSTK, we introduce a spare bit of the 64-bit PTE as
-_PAGE_BIT_DIRTY_SW and use that for (a) and (b).  This results
-to the following possible PTE settings:
+A little something like so.. should save a few smp_mb().
 
-Modified PTE:             (R/W + DIRTY_HW)
-Modified and shared PTE:  (R/O + DIRTY_SW)
-R/O PTE COW'ed:           (R/O + DIRTY_SW)
-SHSTK PTE:                (R/O + DIRTY_HW)
-SHSTK PTE COW'ed:         (R/O + DIRTY_HW)
-SHSTK PTE shared:         (R/O + DIRTY_SW)
-
-Note that _PAGE_BIT_DRITY_SW is only used in R/O PTEs but
-not R/W PTEs.
-
-When this patch is applied, there are six free bits left in
-the 64-bit PTE.  There is no more free bit in the 32-bit
-PTE (except for PAE) and shadow stack is not implemented
-for the 32-bit kernel.
-
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/pgtable.h       | 129 ++++++++++++++++++++++-----
- arch/x86/include/asm/pgtable_types.h |  14 ++-
- include/asm-generic/pgtable.h        |  21 +++++
- 3 files changed, 142 insertions(+), 22 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index aab42464f6a1..4d50de77ea96 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -119,9 +119,9 @@ extern pmdval_t early_pmd_flags;
-  * The following only work if pte_present() is true.
-  * Undefined behaviour if not..
-  */
--static inline int pte_dirty(pte_t pte)
-+static inline bool pte_dirty(pte_t pte)
- {
--	return pte_flags(pte) & _PAGE_DIRTY;
-+	return pte_flags(pte) & _PAGE_DIRTY_BITS;
+diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
+index 4e0072730241..714b54c308b0 100644
+--- a/arch/arc/include/asm/atomic.h
++++ b/arch/arc/include/asm/atomic.h
+@@ -44,7 +44,7 @@ static inline void atomic_##op(int i, atomic_t *v)			\
+ }									\
+ 
+ #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
+-static inline int atomic_##op##_return(int i, atomic_t *v)		\
++static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
+ {									\
+ 	unsigned int val;						\
+ 									\
+@@ -69,8 +69,11 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
+ 	return val;							\
  }
  
- 
-@@ -143,9 +143,9 @@ static inline int pte_young(pte_t pte)
- 	return pte_flags(pte) & _PAGE_ACCESSED;
- }
- 
--static inline int pmd_dirty(pmd_t pmd)
-+static inline bool pmd_dirty(pmd_t pmd)
- {
--	return pmd_flags(pmd) & _PAGE_DIRTY;
-+	return pmd_flags(pmd) & _PAGE_DIRTY_BITS;
- }
- 
- static inline int pmd_young(pmd_t pmd)
-@@ -153,9 +153,9 @@ static inline int pmd_young(pmd_t pmd)
- 	return pmd_flags(pmd) & _PAGE_ACCESSED;
- }
- 
--static inline int pud_dirty(pud_t pud)
-+static inline bool pud_dirty(pud_t pud)
- {
--	return pud_flags(pud) & _PAGE_DIRTY;
-+	return pud_flags(pud) & _PAGE_DIRTY_BITS;
- }
- 
- static inline int pud_young(pud_t pud)
-@@ -294,9 +294,23 @@ static inline pte_t pte_clear_flags(pte_t pte, pteval_t clear)
- 	return native_make_pte(v & ~clear);
- }
- 
-+#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
-+static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
-+{
-+	if (pte_flags(pte) & from)
-+		pte = pte_set_flags(pte_clear_flags(pte, from), to);
-+	return pte;
-+}
-+#else
-+static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
-+{
-+	return pte;
-+}
-+#endif
++#define atomic_add_return_relaxed	atomic_add_return_relaxed
++#define atomic_sub_return_relaxed	atomic_sub_return_relaxed
 +
- static inline pte_t pte_mkclean(pte_t pte)
- {
--	return pte_clear_flags(pte, _PAGE_DIRTY);
-+	return pte_clear_flags(pte, _PAGE_DIRTY_BITS);
+ #define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
+-static inline int atomic_fetch_##op(int i, atomic_t *v)			\
++static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
+ {									\
+ 	unsigned int val, orig;						\
+ 									\
+@@ -96,6 +99,14 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
+ 	return orig;							\
  }
  
- static inline pte_t pte_mkold(pte_t pte)
-@@ -306,6 +320,7 @@ static inline pte_t pte_mkold(pte_t pte)
- 
- static inline pte_t pte_wrprotect(pte_t pte)
- {
-+	pte = pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
- 	return pte_clear_flags(pte, _PAGE_RW);
- }
- 
-@@ -316,9 +331,24 @@ static inline pte_t pte_mkexec(pte_t pte)
- 
- static inline pte_t pte_mkdirty(pte_t pte)
- {
-+	pteval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHSTK_USER) ||
-+			   pte_write(pte)) ? _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
-+	return pte_set_flags(pte, dirty | _PAGE_SOFT_DIRTY);
-+}
++#define atomic_fetch_add_relaxed	atomic_fetch_add_relaxed
++#define atomic_fetch_sub_relaxed	atomic_fetch_sub_relaxed
 +
-+#ifdef CONFIG_ARCH_HAS_SHSTK
-+static inline pte_t pte_mkdirty_shstk(pte_t pte)
-+{
-+	pte = pte_clear_flags(pte, _PAGE_DIRTY_SW);
- 	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
- 
-+static inline bool pte_dirty_hw(pte_t pte)
-+{
-+	return pte_flags(pte) & _PAGE_DIRTY_HW;
-+}
-+#endif
++#define atomic_fetch_and_relaxed	atomic_fetch_and_relaxed
++#define atomic_fetch_andnot_relaxed	atomic_fetch_andnot_relaxed
++#define atomic_fetch_or_relaxed		atomic_fetch_or_relaxed
++#define atomic_fetch_xor_relaxed	atomic_fetch_xor_relaxed
 +
- static inline pte_t pte_mkyoung(pte_t pte)
- {
- 	return pte_set_flags(pte, _PAGE_ACCESSED);
-@@ -326,6 +356,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
+ #else	/* !CONFIG_ARC_HAS_LLSC */
  
- static inline pte_t pte_mkwrite(pte_t pte)
- {
-+	pte = pte_move_flags(pte, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
- 	return pte_set_flags(pte, _PAGE_RW);
+ #ifndef CONFIG_SMP
+@@ -379,7 +390,7 @@ static inline void atomic64_##op(long long a, atomic64_t *v)		\
+ }									\
+ 
+ #define ATOMIC64_OP_RETURN(op, op1, op2)		        	\
+-static inline long long atomic64_##op##_return(long long a, atomic64_t *v)	\
++static inline long long atomic64_##op##_return_relaxed(long long a, atomic64_t *v)	\
+ {									\
+ 	unsigned long long val;						\
+ 									\
+@@ -401,8 +412,11 @@ static inline long long atomic64_##op##_return(long long a, atomic64_t *v)	\
+ 	return val;							\
  }
  
-@@ -373,6 +404,20 @@ static inline pmd_t pmd_clear_flags(pmd_t pmd, pmdval_t clear)
- 	return native_make_pmd(v & ~clear);
- }
- 
-+#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
-+static inline pmd_t pmd_move_flags(pmd_t pmd, pmdval_t from, pmdval_t to)
-+{
-+	if (pmd_flags(pmd) & from)
-+		pmd = pmd_set_flags(pmd_clear_flags(pmd, from), to);
-+	return pmd;
-+}
-+#else
-+static inline pmd_t pmd_move_flags(pmd_t pmd, pmdval_t from, pmdval_t to)
-+{
-+	return pmd;
-+}
-+#endif
++#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
++#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
 +
- static inline pmd_t pmd_mkold(pmd_t pmd)
- {
- 	return pmd_clear_flags(pmd, _PAGE_ACCESSED);
-@@ -380,19 +425,36 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
- 
- static inline pmd_t pmd_mkclean(pmd_t pmd)
- {
--	return pmd_clear_flags(pmd, _PAGE_DIRTY);
-+	return pmd_clear_flags(pmd, _PAGE_DIRTY_BITS);
+ #define ATOMIC64_FETCH_OP(op, op1, op2)		        		\
+-static inline long long atomic64_fetch_##op(long long a, atomic64_t *v)	\
++static inline long long atomic64_fetch_##op##_relaxed(long long a, atomic64_t *v)	\
+ {									\
+ 	unsigned long long val, orig;					\
+ 									\
+@@ -424,6 +438,14 @@ static inline long long atomic64_fetch_##op(long long a, atomic64_t *v)	\
+ 	return orig;							\
  }
  
- static inline pmd_t pmd_wrprotect(pmd_t pmd)
- {
-+	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
- 	return pmd_clear_flags(pmd, _PAGE_RW);
- }
- 
- static inline pmd_t pmd_mkdirty(pmd_t pmd)
- {
-+	pmdval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHSTK_USER) ||
-+			  (pmd_flags(pmd) & _PAGE_RW)) ?
-+			  _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
-+	return pmd_set_flags(pmd, dirty | _PAGE_SOFT_DIRTY);
-+}
++#define atomic64_fetch_add_relaxed	atomic64_fetch_add_relaxed
++#define atomic64_fetch_sub_relaxed	atomic64_fetch_sub_relaxed
 +
-+#ifdef CONFIG_ARCH_HAS_SHSTK
-+static inline pmd_t pmd_mkdirty_shstk(pmd_t pmd)
-+{
-+	pmd = pmd_clear_flags(pmd, _PAGE_DIRTY_SW);
- 	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
- 
-+static inline bool pmd_dirty_hw(pmd_t pmd)
-+{
-+	return  pmd_flags(pmd) & _PAGE_DIRTY_HW;
-+}
-+#endif
++#define atomic64_fetch_and_relaxed	atomic64_fetch_and_relaxed
++#define atomic64_fetch_andnot_relaxed	atomic64_fetch_andnot_relaxed
++#define atomic64_fetch_or_relaxed	atomic64_fetch_or_relaxed
++#define atomic64_fetch_xor_relaxed	atomic64_fetch_xor_relaxed
 +
- static inline pmd_t pmd_mkdevmap(pmd_t pmd)
- {
- 	return pmd_set_flags(pmd, _PAGE_DEVMAP);
-@@ -410,6 +472,7 @@ static inline pmd_t pmd_mkyoung(pmd_t pmd)
+ #define ATOMIC64_OPS(op, op1, op2)					\
+ 	ATOMIC64_OP(op, op1, op2)					\
+ 	ATOMIC64_OP_RETURN(op, op1, op2)				\
+@@ -434,6 +456,12 @@ static inline long long atomic64_fetch_##op(long long a, atomic64_t *v)	\
  
- static inline pmd_t pmd_mkwrite(pmd_t pmd)
- {
-+	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
- 	return pmd_set_flags(pmd, _PAGE_RW);
- }
- 
-@@ -427,6 +490,20 @@ static inline pud_t pud_clear_flags(pud_t pud, pudval_t clear)
- 	return native_make_pud(v & ~clear);
- }
- 
-+#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
-+static inline pud_t pud_move_flags(pud_t pud, pudval_t from, pudval_t to)
-+{
-+	if (pud_flags(pud) & from)
-+		pud = pud_set_flags(pud_clear_flags(pud, from), to);
-+	return pud;
-+}
-+#else
-+static inline pud_t pud_move_flags(pud_t pud, pudval_t from, pudval_t to)
-+{
-+	return pud;
-+}
-+#endif
+ ATOMIC64_OPS(add, add.f, adc)
+ ATOMIC64_OPS(sub, sub.f, sbc)
 +
- static inline pud_t pud_mkold(pud_t pud)
- {
- 	return pud_clear_flags(pud, _PAGE_ACCESSED);
-@@ -434,17 +511,22 @@ static inline pud_t pud_mkold(pud_t pud)
- 
- static inline pud_t pud_mkclean(pud_t pud)
- {
--	return pud_clear_flags(pud, _PAGE_DIRTY);
-+	return pud_clear_flags(pud, _PAGE_DIRTY_BITS);
- }
- 
- static inline pud_t pud_wrprotect(pud_t pud)
- {
-+	pud = pud_move_flags(pud, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
- 	return pud_clear_flags(pud, _PAGE_RW);
- }
- 
- static inline pud_t pud_mkdirty(pud_t pud)
- {
--	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
-+	pudval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHSTK_USER) ||
-+			  (pud_flags(pud) & _PAGE_RW)) ?
-+			  _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++#undef ATOMIC64_OPS
++#define ATOMIC64_OPS(op, op1, op2)					\
++	ATOMIC64_OP(op, op1, op2)					\
++	ATOMIC64_FETCH_OP(op, op1, op2)
 +
-+	return pud_set_flags(pud, dirty | _PAGE_SOFT_DIRTY);
- }
- 
- static inline pud_t pud_mkdevmap(pud_t pud)
-@@ -464,6 +546,7 @@ static inline pud_t pud_mkyoung(pud_t pud)
- 
- static inline pud_t pud_mkwrite(pud_t pud)
- {
-+	pud = pud_move_flags(pud, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
- 	return pud_set_flags(pud, _PAGE_RW);
- }
- 
-@@ -595,19 +678,12 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- 	val &= _PAGE_CHG_MASK;
- 	val |= check_pgprot(newprot) & ~_PAGE_CHG_MASK;
- 	val = flip_protnone_guard(oldval, val, PTE_PFN_MASK);
-+	if ((pte_write(pte) && !(pgprot_val(newprot) & _PAGE_RW)))
-+		return pte_move_flags(__pte(val), _PAGE_DIRTY_HW,
-+				      _PAGE_DIRTY_SW);
- 	return __pte(val);
- }
- 
--static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
--{
--	pmdval_t val = pmd_val(pmd), oldval = val;
--
--	val &= _HPAGE_CHG_MASK;
--	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
--	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
--	return __pmd(val);
--}
--
- /* mprotect needs to preserve PAT bits when updating vm_page_prot */
- #define pgprot_modify pgprot_modify
- static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
-@@ -1159,6 +1235,19 @@ static inline int pmd_write(pmd_t pmd)
- 	return pmd_flags(pmd) & _PAGE_RW;
- }
- 
-+static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
-+{
-+	pmdval_t val = pmd_val(pmd), oldval = val;
-+
-+	val &= _HPAGE_CHG_MASK;
-+	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
-+	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
-+	if ((pmd_write(pmd) && !(pgprot_val(newprot) & _PAGE_RW)))
-+		return pmd_move_flags(__pmd(val), _PAGE_DIRTY_HW,
-+				      _PAGE_DIRTY_SW);
-+	return __pmd(val);
-+}
-+
- #define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
- static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm, unsigned long addr,
- 				       pmd_t *pmdp)
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 0657a22d5216..f47bbc1f9c45 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -23,6 +23,7 @@
- #define _PAGE_BIT_SOFTW2	10	/* " */
- #define _PAGE_BIT_SOFTW3	11	/* " */
- #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
-+#define _PAGE_BIT_SOFTW5	57	/* available for programmer */
- #define _PAGE_BIT_SOFTW4	58	/* available for programmer */
- #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
- #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
-@@ -34,6 +35,7 @@
- #define _PAGE_BIT_CPA_TEST	_PAGE_BIT_SOFTW1
- #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking */
- #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
-+#define _PAGE_BIT_DIRTY_SW	_PAGE_BIT_SOFTW5 /* was written to */
- 
- /* If _PAGE_BIT_PRESENT is clear, we use these: */
- /* - if the user mapped it with PROT_NONE; pte_present gives true */
-@@ -109,6 +111,14 @@
- #define _PAGE_DEVMAP	(_AT(pteval_t, 0))
- #endif
- 
-+#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
-+#define _PAGE_DIRTY_SW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_SW)
-+#else
-+#define _PAGE_DIRTY_SW	(_AT(pteval_t, 0))
-+#endif
-+
-+#define _PAGE_DIRTY_BITS (_PAGE_DIRTY_HW | _PAGE_DIRTY_SW)
-+
- #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
- 
- #define _PAGE_TABLE_NOENC	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |\
-@@ -122,9 +132,9 @@
-  * instance, and is *not* included in this mask since
-  * pte_modify() does modify it.
-  */
--#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
-+#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |			\
- 			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
--			 _PAGE_SOFT_DIRTY)
-+			 _PAGE_DIRTY_SW | _PAGE_SOFT_DIRTY)
- #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
- 
- /*
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 88ebc6102c7c..aa5271717126 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1127,4 +1127,25 @@ static inline bool arch_has_pfn_modify_check(void)
- #endif
- #endif
- 
-+#ifndef CONFIG_ARCH_HAS_SHSTK
-+static inline pte_t pte_mkdirty_shstk(pte_t pte)
-+{
-+	return pte;
-+}
-+static inline bool pte_dirty_hw(pte_t pte)
-+{
-+	return false;
-+}
-+
-+static inline pmd_t pmd_mkdirty_shstk(pmd_t pmd)
-+{
-+	return pmd;
-+}
-+
-+static inline bool pmd_dirty_hw(pmd_t pmd)
-+{
-+	return false;
-+}
-+#endif
-+
- #endif /* _ASM_GENERIC_PGTABLE_H */
--- 
-2.17.1
+ ATOMIC64_OPS(and, and, and)
+ ATOMIC64_OPS(andnot, bic, bic)
+ ATOMIC64_OPS(or, or, or)
