@@ -1,7 +1,7 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v6 08/11] usb, arm64: untag user addresses in devio
-Date: Thu, 30 Aug 2018 13:41:13 +0200
-Message-ID: <c0396442f9143244bdfdf0ea3bfab55b583a328f.1535629099.git.andreyknvl@google.com>
+Subject: [PATCH v6 06/11] arm64: untag user address in __do_user_fault
+Date: Thu, 30 Aug 2018 13:41:11 +0200
+Message-ID: <b0f447bbf035a5b0a6cffa9035f1f922266a9f35.1535629099.git.andreyknvl@google.com>
 References: <cover.1535629099.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,52 +12,29 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-devio allows to mmap memory regions and keeps them in a list. It also
-accepts a user address through an ioctl call and searches the memory
-region list for the region that contains this address. Since the addresses
-provided to mmap must not be tagged, and the addresses provided to ioctl
-might be tagged, we might compare tagged and untagged addresses during the
-search.
+In __do_user_fault the fault address is being compared to TASK_SIZE to
+find out whether the address lies in the kernel or in user space. Since
+the fault address is coming from a user it can be tagged.
 
-Untag the provided addresses before searching.
+Untag the pointer before comparing.
 
 Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 ---
- drivers/usb/core/devio.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ arch/arm64/mm/fault.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/usb/core/devio.c b/drivers/usb/core/devio.c
-index 6ce77b33da61..ed5ab7c8100b 100644
---- a/drivers/usb/core/devio.c
-+++ b/drivers/usb/core/devio.c
-@@ -1405,7 +1405,7 @@ find_memory_area(struct usb_dev_state *ps, const struct usbdevfs_urb *uurb)
- {
- 	struct usb_memory *usbm = NULL, *iter;
- 	unsigned long flags;
--	unsigned long uurb_start = (unsigned long)uurb->buffer;
-+	unsigned long uurb_start = (unsigned long)untagged_addr(uurb->buffer);
- 
- 	spin_lock_irqsave(&ps->lock, flags);
- 	list_for_each_entry(iter, &ps->memory_list, memlist) {
-@@ -1634,7 +1634,8 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
- 		}
- 	} else if (uurb->buffer_length > 0) {
- 		if (as->usbm) {
--			unsigned long uurb_start = (unsigned long)uurb->buffer;
-+			unsigned long uurb_start =
-+				(unsigned long)untagged_addr(uurb->buffer);
- 
- 			as->urb->transfer_buffer = as->usbm->mem +
- 					(uurb_start - as->usbm->vm_start);
-@@ -1713,7 +1714,8 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
- 	as->ps = ps;
- 	as->userurb = arg;
- 	if (as->usbm) {
--		unsigned long uurb_start = (unsigned long)uurb->buffer;
-+		unsigned long uurb_start =
-+			(unsigned long)untagged_addr(uurb->buffer);
- 
- 		as->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
- 		as->urb->transfer_dma = as->usbm->dma_handle +
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 50b30ff30de4..871fb3c38b23 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -313,7 +313,7 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
+ 	 * type", so we ignore this wrinkle and just return the translation
+ 	 * fault.)
+ 	 */
+-	if (current->thread.fault_address >= TASK_SIZE) {
++	if (untagged_addr(current->thread.fault_address) >= TASK_SIZE) {
+ 		switch (ESR_ELx_EC(esr)) {
+ 		case ESR_ELx_EC_DABT_LOW:
+ 			/*
 -- 
 2.19.0.rc0.228.g281dcd1b4d0-goog
