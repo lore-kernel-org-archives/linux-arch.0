@@ -1,57 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f67.google.com ([209.85.208.67]:42375 "EHLO
-        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725836AbeHaAOC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 20:14:02 -0400
-MIME-Version: 1.0
-References: <20180829130308.3504560-1-arnd@arndb.de>
-In-Reply-To: <20180829130308.3504560-1-arnd@arndb.de>
-From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
-Date: Thu, 30 Aug 2018 16:09:31 -0400
-Message-ID: <CAF=yD-J7-GumUmonrZt7s44e3bsjY2DCD6ZpmhtCx6FOBV5BNA@mail.gmail.com>
-Subject: Re: [PATCH net-next 1/3] net: rework SIOCGSTAMP ioctl handling
+Received: from mga03.intel.com ([134.134.136.65]:14599 "EHLO mga03.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727237AbeHaA3p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 20:29:45 -0400
+Message-ID: <1535660494.28258.36.camel@intel.com>
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 30 Aug 2018 13:21:34 -0700
+In-Reply-To: <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+         <20180830143904.3168-13-yu-cheng.yu@intel.com>
+         <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
+         <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com>
+         <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
+         <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
+         <1535649960.26689.15.camel@intel.com>
+         <33d45a12-513c-eba2-a2de-3d6b630e928e@linux.intel.com>
+         <1535651666.27823.6.camel@intel.com>
+         <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Network Development <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, y2038 Mailman List <y2038@lists.linaro.org>, Eric Dumazet <edumazet@google.com>, Willem de Bruijn <willemb@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-hams@vger.kernel.org, linux-bluetooth@vger.kernel.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, linux-sctp@vger.kernel.org, linux-x25@vger.kernel.org
-Message-ID: <20180830200931.sXPiVfR2WXEv009_hTZVIYhndi6j2KLk3EUPN5F-w5M@z>
+To: Jann Horn <jannh@google.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180830202134.8zmepJLvpCqpnsbG3hr2pPJ-J-S7-lQZthz4k3AokCo@z>
 
-On Wed, Aug 29, 2018 at 9:05 AM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> The SIOCGSTAMP/SIOCGSTAMPNS ioctl commands are implemented by many
-> socket protocol handlers, and all of those end up calling the same
-> sock_get_timestamp()/sock_get_timestampns() helper functions, which
-> results in a lot of duplicate code.
->
-> With the introduction of 64-bit time_t on 32-bit architectures, this
-> gets worse, as we then need four different ioctl commands in each
-> socket protocol implementation.
->
-> To simplify that, let's add a new .gettstamp() operation in
-> struct proto_ops, and move ioctl implementation into the common
-> sock_ioctl()/compat_sock_ioctl_trans() functions that these all go
-> through.
->
-> We can reuse the sock_get_timestamp() implementation, but generalize
-> it so it can deal with both native and compat mode, as well as
-> timeval and timespec structures.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+On Thu, 2018-08-30 at 19:59 +0200, Jann Horn wrote:
+> On Thu, Aug 30, 2018 at 7:58 PM Yu-cheng Yu <yu-cheng.yu@intel.com>
+> wrote:
+> > 
+> > 
+> > On Thu, 2018-08-30 at 10:33 -0700, Dave Hansen wrote:
+> > > 
+> > > On 08/30/2018 10:26 AM, Yu-cheng Yu wrote:
+> > > > 
+> > > > 
+> > > > We don't have the guard page now, but there is a shadow stack
+> > > > token
+> > > > there, which cannot be used as a return address.
+> > > The overall concern is that we could overflow into a page that
+> > > we
+> > > did
+> > > not intend.  Either another actual shadow stack or something
+> > > that a
+> > > page
+> > > that the attacker constructed, like the transient scenario Jann
+> > > described.
+> > > 
+> > A task could go beyond the bottom of its shadow stack by doing
+> > either
+> > 'ret' or 'incssp'.  If it is the 'ret' case, the token prevents
+> > it.
+> >  If it is the 'incssp' case, a guard page cannot prevent it
+> > entirely,
+> > right?
+> I mean the other direction, on "call".
 
-This also will simplify fixing a recently reported race condition with
-sock_get_timestamp [1]. That calls sock_enable_timestamp, which
-modifies sk->sk_flags, without taking the socket lock. Currently some
-callers of sock_get_timestamp hold the lock (ax25, netrom, qrtr), many
-don't. See also how this patch removes the lock_sock in the netrom
-case. Moving the call to sock_gettstamp outside the protocol handlers
-will allow taking the lock inside the function.
+In the flow you described, if C writes to the overflow page before B
+gets in with a 'call', the return address is still correct for B.  To
+make an attack, C needs to write again before the TLB flush.  I agree
+that is possible.
 
-If this is the only valid implementation of .gettstamp, the indirect
-call could be avoided in favor of a simple branch.
-
-Thanks,
-
-Acked-by: Willem de Bruijn <willemb@google.com>
-
-[1] http://lkml.kernel.org/r/20180518080308.GA28587@dragonet.kaist.ac.kr
+Assume we have a guard page, can someone in the short window do
+recursive calls in B, move ssp to the end of the guard page, and
+trigger the same again?  He can simply take the incssp route.
