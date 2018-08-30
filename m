@@ -1,82 +1,108 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Date: Thu, 30 Aug 2018 20:31:59 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B090EA4@us01wembx1.internal.synopsys.com>
-References: <1535567633.4465.23.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <20180830095148.GB5942@arm.com> <1535629996.4465.44.camel@synopsys.com>
- <20180830141713.GN24082@hirez.programming.kicks-ass.net>
- <20180830142354.GB13005@arm.com>
- <20180830142920.GO24082@hirez.programming.kicks-ass.net>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v3 05/24] Documentation/x86: Add CET description
+Date: Thu, 30 Aug 2018 22:39:48 +0200
+Message-ID: <20180830203948.GB1936@amd>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+ <20180830143904.3168-6-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="z6Eq5LdranGa6ru8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20180830143904.3168-6-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 08/30/2018 07:29 AM, Peter Zijlstra wrote:=0A=
-> On Thu, Aug 30, 2018 at 03:23:55PM +0100, Will Deacon wrote:=0A=
->=0A=
->> Yes, that would be worth trying. However, I also just noticed that the=
-=0A=
->> fetch-ops (which are now used to implement test_and_set_bit_lock()) seem=
-=0A=
->> to be missing the backwards branch in the LL/SC case. Yet another diff=
-=0A=
->> below.=0A=
->>=0A=
->> Will=0A=
->>=0A=
->> --->8=0A=
->>=0A=
->> diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic=
-.h=0A=
->> index 4e0072730241..f06c5ed672b3 100644=0A=
->> --- a/arch/arc/include/asm/atomic.h=0A=
->> +++ b/arch/arc/include/asm/atomic.h=0A=
->> @@ -84,7 +84,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v=
-)			\=0A=
->>  	"1:	llock   %[orig], [%[ctr]]		\n"		\=0A=
->>  	"	" #asm_op " %[val], %[orig], %[i]	\n"		\=0A=
->>  	"	scond   %[val], [%[ctr]]		\n"		\=0A=
->> -	"						\n"		\=0A=
->> +	"	bnz	1b				\n"		\=0A=
->>  	: [val]	"=3D&r"	(val),						\=0A=
->>  	  [orig] "=3D&r" (orig)						\=0A=
->>  	: [ctr]	"r"	(&v->counter),					\=0A=
-> ACK!! sorry about that, no idea how I messed that up.=0A=
->=0A=
-> Also, once it all works, they should look at switching to _relaxed=0A=
-> atomics for LL/SC.=0A=
-=0A=
-Indeed this is the mother of all issues, I tried and system is clearly hose=
-d with=0A=
-and works after.=0A=
-What's amazing is the commit 4aef66c8ae9 which introduced it is from 2016 ;=
--)=0A=
-Back then we had a retry branch with backoff stuff which I'd reverted for n=
-ew=0A=
-cores and the merge conflict somehow missed it.=0A=
-=0A=
-@PeterZ I'll create a patch with you as author ? do I need any formal sign =
-offs,=0A=
-acks etc ?=0A=
-=0A=
-So after this there are 2 other things to be addresses / looked at still wh=
-ile we=0A=
-are still here.=0A=
-=0A=
-1. After 84c6591103db __clear_bit_lock() implementation will be broken (or =
-atleast=0A=
-not consistent with what we had after), do we need to reinstate it.=0A=
-2. Will's proposed change to remove the underlying issue, but the issue in =
-#1=0A=
-remains ?=0A=
-=0A=
--Vineet=0A=
+
+--z6Eq5LdranGa6ru8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+Hi!
+
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentat=
+ion/admin-guide/kernel-parameters.txt
+> index 9871e649ffef..b090787188b4 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -2764,6 +2764,12 @@
+>  			noexec=3Don: enable non-executable mappings (default)
+>  			noexec=3Doff: disable non-executable mappings
+> =20
+> +	no_cet_ibt	[X86-64] Disable indirect branch tracking for user-mode
+> +			applications
+> +
+> +	no_cet_shstk	[X86-64] Disable shadow stack support for user-mode
+> +			applications
+
+Hmm, not too consistent with "nosmap" below. Would it make sense to
+have cet=3Don/off/ibt/shstk instead?
+
+> +++ b/Documentation/x86/intel_cet.rst
+> @@ -0,0 +1,252 @@
+> +=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> +Control Flow Enforcement Technology (CET)
+> +=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> +
+> +[1] Overview
+> +=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> +
+> +Control Flow Enforcement Technology (CET) provides protection against
+> +return/jump-oriented programing (ROP) attacks.
+
+Can you add something like "It attempts to protect process from
+running arbitrary code even after attacker has control of its stack"
+-- for people that don't know what ROP is, and perhaps link to
+wikipedia explaining ROP or something...
+
+> It can be implemented
+> +to protect both the kernel and applications.  In the first phase,
+> +only the user-mode protection is implemented for the 64-bit kernel.
+> +Thirty-two bit applications are supported under the compatibility
+
+32-bit (for consistency).
+
+Ok, so CET stops execution of malicious code before architectural
+effects are visible, correct? Does it prevent micro-architectural
+effects of the malicious code? (cache content would be one example;
+see Spectre).
+
+> +[3] Application Enabling
+> +=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+
+"Enabling CET in applications" ?
+
+> +Signal
+> +------
+> +
+> +The main program and its signal handlers use the same SHSTK.  Because
+> +the SHSTK stores only return addresses, we can estimate a large
+> +enough SHSTK to cover the condition that both the program stack and
+> +the sigaltstack run out.
+
+English? Is it estimate or is it large enough? "a large" -- "a" should
+be deleted AFAICT.
+=20
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--z6Eq5LdranGa6ru8
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAluIVhQACgkQMOfwapXb+vJ0KACgu6nabChmCkBFO6OaHfHWveVH
+9MgAn36uXjrnPChLkXN2JkbfiY+qF9bI
+=mbZW
+-----END PGP SIGNATURE-----
+
+--z6Eq5LdranGa6ru8--
