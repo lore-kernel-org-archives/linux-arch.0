@@ -1,113 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:42506 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725893AbeHaAD1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 20:03:27 -0400
-Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
- pmdp_set_wrprotect for _PAGE_DIRTY_SW
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
- <20180830143904.3168-13-yu-cheng.yu@intel.com>
-From: Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <9879c17a-24da-d84a-5a7c-30bcbb473914@infradead.org>
-Date: Thu, 30 Aug 2018 12:59:21 -0700
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:42375 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725836AbeHaAOC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Aug 2018 20:14:02 -0400
 MIME-Version: 1.0
-In-Reply-To: <20180830143904.3168-13-yu-cheng.yu@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20180829130308.3504560-1-arnd@arndb.de>
+In-Reply-To: <20180829130308.3504560-1-arnd@arndb.de>
+From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
+Date: Thu, 30 Aug 2018 16:09:31 -0400
+Message-ID: <CAF=yD-J7-GumUmonrZt7s44e3bsjY2DCD6ZpmhtCx6FOBV5BNA@mail.gmail.com>
+Subject: Re: [PATCH net-next 1/3] net: rework SIOCGSTAMP ioctl handling
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180830195921.8Isk15ZcvZDNH5R8DiRwlGK2ZmapA4ck4ThM9im-O_Q@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Network Development <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, y2038 Mailman List <y2038@lists.linaro.org>, Eric Dumazet <edumazet@google.com>, Willem de Bruijn <willemb@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-hams@vger.kernel.org, linux-bluetooth@vger.kernel.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, linux-sctp@vger.kernel.org, linux-x25@vger.kernel.org
+Message-ID: <20180830200931.sXPiVfR2WXEv009_hTZVIYhndi6j2KLk3EUPN5F-w5M@z>
 
-On 08/30/2018 07:38 AM, Yu-cheng Yu wrote:
-> When Shadow Stack is enabled, the read-only and PAGE_DIRTY_HW PTE
-> setting is reserved only for the Shadow Stack.  To track dirty of
-> non-Shadow Stack read-only PTEs, we use PAGE_DIRTY_SW.
-> 
-> Update ptep_set_wrprotect() and pmdp_set_wrprotect().
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/pgtable.h | 42 ++++++++++++++++++++++++++++++++++
->  1 file changed, 42 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-> index 4d50de77ea96..556ef258eeff 100644
-> --- a/arch/x86/include/asm/pgtable.h
-> +++ b/arch/x86/include/asm/pgtable.h
-> @@ -1203,7 +1203,28 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
->  static inline void ptep_set_wrprotect(struct mm_struct *mm,
->  				      unsigned long addr, pte_t *ptep)
->  {
-> +	pte_t pte;
-> +
->  	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-> +	pte = *ptep;
-> +
-> +	/*
-> +	 * Some processors can start a write, but ending up seeing
+On Wed, Aug 29, 2018 at 9:05 AM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> The SIOCGSTAMP/SIOCGSTAMPNS ioctl commands are implemented by many
+> socket protocol handlers, and all of those end up calling the same
+> sock_get_timestamp()/sock_get_timestampns() helper functions, which
+> results in a lot of duplicate code.
+>
+> With the introduction of 64-bit time_t on 32-bit architectures, this
+> gets worse, as we then need four different ioctl commands in each
+> socket protocol implementation.
+>
+> To simplify that, let's add a new .gettstamp() operation in
+> struct proto_ops, and move ioctl implementation into the common
+> sock_ioctl()/compat_sock_ioctl_trans() functions that these all go
+> through.
+>
+> We can reuse the sock_get_timestamp() implementation, but generalize
+> it so it can deal with both native and compat mode, as well as
+> timeval and timespec structures.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-	                                      but end up seeing
+This also will simplify fixing a recently reported race condition with
+sock_get_timestamp [1]. That calls sock_enable_timestamp, which
+modifies sk->sk_flags, without taking the socket lock. Currently some
+callers of sock_get_timestamp hold the lock (ax25, netrom, qrtr), many
+don't. See also how this patch removes the lock_sock in the netrom
+case. Moving the call to sock_gettstamp outside the protocol handlers
+will allow taking the lock inside the function.
 
-> +	 * a read-only PTE by the time they get to the Dirty bit.
-> +	 * In this case, they will set the Dirty bit, leaving a
-> +	 * read-only, Dirty PTE which looks like a Shadow Stack PTE.
-> +	 *
-> +	 * However, this behavior has been improved and will not occur
-> +	 * on processors supporting Shadow Stacks.  Without this
-> +	 * guarantee, a transition to a non-present PTE and flush the
-> +	 * TLB would be needed.
-> +	 *
-> +	 * When change a writable PTE to read-only and if the PTE has
+If this is the only valid implementation of .gettstamp, the indirect
+call could be avoided in favor of a simple branch.
 
-	        changing
+Thanks,
 
-> +	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so
-> +	 * that the PTE is not a valid Shadow Stack PTE.
-> +	 */
-> +	pte = pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
-> +	set_pte_at(mm, addr, ptep, pte);
->  }
->  
->  #define flush_tlb_fix_spurious_fault(vma, address) do { } while (0)
-> @@ -1266,7 +1287,28 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
->  static inline void pmdp_set_wrprotect(struct mm_struct *mm,
->  				      unsigned long addr, pmd_t *pmdp)
->  {
-> +	pmd_t pmd;
-> +
->  	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
-> +	pmd = *pmdp;
-> +
-> +	/*
-> +	 * Some processors can start a write, but ending up seeing
+Acked-by: Willem de Bruijn <willemb@google.com>
 
-	                                      but end up seeing
-
-> +	 * a read-only PTE by the time they get to the Dirty bit.
-> +	 * In this case, they will set the Dirty bit, leaving a
-> +	 * read-only, Dirty PTE which looks like a Shadow Stack PTE.
-> +	 *
-> +	 * However, this behavior has been improved and will not occur
-> +	 * on processors supporting Shadow Stacks.  Without this
-> +	 * guarantee, a transition to a non-present PTE and flush the
-> +	 * TLB would be needed.
-> +	 *
-> +	 * When change a writable PTE to read-only and if the PTE has
-
-	        changing
-
-> +	 * _PAGE_DIRTY_HW set, we move that bit to _PAGE_DIRTY_SW so
-> +	 * that the PTE is not a valid Shadow Stack PTE.
-> +	 */
-> +	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
-> +	set_pmd_at(mm, addr, pmdp, pmd);
->  }
->  
->  #define pud_write pud_write
-> 
-
-
--- 
-~Randy
+[1] http://lkml.kernel.org/r/20180518080308.GA28587@dragonet.kaist.ac.kr
