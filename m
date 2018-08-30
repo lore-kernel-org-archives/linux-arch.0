@@ -1,52 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:33183 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727191AbeH3D5P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Aug 2018 23:57:15 -0400
-Date: Thu, 30 Aug 2018 09:57:47 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/3] mm/cow: optimise pte dirty/accessed bits handling
- in fork
-Message-ID: <20180830095747.491f7770@roar.ozlabs.ibm.com>
-In-Reply-To: <CA+55aFzBHNsLNs4TfOrMQXTsV9u8=7yAu4GbsOM84AQb-OhJmg@mail.gmail.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
-        <20180828112034.30875-3-npiggin@gmail.com>
-        <CA+55aFwbZrsdZEh0ds1W3AWUeTamDRheQPKSi9O=--cEOSjr5g@mail.gmail.com>
-        <20180830091213.78b64354@roar.ozlabs.ibm.com>
-        <CA+55aFzBHNsLNs4TfOrMQXTsV9u8=7yAu4GbsOM84AQb-OhJmg@mail.gmail.com>
-MIME-Version: 1.0
+Received: from mail.kernel.org ([198.145.29.99]:39558 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726169AbeH3Fim (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 01:38:42 -0400
+Date: Thu, 30 Aug 2018 10:38:59 +0900
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [RFC PATCH 2/6] x86/mm: temporary mm struct
+Message-ID: <20180830103859.ac309b71c53d267da2f6e9f8@kernel.org>
+In-Reply-To: <CALCETrWF5XQndPikmBgo9t1UWKS7T0K2kFGOpzX-tavFVis5_Q@mail.gmail.com>
+References: <20180829081147.184610-1-namit@vmware.com>
+        <20180829081147.184610-3-namit@vmware.com>
+        <20180829184925.64caee4dadf705080373f84f@kernel.org>
+        <CALCETrWF5XQndPikmBgo9t1UWKS7T0K2kFGOpzX-tavFVis5_Q@mail.gmail.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180829235747.qFwMUHClF5b7gj-UwrpZIMQ_JWJ1uB8ndZBzzV2GDd4@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Nadav Amit <namit@vmware.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180830013859.LWjhjC6xV83hXWWKKzIwiIoVCBogArNU07dEudOIKoU@z>
 
-On Wed, 29 Aug 2018 16:15:37 -0700
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Wed, 29 Aug 2018 08:41:00 -0700
+Andy Lutomirski <luto@kernel.org> wrote:
 
-> On Wed, Aug 29, 2018 at 4:12 PM Nicholas Piggin <npiggin@gmail.com> wrote:
+> On Wed, Aug 29, 2018 at 2:49 AM, Masami Hiramatsu <mhiramat@kernel.org> wrote:
+> > On Wed, 29 Aug 2018 01:11:43 -0700
+> > Nadav Amit <namit@vmware.com> wrote:
 > >
-> > Dirty micro fault seems to be the big one for my Skylake, takes 300
-> > nanoseconds per access. Accessed takes about 100. (I think, have to
-> > go over my benchmark a bit more carefully and re-test).  
+> >> From: Andy Lutomirski <luto@kernel.org>
+> >>
+> >> Sometimes we want to set a temporary page-table entries (PTEs) in one of
+> >> the cores, without allowing other cores to use - even speculatively -
+> >> these mappings. There are two benefits for doing so:
+> >>
+> >> (1) Security: if sensitive PTEs are set, temporary mm prevents their use
+> >> in other cores. This hardens the security as it prevents exploding a
+> >> dangling pointer to overwrite sensitive data using the sensitive PTE.
+> >>
+> >> (2) Avoiding TLB shootdowns: the PTEs do not need to be flushed in
+> >> remote page-tables.
+> >>
+> >> To do so a temporary mm_struct can be used. Mappings which are private
+> >> for this mm can be set in the userspace part of the address-space.
+> >> During the whole time in which the temporary mm is loaded, interrupts
+> >> must be disabled.
+> >>
+> >> The first use-case for temporary PTEs, which will follow, is for poking
+> >> the kernel text.
+> >>
+> >> [ Commit message was written by Nadav ]
+> >>
+> >> Cc: Andy Lutomirski <luto@kernel.org>
+> >> Cc: Masami Hiramatsu <mhiramat@kernel.org>
+> >> Cc: Kees Cook <keescook@chromium.org>
+> >> Cc: Peter Zijlstra <peterz@infradead.org>
+> >> Signed-off-by: Nadav Amit <namit@vmware.com>
+> >> ---
+> >>  arch/x86/include/asm/mmu_context.h | 20 ++++++++++++++++++++
+> >>  1 file changed, 20 insertions(+)
+> >>
+> >> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+> >> index eeeb9289c764..96afc8c0cf15 100644
+> >> --- a/arch/x86/include/asm/mmu_context.h
+> >> +++ b/arch/x86/include/asm/mmu_context.h
+> >> @@ -338,4 +338,24 @@ static inline unsigned long __get_current_cr3_fast(void)
+> >>       return cr3;
+> >>  }
+> >>
+> >> +typedef struct {
+> >> +     struct mm_struct *prev;
+> >> +} temporary_mm_state_t;
+> >> +
+> >> +static inline temporary_mm_state_t use_temporary_mm(struct mm_struct *mm)
+> >> +{
+> >> +     temporary_mm_state_t state;
+> >> +
+> >> +     lockdep_assert_irqs_disabled();
+> >> +     state.prev = this_cpu_read(cpu_tlbstate.loaded_mm);
+> >> +     switch_mm_irqs_off(NULL, mm, current);
+> >> +     return state;
+> >> +}
+> >
+> > Hmm, why don't we return mm_struct *prev directly?
 > 
-> Yeah, but they only happen for shared areas after fork, which sounds
-> like it shouldn't be a big deal in most cases.
+> I did it this way to make it easier to add future debugging stuff
+> later. Also, when I first wrote this, I stashed the old CR3 instead
+> of the old mm_struct, and it seemed like callers should be insulated
+> from details like this.
 
-You might be right there.
+Hmm, I see. But in that case, we should call it "struct temporary_mm"
+and explicitly allocate (and pass) it, since we can not return the
+data structure from stack. If we can combine it with new mm, it will
+be more encapsulated e.g.
 
-> 
-> And I'm not entirely objecting to your patch per se, I just would want
-> to keep the accessed bit changes separate from the dirty bit ones.
-> 
-> *If* somebody has bisectable issues with it (performance or not), it
-> will then be clearer what the exact issue is.
+struct temporary_mm {
+	struct mm_struct *mm;
+	struct mm_struct *prev;
+};
 
-Yeah that makes a lot of sense. I'll do a bit more testing and send
-Andrew a respin at least with those split (and a good comment for
-the dirty bit vs unmap handling that you pointed out).
+static struct temporary_mm poking_tmp_mm;
+
+poking_init()
+{
+	if (init_temporary_mm(&tmp_mm, &init_mm))
+		goto error;
+	...
+}
+
+text_poke_safe()
+{
+	...
+	use_temporary_mm(&tmp_mm);
+	...
+	unuse_temporary_mm(&tmp_mm);
+}
+
+Any thought?
 
 Thanks,
-Nick
+
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
