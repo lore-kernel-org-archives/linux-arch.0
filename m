@@ -1,128 +1,165 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:38417 "EHLO mga01.intel.com"
+Received: from mga17.intel.com ([192.55.52.151]:62771 "EHLO mga17.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729048AbeH3SqP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 14:46:15 -0400
+        id S1729279AbeH3SqQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Aug 2018 14:46:16 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v3 00/24] Control Flow Enforcement: Shadow Stack
-Date: Thu, 30 Aug 2018 07:38:40 -0700
-Message-ID: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v3 22/24] x86/cet/shstk: Handle thread shadow stack
+Date: Thu, 30 Aug 2018 07:39:02 -0700
+Message-ID: <20180830143904.3168-23-yu-cheng.yu@intel.com>
+In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180830143840.M13cis-6R9mZ-PL-28bx6AuAB6hbW2KIHIDP7IPu4ac@z>
+Message-ID: <20180830143902.V41_V5nrvILDokgI8mPIvbCVqAQ4C3DvKUgZfoThGGQ@z>
 
-The previous version of CET patches can be found in the following
-link.
+The shadow stack for clone/fork is handled as the following:
 
-  https://lkml.org/lkml/2018/7/10/1031
+(1) If ((clone_flags & (CLONE_VFORK | CLONE_VM)) == CLONE_VM),
+    the kernel allocates (and frees on thread exit) a new SHSTK
+    for the child.
 
-Summary of changes from v2:
+    It is possible for the kernel to complete the clone syscall
+    and set the child's SHSTK pointer to NULL and let the child
+    thread allocate a SHSTK for itself.  There are two issues
+    in this approach: It is not compatible with existing code
+    that does inline syscall and it cannot handle signals before
+    the child can successfully allocate a SHSTK.
 
-  Move Shadow Stack page fault handling logic to arch/x86.
-  Update can_follow_write_pte/pmd; move logic to arch/x86.
-  Fix problems in WRUSS in-line assembly.
-  Fix issues in ELF parser.
-  Split out IBT/PTRACE patches to a second set.
-  Other small fixes.
+(2) For (clone_flags & CLONE_VFORK), the child uses the existing
+    SHSTK.
 
-Yu-cheng Yu (24):
-  x86/cpufeatures: Add CPUIDs for Control-flow Enforcement Technology
-    (CET)
-  x86/fpu/xstate: Change some names to separate XSAVES system and user
-    states
-  x86/fpu/xstate: Enable XSAVES system states
-  x86/fpu/xstate: Add XSAVES system states for shadow stack
-  Documentation/x86: Add CET description
-  x86/cet: Control protection exception handler
-  x86/cet/shstk: Add Kconfig option for user-mode shadow stack
-  mm: Introduce VM_SHSTK for shadow stack memory
-  x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
-  x86/mm: Introduce _PAGE_DIRTY_SW
-  drm/i915/gvt: Update _PAGE_DIRTY to _PAGE_DIRTY_BITS
-  x86/mm: Modify ptep_set_wrprotect and pmdp_set_wrprotect for
-    _PAGE_DIRTY_SW
-  x86/mm: Shadow stack page fault error checking
-  mm: Handle shadow stack page fault
-  mm: Handle THP/HugeTLB shadow stack page fault
-  mm: Update can_follow_write_pte/pmd for shadow stack
-  mm: Introduce do_mmap_locked()
-  x86/cet/shstk: User-mode shadow stack support
-  x86/cet/shstk: Introduce WRUSS instruction
-  x86/cet/shstk: Signal handling for shadow stack
-  x86/cet/shstk: ELF header parsing of Shadow Stack
-  x86/cet/shstk: Handle thread shadow stack
-  x86/cet/shstk: Add arch_prctl functions for Shadow Stack
-  x86/cet/shstk: Add Shadow Stack instructions to opcode map
+(3) For all other cases, the SHSTK is copied/reused whenever the
+    parent or the child does a call/ret.
 
- .../admin-guide/kernel-parameters.txt         |   6 +
- Documentation/index.rst                       |   1 +
- Documentation/x86/index.rst                   |  11 +
- Documentation/x86/intel_cet.rst               | 252 +++++++++++++
- arch/x86/Kconfig                              |  28 ++
- arch/x86/Makefile                             |   7 +
- arch/x86/entry/entry_64.S                     |   2 +-
- arch/x86/ia32/ia32_signal.c                   |  13 +
- arch/x86/include/asm/cet.h                    |  42 +++
- arch/x86/include/asm/cpufeatures.h            |   2 +
- arch/x86/include/asm/disabled-features.h      |   8 +-
- arch/x86/include/asm/elf.h                    |   5 +
- arch/x86/include/asm/fpu/internal.h           |   6 +-
- arch/x86/include/asm/fpu/types.h              |  22 ++
- arch/x86/include/asm/fpu/xstate.h             |  31 +-
- arch/x86/include/asm/mmu_context.h            |   3 +
- arch/x86/include/asm/msr-index.h              |  14 +
- arch/x86/include/asm/pgtable.h                | 175 +++++++--
- arch/x86/include/asm/pgtable_types.h          |  31 +-
- arch/x86/include/asm/processor.h              |   5 +
- arch/x86/include/asm/sighandling.h            |   5 +
- arch/x86/include/asm/special_insns.h          |  37 ++
- arch/x86/include/asm/traps.h                  |   5 +
- arch/x86/include/uapi/asm/elf_property.h      |  15 +
- arch/x86/include/uapi/asm/prctl.h             |   5 +
- arch/x86/include/uapi/asm/processor-flags.h   |   2 +
- arch/x86/include/uapi/asm/sigcontext.h        |  17 +
- arch/x86/kernel/Makefile                      |   4 +
- arch/x86/kernel/cet.c                         | 285 +++++++++++++++
- arch/x86/kernel/cet_prctl.c                   |  79 ++++
- arch/x86/kernel/cpu/common.c                  |  24 ++
- arch/x86/kernel/cpu/scattered.c               |   1 +
- arch/x86/kernel/elf.c                         | 338 ++++++++++++++++++
- arch/x86/kernel/fpu/core.c                    |  11 +-
- arch/x86/kernel/fpu/init.c                    |  10 -
- arch/x86/kernel/fpu/signal.c                  |   6 +-
- arch/x86/kernel/fpu/xstate.c                  | 152 +++++---
- arch/x86/kernel/idt.c                         |   4 +
- arch/x86/kernel/process.c                     |   8 +
- arch/x86/kernel/process_64.c                  |   7 +
- arch/x86/kernel/relocate_kernel_64.S          |   2 +-
- arch/x86/kernel/signal.c                      |  96 +++++
- arch/x86/kernel/traps.c                       |  58 +++
- arch/x86/kvm/vmx.c                            |   2 +-
- arch/x86/lib/x86-opcode-map.txt               |  26 +-
- arch/x86/mm/extable.c                         |  11 +
- arch/x86/mm/fault.c                           |  27 ++
- arch/x86/mm/pgtable.c                         |  36 ++
- drivers/gpu/drm/i915/gvt/gtt.c                |   2 +-
- fs/binfmt_elf.c                               |  15 +
- fs/proc/task_mmu.c                            |   3 +
- include/asm-generic/pgtable.h                 |  52 +++
- include/linux/mm.h                            |  26 ++
- include/uapi/linux/elf.h                      |   1 +
- mm/gup.c                                      |   8 +-
- mm/huge_memory.c                              |  12 +-
- mm/internal.h                                 |   8 +
- mm/memory.c                                   |   3 +
- tools/objtool/arch/x86/lib/x86-opcode-map.txt |  26 +-
- 59 files changed, 1943 insertions(+), 150 deletions(-)
- create mode 100644 Documentation/x86/index.rst
- create mode 100644 Documentation/x86/intel_cet.rst
- create mode 100644 arch/x86/include/asm/cet.h
- create mode 100644 arch/x86/include/uapi/asm/elf_property.h
- create mode 100644 arch/x86/kernel/cet.c
- create mode 100644 arch/x86/kernel/cet_prctl.c
- create mode 100644 arch/x86/kernel/elf.c
+This patch handles cases (1) & (2).  Case (3) is handled in
+the SHSTK page fault patches.
 
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/include/asm/cet.h         |  2 ++
+ arch/x86/include/asm/mmu_context.h |  3 +++
+ arch/x86/kernel/cet.c              | 34 ++++++++++++++++++++++++++++++
+ arch/x86/kernel/process.c          |  1 +
+ arch/x86/kernel/process_64.c       |  7 ++++++
+ 5 files changed, 47 insertions(+)
+
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index d9ae3d86cdd7..b7b33e1026bb 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -17,12 +17,14 @@ struct cet_status {
+ 
+ #ifdef CONFIG_X86_INTEL_CET
+ int cet_setup_shstk(void);
++int cet_setup_thread_shstk(struct task_struct *p);
+ void cet_disable_shstk(void);
+ void cet_disable_free_shstk(struct task_struct *p);
+ int cet_restore_signal(unsigned long ssp);
+ int cet_setup_signal(bool ia32, unsigned long rstor, unsigned long *new_ssp);
+ #else
+ static inline int cet_setup_shstk(void) { return 0; }
++static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
+ static inline void cet_disable_shstk(void) {}
+ static inline void cet_disable_free_shstk(struct task_struct *p) {}
+ static inline int cet_restore_signal(unsigned long ssp) { return 0; }
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index eeeb9289c764..8da7c999b7ee 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -13,6 +13,7 @@
+ #include <asm/tlbflush.h>
+ #include <asm/paravirt.h>
+ #include <asm/mpx.h>
++#include <asm/cet.h>
+ 
+ extern atomic64_t last_mm_ctx_id;
+ 
+@@ -223,6 +224,8 @@ do {						\
+ #else
+ #define deactivate_mm(tsk, mm)			\
+ do {						\
++	if (!tsk->vfork_done)			\
++		cet_disable_free_shstk(tsk);	\
+ 	load_gs_index(0);			\
+ 	loadsegment(fs, 0);			\
+ } while (0)
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index 5cc4be6e0982..ce0b3b7b1160 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -134,6 +134,40 @@ int cet_setup_shstk(void)
+ 	return 0;
+ }
+ 
++int cet_setup_thread_shstk(struct task_struct *tsk)
++{
++	unsigned long addr, size;
++	struct cet_user_state *state;
++
++	if (!current->thread.cet.shstk_enabled)
++		return 0;
++
++	state = get_xsave_addr(&tsk->thread.fpu.state.xsave,
++			       XFEATURE_MASK_SHSTK_USER);
++
++	if (!state)
++		return -EINVAL;
++
++	size = tsk->thread.cet.shstk_size;
++	if (size == 0)
++		size = rlimit(RLIMIT_STACK);
++
++	addr = do_mmap_locked(0, size, PROT_READ,
++			      MAP_ANONYMOUS | MAP_PRIVATE, VM_SHSTK);
++
++	if (addr >= TASK_SIZE_MAX) {
++		tsk->thread.cet.shstk_base = 0;
++		tsk->thread.cet.shstk_size = 0;
++		tsk->thread.cet.shstk_enabled = 0;
++		return -ENOMEM;
++	}
++
++	state->user_ssp = (u64)(addr + size - sizeof(u64));
++	tsk->thread.cet.shstk_base = addr;
++	tsk->thread.cet.shstk_size = size;
++	return 0;
++}
++
+ void cet_disable_shstk(void)
+ {
+ 	u64 r;
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 4a776da4c28c..440f012ef925 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -125,6 +125,7 @@ void exit_thread(struct task_struct *tsk)
+ 
+ 	free_vm86(t);
+ 
++	cet_disable_free_shstk(tsk);
+ 	fpu__drop(fpu);
+ }
+ 
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index a451bc374b9b..cfe955d8d6b2 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -317,6 +317,13 @@ int copy_thread_tls(unsigned long clone_flags, unsigned long sp,
+ 	if (sp)
+ 		childregs->sp = sp;
+ 
++	/* Allocate a new shadow stack for pthread */
++	if ((clone_flags & (CLONE_VFORK | CLONE_VM)) == CLONE_VM) {
++		err = cet_setup_thread_shstk(p);
++		if (err)
++			goto out;
++	}
++
+ 	err = -ENOMEM;
+ 	if (unlikely(test_tsk_thread_flag(me, TIF_IO_BITMAP))) {
+ 		p->thread.io_bitmap_ptr = kmemdup(me->thread.io_bitmap_ptr,
 -- 
 2.17.1
