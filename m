@@ -1,51 +1,46 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Date: Fri, 31 Aug 2018 00:42:46 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B091016@us01wembx1.internal.synopsys.com>
-References: <1535567633.4465.23.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <20180830095148.GB5942@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and pmdp_set_wrprotect for _PAGE_DIRTY_SW
+Date: Thu, 30 Aug 2018 18:23:15 -0700
+Message-ID: <337F9DA7-ED07-4CD0-B41C-22D570527362@amacapital.net>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-13-yu-cheng.yu@intel.com> <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com> <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com> <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com> <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com> <1535649960.26689.15.camel@intel.com> <33d45a12-513c-eba2-a2de-3d6b630e928e@linux.intel.com> <1535651666.27823.6.camel@intel.com> <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=us-ascii
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+In-Reply-To: <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Jann Horn <jannh@google.com>
+Cc: yu-cheng.yu@intel.com, Dave Hansen <dave.hansen@linux.intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
 List-Id: linux-arch.vger.kernel.org
 
-On 08/30/2018 02:51 AM, Will Deacon wrote:=0A=
-> Yeah, the bit_spin_lock()/__bit_spin_unlock() race described in f75d48644=
-c56a=0A=
-> boils down to concurrent atomic_long_set_release() vs=0A=
-> atomic_long_fetch_or_acquire(), which really needs to work.=0A=
-=0A=
-I don't see how: __clear_bit_unlock() reads @old, flips a bit and then call=
-s=0A=
-atomic_long_set_release() so the race is not just with set_release.=0A=
-=0A=
-    static inline int test_and_set_bit_lock(unsigned int nr, volatile unsig=
-ned=0A=
-long *p)=0A=
-    {=0A=
-      long old;=0A=
-      unsigned long mask =3D (1UL << ((nr) % 32));=0A=
-=0A=
-      p +=3D ((nr) / 32);=0A=
-      old =3D atomic_long_fetch_or_acquire(mask, (atomic_long_t *)p);=0A=
-      return !!(old & mask);=0A=
-    }=0A=
-=0A=
-    static inline void __clear_bit_unlock(unsigned int nr, volatile unsigne=
-d long *p)=0A=
-    {=0A=
-       unsigned long old;=0A=
-=0A=
-     p +=3D ((nr) / 32);=0A=
-    old =3D // soem typecheck magic on *p=0A=
-    old &=3D ~(1UL << ((nr) % 32));=0A=
-    atomic_long_set_release((atomic_long_t *)p, old);=0A=
-  }=0A=
+
+
+> On Aug 30, 2018, at 10:59 AM, Jann Horn <jannh@google.com> wrote:
+>=20
+>> On Thu, Aug 30, 2018 at 7:58 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote=
+:
+>>=20
+>>> On Thu, 2018-08-30 at 10:33 -0700, Dave Hansen wrote:
+>>>> On 08/30/2018 10:26 AM, Yu-cheng Yu wrote:
+>>>>=20
+>>>> We don't have the guard page now, but there is a shadow stack
+>>>> token
+>>>> there, which cannot be used as a return address.
+>>> The overall concern is that we could overflow into a page that we
+>>> did
+>>> not intend.  Either another actual shadow stack or something that a
+>>> page
+>>> that the attacker constructed, like the transient scenario Jann
+>>> described.
+>>>=20
+>>=20
+>> A task could go beyond the bottom of its shadow stack by doing either
+>> 'ret' or 'incssp'.  If it is the 'ret' case, the token prevents it.
+>> If it is the 'incssp' case, a guard page cannot prevent it entirely,
+>> right?
+>=20
+> I mean the other direction, on "call".
+
+I still think that shadow stacks should work just like mmap and that mmap sh=
+ould learn to add guard pages for all non-MAP_FIXED allocations.=
