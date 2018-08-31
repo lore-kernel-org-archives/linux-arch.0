@@ -1,63 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:32872 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727286AbeHaUOj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Aug 2018 16:14:39 -0400
-Date: Fri, 31 Aug 2018 17:06:40 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180831160640.GG30626@arm.com>
-References: <20180831091641.GA3634@andrea>
- <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
+Received: from mga04.intel.com ([192.55.52.120]:34744 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727268AbeHaUcu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Aug 2018 16:32:50 -0400
+Message-ID: <1535732418.3789.7.camel@intel.com>
+Subject: Re: [RFC PATCH v3 06/24] x86/cet: Control protection exception
+ handler
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Fri, 31 Aug 2018 09:20:18 -0700
+In-Reply-To: <CAG48ez0jvsDw189=YoCCa8tmJUENeUd_ypcP5bYJ+eLMPCYCOQ@mail.gmail.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+         <20180830143904.3168-7-yu-cheng.yu@intel.com>
+         <CAG48ez0jvsDw189=YoCCa8tmJUENeUd_ypcP5bYJ+eLMPCYCOQ@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180831160640.ZZpqQDWI5SrUUNjzNBygGCgi8sbdLxr5nTE4dVnRQ_o@z>
+To: Jann Horn <jannh@google.com>
+Cc: the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromium.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180831162018.J5IwsVW23CuQ5bjaXGDvUTSYFrMYnrH3wguBC5P2bYA@z>
 
-On Fri, Aug 31, 2018 at 10:52:54AM -0400, Alan Stern wrote:
-> On Fri, 31 Aug 2018, Andrea Parri wrote:
-> > On Thu, Aug 30, 2018 at 05:31:32PM -0400, Alan Stern wrote:
-> > > On Thu, 30 Aug 2018, Andrea Parri wrote:
-> > > > (Remark: ordinary release/acquire are building blocks for code such as
-> > > >  qspinlock, (q)rwlock, mutex, rwsem, ... and what else??).
-> > > 
-> > > But are these building blocks used the same way for all architectures?
-> > 
-> > The more, the better! (because then we have the LKMM tools) 
-> > 
-> > We already discussed the "fast path" example: the fast paths of the
-> > above all resemble:
-> > 
-> >   *_lock(s):  atomic_cmpxchg_acquire(&s->val, UNLOCKED_VAL, LOCKED_VAL) ...
-> >   *_unlock(s): ...  atomic_set_release(&s->val, UNLOCKED_VAL)
-> > 
-> > When I read this code, I think "Of course." (unless some arch. has
-> > messed the implementation of cmpxchg_* up, which can happen...); but
-> > then I read the subject line of this patch and I think "Wait, what?".
-> > 
-> > You can argue that this is not generic code, sure; but why on Earth
-> > would you like to do so?!
-> 
-> Because the code might not work!  On RISC-V, for example, the
-> implementation of ordinary release/acquire is currently not as strong
-> as atomic release/acquire.
-> 
-> Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
-> should be correct on all existing architectures.  And Paul has invited 
-> a patch to modify the LKMM accordingly.  If you feel that such a change 
-> would be a useful enhancement to the LKMM's applicability, please write 
-> it.
+On Fri, 2018-08-31 at 17:01 +0200, Jann Horn wrote:
 
-Yes, please! That would be the "RmW" discussion which Andrea partially
-quoted earlier on, so getting that going independently from this patch
-sounds like a great idea to me.
+> Is there a reason why all the code in this patch isn't #ifdef'ed
+> away
+> on builds that don't support CET? It looks like the CET handler is
+> hooked up to the IDT conditionally, but the handler code is always
+> built?
 
-Cheers,
+Yes, in idt.c, it should have been:
 
-Will
+#ifdef CONFIG_X86_64
+	INTG(X86_TRAP_CP,		control_protection),
+#endif
+
+I will fix it.
+
+> > +dotraplinkage void
+> > +do_control_protection(struct pt_regs *regs, long error_code)
+> > +{
+> > +       struct task_struct *tsk;
+> > +
+> > +       RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't
+> > wake RCU");
+> > +       if (notify_die(DIE_TRAP, "control protection fault", regs,
+> > +                      error_code, X86_TRAP_CP, SIGSEGV) ==
+> > NOTIFY_STOP)
+> > +               return;
+> > +       cond_local_irq_enable(regs);
+> > +
+> > +       if (!user_mode(regs))
+> > +               die("kernel control protection fault", regs,
+> > error_code);
+> > +
+> > +       if (!static_cpu_has(X86_FEATURE_SHSTK) &&
+> > +           !static_cpu_has(X86_FEATURE_IBT))
+> > +               WARN_ONCE(1, "CET is disabled but got control "
+> > +                         "protection fault\n");
+> > +
+> > +       tsk = current;
+> > +       tsk->thread.error_code = error_code;
+> > +       tsk->thread.trap_nr = X86_TRAP_CP;
+> > +
+> > +       if (show_unhandled_signals && unhandled_signal(tsk,
+> > SIGSEGV) &&
+> > +           printk_ratelimit()) {
+> > +               unsigned int max_err;
+> > +
+> > +               max_err = ARRAY_SIZE(control_protection_err) - 1;
+> > +               if ((error_code < 0) || (error_code > max_err))
+> > +                       error_code = 0;
+> > +               pr_info("%s[%d] control protection ip:%lx sp:%lx
+> > error:%lx(%s)",
+> > +                       tsk->comm, task_pid_nr(tsk),
+> > +                       regs->ip, regs->sp, error_code,
+> > +                       control_protection_err[error_code]);
+> > +               print_vma_addr(" in ", regs->ip);
+> Shouldn't this be using KERN_CONT, like other callers of
+> print_vma_addr(), to get the desired output?
+
+I will change it.
