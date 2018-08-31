@@ -1,83 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:34744 "EHLO mga04.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:48522 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727268AbeHaUcu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Aug 2018 16:32:50 -0400
-Message-ID: <1535732418.3789.7.camel@intel.com>
-Subject: Re: [RFC PATCH v3 06/24] x86/cet: Control protection exception
- handler
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 31 Aug 2018 09:20:18 -0700
-In-Reply-To: <CAG48ez0jvsDw189=YoCCa8tmJUENeUd_ypcP5bYJ+eLMPCYCOQ@mail.gmail.com>
+        id S1727268AbeHaUiI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Aug 2018 16:38:08 -0400
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
 References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-         <20180830143904.3168-7-yu-cheng.yu@intel.com>
-         <CAG48ez0jvsDw189=YoCCa8tmJUENeUd_ypcP5bYJ+eLMPCYCOQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+ <20180830143904.3168-13-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <db8d4682-9ee0-b667-35ee-acedc64d9c1a@linux.intel.com>
+Date: Fri, 31 Aug 2018 09:29:51 -0700
+MIME-Version: 1.0
+In-Reply-To: <20180830143904.3168-13-yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromium.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
-Message-ID: <20180831162018.J5IwsVW23CuQ5bjaXGDvUTSYFrMYnrH3wguBC5P2bYA@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20180831162951.PW5iUarp-i00Cz8VoxdCipn_9pr0Xz5AFNgWMZExnLE@z>
 
-On Fri, 2018-08-31 at 17:01 +0200, Jann Horn wrote:
+On 08/30/2018 07:38 AM, Yu-cheng Yu wrote:
+> +	 * Some processors can start a write, but ending up seeing
+> +	 * a read-only PTE by the time they get to the Dirty bit.
+> +	 * In this case, they will set the Dirty bit, leaving a
+> +	 * read-only, Dirty PTE which looks like a Shadow Stack PTE.
+> +	 *
+> +	 * However, this behavior has been improved and will not occur
+> +	 * on processors supporting Shadow Stacks.  Without this
+> +	 * guarantee, a transition to a non-present PTE and flush the
+> +	 * TLB would be needed.
 
-> Is there a reason why all the code in this patch isn't #ifdef'ed
-> away
-> on builds that don't support CET? It looks like the CET handler is
-> hooked up to the IDT conditionally, but the handler code is always
-> built?
-
-Yes, in idt.c, it should have been:
-
-#ifdef CONFIG_X86_64
-	INTG(X86_TRAP_CP,		control_protection),
-#endif
-
-I will fix it.
-
-> > +dotraplinkage void
-> > +do_control_protection(struct pt_regs *regs, long error_code)
-> > +{
-> > +       struct task_struct *tsk;
-> > +
-> > +       RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't
-> > wake RCU");
-> > +       if (notify_die(DIE_TRAP, "control protection fault", regs,
-> > +                      error_code, X86_TRAP_CP, SIGSEGV) ==
-> > NOTIFY_STOP)
-> > +               return;
-> > +       cond_local_irq_enable(regs);
-> > +
-> > +       if (!user_mode(regs))
-> > +               die("kernel control protection fault", regs,
-> > error_code);
-> > +
-> > +       if (!static_cpu_has(X86_FEATURE_SHSTK) &&
-> > +           !static_cpu_has(X86_FEATURE_IBT))
-> > +               WARN_ONCE(1, "CET is disabled but got control "
-> > +                         "protection fault\n");
-> > +
-> > +       tsk = current;
-> > +       tsk->thread.error_code = error_code;
-> > +       tsk->thread.trap_nr = X86_TRAP_CP;
-> > +
-> > +       if (show_unhandled_signals && unhandled_signal(tsk,
-> > SIGSEGV) &&
-> > +           printk_ratelimit()) {
-> > +               unsigned int max_err;
-> > +
-> > +               max_err = ARRAY_SIZE(control_protection_err) - 1;
-> > +               if ((error_code < 0) || (error_code > max_err))
-> > +                       error_code = 0;
-> > +               pr_info("%s[%d] control protection ip:%lx sp:%lx
-> > error:%lx(%s)",
-> > +                       tsk->comm, task_pid_nr(tsk),
-> > +                       regs->ip, regs->sp, error_code,
-> > +                       control_protection_err[error_code]);
-> > +               print_vma_addr(" in ", regs->ip);
-> Shouldn't this be using KERN_CONT, like other callers of
-> print_vma_addr(), to get the desired output?
-
-I will change it.
+Did we publicly document this behavior anywhere?  I can't seem to find it.
