@@ -1,119 +1,161 @@
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Date: Fri, 31 Aug 2018 10:52:54 -0400 (EDT)
-Message-ID: <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
-References: <20180831091641.GA3634@andrea>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [RFC PATCH v3 06/24] x86/cet: Control protection exception handler
+Date: Fri, 31 Aug 2018 17:01:42 +0200
+Message-ID: <CAG48ez0jvsDw189=YoCCa8tmJUENeUd_ypcP5bYJ+eLMPCYCOQ@mail.gmail.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-7-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180831091641.GA3634@andrea>
+In-Reply-To: <20180830143904.3168-7-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <parri.andrea@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+To: yu-cheng.yu@intel.com
+Cc: the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>Pavel Machek <pa>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 31 Aug 2018, Andrea Parri wrote:
+On Thu, Aug 30, 2018 at 4:43 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+> A control protection exception is triggered when a control flow transfer
+> attempt violated shadow stack or indirect branch tracking constraints.
+> For example, the return address for a RET instruction differs from the
+> safe copy on the shadow stack; or a JMP instruction arrives at a non-
+> ENDBR instruction.
+>
+> The control protection exception handler works in a similar way as the
+> general protection fault handler.
 
-> On Thu, Aug 30, 2018 at 05:31:32PM -0400, Alan Stern wrote:
-> > On Thu, 30 Aug 2018, Andrea Parri wrote:
-> > 
-> > > > All the architectures supported by the Linux kernel (including RISC-V)
-> > > > do provide this ordering for locks, albeit for varying reasons.
-> > > > Therefore this patch changes the model in accordance with the
-> > > > developers' wishes.
-> > > > 
-> > > > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-> > > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > > > Reviewed-by: Will Deacon <will.deacon@arm.com>
-> > > > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > > 
-> > > Round 2 ;-), I guess...  Let me start from the uncontroversial points:
-> > > 
-> > >   1) being able to use the LKMM to reason about generic locking code
-> > >      is useful and desirable (paraphrasing Peter in [1]);
-> > > 
-> > >   2) strengthening the ordering requirements of such code isn't going
-> > >      to boost performance (that's "real maths").
-> > > 
-> > > This patch is taking (1) away from us and it is formalizing (2), with
-> > > almost _no_ reason (no reason at all, if we stick to the commit msg.).
-> > 
-> > That's not quite fair.  Generic code isn't always universally
-> > applicable; some of it is opt-in -- meant only for the architectures
-> > that can support it.  In general, the LKMM allows us to reason about
-> > higher abstractions (such as locking) at a higher level, without
-> > necessarily being able to verify the architecture-specific details of
-> > the implementations.
-> 
-> No, generic code is "universally applicable" by definition; see below
-> for more on this point.
+Is there a reason why all the code in this patch isn't #ifdef'ed away
+on builds that don't support CET? It looks like the CET handler is
+hooked up to the IDT conditionally, but the handler code is always
+built?
 
-Then perhaps we should be talking about "partially generic" code; i.e., 
-code that applies to many but not all architectures.
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/entry/entry_64.S    |  2 +-
+>  arch/x86/include/asm/traps.h |  3 ++
+>  arch/x86/kernel/idt.c        |  4 +++
+>  arch/x86/kernel/traps.c      | 58 ++++++++++++++++++++++++++++++++++++
+>  4 files changed, 66 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+> index 957dfb693ecc..5f4914e988df 100644
+> --- a/arch/x86/entry/entry_64.S
+> +++ b/arch/x86/entry/entry_64.S
+> @@ -1000,7 +1000,7 @@ idtentry spurious_interrupt_bug           do_spurious_interrupt_bug       has_error_code=0
+>  idtentry coprocessor_error             do_coprocessor_error            has_error_code=0
+>  idtentry alignment_check               do_alignment_check              has_error_code=1
+>  idtentry simd_coprocessor_error                do_simd_coprocessor_error       has_error_code=0
+> -
+> +idtentry control_protection            do_control_protection           has_error_code=1
+>
+>         /*
+>          * Reload gs selector with exception handling
+> diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+> index 3de69330e6c5..5196050ff3d5 100644
+> --- a/arch/x86/include/asm/traps.h
+> +++ b/arch/x86/include/asm/traps.h
+> @@ -26,6 +26,7 @@ asmlinkage void invalid_TSS(void);
+>  asmlinkage void segment_not_present(void);
+>  asmlinkage void stack_segment(void);
+>  asmlinkage void general_protection(void);
+> +asmlinkage void control_protection(void);
+>  asmlinkage void page_fault(void);
+>  asmlinkage void async_page_fault(void);
+>  asmlinkage void spurious_interrupt_bug(void);
+> @@ -77,6 +78,7 @@ dotraplinkage void do_stack_segment(struct pt_regs *, long);
+>  dotraplinkage void do_double_fault(struct pt_regs *, long);
+>  #endif
+>  dotraplinkage void do_general_protection(struct pt_regs *, long);
+> +dotraplinkage void do_control_protection(struct pt_regs *, long);
+>  dotraplinkage void do_page_fault(struct pt_regs *, unsigned long);
+>  dotraplinkage void do_spurious_interrupt_bug(struct pt_regs *, long);
+>  dotraplinkage void do_coprocessor_error(struct pt_regs *, long);
+> @@ -142,6 +144,7 @@ enum {
+>         X86_TRAP_AC,            /* 17, Alignment Check */
+>         X86_TRAP_MC,            /* 18, Machine Check */
+>         X86_TRAP_XF,            /* 19, SIMD Floating-Point Exception */
+> +       X86_TRAP_CP = 21,       /* 21 Control Protection Fault */
+>         X86_TRAP_IRET = 32,     /* 32, IRET Exception */
+>  };
+>
+> diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
+> index 01adea278a71..2d02fdd599a2 100644
+> --- a/arch/x86/kernel/idt.c
+> +++ b/arch/x86/kernel/idt.c
+> @@ -104,6 +104,10 @@ static const __initconst struct idt_data def_idts[] = {
+>  #elif defined(CONFIG_X86_32)
+>         SYSG(IA32_SYSCALL_VECTOR,       entry_INT80_32),
+>  #endif
+> +
+> +#ifdef CONFIG_X86_INTEL_CET
+> +       INTG(X86_TRAP_CP,               control_protection),
+> +#endif
+>  };
+>
+>  /*
+> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+> index e6db475164ed..21a713b96148 100644
+> --- a/arch/x86/kernel/traps.c
+> +++ b/arch/x86/kernel/traps.c
+> @@ -578,6 +578,64 @@ do_general_protection(struct pt_regs *regs, long error_code)
+>  }
+>  NOKPROBE_SYMBOL(do_general_protection);
+>
+> +static const char *control_protection_err[] =
+> +{
+> +       "unknown",
+> +       "near-ret",
+> +       "far-ret/iret",
+> +       "endbranch",
+> +       "rstorssp",
+> +       "setssbsy",
+> +};
+> +
+> +/*
+> + * When a control protection exception occurs, send a signal
+> + * to the responsible application.  Currently, control
+> + * protection is only enabled for the user mode.  This
+> + * exception should not come from the kernel mode.
+> + */
+> +dotraplinkage void
+> +do_control_protection(struct pt_regs *regs, long error_code)
+> +{
+> +       struct task_struct *tsk;
+> +
+> +       RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+> +       if (notify_die(DIE_TRAP, "control protection fault", regs,
+> +                      error_code, X86_TRAP_CP, SIGSEGV) == NOTIFY_STOP)
+> +               return;
+> +       cond_local_irq_enable(regs);
+> +
+> +       if (!user_mode(regs))
+> +               die("kernel control protection fault", regs, error_code);
+> +
+> +       if (!static_cpu_has(X86_FEATURE_SHSTK) &&
+> +           !static_cpu_has(X86_FEATURE_IBT))
+> +               WARN_ONCE(1, "CET is disabled but got control "
+> +                         "protection fault\n");
+> +
+> +       tsk = current;
+> +       tsk->thread.error_code = error_code;
+> +       tsk->thread.trap_nr = X86_TRAP_CP;
+> +
+> +       if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
+> +           printk_ratelimit()) {
+> +               unsigned int max_err;
+> +
+> +               max_err = ARRAY_SIZE(control_protection_err) - 1;
+> +               if ((error_code < 0) || (error_code > max_err))
+> +                       error_code = 0;
+> +               pr_info("%s[%d] control protection ip:%lx sp:%lx error:%lx(%s)",
+> +                       tsk->comm, task_pid_nr(tsk),
+> +                       regs->ip, regs->sp, error_code,
+> +                       control_protection_err[error_code]);
+> +               print_vma_addr(" in ", regs->ip);
 
-> > > In [2], Will wrote:
-> > > 
-> > >   "[...] having them [the RMWs] closer to RCsc[/to the semantics of
-> > >    locks] would make it easier to implement and reason about generic
-> > >    locking implementations (i.e. reduce the number of special ordering
-> > >    cases and/or magic barrier macros)"
-> > > 
-> > > "magic barrier macros" as in "mmh, if we accept this patch, we _should_
-> > > be auditing the various implementations/code to decide where to place a
-> > > 
-> > >   smp_barrier_promote_ordinary_release_acquire_to_unlock_lock()" ;-)
-> > > 
-> > > or the like, and "special ordering cases" as in "arrgh, (otherwise) we
-> > > are forced to reason on a per-arch basis while looking at generic code".
-> > 
-> > Currently the LKMM does not permit architecture-specific reasoning.  It 
-> > would have to be extended (in a different way for each architecture) 
-> > first.
-> 
-> Completely agreed; that's why I said that this patch is detrimental to
-> the applicability of the LKMM...
+Shouldn't this be using KERN_CONT, like other callers of
+print_vma_addr(), to get the desired output?
 
-This ignores the attitude of the kernel developers who want locking to 
-have the stronger RCtso semantics.  From their point of view, the patch 
-enhances the LKMM's applicability.
-
-> > For example, one could use herd's POWER model combined with the POWER 
-> > compilation scheme and the POWER-specific implementation of spinlocks 
-> > for such reasoning.  The LKMM alone is not sufficient.
-> > 
-> > Sure, programming and reasoning about the kernel would be easier if all
-> > architectures were the same.  Unfortunately, we (and the kernel) have
-> > to live in the real world.
-> > 
-> > > (Remark: ordinary release/acquire are building blocks for code such as
-> > >  qspinlock, (q)rwlock, mutex, rwsem, ... and what else??).
-> > 
-> > But are these building blocks used the same way for all architectures?
-> 
-> The more, the better! (because then we have the LKMM tools) 
-> 
-> We already discussed the "fast path" example: the fast paths of the
-> above all resemble:
-> 
->   *_lock(s):  atomic_cmpxchg_acquire(&s->val, UNLOCKED_VAL, LOCKED_VAL) ...
->   *_unlock(s): ...  atomic_set_release(&s->val, UNLOCKED_VAL)
-> 
-> When I read this code, I think "Of course." (unless some arch. has
-> messed the implementation of cmpxchg_* up, which can happen...); but
-> then I read the subject line of this patch and I think "Wait, what?".
-> 
-> You can argue that this is not generic code, sure; but why on Earth
-> would you like to do so?!
-
-Because the code might not work!  On RISC-V, for example, the
-implementation of ordinary release/acquire is currently not as strong
-as atomic release/acquire.
-
-Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
-should be correct on all existing architectures.  And Paul has invited 
-a patch to modify the LKMM accordingly.  If you feel that such a change 
-would be a useful enhancement to the LKMM's applicability, please write 
-it.
-
-Alan
+> +               pr_cont("\n");
+> +       }
+> +
+> +       force_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
