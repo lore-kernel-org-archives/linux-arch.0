@@ -1,29 +1,116 @@
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by
- sparse
-Date: Fri, 31 Aug 2018 10:11:24 +0200
-Message-ID: <20180831081123.6mo62xnk54pvlxmc@ltop.local>
-References: <cover.1535629099.git.andreyknvl@google.com>
- <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+From: Andrea Parri <parri.andrea@gmail.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Date: Fri, 31 Aug 2018 11:17:18 +0200
+Message-ID: <20180831091641.GA3634@andrea>
+References: <20180830125045.GA6936@andrea>
+ <Pine.LNX.4.44L0.1808301712230.31183-100000@netrider.rowland.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+In-Reply-To: <Pine.LNX.4.44L0.1808301712230.31183-100000@netrider.rowland.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 30, 2018 at 01:41:16PM +0200, Andrey Konovalov wrote:
-> This patch adds __force annotations for __user pointers casts detected by
-> sparse with the -Wcast-from-as flag enabled (added in [1]).
+On Thu, Aug 30, 2018 at 05:31:32PM -0400, Alan Stern wrote:
+> On Thu, 30 Aug 2018, Andrea Parri wrote:
 > 
-> [1] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
+> > > All the architectures supported by the Linux kernel (including RISC-V)
+> > > do provide this ordering for locks, albeit for varying reasons.
+> > > Therefore this patch changes the model in accordance with the
+> > > developers' wishes.
+> > > 
+> > > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+> > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > Reviewed-by: Will Deacon <will.deacon@arm.com>
+> > > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > 
+> > Round 2 ;-), I guess...  Let me start from the uncontroversial points:
+> > 
+> >   1) being able to use the LKMM to reason about generic locking code
+> >      is useful and desirable (paraphrasing Peter in [1]);
+> > 
+> >   2) strengthening the ordering requirements of such code isn't going
+> >      to boost performance (that's "real maths").
+> > 
+> > This patch is taking (1) away from us and it is formalizing (2), with
+> > almost _no_ reason (no reason at all, if we stick to the commit msg.).
+> 
+> That's not quite fair.  Generic code isn't always universally
+> applicable; some of it is opt-in -- meant only for the architectures
+> that can support it.  In general, the LKMM allows us to reason about
+> higher abstractions (such as locking) at a higher level, without
+> necessarily being able to verify the architecture-specific details of
+> the implementations.
 
-Hi,
+No, generic code is "universally applicable" by definition; see below
+for more on this point.
 
-It would be nice to have some explanation for why these added __force
-are useful.
 
--- Luc Van Oostenryck
+> 
+> > In [2], Will wrote:
+> > 
+> >   "[...] having them [the RMWs] closer to RCsc[/to the semantics of
+> >    locks] would make it easier to implement and reason about generic
+> >    locking implementations (i.e. reduce the number of special ordering
+> >    cases and/or magic barrier macros)"
+> > 
+> > "magic barrier macros" as in "mmh, if we accept this patch, we _should_
+> > be auditing the various implementations/code to decide where to place a
+> > 
+> >   smp_barrier_promote_ordinary_release_acquire_to_unlock_lock()" ;-)
+> > 
+> > or the like, and "special ordering cases" as in "arrgh, (otherwise) we
+> > are forced to reason on a per-arch basis while looking at generic code".
+> 
+> Currently the LKMM does not permit architecture-specific reasoning.  It 
+> would have to be extended (in a different way for each architecture) 
+> first.
+
+Completely agreed; that's why I said that this patch is detrimental to
+the applicability of the LKMM...
+
+
+> 
+> For example, one could use herd's POWER model combined with the POWER 
+> compilation scheme and the POWER-specific implementation of spinlocks 
+> for such reasoning.  The LKMM alone is not sufficient.
+> 
+> Sure, programming and reasoning about the kernel would be easier if all
+> architectures were the same.  Unfortunately, we (and the kernel) have
+> to live in the real world.
+> 
+> > (Remark: ordinary release/acquire are building blocks for code such as
+> >  qspinlock, (q)rwlock, mutex, rwsem, ... and what else??).
+> 
+> But are these building blocks used the same way for all architectures?
+
+The more, the better! (because then we have the LKMM tools) 
+
+We already discussed the "fast path" example: the fast paths of the
+above all resemble:
+
+  *_lock(s):  atomic_cmpxchg_acquire(&s->val, UNLOCKED_VAL, LOCKED_VAL) ...
+  *_unlock(s): ...  atomic_set_release(&s->val, UNLOCKED_VAL)
+
+When I read this code, I think "Of course." (unless some arch. has
+messed the implementation of cmpxchg_* up, which can happen...); but
+then I read the subject line of this patch and I think "Wait, what?".
+
+You can argue that this is not generic code, sure; but why on Earth
+would you like to do so?!
+
+  Andrea
+
+
+> 
+> > To avoid further repetition, I conclude by confirming all the concerns
+> > and my assessment of this patch as pointed out in [3]; the subsequent
+> > discussion, although not conclusive, presented several suggestions for
+> > improvement (IMO).
+> 
+> Alan
+> 
