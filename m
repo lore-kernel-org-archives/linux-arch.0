@@ -1,98 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:52478 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725836AbeHaC6l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Aug 2018 22:58:41 -0400
-Message-ID: <1535669391.28781.7.camel@intel.com>
-Subject: Re: [RFC PATCH v3 05/24] Documentation/x86: Add CET description
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 30 Aug 2018 15:49:51 -0700
-In-Reply-To: <20180830203948.GB1936@amd>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-         <20180830143904.3168-6-yu-cheng.yu@intel.com> <20180830203948.GB1936@amd>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from smtprelay.synopsys.com ([198.182.47.9]:51812 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725761AbeHaEeO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 00:34:14 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: __clear_bit_lock to use atomic clear_bit (was Re: Patch
+ "asm-generic/bitops/lock.h)
+Date: Fri, 31 Aug 2018 00:29:27 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B090FE0@us01wembx1.internal.synopsys.com>
+References: <1535567633.4465.23.camel@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
+ <20180830094411.GX24124@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180830224951.l7mIFNTrUX_qqJ8OScCR0zAb5yJeUfe9Z5jEQqMIwPo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180831002927._UwwfT4uoIo2PfkQNzwXgPgKSSF5FxKdSiILOKQ5C9U@z>
 
-On Thu, 2018-08-30 at 22:39 +0200, Pavel Machek wrote:
-> Hi!
-> 
-> > 
-> > diff --git a/Documentation/admin-guide/kernel-parameters.txt
-> > b/Documentation/admin-guide/kernel-parameters.txt
-> > index 9871e649ffef..b090787188b4 100644
-> > --- a/Documentation/admin-guide/kernel-parameters.txt
-> > +++ b/Documentation/admin-guide/kernel-parameters.txt
-> > @@ -2764,6 +2764,12 @@
-> >  			noexec=on: enable non-executable mappings
-> > (default)
-> >  			noexec=off: disable non-executable
-> > mappings
-> >  
-> > +	no_cet_ibt	[X86-64] Disable indirect branch
-> > tracking for user-mode
-> > +			applications
-> > +
-> > +	no_cet_shstk	[X86-64] Disable shadow stack support
-> > for user-mode
-> > +			applications
-> Hmm, not too consistent with "nosmap" below. Would it make sense to
-> have cet=on/off/ibt/shstk instead?
-> 
-> > 
-> > +++ b/Documentation/x86/intel_cet.rst
-> > @@ -0,0 +1,252 @@
-> > +=========================================
-> > +Control Flow Enforcement Technology (CET)
-> > +=========================================
-> > +
-> > +[1] Overview
-> > +============
-> > +
-> > +Control Flow Enforcement Technology (CET) provides protection
-> > against
-> > +return/jump-oriented programing (ROP) attacks.
-> Can you add something like "It attempts to protect process from
-> running arbitrary code even after attacker has control of its stack"
-> -- for people that don't know what ROP is, and perhaps link to
-> wikipedia explaining ROP or something...
-> 
-> > 
-> > It can be implemented
-> > +to protect both the kernel and applications.  In the first phase,
-> > +only the user-mode protection is implemented for the 64-bit
-> > kernel.
-> > +Thirty-two bit applications are supported under the compatibility
-> 32-bit (for consistency).
-> 
-> Ok, so CET stops execution of malicious code before architectural
-> effects are visible, correct? Does it prevent micro-architectural
-> effects of the malicious code? (cache content would be one example;
-> see Spectre).
-> 
-> > 
-> > +[3] Application Enabling
-> > +========================
-> "Enabling CET in applications" ?
-> 
-> > 
-> > +Signal
-> > +------
-> > +
-> > +The main program and its signal handlers use the same
-> > SHSTK.  Because
-> > +the SHSTK stores only return addresses, we can estimate a large
-> > +enough SHSTK to cover the condition that both the program stack
-> > and
-> > +the sigaltstack run out.
-> English? Is it estimate or is it large enough? "a large" -- "a"
-> should
-> be deleted AFAICT.
->  
-
-I will work on these, thanks!
+On 08/30/2018 02:44 AM, Peter Zijlstra wrote:=0A=
+>> Back in 2016, Peter had fixed this file due to a problem I reported on A=
+RC. See=0A=
+>> commit f75d48644c56a ("bitops: Do not default to __clear_bit() for=0A=
+>> __clear_bit_unlock()")=0A=
+>> That made __clear_bit_unlock() use the atomic clear_bit() vs. non-atomic=
+=0A=
+>> __clear_bit(), effectively making clear_bit_unlock() and __clear_bit_unl=
+ock() same.=0A=
+>>=0A=
+>> This patch undoes that which could explain the issues you see. @Peter, @=
+Will ?=0A=
+> Right, so the thinking is that on platforms that suffer that issue,=0A=
+> atomic_set*() should DTRT. And if you look at your spinlock based atomic=
+=0A=
+> implementation, you'll note that atomic_set() does indeed do the right=0A=
+> thing.=0A=
+>=0A=
+> arch/arc/include/asm/atomic.h:108=0A=
+=0A=
+For !LLSC atomics, ARC has always had atomic_set() DTRT even in the git rev=
+ision=0A=
+of 2016. The problem was not in atomics, but the asymmetric way slub bit lo=
+ck etc=0A=
+worked (haven't checked if this changed), i.e.=0A=
+=0A=
+     slab_lock() -> bit_spin_lock() -> test_and_set_bit()    # atomic=0A=
+     slab_unlock() -> __bit_spin_unlock() -> __clear_bit()    # non-atomic=
+=0A=
+=0A=
+And with v4.19-rc1, we have essentially reverted f75d48644c56a due to 84c65=
+91103db=0A=
+("locking/atomics, asm-generic/bitops/lock.h: Rewrite using atomic_fetch_*(=
+)")=0A=
+=0A=
+So what we have with 4.19-rc1 is=0A=
+=0A=
+   static inline void __clear_bit_unlock(unsigned int nr, volatile unsigned=
+ long *p)=0A=
+   {=0A=
+     unsigned long old;=0A=
+     p +=3D ((nr) / 32);=0A=
+     old =3D // some typecheck magic on *p=0A=
+     old &=3D ~(1UL << ((nr) % 32));=0A=
+     atomic_long_set_release((atomic_long_t *)p, old);=0A=
+   }=0A=
+=0A=
+So @p is being r-m-w non atomically. The lock variant uses atomic op...=0A=
+=0A=
+   int test_and_set_bit_lock(unsigned int nr, volatile unsigned long *p)=0A=
+   { =0A=
+      ...=0A=
+      old =3D atomic_long_fetch_or_acquire(mask, (atomic_long_t *)p);=0A=
+      ....=0A=
+   }=0A=
+=0A=
+Now I don't know why we don't see the issue with LLSC atomics, perhaps race=
+ window=0A=
+reduces due to less verbose code itself etc..=0A=
+=0A=
+Am I missing something still ?=0A=
+=0A=
+-Vineet=0A=
