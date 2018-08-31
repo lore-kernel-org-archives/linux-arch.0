@@ -1,93 +1,45 @@
-From: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
-Subject: Re: [PATCH net-next 1/3] net: rework SIOCGSTAMP ioctl handling
-Date: Fri, 31 Aug 2018 09:37:57 -0400
-Message-ID: <CAF=yD-+9yc838Y_DO1S4HsBpLrBk8iNt0oAj1ceO1S6sE+tCdg@mail.gmail.com>
-References: <20180829130308.3504560-1-arnd@arndb.de> <CAF=yD-J7-GumUmonrZt7s44e3bsjY2DCD6ZpmhtCx6FOBV5BNA@mail.gmail.com>
- <CAK8P3a2XTUZJUqGu6v=SZqcoJTqM3fgtDAWBnBopX3=4NJYcRA@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by
+ sparse
+Date: Fri, 31 Aug 2018 14:42:44 +0100
+Message-ID: <20180831134244.GB19965@ZenIV.linux.org.uk>
+References: <cover.1535629099.git.andreyknvl@google.com>
+ <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+ <20180831081123.6mo62xnk54pvlxmc@ltop.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2XTUZJUqGu6v=SZqcoJTqM3fgtDAWBnBopX3=4NJYcRA@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Network Development <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org, y2038 Mailman List <y2038@lists.linaro.org>, Eric Dumazet <edumazet@google.com>, Willem de Bruijn <willemb@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-hams@vger.kernel.org, linux-bluetooth@vger.kernel.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, linux-sctp@vger.kernel.org, linux-x25@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180831081123.6mo62xnk54pvlxmc@ltop.local>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 31, 2018 at 6:31 AM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Thu, Aug 30, 2018 at 10:10 PM Willem de Bruijn
-> <willemdebruijn.kernel@gmail.com> wrote:
-> >
-> > On Wed, Aug 29, 2018 at 9:05 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> > >
-> > > The SIOCGSTAMP/SIOCGSTAMPNS ioctl commands are implemented by many
-> > > socket protocol handlers, and all of those end up calling the same
-> > > sock_get_timestamp()/sock_get_timestampns() helper functions, which
-> > > results in a lot of duplicate code.
-> > >
-> > > With the introduction of 64-bit time_t on 32-bit architectures, this
-> > > gets worse, as we then need four different ioctl commands in each
-> > > socket protocol implementation.
-> > >
-> > > To simplify that, let's add a new .gettstamp() operation in
-> > > struct proto_ops, and move ioctl implementation into the common
-> > > sock_ioctl()/compat_sock_ioctl_trans() functions that these all go
-> > > through.
-> > >
-> > > We can reuse the sock_get_timestamp() implementation, but generalize
-> > > it so it can deal with both native and compat mode, as well as
-> > > timeval and timespec structures.
-> > >
-> > > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> >
-> > This also will simplify fixing a recently reported race condition with
-> > sock_get_timestamp [1]. That calls sock_enable_timestamp, which
-> > modifies sk->sk_flags, without taking the socket lock. Currently some
-> > callers of sock_get_timestamp hold the lock (ax25, netrom, qrtr), many
-> > don't. See also how this patch removes the lock_sock in the netrom
-> > case. Moving the call to sock_gettstamp outside the protocol handlers
-> > will allow taking the lock inside the function.
->
-> I suppose it would be best to always take that lock then, rather than
-> removing the lock as my patch does at the moment.
+On Fri, Aug 31, 2018 at 10:11:24AM +0200, Luc Van Oostenryck wrote:
+> On Thu, Aug 30, 2018 at 01:41:16PM +0200, Andrey Konovalov wrote:
+> > This patch adds __force annotations for __user pointers casts detected by
+> > sparse with the -Wcast-from-as flag enabled (added in [1]).
+> > 
+> > [1] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
+> 
+> Hi,
+> 
+> It would be nice to have some explanation for why these added __force
+> are useful.
 
-Yes, although that can also be a separate follow-on patch. The
-patch as is better matches the existing behavior of the majority
-of protocols.
+	It would be even more useful if that series would either deal with
+the noise for real ("that's what we intend here, that's what we intend there,
+here's a primitive for such-and-such kind of cases, here we actually
+ought to pass __user pointer instead of unsigned long", etc.) or left it
+unmasked.
 
-> > If this is the only valid implementation of .gettstamp, the indirect
-> > call could be avoided in favor of a simple branch.
->
-> I thought about that as well, but I could not come up with a
-> good way to encode the difference between socket protocols
-> that allow timestamping and those that don't.
->
-> I think ideally we would just call sock_gettstamp() unconditonally
-> on every socket, and have that function decide whether timestamps
-> make sense or not. The part I did not understand is which ones
-> actually want the timestamps or not. Most protocols that
-> implement the ioctls also assign skb->tstamp, but there are some
-> protocols in which I could not see skb->tstamp ever being set,
-> and some that set it but don't seem to have the ioctls.
+	As it is, __force says only one thing: "I know the code is doing
+the right thing here".  That belongs in primitives, and I do *not* mean the
+#define cast_to_ulong(x) ((__force unsigned long)(x))
+kind.
 
-These probably only use cmsgs SCM_TIMESTAMP(NS|IMG)
-to read timestamps.
+	Folks, if you don't want to deal with that - leave the warnings be.
+They do carry more information than "someone has slapped __force in that place".
 
-> Looking at it again, it seems that sock_gettstamp() should
-> actually deal with this gracefully: it will return a -EINVAL
-> error condition if the timestamp remains at the
-> SK_DEFAULT_STAMP initial value, which is probably
-> just as appropriate (or better) as the current -ENOTTY
-> default, and if we are actually recording timestamps, we
-> might just as well report them.
-
-Yes, that's a nice solution. There is always some risk in changing
-error codes. But ioctl callers should be able to support newly
-implemented functionality. Even if partially implemented and
-returning ENOENT instead of ENOIOCTLCMD.
-
-> > Acked-by: Willem de Bruijn <willemb@google.com>
->
-> Thanks,
->
->       Arnd
+Al, very annoyed by that kind of information-hiding crap...
