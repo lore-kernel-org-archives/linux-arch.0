@@ -1,52 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:55438 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726493AbeHaOAU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Aug 2018 10:00:20 -0400
-Date: Fri, 31 Aug 2018 10:53:51 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
- causes kernel crash
-Message-ID: <20180831095351.GD13166@arm.com>
-References: <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <20180830095148.GB5942@arm.com>
- <1535629996.4465.44.camel@synopsys.com>
- <20180830141713.GN24082@hirez.programming.kicks-ass.net>
- <20180830142354.GB13005@arm.com>
- <20180830142920.GO24082@hirez.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075012B090EA4@us01wembx1.internal.synopsys.com>
- <20180830204515.GC24124@hirez.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075012B090FF3@us01wembx1.internal.synopsys.com>
+Received: from merlin.infradead.org ([205.233.59.134]:45760 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727268AbeHaOAa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 10:00:30 -0400
+Date: Fri, 31 Aug 2018 11:53:00 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+Message-ID: <20180831095300.GF24124@hirez.programming.kicks-ass.net>
+References: <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
+ <1535649960.26689.15.camel@intel.com>
+ <33d45a12-513c-eba2-a2de-3d6b630e928e@linux.intel.com>
+ <1535651666.27823.6.camel@intel.com>
+ <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
+ <1535660494.28258.36.camel@intel.com>
+ <CAG48ez0yOuDhqxB779aO3Kss3gQ3cZTJL1VphDXQm+_M9jFPvQ@mail.gmail.com>
+ <1535662366.28781.6.camel@intel.com>
+ <CAG48ez0mkr95_TbLQnDGuGUd6G+eJVLZ-fEjDkwA6dSrm+9tLw@mail.gmail.com>
+ <CAG48ez3S3+DzAyo_SnoUW1GO0Cpd_x0A83MOx2p_MkogoAatLQ@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075012B090FF3@us01wembx1.internal.synopsys.com>
+In-Reply-To: <CAG48ez3S3+DzAyo_SnoUW1GO0Cpd_x0A83MOx2p_MkogoAatLQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180831095351.uVWvvAk7MIWbmiouIEtQB5QL91skazSGeCSgJbWqtwA@z>
+To: Jann Horn <jannh@google.com>
+Cc: yu-cheng.yu@intel.com, Dave Hansen <dave.hansen@linux.intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com
+Message-ID: <20180831095300.tCNrm1LJvYsyAWAYtcB2PqfTuijlt-g3WbXEKZiD4v0@z>
 
-On Fri, Aug 31, 2018 at 12:30:50AM +0000, Vineet Gupta wrote:
-> On 08/30/2018 01:45 PM, Peter Zijlstra wrote:
-> >>
-> >> Indeed this is the mother of all issues, I tried and system is clearly hosed with
-> >> and works after.
-> >> What's amazing is the commit 4aef66c8ae9 which introduced it is from 2016 ;-)
-> >> Back then we had a retry branch with backoff stuff which I'd reverted for new
-> >> cores and the merge conflict somehow missed it.
-> >>
-> >> @PeterZ I'll create a patch with you as author ? do I need any formal sign offs,
-> >> acks etc ?
-> > Well, Will spotted it, give authorship to him, you have my ack per the
-> > above.
-> 
-> Oops, sorry for the mixup. I have him as author now and pushed to ARC for-curr
-> (will trickle into linux-next eventually).
+On Thu, Aug 30, 2018 at 11:47:16PM +0200, Jann Horn wrote:
+>         do {
+>                 pte = pte_wrprotect(pte);
+>                 /* note: relies on _PAGE_DIRTY_HW < _PAGE_DIRTY_SW */
+>                 /* dirty direct bit-twiddling; you can probably write
+> this in a nicer way */
+>                 pte.pte |= (pte.pte & _PAGE_DIRTY_HW) >>
+> _PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
+>                 pte.pte &= ~_PAGE_DIRTY_HW;
+>                 pte = cmpxchg(ptep, pte, new_pte);
+>         } while (pte != new_pte);
 
-Okey doke: you can have my Signed-off-by for all the diffs I sent. Just
-stick something like [vineet: wrote commit message] in there so I don't
-read it in the future and confuse myself.
+Please use the form:
 
-Will
+	pte_t new_pte, pte = READ_ONCE(*ptep);
+	do {
+		new_pte = /* ... */;
+	} while (!try_cmpxchg(ptep, &pte, new_pte);
+
+Also, this will fail to build on i386-PAE, but I suspect this code will
+be under some CONFIG option specific to x86_64 anyway.
