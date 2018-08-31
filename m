@@ -1,55 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f42.google.com ([209.85.221.42]:40545 "EHLO
-        mail-wr1-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727232AbeHaWhn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 18:37:43 -0400
-Received: by mail-wr1-f42.google.com with SMTP id n2-v6so12043495wrw.7
-        for <linux-arch@vger.kernel.org>; Fri, 31 Aug 2018 11:29:00 -0700 (PDT)
-Date: Fri, 31 Aug 2018 20:28:46 +0200
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180831182845.GA4673@andrea>
-References: <20180831091641.GA3634@andrea>
- <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
- <20180831160640.GG30626@arm.com>
+Received: from mail.kernel.org ([198.145.29.99]:33846 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727334AbeIAC0I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 31 Aug 2018 22:26:08 -0400
+Received: from mail-wr1-f47.google.com (mail-wr1-f47.google.com [209.85.221.47])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id B5CD020862
+        for <linux-arch@vger.kernel.org>; Fri, 31 Aug 2018 22:16:37 +0000 (UTC)
+Received: by mail-wr1-f47.google.com with SMTP id w11-v6so12463978wrc.5
+        for <linux-arch@vger.kernel.org>; Fri, 31 Aug 2018 15:16:37 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180831160640.GG30626@arm.com>
+In-Reply-To: <1535752180.31230.4.camel@intel.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com> <20180830143904.3168-20-yu-cheng.yu@intel.com>
+ <CAG48ez3uZrC-9uJ0uMoVPTtxRXRN8D+3zs5FknZD2woTT6mazg@mail.gmail.com>
+ <CALCETrW78UKt6AQJeN8GkhtxjuASnH1PV5QSpzQtDz9-2d3Asw@mail.gmail.com>
+ <1535646146.26689.11.camel@intel.com> <1535752180.31230.4.camel@intel.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Fri, 31 Aug 2018 15:16:15 -0700
+Message-ID: <CALCETrV_aDasfkd6LD1cT11Hs1dO064uHjROLQPyhQfy_iuS8w@mail.gmail.com>
+Subject: Re: [RFC PATCH v3 19/24] x86/cet/shstk: Introduce WRUSS instruction
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180831182846.aabhH-JzCN42spIS6ZWJxYasv4CONlv3xWEU75EFrWY@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Jann Horn <jannh@google.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
+Message-ID: <20180831221615.CavecLwtSLR8WH1bpdGu-xJu4D5BhnDVMYUJpwj_nOE@z>
 
-> > Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
-> > should be correct on all existing architectures.  And Paul has invited 
-> > a patch to modify the LKMM accordingly.  If you feel that such a change 
-> > would be a useful enhancement to the LKMM's applicability, please write 
-> > it.
-> 
-> Yes, please! That would be the "RmW" discussion which Andrea partially
-> quoted earlier on, so getting that going independently from this patch
-> sounds like a great idea to me.
+On Fri, Aug 31, 2018 at 2:49 PM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> On Thu, 2018-08-30 at 09:22 -0700, Yu-cheng Yu wrote:
+>> On Thu, 2018-08-30 at 08:55 -0700, Andy Lutomirski wrote:
+>> >
+>> > On Thu, Aug 30, 2018 at 8:39 AM, Jann Horn <jannh@google.com>
+>> > wrote:
+>> > >
+>> > >
+>> > > On Thu, Aug 30, 2018 at 4:44 PM Yu-cheng Yu <yu-cheng.yu@intel.c
+>> > > om
+>> > > >
+>> > > > wrote:
+>> > > >
+>> > > >
+>> > > > WRUSS is a new kernel-mode instruction but writes directly
+>> > > > to user shadow stack memory.  This is used to construct
+>> > > > a return address on the shadow stack for the signal
+>> > > > handler.
+>> > > >
+>> > > > This instruction can fault if the user shadow stack is
+>> > > > invalid shadow stack memory.  In that case, the kernel does
+>> > > > fixup.
+>> > > >
+>> > > > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+>> > > [...]
+>> > > >
+>> > > >
+>> > > > +static inline int write_user_shstk_64(unsigned long addr,
+>> > > > unsigned long val)
+>> > > > +{
+>> > > > +       int err = 0;
+>> > > > +
+>> > > > +       asm volatile("1: wrussq %1, (%0)\n"
+>> > > > +                    "2:\n"
+>> > > > +                    _ASM_EXTABLE_HANDLE(1b, 2b,
+>> > > > ex_handler_wruss)
+>> > > > +                    :
+>> > > > +                    : "r" (addr), "r" (val));
+>> > > > +
+>> > > > +       return err;
+>> > > > +}
+>> > > What's up with "err"? You set it to zero, and then you return
+>> > > it,
+>> > > but
+>> > > nothing can ever set it to non-zero, right?
+>> > >
+>> > > >
+>> > > >
+>> > > > +__visible bool ex_handler_wruss(const struct
+>> > > > exception_table_entry *fixup,
+>> > > > +                               struct pt_regs *regs, int
+>> > > > trapnr)
+>> > > > +{
+>> > > > +       regs->ip = ex_fixup_addr(fixup);
+>> > > > +       regs->ax = -1;
+>> > > > +       return true;
+>> > > > +}
+>> > > And here you just write into regs->ax, but your "asm volatile"
+>> > > doesn't
+>> > > reserve that register. This looks wrong to me.
+>> > >
+>> > > I think you probably want to add something like an explicit
+>> > > `"+&a"(err)` output to the asm statements.
+>> > We require asm goto support these days.  How about using
+>> > that?  You
+>> > won't even need a special exception handler.
+>
+> Maybe something like this?  It looks simple now.
+>
+> static inline int write_user_shstk_64(unsigned long addr, unsigned
+> long val)
+> {
+>         asm_volatile_goto("wrussq %1, (%0)\n"
+>                      "jmp %l[ok]\n"
+>                      ".section .fixup,\"ax\"n"
+>                      "jmp %l[fail]\n"
+>                      ".previous\n"
+>                      :: "r" (addr), "r" (val)
+>                      :: ok, fail);
+> ok:
+>         return 0;
+> fail:
+>         return -1;
+> }
+>
 
-That was indeed one of the proposal we discussed.  As you recalled, that
-proposal only covered RmWs load-acquire (and ordinary store-release); in
-particular, I realized that comments such as:
-
-  "The atomic_cond_read_acquire() call above has provided the
-   necessary acquire semantics required for locking."
-
-   [from kernel/locking/qspinlock.c]
-
-(for example)  would still _not have "generic validity" _if we added the
-above po-unlock-rf-lock-po term... (which, again, makes me somehow uncon-
-fortable);  Would to have _all_ the acquire be admissible for you?
-
-  Andrea
-
-
-> 
-> Cheers,
-> 
-> Will
+I think you can get rid of 'jmp %l[ok]' and the ok label and just fall
+through.  And you don't need an explicit jmp to fail -- just set the
+_EX_HANDLER entry to land on the fail label.
