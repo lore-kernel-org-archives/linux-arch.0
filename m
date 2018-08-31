@@ -1,54 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:14242 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726759AbeHaWAh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 31 Aug 2018 18:00:37 -0400
-Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
- pmdp_set_wrprotect for _PAGE_DIRTY_SW
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
- <20180830143904.3168-13-yu-cheng.yu@intel.com>
- <CAG48ez0Rca0XsdXJZ07c+iGPyep0Gpxw+sxQuACP5gyPaBgDKA@mail.gmail.com>
- <079a55f2-4654-4adf-a6ef-6e480b594a2f@linux.intel.com>
- <CAG48ez2gHOD9hH4+0wek5vUOv9upj79XWoug2SXjdwfXWoQqxw@mail.gmail.com>
- <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
- <B2222C69-337B-44F2-9DA6-69E685AA469B@amacapital.net>
- <e164a320-25a4-a9fc-3256-901b778468f3@linux.intel.com>
- <CALCETrUE6mY-+YCaJjGJuEqE_OBQc=QUR1XMnPW9VwTb8=HK4w@mail.gmail.com>
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <72456264-2214-3c01-593a-7de862f1799d@linux.intel.com>
-Date: Fri, 31 Aug 2018 10:52:02 -0700
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:50446 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727069AbeHaWED (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 18:04:03 -0400
+Received: by mail-wm0-f66.google.com with SMTP id s12-v6so6004361wmc.0
+        for <linux-arch@vger.kernel.org>; Fri, 31 Aug 2018 10:55:25 -0700 (PDT)
+Date: Fri, 31 Aug 2018 19:55:12 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Message-ID: <20180831175512.GA3121@andrea>
+References: <20180831091641.GA3634@andrea>
+ <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrUE6mY-+YCaJjGJuEqE_OBQc=QUR1XMnPW9VwTb8=HK4w@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Jann Horn <jannh@google.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180831175202.M5ZYEDk0BPgFATXjrBWiSLmH6c0mMMCl_P3S9-zG9eg@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180831175512.rlgwRHPdGHsSE5xilXM7S-lYdff6a6FNE-Kzywh3vH4@z>
 
-On 08/31/2018 10:46 AM, Andy Lutomirski wrote:
-> On Thu, Aug 30, 2018 at 11:55 AM, Dave Hansen
->> That little hunk will definitely need to get updated with something like:
->>
->>         On processors enumerating support for CET, the processor will on
->>         set the dirty flag on paging structure entries in which the W
->>         flag is 1.
+On Fri, Aug 31, 2018 at 10:52:54AM -0400, Alan Stern wrote:
+> On Fri, 31 Aug 2018, Andrea Parri wrote:
 > 
-> Can we get something much stronger, perhaps?  Like this:
+> > On Thu, Aug 30, 2018 at 05:31:32PM -0400, Alan Stern wrote:
+> > > On Thu, 30 Aug 2018, Andrea Parri wrote:
+> > > 
+> > > > > All the architectures supported by the Linux kernel (including RISC-V)
+> > > > > do provide this ordering for locks, albeit for varying reasons.
+> > > > > Therefore this patch changes the model in accordance with the
+> > > > > developers' wishes.
+> > > > > 
+> > > > > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+> > > > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > > > Reviewed-by: Will Deacon <will.deacon@arm.com>
+> > > > > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > > > 
+> > > > Round 2 ;-), I guess...  Let me start from the uncontroversial points:
+> > > > 
+> > > >   1) being able to use the LKMM to reason about generic locking code
+> > > >      is useful and desirable (paraphrasing Peter in [1]);
+> > > > 
+> > > >   2) strengthening the ordering requirements of such code isn't going
+> > > >      to boost performance (that's "real maths").
+> > > > 
+> > > > This patch is taking (1) away from us and it is formalizing (2), with
+> > > > almost _no_ reason (no reason at all, if we stick to the commit msg.).
+> > > 
+> > > That's not quite fair.  Generic code isn't always universally
+> > > applicable; some of it is opt-in -- meant only for the architectures
+> > > that can support it.  In general, the LKMM allows us to reason about
+> > > higher abstractions (such as locking) at a higher level, without
+> > > necessarily being able to verify the architecture-specific details of
+> > > the implementations.
+> > 
+> > No, generic code is "universally applicable" by definition; see below
+> > for more on this point.
 > 
-> On processors enumerating support for CET, the processor will write to
-> the accessed and/or dirty flags atomically, as if using the LOCK
-> CMPXCHG instruction.  The memory access, any cached entries in any
-> paging-structure caches, and the values in the paging-structure entry
-> before and after writing the A and/or D bits will all be consistent.
+> Then perhaps we should be talking about "partially generic" code; i.e., 
+> code that applies to many but not all architectures.
 
-There's some talk of this already in: 8.1.2.1 Automatic Locking:
+Perhaps.  I call this  "non-generic". ;-)
 
-> When updating page-directory and page-table entries — When updating 
-> page-directory and page-table entries, the processor uses locked 
-> cycles to set the accessed and dirty flag in the page-directory and
-> page-table entries.
-As for the A/D consistency, I'll see if I can share that before it hits
-the SDM for real and see if it's sufficient for everybody.
+
+> 
+> > > > In [2], Will wrote:
+> > > > 
+> > > >   "[...] having them [the RMWs] closer to RCsc[/to the semantics of
+> > > >    locks] would make it easier to implement and reason about generic
+> > > >    locking implementations (i.e. reduce the number of special ordering
+> > > >    cases and/or magic barrier macros)"
+> > > > 
+> > > > "magic barrier macros" as in "mmh, if we accept this patch, we _should_
+> > > > be auditing the various implementations/code to decide where to place a
+> > > > 
+> > > >   smp_barrier_promote_ordinary_release_acquire_to_unlock_lock()" ;-)
+> > > > 
+> > > > or the like, and "special ordering cases" as in "arrgh, (otherwise) we
+> > > > are forced to reason on a per-arch basis while looking at generic code".
+> > > 
+> > > Currently the LKMM does not permit architecture-specific reasoning.  It 
+> > > would have to be extended (in a different way for each architecture) 
+> > > first.
+> > 
+> > Completely agreed; that's why I said that this patch is detrimental to
+> > the applicability of the LKMM...
+> 
+> This ignores the attitude of the kernel developers who want locking to 
+> have the stronger RCtso semantics.  From their point of view, the patch 
+> enhances the LKMM's applicability.
+
+Please stop.  We spent weeks discussing how to make such a transition
+properly, and I suggested ways to do this above and in other threads.
+(Again, your commit message says nothing about that "enhancement"...)
+
+
+> 
+> > > For example, one could use herd's POWER model combined with the POWER 
+> > > compilation scheme and the POWER-specific implementation of spinlocks 
+> > > for such reasoning.  The LKMM alone is not sufficient.
+> > > 
+> > > Sure, programming and reasoning about the kernel would be easier if all
+> > > architectures were the same.  Unfortunately, we (and the kernel) have
+> > > to live in the real world.
+> > > 
+> > > > (Remark: ordinary release/acquire are building blocks for code such as
+> > > >  qspinlock, (q)rwlock, mutex, rwsem, ... and what else??).
+> > > 
+> > > But are these building blocks used the same way for all architectures?
+> > 
+> > The more, the better! (because then we have the LKMM tools) 
+> > 
+> > We already discussed the "fast path" example: the fast paths of the
+> > above all resemble:
+> > 
+> >   *_lock(s):  atomic_cmpxchg_acquire(&s->val, UNLOCKED_VAL, LOCKED_VAL) ...
+> >   *_unlock(s): ...  atomic_set_release(&s->val, UNLOCKED_VAL)
+> > 
+> > When I read this code, I think "Of course." (unless some arch. has
+> > messed the implementation of cmpxchg_* up, which can happen...); but
+> > then I read the subject line of this patch and I think "Wait, what?".
+> > 
+> > You can argue that this is not generic code, sure; but why on Earth
+> > would you like to do so?!
+> 
+> Because the code might not work!  On RISC-V, for example, the
+> implementation of ordinary release/acquire is currently not as strong
+> as atomic release/acquire.
+
+No doubt it "might not work". ;-)  Concerning the RISC-V implementation,
+I almost (re)did that, so at least you know who to blame if what you are
+saying turned out to be correct.
+
+
+> 
+> Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
+> should be correct on all existing architectures.  And Paul has invited 
+> a patch to modify the LKMM accordingly.  If you feel that such a change 
+> would be a useful enhancement to the LKMM's applicability, please write 
+> it.
+
+Hey, it's your patch that is introducing concerns!  "my patch" would
+partially _but_ substantially revert yours (see earlier discussions):
+I'm still hoping that we'll be able to find an agreement...
+
+  Andrea
+
+
+> 
+> Alan
+> 
