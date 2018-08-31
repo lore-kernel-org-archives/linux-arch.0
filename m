@@ -1,112 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:44000 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727208AbeHaLbJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 07:31:09 -0400
-Date: Fri, 31 Aug 2018 09:24:44 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: __clear_bit_lock to use atomic clear_bit (was Re: Patch
- "asm-generic/bitops/lock.h)
-Message-ID: <20180831072444.GD24124@hirez.programming.kicks-ass.net>
-References: <1535567633.4465.23.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
- <20180830094411.GX24124@hirez.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075012B090FE0@us01wembx1.internal.synopsys.com>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:50714 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727455AbeHaMRo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 08:17:44 -0400
+Date: Fri, 31 Aug 2018 10:11:24 +0200
+From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by
+ sparse
+Message-ID: <20180831081123.6mo62xnk54pvlxmc@ltop.local>
+References: <cover.1535629099.git.andreyknvl@google.com>
+ <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075012B090FE0@us01wembx1.internal.synopsys.com>
+In-Reply-To: <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180831072444.0nXwxATTtk3TuccAOKFcDIN95KdBb3wukFnnZoP5xvo@z>
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
+Message-ID: <20180831081124.4j1LG67z23IllH2zPaqpKv4vbMIMxf_yvunoXgC-Seo@z>
 
-On Fri, Aug 31, 2018 at 12:29:27AM +0000, Vineet Gupta wrote:
-> On 08/30/2018 02:44 AM, Peter Zijlstra wrote:
-> >> Back in 2016, Peter had fixed this file due to a problem I reported on ARC. See
-> >> commit f75d48644c56a ("bitops: Do not default to __clear_bit() for
-> >> __clear_bit_unlock()")
-> >> That made __clear_bit_unlock() use the atomic clear_bit() vs. non-atomic
-> >> __clear_bit(), effectively making clear_bit_unlock() and __clear_bit_unlock() same.
-> >>
-> >> This patch undoes that which could explain the issues you see. @Peter, @Will ?
-> > Right, so the thinking is that on platforms that suffer that issue,
-> > atomic_set*() should DTRT. And if you look at your spinlock based atomic
-> > implementation, you'll note that atomic_set() does indeed do the right
-> > thing.
-> >
-> > arch/arc/include/asm/atomic.h:108
+On Thu, Aug 30, 2018 at 01:41:16PM +0200, Andrey Konovalov wrote:
+> This patch adds __force annotations for __user pointers casts detected by
+> sparse with the -Wcast-from-as flag enabled (added in [1]).
 > 
-> For !LLSC atomics, ARC has always had atomic_set() DTRT even in the git revision
-> of 2016. The problem was not in atomics, but the asymmetric way slub bit lock etc
-> worked (haven't checked if this changed), i.e.
-> 
->      slab_lock() -> bit_spin_lock() -> test_and_set_bit()    # atomic
->      slab_unlock() -> __bit_spin_unlock() -> __clear_bit()    # non-atomic
-> 
-> And with v4.19-rc1, we have essentially reverted f75d48644c56a due to 84c6591103db
-> ("locking/atomics, asm-generic/bitops/lock.h: Rewrite using atomic_fetch_*()")
-> 
-> So what we have with 4.19-rc1 is
-> 
->    static inline void __clear_bit_unlock(unsigned int nr, volatile unsigned long *p)
->    {
->      unsigned long old;
->      p += ((nr) / 32);
->      old = // some typecheck magic on *p
->      old &= ~(1UL << ((nr) % 32));
->      atomic_long_set_release((atomic_long_t *)p, old);
->    }
-> 
-> So @p is being r-m-w non atomically. The lock variant uses atomic op...
-> 
->    int test_and_set_bit_lock(unsigned int nr, volatile unsigned long *p)
->    { 
->       ...
->       old = atomic_long_fetch_or_acquire(mask, (atomic_long_t *)p);
->       ....
->    }
-> 
-> Now I don't know why we don't see the issue with LLSC atomics, perhaps race window
-> reduces due to less verbose code itself etc..
-> 
-> Am I missing something still ?
+> [1] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
 
-Yes :-) So there are 2 things to consider:
+Hi,
 
- 1) this whole test_and_set_bit() + __clear_bit() combo only works if we
-    have the guarantee that no other bit will change while we have our
-    'lock' bit set.
+It would be nice to have some explanation for why these added __force
+are useful.
 
-    This means that @old is invariant.
-
- 2) atomic ops and stores work as 'expected' -- which is true for all
-    hardware LL/SC or CAS implementations, but not for spinlock based
-    atomics.
-
-The bug in f75d48644c56a was the atomic test_and_set loosing the
-__clear_bit() store.
-
-With LL/SC this cannot happen, because the competing store (__clear_bit)
-will cause the SC to fail, then we'll retry, the second LL observes the
-new value.
-
-So the main point is that test_and_set must not loose a store.
-atomic_fetch_or() vs atomic_set() ensures this.
-
-
-NOTE: another possible solution for spinlock based bitops is making
-test_and_set 'smarter':
-
-	spin_lock();
-	val = READ_ONCE(word);
-	if (!(val & bit)) {
-		val |= bit;
-		WRITE_ONCE(word, val);
-	}
-	spin_unlock();
-
-But that is not something that works in generic (the other atomic ops),
-and therefore atomic_set() is required to take the spinlock too, which
-also cures the problem.
+-- Luc Van Oostenryck
