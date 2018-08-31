@@ -1,66 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH net-next 1/3] net: rework SIOCGSTAMP ioctl handling
-Date: Fri, 31 Aug 2018 16:00:21 +0200
-Message-ID: <CAK8P3a00DLR9JyfKwbYXnKCpRf+YWuUyMbC+UfXZTfdnAJxRtg@mail.gmail.com>
-References: <20180829130308.3504560-1-arnd@arndb.de> <CAF=yD-J7-GumUmonrZt7s44e3bsjY2DCD6ZpmhtCx6FOBV5BNA@mail.gmail.com>
- <CAK8P3a2XTUZJUqGu6v=SZqcoJTqM3fgtDAWBnBopX3=4NJYcRA@mail.gmail.com> <CAF=yD-+9yc838Y_DO1S4HsBpLrBk8iNt0oAj1ceO1S6sE+tCdg@mail.gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v3 12/24] x86/mm: Modify ptep_set_wrprotect and
+ pmdp_set_wrprotect for _PAGE_DIRTY_SW
+Date: Fri, 31 Aug 2018 07:33:52 -0700
+Message-ID: <1535726032.32537.0.camel@intel.com>
+References: <ce051b5b-feef-376f-e085-11f65a5f2215@linux.intel.com>
+         <1535649960.26689.15.camel@intel.com>
+         <33d45a12-513c-eba2-a2de-3d6b630e928e@linux.intel.com>
+         <1535651666.27823.6.camel@intel.com>
+         <CAG48ez3ixWROuQc6WZze6qPL6q0e_gCnMU4XF11JUWziePsBJg@mail.gmail.com>
+         <1535660494.28258.36.camel@intel.com>
+         <CAG48ez0yOuDhqxB779aO3Kss3gQ3cZTJL1VphDXQm+_M9jFPvQ@mail.gmail.com>
+         <1535662366.28781.6.camel@intel.com>
+         <CAG48ez0mkr95_TbLQnDGuGUd6G+eJVLZ-fEjDkwA6dSrm+9tLw@mail.gmail.com>
+         <CAG48ez3S3+DzAyo_SnoUW1GO0Cpd_x0A83MOx2p_MkogoAatLQ@mail.gmail.com>
+         <20180831095300.GF24124@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAF=yD-+9yc838Y_DO1S4HsBpLrBk8iNt0oAj1ceO1S6sE+tCdg@mail.gmail.com>
+In-Reply-To: <20180831095300.GF24124@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Willem de Bruijn <willemdebruijn.kernel@gmail.com>
-Cc: Networking <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, linux-arch <linux-arch@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Eric Dumazet <edumazet@google.com>, Willem de Bruijn <willemb@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-hams@vger.kernel.org, Bluez mailing list <linux-bluetooth@vger.kernel.org>, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, linux-sctp@vger.kernel.org, linux-x25@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Jann Horn <jannh@google.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, keescook@chromiun.org, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pave>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 31, 2018 at 3:38 PM Willem de Bruijn
-<willemdebruijn.kernel@gmail.com> wrote:
-> On Fri, Aug 31, 2018 at 6:31 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Thu, Aug 30, 2018 at 10:10 PM Willem de Bruijn
-> > <willemdebruijn.kernel@gmail.com> wrote:
-> > > On Wed, Aug 29, 2018 at 9:05 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> > > If this is the only valid implementation of .gettstamp, the indirect
-> > > call could be avoided in favor of a simple branch.
-> >
-> > I thought about that as well, but I could not come up with a
-> > good way to encode the difference between socket protocols
-> > that allow timestamping and those that don't.
-> >
-> > I think ideally we would just call sock_gettstamp() unconditonally
-> > on every socket, and have that function decide whether timestamps
-> > make sense or not. The part I did not understand is which ones
-> > actually want the timestamps or not. Most protocols that
-> > implement the ioctls also assign skb->tstamp, but there are some
-> > protocols in which I could not see skb->tstamp ever being set,
-> > and some that set it but don't seem to have the ioctls.
->
-> These probably only use cmsgs SCM_TIMESTAMP(NS|IMG)
-> to read timestamps.
+On Fri, 2018-08-31 at 11:53 +0200, Peter Zijlstra wrote:
+> On Thu, Aug 30, 2018 at 11:47:16PM +0200, Jann Horn wrote:
+> > 
+> >         do {
+> >                 pte = pte_wrprotect(pte);
+> >                 /* note: relies on _PAGE_DIRTY_HW < _PAGE_DIRTY_SW
+> > */
+> >                 /* dirty direct bit-twiddling; you can probably
+> > write
+> > this in a nicer way */
+> >                 pte.pte |= (pte.pte & _PAGE_DIRTY_HW) >>
+> > _PAGE_BIT_DIRTY_HW << _PAGE_BIT_DIRTY_SW;
+> >                 pte.pte &= ~_PAGE_DIRTY_HW;
+> >                 pte = cmpxchg(ptep, pte, new_pte);
+> >         } while (pte != new_pte);
+> Please use the form:
+> 
+> 	pte_t new_pte, pte = READ_ONCE(*ptep);
+> 	do {
+> 		new_pte = /* ... */;
+> 	} while (!try_cmpxchg(ptep, &pte, new_pte);
+> 
+> Also, this will fail to build on i386-PAE, but I suspect this code
+> will
+> be under some CONFIG option specific to x86_64 anyway.
 
-Good point. FWIW, I have discussed with Deepa how those should
-be modified for y2038, but we don't have any current patches for
-those.
+Thanks!  I will work on it.
 
-> > Looking at it again, it seems that sock_gettstamp() should
-> > actually deal with this gracefully: it will return a -EINVAL
-> > error condition if the timestamp remains at the
-> > SK_DEFAULT_STAMP initial value, which is probably
-> > just as appropriate (or better) as the current -ENOTTY
-> > default, and if we are actually recording timestamps, we
-> > might just as well report them.
->
-> Yes, that's a nice solution. There is always some risk in changing
-> error codes. But ioctl callers should be able to support newly
-> implemented functionality. Even if partially implemented and
-> returning ENOENT instead of ENOIOCTLCMD.
-
-Ok, so do you think we should stay with the current version
-for now, and change the two points later, or should I rework
-it to integrate the locking and removing the callback?
-
-I suppose the series actually gets nicer without the
-callback, since I can simply add the generic timestamping
-implementation first, and then remove the dead ioctl
-handlers.
-
-        Arnd
+Yu-cheng
