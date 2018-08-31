@@ -1,121 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f65.google.com ([209.85.208.65]:44543 "EHLO
+Received: from mail-ed1-f65.google.com ([209.85.208.65]:40639 "EHLO
         mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727258AbeHaNYA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 09:24:00 -0400
-Date: Fri, 31 Aug 2018 11:17:18 +0200
-From: Andrea Parri <parri.andrea@gmail.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180831091641.GA3634@andrea>
-References: <20180830125045.GA6936@andrea>
- <Pine.LNX.4.44L0.1808301712230.31183-100000@netrider.rowland.org>
+        with ESMTP id S1727258AbeHaNu3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Aug 2018 09:50:29 -0400
+Received: by mail-ed1-f65.google.com with SMTP id j62-v6so4008257edd.7
+        for <linux-arch@vger.kernel.org>; Fri, 31 Aug 2018 02:43:49 -0700 (PDT)
+Date: Fri, 31 Aug 2018 11:43:42 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC LKMM 3/7] EXP tools/memory-model: Add more LKMM
+ limitations
+Message-ID: <20180831094341.GA4634@andrea>
+References: <20180829211018.GA19646@linux.vnet.ibm.com>
+ <20180829211053.20531-3-paulmck@linux.vnet.ibm.com>
+ <20180830091713.GA4617@andrea>
+ <20180830221814.GQ4225@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1808301712230.31183-100000@netrider.rowland.org>
+In-Reply-To: <20180830221814.GQ4225@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180831091718.HkiRo3k3xgexSVlltirgcT3ZO5jaOMtfBRy6uFmG0Ho@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Andrea Parri <parri.andrea@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180831094342.7YoOtV90egwojagfMUPsEOyCJ2jaygDC72ga3MxRUZw@z>
 
-On Thu, Aug 30, 2018 at 05:31:32PM -0400, Alan Stern wrote:
-> On Thu, 30 Aug 2018, Andrea Parri wrote:
-> 
-> > > All the architectures supported by the Linux kernel (including RISC-V)
-> > > do provide this ordering for locks, albeit for varying reasons.
-> > > Therefore this patch changes the model in accordance with the
-> > > developers' wishes.
-> > > 
-> > > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-> > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > > Reviewed-by: Will Deacon <will.deacon@arm.com>
-> > > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > > +	b.	The "unless" RMW operations are not currently modeled:
+> > > +		atomic_long_add_unless(), atomic_add_unless(),
+> > > +		atomic_inc_unless_negative(), and
+> > > +		atomic_dec_unless_positive().  These can be emulated
+> > > +		in litmus tests, for example, by using atomic_cmpxchg().
 > > 
-> > Round 2 ;-), I guess...  Let me start from the uncontroversial points:
+> > There is a prototype atomic_add_unless(): with current herd7,
 > > 
-> >   1) being able to use the LKMM to reason about generic locking code
-> >      is useful and desirable (paraphrasing Peter in [1]);
+> > $ cat atomic_add_unless.litmus
+> > C atomic_add_unless
 > > 
-> >   2) strengthening the ordering requirements of such code isn't going
-> >      to boost performance (that's "real maths").
+> > {}
 > > 
-> > This patch is taking (1) away from us and it is formalizing (2), with
-> > almost _no_ reason (no reason at all, if we stick to the commit msg.).
-> 
-> That's not quite fair.  Generic code isn't always universally
-> applicable; some of it is opt-in -- meant only for the architectures
-> that can support it.  In general, the LKMM allows us to reason about
-> higher abstractions (such as locking) at a higher level, without
-> necessarily being able to verify the architecture-specific details of
-> the implementations.
-
-No, generic code is "universally applicable" by definition; see below
-for more on this point.
-
-
-> 
-> > In [2], Will wrote:
+> > P0(atomic_t *u, atomic_t *v)
+> > {
+> > 	int r0;
+> > 	int r1;
 > > 
-> >   "[...] having them [the RMWs] closer to RCsc[/to the semantics of
-> >    locks] would make it easier to implement and reason about generic
-> >    locking implementations (i.e. reduce the number of special ordering
-> >    cases and/or magic barrier macros)"
+> > 	r0 = atomic_add_unless(u, 1, 2);
+> > 	r1 = atomic_read(v);
+> > }
 > > 
-> > "magic barrier macros" as in "mmh, if we accept this patch, we _should_
-> > be auditing the various implementations/code to decide where to place a
+> > P1(atomic_t *u, atomic_t *v)
+> > {
+> > 	int r0;
+> > 	int r1;
 > > 
-> >   smp_barrier_promote_ordinary_release_acquire_to_unlock_lock()" ;-)
+> > 	r0 = atomic_add_unless(v, 1, 2);
+> > 	r1 = atomic_read(u);
+> > }
 > > 
-> > or the like, and "special ordering cases" as in "arrgh, (otherwise) we
-> > are forced to reason on a per-arch basis while looking at generic code".
+> > exists (0:r1=0 /\ 1:r1=0)
+> > 
+> > $ herd7 -conf linux-kernel.cfg atomic_add_unless.litmus
+> > Test atomic_add_unless Allowed
+> > States 3
+> > 0:r1=0; 1:r1=1;
+> > 0:r1=1; 1:r1=0;
+> > 0:r1=1; 1:r1=1;
+> > No
+> > Witnesses
+> > Positive: 0 Negative: 3
+> > Condition exists (0:r1=0 /\ 1:r1=0)
+> > Observation atomic_add_unless Never 0 3
+> > Time atomic_add_unless 0.00
+> > Hash=fa37a2359831690299e4cc394e45d966
+> > 
+> > The last commit in the herdtools7 repo. related to this implementation
+> > (AFAICT) is:
+> > 
+> >   9523c340917b6a ("herd/linux: make atomic_add_unless a primitive, so as to yield more precise dependencies for the returned boolean.")
+> > 
+> > but I can only vaguely remember those dependencies issues now :/  ...;
+> > maybe we can now solve these issues?  or should we change herd7 to re-
+> > turn a warning?  (Notice that this primitive is currently not exported
+> > to the linux-kernel.def file.)
 > 
-> Currently the LKMM does not permit architecture-specific reasoning.  It 
-> would have to be extended (in a different way for each architecture) 
-> first.
+> Cool!  It would be good to add this to the .def file once the underlying
+> herd7 machinery is ready.  And then I would update the documentation
+> accordingly.  Or happily accept a patch updating the documentation,
+> as the case might be.  ;-)
 
-Completely agreed; that's why I said that this patch is detrimental to
-the applicability of the LKMM...
+Fair enough, ;-)  Please feel free to add:
 
-
-> 
-> For example, one could use herd's POWER model combined with the POWER 
-> compilation scheme and the POWER-specific implementation of spinlocks 
-> for such reasoning.  The LKMM alone is not sufficient.
-> 
-> Sure, programming and reasoning about the kernel would be easier if all
-> architectures were the same.  Unfortunately, we (and the kernel) have
-> to live in the real world.
-> 
-> > (Remark: ordinary release/acquire are building blocks for code such as
-> >  qspinlock, (q)rwlock, mutex, rwsem, ... and what else??).
-> 
-> But are these building blocks used the same way for all architectures?
-
-The more, the better! (because then we have the LKMM tools) 
-
-We already discussed the "fast path" example: the fast paths of the
-above all resemble:
-
-  *_lock(s):  atomic_cmpxchg_acquire(&s->val, UNLOCKED_VAL, LOCKED_VAL) ...
-  *_unlock(s): ...  atomic_set_release(&s->val, UNLOCKED_VAL)
-
-When I read this code, I think "Of course." (unless some arch. has
-messed the implementation of cmpxchg_* up, which can happen...); but
-then I read the subject line of this patch and I think "Wait, what?".
-
-You can argue that this is not generic code, sure; but why on Earth
-would you like to do so?!
+Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 
   Andrea
-
-
-> 
-> > To avoid further repetition, I conclude by confirming all the concerns
-> > and my assessment of this patch as pointed out in [3]; the subsequent
-> > discussion, although not conclusive, presented several suggestions for
-> > improvement (IMO).
-> 
-> Alan
-> 
