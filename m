@@ -1,48 +1,29 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC LKMM 7/7] EXP tools/memory-model: Add .cfg and .cat
- files for s390
-Date: Sat, 1 Sep 2018 10:08:54 -0700
-Message-ID: <20180901170854.GM4225@linux.vnet.ibm.com>
-References: <20180829211018.GA19646@linux.vnet.ibm.com>
- <20180829211053.20531-7-paulmck@linux.vnet.ibm.com>
- <20180831160630.GF30626@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Subject: Re: [PATCH v2 01/17] asm: simd context helper API
+Date: Sat, 1 Sep 2018 14:19:01 -0600
+Message-ID: <CAHmME9pP-rfzE9VAysm-tRiQrrKXpP2=8VEUrbS5Xt-wpEXCcA@mail.gmail.com>
+References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com>
+ <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de>
+ <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com> <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180831160630.GF30626@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
+Sender: netdev-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 31, 2018 at 05:06:30PM +0100, Will Deacon wrote:
-> Hi Paul,
-> 
-> On Wed, Aug 29, 2018 at 02:10:53PM -0700, Paul E. McKenney wrote:
-> > This commit adds s390.cat and s390.cfg files to allow users to check
-> > litmus tests for s390-specific code.  Note that this change only enables
-> > herd7 checking of C-language litmus tests.  Larger changes are required
-> > to enable the litmus7 and klitmus7 tools to check litmus tests on real
-> > hardare.
-> > 
-> > Suggested-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> > Suggested-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > [ paulmck: Add fixes suggested by Alan Stern. ]
-> > ---
-> >  tools/memory-model/s390.cat | 18 ++++++++++++++++++
-> >  tools/memory-model/s390.cfg | 21 +++++++++++++++++++++
-> >  2 files changed, 39 insertions(+)
-> >  create mode 100644 tools/memory-model/s390.cat
-> >  create mode 100644 tools/memory-model/s390.cfg
-> 
-> As I said before, I'd *much* prefer this to be part of the upstream
-> herdtools7 repository. It's not really anything to do with the Linux
-> kernel, so I don't think it belongs in the source tree.
+Hey Thomas,
 
-Agreed.  As the cover letter says, "Add .cfg and .cat files for s390,
-which is a not-for-mainline placeholder."
+I'd like to move ahead with my patchset and make some forward progress
+in LKML submission. If you've got something brewing regarding the FPU
+context on x86 and ARM, I'm happy to wait a bit longer so as to build
+on that. But if that is instead a far-off theoretical eventual thing,
+perhaps it's better for me to move ahead as planned, and we can switch
+to the superior FPU semantics whenever you get around to it? Either
+way, please let me know what you have in mind so our plans can stay
+somewhat sync'd.
 
-							Thanx, Paul
+Talk soon,
+Jason
