@@ -1,7 +1,7 @@
 From: Nadav Amit <namit@vmware.com>
-Subject: [PATCH v2 4/6] x86/alternatives: initializing temporary mm for patching
-Date: Sun, 2 Sep 2018 10:32:22 -0700
-Message-ID: <20180902173224.30606-5-namit@vmware.com>
+Subject: [PATCH v2 3/6] fork: provide a function for copying init_mm
+Date: Sun, 2 Sep 2018 10:32:21 -0700
+Message-ID: <20180902173224.30606-4-namit@vmware.com>
 References: <20180902173224.30606-1-namit@vmware.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,128 +9,86 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180902173224.30606-1-namit@vmware.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-To prevent improper use of the PTEs that are used for text patching, we
-want to use a temporary mm struct. We initailize it by copying the init
-mm.
+Provide a function for copying init_mm. This function will be later used
+for setting a temporary mm.
 
-The address that will be used for patching is taken from the lower area
-that is usually used for the task memory. Doing so prevents the need to
-frequently synchronize the temporary-mm (e.g., when BPF programs are
-installed), since different PGDs are used for the task memory.
-
-Finally, we randomize the address of the PTEs to harden against exploits
-that use these PTEs.
-
+Cc: Andy Lutomirski <luto@kernel.org>
 Cc: Kees Cook <keescook@chromium.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Dave Hansen <dave.hansen@intel.com>
 Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
 Tested-by: Masami Hiramatsu <mhiramat@kernel.org>
-Suggested-by: Andy Lutomirski <luto@kernel.org>
 Signed-off-by: Nadav Amit <namit@vmware.com>
 ---
- arch/x86/include/asm/pgtable.h       |  3 +++
- arch/x86/include/asm/text-patching.h |  2 ++
- arch/x86/mm/init_64.c                | 29 ++++++++++++++++++++++++++++
- init/main.c                          |  3 +++
- 4 files changed, 37 insertions(+)
+ include/linux/sched/task.h |  1 +
+ kernel/fork.c              | 24 ++++++++++++++++++------
+ 2 files changed, 19 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index e4ffa565a69f..3de9a1fb7a9a 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1022,6 +1022,9 @@ static inline void __meminit init_trampoline_default(void)
- 	/* Default trampoline pgd value */
- 	trampoline_pgd_entry = init_top_pgt[pgd_index(__PAGE_OFFSET)];
- }
-+
-+void __init poking_init(void);
-+
- # ifdef CONFIG_RANDOMIZE_MEMORY
- void __meminit init_trampoline(void);
- # else
-diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
-index e85ff65c43c3..ffe7902cc326 100644
---- a/arch/x86/include/asm/text-patching.h
-+++ b/arch/x86/include/asm/text-patching.h
-@@ -38,5 +38,7 @@ extern void *text_poke(void *addr, const void *opcode, size_t len);
- extern int poke_int3_handler(struct pt_regs *regs);
- extern void *text_poke_bp(void *addr, const void *opcode, size_t len, void *handler);
- extern int after_bootmem;
-+extern __ro_after_init struct mm_struct *poking_mm;
-+extern __ro_after_init unsigned long poking_addr;
+diff --git a/include/linux/sched/task.h b/include/linux/sched/task.h
+index 108ede99e533..ac0a675678f5 100644
+--- a/include/linux/sched/task.h
++++ b/include/linux/sched/task.h
+@@ -74,6 +74,7 @@ extern void exit_itimers(struct signal_struct *);
+ extern long _do_fork(unsigned long, unsigned long, unsigned long, int __user *, int __user *, unsigned long);
+ extern long do_fork(unsigned long, unsigned long, unsigned long, int __user *, int __user *);
+ struct task_struct *fork_idle(int);
++struct mm_struct *copy_init_mm(void);
+ extern pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
+ extern long kernel_wait4(pid_t, int __user *, int, struct rusage *);
  
- #endif /* _ASM_X86_TEXT_PATCHING_H */
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index dd519f372169..db33a724a054 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -54,6 +54,7 @@
- #include <asm/init.h>
- #include <asm/uv/uv.h>
- #include <asm/setup.h>
-+#include <asm/text-patching.h>
- 
- #include "mm_internal.h"
- 
-@@ -1389,6 +1390,34 @@ unsigned long memory_block_size_bytes(void)
- 	return memory_block_size_probed;
+diff --git a/kernel/fork.c b/kernel/fork.c
+index d896e9ca38b0..a1c637b903c1 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1254,13 +1254,20 @@ void mm_release(struct task_struct *tsk, struct mm_struct *mm)
+ 		complete_vfork_done(tsk);
  }
  
-+/*
-+ * Initialize an mm_struct to be used during poking and a pointer to be used
-+ * during patching. If anything fails during initialization, poking will be done
-+ * using the fixmap, which is unsafe, so warn the user about it.
-+ */
-+void __init poking_init(void)
+-/*
+- * Allocate a new mm structure and copy contents from the
+- * mm structure of the passed in task structure.
++/**
++ * dup_mm() - duplicates an existing mm structure
++ * @tsk: the task_struct with which the new mm will be associated.
++ * @oldmm: the mm to duplicate.
++ *
++ * Allocates a new mm structure and copy contents from the provided
++ * @oldmm structure.
++ *
++ * Return: the duplicated mm or NULL on failure.
+  */
+-static struct mm_struct *dup_mm(struct task_struct *tsk)
++static struct mm_struct *dup_mm(struct task_struct *tsk,
++				struct mm_struct *oldmm)
+ {
+-	struct mm_struct *mm, *oldmm = current->mm;
++	struct mm_struct *mm;
+ 	int err;
+ 
+ 	mm = allocate_mm();
+@@ -1327,7 +1334,7 @@ static int copy_mm(unsigned long clone_flags, struct task_struct *tsk)
+ 	}
+ 
+ 	retval = -ENOMEM;
+-	mm = dup_mm(tsk);
++	mm = dup_mm(tsk, current->mm);
+ 	if (!mm)
+ 		goto fail_nomem;
+ 
+@@ -2127,6 +2134,11 @@ struct task_struct *fork_idle(int cpu)
+ 	return task;
+ }
+ 
++struct mm_struct *copy_init_mm(void)
 +{
-+	unsigned long poking_addr;
-+
-+	poking_mm = copy_init_mm();
-+	if (!poking_mm) {
-+		pr_err("x86/mm: error setting a separate poking address space");
-+		return;
-+	}
-+
-+	/*
-+	 * Randomize the poking address, but make sure that the following page
-+	 * will be mapped at the same PMD. We need 2 pages, so find space for 3,
-+	 * and adjust the address if the PMD ends after the first one.
-+	 */
-+	poking_addr = TASK_UNMAPPED_BASE +
-+		(kaslr_get_random_long("Poking") & PAGE_MASK) %
-+		(TASK_SIZE - TASK_UNMAPPED_BASE - 3 * PAGE_SIZE);
-+
-+	if (((poking_addr + PAGE_SIZE) & ~PMD_MASK) == 0)
-+		poking_addr += PAGE_SIZE;
++	return dup_mm(NULL, &init_mm);
 +}
 +
- #ifdef CONFIG_SPARSEMEM_VMEMMAP
  /*
-  * Initialise the sparsemem vmemmap using huge-pages at the PMD level.
-diff --git a/init/main.c b/init/main.c
-index 18f8f0140fa0..8c6dd8d88fca 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -496,6 +496,8 @@ void __init __weak thread_stack_cache_init(void)
- 
- void __init __weak mem_encrypt_init(void) { }
- 
-+void __init __weak poking_init(void) { }
-+
- bool initcall_debug;
- core_param(initcall_debug, initcall_debug, bool, 0644);
- 
-@@ -725,6 +727,7 @@ asmlinkage __visible void __init start_kernel(void)
- 	taskstats_init_early();
- 	delayacct_init();
- 
-+	poking_init();
- 	check_bugs();
- 
- 	acpi_subsystem_init();
+  *  Ok, this is the main fork-routine.
+  *
 -- 
 2.17.1
