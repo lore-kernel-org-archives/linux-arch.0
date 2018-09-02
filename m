@@ -1,40 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from frisell.zx2c4.com ([192.95.5.64]:34767 "EHLO frisell.zx2c4.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727000AbeIBArX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 1 Sep 2018 20:47:23 -0400
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:42240 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726003AbeIBM2t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Sep 2018 08:28:49 -0400
+Date: Sun, 2 Sep 2018 18:13:50 +1000
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [RFC PATCH v3 00/24] Control Flow Enforcement: Shadow Stack
+Message-ID: <20180902081350.GF28695@350D>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com>
- <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de>
- <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com>
- <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
- <CAHmME9pP-rfzE9VAysm-tRiQrrKXpP2=8VEUrbS5Xt-wpEXCcA@mail.gmail.com> <CALCETrUdjCKcjg9R7P7hXxOt_Nt-htTVrJN9cwLfteh4aBz7Gw@mail.gmail.com>
-In-Reply-To: <CALCETrUdjCKcjg9R7P7hXxOt_Nt-htTVrJN9cwLfteh4aBz7Gw@mail.gmail.com>
-From: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Date: Sat, 1 Sep 2018 14:34:01 -0600
-Message-ID: <CAHmME9rL2omQxqMVCcX-jPMpcQDk8ftEn3YXWcFhS=AkVK8ZXw@mail.gmail.com>
-Subject: Re: [PATCH v2 01/17] asm: simd context helper API
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Lutomirski <luto@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
-Message-ID: <20180901203401.t8RGYPELQiA0VOgnjo5aAmUdO1I-QKelWn5w527WQGs@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20180902081350.NXi8JwlHwQ-5VBs4gr6qDzWGWQ4FvlSJLxsuqClbrd0@z>
 
-On Sat, Sep 1, 2018 at 2:32 PM Andy Lutomirski <luto@kernel.org> wrote:
-> I tend to think the right approach is to merge Jason's code and then
-> make it better later.  Even with a totally perfect lazy FPU restore
-> implementation on x86, we'll probably still need some way of dealing
-> with SIMD contexts.  I think we're highly unlikely to ever a allow
-> SIMD usage in all NMI contexts, for example, and there will always be
-> cases where we specifically don't want to use all available SIMD
-> capabilities even if we can.  For example, generating random numbers
-> does crypto, but we probably don't want to do *SIMD* crypto, since
-> that will force a save and restore and will probably fire up the
-> AVX512 unit, and that's not worth it unless we're already using it for
-> some other reason.
+On Thu, Aug 30, 2018 at 07:38:40AM -0700, Yu-cheng Yu wrote:
+> The previous version of CET patches can be found in the following
+> link.
+> 
+>   https://lkml.org/lkml/2018/7/10/1031
+> 
+> Summary of changes from v2:
+> 
+>   Move Shadow Stack page fault handling logic to arch/x86.
+>   Update can_follow_write_pte/pmd; move logic to arch/x86.
+>   Fix problems in WRUSS in-line assembly.
+>   Fix issues in ELF parser.
+>   Split out IBT/PTRACE patches to a second set.
+>   Other small fixes.
 >
-> Also, as Rik has discovered, lazy FPU restore is conceptually
-> straightforward but isn't entirely trivial :)
 
-Sounds good. I'll move ahead on this basis.
+Quick question -- is there a simulator or some other way you've
+been testing this? Just curious, if it's possible to run these
+patches or just a review and internal hardware/simulator where
+they are run and posted
+
+Balbir Singh.
