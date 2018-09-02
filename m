@@ -1,42 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:42240 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726003AbeIBM2t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Sep 2018 08:28:49 -0400
-Date: Sun, 2 Sep 2018 18:13:50 +1000
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [RFC PATCH v3 00/24] Control Flow Enforcement: Shadow Stack
-Message-ID: <20180902081350.GF28695@350D>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+Received: from mail-co1nam03on0052.outbound.protection.outlook.com ([104.47.40.52]:28448
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726065AbeIBVDP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 2 Sep 2018 17:03:15 -0400
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH 0/6] x86/alternatives: text_poke() fixes
+Date: Sun, 2 Sep 2018 16:46:46 +0000
+Message-ID: <FF03F7AC-B7D0-4A45-BC73-D67FEED7A976@vmware.com>
+References: <20180830173218.238900-1-namit@vmware.com>
+ <20180831134635.35b6c2a919449adf4b63a133@kernel.org>
+ <20180831134916.f8c409da94baa492008b188e@kernel.org>
+In-Reply-To: <20180831134916.f8c409da94baa492008b188e@kernel.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <4EE168CDBCA8804B800A6709F16EB968@namprd05.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180830143904.3168-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180902081350.NXi8JwlHwQ-5VBs4gr6qDzWGWQ4FvlSJLxsuqClbrd0@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jkosina@suse.cz>
+Message-ID: <20180902164646.oAVVNLHHr346pY_CfQEKipI_DR5msRGNtT5DNKbJdS4@z>
 
-On Thu, Aug 30, 2018 at 07:38:40AM -0700, Yu-cheng Yu wrote:
-> The previous version of CET patches can be found in the following
-> link.
-> 
->   https://lkml.org/lkml/2018/7/10/1031
-> 
-> Summary of changes from v2:
-> 
->   Move Shadow Stack page fault handling logic to arch/x86.
->   Update can_follow_write_pte/pmd; move logic to arch/x86.
->   Fix problems in WRUSS in-line assembly.
->   Fix issues in ELF parser.
->   Split out IBT/PTRACE patches to a second set.
->   Other small fixes.
->
-
-Quick question -- is there a simulator or some other way you've
-been testing this? Just curious, if it's possible to run these
-patches or just a review and internal hardware/simulator where
-they are run and posted
-
-Balbir Singh.
+YXQgOTo0OSBQTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6
+DQoNCj4gT24gRnJpLCAzMSBBdWcgMjAxOCAxMzo0NjozNSArMDkwMA0KPiBNYXNhbWkgSGlyYW1h
+dHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPiB3cm90ZToNCj4gDQo+PiBPbiBUaHUsIDMwIEF1ZyAy
+MDE4IDEwOjMyOjEyIC0wNzAwDQo+PiBOYWRhdiBBbWl0IDxuYW1pdEB2bXdhcmUuY29tPiB3cm90
+ZToNCj4+IA0KPj4+IFRoaXMgcGF0Y2gtc2V0IGFkZHJlc3NlcyBzb21lIGlzc3VlcyB0aGF0IHdl
+cmUgcmFpc2VkIGluIGEgcmVjZW50DQo+Pj4gY29ycmVzcG9uZGVuY2UgYW5kIG1pZ2h0IGFmZmVj
+dCB0aGUgc2VjdXJpdHkgYW5kIHRoZSBjb3JyZWN0bmVzcyBvZiBjb2RlDQo+Pj4gcGF0Y2hpbmcu
+IChOb3RlIHRoYXQgcGF0Y2hpbmcgcGVyZm9ybWFuY2UgaXMgbm90IGFkZHJlc3NlZCBieSB0aGlz
+DQo+Pj4gcGF0Y2gtc2V0KS4NCj4+PiANCj4+PiBUaGUgbWFpbiBpc3N1ZSB0aGF0IHRoZSBwYXRj
+aGVzIGRlYWwgd2l0aCBpcyB0aGUgZmFjdCB0aGF0IHRoZSBmaXhtYXANCj4+PiBQVEVzIHRoYXQg
+YXJlIHVzZWQgZm9yIHBhdGNoaW5nIGFyZSBhdmFpbGFibGUgZm9yIGFjY2VzcyBmcm9tIG90aGVy
+DQo+Pj4gY29yZXMgYW5kIG1pZ2h0IGJlIGV4cGxvaXRlZC4gVGhleSBhcmUgbm90IGV2ZW4gZmx1
+c2hlZCBmcm9tIHRoZSBUTEIgaW4NCj4+PiByZW1vdGUgY29yZXMsIHNvIHRoZSByaXNrIGlzIGV2
+ZW4gaGlnaGVyLiBBZGRyZXNzIHRoaXMgaXNzdWUgYnkNCj4+PiBpbnRyb2R1Y2luZyBhIHRlbXBv
+cmFyeSBtbSB0aGF0IGlzIG9ubHkgdXNlZCBkdXJpbmcgcGF0Y2hpbmcuDQo+Pj4gVW5mb3J0dW5h
+dGVseSwgZHVlIHRvIGluaXQgb3JkZXJpbmcsIGZpeG1hcCBpcyBzdGlsbCB1c2VkIGR1cmluZw0K
+Pj4+IGJvb3QtdGltZSBwYXRjaGluZy4gRnV0dXJlIHBhdGNoZXMgY2FuIGVsaW1pbmF0ZSB0aGUg
+bmVlZCBmb3IgaXQuDQo+Pj4gDQo+Pj4gVGhlIHNlY29uZCBpc3N1ZSBpcyB0aGUgbWlzc2luZyBs
+b2NrZGVwIGFzc2VydGlvbiB0byBlbnN1cmUgdGV4dF9tdXRleA0KPj4+IGlzIHRha2VuLiBJdCBp
+cyBhY3R1YWxseSBub3QgYWx3YXlzIHRha2VuLCBzbyBmaXggdGhlIGluc3RhbmNlcyB0aGF0DQo+
+Pj4gd2VyZSBmb3VuZCBub3QgdG8gdGFrZSB0aGUgbG9jayAoYWx0aG91Z2ggdGhleSBzaG91bGQg
+YmUgc2FmZSBldmVuDQo+Pj4gd2l0aG91dCB0YWtpbmcgdGhlIGxvY2spLg0KPj4+IA0KPj4+IEZp
+bmFsbHksIHRyeSB0byBiZSBtb3JlIGNvbnNlcnZhdGl2ZSBhbmQgdG8gbWFwIGEgc2luZ2xlIHBh
+Z2UsIGluc3RlYWQNCj4+PiBvZiB0d28sIHdoZW4gcG9zc2libGUuIFRoaXMgaGVscHMgYm90aCBz
+ZWN1cml0eSBhbmQgcGVyZm9ybWFuY2UuDQo+Pj4gDQo+Pj4gSW4gYWRkaXRpb24sIHRoZXJlIGlz
+IHNvbWUgY2xlYW51cCBvZiB0aGUgcGF0Y2hpbmcgY29kZSB0byBtYWtlIGl0IG1vcmUNCj4+PiBy
+ZWFkYWJsZS4NCj4+IA0KPj4gT0ssIHRoaXMgc2VyaWVzIGxvb2tzIGdvb2QgdG8gbWUsIGFuZCB0
+ZXN0ZWQgd2l0aCBmdHJhY2V0ZXN0LCBrcHJvYmUgdGVzdHNldHMuDQo+PiANCj4+IFJldmlld2Vk
+LWJ5OiBNYXNhbWkgSGlyYW1hdHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPg0KPj4gVGVzdGVkLWJ5
+OiBNYXNhbWkgSGlyYW1hdHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPg0KPiANCj4gT2gsIEkgbWlz
+c2VkIGEgbm90ZS4NCj4gDQo+IFRvIGFwcGx5IHRoaXMgc2VyaWVzIG9uIC10aXAgdHJlZSwgd2Ug
+aGF2ZSB0byByZXZlcnQgSmlyaSdzIHRleHRfbXV0ZXgNCj4gY2hlY2tlci4NCj4gDQo+IDkyMjJm
+NjA2NTA2YyAoIng4Ni9hbHRlcm5hdGl2ZXM6IExvY2tkZXAtZW5mb3JjZSB0ZXh0X211dGV4IGlu
+IHRleHRfcG9rZSooKSIpDQoNClRoYW5rcyBmb3IgdGhlIGhlYWRzLXVwLiBJ4oCZbGwgYWRkIGEg
+cmV2ZXJ0IGZvciB0aGlzIHBhdGNoIGFuZCBzZW5kIHYyLg0KDQpSZWdhcmRzLA0KTmFkYXYNCg0K
