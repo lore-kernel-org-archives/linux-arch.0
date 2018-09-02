@@ -1,60 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0052.outbound.protection.outlook.com ([104.47.40.52]:28448
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726065AbeIBVDP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 2 Sep 2018 17:03:15 -0400
+Received: from ex13-edg-ou-002.vmware.com ([208.91.0.190]:36915 "EHLO
+        EX13-EDG-OU-002.vmware.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726065AbeIBVuN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Sep 2018 17:50:13 -0400
 From: Nadav Amit <namit@vmware.com>
-Subject: Re: [PATCH 0/6] x86/alternatives: text_poke() fixes
-Date: Sun, 2 Sep 2018 16:46:46 +0000
-Message-ID: <FF03F7AC-B7D0-4A45-BC73-D67FEED7A976@vmware.com>
-References: <20180830173218.238900-1-namit@vmware.com>
- <20180831134635.35b6c2a919449adf4b63a133@kernel.org>
- <20180831134916.f8c409da94baa492008b188e@kernel.org>
-In-Reply-To: <20180831134916.f8c409da94baa492008b188e@kernel.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <4EE168CDBCA8804B800A6709F16EB968@namprd05.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Subject: [PATCH v2 1/6] Fix "x86/alternatives: Lockdep-enforce text_mutex in text_poke*()"
+Date: Sun, 2 Sep 2018 10:32:19 -0700
+Message-ID: <20180902173224.30606-2-namit@vmware.com>
+In-Reply-To: <20180902173224.30606-1-namit@vmware.com>
+References: <20180902173224.30606-1-namit@vmware.com>
 MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jkosina@suse.cz>
-Message-ID: <20180902164646.oAVVNLHHr346pY_CfQEKipI_DR5msRGNtT5DNKbJdS4@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Dave Hansen <dave.hansen@intel.com>
+Message-ID: <20180902173219.1VpfcJ2cdiedy6nz7S3HktNywpX943BOjFguutgqSmo@z>
 
-YXQgOTo0OSBQTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6
-DQoNCj4gT24gRnJpLCAzMSBBdWcgMjAxOCAxMzo0NjozNSArMDkwMA0KPiBNYXNhbWkgSGlyYW1h
-dHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPiB3cm90ZToNCj4gDQo+PiBPbiBUaHUsIDMwIEF1ZyAy
-MDE4IDEwOjMyOjEyIC0wNzAwDQo+PiBOYWRhdiBBbWl0IDxuYW1pdEB2bXdhcmUuY29tPiB3cm90
-ZToNCj4+IA0KPj4+IFRoaXMgcGF0Y2gtc2V0IGFkZHJlc3NlcyBzb21lIGlzc3VlcyB0aGF0IHdl
-cmUgcmFpc2VkIGluIGEgcmVjZW50DQo+Pj4gY29ycmVzcG9uZGVuY2UgYW5kIG1pZ2h0IGFmZmVj
-dCB0aGUgc2VjdXJpdHkgYW5kIHRoZSBjb3JyZWN0bmVzcyBvZiBjb2RlDQo+Pj4gcGF0Y2hpbmcu
-IChOb3RlIHRoYXQgcGF0Y2hpbmcgcGVyZm9ybWFuY2UgaXMgbm90IGFkZHJlc3NlZCBieSB0aGlz
-DQo+Pj4gcGF0Y2gtc2V0KS4NCj4+PiANCj4+PiBUaGUgbWFpbiBpc3N1ZSB0aGF0IHRoZSBwYXRj
-aGVzIGRlYWwgd2l0aCBpcyB0aGUgZmFjdCB0aGF0IHRoZSBmaXhtYXANCj4+PiBQVEVzIHRoYXQg
-YXJlIHVzZWQgZm9yIHBhdGNoaW5nIGFyZSBhdmFpbGFibGUgZm9yIGFjY2VzcyBmcm9tIG90aGVy
-DQo+Pj4gY29yZXMgYW5kIG1pZ2h0IGJlIGV4cGxvaXRlZC4gVGhleSBhcmUgbm90IGV2ZW4gZmx1
-c2hlZCBmcm9tIHRoZSBUTEIgaW4NCj4+PiByZW1vdGUgY29yZXMsIHNvIHRoZSByaXNrIGlzIGV2
-ZW4gaGlnaGVyLiBBZGRyZXNzIHRoaXMgaXNzdWUgYnkNCj4+PiBpbnRyb2R1Y2luZyBhIHRlbXBv
-cmFyeSBtbSB0aGF0IGlzIG9ubHkgdXNlZCBkdXJpbmcgcGF0Y2hpbmcuDQo+Pj4gVW5mb3J0dW5h
-dGVseSwgZHVlIHRvIGluaXQgb3JkZXJpbmcsIGZpeG1hcCBpcyBzdGlsbCB1c2VkIGR1cmluZw0K
-Pj4+IGJvb3QtdGltZSBwYXRjaGluZy4gRnV0dXJlIHBhdGNoZXMgY2FuIGVsaW1pbmF0ZSB0aGUg
-bmVlZCBmb3IgaXQuDQo+Pj4gDQo+Pj4gVGhlIHNlY29uZCBpc3N1ZSBpcyB0aGUgbWlzc2luZyBs
-b2NrZGVwIGFzc2VydGlvbiB0byBlbnN1cmUgdGV4dF9tdXRleA0KPj4+IGlzIHRha2VuLiBJdCBp
-cyBhY3R1YWxseSBub3QgYWx3YXlzIHRha2VuLCBzbyBmaXggdGhlIGluc3RhbmNlcyB0aGF0DQo+
-Pj4gd2VyZSBmb3VuZCBub3QgdG8gdGFrZSB0aGUgbG9jayAoYWx0aG91Z2ggdGhleSBzaG91bGQg
-YmUgc2FmZSBldmVuDQo+Pj4gd2l0aG91dCB0YWtpbmcgdGhlIGxvY2spLg0KPj4+IA0KPj4+IEZp
-bmFsbHksIHRyeSB0byBiZSBtb3JlIGNvbnNlcnZhdGl2ZSBhbmQgdG8gbWFwIGEgc2luZ2xlIHBh
-Z2UsIGluc3RlYWQNCj4+PiBvZiB0d28sIHdoZW4gcG9zc2libGUuIFRoaXMgaGVscHMgYm90aCBz
-ZWN1cml0eSBhbmQgcGVyZm9ybWFuY2UuDQo+Pj4gDQo+Pj4gSW4gYWRkaXRpb24sIHRoZXJlIGlz
-IHNvbWUgY2xlYW51cCBvZiB0aGUgcGF0Y2hpbmcgY29kZSB0byBtYWtlIGl0IG1vcmUNCj4+PiBy
-ZWFkYWJsZS4NCj4+IA0KPj4gT0ssIHRoaXMgc2VyaWVzIGxvb2tzIGdvb2QgdG8gbWUsIGFuZCB0
-ZXN0ZWQgd2l0aCBmdHJhY2V0ZXN0LCBrcHJvYmUgdGVzdHNldHMuDQo+PiANCj4+IFJldmlld2Vk
-LWJ5OiBNYXNhbWkgSGlyYW1hdHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPg0KPj4gVGVzdGVkLWJ5
-OiBNYXNhbWkgSGlyYW1hdHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPg0KPiANCj4gT2gsIEkgbWlz
-c2VkIGEgbm90ZS4NCj4gDQo+IFRvIGFwcGx5IHRoaXMgc2VyaWVzIG9uIC10aXAgdHJlZSwgd2Ug
-aGF2ZSB0byByZXZlcnQgSmlyaSdzIHRleHRfbXV0ZXgNCj4gY2hlY2tlci4NCj4gDQo+IDkyMjJm
-NjA2NTA2YyAoIng4Ni9hbHRlcm5hdGl2ZXM6IExvY2tkZXAtZW5mb3JjZSB0ZXh0X211dGV4IGlu
-IHRleHRfcG9rZSooKSIpDQoNClRoYW5rcyBmb3IgdGhlIGhlYWRzLXVwLiBJ4oCZbGwgYWRkIGEg
-cmV2ZXJ0IGZvciB0aGlzIHBhdGNoIGFuZCBzZW5kIHYyLg0KDQpSZWdhcmRzLA0KTmFkYXYNCg0K
+text_mutex is expected to be held before text_poke() is called, but we
+cannot add a lockdep assertion since kgdb does not take it, and instead
+*supposedly* ensures the lock is not taken and will not be acquired by
+any other core while text_poke() is running.
+
+The reason for the "supposedly" comment is that it is not entirely clear
+that this would be the case if gdb_do_roundup is zero.
+
+Add a comment to clarify this behavior, and restore the assertions as
+they were before the recent commit.
+
+This partially reverts commit 9222f606506c ("x86/alternatives:
+Lockdep-enforce text_mutex in text_poke*()")
+
+Cc: Jiri Kosina <jkosina@suse.cz>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Fixes: 9222f606506c ("x86/alternatives: Lockdep-enforce text_mutex in text_poke*()")
+Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+Tested-by: Masami Hiramatsu <mhiramat@kernel.org>
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/kernel/alternative.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index b9d5e7c9ef43..e9be18245698 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -684,6 +684,11 @@ void *__init_or_module text_poke_early(void *addr, const void *opcode,
+  * It means the size must be writable atomically and the address must be aligned
+  * in a way that permits an atomic write. It also makes sure we fit on a single
+  * page.
++ *
++ * Context: Must be called under text_mutex. kgdb is an exception: it does not
++ *	    hold the mutex, as it *supposedly* ensures that no other core is
++ *	    holding the mutex and ensures that none of them will acquire the
++ *	    mutex while the code runs.
+  */
+ void *text_poke(void *addr, const void *opcode, size_t len)
+ {
+@@ -698,8 +703,6 @@ void *text_poke(void *addr, const void *opcode, size_t len)
+ 	 */
+ 	BUG_ON(!after_bootmem);
+ 
+-	lockdep_assert_held(&text_mutex);
+-
+ 	if (!core_kernel_text((unsigned long)addr)) {
+ 		pages[0] = vmalloc_to_page(addr);
+ 		pages[1] = vmalloc_to_page(addr + PAGE_SIZE);
+-- 
+2.17.1
