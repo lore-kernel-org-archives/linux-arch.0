@@ -1,72 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ex13-edg-ou-002.vmware.com ([208.91.0.190]:36915 "EHLO
-        EX13-EDG-OU-002.vmware.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726296AbeIBVuQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Sep 2018 17:50:16 -0400
+Received: from ex13-edg-ou-001.vmware.com ([208.91.0.189]:48413 "EHLO
+        EX13-EDG-OU-001.vmware.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726592AbeIBVuO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Sep 2018 17:50:14 -0400
 From: Nadav Amit <namit@vmware.com>
-Subject: [PATCH v2 6/6] x86/alternatives: remove text_poke() return value
-Date: Sun, 2 Sep 2018 10:32:24 -0700
-Message-ID: <20180902173224.30606-7-namit@vmware.com>
-In-Reply-To: <20180902173224.30606-1-namit@vmware.com>
-References: <20180902173224.30606-1-namit@vmware.com>
+Subject: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
+Date: Sun, 2 Sep 2018 10:32:18 -0700
+Message-ID: <20180902173224.30606-1-namit@vmware.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20180902173224.SKzBbWaA282IxTYbDnW1Qu-RI2w26NSUkoyEW2JOvc0@z>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180902173218.tLCBUZe8dSXmwoXMtFZTavW4N4DZp3tA6gucWGDWPOk@z>
 
-The return value of text_poke() is meaningless - it is one of the
-function inputs. One day someone may allow the callers to deal with
-text_poke() failures, if those actually happen.
+This patch-set addresses some issues that were raised in a recent
+correspondence and might affect the security and the correctness of code
+patching. (Note that patching performance is not addressed by this
+patch-set).
 
-In the meanwhile, remove the return value.
+The main issue that the patches deal with is the fact that the fixmap
+PTEs that are used for patching are available for access from other
+cores and might be exploited. They are not even flushed from the TLB in
+remote cores, so the risk is even higher. Address this issue by
+introducing a temporary mm that is only used during patching.
+Unfortunately, due to init ordering, fixmap is still used during
+boot-time patching. Future patches can eliminate the need for it.
 
+The second issue is the missing lockdep assertion to ensure text_mutex
+is taken. It is actually not always taken, so fix the instances that
+were found not to take the lock (although they should be safe even
+without taking the lock).
+
+Finally, try to be more conservative and to map a single page, instead
+of two, when possible. This helps both security and performance.
+
+In addition, there is some cleanup of the patching code to make it more
+readable.
+
+v1->v2:
+- Partial revert of 9222f606506c added to 1/6 [masami]
+- Added Masami's reviewed-by tag
+
+RFC->v1:
+- Added handling of error in get_locked_pte()
+- Remove lockdep assertion, clarify text_mutex use instead [masami]
+- Comment fix [peterz]
+- Removed remainders of text_poke return value [masami]
+- Use __weak for poking_init instead of macros [masami]
+- Simplify error handling in poking_init [masami]  
+
+Cc: Jiri Kosina <jkosina@suse.cz>
 Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>
 Cc: Kees Cook <keescook@chromium.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-Tested-by: Masami Hiramatsu <mhiramat@kernel.org>
-Signed-off-by: Nadav Amit <namit@vmware.com>
----
- arch/x86/include/asm/text-patching.h | 2 +-
- arch/x86/kernel/alternative.c        | 3 +--
- 2 files changed, 2 insertions(+), 3 deletions(-)
+Link: https://lkml.org/lkml/2018/8/24/586
 
-diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
-index ffe7902cc326..1f73f71b4de2 100644
---- a/arch/x86/include/asm/text-patching.h
-+++ b/arch/x86/include/asm/text-patching.h
-@@ -34,7 +34,7 @@ extern void *text_poke_early(void *addr, const void *opcode, size_t len);
-  * On the local CPU you need to be protected again NMI or MCE handlers seeing an
-  * inconsistent instruction while you patch.
-  */
--extern void *text_poke(void *addr, const void *opcode, size_t len);
-+extern void text_poke(void *addr, const void *opcode, size_t len);
- extern int poke_int3_handler(struct pt_regs *regs);
- extern void *text_poke_bp(void *addr, const void *opcode, size_t len, void *handler);
- extern int after_bootmem;
-diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-index edca599c4479..7a30c5a3ca37 100644
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -809,7 +809,7 @@ static void text_poke_safe(void *addr, const void *opcode, size_t len,
-  *	    holding the mutex and ensures that none of them will acquire the
-  *	    mutex while the code runs.
-  */
--void *text_poke(void *addr, const void *opcode, size_t len)
-+void text_poke(void *addr, const void *opcode, size_t len)
- {
- 	bool cross_page_boundary = offset_in_page(addr) + len > PAGE_SIZE;
- 	struct page *pages[2] = {0};
-@@ -851,7 +851,6 @@ void *text_poke(void *addr, const void *opcode, size_t len)
- 	BUG_ON(memcmp(addr, opcode, len));
- 
- 	local_irq_restore(flags);
--	return addr;
- }
- 
- static void do_sync_core(void *info)
+Andy Lutomirski (1):
+  x86/mm: temporary mm struct
+
+Nadav Amit (5):
+  Fix "x86/alternatives: Lockdep-enforce text_mutex in text_poke*()"
+  fork: provide a function for copying init_mm
+  x86/alternatives: initializing temporary mm for patching
+  x86/alternatives: use temporary mm for text poking
+  x86/alternatives: remove text_poke() return value
+
+ arch/x86/include/asm/mmu_context.h   |  20 +++
+ arch/x86/include/asm/pgtable.h       |   3 +
+ arch/x86/include/asm/text-patching.h |   4 +-
+ arch/x86/kernel/alternative.c        | 175 +++++++++++++++++++++++----
+ arch/x86/mm/init_64.c                |  29 +++++
+ include/linux/sched/task.h           |   1 +
+ init/main.c                          |   3 +
+ kernel/fork.c                        |  24 +++-
+ 8 files changed, 227 insertions(+), 32 deletions(-)
+
 -- 
 2.17.1
