@@ -1,54 +1,67 @@
 From: Nadav Amit <namit@vmware.com>
-Subject: Re: [PATCH 0/6] x86/alternatives: text_poke() fixes
-Date: Sun, 2 Sep 2018 16:46:46 +0000
-Message-ID: <FF03F7AC-B7D0-4A45-BC73-D67FEED7A976@vmware.com>
-References: <20180830173218.238900-1-namit@vmware.com>
- <20180831134635.35b6c2a919449adf4b63a133@kernel.org>
- <20180831134916.f8c409da94baa492008b188e@kernel.org>
+Subject: [PATCH v2 6/6] x86/alternatives: remove text_poke() return value
+Date: Sun, 2 Sep 2018 10:32:24 -0700
+Message-ID: <20180902173224.30606-7-namit@vmware.com>
+References: <20180902173224.30606-1-namit@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180831134916.f8c409da94baa492008b188e@kernel.org>
-Content-Language: en-US
-Content-ID: <4EE168CDBCA8804B800A6709F16EB968@namprd05.prod.outlook.com>
+In-Reply-To: <20180902173224.30606-1-namit@vmware.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Jiri Kosina <jkosina@suse.cz>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-YXQgOTo0OSBQTSwgTWFzYW1pIEhpcmFtYXRzdSA8bWhpcmFtYXRAa2VybmVsLm9yZz4gd3JvdGU6
-DQoNCj4gT24gRnJpLCAzMSBBdWcgMjAxOCAxMzo0NjozNSArMDkwMA0KPiBNYXNhbWkgSGlyYW1h
-dHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPiB3cm90ZToNCj4gDQo+PiBPbiBUaHUsIDMwIEF1ZyAy
-MDE4IDEwOjMyOjEyIC0wNzAwDQo+PiBOYWRhdiBBbWl0IDxuYW1pdEB2bXdhcmUuY29tPiB3cm90
-ZToNCj4+IA0KPj4+IFRoaXMgcGF0Y2gtc2V0IGFkZHJlc3NlcyBzb21lIGlzc3VlcyB0aGF0IHdl
-cmUgcmFpc2VkIGluIGEgcmVjZW50DQo+Pj4gY29ycmVzcG9uZGVuY2UgYW5kIG1pZ2h0IGFmZmVj
-dCB0aGUgc2VjdXJpdHkgYW5kIHRoZSBjb3JyZWN0bmVzcyBvZiBjb2RlDQo+Pj4gcGF0Y2hpbmcu
-IChOb3RlIHRoYXQgcGF0Y2hpbmcgcGVyZm9ybWFuY2UgaXMgbm90IGFkZHJlc3NlZCBieSB0aGlz
-DQo+Pj4gcGF0Y2gtc2V0KS4NCj4+PiANCj4+PiBUaGUgbWFpbiBpc3N1ZSB0aGF0IHRoZSBwYXRj
-aGVzIGRlYWwgd2l0aCBpcyB0aGUgZmFjdCB0aGF0IHRoZSBmaXhtYXANCj4+PiBQVEVzIHRoYXQg
-YXJlIHVzZWQgZm9yIHBhdGNoaW5nIGFyZSBhdmFpbGFibGUgZm9yIGFjY2VzcyBmcm9tIG90aGVy
-DQo+Pj4gY29yZXMgYW5kIG1pZ2h0IGJlIGV4cGxvaXRlZC4gVGhleSBhcmUgbm90IGV2ZW4gZmx1
-c2hlZCBmcm9tIHRoZSBUTEIgaW4NCj4+PiByZW1vdGUgY29yZXMsIHNvIHRoZSByaXNrIGlzIGV2
-ZW4gaGlnaGVyLiBBZGRyZXNzIHRoaXMgaXNzdWUgYnkNCj4+PiBpbnRyb2R1Y2luZyBhIHRlbXBv
-cmFyeSBtbSB0aGF0IGlzIG9ubHkgdXNlZCBkdXJpbmcgcGF0Y2hpbmcuDQo+Pj4gVW5mb3J0dW5h
-dGVseSwgZHVlIHRvIGluaXQgb3JkZXJpbmcsIGZpeG1hcCBpcyBzdGlsbCB1c2VkIGR1cmluZw0K
-Pj4+IGJvb3QtdGltZSBwYXRjaGluZy4gRnV0dXJlIHBhdGNoZXMgY2FuIGVsaW1pbmF0ZSB0aGUg
-bmVlZCBmb3IgaXQuDQo+Pj4gDQo+Pj4gVGhlIHNlY29uZCBpc3N1ZSBpcyB0aGUgbWlzc2luZyBs
-b2NrZGVwIGFzc2VydGlvbiB0byBlbnN1cmUgdGV4dF9tdXRleA0KPj4+IGlzIHRha2VuLiBJdCBp
-cyBhY3R1YWxseSBub3QgYWx3YXlzIHRha2VuLCBzbyBmaXggdGhlIGluc3RhbmNlcyB0aGF0DQo+
-Pj4gd2VyZSBmb3VuZCBub3QgdG8gdGFrZSB0aGUgbG9jayAoYWx0aG91Z2ggdGhleSBzaG91bGQg
-YmUgc2FmZSBldmVuDQo+Pj4gd2l0aG91dCB0YWtpbmcgdGhlIGxvY2spLg0KPj4+IA0KPj4+IEZp
-bmFsbHksIHRyeSB0byBiZSBtb3JlIGNvbnNlcnZhdGl2ZSBhbmQgdG8gbWFwIGEgc2luZ2xlIHBh
-Z2UsIGluc3RlYWQNCj4+PiBvZiB0d28sIHdoZW4gcG9zc2libGUuIFRoaXMgaGVscHMgYm90aCBz
-ZWN1cml0eSBhbmQgcGVyZm9ybWFuY2UuDQo+Pj4gDQo+Pj4gSW4gYWRkaXRpb24sIHRoZXJlIGlz
-IHNvbWUgY2xlYW51cCBvZiB0aGUgcGF0Y2hpbmcgY29kZSB0byBtYWtlIGl0IG1vcmUNCj4+PiBy
-ZWFkYWJsZS4NCj4+IA0KPj4gT0ssIHRoaXMgc2VyaWVzIGxvb2tzIGdvb2QgdG8gbWUsIGFuZCB0
-ZXN0ZWQgd2l0aCBmdHJhY2V0ZXN0LCBrcHJvYmUgdGVzdHNldHMuDQo+PiANCj4+IFJldmlld2Vk
-LWJ5OiBNYXNhbWkgSGlyYW1hdHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPg0KPj4gVGVzdGVkLWJ5
-OiBNYXNhbWkgSGlyYW1hdHN1IDxtaGlyYW1hdEBrZXJuZWwub3JnPg0KPiANCj4gT2gsIEkgbWlz
-c2VkIGEgbm90ZS4NCj4gDQo+IFRvIGFwcGx5IHRoaXMgc2VyaWVzIG9uIC10aXAgdHJlZSwgd2Ug
-aGF2ZSB0byByZXZlcnQgSmlyaSdzIHRleHRfbXV0ZXgNCj4gY2hlY2tlci4NCj4gDQo+IDkyMjJm
-NjA2NTA2YyAoIng4Ni9hbHRlcm5hdGl2ZXM6IExvY2tkZXAtZW5mb3JjZSB0ZXh0X211dGV4IGlu
-IHRleHRfcG9rZSooKSIpDQoNClRoYW5rcyBmb3IgdGhlIGhlYWRzLXVwLiBJ4oCZbGwgYWRkIGEg
-cmV2ZXJ0IGZvciB0aGlzIHBhdGNoIGFuZCBzZW5kIHYyLg0KDQpSZWdhcmRzLA0KTmFkYXYNCg0K
+The return value of text_poke() is meaningless - it is one of the
+function inputs. One day someone may allow the callers to deal with
+text_poke() failures, if those actually happen.
+
+In the meanwhile, remove the return value.
+
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
+Tested-by: Masami Hiramatsu <mhiramat@kernel.org>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/include/asm/text-patching.h | 2 +-
+ arch/x86/kernel/alternative.c        | 3 +--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
+index ffe7902cc326..1f73f71b4de2 100644
+--- a/arch/x86/include/asm/text-patching.h
++++ b/arch/x86/include/asm/text-patching.h
+@@ -34,7 +34,7 @@ extern void *text_poke_early(void *addr, const void *opcode, size_t len);
+  * On the local CPU you need to be protected again NMI or MCE handlers seeing an
+  * inconsistent instruction while you patch.
+  */
+-extern void *text_poke(void *addr, const void *opcode, size_t len);
++extern void text_poke(void *addr, const void *opcode, size_t len);
+ extern int poke_int3_handler(struct pt_regs *regs);
+ extern void *text_poke_bp(void *addr, const void *opcode, size_t len, void *handler);
+ extern int after_bootmem;
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index edca599c4479..7a30c5a3ca37 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -809,7 +809,7 @@ static void text_poke_safe(void *addr, const void *opcode, size_t len,
+  *	    holding the mutex and ensures that none of them will acquire the
+  *	    mutex while the code runs.
+  */
+-void *text_poke(void *addr, const void *opcode, size_t len)
++void text_poke(void *addr, const void *opcode, size_t len)
+ {
+ 	bool cross_page_boundary = offset_in_page(addr) + len > PAGE_SIZE;
+ 	struct page *pages[2] = {0};
+@@ -851,7 +851,6 @@ void *text_poke(void *addr, const void *opcode, size_t len)
+ 	BUG_ON(memcmp(addr, opcode, len));
+ 
+ 	local_irq_restore(flags);
+-	return addr;
+ }
+ 
+ static void do_sync_core(void *info)
+-- 
+2.17.1
