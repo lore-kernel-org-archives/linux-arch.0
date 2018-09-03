@@ -1,39 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:48794 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:45798 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726384AbeICV7P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 17:59:15 -0400
+        with ESMTP id S1728380AbeICVqw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 17:46:52 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.18 095/123] kprobes: Show blacklist addresses as same as kallsyms does
-Date: Mon,  3 Sep 2018 18:57:19 +0200
-Message-ID: <20180903165723.541888181@linuxfoundation.org>
-In-Reply-To: <20180903165719.499675257@linuxfoundation.org>
-References: <20180903165719.499675257@linuxfoundation.org>
+Subject: [PATCH 4.14 097/165] kprobes/arm64: Fix %p uses in error messages
+Date: Mon,  3 Sep 2018 18:56:23 +0200
+Message-ID: <20180903165700.385384739@linuxfoundation.org>
+In-Reply-To: <20180903165655.003605184@linuxfoundation.org>
+References: <20180903165655.003605184@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180903165719.3Dd_Z9CZnAJPWKr4Nm3XZH1xzMhQITDyMKxDFvZX0Lg@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Will Deacon <will.deacon@arm.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20180903165623.YMujpY2dolbVkNJb0MWPdn-CJMzePy4Po42RcEr1GCo@z>
 
-4.18-stable review patch.  If anyone has any objections, please let me know.
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
 From: Masami Hiramatsu <mhiramat@kernel.org>
 
-commit ffb9bd68ebdb3b8d00ef5a79bbe8167a3281cace upstream.
+commit 0722867dcbc28cc9b269b57acd847c7c1aa638d6 upstream.
 
-Show kprobes blacklist addresses under same condition of
-showing kallsyms addresses.
-
-Since there are several name conflict for local symbols,
-kprobe blacklist needs to show each addresses so that
-user can identify where is on blacklist by comparing
-with kallsyms.
+Fix %p uses in error messages by removing it because
+those are redundant or meaningless.
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Acked-by: Will Deacon <will.deacon@arm.com>
 Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
@@ -46,7 +42,6 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Thomas Richter <tmricht@linux.ibm.com>
 Cc: Tobin C . Harding <me@tobin.cc>
-Cc: Will Deacon <will.deacon@arm.com>
 Cc: acme@kernel.org
 Cc: akpm@linux-foundation.org
 Cc: brueckner@linux.vnet.ibm.com
@@ -54,32 +49,22 @@ Cc: linux-arch@vger.kernel.org
 Cc: rostedt@goodmis.org
 Cc: schwidefsky@de.ibm.com
 Cc: stable@vger.kernel.org
-Link: https://lkml.kernel.org/lkml/152491893217.9916.14760965896164273464.stgit@devbox
+Link: https://lkml.kernel.org/lkml/152491908405.9916.12425053035317241111.stgit@devbox
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 ---
- kernel/kprobes.c |   12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/probes/kprobes.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -2428,8 +2428,16 @@ static int kprobe_blacklist_seq_show(str
- 	struct kprobe_blacklist_entry *ent =
- 		list_entry(v, struct kprobe_blacklist_entry, list);
- 
--	seq_printf(m, "0x%px-0x%px\t%ps\n", (void *)ent->start_addr,
--		   (void *)ent->end_addr, (void *)ent->start_addr);
-+	/*
-+	 * If /proc/kallsyms is not showing kernel address, we won't
-+	 * show them here either.
-+	 */
-+	if (!kallsyms_show_value())
-+		seq_printf(m, "0x%px-0x%px\t%ps\n", NULL, NULL,
-+			   (void *)ent->start_addr);
-+	else
-+		seq_printf(m, "0x%px-0x%px\t%ps\n", (void *)ent->start_addr,
-+			   (void *)ent->end_addr, (void *)ent->start_addr);
- 	return 0;
- }
- 
+--- a/arch/arm64/kernel/probes/kprobes.c
++++ b/arch/arm64/kernel/probes/kprobes.c
+@@ -275,7 +275,7 @@ static int __kprobes reenter_kprobe(stru
+ 		break;
+ 	case KPROBE_HIT_SS:
+ 	case KPROBE_REENTER:
+-		pr_warn("Unrecoverable kprobe detected at %p.\n", p->addr);
++		pr_warn("Unrecoverable kprobe detected.\n");
+ 		dump_kprobe(p);
+ 		BUG();
+ 		break;
