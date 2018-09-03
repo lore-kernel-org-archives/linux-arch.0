@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 3.18 52/56] kprobes: Make list and blacklist root user read only
-Date: Mon,  3 Sep 2018 18:49:42 +0200
-Message-ID: <20180903164926.693752256@linuxfoundation.org>
-References: <20180903164924.078355019@linuxfoundation.org>
+Subject: [PATCH 4.4 74/80] kprobes: Make list and blacklist root user read only
+Date: Mon,  3 Sep 2018 18:49:52 +0200
+Message-ID: <20180903164937.102180022@linuxfoundation.org>
+References: <20180903164934.171677301@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180903164924.078355019@linuxfoundation.org>
+In-Reply-To: <20180903164934.171677301@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Thomas Richter <tmricht@linux.ibm.com>, Ingo Molnar <mingo@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.k
 List-Id: linux-arch.vger.kernel.org
 
-3.18-stable review patch.  If anyone has any objections, please let me know.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -56,7 +56,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/kernel/kprobes.c
 +++ b/kernel/kprobes.c
-@@ -2425,7 +2425,7 @@ static int __init debugfs_kprobe_init(vo
+@@ -2441,7 +2441,7 @@ static int __init debugfs_kprobe_init(vo
  	if (!dir)
  		return -ENOMEM;
  
@@ -65,7 +65,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  				&debugfs_kprobes_operations);
  	if (!file)
  		goto error;
-@@ -2435,7 +2435,7 @@ static int __init debugfs_kprobe_init(vo
+@@ -2451,7 +2451,7 @@ static int __init debugfs_kprobe_init(vo
  	if (!file)
  		goto error;
  
