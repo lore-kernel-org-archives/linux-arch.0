@@ -1,68 +1,48 @@
-From: Nadav Amit <namit@vmware.com>
-Subject: [PATCH v2 1/6] Fix "x86/alternatives: Lockdep-enforce text_mutex in text_poke*()"
-Date: Sun, 2 Sep 2018 10:32:19 -0700
-Message-ID: <20180902173224.30606-2-namit@vmware.com>
-References: <20180902173224.30606-1-namit@vmware.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [RFC PATCH v3 05/24] Documentation/x86: Add CET description
+Date: Sun, 2 Sep 2018 19:56:55 -0700
+Message-ID: <709e5e6c-dab1-7a20-9641-b36a0867c006@infradead.org>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+ <20180830143904.3168-6-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180902173224.30606-1-namit@vmware.com>
+In-Reply-To: <20180830143904.3168-6-yu-cheng.yu@intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Nadav Amit <namit@vmware.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Dave Hansen <dave.hansen@intel.com>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromiun.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
 List-Id: linux-arch.vger.kernel.org
 
-text_mutex is expected to be held before text_poke() is called, but we
-cannot add a lockdep assertion since kgdb does not take it, and instead
-*supposedly* ensures the lock is not taken and will not be acquired by
-any other core while text_poke() is running.
+Hi,
 
-The reason for the "supposedly" comment is that it is not entirely clear
-that this would be the case if gdb_do_roundup is zero.
+One spello:
 
-Add a comment to clarify this behavior, and restore the assertions as
-they were before the recent commit.
+On 08/30/2018 07:38 AM, Yu-cheng Yu wrote:
 
-This partially reverts commit 9222f606506c ("x86/alternatives:
-Lockdep-enforce text_mutex in text_poke*()")
+> diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
+> new file mode 100644
+> index 000000000000..337baa1f6980
+> --- /dev/null
+> +++ b/Documentation/x86/intel_cet.rst
+> @@ -0,0 +1,252 @@
+> +=========================================
+> +Control Flow Enforcement Technology (CET)
+> +=========================================
+> +
+> +[1] Overview
+> +============
+> +
+> +Control Flow Enforcement Technology (CET) provides protection against
+> +return/jump-oriented programing (ROP) attacks.  It can be implemented
 
-Cc: Jiri Kosina <jkosina@suse.cz>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Dave Hansen <dave.hansen@intel.com>
-Fixes: 9222f606506c ("x86/alternatives: Lockdep-enforce text_mutex in text_poke*()")
-Reviewed-by: Masami Hiramatsu <mhiramat@kernel.org>
-Tested-by: Masami Hiramatsu <mhiramat@kernel.org>
-Suggested-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Nadav Amit <namit@vmware.com>
----
- arch/x86/kernel/alternative.c | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+                        programming
 
-diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-index b9d5e7c9ef43..e9be18245698 100644
---- a/arch/x86/kernel/alternative.c
-+++ b/arch/x86/kernel/alternative.c
-@@ -684,6 +684,11 @@ void *__init_or_module text_poke_early(void *addr, const void *opcode,
-  * It means the size must be writable atomically and the address must be aligned
-  * in a way that permits an atomic write. It also makes sure we fit on a single
-  * page.
-+ *
-+ * Context: Must be called under text_mutex. kgdb is an exception: it does not
-+ *	    hold the mutex, as it *supposedly* ensures that no other core is
-+ *	    holding the mutex and ensures that none of them will acquire the
-+ *	    mutex while the code runs.
-  */
- void *text_poke(void *addr, const void *opcode, size_t len)
- {
-@@ -698,8 +703,6 @@ void *text_poke(void *addr, const void *opcode, size_t len)
- 	 */
- 	BUG_ON(!after_bootmem);
- 
--	lockdep_assert_held(&text_mutex);
--
- 	if (!core_kernel_text((unsigned long)addr)) {
- 		pages[0] = vmalloc_to_page(addr);
- 		pages[1] = vmalloc_to_page(addr + PAGE_SIZE);
+> +to protect both the kernel and applications.  In the first phase,
+> +only the user-mode protection is implemented for the 64-bit kernel.
+> +Thirty-two bit applications are supported under the compatibility
+> +mode.
+
+
 -- 
-2.17.1
+~Randy
