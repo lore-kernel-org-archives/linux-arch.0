@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:37856 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:38908 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727868AbeICVNZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 17:13:25 -0400
+        with ESMTP id S1728215AbeICVXR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 17:23:17 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 3.18 52/56] kprobes: Make list and blacklist root user read only
-Date: Mon,  3 Sep 2018 18:49:42 +0200
-Message-ID: <20180903164926.693752256@linuxfoundation.org>
-In-Reply-To: <20180903164924.078355019@linuxfoundation.org>
-References: <20180903164924.078355019@linuxfoundation.org>
+Subject: [PATCH 4.4 74/80] kprobes: Make list and blacklist root user read only
+Date: Mon,  3 Sep 2018 18:49:52 +0200
+Message-ID: <20180903164937.102180022@linuxfoundation.org>
+In-Reply-To: <20180903164934.171677301@linuxfoundation.org>
+References: <20180903164934.171677301@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Thomas Richter <tmricht@linux.ibm.com>, Ingo Molnar <mingo@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com
-Message-ID: <20180903164942.wmMAwjENPfQjYU0WwgAgJfVUAyn95ymGmYnSuRGzQr8@z>
+Message-ID: <20180903164952.ioFhkl0QCiV28e3zG3zgIbqI8NsSSHAWbUOXstAUyBo@z>
 
-3.18-stable review patch.  If anyone has any objections, please let me know.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -61,7 +61,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/kernel/kprobes.c
 +++ b/kernel/kprobes.c
-@@ -2425,7 +2425,7 @@ static int __init debugfs_kprobe_init(vo
+@@ -2441,7 +2441,7 @@ static int __init debugfs_kprobe_init(vo
  	if (!dir)
  		return -ENOMEM;
  
@@ -70,7 +70,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  				&debugfs_kprobes_operations);
  	if (!file)
  		goto error;
-@@ -2435,7 +2435,7 @@ static int __init debugfs_kprobe_init(vo
+@@ -2451,7 +2451,7 @@ static int __init debugfs_kprobe_init(vo
  	if (!file)
  		goto error;
  
