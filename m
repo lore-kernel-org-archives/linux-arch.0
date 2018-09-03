@@ -1,53 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59256 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728032AbeICV0h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 3 Sep 2018 17:26:37 -0400
-Date: Mon, 3 Sep 2018 18:05:50 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180903170550.GM6954@arm.com>
-References: <20180831091641.GA3634@andrea>
- <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
- <20180831160640.GG30626@arm.com>
- <20180831182845.GA4673@andrea>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:46216 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730679AbeICVsW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 17:48:22 -0400
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.14 148/165] kprobes: Make list and blacklist root user read only
+Date: Mon,  3 Sep 2018 18:57:14 +0200
+Message-ID: <20180903165704.399453404@linuxfoundation.org>
+In-Reply-To: <20180903165655.003605184@linuxfoundation.org>
+References: <20180903165655.003605184@linuxfoundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180831182845.GA4673@andrea>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180903170550.squNeJrJYlWH8vfuGul8thr0uqVODSAuA8nMMRhf5r4@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Thomas Richter <tmricht@linux.ibm.com>, Ingo Molnar <mingo@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "Tobin C . Harding" <me@tobin.cc>, Will Deacon <will.deacon@arm.com>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com
+Message-ID: <20180903165714.LvsLmwMggO_p2ZBAl38B5dtdZ_DMyN6ThnZe72FVeqQ@z>
 
-On Fri, Aug 31, 2018 at 08:28:46PM +0200, Andrea Parri wrote:
-> > > Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
-> > > should be correct on all existing architectures.  And Paul has invited 
-> > > a patch to modify the LKMM accordingly.  If you feel that such a change 
-> > > would be a useful enhancement to the LKMM's applicability, please write 
-> > > it.
-> > 
-> > Yes, please! That would be the "RmW" discussion which Andrea partially
-> > quoted earlier on, so getting that going independently from this patch
-> > sounds like a great idea to me.
-> 
-> That was indeed one of the proposal we discussed.  As you recalled, that
-> proposal only covered RmWs load-acquire (and ordinary store-release); in
-> particular, I realized that comments such as:
-> 
->   "The atomic_cond_read_acquire() call above has provided the
->    necessary acquire semantics required for locking."
-> 
->    [from kernel/locking/qspinlock.c]
-> 
-> (for example)  would still _not have "generic validity" _if we added the
-> above po-unlock-rf-lock-po term... (which, again, makes me somehow uncon-
-> fortable);  Would to have _all_ the acquire be admissible for you?
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
-I think you've missed some words here, but if you're asking if I'd be
-ok strengthening all acquire operations, then the answer is no. See the
-huge amount of previous discussion.
+------------------
 
-Will
+From: Masami Hiramatsu <mhiramat@kernel.org>
+
+commit f2a3ab36077222437b4826fc76111caa14562b7c upstream.
+
+Since the blacklist and list files on debugfs indicates
+a sensitive address information to reader, it should be
+restricted to the root user.
+
+Suggested-by: Thomas Richter <tmricht@linux.ibm.com>
+Suggested-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>
+Cc: David S . Miller <davem@davemloft.net>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Jon Medhurst <tixy@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tobin C . Harding <me@tobin.cc>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: acme@kernel.org
+Cc: akpm@linux-foundation.org
+Cc: brueckner@linux.vnet.ibm.com
+Cc: linux-arch@vger.kernel.org
+Cc: rostedt@goodmis.org
+Cc: schwidefsky@de.ibm.com
+Cc: stable@vger.kernel.org
+Link: https://lkml.kernel.org/lkml/152491890171.9916.5183693615601334087.stgit@devbox
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ kernel/kprobes.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2531,7 +2531,7 @@ static int __init debugfs_kprobe_init(vo
+ 	if (!dir)
+ 		return -ENOMEM;
+ 
+-	file = debugfs_create_file("list", 0444, dir, NULL,
++	file = debugfs_create_file("list", 0400, dir, NULL,
+ 				&debugfs_kprobes_operations);
+ 	if (!file)
+ 		goto error;
+@@ -2541,7 +2541,7 @@ static int __init debugfs_kprobe_init(vo
+ 	if (!file)
+ 		goto error;
+ 
+-	file = debugfs_create_file("blacklist", 0444, dir, NULL,
++	file = debugfs_create_file("blacklist", 0400, dir, NULL,
+ 				&debugfs_kprobe_blacklist_ops);
+ 	if (!file)
+ 		goto error;
