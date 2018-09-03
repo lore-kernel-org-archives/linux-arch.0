@@ -1,70 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:39676 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729206AbeICV10 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 17:27:26 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 057/107] kprobes/arm64: Fix %p uses in error messages
-Date: Mon,  3 Sep 2018 18:56:21 +0200
-Message-ID: <20180903165640.077711082@linuxfoundation.org>
-In-Reply-To: <20180903165637.293735109@linuxfoundation.org>
-References: <20180903165637.293735109@linuxfoundation.org>
+Received: from foss.arm.com ([217.140.101.70]:59256 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728032AbeICV0h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 3 Sep 2018 17:26:37 -0400
+Date: Mon, 3 Sep 2018 18:05:50 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Message-ID: <20180903170550.GM6954@arm.com>
+References: <20180831091641.GA3634@andrea>
+ <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
+ <20180831160640.GG30626@arm.com>
+ <20180831182845.GA4673@andrea>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180831182845.GA4673@andrea>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Will Deacon <will.deacon@arm.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, "David S . Miller" <davem@davemloft.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jon Medhurst <tixy@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Richter <tmricht@linux.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, acme@kernel.org, akpm@linux-foundation.org, brueckner@linux.vnet.ibm.com, linux-arch@vger.kernel.org, rostedt@goodmis.org, schwidefsky@de.ibm.com, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180903165621.mZt_IsWaO3dgnENza-d-qrPEdTVe9TwBnYHEr5zrhaI@z>
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180903170550.squNeJrJYlWH8vfuGul8thr0uqVODSAuA8nMMRhf5r4@z>
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+On Fri, Aug 31, 2018 at 08:28:46PM +0200, Andrea Parri wrote:
+> > > Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
+> > > should be correct on all existing architectures.  And Paul has invited 
+> > > a patch to modify the LKMM accordingly.  If you feel that such a change 
+> > > would be a useful enhancement to the LKMM's applicability, please write 
+> > > it.
+> > 
+> > Yes, please! That would be the "RmW" discussion which Andrea partially
+> > quoted earlier on, so getting that going independently from this patch
+> > sounds like a great idea to me.
+> 
+> That was indeed one of the proposal we discussed.  As you recalled, that
+> proposal only covered RmWs load-acquire (and ordinary store-release); in
+> particular, I realized that comments such as:
+> 
+>   "The atomic_cond_read_acquire() call above has provided the
+>    necessary acquire semantics required for locking."
+> 
+>    [from kernel/locking/qspinlock.c]
+> 
+> (for example)  would still _not have "generic validity" _if we added the
+> above po-unlock-rf-lock-po term... (which, again, makes me somehow uncon-
+> fortable);  Would to have _all_ the acquire be admissible for you?
 
-------------------
+I think you've missed some words here, but if you're asking if I'd be
+ok strengthening all acquire operations, then the answer is no. See the
+huge amount of previous discussion.
 
-From: Masami Hiramatsu <mhiramat@kernel.org>
-
-commit 0722867dcbc28cc9b269b57acd847c7c1aa638d6 upstream.
-
-Fix %p uses in error messages by removing it because
-those are redundant or meaningless.
-
-Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: David Howells <dhowells@redhat.com>
-Cc: David S . Miller <davem@davemloft.net>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Jon Medhurst <tixy@linaro.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Thomas Richter <tmricht@linux.ibm.com>
-Cc: Tobin C . Harding <me@tobin.cc>
-Cc: acme@kernel.org
-Cc: akpm@linux-foundation.org
-Cc: brueckner@linux.vnet.ibm.com
-Cc: linux-arch@vger.kernel.org
-Cc: rostedt@goodmis.org
-Cc: schwidefsky@de.ibm.com
-Cc: stable@vger.kernel.org
-Link: https://lkml.kernel.org/lkml/152491908405.9916.12425053035317241111.stgit@devbox
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- arch/arm64/kernel/probes/kprobes.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
---- a/arch/arm64/kernel/probes/kprobes.c
-+++ b/arch/arm64/kernel/probes/kprobes.c
-@@ -274,7 +274,7 @@ static int __kprobes reenter_kprobe(stru
- 		break;
- 	case KPROBE_HIT_SS:
- 	case KPROBE_REENTER:
--		pr_warn("Unrecoverable kprobe detected at %p.\n", p->addr);
-+		pr_warn("Unrecoverable kprobe detected.\n");
- 		dump_kprobe(p);
- 		BUG();
- 		break;
+Will
