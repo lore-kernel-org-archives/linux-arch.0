@@ -1,43 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:54228 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725804AbeIFI02 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 6 Sep 2018 04:26:28 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 10/16] x86/mce: enable Hygon support to MCE
- infrastructure
-References: <cover.1535459012.git.puwen@hygon.cn>
- <c1e803bc54984e54ca67278930588e85b65bb26f.1535459013.git.puwen@hygon.cn>
- <20180905092234.GC2237@zn.tnic>
- <01604799-b993-e530-817c-ad097d343fc4@hygon.cn>
- <20180905131427.GI2237@zn.tnic>
-Message-ID: <a9b7aa87-c99a-42ee-48df-69bec64bb468@hygon.cn>
-Date: Thu, 6 Sep 2018 11:52:42 +0800
+Received: from mail-ed1-f68.google.com ([209.85.208.68]:37176 "EHLO
+        mail-ed1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725982AbeICNVO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2018 09:21:14 -0400
+Received: by mail-ed1-f68.google.com with SMTP id a20-v6so220356edd.4
+        for <linux-arch@vger.kernel.org>; Mon, 03 Sep 2018 02:02:01 -0700 (PDT)
+Date: Mon, 3 Sep 2018 11:01:53 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Message-ID: <20180903090153.GA4560@andrea>
+References: <20180831091641.GA3634@andrea>
+ <Pine.LNX.4.44L0.1808311042340.4901-100000@netrider.rowland.org>
+ <20180831160640.GG30626@arm.com>
+ <20180831182845.GA4673@andrea>
 MIME-Version: 1.0
-In-Reply-To: <20180905131427.GI2237@zn.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180831182845.GA4673@andrea>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
-Message-ID: <20180906035242.nICdBE_SzMBuyesqrpxRJWbhZGx3VxXIeiZ8OiN5CxI@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180903090153.JAdwLDUzjgaRVLBtFDgTBds0f71ftczj9tVMlbTRMrw@z>
 
-On 2018/9/5 21:15, Borislav Petkov wrote:
-> On Wed, Sep 05, 2018 at 08:59:24PM +0800, Pu Wen wrote:
->> If CONFIG_X86_MCE_AMD=n, mce_hygon_feature_init will call the other
->> one mce_amd_feature_init which is a null function and located in the
->> else branch of "#ifdef CONFIG_X86_MCE_AMD". The compilation is OK and
->> the kernel will run without MCE support.
+On Fri, Aug 31, 2018 at 08:28:46PM +0200, Andrea Parri wrote:
+> > > Yes, it's true that implementing locks with atomic_cmpxchg_acquire 
+> > > should be correct on all existing architectures.  And Paul has invited 
+> > > a patch to modify the LKMM accordingly.  If you feel that such a change 
+> > > would be a useful enhancement to the LKMM's applicability, please write 
+> > > it.
+> > 
+> > Yes, please! That would be the "RmW" discussion which Andrea partially
+> > quoted earlier on, so getting that going independently from this patch
+> > sounds like a great idea to me.
 > 
-> So my question was rather ironic but I guess irony can't travel through
-> mail. So let me paraphrase: is that a use case you wanna support?
-> Because I'd advise very strongly against !MCE kernels.
+> That was indeed one of the proposal we discussed.  As you recalled, that
+> proposal only covered RmWs load-acquire (and ordinary store-release); in
+> particular, I realized that comments such as:
+> 
+>   "The atomic_cond_read_acquire() call above has provided the
+>    necessary acquire semantics required for locking."
+> 
+>    [from kernel/locking/qspinlock.c]
+> 
+> (for example)  would still _not have "generic validity" _if we added the
+> above po-unlock-rf-lock-po term... (which, again, makes me somehow uncon-
+> fortable);  Would to have _all_ the acquire be admissible for you?
 
-In most of the normal use cases MCE is necessary. Rarely in some cases
-such as for test purpose MCE may be unselected.
+In Cat speak,
 
--- 
-Regards,
-Pu Wen
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index 59b5cbe6b6240..fd9c0831adf0a 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -38,7 +38,7 @@ let strong-fence = mb | gp
+ (* Release Acquire *)
+ let acq-po = [Acquire] ; po ; [M]
+ let po-rel = [M] ; po ; [Release]
+-let rfi-rel-acq = [Release] ; rfi ; [Acquire]
++let po-rel-rf-acq-po = po ; [Release] ; rf ; [Acquire] ; po
+ 
+ (**********************************)
+ (* Fundamental coherence ordering *)
+@@ -60,13 +60,13 @@ let dep = addr | data
+ let rwdep = (dep | ctrl) ; [W]
+ let overwrite = co | fr
+ let to-w = rwdep | (overwrite & int)
+-let to-r = addr | (dep ; rfi) | rfi-rel-acq
++let to-r = addr | (dep ; rfi)
+ let fence = strong-fence | wmb | po-rel | rmb | acq-po
+-let ppo = to-r | to-w | fence
++let ppo = to-r | to-w | fence | (po-rel-rf-acq-po & int)
+ 
+ (* Propagation: Ordering from release operations and strong fences. *)
+ let A-cumul(r) = rfe? ; r
+-let cumul-fence = A-cumul(strong-fence | po-rel) | wmb
++let cumul-fence = A-cumul(strong-fence | po-rel) | wmb | po-rel-rf-acq-po
+ let prop = (overwrite & ext)? ; cumul-fence* ; rfe?
+ 
+ (*
+
+I take this opportunity to summarize my viewpoint on these matters:
+
+Someone would have to write the commit message for the above diff ...
+that is, to describe -why- we should go RCtso (and update the documen-
+tation accordingly); by now, the only argument for this appears to be:
+"(most) people expect strong ordering" _and they will be "lazy enough"
+to not check their expectations by using the LKMM tool (paraphrasing
+from [1]); IAC, Linux "might work" better if we add this ordering to
+the LKMM.  Agreeing on such an approach would mean agreeing that this
+argument "wins" over:
+
+  "We want new architectures to implement acquire/release efficiently,
+   and it's not unlikely that they will have acquire loads that are
+   similar in semantics to LDAPR." [2]
+
+  "RISC-V probably would have been RCpc [...]  it takes extra fences
+   to go from RCpc to either "RCtso" or RCsc." [3]
+
+(or similar instances) since, of course, there is no such thing as a
+"free strong ordering"; and I'm not only talking about "efficiency",
+I'm also thinking at the fact that someone will have to maintain that
+ordering across all the architectures and in the LKMM.
+
+If, OTOH, we agree that the above "win"/assumption is valid only for
+locks or, in other/better words, if we agree that we should maintain
+_two_ distinct release-acquire orderings (a first one for unlock-lock
+sequences and a second one for ordinary/atomic release-acquire, say,
+as proposed in the patch under RFC), I ask that we audit and modify
+the generic code accordingly/as suggested in other posts _before_ we
+upstream the changes for the LKMM: we should identify those places
+where (the newly introduced) _gap_ between unlock-lock and the other
+release-acquire is not admissible and fix those places (notice that
+this entails, in part., agreeing on what/where the generic code is).
+
+Finally, if we don't agree with the above assumption at all (that is,
+no matter if we are considering unlock-lock or other release-acquire
+sequences), then we should go RCpc [4].
+
+I described three different approaches (which are NOT "independent",
+clearly; let us find an agreement...); even though some of them look
+insane to me, I'm currently open to all of them: thoughts?
+
+  Andrea
+
+[1] http://lkml.kernel.org/r/20180712134821.GT2494@hirez.programming.kicks-ass.net
+    http://lkml.kernel.org/r/CA+55aFwKpkU5C23OYt1HCiD3X5bJHVh1jz5G2dSnF1+kVrOCTA@mail.gmail.com
+[2] http://lkml.kernel.org/r/20180622183007.GD1802@arm.com
+[3] http://lkml.kernel.org/r/11b27d32-4a8a-3f84-0f25-723095ef1076@nvidia.com
+[4] http://lkml.kernel.org/r/20180711123421.GA9673@andrea
+    http://lkml.kernel.org/r/Pine.LNX.4.44L0.1807132133330.26947-100000@netrider.rowland.org
