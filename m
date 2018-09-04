@@ -1,51 +1,94 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 03/16] x86/mtrr: get MTRR number and support TOP_MEM2
-Date: Tue, 4 Sep 2018 11:02:41 +0800
-Message-ID: <946157a5-fdb2-a45a-63aa-97e9d602e6f0@hygon.cn>
-References: <cover.1535459012.git.puwen@hygon.cn>
- <36ea05160d886ebf8d4a645c0fe8efdc9d6760c3.1535459013.git.puwen@hygon.cn>
- <20180903190438.GF10249@zn.tnic>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH 0/4] System call table generation support
+Date: Tue,  4 Sep 2018 10:11:23 +0530
+Message-ID: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180903190438.GF10249@zn.tnic>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/4 3:04, Borislav Petkov wrote:
-> It was "Hygon Dhyana" before now "Hygon" only. Can we agree on the
-> naming nomenclature and stick with it.
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-OK, agree on it.
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
-...
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify them across all architectures.
 
->> -	if (!((boot_cpu_data.x86_vendor == X86_VENDOR_AMD) &&
->> -	      (boot_cpu_data.x86 >= 0x0f)))
->> +	if (!((boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
->> +	       boot_cpu_data.x86 >= 0x0f) ||
->> +	       boot_cpu_data.x86_vendor == X86_VENDOR_HYGON))
-> 
-> Why are you even touching this statement? The function returns early on
-> !X86_VENDOR_AMD.
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
 
-The statement is briefly equal to !(X86_VENDOR_AMD || X86_VENDOR_HYGON).
-So the function will not return early on !X86_VENDOR_AMD. :-)
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
 
-Also the statement can be changed to:
-+	if (!(boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
-+	      boot_cpu_data.x86 >= 0x0f) &&
-+	    !(boot_cpu_data.x86_vendor == X86_VENDOR_HYGON))
-or:
-+	if ((boot_cpu_data.x86_vendor != X86_VENDOR_AMD ||
-+	     boot_cpu_data.x86 < 0x0f) &&
-+	    (boot_cpu_data.x86_vendor != X86_VENDOR_HYGON))
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
 
-Which statement is better?
+I have done the same support for work for alpha, m68k, microblaze, 
+mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
 
-Thanks,
-Pu Wen
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+I started working system call table generation on 4.17-rc1. I used 
+marcin's script - https://github.com/hrw/syscalls-table to generate 
+the syscall.tbl file. And this will be the input to the system call 
+table generation script. But there are couple system call got add 
+in the latest rc release. If run Marcin's script on latest release,
+It will generate a new syscall.tbl. But I still use the old file - 
+syscall.tbl and once all review got over I'll update syscall.tbl 
+alone w.r.to the tip of the kernel. The impact of this thing, few 
+of the system call won't work.
+
+Firoz Khan (4):
+  sparc: Move __IGNORE* entries to non uapi header
+  sparc: Replace NR_SYSCALLS macro with __NR_SYSCALLS
+  sparc: Add system call table generation support
+  sparc: uapi header and system call table file generation
+
+ arch/sparc/Makefile                       |   3 +
+ arch/sparc/include/asm/Kbuild             |   5 +-
+ arch/sparc/include/asm/unistd.h           |  27 ++
+ arch/sparc/include/uapi/asm/Kbuild        |   3 +
+ arch/sparc/include/uapi/asm/unistd.h      | 434 +-----------------------------
+ arch/sparc/kernel/Makefile                |   2 +-
+ arch/sparc/kernel/head_64.S               |   2 +-
+ arch/sparc/kernel/syscall_table_32.S      |  12 +
+ arch/sparc/kernel/syscall_table_64.S      |  22 ++
+ arch/sparc/kernel/syscalls/Makefile       |  50 ++++
+ arch/sparc/kernel/syscalls/syscall_32.tbl | 365 +++++++++++++++++++++++++
+ arch/sparc/kernel/syscalls/syscall_64.tbl | 349 ++++++++++++++++++++++++
+ arch/sparc/kernel/syscalls/syscallhdr.sh  |  33 +++
+ arch/sparc/kernel/syscalls/syscalltbl.sh  |  38 +++
+ arch/sparc/kernel/systbls_32.S            |  93 -------
+ arch/sparc/kernel/systbls_64.S            | 176 ------------
+ 16 files changed, 912 insertions(+), 702 deletions(-)
+ create mode 100644 arch/sparc/kernel/syscall_table_32.S
+ create mode 100644 arch/sparc/kernel/syscall_table_64.S
+ create mode 100644 arch/sparc/kernel/syscalls/Makefile
+ create mode 100644 arch/sparc/kernel/syscalls/syscall_32.tbl
+ create mode 100644 arch/sparc/kernel/syscalls/syscall_64.tbl
+ create mode 100644 arch/sparc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/sparc/kernel/syscalls/syscalltbl.sh
+ delete mode 100644 arch/sparc/kernel/systbls_32.S
+ delete mode 100644 arch/sparc/kernel/systbls_64.S
+
+-- 
+1.9.1
