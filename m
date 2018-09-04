@@ -1,76 +1,69 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 2/4] ARC: allow to use IOC and non-IOC DMA devices
- simultaneously
-Date: Tue, 4 Sep 2018 18:13:28 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B09164B@us01wembx1.internal.synopsys.com>
-References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
- <20180730162636.3556-3-Eugeniy.Paltsev@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075012B08C83D@us01wembx1.internal.synopsys.com>
- <1534180089.3962.68.camel@synopsys.com>
- <81ddd506-1f7e-db82-4c77-ff08b1c15dd3@synopsys.com>
- <1534963226.3962.215.camel@synopsys.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 08/16] x86/apic: add modern APIC support for Hygon
+Date: Tue, 4 Sep 2018 20:33:01 +0200
+Message-ID: <20180904183301.GN32615@zn.tnic>
+References: <cover.1535459012.git.puwen@hygon.cn>
+ <969a367a0b2d58f3e68bc6f97b6e8238e2390991.1535459013.git.puwen@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <969a367a0b2d58f3e68bc6f97b6e8238e2390991.1535459013.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "hch@lst.de" <hch@lst.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi,=0A=
-=0A=
-On 08/22/2018 11:40 AM, Eugeniy Paltsev wrote:=0A=
->=0A=
->> Reading kernel/dma/* I see what you mean. We check @ioc_enable at the ti=
-me of=0A=
->> registering the dma op for coherent vs. non coherent case, so there's co=
-mmon vs.=0A=
->> ARC versions of alloc/free for coherent vs. noncoherent.=0A=
-> Just to be sure that we understand both each other and source code correc=
-tly: =0A=
-> - In coherent case we use dma_direct_* ops which doesn't use ARC alloc fu=
-nctions (arch_dma_{alloc|free})=0A=
-> - In non-coherent case we use dma_noncoherent_* ops which uses ARC alloc =
-functions (arch_dma_{alloc|free})=0A=
-=0A=
-Right I see that.=0A=
-=0A=
->> But then I'm curious why=0A=
->> do we bother to check the following in new arch_dma_(alloc|free) at all.=
-=0A=
->>=0A=
->> 	if (attrs & DMA_ATTR_NON_CONSISTENT)=0A=
->>=0A=
->> Isn't it supposed to be NON_CONSISTENT always given the way new code wor=
-ks ?=0A=
-> DMA_ATTR_NON_CONSISTENT flag is not related to IOC topic.=0A=
-> It is a flag which we can pass to dma_{alloc|free}_attrs function from dr=
-iver side.=0A=
->=0A=
-> According to documentation:=0A=
->   DMA_ATTR_NON_CONSISTENT: Lets the platform to choose to return either=
-=0A=
->   consistent or non-consistent memory as it sees fit.=0A=
-=0A=
-Right I'd them mixed up. But then in case of direct dma ops, the attr is si=
-mply=0A=
-ignored in dma_alloc_attrs() -> dma_direct_alloc(). User always gets cohere=
-nt memory.=0A=
-=0A=
->=0A=
-> We check this flag in arch_dma_alloc (which are used in non-coherent case=
-) to=0A=
-> skip MMU mapping if we are advertised that consistency is not required.=
-=0A=
->=0A=
-> So, actually we can get rid of this flag checking in arch_dma_alloc and =
-=0A=
-> simply always do MMU mapping to enforce non-cachability and return=0A=
-> non-cacheable memory even if DMA_ATTR_NON_CONSISTENT is passed.=0A=
-> But I don't sure we want to do that.=0A=
->=0A=
-> BTW: dma_alloc_coherent is simply dma_alloc_attrs with attrs =3D=3D 0.=0A=
->=0A=
-=0A=
+On Wed, Aug 29, 2018 at 08:44:30PM +0800, Pu Wen wrote:
+> Hygon processors use modern APIC, so just return in modern_apic() and
+> sync_Arb_IDs(). And should break in switch case in detect_init_API().
+> 
+> When running on 32 bit mode, should set bigsmp if there are more than
+> 8 cores.
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/kernel/apic/apic.c     | 19 ++++++++++++++-----
+>  arch/x86/kernel/apic/probe_32.c |  1 +
+>  2 files changed, 15 insertions(+), 5 deletions(-)
+> 
+> diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
+> index 84132ed..a62968e 100644
+> --- a/arch/x86/kernel/apic/apic.c
+> +++ b/arch/x86/kernel/apic/apic.c
+> @@ -220,10 +220,15 @@ static inline int lapic_is_integrated(void)
+>   */
+>  static int modern_apic(void)
+>  {
+> -	/* AMD systems use old APIC versions, so check the CPU */
+> -	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
+> -	    boot_cpu_data.x86 >= 0xf)
+> +	/*
+> +	 * Old AMD systems use old APIC versions, newer AMD systems
+> +	 * and Hygon systems use modern APIC, so check the CPU
+> +	 */
+> +	if ((boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
+> +	     boot_cpu_data.x86 >= 0xf) ||
+> +	     boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+>  		return 1;
+
+Those compound conditionals are not nice to read. Just add yours
+underneath:
+
+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
+	    boot_cpu_data.x86 >= 0xf)
+		return 1;
+
+	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+		return 1;
+
+Do that where applicable and where it makes sense, syntax-wise to have a
+separate vendor == HYGON check in the other patches too.
+
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
