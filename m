@@ -1,33 +1,55 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 03/16] x86/mtrr: get MTRR number and support TOP_MEM2
-Date: Tue, 4 Sep 2018 20:43:35 +0800
-Message-ID: <a6895981-6c2e-f570-882d-f5a49dc7255b@hygon.cn>
+Subject: Re: [PATCH v5 05/16] x86/pmu: enable Hygon support to PMU
+ infrastructure
+Date: Tue, 4 Sep 2018 21:32:41 +0800
+Message-ID: <f97a0b69-3117-3f59-257e-3aa837f54444@hygon.cn>
 References: <cover.1535459012.git.puwen@hygon.cn>
- <36ea05160d886ebf8d4a645c0fe8efdc9d6760c3.1535459013.git.puwen@hygon.cn>
- <20180903190438.GF10249@zn.tnic>
- <946157a5-fdb2-a45a-63aa-97e9d602e6f0@hygon.cn>
- <20180904080241.GB32615@zn.tnic>
+ <dcd5b900e26e3175e4cafded91ec28e53c79adf8.1535459013.git.puwen@hygon.cn>
+ <20180904104812.GF32615@zn.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180904080241.GB32615@zn.tnic>
+In-Reply-To: <20180904104812.GF32615@zn.tnic>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Borislav Petkov <bp@alien8.de>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/4 16:02, Borislav Petkov wrote:
-> shows only old mails so I'm going to assume this got fixed, finally! And
-> you probably have received a *fixed* BIOS even, allegedly.
+On 2018/9/4 18:48, Borislav Petkov wrote:
+> On Wed, Aug 29, 2018 at 08:43:54PM +0800, Pu Wen wrote:
+>> Hygon PMU arch is similar to AMD Family 17h. To support Hygon PMU, the
+>> initialization flow for it just call amd_pmu_init() and change PMU name
 >
-> So what's up?
+> That sentence reads funny.
 
-I tested the function on Hygon Dhyana platforms with the latest BIOS,
-found that this problem is indeed fixed. So the workaround is not
-needed for Hygon Dhyana platforms any more, and the vendor checking
-for Hygon will be removed in next version of patch.
+Will rewrite this sentence to make it more understandable. :)
+
+> In general, you seem to be explaining *what* your patches do and not
+> *why*. This is the wrong. Always explain the *why* - the *what* is
+> visible from the diff.
+>
+> You probably need to brush up on
+> Documentation/process/submitting-patches.rst, section 2.
+
+All right, will relearn the document and rework the patch descriptions.
+
+>> +	case 0x18:
+>> +		if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+>> +			pr_cont("Fam18h ");
+>
+> Didn't we agree that you'll verify whether family 0x18 is going to be
+> Hygon only?
+>
+> What happened to that checking?
+...
+> Same here.
+>
+> What's up?
+
+Will remove all the remaining unneeded Hygon vendor checking through
+the whole patch set to minimize the code modification.
 
 Thanks,
 Pu Wen
