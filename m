@@ -1,94 +1,114 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 0/4] System call table generation support
-Date: Tue,  4 Sep 2018 10:11:23 +0530
-Message-ID: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi header
+Date: Tue,  4 Sep 2018 10:11:24 +0530
+Message-ID: <1536036087-15260-2-git-send-email-firoz.khan@linaro.org>
+References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is:
-1. We can easily add/modify/delete system call by changing entry 
-in syscall.tbl file. No need to manually edit many files.
+All the  __IGNORE* entries are resides in the uapi header
+file and it is not used by any user space applications.
 
-2. It is easy to unify the system call implementation across all 
-the architectures. 
+One of the patch in this patch series will generate the
+uapi header file and system call table file. So if we move
+all the __IGNORE* entries to non uapi header, it will simplify
+the uapi header and system call table file generation script.
 
-The system call tables are in different format in all architecture 
-and it will be difficult to manually add or modify the system calls
-in the respective files manually. To make it easy by keeping a script 
-and which'll generate the header file and syscall table file so this 
-change will unify them across all architectures.
+It is correct to keep __IGNORE* entry in non uapi header
+asm/unistd.h while uapi/asm/unistd.h must hold information
+only useful for user space applications.
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/sparc/include/asm/unistd.h      | 25 +++++++++++++++++++++++++
+ arch/sparc/include/uapi/asm/unistd.h | 25 -------------------------
+ 2 files changed, 25 insertions(+), 25 deletions(-)
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-        - Compat entry name, if required.
-
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
-
-I have done the same support for work for alpha, m68k, microblaze, 
-mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending 
-the patch for one architecuture for review. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work for solving the Y2038 issue. We 
-need to add/change two dozen of system calls to solve Y2038 issue. 
-So this patch series will help to easily modify from existing 
-system call to Y2038 compatible system calls.
-
-I started working system call table generation on 4.17-rc1. I used 
-marcin's script - https://github.com/hrw/syscalls-table to generate 
-the syscall.tbl file. And this will be the input to the system call 
-table generation script. But there are couple system call got add 
-in the latest rc release. If run Marcin's script on latest release,
-It will generate a new syscall.tbl. But I still use the old file - 
-syscall.tbl and once all review got over I'll update syscall.tbl 
-alone w.r.to the tip of the kernel. The impact of this thing, few 
-of the system call won't work.
-
-Firoz Khan (4):
-  sparc: Move __IGNORE* entries to non uapi header
-  sparc: Replace NR_SYSCALLS macro with __NR_SYSCALLS
-  sparc: Add system call table generation support
-  sparc: uapi header and system call table file generation
-
- arch/sparc/Makefile                       |   3 +
- arch/sparc/include/asm/Kbuild             |   5 +-
- arch/sparc/include/asm/unistd.h           |  27 ++
- arch/sparc/include/uapi/asm/Kbuild        |   3 +
- arch/sparc/include/uapi/asm/unistd.h      | 434 +-----------------------------
- arch/sparc/kernel/Makefile                |   2 +-
- arch/sparc/kernel/head_64.S               |   2 +-
- arch/sparc/kernel/syscall_table_32.S      |  12 +
- arch/sparc/kernel/syscall_table_64.S      |  22 ++
- arch/sparc/kernel/syscalls/Makefile       |  50 ++++
- arch/sparc/kernel/syscalls/syscall_32.tbl | 365 +++++++++++++++++++++++++
- arch/sparc/kernel/syscalls/syscall_64.tbl | 349 ++++++++++++++++++++++++
- arch/sparc/kernel/syscalls/syscallhdr.sh  |  33 +++
- arch/sparc/kernel/syscalls/syscalltbl.sh  |  38 +++
- arch/sparc/kernel/systbls_32.S            |  93 -------
- arch/sparc/kernel/systbls_64.S            | 176 ------------
- 16 files changed, 912 insertions(+), 702 deletions(-)
- create mode 100644 arch/sparc/kernel/syscall_table_32.S
- create mode 100644 arch/sparc/kernel/syscall_table_64.S
- create mode 100644 arch/sparc/kernel/syscalls/Makefile
- create mode 100644 arch/sparc/kernel/syscalls/syscall_32.tbl
- create mode 100644 arch/sparc/kernel/syscalls/syscall_64.tbl
- create mode 100644 arch/sparc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/sparc/kernel/syscalls/syscalltbl.sh
- delete mode 100644 arch/sparc/kernel/systbls_32.S
- delete mode 100644 arch/sparc/kernel/systbls_64.S
-
+diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
+index b2a6a95..f120b6b 100644
+--- a/arch/sparc/include/asm/unistd.h
++++ b/arch/sparc/include/asm/unistd.h
+@@ -17,6 +17,12 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
++#ifndef __32bit_syscall_numbers__
++#ifndef __arch64__
++#define __32bit_syscall_numbers__
++#endif
++#endif
++
+ #ifdef __32bit_syscall_numbers__
+ #else
+ #define __NR_time		231 /* Linux sparc32                               */
+@@ -45,4 +51,23 @@
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
+ #endif
+ 
++/* Bitmask values returned from kern_features system call.  */
++#define KERN_FEATURE_MIXED_MODE_STACK	0x00000001
++
++#ifdef __32bit_syscall_numbers__
++/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
++ * it never had the plain ones and there is no value to adding those
++ * old versions into the syscall table.
++ */
++#define __IGNORE_setresuid
++#define __IGNORE_getresuid
++#define __IGNORE_setresgid
++#define __IGNORE_getresgid
++#endif
++
++/* Sparc doesn't have protection keys. */
++#define __IGNORE_pkey_mprotect
++#define __IGNORE_pkey_alloc
++#define __IGNORE_pkey_free
++
+ #endif /* _SPARC_UNISTD_H */
+diff --git a/arch/sparc/include/uapi/asm/unistd.h b/arch/sparc/include/uapi/asm/unistd.h
+index 09acf0d..ccf4bea 100644
+--- a/arch/sparc/include/uapi/asm/unistd.h
++++ b/arch/sparc/include/uapi/asm/unistd.h
+@@ -15,12 +15,6 @@
+ #ifndef _UAPI_SPARC_UNISTD_H
+ #define _UAPI_SPARC_UNISTD_H
+ 
+-#ifndef __32bit_syscall_numbers__
+-#ifndef __arch64__
+-#define __32bit_syscall_numbers__
+-#endif
+-#endif
+-
+ #define __NR_restart_syscall      0 /* Linux Specific				   */
+ #define __NR_exit                 1 /* Common                                      */
+ #define __NR_fork                 2 /* Common                                      */
+@@ -430,23 +424,4 @@
+ 
+ #define NR_syscalls		361
+ 
+-/* Bitmask values returned from kern_features system call.  */
+-#define KERN_FEATURE_MIXED_MODE_STACK	0x00000001
+-
+-#ifdef __32bit_syscall_numbers__
+-/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
+- * it never had the plain ones and there is no value to adding those
+- * old versions into the syscall table.
+- */
+-#define __IGNORE_setresuid
+-#define __IGNORE_getresuid
+-#define __IGNORE_setresgid
+-#define __IGNORE_getresgid
+-#endif
+-
+-/* Sparc doesn't have protection keys. */
+-#define __IGNORE_pkey_mprotect
+-#define __IGNORE_pkey_alloc
+-#define __IGNORE_pkey_free
+-
+ #endif /* _UAPI_SPARC_UNISTD_H */
 -- 
 1.9.1
