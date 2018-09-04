@@ -1,48 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:41307 "EHLO mga14.intel.com"
+Received: from mail.skyhub.de ([5.9.137.197]:47902 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726304AbeIDTRq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Sep 2018 15:17:46 -0400
-Message-ID: <1536072478.12366.2.camel@intel.com>
-Subject: Re: [RFC PATCH v3 00/24] Control Flow Enforcement: Shadow Stack
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Tue, 04 Sep 2018 07:47:58 -0700
-In-Reply-To: <20180902081350.GF28695@350D>
-References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
-         <20180902081350.GF28695@350D>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        id S1726004AbeIDTSk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Sep 2018 15:18:40 -0400
+Date: Tue, 4 Sep 2018 16:52:55 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 07/16] x86/pci: add Hygon PCI vendor and northbridge
+ support
+Message-ID: <20180904145255.GI32615@zn.tnic>
+References: <cover.1535459012.git.puwen@hygon.cn>
+ <ecd62b5b5e8f406598f2354892929caa87cf7deb.1535459013.git.puwen@hygon.cn>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <ecd62b5b5e8f406598f2354892929caa87cf7deb.1535459013.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Balbir Singh <bsingharora@gmail.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180904144758.C75bPkiBPanUu4xvToQTMng4zhjF0LXioplIirXW3XI@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
+Message-ID: <20180904145255.hTn8Rsi7xskbDFBVTzuhtFhW63yHZlkB7VjXTW8kIUM@z>
 
-On Sun, 2018-09-02 at 18:13 +1000, Balbir Singh wrote:
-> On Thu, Aug 30, 2018 at 07:38:40AM -0700, Yu-cheng Yu wrote:
-> > 
-> > The previous version of CET patches can be found in the following
-> > link.
-> > 
-> >   https://lkml.org/lkml/2018/7/10/1031
-> > 
-> > Summary of changes from v2:
-> > 
-> >   Move Shadow Stack page fault handling logic to arch/x86.
-> >   Update can_follow_write_pte/pmd; move logic to arch/x86.
-> >   Fix problems in WRUSS in-line assembly.
-> >   Fix issues in ELF parser.
-> >   Split out IBT/PTRACE patches to a second set.
-> >   Other small fixes.
-> > 
-> Quick question -- is there a simulator or some other way you've
-> been testing this? Just curious, if it's possible to run these
-> patches or just a review and internal hardware/simulator where
-> they are run and posted
+On Wed, Aug 29, 2018 at 08:44:18PM +0800, Pu Wen wrote:
+> As Hygon register its PCI Vendor ID as a new one "0x1d94", so add a new
+> definition PCI_VENDOR_ID_HYGON in include/linux/pci_ids.h.
 > 
-> Balbir Singh.
+> Also Hygon PCI Device ID(0x1450/0x1463/0x1464) for Host bridge is added
+> to amd_nb.c. And it need to define new arrays for Hygon:
+> hygon_root_ids[], hygon_nb_misc_ids[], hygon_nb_link_ids[].
+> 
+> To enable Hygon north bridge support, add new variable root_ids, and
+> assign its value based on whether CPU vendor is AMD or Hygon. Modify
+> the CONFIG_AMD_NB to depends on either AMD or Hygon.
+> 
+> Add Hygon support in amd_postcore_init(), early_root_info_init().
 
-Currently only for review.
+This whole commit message needs to not say *what* the patch does.
 
-Yu-cheng
+> Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/Kconfig         |  2 +-
+>  arch/x86/kernel/amd_nb.c | 51 ++++++++++++++++++++++++++++++++++++++++++------
+>  arch/x86/pci/amd_bus.c   |  6 ++++--
+>  include/linux/pci_ids.h  |  2 ++
+>  4 files changed, 52 insertions(+), 9 deletions(-)
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index c5ff296..733f1ec 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -2818,7 +2818,7 @@ endif # X86_32
+>  
+>  config AMD_NB
+>  	def_bool y
+> -	depends on CPU_SUP_AMD && PCI
+> +	depends on (CPU_SUP_AMD || CPU_SUP_HYGON) && PCI
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> diff --git a/arch/x86/kernel/amd_nb.c b/arch/x86/kernel/amd_nb.c
+> index b481b95..d9867b2 100644
+> --- a/arch/x86/kernel/amd_nb.c
+> +++ b/arch/x86/kernel/amd_nb.c
+> @@ -20,6 +20,10 @@
+>  #define PCI_DEVICE_ID_AMD_17H_M10H_DF_F3 0x15eb
+>  #define PCI_DEVICE_ID_AMD_17H_M10H_DF_F4 0x15ec
+>  
+> +#define PCI_DEVICE_ID_HYGON_18H_ROOT     0x1450
+> +#define PCI_DEVICE_ID_HYGON_18H_DF_F3    0x1463
+> +#define PCI_DEVICE_ID_HYGON_18H_DF_F4    0x1464
+
+Why are you adding those if you can use the AMD f17h ones? They're the same.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
