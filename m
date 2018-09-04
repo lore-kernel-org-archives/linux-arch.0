@@ -1,39 +1,33 @@
-From: Pu Wen <puwen@hygon.cn>
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [PATCH v5 07/16] x86/pci: add Hygon PCI vendor and northbridge
  support
-Date: Tue, 4 Sep 2018 23:45:02 +0800
-Message-ID: <5c6b1493-ee20-ed3f-a558-331c0cb65556@hygon.cn>
+Date: Tue, 4 Sep 2018 18:03:10 +0200
+Message-ID: <20180904160310.GJ32615@zn.tnic>
 References: <cover.1535459012.git.puwen@hygon.cn>
  <ecd62b5b5e8f406598f2354892929caa87cf7deb.1535459013.git.puwen@hygon.cn>
  <20180904145255.GI32615@zn.tnic>
+ <5c6b1493-ee20-ed3f-a558-331c0cb65556@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180904145255.GI32615@zn.tnic>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <5c6b1493-ee20-ed3f-a558-331c0cb65556@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
+To: Pu Wen <puwen@hygon.cn>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/4 22:52, Borislav Petkov wrote:
->> Add Hygon support in amd_postcore_init(), early_root_info_init().
->
-> This whole commit message needs to not say *what* the patch does.
+On Tue, Sep 04, 2018 at 11:45:02PM +0800, Pu Wen wrote:
+> I add these definitions to indicate that there are Hygon PCI device IDs.
+> You are right, I can just use the AMD f17h ones here.
 
-Will rework the whole commit messages.
+Right, if this is a small piece where they're all together in a single
+compilation unit - like in this case - I don't see an issue with using
+the AMD ones. Later, when you start splitting functionality, you can do
+proper defines.
 
->> +#define PCI_DEVICE_ID_HYGON_18H_ROOT     0x1450
->> +#define PCI_DEVICE_ID_HYGON_18H_DF_F3    0x1463
->> +#define PCI_DEVICE_ID_HYGON_18H_DF_F4    0x1464
->
-> Why are you adding those if you can use the AMD f17h ones? They're 
-the same.
+-- 
+Regards/Gruss,
+    Boris.
 
-I add these definitions to indicate that there are Hygon PCI device IDs.
-You are right, I can just use the AMD f17h ones here.
-
---
-Regards,
-Pu Wen
+Good mailing practices for 400: avoid top-posting and trim the reply.
