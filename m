@@ -1,60 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:56687 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726355AbeIDR6J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 4 Sep 2018 13:58:09 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 05/16] x86/pmu: enable Hygon support to PMU
- infrastructure
+Received: from mail.skyhub.de ([5.9.137.197]:46132 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726281AbeIDS1f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Sep 2018 14:27:35 -0400
+Date: Tue, 4 Sep 2018 16:01:55 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 06/16] x86/nops: init ideal_nops for Hygon
+Message-ID: <20180904140155.GH32615@zn.tnic>
 References: <cover.1535459012.git.puwen@hygon.cn>
- <dcd5b900e26e3175e4cafded91ec28e53c79adf8.1535459013.git.puwen@hygon.cn>
- <20180904104812.GF32615@zn.tnic>
-Message-ID: <f97a0b69-3117-3f59-257e-3aa837f54444@hygon.cn>
-Date: Tue, 4 Sep 2018 21:32:41 +0800
+ <afb6dd7821d014932dbc5c7d80aa6bffe6aef2c8.1535459013.git.puwen@hygon.cn>
 MIME-Version: 1.0
-In-Reply-To: <20180904104812.GF32615@zn.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <afb6dd7821d014932dbc5c7d80aa6bffe6aef2c8.1535459013.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
+To: Pu Wen <puwen@hygon.cn>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180904133241.zmuhR1baXLpc4Elqz_oNnwl83oLNBurscQ8wny86Jsg@z>
+Message-ID: <20180904140155.0xSkvS-9brPrpqRRsiNKJvUKsisFCGJwCwdeAU2rCtg@z>
 
-On 2018/9/4 18:48, Borislav Petkov wrote:
-> On Wed, Aug 29, 2018 at 08:43:54PM +0800, Pu Wen wrote:
->> Hygon PMU arch is similar to AMD Family 17h. To support Hygon PMU, the
->> initialization flow for it just call amd_pmu_init() and change PMU name
->
-> That sentence reads funny.
+On Wed, Aug 29, 2018 at 08:44:07PM +0800, Pu Wen wrote:
+> The ideal_nops for Dhyana processors should be p6_nops.
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/kernel/alternative.c | 4 ++++
+>  1 file changed, 4 insertions(+)
+> 
+> diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+> index 014f214..3f51d1c 100644
+> --- a/arch/x86/kernel/alternative.c
+> +++ b/arch/x86/kernel/alternative.c
+> @@ -222,6 +222,10 @@ void __init arch_init_ideal_nops(void)
+>  		}
+>  		break;
+>  
+> +	case X86_VENDOR_HYGON:
+> +		ideal_nops = p6_nops;
+> +		return;
+> +
+>  	case X86_VENDOR_AMD:
+>  		if (boot_cpu_data.x86 > 0xf) {
+>  			ideal_nops = p6_nops;
+> -- 
 
-Will rewrite this sentence to make it more understandable. :)
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-> In general, you seem to be explaining *what* your patches do and not
-> *why*. This is the wrong. Always explain the *why* - the *what* is
-> visible from the diff.
->
-> You probably need to brush up on
-> Documentation/process/submitting-patches.rst, section 2.
+-- 
+Regards/Gruss,
+    Boris.
 
-All right, will relearn the document and rework the patch descriptions.
-
->> +	case 0x18:
->> +		if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
->> +			pr_cont("Fam18h ");
->
-> Didn't we agree that you'll verify whether family 0x18 is going to be
-> Hygon only?
->
-> What happened to that checking?
-...
-> Same here.
->
-> What's up?
-
-Will remove all the remaining unneeded Hygon vendor checking through
-the whole patch set to minimize the code modification.
-
-Thanks,
-Pu Wen
+Good mailing practices for 400: avoid top-posting and trim the reply.
