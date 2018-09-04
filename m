@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi header
-Date: Tue,  4 Sep 2018 10:11:24 +0530
-Message-ID: <1536036087-15260-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 2/4] sparc: Replace NR_SYSCALLS macro with __NR_SYSCALLS
+Date: Tue,  4 Sep 2018 10:11:25 +0530
+Message-ID: <1536036087-15260-3-git-send-email-firoz.khan@linaro.org>
 References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
@@ -10,105 +10,62 @@ To: "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Greg K
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-All the  __IGNORE* entries are resides in the uapi header
-file and it is not used by any user space applications.
+NR_syscalls macro holds the number of system call exist in SPARC
+architecture. This macro is currently the part of uapi/asm/unistd.h
+file. We have to change the value of NR_syscalls, if we add or
+delete a system call.
 
-One of the patch in this patch series will generate the
-uapi header file and system call table file. So if we move
-all the __IGNORE* entries to non uapi header, it will simplify
-the uapi header and system call table file generation script.
+One of the patch in this patch series has a script which will generate
+a uapi header based on syscall.tbl file. The syscall.tbl file contains
+the number of system call information. So we have two option to update
+NR_syscalls value.
 
-It is correct to keep __IGNORE* entry in non uapi header
-asm/unistd.h while uapi/asm/unistd.h must hold information
-only useful for user space applications.
+1. Update NR_syscalls in uapi/asm/unistd.h manually by counting the
+   no.of system calls. No need to update NR_syscalls until we either
+   add a new system call or delete an existing system call.
+
+2. We can keep this feature it above mentioned script, that'll
+   count the number of syscalls and keep it in a generated file.
+   In this case we don't need to explicitly update NR_syscalls
+   in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I moved the
+NR_syscalls macro from uapi/asm/unistd.h to asm/unistd.h. The macro
+name also changed form NR_syscalls to __NR_syscalls for making the
+name convention same across all architecture. While __NR_syscalls
+isn't strictly part of the uapi, having it as part of the generated
+header to simplifies the implementation.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/sparc/include/asm/unistd.h      | 25 +++++++++++++++++++++++++
- arch/sparc/include/uapi/asm/unistd.h | 25 -------------------------
- 2 files changed, 25 insertions(+), 25 deletions(-)
+ arch/sparc/include/asm/unistd.h      | 2 ++
+ arch/sparc/include/uapi/asm/unistd.h | 2 +-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
-index b2a6a95..f120b6b 100644
+index f120b6b..c8849b7 100644
 --- a/arch/sparc/include/asm/unistd.h
 +++ b/arch/sparc/include/asm/unistd.h
-@@ -17,6 +17,12 @@
+@@ -17,6 +17,8 @@
  
  #include <uapi/asm/unistd.h>
  
-+#ifndef __32bit_syscall_numbers__
-+#ifndef __arch64__
-+#define __32bit_syscall_numbers__
-+#endif
-+#endif
++#define NR_syscalls __NR_syscalls
 +
- #ifdef __32bit_syscall_numbers__
- #else
- #define __NR_time		231 /* Linux sparc32                               */
-@@ -45,4 +51,23 @@
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
- #endif
- 
-+/* Bitmask values returned from kern_features system call.  */
-+#define KERN_FEATURE_MIXED_MODE_STACK	0x00000001
-+
-+#ifdef __32bit_syscall_numbers__
-+/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
-+ * it never had the plain ones and there is no value to adding those
-+ * old versions into the syscall table.
-+ */
-+#define __IGNORE_setresuid
-+#define __IGNORE_getresuid
-+#define __IGNORE_setresgid
-+#define __IGNORE_getresgid
-+#endif
-+
-+/* Sparc doesn't have protection keys. */
-+#define __IGNORE_pkey_mprotect
-+#define __IGNORE_pkey_alloc
-+#define __IGNORE_pkey_free
-+
- #endif /* _SPARC_UNISTD_H */
+ #ifndef __32bit_syscall_numbers__
+ #ifndef __arch64__
+ #define __32bit_syscall_numbers__
 diff --git a/arch/sparc/include/uapi/asm/unistd.h b/arch/sparc/include/uapi/asm/unistd.h
-index 09acf0d..ccf4bea 100644
+index ccf4bea..e2407b4 100644
 --- a/arch/sparc/include/uapi/asm/unistd.h
 +++ b/arch/sparc/include/uapi/asm/unistd.h
-@@ -15,12 +15,6 @@
- #ifndef _UAPI_SPARC_UNISTD_H
- #define _UAPI_SPARC_UNISTD_H
+@@ -422,6 +422,6 @@
+ #define __NR_pwritev2		359
+ #define __NR_statx		360
  
--#ifndef __32bit_syscall_numbers__
--#ifndef __arch64__
--#define __32bit_syscall_numbers__
--#endif
--#endif
--
- #define __NR_restart_syscall      0 /* Linux Specific				   */
- #define __NR_exit                 1 /* Common                                      */
- #define __NR_fork                 2 /* Common                                      */
-@@ -430,23 +424,4 @@
+-#define NR_syscalls		361
++#define __NR_syscalls		361
  
- #define NR_syscalls		361
- 
--/* Bitmask values returned from kern_features system call.  */
--#define KERN_FEATURE_MIXED_MODE_STACK	0x00000001
--
--#ifdef __32bit_syscall_numbers__
--/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
-- * it never had the plain ones and there is no value to adding those
-- * old versions into the syscall table.
-- */
--#define __IGNORE_setresuid
--#define __IGNORE_getresuid
--#define __IGNORE_setresgid
--#define __IGNORE_getresgid
--#endif
--
--/* Sparc doesn't have protection keys. */
--#define __IGNORE_pkey_mprotect
--#define __IGNORE_pkey_alloc
--#define __IGNORE_pkey_free
--
  #endif /* _UAPI_SPARC_UNISTD_H */
 -- 
 1.9.1
