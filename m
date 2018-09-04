@@ -1,48 +1,43 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 06/16] x86/nops: init ideal_nops for Hygon
-Date: Tue, 4 Sep 2018 16:01:55 +0200
-Message-ID: <20180904140155.GH32615@zn.tnic>
-References: <cover.1535459012.git.puwen@hygon.cn>
- <afb6dd7821d014932dbc5c7d80aa6bffe6aef2c8.1535459013.git.puwen@hygon.cn>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v3 00/24] Control Flow Enforcement: Shadow Stack
+Date: Tue, 04 Sep 2018 07:47:58 -0700
+Message-ID: <1536072478.12366.2.camel@intel.com>
+References: <20180830143904.3168-1-yu-cheng.yu@intel.com>
+         <20180902081350.GF28695@350D>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <afb6dd7821d014932dbc5c7d80aa6bffe6aef2c8.1535459013.git.puwen@hygon.cn>
+In-Reply-To: <20180902081350.GF28695@350D>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Balbir Singh <bsingharora@gmail.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Ravi V. Sha
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 29, 2018 at 08:44:07PM +0800, Pu Wen wrote:
-> The ideal_nops for Dhyana processors should be p6_nops.
+On Sun, 2018-09-02 at 18:13 +1000, Balbir Singh wrote:
+> On Thu, Aug 30, 2018 at 07:38:40AM -0700, Yu-cheng Yu wrote:
+> > 
+> > The previous version of CET patches can be found in the following
+> > link.
+> > 
+> >   https://lkml.org/lkml/2018/7/10/1031
+> > 
+> > Summary of changes from v2:
+> > 
+> >   Move Shadow Stack page fault handling logic to arch/x86.
+> >   Update can_follow_write_pte/pmd; move logic to arch/x86.
+> >   Fix problems in WRUSS in-line assembly.
+> >   Fix issues in ELF parser.
+> >   Split out IBT/PTRACE patches to a second set.
+> >   Other small fixes.
+> > 
+> Quick question -- is there a simulator or some other way you've
+> been testing this? Just curious, if it's possible to run these
+> patches or just a review and internal hardware/simulator where
+> they are run and posted
 > 
-> Signed-off-by: Pu Wen <puwen@hygon.cn>
-> ---
->  arch/x86/kernel/alternative.c | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
-> index 014f214..3f51d1c 100644
-> --- a/arch/x86/kernel/alternative.c
-> +++ b/arch/x86/kernel/alternative.c
-> @@ -222,6 +222,10 @@ void __init arch_init_ideal_nops(void)
->  		}
->  		break;
->  
-> +	case X86_VENDOR_HYGON:
-> +		ideal_nops = p6_nops;
-> +		return;
-> +
->  	case X86_VENDOR_AMD:
->  		if (boot_cpu_data.x86 > 0xf) {
->  			ideal_nops = p6_nops;
-> -- 
+> Balbir Singh.
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
+Currently only for review.
 
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Yu-cheng
