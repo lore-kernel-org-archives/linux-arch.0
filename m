@@ -1,46 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:36317 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1727692AbeIDXgS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Sep 2018 19:36:18 -0400
-Date: Tue, 4 Sep 2018 15:09:49 -0400 (EDT)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-In-Reply-To: <20180904081144.GA4137@andrea>
-Message-ID: <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:47722 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726507AbeIEAl7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 4 Sep 2018 20:41:59 -0400
+Subject: Re: [PATCH v2 0/4] ARC: allow to use IOC and non-IOC DMA devices
+ simultaneously
+References: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <ae6d35d6-ee1e-abde-5e5c-a4c489d1abb7@synopsys.com>
+Date: Tue, 4 Sep 2018 13:14:49 -0700
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <20180730162636.3556-1-Eugeniy.Paltsev@synopsys.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180904190949.RZOmW1i88gFsdrDjvAu--rsSZinxUFPdgdbIUirBU0c@z>
+To: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, linux-snps-arc@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, hch@lst.de
+Message-ID: <20180904201449.ZJzoEPDObHCuJ7ysqEM7ycu79Ww44169cQP-j3dpcUs@z>
 
-On Tue, 4 Sep 2018, Andrea Parri wrote:
-> Heh, your confusion might be the reflection of mine... ;-)  That was
-> indeed a long and not conclusive discussion (meaning there're pending
-> issues); and I cannot claim to find "arguments" such as:
+On 07/30/2018 09:26 AM, Eugeniy Paltsev wrote:
+> The ARC HS processor provides an IOC port (I/O coherency bus
+> interface) that allows external devices such as DMA devices
+> to access memory through the cache hierarchy, providing
+> coherency between I/O transactions and the complete memory
+> hierarchy.
 > 
->   "More than one kernel developer has expressed the opinion that
->    the LKMM should enforce ordering of writes by locking."
+> Some recent SoC with ARC HS (like HSDK) allow to select bus
+> port (IOC or non-IOC port) for connecting DMA devices in runtime.
 > 
-> particularly helpful (I do tend to be convinced by arguments rather
-> than by opinions).  In fact, you can take the following as my only
-> current "constructive argument" against the patch [1,2]:
+> With this patch we can use both HW-coherent and regular DMA
+> peripherals simultaneously.
 > 
->   THE COMMIT MESSAGE IS RIDICULOUS; PLEASE EXPAND ON IT, AND DO
->   SO BY LEVERAGING BOTH PROS AND CONS OF THE APPLIED CHANGES
+> NOTE:
+> This patch series was stress tested on HSDK with iperf3 (ethernet)
+> and bonie++ (usb and sdio) in three configurations:
+>  * IOC enabled globaly
+>  * IOC disabled globaly
+>  * IOC enabled partially (USB & SDIO are connected via IOC AXI port,
+>    ethernet is connected to DDR AXI port (non-IOC port) 
+> 
+> NOTE:
+> If you want to test some device without IOC it is not enough
+> to remove "dma-coherent" property from dts. You had to remap this
+> device to regular DDR AXI port intead of IOC AXI port.
+> You also need to apply 3 following patches firstly:
+> https://www.mail-archive.com/linux-snps-arc@lists.infradead.org/msg03865.html
+> https://www.mail-archive.com/linux-snps-arc@lists.infradead.org/msg03889.html
+> https://www.mail-archive.com/linux-snps-arc@lists.infradead.org/msg03887.html
+> 
+> NOTE:
+> We don't touch any aperture configuration in this patch series. So we
+> don't switch any devices between IOC and non-IOC AXI ports on any board.
+> It can be done later if it is required.
+> 
+> Changes v1->v2 (Thanks to Christoph):
+>  * Don't select DMA_DIRECT_OPS explicitly as it is already selected by
+>    DMA_NONCOHERENT_OPS
+>  * Remove check for HIGHMEM pages from arch_dma_{alloc, free}
+> 
+> Eugeniy Paltsev (4):
+>   ARC: DTS: mark DMA devices connected through IOC port as dma-coherent
+>   ARC: allow to use IOC and non-IOC DMA devices simultaneously
+>   ARC: IOC: panic if both IOC and ZONE_HIGHMEM enabled
+>   ARC: don't check for HIGHMEM pages in arch_dma_alloc
+> 
+>  arch/arc/boot/dts/axc003.dtsi      | 26 ++++++++++++++++
+>  arch/arc/boot/dts/axc003_idu.dtsi  | 26 ++++++++++++++++
+>  arch/arc/boot/dts/hsdk.dts         |  4 +++
+>  arch/arc/include/asm/dma-mapping.h | 13 ++++++++
+>  arch/arc/mm/cache.c                | 30 +++++++++---------
+>  arch/arc/mm/dma.c                  | 62 +++++++++++++++++++-------------------
+>  6 files changed, 115 insertions(+), 46 deletions(-)
+>  create mode 100644 arch/arc/include/asm/dma-mapping.h
 
-Do you have any concrete suggestions (i.e., some actual text) for 
-improvements to the patch description?  Earlier in your message you 
-mentioned that Will's comment:
+Apologies for the delay in getting to this - series applied and pushed to for-curr
 
-	LKMM offers stronger guarantees that can portably be relied upon
-	in the codebase.
-
-would make a good addition.  Suitably edited, it could be added to the
-description.  I can think of a few other things myself, but I'd like to 
-hear your thoughts.  Anything else?
-
-Alan
+Thx,
+-Vineet
