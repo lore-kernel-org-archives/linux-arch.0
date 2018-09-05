@@ -1,79 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:35791 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728001AbeIEQiz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 12:38:55 -0400
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 19/26] dt-bindings: timer: gx6605s SOC timer
-Date: Wed,  5 Sep 2018 20:07:58 +0800
-Message-ID: <768ac390f9eee8acb4dc9ca85a489a1d2fd00628.1536138304.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
-References: <cover.1536138304.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
-References: <cover.1536138304.git.ren_guo@c-sky.com>
+Received: from esa2.microchip.iphmx.com ([68.232.149.84]:36175 "EHLO
+        esa2.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726071AbeIERP3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 13:15:29 -0400
+Date: Wed, 5 Sep 2018 14:43:41 +0200
+From: Ludovic Desroches <ludovic.desroches@microchip.com>
+Subject: Re: [PATCH v3 2/2] tty/serial: atmel: add ISO7816 support
+Message-ID: <20180905124341.5n4gadgd5luza7fd@M43218.corp.atmel.com>
+References: <20180807130049.5957-1-ludovic.desroches@microchip.com>
+ <20180807130049.5957-3-ludovic.desroches@microchip.com>
+ <d66c4318-1d31-5c4e-3952-6b69a010b028@sorico.fr>
+ <20180809113035.kftvdalca7zsf4ly@M43218.corp.atmel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <20180809113035.kftvdalca7zsf4ly@M43218.corp.atmel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
-Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180905120758.vlGZaHikUuidY8nlEhlIQNTmgb5G0_9ifeU5xecZ0Bc@z>
+To: Richard Genoud <richard.genoud@gmail.com>, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, alexandre.belloni@bootlin.com, arnd@arndb.de, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, jslaby@suse.com
+Message-ID: <20180905124341.vujZ-u_Qc9XV823DKHRzylN21Fp2JXewxtOLHLbOa2M@z>
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- .../bindings/timer/csky,gx6605s-timer.txt          | 46 ++++++++++++++++++++++
- 1 file changed, 46 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
+Hi Richard,
 
-diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-new file mode 100644
-index 0000000..1136d9e
---- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-@@ -0,0 +1,46 @@
-+=================
-+gx6605s SOC Timer
-+=================
-+
-+The timer is used in gx6605s soc as system timer and the driver
-+contain clk event and clk source.
-+
-+==============================
-+timer node bindings definition
-+==============================
-+
-+        Description: Describes gx6605s SOC timer
-+
-+        PROPERTIES
-+
-+        - compatible
-+                Usage: required
-+                Value type: <string>
-+                Definition: must be "csky,gx6605s"
-+	- reg
-+		Usage: required
-+		Value type: <u32 u32>
-+		Definition: <phyaddr size> in soc from cpu view
-+	- clocks
-+		Usage: required
-+		Value type: <node>
-+		Definition: must be input clk node
-+        - interrupt
-+                Usage: required
-+                Value type: <u32>
-+                Definition: must be timer irq num defined by soc
-+        - interrupt-parent:
-+                Usage: required
-+		Value type: <node>
-+                Definition: must be interrupt controller node
-+
-+Examples:
-+---------
-+
-+	timer:timer {
-+		compatible = "csky,gx6605s-timer";
-+		reg = <0x0020a000 0x400>;
-+		clocks = <&dummy_apb_clk>;
-+		interrupts = <10>;
-+		interrupt-parent = <&intc>;
-+	};
--- 
-2.7.4
+On Thu, Aug 09, 2018 at 01:30:35PM +0200, Ludovic Desroches wrote:
+> Hi Richard,
+> 
+> On Thu, Aug 09, 2018 at 10:47:17AM +0200, Richard Genoud wrote:
+> > Hi !
+> > 
+> > On 07/08/2018 15:00, Ludovic Desroches wrote:
+> > > From: Nicolas Ferre <nicolas.ferre@microchip.com>
+> > > 
+> > > When mode is set in atmel_config_iso7816() we backup last RS232 mode
+> > > for coming back to this mode if requested.
+> > > Also allow setup of T=0 and T=1 parameter and basic support in set_termios
+> > > function as well.
+> > > 
+> > > Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
+> > > [ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
+> > > Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
+> > > ---
+> > >  drivers/tty/serial/atmel_serial.c | 211 +++++++++++++++++++++++++++++++++++---
+> > >  drivers/tty/serial/atmel_serial.h |   6 +-
+> > >  2 files changed, 201 insertions(+), 16 deletions(-)
+> > > 
+> > > diff --git a/drivers/tty/serial/atmel_serial.c b/drivers/tty/serial/atmel_serial.c
+> > > index 8e4428725848..4a7ec44b0ace 100644
+> > > --- a/drivers/tty/serial/atmel_serial.c
+> > > +++ b/drivers/tty/serial/atmel_serial.c
+> 
+> [...]
+> 
+> > >  #if defined(CONFIG_OF)
+> > > +static struct atmel_uart_pdata at91rm9200_pdata = {
+> > > +	.fidi_min = 1,
+> > > +	.fidi_max = 2047,
+> > > +};
+> > > +
+> > > +static struct atmel_uart_pdata at91sam9260_pdata = {
+> > > +	.fidi_min = 1,
+> > > +	.fidi_max = 2047,
+> > > +};
+> > > +
+> > > +static struct atmel_uart_pdata sama5d3_pdata = {
+> > > +	.fidi_min = 3,
+> > > +	.fidi_max = 65535,
+> > Are you sure this is for sama5d3 ?
+> > From the datasheets I have, 65535 is for sama5d4/sama5d2
+> 
+> I checked it and I missed it. What a pity... In fact, it's a bit more
+> tricky since the min value for d3 is 3 and no longer 1.
+> 
+> > And also, you'll have to s/atmel,at91sam9260-usart/atmel,sama5d2-usart/g
+> > in sama5d{2,4}.dtsi
+> >
+> 
+> Yes, I planed to send it later but I can add those patches within this
+> set of patches. 
+> 
+> > But I wonder if it could be detected via ATMEL_US_VERSION instead ?
+> > 
+> 
+> I have not checked, I tend to prefer the compatible string for this kind
+> of thing. But as we already use the version number, I can investigate
+> this solution if it's the one you prefer.
+> 
+
+ping about this question still in suspend in order to prepare a new version.
+
+Regards
+
+Ludovic
