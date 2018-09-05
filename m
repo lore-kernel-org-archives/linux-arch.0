@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 15/26] csky: Debug and Ptrace GDB
-Date: Wed,  5 Sep 2018 20:07:54 +0800
-Message-ID: <b3ae828ea7199dc3a3455ac6a3c04bfb324f2438.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 11/26] csky: Atomic operations
+Date: Wed,  5 Sep 2018 20:07:50 +0800
+Message-ID: <f79adea919b0850cb4faa80a60f4aec0e9471b33.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -14,549 +14,739 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/bug.h         |  26 +++
- arch/csky/include/uapi/asm/ptrace.h | 103 ++++++++++++
- arch/csky/kernel/dumpstack.c        |  64 ++++++++
- arch/csky/kernel/ptrace.c           | 317 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 510 insertions(+)
- create mode 100644 arch/csky/include/asm/bug.h
- create mode 100644 arch/csky/include/uapi/asm/ptrace.h
- create mode 100644 arch/csky/kernel/dumpstack.c
- create mode 100644 arch/csky/kernel/ptrace.c
+ arch/csky/include/asm/atomic.h         | 215 +++++++++++++++++++++++++
+ arch/csky/include/asm/cmpxchg.h        |  70 ++++++++
+ arch/csky/include/asm/spinlock.h       | 286 +++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/spinlock_types.h |  35 ++++
+ arch/csky/kernel/atomic.S              |  86 ++++++++++
+ 5 files changed, 692 insertions(+)
+ create mode 100644 arch/csky/include/asm/atomic.h
+ create mode 100644 arch/csky/include/asm/cmpxchg.h
+ create mode 100644 arch/csky/include/asm/spinlock.h
+ create mode 100644 arch/csky/include/asm/spinlock_types.h
+ create mode 100644 arch/csky/kernel/atomic.S
 
-diff --git a/arch/csky/include/asm/bug.h b/arch/csky/include/asm/bug.h
+diff --git a/arch/csky/include/asm/atomic.h b/arch/csky/include/asm/atomic.h
 new file mode 100644
-index 0000000..10b9028
+index 0000000..82a124e
 --- /dev/null
-+++ b/arch/csky/include/asm/bug.h
-@@ -0,0 +1,26 @@
++++ b/arch/csky/include/asm/atomic.h
+@@ -0,0 +1,215 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_BUG_H
-+#define __ASM_CSKY_BUG_H
++#ifndef __ASM_CSKY_ATOMIC_H
++#define __ASM_CSKY_ATOMIC_H
 +
-+#include <linux/compiler.h>
-+#include <linux/const.h>
-+#include <linux/types.h>
++#include <linux/version.h>
++#include <asm/cmpxchg.h>
++#include <asm/barrier.h>
 +
-+#define BUG()							\
-+do {								\
-+	asm volatile ("bkpt\n");				\
-+	unreachable();						\
-+} while (0)
++#ifdef CONFIG_CPU_HAS_LDSTEX
 +
-+#define HAVE_ARCH_BUG
++#define __atomic_add_unless __atomic_add_unless
++static inline int __atomic_add_unless(atomic_t *v, int a, int u)
++{
++	unsigned long tmp, ret;
 +
-+#include <asm-generic/bug.h>
++	smp_mb();
 +
-+struct pt_regs;
++	asm volatile (
++	"1:	ldex.w		%0, (%3) \n"
++	"	mov		%1, %0   \n"
++	"	cmpne		%0, %4   \n"
++	"	bf		2f	 \n"
++	"	add		%0, %2   \n"
++	"	stex.w		%0, (%3) \n"
++	"	bez		%0, 1b   \n"
++	"2:				 \n"
++		: "=&r" (tmp), "=&r" (ret)
++		: "r" (a), "r"(&v->counter), "r"(u)
++		: "memory");
 +
-+void die_if_kernel (char *str, struct pt_regs *regs, int nr);
-+void show_regs(struct pt_regs *);
++	if (ret != u)
++		smp_mb();
 +
-+#endif /* __ASM_CSKY_BUG_H */
-diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
++	return ret;
++}
++
++#define ATOMIC_OP(op, c_op)						\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	unsigned long tmp;						\
++									\
++	smp_mb();							\
++	asm volatile (							\
++	"1:	ldex.w		%0, (%2) \n"				\
++	"	" #op "		%0, %1   \n"				\
++	"	stex.w		%0, (%2) \n"				\
++	"	bez		%0, 1b   \n"				\
++		: "=&r" (tmp)						\
++		: "r" (i), "r"(&v->counter)				\
++		: "memory");						\
++	smp_mb();							\
++}
++
++#define ATOMIC_OP_RETURN(op, c_op)					\
++static inline int atomic_##op##_return(int i, atomic_t *v)		\
++{									\
++	unsigned long tmp, ret;						\
++									\
++	smp_mb();							\
++	asm volatile (							\
++	"1:	ldex.w		%0, (%3) \n"				\
++	"	" #op "		%0, %2   \n"				\
++	"	mov		%1, %0   \n"				\
++	"	stex.w		%0, (%3) \n"				\
++	"	bez		%0, 1b   \n"				\
++		: "=&r" (tmp), "=&r" (ret)				\
++		: "r" (i), "r"(&v->counter)				\
++		: "memory");						\
++	smp_mb();							\
++									\
++	return ret;							\
++}
++
++#define ATOMIC_FETCH_OP(op, c_op)					\
++static inline int atomic_fetch_##op(int i, atomic_t *v)			\
++{									\
++	unsigned long tmp, ret;						\
++									\
++	smp_mb();							\
++	asm volatile (							\
++	"1:	ldex.w		%0, (%3) \n"				\
++	"	mov		%1, %0   \n"				\
++	"	" #op "		%0, %2   \n"				\
++	"	stex.w		%0, (%3) \n"				\
++	"	bez		%0, 1b   \n"				\
++		: "=&r" (tmp), "=&r" (ret)				\
++		: "r" (i), "r"(&v->counter)				\
++		: "memory");						\
++	smp_mb();							\
++									\
++	return ret;							\
++}
++
++#else /* CONFIG_CPU_HAS_LDSTEX */
++
++#include <linux/irqflags.h>
++
++#define __atomic_add_unless __atomic_add_unless
++static inline int __atomic_add_unless(atomic_t *v, int a, int u)
++{
++	unsigned long tmp, ret, flags;
++
++	raw_local_irq_save(flags);
++
++	asm volatile (
++	"	ldw		%0, (%3) \n"
++	"	mov		%1, %0   \n"
++	"	cmpne		%0, %4   \n"
++	"	bf		2f	 \n"
++	"	add		%0, %2   \n"
++	"	stw		%0, (%3) \n"
++	"2:				 \n"
++		: "=&r" (tmp), "=&r" (ret)
++		: "r" (a), "r"(&v->counter), "r"(u)
++		: "memory");
++
++	raw_local_irq_restore(flags);
++
++	return ret;
++}
++
++#define ATOMIC_OP(op, c_op)						\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	unsigned long tmp, flags;					\
++									\
++	raw_local_irq_save(flags);					\
++									\
++	asm volatile (							\
++	"	ldw		%0, (%2) \n"				\
++	"	" #op "		%0, %1   \n"				\
++	"	stw		%0, (%2) \n"				\
++		: "=&r" (tmp)						\
++		: "r" (i), "r"(&v->counter)				\
++		: "memory");						\
++									\
++	raw_local_irq_restore(flags);					\
++}
++
++#define ATOMIC_OP_RETURN(op, c_op)					\
++static inline int atomic_##op##_return(int i, atomic_t *v)		\
++{									\
++	unsigned long tmp, ret, flags;					\
++									\
++	raw_local_irq_save(flags);					\
++									\
++	asm volatile (							\
++	"	ldw		%0, (%3) \n"				\
++	"	" #op "		%0, %2   \n"				\
++	"	stw		%0, (%3) \n"				\
++	"	mov		%1, %0   \n"				\
++		: "=&r" (tmp), "=&r" (ret)				\
++		: "r" (i), "r"(&v->counter)				\
++		: "memory");						\
++									\
++	raw_local_irq_restore(flags);					\
++									\
++	return ret;							\
++}
++
++#define ATOMIC_FETCH_OP(op, c_op)					\
++static inline int atomic_fetch_##op(int i, atomic_t *v)			\
++{									\
++	unsigned long tmp, ret, flags;					\
++									\
++	raw_local_irq_save(flags);					\
++									\
++	asm volatile (							\
++	"	ldw		%0, (%3) \n"				\
++	"	mov		%1, %0   \n"				\
++	"	" #op "		%0, %2   \n"				\
++	"	stw		%0, (%3) \n"				\
++		: "=&r" (tmp), "=&r" (ret)				\
++		: "r" (i), "r"(&v->counter)				\
++		: "memory");						\
++									\
++	raw_local_irq_restore(flags);					\
++									\
++	return ret;							\
++}
++
++#endif /* CONFIG_CPU_HAS_LDSTEX */
++
++#define atomic_add_return atomic_add_return
++ATOMIC_OP_RETURN(add, +)
++#define atomic_sub_return atomic_sub_return
++ATOMIC_OP_RETURN(sub, -)
++
++#define atomic_fetch_add atomic_fetch_add
++ATOMIC_FETCH_OP(add, +)
++#define atomic_fetch_sub atomic_fetch_sub
++ATOMIC_FETCH_OP(sub, -)
++#define atomic_fetch_and atomic_fetch_and
++ATOMIC_FETCH_OP(and, &)
++#define atomic_fetch_or atomic_fetch_or
++ATOMIC_FETCH_OP(or, |)
++#define atomic_fetch_xor atomic_fetch_xor
++ATOMIC_FETCH_OP(xor, ^)
++
++#define atomic_and atomic_and
++ATOMIC_OP(and, &)
++#define atomic_or atomic_or
++ATOMIC_OP(or, |)
++#define atomic_xor atomic_xor
++ATOMIC_OP(xor, ^)
++
++#undef ATOMIC_FETCH_OP
++#undef ATOMIC_OP_RETURN
++#undef ATOMIC_OP
++
++#include <asm-generic/atomic.h>
++
++#endif /* __ASM_CSKY_ATOMIC_H */
+diff --git a/arch/csky/include/asm/cmpxchg.h b/arch/csky/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..499f7ef
+index 0000000..9b63dd7
 --- /dev/null
-+++ b/arch/csky/include/uapi/asm/ptrace.h
-@@ -0,0 +1,103 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef _CSKY_PTRACE_H
-+#define _CSKY_PTRACE_H
++++ b/arch/csky/include/asm/cmpxchg.h
+@@ -0,0 +1,70 @@
++#ifndef __ASM_CSKY_CMPXCHG_H
++#define __ASM_CSKY_CMPXCHG_H
 +
-+#ifndef __ASSEMBLY__
++#ifdef CONFIG_CPU_HAS_LDSTEX
++#include <linux/bug.h>
++#include <asm/barrier.h>
 +
-+struct pt_regs {
-+	unsigned long	tls;
-+	unsigned long	lr;
-+	unsigned long	pc;
-+	unsigned long	sr;
-+	unsigned long	usp;
++#define __xchg(new, ptr, size)					\
++({								\
++	__typeof__(ptr) __ptr = (ptr);				\
++	__typeof__(new) __new = (new);				\
++	__typeof__(*(ptr)) __ret;				\
++	unsigned long tmp;					\
++	switch (size) {						\
++	case 4:							\
++		smp_mb();					\
++		asm volatile (					\
++		"1:	ldex.w		%0, (%3) \n"		\
++		"	mov		%1, %2   \n"		\
++		"	stex.w		%1, (%3) \n"		\
++		"	bez		%1, 1b   \n"		\
++			: "=&r" (__ret), "=&r" (tmp)		\
++			: "r" (__new), "r"(__ptr)		\
++			:);					\
++		smp_mb();					\
++		break;						\
++	default:						\
++		BUILD_BUG();					\
++	}							\
++	__ret;							\
++})
 +
-+	/*
-+	 * a0, a1, a2, a3:
-+	 * abiv1: r2, r3, r4, r5
-+	 * abiv2: r0, r1, r2, r3
-+	 */
-+	unsigned long	orig_a0;
-+	unsigned long	a0;
-+	unsigned long	a1;
-+	unsigned long	a2;
-+	unsigned long	a3;
++#define xchg(ptr, x)	(__xchg((x), (ptr), sizeof(*(ptr))))
 +
-+	/*
-+	 * ABIV2: r4 ~ r13
-+	 * ABIV1: r6 ~ r14, r1
-+	 */
-+	unsigned long	regs[10];
++#define __cmpxchg(ptr, old, new, size)				\
++({								\
++	__typeof__(ptr) __ptr = (ptr);				\
++	__typeof__(new) __new = (new);				\
++	__typeof__(new) __tmp;					\
++	__typeof__(old) __old = (old);				\
++	__typeof__(*(ptr)) __ret;				\
++	switch (size) {						\
++	case 4:							\
++		smp_mb();					\
++		asm volatile (					\
++		"1:	ldex.w		%0, (%3) \n"		\
++		"	cmpne		%0, %4   \n"		\
++		"	bt		2f       \n"		\
++		"	mov		%1, %2   \n"		\
++		"	stex.w		%1, (%3) \n"		\
++		"	bez		%1, 1b   \n"		\
++		"2:				 \n"		\
++			: "=&r" (__ret), "=&r" (__tmp)		\
++			: "r" (__new), "r"(__ptr), "r"(__old)	\
++			:);					\
++		smp_mb();					\
++		break;						\
++	default:						\
++		BUILD_BUG();					\
++	}							\
++	__ret;							\
++})
 +
-+#if defined(__CSKYABIV2__)
-+	/* r16 ~ r30 */
-+	unsigned long	exregs[15];
-+
-+	unsigned long	rhi;
-+	unsigned long	rlo;
-+	unsigned long	pad; /* reserved */
++#define cmpxchg(ptr, o, n) \
++	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr))))
++#else
++#include <asm-generic/cmpxchg.h>
 +#endif
-+};
 +
-+struct user_fp {
-+	unsigned long	vr[96];
-+	unsigned long	fcr;
-+	unsigned long	fesr;
-+	unsigned long	fid;
-+	unsigned long	reserved;
-+};
++#endif /* __ASM_CSKY_CMPXCHG_H */
+diff --git a/arch/csky/include/asm/spinlock.h b/arch/csky/include/asm/spinlock.h
+new file mode 100644
+index 0000000..f1081bb
+--- /dev/null
++++ b/arch/csky/include/asm/spinlock.h
+@@ -0,0 +1,286 @@
++#ifndef __ASM_CSKY_SPINLOCK_H
++#define __ASM_CSKY_SPINLOCK_H
++
++#include <linux/spinlock_types.h>
++#include <asm/barrier.h>
++
++#ifdef CONFIG_QUEUED_RWLOCKS
 +
 +/*
-+ * Switch stack for switch_to after push pt_regs.
++ * Ticket-based spin-locking.
++ */
++static inline void arch_spin_lock(arch_spinlock_t *lock)
++{
++	arch_spinlock_t lockval;
++	u32 ticket_next = 1 << TICKET_NEXT;
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++
++	asm volatile (
++		"1:	ldex.w		%0, (%2) \n"
++		"	mov		%1, %0	 \n"
++		"	add		%0, %3	 \n"
++		"	stex.w		%0, (%2) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp), "=&r" (lockval)
++		: "r"(p), "r"(ticket_next)
++		: "cc");
++
++	while (lockval.tickets.next != lockval.tickets.owner) {
++		lockval.tickets.owner = READ_ONCE(lock->tickets.owner);
++	}
++
++	smp_mb();
++}
++
++static inline int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	u32 tmp, contended, res;
++	u32 ticket_next = 1 << TICKET_NEXT;
++	u32 *p = &lock->lock;
++
++	smp_mb();
++
++	do {
++		asm volatile (
++		"	ldex.w		%0, (%3)   \n"
++		"	movi		%2, 1	   \n"
++		"	rotli		%1, %0, 16 \n"
++		"	cmpne		%1, %0     \n"
++		"	bt		1f         \n"
++		"	movi		%2, 0	   \n"
++		"	add		%0, %0, %4 \n"
++		"	stex.w		%0, (%3)   \n"
++		"1:				   \n"
++		: "=&r" (res), "=&r" (tmp), "=&r" (contended)
++		: "r"(p), "r"(ticket_next)
++		: "cc");
++	} while (!res);
++
++	if (!contended)
++		smp_mb();
++
++	return !contended;
++}
++
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++	smp_mb();
++	lock->tickets.owner++;
++	smp_mb();
++}
++
++static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
++{
++	return lock.tickets.owner == lock.tickets.next;
++}
++
++static inline int arch_spin_is_locked(arch_spinlock_t *lock)
++{
++	return !arch_spin_value_unlocked(READ_ONCE(*lock));
++}
++
++static inline int arch_spin_is_contended(arch_spinlock_t *lock)
++{
++	struct __raw_tickets tickets = READ_ONCE(lock->tickets);
++	return (tickets.next - tickets.owner) > 1;
++}
++#define arch_spin_is_contended	arch_spin_is_contended
++
++#include <asm/qrwlock.h>
++
++/* See include/linux/spinlock.h */
++#define smp_mb__after_spinlock()	smp_mb()
++
++#else /* CONFIG_QUEUED_RWLOCKS */
++
++/*
++ * Test-and-set spin-locking.
++ */
++static inline void arch_spin_lock(arch_spinlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 1b   \n"
++		"	movi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++	smp_mb();
++}
++
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"	movi		%0, 0    \n"
++		"	stw		%0, (%1) \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++	smp_mb();
++}
++
++static inline int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 2f   \n"
++		"	movi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		"	movi		%0, 0    \n"
++		"2:				 \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++
++	if (!tmp)
++		smp_mb();
++
++	return !tmp;
++}
++
++#define arch_spin_is_locked(x)	(READ_ONCE((x)->lock) != 0)
++
++/*
++ * read lock/unlock/trylock
++ */
++static inline void arch_read_lock(arch_rwlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	blz		%0, 1b   \n"
++		"	addi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++	smp_mb();
++}
++
++static inline void arch_read_unlock(arch_rwlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	subi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++	smp_mb();
++}
++
++static inline int arch_read_trylock(arch_rwlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	blz		%0, 2f   \n"
++		"	addi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		"	movi		%0, 0    \n"
++		"2:				 \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++
++	if (!tmp)
++		smp_mb();
++
++	return !tmp;
++}
++
++/*
++ * write lock/unlock/trylock
++ */
++static inline void arch_write_lock(arch_rwlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 1b   \n"
++		"	subi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++	smp_mb();
++}
++
++static inline void arch_write_unlock(arch_rwlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	movi		%0, 0    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++	smp_mb();
++}
++
++static inline int arch_write_trylock(arch_rwlock_t *lock)
++{
++	u32 *p = &lock->lock;
++	u32 tmp;
++
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%1) \n"
++		"	bnez		%0, 2f   \n"
++		"	subi		%0, 1    \n"
++		"	stex.w		%0, (%1) \n"
++		"	bez		%0, 1b   \n"
++		"	movi		%0, 0    \n"
++		"2:				 \n"
++		: "=&r" (tmp)
++		: "r"(p)
++		: "cc");
++
++	if (!tmp)
++		smp_mb();
++
++	return !tmp;
++}
++
++#endif /* CONFIG_QUEUED_RWLOCKS */
++#endif /* __ASM_CSKY_SPINLOCK_H */
+diff --git a/arch/csky/include/asm/spinlock_types.h b/arch/csky/include/asm/spinlock_types.h
+new file mode 100644
+index 0000000..7e825c2
+--- /dev/null
++++ b/arch/csky/include/asm/spinlock_types.h
+@@ -0,0 +1,35 @@
++#ifndef __ASM_CSKY_SPINLOCK_TYPES_H
++#define __ASM_CSKY_SPINLOCK_TYPES_H
++
++#ifndef __LINUX_SPINLOCK_TYPES_H
++# error "please don't include this file directly"
++#endif
++
++#define TICKET_NEXT	16
++
++typedef struct {
++	union {
++		u32 lock;
++		struct __raw_tickets {
++			/* little endian */
++			u16 owner;
++			u16 next;
++		} tickets;
++	};
++} arch_spinlock_t;
++
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
++
++#ifdef CONFIG_QUEUED_RWLOCKS
++#include <asm-generic/qrwlock_types.h>
++
++#else /* CONFIG_NR_CPUS > 2 */
++
++typedef struct {
++	u32 lock;
++} arch_rwlock_t;
++
++#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
++
++#endif /* CONFIG_QUEUED_RWLOCKS */
++#endif /* __ASM_CSKY_SPINLOCK_TYPES_H */
+diff --git a/arch/csky/kernel/atomic.S b/arch/csky/kernel/atomic.S
+new file mode 100644
+index 0000000..ea71022
+--- /dev/null
++++ b/arch/csky/kernel/atomic.S
+@@ -0,0 +1,86 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/linkage.h>
++#include <abi/entry.h>
++
++.text
++
++/*
++ * int csky_cmpxchg(int oldval, int newval, int *ptr)
 + *
-+ * ABI_CSKYV2: r4 ~ r11, r15 ~ r17, r26 ~ r30;
-+ * ABI_CSKYV1: r8 ~ r14, r15;
++ * If *ptr != oldval && return 1,
++ * else *ptr = newval return 0.
 + */
-+struct  switch_stack {
-+#if defined(__CSKYABIV2__)
-+	unsigned long   r4;
-+        unsigned long   r5;
-+        unsigned long   r6;
-+        unsigned long   r7;
-+	unsigned long   r8;
-+        unsigned long   r9;
-+        unsigned long   r10;
-+        unsigned long   r11;
++#ifdef CONFIG_CPU_HAS_LDSTEX
++ENTRY(csky_cmpxchg)
++	USPTOKSP
++	mfcr	a3, epc
++	INCTRAP	a3
++
++	subi    sp, 8
++	stw     a3, (sp, 0)
++	mfcr    a3, epsr
++	stw     a3, (sp, 4)
++
++	psrset	ee
++1:
++	ldex	a3, (a2)
++	cmpne	a0, a3
++	bt16	2f
++	mov	a3, a1
++	stex	a3, (a2)
++	bez	a3, 1b
++2:
++	sync.is
++	mvc	a0
++	ldw	a3, (sp, 0)
++	mtcr	a3, epc
++	ldw     a3, (sp, 4)
++	mtcr	a3, epsr
++	addi	sp, 8
++	KSPTOUSP
++	rte
++END(csky_cmpxchg)
 +#else
-+	unsigned long   r8;
-+        unsigned long   r9;
-+        unsigned long   r10;
-+        unsigned long   r11;
-+        unsigned long   r12;
-+        unsigned long   r13;
-+        unsigned long   r14;
-+#endif
-+        unsigned long   r15;
-+#if defined(__CSKYABIV2__)
-+        unsigned long   r16;
-+        unsigned long   r17;
-+        unsigned long   r26;
-+        unsigned long   r27;
-+        unsigned long   r28;
-+        unsigned long   r29;
-+        unsigned long   r30;
-+#endif
-+};
++ENTRY(csky_cmpxchg)
++	USPTOKSP
++	mfcr	a3, epc
++	INCTRAP	a3
 +
-+#ifdef __KERNEL__
++	subi    sp, 8
++	stw     a3, (sp, 0)
++	mfcr    a3, epsr
++	stw     a3, (sp, 4)
 +
-+#define PS_S            0x80000000              /* Supervisor Mode */
-+
-+#define arch_has_single_step() (1)
-+#define current_pt_regs() \
-+	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
-+
-+#define user_stack_pointer(regs) ((regs)->usp)
-+
-+#define user_mode(regs) (!((regs)->sr & PS_S))
-+#define instruction_pointer(regs) ((regs)->pc)
-+#define profile_pc(regs) instruction_pointer(regs)
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASSEMBLY__ */
-+#endif /* _CSKY_PTRACE_H */
-diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
-new file mode 100644
-index 0000000..e25d9d3
---- /dev/null
-+++ b/arch/csky/kernel/dumpstack.c
-@@ -0,0 +1,64 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/ptrace.h>
-+
-+int kstack_depth_to_print = 48;
-+
-+void show_trace(unsigned long *stack)
-+{
-+	unsigned long *endstack;
-+	unsigned long addr;
-+	int i;
-+
-+	pr_info("Call Trace:");
-+	addr = (unsigned long)stack + THREAD_SIZE - 1;
-+	endstack = (unsigned long *)(addr & -THREAD_SIZE);
-+	i = 0;
-+	while (stack + 1 <= endstack) {
-+		addr = *stack++;
-+		/*
-+		 * If the address is either in the text segment of the
-+		 * kernel, or in the region which contains vmalloc'ed
-+		 * memory, it *may* be the address of a calling
-+		 * routine; if so, print it so that someone tracing
-+		 * down the cause of the crash will be able to figure
-+		 * out the call path that was taken.
-+		 */
-+		if (__kernel_text_address(addr)) {
-+#ifndef CONFIG_KALLSYMS
-+			if (i % 5 == 0)
-+				pr_cont("\n       ");
-+#endif
-+			pr_cont(" [<%08lx>] %pS\n", addr, (void *)addr);
-+			i++;
-+		}
-+	}
-+	pr_cont("\n");
-+}
-+
-+void show_stack(struct task_struct *task, unsigned long *stack)
-+{
-+	unsigned long *p;
-+	unsigned long *endstack;
-+	int i;
-+
-+	if (!stack) {
-+		if (task)
-+			stack = (unsigned long *)task->thread.esp0;
-+		else
-+			stack = (unsigned long *)&stack;
-+	}
-+	endstack = (unsigned long *)(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
-+
-+	pr_info("Stack from %08lx:", (unsigned long)stack);
-+	p = stack;
-+	for (i = 0; i < kstack_depth_to_print; i++) {
-+		if (p + 1 > endstack)
-+			break;
-+		if (i % 8 == 0)
-+			pr_cont("\n       ");
-+		pr_cont(" %08lx", *p++);
-+	}
-+	pr_cont("\n");
-+	show_trace(stack);
-+}
-diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
-new file mode 100644
-index 0000000..2422cf6
---- /dev/null
-+++ b/arch/csky/kernel/ptrace.c
-@@ -0,0 +1,317 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/elf.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
-+#include <linux/sched.h>
-+#include <linux/signal.h>
-+#include <linux/smp.h>
-+#include <linux/uaccess.h>
-+#include <linux/user.h>
-+
-+#include <asm/thread_info.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/processor.h>
-+#include <asm/asm-offsets.h>
-+
-+#include <abi/regdef.h>
-+
-+/* sets the trace bits. */
-+#define TRACE_MODE_SI      1 << 14
-+#define TRACE_MODE_RUN     0
-+#define TRACE_MODE_MASK    ~(0x3 << 14)
++	psrset	ee
++1:
++	ldw	a3, (a2)
++	cmpne	a0, a3
++	bt16	3f
++2:
++	stw	a1, (a2)
++3:
++	mvc	a0
++	ldw	a3, (sp, 0)
++	mtcr	a3, epc
++	ldw     a3, (sp, 4)
++	mtcr	a3, epsr
++	addi	sp, 8
++	KSPTOUSP
++	rte
++END(csky_cmpxchg)
 +
 +/*
-+ * Make sure the single step bit is not set.
++ * Called from tlbmodified exception
 + */
-+static void singlestep_disable(struct task_struct *tsk)
-+{
-+	struct pt_regs *regs;
-+
-+	regs = task_pt_regs(tsk);
-+	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
-+}
-+
-+static void singlestep_enable(struct task_struct *tsk)
-+{
-+	struct pt_regs *regs;
-+
-+	regs = task_pt_regs(tsk);
-+	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_SI;
-+}
-+
-+/*
-+ * Make sure the single step bit is set.
-+ */
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	if (child->thread.esp0 == 0) return;
-+	singlestep_enable(child);
-+}
-+
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	if (child->thread.esp0 == 0) return;
-+	singlestep_disable(child);
-+}
-+
-+enum csky_regset {
-+	REGSET_GPR,
-+	REGSET_FPR,
-+};
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	struct pt_regs *regs;
-+
-+	regs = task_pt_regs(target);
-+
-+	/* Abiv1 regs->tls is fake and we need sync here. */
-+	regs->tls = task_thread_info(target)->tp_value;
-+
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+}
-+
-+static int gpr_set(struct task_struct *target,
-+		    const struct user_regset *regset,
-+		    unsigned int pos, unsigned int count,
-+		    const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	struct pt_regs regs;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
-+	if (ret)
-+		return ret;
-+
-+	regs.sr = task_pt_regs(target)->sr;
-+
-+	task_thread_info(target)->tp_value = regs.tls;
-+
-+	*task_pt_regs(target) = regs;
-+
-+	return 0;
-+}
-+
-+static int fpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
-+
-+#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
-+	int i;
-+	struct user_fp tmp = *regs;
-+
-+	for (i = 0; i < 16; i++) {
-+		tmp.vr[i*4] = regs->vr[i*2];
-+		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
-+	}
-+
-+	for (i = 0; i < 32; i++) {
-+		tmp.vr[64 + i] = regs->vr[32 + i];
-+	}
-+
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
-+#else
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++ENTRY(csky_cmpxchg_fixup)
++	mfcr	a0, epc
++	lrw	a1, 2b
++	cmpne	a1, a0
++	bt	1f
++	subi	a1, (2b - 1b)
++	stw	a1, (sp, LSAVE_PC)
++1:
++	rts
++END(csky_cmpxchg_fixup)
 +#endif
-+}
-+
-+static int fpr_set(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
-+
-+#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
-+	int i;
-+	struct user_fp tmp;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
-+
-+	*regs = tmp;
-+
-+	for (i = 0; i < 16; i++) {
-+		regs->vr[i*2] = tmp.vr[i*4];
-+		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
-+	}
-+
-+	for (i = 0; i < 32; i++) {
-+		regs->vr[32 + i] = tmp.vr[64 + i];
-+	}
-+#else
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+#endif
-+
-+	return ret;
-+}
-+
-+static const struct user_regset csky_regsets[] = {
-+	[REGSET_GPR] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = ELF_NGREG,
-+		.size = sizeof(u32),
-+		.align = sizeof(u32),
-+		.get = &gpr_get,
-+		.set = &gpr_set,
-+	},
-+	[REGSET_FPR] = {
-+		.core_note_type = NT_PRFPREG,
-+		.n = sizeof(struct user_fp) / sizeof(u32),
-+		.size = sizeof(u32),
-+		.align = sizeof(u32),
-+		.get = &fpr_get,
-+		.set = &fpr_set,
-+	},
-+};
-+
-+static const struct user_regset_view user_csky_view = {
-+	.name = "csky",
-+	.e_machine = ELF_ARCH,
-+	.regsets = csky_regsets,
-+	.n = ARRAY_SIZE(csky_regsets),
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_csky_view;
-+}
-+
-+void ptrace_disable(struct task_struct *child)
-+{
-+	singlestep_disable(child);
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request,
-+		 unsigned long addr, unsigned long data)
-+{
-+	long ret = -EIO;
-+
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+/*
-+ * If process's system calls is traces, do some corresponding handles in this
-+ * fuction before entering system call function and after exiting system call
-+ * fuction.
-+ */
-+asmlinkage void syscall_trace(int why, struct pt_regs * regs)
-+{
-+	long saved_why;
-+	/*
-+	 * Save saved_why, why is used to denote syscall entry/exit;
-+	 * why = 0:entry, why = 1: exit
-+	 */
-+	saved_why = regs->regs[SYSTRACE_SAVENUM];
-+	regs->regs[SYSTRACE_SAVENUM] = why;
-+
-+	/* the 0x80 provides a way for the tracing parent to distinguish
-+	   between a syscall stop and SIGTRAP delivery */
-+	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
-+				? 0x80 : 0));
-+	/*
-+	 * this isn't the same as continuing with a signal, but it will do
-+	 * for normal use.  strace only continues with a signal if the
-+	 * stopping signal is not SIGTRAP.  -brl
-+	 */
-+	if (current->exit_code) {
-+		send_sig(current->exit_code, current, 1);
-+		current->exit_code = 0;
-+	}
-+
-+	regs->regs[SYSTRACE_SAVENUM] = saved_why;
-+	return;
-+}
-+
-+void show_regs(struct pt_regs *fp)
-+{
-+	unsigned long   *sp;
-+	unsigned char   *tp;
-+	int	i;
-+
-+	pr_info("\nCURRENT PROCESS:\n\n");
-+	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
-+
-+	if (current->mm) {
-+		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
-+		       (int) current->mm->start_code,
-+		       (int) current->mm->end_code,
-+		       (int) current->mm->start_data,
-+		       (int) current->mm->end_data,
-+		       (int) current->mm->end_data,
-+		       (int) current->mm->brk);
-+		pr_info("USER-STACK=%08x  KERNEL-STACK=%08x\n\n",
-+		       (int) current->mm->start_stack,
-+		       (int) (((unsigned long) current) + 2 * PAGE_SIZE));
-+	}
-+
-+	pr_info("PC: 0x%08lx\n", (long)fp->pc);
-+	pr_info("orig_a0: 0x%08lx\n", fp->orig_a0);
-+	pr_info("PSR: 0x%08lx\n", (long)fp->sr);
-+
-+	pr_info("a0: 0x%08lx  a1: 0x%08lx  a2: 0x%08lx  a3: 0x%08lx\n",
-+	       fp->a0, fp->a1, fp->a2, fp->a3);
-+#if defined(__CSKYABIV2__)
-+	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
-+	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
-+	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
-+	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
-+	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
-+	       fp->regs[8], fp->regs[9], fp->lr);
-+	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
-+	       fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
-+	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
-+	       fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
-+	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
-+	       fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
-+	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
-+	       fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
-+	pr_info("hi 0x%08lx     lo: 0x%08lx \n",
-+	       fp->rhi, fp->rlo);
-+#else
-+	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
-+	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
-+	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
-+	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
-+	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
-+	       fp->regs[8], fp->regs[9], fp->lr);
-+#endif
-+
-+	pr_info("\nCODE:");
-+	tp = ((unsigned char *) fp->pc) - 0x20;
-+	tp += ((int)tp % 4) ? 2 : 0;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_cont("\n%08x: ", (int) (tp + i));
-+		pr_cont("%08x ", (int) *sp++);
-+	}
-+	pr_cont("\n");
-+
-+	pr_info("\nKERNEL STACK:");
-+	tp = ((unsigned char *) fp) - 0x40;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_cont("\n%08x: ", (int) (tp + i));
-+		pr_cont("%08x ", (int) *sp++);
-+	}
-+	pr_cont("\n");
-+
-+	return;
-+}
 -- 
 2.7.4
