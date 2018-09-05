@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 17/26] csky: Misc headers
-Date: Wed,  5 Sep 2018 20:07:56 +0800
-Message-ID: <66335e5f59c186b291f8c3c98c9dadbd61d0cd3e.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 06/26] csky: Cache and TLB routines
+Date: Wed,  5 Sep 2018 20:07:45 +0800
+Message-ID: <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -14,733 +14,954 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv1/inc/abi/reg_ops.h      |  26 +++
- arch/csky/abiv1/inc/abi/regdef.h       |  25 +++
- arch/csky/abiv2/inc/abi/reg_ops.h      |  17 ++
- arch/csky/abiv2/inc/abi/regdef.h       |  26 +++
- arch/csky/boot/dts/qemu.dts            |  77 +++++++++
- arch/csky/include/asm/bitops.h         | 281 +++++++++++++++++++++++++++++++++
- arch/csky/include/asm/checksum.h       |  54 +++++++
- arch/csky/include/asm/compat.h         |  11 ++
- arch/csky/include/asm/reg_ops.h        |  22 +++
- arch/csky/include/uapi/asm/byteorder.h |  14 ++
- arch/csky/kernel/asm-offsets.c         |  85 ++++++++++
- 11 files changed, 638 insertions(+)
- create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
- create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
- create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
- create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
- create mode 100644 arch/csky/boot/dts/qemu.dts
- create mode 100644 arch/csky/include/asm/bitops.h
- create mode 100644 arch/csky/include/asm/checksum.h
- create mode 100644 arch/csky/include/asm/compat.h
- create mode 100644 arch/csky/include/asm/reg_ops.h
- create mode 100644 arch/csky/include/uapi/asm/byteorder.h
- create mode 100644 arch/csky/kernel/asm-offsets.c
+ arch/csky/abiv1/cacheflush.c          |  50 ++++++++
+ arch/csky/abiv1/inc/abi/cacheflush.h  |  41 +++++++
+ arch/csky/abiv1/inc/abi/tlb.h         |  11 ++
+ arch/csky/abiv2/cacheflush.c          |  54 +++++++++
+ arch/csky/abiv2/inc/abi/cacheflush.h  |  38 ++++++
+ arch/csky/abiv2/inc/abi/tlb.h         |  12 ++
+ arch/csky/include/asm/barrier.h       |  45 +++++++
+ arch/csky/include/asm/cache.h         |  28 +++++
+ arch/csky/include/asm/cacheflush.h    |   8 ++
+ arch/csky/include/asm/io.h            |  23 ++++
+ arch/csky/include/asm/tlb.h           |  19 +++
+ arch/csky/include/asm/tlbflush.h      |  22 ++++
+ arch/csky/include/uapi/asm/cachectl.h |  13 +++
+ arch/csky/mm/cachev1.c                | 126 ++++++++++++++++++++
+ arch/csky/mm/cachev2.c                |  79 +++++++++++++
+ arch/csky/mm/syscache.c               |  28 +++++
+ arch/csky/mm/tlb.c                    | 214 ++++++++++++++++++++++++++++++++++
+ 17 files changed, 811 insertions(+)
+ create mode 100644 arch/csky/abiv1/cacheflush.c
+ create mode 100644 arch/csky/abiv1/inc/abi/cacheflush.h
+ create mode 100644 arch/csky/abiv1/inc/abi/tlb.h
+ create mode 100644 arch/csky/abiv2/cacheflush.c
+ create mode 100644 arch/csky/abiv2/inc/abi/cacheflush.h
+ create mode 100644 arch/csky/abiv2/inc/abi/tlb.h
+ create mode 100644 arch/csky/include/asm/barrier.h
+ create mode 100644 arch/csky/include/asm/cache.h
+ create mode 100644 arch/csky/include/asm/cacheflush.h
+ create mode 100644 arch/csky/include/asm/io.h
+ create mode 100644 arch/csky/include/asm/tlb.h
+ create mode 100644 arch/csky/include/asm/tlbflush.h
+ create mode 100644 arch/csky/include/uapi/asm/cachectl.h
+ create mode 100644 arch/csky/mm/cachev1.c
+ create mode 100644 arch/csky/mm/cachev2.c
+ create mode 100644 arch/csky/mm/syscache.c
+ create mode 100644 arch/csky/mm/tlb.c
 
-diff --git a/arch/csky/abiv1/inc/abi/reg_ops.h b/arch/csky/abiv1/inc/abi/reg_ops.h
+diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
 new file mode 100644
-index 0000000..c5d2ff4
+index 0000000..4c6fede
 --- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/reg_ops.h
-@@ -0,0 +1,26 @@
++++ b/arch/csky/abiv1/cacheflush.c
+@@ -0,0 +1,50 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ABI_REG_OPS_H
-+#define __ABI_REG_OPS_H
-+#include <asm/reg_ops.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/fs.h>
++#include <linux/syscalls.h>
++#include <linux/spinlock.h>
++#include <asm/page.h>
++#include <asm/cache.h>
++#include <asm/cacheflush.h>
++#include <asm/cachectl.h>
 +
-+#define cprcr(reg)					\
-+({							\
-+	unsigned int tmp;				\
-+	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
-+	tmp;						\
-+})
-+
-+#define cpwcr(reg, val)					\
-+({							\
-+	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
-+})
-+
-+static inline unsigned int mfcr_hint(void)
++void flush_dcache_page(struct page *page)
 +{
-+	return mfcr("cr30");
++	struct address_space *mapping = page_mapping(page);
++	unsigned long addr;
++
++	if (mapping && !mapping_mapped(mapping)) {
++		set_bit(PG_arch_1, &(page)->flags);
++		return;
++	}
++
++	/*
++	 * We could delay the flush for the !page_mapping case too.  But that
++	 * case is for exec env/arg pages and those are %99 certainly going to
++	 * get faulted into the tlb (and thus flushed) anyways.
++	 */
++	addr = (unsigned long) page_address(page);
++	dcache_wb_range(addr, addr + PAGE_SIZE);
 +}
 +
-+static inline unsigned int mfcr_ccr2(void){return 0;}
-+
-+#endif /* __ABI_REG_OPS_H */
-diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
-new file mode 100644
-index 0000000..cc4cebd
---- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/regdef.h
-@@ -0,0 +1,25 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef  __ASM_CSKY_REGDEF_H
-+#define  __ASM_CSKY_REGDEF_H
-+
-+#define syscallid	r1
-+#define r11_sig		r11
-+
-+#define regs_syscallid(regs) regs->regs[9]
-+
-+/*
-+ * PSR format:
-+ * | 31 | 30-24 | 23-16 | 15 14 | 13-0 |
-+ *   S     CPID     VEC     TM
-+ *
-+ *    S: Super Mode
-+ * CPID: Coprocessor id, only 15 for MMU
-+ *  VEC: Exception Number
-+ *   TM: Trace Mode
-+ */
-+#define DEFAULT_PSR_VALUE	0x8f000000
-+
-+#define SYSTRACE_SAVENUM	2
-+
-+#endif /* __ASM_CSKY_REGDEF_H */
-diff --git a/arch/csky/abiv2/inc/abi/reg_ops.h b/arch/csky/abiv2/inc/abi/reg_ops.h
-new file mode 100644
-index 0000000..ffe4fc9
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/reg_ops.h
-@@ -0,0 +1,17 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ABI_REG_OPS_H
-+#define __ABI_REG_OPS_H
-+#include <asm/reg_ops.h>
-+
-+static inline unsigned int mfcr_hint(void)
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
 +{
-+	return mfcr("cr31");
-+}
++	unsigned long addr;
++	struct page *page;
++	unsigned long pfn;
 +
-+static inline unsigned int mfcr_ccr2(void)
-+{
-+	return mfcr("cr23");
++	pfn = pte_pfn(*pte);
++	if (unlikely(!pfn_valid(pfn)))
++		return;
++
++	page = pfn_to_page(pfn);
++	addr = (unsigned long) page_address(page);
++
++	if (vma->vm_flags & VM_EXEC ||
++	    pages_do_alias(addr, address & PAGE_MASK))
++		cache_wbinv_all();
++
++	clear_bit(PG_arch_1, &(page)->flags);
 +}
-+#endif /* __ABI_REG_OPS_H */
-diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
+diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
 new file mode 100644
-index 0000000..676e74a
+index 0000000..ba5071e
 --- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/regdef.h
-@@ -0,0 +1,26 @@
++++ b/arch/csky/abiv1/inc/abi/cacheflush.h
+@@ -0,0 +1,41 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef  __ASM_CSKY_REGDEF_H
-+#define  __ASM_CSKY_REGDEF_H
-+
-+#define syscallid	r7
-+#define r11_sig		r11
-+
-+#define regs_syscallid(regs) regs->regs[3]
-+
-+/*
-+ * PSR format:
-+ * | 31 | 30-24 | 23-16 | 15 14 | 13-10 | 9 | 8-0 |
-+ *   S              VEC     TM            MM
-+ *
-+ *   S: Super Mode
-+ * VEC: Exception Number
-+ *  TM: Trace Mode
-+ *  MM: Memory unaligned addr access
-+ */
-+#define DEFAULT_PSR_VALUE	0x80000200
-+
-+#define SYSTRACE_SAVENUM	5
-+
-+#endif /* __ASM_CSKY_REGDEF_H */
-diff --git a/arch/csky/boot/dts/qemu.dts b/arch/csky/boot/dts/qemu.dts
-new file mode 100644
-index 0000000..d36e4cd
---- /dev/null
-+++ b/arch/csky/boot/dts/qemu.dts
-@@ -0,0 +1,77 @@
-+/dts-v1/;
-+/ {
-+	compatible = "csky,qemu";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "console=ttyS0,115200";
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x0 0x40000000>;
-+	};
-+
-+	soc {
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		compatible = "simple-bus";
-+		ranges;
-+
-+		intc: interrupt-controller {
-+			compatible = "csky,apb-intc";
-+			reg = <0xfffff000 0x1000>;
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		timer0: timer@0xffffd000 {
-+			compatible = "snps,dw-apb-timer";
-+			reg = <0xffffd000 0x1000>;
-+			clocks = <&dummy_apb>;
-+			clock-names = "timer";
-+			interrupts = <1>;
-+		};
-+
-+		timer1: timer@0xffffd014 {
-+			compatible = "snps,dw-apb-timer";
-+			reg = <0xffffd014 0x800>;
-+			clocks = <&dummy_apb>;
-+			clock-names = "timer";
-+			interrupts = <2>;
-+		};
-+
-+		serial0:serial@0xffffe000 {
-+			compatible = "ns16550a";
-+			reg = <0xffffe000 0x1000>;
-+			interrupts = <3>;
-+			clocks = <&dummy_apb>;
-+			baud = <115200>;
-+			reg-shift = <2>;
-+			reg-io-width = <1>;
-+		};
-+
-+		dummy_apb: apb-clock {
-+			compatible = "fixed-clock";
-+			clock-frequency = <40000000>;
-+			clock-output-names = "dummy_apb";
-+			#clock-cells = <0>;
-+		};
-+
-+		mac0: ethernet@0xffffa000 {
-+			compatible = "snps,dwmac";
-+			reg = <0xffffa000 0x2000>;
-+			interrupts = <4>;
-+			interrupt-names = "macirq";
-+			clocks = <&dummy_apb>;
-+			clock-names = "stmmaceth";
-+			phy-mode = "mii";
-+			snps,pbl = <32>;
-+			snps,fixed-burst;
-+		};
-+	};
-+
-+};
-diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
-new file mode 100644
-index 0000000..36a539d
---- /dev/null
-+++ b/arch/csky/include/asm/bitops.h
-@@ -0,0 +1,281 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_BITOPS_H
-+#define __ASM_CSKY_BITOPS_H
++#ifndef __ABI_CSKY_CACHEFLUSH_H
++#define __ABI_CSKY_CACHEFLUSH_H
 +
 +#include <linux/compiler.h>
-+#include <asm/barrier.h>
++#include <asm/string.h>
++#include <asm/cache.h>
 +
-+/*
-+ * asm-generic/bitops/ffs.h
-+ */
-+static inline int ffs(int x)
-+{
-+	if(!x) return 0;
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
++extern void flush_dcache_page(struct page *);
 +
-+	asm volatile (
-+		"brev %0\n"
-+		"ff1  %0\n"
-+		"addi %0, 1\n"
-+		:"=&r"(x)
-+		:"0"(x));
-+	return x;
-+}
++#define flush_cache_mm(mm)		cache_wbinv_all()
++#define flush_cache_page(vma,page,pfn)	cache_wbinv_all()
++#define flush_cache_dup_mm(mm)		cache_wbinv_all()
 +
-+/*
-+ * asm-generic/bitops/__ffs.h
-+ */
-+static __always_inline unsigned long __ffs(unsigned long x)
-+{
-+	asm volatile (
-+		"brev %0\n"
-+		"ff1  %0\n"
-+		:"=&r"(x)
-+		:"0"(x));
-+	return x;
-+}
++#define flush_cache_range(mm,start,end)	cache_wbinv_range(start, end)
++#define flush_cache_vmap(start, end)	cache_wbinv_range(start, end)
++#define flush_cache_vunmap(start, end)  cache_wbinv_range(start, end)
 +
-+/*
-+ * asm-generic/bitops/fls.h
-+ */
-+static __always_inline int fls(int x)
-+{
-+	asm volatile(
-+		"ff1 %0\n"
-+		:"=&r"(x)
-+		:"0"(x));
++#define flush_icache_page(vma, page)	cache_wbinv_all()
++#define flush_icache_range(start, end)	cache_wbinv_range(start, end)
++#define flush_icache_user_range(vma,pg,adr,len)	cache_wbinv_range(adr, adr + len)
 +
-+	return (32 - x);
-+}
++#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
++do{ \
++	cache_wbinv_all(); \
++	memcpy(dst, src, len); \
++	icache_inv_all(); \
++}while(0)
 +
-+/*
-+ * asm-generic/bitops/__fls.h
-+ */
-+static __always_inline unsigned long __fls(unsigned long x)
-+{
-+	return fls(x) - 1;
-+}
++#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
++do{ \
++	cache_wbinv_all(); \
++	memcpy(dst, src, len); \
++}while(0)
 +
-+#include <asm-generic/bitops/ffz.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/find.h>
++#define flush_dcache_mmap_lock(mapping)		do{}while(0)
++#define flush_dcache_mmap_unlock(mapping)	do{}while(0)
 +
-+#ifndef _LINUX_BITOPS_H
-+#error only <linux/bitops.h> can be included directly
-+#endif
-+
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/lock.h>
-+
-+#ifdef CONFIG_CPU_HAS_LDSTEX
-+
-+/*
-+ * set_bit - Atomically set a bit in memory
-+ * @nr: the bit to set
-+ * @addr: the address to start counting from
-+ *
-+ * This function is atomic and may not be reordered.  See __set_bit()
-+ * if you do not require the atomic guarantees.
-+ *
-+ * Note: there are no guarantees that this function will not be reordered
-+ * on non x86 architectures, so if you are writing portable code,
-+ * make sure not to rely on its reordering guarantees.
-+ *
-+ * Note that @nr may be almost arbitrarily large; this function is not
-+ * restricted to acting on a single-word quantity.
-+ */
-+static inline void set_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long tmp;
-+
-+	/* *p  |= mask; */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2)	\n"
-+		"	or32		%0, %0, %1	\n"
-+		"	stex.w		%0, (%2)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+}
-+
-+/**
-+ * clear_bit - Clears a bit in memory
-+ * @nr: Bit to clear
-+ * @addr: Address to start counting from
-+ *
-+ * clear_bit() is atomic and may not be reordered.  However, it does
-+ * not contain a memory barrier, so if it is used for locking purposes,
-+ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-+ * in order to ensure changes are visible on other processors.
-+ */
-+static inline void clear_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long tmp;
-+
-+	/* *p &= ~mask; */
-+	mask = ~mask;
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2)	\n"
-+		"	and32		%0, %0, %1	\n"
-+		"	stex.w		%0, (%2)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+}
-+
-+/**
-+ * change_bit - Toggle a bit in memory
-+ * @nr: Bit to change
-+ * @addr: Address to start counting from
-+ *
-+ * change_bit() is atomic and may not be reordered. It may be
-+ * reordered on other architectures than x86.
-+ * Note that @nr may be almost arbitrarily large; this function is not
-+ * restricted to acting on a single-word quantity.
-+ */
-+static inline void change_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long tmp;
-+
-+	/* *p ^= mask; */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2)	\n"
-+		"	xor32		%0, %0, %1	\n"
-+		"	stex.w		%0, (%2)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+}
-+
-+/**
-+ * test_and_set_bit - Set a bit and return its old value
-+ * @nr: Bit to set
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It may be reordered on other architectures than x86.
-+ * It also implies a memory barrier.
-+ */
-+static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long old, tmp;
-+
-+	/*
-+	 * old = *p;
-+	 * *p = old | mask;
-+	 */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%1, (%3)	\n"
-+		"	mov		%0, %1		\n"
-+		"	or32		%0, %0, %2	\n"
-+		"	stex.w		%0, (%3)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp), "=&r"(old)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+
-+	return (old & mask) != 0;
-+}
-+
-+/**
-+ * test_and_clear_bit - Clear a bit and return its old value
-+ * @nr: Bit to clear
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It can be reorderdered on other architectures other than x86.
-+ * It also implies a memory barrier.
-+ */
-+static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long old, tmp, mask_not;
-+
-+	/*
-+	 * old = *p;
-+	 * *p = old & ~mask;
-+	 */
-+	smp_mb();
-+	mask_not = ~mask;
-+	asm volatile (
-+		"1:	ldex.w		%1, (%3)	\n"
-+		"	mov		%0, %1		\n"
-+		"	and32		%0, %0, %2	\n"
-+		"	stex.w		%0, (%3)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp), "=&r"(old)
-+		: "r"(mask_not), "r"(p)
-+		: "memory");
-+
-+	smp_mb();
-+
-+	return (old & mask) != 0;
-+}
-+
-+/**
-+ * test_and_change_bit - Change a bit and return its old value
-+ * @nr: Bit to change
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It also implies a memory barrier.
-+ */
-+static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long old, tmp;
-+
-+	/*
-+	 * old = *p;
-+	 * *p = old ^ mask;
-+	 */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%1, (%3)	\n"
-+		"	mov		%0, %1		\n"
-+		"	xor32		%0, %0, %2	\n"
-+		"	stex.w		%0, (%3)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp), "=&r"(old)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+
-+	return (old & mask) != 0;
-+}
-+
-+#else
-+#include <asm-generic/bitops/atomic.h>
-+#endif
-+
-+/*
-+ * bug fix, why only could use atomic!!!!
-+ */
-+#include <asm-generic/bitops/non-atomic.h>
-+#define __clear_bit(nr,vaddr) clear_bit(nr,vaddr)
-+
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic.h>
-+#endif /* __ASM_CSKY_BITOPS_H */
-diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
++#endif /* __ABI_CSKY_CACHEFLUSH_H */
+diff --git a/arch/csky/abiv1/inc/abi/tlb.h b/arch/csky/abiv1/inc/abi/tlb.h
 new file mode 100644
-index 0000000..0b7f436
+index 0000000..cf0c8d9
 --- /dev/null
-+++ b/arch/csky/include/asm/checksum.h
-@@ -0,0 +1,54 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_CHECKSUM_H
-+#define __ASM_CSKY_CHECKSUM_H
-+
-+#include <linux/in6.h>
-+#include <asm/byteorder.h>
-+
-+static inline __sum16 csum_fold(__wsum csum)
-+{
-+	u32 tmp;
-+	asm volatile(
-+		"mov	%1, %0\n"
-+		"rori	%0, 16\n"
-+		"addu	%0, %1\n"
-+		"lsri	%0, 16\n"
-+		:"=r"(csum), "=r"(tmp)
-+		:"0"(csum));
-+	return (__force __sum16)~csum;
-+}
-+#define csum_fold csum_fold
-+
-+static inline __wsum
-+csum_tcpudp_nofold(
-+	__be32 saddr,
-+	__be32 daddr,
-+	unsigned short len,
-+	unsigned short proto,
-+	__wsum sum
-+	)
-+{
-+	asm volatile(
-+		"clrc\n"
-+		"addc    %0, %1\n"
-+		"addc    %0, %2\n"
-+		"addc    %0, %3\n"
-+		"inct    %0\n"
-+		:"=r"(sum)
-+		:"r"((__force u32)saddr),
-+		"r"((__force u32)daddr),
-+#ifdef __BIG_ENDIAN
-+		"r"(proto + len),
-+#else
-+		"r"((proto + len) << 8),
-+#endif
-+		"0" ((__force unsigned long)sum)
-+		:"cc");
-+	return sum;
-+}
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+
-+#include <asm-generic/checksum.h>
-+
-+#endif /* __ASM_CSKY_CHECKSUM_H */
-diff --git a/arch/csky/include/asm/compat.h b/arch/csky/include/asm/compat.h
-new file mode 100644
-index 0000000..59f9297
---- /dev/null
-+++ b/arch/csky/include/asm/compat.h
++++ b/arch/csky/abiv1/inc/abi/tlb.h
 @@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ABI_CSKY_TLB_H
++#define __ABI_CSKY_TLB_H
 +
-+#ifndef __ASM_CSKY_COMPAT_H
-+#define __ASM_CSKY_COMPAT_H
-+
-+#ifdef CONFIG_COMPAT
-+#define COMPAT_UTS_MACHINE "csky\0\0"
-+#endif
-+
-+#endif /* __ASM_CSKY_COMPAT_H */
-diff --git a/arch/csky/include/asm/reg_ops.h b/arch/csky/include/asm/reg_ops.h
++#define tlb_start_vma(tlb, vma) \
++	do { \
++		if (!tlb->fullmm) \
++			cache_wbinv_all(); \
++	}  while (0)
++#endif /* __ABI_CSKY_TLB_H */
+diff --git a/arch/csky/abiv2/cacheflush.c b/arch/csky/abiv2/cacheflush.c
 new file mode 100644
-index 0000000..ed7bbde
+index 0000000..794e9ce
 --- /dev/null
-+++ b/arch/csky/include/asm/reg_ops.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_REGS_OPS_H
-+#define __ASM_REGS_OPS_H
-+
-+#define mfcr(reg)				\
-+({						\
-+	unsigned int tmp;			\
-+	asm volatile("mfcr %0, "reg"\n"		\
-+		     :"=r"(tmp)			\
-+		     :				\
-+		     :"memory");		\
-+	tmp;					\
-+})
-+
-+#define mtcr(reg, val)				\
-+({						\
-+	asm volatile("mtcr %0, "reg"\n"		\
-+		     :				\
-+		     :"r"(val)			\
-+		     :"memory");		\
-+})
-+
-+#endif /* __ASM_REGS_OPS_H */
-diff --git a/arch/csky/include/uapi/asm/byteorder.h b/arch/csky/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..d254522
---- /dev/null
-+++ b/arch/csky/include/uapi/asm/byteorder.h
-@@ -0,0 +1,14 @@
++++ b/arch/csky/abiv2/cacheflush.c
+@@ -0,0 +1,54 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_BYTEORDER_H
-+#define __ASM_CSKY_BYTEORDER_H
++#include <linux/cache.h>
++#include <linux/highmem.h>
++#include <linux/mm.h>
++#include <asm/cache.h>
 +
-+#if defined(__cskyBE__)
-+#include <linux/byteorder/big_endian.h>
-+#elif defined(__cskyLE__)
-+#include <linux/byteorder/little_endian.h>
-+#else
-+# error "There is no __cskyBE__, __cskyLE__"
-+#endif
-+
-+#endif /* __ASM_CSKY_BYTEORDER_H */
-diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
-new file mode 100644
-index 0000000..d7868dd
---- /dev/null
-+++ b/arch/csky/kernel/asm-offsets.c
-@@ -0,0 +1,85 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/kbuild.h>
-+#include <abi/regdef.h>
-+
-+int main(void)
++void flush_icache_page(struct vm_area_struct *vma, struct page *page)
 +{
-+	/* offsets into the task struct */
-+	DEFINE(TASK_STATE,        offsetof(struct task_struct, state));
-+	DEFINE(TASK_THREAD_INFO,  offsetof(struct task_struct, stack));
-+	DEFINE(TASK_FLAGS,        offsetof(struct task_struct, flags));
-+	DEFINE(TASK_PTRACE,       offsetof(struct task_struct, ptrace));
-+	DEFINE(TASK_THREAD,       offsetof(struct task_struct, thread));
-+	DEFINE(TASK_MM,           offsetof(struct task_struct, mm));
-+	DEFINE(TASK_ACTIVE_MM,    offsetof(struct task_struct, active_mm));
++	void *va;
++	unsigned long start, end;
 +
-+	/* offsets into the thread struct */
-+	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
-+	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
-+	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
-+	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
-+	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
-+	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
-+	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
-+	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
++	va = page_address(page);
++	start = (unsigned long) va;
 +
-+	/* offsets into the thread_info struct */
-+	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));
-+	DEFINE(TINFO_PREEMPT,     offsetof(struct thread_info, preempt_count));
-+	DEFINE(TINFO_ADDR_LIMIT,  offsetof(struct thread_info, addr_limit));
-+	DEFINE(TINFO_TP_VALUE,   offsetof(struct thread_info, tp_value));
-+	DEFINE(TINFO_TASK,        offsetof(struct thread_info, task));
++	if (va == NULL && PageHighMem(page))
++		start = (unsigned long) kmap_atomic(page);
 +
-+	/* offsets into the pt_regs */
-+	DEFINE(PT_PC,             offsetof(struct pt_regs, pc));
-+	DEFINE(PT_ORIG_AO,        offsetof(struct pt_regs, orig_a0));
-+	DEFINE(PT_SR,             offsetof(struct pt_regs, sr));
++	end = start + PAGE_SIZE;
 +
-+	DEFINE(PT_A0,             offsetof(struct pt_regs, a0));
-+	DEFINE(PT_A1,             offsetof(struct pt_regs, a1));
-+	DEFINE(PT_A2,             offsetof(struct pt_regs, a2));
-+	DEFINE(PT_A3,             offsetof(struct pt_regs, a3));
-+	DEFINE(PT_REGS0,          offsetof(struct pt_regs, regs[0]));
-+	DEFINE(PT_REGS1,          offsetof(struct pt_regs, regs[1]));
-+	DEFINE(PT_REGS2,          offsetof(struct pt_regs, regs[2]));
-+	DEFINE(PT_REGS3,          offsetof(struct pt_regs, regs[3]));
-+	DEFINE(PT_REGS4,          offsetof(struct pt_regs, regs[4]));
-+	DEFINE(PT_REGS5,          offsetof(struct pt_regs, regs[5]));
-+	DEFINE(PT_REGS6,          offsetof(struct pt_regs, regs[6]));
-+	DEFINE(PT_REGS7,          offsetof(struct pt_regs, regs[7]));
-+	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
-+	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
-+	DEFINE(PT_R15,            offsetof(struct pt_regs, lr));
-+#if defined(__CSKYABIV2__)
-+	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
-+	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));
-+	DEFINE(PT_R18,            offsetof(struct pt_regs, exregs[2]));
-+	DEFINE(PT_R19,            offsetof(struct pt_regs, exregs[3]));
-+	DEFINE(PT_R20,            offsetof(struct pt_regs, exregs[4]));
-+	DEFINE(PT_R21,            offsetof(struct pt_regs, exregs[5]));
-+	DEFINE(PT_R22,            offsetof(struct pt_regs, exregs[6]));
-+	DEFINE(PT_R23,            offsetof(struct pt_regs, exregs[7]));
-+	DEFINE(PT_R24,            offsetof(struct pt_regs, exregs[8]));
-+	DEFINE(PT_R25,            offsetof(struct pt_regs, exregs[9]));
-+	DEFINE(PT_R26,            offsetof(struct pt_regs, exregs[10]));
-+	DEFINE(PT_R27,            offsetof(struct pt_regs, exregs[11]));
-+	DEFINE(PT_R28,            offsetof(struct pt_regs, exregs[12]));
-+	DEFINE(PT_R29,            offsetof(struct pt_regs, exregs[13]));
-+	DEFINE(PT_R30,            offsetof(struct pt_regs, exregs[14]));
-+	DEFINE(PT_R31,            offsetof(struct pt_regs, exregs[15]));
-+	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
-+	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
++	cache_wbinv_range(start, end);
++
++	if (va == NULL && PageHighMem(page))
++		kunmap_atomic((void *)start);
++}
++
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
++{
++	unsigned long addr, pfn;
++	struct page *page;
++	void *va;
++
++	if (!(vma->vm_flags & VM_EXEC))
++		return;
++
++	pfn = pte_pfn(*pte);
++	if (unlikely(!pfn_valid(pfn)))
++		return;
++
++	page = pfn_to_page(pfn);
++	if (page == ZERO_PAGE(0))
++		return;
++
++	va = page_address(page);
++	addr = (unsigned long) va;
++
++	if (va == NULL && PageHighMem(page))
++		addr = (unsigned long) kmap_atomic(page);
++
++	cache_wbinv_range(addr, addr + PAGE_SIZE);
++
++	if (va == NULL && PageHighMem(page))
++		kunmap_atomic((void *) addr);
++}
+diff --git a/arch/csky/abiv2/inc/abi/cacheflush.h b/arch/csky/abiv2/inc/abi/cacheflush.h
+new file mode 100644
+index 0000000..696ca87
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/cacheflush.h
+@@ -0,0 +1,38 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#ifndef __ABI_CSKY_CACHEFLUSH_H
++#define __ABI_CSKY_CACHEFLUSH_H
++
++/* Keep includes the same across arches.  */
++#include <linux/mm.h>
++
++/*
++ * The cache doesn't need to be flushed when TLB entries change when
++ * the cache is mapped to physical memory, not virtual memory
++ */
++#define flush_cache_all()			do { } while (0)
++#define flush_cache_mm(mm)			do { } while (0)
++#define flush_cache_dup_mm(mm)			do { } while (0)
++#define flush_cache_range(vma, start, end)	do { } while (0)
++#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
++#define flush_dcache_page(page)			do { } while (0)
++#define flush_dcache_mmap_lock(mapping)		do { } while (0)
++#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
++
++#define flush_icache_range(start, end)		cache_wbinv_range(start, end)
++#define flush_icache_user_range(vma,pg,adr,len)	cache_wbinv_range(adr, adr + len)
++void flush_icache_page(struct vm_area_struct *vma, struct page *page);
++
++#define flush_cache_vmap(start, end)		do { } while (0)
++#define flush_cache_vunmap(start, end)		do { } while (0)
++
++#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
++	do { \
++		memcpy(dst, src, len); \
++		flush_icache_user_range(vma, page, vaddr, len); \
++	} while (0)
++#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
++	memcpy(dst, src, len)
++
++#endif /* __ABI_CSKY_CACHEFLUSH_H */
+diff --git a/arch/csky/abiv2/inc/abi/tlb.h b/arch/csky/abiv2/inc/abi/tlb.h
+new file mode 100644
+index 0000000..0faa4e9
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/tlb.h
+@@ -0,0 +1,12 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ABI_CSKY_TLB_H
++#define __ABI_CSKY_TLB_H
++
++#define tlb_start_vma(tlb, vma) \
++	do { \
++		if (!tlb->fullmm && (vma->vm_flags & VM_EXEC)) \
++			icache_inv_all(); \
++	}  while (0)
++
++#endif /* __ABI_CSKY_TLB_H */
+diff --git a/arch/csky/include/asm/barrier.h b/arch/csky/include/asm/barrier.h
+new file mode 100644
+index 0000000..ecf4a02
+--- /dev/null
++++ b/arch/csky/include/asm/barrier.h
+@@ -0,0 +1,45 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_BARRIER_H
++#define __ASM_CSKY_BARRIER_H
++
++#ifndef __ASSEMBLY__
++
++#define nop()	asm volatile ("nop")
++
++/*
++ * sync:        completion barrier
++ * sync.s:      completion barrier and shareable to other cores
++ * sync.i:      completion barrier with flush cpu pipeline
++ * sync.is:     completion barrier with flush cpu pipeline and shareable to other cores
++ *
++ * bar.brwarw:  ordering barrier for all load/store instructions before it
++ * bar.brwarws: ordering barrier for all load/store instructions before it and shareable to other cores
++ * bar.brar:    ordering barrier for all load       instructions before it
++ * bar.brars:   ordering barrier for all load       instructions before it and shareable to other cores
++ * bar.bwaw:    ordering barrier for all store      instructions before it
++ * bar.bwaws:   ordering barrier for all store      instructions before it and shareable to other cores
++ */
++
++#ifdef CONFIG_CPU_HAS_CACHEV2
++#define mb()		asm volatile ("bar.brwarw":::"memory")
++#define rmb()		asm volatile ("bar.brar":::"memory")
++#define wmb()		asm volatile ("bar.bwaw":::"memory")
++
++#ifdef CONFIG_SMP
++#define __smp_mb()	asm volatile ("bar.brwarws":::"memory")
++#define __smp_rmb()	asm volatile ("bar.brars":::"memory")
++#define __smp_wmb()	asm volatile ("bar.bwaws":::"memory")
++#endif /* CONFIG_SMP */
++
++#define sync_is()	asm volatile ("sync.is":::"memory")
++
++#else /* !CONFIG_CPU_HAS_CACHEV2 */
++#define mb()		asm volatile ("sync":::"memory")
 +#endif
-+	DEFINE(PT_USP,            offsetof(struct pt_regs, usp));
-+	/* offsets into the irq_cpustat_t struct */
-+	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
 +
-+	/* signal defines */
-+	DEFINE(SIGSEGV, SIGSEGV);
-+	DEFINE(SIGTRAP, SIGTRAP);
++#include <asm-generic/barrier.h>
++
++#endif /* __ASSEMBLY__ */
++#endif /* __ASM_CSKY_BARRIER_H */
+diff --git a/arch/csky/include/asm/cache.h b/arch/csky/include/asm/cache.h
+new file mode 100644
+index 0000000..9bb3cca
+--- /dev/null
++++ b/arch/csky/include/asm/cache.h
+@@ -0,0 +1,28 @@
++#ifndef __ASM_CSKY_CACHE_H
++#define __ASM_CSKY_CACHE_H
++
++/* bytes per L1 cache line */
++#define L1_CACHE_SHIFT	CONFIG_L1_CACHE_SHIFT
++
++#define L1_CACHE_BYTES	(1 << L1_CACHE_SHIFT)
++
++#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
++
++#ifndef __ASSEMBLY__
++
++void dcache_wb_line(unsigned long start);
++
++void icache_inv_range(unsigned long start, unsigned long end);
++void icache_inv_all(void);
++
++void dcache_wb_range(unsigned long start, unsigned long end);
++void dcache_wbinv_all(void);
++
++void cache_wbinv_range(unsigned long start, unsigned long end);
++void cache_wbinv_all(void);
++
++void dma_wbinv_range(unsigned long start, unsigned long end);
++void dma_wb_range(unsigned long start, unsigned long end);
++
++#endif
++#endif  /* __ASM_CSKY_CACHE_H */
+diff --git a/arch/csky/include/asm/cacheflush.h b/arch/csky/include/asm/cacheflush.h
+new file mode 100644
+index 0000000..297fd9c
+--- /dev/null
++++ b/arch/csky/include/asm/cacheflush.h
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_CACHEFLUSH_H
++#define __ASM_CSKY_CACHEFLUSH_H
++
++#include <abi/cacheflush.h>
++
++#endif /* __ASM_CSKY_CACHEFLUSH_H */
+diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
+new file mode 100644
+index 0000000..fcb2142
+--- /dev/null
++++ b/arch/csky/include/asm/io.h
+@@ -0,0 +1,23 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_IO_H
++#define __ASM_CSKY_IO_H
++
++#include <abi/pgtable-bits.h>
++#include <linux/types.h>
++#include <linux/version.h>
++
++extern void __iomem *ioremap(phys_addr_t offset, size_t size);
++
++extern void iounmap(void *addr);
++
++extern int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
++		size_t size, unsigned long flags);
++
++#define ioremap_nocache(phy, sz)	ioremap(phy, sz)
++#define ioremap_wc ioremap_nocache
++#define ioremap_wt ioremap_nocache
++
++#include <asm-generic/io.h>
++
++#endif /* __ASM_CSKY_IO_H */
+diff --git a/arch/csky/include/asm/tlb.h b/arch/csky/include/asm/tlb.h
+new file mode 100644
+index 0000000..b2ea919
+--- /dev/null
++++ b/arch/csky/include/asm/tlb.h
+@@ -0,0 +1,19 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_TLB_H
++#define __ASM_CSKY_TLB_H
++
++#include <asm/cacheflush.h>
++#include <abi/tlb.h>
++
++#define tlb_end_vma(tlb, vma) \
++	do { \
++		if (!tlb->fullmm) \
++			flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
++	}  while (0)
++
++#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
++
++#include <asm-generic/tlb.h>
++
++#endif /* __ASM_CSKY_TLB_H */
+diff --git a/arch/csky/include/asm/tlbflush.h b/arch/csky/include/asm/tlbflush.h
+new file mode 100644
+index 0000000..d44cb07
+--- /dev/null
++++ b/arch/csky/include/asm/tlbflush.h
+@@ -0,0 +1,22 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_TLBFLUSH_H
++#define __ASM_TLBFLUSH_H
++/*
++ * TLB flushing:
++ *
++ *  - flush_tlb_all() flushes all processes TLB entries
++ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
++ *  - flush_tlb_page(vma, vmaddr) flushes one page
++ *  - flush_tlb_range(vma, start, end) flushes a range of pages
++ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
++ */
++extern void flush_tlb_all(void);
++extern void flush_tlb_mm(struct mm_struct *mm);
++extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long page);
++extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
++extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
++
++extern void flush_tlb_one(unsigned long vaddr);
++
++#endif
+diff --git a/arch/csky/include/uapi/asm/cachectl.h b/arch/csky/include/uapi/asm/cachectl.h
+new file mode 100644
+index 0000000..38a1a28
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/cachectl.h
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_CACHECTL_H
++#define __ASM_CSKY_CACHECTL_H
++
++/*
++ * See "man cacheflush"
++ */
++#define ICACHE  (1<<0)
++#define DCACHE  (1<<1)
++#define BCACHE  (ICACHE|DCACHE)
++
++#endif /* __ASM_CSKY_CACHECTL_H */
+diff --git a/arch/csky/mm/cachev1.c b/arch/csky/mm/cachev1.c
+new file mode 100644
+index 0000000..c50e9a2
+--- /dev/null
++++ b/arch/csky/mm/cachev1.c
+@@ -0,0 +1,126 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/spinlock.h>
++#include <asm/cache.h>
++#include <abi/reg_ops.h>
++
++/* for L1-cache */
++#define INS_CACHE		(1 << 0)
++#define DATA_CACHE		(1 << 1)
++#define CACHE_INV		(1 << 4)
++#define CACHE_CLR		(1 << 5)
++#define CACHE_OMS		(1 << 6)
++#define CACHE_ITS		(1 << 7)
++#define CACHE_LICF		(1 << 31)
++
++/* for L2-cache */
++#define CR22_LEVEL_SHIFT        (1)
++#define CR22_SET_SHIFT		(7)
++#define CR22_WAY_SHIFT          (30)
++#define CR22_WAY_SHIFT_L2	(29)
++
++#define SYNC asm volatile("sync\n")
++
++static DEFINE_SPINLOCK(cache_lock);
++
++static inline void cache_op_line(unsigned long i, unsigned int val)
++{
++	mtcr("cr22", i);
++	mtcr("cr17", val);
++}
++
++#define CCR2_L2E (1 << 3)
++static void cache_op_all(unsigned int value, unsigned int l2)
++{
++	mtcr("cr17", value | CACHE_CLR);
++	SYNC;
++
++	if (l2 && (mfcr_ccr2() & CCR2_L2E)) {
++		mtcr("cr24", value | CACHE_CLR);
++		SYNC;
++	}
++}
++
++static void cache_op_range(
++	unsigned int start,
++	unsigned int end,
++	unsigned int value,
++	unsigned int l2)
++{
++	unsigned long i, flags;
++	unsigned int val = value | CACHE_CLR | CACHE_OMS;
++	bool l2_sync;
++
++	if (unlikely((end - start) >= PAGE_SIZE) ||
++	    unlikely(start < PAGE_OFFSET) ||
++	    unlikely(start >= PAGE_OFFSET + LOWMEM_LIMIT)) {
++		cache_op_all(value, l2);
++		return;
++	}
++
++	if ((mfcr_ccr2() & CCR2_L2E) && l2)
++		l2_sync = 1;
++	else
++		l2_sync = 0;
++
++	spin_lock_irqsave(&cache_lock, flags);
++
++	i = start & ~(L1_CACHE_BYTES - 1);
++	for(; i < end; i += L1_CACHE_BYTES) {
++		cache_op_line(i, val);
++		if (l2_sync) {
++			SYNC;
++			mtcr("cr24", val);
++		}
++	}
++	spin_unlock_irqrestore(&cache_lock, flags);
++
++	SYNC;
++}
++
++void dcache_wb_line(unsigned long start)
++{
++	asm volatile("idly4\n":::"memory");
++	cache_op_line(start, DATA_CACHE|CACHE_CLR);
++	SYNC;
++}
++
++void icache_inv_range(unsigned long start, unsigned long end)
++{
++	cache_op_range(start, end, INS_CACHE|CACHE_INV, 0);
++}
++
++void icache_inv_all(void)
++{
++	cache_op_all(INS_CACHE|CACHE_INV, 0);
++}
++
++void dcache_wb_range(unsigned long start, unsigned long end)
++{
++	cache_op_range(start, end, DATA_CACHE|CACHE_CLR, 0);
++}
++
++void dcache_wbinv_all(void)
++{
++	cache_op_all(DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
++}
++
++void cache_wbinv_range(unsigned long start, unsigned long end)
++{
++	cache_op_range(start, end, INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
++}
++
++void cache_wbinv_all(void)
++{
++	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
++}
++
++void dma_wbinv_range(unsigned long start, unsigned long end)
++{
++	cache_op_range(start, end, DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
++}
++
++void dma_wb_range(unsigned long start, unsigned long end)
++{
++	cache_op_range(start, end, DATA_CACHE|CACHE_INV, 1);
++}
+diff --git a/arch/csky/mm/cachev2.c b/arch/csky/mm/cachev2.c
+new file mode 100644
+index 0000000..9cd1363
+--- /dev/null
++++ b/arch/csky/mm/cachev2.c
+@@ -0,0 +1,79 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/spinlock.h>
++#include <linux/smp.h>
++#include <asm/cache.h>
++#include <asm/barrier.h>
++
++void inline dcache_wb_line(unsigned long start)
++{
++	asm volatile("dcache.cval1 %0\n"::"r"(start):"memory");
++	sync_is();
++}
++
++void icache_inv_range(unsigned long start, unsigned long end)
++{
++	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
++
++	for (;i < end; i += L1_CACHE_BYTES)
++		asm volatile("icache.iva %0\n"::"r"(i):"memory");
++	sync_is();
++}
++
++void icache_inv_all(void)
++{
++	asm volatile("icache.ialls\n":::"memory");
++	sync_is();
++}
++
++void dcache_wb_range(unsigned long start, unsigned long end)
++{
++	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
++
++	for (;i < end; i += L1_CACHE_BYTES)
++		asm volatile("dcache.cval1 %0\n"::"r"(i):"memory");
++	sync_is();
++}
++
++void dcache_inv_range(unsigned long start, unsigned long end)
++{
++	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
++
++	for (;i < end; i += L1_CACHE_BYTES)
++		asm volatile("dcache.civa %0\n"::"r"(i):"memory");
++	sync_is();
++}
++
++void cache_wbinv_range(unsigned long start, unsigned long end)
++{
++	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
++
++	for (;i < end; i += L1_CACHE_BYTES) {
++		asm volatile("dcache.cval1 %0\n"::"r"(i):"memory");
++	}
++	sync_is();
++
++	i = start & ~(L1_CACHE_BYTES - 1);
++	for (;i < end; i += L1_CACHE_BYTES) {
++		asm volatile("icache.iva %0\n"::"r"(i):"memory");
++	}
++	sync_is();
++}
++
++void dma_wbinv_range(unsigned long start, unsigned long end)
++{
++	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
++
++	for (; i < end; i += L1_CACHE_BYTES)
++		asm volatile("dcache.civa %0\n"::"r"(i):"memory");
++	sync_is();
++}
++
++void dma_wb_range(unsigned long start, unsigned long end)
++{
++	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
++
++	for (; i < end; i += L1_CACHE_BYTES)
++		asm volatile("dcache.civa %0\n"::"r"(i):"memory");
++	sync_is();
++}
+diff --git a/arch/csky/mm/syscache.c b/arch/csky/mm/syscache.c
+new file mode 100644
+index 0000000..ae91704
+--- /dev/null
++++ b/arch/csky/mm/syscache.c
+@@ -0,0 +1,28 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/syscalls.h>
++#include <asm/page.h>
++#include <asm/cache.h>
++#include <asm/cachectl.h>
++
++SYSCALL_DEFINE3(cacheflush,
++		void __user *, addr,
++		unsigned long, bytes,
++		int, cache)
++{
++	switch(cache) {
++	case ICACHE:
++		icache_inv_range((unsigned long)addr, (unsigned long)addr + bytes);
++		break;
++	case DCACHE:
++		dcache_wb_range((unsigned long)addr, (unsigned long)addr + bytes);
++		break;
++	case BCACHE:
++		cache_wbinv_range((unsigned long)addr, (unsigned long)addr + bytes);
++		break;
++	default:
++		return -EINVAL;
++	}
 +
 +	return 0;
++}
+diff --git a/arch/csky/mm/tlb.c b/arch/csky/mm/tlb.c
+new file mode 100644
+index 0000000..37d94c7
+--- /dev/null
++++ b/arch/csky/mm/tlb.c
+@@ -0,0 +1,214 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/init.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/setup.h>
++
++#define CSKY_TLB_SIZE CONFIG_CPU_TLB_SIZE
++
++void flush_tlb_all(void)
++{
++	tlb_invalid_all();
++}
++
++void flush_tlb_mm(struct mm_struct *mm)
++{
++	int cpu = smp_processor_id();
++
++	if (cpu_context(cpu, mm) != 0)
++		drop_mmu_context(mm,cpu);
++
++	tlb_invalid_all();
++}
++
++#define restore_asid_inv_utlb(oldpid, newpid) \
++do { \
++	if((oldpid & ASID_MASK) == newpid) \
++		write_mmu_entryhi(oldpid +1); \
++	write_mmu_entryhi(oldpid); \
++} while(0)
++
++void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			   unsigned long end)
++{
++	struct mm_struct *mm = vma->vm_mm;
++	int cpu = smp_processor_id();
++
++	if (cpu_context(cpu, mm) != 0) {
++		unsigned long size, flags;
++		int newpid = cpu_asid(cpu, mm);
++
++		local_irq_save(flags);
++		size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
++		size = (size + 1) >> 1;
++		if (size <= CSKY_TLB_SIZE/2) {
++			start &= (PAGE_MASK << 1);
++			end += ((PAGE_SIZE << 1) - 1);
++			end &= (PAGE_MASK << 1);
++#ifdef CONFIG_CPU_HAS_TLBI
++			while (start < end) {
++				asm volatile("tlbi.vaas %0"::"r"(start | newpid));
++				start += (PAGE_SIZE << 1);
++			}
++			sync_is();
++#else
++			{
++			int oldpid = read_mmu_entryhi();
++
++			while (start < end) {
++				int idx;
++
++				write_mmu_entryhi(start | newpid);
++				start += (PAGE_SIZE << 1);
++				tlb_probe();
++				idx = read_mmu_index();
++				if (idx >= 0)
++					tlb_invalid_indexed();
++			}
++			restore_asid_inv_utlb(oldpid, newpid);
++			}
++#endif
++		} else {
++			drop_mmu_context(mm, cpu);
++		}
++		local_irq_restore(flags);
++	}
++}
++
++void flush_tlb_kernel_range(unsigned long start, unsigned long end)
++{
++        unsigned long size, flags;
++
++        local_irq_save(flags);
++        size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
++        if (size <= CSKY_TLB_SIZE) {
++		start &= (PAGE_MASK << 1);
++		end += ((PAGE_SIZE << 1) - 1);
++		end &= (PAGE_MASK << 1);
++#ifdef CONFIG_CPU_HAS_TLBI
++		while (start < end) {
++			asm volatile("tlbi.vaas %0"::"r"(start));
++			start += (PAGE_SIZE << 1);
++		}
++		sync_is();
++#else
++		{
++                int oldpid = read_mmu_entryhi();
++                while (start < end) {
++                        int idx;
++                        write_mmu_entryhi(start);
++			start += (PAGE_SIZE << 1);
++                        tlb_probe();
++                        idx = read_mmu_index();
++                        if (idx >= 0)
++                                tlb_invalid_indexed();
++                }
++		restore_asid_inv_utlb(oldpid, 0);
++		}
++#endif
++	} else
++		flush_tlb_all();
++
++        local_irq_restore(flags);
++}
++
++void flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
++{
++	int cpu = smp_processor_id();
++	int newpid = cpu_asid(cpu, vma->vm_mm);
++
++	if (!vma || cpu_context(cpu, vma->vm_mm) != 0) {
++		page &= (PAGE_MASK << 1);
++
++#ifdef CONFIG_CPU_HAS_TLBI
++		asm volatile("tlbi.vaas %0"::"r"(page | newpid));
++		sync_is();
++#else
++		{
++		int oldpid, idx;
++		unsigned long flags;
++		local_irq_save(flags);
++		oldpid = read_mmu_entryhi();
++		write_mmu_entryhi(page | newpid);
++		tlb_probe();
++		idx = read_mmu_index();
++		if(idx >= 0)
++			tlb_invalid_indexed();
++
++		restore_asid_inv_utlb(oldpid, newpid);
++		local_irq_restore(flags);
++		}
++#endif
++	}
++}
++
++/*
++ * Remove one kernel space TLB entry.  This entry is assumed to be marked
++ * global so we don't do the ASID thing.
++ */
++void flush_tlb_one(unsigned long page)
++{
++	int oldpid;
++	oldpid = read_mmu_entryhi();
++	page &= (PAGE_MASK << 1);
++
++#ifdef CONFIG_CPU_HAS_TLBI
++	page = page | (oldpid & 0xfff);
++	asm volatile("tlbi.vaas %0"::"r"(page));
++	sync_is();
++#else
++	{
++	int idx;
++	unsigned long flags;
++
++	page = page | (oldpid & 0xff);
++
++	local_irq_save(flags);
++	write_mmu_entryhi(page);
++	tlb_probe();
++	idx = read_mmu_index();
++	if (idx >= 0)
++		tlb_invalid_indexed();
++	restore_asid_inv_utlb(oldpid, oldpid);
++	local_irq_restore(flags);
++	}
++#endif
++}
++
++EXPORT_SYMBOL(flush_tlb_one);
++
++/* show current 32 jtlbs */
++void show_jtlb_table(void)
++{
++	unsigned long flags;
++	int entryhi, entrylo0, entrylo1;
++	int entry;
++	int oldpid;
++
++	local_irq_save(flags);
++	entry = 0;
++	pr_info("\n\n\n");
++
++	oldpid = read_mmu_entryhi();
++	while (entry < CSKY_TLB_SIZE)
++	{
++		write_mmu_index(entry);
++		tlb_read();
++		entryhi = read_mmu_entryhi();
++		entrylo0 = read_mmu_entrylo0();
++		entrylo0 = entrylo0;
++		entrylo1 = read_mmu_entrylo1();
++		entrylo1 = entrylo1;
++		pr_info("jtlb[%d]:	entryhi - 0x%x;	entrylo0 - 0x%x;"
++		        "	entrylo1 - 0x%x\n",
++			 entry, entryhi, entrylo0, entrylo1);
++		entry++;
++	}
++	write_mmu_entryhi(oldpid);
++	local_irq_restore(flags);
 +}
 -- 
 2.7.4
