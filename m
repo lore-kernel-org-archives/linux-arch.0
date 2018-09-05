@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 10/26] csky: IRQ handling
-Date: Wed,  5 Sep 2018 20:07:49 +0800
-Message-ID: <a881fc9d1009f7b3ca1cfa50dd7f1ead7844d521.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 21/26] dt-bindings: interrupt-controller: C-SKY APB intc
+Date: Wed,  5 Sep 2018 20:08:00 +0800
+Message-ID: <62dae1828ade759584bbf1507fe4a9e69d247a50.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -14,121 +14,60 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/irq.h      | 10 ++++++++
- arch/csky/include/asm/irqflags.h | 49 ++++++++++++++++++++++++++++++++++++++++
- arch/csky/kernel/irq.c           | 31 +++++++++++++++++++++++++
- 3 files changed, 90 insertions(+)
- create mode 100644 arch/csky/include/asm/irq.h
- create mode 100644 arch/csky/include/asm/irqflags.h
- create mode 100644 arch/csky/kernel/irq.c
+ .../interrupt-controller/csky,apb-intc.txt         | 45 ++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
 
-diff --git a/arch/csky/include/asm/irq.h b/arch/csky/include/asm/irq.h
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
 new file mode 100644
-index 0000000..9390cb0
+index 0000000..faa482c
 --- /dev/null
-+++ b/arch/csky/include/asm/irq.h
-@@ -0,0 +1,10 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_IRQ_H
-+#define __ASM_CSKY_IRQ_H
++++ b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+@@ -0,0 +1,45 @@
++==============================
++C-SKY APB Interrupt Controller
++==============================
 +
-+#include <asm-generic/irq.h>
++C-SKY APB Interrupt Controller is a simple soc interrupt controller
++on the apb bus and we only use it as root irq controller.
 +
-+extern void set_handle_irq(void (*handle_irq)(struct pt_regs *));
++ - csky,apb-intc is used in a lot of csky fpgas and socs, it support 64 irq nums.
++ - csky,dual-apb-intc consists of 2 apb-intc and 128 irq nums supported.
++ - csky,gx6605s-intc is gx6605s soc internal irq interrupt controller, 64 irq nums.
 +
-+#endif /* __ASM_CSKY_IRQ_H */
-diff --git a/arch/csky/include/asm/irqflags.h b/arch/csky/include/asm/irqflags.h
-new file mode 100644
-index 0000000..bd55b21
---- /dev/null
-+++ b/arch/csky/include/asm/irqflags.h
-@@ -0,0 +1,49 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_IRQFLAGS_H
-+#define __ASM_CSKY_IRQFLAGS_H
-+#include <abi/reg_ops.h>
++=============================
++intc node bindings definition
++=============================
 +
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags;
++        Description: Describes APB interrupt controller
 +
-+	flags = mfcr("psr");
-+	asm volatile("psrclr ie\n":::"memory");
-+	return flags;
-+}
-+#define arch_local_irq_save arch_local_irq_save
++        PROPERTIES
 +
-+static inline void arch_local_irq_enable(void)
-+{
-+	asm volatile("psrset ee, ie\n":::"memory");
-+}
-+#define arch_local_irq_enable arch_local_irq_enable
++        - compatible
++                Usage: required
++                Value type: <string>
++                Definition: must be "csky,apb-intc"
++				    "csky,dual-apb-intc"
++				    "csky,gx6605s-intc"
++        - interrupt-cells
++                Usage: required
++                Value type: <u32>
++                Definition: must be <1>
++	- reg
++		Usage: required
++		Value type: <u32 u32>
++                Definition: <phyaddr size> in soc from cpu view
++        - interrupt-controller:
++                Usage: required
 +
-+static inline void arch_local_irq_disable(void)
-+{
-+	asm volatile("psrclr ie\n":::"memory");
-+}
-+#define arch_local_irq_disable arch_local_irq_disable
++Examples:
++---------
 +
-+static inline unsigned long arch_local_save_flags(void)
-+{
-+	return mfcr("psr");
-+}
-+#define arch_local_save_flags arch_local_save_flags
-+
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	mtcr("psr", flags);
-+}
-+#define arch_local_irq_restore arch_local_irq_restore
-+
-+static inline int arch_irqs_disabled_flags(unsigned long flags)
-+{
-+	return !(flags & (1<<6));
-+}
-+#define arch_irqs_disabled_flags arch_irqs_disabled_flags
-+
-+#include <asm-generic/irqflags.h>
-+
-+#endif /* __ASM_CSKY_IRQFLAGS_H */
-diff --git a/arch/csky/kernel/irq.c b/arch/csky/kernel/irq.c
-new file mode 100644
-index 0000000..ef2600d
---- /dev/null
-+++ b/arch/csky/kernel/irq.c
-@@ -0,0 +1,31 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/irq.h>
-+#include <linux/irqchip.h>
-+#include <asm/traps.h>
-+#include <asm/smp.h>
-+
-+static void (*handle_arch_irq)(struct pt_regs *regs) = NULL;
-+
-+void __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
-+{
-+	if (handle_arch_irq)
-+		return;
-+
-+	handle_arch_irq = handle_irq;
-+}
-+
-+void __init init_IRQ(void)
-+{
-+	irqchip_init();
-+#ifdef CONFIG_SMP
-+	setup_smp_ipi();
-+#endif
-+}
-+
-+asmlinkage void __irq_entry csky_do_IRQ(struct pt_regs *regs)
-+{
-+	handle_arch_irq(regs);
-+}
++	intc: interrupt-controller {
++		compatible = "csky,apb-intc";
++		#interrupt-cells = <1>;
++		reg = <0x00500000 0x400>;
++		interrupt-controller;
++	};
 -- 
 2.7.4
