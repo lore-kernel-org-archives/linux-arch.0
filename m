@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:55516 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:60149 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726361AbeIEQig (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 12:38:36 -0400
+        by vger.kernel.org with ESMTP id S1727865AbeIEQix (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 12:38:53 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 16/26] csky: SMP support
-Date: Wed,  5 Sep 2018 20:07:55 +0800
-Message-ID: <1d767314a2a09eb7f2edd7c887fd752e7fc3ec59.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 05/26] csky: System Call
+Date: Wed,  5 Sep 2018 20:07:44 +0800
+Message-ID: <bff609c9d2c5f0085448cc7d4227614ab7b7116a.1536138304.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -15,287 +15,220 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180905120755.JXI0Uv5cBf8F4S-z9LOfi4lwm8-p--gU79iHsc1nnow@z>
+Message-ID: <20180905120744.LdcQFv8zQ1kcKlAiIPe5TBkqcS6e3qbQrKYrEX6LoBI@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/smp.h |  26 +++++
- arch/csky/kernel/smp.c      | 234 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 260 insertions(+)
- create mode 100644 arch/csky/include/asm/smp.h
- create mode 100644 arch/csky/kernel/smp.c
+ arch/csky/include/asm/syscall.h     | 69 +++++++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/syscalls.h    | 14 ++++++++
+ arch/csky/include/uapi/asm/unistd.h | 10 ++++++
+ arch/csky/kernel/syscall.c          | 63 +++++++++++++++++++++++++++++++++
+ arch/csky/kernel/syscall_table.c    | 13 +++++++
+ 5 files changed, 169 insertions(+)
+ create mode 100644 arch/csky/include/asm/syscall.h
+ create mode 100644 arch/csky/include/asm/syscalls.h
+ create mode 100644 arch/csky/include/uapi/asm/unistd.h
+ create mode 100644 arch/csky/kernel/syscall.c
+ create mode 100644 arch/csky/kernel/syscall_table.c
 
-diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
+diff --git a/arch/csky/include/asm/syscall.h b/arch/csky/include/asm/syscall.h
 new file mode 100644
-index 0000000..9a53abf
+index 0000000..8966739
 --- /dev/null
-+++ b/arch/csky/include/asm/smp.h
-@@ -0,0 +1,26 @@
-+#ifndef __ASM_CSKY_SMP_H
-+#define __ASM_CSKY_SMP_H
++++ b/arch/csky/include/asm/syscall.h
+@@ -0,0 +1,69 @@
++#ifndef __ASM_SYSCALL_H
++#define __ASM_SYSCALL_H
 +
-+#include <linux/cpumask.h>
-+#include <linux/irqreturn.h>
-+#include <linux/threads.h>
-+
-+#ifdef CONFIG_SMP
-+
-+void __init setup_smp(void);
-+
-+void __init setup_smp_ipi(void);
-+
-+void __init enable_smp_ipi(void);
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask);
-+
-+void arch_send_call_function_single_ipi(int cpu);
-+
-+void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long));
-+
-+#define raw_smp_processor_id()	(current_thread_info()->cpu)
-+
-+#endif /* CONFIG_SMP */
-+
-+#endif /* __ASM_CSKY_SMP_H */
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-new file mode 100644
-index 0000000..522c73f
---- /dev/null
-+++ b/arch/csky/kernel/smp.c
-@@ -0,0 +1,234 @@
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
 +#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/notifier.h>
-+#include <linux/cpu.h>
-+#include <linux/percpu.h>
-+#include <linux/delay.h>
 +#include <linux/err.h>
-+#include <linux/irq.h>
-+#include <linux/irqdomain.h>
-+#include <linux/of.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/sched/mm.h>
-+#include <asm/irq.h>
-+#include <asm/traps.h>
-+#include <asm/sections.h>
-+#include <asm/mmu_context.h>
-+#include <asm/pgalloc.h>
++#include <abi/regdef.h>
 +
-+#define IPI_IRQ	15
-+
-+static struct {
-+	unsigned long bits ____cacheline_aligned;
-+} ipi_data[NR_CPUS] __cacheline_aligned;
-+
-+enum ipi_message_type {
-+	IPI_EMPTY,
-+	IPI_RESCHEDULE,
-+	IPI_CALL_FUNC,
-+	IPI_MAX
-+};
-+
-+static irqreturn_t handle_ipi(int irq, void *dev)
++static inline int
++syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 +{
-+	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
++	return regs_syscallid(regs);
++}
 +
-+	while (true) {
-+		unsigned long ops;
++static inline void
++syscall_rollback(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->a0 = regs->orig_a0;
++}
 +
-+		ops = xchg(pending_ipis, 0);
-+		if (ops == 0)
-+			return IRQ_HANDLED;
++static inline long
++syscall_get_error(struct task_struct *task, struct pt_regs *regs)
++{
++	unsigned long error = regs->a0;
 +
-+		if (ops & (1 << IPI_RESCHEDULE))
-+			scheduler_ipi();
++	return IS_ERR_VALUE(error) ? error : 0;
++}
 +
-+		if (ops & (1 << IPI_CALL_FUNC))
-+			generic_smp_call_function_interrupt();
++static inline long
++syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs->a0;
++}
 +
-+		BUG_ON((ops >> IPI_MAX) != 0);
++static inline void
++syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
++			 int error, long val)
++{
++	regs->a0 = (long) error ?: val;
++}
++
++static inline void
++syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
++		      unsigned int i, unsigned int n, unsigned long *args)
++{
++	BUG_ON(i + n > 6);
++	if (i == 0) {
++		args[0] = regs->orig_a0;
++		args++;
++		i++;
++		n--;
 +	}
-+
-+	return IRQ_HANDLED;
++	memcpy(args, &regs->a1 + i * sizeof(regs->a1), n * sizeof(args[0]));
 +}
 +
-+static void (*send_arch_ipi)(const unsigned long *mask, unsigned long irq) = NULL;
-+
-+void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long))
++static inline void
++syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
++		      unsigned int i, unsigned int n, const unsigned long *args)
 +{
-+	if (send_arch_ipi)
-+		return;
-+
-+	send_arch_ipi = func;
++	BUG_ON(i + n > 6);
++        if (i == 0) {
++		regs->orig_a0 = args[0];
++		args++;
++		i++;
++		n--;
++        }
++	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
 +}
 +
-+static void
-+send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
++#endif	/* __ASM_SYSCALL_H */
+diff --git a/arch/csky/include/asm/syscalls.h b/arch/csky/include/asm/syscalls.h
+new file mode 100644
+index 0000000..c478830
+--- /dev/null
++++ b/arch/csky/include/asm/syscalls.h
+@@ -0,0 +1,14 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_SYSCALLS_H
++#define __ASM_CSKY_SYSCALLS_H
++
++#include <asm-generic/syscalls.h>
++
++long sys_cacheflush(void __user *, unsigned long, int);
++
++long sys_set_thread_area(unsigned long addr);
++
++long sys_csky_fadvise64_64(int fd, int advice, loff_t offset, loff_t len);
++
++#endif /* __ASM_CSKY_SYSCALLS_H */
+diff --git a/arch/csky/include/uapi/asm/unistd.h b/arch/csky/include/uapi/asm/unistd.h
+new file mode 100644
+index 0000000..6fc1448
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/unistd.h
+@@ -0,0 +1,10 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#define __ARCH_WANT_SYS_CLONE
++#include <asm-generic/unistd.h>
++
++#define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
++__SYSCALL(__NR_set_thread_area, sys_set_thread_area)
++#define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
++__SYSCALL(__NR_cacheflush, sys_cacheflush)
+diff --git a/arch/csky/kernel/syscall.c b/arch/csky/kernel/syscall.c
+new file mode 100644
+index 0000000..f0a1294
+--- /dev/null
++++ b/arch/csky/kernel/syscall.c
+@@ -0,0 +1,63 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/syscalls.h>
++
++SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)
 +{
-+	int i;
++	struct thread_info *ti = task_thread_info(current);
++	struct pt_regs *reg = current_pt_regs();
 +
-+	for_each_cpu(i, to_whom)
-+		set_bit(operation, &ipi_data[i].bits);
-+
-+	smp_mb();
-+	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
-+}
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask)
-+{
-+	send_ipi_message(mask, IPI_CALL_FUNC);
-+}
-+
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
-+}
-+
-+static void ipi_stop(void *unused)
-+{
-+	while (1);
-+}
-+
-+void smp_send_stop(void)
-+{
-+	on_each_cpu(ipi_stop, NULL, 1);
-+}
-+
-+void smp_send_reschedule(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
-+}
-+
-+void *__cpu_up_stack_pointer[NR_CPUS];
-+void *__cpu_up_task_pointer[NR_CPUS];
-+
-+void __init smp_prepare_boot_cpu(void)
-+{
-+}
-+
-+void __init smp_prepare_cpus(unsigned int max_cpus)
-+{
-+}
-+
-+static int ipi_dummy_dev;
-+
-+void __init enable_smp_ipi(void)
-+{
-+	enable_percpu_irq(IPI_IRQ, 0);
-+}
-+
-+void __init setup_smp_ipi(void)
-+{
-+	int rc;
-+
-+	irq_create_mapping(NULL, IPI_IRQ);
-+
-+	rc = request_percpu_irq(IPI_IRQ, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
-+	if (rc)
-+		panic("%s IRQ request failed\n", __func__);
-+
-+	enable_smp_ipi();
-+}
-+
-+void __init setup_smp(void)
-+{
-+	struct device_node *node = NULL;
-+	int cpu;
-+
-+	while ((node = of_find_node_by_type(node, "cpu"))) {
-+		if (!of_device_is_available(node))
-+			continue;
-+
-+		if (of_property_read_u32(node, "reg", &cpu))
-+			continue;
-+
-+		if (cpu >= NR_CPUS)
-+			continue;
-+
-+		set_cpu_possible(cpu, true);
-+		set_cpu_present(cpu, true);
-+	}
-+}
-+
-+extern void _start_smp_secondary(void);
-+
-+volatile unsigned int secondary_hint;
-+volatile unsigned int secondary_ccr;
-+volatile unsigned int secondary_stack;
-+
-+int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-+{
-+	unsigned int tmp;
-+
-+	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
-+
-+	secondary_hint = mfcr("cr31");
-+
-+	secondary_ccr  = mfcr("cr18");
-+
-+	/* Flush dcache */
-+	mtcr("cr17", 0x22);
-+
-+	/* Enable cpu in SMP reset ctrl reg */
-+	tmp = mfcr("cr<29, 0>");
-+	tmp |= 1 << cpu;
-+	mtcr("cr<29, 0>", tmp);
-+
-+	/* Wait for the cpu online */
-+	while (!cpu_online(cpu));
-+
-+	secondary_stack = 0;
++	reg->tls = addr;
++	ti->tp_value = addr;
 +
 +	return 0;
 +}
 +
-+void __init smp_cpus_done(unsigned int max_cpus)
++SYSCALL_DEFINE6(mmap2,
++	unsigned long, addr,
++	unsigned long, len,
++	unsigned long, prot,
++	unsigned long, flags,
++	unsigned long, fd,
++	off_t, offset)
 +{
++	if (unlikely(offset & (~PAGE_MASK >> 12)))
++		return -EINVAL;
++	return sys_mmap_pgoff(addr, len, prot, flags, fd,
++		offset >> (PAGE_SHIFT - 12));
 +}
 +
-+int setup_profiling_timer(unsigned int multiplier)
++struct mmap_arg_struct {
++	unsigned long addr;
++	unsigned long len;
++	unsigned long prot;
++	unsigned long flags;
++	unsigned long fd;
++	unsigned long offset;
++};
++
++SYSCALL_DEFINE1(mmap,
++	struct mmap_arg_struct *, arg)
 +{
-+	return -EINVAL;
++	struct mmap_arg_struct a;
++
++	if (copy_from_user(&a, arg, sizeof(a)))
++		return -EINVAL;
++
++	if (unlikely(a.offset & ~PAGE_MASK))
++		return -EINVAL;
++
++	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset >> PAGE_SHIFT);
 +}
 +
-+void csky_start_secondary(void)
++/*
++ * for abiv1 the 64bits args should be even th, So we need mov the advice forward.
++ */
++SYSCALL_DEFINE4(csky_fadvise64_64,
++	int, fd,
++	int, advice,
++	loff_t, offset,
++	loff_t, len)
 +{
-+	struct mm_struct *mm = &init_mm;
-+	unsigned int cpu = smp_processor_id();
-+
-+	mtcr("cr31", secondary_hint);
-+	mtcr("cr18", secondary_ccr);
-+
-+	mtcr("vbr", vec_base);
-+
-+	flush_tlb_all();
-+	write_mmu_pagemask(0);
-+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-+	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
-+
-+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
-+
-+#ifdef CONFIG_CPU_HAS_FPU
-+	init_fpu();
-+#endif
-+
-+	enable_smp_ipi();
-+
-+	mmget(mm);
-+	mmgrab(mm);
-+	current->active_mm = mm;
-+	cpumask_set_cpu(cpu, mm_cpumask(mm));
-+
-+	notify_cpu_starting(cpu);
-+	set_cpu_online(cpu, true);
-+
-+	pr_info("CPU%u Online: %s...\n", cpu, __func__);
-+
-+	local_irq_enable();
-+	preempt_disable();
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
++	return sys_fadvise64_64(fd, offset, len, advice);
 +}
+diff --git a/arch/csky/kernel/syscall_table.c b/arch/csky/kernel/syscall_table.c
+new file mode 100644
+index 0000000..79dfb52
+--- /dev/null
++++ b/arch/csky/kernel/syscall_table.c
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/syscalls.h>
++#include <asm/syscalls.h>
++
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
++
++#define sys_fadvise64_64 sys_csky_fadvise64_64
++void * const sys_call_table[__NR_syscalls] __page_aligned_data = {
++	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
++#include <asm/unistd.h>
++};
 -- 
 2.7.4
