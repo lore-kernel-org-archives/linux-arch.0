@@ -1,53 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:55044 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725868AbeIERdi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Sep 2018 13:33:38 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 15/16] driver/edac: enable Hygon support to AMD64 EDAC
- driver
+Received: from mail.skyhub.de ([5.9.137.197]:35502 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726189AbeIERps (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Sep 2018 13:45:48 -0400
+Date: Wed, 5 Sep 2018 15:15:10 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 10/16] x86/mce: enable Hygon support to MCE
+ infrastructure
+Message-ID: <20180905131427.GI2237@zn.tnic>
 References: <cover.1535459012.git.puwen@hygon.cn>
- <47e08d8bab1cef667be3955941e7eedc23187ae1.1535459013.git.puwen@hygon.cn>
- <20180905104405.GG2237@zn.tnic>
-Message-ID: <03835d0f-225a-f7b9-dedb-5d474193181a@hygon.cn>
-Date: Wed, 5 Sep 2018 21:03:12 +0800
+ <c1e803bc54984e54ca67278930588e85b65bb26f.1535459013.git.puwen@hygon.cn>
+ <20180905092234.GC2237@zn.tnic>
+ <01604799-b993-e530-817c-ad097d343fc4@hygon.cn>
 MIME-Version: 1.0
-In-Reply-To: <20180905104405.GG2237@zn.tnic>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <01604799-b993-e530-817c-ad097d343fc4@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
-Message-ID: <20180905130312.vDUkF_zAH2HsMq2dlmVHA7B2k4gf1Q9dAOV6Fbtkpps@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180905131510.wTmOTwgYpFX3BY9Fzk3fn2mnPSo4V9aVIcIk-8oqH9A@z>
 
-On 2018/9/5 18:44, Borislav Petkov wrote:
-> Subject should be:
-> 
-> EDAC, amd64: Add Hygon Dhyana support
+On Wed, Sep 05, 2018 at 08:59:24PM +0800, Pu Wen wrote:
+> If CONFIG_X86_MCE_AMD=n, mce_hygon_feature_init will call the other
+> one mce_amd_feature_init which is a null function and located in the
+> else branch of "#ifdef CONFIG_X86_MCE_AMD". The compilation is OK and
+> the kernel will run without MCE support.
 
-Thanks for the correction.
-
->> +	case 0x18:
->> +		fam_type	= &family_types[HYGON_F18_CPUS];
->> +		pvt->ops	= &family_types[HYGON_F18_CPUS].ops;
->> +		break;
->> +
-> 
-> You can use the F17_CPUS array element here and overwrite the ->ctl_name
-> string only. No need to define [HYGON_F18_CPUS] above... yet.
-
-All right, the way reusing F17_CPUS will also minimize the code
-modification.
-
->> +#define PCI_DEVICE_ID_HYGON_18H_DF_F0	0x1460
->> +#define PCI_DEVICE_ID_HYGON_18H_DF_F6	0x1466
-> 
-> As in the previous patch - use the AMD defines.
-
-Will remove them in next version of patches.
+So my question was rather ironic but I guess irony can't travel through
+mail. So let me paraphrase: is that a use case you wanna support?
+Because I'd advise very strongly against !MCE kernels.
 
 -- 
-Regards,
-Pu Wen
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
