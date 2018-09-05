@@ -1,50 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:57038 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725865AbeIEMhn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Sep 2018 08:37:43 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 08/16] x86/apic: add modern APIC support for Hygon
+Received: from mail.skyhub.de ([5.9.137.197]:54096 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726272AbeIENm4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Sep 2018 09:42:56 -0400
+Date: Wed, 5 Sep 2018 11:13:09 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 09/16] x86/bugs: add lfence mitigation to spectre v2
+ and no meltdown for Hygon
+Message-ID: <20180905091309.GB2237@zn.tnic>
 References: <cover.1535459012.git.puwen@hygon.cn>
- <969a367a0b2d58f3e68bc6f97b6e8238e2390991.1535459013.git.puwen@hygon.cn>
- <20180904183301.GN32615@zn.tnic>
-Message-ID: <cc7c152f-596a-79fe-6082-c4d5ce1b770f@hygon.cn>
-Date: Wed, 5 Sep 2018 16:08:25 +0800
+ <bf6e0e5403ae96715606366b3b5f817cbdab0dc3.1535459013.git.puwen@hygon.cn>
 MIME-Version: 1.0
-In-Reply-To: <20180904183301.GN32615@zn.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <bf6e0e5403ae96715606366b3b5f817cbdab0dc3.1535459013.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
+To: Pu Wen <puwen@hygon.cn>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180905080825.lgfZ-jj_c7xb8y24_u7bNywpkFabMdDGH9zkGaMukLA@z>
+Message-ID: <20180905091309.kgwljkfSWIZnYnVvHKriEIQrwXtshJrkyYAjtgEaYtc@z>
 
-On 2018/9/5 2:33, Borislav Petkov wrote:
-> On Wed, Aug 29, 2018 at 08:44:30PM +0800, Pu Wen wrote:
-...
->> +	if ((boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
->> +	     boot_cpu_data.x86 >= 0xf) ||
->> +	     boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
->>   		return 1;
+On Wed, Aug 29, 2018 at 08:44:41PM +0800, Pu Wen wrote:
+> To share codes between AMD and Hygon to mitigate Spectre V2 Retpoline
+> vulnerability, rename macros SPECTRE_V2_RETPOLINE_MINIMAL_AMD to
+> SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE, and SPECTRE_V2_CMD_RETPOLINE_AMD
+> to SPECTRE_V2_CMD_RETPOLINE_LFENCE.
 > 
-> Those compound conditionals are not nice to read. Just add yours
-> underneath:
+> As Hygon processors are not affected by meltdown vulnerability as AMD's,
+> so add exception in array cpu_no_meltdown[] for Hygon.
 > 
-> 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
-> 	    boot_cpu_data.x86 >= 0xf)
-> 		return 1;
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/include/asm/nospec-branch.h |  4 ++--
+>  arch/x86/kernel/cpu/bugs.c           | 28 +++++++++++++++-------------
+>  arch/x86/kernel/cpu/common.c         |  1 +
+>  3 files changed, 18 insertions(+), 15 deletions(-)
 > 
-> 	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-> 		return 1;
-> 
-> Do that where applicable and where it makes sense, syntax-wise to have a
-> separate vendor == HYGON check in the other patches too.
+> diff --git a/arch/x86/include/asm/nospec-branch.h b/arch/x86/include/asm/nospec-branch.h
+> index fd2a8c1..6763f9b 100644
+> --- a/arch/x86/include/asm/nospec-branch.h
+> +++ b/arch/x86/include/asm/nospec-branch.h
+> @@ -211,9 +211,9 @@
+>  enum spectre_v2_mitigation {
+>  	SPECTRE_V2_NONE,
+>  	SPECTRE_V2_RETPOLINE_MINIMAL,
+> -	SPECTRE_V2_RETPOLINE_MINIMAL_AMD,
+> +	SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE,
+>  	SPECTRE_V2_RETPOLINE_GENERIC,
+> -	SPECTRE_V2_RETPOLINE_AMD,
+> +	SPECTRE_V2_RETPOLINE_LFENCE,
+>  	SPECTRE_V2_IBRS_ENHANCED,
+>  };
+>  
+> diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+> index 4c2313d..15be045 100644
+> --- a/arch/x86/kernel/cpu/bugs.c
+> +++ b/arch/x86/kernel/cpu/bugs.c
+> @@ -132,15 +132,15 @@ enum spectre_v2_mitigation_cmd {
+>  	SPECTRE_V2_CMD_FORCE,
+>  	SPECTRE_V2_CMD_RETPOLINE,
+>  	SPECTRE_V2_CMD_RETPOLINE_GENERIC,
+> -	SPECTRE_V2_CMD_RETPOLINE_AMD,
+> +	SPECTRE_V2_CMD_RETPOLINE_LFENCE,
+>  };
+>  
+>  static const char *spectre_v2_strings[] = {
+>  	[SPECTRE_V2_NONE]			= "Vulnerable",
+>  	[SPECTRE_V2_RETPOLINE_MINIMAL]		= "Vulnerable: Minimal generic ASM retpoline",
+> -	[SPECTRE_V2_RETPOLINE_MINIMAL_AMD]	= "Vulnerable: Minimal AMD ASM retpoline",
+> +	[SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE]	= "Vulnerable: Minimal LFENCE ASM retpoline",
+>  	[SPECTRE_V2_RETPOLINE_GENERIC]		= "Mitigation: Full generic retpoline",
+> -	[SPECTRE_V2_RETPOLINE_AMD]		= "Mitigation: Full AMD retpoline",
+> +	[SPECTRE_V2_RETPOLINE_LFENCE]		= "Mitigation: Full LFENCE retpoline",
+>  	[SPECTRE_V2_IBRS_ENHANCED]		= "Mitigation: Enhanced IBRS",
+>  };
 
-That's OK, will check other patches and split the compound conditionals
-where it's possible.
+This is user-visible and with all the back'n'forth and backporting
+and the whole security fiasco, I don't want to have another source of
+confusion. You'll have to live with it saying "AMD" in dmesg.
+
+> @@ -272,7 +272,7 @@ static const struct {
+>  	{ "off",               SPECTRE_V2_CMD_NONE,              false },
+>  	{ "on",                SPECTRE_V2_CMD_FORCE,             true },
+>  	{ "retpoline",         SPECTRE_V2_CMD_RETPOLINE,         false },
+> -	{ "retpoline,amd",     SPECTRE_V2_CMD_RETPOLINE_AMD,     false },
+> +	{ "retpoline,lfence",     SPECTRE_V2_CMD_RETPOLINE_LFENCE,     false },
+>  	{ "retpoline,generic", SPECTRE_V2_CMD_RETPOLINE_GENERIC, false },
+>  	{ "auto",              SPECTRE_V2_CMD_AUTO,              false },
+>  };
+
+This even more so. Those are command line strings which we're still
+communicating to people, even. So no, it needs to remain "retpoline,amd"
+on Hygon.
+
+And then to not confuse people staring at the code either, we can drop
+this change too:
+
+-     SPECTRE_V2_CMD_RETPOLINE_AMD,
++     SPECTRE_V2_CMD_RETPOLINE_LFENCE,
+
+Which leaves this patch only with the addition of the vendor tests. The
+other stuff you can drop.
+
+Thx.
 
 -- 
-Thanks,
-Pu Wen
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
