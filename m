@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 03/26] csky: Kernel booting
-Date: Wed,  5 Sep 2018 20:07:42 +0800
-Message-ID: <ddc67e70e1f19728488b89144e2b61d975e8605a.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 09/26] csky: VDSO and rt_sigreturn
+Date: Wed,  5 Sep 2018 20:07:48 +0800
+Message-ID: <0f6a6aa2e458df2c3734cf60a68e6f69f0eb1e68.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -14,323 +14,180 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/kernel/head.S        |  78 +++++++++++++++++++++
- arch/csky/kernel/setup.c       | 150 +++++++++++++++++++++++++++++++++++++++++
- arch/csky/kernel/vmlinux.lds.S |  64 ++++++++++++++++++
- 3 files changed, 292 insertions(+)
- create mode 100644 arch/csky/kernel/head.S
- create mode 100644 arch/csky/kernel/setup.c
- create mode 100644 arch/csky/kernel/vmlinux.lds.S
+ arch/csky/abiv1/inc/abi/vdso.h | 17 ++++++++
+ arch/csky/abiv2/inc/abi/vdso.h | 24 ++++++++++++
+ arch/csky/include/asm/vdso.h   | 12 ++++++
+ arch/csky/kernel/vdso.c        | 88 ++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 141 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/vdso.h
+ create mode 100644 arch/csky/abiv2/inc/abi/vdso.h
+ create mode 100644 arch/csky/include/asm/vdso.h
+ create mode 100644 arch/csky/kernel/vdso.c
 
-diff --git a/arch/csky/kernel/head.S b/arch/csky/kernel/head.S
+diff --git a/arch/csky/abiv1/inc/abi/vdso.h b/arch/csky/abiv1/inc/abi/vdso.h
 new file mode 100644
-index 0000000..80bb9c6
+index 0000000..a99f0e4
 --- /dev/null
-+++ b/arch/csky/kernel/head.S
-@@ -0,0 +1,78 @@
++++ b/arch/csky/abiv1/inc/abi/vdso.h
+@@ -0,0 +1,17 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/uaccess.h>
++
++static inline int setup_vdso_page(unsigned short *ptr)
++{
++	int err = 0;
++
++	/* movi r1, 127 */
++	err |= __put_user(0x67f1, ptr + 0);
++	/* addi r1, (139 - 127) */
++	err |= __put_user(0x20b1, ptr + 1);
++	/* trap 0 */
++	err |= __put_user(0x0008, ptr + 2);
++
++	return err;
++}
+diff --git a/arch/csky/abiv2/inc/abi/vdso.h b/arch/csky/abiv2/inc/abi/vdso.h
+new file mode 100644
+index 0000000..2b5f43b
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/vdso.h
+@@ -0,0 +1,24 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/linkage.h>
++#ifndef __ABI_CSKY_VDSO_H
++#define __ABI_CSKY_VDSO_H
++
++#include <linux/uaccess.h>
++
++static inline int setup_vdso_page(unsigned short *ptr)
++{
++	int err = 0;
++
++	/* movi r7, 173 */
++	err |= __put_user(0xea07, ptr);
++	err |= __put_user(0x008b,      ptr+1);
++
++	/* trap 0 */
++	err |= __put_user(0xc000,   ptr+2);
++	err |= __put_user(0x2020,   ptr+3);
++
++	return err;
++}
++
++#endif /* __ABI_CSKY_STRING_H */
+diff --git a/arch/csky/include/asm/vdso.h b/arch/csky/include/asm/vdso.h
+new file mode 100644
+index 0000000..b275440
+--- /dev/null
++++ b/arch/csky/include/asm/vdso.h
+@@ -0,0 +1,12 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_VDSO_H
++#define __ASM_CSKY_VDSO_H
++
++#include <abi/vdso.h>
++
++struct csky_vdso {
++	unsigned short rt_signal_retcode[4];
++};
++
++#endif /* __ASM_CSKY_VDSO_H */
+diff --git a/arch/csky/kernel/vdso.c b/arch/csky/kernel/vdso.c
+new file mode 100644
+index 0000000..9090f12
+--- /dev/null
++++ b/arch/csky/kernel/vdso.c
+@@ -0,0 +1,88 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/kernel.h>
++#include <linux/err.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
 +#include <linux/init.h>
-+#include <asm/page.h>
-+#include <abi/entry.h>
++#include <linux/binfmts.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/unistd.h>
++#include <linux/uaccess.h>
 +
-+__HEAD
-+ENTRY(_start)
-+	/* set super user mode */
-+	lrw	a3, DEFAULT_PSR_VALUE
-+	mtcr    a3, psr
-+	psrset  ee
++#include <asm/vdso.h>
++#include <asm/cacheflush.h>
 +
-+	SETUP_MMU a3
++static struct page *vdso_page;
 +
-+	/* set stack point */
-+	lrw     a3, init_thread_union + THREAD_SIZE
-+	mov	sp, a3
-+
-+	jmpi	csky_start
-+END(_start)
-+
-+#ifdef CONFIG_SMP
-+.align 10
-+ENTRY(_start_smp_secondary)
-+	/* Invalid I/Dcache BTB BHT */
-+	movi	a3, 7
-+	lsli	a3, 16
-+	addi	a3, (1<<4) | 3
-+	mtcr	a3, cr17
-+
-+	tlbi.alls
-+
-+	/* setup PAGEMASK */
-+	movi	a3, 0
-+	mtcr	a3, cr<6, 15>
-+
-+	/* setup MEL0/MEL1 */
-+	grs	a0, _start_smp_pc
-+_start_smp_pc:
-+	bmaski  a1, 13
-+	andn    a0, a1
-+	movi    a1, 0x00000006
-+	movi    a2, 0x00001006
-+	or      a1, a0
-+	or      a2, a0
-+	mtcr	a1, cr<2, 15>
-+	mtcr	a2, cr<3, 15>
-+
-+	/* setup MEH */
-+	mtcr	a0, cr<4, 15>
-+
-+	/* write TLB */
-+	bgeni   a3, 28
-+	mtcr	a3, cr<8, 15>
-+
-+	SETUP_MMU a3
-+
-+	/* enable MMU */
-+	movi	a3, 1
-+	mtcr    a3, cr18
-+
-+	jmpi	_goto_mmu_on
-+_goto_mmu_on:
-+	lrw	a3, DEFAULT_PSR_VALUE
-+	mtcr    a3, psr
-+	psrset  ee
-+
-+	/* set stack point */
-+	lrw     a3, secondary_stack
-+	ld.w	a3, (a3, 0)
-+	mov	sp, a3
-+
-+	jmpi	csky_start_secondary
-+END(_start_smp_secondary)
-+#endif
-diff --git a/arch/csky/kernel/setup.c b/arch/csky/kernel/setup.c
-new file mode 100644
-index 0000000..44606fa
---- /dev/null
-+++ b/arch/csky/kernel/setup.c
-@@ -0,0 +1,150 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/console.h>
-+#include <linux/memblock.h>
-+#include <linux/bootmem.h>
-+#include <linux/initrd.h>
-+#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/start_kernel.h>
-+#include <linux/dma-contiguous.h>
-+#include <asm/sections.h>
-+#include <asm/mmu_context.h>
-+#include <asm/pgalloc.h>
-+
-+phys_addr_t __init_memblock memblock_end_of_REG0(void)
++static int __init init_vdso(void)
 +{
-+	return (memblock.memory.regions[0].base + memblock.memory.regions[0].size);
++	struct csky_vdso *vdso;
++	int err = 0;
++
++	vdso_page = alloc_page(GFP_KERNEL);
++	if (!vdso_page)
++		panic("Cannot allocate vdso");
++
++	vdso = vmap(&vdso_page, 1, 0, PAGE_KERNEL);
++	if (!vdso)
++		panic("Cannot map vdso");
++
++	clear_page(vdso);
++
++	/*
++	 * __NR_rt_sigreturn must be 173
++	 * Because gcc/config/csky/linux-unwind.h use hard code to parse rt_sigframe.
++	 */
++	err = setup_vdso_page(vdso->rt_signal_retcode);
++	if (err) panic("Cannot set signal return code, err: %x.", err);
++
++	dcache_wb_range((unsigned long)vdso, (unsigned long)vdso + 16);
++
++	vunmap(vdso);
++
++	return 0;
 +}
++subsys_initcall(init_vdso);
 +
-+phys_addr_t __init_memblock memblock_start_of_REG1(void)
++int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
 +{
-+	return memblock.memory.regions[1].base;
-+}
++	int ret;
++	unsigned long addr;
++	struct mm_struct *mm = current->mm;
 +
-+size_t __init_memblock memblock_size_of_REG1(void)
-+{
-+	return memblock.memory.regions[1].size;
-+}
++	down_write(&mm->mmap_sem);
 +
-+static void __init csky_memblock_init(void)
-+{
-+	unsigned long zone_size[MAX_NR_ZONES];
-+	unsigned long zhole_size[MAX_NR_ZONES];
-+	signed long size;
-+
-+	memblock_reserve(__pa(_stext), _end - _stext);
-+#ifdef CONFIG_BLK_DEV_INITRD
-+	memblock_reserve(__pa(initrd_start), initrd_end - initrd_start);
-+#endif
-+
-+	early_init_fdt_reserve_self();
-+	early_init_fdt_scan_reserved_mem();
-+
-+	memblock_dump_all();
-+
-+	memset(zone_size, 0, sizeof(zone_size));
-+	memset(zhole_size, 0, sizeof(zhole_size));
-+
-+	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
-+	max_pfn	    = PFN_DOWN(memblock_end_of_DRAM());
-+
-+	max_low_pfn = PFN_UP(memblock_end_of_REG0());
-+	if (max_low_pfn == 0)
-+		max_low_pfn = max_pfn;
-+
-+	size = max_pfn - min_low_pfn;
-+
-+	if (memblock.memory.cnt > 1) {
-+		zone_size[ZONE_NORMAL]  = PFN_DOWN(memblock_start_of_REG1()) - min_low_pfn;
-+		zhole_size[ZONE_NORMAL] = PFN_DOWN(memblock_start_of_REG1()) - max_low_pfn;
-+	} else {
-+		if (size <= PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET))
-+			zone_size[ZONE_NORMAL] = max_pfn - min_low_pfn;
-+		else {
-+			zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET);
-+			max_low_pfn = min_low_pfn + zone_size[ZONE_NORMAL];
-+		}
++	addr = get_unmapped_area(NULL, STACK_TOP, PAGE_SIZE, 0, 0);
++	if (IS_ERR_VALUE(addr)) {
++		ret = addr;
++		goto up_fail;
 +	}
 +
-+#ifdef CONFIG_HIGHMEM
-+	size = 0;
-+	if(memblock.memory.cnt > 1) {
-+		size = PFN_DOWN(memblock_size_of_REG1());
-+		highstart_pfn = PFN_DOWN(memblock_start_of_REG1());
-+	} else {
-+		size = max_pfn - min_low_pfn - PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET);
-+		highstart_pfn =  min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET);
-+	}
++	ret = install_special_mapping(
++			mm,
++			addr,
++			PAGE_SIZE,
++			VM_READ|VM_EXEC|VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
++			&vdso_page);
++	if (ret)
++		goto up_fail;
 +
-+	if (size > 0)
-+		zone_size[ZONE_HIGHMEM] = size;
++	mm->context.vdso = (void *)addr;
 +
-+	highend_pfn = max_pfn;
-+#endif
-+	memblock_set_current_limit(PFN_PHYS(max_low_pfn));
-+
-+	dma_contiguous_reserve(0);
-+
-+	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
++up_fail:
++	up_write(&mm->mmap_sem);
++	return ret;
 +}
 +
-+void __init setup_arch(char **cmdline_p)
++const char *arch_vma_name(struct vm_area_struct *vma)
 +{
-+	*cmdline_p = boot_command_line;
++	if (vma->vm_mm == NULL)
++		return NULL;
 +
-+	console_verbose();
-+
-+	pr_info("C-SKY: https://github.com/c-sky/csky-linux\n");
-+	pr_info("Phys. mem: %ldMB\n", (unsigned long) memblock_phys_mem_size()/1024/1024);
-+
-+	init_mm.start_code = (unsigned long) _stext;
-+	init_mm.end_code = (unsigned long) _etext;
-+	init_mm.end_data = (unsigned long) _edata;
-+	init_mm.brk = (unsigned long) _end;
-+
-+	parse_early_param();
-+
-+	csky_memblock_init();
-+
-+	unflatten_and_copy_device_tree();
-+
-+#ifdef CONFIG_SMP
-+	setup_smp();
-+#endif
-+
-+	sparse_init();
-+
-+#ifdef CONFIG_HIGHMEM
-+	kmap_init();
-+#endif
-+
-+#if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
-+	conswitchp = &dummy_con;
-+#endif
-+}
-+
-+extern void pre_trap_init(void);
-+extern void pre_mmu_init(void);
-+
-+asmlinkage __visible void __init csky_start(
-+	unsigned int	unused,
-+	void *		param
-+	)
-+{
-+	/* Clean up bss section */
-+	memset(__bss_start, 0, __bss_stop - __bss_start);
-+
-+	pre_trap_init();
-+	pre_mmu_init();
-+
-+#ifdef CONFIG_CSKY_BUILTIN_DTB
-+	pr_info("Use builtin dtb\n");
-+	early_init_dt_scan(__dtb_start);
-+#else
-+	early_init_dt_scan(param);
-+#endif
-+	start_kernel();
-+
-+	while(1);
-+}
-diff --git a/arch/csky/kernel/vmlinux.lds.S b/arch/csky/kernel/vmlinux.lds.S
-new file mode 100644
-index 0000000..249c14f
---- /dev/null
-+++ b/arch/csky/kernel/vmlinux.lds.S
-@@ -0,0 +1,64 @@
-+#include <asm/vmlinux.lds.h>
-+#include <asm/page.h>
-+
-+OUTPUT_ARCH(csky)
-+ENTRY(_start)
-+
-+#ifndef __cskyBE__
-+jiffies = jiffies_64;
-+#else
-+jiffies = jiffies_64 + 4;
-+#endif
-+
-+#define VBR_BASE \
-+	. = ALIGN(1024); \
-+	VMLINUX_SYMBOL(vec_base) = .; \
-+	. += 512;
-+
-+SECTIONS
-+{
-+	. = PAGE_OFFSET + PHYS_OFFSET_OFFSET;
-+
-+	_stext = .;
-+	__init_begin = .;
-+	HEAD_TEXT_SECTION
-+	INIT_TEXT_SECTION(PAGE_SIZE)
-+	INIT_DATA_SECTION(PAGE_SIZE)
-+	PERCPU_SECTION(L1_CACHE_BYTES)
-+	. = ALIGN(PAGE_SIZE);
-+	__init_end = .;
-+
-+	.text : AT(ADDR(.text) - LOAD_OFFSET) {
-+		_text = .;
-+		IRQENTRY_TEXT
-+		SOFTIRQENTRY_TEXT
-+		TEXT_TEXT
-+		SCHED_TEXT
-+		CPUIDLE_TEXT
-+		LOCK_TEXT
-+		KPROBES_TEXT
-+		*(.fixup)
-+		*(.gnu.warning)
-+	} = 0
-+	_etext = .;
-+
-+	/* __init_begin __init_end must be page aligned for free_initmem */
-+	. = ALIGN(PAGE_SIZE);
-+
-+
-+	_sdata = .;
-+	RO_DATA_SECTION(PAGE_SIZE)
-+	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
-+	_edata = .;
-+
-+	NOTES
-+	EXCEPTION_TABLE(L1_CACHE_BYTES)
-+	BSS_SECTION(L1_CACHE_BYTES, PAGE_SIZE, L1_CACHE_BYTES)
-+	VBR_BASE
-+	_end = . ;
-+
-+	STABS_DEBUG
-+	DWARF_DEBUG
-+
-+	DISCARDS
++	if (vma->vm_start == (long)vma->vm_mm->context.vdso)
++		return "[vdso]";
++	else
++		return NULL;
 +}
 -- 
 2.7.4
