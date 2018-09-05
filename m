@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 22/26] dt-bindings: interrupt-controller: C-SKY SMP intc
-Date: Wed,  5 Sep 2018 20:08:01 +0800
-Message-ID: <a82f72fd77a6c06d23e6d08acc9df2a816d6235d.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 25/26] clocksource: add C-SKY timers' build infrastructure
+Date: Wed,  5 Sep 2018 20:08:04 +0800
+Message-ID: <06ef7aacf1ada727ef83cda3b2b8e1ca742c96d5.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -14,55 +14,43 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- .../bindings/interrupt-controller/csky,mpintc.txt  | 40 ++++++++++++++++++++++
- 1 file changed, 40 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+ drivers/clocksource/Kconfig  | 15 +++++++++++++++
+ drivers/clocksource/Makefile |  2 ++
+ 2 files changed, 17 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-new file mode 100644
-index 0000000..49d1658
---- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-@@ -0,0 +1,40 @@
-+===========================================
-+C-SKY Multi-processors Interrupt Controller
-+===========================================
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index dec0dd8..6ff0a25 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -609,4 +609,19 @@ config ATCPIT100_TIMER
+ 	help
+ 	  This option enables support for the Andestech ATCPIT100 timers.
+ 
++config CSKY_MPTIMER
++	bool "C-SKY mptimer driver"
++	depends on CSKY
++	select TIMER_OF
++	help
++	  This option enables support for C-SKY mptimer.
 +
-+C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
-+SMP soc, and it also could be used in non-SMP system.
++config GX6605S_TIMER
++	bool "Gx6605s SOC system timer driver"
++	depends on CSKY
++	select CLKSRC_MMIO
++	select TIMER_OF
++	help
++	  This option enables support for gx6605s timer.
 +
-+Interrupt number definition:
-+
-+  0-15  : software irq, and we use 15 as our IPI_IRQ.
-+ 16-31  : private  irq, and we use 16 as the co-processor timer.
-+ 31-1024: common irq for soc ip.
-+
-+=============================
-+intc node bindings definition
-+=============================
-+
-+	Description: Describes SMP interrupt controller
-+
-+	PROPERTIES
-+
-+        - compatible
-+		Usage: required
-+                Value type: <string>
-+                Definition: must be "csky,mpintc"
-+        - interrupt-cells
-+                Usage: required
-+                Value type: <u32>
-+                Definition: must be <1>
-+        - interrupt-controller:
-+                Usage: required
-+
-+Examples:
-+---------
-+
-+	intc: interrupt-controller {
-+		compatible = "csky,mpintc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
+ endmenu
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 00caf37..764a45a 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -78,3 +78,5 @@ obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+ obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
+ obj-$(CONFIG_ATCPIT100_TIMER)		+= timer-atcpit100.o
++obj-$(CONFIG_CSKY_MPTIMER)		+= csky_mptimer.o
++obj-$(CONFIG_GX6605S_TIMER)		+= timer-gx6605s.o
 -- 
 2.7.4
