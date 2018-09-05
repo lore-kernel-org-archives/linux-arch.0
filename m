@@ -1,70 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:50311 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726071AbeIEPKD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Sep 2018 11:10:03 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 09/16] x86/bugs: add lfence mitigation to spectre v2
- and no meltdown for Hygon
+Received: from mail.skyhub.de ([5.9.137.197]:57734 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726467AbeIEPOE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Sep 2018 11:14:04 -0400
+Date: Wed, 5 Sep 2018 12:44:05 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 15/16] driver/edac: enable Hygon support to AMD64 EDAC
+ driver
+Message-ID: <20180905104405.GG2237@zn.tnic>
 References: <cover.1535459012.git.puwen@hygon.cn>
- <bf6e0e5403ae96715606366b3b5f817cbdab0dc3.1535459013.git.puwen@hygon.cn>
- <20180905091309.GB2237@zn.tnic>
-Message-ID: <ba3ff0cd-1717-f9a4-5583-d71444a87223@hygon.cn>
-Date: Wed, 5 Sep 2018 18:40:09 +0800
+ <47e08d8bab1cef667be3955941e7eedc23187ae1.1535459013.git.puwen@hygon.cn>
 MIME-Version: 1.0
-In-Reply-To: <20180905091309.GB2237@zn.tnic>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <47e08d8bab1cef667be3955941e7eedc23187ae1.1535459013.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180905104009.jAf_YAELIoEFm_KQ2NpZbRSP1ODozf0IgEgbk6XvgKI@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180905104405.DRxSTg23Vw5-h9jRYYTmWVzPxFeA8Ju83UGe0JZOdm4@z>
 
-On 2018/9/5 17:13, Borislav Petkov wrote:
->>   static const char *spectre_v2_strings[] = {
->>   	[SPECTRE_V2_NONE]			= "Vulnerable",
->>   	[SPECTRE_V2_RETPOLINE_MINIMAL]		= "Vulnerable: Minimal generic ASM retpoline",
->> -	[SPECTRE_V2_RETPOLINE_MINIMAL_AMD]	= "Vulnerable: Minimal AMD ASM retpoline",
->> +	[SPECTRE_V2_RETPOLINE_MINIMAL_LFENCE]	= "Vulnerable: Minimal LFENCE ASM retpoline",
->>   	[SPECTRE_V2_RETPOLINE_GENERIC]		= "Mitigation: Full generic retpoline",
->> -	[SPECTRE_V2_RETPOLINE_AMD]		= "Mitigation: Full AMD retpoline",
->> +	[SPECTRE_V2_RETPOLINE_LFENCE]		= "Mitigation: Full LFENCE retpoline",
->>   	[SPECTRE_V2_IBRS_ENHANCED]		= "Mitigation: Enhanced IBRS",
->>   };
-> 
-> This is user-visible and with all the back'n'forth and backporting
-> and the whole security fiasco, I don't want to have another source of
-> confusion. You'll have to live with it saying "AMD" in dmesg
-....
->> @@ -272,7 +272,7 @@ static const struct {
->>   	{ "off",               SPECTRE_V2_CMD_NONE,              false },
->>   	{ "on",                SPECTRE_V2_CMD_FORCE,             true },
->>   	{ "retpoline",         SPECTRE_V2_CMD_RETPOLINE,         false },
->> -	{ "retpoline,amd",     SPECTRE_V2_CMD_RETPOLINE_AMD,     false },
->> +	{ "retpoline,lfence",     SPECTRE_V2_CMD_RETPOLINE_LFENCE,     false },
->>   	{ "retpoline,generic", SPECTRE_V2_CMD_RETPOLINE_GENERIC, false },
->>   	{ "auto",              SPECTRE_V2_CMD_AUTO,              false },
->>   };
-> 
-> This even more so. Those are command line strings which we're still
-> communicating to people, even. So no, it needs to remain "retpoline,amd"
-> on Hygon.
-> 
-> And then to not confuse people staring at the code either, we can drop
-> this change too:
-> 
-> -     SPECTRE_V2_CMD_RETPOLINE_AMD,
-> +     SPECTRE_V2_CMD_RETPOLINE_LFENCE,
-> 
-> Which leaves this patch only with the addition of the vendor tests. The
-> other stuff you can drop.
+Subject should be:
 
-That's reasonable. To avoid the confusion, will only leave the vendor
-testing for Hygon and drop the other changes, which also minimize the
-code modification.
+EDAC, amd64: Add Hygon Dhyana support
+
+On Wed, Aug 29, 2018 at 08:45:45PM +0800, Pu Wen wrote:
+> To make AMD64 EDAC and MCE drivers working on Hygon platforms, add
+> support for Hygon by using the code path of AMD family 0x17.
+> 
+> As Hygon will negotiate with AMD to make sure that only Hygon will
+> use family 0x18, under this consideration try to minimize code
+> modifications and share most codes with AMD.
+> 
+> Also Hygon PCI Device ID DF_F0/DF_F6(0x1460/0x1466) of Host bridges
+> is needed for edac driver.
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  drivers/edac/amd64_edac.c | 20 +++++++++++++++++++-
+>  drivers/edac/amd64_edac.h |  4 ++++
+>  drivers/edac/mce_amd.c    |  4 +++-
+>  3 files changed, 26 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
+> index 18aeabb..d8b4b0e 100644
+> --- a/drivers/edac/amd64_edac.c
+> +++ b/drivers/edac/amd64_edac.c
+> @@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
+>  
+>  	scrubval = scrubrates[i].scrubval;
+>  
+> -	if (pvt->fam == 0x17) {
+> +	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
+>  		__f17h_set_scrubval(pvt, scrubval);
+>  	} else if (pvt->fam == 0x15 && pvt->model == 0x60) {
+>  		f15h_select_dct(pvt, 0);
+> @@ -264,6 +264,7 @@ static int get_scrub_rate(struct mem_ctl_info *mci)
+>  		break;
+>  
+>  	case 0x17:
+> +	case 0x18:
+>  		amd64_read_pci_cfg(pvt->F6, F17H_SCR_BASE_ADDR, &scrubval);
+>  		if (scrubval & BIT(0)) {
+>  			amd64_read_pci_cfg(pvt->F6, F17H_SCR_LIMIT_ADDR, &scrubval);
+> @@ -1044,6 +1045,7 @@ static void determine_memory_type(struct amd64_pvt *pvt)
+>  		goto ddr3;
+>  
+>  	case 0x17:
+> +	case 0x18:
+>  		if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(5))
+>  			pvt->dram_type = MEM_LRDDR4;
+>  		else if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(4))
+> @@ -2200,6 +2202,16 @@ static struct amd64_family_type family_types[] = {
+>  			.dbam_to_cs		= f17_base_addr_to_cs_size,
+>  		}
+>  	},
+> +	[HYGON_F18_CPUS] = {
+> +		/* Hygon F18h uses the same AMD F17h support */
+> +		.ctl_name = "Hygon_F18h",
+> +		.f0_id = PCI_DEVICE_ID_HYGON_18H_DF_F0,
+> +		.f6_id = PCI_DEVICE_ID_HYGON_18H_DF_F6,
+> +		.ops = {
+> +			.early_channel_count	= f17_early_channel_count,
+> +			.dbam_to_cs		= f17_base_addr_to_cs_size,
+> +		}
+> +	},
+>  };
+>  
+>  /*
+> @@ -3192,6 +3204,11 @@ static struct amd64_family_type *per_family_init(struct amd64_pvt *pvt)
+>  		pvt->ops	= &family_types[F17_CPUS].ops;
+>  		break;
+>  
+> +	case 0x18:
+> +		fam_type	= &family_types[HYGON_F18_CPUS];
+> +		pvt->ops	= &family_types[HYGON_F18_CPUS].ops;
+> +		break;
+> +
+
+You can use the F17_CPUS array element here and overwrite the ->ctl_name
+string only. No need to define [HYGON_F18_CPUS] above... yet.
+
+>  	default:
+>  		amd64_err("Unsupported family!\n");
+>  		return NULL;
+> @@ -3428,6 +3445,7 @@ static const struct x86_cpu_id amd64_cpuids[] = {
+>  	{ X86_VENDOR_AMD, 0x15, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+>  	{ X86_VENDOR_AMD, 0x16, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+>  	{ X86_VENDOR_AMD, 0x17, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
+> +	{ X86_VENDOR_HYGON, 0x18, X86_MODEL_ANY, X86_FEATURE_ANY, 0 },
+>  	{ }
+>  };
+>  MODULE_DEVICE_TABLE(x86cpu, amd64_cpuids);
+> diff --git a/drivers/edac/amd64_edac.h b/drivers/edac/amd64_edac.h
+> index 1d4b74e..6e5f609 100644
+> --- a/drivers/edac/amd64_edac.h
+> +++ b/drivers/edac/amd64_edac.h
+> @@ -116,6 +116,9 @@
+>  #define PCI_DEVICE_ID_AMD_17H_DF_F0	0x1460
+>  #define PCI_DEVICE_ID_AMD_17H_DF_F6	0x1466
+>  
+> +#define PCI_DEVICE_ID_HYGON_18H_DF_F0	0x1460
+> +#define PCI_DEVICE_ID_HYGON_18H_DF_F6	0x1466
+
+As in the previous patch - use the AMD defines.
 
 -- 
-Regards,
-Pu Wen
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
