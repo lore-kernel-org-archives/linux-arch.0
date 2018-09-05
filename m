@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:34616 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:49842 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728002AbeIEQj3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 12:39:29 -0400
+        by vger.kernel.org with ESMTP id S1726361AbeIEQix (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 12:38:53 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 11/26] csky: Atomic operations
-Date: Wed,  5 Sep 2018 20:07:50 +0800
-Message-ID: <f79adea919b0850cb4faa80a60f4aec0e9471b33.1536138304.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 23/26] clocksource: add gx6605s SOC system timer
+Date: Wed,  5 Sep 2018 20:08:02 +0800
+Message-ID: <6c0933672b786b243fa4b5506acceac209415616.1536138304.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
@@ -15,743 +15,175 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180905120750.HM0Jlpkku2tFWoO6GzXwI9bYbAa8Z5GYjbkzUiERzjY@z>
+Message-ID: <20180905120802.jKj7J6LJAeuzSw9NzncTRHElwot9vVdmLRe8VdTtByo@z>
+
+Changelog:
+ - Add License and Copyright
+ - Use timer-of framework
+ - Change name with upstream feedback
+ - Use clksource_mmio framework
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/atomic.h         | 215 +++++++++++++++++++++++++
- arch/csky/include/asm/cmpxchg.h        |  70 ++++++++
- arch/csky/include/asm/spinlock.h       | 286 +++++++++++++++++++++++++++++++++
- arch/csky/include/asm/spinlock_types.h |  35 ++++
- arch/csky/kernel/atomic.S              |  86 ++++++++++
- 5 files changed, 692 insertions(+)
- create mode 100644 arch/csky/include/asm/atomic.h
- create mode 100644 arch/csky/include/asm/cmpxchg.h
- create mode 100644 arch/csky/include/asm/spinlock.h
- create mode 100644 arch/csky/include/asm/spinlock_types.h
- create mode 100644 arch/csky/kernel/atomic.S
+ drivers/clocksource/timer-gx6605s.c | 150 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 150 insertions(+)
+ create mode 100644 drivers/clocksource/timer-gx6605s.c
 
-diff --git a/arch/csky/include/asm/atomic.h b/arch/csky/include/asm/atomic.h
+diff --git a/drivers/clocksource/timer-gx6605s.c b/drivers/clocksource/timer-gx6605s.c
 new file mode 100644
-index 0000000..82a124e
+index 0000000..10194c9
 --- /dev/null
-+++ b/arch/csky/include/asm/atomic.h
-@@ -0,0 +1,215 @@
++++ b/drivers/clocksource/timer-gx6605s.c
+@@ -0,0 +1,150 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_ATOMIC_H
-+#define __ASM_CSKY_ATOMIC_H
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/sched_clock.h>
 +
-+#include <linux/version.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/barrier.h>
++#include "timer-of.h"
 +
-+#ifdef CONFIG_CPU_HAS_LDSTEX
++#define CLKSRC_OFFSET	0x40
 +
-+#define __atomic_add_unless __atomic_add_unless
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
++#define TIMER_STATUS	0x00
++#define TIMER_VALUE	0x04
++#define TIMER_CONTRL	0x10
++#define TIMER_CONFIG	0x20
++#define TIMER_DIV	0x24
++#define TIMER_INI	0x28
++
++#define GX6605S_STATUS_CLR	BIT(0)
++#define GX6605S_CONTRL_RST	BIT(0)
++#define GX6605S_CONTRL_START	BIT(1)
++#define GX6605S_CONFIG_EN	BIT(0)
++#define GX6605S_CONFIG_IRQ_EN	BIT(1)
++
++static irqreturn_t gx6605s_timer_interrupt(int irq, void *dev)
 +{
-+	unsigned long tmp, ret;
++	struct clock_event_device *ce = (struct clock_event_device *) dev;
++	void __iomem *base = timer_of_base(to_timer_of(ce));
 +
-+	smp_mb();
++	writel_relaxed(GX6605S_STATUS_CLR, base + TIMER_STATUS);
 +
-+	asm volatile (
-+	"1:	ldex.w		%0, (%3) \n"
-+	"	mov		%1, %0   \n"
-+	"	cmpne		%0, %4   \n"
-+	"	bf		2f	 \n"
-+	"	add		%0, %2   \n"
-+	"	stex.w		%0, (%3) \n"
-+	"	bez		%0, 1b   \n"
-+	"2:				 \n"
-+		: "=&r" (tmp), "=&r" (ret)
-+		: "r" (a), "r"(&v->counter), "r"(u)
-+		: "memory");
++	ce->event_handler(ce);
 +
-+	if (ret != u)
-+		smp_mb();
-+
-+	return ret;
++	return IRQ_HANDLED;
 +}
 +
-+#define ATOMIC_OP(op, c_op)						\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long tmp;						\
-+									\
-+	smp_mb();							\
-+	asm volatile (							\
-+	"1:	ldex.w		%0, (%2) \n"				\
-+	"	" #op "		%0, %1   \n"				\
-+	"	stex.w		%0, (%2) \n"				\
-+	"	bez		%0, 1b   \n"				\
-+		: "=&r" (tmp)						\
-+		: "r" (i), "r"(&v->counter)				\
-+		: "memory");						\
-+	smp_mb();							\
-+}
-+
-+#define ATOMIC_OP_RETURN(op, c_op)					\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	unsigned long tmp, ret;						\
-+									\
-+	smp_mb();							\
-+	asm volatile (							\
-+	"1:	ldex.w		%0, (%3) \n"				\
-+	"	" #op "		%0, %2   \n"				\
-+	"	mov		%1, %0   \n"				\
-+	"	stex.w		%0, (%3) \n"				\
-+	"	bez		%0, 1b   \n"				\
-+		: "=&r" (tmp), "=&r" (ret)				\
-+		: "r" (i), "r"(&v->counter)				\
-+		: "memory");						\
-+	smp_mb();							\
-+									\
-+	return ret;							\
-+}
-+
-+#define ATOMIC_FETCH_OP(op, c_op)					\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long tmp, ret;						\
-+									\
-+	smp_mb();							\
-+	asm volatile (							\
-+	"1:	ldex.w		%0, (%3) \n"				\
-+	"	mov		%1, %0   \n"				\
-+	"	" #op "		%0, %2   \n"				\
-+	"	stex.w		%0, (%3) \n"				\
-+	"	bez		%0, 1b   \n"				\
-+		: "=&r" (tmp), "=&r" (ret)				\
-+		: "r" (i), "r"(&v->counter)				\
-+		: "memory");						\
-+	smp_mb();							\
-+									\
-+	return ret;							\
-+}
-+
-+#else /* CONFIG_CPU_HAS_LDSTEX */
-+
-+#include <linux/irqflags.h>
-+
-+#define __atomic_add_unless __atomic_add_unless
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
++static int gx6605s_timer_set_oneshot(struct clock_event_device *ce)
 +{
-+	unsigned long tmp, ret, flags;
++	void __iomem *base = timer_of_base(to_timer_of(ce));
 +
-+	raw_local_irq_save(flags);
++	/* reset and stop counter */
++	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
 +
-+	asm volatile (
-+	"	ldw		%0, (%3) \n"
-+	"	mov		%1, %0   \n"
-+	"	cmpne		%0, %4   \n"
-+	"	bf		2f	 \n"
-+	"	add		%0, %2   \n"
-+	"	stw		%0, (%3) \n"
-+	"2:				 \n"
-+		: "=&r" (tmp), "=&r" (ret)
-+		: "r" (a), "r"(&v->counter), "r"(u)
-+		: "memory");
++	/* enable with irq and start */
++	writel_relaxed(GX6605S_CONFIG_EN | GX6605S_CONFIG_IRQ_EN, base + TIMER_CONFIG);
 +
-+	raw_local_irq_restore(flags);
-+
-+	return ret;
++	return 0;
 +}
 +
-+#define ATOMIC_OP(op, c_op)						\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long tmp, flags;					\
-+									\
-+	raw_local_irq_save(flags);					\
-+									\
-+	asm volatile (							\
-+	"	ldw		%0, (%2) \n"				\
-+	"	" #op "		%0, %1   \n"				\
-+	"	stw		%0, (%2) \n"				\
-+		: "=&r" (tmp)						\
-+		: "r" (i), "r"(&v->counter)				\
-+		: "memory");						\
-+									\
-+	raw_local_irq_restore(flags);					\
-+}
-+
-+#define ATOMIC_OP_RETURN(op, c_op)					\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	unsigned long tmp, ret, flags;					\
-+									\
-+	raw_local_irq_save(flags);					\
-+									\
-+	asm volatile (							\
-+	"	ldw		%0, (%3) \n"				\
-+	"	" #op "		%0, %2   \n"				\
-+	"	stw		%0, (%3) \n"				\
-+	"	mov		%1, %0   \n"				\
-+		: "=&r" (tmp), "=&r" (ret)				\
-+		: "r" (i), "r"(&v->counter)				\
-+		: "memory");						\
-+									\
-+	raw_local_irq_restore(flags);					\
-+									\
-+	return ret;							\
-+}
-+
-+#define ATOMIC_FETCH_OP(op, c_op)					\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long tmp, ret, flags;					\
-+									\
-+	raw_local_irq_save(flags);					\
-+									\
-+	asm volatile (							\
-+	"	ldw		%0, (%3) \n"				\
-+	"	mov		%1, %0   \n"				\
-+	"	" #op "		%0, %2   \n"				\
-+	"	stw		%0, (%3) \n"				\
-+		: "=&r" (tmp), "=&r" (ret)				\
-+		: "r" (i), "r"(&v->counter)				\
-+		: "memory");						\
-+									\
-+	raw_local_irq_restore(flags);					\
-+									\
-+	return ret;							\
-+}
-+
-+#endif /* CONFIG_CPU_HAS_LDSTEX */
-+
-+#define atomic_add_return atomic_add_return
-+ATOMIC_OP_RETURN(add, +)
-+#define atomic_sub_return atomic_sub_return
-+ATOMIC_OP_RETURN(sub, -)
-+
-+#define atomic_fetch_add atomic_fetch_add
-+ATOMIC_FETCH_OP(add, +)
-+#define atomic_fetch_sub atomic_fetch_sub
-+ATOMIC_FETCH_OP(sub, -)
-+#define atomic_fetch_and atomic_fetch_and
-+ATOMIC_FETCH_OP(and, &)
-+#define atomic_fetch_or atomic_fetch_or
-+ATOMIC_FETCH_OP(or, |)
-+#define atomic_fetch_xor atomic_fetch_xor
-+ATOMIC_FETCH_OP(xor, ^)
-+
-+#define atomic_and atomic_and
-+ATOMIC_OP(and, &)
-+#define atomic_or atomic_or
-+ATOMIC_OP(or, |)
-+#define atomic_xor atomic_xor
-+ATOMIC_OP(xor, ^)
-+
-+#undef ATOMIC_FETCH_OP
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
-+
-+#include <asm-generic/atomic.h>
-+
-+#endif /* __ASM_CSKY_ATOMIC_H */
-diff --git a/arch/csky/include/asm/cmpxchg.h b/arch/csky/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..9b63dd7
---- /dev/null
-+++ b/arch/csky/include/asm/cmpxchg.h
-@@ -0,0 +1,70 @@
-+#ifndef __ASM_CSKY_CMPXCHG_H
-+#define __ASM_CSKY_CMPXCHG_H
-+
-+#ifdef CONFIG_CPU_HAS_LDSTEX
-+#include <linux/bug.h>
-+#include <asm/barrier.h>
-+
-+#define __xchg(new, ptr, size)					\
-+({								\
-+	__typeof__(ptr) __ptr = (ptr);				\
-+	__typeof__(new) __new = (new);				\
-+	__typeof__(*(ptr)) __ret;				\
-+	unsigned long tmp;					\
-+	switch (size) {						\
-+	case 4:							\
-+		smp_mb();					\
-+		asm volatile (					\
-+		"1:	ldex.w		%0, (%3) \n"		\
-+		"	mov		%1, %2   \n"		\
-+		"	stex.w		%1, (%3) \n"		\
-+		"	bez		%1, 1b   \n"		\
-+			: "=&r" (__ret), "=&r" (tmp)		\
-+			: "r" (__new), "r"(__ptr)		\
-+			:);					\
-+		smp_mb();					\
-+		break;						\
-+	default:						\
-+		BUILD_BUG();					\
-+	}							\
-+	__ret;							\
-+})
-+
-+#define xchg(ptr, x)	(__xchg((x), (ptr), sizeof(*(ptr))))
-+
-+#define __cmpxchg(ptr, old, new, size)				\
-+({								\
-+	__typeof__(ptr) __ptr = (ptr);				\
-+	__typeof__(new) __new = (new);				\
-+	__typeof__(new) __tmp;					\
-+	__typeof__(old) __old = (old);				\
-+	__typeof__(*(ptr)) __ret;				\
-+	switch (size) {						\
-+	case 4:							\
-+		smp_mb();					\
-+		asm volatile (					\
-+		"1:	ldex.w		%0, (%3) \n"		\
-+		"	cmpne		%0, %4   \n"		\
-+		"	bt		2f       \n"		\
-+		"	mov		%1, %2   \n"		\
-+		"	stex.w		%1, (%3) \n"		\
-+		"	bez		%1, 1b   \n"		\
-+		"2:				 \n"		\
-+			: "=&r" (__ret), "=&r" (__tmp)		\
-+			: "r" (__new), "r"(__ptr), "r"(__old)	\
-+			:);					\
-+		smp_mb();					\
-+		break;						\
-+	default:						\
-+		BUILD_BUG();					\
-+	}							\
-+	__ret;							\
-+})
-+
-+#define cmpxchg(ptr, o, n) \
-+	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr))))
-+#else
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
-+#endif /* __ASM_CSKY_CMPXCHG_H */
-diff --git a/arch/csky/include/asm/spinlock.h b/arch/csky/include/asm/spinlock.h
-new file mode 100644
-index 0000000..f1081bb
---- /dev/null
-+++ b/arch/csky/include/asm/spinlock.h
-@@ -0,0 +1,286 @@
-+#ifndef __ASM_CSKY_SPINLOCK_H
-+#define __ASM_CSKY_SPINLOCK_H
-+
-+#include <linux/spinlock_types.h>
-+#include <asm/barrier.h>
-+
-+#ifdef CONFIG_QUEUED_RWLOCKS
-+
-+/*
-+ * Ticket-based spin-locking.
-+ */
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
++static int gx6605s_timer_set_next_event(unsigned long delta, struct clock_event_device *ce)
 +{
-+	arch_spinlock_t lockval;
-+	u32 ticket_next = 1 << TICKET_NEXT;
-+	u32 *p = &lock->lock;
-+	u32 tmp;
++	void __iomem *base = timer_of_base(to_timer_of(ce));
 +
-+	smp_mb();
++	/* use reset to pause timer */
++	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
 +
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2) \n"
-+		"	mov		%1, %0	 \n"
-+		"	add		%0, %3	 \n"
-+		"	stex.w		%0, (%2) \n"
-+		"	bez		%0, 1b   \n"
-+		: "=&r" (tmp), "=&r" (lockval)
-+		: "r"(p), "r"(ticket_next)
-+		: "cc");
++	/* config next timeout value */
++	writel_relaxed(ULONG_MAX - delta, base + TIMER_INI);
++	writel_relaxed(GX6605S_CONTRL_START, base + TIMER_CONTRL);
 +
-+	while (lockval.tickets.next != lockval.tickets.owner) {
-+		lockval.tickets.owner = READ_ONCE(lock->tickets.owner);
-+	}
-+
-+	smp_mb();
++	return 0;
 +}
 +
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
++static int gx6605s_timer_shutdown(struct clock_event_device *ce)
 +{
-+	u32 tmp, contended, res;
-+	u32 ticket_next = 1 << TICKET_NEXT;
-+	u32 *p = &lock->lock;
++	void __iomem *base = timer_of_base(to_timer_of(ce));
 +
-+	smp_mb();
++	writel_relaxed(0, base + TIMER_CONTRL);
++	writel_relaxed(0, base + TIMER_CONFIG);
 +
-+	do {
-+		asm volatile (
-+		"	ldex.w		%0, (%3)   \n"
-+		"	movi		%2, 1	   \n"
-+		"	rotli		%1, %0, 16 \n"
-+		"	cmpne		%1, %0     \n"
-+		"	bt		1f         \n"
-+		"	movi		%2, 0	   \n"
-+		"	add		%0, %0, %4 \n"
-+		"	stex.w		%0, (%3)   \n"
-+		"1:				   \n"
-+		: "=&r" (res), "=&r" (tmp), "=&r" (contended)
-+		: "r"(p), "r"(ticket_next)
-+		: "cc");
-+	} while (!res);
-+
-+	if (!contended)
-+		smp_mb();
-+
-+	return !contended;
++	return 0;
 +}
 +
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
++static struct timer_of to = {
++	.flags = TIMER_OF_IRQ | TIMER_OF_BASE | TIMER_OF_CLOCK,
++	.clkevt = {
++		.rating			= 300,
++		.features		= CLOCK_EVT_FEAT_DYNIRQ |
++					  CLOCK_EVT_FEAT_ONESHOT,
++		.set_state_shutdown	= gx6605s_timer_shutdown,
++		.set_state_oneshot	= gx6605s_timer_set_oneshot,
++		.set_next_event		= gx6605s_timer_set_next_event,
++		.cpumask		= cpu_possible_mask,
++	},
++	.of_irq = {
++		.handler		= gx6605s_timer_interrupt,
++		.flags			= IRQF_TIMER | IRQF_IRQPOLL,
++	},
++};
++
++static u64 notrace gx6605s_sched_clock_read(void)
 +{
-+	smp_mb();
-+	lock->tickets.owner++;
-+	smp_mb();
++	void __iomem *base;
++
++	base = timer_of_base(&to) + CLKSRC_OFFSET;
++
++	return (u64) readl_relaxed(base + TIMER_VALUE);
 +}
 +
-+static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
++static void gx6605s_clkevt_init(void __iomem *base)
 +{
-+	return lock.tickets.owner == lock.tickets.next;
++	writel_relaxed(0, base + TIMER_DIV);
++	writel_relaxed(0, base + TIMER_CONFIG);
++
++	clockevents_config_and_register(&to.clkevt, timer_of_rate(&to), 2, ULONG_MAX);
 +}
 +
-+static inline int arch_spin_is_locked(arch_spinlock_t *lock)
++static int gx6605s_clksrc_init(void __iomem *base)
 +{
-+	return !arch_spin_value_unlocked(READ_ONCE(*lock));
++	writel_relaxed(0, base + TIMER_DIV);
++	writel_relaxed(0, base + TIMER_INI);
++
++	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
++
++	writel_relaxed(GX6605S_CONFIG_EN, base + TIMER_CONFIG);
++
++	writel_relaxed(GX6605S_CONTRL_START, base + TIMER_CONTRL);
++
++	sched_clock_register(gx6605s_sched_clock_read, 32, timer_of_rate(&to));
++
++	return clocksource_mmio_init(base + TIMER_VALUE, "gx6605s", timer_of_rate(&to),
++				     200, 32, clocksource_mmio_readl_up);
 +}
 +
-+static inline int arch_spin_is_contended(arch_spinlock_t *lock)
++static int __init gx6605s_timer_init(struct device_node *np)
 +{
-+	struct __raw_tickets tickets = READ_ONCE(lock->tickets);
-+	return (tickets.next - tickets.owner) > 1;
++	int ret;
++
++	/*
++	 * The timer driver is for nationalchip gx6605s SOC and there are two same timer
++	 * in gx6605s. We use one for clkevt and another for clksrc.
++	 *
++	 * The timer is mmio map to access, so we need give mmio addres in dts.
++	 *
++	 * It provides a 32bit countup timer and interrupt will be caused by count-overflow.
++	 * So we need set-next-event by ULONG_MAX - delta in TIMER_INI reg.
++	 *
++	 * The counter at 0x0  offset is clock event.
++	 * The counter at 0x40 offset is clock source.
++	 * They are the same in hardware, just different used by driver.
++	 */
++	ret = timer_of_init(np, &to);
++	if (ret)
++		return ret;
++
++	gx6605s_clkevt_init(timer_of_base(&to));
++
++	return gx6605s_clksrc_init(timer_of_base(&to) + CLKSRC_OFFSET);
 +}
-+#define arch_spin_is_contended	arch_spin_is_contended
-+
-+#include <asm/qrwlock.h>
-+
-+/* See include/linux/spinlock.h */
-+#define smp_mb__after_spinlock()	smp_mb()
-+
-+#else /* CONFIG_QUEUED_RWLOCKS */
-+
-+/*
-+ * Test-and-set spin-locking.
-+ */
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	bnez		%0, 1b   \n"
-+		"	movi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+	smp_mb();
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"	movi		%0, 0    \n"
-+		"	stw		%0, (%1) \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+	smp_mb();
-+}
-+
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	bnez		%0, 2f   \n"
-+		"	movi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		"	movi		%0, 0    \n"
-+		"2:				 \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+
-+	if (!tmp)
-+		smp_mb();
-+
-+	return !tmp;
-+}
-+
-+#define arch_spin_is_locked(x)	(READ_ONCE((x)->lock) != 0)
-+
-+/*
-+ * read lock/unlock/trylock
-+ */
-+static inline void arch_read_lock(arch_rwlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	blz		%0, 1b   \n"
-+		"	addi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+	smp_mb();
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	subi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+	smp_mb();
-+}
-+
-+static inline int arch_read_trylock(arch_rwlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	blz		%0, 2f   \n"
-+		"	addi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		"	movi		%0, 0    \n"
-+		"2:				 \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+
-+	if (!tmp)
-+		smp_mb();
-+
-+	return !tmp;
-+}
-+
-+/*
-+ * write lock/unlock/trylock
-+ */
-+static inline void arch_write_lock(arch_rwlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	bnez		%0, 1b   \n"
-+		"	subi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+	smp_mb();
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	movi		%0, 0    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+	smp_mb();
-+}
-+
-+static inline int arch_write_trylock(arch_rwlock_t *lock)
-+{
-+	u32 *p = &lock->lock;
-+	u32 tmp;
-+
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%1) \n"
-+		"	bnez		%0, 2f   \n"
-+		"	subi		%0, 1    \n"
-+		"	stex.w		%0, (%1) \n"
-+		"	bez		%0, 1b   \n"
-+		"	movi		%0, 0    \n"
-+		"2:				 \n"
-+		: "=&r" (tmp)
-+		: "r"(p)
-+		: "cc");
-+
-+	if (!tmp)
-+		smp_mb();
-+
-+	return !tmp;
-+}
-+
-+#endif /* CONFIG_QUEUED_RWLOCKS */
-+#endif /* __ASM_CSKY_SPINLOCK_H */
-diff --git a/arch/csky/include/asm/spinlock_types.h b/arch/csky/include/asm/spinlock_types.h
-new file mode 100644
-index 0000000..7e825c2
---- /dev/null
-+++ b/arch/csky/include/asm/spinlock_types.h
-@@ -0,0 +1,35 @@
-+#ifndef __ASM_CSKY_SPINLOCK_TYPES_H
-+#define __ASM_CSKY_SPINLOCK_TYPES_H
-+
-+#ifndef __LINUX_SPINLOCK_TYPES_H
-+# error "please don't include this file directly"
-+#endif
-+
-+#define TICKET_NEXT	16
-+
-+typedef struct {
-+	union {
-+		u32 lock;
-+		struct __raw_tickets {
-+			/* little endian */
-+			u16 owner;
-+			u16 next;
-+		} tickets;
-+	};
-+} arch_spinlock_t;
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
-+
-+#ifdef CONFIG_QUEUED_RWLOCKS
-+#include <asm-generic/qrwlock_types.h>
-+
-+#else /* CONFIG_NR_CPUS > 2 */
-+
-+typedef struct {
-+	u32 lock;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
-+
-+#endif /* CONFIG_QUEUED_RWLOCKS */
-+#endif /* __ASM_CSKY_SPINLOCK_TYPES_H */
-diff --git a/arch/csky/kernel/atomic.S b/arch/csky/kernel/atomic.S
-new file mode 100644
-index 0000000..ea71022
---- /dev/null
-+++ b/arch/csky/kernel/atomic.S
-@@ -0,0 +1,86 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/linkage.h>
-+#include <abi/entry.h>
-+
-+.text
-+
-+/*
-+ * int csky_cmpxchg(int oldval, int newval, int *ptr)
-+ *
-+ * If *ptr != oldval && return 1,
-+ * else *ptr = newval return 0.
-+ */
-+#ifdef CONFIG_CPU_HAS_LDSTEX
-+ENTRY(csky_cmpxchg)
-+	USPTOKSP
-+	mfcr	a3, epc
-+	INCTRAP	a3
-+
-+	subi    sp, 8
-+	stw     a3, (sp, 0)
-+	mfcr    a3, epsr
-+	stw     a3, (sp, 4)
-+
-+	psrset	ee
-+1:
-+	ldex	a3, (a2)
-+	cmpne	a0, a3
-+	bt16	2f
-+	mov	a3, a1
-+	stex	a3, (a2)
-+	bez	a3, 1b
-+2:
-+	sync.is
-+	mvc	a0
-+	ldw	a3, (sp, 0)
-+	mtcr	a3, epc
-+	ldw     a3, (sp, 4)
-+	mtcr	a3, epsr
-+	addi	sp, 8
-+	KSPTOUSP
-+	rte
-+END(csky_cmpxchg)
-+#else
-+ENTRY(csky_cmpxchg)
-+	USPTOKSP
-+	mfcr	a3, epc
-+	INCTRAP	a3
-+
-+	subi    sp, 8
-+	stw     a3, (sp, 0)
-+	mfcr    a3, epsr
-+	stw     a3, (sp, 4)
-+
-+	psrset	ee
-+1:
-+	ldw	a3, (a2)
-+	cmpne	a0, a3
-+	bt16	3f
-+2:
-+	stw	a1, (a2)
-+3:
-+	mvc	a0
-+	ldw	a3, (sp, 0)
-+	mtcr	a3, epc
-+	ldw     a3, (sp, 4)
-+	mtcr	a3, epsr
-+	addi	sp, 8
-+	KSPTOUSP
-+	rte
-+END(csky_cmpxchg)
-+
-+/*
-+ * Called from tlbmodified exception
-+ */
-+ENTRY(csky_cmpxchg_fixup)
-+	mfcr	a0, epc
-+	lrw	a1, 2b
-+	cmpne	a1, a0
-+	bt	1f
-+	subi	a1, (2b - 1b)
-+	stw	a1, (sp, LSAVE_PC)
-+1:
-+	rts
-+END(csky_cmpxchg_fixup)
-+#endif
++TIMER_OF_DECLARE(csky_gx6605s_timer, "csky,gx6605s-timer", gx6605s_timer_init);
 -- 
 2.7.4
