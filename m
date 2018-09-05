@@ -1,93 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:34111 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726046AbeIETe4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 15:34:56 -0400
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-References: <20180904081144.GA4137@andrea>
- <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
- <20180905072151.GA3185@andrea>
- <50f0a7a7-0521-f833-34c3-132ce57dd777@gmail.com>
- <20180905150042.GA8820@andrea>
-From: Akira Yokosawa <akiyks@gmail.com>
-Message-ID: <e8dbdd89-ff65-31ea-8d04-7e84b64a98b0@gmail.com>
-Date: Thu, 6 Sep 2018 00:04:14 +0900
+Received: from mail-yw1-f67.google.com ([209.85.161.67]:43666 "EHLO
+        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726046AbeIETfQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 15:35:16 -0400
+Date: Wed, 5 Sep 2018 11:04:23 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: Re: [PATCH v4 0/8] Introduce the for_each_set_clump macro
+Message-ID: <20180905150348.GA27089@sophia>
+References: <cover.1526400945.git.vilhelm.gray@gmail.com>
+ <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20180905150042.GA8820@andrea>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
-Message-ID: <20180905150414.JPYEv9JBKjA1OC7Qc9r5KstFEOomXvGcugH8jMiPLJw@z>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, andy.shevchenko@gmail.com, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20180905150423.I5t8CgRK-kTSsjxxbkA_nO782bhOrtSFPonC1Q3kvR0@z>
 
-On 2018/09/06 0:00, Andrea Parri wrote:
-> On Wed, Sep 05, 2018 at 11:33:08PM +0900, Akira Yokosawa wrote:
->> On 2018/09/05 09:21:51 +0200, Andrea Parri wrote:
->>> On Tue, Sep 04, 2018 at 03:09:49PM -0400, Alan Stern wrote:
->>>> On Tue, 4 Sep 2018, Andrea Parri wrote:
->>>>> Heh, your confusion might be the reflection of mine... ;-)  That was
->>>>> indeed a long and not conclusive discussion (meaning there're pending
->>>>> issues); and I cannot claim to find "arguments" such as:
->>>>>
->>>>>   "More than one kernel developer has expressed the opinion that
->>>>>    the LKMM should enforce ordering of writes by locking."
->>>>>
->>>>> particularly helpful (I do tend to be convinced by arguments rather
->>>>> than by opinions).  In fact, you can take the following as my only
->>>>> current "constructive argument" against the patch [1,2]:
->>>>>
->>>>>   THE COMMIT MESSAGE IS RIDICULOUS; PLEASE EXPAND ON IT, AND DO
->>>>>   SO BY LEVERAGING BOTH PROS AND CONS OF THE APPLIED CHANGES
->>>>
->>>> Do you have any concrete suggestions (i.e., some actual text) for 
->>>> improvements to the patch description?  Earlier in your message you 
->>>> mentioned that Will's comment:
->>>>
->>>> 	LKMM offers stronger guarantees that can portably be relied upon
->>>> 	in the codebase.
->>>>
->>>> would make a good addition.  Suitably edited, it could be added to the
->>>> description.  I can think of a few other things myself, but I'd like to 
->>>> hear your thoughts.  Anything else?
->>>
->>> Yes: I do sometimes have the impression that your "rules" for trimming
->>> text in emails/replies are too aggressive...
+On Wed, May 16, 2018 at 04:03:51PM +0200, Linus Walleij wrote:
+>On Tue, May 15, 2018 at 6:22 PM, William Breathitt Gray
+><vilhelm.gray@gmail.com> wrote:
+>
+>> For example, suppose you would like to iterate over a 16-bit integer 4
+>> bits at a time, skipping over 4-bit groups with no set bit, where XXXX
+>> represents the current 4-bit group:
 >>
->> Andrea, by saying "Yes:", do you mean you have something else to be added?
-> 
-> Indeed (examples in the trimmed text).
-
-So, you mean just amending commit log does not work for you?
-
-> 
-> 
->> I don't think you do, but want to make sure.
+>>     Example:        1011 1110 0000 1111
+>>     First loop:     1011 1110 0000 XXXX
+>>     Second loop:    1011 XXXX 0000 1111
+>>     Third loop:     XXXX 1110 0000 1111
 >>
->> I'm a bit surprised to see all you wanted was the amendment of the
->> commit log...
-> 
-> Well, I said that it was my only current constructive argument...
-
-This thread is getting quite hard for me to follow...
-
-   Akira
-
-> 
->   Andrea
-> 
-> 
+>> Each iteration of the loop returns the next 4-bit group that has at
+>> least one set bit.
 >>
->>   Akira
+>> The for_each_set_clump macro has six parameters:
 >>
->>>
->>>   Andrea
->>>
->>>
->>>>
->>>> Alan
->>>>
+>>     * clump: set to current clump index for the iteration
+>>     * index: set to current bitmap word index for the iteration
+>>     * offset: bits offset of the found clump in the bitmap word
+>>     * bits: bitmap to search within
+>>     * size: bitmap size in number of clumps
+>>     * clump_size: clump size in number of bits
 >>
+>> The clump_size argument can be an arbitrary number of bits and is not
+>> required to be a multiple of 2.
+>
+>I must say I'm impressed. Very nice arithmetics going on there.
+>
+>If I can get some ACK for the bitops patch I'd be happy to merge
+>it all through the GPIO tree. The users are pretty clear cut.
+>
+>BTW: if I could, I would pull out Donald Knuth's "The Art of Computer
+>Programming vol 4A" chapter 7.1.3 "Bitwise Tricks and Techniques"
+>to see what he has to say about the subject, but I don't have
+>that book as it turns out.
+>
+>Yours,
+>Linus Walleij
+
+Hi Linus,
+
+I'd like to get this patchset merged, but I'm aware that we haven't yet
+received additional ACKs in the past couple months. Are there any
+changes you would like made, or should I resubmit this patchset with
+additional CCs in the hopes of some ACKs for the bitops patch?
+
+Sincerely,
+
+William Breathitt Gray
