@@ -1,67 +1,80 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v4 0/8] Introduce the for_each_set_clump macro
-Date: Wed, 5 Sep 2018 11:04:23 -0400
-Message-ID: <20180905150348.GA27089@sophia>
-References: <cover.1526400945.git.vilhelm.gray@gmail.com>
- <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Date: Wed, 5 Sep 2018 17:24:18 +0200
+Message-ID: <20180905152418.GA8874@andrea>
+References: <20180904081144.GA4137@andrea>
+ <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
+ <20180905072151.GA3185@andrea>
+ <50f0a7a7-0521-f833-34c3-132ce57dd777@gmail.com>
+ <20180905150042.GA8820@andrea>
+ <e8dbdd89-ff65-31ea-8d04-7e84b64a98b0@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
+In-Reply-To: <e8dbdd89-ff65-31ea-8d04-7e84b64a98b0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, andy.shevchenko@gmail.com, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Akira Yokosawa <akiyks@gmail.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 16, 2018 at 04:03:51PM +0200, Linus Walleij wrote:
->On Tue, May 15, 2018 at 6:22 PM, William Breathitt Gray
-><vilhelm.gray@gmail.com> wrote:
->
->> For example, suppose you would like to iterate over a 16-bit integer 4
->> bits at a time, skipping over 4-bit groups with no set bit, where XXXX
->> represents the current 4-bit group:
->>
->>     Example:        1011 1110 0000 1111
->>     First loop:     1011 1110 0000 XXXX
->>     Second loop:    1011 XXXX 0000 1111
->>     Third loop:     XXXX 1110 0000 1111
->>
->> Each iteration of the loop returns the next 4-bit group that has at
->> least one set bit.
->>
->> The for_each_set_clump macro has six parameters:
->>
->>     * clump: set to current clump index for the iteration
->>     * index: set to current bitmap word index for the iteration
->>     * offset: bits offset of the found clump in the bitmap word
->>     * bits: bitmap to search within
->>     * size: bitmap size in number of clumps
->>     * clump_size: clump size in number of bits
->>
->> The clump_size argument can be an arbitrary number of bits and is not
->> required to be a multiple of 2.
->
->I must say I'm impressed. Very nice arithmetics going on there.
->
->If I can get some ACK for the bitops patch I'd be happy to merge
->it all through the GPIO tree. The users are pretty clear cut.
->
->BTW: if I could, I would pull out Donald Knuth's "The Art of Computer
->Programming vol 4A" chapter 7.1.3 "Bitwise Tricks and Techniques"
->to see what he has to say about the subject, but I don't have
->that book as it turns out.
->
->Yours,
->Linus Walleij
+> >>>> Do you have any concrete suggestions (i.e., some actual text) for 
+> >>>> improvements to the patch description?  Earlier in your message you 
+> >>>> mentioned that Will's comment:
+> >>>>
+> >>>> 	LKMM offers stronger guarantees that can portably be relied upon
+> >>>> 	in the codebase.
+> >>>>
+> >>>> would make a good addition.  Suitably edited, it could be added to the
+> >>>> description.  I can think of a few other things myself, but I'd like to 
+> >>>> hear your thoughts.  Anything else?
+> >>>
+> >>> Yes: I do sometimes have the impression that your "rules" for trimming
+> >>> text in emails/replies are too aggressive...
+> >>
+> >> Andrea, by saying "Yes:", do you mean you have something else to be added?
+> > 
+> > Indeed (examples in the trimmed text).
 
-Hi Linus,
+"examples" of "concrete suggestions" (pros or cons) to amend the log.
 
-I'd like to get this patchset merged, but I'm aware that we haven't yet
-received additional ACKs in the past couple months. Are there any
-changes you would like made, or should I resubmit this patchset with
-additional CCs in the hopes of some ACKs for the bitops patch?
 
-Sincerely,
+> 
+> So, you mean just amending commit log does not work for you?
 
-William Breathitt Gray
+I can't really answer this...; let's see the revisited log first.
+
+  Andrea
+
+
+> 
+> > 
+> > 
+> >> I don't think you do, but want to make sure.
+> >>
+> >> I'm a bit surprised to see all you wanted was the amendment of the
+> >> commit log...
+> > 
+> > Well, I said that it was my only current constructive argument...
+> 
+> This thread is getting quite hard for me to follow...
+> 
+>    Akira
+> 
+> > 
+> >   Andrea
+> > 
+> > 
+> >>
+> >>   Akira
+> >>
+> >>>
+> >>>   Andrea
+> >>>
+> >>>
+> >>>>
+> >>>> Alan
+> >>>>
+> >>
+> 
