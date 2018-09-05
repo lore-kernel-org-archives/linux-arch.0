@@ -1,62 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0041.outbound.protection.outlook.com ([104.47.34.41]:29935
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727755AbeIEXmV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 5 Sep 2018 19:42:21 -0400
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Date: Wed, 5 Sep 2018 19:10:46 +0000
-Message-ID: <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
-References: <20180902173224.30606-1-namit@vmware.com>
- <20180905185617.GC24082@hirez.programming.kicks-ass.net>
- <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
-In-Reply-To: <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <C6D032E7CC8E8F479471B6AA24CFAC2E@namprd05.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:34746 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727657AbeIFCub (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 22:50:31 -0400
+Date: Thu, 6 Sep 2018 08:18:02 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
+ demand based pte insertion
+Message-ID: <20180906081802.210984d7@roar.ozlabs.ibm.com>
+In-Reply-To: <20180905142951.GA15680@roeck-us.net>
+References: <20180828112034.30875-1-npiggin@gmail.com>
+        <20180828112034.30875-4-npiggin@gmail.com>
+        <20180905142951.GA15680@roeck-us.net>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20180905191046.ThFa03y35okqN4PqMh_ENBvQ-MamFmr0lqQsjGbeHSw@z>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Message-ID: <20180905221802.ZCRMJplaV5QsF-IYHWRsTEJfeTReETq0oR1jrNAb4yU@z>
 
-at 12:02 PM, Nadav Amit <namit@vmware.com> wrote:
+On Wed, 5 Sep 2018 07:29:51 -0700
+Guenter Roeck <linux@roeck-us.net> wrote:
 
-> at 11:56 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> Hi,
 >=20
->> On Sun, Sep 02, 2018 at 10:32:18AM -0700, Nadav Amit wrote:
->>> This patch-set addresses some issues that were raised in a recent
->>> correspondence and might affect the security and the correctness of cod=
-e
->>> patching. (Note that patching performance is not addressed by this
->>> patch-set).
->>>=20
->>> The main issue that the patches deal with is the fact that the fixmap
->>> PTEs that are used for patching are available for access from other
->>> cores and might be exploited. They are not even flushed from the TLB in
->>> remote cores, so the risk is even higher. Address this issue by
->>> introducing a temporary mm that is only used during patching.
->>> Unfortunately, due to init ordering, fixmap is still used during
->>> boot-time patching. Future patches can eliminate the need for it.
->>=20
->> Remind me; why are we doing it like this instead of fixing fixmap?
->> Because while this fixes the text_poke crud, it does leave fixmap
->> broken.
+> On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:
+> > Similarly to the previous patch, this tries to optimise dirty/accessed
+> > bits in ptes to avoid access costs of hardware setting them.
+> >  =20
 >=20
-> Do you have other fixmap mappings in mind that are modified after boot?
+> This patch results in silent nios2 boot failures, silent meaning that
+> the boot stalls.
+>=20
+> ...
+> Unpacking initramfs...
+> Freeing initrd memory: 2168K
+> workingset: timestamp_bits=3D30 max_order=3D15 bucket_order=3D0
+> jffs2: version 2.2. (NAND) =C2=A9 2001-2006 Red Hat, Inc.
+> random: fast init done
+> random: crng init done
+>=20
+> [no further activity until the qemu session is aborted]
+>=20
+> Reverting the patch fixes the problem. Bisect log is attached.
 
-Oh.. I misunderstood you. You mean: why not to make the fixmap mappings tha=
-t
-are used for text_poke() as private ones.
+Thanks for bisecting it, I'll try to reproduce. Just qemu with no
+obscure options? Interesting that it's hit nios2 but apparently not
+other archs (yet).
 
-Well, the main reason is that it can require synchronizations of the
-different page-tables whenever a module is loaded/unloaded. The fixmap
-region shares a PGD and PUD with the modules area in x86-64.
-
-In contrast, the proposed solution uses a different PGD, so no
-synchronization between page-tables is needed when modules are loaded.
-Remember that module memory is allocated even when BPF programs are
-installed, which can be rather common scenario.
+Thanks,
+Nick
