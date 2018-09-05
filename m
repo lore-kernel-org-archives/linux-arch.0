@@ -1,489 +1,267 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 00/26] C-SKY(csky) Linux Kernel Port
-Date: Wed,  5 Sep 2018 20:07:39 +0800
-Message-ID: <cover.1536138304.git.ren_guo@c-sky.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH V3 12/26] csky: ELF and module probe
+Date: Wed,  5 Sep 2018 20:07:51 +0800
+Message-ID: <c189e553ba7f9530721762476e5592d4931f8b0d.1536138304.git.ren_guo@c-sky.com>
+References: <cover.1536138304.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
+References: <cover.1536138304.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-This is the 3th version patchset to add the Linux kernel port for C-SKY(csky).
-Thanks to everyone who provided feedback on the previous version.
-
-This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
-CPU cores and the patches are based on linux-4.18.4
-
-There are two ABI versions with several CPU cores in this patchset:
-  ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
-  ABIv2: ck807 ck810 ck860 (16/32-bit variable length instruction, PIPT Cache,
-	 SMP ...)
-
-More information: http://en.c-sky.com
-
-I'm from Hangzhou,China C-SKY Microsystems and responsible for C-SKY Linux
-port. The development repo is
-https://gitlab.com/c-sky/csky-linux
-
-We use buildroot as our CI-test enviornment. "LTP, Lmbench, uclibc-ng-test ..."
-will be tested for every commit. See here for more details:
-  https://gitlab.com/c-sky/buildroot/pipelines
-
-You can try C-SKY linux in a few steps:
-  $ git clone https://gitlab.com/c-sky/buildroot.git
-  $ cd buildroot
-  $ make qemu_csky_ck807f_4.18_glibc_defconfig
-  $ make
-It will download "linux glibc gcc binutils qemu busybox" source code and build
-them into one image. How to run, See:
-https://c-sky.gitlab.io/-/buildroot/-/jobs/94714727/artifacts/output/images/readme.txt
-
-Any feedback is welcome.
-
-Changes in v3:
-dc560f1 csky: change to EM_CSKY 252 for elf.h
-2ac3ddf csky: remove gx6605s.dts
-af00b8c csky: add defconfig and qemu.dts
-6c87efb csky: remove the deprecate name.
-f6dda39 csky: add dt-bindings doc.
-d9f02a8 csky: remove KERNEL_VERSION in upstream branch
-7bd663c csky: Use kernel/dma/noncoherent.c
-1544c09 csky: bugfix emmc hang up LINS-976
-e963271 csky: cleanup include/asm/Kbuild
-cd267ba csky: remove CSKY_DEBUG_INFO
-78950da csky: remove dcache invalid.
-13fe51d csky: remove csum_ipv6_magic(), use generic one.
-a7372db csky: bugfix CK810 access twice error.
-1bb7c69 csky: bugfix add gcc asm memory for barrier.
-5ea3257 csky: add -msoft-float instead of -mfloat-abi=soft.
-38b037d csky: bugfix losing cache flush range.
-ab5e8c4 csky: Add ticket-spinlock and qrwlock support.
-c9aaec5 csky: rename cskyksyms.c to libgcc_ksyms.c
-28c5e48 csky: avoid the MB on failure: trylock
-f929c97 csky: bugfix idly4 may cause exception.
-09dc496 csky: Use GENERIC_ASHLDI3/ASHRDI3 etc
-6ecc99d csky: optimize smp boot code.
-16f50df csky: asm/bug.h simple implement.
-0ba532a csky: csky asm/atomic.h added.
-df66947 csky: asm/compat.h added
-275a06f csky: String operations optimization
-4c021dd csky: ck860 SMP memory barrier optimize
-fc39c66 csky: Add wait/doze/stop
-d005144 csky: add GENERIC_ALLOCATOR
-4a10074 csky: bugfix cma failed for highmem.
-9f2ca70 csky: CMA supported :)
-53791f4 csky: optimize csky_dma_alloc_nonatomic
-974676e csky: optimize the cpuinfo printf.
-2538669 csky: bugfix make headers_install error.
-1158d0c csky: prevent hard-float and vdsp instructions.
-dc3c856 csky: increase Normal Memory to 1GB
-6ee5932 csky: bugfix qemu mmu couldn't support 0xffffe000
-1d7dfb8 csky: csky_dma_alloc_atomic added.
-caf6610 csky: restruct the fixmap memory layout.
-5a17eaa csky: use -Wa,-mcpu=ckxxxfv to the as.
-4d51829 csky: use Kconfig.hz.
-f3f88fa csky: BUGFIX add -mcpu=ck860f support
-6192fd1 csky: support ck860 fpu.
-7aa5e01 csky: BUGFIX add smp_mb before ldex.
-15758e2 csky: BUGFIX tlbi couldn't handle ASID in another CPU core.
-d69640d csky: enable tlbi.vas to flush one tlb entry
-
-Changes in v2:
-a29bfc8 csky: add pre_mmu_init, move misc mmu setup to mm/init.c
-4eab702 csky: no need kmap for !VM_EXEC.
-6770eec csky: Use TEE as the name of CPU Trusted Execution Enviornment.
-a56c8c7 csky: update the cache flush api.
-1a48a95 csky: add C-SKY Trust Zone.
-b7a0a44 csky: use CONFIG_RAM_BASE as the same in memory of dts.
-15adf81 csky: remove unused code.
-35c0d97 csky: bugfix lost a cacheline flush when start isn't cacheline-aligned.
-4e82c8d csky: use tlbi.alls for ck860 smp temporary.
-ae7149e csky: bugfix use kmap_atomic() to prevent no mapped addr.
-5538795 csky: bugfix user access in kernel space.
-a7aa591 csky: add 16bit user space bkpt.
-0de70ec csky: add sync.is for cmpxchg in SMP.
-c5c08a1 csky: seperate sync.is and sync for SMP and Non-SMP.
-dbbf4dc csky: use sync.is for ck860 mb().
-f33f8da csky: rewrite the alignment implement.
-68152c7 csky: bugfix alignment pt_regs error.
-d618d43 csky: support set_affinity for irq balance in SMP
-ebf86c9 csky: bugfix compile error without CONFIG_SMP.
-8537eea csky: remove debug code.
-4ebc051 csky: bugfix compile error with linux-4.9.56
-75a938e csky: C-SKY SMP supported.
-0eebc07 csky: use internal function for map_sg.
-3d29751 csky: bugfix can't support highmem
-b545d2a csky: bugfix r26 is the link reg for jsri_to_jsr.
-9e3313a csky: bugfix sync tls for abiv1 in ptrace.
-587a0d2 csky: use __NR_rt_sigreturn in asm-generic.
-f562b46 csky: bugfix gpr_set & fpr_set
-f57266f csky: bugfix fpu_fpe_helper excute mtcr mfcr.
-c676669 csky: bugfix ave is default enable on reset.
-d40d34d csky: remove unused sc_mask in sigcontext.h.
-274b7a2 csky: redesign the signal's api
-7501771 csky: bugfix forget restore usp.
-923e2ca csky: re-struct the pt_regs for regset.
-2a1e499 csky: fixup config.
-ada81ec csky: bugfix abiv1 compile error.
-e34acb9 csky: bugfix abiv1 couldn't support -mno-stack-size.
-ec53560 csky: change irq map, reserve soft_irq&private_irq space.
-c7576f7 csky: bugfix modpost warning with -mno-stack-size
-c8ff9d4 csky: support csky mp timer alpha version.
-deabaaf csky: update .gitignore.
-574815c csky: bugfix compile error with abiv1 in 4.15
-0b426a7 csky: bugfix format of cpu verion id.
-083435f csky: irq-csky-v2 alpha init.
-21209e5 csky: add .gitignore
-73e19b4 csky: remove FMFS_FPU_REGS/FMTS_FPU_REGS
-07e8fac csky: add fpu regset in ptrace.c
-cac779d csky: add CSKY_VECIRQ_LEGENCY for SOC bug.
-54bab1d csky: move usp into pt_regs.
-b167422 csky: support regset for ptrace.
-a098d4c csky: remove ARCH_WANT_IPC_PARSE_VERSION
-fe61a84 csky: add timer-of support.
-27702e2 csky: bugfix boot error.
-ebe3edb csky: bugfix gx6605s boot failed  - add __HEAD to head.section for head.S  - move INIT_SECTION together to fix compile warning.
-7138cae csky: coding convension for timer-nationalchip.c
-fa7f9bb csky: use ffs instead of fls.
-ddc9e81 csky: change to generic irq chip for irq-csky.c
-e9be8b9 irqchip: add generic irq chip for irq-nationalchip
-2ee83fe csky: add set_handle_irq(), ref from openrisc & arm.
-74181d6 csky: use irq_domain_add_linear instead of leagcy.
-fa45ae4 csky: bugfix setup stroge order for uncached.
-eb8030f csky: add HIGHMEM config in Kconfig
-4f983d4 csky: remove "default n" in Kconfig
-2467575 csky: use asm-generic/signal.h
-77438e5 csky: coding conventions for irq.c
-2e4a2b4 csky: optimize the cache flush ops.
-96e1c58 csky: add CONFIG_CPU_ASID_BITS.
-9339666 csky: add cprcr() cpwcr() for abiv1
-ff05be4 csky: add THREAD_SHIFT define in asm/page.h
-52ab022 csky: add mfcr() mtcr() in asm/reg_ops.h
-bdcd8f3 csky: revert back Kconfig select.
-590c7e6 csky: bugfix compile error with CONFIG_AUDIT
-1989292 csky: revert some back with cleanup unistd.h
-f1454fe csky: cleanup unistd.h
-5d2985f csky: cleanup Kconfig and Makefile.
-423d97e csky: cancel subdirectories
-cae2af4 csky: use asm-generic/fcntl.h
-
-Guo Ren (26):
-  csky: Build infrastructure
-  csky: defconfig
-  csky: Kernel booting
-  csky: Exception handling
-  csky: System Call
-  csky: Cache and TLB routines
-  csky: MMU and page table management
-  csky: Process management and Signal
-  csky: VDSO and rt_sigreturn
-  csky: IRQ handling
-  csky: Atomic operations
-  csky: ELF and module probe
-  csky: Library functions
-  csky: User access
-  csky: Debug and Ptrace GDB
-  csky: SMP support
-  csky: Misc headers
-  dt-bindings: csky CPU Bindings
-  dt-bindings: timer: gx6605s SOC timer
-  dt-bindings: timer: C-SKY Multi-processor timer
-  dt-bindings: interrupt-controller: C-SKY APB intc
-  dt-bindings: interrupt-controller: C-SKY SMP intc
-  clocksource: add gx6605s SOC system timer
-  clocksource: add C-SKY SMP timer
-  clocksource: add C-SKY timers' build infrastructure
-  irqchip: add C-SKY irqchip drivers
-
- Documentation/devicetree/bindings/csky/cpus.txt    |  70 ++++
- .../interrupt-controller/csky,apb-intc.txt         |  45 +++
- .../bindings/interrupt-controller/csky,mpintc.txt  |  40 +++
- .../bindings/timer/csky,gx6605s-timer.txt          |  46 +++
- .../devicetree/bindings/timer/csky,mptimer.txt     |  46 +++
- arch/csky/Kconfig                                  | 230 ++++++++++++
- arch/csky/Kconfig.debug                            |  14 +
- arch/csky/Makefile                                 |  93 +++++
- arch/csky/abiv1/Makefile                           |   8 +
- arch/csky/abiv1/alignment.c                        | 331 +++++++++++++++++
- arch/csky/abiv1/bswapdi.c                          |  18 +
- arch/csky/abiv1/bswapsi.c                          |  14 +
- arch/csky/abiv1/cacheflush.c                       |  50 +++
- arch/csky/abiv1/inc/abi/cacheflush.h               |  41 +++
- arch/csky/abiv1/inc/abi/ckmmu.h                    |  74 ++++
- arch/csky/abiv1/inc/abi/entry.h                    | 159 +++++++++
- arch/csky/abiv1/inc/abi/page.h                     |  26 ++
- arch/csky/abiv1/inc/abi/pgtable-bits.h             |  36 ++
- arch/csky/abiv1/inc/abi/reg_ops.h                  |  26 ++
- arch/csky/abiv1/inc/abi/regdef.h                   |  25 ++
- arch/csky/abiv1/inc/abi/string.h                   |  13 +
- arch/csky/abiv1/inc/abi/tlb.h                      |  11 +
- arch/csky/abiv1/inc/abi/vdso.h                     |  17 +
- arch/csky/abiv1/memcpy.S                           | 344 ++++++++++++++++++
- arch/csky/abiv1/memset.c                           |  38 ++
- arch/csky/abiv1/mmap.c                             |  65 ++++
- arch/csky/abiv1/strksyms.c                         |   7 +
- arch/csky/abiv2/Makefile                           |  10 +
- arch/csky/abiv2/cacheflush.c                       |  54 +++
- arch/csky/abiv2/fpu.c                              | 281 +++++++++++++++
- arch/csky/abiv2/inc/abi/cacheflush.h               |  38 ++
- arch/csky/abiv2/inc/abi/ckmmu.h                    |  87 +++++
- arch/csky/abiv2/inc/abi/entry.h                    | 157 ++++++++
- arch/csky/abiv2/inc/abi/fpu.h                      |  66 ++++
- arch/csky/abiv2/inc/abi/page.h                     |  14 +
- arch/csky/abiv2/inc/abi/pgtable-bits.h             |  37 ++
- arch/csky/abiv2/inc/abi/reg_ops.h                  |  17 +
- arch/csky/abiv2/inc/abi/regdef.h                   |  26 ++
- arch/csky/abiv2/inc/abi/string.h                   |  28 ++
- arch/csky/abiv2/inc/abi/tlb.h                      |  12 +
- arch/csky/abiv2/inc/abi/vdso.h                     |  24 ++
- arch/csky/abiv2/memcmp.S                           | 151 ++++++++
- arch/csky/abiv2/memcpy.S                           | 110 ++++++
- arch/csky/abiv2/memcpy.c                           |  40 +++
- arch/csky/abiv2/memmove.S                          | 108 ++++++
- arch/csky/abiv2/memset.S                           |  83 +++++
- arch/csky/abiv2/strcmp.S                           | 168 +++++++++
- arch/csky/abiv2/strcpy.S                           | 123 +++++++
- arch/csky/abiv2/strksyms.c                         |  12 +
- arch/csky/abiv2/strlen.S                           |  97 +++++
- arch/csky/abiv2/sysdep.h                           |  29 ++
- arch/csky/boot/Makefile                            |  24 ++
- arch/csky/boot/dts/Makefile                        |  13 +
- arch/csky/boot/dts/include/dt-bindings             |   1 +
- arch/csky/boot/dts/qemu.dts                        |  77 ++++
- arch/csky/configs/defconfig                        |  76 ++++
- arch/csky/include/asm/Kbuild                       |  69 ++++
- arch/csky/include/asm/addrspace.h                  |  10 +
- arch/csky/include/asm/atomic.h                     | 215 +++++++++++
- arch/csky/include/asm/barrier.h                    |  45 +++
- arch/csky/include/asm/bitops.h                     | 281 +++++++++++++++
- arch/csky/include/asm/bug.h                        |  26 ++
- arch/csky/include/asm/cache.h                      |  28 ++
- arch/csky/include/asm/cacheflush.h                 |   8 +
- arch/csky/include/asm/checksum.h                   |  54 +++
- arch/csky/include/asm/cmpxchg.h                    |  70 ++++
- arch/csky/include/asm/compat.h                     |  11 +
- arch/csky/include/asm/elf.h                        | 149 ++++++++
- arch/csky/include/asm/fixmap.h                     |  26 ++
- arch/csky/include/asm/highmem.h                    |  50 +++
- arch/csky/include/asm/io.h                         |  23 ++
- arch/csky/include/asm/irq.h                        |  10 +
- arch/csky/include/asm/irqflags.h                   |  49 +++
- arch/csky/include/asm/mmu.h                        |  11 +
- arch/csky/include/asm/mmu_context.h                | 148 ++++++++
- arch/csky/include/asm/page.h                       | 101 ++++++
- arch/csky/include/asm/pgalloc.h                    | 108 ++++++
- arch/csky/include/asm/pgtable.h                    | 299 ++++++++++++++++
- arch/csky/include/asm/processor.h                  | 120 +++++++
- arch/csky/include/asm/reg_ops.h                    |  22 ++
- arch/csky/include/asm/segment.h                    |  18 +
- arch/csky/include/asm/shmparam.h                   |  10 +
- arch/csky/include/asm/smp.h                        |  26 ++
- arch/csky/include/asm/spinlock.h                   | 286 +++++++++++++++
- arch/csky/include/asm/spinlock_types.h             |  35 ++
- arch/csky/include/asm/string.h                     |  13 +
- arch/csky/include/asm/switch_to.h                  |  35 ++
- arch/csky/include/asm/syscall.h                    |  69 ++++
- arch/csky/include/asm/syscalls.h                   |  14 +
- arch/csky/include/asm/thread_info.h                |  74 ++++
- arch/csky/include/asm/tlb.h                        |  19 +
- arch/csky/include/asm/tlbflush.h                   |  22 ++
- arch/csky/include/asm/traps.h                      |  39 ++
- arch/csky/include/asm/uaccess.h                    | 396 +++++++++++++++++++++
- arch/csky/include/asm/unistd.h                     |   3 +
- arch/csky/include/asm/vdso.h                       |  12 +
- arch/csky/include/uapi/asm/Kbuild                  |  33 ++
- arch/csky/include/uapi/asm/byteorder.h             |  14 +
- arch/csky/include/uapi/asm/cachectl.h              |  13 +
- arch/csky/include/uapi/asm/ptrace.h                | 103 ++++++
- arch/csky/include/uapi/asm/sigcontext.h            |  13 +
- arch/csky/include/uapi/asm/unistd.h                |  10 +
- arch/csky/kernel/Makefile                          |   8 +
- arch/csky/kernel/asm-offsets.c                     |  85 +++++
- arch/csky/kernel/atomic.S                          |  86 +++++
- arch/csky/kernel/cpu-probe.c                       |  78 ++++
- arch/csky/kernel/dumpstack.c                       |  64 ++++
- arch/csky/kernel/entry.S                           | 396 +++++++++++++++++++++
- arch/csky/kernel/head.S                            |  78 ++++
- arch/csky/kernel/irq.c                             |  31 ++
- arch/csky/kernel/module.c                          |  82 +++++
- arch/csky/kernel/platform.c                        |  17 +
- arch/csky/kernel/power.c                           |  30 ++
- arch/csky/kernel/process.c                         | 134 +++++++
- arch/csky/kernel/ptrace.c                          | 317 +++++++++++++++++
- arch/csky/kernel/setup.c                           | 150 ++++++++
- arch/csky/kernel/signal.c                          | 350 ++++++++++++++++++
- arch/csky/kernel/smp.c                             | 234 ++++++++++++
- arch/csky/kernel/syscall.c                         |  63 ++++
- arch/csky/kernel/syscall_table.c                   |  13 +
- arch/csky/kernel/time.c                            |  11 +
- arch/csky/kernel/traps.c                           | 168 +++++++++
- arch/csky/kernel/vdso.c                            |  88 +++++
- arch/csky/kernel/vmlinux.lds.S                     |  64 ++++
- arch/csky/lib/Makefile                             |   1 +
- arch/csky/lib/delay.c                              |  40 +++
- arch/csky/lib/usercopy.c                           | 271 ++++++++++++++
- arch/csky/mm/Makefile                              |  13 +
- arch/csky/mm/cachev1.c                             | 126 +++++++
- arch/csky/mm/cachev2.c                             |  79 ++++
- arch/csky/mm/dma-mapping.c                         | 254 +++++++++++++
- arch/csky/mm/fault.c                               | 220 ++++++++++++
- arch/csky/mm/highmem.c                             | 195 ++++++++++
- arch/csky/mm/init.c                                | 116 ++++++
- arch/csky/mm/ioremap.c                             |  48 +++
- arch/csky/mm/syscache.c                            |  28 ++
- arch/csky/mm/tlb.c                                 | 214 +++++++++++
- drivers/clocksource/Kconfig                        |  15 +
- drivers/clocksource/Makefile                       |   2 +
- drivers/clocksource/csky_mptimer.c                 | 178 +++++++++
- drivers/clocksource/timer-gx6605s.c                | 150 ++++++++
- drivers/irqchip/Makefile                           |   1 +
- drivers/irqchip/irq-csky-apb-intc.c                | 243 +++++++++++++
- drivers/irqchip/irq-csky-mpintc.c                  | 191 ++++++++++
- 144 files changed, 11972 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
- create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
- create mode 100644 Documentation/devicetree/bindings/timer/csky,mptimer.txt
- create mode 100644 arch/csky/Kconfig
- create mode 100644 arch/csky/Kconfig.debug
- create mode 100644 arch/csky/Makefile
- create mode 100644 arch/csky/abiv1/Makefile
- create mode 100644 arch/csky/abiv1/alignment.c
- create mode 100644 arch/csky/abiv1/bswapdi.c
- create mode 100644 arch/csky/abiv1/bswapsi.c
- create mode 100644 arch/csky/abiv1/cacheflush.c
- create mode 100644 arch/csky/abiv1/inc/abi/cacheflush.h
- create mode 100644 arch/csky/abiv1/inc/abi/ckmmu.h
- create mode 100644 arch/csky/abiv1/inc/abi/entry.h
- create mode 100644 arch/csky/abiv1/inc/abi/page.h
- create mode 100644 arch/csky/abiv1/inc/abi/pgtable-bits.h
- create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
- create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
- create mode 100644 arch/csky/abiv1/inc/abi/string.h
- create mode 100644 arch/csky/abiv1/inc/abi/tlb.h
- create mode 100644 arch/csky/abiv1/inc/abi/vdso.h
- create mode 100644 arch/csky/abiv1/memcpy.S
- create mode 100644 arch/csky/abiv1/memset.c
- create mode 100644 arch/csky/abiv1/mmap.c
- create mode 100644 arch/csky/abiv1/strksyms.c
- create mode 100644 arch/csky/abiv2/Makefile
- create mode 100644 arch/csky/abiv2/cacheflush.c
- create mode 100644 arch/csky/abiv2/fpu.c
- create mode 100644 arch/csky/abiv2/inc/abi/cacheflush.h
- create mode 100644 arch/csky/abiv2/inc/abi/ckmmu.h
- create mode 100644 arch/csky/abiv2/inc/abi/entry.h
- create mode 100644 arch/csky/abiv2/inc/abi/fpu.h
- create mode 100644 arch/csky/abiv2/inc/abi/page.h
- create mode 100644 arch/csky/abiv2/inc/abi/pgtable-bits.h
- create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
- create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
- create mode 100644 arch/csky/abiv2/inc/abi/string.h
- create mode 100644 arch/csky/abiv2/inc/abi/tlb.h
- create mode 100644 arch/csky/abiv2/inc/abi/vdso.h
- create mode 100644 arch/csky/abiv2/memcmp.S
- create mode 100644 arch/csky/abiv2/memcpy.S
- create mode 100644 arch/csky/abiv2/memcpy.c
- create mode 100644 arch/csky/abiv2/memmove.S
- create mode 100644 arch/csky/abiv2/memset.S
- create mode 100644 arch/csky/abiv2/strcmp.S
- create mode 100644 arch/csky/abiv2/strcpy.S
- create mode 100644 arch/csky/abiv2/strksyms.c
- create mode 100644 arch/csky/abiv2/strlen.S
- create mode 100644 arch/csky/abiv2/sysdep.h
- create mode 100644 arch/csky/boot/Makefile
- create mode 100644 arch/csky/boot/dts/Makefile
- create mode 120000 arch/csky/boot/dts/include/dt-bindings
- create mode 100644 arch/csky/boot/dts/qemu.dts
- create mode 100644 arch/csky/configs/defconfig
- create mode 100644 arch/csky/include/asm/Kbuild
- create mode 100644 arch/csky/include/asm/addrspace.h
- create mode 100644 arch/csky/include/asm/atomic.h
- create mode 100644 arch/csky/include/asm/barrier.h
- create mode 100644 arch/csky/include/asm/bitops.h
- create mode 100644 arch/csky/include/asm/bug.h
- create mode 100644 arch/csky/include/asm/cache.h
- create mode 100644 arch/csky/include/asm/cacheflush.h
- create mode 100644 arch/csky/include/asm/checksum.h
- create mode 100644 arch/csky/include/asm/cmpxchg.h
- create mode 100644 arch/csky/include/asm/compat.h
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/include/asm/elf.h | 149 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/csky/kernel/module.c   |  82 ++++++++++++++++++++++++
+ 2 files changed, 231 insertions(+)
  create mode 100644 arch/csky/include/asm/elf.h
- create mode 100644 arch/csky/include/asm/fixmap.h
- create mode 100644 arch/csky/include/asm/highmem.h
- create mode 100644 arch/csky/include/asm/io.h
- create mode 100644 arch/csky/include/asm/irq.h
- create mode 100644 arch/csky/include/asm/irqflags.h
- create mode 100644 arch/csky/include/asm/mmu.h
- create mode 100644 arch/csky/include/asm/mmu_context.h
- create mode 100644 arch/csky/include/asm/page.h
- create mode 100644 arch/csky/include/asm/pgalloc.h
- create mode 100644 arch/csky/include/asm/pgtable.h
- create mode 100644 arch/csky/include/asm/processor.h
- create mode 100644 arch/csky/include/asm/reg_ops.h
- create mode 100644 arch/csky/include/asm/segment.h
- create mode 100644 arch/csky/include/asm/shmparam.h
- create mode 100644 arch/csky/include/asm/smp.h
- create mode 100644 arch/csky/include/asm/spinlock.h
- create mode 100644 arch/csky/include/asm/spinlock_types.h
- create mode 100644 arch/csky/include/asm/string.h
- create mode 100644 arch/csky/include/asm/switch_to.h
- create mode 100644 arch/csky/include/asm/syscall.h
- create mode 100644 arch/csky/include/asm/syscalls.h
- create mode 100644 arch/csky/include/asm/thread_info.h
- create mode 100644 arch/csky/include/asm/tlb.h
- create mode 100644 arch/csky/include/asm/tlbflush.h
- create mode 100644 arch/csky/include/asm/traps.h
- create mode 100644 arch/csky/include/asm/uaccess.h
- create mode 100644 arch/csky/include/asm/unistd.h
- create mode 100644 arch/csky/include/asm/vdso.h
- create mode 100644 arch/csky/include/uapi/asm/Kbuild
- create mode 100644 arch/csky/include/uapi/asm/byteorder.h
- create mode 100644 arch/csky/include/uapi/asm/cachectl.h
- create mode 100644 arch/csky/include/uapi/asm/ptrace.h
- create mode 100644 arch/csky/include/uapi/asm/sigcontext.h
- create mode 100644 arch/csky/include/uapi/asm/unistd.h
- create mode 100644 arch/csky/kernel/Makefile
- create mode 100644 arch/csky/kernel/asm-offsets.c
- create mode 100644 arch/csky/kernel/atomic.S
- create mode 100644 arch/csky/kernel/cpu-probe.c
- create mode 100644 arch/csky/kernel/dumpstack.c
- create mode 100644 arch/csky/kernel/entry.S
- create mode 100644 arch/csky/kernel/head.S
- create mode 100644 arch/csky/kernel/irq.c
  create mode 100644 arch/csky/kernel/module.c
- create mode 100644 arch/csky/kernel/platform.c
- create mode 100644 arch/csky/kernel/power.c
- create mode 100644 arch/csky/kernel/process.c
- create mode 100644 arch/csky/kernel/ptrace.c
- create mode 100644 arch/csky/kernel/setup.c
- create mode 100644 arch/csky/kernel/signal.c
- create mode 100644 arch/csky/kernel/smp.c
- create mode 100644 arch/csky/kernel/syscall.c
- create mode 100644 arch/csky/kernel/syscall_table.c
- create mode 100644 arch/csky/kernel/time.c
- create mode 100644 arch/csky/kernel/traps.c
- create mode 100644 arch/csky/kernel/vdso.c
- create mode 100644 arch/csky/kernel/vmlinux.lds.S
- create mode 100644 arch/csky/lib/Makefile
- create mode 100644 arch/csky/lib/delay.c
- create mode 100644 arch/csky/lib/usercopy.c
- create mode 100644 arch/csky/mm/Makefile
- create mode 100644 arch/csky/mm/cachev1.c
- create mode 100644 arch/csky/mm/cachev2.c
- create mode 100644 arch/csky/mm/dma-mapping.c
- create mode 100644 arch/csky/mm/fault.c
- create mode 100644 arch/csky/mm/highmem.c
- create mode 100644 arch/csky/mm/init.c
- create mode 100644 arch/csky/mm/ioremap.c
- create mode 100644 arch/csky/mm/syscache.c
- create mode 100644 arch/csky/mm/tlb.c
- create mode 100644 drivers/clocksource/csky_mptimer.c
- create mode 100644 drivers/clocksource/timer-gx6605s.c
- create mode 100644 drivers/irqchip/irq-csky-apb-intc.c
- create mode 100644 drivers/irqchip/irq-csky-mpintc.c
 
+diff --git a/arch/csky/include/asm/elf.h b/arch/csky/include/asm/elf.h
+new file mode 100644
+index 0000000..9eef4a1
+--- /dev/null
++++ b/arch/csky/include/asm/elf.h
+@@ -0,0 +1,149 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASMCSKY_ELF_H
++#define __ASMCSKY_ELF_H
++
++/*
++ * ELF register definitions..
++ */
++
++#include <asm/ptrace.h>
++#include <abi/regdef.h>
++
++#define ELF_ARCH 252
++
++/* CSKY Relocations */
++#define R_CSKY_NONE               0
++#define R_CSKY_32                 1
++#define R_CSKY_PCIMM8BY4          2
++#define R_CSKY_PCIMM11BY2         3
++#define R_CSKY_PCIMM4BY2          4
++#define R_CSKY_PC32               5
++#define R_CSKY_PCRELJSR_IMM11BY2  6
++#define R_CSKY_GNU_VTINHERIT      7
++#define R_CSKY_GNU_VTENTRY        8
++#define R_CSKY_RELATIVE           9
++#define R_CSKY_COPY               10
++#define R_CSKY_GLOB_DAT           11
++#define R_CSKY_JUMP_SLOT          12
++#define R_CSKY_ADDR_HI16          24
++#define R_CSKY_ADDR_LO16          25
++#define R_CSKY_PCRELJSR_IMM26BY2  40
++
++typedef unsigned long elf_greg_t;
++
++typedef struct user_fp elf_fpregset_t;
++
++#define ELF_NGREG (sizeof(struct pt_regs) / sizeof(elf_greg_t))
++
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define USE_ELF_CORE_DUMP
++#define ELF_EXEC_PAGESIZE		4096
++#define ELF_CLASS			ELFCLASS32
++#define ELF_PLAT_INIT(_r, load_addr)	_r->a0 = 0
++
++#ifdef  __cskyBE__
++#define ELF_DATA	ELFDATA2MSB
++#else
++#define ELF_DATA	ELFDATA2LSB
++#endif
++
++/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
++   use of this is to invoke "./ld.so someprog" to test out a new version of
++   the loader.  We need to make sure that it is out of the way of the program
++   that it will "exec", and that there is sufficient room for the brk.  */
++
++#define ELF_ET_DYN_BASE	0x0UL
++
++/* The member sort in array pr_reg[x] is pc, r1, r0, psr, r2, r3,r4,
++   r5, r6...... Because GDB difine */
++#if defined(__CSKYABIV2__)
++   #define ELF_CORE_COPY_REGS(pr_reg, regs)     \
++        pr_reg[0] = regs->pc;                   \
++        pr_reg[1] = regs->a1;                   \
++        pr_reg[2] = regs->a0;                   \
++        pr_reg[3] = regs->sr;                   \
++        pr_reg[4] = regs->a2;                   \
++        pr_reg[5] = regs->a3;                   \
++        pr_reg[6] = regs->regs[0];              \
++        pr_reg[7] = regs->regs[1];              \
++        pr_reg[8] = regs->regs[2];              \
++        pr_reg[9] = regs->regs[3];              \
++        pr_reg[10] = regs->regs[4];             \
++        pr_reg[11] = regs->regs[5];             \
++        pr_reg[12] = regs->regs[6];             \
++        pr_reg[13] = regs->regs[7];             \
++        pr_reg[14] = regs->regs[8];             \
++        pr_reg[15] = regs->regs[9];             \
++        pr_reg[16] = regs->usp;			\
++        pr_reg[17] = regs->lr;			\
++        pr_reg[18] = regs->exregs[0];           \
++        pr_reg[19] = regs->exregs[1];           \
++        pr_reg[20] = regs->exregs[2];           \
++        pr_reg[21] = regs->exregs[3];           \
++        pr_reg[22] = regs->exregs[4];           \
++        pr_reg[23] = regs->exregs[5];           \
++        pr_reg[24] = regs->exregs[6];           \
++        pr_reg[25] = regs->exregs[7];           \
++        pr_reg[26] = regs->exregs[8];           \
++        pr_reg[27] = regs->exregs[9];           \
++        pr_reg[28] = regs->exregs[10];          \
++        pr_reg[29] = regs->exregs[11];          \
++        pr_reg[30] = regs->exregs[12];          \
++        pr_reg[31] = regs->exregs[13];          \
++        pr_reg[32] = regs->exregs[14];          \
++        pr_reg[33] = regs->tls;
++#else
++     #define ELF_CORE_COPY_REGS(pr_reg, regs)   \
++        pr_reg[0] = regs->pc;                   \
++        pr_reg[1] = regs->regs[9];              \
++        pr_reg[2] = regs->usp;			\
++        pr_reg[3] = regs->sr;                   \
++        pr_reg[4] = regs->a0;                   \
++        pr_reg[5] = regs->a1;                   \
++        pr_reg[6] = regs->a2;                   \
++        pr_reg[7] = regs->a3;                   \
++        pr_reg[8] = regs->regs[0];              \
++        pr_reg[9] = regs->regs[1];              \
++        pr_reg[10] = regs->regs[2];             \
++        pr_reg[11] = regs->regs[3];             \
++        pr_reg[12] = regs->regs[4];             \
++        pr_reg[13] = regs->regs[5];             \
++        pr_reg[14] = regs->regs[6];             \
++        pr_reg[15] = regs->regs[7];             \
++        pr_reg[16] = regs->regs[8];             \
++        pr_reg[17] = regs->lr;
++#endif
++
++/* Similar, but for a thread other than current. */
++struct task_struct;
++extern int dump_task_regs(struct task_struct *, elf_gregset_t *);
++#define ELF_CORE_COPY_TASK_REGS(tsk, elf_regs) dump_task_regs(tsk, elf_regs)
++
++/* This yields a mask that user programs can use to figure out what
++   instruction set this cpu supports.  */
++
++#define ELF_HWCAP	(0)
++
++/* This yields a string that ld.so will use to load implementation
++   specific libraries for optimization.  This is more specific in
++   intent than poking at uname or /proc/cpuinfo.  */
++
++#define ELF_PLATFORM	(NULL)
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
++struct linux_binprm;
++extern int arch_setup_additional_pages(
++		struct linux_binprm *bprm,
++		int uses_interp);
++
++#endif
+diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
+new file mode 100644
+index 0000000..a8816e1
+--- /dev/null
++++ b/arch/csky/kernel/module.c
+@@ -0,0 +1,82 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++#include <linux/spinlock.h>
++#include <asm/pgtable.h>
++
++#define IS_BSR32(hi16, lo16)        (((hi16) & 0xFC00) == 0xE000)
++#define IS_JSRI32(hi16, lo16)       ((hi16) == 0xEAE0)
++#define CHANGE_JSRI_TO_LRW(addr)    *(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x001a; \
++							  *((uint16_t *)(addr) + 1) = *((uint16_t *)(addr) + 1) & 0xFFFF
++#define SET_JSR32_R26(addr)         *(uint16_t *)(addr) = 0xE8Fa; \
++							  *((uint16_t *)(addr) + 1) = 0x0000;
++
++int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
++		unsigned int symindex, unsigned int relsec, struct module *me)
++{
++	unsigned int i;
++	Elf32_Rela *rel = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Sym *sym;
++	uint32_t *location;
++	short * temp;
++#ifdef CONFIG_CPU_CSKYV2
++	uint16_t *location_tmp;
++#endif
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			+ rel[i].r_offset;
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rel[i].r_info);
++
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_CSKY_32:
++			/* We add the value into the location given */
++			*location = rel[i].r_addend + sym->st_value;
++			break;
++		case R_CSKY_PC32:
++			/* Add the value, subtract its postition */
++			*location = rel[i].r_addend + sym->st_value
++				- (uint32_t)location;
++			break;
++		case R_CSKY_PCRELJSR_IMM11BY2:
++			break;
++		case R_CSKY_PCRELJSR_IMM26BY2:
++#ifdef CONFIG_CPU_CSKYV2
++			location_tmp = (uint16_t *)location;
++			if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
++				break;
++			else if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
++				/* jsri 0x...  --> lrw r26, 0x... */
++				CHANGE_JSRI_TO_LRW(location);
++				/* lsli r0, r0 --> jsr r26 */
++				SET_JSR32_R26(location + 1);
++			}
++#endif
++			break;
++		case R_CSKY_ADDR_HI16:
++			temp = ((short  *)location) + 1;
++			*temp = (short)((rel[i].r_addend + sym->st_value) >> 16);
++			break;
++		case R_CSKY_ADDR_LO16:
++			temp = ((short  *)location) + 1;
++			*temp = (short)((rel[i].r_addend + sym->st_value) & 0xffff);
++			break;
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++				me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++}
 -- 
 2.7.4
