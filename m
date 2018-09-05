@@ -1,71 +1,65 @@
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
- demand based pte insertion
-Date: Wed, 5 Sep 2018 07:29:51 -0700
-Message-ID: <20180905142951.GA15680@roeck-us.net>
-References: <20180828112034.30875-1-npiggin@gmail.com>
- <20180828112034.30875-4-npiggin@gmail.com>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Date: Wed, 5 Sep 2018 23:33:08 +0900
+Message-ID: <50f0a7a7-0521-f833-34c3-132ce57dd777@gmail.com>
+References: <20180904081144.GA4137@andrea>
+ <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
+ <20180905072151.GA3185@andrea>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180828112034.30875-4-npiggin@gmail.com>
+In-Reply-To: <20180905072151.GA3185@andrea>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+To: Andrea Parri <andrea.parri@amarulasolutions.com>, Alan Stern <stern@rowland.harvard.edu>
+Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
-
-On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:
-> Similarly to the previous patch, this tries to optimise dirty/accessed
-> bits in ptes to avoid access costs of hardware setting them.
+On 2018/09/05 09:21:51 +0200, Andrea Parri wrote:
+> On Tue, Sep 04, 2018 at 03:09:49PM -0400, Alan Stern wrote:
+>> On Tue, 4 Sep 2018, Andrea Parri wrote:
+>>> Heh, your confusion might be the reflection of mine... ;-)  That was
+>>> indeed a long and not conclusive discussion (meaning there're pending
+>>> issues); and I cannot claim to find "arguments" such as:
+>>>
+>>>   "More than one kernel developer has expressed the opinion that
+>>>    the LKMM should enforce ordering of writes by locking."
+>>>
+>>> particularly helpful (I do tend to be convinced by arguments rather
+>>> than by opinions).  In fact, you can take the following as my only
+>>> current "constructive argument" against the patch [1,2]:
+>>>
+>>>   THE COMMIT MESSAGE IS RIDICULOUS; PLEASE EXPAND ON IT, AND DO
+>>>   SO BY LEVERAGING BOTH PROS AND CONS OF THE APPLIED CHANGES
+>>
+>> Do you have any concrete suggestions (i.e., some actual text) for 
+>> improvements to the patch description?  Earlier in your message you 
+>> mentioned that Will's comment:
+>>
+>> 	LKMM offers stronger guarantees that can portably be relied upon
+>> 	in the codebase.
+>>
+>> would make a good addition.  Suitably edited, it could be added to the
+>> description.  I can think of a few other things myself, but I'd like to 
+>> hear your thoughts.  Anything else?
 > 
+> Yes: I do sometimes have the impression that your "rules" for trimming
+> text in emails/replies are too aggressive...
 
-This patch results in silent nios2 boot failures, silent meaning that
-the boot stalls.
+Andrea, by saying "Yes:", do you mean you have something else to be added?
+I don't think you do, but want to make sure.
 
-...
-Unpacking initramfs...
-Freeing initrd memory: 2168K
-workingset: timestamp_bits=30 max_order=15 bucket_order=0
-jffs2: version 2.2. (NAND) © 2001-2006 Red Hat, Inc.
-random: fast init done
-random: crng init done
+I'm a bit surprised to see all you wanted was the amendment of the
+commit log...
 
-[no further activity until the qemu session is aborted]
+  Akira
 
-Reverting the patch fixes the problem. Bisect log is attached.
-
-Guenter
-
----
-# bad: [387ac6229ecf6e012649d4fc409c5352655a4cf0] Add linux-next specific files for 20180905
-# good: [57361846b52bc686112da6ca5368d11210796804] Linux 4.19-rc2
-git bisect start 'HEAD' 'v4.19-rc2'
-# good: [668570e8389bb076bea9b7531553e1362f5abd11] Merge remote-tracking branch 'net-next/master'
-git bisect good 668570e8389bb076bea9b7531553e1362f5abd11
-# good: [7f2f69ebf0bcf3e9bcff7d560ba92cee960a66a6] Merge remote-tracking branch 'battery/for-next'
-git bisect good 7f2f69ebf0bcf3e9bcff7d560ba92cee960a66a6
-# good: [c31458d3e03e3a2edeaab225a22eaf68c07c8290] Merge remote-tracking branch 'rpmsg/for-next'
-git bisect good c31458d3e03e3a2edeaab225a22eaf68c07c8290
-# good: [e0f43dcbe9af8ac72f39fe92c5d0ee1883546427] Merge remote-tracking branch 'nvdimm/libnvdimm-for-next'
-git bisect good e0f43dcbe9af8ac72f39fe92c5d0ee1883546427
-# bad: [f509e2c0f3cd11df238f0f1b5ba013fe726decdf] of: ignore sub-page memory regions
-git bisect bad f509e2c0f3cd11df238f0f1b5ba013fe726decdf
-# good: [2f7eebf30b87534f7e4c3982307579d9adc782a5] ocfs2: fix clusters leak in ocfs2_defrag_extent()
-git bisect good 2f7eebf30b87534f7e4c3982307579d9adc782a5
-# good: [119eb88c9dd23e305939ad748237100078e304a8] mm/swapfile.c: call free_swap_slot() in __swap_entry_free()
-git bisect good 119eb88c9dd23e305939ad748237100078e304a8
-# good: [21d64d37adf3ab20b4c3a1951018e84bf815c887] mm: remove vm_insert_pfn()
-git bisect good 21d64d37adf3ab20b4c3a1951018e84bf815c887
-# good: [90cd1a69010844e9dbfc43279d681d798812b962] cramfs: convert to use vmf_insert_mixed
-git bisect good 90cd1a69010844e9dbfc43279d681d798812b962
-# good: [c7dd91289b4bb4c400a8a71953511991815f8e6f] mm/cow: optimise pte dirty/accessed bits handling in fork
-git bisect good c7dd91289b4bb4c400a8a71953511991815f8e6f
-# bad: [87d74ae75700a39effcb8c9ed8a8445e719ac369] hexagon: switch to NO_BOOTMEM
-git bisect bad 87d74ae75700a39effcb8c9ed8a8445e719ac369
-# bad: [3d1d5b26ac5b4d4193dc618a50cd88de1fb0d360] mm: optimise pte dirty/accessed bit setting by demand based pte insertion
-git bisect bad 3d1d5b26ac5b4d4193dc618a50cd88de1fb0d360
-# first bad commit: [3d1d5b26ac5b4d4193dc618a50cd88de1fb0d360] mm: optimise pte dirty/accessed bit setting by demand based pte insertion
+> 
+>   Andrea
+> 
+> 
+>>
+>> Alan
+>>
