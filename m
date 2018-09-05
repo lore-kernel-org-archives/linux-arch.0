@@ -1,88 +1,47 @@
-From: Ludovic Desroches <ludovic.desroches@microchip.com>
-Subject: Re: [PATCH v3 2/2] tty/serial: atmel: add ISO7816 support
-Date: Wed, 5 Sep 2018 14:43:41 +0200
-Message-ID: <20180905124341.5n4gadgd5luza7fd@M43218.corp.atmel.com>
-References: <20180807130049.5957-1-ludovic.desroches@microchip.com>
- <20180807130049.5957-3-ludovic.desroches@microchip.com>
- <d66c4318-1d31-5c4e-3952-6b69a010b028@sorico.fr>
- <20180809113035.kftvdalca7zsf4ly@M43218.corp.atmel.com>
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v5 10/16] x86/mce: enable Hygon support to MCE
+ infrastructure
+Date: Wed, 5 Sep 2018 20:59:24 +0800
+Message-ID: <01604799-b993-e530-817c-ad097d343fc4@hygon.cn>
+References: <cover.1535459012.git.puwen@hygon.cn>
+ <c1e803bc54984e54ca67278930588e85b65bb26f.1535459013.git.puwen@hygon.cn>
+ <20180905092234.GC2237@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180809113035.kftvdalca7zsf4ly@M43218.corp.atmel.com>
+In-Reply-To: <20180905092234.GC2237@zn.tnic>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Richard Genoud <richard.genoud@gmail.com>, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, alexandre.belloni@bootlin.com, arnd@arndb.de, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, jslaby@suse.com
+To: Borislav Petkov <bp@alien8.de>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Richard,
+On 2018/9/5 17:22, Borislav Petkov wrote:
+>> @@ -214,6 +214,11 @@ static inline void mce_amd_feature_init(struct cpuinfo_x86 *c) { }
+>>   #endif
+>>   
+>> +static inline void mce_hygon_feature_init(struct cpuinfo_x86 *c)
+>> +{
+>> +	return mce_amd_feature_init(c);
+>> +}
+>> +
+> 
+> What happens if CONFIG_X86_MCE_AMD=n ?
 
-On Thu, Aug 09, 2018 at 01:30:35PM +0200, Ludovic Desroches wrote:
-> Hi Richard,
-> 
-> On Thu, Aug 09, 2018 at 10:47:17AM +0200, Richard Genoud wrote:
-> > Hi !
-> > 
-> > On 07/08/2018 15:00, Ludovic Desroches wrote:
-> > > From: Nicolas Ferre <nicolas.ferre@microchip.com>
-> > > 
-> > > When mode is set in atmel_config_iso7816() we backup last RS232 mode
-> > > for coming back to this mode if requested.
-> > > Also allow setup of T=0 and T=1 parameter and basic support in set_termios
-> > > function as well.
-> > > 
-> > > Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> > > [ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
-> > > Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
-> > > ---
-> > >  drivers/tty/serial/atmel_serial.c | 211 +++++++++++++++++++++++++++++++++++---
-> > >  drivers/tty/serial/atmel_serial.h |   6 +-
-> > >  2 files changed, 201 insertions(+), 16 deletions(-)
-> > > 
-> > > diff --git a/drivers/tty/serial/atmel_serial.c b/drivers/tty/serial/atmel_serial.c
-> > > index 8e4428725848..4a7ec44b0ace 100644
-> > > --- a/drivers/tty/serial/atmel_serial.c
-> > > +++ b/drivers/tty/serial/atmel_serial.c
-> 
-> [...]
-> 
-> > >  #if defined(CONFIG_OF)
-> > > +static struct atmel_uart_pdata at91rm9200_pdata = {
-> > > +	.fidi_min = 1,
-> > > +	.fidi_max = 2047,
-> > > +};
-> > > +
-> > > +static struct atmel_uart_pdata at91sam9260_pdata = {
-> > > +	.fidi_min = 1,
-> > > +	.fidi_max = 2047,
-> > > +};
-> > > +
-> > > +static struct atmel_uart_pdata sama5d3_pdata = {
-> > > +	.fidi_min = 3,
-> > > +	.fidi_max = 65535,
-> > Are you sure this is for sama5d3 ?
-> > From the datasheets I have, 65535 is for sama5d4/sama5d2
-> 
-> I checked it and I missed it. What a pity... In fact, it's a bit more
-> tricky since the min value for d3 is 3 and no longer 1.
-> 
-> > And also, you'll have to s/atmel,at91sam9260-usart/atmel,sama5d2-usart/g
-> > in sama5d{2,4}.dtsi
-> >
-> 
-> Yes, I planed to send it later but I can add those patches within this
-> set of patches. 
-> 
-> > But I wonder if it could be detected via ATMEL_US_VERSION instead ?
-> > 
-> 
-> I have not checked, I tend to prefer the compatible string for this kind
-> of thing. But as we already use the version number, I can investigate
-> this solution if it's the one you prefer.
-> 
+If CONFIG_X86_MCE_AMD=n, mce_hygon_feature_init will call the other
+one mce_amd_feature_init which is a null function and located in the
+else branch of "#ifdef CONFIG_X86_MCE_AMD". The compilation is OK and
+the kernel will run without MCE support.
 
-ping about this question still in suspend in order to prepare a new version.
+> In general, since you're using AMD code, you need to make CPU_SUP_HYGON
+> depend on a bunch of AMD config items like CONFIG_X86_MCE_AMD,
+> CONFIG_CPU_SUP_AMD, CONFIG_AMD_NB,... Audit your code and see what other
+> config items need to be selected.
 
-Regards
+All right, will check all the config items which are necessary for
+CONFIG_CPU_SUP_HYGON.
 
-Ludovic
+-- 
+Regards,
+Pu Wen
