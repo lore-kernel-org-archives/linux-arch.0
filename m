@@ -1,60 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f65.google.com ([209.85.208.65]:38183 "EHLO
-        mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727629AbeIELux (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2018 07:50:53 -0400
-Received: by mail-ed1-f65.google.com with SMTP id h33-v6so5228954edb.5
-        for <linux-arch@vger.kernel.org>; Wed, 05 Sep 2018 00:22:02 -0700 (PDT)
-Date: Wed, 5 Sep 2018 09:21:51 +0200
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180905072151.GA3185@andrea>
-References: <20180904081144.GA4137@andrea>
- <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
+Received: from smtp20.cstnet.cn ([159.226.251.20]:57038 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725865AbeIEMhn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 5 Sep 2018 08:37:43 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v5 08/16] x86/apic: add modern APIC support for Hygon
+References: <cover.1535459012.git.puwen@hygon.cn>
+ <969a367a0b2d58f3e68bc6f97b6e8238e2390991.1535459013.git.puwen@hygon.cn>
+ <20180904183301.GN32615@zn.tnic>
+Message-ID: <cc7c152f-596a-79fe-6082-c4d5ce1b770f@hygon.cn>
+Date: Wed, 5 Sep 2018 16:08:25 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
+In-Reply-To: <20180904183301.GN32615@zn.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180905072151.wbVZjL1DV-eV6oq0xiIzIVUlAOh2OAF03QX3djh6wAo@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180905080825.lgfZ-jj_c7xb8y24_u7bNywpkFabMdDGH9zkGaMukLA@z>
 
-On Tue, Sep 04, 2018 at 03:09:49PM -0400, Alan Stern wrote:
-> On Tue, 4 Sep 2018, Andrea Parri wrote:
-> > Heh, your confusion might be the reflection of mine... ;-)  That was
-> > indeed a long and not conclusive discussion (meaning there're pending
-> > issues); and I cannot claim to find "arguments" such as:
-> > 
-> >   "More than one kernel developer has expressed the opinion that
-> >    the LKMM should enforce ordering of writes by locking."
-> > 
-> > particularly helpful (I do tend to be convinced by arguments rather
-> > than by opinions).  In fact, you can take the following as my only
-> > current "constructive argument" against the patch [1,2]:
-> > 
-> >   THE COMMIT MESSAGE IS RIDICULOUS; PLEASE EXPAND ON IT, AND DO
-> >   SO BY LEVERAGING BOTH PROS AND CONS OF THE APPLIED CHANGES
+On 2018/9/5 2:33, Borislav Petkov wrote:
+> On Wed, Aug 29, 2018 at 08:44:30PM +0800, Pu Wen wrote:
+...
+>> +	if ((boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
+>> +	     boot_cpu_data.x86 >= 0xf) ||
+>> +	     boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+>>   		return 1;
 > 
-> Do you have any concrete suggestions (i.e., some actual text) for 
-> improvements to the patch description?  Earlier in your message you 
-> mentioned that Will's comment:
+> Those compound conditionals are not nice to read. Just add yours
+> underneath:
 > 
-> 	LKMM offers stronger guarantees that can portably be relied upon
-> 	in the codebase.
+> 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
+> 	    boot_cpu_data.x86 >= 0xf)
+> 		return 1;
 > 
-> would make a good addition.  Suitably edited, it could be added to the
-> description.  I can think of a few other things myself, but I'd like to 
-> hear your thoughts.  Anything else?
+> 	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+> 		return 1;
+> 
+> Do that where applicable and where it makes sense, syntax-wise to have a
+> separate vendor == HYGON check in the other patches too.
 
-Yes: I do sometimes have the impression that your "rules" for trimming
-text in emails/replies are too aggressive...
+That's OK, will check other patches and split the compound conditionals
+where it's possible.
 
-  Andrea
-
-
-> 
-> Alan
-> 
+-- 
+Thanks,
+Pu Wen
