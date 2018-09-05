@@ -1,13 +1,12 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
  locks and remove it for ordinary release/acquire
-Date: Wed, 5 Sep 2018 07:53:12 -0700
-Message-ID: <20180905145312.GI4225@linux.vnet.ibm.com>
+Date: Wed, 5 Sep 2018 17:00:42 +0200
+Message-ID: <20180905150042.GA8820@andrea>
 References: <20180904081144.GA4137@andrea>
  <Pine.LNX.4.44L0.1809041503470.17060-100000@netrider.rowland.org>
  <20180905072151.GA3185@andrea>
  <50f0a7a7-0521-f833-34c3-132ce57dd777@gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
@@ -15,7 +14,7 @@ Content-Disposition: inline
 In-Reply-To: <50f0a7a7-0521-f833-34c3-132ce57dd777@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Akira Yokosawa <akiyks@gmail.com>
-Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
+Cc: Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
 List-Id: linux-arch.vger.kernel.org
 
 On Wed, Sep 05, 2018 at 11:33:08PM +0900, Akira Yokosawa wrote:
@@ -51,26 +50,28 @@ On Wed, Sep 05, 2018 at 11:33:08PM +0900, Akira Yokosawa wrote:
 > > text in emails/replies are too aggressive...
 > 
 > Andrea, by saying "Yes:", do you mean you have something else to be added?
+
+Indeed (examples in the trimmed text).
+
+
 > I don't think you do, but want to make sure.
 > 
 > I'm a bit surprised to see all you wanted was the amendment of the
 > commit log...
 
-My guess is that Andrea would prefer that locking acquire/release and
-load-store-RMW acquire/release to have the same ordering rules (which
-Will has argued against), and that Andrea's "Yes" above is expressing
-irritation that some point he wished to reiterate was trimmed somewhere
-in the exchange.  And yes, both the act of replying to emails and
-of establishing multi-architecture ordering rules can be a bit messy
-at times.
+Well, I said that it was my only current constructive argument...
 
-Andrea's patch had no Signed-off-by and does not apply to the -rcu tree's
-dev branch, so I am guessing that he was thinking in terms of replacing
-some subset of the patches that are currently queued, presumably including
-Alan's patch that Will reviewed and Peter acked.  (I don't yet have a
-new lkmm branch because I need to sort out a few of the commits first.)
+  Andrea
 
-If replacement is the intent, the people Andrea needs to convince include
-Alan, Peter, and Will.
 
-							Thanx, Paul
+> 
+>   Akira
+> 
+> > 
+> >   Andrea
+> > 
+> > 
+> >>
+> >> Alan
+> >>
+> 
