@@ -1,105 +1,85 @@
-From: Nadav Amit <namit@vmware.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Date: Thu, 6 Sep 2018 17:01:25 +0000
-Message-ID: <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
+Date: Thu, 6 Sep 2018 19:17:54 +0200
+Message-ID: <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
 References: <20180902173224.30606-1-namit@vmware.com>
  <20180905185617.GC24082@hirez.programming.kicks-ass.net>
  <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
  <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
  <20180906081300.GF24082@hirez.programming.kicks-ass.net>
  <20180906101641.GG24142@hirez.programming.kicks-ass.net>
+ <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180906101641.GG24142@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-ID: <1D90A8F51D5ABE48BD48A1E0A0F3AA1C@namprd05.prod.outlook.com>
+Content-Disposition: inline
+In-Reply-To: <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
+To: Nadav Amit <namit@vmware.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-YXQgMzoxNiBBTSwgUGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPiB3cm90ZToN
-Cg0KPiBPbiBUaHUsIFNlcCAwNiwgMjAxOCBhdCAxMDoxMzowMEFNICswMjAwLCBQZXRlciBaaWps
-c3RyYSB3cm90ZToNCj4+IE5vLCB5b3UgZ290IGl0IHRoZSBmaXJzdCB0aW1lLiBUaGVyZSBhcmUg
-aW4gZmFjdCBtb3JlIGZpeG1hcCBhYnVzZXJzOw0KPj4gc2VlIGRyaXZlcnMvYWNwaS9hcGVpL2do
-ZXMuYy4gIEFsc28sIGFzIGxvbmcgYXMgc2V0X2ZpeG1hcCgpIGFsbG93cw0KPj4gb3ZlcndyaXRp
-bmcgYSBfUEFHRV9QUkVTRU5UIHB0ZSBhbmQgaGFzIHRoYXQgZG9kZ3kNCj4+IF9fZmx1c2hfdGxi
-X29uZV9rZXJuZWwoKSBpbiBpdCwgdGhlIGJyb2tlbiByZW1haW5zIChhbmQgY2FuIHJldHVybiku
-DQo+PiANCj4+IFNvIHdlIG5lZWQgdG8gZml4IGZpeG1hcCwgdG8gZWl0aGVyIGRpc2FsbG93IG92
-ZXJ3cml0aW5nIGEgX1BBR0VfUFJFU0VOVA0KPj4gcHRlLCBvciB0byBpc3N1ZSBhIGZ1bGwgVExC
-IGludmFsaWRhdGUuDQo+PiANCj4+IEVpdGhlciBmaXggd2lsbCB0ZXJtaW5hbGx5IGJyZWFrIEdI
-RVMsIGJ1dCB0aGF0J3MgT0ssIHRoZXkndmUga25vd24NCj4+IGFib3V0IHRoaXMgaXNzdWUgc2lu
-Y2UgMjAxNSBhbmQgaGF2ZW4ndCBjYXJlZCwgc28gSSBjYW4ndCBiZSBib3RoZXJlZA0KPj4gYWJv
-dXQgdGhlbS4NCj4gDQo+IEluIGZhY3QsIHRoZSBiZWxvdyBzZWVtcyB0byBjdXJlIGFsbCB3b2Vz
-Li4NCj4gDQo+IGRpZmYgLS1naXQgYS9hcmNoL3g4Ni9rZXJuZWwvYWx0ZXJuYXRpdmUuYyBiL2Fy
-Y2gveDg2L2tlcm5lbC9hbHRlcm5hdGl2ZS5jDQo+IGluZGV4IGI5ZDVlN2M5ZWY0My4uMDBmMWM5
-ZTRmMGEzIDEwMDY0NA0KPiAtLS0gYS9hcmNoL3g4Ni9rZXJuZWwvYWx0ZXJuYXRpdmUuYw0KPiAr
-KysgYi9hcmNoL3g4Ni9rZXJuZWwvYWx0ZXJuYXRpdmUuYw0KPiBAQCAtNzA5LDIyICs3MDksMjUg
-QEAgdm9pZCAqdGV4dF9wb2tlKHZvaWQgKmFkZHIsIGNvbnN0IHZvaWQgKm9wY29kZSwgc2l6ZV90
-IGxlbikNCj4gCQlwYWdlc1sxXSA9IHZpcnRfdG9fcGFnZShhZGRyICsgUEFHRV9TSVpFKTsNCj4g
-CX0NCj4gCUJVR19PTighcGFnZXNbMF0pOw0KPiAtCWxvY2FsX2lycV9zYXZlKGZsYWdzKTsNCj4g
-Kw0KPiAJc2V0X2ZpeG1hcChGSVhfVEVYVF9QT0tFMCwgcGFnZV90b19waHlzKHBhZ2VzWzBdKSk7
-DQo+IAlpZiAocGFnZXNbMV0pDQo+IAkJc2V0X2ZpeG1hcChGSVhfVEVYVF9QT0tFMSwgcGFnZV90
-b19waHlzKHBhZ2VzWzFdKSk7DQo+ICsNCj4gKwlsb2NhbF9pcnFfc2F2ZShmbGFncyk7DQo+IAl2
-YWRkciA9IChjaGFyICopZml4X3RvX3ZpcnQoRklYX1RFWFRfUE9LRTApOw0KPiAJbWVtY3B5KCZ2
-YWRkclsodW5zaWduZWQgbG9uZylhZGRyICYgflBBR0VfTUFTS10sIG9wY29kZSwgbGVuKTsNCj4g
-LQljbGVhcl9maXhtYXAoRklYX1RFWFRfUE9LRTApOw0KPiAtCWlmIChwYWdlc1sxXSkNCj4gLQkJ
-Y2xlYXJfZml4bWFwKEZJWF9URVhUX1BPS0UxKTsNCj4gLQlsb2NhbF9mbHVzaF90bGIoKTsNCj4g
-CXN5bmNfY29yZSgpOw0KPiAJLyogQ291bGQgYWxzbyBkbyBhIENMRkxVU0ggaGVyZSB0byBzcGVl
-ZCB1cCBDUFUgcmVjb3Zlcnk7IGJ1dA0KPiAJICAgdGhhdCBjYXVzZXMgaGFuZ3Mgb24gc29tZSBW
-SUEgQ1BVcy4gKi8NCj4gCWZvciAoaSA9IDA7IGkgPCBsZW47IGkrKykNCj4gCQlCVUdfT04oKChj
-aGFyICopYWRkcilbaV0gIT0gKChjaGFyICopb3Bjb2RlKVtpXSk7DQo+IAlsb2NhbF9pcnFfcmVz
-dG9yZShmbGFncyk7DQo+ICsNCj4gKwljbGVhcl9maXhtYXAoRklYX1RFWFRfUE9LRTApOw0KPiAr
-CWlmIChwYWdlc1sxXSkNCj4gKwkJY2xlYXJfZml4bWFwKEZJWF9URVhUX1BPS0UxKTsNCj4gKw0K
-PiAJcmV0dXJuIGFkZHI7DQo+IH0NCj4gDQo+IGRpZmYgLS1naXQgYS9hcmNoL3g4Ni9tbS9pbml0
-XzY0LmMgYi9hcmNoL3g4Ni9tbS9pbml0XzY0LmMNCj4gaW5kZXggZGQ1MTlmMzcyMTY5Li5mZDZh
-ZjY2YmM0MDAgMTAwNjQ0DQo+IC0tLSBhL2FyY2gveDg2L21tL2luaXRfNjQuYw0KPiArKysgYi9h
-cmNoL3g4Ni9tbS9pbml0XzY0LmMNCj4gQEAgLTI2MCwxNCArMjYwLDI4IEBAIHN0YXRpYyB2b2lk
-IF9fc2V0X3B0ZV92YWRkcihwdWRfdCAqcHVkLCB1bnNpZ25lZCBsb25nIHZhZGRyLCBwdGVfdCBu
-ZXdfcHRlKQ0KPiB7DQo+IAlwbWRfdCAqcG1kID0gZmlsbF9wbWQocHVkLCB2YWRkcik7DQo+IAlw
-dGVfdCAqcHRlID0gZmlsbF9wdGUocG1kLCB2YWRkcik7DQo+ICsJcHRlX3Qgb2xkX3B0ZSA9ICpw
-dGU7DQo+IA0KPiAJc2V0X3B0ZShwdGUsIG5ld19wdGUpOw0KPiANCj4gCS8qDQo+IC0JICogSXQn
-cyBlbm91Z2ggdG8gZmx1c2ggdGhpcyBvbmUgbWFwcGluZy4NCj4gLQkgKiAoUEdFIG1hcHBpbmdz
-IGdldCBmbHVzaGVkIGFzIHdlbGwpDQo+ICsJICogSWYgaXQgd2FzIHByZXNlbnQgYW5kIGNoYW5n
-ZXMsIHdlIG5lZWQgdG8gaW52YWxpZGF0ZSBUTEJzLg0KPiAJICovDQo+IC0JX19mbHVzaF90bGJf
-b25lX2tlcm5lbCh2YWRkcik7DQo+ICsJaWYgKCEocHRlX3ByZXNlbnQob2xkX3B0ZSkgJiYgIXB0
-ZV9zYW1lKG9sZF9wdGUsIG5ld19wdGUpKSkNCj4gKwkJcmV0dXJuOw0KPiArDQo+ICsJaWYgKFdB
-Uk4oaXJxc19kaXNhYmxlZCgpLCAiYnJva2VuIHNldF9maXhtYXAoJWQsICVseCksIHdhczogJWx4
-IiwNCj4gKwkJCQkoaW50KV9fdmlydF90b19maXgodmFkZHIpLA0KPiArCQkJCXB0ZV92YWwobmV3
-X3B0ZSksIHB0ZV92YWwob2xkX3B0ZSkpKSB7DQo+ICsJCS8qDQo+ICsJCSAqIEl0IGlzIF9OT1Rf
-IGVub3VnaCB0byBmbHVzaCBqdXN0IHRoZSBsb2NhbCBtYXBwaW5nOw0KPiArCQkgKiBpdCBtaWdo
-dCBtb3N0bHkgd29yaywgYnV0IHRoZXJlIGlzIG5vIGd1YXJhbnRlZSBhIHJlbW90ZQ0KPiArCQkg
-KiBDUFUgZGlkbid0IGxvYWQgdGhpcyBlbnRyeSBpbnRvIGl0cyBUTEIuDQo+ICsJCSAqLw0KPiAr
-CQlfX2ZsdXNoX3RsYl9vbmVfa2VybmVsKHZhZGRyKTsNCj4gKwl9IGVsc2Ugew0KPiArCQlmbHVz
-aF90bGJfa2VybmVsX3JhbmdlKHZhZGRyLCB2YWRkciArIFBBR0VfU0laRSk7DQo+ICsJfQ0KPiB9
-DQo+IA0KPiB2b2lkIHNldF9wdGVfdmFkZHJfcDRkKHA0ZF90ICpwNGRfcGFnZSwgdW5zaWduZWQg
-bG9uZyB2YWRkciwgcHRlX3QgbmV3X3B0ZSkNCj4gZGlmZiAtLWdpdCBhL2RyaXZlcnMvYWNwaS9h
-cGVpL0tjb25maWcgYi9kcml2ZXJzL2FjcGkvYXBlaS9LY29uZmlnDQo+IGluZGV4IDUyYWU1NDM4
-ZWRlYi4uZTNjNDE1YmRiZmJmIDEwMDY0NA0KPiAtLS0gYS9kcml2ZXJzL2FjcGkvYXBlaS9LY29u
-ZmlnDQo+ICsrKyBiL2RyaXZlcnMvYWNwaS9hcGVpL0tjb25maWcNCj4gQEAgLTE5LDYgKzE5LDcg
-QEAgY29uZmlnIEFDUElfQVBFSQ0KPiANCj4gY29uZmlnIEFDUElfQVBFSV9HSEVTDQo+IAlib29s
-ICJBUEVJIEdlbmVyaWMgSGFyZHdhcmUgRXJyb3IgU291cmNlIg0KPiArCWRlcGVuZHMgb24gQlJP
-S0VOIGlmIFg4Ng0KPiAJZGVwZW5kcyBvbiBBQ1BJX0FQRUkNCj4gCXNlbGVjdCBBQ1BJX0hFRA0K
-PiAJc2VsZWN0IElSUV9XT1JLDQoNCkluZGVlZCwgSSBtaXNzZWQgdGhlc2Ugb3RoZXIgaW5zdGFu
-Y2VzIHRoYXQgdXNlIHRoZSBmaXhtYXAuDQoNCknigJlsbCBnaXZlIHlvdXIgcGF0Y2ggYSB0cnkg
-b25jZSBteSBzZXJ2ZXIgZ29lcyBiYWNrIG9ubGluZS4gSSB3YXMgKGFuZCBzdGlsbA0KYW0pIHdv
-cnJpZWQgdGhhdCBpbnRlcnJ1cHRzIHdvdWxkIGJlIGRpc2FibGVkIHdoZW4gX19zZXRfcHRlX3Zh
-ZGRyKCkgaXMNCmNhbGxlZCwgd2hpY2ggd291bGQgbWFrZSB0aGUgZml4IG1vcmUgY29tcGxpY2F0
-ZWQuDQoNCkluIGFkZGl0aW9uLCB0aGVyZSBtaWdodCBiZSBhIGNvdXBsZSBvZiBpc3N1ZXMgd2l0
-aCB5b3VyIGZpeDoNCg0KMS4gX19zZXRfcHRlX3ZhZGRyKCkgaXMgbm90IHVzZWQgZXhjbHVzaXZl
-IGJ5IHNldF9maXhtYXAoKS4gVGhpcyBtZWFucw0KdGhlIHdhcm5pbmcgbWlnaHQgYmUgd3Jvbmcs
-IGJ1dCBhbHNvIG1lYW5zIHRoYXQgdGhlc2UgY29kZSBwYXRjaGVzIChYZW7igJlzDQpzZXRfcHRl
-X21mbigpLCBDUFUtZW50cnktYXJlYSBzZXR1cCkgbmVlZHMgdG8gYmUgY2hlY2tlZC4gQW5kIGFz
-IHlvdSBzYWlkDQpiZWZvcmUsIHNvbWVvbmUgbWlnaHQgdXNlIHRoaXMgZnVuY3Rpb24gZm9yIG90
-aGVyIHB1cnBvc2VzIGFzIHdlbGwuDQoNCjIuIFByaW50aW5nIHRoZSB2aXJ0dWFsIGFkZHJlc3Mg
-Y2FuIGJyZWFrIEtBU0xSLg0KDQozLiBUaGUgV0FSTigpIGNhbiBpbnRyb2R1Y2Ugc29tZSBvdmVy
-aGVhZCBzaW5jZSBjaGVja2luZyBpZiBJUlFzIGFyZQ0KZGlzYWJsZWQgdGFrZXMgY29uc2lkZXJh
-Ymx5IGxvbmcgdGltZS4gUGVyaGFwcyBWTV9XQVJOKCkgb3Igc29tZXRoaW5nIGlzDQpiZXR0ZXIu
-IEkgcmVhbGl6ZSB0aGlzIGNvZGUtcGF0aCBpcyBub3Qgb24gdGhlIGhvdC1wYXRoIHRob3VnaC4u
-Lg0KDQo0LiBJIGd1ZXNzIGZsdXNoX3RsYl9rZXJuZWxfcmFuZ2UoKSBzaG91bGQgYWxzbyBoYXZl
-IHNvbWV0aGluZyBsaWtlDQpWTV9XQVJOX09OKGlycXNfZGlzYWJsZWQoKSksIGp1c3QgYXMgYW4g
-YWRkaXRpb25hbCBnZW5lcmFsIHNhbml0eSBjaGVjay4NCg0KTGV0IG1lIGtub3cgaWYgeW91IHdh
-bnQgbWUgdG8gbWFrZSB0aGVzZSBjaGFuZ2VzIGFuZCBpbmNsdWRlIHlvdXIgcGF0Y2ggaW4NCnRo
-ZSBzZXQuDQoNClJlZ2FyZHMsDQpOYWRhdg0KDQo=
+On Thu, Sep 06, 2018 at 05:01:25PM +0000, Nadav Amit wrote:
+> In addition, there might be a couple of issues with your fix:
+
+It boots on my box ;-)
+
+> 1. __set_pte_vaddr() is not used exclusive by set_fixmap(). This means
+> the warning might be wrong, but also means that these code patches (Xen’s
+> set_pte_mfn(), CPU-entry-area setup) needs to be checked. And as you said
+> before, someone might use this function for other purposes as well.
+
+CEA is fine, that actually needs it too.
+
+The one thing I missed out on earlier is the below chunk, that is no
+longer needed now that cea_set_pte() actually does the right thing.
+
+diff --git a/arch/x86/events/intel/ds.c b/arch/x86/events/intel/ds.c
+index b7b01d762d32..14ad97fa0749 100644
+--- a/arch/x86/events/intel/ds.c
++++ b/arch/x86/events/intel/ds.c
+@@ -293,12 +293,6 @@ static void ds_update_cea(void *cea, void *addr, size_t size, pgprot_t prot)
+ 	preempt_disable();
+ 	for (; msz < size; msz += PAGE_SIZE, pa += PAGE_SIZE, cea += PAGE_SIZE)
+ 		cea_set_pte(cea, pa, prot);
+-
+-	/*
+-	 * This is a cross-CPU update of the cpu_entry_area, we must shoot down
+-	 * all TLB entries for it.
+-	 */
+-	flush_tlb_kernel_range(start, start + size);
+ 	preempt_enable();
+ }
+ 
+@@ -310,8 +304,6 @@ static void ds_clear_cea(void *cea, size_t size)
+ 	preempt_disable();
+ 	for (; msz < size; msz += PAGE_SIZE, cea += PAGE_SIZE)
+ 		cea_set_pte(cea, 0, PAGE_NONE);
+-
+-	flush_tlb_kernel_range(start, start + size);
+ 	preempt_enable();
+ }
+ 
+
+> 2. Printing the virtual address can break KASLR.
+
+Local KASLR is a myth.. but sure, we can fix the print.
+
+> 3. The WARN() can introduce some overhead since checking if IRQs are
+> disabled takes considerably long time. Perhaps VM_WARN() or something is
+> better. I realize this code-path is not on the hot-path though...
+
+Yeah, if it triggers you have bigger problems. We can make it
+WARN_ONCE() I suppose.
+
+> 4. I guess flush_tlb_kernel_range() should also have something like
+> VM_WARN_ON(irqs_disabled()), just as an additional general sanity check.
+
+It has, it's hidden in kernel/smp.c:smp_call_function_many().
+
+> Let me know if you want me to make these changes and include your patch in
+> the set.
+
+The set is no longer needed. text_poke() is fine and correct with this
+one patch.
