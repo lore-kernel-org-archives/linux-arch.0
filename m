@@ -1,41 +1,53 @@
-From: Nadav Amit <namit@vmware.com>
-Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Date: Thu, 6 Sep 2018 18:38:30 +0000
-Message-ID: <9F76711C-393C-4F8D-B460-26D400458690@vmware.com>
-References: <20180902173224.30606-1-namit@vmware.com>
- <20180905185617.GC24082@hirez.programming.kicks-ass.net>
- <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
- <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
- <20180906081300.GF24082@hirez.programming.kicks-ass.net>
- <20180906101641.GG24142@hirez.programming.kicks-ass.net>
- <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
- <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
- <9AF220A3-D783-442E-8E5B-AD0150628347@vmware.com>
- <32902EEE-FF64-4C12-A043-1848CC927C88@amacapital.net>
- <20180906183157.GK24106@hirez.programming.kicks-ass.net>
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi
+	header
+Date: Fri, 7 Sep 2018 03:09:58 +0800
+Message-ID: <201809070329.YbBeZl1u%fengguang.wu@intel.com>
+References: <1536036087-15260-2-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180906183157.GK24106@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-ID: <5EC0BAB23E8708448EC3299616BDBDBD@namprd05.prod.outlook.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <1536036087-15260-2-git-send-email-firoz.khan@linaro.org>
+Content-Disposition: inline
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, kbuild-all@01.org, Philippe Ombredanne <pombredanne@nexb.com>, sparclinux@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "David S . Miller" <davem@davemloft.net>, deepa.kernel@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-YXQgMTE6MzEgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6
-DQoNCj4gT24gVGh1LCBTZXAgMDYsIDIwMTggYXQgMTE6MDk6MjNBTSAtMDcwMCwgQW5keSBMdXRv
-bWlyc2tpIHdyb3RlOg0KPj4+IE9uIFNlcCA2LCAyMDE4LCBhdCAxMDo1OCBBTSwgTmFkYXYgQW1p
-dCA8bmFtaXRAdm13YXJlLmNvbT4gd3JvdGU6DQo+Pj4gSXQgZGVwZW5kcyB3aGF0IHNlY3VyaXR5
-IHlvdSB3YW50LiBTb21lIG1heSBjb25zaWRlciBldmVuIHRoZSBzaG9ydA0KPj4+IHRpbWUtd2lu
-ZG93IGluIHdoaWNoIHRoZSBrZXJuZWwgY29kZSBpcyB3cml0YWJsZSBmcm9tIG90aGVyIGNvcmVz
-IGFzDQo+Pj4gaW5zdWZmaWNpZW50IGZvciBzZWN1cml0eS4NCj4+PiANCj4+PiBJbiBhZGRpdGlv
-biwgdGhlIHNldCByZW1vdmVzIHRoZSBuZWVkIGZvciByZW1vdGUgVExCIHNob290ZG93bnMgdGhh
-dA0KPj4+IHRleHRfcG9rZSgpIC0gd2l0aCB0aGlzIGZpeCAtIHJlcXVpcmVzLg0KPj4gDQo+PiBJ
-4oCZbSBwZXJzb25hbGx5IGluIGZhdm9yIG9mIG5vdCBuZWVkaW5nIGEgZ2xvYmFsIGJyb2FkY2Fz
-dCBmbHVzaCB0byBpbnN0YWxsIGtwcm9iZXMuDQo+IA0KPiBUaGF0J3MgZmluZS4gQnV0IGF0IHRo
-YXQgcG9pbnQgaXRzIGFuIG9wdGltaXphdGlvbiwgbm90IGEgY29ycmVjdG5lc3MNCj4gaXNzdWUu
-DQoNCk5vdGUgdGhhdCBwYXRjaCAxLzYgaXMgc3RpbGwgbmVlZGVkIHRvIGZpeCBmYWxzZSBsb2Nr
-ZGVwIHNob3V0b3V0cyBkdWUgdG8gYQ0KcmVjZW50IHBhdGNoLg0KDQo=
+SGkgRmlyb3osCgpUaGFuayB5b3UgZm9yIHRoZSBwYXRjaCEgUGVyaGFwcyBzb21ldGhpbmcgdG8g
+aW1wcm92ZToKClthdXRvIGJ1aWxkIHRlc3QgV0FSTklORyBvbiBzcGFyYy1uZXh0L21hc3Rlcl0K
+W2Fsc28gYnVpbGQgdGVzdCBXQVJOSU5HIG9uIHY0LjE5LXJjMiBuZXh0LTIwMTgwOTA2XQpbaWYg
+eW91ciBwYXRjaCBpcyBhcHBsaWVkIHRvIHRoZSB3cm9uZyBnaXQgdHJlZSwgcGxlYXNlIGRyb3Ag
+dXMgYSBub3RlIHRvIGhlbHAgaW1wcm92ZSB0aGUgc3lzdGVtXQoKdXJsOiAgICBodHRwczovL2dp
+dGh1Yi5jb20vMGRheS1jaS9saW51eC9jb21taXRzL0Zpcm96LUtoYW4vc3BhcmMtTW92ZS1fX0lH
+Tk9SRS1lbnRyaWVzLXRvLW5vbi11YXBpLWhlYWRlci8yMDE4MDkwNy0wMTE3MDAKYmFzZTogICBo
+dHRwczovL2dpdC5rZXJuZWwub3JnL3B1Yi9zY20vbGludXgva2VybmVsL2dpdC9kYXZlbS9zcGFy
+Yy1uZXh0LmdpdCBtYXN0ZXIKY29uZmlnOiBzcGFyYy1kZWZjb25maWcgKGF0dGFjaGVkIGFzIC5j
+b25maWcpCmNvbXBpbGVyOiBzcGFyYy1saW51eC1nY2MgKEdDQykgOC4xLjAKcmVwcm9kdWNlOgog
+ICAgICAgIHdnZXQgaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2ludGVsL2xrcC10
+ZXN0cy9tYXN0ZXIvc2Jpbi9tYWtlLmNyb3NzIC1PIH4vYmluL21ha2UuY3Jvc3MKICAgICAgICBj
+aG1vZCAreCB+L2Jpbi9tYWtlLmNyb3NzCiAgICAgICAgIyBzYXZlIHRoZSBhdHRhY2hlZCAuY29u
+ZmlnIHRvIGxpbnV4IGJ1aWxkIHRyZWUKICAgICAgICBHQ0NfVkVSU0lPTj04LjEuMCBtYWtlLmNy
+b3NzIEFSQ0g9c3BhcmMgCgpBbGwgd2FybmluZ3MgKG5ldyBvbmVzIHByZWZpeGVkIGJ5ID4+KToK
+CiAgIDxzdGRpbj46NzY1OjI6IHdhcm5pbmc6ICN3YXJuaW5nIHN5c2NhbGwgbW1hcDIgbm90IGlt
+cGxlbWVudGVkIFstV2NwcF0KPj4gPHN0ZGluPjo3Njg6Mjogd2FybmluZzogI3dhcm5pbmcgc3lz
+Y2FsbCB0cnVuY2F0ZTY0IG5vdCBpbXBsZW1lbnRlZCBbLVdjcHBdCj4+IDxzdGRpbj46NzcxOjI6
+IHdhcm5pbmc6ICN3YXJuaW5nIHN5c2NhbGwgZnRydW5jYXRlNjQgbm90IGltcGxlbWVudGVkIFst
+V2NwcF0KICAgPHN0ZGluPjo4NTI6Mjogd2FybmluZzogI3dhcm5pbmcgc3lzY2FsbCBmY250bDY0
+IG5vdCBpbXBsZW1lbnRlZCBbLVdjcHBdCiAgIDxzdGRpbj46MTMzMjoyOiB3YXJuaW5nOiAjd2Fy
+bmluZyBzeXNjYWxsIGlvX3BnZXRldmVudHMgbm90IGltcGxlbWVudGVkIFstV2NwcF0KICAgPHN0
+ZGluPjoxMzM1OjI6IHdhcm5pbmc6ICN3YXJuaW5nIHN5c2NhbGwgcnNlcSBub3QgaW1wbGVtZW50
+ZWQgWy1XY3BwXQoKLS0tCjAtREFZIGtlcm5lbCB0ZXN0IGluZnJhc3RydWN0dXJlICAgICAgICAg
+ICAgICAgIE9wZW4gU291cmNlIFRlY2hub2xvZ3kgQ2VudGVyCmh0dHBzOi8vbGlzdHMuMDEub3Jn
+L3BpcGVybWFpbC9rYnVpbGQtYWxsICAgICAgICAgICAgICAgICAgIEludGVsIENvcnBvcmF0aW9u
+Cl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1h
+aWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9y
+Zy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
