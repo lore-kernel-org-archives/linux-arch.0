@@ -1,29 +1,32 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 3/4] sparc: Add system call table generation support
-Date: Thu, 6 Sep 2018 17:32:56 +0200
-Message-ID: <CAK8P3a0cfk6MG2SBRhJZ41suHw4D-dyCYGhqV9YeD_1rSMrGqQ@mail.gmail.com>
-References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org> <1536036087-15260-4-git-send-email-firoz.khan@linaro.org>
+Subject: Re: [PATCH 4/4] sparc: uapi header and system call table file generation
+Date: Thu, 6 Sep 2018 17:34:11 +0200
+Message-ID: <CAK8P3a2qFoCOzM6x-_mv0Um2E-WHDeOU-fuuZ65TtDKKcPxNrQ@mail.gmail.com>
+References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org> <1536036087-15260-5-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1536036087-15260-4-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1536036087-15260-5-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
 Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
 On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>
+> System call table generation script must be run to generate
+> unistd_32/64.h and syscall_table_32/64/c32.h files. This patch
+> will have changes which will invokes the script.
+>
+> This patch will generate unistd_32/64.h and syscall_table_
+> 32/64/c32.h files by the syscall table generation script
+> invoked by arch/sparc/Makefile and the generated files against
+> the removed files will be identical.
+>
+> The generated uapi header file will be included in uapi/asm/
+> unistd_32/64.h and generated system call table support file will
+> be included by arch/sparc/kernel/syscall_table_32/64.S file.
 
-> The system call table generation script is added in
-> syscalls directory which contain the script to generate
-> both uapi header file system call table generation file
-> and syscall_32/64.tbl file which'll be the input for the
-> scripts.
+These changes all look good to me.
 
-I would argue that for sparc we only want a single input
-table, since the 32/64 versions are similar enough that the
-differences can be addressed with 'abi' flag, rather than
-having everything marked as 'common'. Isn't that the
-purpose of the abi flag in the first place?
-
-          Arnd
+       Arnd
