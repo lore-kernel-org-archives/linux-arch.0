@@ -1,69 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shelob.surriel.com ([96.67.55.147]:43984 "EHLO
-        shelob.surriel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729826AbeIGBHS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 21:07:18 -0400
-Message-ID: <fa7c625dfbbe103b37bc3ab5ea4b7283fd13b998.camel@surriel.com>
-Subject: Re: [RFC PATCH 1/2] mm: move tlb_table_flush to tlb_flush_mmu_free
-From: Rik van Riel <riel@surriel.com>
-Date: Thu, 06 Sep 2018 16:29:59 -0400
-In-Reply-To: <20180823084709.19717-2-npiggin@gmail.com>
-References: <20180823084709.19717-1-npiggin@gmail.com>
-         <20180823084709.19717-2-npiggin@gmail.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-        protocol="application/pgp-signature"; boundary="=-QttmgVvdlWOXMEILqZsq"
-Mime-Version: 1.0
+Received: from mail-cys01nam02on0065.outbound.protection.outlook.com ([104.47.37.65]:15392
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725819AbeIGBe4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Sep 2018 21:34:56 -0400
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH v2 1/6] Fix "x86/alternatives: Lockdep-enforce text_mutex
+ in text_poke*()"
+Date: Thu, 6 Sep 2018 20:57:38 +0000
+Message-ID: <E8934715-B8B1-4E37-A37F-18D040885C4F@vmware.com>
+References: <20180902173224.30606-1-namit@vmware.com>
+ <20180902173224.30606-2-namit@vmware.com>
+ <20180906194003.GD4816@worktop.programming.kicks-ass.net>
+ <BD1F532F-1006-4CDC-9470-C8A91619E4DE@vmware.com>
+ <20180906195351.GB9358@worktop.programming.kicks-ass.net>
+ <D8CE0D88-9507-421C-9C97-ACAB05388F8D@vmware.com>
+ <20180906202547.GC9358@worktop.programming.kicks-ass.net>
+In-Reply-To: <20180906202547.GC9358@worktop.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <EEF9D4F61EC9694CB9241994A6E72CE0@namprd05.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: torvalds@linux-foundation.org, luto@kernel.org, x86@kernel.org, bp@alien8.de, will.deacon@arm.com, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org
-Message-ID: <20180906202959.fGTp6BPOokCOBqekvV1HuVpbFOjksK5MMKX2KxNDrFw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Dave Hansen <dave.hansen@intel.com>
+Message-ID: <20180906205738.MlLbE5h5r3F-B0q2CqOIDfKEKzhQvygpQ5dNHd4MBEc@z>
 
-
---=-QttmgVvdlWOXMEILqZsq
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-On Thu, 2018-08-23 at 18:47 +1000, Nicholas Piggin wrote:
-> There is no need to call this from tlb_flush_mmu_tlbonly, it
-> logically belongs with tlb_flush_mmu_free. This allows some
-> code consolidation with a subsequent fix.
->=20
-> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-
-Reviewed-by: Rik van Riel <riel@surriel.com>
-
-This patch also fixes an infinite recursion bug
-with CONFIG_HAVE_RCU_TABLE_FREE enabled, which
-has this call trace:
-
-tlb_table_flush
-  -> tlb_table_invalidate
-     -> tlb_flush_mmu_tlbonly
-        -> tlb_table_flush
-           -> ... (infinite recursion)
-
-This should probably be applied sooner rather than
-later.
-
---=20
-All Rights Reversed.
-
---=-QttmgVvdlWOXMEILqZsq
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAluRjkcACgkQznnekoTE
-3oOfdAgAgn63e88Lj0I9lDDOx5WKhEfgPfWM7o5JhGZg8FxNA8lfLlgA3tFPYd4+
-mYWwbBpKSf+yLLRvy4V7V4pv7b0gk7jYTvxir3iOfFcFZ0OQVKYrbr2+txZJb6Xj
-tosM9v5SsYMwJHGw+1cD0DQsvR/6uio0TthxchcpV4bNVvW1X8HlzFarPY32kpf8
-HRU7NF/7gS2sxPQLPC/i+m4YgnuIq5xfseMOVVFp7H+uNI5BLCyrDm74zbFbtj1A
-HtFG9Yp4pj0KX/Bq7oiLOQ9suEtcJUI46sERyergDvFFRhTwoBGRxJ/wbKRQkxIF
-elqWT6jifgV0u6aRFHPPkEIuIUdTbg==
-=/CHW
------END PGP SIGNATURE-----
-
---=-QttmgVvdlWOXMEILqZsq--
+YXQgMToyNSBQTSwgUGV0ZXIgWmlqbHN0cmEgPHBldGVyekBpbmZyYWRlYWQub3JnPiB3cm90ZToN
+Cg0KPiBPbiBUaHUsIFNlcCAwNiwgMjAxOCBhdCAwNzo1ODo0MFBNICswMDAwLCBOYWRhdiBBbWl0
+IHdyb3RlOg0KPj4+IFdpdGggdGhhdCBDUjMgdHJpY2tlcnksIHdlIGNhbiByaWQgb3Vyc2VsdmVz
+IG9mIHRoZSB0ZXh0X211dGV4DQo+Pj4gcmVxdWlyZW1lbnQsIHNpbmNlIGNvbmN1cnJlbnQgdGV4
+dF9wb2tlIGlzICdzYWZlJy4gVGhhdCB3b3VsZCBjbGVhbiB1cA0KPj4+IHRoZSBrZ2RiIGNvZGUg
+cXVpdGUgYSBiaXQuDQo+PiANCj4+IEkgZG9u4oCZdCBrbm93LiBJ4oCZbSBzb21ld2hhdCB3b3Jy
+aWVkIHdpdGggbXVsdGlwbGUgbWVjaGFuaXNtcyBwb3RlbnRpYWxseQ0KPj4gY2hhbmdpbmcgdGhl
+IHNhbWUgY29kZSBhdCB0aGUgc2FtZSB0aW1lIC0gYW5kIG1heWJlIGVuZGluZyB1cCB3aXRoIHNv
+bWUNCj4+IG1lc3MuDQo+IA0KPiBrZ2RiIG9ubHkgcG9rZXMgSU5UMywgdGhhdCBzaG91bGQgYmUg
+cHJldHR5IHNhZmUuDQoNCk1heWJlIEkgbWlzdW5kZXJzdGFuZCB5b3VyIHBvaW50LiBJZiB5b3Ug
+d2FudCBtZSB0byBnZXQgcmlkIG9mIHRleHRfbXV0ZXgNCmNvbXBsZXRlbHksIEkgYW0gYWZyYWlk
+IGl0IHdpbGwgYmUgYWJsZSB0byBjYXVzZSBtZXNzIGJ5IGNoYW5naW5nIHRoZSBzYW1lDQpwaWVj
+ZSBvZiBjb2RlIHRocm91Z2gga3Byb2JlcyBhbmQgdGhlIHN0YXRpYy1rZXlzIG1lY2hhbmlzbS4N
+Cg0KSSBkb3VidCBpdCB3b3VsZCB3b3JrIHRvZGF5IHdpdGhvdXQgZmFpbGluZywgYnV0IGdldHRp
+bmcgcmlkIG9mIHRleHRfbXV0ZXgNCmlzIGxpa2VseSB0byBtYWtlIGl0IGV2ZW4gd29yc2UuDQoN
+Cg==
