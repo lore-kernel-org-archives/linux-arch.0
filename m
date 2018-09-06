@@ -1,81 +1,208 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:34829 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728929AbeIFSqu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:46:50 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46482 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728905AbeIFStH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Sep 2018 14:49:07 -0400
+Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by
+ sparse
+References: <cover.1535629099.git.andreyknvl@google.com>
+ <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+ <20180831081123.6mo62xnk54pvlxmc@ltop.local>
+ <20180831134244.GB19965@ZenIV.linux.org.uk>
+ <CAAeHK+w86m6YztnTGhuZPKRczb-+znZ1hiJskPXeQok4SgcaOw@mail.gmail.com>
+ <01cadefd-c929-cb45-500d-7043cf3943f6@arm.com>
+ <20180903151026.n2jak3e4yqusnogt@ltop.local>
+ <a31d3400-4523-2bda-a429-f2a221e69ee8@arm.com>
+ <20180905190316.a34yycthgbamx2t3@ltop.local>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <5074b9b6-2b8d-c410-f908-b4c17dacbb2c@arm.com>
+Date: Thu, 6 Sep 2018 15:13:16 +0100
 MIME-Version: 1.0
-References: <cover.1536138304.git.ren_guo@c-sky.com> <bff609c9d2c5f0085448cc7d4227614ab7b7116a.1536138304.git.ren_guo@c-sky.com>
-In-Reply-To: <bff609c9d2c5f0085448cc7d4227614ab7b7116a.1536138304.git.ren_guo@c-sky.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 6 Sep 2018 16:10:49 +0200
-Message-ID: <CAK8P3a1W5yvymAHKLTP5EwLm_usUqVBBE_86pRp0TmxrTiTfjA@mail.gmail.com>
-Subject: Re: [PATCH V3 05/26] csky: System Call
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180905190316.a34yycthgbamx2t3@ltop.local>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180906141049.BldPKziarwxDifBWbnp7n59nEpaYFRIGFzj9OdBHkfI@z>
+To: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: Andrey Konovalov <andreyknvl@google.com>, Al Viro <viro@zeniv.linux.org.uk>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, linux-kselftest@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Evgeniy Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Linux Memory Management List <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel@vger.kernel.org>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20180906141316.kZ3ouDNg0LGD3pi3mcxKX496dMzaBYAURiQhRjwcLt0@z>
 
-On Wed, Sep 5, 2018 at 2:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
 
-> +SYSCALL_DEFINE6(mmap2,
-> +       unsigned long, addr,
-> +       unsigned long, len,
-> +       unsigned long, prot,
-> +       unsigned long, flags,
-> +       unsigned long, fd,
-> +       off_t, offset)
-> +{
-> +       if (unlikely(offset & (~PAGE_MASK >> 12)))
-> +               return -EINVAL;
-> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
-> +               offset >> (PAGE_SHIFT - 12));
-> +}
+On 05/09/18 20:03, Luc Van Oostenryck wrote:
+> On Tue, Sep 04, 2018 at 12:27:23PM +0100, Vincenzo Frascino wrote:
+>> On 03/09/18 16:10, Luc Van Oostenryck wrote:
+>>> On Mon, Sep 03, 2018 at 02:49:38PM +0100, Vincenzo Frascino wrote:
+>>>> On 03/09/18 13:34, Andrey Konovalov wrote:
+>>>>> On Fri, Aug 31, 2018 at 3:42 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>>>>>> On Fri, Aug 31, 2018 at 10:11:24AM +0200, Luc Van Oostenryck wrote:
+>>>>>>> On Thu, Aug 30, 2018 at 01:41:16PM +0200, Andrey Konovalov wrote:
+>>>>>>>> This patch adds __force annotations for __user pointers casts detected by
+>>>>>>>> sparse with the -Wcast-from-as flag enabled (added in [1]).
+>>>>>>>>
+>>>>>>>> [1] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
+>>>>>>>
+>>>>>>> Hi,
+>>>>>>>
+>>>>>>> It would be nice to have some explanation for why these added __force
+>>>>>>> are useful.
+>>>>>
+>>>>> I'll add this in the next version, thanks!
+>>>>>
+>>>>>>         It would be even more useful if that series would either deal with
+>>>>>> the noise for real ("that's what we intend here, that's what we intend there,
+>>>>>> here's a primitive for such-and-such kind of cases, here we actually
+>>>>>> ought to pass __user pointer instead of unsigned long", etc.) or left it
+>>>>>> unmasked.
+>>>>>>
+>>>>>>         As it is, __force says only one thing: "I know the code is doing
+>>>>>> the right thing here".  That belongs in primitives, and I do *not* mean the
+>>>>>> #define cast_to_ulong(x) ((__force unsigned long)(x))
+>>>>>> kind.
+>>>>>>
+>>>>>>         Folks, if you don't want to deal with that - leave the warnings be.
+>>>>>> They do carry more information than "someone has slapped __force in that place".
+>>>>>>
+>>>>>> Al, very annoyed by that kind of information-hiding crap...
+>>>>>
+>>>>> This patch only adds __force to hide the reports I've looked at and
+>>>>> decided that the code does the right thing. The cases where this is
+>>>>> not the case are handled by the previous patches in the patchset. I'll
+>>>>> this to the patch description as well. Is that OK?
+>>>>>
+>>>> I think as well that we should make explicit the information that
+>>>> __force is hiding.
+>>>> A possible solution could be defining some new address spaces and use
+>>>> them where it is relevant in the kernel. Something like:
+>>>>
+>>>> # define __compat_ptr __attribute__((noderef, address_space(5)))
+>>>> # define __tagged_ptr __attribute__((noderef, address_space(6)))
+>>>>
+>>>> In this way sparse can still identify the casting and trigger a warning.
+>>>>
+>>>> We could at that point modify sparse to ignore these conversions when a
+>>>> specific flag is passed (i.e. -Wignore-compat-ptr, -Wignore-tagged-ptr)
+>>>> to exclude from the generated warnings the ones we have already dealt
+>>>> with.
+>>>>
+>>>> What do you think about this approach?
+>>>
+>>> I'll be happy to add such warnings to sparse if it is useful to detect
+>>> (and correct!) problems. I'm also thinking to other possiblities, like
+>>> having some weaker form of __force (maybe simply __force_as (which will
+>>> 'only' force the address space) or even __force_as(TO, FROM) (with TO
+>>> and FROM being a mask of the address space allowed).I believe we need something here to address this type of problems and I like
+>> your proposal of adding a weaker force in the form of __force_as(TO, FROM)
+>> because I think it provides the right level information. 
+>>
+>>> However, for the specific situation here, I'm not sure that using
+>>> address spaces is the right choice because I suspect that the concept
+>>> of tagged pointer is orthogonal to the one of (the usual) address space
+>>> (it won't be possible for a pointer to be __tagged_ptr *and* __user).
+>> I was thinking to address spaces because the information seems easily accessible
+>> in sparse [1], but I am certainly open to any solution that can be semantically
+>> more correct.
+> 
+> Yes, adding a new address space is easy (and doesn't need any modification
+> to sparse). Here, I think adding a new 'modifier' __tagged (much like
+> __nocast, __noderef, ...) would be much more appropriate.
+> I think that at this point, it would be nice to have a clear description
+> of the problem and what sort of checks are wanted.
+>
 
-Please call ksys_mmap_pgoff() instead of sys_mmap_pgoff() here.
 
-The prototype in include/asm-generic/syscalls.h uses 'unsigned long'
-for the last argument as well, not off_t.
+The problem we are trying to address here is to identify when the user pointers
+are cast to integer types and to sanitize (when required) the kernel, when this
+happens.
 
-> +struct mmap_arg_struct {
-> +       unsigned long addr;
-> +       unsigned long len;
-> +       unsigned long prot;
-> +       unsigned long flags;
-> +       unsigned long fd;
-> +       unsigned long offset;
-> +};
-> +
-> +SYSCALL_DEFINE1(mmap,
-> +       struct mmap_arg_struct *, arg)
+The way on which we are trying to address this problem based on what Andrey
+proposed in his patch-set is to use the Top Byte Ignore feature (which is a 64 bit
+specific feature).
 
-Something is still wrong here, there should be no way to
-call sys_mmap(), since it's not in the syscall table.
+Based on what I said I think that we require 2 'modifiers':
+- __compat (or __compat_ptr) used when the kernel is dealing with user compat 
+pointers (32 bit, they can not be tagged). It should behave like force
+(silence warnings), but having something separate IMO makes more clear the
+intention of what we are trying to do.
+- __tagged (or __tagged_ptr) used when the kernel is dealing with user normal
+pointers (which can be tagged). In this case sparse should still be able to trigger
+a warning (that can be disabled by default as I was proposing in my previous email).
+When we put a tagged identifier we declare that we analyzed the code impacted by
+the conversion and eventually sanitized it. Having the warning still there allows us
+or whoever is looking at the code to always go back to the identified issue.  
+  
+>>>
+>>> OTOH, when I see already the tons of warnings for concepts established
+>>> since many years (I'm thinking especially at __bitwise, see [1]) I'm a
+>>> bit affraid of adding new, more specialized ones that people will
+>>> understand even less how/when they need to use them.
+>> Thanks for providing this statistic, it is very interesting. I understand your
+>> concern, but I think that in this case we need a more specialized option not only
+>> to find potential problems but even to provide the right amount of information
+>> to who reads the code. 
+>>
+>> A solution could be to let __force_as(TO, FROM) behave like __force and silence
+>> the warning by default, but have an option in sparse to re-enable it 
+>> (i.e. -Wshow-force-as). 
+> 
+> That would be, indeed, a simple solution but IMO even more dangerous than
+> __force itself (since by readingthe code with this annotation  people would 
+> naturally think it only involves the AS will in fact it would be the same
+> as __force). I prefer to directly implement a plain __force_as, forcing
+> only the AS).
+>  
 
-> +/*
-> + * for abiv1 the 64bits args should be even th, So we need mov the advice forward.
-> + */
-> +SYSCALL_DEFINE4(csky_fadvise64_64,
-> +       int, fd,
-> +       int, advice,
-> +       loff_t, offset,
-> +       loff_t, len)
-> +{
-> +       return sys_fadvise64_64(fd, offset, len, advice);
-> +}
+Agreed, even if we can't stop people from overlooking at things, I believe that
+we will all benefit if they are clearer.
 
-And call ksys_fadvise64_64() here.
+>> [1]
+>> ---
+>> commit ee7985f0c2b29c96aefe78df4139209eb4e719d8
+>> Author: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> Date:   Wed Aug 15 10:55:44 2018 +0100
+>>
+>>     print address space number for explicit cast to ulong
+>>     
+>>     This patch build on top of commit b34880d ("stricter warning
+>>     for explicit cast to ulong") and prints the address space
+>>     number when a "warning: cast removes address space of expression"
+>>     is triggered.
+>>     
+>>     This makes easier to discriminate in between different address
+>>     spaces.
+>>     
+>>     A validation example is provided as well as part of this patch.
+>>     
+>>     Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>>
+>> diff --git a/evaluate.c b/evaluate.c
+>> index 6d5d479..2fc0ebc 100644
+>> --- a/evaluate.c
+>> +++ b/evaluate.c
+>> @@ -3017,8 +3017,12 @@ static struct symbol *evaluate_cast(struct expression *expr)
+>>  		sas = stype->ctype.as;
+>>  	}
+>>  
+>> -	if (!tas && sas > 0)
+>> -		warning(expr->pos, "cast removes address space of expression");
+>> +	if (!tas && sas > 0) {
+>> +		if (Wcast_from_as)
+>> +			warning(expr->pos, "cast removes address space of expression (<asn:%d>)", sas);
+>> +		else
+>> +			warning(expr->pos, "cast removes address space of expression");
+>> +	}
+> 
+> I think that the if (Wcast_from_as) is unneeded, the <asn:%d> can be added
+> even if Wcast_from_as is false. Woukd it be OK for you?
+> 
 
-> +#undef __SYSCALL
-> +#define __SYSCALL(nr, call) [nr] = (call),
-> +
-> +#define sys_fadvise64_64 sys_csky_fadvise64_64
-> +void * const sys_call_table[__NR_syscalls] __page_aligned_data = {
-> +       [0 ... __NR_syscalls - 1] = sys_ni_syscall,
-> +#include <asm/unistd.h>
-> +};
+Yes, it is OK for me (I put it there because I did not know if we wanted to preserve the
+original behavior). Feel free to hack my patch if you want to put it on your tree.
+Thanks.
 
-This looks good now.
+> -- Luc
+> 
 
-       Arnd
+-- 
+Regards,
+Vincenzo
