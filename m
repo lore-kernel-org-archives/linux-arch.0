@@ -1,95 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:46102 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726949AbeIFSeu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:34:50 -0400
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:39984 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728929AbeIFSil (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:38:41 -0400
 MIME-Version: 1.0
-References: <cover.1536138304.git.ren_guo@c-sky.com> <dc7a52f2c2571a85c87e163d49cecddd3c2f2430.1536138304.git.ren_guo@c-sky.com>
-In-Reply-To: <dc7a52f2c2571a85c87e163d49cecddd3c2f2430.1536138304.git.ren_guo@c-sky.com>
+References: <cover.1536138304.git.ren_guo@c-sky.com> <0f6a6aa2e458df2c3734cf60a68e6f69f0eb1e68.1536138304.git.ren_guo@c-sky.com>
+In-Reply-To: <0f6a6aa2e458df2c3734cf60a68e6f69f0eb1e68.1536138304.git.ren_guo@c-sky.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 6 Sep 2018 15:58:51 +0200
-Message-ID: <CAK8P3a1obhCyZcY6D-X7_HnGnHCO3+srZQXniThiMNqvxLSQzA@mail.gmail.com>
-Subject: Re: [PATCH V3 02/26] csky: defconfig
+Date: Thu, 6 Sep 2018 16:02:42 +0200
+Message-ID: <CAK8P3a2z2=0qNWZft6rokx0i=8E5ZbEg1WL5HMYg_DE1wPvZQw@mail.gmail.com>
+Subject: Re: [PATCH V3 09/26] csky: VDSO and rt_sigreturn
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180906135851.4wZf4vEo1gkrh8Sd86FA_hDt0UpZYx4bYSHJ25BGAqg@z>
+Message-ID: <20180906140242.DXimHUwXKvxlfd7V_yXXuUEnZ3tzR9Hgrbv1xC2cpsE@z>
 
 On Wed, Sep 5, 2018 at 2:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> ---
->  arch/csky/configs/defconfig | 76 +++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 76 insertions(+)
->  create mode 100644 arch/csky/configs/defconfig
->
-> diff --git a/arch/csky/configs/defconfig b/arch/csky/configs/defconfig
-> new file mode 100644
-> index 0000000..c6a5a40
-> --- /dev/null
-> +++ b/arch/csky/configs/defconfig
-> @@ -0,0 +1,76 @@
-> +# CONFIG_LOCALVERSION_AUTO is not set
-> +CONFIG_DEFAULT_HOSTNAME="csky"
-> +# CONFIG_SWAP is not set
-> +CONFIG_SYSVIPC=y
-> +CONFIG_POSIX_MQUEUE=y
-> +CONFIG_USELIB=y
 
-CONFIG_USELIB seems misplaced here, very few architectures can even
-call that, and it's not in the asm-generic/unistd.h file.
+> +
+> +       /*
+> +        * __NR_rt_sigreturn must be 173
+> +        * Because gcc/config/csky/linux-unwind.h use hard code to parse rt_sigframe.
+> +        */
+> +       err = setup_vdso_page(vdso->rt_signal_retcode);
+> +       if (err) panic("Cannot set signal return code, err: %x.", err);
 
-> +CONFIG_RELAY=y
+__NR_rt_sigreturn is 139
 
-relay is selected by drivers that need it, you should not need to turn
-it on here.
+I think you need to update the comment, and probably check your gcc sources
+to ensure it still does the right thing.
 
-> +CONFIG_SYSCTL_SYSCALL=y
-
-Also not in the asm-generic syscall table. We should probably hide the
-CONFIG_USELIB and CONFIG_SYSCTL_SYSCALL options so they
-only appear on architectures that can use them (patches welcome).
-
-> +CONFIG_KALLSYMS_ALL=y
-
-While useful for debugging, this is also something I would not expect
-in the defconfig file
-
-> +CONFIG_USERFAULTFD=y
-
-Probably not needed either, unless you have a specific use
-case.
-
-> +CONFIG_EMBEDDED=y
-
-This (and CONFIG_EXPERT) is mostly there to expose options
-that are otherwise hidden for good reasons. Is there any option
-you tweak that depends on this? If not, then remove this as well.
-
-> +CONFIG_PROFILING=y
-
-This is only for oprofile, which new architectures should generally
-no longer implement. Better implement PERF only.
-
-> +CONFIG_BLK_DEV_INTEGRITY=y
-
-This is also fairly unusual.
-
-> +CONFIG_EXT2_FS=y
-> +CONFIG_EXT2_FS_XATTR=y
-> +CONFIG_EXT2_FS_POSIX_ACL=y
-> +CONFIG_EXT2_FS_SECURITY=y
-> +CONFIG_EXT3_FS=y
-> +CONFIG_EXT3_FS_POSIX_ACL=y
-> +CONFIG_EXT3_FS_SECURITY=y
-
-Better enable only EXT4 and drop EXT2/EXT3.
-
-> +CONFIG_UNUSED_SYMBOLS=y
-
-You should only need this to work around bugs, so
-I'd turn it off.
-
-       Arnd
+         Arnd
