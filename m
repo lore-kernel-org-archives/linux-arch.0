@@ -1,49 +1,144 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
- demand based pte insertion
-Date: Thu, 6 Sep 2018 08:18:02 +1000
-Message-ID: <20180906081802.210984d7@roar.ozlabs.ibm.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
-        <20180828112034.30875-4-npiggin@gmail.com>
-        <20180905142951.GA15680@roeck-us.net>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC tools/memory-model] Add litmus-test naming scheme
+Date: Wed, 5 Sep 2018 17:01:17 -0700
+Message-ID: <20180906000117.GG4225@linux.vnet.ibm.com>
+References: <20180525191020.GA5914@linux.vnet.ibm.com>
+ <20180529093050.GB6533@arm.com>
+ <20180529121107.GF3803@linux.vnet.ibm.com>
+ <20180529201713.GD591@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180905142951.GA15680@roeck-us.net>
+Content-Disposition: inline
+In-Reply-To: <20180529201713.GD591@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 5 Sep 2018 07:29:51 -0700
-Guenter Roeck <linux@roeck-us.net> wrote:
+On Tue, May 29, 2018 at 09:17:13PM +0100, Will Deacon wrote:
+> On Tue, May 29, 2018 at 05:11:07AM -0700, Paul E. McKenney wrote:
+> > On Tue, May 29, 2018 at 10:30:50AM +0100, Will Deacon wrote:
+> > > Hi Paul,
+> > > 
+> > > On Fri, May 25, 2018 at 12:10:20PM -0700, Paul E. McKenney wrote:
+> > > > This commit documents the scheme used to generate the names for the
+> > > > litmus tests.
+> > > > 
+> > > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > > ---
+> > > >  README |  136 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+> > > >  1 file changed, 135 insertions(+), 1 deletion(-)
+> > > 
+> > > Whilst I think documentation like this is extremely important for users,
+> > > this feels like it's documenting how to drive parts of diy and I'm not
+> > > convinced that it belongs in the kernel source tree as long as the projects
+> > > remain separate.
+> > > 
+> > > Why not contribute this to the herdtools7 documentation, then just reference
+> > > that from here? That would also be helpful for other people interested in
+> > > memory models, but perhaps not interested in Linux (assuming such people
+> > > exist ;).
+> > 
+> > We would still need at least a pointer from the Linux kernel to that
+> > documentation, but I am happy either way.  We probably need examples of
+> > the common cases, but probably not a full exposition of all the available
+> > herd7 edges.
+> 
+> Completely agreed.
+> 
+> > Should this be in the herdtools7 documentation, or as added detail
+> > from a variation on the "diyone7 -bell linux-kernel.bell -show edges"
+> > command?  If the latter, I suppose that the ones coming from the .bell
+> > file might simply be labelled as such.
+> 
+> Many of the edges aren't specific to the Linux kernel, so I think they
+> should be part of the diyone7 documentation. We could then describe only
+> the additional edges added by the kernel memory model (e.g. "Once") in
+> the kernel documentation.
 
-> Hi,
->=20
-> On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:
-> > Similarly to the previous patch, this tries to optimise dirty/accessed
-> > bits in ptes to avoid access costs of hardware setting them.
-> >  =20
->=20
-> This patch results in silent nios2 boot failures, silent meaning that
-> the boot stalls.
->=20
-> ...
-> Unpacking initramfs...
-> Freeing initrd memory: 2168K
-> workingset: timestamp_bits=3D30 max_order=3D15 bucket_order=3D0
-> jffs2: version 2.2. (NAND) =C2=A9 2001-2006 Red Hat, Inc.
-> random: fast init done
-> random: crng init done
->=20
-> [no further activity until the qemu session is aborted]
->=20
-> Reverting the patch fixes the problem. Bisect log is attached.
+And there are a -lot- of them, and they are likely to change going
+forward, both in herd7 and in linux-kernel.bell.  How about if I give
+examples and say where they are from and how to get a list, as in the
+following --squash commit to be merged with the orginal?
 
-Thanks for bisecting it, I'll try to reproduce. Just qemu with no
-obscure options? Interesting that it's hit nios2 but apparently not
-other archs (yet).
+							Thanx, Paul
 
-Thanks,
-Nick
+------------------------------------------------------------------------
+
+commit e366b8cd832535894c55265c112355c4de9a3247
+Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Date:   Wed Sep 5 15:38:00 2018 -0700
+
+    squash! EXP tools/memory-model: Add litmus-test naming scheme
+    
+    Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+    [ paulmck: Apply feedback from Will Deacon. ]
+
+diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+index 08c1116c0314..5ee08f129094 100644
+--- a/tools/memory-model/litmus-tests/README
++++ b/tools/memory-model/litmus-tests/README
+@@ -243,56 +243,11 @@ produce the name:
+ 
+ Adding the ".litmus" suffix: SB+rfionceonce-poonceonces.litmus
+ 
++The descriptors that describe connections between consecutive accesses
++within the cycle through a given litmus test can be provided by the herd
++tool (Rfi, Po, Fre, and so on) or by the linux-kernel.bell file (Once,
++Release, Acquire, and so on).
+ 
+-=======================
+-LITMUS TEST DESCRIPTORS
+-=======================
+-
+-These descriptors cover connections between consecutive accesses within
+-the cycle through a given litmus test:
+-
+-Fre: From-read external.  The current process wrote a variable that
+-	the previous process read.  Example: The SB (store buffering) test.
+-Fri: From-read internal.  This process read a variable and then
+-	immediately wrote to it.  Example: ???
+-PodRR: Program-order different variable, read followed by read.
+-	This process read a variable and again read a different variable.
+-	Example: The read-side process in the MP (message-passing) test.
+-PodRW: Program-order different variable, read followed by write.
+-	This process read a variable and then wrote a different variable.
+-	Example: The LB (load buffering) test.
+-PodWR: Program-order different variable, write followed by read.
+-	This process wrote a variable and then read a different variable.
+-	Example: The SB (store buffering) test.
+-PodWW: Program-order different variable, write followed by write.
+-	This process wrote a variable and again wrote a different variable.
+-	Example: The write-side process in the MP (message-passing) test.
+-PosRR: Program-order same variable, read followed by read.
+-	This process read a variable and again read that same variable.
+-	Example: ???
+-PosRW: Program-order same variable, read followed by write.
+-	This process read a variable and then wrote that same variable.
+-	Example: ???
+-PosWR: Program-order same variable, write followed by read.
+-	This process wrote a variable and then read that same variable.
+-	Example: ???
+-PosWW: Program-order same variable, write followed by write.
+-	This process wrote a variable and again wrote that same variable.
+-	Example: ???
+-Rfe: Read-from external.  The current process read a variable written
+-	by the previous process.  Example: The MP (message passing) test.
+-Rfi: Read-from internal.  The current process wrote a variable and then
+-	immediately read the value back from it.  For the purposes
+-	of litmus-test code generation, Rfi acts identically to PosWR.
+-	However, they differ for purposes of naming, and they also result
+-	in different "exists" clauses.
+-	Example:  ???
+-Wse: Write same external.  The current process wrote to a variable that
+-	was also written to by the previous process.  Example:  ???
+-Wsi: Write same internal.  The current process wrote to a variable and
+-	then immediately wrote to it again.  Example:  ???
+-
+-Please note that the above is a partial list.  To see the full list of
+-descriptors, execute the following command:
++To see the full list of descriptors, execute the following command:
+ 
+ 	$ diyone7 -bell linux-kernel.bell -show edges
