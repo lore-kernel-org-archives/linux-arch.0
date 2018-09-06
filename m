@@ -1,43 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Nadav Amit <namit@vmware.com>
 Subject: Re: [PATCH v2 1/6] Fix "x86/alternatives: Lockdep-enforce text_mutex
  in text_poke*()"
-Date: Thu, 6 Sep 2018 21:53:51 +0200
-Message-ID: <20180906195351.GB9358@worktop.programming.kicks-ass.net>
+Date: Thu, 6 Sep 2018 19:58:40 +0000
+Message-ID: <D8CE0D88-9507-421C-9C97-ACAB05388F8D@vmware.com>
 References: <20180902173224.30606-1-namit@vmware.com>
  <20180902173224.30606-2-namit@vmware.com>
  <20180906194003.GD4816@worktop.programming.kicks-ass.net>
  <BD1F532F-1006-4CDC-9470-C8A91619E4DE@vmware.com>
+ <20180906195351.GB9358@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <BD1F532F-1006-4CDC-9470-C8A91619E4DE@vmware.com>
+In-Reply-To: <20180906195351.GB9358@worktop.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <EC9E11FA9D12524082AA5BC914F4E697@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nadav Amit <namit@vmware.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Dave Hansen <dave.hansen@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 06, 2018 at 07:42:14PM +0000, Nadav Amit wrote:
-> at 12:40 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > On Sun, Sep 02, 2018 at 10:32:19AM -0700, Nadav Amit wrote:
-> >> text_mutex is expected to be held before text_poke() is called, but we
-> >> cannot add a lockdep assertion since kgdb does not take it, and instead
-> >> *supposedly* ensures the lock is not taken and will not be acquired by
-> >> any other core while text_poke() is running.
-> >> 
-> >> The reason for the "supposedly" comment is that it is not entirely clear
-> >> that this would be the case if gdb_do_roundup is zero.
-> > 
-> > Argh, that's pretty shit code...
-> > 
-> > Not only is that text_mutex abuse ugly, so too is the fixmap usage from
-> > IRQ context. I suppose this really does require your alternative mm
-> > patches for text_poke().
-> 
-> Right, I forgot about that…
-
-With that CR3 trickery, we can rid ourselves of the text_mutex
-requirement, since concurrent text_poke is 'safe'. That would clean up
-the kgdb code quite a bit.
+YXQgMTI6NTMgUE0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6
+DQoNCj4gT24gVGh1LCBTZXAgMDYsIDIwMTggYXQgMDc6NDI6MTRQTSArMDAwMCwgTmFkYXYgQW1p
+dCB3cm90ZToNCj4+IGF0IDEyOjQwIFBNLCBQZXRlciBaaWpsc3RyYSA8cGV0ZXJ6QGluZnJhZGVh
+ZC5vcmc+IHdyb3RlOg0KPj4gDQo+Pj4gT24gU3VuLCBTZXAgMDIsIDIwMTggYXQgMTA6MzI6MTlB
+TSAtMDcwMCwgTmFkYXYgQW1pdCB3cm90ZToNCj4+Pj4gdGV4dF9tdXRleCBpcyBleHBlY3RlZCB0
+byBiZSBoZWxkIGJlZm9yZSB0ZXh0X3Bva2UoKSBpcyBjYWxsZWQsIGJ1dCB3ZQ0KPj4+PiBjYW5u
+b3QgYWRkIGEgbG9ja2RlcCBhc3NlcnRpb24gc2luY2Uga2dkYiBkb2VzIG5vdCB0YWtlIGl0LCBh
+bmQgaW5zdGVhZA0KPj4+PiAqc3VwcG9zZWRseSogZW5zdXJlcyB0aGUgbG9jayBpcyBub3QgdGFr
+ZW4gYW5kIHdpbGwgbm90IGJlIGFjcXVpcmVkIGJ5DQo+Pj4+IGFueSBvdGhlciBjb3JlIHdoaWxl
+IHRleHRfcG9rZSgpIGlzIHJ1bm5pbmcuDQo+Pj4+IA0KPj4+PiBUaGUgcmVhc29uIGZvciB0aGUg
+InN1cHBvc2VkbHkiIGNvbW1lbnQgaXMgdGhhdCBpdCBpcyBub3QgZW50aXJlbHkgY2xlYXINCj4+
+Pj4gdGhhdCB0aGlzIHdvdWxkIGJlIHRoZSBjYXNlIGlmIGdkYl9kb19yb3VuZHVwIGlzIHplcm8u
+DQo+Pj4gDQo+Pj4gQXJnaCwgdGhhdCdzIHByZXR0eSBzaGl0IGNvZGUuLi4NCj4+PiANCj4+PiBO
+b3Qgb25seSBpcyB0aGF0IHRleHRfbXV0ZXggYWJ1c2UgdWdseSwgc28gdG9vIGlzIHRoZSBmaXht
+YXAgdXNhZ2UgZnJvbQ0KPj4+IElSUSBjb250ZXh0LiBJIHN1cHBvc2UgdGhpcyByZWFsbHkgZG9l
+cyByZXF1aXJlIHlvdXIgYWx0ZXJuYXRpdmUgbW0NCj4+PiBwYXRjaGVzIGZvciB0ZXh0X3Bva2Uo
+KS4NCj4+IA0KPj4gUmlnaHQsIEkgZm9yZ290IGFib3V0IHRoYXTigKYNCj4gDQo+IFdpdGggdGhh
+dCBDUjMgdHJpY2tlcnksIHdlIGNhbiByaWQgb3Vyc2VsdmVzIG9mIHRoZSB0ZXh0X211dGV4DQo+
+IHJlcXVpcmVtZW50LCBzaW5jZSBjb25jdXJyZW50IHRleHRfcG9rZSBpcyAnc2FmZScuIFRoYXQg
+d291bGQgY2xlYW4gdXANCj4gdGhlIGtnZGIgY29kZSBxdWl0ZSBhIGJpdC4NCg0KSSBkb27igJl0
+IGtub3cuIEnigJltIHNvbWV3aGF0IHdvcnJpZWQgd2l0aCBtdWx0aXBsZSBtZWNoYW5pc21zIHBv
+dGVudGlhbGx5DQpjaGFuZ2luZyB0aGUgc2FtZSBjb2RlIGF0IHRoZSBzYW1lIHRpbWUgLSBhbmQg
+bWF5YmUgZW5kaW5nIHVwIHdpdGggc29tZQ0KbWVzcy4NCg0K
