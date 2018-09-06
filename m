@@ -1,37 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:33693 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728047AbeIFUKb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 16:10:31 -0400
+Received: from smtp21.cstnet.cn ([159.226.251.21]:53478 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1730122AbeIFUYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Sep 2018 16:24:06 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v5 10/16] x86/mce: enable Hygon support to MCE
+ infrastructure
+References: <cover.1535459012.git.puwen@hygon.cn>
+ <c1e803bc54984e54ca67278930588e85b65bb26f.1535459013.git.puwen@hygon.cn>
+ <20180905092234.GC2237@zn.tnic>
+ <01604799-b993-e530-817c-ad097d343fc4@hygon.cn>
+ <20180905131427.GI2237@zn.tnic>
+ <a9b7aa87-c99a-42ee-48df-69bec64bb468@hygon.cn>
+ <20180906083924.GB10768@zn.tnic>
+ <634f371e-1a2d-5b23-c9b0-5f32a8ee4cee@hygon.cn>
+ <20180906122956.GF10768@zn.tnic>
+Message-ID: <f4bdfc6d-c8ad-16d8-c641-51db36d64e66@hygon.cn>
+Date: Thu, 6 Sep 2018 23:47:31 +0800
 MIME-Version: 1.0
-References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org> <1536036087-15260-5-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1536036087-15260-5-git-send-email-firoz.khan@linaro.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 6 Sep 2018 17:34:11 +0200
-Message-ID: <CAK8P3a2qFoCOzM6x-_mv0Um2E-WHDeOU-fuuZ65TtDKKcPxNrQ@mail.gmail.com>
-Subject: Re: [PATCH 4/4] sparc: uapi header and system call table file generation
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180906122956.GF10768@zn.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180906153411.Jw0tvIYyiXWVv_IdNI0bdzjy2HcZihp8GQqJ-VQ-G0E@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180906154731.7h8Fs4QWyEom1qdKaZg20djW7ei-8rrLjP3ShK5cidU@z>
 
-On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> System call table generation script must be run to generate
-> unistd_32/64.h and syscall_table_32/64/c32.h files. This patch
-> will have changes which will invokes the script.
->
-> This patch will generate unistd_32/64.h and syscall_table_
-> 32/64/c32.h files by the syscall table generation script
-> invoked by arch/sparc/Makefile and the generated files against
-> the removed files will be identical.
->
-> The generated uapi header file will be included in uapi/asm/
-> unistd_32/64.h and generated system call table support file will
-> be included by arch/sparc/kernel/syscall_table_32/64.S file.
+On 2018/9/6 20:29, Borislav Petkov wrote:
+> Say what now?! What testing do you do if you boot a kernel which doesn't
+> even use the functionality you're testing?!
 
-These changes all look good to me.
+I'm sorry, this case is not good to demonstrate the useage. And I think
+there are no other people will do the test without MCE in kernel. So
+with MCE enabled in kernel is the main case to support.
 
-       Arnd
+> The first way but change that dependency to CPU_SUP_AMD because there
+> are people building their own kernels and don't run distro configs. And
+> you need CPU_SUP_AMD because you're using their code.
+
+That's good, will select CPU_SUP_AMD for CPU_SUP_HYGON to solve the
+dependency issues in kernel.
+
+-- 
+Regards,
+Pu Wen
