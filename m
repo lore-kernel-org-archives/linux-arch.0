@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from esa3.microchip.iphmx.com ([68.232.153.233]:24348 "EHLO
-        esa3.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729479AbeIFSWS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:22:18 -0400
+Received: from esa5.microchip.iphmx.com ([216.71.150.166]:12842 "EHLO
+        esa5.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729803AbeIFSWZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:22:25 -0400
 From: Ludovic Desroches <ludovic.desroches@microchip.com>
-Subject: [PATCH v4 1/2] tty/serial_core: add ISO7816 infrastructure
-Date: Thu, 6 Sep 2018 15:42:13 +0200
-Message-ID: <20180906134214.29031-2-ludovic.desroches@microchip.com>
+Subject: [PATCH v4 2/2] tty/serial: atmel: add ISO7816 support
+Date: Thu, 6 Sep 2018 15:42:14 +0200
+Message-ID: <20180906134214.29031-3-ludovic.desroches@microchip.com>
 In-Reply-To: <20180906134214.29031-1-ludovic.desroches@microchip.com>
 References: <20180906134214.29031-1-ludovic.desroches@microchip.com>
 MIME-Version: 1.0
@@ -15,259 +15,328 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: gregkh@linuxfoundation.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org, Ludovic Desroches <ludovic.desroches@microchip.com>
-Message-ID: <20180906134213.WvHo2YJ-F65KscvLY-iuzvrxJcrMLpo842B-ua0oHUM@z>
+Message-ID: <20180906134214.-ssZTwM5VUlEYEV2-M-NUb2QnuEwyFWHpFEFUeCwkTw@z>
 
 From: Nicolas Ferre <nicolas.ferre@microchip.com>
 
-Add the ISO7816 ioctl and associated accessors and data structure.
-Drivers can then use this common implementation to handle ISO7816
-(smart cards).
+When mode is set in atmel_config_iso7816() we backup last RS232 mode
+for coming back to this mode if requested.
+Also allow setup of T=0 and T=1 parameter and basic support in set_termios
+function as well.
 
 Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-[ludovic.desroches@microchip.com: squash and rebase, removal of gpios, checkpatch fixes]
+[ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
 Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
 ---
- arch/alpha/include/uapi/asm/ioctls.h   |  2 ++
- arch/mips/include/uapi/asm/ioctls.h    |  2 ++
- arch/parisc/include/uapi/asm/ioctls.h  |  2 ++
- arch/powerpc/include/uapi/asm/ioctls.h |  2 ++
- arch/sh/include/uapi/asm/ioctls.h      |  2 ++
- arch/sparc/include/uapi/asm/ioctls.h   |  2 ++
- arch/xtensa/include/uapi/asm/ioctls.h  |  2 ++
- drivers/tty/serial/serial_core.c       | 60 ++++++++++++++++++++++++++++++++++
- include/linux/serial_core.h            |  3 ++
- include/uapi/asm-generic/ioctls.h      |  2 ++
- include/uapi/linux/serial.h            | 17 ++++++++++
- 11 files changed, 96 insertions(+)
+ drivers/tty/serial/atmel_serial.c | 190 +++++++++++++++++++++++++++++++++++---
+ drivers/tty/serial/atmel_serial.h |   3 +-
+ 2 files changed, 181 insertions(+), 12 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/ioctls.h b/arch/alpha/include/uapi/asm/ioctls.h
-index 3729d92d3fa8..1e9121c9b3c7 100644
---- a/arch/alpha/include/uapi/asm/ioctls.h
-+++ b/arch/alpha/include/uapi/asm/ioctls.h
-@@ -102,6 +102,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+diff --git a/drivers/tty/serial/atmel_serial.c b/drivers/tty/serial/atmel_serial.c
+index 8e4428725848..a6a6c3334759 100644
+--- a/drivers/tty/serial/atmel_serial.c
++++ b/drivers/tty/serial/atmel_serial.c
+@@ -34,6 +34,7 @@
+ #include <linux/suspend.h>
+ #include <linux/mm.h>
  
- #define TIOCSERCONFIG	0x5453
- #define TIOCSERGWILD	0x5454
-diff --git a/arch/mips/include/uapi/asm/ioctls.h b/arch/mips/include/uapi/asm/ioctls.h
-index 890245a9f0c4..16aa8a766aec 100644
---- a/arch/mips/include/uapi/asm/ioctls.h
-+++ b/arch/mips/include/uapi/asm/ioctls.h
-@@ -93,6 +93,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
++#include <asm/div64.h>
+ #include <asm/io.h>
+ #include <asm/ioctls.h>
  
- /* I hope the range from 0x5480 on is free ... */
- #define TIOCSCTTY	0x5480		/* become controlling tty */
-diff --git a/arch/parisc/include/uapi/asm/ioctls.h b/arch/parisc/include/uapi/asm/ioctls.h
-index aafb1c0ca0af..82d1148c6379 100644
---- a/arch/parisc/include/uapi/asm/ioctls.h
-+++ b/arch/parisc/include/uapi/asm/ioctls.h
-@@ -62,6 +62,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+@@ -147,6 +148,8 @@ struct atmel_uart_port {
+ 	struct circ_buf		rx_ring;
  
- #define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
- #define FIOCLEX		0x5451
-diff --git a/arch/powerpc/include/uapi/asm/ioctls.h b/arch/powerpc/include/uapi/asm/ioctls.h
-index 41b1a5c15734..2c145da3b774 100644
---- a/arch/powerpc/include/uapi/asm/ioctls.h
-+++ b/arch/powerpc/include/uapi/asm/ioctls.h
-@@ -102,6 +102,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 	struct mctrl_gpios	*gpios;
++	u32			backup_mode;	/* MR saved during iso7816 operations */
++	u32			backup_brgr;	/* BRGR saved during iso7816 operations */
+ 	unsigned int		tx_done_mask;
+ 	u32			fifo_size;
+ 	u32			rts_high;
+@@ -163,6 +166,10 @@ struct atmel_uart_port {
+ 	unsigned int		pending_status;
+ 	spinlock_t		lock_suspended;
  
- #define TIOCSERCONFIG	0x5453
- #define TIOCSERGWILD	0x5454
-diff --git a/arch/sh/include/uapi/asm/ioctls.h b/arch/sh/include/uapi/asm/ioctls.h
-index cc62f6f98103..11866d4f60e1 100644
---- a/arch/sh/include/uapi/asm/ioctls.h
-+++ b/arch/sh/include/uapi/asm/ioctls.h
-@@ -95,6 +95,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
- 
- #define TIOCSERCONFIG	_IO('T', 83) /* 0x5453 */
- #define TIOCSERGWILD	_IOR('T', 84,  int) /* 0x5454 */
-diff --git a/arch/sparc/include/uapi/asm/ioctls.h b/arch/sparc/include/uapi/asm/ioctls.h
-index 2df52711e170..7fd2f5873c9e 100644
---- a/arch/sparc/include/uapi/asm/ioctls.h
-+++ b/arch/sparc/include/uapi/asm/ioctls.h
-@@ -27,6 +27,8 @@
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGRS485	_IOR('T', 0x41, struct serial_rs485)
- #define TIOCSRS485	_IOWR('T', 0x42, struct serial_rs485)
-+#define TIOCGISO7816	_IOR('T', 0x43, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x44, struct serial_iso7816)
- 
- /* Note that all the ioctls that are not available in Linux have a
-  * double underscore on the front to: a) avoid some programs to
-diff --git a/arch/xtensa/include/uapi/asm/ioctls.h b/arch/xtensa/include/uapi/asm/ioctls.h
-index ec43609cbfc5..6d4a87296c95 100644
---- a/arch/xtensa/include/uapi/asm/ioctls.h
-+++ b/arch/xtensa/include/uapi/asm/ioctls.h
-@@ -107,6 +107,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
- 
- #define TIOCSERCONFIG	_IO('T', 83)
- #define TIOCSERGWILD	_IOR('T', 84,  int)
-diff --git a/drivers/tty/serial/serial_core.c b/drivers/tty/serial/serial_core.c
-index 9c14a453f73c..af8d5b12fba9 100644
---- a/drivers/tty/serial/serial_core.c
-+++ b/drivers/tty/serial/serial_core.c
-@@ -1301,6 +1301,58 @@ static int uart_set_rs485_config(struct uart_port *port,
++	/* ISO7816 */
++	unsigned int		fidi_min;
++	unsigned int		fidi_max;
++
+ #ifdef CONFIG_PM
+ 	struct {
+ 		u32		cr;
+@@ -362,6 +369,127 @@ static int atmel_config_rs485(struct uart_port *port,
  	return 0;
  }
  
-+static int uart_get_iso7816_config(struct uart_port *port,
-+				   struct serial_iso7816 __user *iso7816)
++static unsigned int atmel_calc_cd(struct uart_port *port,
++				  struct serial_iso7816 *iso7816conf)
 +{
-+	unsigned long flags;
-+	struct serial_iso7816 aux;
++	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
++	unsigned int cd;
++	u64 mck_rate;
 +
-+	if (!port->iso7816_config)
-+		return -ENOIOCTLCMD;
-+
-+	spin_lock_irqsave(&port->lock, flags);
-+	aux = port->iso7816;
-+	spin_unlock_irqrestore(&port->lock, flags);
-+
-+	if (copy_to_user(iso7816, &aux, sizeof(aux)))
-+		return -EFAULT;
-+
-+	return 0;
++	mck_rate = (u64)clk_get_rate(atmel_port->clk);
++	do_div(mck_rate, iso7816conf->clk);
++	cd = mck_rate;
++	return cd;
 +}
 +
-+static int uart_set_iso7816_config(struct uart_port *port,
-+				   struct serial_iso7816 __user *iso7816_user)
++static unsigned int atmel_calc_fidi(struct uart_port *port,
++				    struct serial_iso7816 *iso7816conf)
 +{
-+	struct serial_iso7816 iso7816;
-+	int i, ret;
-+	unsigned long flags;
++	u64 fidi = 0;
 +
-+	if (!port->iso7816_config)
-+		return -ENOIOCTLCMD;
++	if (iso7816conf->sc_fi && iso7816conf->sc_di) {
++		fidi = (u64)iso7816conf->sc_fi;
++		do_div(fidi, iso7816conf->sc_di);
++	}
++	return (u32)fidi;
++}
 +
-+	if (copy_from_user(&iso7816, iso7816_user, sizeof(*iso7816_user)))
-+		return -EFAULT;
++/* Enable or disable the iso7816 support */
++/* Called with interrupts disabled */
++static int atmel_config_iso7816(struct uart_port *port,
++				struct serial_iso7816 *iso7816conf)
++{
++	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
++	unsigned int mode;
++	unsigned int cd, fidi;
++	int ret = 0;
 +
-+	/*
-+	 * There are 5 words reserved for future use. Check that userspace
-+	 * doesn't put stuff in there to prevent breakages in the future.
-+	 */
-+	for (i = 0; i < 5; i++)
-+		if (iso7816.reserved[i])
-+			return -EINVAL;
++	/* Disable interrupts */
++	atmel_uart_writel(port, ATMEL_US_IDR, atmel_port->tx_done_mask);
 +
-+	spin_lock_irqsave(&port->lock, flags);
-+	ret = port->iso7816_config(port, &iso7816);
-+	spin_unlock_irqrestore(&port->lock, flags);
-+	if (ret)
-+		return ret;
++	mode = atmel_uart_readl(port, ATMEL_US_MR);
 +
-+	if (copy_to_user(iso7816_user, &port->iso7816, sizeof(port->iso7816)))
-+		return -EFAULT;
++	if (iso7816conf->flags & SER_ISO7816_ENABLED) {
++		mode &= ~ATMEL_US_USMODE;
 +
-+	return 0;
++		if (iso7816conf->tg > 255) {
++			dev_err(port->dev, "ISO7816: Timeguard exceeding 255\n");
++			memset(iso7816conf, 0, sizeof(struct serial_iso7816));
++			ret = -EINVAL;
++			goto err_out;
++		}
++
++		if ((iso7816conf->flags & SER_ISO7816_T_PARAM)
++		    == SER_ISO7816_T(0)) {
++			mode |= ATMEL_US_USMODE_ISO7816_T0 | ATMEL_US_DSNACK;
++		} else if ((iso7816conf->flags & SER_ISO7816_T_PARAM)
++			   == SER_ISO7816_T(1)) {
++			mode |= ATMEL_US_USMODE_ISO7816_T1 | ATMEL_US_INACK;
++		} else {
++			dev_err(port->dev, "ISO7816: Type not supported\n");
++			memset(iso7816conf, 0, sizeof(struct serial_iso7816));
++			ret = -EINVAL;
++			goto err_out;
++		}
++
++		mode &= ~(ATMEL_US_USCLKS | ATMEL_US_NBSTOP | ATMEL_US_PAR);
++
++		/* select mck clock, and output  */
++		mode |= ATMEL_US_USCLKS_MCK | ATMEL_US_CLKO;
++		/* set parity for normal/inverse mode + max iterations */
++		mode |= ATMEL_US_PAR_EVEN | ATMEL_US_NBSTOP_1 | ATMEL_US_MAX_ITER(3);
++
++		cd = atmel_calc_cd(port, iso7816conf);
++		fidi = atmel_calc_fidi(port, iso7816conf);
++		if (fidi == 0) {
++			dev_warn(port->dev, "ISO7816 fidi = 0, Generator generates no signal\n");
++		} else if (fidi < atmel_port->fidi_min
++			   || fidi > atmel_port->fidi_max) {
++			dev_err(port->dev, "ISO7816 fidi = %u, value not supported\n", fidi);
++			memset(iso7816conf, 0, sizeof(struct serial_iso7816));
++			ret = -EINVAL;
++			goto err_out;
++		}
++
++		if (!(port->iso7816.flags & SER_ISO7816_ENABLED)) {
++			/* port not yet in iso7816 mode: store configuration */
++			atmel_port->backup_mode = atmel_uart_readl(port, ATMEL_US_MR);
++			atmel_port->backup_brgr = atmel_uart_readl(port, ATMEL_US_BRGR);
++		}
++
++		atmel_uart_writel(port, ATMEL_US_TTGR, iso7816conf->tg);
++		atmel_uart_writel(port, ATMEL_US_BRGR, cd);
++		atmel_uart_writel(port, ATMEL_US_FIDI, fidi);
++
++		atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_TXDIS | ATMEL_US_RXEN);
++		atmel_port->tx_done_mask = ATMEL_US_TXEMPTY | ATMEL_US_NACK | ATMEL_US_ITERATION;
++	} else {
++		dev_dbg(port->dev, "Setting UART back to RS232\n");
++		/* back to last RS232 settings */
++		mode = atmel_port->backup_mode;
++		memset(iso7816conf, 0, sizeof(struct serial_iso7816));
++		atmel_uart_writel(port, ATMEL_US_TTGR, 0);
++		atmel_uart_writel(port, ATMEL_US_BRGR, atmel_port->backup_brgr);
++		atmel_uart_writel(port, ATMEL_US_FIDI, 0x174);
++
++		if (atmel_use_pdc_tx(port))
++			atmel_port->tx_done_mask = ATMEL_US_ENDTX |
++						   ATMEL_US_TXBUFE;
++		else
++			atmel_port->tx_done_mask = ATMEL_US_TXRDY;
++	}
++
++	port->iso7816 = *iso7816conf;
++
++	atmel_uart_writel(port, ATMEL_US_MR, mode);
++
++err_out:
++	/* Enable interrupts */
++	atmel_uart_writel(port, ATMEL_US_IER, atmel_port->tx_done_mask);
++
++	return ret;
 +}
 +
  /*
-  * Called via sys_ioctl.  We can use spin_lock_irq() here.
+  * Return TIOCSER_TEMT when transmitter FIFO and Shift register is empty.
   */
-@@ -1385,6 +1437,14 @@ uart_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg)
- 	case TIOCSRS485:
- 		ret = uart_set_rs485_config(uport, uarg);
- 		break;
-+
-+	case TIOCSISO7816:
-+		ret = uart_set_iso7816_config(state->uart_port, uarg);
-+		break;
-+
-+	case TIOCGISO7816:
-+		ret = uart_get_iso7816_config(state->uart_port, uarg);
-+		break;
- 	default:
- 		if (uport->ops->ioctl)
- 			ret = uport->ops->ioctl(uport, cmd, arg);
-diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
-index 06ea4eeb09ab..d6e7747ffd46 100644
---- a/include/linux/serial_core.h
-+++ b/include/linux/serial_core.h
-@@ -137,6 +137,8 @@ struct uart_port {
- 	void			(*handle_break)(struct uart_port *);
- 	int			(*rs485_config)(struct uart_port *,
- 						struct serial_rs485 *rs485);
-+	int			(*iso7816_config)(struct uart_port *,
-+						  struct serial_iso7816 *iso7816);
- 	unsigned int		irq;			/* irq number */
- 	unsigned long		irqflags;		/* irq flags  */
- 	unsigned int		uartclk;		/* base uart clock */
-@@ -253,6 +255,7 @@ struct uart_port {
- 	struct attribute_group	*attr_group;		/* port specific attributes */
- 	const struct attribute_group **tty_groups;	/* all attributes (serial core use only) */
- 	struct serial_rs485     rs485;
-+	struct serial_iso7816   iso7816;
- 	void			*private_data;		/* generic platform data pointer */
- };
+@@ -481,8 +609,9 @@ static void atmel_stop_tx(struct uart_port *port)
+ 	/* Disable interrupts */
+ 	atmel_uart_writel(port, ATMEL_US_IDR, atmel_port->tx_done_mask);
  
-diff --git a/include/uapi/asm-generic/ioctls.h b/include/uapi/asm-generic/ioctls.h
-index 040651735662..cdc9f4ca8c27 100644
---- a/include/uapi/asm-generic/ioctls.h
-+++ b/include/uapi/asm-generic/ioctls.h
-@@ -79,6 +79,8 @@
- #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
- #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
- #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
-+#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
-+#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+-	if ((port->rs485.flags & SER_RS485_ENABLED) &&
+-	    !(port->rs485.flags & SER_RS485_RX_DURING_TX))
++	if (((port->rs485.flags & SER_RS485_ENABLED) &&
++	     !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
++	    port->iso7816.flags & SER_ISO7816_ENABLED)
+ 		atmel_start_rx(port);
+ }
  
- #define FIONCLEX	0x5450
- #define FIOCLEX		0x5451
-diff --git a/include/uapi/linux/serial.h b/include/uapi/linux/serial.h
-index 3fdd0dee8b41..93eb3c496ff1 100644
---- a/include/uapi/linux/serial.h
-+++ b/include/uapi/linux/serial.h
-@@ -132,4 +132,21 @@ struct serial_rs485 {
- 					   are a royal PITA .. */
- };
+@@ -500,8 +629,9 @@ static void atmel_start_tx(struct uart_port *port)
+ 		return;
  
-+/*
-+ * Serial interface for controlling ISO7816 settings on chips with suitable
-+ * support. Set with TIOCSISO7816 and get with TIOCGISO7816 if supported by
-+ * your platform.
-+ */
-+struct serial_iso7816 {
-+	__u32	flags;			/* ISO7816 feature flags */
-+#define SER_ISO7816_ENABLED		(1 << 0)
-+#define SER_ISO7816_T_PARAM		(0x0f << 4)
-+#define SER_ISO7816_T(t)		(((t) & 0x0f) << 4)
-+	__u32	tg;
-+	__u32	sc_fi;
-+	__u32	sc_di;
-+	__u32	clk;
-+	__u32	reserved[5];
-+};
+ 	if (atmel_use_pdc_tx(port) || atmel_use_dma_tx(port))
+-		if ((port->rs485.flags & SER_RS485_ENABLED) &&
+-		    !(port->rs485.flags & SER_RS485_RX_DURING_TX))
++		if (((port->rs485.flags & SER_RS485_ENABLED) &&
++		     !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
++		    port->iso7816.flags & SER_ISO7816_ENABLED)
+ 			atmel_stop_rx(port);
+ 
+ 	if (atmel_use_pdc_tx(port))
+@@ -799,8 +929,9 @@ static void atmel_complete_tx_dma(void *arg)
+ 	 */
+ 	if (!uart_circ_empty(xmit))
+ 		atmel_tasklet_schedule(atmel_port, &atmel_port->tasklet_tx);
+-	else if ((port->rs485.flags & SER_RS485_ENABLED) &&
+-		 !(port->rs485.flags & SER_RS485_RX_DURING_TX)) {
++	else if (((port->rs485.flags & SER_RS485_ENABLED) &&
++		  !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
++		 port->iso7816.flags & SER_ISO7816_ENABLED) {
+ 		/* DMA done, stop TX, start RX for RS485 */
+ 		atmel_start_rx(port);
+ 	}
+@@ -1281,6 +1412,9 @@ atmel_handle_status(struct uart_port *port, unsigned int pending,
+ 			wake_up_interruptible(&port->state->port.delta_msr_wait);
+ 		}
+ 	}
 +
- #endif /* _UAPI_LINUX_SERIAL_H */
++	if (pending & (ATMEL_US_NACK | ATMEL_US_ITERATION))
++		dev_dbg(port->dev, "ISO7816 ERROR (0x%08x)\n", pending);
+ }
+ 
+ /*
+@@ -1373,8 +1507,9 @@ static void atmel_tx_pdc(struct uart_port *port)
+ 		atmel_uart_writel(port, ATMEL_US_IER,
+ 				  atmel_port->tx_done_mask);
+ 	} else {
+-		if ((port->rs485.flags & SER_RS485_ENABLED) &&
+-		    !(port->rs485.flags & SER_RS485_RX_DURING_TX)) {
++		if (((port->rs485.flags & SER_RS485_ENABLED) &&
++		     !(port->rs485.flags & SER_RS485_RX_DURING_TX)) ||
++		    port->iso7816.flags & SER_ISO7816_ENABLED) {
+ 			/* DMA done, stop TX, start RX for RS485 */
+ 			atmel_start_rx(port);
+ 		}
+@@ -1726,6 +1861,22 @@ static void atmel_get_ip_name(struct uart_port *port)
+ 		atmel_port->has_frac_baudrate = true;
+ 		atmel_port->has_hw_timer = true;
+ 		atmel_port->rtor = ATMEL_US_RTOR;
++		version = atmel_uart_readl(port, ATMEL_US_VERSION);
++		switch (version) {
++			case 0x814:	/* sama5d2 */
++				/* fall through */
++			case 0x701:	/* sama5d4 */
++				atmel_port->fidi_min = 3;
++				atmel_port->fidi_max = 65535;
++				break;
++			case 0x502:	/* sam9x5, sama5d3 */
++				atmel_port->fidi_min = 3;
++				atmel_port->fidi_max = 2047;
++				break;
++			default:
++				atmel_port->fidi_min = 1;
++				atmel_port->fidi_max = 2047;
++		}
+ 	} else if (name == dbgu_uart) {
+ 		dev_dbg(port->dev, "Dbgu or uart without hw timer\n");
+ 	} else {
+@@ -2099,6 +2250,17 @@ static void atmel_set_termios(struct uart_port *port, struct ktermios *termios,
+ 		atmel_uart_writel(port, ATMEL_US_TTGR,
+ 				  port->rs485.delay_rts_after_send);
+ 		mode |= ATMEL_US_USMODE_RS485;
++	} else if (port->iso7816.flags & SER_ISO7816_ENABLED) {
++		atmel_uart_writel(port, ATMEL_US_TTGR, port->iso7816.tg);
++		/* select mck clock, and output  */
++		mode |= ATMEL_US_USCLKS_MCK | ATMEL_US_CLKO;
++		/* set max iterations */
++		mode |= ATMEL_US_MAX_ITER(3);
++		if ((port->iso7816.flags & SER_ISO7816_T_PARAM)
++				== SER_ISO7816_T(0))
++			mode |= ATMEL_US_USMODE_ISO7816_T0;
++		else
++			mode |= ATMEL_US_USMODE_ISO7816_T1;
+ 	} else if (termios->c_cflag & CRTSCTS) {
+ 		/* RS232 with hardware handshake (RTS/CTS) */
+ 		if (atmel_use_fifo(port) &&
+@@ -2175,7 +2337,8 @@ static void atmel_set_termios(struct uart_port *port, struct ktermios *termios,
+ 	}
+ 	quot = cd | fp << ATMEL_US_FP_OFFSET;
+ 
+-	atmel_uart_writel(port, ATMEL_US_BRGR, quot);
++	if (!(port->iso7816.flags & SER_ISO7816_ENABLED))
++		atmel_uart_writel(port, ATMEL_US_BRGR, quot);
+ 	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_RSTSTA | ATMEL_US_RSTRX);
+ 	atmel_uart_writel(port, ATMEL_US_CR, ATMEL_US_TXEN | ATMEL_US_RXEN);
+ 	atmel_port->tx_stopped = false;
+@@ -2355,6 +2518,7 @@ static int atmel_init_port(struct atmel_uart_port *atmel_port,
+ 	port->mapbase	= pdev->resource[0].start;
+ 	port->irq	= pdev->resource[1].start;
+ 	port->rs485_config	= atmel_config_rs485;
++	port->iso7816_config	= atmel_config_iso7816;
+ 	port->membase	= NULL;
+ 
+ 	memset(&atmel_port->rx_ring, 0, sizeof(atmel_port->rx_ring));
+@@ -2378,8 +2542,12 @@ static int atmel_init_port(struct atmel_uart_port *atmel_port,
+ 		/* only enable clock when USART is in use */
+ 	}
+ 
+-	/* Use TXEMPTY for interrupt when rs485 else TXRDY or ENDTX|TXBUFE */
+-	if (port->rs485.flags & SER_RS485_ENABLED)
++	/*
++	 * Use TXEMPTY for interrupt when rs485 or ISO7816 else TXRDY or
++	 * ENDTX|TXBUFE
++	 */
++	if (port->rs485.flags & SER_RS485_ENABLED ||
++	    port->iso7816.flags & SER_ISO7816_ENABLED)
+ 		atmel_port->tx_done_mask = ATMEL_US_TXEMPTY;
+ 	else if (atmel_use_pdc_tx(port)) {
+ 		port->fifosize = PDC_BUFFER_SIZE;
+diff --git a/drivers/tty/serial/atmel_serial.h b/drivers/tty/serial/atmel_serial.h
+index ba3a2437cde4..d811d4f2d0c0 100644
+--- a/drivers/tty/serial/atmel_serial.h
++++ b/drivers/tty/serial/atmel_serial.h
+@@ -78,7 +78,8 @@
+ #define	ATMEL_US_OVER		BIT(19)	/* Oversampling Mode */
+ #define	ATMEL_US_INACK		BIT(20)	/* Inhibit Non Acknowledge */
+ #define	ATMEL_US_DSNACK		BIT(21)	/* Disable Successive NACK */
+-#define	ATMEL_US_MAX_ITER	GENMASK(26, 24)	/* Max Iterations */
++#define	ATMEL_US_MAX_ITER_MASK	GENMASK(26, 24)	/* Max Iterations */
++#define	ATMEL_US_MAX_ITER(n)	(((n) << 24) & ATMEL_US_MAX_ITER_MASK)
+ #define	ATMEL_US_FILTER		BIT(28)	/* Infrared Receive Line Filter */
+ 
+ #define ATMEL_US_IER		0x08	/* Interrupt Enable Register */
 -- 
 2.12.2
