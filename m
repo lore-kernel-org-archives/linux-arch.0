@@ -1,44 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:45108 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727640AbeIFXI6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 19:08:58 -0400
-Date: Thu, 6 Sep 2018 20:31:57 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Message-ID: <20180906183157.GK24106@hirez.programming.kicks-ass.net>
-References: <20180902173224.30606-1-namit@vmware.com>
- <20180905185617.GC24082@hirez.programming.kicks-ass.net>
- <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
- <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
- <20180906081300.GF24082@hirez.programming.kicks-ass.net>
- <20180906101641.GG24142@hirez.programming.kicks-ass.net>
- <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
- <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
- <9AF220A3-D783-442E-8E5B-AD0150628347@vmware.com>
- <32902EEE-FF64-4C12-A043-1848CC927C88@amacapital.net>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33300 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728418AbeIFXLJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 19:11:09 -0400
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w86ISrs1086936
+        for <linux-arch@vger.kernel.org>; Thu, 6 Sep 2018 14:34:25 -0400
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2mb6bu18ya-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 06 Sep 2018 14:34:25 -0400
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Thu, 6 Sep 2018 14:34:24 -0400
+Date: Thu, 6 Sep 2018 11:34:17 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC LKMM 3/7] EXP tools/memory-model: Add more LKMM
+ limitations
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20180829211018.GA19646@linux.vnet.ibm.com>
+ <20180829211053.20531-3-paulmck@linux.vnet.ibm.com>
+ <20180830091713.GA4617@andrea>
+ <20180830221814.GQ4225@linux.vnet.ibm.com>
+ <20180831094341.GA4634@andrea>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <32902EEE-FF64-4C12-A043-1848CC927C88@amacapital.net>
+In-Reply-To: <20180831094341.GA4634@andrea>
+Message-ID: <20180906183417.GA4225@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Nadav Amit <namit@vmware.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20180906183157.eQM-L1vdIUyc1PYJhG1TVfDiN6QefHrf9-sPqD0vE2U@z>
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Andrea Parri <parri.andrea@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180906183417.TZVPA56izxUQodquMqln_Bfcj26WoupZMtbx8bmTy8I@z>
 
-On Thu, Sep 06, 2018 at 11:09:23AM -0700, Andy Lutomirski wrote:
-> > On Sep 6, 2018, at 10:58 AM, Nadav Amit <namit@vmware.com> wrote:
-> > It depends what security you want. Some may consider even the short
-> > time-window in which the kernel code is writable from other cores as
-> > insufficient for security.
+On Fri, Aug 31, 2018 at 11:43:42AM +0200, Andrea Parri wrote:
+> > > > +	b.	The "unless" RMW operations are not currently modeled:
+> > > > +		atomic_long_add_unless(), atomic_add_unless(),
+> > > > +		atomic_inc_unless_negative(), and
+> > > > +		atomic_dec_unless_positive().  These can be emulated
+> > > > +		in litmus tests, for example, by using atomic_cmpxchg().
+> > > 
+> > > There is a prototype atomic_add_unless(): with current herd7,
+> > > 
+> > > $ cat atomic_add_unless.litmus
+> > > C atomic_add_unless
+> > > 
+> > > {}
+> > > 
+> > > P0(atomic_t *u, atomic_t *v)
+> > > {
+> > > 	int r0;
+> > > 	int r1;
+> > > 
+> > > 	r0 = atomic_add_unless(u, 1, 2);
+> > > 	r1 = atomic_read(v);
+> > > }
+> > > 
+> > > P1(atomic_t *u, atomic_t *v)
+> > > {
+> > > 	int r0;
+> > > 	int r1;
+> > > 
+> > > 	r0 = atomic_add_unless(v, 1, 2);
+> > > 	r1 = atomic_read(u);
+> > > }
+> > > 
+> > > exists (0:r1=0 /\ 1:r1=0)
+> > > 
+> > > $ herd7 -conf linux-kernel.cfg atomic_add_unless.litmus
+> > > Test atomic_add_unless Allowed
+> > > States 3
+> > > 0:r1=0; 1:r1=1;
+> > > 0:r1=1; 1:r1=0;
+> > > 0:r1=1; 1:r1=1;
+> > > No
+> > > Witnesses
+> > > Positive: 0 Negative: 3
+> > > Condition exists (0:r1=0 /\ 1:r1=0)
+> > > Observation atomic_add_unless Never 0 3
+> > > Time atomic_add_unless 0.00
+> > > Hash=fa37a2359831690299e4cc394e45d966
+> > > 
+> > > The last commit in the herdtools7 repo. related to this implementation
+> > > (AFAICT) is:
+> > > 
+> > >   9523c340917b6a ("herd/linux: make atomic_add_unless a primitive, so as to yield more precise dependencies for the returned boolean.")
+> > > 
+> > > but I can only vaguely remember those dependencies issues now :/  ...;
+> > > maybe we can now solve these issues?  or should we change herd7 to re-
+> > > turn a warning?  (Notice that this primitive is currently not exported
+> > > to the linux-kernel.def file.)
 > > 
-> > In addition, the set removes the need for remote TLB shootdowns that
-> > text_poke() - with this fix - requires.
-> > 
+> > Cool!  It would be good to add this to the .def file once the underlying
+> > herd7 machinery is ready.  And then I would update the documentation
+> > accordingly.  Or happily accept a patch updating the documentation,
+> > as the case might be.  ;-)
 > 
-> I’m personally in favor of not needing a global broadcast flush to install kprobes.
+> Fair enough, ;-)  Please feel free to add:
+> 
+> Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 
-That's fine. But at that point its an optimization, not a correctness
-issue.
+Thank you!  Applied and pushed out, updating the lkmm branch in the
+process.
+
+							Thanx, Paul
