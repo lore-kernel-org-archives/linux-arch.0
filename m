@@ -1,35 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48254 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:48678 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727346AbeIFX4r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 19:56:47 -0400
-Date: Thu, 6 Sep 2018 21:19:22 +0200
+        with ESMTP id S1729860AbeIGARX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 20:17:23 -0400
+Date: Thu, 6 Sep 2018 21:40:03 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Message-ID: <20180906191922.GB4816@worktop.programming.kicks-ass.net>
-References: <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
- <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
- <20180906081300.GF24082@hirez.programming.kicks-ass.net>
- <20180906101641.GG24142@hirez.programming.kicks-ass.net>
- <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
- <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
- <9AF220A3-D783-442E-8E5B-AD0150628347@vmware.com>
- <32902EEE-FF64-4C12-A043-1848CC927C88@amacapital.net>
- <20180906183157.GK24106@hirez.programming.kicks-ass.net>
- <9F76711C-393C-4F8D-B460-26D400458690@vmware.com>
+Subject: Re: [PATCH v2 1/6] Fix "x86/alternatives: Lockdep-enforce text_mutex
+ in text_poke*()"
+Message-ID: <20180906194003.GD4816@worktop.programming.kicks-ass.net>
+References: <20180902173224.30606-1-namit@vmware.com>
+ <20180902173224.30606-2-namit@vmware.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <9F76711C-393C-4F8D-B460-26D400458690@vmware.com>
+In-Reply-To: <20180902173224.30606-2-namit@vmware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nadav Amit <namit@vmware.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20180906191922.joXsOGuXPdW0jACmM2A6aZJCQGE2ua2U7w388bAd4gU@z>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Nadav Amit <nadav.amit@gmail.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Kees Cook <keescook@chromium.org>, Dave Hansen <dave.hansen@intel.com>
+Message-ID: <20180906194003.mzlvvrZc93vsvx2D38nGciak_NJXEdON55kT6fl7Q5k@z>
 
-On Thu, Sep 06, 2018 at 06:38:30PM +0000, Nadav Amit wrote:
-> Note that patch 1/6 is still needed to fix false lockdep shoutouts due to a
-> recent patch.
+On Sun, Sep 02, 2018 at 10:32:19AM -0700, Nadav Amit wrote:
+> text_mutex is expected to be held before text_poke() is called, but we
+> cannot add a lockdep assertion since kgdb does not take it, and instead
+> *supposedly* ensures the lock is not taken and will not be acquired by
+> any other core while text_poke() is running.
+> 
+> The reason for the "supposedly" comment is that it is not entirely clear
+> that this would be the case if gdb_do_roundup is zero.
 
-For some reason I do not appear to have 1/6 in my inbox. Let me dig
-through lkml.
+Argh, that's pretty shit code...
+
+Not only is that text_mutex abuse ugly, so too is the fixmap usage from
+IRQ context. I suppose this really does require your alternative mm
+patches for text_poke().
