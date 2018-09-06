@@ -1,96 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:54082 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730209AbeIFTtn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 15:49:43 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w86F4eWB133202
-        for <linux-arch@vger.kernel.org>; Thu, 6 Sep 2018 11:13:44 -0400
-Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2mb5xctemm-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 06 Sep 2018 11:13:43 -0400
-Received: from localhost
-        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 6 Sep 2018 11:13:42 -0400
-Date: Thu, 6 Sep 2018 08:13:36 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC tools/memory-model] Add litmus-test naming scheme
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20180525191020.GA5914@linux.vnet.ibm.com>
- <20180529093050.GB6533@arm.com>
- <20180529121107.GF3803@linux.vnet.ibm.com>
- <20180529201713.GD591@arm.com>
- <20180906000117.GG4225@linux.vnet.ibm.com>
- <20180906135218.GA5212@arm.com>
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:42565 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729991AbeIFUEn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 16:04:43 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180906135218.GA5212@arm.com>
-Message-ID: <20180906151336.GR4225@linux.vnet.ibm.com>
+References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org> <1536036087-15260-2-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1536036087-15260-2-git-send-email-firoz.khan@linaro.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 6 Sep 2018 17:28:24 +0200
+Message-ID: <CAK8P3a1JCnSPi+D+CozhqL0dS9WwXtONDHp4=Kg5kCHrpdYwrw@mail.gmail.com>
+Subject: Re: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi header
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, mingo@kernel.org
-Message-ID: <20180906151336.6bVRMzFU-gd4Wvj8SZSrvd3bqnk20SMFgoNOoSGqgjM@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180906152824.7dGkPgB4VsLSnEZJ9LEDjsWwFskoeyRdOjV6nLRtSnw@z>
 
-On Thu, Sep 06, 2018 at 02:52:18PM +0100, Will Deacon wrote:
-> On Wed, Sep 05, 2018 at 05:01:17PM -0700, Paul E. McKenney wrote:
-> > On Tue, May 29, 2018 at 09:17:13PM +0100, Will Deacon wrote:
-> > > On Tue, May 29, 2018 at 05:11:07AM -0700, Paul E. McKenney wrote:
-> > > > On Tue, May 29, 2018 at 10:30:50AM +0100, Will Deacon wrote:
-> > > > > Hi Paul,
-> > > > > 
-> > > > > On Fri, May 25, 2018 at 12:10:20PM -0700, Paul E. McKenney wrote:
-> > > > > > This commit documents the scheme used to generate the names for the
-> > > > > > litmus tests.
-> > > > > > 
-> > > > > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > > > > > ---
-> > > > > >  README |  136 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
-> > > > > >  1 file changed, 135 insertions(+), 1 deletion(-)
-> > > > > 
-> > > > > Whilst I think documentation like this is extremely important for users,
-> > > > > this feels like it's documenting how to drive parts of diy and I'm not
-> > > > > convinced that it belongs in the kernel source tree as long as the projects
-> > > > > remain separate.
-> > > > > 
-> > > > > Why not contribute this to the herdtools7 documentation, then just reference
-> > > > > that from here? That would also be helpful for other people interested in
-> > > > > memory models, but perhaps not interested in Linux (assuming such people
-> > > > > exist ;).
-> > > > 
-> > > > We would still need at least a pointer from the Linux kernel to that
-> > > > documentation, but I am happy either way.  We probably need examples of
-> > > > the common cases, but probably not a full exposition of all the available
-> > > > herd7 edges.
-> > > 
-> > > Completely agreed.
-> > > 
-> > > > Should this be in the herdtools7 documentation, or as added detail
-> > > > from a variation on the "diyone7 -bell linux-kernel.bell -show edges"
-> > > > command?  If the latter, I suppose that the ones coming from the .bell
-> > > > file might simply be labelled as such.
-> > > 
-> > > Many of the edges aren't specific to the Linux kernel, so I think they
-> > > should be part of the diyone7 documentation. We could then describe only
-> > > the additional edges added by the kernel memory model (e.g. "Once") in
-> > > the kernel documentation.
-> > 
-> > And there are a -lot- of them, and they are likely to change going
-> > forward, both in herd7 and in linux-kernel.bell.  How about if I give
-> > examples and say where they are from and how to get a list, as in the
-> > following --squash commit to be merged with the orginal?
-> 
-> Sure, that looks much easier to maintain. With that, you can add my ack:
-> 
-> Acked-by: Will Deacon <will.deacon@arm.com>
+On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 
-Applied, thank you!
+> +++ b/arch/sparc/include/uapi/asm/unistd.h
+> @@ -15,12 +15,6 @@
+>  #ifndef _UAPI_SPARC_UNISTD_H
+>  #define _UAPI_SPARC_UNISTD_H
+>
+> -#ifndef __32bit_syscall_numbers__
+> -#ifndef __arch64__
+> -#define __32bit_syscall_numbers__
+> -#endif
+> -#endif
 
-And the lkmm branch has finally been updated to indicate the three
-commits that have acks/reviews and thus that appear ready for the
-next merge window, give or take the ongoing discussions.
+This is certainly required in the uapi header as of this patch,
+without it all the numbers are wrong when you include the
+file from user space.
 
-							Thanx, Paul
+I suppose it can be removed later once the header is replaced
+with the two generated versions,
+
+> -/* Bitmask values returned from kern_features system call.  */
+> -#define KERN_FEATURE_MIXED_MODE_STACK  0x00000001
+
+I'm fairly sure this also needs to remain in the uapi/asm/unistd.h header
+as a start, so that user space can call the sys_kern_features() system
+call and interpret its result when only the first patch is applied.
+
+> -#ifdef __32bit_syscall_numbers__
+> -/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
+> - * it never had the plain ones and there is no value to adding those
+> - * old versions into the syscall table.
+> - */
+> -#define __IGNORE_setresuid
+> -#define __IGNORE_getresuid
+> -#define __IGNORE_setresgid
+> -#define __IGNORE_getresgid
+> -#endif
+> -
+> -/* Sparc doesn't have protection keys. */
+> -#define __IGNORE_pkey_mprotect
+> -#define __IGNORE_pkey_alloc
+> -#define __IGNORE_pkey_free
+> -
+
+This part is fine.
+
+      Arnd
