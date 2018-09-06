@@ -1,92 +1,41 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC LKMM 3/7] EXP tools/memory-model: Add more LKMM
- limitations
-Date: Thu, 6 Sep 2018 11:34:17 -0700
-Message-ID: <20180906183417.GA4225@linux.vnet.ibm.com>
-References: <20180829211018.GA19646@linux.vnet.ibm.com>
- <20180829211053.20531-3-paulmck@linux.vnet.ibm.com>
- <20180830091713.GA4617@andrea>
- <20180830221814.GQ4225@linux.vnet.ibm.com>
- <20180831094341.GA4634@andrea>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Nadav Amit <namit@vmware.com>
+Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
+Date: Thu, 6 Sep 2018 18:38:30 +0000
+Message-ID: <9F76711C-393C-4F8D-B460-26D400458690@vmware.com>
+References: <20180902173224.30606-1-namit@vmware.com>
+ <20180905185617.GC24082@hirez.programming.kicks-ass.net>
+ <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
+ <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
+ <20180906081300.GF24082@hirez.programming.kicks-ass.net>
+ <20180906101641.GG24142@hirez.programming.kicks-ass.net>
+ <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
+ <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
+ <9AF220A3-D783-442E-8E5B-AD0150628347@vmware.com>
+ <32902EEE-FF64-4C12-A043-1848CC927C88@amacapital.net>
+ <20180906183157.GK24106@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180831094341.GA4634@andrea>
+In-Reply-To: <20180906183157.GK24106@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <5EC0BAB23E8708448EC3299616BDBDBD@namprd05.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Parri <andrea.parri@amarulasolutions.com>
-Cc: Andrea Parri <parri.andrea@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+To: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 31, 2018 at 11:43:42AM +0200, Andrea Parri wrote:
-> > > > +	b.	The "unless" RMW operations are not currently modeled:
-> > > > +		atomic_long_add_unless(), atomic_add_unless(),
-> > > > +		atomic_inc_unless_negative(), and
-> > > > +		atomic_dec_unless_positive().  These can be emulated
-> > > > +		in litmus tests, for example, by using atomic_cmpxchg().
-> > > 
-> > > There is a prototype atomic_add_unless(): with current herd7,
-> > > 
-> > > $ cat atomic_add_unless.litmus
-> > > C atomic_add_unless
-> > > 
-> > > {}
-> > > 
-> > > P0(atomic_t *u, atomic_t *v)
-> > > {
-> > > 	int r0;
-> > > 	int r1;
-> > > 
-> > > 	r0 = atomic_add_unless(u, 1, 2);
-> > > 	r1 = atomic_read(v);
-> > > }
-> > > 
-> > > P1(atomic_t *u, atomic_t *v)
-> > > {
-> > > 	int r0;
-> > > 	int r1;
-> > > 
-> > > 	r0 = atomic_add_unless(v, 1, 2);
-> > > 	r1 = atomic_read(u);
-> > > }
-> > > 
-> > > exists (0:r1=0 /\ 1:r1=0)
-> > > 
-> > > $ herd7 -conf linux-kernel.cfg atomic_add_unless.litmus
-> > > Test atomic_add_unless Allowed
-> > > States 3
-> > > 0:r1=0; 1:r1=1;
-> > > 0:r1=1; 1:r1=0;
-> > > 0:r1=1; 1:r1=1;
-> > > No
-> > > Witnesses
-> > > Positive: 0 Negative: 3
-> > > Condition exists (0:r1=0 /\ 1:r1=0)
-> > > Observation atomic_add_unless Never 0 3
-> > > Time atomic_add_unless 0.00
-> > > Hash=fa37a2359831690299e4cc394e45d966
-> > > 
-> > > The last commit in the herdtools7 repo. related to this implementation
-> > > (AFAICT) is:
-> > > 
-> > >   9523c340917b6a ("herd/linux: make atomic_add_unless a primitive, so as to yield more precise dependencies for the returned boolean.")
-> > > 
-> > > but I can only vaguely remember those dependencies issues now :/  ...;
-> > > maybe we can now solve these issues?  or should we change herd7 to re-
-> > > turn a warning?  (Notice that this primitive is currently not exported
-> > > to the linux-kernel.def file.)
-> > 
-> > Cool!  It would be good to add this to the .def file once the underlying
-> > herd7 machinery is ready.  And then I would update the documentation
-> > accordingly.  Or happily accept a patch updating the documentation,
-> > as the case might be.  ;-)
-> 
-> Fair enough, ;-)  Please feel free to add:
-> 
-> Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-
-Thank you!  Applied and pushed out, updating the lkmm branch in the
-process.
-
-							Thanx, Paul
+YXQgMTE6MzEgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6
+DQoNCj4gT24gVGh1LCBTZXAgMDYsIDIwMTggYXQgMTE6MDk6MjNBTSAtMDcwMCwgQW5keSBMdXRv
+bWlyc2tpIHdyb3RlOg0KPj4+IE9uIFNlcCA2LCAyMDE4LCBhdCAxMDo1OCBBTSwgTmFkYXYgQW1p
+dCA8bmFtaXRAdm13YXJlLmNvbT4gd3JvdGU6DQo+Pj4gSXQgZGVwZW5kcyB3aGF0IHNlY3VyaXR5
+IHlvdSB3YW50LiBTb21lIG1heSBjb25zaWRlciBldmVuIHRoZSBzaG9ydA0KPj4+IHRpbWUtd2lu
+ZG93IGluIHdoaWNoIHRoZSBrZXJuZWwgY29kZSBpcyB3cml0YWJsZSBmcm9tIG90aGVyIGNvcmVz
+IGFzDQo+Pj4gaW5zdWZmaWNpZW50IGZvciBzZWN1cml0eS4NCj4+PiANCj4+PiBJbiBhZGRpdGlv
+biwgdGhlIHNldCByZW1vdmVzIHRoZSBuZWVkIGZvciByZW1vdGUgVExCIHNob290ZG93bnMgdGhh
+dA0KPj4+IHRleHRfcG9rZSgpIC0gd2l0aCB0aGlzIGZpeCAtIHJlcXVpcmVzLg0KPj4gDQo+PiBJ
+4oCZbSBwZXJzb25hbGx5IGluIGZhdm9yIG9mIG5vdCBuZWVkaW5nIGEgZ2xvYmFsIGJyb2FkY2Fz
+dCBmbHVzaCB0byBpbnN0YWxsIGtwcm9iZXMuDQo+IA0KPiBUaGF0J3MgZmluZS4gQnV0IGF0IHRo
+YXQgcG9pbnQgaXRzIGFuIG9wdGltaXphdGlvbiwgbm90IGEgY29ycmVjdG5lc3MNCj4gaXNzdWUu
+DQoNCk5vdGUgdGhhdCBwYXRjaCAxLzYgaXMgc3RpbGwgbmVlZGVkIHRvIGZpeCBmYWxzZSBsb2Nr
+ZGVwIHNob3V0b3V0cyBkdWUgdG8gYQ0KcmVjZW50IHBhdGNoLg0KDQo=
