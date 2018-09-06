@@ -1,152 +1,90 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC tools/memory-model] Add litmus-test naming scheme
-Date: Thu, 6 Sep 2018 14:52:18 +0100
-Message-ID: <20180906135218.GA5212@arm.com>
-References: <20180525191020.GA5914@linux.vnet.ibm.com>
- <20180529093050.GB6533@arm.com>
- <20180529121107.GF3803@linux.vnet.ibm.com>
- <20180529201713.GD591@arm.com>
- <20180906000117.GG4225@linux.vnet.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH V3 02/26] csky: defconfig
+Date: Thu, 6 Sep 2018 15:58:51 +0200
+Message-ID: <CAK8P3a1obhCyZcY6D-X7_HnGnHCO3+srZQXniThiMNqvxLSQzA@mail.gmail.com>
+References: <cover.1536138304.git.ren_guo@c-sky.com> <dc7a52f2c2571a85c87e163d49cecddd3c2f2430.1536138304.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180906000117.GG4225@linux.vnet.ibm.com>
+In-Reply-To: <dc7a52f2c2571a85c87e163d49cecddd3c2f2430.1536138304.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, andrea.parri@amarulasolutions.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, mingo@kernel.org
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 05, 2018 at 05:01:17PM -0700, Paul E. McKenney wrote:
-> On Tue, May 29, 2018 at 09:17:13PM +0100, Will Deacon wrote:
-> > On Tue, May 29, 2018 at 05:11:07AM -0700, Paul E. McKenney wrote:
-> > > On Tue, May 29, 2018 at 10:30:50AM +0100, Will Deacon wrote:
-> > > > Hi Paul,
-> > > > 
-> > > > On Fri, May 25, 2018 at 12:10:20PM -0700, Paul E. McKenney wrote:
-> > > > > This commit documents the scheme used to generate the names for the
-> > > > > litmus tests.
-> > > > > 
-> > > > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > > > > ---
-> > > > >  README |  136 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
-> > > > >  1 file changed, 135 insertions(+), 1 deletion(-)
-> > > > 
-> > > > Whilst I think documentation like this is extremely important for users,
-> > > > this feels like it's documenting how to drive parts of diy and I'm not
-> > > > convinced that it belongs in the kernel source tree as long as the projects
-> > > > remain separate.
-> > > > 
-> > > > Why not contribute this to the herdtools7 documentation, then just reference
-> > > > that from here? That would also be helpful for other people interested in
-> > > > memory models, but perhaps not interested in Linux (assuming such people
-> > > > exist ;).
-> > > 
-> > > We would still need at least a pointer from the Linux kernel to that
-> > > documentation, but I am happy either way.  We probably need examples of
-> > > the common cases, but probably not a full exposition of all the available
-> > > herd7 edges.
-> > 
-> > Completely agreed.
-> > 
-> > > Should this be in the herdtools7 documentation, or as added detail
-> > > from a variation on the "diyone7 -bell linux-kernel.bell -show edges"
-> > > command?  If the latter, I suppose that the ones coming from the .bell
-> > > file might simply be labelled as such.
-> > 
-> > Many of the edges aren't specific to the Linux kernel, so I think they
-> > should be part of the diyone7 documentation. We could then describe only
-> > the additional edges added by the kernel memory model (e.g. "Once") in
-> > the kernel documentation.
-> 
-> And there are a -lot- of them, and they are likely to change going
-> forward, both in herd7 and in linux-kernel.bell.  How about if I give
-> examples and say where they are from and how to get a list, as in the
-> following --squash commit to be merged with the orginal?
+On Wed, Sep 5, 2018 at 2:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
+>
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> ---
+>  arch/csky/configs/defconfig | 76 +++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 76 insertions(+)
+>  create mode 100644 arch/csky/configs/defconfig
+>
+> diff --git a/arch/csky/configs/defconfig b/arch/csky/configs/defconfig
+> new file mode 100644
+> index 0000000..c6a5a40
+> --- /dev/null
+> +++ b/arch/csky/configs/defconfig
+> @@ -0,0 +1,76 @@
+> +# CONFIG_LOCALVERSION_AUTO is not set
+> +CONFIG_DEFAULT_HOSTNAME="csky"
+> +# CONFIG_SWAP is not set
+> +CONFIG_SYSVIPC=y
+> +CONFIG_POSIX_MQUEUE=y
+> +CONFIG_USELIB=y
 
-Sure, that looks much easier to maintain. With that, you can add my ack:
+CONFIG_USELIB seems misplaced here, very few architectures can even
+call that, and it's not in the asm-generic/unistd.h file.
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+> +CONFIG_RELAY=y
 
-Cheers,
+relay is selected by drivers that need it, you should not need to turn
+it on here.
 
-Will
+> +CONFIG_SYSCTL_SYSCALL=y
 
-> ------------------------------------------------------------------------
-> 
-> commit e366b8cd832535894c55265c112355c4de9a3247
-> Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Date:   Wed Sep 5 15:38:00 2018 -0700
-> 
->     squash! EXP tools/memory-model: Add litmus-test naming scheme
->     
->     Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->     [ paulmck: Apply feedback from Will Deacon. ]
-> 
-> diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-> index 08c1116c0314..5ee08f129094 100644
-> --- a/tools/memory-model/litmus-tests/README
-> +++ b/tools/memory-model/litmus-tests/README
-> @@ -243,56 +243,11 @@ produce the name:
->  
->  Adding the ".litmus" suffix: SB+rfionceonce-poonceonces.litmus
->  
-> +The descriptors that describe connections between consecutive accesses
-> +within the cycle through a given litmus test can be provided by the herd
-> +tool (Rfi, Po, Fre, and so on) or by the linux-kernel.bell file (Once,
-> +Release, Acquire, and so on).
->  
-> -=======================
-> -LITMUS TEST DESCRIPTORS
-> -=======================
-> -
-> -These descriptors cover connections between consecutive accesses within
-> -the cycle through a given litmus test:
-> -
-> -Fre: From-read external.  The current process wrote a variable that
-> -	the previous process read.  Example: The SB (store buffering) test.
-> -Fri: From-read internal.  This process read a variable and then
-> -	immediately wrote to it.  Example: ???
-> -PodRR: Program-order different variable, read followed by read.
-> -	This process read a variable and again read a different variable.
-> -	Example: The read-side process in the MP (message-passing) test.
-> -PodRW: Program-order different variable, read followed by write.
-> -	This process read a variable and then wrote a different variable.
-> -	Example: The LB (load buffering) test.
-> -PodWR: Program-order different variable, write followed by read.
-> -	This process wrote a variable and then read a different variable.
-> -	Example: The SB (store buffering) test.
-> -PodWW: Program-order different variable, write followed by write.
-> -	This process wrote a variable and again wrote a different variable.
-> -	Example: The write-side process in the MP (message-passing) test.
-> -PosRR: Program-order same variable, read followed by read.
-> -	This process read a variable and again read that same variable.
-> -	Example: ???
-> -PosRW: Program-order same variable, read followed by write.
-> -	This process read a variable and then wrote that same variable.
-> -	Example: ???
-> -PosWR: Program-order same variable, write followed by read.
-> -	This process wrote a variable and then read that same variable.
-> -	Example: ???
-> -PosWW: Program-order same variable, write followed by write.
-> -	This process wrote a variable and again wrote that same variable.
-> -	Example: ???
-> -Rfe: Read-from external.  The current process read a variable written
-> -	by the previous process.  Example: The MP (message passing) test.
-> -Rfi: Read-from internal.  The current process wrote a variable and then
-> -	immediately read the value back from it.  For the purposes
-> -	of litmus-test code generation, Rfi acts identically to PosWR.
-> -	However, they differ for purposes of naming, and they also result
-> -	in different "exists" clauses.
-> -	Example:  ???
-> -Wse: Write same external.  The current process wrote to a variable that
-> -	was also written to by the previous process.  Example:  ???
-> -Wsi: Write same internal.  The current process wrote to a variable and
-> -	then immediately wrote to it again.  Example:  ???
-> -
-> -Please note that the above is a partial list.  To see the full list of
-> -descriptors, execute the following command:
-> +To see the full list of descriptors, execute the following command:
->  
->  	$ diyone7 -bell linux-kernel.bell -show edges
-> 
+Also not in the asm-generic syscall table. We should probably hide the
+CONFIG_USELIB and CONFIG_SYSCTL_SYSCALL options so they
+only appear on architectures that can use them (patches welcome).
+
+> +CONFIG_KALLSYMS_ALL=y
+
+While useful for debugging, this is also something I would not expect
+in the defconfig file
+
+> +CONFIG_USERFAULTFD=y
+
+Probably not needed either, unless you have a specific use
+case.
+
+> +CONFIG_EMBEDDED=y
+
+This (and CONFIG_EXPERT) is mostly there to expose options
+that are otherwise hidden for good reasons. Is there any option
+you tweak that depends on this? If not, then remove this as well.
+
+> +CONFIG_PROFILING=y
+
+This is only for oprofile, which new architectures should generally
+no longer implement. Better implement PERF only.
+
+> +CONFIG_BLK_DEV_INTEGRITY=y
+
+This is also fairly unusual.
+
+> +CONFIG_EXT2_FS=y
+> +CONFIG_EXT2_FS_XATTR=y
+> +CONFIG_EXT2_FS_POSIX_ACL=y
+> +CONFIG_EXT2_FS_SECURITY=y
+> +CONFIG_EXT3_FS=y
+> +CONFIG_EXT3_FS_POSIX_ACL=y
+> +CONFIG_EXT3_FS_SECURITY=y
+
+Better enable only EXT4 and drop EXT2/EXT3.
+
+> +CONFIG_UNUSED_SYMBOLS=y
+
+You should only need this to work around bugs, so
+I'd turn it off.
+
+       Arnd
