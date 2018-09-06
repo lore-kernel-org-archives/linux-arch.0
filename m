@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49696 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728106AbeIFV7f (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 17:59:35 -0400
-Date: Thu, 6 Sep 2018 19:23:00 +0200
-From: Peter Zijlstra <peterz@infradead.org>
+Received: from mail-bn3nam01on0043.outbound.protection.outlook.com ([104.47.33.43]:18412
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728002AbeIFWfZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 6 Sep 2018 18:35:25 -0400
+From: Nadav Amit <namit@vmware.com>
 Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Message-ID: <20180906172300.GK24082@hirez.programming.kicks-ass.net>
+Date: Thu, 6 Sep 2018 17:58:46 +0000
+Message-ID: <9AF220A3-D783-442E-8E5B-AD0150628347@vmware.com>
 References: <20180902173224.30606-1-namit@vmware.com>
  <20180905185617.GC24082@hirez.programming.kicks-ass.net>
  <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
@@ -14,32 +15,65 @@ References: <20180902173224.30606-1-namit@vmware.com>
  <20180906081300.GF24082@hirez.programming.kicks-ass.net>
  <20180906101641.GG24142@hirez.programming.kicks-ass.net>
  <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
+ <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180906171754.GJ24106@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <4A722F72CAF7CC4287FF9C1679A62E18@namprd05.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <6703CD9F-2D84-4449-A423-A4DC24677673@vmware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nadav Amit <namit@vmware.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20180906172300.9BES8SqbB0hAwR3QLqQ7KbzjutohxF9E36Samaxf0AY@z>
+Message-ID: <20180906175846.oMHZir3sP-3c-kjcQcj5umAo2qna69dfrJX3miKpWUU@z>
 
-On Thu, Sep 06, 2018 at 05:01:25PM +0000, Nadav Amit wrote:
-> I’ll give your patch a try once my server goes back online. I was (and still
-> am) worried that interrupts would be disabled when __set_pte_vaddr() is
-> called, which would make the fix more complicated.
-
-Thing is, we only need the TLB invalidate if the previous PTE was
-present and the new PTE is different. If we write the 'first' PTE, all
-is fine.
-
-The code as presented WARNs if we do __set_pte_vaddr() that needs a TLB
-invalidate and we have IRQs disabled. And aside from the GHES
-trainwreck, the patch as given boots and runs fine on my machine.
-
-And no, if there is a caller that has interrupts disabled and needs TLB
-invalidate, the patch still is right. Just means that caller is
-terminally broken and needs fixing (like GHES).
-
-There is no way x86 can do what needs done with IRQs disabled.
+YXQgMTA6MTcgQU0sIFBldGVyIFppamxzdHJhIDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4gd3JvdGU6
+DQoNCj4gT24gVGh1LCBTZXAgMDYsIDIwMTggYXQgMDU6MDE6MjVQTSArMDAwMCwgTmFkYXYgQW1p
+dCB3cm90ZToNCj4+IEluIGFkZGl0aW9uLCB0aGVyZSBtaWdodCBiZSBhIGNvdXBsZSBvZiBpc3N1
+ZXMgd2l0aCB5b3VyIGZpeDoNCj4gDQo+IEl0IGJvb3RzIG9uIG15IGJveCA7LSkNCj4gDQo+PiAx
+LiBfX3NldF9wdGVfdmFkZHIoKSBpcyBub3QgdXNlZCBleGNsdXNpdmUgYnkgc2V0X2ZpeG1hcCgp
+LiBUaGlzIG1lYW5zDQo+PiB0aGUgd2FybmluZyBtaWdodCBiZSB3cm9uZywgYnV0IGFsc28gbWVh
+bnMgdGhhdCB0aGVzZSBjb2RlIHBhdGNoZXMgKFhlbuKAmXMNCj4+IHNldF9wdGVfbWZuKCksIENQ
+VS1lbnRyeS1hcmVhIHNldHVwKSBuZWVkcyB0byBiZSBjaGVja2VkLiBBbmQgYXMgeW91IHNhaWQN
+Cj4+IGJlZm9yZSwgc29tZW9uZSBtaWdodCB1c2UgdGhpcyBmdW5jdGlvbiBmb3Igb3RoZXIgcHVy
+cG9zZXMgYXMgd2VsbC4NCj4gDQo+IENFQSBpcyBmaW5lLCB0aGF0IGFjdHVhbGx5IG5lZWRzIGl0
+IHRvby4NCj4gDQo+IFRoZSBvbmUgdGhpbmcgSSBtaXNzZWQgb3V0IG9uIGVhcmxpZXIgaXMgdGhl
+IGJlbG93IGNodW5rLCB0aGF0IGlzIG5vDQo+IGxvbmdlciBuZWVkZWQgbm93IHRoYXQgY2VhX3Nl
+dF9wdGUoKSBhY3R1YWxseSBkb2VzIHRoZSByaWdodCB0aGluZy4NCj4gDQo+IGRpZmYgLS1naXQg
+YS9hcmNoL3g4Ni9ldmVudHMvaW50ZWwvZHMuYyBiL2FyY2gveDg2L2V2ZW50cy9pbnRlbC9kcy5j
+DQo+IGluZGV4IGI3YjAxZDc2MmQzMi4uMTRhZDk3ZmEwNzQ5IDEwMDY0NA0KPiAtLS0gYS9hcmNo
+L3g4Ni9ldmVudHMvaW50ZWwvZHMuYw0KPiArKysgYi9hcmNoL3g4Ni9ldmVudHMvaW50ZWwvZHMu
+Yw0KPiBAQCAtMjkzLDEyICsyOTMsNiBAQCBzdGF0aWMgdm9pZCBkc191cGRhdGVfY2VhKHZvaWQg
+KmNlYSwgdm9pZCAqYWRkciwgc2l6ZV90IHNpemUsIHBncHJvdF90IHByb3QpDQo+IHByZWVtcHRf
+ZGlzYWJsZSgpOw0KPiBmb3IgKDsgbXN6IDwgc2l6ZTsgbXN6ICs9IFBBR0VfU0laRSwgcGEgKz0g
+UEFHRV9TSVpFLCBjZWEgKz0gUEFHRV9TSVpFKQ0KPiBjZWFfc2V0X3B0ZShjZWEsIHBhLCBwcm90
+KTsNCj4gLQ0KPiAtIC8qDQo+IC0gICogVGhpcyBpcyBhIGNyb3NzLUNQVSB1cGRhdGUgb2YgdGhl
+IGNwdV9lbnRyeV9hcmVhLCB3ZSBtdXN0IHNob290IGRvd24NCj4gLSAgKiBhbGwgVExCIGVudHJp
+ZXMgZm9yIGl0Lg0KPiAtICAqLw0KPiAtIGZsdXNoX3RsYl9rZXJuZWxfcmFuZ2Uoc3RhcnQsIHN0
+YXJ0ICsgc2l6ZSk7DQo+IHByZWVtcHRfZW5hYmxlKCk7DQo+IH0NCj4gDQo+IEBAIC0zMTAsOCAr
+MzA0LDYgQEAgc3RhdGljIHZvaWQgZHNfY2xlYXJfY2VhKHZvaWQgKmNlYSwgc2l6ZV90IHNpemUp
+DQo+IHByZWVtcHRfZGlzYWJsZSgpOw0KPiBmb3IgKDsgbXN6IDwgc2l6ZTsgbXN6ICs9IFBBR0Vf
+U0laRSwgY2VhICs9IFBBR0VfU0laRSkNCj4gY2VhX3NldF9wdGUoY2VhLCAwLCBQQUdFX05PTkUp
+Ow0KPiAtDQo+IC0gZmx1c2hfdGxiX2tlcm5lbF9yYW5nZShzdGFydCwgc3RhcnQgKyBzaXplKTsN
+Cj4gcHJlZW1wdF9lbmFibGUoKTsNCj4gfQ0KPiANCj4gDQo+PiAyLiBQcmludGluZyB0aGUgdmly
+dHVhbCBhZGRyZXNzIGNhbiBicmVhayBLQVNMUi4NCj4gDQo+IExvY2FsIEtBU0xSIGlzIGEgbXl0
+aC4uIGJ1dCBzdXJlLCB3ZSBjYW4gZml4IHRoZSBwcmludC4NCj4gDQo+PiAzLiBUaGUgV0FSTigp
+IGNhbiBpbnRyb2R1Y2Ugc29tZSBvdmVyaGVhZCBzaW5jZSBjaGVja2luZyBpZiBJUlFzIGFyZQ0K
+Pj4gZGlzYWJsZWQgdGFrZXMgY29uc2lkZXJhYmx5IGxvbmcgdGltZS4gUGVyaGFwcyBWTV9XQVJO
+KCkgb3Igc29tZXRoaW5nIGlzDQo+PiBiZXR0ZXIuIEkgcmVhbGl6ZSB0aGlzIGNvZGUtcGF0aCBp
+cyBub3Qgb24gdGhlIGhvdC1wYXRoIHRob3VnaC4uLg0KPiANCj4gWWVhaCwgaWYgaXQgdHJpZ2dl
+cnMgeW91IGhhdmUgYmlnZ2VyIHByb2JsZW1zLiBXZSBjYW4gbWFrZSBpdA0KPiBXQVJOX09OQ0Uo
+KSBJIHN1cHBvc2UuDQo+IA0KPj4gNC4gSSBndWVzcyBmbHVzaF90bGJfa2VybmVsX3JhbmdlKCkg
+c2hvdWxkIGFsc28gaGF2ZSBzb21ldGhpbmcgbGlrZQ0KPj4gVk1fV0FSTl9PTihpcnFzX2Rpc2Fi
+bGVkKCkpLCBqdXN0IGFzIGFuIGFkZGl0aW9uYWwgZ2VuZXJhbCBzYW5pdHkgY2hlY2suDQo+IA0K
+PiBJdCBoYXMsIGl0J3MgaGlkZGVuIGluIGtlcm5lbC9zbXAuYzpzbXBfY2FsbF9mdW5jdGlvbl9t
+YW55KCkuDQoNClJpZ2h0LiBUaGFua3MuDQoNCj4gDQo+PiBMZXQgbWUga25vdyBpZiB5b3Ugd2Fu
+dCBtZSB0byBtYWtlIHRoZXNlIGNoYW5nZXMgYW5kIGluY2x1ZGUgeW91ciBwYXRjaCBpbg0KPj4g
+dGhlIHNldC4NCj4gDQo+IFRoZSBzZXQgaXMgbm8gbG9uZ2VyIG5lZWRlZC4gdGV4dF9wb2tlKCkg
+aXMgZmluZSBhbmQgY29ycmVjdCB3aXRoIHRoaXMNCj4gb25lIHBhdGNoLg0KDQpJdCBkZXBlbmRz
+IHdoYXQgc2VjdXJpdHkgeW91IHdhbnQuIFNvbWUgbWF5IGNvbnNpZGVyIGV2ZW4gdGhlIHNob3J0
+DQp0aW1lLXdpbmRvdyBpbiB3aGljaCB0aGUga2VybmVsIGNvZGUgaXMgd3JpdGFibGUgZnJvbSBv
+dGhlciBjb3JlcyBhcw0KaW5zdWZmaWNpZW50IGZvciBzZWN1cml0eS4NCg0KSW4gYWRkaXRpb24s
+IHRoZSBzZXQgcmVtb3ZlcyB0aGUgbmVlZCBmb3IgcmVtb3RlIFRMQiBzaG9vdGRvd25zIHRoYXQN
+CnRleHRfcG9rZSgpIC0gd2l0aCB0aGlzIGZpeCAtIHJlcXVpcmVzLg0KDQo=
