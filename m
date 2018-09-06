@@ -1,38 +1,57 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v5 10/16] x86/mce: enable Hygon support to MCE
- infrastructure
-Date: Thu, 6 Sep 2018 11:52:42 +0800
-Message-ID: <a9b7aa87-c99a-42ee-48df-69bec64bb468@hygon.cn>
-References: <cover.1535459012.git.puwen@hygon.cn>
- <c1e803bc54984e54ca67278930588e85b65bb26f.1535459013.git.puwen@hygon.cn>
- <20180905092234.GC2237@zn.tnic>
- <01604799-b993-e530-817c-ad097d343fc4@hygon.cn>
- <20180905131427.GI2237@zn.tnic>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
+Date: Thu, 6 Sep 2018 10:13:00 +0200
+Message-ID: <20180906081300.GF24082@hirez.programming.kicks-ass.net>
+References: <20180902173224.30606-1-namit@vmware.com>
+ <20180905185617.GC24082@hirez.programming.kicks-ass.net>
+ <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
+ <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180905131427.GI2237@zn.tnic>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+To: Nadav Amit <namit@vmware.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/5 21:15, Borislav Petkov wrote:
-> On Wed, Sep 05, 2018 at 08:59:24PM +0800, Pu Wen wrote:
->> If CONFIG_X86_MCE_AMD=n, mce_hygon_feature_init will call the other
->> one mce_amd_feature_init which is a null function and located in the
->> else branch of "#ifdef CONFIG_X86_MCE_AMD". The compilation is OK and
->> the kernel will run without MCE support.
+On Wed, Sep 05, 2018 at 07:10:46PM +0000, Nadav Amit wrote:
+> at 12:02 PM, Nadav Amit <namit@vmware.com> wrote:
 > 
-> So my question was rather ironic but I guess irony can't travel through
-> mail. So let me paraphrase: is that a use case you wanna support?
-> Because I'd advise very strongly against !MCE kernels.
+> > at 11:56 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > 
+> >> On Sun, Sep 02, 2018 at 10:32:18AM -0700, Nadav Amit wrote:
+> >>> This patch-set addresses some issues that were raised in a recent
+> >>> correspondence and might affect the security and the correctness of code
+> >>> patching. (Note that patching performance is not addressed by this
+> >>> patch-set).
+> >>> 
+> >>> The main issue that the patches deal with is the fact that the fixmap
+> >>> PTEs that are used for patching are available for access from other
+> >>> cores and might be exploited. They are not even flushed from the TLB in
+> >>> remote cores, so the risk is even higher. Address this issue by
+> >>> introducing a temporary mm that is only used during patching.
+> >>> Unfortunately, due to init ordering, fixmap is still used during
+> >>> boot-time patching. Future patches can eliminate the need for it.
+> >> 
+> >> Remind me; why are we doing it like this instead of fixing fixmap?
+> >> Because while this fixes the text_poke crud, it does leave fixmap
+> >> broken.
+> > 
+> > Do you have other fixmap mappings in mind that are modified after boot?
+> 
+> Oh.. I misunderstood you. You mean: why not to make the fixmap mappings that
+> are used for text_poke() as private ones.
 
-In most of the normal use cases MCE is necessary. Rarely in some cases
-such as for test purpose MCE may be unselected.
+No, you got it the first time. There are in fact more fixmap abusers;
+see drivers/acpi/apei/ghes.c.  Also, as long as set_fixmap() allows
+overwriting a _PAGE_PRESENT pte and has that dodgy
+__flush_tlb_one_kernel() in it, the broken remains (and can return).
 
--- 
-Regards,
-Pu Wen
+So we need to fix fixmap, to either disallow overwriting a _PAGE_PRESENT
+pte, or to issue a full TLB invalidate.
+
+Either fix will terminally break GHES, but that's OK, they've known
+about this issue since 2015 and haven't cared, so I can't be bothered
+about them.
