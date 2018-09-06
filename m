@@ -1,97 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:42066 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726541AbeIFNws (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 09:52:48 -0400
-Date: Thu, 6 Sep 2018 11:18:05 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 0/6] x86/alternatives: text_poke() fixes
-Message-ID: <20180906091805.GF24142@hirez.programming.kicks-ass.net>
-References: <20180902173224.30606-1-namit@vmware.com>
- <20180905185617.GC24082@hirez.programming.kicks-ass.net>
- <8D3CE999-6D3A-4984-934A-634BDD8AC25A@vmware.com>
- <6B256AB7-0158-47DF-B2D5-4C835579F3A3@vmware.com>
- <20180906081300.GF24082@hirez.programming.kicks-ass.net>
+Received: from mail-ed1-f68.google.com ([209.85.208.68]:37704 "EHLO
+        mail-ed1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726389AbeIFOLl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 10:11:41 -0400
+Received: by mail-ed1-f68.google.com with SMTP id a20-v6so8352451edd.4
+        for <linux-arch@vger.kernel.org>; Thu, 06 Sep 2018 02:37:04 -0700 (PDT)
+Date: Thu, 6 Sep 2018 11:36:55 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Message-ID: <20180906093655.GA9653@andrea>
+References: <20180903090153.GA4560@andrea>
+ <Pine.LNX.4.44L0.1809052115490.2261-100000@netrider.rowland.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180906081300.GF24082@hirez.programming.kicks-ass.net>
+In-Reply-To: <Pine.LNX.4.44L0.1809052115490.2261-100000@netrider.rowland.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nadav Amit <namit@vmware.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, Jiri Kosina <jkosina@suse.cz>, Andy Lutomirski <luto@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20180906091805.fIj_RjmfwrV5hQqJv1pZIPfQOKHlKAWChDbNp-km-tg@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Will Deacon <will.deacon@arm.com>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180906093655.I7kIPeCRIFw8w55xQ49KfqwIHX_jJkJMPbM35U4inSE@z>
 
-On Thu, Sep 06, 2018 at 10:13:00AM +0200, Peter Zijlstra wrote:
-> No, you got it the first time. There are in fact more fixmap abusers;
-> see drivers/acpi/apei/ghes.c.  Also, as long as set_fixmap() allows
-> overwriting a _PAGE_PRESENT pte and has that dodgy
-> __flush_tlb_one_kernel() in it, the broken remains (and can return).
+On Wed, Sep 05, 2018 at 09:25:40PM -0400, Alan Stern wrote:
+> On Mon, 3 Sep 2018, Andrea Parri wrote:
 > 
-> So we need to fix fixmap, to either disallow overwriting a _PAGE_PRESENT
-> pte, or to issue a full TLB invalidate.
+> > I take this opportunity to summarize my viewpoint on these matters:
+> > 
+
+
+[1st approach/fix]
+
+> > Someone would have to write the commit message for the above diff ...
+> > that is, to describe -why- we should go RCtso (and update the documen-
+> > tation accordingly); by now, the only argument for this appears to be:
+> > "(most) people expect strong ordering" _and they will be "lazy enough"
+> > to not check their expectations by using the LKMM tool (paraphrasing
+> > from [1]); IAC, Linux "might work" better if we add this ordering to
+> > the LKMM.  Agreeing on such an approach would mean agreeing that this
+> > argument "wins" over:
+> > 
+> >   "We want new architectures to implement acquire/release efficiently,
+> >    and it's not unlikely that they will have acquire loads that are
+> >    similar in semantics to LDAPR." [2]
+> > 
+> >   "RISC-V probably would have been RCpc [...]  it takes extra fences
+> >    to go from RCpc to either "RCtso" or RCsc." [3]
+> > 
+> > (or similar instances) since, of course, there is no such thing as a
+> > "free strong ordering"; and I'm not only talking about "efficiency",
+> > I'm also thinking at the fact that someone will have to maintain that
+> > ordering across all the architectures and in the LKMM.
+> > 
+
+
+[2nd approach/fix]
+
+> > If, OTOH, we agree that the above "win"/assumption is valid only for
+> > locks or, in other/better words, if we agree that we should maintain
+> > _two_ distinct release-acquire orderings (a first one for unlock-lock
+> > sequences and a second one for ordinary/atomic release-acquire, say,
+> > as proposed in the patch under RFC),
 > 
-> Either fix will terminally break GHES, but that's OK, they've known
-> about this issue since 2015 and haven't cared, so I can't be bothered
-> about them.
+> In fact, there have have been _two_ proposals along this line.  One as
+> you describe here (which is what the 1/7 patch under discussion does),
+> and another in which unlock-lock sequences and atomic acquire-release
+> sequences both have "RCtso" semantics while ordinary acquire/release
+> sequences have RCpc semantics.  You should consider the second
+> proposal.  It could be put into the LKMM quite easily by building upon
+> this 1/7 patch.
 
-The below, combined with your text_poke() patches (text_poke disabled
-IRQs, so the below still complains, and I was lazy) makes my machine
-(mostly) happy.
+I posted a prototype here (no replies from other LKMM maintainers):
 
-There's still some complaining before the poking_mm exists. Let me see
-if I can't cure that.
+  http://lkml.kernel.org/r/20180712212351.GA5480@andrea
 
----
+I'm certainly willing to consider it, but I would agree with you in
+saying that this proposal follows this second "approach" above  (in
+part., it might be subject to the same/similar counterarguments).
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index dd519f372169..8df85fe66332 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -259,15 +260,27 @@ static pte_t *fill_pte(pmd_t *pmd, unsigned long vaddr)
- static void __set_pte_vaddr(pud_t *pud, unsigned long vaddr, pte_t new_pte)
- {
- 	pmd_t *pmd = fill_pmd(pud, vaddr);
--	pte_t *pte = fill_pte(pmd, vaddr);
-+	pte_t *ptep = fill_pte(pmd, vaddr);
- 
--	set_pte(pte, new_pte);
-+	pte_t pte = *ptep;
- 
--	/*
--	 * It's enough to flush this one mapping.
--	 * (PGE mappings get flushed as well)
--	 */
--	__flush_tlb_one_kernel(vaddr);
-+	set_pte(ptep, new_pte);
-+
-+	if (irqs_disabled()) {
-+		WARN((pte_val(pte) & _PAGE_PRESENT) && (pte_val(pte) != pte_val(new_pte)),
-+				"set_fixmap(%d, %lx), was: %lx",
-+				(int)__virt_to_fix(vaddr),
-+				pte_val(new_pte), pte_val(pte));
-+
-+		/*
-+		 * It is _NOT_ enough to flush just the local mapping;
-+		 * it might mostly work, but there is no guarantee a remote
-+		 * CPU didn't load this entry into its TLB.
-+		 */
-+		__flush_tlb_one_kernel(vaddr);
-+	} else {
-+		flush_tlb_kernel_range(vaddr, vaddr + PAGE_SIZE);
-+	}
- }
- 
- void set_pte_vaddr_p4d(p4d_t *p4d_page, unsigned long vaddr, pte_t new_pte)
-diff --git a/drivers/acpi/apei/Kconfig b/drivers/acpi/apei/Kconfig
-index 52ae5438edeb..e3c415bdbfbf 100644
---- a/drivers/acpi/apei/Kconfig
-+++ b/drivers/acpi/apei/Kconfig
-@@ -19,6 +19,7 @@ config ACPI_APEI
- 
- config ACPI_APEI_GHES
- 	bool "APEI Generic Hardware Error Source"
-+	depends on BROKEN
- 	depends on ACPI_APEI
- 	select ACPI_HED
- 	select IRQ_WORK
+
+> 
+> >  I ask that we audit and modify
+> > the generic code accordingly/as suggested in other posts _before_ we
+> > upstream the changes for the LKMM: we should identify those places
+> > where (the newly introduced) _gap_ between unlock-lock and the other
+> > release-acquire is not admissible and fix those places (notice that
+> > this entails, in part., agreeing on what/where the generic code is).
+> 
+> Have you noticed any part of the generic code that relies on ordinary 
+> acquire-release (rather than atomic RMW acquire-release) in order to 
+> implement locking constructs?
+
+There are several places in code where the "lock-acquire" seems to be
+provided by an atomic_cond_read_acquire/smp_cond_load_acquire: I have
+mentioned one in qspinlock in this thread; qrwlock and mcs_spinlock
+provide other examples (grep for the primitives...).
+
+As long as we don't consider these primitive as RMW (which would seem
+odd...) or as acquire for which "most people expect strong ordering"
+(see above), these provides other examples for the _gap_ I mentioned.
+
+Notice that the issue/counter-argument here is not only:
+
+  "the proposal is taking us away from a tested-and-verified-over
+   -years design kernel developers are _used to reason with [have
+   one release-acquire] in favor of an "unrealistically" or harder,
+   FWIW, verifiable one [as if one wasn't enough fun already... ;-)]"
+   
+The issue is also how to realize the proposed "abstract" design in
+kernel code!, since that "gap" makes doing so _not straightforward
+at _least (examples: arm64 using LDAPR for its acquire and having
+to fix its *cond_read* implementation;  or riscv using .aq/.rl for
+its atomics and having to audit generic code, which is "hard" ...).
+
+
+> 
+
+[3rd approach/fix]
+
+> > Finally, if we don't agree with the above assumption at all (that is,
+> > no matter if we are considering unlock-lock or other release-acquire
+> > sequences), then we should go RCpc [4].
+> > 
+> > I described three different approaches (which are NOT "independent",
+> > clearly; let us find an agreement...); even though some of them look
+> > insane to me, I'm currently open to all of them: thoughts?
+> 
+> How about this fourth approach?
+
+Are you referring to the variation on the 2nd approach remarked above?
+if so, please see above; otherwise, I'd ask "which one?".
+
+  Andrea
+
+
+> 
+> Alan
+> 
+> >   Andrea
+> > 
+> > [1] http://lkml.kernel.org/r/20180712134821.GT2494@hirez.programming.kicks-ass.net
+> >     http://lkml.kernel.org/r/CA+55aFwKpkU5C23OYt1HCiD3X5bJHVh1jz5G2dSnF1+kVrOCTA@mail.gmail.com
+> > [2] http://lkml.kernel.org/r/20180622183007.GD1802@arm.com
+> > [3] http://lkml.kernel.org/r/11b27d32-4a8a-3f84-0f25-723095ef1076@nvidia.com
+> > [4] http://lkml.kernel.org/r/20180711123421.GA9673@andrea
+> >     http://lkml.kernel.org/r/Pine.LNX.4.44L0.1807132133330.26947-100000@netrider.rowland.org
+> 
