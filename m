@@ -1,40 +1,273 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:34066 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729842AbeIFSSa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:18:30 -0400
-Date: Thu, 6 Sep 2018 15:42:44 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 01/17] asm: simd context helper API
-In-Reply-To: <CAHmME9rL2omQxqMVCcX-jPMpcQDk8ftEn3YXWcFhS=AkVK8ZXw@mail.gmail.com>
-Message-ID: <alpine.DEB.2.21.1809061542330.1570@nanos.tec.linutronix.de>
-References: <20180824213849.23647-1-Jason@zx2c4.com> <20180824213849.23647-2-Jason@zx2c4.com> <alpine.DEB.2.21.1808261234240.1195@nanos.tec.linutronix.de> <CAHmME9qrc_f6uqGOrRVpnO_sTXHg2cg-WwWg4ik3yqu=HCOZSg@mail.gmail.com> <alpine.DEB.2.21.1808261602250.1195@nanos.tec.linutronix.de>
- <CAHmME9pP-rfzE9VAysm-tRiQrrKXpP2=8VEUrbS5Xt-wpEXCcA@mail.gmail.com> <CALCETrUdjCKcjg9R7P7hXxOt_Nt-htTVrJN9cwLfteh4aBz7Gw@mail.gmail.com> <CAHmME9rL2omQxqMVCcX-jPMpcQDk8ftEn3YXWcFhS=AkVK8ZXw@mail.gmail.com>
+Received: from esa3.microchip.iphmx.com ([68.232.153.233]:24348 "EHLO
+        esa3.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729479AbeIFSWS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 14:22:18 -0400
+From: Ludovic Desroches <ludovic.desroches@microchip.com>
+Subject: [PATCH v4 1/2] tty/serial_core: add ISO7816 infrastructure
+Date: Thu, 6 Sep 2018 15:42:13 +0200
+Message-ID: <20180906134214.29031-2-ludovic.desroches@microchip.com>
+In-Reply-To: <20180906134214.29031-1-ludovic.desroches@microchip.com>
+References: <20180906134214.29031-1-ludovic.desroches@microchip.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org, Rik van Riel <riel@surriel.com>
-Message-ID: <20180906134244.fxwP6bH_68w_cKNq4T-gDV-vZKgCjUFlI00fy5fgdWM@z>
+To: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: gregkh@linuxfoundation.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org, Ludovic Desroches <ludovic.desroches@microchip.com>
+Message-ID: <20180906134213.WvHo2YJ-F65KscvLY-iuzvrxJcrMLpo842B-ua0oHUM@z>
 
-On Sat, 1 Sep 2018, Jason A. Donenfeld wrote:
-> On Sat, Sep 1, 2018 at 2:32 PM Andy Lutomirski <luto@kernel.org> wrote:
-> > I tend to think the right approach is to merge Jason's code and then
-> > make it better later.  Even with a totally perfect lazy FPU restore
-> > implementation on x86, we'll probably still need some way of dealing
-> > with SIMD contexts.  I think we're highly unlikely to ever a allow
-> > SIMD usage in all NMI contexts, for example, and there will always be
-> > cases where we specifically don't want to use all available SIMD
-> > capabilities even if we can.  For example, generating random numbers
-> > does crypto, but we probably don't want to do *SIMD* crypto, since
-> > that will force a save and restore and will probably fire up the
-> > AVX512 unit, and that's not worth it unless we're already using it for
-> > some other reason.
-> >
-> > Also, as Rik has discovered, lazy FPU restore is conceptually
-> > straightforward but isn't entirely trivial :)
-> 
-> Sounds good. I'll move ahead on this basis.
+From: Nicolas Ferre <nicolas.ferre@microchip.com>
 
-Fine with me.
+Add the ISO7816 ioctl and associated accessors and data structure.
+Drivers can then use this common implementation to handle ISO7816
+(smart cards).
+
+Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
+[ludovic.desroches@microchip.com: squash and rebase, removal of gpios, checkpatch fixes]
+Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
+---
+ arch/alpha/include/uapi/asm/ioctls.h   |  2 ++
+ arch/mips/include/uapi/asm/ioctls.h    |  2 ++
+ arch/parisc/include/uapi/asm/ioctls.h  |  2 ++
+ arch/powerpc/include/uapi/asm/ioctls.h |  2 ++
+ arch/sh/include/uapi/asm/ioctls.h      |  2 ++
+ arch/sparc/include/uapi/asm/ioctls.h   |  2 ++
+ arch/xtensa/include/uapi/asm/ioctls.h  |  2 ++
+ drivers/tty/serial/serial_core.c       | 60 ++++++++++++++++++++++++++++++++++
+ include/linux/serial_core.h            |  3 ++
+ include/uapi/asm-generic/ioctls.h      |  2 ++
+ include/uapi/linux/serial.h            | 17 ++++++++++
+ 11 files changed, 96 insertions(+)
+
+diff --git a/arch/alpha/include/uapi/asm/ioctls.h b/arch/alpha/include/uapi/asm/ioctls.h
+index 3729d92d3fa8..1e9121c9b3c7 100644
+--- a/arch/alpha/include/uapi/asm/ioctls.h
++++ b/arch/alpha/include/uapi/asm/ioctls.h
+@@ -102,6 +102,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ #define TIOCSERCONFIG	0x5453
+ #define TIOCSERGWILD	0x5454
+diff --git a/arch/mips/include/uapi/asm/ioctls.h b/arch/mips/include/uapi/asm/ioctls.h
+index 890245a9f0c4..16aa8a766aec 100644
+--- a/arch/mips/include/uapi/asm/ioctls.h
++++ b/arch/mips/include/uapi/asm/ioctls.h
+@@ -93,6 +93,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ /* I hope the range from 0x5480 on is free ... */
+ #define TIOCSCTTY	0x5480		/* become controlling tty */
+diff --git a/arch/parisc/include/uapi/asm/ioctls.h b/arch/parisc/include/uapi/asm/ioctls.h
+index aafb1c0ca0af..82d1148c6379 100644
+--- a/arch/parisc/include/uapi/asm/ioctls.h
++++ b/arch/parisc/include/uapi/asm/ioctls.h
+@@ -62,6 +62,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ #define FIONCLEX	0x5450  /* these numbers need to be adjusted. */
+ #define FIOCLEX		0x5451
+diff --git a/arch/powerpc/include/uapi/asm/ioctls.h b/arch/powerpc/include/uapi/asm/ioctls.h
+index 41b1a5c15734..2c145da3b774 100644
+--- a/arch/powerpc/include/uapi/asm/ioctls.h
++++ b/arch/powerpc/include/uapi/asm/ioctls.h
+@@ -102,6 +102,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ #define TIOCSERCONFIG	0x5453
+ #define TIOCSERGWILD	0x5454
+diff --git a/arch/sh/include/uapi/asm/ioctls.h b/arch/sh/include/uapi/asm/ioctls.h
+index cc62f6f98103..11866d4f60e1 100644
+--- a/arch/sh/include/uapi/asm/ioctls.h
++++ b/arch/sh/include/uapi/asm/ioctls.h
+@@ -95,6 +95,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ #define TIOCSERCONFIG	_IO('T', 83) /* 0x5453 */
+ #define TIOCSERGWILD	_IOR('T', 84,  int) /* 0x5454 */
+diff --git a/arch/sparc/include/uapi/asm/ioctls.h b/arch/sparc/include/uapi/asm/ioctls.h
+index 2df52711e170..7fd2f5873c9e 100644
+--- a/arch/sparc/include/uapi/asm/ioctls.h
++++ b/arch/sparc/include/uapi/asm/ioctls.h
+@@ -27,6 +27,8 @@
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGRS485	_IOR('T', 0x41, struct serial_rs485)
+ #define TIOCSRS485	_IOWR('T', 0x42, struct serial_rs485)
++#define TIOCGISO7816	_IOR('T', 0x43, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x44, struct serial_iso7816)
+ 
+ /* Note that all the ioctls that are not available in Linux have a
+  * double underscore on the front to: a) avoid some programs to
+diff --git a/arch/xtensa/include/uapi/asm/ioctls.h b/arch/xtensa/include/uapi/asm/ioctls.h
+index ec43609cbfc5..6d4a87296c95 100644
+--- a/arch/xtensa/include/uapi/asm/ioctls.h
++++ b/arch/xtensa/include/uapi/asm/ioctls.h
+@@ -107,6 +107,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ #define TIOCSERCONFIG	_IO('T', 83)
+ #define TIOCSERGWILD	_IOR('T', 84,  int)
+diff --git a/drivers/tty/serial/serial_core.c b/drivers/tty/serial/serial_core.c
+index 9c14a453f73c..af8d5b12fba9 100644
+--- a/drivers/tty/serial/serial_core.c
++++ b/drivers/tty/serial/serial_core.c
+@@ -1301,6 +1301,58 @@ static int uart_set_rs485_config(struct uart_port *port,
+ 	return 0;
+ }
+ 
++static int uart_get_iso7816_config(struct uart_port *port,
++				   struct serial_iso7816 __user *iso7816)
++{
++	unsigned long flags;
++	struct serial_iso7816 aux;
++
++	if (!port->iso7816_config)
++		return -ENOIOCTLCMD;
++
++	spin_lock_irqsave(&port->lock, flags);
++	aux = port->iso7816;
++	spin_unlock_irqrestore(&port->lock, flags);
++
++	if (copy_to_user(iso7816, &aux, sizeof(aux)))
++		return -EFAULT;
++
++	return 0;
++}
++
++static int uart_set_iso7816_config(struct uart_port *port,
++				   struct serial_iso7816 __user *iso7816_user)
++{
++	struct serial_iso7816 iso7816;
++	int i, ret;
++	unsigned long flags;
++
++	if (!port->iso7816_config)
++		return -ENOIOCTLCMD;
++
++	if (copy_from_user(&iso7816, iso7816_user, sizeof(*iso7816_user)))
++		return -EFAULT;
++
++	/*
++	 * There are 5 words reserved for future use. Check that userspace
++	 * doesn't put stuff in there to prevent breakages in the future.
++	 */
++	for (i = 0; i < 5; i++)
++		if (iso7816.reserved[i])
++			return -EINVAL;
++
++	spin_lock_irqsave(&port->lock, flags);
++	ret = port->iso7816_config(port, &iso7816);
++	spin_unlock_irqrestore(&port->lock, flags);
++	if (ret)
++		return ret;
++
++	if (copy_to_user(iso7816_user, &port->iso7816, sizeof(port->iso7816)))
++		return -EFAULT;
++
++	return 0;
++}
++
+ /*
+  * Called via sys_ioctl.  We can use spin_lock_irq() here.
+  */
+@@ -1385,6 +1437,14 @@ uart_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg)
+ 	case TIOCSRS485:
+ 		ret = uart_set_rs485_config(uport, uarg);
+ 		break;
++
++	case TIOCSISO7816:
++		ret = uart_set_iso7816_config(state->uart_port, uarg);
++		break;
++
++	case TIOCGISO7816:
++		ret = uart_get_iso7816_config(state->uart_port, uarg);
++		break;
+ 	default:
+ 		if (uport->ops->ioctl)
+ 			ret = uport->ops->ioctl(uport, cmd, arg);
+diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+index 06ea4eeb09ab..d6e7747ffd46 100644
+--- a/include/linux/serial_core.h
++++ b/include/linux/serial_core.h
+@@ -137,6 +137,8 @@ struct uart_port {
+ 	void			(*handle_break)(struct uart_port *);
+ 	int			(*rs485_config)(struct uart_port *,
+ 						struct serial_rs485 *rs485);
++	int			(*iso7816_config)(struct uart_port *,
++						  struct serial_iso7816 *iso7816);
+ 	unsigned int		irq;			/* irq number */
+ 	unsigned long		irqflags;		/* irq flags  */
+ 	unsigned int		uartclk;		/* base uart clock */
+@@ -253,6 +255,7 @@ struct uart_port {
+ 	struct attribute_group	*attr_group;		/* port specific attributes */
+ 	const struct attribute_group **tty_groups;	/* all attributes (serial core use only) */
+ 	struct serial_rs485     rs485;
++	struct serial_iso7816   iso7816;
+ 	void			*private_data;		/* generic platform data pointer */
+ };
+ 
+diff --git a/include/uapi/asm-generic/ioctls.h b/include/uapi/asm-generic/ioctls.h
+index 040651735662..cdc9f4ca8c27 100644
+--- a/include/uapi/asm-generic/ioctls.h
++++ b/include/uapi/asm-generic/ioctls.h
+@@ -79,6 +79,8 @@
+ #define TIOCGPTLCK	_IOR('T', 0x39, int) /* Get Pty lock state */
+ #define TIOCGEXCL	_IOR('T', 0x40, int) /* Get exclusive mode state */
+ #define TIOCGPTPEER	_IO('T', 0x41) /* Safely open the slave */
++#define TIOCGISO7816	_IOR('T', 0x42, struct serial_iso7816)
++#define TIOCSISO7816	_IOWR('T', 0x43, struct serial_iso7816)
+ 
+ #define FIONCLEX	0x5450
+ #define FIOCLEX		0x5451
+diff --git a/include/uapi/linux/serial.h b/include/uapi/linux/serial.h
+index 3fdd0dee8b41..93eb3c496ff1 100644
+--- a/include/uapi/linux/serial.h
++++ b/include/uapi/linux/serial.h
+@@ -132,4 +132,21 @@ struct serial_rs485 {
+ 					   are a royal PITA .. */
+ };
+ 
++/*
++ * Serial interface for controlling ISO7816 settings on chips with suitable
++ * support. Set with TIOCSISO7816 and get with TIOCGISO7816 if supported by
++ * your platform.
++ */
++struct serial_iso7816 {
++	__u32	flags;			/* ISO7816 feature flags */
++#define SER_ISO7816_ENABLED		(1 << 0)
++#define SER_ISO7816_T_PARAM		(0x0f << 4)
++#define SER_ISO7816_T(t)		(((t) & 0x0f) << 4)
++	__u32	tg;
++	__u32	sc_fi;
++	__u32	sc_di;
++	__u32	clk;
++	__u32	reserved[5];
++};
++
+ #endif /* _UAPI_LINUX_SERIAL_H */
+-- 
+2.12.2
