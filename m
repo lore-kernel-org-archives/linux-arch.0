@@ -1,96 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:54910 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725929AbeIFFUZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 01:20:25 -0400
-Received: by mail-wm0-f66.google.com with SMTP id c14-v6so9685304wmb.4
-        for <linux-arch@vger.kernel.org>; Wed, 05 Sep 2018 17:47:41 -0700 (PDT)
+Received: from netrider.rowland.org ([192.131.102.5]:36043 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1725935AbeIFF6a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 01:58:30 -0400
+Date: Wed, 5 Sep 2018 21:25:40 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+In-Reply-To: <20180903090153.GA4560@andrea>
+Message-ID: <Pine.LNX.4.44L0.1809052115490.2261-100000@netrider.rowland.org>
 MIME-Version: 1.0
-References: <cover.1536138304.git.ren_guo@c-sky.com> <768ac390f9eee8acb4dc9ca85a489a1d2fd00628.1536138304.git.ren_guo@c-sky.com>
-In-Reply-To: <768ac390f9eee8acb4dc9ca85a489a1d2fd00628.1536138304.git.ren_guo@c-sky.com>
-From: Rob Herring <rob.herring@linaro.org>
-Date: Wed, 5 Sep 2018 19:47:29 -0500
-Message-ID: <CABGGiszuo3gpjmutYzOpQUmGaNjq88_5pDj2TjXveX9x2+Rsig@mail.gmail.com>
-Subject: Re: [PATCH V3 19/26] dt-bindings: timer: gx6605s SOC timer
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ren_guo@c-sky.com
-Cc: linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, Arnd Bergmann <arnd@arndb.de>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180906004729.5LRiGbCFEfhlxOMHDg6h4Ti9iMos4S9KTr_2f8HHfdQ@z>
+To: Andrea Parri <andrea.parri@amarulasolutions.com>
+Cc: Will Deacon <will.deacon@arm.com>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180906012540.bUTtn6xP2YsdGJB7gk-REUF72UQfHTjPqXYMaG7sS-Y@z>
 
-On Wed, Sep 5, 2018 at 7:09 AM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> ---
->  .../bindings/timer/csky,gx6605s-timer.txt          | 46 ++++++++++++++++++++++
->  1 file changed, 46 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
->
-> diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-> new file mode 100644
-> index 0000000..1136d9e
-> --- /dev/null
-> +++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-> @@ -0,0 +1,46 @@
-> +=================
-> +gx6605s SOC Timer
-> +=================
-> +
-> +The timer is used in gx6605s soc as system timer and the driver
-> +contain clk event and clk source.
-> +
-> +==============================
-> +timer node bindings definition
-> +==============================
-> +
-> +        Description: Describes gx6605s SOC timer
-> +
-> +        PROPERTIES
-> +
-> +        - compatible
-> +                Usage: required
-> +                Value type: <string>
-> +                Definition: must be "csky,gx6605s"
+On Mon, 3 Sep 2018, Andrea Parri wrote:
 
--timer?
+> I take this opportunity to summarize my viewpoint on these matters:
+> 
+> Someone would have to write the commit message for the above diff ...
+> that is, to describe -why- we should go RCtso (and update the documen-
+> tation accordingly); by now, the only argument for this appears to be:
+> "(most) people expect strong ordering" _and they will be "lazy enough"
+> to not check their expectations by using the LKMM tool (paraphrasing
+> from [1]); IAC, Linux "might work" better if we add this ordering to
+> the LKMM.  Agreeing on such an approach would mean agreeing that this
+> argument "wins" over:
+> 
+>   "We want new architectures to implement acquire/release efficiently,
+>    and it's not unlikely that they will have acquire loads that are
+>    similar in semantics to LDAPR." [2]
+> 
+>   "RISC-V probably would have been RCpc [...]  it takes extra fences
+>    to go from RCpc to either "RCtso" or RCsc." [3]
+> 
+> (or similar instances) since, of course, there is no such thing as a
+> "free strong ordering"; and I'm not only talking about "efficiency",
+> I'm also thinking at the fact that someone will have to maintain that
+> ordering across all the architectures and in the LKMM.
+> 
+> If, OTOH, we agree that the above "win"/assumption is valid only for
+> locks or, in other/better words, if we agree that we should maintain
+> _two_ distinct release-acquire orderings (a first one for unlock-lock
+> sequences and a second one for ordinary/atomic release-acquire, say,
+> as proposed in the patch under RFC),
 
-> +       - reg
-> +               Usage: required
-> +               Value type: <u32 u32>
-> +               Definition: <phyaddr size> in soc from cpu view
-> +       - clocks
-> +               Usage: required
-> +               Value type: <node>
+In fact, there have have been _two_ proposals along this line.  One as
+you describe here (which is what the 1/7 patch under discussion does),
+and another in which unlock-lock sequences and atomic acquire-release
+sequences both have "RCtso" semantics while ordinary acquire/release
+sequences have RCpc semantics.  You should consider the second
+proposal.  It could be put into the LKMM quite easily by building upon
+this 1/7 patch.
 
-phandle + clock specifier cells
+>  I ask that we audit and modify
+> the generic code accordingly/as suggested in other posts _before_ we
+> upstream the changes for the LKMM: we should identify those places
+> where (the newly introduced) _gap_ between unlock-lock and the other
+> release-acquire is not admissible and fix those places (notice that
+> this entails, in part., agreeing on what/where the generic code is).
 
-> +               Definition: must be input clk node
-> +        - interrupt
-> +                Usage: required
-> +                Value type: <u32>
-> +                Definition: must be timer irq num defined by soc
-> +        - interrupt-parent:
+Have you noticed any part of the generic code that relies on ordinary 
+acquire-release (rather than atomic RMW acquire-release) in order to 
+implement locking constructs?
 
-This is implied. Don't need to document it here.
+> Finally, if we don't agree with the above assumption at all (that is,
+> no matter if we are considering unlock-lock or other release-acquire
+> sequences), then we should go RCpc [4].
+> 
+> I described three different approaches (which are NOT "independent",
+> clearly; let us find an agreement...); even though some of them look
+> insane to me, I'm currently open to all of them: thoughts?
 
-> +                Usage: required
-> +               Value type: <node>
-> +                Definition: must be interrupt controller node
-> +
-> +Examples:
-> +---------
-> +
-> +       timer:timer {
+How about this fourth approach?
 
-Needs a unit-address.
+Alan
 
-> +               compatible = "csky,gx6605s-timer";
-> +               reg = <0x0020a000 0x400>;
-> +               clocks = <&dummy_apb_clk>;
-> +               interrupts = <10>;
-> +               interrupt-parent = <&intc>;
-> +       };
-> --
-> 2.7.4
->
+>   Andrea
+> 
+> [1] http://lkml.kernel.org/r/20180712134821.GT2494@hirez.programming.kicks-ass.net
+>     http://lkml.kernel.org/r/CA+55aFwKpkU5C23OYt1HCiD3X5bJHVh1jz5G2dSnF1+kVrOCTA@mail.gmail.com
+> [2] http://lkml.kernel.org/r/20180622183007.GD1802@arm.com
+> [3] http://lkml.kernel.org/r/11b27d32-4a8a-3f84-0f25-723095ef1076@nvidia.com
+> [4] http://lkml.kernel.org/r/20180711123421.GA9673@andrea
+>     http://lkml.kernel.org/r/Pine.LNX.4.44L0.1807132133330.26947-100000@netrider.rowland.org
