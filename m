@@ -1,70 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f179.google.com ([209.85.216.179]:39165 "EHLO
-        mail-qt0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729073AbeIFTBD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 15:01:03 -0400
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:34567 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729937AbeIFTHW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2018 15:07:22 -0400
 MIME-Version: 1.0
-References: <cover.1536138304.git.ren_guo@c-sky.com> <37f9bd824ede529fdab291a40eef3415f99ec8aa.1536138304.git.ren_guo@c-sky.com>
-In-Reply-To: <37f9bd824ede529fdab291a40eef3415f99ec8aa.1536138304.git.ren_guo@c-sky.com>
+References: <cover.1536138304.git.ren_guo@c-sky.com> <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
+In-Reply-To: <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 6 Sep 2018 16:24:59 +0200
-Message-ID: <CAK8P3a1xUhyQohifsvs_3th-iPCGL9WKDGj9qKoEaizuu19FeA@mail.gmail.com>
-Subject: Re: [PATCH V3 13/26] csky: Library functions
+Date: Thu, 6 Sep 2018 16:31:16 +0200
+Message-ID: <CAK8P3a1fYM0X=F+9yD6BVLq=57eJeFWXCvywjQOFwEHz7oAhcg@mail.gmail.com>
+Subject: Re: [PATCH V3 06/26] csky: Cache and TLB routines
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180906142459.pn6NPDzEXA9cdasUQMjkf8tZ21BU96euXJukeKMg4fM@z>
+Message-ID: <20180906143116.eHu4Qg-LiRdaSKkUrtMsrRbpgpTYz6C-sv0PCUYn5AQ@z>
 
 On Wed, Sep 5, 2018 at 2:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
 
+> diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
+> new file mode 100644
+> index 0000000..fcb2142
 > --- /dev/null
-> +++ b/arch/csky/abiv1/memset.c
-> @@ -0,0 +1,38 @@
+> +++ b/arch/csky/include/asm/io.h
+> @@ -0,0 +1,23 @@
 > +// SPDX-License-Identifier: GPL-2.0
 > +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+> +#ifndef __ASM_CSKY_IO_H
+> +#define __ASM_CSKY_IO_H
+> +
+> +#include <abi/pgtable-bits.h>
 > +#include <linux/types.h>
+> +#include <linux/version.h>
 > +
-> +void *memset(void *dest, int c, size_t l)
-> +{
-> +       char *d = dest;
-> +       int ch = c;
-> +       int tmp;
+> +extern void __iomem *ioremap(phys_addr_t offset, size_t size);
 > +
-> +       if ((long)d & 0x3)
-> +               while (l--) *d++ = ch;
-> +       else {
-> +               ch &= 0xff;
-> +               tmp = (ch | ch << 8 | ch << 16 | ch << 24);
+> +extern void iounmap(void *addr);
 > +
-> +               while (l >= 16) {
-> +                       *(((long *)d)) = tmp;
-> +                       *(((long *)d)+1) = tmp;
-> +                       *(((long *)d)+2) = tmp;
-> +                       *(((long *)d)+3) = tmp;
-> +                       l -= 16;
-> +                       d += 16;
-> +               }
+> +extern int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
+> +               size_t size, unsigned long flags);
 > +
-> +               while (l > 3) {
-> +                       *(((long *)d)) = tmp;
-> +                       d = d + 4;
-> +                       l -= 4;
-> +               }
+> +#define ioremap_nocache(phy, sz)       ioremap(phy, sz)
+> +#define ioremap_wc ioremap_nocache
+> +#define ioremap_wt ioremap_nocache
 > +
-> +               while (l) {
-> +                       *d++ = ch;
-> +                       l--;
-> +               }
-> +       }
-> +       return dest;
-> +}
+> +#include <asm-generic/io.h>
 
-I see that we have a trivial memset() implementation in lib/string.c, but yours
-seems to be better optimized. Where did you get it from? Is this a version
-that works particularly well on C-Sky, or is this a generic optimized memset
-that others could use as well? In the latter case, we could add it to
-lib/string.c and let architectures select it in place of the triivial version.
+It is very unusual for an architecture to not need special handling in asm/io.h,
+to do the proper barriers etc.
 
-       Arnd
+Can you describe how C-Sky hardware implements MMIO?
+
+In particular:
+
+- Is a read from uncached memory always serialized with DMA, and with
+  other CPUs doing MMIO access to a different address?
+
+- How does endianess work? Are there any buses that flip bytes around
+  when running big-endian, or do you always do that in software?
+
+        Arnd
