@@ -1,54 +1,75 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH V3 06/26] csky: Cache and TLB routines
-Date: Fri, 7 Sep 2018 16:13:35 +0200
-Message-ID: <CAK8P3a3b+dM2kxSG7kCqTR=NmiqvZoMwOwSmQKRQLQjXqpqxYw@mail.gmail.com>
-References: <cover.1536138304.git.ren_guo@c-sky.com> <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
- <CAK8P3a1fYM0X=F+9yD6BVLq=57eJeFWXCvywjQOFwEHz7oAhcg@mail.gmail.com>
- <20180907030447.GA10434@guoren-Inspiron-7460> <CAK8P3a2K_ecCQEs840hQMrjsf4H8hHxS+HtM2TtPDYpRu8-LeQ@mail.gmail.com>
- <20180907125536.GA2308@guoren>
+From: Rik van Riel <riel@surriel.com>
+Subject: Re: [RFC PATCH 1/2] mm: move tlb_table_flush to tlb_flush_mmu_free
+Date: Fri, 07 Sep 2018 10:28:05 -0400
+Message-ID: <b686a7e397b992cf7a32b2e5e7c3503919a8c717.camel@surriel.com>
+References: <20180823084709.19717-1-npiggin@gmail.com>
+         <20180823084709.19717-2-npiggin@gmail.com>
+         <fa7c625dfbbe103b37bc3ab5ea4b7283fd13b998.camel@surriel.com>
+         <20180907134359.GA12187@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg="pgp-sha256";
+        protocol="application/pgp-signature"; boundary="=-IFHu9I6W7+At+9sCwKHu"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180907125536.GA2308@guoren>
+In-Reply-To: <20180907134359.GA12187@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, luto@kernel.org, x86@kernel.org, bp@alien8.de, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 7, 2018 at 2:55 PM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> On Fri, Sep 07, 2018 at 10:14:38AM +0200, Arnd Bergmann wrote:
-> > On Fri, Sep 7, 2018 at 5:04 AM Guo Ren <ren_guo@c-sky.com> wrote:
-> > > On Thu, Sep 06, 2018 at 04:31:16PM +0200, Arnd Bergmann wrote:
-> > Similarly, an MMIO read may be used to see if a DMA has completed
-> > and the device register tells you that the DMA has left the device,
-> > but without a barrier, the CPU may have prefetched the DMA
-> > data while waiting for the MMIO-read to complete. The __io_ar()
-> > barrier() in asm-generic/io.h prevents the compiler from reordering
-> > the two reads, but if an weakly ordered read (in coherent DMA buffer)
-> > can bypass a strongly ordered read (MMIO), then it's still still
-> > broken.
-> __io_ar() barrier()? not rmb() ?! I've defined the rmb in asm/barrier, So
-> I got rmb() here not barrier().
->
-> Only __io_br() is barrier().
 
-Ah right, I misremembered the defaults. It's probably ok then.
+--=-IFHu9I6W7+At+9sCwKHu
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-> > > > - How does endianess work? Are there any buses that flip bytes around
-> > > >   when running big-endian, or do you always do that in software?
-> > > Currently we only support little-endian and soc will follow it.
-> >
-> > Ok, that makes it easier. If you think that you won't even need big-endian
-> > support in the long run, you could also remove your asm/byteorder.h
-> > header. If you're not sure, it doesn't hurt to keep it of course.
-> Em... I'm not sure, so let me keep it for a while.
+On Fri, 2018-09-07 at 14:44 +0100, Will Deacon wrote:
+> On Thu, Sep 06, 2018 at 04:29:59PM -0400, Rik van Riel wrote:
+> > On Thu, 2018-08-23 at 18:47 +1000, Nicholas Piggin wrote:
+> > > There is no need to call this from tlb_flush_mmu_tlbonly, it
+> > > logically belongs with tlb_flush_mmu_free. This allows some
+> > > code consolidation with a subsequent fix.
+> > >=20
+> > > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> >=20
+> > Reviewed-by: Rik van Riel <riel@surriel.com>
+> >=20
+> > This patch also fixes an infinite recursion bug
+> > with CONFIG_HAVE_RCU_TABLE_FREE enabled, which
+> > has this call trace:
+> >=20
+> > tlb_table_flush
+> >   -> tlb_table_invalidate
+> >      -> tlb_flush_mmu_tlbonly
+> >         -> tlb_table_flush
+> >            -> ... (infinite recursion)
+> >=20
+> > This should probably be applied sooner rather than
+> > later.
+>=20
+> It's already in mainline with a cc stable afaict.
 
-Ok. I think overall the trend is to be little-endian only for most
-architectures: powerpc64 moved from big-endian only to little-endian
-by default, ARM rarely uses big-endian (basically only for legacy
-applications ported from BE MIPS or ppc), and all new architectures
-we added in the last years are little-endian (OpenRISC being the
-main exception).
+Sure enough, it is.
 
-     Arnd
+I guess I have too many kernel trees on this
+system, and was looking at the wrong one somehow.
+
+--=20
+All Rights Reversed.
+
+--=-IFHu9I6W7+At+9sCwKHu
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCAAdFiEEKR73pCCtJ5Xj3yADznnekoTE3oMFAluSivUACgkQznnekoTE
+3oPhFwf/Qd/rrFLYEKAcJENv34o7Gk0YNVmPKKhyg9sj8nteRac1mnyeVpqmXfWW
+4yDdUx6glji8FWttmnTcpbb/frJlwsKFYBsoYDxBc/D73sTf+3Q8aAbhYAYGzcDq
+GNANhQ1BQXNHL5YfEZtpCFha66ZpAAPEMr+1PI6/k4oMWIOW+EqXko92WP+Vwr9I
+jfYaqKq9UfwFmy/ftaynlXP8yQjlSc2mYTA1SOEuAyiquvBH3TZo2f7bALCA1wP/
+i0lLnEPvFwlgxXDg5l2d/aQxbW4j2KnFLZ3AJMZpPhTfcWanSVSpkxOfZlmXQnPp
+DgV4H7ZrKkvWgRg8+/l1CpXX4ulpRA==
+=4rvN
+-----END PGP SIGNATURE-----
+
+--=-IFHu9I6W7+At+9sCwKHu--
