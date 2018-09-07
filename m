@@ -1,64 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:45989 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727841AbeIGGqq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2018 02:46:46 -0400
-Date: Thu, 6 Sep 2018 19:08:18 -0700
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH V3 00/26] C-SKY(csky) Linux Kernel Port
-Message-ID: <20180907020818.GA9110@roeck-us.net>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:56942 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726434AbeIGHoC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2018 03:44:02 -0400
+Date: Fri, 7 Sep 2018 11:04:49 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V3 06/26] csky: Cache and TLB routines
+Message-ID: <20180907030447.GA10434@guoren-Inspiron-7460>
 References: <cover.1536138304.git.ren_guo@c-sky.com>
+ <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
+ <CAK8P3a1fYM0X=F+9yD6BVLq=57eJeFWXCvywjQOFwEHz7oAhcg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <cover.1536138304.git.ren_guo@c-sky.com>
+In-Reply-To: <CAK8P3a1fYM0X=F+9yD6BVLq=57eJeFWXCvywjQOFwEHz7oAhcg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180907020818.Iuyu12TkMhPNEEZMLgjDqgWQHtwbdqqMUxqCOApU1hU@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
+Message-ID: <20180907030449.QHmmOjyMXCGf31r3l7VyFfKBuJ6QXXxpa_jw-9etDfw@z>
 
-Hi,
-
-On Wed, Sep 05, 2018 at 08:07:39PM +0800, Guo Ren wrote:
-> This is the 3th version patchset to add the Linux kernel port for C-SKY(csky).
-> Thanks to everyone who provided feedback on the previous version.
+On Thu, Sep 06, 2018 at 04:31:16PM +0200, Arnd Bergmann wrote:
+> On Wed, Sep 5, 2018 at 2:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
 > 
-> This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
-> CPU cores and the patches are based on linux-4.18.4
+> > diff --git a/arch/csky/include/asm/io.h b/arch/csky/include/asm/io.h
+> > new file mode 100644
+> > index 0000000..fcb2142
+> > --- /dev/null
+> > +++ b/arch/csky/include/asm/io.h
+> > @@ -0,0 +1,23 @@
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+> > +#ifndef __ASM_CSKY_IO_H
+> > +#define __ASM_CSKY_IO_H
+> > +
+> > +#include <abi/pgtable-bits.h>
+> > +#include <linux/types.h>
+> > +#include <linux/version.h>
+> > +
+> > +extern void __iomem *ioremap(phys_addr_t offset, size_t size);
+> > +
+> > +extern void iounmap(void *addr);
+> > +
+> > +extern int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
+> > +               size_t size, unsigned long flags);
+> > +
+> > +#define ioremap_nocache(phy, sz)       ioremap(phy, sz)
+> > +#define ioremap_wc ioremap_nocache
+> > +#define ioremap_wt ioremap_nocache
+> > +
+> > +#include <asm-generic/io.h>
 > 
-> There are two ABI versions with several CPU cores in this patchset:
->   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
->   ABIv2: ck807 ck810 ck860 (16/32-bit variable length instruction, PIPT Cache,
-> 	 SMP ...)
+> It is very unusual for an architecture to not need special handling in asm/io.h,
+> to do the proper barriers etc.
 > 
+> Can you describe how C-Sky hardware implements MMIO?
+Our mmio is uncachable and strong-order address, so there is no need
+barriers for access these io addr.
 
-My key question is about upstream toolchain support.
-The buildroot clone tells me
+ #define ioremap_wc ioremap_nocache
+ #define ioremap_wt ioremap_nocache
 
-$ git describe csky/master
-2017.11-2111-ge9cc5a5
+Current ioremap_wc and ioremap_wt implementation are too simple and
+we'll improve it in future.
 
-and
+> In particular:
+> 
+> - Is a read from uncached memory always serialized with DMA, and with
+>   other CPUs doing MMIO access to a different address?
+CPU use ld.w to get data from uncached strong order memory.
+Other CPUs use the same mmio vaddr to access the uncachable strong order
+memory paddr.
 
-$ git log --oneline origin/master..csky/master  | wc
-   1180    7436   57104
+> - How does endianess work? Are there any buses that flip bytes around
+>   when running big-endian, or do you always do that in software?
+Currently we only support little-endian and soc will follow it.
 
-with
-$ git remote -v
-csky	https://gitlab.com/c-sky/buildroot.git 
-origin	git://git.buildroot.net/buildroot
-
-So it looks like there are more thasn a thousand patches on top of
-buildroot. Adding an architecture to buildroot should only take a
-single patch, or maybe a few, but not more than a thousand.
-This strongly suggests that a lot of changes are not upstream
-but only available in the buildroot clone. 
-
-When are we going to see all those changes in upstream gcc, binutils,
-and qemu ? I don't really want to dig through more than a thousand
-patches in a buildroot clone to find out details about the status
-of upstream toolchain support.
-
-Thanks,
-Guenter
+ Guo Ren
