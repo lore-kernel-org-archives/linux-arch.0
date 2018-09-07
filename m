@@ -1,71 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:50514 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725999AbeIGVM2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2018 17:12:28 -0400
+Received: from hqemgate15.nvidia.com ([216.228.121.64]:2302 "EHLO
+        hqemgate15.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726089AbeIGVVn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2018 17:21:43 -0400
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+References: <20180906093655.GA9653@andrea>
+ <Pine.LNX.4.44L0.1809071145260.1547-100000@iolanthe.rowland.org>
+ <20180907160950.GH12788@arm.com>
+From: Daniel Lustig <dlustig@nvidia.com>
+Message-ID: <20990a3f-1507-c98b-f14e-2f5241319d8c@nvidia.com>
+Date: Fri, 7 Sep 2018 09:39:58 -0700
 MIME-Version: 1.0
-References: <cover.1535629099.git.andreyknvl@google.com> <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
- <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
- <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com> <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
-In-Reply-To: <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 7 Sep 2018 09:30:35 -0700
-Message-ID: <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
-Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by sparse
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20180907160950.GH12788@arm.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, cpandya@codeaurora.org, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben.Ayrapetyan@arm.com, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, linux-mm <linux-mm@kvack.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Lee Smith <Lee.Smith@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20180907163035.-CE3W6FQqI9QlNX1qS3GNIPT-6cF-Kr6Sc1cdPcWd0g@z>
+To: Will Deacon <will.deacon@arm.com>, Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Kernel development list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, akiyks@gmail.com, Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <20180907163958.2lszZ7NUsdF8HK7Qo9eQdWJtvAOsGOtmGh7LNcZPCJY@z>
 
-On Fri, Sep 7, 2018 at 8:26 AM Catalin Marinas <catalin.marinas@arm.com> wrote:
->
-> So it's not about casting to another pointer; it's rather about no
-> longer using the value as a user pointer but as an actual (untyped,
-> untagged) virtual address.
->
-> There may be better options to address this but I haven't seen any
-> concrete proposal so far. Or we could simply consider that we've found
-> all places where it matters and not bother with any static analysis
-> tools (but for the time being it's still worth investigating whether we
-> can do better than this).
+On 9/7/2018 9:09 AM, Will Deacon wrote:
+> On Fri, Sep 07, 2018 at 12:00:19PM -0400, Alan Stern wrote:
+>> On Thu, 6 Sep 2018, Andrea Parri wrote:
+>>
+>>>> Have you noticed any part of the generic code that relies on ordinary 
+>>>> acquire-release (rather than atomic RMW acquire-release) in order to 
+>>>> implement locking constructs?
+>>>
+>>> There are several places in code where the "lock-acquire" seems to be
+>>> provided by an atomic_cond_read_acquire/smp_cond_load_acquire: I have
+>>> mentioned one in qspinlock in this thread; qrwlock and mcs_spinlock
+>>> provide other examples (grep for the primitives...).
+>>>
+>>> As long as we don't consider these primitive as RMW (which would seem
+>>> odd...) or as acquire for which "most people expect strong ordering"
+>>> (see above), these provides other examples for the _gap_ I mentioned.
+>>
+>> Okay, now I understand your objection.  It does appear that on RISC-V,
+>> if nowhere else, the current implementations of qspinlock, qrwlock,
+>> etc. will not provide "RCtso" ordering.
+>>
+>> The discussions surrounding this topic have been so lengthy and 
+>> confusing that I have lost track of any comments Palmer or Daniel may 
+>> have made concerning this potential problem.
+>>
+>> One possible resolution would be to define smp_cond_load_acquire() 
+>> specially on RISC-V so that it provided the same ordering guarantees as 
+>> RMW-acquire.  (Plus adding a comment in the asm-generic/barrier.h 
+>> pointing out the necessity for the stronger guarantee on all 
+>> architectures.)
+>>
+>> Another would be to replace the usages of atomic/smp_cond_load_acquire 
+>> in the locking constructs with a new function that would otherwise be 
+>> the same but would provide the ordering guarantee we want.
+>>
+>> Do you think either of these would be an adequate fix?
+> 
+> I didn't think RISC-V used qspinlock or qrwlock, so I'm not sure there's
+> actually anything to fix, is there?
+> 
+> Will
 
-I actually originally wanted to have sparse not just check types, but
-actually do transformations too, in order to check more.
+I've also lost track of whether the current preference is or is not for
+RCtso, or in which subset of cases RCtso is currently preferred.  For
+whichever cases do in fact need to be RCtso, the RISC-V approach would
+still be the same as what I've written in the past, as far as I can
+tell [1].
 
-For example, for just the user pointer case, we actually have two
-wildy different kinds of user pointers: "checked" user pointers and
-"wild" user pointers.
+In a nutshell, if a data structure uses only atomics with .aq/.rl,
+RISC-V provides RCtso already anyway.  If a data structure uses fences,
+or mixes fences and atomics, we can replace a "fence r,rw" or a
+"fence rw,w" with a "fence.tso" (== fence r,rw + fence rw,w) as
+necessary, at the cost of some amount of performance.
 
-Most of the time it doesn't matter, but it does for the unsafe ones:
-"__get_user()" and friends.
+I suppose the answer to the question of whether smp_cond_load_acquire()
+needs to change depends on where exactly RCtso is needed, and which
+data structures actually use that vs. some other macro. 
 
-So long long ago I wanted sparse to not just do the completely static
-type analysis, but also do actual "data flow" analysis where doing an
-"access_on()" on a pointer would turn it from "wild" to "checked", and
-then I could have warned about "hey, this function does __get_user(),
-but the flow analysis shows that you passed it a pointer that had
-never been checked".
+Does that answer your question Alan?  Does it make sense?
 
-But sparse never ended up doing that kind of much smarter things. Some
-of the lock context stuff does it on a very small local level, and not
-very well there either.
+[1] https://lore.kernel.org/lkml/11b27d32-4a8a-3f84-0f25-723095ef1076@nvidia.com/
 
-But it sounds like this is exactly what you guys would want for the
-tagged pointers. Some functions can take a "wild" pointer, because
-they deal with the tag part natively. And others need to be "checked"
-and have gone through the cleaning and verification.
-
-But sparse is sadly not the right tool for this, and having a single
-"__user" address space is not sufficient. I guess for the arm64 case,
-you really could make up a *new* address space: "__user_untagged", and
-then have functions that convert from "void __user *" to "void
-__user_untagged *", and then mark the functions that need the tag
-removed as taking that new kind of user pointer.
-
-And if you never mix types, that would actually work. But I'm guessing
-you can also pass "__user_untagged" pointers to the regular user
-access functions, and you do?
-
-                  Linus
+Dan
