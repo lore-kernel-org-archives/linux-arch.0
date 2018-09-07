@@ -1,80 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:56463 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726444AbeIGRha (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2018 13:37:30 -0400
-Date: Fri, 7 Sep 2018 20:55:36 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V3 06/26] csky: Cache and TLB routines
-Message-ID: <20180907125536.GA2308@guoren>
-References: <cover.1536138304.git.ren_guo@c-sky.com>
- <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
- <CAK8P3a1fYM0X=F+9yD6BVLq=57eJeFWXCvywjQOFwEHz7oAhcg@mail.gmail.com>
- <20180907030447.GA10434@guoren-Inspiron-7460>
- <CAK8P3a2K_ecCQEs840hQMrjsf4H8hHxS+HtM2TtPDYpRu8-LeQ@mail.gmail.com>
+Received: from foss.arm.com ([217.140.101.70]:60610 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728481AbeIGSYr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 7 Sep 2018 14:24:47 -0400
+Date: Fri, 7 Sep 2018 14:44:00 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 1/2] mm: move tlb_table_flush to tlb_flush_mmu_free
+Message-ID: <20180907134359.GA12187@arm.com>
+References: <20180823084709.19717-1-npiggin@gmail.com>
+ <20180823084709.19717-2-npiggin@gmail.com>
+ <fa7c625dfbbe103b37bc3ab5ea4b7283fd13b998.camel@surriel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a2K_ecCQEs840hQMrjsf4H8hHxS+HtM2TtPDYpRu8-LeQ@mail.gmail.com>
+In-Reply-To: <fa7c625dfbbe103b37bc3ab5ea4b7283fd13b998.camel@surriel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180907125536.jrqCRN1OyXmfBX0MFjDssRpcWw3g-MRUDqdW-URKbY4@z>
+To: Rik van Riel <riel@surriel.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, luto@kernel.org, x86@kernel.org, bp@alien8.de, jannh@google.com, ascannell@google.com, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org
+Message-ID: <20180907134400.SFLiJUpaakGDxqmtDVn5rDLfCiWRC6taOU2oQM-LFdU@z>
 
-On Fri, Sep 07, 2018 at 10:14:38AM +0200, Arnd Bergmann wrote:
-> On Fri, Sep 7, 2018 at 5:04 AM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > On Thu, Sep 06, 2018 at 04:31:16PM +0200, Arnd Bergmann wrote:
-> > > On Wed, Sep 5, 2018 at 2:08 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > >
-> > > Can you describe how C-Sky hardware implements MMIO?
-> > Our mmio is uncachable and strong-order address, so there is no need
-> > barriers for access these io addr.
-> >
-> >  #define ioremap_wc ioremap_nocache
-> >  #define ioremap_wt ioremap_nocache
-> >
-> > Current ioremap_wc and ioremap_wt implementation are too simple and
-> > we'll improve it in future.
-> >
-> > > In particular:
-> > >
-> > > - Is a read from uncached memory always serialized with DMA, and with
-> > >   other CPUs doing MMIO access to a different address?
-> > CPU use ld.w to get data from uncached strong order memory.
-> > Other CPUs use the same mmio vaddr to access the uncachable strong order
-> > memory paddr.
+On Thu, Sep 06, 2018 at 04:29:59PM -0400, Rik van Riel wrote:
+> On Thu, 2018-08-23 at 18:47 +1000, Nicholas Piggin wrote:
+> > There is no need to call this from tlb_flush_mmu_tlbonly, it
+> > logically belongs with tlb_flush_mmu_free. This allows some
+> > code consolidation with a subsequent fix.
+> > 
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > 
-> Ok, but what about the DMA? The most common requirement for
-> serialization here is with a DMA transfer, where you first write
-> into a buffer in memory, then write to an MMIO register to trigger
-> a DMA-load, and then the device reads the data from memory.
-> Without a barrier before the MMIO, the data may still be in a
-> store queue of the CPU, and the DMA gets stale data.
-
+> Reviewed-by: Rik van Riel <riel@surriel.com>
 > 
-> Similarly, an MMIO read may be used to see if a DMA has completed
-> and the device register tells you that the DMA has left the device,
-> but without a barrier, the CPU may have prefetched the DMA
-> data while waiting for the MMIO-read to complete. The __io_ar()
-> barrier() in asm-generic/io.h prevents the compiler from reordering
-> the two reads, but if an weakly ordered read (in coherent DMA buffer)
-> can bypass a strongly ordered read (MMIO), then it's still still
-> broken.
-__io_ar() barrier()? not rmb() ?! I've defined the rmb in asm/barrier, So
-I got rmb() here not barrier().
-
-Only __io_br() is barrier().
-
-> > > - How does endianess work? Are there any buses that flip bytes around
-> > >   when running big-endian, or do you always do that in software?
-> > Currently we only support little-endian and soc will follow it.
+> This patch also fixes an infinite recursion bug
+> with CONFIG_HAVE_RCU_TABLE_FREE enabled, which
+> has this call trace:
 > 
-> Ok, that makes it easier. If you think that you won't even need big-endian
-> support in the long run, you could also remove your asm/byteorder.h
-> header. If you're not sure, it doesn't hurt to keep it of course.
-Em... I'm not sure, so let me keep it for a while.
+> tlb_table_flush
+>   -> tlb_table_invalidate
+>      -> tlb_flush_mmu_tlbonly
+>         -> tlb_table_flush
+>            -> ... (infinite recursion)
+> 
+> This should probably be applied sooner rather than
+> later.
 
-Best Regards
- Guo Ren
+It's already in mainline with a cc stable afaict.
+
+Will
