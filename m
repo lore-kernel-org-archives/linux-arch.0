@@ -1,69 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:32848 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726010AbeIHHEj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Sep 2018 03:04:39 -0400
-Date: Sat, 8 Sep 2018 10:20:12 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V3 06/26] csky: Cache and TLB routines
-Message-ID: <20180908022011.GB29088@guoren-Inspiron-7460>
-References: <cover.1536138304.git.ren_guo@c-sky.com>
- <16105a3e54f1c4bb65a5ec81d77af7c176e705c6.1536138304.git.ren_guo@c-sky.com>
- <CAK8P3a1fYM0X=F+9yD6BVLq=57eJeFWXCvywjQOFwEHz7oAhcg@mail.gmail.com>
- <20180907030447.GA10434@guoren-Inspiron-7460>
- <CAK8P3a2K_ecCQEs840hQMrjsf4H8hHxS+HtM2TtPDYpRu8-LeQ@mail.gmail.com>
- <20180907125536.GA2308@guoren>
- <CAK8P3a3b+dM2kxSG7kCqTR=NmiqvZoMwOwSmQKRQLQjXqpqxYw@mail.gmail.com>
+Received: from mail-lf1-f68.google.com ([209.85.167.68]:44829 "EHLO
+        mail-lf1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726351AbeIHJQh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Sep 2018 05:16:37 -0400
+Subject: Re: [PATCH] asm-generic: bug: add unlikely() to BUG_ON()
+References: <20180907192119.4931-1-igor.stoppa@huawei.com>
+ <CAK8P3a3u0z+Rkt0=UUG04o-uNC_K1+N=h+_Ucd23N-r2H=fTLg@mail.gmail.com>
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Message-ID: <f59169de-fe5b-61b9-df36-321741682da9@gmail.com>
+Date: Sat, 8 Sep 2018 07:32:15 +0300
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3b+dM2kxSG7kCqTR=NmiqvZoMwOwSmQKRQLQjXqpqxYw@mail.gmail.com>
+In-Reply-To: <CAK8P3a3u0z+Rkt0=UUG04o-uNC_K1+N=h+_Ucd23N-r2H=fTLg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180908022012.6_qwuZ6P8pIspeqFkaVQtBULP4QHX2ehpow0PG-vIE0@z>
+Cc: igor.stoppa@huawei.com, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180908043215.uMNqCHXxEloMfg4abJR9xCuHM35eihpj79Ce7a2YpNs@z>
 
-On Fri, Sep 07, 2018 at 04:13:35PM +0200, Arnd Bergmann wrote:
-> On Fri, Sep 7, 2018 at 2:55 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > On Fri, Sep 07, 2018 at 10:14:38AM +0200, Arnd Bergmann wrote:
-> > > On Fri, Sep 7, 2018 at 5:04 AM Guo Ren <ren_guo@c-sky.com> wrote:
-> > > > On Thu, Sep 06, 2018 at 04:31:16PM +0200, Arnd Bergmann wrote:
-> > > Similarly, an MMIO read may be used to see if a DMA has completed
-> > > and the device register tells you that the DMA has left the device,
-> > > but without a barrier, the CPU may have prefetched the DMA
-> > > data while waiting for the MMIO-read to complete. The __io_ar()
-> > > barrier() in asm-generic/io.h prevents the compiler from reordering
-> > > the two reads, but if an weakly ordered read (in coherent DMA buffer)
-> > > can bypass a strongly ordered read (MMIO), then it's still still
-> > > broken.
-> > __io_ar() barrier()? not rmb() ?! I've defined the rmb in asm/barrier, So
-> > I got rmb() here not barrier().
-> >
-> > Only __io_br() is barrier().
-> 
-> Ah right, I misremembered the defaults. It's probably ok then.
-Thx for the review and comments. These let me re-consider the mmio
-issues and help to improve the csky asm/io.h in future. 
-> 
-> > > > > - How does endianess work? Are there any buses that flip bytes around
-> > > > >   when running big-endian, or do you always do that in software?
-> > > > Currently we only support little-endian and soc will follow it.
-> > >
-> > > Ok, that makes it easier. If you think that you won't even need big-endian
-> > > support in the long run, you could also remove your asm/byteorder.h
-> > > header. If you're not sure, it doesn't hurt to keep it of course.
-> > Em... I'm not sure, so let me keep it for a while.
-> 
-> Ok. I think overall the trend is to be little-endian only for most
-> architectures: powerpc64 moved from big-endian only to little-endian
-> by default, ARM rarely uses big-endian (basically only for legacy
-> applications ported from BE MIPS or ppc), and all new architectures
-> we added in the last years are little-endian (OpenRISC being the
-> main exception).
-Good news, I really don't want to support big-endian and it makes CI
-double.
 
-Best Regards
- Guo Ren
+
+On 07/09/18 23:41, Arnd Bergmann wrote:
+
+> Could you add a comment about -Wmaybe-uninitialized next to the definition?
+> Otherwise that is easily lost.
+> 
+> Also, I see that the file has two separate definitions of BUG_ON(), and the
+> other one does have an unlikely() in it already. Can you change both
+> to do the same thing with unlikely() or not unlikely()?
+
+ack
+
+--
+igor
