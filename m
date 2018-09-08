@@ -1,32 +1,57 @@
 From: Igor Stoppa <igor.stoppa@gmail.com>
-Subject: Re: [PATCH] asm-generic: bug: add unlikely() to BUG_ON()
-Date: Sat, 8 Sep 2018 07:32:15 +0300
-Message-ID: <f59169de-fe5b-61b9-df36-321741682da9@gmail.com>
-References: <20180907192119.4931-1-igor.stoppa@huawei.com>
- <CAK8P3a3u0z+Rkt0=UUG04o-uNC_K1+N=h+_Ucd23N-r2H=fTLg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH v2] asm-generic: bug: unify hints for BUG_ON()
+Date: Sat,  8 Sep 2018 07:59:28 +0300
+Message-ID: <20180908045928.26201-1-igor.stoppa@huawei.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3u0z+Rkt0=UUG04o-uNC_K1+N=h+_Ucd23N-r2H=fTLg@mail.gmail.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: igor.stoppa@huawei.com, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Cc: igor.stoppa@gmail.com, Igor Stoppa <igor.stoppa@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+If BUG_ON() is used instead of BUG(), it means that probably the
+preferred outcome is to not BUG(), therefore the condition tested should
+be unlikely().
 
+However, when CONFIG_PROFILE_ANNOTATED_BRANCHES is enabled, the hint is
+disabled, to avoid generating false-positive warnings caused by
+-Wmaybe-uninitialized.
 
-On 07/09/18 23:41, Arnd Bergmann wrote:
+Signed-off-by: Igor Stoppa <igor.stoppa@huawei.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ include/asm-generic/bug.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-> Could you add a comment about -Wmaybe-uninitialized next to the definition?
-> Otherwise that is easily lost.
-> 
-> Also, I see that the file has two separate definitions of BUG_ON(), and the
-> other one does have an unlikely() in it already. Can you change both
-> to do the same thing with unlikely() or not unlikely()?
-
-ack
-
---
-igor
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 20561a60db9c..b91273c36baf 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -58,8 +58,12 @@ struct bug_entry {
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
++#ifdef CONFIG_PROFILE_ANNOTATED_BRANCHES
++#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
++#else
+ #define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
+ #endif
++#endif
+ 
+ #ifdef __WARN_FLAGS
+ #define __WARN_TAINT(taint)		__WARN_FLAGS(BUGFLAG_TAINT(taint))
+@@ -183,7 +187,11 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
++#ifdef CONFIG_PROFILE_ANNOTATED_BRANCHES
+ #define BUG_ON(condition) do { if (condition) BUG(); } while (0)
++#else
++#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
++#endif
+ #endif
+ 
+ #ifndef HAVE_ARCH_WARN_ON
+-- 
+2.17.1
