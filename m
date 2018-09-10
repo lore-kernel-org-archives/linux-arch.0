@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:33726 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:33710 "EHLO
         ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726505AbeIJJoi (ORCPT
+        with ESMTP id S1726165AbeIJJoi (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2018 05:44:38 -0400
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 6/8] untangle asm/termios.h mess
-Date: Mon, 10 Sep 2018 05:52:25 +0100
-Message-ID: <20180910045227.9895-6-viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 2/8] move user_termio_to_kernel_termios/kernel_termios_to_user_termio
+Date: Mon, 10 Sep 2018 05:52:21 +0100
+Message-ID: <20180910045227.9895-2-viro@ZenIV.linux.org.uk>
 In-Reply-To: <20180910045227.9895-1-viro@ZenIV.linux.org.uk>
 References: <20180910044937.GJ19965@ZenIV.linux.org.uk>
  <20180910045227.9895-1-viro@ZenIV.linux.org.uk>
@@ -14,280 +14,541 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Message-ID: <20180910045225.992PhQGsfPwXCGX5eO2kifhvwlLcy1SeCKf6raG0WLw@z>
+Message-ID: <20180910045221.IvvzNTAWsCXlHxwp2VNaWDk1kGA5uPiz_ZDPIBDbD-E@z>
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-Currently, asm/termios.h resolves either to uapi/asm/termios.h
-(on architectures that don't have it) or to the same plus the
-definitions that are only used by those who pull linux/termios_internal.h
-
-That causes tons of inconveniences - e.g. we can't have generic
-asm/termios.h with non-generic uapi/asm/termios.h.
-
-Let's do the following:
-	* rename asm/termios.h to asm/termios_internal.h and make
-linux/termios_internal.h pull that; that way all includes of
-<asm/termios.h> will go directly to uapi/asm/termios.h
-	* all but 3 architectures actually have asm/termios.h completely
-generic.  Make those 3 select a new config symbol (HAVE_TERMIOS_INTERNAL)
-and make the include of asm/termios_internal.h conditional upon that.
-Remove all generic instances of asm/termios.h (including include/asm-generic
-one).
-	* get rid of one pointless include of <asm/termios.h> in
-drivers/tty.
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/Kconfig                                              |  3 +++
- arch/alpha/Kconfig                                        |  1 +
- arch/alpha/include/asm/{termios.h => termios_internal.h}  |  3 ---
- arch/ia64/include/asm/termios.h                           | 13 -------------
- arch/mips/include/asm/termios.h                           | 15 ---------------
- arch/parisc/include/asm/termios.h                         |  7 -------
- arch/powerpc/Kconfig                                      |  1 +
- .../powerpc/include/asm/{termios.h => termios_internal.h} |  2 --
- arch/riscv/include/asm/Kbuild                             |  1 -
- arch/s390/include/asm/termios.h                           | 12 ------------
- arch/sparc/Kconfig                                        |  1 +
- arch/sparc/include/asm/{termios.h => termios_internal.h}  |  4 ----
- drivers/tty/n_hdlc.c                                      |  1 -
- include/asm-generic/termios.h                             |  9 ---------
- include/linux/termios_internal.h                          |  3 +++
- 15 files changed, 9 insertions(+), 67 deletions(-)
- rename arch/alpha/include/asm/{termios.h => termios_internal.h} (97%)
- delete mode 100644 arch/ia64/include/asm/termios.h
- delete mode 100644 arch/mips/include/asm/termios.h
- delete mode 100644 arch/parisc/include/asm/termios.h
- rename arch/powerpc/include/asm/{termios.h => termios_internal.h} (96%)
- delete mode 100644 arch/s390/include/asm/termios.h
- rename arch/sparc/include/asm/{termios.h => termios_internal.h} (98%)
- delete mode 100644 include/asm-generic/termios.h
+ arch/alpha/include/asm/termios.h   | 104 ++++++++++++++++++++-----------------
+ arch/ia64/include/asm/termios.h    |  31 -----------
+ arch/mips/include/asm/termios.h    |  57 --------------------
+ arch/parisc/include/asm/termios.h  |  31 -----------
+ arch/sparc/include/asm/termios.h   |  52 +++++++------------
+ include/asm-generic/termios-base.h |  57 --------------------
+ include/asm-generic/termios.h      |  53 -------------------
+ include/linux/termios_internal.h   |  41 +++++++++++++++
+ 8 files changed, 114 insertions(+), 312 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 6801123932a5..a36cce432768 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -727,6 +727,9 @@ config OLD_SIGACTION
- config COMPAT_OLD_SIGACTION
- 	bool
- 
-+config HAS_TERMIOS_INTERNAL
-+	bool
-+
- config 64BIT_TIME
- 	def_bool ARCH_HAS_64BIT_TIME
- 	help
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 5b4f88363453..85120bbda191 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -30,6 +30,7 @@ config ALPHA
- 	select MODULES_USE_ELF_RELA
- 	select ODD_RT_SIGACTION
- 	select OLD_SIGSUSPEND
-+	select HAS_TERMIOS_INTERNAL
- 	select CPU_NO_EFFICIENT_FFS if !ALPHA_EV67
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
-diff --git a/arch/alpha/include/asm/termios.h b/arch/alpha/include/asm/termios_internal.h
-similarity index 97%
-rename from arch/alpha/include/asm/termios.h
-rename to arch/alpha/include/asm/termios_internal.h
-index 63e1ffc8f719..6c2a67e65992 100644
+diff --git a/arch/alpha/include/asm/termios.h b/arch/alpha/include/asm/termios.h
+index 1cd44956ae7b..63e1ffc8f719 100644
 --- a/arch/alpha/include/asm/termios.h
-+++ b/arch/alpha/include/asm/termios_internal.h
-@@ -2,9 +2,6 @@
++++ b/arch/alpha/include/asm/termios.h
+@@ -2,6 +2,7 @@
  #ifndef _ALPHA_TERMIOS_H
  #define _ALPHA_TERMIOS_H
  
--#include <linux/uaccess.h>
--#include <uapi/asm/termios.h>
--
++#include <linux/uaccess.h>
+ #include <uapi/asm/termios.h>
+ 
  /*	eof=^D		eol=\0		eol2=\0		erase=del
- 	werase=^W	kill=^U		reprint=^R	sxtc=\0
- 	intr=^C		quit=^\		susp=^Z		<OSF/1 VDSUSP>
-diff --git a/arch/ia64/include/asm/termios.h b/arch/ia64/include/asm/termios.h
-deleted file mode 100644
-index 1cef02701401..000000000000
---- a/arch/ia64/include/asm/termios.h
-+++ /dev/null
-@@ -1,13 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--/*
-- * Modified 1999
-- *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
-- *
-- * 99/01/28	Added N_IRDA and N_SMSBLOCK
-- */
--#ifndef _ASM_IA64_TERMIOS_H
--#define _ASM_IA64_TERMIOS_H
--
--#include <uapi/asm/termios.h>
--
--#endif /* _ASM_IA64_TERMIOS_H */
-diff --git a/arch/mips/include/asm/termios.h b/arch/mips/include/asm/termios.h
-deleted file mode 100644
-index 12bc56857bf1..000000000000
---- a/arch/mips/include/asm/termios.h
-+++ /dev/null
-@@ -1,15 +0,0 @@
--/*
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * Copyright (C) 1995, 1996, 2000, 2001 by Ralf Baechle
-- * Copyright (C) 2000, 2001 Silicon Graphics, Inc.
-- */
--#ifndef _ASM_TERMIOS_H
--#define _ASM_TERMIOS_H
--
--#include <linux/uaccess.h>
--#include <uapi/asm/termios.h>
--
--#endif /* _ASM_TERMIOS_H */
-diff --git a/arch/parisc/include/asm/termios.h b/arch/parisc/include/asm/termios.h
-deleted file mode 100644
-index 1850a90befb3..000000000000
---- a/arch/parisc/include/asm/termios.h
-+++ /dev/null
-@@ -1,7 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _PARISC_TERMIOS_H
--#define _PARISC_TERMIOS_H
--
--#include <uapi/asm/termios.h>
--
--#endif	/* _PARISC_TERMIOS_H */
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index db0b6eebbfa5..b1402b1f1685 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -223,6 +223,7 @@ config PPC
- 	select HAVE_VIRT_CPU_ACCOUNTING
- 	select HAVE_IRQ_TIME_ACCOUNTING
- 	select HAVE_RSEQ
-+	select HAS_TERMIOS_INTERNAL
- 	select IOMMU_HELPER			if PPC64
- 	select IRQ_DOMAIN
- 	select IRQ_FORCED_THREADING
-diff --git a/arch/powerpc/include/asm/termios.h b/arch/powerpc/include/asm/termios_internal.h
-similarity index 96%
-rename from arch/powerpc/include/asm/termios.h
-rename to arch/powerpc/include/asm/termios_internal.h
-index cb1e593e95bf..b93e889342cf 100644
---- a/arch/powerpc/include/asm/termios.h
-+++ b/arch/powerpc/include/asm/termios_internal.h
-@@ -12,8 +12,6 @@
- #ifndef _ASM_POWERPC_TERMIOS_H
- #define _ASM_POWERPC_TERMIOS_H
+@@ -16,60 +17,65 @@
+  * Translate a "termio" structure into a "termios". Ugh.
+  */
  
--#include <uapi/asm/termios.h>
--
- /*                   ^C  ^\ del  ^U  ^D   1   0   0   0   0  ^W  ^R  ^Z  ^Q  ^S  ^V  ^U  */
- #define INIT_C_CC "\003\034\177\025\004\001\000\000\000\000\027\022\032\021\023\026\025" 
+-#define user_termio_to_kernel_termios(a_termios, u_termio)			\
+-({										\
+-	struct ktermios *k_termios = (a_termios);				\
+-	struct termio k_termio;							\
+-	int canon, ret;								\
+-										\
+-	ret = copy_from_user(&k_termio, u_termio, sizeof(k_termio));		\
+-	if (!ret) {								\
+-		/* Overwrite only the low bits.  */				\
+-		*(unsigned short *)&k_termios->c_iflag = k_termio.c_iflag;	\
+-		*(unsigned short *)&k_termios->c_oflag = k_termio.c_oflag;	\
+-		*(unsigned short *)&k_termios->c_cflag = k_termio.c_cflag;	\
+-		*(unsigned short *)&k_termios->c_lflag = k_termio.c_lflag;	\
+-		canon = k_termio.c_lflag & ICANON;				\
+-										\
+-		k_termios->c_cc[VINTR]  = k_termio.c_cc[_VINTR];		\
+-		k_termios->c_cc[VQUIT]  = k_termio.c_cc[_VQUIT];		\
+-		k_termios->c_cc[VERASE] = k_termio.c_cc[_VERASE];		\
+-		k_termios->c_cc[VKILL]  = k_termio.c_cc[_VKILL];		\
+-		k_termios->c_cc[VEOL2]  = k_termio.c_cc[_VEOL2];		\
+-		k_termios->c_cc[VSWTC]  = k_termio.c_cc[_VSWTC];		\
+-		k_termios->c_cc[canon ? VEOF : VMIN]  = k_termio.c_cc[_VEOF];	\
+-		k_termios->c_cc[canon ? VEOL : VTIME] = k_termio.c_cc[_VEOL];	\
+-	}									\
+-	ret;									\
+-})
++static inline int user_termio_to_kernel_termios(struct ktermios *termios,
++						struct termio __user *termio)
++{
++	struct termio v;
++	bool canon;
++
++	if (copy_from_user(&v, termio, sizeof(struct termio)))
++		return -EFAULT;
++
++	termios->c_iflag = (0xffff0000 & termios->c_iflag) | v.c_iflag;
++	termios->c_oflag = (0xffff0000 & termios->c_oflag) | v.c_oflag;
++	termios->c_cflag = (0xffff0000 & termios->c_cflag) | v.c_cflag;
++	termios->c_lflag = (0xffff0000 & termios->c_lflag) | v.c_lflag;
++	termios->c_line = (0xffff0000 & termios->c_lflag) | v.c_line;
++
++	canon = v.c_lflag & ICANON;
++	termios->c_cc[VINTR]  = v.c_cc[_VINTR];
++	termios->c_cc[VQUIT]  = v.c_cc[_VQUIT];
++	termios->c_cc[VERASE] = v.c_cc[_VERASE];
++	termios->c_cc[VKILL]  = v.c_cc[_VKILL];
++	termios->c_cc[VEOL2]  = v.c_cc[_VEOL2];
++	termios->c_cc[VSWTC]  = v.c_cc[_VSWTC];
++	termios->c_cc[canon ? VEOF : VMIN]  = v.c_cc[_VEOF];
++	termios->c_cc[canon ? VEOL : VTIME] = v.c_cc[_VEOL];
++
++	return 0;
++}
++#define user_termio_to_kernel_termios user_termio_to_kernel_termios
  
-diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
-index efdbe311e936..f74ea476a932 100644
---- a/arch/riscv/include/asm/Kbuild
-+++ b/arch/riscv/include/asm/Kbuild
-@@ -52,7 +52,6 @@ generic-y += stat.h
- generic-y += statfs.h
- generic-y += swab.h
- generic-y += termbits.h
--generic-y += termios.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += types.h
-diff --git a/arch/s390/include/asm/termios.h b/arch/s390/include/asm/termios.h
-deleted file mode 100644
-index 0e26fe97b0d4..000000000000
---- a/arch/s390/include/asm/termios.h
-+++ /dev/null
-@@ -1,12 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--/*
-- *  S390 version
-- *
-- *  Derived from "include/asm-i386/termios.h"
-- */
--#ifndef _S390_TERMIOS_H
--#define _S390_TERMIOS_H
--
--#include <uapi/asm/termios.h>
--
--#endif	/* _S390_TERMIOS_H */
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index e6f2a38d2e61..ef9fba4a2d0f 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -33,6 +33,7 @@ config SPARC
- 	select HAVE_CBPF_JIT if SPARC32
- 	select HAVE_EBPF_JIT if SPARC64
- 	select HAVE_DEBUG_BUGVERBOSE
-+	select HAS_TERMIOS_INTERNAL
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_STRNCPY_FROM_USER
-diff --git a/arch/sparc/include/asm/termios.h b/arch/sparc/include/asm/termios_internal.h
-similarity index 98%
-rename from arch/sparc/include/asm/termios.h
-rename to arch/sparc/include/asm/termios_internal.h
-index 0652f870bb1a..028c6bd6e0a7 100644
---- a/arch/sparc/include/asm/termios.h
-+++ b/arch/sparc/include/asm/termios_internal.h
-@@ -2,10 +2,6 @@
- #ifndef _SPARC_TERMIOS_H
- #define _SPARC_TERMIOS_H
- 
--#include <uapi/asm/termios.h>
--#include <linux/uaccess.h>
--
--
  /*
-  * c_cc characters in the termio structure.  Oh, how I love being
-  * backwardly compatible.  Notice that character 4 and 5 are
-diff --git a/drivers/tty/n_hdlc.c b/drivers/tty/n_hdlc.c
-index dabb391909aa..ca3395994a43 100644
---- a/drivers/tty/n_hdlc.c
-+++ b/drivers/tty/n_hdlc.c
-@@ -101,7 +101,6 @@
- #include <linux/if.h>
- #include <linux/bitops.h>
+  * Translate a "termios" structure into a "termio". Ugh.
+  *
+  * Note the "fun" _VMIN overloading.
+  */
+-#define kernel_termios_to_user_termio(u_termio, a_termios)		\
+-({									\
+-	struct ktermios *k_termios = (a_termios);			\
+-	struct termio k_termio;						\
+-	int canon;							\
+-									\
+-	k_termio.c_iflag = k_termios->c_iflag;				\
+-	k_termio.c_oflag = k_termios->c_oflag;				\
+-	k_termio.c_cflag = k_termios->c_cflag;				\
+-	canon = (k_termio.c_lflag = k_termios->c_lflag) & ICANON;	\
+-									\
+-	k_termio.c_line = k_termios->c_line;				\
+-	k_termio.c_cc[_VINTR]  = k_termios->c_cc[VINTR];		\
+-	k_termio.c_cc[_VQUIT]  = k_termios->c_cc[VQUIT];		\
+-	k_termio.c_cc[_VERASE] = k_termios->c_cc[VERASE];		\
+-	k_termio.c_cc[_VKILL]  = k_termios->c_cc[VKILL];		\
+-	k_termio.c_cc[_VEOF]   = k_termios->c_cc[canon ? VEOF : VMIN];	\
+-	k_termio.c_cc[_VEOL]   = k_termios->c_cc[canon ? VEOL : VTIME];	\
+-	k_termio.c_cc[_VEOL2]  = k_termios->c_cc[VEOL2];		\
+-	k_termio.c_cc[_VSWTC]  = k_termios->c_cc[VSWTC];		\
+-									\
+-	copy_to_user(u_termio, &k_termio, sizeof(k_termio));		\
+-})
++static inline int kernel_termios_to_user_termio(struct termio __user *termio,
++						struct ktermios *termios)
++{
++	struct termio v;
++	bool canon;
++
++	memset(&v, 0, sizeof(struct termio));
++	v.c_iflag = termios->c_iflag;
++	v.c_oflag = termios->c_oflag;
++	v.c_cflag = termios->c_cflag;
++	v.c_lflag = termios->c_lflag;
++	v.c_line = termios->c_line;
++
++	canon = v.c_lflag & ICANON;
++	v.c_cc[_VINTR]  = termios->c_cc[VINTR];
++	v.c_cc[_VQUIT]  = termios->c_cc[VQUIT];
++	v.c_cc[_VERASE] = termios->c_cc[VERASE];
++	v.c_cc[_VKILL]  = termios->c_cc[VKILL];
++	v.c_cc[_VEOF]   = termios->c_cc[canon ? VEOF : VMIN];
++	v.c_cc[_VEOL]   = termios->c_cc[canon ? VEOL : VTIME];
++	v.c_cc[_VEOL2]  = termios->c_cc[VEOL2];
++	v.c_cc[_VSWTC]  = termios->c_cc[VSWTC];
++
++	return copy_to_user(termio, &v, sizeof(struct termio));
++}
++#define kernel_termios_to_user_termio kernel_termios_to_user_termio
  
--#include <asm/termios.h>
+ #endif	/* _ALPHA_TERMIOS_H */
+diff --git a/arch/ia64/include/asm/termios.h b/arch/ia64/include/asm/termios.h
+index 1bd5ff9745e9..66ca23c03f3c 100644
+--- a/arch/ia64/include/asm/termios.h
++++ b/arch/ia64/include/asm/termios.h
+@@ -19,35 +19,4 @@
+ */
+ #define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
+ 
+-/*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-#define SET_LOW_TERMIOS_BITS(termios, termio, x) {	\
+-	unsigned short __tmp;				\
+-	get_user(__tmp,&(termio)->x);			\
+-	*(unsigned short *) &(termios)->x = __tmp;	\
+-}
+-
+-#define user_termio_to_kernel_termios(termios, termio)		\
+-({								\
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_iflag);		\
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_oflag);		\
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_cflag);		\
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_lflag);		\
+-	copy_from_user((termios)->c_cc, (termio)->c_cc, NCC);	\
+-})
+-
+-/*
+- * Translate a "termios" structure into a "termio". Ugh.
+- */
+-#define kernel_termios_to_user_termio(termio, termios)		\
+-({								\
+-	put_user((termios)->c_iflag, &(termio)->c_iflag);	\
+-	put_user((termios)->c_oflag, &(termio)->c_oflag);	\
+-	put_user((termios)->c_cflag, &(termio)->c_cflag);	\
+-	put_user((termios)->c_lflag, &(termio)->c_lflag);	\
+-	put_user((termios)->c_line,  &(termio)->c_line);	\
+-	copy_to_user((termio)->c_cc, (termios)->c_cc, NCC);	\
+-})
+-
+ #endif /* _ASM_IA64_TERMIOS_H */
+diff --git a/arch/mips/include/asm/termios.h b/arch/mips/include/asm/termios.h
+index 3bd98a70e1d1..dbb62330b7a4 100644
+--- a/arch/mips/include/asm/termios.h
++++ b/arch/mips/include/asm/termios.h
+@@ -21,61 +21,4 @@
+  */
+ #define INIT_C_CC "\003\034\177\025\1\0\0\0\021\023\032\0\022\017\027\026\004\0"
+ 
+-#include <linux/string.h>
+-
+-/*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-static inline int user_termio_to_kernel_termios(struct ktermios *termios,
+-	struct termio __user *termio)
+-{
+-	unsigned short iflag, oflag, cflag, lflag;
+-	unsigned int err;
+-
+-	if (!access_ok(VERIFY_READ, termio, sizeof(struct termio)))
+-		return -EFAULT;
+-
+-	err = __get_user(iflag, &termio->c_iflag);
+-	termios->c_iflag = (termios->c_iflag & 0xffff0000) | iflag;
+-	err |=__get_user(oflag, &termio->c_oflag);
+-	termios->c_oflag = (termios->c_oflag & 0xffff0000) | oflag;
+-	err |=__get_user(cflag, &termio->c_cflag);
+-	termios->c_cflag = (termios->c_cflag & 0xffff0000) | cflag;
+-	err |=__get_user(lflag, &termio->c_lflag);
+-	termios->c_lflag = (termios->c_lflag & 0xffff0000) | lflag;
+-	err |=__get_user(termios->c_line, &termio->c_line);
+-	if (err)
+-		return -EFAULT;
+-
+-	if (__copy_from_user(termios->c_cc, termio->c_cc, NCC))
+-		return -EFAULT;
+-
+-	return 0;
+-}
+-
+-/*
+- * Translate a "termios" structure into a "termio". Ugh.
+- */
+-static inline int kernel_termios_to_user_termio(struct termio __user *termio,
+-	struct ktermios *termios)
+-{
+-	int err;
+-
+-	if (!access_ok(VERIFY_WRITE, termio, sizeof(struct termio)))
+-		return -EFAULT;
+-
+-	err = __put_user(termios->c_iflag, &termio->c_iflag);
+-	err |= __put_user(termios->c_oflag, &termio->c_oflag);
+-	err |= __put_user(termios->c_cflag, &termio->c_cflag);
+-	err |= __put_user(termios->c_lflag, &termio->c_lflag);
+-	err |= __put_user(termios->c_line, &termio->c_line);
+-	if (err)
+-		return -EFAULT;
+-
+-	if (__copy_to_user(termio->c_cc, termios->c_cc, NCC))
+-		return -EFAULT;
+-
+-	return 0;
+-}
+-
+ #endif /* _ASM_TERMIOS_H */
+diff --git a/arch/parisc/include/asm/termios.h b/arch/parisc/include/asm/termios.h
+index 679d31db8d77..2f5153be531f 100644
+--- a/arch/parisc/include/asm/termios.h
++++ b/arch/parisc/include/asm/termios.h
+@@ -13,35 +13,4 @@
+ */
+ #define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
+ 
+-/*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-#define SET_LOW_TERMIOS_BITS(termios, termio, x) { \
+-	unsigned short __tmp; \
+-	get_user(__tmp,&(termio)->x); \
+-	*(unsigned short *) &(termios)->x = __tmp; \
+-}
+-
+-#define user_termio_to_kernel_termios(termios, termio) \
+-({ \
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_iflag); \
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_oflag); \
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_cflag); \
+-	SET_LOW_TERMIOS_BITS(termios, termio, c_lflag); \
+-	copy_from_user((termios)->c_cc, (termio)->c_cc, NCC); \
+-})
+-
+-/*
+- * Translate a "termios" structure into a "termio". Ugh.
+- */
+-#define kernel_termios_to_user_termio(termio, termios) \
+-({ \
+-	put_user((termios)->c_iflag, &(termio)->c_iflag); \
+-	put_user((termios)->c_oflag, &(termio)->c_oflag); \
+-	put_user((termios)->c_cflag, &(termio)->c_cflag); \
+-	put_user((termios)->c_lflag, &(termio)->c_lflag); \
+-	put_user((termios)->c_line,  &(termio)->c_line); \
+-	copy_to_user((termio)->c_cc, (termios)->c_cc, NCC); \
+-})
+-
+ #endif	/* _PARISC_TERMIOS_H */
+diff --git a/arch/sparc/include/asm/termios.h b/arch/sparc/include/asm/termios.h
+index 27a054a99a58..0652f870bb1a 100644
+--- a/arch/sparc/include/asm/termios.h
++++ b/arch/sparc/include/asm/termios.h
+@@ -26,44 +26,28 @@
+ #define INIT_C_CC "\003\034\177\025\004\000\000\000\021\023\032\031\022\025\027\026\001"
+ 
+ /*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-#define user_termio_to_kernel_termios(termios, termio) \
+-({ \
+-	unsigned short tmp; \
+-	int err; \
+-	err = get_user(tmp, &(termio)->c_iflag); \
+-	(termios)->c_iflag = (0xffff0000 & ((termios)->c_iflag)) | tmp; \
+-	err |= get_user(tmp, &(termio)->c_oflag); \
+-	(termios)->c_oflag = (0xffff0000 & ((termios)->c_oflag)) | tmp; \
+-	err |= get_user(tmp, &(termio)->c_cflag); \
+-	(termios)->c_cflag = (0xffff0000 & ((termios)->c_cflag)) | tmp; \
+-	err |= get_user(tmp, &(termio)->c_lflag); \
+-	(termios)->c_lflag = (0xffff0000 & ((termios)->c_lflag)) | tmp; \
+-	err |= copy_from_user((termios)->c_cc, (termio)->c_cc, NCC); \
+-	err; \
+-})
+-
+-/*
+  * Translate a "termios" structure into a "termio". Ugh.
+  *
+  * Note the "fun" _VMIN overloading.
+  */
+-#define kernel_termios_to_user_termio(termio, termios) \
+-({ \
+-	int err; \
+-	err  = put_user((termios)->c_iflag, &(termio)->c_iflag); \
+-	err |= put_user((termios)->c_oflag, &(termio)->c_oflag); \
+-	err |= put_user((termios)->c_cflag, &(termio)->c_cflag); \
+-	err |= put_user((termios)->c_lflag, &(termio)->c_lflag); \
+-	err |= put_user((termios)->c_line,  &(termio)->c_line); \
+-	err |= copy_to_user((termio)->c_cc, (termios)->c_cc, NCC); \
+-	if (!((termios)->c_lflag & ICANON)) { \
+-		err |= put_user((termios)->c_cc[VMIN], &(termio)->c_cc[_VMIN]); \
+-		err |= put_user((termios)->c_cc[VTIME], &(termio)->c_cc[_VTIME]); \
+-	} \
+-	err; \
+-})
++static inline int kernel_termios_to_user_termio(struct termio __user *termio,
++						struct ktermios *termios)
++{
++	struct termio v;
++	memset(&v, 0, sizeof(struct termio));
++	v.c_iflag = termios->c_iflag;
++	v.c_oflag = termios->c_oflag;
++	v.c_cflag = termios->c_cflag;
++	v.c_lflag = termios->c_lflag;
++	v.c_line = termios->c_line;
++	memcpy(v.c_cc, termios->c_cc, NCC);
++	if (!(v.c_lflag & ICANON)) {
++		v.c_cc[_VMIN] = termios->c_cc[VMIN];
++		v.c_cc[_VTIME] = termios->c_cc[VTIME];
++	}
++	return copy_to_user(termio, &v, sizeof(struct termio));
++}
++#define kernel_termios_to_user_termio kernel_termios_to_user_termio
+ 
+ static inline int user_termios_to_kernel_termios(struct ktermios *k,
+ 						 struct termios2 __user *u)
+diff --git a/include/asm-generic/termios-base.h b/include/asm-generic/termios-base.h
+index f5f65eb75340..63d948ab6746 100644
+--- a/include/asm-generic/termios-base.h
++++ b/include/asm-generic/termios-base.h
+@@ -7,61 +7,4 @@
+ 
  #include <linux/uaccess.h>
  
- /*
+-#ifndef __ARCH_TERMIO_GETPUT
+-
+-/*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-static inline int user_termio_to_kernel_termios(struct ktermios *termios,
+-						struct termio __user *termio)
+-{
+-	unsigned short tmp;
+-
+-	if (get_user(tmp, &termio->c_iflag) < 0)
+-		goto fault;
+-	termios->c_iflag = (0xffff0000 & termios->c_iflag) | tmp;
+-
+-	if (get_user(tmp, &termio->c_oflag) < 0)
+-		goto fault;
+-	termios->c_oflag = (0xffff0000 & termios->c_oflag) | tmp;
+-
+-	if (get_user(tmp, &termio->c_cflag) < 0)
+-		goto fault;
+-	termios->c_cflag = (0xffff0000 & termios->c_cflag) | tmp;
+-
+-	if (get_user(tmp, &termio->c_lflag) < 0)
+-		goto fault;
+-	termios->c_lflag = (0xffff0000 & termios->c_lflag) | tmp;
+-
+-	if (get_user(termios->c_line, &termio->c_line) < 0)
+-		goto fault;
+-
+-	if (copy_from_user(termios->c_cc, termio->c_cc, NCC) != 0)
+-		goto fault;
+-
+-	return 0;
+-
+- fault:
+-	return -EFAULT;
+-}
+-
+-/*
+- * Translate a "termios" structure into a "termio". Ugh.
+- */
+-static inline int kernel_termios_to_user_termio(struct termio __user *termio,
+-						struct ktermios *termios)
+-{
+-	if (put_user(termios->c_iflag, &termio->c_iflag) < 0 ||
+-	    put_user(termios->c_oflag, &termio->c_oflag) < 0 ||
+-	    put_user(termios->c_cflag, &termio->c_cflag) < 0 ||
+-	    put_user(termios->c_lflag, &termio->c_lflag) < 0 ||
+-	    put_user(termios->c_line,  &termio->c_line) < 0 ||
+-	    copy_to_user(termio->c_cc, termios->c_cc, NCC) != 0)
+-		return -EFAULT;
+-
+-	return 0;
+-}
+-
+-#endif	/* __ARCH_TERMIO_GETPUT */
+-
+ #endif /* _ASM_GENERIC_TERMIOS_BASE_H */
 diff --git a/include/asm-generic/termios.h b/include/asm-generic/termios.h
-deleted file mode 100644
-index da3b0fe25442..000000000000
+index aa897f807ae6..3ffed3886ff2 100644
 --- a/include/asm-generic/termios.h
-+++ /dev/null
-@@ -1,9 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _ASM_GENERIC_TERMIOS_H
--#define _ASM_GENERIC_TERMIOS_H
++++ b/include/asm-generic/termios.h
+@@ -14,57 +14,4 @@
+ */
+ #define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
+ 
+-/*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-static inline int user_termio_to_kernel_termios(struct ktermios *termios,
+-						const struct termio __user *termio)
+-{
+-	unsigned short tmp;
 -
+-	if (get_user(tmp, &termio->c_iflag) < 0)
+-		goto fault;
+-	termios->c_iflag = (0xffff0000 & termios->c_iflag) | tmp;
 -
--#include <linux/uaccess.h>
--#include <uapi/asm-generic/termios.h>
+-	if (get_user(tmp, &termio->c_oflag) < 0)
+-		goto fault;
+-	termios->c_oflag = (0xffff0000 & termios->c_oflag) | tmp;
 -
--#endif /* _ASM_GENERIC_TERMIOS_H */
+-	if (get_user(tmp, &termio->c_cflag) < 0)
+-		goto fault;
+-	termios->c_cflag = (0xffff0000 & termios->c_cflag) | tmp;
+-
+-	if (get_user(tmp, &termio->c_lflag) < 0)
+-		goto fault;
+-	termios->c_lflag = (0xffff0000 & termios->c_lflag) | tmp;
+-
+-	if (get_user(termios->c_line, &termio->c_line) < 0)
+-		goto fault;
+-
+-	if (copy_from_user(termios->c_cc, termio->c_cc, NCC) != 0)
+-		goto fault;
+-
+-	return 0;
+-
+- fault:
+-	return -EFAULT;
+-}
+-
+-/*
+- * Translate a "termios" structure into a "termio". Ugh.
+- */
+-static inline int kernel_termios_to_user_termio(struct termio __user *termio,
+-						struct ktermios *termios)
+-{
+-	if (put_user(termios->c_iflag, &termio->c_iflag) < 0 ||
+-	    put_user(termios->c_oflag, &termio->c_oflag) < 0 ||
+-	    put_user(termios->c_cflag, &termio->c_cflag) < 0 ||
+-	    put_user(termios->c_lflag, &termio->c_lflag) < 0 ||
+-	    put_user(termios->c_line,  &termio->c_line) < 0 ||
+-	    copy_to_user(termio->c_cc, termios->c_cc, NCC) != 0)
+-		return -EFAULT;
+-
+-	return 0;
+-}
+-
+ #endif /* _ASM_GENERIC_TERMIOS_H */
 diff --git a/include/linux/termios_internal.h b/include/linux/termios_internal.h
-index d25b9a9c2faf..343f7868713d 100644
+index 3beb0595fd54..894f565ffc5f 100644
 --- a/include/linux/termios_internal.h
 +++ b/include/linux/termios_internal.h
-@@ -4,6 +4,9 @@
- 
+@@ -5,6 +5,47 @@
  #include <linux/uaccess.h>
  #include <asm/termios.h>
-+#ifdef CONFIG_HAS_TERMIOS_INTERNAL
-+#include <asm/termios_internal.h>
-+#endif
  
- #ifndef INIT_C_CC
- /*	intr=^C		quit=^\		erase=del	kill=^U
++#ifndef user_termio_to_kernel_termios
++/*
++ * Translate a "termio" structure into a "termios". Ugh.
++ */
++static inline int user_termio_to_kernel_termios(struct ktermios *termios,
++						struct termio __user *termio)
++{
++	struct termio v;
++
++	if (copy_from_user(&v, termio, sizeof(struct termio)))
++		return -EFAULT;
++
++	termios->c_iflag = (0xffff0000 & termios->c_iflag) | v.c_iflag;
++	termios->c_oflag = (0xffff0000 & termios->c_oflag) | v.c_oflag;
++	termios->c_cflag = (0xffff0000 & termios->c_cflag) | v.c_cflag;
++	termios->c_lflag = (0xffff0000 & termios->c_lflag) | v.c_lflag;
++	termios->c_line = (0xffff0000 & termios->c_lflag) | v.c_line;
++	memcpy(termios->c_cc, v.c_cc, NCC);
++	return 0;
++}
++#endif
++
++#ifndef kernel_termios_to_user_termio
++/*
++ * Translate a "termios" structure into a "termio". Ugh.
++ */
++static inline int kernel_termios_to_user_termio(struct termio __user *termio,
++						struct ktermios *termios)
++{
++	struct termio v;
++	memset(&v, 0, sizeof(struct termio));
++	v.c_iflag = termios->c_iflag;
++	v.c_oflag = termios->c_oflag;
++	v.c_cflag = termios->c_cflag;
++	v.c_lflag = termios->c_lflag;
++	v.c_line = termios->c_line;
++	memcpy(v.c_cc, termios->c_cc, NCC);
++	return copy_to_user(termio, &v, sizeof(struct termio));
++}
++#endif
++
+ #ifdef TCGETS2
+ #ifndef user_termios_to_kernel_termios
+ static inline int user_termios_to_kernel_termios(struct ktermios *k,
 -- 
 2.11.0
