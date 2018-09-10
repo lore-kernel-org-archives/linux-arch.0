@@ -1,7 +1,7 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v6 03/16] x86/cpu/mtrr: Support TOP_MEM2 and get MTRR number
-Date: Mon, 10 Sep 2018 21:16:03 +0800
-Message-ID: <cdfcd79e88e0acf254347159673355eec00a1d37.1536550550.git.puwen@hygon.cn>
+Subject: [PATCH v6 04/16] x86/smpboot: SMP init nodelay and not flush caches before sleep
+Date: Mon, 10 Sep 2018 21:16:22 +0800
+Message-ID: <bb205756583070bb06788b2c587ca8cd5d50f7c1.1536550550.git.puwen@hygon.cn>
 References: <cover.1536550549.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536550549.git.puwen@hygon.cn>
@@ -10,44 +10,36 @@ To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-The Hygon Dhyana CPU have a special magic MSR way to force WB for
-memory >4GB, and support TOP_MEM2. Therefore, it is necessary to
-add Hygon Dhyana support in amd_special_default_mtrr().
+The Hygon Dhyana CPU use no delay in smp_quirk_init_udelay(),
+and return in mwait_play_dead() as AMD does.
 
-The number of variable MTRRs for Hygon is 2 as AMD's.
-
+Reviewed-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/kernel/cpu/mtrr/cleanup.c | 3 ++-
- arch/x86/kernel/cpu/mtrr/mtrr.c    | 2 +-
- 2 files changed, 3 insertions(+), 2 deletions(-)
+ arch/x86/kernel/smpboot.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/cpu/mtrr/cleanup.c b/arch/x86/kernel/cpu/mtrr/cleanup.c
-index 765afd5..3668c5d 100644
---- a/arch/x86/kernel/cpu/mtrr/cleanup.c
-+++ b/arch/x86/kernel/cpu/mtrr/cleanup.c
-@@ -831,7 +831,8 @@ int __init amd_special_default_mtrr(void)
- {
- 	u32 l, h;
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index f02ecaf..5369d7f 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -676,6 +676,7 @@ static void __init smp_quirk_init_udelay(void)
  
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
- 		return 0;
- 	if (boot_cpu_data.x86 < 0xf)
- 		return 0;
-diff --git a/arch/x86/kernel/cpu/mtrr/mtrr.c b/arch/x86/kernel/cpu/mtrr/mtrr.c
-index 9a19c80..507039c 100644
---- a/arch/x86/kernel/cpu/mtrr/mtrr.c
-+++ b/arch/x86/kernel/cpu/mtrr/mtrr.c
-@@ -127,7 +127,7 @@ static void __init set_num_var_ranges(void)
+ 	/* if modern processor, use no delay */
+ 	if (((boot_cpu_data.x86_vendor == X86_VENDOR_INTEL) && (boot_cpu_data.x86 == 6)) ||
++	    ((boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) && (boot_cpu_data.x86 >= 0x18)) ||
+ 	    ((boot_cpu_data.x86_vendor == X86_VENDOR_AMD) && (boot_cpu_data.x86 >= 0xF))) {
+ 		init_udelay = 0;
+ 		return;
+@@ -1592,7 +1593,8 @@ static inline void mwait_play_dead(void)
+ 	void *mwait_ptr;
+ 	int i;
  
- 	if (use_intel())
- 		rdmsr(MSR_MTRRcap, config, dummy);
--	else if (is_cpu(AMD))
-+	else if (is_cpu(AMD) || is_cpu(HYGON))
- 		config = 2;
- 	else if (is_cpu(CYRIX) || is_cpu(CENTAUR))
- 		config = 8;
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		return;
+ 	if (!this_cpu_has(X86_FEATURE_MWAIT))
+ 		return;
 -- 
 2.7.4
