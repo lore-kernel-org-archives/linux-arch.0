@@ -1,83 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:33658 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:33714 "EHLO
         ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726114AbeIJJlr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2018 05:41:47 -0400
-Date: Mon, 10 Sep 2018 05:49:37 +0100
+        with ESMTP id S1726362AbeIJJoh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2018 05:44:37 -0400
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCHES] termios.h cleanups
-Message-ID: <20180910044937.GJ19965@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Subject: [RFC][PATCH 3/8] remove termios-base.h
+Date: Mon, 10 Sep 2018 05:52:22 +0100
+Message-ID: <20180910045227.9895-3-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20180910045227.9895-1-viro@ZenIV.linux.org.uk>
+References: <20180910044937.GJ19965@ZenIV.linux.org.uk>
+ <20180910045227.9895-1-viro@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Message-ID: <20180910044937.av9hJPPl-nJ3R1tYl5nRdAo1kL5pqEyM5QT9WHTNT70@z>
+Message-ID: <20180910045222.bhC2asSC0T6pHTTm1tawRv-9-KCgcAEJblMTS6pW2t8@z>
 
-	asm/termios.h has tons of duplication and rather
-convoluted logics re includes.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-	First of all, while everyone has uapi asm/termios.h,
-some architectures have asm/termios.h and some do not.  So
-include of <asm/termios.h> can go either to arch asm/termios.h,
-or to uapi/asm/termios.h.
-	In the former case asm/termios.h defines a bunch of
-helpers (used in just one file) and a constant (3 more users)
-and includes uapi/asm/termios.h
-	In the latter... uapi/asm/termios.h is in generated-y
-or equivalent to it.  Which is to say, it ends up doing
-#include <asm-generic/termios.h>.  Userland-side that would
-refer to uapi/asm-generic/termios.h, but kernel-side we end
-up with plain asm-generic/termios.h.  Which defines the same
-set of helpers and a constant and pulls uapi/asm-generic/termios.h
+empty now
 
-	Helpers in question are heavily shared; there is an attempt
-to put them into a common header (termios-base.h), but not all
-instances use it.  Another unpleasant thing is that said helpers
-tend to be macros, with very little typechecking.  And all of that
-is pulled in by a lot more places than those that are actually
-interested - 500-odd instead of 4.
-
-	Below is an attempt to untangle that; the branch is vfs.git#work.termios,
-patches in followups.  FWIW, diffstat is
-
- arch/Kconfig                                       |   3 +
- arch/alpha/Kconfig                                 |   1 +
- arch/alpha/include/asm/termios.h                   |  81 ------------
- arch/alpha/include/asm/termios_internal.h          |  72 ++++++++++
- arch/ia64/include/asm/termios.h                    |  58 --------
- arch/mips/include/asm/termios.h                    | 105 ---------------
- arch/parisc/include/asm/termios.h                  |  52 --------
- arch/powerpc/Kconfig                               |   1 +
- .../include/asm/{termios.h => termios_internal.h}  |   7 +-
- arch/riscv/include/asm/Kbuild                      |   1 -
- arch/s390/include/asm/termios.h                    |  26 ----
- arch/sparc/Kconfig                                 |   1 +
- arch/sparc/include/asm/termios.h                   | 147 ---------------------
- arch/sparc/include/asm/termios_internal.h          | 134 +++++++++++++++++++
- arch/x86/include/uapi/asm/Kbuild                   |   1 +
- arch/x86/include/uapi/asm/termios.h                |   1 -
- drivers/tty/hvc/hvcs.c                             |   1 +
- drivers/tty/n_hdlc.c                               |   1 -
- drivers/tty/tty_io.c                               |   1 +
- drivers/tty/tty_ioctl.c                            |   1 +
- drivers/tty/vcc.c                                  |   1 +
- include/asm-generic/termios-base.h                 |  78 -----------
- include/asm-generic/termios.h                      | 108 ---------------
- include/linux/termios_internal.h                   | 137 +++++++++++++++++++
- 24 files changed, 355 insertions(+), 664 deletions(-)
- delete mode 100644 arch/alpha/include/asm/termios.h
- create mode 100644 arch/alpha/include/asm/termios_internal.h
- delete mode 100644 arch/ia64/include/asm/termios.h
- delete mode 100644 arch/mips/include/asm/termios.h
- delete mode 100644 arch/parisc/include/asm/termios.h
- rename arch/powerpc/include/asm/{termios.h => termios_internal.h} (70%)
- delete mode 100644 arch/s390/include/asm/termios.h
- delete mode 100644 arch/sparc/include/asm/termios.h
- create mode 100644 arch/sparc/include/asm/termios_internal.h
- delete mode 100644 arch/x86/include/uapi/asm/termios.h
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/powerpc/include/asm/termios.h |  2 --
+ arch/s390/include/asm/termios.h    |  2 --
+ include/asm-generic/termios-base.h | 10 ----------
+ 3 files changed, 14 deletions(-)
  delete mode 100644 include/asm-generic/termios-base.h
- delete mode 100644 include/asm-generic/termios.h
- create mode 100644 include/linux/termios_internal.h
+
+diff --git a/arch/powerpc/include/asm/termios.h b/arch/powerpc/include/asm/termios.h
+index b8353e2032d0..cb1e593e95bf 100644
+--- a/arch/powerpc/include/asm/termios.h
++++ b/arch/powerpc/include/asm/termios.h
+@@ -17,6 +17,4 @@
+ /*                   ^C  ^\ del  ^U  ^D   1   0   0   0   0  ^W  ^R  ^Z  ^Q  ^S  ^V  ^U  */
+ #define INIT_C_CC "\003\034\177\025\004\001\000\000\000\000\027\022\032\021\023\026\025" 
+ 
+-#include <asm-generic/termios-base.h>
+-
+ #endif	/* _ASM_POWERPC_TERMIOS_H */
+diff --git a/arch/s390/include/asm/termios.h b/arch/s390/include/asm/termios.h
+index 62759ac7a92b..7ee16b5dcb6f 100644
+--- a/arch/s390/include/asm/termios.h
++++ b/arch/s390/include/asm/termios.h
+@@ -18,6 +18,4 @@
+ */
+ #define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
+ 
+-#include <asm-generic/termios-base.h>
+-
+ #endif	/* _S390_TERMIOS_H */
+diff --git a/include/asm-generic/termios-base.h b/include/asm-generic/termios-base.h
+deleted file mode 100644
+index 63d948ab6746..000000000000
+--- a/include/asm-generic/termios-base.h
++++ /dev/null
+@@ -1,10 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-/* termios.h: generic termios/termio user copying/translation
+- */
+-
+-#ifndef _ASM_GENERIC_TERMIOS_BASE_H
+-#define _ASM_GENERIC_TERMIOS_BASE_H
+-
+-#include <linux/uaccess.h>
+-
+-#endif /* _ASM_GENERIC_TERMIOS_BASE_H */
+-- 
+2.11.0
