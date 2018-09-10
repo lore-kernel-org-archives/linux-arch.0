@@ -1,24 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:34935 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([5.9.137.197]:35288 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726709AbeIJXBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Sep 2018 19:01:37 -0400
-Date: Mon, 10 Sep 2018 20:06:13 +0200
+        id S1726657AbeIJXM4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Sep 2018 19:12:56 -0400
+Date: Mon, 10 Sep 2018 20:17:30 +0200
 From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 03/16] x86/cpu/mtrr: Support TOP_MEM2 and get MTRR
- number
-Message-ID: <20180910180613.GE4386@zn.tnic>
+Subject: Re: [PATCH v6 05/16] perf/x86: Add Hygon Dhyana support to PMU
+ infrastructure
+Message-ID: <20180910181730.GF4386@zn.tnic>
 References: <cover.1536550549.git.puwen@hygon.cn>
- <cdfcd79e88e0acf254347159673355eec00a1d37.1536550550.git.puwen@hygon.cn>
+ <1e7b20df2bb5ebca6d72339f8b4e1453325cef10.1536550550.git.puwen@hygon.cn>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <cdfcd79e88e0acf254347159673355eec00a1d37.1536550550.git.puwen@hygon.cn>
+In-Reply-To: <1e7b20df2bb5ebca6d72339f8b4e1453325cef10.1536550550.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Pu Wen <puwen@hygon.cn>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180910180613.dvnXtHC67EgzZ7Wfg-yWzxJFiy9StQ3G7Gz7Q3ox4-c@z>
+Message-ID: <20180910181730.nZryQGZ9TxuQWR7VpOijISHqYJM0OuKpn3cuLrFKLKg@z>
 
-On Mon, Sep 10, 2018 at 09:16:03PM +0800, Pu Wen wrote:
-> The Hygon Dhyana CPU have a special magic MSR way to force WB for
+On Mon, Sep 10, 2018 at 09:16:43PM +0800, Pu Wen wrote:
+> The PMU architecture for Hygon Dhyana CPU is similar to the AMD Family
+> 17h one. To support Hygon Dhyana PMU, call amd_pmu_init() to share
+> AMD PMU initialization flow, and change the PMU name to "HYGON".
+> 
+> The Hygon Dhyana CPU support both legacy and extension PMC MSRs(perf
+
+I don't know but for some reason, you are writing "Hygon Dhyana CPU" as
+being plural. But it is singular:
+
+"The Hygon Dhyna CPU supports both ..."
+			    ^
+			   |||
+
+> counter registers and event selection registers), so add Hygon Dhyana
+> support to get bit offset in the similar way as AMD does.
+
+"to get bit offset"?
+
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  arch/x86/events/amd/core.c             |  4 ++++
+>  arch/x86/events/amd/uncore.c           | 20 +++++++++++++-------
+>  arch/x86/events/core.c                 |  4 ++++
+>  arch/x86/kernel/cpu/perfctr-watchdog.c |  2 ++
+>  4 files changed, 23 insertions(+), 7 deletions(-)
+
+With that addressed:
+
+Reviewed-by: Borislav Petkov <bp@suse.de>
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
