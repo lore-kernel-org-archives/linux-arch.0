@@ -1,7 +1,7 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v6 08/16] x86/apic: Add Hygon Dhyana support to APIC
-Date: Mon, 10 Sep 2018 21:17:27 +0800
-Message-ID: <4f03e734faa5b2b69b0947a156bea29cddcc95ce.1536550550.git.puwen@hygon.cn>
+Subject: [PATCH v6 09/16] x86/bugs: Add mitigation to spectre and no meltdown for Hygon Dhyana
+Date: Mon, 10 Sep 2018 21:17:40 +0800
+Message-ID: <191ce6b53269e90fdc26ee49ef337b905bd7d99c.1536550550.git.puwen@hygon.cn>
 References: <cover.1536550549.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536550549.git.puwen@hygon.cn>
@@ -10,66 +10,54 @@ To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-Add Hygon Dhyana support to the APIC subsystem as it use modern APIC.
-When running on 32 bit mode, bigsmp should be enabled if there are
-more than 8 cores online.
+The Hygon Dhyana CPU has the same speculative execution as AMD family
+17h, so share AMD spectre mitigation code for Hygon Dhyana.
+
+Also Hygon Dhyana is not affected by meltdown vulnerability as AMD,
+so add the exception for Hygon Dhyana.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/kernel/apic/apic.c     | 13 +++++++++++--
- arch/x86/kernel/apic/probe_32.c |  1 +
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ arch/x86/kernel/cpu/bugs.c   | 6 ++++--
+ arch/x86/kernel/cpu/common.c | 1 +
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
-index 84132ed..709daf2 100644
---- a/arch/x86/kernel/apic/apic.c
-+++ b/arch/x86/kernel/apic/apic.c
-@@ -224,6 +224,11 @@ static int modern_apic(void)
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD &&
- 	    boot_cpu_data.x86 >= 0xf)
- 		return 1;
-+
-+	/* Hygon systems use modern APIC */
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		return 1;
-+
- 	return lapic_get_version() >= 0x14;
- }
+diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+index 40bdaea..726010d 100644
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -312,8 +312,9 @@ static enum spectre_v2_mitigation_cmd __init spectre_v2_parse_cmdline(void)
+ 	}
  
-@@ -1211,9 +1216,11 @@ void __init sync_Arb_IDs(void)
- {
- 	/*
- 	 * Unsupported on P4 - see Intel Dev. Manual Vol. 3, Ch. 8.6.1 And not
--	 * needed on AMD.
-+	 * needed on AMD or Hygon.
- 	 */
--	if (modern_apic() || boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (modern_apic() ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		return;
+ 	if (cmd == SPECTRE_V2_CMD_RETPOLINE_AMD &&
++	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON &&
+ 	    boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
+-		pr_err("retpoline,amd selected but CPU is not AMD. Switching to AUTO select\n");
++		pr_err("retpoline,amd selected but CPU is not AMD or Hygon. Switching to AUTO select\n");
+ 		return SPECTRE_V2_CMD_AUTO;
+ 	}
  
- 	/*
-@@ -1912,6 +1919,8 @@ static int __init detect_init_APIC(void)
- 		    (boot_cpu_data.x86 >= 15))
- 			break;
- 		goto no_apic;
-+	case X86_VENDOR_HYGON:
-+		break;
- 	case X86_VENDOR_INTEL:
- 		if (boot_cpu_data.x86 == 6 || boot_cpu_data.x86 == 15 ||
- 		    (boot_cpu_data.x86 == 5 && boot_cpu_has(X86_FEATURE_APIC)))
-diff --git a/arch/x86/kernel/apic/probe_32.c b/arch/x86/kernel/apic/probe_32.c
-index 02e8acb..47ff297 100644
---- a/arch/x86/kernel/apic/probe_32.c
-+++ b/arch/x86/kernel/apic/probe_32.c
-@@ -185,6 +185,7 @@ void __init default_setup_apic_routing(void)
- 				break;
- 			}
- 			/* If P4 and above fall through */
-+		case X86_VENDOR_HYGON:
- 		case X86_VENDOR_AMD:
- 			def_to_bigsmp = 1;
- 		}
+@@ -371,7 +372,8 @@ static void __init spectre_v2_select_mitigation(void)
+ 	return;
+ 
+ retpoline_auto:
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+ 	retpoline_amd:
+ 		if (!boot_cpu_has(X86_FEATURE_LFENCE_RDTSC)) {
+ 			pr_err("Spectre mitigation: LFENCE not serializing, switching to generic retpoline\n");
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 44c4ef3..851cbe7 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -963,6 +963,7 @@ static const __initconst struct x86_cpu_id cpu_no_speculation[] = {
+ 
+ static const __initconst struct x86_cpu_id cpu_no_meltdown[] = {
+ 	{ X86_VENDOR_AMD },
++	{ X86_VENDOR_HYGON },
+ 	{}
+ };
+ 
 -- 
 2.7.4
