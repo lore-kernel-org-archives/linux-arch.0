@@ -1,138 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:51147 "EHLO cstnet.cn"
+Received: from smtp20.cstnet.cn ([159.226.251.20]:51305 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728369AbeIJSJ6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Sep 2018 14:09:58 -0400
+        id S1727799AbeIJSKL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Sep 2018 14:10:11 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v6 00/16] Add support for Hygon Dhyana Family 18h processor
-Date: Mon, 10 Sep 2018 21:15:03 +0800
-Message-ID: <cover.1536550549.git.puwen@hygon.cn>
+Subject: [PATCH v6 02/16] x86/cpu: Get cache info and setup cache cpumap for Hygon Dhyana
+Date: Mon, 10 Sep 2018 21:15:49 +0800
+Message-ID: <7a13c7e6ee857089712a59ff6a607e5677e19c8c.1536550550.git.puwen@hygon.cn>
+In-Reply-To: <cover.1536550549.git.puwen@hygon.cn>
+References: <cover.1536550549.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180910131503.vgjc-fuutB4B8qOZIHViGU1NbLb6Ks6QrZtjT5wpIVI@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180910131549.UH4FqbFxxxFhb3SlZGdrzBb9n3pQXBwdg8hKm1fp0y0@z>
 
-As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
-is a Joint Venture between AMD and Haiguang Information Technology Co.,
-Ltd., and aims at providing high performance x86 processor for China
-server market.
+The Hygon Dhyana CPU has topology extensions bit in CPUID. With this
+bit, the kernel can get the cache information. So add support in
+cpuid4_cache_lookup_regs() to get the correct cache size.
 
-The first generation Hygon's processor(Dhyana) originates from AMD
-technology and shares most of the architecture with AMD's family 17h,
-but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
-(0x1D94)/Family series number (Family 18h).
+The Hygon Dhyana CPU also discovers num_cache_leaves via CPUID leaf
+0x8000001d, so add support to it in find_num_cache_leaves().
 
-To enable the support of Linux kernel to Hygon's CPU, we added a new
-vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
-asm/processor.h, and shared most of kernel support codes with AMD
-family 17h.
+Also add cacheinfo_hygon_init_llc_id() and init_hygon_cacheinfo()
+functions to initialize Dhyana cache info. Setup cache cpumap in
+the same way as AMD does.
 
-As Hygon will negotiate with AMD to make sure that only Hygon will
-use family 18h, so try to minimize code modification and share most
-codes with AMD under this consideration.
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Signed-off-by: Pu Wen <puwen@hygon.cn>
+---
+ arch/x86/include/asm/cacheinfo.h |  1 +
+ arch/x86/kernel/cpu/cacheinfo.c  | 31 +++++++++++++++++++++++++++++--
+ arch/x86/kernel/cpu/cpu.h        |  1 +
+ arch/x86/kernel/cpu/hygon.c      |  3 +++
+ 4 files changed, 34 insertions(+), 2 deletions(-)
 
-This patch series have been applied and tested successfully on Hygon
-Dhyana SoC silicon. Also tested on AMD EPYC (Family 17h) processor,
-it works fine and makes no harm to the existing codes.
-
-
-v5->v6:
-  - Rebased on 4.19-rc3 and tested against it.
-  - Add Reviewed-by from Borislav Petkov for cacheinfo, smpboot,
-    alternative and kvm.
-  - Rework the patch subjects and patch descriptions.
-  - Rework vendor checking for some patches to minimize the code
-    modification.
-
-v4->v5:
-  - Rebased on 4.19-rc1 and tested against it.
-  - Add Reviewed-by from Boris Ostrovsky for Xen.
-  - Rework EDAC patch without vendor checking for minimal modification.
-
-v3->v4:
-  - Rebased on 4.18.3 and tested against it.
-  - Merge patchs 05/17 perfctr and 10/17 events in v3 to patch 05/16
-    PMU for better patch function group.
-  - Add hygon_get_topology_early() in patch 01/16.
-  - Rework vendor checking and refine coding style.
-  - Add Acked-by from Bjorn Helgaas for pci.
-  - Add Acked-by from Rafael J. Wysocki for cpufreq and acpi.
-
-v2->v3:
-  - Rebased on 4.18-rc8 and tested against it.
-  - Rework vendor checking codes to improve consistency.
-
-v1->v2:
-  - Rebased on 4.18-rc6 and tested against it.
-  - Split the patchset to small series of patches.
-  - Rework patch descriptions.
-  - Create a separated arch/x86/kernel/cpu/hygon.c for Dhyana CPU
-    initialization to reduce long-term maintenance effort.
-
-
-Pu Wen (16):
-  x86/cpu: Create Hygon Dhyana architecture support file
-  x86/cpu: Get cache info and setup cache cpumap for Hygon Dhyana
-  x86/cpu/mtrr: Support TOP_MEM2 and get MTRR number
-  x86/smpboot: SMP init nodelay and not flush caches before sleep
-  perf/x86: Add Hygon Dhyana support to PMU infrastructure
-  x86/alternative: Init ideal_nops for Hygon Dhyana
-  x86/pci: Add Hygon Dhyana support to PCI and north bridge
-  x86/apic: Add Hygon Dhyana support to APIC
-  x86/bugs: Add mitigation to spectre and no meltdown for Hygon Dhyana
-  x86/mce: Add Hygon Dhyana support to MCE infrastructure
-  x86/kvm: Add Hygon Dhyana support to KVM infrastructure
-  x86/xen: Add Hygon Dhyana support to Xen
-  ACPI, x86: Add Hygon Dhyana support
-  cpufreq, x86: Add Hygon Dhyana support
-  EDAC, amd64: Add Hygon Dhyana support
-  cpupower, x86: Add Hygon Dhyana support
-
- MAINTAINERS                                        |   6 +
- arch/x86/Kconfig.cpu                               |  14 +
- arch/x86/events/amd/core.c                         |   4 +
- arch/x86/events/amd/uncore.c                       |  20 +-
- arch/x86/events/core.c                             |   4 +
- arch/x86/include/asm/cacheinfo.h                   |   1 +
- arch/x86/include/asm/kvm_emulate.h                 |   4 +
- arch/x86/include/asm/mce.h                         |   2 +
- arch/x86/include/asm/processor.h                   |   3 +-
- arch/x86/include/asm/virtext.h                     |   5 +-
- arch/x86/kernel/alternative.c                      |   4 +
- arch/x86/kernel/amd_nb.c                           |  47 ++-
- arch/x86/kernel/apic/apic.c                        |  13 +-
- arch/x86/kernel/apic/probe_32.c                    |   1 +
- arch/x86/kernel/cpu/Makefile                       |   1 +
- arch/x86/kernel/cpu/bugs.c                         |   6 +-
- arch/x86/kernel/cpu/cacheinfo.c                    |  31 +-
- arch/x86/kernel/cpu/common.c                       |   1 +
- arch/x86/kernel/cpu/cpu.h                          |   1 +
- arch/x86/kernel/cpu/hygon.c                        | 411 +++++++++++++++++++++
- arch/x86/kernel/cpu/mcheck/mce-severity.c          |   3 +-
- arch/x86/kernel/cpu/mcheck/mce.c                   |  20 +-
- arch/x86/kernel/cpu/mtrr/cleanup.c                 |   3 +-
- arch/x86/kernel/cpu/mtrr/mtrr.c                    |   2 +-
- arch/x86/kernel/cpu/perfctr-watchdog.c             |   2 +
- arch/x86/kernel/smpboot.c                          |   4 +-
- arch/x86/kvm/emulate.c                             |  11 +-
- arch/x86/pci/amd_bus.c                             |   6 +-
- arch/x86/xen/pmu.c                                 |  12 +-
- drivers/acpi/acpi_pad.c                            |   1 +
- drivers/acpi/processor_idle.c                      |   1 +
- drivers/cpufreq/acpi-cpufreq.c                     |   5 +
- drivers/cpufreq/amd_freq_sensitivity.c             |   9 +-
- drivers/edac/amd64_edac.c                          |   8 +-
- drivers/edac/mce_amd.c                             |   4 +-
- include/linux/pci_ids.h                            |   2 +
- tools/power/cpupower/utils/cpufreq-info.c          |   6 +-
- tools/power/cpupower/utils/helpers/amd.c           |   4 +-
- tools/power/cpupower/utils/helpers/cpuid.c         |   8 +-
- tools/power/cpupower/utils/helpers/helpers.h       |   2 +-
- tools/power/cpupower/utils/helpers/misc.c          |   2 +-
- .../cpupower/utils/idle_monitor/mperf_monitor.c    |   3 +-
- 42 files changed, 646 insertions(+), 51 deletions(-)
- create mode 100644 arch/x86/kernel/cpu/hygon.c
-
+diff --git a/arch/x86/include/asm/cacheinfo.h b/arch/x86/include/asm/cacheinfo.h
+index e958e28..86b63c7 100644
+--- a/arch/x86/include/asm/cacheinfo.h
++++ b/arch/x86/include/asm/cacheinfo.h
+@@ -3,5 +3,6 @@
+ #define _ASM_X86_CACHEINFO_H
+ 
+ void cacheinfo_amd_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id);
++void cacheinfo_hygon_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id);
+ 
+ #endif /* _ASM_X86_CACHEINFO_H */
+diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
+index 0c5fcbd..dc1b934 100644
+--- a/arch/x86/kernel/cpu/cacheinfo.c
++++ b/arch/x86/kernel/cpu/cacheinfo.c
+@@ -602,6 +602,10 @@ cpuid4_cache_lookup_regs(int index, struct _cpuid4_info_regs *this_leaf)
+ 		else
+ 			amd_cpuid4(index, &eax, &ebx, &ecx);
+ 		amd_init_l3_cache(this_leaf, index);
++	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
++		cpuid_count(0x8000001d, index, &eax.full,
++			    &ebx.full, &ecx.full, &edx);
++		amd_init_l3_cache(this_leaf, index);
+ 	} else {
+ 		cpuid_count(4, index, &eax.full, &ebx.full, &ecx.full, &edx);
+ 	}
+@@ -625,7 +629,8 @@ static int find_num_cache_leaves(struct cpuinfo_x86 *c)
+ 	union _cpuid4_leaf_eax	cache_eax;
+ 	int 			i = -1;
+ 
+-	if (c->x86_vendor == X86_VENDOR_AMD)
++	if (c->x86_vendor == X86_VENDOR_AMD ||
++	    c->x86_vendor == X86_VENDOR_HYGON)
+ 		op = 0x8000001d;
+ 	else
+ 		op = 4;
+@@ -678,6 +683,22 @@ void cacheinfo_amd_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id)
+ 	}
+ }
+ 
++void cacheinfo_hygon_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id)
++{
++	/*
++	 * We may have multiple LLCs if L3 caches exist, so check if we
++	 * have an L3 cache by looking at the L3 cache CPUID leaf.
++	 */
++	if (!cpuid_edx(0x80000006))
++		return;
++
++	/*
++	 * LLC is at the core complex level.
++	 * Core complex ID is ApicId[3] for these processors.
++	 */
++	per_cpu(cpu_llc_id, cpu) = c->apicid >> 3;
++}
++
+ void init_amd_cacheinfo(struct cpuinfo_x86 *c)
+ {
+ 
+@@ -691,6 +712,11 @@ void init_amd_cacheinfo(struct cpuinfo_x86 *c)
+ 	}
+ }
+ 
++void init_hygon_cacheinfo(struct cpuinfo_x86 *c)
++{
++	num_cache_leaves = find_num_cache_leaves(c);
++}
++
+ void init_intel_cacheinfo(struct cpuinfo_x86 *c)
+ {
+ 	/* Cache sizes */
+@@ -913,7 +939,8 @@ static void __cache_cpumap_setup(unsigned int cpu, int index,
+ 	int index_msb, i;
+ 	struct cpuinfo_x86 *c = &cpu_data(cpu);
+ 
+-	if (c->x86_vendor == X86_VENDOR_AMD) {
++	if (c->x86_vendor == X86_VENDOR_AMD ||
++	    c->x86_vendor == X86_VENDOR_HYGON) {
+ 		if (__cache_amd_cpumap_setup(cpu, index, base))
+ 			return;
+ 	}
+diff --git a/arch/x86/kernel/cpu/cpu.h b/arch/x86/kernel/cpu/cpu.h
+index 7b229af..da5446a 100644
+--- a/arch/x86/kernel/cpu/cpu.h
++++ b/arch/x86/kernel/cpu/cpu.h
+@@ -54,6 +54,7 @@ extern u32 get_scattered_cpuid_leaf(unsigned int level,
+ 				    enum cpuid_regs_idx reg);
+ extern void init_intel_cacheinfo(struct cpuinfo_x86 *c);
+ extern void init_amd_cacheinfo(struct cpuinfo_x86 *c);
++extern void init_hygon_cacheinfo(struct cpuinfo_x86 *c);
+ 
+ extern void detect_num_cpu_cores(struct cpuinfo_x86 *c);
+ extern int detect_extended_topology_early(struct cpuinfo_x86 *c);
+diff --git a/arch/x86/kernel/cpu/hygon.c b/arch/x86/kernel/cpu/hygon.c
+index 9f5679e..ac70997 100644
+--- a/arch/x86/kernel/cpu/hygon.c
++++ b/arch/x86/kernel/cpu/hygon.c
+@@ -90,6 +90,7 @@ static void hygon_get_topology(struct cpuinfo_x86 *c)
+ 		if (!err)
+ 			c->x86_coreid_bits = get_count_order(c->x86_max_cores);
+ 
++		cacheinfo_hygon_init_llc_id(c, cpu, node_id);
+ 	} else if (cpu_has(c, X86_FEATURE_NODEID_MSR)) {
+ 		u64 value;
+ 
+@@ -324,6 +325,8 @@ static void init_hygon(struct cpuinfo_x86 *c)
+ 	hygon_get_topology(c);
+ 	srat_detect_node(c);
+ 
++	init_hygon_cacheinfo(c);
++
+ 	if (cpu_has(c, X86_FEATURE_XMM2)) {
+ 		unsigned long long val;
+ 		int ret;
 -- 
 2.7.4
