@@ -1,36 +1,48 @@
-From: Richard Genoud <richard.genoud@gmail.com>
-Subject: Re: [PATCH v4 2/2] tty/serial: atmel: add ISO7816 support
-Date: Mon, 10 Sep 2018 15:19:58 +0200
-Message-ID: <ea441610-1337-d14c-7171-f0fac158bd9a@sorico.fr>
-References: <20180906134214.29031-1-ludovic.desroches@microchip.com>
- <20180906134214.29031-3-ludovic.desroches@microchip.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Pu Wen <puwen@hygon.cn>
+Subject: [PATCH v6 13/16] ACPI, x86: Add Hygon Dhyana support
+Date: Mon, 10 Sep 2018 21:19:57 +0800
+Message-ID: <a594c5065c14ac24af362cc8932df1f837ae9f54.1536550550.git.puwen@hygon.cn>
+References: <cover.1536550549.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180906134214.29031-3-ludovic.desroches@microchip.com>
-Content-Language: fr
+In-Reply-To: <cover.1536550549.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ludovic Desroches <ludovic.desroches@microchip.com>, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: gregkh@linuxfoundation.org, jslaby@suse.com, arnd@arndb.de, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, lenb@kernel.org, rjw@rjwysocki.net, rafael@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Ludovic,
+The Hygon Dhyana CPU has NONSTOP TSC feature, so enable the ACPI
+driver support to it.
 
-On 06/09/2018 15:42, Ludovic Desroches wrote:
-> From: Nicolas Ferre <nicolas.ferre@microchip.com>
-> 
-> When mode is set in atmel_config_iso7816() we backup last RS232 mode
-> for coming back to this mode if requested.
-> Also allow setup of T=0 and T=1 parameter and basic support in set_termios
-> function as well.
-> 
-> Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> [ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
-> Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Signed-off-by: Pu Wen <puwen@hygon.cn>
+---
+ drivers/acpi/acpi_pad.c       | 1 +
+ drivers/acpi/processor_idle.c | 1 +
+ 2 files changed, 2 insertions(+)
 
-This seems ok for me.
-
-Acked-by: Richard Genoud <richard.genoud@gmail.com>
-
-Thanks !
+diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
+index 552c1f7..a47676a 100644
+--- a/drivers/acpi/acpi_pad.c
++++ b/drivers/acpi/acpi_pad.c
+@@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
+ 
+ #if defined(CONFIG_X86)
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 		/*
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index abb559c..b2131c4 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
+ static void tsc_check_state(int state)
+ {
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 	case X86_VENDOR_CENTAUR:
+-- 
+2.7.4
