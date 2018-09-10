@@ -1,164 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp20.cstnet.cn ([159.226.251.20]:52056 "EHLO cstnet.cn"
+Received: from smtp20.cstnet.cn ([159.226.251.20]:52286 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728512AbeIJSLd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Sep 2018 14:11:33 -0400
+        id S1728020AbeIJSMP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Sep 2018 14:12:15 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v6 07/16] x86/pci: Add Hygon Dhyana support to PCI and north bridge
-Date: Mon, 10 Sep 2018 21:17:11 +0800
-Message-ID: <035e5d0a4f2a0edf68ca0f1019e47b878eaa5da6.1536550550.git.puwen@hygon.cn>
+Subject: [PATCH v6 10/16] x86/mce: Add Hygon Dhyana support to MCE infrastructure
+Date: Mon, 10 Sep 2018 21:17:54 +0800
+Message-ID: <08410d871a1165d994265f20c2b979268de773be.1536550550.git.puwen@hygon.cn>
 In-Reply-To: <cover.1536550549.git.puwen@hygon.cn>
 References: <cover.1536550549.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, helgaas@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180910131711.P25NNb4O0Ki_ISXgEUFbgw1xRnuTBsbmT4iynHvCJxQ@z>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, bp@alien8.de, pbonzini@redhat.com, tony.luck@intel.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180910131754.5pJVVy-mnFbPGGcKxMtDmXkaJGRB16pj9krp1KXg_E0@z>
 
-As Hygon registered its PCI Vendor ID as a new one 0x1d94, and there
-are PCI Devices 0x1450/0x1463/0x1464 for Host bridge on Hygon Dhyana
-platforms, so add Hygon Dhyana support to the PCI and north bridge
-subsystem by using the code path of AMD family 17h.
+The machine check architecture for Hygon Dhyana CPU is similar to the
+AMD family 17h one. To make MCE working on Hygon platforms, add vendor
+checking for Hygon Dhyana to share the code path of AMD family 17h.
 
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 ---
- arch/x86/kernel/amd_nb.c | 47 +++++++++++++++++++++++++++++++++++++++++------
- arch/x86/pci/amd_bus.c   |  6 ++++--
- include/linux/pci_ids.h  |  2 ++
- 3 files changed, 47 insertions(+), 8 deletions(-)
+ arch/x86/include/asm/mce.h                |  2 ++
+ arch/x86/kernel/cpu/mcheck/mce-severity.c |  3 ++-
+ arch/x86/kernel/cpu/mcheck/mce.c          | 20 +++++++++++++++-----
+ 3 files changed, 19 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/kernel/amd_nb.c b/arch/x86/kernel/amd_nb.c
-index b481b95..3e2ea18 100644
---- a/arch/x86/kernel/amd_nb.c
-+++ b/arch/x86/kernel/amd_nb.c
-@@ -61,6 +61,21 @@ static const struct pci_device_id amd_nb_link_ids[] = {
- 	{}
- };
+diff --git a/arch/x86/include/asm/mce.h b/arch/x86/include/asm/mce.h
+index 3a17107..550f2c9 100644
+--- a/arch/x86/include/asm/mce.h
++++ b/arch/x86/include/asm/mce.h
+@@ -214,6 +214,8 @@ static inline void mce_amd_feature_init(struct cpuinfo_x86 *c) { }
+ static inline int umc_normaddr_to_sysaddr(u64 norm_addr, u16 nid, u8 umc, u64 *sys_addr) { return -EINVAL; };
+ #endif
  
-+static const struct pci_device_id hygon_root_ids[] = {
-+	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_AMD_17H_ROOT) },
-+	{}
-+};
++static inline void mce_hygon_feature_init(struct cpuinfo_x86 *c) { return mce_amd_feature_init(c); }
 +
-+const struct pci_device_id hygon_nb_misc_ids[] = {
-+	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_AMD_17H_DF_F3) },
-+	{}
-+};
-+
-+static const struct pci_device_id hygon_nb_link_ids[] = {
-+	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_AMD_17H_DF_F4) },
-+	{}
-+};
-+
- const struct amd_nb_bus_dev_range amd_nb_bus_dev_ranges[] __initconst = {
- 	{ 0x00, 0x18, 0x20 },
- 	{ 0xff, 0x00, 0x20 },
-@@ -197,12 +212,25 @@ int amd_cache_northbridges(void)
- 	u16 i = 0;
- 	struct amd_northbridge *nb;
- 	struct pci_dev *root, *misc, *link;
-+	const struct pci_device_id *root_ids = NULL;
-+	const struct pci_device_id *misc_ids = NULL;
-+	const struct pci_device_id *link_ids = NULL;
-+
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
-+		root_ids = amd_root_ids;
-+		misc_ids = amd_nb_misc_ids;
-+		link_ids = amd_nb_link_ids;
-+	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+		root_ids = hygon_root_ids;
-+		misc_ids = hygon_nb_misc_ids;
-+		link_ids = hygon_nb_link_ids;
-+	}
+ int mce_available(struct cpuinfo_x86 *c);
+ bool mce_is_memory_error(struct mce *m);
  
- 	if (amd_northbridges.num)
- 		return 0;
+diff --git a/arch/x86/kernel/cpu/mcheck/mce-severity.c b/arch/x86/kernel/cpu/mcheck/mce-severity.c
+index f34d89c..44396d5 100644
+--- a/arch/x86/kernel/cpu/mcheck/mce-severity.c
++++ b/arch/x86/kernel/cpu/mcheck/mce-severity.c
+@@ -336,7 +336,8 @@ int (*mce_severity)(struct mce *m, int tolerant, char **msg, bool is_excp) =
  
- 	misc = NULL;
--	while ((misc = next_northbridge(misc, amd_nb_misc_ids)) != NULL)
-+	while ((misc = next_northbridge(misc, misc_ids)) != NULL)
- 		i++;
- 
- 	if (!i)
-@@ -218,11 +246,11 @@ int amd_cache_northbridges(void)
- 	link = misc = root = NULL;
- 	for (i = 0; i != amd_northbridges.num; i++) {
- 		node_to_amd_nb(i)->root = root =
--			next_northbridge(root, amd_root_ids);
-+			next_northbridge(root, root_ids);
- 		node_to_amd_nb(i)->misc = misc =
--			next_northbridge(misc, amd_nb_misc_ids);
-+			next_northbridge(misc, misc_ids);
- 		node_to_amd_nb(i)->link = link =
--			next_northbridge(link, amd_nb_link_ids);
-+			next_northbridge(link, link_ids);
- 	}
- 
- 	if (amd_gart_present())
-@@ -263,9 +291,15 @@ bool __init early_is_amd_nb(u32 device)
+ void __init mcheck_vendor_init_severity(void)
  {
- 	const struct pci_device_id *id;
- 	u32 vendor = device & 0xffff;
-+	const struct pci_device_id *misc_ids = NULL;
-+
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+		misc_ids = amd_nb_misc_ids;
-+	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		misc_ids = hygon_nb_misc_ids;
+-	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+ 		mce_severity = mce_severity_amd;
+ }
  
- 	device >>= 16;
--	for (id = amd_nb_misc_ids; id->vendor; id++)
-+	for (id = misc_ids; id->vendor; id++)
- 		if (vendor == id->vendor && device == id->device)
- 			return true;
- 	return false;
-@@ -277,7 +311,8 @@ struct resource *amd_get_mmconfig_range(struct resource *res)
- 	u64 base, msr;
- 	unsigned int segn_busn_bits;
- 
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
- 		return NULL;
- 
- 	/* assume all cpus from fam10h have mmconfig */
-diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
-index 649bdde..bfa50e6 100644
---- a/arch/x86/pci/amd_bus.c
-+++ b/arch/x86/pci/amd_bus.c
-@@ -93,7 +93,8 @@ static int __init early_root_info_init(void)
- 		vendor = id & 0xffff;
- 		device = (id>>16) & 0xffff;
- 
--		if (vendor != PCI_VENDOR_ID_AMD)
-+		if (vendor != PCI_VENDOR_ID_AMD &&
-+		    vendor != PCI_VENDOR_ID_HYGON)
- 			continue;
- 
- 		if (hb_probes[i].device == device) {
-@@ -390,7 +391,8 @@ static int __init pci_io_ecs_init(void)
- 
- static int __init amd_postcore_init(void)
+diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
+index 953b3ce..909f1d7 100644
+--- a/arch/x86/kernel/cpu/mcheck/mce.c
++++ b/arch/x86/kernel/cpu/mcheck/mce.c
+@@ -270,7 +270,7 @@ static void print_mce(struct mce *m)
  {
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
- 		return 0;
+ 	__print_mce(m);
  
- 	early_root_info_init();
-diff --git a/include/linux/pci_ids.h b/include/linux/pci_ids.h
-index d157983..8a0841c 100644
---- a/include/linux/pci_ids.h
-+++ b/include/linux/pci_ids.h
-@@ -2561,6 +2561,8 @@
+-	if (m->cpuvendor != X86_VENDOR_AMD)
++	if (m->cpuvendor != X86_VENDOR_AMD && m->cpuvendor != X86_VENDOR_HYGON)
+ 		pr_emerg_ratelimited(HW_ERR "Run the above through 'mcelog --ascii'\n");
+ }
  
- #define PCI_VENDOR_ID_AMAZON		0x1d0f
+@@ -508,9 +508,9 @@ static int mce_usable_address(struct mce *m)
  
-+#define PCI_VENDOR_ID_HYGON		0x1d94
+ bool mce_is_memory_error(struct mce *m)
+ {
+-	if (m->cpuvendor == X86_VENDOR_AMD) {
++	if (m->cpuvendor == X86_VENDOR_AMD ||
++	    m->cpuvendor == X86_VENDOR_HYGON) {
+ 		return amd_mce_is_memory_error(m);
+-
+ 	} else if (m->cpuvendor == X86_VENDOR_INTEL) {
+ 		/*
+ 		 * Intel SDM Volume 3B - 15.9.2 Compound Error Codes
+@@ -539,6 +539,9 @@ static bool mce_is_correctable(struct mce *m)
+ 	if (m->cpuvendor == X86_VENDOR_AMD && m->status & MCI_STATUS_DEFERRED)
+ 		return false;
+ 
++	if (m->cpuvendor == X86_VENDOR_HYGON && m->status & MCI_STATUS_DEFERRED)
++		return false;
 +
- #define PCI_VENDOR_ID_TEKRAM		0x1de1
- #define PCI_DEVICE_ID_TEKRAM_DC290	0xdc29
+ 	if (m->status & MCI_STATUS_UC)
+ 		return false;
+ 
+@@ -1705,7 +1708,7 @@ static int __mcheck_cpu_ancient_init(struct cpuinfo_x86 *c)
+  */
+ static void __mcheck_cpu_init_early(struct cpuinfo_x86 *c)
+ {
+-	if (c->x86_vendor == X86_VENDOR_AMD) {
++	if (c->x86_vendor == X86_VENDOR_AMD || c->x86_vendor == X86_VENDOR_HYGON) {
+ 		mce_flags.overflow_recov = !!cpu_has(c, X86_FEATURE_OVERFLOW_RECOV);
+ 		mce_flags.succor	 = !!cpu_has(c, X86_FEATURE_SUCCOR);
+ 		mce_flags.smca		 = !!cpu_has(c, X86_FEATURE_SMCA);
+@@ -1746,6 +1749,11 @@ static void __mcheck_cpu_init_vendor(struct cpuinfo_x86 *c)
+ 		mce_amd_feature_init(c);
+ 		break;
+ 		}
++
++	case X86_VENDOR_HYGON:
++		mce_hygon_feature_init(c);
++		break;
++
+ 	case X86_VENDOR_CENTAUR:
+ 		mce_centaur_feature_init(c);
+ 		break;
+@@ -1971,12 +1979,14 @@ static void mce_disable_error_reporting(void)
+ static void vendor_disable_error_reporting(void)
+ {
+ 	/*
+-	 * Don't clear on Intel or AMD CPUs. Some of these MSRs are socket-wide.
++	 * Don't clear on Intel or AMD or Hygon CPUs. Some of these MSRs
++	 * are socket-wide.
+ 	 * Disabling them for just a single offlined CPU is bad, since it will
+ 	 * inhibit reporting for all shared resources on the socket like the
+ 	 * last level cache (LLC), the integrated memory controller (iMC), etc.
+ 	 */
+ 	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL ||
++	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON ||
+ 	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+ 		return;
  
 -- 
 2.7.4
