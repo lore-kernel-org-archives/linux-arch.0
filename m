@@ -1,54 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:36385 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726413AbeIHOoP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Sep 2018 10:44:15 -0400
-Received: by mail-wm0-f68.google.com with SMTP id j192-v6so16854176wmj.1
-        for <linux-arch@vger.kernel.org>; Sat, 08 Sep 2018 02:59:02 -0700 (PDT)
-Date: Sat, 8 Sep 2018 11:58:48 +0200
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180908095848.GA6272@andrea>
-References: <20990a3f-1507-c98b-f14e-2f5241319d8c@nvidia.com>
- <Pine.LNX.4.44L0.1809071256340.1547-100000@iolanthe.rowland.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:33658 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726114AbeIJJlr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2018 05:41:47 -0400
+Date: Mon, 10 Sep 2018 05:49:37 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCHES] termios.h cleanups
+Message-ID: <20180910044937.GJ19965@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1809071256340.1547-100000@iolanthe.rowland.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: Daniel Lustig <dlustig@nvidia.com>, Will Deacon <will.deacon@arm.com>, Andrea Parri <parri.andrea@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Kernel development list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, akiyks@gmail.com, Palmer Dabbelt <palmer@sifive.com>
-Message-ID: <20180908095848.IEvKd-rz_LQjFIiQY3uFe-btsc37MO3JCkwed0_C7xo@z>
+To: linux-arch@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
+Message-ID: <20180910044937.av9hJPPl-nJ3R1tYl5nRdAo1kL5pqEyM5QT9WHTNT70@z>
 
-> Will feels strongly (and Linus agrees) that the LKMM should not require
-> ordinary acquire and release to be any stronger than RCpc.
-> 
-> The issue that Andrea raised has to do with qspinlock, qrwlock, and
-> mcs_spinlock, which are implemented using smp_cond_load_acquire()  
-> instead of RMW-acquire.  This provides only the ordering properties of
-> smp_load_acquire(), namely RCpc, which means that qspinlocks etc. might
-> not be RCtso.
-> 
-> Since we do want locks to be RCtso, the question is how to resolve this 
-> discrepancy.
+	asm/termios.h has tons of duplication and rather
+convoluted logics re includes.
 
-[...]
+	First of all, while everyone has uapi asm/termios.h,
+some architectures have asm/termios.h and some do not.  So
+include of <asm/termios.h> can go either to arch asm/termios.h,
+or to uapi/asm/termios.h.
+	In the former case asm/termios.h defines a bunch of
+helpers (used in just one file) and a constant (3 more users)
+and includes uapi/asm/termios.h
+	In the latter... uapi/asm/termios.h is in generated-y
+or equivalent to it.  Which is to say, it ends up doing
+#include <asm-generic/termios.h>.  Userland-side that would
+refer to uapi/asm-generic/termios.h, but kernel-side we end
+up with plain asm-generic/termios.h.  Which defines the same
+set of helpers and a constant and pulls uapi/asm-generic/termios.h
 
-> To tell the truth, I'm not aware of any code in the kernel that
-> actually _needs_ RCtso ordering for locks, but Peter and Will are quite
-> firm that it should be required.  Linus would actually like locks to be
-> RCsc, but he recognizes that this would incur a noticeable performance
-> penalty on Power so he'll settle for RCtso.
+	Helpers in question are heavily shared; there is an attempt
+to put them into a common header (termios-base.h), but not all
+instances use it.  Another unpleasant thing is that said helpers
+tend to be macros, with very little typechecking.  And all of that
+is pulled in by a lot more places than those that are actually
+interested - 500-odd instead of 4.
 
-It does look like Will, Peter, Linus and me could help you put together
-a satisfactory patch description! ;-)  I'm not sure I agree with all
-you're claiming/concluding above..., but again: why don't you try to
-collect what, in your opinion, are the relevant arguments/comments from
-previous reviews of the patch (which, unfortunately, goes back to July)
-and then send an updated version?  (I do have the impression that these
-discussions would have been much more "easy to follow" if you only did
-that time ago/with higher frequency...)
+	Below is an attempt to untangle that; the branch is vfs.git#work.termios,
+patches in followups.  FWIW, diffstat is
 
-  Andrea
+ arch/Kconfig                                       |   3 +
+ arch/alpha/Kconfig                                 |   1 +
+ arch/alpha/include/asm/termios.h                   |  81 ------------
+ arch/alpha/include/asm/termios_internal.h          |  72 ++++++++++
+ arch/ia64/include/asm/termios.h                    |  58 --------
+ arch/mips/include/asm/termios.h                    | 105 ---------------
+ arch/parisc/include/asm/termios.h                  |  52 --------
+ arch/powerpc/Kconfig                               |   1 +
+ .../include/asm/{termios.h => termios_internal.h}  |   7 +-
+ arch/riscv/include/asm/Kbuild                      |   1 -
+ arch/s390/include/asm/termios.h                    |  26 ----
+ arch/sparc/Kconfig                                 |   1 +
+ arch/sparc/include/asm/termios.h                   | 147 ---------------------
+ arch/sparc/include/asm/termios_internal.h          | 134 +++++++++++++++++++
+ arch/x86/include/uapi/asm/Kbuild                   |   1 +
+ arch/x86/include/uapi/asm/termios.h                |   1 -
+ drivers/tty/hvc/hvcs.c                             |   1 +
+ drivers/tty/n_hdlc.c                               |   1 -
+ drivers/tty/tty_io.c                               |   1 +
+ drivers/tty/tty_ioctl.c                            |   1 +
+ drivers/tty/vcc.c                                  |   1 +
+ include/asm-generic/termios-base.h                 |  78 -----------
+ include/asm-generic/termios.h                      | 108 ---------------
+ include/linux/termios_internal.h                   | 137 +++++++++++++++++++
+ 24 files changed, 355 insertions(+), 664 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/termios.h
+ create mode 100644 arch/alpha/include/asm/termios_internal.h
+ delete mode 100644 arch/ia64/include/asm/termios.h
+ delete mode 100644 arch/mips/include/asm/termios.h
+ delete mode 100644 arch/parisc/include/asm/termios.h
+ rename arch/powerpc/include/asm/{termios.h => termios_internal.h} (70%)
+ delete mode 100644 arch/s390/include/asm/termios.h
+ delete mode 100644 arch/sparc/include/asm/termios.h
+ create mode 100644 arch/sparc/include/asm/termios_internal.h
+ delete mode 100644 arch/x86/include/uapi/asm/termios.h
+ delete mode 100644 include/asm-generic/termios-base.h
+ delete mode 100644 include/asm-generic/termios.h
+ create mode 100644 include/linux/termios_internal.h
