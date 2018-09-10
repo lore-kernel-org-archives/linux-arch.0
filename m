@@ -1,90 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:31222 "EHLO mga18.intel.com"
+Received: from mail.skyhub.de ([5.9.137.197]:59740 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728541AbeIJTly (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 10 Sep 2018 15:41:54 -0400
-Date: Mon, 10 Sep 2018 17:47:24 +0300
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v4 0/8] Introduce the for_each_set_clump macro
-Message-ID: <20180910144724.GY11447@smile.fi.intel.com>
-References: <cover.1526400945.git.vilhelm.gray@gmail.com>
- <CACRpkdbRH-Bz3BoczD+YmaSGqtoeCwtvGj4dGm8PKRKYFXTdKA@mail.gmail.com>
- <20180905150348.GA27089@sophia>
- <CACRpkdah-CSkdmpYQ_sgOFNqXMD5mMLkmRDRBszK+twPbRNLpA@mail.gmail.com>
+        id S1727810AbeIJVd0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Sep 2018 17:33:26 -0400
+Date: Mon, 10 Sep 2018 18:38:21 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v6 01/16] x86/cpu: Create Hygon Dhyana architecture
+ support file
+Message-ID: <20180910163821.GD4386@zn.tnic>
+References: <cover.1536550549.git.puwen@hygon.cn>
+ <d99e831f739308221798c9939efc6e6fc1648e0c.1536550550.git.puwen@hygon.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <CACRpkdah-CSkdmpYQ_sgOFNqXMD5mMLkmRDRBszK+twPbRNLpA@mail.gmail.com>
+In-Reply-To: <d99e831f739308221798c9939efc6e6fc1648e0c.1536550550.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180910144724.kG85wVF3pWDppNMto_ihblXY_zslbu_y-3lafq0Mt7Y@z>
+To: Pu Wen <puwen@hygon.cn>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180910163821.n3gaI8DFRFFZ1wTYf24kyUyOLxIeOdS_eyMDGH02wLw@z>
 
-On Mon, Sep 10, 2018 at 09:54:47AM +0200, Linus Walleij wrote:
-> On Wed, Sep 5, 2018 at 5:04 PM William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
-> > On Wed, May 16, 2018 at 04:03:51PM +0200, Linus Walleij wrote:
-> > >On Tue, May 15, 2018 at 6:22 PM, William Breathitt Gray
-> > ><vilhelm.gray@gmail.com> wrote:
-> > >
-> > >> For example, suppose you would like to iterate over a 16-bit integer 4
-> > >> bits at a time, skipping over 4-bit groups with no set bit, where XXXX
-> > >> represents the current 4-bit group:
-> > >>
-> > >>     Example:        1011 1110 0000 1111
-> > >>     First loop:     1011 1110 0000 XXXX
-> > >>     Second loop:    1011 XXXX 0000 1111
-> > >>     Third loop:     XXXX 1110 0000 1111
-> > >>
-> > >> Each iteration of the loop returns the next 4-bit group that has at
-> > >> least one set bit.
-> > >>
-> > >> The for_each_set_clump macro has six parameters:
-> > >>
-> > >>     * clump: set to current clump index for the iteration
-> > >>     * index: set to current bitmap word index for the iteration
-> > >>     * offset: bits offset of the found clump in the bitmap word
-> > >>     * bits: bitmap to search within
-> > >>     * size: bitmap size in number of clumps
-> > >>     * clump_size: clump size in number of bits
-> > >>
-> > >> The clump_size argument can be an arbitrary number of bits and is not
-> > >> required to be a multiple of 2.
-> > >
-> > >I must say I'm impressed. Very nice arithmetics going on there.
-> > >
-> > >If I can get some ACK for the bitops patch I'd be happy to merge
-> > >it all through the GPIO tree. The users are pretty clear cut.
-> > >
-> > >BTW: if I could, I would pull out Donald Knuth's "The Art of Computer
-> > >Programming vol 4A" chapter 7.1.3 "Bitwise Tricks and Techniques"
-> > >to see what he has to say about the subject, but I don't have
-> > >that book as it turns out.
-> > >
-> > >Yours,
-> > >Linus Walleij
-> >
-> > Hi Linus,
-> >
-> > I'd like to get this patchset merged, but I'm aware that we haven't yet
-> > received additional ACKs in the past couple months. Are there any
-> > changes you would like made, or should I resubmit this patchset with
-> > additional CCs in the hopes of some ACKs for the bitops patch?
-> 
-> It seems Andy wanted some time and he had ~4 months now
-> so either he forgot it or has way too much to do.
+On Mon, Sep 10, 2018 at 09:15:29PM +0800, Pu Wen wrote:
+> Add x86 architecture support for new processor Hygon Dhyana Family
 
-Sorry, indeed, it got piled under huge backlog I have.
+		"... for a new processor: Hygon... "
+
+> 18h.
+
+Instead of all that:
+
+> Rework to create a separated file(arch/x86/kernel/cpu/hygon.c)
+> from the AMD one(arch/x86/kernel/cpu/amd.c) to initialize Dhyana.
+
+
+> In this way we can remove old AMD architecture support codes and
+> generate a clear initialization flow for Hygon Dhyana CPU. It also
+> reduce the long-term maintenance effort.
+
+... simply say: "Carve out initialization code needed by Dhyana into a
+separate compilation unit."
+
+> Add Maintainer information
+> for hygon.c in accordance.
+
+That sentence is not needed - that fact is visible in the diff.
 
 > 
-> I would say send this patch to Andrew Morton (the bitops patches)
-> so he can decide on it. He has the right bird's eye view on this
-> kind of things.
+> To identify Hygon Dhyana CPU, add a new vendor type X86_VENDOR_HYGON(9)
+> for system recognition.
 
-Agreed, and please add Rasmus as well.
+No need for that "(9)" - also visible from the diff and an
+implementation detail.
 
+> 
+> To enable the config for Hygon Dhyana CPU, add a separated Kconfig
+> entry(CPU_SUP_HYGON) in kernel config setup.
+
+That sentence is not needed for the same reason as above.
+
+> And select CPU_SUP_AMD
+> to solve the dependency issues in kernel.
+
+No, this should say: "Since Dhyana uses AMD functionality to a large
+degree, select CPU_SUP_AMD which provides that functionality."
+
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> ---
+>  MAINTAINERS                      |   6 +
+>  arch/x86/Kconfig.cpu             |  14 ++
+>  arch/x86/include/asm/processor.h |   3 +-
+>  arch/x86/kernel/cpu/Makefile     |   1 +
+>  arch/x86/kernel/cpu/hygon.c      | 408 +++++++++++++++++++++++++++++++++++++++
+>  5 files changed, 431 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/x86/kernel/cpu/hygon.c
+
+With that taken care of:
+
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
 -- 
-With Best Regards,
-Andy Shevchenko
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
