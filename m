@@ -1,75 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:33722 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726451AbeIJJoh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2018 05:44:37 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 5/8] make generic INIT_C_CC a bit more generic
-Date: Mon, 10 Sep 2018 05:52:24 +0100
-Message-ID: <20180910045227.9895-5-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20180910045227.9895-1-viro@ZenIV.linux.org.uk>
-References: <20180910044937.GJ19965@ZenIV.linux.org.uk>
- <20180910045227.9895-1-viro@ZenIV.linux.org.uk>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:48760 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727584AbeIJMXb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 10 Sep 2018 08:23:31 -0400
+Date: Mon, 10 Sep 2018 15:30:39 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V3 10/26] csky: IRQ handling
+Message-ID: <20180910073039.GA4022@guoren-Inspiron-7460>
+References: <cover.1536138304.git.ren_guo@c-sky.com>
+ <a881fc9d1009f7b3ca1cfa50dd7f1ead7844d521.1536138304.git.ren_guo@c-sky.com>
+ <alpine.DEB.2.21.1809061535040.1570@nanos.tec.linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.21.1809061535040.1570@nanos.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Message-ID: <20180910045224.xan8_k7nznUL2oJm8wfCGxMokzfa-D5GZarfyVdZ_jg@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180910073039.GQlKI68icZxk6cjLOF7QirEgenxAlxwP6kxMB_jocAQ@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Thu, Sep 06, 2018 at 03:39:01PM +0200, Thomas Gleixner wrote:
+> On Wed, 5 Sep 2018, Guo Ren wrote:
+> 
+> > +static void (*handle_arch_irq)(struct pt_regs *regs) = NULL;
+> > +
+> > +void __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
+> > +{
+> > +	if (handle_arch_irq)
+> > +		return;
+> > +
+> > +	handle_arch_irq = handle_irq;
+> > +}
+> 
+> Please don't introduce yet another variant of that. Please use
+> CONFIG_GENERIC_IRQ_MULTI_HANDLER which provides that in the generic code.
+Ok.
 
-turn it into an array initializer; then mips variant folds into
-it.
+> 
+> Btw, some of your patches have tab vs. space inconsistencies, e.g.
+> 
+> +        siginfo_t info;
+> +       int fault;
+> +       unsigned long address = mmu_meh & PAGE_MASK
+Thx, I'll re-check.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/mips/include/asm/termios.h  |  9 ---------
- include/linux/termios_internal.h | 15 ++++++++++++++-
- 2 files changed, 14 insertions(+), 10 deletions(-)
-
-diff --git a/arch/mips/include/asm/termios.h b/arch/mips/include/asm/termios.h
-index dbb62330b7a4..12bc56857bf1 100644
---- a/arch/mips/include/asm/termios.h
-+++ b/arch/mips/include/asm/termios.h
-@@ -12,13 +12,4 @@
- #include <linux/uaccess.h>
- #include <uapi/asm/termios.h>
- 
--/*
-- *	intr=^C		quit=^\		erase=del	kill=^U
-- *	vmin=\1		vtime=\0	eol2=\0		swtc=\0
-- *	start=^Q	stop=^S		susp=^Z		vdsusp=
-- *	reprint=^R	discard=^U	werase=^W	lnext=^V
-- *	eof=^D		eol=\0
-- */
--#define INIT_C_CC "\003\034\177\025\1\0\0\0\021\023\032\0\022\017\027\026\004\0"
--
- #endif /* _ASM_TERMIOS_H */
-diff --git a/include/linux/termios_internal.h b/include/linux/termios_internal.h
-index a77fd8df783e..d25b9a9c2faf 100644
---- a/include/linux/termios_internal.h
-+++ b/include/linux/termios_internal.h
-@@ -12,7 +12,20 @@
- 	reprint=^R	discard=^U	werase=^W	lnext=^V
- 	eol2=\0
- */
--#define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
-+#define INIT_C_CC {		\
-+	[VINTR] = 'C'-0x40,	\
-+	[VQUIT] = '\\'-0x40,	\
-+	[VERASE] = '\177',	\
-+	[VKILL] = 'U'-0x40,	\
-+	[VEOF] = 'D'-0x40,	\
-+	[VSTART] = 'Q'-0x40,	\
-+	[VSTOP] = 'S'-0x40,	\
-+	[VSUSP] = 'Z'-0x40,	\
-+	[VREPRINT] = 'R'-0x40,	\
-+	[VDISCARD] = 'O'-0x40,	\
-+	[VWERASE] = 'W'-0x40,	\
-+	[VLNEXT] = 'V'-0x40,	\
-+	[VMIN] = 1 }
- #endif
- 
- #ifndef user_termio_to_kernel_termios
--- 
-2.11.0
+Best Regards
+ Guo Ren
