@@ -1,38 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:37166 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([5.9.137.197]:37448 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726548AbeIKPly (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Sep 2018 11:41:54 -0400
-Date: Tue, 11 Sep 2018 12:43:06 +0200
+        id S1726554AbeIKPuK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Sep 2018 11:50:10 -0400
+Date: Tue, 11 Sep 2018 12:51:20 +0200
 From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 10/16] x86/mce: Add Hygon Dhyana support to MCE
- infrastructure
-Message-ID: <20180911104306.GG12094@zn.tnic>
+Subject: Re: [PATCH v6 15/16] EDAC, amd64: Add Hygon Dhyana support
+Message-ID: <20180911105120.GH12094@zn.tnic>
 References: <cover.1536550549.git.puwen@hygon.cn>
- <08410d871a1165d994265f20c2b979268de773be.1536550550.git.puwen@hygon.cn>
+ <7deadc44054d62e3617b9f302f4e5d1fd0d382e7.1536550550.git.puwen@hygon.cn>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <08410d871a1165d994265f20c2b979268de773be.1536550550.git.puwen@hygon.cn>
+In-Reply-To: <7deadc44054d62e3617b9f302f4e5d1fd0d382e7.1536550550.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pu Wen <puwen@hygon.cn>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
-Message-ID: <20180911104306.bub2cKJP3U6aDCwkY4aaZ7_jLLA0TQR0jlJb5cnXjCI@z>
+To: tglx@linutronix.de
+Cc: Pu Wen <puwen@hygon.cn>, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+Message-ID: <20180911105120.K3XAfwg-RqU-rPruuHkLYfyXIAweCnAScavqGjVonHg@z>
 
-On Mon, Sep 10, 2018 at 09:17:54PM +0800, Pu Wen wrote:
-> The machine check architecture for Hygon Dhyana CPU is similar to the
-> AMD family 17h one. To make MCE working on Hygon platforms, add vendor
-> checking for Hygon Dhyana to share the code path of AMD family 17h.
+On Mon, Sep 10, 2018 at 09:20:24PM +0800, Pu Wen wrote:
+> To make AMD64 EDAC and MCE drivers working on Hygon platforms, add
+> support for Hygon Dhyana CPU by using the code path of AMD family
+> 17h.
 > 
 > Signed-off-by: Pu Wen <puwen@hygon.cn>
 > ---
->  arch/x86/include/asm/mce.h                |  2 ++
->  arch/x86/kernel/cpu/mcheck/mce-severity.c |  3 ++-
->  arch/x86/kernel/cpu/mcheck/mce.c          | 20 +++++++++++++++-----
->  3 files changed, 19 insertions(+), 6 deletions(-)
+>  drivers/edac/amd64_edac.c | 8 +++++++-
+>  drivers/edac/mce_amd.c    | 4 +++-
+>  2 files changed, 10 insertions(+), 2 deletions(-)
 
-Reviewed-by: Borislav Petkov <bp@suse.de>
+This one conflicts with
+
+  8960de4a5ca7 ("EDAC, amd64: Add Family 17h, models 10h-2fh support")
+
+in my tree.
+
+tglx, what do you suggest?
 
 -- 
 Regards/Gruss,
