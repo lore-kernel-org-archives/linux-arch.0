@@ -1,78 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46550 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726800AbeIKVmH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Sep 2018 17:42:07 -0400
-Date: Tue, 11 Sep 2018 17:41:53 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by
- sparse
-Message-ID: <20180911164152.GA29166@arrakis.emea.arm.com>
-References: <cover.1535629099.git.andreyknvl@google.com>
- <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
- <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
- <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
- <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
- <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
+Received: from iolanthe.rowland.org ([192.131.102.54]:50076 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1726810AbeILAcj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2018 20:32:39 -0400
+Date: Tue, 11 Sep 2018 15:31:53 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+In-Reply-To: <20180908095848.GA6272@andrea>
+Message-ID: <Pine.LNX.4.44L0.1809111455420.1461-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, linux-mm <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, cpandya@codeaurora.org, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben.Ayrapetyan@arm.com, Andrey Konovalov <andreyknvl@google.com>, Lee Smith <Lee.Smith@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20180911164153.dCYZ7ArJphlw0k1CfbvUgFEQgok0Ql3fyZpP_pSfV5A@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>, Will Deacon <will.deacon@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Andrea Parri <parri.andrea@gmail.com>, Kernel development list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, akiyks@gmail.com, Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <20180911193153.XAvuSQPmIuPIQ17GpaNHO7jd5OQLpDMv7bPZjOv5guY@z>
 
-Hi Linus,
+On Thu, 12 Jul 2018, Paul E. McKenney wrote:
 
-On Fri, Sep 07, 2018 at 09:30:35AM -0700, Linus Torvalds wrote:
-> On Fri, Sep 7, 2018 at 8:26 AM Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > So it's not about casting to another pointer; it's rather about no
-> > longer using the value as a user pointer but as an actual (untyped,
-> > untagged) virtual address.
-[...]
-> I actually originally wanted to have sparse not just check types, but
-> actually do transformations too, in order to check more.
-[...]
-> But it sounds like this is exactly what you guys would want for the
-> tagged pointers. Some functions can take a "wild" pointer, because
-> they deal with the tag part natively. And others need to be "checked"
-> and have gone through the cleaning and verification.
+> > > Take for instance the pattern where RCU relies on RCsc locks, this is an
+> > > entirely simple and straight forward use of locks, yet completely fails
+> > > on this subtle point.
+> > 
+> > Do you happen to remember exactly where in the kernel source this 
+> > occurs?
 > 
-> But sparse is sadly not the right tool for this, and having a single
-> "__user" address space is not sufficient. I guess for the arm64 case,
-> you really could make up a *new* address space: "__user_untagged", and
-> then have functions that convert from "void __user *" to "void
-> __user_untagged *", and then mark the functions that need the tag
-> removed as taking that new kind of user pointer.
+> Look for the uses of raw_spin_lock_irq_rcu_node() and friends in
+> kernel/rcu and include/linux/*rcu*, along with the explanation in
+> Documentation/RCU/Design/Memory-Ordering/Tree-RCU-Memory-Ordering.html
 
-Fortunately, most (all) functions taking a __user pointer can cope with
-tagged pointers since they never dereference the pointer directly but
-pass it through uaccess functions (which can access tagged pointers
-without untagging). The problem appears when the pointer is no longer
-used for access but converted to a long for other uses like rbtree
-look-up, so not actually dereferenced. Such conversion, in a few cases,
-needs to lose the tag.
+I just now started looking at this for the first time, and I was struck
+by the sloppy thinking displayed in the very first paragraph of the
+HTML document!  For example, consider the third sentence:
 
-Of course, there are lots of void __user * conversions to long where
-removing the tag is not always the right thing or required (hence the
-__force annotations in this patchset).
+	Similarly, any code that happens before the beginning of a 
+	given RCU grace period is guaranteed to see the effects of all
+	accesses following the end of that grace period that are within
+	RCU read-side critical sections.
 
-As Luc mentioned in this thread, we can consider that __user pointers
-are always tagged. What I think we'd need is a few annotations where
-ulong must be an __untagged address (and I guess in smaller numbers than
-the __force ones proposed here). For example we can allow
-get_user_pages() to get an (ulong)(void __user *) conversion but
-find_vma() would only take an (unsigned long __untagged) argument. Such
-attribute conversion would be handled by an untagged_addr() macro. So we
-move the detection problem from pointer conversion to an ulong (tagged
-by default) to ulong __untagged conversion (I'm not sure sparse can do
-this).
+Is RCU now a time machine?  :-)
 
-That's slightly different than trying to identify all the __user ptr to
-long conversions but, as you said, it's probably not a complete solution
-anyway and with lots of __force annotations throughout the kernel.
+I think what you meant to write in the second and third sentences was 
+something more like this:
 
--- 
-Catalin
+	Any code in an RCU critical section that extends beyond the 
+	end of a given RCU grace period is guaranteed to see the 
+	effects of all accesses which were visible to the grace 
+	period's CPU before the start of the grace period.  Similarly, 
+	any code that follows an RCU grace period (on the grace 
+	period's CPU) is guaranteed to see the effects of all accesses 
+	which were visible to an RCU critical section that began
+	before the start of the grace period.
+
+Also, the document doesn't seem to explain how Tree RCU relies on the
+lock-ordering guarantees of raw_spin_lock_rcu_node() and friends.  It
+_says_ that these guarantees are used, but not how or where.  (Unless I 
+missed something; I didn't read the document all that carefully.)
+
+In any case, you should bear in mind that the lock ordering provided by
+Peter's raw_spin_lock_rcu_node() and friends is not the same as what we
+have been discussing for the LKMM:
+
+	Peter's routines are meant for the case where you release
+	one lock and then acquire another (for example, locks in 
+	two different levels of the RCU tree).
+
+	The LKMM patch applies only to cases where one CPU releases
+	a lock and then that CPU or another acquires the _same_ lock 
+	again.
+
+As another difference, the litmus test given near the start of the
+"Tree RCU Grace Period Memory Ordering Building Blocks" section would
+not be forbidden by the LKMM, even with RCtso locks, if it didn't use
+raw_spin_lock_rcu_node().  This is because the litmus test is forbidden
+only when locks are RCsc, which is what raw_spin_lock_rcu_node()  
+provides.
+
+So I don't see how the RCU code can be held up as an example either for
+or against requiring locks to be RCtso.
+
+Alan
