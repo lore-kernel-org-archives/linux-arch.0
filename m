@@ -1,62 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f195.google.com ([209.85.208.195]:39136 "EHLO
-        mail-lj1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726678AbeIKRSc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 11 Sep 2018 13:18:32 -0400
-From: Igor Stoppa <igor.stoppa@gmail.com>
-Subject: [PATCH v2] asm-generic: bug: unify hints for BUG_ON()
-Date: Tue, 11 Sep 2018 15:19:15 +0300
-Message-ID: <20180911121915.30236-1-igor.stoppa@huawei.com>
+Received: from smtp17.cstnet.cn ([159.226.251.17]:44204 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727287AbeIKSDU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Sep 2018 14:03:20 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v6 08/16] x86/apic: Add Hygon Dhyana support to APIC
+References: <cover.1536550549.git.puwen@hygon.cn>
+ <4f03e734faa5b2b69b0947a156bea29cddcc95ce.1536550550.git.puwen@hygon.cn>
+ <20180911101454.GE12094@zn.tnic>
+Message-ID: <b8055a18-2002-13b2-3438-7fbb38149837@hygon.cn>
+Date: Tue, 11 Sep 2018 21:03:41 +0800
+MIME-Version: 1.0
+In-Reply-To: <20180911101454.GE12094@zn.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: igor.stoppa@gmail.com, Igor Stoppa <igor.stoppa@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180911121915.DFJvEbXYg3NycEFfkznQpICpwmFpERWGHaoIzi7mcGw@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180911130341.EeBxOIGwRtefEIgOtdoJZihpfL4qPvCcVr-yNL_Xs30@z>
 
-If BUG_ON() is used instead of BUG(), it means that probably the
-preferred outcome is to not BUG(), therefore the condition tested should
-be unlikely().
+On 2018/9/11 18:14, Borislav Petkov wrote:
+>> @@ -1211,9 +1216,11 @@ void __init sync_Arb_IDs(void)
+>>   {
+>>   	/*
+>>   	 * Unsupported on P4 - see Intel Dev. Manual Vol. 3, Ch. 8.6.1 And not
+>> -	 * needed on AMD.
+>> +	 * needed on AMD or Hygon.
+>>   	 */
+>> -	if (modern_apic() || boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
+>> +	if (modern_apic() ||
+>> +	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
+>> +	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
+> 
+> This change is not needed, after the above hunk in modern_apic(), right?
 
-However, when CONFIG_PROFILE_ANNOTATED_BRANCHES is enabled, the hint is
-disabled, to avoid generating false-positive warnings caused by
--Wmaybe-uninitialized.
+Yes, you are right. Since the Hygon Dhyana CPU always uses modern APIC,
+so the function modern_apic will always return true for Hygon Dhyana.
+I will remove this change in next version of patch.
 
-Signed-off-by: Igor Stoppa <igor.stoppa@huawei.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- include/asm-generic/bug.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+> 
+> With it removed:
+> 
+> Reviewed-by: Borislav Petkov <bp@suse.de>
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 20561a60db9c..b91273c36baf 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -58,8 +58,12 @@ struct bug_entry {
- #endif
- 
- #ifndef HAVE_ARCH_BUG_ON
-+#ifdef CONFIG_PROFILE_ANNOTATED_BRANCHES
-+#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
-+#else
- #define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
- #endif
-+#endif
- 
- #ifdef __WARN_FLAGS
- #define __WARN_TAINT(taint)		__WARN_FLAGS(BUGFLAG_TAINT(taint))
-@@ -183,7 +187,11 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- #endif
- 
- #ifndef HAVE_ARCH_BUG_ON
-+#ifdef CONFIG_PROFILE_ANNOTATED_BRANCHES
- #define BUG_ON(condition) do { if (condition) BUG(); } while (0)
-+#else
-+#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
-+#endif
- #endif
- 
- #ifndef HAVE_ARCH_WARN_ON
 -- 
-2.17.1
+Regards,
+Pu Wen
