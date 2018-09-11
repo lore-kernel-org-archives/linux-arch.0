@@ -1,40 +1,57 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v6 15/16] EDAC, amd64: Add Hygon Dhyana support
-Date: Tue, 11 Sep 2018 12:51:20 +0200
-Message-ID: <20180911105120.GH12094@zn.tnic>
-References: <cover.1536550549.git.puwen@hygon.cn>
- <7deadc44054d62e3617b9f302f4e5d1fd0d382e7.1536550550.git.puwen@hygon.cn>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+From: Igor Stoppa <igor.stoppa@gmail.com>
+Subject: [PATCH v2] asm-generic: bug: unify hints for BUG_ON()
+Date: Tue, 11 Sep 2018 15:19:15 +0300
+Message-ID: <20180911121915.30236-1-igor.stoppa@huawei.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <7deadc44054d62e3617b9f302f4e5d1fd0d382e7.1536550550.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de
-Cc: Pu Wen <puwen@hygon.cn>, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, mchehab@kernel.org, mikhail.jin@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: igor.stoppa@gmail.com, Igor Stoppa <igor.stoppa@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 10, 2018 at 09:20:24PM +0800, Pu Wen wrote:
-> To make AMD64 EDAC and MCE drivers working on Hygon platforms, add
-> support for Hygon Dhyana CPU by using the code path of AMD family
-> 17h.
-> 
-> Signed-off-by: Pu Wen <puwen@hygon.cn>
-> ---
->  drivers/edac/amd64_edac.c | 8 +++++++-
->  drivers/edac/mce_amd.c    | 4 +++-
->  2 files changed, 10 insertions(+), 2 deletions(-)
+If BUG_ON() is used instead of BUG(), it means that probably the
+preferred outcome is to not BUG(), therefore the condition tested should
+be unlikely().
 
-This one conflicts with
+However, when CONFIG_PROFILE_ANNOTATED_BRANCHES is enabled, the hint is
+disabled, to avoid generating false-positive warnings caused by
+-Wmaybe-uninitialized.
 
-  8960de4a5ca7 ("EDAC, amd64: Add Family 17h, models 10h-2fh support")
+Signed-off-by: Igor Stoppa <igor.stoppa@huawei.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ include/asm-generic/bug.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-in my tree.
-
-tglx, what do you suggest?
-
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 20561a60db9c..b91273c36baf 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -58,8 +58,12 @@ struct bug_entry {
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
++#ifdef CONFIG_PROFILE_ANNOTATED_BRANCHES
++#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
++#else
+ #define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
+ #endif
++#endif
+ 
+ #ifdef __WARN_FLAGS
+ #define __WARN_TAINT(taint)		__WARN_FLAGS(BUGFLAG_TAINT(taint))
+@@ -183,7 +187,11 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
++#ifdef CONFIG_PROFILE_ANNOTATED_BRANCHES
+ #define BUG_ON(condition) do { if (condition) BUG(); } while (0)
++#else
++#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
++#endif
+ #endif
+ 
+ #ifndef HAVE_ARCH_WARN_ON
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.17.1
