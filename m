@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:40311 "EHLO cstnet.cn"
+Received: from smtp17.cstnet.cn ([159.226.251.17]:45214 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726429AbeIKLb1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Sep 2018 07:31:27 -0400
+        id S1726562AbeIKLhe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 11 Sep 2018 07:37:34 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v6 01/16] x86/cpu: Create Hygon Dhyana architecture
- support file
+Subject: Re: [PATCH v6 03/16] x86/cpu/mtrr: Support TOP_MEM2 and get MTRR
+ number
 References: <cover.1536550549.git.puwen@hygon.cn>
- <d99e831f739308221798c9939efc6e6fc1648e0c.1536550550.git.puwen@hygon.cn>
- <20180910163821.GD4386@zn.tnic>
-Message-ID: <258a65ec-177e-fdc8-3f40-c5b748a6f0d1@hygon.cn>
-Date: Tue, 11 Sep 2018 14:33:20 +0800
+ <cdfcd79e88e0acf254347159673355eec00a1d37.1536550550.git.puwen@hygon.cn>
+ <20180910180613.GE4386@zn.tnic>
+Message-ID: <da680b5b-be9d-64c3-35f1-72f8ab02fc7d@hygon.cn>
+Date: Tue, 11 Sep 2018 14:39:34 +0800
 MIME-Version: 1.0
-In-Reply-To: <20180910163821.GD4386@zn.tnic>
+In-Reply-To: <20180910180613.GE4386@zn.tnic>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
@@ -20,19 +20,21 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180911063320.pvGe55q1W78PqXVx6YaW38uA6H81-xqBvnGKFVdADws@z>
+Message-ID: <20180911063934.Stx4QhRmIaYtW1Khu-NJdnpDgab6jUpyuL3dyVTvim8@z>
 
-On 2018/9/11 0:38, Borislav Petkov wrote:
-> That sentence is not needed for the same reason as above.
+On 2018/9/11 2:06, Borislav Petkov wrote:
+> On Mon, Sep 10, 2018 at 09:16:03PM +0800, Pu Wen wrote:
+>> The Hygon Dhyana CPU have a special magic MSR way to force WB for
 > 
->> And select CPU_SUP_AMD
->> to solve the dependency issues in kernel.
+>  From the last review round:
 > 
-> No, this should say: "Since Dhyana uses AMD functionality to a large
-> degree, select CPU_SUP_AMD which provides that functionality."
+> Also, it is "The ... CPU has a special..."
+> 
+> Please take your time and incorporate *all* review feedback - no need to
+> *rush* a new revision out and drop review feedback.
 
-Thanks for the detailed correction. Will improve the description and
-remove unneeded sentences in next version of patch.
+Sorry for not taking much care of the usage between singular and plural.
+Will fix those typos.
 
 -- 
 Regards,
