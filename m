@@ -1,33 +1,35 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v6 01/16] x86/cpu: Create Hygon Dhyana architecture
- support file
-Date: Tue, 11 Sep 2018 14:33:20 +0800
-Message-ID: <258a65ec-177e-fdc8-3f40-c5b748a6f0d1@hygon.cn>
+Subject: Re: [PATCH v6 03/16] x86/cpu/mtrr: Support TOP_MEM2 and get MTRR
+ number
+Date: Tue, 11 Sep 2018 14:39:34 +0800
+Message-ID: <da680b5b-be9d-64c3-35f1-72f8ab02fc7d@hygon.cn>
 References: <cover.1536550549.git.puwen@hygon.cn>
- <d99e831f739308221798c9939efc6e6fc1648e0c.1536550550.git.puwen@hygon.cn>
- <20180910163821.GD4386@zn.tnic>
+ <cdfcd79e88e0acf254347159673355eec00a1d37.1536550550.git.puwen@hygon.cn>
+ <20180910180613.GE4386@zn.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180910163821.GD4386@zn.tnic>
+In-Reply-To: <20180910180613.GE4386@zn.tnic>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Borislav Petkov <bp@alien8.de>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/11 0:38, Borislav Petkov wrote:
-> That sentence is not needed for the same reason as above.
+On 2018/9/11 2:06, Borislav Petkov wrote:
+> On Mon, Sep 10, 2018 at 09:16:03PM +0800, Pu Wen wrote:
+>> The Hygon Dhyana CPU have a special magic MSR way to force WB for
 > 
->> And select CPU_SUP_AMD
->> to solve the dependency issues in kernel.
+>  From the last review round:
 > 
-> No, this should say: "Since Dhyana uses AMD functionality to a large
-> degree, select CPU_SUP_AMD which provides that functionality."
+> Also, it is "The ... CPU has a special..."
+> 
+> Please take your time and incorporate *all* review feedback - no need to
+> *rush* a new revision out and drop review feedback.
 
-Thanks for the detailed correction. Will improve the description and
-remove unneeded sentences in next version of patch.
+Sorry for not taking much care of the usage between singular and plural.
+Will fix those typos.
 
 -- 
 Regards,
