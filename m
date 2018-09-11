@@ -1,35 +1,42 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v6 03/16] x86/cpu/mtrr: Support TOP_MEM2 and get MTRR
- number
-Date: Tue, 11 Sep 2018 14:39:34 +0800
-Message-ID: <da680b5b-be9d-64c3-35f1-72f8ab02fc7d@hygon.cn>
+Subject: Re: [PATCH v6 05/16] perf/x86: Add Hygon Dhyana support to PMU
+ infrastructure
+Date: Tue, 11 Sep 2018 15:00:08 +0800
+Message-ID: <ae6c1c18-f503-2172-279b-5920e7fdb19a@hygon.cn>
 References: <cover.1536550549.git.puwen@hygon.cn>
- <cdfcd79e88e0acf254347159673355eec00a1d37.1536550550.git.puwen@hygon.cn>
- <20180910180613.GE4386@zn.tnic>
+ <1e7b20df2bb5ebca6d72339f8b4e1453325cef10.1536550550.git.puwen@hygon.cn>
+ <20180910181730.GF4386@zn.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180910180613.GE4386@zn.tnic>
+In-Reply-To: <20180910181730.GF4386@zn.tnic>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Borislav Petkov <bp@alien8.de>
 Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/11 2:06, Borislav Petkov wrote:
-> On Mon, Sep 10, 2018 at 09:16:03PM +0800, Pu Wen wrote:
->> The Hygon Dhyana CPU have a special magic MSR way to force WB for
+On 2018/9/11 2:17, Borislav Petkov wrote:
+>> The Hygon Dhyana CPU support both legacy and extension PMC MSRs(perf
 > 
->  From the last review round:
+> I don't know but for some reason, you are writing "Hygon Dhyana CPU" as
+> being plural. But it is singular:
 > 
-> Also, it is "The ... CPU has a special..."
-> 
-> Please take your time and incorporate *all* review feedback - no need to
-> *rush* a new revision out and drop review feedback.
+> "The Hygon Dhyna CPU supports both ..."
+> 			    ^
+> 			   |||
 
-Sorry for not taking much care of the usage between singular and plural.
-Will fix those typos.
+Will take more care of the usage between singular and plural and fix
+the typo.
+
+>> counter registers and event selection registers), so add Hygon Dhyana
+>> support to get bit offset in the similar way as AMD does.
+> 
+> "to get bit offset"?
+
+These words are used with the tendency to explain what the patch do,
+actually they are not needed and will be removed.
 
 -- 
 Regards,
