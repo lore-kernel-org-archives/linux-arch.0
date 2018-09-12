@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V4 20/27] dt-bindings: timer: C-SKY Multi-processor timer
-Date: Wed, 12 Sep 2018 22:52:02 +0800
-Message-ID: <e301225bda1dc8dfe7aa5b1b2bbe83b82403f47d.1536758961.git.ren_guo@c-sky.com>
+Subject: [PATCH V4 18/27] dt-bindings: csky CPU Bindings
+Date: Wed, 12 Sep 2018 22:52:00 +0800
+Message-ID: <f14bfbce2d3c36fa620f9e5cb1805e82b150e76a.1536758961.git.ren_guo@c-sky.com>
 References: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
@@ -14,61 +14,85 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- .../devicetree/bindings/timer/csky,mptimer.txt     | 46 ++++++++++++++++++++++
- 1 file changed, 46 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/csky,mptimer.txt
+ Documentation/devicetree/bindings/csky/cpus.txt | 70 +++++++++++++++++++++++++
+ 1 file changed, 70 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
 
-diff --git a/Documentation/devicetree/bindings/timer/csky,mptimer.txt b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
+diff --git a/Documentation/devicetree/bindings/csky/cpus.txt b/Documentation/devicetree/bindings/csky/cpus.txt
 new file mode 100644
-index 0000000..0d7369f
+index 0000000..ee3901d
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
-@@ -0,0 +1,46 @@
-+============================
-+C-SKY Multi-processors Timer
-+============================
++++ b/Documentation/devicetree/bindings/csky/cpus.txt
+@@ -0,0 +1,70 @@
++==================
++C-SKY CPU Bindings
++==================
 +
-+C-SKY multi-processors timer is designed for C-SKY SMP system and the
-+regs is accessed by cpu co-processor 4 registers with mtcr/mfcr.
++The device tree allows to describe the layout of CPUs in a system through
++the "cpus" node, which in turn contains a number of subnodes (ie "cpu")
++defining properties for every cpu.
 +
-+ - PTIM_CTLR "cr<0, 14>" Control reg to start reset timer.
-+ - PTIM_TSR  "cr<1, 14>" Interrupt cleanup status reg.
-+ - PTIM_CCVR "cr<3, 14>" Current counter value reg.
-+ - PTIM_LVR  "cr<6, 14>" Window value reg to triger next event.
++Only SMP system need to care about the cpus node and single processor
++needn't define cpus node at all.
 +
-+==============================
-+timer node bindings definition
-+==============================
++=====================================
++cpus and cpu node bindings definition
++=====================================
 +
-+        Description: Describes SMP timer
++- cpus node
++
++        Description: Container of cpu nodes
++
++        The node name must be "cpus".
++
++        A cpus node must define the following properties:
++
++        - #address-cells
++                Usage: required
++                Value type: <u32>
++                Definition: must be set to 1
++        - #size-cells
++                Usage: required
++                Value type: <u32>
++                Definition: must be set to 0
++
++- cpu node
++
++        Description: Describes one of SMP cores
 +
 +        PROPERTIES
 +
-+        - compatible
++        - device_type
 +                Usage: required
 +                Value type: <string>
-+                Definition: must be "csky,mptimer"
-+	- clocks
-+		Usage: required
-+		Value type: <node>
-+                Definition: must be input clk node
-+        - interrupt
++                Definition: must be "cpu"
++        - reg
 +                Usage: required
 +                Value type: <u32>
-+                Definition: must be timer irq num defined by soc
-+        - interrupt-parent:
++                Definition: CPU index
++        - status:
 +                Usage: required
-+		Value type: <node>
-+                Definition: must be interrupt controller node
++                Value type: <string>
++                Definition: "ok"       means enable  the cpu-core
++                            "disabled" means disable the cpu-core
 +
-+Examples:
-+---------
++Example:
++--------
 +
-+	timer: timer {
-+		compatible = "csky,mptimer";
-+		clocks = <&dummy_apb_clk>;
-+		interrupts = <16>;
-+		interrupt-parent = <&intc>;
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		cpu@0 {
++			device_type = "cpu";
++			reg = <0>;
++			status = "ok";
++		};
++
++		cpu@1 {
++			device_type = "cpu";
++			reg = <1>;
++			status = "ok";
++		};
 +	};
 -- 
 2.7.4
