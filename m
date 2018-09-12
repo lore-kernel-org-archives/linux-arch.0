@@ -1,190 +1,104 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 09/27] csky: VDSO and rt_sigreturn
-Date: Wed, 12 Sep 2018 21:24:43 +0800
-Message-ID: <84b9dbc12dbd64c424d81356bce15bdde4c54eb8.1536757532.git.ren_guo@c-sky.com>
-References: <cover.1536757532.git.ren_guo@c-sky.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: defconfig fails if CROSS_COMPILE is set while cross-gcc is not
+ avaialble
+Date: Wed, 12 Sep 2018 13:43:09 +0000
+Message-ID: <2c5d00f99db07df1a8cc5168d62d5764544fb83e.camel@synopsys.com>
+References: <0854f35e92c95e552721dc6a46f4ee2bc4020bc1.camel@synopsys.com>
+         <CAK7LNAR0ghuhDXUqJ=nX0dtbtoOvFff9Eeu-hHWLkTONG09GAQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
-References: <cover.1536757532.git.ren_guo@c-sky.com>
+In-Reply-To: <CAK7LNAR0ghuhDXUqJ=nX0dtbtoOvFff9Eeu-hHWLkTONG09GAQ@mail.gmail.com>
+Content-Language: en-US
+Content-ID: <37A93BA9001833478BA89F779B85B8EE@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org
-Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
+To: "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>
+Cc: "keescook@chromium.org" <keescook@chromium.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/abiv1/inc/abi/vdso.h | 17 +++++++++
- arch/csky/abiv2/inc/abi/vdso.h | 24 ++++++++++++
- arch/csky/include/asm/vdso.h   | 12 ++++++
- arch/csky/kernel/vdso.c        | 85 ++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 138 insertions(+)
- create mode 100644 arch/csky/abiv1/inc/abi/vdso.h
- create mode 100644 arch/csky/abiv2/inc/abi/vdso.h
- create mode 100644 arch/csky/include/asm/vdso.h
- create mode 100644 arch/csky/kernel/vdso.c
-
-diff --git a/arch/csky/abiv1/inc/abi/vdso.h b/arch/csky/abiv1/inc/abi/vdso.h
-new file mode 100644
-index 0000000..a99f0e4
---- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/vdso.h
-@@ -0,0 +1,17 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/uaccess.h>
-+
-+static inline int setup_vdso_page(unsigned short *ptr)
-+{
-+	int err = 0;
-+
-+	/* movi r1, 127 */
-+	err |= __put_user(0x67f1, ptr + 0);
-+	/* addi r1, (139 - 127) */
-+	err |= __put_user(0x20b1, ptr + 1);
-+	/* trap 0 */
-+	err |= __put_user(0x0008, ptr + 2);
-+
-+	return err;
-+}
-diff --git a/arch/csky/abiv2/inc/abi/vdso.h b/arch/csky/abiv2/inc/abi/vdso.h
-new file mode 100644
-index 0000000..2b5f43b
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/vdso.h
-@@ -0,0 +1,24 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ABI_CSKY_VDSO_H
-+#define __ABI_CSKY_VDSO_H
-+
-+#include <linux/uaccess.h>
-+
-+static inline int setup_vdso_page(unsigned short *ptr)
-+{
-+	int err = 0;
-+
-+	/* movi r7, 173 */
-+	err |= __put_user(0xea07, ptr);
-+	err |= __put_user(0x008b,      ptr+1);
-+
-+	/* trap 0 */
-+	err |= __put_user(0xc000,   ptr+2);
-+	err |= __put_user(0x2020,   ptr+3);
-+
-+	return err;
-+}
-+
-+#endif /* __ABI_CSKY_STRING_H */
-diff --git a/arch/csky/include/asm/vdso.h b/arch/csky/include/asm/vdso.h
-new file mode 100644
-index 0000000..b275440
---- /dev/null
-+++ b/arch/csky/include/asm/vdso.h
-@@ -0,0 +1,12 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_VDSO_H
-+#define __ASM_CSKY_VDSO_H
-+
-+#include <abi/vdso.h>
-+
-+struct csky_vdso {
-+	unsigned short rt_signal_retcode[4];
-+};
-+
-+#endif /* __ASM_CSKY_VDSO_H */
-diff --git a/arch/csky/kernel/vdso.c b/arch/csky/kernel/vdso.c
-new file mode 100644
-index 0000000..55ed68b
---- /dev/null
-+++ b/arch/csky/kernel/vdso.c
-@@ -0,0 +1,85 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/kernel.h>
-+#include <linux/err.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/init.h>
-+#include <linux/binfmts.h>
-+#include <linux/elf.h>
-+#include <linux/vmalloc.h>
-+#include <linux/unistd.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/vdso.h>
-+#include <asm/cacheflush.h>
-+
-+static struct page *vdso_page;
-+
-+static int __init init_vdso(void)
-+{
-+	struct csky_vdso *vdso;
-+	int err = 0;
-+
-+	vdso_page = alloc_page(GFP_KERNEL);
-+	if (!vdso_page)
-+		panic("Cannot allocate vdso");
-+
-+	vdso = vmap(&vdso_page, 1, 0, PAGE_KERNEL);
-+	if (!vdso)
-+		panic("Cannot map vdso");
-+
-+	clear_page(vdso);
-+
-+	err = setup_vdso_page(vdso->rt_signal_retcode);
-+	if (err) panic("Cannot set signal return code, err: %x.", err);
-+
-+	dcache_wb_range((unsigned long)vdso, (unsigned long)vdso + 16);
-+
-+	vunmap(vdso);
-+
-+	return 0;
-+}
-+subsys_initcall(init_vdso);
-+
-+int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
-+{
-+	int ret;
-+	unsigned long addr;
-+	struct mm_struct *mm = current->mm;
-+
-+	down_write(&mm->mmap_sem);
-+
-+	addr = get_unmapped_area(NULL, STACK_TOP, PAGE_SIZE, 0, 0);
-+	if (IS_ERR_VALUE(addr)) {
-+		ret = addr;
-+		goto up_fail;
-+	}
-+
-+	ret = install_special_mapping(
-+			mm,
-+			addr,
-+			PAGE_SIZE,
-+			VM_READ|VM_EXEC|VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
-+			&vdso_page);
-+	if (ret)
-+		goto up_fail;
-+
-+	mm->context.vdso = (void *)addr;
-+
-+up_fail:
-+	up_write(&mm->mmap_sem);
-+	return ret;
-+}
-+
-+const char *arch_vma_name(struct vm_area_struct *vma)
-+{
-+	if (vma->vm_mm == NULL)
-+		return NULL;
-+
-+	if (vma->vm_start == (long)vma->vm_mm->context.vdso)
-+		return "[vdso]";
-+	else
-+		return NULL;
-+}
--- 
-2.7.4
+SGkgTWFzYWhpcm8sDQoNCk9uIFdlZCwgMjAxOC0wOS0xMiBhdCAyMTo1MyArMDkwMCwgTWFzYWhp
+cm8gWWFtYWRhIHdyb3RlOg0KPiBIaSBBbGV4ZXkuDQo+IA0KPiAyMDE4LTA5LTEyIDIxOjA4IEdN
+VCswOTowMCBBbGV4ZXkgQnJvZGtpbiA8QWxleGV5LkJyb2RraW5Ac3lub3BzeXMuY29tPjoNCj4g
+PiBIZWxsbyBNYXNhaGlyby1zYW4sDQo+ID4gDQo+ID4gU3RhcnRpbmcgZnJvbSBrZXJuZWwgdjQu
+MTcgaXQgaXMgbm8gbG9uZ2VyIHBvc3NpYmxlIHRvIGluc3RhbGwga2VybmVsIGhlYWRlcnMNCj4g
+PiBmb3IgQVJDIGFyY2hpdGVjdHVyZSBpZiB0aGVyZSdzIG5vIGNyb3NzLXRvb2xjaGFpbiBpbiBQ
+QVRILg0KPiANCj4gDQo+IFJlYWxseT8NCj4gDQo+IEkgY2FuIGRvICdtYWtlIEFSQ0g9YXJjIGhl
+YWRlcnNfaW5zdGFsbCcNCj4gd2l0aCB0aGUgbGF0ZXN0IExpbnVzJyB0cmVlLg0KDQpJbmRlZWQg
+ImhlYWRlcnNfaW5zdGFsbCIgd29ya3MgdGhhdCB3YXkgYnV0IGlzIGl0IE9LIHRvIGluc3RhbGwg
+aGVhZGVycw0Kd2l0aG91dCBwcmV2aW91cyBjb25maWd1cmF0aW9uLiBJbiBteSBleHBlcmltZW50
+IEkgZG9uJ3Qgc2VlIGFueSBkaWZmZXJlbmNlcw0KdGhvdWdoIGZvciBleGFtcGxlIE9wZW5FbWJl
+ZGRlZCBvbiBjb25maWd1cmF0aW9uIHN0ZXAgb2YgImxpbnV4LWxpYmMtaGVhZGVycyINCmRvICJB
+UkNIPXh4eCBtYWtlIGFsbG5vY29uZmlnIiwgc2VlIA0KaHR0cHM6Ly9naXRodWIuY29tL29wZW5l
+bWJlZGRlZC9vcGVuZW1iZWRkZWQtY29yZS9ibG9iL21hc3Rlci9tZXRhL3JlY2lwZXMta2VybmVs
+L2xpbnV4LWxpYmMtaGVhZGVycy9saW51eC1saWJjLWhlYWRlcnMuaW5jI0w1Nw0KDQpUaGF0IG1p
+Z2h0IGJlIHNvbWUgbGVnYWN5IGJ1dCBJJ20gbm90IHJlYWxseSBzdXJlLA0Kd29ydGggYXNraW5n
+IE9FIHBlb3BsZS4NCg0KRm9yIHRoZSByZWNvcmQgaW4gQnVpbGRyb290IG5vIGNvbmZpZ3VyYXRp
+b24gaGFwcGVucyBmb3IgTGludXggaGVhZGVycywNCnNlZSBodHRwczovL2dpdC5idWlsZHJvb3Qu
+b3JnL2J1aWxkcm9vdC90cmVlL3BhY2thZ2UvbGludXgtaGVhZGVycy9saW51eC1oZWFkZXJzLm1r
+I24xMDYNCg0KPiBJIHNlZSB0aGUgZm9sbG93aW5nIHdhcm5pbmdzLCBidXQgcG9zc2libGUgdG8g
+aW5zdGFsbCBrZXJuZWwgaGVhZGVycy4NCj4gDQo+IC4vc2NyaXB0cy9nY2MtdmVyc2lvbi5zaDog
+bGluZSAyNjogYXJjLWxpbnV4LWdjYzogY29tbWFuZCBub3QgZm91bmQNCj4gLi9zY3JpcHRzL2dj
+Yy12ZXJzaW9uLnNoOiBsaW5lIDI3OiBhcmMtbGludXgtZ2NjOiBjb21tYW5kIG5vdCBmb3VuZA0K
+DQpSaWdodC4uLiB0aGF0IGhhcHBlbnMgYmVjYXVzZSB3ZSdyZSBkb2luZyAyIGhhY2tpc2ggdGhp
+bmdzOg0KMS4gQ2hlY2tpbmcgaWYgY3VycmVudCB0b29sY2hhaW4gaXMgY29uZmlndXJlZCBmb3Ig
+QVJDb21wYWN0IChBUkN2MSkgSVNBDQogICBvciBBUkN2Mi4gVGhhdCdzIGJlY2F1c2Ugd2UgdXNl
+IHRvb2xjaGFpbidzIGxpYmdjYyBhbmQgc28gd2Ugd2FudCB0byB3YXJuDQogICBhIHVzZXIgaWYg
+d3JvbmcgdG9vbGNoYWluIGlzIHVzZWQgZWFybHkgaW5zdGVhZCBvZiBsZWF2aW5nIGhpbSB0byBk
+ZWFsIHdpdGgNCiAgIGZpbmFsIGxpbmthZ2UgZmFpbHVyZS4NCiAgIFNlZTogaHR0cHM6Ly9naXQu
+a2VybmVsLm9yZy9wdWIvc2NtL2xpbnV4L2tlcm5lbC9naXQvdG9ydmFsZHMvbGludXguZ2l0L3Ry
+ZWUvYXJjaC9hcmMvTWFrZWZpbGUjbjIzDQoNCjIuIEFza2luZyBDQyBmb3IgYSBwYXRoIHRvIGxp
+YmdjYw0KICAgU2VlOiBodHRwczovL2dpdC5rZXJuZWwub3JnL3B1Yi9zY20vbGludXgva2VybmVs
+L2dpdC90b3J2YWxkcy9saW51eC5naXQvdHJlZS9hcmNoL2FyYy9NYWtlZmlsZSNuODINCg0KW3Nu
+aXBdDQoNCj4gSSBhbSB0cnlpbmcgdG8gZml4IGV2ZW4gdGhvc2Ugd2FybmluZ3MNCj4gYnkgZWxp
+bWluYXRpbmcgdW5uZWVkZWQgY29tcGlsZXIgaW52b2NhdGlvbi4gIEl0IGlzIFdJUC4NCg0KQW5k
+IGlmICgxKSBpcyBub3Qgc3VwZXIgaW1wb3J0YW50IChpbiBmYWN0IHdlIHVzZWQgdG8gbGl2ZSB3
+aXRob3V0IGl0IGZvciB5ZWFycykNCigyKSByZXF1aXJlcyBpbXBsZW1lbnRhdGlvbiBvZiBsaWJn
+Y2MgaW4ga2VybmVsIHNvdXJjZXMgKHdoaWNoIEJUVyB3aWxsIG1ha2UgKDEpDQpvYnNvbGV0ZSBp
+bW1lZGlhdGVseSkuIFdlIGRvIGhhdmUgaXQgb24gb3VyIHRvZG8gbGlzdCB0aG91Z2guLi4NCg0K
+W3NuaXBdDQoNCj4gPiBUaGF0IGRvZXNuJ3QgaGFwcGVuIGZvciBBUk0gYW5kIG90aGVyIGFyY2hl
+cyBzaW1wbHkgYmVjYXVzZSBmb3IgQVJDDQo+ID4gd2UgZGVmaW5lIENST1NTX0NPTVBJTEUgaWYg
+aXQgaXMgbm90IHNldCBieSB1c2VyLCBzZWU6DQo+ID4gDQpodHRwczovL3VybGRlZmVuc2UucHJv
+b2Zwb2ludC5jb20vdjIvdXJsP3U9aHR0cHMtM0FfX2dpdC5rZXJuZWwub3JnX3B1Yl9zY21fbGlu
+dXhfa2VybmVsX2dpdF90b3J2YWxkc19saW51eC5naXRfdHJlZV9hcmNoX2FyY19NYWtlZmlsZS0y
+M245JmQ9RHdJQmFRJmM9RFBMNl9YXzZKa1hGeDdBWFdxQjB0ZyZyPWxxZGVlU1NFZXMwR0ZERGw2
+NTZlVmlYTzdicmVTNTV5dFdraHBrNVI4MUkmbT16SnNhNU1yQXREaVlFV3I1UFpOUzFhR2syMUVU
+YS1xWHpMUElkZHd2b1FJJnM9QlUwbHRQUG9STG4zbnBfYmE0SFJIZkg5aTE0MXVaam9TOGpzSnJn
+OFNOYyZlPQ0KPiANCj4gSSBkbyBub3QgdGhpbmsgaXQgaXMgYSBnb29kIHByYWN0aWNlDQo+IHRv
+IGZvcmNpYmx5IHNldCBDUk9TU19DT01QSUxFIHRoYXQgdXNlcnMgbWF5IG5vdCBoYXZlLg0KDQpN
+YXliZSBzby4gU3RpbGwgc29tZSBhcmNoZXMgb3IgcmFuZG9tIHBsYXRmb3JtcyBkbyB0aGF0Lg0K
+DQo+IGFyY2gvbTY4ay9NYWtlZmlsZSB1c2VzIGNjLWNyb3NzLXByZWZpeCBoZWxwZXINCj4gdG8g
+c2V0IHRoZSBmaXJzdCBmb3VuZCBjb21waWxlci4NCg0KV2VsbCBJJ20gbm90IHJlYWxseSBzdXJl
+IHdlIG5lZWQgdG8gbWVzcyB3aXRoIENST1NTX0NPTVBJTEUgaW4ga2VybmVsLg0KSS5lLiB0aGVy
+ZSBtaWdodCBiZSB0b25zIG9mIHZhcmlhdGlvbnMgZGVwZW5kaW5nIG9uIHdobyB0b29sY2hhaW4g
+d2FzIGJ1aWx0DQpldGMuIFNvIEknZCBiZXR0ZXIgZ2V0IHJpZCBvZiBDUk9TU19DT01QSUxFIHNl
+dHVwIGluIG91ciBNYWtlZmlsZS4NCg0KPiA+IFN0aWxsIGlmIENST1NTX0NPTVBJTEUgaXMgc2V0
+IGJlZm9yZSBleGVjdXRpb24gb2YgIm1ha2UgZGVmY29uZmlnIg0KPiA+IHRoZW4gdGhlIHNhbWUg
+cHJvYmxlbSBoYXBwZW5zIGZvciBvdGhlcnMuDQo+ID4gDQo+ID4gSSB3YXMgYWJsZSB0byBmaW5k
+IGEgc2VyaWVzIG9mIGNvbW1pdHMgd2hpY2ggY2F1c2UgdGhpcyBwcm9ibGVtLA0KPiA+IGhlcmUg
+dGhleSBhcmU6DQo+ID4gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tDQo+ID4gNTlmNTM4NTViYWJmIC0gZ2NjLXBsdWdpbnM6IHRlc3QgcGx1
+Z2luIHN1cHBvcnQgaW4gS2NvbmZpZyBhbmQgY2xlYW4gdXAgTWFrZWZpbGUNCj4gPiA0NjljYjcz
+NzZjMDYgLSBrY29uZmlnOiBhZGQgQ0NfSVNfQ0xBTkcgYW5kIENMQU5HX1ZFUlNJT04NCj4gPiBh
+NDM1Mzg5ODk4MGMgLSBrY29uZmlnOiBhZGQgQ0NfSVNfR0NDIGFuZCBHQ0NfVkVSU0lPTg0KPiA+
+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LQ0KPiA+IA0KPiA+IFdoYXQgaGFwcGVuIGlzICIkKENDKSIgaXMgcGFzc2VkIGFzIGFuIGFyZ3Vt
+ZW50IGFuZCBpbiBpdHMgdHVybiBDQyBpcw0KPiA+ICIkKENST1NTX0NPTVBJTEUpZ2NjIiwgc2Vl
+Og0KPiA+IA0KaHR0cHM6Ly91cmxkZWZlbnNlLnByb29mcG9pbnQuY29tL3YyL3VybD91PWh0dHBz
+LTNBX19naXQua2VybmVsLm9yZ19wdWJfc2NtX2xpbnV4X2tlcm5lbF9naXRfdG9ydmFsZHNfbGlu
+dXguZ2l0X3RyZWVfTWFrZWZpbGUtMjNuMzg1JmQ9RHdJQmFRJmM9RFBMNl9YXzZKa1hGeDdBWFdx
+QjB0ZyZyPWxxZGVlU1NFZXMwR0ZERGw2NTZlVmlYTzdicmVTNTV5dFdraHBrNVI4MUkmbT16SnNh
+NU1yQXREaVlFV3I1UFpOUzFhR2syMUVUYS1xWHpMUElkZHd2b1FJJnM9Uzd6ZUhCcElwMVA5NFhi
+eW9Nc2FTbkpXUnFER242OXlHeWVvYi1qek1KNCZlPQ0KPiA+IA0KPiA+IA0KPiA+IFNvIGlmIEkg
+c3Vic3RpdHV0ZSAiQ0MiIHdpdGggIkhPU1RDQyIgaW4gYSBjb3VwbGUgb2YgcGxhY2VzIChzZWUg
+YmVsb3cpDQo+ID4gdGhlIHByb2JsZW0gZ29lcyBhd2F5LiBCdXQgSSdtIG5vdCByZWFsbHkgc3Vy
+ZSBpZiB3aGF0IEkgZG8gaXMgY29ycmVjdC4NCj4gPiBJLmUuIHdoZW4gd2UncmUgaW50ZXJlc3Rl
+ZCBpbiBDQyBmb3IgdGFyZ2V0IGFuZCB3aGVuIG9ubHkgaG9zdCBDQyBpcyBvZg0KPiA+IG91ciBp
+bnRlcmVzdC4NCj4gDQo+IEkgdGhpbmsgdGhlIGxvZyBvZiBjb21taXQgMzE2ZDU1ZDU1ZjQ5ZWNh
+NDQNCj4gaXMgYSBnb29kIHNvdXJjZSB0byBrbm93IHRoZSBiYWNrZ3JvdW5kIG9mIHRoaXMgY2hh
+bmdlLg0KPiANCj4gTm93IEtjb25maWcgcmVxdWlyZXMgdGhlIHRhcmdldCBjb21waWxlci4NCj4g
+U28sIGl0IGRvZXMgbm90IG1ha2Ugc2Vuc2UgdG8NCj4gZG8gZGVmY29uZmlnIHdpdGggbm9uLWV4
+aXN0aW5nIGNvbXBpbGVyLg0KDQpBZ3JlZSwgc28gSSdsbCBjaGVjayB3aXRoIE9wZW5FbWJlZGRl
+ZCBwZW9wbGUgaWYgdGhlcmUncyBhIHJlYXNvbiB0byBkbyAibWFrZSBhbGxub2NvbmZpZyINCmlm
+IGl0J3MganVzdCBhIGxlZ2FjeSBjb2RlIHdlJ2xsIGZpeCBpdCB0aGVyZS4NCg0KVGhhbmtzIGEg
+bG90IGZvciBhbGwgdGhlIGlucHV0LCBtdWNoIGFwcHJlY2lhdGVkIQ0KDQotQWxleGV5DQo=
