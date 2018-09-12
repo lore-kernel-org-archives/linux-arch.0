@@ -1,173 +1,271 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: defconfig fails if CROSS_COMPILE is set while cross-gcc is not avaialble
-Date: Wed, 12 Sep 2018 23:59:41 +0900
-Message-ID: <CAK7LNAQy6FB_aeNmzmNbhk36i1kA+93U3C6i=XJJhz-=7jyuOg@mail.gmail.com>
-References: <0854f35e92c95e552721dc6a46f4ee2bc4020bc1.camel@synopsys.com>
- <CAK7LNAR0ghuhDXUqJ=nX0dtbtoOvFff9Eeu-hHWLkTONG09GAQ@mail.gmail.com> <2c5d00f99db07df1a8cc5168d62d5764544fb83e.camel@synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH V3 11/27] csky: Atomic operations
+Date: Wed, 12 Sep 2018 17:55:14 +0200
+Message-ID: <20180912155514.GV24082@hirez.programming.kicks-ass.net>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
+ <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536757532.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <2c5d00f99db07df1a8cc5168d62d5764544fb83e.camel@synopsys.com>
+Content-Disposition: inline
+In-Reply-To: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536757532.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "keescook@chromium.org" <keescook@chromium.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Alexey,
+On Wed, Sep 12, 2018 at 09:24:45PM +0800, Guo Ren wrote:
 
-2018-09-12 22:43 GMT+09:00 Alexey Brodkin <Alexey.Brodkin@synopsys.com>:
-> Hi Masahiro,
->
-> On Wed, 2018-09-12 at 21:53 +0900, Masahiro Yamada wrote:
->> Hi Alexey.
->>
->> 2018-09-12 21:08 GMT+09:00 Alexey Brodkin <Alexey.Brodkin@synopsys.com>:
->> > Hello Masahiro-san,
->> >
->> > Starting from kernel v4.17 it is no longer possible to install kernel =
-headers
->> > for ARC architecture if there's no cross-toolchain in PATH.
->>
->>
->> Really?
->>
->> I can do 'make ARCH=3Darc headers_install'
->> with the latest Linus' tree.
->
-> Indeed "headers_install" works that way but is it OK to install headers
-> without previous configuration. In my experiment I don't see any differen=
-ces
-> though for example OpenEmbedded on configuration step of "linux-libc-head=
-ers"
-> do "ARCH=3Dxxx make allnoconfig", see
-> https://github.com/openembedded/openembedded-core/blob/master/meta/recipe=
-s-kernel/linux-libc-headers/linux-libc-headers.inc#L57
->
-> That might be some legacy but I'm not really sure,
-> worth asking OE people.
->
-> For the record in Buildroot no configuration happens for Linux headers,
-> see https://git.buildroot.org/buildroot/tree/package/linux-headers/linux-=
-headers.mk#n106
+> +#define ATOMIC_OP(op, c_op)						\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned long tmp;						\
+> +									\
+> +	smp_mb();							\
+> +	asm volatile (							\
+> +	"1:	ldex.w		%0, (%2) \n"				\
+> +	"	" #op "		%0, %1   \n"				\
+> +	"	stex.w		%0, (%2) \n"				\
+> +	"	bez		%0, 1b   \n"				\
+> +		: "=&r" (tmp)						\
+> +		: "r" (i), "r"(&v->counter)				\
+> +		: "memory");						\
+> +	smp_mb();							\
+> +}
 
+ATOMIC_OP doesn't need to imply any smp_mb()'s what so ever.
 
-Buildroot is right.
+> +#define ATOMIC_OP_RETURN(op, c_op)					\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	unsigned long tmp, ret;						\
+> +									\
+> +	smp_mb();							\
+> +	asm volatile (							\
+> +	"1:	ldex.w		%0, (%3) \n"				\
+> +	"	" #op "		%0, %2   \n"				\
+> +	"	mov		%1, %0   \n"				\
+> +	"	stex.w		%0, (%3) \n"				\
+> +	"	bez		%0, 1b   \n"				\
+> +		: "=&r" (tmp), "=&r" (ret)				\
+> +		: "r" (i), "r"(&v->counter)				\
+> +		: "memory");						\
+> +	smp_mb();							\
+> +									\
+> +	return ret;							\
+> +}
+> +
+> +#define ATOMIC_FETCH_OP(op, c_op)					\
+> +static inline int atomic_fetch_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned long tmp, ret;						\
+> +									\
+> +	smp_mb();							\
+> +	asm volatile (							\
+> +	"1:	ldex.w		%0, (%3) \n"				\
+> +	"	mov		%1, %0   \n"				\
+> +	"	" #op "		%0, %2   \n"				\
+> +	"	stex.w		%0, (%3) \n"				\
+> +	"	bez		%0, 1b   \n"				\
+> +		: "=&r" (tmp), "=&r" (ret)				\
+> +		: "r" (i), "r"(&v->counter)				\
+> +		: "memory");						\
+> +	smp_mb();							\
+> +									\
+> +	return ret;							\
+> +}
 
-The exported headers should be independent of the kernel configuration.
+For these you could generate _relaxed variants and not provide smp_mb()
+inside them.
 
-The interface between user-space and kernel must be stable.
-It is strange if it is changed depending on how you configure the kernel.
+> +#else /* CONFIG_CPU_HAS_LDSTEX */
+> +
+> +#include <linux/irqflags.h>
+> +
 
+> +#define ATOMIC_OP(op, c_op)						\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned long tmp, flags;					\
+> +									\
+> +	raw_local_irq_save(flags);					\
+> +									\
+> +	asm volatile (							\
+> +	"	ldw		%0, (%2) \n"				\
+> +	"	" #op "		%0, %1   \n"				\
+> +	"	stw		%0, (%2) \n"				\
+> +		: "=&r" (tmp)						\
+> +		: "r" (i), "r"(&v->counter)				\
+> +		: "memory");						\
+> +									\
+> +	raw_local_irq_restore(flags);					\
+> +}
 
-
-
-
->> I see the following warnings, but possible to install kernel headers.
->>
->> ./scripts/gcc-version.sh: line 26: arc-linux-gcc: command not found
->> ./scripts/gcc-version.sh: line 27: arc-linux-gcc: command not found
->
-> Right... that happens because we're doing 2 hackish things:
-> 1. Checking if current toolchain is configured for ARCompact (ARCv1) ISA
->    or ARCv2. That's because we use toolchain's libgcc and so we want to w=
-arn
->    a user if wrong toolchain is used early instead of leaving him to deal=
- with
->    final linkage failure.
->    See: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.gi=
-t/tree/arch/arc/Makefile#n23
->
-> 2. Asking CC for a path to libgcc
->    See: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.gi=
-t/tree/arch/arc/Makefile#n82
->
-> [snip]
->
->> I am trying to fix even those warnings
->> by eliminating unneeded compiler invocation.  It is WIP.
->
-> And if (1) is not super important (in fact we used to live without it for=
- years)
-> (2) requires implementation of libgcc in kernel sources (which BTW will m=
-ake (1)
-> obsolete immediately). We do have it on our todo list though...
-> [snip]
->
->> > That doesn't happen for ARM and other arches simply because for ARC
->> > we define CROSS_COMPILE if it is not set by user, see:
->> >
-> https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__git.kernel.org_pub=
-_scm_linux_kernel_git_torvalds_linux.git_tree_arch_arc_Makefile-23n9&d=3DDw=
-IBaQ&c=3DDPL6_X_6JkXFx7AXWqB0tg&r=3DlqdeeSSEes0GFDDl656eViXO7breS55ytWkhpk5=
-R81I&m=3DzJsa5MrAtDiYEWr5PZNS1aGk21ETa-qXzLPIddwvoQI&s=3DBU0ltPPoRLn3np_ba4=
-HRHfH9i141uZjoS8jsJrg8SNc&e=3D
->>
->> I do not think it is a good practice
->> to forcibly set CROSS_COMPILE that users may not have.
->
-> Maybe so. Still some arches or random platforms do that.
->
->> arch/m68k/Makefile uses cc-cross-prefix helper
->> to set the first found compiler.
->
-> Well I'm not really sure we need to mess with CROSS_COMPILE in kernel.
-> I.e. there might be tons of variations depending on who toolchain was bui=
-lt
-> etc. So I'd better get rid of CROSS_COMPILE setup in our Makefile.
-
-
-Agree.  Getting rid of CROSS_COMPILE is better.
+Is this really 'better' than the generic UP fallback implementation?
 
 
 
->> > Still if CROSS_COMPILE is set before execution of "make defconfig"
->> > then the same problem happens for others.
->> >
->> > I was able to find a series of commits which cause this problem,
->> > here they are:
->> > ----------------------------->8--------------------------
->> > 59f53855babf - gcc-plugins: test plugin support in Kconfig and clean u=
-p Makefile
->> > 469cb7376c06 - kconfig: add CC_IS_CLANG and CLANG_VERSION
->> > a4353898980c - kconfig: add CC_IS_GCC and GCC_VERSION
->> > ----------------------------->8--------------------------
->> >
->> > What happen is "$(CC)" is passed as an argument and in its turn CC is
->> > "$(CROSS_COMPILE)gcc", see:
->> >
-> https://urldefense.proofpoint.com/v2/url?u=3Dhttps-3A__git.kernel.org_pub=
-_scm_linux_kernel_git_torvalds_linux.git_tree_Makefile-23n385&d=3DDwIBaQ&c=
-=3DDPL6_X_6JkXFx7AXWqB0tg&r=3DlqdeeSSEes0GFDDl656eViXO7breS55ytWkhpk5R81I&m=
-=3DzJsa5MrAtDiYEWr5PZNS1aGk21ETa-qXzLPIddwvoQI&s=3DS7zeHBpIp1P94XbyoMsaSnJW=
-RqDGn69yGyeob-jzMJ4&e=3D
->> >
->> >
->> > So if I substitute "CC" with "HOSTCC" in a couple of places (see below=
-)
->> > the problem goes away. But I'm not really sure if what I do is correct=
-.
->> > I.e. when we're interested in CC for target and when only host CC is o=
-f
->> > our interest.
->>
->> I think the log of commit 316d55d55f49eca44
->> is a good source to know the background of this change.
->>
->> Now Kconfig requires the target compiler.
->> So, it does not make sense to
->> do defconfig with non-existing compiler.
->
-> Agree, so I'll check with OpenEmbedded people if there's a reason to do "=
-make allnoconfig"
-> if it's just a legacy code we'll fix it there.
->
-> Thanks a lot for all the input, much appreciated!
->
-> -Alexey
 
 
+> diff --git a/arch/csky/include/asm/spinlock.h b/arch/csky/include/asm/spinlock.h
+> new file mode 100644
+> index 0000000..f1081bb
+> --- /dev/null
+> +++ b/arch/csky/include/asm/spinlock.h
+> @@ -0,0 +1,286 @@
+> +#ifndef __ASM_CSKY_SPINLOCK_H
+> +#define __ASM_CSKY_SPINLOCK_H
+> +
+> +#include <linux/spinlock_types.h>
+> +#include <asm/barrier.h>
+> +
+> +#ifdef CONFIG_QUEUED_RWLOCKS
+> +
+> +/*
+> + * Ticket-based spin-locking.
+> + */
+> +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> +{
+> +	arch_spinlock_t lockval;
+> +	u32 ticket_next = 1 << TICKET_NEXT;
+> +	u32 *p = &lock->lock;
+> +	u32 tmp;
+> +
+> +	smp_mb();
 
---=20
-Best Regards
-Masahiro Yamada
+spin_lock() doesn't need smp_mb() before.
+
+> +	asm volatile (
+> +		"1:	ldex.w		%0, (%2) \n"
+> +		"	mov		%1, %0	 \n"
+> +		"	add		%0, %3	 \n"
+> +		"	stex.w		%0, (%2) \n"
+> +		"	bez		%0, 1b   \n"
+> +		: "=&r" (tmp), "=&r" (lockval)
+> +		: "r"(p), "r"(ticket_next)
+> +		: "cc");
+> +
+> +	while (lockval.tickets.next != lockval.tickets.owner) {
+> +		lockval.tickets.owner = READ_ONCE(lock->tickets.owner);
+> +	}
+> +
+> +	smp_mb();
+> +}
+> +
+> +static inline int arch_spin_trylock(arch_spinlock_t *lock)
+> +{
+> +	u32 tmp, contended, res;
+> +	u32 ticket_next = 1 << TICKET_NEXT;
+> +	u32 *p = &lock->lock;
+> +
+> +	smp_mb();
+
+idem.
+
+> +	do {
+> +		asm volatile (
+> +		"	ldex.w		%0, (%3)   \n"
+> +		"	movi		%2, 1	   \n"
+> +		"	rotli		%1, %0, 16 \n"
+> +		"	cmpne		%1, %0     \n"
+> +		"	bt		1f         \n"
+> +		"	movi		%2, 0	   \n"
+> +		"	add		%0, %0, %4 \n"
+> +		"	stex.w		%0, (%3)   \n"
+> +		"1:				   \n"
+> +		: "=&r" (res), "=&r" (tmp), "=&r" (contended)
+> +		: "r"(p), "r"(ticket_next)
+> +		: "cc");
+> +	} while (!res);
+> +
+> +	if (!contended)
+> +		smp_mb();
+> +
+> +	return !contended;
+> +}
+> +
+> +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> +{
+> +	smp_mb();
+> +	lock->tickets.owner++;
+> +	smp_mb();
+
+spin_unlock() doesn't need smp_mb() after.
+
+> +}
+> +
+> +static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+> +{
+> +	return lock.tickets.owner == lock.tickets.next;
+> +}
+> +
+> +static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+> +{
+> +	return !arch_spin_value_unlocked(READ_ONCE(*lock));
+> +}
+> +
+> +static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+> +{
+> +	struct __raw_tickets tickets = READ_ONCE(lock->tickets);
+> +	return (tickets.next - tickets.owner) > 1;
+> +}
+> +#define arch_spin_is_contended	arch_spin_is_contended
+> +
+> +#include <asm/qrwlock.h>
+> +
+> +/* See include/linux/spinlock.h */
+> +#define smp_mb__after_spinlock()	smp_mb()
+> +
+> +#else /* CONFIG_QUEUED_RWLOCKS */
+> +
+> +/*
+> + * Test-and-set spin-locking.
+> + */
+
+Why retain that?
+
+same comments; it has far too many smp_mb()s in.
+
+> +#endif /* CONFIG_QUEUED_RWLOCKS */
+> +#endif /* __ASM_CSKY_SPINLOCK_H */
+> diff --git a/arch/csky/include/asm/spinlock_types.h b/arch/csky/include/asm/spinlock_types.h
+> new file mode 100644
+> index 0000000..7e825c2
+> --- /dev/null
+> +++ b/arch/csky/include/asm/spinlock_types.h
+> @@ -0,0 +1,35 @@
+> +#ifndef __ASM_CSKY_SPINLOCK_TYPES_H
+> +#define __ASM_CSKY_SPINLOCK_TYPES_H
+> +
+> +#ifndef __LINUX_SPINLOCK_TYPES_H
+> +# error "please don't include this file directly"
+> +#endif
+> +
+> +#define TICKET_NEXT	16
+> +
+> +typedef struct {
+> +	union {
+> +		u32 lock;
+> +		struct __raw_tickets {
+> +			/* little endian */
+> +			u16 owner;
+> +			u16 next;
+> +		} tickets;
+> +	};
+> +} arch_spinlock_t;
+> +
+> +#define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+> +
+> +#ifdef CONFIG_QUEUED_RWLOCKS
+> +#include <asm-generic/qrwlock_types.h>
+> +
+> +#else /* CONFIG_NR_CPUS > 2 */
+> +
+> +typedef struct {
+> +	u32 lock;
+> +} arch_rwlock_t;
+> +
+> +#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
+> +
+> +#endif /* CONFIG_QUEUED_RWLOCKS */
+> +#endif /* __ASM_CSKY_SPINLOCK_TYPES_H */
