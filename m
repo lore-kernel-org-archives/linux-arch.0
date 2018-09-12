@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:36903 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:47182 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728166AbeILSaY (ORCPT
+        by vger.kernel.org with ESMTP id S1727790AbeILSaL (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Sep 2018 14:30:24 -0400
+        Wed, 12 Sep 2018 14:30:11 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 14/27] csky: User access
-Date: Wed, 12 Sep 2018 21:24:48 +0800
-Message-ID: <df3673561d2aad6df9129d03dceda7d6c6ec02d8.1536757532.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 01/27] csky: Build infrastructure
+Date: Wed, 12 Sep 2018 21:24:35 +0800
+Message-ID: <04653007dc4e732498ad8c4545a9acfc43279ead.1536757532.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
 References: <cover.1536757532.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
@@ -16,696 +16,634 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180912132448.RNqPqpZA2GMY5myVB3CKjghZwGyaGk_fb_lvH3SFjjE@z>
+Message-ID: <20180912132435.G8d-kGy2OZn7AMYwxygAj5WRSpqawkmXSo2aSwoSsjQ@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/uaccess.h | 398 ++++++++++++++++++++++++++++++++++++++++
- arch/csky/lib/usercopy.c        | 271 +++++++++++++++++++++++++++
- 2 files changed, 669 insertions(+)
- create mode 100644 arch/csky/include/asm/uaccess.h
- create mode 100644 arch/csky/lib/usercopy.c
+ arch/csky/Kconfig                      | 231 +++++++++++++++++++++++++++++++++
+ arch/csky/Kconfig.debug                |  14 ++
+ arch/csky/Makefile                     |  93 +++++++++++++
+ arch/csky/abiv1/Makefile               |   8 ++
+ arch/csky/abiv2/Makefile               |  10 ++
+ arch/csky/boot/Makefile                |  24 ++++
+ arch/csky/boot/dts/Makefile            |  13 ++
+ arch/csky/boot/dts/include/dt-bindings |   1 +
+ arch/csky/include/asm/Kbuild           |  69 ++++++++++
+ arch/csky/include/uapi/asm/Kbuild      |  33 +++++
+ arch/csky/kernel/Makefile              |   8 ++
+ arch/csky/lib/Makefile                 |   1 +
+ arch/csky/mm/Makefile                  |  13 ++
+ 13 files changed, 518 insertions(+)
+ create mode 100644 arch/csky/Kconfig
+ create mode 100644 arch/csky/Kconfig.debug
+ create mode 100644 arch/csky/Makefile
+ create mode 100644 arch/csky/abiv1/Makefile
+ create mode 100644 arch/csky/abiv2/Makefile
+ create mode 100644 arch/csky/boot/Makefile
+ create mode 100644 arch/csky/boot/dts/Makefile
+ create mode 120000 arch/csky/boot/dts/include/dt-bindings
+ create mode 100644 arch/csky/include/asm/Kbuild
+ create mode 100644 arch/csky/include/uapi/asm/Kbuild
+ create mode 100644 arch/csky/kernel/Makefile
+ create mode 100644 arch/csky/lib/Makefile
+ create mode 100644 arch/csky/mm/Makefile
 
-diff --git a/arch/csky/include/asm/uaccess.h b/arch/csky/include/asm/uaccess.h
+diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
 new file mode 100644
-index 0000000..821fca0
+index 0000000..c6508b4
 --- /dev/null
-+++ b/arch/csky/include/asm/uaccess.h
-@@ -0,0 +1,398 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_UACCESS_H
-+#define __ASM_CSKY_UACCESS_H
++++ b/arch/csky/Kconfig
+@@ -0,0 +1,231 @@
++config CSKY
++	def_bool y
++	select ARCH_HAS_SYNC_DMA_FOR_CPU
++	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
++	select ARCH_USE_BUILTIN_BSWAP
++	select ARCH_USE_QUEUED_RWLOCKS if NR_CPUS>2
++	select COMMON_CLK
++	select CLKSRC_MMIO
++	select CLKSRC_OF
++	select DMA_NONCOHERENT_OPS
++	select IRQ_DOMAIN
++	select HANDLE_DOMAIN_IRQ
++	select DW_APB_TIMER_OF
++	select GENERIC_LIB_ASHLDI3
++	select GENERIC_LIB_ASHRDI3
++	select GENERIC_LIB_LSHRDI3
++	select GENERIC_LIB_MULDI3
++	select GENERIC_LIB_CMPDI2
++	select GENERIC_LIB_UCMPDI2
++	select GENERIC_ALLOCATOR
++	select GENERIC_ATOMIC64
++	select GENERIC_CLOCKEVENTS
++	select GENERIC_CPU_DEVICES
++	select GENERIC_IRQ_CHIP
++	select GENERIC_IRQ_PROBE
++	select GENERIC_IRQ_SHOW
++	select GENERIC_IRQ_MULTI_HANDLER
++	select GENERIC_SCHED_CLOCK
++	select GENERIC_SMP_IDLE_THREAD
++	select HAVE_ARCH_TRACEHOOK
++	select HAVE_GENERIC_DMA_COHERENT
++	select HAVE_KERNEL_GZIP
++	select HAVE_KERNEL_LZO
++	select HAVE_KERNEL_LZMA
++	select HAVE_C_RECORDMCOUNT
++	select HAVE_DMA_API_DEBUG
++	select HAVE_DMA_CONTIGUOUS
++	select HAVE_MEMBLOCK
++	select MAY_HAVE_SPARSE_IRQ
++	select MODULES_USE_ELF_RELA if MODULES
++	select NO_BOOTMEM
++	select OF
++	select OF_EARLY_FLATTREE
++	select OF_RESERVED_MEM
++	select PERF_USE_VMALLOC
++	select RTC_LIB
++	select TIMER_OF
++	select USB_ARCH_HAS_EHCI
++	select USB_ARCH_HAS_OHCI
 +
-+/*
-+ * User space memory access functions
-+ */
-+#include <linux/compiler.h>
-+#include <linux/errno.h>
-+#include <linux/types.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/string.h>
-+#include <linux/version.h>
-+#include <asm/segment.h>
++config CPU_HAS_CACHEV2
++	bool
 +
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
++config CPU_HAS_FPUV2
++	bool
 +
-+static inline int access_ok(int type, const void * addr, unsigned long size)
-+{
-+	return (((unsigned long)addr < current_thread_info()->addr_limit.seg) &&
-+		((unsigned long)(addr + size) < current_thread_info()->addr_limit.seg));
-+}
++config CPU_HAS_HILO
++	bool
 +
-+static inline int verify_area(int type, const void * addr, unsigned long size)
-+{
-+	return access_ok(type, addr, size) ? 0 : -EFAULT;
-+}
++config CPU_HAS_TLBI
++	bool
 +
-+#define __addr_ok(addr) (access_ok(VERIFY_READ, addr,0))
++config CPU_HAS_LDSTEX
++	bool
++	help
++	  For SMP, CPU needs "ldex&stex" instrcutions to atomic operations.
 +
-+extern int __put_user_bad(void);
++config CPU_NEED_TLBSYNC
++	bool
 +
-+/*
-+ * Tell gcc we read from memory instead of writing: this is because
-+ * we do not write to any memory gcc knows about, so there are no
-+ * aliasing issues.
-+ */
++config CPU_NEED_SOFTALIGN
++	bool
 +
-+/*
-+ * These are the main single-value transfer routines.  They automatically
-+ * use the right size if we just have the right pointer type.
-+ *
-+ * This gets kind of ugly. We want to return _two_ values in "get_user()"
-+ * and yet we don't want to do any pointers, because that is too much
-+ * of a performance impact. Thus we have a few rather ugly macros here,
-+ * and hide all the ugliness from the user.
-+ *
-+ * The "__xxx" versions of the user access functions are versions that
-+ * do not verify the address space, that must have been done previously
-+ * with a separate "access_ok()" call (this is used when we do multiple
-+ * accesses to the same area of user memory).
-+ *
-+ * As we use the same address space for kernel and user data on
-+ * Ckcore, we can just do these as direct assignments.  (Of course, the
-+ * exception handling means that it's no longer "just"...)
-+ */
++config CPU_NO_USER_BKPT
++	bool
++	help
++	  For abiv2 we couldn't use "trap 1" as user space bkpt in gdbserver, because
++	  abiv2 is 16/32bit instruction set and "trap 1" is 32bit.
++	  So we need a 16bit instruction as user space bkpt, and it will cause an illegal
++	  instruction exception.
++	  In kernel we parse the *regs->pc to determine whether to send SIGTRAP or not.
 +
-+#define put_user(x,ptr) \
-+	__put_user_check((x), (ptr), sizeof(*(ptr)))
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
 +
-+#define __put_user(x,ptr) \
-+	__put_user_nocheck((x), (ptr), sizeof(*(ptr)))
++config GENERIC_CSUM
++	def_bool y
 +
-+#define __ptr(x) ((unsigned long *)(x))
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+#define get_user(x,ptr) \
-+	__get_user_check((x), (ptr), sizeof(*(ptr)))
++config MMU
++	def_bool y
 +
-+#define __get_user(x,ptr) \
-+	__get_user_nocheck((x), (ptr), sizeof(*(ptr)))
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
 +
-+#define __put_user_nocheck(x, ptr, size)				\
-+({									\
-+	long __pu_err=0;						\
-+	typeof(*(ptr)) *__pu_addr = (ptr);				\
-+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);			\
-+	if(__pu_addr){							\
-+	    __put_user_size(__pu_val, (__pu_addr), (size), __pu_err);	\
-+	}								\
-+	__pu_err;							\
-+})
++config TIME_LOW_RES
++	def_bool y
 +
-+#define __put_user_check(x,ptr,size)					\
-+({									\
-+	long __pu_err = -EFAULT;					\
-+	typeof(*(ptr)) *__pu_addr = (ptr);				\
-+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
-+	if (access_ok(VERIFY_WRITE, __pu_addr, size) && __pu_addr)      \
-+		__put_user_size(__pu_val, __pu_addr, (size), __pu_err); \
-+	__pu_err;                                                       \
-+})
++config TRACE_IRQFLAGS_SUPPORT
++	def_bool y
 +
-+#define __put_user_size(x,ptr,size,retval)                              \
-+do {                                                                    \
-+	retval = 0;                                                     \
-+	switch (size) {                                                 \
-+		case 1: __put_user_asm_b(x, ptr, retval); break;        \
-+		case 2: __put_user_asm_h(x, ptr, retval); break;        \
-+		case 4: __put_user_asm_w(x, ptr, retval); break;        \
-+		case 8: __put_user_asm_64(x, ptr, retval); break;       \
-+		default: __put_user_bad();                              \
-+	}	                                                        \
-+} while (0)
++config CPU_TLB_SIZE
++	int
++	default "128"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
++	default "1024"	if (CPU_CK860)
 +
-+/*
-+ * We don't tell gcc that we are accessing memory, but this is OK
-+ * because we do not write to any memory gcc knows about, so there
-+ * are no aliasing issues.
-+ *
-+ * Note that PC at a fault is the address *after* the faulting
-+ * instruction.
-+ */
-+#define __put_user_asm_b(x, ptr, err)                           \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	         "1:     stb   %1, (%2,0)        \n"            \
-+	         "       br    3f                \n"            \
-+	         "2:     mov   %0, %3            \n"            \
-+	         "       br    3f                \n"            \
-+	         ".section __ex_table,\"a\"      \n"            \
-+	         ".align   2                     \n"            \
-+	         ".long    1b,2b                 \n"            \
-+	         ".previous                      \n"            \
-+	          "3:                            \n"            \
-+	         : "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode) \
-+	         : "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)     \
-+	         : "memory");                                   \
-+}while(0)
++config CPU_ASID_BITS
++	int
++	default "8"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
++	default "12"	if (CPU_CK860)
 +
-+#define __put_user_asm_h(x, ptr, err)                           \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	         "1:     sth   %1, (%2,0)        \n"            \
-+	         "       br    3f                \n"            \
-+	         "2:     mov   %0, %3            \n"            \
-+	         "       br    3f                \n"            \
-+	         ".section __ex_table,\"a\"      \n"            \
-+	         ".align   2                     \n"            \
-+	         ".long    1b,2b                 \n"            \
-+	         ".previous                      \n"            \
-+	          "3:                            \n"            \
-+	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
-+	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
-+	         : "memory");                                   \
-+}while(0)
++config L1_CACHE_SHIFT
++	int
++	default "4"	if (CPU_CK610)
++	default "5"	if (CPU_CK807 || CPU_CK810)
++	default "6"	if (CPU_CK860)
 +
-+#define __put_user_asm_w(x, ptr, err)                           \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	         "1:     stw   %1, (%2,0)        \n"            \
-+	         "       br    3f                \n"            \
-+	         "2:     mov   %0, %3            \n"            \
-+	         "       br    3f                \n"            \
-+	         ".section __ex_table,\"a\"      \n"            \
-+	         ".align   2                     \n"            \
-+	         ".long    1b,2b                 \n"            \
-+	         ".previous                      \n"            \
-+	          "3:                            \n"            \
-+	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
-+	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
-+	         : "memory");                                   \
-+}while(0)
++source "init/Kconfig"
 +
-+#define __put_user_asm_64(x, ptr, err)                          \
-+do{                                                             \
-+	int tmp;                                                \
-+	int errcode;                                            \
-+	typeof(*(ptr)) src = ( typeof(*(ptr)))x;                \
-+	typeof(*(ptr)) *psrc = &src;                            \
-+	                                                        \
-+	asm volatile(                                           \
-+	        "     ldw     %3, (%1, 0)     \n"               \
-+	        "1:   stw     %3, (%2, 0)     \n"               \
-+	        "     ldw     %3, (%1, 4)     \n"               \
-+	        "2:   stw     %3, (%2, 4)     \n"               \
-+	        "     br      4f              \n"               \
-+	        "3:   mov     %0, %4          \n"               \
-+	        "     br      4f              \n"               \
-+	        ".section __ex_table, \"a\"   \n"               \
-+	        ".align   2                   \n"               \
-+	        ".long    1b, 3b              \n"               \
-+	        ".long    2b, 3b              \n"               \
-+	        ".previous                    \n"               \
-+	        "4:                           \n"               \
-+	        :"=r"(err),"=r"(psrc),"=r"(ptr),"=r"(tmp),"=r"(errcode) \
-+	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)   \
-+	        : "memory" );                                   \
-+}while (0)
++source "kernel/Kconfig.freezer"
 +
-+#define __get_user_nocheck(x, ptr, size)                        \
-+({                                                              \
-+	long  __gu_err;	                                        \
-+	__get_user_size(x, (ptr), (size), __gu_err);            \
-+	__gu_err;                                               \
-+})
++menu "Processor type and features"
 +
-+#define __get_user_check(x, ptr, size)                          \
-+({                                                              \
-+	int __gu_err = -EFAULT;	                                \
-+	const __typeof__(*(ptr)) __user * __gu_ptr = (ptr);     \
-+	if (access_ok(VERIFY_READ, __gu_ptr, size) && __gu_ptr) \
-+		__get_user_size(x, __gu_ptr, (size), __gu_err); \
-+	__gu_err;                                               \
-+})
++choice
++	prompt "CPU MODEL"
++	default CPU_CK610
 +
-+#define __get_user_size(x, ptr, size, retval)                   \
-+do {                                                            \
-+	switch (size) {                                         \
-+		case 1: __get_user_asm_common((x),ptr,"ldb",retval);break;\
-+		case 2: __get_user_asm_common((x),ptr,"ldh",retval);break;\
-+		case 4: __get_user_asm_common((x),ptr,"ldw",retval);break;\
-+		default:                                        \
-+			x=0;                                    \
-+			(retval) = __get_user_bad();            \
-+	}                                                       \
-+} while (0)
++config CPU_CK610
++	bool "CSKY CPU ck610"
++	select CPU_NEED_TLBSYNC
++	select CPU_NEED_SOFTALIGN
++	select CPU_NO_USER_BKPT
 +
-+#define __get_user_asm_common(x, ptr, ins, err)                 \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	        "1:   " ins "   %1, (%4,0)      \n"             \
-+	        "       br    3f                \n"             \
-+	        /* Fix up codes */                              \
-+	        "2:     mov   %0, %2            \n"             \
-+	        "       movi  %1, 0             \n"             \
-+	        "       br    3f                \n"             \
-+	        ".section __ex_table,\"a\"      \n"             \
-+	        ".align   2                     \n"             \
-+	        ".long    1b,2b                 \n"             \
-+	        ".previous                      \n"             \
-+	        "3:                            \n"              \
-+	        :"=r"(err), "=r"(x), "=r"(errcode)              \
-+	        :"0"(0), "r"(ptr), "2"(-EFAULT)                 \
-+	        : "memory");                                    \
-+}while(0)
++config CPU_CK810
++	bool "CSKY CPU ck810"
++	select CPU_HAS_HILO
++	select CPU_NEED_TLBSYNC
 +
-+extern int __get_user_bad(void);
++config CPU_CK807
++	bool "CSKY CPU ck807"
++	select CPU_HAS_HILO
 +
-+#define __copy_user(to, from, n)                                \
-+do{                                                             \
-+	int w0, w1, w2, w3;                                     \
-+	asm volatile(                                           \
-+		"0:     cmpnei  %1, 0           \n"             \
-+		"       bf      8f              \n"             \
-+		"       mov     %3, %1          \n"             \
-+		"       or      %3, %2          \n"             \
-+		"       andi    %3, 3           \n"             \
-+		"       cmpnei  %3, 0           \n"             \
-+		"       bf      1f              \n"             \
-+		"       br      5f              \n"             \
-+		"1:     cmplti  %0, 16          \n"   /* 4W */  \
-+		"       bt      3f              \n"             \
-+		"       ldw     %3, (%2, 0)     \n"             \
-+		"       ldw     %4, (%2, 4)     \n"             \
-+		"       ldw     %5, (%2, 8)     \n"             \
-+		"       ldw     %6, (%2, 12)    \n"             \
-+		"2:     stw     %3, (%1, 0)     \n"             \
-+		"9:     stw     %4, (%1, 4)     \n"             \
-+		"10:    stw     %5, (%1, 8)     \n"             \
-+		"11:    stw     %6, (%1, 12)    \n"             \
-+		"       addi    %2, 16          \n"             \
-+		"       addi    %1, 16          \n"             \
-+		"       subi    %0, 16          \n"             \
-+		"       br      1b              \n"             \
-+		"3:     cmplti  %0, 4           \n"  /* 1W */   \
-+		"       bt      5f              \n"             \
-+		"       ldw     %3, (%2, 0)     \n"             \
-+		"4:     stw     %3, (%1, 0)     \n"             \
-+		"       addi    %2, 4           \n"             \
-+		"       addi    %1, 4           \n"             \
-+		"       subi    %0, 4           \n"             \
-+		"       br      3b              \n"             \
-+		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-+		"       bf      8f              \n"             \
-+		"       ldb     %3, (%2, 0)     \n"             \
-+		"6:     stb     %3, (%1, 0)     \n"             \
-+		"       addi    %2,  1          \n"             \
-+		"       addi    %1,  1          \n"             \
-+		"       subi    %0,  1          \n"             \
-+		"       br      5b              \n"             \
-+		"7:     br      8f              \n"             \
-+		".section __ex_table, \"a\"     \n"             \
-+		".align   2                     \n"             \
-+		".long    2b, 7b                \n"             \
-+		".long    9b, 7b                \n"             \
-+		".long   10b, 7b                \n"             \
-+		".long   11b, 7b                \n"             \
-+		".long    4b, 7b                \n"             \
-+		".long    6b, 7b                \n"             \
-+		".previous                      \n"		\
-+		"8:                             \n"		\
-+	        : "=r"(n), "=r"(to), "=r"(from), "=r"(w0),	\
-+		  "=r"(w1), "=r"(w2), "=r"(w3)			\
-+		: "0"(n), "1"(to), "2"(from)                    \
-+		: "memory" );                                   \
-+} while (0)
++config CPU_CK860
++	bool "CSKY CPU ck860"
++	select CPU_HAS_TLBI
++	select CPU_HAS_CACHEV2
++	select CPU_HAS_LDSTEX
++	select CPU_HAS_FPUV2
++endchoice
 +
-+#define __copy_user_zeroing(to, from, n) \
-+do{								\
-+	int tmp;						\
-+	int nsave;						\
-+	asm volatile(						\
-+		"0:     cmpnei  %1, 0           \n"		\
-+		"       bf      7f              \n"		\
-+		"       mov     %3, %1          \n"		\
-+		"       or      %3, %2          \n"		\
-+		"       andi    %3, 3           \n"		\
-+		"       cmpnei  %3, 0           \n"		\
-+		"       bf      1f              \n"		\
-+		"       br      5f              \n"		\
-+		"1:     cmplti  %0, 16          \n"		\
-+		"       bt      3f              \n"		\
-+		"2:     ldw     %3, (%2, 0)     \n"		\
-+		"10:    ldw     %4, (%2, 4)     \n"		\
-+		"       stw     %3, (%1, 0)     \n"		\
-+		"       stw     %4, (%1, 4)     \n"		\
-+		"11:    ldw     %3, (%2, 8)     \n"		\
-+		"12:    ldw     %4, (%2, 12)    \n"		\
-+		"       stw     %3, (%1, 8)     \n"		\
-+		"       stw     %4, (%1, 12)    \n"		\
-+		"       addi    %2, 16          \n"		\
-+		"       addi    %1, 16          \n"		\
-+		"       subi    %0, 16          \n"		\
-+		"       br      1b              \n"		\
-+		"3:     cmplti  %0, 4           \n"		\
-+		"       bt      5f              \n"		\
-+		"4:     ldw     %3, (%2, 0)     \n"		\
-+		"       stw     %3, (%1, 0)     \n"		\
-+		"       addi    %2, 4           \n"		\
-+		"       addi    %1, 4           \n"		\
-+		"       subi    %0, 4           \n"		\
-+		"       br      3b              \n"		\
-+		"5:     cmpnei  %0, 0           \n"		\
-+		"       bf      7f              \n"		\
-+		"6:     ldb     %3, (%2, 0)     \n"		\
-+		"       stb     %3, (%1, 0)     \n"		\
-+		"       addi    %2,  1          \n"		\
-+		"       addi    %1,  1          \n"		\
-+		"       subi    %0,  1          \n"		\
-+		"       br      5b              \n"		\
-+		"8:     mov     %3, %0          \n"		\
-+		"       movi    %4, 0           \n"		\
-+		"9:     stb     %4, (%1, 0)     \n"		\
-+		"       addi    %1, 1           \n"		\
-+		"       subi    %3, 1           \n"		\
-+		"       cmpnei  %3, 0           \n"		\
-+		"       bt      9b              \n"		\
-+		"       br      7f              \n"		\
-+		".section __ex_table, \"a\"     \n"		\
-+		".align   2                     \n"		\
-+		".long    2b, 8b                \n"		\
-+		".long   10b, 8b                \n"		\
-+		".long   11b, 8b                \n"		\
-+		".long   12b, 8b                \n"		\
-+		".long    4b, 8b                \n"		\
-+		".long    6b, 8b                \n"		\
-+		".previous                      \n"		\
-+		"7:                             \n"		\
-+		: "=r"(n), "=r"(to), "=r"(from), "=r"(nsave),	\
-+		  "=r"(tmp)					\
-+		: "0"(n), "1"(to), "2"(from)			\
-+		: "memory" );					\
-+} while (0)
++choice
++	prompt "Power Manager Instruction (wait/doze/stop)"
++	default CPU_PM_NONE
 +
-+unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);
-+unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
++config CPU_PM_NONE
++	bool "None"
 +
-+unsigned long clear_user(void *to, unsigned long n);
-+unsigned long __clear_user(void __user *to, unsigned long n);
++config CPU_PM_WAIT
++	bool "wait"
 +
-+long strncpy_from_user(char *dst, const char *src, long count);
-+long __strncpy_from_user(char *dst, const char *src, long count);
++config CPU_PM_DOZE
++	bool "doze"
 +
-+/*
-+ * Return the size of a string (including the ending 0)
-+ *
-+ * Return 0 on exception, a value greater than N if too long
-+ */
-+long strnlen_user(const char *src, long n);
++config CPU_PM_STOP
++	bool "stop"
++endchoice
 +
-+#define strlen_user(str) strnlen_user(str, 32767)
++config CPU_HAS_VDSP
++	bool "CPU has VDSP coprocessor"
++	depends on CPU_HAS_FPU && CPU_HAS_FPUV2
 +
-+struct exception_table_entry
-+{
-+	unsigned long insn;
-+	unsigned long nextinsn;
-+};
++config CPU_HAS_FPU
++	bool "CPU has FPU coprocessor"
++	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
 +
-+extern int fixup_exception(struct pt_regs *regs);
++config CPU_HAS_TEE
++	bool "CPU has Trusted Execution Environment"
++	depends on CPU_CK810
 +
-+#endif /* __ASM_CSKY_UACCESS_H */
-diff --git a/arch/csky/lib/usercopy.c b/arch/csky/lib/usercopy.c
++config SMP
++	bool "Symmetric Multi-Processing (SMP) support for C-SKY"
++	depends on CPU_CK860
++	default n
++
++config NR_CPUS
++	int "Maximum number of CPUs (2-32)"
++	range 2 32
++	depends on SMP
++	default "2"
++
++config HIGHMEM
++	bool "High Memory Support"
++	depends on !CPU_CK610
++	default y
++
++config RAM_BASE
++	hex "DRAM start addr (the same with memory-section in dts)"
++	default 0x0
++endmenu
++
++menu "Power management options"
++
++source "kernel/power/Kconfig"
++
++config ARCH_SUSPEND_POSSIBLE
++	def_bool y
++endmenu
++
++source "mm/Kconfig"
++
++source "fs/Kconfig.binfmt"
++
++source "kernel/Kconfig.preempt"
++
++source "kernel/Kconfig.hz"
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/csky/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
+diff --git a/arch/csky/Kconfig.debug b/arch/csky/Kconfig.debug
 new file mode 100644
-index 0000000..576386e
+index 0000000..4f6b952
 --- /dev/null
-+++ b/arch/csky/lib/usercopy.c
-@@ -0,0 +1,271 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++++ b/arch/csky/Kconfig.debug
+@@ -0,0 +1,14 @@
++menu "Kernel hacking"
 +
-+#include <linux/uaccess.h>
-+#include <linux/types.h>
++menu "C-SKY Debug Options"
++config CSKY_BUILTIN_DTB
++	bool "Use kernel builtin dtb"
 +
-+unsigned long
-+raw_copy_from_user(
-+		void *to,
-+		const void *from,
-+		unsigned long n)
-+{
-+	if (access_ok(VERIFY_READ, from, n))
-+		__copy_user_zeroing(to,from,n);
-+	else
-+		memset(to,0, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_from_user);
++config CSKY_BUILTIN_DTB_NAME
++	string "kernel builtin dtb name"
++	depends on CSKY_BUILTIN_DTB
++endmenu
 +
-+unsigned long
-+raw_copy_to_user(
-+		void *to,
-+		const void *from,
-+		unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__copy_user(to,from,n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_to_user);
++source "lib/Kconfig.debug"
 +
++endmenu
+diff --git a/arch/csky/Makefile b/arch/csky/Makefile
+new file mode 100644
+index 0000000..8c127a3
+--- /dev/null
++++ b/arch/csky/Makefile
+@@ -0,0 +1,93 @@
++OBJCOPYFLAGS	:=-O binary
++GZFLAGS		:=-9
 +
-+/*
-+ * copy a null terminated string from userspace.
-+ */
-+#define __do_strncpy_from_user(dst,src,count,res)       \
-+do{                                                     \
-+        int tmp;                                        \
-+        long faultres;                                  \
-+        asm volatile(                           \
-+        "       cmpnei  %3, 0           \n"             \
-+        "       bf      4f              \n"             \
-+        "1:     cmpnei  %1, 0          	\n"             \
-+        "       bf      5f              \n"             \
-+        "2:     ldb     %4, (%3, 0)     \n"             \
-+        "       stb     %4, (%2, 0)     \n"             \
-+        "       cmpnei  %4, 0           \n"             \
-+        "       bf      3f              \n"             \
-+        "       addi    %3,  1          \n"             \
-+        "       addi    %2,  1          \n"             \
-+        "       subi    %1,  1          \n"             \
-+        "       br      1b              \n"             \
-+        "3:     subu	%0, %1          \n"             \
-+        "       br      5f              \n"             \
-+        "4:     mov     %0, %5          \n"             \
-+        "       br      5f              \n"             \
-+        ".section __ex_table, \"a\"     \n"             \
-+        ".align   2                     \n"             \
-+        ".long    2b, 4b                \n"             \
-+        ".previous                      \n"             \
-+        "5:                             \n"             \
-+          :"=r"(res),"=r"(count),"=r"(dst),"=r"(src), "=r"(tmp),"=r"(faultres) \
-+          : "5"(-EFAULT),"0"(count), "1"(count), "2"(dst),"3"(src)     	       \
-+          : "memory" );	                                \
-+} while(0)
++ifdef CONFIG_CPU_HAS_FPU
++FPUEXT = f
++endif
 +
-+/*
-+ * __strncpy_from_user: - Copy a NUL terminated string from userspace, with less checking.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ * Caller must check the specified block with access_ok() before calling
-+ * this function.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long
-+__strncpy_from_user(
-+	char *dst,
-+	const char *src,
-+	long count)
-+{
-+	long res;
-+	__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+EXPORT_SYMBOL(__strncpy_from_user);
++ifdef CONFIG_CPU_HAS_VDSP
++VDSPEXT = v
++endif
 +
-+/*
-+ * strncpy_from_user: - Copy a NUL terminated string from userspace.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long
-+strncpy_from_user(
-+	char *dst,
-+	const char *src,
-+	long count)
-+{
-+	long res = -EFAULT;
-+	if (access_ok(VERIFY_READ, src, 1))
-+		__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+EXPORT_SYMBOL(strncpy_from_user);
++ifdef CONFIG_CPU_HAS_TEE
++TEEEXT = t
++endif
 +
-+/*
-+ * strlen_user: - Get the size of a string in user space.
-+ * @str: The string to measure.
-+ * @n:   The maximum valid length
-+ *
-+ * Get the size of a NUL-terminated string in user space.
-+ *
-+ * Returns the size of the string INCLUDING the terminating NUL.
-+ * On exception, returns 0.
-+ * If the string is too long, returns a value greater than @n.
-+ */
-+long strnlen_user(const char *s, long n)
-+{
++ifdef CONFIG_CPU_CK610
++CPUTYPE	= ck610
++CSKYABI	= abiv1
++endif
 +
-+	unsigned long res,tmp;
-+	if(s){
-+	asm volatile(
-+        "       cmpnei  %1, 0           \n"
-+        "       bf      3f              \n"
-+        "1:     cmpnei  %0, 0           \n"
-+        "       bf      3f              \n"
-+        "2:     ldb     %3, (%1, 0)     \n"
-+        "       cmpnei  %3, 0           \n"
-+        "       bf      3f              \n"
-+        "       subi    %0,  1          \n"
-+        "       addi    %1,  1          \n"
-+        "       br      1b              \n"
-+        "3:     subu    %2, %0          \n"
-+        "       addi    %2,  1          \n"
-+        "       br      5f              \n"
-+        "4:     movi    %0, 0           \n"
-+        "       br      5f              \n"
-+        ".section __ex_table, \"a\"     \n"
-+        ".align   2                     \n"
-+        ".long    2b, 4b                \n"
-+        ".previous                      \n"
-+        "5:                             \n"
-+        :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)
-+        : "0"(n), "1"(s), "2"(n)
-+        : "memory", "cc" );
-+		return res;
-+	}
-+	return 0;
-+}
-+EXPORT_SYMBOL(strnlen_user);
++ifdef CONFIG_CPU_CK810
++CPUTYPE = ck810
++CSKYABI	= abiv2
++endif
 +
-+#define __do_clear_user(addr, size)                             \
-+do {                                                            \
-+	int __d0;                                               \
-+	int zvalue;                                             \
-+	int tmp;                                                \
-+	asm volatile(						\
-+		"0:     cmpnei  %1, 0           \n"             \
-+		"       bf      7f              \n"             \
-+		"       mov     %3, %1          \n"             \
-+		"       andi    %3, 3           \n"             \
-+		"       cmpnei  %3, 0           \n"             \
-+		"       bf      1f              \n"             \
-+		"       br      5f              \n"             \
-+		"1:     cmplti  %0, 32          \n"   /* 4W */  \
-+		"       bt      3f              \n"             \
-+		"8:     stw     %2, (%1, 0)     \n"             \
-+		"10:    stw     %2, (%1, 4)     \n"             \
-+		"11:    stw     %2, (%1, 8)     \n"             \
-+		"12:    stw     %2, (%1, 12)    \n"             \
-+		"13:    stw     %2, (%1, 16)    \n"             \
-+		"14:    stw     %2, (%1, 20)    \n"             \
-+		"15:    stw     %2, (%1, 24)    \n"             \
-+		"16:    stw     %2, (%1, 28)    \n"             \
-+		"       addi    %1, 32          \n"             \
-+		"       subi    %0, 32          \n"             \
-+		"       br      1b              \n"             \
-+		"3:     cmplti  %0, 4           \n"  /* 1W */   \
-+		"       bt      5f              \n"             \
-+		"4:     stw     %2, (%1, 0)     \n"             \
-+		"       addi    %1, 4           \n"             \
-+		"       subi    %0, 4           \n"             \
-+		"       br      3b              \n"             \
-+		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-+		"9:     bf      7f              \n"             \
-+		"6:     stb     %2, (%1, 0)     \n"             \
-+		"       addi    %1,  1          \n"             \
-+		"       subi    %0,  1          \n"             \
-+		"       br      5b              \n"             \
-+		".section __ex_table,\"a\"      \n"             \
-+		".align   2                     \n"             \
-+		".long    8b, 9b                \n"             \
-+		".long    10b, 9b               \n"             \
-+		".long    11b, 9b               \n"             \
-+		".long    12b, 9b               \n"             \
-+		".long    13b, 9b               \n"             \
-+		".long    14b, 9b               \n"             \
-+		".long    15b, 9b               \n"             \
-+		".long    16b, 9b               \n"             \
-+		".long    4b, 9b                \n"             \
-+		".long    6b, 9b                \n"             \
-+		".previous                      \n"             \
-+		"7:                             \n"             \
-+		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp) \
-+		: "0"(size), "1"(addr), "2"(0)                  \
-+		: "memory"                                      \
-+	);                                                      \
-+} while (0)
++ifdef CONFIG_CPU_CK807
++CPUTYPE = ck807
++CSKYABI	= abiv2
++endif
 +
-+/*
-+ * clear_user: - Zero a block of memory in user space.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+unsigned long
-+clear_user(void __user *to, unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(clear_user);
++ifdef CONFIG_CPU_CK860
++CPUTYPE = ck860
++CSKYABI	= abiv2
++endif
 +
-+/*
-+ * __clear_user: - Zero a block of memory in user space, with less checking.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+unsigned long
-+__clear_user(void __user *to, unsigned long n)
-+{
-+	__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(__clear_user);
++ifneq ($(CSKYABI),)
++MCPU_STR = $(CPUTYPE)$(FPUEXT)$(VDSPEXT)$(TEEEXT)
++KBUILD_CFLAGS += -mcpu=$(MCPU_STR)
++KBUILD_CFLAGS += -DCSKYCPU_DEF_NAME=\"$(MCPU_STR)\"
++KBUILD_CFLAGS += -msoft-float -mdiv
++KBUILD_CFLAGS += -fno-tree-vectorize
++endif
++
++KBUILD_CFLAGS += -pipe
++ifeq ($(CSKYABI),abiv2)
++KBUILD_CFLAGS += -mno-stack-size
++endif
++
++abidirs := $(patsubst %,arch/csky/%/,$(CSKYABI))
++KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(abidirs))
++
++KBUILD_CPPFLAGS += -mlittle-endian
++LDFLAGS += -EL
++
++KBUILD_AFLAGS += $(KBUILD_CFLAGS)
++
++head-y := arch/csky/kernel/head.o
++
++core-y += arch/csky/kernel/
++core-y += arch/csky/mm/
++core-y += arch/csky/$(CSKYABI)/
++
++libs-y += arch/csky/lib/ \
++	$(shell $(CC) $(KBUILD_CFLAGS) $(KCFLAGS) -print-libgcc-file-name)
++
++ifdef CONFIG_CSKY_BUILTIN_DTB
++core-y += arch/csky/boot/dts/
++endif
++
++all: zImage
++
++boot := arch/csky/boot
++
++dtbs: scripts
++	$(Q)$(MAKE) $(build)=$(boot)/dts
++
++%.dtb %.dtb.S %.dtb.o: scripts
++	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
++
++zImage Image uImage: vmlinux dtbs
++	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
++
++archmrproper:
++
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++	rm -rf arch/csky/include/generated
++
++define archhelp
++  echo  '* zImage       - Compressed kernel image (arch/$(ARCH)/boot/zImage)'
++  echo  '  Image        - Uncompressed kernel image (arch/$(ARCH)/boot/Image)'
++  echo  '  uImage       - U-Boot wrapped zImage'
++endef
+diff --git a/arch/csky/abiv1/Makefile b/arch/csky/abiv1/Makefile
+new file mode 100644
+index 0000000..7c06276
+--- /dev/null
++++ b/arch/csky/abiv1/Makefile
+@@ -0,0 +1,8 @@
++obj-$(CONFIG_CPU_NEED_SOFTALIGN)	+= alignment.o
++obj-y					+= bswapdi.o
++obj-y					+= bswapsi.o
++obj-y					+= cacheflush.o
++obj-y					+= mmap.o
++obj-y					+= memcpy.o
++obj-y					+= memset.o
++obj-y					+= strksyms.o
+diff --git a/arch/csky/abiv2/Makefile b/arch/csky/abiv2/Makefile
+new file mode 100644
+index 0000000..069ca72
+--- /dev/null
++++ b/arch/csky/abiv2/Makefile
+@@ -0,0 +1,10 @@
++obj-y				+= cacheflush.o
++obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o
++obj-y				+= memcmp.o
++obj-y				+= memcpy.o
++obj-y				+= memmove.o
++obj-y				+= memset.o
++obj-y				+= strcmp.o
++obj-y				+= strcpy.o
++obj-y				+= strlen.o
++obj-y				+= strksyms.o
+diff --git a/arch/csky/boot/Makefile b/arch/csky/boot/Makefile
+new file mode 100644
+index 0000000..47d3d72
+--- /dev/null
++++ b/arch/csky/boot/Makefile
+@@ -0,0 +1,24 @@
++targets := Image zImage uImage
++targets += $(dtb-y)
++
++$(obj)/Image: vmlinux FORCE
++	$(call if_changed,objcopy)
++	@echo '  Kernel: $@ is ready'
++
++compress-$(CONFIG_KERNEL_GZIP) = gzip
++compress-$(CONFIG_KERNEL_LZO)  = lzo
++compress-$(CONFIG_KERNEL_LZMA) = lzma
++compress-$(CONFIG_KERNEL_XZ)   = xzkern
++compress-$(CONFIG_KERNEL_LZ4)  = lz4
++
++$(obj)/zImage:  $(obj)/Image FORCE
++	$(call if_changed,$(compress-y))
++	@echo '  Kernel: $@ is ready'
++
++UIMAGE_ARCH		= sandbox
++UIMAGE_COMPRESSION	= $(compress-y)
++UIMAGE_LOADADDR		= $(shell $(NM) vmlinux | awk '$$NF == "_start" {print $$1}')
++
++$(obj)/uImage: $(obj)/zImage
++	$(call if_changed,uimage)
++	@echo 'Image: $@ is ready'
+diff --git a/arch/csky/boot/dts/Makefile b/arch/csky/boot/dts/Makefile
+new file mode 100644
+index 0000000..87e2cbd
+--- /dev/null
++++ b/arch/csky/boot/dts/Makefile
+@@ -0,0 +1,13 @@
++dtstree	:= $(srctree)/$(src)
++
++ifdef CONFIG_CSKY_BUILTIN_DTB
++builtindtb-y := $(patsubst "%",%,$(CONFIG_CSKY_BUILTIN_DTB_NAME))
++dtb-y += $(builtindtb-y).dtb
++obj-y += $(builtindtb-y).dtb.o
++.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
++else
++dtb-y := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
++endif
++
++always += $(dtb-y)
++clean-files += *.dtb *.dtb.S
+diff --git a/arch/csky/boot/dts/include/dt-bindings b/arch/csky/boot/dts/include/dt-bindings
+new file mode 120000
+index 0000000..08c00e4
+--- /dev/null
++++ b/arch/csky/boot/dts/include/dt-bindings
+@@ -0,0 +1 @@
++../../../../../include/dt-bindings
+\ No newline at end of file
+diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
+new file mode 100644
+index 0000000..5eb9d32
+--- /dev/null
++++ b/arch/csky/include/asm/Kbuild
+@@ -0,0 +1,69 @@
++generic-y += asm-offsets.h
++generic-y += bitsperlong.h
++generic-y += bugs.h
++generic-y += clkdev.h
++generic-y += current.h
++generic-y += delay.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += dma-contiguous.h
++generic-y += dma-mapping.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += exec.h
++generic-y += fb.h
++generic-y += ftrace.h
++generic-y += futex.h
++generic-y += gpio.h
++generic-y += hardirq.h
++generic-y += hw_irq.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += irq_regs.h
++generic-y += ipcbuf.h
++generic-y += irq_work.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += kprobes.h
++generic-y += kvm_para.h
++generic-y += linkage.h
++generic-y += local.h
++generic-y += local64.h
++generic-y += mman.h
++generic-y += mm-arch-hooks.h
++generic-y += module.h
++generic-y += msgbuf.h
++generic-y += mutex.h
++generic-y += param.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += posix_types.h
++generic-y += poll.h
++generic-y += preempt.h
++generic-y += qrwlock.h
++generic-y += resource.h
++generic-y += scatterlist.h
++generic-y += sections.h
++generic-y += sembuf.h
++generic-y += serial.h
++generic-y += setup.h
++generic-y += shmbuf.h
++generic-y += shm.h
++generic-y += siginfo.h
++generic-y += signal.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += statfs.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += timex.h
++generic-y += topology.h
++generic-y += trace_clock.h
++generic-y += types.h
++generic-y += ucontext.h
++generic-y += unaligned.h
++generic-y += user.h
++generic-y += vga.h
++generic-y += vmlinux.lds.h
++generic-y += word-at-a-time.h
+diff --git a/arch/csky/include/uapi/asm/Kbuild b/arch/csky/include/uapi/asm/Kbuild
+new file mode 100644
+index 0000000..b65252b
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/Kbuild
+@@ -0,0 +1,33 @@
++include include/uapi/asm-generic/Kbuild.asm
++
++header-y += cachectl.h
++header-y += stat.h
++
++generic-y += auxvec.h
++generic-y += param.h
++generic-y += bpf_perf_event.h
++generic-y += errno.h
++generic-y += fcntl.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += shmbuf.h
++generic-y += bitsperlong.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += sembuf.h
++generic-y += siginfo.h
++generic-y += signal.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += statfs.h
++generic-y += stat.h
++generic-y += setup.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += types.h
++generic-y += ucontext.h
+diff --git a/arch/csky/kernel/Makefile b/arch/csky/kernel/Makefile
+new file mode 100644
+index 0000000..b3a179c
+--- /dev/null
++++ b/arch/csky/kernel/Makefile
+@@ -0,0 +1,8 @@
++extra-y := head.o vmlinux.lds
++
++obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o \
++	 power.o syscall.o platform.o syscall_table.o setup.o \
++	 process.o cpu-probe.o ptrace.o dumpstack.o
++
++obj-$(CONFIG_MODULES)			+= module.o
++obj-$(CONFIG_SMP)			+= smp.o
+diff --git a/arch/csky/lib/Makefile b/arch/csky/lib/Makefile
+new file mode 100644
+index 0000000..d1f368c
+--- /dev/null
++++ b/arch/csky/lib/Makefile
+@@ -0,0 +1 @@
++lib-y  := usercopy.o delay.o
+diff --git a/arch/csky/mm/Makefile b/arch/csky/mm/Makefile
+new file mode 100644
+index 0000000..c870eb3
+--- /dev/null
++++ b/arch/csky/mm/Makefile
+@@ -0,0 +1,13 @@
++ifeq ($(CONFIG_CPU_HAS_CACHEV2),y)
++obj-y +=			cachev2.o
++else
++obj-y +=			cachev1.o
++endif
++
++obj-y +=			dma-mapping.o
++obj-y +=			fault.o
++obj-$(CONFIG_HIGHMEM) +=	highmem.o
++obj-y +=			init.o
++obj-y +=			ioremap.o
++obj-y +=			syscache.o
++obj-y +=			tlb.o
 -- 
 2.7.4
