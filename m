@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:39440 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:48952 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727992AbeILT6a (ORCPT
+        by vger.kernel.org with ESMTP id S1727623AbeILT6Z (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Sep 2018 15:58:30 -0400
+        Wed, 12 Sep 2018 15:58:25 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V4 20/27] dt-bindings: timer: C-SKY Multi-processor timer
-Date: Wed, 12 Sep 2018 22:52:02 +0800
-Message-ID: <e301225bda1dc8dfe7aa5b1b2bbe83b82403f47d.1536758961.git.ren_guo@c-sky.com>
+Subject: [PATCH V4 19/27] dt-bindings: timer: gx6605s SOC timer
+Date: Wed, 12 Sep 2018 22:52:01 +0800
+Message-ID: <e70d9055806db229a07d02fc80d45b3cc5d12ef3.1536758961.git.ren_guo@c-sky.com>
 In-Reply-To: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 References: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536758961.git.ren_guo@c-sky.com>
@@ -16,64 +16,60 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180912145202.9HzHDrQAbl2zCY3QXz6AXMy47l_B25h8twzG7XWI5Jo@z>
+Message-ID: <20180912145201.O4AFHB21HIcLviqNC7NXbuhpsvbJUpGUTC3wrShJEiw@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- .../devicetree/bindings/timer/csky,mptimer.txt     | 46 ++++++++++++++++++++++
- 1 file changed, 46 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/csky,mptimer.txt
+ .../bindings/timer/csky,gx6605s-timer.txt          | 42 ++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
 
-diff --git a/Documentation/devicetree/bindings/timer/csky,mptimer.txt b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
+diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
 new file mode 100644
-index 0000000..0d7369f
+index 0000000..230a9ce
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
-@@ -0,0 +1,46 @@
-+============================
-+C-SKY Multi-processors Timer
-+============================
++++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
+@@ -0,0 +1,42 @@
++=================
++gx6605s SOC Timer
++=================
 +
-+C-SKY multi-processors timer is designed for C-SKY SMP system and the
-+regs is accessed by cpu co-processor 4 registers with mtcr/mfcr.
-+
-+ - PTIM_CTLR "cr<0, 14>" Control reg to start reset timer.
-+ - PTIM_TSR  "cr<1, 14>" Interrupt cleanup status reg.
-+ - PTIM_CCVR "cr<3, 14>" Current counter value reg.
-+ - PTIM_LVR  "cr<6, 14>" Window value reg to triger next event.
++The timer is used in gx6605s soc as system timer and the driver
++contain clk event and clk source.
 +
 +==============================
 +timer node bindings definition
 +==============================
 +
-+        Description: Describes SMP timer
++        Description: Describes gx6605s SOC timer
 +
 +        PROPERTIES
 +
 +        - compatible
 +                Usage: required
 +                Value type: <string>
-+                Definition: must be "csky,mptimer"
++                Definition: must be "csky,gx6605s-timer"
++	- reg
++		Usage: required
++		Value type: <u32 u32>
++		Definition: <phyaddr size> in soc from cpu view
 +	- clocks
 +		Usage: required
-+		Value type: <node>
-+                Definition: must be input clk node
++		Value type: phandle + clock specifier cells
++		Definition: must be input clk node
 +        - interrupt
 +                Usage: required
 +                Value type: <u32>
 +                Definition: must be timer irq num defined by soc
-+        - interrupt-parent:
-+                Usage: required
-+		Value type: <node>
-+                Definition: must be interrupt controller node
 +
 +Examples:
 +---------
 +
-+	timer: timer {
-+		compatible = "csky,mptimer";
++	timer0: timer@20a000 {
++		compatible = "csky,gx6605s-timer";
++		reg = <0x0020a000 0x400>;
 +		clocks = <&dummy_apb_clk>;
-+		interrupts = <16>;
++		interrupts = <10>;
 +		interrupt-parent = <&intc>;
 +	};
 -- 
