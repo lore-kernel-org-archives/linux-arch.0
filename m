@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:54554 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:40494 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726712AbeILS3u (ORCPT
+        by vger.kernel.org with ESMTP id S1727332AbeILS3z (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Sep 2018 14:29:50 -0400
+        Wed, 12 Sep 2018 14:29:55 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 02/27] csky: defconfig
-Date: Wed, 12 Sep 2018 21:24:36 +0800
-Message-ID: <3389ac85166cc951379d46d822beb725a9426a9d.1536757532.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 09/27] csky: VDSO and rt_sigreturn
+Date: Wed, 12 Sep 2018 21:24:43 +0800
+Message-ID: <84b9dbc12dbd64c424d81356bce15bdde4c54eb8.1536757532.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
 References: <cover.1536757532.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
@@ -16,80 +16,181 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180912132436.7m3VkNVwOlF3J_FKJKxhsHxw5Em09w4f7sQ8Xd1th4c@z>
+Message-ID: <20180912132443.QbESUhLBzWu49pmJhCzYA-Na1IWptsZOZndawmzVgjs@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/configs/defconfig | 61 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 61 insertions(+)
- create mode 100644 arch/csky/configs/defconfig
+ arch/csky/abiv1/inc/abi/vdso.h | 17 +++++++++
+ arch/csky/abiv2/inc/abi/vdso.h | 24 ++++++++++++
+ arch/csky/include/asm/vdso.h   | 12 ++++++
+ arch/csky/kernel/vdso.c        | 85 ++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 138 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/vdso.h
+ create mode 100644 arch/csky/abiv2/inc/abi/vdso.h
+ create mode 100644 arch/csky/include/asm/vdso.h
+ create mode 100644 arch/csky/kernel/vdso.c
 
-diff --git a/arch/csky/configs/defconfig b/arch/csky/configs/defconfig
+diff --git a/arch/csky/abiv1/inc/abi/vdso.h b/arch/csky/abiv1/inc/abi/vdso.h
 new file mode 100644
-index 0000000..7ef4289
+index 0000000..a99f0e4
 --- /dev/null
-+++ b/arch/csky/configs/defconfig
-@@ -0,0 +1,61 @@
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="csky"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+CONFIG_AUDIT=y
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+CONFIG_DEFAULT_DEADLINE=y
-+CONFIG_CPU_CK807=y
-+CONFIG_CPU_HAS_FPU=y
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_SIZE=65536
-+CONFIG_VT_HW_CONSOLE_BINDING=y
-+CONFIG_SERIAL_NONSTANDARD=y
-+CONFIG_SERIAL_8250=y
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_OF_PLATFORM=y
-+CONFIG_TTY_PRINTK=y
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_CSKY_MPTIMER=y
-+CONFIG_GX6605S_TIMER=y
-+CONFIG_PM_DEVFREQ=y
-+CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
-+CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-+CONFIG_DEVFREQ_GOV_POWERSAVE=y
-+CONFIG_DEVFREQ_GOV_USERSPACE=y
-+CONFIG_GENERIC_PHY=y
-+CONFIG_EXT4_FS=y
-+CONFIG_FANOTIFY=y
-+CONFIG_QUOTA=y
-+CONFIG_FSCACHE=m
-+CONFIG_FSCACHE_STATS=y
-+CONFIG_CACHEFILES=m
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_FAT_DEFAULT_UTF8=y
-+CONFIG_NTFS_FS=y
-+CONFIG_PROC_KCORE=y
-+CONFIG_PROC_CHILDREN=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_CRAMFS=y
-+CONFIG_ROMFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_INFO=y
-+CONFIG_DEBUG_FS=y
-+CONFIG_MAGIC_SYSRQ=y
++++ b/arch/csky/abiv1/inc/abi/vdso.h
+@@ -0,0 +1,17 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/uaccess.h>
++
++static inline int setup_vdso_page(unsigned short *ptr)
++{
++	int err = 0;
++
++	/* movi r1, 127 */
++	err |= __put_user(0x67f1, ptr + 0);
++	/* addi r1, (139 - 127) */
++	err |= __put_user(0x20b1, ptr + 1);
++	/* trap 0 */
++	err |= __put_user(0x0008, ptr + 2);
++
++	return err;
++}
+diff --git a/arch/csky/abiv2/inc/abi/vdso.h b/arch/csky/abiv2/inc/abi/vdso.h
+new file mode 100644
+index 0000000..2b5f43b
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/vdso.h
+@@ -0,0 +1,24 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ABI_CSKY_VDSO_H
++#define __ABI_CSKY_VDSO_H
++
++#include <linux/uaccess.h>
++
++static inline int setup_vdso_page(unsigned short *ptr)
++{
++	int err = 0;
++
++	/* movi r7, 173 */
++	err |= __put_user(0xea07, ptr);
++	err |= __put_user(0x008b,      ptr+1);
++
++	/* trap 0 */
++	err |= __put_user(0xc000,   ptr+2);
++	err |= __put_user(0x2020,   ptr+3);
++
++	return err;
++}
++
++#endif /* __ABI_CSKY_STRING_H */
+diff --git a/arch/csky/include/asm/vdso.h b/arch/csky/include/asm/vdso.h
+new file mode 100644
+index 0000000..b275440
+--- /dev/null
++++ b/arch/csky/include/asm/vdso.h
+@@ -0,0 +1,12 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_VDSO_H
++#define __ASM_CSKY_VDSO_H
++
++#include <abi/vdso.h>
++
++struct csky_vdso {
++	unsigned short rt_signal_retcode[4];
++};
++
++#endif /* __ASM_CSKY_VDSO_H */
+diff --git a/arch/csky/kernel/vdso.c b/arch/csky/kernel/vdso.c
+new file mode 100644
+index 0000000..55ed68b
+--- /dev/null
++++ b/arch/csky/kernel/vdso.c
+@@ -0,0 +1,85 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/kernel.h>
++#include <linux/err.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/init.h>
++#include <linux/binfmts.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/unistd.h>
++#include <linux/uaccess.h>
++
++#include <asm/vdso.h>
++#include <asm/cacheflush.h>
++
++static struct page *vdso_page;
++
++static int __init init_vdso(void)
++{
++	struct csky_vdso *vdso;
++	int err = 0;
++
++	vdso_page = alloc_page(GFP_KERNEL);
++	if (!vdso_page)
++		panic("Cannot allocate vdso");
++
++	vdso = vmap(&vdso_page, 1, 0, PAGE_KERNEL);
++	if (!vdso)
++		panic("Cannot map vdso");
++
++	clear_page(vdso);
++
++	err = setup_vdso_page(vdso->rt_signal_retcode);
++	if (err) panic("Cannot set signal return code, err: %x.", err);
++
++	dcache_wb_range((unsigned long)vdso, (unsigned long)vdso + 16);
++
++	vunmap(vdso);
++
++	return 0;
++}
++subsys_initcall(init_vdso);
++
++int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++{
++	int ret;
++	unsigned long addr;
++	struct mm_struct *mm = current->mm;
++
++	down_write(&mm->mmap_sem);
++
++	addr = get_unmapped_area(NULL, STACK_TOP, PAGE_SIZE, 0, 0);
++	if (IS_ERR_VALUE(addr)) {
++		ret = addr;
++		goto up_fail;
++	}
++
++	ret = install_special_mapping(
++			mm,
++			addr,
++			PAGE_SIZE,
++			VM_READ|VM_EXEC|VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
++			&vdso_page);
++	if (ret)
++		goto up_fail;
++
++	mm->context.vdso = (void *)addr;
++
++up_fail:
++	up_write(&mm->mmap_sem);
++	return ret;
++}
++
++const char *arch_vma_name(struct vm_area_struct *vma)
++{
++	if (vma->vm_mm == NULL)
++		return NULL;
++
++	if (vma->vm_start == (long)vma->vm_mm->context.vdso)
++		return "[vdso]";
++	else
++		return NULL;
++}
 -- 
 2.7.4
