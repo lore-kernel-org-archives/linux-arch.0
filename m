@@ -1,55 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:39581 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726537AbeILT1K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Sep 2018 15:27:10 -0400
+Received: from iolanthe.rowland.org ([192.131.102.54]:52164 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1727300AbeILT3W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Sep 2018 15:29:22 -0400
+Date: Wed, 12 Sep 2018 10:24:37 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+In-Reply-To: <20180911200328.GA4225@linux.vnet.ibm.com>
+Message-ID: <Pine.LNX.4.44L0.1809121014050.1570-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-References: <cover.1536757532.git.ren_guo@c-sky.com> <abb46d366b513b814f7af234d560306a818b7324.1536757532.git.ren_guo@c-sky.com>
-In-Reply-To: <abb46d366b513b814f7af234d560306a818b7324.1536757532.git.ren_guo@c-sky.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 12 Sep 2018 16:22:10 +0200
-Message-ID: <CAK8P3a13wWsFX2DR4LD0L4rZV0k3zszSyOX1_kPquJKaTt7StQ@mail.gmail.com>
-Subject: Re: [PATCH V3 17/27] csky: Misc headers
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: TEXT/PLAIN; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180912142210.HjwGMtWGVeYKtZT3kX9k8_t_fg0aHxC8JFA3aBU0qfg@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>, Will Deacon <will.deacon@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Andrea Parri <parri.andrea@gmail.com>, Kernel development list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, akiyks@gmail.com, Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <20180912142437.FuOFNRT_v8bTZ_XI_Oisfi0AzrKvVy16yCeY9Ptj_fs@z>
 
-On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> diff --git a/arch/csky/boot/dts/qemu.dts b/arch/csky/boot/dts/qemu.dts
-> new file mode 100644
-> index 0000000..c6643b1
-> --- /dev/null
-> +++ b/arch/csky/boot/dts/qemu.dts
-> @@ -0,0 +1,77 @@
+On Tue, 11 Sep 2018, Paul E. McKenney wrote:
 
-Did you consider renaming the file as I suggested? I think that would help
-in the long run when you get new qemu versions that have a different set
-of devices and that may provide their own dtbs.
+> > I think what you meant to write in the second and third sentences was 
+> > something more like this:
+> > 
+> > 	Any code in an RCU critical section that extends beyond the 
+> > 	end of a given RCU grace period is guaranteed to see the 
+> > 	effects of all accesses which were visible to the grace 
+> > 	period's CPU before the start of the grace period.  Similarly, 
+> > 	any code that follows an RCU grace period (on the grace 
+> > 	period's CPU) is guaranteed to see the effects of all accesses 
+> > 	which were visible to an RCU critical section that began
+> > 	before the start of the grace period.
+> 
+> That looks to me to be an improvement, other than that the "(on the
+> grace period's CPU)" seems a bit restrictive -- you could for example
+> have a release-acquire chain starting after the grace period, right?
 
-> diff --git a/arch/csky/include/asm/compat.h b/arch/csky/include/asm/compat.h
-> new file mode 100644
-> index 0000000..59f9297
-> --- /dev/null
-> +++ b/arch/csky/include/asm/compat.h
-> @@ -0,0 +1,11 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-> +
-> +#ifndef __ASM_CSKY_COMPAT_H
-> +#define __ASM_CSKY_COMPAT_H
-> +
-> +#ifdef CONFIG_COMPAT
-> +#define COMPAT_UTS_MACHINE "csky\0\0"
-> +#endif
-> +
-> +#endif /* __ASM_CSKY_COMPAT_H */
+The restriction was deliberate.  Without the restriction people might 
+think it applies to any code that happens after a grace period, which 
+is not true (depending on what you mean by "happens after").
 
-Just noticed this one. I assume there won't be a csky64 architecture,
-so you can probably just delete this header.
+The business about a release-acquire chain is derivable from what I
+wrote.  Since the chain starts on the grace period's CPU, the effect is
+guaranteed to be visible there.  Then since release-acquire chains
+preserve visibility, the effect is guaranteed to be visible to the code 
+at the end of the chain.
 
-         Arnd
+> > Also, the document doesn't seem to explain how Tree RCU relies on the
+> > lock-ordering guarantees of raw_spin_lock_rcu_node() and friends.  It
+> > _says_ that these guarantees are used, but not how or where.  (Unless I 
+> > missed something; I didn't read the document all that carefully.)
+> 
+> The closest is this sentence: "But the only part of rcu_prepare_for_idle()
+> that really matters for this discussion are lines 37–39", which
+> refers to this code:
+> 
+> 37     raw_spin_lock_rcu_node(rnp);
+> 38     needwake = rcu_accelerate_cbs(rsp, rnp, rdp);
+> 39     raw_spin_unlock_rcu_node(rnp);
+> 
+> I could add a sentence explaining the importance of the
+> smp_mb__after_unlock_lock() -- is that what you are getting at?
+
+What I was really asking is for the document to explain what could go
+wrong if the smp_mb__after_unlock_lock() call was omitted from
+raw_spin_lock_rcu_node().  What assumptions or requirements in the Tree
+RCU code might fail, and how/where in the code are these assumptions or
+requirements used?
+
+
+> > In any case, you should bear in mind that the lock ordering provided by
+> > Peter's raw_spin_lock_rcu_node() and friends is not the same as what we
+> > have been discussing for the LKMM:
+> > 
+> > 	Peter's routines are meant for the case where you release
+> > 	one lock and then acquire another (for example, locks in 
+> > 	two different levels of the RCU tree).
+> > 
+> > 	The LKMM patch applies only to cases where one CPU releases
+> > 	a lock and then that CPU or another acquires the _same_ lock 
+> > 	again.
+> > 
+> > As another difference, the litmus test given near the start of the
+> > "Tree RCU Grace Period Memory Ordering Building Blocks" section would
+> > not be forbidden by the LKMM, even with RCtso locks, if it didn't use
+> > raw_spin_lock_rcu_node().  This is because the litmus test is forbidden
+> > only when locks are RCsc, which is what raw_spin_lock_rcu_node()  
+> > provides.
+> 
+> Agreed.
+> 
+> > So I don't see how the RCU code can be held up as an example either for
+> > or against requiring locks to be RCtso.
+> 
+> Agreed again.  The use of smp_mb__after_unlock_lock() instead
+> provides RCsc.  But this use case is deemed sufficiently rare that
+> smp_mb__after_unlock_lock() is defined within RCU.
+
+So let me repeat the original question which started this train of
+thought: Can anybody point to any actual code in the kernel that relies
+on locks being RCtso, or that could be simplified if locks were
+guaranteed to be RCtso?
+
+There have been claims that such code exists somewhere in RCU and the 
+scheduler.  Where is it?
+
+Alan
