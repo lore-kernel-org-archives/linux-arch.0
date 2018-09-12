@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V3 08/27] csky: Process management and Signal
-Date: Wed, 12 Sep 2018 21:24:42 +0800
-Message-ID: <2080cd33bf3da34fe2211a9fcde24625a13eaa7b.1536757532.git.ren_guo@c-sky.com>
+Subject: [PATCH V3 15/27] csky: Debug and Ptrace GDB
+Date: Wed, 12 Sep 2018 21:24:49 +0800
+Message-ID: <2bd2199b5d027e62c3ca3f3f352aac61b5a8c1e7.1536757532.git.ren_guo@c-sky.com>
 References: <cover.1536757532.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
@@ -14,1319 +14,549 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv2/fpu.c                   | 281 +++++++++++++++++++++++++
- arch/csky/abiv2/inc/abi/fpu.h           |  66 ++++++
- arch/csky/include/asm/mmu_context.h     | 148 ++++++++++++++
- arch/csky/include/asm/processor.h       | 120 +++++++++++
- arch/csky/include/asm/switch_to.h       |  35 ++++
- arch/csky/include/asm/thread_info.h     |  74 +++++++
- arch/csky/include/uapi/asm/sigcontext.h |  13 ++
- arch/csky/kernel/process.c              | 134 ++++++++++++
- arch/csky/kernel/signal.c               | 350 ++++++++++++++++++++++++++++++++
- arch/csky/kernel/time.c                 |  11 +
- 10 files changed, 1232 insertions(+)
- create mode 100644 arch/csky/abiv2/fpu.c
- create mode 100644 arch/csky/abiv2/inc/abi/fpu.h
- create mode 100644 arch/csky/include/asm/mmu_context.h
- create mode 100644 arch/csky/include/asm/processor.h
- create mode 100644 arch/csky/include/asm/switch_to.h
- create mode 100644 arch/csky/include/asm/thread_info.h
- create mode 100644 arch/csky/include/uapi/asm/sigcontext.h
- create mode 100644 arch/csky/kernel/process.c
- create mode 100644 arch/csky/kernel/signal.c
- create mode 100644 arch/csky/kernel/time.c
+ arch/csky/include/asm/bug.h         |  26 +++
+ arch/csky/include/uapi/asm/ptrace.h | 103 ++++++++++++
+ arch/csky/kernel/dumpstack.c        |  64 ++++++++
+ arch/csky/kernel/ptrace.c           | 317 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 510 insertions(+)
+ create mode 100644 arch/csky/include/asm/bug.h
+ create mode 100644 arch/csky/include/uapi/asm/ptrace.h
+ create mode 100644 arch/csky/kernel/dumpstack.c
+ create mode 100644 arch/csky/kernel/ptrace.c
 
-diff --git a/arch/csky/abiv2/fpu.c b/arch/csky/abiv2/fpu.c
+diff --git a/arch/csky/include/asm/bug.h b/arch/csky/include/asm/bug.h
 new file mode 100644
-index 0000000..8de6b2b
+index 0000000..10b9028
 --- /dev/null
-+++ b/arch/csky/abiv2/fpu.c
-@@ -0,0 +1,281 @@
++++ b/arch/csky/include/asm/bug.h
+@@ -0,0 +1,26 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/ptrace.h>
-+#include <linux/uaccess.h>
-+#include <abi/reg_ops.h>
++#ifndef __ASM_CSKY_BUG_H
++#define __ASM_CSKY_BUG_H
 +
-+#define MTCR_MASK	0xFC00FFE0
-+#define MFCR_MASK	0xFC00FFE0
-+#define MTCR_DIST	0xC0006420
-+#define MFCR_DIST	0xC0006020
++#include <linux/compiler.h>
++#include <linux/const.h>
++#include <linux/types.h>
 +
-+void __init init_fpu(void)
-+{
-+	mtcr("cr<1, 2>", 0);
-+}
++#define BUG()							\
++do {								\
++	asm volatile ("bkpt\n");				\
++	unreachable();						\
++} while (0)
 +
-+/*
-+ * fpu_libc_helper() is to help libc to excute:
-+ *  - mfcr %a, cr<1, 2>
-+ *  - mfcr %a, cr<2, 2>
-+ *  - mtcr %a, cr<1, 2>
-+ *  - mtcr %a, cr<2, 2>
-+ */
-+int fpu_libc_helper(struct pt_regs * regs)
-+{
-+	int fault;
-+	unsigned long instrptr, regx = 0;
-+	unsigned long index = 0, tmp = 0;
-+	unsigned long tinstr = 0;
-+	u16 instr_hi, instr_low;
++#define HAVE_ARCH_BUG
 +
-+	instrptr = instruction_pointer(regs);
-+	if (instrptr & 1) return 0;
++#include <asm-generic/bug.h>
 +
-+	fault = __get_user(instr_low, (u16 *)instrptr);
-+	if (fault) return 0;
++struct pt_regs;
 +
-+	fault = __get_user(instr_hi, (u16 *)(instrptr + 2));
-+	if (fault) return 0;
++void die_if_kernel (char *str, struct pt_regs *regs, int nr);
++void show_regs(struct pt_regs *);
 +
-+	tinstr = instr_hi | ((unsigned long)instr_low << 16);
-+
-+	if (((tinstr >> 21) & 0x1F) != 2) return 0;
-+
-+	if ((tinstr & MTCR_MASK) == MTCR_DIST)
-+	{
-+		index = (tinstr >> 16) & 0x1F;
-+		if(index > 13) return 0;
-+
-+		tmp = tinstr & 0x1F;
-+		if (tmp > 2) return 0;
-+
-+		regx =  *(&regs->a0 + index);
-+
-+		if(tmp == 1)
-+			mtcr("cr<1, 2>", regx);
-+		else if (tmp == 2)
-+			mtcr("cr<2, 2>", regx);
-+		else
-+			return 0;
-+
-+		regs->pc +=4;
-+		return 1;
-+	}
-+
-+	if ((tinstr & MFCR_MASK) == MFCR_DIST) {
-+		index = tinstr & 0x1F;
-+		if(index > 13) return 0;
-+
-+		tmp = ((tinstr >> 16) & 0x1F);
-+		if (tmp > 2) return 0;
-+
-+		if (tmp == 1)
-+			regx = mfcr("cr<1, 2>");
-+		else if (tmp == 2)
-+			regx = mfcr("cr<2, 2>");
-+		else
-+			return 0;
-+
-+		*(&regs->a0 + index) = regx;
-+
-+		regs->pc +=4;
-+		return 1;
-+	}
-+
-+	return 0;
-+}
-+
-+void fpu_fpe(struct pt_regs * regs)
-+{
-+	int sig;
-+	unsigned int fesr;
-+	siginfo_t info;
-+
-+	fesr = mfcr("cr<2, 2>");
-+
-+	if(fesr & FPE_ILLE){
-+		info.si_code = ILL_ILLOPC;
-+		sig = SIGILL;
-+	}
-+	else if(fesr & FPE_IDC){
-+		info.si_code = ILL_ILLOPN;
-+		sig = SIGILL;
-+	}
-+	else if(fesr & FPE_FEC){
-+		sig = SIGFPE;
-+		if(fesr & FPE_IOC){
-+			info.si_code = FPE_FLTINV;
-+		}
-+		else if(fesr & FPE_DZC){
-+			info.si_code = FPE_FLTDIV;
-+		}
-+		else if(fesr & FPE_UFC){
-+			info.si_code = FPE_FLTUND;
-+		}
-+		else if(fesr & FPE_OFC){
-+			info.si_code = FPE_FLTOVF;
-+		}
-+		else if(fesr & FPE_IXC){
-+			info.si_code = FPE_FLTRES;
-+		}
-+		else {
-+			info.si_code = NSIGFPE;
-+		}
-+	}
-+	else {
-+		info.si_code = NSIGFPE;
-+		sig = SIGFPE;
-+	}
-+	info.si_signo = SIGFPE;
-+	info.si_errno = 0;
-+	info.si_addr = (void *)regs->pc;
-+	force_sig_info(sig, &info, current);
-+}
-+
-+#define FMFVR_FPU_REGS(vrx, vry)	\
-+	"fmfvrl %0, "#vrx" \n"		\
-+	"fmfvrh %1, "#vrx" \n"		\
-+	"fmfvrl %2, "#vry" \n"		\
-+	"fmfvrh %3, "#vry" \n"
-+
-+#define FMTVR_FPU_REGS(vrx, vry)	\
-+	"fmtvrl "#vrx", %0 \n"		\
-+	"fmtvrh "#vrx", %1 \n"		\
-+	"fmtvrl "#vry", %2 \n"		\
-+	"fmtvrh "#vry", %3 \n"
-+
-+#define STW_FPU_REGS(a, b, c, d)	\
-+	"stw    %0, (%4, "#a") \n"	\
-+	"stw    %1, (%4, "#b") \n"	\
-+	"stw    %2, (%4, "#c") \n"	\
-+	"stw    %3, (%4, "#d") \n"
-+
-+#define LDW_FPU_REGS(a, b, c, d)	\
-+	"ldw    %0, (%4, "#a") \n"	\
-+	"ldw    %1, (%4, "#b") \n"	\
-+	"ldw    %2, (%4, "#c") \n"	\
-+	"ldw    %3, (%4, "#d") \n"
-+
-+void save_to_user_fp(struct user_fp *user_fp)
-+{
-+	unsigned long flg;
-+	unsigned long tmp1, tmp2;
-+	unsigned long *fpregs;
-+
-+	local_irq_save(flg);
-+
-+	tmp1 = mfcr("cr<1, 2>");
-+	tmp2 = mfcr("cr<2, 2>");
-+
-+	user_fp->fcr = tmp1;
-+	user_fp->fesr = tmp2;
-+
-+	fpregs = &user_fp->vr[0];
-+#ifdef CONFIG_CPU_HAS_FPUV2
-+#ifdef CONFIG_CPU_HAS_VDSP
-+	asm volatile(
-+		"vstmu.32    vr0-vr3,   (%0) \n"
-+		"vstmu.32    vr4-vr7,   (%0) \n"
-+		"vstmu.32    vr8-vr11,  (%0) \n"
-+		"vstmu.32    vr12-vr15, (%0) \n"
-+		"fstmu.64    vr16-vr31, (%0) \n"
-+		:"+a"(fpregs)
-+		::"memory");
-+#else
-+	asm volatile(
-+		"fstmu.64    vr0-vr31,  (%0) \n"
-+		:"+a"(fpregs)
-+		::"memory");
-+#endif
-+#else
-+	{
-+	unsigned long tmp3, tmp4;
-+	asm volatile(
-+		FMFVR_FPU_REGS(vr0, vr1)
-+		STW_FPU_REGS(0, 4, 16, 20)
-+		FMFVR_FPU_REGS(vr2, vr3)
-+		STW_FPU_REGS(32, 36, 48, 52)
-+		FMFVR_FPU_REGS(vr4, vr5)
-+		STW_FPU_REGS(64, 68, 80, 84)
-+		FMFVR_FPU_REGS(vr6, vr7)
-+		STW_FPU_REGS(96, 100, 112, 116)
-+		"addi	%4, 128\n"
-+		FMFVR_FPU_REGS(vr8, vr9)
-+		STW_FPU_REGS(0, 4, 16, 20)
-+		FMFVR_FPU_REGS(vr10, vr11)
-+		STW_FPU_REGS(32, 36, 48, 52)
-+		FMFVR_FPU_REGS(vr12, vr13)
-+		STW_FPU_REGS(64, 68, 80, 84)
-+		FMFVR_FPU_REGS(vr14, vr15)
-+		STW_FPU_REGS(96, 100, 112, 116)
-+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-+		"=a"(tmp4),"+a"(fpregs)
-+		::"memory");
-+	}
-+#endif
-+
-+	local_irq_restore(flg);
-+}
-+
-+void restore_from_user_fp(struct user_fp *user_fp)
-+{
-+	unsigned long flg;
-+	unsigned long tmp1, tmp2;
-+	unsigned long *fpregs;
-+
-+	local_irq_save(flg);
-+
-+	tmp1 = user_fp->fcr;
-+	tmp2 = user_fp->fesr;
-+
-+	mtcr("cr<1, 2>", tmp1);
-+	mtcr("cr<2, 2>", tmp2);
-+
-+	fpregs = &user_fp->vr[0];
-+#ifdef CONFIG_CPU_HAS_FPUV2
-+#ifdef CONFIG_CPU_HAS_VDSP
-+	asm volatile(
-+		"vldmu.32    vr0-vr3,   (%0) \n"
-+		"vldmu.32    vr4-vr7,   (%0) \n"
-+		"vldmu.32    vr8-vr11,  (%0) \n"
-+		"vldmu.32    vr12-vr15, (%0) \n"
-+		"fldmu.64    vr16-vr31, (%0) \n"
-+		:"+a"(fpregs)
-+		::"memory");
-+#else
-+	asm volatile(
-+		"fldmu.64    vr0-vr31,  (%0) \n"
-+		:"+a"(fpregs)
-+		::"memory");
-+#endif
-+#else
-+	{
-+	unsigned long tmp3, tmp4;
-+	asm volatile(
-+		LDW_FPU_REGS(0, 4, 16, 20)
-+		FMTVR_FPU_REGS(vr0, vr1)
-+		LDW_FPU_REGS(32, 36, 48, 52)
-+		FMTVR_FPU_REGS(vr2, vr3)
-+		LDW_FPU_REGS(64, 68, 80, 84)
-+		FMTVR_FPU_REGS(vr4, vr5)
-+		LDW_FPU_REGS(96, 100, 112, 116)
-+		FMTVR_FPU_REGS(vr6, vr7)
-+		"addi	%4, 128\n"
-+		LDW_FPU_REGS(0, 4, 16, 20)
-+		FMTVR_FPU_REGS(vr8, vr9)
-+		LDW_FPU_REGS(32, 36, 48, 52)
-+		FMTVR_FPU_REGS(vr10, vr11)
-+		LDW_FPU_REGS(64, 68, 80, 84)
-+		FMTVR_FPU_REGS(vr12, vr13)
-+		LDW_FPU_REGS(96, 100, 112, 116)
-+		FMTVR_FPU_REGS(vr14, vr15)
-+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-+		"=a"(tmp4),"+a"(fpregs)
-+		::"memory");
-+	}
-+#endif
-+
-+	local_irq_restore(flg);
-+}
-diff --git a/arch/csky/abiv2/inc/abi/fpu.h b/arch/csky/abiv2/inc/abi/fpu.h
++#endif /* __ASM_CSKY_BUG_H */
+diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..a35b45a
+index 0000000..499f7ef
 --- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/fpu.h
-@@ -0,0 +1,66 @@
++++ b/arch/csky/include/uapi/asm/ptrace.h
+@@ -0,0 +1,103 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_FPU_H
-+#define __ASM_CSKY_FPU_H
-+
-+#include <asm/sigcontext.h>
-+#include <asm/ptrace.h>
-+
-+int fpu_libc_helper(struct pt_regs *regs);
-+void fpu_fpe(struct pt_regs *regs);
-+void __init init_fpu(void);
-+
-+void save_to_user_fp(struct user_fp *user_fp);
-+void restore_from_user_fp(struct user_fp *user_fp);
-+
-+/*
-+ * Define the fesr bit for fpe handle.
-+ */
-+#define  FPE_ILLE  (1 << 16)    /* Illegal instruction  */
-+#define  FPE_FEC   (1 << 7)     /* Input float-point arithmetic exception */
-+#define  FPE_IDC   (1 << 5)     /* Input denormalized exception */
-+#define  FPE_IXC   (1 << 4)     /* Inexact exception */
-+#define  FPE_UFC   (1 << 3)     /* Underflow exception */
-+#define  FPE_OFC   (1 << 2)     /* Overflow exception */
-+#define  FPE_DZC   (1 << 1)     /* Divide by zero exception */
-+#define  FPE_IOC   (1 << 0)     /* Invalid operation exception */
-+#define  FPE_REGULAR_EXCEPTION (FPE_IXC | FPE_UFC | FPE_OFC | FPE_DZC | FPE_IOC)
-+
-+#ifdef CONFIG_OPEN_FPU_IDE
-+#define IDE_STAT   (1 << 5)
-+#else
-+#define IDE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_IXE
-+#define IXE_STAT   (1 << 4)
-+#else
-+#define IXE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_UFE
-+#define UFE_STAT   (1 << 3)
-+#else
-+#define UFE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_OFE
-+#define OFE_STAT   (1 << 2)
-+#else
-+#define OFE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_DZE
-+#define DZE_STAT   (1 << 1)
-+#else
-+#define DZE_STAT   0
-+#endif
-+
-+#ifdef CONFIG_OPEN_FPU_IOE
-+#define IOE_STAT   (1 << 0)
-+#else
-+#define IOE_STAT   0
-+#endif
-+
-+#endif /* __ASM_CSKY_FPU_H */
-diff --git a/arch/csky/include/asm/mmu_context.h b/arch/csky/include/asm/mmu_context.h
-new file mode 100644
-index 0000000..456c876
---- /dev/null
-+++ b/arch/csky/include/asm/mmu_context.h
-@@ -0,0 +1,148 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_MMU_CONTEXT_H
-+#define __ASM_CSKY_MMU_CONTEXT_H
-+
-+#include <asm-generic/mm_hooks.h>
-+#include <asm/setup.h>
-+#include <asm/page.h>
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+
-+#include <linux/errno.h>
-+#include <linux/sched.h>
-+#include <abi/ckmmu.h>
-+
-+static inline void tlbmiss_handler_setup_pgd(unsigned long pgd, bool kernel)
-+{
-+	pgd &= ~(1<<31);
-+	pgd += PHYS_OFFSET;
-+	pgd |= 1;
-+	setup_pgd(pgd, kernel);
-+}
-+
-+#define TLBMISS_HANDLER_SETUP_PGD(pgd) \
-+	tlbmiss_handler_setup_pgd((unsigned long)pgd, 0)
-+#define TLBMISS_HANDLER_SETUP_PGD_KERNEL(pgd) \
-+	tlbmiss_handler_setup_pgd((unsigned long)pgd, 1)
-+
-+static inline unsigned long tlb_get_pgd(void)
-+{
-+	return ((get_pgd()|(1<<31)) - PHYS_OFFSET) & ~1;
-+}
-+
-+#define cpu_context(cpu, mm)	((mm)->context.asid[cpu])
-+#define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)
-+#define asid_cache(cpu)		(cpu_data[cpu].asid_cache)
-+
-+#define ASID_FIRST_VERSION	(1 << CONFIG_CPU_ASID_BITS)
-+#define ASID_INC		0x1
-+#define ASID_MASK		(ASID_FIRST_VERSION - 1)
-+#define ASID_VERSION_MASK	~ASID_MASK
-+
-+#define destroy_context(mm)		do{}while(0)
-+#define enter_lazy_tlb(mm,tsk)		do{}while(0)
-+#define deactivate_mm(tsk,mm)		do{}while(0)
-+
-+/*
-+ *  All unused by hardware upper bits will be considered
-+ *  as a software asid extension.
-+ */
-+static inline void
-+get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
-+{
-+	unsigned long asid = asid_cache(cpu);
-+
-+	if (! ((asid += ASID_INC) & ASID_MASK) ) {
-+		flush_tlb_all();	/* start new asid cycle */
-+		if (!asid)		/* fix version if needed */
-+			asid = ASID_FIRST_VERSION;
-+	}
-+	cpu_context(cpu, mm) = asid_cache(cpu) = asid;
-+}
-+
-+/*
-+ * Initialize the context related info for a new mm_struct
-+ * instance.
-+ */
-+static inline int
-+init_new_context(struct task_struct *tsk, struct mm_struct *mm)
-+{
-+	int i;
-+
-+	for_each_online_cpu(i)
-+		cpu_context(i, mm) = 0;
-+	return 0;
-+}
-+
-+static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
-+                             struct task_struct *tsk)
-+{
-+	unsigned int cpu = smp_processor_id();
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	/* Check if our ASID is of an older version and thus invalid */
-+	if ((cpu_context(cpu, next) ^ asid_cache(cpu)) & ASID_VERSION_MASK)
-+		get_new_mmu_context(next, cpu);
-+	write_mmu_entryhi(cpu_asid(cpu, next));
-+	TLBMISS_HANDLER_SETUP_PGD(next->pgd);
-+
-+	/*
-+	 * Mark current->active_mm as not "active" anymore.
-+	 * We don't want to mislead possible IPI tlb flush routines.
-+	 */
-+	cpumask_clear_cpu(cpu, mm_cpumask(prev));
-+	cpumask_set_cpu(cpu, mm_cpumask(next));
-+
-+	local_irq_restore(flags);
-+}
-+
-+/*
-+ * After we have set current->mm to a new value, this activates
-+ * the context for the new mm so we see the new mappings.
-+ */
-+static inline void
-+activate_mm(struct mm_struct *prev, struct mm_struct *next)
-+{
-+	unsigned long flags;
-+	int cpu = smp_processor_id();
-+
-+	local_irq_save(flags);
-+
-+	/* Unconditionally get a new ASID.  */
-+	get_new_mmu_context(next, cpu);
-+
-+	write_mmu_entryhi(cpu_asid(cpu, next));
-+	TLBMISS_HANDLER_SETUP_PGD(next->pgd);
-+
-+	/* mark mmu ownership change */
-+	cpumask_clear_cpu(cpu, mm_cpumask(prev));
-+	cpumask_set_cpu(cpu, mm_cpumask(next));
-+
-+	local_irq_restore(flags);
-+}
-+
-+/*
-+ * If mm is currently active_mm, we can't really drop it. Instead,
-+ * we will get a new one for it.
-+ */
-+static inline void
-+drop_mmu_context(struct mm_struct *mm, unsigned cpu)
-+{
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+
-+	if (cpumask_test_cpu(cpu, mm_cpumask(mm)))  {
-+		get_new_mmu_context(mm, cpu);
-+		write_mmu_entryhi(cpu_asid(cpu, mm));
-+	} else {
-+		/* will get a new context next time */
-+		cpu_context(cpu, mm) = 0;
-+	}
-+
-+	local_irq_restore(flags);
-+}
-+
-+#endif /* __ASM_CSKY_MMU_CONTEXT_H */
-diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
-new file mode 100644
-index 0000000..7764fa5
---- /dev/null
-+++ b/arch/csky/include/asm/processor.h
-@@ -0,0 +1,120 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_PROCESSOR_H
-+#define __ASM_CSKY_PROCESSOR_H
-+
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l;})
-+
-+#include <linux/bitops.h>
-+#include <asm/segment.h>
-+#include <asm/ptrace.h>
-+#include <asm/current.h>
-+#include <asm/cache.h>
-+#include <abi/reg_ops.h>
-+#include <abi/regdef.h>
-+#ifdef CONFIG_CPU_HAS_FPU
-+#include <abi/fpu.h>
-+#endif
-+
-+struct cpuinfo_csky {
-+	unsigned long udelay_val;
-+	unsigned long asid_cache;
-+	/*
-+	 * Capability and feature descriptor structure for CSKY CPU
-+	 */
-+	unsigned long options;
-+	unsigned int processor_id[4];
-+	unsigned int fpu_id;
-+} __attribute__((aligned(SMP_CACHE_BYTES)));
-+
-+extern struct cpuinfo_csky cpu_data[];
-+
-+/*
-+ * User space process size: 2GB. This is hardcoded into a few places,
-+ * so don't change it unless you know what you are doing.  TASK_SIZE
-+ * for a 64 bit kernel expandable to 8192EB, of which the current CSKY
-+ * implementations will "only" be able to use 1TB ...
-+ */
-+#define TASK_SIZE       0x7fff8000UL
-+
-+#ifdef __KERNEL__
-+#define STACK_TOP       TASK_SIZE
-+#define STACK_TOP_MAX   STACK_TOP
-+#endif
-+
-+/* This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's.
-+ */
-+#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
-+
-+struct thread_struct {
-+	unsigned long  ksp;       /* kernel stack pointer */
-+	unsigned long  sr;        /* saved status register */
-+	unsigned long  esp0;      /* points to SR of stack frame */
-+	unsigned long  hi;
-+	unsigned long  lo;
-+
-+	/* Other stuff associated with the thread. */
-+	unsigned long address;      /* Last user fault */
-+	unsigned long error_code;
-+
-+	/* FPU regs */
-+	struct user_fp __attribute__((aligned(16))) user_fp;
-+};
-+
-+#define INIT_THREAD  { \
-+	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
-+	.sr = DEFAULT_PSR_VALUE, \
-+}
-+
-+/*
-+ * Do necessary setup to start up a newly executed thread.
-+ *
-+ * pass the data segment into user programs if it exists,
-+ * it can't hurt anything as far as I can tell
-+ */
-+#define start_thread(_regs, _pc, _usp)					\
-+do {									\
-+	set_fs(USER_DS); /* reads from user space */			\
-+	(_regs)->pc = (_pc);						\
-+	(_regs)->regs[1] = 0; /* ABIV1 is R7, uClibc_main rtdl arg */	\
-+	(_regs)->regs[2] = 0;						\
-+	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
-+	(_regs)->sr &= ~PS_S;						\
-+	(_regs)->usp = (_usp);						\
-+} while(0)
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/* Free all resources held by a thread. */
-+static inline void release_thread(struct task_struct *dead_task)
-+{
-+}
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)    do { } while (0)
-+
-+extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
-+
-+#define copy_segments(tsk, mm)		do { } while (0)
-+#define release_segments(mm)		do { } while (0)
-+#define forget_segments()		do { } while (0)
-+
-+extern unsigned long thread_saved_pc(struct task_struct *tsk);
-+
-+unsigned long get_wchan(struct task_struct *p);
-+
-+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)
-+#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
-+
-+#define task_pt_regs(p) \
-+	((struct pt_regs *)(THREAD_SIZE + p->stack) - 1)
-+
-+#define cpu_relax() barrier()
-+
-+#endif /* __ASM_CSKY_PROCESSOR_H */
-diff --git a/arch/csky/include/asm/switch_to.h b/arch/csky/include/asm/switch_to.h
-new file mode 100644
-index 0000000..e1cd10a
---- /dev/null
-+++ b/arch/csky/include/asm/switch_to.h
-@@ -0,0 +1,35 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_SWITCH_TO_H
-+#define __ASM_CSKY_SWITCH_TO_H
-+
-+#include <linux/thread_info.h>
-+#ifdef CONFIG_CPU_HAS_FPU
-+#include <abi/fpu.h>
-+static inline void __switch_to_fpu(struct task_struct *prev,
-+				   struct task_struct *next)
-+{
-+	save_to_user_fp(&prev->thread.user_fp);
-+	restore_from_user_fp(&next->thread.user_fp);
-+}
-+#else
-+static inline void __switch_to_fpu(struct task_struct *prev,
-+				   struct task_struct *next)
-+{}
-+#endif
-+
-+/*
-+ * Context switching is now performed out-of-line in switch_to.S
-+ */
-+extern struct task_struct *__switch_to(struct task_struct *,
-+				       struct task_struct *);
-+
-+#define switch_to(prev, next, last)					\
-+	do {								\
-+		struct task_struct *__prev = (prev);			\
-+		struct task_struct *__next = (next);			\
-+		__switch_to_fpu(__prev, __next);			\
-+		((last) = __switch_to((prev), (next)));			\
-+	} while (0)
-+
-+#endif /* __ASM_CSKY_SWITCH_TO_H */
-diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
-new file mode 100644
-index 0000000..2474da0
---- /dev/null
-+++ b/arch/csky/include/asm/thread_info.h
-@@ -0,0 +1,74 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef _ASM_CSKY_THREAD_INFO_H
-+#define _ASM_CSKY_THREAD_INFO_H
++#ifndef _CSKY_PTRACE_H
++#define _CSKY_PTRACE_H
 +
 +#ifndef __ASSEMBLY__
 +
-+#include <linux/version.h>
-+#include <asm/types.h>
-+#include <asm/page.h>
-+#include <asm/processor.h>
++struct pt_regs {
++	unsigned long	tls;
++	unsigned long	lr;
++	unsigned long	pc;
++	unsigned long	sr;
++	unsigned long	usp;
 +
-+struct thread_info {
-+	struct task_struct	*task;
-+	void			*dump_exec_domain;
-+	unsigned long		flags;
-+	int			preempt_count;
-+	unsigned long		tp_value;
-+	mm_segment_t		addr_limit;
-+	struct restart_block	restart_block;
-+	struct pt_regs		*regs;
-+	unsigned int		cpu;
++	/*
++	 * a0, a1, a2, a3:
++	 * abiv1: r2, r3, r4, r5
++	 * abiv2: r0, r1, r2, r3
++	 */
++	unsigned long	orig_a0;
++	unsigned long	a0;
++	unsigned long	a1;
++	unsigned long	a2;
++	unsigned long	a3;
++
++	/*
++	 * ABIV2: r4 ~ r13
++	 * ABIV1: r6 ~ r14, r1
++	 */
++	unsigned long	regs[10];
++
++#if defined(__CSKYABIV2__)
++	/* r16 ~ r30 */
++	unsigned long	exregs[15];
++
++	unsigned long	rhi;
++	unsigned long	rlo;
++	unsigned long	pad; /* reserved */
++#endif
 +};
 +
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task		= &tsk,			\
-+	.preempt_count  = INIT_PREEMPT_COUNT,	\
-+	.addr_limit     = KERNEL_DS,		\
-+	.cpu		= 0,			\
-+	.restart_block = {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
++struct user_fp {
++	unsigned long	vr[96];
++	unsigned long	fcr;
++	unsigned long	fesr;
++	unsigned long	fid;
++	unsigned long	reserved;
++};
 +
-+#define THREAD_SIZE_ORDER (THREAD_SHIFT - PAGE_SHIFT)
-+
-+static inline struct thread_info *current_thread_info(void)
-+{
-+	unsigned long sp;
-+
-+	asm volatile("mov %0, sp\n":"=r"(sp));
-+
-+	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
-+}
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+/* entry.S relies on these definitions!
-+ * bits 0-5 are tested at every exception exit
++/*
++ * Switch stack for switch_to after push pt_regs.
++ *
++ * ABI_CSKYV2: r4 ~ r11, r15 ~ r17, r26 ~ r30;
++ * ABI_CSKYV1: r8 ~ r14, r15;
 + */
-+#define TIF_SIGPENDING		0	/* signal pending */
-+#define TIF_NOTIFY_RESUME	1       /* callback before returning to user */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SYSCALL_TRACE	5	/* syscall trace active */
-+#define TIF_DELAYED_TRACE	14	/* single step a syscall */
-+#define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_MEMDIE		18      /* is terminating due to OOM killer */
-+#define TIF_FREEZE		19	/* thread is freezing for suspend */
-+#define TIF_RESTORE_SIGMASK	20	/* restore signal mask in do_signal() */
-+#define TIF_SECCOMP		21	/* secure computing */
-+
-+#define _TIF_SIGPENDING         (1 << TIF_SIGPENDING)
-+#define _TIF_NOTIFY_RESUME      (1 << TIF_NOTIFY_RESUME)
-+#define _TIF_NEED_RESCHED       (1 << TIF_NEED_RESCHED)
-+#define _TIF_SYSCALL_TRACE      (1 << TIF_SYSCALL_TRACE)
-+#define _TIF_DELAYED_TRACE	(1 << TIF_DELAYED_TRACE)
-+#define _TIF_POLLING_NRFLAG     (1 << TIF_POLLING_NRFLAG)
-+#define _TIF_MEMDIE		(1 << TIF_MEMDIE)
-+#define _TIF_FREEZE             (1 << TIF_FREEZE)
-+#define _TIF_RESTORE_SIGMASK    (1 << TIF_RESTORE_SIGMASK)
-+#define _TIF_SECCOMP            (1 << TIF_SECCOMP)
-+
-+#endif	/* _ASM_CSKY_THREAD_INFO_H */
-diff --git a/arch/csky/include/uapi/asm/sigcontext.h b/arch/csky/include/uapi/asm/sigcontext.h
-new file mode 100644
-index 0000000..633cb14
---- /dev/null
-+++ b/arch/csky/include/uapi/asm/sigcontext.h
-@@ -0,0 +1,13 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_SIGCONTEXT_H
-+#define __ASM_CSKY_SIGCONTEXT_H
-+
-+#include <asm/ptrace.h>
-+
-+struct sigcontext {
-+	struct pt_regs	sc_pt_regs;
-+	struct user_fp	sc_user_fp;
++struct  switch_stack {
++#if defined(__CSKYABIV2__)
++	unsigned long   r4;
++        unsigned long   r5;
++        unsigned long   r6;
++        unsigned long   r7;
++	unsigned long   r8;
++        unsigned long   r9;
++        unsigned long   r10;
++        unsigned long   r11;
++#else
++	unsigned long   r8;
++        unsigned long   r9;
++        unsigned long   r10;
++        unsigned long   r11;
++        unsigned long   r12;
++        unsigned long   r13;
++        unsigned long   r14;
++#endif
++        unsigned long   r15;
++#if defined(__CSKYABIV2__)
++        unsigned long   r16;
++        unsigned long   r17;
++        unsigned long   r26;
++        unsigned long   r27;
++        unsigned long   r28;
++        unsigned long   r29;
++        unsigned long   r30;
++#endif
 +};
 +
-+#endif /* __ASM_CSKY_SIGCONTEXT_H */
-diff --git a/arch/csky/kernel/process.c b/arch/csky/kernel/process.c
++#ifdef __KERNEL__
++
++#define PS_S            0x80000000              /* Supervisor Mode */
++
++#define arch_has_single_step() (1)
++#define current_pt_regs() \
++	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
++
++#define user_stack_pointer(regs) ((regs)->usp)
++
++#define user_mode(regs) (!((regs)->sr & PS_S))
++#define instruction_pointer(regs) ((regs)->pc)
++#define profile_pc(regs) instruction_pointer(regs)
++
++#endif /* __KERNEL__ */
++#endif /* __ASSEMBLY__ */
++#endif /* _CSKY_PTRACE_H */
+diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
 new file mode 100644
-index 0000000..b03b667
+index 0000000..3ef91ee
 --- /dev/null
-+++ b/arch/csky/kernel/process.c
-@@ -0,0 +1,134 @@
++++ b/arch/csky/kernel/dumpstack.c
+@@ -0,0 +1,64 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/module.h>
-+#include <linux/version.h>
-+#include <linux/sched.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/sched/debug.h>
-+#include <linux/delay.h>
-+#include <linux/kallsyms.h>
-+#include <linux/uaccess.h>
 +#include <linux/ptrace.h>
 +
-+#include <asm/elf.h>
-+#include <abi/reg_ops.h>
++int kstack_depth_to_print = 48;
 +
-+struct cpuinfo_csky cpu_data[NR_CPUS];
-+
-+asmlinkage void ret_from_fork(void);
-+asmlinkage void ret_from_kernel_thread(void);
-+
-+/*
-+ * Some archs flush debug and FPU info here
-+ */
-+void flush_thread(void){}
-+
-+/*
-+ * Return saved PC from a blocked thread
-+ */
-+unsigned long thread_saved_pc(struct task_struct *tsk)
++void show_trace(unsigned long *stack)
 +{
-+	struct switch_stack *sw = (struct switch_stack *)tsk->thread.ksp;
++	unsigned long *endstack;
++	unsigned long addr;
++	int i;
 +
-+	return sw->r15;
-+}
-+
-+int copy_thread(unsigned long clone_flags,
-+		unsigned long usp,
-+		unsigned long kthread_arg,
-+		struct task_struct *p)
-+{
-+	struct switch_stack *childstack;
-+	struct pt_regs *childregs = task_pt_regs(p);
-+
-+#ifdef CONFIG_CPU_HAS_FPU
-+	save_to_user_fp(&p->thread.user_fp);
++	pr_info("Call Trace:\n");
++	addr = (unsigned long)stack + THREAD_SIZE - 1;
++	endstack = (unsigned long *)(addr & -THREAD_SIZE);
++	i = 0;
++	while (stack + 1 <= endstack) {
++		addr = *stack++;
++		/*
++		 * If the address is either in the text segment of the
++		 * kernel, or in the region which contains vmalloc'ed
++		 * memory, it *may* be the address of a calling
++		 * routine; if so, print it so that someone tracing
++		 * down the cause of the crash will be able to figure
++		 * out the call path that was taken.
++		 */
++		if (__kernel_text_address(addr)) {
++#ifndef CONFIG_KALLSYMS
++			if (i % 5 == 0)
++				pr_cont("\n       ");
 +#endif
-+
-+	childstack = ((struct switch_stack *) childregs) - 1;
-+	memset(childstack, 0, sizeof(struct switch_stack));
-+
-+	/* setup ksp for switch_to !!! */
-+	p->thread.ksp = (unsigned long)childstack;
-+
-+	if (unlikely(p->flags & PF_KTHREAD)) {
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		childstack->r15 = (unsigned long) ret_from_kernel_thread;
-+		childstack->r8 = kthread_arg;
-+		childstack->r9 = usp;
-+		childregs->sr = mfcr("psr");
-+	} else {
-+		*childregs = *(current_pt_regs());
-+		if (usp)
-+			childregs->usp = usp;
-+		if (clone_flags & CLONE_SETTLS)
-+			task_thread_info(p)->tp_value = childregs->tls
-+						      = childregs->regs[0];
-+
-+		childregs->a0 = 0;
-+		childstack->r15 = (unsigned long) ret_from_fork;
++			pr_cont(" [<%08lx>] %pS\n", addr, (void *)addr);
++			i++;
++		}
 +	}
-+
-+	return 0;
++	pr_cont("\n");
 +}
 +
-+/* Fill in the fpu structure for a core dump.  */
-+int dump_fpu (struct pt_regs *regs, struct user_fp *fpu)
++void show_stack(struct task_struct *task, unsigned long *stack)
 +{
-+	memcpy(fpu, &current->thread.user_fp, sizeof(*fpu));
-+	return 1;
++	unsigned long *p;
++	unsigned long *endstack;
++	int i;
++
++	if (!stack) {
++		if (task)
++			stack = (unsigned long *)task->thread.esp0;
++		else
++			stack = (unsigned long *)&stack;
++	}
++	endstack = (unsigned long *)(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
++
++	pr_info("Stack from %08lx:", (unsigned long)stack);
++	p = stack;
++	for (i = 0; i < kstack_depth_to_print; i++) {
++		if (p + 1 > endstack)
++			break;
++		if (i % 8 == 0)
++			pr_cont("\n       ");
++		pr_cont(" %08lx", *p++);
++	}
++	pr_cont("\n");
++	show_trace(stack);
 +}
-+EXPORT_SYMBOL(dump_fpu);
-+
-+int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
-+{
-+	struct pt_regs *regs = task_pt_regs(tsk);
-+
-+	/* NOTE: usp is error value. */
-+	ELF_CORE_COPY_REGS ((*pr_regs), regs)
-+
-+	return 1;
-+}
-+
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+	unsigned long esp, pc;
-+	unsigned long stack_page;
-+	int count = 0;
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
-+
-+	stack_page = (unsigned long)p;
-+	esp = p->thread.esp0;
-+	do {
-+		if (esp < stack_page+sizeof(struct task_struct) ||
-+		    esp >= 8184+stack_page)
-+			return 0;
-+		/*FIXME: There's may be error here!*/
-+		pc = ((unsigned long *)esp)[1];
-+		/* FIXME: This depends on the order of these functions. */
-+		if (!in_sched_functions(pc))
-+			return pc;
-+		esp = *(unsigned long *) esp;
-+	} while (count++ < 16);
-+	return 0;
-+}
-+EXPORT_SYMBOL(get_wchan);
-+
-+#ifndef CONFIG_CPU_PM_NONE
-+void arch_cpu_idle(void)
-+{
-+#ifdef CONFIG_CPU_PM_WAIT
-+	asm volatile("wait\n");
-+#endif
-+
-+#ifdef CONFIG_CPU_PM_DOZE
-+	asm volatile("doze\n");
-+#endif
-+
-+#ifdef CONFIG_CPU_PM_STOP
-+	asm volatile("stop\n");
-+#endif
-+	local_irq_enable();
-+}
-+#endif
-diff --git a/arch/csky/kernel/signal.c b/arch/csky/kernel/signal.c
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
 new file mode 100644
-index 0000000..c40775a
+index 0000000..2422cf6
 --- /dev/null
-+++ b/arch/csky/kernel/signal.c
-@@ -0,0 +1,350 @@
++++ b/arch/csky/kernel/ptrace.c
+@@ -0,0 +1,317 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/syscalls.h>
++#include <linux/elf.h>
 +#include <linux/errno.h>
-+#include <linux/wait.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
 +#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/stddef.h>
-+#include <linux/highuid.h>
-+#include <linux/personality.h>
-+#include <linux/tty.h>
-+#include <linux/binfmts.h>
-+#include <linux/tracehook.h>
-+#include <linux/freezer.h>
++#include <linux/regset.h>
++#include <linux/sched.h>
++#include <linux/signal.h>
++#include <linux/smp.h>
 +#include <linux/uaccess.h>
++#include <linux/user.h>
 +
-+#include <asm/setup.h>
++#include <asm/thread_info.h>
++#include <asm/page.h>
 +#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/ucontext.h>
-+#include <asm/vdso.h>
++#include <asm/processor.h>
++#include <asm/asm-offsets.h>
 +
 +#include <abi/regdef.h>
 +
-+#ifdef CONFIG_CPU_HAS_FPU
-+#include <abi/fpu.h>
++/* sets the trace bits. */
++#define TRACE_MODE_SI      1 << 14
++#define TRACE_MODE_RUN     0
++#define TRACE_MODE_MASK    ~(0x3 << 14)
 +
-+static int restore_fpu_state(struct sigcontext *sc)
++/*
++ * Make sure the single step bit is not set.
++ */
++static void singlestep_disable(struct task_struct *tsk)
 +{
-+	int err = 0;
-+	struct user_fp user_fp;
++	struct pt_regs *regs;
 +
-+	err = copy_from_user(&user_fp, &sc->sc_user_fp, sizeof(user_fp));
-+
-+	restore_from_user_fp(&user_fp);
-+
-+	return err;
++	regs = task_pt_regs(tsk);
++	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
 +}
 +
-+static int save_fpu_state(struct sigcontext *sc)
++static void singlestep_enable(struct task_struct *tsk)
 +{
-+	struct user_fp user_fp;
++	struct pt_regs *regs;
 +
-+	save_to_user_fp(&user_fp);
-+
-+	return copy_to_user(&sc->sc_user_fp, &user_fp, sizeof(user_fp));
++	regs = task_pt_regs(tsk);
++	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_SI;
 +}
-+#else
-+static inline int restore_fpu_state(struct sigcontext *sc){return 0;}
-+static inline int save_fpu_state(struct sigcontext *sc){return 0;}
-+#endif
 +
-+struct rt_sigframe
++/*
++ * Make sure the single step bit is set.
++ */
++void user_enable_single_step(struct task_struct *child)
 +{
-+	int sig;
-+	struct siginfo *pinfo;
-+	void *puc;
-+	struct siginfo info;
-+	struct ucontext uc;
++	if (child->thread.esp0 == 0) return;
++	singlestep_enable(child);
++}
++
++void user_disable_single_step(struct task_struct *child)
++{
++	if (child->thread.esp0 == 0) return;
++	singlestep_disable(child);
++}
++
++enum csky_regset {
++	REGSET_GPR,
++	REGSET_FPR,
 +};
 +
-+static int
-+restore_sigframe(struct pt_regs *regs,
-+		 struct sigcontext *sc, int *pr2)
++static int gpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user *ubuf)
 +{
-+	int err = 0;
++	struct pt_regs *regs;
 +
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current_thread_info()->task->restart_block.fn = do_no_restart_syscall;
++	regs = task_pt_regs(target);
 +
-+	err |= copy_from_user(regs, &sc->sc_pt_regs, sizeof(struct pt_regs));
++	/* Abiv1 regs->tls is fake and we need sync here. */
++	regs->tls = task_thread_info(target)->tp_value;
 +
-+	err |= restore_fpu_state(sc);
-+
-+	*pr2 = regs->a0;
-+	return err;
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 +}
 +
-+asmlinkage int
-+do_rt_sigreturn(void)
++static int gpr_set(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    const void *kbuf, const void __user *ubuf)
 +{
-+	sigset_t set;
-+	int a0;
-+	struct pt_regs *regs = current_pt_regs();
-+	struct rt_sigframe *frame = (struct rt_sigframe *)(regs->usp);
-+
-+	if (verify_area(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	sigdelsetmask(&set, (sigmask(SIGKILL) | sigmask(SIGSTOP)));
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = set;
-+	recalc_sigpending( );
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigframe(regs, &frame->uc.uc_mcontext, &a0))
-+		goto badframe;
-+
-+	return a0;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-+
-+static int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs)
-+{
-+	int err = 0;
-+
-+	err |= copy_to_user(&sc->sc_pt_regs, regs, sizeof(struct pt_regs));
-+	err |= save_fpu_state(sc);
-+
-+	return err;
-+}
-+
-+static inline void *
-+get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
-+{
-+	unsigned long usp;
-+
-+	/* Default to using normal stack.  */
-+	usp = regs->usp;
-+
-+	/* This is the X/Open sanctioned signal stack switching.  */
-+	if ((ka->sa.sa_flags & SA_ONSTACK) && !sas_ss_flags(usp)) {
-+		if (!on_sig_stack(usp))
-+			usp = current->sas_ss_sp + current->sas_ss_size;
-+	}
-+	return (void *)((usp - frame_size) & -8UL);
-+}
-+
-+static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
-+		sigset_t *set, struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame;
-+	int err = 0;
-+
-+	struct csky_vdso *vdso = current->mm->context.vdso;
-+
-+	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	if (!frame)
-+		return 1;
-+
-+	err |= __put_user(sig, &frame->sig);
-+	err |= __put_user(&frame->info, &frame->pinfo);
-+	err |= __put_user(&frame->uc, &frame->puc);
-+	err |= copy_siginfo_to_user(&frame->info, info);
-+
-+	/* Create the ucontext.  */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, &frame->uc.uc_link);
-+	err |= __put_user((void *)current->sas_ss_sp,
-+			&frame->uc.uc_stack.ss_sp);
-+	err |= __put_user(sas_ss_flags(regs->usp),
-+			&frame->uc.uc_stack.ss_flags);
-+	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
-+	err |= setup_sigframe(&frame->uc.uc_mcontext, regs);
-+	err |= copy_to_user (&frame->uc.uc_sigmask, set, sizeof(*set));
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Set up registers for signal handler */
-+	regs->usp = (unsigned long) frame;
-+	regs->pc = (unsigned long) ka->sa.sa_handler;
-+	regs->lr = (unsigned long)vdso->rt_signal_retcode;
-+
-+adjust_stack:
-+	regs->a0 = sig; /* first arg is signo */
-+	regs->a1 = (unsigned long)(&(frame->info)); /* second arg is (siginfo_t*) */
-+	regs->a2 = (unsigned long)(&(frame->uc));/* third arg pointer to ucontext */
-+	return err;
-+
-+give_sigsegv:
-+	if (sig == SIGSEGV)
-+		ka->sa.sa_handler = SIG_DFL;
-+	force_sig(SIGSEGV, current);
-+	goto adjust_stack;
-+}
-+
-+/*
-+ * OK, we're invoking a handler
-+ */
-+static int
-+handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
-+		sigset_t *oldset, struct pt_regs *regs)
-+{
-+	struct task_struct *tsk = current;
 +	int ret;
++	struct pt_regs regs;
 +
-+	/* set up the stack frame, regardless of SA_SIGINFO, and pass info anyway. */
-+	ret = setup_rt_frame(sig, ka, info, oldset, regs);
-+
-+	if (ret != 0) {
-+		force_sigsegv(sig, tsk);
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
++	if (ret)
 +		return ret;
-+	}
 +
-+	/* Block the signal if we were successful. */
-+	spin_lock_irq(&current->sighand->siglock);
-+	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
-+	if (!(ka->sa.sa_flags & SA_NODEFER))
-+		sigaddset(&current->blocked, sig);
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
++	regs.sr = task_pt_regs(target)->sr;
++
++	task_thread_info(target)->tp_value = regs.tls;
++
++	*task_pt_regs(target) = regs;
 +
 +	return 0;
 +}
 +
++static int fpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user *ubuf)
++{
++	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
++
++#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
++	int i;
++	struct user_fp tmp = *regs;
++
++	for (i = 0; i < 16; i++) {
++		tmp.vr[i*4] = regs->vr[i*2];
++		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
++	}
++
++	for (i = 0; i < 32; i++) {
++		tmp.vr[64 + i] = regs->vr[32 + i];
++	}
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++#else
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++#endif
++}
++
++static int fpr_set(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
++
++#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
++	int i;
++	struct user_fp tmp;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++
++	*regs = tmp;
++
++	for (i = 0; i < 16; i++) {
++		regs->vr[i*2] = tmp.vr[i*4];
++		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
++	}
++
++	for (i = 0; i < 32; i++) {
++		regs->vr[32 + i] = tmp.vr[64 + i];
++	}
++#else
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++#endif
++
++	return ret;
++}
++
++static const struct user_regset csky_regsets[] = {
++	[REGSET_GPR] = {
++		.core_note_type = NT_PRSTATUS,
++		.n = ELF_NGREG,
++		.size = sizeof(u32),
++		.align = sizeof(u32),
++		.get = &gpr_get,
++		.set = &gpr_set,
++	},
++	[REGSET_FPR] = {
++		.core_note_type = NT_PRFPREG,
++		.n = sizeof(struct user_fp) / sizeof(u32),
++		.size = sizeof(u32),
++		.align = sizeof(u32),
++		.get = &fpr_get,
++		.set = &fpr_set,
++	},
++};
++
++static const struct user_regset_view user_csky_view = {
++	.name = "csky",
++	.e_machine = ELF_ARCH,
++	.regsets = csky_regsets,
++	.n = ARRAY_SIZE(csky_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_csky_view;
++}
++
++void ptrace_disable(struct task_struct *child)
++{
++	singlestep_disable(child);
++}
++
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	long ret = -EIO;
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	return ret;
++}
++
 +/*
-+ * Note that 'init' is a special process: it doesn't get signals it doesn't
-+ * want to handle. Thus you cannot kill init even with a SIGKILL even by
-+ * mistake.
-+ *
-+ * Note that we go through the signals twice: once to check the signals
-+ * that the kernel can handle, and then we build all the user-level signal
-+ * handling stack-frames in one go after that.
++ * If process's system calls is traces, do some corresponding handles in this
++ * fuction before entering system call function and after exiting system call
++ * fuction.
 + */
-+static void do_signal(struct pt_regs *regs, int syscall)
++asmlinkage void syscall_trace(int why, struct pt_regs * regs)
 +{
-+	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
-+	struct ksignal ksig;
-+
++	long saved_why;
 +	/*
-+	 * We want the common case to go fast, which
-+	 * is why we may in certain cases get here from
-+	 * kernel mode. Just return without doing anything
-+	 * if so.
++	 * Save saved_why, why is used to denote syscall entry/exit;
++	 * why = 0:entry, why = 1: exit
 +	 */
-+	if (!user_mode(regs))
-+		return;
++	saved_why = regs->regs[SYSTRACE_SAVENUM];
++	regs->regs[SYSTRACE_SAVENUM] = why;
 +
-+	current->thread.esp0 = (unsigned long)regs;
-+
++	/* the 0x80 provides a way for the tracing parent to distinguish
++	   between a syscall stop and SIGTRAP delivery */
++	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
++				? 0x80 : 0));
 +	/*
-+	 * If we were from a system call, check for system call restarting...
++	 * this isn't the same as continuing with a signal, but it will do
++	 * for normal use.  strace only continues with a signal if the
++	 * stopping signal is not SIGTRAP.  -brl
 +	 */
-+	if (syscall) {
-+		continue_addr = regs->pc;
-+#if defined(__CSKYABIV2__)
-+		restart_addr = continue_addr - 4;
-+#else
-+		restart_addr = continue_addr - 2;
-+#endif
-+		retval = regs->a0;
-+
-+		/*
-+		 * Prepare for system call restart.  We do this here so that a
-+		 * debugger will see the already changed.
-+		 */
-+		switch (retval) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->a0 = regs->orig_a0;
-+			regs->pc = restart_addr;
-+			break;
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->a0 = -EINTR;
-+			break;
-+		}
++	if (current->exit_code) {
++		send_sig(current->exit_code, current, 1);
++		current->exit_code = 0;
 +	}
 +
-+	if (try_to_freeze())
-+		goto no_signal;
-+
-+	/*
-+	 * Get the signal to deliver.  When running under ptrace, at this
-+	 * point the debugger may change all our registers ...
-+	 */
-+	if (get_signal(&ksig)) {
-+		sigset_t *oldset;
-+
-+		/*
-+		 * Depending on the signal settings we may need to revert the
-+		 * decision to restart the system call.  But skip this if a
-+		 * debugger has chosen to restart at a different PC.
-+		 */
-+		if (regs->pc == restart_addr) {
-+			if (retval == -ERESTARTNOHAND
-+					|| (retval == -ERESTARTSYS
-+						&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
-+				regs->a0 = -EINTR;
-+				regs->pc = continue_addr;
-+			}
-+		}
-+
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+			oldset = &current->saved_sigmask;
-+		else
-+			oldset = &current->blocked;
-+		/* Whee!  Actually deliver the signal.  */
-+		if (handle_signal(ksig.sig, &ksig.ka, &ksig.info, oldset, regs) == 0) {
-+			/*
-+			 * A signal was successfully delivered; the saved
-+			 * sigmask will have been stored in the signal frame,
-+			 * and will be restored by sigreturn, so we can simply
-+			 * clear the TIF_RESTORE_SIGMASK flag.
-+			 */
-+			if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+				clear_thread_flag(TIF_RESTORE_SIGMASK);
-+		}
-+		return;
-+	}
-+
-+no_signal:
-+	if (syscall) {
-+		/*
-+		 * Handle restarting a different system call.  As above,
-+		 * if a debugger has chosen to restart at a different PC,
-+		 * ignore the restart.
-+		 */
-+		if (retval == -ERESTART_RESTARTBLOCK
-+				&& regs->pc == continue_addr) {
-+#if defined(__CSKYABIV2__)
-+			regs->regs[3] = __NR_restart_syscall;
-+			regs->pc -= 4;
-+#else
-+			regs->regs[9] = __NR_restart_syscall;
-+			regs->pc -= 2;
-+#endif
-+		}
-+
-+		/* If there's no signal to deliver, we just put the saved sigmask
-+		 * back.
-+		 */
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-+			clear_thread_flag(TIF_RESTORE_SIGMASK);
-+			sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-+		}
-+	}
++	regs->regs[SYSTRACE_SAVENUM] = saved_why;
++	return;
 +}
 +
-+asmlinkage void
-+do_notify_resume(unsigned int thread_flags, struct pt_regs *regs, int syscall)
++void show_regs(struct pt_regs *fp)
 +{
-+	if (thread_flags & _TIF_SIGPENDING)
-+		do_signal(regs, syscall);
++	unsigned long   *sp;
++	unsigned char   *tp;
++	int	i;
 +
-+	if (thread_flags & _TIF_NOTIFY_RESUME) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(regs);
++	pr_info("\nCURRENT PROCESS:\n\n");
++	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
++
++	if (current->mm) {
++		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
++		       (int) current->mm->start_code,
++		       (int) current->mm->end_code,
++		       (int) current->mm->start_data,
++		       (int) current->mm->end_data,
++		       (int) current->mm->end_data,
++		       (int) current->mm->brk);
++		pr_info("USER-STACK=%08x  KERNEL-STACK=%08x\n\n",
++		       (int) current->mm->start_stack,
++		       (int) (((unsigned long) current) + 2 * PAGE_SIZE));
 +	}
-+}
-diff --git a/arch/csky/kernel/time.c b/arch/csky/kernel/time.c
-new file mode 100644
-index 0000000..b5fc944
---- /dev/null
-+++ b/arch/csky/kernel/time.c
-@@ -0,0 +1,11 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/clk-provider.h>
-+#include <linux/clocksource.h>
++	pr_info("PC: 0x%08lx\n", (long)fp->pc);
++	pr_info("orig_a0: 0x%08lx\n", fp->orig_a0);
++	pr_info("PSR: 0x%08lx\n", (long)fp->sr);
 +
-+void __init time_init(void)
-+{
-+	of_clk_init(NULL);
-+	timer_probe();
++	pr_info("a0: 0x%08lx  a1: 0x%08lx  a2: 0x%08lx  a3: 0x%08lx\n",
++	       fp->a0, fp->a1, fp->a2, fp->a3);
++#if defined(__CSKYABIV2__)
++	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
++	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
++	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
++	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
++	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
++	       fp->regs[8], fp->regs[9], fp->lr);
++	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
++	       fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
++	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
++	       fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
++	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
++	       fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
++	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
++	       fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
++	pr_info("hi 0x%08lx     lo: 0x%08lx \n",
++	       fp->rhi, fp->rlo);
++#else
++	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
++	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
++	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
++	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
++	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
++	       fp->regs[8], fp->regs[9], fp->lr);
++#endif
++
++	pr_info("\nCODE:");
++	tp = ((unsigned char *) fp->pc) - 0x20;
++	tp += ((int)tp % 4) ? 2 : 0;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
++		if ((i % 0x10) == 0)
++			pr_cont("\n%08x: ", (int) (tp + i));
++		pr_cont("%08x ", (int) *sp++);
++	}
++	pr_cont("\n");
++
++	pr_info("\nKERNEL STACK:");
++	tp = ((unsigned char *) fp) - 0x40;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
++		if ((i % 0x10) == 0)
++			pr_cont("\n%08x: ", (int) (tp + i));
++		pr_cont("%08x ", (int) *sp++);
++	}
++	pr_cont("\n");
++
++	return;
 +}
 -- 
 2.7.4
