@@ -1,125 +1,89 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: defconfig fails if CROSS_COMPILE is set while cross-gcc is not avaialble
-Date: Wed, 12 Sep 2018 21:53:19 +0900
-Message-ID: <CAK7LNAR0ghuhDXUqJ=nX0dtbtoOvFff9Eeu-hHWLkTONG09GAQ@mail.gmail.com>
-References: <0854f35e92c95e552721dc6a46f4ee2bc4020bc1.camel@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V3 02/27] csky: defconfig
+Date: Wed, 12 Sep 2018 21:24:36 +0800
+Message-ID: <3389ac85166cc951379d46d822beb725a9426a9d.1536757532.git.ren_guo@c-sky.com>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <0854f35e92c95e552721dc6a46f4ee2bc4020bc1.camel@synopsys.com>
+In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1536757532.git.ren_guo@c-sky.com>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "keescook@chromium.org" <keescook@chromium.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org
+Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Alexey.
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/configs/defconfig | 61 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
+ create mode 100644 arch/csky/configs/defconfig
 
-2018-09-12 21:08 GMT+09:00 Alexey Brodkin <Alexey.Brodkin@synopsys.com>:
-> Hello Masahiro-san,
->
-> Starting from kernel v4.17 it is no longer possible to install kernel headers
-> for ARC architecture if there's no cross-toolchain in PATH.
-
-
-Really?
-
-I can do 'make ARCH=arc headers_install'
-with the latest Linus' tree.
-
-I see the following warnings, but possible to install kernel headers.
-
-./scripts/gcc-version.sh: line 26: arc-linux-gcc: command not found
-./scripts/gcc-version.sh: line 27: arc-linux-gcc: command not found
-
-
-If ARC compiler is not found in PATH,
-those warnings are displayed with v4.16 or older as well.
-
-I do not see much difference in the behavior.
-
-
-I am trying to fix even those warnings
-by eliminating unneeded compiler invocation.  It is WIP.
-
-
-
-> Note installation of headers is just one of use-cases when we might not
-> have cross-tools available but still want to run "make xxx_defconfig".
-> I.e. the problem is "make xxx_defconfig" with no cross-toolchain.
->
-> That's what I see:
-> ----------------------------->8--------------------------
-> ./scripts/gcc-version.sh: line 26: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 27: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 26: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 27: arc-linux-gcc: command not found
-> make: arc-linux-gcc: Command not found
-> /bin/sh: arc-linux-gcc: command not found
-> /bin/sh: arc-linux-gcc: command not found
-> *** Default configuration is based on 'nsim_700_defconfig'
-> ./scripts/gcc-version.sh: line 26: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 27: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 29: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 26: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 27: arc-linux-gcc: command not found
-> ./scripts/gcc-version.sh: line 29: arc-linux-gcc: command not found
-> init/Kconfig:17: syntax error
-> init/Kconfig:16: invalid option
-> ./scripts/clang-version.sh: line 15: arc-linux-gcc: command not found
-> ./scripts/gcc-plugin.sh: line 11: arc-linux-gcc: command not found
-> make[1]: *** [scripts/kconfig/Makefile:91: defconfig] Error 1
-> make: *** [Makefile:531: defconfig] Error 2
-> ----------------------------->8--------------------------
->
-> That doesn't happen for ARM and other arches simply because for ARC
-> we define CROSS_COMPILE if it is not set by user, see:
-> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arc/Makefile#n9
-
-I do not think it is a good practice
-to forcibly set CROSS_COMPILE that users may not have.
-
-arch/m68k/Makefile uses cc-cross-prefix helper
-to set the first found compiler.
-
-
-> Still if CROSS_COMPILE is set before execution of "make defconfig"
-> then the same problem happens for others.
->
-> I was able to find a series of commits which cause this problem,
-> here they are:
-> ----------------------------->8--------------------------
-> 59f53855babf - gcc-plugins: test plugin support in Kconfig and clean up Makefile
-> 469cb7376c06 - kconfig: add CC_IS_CLANG and CLANG_VERSION
-> a4353898980c - kconfig: add CC_IS_GCC and GCC_VERSION
-> ----------------------------->8--------------------------
->
-> What happen is "$(CC)" is passed as an argument and in its turn CC is
-> "$(CROSS_COMPILE)gcc", see:
-> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Makefile#n385
->
->
-> So if I substitute "CC" with "HOSTCC" in a couple of places (see below)
-> the problem goes away. But I'm not really sure if what I do is correct.
-> I.e. when we're interested in CC for target and when only host CC is of
-> our interest.
-
-I think the log of commit 316d55d55f49eca44
-is a good source to know the background of this change.
-
-Now Kconfig requires the target compiler.
-So, it does not make sense to
-do defconfig with non-existing compiler.
-
-
-
-> Would be interesting to know your opinion here.
-
-I'd recommend to not hard-code CROSS_COMPILE.
-
-
-
-Thanks.
-
+diff --git a/arch/csky/configs/defconfig b/arch/csky/configs/defconfig
+new file mode 100644
+index 0000000..7ef4289
+--- /dev/null
++++ b/arch/csky/configs/defconfig
+@@ -0,0 +1,61 @@
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_DEFAULT_HOSTNAME="csky"
++# CONFIG_SWAP is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_AUDIT=y
++CONFIG_NO_HZ_IDLE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_DEFAULT_DEADLINE=y
++CONFIG_CPU_CK807=y
++CONFIG_CPU_HAS_FPU=y
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=65536
++CONFIG_VT_HW_CONSOLE_BINDING=y
++CONFIG_SERIAL_NONSTANDARD=y
++CONFIG_SERIAL_8250=y
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_OF_PLATFORM=y
++CONFIG_TTY_PRINTK=y
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_CSKY_MPTIMER=y
++CONFIG_GX6605S_TIMER=y
++CONFIG_PM_DEVFREQ=y
++CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
++CONFIG_DEVFREQ_GOV_PERFORMANCE=y
++CONFIG_DEVFREQ_GOV_POWERSAVE=y
++CONFIG_DEVFREQ_GOV_USERSPACE=y
++CONFIG_GENERIC_PHY=y
++CONFIG_EXT4_FS=y
++CONFIG_FANOTIFY=y
++CONFIG_QUOTA=y
++CONFIG_FSCACHE=m
++CONFIG_FSCACHE_STATS=y
++CONFIG_CACHEFILES=m
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_FAT_DEFAULT_UTF8=y
++CONFIG_NTFS_FS=y
++CONFIG_PROC_KCORE=y
++CONFIG_PROC_CHILDREN=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_CRAMFS=y
++CONFIG_ROMFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_INFO=y
++CONFIG_DEBUG_FS=y
++CONFIG_MAGIC_SYSRQ=y
 -- 
-Best Regards
-Masahiro Yamada
+2.7.4
