@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:49731 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:52028 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727992AbeILT6W (ORCPT
+        by vger.kernel.org with ESMTP id S1728374AbeILT6d (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Sep 2018 15:58:22 -0400
+        Wed, 12 Sep 2018 15:58:33 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V4 17/27] csky: Misc headers
-Date: Wed, 12 Sep 2018 22:51:59 +0800
-Message-ID: <abb46d366b513b814f7af234d560306a818b7324.1536758961.git.ren_guo@c-sky.com>
+Subject: [PATCH V4 24/27] clocksource: add C-SKY SMP timer
+Date: Wed, 12 Sep 2018 22:52:06 +0800
+Message-ID: <f7ebc52b77fc5706f69c44aac467e26d166942b8.1536758961.git.ren_guo@c-sky.com>
 In-Reply-To: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 References: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1536758961.git.ren_guo@c-sky.com>
@@ -16,732 +16,205 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, ren_guo@c-sky.com, green.hu@gmail.com
-Message-ID: <20180912145159.iddzzJyeVtNDnachONqjy2vSGRbC2-y90DTjL_7y1OA@z>
+Message-ID: <20180912145206.AnQ1DClxs9wk8W6vIcLjdUH-Z_iC8mEYmJ-OPjdMiU8@z>
+
+This timer is used by SMP system and use mfcr/mtcr instruction
+to access the regs.
+
+Changelog:
+ - Support csky mp timer alpha version.
+ - Just use low-counter with 32bit width as clocksource.
+ - Coding convention with upstream feed-back.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv1/inc/abi/reg_ops.h      |  26 +++
- arch/csky/abiv1/inc/abi/regdef.h       |  25 +++
- arch/csky/abiv2/inc/abi/reg_ops.h      |  17 ++
- arch/csky/abiv2/inc/abi/regdef.h       |  26 +++
- arch/csky/boot/dts/qemu.dts            |  77 +++++++++
- arch/csky/include/asm/bitops.h         | 281 +++++++++++++++++++++++++++++++++
- arch/csky/include/asm/checksum.h       |  54 +++++++
- arch/csky/include/asm/compat.h         |  11 ++
- arch/csky/include/asm/reg_ops.h        |  22 +++
- arch/csky/include/uapi/asm/byteorder.h |   9 ++
- arch/csky/kernel/asm-offsets.c         |  85 ++++++++++
- 11 files changed, 633 insertions(+)
- create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
- create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
- create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
- create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
- create mode 100644 arch/csky/boot/dts/qemu.dts
- create mode 100644 arch/csky/include/asm/bitops.h
- create mode 100644 arch/csky/include/asm/checksum.h
- create mode 100644 arch/csky/include/asm/compat.h
- create mode 100644 arch/csky/include/asm/reg_ops.h
- create mode 100644 arch/csky/include/uapi/asm/byteorder.h
- create mode 100644 arch/csky/kernel/asm-offsets.c
+ drivers/clocksource/csky_mptimer.c | 178 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 178 insertions(+)
+ create mode 100644 drivers/clocksource/csky_mptimer.c
 
-diff --git a/arch/csky/abiv1/inc/abi/reg_ops.h b/arch/csky/abiv1/inc/abi/reg_ops.h
+diff --git a/drivers/clocksource/csky_mptimer.c b/drivers/clocksource/csky_mptimer.c
 new file mode 100644
-index 0000000..c5d2ff4
+index 0000000..da2b239
 --- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/reg_ops.h
-@@ -0,0 +1,26 @@
++++ b/drivers/clocksource/csky_mptimer.c
+@@ -0,0 +1,178 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ABI_REG_OPS_H
-+#define __ABI_REG_OPS_H
++
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/sched_clock.h>
++#include <linux/cpu.h>
 +#include <asm/reg_ops.h>
 +
-+#define cprcr(reg)					\
-+({							\
-+	unsigned int tmp;				\
-+	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
-+	tmp;						\
-+})
++#include "timer-of.h"
 +
-+#define cpwcr(reg, val)					\
-+({							\
-+	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
-+})
++#define PTIM_CCVR	"cr<3, 14>"
++#define PTIM_CTLR	"cr<0, 14>"
++#define PTIM_LVR	"cr<6, 14>"
++#define PTIM_TSR	"cr<1, 14>"
 +
-+static inline unsigned int mfcr_hint(void)
++static int csky_mptimer_set_next_event(unsigned long delta, struct clock_event_device *ce)
 +{
-+	return mfcr("cr30");
-+}
-+
-+static inline unsigned int mfcr_ccr2(void){return 0;}
-+
-+#endif /* __ABI_REG_OPS_H */
-diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
-new file mode 100644
-index 0000000..cc4cebd
---- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/regdef.h
-@@ -0,0 +1,25 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef  __ASM_CSKY_REGDEF_H
-+#define  __ASM_CSKY_REGDEF_H
-+
-+#define syscallid	r1
-+#define r11_sig		r11
-+
-+#define regs_syscallid(regs) regs->regs[9]
-+
-+/*
-+ * PSR format:
-+ * | 31 | 30-24 | 23-16 | 15 14 | 13-0 |
-+ *   S     CPID     VEC     TM
-+ *
-+ *    S: Super Mode
-+ * CPID: Coprocessor id, only 15 for MMU
-+ *  VEC: Exception Number
-+ *   TM: Trace Mode
-+ */
-+#define DEFAULT_PSR_VALUE	0x8f000000
-+
-+#define SYSTRACE_SAVENUM	2
-+
-+#endif /* __ASM_CSKY_REGDEF_H */
-diff --git a/arch/csky/abiv2/inc/abi/reg_ops.h b/arch/csky/abiv2/inc/abi/reg_ops.h
-new file mode 100644
-index 0000000..ffe4fc9
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/reg_ops.h
-@@ -0,0 +1,17 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ABI_REG_OPS_H
-+#define __ABI_REG_OPS_H
-+#include <asm/reg_ops.h>
-+
-+static inline unsigned int mfcr_hint(void)
-+{
-+	return mfcr("cr31");
-+}
-+
-+static inline unsigned int mfcr_ccr2(void)
-+{
-+	return mfcr("cr23");
-+}
-+#endif /* __ABI_REG_OPS_H */
-diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
-new file mode 100644
-index 0000000..676e74a
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/regdef.h
-@@ -0,0 +1,26 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef  __ASM_CSKY_REGDEF_H
-+#define  __ASM_CSKY_REGDEF_H
-+
-+#define syscallid	r7
-+#define r11_sig		r11
-+
-+#define regs_syscallid(regs) regs->regs[3]
-+
-+/*
-+ * PSR format:
-+ * | 31 | 30-24 | 23-16 | 15 14 | 13-10 | 9 | 8-0 |
-+ *   S              VEC     TM            MM
-+ *
-+ *   S: Super Mode
-+ * VEC: Exception Number
-+ *  TM: Trace Mode
-+ *  MM: Memory unaligned addr access
-+ */
-+#define DEFAULT_PSR_VALUE	0x80000200
-+
-+#define SYSTRACE_SAVENUM	5
-+
-+#endif /* __ASM_CSKY_REGDEF_H */
-diff --git a/arch/csky/boot/dts/qemu.dts b/arch/csky/boot/dts/qemu.dts
-new file mode 100644
-index 0000000..c6643b1
---- /dev/null
-+++ b/arch/csky/boot/dts/qemu.dts
-@@ -0,0 +1,77 @@
-+/dts-v1/;
-+/ {
-+	compatible = "csky,qemu";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "console=ttyS0,115200";
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x0 0x40000000>;
-+	};
-+
-+	soc {
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		compatible = "simple-bus";
-+		ranges;
-+
-+		intc: interrupt-controller@fffff000 {
-+			compatible = "csky,apb-intc";
-+			reg = <0xfffff000 0x1000>;
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		timer0: timer@ffffd000 {
-+			compatible = "snps,dw-apb-timer";
-+			reg = <0xffffd000 0x1000>;
-+			clocks = <&dummy_apb>;
-+			clock-names = "timer";
-+			interrupts = <1>;
-+		};
-+
-+		timer1: timer@ffffd014 {
-+			compatible = "snps,dw-apb-timer";
-+			reg = <0xffffd014 0x800>;
-+			clocks = <&dummy_apb>;
-+			clock-names = "timer";
-+			interrupts = <2>;
-+		};
-+
-+		serial0:serial@ffffe000 {
-+			compatible = "ns16550a";
-+			reg = <0xffffe000 0x1000>;
-+			interrupts = <3>;
-+			clocks = <&dummy_apb>;
-+			baud = <115200>;
-+			reg-shift = <2>;
-+			reg-io-width = <1>;
-+		};
-+
-+		dummy_apb: apb-clock {
-+			compatible = "fixed-clock";
-+			clock-frequency = <40000000>;
-+			clock-output-names = "dummy_apb";
-+			#clock-cells = <0>;
-+		};
-+
-+		mac0: ethernet@ffffa000 {
-+			compatible = "snps,dwmac";
-+			reg = <0xffffa000 0x2000>;
-+			interrupts = <4>;
-+			interrupt-names = "macirq";
-+			clocks = <&dummy_apb>;
-+			clock-names = "stmmaceth";
-+			phy-mode = "mii";
-+			snps,pbl = <32>;
-+			snps,fixed-burst;
-+		};
-+	};
-+
-+};
-diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
-new file mode 100644
-index 0000000..36a539d
---- /dev/null
-+++ b/arch/csky/include/asm/bitops.h
-@@ -0,0 +1,281 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_BITOPS_H
-+#define __ASM_CSKY_BITOPS_H
-+
-+#include <linux/compiler.h>
-+#include <asm/barrier.h>
-+
-+/*
-+ * asm-generic/bitops/ffs.h
-+ */
-+static inline int ffs(int x)
-+{
-+	if(!x) return 0;
-+
-+	asm volatile (
-+		"brev %0\n"
-+		"ff1  %0\n"
-+		"addi %0, 1\n"
-+		:"=&r"(x)
-+		:"0"(x));
-+	return x;
-+}
-+
-+/*
-+ * asm-generic/bitops/__ffs.h
-+ */
-+static __always_inline unsigned long __ffs(unsigned long x)
-+{
-+	asm volatile (
-+		"brev %0\n"
-+		"ff1  %0\n"
-+		:"=&r"(x)
-+		:"0"(x));
-+	return x;
-+}
-+
-+/*
-+ * asm-generic/bitops/fls.h
-+ */
-+static __always_inline int fls(int x)
-+{
-+	asm volatile(
-+		"ff1 %0\n"
-+		:"=&r"(x)
-+		:"0"(x));
-+
-+	return (32 - x);
-+}
-+
-+/*
-+ * asm-generic/bitops/__fls.h
-+ */
-+static __always_inline unsigned long __fls(unsigned long x)
-+{
-+	return fls(x) - 1;
-+}
-+
-+#include <asm-generic/bitops/ffz.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/find.h>
-+
-+#ifndef _LINUX_BITOPS_H
-+#error only <linux/bitops.h> can be included directly
-+#endif
-+
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/lock.h>
-+
-+#ifdef CONFIG_CPU_HAS_LDSTEX
-+
-+/*
-+ * set_bit - Atomically set a bit in memory
-+ * @nr: the bit to set
-+ * @addr: the address to start counting from
-+ *
-+ * This function is atomic and may not be reordered.  See __set_bit()
-+ * if you do not require the atomic guarantees.
-+ *
-+ * Note: there are no guarantees that this function will not be reordered
-+ * on non x86 architectures, so if you are writing portable code,
-+ * make sure not to rely on its reordering guarantees.
-+ *
-+ * Note that @nr may be almost arbitrarily large; this function is not
-+ * restricted to acting on a single-word quantity.
-+ */
-+static inline void set_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long tmp;
-+
-+	/* *p  |= mask; */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2)	\n"
-+		"	or32		%0, %0, %1	\n"
-+		"	stex.w		%0, (%2)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+}
-+
-+/**
-+ * clear_bit - Clears a bit in memory
-+ * @nr: Bit to clear
-+ * @addr: Address to start counting from
-+ *
-+ * clear_bit() is atomic and may not be reordered.  However, it does
-+ * not contain a memory barrier, so if it is used for locking purposes,
-+ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-+ * in order to ensure changes are visible on other processors.
-+ */
-+static inline void clear_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long tmp;
-+
-+	/* *p &= ~mask; */
-+	mask = ~mask;
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2)	\n"
-+		"	and32		%0, %0, %1	\n"
-+		"	stex.w		%0, (%2)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+}
-+
-+/**
-+ * change_bit - Toggle a bit in memory
-+ * @nr: Bit to change
-+ * @addr: Address to start counting from
-+ *
-+ * change_bit() is atomic and may not be reordered. It may be
-+ * reordered on other architectures than x86.
-+ * Note that @nr may be almost arbitrarily large; this function is not
-+ * restricted to acting on a single-word quantity.
-+ */
-+static inline void change_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long tmp;
-+
-+	/* *p ^= mask; */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%0, (%2)	\n"
-+		"	xor32		%0, %0, %1	\n"
-+		"	stex.w		%0, (%2)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+}
-+
-+/**
-+ * test_and_set_bit - Set a bit and return its old value
-+ * @nr: Bit to set
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It may be reordered on other architectures than x86.
-+ * It also implies a memory barrier.
-+ */
-+static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long old, tmp;
-+
-+	/*
-+	 * old = *p;
-+	 * *p = old | mask;
-+	 */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%1, (%3)	\n"
-+		"	mov		%0, %1		\n"
-+		"	or32		%0, %0, %2	\n"
-+		"	stex.w		%0, (%3)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp), "=&r"(old)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+
-+	return (old & mask) != 0;
-+}
-+
-+/**
-+ * test_and_clear_bit - Clear a bit and return its old value
-+ * @nr: Bit to clear
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It can be reorderdered on other architectures other than x86.
-+ * It also implies a memory barrier.
-+ */
-+static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long old, tmp, mask_not;
-+
-+	/*
-+	 * old = *p;
-+	 * *p = old & ~mask;
-+	 */
-+	smp_mb();
-+	mask_not = ~mask;
-+	asm volatile (
-+		"1:	ldex.w		%1, (%3)	\n"
-+		"	mov		%0, %1		\n"
-+		"	and32		%0, %0, %2	\n"
-+		"	stex.w		%0, (%3)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp), "=&r"(old)
-+		: "r"(mask_not), "r"(p)
-+		: "memory");
-+
-+	smp_mb();
-+
-+	return (old & mask) != 0;
-+}
-+
-+/**
-+ * test_and_change_bit - Change a bit and return its old value
-+ * @nr: Bit to change
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It also implies a memory barrier.
-+ */
-+static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
-+{
-+	unsigned long mask = BIT_MASK(nr);
-+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-+	unsigned long old, tmp;
-+
-+	/*
-+	 * old = *p;
-+	 * *p = old ^ mask;
-+	 */
-+	smp_mb();
-+	asm volatile (
-+		"1:	ldex.w		%1, (%3)	\n"
-+		"	mov		%0, %1		\n"
-+		"	xor32		%0, %0, %2	\n"
-+		"	stex.w		%0, (%3)	\n"
-+		"	bez		%0, 1b		\n"
-+		: "=&r"(tmp), "=&r"(old)
-+		: "r"(mask), "r"(p)
-+		: "memory");
-+	smp_mb();
-+
-+	return (old & mask) != 0;
-+}
-+
-+#else
-+#include <asm-generic/bitops/atomic.h>
-+#endif
-+
-+/*
-+ * bug fix, why only could use atomic!!!!
-+ */
-+#include <asm-generic/bitops/non-atomic.h>
-+#define __clear_bit(nr,vaddr) clear_bit(nr,vaddr)
-+
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic.h>
-+#endif /* __ASM_CSKY_BITOPS_H */
-diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
-new file mode 100644
-index 0000000..0b7f436
---- /dev/null
-+++ b/arch/csky/include/asm/checksum.h
-@@ -0,0 +1,54 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_CHECKSUM_H
-+#define __ASM_CSKY_CHECKSUM_H
-+
-+#include <linux/in6.h>
-+#include <asm/byteorder.h>
-+
-+static inline __sum16 csum_fold(__wsum csum)
-+{
-+	u32 tmp;
-+	asm volatile(
-+		"mov	%1, %0\n"
-+		"rori	%0, 16\n"
-+		"addu	%0, %1\n"
-+		"lsri	%0, 16\n"
-+		:"=r"(csum), "=r"(tmp)
-+		:"0"(csum));
-+	return (__force __sum16)~csum;
-+}
-+#define csum_fold csum_fold
-+
-+static inline __wsum
-+csum_tcpudp_nofold(
-+	__be32 saddr,
-+	__be32 daddr,
-+	unsigned short len,
-+	unsigned short proto,
-+	__wsum sum
-+	)
-+{
-+	asm volatile(
-+		"clrc\n"
-+		"addc    %0, %1\n"
-+		"addc    %0, %2\n"
-+		"addc    %0, %3\n"
-+		"inct    %0\n"
-+		:"=r"(sum)
-+		:"r"((__force u32)saddr),
-+		"r"((__force u32)daddr),
-+#ifdef __BIG_ENDIAN
-+		"r"(proto + len),
-+#else
-+		"r"((proto + len) << 8),
-+#endif
-+		"0" ((__force unsigned long)sum)
-+		:"cc");
-+	return sum;
-+}
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+
-+#include <asm-generic/checksum.h>
-+
-+#endif /* __ASM_CSKY_CHECKSUM_H */
-diff --git a/arch/csky/include/asm/compat.h b/arch/csky/include/asm/compat.h
-new file mode 100644
-index 0000000..59f9297
---- /dev/null
-+++ b/arch/csky/include/asm/compat.h
-@@ -0,0 +1,11 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_COMPAT_H
-+#define __ASM_CSKY_COMPAT_H
-+
-+#ifdef CONFIG_COMPAT
-+#define COMPAT_UTS_MACHINE "csky\0\0"
-+#endif
-+
-+#endif /* __ASM_CSKY_COMPAT_H */
-diff --git a/arch/csky/include/asm/reg_ops.h b/arch/csky/include/asm/reg_ops.h
-new file mode 100644
-index 0000000..ed7bbde
---- /dev/null
-+++ b/arch/csky/include/asm/reg_ops.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_REGS_OPS_H
-+#define __ASM_REGS_OPS_H
-+
-+#define mfcr(reg)				\
-+({						\
-+	unsigned int tmp;			\
-+	asm volatile("mfcr %0, "reg"\n"		\
-+		     :"=r"(tmp)			\
-+		     :				\
-+		     :"memory");		\
-+	tmp;					\
-+})
-+
-+#define mtcr(reg, val)				\
-+({						\
-+	asm volatile("mtcr %0, "reg"\n"		\
-+		     :				\
-+		     :"r"(val)			\
-+		     :"memory");		\
-+})
-+
-+#endif /* __ASM_REGS_OPS_H */
-diff --git a/arch/csky/include/uapi/asm/byteorder.h b/arch/csky/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..c758563
---- /dev/null
-+++ b/arch/csky/include/uapi/asm/byteorder.h
-@@ -0,0 +1,9 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_BYTEORDER_H
-+#define __ASM_CSKY_BYTEORDER_H
-+
-+#include <linux/byteorder/little_endian.h>
-+
-+#endif /* __ASM_CSKY_BYTEORDER_H */
-diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
-new file mode 100644
-index 0000000..d7868dd
---- /dev/null
-+++ b/arch/csky/kernel/asm-offsets.c
-@@ -0,0 +1,85 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/kbuild.h>
-+#include <abi/regdef.h>
-+
-+int main(void)
-+{
-+	/* offsets into the task struct */
-+	DEFINE(TASK_STATE,        offsetof(struct task_struct, state));
-+	DEFINE(TASK_THREAD_INFO,  offsetof(struct task_struct, stack));
-+	DEFINE(TASK_FLAGS,        offsetof(struct task_struct, flags));
-+	DEFINE(TASK_PTRACE,       offsetof(struct task_struct, ptrace));
-+	DEFINE(TASK_THREAD,       offsetof(struct task_struct, thread));
-+	DEFINE(TASK_MM,           offsetof(struct task_struct, mm));
-+	DEFINE(TASK_ACTIVE_MM,    offsetof(struct task_struct, active_mm));
-+
-+	/* offsets into the thread struct */
-+	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
-+	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
-+	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
-+	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
-+	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
-+	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
-+	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
-+	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
-+
-+	/* offsets into the thread_info struct */
-+	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));
-+	DEFINE(TINFO_PREEMPT,     offsetof(struct thread_info, preempt_count));
-+	DEFINE(TINFO_ADDR_LIMIT,  offsetof(struct thread_info, addr_limit));
-+	DEFINE(TINFO_TP_VALUE,   offsetof(struct thread_info, tp_value));
-+	DEFINE(TINFO_TASK,        offsetof(struct thread_info, task));
-+
-+	/* offsets into the pt_regs */
-+	DEFINE(PT_PC,             offsetof(struct pt_regs, pc));
-+	DEFINE(PT_ORIG_AO,        offsetof(struct pt_regs, orig_a0));
-+	DEFINE(PT_SR,             offsetof(struct pt_regs, sr));
-+
-+	DEFINE(PT_A0,             offsetof(struct pt_regs, a0));
-+	DEFINE(PT_A1,             offsetof(struct pt_regs, a1));
-+	DEFINE(PT_A2,             offsetof(struct pt_regs, a2));
-+	DEFINE(PT_A3,             offsetof(struct pt_regs, a3));
-+	DEFINE(PT_REGS0,          offsetof(struct pt_regs, regs[0]));
-+	DEFINE(PT_REGS1,          offsetof(struct pt_regs, regs[1]));
-+	DEFINE(PT_REGS2,          offsetof(struct pt_regs, regs[2]));
-+	DEFINE(PT_REGS3,          offsetof(struct pt_regs, regs[3]));
-+	DEFINE(PT_REGS4,          offsetof(struct pt_regs, regs[4]));
-+	DEFINE(PT_REGS5,          offsetof(struct pt_regs, regs[5]));
-+	DEFINE(PT_REGS6,          offsetof(struct pt_regs, regs[6]));
-+	DEFINE(PT_REGS7,          offsetof(struct pt_regs, regs[7]));
-+	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
-+	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
-+	DEFINE(PT_R15,            offsetof(struct pt_regs, lr));
-+#if defined(__CSKYABIV2__)
-+	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
-+	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));
-+	DEFINE(PT_R18,            offsetof(struct pt_regs, exregs[2]));
-+	DEFINE(PT_R19,            offsetof(struct pt_regs, exregs[3]));
-+	DEFINE(PT_R20,            offsetof(struct pt_regs, exregs[4]));
-+	DEFINE(PT_R21,            offsetof(struct pt_regs, exregs[5]));
-+	DEFINE(PT_R22,            offsetof(struct pt_regs, exregs[6]));
-+	DEFINE(PT_R23,            offsetof(struct pt_regs, exregs[7]));
-+	DEFINE(PT_R24,            offsetof(struct pt_regs, exregs[8]));
-+	DEFINE(PT_R25,            offsetof(struct pt_regs, exregs[9]));
-+	DEFINE(PT_R26,            offsetof(struct pt_regs, exregs[10]));
-+	DEFINE(PT_R27,            offsetof(struct pt_regs, exregs[11]));
-+	DEFINE(PT_R28,            offsetof(struct pt_regs, exregs[12]));
-+	DEFINE(PT_R29,            offsetof(struct pt_regs, exregs[13]));
-+	DEFINE(PT_R30,            offsetof(struct pt_regs, exregs[14]));
-+	DEFINE(PT_R31,            offsetof(struct pt_regs, exregs[15]));
-+	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
-+	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
-+#endif
-+	DEFINE(PT_USP,            offsetof(struct pt_regs, usp));
-+	/* offsets into the irq_cpustat_t struct */
-+	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
-+
-+	/* signal defines */
-+	DEFINE(SIGSEGV, SIGSEGV);
-+	DEFINE(SIGTRAP, SIGTRAP);
++	mtcr(PTIM_LVR, delta);
 +
 +	return 0;
 +}
++
++static int csky_mptimer_shutdown(struct clock_event_device *ce)
++{
++	mtcr(PTIM_CTLR, 0);
++
++	return 0;
++}
++
++static int csky_mptimer_oneshot(struct clock_event_device *ce)
++{
++	mtcr(PTIM_CTLR, 1);
++
++	return 0;
++}
++
++static int csky_mptimer_oneshot_stopped(struct clock_event_device *ce)
++{
++	mtcr(PTIM_CTLR, 0);
++
++	return 0;
++}
++
++static DEFINE_PER_CPU(struct timer_of, csky_to) = {
++	.flags					= TIMER_OF_CLOCK,
++	.clkevt = {
++		.rating				= 300,
++		.features			= CLOCK_EVT_FEAT_PERCPU |
++						  CLOCK_EVT_FEAT_ONESHOT,
++		.set_state_shutdown		= csky_mptimer_shutdown,
++		.set_state_oneshot		= csky_mptimer_oneshot,
++		.set_state_oneshot_stopped	= csky_mptimer_oneshot_stopped,
++		.set_next_event			= csky_mptimer_set_next_event,
++	},
++	.of_irq = {
++		.flags				= IRQF_TIMER,
++		.percpu				= 1,
++	},
++};
++
++static irqreturn_t timer_interrupt(int irq, void *dev)
++{
++	struct timer_of *to = this_cpu_ptr(&csky_to);
++
++	mtcr(PTIM_TSR, 0);
++
++	to->clkevt.event_handler(&to->clkevt);
++
++	return IRQ_HANDLED;
++}
++
++/*
++ * clock event for percpu
++ */
++static int csky_mptimer_starting_cpu(unsigned int cpu)
++{
++	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
++
++	to->clkevt.cpumask = cpumask_of(cpu);
++
++	clockevents_config_and_register(&to->clkevt, timer_of_rate(to), 2, ULONG_MAX);
++
++	enable_percpu_irq(timer_of_irq(to), 0);
++
++	return 0;
++}
++
++static int csky_mptimer_dying_cpu(unsigned int cpu)
++{
++	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
++
++	disable_percpu_irq(timer_of_irq(to));
++
++	return 0;
++}
++
++/*
++ * clock source
++ */
++static u64 sched_clock_read(void)
++{
++	return (u64) mfcr(PTIM_CCVR);
++}
++
++static u64 clksrc_read(struct clocksource *c)
++{
++	return (u64) mfcr(PTIM_CCVR);
++}
++
++struct clocksource csky_clocksource = {
++	.name	= "csky",
++	.rating	= 400,
++	.mask	= CLOCKSOURCE_MASK(32),
++	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++	.read	= clksrc_read,
++};
++
++#define CPUHP_AP_CSKY_TIMER_STARTING CPUHP_AP_DUMMY_TIMER_STARTING
++
++static int __init csky_mptimer_init(struct device_node *np)
++{
++	int ret, cpu;
++	struct timer_of *to;
++	int rate = 0;
++	int irq	 = 0;
++
++	/*
++	 * Csky_mptimer is designed for C-SKY SMP multi-processors and
++	 * every core has it's own private irq and regs for clkevt and
++	 * clksrc.
++	 *
++	 * The regs is accessed by cpu instruction: mfcr/mtcr instead of
++	 * mmio map style. So we needn't mmio-address in dts, but we still
++	 * need to give clk and irq number.
++	 *
++	 * We use private irq for the mptimer and irq number is the same
++	 * for every core. So we use request_percpu_irq() in timer_of_init.
++	 */
++
++	for_each_possible_cpu(cpu) {
++		to = per_cpu_ptr(&csky_to, cpu);
++
++		if (cpu == 0) {
++			to->flags	  |= TIMER_OF_IRQ;
++			to->of_irq.handler = timer_interrupt;
++
++			ret = timer_of_init(np, to);
++			if (ret)
++				return ret;
++
++			rate	= timer_of_rate(to);
++			irq	= to->of_irq.irq;
++		} else {
++			ret = timer_of_init(np, to);
++			if (ret)
++				return ret;
++
++			to->of_clk.rate	= rate;
++			to->of_irq.irq	= irq;
++		}
++	}
++
++	ret = cpuhp_setup_state(CPUHP_AP_CSKY_TIMER_STARTING,
++				"clockevents/csky/timer:starting",
++				csky_mptimer_starting_cpu,
++				csky_mptimer_dying_cpu);
++	if (ret) {
++		pr_err("%s: Failed to cpuhp_setup_state.\n", __func__);
++		return ret;
++	}
++
++	clocksource_register_hz(&csky_clocksource, rate);
++	sched_clock_register(sched_clock_read, 32, rate);
++
++	return 0;
++}
++TIMER_OF_DECLARE(csky_mptimer, "csky,mptimer", csky_mptimer_init);
 -- 
 2.7.4
