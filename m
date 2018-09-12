@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V4 27/27] dt-bindings: Add vendor prefix for csky
-Date: Wed, 12 Sep 2018 22:52:09 +0800
-Message-ID: <21c4e62bed6dcb4ff8ee860fb53de69a0adb1cce.1536758961.git.ren_guo@c-sky.com>
+Subject: [PATCH V4 22/27] dt-bindings: interrupt-controller: C-SKY SMP intc
+Date: Wed, 12 Sep 2018 22:52:04 +0800
+Message-ID: <edc5f67f157532bf002120b54bf75117a4d249a7.1536758961.git.ren_guo@c-sky.com>
 References: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
@@ -14,20 +14,55 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- Documentation/devicetree/bindings/vendor-prefixes.txt | 1 +
- 1 file changed, 1 insertion(+)
+ .../bindings/interrupt-controller/csky,mpintc.txt  | 40 ++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
 
-diff --git a/Documentation/devicetree/bindings/vendor-prefixes.txt b/Documentation/devicetree/bindings/vendor-prefixes.txt
-index 7cad066..335f9e0 100644
---- a/Documentation/devicetree/bindings/vendor-prefixes.txt
-+++ b/Documentation/devicetree/bindings/vendor-prefixes.txt
-@@ -81,6 +81,7 @@ cosmic	Cosmic Circuits
- crane	Crane Connectivity Solutions
- creative	Creative Technology Ltd
- crystalfontz	Crystalfontz America, Inc.
-+csky	Hangzhou C-SKY Microsystems Co., Ltd
- cubietech	Cubietech, Ltd.
- cypress	Cypress Semiconductor Corporation
- cznic	CZ.NIC, z.s.p.o.
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+new file mode 100644
+index 0000000..49d1658
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+@@ -0,0 +1,40 @@
++===========================================
++C-SKY Multi-processors Interrupt Controller
++===========================================
++
++C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
++SMP soc, and it also could be used in non-SMP system.
++
++Interrupt number definition:
++
++  0-15  : software irq, and we use 15 as our IPI_IRQ.
++ 16-31  : private  irq, and we use 16 as the co-processor timer.
++ 31-1024: common irq for soc ip.
++
++=============================
++intc node bindings definition
++=============================
++
++	Description: Describes SMP interrupt controller
++
++	PROPERTIES
++
++        - compatible
++		Usage: required
++                Value type: <string>
++                Definition: must be "csky,mpintc"
++        - interrupt-cells
++                Usage: required
++                Value type: <u32>
++                Definition: must be <1>
++        - interrupt-controller:
++                Usage: required
++
++Examples:
++---------
++
++	intc: interrupt-controller {
++		compatible = "csky,mpintc";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
 -- 
 2.7.4
