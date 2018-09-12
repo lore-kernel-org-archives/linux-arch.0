@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V4 15/27] csky: Debug and Ptrace GDB
-Date: Wed, 12 Sep 2018 22:51:57 +0800
-Message-ID: <2bd2199b5d027e62c3ca3f3f352aac61b5a8c1e7.1536758961.git.ren_guo@c-sky.com>
+Subject: [PATCH V4 17/27] csky: Misc headers
+Date: Wed, 12 Sep 2018 22:51:59 +0800
+Message-ID: <abb46d366b513b814f7af234d560306a818b7324.1536758961.git.ren_guo@c-sky.com>
 References: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536758961.git.ren_guo@c-sky.com>
@@ -14,549 +14,728 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/bug.h         |  26 +++
- arch/csky/include/uapi/asm/ptrace.h | 103 ++++++++++++
- arch/csky/kernel/dumpstack.c        |  64 ++++++++
- arch/csky/kernel/ptrace.c           | 317 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 510 insertions(+)
- create mode 100644 arch/csky/include/asm/bug.h
- create mode 100644 arch/csky/include/uapi/asm/ptrace.h
- create mode 100644 arch/csky/kernel/dumpstack.c
- create mode 100644 arch/csky/kernel/ptrace.c
+ arch/csky/abiv1/inc/abi/reg_ops.h      |  26 +++
+ arch/csky/abiv1/inc/abi/regdef.h       |  25 +++
+ arch/csky/abiv2/inc/abi/reg_ops.h      |  17 ++
+ arch/csky/abiv2/inc/abi/regdef.h       |  26 +++
+ arch/csky/boot/dts/qemu.dts            |  77 +++++++++
+ arch/csky/include/asm/bitops.h         | 281 +++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/checksum.h       |  54 +++++++
+ arch/csky/include/asm/compat.h         |  11 ++
+ arch/csky/include/asm/reg_ops.h        |  22 +++
+ arch/csky/include/uapi/asm/byteorder.h |   9 ++
+ arch/csky/kernel/asm-offsets.c         |  85 ++++++++++
+ 11 files changed, 633 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
+ create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
+ create mode 100644 arch/csky/boot/dts/qemu.dts
+ create mode 100644 arch/csky/include/asm/bitops.h
+ create mode 100644 arch/csky/include/asm/checksum.h
+ create mode 100644 arch/csky/include/asm/compat.h
+ create mode 100644 arch/csky/include/asm/reg_ops.h
+ create mode 100644 arch/csky/include/uapi/asm/byteorder.h
+ create mode 100644 arch/csky/kernel/asm-offsets.c
 
-diff --git a/arch/csky/include/asm/bug.h b/arch/csky/include/asm/bug.h
+diff --git a/arch/csky/abiv1/inc/abi/reg_ops.h b/arch/csky/abiv1/inc/abi/reg_ops.h
 new file mode 100644
-index 0000000..10b9028
+index 0000000..c5d2ff4
 --- /dev/null
-+++ b/arch/csky/include/asm/bug.h
++++ b/arch/csky/abiv1/inc/abi/reg_ops.h
+@@ -0,0 +1,26 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
++
++#define cprcr(reg)					\
++({							\
++	unsigned int tmp;				\
++	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
++	tmp;						\
++})
++
++#define cpwcr(reg, val)					\
++({							\
++	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
++})
++
++static inline unsigned int mfcr_hint(void)
++{
++	return mfcr("cr30");
++}
++
++static inline unsigned int mfcr_ccr2(void){return 0;}
++
++#endif /* __ABI_REG_OPS_H */
+diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
+new file mode 100644
+index 0000000..cc4cebd
+--- /dev/null
++++ b/arch/csky/abiv1/inc/abi/regdef.h
+@@ -0,0 +1,25 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef  __ASM_CSKY_REGDEF_H
++#define  __ASM_CSKY_REGDEF_H
++
++#define syscallid	r1
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[9]
++
++/*
++ * PSR format:
++ * | 31 | 30-24 | 23-16 | 15 14 | 13-0 |
++ *   S     CPID     VEC     TM
++ *
++ *    S: Super Mode
++ * CPID: Coprocessor id, only 15 for MMU
++ *  VEC: Exception Number
++ *   TM: Trace Mode
++ */
++#define DEFAULT_PSR_VALUE	0x8f000000
++
++#define SYSTRACE_SAVENUM	2
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/abiv2/inc/abi/reg_ops.h b/arch/csky/abiv2/inc/abi/reg_ops.h
+new file mode 100644
+index 0000000..ffe4fc9
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/reg_ops.h
+@@ -0,0 +1,17 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
++
++static inline unsigned int mfcr_hint(void)
++{
++	return mfcr("cr31");
++}
++
++static inline unsigned int mfcr_ccr2(void)
++{
++	return mfcr("cr23");
++}
++#endif /* __ABI_REG_OPS_H */
+diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
+new file mode 100644
+index 0000000..676e74a
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/regdef.h
 @@ -0,0 +1,26 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_BUG_H
-+#define __ASM_CSKY_BUG_H
++#ifndef  __ASM_CSKY_REGDEF_H
++#define  __ASM_CSKY_REGDEF_H
++
++#define syscallid	r7
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[3]
++
++/*
++ * PSR format:
++ * | 31 | 30-24 | 23-16 | 15 14 | 13-10 | 9 | 8-0 |
++ *   S              VEC     TM            MM
++ *
++ *   S: Super Mode
++ * VEC: Exception Number
++ *  TM: Trace Mode
++ *  MM: Memory unaligned addr access
++ */
++#define DEFAULT_PSR_VALUE	0x80000200
++
++#define SYSTRACE_SAVENUM	5
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/boot/dts/qemu.dts b/arch/csky/boot/dts/qemu.dts
+new file mode 100644
+index 0000000..c6643b1
+--- /dev/null
++++ b/arch/csky/boot/dts/qemu.dts
+@@ -0,0 +1,77 @@
++/dts-v1/;
++/ {
++	compatible = "csky,qemu";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	interrupt-parent = <&intc>;
++
++	chosen {
++		bootargs = "console=ttyS0,115200";
++		stdout-path = &serial0;
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
++
++	soc {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "simple-bus";
++		ranges;
++
++		intc: interrupt-controller@fffff000 {
++			compatible = "csky,apb-intc";
++			reg = <0xfffff000 0x1000>;
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
++
++		timer0: timer@ffffd000 {
++			compatible = "snps,dw-apb-timer";
++			reg = <0xffffd000 0x1000>;
++			clocks = <&dummy_apb>;
++			clock-names = "timer";
++			interrupts = <1>;
++		};
++
++		timer1: timer@ffffd014 {
++			compatible = "snps,dw-apb-timer";
++			reg = <0xffffd014 0x800>;
++			clocks = <&dummy_apb>;
++			clock-names = "timer";
++			interrupts = <2>;
++		};
++
++		serial0:serial@ffffe000 {
++			compatible = "ns16550a";
++			reg = <0xffffe000 0x1000>;
++			interrupts = <3>;
++			clocks = <&dummy_apb>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <1>;
++		};
++
++		dummy_apb: apb-clock {
++			compatible = "fixed-clock";
++			clock-frequency = <40000000>;
++			clock-output-names = "dummy_apb";
++			#clock-cells = <0>;
++		};
++
++		mac0: ethernet@ffffa000 {
++			compatible = "snps,dwmac";
++			reg = <0xffffa000 0x2000>;
++			interrupts = <4>;
++			interrupt-names = "macirq";
++			clocks = <&dummy_apb>;
++			clock-names = "stmmaceth";
++			phy-mode = "mii";
++			snps,pbl = <32>;
++			snps,fixed-burst;
++		};
++	};
++
++};
+diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
+new file mode 100644
+index 0000000..36a539d
+--- /dev/null
++++ b/arch/csky/include/asm/bitops.h
+@@ -0,0 +1,281 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#ifndef __ASM_CSKY_BITOPS_H
++#define __ASM_CSKY_BITOPS_H
 +
 +#include <linux/compiler.h>
-+#include <linux/const.h>
-+#include <linux/types.h>
-+
-+#define BUG()							\
-+do {								\
-+	asm volatile ("bkpt\n");				\
-+	unreachable();						\
-+} while (0)
-+
-+#define HAVE_ARCH_BUG
-+
-+#include <asm-generic/bug.h>
-+
-+struct pt_regs;
-+
-+void die_if_kernel (char *str, struct pt_regs *regs, int nr);
-+void show_regs(struct pt_regs *);
-+
-+#endif /* __ASM_CSKY_BUG_H */
-diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..499f7ef
---- /dev/null
-+++ b/arch/csky/include/uapi/asm/ptrace.h
-@@ -0,0 +1,103 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef _CSKY_PTRACE_H
-+#define _CSKY_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+struct pt_regs {
-+	unsigned long	tls;
-+	unsigned long	lr;
-+	unsigned long	pc;
-+	unsigned long	sr;
-+	unsigned long	usp;
-+
-+	/*
-+	 * a0, a1, a2, a3:
-+	 * abiv1: r2, r3, r4, r5
-+	 * abiv2: r0, r1, r2, r3
-+	 */
-+	unsigned long	orig_a0;
-+	unsigned long	a0;
-+	unsigned long	a1;
-+	unsigned long	a2;
-+	unsigned long	a3;
-+
-+	/*
-+	 * ABIV2: r4 ~ r13
-+	 * ABIV1: r6 ~ r14, r1
-+	 */
-+	unsigned long	regs[10];
-+
-+#if defined(__CSKYABIV2__)
-+	/* r16 ~ r30 */
-+	unsigned long	exregs[15];
-+
-+	unsigned long	rhi;
-+	unsigned long	rlo;
-+	unsigned long	pad; /* reserved */
-+#endif
-+};
-+
-+struct user_fp {
-+	unsigned long	vr[96];
-+	unsigned long	fcr;
-+	unsigned long	fesr;
-+	unsigned long	fid;
-+	unsigned long	reserved;
-+};
++#include <asm/barrier.h>
 +
 +/*
-+ * Switch stack for switch_to after push pt_regs.
-+ *
-+ * ABI_CSKYV2: r4 ~ r11, r15 ~ r17, r26 ~ r30;
-+ * ABI_CSKYV1: r8 ~ r14, r15;
++ * asm-generic/bitops/ffs.h
 + */
-+struct  switch_stack {
-+#if defined(__CSKYABIV2__)
-+	unsigned long   r4;
-+        unsigned long   r5;
-+        unsigned long   r6;
-+        unsigned long   r7;
-+	unsigned long   r8;
-+        unsigned long   r9;
-+        unsigned long   r10;
-+        unsigned long   r11;
++static inline int ffs(int x)
++{
++	if(!x) return 0;
++
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		"addi %0, 1\n"
++		:"=&r"(x)
++		:"0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/__ffs.h
++ */
++static __always_inline unsigned long __ffs(unsigned long x)
++{
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		:"=&r"(x)
++		:"0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/fls.h
++ */
++static __always_inline int fls(int x)
++{
++	asm volatile(
++		"ff1 %0\n"
++		:"=&r"(x)
++		:"0"(x));
++
++	return (32 - x);
++}
++
++/*
++ * asm-generic/bitops/__fls.h
++ */
++static __always_inline unsigned long __fls(unsigned long x)
++{
++	return fls(x) - 1;
++}
++
++#include <asm-generic/bitops/ffz.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
++
++#ifndef _LINUX_BITOPS_H
++#error only <linux/bitops.h> can be included directly
++#endif
++
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
++
++#ifdef CONFIG_CPU_HAS_LDSTEX
++
++/*
++ * set_bit - Atomically set a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * This function is atomic and may not be reordered.  See __set_bit()
++ * if you do not require the atomic guarantees.
++ *
++ * Note: there are no guarantees that this function will not be reordered
++ * on non x86 architectures, so if you are writing portable code,
++ * make sure not to rely on its reordering guarantees.
++ *
++ * Note that @nr may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static inline void set_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p  |= mask; */
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	or32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * clear_bit - Clears a bit in memory
++ * @nr: Bit to clear
++ * @addr: Address to start counting from
++ *
++ * clear_bit() is atomic and may not be reordered.  However, it does
++ * not contain a memory barrier, so if it is used for locking purposes,
++ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
++ * in order to ensure changes are visible on other processors.
++ */
++static inline void clear_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p &= ~mask; */
++	mask = ~mask;
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	and32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * change_bit - Toggle a bit in memory
++ * @nr: Bit to change
++ * @addr: Address to start counting from
++ *
++ * change_bit() is atomic and may not be reordered. It may be
++ * reordered on other architectures than x86.
++ * Note that @nr may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static inline void change_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long tmp;
++
++	/* *p ^= mask; */
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%0, (%2)	\n"
++		"	xor32		%0, %0, %1	\n"
++		"	stex.w		%0, (%2)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++}
++
++/**
++ * test_and_set_bit - Set a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It may be reordered on other architectures than x86.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp;
++
++	/*
++	 * old = *p;
++	 * *p = old | mask;
++	 */
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	or32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++/**
++ * test_and_clear_bit - Clear a bit and return its old value
++ * @nr: Bit to clear
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It can be reorderdered on other architectures other than x86.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp, mask_not;
++
++	/*
++	 * old = *p;
++	 * *p = old & ~mask;
++	 */
++	smp_mb();
++	mask_not = ~mask;
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	and32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask_not), "r"(p)
++		: "memory");
++
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
++/**
++ * test_and_change_bit - Change a bit and return its old value
++ * @nr: Bit to change
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It also implies a memory barrier.
++ */
++static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
++{
++	unsigned long mask = BIT_MASK(nr);
++	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
++	unsigned long old, tmp;
++
++	/*
++	 * old = *p;
++	 * *p = old ^ mask;
++	 */
++	smp_mb();
++	asm volatile (
++		"1:	ldex.w		%1, (%3)	\n"
++		"	mov		%0, %1		\n"
++		"	xor32		%0, %0, %2	\n"
++		"	stex.w		%0, (%3)	\n"
++		"	bez		%0, 1b		\n"
++		: "=&r"(tmp), "=&r"(old)
++		: "r"(mask), "r"(p)
++		: "memory");
++	smp_mb();
++
++	return (old & mask) != 0;
++}
++
 +#else
-+	unsigned long   r8;
-+        unsigned long   r9;
-+        unsigned long   r10;
-+        unsigned long   r11;
-+        unsigned long   r12;
-+        unsigned long   r13;
-+        unsigned long   r14;
++#include <asm-generic/bitops/atomic.h>
 +#endif
-+        unsigned long   r15;
-+#if defined(__CSKYABIV2__)
-+        unsigned long   r16;
-+        unsigned long   r17;
-+        unsigned long   r26;
-+        unsigned long   r27;
-+        unsigned long   r28;
-+        unsigned long   r29;
-+        unsigned long   r30;
-+#endif
-+};
 +
-+#ifdef __KERNEL__
++/*
++ * bug fix, why only could use atomic!!!!
++ */
++#include <asm-generic/bitops/non-atomic.h>
++#define __clear_bit(nr,vaddr) clear_bit(nr,vaddr)
 +
-+#define PS_S            0x80000000              /* Supervisor Mode */
-+
-+#define arch_has_single_step() (1)
-+#define current_pt_regs() \
-+	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
-+
-+#define user_stack_pointer(regs) ((regs)->usp)
-+
-+#define user_mode(regs) (!((regs)->sr & PS_S))
-+#define instruction_pointer(regs) ((regs)->pc)
-+#define profile_pc(regs) instruction_pointer(regs)
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASSEMBLY__ */
-+#endif /* _CSKY_PTRACE_H */
-diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
++#endif /* __ASM_CSKY_BITOPS_H */
+diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
 new file mode 100644
-index 0000000..3ef91ee
+index 0000000..0b7f436
 --- /dev/null
-+++ b/arch/csky/kernel/dumpstack.c
-@@ -0,0 +1,64 @@
++++ b/arch/csky/include/asm/checksum.h
+@@ -0,0 +1,54 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/ptrace.h>
++#ifndef __ASM_CSKY_CHECKSUM_H
++#define __ASM_CSKY_CHECKSUM_H
 +
-+int kstack_depth_to_print = 48;
++#include <linux/in6.h>
++#include <asm/byteorder.h>
 +
-+void show_trace(unsigned long *stack)
++static inline __sum16 csum_fold(__wsum csum)
 +{
-+	unsigned long *endstack;
-+	unsigned long addr;
-+	int i;
++	u32 tmp;
++	asm volatile(
++		"mov	%1, %0\n"
++		"rori	%0, 16\n"
++		"addu	%0, %1\n"
++		"lsri	%0, 16\n"
++		:"=r"(csum), "=r"(tmp)
++		:"0"(csum));
++	return (__force __sum16)~csum;
++}
++#define csum_fold csum_fold
 +
-+	pr_info("Call Trace:\n");
-+	addr = (unsigned long)stack + THREAD_SIZE - 1;
-+	endstack = (unsigned long *)(addr & -THREAD_SIZE);
-+	i = 0;
-+	while (stack + 1 <= endstack) {
-+		addr = *stack++;
-+		/*
-+		 * If the address is either in the text segment of the
-+		 * kernel, or in the region which contains vmalloc'ed
-+		 * memory, it *may* be the address of a calling
-+		 * routine; if so, print it so that someone tracing
-+		 * down the cause of the crash will be able to figure
-+		 * out the call path that was taken.
-+		 */
-+		if (__kernel_text_address(addr)) {
-+#ifndef CONFIG_KALLSYMS
-+			if (i % 5 == 0)
-+				pr_cont("\n       ");
++static inline __wsum
++csum_tcpudp_nofold(
++	__be32 saddr,
++	__be32 daddr,
++	unsigned short len,
++	unsigned short proto,
++	__wsum sum
++	)
++{
++	asm volatile(
++		"clrc\n"
++		"addc    %0, %1\n"
++		"addc    %0, %2\n"
++		"addc    %0, %3\n"
++		"inct    %0\n"
++		:"=r"(sum)
++		:"r"((__force u32)saddr),
++		"r"((__force u32)daddr),
++#ifdef __BIG_ENDIAN
++		"r"(proto + len),
++#else
++		"r"((proto + len) << 8),
 +#endif
-+			pr_cont(" [<%08lx>] %pS\n", addr, (void *)addr);
-+			i++;
-+		}
-+	}
-+	pr_cont("\n");
++		"0" ((__force unsigned long)sum)
++		:"cc");
++	return sum;
 +}
++#define csum_tcpudp_nofold csum_tcpudp_nofold
 +
-+void show_stack(struct task_struct *task, unsigned long *stack)
-+{
-+	unsigned long *p;
-+	unsigned long *endstack;
-+	int i;
++#include <asm-generic/checksum.h>
 +
-+	if (!stack) {
-+		if (task)
-+			stack = (unsigned long *)task->thread.esp0;
-+		else
-+			stack = (unsigned long *)&stack;
-+	}
-+	endstack = (unsigned long *)(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
-+
-+	pr_info("Stack from %08lx:", (unsigned long)stack);
-+	p = stack;
-+	for (i = 0; i < kstack_depth_to_print; i++) {
-+		if (p + 1 > endstack)
-+			break;
-+		if (i % 8 == 0)
-+			pr_cont("\n       ");
-+		pr_cont(" %08lx", *p++);
-+	}
-+	pr_cont("\n");
-+	show_trace(stack);
-+}
-diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
++#endif /* __ASM_CSKY_CHECKSUM_H */
+diff --git a/arch/csky/include/asm/compat.h b/arch/csky/include/asm/compat.h
 new file mode 100644
-index 0000000..2422cf6
+index 0000000..59f9297
 --- /dev/null
-+++ b/arch/csky/kernel/ptrace.c
-@@ -0,0 +1,317 @@
++++ b/arch/csky/include/asm/compat.h
+@@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/elf.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
++
++#ifndef __ASM_CSKY_COMPAT_H
++#define __ASM_CSKY_COMPAT_H
++
++#ifdef CONFIG_COMPAT
++#define COMPAT_UTS_MACHINE "csky\0\0"
++#endif
++
++#endif /* __ASM_CSKY_COMPAT_H */
+diff --git a/arch/csky/include/asm/reg_ops.h b/arch/csky/include/asm/reg_ops.h
+new file mode 100644
+index 0000000..ed7bbde
+--- /dev/null
++++ b/arch/csky/include/asm/reg_ops.h
+@@ -0,0 +1,22 @@
++#ifndef __ASM_REGS_OPS_H
++#define __ASM_REGS_OPS_H
++
++#define mfcr(reg)				\
++({						\
++	unsigned int tmp;			\
++	asm volatile("mfcr %0, "reg"\n"		\
++		     :"=r"(tmp)			\
++		     :				\
++		     :"memory");		\
++	tmp;					\
++})
++
++#define mtcr(reg, val)				\
++({						\
++	asm volatile("mtcr %0, "reg"\n"		\
++		     :				\
++		     :"r"(val)			\
++		     :"memory");		\
++})
++
++#endif /* __ASM_REGS_OPS_H */
+diff --git a/arch/csky/include/uapi/asm/byteorder.h b/arch/csky/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..c758563
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/byteorder.h
+@@ -0,0 +1,9 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_BYTEORDER_H
++#define __ASM_CSKY_BYTEORDER_H
++
++#include <linux/byteorder/little_endian.h>
++
++#endif /* __ASM_CSKY_BYTEORDER_H */
+diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
+new file mode 100644
+index 0000000..d7868dd
+--- /dev/null
++++ b/arch/csky/kernel/asm-offsets.c
+@@ -0,0 +1,85 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +#include <linux/sched.h>
-+#include <linux/signal.h>
-+#include <linux/smp.h>
-+#include <linux/uaccess.h>
-+#include <linux/user.h>
-+
-+#include <asm/thread_info.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/processor.h>
-+#include <asm/asm-offsets.h>
-+
++#include <linux/kernel_stat.h>
++#include <linux/kbuild.h>
 +#include <abi/regdef.h>
 +
-+/* sets the trace bits. */
-+#define TRACE_MODE_SI      1 << 14
-+#define TRACE_MODE_RUN     0
-+#define TRACE_MODE_MASK    ~(0x3 << 14)
-+
-+/*
-+ * Make sure the single step bit is not set.
-+ */
-+static void singlestep_disable(struct task_struct *tsk)
++int main(void)
 +{
-+	struct pt_regs *regs;
++	/* offsets into the task struct */
++	DEFINE(TASK_STATE,        offsetof(struct task_struct, state));
++	DEFINE(TASK_THREAD_INFO,  offsetof(struct task_struct, stack));
++	DEFINE(TASK_FLAGS,        offsetof(struct task_struct, flags));
++	DEFINE(TASK_PTRACE,       offsetof(struct task_struct, ptrace));
++	DEFINE(TASK_THREAD,       offsetof(struct task_struct, thread));
++	DEFINE(TASK_MM,           offsetof(struct task_struct, mm));
++	DEFINE(TASK_ACTIVE_MM,    offsetof(struct task_struct, active_mm));
 +
-+	regs = task_pt_regs(tsk);
-+	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
-+}
++	/* offsets into the thread struct */
++	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
++	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
++	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
++	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
++	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
++	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
++	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
++	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
 +
-+static void singlestep_enable(struct task_struct *tsk)
-+{
-+	struct pt_regs *regs;
++	/* offsets into the thread_info struct */
++	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));
++	DEFINE(TINFO_PREEMPT,     offsetof(struct thread_info, preempt_count));
++	DEFINE(TINFO_ADDR_LIMIT,  offsetof(struct thread_info, addr_limit));
++	DEFINE(TINFO_TP_VALUE,   offsetof(struct thread_info, tp_value));
++	DEFINE(TINFO_TASK,        offsetof(struct thread_info, task));
 +
-+	regs = task_pt_regs(tsk);
-+	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_SI;
-+}
++	/* offsets into the pt_regs */
++	DEFINE(PT_PC,             offsetof(struct pt_regs, pc));
++	DEFINE(PT_ORIG_AO,        offsetof(struct pt_regs, orig_a0));
++	DEFINE(PT_SR,             offsetof(struct pt_regs, sr));
 +
-+/*
-+ * Make sure the single step bit is set.
-+ */
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	if (child->thread.esp0 == 0) return;
-+	singlestep_enable(child);
-+}
++	DEFINE(PT_A0,             offsetof(struct pt_regs, a0));
++	DEFINE(PT_A1,             offsetof(struct pt_regs, a1));
++	DEFINE(PT_A2,             offsetof(struct pt_regs, a2));
++	DEFINE(PT_A3,             offsetof(struct pt_regs, a3));
++	DEFINE(PT_REGS0,          offsetof(struct pt_regs, regs[0]));
++	DEFINE(PT_REGS1,          offsetof(struct pt_regs, regs[1]));
++	DEFINE(PT_REGS2,          offsetof(struct pt_regs, regs[2]));
++	DEFINE(PT_REGS3,          offsetof(struct pt_regs, regs[3]));
++	DEFINE(PT_REGS4,          offsetof(struct pt_regs, regs[4]));
++	DEFINE(PT_REGS5,          offsetof(struct pt_regs, regs[5]));
++	DEFINE(PT_REGS6,          offsetof(struct pt_regs, regs[6]));
++	DEFINE(PT_REGS7,          offsetof(struct pt_regs, regs[7]));
++	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
++	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
++	DEFINE(PT_R15,            offsetof(struct pt_regs, lr));
++#if defined(__CSKYABIV2__)
++	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
++	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));
++	DEFINE(PT_R18,            offsetof(struct pt_regs, exregs[2]));
++	DEFINE(PT_R19,            offsetof(struct pt_regs, exregs[3]));
++	DEFINE(PT_R20,            offsetof(struct pt_regs, exregs[4]));
++	DEFINE(PT_R21,            offsetof(struct pt_regs, exregs[5]));
++	DEFINE(PT_R22,            offsetof(struct pt_regs, exregs[6]));
++	DEFINE(PT_R23,            offsetof(struct pt_regs, exregs[7]));
++	DEFINE(PT_R24,            offsetof(struct pt_regs, exregs[8]));
++	DEFINE(PT_R25,            offsetof(struct pt_regs, exregs[9]));
++	DEFINE(PT_R26,            offsetof(struct pt_regs, exregs[10]));
++	DEFINE(PT_R27,            offsetof(struct pt_regs, exregs[11]));
++	DEFINE(PT_R28,            offsetof(struct pt_regs, exregs[12]));
++	DEFINE(PT_R29,            offsetof(struct pt_regs, exregs[13]));
++	DEFINE(PT_R30,            offsetof(struct pt_regs, exregs[14]));
++	DEFINE(PT_R31,            offsetof(struct pt_regs, exregs[15]));
++	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
++	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
++#endif
++	DEFINE(PT_USP,            offsetof(struct pt_regs, usp));
++	/* offsets into the irq_cpustat_t struct */
++	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
 +
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	if (child->thread.esp0 == 0) return;
-+	singlestep_disable(child);
-+}
-+
-+enum csky_regset {
-+	REGSET_GPR,
-+	REGSET_FPR,
-+};
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	struct pt_regs *regs;
-+
-+	regs = task_pt_regs(target);
-+
-+	/* Abiv1 regs->tls is fake and we need sync here. */
-+	regs->tls = task_thread_info(target)->tp_value;
-+
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+}
-+
-+static int gpr_set(struct task_struct *target,
-+		    const struct user_regset *regset,
-+		    unsigned int pos, unsigned int count,
-+		    const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	struct pt_regs regs;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
-+	if (ret)
-+		return ret;
-+
-+	regs.sr = task_pt_regs(target)->sr;
-+
-+	task_thread_info(target)->tp_value = regs.tls;
-+
-+	*task_pt_regs(target) = regs;
++	/* signal defines */
++	DEFINE(SIGSEGV, SIGSEGV);
++	DEFINE(SIGTRAP, SIGTRAP);
 +
 +	return 0;
-+}
-+
-+static int fpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
-+
-+#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
-+	int i;
-+	struct user_fp tmp = *regs;
-+
-+	for (i = 0; i < 16; i++) {
-+		tmp.vr[i*4] = regs->vr[i*2];
-+		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
-+	}
-+
-+	for (i = 0; i < 32; i++) {
-+		tmp.vr[64 + i] = regs->vr[32 + i];
-+	}
-+
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
-+#else
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+#endif
-+}
-+
-+static int fpr_set(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
-+
-+#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
-+	int i;
-+	struct user_fp tmp;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
-+
-+	*regs = tmp;
-+
-+	for (i = 0; i < 16; i++) {
-+		regs->vr[i*2] = tmp.vr[i*4];
-+		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
-+	}
-+
-+	for (i = 0; i < 32; i++) {
-+		regs->vr[32 + i] = tmp.vr[64 + i];
-+	}
-+#else
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+#endif
-+
-+	return ret;
-+}
-+
-+static const struct user_regset csky_regsets[] = {
-+	[REGSET_GPR] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = ELF_NGREG,
-+		.size = sizeof(u32),
-+		.align = sizeof(u32),
-+		.get = &gpr_get,
-+		.set = &gpr_set,
-+	},
-+	[REGSET_FPR] = {
-+		.core_note_type = NT_PRFPREG,
-+		.n = sizeof(struct user_fp) / sizeof(u32),
-+		.size = sizeof(u32),
-+		.align = sizeof(u32),
-+		.get = &fpr_get,
-+		.set = &fpr_set,
-+	},
-+};
-+
-+static const struct user_regset_view user_csky_view = {
-+	.name = "csky",
-+	.e_machine = ELF_ARCH,
-+	.regsets = csky_regsets,
-+	.n = ARRAY_SIZE(csky_regsets),
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_csky_view;
-+}
-+
-+void ptrace_disable(struct task_struct *child)
-+{
-+	singlestep_disable(child);
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request,
-+		 unsigned long addr, unsigned long data)
-+{
-+	long ret = -EIO;
-+
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+/*
-+ * If process's system calls is traces, do some corresponding handles in this
-+ * fuction before entering system call function and after exiting system call
-+ * fuction.
-+ */
-+asmlinkage void syscall_trace(int why, struct pt_regs * regs)
-+{
-+	long saved_why;
-+	/*
-+	 * Save saved_why, why is used to denote syscall entry/exit;
-+	 * why = 0:entry, why = 1: exit
-+	 */
-+	saved_why = regs->regs[SYSTRACE_SAVENUM];
-+	regs->regs[SYSTRACE_SAVENUM] = why;
-+
-+	/* the 0x80 provides a way for the tracing parent to distinguish
-+	   between a syscall stop and SIGTRAP delivery */
-+	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
-+				? 0x80 : 0));
-+	/*
-+	 * this isn't the same as continuing with a signal, but it will do
-+	 * for normal use.  strace only continues with a signal if the
-+	 * stopping signal is not SIGTRAP.  -brl
-+	 */
-+	if (current->exit_code) {
-+		send_sig(current->exit_code, current, 1);
-+		current->exit_code = 0;
-+	}
-+
-+	regs->regs[SYSTRACE_SAVENUM] = saved_why;
-+	return;
-+}
-+
-+void show_regs(struct pt_regs *fp)
-+{
-+	unsigned long   *sp;
-+	unsigned char   *tp;
-+	int	i;
-+
-+	pr_info("\nCURRENT PROCESS:\n\n");
-+	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
-+
-+	if (current->mm) {
-+		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
-+		       (int) current->mm->start_code,
-+		       (int) current->mm->end_code,
-+		       (int) current->mm->start_data,
-+		       (int) current->mm->end_data,
-+		       (int) current->mm->end_data,
-+		       (int) current->mm->brk);
-+		pr_info("USER-STACK=%08x  KERNEL-STACK=%08x\n\n",
-+		       (int) current->mm->start_stack,
-+		       (int) (((unsigned long) current) + 2 * PAGE_SIZE));
-+	}
-+
-+	pr_info("PC: 0x%08lx\n", (long)fp->pc);
-+	pr_info("orig_a0: 0x%08lx\n", fp->orig_a0);
-+	pr_info("PSR: 0x%08lx\n", (long)fp->sr);
-+
-+	pr_info("a0: 0x%08lx  a1: 0x%08lx  a2: 0x%08lx  a3: 0x%08lx\n",
-+	       fp->a0, fp->a1, fp->a2, fp->a3);
-+#if defined(__CSKYABIV2__)
-+	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
-+	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
-+	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
-+	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
-+	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
-+	       fp->regs[8], fp->regs[9], fp->lr);
-+	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
-+	       fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
-+	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
-+	       fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
-+	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
-+	       fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
-+	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
-+	       fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
-+	pr_info("hi 0x%08lx     lo: 0x%08lx \n",
-+	       fp->rhi, fp->rlo);
-+#else
-+	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
-+	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
-+	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
-+	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
-+	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
-+	       fp->regs[8], fp->regs[9], fp->lr);
-+#endif
-+
-+	pr_info("\nCODE:");
-+	tp = ((unsigned char *) fp->pc) - 0x20;
-+	tp += ((int)tp % 4) ? 2 : 0;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_cont("\n%08x: ", (int) (tp + i));
-+		pr_cont("%08x ", (int) *sp++);
-+	}
-+	pr_cont("\n");
-+
-+	pr_info("\nKERNEL STACK:");
-+	tp = ((unsigned char *) fp) - 0x40;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_cont("\n%08x: ", (int) (tp + i));
-+		pr_cont("%08x ", (int) *sp++);
-+	}
-+	pr_cont("\n");
-+
-+	return;
 +}
 -- 
 2.7.4
