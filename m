@@ -1,67 +1,156 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 05/11] asm-generic/tlb: Provide generic tlb_flush
-Date: Thu, 13 Sep 2018 16:06:21 +0200
-Message-ID: <20180913140621.GY24124@hirez.programming.kicks-ass.net>
-References: <20180913092110.817204997@infradead.org>
- <20180913092812.132208484@infradead.org>
- <CAG48ez01-iQ5fyZjOJxQyOk9xRkra6bYyUAvUbVLheuABOQi8Q@mail.gmail.com>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
+ locks and remove it for ordinary release/acquire
+Date: Thu, 13 Sep 2018 13:07:39 -0400 (EDT)
+Message-ID: <Pine.LNX.4.44L0.1809131300370.1382-100000@iolanthe.rowland.org>
+References: <20180911200328.GA4225@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAG48ez01-iQ5fyZjOJxQyOk9xRkra6bYyUAvUbVLheuABOQi8Q@mail.gmail.com>
+In-Reply-To: <20180911200328.GA4225@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, npiggin@gmail.com, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, kernel list <linux-kernel@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>, Will Deacon <will.deacon@arm.com>, Andrea Parri <andrea.parri@amarulasolutions.com>, Andrea Parri <parri.andrea@gmail.com>, Kernel development list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, akiyks@gmail.com, Palmer Dabbelt <palmer@sifive.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 13, 2018 at 03:09:47PM +0200, Jann Horn wrote:
-> On Thu, Sep 13, 2018 at 3:01 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> > Provide a generic tlb_flush() implementation that relies on
-> > flush_tlb_range(). This is a little awkward because flush_tlb_range()
-> > assumes a VMA for range invalidation, but we no longer have one.
-> >
-> > Audit of all flush_tlb_range() implementations shows only vma->vm_mm
-> > and vma->vm_flags are used, and of the latter only VM_EXEC (I-TLB
-> > invalidates) and VM_HUGETLB (large TLB invalidate) are used.
-> >
-> > Therefore, track VM_EXEC and VM_HUGETLB in two more bits, and create a
-> > 'fake' VMA.
-> >
-> > This allows architectures that have a reasonably efficient
-> > flush_tlb_range() to not require any additional effort.
-> [...]
-> > +#define tlb_flush tlb_flush
-> > +static inline void tlb_flush(struct mmu_gather *tlb)
-> > +{
-> > +       if (tlb->fullmm || tlb->need_flush_all) {
-> > +               flush_tlb_mm(tlb->mm);
-> > +       } else {
-> > +               struct vm_area_struct vma = {
-> > +                       .vm_mm = tlb->mm,
-> > +                       .vm_flags = tlb->vma_exec ? VM_EXEC    : 0 |
-> > +                                   tlb->vma_huge ? VM_HUGETLB : 0,
-> 
-> This looks wrong to me. Bitwise OR has higher precedence than the
-> ternary operator, so I think this code is equivalent to:
-> 
-> .vm_flags = tlb->vma_exec ? VM_EXEC    : (0 | tlb->vma_huge) ? VM_HUGETLB : 0
-> 
-> meaning that executable+huge mappings would only get VM_EXEC, but not
-> VM_HUGETLB.
+Not having received any responses to the question about usages of RCtso
+locks, I have decided to post the newly updated version of the patch
+description for commit c8c5779c854f ("tools/memory-model: Add extra
+ordering for locks and remove it for ordinary release/acquire") in
+Paul's LKMM branch.  There are no changes to the patch itself.
 
-Bah. Fixed that. Thanks!
+Hopefully this includes all the important issues that people have 
+raised.  (Admittedly, some parts of the discussion have seemed less 
+consequential than others, and some parts I didn't understand at all.)
 
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -309,8 +309,8 @@ static inline void tlb_flush(struct mmu_
- 	} else {
- 		struct vm_area_struct vma = {
- 			.vm_mm = tlb->mm,
--			.vm_flags = tlb->vma_exec ? VM_EXEC    : 0 |
--				    tlb->vma_huge ? VM_HUGETLB : 0,
-+			.vm_flags = (tlb->vma_exec ? VM_EXEC    : 0) |
-+				    (tlb->vma_huge ? VM_HUGETLB : 0),
- 		};
- 
- 		flush_tlb_range(&vma, tlb->start, tlb->end);
+Alan
+
+-----------------------------------------------------------------------------
+More than one kernel developer has expressed the opinion that the LKMM
+should enforce ordering of writes by locking.  In other words, given
+the following code:
+
+	WRITE_ONCE(x, 1);
+	spin_unlock(&s):
+	spin_lock(&s);
+	WRITE_ONCE(y, 1);
+
+the stores to x and y should be propagated in order to all other CPUs,
+even though those other CPUs might not access the lock s.  In terms of
+the memory model, this means expanding the cumul-fence relation.
+
+Locks should also provide read-read (and read-write) ordering in a
+similar way.  Given:
+
+	READ_ONCE(x);
+	spin_unlock(&s);
+	spin_lock(&s);
+	READ_ONCE(y);		// or WRITE_ONCE(y, 1);
+
+the load of x should be executed before the load of (or store to) y.
+The LKMM already provides this ordering, but it provides it even in
+the case where the two accesses are separated by a release/acquire
+pair of fences rather than unlock/lock.  This would prevent
+architectures from using weakly ordered implementations of release and
+acquire, which seems like an unnecessary restriction.  The patch
+therefore removes the ordering requirement from the LKMM for that
+case.
+
+There are several arguments both for and against this change.  Let us
+refer to these enhanced ordering properties by saying that the LKMM
+would require locks to be RCtso (a bit of a misnomer, but analogous to
+RCpc and RCsc) and it would require ordinary acquire/release only to
+be RCpc.  (Note: In the following, the phrase "all supported
+architectures" does not include RISC-V, which is still somewhat in
+a state of flux.)
+
+Pros:
+
+	The kernel already provides RCtso ordering for locks on all
+	supported architectures, even though this is not stated
+	explicitly anywhere.  Therefore the LKMM should formalize it.
+
+	In theory, guaranteeing RCtso ordering would reduce the need
+	for additional barrier-like constructs meant to increase the
+	ordering strength of locks.
+
+	Will Deacon and Peter Zijlstra are strongly in favor of
+	formalizing the RCtso requirement.  Linus Torvalds and Will
+	would like to go even further, requiring locks to have RCsc
+	behavior (ordering preceding writes against later reads), but
+	they recognize that this would incur a noticeable performance
+	degradation on the POWER architecture.  Linus also points out
+	that people have made the mistake, in the past, of assuming
+	that locking has stronger ordering properties than is
+	currently guaranteed, and this change would reduce the
+	likelihood of such mistakes.
+
+Cons:
+
+	Andrea Parri and Luc Maranget feel that locks should have the
+	same ordering properties as ordinary acquire/release (indeed,
+	Luc points out that the names "acquire" and "release" derive
+	from the usage of locks) and that having different ordering
+	properties for different forms of acquires and releases would
+	be confusing and unmaintainable.  Will and Linus, on the other
+	hand, feel that architectures should be free to implement
+	ordinary acquire/release using relatively weak RCpc machine
+	instructions.  Linus points out that locks should be easy for
+	people to use without worrying about memory consistency
+	issues, since they are so pervasive in the kernel, whereas
+	acquire/release is much more of an "expertss only" tool.
+
+	Locks are constructed from lower-level primitives, typically
+	RMW-acquire (for locking) and ordinary release (for unlock).
+	It is illogical to require stronger ordering properties from
+	the high-level operations than from the low-level operations
+	they comprise.  Thus, this change would make
+
+		while (cmpxchg_acquire(&s, 0, 1) != 0)
+			cpu_relax();
+
+	an incorrect implementation of spin_lock(&s).  In theory this
+	weakness can be ameliorated by changing the LKMM even further,
+	requiring RMW-acquire/release also to be RCtso (which it
+	already is on all supported architectures).
+
+	As far as I know, nobody has singled out any examples of code
+	in the kernel that actually relies on locks being RCtso.
+	(People mumble about RCU and the scheduler, but nobody has
+	pointed to any actual code.  If there are any real cases,
+	their number is likely quite small.)  If RCtso ordering is not
+	needed, why require it?
+
+	A handful of locking constructs (qspinlocks, qrwlocks, and
+	mcs_spinlocks) are built on top of smp_cond_load_acquire()
+	instead of an RMW-acquire instruction.  It currently provides
+	only the ordinary acquire semantics, not the stronger ordering
+	this patch would require of locks.  In theory this could be
+	ameliorated by requiring smp_cond_load_acquire() in
+	combination with ordinary release also to be RCtso (which is
+	currently true in all supported architectures).
+
+	On future weakly ordered architectures, people may be able to
+	implement locks in a non-RCtso fashion with significant
+	performance improvement.  Meeting the RCtso requirement would
+	necessarily add run-time overhead.
+
+Overall, the technical aspects of these arguments seem relatively
+minor, and it appears mostly to boil down to a matter of opinion.
+Since the opinions of long-time kernel developers such as Linus,
+Peter, and Will carry more weight than those of Luc and Andrea, this
+patch changes the model in accordance with the developers' wishes.
+
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+
+---
+
+v.4: Added pros and cons discussion to the Changelog.
+
+v.3: Rebased against the dev branch of Paul's linux-rcu tree.
+Changed unlock-rf-lock-po to po-unlock-rf-lock-po, making it more
+symmetrical and more in accordance with the use of fence.tso for
+the release on RISC-V.
+
+v.2: Restrict the ordering to lock operations, not general release
+and acquire fences.
