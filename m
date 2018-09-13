@@ -1,38 +1,42 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: [RFC][PATCH 03/11] x86/mm: Page size aware flush_tlb_mm_range()
-Date: Thu, 13 Sep 2018 11:49:28 -0700
-Message-ID: <93b19cab-779b-b5dd-a53b-df2c86241d4f@linux.intel.com>
-References: <20180913092110.817204997@infradead.org>
- <20180913092812.012757318@infradead.org>
- <f89e61a3-0eb0-3d00-fbaa-f30c2cf60be3@linux.intel.com>
- <20180913184230.GD24124@hirez.programming.kicks-ass.net>
- <20180913184632.GM24142@hirez.programming.kicks-ass.net>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 0/8] add support for relative references in jump tables
+Date: Thu, 13 Sep 2018 14:40:12 -0700
+Message-ID: <CAGXu5jJ9hD8-2ioAKdXKc8uV+OjRSJVUftd9rY9RfW7Tkor=kw@mail.gmail.com>
+References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
+ <20180704075923.GF3701@osiris> <CAKv+Gu-O3mMJHH2P7L9anXeKZtEQYcN8Am4-3xkzAQSFWUN+=w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180913184632.GM24142@hirez.programming.kicks-ass.net>
-Content-Language: en-US
+In-Reply-To: <CAKv+Gu-O3mMJHH2P7L9anXeKZtEQYcN8Am4-3xkzAQSFWUN+=w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 09/13/2018 11:46 AM, Peter Zijlstra wrote:
-> On Thu, Sep 13, 2018 at 08:42:30PM +0200, Peter Zijlstra wrote:
->>>> +#define flush_tlb_range(vma, start, end)			\
->>>> +		flush_tlb_mm_range((vma)->vm_mm, start, end,	\
->>>> +				(vma)->vm_flags & VM_HUGETLB ? PMD_SHIFT : PAGE_SHIFT)
->>> This is safe.  But, Couldn't this PMD_SHIFT also be PUD_SHIFT for a 1G
->>> hugetlb page?
->> It could be, but can we tell at that point?
-> I had me a look in higetlb.h, would something like so work?
-> 
-> #define flush_tlb_range(vma, start, end)			\
-> 	flush_tlb_mm_range((vma)->vm_mm, start, end,		\
-> 			   huge_page_shift(hstate_vma(vma)))
-> 
+On Wed, Jul 4, 2018 at 1:50 AM, Ard Biesheuvel
+<ard.biesheuvel@linaro.org> wrote:
+> On 4 July 2018 at 09:59, Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+>> On Mon, Jul 02, 2018 at 08:11:37PM +0200, Ard Biesheuvel wrote:
+>>> This series implements support for emitting the data structures associated
+>>> with jump tables as 32-bit relative references instead of absolute
+>>> references, which take up more space on builds that target 64-bit
+>>> architectures, or implement self relocation [or both].
+>>>
+>>> This series enables it for arm64 and x86, although other architectures
+>>> might benefit as well.
+>>
+>> Hello Ard,
+>>
+>> feel free to add the patch below which adds support for s390 to your series.
+>>
+>
+> Thanks, I will incorporate it into v3 and beyond.
 
-I think you still need the VM_HUGETLB check somewhere because
-hstate_vma() won't work on non-VM_HUGETLB VMAs.  But, yeah, something
-close to that should be OK.
+Just a quick status check! :) What're your plans for this series? I'd
+still love to see it.
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
