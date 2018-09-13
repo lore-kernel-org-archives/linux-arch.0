@@ -1,47 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from frisell.zx2c4.com ([192.95.5.64]:59191 "EHLO frisell.zx2c4.com"
+Received: from ale.deltatee.com ([207.54.116.67]:38348 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726675AbeILXQh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 12 Sep 2018 19:16:37 -0400
+        id S1726261AbeIMFPM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Sep 2018 01:15:12 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Wed, 12 Sep 2018 18:08:14 -0600
+Message-ID: <20180913000815.3824-6-logang@deltatee.com>
+In-Reply-To: <20180913000815.3824-1-logang@deltatee.com>
+References: <20180913000815.3824-1-logang@deltatee.com>
 MIME-Version: 1.0
-References: <20180911010838.8818-1-Jason@zx2c4.com> <20180911010838.8818-2-Jason@zx2c4.com>
- <20180912061433.GA8484@ip-172-31-15-78>
-In-Reply-To: <20180912061433.GA8484@ip-172-31-15-78>
-From: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Date: Wed, 12 Sep 2018 20:10:41 +0200
-Message-ID: <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
-Subject: Re: [PATCH net-next v3 01/17] asm: simd context helper API
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v21 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kevin@guarana.org
-Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
-Message-ID: <20180912181041.f5xdFpRnxWD-TNRVLtociS50fL5kS3y1OTD8vpDYhFg@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20180913000814.1xVhy5ODJCyVh0dXEQMdDrATQ21M0isfIC8vDbgIBxE@z>
 
-On Wed, Sep 12, 2018 at 8:14 AM Kevin Easton <kevin@guarana.org> wrote:
-> Given that it's always supposed to be used like that, mightn't it be
-> better if simd_relax() took a pointer to the context, so the call is
-> just
->
->     simd_relax(&simd_context);
->
-> ?
->
-> The inlining means that there won't actually be a pointer dereference in
-> the emitted code.
->
-> If simd_put() also took a pointer then it could set the context back to
-> HAVE_NO_SIMD as well?
+Now that ioread64 and iowrite64 are available in io-64-nonatomic,
+we can remove the hack at the top of ntb_hw_intel.c and replace it
+with an include.
 
-That's sort of a neat idea. I guess in this scheme, you'd envision:
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Dave Jiang <dave.jiang@intel.com>
+Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
+Acked-by: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
 
-   simd_context_t simd_context;
-
-   simd_get(&simd_context);
-   simd_relax(&simd_context);
-   simd_put(&simd_context);
-
-And this way, if simd_context ever becomes a heavier struct, it can be
-modified in place rather than returned by value from the function. On
-the other hand, it's a little bit more annoying to type and makes it
-harder to do declaration and initialization on the same line.
+diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
+index c49ff8970ce3..e071e28bca3f 100644
+--- a/drivers/ntb/hw/intel/ntb_hw_intel.h
++++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
+@@ -53,6 +53,7 @@
+ 
+ #include <linux/ntb.h>
+ #include <linux/pci.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ /* PCI device IDs */
+ #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
+@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
+ 	return 0;
+ }
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #endif
+-- 
+2.19.0
