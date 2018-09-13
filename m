@@ -1,78 +1,62 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Date: Thu, 13 Sep 2018 12:30:14 +0200
-Message-ID: <20180913123014.0d9321b8@mschwideX1>
+Date: Thu, 13 Sep 2018 12:57:38 +0200
+Message-ID: <20180913105738.GW24124@hirez.programming.kicks-ass.net>
 References: <20180913092110.817204997@infradead.org>
-        <20180913092811.894806629@infradead.org>
+ <20180913092811.894806629@infradead.org>
+ <20180913123014.0d9321b8@mschwideX1>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180913092811.894806629@infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20180913123014.0d9321b8@mschwideX1>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 13 Sep 2018 11:21:11 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Thu, Sep 13, 2018 at 12:30:14PM +0200, Martin Schwidefsky wrote:
 
-> Write a comment explaining some of this..
+> > + * The mmu_gather data structure is used by the mm code to implement the
+> > + * correct and efficient ordering of freeing pages and TLB invalidations.
+> > + *
+> > + * This correct ordering is:
+> > + *
+> > + *  1) unhook page
+> > + *  2) TLB invalidate page
+> > + *  3) free page
+> > + *
+> > + * That is, we must never free a page before we have ensured there are no live
+> > + * translations left to it. Otherwise it might be possible to observe (or
+> > + * worse, change) the page content after it has been reused.
+> > + *
 > 
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Nick Piggin <npiggin@gmail.com>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  include/asm-generic/tlb.h |  120 ++++++++++++++++++++++++++++++++++++++++++++--
->  1 file changed, 117 insertions(+), 3 deletions(-)
+> This first comment already includes the reason why s390 is probably better off
+> with its own mmu-gather implementation. It depends on the situation if we have
 > 
-> --- a/include/asm-generic/tlb.h
-> +++ b/include/asm-generic/tlb.h
-> @@ -22,6 +22,119 @@
+> 1) unhook the page and do a TLB flush at the same time
+> 2) free page
 > 
->  #ifdef CONFIG_MMU
+> or
 > 
-> +/*
-> + * Generic MMU-gather implementation.
-> + *
-> + * The mmu_gather data structure is used by the mm code to implement the
-> + * correct and efficient ordering of freeing pages and TLB invalidations.
-> + *
-> + * This correct ordering is:
-> + *
-> + *  1) unhook page
-> + *  2) TLB invalidate page
-> + *  3) free page
-> + *
-> + * That is, we must never free a page before we have ensured there are no live
-> + * translations left to it. Otherwise it might be possible to observe (or
-> + * worse, change) the page content after it has been reused.
-> + *
+> 1) unhook page
+> 2) free page
+> 3) final TLB flush of the whole mm
 
-This first comment already includes the reason why s390 is probably better off
-with its own mmu-gather implementation. It depends on the situation if we have
+that's the fullmm case, right?
 
-1) unhook the page and do a TLB flush at the same time
-2) free page
+> A variant of the second order we had in the past is to do the mm TLB flush first,
+> then the unhooks and frees of the individual pages. The are some tricky corners
+> switching between the two variants, see finish_arch_post_lock_switch.
+> 
+> The point is: we *never* have the order 1) unhook, 2) TLB invalidate, 3) free.
+> If there is concurrency due to a multi-threaded application we have to do the
+> unhook of the page-table entry and the TLB flush with a single instruction.
 
-or
+You can still get the thing you want if for !fullmm you have a no-op
+tlb_flush() implementation, assuming your arch page-table frobbing thing
+has the required TLB flush in.
 
-1) unhook page
-2) free page
-3) final TLB flush of the whole mm
-
-A variant of the second order we had in the past is to do the mm TLB flush first,
-then the unhooks and frees of the individual pages. The are some tricky corners
-switching between the two variants, see finish_arch_post_lock_switch.
-
-The point is: we *never* have the order 1) unhook, 2) TLB invalidate, 3) free.
-If there is concurrency due to a multi-threaded application we have to do the
-unhook of the page-table entry and the TLB flush with a single instruction.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+Note that that's not utterly unlike how the PowerPC/Sparc hash things
+work, they clear and invalidate entries different from others and don't
+use the mmu_gather tlb-flush.
