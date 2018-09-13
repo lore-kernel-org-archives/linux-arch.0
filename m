@@ -1,351 +1,140 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:54662 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728138AbeIMOi0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2018 10:38:26 -0400
-Message-ID: <20180913092812.496674324@infradead.org>
-Date: Thu, 13 Sep 2018 11:21:21 +0200
+Received: from bombadil.infradead.org ([198.137.202.133]:56256 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726751AbeIMOiK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2018 10:38:10 -0400
+Message-ID: <20180913092812.012757318@infradead.org>
+Date: Thu, 13 Sep 2018 11:21:13 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 11/11] arch/tlb: Clean up simple architectures
+Subject: [RFC][PATCH 03/11] x86/mm: Page size aware flush_tlb_mm_range()
 References: <20180913092110.817204997@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
-Message-ID: <20180913092121.nhEHeEwQ9DesZ0EIGy9Me__C-BEWy9C6Np8eGt2j6Lk@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <20180913092113.D5vVX0OTqNrrIZnMkTZSiBZ918EbcMcobUtjBbpOETQ@z>
 
-There are generally two cases:
-
- 1) either the platform has an efficient flush_tlb_range() and
-    asm-generic/tlb.h doesn't need any overrides at all.
-
- 2) or an architecture lacks an efficient flush_tlb_range() and
-    we override tlb_end_vma() and tlb_flush().
-
-Convert all 'simple' architectures to one of these two forms.
-
-alpha:	    has no range invalidate -> 2
-arc:	    already used flush_tlb_range() -> 1
-c6x:	    has no range invalidate -> 2
-h8300:	    has no mmu
-hexagon:    has an efficient flush_tlb_range() -> 1
-            (flush_tlb_mm() is in fact a full range invalidate,
-	     so no need to shoot down everything)
-m68k:	    has inefficient flush_tlb_range() -> 2
-microblaze: has no flush_tlb_range() -> 2
-mips:	    has efficient flush_tlb_range() -> 1
-	    (even though it currently seems to use flush_tlb_mm())
-nds32:	    already uses flush_tlb_range() -> 1
-nios2:	    has inefficient flush_tlb_range() -> 2
-	    (no limit on range iteration)
-openrisc:   has inefficient flush_tlb_range() -> 2
-	    (no limit on range iteration)
-parisc:	    already uses flush_tlb_range() -> 1
-sparc32:    already uses flush_tlb_range() -> 1
-unicore32:  has inefficient flush_tlb_range() -> 2
-	    (no limit on range iteration)
-xtensa:	    has efficient flush_tlb_range() -> 1
+Use the new tlb_get_unmap_shift() to determine the stride of the
+INVLPG loop.
 
 Cc: Will Deacon <will.deacon@arm.com>
 Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nick Piggin <npiggin@gmail.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/alpha/include/asm/tlb.h      |    2 --
- arch/arc/include/asm/tlb.h        |   23 -----------------------
- arch/c6x/include/asm/tlb.h        |    1 +
- arch/h8300/include/asm/tlb.h      |    2 --
- arch/hexagon/include/asm/tlb.h    |   12 ------------
- arch/m68k/include/asm/tlb.h       |    1 -
- arch/microblaze/include/asm/tlb.h |    4 +---
- arch/mips/include/asm/tlb.h       |    8 --------
- arch/nds32/include/asm/tlb.h      |   10 ----------
- arch/nios2/include/asm/tlb.h      |    8 +++++---
- arch/openrisc/include/asm/tlb.h   |    6 ++++--
- arch/parisc/include/asm/tlb.h     |   13 -------------
- arch/powerpc/include/asm/tlb.h    |    1 -
- arch/sparc/include/asm/tlb_32.h   |   13 -------------
- arch/unicore32/include/asm/tlb.h  |   10 ++++++----
- arch/xtensa/include/asm/tlb.h     |   17 -----------------
- 16 files changed, 17 insertions(+), 114 deletions(-)
+ arch/x86/include/asm/tlb.h      |   21 ++++++++++++++-------
+ arch/x86/include/asm/tlbflush.h |   10 ++++++----
+ arch/x86/mm/tlb.c               |   10 +++++-----
+ 3 files changed, 25 insertions(+), 16 deletions(-)
 
---- a/arch/alpha/include/asm/tlb.h
-+++ b/arch/alpha/include/asm/tlb.h
-@@ -4,8 +4,6 @@
- 
- #define tlb_start_vma(tlb, vma)			do { } while (0)
- #define tlb_end_vma(tlb, vma)			do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, pte, addr)	do { } while (0)
--
- #define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
- 
- #include <asm-generic/tlb.h>
---- a/arch/arc/include/asm/tlb.h
-+++ b/arch/arc/include/asm/tlb.h
-@@ -9,29 +9,6 @@
- #ifndef _ASM_ARC_TLB_H
- #define _ASM_ARC_TLB_H
- 
--#define tlb_flush(tlb)				\
--do {						\
--	if (tlb->fullmm)			\
--		flush_tlb_mm((tlb)->mm);	\
--} while (0)
--
--/*
-- * This pair is called at time of munmap/exit to flush cache and TLB entries
-- * for mappings being torn down.
-- * 1) cache-flush part -implemented via tlb_start_vma( ) for VIPT aliasing D$
-- * 2) tlb-flush part - implemted via tlb_end_vma( ) flushes the TLB range
-- *
-- * Note, read http://lkml.org/lkml/2004/1/15/6
-- */
--
--#define tlb_end_vma(tlb, vma)						\
--do {									\
--	if (!tlb->fullmm)						\
--		flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\
--} while (0)
--
--#define __tlb_remove_tlb_entry(tlb, ptep, address)
--
- #include <linux/pagemap.h>
- #include <asm-generic/tlb.h>
- 
---- a/arch/c6x/include/asm/tlb.h
-+++ b/arch/c6x/include/asm/tlb.h
-@@ -2,6 +2,7 @@
- #ifndef _ASM_C6X_TLB_H
- #define _ASM_C6X_TLB_H
- 
-+#define tlb_end_vma(tlb,vma) do { } while (0)
- #define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
- 
- #include <asm-generic/tlb.h>
---- a/arch/h8300/include/asm/tlb.h
-+++ b/arch/h8300/include/asm/tlb.h
-@@ -2,8 +2,6 @@
- #ifndef __H8300_TLB_H__
- #define __H8300_TLB_H__
- 
--#define tlb_flush(tlb)	do { } while (0)
--
- #include <asm-generic/tlb.h>
- 
- #endif
---- a/arch/hexagon/include/asm/tlb.h
-+++ b/arch/hexagon/include/asm/tlb.h
-@@ -22,18 +22,6 @@
- #include <linux/pagemap.h>
- #include <asm/tlbflush.h>
- 
--/*
-- * We don't need any special per-pte or per-vma handling...
-- */
--#define tlb_start_vma(tlb, vma)				do { } while (0)
--#define tlb_end_vma(tlb, vma)				do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
--
--/*
-- * .. because we flush the whole mm when it fills up
-- */
--#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
--
- #include <asm-generic/tlb.h>
- 
- #endif
---- a/arch/m68k/include/asm/tlb.h
-+++ b/arch/m68k/include/asm/tlb.h
-@@ -8,7 +8,6 @@
-  */
- #define tlb_start_vma(tlb, vma)	do { } while (0)
- #define tlb_end_vma(tlb, vma)	do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
- 
- /*
-  * .. because we flush the whole mm when it
---- a/arch/microblaze/include/asm/tlb.h
-+++ b/arch/microblaze/include/asm/tlb.h
-@@ -11,14 +11,12 @@
- #ifndef _ASM_MICROBLAZE_TLB_H
- #define _ASM_MICROBLAZE_TLB_H
- 
--#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
--
- #include <linux/pagemap.h>
- 
- #ifdef CONFIG_MMU
- #define tlb_start_vma(tlb, vma)		do { } while (0)
- #define tlb_end_vma(tlb, vma)		do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, pte, address) do { } while (0)
-+#define tlb_flush(tlb)			flush_tlb_mm((tlb)->mm)
- #endif
- 
- #include <asm-generic/tlb.h>
---- a/arch/mips/include/asm/tlb.h
-+++ b/arch/mips/include/asm/tlb.h
-@@ -5,14 +5,6 @@
- #include <asm/cpu-features.h>
- #include <asm/mipsregs.h>
- 
--#define tlb_end_vma(tlb, vma) do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
--
--/*
-- * .. because we flush the whole mm when it fills up.
-- */
--#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
--
- #define _UNIQUE_ENTRYHI(base, idx)					\
- 		(((base) + ((idx) << (PAGE_SHIFT + 1))) |		\
- 		 (cpu_has_tlbinv ? MIPS_ENTRYHI_EHINV : 0))
---- a/arch/nds32/include/asm/tlb.h
-+++ b/arch/nds32/include/asm/tlb.h
-@@ -4,16 +4,6 @@
- #ifndef __ASMNDS32_TLB_H
- #define __ASMNDS32_TLB_H
- 
--#define tlb_end_vma(tlb,vma)				\
--	do { 						\
--		if(!tlb->fullmm)			\
--			flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
--	} while (0)
--
--#define __tlb_remove_tlb_entry(tlb, pte, addr) do { } while (0)
--
--#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
--
- #include <asm-generic/tlb.h>
- 
- #define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
---- a/arch/nios2/include/asm/tlb.h
-+++ b/arch/nios2/include/asm/tlb.h
-@@ -11,12 +11,14 @@
- #ifndef _ASM_NIOS2_TLB_H
- #define _ASM_NIOS2_TLB_H
- 
--#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
--
- extern void set_mmu_pid(unsigned long pid);
- 
-+/*
-+ * NIOS32 does have flush_tlb_range(), but it lacks a limit and fallback to
-+ * full mm invalidation. So use flush_tlb_mm() for everything.
-+ */
- #define tlb_end_vma(tlb, vma)	do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
-+#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
- 
- #include <linux/pagemap.h>
- #include <asm-generic/tlb.h>
---- a/arch/openrisc/include/asm/tlb.h
-+++ b/arch/openrisc/include/asm/tlb.h
-@@ -22,12 +22,14 @@
- /*
-  * or32 doesn't need any special per-pte or
-  * per-vma handling..
-+ *
-+ * OpenRISC doesn't have an efficient flush_tlb_range() so use flush_tlb_mm()
-+ * for everything.
-  */
- #define tlb_start_vma(tlb, vma) do { } while (0)
+--- a/arch/x86/include/asm/tlb.h
++++ b/arch/x86/include/asm/tlb.h
+@@ -6,16 +6,23 @@
  #define tlb_end_vma(tlb, vma) do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
--
- #define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ 
+-#define tlb_flush(tlb)							\
+-{									\
+-	if (!tlb->fullmm && !tlb->need_flush_all) 			\
+-		flush_tlb_mm_range(tlb->mm, tlb->start, tlb->end, 0UL);	\
+-	else								\
+-		flush_tlb_mm_range(tlb->mm, 0UL, TLB_FLUSH_ALL, 0UL);	\
+-}
++static inline void tlb_flush(struct mmu_gather *tlb);
+ 
+ #include <asm-generic/tlb.h>
+ 
++static inline void tlb_flush(struct mmu_gather *tlb)
++{
++	unsigned long start = 0UL, end = TLB_FLUSH_ALL;
++	unsigned int invl_shift = tlb_get_unmap_shift(tlb);
 +
- #include <linux/pagemap.h>
- #include <asm-generic/tlb.h>
++	if (!tlb->fullmm && !tlb->need_flush_all) {
++		start = tlb->start;
++		end = tlb->end;
++	}
++
++	flush_tlb_mm_range(tlb->mm, start, end, invl_shift);
++}
++
+ /*
+  * While x86 architecture in general requires an IPI to perform TLB
+  * shootdown, enablement code for several hypervisors overrides
+--- a/arch/x86/include/asm/tlbflush.h
++++ b/arch/x86/include/asm/tlbflush.h
+@@ -507,23 +507,25 @@ struct flush_tlb_info {
+ 	unsigned long		start;
+ 	unsigned long		end;
+ 	u64			new_tlb_gen;
++	unsigned int		invl_shift;
+ };
  
---- a/arch/parisc/include/asm/tlb.h
-+++ b/arch/parisc/include/asm/tlb.h
-@@ -2,19 +2,6 @@
- #ifndef _PARISC_TLB_H
- #define _PARISC_TLB_H
+ #define local_flush_tlb() __flush_tlb()
  
--#define tlb_flush(tlb)			\
--do {	if ((tlb)->fullmm)		\
--		flush_tlb_mm((tlb)->mm);\
--} while (0)
--
--#define tlb_end_vma(tlb, vma)	\
--do {	if (!(tlb)->fullmm)	\
--		flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
--} while (0)
--
--#define __tlb_remove_tlb_entry(tlb, pte, address) \
--	do { } while (0)
--
- #include <asm-generic/tlb.h>
+ #define flush_tlb_mm(mm)	flush_tlb_mm_range(mm, 0UL, TLB_FLUSH_ALL, 0UL)
  
- #define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
---- a/arch/sparc/include/asm/tlb_32.h
-+++ b/arch/sparc/include/asm/tlb_32.h
-@@ -2,19 +2,6 @@
- #ifndef _SPARC_TLB_H
- #define _SPARC_TLB_H
+-#define flush_tlb_range(vma, start, end)	\
+-		flush_tlb_mm_range(vma->vm_mm, start, end, vma->vm_flags)
++#define flush_tlb_range(vma, start, end)			\
++		flush_tlb_mm_range((vma)->vm_mm, start, end,	\
++				(vma)->vm_flags & VM_HUGETLB ? PMD_SHIFT : PAGE_SHIFT)
  
--#define tlb_end_vma(tlb, vma) \
--do {								\
--	flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\
--} while (0)
--
--#define __tlb_remove_tlb_entry(tlb, pte, address) \
--	do { } while (0)
--
--#define tlb_flush(tlb) \
--do {								\
--	flush_tlb_mm((tlb)->mm);				\
--} while (0)
--
- #include <asm-generic/tlb.h>
+ extern void flush_tlb_all(void);
+ extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+-				unsigned long end, unsigned long vmflag);
++				unsigned long end, unsigned int invl_shift);
+ extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
  
- #endif /* _SPARC_TLB_H */
---- a/arch/unicore32/include/asm/tlb.h
-+++ b/arch/unicore32/include/asm/tlb.h
-@@ -12,10 +12,12 @@
- #ifndef __UNICORE_TLB_H__
- #define __UNICORE_TLB_H__
+ static inline void flush_tlb_page(struct vm_area_struct *vma, unsigned long a)
+ {
+-	flush_tlb_mm_range(vma->vm_mm, a, a + PAGE_SIZE, VM_NONE);
++	flush_tlb_mm_range(vma->vm_mm, a, a + PAGE_SIZE, PAGE_SHIFT);
+ }
  
--#define tlb_start_vma(tlb, vma)				do { } while (0)
--#define tlb_end_vma(tlb, vma)				do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
--#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
-+/*
-+ * unicore32 lacks an afficient flush_tlb_range(), use flush_tlb_mm().
-+ */
-+#define tlb_start_vma(tlb, vma)		do { } while (0)
-+#define tlb_end_vma(tlb, vma)		do { } while (0)
-+#define tlb_flush(tlb)			flush_tlb_mm((tlb)->mm)
+ void native_flush_tlb_others(const struct cpumask *cpumask,
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -522,12 +522,12 @@ static void flush_tlb_func_common(const
+ 	    f->new_tlb_gen == mm_tlb_gen) {
+ 		/* Partial flush */
+ 		unsigned long addr;
+-		unsigned long nr_pages = (f->end - f->start) >> PAGE_SHIFT;
++		unsigned long nr_pages = (f->end - f->start) >> f->invl_shift;
  
- #define __pte_free_tlb(tlb, pte, addr)				\
- 	do {							\
---- a/arch/xtensa/include/asm/tlb.h
-+++ b/arch/xtensa/include/asm/tlb.h
-@@ -14,23 +14,6 @@
- #include <asm/cache.h>
- #include <asm/page.h>
+ 		addr = f->start;
+ 		while (addr < f->end) {
+ 			__flush_tlb_one_user(addr);
+-			addr += PAGE_SIZE;
++			addr += 1UL << f->invl_shift;
+ 		}
+ 		if (local)
+ 			count_vm_tlb_events(NR_TLB_LOCAL_FLUSH_ONE, nr_pages);
+@@ -616,12 +616,13 @@ void native_flush_tlb_others(const struc
+ static unsigned long tlb_single_page_flush_ceiling __read_mostly = 33;
  
--#if (DCACHE_WAY_SIZE <= PAGE_SIZE)
--
--# define tlb_end_vma(tlb,vma)			do { } while (0)
--
--#else
--
--# define tlb_end_vma(tlb, vma)						      \
--	do {								      \
--		if (!tlb->fullmm)					      \
--			flush_tlb_range(vma, vma->vm_start, vma->vm_end);     \
--	} while(0)
--
--#endif
--
--#define __tlb_remove_tlb_entry(tlb,pte,addr)	do { } while (0)
--#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
--
- #include <asm-generic/tlb.h>
+ void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+-				unsigned long end, unsigned long vmflag)
++				unsigned long end, unsigned int invl_shift)
+ {
+ 	int cpu;
  
- #define __pte_free_tlb(tlb, pte, address)	pte_free((tlb)->mm, pte)
+ 	struct flush_tlb_info info __aligned(SMP_CACHE_BYTES) = {
+ 		.mm = mm,
++		.invl_shift = invl_shift,
+ 	};
+ 
+ 	cpu = get_cpu();
+@@ -631,8 +632,7 @@ void flush_tlb_mm_range(struct mm_struct
+ 
+ 	/* Should we flush just the requested range? */
+ 	if ((end != TLB_FLUSH_ALL) &&
+-	    !(vmflag & VM_HUGETLB) &&
+-	    ((end - start) >> PAGE_SHIFT) <= tlb_single_page_flush_ceiling) {
++	    ((end - start) >> invl_shift) <= tlb_single_page_flush_ceiling) {
+ 		info.start = start;
+ 		info.end = end;
+ 	} else {
