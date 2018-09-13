@@ -1,73 +1,52 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v21 1/6] iomap: Use non-raw io functions for io{read|write}XXbe
-Date: Wed, 12 Sep 2018 18:08:10 -0600
-Message-ID: <20180913000815.3824-2-logang@deltatee.com>
-References: <20180913000815.3824-1-logang@deltatee.com>
+From: Kevin Easton <kevin@guarana.org>
+Subject: Re: [PATCH net-next v3 01/17] asm: simd context helper API
+Date: Thu, 13 Sep 2018 05:03:01 +0000
+Message-ID: <20180913050301.GA26367@ip-172-31-15-78>
+References: <20180911010838.8818-1-Jason@zx2c4.com>
+ <20180911010838.8818-2-Jason@zx2c4.com>
+ <20180912061433.GA8484@ip-172-31-15-78>
+ <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180913000815.3824-1-logang@deltatee.com>
+Content-Disposition: inline
+In-Reply-To: <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix an asymmetry in the io{read|write}XXbe functions in that the
-big-endian variants make use of the raw io accessors while the
-little-endian variants use the regular accessors. Some architectures
-implement barriers to order against both spinlocks and DMA accesses
-and for these case, the big-endian variant of the API would not be
-protected.
+On Wed, Sep 12, 2018 at 08:10:41PM +0200, Jason A. Donenfeld wrote:
+> On Wed, Sep 12, 2018 at 8:14 AM Kevin Easton <kevin@guarana.org> wrote:
+> > Given that it's always supposed to be used like that, mightn't it be
+> > better if simd_relax() took a pointer to the context, so the call is
+> > just
+> >
+> >     simd_relax(&simd_context);
+> >
+> > ?
+> >
+> > The inlining means that there won't actually be a pointer dereference in
+> > the emitted code.
+> >
+> > If simd_put() also took a pointer then it could set the context back to
+> > HAVE_NO_SIMD as well?
+> 
+> That's sort of a neat idea. I guess in this scheme, you'd envision:
+> 
+>    simd_context_t simd_context;
+> 
+>    simd_get(&simd_context);
+>    simd_relax(&simd_context);
+>    simd_put(&simd_context);
+> 
+> And this way, if simd_context ever becomes a heavier struct, it can be
+> modified in place rather than returned by value from the function. On
+> the other hand, it's a little bit more annoying to type and makes it
+> harder to do declaration and initialization on the same line.
 
-Thus, change the mmio_XXXXbe macros to use the appropriate swab() function
-wrapping the regular accessor. This is similar to what was done for PIO.
+Yes.  It's also how most get/put APIs already work in the kernel, eg
+kref_get/put (mostly because they tend to be 'getting/putting' an
+already-initialized object, though).
 
-When this code was originally written, barriers in the IO accessors were
-not common and the accessors simply wrapped the raw functions in a
-conversion to CPU endianness. Since then, barriers have been added in
-some architectures and are now missing in the big endian variant of the
-API.
-
-This also manages to silence a few sparse warnings that check
-for using the correct endian types which the original code did
-not annotate correctly.
-
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
-Cc: Philippe Ombredanne <pombredanne@nexb.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Link: http://lkml.kernel.org/r/CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com
----
- lib/iomap.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/lib/iomap.c b/lib/iomap.c
-index 541d926da95e..2c293b22569f 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -65,8 +65,8 @@ static void bad_io_access(unsigned long port, const char *access)
- #endif
- 
- #ifndef mmio_read16be
--#define mmio_read16be(addr) be16_to_cpu(__raw_readw(addr))
--#define mmio_read32be(addr) be32_to_cpu(__raw_readl(addr))
-+#define mmio_read16be(addr) swab16(readw(addr))
-+#define mmio_read32be(addr) swab32(readl(addr))
- #endif
- 
- unsigned int ioread8(void __iomem *addr)
-@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
- #endif
- 
- #ifndef mmio_write16be
--#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
--#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
-+#define mmio_write16be(val,port) writew(swab16(val),port)
-+#define mmio_write32be(val,port) writel(swab32(val),port)
- #endif
- 
- void iowrite8(u8 val, void __iomem *addr)
--- 
-2.19.0
+    - Kevin
