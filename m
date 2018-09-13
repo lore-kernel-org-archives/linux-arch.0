@@ -1,69 +1,71 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 10/11] um/tlb: Convert to generic mmu_gather
-Date: Thu, 13 Sep 2018 11:21:20 +0200
-Message-ID: <20180913092812.436341429@infradead.org>
+Subject: [RFC][PATCH 09/11] sh/tlb: Convert SH to generic mmu_gather
+Date: Thu, 13 Sep 2018 11:21:19 +0200
+Message-ID: <20180913092812.366008016@infradead.org>
 References: <20180913092110.817204997@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>
 List-Id: linux-arch.vger.kernel.org
 
-Generic mmu_gather provides the simple flush_tlb_range() based range
-tracking mmu_gather UM needs.
+Generic mmu_gather provides everything SH needs (range tracking and
+cache coherency).
 
 Cc: Will Deacon <will.deacon@arm.com>
 Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nick Piggin <npiggin@gmail.com>
-Cc: Richard Weinberger <richard@nod.at>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/um/include/asm/tlb.h |  156 ----------------------------------------------
- 1 file changed, 2 insertions(+), 154 deletions(-)
+ arch/sh/include/asm/pgalloc.h |    7 ++
+ arch/sh/include/asm/tlb.h     |  130 ------------------------------------------
+ 2 files changed, 8 insertions(+), 129 deletions(-)
 
---- a/arch/um/include/asm/tlb.h
-+++ b/arch/um/include/asm/tlb.h
-@@ -2,160 +2,8 @@
- #ifndef __UM_TLB_H
- #define __UM_TLB_H
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -72,6 +72,15 @@ do {							\
+ 	tlb_remove_page((tlb), (pte));			\
+ } while (0)
  
--#include <linux/pagemap.h>
--#include <linux/swap.h>
--#include <asm/percpu.h>
++#if CONFIG_PGTABLE_LEVELS > 2
++#define __pmd_free_tlb(tlb, pmdp, addr)			\
++do {							\
++	struct page *page = virt_to_page(pmdp);		\
++	pgtable_pmd_page_dtor(page);			\
++	tlb_remove_page((tlb), page);			\
++} while (0);
++#endif
++
+ static inline void check_pgt_cache(void)
+ {
+ 	quicklist_trim(QUICK_PT, NULL, 25, 16);
+--- a/arch/sh/include/asm/tlb.h
++++ b/arch/sh/include/asm/tlb.h
+@@ -11,131 +11,8 @@
+ 
+ #ifdef CONFIG_MMU
+ #include <linux/swap.h>
 -#include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
+-#include <asm/tlbflush.h>
+-#include <asm/mmu_context.h>
 -
--#define tlb_start_vma(tlb, vma) do { } while (0)
--#define tlb_end_vma(tlb, vma) do { } while (0)
--#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
--
--/* struct mmu_gather is an opaque type used by the mm code for passing around
-- * any data needed by arch specific code for tlb_remove_page.
+-/*
+- * TLB handling.  This allows us to remove pages from the page
+- * tables, and efficiently handle the TLB issues.
 - */
 -struct mmu_gather {
 -	struct mm_struct	*mm;
--	unsigned int		need_flush; /* Really unmapped some ptes? */
--	unsigned long		start;
--	unsigned long		end;
--	unsigned int		fullmm; /* non-zero means full mm flush */
+-	unsigned int		fullmm;
+-	unsigned long		start, end;
 -};
--
--static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
--					  unsigned long address)
--{
--	if (tlb->start > address)
--		tlb->start = address;
--	if (tlb->end < address + PAGE_SIZE)
--		tlb->end = address + PAGE_SIZE;
--}
--
+ 
 -static inline void init_tlb_gather(struct mmu_gather *tlb)
 -{
--	tlb->need_flush = 0;
--
 -	tlb->start = TASK_SIZE;
 -	tlb->end = 0;
 -
@@ -85,58 +87,64 @@ Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 -	init_tlb_gather(tlb);
 -}
 -
--extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
--			       unsigned long end);
--
--static inline void
--tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
--{
--	flush_tlb_mm_range(tlb->mm, tlb->start, tlb->end);
--}
--
--static inline void
--tlb_flush_mmu_free(struct mmu_gather *tlb)
--{
--	init_tlb_gather(tlb);
--}
--
--static inline void
--tlb_flush_mmu(struct mmu_gather *tlb)
--{
--	if (!tlb->need_flush)
--		return;
--
--	tlb_flush_mmu_tlbonly(tlb);
--	tlb_flush_mmu_free(tlb);
--}
--
--/* arch_tlb_finish_mmu
-- *	Called at the end of the shootdown operation to free up any resources
-- *	that were required.
-- */
 -static inline void
 -arch_tlb_finish_mmu(struct mmu_gather *tlb,
 -		unsigned long start, unsigned long end, bool force)
 -{
--	if (force) {
--		tlb->start = start;
--		tlb->end = end;
--		tlb->need_flush = 1;
--	}
--	tlb_flush_mmu(tlb);
+-	if (tlb->fullmm || force)
+-		flush_tlb_mm(tlb->mm);
 -
 -	/* keep the page table cache within bounds */
 -	check_pgt_cache();
 -}
 -
--/* tlb_remove_page
-- *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)),
-- *	while handling the additional races in SMP caused by other CPUs
-- *	caching valid mappings in their TLBs.
+-static inline void
+-tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep, unsigned long address)
+-{
+-	if (tlb->start > address)
+-		tlb->start = address;
+-	if (tlb->end < address + PAGE_SIZE)
+-		tlb->end = address + PAGE_SIZE;
+-}
+-
+-#define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+-	tlb_remove_tlb_entry(tlb, ptep, address)
+-
+-/*
+- * In the case of tlb vma handling, we can optimise these away in the
+- * case where we're doing a full MM flush.  When we're doing a munmap,
+- * the vmas are adjusted to only cover the region to be torn down.
 - */
+-static inline void
+-tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+-{
+-	if (!tlb->fullmm)
+-		flush_cache_range(vma, vma->vm_start, vma->vm_end);
+-}
+-
+-static inline void
+-tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+-{
+-	if (!tlb->fullmm && tlb->end) {
+-		flush_tlb_range(vma, tlb->start, tlb->end);
+-		init_tlb_gather(tlb);
+-	}
+-}
+-
+-static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
+-{
+-}
+-
+-static inline void tlb_flush_mmu_free(struct mmu_gather *tlb)
+-{
+-}
+-
+-static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+-{
+-}
+-
 -static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
 -{
--	tlb->need_flush = 1;
 -	free_page_and_swap_cache(page);
 -	return false; /* avoid calling tlb_flush_mmu */
 -}
@@ -158,34 +166,28 @@ Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 -	return tlb_remove_page(tlb, page);
 -}
 -
--/**
-- * tlb_remove_tlb_entry - remember a pte unmapping for later tlb invalidation.
-- *
-- * Record the fact that pte's were really umapped in ->need_flush, so we can
-- * later optimise away the tlb invalidate.   This helps when userspace is
-- * unmapping already-unmapped pages, which happens quite a lot.
-- */
--#define tlb_remove_tlb_entry(tlb, ptep, address)		\
--	do {							\
--		tlb->need_flush = 1;				\
--		__tlb_remove_tlb_entry(tlb, ptep, address);	\
--	} while (0)
--
--#define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
--	tlb_remove_tlb_entry(tlb, ptep, address)
--
 -static inline void tlb_change_page_size(struct mmu_gather *tlb, unsigned int page_size)
 -{
 -}
 -
--#define pte_free_tlb(tlb, ptep, addr) __pte_free_tlb(tlb, ptep, addr)
+-#define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+-#define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+-#define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
 -
--#define pud_free_tlb(tlb, pudp, addr) __pud_free_tlb(tlb, pudp, addr)
--
--#define pmd_free_tlb(tlb, pmdp, addr) __pmd_free_tlb(tlb, pmdp, addr)
--
--#define tlb_migrate_finish(mm) do {} while (0)
-+#include <asm-generic/cacheflush.h>
+-#define tlb_migrate_finish(mm)		do { } while (0)
 +#include <asm-generic/tlb.h>
  
- #endif
+ #if defined(CONFIG_CPU_SH4) || defined(CONFIG_SUPERH64)
+ extern void tlb_wire_entry(struct vm_area_struct *, unsigned long, pte_t);
+@@ -155,11 +32,6 @@ static inline void tlb_unwire_entry(void
+ 
+ #else /* CONFIG_MMU */
+ 
+-#define tlb_start_vma(tlb, vma)				do { } while (0)
+-#define tlb_end_vma(tlb, vma)				do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, pte, address)	do { } while (0)
+-#define tlb_flush(tlb)					do { } while (0)
+-
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* CONFIG_MMU */
