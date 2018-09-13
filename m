@@ -1,95 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:44269 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726741AbeIMRhk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2018 13:37:40 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:56832 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726819AbeIMRtO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2018 13:49:14 -0400
+Date: Thu, 13 Sep 2018 14:39:37 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
+Message-ID: <20180913123937.GX24124@hirez.programming.kicks-ass.net>
+References: <20180913092110.817204997@infradead.org>
+ <20180913092811.894806629@infradead.org>
+ <20180913123014.0d9321b8@mschwideX1>
+ <20180913105738.GW24124@hirez.programming.kicks-ass.net>
+ <20180913141827.1776985e@mschwideX1>
 MIME-Version: 1.0
-References: <20180829130308.3504560-1-arnd@arndb.de>
-In-Reply-To: <20180829130308.3504560-1-arnd@arndb.de>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 13 Sep 2018 14:28:08 +0200
-Message-ID: <CAK8P3a038aDQQotzua_QtKGhq8O9n+rdiz2=WDCp82ys8eUT+A@mail.gmail.com>
-Subject: Re: [PATCH net-next 1/3] net: rework SIOCGSTAMP ioctl handling
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180913141827.1776985e@mschwideX1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Networking <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Eric Dumazet <edumazet@google.com>, Willem de Bruijn <willemb@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-hams@vger.kernel.org, Bluez mailing list <linux-bluetooth@vger.kernel.org>, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, linux-sctp@vger.kernel.org, linux-x25@vger.kernel.org
-Message-ID: <20180913122808.JD61x49HJbpCjIww1Maeky-YiVo9MlQRKhhAwc23_QY@z>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
+Message-ID: <20180913123937.F0Mh_31jDSps0q8gZdnb5fKSVy0xGZ5d_wtN1FSK_ug@z>
 
-On Wed, Aug 29, 2018 at 3:03 PM Arnd Bergmann <arnd@arndb.de> wrote:
+On Thu, Sep 13, 2018 at 02:18:27PM +0200, Martin Schwidefsky wrote:
+> We may get something working with a common code mmu_gather, but I fear the
+> day someone makes a "minor" change to that subtly break s390. The debugging of
+> TLB related problems is just horrible..
 
-> diff --git a/net/core/sock.c b/net/core/sock.c
-> index 3730eb855095..df17bbfaca27 100644
-> --- a/net/core/sock.c
-> +++ b/net/core/sock.c
-> @@ -2897,37 +2897,31 @@ bool lock_sock_fast(struct sock *sk)
->  }
->  EXPORT_SYMBOL(lock_sock_fast);
->
-> -int sock_get_timestamp(struct sock *sk, struct timeval __user *userstamp)
-> +int sock_gettstamp(struct socket *sock, void __user *userstamp,
-> +                  bool timeval, bool time32)
->  {
-> -       struct timeval tv;
-> -
-> -       sock_enable_timestamp(sk, SOCK_TIMESTAMP);
-> -       tv = ktime_to_timeval(sk->sk_stamp);
-> -       if (tv.tv_sec == -1)
-> -               return -ENOENT;
-> -       if (tv.tv_sec == 0) {
-> -               sk->sk_stamp = ktime_get_real();
-> -               tv = ktime_to_timeval(sk->sk_stamp);
-> -       }
-> -       return copy_to_user(userstamp, &tv, sizeof(tv)) ? -EFAULT : 0;
-> -}
-> -EXPORT_SYMBOL(sock_get_timestamp);
+Yes it is, not just on s390 :/
 
-As  I just learned, sparc64 uses a 32-bit suseconds_t, so this
-function always leaked 32 bits of kernel stack data by copying
-the padding bytes of 'tv' into user space.
+And this is not something that's easy to write sanity checks for either
+AFAIK. I mean we can do a few multi-threaded mmap()/mprotect()/munmap()
+proglets and catch faults, but that doesn't even get close to covering
+all the 'fun' spots.
 
-Linux-4.11 and higher could avoid that with
-CONFIG_GCC_PLUGIN_STRUCTLEAK, but older kernels
-have been affected since socket timestamps were first added.
+Then again, you're more than welcome to the new:
 
-The same thing is probably true of many other interfaces
-that pass a timeval.
+  MMU GATHER AND TLB INVALIDATION
 
-> -int sock_get_timestampns(struct sock *sk, struct timespec __user *userstamp)
-> -{
-> -       struct timespec ts;
-> +       struct sock *sk = sock->sk;
-> +       struct timespec64 ts;
->
->         sock_enable_timestamp(sk, SOCK_TIMESTAMP);
-> -       ts = ktime_to_timespec(sk->sk_stamp);
-> +       ts = ktime_to_timespec64(sk->sk_stamp);
->         if (ts.tv_sec == -1)
->                 return -ENOENT;
->         if (ts.tv_sec == 0) {
->                 sk->sk_stamp = ktime_get_real();
-> -               ts = ktime_to_timespec(sk->sk_stamp);
-> +               ts = ktime_to_timespec64(sk->sk_stamp);
->         }
-> -       return copy_to_user(userstamp, &ts, sizeof(ts)) ? -EFAULT : 0;
-> +
-> +       if (timeval)
-> +               ts.tv_nsec /= 1000;
-> +#ifdef CONFIG_COMPAT_32BIT_TIME
-> +       if (time32)
-> +               return put_old_timespec32(&ts, userstamp);
-> +#endif
-> +
-> +       return put_timespec64(&ts, userstamp);
->  }
-
-My new implementation is worse here: it no longer leaks stack
-data, but since we now write a big-endian 64-bit microseconds
-value, the microseconds are in the wrong place and will
-be interpreted as zero by user space...
-
-I'll also have to revisit a few other similar patches I did for
-y2038, to figure out what they should do on sparc64.
-
-         Arnd
+section in MAINTAINERS.
