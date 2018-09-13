@@ -1,54 +1,48 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: [RFC][PATCH 05/11] asm-generic/tlb: Provide generic tlb_flush
-Date: Thu, 13 Sep 2018 15:09:47 +0200
-Message-ID: <CAG48ez01-iQ5fyZjOJxQyOk9xRkra6bYyUAvUbVLheuABOQi8Q@mail.gmail.com>
-References: <20180913092110.817204997@infradead.org> <20180913092812.132208484@infradead.org>
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Subject: Re: [PATCH net-next v3 01/17] asm: simd context helper API
+Date: Thu, 13 Sep 2018 15:52:21 +0200
+Message-ID: <CAHmME9rMg_2eHBnfP6j9Y3O7-At90HF=ToTWeFL_Qc4nGURORg@mail.gmail.com>
+References: <20180911010838.8818-1-Jason@zx2c4.com> <20180911010838.8818-2-Jason@zx2c4.com>
+ <20180912061433.GA8484@ip-172-31-15-78> <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
+ <20180913050301.GA26367@ip-172-31-15-78>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180913092812.132208484@infradead.org>
+In-Reply-To: <20180913050301.GA26367@ip-172-31-15-78>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, npiggin@gmail.com, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, kernel list <linux-kernel@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: kevin@guarana.org, Andrew Lutomirski <luto@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 13, 2018 at 3:01 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> Provide a generic tlb_flush() implementation that relies on
-> flush_tlb_range(). This is a little awkward because flush_tlb_range()
-> assumes a VMA for range invalidation, but we no longer have one.
->
-> Audit of all flush_tlb_range() implementations shows only vma->vm_mm
-> and vma->vm_flags are used, and of the latter only VM_EXEC (I-TLB
-> invalidates) and VM_HUGETLB (large TLB invalidate) are used.
->
-> Therefore, track VM_EXEC and VM_HUGETLB in two more bits, and create a
-> 'fake' VMA.
->
-> This allows architectures that have a reasonably efficient
-> flush_tlb_range() to not require any additional effort.
-[...]
-> +#define tlb_flush tlb_flush
-> +static inline void tlb_flush(struct mmu_gather *tlb)
-> +{
-> +       if (tlb->fullmm || tlb->need_flush_all) {
-> +               flush_tlb_mm(tlb->mm);
-> +       } else {
-> +               struct vm_area_struct vma = {
-> +                       .vm_mm = tlb->mm,
-> +                       .vm_flags = tlb->vma_exec ? VM_EXEC    : 0 |
-> +                                   tlb->vma_huge ? VM_HUGETLB : 0,
+On Thu, Sep 13, 2018 at 7:03 AM Kevin Easton <kevin@guarana.org> wrote:
+> Yes.  It's also how most get/put APIs already work in the kernel, eg
+> kref_get/put (mostly because they tend to be 'getting/putting' an
+> already-initialized object, though).
 
-This looks wrong to me. Bitwise OR has higher precedence than the
-ternary operator, so I think this code is equivalent to:
+Right; in this case the object wouldn't be initialized yet, which
+might defeat the purpose, since one advantage of the & way you
+mentioned is _put modifies the context.
 
-.vm_flags = tlb->vma_exec ? VM_EXEC    : (0 | tlb->vma_huge) ? VM_HUGETLB : 0
+Andy - any opinions on this? The tl;dr is:
 
-meaning that executable+huge mappings would only get VM_EXEC, but not
-VM_HUGETLB.
+1) what we have now:
 
-> +               };
-> +
-> +               flush_tlb_range(&vma, tlb->start, tlb->end);
-> +       }
->  }
-> +#endif
+simd_context_t simd_context = simd_get();
+for (item in items) {
+    do_something(item);
+    simd_context = simd_relax(simd_context);
+}
+simd_put();
+
+2) what kevin is proposing:
+
+simd_context_t simd_context;
+
+simd_get(&simd_context);
+for (item in items) {
+    do_something(item);
+    simd_relax(&simd_context);
+}
+simd_put(&simd_context);
+
+I can see pros and cons of each approach.
