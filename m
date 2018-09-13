@@ -1,86 +1,90 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Date: Thu, 13 Sep 2018 14:18:27 +0200
-Message-ID: <20180913141827.1776985e@mschwideX1>
-References: <20180913092110.817204997@infradead.org>
-        <20180913092811.894806629@infradead.org>
-        <20180913123014.0d9321b8@mschwideX1>
-        <20180913105738.GW24124@hirez.programming.kicks-ass.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH net-next 1/3] net: rework SIOCGSTAMP ioctl handling
+Date: Thu, 13 Sep 2018 14:28:08 +0200
+Message-ID: <CAK8P3a038aDQQotzua_QtKGhq8O9n+rdiz2=WDCp82ys8eUT+A@mail.gmail.com>
+References: <20180829130308.3504560-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180913105738.GW24124@hirez.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20180829130308.3504560-1-arnd@arndb.de>
+Sender: netdev-owner@vger.kernel.org
+To: Networking <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Eric Dumazet <edumazet@google.com>, Willem de Bruijn <willemb@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-hams@vger.kernel.org, Bluez mailing list <linux-bluetooth@vger.kernel.org>, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, linux-sctp@vger.kernel.org, linux-x25@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 13 Sep 2018 12:57:38 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Aug 29, 2018 at 3:03 PM Arnd Bergmann <arnd@arndb.de> wrote:
 
-> On Thu, Sep 13, 2018 at 12:30:14PM +0200, Martin Schwidefsky wrote:
-> 
-> > > + * The mmu_gather data structure is used by the mm code to implement the
-> > > + * correct and efficient ordering of freeing pages and TLB invalidations.
-> > > + *
-> > > + * This correct ordering is:
-> > > + *
-> > > + *  1) unhook page
-> > > + *  2) TLB invalidate page
-> > > + *  3) free page
-> > > + *
-> > > + * That is, we must never free a page before we have ensured there are no live
-> > > + * translations left to it. Otherwise it might be possible to observe (or
-> > > + * worse, change) the page content after it has been reused.
-> > > + *  
-> > 
-> > This first comment already includes the reason why s390 is probably better off
-> > with its own mmu-gather implementation. It depends on the situation if we have
-> > 
-> > 1) unhook the page and do a TLB flush at the same time
-> > 2) free page
-> > 
-> > or
-> > 
-> > 1) unhook page
-> > 2) free page
-> > 3) final TLB flush of the whole mm  
-> 
-> that's the fullmm case, right?
+> diff --git a/net/core/sock.c b/net/core/sock.c
+> index 3730eb855095..df17bbfaca27 100644
+> --- a/net/core/sock.c
+> +++ b/net/core/sock.c
+> @@ -2897,37 +2897,31 @@ bool lock_sock_fast(struct sock *sk)
+>  }
+>  EXPORT_SYMBOL(lock_sock_fast);
+>
+> -int sock_get_timestamp(struct sock *sk, struct timeval __user *userstamp)
+> +int sock_gettstamp(struct socket *sock, void __user *userstamp,
+> +                  bool timeval, bool time32)
+>  {
+> -       struct timeval tv;
+> -
+> -       sock_enable_timestamp(sk, SOCK_TIMESTAMP);
+> -       tv = ktime_to_timeval(sk->sk_stamp);
+> -       if (tv.tv_sec == -1)
+> -               return -ENOENT;
+> -       if (tv.tv_sec == 0) {
+> -               sk->sk_stamp = ktime_get_real();
+> -               tv = ktime_to_timeval(sk->sk_stamp);
+> -       }
+> -       return copy_to_user(userstamp, &tv, sizeof(tv)) ? -EFAULT : 0;
+> -}
+> -EXPORT_SYMBOL(sock_get_timestamp);
 
-That includes the fullmm case but we use it for e.g. munmap of a single-threaded
-program as well.
- 
-> > A variant of the second order we had in the past is to do the mm TLB flush first,
-> > then the unhooks and frees of the individual pages. The are some tricky corners
-> > switching between the two variants, see finish_arch_post_lock_switch.
-> > 
-> > The point is: we *never* have the order 1) unhook, 2) TLB invalidate, 3) free.
-> > If there is concurrency due to a multi-threaded application we have to do the
-> > unhook of the page-table entry and the TLB flush with a single instruction.  
-> 
-> You can still get the thing you want if for !fullmm you have a no-op
-> tlb_flush() implementation, assuming your arch page-table frobbing thing
-> has the required TLB flush in.
+As  I just learned, sparc64 uses a 32-bit suseconds_t, so this
+function always leaked 32 bits of kernel stack data by copying
+the padding bytes of 'tv' into user space.
 
-We have a non-empty tlb_flush_mmu_tlbonly to do a full-mm flush for two cases
-1) batches of page-table entries for single-threaded programs
-2) flushing of the pages used for the page-table structure itself
+Linux-4.11 and higher could avoid that with
+CONFIG_GCC_PLUGIN_STRUCTLEAK, but older kernels
+have been affected since socket timestamps were first added.
 
-In fact only the page-table pages are added to the mmu_gather batch, the target
-page of the virtual mapping is always freed immediately.
- 
-> Note that that's not utterly unlike how the PowerPC/Sparc hash things
-> work, they clear and invalidate entries different from others and don't
-> use the mmu_gather tlb-flush.
+The same thing is probably true of many other interfaces
+that pass a timeval.
 
-We may get something working with a common code mmu_gather, but I fear the
-day someone makes a "minor" change to that subtly break s390. The debugging of
-TLB related problems is just horrible..
+> -int sock_get_timestampns(struct sock *sk, struct timespec __user *userstamp)
+> -{
+> -       struct timespec ts;
+> +       struct sock *sk = sock->sk;
+> +       struct timespec64 ts;
+>
+>         sock_enable_timestamp(sk, SOCK_TIMESTAMP);
+> -       ts = ktime_to_timespec(sk->sk_stamp);
+> +       ts = ktime_to_timespec64(sk->sk_stamp);
+>         if (ts.tv_sec == -1)
+>                 return -ENOENT;
+>         if (ts.tv_sec == 0) {
+>                 sk->sk_stamp = ktime_get_real();
+> -               ts = ktime_to_timespec(sk->sk_stamp);
+> +               ts = ktime_to_timespec64(sk->sk_stamp);
+>         }
+> -       return copy_to_user(userstamp, &ts, sizeof(ts)) ? -EFAULT : 0;
+> +
+> +       if (timeval)
+> +               ts.tv_nsec /= 1000;
+> +#ifdef CONFIG_COMPAT_32BIT_TIME
+> +       if (time32)
+> +               return put_old_timespec32(&ts, userstamp);
+> +#endif
+> +
+> +       return put_timespec64(&ts, userstamp);
+>  }
 
--- 
-blue skies,
-   Martin.
+My new implementation is worse here: it no longer leaks stack
+data, but since we now write a big-endian 64-bit microseconds
+value, the microseconds are in the wrong place and will
+be interpreted as zero by user space...
 
-"Reality continues to ruin my life." - Calvin.
+I'll also have to revisit a few other similar patches I did for
+y2038, to figure out what they should do on sparc64.
+
+         Arnd
