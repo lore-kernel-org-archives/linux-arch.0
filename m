@@ -1,92 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:38354 "EHLO ale.deltatee.com"
+Received: from aws.guarana.org ([13.237.110.252]:49608 "EHLO aws.guarana.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726261AbeIMFPN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 13 Sep 2018 01:15:13 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Wed, 12 Sep 2018 18:08:15 -0600
-Message-ID: <20180913000815.3824-7-logang@deltatee.com>
-In-Reply-To: <20180913000815.3824-1-logang@deltatee.com>
-References: <20180913000815.3824-1-logang@deltatee.com>
+        id S1727194AbeIMKKy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Sep 2018 06:10:54 -0400
+Date: Thu, 13 Sep 2018 05:03:01 +0000
+From: Kevin Easton <kevin@guarana.org>
+Subject: Re: [PATCH net-next v3 01/17] asm: simd context helper API
+Message-ID: <20180913050301.GA26367@ip-172-31-15-78>
+References: <20180911010838.8818-1-Jason@zx2c4.com>
+ <20180911010838.8818-2-Jason@zx2c4.com>
+ <20180912061433.GA8484@ip-172-31-15-78>
+ <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Subject: [PATCH v21 6/6] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20180913000815.eqSVe8CrPw39kJMpbF78VZ4gMp_YSCRc_zZ4ZVoW988@z>
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
+Message-ID: <20180913050301.sqVq_Htf7FRJqQvJopzkUU-PIDK-ZUNdTPAru3M6Wgs@z>
 
-Clean up the ifdefs which conditionally defined the io{read|write}64
-functions in favour of the new common io-64-nonatomic-lo-hi header.
+On Wed, Sep 12, 2018 at 08:10:41PM +0200, Jason A. Donenfeld wrote:
+> On Wed, Sep 12, 2018 at 8:14 AM Kevin Easton <kevin@guarana.org> wrote:
+> > Given that it's always supposed to be used like that, mightn't it be
+> > better if simd_relax() took a pointer to the context, so the call is
+> > just
+> >
+> >     simd_relax(&simd_context);
+> >
+> > ?
+> >
+> > The inlining means that there won't actually be a pointer dereference in
+> > the emitted code.
+> >
+> > If simd_put() also took a pointer then it could set the context back to
+> > HAVE_NO_SIMD as well?
+> 
+> That's sort of a neat idea. I guess in this scheme, you'd envision:
+> 
+>    simd_context_t simd_context;
+> 
+>    simd_get(&simd_context);
+>    simd_relax(&simd_context);
+>    simd_put(&simd_context);
+> 
+> And this way, if simd_context ever becomes a heavier struct, it can be
+> modified in place rather than returned by value from the function. On
+> the other hand, it's a little bit more annoying to type and makes it
+> harder to do declaration and initialization on the same line.
 
-Per a nit from Andy Shevchenko, the include list is also made
-alphabetical.
+Yes.  It's also how most get/put APIs already work in the kernel, eg
+kref_get/put (mostly because they tend to be 'getting/putting' an
+already-initialized object, though).
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 +++-----------------------
- 1 file changed, 4 insertions(+), 32 deletions(-)
-
-diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-index 5ee5f40b4dfc..c0b97699169d 100644
---- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-+++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-@@ -13,13 +13,14 @@
-  *
-  */
- 
--#include <linux/switchtec.h>
--#include <linux/module.h>
-+#include <linux/interrupt.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- #include <linux/delay.h>
- #include <linux/kthread.h>
--#include <linux/interrupt.h>
-+#include <linux/module.h>
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/switchtec.h>
- 
- MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
- MODULE_VERSION("0.1");
-@@ -36,35 +37,6 @@ module_param(use_lut_mws, bool, 0644);
- MODULE_PARM_DESC(use_lut_mws,
- 		 "Enable the use of the LUT based memory windows");
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #define SWITCHTEC_NTB_MAGIC 0x45CC0001
- #define MAX_MWS     128
- 
--- 
-2.19.0
+    - Kevin
