@@ -1,69 +1,68 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Date: Fri, 14 Sep 2018 16:07:14 +0200
-Message-ID: <20180914160714.45a11f13@mschwideX1>
-References: <20180913092110.817204997@infradead.org>
-        <20180913092811.894806629@infradead.org>
-        <20180913123014.0d9321b8@mschwideX1>
-        <20180913105738.GW24124@hirez.programming.kicks-ass.net>
-        <20180913141827.1776985e@mschwideX1>
-        <20180913123937.GX24124@hirez.programming.kicks-ass.net>
-        <20180914122824.181d9778@mschwideX1>
-        <20180914130207.GD24106@hirez.programming.kicks-ass.net>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
+Date: Fri, 14 Sep 2018 22:37:20 +0800
+Message-ID: <20180914143719.GA27689@guoren-Inspiron-7460>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
+ <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180914130207.GD24106@hirez.programming.kicks-ass.net>
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 14 Sep 2018 15:02:07 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
-
-> On Fri, Sep 14, 2018 at 12:28:24PM +0200, Martin Schwidefsky wrote:
+On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
+> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
+> >
+> > This is the 3th version patchset to add the Linux kernel port for C-SKY(csky).
+> > Thanks to everyone who provided feedback on the previous version.
+> >
+> > This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
+> > CPU cores and the patches are based on linux-4.18.4
+> >
+> > There are two ABI versions with several CPU cores in this patchset:
+> >   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+> >   ABIv2: ck807 ck810 ck860 (16/32-bit variable length instruction, PIPT Cache,
+> >          SMP ...)
+> >
+> > More information: http://en.c-sky.com
 > 
-> > I spent some time to get s390 converted to the common mmu_gather code.
-> > There is one thing I would like to request, namely the ability to
-> > disable the page gather part of mmu_gather. For my prototype patch
-> > see below, it defines the negative HAVE_RCU_NO_GATHER_PAGES Kconfig
-> > symbol that if defined will remove some parts from common code.
-> > Ugly but good enough for the prototype to convey the idea.
-> > For the final solution we better use a positive Kconfig symbol and
-> > add that to all arch Kconfig files except for s390.  
-> 
-> In a private thread ealier Linus raised the point that the batching and
-> freeing of lots of pages at once is probably better for I$.
+> This looks good to me overall. I think a good next step would be to get the port
+> included in linux-next, by preparing a git tree with all the patches and asking
+> Stephen Rothwell to include it there. Further comments on the architecture
+> port itself can be done on top of the existing patches. I would suggest you
+> base the git tree on an -rc release (either 4.19-rc1 or 4.19-rc3) and then never
+> rebase again.
+Nice :) I'll follow the rules.
 
-That would be something to try. For now I would like to do a conversion
-that more or less preserves the old behavior. You know these pesky TLB
-related bugs..
-
-> > +config HAVE_RCU_NO_GATHER_PAGES
-> > +	bool  
 > 
-> I have a problem with the name more than anything else; this name
-> suggests it is the RCU table freeing that should not batch, which is not
-> the case, you want the regular page gather gone, but very much require
-> the RCU table gather to batch.
-> 
-> So I would like to propose calling it:
-> 
-> config HAVE_MMU_GATHER_NO_GATHER
-> 
-> Or something along those lines.
- 
-Imho a positive config option like HAVE_MMU_GATHER_PAGES would make the
-most sense. It has the downside that it needs to be added to all
-arch/*/Kconfig files except for s390. 
+> You have included a couple of drivers in the submission: two timer and
+> two irqchip drivers. Please leave those out for the moment, and either have
+> them merged through the respective subsystem  trees, or get an Ack
+> from the maintainers to merge them through your tree.
+Ok. 
 
-But I am not hung-up on a name, whatever does not sound to awful will do
-for me. HAVE_MMU_GATHER_NO_GATHER would be ok.
+> 
+> I notice that a lot of the patches have no changeset comments on them.
+> You should fix that and make a habit of describing every single patch
+> with a few sentences, even if it seems obvious to you. Have a look at
+> the changeset descriptions for the nds32 and riscv architectures when
+> they got merged.
+Ok, I'll fixup them.
 
--- 
-blue skies,
-   Martin.
+> 
+> One big question for me is what to do about time_t. Deepa and I are
+> in the process of finalizing the system call ABI for 32-bit architectures
+> with 64-bit time_t, but we are not done yet and it won't be complete
+> for 4.20. If you target 4.21, that could be a chance to make csky the
+> first architecture to only need the 64-bit time_t interface, with the
+> corresponding user space changes.
+y2038 is very important and csky32 has the issue. But 4.21 is too late for
+us, we really want to get into kernel.org as soon as possible.
+We could remove 32-bit time_t in future.
 
-"Reality continues to ruin my life." - Calvin.
+Best Regards
+ Guo Ren
