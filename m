@@ -1,224 +1,166 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] [RFC] making uapi/linux/elfcore.h useful again
-Date: Fri, 14 Sep 2018 13:38:50 +0200
-Message-ID: <20180914113929.953895-1-arnd@arndb.de>
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH 3/3] mips: uapi header and system call table file
+ generation
+Date: Fri, 14 Sep 2018 20:55:21 +0800
+Message-ID: <201809142014.V0LXpNws%fengguang.wu@intel.com>
+References: <1536914314-5026-4-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/mixed; boundary="a8Wt8u1KmwUX3Y2C"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1536914314-5026-4-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?q?Joseph=20Myers=C2=A0?= <joseph@codesourcery.com>, David Howells <dhowells@redhat.com>, libc-alpha@sourceware.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org
+Cc: kbuild-all@01.org, Hauke Mehrtens <hauke@hauke-m.de>, =?utf-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-After finding a bug in glibc the question came up how linux/elfcore.h
-is supposed to be used from user space. As far as I can tell, it's
-not possible, as it references data types that are simply unavailable
-there.
 
-The #ifndef __KERNEL__ section in that header dates back to when the
-file was introduced in linux-1.3.5, and presumably was meant to
-provide the structures for the libc sys/procfs.h implementation.
-However, this was never portable to architectures other than x86-32,
-and has been broken on that architecture at a later point.
+--a8Wt8u1KmwUX3Y2C
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-These are the steps that I needed to make it possible to include the
-header file, e.g. for libc self-testing in order to make sure the
-structures are compatible with its own:
+Hi Firoz,
 
-- drop the #ifndef __KERNEL__ section that are obviously useless
-  and get in the way
+Thank you for the patch! Yet something to improve:
 
-- change the pid_t references to __kernel_pid_t
+[auto build test ERROR on linus/master]
+[also build test ERROR on v4.19-rc3 next-20180913]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
 
-- Move required data from the private x86 asm/elf.h file into
-  a new uapi/asm/elf.h. Some other architectures already do that,
-  but most of them do not. Before applying the patch, we have
-  to do this for all architectures
+url:    https://github.com/0day-ci/linux/commits/Firoz-Khan/mips-Add-__NR_syscalls-macro-in-uapi-asm-unistd-h/20180914-184600
+config: mips-allnoconfig (attached as .config)
+compiler: mips-linux-gnu-gcc (Debian 7.2.0-11) 7.2.0
+reproduce:
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        GCC_VERSION=7.2.0 make.cross ARCH=mips 
 
-- Change ELF_NGREG to an integer literal constant instead of
-  a sizeof operation based on a private type.
+All errors (new ones prefixed by >>):
 
-Cc: Joseph Myers <joseph@codesourcery.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: libc-alpha@sourceware.org
-Link: https://patchwork.ozlabs.org/patch/969540/
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+   arch/mips/kernel/scall32-o32.o: In function `einval':
+>> (.text+0x678): undefined reference to `mipsmt_sys_sched_setaffinity'
+>> (.text+0x67c): undefined reference to `mipsmt_sys_sched_getaffinity'
+
 ---
- arch/x86/include/asm/elf.h         | 24 +-----------------------
- arch/x86/include/uapi/asm/elf.h    | 30 ++++++++++++++++++++++++++++++
- arch/x86/include/uapi/asm/signal.h |  2 +-
- include/uapi/linux/elf.h           |  1 +
- include/uapi/linux/elfcore.h       | 26 +++++---------------------
- 5 files changed, 38 insertions(+), 45 deletions(-)
- create mode 100644 arch/x86/include/uapi/asm/elf.h
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index 0d157d2a1e2a..973bd7b5b164 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -10,18 +10,10 @@
- #include <asm/ptrace.h>
- #include <asm/user.h>
- #include <asm/auxvec.h>
--
--typedef unsigned long elf_greg_t;
--
--#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
--typedef elf_greg_t elf_gregset_t[ELF_NGREG];
--
--typedef struct user_i387_struct elf_fpregset_t;
-+#include <uapi/asm/elf.h>
- 
- #ifdef __i386__
- 
--typedef struct user_fxsr_struct elf_fpxregset_t;
--
- #define R_386_NONE	0
- #define R_386_32	1
- #define R_386_PC32	2
-@@ -35,13 +27,6 @@ typedef struct user_fxsr_struct elf_fpxregset_t;
- #define R_386_GOTPC	10
- #define R_386_NUM	11
- 
--/*
-- * These are used to set parameters in the core dumps.
-- */
--#define ELF_CLASS	ELFCLASS32
--#define ELF_DATA	ELFDATA2LSB
--#define ELF_ARCH	EM_386
--
- #else
- 
- /* x86-64 relocation types */
-@@ -65,13 +50,6 @@ typedef struct user_fxsr_struct elf_fpxregset_t;
- 
- #define R_X86_64_NUM		16
- 
--/*
-- * These are used to set parameters in the core dumps.
-- */
--#define ELF_CLASS	ELFCLASS64
--#define ELF_DATA	ELFDATA2LSB
--#define ELF_ARCH	EM_X86_64
--
- #endif
- 
- #include <asm/vdso.h>
-diff --git a/arch/x86/include/uapi/asm/elf.h b/arch/x86/include/uapi/asm/elf.h
-new file mode 100644
-index 000000000000..a640e1224939
---- /dev/null
-+++ b/arch/x86/include/uapi/asm/elf.h
-@@ -0,0 +1,30 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#ifndef _UAPI_ASM_X86_ELF_H
-+#define _UAPI_ASM_X86_ELF_H
-+
-+#ifdef __i386__
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
-+#define ELF_DATA	ELFDATA2LSB
-+#define ELF_ARCH	EM_386
-+#define ELF_NGREG	17
-+
-+#else
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS64
-+#define ELF_DATA	ELFDATA2LSB
-+#define ELF_ARCH	EM_X86_64
-+#define ELF_NGREG	27
-+
-+#endif /* __i386__ */
-+
-+typedef unsigned long elf_greg_t;
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+#endif
-diff --git a/arch/x86/include/uapi/asm/signal.h b/arch/x86/include/uapi/asm/signal.h
-index e5745d593dc7..00f273eaddf7 100644
---- a/arch/x86/include/uapi/asm/signal.h
-+++ b/arch/x86/include/uapi/asm/signal.h
-@@ -128,7 +128,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index c5358e0ae7c5..e1e4561ed9c2 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -4,6 +4,7 @@
- 
- #include <linux/types.h>
- #include <linux/elf-em.h>
-+#include <asm/elf.h>
- 
- /* 32-bit ELF base types. */
- typedef __u32	Elf32_Addr;
-diff --git a/include/uapi/linux/elfcore.h b/include/uapi/linux/elfcore.h
-index baf03562306d..9c0078004275 100644
---- a/include/uapi/linux/elfcore.h
-+++ b/include/uapi/linux/elfcore.h
-@@ -16,15 +16,6 @@ struct elf_siginfo
- 	int	si_errno;			/* errno */
- };
- 
--
--#ifndef __KERNEL__
--typedef elf_greg_t greg_t;
--typedef elf_gregset_t gregset_t;
--typedef elf_fpregset_t fpregset_t;
--typedef elf_fpxregset_t fpxregset_t;
--#define NGREG ELF_NGREG
--#endif
--
- /*
-  * Definitions to generate Intel SVR4-like core files.
-  * These mostly have the same names as the SVR4 types with "elf_"
-@@ -49,10 +40,10 @@ struct elf_prstatus
- 	struct sigaltstack pr_altstack;	/* Alternate stack info */
- 	struct sigaction pr_action;	/* Signal action for current sig */
- #endif
--	pid_t	pr_pid;
--	pid_t	pr_ppid;
--	pid_t	pr_pgrp;
--	pid_t	pr_sid;
-+	__kernel_pid_t	pr_pid;
-+	__kernel_pid_t	pr_ppid;
-+	__kernel_pid_t	pr_pgrp;
-+	__kernel_pid_t	pr_sid;
- 	struct __kernel_old_timeval pr_utime;	/* User time */
- 	struct __kernel_old_timeval pr_stime;	/* System time */
- 	struct __kernel_old_timeval pr_cutime;	/* Cumulative user time */
-@@ -85,17 +76,10 @@ struct elf_prpsinfo
- 	unsigned long pr_flag;	/* flags */
- 	__kernel_uid_t	pr_uid;
- 	__kernel_gid_t	pr_gid;
--	pid_t	pr_pid, pr_ppid, pr_pgrp, pr_sid;
-+	__kernel_pid_t	pr_pid, pr_ppid, pr_pgrp, pr_sid;
- 	/* Lots missing */
- 	char	pr_fname[16];	/* filename of executable */
- 	char	pr_psargs[ELF_PRARGSZ];	/* initial part of arg list */
- };
- 
--#ifndef __KERNEL__
--typedef struct elf_prstatus prstatus_t;
--typedef struct elf_prpsinfo prpsinfo_t;
--#define PRARGSZ ELF_PRARGSZ 
--#endif
--
--
- #endif /* _UAPI_LINUX_ELFCORE_H */
--- 
-2.18.0
+--a8Wt8u1KmwUX3Y2C
+Content-Type: application/gzip
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
+
+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
+
+--a8Wt8u1KmwUX3Y2C--
