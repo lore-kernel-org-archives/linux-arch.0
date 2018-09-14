@@ -1,47 +1,58 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 02/11] asm-generic/tlb: Provide
- HAVE_MMU_GATHER_PAGE_SIZE
-Date: Fri, 14 Sep 2018 17:56:43 +0100
-Message-ID: <20180914165643.GH6236@arm.com>
+Subject: Re: [RFC][PATCH 04/11] asm-generic/tlb: Provide generic VIPT cache
+ flush
+Date: Fri, 14 Sep 2018 17:56:48 +0100
+Message-ID: <20180914165648.GI6236@arm.com>
 References: <20180913092110.817204997@infradead.org>
- <20180913092811.955706111@infradead.org>
+ <20180913092812.071989585@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180913092811.955706111@infradead.org>
+In-Reply-To: <20180913092812.071989585@infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
+Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, David Miller <davem@davemloft.net>, Guan Xuetao <gxt@pku.edu.cn>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 13, 2018 at 11:21:12AM +0200, Peter Zijlstra wrote:
-> Move the mmu_gather::page_size things into the generic code instead of
-> powerpc specific bits.
+On Thu, Sep 13, 2018 at 11:21:14AM +0200, Peter Zijlstra wrote:
+> The one obvious thing SH and ARM want is a sensible default for
+> tlb_start_vma(). (also: https://lkml.org/lkml/2004/1/15/6 )
+> 
+> Avoid all VIPT architectures providing their own tlb_start_vma()
+> implementation and rely on architectures to provide a no-op
+> flush_cache_range() when it is not relevant.
+> 
+> The below makes tlb_start_vma() default to flush_cache_range(), which
+> should be right and sufficient. The only exceptions that I found where
+> (oddly):
+> 
+>   - m68k-mmu
+>   - sparc64
+>   - unicore
+> 
+> Those architectures appear to have flush_cache_range(), but their
+> current tlb_start_vma() does not call it.
 > 
 > Cc: Will Deacon <will.deacon@arm.com>
 > Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
 > Cc: Andrew Morton <akpm@linux-foundation.org>
 > Cc: Nick Piggin <npiggin@gmail.com>
+> Cc: David Miller <davem@davemloft.net>
+> Cc: Guan Xuetao <gxt@pku.edu.cn>
 > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 > ---
->  arch/Kconfig                   |    3 +++
->  arch/arm/include/asm/tlb.h     |    3 +--
->  arch/ia64/include/asm/tlb.h    |    3 +--
->  arch/powerpc/Kconfig           |    1 +
->  arch/powerpc/include/asm/tlb.h |   17 -----------------
->  arch/s390/include/asm/tlb.h    |    4 +---
->  arch/sh/include/asm/tlb.h      |    4 +---
->  arch/um/include/asm/tlb.h      |    4 +---
->  include/asm-generic/tlb.h      |   25 +++++++++++++------------
->  mm/huge_memory.c               |    4 ++--
->  mm/hugetlb.c                   |    2 +-
->  mm/madvise.c                   |    2 +-
->  mm/memory.c                    |    4 ++--
->  mm/mmu_gather.c                |    5 +++++
->  14 files changed, 33 insertions(+), 48 deletions(-)
+>  arch/arc/include/asm/tlb.h      |    9 ---------
+>  arch/mips/include/asm/tlb.h     |    9 ---------
+>  arch/nds32/include/asm/tlb.h    |    6 ------
+>  arch/nios2/include/asm/tlb.h    |   10 ----------
+>  arch/parisc/include/asm/tlb.h   |    5 -----
+>  arch/sparc/include/asm/tlb_32.h |    5 -----
+>  arch/xtensa/include/asm/tlb.h   |    9 ---------
+>  include/asm-generic/tlb.h       |   19 +++++++++++--------
+>  8 files changed, 11 insertions(+), 61 deletions(-)
 
-Looks fine to me, but I hope we can remove this option altogether in future:
+LGTM and makes no difference to arm/arm64:
 
 Acked-by: Will Deacon <will.deacon@arm.com>
 
