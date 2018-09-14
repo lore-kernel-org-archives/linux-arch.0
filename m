@@ -1,523 +1,224 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Date: Fri, 14 Sep 2018 12:28:24 +0200
-Message-ID: <20180914122824.181d9778@mschwideX1>
-References: <20180913092110.817204997@infradead.org>
-        <20180913092811.894806629@infradead.org>
-        <20180913123014.0d9321b8@mschwideX1>
-        <20180913105738.GW24124@hirez.programming.kicks-ass.net>
-        <20180913141827.1776985e@mschwideX1>
-        <20180913123937.GX24124@hirez.programming.kicks-ass.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] [RFC] making uapi/linux/elfcore.h useful again
+Date: Fri, 14 Sep 2018 13:38:50 +0200
+Message-ID: <20180914113929.953895-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180913123937.GX24124@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
+To: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?q?Joseph=20Myers=C2=A0?= <joseph@codesourcery.com>, David Howells <dhowells@redhat.com>, libc-alpha@sourceware.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 13 Sep 2018 14:39:37 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
+After finding a bug in glibc the question came up how linux/elfcore.h
+is supposed to be used from user space. As far as I can tell, it's
+not possible, as it references data types that are simply unavailable
+there.
 
-> On Thu, Sep 13, 2018 at 02:18:27PM +0200, Martin Schwidefsky wrote:
-> > We may get something working with a common code mmu_gather, but I fear the
-> > day someone makes a "minor" change to that subtly break s390. The debugging of
-> > TLB related problems is just horrible..  
-> 
-> Yes it is, not just on s390 :/
-> 
-> And this is not something that's easy to write sanity checks for either
-> AFAIK. I mean we can do a few multi-threaded mmap()/mprotect()/munmap()
-> proglets and catch faults, but that doesn't even get close to covering
-> all the 'fun' spots.
-> 
-> Then again, you're more than welcome to the new:
-> 
->   MMU GATHER AND TLB INVALIDATION
-> 
-> section in MAINTAINERS.
+The #ifndef __KERNEL__ section in that header dates back to when the
+file was introduced in linux-1.3.5, and presumably was meant to
+provide the structures for the libc sys/procfs.h implementation.
+However, this was never portable to architectures other than x86-32,
+and has been broken on that architecture at a later point.
 
-I spent some time to get s390 converted to the common mmu_gather code.
-There is one thing I would like to request, namely the ability to
-disable the page gather part of mmu_gather. For my prototype patch
-see below, it defines the negative HAVE_RCU_NO_GATHER_PAGES Kconfig
-symbol that if defined will remove some parts from common code.
-Ugly but good enough for the prototype to convey the idea.
-For the final solution we better use a positive Kconfig symbol and
-add that to all arch Kconfig files except for s390.
+These are the steps that I needed to make it possible to include the
+header file, e.g. for libc self-testing in order to make sure the
+structures are compatible with its own:
 
-The code itself is less hairy than I feared, it worked on the first
-try and survived my fork/munmap/mprotect TLB stress test. But as
-this is TLB flushing there probably is some subtle problem left..
+- drop the #ifndef __KERNEL__ section that are obviously useless
+  and get in the way
 
-Here we go:
---
-From f222a7e40427b625700f2ca0919c32f07931c19a Mon Sep 17 00:00:00 2001
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Date: Fri, 14 Sep 2018 10:50:58 +0200
-Subject: [PATCH] s390/tlb: convert s390 to generic mmu_gather
+- change the pid_t references to __kernel_pid_t
 
-Introduce HAVE_RCU_NO_GATHER_PAGES to allow the arch code to disable
-page gathering in the generic mmu_gather code, then enable the generic
-mmu_gather code for s390.
+- Move required data from the private x86 asm/elf.h file into
+  a new uapi/asm/elf.h. Some other architectures already do that,
+  but most of them do not. Before applying the patch, we have
+  to do this for all architectures
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+- Change ELF_NGREG to an integer literal constant instead of
+  a sizeof operation based on a private type.
+
+Cc: Joseph Myers <joseph@codesourcery.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: libc-alpha@sourceware.org
+Link: https://patchwork.ozlabs.org/patch/969540/
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/Kconfig                |   3 +
- arch/s390/Kconfig           |   3 +
- arch/s390/include/asm/tlb.h | 131 ++++++++++++++------------------------------
- arch/s390/mm/pgalloc.c      |  63 +--------------------
- include/asm-generic/tlb.h   |   7 +++
- mm/mmu_gather.c             |  18 +++++-
- 6 files changed, 72 insertions(+), 153 deletions(-)
+ arch/x86/include/asm/elf.h         | 24 +-----------------------
+ arch/x86/include/uapi/asm/elf.h    | 30 ++++++++++++++++++++++++++++++
+ arch/x86/include/uapi/asm/signal.h |  2 +-
+ include/uapi/linux/elf.h           |  1 +
+ include/uapi/linux/elfcore.h       | 26 +++++---------------------
+ 5 files changed, 38 insertions(+), 45 deletions(-)
+ create mode 100644 arch/x86/include/uapi/asm/elf.h
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 053c44703539..9b257929a7c1 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -359,6 +359,9 @@ config HAVE_PERF_USER_STACK_DUMP
- config HAVE_ARCH_JUMP_LABEL
- 	bool
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index 0d157d2a1e2a..973bd7b5b164 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -10,18 +10,10 @@
+ #include <asm/ptrace.h>
+ #include <asm/user.h>
+ #include <asm/auxvec.h>
+-
+-typedef unsigned long elf_greg_t;
+-
+-#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
+-typedef elf_greg_t elf_gregset_t[ELF_NGREG];
+-
+-typedef struct user_i387_struct elf_fpregset_t;
++#include <uapi/asm/elf.h>
  
-+config HAVE_RCU_NO_GATHER_PAGES
-+	bool
-+
- config HAVE_RCU_TABLE_FREE
- 	bool
+ #ifdef __i386__
  
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 9a9c7a6fe925..521457e3c5e4 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -161,6 +161,9 @@ config S390
- 	select HAVE_NOP_MCOUNT
- 	select HAVE_OPROFILE
- 	select HAVE_PERF_EVENTS
-+	select HAVE_RCU_NO_GATHER_PAGES
-+	select HAVE_RCU_TABLE_FREE
-+	select HAVE_RCU_TABLE_INVALIDATE
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RSEQ
- 	select HAVE_SYSCALL_TRACEPOINTS
-diff --git a/arch/s390/include/asm/tlb.h b/arch/s390/include/asm/tlb.h
-index cf3d64313740..8073ff272b2b 100644
---- a/arch/s390/include/asm/tlb.h
-+++ b/arch/s390/include/asm/tlb.h
-@@ -22,98 +22,40 @@
-  * Pages used for the page tables is a different story. FIXME: more
-  */
+-typedef struct user_fxsr_struct elf_fpxregset_t;
+-
+ #define R_386_NONE	0
+ #define R_386_32	1
+ #define R_386_PC32	2
+@@ -35,13 +27,6 @@ typedef struct user_fxsr_struct elf_fpxregset_t;
+ #define R_386_GOTPC	10
+ #define R_386_NUM	11
  
--#include <linux/mm.h>
--#include <linux/pagemap.h>
--#include <linux/swap.h>
--#include <asm/processor.h>
--#include <asm/pgalloc.h>
--#include <asm/tlbflush.h>
+-/*
+- * These are used to set parameters in the core dumps.
+- */
+-#define ELF_CLASS	ELFCLASS32
+-#define ELF_DATA	ELFDATA2LSB
+-#define ELF_ARCH	EM_386
 -
--struct mmu_gather {
--	struct mm_struct *mm;
--	struct mmu_table_batch *batch;
--	unsigned int fullmm;
--	unsigned long start, end;
--};
--
--struct mmu_table_batch {
--	struct rcu_head		rcu;
--	unsigned int		nr;
--	void			*tables[0];
--};
--
--#define MAX_TABLE_BATCH		\
--	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
--
--extern void tlb_table_flush(struct mmu_gather *tlb);
--extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
--
--static inline void
--arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
--			unsigned long start, unsigned long end)
--{
--	tlb->mm = mm;
--	tlb->start = start;
--	tlb->end = end;
--	tlb->fullmm = !(start | (end+1));
--	tlb->batch = NULL;
--}
--
--static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
--{
--	__tlb_flush_mm_lazy(tlb->mm);
--}
--
--static inline void tlb_flush_mmu_free(struct mmu_gather *tlb)
--{
--	tlb_table_flush(tlb);
--}
--
-+void __tlb_remove_table(void *_table);
-+static inline void tlb_flush(struct mmu_gather *tlb);
-+static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
-+					  struct page *page, int page_size);
+ #else
  
--static inline void tlb_flush_mmu(struct mmu_gather *tlb)
--{
--	tlb_flush_mmu_tlbonly(tlb);
--	tlb_flush_mmu_free(tlb);
--}
-+#define tlb_start_vma(tlb, vma)			do { } while (0)
-+#define tlb_end_vma(tlb, vma)			do { } while (0)
-+#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ /* x86-64 relocation types */
+@@ -65,13 +50,6 @@ typedef struct user_fxsr_struct elf_fpxregset_t;
  
--static inline void
--arch_tlb_finish_mmu(struct mmu_gather *tlb,
--		unsigned long start, unsigned long end, bool force)
--{
--	if (force) {
--		tlb->start = start;
--		tlb->end = end;
--	}
-+#define tlb_flush tlb_flush
-+#define pte_free_tlb pte_free_tlb
-+#define pmd_free_tlb pmd_free_tlb
-+#define p4d_free_tlb p4d_free_tlb
-+#define pud_free_tlb pud_free_tlb
+ #define R_X86_64_NUM		16
  
--	tlb_flush_mmu(tlb);
--}
-+#include <asm/pgalloc.h>
-+#include <asm/tlbflush.h>
-+#include <asm-generic/tlb.h>
- 
- /*
-  * Release the page cache reference for a pte removed by
-  * tlb_ptep_clear_flush. In both flush modes the tlb for a page cache page
-  * has already been freed, so just do free_page_and_swap_cache.
-  */
--static inline bool __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
--{
--	free_page_and_swap_cache(page);
--	return false; /* avoid calling tlb_flush_mmu */
--}
+-/*
+- * These are used to set parameters in the core dumps.
+- */
+-#define ELF_CLASS	ELFCLASS64
+-#define ELF_DATA	ELFDATA2LSB
+-#define ELF_ARCH	EM_X86_64
 -
--static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
--{
--	free_page_and_swap_cache(page);
--}
--
- static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
- 					  struct page *page, int page_size)
- {
--	return __tlb_remove_page(tlb, page);
-+	free_page_and_swap_cache(page);
-+	return false;
- }
- 
--static inline void tlb_remove_page_size(struct mmu_gather *tlb,
--					struct page *page, int page_size)
-+static inline void tlb_flush(struct mmu_gather *tlb)
- {
--	return tlb_remove_page(tlb, page);
-+	__tlb_flush_mm_lazy(tlb->mm);
- }
- 
- /*
-@@ -121,9 +63,18 @@ static inline void tlb_remove_page_size(struct mmu_gather *tlb,
-  * page table from the tlb.
-  */
- static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
--				unsigned long address)
-+                                unsigned long address)
- {
--	page_table_free_rcu(tlb, (unsigned long *) pte, address);
-+	__tlb_adjust_range(tlb, address, PAGE_SIZE);
-+	tlb->mm->context.flush_mm = 1;
-+	tlb->freed_tables = 1;
-+	tlb->cleared_ptes = 1;
-+	/*
-+	 * page_table_free_rcu takes care of the allocation bit masks
-+	 * of the 2K table fragments in the 4K page table page,
-+	 * then calls tlb_remove_table.
-+	 */
-+        page_table_free_rcu(tlb, (unsigned long *) pte, address);
- }
- 
- /*
-@@ -139,6 +90,10 @@ static inline void pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
- 	if (tlb->mm->context.asce_limit <= _REGION3_SIZE)
- 		return;
- 	pgtable_pmd_page_dtor(virt_to_page(pmd));
-+	__tlb_adjust_range(tlb, address, PAGE_SIZE);
-+	tlb->mm->context.flush_mm = 1;
-+	tlb->freed_tables = 1;
-+	tlb->cleared_puds = 1;
- 	tlb_remove_table(tlb, pmd);
- }
- 
-@@ -154,6 +109,10 @@ static inline void p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
- {
- 	if (tlb->mm->context.asce_limit <= _REGION1_SIZE)
- 		return;
-+	__tlb_adjust_range(tlb, address, PAGE_SIZE);
-+	tlb->mm->context.flush_mm = 1;
-+	tlb->freed_tables = 1;
-+	tlb->cleared_p4ds = 1;
- 	tlb_remove_table(tlb, p4d);
- }
- 
-@@ -169,19 +128,11 @@ static inline void pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
- {
- 	if (tlb->mm->context.asce_limit <= _REGION2_SIZE)
- 		return;
-+	tlb->mm->context.flush_mm = 1;
-+	tlb->freed_tables = 1;
-+	tlb->cleared_puds = 1;
- 	tlb_remove_table(tlb, pud);
- }
- 
--#define tlb_start_vma(tlb, vma)			do { } while (0)
--#define tlb_end_vma(tlb, vma)			do { } while (0)
--#define tlb_remove_tlb_entry(tlb, ptep, addr)	do { } while (0)
--#define tlb_remove_pmd_tlb_entry(tlb, pmdp, addr)	do { } while (0)
--#define tlb_migrate_finish(mm)			do { } while (0)
--#define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
--	tlb_remove_tlb_entry(tlb, ptep, address)
--
--static inline void tlb_change_page_size(struct mmu_gather *tlb, unsigned int page_size)
--{
--}
- 
- #endif /* _S390_TLB_H */
-diff --git a/arch/s390/mm/pgalloc.c b/arch/s390/mm/pgalloc.c
-index 76d89ee8b428..f7656a0b3a1a 100644
---- a/arch/s390/mm/pgalloc.c
-+++ b/arch/s390/mm/pgalloc.c
-@@ -288,7 +288,7 @@ void page_table_free_rcu(struct mmu_gather *tlb, unsigned long *table,
- 	tlb_remove_table(tlb, table);
- }
- 
--static void __tlb_remove_table(void *_table)
-+void __tlb_remove_table(void *_table)
- {
- 	unsigned int mask = (unsigned long) _table & 3;
- 	void *table = (void *)((unsigned long) _table ^ mask);
-@@ -314,67 +314,6 @@ static void __tlb_remove_table(void *_table)
- 	}
- }
- 
--static void tlb_remove_table_smp_sync(void *arg)
--{
--	/* Simply deliver the interrupt */
--}
--
--static void tlb_remove_table_one(void *table)
--{
--	/*
--	 * This isn't an RCU grace period and hence the page-tables cannot be
--	 * assumed to be actually RCU-freed.
--	 *
--	 * It is however sufficient for software page-table walkers that rely
--	 * on IRQ disabling. See the comment near struct mmu_table_batch.
--	 */
--	smp_call_function(tlb_remove_table_smp_sync, NULL, 1);
--	__tlb_remove_table(table);
--}
--
--static void tlb_remove_table_rcu(struct rcu_head *head)
--{
--	struct mmu_table_batch *batch;
--	int i;
--
--	batch = container_of(head, struct mmu_table_batch, rcu);
--
--	for (i = 0; i < batch->nr; i++)
--		__tlb_remove_table(batch->tables[i]);
--
--	free_page((unsigned long)batch);
--}
--
--void tlb_table_flush(struct mmu_gather *tlb)
--{
--	struct mmu_table_batch **batch = &tlb->batch;
--
--	if (*batch) {
--		call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
--		*batch = NULL;
--	}
--}
--
--void tlb_remove_table(struct mmu_gather *tlb, void *table)
--{
--	struct mmu_table_batch **batch = &tlb->batch;
--
--	tlb->mm->context.flush_mm = 1;
--	if (*batch == NULL) {
--		*batch = (struct mmu_table_batch *)
--			__get_free_page(GFP_NOWAIT | __GFP_NOWARN);
--		if (*batch == NULL) {
--			__tlb_flush_mm_lazy(tlb->mm);
--			tlb_remove_table_one(table);
--			return;
--		}
--		(*batch)->nr = 0;
--	}
--	(*batch)->tables[(*batch)->nr++] = table;
--	if ((*batch)->nr == MAX_TABLE_BATCH)
--		tlb_flush_mmu(tlb);
--}
--
- /*
-  * Base infrastructure required to generate basic asces, region, segment,
-  * and page tables that do not make use of enhanced features like EDAT1.
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 21c751cd751e..930e25abf4de 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -179,6 +179,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
- 
  #endif
  
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-  * to work on, then just handle a few from the on-stack structure.
-@@ -203,6 +204,8 @@ struct mmu_gather_batch {
-  */
- #define MAX_GATHER_BATCH_COUNT	(10000UL/MAX_GATHER_BATCH)
- 
-+#endif
+ #include <asm/vdso.h>
+diff --git a/arch/x86/include/uapi/asm/elf.h b/arch/x86/include/uapi/asm/elf.h
+new file mode 100644
+index 000000000000..a640e1224939
+--- /dev/null
++++ b/arch/x86/include/uapi/asm/elf.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _UAPI_ASM_X86_ELF_H
++#define _UAPI_ASM_X86_ELF_H
 +
- /*
-  * struct mmu_gather is an opaque type used by the mm code for passing around
-  * any data needed by arch specific code for tlb_remove_page.
-@@ -249,6 +252,7 @@ struct mmu_gather {
- 
- 	unsigned int		batch_count;
- 
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- 	struct mmu_gather_batch *active;
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
-@@ -256,6 +260,7 @@ struct mmu_gather {
- #ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
- 	unsigned int page_size;
- #endif
++#ifdef __i386__
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_386
++#define ELF_NGREG	17
++
++#else
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS64
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_X86_64
++#define ELF_NGREG	27
++
++#endif /* __i386__ */
++
++typedef unsigned long elf_greg_t;
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
 +#endif
+diff --git a/arch/x86/include/uapi/asm/signal.h b/arch/x86/include/uapi/asm/signal.h
+index e5745d593dc7..00f273eaddf7 100644
+--- a/arch/x86/include/uapi/asm/signal.h
++++ b/arch/x86/include/uapi/asm/signal.h
+@@ -128,7 +128,7 @@ struct sigaction {
+ typedef struct sigaltstack {
+ 	void __user *ss_sp;
+ 	int ss_flags;
+-	size_t ss_size;
++	__kernel_size_t ss_size;
+ } stack_t;
+ 
+ #endif /* __ASSEMBLY__ */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index c5358e0ae7c5..e1e4561ed9c2 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -4,6 +4,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/elf-em.h>
++#include <asm/elf.h>
+ 
+ /* 32-bit ELF base types. */
+ typedef __u32	Elf32_Addr;
+diff --git a/include/uapi/linux/elfcore.h b/include/uapi/linux/elfcore.h
+index baf03562306d..9c0078004275 100644
+--- a/include/uapi/linux/elfcore.h
++++ b/include/uapi/linux/elfcore.h
+@@ -16,15 +16,6 @@ struct elf_siginfo
+ 	int	si_errno;			/* errno */
  };
  
- void arch_tlb_gather_mmu(struct mmu_gather *tlb,
-@@ -264,8 +269,10 @@ void tlb_flush_mmu(struct mmu_gather *tlb);
- void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 			 unsigned long start, unsigned long end, bool force);
- void tlb_flush_mmu_free(struct mmu_gather *tlb);
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
- 				   int page_size);
-+#endif
- 
- static inline void __tlb_adjust_range(struct mmu_gather *tlb,
- 				      unsigned long address,
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 2d5e617131f6..d3d2763d91b2 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -13,6 +13,8 @@
- 
- #ifdef HAVE_GENERIC_MMU_GATHER
- 
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
-+
- static bool tlb_next_batch(struct mmu_gather *tlb)
- {
- 	struct mmu_gather_batch *batch;
-@@ -41,6 +43,8 @@ static bool tlb_next_batch(struct mmu_gather *tlb)
- 	return true;
- }
- 
-+#endif
-+
- void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 				unsigned long start, unsigned long end)
- {
-@@ -49,12 +53,14 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 	/* Is it from 0 to ~0? */
- 	tlb->fullmm     = !(start | (end+1));
- 	tlb->need_flush_all = 0;
-+
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- 	tlb->local.next = NULL;
- 	tlb->local.nr   = 0;
- 	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
- 	tlb->active     = &tlb->local;
- 	tlb->batch_count = 0;
 -
-+#endif
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb->batch = NULL;
+-#ifndef __KERNEL__
+-typedef elf_greg_t greg_t;
+-typedef elf_gregset_t gregset_t;
+-typedef elf_fpregset_t fpregset_t;
+-typedef elf_fpxregset_t fpxregset_t;
+-#define NGREG ELF_NGREG
+-#endif
+-
+ /*
+  * Definitions to generate Intel SVR4-like core files.
+  * These mostly have the same names as the SVR4 types with "elf_"
+@@ -49,10 +40,10 @@ struct elf_prstatus
+ 	struct sigaltstack pr_altstack;	/* Alternate stack info */
+ 	struct sigaction pr_action;	/* Signal action for current sig */
  #endif
-@@ -67,16 +73,20 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+-	pid_t	pr_pid;
+-	pid_t	pr_ppid;
+-	pid_t	pr_pgrp;
+-	pid_t	pr_sid;
++	__kernel_pid_t	pr_pid;
++	__kernel_pid_t	pr_ppid;
++	__kernel_pid_t	pr_pgrp;
++	__kernel_pid_t	pr_sid;
+ 	struct __kernel_old_timeval pr_utime;	/* User time */
+ 	struct __kernel_old_timeval pr_stime;	/* System time */
+ 	struct __kernel_old_timeval pr_cutime;	/* Cumulative user time */
+@@ -85,17 +76,10 @@ struct elf_prpsinfo
+ 	unsigned long pr_flag;	/* flags */
+ 	__kernel_uid_t	pr_uid;
+ 	__kernel_gid_t	pr_gid;
+-	pid_t	pr_pid, pr_ppid, pr_pgrp, pr_sid;
++	__kernel_pid_t	pr_pid, pr_ppid, pr_pgrp, pr_sid;
+ 	/* Lots missing */
+ 	char	pr_fname[16];	/* filename of executable */
+ 	char	pr_psargs[ELF_PRARGSZ];	/* initial part of arg list */
+ };
  
- void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- 	struct mmu_gather_batch *batch;
-+#endif
- 
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
- #endif
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- 	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
- 		free_pages_and_swap_cache(batch->pages, batch->nr);
- 		batch->nr = 0;
- 	}
- 	tlb->active = &tlb->local;
-+#endif
- }
- 
- void tlb_flush_mmu(struct mmu_gather *tlb)
-@@ -92,7 +102,9 @@ void tlb_flush_mmu(struct mmu_gather *tlb)
- void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 		unsigned long start, unsigned long end, bool force)
- {
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- 	struct mmu_gather_batch *batch, *next;
-+#endif
- 
- 	if (force) {
- 		__tlb_reset_range(tlb);
-@@ -104,13 +116,16 @@ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
- 
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- 	for (batch = tlb->local.next; batch; batch = next) {
- 		next = batch->next;
- 		free_pages((unsigned long)batch, 0);
- 	}
- 	tlb->local.next = NULL;
-+#endif
- }
- 
-+#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
- /* __tlb_remove_page
-  *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)), while
-  *	handling the additional races in SMP caused by other CPUs caching valid
-@@ -143,6 +158,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
- 
- 	return false;
- }
-+#endif
- 
- #endif /* HAVE_GENERIC_MMU_GATHER */
- 
+-#ifndef __KERNEL__
+-typedef struct elf_prstatus prstatus_t;
+-typedef struct elf_prpsinfo prpsinfo_t;
+-#define PRARGSZ ELF_PRARGSZ 
+-#endif
+-
+-
+ #endif /* _UAPI_LINUX_ELFCORE_H */
 -- 
-2.16.4
-
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+2.18.0
