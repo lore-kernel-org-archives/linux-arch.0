@@ -1,68 +1,64 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] [RFC] making uapi/linux/elfcore.h useful again
-Date: Fri, 14 Sep 2018 19:45:28 +0200
-Message-ID: <20180914174528.GA35000@gmail.com>
-References: <20180914113929.953895-1-arnd@arndb.de>
+From: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Subject: Re: [PATCH RFC LKMM 2/7] doc: Replace smp_cond_acquire() with
+ smp_cond_load_acquire()
+Date: Fri, 14 Sep 2018 11:20:09 -0700
+Message-ID: <20180914182009.GB652@linux.ibm.com>
+References: <20180829211018.GA19646@linux.vnet.ibm.com>
+ <20180829211053.20531-2-paulmck@linux.vnet.ibm.com>
+ <20180914165907.GK6236@arm.com>
+Reply-To: paulmck@linux.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180914113929.953895-1-arnd@arndb.de>
+In-Reply-To: <20180914165907.GK6236@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Joseph =?iso-8859-1?Q?Myers=A0?= <joseph@codesourcery.com>, David Howells <dhowells@redhat.com>, libc-alpha@sourceware.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Andrea Parri <andrea.parri@amarulasolutions.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Sep 14, 2018 at 05:59:07PM +0100, Will Deacon wrote:
+> On Wed, Aug 29, 2018 at 02:10:48PM -0700, Paul E. McKenney wrote:
+> > From: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > 
+> > Amend commit 1f03e8d2919270 ("locking/barriers: Replace smp_cond_acquire()
+> > with smp_cond_load_acquire()") by updating the documentation accordingly.
+> > Also remove some obsolete information related to the implementation.
+> > 
+> > Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+> > Cc: Alan Stern <stern@rowland.harvard.edu>
+> > Cc: Will Deacon <will.deacon@arm.com>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: Boqun Feng <boqun.feng@gmail.com>
+> > Cc: Nicholas Piggin <npiggin@gmail.com>
+> > Cc: David Howells <dhowells@redhat.com>
+> > Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+> > Cc: Luc Maranget <luc.maranget@inria.fr>
+> > Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+> > Cc: Akira Yokosawa <akiyks@gmail.com>
+> > Cc: Daniel Lustig <dlustig@nvidia.com>
+> > Cc: Jonathan Corbet <corbet@lwn.net>
+> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > ---
+> >  Documentation/memory-barriers.txt | 3 +--
+> >  1 file changed, 1 insertion(+), 2 deletions(-)
+> > 
+> > diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> > index 0d8d7ef131e9..c1d913944ad8 100644
+> > --- a/Documentation/memory-barriers.txt
+> > +++ b/Documentation/memory-barriers.txt
+> > @@ -471,8 +471,7 @@ And a couple of implicit varieties:
+> >       operations after the ACQUIRE operation will appear to happen after the
+> >       ACQUIRE operation with respect to the other components of the system.
+> >       ACQUIRE operations include LOCK operations and both smp_load_acquire()
+> > -     and smp_cond_acquire() operations. The later builds the necessary ACQUIRE
+> > -     semantics from relying on a control dependency and smp_rmb().
+> > +     and smp_cond_load_acquire() operations.
+> 
+> Thanks for fixing the doc:
+> 
+> Acked-by: Will Deacon <will.deacon@arm.com>
 
-* Arnd Bergmann <arnd@arndb.de> wrote:
+Applied, thank you Will!
 
-> After finding a bug in glibc the question came up how linux/elfcore.h
-> is supposed to be used from user space. As far as I can tell, it's
-> not possible, as it references data types that are simply unavailable
-> there.
-> 
-> The #ifndef __KERNEL__ section in that header dates back to when the
-> file was introduced in linux-1.3.5, and presumably was meant to
-> provide the structures for the libc sys/procfs.h implementation.
-> However, this was never portable to architectures other than x86-32,
-> and has been broken on that architecture at a later point.
-> 
-> These are the steps that I needed to make it possible to include the
-> header file, e.g. for libc self-testing in order to make sure the
-> structures are compatible with its own:
-> 
-> - drop the #ifndef __KERNEL__ section that are obviously useless
->   and get in the way
-> 
-> - change the pid_t references to __kernel_pid_t
-> 
-> - Move required data from the private x86 asm/elf.h file into
->   a new uapi/asm/elf.h. Some other architectures already do that,
->   but most of them do not. Before applying the patch, we have
->   to do this for all architectures
-> 
-> - Change ELF_NGREG to an integer literal constant instead of
->   a sizeof operation based on a private type.
-> 
-> Cc: Joseph Myers <joseph@codesourcery.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: libc-alpha@sourceware.org
-> Link: https://patchwork.ozlabs.org/patch/969540/
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  arch/x86/include/asm/elf.h         | 24 +-----------------------
->  arch/x86/include/uapi/asm/elf.h    | 30 ++++++++++++++++++++++++++++++
->  arch/x86/include/uapi/asm/signal.h |  2 +-
->  include/uapi/linux/elf.h           |  1 +
->  include/uapi/linux/elfcore.h       | 26 +++++---------------------
->  5 files changed, 38 insertions(+), 45 deletions(-)
->  create mode 100644 arch/x86/include/uapi/asm/elf.h
-
-Acked-by: Ingo Molnar <mingo@kernel.org>
-
-I suspect this wants to go through -mm, or do you want to carry it?
-
-Thanks,
-
-	Ingo
+							Thanx, Paul
