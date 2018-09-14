@@ -1,186 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ed1-f68.google.com ([209.85.208.68]:35170 "EHLO
-        mail-ed1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726969AbeIOBA3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Sep 2018 21:00:29 -0400
-Received: by mail-ed1-f68.google.com with SMTP id y20-v6so8332755edq.2
-        for <linux-arch@vger.kernel.org>; Fri, 14 Sep 2018 12:44:33 -0700 (PDT)
-Date: Fri, 14 Sep 2018 21:44:23 +0200
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: Re: [PATCH RFC LKMM 1/7] tools/memory-model: Add extra ordering for
- locks and remove it for ordinary release/acquire
-Message-ID: <20180914194423.GA3264@andrea>
-References: <20180914143752.GA7467@andrea>
- <Pine.LNX.4.44L0.1809141210530.1482-100000@iolanthe.rowland.org>
+Received: from mail-qt0-f179.google.com ([209.85.216.179]:33991 "EHLO
+        mail-qt0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728050AbeIOBLg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Sep 2018 21:11:36 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1809141210530.1482-100000@iolanthe.rowland.org>
+References: <20180914113929.953895-1-arnd@arndb.de> <20180914174528.GA35000@gmail.com>
+In-Reply-To: <20180914174528.GA35000@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 14 Sep 2018 21:55:21 +0200
+Message-ID: <CAK8P3a03qF4+yGBNVLymrSRN7QjDGjnpduoPwnprwv+kfHZ0Cg@mail.gmail.com>
+Subject: Re: [PATCH] [RFC] making uapi/linux/elfcore.h useful again
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Daniel Lustig <dlustig@nvidia.com>, Will Deacon <will.deacon@arm.com>, Andrea Parri <parri.andrea@gmail.com>, Kernel development list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, akiyks@gmail.com, Palmer Dabbelt <palmer@sifive.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180914194423.4E6RlrJ6sBL9AxvRZHPjNVZ13dM6QJYTk6g0qUOfWsk@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Joseph Myers <joseph@codesourcery.com>, David Howells <dhowells@redhat.com>, GNU C Library <libc-alpha@sourceware.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180914195521.DXYx7VJuBOBRZu93997-EkMrYWNPPp_txr9L2ruQU8Q@z>
 
-> The updated Changelog draft is below.
-> 
-> Alan.
-> 
-> --------------------------------------------------------------------------
-> More than one kernel developer has expressed the opinion that the LKMM
-> should enforce ordering of writes by locking.  In other words, given
-> the following code:
-> 
-> 	WRITE_ONCE(x, 1);
-> 	spin_unlock(&s):
-> 	spin_lock(&s);
-> 	WRITE_ONCE(y, 1);
-> 
-> the stores to x and y should be propagated in order to all other CPUs,
-> even though those other CPUs might not access the lock s.  In terms of
-> the memory model, this means expanding the cumul-fence relation.
-> 
-> Locks should also provide read-read (and read-write) ordering in a
-> similar way.  Given:
-> 
-> 	READ_ONCE(x);
-> 	spin_unlock(&s);
-> 	spin_lock(&s);
-> 	READ_ONCE(y);		// or WRITE_ONCE(y, 1);
-> 
-> the load of x should be executed before the load of (or store to) y.
-> The LKMM already provides this ordering, but it provides it even in
-> the case where the two accesses are separated by a release/acquire
-> pair of fences rather than unlock/lock.  This would prevent
-> architectures from using weakly ordered implementations of release and
-> acquire, which seems like an unnecessary restriction.  The patch
-> therefore removes the ordering requirement from the LKMM for that
-> case.
-> 
-> There are several arguments both for and against this change.  Let us
-> refer to these enhanced ordering properties by saying that the LKMM
-> would require locks to be RCtso (a bit of a misnomer, but analogous to
-> RCpc and RCsc) and it would require ordinary acquire/release only to
-> be RCpc.  (Note: In the following, the phrase "all supported
-> architectures" is meant not to include RISC-V.  Although RISC-V is
-> indeed supported by the kernel, the implementation is still somewhat
-> in a state of flux and therefore statements about it would be
-> premature.)
-> 
-> Pros:
-> 
-> 	The kernel already provides RCtso ordering for locks on all
-> 	supported architectures, even though this is not stated
-> 	explicitly anywhere.  Therefore the LKMM should formalize it.
-> 
-> 	In theory, guaranteeing RCtso ordering would reduce the need
-> 	for additional barrier-like constructs meant to increase the
-> 	ordering strength of locks.
-> 
-> 	Will Deacon and Peter Zijlstra are strongly in favor of
-> 	formalizing the RCtso requirement.  Linus Torvalds and Peter
-> 	would like to go even further, requiring locks to have RCsc
-> 	behavior (ordering preceding writes against later reads), but
-> 	they recognize that this would incur a noticeable performance
-> 	degradation on the POWER architecture.  Linus also points out
-> 	that people have made the mistake, in the past, of assuming
-> 	that locking has stronger ordering properties than is
-> 	currently guaranteed, and this change would reduce the
-> 	likelihood of such mistakes.
-> 
-> 	Not requiring ordinary acquire/release to be any stronger than
-> 	RCpc may prove advantageous for future architectures, allowing
-> 	them to implement smp_load_acquire() and smp_store_release()
-> 	with more efficient machine instructions than would be
-> 	possible if the operations had to be RCtso.  Will and Linus
-> 	approve this rationale, hypothetical though it is at the
-> 	moment (it may end up affecting the RISC-V implementation).
-> 	The same argument may or may not apply to RMW-acquire/release;
-> 	see also the second Con entry below.
-> 
-> 	Linus feels that locks should be easy for people to use
-> 	without worrying about memory consistency issues, since they
-> 	are so pervasive in the kernel, whereas acquire/release is
-> 	much more of an "experts only" tool.  Requiring locks to be
-> 	RCtso is a step in this direction.
-> 
-> Cons:
-> 
-> 	Andrea Parri and Luc Maranget think that locks should have the
-> 	same ordering properties as ordinary acquire/release (indeed,
-> 	Luc points out that the names "acquire" and "release" derive
-> 	from the usage of locks).  Andrea points out that having
-> 	different ordering properties for different forms of acquires
-> 	and releases is not only unnecessary, it would also be
-> 	confusing and unmaintainable.
-> 
-> 	Locks are constructed from lower-level primitives, typically
-> 	RMW-acquire (for locking) and ordinary release (for unlock).
-> 	It is illogical to require stronger ordering properties from
-> 	the high-level operations than from the low-level operations
-> 	they comprise.  Thus, this change would make
-> 
-> 		while (cmpxchg_acquire(&s, 0, 1) != 0)
-> 			cpu_relax();
-> 
-> 	an incorrect implementation of spin_lock(&s) as far as the
-> 	LKMM is concerned.  In theory this weakness can be ameliorated
-> 	by changing the LKMM even further, requiring
-> 	RMW-acquire/release also to be RCtso (which it already is on
-> 	all supported architectures).
-> 
-> 	As far as I know, nobody has singled out any examples of code
-> 	in the kernel that actually relies on locks being RCtso.
-> 	(People mumble about RCU and the scheduler, but nobody has
-> 	pointed to any actual code.  If there are any real cases,
-> 	their number is likely quite small.)  If RCtso ordering is not
-> 	needed, why require it?
-> 
-> 	A handful of locking constructs (qspinlocks, qrwlocks, and
-> 	mcs_spinlocks) are built on top of smp_cond_load_acquire()
-> 	instead of an RMW-acquire instruction.  It currently provides
-> 	only the ordinary acquire semantics, not the stronger ordering
-> 	this patch would require of locks.  In theory this could be
-> 	ameliorated by requiring smp_cond_load_acquire() in
-> 	combination with ordinary release also to be RCtso (which is
-> 	currently true on all supported architectures).
-> 
-> 	On future weakly ordered architectures, people may be able to
-> 	implement locks in a non-RCtso fashion with significant
-> 	performance improvement.  Meeting the RCtso requirement would
-> 	necessarily add run-time overhead.
-> 
-> Overall, the technical aspects of these arguments seem relatively
-> minor, and it appears mostly to boil down to a matter of opinion.
-> Since the opinions of senior kernel maintainers such as Linus,
-> Peter, and Will carry more weight than those of Luc and Andrea, this
-> patch changes the model in accordance with the maintainers' wishes.
-> 
-> Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+On Fri, Sep 14, 2018 at 7:45 PM Ingo Molnar <mingo@kernel.org> wrote:
+> * Arnd Bergmann <arnd@arndb.de> wrote:
+> > - Move required data from the private x86 asm/elf.h file into
+> >   a new uapi/asm/elf.h. Some other architectures already do that,
+> >   but most of them do not. Before applying the patch, we have
+> >   to do this for all architectures
+>
+> Acked-by: Ingo Molnar <mingo@kernel.org>
 
-Thank you for integrating the log.
+Thanks,
 
-I remain more sensitive to those Cons (and skeptical about that
-po-unlock-rf-lock-po), but: (1) this doesn't make an objection,
-and (2) you wore me down. ;-)
+> I suspect this wants to go through -mm, or do you want to carry it?
 
-So unless new arguments are brought to light, feel free to add:
+-mm is probably best. For now, I just want to see if there are any
+concerns about this, and then I'd have to do the full version that
+changes all architectures.
 
-Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-
-  Andrea
-
-
-> 
-> v.5: Incorporated feedback from Andrea regarding the updated Changelog.
-> 
-> v.4: Added pros and cons discussion to the Changelog.
-> 
-> v.3: Rebased against the dev branch of Paul's linux-rcu tree.
-> Changed unlock-rf-lock-po to po-unlock-rf-lock-po, making it more
-> symmetrical and more in accordance with the use of fence.tso for
-> the release on RISC-V.
-> 
-> v.2: Restrict the ordering to lock operations, not general release
-> and acquire fences.
-> 
+     Arnd
