@@ -1,56 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:44618 "EHLO
-        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726914AbeINCvf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2018 22:51:35 -0400
-Received: by mail-yw1-f68.google.com with SMTP id l9-v6so1808374ywc.11
-        for <linux-arch@vger.kernel.org>; Thu, 13 Sep 2018 14:40:16 -0700 (PDT)
-Received: from mail-yb1-f175.google.com (mail-yb1-f175.google.com. [209.85.219.175])
-        by smtp.gmail.com with ESMTPSA id 201-v6sm1796121ywn.103.2018.09.13.14.40.13
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 13 Sep 2018 14:40:14 -0700 (PDT)
-Received: by mail-yb1-f175.google.com with SMTP id m123-v6so3954815ybm.0
-        for <linux-arch@vger.kernel.org>; Thu, 13 Sep 2018 14:40:13 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CAKv+Gu-O3mMJHH2P7L9anXeKZtEQYcN8Am4-3xkzAQSFWUN+=w@mail.gmail.com>
-References: <20180702181145.4799-1-ard.biesheuvel@linaro.org>
- <20180704075923.GF3701@osiris> <CAKv+Gu-O3mMJHH2P7L9anXeKZtEQYcN8Am4-3xkzAQSFWUN+=w@mail.gmail.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 13 Sep 2018 14:40:12 -0700
-Message-ID: <CAGXu5jJ9hD8-2ioAKdXKc8uV+OjRSJVUftd9rY9RfW7Tkor=kw@mail.gmail.com>
-Subject: Re: [PATCH v2 0/8] add support for relative references in jump tables
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:37295 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727772AbeINNkk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Sep 2018 09:40:40 -0400
+Received: by mail-pl1-f193.google.com with SMTP id f1-v6so3870466plt.4
+        for <linux-arch@vger.kernel.org>; Fri, 14 Sep 2018 01:27:18 -0700 (PDT)
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH 0/4] System call table generation support
+Date: Fri, 14 Sep 2018 13:56:39 +0530
+Message-ID: <1536913603-4584-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Jessica Yu <jeyu@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20180913214012.bEYtnYFSfR0-rSlume2KNHe_NNg5vmSdgE5MPkzoRKE@z>
+To: Thibaut Varene <T-Bone@parisc-linux.org>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+Message-ID: <20180914082639.MNJ76aX7ww8MXRO3GpvtZ2ZGxnU5XIoOQEiJWAB2HHI@z>
 
-On Wed, Jul 4, 2018 at 1:50 AM, Ard Biesheuvel
-<ard.biesheuvel@linaro.org> wrote:
-> On 4 July 2018 at 09:59, Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
->> On Mon, Jul 02, 2018 at 08:11:37PM +0200, Ard Biesheuvel wrote:
->>> This series implements support for emitting the data structures associated
->>> with jump tables as 32-bit relative references instead of absolute
->>> references, which take up more space on builds that target 64-bit
->>> architectures, or implement self relocation [or both].
->>>
->>> This series enables it for arm64 and x86, although other architectures
->>> might benefit as well.
->>
->> Hello Ard,
->>
->> feel free to add the patch below which adds support for s390 to your series.
->>
->
-> Thanks, I will incorporate it into v3 and beyond.
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-Just a quick status check! :) What're your plans for this series? I'd
-still love to see it.
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
--Kees
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify them across all architectures.
+
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, m68k, microblaze, 
+ia64, mips, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+I started working system call table generation on 4.17-rc1. I used 
+marcin's script - https://github.com/hrw/syscalls-table to generate 
+the syscall.tbl file. And this will be the input to the system call 
+table generation script. But there are couple system call got add 
+in the latest rc release. If run Marcin's script on latest release,
+It will generate a new syscall.tbl. But I still use the old file - 
+syscall.tbl and once all review got over I'll update syscall.tbl 
+alone w.r.to the tip of the kernel. The impact of this thing, few 
+of the system call won't work. 
+
+Firoz Khan (4):
+  parisc: Move __IGNORE* entries to non uapi header
+  parisc: Replace __NR_Linux_syscalls macro with __NR_syscalls
+  parisc: Add system call table generation support
+  parisc: uapi header and system call table file generation
+
+ arch/parisc/Makefile                       |   4 +
+ arch/parisc/include/asm/Kbuild             |   3 +
+ arch/parisc/include/asm/unistd.h           |   8 +
+ arch/parisc/include/uapi/asm/Kbuild        |   2 +
+ arch/parisc/include/uapi/asm/unistd.h      | 377 +----------------------
+ arch/parisc/kernel/syscall.S               |  14 +-
+ arch/parisc/kernel/syscall_table.S         | 459 -----------------------------
+ arch/parisc/kernel/syscall_table_32.S      |  11 +
+ arch/parisc/kernel/syscall_table_64.S      |  19 ++
+ arch/parisc/kernel/syscalls/Makefile       |  52 ++++
+ arch/parisc/kernel/syscalls/syscall_32.tbl | 358 ++++++++++++++++++++++
+ arch/parisc/kernel/syscalls/syscall_64.tbl | 357 ++++++++++++++++++++++
+ arch/parisc/kernel/syscalls/syscallhdr.sh  |  38 +++
+ arch/parisc/kernel/syscalls/syscalltbl.sh  |  36 +++
+ 14 files changed, 896 insertions(+), 842 deletions(-)
+ delete mode 100644 arch/parisc/kernel/syscall_table.S
+ create mode 100644 arch/parisc/kernel/syscall_table_32.S
+ create mode 100644 arch/parisc/kernel/syscall_table_64.S
+ create mode 100644 arch/parisc/kernel/syscalls/Makefile
+ create mode 100644 arch/parisc/kernel/syscalls/syscall_32.tbl
+ create mode 100644 arch/parisc/kernel/syscalls/syscall_64.tbl
+ create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
 
 -- 
-Kees Cook
-Pixel Security
+1.9.1
