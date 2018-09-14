@@ -1,74 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:42105 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726618AbeINNkq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Sep 2018 09:40:46 -0400
-Received: by mail-pf1-f194.google.com with SMTP id l9-v6so3951414pff.9
-        for <linux-arch@vger.kernel.org>; Fri, 14 Sep 2018 01:27:24 -0700 (PDT)
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:33383 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727194AbeINNkw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 14 Sep 2018 09:40:52 -0400
+Received: by mail-pl1-f194.google.com with SMTP id b30-v6so3882486pla.0
+        for <linux-arch@vger.kernel.org>; Fri, 14 Sep 2018 01:27:30 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 1/4] parisc: Move __IGNORE* entries to non uapi header
-Date: Fri, 14 Sep 2018 13:56:40 +0530
-Message-ID: <1536913603-4584-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 2/4] parisc: Replace __NR_Linux_syscalls macro with __NR_syscalls
+Date: Fri, 14 Sep 2018 13:56:41 +0530
+Message-ID: <1536913603-4584-3-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1536913603-4584-1-git-send-email-firoz.khan@linaro.org>
 References: <1536913603-4584-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thibaut Varene <T-Bone@parisc-linux.org>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20180914082640.yOO66j5WAEhnfZ26IDj4oykHzWRbR783f0dFS1RBWfE@z>
+Message-ID: <20180914082641.jf-iXO_jKSJp1Ll1Mj-Qq9jJBicJrIXUc7JbuVfvO2E@z>
 
-All the  __IGNORE* entries are resides in the uapi header
-file and it is not used by any user space applications.
+__NR_Linux_syscalls macro holds the number of system call exist in
+PARISC architecture. This macro is currently the part of uapi/asm/
+unistd.h file. We have to change the value of __NR_Linux_syscalls,
+if we add or delete a system call.
 
-One of the patch in this patch series will generate the
-uapi header file and system call table file. So if we move
-all the __IGNORE* entries to non uapi header, it will simplify
-the uapi header and system call table file generation script.
+One of the patch in this patch series has a script which will generate
+a uapi header based on syscall.tbl file. The syscall.tbl file contains
+the number of system call information. So we have two option to update
+__NR_Linux_syscalls value.
 
-It is correct to keep __IGNORE* entry in non uapi header
-asm/unistd.h while uapi/asm/unistd.h must hold information
-only useful for user space applications.
+1. Update __NR_Linux_syscalls in uapi/asm/unistd.h manually by counting
+   the no.of system calls. No need to update NR_syscalls until we
+   either add a new system call or delete an existing system call.
+
+2. We can keep this feature it above mentioned script, that'll
+   count the number of syscalls and keep it in a generated file.
+   In this case we don't need to explicitly update __NR_Linux_syscalls
+   in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I moved the
+__NR_Linux_syscalls macro from uapi/asm/unistd.h to asm/unistd.h. The
+macro name also changed form __NR_Linux_syscalls to __NR_syscalls for
+making the name convention same across all architecture. While __NR_
+syscalls isn't strictly part of the uapi, having it as part of the
+generated header to simplifies the implementation.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/parisc/include/asm/unistd.h      | 6 ++++++
- arch/parisc/include/uapi/asm/unistd.h | 7 -------
- 2 files changed, 6 insertions(+), 7 deletions(-)
+ arch/parisc/include/asm/unistd.h      | 2 ++
+ arch/parisc/include/uapi/asm/unistd.h | 2 +-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
-index 3d507d0..fc71edf 100644
+index fc71edf..71417c1 100644
 --- a/arch/parisc/include/asm/unistd.h
 +++ b/arch/parisc/include/asm/unistd.h
-@@ -165,6 +165,12 @@ type name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)	\
- #define __ARCH_WANT_SYS_CLONE
- #define __ARCH_WANT_COMPAT_SYS_SENDFILE
+@@ -8,6 +8,8 @@
  
-+#define __IGNORE_select		/* newselect */
-+#define __IGNORE_fadvise64	/* fadvise64_64 */
-+#define __IGNORE_pkey_mprotect
-+#define __IGNORE_pkey_alloc
-+#define __IGNORE_pkey_free
+ #define SYS_ify(syscall_name)   __NR_##syscall_name
+ 
++#define __NR_Linux_syscalls __NR_syscalls
 +
- #endif /* __ASSEMBLY__ */
- 
- #undef STR
+ #ifndef ASM_LINE_SEP
+ # define ASM_LINE_SEP ;
+ #endif
 diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
-index dc77c5a..bb52e12 100644
+index bb52e12..7532817 100644
 --- a/arch/parisc/include/uapi/asm/unistd.h
 +++ b/arch/parisc/include/uapi/asm/unistd.h
-@@ -368,13 +368,6 @@
+@@ -366,7 +366,7 @@
+ #define __NR_statx		(__NR_Linux + 349)
+ #define __NR_io_pgetevents	(__NR_Linux + 350)
  
- #define __NR_Linux_syscalls	(__NR_io_pgetevents + 1)
+-#define __NR_Linux_syscalls	(__NR_io_pgetevents + 1)
++#define __NR_syscalls           (__NR_Linux + 351)
  
--
--#define __IGNORE_select		/* newselect */
--#define __IGNORE_fadvise64	/* fadvise64_64 */
--#define __IGNORE_pkey_mprotect
--#define __IGNORE_pkey_alloc
--#define __IGNORE_pkey_free
--
  #define LINUX_GATEWAY_ADDR      0x100
  
- #endif /* _UAPI_ASM_PARISC_UNISTD_H_ */
 -- 
 1.9.1
