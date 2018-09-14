@@ -1,49 +1,523 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
-Date: Fri, 14 Sep 2018 12:01:51 +0200
-Message-ID: <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com>
-References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org> <1536913980-4811-3-git-send-email-firoz.khan@linaro.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
+Date: Fri, 14 Sep 2018 12:28:24 +0200
+Message-ID: <20180914122824.181d9778@mschwideX1>
+References: <20180913092110.817204997@infradead.org>
+        <20180913092811.894806629@infradead.org>
+        <20180913123014.0d9321b8@mschwideX1>
+        <20180913105738.GW24124@hirez.programming.kicks-ass.net>
+        <20180913141827.1776985e@mschwideX1>
+        <20180913123937.GX24124@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="US-ASCII"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1536913980-4811-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <20180913123937.GX24124@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxram@us.ibm.com, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Thu, 13 Sep 2018 14:39:37 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-> ---
->  arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
->  arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 ++++++++++++++++++++++++++++
->  arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 +++++++++++++++++++++++++++
->  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
->  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
+> On Thu, Sep 13, 2018 at 02:18:27PM +0200, Martin Schwidefsky wrote:
+> > We may get something working with a common code mmu_gather, but I fear the
+> > day someone makes a "minor" change to that subtly break s390. The debugging of
+> > TLB related problems is just horrible..  
+> 
+> Yes it is, not just on s390 :/
+> 
+> And this is not something that's easy to write sanity checks for either
+> AFAIK. I mean we can do a few multi-threaded mmap()/mprotect()/munmap()
+> proglets and catch faults, but that doesn't even get close to covering
+> all the 'fun' spots.
+> 
+> Then again, you're more than welcome to the new:
+> 
+>   MMU GATHER AND TLB INVALIDATION
+> 
+> section in MAINTAINERS.
 
-I think you should only need a single .tbl  input file here.
+I spent some time to get s390 converted to the common mmu_gather code.
+There is one thing I would like to request, namely the ability to
+disable the page gather part of mmu_gather. For my prototype patch
+see below, it defines the negative HAVE_RCU_NO_GATHER_PAGES Kconfig
+symbol that if defined will remove some parts from common code.
+Ugly but good enough for the prototype to convey the idea.
+For the final solution we better use a positive Kconfig symbol and
+add that to all arch Kconfig files except for s390.
+
+The code itself is less hairy than I feared, it worked on the first
+try and survived my fork/munmap/mprotect TLB stress test. But as
+this is TLB flushing there probably is some subtle problem left..
+
+Here we go:
+--
+From f222a7e40427b625700f2ca0919c32f07931c19a Mon Sep 17 00:00:00 2001
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Date: Fri, 14 Sep 2018 10:50:58 +0200
+Subject: [PATCH] s390/tlb: convert s390 to generic mmu_gather
+
+Introduce HAVE_RCU_NO_GATHER_PAGES to allow the arch code to disable
+page gathering in the generic mmu_gather code, then enable the generic
+mmu_gather code for s390.
+
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+---
+ arch/Kconfig                |   3 +
+ arch/s390/Kconfig           |   3 +
+ arch/s390/include/asm/tlb.h | 131 ++++++++++++++------------------------------
+ arch/s390/mm/pgalloc.c      |  63 +--------------------
+ include/asm-generic/tlb.h   |   7 +++
+ mm/mmu_gather.c             |  18 +++++-
+ 6 files changed, 72 insertions(+), 153 deletions(-)
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 053c44703539..9b257929a7c1 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -359,6 +359,9 @@ config HAVE_PERF_USER_STACK_DUMP
+ config HAVE_ARCH_JUMP_LABEL
+ 	bool
+ 
++config HAVE_RCU_NO_GATHER_PAGES
++	bool
++
+ config HAVE_RCU_TABLE_FREE
+ 	bool
+ 
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 9a9c7a6fe925..521457e3c5e4 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -161,6 +161,9 @@ config S390
+ 	select HAVE_NOP_MCOUNT
+ 	select HAVE_OPROFILE
+ 	select HAVE_PERF_EVENTS
++	select HAVE_RCU_NO_GATHER_PAGES
++	select HAVE_RCU_TABLE_FREE
++	select HAVE_RCU_TABLE_INVALIDATE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RSEQ
+ 	select HAVE_SYSCALL_TRACEPOINTS
+diff --git a/arch/s390/include/asm/tlb.h b/arch/s390/include/asm/tlb.h
+index cf3d64313740..8073ff272b2b 100644
+--- a/arch/s390/include/asm/tlb.h
++++ b/arch/s390/include/asm/tlb.h
+@@ -22,98 +22,40 @@
+  * Pages used for the page tables is a different story. FIXME: more
+  */
+ 
+-#include <linux/mm.h>
+-#include <linux/pagemap.h>
+-#include <linux/swap.h>
+-#include <asm/processor.h>
+-#include <asm/pgalloc.h>
+-#include <asm/tlbflush.h>
+-
+-struct mmu_gather {
+-	struct mm_struct *mm;
+-	struct mmu_table_batch *batch;
+-	unsigned int fullmm;
+-	unsigned long start, end;
+-};
+-
+-struct mmu_table_batch {
+-	struct rcu_head		rcu;
+-	unsigned int		nr;
+-	void			*tables[0];
+-};
+-
+-#define MAX_TABLE_BATCH		\
+-	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
+-
+-extern void tlb_table_flush(struct mmu_gather *tlb);
+-extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+-
+-static inline void
+-arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+-			unsigned long start, unsigned long end)
+-{
+-	tlb->mm = mm;
+-	tlb->start = start;
+-	tlb->end = end;
+-	tlb->fullmm = !(start | (end+1));
+-	tlb->batch = NULL;
+-}
+-
+-static inline void tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
+-{
+-	__tlb_flush_mm_lazy(tlb->mm);
+-}
+-
+-static inline void tlb_flush_mmu_free(struct mmu_gather *tlb)
+-{
+-	tlb_table_flush(tlb);
+-}
+-
++void __tlb_remove_table(void *_table);
++static inline void tlb_flush(struct mmu_gather *tlb);
++static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
++					  struct page *page, int page_size);
+ 
+-static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+-{
+-	tlb_flush_mmu_tlbonly(tlb);
+-	tlb_flush_mmu_free(tlb);
+-}
++#define tlb_start_vma(tlb, vma)			do { } while (0)
++#define tlb_end_vma(tlb, vma)			do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ 
+-static inline void
+-arch_tlb_finish_mmu(struct mmu_gather *tlb,
+-		unsigned long start, unsigned long end, bool force)
+-{
+-	if (force) {
+-		tlb->start = start;
+-		tlb->end = end;
+-	}
++#define tlb_flush tlb_flush
++#define pte_free_tlb pte_free_tlb
++#define pmd_free_tlb pmd_free_tlb
++#define p4d_free_tlb p4d_free_tlb
++#define pud_free_tlb pud_free_tlb
+ 
+-	tlb_flush_mmu(tlb);
+-}
++#include <asm/pgalloc.h>
++#include <asm/tlbflush.h>
++#include <asm-generic/tlb.h>
+ 
+ /*
+  * Release the page cache reference for a pte removed by
+  * tlb_ptep_clear_flush. In both flush modes the tlb for a page cache page
+  * has already been freed, so just do free_page_and_swap_cache.
+  */
+-static inline bool __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	free_page_and_swap_cache(page);
+-	return false; /* avoid calling tlb_flush_mmu */
+-}
+-
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	free_page_and_swap_cache(page);
+-}
+-
+ static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
+ 					  struct page *page, int page_size)
+ {
+-	return __tlb_remove_page(tlb, page);
++	free_page_and_swap_cache(page);
++	return false;
+ }
+ 
+-static inline void tlb_remove_page_size(struct mmu_gather *tlb,
+-					struct page *page, int page_size)
++static inline void tlb_flush(struct mmu_gather *tlb)
+ {
+-	return tlb_remove_page(tlb, page);
++	__tlb_flush_mm_lazy(tlb->mm);
+ }
+ 
+ /*
+@@ -121,9 +63,18 @@ static inline void tlb_remove_page_size(struct mmu_gather *tlb,
+  * page table from the tlb.
+  */
+ static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+-				unsigned long address)
++                                unsigned long address)
+ {
+-	page_table_free_rcu(tlb, (unsigned long *) pte, address);
++	__tlb_adjust_range(tlb, address, PAGE_SIZE);
++	tlb->mm->context.flush_mm = 1;
++	tlb->freed_tables = 1;
++	tlb->cleared_ptes = 1;
++	/*
++	 * page_table_free_rcu takes care of the allocation bit masks
++	 * of the 2K table fragments in the 4K page table page,
++	 * then calls tlb_remove_table.
++	 */
++        page_table_free_rcu(tlb, (unsigned long *) pte, address);
+ }
+ 
+ /*
+@@ -139,6 +90,10 @@ static inline void pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
+ 	if (tlb->mm->context.asce_limit <= _REGION3_SIZE)
+ 		return;
+ 	pgtable_pmd_page_dtor(virt_to_page(pmd));
++	__tlb_adjust_range(tlb, address, PAGE_SIZE);
++	tlb->mm->context.flush_mm = 1;
++	tlb->freed_tables = 1;
++	tlb->cleared_puds = 1;
+ 	tlb_remove_table(tlb, pmd);
+ }
+ 
+@@ -154,6 +109,10 @@ static inline void p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
+ {
+ 	if (tlb->mm->context.asce_limit <= _REGION1_SIZE)
+ 		return;
++	__tlb_adjust_range(tlb, address, PAGE_SIZE);
++	tlb->mm->context.flush_mm = 1;
++	tlb->freed_tables = 1;
++	tlb->cleared_p4ds = 1;
+ 	tlb_remove_table(tlb, p4d);
+ }
+ 
+@@ -169,19 +128,11 @@ static inline void pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
+ {
+ 	if (tlb->mm->context.asce_limit <= _REGION2_SIZE)
+ 		return;
++	tlb->mm->context.flush_mm = 1;
++	tlb->freed_tables = 1;
++	tlb->cleared_puds = 1;
+ 	tlb_remove_table(tlb, pud);
+ }
+ 
+-#define tlb_start_vma(tlb, vma)			do { } while (0)
+-#define tlb_end_vma(tlb, vma)			do { } while (0)
+-#define tlb_remove_tlb_entry(tlb, ptep, addr)	do { } while (0)
+-#define tlb_remove_pmd_tlb_entry(tlb, pmdp, addr)	do { } while (0)
+-#define tlb_migrate_finish(mm)			do { } while (0)
+-#define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+-	tlb_remove_tlb_entry(tlb, ptep, address)
+-
+-static inline void tlb_change_page_size(struct mmu_gather *tlb, unsigned int page_size)
+-{
+-}
+ 
+ #endif /* _S390_TLB_H */
+diff --git a/arch/s390/mm/pgalloc.c b/arch/s390/mm/pgalloc.c
+index 76d89ee8b428..f7656a0b3a1a 100644
+--- a/arch/s390/mm/pgalloc.c
++++ b/arch/s390/mm/pgalloc.c
+@@ -288,7 +288,7 @@ void page_table_free_rcu(struct mmu_gather *tlb, unsigned long *table,
+ 	tlb_remove_table(tlb, table);
+ }
+ 
+-static void __tlb_remove_table(void *_table)
++void __tlb_remove_table(void *_table)
+ {
+ 	unsigned int mask = (unsigned long) _table & 3;
+ 	void *table = (void *)((unsigned long) _table ^ mask);
+@@ -314,67 +314,6 @@ static void __tlb_remove_table(void *_table)
+ 	}
+ }
+ 
+-static void tlb_remove_table_smp_sync(void *arg)
+-{
+-	/* Simply deliver the interrupt */
+-}
+-
+-static void tlb_remove_table_one(void *table)
+-{
+-	/*
+-	 * This isn't an RCU grace period and hence the page-tables cannot be
+-	 * assumed to be actually RCU-freed.
+-	 *
+-	 * It is however sufficient for software page-table walkers that rely
+-	 * on IRQ disabling. See the comment near struct mmu_table_batch.
+-	 */
+-	smp_call_function(tlb_remove_table_smp_sync, NULL, 1);
+-	__tlb_remove_table(table);
+-}
+-
+-static void tlb_remove_table_rcu(struct rcu_head *head)
+-{
+-	struct mmu_table_batch *batch;
+-	int i;
+-
+-	batch = container_of(head, struct mmu_table_batch, rcu);
+-
+-	for (i = 0; i < batch->nr; i++)
+-		__tlb_remove_table(batch->tables[i]);
+-
+-	free_page((unsigned long)batch);
+-}
+-
+-void tlb_table_flush(struct mmu_gather *tlb)
+-{
+-	struct mmu_table_batch **batch = &tlb->batch;
+-
+-	if (*batch) {
+-		call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
+-		*batch = NULL;
+-	}
+-}
+-
+-void tlb_remove_table(struct mmu_gather *tlb, void *table)
+-{
+-	struct mmu_table_batch **batch = &tlb->batch;
+-
+-	tlb->mm->context.flush_mm = 1;
+-	if (*batch == NULL) {
+-		*batch = (struct mmu_table_batch *)
+-			__get_free_page(GFP_NOWAIT | __GFP_NOWARN);
+-		if (*batch == NULL) {
+-			__tlb_flush_mm_lazy(tlb->mm);
+-			tlb_remove_table_one(table);
+-			return;
+-		}
+-		(*batch)->nr = 0;
+-	}
+-	(*batch)->tables[(*batch)->nr++] = table;
+-	if ((*batch)->nr == MAX_TABLE_BATCH)
+-		tlb_flush_mmu(tlb);
+-}
+-
+ /*
+  * Base infrastructure required to generate basic asces, region, segment,
+  * and page tables that do not make use of enhanced features like EDAT1.
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 21c751cd751e..930e25abf4de 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -179,6 +179,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+ 
+ #endif
+ 
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ /*
+  * If we can't allocate a page to make a big batch of page pointers
+  * to work on, then just handle a few from the on-stack structure.
+@@ -203,6 +204,8 @@ struct mmu_gather_batch {
+  */
+ #define MAX_GATHER_BATCH_COUNT	(10000UL/MAX_GATHER_BATCH)
+ 
++#endif
++
+ /*
+  * struct mmu_gather is an opaque type used by the mm code for passing around
+  * any data needed by arch specific code for tlb_remove_page.
+@@ -249,6 +252,7 @@ struct mmu_gather {
+ 
+ 	unsigned int		batch_count;
+ 
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ 	struct mmu_gather_batch *active;
+ 	struct mmu_gather_batch	local;
+ 	struct page		*__pages[MMU_GATHER_BUNDLE];
+@@ -256,6 +260,7 @@ struct mmu_gather {
+ #ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+ 	unsigned int page_size;
+ #endif
++#endif
+ };
+ 
+ void arch_tlb_gather_mmu(struct mmu_gather *tlb,
+@@ -264,8 +269,10 @@ void tlb_flush_mmu(struct mmu_gather *tlb);
+ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+ 			 unsigned long start, unsigned long end, bool force);
+ void tlb_flush_mmu_free(struct mmu_gather *tlb);
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
+ 				   int page_size);
++#endif
+ 
+ static inline void __tlb_adjust_range(struct mmu_gather *tlb,
+ 				      unsigned long address,
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 2d5e617131f6..d3d2763d91b2 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -13,6 +13,8 @@
+ 
+ #ifdef HAVE_GENERIC_MMU_GATHER
+ 
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
++
+ static bool tlb_next_batch(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
+@@ -41,6 +43,8 @@ static bool tlb_next_batch(struct mmu_gather *tlb)
+ 	return true;
+ }
+ 
++#endif
++
+ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 				unsigned long start, unsigned long end)
+ {
+@@ -49,12 +53,14 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 	/* Is it from 0 to ~0? */
+ 	tlb->fullmm     = !(start | (end+1));
+ 	tlb->need_flush_all = 0;
++
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ 	tlb->local.next = NULL;
+ 	tlb->local.nr   = 0;
+ 	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
+ 	tlb->active     = &tlb->local;
+ 	tlb->batch_count = 0;
+-
++#endif
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb->batch = NULL;
+ #endif
+@@ -67,16 +73,20 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 
+ void tlb_flush_mmu_free(struct mmu_gather *tlb)
+ {
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ 	struct mmu_gather_batch *batch;
++#endif
+ 
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ 	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
+ 		free_pages_and_swap_cache(batch->pages, batch->nr);
+ 		batch->nr = 0;
+ 	}
+ 	tlb->active = &tlb->local;
++#endif
+ }
+ 
+ void tlb_flush_mmu(struct mmu_gather *tlb)
+@@ -92,7 +102,9 @@ void tlb_flush_mmu(struct mmu_gather *tlb)
+ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+ 		unsigned long start, unsigned long end, bool force)
+ {
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ 	struct mmu_gather_batch *batch, *next;
++#endif
+ 
+ 	if (force) {
+ 		__tlb_reset_range(tlb);
+@@ -104,13 +116,16 @@ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+ 
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ 	for (batch = tlb->local.next; batch; batch = next) {
+ 		next = batch->next;
+ 		free_pages((unsigned long)batch, 0);
+ 	}
+ 	tlb->local.next = NULL;
++#endif
+ }
+ 
++#ifndef CONFIG_HAVE_RCU_NO_GATHER_PAGES
+ /* __tlb_remove_page
+  *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)), while
+  *	handling the additional races in SMP caused by other CPUs caching valid
+@@ -143,6 +158,7 @@ bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_
+ 
+ 	return false;
+ }
++#endif
+ 
+ #endif /* HAVE_GENERIC_MMU_GATHER */
+ 
+-- 
+2.16.4
 
 
-> +
-> +systbl_abi_syscall_table_32 := 32
-> +$(out)/syscall_table_32.h: $(syscall32) $(systbl)
-> +       $(call if_changed,systbl)
-> +
-> +systbl_abi_syscall_table_64 := 64
-> +$(out)/syscall_table_64.h: $(syscall64) $(systbl)
-> +       $(call if_changed,systbl)
-> +
-> +systbl_abi_syscall_table_c32 := c32
-> +$(out)/syscall_table_c32.h: $(syscall32) $(systbl)
-> +       $(call if_changed,systbl)
+-- 
+blue skies,
+   Martin.
 
-And here you need a fourth output file for the SPU table on ppc64.
-
-> +383     common  statx                           sys_statx
-> +384     common  pkey_alloc                      sys_pkey_alloc
-> +385     common  pkey_free                       sys_pkey_free
-> +386     common  pkey_mprotect                   sys_pkey_mprotect
-
-This also misses rseq and io_pgetevents.
-
-       Arnd
+"Reality continues to ruin my life." - Calvin.
