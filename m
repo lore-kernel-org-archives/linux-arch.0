@@ -1,90 +1,72 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH 0/3] System call table generation support
-Date: Fri, 14 Sep 2018 14:02:57 +0530
-Message-ID: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH 1/3] powerpc: Replace NR_syscalls macro from asm/unistd.h
+Date: Fri, 14 Sep 2018 14:02:58 +0530
+Message-ID: <1536913980-4811-2-git-send-email-firoz.khan@linaro.org>
+References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ram Pai <linuxram@us.ibm.com>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is:
-1. We can easily add/modify/delete system call by changing entry 
-in syscall.tbl file. No need to manually edit many files.
+__NR_syscalls macro holds the number of system call exist in POWERPC
+architecture. This macro is currently the part of asm/unistd.h file.
+We have to change the value of __NR_syscalls, if we add or delete a
+system call.
 
-2. It is easy to unify the system call implementation across all 
-the architectures. 
+One of the patch in this patch series has a script which will generate
+a uapi header based on syscall.tbl file. The syscall.tbl file contains
+the number of system call information. So we have two option to update
+__NR_syscalls value.
 
-The system call tables are in different format in all architecture 
-and it will be difficult to manually add or modify the system calls
-in the respective files manually. To make it easy by keeping a script 
-and which'll generate the header file and syscall table file so this 
-change will unify them across all architectures.
+1. Update __NR_syscalls in asm/unistd.h manually by counting the
+   no.of system calls. No need to update __NR_syscalls untill
+   we either add a new system call or delete an existing system
+   call.
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
+2. We can keep this feature it above mentioned script, that'll
+   count the number of syscalls and keep it in a generated file.
+   In this case we don't need to explicitly update __NR_syscalls
+   in asm/unistd.h file.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-        - Compat entry name, if required.
+The 2nd option will be the recommended one. For that, I moved the
+NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+name also changed form NR_syscalls to __NR_syscalls for making the
+name convention same across all architecture. While __NR_syscalls
+isn't strictly part of the uapi, having it as part of the generated
+header to simplifies the implementation.
 
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/powerpc/include/asm/unistd.h      | 3 +--
+ arch/powerpc/include/uapi/asm/unistd.h | 2 ++
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-I have done the same support for work for alpha, m68k, microblaze, 
-ia64, mips, parisc, sh, sparc, and xtensa. But I started sending 
-the patch for one architecuture for review. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work for solving the Y2038 issue. We 
-need to add/change two dozen of system calls to solve Y2038 issue. 
-So this patch series will help to easily modify from existing 
-system call to Y2038 compatible system calls.
-
-I started working system call table generation on 4.17-rc1. I used 
-marcin's script - https://github.com/hrw/syscalls-table to generate 
-the syscall.tbl file. And this will be the input to the system call 
-table generation script. But there are couple system call got add 
-in the latest rc release. If run Marcin's script on latest release,
-It will generate a new syscall.tbl. But I still use the old file - 
-syscall.tbl and once all review got over I'll update syscall.tbl 
-alone w.r.to the tip of the kernel. The impact of this thing, few 
-of the system call won't work. 
-
-Firoz Khan (3):
-  powerpc: Replace NR_syscalls macro from asm/unistd.h
-  powerpc: Add system call table generation support
-  powerpc: uapi header and system call table file generation
-
- arch/powerpc/Makefile                       |   3 +
- arch/powerpc/include/asm/Kbuild             |   3 +
- arch/powerpc/include/asm/unistd.h           |   3 +-
- arch/powerpc/include/uapi/asm/Kbuild        |   2 +
- arch/powerpc/include/uapi/asm/unistd.h      | 391 +---------------------------
- arch/powerpc/kernel/Makefile                |   3 +-
- arch/powerpc/kernel/syscall_table_32.S      |   9 +
- arch/powerpc/kernel/syscall_table_64.S      |  17 ++
- arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
- arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 +++++++++++++++++++++++++++
- arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 ++++++++++++++++++++++++++
- arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
- arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
- arch/powerpc/kernel/systbl.S                |  50 ----
- 14 files changed, 916 insertions(+), 441 deletions(-)
- create mode 100644 arch/powerpc/kernel/syscall_table_32.S
- create mode 100644 arch/powerpc/kernel/syscall_table_64.S
- create mode 100644 arch/powerpc/kernel/syscalls/Makefile
- create mode 100644 arch/powerpc/kernel/syscalls/syscall_32.tbl
- create mode 100644 arch/powerpc/kernel/syscalls/syscall_64.tbl
- create mode 100644 arch/powerpc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/powerpc/kernel/syscalls/syscalltbl.sh
- delete mode 100644 arch/powerpc/kernel/systbl.S
-
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index c19379f..54732f9 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -11,8 +11,7 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
+-
+-#define NR_syscalls		389
++#define NR_syscalls  __NR_syscalls
+ 
+ #define __NR__exit __NR_exit
+ 
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index 985534d..f999df2 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -401,4 +401,6 @@
+ #define __NR_rseq		387
+ #define __NR_io_pgetevents	388
+ 
++#define __NR_syscalls           389
++
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.9.1
