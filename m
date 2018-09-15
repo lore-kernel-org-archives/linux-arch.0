@@ -1,14 +1,14 @@
 From: Sasha Levin <Alexander.Levin@microsoft.com>
-Subject: [PATCH AUTOSEL 4.14 17/57] sched/core: Use smp_mb() in
+Subject: [PATCH AUTOSEL 4.18 23/92] sched/core: Use smp_mb() in
  wake_woken_function()
-Date: Sat, 15 Sep 2018 01:32:40 +0000
-Message-ID: <20180915013223.179909-17-alexander.levin@microsoft.com>
-References: <20180915013223.179909-1-alexander.levin@microsoft.com>
+Date: Sat, 15 Sep 2018 01:30:05 +0000
+Message-ID: <20180915012944.179481-23-alexander.levin@microsoft.com>
+References: <20180915012944.179481-1-alexander.levin@microsoft.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180915013223.179909-1-alexander.levin@microsoft.com>
+In-Reply-To: <20180915012944.179481-1-alexander.levin@microsoft.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
@@ -65,10 +65,10 @@ Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
  1 file changed, 21 insertions(+), 26 deletions(-)
 
 diff --git a/kernel/sched/wait.c b/kernel/sched/wait.c
-index 929ecb7d6b78..e29608464382 100644
+index 928be527477e..a7a2aaa3026a 100644
 --- a/kernel/sched/wait.c
 +++ b/kernel/sched/wait.c
-@@ -395,35 +395,36 @@ static inline bool is_kthread_should_stop(void)
+@@ -392,35 +392,36 @@ static inline bool is_kthread_should_stop(void)
   *     if (condition)
   *         break;
   *
@@ -126,7 +126,7 @@ eout)
  	 */
  	smp_store_mb(wq_entry->flags, wq_entry->flags & ~WQ_FLAG_WOKEN); /* B */
 =20
-@@ -433,14 +434,8 @@ EXPORT_SYMBOL(wait_woken);
+@@ -430,14 +431,8 @@ EXPORT_SYMBOL(wait_woken);
 =20
  int woken_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, =
 int sync, void *key)
