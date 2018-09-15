@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0116.outbound.protection.outlook.com ([104.47.40.116]:27616
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0101.outbound.protection.outlook.com ([104.47.32.101]:52800
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728318AbeIOGto (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 15 Sep 2018 02:49:44 -0400
+        id S1728272AbeIOGrK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 15 Sep 2018 02:47:10 -0400
 From: Sasha Levin <Alexander.Levin@microsoft.com>
-Subject: [PATCH AUTOSEL 4.14 17/57] sched/core: Use smp_mb() in
+Subject: [PATCH AUTOSEL 4.18 23/92] sched/core: Use smp_mb() in
  wake_woken_function()
-Date: Sat, 15 Sep 2018 01:32:40 +0000
-Message-ID: <20180915013223.179909-17-alexander.levin@microsoft.com>
-References: <20180915013223.179909-1-alexander.levin@microsoft.com>
-In-Reply-To: <20180915013223.179909-1-alexander.levin@microsoft.com>
+Date: Sat, 15 Sep 2018 01:30:05 +0000
+Message-ID: <20180915012944.179481-23-alexander.levin@microsoft.com>
+References: <20180915012944.179481-1-alexander.levin@microsoft.com>
+In-Reply-To: <20180915012944.179481-1-alexander.levin@microsoft.com>
 Content-Language: en-US
 Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: quoted-printable
@@ -19,7 +19,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "akiyks@gmail.com" <akiyks@gmail.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "j.alglave@ucl.ac.uk" <j.alglave@ucl.ac.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "luc.maranget@inria.fr" <luc.maranget@inria.fr>, "npiggin@gmail.com" <npiggin@gmail.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "will.deacon@arm.com" <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <Alexander.Levin@microsoft.com>
-Message-ID: <20180915013240.gdj2DEgkStYjLpD3kB9ynjHp2atjml3niwZ1h0kR2qg@z>
+Message-ID: <20180915013005.nstNlKUGdpaJ6LZS1F0zQicfVlA49h4LSkhifi-QWXU@z>
 
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
@@ -71,10 +71,10 @@ Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
  1 file changed, 21 insertions(+), 26 deletions(-)
 
 diff --git a/kernel/sched/wait.c b/kernel/sched/wait.c
-index 929ecb7d6b78..e29608464382 100644
+index 928be527477e..a7a2aaa3026a 100644
 --- a/kernel/sched/wait.c
 +++ b/kernel/sched/wait.c
-@@ -395,35 +395,36 @@ static inline bool is_kthread_should_stop(void)
+@@ -392,35 +392,36 @@ static inline bool is_kthread_should_stop(void)
   *     if (condition)
   *         break;
   *
@@ -132,7 +132,7 @@ eout)
  	 */
  	smp_store_mb(wq_entry->flags, wq_entry->flags & ~WQ_FLAG_WOKEN); /* B */
 =20
-@@ -433,14 +434,8 @@ EXPORT_SYMBOL(wait_woken);
+@@ -430,14 +431,8 @@ EXPORT_SYMBOL(wait_woken);
 =20
  int woken_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, =
 int sync, void *key)
