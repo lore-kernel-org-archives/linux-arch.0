@@ -1,49 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:42560 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725198AbeIOEpm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 15 Sep 2018 00:45:42 -0400
-Date: Sat, 15 Sep 2018 07:28:26 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Message-ID: <20180914232826.GA1497@guoren-Inspiron-7460>
-References: <cover.1536757532.git.ren_guo@c-sky.com>
- <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
- <20180914143719.GA27689@guoren-Inspiron-7460>
- <CAK8P3a0fZYbd4a2nBnExPVXKs-898R9vaCSa4kXyz0qA=rCzZQ@mail.gmail.com>
- <20180914160231.GA32161@guoren-Inspiron-7460>
- <CAK8P3a0ZBBL8LHoV=tDr3Ner6wRK=QcrepciZqCPNEHk=B2n7A@mail.gmail.com>
+Received: from mail-co1nam03on0116.outbound.protection.outlook.com ([104.47.40.116]:27616
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728318AbeIOGto (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 15 Sep 2018 02:49:44 -0400
+From: Sasha Levin <Alexander.Levin@microsoft.com>
+Subject: [PATCH AUTOSEL 4.14 17/57] sched/core: Use smp_mb() in
+ wake_woken_function()
+Date: Sat, 15 Sep 2018 01:32:40 +0000
+Message-ID: <20180915013223.179909-17-alexander.levin@microsoft.com>
+References: <20180915013223.179909-1-alexander.levin@microsoft.com>
+In-Reply-To: <20180915013223.179909-1-alexander.levin@microsoft.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0ZBBL8LHoV=tDr3Ner6wRK=QcrepciZqCPNEHk=B2n7A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20180914232826._3CkfBlVOr03PSVSqSWTCP9PflNVTfdr4fty6KK7l2M@z>
+To: "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, "akiyks@gmail.com" <akiyks@gmail.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "j.alglave@ucl.ac.uk" <j.alglave@ucl.ac.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "luc.maranget@inria.fr" <luc.maranget@inria.fr>, "npiggin@gmail.com" <npiggin@gmail.com>, "parri.andrea@gmail.com" <parri.andrea@gmail.com>, "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>, "will.deacon@arm.com" <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <Alexander.Levin@microsoft.com>
+Message-ID: <20180915013240.gdj2DEgkStYjLpD3kB9ynjHp2atjml3niwZ1h0kR2qg@z>
 
-On Fri, Sep 14, 2018 at 06:09:35PM +0200, Arnd Bergmann wrote:
-> On Fri, Sep 14, 2018 at 6:02 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > On Fri, Sep 14, 2018 at 04:46:56PM +0200, Arnd Bergmann wrote:
-> > > On Fri, Sep 14, 2018 at 4:37 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > > One level below that, you can of course choose to build
-> > > a distro with only 64-bit time_t regardless of whether there
-> > > is still support for 32-bit time_t in kernel and glibc or not.
-> > Do you mean I could merge kernel port into linux-4.19 or linux-4.20.
-> > But let glibc merged after linux-4.21 and csky glibc only support
-> > time64 syscalls ?
-> 
-> Yes, that's what I meant. Note that it won't get merged into 4.19:
-> the merge window for that was after the 4.18 release and no
-> new features are getting merged for 4.19 that have not made it
-> into 4.19-rc1 already.
-> 
-> Getting your code into linux-next now is the prerequisite for you
-> sending a pull request during the 4.20 window.
-Got it, thank you very much.
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
 
- Guo Ren
+[ Upstream commit 76e079fefc8f62bd9b2cd2950814d1ee806e31a5 ]
+
+wake_woken_function() synchronizes with wait_woken() as follows:
+
+  [wait_woken]                       [wake_woken_function]
+
+  entry->flags &=3D ~wq_flag_woken;    condition =3D true;
+  smp_mb();                          smp_wmb();
+  if (condition)                     wq_entry->flags |=3D wq_flag_woken;
+     break;
+
+This commit replaces the above smp_wmb() with an smp_mb() in order to
+guarantee that either wait_woken() sees the wait condition being true
+or the store to wq_entry->flags in woken_wake_function() follows the
+store in wait_woken() in the coherence order (so that the former can
+eventually be observed by wait_woken()).
+
+The commit also fixes a comment associated to set_current_state() in
+wait_woken(): the comment pairs the barrier in set_current_state() to
+the above smp_wmb(), while the actual pairing involves the barrier in
+set_current_state() and the barrier executed by the try_to_wake_up()
+in wake_woken_function().
+
+Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: akiyks@gmail.com
+Cc: boqun.feng@gmail.com
+Cc: dhowells@redhat.com
+Cc: j.alglave@ucl.ac.uk
+Cc: linux-arch@vger.kernel.org
+Cc: luc.maranget@inria.fr
+Cc: npiggin@gmail.com
+Cc: parri.andrea@gmail.com
+Cc: stern@rowland.harvard.edu
+Cc: will.deacon@arm.com
+Link: http://lkml.kernel.org/r/20180716180605.16115-10-paulmck@linux.vnet.i=
+bm.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+---
+ kernel/sched/wait.c | 47 ++++++++++++++++++++-------------------------
+ 1 file changed, 21 insertions(+), 26 deletions(-)
+
+diff --git a/kernel/sched/wait.c b/kernel/sched/wait.c
+index 929ecb7d6b78..e29608464382 100644
+--- a/kernel/sched/wait.c
++++ b/kernel/sched/wait.c
+@@ -395,35 +395,36 @@ static inline bool is_kthread_should_stop(void)
+  *     if (condition)
+  *         break;
+  *
+- *     p->state =3D mode;				condition =3D true;
+- *     smp_mb(); // A				smp_wmb(); // C
+- *     if (!wq_entry->flags & WQ_FLAG_WOKEN)	wq_entry->flags |=3D WQ_FLAG_=
+WOKEN;
+- *         schedule()				try_to_wake_up();
+- *     p->state =3D TASK_RUNNING;		    ~~~~~~~~~~~~~~~~~~
+- *     wq_entry->flags &=3D ~WQ_FLAG_WOKEN;		condition =3D true;
+- *     smp_mb() // B				smp_wmb(); // C
+- *						wq_entry->flags |=3D WQ_FLAG_WOKEN;
+- * }
+- * remove_wait_queue(&wq_head, &wait);
++ *     // in wait_woken()			// in woken_wake_function()
+  *
++ *     p->state =3D mode;				wq_entry->flags |=3D WQ_FLAG_WOKEN;
++ *     smp_mb(); // A				try_to_wake_up():
++ *     if (!(wq_entry->flags & WQ_FLAG_WOKEN))	   <full barrier>
++ *         schedule()				   if (p->state & mode)
++ *     p->state =3D TASK_RUNNING;			      p->state =3D TASK_RUNNING;
++ *     wq_entry->flags &=3D ~WQ_FLAG_WOKEN;	~~~~~~~~~~~~~~~~~~
++ *     smp_mb(); // B				condition =3D true;
++ * }						smp_mb(); // C
++ * remove_wait_queue(&wq_head, &wait);		wq_entry->flags |=3D WQ_FLAG_WOKEN=
+;
+  */
+ long wait_woken(struct wait_queue_entry *wq_entry, unsigned mode, long tim=
+eout)
+ {
+-	set_current_state(mode); /* A */
+ 	/*
+-	 * The above implies an smp_mb(), which matches with the smp_wmb() from
+-	 * woken_wake_function() such that if we observe WQ_FLAG_WOKEN we must
+-	 * also observe all state before the wakeup.
++	 * The below executes an smp_mb(), which matches with the full barrier
++	 * executed by the try_to_wake_up() in woken_wake_function() such that
++	 * either we see the store to wq_entry->flags in woken_wake_function()
++	 * or woken_wake_function() sees our store to current->state.
+ 	 */
++	set_current_state(mode); /* A */
+ 	if (!(wq_entry->flags & WQ_FLAG_WOKEN) && !is_kthread_should_stop())
+ 		timeout =3D schedule_timeout(timeout);
+ 	__set_current_state(TASK_RUNNING);
+=20
+ 	/*
+-	 * The below implies an smp_mb(), it too pairs with the smp_wmb() from
+-	 * woken_wake_function() such that we must either observe the wait
+-	 * condition being true _OR_ WQ_FLAG_WOKEN such that we will not miss
+-	 * an event.
++	 * The below executes an smp_mb(), which matches with the smp_mb() (C)
++	 * in woken_wake_function() such that either we see the wait condition
++	 * being true or the store to wq_entry->flags in woken_wake_function()
++	 * follows ours in the coherence order.
+ 	 */
+ 	smp_store_mb(wq_entry->flags, wq_entry->flags & ~WQ_FLAG_WOKEN); /* B */
+=20
+@@ -433,14 +434,8 @@ EXPORT_SYMBOL(wait_woken);
+=20
+ int woken_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, =
+int sync, void *key)
+ {
+-	/*
+-	 * Although this function is called under waitqueue lock, LOCK
+-	 * doesn't imply write barrier and the users expects write
+-	 * barrier semantics on wakeup functions.  The following
+-	 * smp_wmb() is equivalent to smp_wmb() in try_to_wake_up()
+-	 * and is paired with smp_store_mb() in wait_woken().
+-	 */
+-	smp_wmb(); /* C */
++	/* Pairs with the smp_store_mb() in wait_woken(). */
++	smp_mb(); /* C */
+ 	wq_entry->flags |=3D WQ_FLAG_WOKEN;
+=20
+ 	return default_wake_function(wq_entry, mode, sync, key);
+--=20
+2.17.1
