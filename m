@@ -1,91 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:53357 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726969AbeIOQ4U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Sep 2018 12:56:20 -0400
-Date: Sat, 15 Sep 2018 13:37:33 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] [RFC] making uapi/linux/elfcore.h useful again
-Message-ID: <20180915113733.GA35411@gmail.com>
-References: <20180914113929.953895-1-arnd@arndb.de>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:52407 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727028AbeIOUOt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 15 Sep 2018 16:14:49 -0400
+Date: Sat, 15 Sep 2018 22:55:13 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V3 11/27] csky: Atomic operations
+Message-ID: <20180915145512.GA18355@guoren-Inspiron-7460>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
+ <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536757532.git.ren_guo@c-sky.com>
+ <20180912155514.GV24082@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180914113929.953895-1-arnd@arndb.de>
+In-Reply-To: <20180912155514.GV24082@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Joseph =?iso-8859-1?Q?Myers=A0?= <joseph@codesourcery.com>, David Howells <dhowells@redhat.com>, libc-alpha@sourceware.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180915113733.RXjbR7TvMAeWqYSKkk99mfeXm9haVoYN-DuzKgwy7Rs@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180915145513.JU5NGM0oBMelB3zeGrgHgbj6t57SBlFBqH5FLLs8lbk@z>
 
+Thx for the review, that's very helpful.
 
-* Arnd Bergmann <arnd@arndb.de> wrote:
+On Wed, Sep 12, 2018 at 05:55:14PM +0200, Peter Zijlstra wrote:
+> On Wed, Sep 12, 2018 at 09:24:45PM +0800, Guo Ren wrote:
+> 
+> > +#define ATOMIC_OP(op, c_op)						\
+> > +static inline void atomic_##op(int i, atomic_t *v)			\
+> > +{									\
+> > +	unsigned long tmp;						\
+> > +									\
+> > +	smp_mb();							\
+> > +	asm volatile (							\
+> > +	"1:	ldex.w		%0, (%2) \n"				\
+> > +	"	" #op "		%0, %1   \n"				\
+> > +	"	stex.w		%0, (%2) \n"				\
+> > +	"	bez		%0, 1b   \n"				\
+> > +		: "=&r" (tmp)						\
+> > +		: "r" (i), "r"(&v->counter)				\
+> > +		: "memory");						\
+> > +	smp_mb();							\
+> > +}
+> 
+> ATOMIC_OP doesn't need to imply any smp_mb()'s what so ever.
+Ok.
 
-> diff --git a/arch/x86/include/uapi/asm/elf.h b/arch/x86/include/uapi/asm/elf.h
-> new file mode 100644
-> index 000000000000..a640e1224939
-> --- /dev/null
-> +++ b/arch/x86/include/uapi/asm/elf.h
-> @@ -0,0 +1,30 @@
-> +/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-> +#ifndef _UAPI_ASM_X86_ELF_H
-> +#define _UAPI_ASM_X86_ELF_H
-> +
-> +#ifdef __i386__
-> +
-> +/*
-> + * These are used to set parameters in the core dumps.
-> + */
-> +#define ELF_CLASS	ELFCLASS32
-> +#define ELF_DATA	ELFDATA2LSB
-> +#define ELF_ARCH	EM_386
-> +#define ELF_NGREG	17
-> +
-> +#else
-> +
-> +/*
-> + * These are used to set parameters in the core dumps.
-> + */
-> +#define ELF_CLASS	ELFCLASS64
-> +#define ELF_DATA	ELFDATA2LSB
-> +#define ELF_ARCH	EM_X86_64
-> +#define ELF_NGREG	27
-> +
-> +#endif /* __i386__ */
-> +
-> +typedef unsigned long elf_greg_t;
-> +typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-> +
-> +#endif
+> > +#define ATOMIC_OP_RETURN(op, c_op)					\
+> > +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> > +{									\
+> > +	unsigned long tmp, ret;						\
+> > +									\
+> > +	smp_mb();							\
+> > +	asm volatile (							\
+> > +	"1:	ldex.w		%0, (%3) \n"				\
+> > +	"	" #op "		%0, %2   \n"				\
+> > +	"	mov		%1, %0   \n"				\
+> > +	"	stex.w		%0, (%3) \n"				\
+> > +	"	bez		%0, 1b   \n"				\
+> > +		: "=&r" (tmp), "=&r" (ret)				\
+> > +		: "r" (i), "r"(&v->counter)				\
+> > +		: "memory");						\
+> > +	smp_mb();							\
+> > +									\
+> > +	return ret;							\
+> > +}
+> > +
+> > +#define ATOMIC_FETCH_OP(op, c_op)					\
+> > +static inline int atomic_fetch_##op(int i, atomic_t *v)			\
+> > +{									\
+> > +	unsigned long tmp, ret;						\
+> > +									\
+> > +	smp_mb();							\
+> > +	asm volatile (							\
+> > +	"1:	ldex.w		%0, (%3) \n"				\
+> > +	"	mov		%1, %0   \n"				\
+> > +	"	" #op "		%0, %2   \n"				\
+> > +	"	stex.w		%0, (%3) \n"				\
+> > +	"	bez		%0, 1b   \n"				\
+> > +		: "=&r" (tmp), "=&r" (ret)				\
+> > +		: "r" (i), "r"(&v->counter)				\
+> > +		: "memory");						\
+> > +	smp_mb();							\
+> > +									\
+> > +	return ret;							\
+> > +}
+> 
+> For these you could generate _relaxed variants and not provide smp_mb()
+> inside them.
+Ok, but I'll modify it in next commit.
+ 
+> > +#else /* CONFIG_CPU_HAS_LDSTEX */
+> > +
+> > +#include <linux/irqflags.h>
+> > +
+> 
+> > +#define ATOMIC_OP(op, c_op)						\
+> > +static inline void atomic_##op(int i, atomic_t *v)			\
+> > +{									\
+> > +	unsigned long tmp, flags;					\
+> > +									\
+> > +	raw_local_irq_save(flags);					\
+> > +									\
+> > +	asm volatile (							\
+> > +	"	ldw		%0, (%2) \n"				\
+> > +	"	" #op "		%0, %1   \n"				\
+> > +	"	stw		%0, (%2) \n"				\
+> > +		: "=&r" (tmp)						\
+> > +		: "r" (i), "r"(&v->counter)				\
+> > +		: "memory");						\
+> > +									\
+> > +	raw_local_irq_restore(flags);					\
+> > +}
+> 
+> Is this really 'better' than the generic UP fallback implementation?
+There is a lock irq instruction "idly4" with out irq_save. eg:
+	asm volatile (							\
+	"	idly4			 \n"				\
+	"	ldw		%0, (%2) \n"				\
+	"	" #op "		%0, %1   \n"				\
+	"	stw		%0, (%2) \n"				\
+I'll change to that after full tested.
 
-On a second thought, maybe deduplicate the comments? Something like:
+> > +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> > +{
+> > +	arch_spinlock_t lockval;
+> > +	u32 ticket_next = 1 << TICKET_NEXT;
+> > +	u32 *p = &lock->lock;
+> > +	u32 tmp;
+> > +
+> > +	smp_mb();
+> 
+> spin_lock() doesn't need smp_mb() before.
+read_lock and write_lock also needn't smp_mb() before, isn't it?
 
-/*
- * These are used to set parameters in core dumps:
- */
-#ifdef __i386__
-# define ELF_CLASS	ELFCLASS32
-# define ELF_DATA	ELFDATA2LSB
-# define ELF_ARCH	EM_386
-# define ELF_NGREG	17
-#else
-# define ELF_CLASS	ELFCLASS64
-# define ELF_DATA	ELFDATA2LSB
-# define ELF_ARCH	EM_X86_64
-# define ELF_NGREG	27
-#endif
+> > +
+> > +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> > +{
+> > +	smp_mb();
+> > +	lock->tickets.owner++;
+> > +	smp_mb();
+> 
+> spin_unlock() doesn't need smp_mb() after.
+read_unlock and write_unlock also needn't smp_mb() after, isn't it?
 
-Note:
+> > +#else /* CONFIG_QUEUED_RWLOCKS */
+> > +
+> > +/*
+> > + * Test-and-set spin-locking.
+> > + */
+> 
+> Why retain that?
+> 
+> same comments; it has far too many smp_mb()s in.
+I'm not sure about queued_rwlocks and just for 2-cores-smp test-and-set is
+faster and simpler, isn't it?
 
- - I fixed a typo in the comment.
- - Aligned the blocks vertically for better visibility.
- - The closing #endif comment became unnecessary as well, due to the much more obvious 
-   structure when written this way.
-
-The type changes/cleanups look good otherwise: it's quite probable that it was never directly 
-included in any user-space library in any sane fashion before, so it's not really an UAPI that 
-was relied on, as long as it doesn't break the build anywhere.
-
-Thanks,
-
-	Ingo
+Best Regards
+ Guo Ren
