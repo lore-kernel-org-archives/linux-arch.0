@@ -1,186 +1,43 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 05/18] vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
-Date: Sat, 15 Sep 2018 17:30:46 -0700
-Message-ID: <20180916003059.1046-6-keescook@chromium.org>
-References: <20180916003059.1046-1-keescook@chromium.org>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
+Date: Sun, 16 Sep 2018 09:07:30 +0800
+Message-ID: <20180916010729.GA18279@guoren-Inspiron-7460>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
+ <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180916003059.1046-1-keescook@chromium.org>
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, LKLM <linux-kernel@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-Since the struct lsm_info table is not an initcall, we can just move it
-into INIT_DATA like all the other tables.
+On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
+> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
+> >
+> > This is the 3th version patchset to add the Linux kernel port for C-SKY(csky).
+> > Thanks to everyone who provided feedback on the previous version.
+> >
+> > This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
+> > CPU cores and the patches are based on linux-4.18.4
+> >
+> > There are two ABI versions with several CPU cores in this patchset:
+> >   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+> >   ABIv2: ck807 ck810 ck860 (16/32-bit variable length instruction, PIPT Cache,
+> >          SMP ...)
+> >
+> > More information: http://en.c-sky.com
+> 
+> This looks good to me overall. I think a good next step would be to get the port
+> included in linux-next, by preparing a git tree with all the patches and asking
+> Stephen Rothwell to include it there. Further comments on the architecture
+> port itself can be done on top of the existing patches. I would suggest you
+> base the git tree on an -rc release (either 4.19-rc1 or 4.19-rc3) and then never
+> rebase again.
+Another question:
+Could I add "Acked-by: Arnd Bergmann <arnd@arndb.de>" in all my comments?
 
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/arc/kernel/vmlinux.lds.S        |  1 -
- arch/arm/kernel/vmlinux-xip.lds.S    |  1 -
- arch/arm64/kernel/vmlinux.lds.S      |  1 -
- arch/h8300/kernel/vmlinux.lds.S      |  1 -
- arch/microblaze/kernel/vmlinux.lds.S |  2 --
- arch/powerpc/kernel/vmlinux.lds.S    |  2 --
- arch/um/include/asm/common.lds.S     |  2 --
- arch/xtensa/kernel/vmlinux.lds.S     |  1 -
- include/asm-generic/vmlinux.lds.h    | 24 +++++++++++-------------
- 9 files changed, 11 insertions(+), 24 deletions(-)
-
-diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
-index f35ed578e007..8fb16bdabdcf 100644
---- a/arch/arc/kernel/vmlinux.lds.S
-+++ b/arch/arc/kernel/vmlinux.lds.S
-@@ -71,7 +71,6 @@ SECTIONS
- 		INIT_SETUP(L1_CACHE_BYTES)
- 		INIT_CALLS
- 		CON_INITCALL
--		SECURITY_INITCALL
- 	}
- 
- 	.init.arch.info : {
-diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-index 3593d5c1acd2..8c74037ade22 100644
---- a/arch/arm/kernel/vmlinux-xip.lds.S
-+++ b/arch/arm/kernel/vmlinux-xip.lds.S
-@@ -96,7 +96,6 @@ SECTIONS
- 		INIT_SETUP(16)
- 		INIT_CALLS
- 		CON_INITCALL
--		SECURITY_INITCALL
- 		INIT_RAM_FS
- 	}
- 
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 605d1b60469c..7d23d591b03c 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -166,7 +166,6 @@ SECTIONS
- 		INIT_SETUP(16)
- 		INIT_CALLS
- 		CON_INITCALL
--		SECURITY_INITCALL
- 		INIT_RAM_FS
- 		*(.init.rodata.* .init.bss)	/* from the EFI stub */
- 	}
-diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
-index 35716a3048de..49f716c0a1df 100644
---- a/arch/h8300/kernel/vmlinux.lds.S
-+++ b/arch/h8300/kernel/vmlinux.lds.S
-@@ -56,7 +56,6 @@ SECTIONS
- 	__init_begin = .;
- 	INIT_TEXT_SECTION(4)
- 	INIT_DATA_SECTION(4)
--	SECURITY_INIT
- 	__init_end = .;
- 	_edata = . ;
- 	_begin_data = LOADADDR(.data);
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index 289d0e7f3e3a..e1f3e8741292 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -117,8 +117,6 @@ SECTIONS {
- 		CON_INITCALL
- 	}
- 
--	SECURITY_INIT
--
- 	__init_end_before_initramfs = .;
- 
- 	.init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) {
-diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index 07ae018e550e..105a976323aa 100644
---- a/arch/powerpc/kernel/vmlinux.lds.S
-+++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -212,8 +212,6 @@ SECTIONS
- 		CON_INITCALL
- 	}
- 
--	SECURITY_INIT
--
- 	. = ALIGN(8);
- 	__ftr_fixup : AT(ADDR(__ftr_fixup) - LOAD_OFFSET) {
- 		__start___ftr_fixup = .;
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index 7adb4e6b658a..4049f2c46387 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -53,8 +53,6 @@
- 	CON_INITCALL
-   }
- 
--  SECURITY_INIT
--
-   .exitcall : {
- 	__exitcall_begin = .;
- 	*(.exitcall.exit)
-diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
-index a1c3edb8ad56..b727b18a68ac 100644
---- a/arch/xtensa/kernel/vmlinux.lds.S
-+++ b/arch/xtensa/kernel/vmlinux.lds.S
-@@ -197,7 +197,6 @@ SECTIONS
-     INIT_SETUP(XCHAL_ICACHE_LINESIZE)
-     INIT_CALLS
-     CON_INITCALL
--    SECURITY_INITCALL
-     INIT_RAM_FS
-   }
- 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 5079a969e612..b31ea8bdfef9 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -203,6 +203,15 @@
- #define EARLYCON_TABLE()
- #endif
- 
-+#ifdef CONFIG_SECURITY
-+#define LSM_TABLE()	. = ALIGN(8);					\
-+			__start_lsm_info = .;				\
-+			KEEP(*(.lsm_info.init))				\
-+			__end_lsm_info = .;
-+#else
-+#define LSM_TABLE()
-+#endif
-+
- #define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
- #define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)
- #define OF_TABLE(cfg, name)	__OF_TABLE(IS_ENABLED(cfg), name)
-@@ -597,7 +606,8 @@
- 	IRQCHIP_OF_MATCH_TABLE()					\
- 	ACPI_PROBE_TABLE(irqchip)					\
- 	ACPI_PROBE_TABLE(timer)						\
--	EARLYCON_TABLE()
-+	EARLYCON_TABLE()						\
-+	LSM_TABLE()
- 
- #define INIT_TEXT							\
- 	*(.init.text .init.text.*)					\
-@@ -786,17 +796,6 @@
- 		KEEP(*(.con_initcall.init))				\
- 		__con_initcall_end = .;
- 
--#define SECURITY_INITCALL						\
--		__start_lsm_info = .;					\
--		KEEP(*(.lsm_info.init))					\
--		__end_lsm_info = .;
--
--/* Older linker script style for security init. */
--#define SECURITY_INIT							\
--	.lsm_info.init : AT(ADDR(.lsm_info.init) - LOAD_OFFSET) {	\
--		LSM_INFO						\
--	}
--
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
-@@ -963,7 +962,6 @@
- 		INIT_SETUP(initsetup_align)				\
- 		INIT_CALLS						\
- 		CON_INITCALL						\
--		SECURITY_INITCALL					\
- 		INIT_RAM_FS						\
- 	}
- 
--- 
-2.17.1
+Best Regards
+ Guo Ren
