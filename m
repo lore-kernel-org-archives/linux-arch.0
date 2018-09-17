@@ -1,100 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:60929 "EHLO cstnet.cn"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728178AbeIQTC2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Sep 2018 15:02:28 -0400
-From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v7 15/16] EDAC, amd64: Add Hygon Dhyana support
-Date: Mon, 17 Sep 2018 21:34:51 +0800
-Message-ID: <b845f16f017835e2eeb0d20701fb5bb45b032995.1537182523.git.puwen@hygon.cn>
-In-Reply-To: <cover.1537182523.git.puwen@hygon.cn>
-References: <cover.1537182523.git.puwen@hygon.cn>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:39664 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728757AbeIQUGM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Sep 2018 16:06:12 -0400
+Date: Mon, 17 Sep 2018 22:37:59 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
+Message-ID: <20180917143759.GA2612@guoren-Inspiron-7460>
+References: <cover.1536757532.git.ren_guo@c-sky.com>
+ <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
+ <b5bbb3e5-d970-dd82-400f-ae13ca782fd5@c-sky.com>
+ <20180917215443.3b5808c5@canb.auug.org.au>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180917215443.3b5808c5@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, mchehab@kernel.org, mikhail.jin@gmail.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180917133451.NJn4Vc_YVUCz7c4SKiHhnQJdl2qOxnk1MJpkOqoOXn4@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
+Message-ID: <20180917143759.nSnoMCRT9_V5VOLXEDm3bctrrP6h3NW1MGiCphKauDY@z>
 
-To make AMD64 EDAC and MCE drivers working on Hygon platform, add
-support for Hygon Dhyana CPU by using the code path of AMD family
-17h.
+On Mon, Sep 17, 2018 at 09:54:43PM +1000, Stephen Rothwell wrote:
+> Hi Guo,
+> 
+> On Sun, 16 Sep 2018 12:53:26 +0800 Guo Ren <ren_guo@c-sky.com> wrote:
+> >
+> > I'm Guo Ren from C-SKY and I'm working on csky linux port upstream.
+> > I've prepared my git-tree based on linux-4.19-rc3:
+> > git clone -b linux-next https://github.com/c-sky/csky-linux.git
+> > 
+> > Here is the pre-built cross compiler for fast test from our CI:
+> > https://gitlab.com/c-sky/buildroot/-/jobs/97941896/artifacts/file/output/images/csky_toolchain_csky_ck860_platform_defconfig_72371bf75a51f27ea59fc34eeaf236e06b75bf69.tar.xz
+> > 
+> > You can also build newest gcc, binutils and they are upstreamed but not
+> > released on gnu.org. Glibc is uptreaming now.
+> > 
+> > Please have a look and any feed back is welcome.
+> 
+> Added from today (called "csky").
+> 
+> Thanks for adding your subsystem tree as a participant of linux-next.  As
+> you may know, this is not a judgement of your code.  The purpose of
+> linux-next is for integration testing and to lower the impact of
+> conflicts between subsystems in the next merge window. 
+> 
+> You will need to ensure that the patches/commits in your tree/series have
+> been:
+>      * submitted under GPL v2 (or later) and include the Contributor's
+>         Signed-off-by,
+>      * posted to the relevant mailing list,
+>      * reviewed by you (or another maintainer of your subsystem tree),
+>      * successfully unit tested, and 
+>      * destined for the current or next Linux merge window.
+> 
+> Basically, this should be just what you would send to Linus (or ask him
+> to fetch).  It is allowed to be rebased if you deem it necessary.
 
-Signed-off-by: Pu Wen <puwen@hygon.cn>
----
- drivers/edac/amd64_edac.c | 8 +++++++-
- drivers/edac/mce_amd.c    | 4 +++-
- 2 files changed, 10 insertions(+), 2 deletions(-)
+ I am very excited to receive your mail. I have been preparing for this
+ for nearly 3 years.
 
-diff --git a/drivers/edac/amd64_edac.c b/drivers/edac/amd64_edac.c
-index 18aeabb..bf3314b 100644
---- a/drivers/edac/amd64_edac.c
-+++ b/drivers/edac/amd64_edac.c
-@@ -211,7 +211,7 @@ static int __set_scrub_rate(struct amd64_pvt *pvt, u32 new_bw, u32 min_rate)
+ - All files are under GPL v2
  
- 	scrubval = scrubrates[i].scrubval;
- 
--	if (pvt->fam == 0x17) {
-+	if (pvt->fam == 0x17 || pvt->fam == 0x18) {
- 		__f17h_set_scrubval(pvt, scrubval);
- 	} else if (pvt->fam == 0x15 && pvt->model == 0x60) {
- 		f15h_select_dct(pvt, 0);
-@@ -264,6 +264,7 @@ static int get_scrub_rate(struct mem_ctl_info *mci)
- 		break;
- 
- 	case 0x17:
-+	case 0x18:
- 		amd64_read_pci_cfg(pvt->F6, F17H_SCR_BASE_ADDR, &scrubval);
- 		if (scrubval & BIT(0)) {
- 			amd64_read_pci_cfg(pvt->F6, F17H_SCR_LIMIT_ADDR, &scrubval);
-@@ -1044,6 +1045,7 @@ static void determine_memory_type(struct amd64_pvt *pvt)
- 		goto ddr3;
- 
- 	case 0x17:
-+	case 0x18:
- 		if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(5))
- 			pvt->dram_type = MEM_LRDDR4;
- 		else if ((pvt->umc[0].dimm_cfg | pvt->umc[1].dimm_cfg) & BIT(4))
-@@ -3188,8 +3190,11 @@ static struct amd64_family_type *per_family_init(struct amd64_pvt *pvt)
- 		break;
- 
- 	case 0x17:
-+	case 0x18:
- 		fam_type	= &family_types[F17_CPUS];
- 		pvt->ops	= &family_types[F17_CPUS].ops;
-+		if (pvt->fam == 0x18)
-+			family_types[F17_CPUS].ctl_name = "F18h";
- 		break;
- 
- 	default:
-@@ -3428,6 +3433,7 @@ static const struct x86_cpu_id amd64_cpuids[] = {
- 	{ X86_VENDOR_AMD, 0x15, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
- 	{ X86_VENDOR_AMD, 0x16, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
- 	{ X86_VENDOR_AMD, 0x17, X86_MODEL_ANY,	X86_FEATURE_ANY, 0 },
-+	{ X86_VENDOR_HYGON, 0x18, X86_MODEL_ANY, X86_FEATURE_ANY, 0 },
- 	{ }
- };
- MODULE_DEVICE_TABLE(x86cpu, amd64_cpuids);
-diff --git a/drivers/edac/mce_amd.c b/drivers/edac/mce_amd.c
-index 2ab4d61..c605089 100644
---- a/drivers/edac/mce_amd.c
-+++ b/drivers/edac/mce_amd.c
-@@ -1059,7 +1059,8 @@ static int __init mce_amd_init(void)
- {
- 	struct cpuinfo_x86 *c = &boot_cpu_data;
- 
--	if (c->x86_vendor != X86_VENDOR_AMD)
-+	if (c->x86_vendor != X86_VENDOR_AMD &&
-+	    c->x86_vendor != X86_VENDOR_HYGON)
- 		return -ENODEV;
- 
- 	fam_ops = kzalloc(sizeof(struct amd_decoder_ops), GFP_KERNEL);
-@@ -1113,6 +1114,7 @@ static int __init mce_amd_init(void)
- 		break;
- 
- 	case 0x17:
-+	case 0x18:
- 		xec_mask = 0x3f;
- 		if (!boot_cpu_has(X86_FEATURE_SMCA)) {
- 			printk(KERN_WARNING "Decoding supported only on Scalable MCA processors.\n");
--- 
-2.7.4
+ - All Contributors have been Signed-off.
+
+ - All have been reviewed.
+
+ - For develop detail you can find in: https://github.com/c-sky/csky-linux
+   It records from 'Dec 2015' to 'Sep 2018'.
+
+ - Here is the newest ltp test result: https://gitlab.com/c-sky/buildroot/-/jobs/98061317
+
+ Best Regards
+  Guo Ren
