@@ -1,82 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:46170 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725747AbeIPKPn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 16 Sep 2018 06:15:43 -0400
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
+Received: from bombadil.infradead.org ([198.137.202.133]:39556 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727185AbeIQNoc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2018 09:44:32 -0400
+Date: Mon, 17 Sep 2018 10:17:55 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH V3 11/27] csky: Atomic operations
+Message-ID: <20180917081755.GO24124@hirez.programming.kicks-ass.net>
 References: <cover.1536757532.git.ren_guo@c-sky.com>
- <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
-Message-ID: <b5bbb3e5-d970-dd82-400f-ae13ca782fd5@c-sky.com>
-Date: Sun, 16 Sep 2018 12:53:26 +0800
+ <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536757532.git.ren_guo@c-sky.com>
+ <20180912155514.GV24082@hirez.programming.kicks-ass.net>
+ <20180915145512.GA18355@guoren-Inspiron-7460>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a0CUYyMR9hDG97Zf2Oyj+D9vwQRnPZrEs0rrOLwHqxYfw@mail.gmail.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180915145512.GA18355@guoren-Inspiron-7460>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180916045326.aHxuAapgkpu0UvQBAudGIa9ao6NNb_hbZBZe_nc82bE@z>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
+Message-ID: <20180917081755.uyLeiSPbhKa0D2qtWage_UIFso211NNv6qWhuiO4u0c@z>
 
-Hello Stephen,
+On Sat, Sep 15, 2018 at 10:55:13PM +0800, Guo Ren wrote:
+> > > +#define ATOMIC_OP_RETURN(op, c_op)					\
 
-I'm Guo Ren from C-SKY and I'm working on csky linux port upstream.
-I've prepared my git-tree based on linux-4.19-rc3:
-git clone -b linux-next https://github.com/c-sky/csky-linux.git
+> > > +#define ATOMIC_FETCH_OP(op, c_op)					\
 
-Here is the pre-built cross compiler for fast test from our CI:
-https://gitlab.com/c-sky/buildroot/-/jobs/97941896/artifacts/file/output/images/csky_toolchain_csky_ck860_platform_defconfig_72371bf75a51f27ea59fc34eeaf236e06b75bf69.tar.xz
+> > For these you could generate _relaxed variants and not provide smp_mb()
+> > inside them.
+> Ok, but I'll modify it in next commit.
 
-You can also build newest gcc, binutils and they are upstreamed but not
-released on gnu.org. Glibc is uptreaming now.
+That's fine. Just wanted to let you know about _relaxed() since it will
+benefit your platform.
 
-Please have a look and any feed back is welcome.
+> > > +#define ATOMIC_OP(op, c_op)						\
+> > > +static inline void atomic_##op(int i, atomic_t *v)			\
+> > > +{									\
+> > > +	unsigned long tmp, flags;					\
+> > > +									\
+> > > +	raw_local_irq_save(flags);					\
+> > > +									\
+> > > +	asm volatile (							\
+> > > +	"	ldw		%0, (%2) \n"				\
+> > > +	"	" #op "		%0, %1   \n"				\
+> > > +	"	stw		%0, (%2) \n"				\
+> > > +		: "=&r" (tmp)						\
+> > > +		: "r" (i), "r"(&v->counter)				\
+> > > +		: "memory");						\
+> > > +									\
+> > > +	raw_local_irq_restore(flags);					\
+> > > +}
+> > 
+> > Is this really 'better' than the generic UP fallback implementation?
+> There is a lock irq instruction "idly4" with out irq_save. eg:
+> 	asm volatile (							\
+> 	"	idly4			 \n"				\
+> 	"	ldw		%0, (%2) \n"				\
+> 	"	" #op "		%0, %1   \n"				\
+> 	"	stw		%0, (%2) \n"				\
+> I'll change to that after full tested.
 
-Best Regards
-  Guo Ren
+That is pretty nifty, could you explain (or reference me to a arch doc
+that does) the exact semantics of that "idly4" instruction?
 
-On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > This is the 3th version patchset to add the Linux kernel port for C-SKY(csky).
-> > Thanks to everyone who provided feedback on the previous version.
-> >
-> > This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
-> > CPU cores and the patches are based on linux-4.18.4
-> >
-> > There are two ABI versions with several CPU cores in this patchset:
-> >   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
-> >   ABIv2: ck807 ck810 ck860 (16/32-bit variable length instruction, PIPT Cache,
-> >          SMP ...)
-> >
-> > More information: http://en.c-sky.com
-> 
-> This looks good to me overall. I think a good next step would be to get the port
-> included in linux-next, by preparing a git tree with all the patches and asking
-> Stephen Rothwell to include it there. Further comments on the architecture
-> port itself can be done on top of the existing patches. I would suggest you
-> base the git tree on an -rc release (either 4.19-rc1 or 4.19-rc3) and then never
-> rebase again.
-> 
-> You have included a couple of drivers in the submission: two timer and
-> two irqchip drivers. Please leave those out for the moment, and either have
-> them merged through the respective subsystem  trees, or get an Ack
-> from the maintainers to merge them through your tree.
-> 
-> I notice that a lot of the patches have no changeset comments on them.
-> You should fix that and make a habit of describing every single patch
-> with a few sentences, even if it seems obvious to you. Have a look at
-> the changeset descriptions for the nds32 and riscv architectures when
-> they got merged.
-> 
-> One big question for me is what to do about time_t. Deepa and I are
-> in the process of finalizing the system call ABI for 32-bit architectures
-> with 64-bit time_t, but we are not done yet and it won't be complete
-> for 4.20. If you target 4.21, that could be a chance to make csky the
-> first architecture to only need the 64-bit time_t interface, with the
-> corresponding user space changes.
-> 
->         Arnd
+> > > +static inline void arch_spin_lock(arch_spinlock_t *lock)
+> > > +{
+> > > +	arch_spinlock_t lockval;
+> > > +	u32 ticket_next = 1 << TICKET_NEXT;
+> > > +	u32 *p = &lock->lock;
+> > > +	u32 tmp;
+> > > +
+> > > +	smp_mb();
+> > 
+> > spin_lock() doesn't need smp_mb() before.
+> read_lock and write_lock also needn't smp_mb() before, isn't it?
+
+Correct. The various *_lock() functions only need imply an ACQUIRE
+barrier, such that the critical section happens after the lock is taken.
+
+> > > +
+> > > +static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> > > +{
+> > > +	smp_mb();
+> > > +	lock->tickets.owner++;
+> > > +	smp_mb();
+> > 
+> > spin_unlock() doesn't need smp_mb() after.
+> read_unlock and write_unlock also needn't smp_mb() after, isn't it?
+
+Indeed so, the various *_unlock() functions only need imply a RELEASE
+barrier, such that the critical section happend before the lock is
+released.
+
+In both cases (lock and unlock) there is a great amount of subtle
+details, but most of that is irrelevant if all you have is smp_mb().
+
+
+> > > +/*
+> > > + * Test-and-set spin-locking.
+> > > + */
+> > 
+> > Why retain that?
+> > 
+> > same comments; it has far too many smp_mb()s in.
+> I'm not sure about queued_rwlocks and just for 2-cores-smp test-and-set is
+> faster and simpler, isn't it?
+
+Even on 2 cores I think you can create starvation cases with
+test-and-set spinlocks. And the maintenace overhead of carrying two lock
+implementations is non trivial.
+
+As to performance; I cannot say, but the ticket lock isn't very
+expensive, you could benchmark of course.
