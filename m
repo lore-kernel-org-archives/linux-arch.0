@@ -1,137 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:47273 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728437AbeIQUdy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Sep 2018 16:33:54 -0400
-Date: Mon, 17 Sep 2018 23:05:32 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V3 11/27] csky: Atomic operations
-Message-ID: <20180917150532.GC2612@guoren-Inspiron-7460>
-References: <cover.1536757532.git.ren_guo@c-sky.com>
- <93e8b592e429c156ad4d4ca5d85ef48fd0ab8b70.1536757532.git.ren_guo@c-sky.com>
- <20180912155514.GV24082@hirez.programming.kicks-ass.net>
- <20180915145512.GA18355@guoren-Inspiron-7460>
- <20180917081755.GO24124@hirez.programming.kicks-ass.net>
+Received: from mail-io1-f65.google.com ([209.85.166.65]:44019 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727089AbeIQW3P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2018 18:29:15 -0400
+Received: by mail-io1-f65.google.com with SMTP id y10-v6so12061379ioa.10
+        for <linux-arch@vger.kernel.org>; Mon, 17 Sep 2018 10:01:02 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180917081755.GO24124@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180911164152.GA29166@arrakis.emea.arm.com>
+References: <cover.1535629099.git.andreyknvl@google.com> <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+ <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
+ <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
+ <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
+ <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com> <20180911164152.GA29166@arrakis.emea.arm.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Mon, 17 Sep 2018 19:01:00 +0200
+Message-ID: <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
+Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by sparse
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com
-Message-ID: <20180917150532.uONb78roMLQVSuoBLaWjeyrv2k80TPXmBHrN7uedJUE@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, linux-mm <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20180917170100.v6DUhBYMGcnDi7Ggs6byeJrNi1s9RXdhsKb8GJ7orIc@z>
 
-On Mon, Sep 17, 2018 at 10:17:55AM +0200, Peter Zijlstra wrote:
-> On Sat, Sep 15, 2018 at 10:55:13PM +0800, Guo Ren wrote:
-> > > > +#define ATOMIC_OP_RETURN(op, c_op)					\
-> 
-> > > > +#define ATOMIC_FETCH_OP(op, c_op)					\
-> 
-> > > For these you could generate _relaxed variants and not provide smp_mb()
-> > > inside them.
-> > Ok, but I'll modify it in next commit.
-> 
-> That's fine. Just wanted to let you know about _relaxed() since it will
-> benefit your platform.
-Thank you.
+I took another look at the changes this patchset does to the kernel
+and here are my thoughts:
 
-> > > > +#define ATOMIC_OP(op, c_op)						\
-> > > > +static inline void atomic_##op(int i, atomic_t *v)			\
-> > > > +{									\
-> > > > +	unsigned long tmp, flags;					\
-> > > > +									\
-> > > > +	raw_local_irq_save(flags);					\
-> > > > +									\
-> > > > +	asm volatile (							\
-> > > > +	"	ldw		%0, (%2) \n"				\
-> > > > +	"	" #op "		%0, %1   \n"				\
-> > > > +	"	stw		%0, (%2) \n"				\
-> > > > +		: "=&r" (tmp)						\
-> > > > +		: "r" (i), "r"(&v->counter)				\
-> > > > +		: "memory");						\
-> > > > +									\
-> > > > +	raw_local_irq_restore(flags);					\
-> > > > +}
-> > > 
-> > > Is this really 'better' than the generic UP fallback implementation?
-> > There is a lock irq instruction "idly4" with out irq_save. eg:
-> > 	asm volatile (							\
-> > 	"	idly4			 \n"				\
-> > 	"	ldw		%0, (%2) \n"				\
-> > 	"	" #op "		%0, %1   \n"				\
-> > 	"	stw		%0, (%2) \n"				\
-> > I'll change to that after full tested.
-> 
-> That is pretty nifty, could you explain (or reference me to a arch doc
-> that does) the exact semantics of that "idly4" instruction?
-The idly4 allows the 4 instructions behind it to not respond to interrupts.
-When ldw got exception, it will cause the carry to be 1. So I need
-prepare the assemble like this:
-1:	cmpne r0, r0
-	idly4
-	ldw	%0, (%2)
-	bt	1b
-	" #op " ...
-	stw ...
+I see two ways how a (potentially tagged) user pointer gets into the kernel:
 
-I need more stress test on it and then I'll change to it.
+1. A pointer is passed to a syscall (directly as an argument or
+indirectly as a struct field).
+2. A pointer is extracted from user context (registers, etc.) by some
+kind of a trap/fault handler.
+(Is there something else?)
 
-> > > > +static inline void arch_spin_lock(arch_spinlock_t *lock)
-> > > > +{
-> > > > +	arch_spinlock_t lockval;
-> > > > +	u32 ticket_next = 1 << TICKET_NEXT;
-> > > > +	u32 *p = &lock->lock;
-> > > > +	u32 tmp;
-> > > > +
-> > > > +	smp_mb();
-> > > 
-> > > spin_lock() doesn't need smp_mb() before.
-> > read_lock and write_lock also needn't smp_mb() before, isn't it?
-> 
-> Correct. The various *_lock() functions only need imply an ACQUIRE
-> barrier, such that the critical section happens after the lock is taken.
-> 
-> > > > +
-> > > > +static inline void arch_spin_unlock(arch_spinlock_t *lock)
-> > > > +{
-> > > > +	smp_mb();
-> > > > +	lock->tickets.owner++;
-> > > > +	smp_mb();
-> > > 
-> > > spin_unlock() doesn't need smp_mb() after.
-> > read_unlock and write_unlock also needn't smp_mb() after, isn't it?
-> 
-> Indeed so, the various *_unlock() functions only need imply a RELEASE
-> barrier, such that the critical section happend before the lock is
-> released.
-> 
-> In both cases (lock and unlock) there is a great amount of subtle
-> details, but most of that is irrelevant if all you have is smp_mb().
-Got it, Thx for the explanation.
+In case 1 we also have a special case of a pointer passed to one of
+the memory syscalls (mmap, mprotect, etc.). These syscalls "are not
+doing memory accesses but rather dealing with the memory range, hence
+an untagged pointer is better suited" as pointed out by Catalin (these
+syscalls do not always use "unsigned long" instead of "void __user *"
+though, for example shmat uses "void __user *").
 
-> 
-> 
-> > > > +/*
-> > > > + * Test-and-set spin-locking.
-> > > > + */
-> > > 
-> > > Why retain that?
-> > > 
-> > > same comments; it has far too many smp_mb()s in.
-> > I'm not sure about queued_rwlocks and just for 2-cores-smp test-and-set is
-> > faster and simpler, isn't it?
-> 
-> Even on 2 cores I think you can create starvation cases with
-> test-and-set spinlocks. And the maintenace overhead of carrying two lock
-> implementations is non trivial.
-> 
-> As to performance; I cannot say, but the ticket lock isn't very
-> expensive, you could benchmark of course.
-Ticket lock is good.
-But How about queued_rwlocks v.s my_test_set_rwlock?
-I'm not sure about the queued_rwlocks. I just implement the ticket-spinlock.
+Looking at patch #8 ("usb, arm64: untag user addresses in devio") in
+this series, it seems that that devio ioctl actually accepts a pointer
+into a vma, so we shouldn't actually be untagging its argument and the
+patch needs to be dropped. Otherwise there's quite a few more cases
+that needs to be changed (like tcp_zerocopy_receive() for example,
+more can be found by grepping find_vma() in generic code).
 
-Best Regards
- Guo Ren
+Regarding case 2, it seems that analyzing casts of __user pointers
+won't really help, since the code (arch/arm64/mm/fault.c) doesn't
+really use them. However all of this code is arch specific, so it
+shouldn't really change over time (right?). It looks like dealing with
+tags passed to the kernel through these fault handlers is already
+resolved with these patches (and therefore patch #6 ("arm64: untag
+user address in __do_user_fault") in this series is not actually
+needed and can be dropped (need to test that)):
+
+276e9327 ("arm64: entry: improve data abort handling of tagged pointers"),
+81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on
+a tagged pointer")
+7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged pointers")
+
+Now, I also see two cases when kernel behavior changes depending on
+whether a pointer is tagged:
+
+1. Kernel code checks that a pointer belongs to userspace by comparing
+it with TASK_SIZE/addr_limit/user_addr_max()/USER_DS/... .
+2. A pointer gets passed to find_vma() or similar functions.
+(Is there something else?)
+
+The initial thought that I had here is that the pointers that reach
+find_vma() must be passed through memory syscalls and therefore
+shouldn't be untagged and don't require any fixes. There are at least
+two exceptions to this: 1. get_user_pages() (see patch #4 ("mm, arm64:
+untag user addresses in mm/gup.c") in this patch series) and 2.
+__do_page_fault() in arch/arm64/mm/fault.c. Are there any other
+obvious exceptions? I've tried adding BUG_ON(has_tag(addr)) to
+find_vma() and running a modified syzkaller version that passes tagged
+pointers to the kernel and failed to find anything else.
+
+As for case 1, the places where pointers are compared with TASK_SIZE
+and others can be found with grep. Maybe it makes sense to introduce
+some kind of routine like is_user_pointer() that handles tagged
+pointers and refactor the existing code to use it? And maybe add a
+rule to checkpatch.pl that forbids the direct usage of TASK_SIZE and
+others.
+
+So I think detecting direct comparisons with TASK_SIZE and others
+would more useful than finding __user pointer casts (it seems that the
+latter requires a lot of annotations to be fixed/added), and I should
+just drop this patch with annotations.
+
+WDYT?
