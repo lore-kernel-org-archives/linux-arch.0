@@ -1,7 +1,7 @@
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v7 05/16] perf/x86: Add Hygon Dhyana support to PMU infrastructure
-Date: Mon, 17 Sep 2018 21:30:28 +0800
-Message-ID: <9d93ed54a975f33ef7247e0967960f4ce5d3d990.1537182523.git.puwen@hygon.cn>
+Subject: [PATCH v7 06/16] x86/alternative: Init ideal_nops for Hygon Dhyana
+Date: Mon, 17 Sep 2018 21:30:42 +0800
+Message-ID: <79e76c3173716984fe5fdd4a8e2c798bf4193205.1537182523.git.puwen@hygon.cn>
 References: <cover.1537182523.git.puwen@hygon.cn>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1537182523.git.puwen@hygon.cn>
@@ -10,123 +10,28 @@ To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kerne
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
 List-Id: linux-arch.vger.kernel.org
 
-The PMU architecture for Hygon Dhyana CPU is similar to the AMD Family
-17h one. To support Hygon Dhyana PMU, call amd_pmu_init() to share
-AMD PMU initialization flow, and change the PMU name to "HYGON".
-
-The Hygon Dhyana CPU supports both legacy and extension PMC MSRs(perf
-counter registers and event selection registers), so add Hygon Dhyana
-support in the similar way as AMD does.
+The ideal_nops for Hygon Dhyana CPU should be p6_nops.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 Reviewed-by: Borislav Petkov <bp@suse.de>
 ---
- arch/x86/events/amd/core.c             |  4 ++++
- arch/x86/events/amd/uncore.c           | 20 +++++++++++++-------
- arch/x86/events/core.c                 |  4 ++++
- arch/x86/kernel/cpu/perfctr-watchdog.c |  2 ++
- 4 files changed, 23 insertions(+), 7 deletions(-)
+ arch/x86/kernel/alternative.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/x86/events/amd/core.c b/arch/x86/events/amd/core.c
-index c84584b..7d2d7c8 100644
---- a/arch/x86/events/amd/core.c
-+++ b/arch/x86/events/amd/core.c
-@@ -669,6 +669,10 @@ static int __init amd_core_pmu_init(void)
- 		 * We fallback to using default amd_get_event_constraints.
- 		 */
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index b9d5e7c..184e9a0 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -222,6 +222,10 @@ void __init arch_init_ideal_nops(void)
+ 		}
  		break;
-+	case 0x18:
-+		pr_cont("Fam18h ");
-+		/* Using default amd_get_event_constraints. */
-+		break;
- 	default:
- 		pr_err("core perfctr but no constraints; unknown hardware!\n");
- 		return -ENODEV;
-diff --git a/arch/x86/events/amd/uncore.c b/arch/x86/events/amd/uncore.c
-index 981ba5e..c7d745b 100644
---- a/arch/x86/events/amd/uncore.c
-+++ b/arch/x86/events/amd/uncore.c
-@@ -507,17 +507,19 @@ static int __init amd_uncore_init(void)
- {
- 	int ret = -ENODEV;
  
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
- 		return -ENODEV;
- 
- 	if (!boot_cpu_has(X86_FEATURE_TOPOEXT))
- 		return -ENODEV;
- 
--	if (boot_cpu_data.x86 == 0x17) {
-+	if (boot_cpu_data.x86 == 0x17 || boot_cpu_data.x86 == 0x18) {
- 		/*
--		 * For F17h, the Northbridge counters are repurposed as Data
--		 * Fabric counters. Also, L3 counters are supported too. The PMUs
--		 * are exported based on  family as either L2 or L3 and NB or DF.
-+		 * For F17h or F18h, the Northbridge counters are
-+		 * repurposed as Data Fabric counters. Also, L3
-+		 * counters are supported too. The PMUs are exported
-+		 * based on family as either L2 or L3 and NB or DF.
- 		 */
- 		num_counters_nb		  = NUM_COUNTERS_NB;
- 		num_counters_llc	  = NUM_COUNTERS_L3;
-@@ -547,7 +549,9 @@ static int __init amd_uncore_init(void)
- 		if (ret)
- 			goto fail_nb;
- 
--		pr_info("AMD NB counters detected\n");
-+		pr_info("%s NB counters detected\n",
-+			boot_cpu_data.x86_vendor == X86_VENDOR_HYGON ?
-+				"HYGON" : "AMD");
- 		ret = 0;
- 	}
- 
-@@ -561,7 +565,9 @@ static int __init amd_uncore_init(void)
- 		if (ret)
- 			goto fail_llc;
- 
--		pr_info("AMD LLC counters detected\n");
-+		pr_info("%s LLC counters detected\n",
-+			boot_cpu_data.x86_vendor == X86_VENDOR_HYGON ?
-+				"HYGON" : "AMD");
- 		ret = 0;
- 	}
- 
-diff --git a/arch/x86/events/core.c b/arch/x86/events/core.c
-index dfb2f7c..9c562f5 100644
---- a/arch/x86/events/core.c
-+++ b/arch/x86/events/core.c
-@@ -1776,6 +1776,10 @@ static int __init init_hw_perf_events(void)
- 	case X86_VENDOR_AMD:
- 		err = amd_pmu_init();
- 		break;
 +	case X86_VENDOR_HYGON:
-+		err = amd_pmu_init();
-+		x86_pmu.name = "HYGON";
-+		break;
- 	default:
- 		err = -ENOTSUPP;
- 	}
-diff --git a/arch/x86/kernel/cpu/perfctr-watchdog.c b/arch/x86/kernel/cpu/perfctr-watchdog.c
-index d389083..9556930 100644
---- a/arch/x86/kernel/cpu/perfctr-watchdog.c
-+++ b/arch/x86/kernel/cpu/perfctr-watchdog.c
-@@ -46,6 +46,7 @@ static inline unsigned int nmi_perfctr_msr_to_bit(unsigned int msr)
- {
- 	/* returns the bit offset of the performance counter register */
- 	switch (boot_cpu_data.x86_vendor) {
-+	case X86_VENDOR_HYGON:
++		ideal_nops = p6_nops;
++		return;
++
  	case X86_VENDOR_AMD:
- 		if (msr >= MSR_F15H_PERF_CTR)
- 			return (msr - MSR_F15H_PERF_CTR) >> 1;
-@@ -74,6 +75,7 @@ static inline unsigned int nmi_evntsel_msr_to_bit(unsigned int msr)
- {
- 	/* returns the bit offset of the event selection register */
- 	switch (boot_cpu_data.x86_vendor) {
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 		if (msr >= MSR_F15H_PERF_CTL)
- 			return (msr - MSR_F15H_PERF_CTL) >> 1;
+ 		if (boot_cpu_data.x86 > 0xf) {
+ 			ideal_nops = p6_nops;
 -- 
 2.7.4
