@@ -1,91 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp17.cstnet.cn ([159.226.251.17]:60737 "EHLO cstnet.cn"
+Received: from smtp17.cstnet.cn ([159.226.251.17]:32926 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728178AbeIQTCN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Sep 2018 15:02:13 -0400
+        id S1728178AbeIQTCn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Sep 2018 15:02:43 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v7 14/16] cpufreq, x86: Add Hygon Dhyana support
-Date: Mon, 17 Sep 2018 21:33:53 +0800
-Message-ID: <1e902adeba0182099112914ee832624778ddaeec.1537182523.git.puwen@hygon.cn>
+Subject: [PATCH v7 16/16] cpupower, x86: Add Hygon Dhyana support
+Date: Mon, 17 Sep 2018 21:35:05 +0800
+Message-ID: <f8e94bbf0a345b1d75619fc914db0b4d848ced18.1537182523.git.puwen@hygon.cn>
 In-Reply-To: <cover.1537182523.git.puwen@hygon.cn>
 References: <cover.1537182523.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, rjw@rjwysocki.net, viresh.kumar@linaro.org, rafael@kernel.org, rafael.j.wysocki@intel.com
+To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, trenn@suse.com, shuah@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180917133353.nbxsd18qpZYQNvWH57fv0aApaX7IX5wqvh_P7_T0mMY@z>
+Message-ID: <20180917133505.AO-U_P4L0PDbmp2LPS7VWMMBxMpHRPt91dWFw6Q5RAE@z>
 
-The Hygon Dhyana CPU supports ACPI P-States feature, and there is
-SMBus device(PCI device ID 0x790b) on Hygon platform, so add Hygon
-Dhyana support to the cpufreq driver by using the code path of AMD
-family 17h.
+Tool cpupower is useful to get CPU frequency information and monitor
+power stats on Hygon Dhyana platform. So add Hygon Dhyana support to
+it by checking vendor and family to share the code path of AMD family
+17h.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 ---
- drivers/cpufreq/acpi-cpufreq.c         | 5 +++++
- drivers/cpufreq/amd_freq_sensitivity.c | 9 +++++++--
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ tools/power/cpupower/utils/cpufreq-info.c               | 6 ++++--
+ tools/power/cpupower/utils/helpers/amd.c                | 4 ++--
+ tools/power/cpupower/utils/helpers/cpuid.c              | 8 +++++---
+ tools/power/cpupower/utils/helpers/helpers.h            | 2 +-
+ tools/power/cpupower/utils/helpers/misc.c               | 2 +-
+ tools/power/cpupower/utils/idle_monitor/mperf_monitor.c | 3 ++-
+ 6 files changed, 15 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
-index b61f4ec..d62fd37 100644
---- a/drivers/cpufreq/acpi-cpufreq.c
-+++ b/drivers/cpufreq/acpi-cpufreq.c
-@@ -61,6 +61,7 @@ enum {
+diff --git a/tools/power/cpupower/utils/cpufreq-info.c b/tools/power/cpupower/utils/cpufreq-info.c
+index df43cd4..56e54ea 100644
+--- a/tools/power/cpupower/utils/cpufreq-info.c
++++ b/tools/power/cpupower/utils/cpufreq-info.c
+@@ -170,6 +170,7 @@ static int get_boost_mode(unsigned int cpu)
+ 	unsigned long pstates[MAX_HW_PSTATES] = {0,};
  
- #define INTEL_MSR_RANGE		(0xffff)
- #define AMD_MSR_RANGE		(0x7)
-+#define HYGON_MSR_RANGE		(0x7)
+ 	if (cpupower_cpu_info.vendor != X86_VENDOR_AMD &&
++	    cpupower_cpu_info.vendor != X86_VENDOR_HYGON &&
+ 	    cpupower_cpu_info.vendor != X86_VENDOR_INTEL)
+ 		return 0;
  
- #define MSR_K7_HWCR_CPB_DIS	(1ULL << 25)
+@@ -190,8 +191,9 @@ static int get_boost_mode(unsigned int cpu)
+ 	printf(_("    Supported: %s\n"), support ? _("yes") : _("no"));
+ 	printf(_("    Active: %s\n"), active ? _("yes") : _("no"));
  
-@@ -95,6 +96,7 @@ static bool boost_state(unsigned int cpu)
- 		rdmsr_on_cpu(cpu, MSR_IA32_MISC_ENABLE, &lo, &hi);
- 		msr = lo | ((u64)hi << 32);
- 		return !(msr & MSR_IA32_MISC_ENABLE_TURBO_DISABLE);
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 		rdmsr_on_cpu(cpu, MSR_K7_HWCR, &lo, &hi);
- 		msr = lo | ((u64)hi << 32);
-@@ -113,6 +115,7 @@ static int boost_set_msr(bool enable)
- 		msr_addr = MSR_IA32_MISC_ENABLE;
- 		msr_mask = MSR_IA32_MISC_ENABLE_TURBO_DISABLE;
- 		break;
-+	case X86_VENDOR_HYGON:
- 	case X86_VENDOR_AMD:
- 		msr_addr = MSR_K7_HWCR;
- 		msr_mask = MSR_K7_HWCR_CPB_DIS;
-@@ -225,6 +228,8 @@ static unsigned extract_msr(struct cpufreq_policy *policy, u32 msr)
+-	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
+-	    cpupower_cpu_info.family >= 0x10) {
++	if ((cpupower_cpu_info.vendor == X86_VENDOR_AMD &&
++	     cpupower_cpu_info.family >= 0x10) ||
++	     cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
+ 		ret = decode_pstates(cpu, cpupower_cpu_info.family, b_states,
+ 				     pstates, &pstate_no);
+ 		if (ret)
+diff --git a/tools/power/cpupower/utils/helpers/amd.c b/tools/power/cpupower/utils/helpers/amd.c
+index bb41cdd..65beaee 100644
+--- a/tools/power/cpupower/utils/helpers/amd.c
++++ b/tools/power/cpupower/utils/helpers/amd.c
+@@ -45,7 +45,7 @@ static int get_did(int family, union msr_pstate pstate)
  
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
- 		msr &= AMD_MSR_RANGE;
-+	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		msr &= HYGON_MSR_RANGE;
+ 	if (family == 0x12)
+ 		t = pstate.val & 0xf;
+-	else if (family == 0x17)
++	else if (family == 0x17 || family == 0x18)
+ 		t = pstate.fam17h_bits.did;
  	else
- 		msr &= INTEL_MSR_RANGE;
+ 		t = pstate.bits.did;
+@@ -59,7 +59,7 @@ static int get_cof(int family, union msr_pstate pstate)
+ 	int fid, did, cof;
  
-diff --git a/drivers/cpufreq/amd_freq_sensitivity.c b/drivers/cpufreq/amd_freq_sensitivity.c
-index be926d9..4ac7c3c 100644
---- a/drivers/cpufreq/amd_freq_sensitivity.c
-+++ b/drivers/cpufreq/amd_freq_sensitivity.c
-@@ -111,11 +111,16 @@ static int __init amd_freq_sensitivity_init(void)
- {
- 	u64 val;
- 	struct pci_dev *pcidev;
-+	unsigned int pci_vendor;
+ 	did = get_did(family, pstate);
+-	if (family == 0x17) {
++	if (family == 0x17 || family == 0x18) {
+ 		fid = pstate.fam17h_bits.fid;
+ 		cof = 200 * fid / did;
+ 	} else {
+diff --git a/tools/power/cpupower/utils/helpers/cpuid.c b/tools/power/cpupower/utils/helpers/cpuid.c
+index 732b0b4..5cc39d4 100644
+--- a/tools/power/cpupower/utils/helpers/cpuid.c
++++ b/tools/power/cpupower/utils/helpers/cpuid.c
+@@ -8,7 +8,7 @@
+ #include "helpers/helpers.h"
  
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+		pci_vendor = PCI_VENDOR_ID_AMD;
-+	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		pci_vendor = PCI_VENDOR_ID_HYGON;
-+	else
- 		return -ENODEV;
+ static const char *cpu_vendor_table[X86_VENDOR_MAX] = {
+-	"Unknown", "GenuineIntel", "AuthenticAMD",
++	"Unknown", "GenuineIntel", "AuthenticAMD", "HygonGenuine",
+ };
  
--	pcidev = pci_get_device(PCI_VENDOR_ID_AMD,
-+	pcidev = pci_get_device(pci_vendor,
- 			PCI_DEVICE_ID_AMD_KERNCZ_SMBUS, NULL);
+ #if defined(__i386__) || defined(__x86_64__)
+@@ -109,6 +109,7 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
+ 	fclose(fp);
+ 	/* Get some useful CPU capabilities from cpuid */
+ 	if (cpu_info->vendor != X86_VENDOR_AMD &&
++	    cpu_info->vendor != X86_VENDOR_HYGON &&
+ 	    cpu_info->vendor != X86_VENDOR_INTEL)
+ 		return ret;
  
- 	if (!pcidev) {
+@@ -124,8 +125,9 @@ int get_cpu_info(struct cpupower_cpu_info *cpu_info)
+ 	if (cpuid_level >= 6 && (cpuid_ecx(6) & 0x1))
+ 		cpu_info->caps |= CPUPOWER_CAP_APERF;
+ 
+-	/* AMD Boost state enable/disable register */
+-	if (cpu_info->vendor == X86_VENDOR_AMD) {
++	/* AMD or Hygon Boost state enable/disable register */
++	if (cpu_info->vendor == X86_VENDOR_AMD ||
++	    cpu_info->vendor == X86_VENDOR_HYGON) {
+ 		if (ext_cpuid_level >= 0x80000007 &&
+ 		    (cpuid_edx(0x80000007) & (1 << 9)))
+ 			cpu_info->caps |= CPUPOWER_CAP_AMD_CBP;
+diff --git a/tools/power/cpupower/utils/helpers/helpers.h b/tools/power/cpupower/utils/helpers/helpers.h
+index 41da392..9021396 100644
+--- a/tools/power/cpupower/utils/helpers/helpers.h
++++ b/tools/power/cpupower/utils/helpers/helpers.h
+@@ -61,7 +61,7 @@ extern int be_verbose;
+ 
+ /* cpuid and cpuinfo helpers  **************************/
+ enum cpupower_cpu_vendor {X86_VENDOR_UNKNOWN = 0, X86_VENDOR_INTEL,
+-			  X86_VENDOR_AMD, X86_VENDOR_MAX};
++			  X86_VENDOR_AMD, X86_VENDOR_HYGON, X86_VENDOR_MAX};
+ 
+ #define CPUPOWER_CAP_INV_TSC		0x00000001
+ #define CPUPOWER_CAP_APERF		0x00000002
+diff --git a/tools/power/cpupower/utils/helpers/misc.c b/tools/power/cpupower/utils/helpers/misc.c
+index 80fdf55..f406adc 100644
+--- a/tools/power/cpupower/utils/helpers/misc.c
++++ b/tools/power/cpupower/utils/helpers/misc.c
+@@ -26,7 +26,7 @@ int cpufreq_has_boost_support(unsigned int cpu, int *support, int *active,
+ 		 * has Hardware determined variable increments instead.
+ 		 */
+ 
+-		if (cpu_info.family == 0x17) {
++		if (cpu_info.family == 0x17 || cpu_info.family == 0x18) {
+ 			if (!read_msr(cpu, MSR_AMD_HWCR, &val)) {
+ 				if (!(val & CPUPOWER_AMD_CPBDIS))
+ 					*active = 1;
+diff --git a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
+index d7c2a6d..f2a7e9c 100644
+--- a/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
++++ b/tools/power/cpupower/utils/idle_monitor/mperf_monitor.c
+@@ -241,7 +241,8 @@ static int init_maxfreq_mode(void)
+ 	if (!(cpupower_cpu_info.caps & CPUPOWER_CAP_INV_TSC))
+ 		goto use_sysfs;
+ 
+-	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD) {
++	if (cpupower_cpu_info.vendor == X86_VENDOR_AMD ||
++	    cpupower_cpu_info.vendor == X86_VENDOR_HYGON) {
+ 		/* MSR_AMD_HWCR tells us whether TSC runs at P0/mperf
+ 		 * freq.
+ 		 * A test whether hwcr is accessable/available would be:
 -- 
 2.7.4
