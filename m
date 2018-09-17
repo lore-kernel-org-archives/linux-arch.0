@@ -1,30 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:40838 "EHLO
-        relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728361AbeIQRc5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2018 13:32:57 -0400
-Date: Mon, 17 Sep 2018 12:05:48 +0000
-From: Joseph Myers <joseph@codesourcery.com>
-Subject: Re: [PATCH] [RFC] making uapi/linux/elfcore.h useful again
-In-Reply-To: <20180914113929.953895-1-arnd@arndb.de>
-Message-ID: <alpine.DEB.2.21.1809171204350.13789@digraph.polyomino.org.uk>
-References: <20180914113929.953895-1-arnd@arndb.de>
+Received: from frisell.zx2c4.com ([192.95.5.64]:42413 "EHLO frisell.zx2c4.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726865AbeIQSmF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Sep 2018 14:42:05 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+References: <20180911010838.8818-1-Jason@zx2c4.com> <20180911010838.8818-2-Jason@zx2c4.com>
+ <20180912061433.GA8484@ip-172-31-15-78> <CAHmME9pmgu_xWJ0rvdS4RhzwjKPiNdkQ9nc6mqTNeb6A8xT8Eg@mail.gmail.com>
+ <20180913050301.GA26367@ip-172-31-15-78>
+In-Reply-To: <20180913050301.GA26367@ip-172-31-15-78>
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Date: Mon, 17 Sep 2018 15:14:32 +0200
+Message-ID: <CAHmME9pGCwoS25c7KM+bHAzn5P+nquiwyoLsY-_Nu67RVd6Giw@mail.gmail.com>
+Subject: Re: [PATCH net-next v3 01/17] asm: simd context helper API
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Howells <dhowells@redhat.com>, libc-alpha@sourceware.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180917120548.pZUj_K5DBE88bHfotlsDdQ2wrU002lKNk55kAlFpBEM@z>
+To: kevin@guarana.org
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Samuel Neves <sneves@dei.uc.pt>, linux-arch@vger.kernel.org
+Message-ID: <20180917131432.JYurWabNxIaSpJKiV37OHNVMWDthG6mqpiiq6p9urGY@z>
 
-On Fri, 14 Sep 2018, Arnd Bergmann wrote:
+Hey Kevin,
 
-> +typedef unsigned long elf_greg_t;
+I found numerous other advantages in doing it the way you suggested
+(which also helped squash some bugs), and so this will be part of v5.
+Thanks for the suggestion.
 
-Does that need to be unsigned long long for x32?  (At least glibc thinks 
-so; I've not tested what an x32 core dump actually looks like, but to be 
-useful it certainly ought to have 64-bit registers.)
-
--- 
-Joseph S. Myers
-joseph@codesourcery.com
+Regards,
+Jason
