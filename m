@@ -1,95 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f65.google.com ([209.85.166.65]:44019 "EHLO
-        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727089AbeIQW3P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2018 18:29:15 -0400
-Received: by mail-io1-f65.google.com with SMTP id y10-v6so12061379ioa.10
-        for <linux-arch@vger.kernel.org>; Mon, 17 Sep 2018 10:01:02 -0700 (PDT)
+Received: from mail-eopbgr720105.outbound.protection.outlook.com ([40.107.72.105]:62080
+        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726795AbeIQWp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Sep 2018 18:45:58 -0400
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH 0/3] System call table generation support
+Date: Mon, 17 Sep 2018 17:17:23 +0000
+Message-ID: <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-2"
+Content-ID: <E013BB721669064EBAB7919B20DB00F1@namprd08.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-In-Reply-To: <20180911164152.GA29166@arrakis.emea.arm.com>
-References: <cover.1535629099.git.andreyknvl@google.com> <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
- <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
- <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
- <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
- <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com> <20180911164152.GA29166@arrakis.emea.arm.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Mon, 17 Sep 2018 19:01:00 +0200
-Message-ID: <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
-Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by sparse
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, linux-mm <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Robin Murphy <robin.murphy@arm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20180917170100.v6DUhBYMGcnDi7Ggs6byeJrNi1s9RXdhsKb8GJ7orIc@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Hauke Mehrtens <hauke@hauke-m.de>, =?iso-8859-2?Q?Rafa=B3_Mi=B3ecki?= <zajec5@gmail.com>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180917171723.2aigWI-SJ7d3UEkGcVrGJp3grCPio1M-sR6m8aa8reI@z>
 
-I took another look at the changes this patchset does to the kernel
-and here are my thoughts:
+Hi Firoz,
 
-I see two ways how a (potentially tagged) user pointer gets into the kernel:
+On Fri, Sep 14, 2018 at 02:08:31PM +0530, Firoz Khan wrote:
+> The purpose of this patch series is:
+> 1. We can easily add/modify/delete system call by changing entry=20
+> in syscall.tbl file. No need to manually edit many files.
+>=20
+> 2. It is easy to unify the system call implementation across all=20
+> the architectures.=20
+>=20
+> The system call tables are in different format in all architecture=20
+> and it will be difficult to manually add or modify the system calls
+> in the respective files manually. To make it easy by keeping a script=20
+> and which'll generate the header file and syscall table file so this=20
+> change will unify them across all architectures.
 
-1. A pointer is passed to a syscall (directly as an argument or
-indirectly as a struct field).
-2. A pointer is extracted from user context (registers, etc.) by some
-kind of a trap/fault handler.
-(Is there something else?)
+Interesting :)
 
-In case 1 we also have a special case of a pointer passed to one of
-the memory syscalls (mmap, mprotect, etc.). These syscalls "are not
-doing memory accesses but rather dealing with the memory range, hence
-an untagged pointer is better suited" as pointed out by Catalin (these
-syscalls do not always use "unsigned long" instead of "void __user *"
-though, for example shmat uses "void __user *").
+I actually started on something similar recently with the goals of
+reducing the need to adjust both asm/unistd.h & the syscall entry tables
+when adding syscalls, clean up asm/unistd.h a bit & make it
+easier/cleaner to add support for nanoMIPS & the P32 ABI.
 
-Looking at patch #8 ("usb, arm64: untag user addresses in devio") in
-this series, it seems that that devio ioctl actually accepts a pointer
-into a vma, so we shouldn't actually be untagging its argument and the
-patch needs to be dropped. Otherwise there's quite a few more cases
-that needs to be changed (like tcp_zerocopy_receive() for example,
-more can be found by grepping find_vma() in generic code).
+My branch still needed some work but it's here if you're interested:
 
-Regarding case 2, it seems that analyzing casts of __user pointers
-won't really help, since the code (arch/arm64/mm/fault.c) doesn't
-really use them. However all of this code is arch specific, so it
-shouldn't really change over time (right?). It looks like dealing with
-tags passed to the kernel through these fault handlers is already
-resolved with these patches (and therefore patch #6 ("arm64: untag
-user address in __do_user_fault") in this series is not actually
-needed and can be dropped (need to test that)):
+    git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git wip-mips-s=
+yscalls
 
-276e9327 ("arm64: entry: improve data abort handling of tagged pointers"),
-81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on
-a tagged pointer")
-7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged pointers")
+    https://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git/log/?h=
+=3Dwip-mips-syscalls
 
-Now, I also see two cases when kernel behavior changes depending on
-whether a pointer is tagged:
+There are some differences:
 
-1. Kernel code checks that a pointer belongs to userspace by comparing
-it with TASK_SIZE/addr_limit/user_addr_max()/USER_DS/... .
-2. A pointer gets passed to find_vma() or similar functions.
-(Is there something else?)
+  - I'd placed syscall numbers the 3 current MIPS ABIs in one table,
+    rather than splitting it up. I can see pros & cons to both though so
+    I'm not tied to having a single all-encompassing table.
 
-The initial thought that I had here is that the pointers that reach
-find_vma() must be passed through memory syscalls and therefore
-shouldn't be untagged and don't require any fixes. There are at least
-two exceptions to this: 1. get_user_pages() (see patch #4 ("mm, arm64:
-untag user addresses in mm/gup.c") in this patch series) and 2.
-__do_page_fault() in arch/arm64/mm/fault.c. Are there any other
-obvious exceptions? I've tried adding BUG_ON(has_tag(addr)) to
-find_vma() and running a modified syzkaller version that passes tagged
-pointers to the kernel and failed to find anything else.
+  - I'd mostly inferred the entry point names from the syscall names,
+    only specifying them where they differ. Again I'm not particularly
+    tied to this.
 
-As for case 1, the places where pointers are compared with TASK_SIZE
-and others can be found with grep. Maybe it makes sense to introduce
-some kind of routine like is_user_pointer() that handles tagged
-pointers and refactor the existing code to use it? And maybe add a
-rule to checkpatch.pl that forbids the direct usage of TASK_SIZE and
-others.
+  - I'd made asm/unistd.h behave like asm-generic/unistd.h with the
+    __SYSCALL() macro, where you generate separate syscall_table_*
+    headers. I'm fine with that too.
 
-So I think detecting direct comparisons with TASK_SIZE and others
-would more useful than finding __user pointer casts (it seems that the
-latter requires a lot of annotations to be fixed/added), and I should
-just drop this patch with annotations.
+So I'm pretty happy to go with your series, though I agree with Arnd on
+the ABI/file naming & the missing syscalls that were added in the 4.18
+cycle. We probably need to provide mipsmt_sys_sched_[gs]etaffinity as
+aliases to sys_sched_[gs]etaffinity when CONFIG_MIPS_MT_FPAFF isn't
+enabled in order to fix the issue the kbuild test robot reported.
 
-WDYT?
+But I'm looking forward to v2 :)
+
+Thanks,
+    Paul
