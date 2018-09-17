@@ -1,78 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr720105.outbound.protection.outlook.com ([40.107.72.105]:62080
-        "EHLO NAM05-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726795AbeIQWp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Sep 2018 18:45:58 -0400
-From: Paul Burton <paul.burton@mips.com>
-Subject: Re: [PATCH 0/3] System call table generation support
-Date: Mon, 17 Sep 2018 17:17:23 +0000
-Message-ID: <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
-References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-2"
-Content-ID: <E013BB721669064EBAB7919B20DB00F1@namprd08.prod.outlook.com>
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:34477 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726795AbeIQXWK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2018 19:22:10 -0400
+Date: Tue, 18 Sep 2018 03:53:37 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
+ demand based pte insertion
+Message-ID: <20180918035337.0727dad0@roar.ozlabs.ibm.com>
+In-Reply-To: <20180905142951.GA15680@roeck-us.net>
+References: <20180828112034.30875-1-npiggin@gmail.com>
+        <20180828112034.30875-4-npiggin@gmail.com>
+        <20180905142951.GA15680@roeck-us.net>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Hauke Mehrtens <hauke@hauke-m.de>, =?iso-8859-2?Q?Rafa=B3_Mi=B3ecki?= <zajec5@gmail.com>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180917171723.2aigWI-SJ7d3UEkGcVrGJp3grCPio1M-sR6m8aa8reI@z>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Message-ID: <20180917175337.nwyePNO0Nrh7ZA0w2WZ5-mDE_oyzORDxdGGkryeI5UQ@z>
 
-Hi Firoz,
+On Wed, 5 Sep 2018 07:29:51 -0700
+Guenter Roeck <linux@roeck-us.net> wrote:
 
-On Fri, Sep 14, 2018 at 02:08:31PM +0530, Firoz Khan wrote:
-> The purpose of this patch series is:
-> 1. We can easily add/modify/delete system call by changing entry=20
-> in syscall.tbl file. No need to manually edit many files.
->=20
-> 2. It is easy to unify the system call implementation across all=20
-> the architectures.=20
->=20
-> The system call tables are in different format in all architecture=20
-> and it will be difficult to manually add or modify the system calls
-> in the respective files manually. To make it easy by keeping a script=20
-> and which'll generate the header file and syscall table file so this=20
-> change will unify them across all architectures.
+> Hi,
+> 
+> On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:
+> > Similarly to the previous patch, this tries to optimise dirty/accessed
+> > bits in ptes to avoid access costs of hardware setting them.
+> >   
+> 
+> This patch results in silent nios2 boot failures, silent meaning that
+> the boot stalls.
 
-Interesting :)
+Okay I just got back to looking at this. The reason for the hang is
+I think a bug in the nios2 TLB code, but maybe other archs have similar
+issues.
 
-I actually started on something similar recently with the goals of
-reducing the need to adjust both asm/unistd.h & the syscall entry tables
-when adding syscalls, clean up asm/unistd.h a bit & make it
-easier/cleaner to add support for nanoMIPS & the P32 ABI.
+In case of a missing / !present Linux pte, nios2 installs a TLB entry
+with no permissions via its fast TLB exception handler (software TLB
+fill). Then it relies on that causing a TLB permission exception in a
+slower handler that calls handle_mm_fault to set the Linux pte and
+flushes the old TLB. Then the fast exception handler will find the new
+Linux pte.
 
-My branch still needed some work but it's here if you're interested:
+With this patch, nios2 has a case where handle_mm_fault does not flush
+the old TLB, which results in the TLB permission exception continually
+being retried.
 
-    git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git wip-mips-s=
-yscalls
+What happens now is that fault paths like do_read_fault will install a
+Linux pte with the young bit clear and return. That will cause nios2 to
+fault again but this time go down the bottom of handle_pte_fault and to
+the access flags update with the young bit set. The young bit is seen to
+be different, so that causes ptep_set_access_flags to do a TLB flush and
+that finally allows the fast TLB handler to fire and pick up the new
+Linux pte.
 
-    https://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git/log/?h=
-=3Dwip-mips-syscalls
+With this patch, the young bit is set in the first handle_mm_fault, so
+the second handle_mm_fault no longer sees the ptes are different and
+does not flush the TLB. The spurious fault handler also does not flush
+them unless FAULT_FLAG_WRITE is set.
 
-There are some differences:
+What nios2 should do is invalidate the TLB in update_mmu_cache. What it
+*really* should do is install the new TLB entry, I have some patches to
+make that work in qemu I can submit. But I would like to try getting
+these dirty/accessed bit optimisation in 4.20, so I will send a simple
+path to just do the TLB invalidate that could go in Andrew's git tree.
 
-  - I'd placed syscall numbers the 3 current MIPS ABIs in one table,
-    rather than splitting it up. I can see pros & cons to both though so
-    I'm not tied to having a single all-encompassing table.
-
-  - I'd mostly inferred the entry point names from the syscall names,
-    only specifying them where they differ. Again I'm not particularly
-    tied to this.
-
-  - I'd made asm/unistd.h behave like asm-generic/unistd.h with the
-    __SYSCALL() macro, where you generate separate syscall_table_*
-    headers. I'm fine with that too.
-
-So I'm pretty happy to go with your series, though I agree with Arnd on
-the ABI/file naming & the missing syscalls that were added in the 4.18
-cycle. We probably need to provide mipsmt_sys_sched_[gs]etaffinity as
-aliases to sys_sched_[gs]etaffinity when CONFIG_MIPS_MT_FPAFF isn't
-enabled in order to fix the issue the kbuild test robot reported.
-
-But I'm looking forward to v2 :)
+Is that agreeable with the nios2 maintainers?
 
 Thanks,
-    Paul
+Nick
