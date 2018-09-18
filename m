@@ -1,92 +1,262 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
-Date: Tue, 18 Sep 2018 17:47:08 +0530
-Message-ID: <CALxhOnj3HHf8dSSrWSFMQ-7vikkRVP+v=kV+8MJOnA00oDfmig@mail.gmail.com>
-References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
- <1533791723-3882-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
- <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com> <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: [PATCH 1/2] asm-generic/tlb: introduce HAVE_MMU_GATHER_NO_GATHER
+Date: Tue, 18 Sep 2018 14:51:50 +0200
+Message-ID: <20180918125151.31744-2-schwidefsky@de.ibm.com>
+References: <20180918125151.31744-1-schwidefsky@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
+In-Reply-To: <20180918125151.31744-1-schwidefsky@de.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 18 September 2018 at 15:34, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> Hi Firoz,
->
-> On Tue, Sep 18, 2018 at 9:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->> On 9 August 2018 at 13:00, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->> > One first comment below...
->> >
->> > On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->> >> NR_syscalls macro holds the number of system call exist in m68k
->> >> architecture. This macro is currently the part of asm/unistd.h file.
->> >> We have to change the value of NR_syscalls, if we add or delete a
->> >> system call.
->> >>
->> >> One of patch in this patch series has a script which will generate
->> >> a uapi header based on syscall.tbl file. The syscall.tbl file
->> >> contains the number of system call information. So we have two
->> >> option to update NR_syscalls value.
->> >>
->> >> 1. Update NR_syscalls in asm/unistd.h manually by counting the
->> >>    no.of system calls. No need to update NR_syscalls untill
->> >>    we either add a new system call or delete an existing system
->> >>    call.
->> >>
->> >> 2. We can keep this feature it above mentioned script, that'll
->> >>    count the number of syscalls and keep it in a generated file.
->> >>    In this case we don't need to explicitly update NR_syscalls
->> >>    in asm/unistd.h file.
->> >>
->> >> The 2nd option will be the recommended one. For that, I moved the
->> >> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
->> >> name also changed form NR_syscalls to __NR_syscalls for making the
->> >> name convention same across all architecture. While __NR_syscalls
->> >> isn't strictly part of the uapi, having it as part of the generated
->> >> header to simplifies the implementation.
->> >
->> > It can indeed not be part of the UAPI, as UAPI definitions can never change,
->> > while new syscalls will be added in the future, increasing the number ;-)
->>
->> Thanks for your reply :)
->> Sorry for the delayed response :(
->>
->> I would like to keep __NR_syscalls macro to uapi header in order to simplify
->> the system call table generation script. Otherwise the __NR_syscalls
->> macro need to update manually. That become a problem.
->>
->> Please check the below implementation in uapi file make sense?
->> It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
->> and enclose it in #ifdef __KERNEL__
->>
->> ...
->> ...
->> #define __NR_pwritev2  378
->> #define __NR_statx      379
->>
->> #ifdef __KERNEL__
->> #define __NR_syscalls   380
->> #endif
->> ...
->> ...
->
-> #ifdef __KERNEL__ sounds fine to me.
+Add the Kconfig option HAVE_MMU_GATHER_NO_GATHER to the generic
+mmu_gather code. If the option is set the mmu_gather will not
+track individual pages for delayed page free anymore. A platform
+that enables the option needs to provide its own implementation
+of the __tlb_remove_page_size function to free pages.
 
-Thanks for the reply. I'll post v2 patches ASAP with this changes.
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+---
+ arch/Kconfig              |   3 ++
+ include/asm-generic/tlb.h |   9 +++-
+ mm/mmu_gather.c           | 114 +++++++++++++++++++++++++++-------------------
+ 3 files changed, 77 insertions(+), 49 deletions(-)
 
-- Firoz
->
-> Gr{oetje,eeting}s,
->
->                         Geert
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 053c44703539..edb338b66f16 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -368,6 +368,9 @@ config HAVE_RCU_TABLE_INVALIDATE
+ config HAVE_MMU_GATHER_PAGE_SIZE
+ 	bool
+ 
++config HAVE_MMU_GATHER_NO_GATHER
++	bool
++
+ config ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	bool
+ 
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 21c751cd751e..9e714e1b6695 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -179,6 +179,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+ 
+ #endif
+ 
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+ /*
+  * If we can't allocate a page to make a big batch of page pointers
+  * to work on, then just handle a few from the on-stack structure.
+@@ -203,6 +204,10 @@ struct mmu_gather_batch {
+  */
+ #define MAX_GATHER_BATCH_COUNT	(10000UL/MAX_GATHER_BATCH)
+ 
++extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
++				   int page_size);
++#endif
++
+ /*
+  * struct mmu_gather is an opaque type used by the mm code for passing around
+  * any data needed by arch specific code for tlb_remove_page.
+@@ -249,6 +254,7 @@ struct mmu_gather {
+ 
+ 	unsigned int		batch_count;
+ 
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+ 	struct mmu_gather_batch *active;
+ 	struct mmu_gather_batch	local;
+ 	struct page		*__pages[MMU_GATHER_BUNDLE];
+@@ -256,6 +262,7 @@ struct mmu_gather {
+ #ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+ 	unsigned int page_size;
+ #endif
++#endif
+ };
+ 
+ void arch_tlb_gather_mmu(struct mmu_gather *tlb,
+@@ -264,8 +271,6 @@ void tlb_flush_mmu(struct mmu_gather *tlb);
+ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+ 			 unsigned long start, unsigned long end, bool force);
+ void tlb_flush_mmu_free(struct mmu_gather *tlb);
+-extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
+-				   int page_size);
+ 
+ static inline void __tlb_adjust_range(struct mmu_gather *tlb,
+ 				      unsigned long address,
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 2d5e617131f6..6d5d812a040b 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -13,6 +13,8 @@
+ 
+ #ifdef HAVE_GENERIC_MMU_GATHER
+ 
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++
+ static bool tlb_next_batch(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
+@@ -41,6 +43,63 @@ static bool tlb_next_batch(struct mmu_gather *tlb)
+ 	return true;
+ }
+ 
++static void tlb_batch_pages_flush(struct mmu_gather *tlb)
++{
++	struct mmu_gather_batch *batch;
++
++	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
++		free_pages_and_swap_cache(batch->pages, batch->nr);
++		batch->nr = 0;
++	}
++	tlb->active = &tlb->local;
++}
++
++static void tlb_batch_list_free(struct mmu_gather *tlb)
++{
++	struct mmu_gather_batch *batch, *next;
++
++	for (batch = tlb->local.next; batch; batch = next) {
++		next = batch->next;
++		free_pages((unsigned long)batch, 0);
++	}
++	tlb->local.next = NULL;
++}
++
++/* __tlb_remove_page
++ *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)), while
++ *	handling the additional races in SMP caused by other CPUs caching valid
++ *	mappings in their TLBs. Returns the number of free page slots left.
++ *	When out of page slots we must call tlb_flush_mmu().
++ *returns true if the caller should flush.
++ */
++bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_size)
++{
++	struct mmu_gather_batch *batch;
++
++	VM_BUG_ON(!tlb->end);
++
++#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
++	VM_WARN_ON(tlb->page_size != page_size);
++#endif
++
++	batch = tlb->active;
++	/*
++	 * Add the page and check if we are full. If so
++	 * force a flush.
++	 */
++	batch->pages[batch->nr++] = page;
++	if (batch->nr == batch->max) {
++		if (!tlb_next_batch(tlb))
++			return true;
++		batch = tlb->active;
++	}
++	VM_BUG_ON_PAGE(batch->nr > batch->max, page);
++
++	return false;
++}
++
++#endif
++
+ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 				unsigned long start, unsigned long end)
+ {
+@@ -48,12 +107,15 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 
+ 	/* Is it from 0 to ~0? */
+ 	tlb->fullmm     = !(start | (end+1));
++
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
+ 	tlb->need_flush_all = 0;
+ 	tlb->local.next = NULL;
+ 	tlb->local.nr   = 0;
+ 	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
+ 	tlb->active     = &tlb->local;
+ 	tlb->batch_count = 0;
++#endif
+ 
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb->batch = NULL;
+@@ -67,16 +129,12 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+ 
+ void tlb_flush_mmu_free(struct mmu_gather *tlb)
+ {
+-	struct mmu_gather_batch *batch;
+-
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
+-	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
+-		free_pages_and_swap_cache(batch->pages, batch->nr);
+-		batch->nr = 0;
+-	}
+-	tlb->active = &tlb->local;
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++	tlb_batch_pages_flush(tlb);
++#endif
+ }
+ 
+ void tlb_flush_mmu(struct mmu_gather *tlb)
+@@ -92,8 +150,6 @@ void tlb_flush_mmu(struct mmu_gather *tlb)
+ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+ 		unsigned long start, unsigned long end, bool force)
+ {
+-	struct mmu_gather_batch *batch, *next;
+-
+ 	if (force) {
+ 		__tlb_reset_range(tlb);
+ 		__tlb_adjust_range(tlb, start, end - start);
+@@ -103,45 +159,9 @@ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	for (batch = tlb->local.next; batch; batch = next) {
+-		next = batch->next;
+-		free_pages((unsigned long)batch, 0);
+-	}
+-	tlb->local.next = NULL;
+-}
+-
+-/* __tlb_remove_page
+- *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)), while
+- *	handling the additional races in SMP caused by other CPUs caching valid
+- *	mappings in their TLBs. Returns the number of free page slots left.
+- *	When out of page slots we must call tlb_flush_mmu().
+- *returns true if the caller should flush.
+- */
+-bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_size)
+-{
+-	struct mmu_gather_batch *batch;
+-
+-	VM_BUG_ON(!tlb->end);
+-
+-#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
+-	VM_WARN_ON(tlb->page_size != page_size);
++#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
++	tlb_batch_list_free(tlb);
+ #endif
+-
+-	batch = tlb->active;
+-	/*
+-	 * Add the page and check if we are full. If so
+-	 * force a flush.
+-	 */
+-	batch->pages[batch->nr++] = page;
+-	if (batch->nr == batch->max) {
+-		if (!tlb_next_batch(tlb))
+-			return true;
+-		batch = tlb->active;
+-	}
+-	VM_BUG_ON_PAGE(batch->nr > batch->max, page);
+-
+-	return false;
+ }
+ 
+ #endif /* HAVE_GENERIC_MMU_GATHER */
+-- 
+2.16.4
