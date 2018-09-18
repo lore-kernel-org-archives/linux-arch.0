@@ -1,84 +1,154 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58786 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58795 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729902AbeISCWh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 22:22:37 -0400
-Date: Tue, 18 Sep 2018 22:48:14 +0200 (CEST)
+        with ESMTP id S1729872AbeISCY5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 22:24:57 -0400
+Date: Tue, 18 Sep 2018 22:50:34 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [REVIEW][PATCH 16/20] signal/x86: Pass pkey not vma into
- __bad_area
-In-Reply-To: <20180918000546.12552-16-ebiederm@xmission.com>
-Message-ID: <alpine.DEB.2.21.1809182247010.1468@nanos.tec.linutronix.de>
-References: <87y3bzk6yv.fsf@xmission.com> <20180918000546.12552-16-ebiederm@xmission.com>
+Subject: Re: [REVIEW][PATCH 17/20] signal/x86: Call force_sig_pkuerr from
+ __bad_area_nosemaphore
+In-Reply-To: <20180918000546.12552-17-ebiederm@xmission.com>
+Message-ID: <alpine.DEB.2.21.1809182249120.1468@nanos.tec.linutronix.de>
+References: <87y3bzk6yv.fsf@xmission.com> <20180918000546.12552-17-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <20180918204814.uANaNn97j5HKA6g9V4ef4jefqT_n03jwKgMG5iE_zUg@z>
+Message-ID: <20180918205034.-pPJuH4B1Dl6tcDOts11FrIH9ic-XWMxgoPiUZK6Y24@z>
 
 On Tue, 18 Sep 2018, Eric W. Biederman wrote:
 
-> There is only one caller of __bad_area that passes in PKUERR and thus
-> will generate a siginfo with si_pkey set.  Therefore simplify the
-> logic and hoist reading of vma_pkey up into that caller, and just
-> pass *pkey into __bad_area.
+> There is only one code path that can generate a pkuerr signal.  That
+> code path calls __bad_area_nosemaphore and can be dectected by testing
+> if si_code == SEGV_PKUERR.  It can be seen from inspection that all of
+> the other tests in fill_sig_info_pkey are unnecessary.
+> 
+> Therefore call force_sig_pkuerr directly from __bad_area_semaphore
+> and remove fill_sig_info_pkey.
+> 
+> At the same time move the comment above force_sig_info_pkey into
+> bad_area_access_error, so that the documentation of about pkey
+
+of about? Pick one please
+
+> generation races is not lost.
 > 
 > Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 > ---
->  arch/x86/mm/fault.c | 18 +++++++-----------
->  1 file changed, 7 insertions(+), 11 deletions(-)
+>  arch/x86/mm/fault.c | 75 ++++++++++++++-------------------------------
+>  1 file changed, 23 insertions(+), 52 deletions(-)
 > 
 > diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-> index f82106578364..11a93f14a674 100644
+> index 11a93f14a674..ccfeed902eee 100644
 > --- a/arch/x86/mm/fault.c
 > +++ b/arch/x86/mm/fault.c
-> @@ -904,22 +904,16 @@ bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
->  
->  static void
->  __bad_area(struct pt_regs *regs, unsigned long error_code,
-> -	   unsigned long address,  struct vm_area_struct *vma, int si_code)
-> +	   unsigned long address, u32 *pkey, int si_code)
->  {
->  	struct mm_struct *mm = current->mm;
-> -	u32 pkey;
-> -
-> -	if (vma)
-> -		pkey = vma_pkey(vma);
-> -
->  	/*
->  	 * Something tried to access memory that isn't in our memory map..
->  	 * Fix it, but check if it's kernel or user first..
->  	 */
->  	up_read(&mm->mmap_sem);
->  
-> -	__bad_area_nosemaphore(regs, error_code, address,
-> -			       (vma) ? &pkey : NULL, si_code);
-> +	__bad_area_nosemaphore(regs, error_code, address, pkey, si_code);
+> @@ -153,56 +153,6 @@ is_prefetch(struct pt_regs *regs, unsigned long error_code, unsigned long addr)
+>  	return prefetch;
 >  }
 >  
->  static noinline void
-> @@ -954,10 +948,12 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
->  	 * But, doing it this way allows compiler optimizations
+> -/*
+> - * A protection key fault means that the PKRU value did not allow
+> - * access to some PTE.  Userspace can figure out what PKRU was
+> - * from the XSAVE state, and this function fills out a field in
+> - * siginfo so userspace can discover which protection key was set
+> - * on the PTE.
+> - *
+> - * If we get here, we know that the hardware signaled a X86_PF_PK
+> - * fault and that there was a VMA once we got in the fault
+> - * handler.  It does *not* guarantee that the VMA we find here
+> - * was the one that we faulted on.
+> - *
+> - * 1. T1   : mprotect_key(foo, PAGE_SIZE, pkey=4);
+> - * 2. T1   : set PKRU to deny access to pkey=4, touches page
+> - * 3. T1   : faults...
+> - * 4.    T2: mprotect_key(foo, PAGE_SIZE, pkey=5);
+> - * 5. T1   : enters fault handler, takes mmap_sem, etc...
+> - * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
+> - *	     faulted on a pte with its pkey=4.
+> - */
+> -static void fill_sig_info_pkey(int si_signo, int si_code, siginfo_t *info,
+> -		u32 *pkey)
+> -{
+> -	/* This is effectively an #ifdef */
+> -	if (!boot_cpu_has(X86_FEATURE_OSPKE))
+> -		return;
+> -
+> -	/* Fault not from Protection Keys: nothing to do */
+> -	if ((si_code != SEGV_PKUERR) || (si_signo != SIGSEGV))
+> -		return;
+> -	/*
+> -	 * force_sig_info_fault() is called from a number of
+> -	 * contexts, some of which have a VMA and some of which
+> -	 * do not.  The X86_PF_PK handing happens after we have a
+> -	 * valid VMA, so we should never reach this without a
+> -	 * valid VMA.
+> -	 */
+> -	if (!pkey) {
+> -		WARN_ONCE(1, "PKU fault with no VMA passed in");
+> -		info->si_pkey = 0;
+> -		return;
+> -	}
+> -	/*
+> -	 * si_pkey should be thought of as a strong hint, but not
+> -	 * absolutely guranteed to be 100% accurate because of
+> -	 * the race explained above.
+> -	 */
+> -	info->si_pkey = *pkey;
+> -}
+> -
+>  static void
+>  force_sig_info_fault(int si_signo, int si_code, unsigned long address,
+>  		     struct task_struct *tsk, u32 *pkey)
+> @@ -215,8 +165,6 @@ force_sig_info_fault(int si_signo, int si_code, unsigned long address,
+>  	info.si_code	= si_code;
+>  	info.si_addr	= (void __user *)address;
+>  
+> -	fill_sig_info_pkey(si_signo, si_code, &info, pkey);
+> -
+>  	force_sig_info(si_signo, &info, tsk);
+>  }
+>  
+> @@ -884,6 +832,9 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+>  		tsk->thread.error_code	= error_code;
+>  		tsk->thread.trap_nr	= X86_TRAP_PF;
+>  
+> +		if (si_code == SEGV_PKUERR)
+> +			force_sig_pkuerr((void __user *)address, *pkey);
+> +
+>  		force_sig_info_fault(SIGSEGV, si_code, address, tsk, pkey);
+>  
+>  		return;
+> @@ -949,6 +900,26 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
 >  	 * if pkeys are compiled out.
 >  	 */
-> -	if (bad_area_access_from_pkeys(error_code, vma))
-> -		__bad_area(regs, error_code, address, vma, SEGV_PKUERR);
-> +	if (bad_area_access_from_pkeys(error_code, vma)) {
-> +		u32 pkey = vma_pkey(vma);
-> +		__bad_area(regs, error_code, address, &pkey, SEGV_PKUERR);
-> +	}
->  	else
-> -		__bad_area(regs, error_code, address, vma, SEGV_ACCERR);
-> +		__bad_area(regs, error_code, address, NULL, SEGV_ACCERR);
+>  	if (bad_area_access_from_pkeys(error_code, vma)) {
+> +		/*
+> +		 * A protection key fault means that the PKRU value did not allow
+> +		 * access to some PTE.  Userspace can figure out what PKRU was
+> +		 * from the XSAVE state.  This function captures the pkey from
+> +		 * the vma and passes it to userspace so userspace can discover
+> +		 * which protection key was set on the PTE.
+> +		 *
+> +		 * If we get here, we know that the hardware signaled a X86_PF_PK
+> +		 * fault and that there was a VMA once we got in the fault
+> +		 * handler.  It does *not* guarantee that the VMA we find here
+> +		 * was the one that we faulted on.
+> +		 *
+> +		 * 1. T1   : mprotect_key(foo, PAGE_SIZE, pkey=4);
+> +		 * 2. T1   : set PKRU to deny access to pkey=4, touches page
+> +		 * 3. T1   : faults...
+> +		 * 4.    T2: mprotect_key(foo, PAGE_SIZE, pkey=5);
+> +		 * 5. T1   : enters fault handler, takes mmap_sem, etc...
+> +		 * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
+> +		 *	     faulted on a pte with its pkey=4.
+> +		 */
+>  		u32 pkey = vma_pkey(vma);
+>  		__bad_area(regs, error_code, address, &pkey, SEGV_PKUERR);
 
-Please make that:
+Newline between variable declaration and code please.
 
-	} else {
-		__bad_area(regs, error_code, address, NULL, SEGV_ACCERR);
-	}
-       
 With that fixed:
 
 Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
