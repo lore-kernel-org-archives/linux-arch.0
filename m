@@ -1,30 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:57755 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:55473 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729491AbeIRTVw (ORCPT
+        by vger.kernel.org with ESMTP id S1729491AbeIRTWG (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Sep 2018 15:21:52 -0400
+        Tue, 18 Sep 2018 15:22:06 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 0/2] clocksource: add gx6605s SOC system timer
-Date: Tue, 18 Sep 2018 21:48:53 +0800
-Message-ID: <cover.1537276815.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 2/2] dt-bindings: timer: C-SKY Multi-processor timer
+Date: Tue, 18 Sep 2018 21:48:36 +0800
+Message-ID: <5dbc39779d6744bf8e9790972743fba8d9d072c3.1537276791.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1537276791.git.ren_guo@c-sky.com>
+References: <cover.1537276791.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1537276791.git.ren_guo@c-sky.com>
+References: <cover.1537276791.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180918134853.o2xhwD0_UloY01ehfI5tyEzPC4OS5mYhqc4EjnjioAY@z>
+Message-ID: <20180918134836.254WhprMhBCAOnyXYieViIgrZV9nJ32-Gw7jsEF651o@z>
 
-Guo Ren (2):
-  clocksource: add gx6605s SOC system timer
-  dt-bindings: timer: gx6605s SOC timer
+ - Dt-bingdings doc for C-SKY SMP system setting.
 
- .../bindings/timer/csky,gx6605s-timer.txt          |  42 ++++++
- drivers/clocksource/Kconfig                        |   8 ++
- drivers/clocksource/Makefile                       |   1 +
- drivers/clocksource/timer-gx6605s.c                | 150 +++++++++++++++++++++
- 4 files changed, 201 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
- create mode 100644 drivers/clocksource/timer-gx6605s.c
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ .../devicetree/bindings/timer/csky,mptimer.txt     | 46 ++++++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/timer/csky,mptimer.txt
 
+diff --git a/Documentation/devicetree/bindings/timer/csky,mptimer.txt b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
+new file mode 100644
+index 0000000..1e7e31d
+--- /dev/null
++++ b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
+@@ -0,0 +1,46 @@
++============================
++C-SKY Multi-processors Timer
++============================
++
++C-SKY multi-processors timer is designed for C-SKY SMP system and the
++regs is accessed by cpu co-processor 4 registers with mtcr/mfcr.
++
++ - PTIM_CTLR "cr<0, 14>" Control reg to start reset timer.
++ - PTIM_TSR  "cr<1, 14>" Interrupt cleanup status reg.
++ - PTIM_CCVR "cr<3, 14>" Current counter value reg.
++ - PTIM_LVR  "cr<6, 14>" Window value reg to triger next event.
++
++==============================
++timer node bindings definition
++==============================
++
++	Description: Describes SMP timer
++
++	PROPERTIES
++
++	- compatible
++		Usage: required
++		Value type: <string>
++		Definition: must be "csky,mptimer"
++	- clocks
++		Usage: required
++		Value type: <node>
++		Definition: must be input clk node
++	- interrupts
++		Usage: required
++		Value type: <u32>
++		Definition: must be timer irq num defined by soc
++	- interrupt-parent:
++		Usage: required
++		Value type: <node>
++		Definition: must be interrupt controller node
++
++Examples:
++---------
++
++	timer: timer {
++		compatible = "csky,mptimer";
++		clocks = <&dummy_apb_clk>;
++		interrupts = <16>;
++		interrupt-parent = <&intc>;
++	};
 -- 
 2.7.4
