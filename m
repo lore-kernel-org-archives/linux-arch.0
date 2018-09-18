@@ -1,57 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:57159 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:59063 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729656AbeIRTVJ (ORCPT
+        by vger.kernel.org with ESMTP id S1729656AbeIRTVU (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Sep 2018 15:21:09 -0400
+        Tue, 18 Sep 2018 15:21:20 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 1/2] csky/dma: bugfix dma_sync_for_cpu/device
-Date: Tue, 18 Sep 2018 21:48:13 +0800
-Message-ID: <1ccf1bed89758a5a9b57ac2ce6d11ca898a1b9ae.1537276837.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1537276837.git.ren_guo@c-sky.com>
-References: <cover.1537276837.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1537276837.git.ren_guo@c-sky.com>
-References: <cover.1537276837.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 0/2] bugfix based on csky linux-next
+Date: Tue, 18 Sep 2018 21:48:12 +0800
+Message-ID: <cover.1537276837.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180918134813.TdrOLivBnZHQk5P3p9W-PgC24P26Janj4155pjKQqLU@z>
+Message-ID: <20180918134812.NUDWfSxtdzCGtTIzXOSbeDrmPf9XJ8JTV5NIQLqPO-8@z>
 
-ref: https://lkml.org/lkml/2018/5/18/1068
+Because I've sent to Stephen Roth with the linux-4.19-rc3 git-tree for
+linux-next, I shouldn't rebase any more.
 
-        map             for_cpu         for_device      unmap
-TO_DEV  writeback       none            writeback       none
-TO_CPU  invalidate      invalidate*     invalidate      invalidate*
-BIDIR   writeback       invalidate      writeback       invalidate
+ - Fixup smp.c irq mapping problem found by Marc Zyngier
+ - Fixup dma_sync_for_cpu/device in dma-mapping.c
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/mm/dma-mapping.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+Guo Ren (2):
+  csky/dma: bugfix dma_sync_for_cpu/device
+  csky: remove irq_mapping from smp.c.
 
-diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
-index 16c2087..30a2041 100644
---- a/arch/csky/mm/dma-mapping.c
-+++ b/arch/csky/mm/dma-mapping.c
-@@ -217,7 +217,8 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
- 		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
--		BUG();
-+		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
-+		break;
- 	default:
- 		BUG();
- 	}
-@@ -240,7 +241,7 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
- 
- 	switch (dir) {
- 	case DMA_TO_DEVICE:
--		BUG();
-+		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
- 		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
+ arch/csky/include/asm/smp.h |  4 ++++
+ arch/csky/kernel/smp.c      | 18 +++++++++++++-----
+ arch/csky/mm/dma-mapping.c  |  5 +++--
+ 3 files changed, 20 insertions(+), 7 deletions(-)
+
 -- 
 2.7.4
