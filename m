@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 12/20] signal/x86: Remove pkey parameter from bad_area_nosemaphore
-Date: Tue, 18 Sep 2018 02:05:38 +0200
-Message-ID: <20180918000546.12552-12-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 20/20] signal/x86: Use force_sig_fault where appropriate
+Date: Tue, 18 Sep 2018 02:05:46 +0200
+Message-ID: <20180918000546.12552-20-ebiederm@xmission.com>
 References: <87y3bzk6yv.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87y3bzk6yv.fsf@xmission.com>
@@ -10,75 +10,125 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-The function bad_area_nosemaphore always sets si_code to SEGV_MAPERR
-and as such can never return a pkey parameter.  Therefore remove the
-unusable pkey parameter from bad_area_nosemaphore.
-
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/x86/mm/fault.c | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/x86/entry/vsyscall/vsyscall_64.c |  9 +--------
+ arch/x86/kernel/ptrace.c              | 10 ++--------
+ arch/x86/kernel/traps.c               | 14 +++++---------
+ arch/x86/kernel/umip.c                |  8 +-------
+ 4 files changed, 9 insertions(+), 32 deletions(-)
 
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 4112b05d0dec..cfc88920716f 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -897,9 +897,9 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
+index 82ed001e8909..85fd85d52ffd 100644
+--- a/arch/x86/entry/vsyscall/vsyscall_64.c
++++ b/arch/x86/entry/vsyscall/vsyscall_64.c
+@@ -100,20 +100,13 @@ static bool write_ok_or_segv(unsigned long ptr, size_t size)
+ 	 */
  
- static noinline void
- bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
--		     unsigned long address, u32 *pkey)
-+		     unsigned long address)
+ 	if (!access_ok(VERIFY_WRITE, (void __user *)ptr, size)) {
+-		siginfo_t info;
+ 		struct thread_struct *thread = &current->thread;
+ 
+ 		thread->error_code	= 6;  /* user fault, no page, write */
+ 		thread->cr2		= ptr;
+ 		thread->trap_nr		= X86_TRAP_PF;
+ 
+-		clear_siginfo(&info);
+-		info.si_signo		= SIGSEGV;
+-		info.si_errno		= 0;
+-		info.si_code		= SEGV_MAPERR;
+-		info.si_addr		= (void __user *)ptr;
+-
+-		force_sig_info(SIGSEGV, &info, current);
++		force_sig_fault(SIGSEGV, SEGV_MAPERR, (void __user *)ptr, current);
+ 		return false;
+ 	} else {
+ 		return true;
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 511ea0f16078..a78fff5b3384 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -1372,18 +1372,12 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+ 					 int error_code, int si_code)
  {
--	__bad_area_nosemaphore(regs, error_code, address, pkey, SEGV_MAPERR);
-+	__bad_area_nosemaphore(regs, error_code, address, NULL, SEGV_MAPERR);
+-	struct siginfo info;
+-
+-	clear_siginfo(&info);
+ 	tsk->thread.trap_nr = X86_TRAP_DB;
+ 	tsk->thread.error_code = error_code;
+ 
+-	info.si_signo = SIGTRAP;
+-	info.si_code = si_code;
+-	info.si_addr = user_mode(regs) ? (void __user *)regs->ip : NULL;
+-
+ 	/* Send us the fake SIGTRAP */
+-	force_sig_info(SIGTRAP, &info, tsk);
++	force_sig_fault(SIGTRAP, si_code,
++			user_mode(regs) ? (void __user *)regs->ip : NULL, tsk);
  }
  
- static void
-@@ -1025,7 +1025,7 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
- 			     VM_FAULT_HWPOISON_LARGE))
- 			do_sigbus(regs, error_code, address, pkey, fault);
- 		else if (fault & VM_FAULT_SIGSEGV)
--			bad_area_nosemaphore(regs, error_code, address, pkey);
-+			bad_area_nosemaphore(regs, error_code, address);
- 		else
- 			BUG();
- 	}
-@@ -1255,7 +1255,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
- 		 * Don't take the mm semaphore here. If we fixup a prefetch
- 		 * fault we could otherwise deadlock:
- 		 */
--		bad_area_nosemaphore(regs, error_code, address, NULL);
-+		bad_area_nosemaphore(regs, error_code, address);
+ void user_single_step_report(struct pt_regs *regs)
+diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+index eb54f1964252..b3c5708b6d31 100644
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -809,7 +809,7 @@ static void math_error(struct pt_regs *regs, int error_code, int trapnr)
+ {
+ 	struct task_struct *task = current;
+ 	struct fpu *fpu = &task->thread.fpu;
+-	siginfo_t info;
++	int si_code;
+ 	char *str = (trapnr == X86_TRAP_MF) ? "fpu exception" :
+ 						"simd exception";
  
+@@ -835,18 +835,14 @@ static void math_error(struct pt_regs *regs, int error_code, int trapnr)
+ 
+ 	task->thread.trap_nr	= trapnr;
+ 	task->thread.error_code = error_code;
+-	clear_siginfo(&info);
+-	info.si_signo		= SIGFPE;
+-	info.si_errno		= 0;
+-	info.si_addr		= (void __user *)uprobe_get_trap_addr(regs);
+-
+-	info.si_code = fpu__exception_code(fpu, trapnr);
+ 
++	si_code = fpu__exception_code(fpu, trapnr);
+ 	/* Retry when we get spurious exceptions: */
+-	if (!info.si_code)
++	if (!si_code)
  		return;
- 	}
-@@ -1268,7 +1268,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
- 		pgtable_bad(regs, error_code, address);
  
- 	if (unlikely(smap_violation(error_code, regs))) {
--		bad_area_nosemaphore(regs, error_code, address, NULL);
-+		bad_area_nosemaphore(regs, error_code, address);
+-	force_sig_info(SIGFPE, &info, task);
++	force_sig_fault(SIGFPE, si_code,
++			(void __user *)uprobe_get_trap_addr(regs), task);
+ }
+ 
+ dotraplinkage void do_coprocessor_error(struct pt_regs *regs, long error_code)
+diff --git a/arch/x86/kernel/umip.c b/arch/x86/kernel/umip.c
+index ff20b35e98dd..f8f3cfda01ae 100644
+--- a/arch/x86/kernel/umip.c
++++ b/arch/x86/kernel/umip.c
+@@ -271,19 +271,13 @@ static int emulate_umip_insn(struct insn *insn, int umip_inst,
+  */
+ static void force_sig_info_umip_fault(void __user *addr, struct pt_regs *regs)
+ {
+-	siginfo_t info;
+ 	struct task_struct *tsk = current;
+ 
+ 	tsk->thread.cr2		= (unsigned long)addr;
+ 	tsk->thread.error_code	= X86_PF_USER | X86_PF_WRITE;
+ 	tsk->thread.trap_nr	= X86_TRAP_PF;
+ 
+-	clear_siginfo(&info);
+-	info.si_signo	= SIGSEGV;
+-	info.si_errno	= 0;
+-	info.si_code	= SEGV_MAPERR;
+-	info.si_addr	= addr;
+-	force_sig_info(SIGSEGV, &info, tsk);
++	force_sig_fault(SIGSEGV, SEGV_MAPERR, addr, tsk);
+ 
+ 	if (!(show_unhandled_signals && unhandled_signal(tsk, SIGSEGV)))
  		return;
- 	}
- 
-@@ -1277,7 +1277,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
- 	 * in a region with pagefaults disabled then we must not take the fault
- 	 */
- 	if (unlikely(faulthandler_disabled() || !mm)) {
--		bad_area_nosemaphore(regs, error_code, address, NULL);
-+		bad_area_nosemaphore(regs, error_code, address);
- 		return;
- 	}
- 
-@@ -1323,7 +1323,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
- 	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
- 		if (!(error_code & X86_PF_USER) &&
- 		    !search_exception_tables(regs->ip)) {
--			bad_area_nosemaphore(regs, error_code, address, NULL);
-+			bad_area_nosemaphore(regs, error_code, address);
- 			return;
- 		}
- retry:
 -- 
 2.17.1
