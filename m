@@ -1,68 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f66.google.com ([209.85.161.66]:43172 "EHLO
-        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727846AbeIRRJ2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:09:28 -0400
-Received: by mail-yw1-f66.google.com with SMTP id l189-v6so612516ywb.10
-        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 04:37:17 -0700 (PDT)
+Received: from mail-yb1-f195.google.com ([209.85.219.195]:35267 "EHLO
+        mail-yb1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726736AbeIRRRO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:17:14 -0400
+Received: by mail-yb1-f195.google.com with SMTP id o63-v6so661200yba.2
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 04:45:01 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a0cfk6MG2SBRhJZ41suHw4D-dyCYGhqV9YeD_1rSMrGqQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a2qFoCOzM6x-_mv0Um2E-WHDeOU-fuuZ65TtDKKcPxNrQ@mail.gmail.com>
 References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
- <1536036087-15260-4-git-send-email-firoz.khan@linaro.org> <CAK8P3a0cfk6MG2SBRhJZ41suHw4D-dyCYGhqV9YeD_1rSMrGqQ@mail.gmail.com>
+ <1536036087-15260-5-git-send-email-firoz.khan@linaro.org> <CAK8P3a2qFoCOzM6x-_mv0Um2E-WHDeOU-fuuZ65TtDKKcPxNrQ@mail.gmail.com>
 From: Firoz Khan <firoz.khan@linaro.org>
-Date: Tue, 18 Sep 2018 17:07:16 +0530
-Message-ID: <CALxhOnhRFEenKmC2MuudFU4NMdR3v9jGOXWfbxE96eZj+YetfQ@mail.gmail.com>
-Subject: Re: [PATCH 3/4] sparc: Add system call table generation support
+Date: Tue, 18 Sep 2018 17:15:00 +0530
+Message-ID: <CALxhOngr6KY+CijcMx8f6Kg=SK3wJK_wxV6Z-HPWYpQ6h5iJog@mail.gmail.com>
+Subject: Re: [PATCH 4/4] sparc: uapi header and system call table file generation
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180918113716.anWLYK9ZYpvvxuRCZgS4nV4wPcbXrfvzZ_c_NfOepMc@z>
+Message-ID: <20180918114500.T1Ltm6VRrSuhEDmNRIQq0tXWCnbd_acnWmhnYyTUgjE@z>
 
-On 6 September 2018 at 21:02, Arnd Bergmann <arnd@arndb.de> wrote:
+On 6 September 2018 at 21:04, Arnd Bergmann <arnd@arndb.de> wrote:
 > On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>>
+>> System call table generation script must be run to generate
+>> unistd_32/64.h and syscall_table_32/64/c32.h files. This patch
+>> will have changes which will invokes the script.
+>>
+>> This patch will generate unistd_32/64.h and syscall_table_
+>> 32/64/c32.h files by the syscall table generation script
+>> invoked by arch/sparc/Makefile and the generated files against
+>> the removed files will be identical.
+>>
+>> The generated uapi header file will be included in uapi/asm/
+>> unistd_32/64.h and generated system call table support file will
+>> be included by arch/sparc/kernel/syscall_table_32/64.S file.
 >
->> The system call table generation script is added in
->> syscalls directory which contain the script to generate
->> both uapi header file system call table generation file
->> and syscall_32/64.tbl file which'll be the input for the
->> scripts.
+> These changes all look good to me.
 >
-> I would argue that for sparc we only want a single input
-> table, since the 32/64 versions are similar enough that the
-> differences can be addressed with 'abi' flag, rather than
-> having everything marked as 'common'. Isn't that the
-> purpose of the abi flag in the first place?
->
->           Arnd
+>        Arnd
 
-Yes, we can do that way also. But few concerns I would
-like to share with you.
-
-I feel it add the complexity in the scripts. eg:-
-
-108     32    setresuid32                     sys_setresuid
-108     64    setresuid                         sys_setresuid
-This case the script has to be smart enough to parse the
-.tbl file properly. It need more logic in the scripts. This is
-not common. So if you keep separate .tbl we can avoid
-this.
-
-ABI flag is serving *nothing* in all other architecture including
-SPARC.
-
-But as I told in the cover letter, I followed x86/arm/
-s390 architecture's system table generation implementation.
-They are keeping ABI flag. In our case we can delete this
-flag completely from all architectures.
-
-Most of the architecture these 32/64 similarity is absent.
-So it would be better keep separate files to maintain a
-generic script across all architecture.
-
-One question here is; while invoking the script I'm passing
-the abi flag. It is simply keeping in the .tbl file to make the
-file similar to x86.  What I can do here?
+Thanks for your reply!
 
 - Firoz
