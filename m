@@ -1,26 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:57690 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726828AbeIRSYa (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43106 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727846AbeIRSYn (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Sep 2018 14:24:30 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w8ICn1hS040029
-        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 08:52:02 -0400
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2mk0t0arsb-1
+        Tue, 18 Sep 2018 14:24:43 -0400
+Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w8ICnZ8m043426
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 08:52:15 -0400
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2mk14uhqbr-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 08:52:02 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 08:52:14 -0400
 Received: from localhost
-        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-        Tue, 18 Sep 2018 13:51:59 +0100
+        Tue, 18 Sep 2018 13:52:13 +0100
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH 1/2] asm-generic/tlb: introduce HAVE_MMU_GATHER_NO_GATHER
-Date: Tue, 18 Sep 2018 14:51:50 +0200
-In-Reply-To: <20180918125151.31744-1-schwidefsky@de.ibm.com>
-References: <20180918125151.31744-1-schwidefsky@de.ibm.com>
-Message-ID: <20180918125151.31744-2-schwidefsky@de.ibm.com>
+Subject: [RFC][PATCH 0/2] convert s390 to generic mmu_gather
+Date: Tue, 18 Sep 2018 14:51:49 +0200
+Message-ID: <20180918125151.31744-1-schwidefsky@de.ibm.com>
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 MIME-Version: 1.0
@@ -28,252 +26,26 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20180918125150.yXwbqiQ_YuFp9jDYH3TGHBEgEC0qbtMpMVR2h2MR4GE@z>
+Message-ID: <20180918125149.sn3G1tU0wC1K3M42_wNklmq9GQvApTHUPEGB5ANEf_A@z>
 
-Add the Kconfig option HAVE_MMU_GATHER_NO_GATHER to the generic
-mmu_gather code. If the option is set the mmu_gather will not
-track individual pages for delayed page free anymore. A platform
-that enables the option needs to provide its own implementation
-of the __tlb_remove_page_size function to free pages.
+Hi Peter,
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- arch/Kconfig              |   3 ++
- include/asm-generic/tlb.h |   9 +++-
- mm/mmu_gather.c           | 114 +++++++++++++++++++++++++++-------------------
- 3 files changed, 77 insertions(+), 49 deletions(-)
+as an add-on for the TLB flushing changes two patches to make
+s390 use the generic mmu_gather code as well. I let it run for
+a few hours with several TLB stress tests, no fallout so far.
+It certainly can use more testing but it looks ok to me.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 053c44703539..edb338b66f16 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -368,6 +368,9 @@ config HAVE_RCU_TABLE_INVALIDATE
- config HAVE_MMU_GATHER_PAGE_SIZE
- 	bool
- 
-+config HAVE_MMU_GATHER_NO_GATHER
-+	bool
-+
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	bool
- 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 21c751cd751e..9e714e1b6695 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -179,6 +179,7 @@ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
- 
- #endif
- 
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-  * to work on, then just handle a few from the on-stack structure.
-@@ -203,6 +204,10 @@ struct mmu_gather_batch {
-  */
- #define MAX_GATHER_BATCH_COUNT	(10000UL/MAX_GATHER_BATCH)
- 
-+extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
-+				   int page_size);
-+#endif
-+
- /*
-  * struct mmu_gather is an opaque type used by the mm code for passing around
-  * any data needed by arch specific code for tlb_remove_page.
-@@ -249,6 +254,7 @@ struct mmu_gather {
- 
- 	unsigned int		batch_count;
- 
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
- 	struct mmu_gather_batch *active;
- 	struct mmu_gather_batch	local;
- 	struct page		*__pages[MMU_GATHER_BUNDLE];
-@@ -256,6 +262,7 @@ struct mmu_gather {
- #ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
- 	unsigned int page_size;
- #endif
-+#endif
- };
- 
- void arch_tlb_gather_mmu(struct mmu_gather *tlb,
-@@ -264,8 +271,6 @@ void tlb_flush_mmu(struct mmu_gather *tlb);
- void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 			 unsigned long start, unsigned long end, bool force);
- void tlb_flush_mmu_free(struct mmu_gather *tlb);
--extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
--				   int page_size);
- 
- static inline void __tlb_adjust_range(struct mmu_gather *tlb,
- 				      unsigned long address,
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 2d5e617131f6..6d5d812a040b 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -13,6 +13,8 @@
- 
- #ifdef HAVE_GENERIC_MMU_GATHER
- 
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+
- static bool tlb_next_batch(struct mmu_gather *tlb)
- {
- 	struct mmu_gather_batch *batch;
-@@ -41,6 +43,63 @@ static bool tlb_next_batch(struct mmu_gather *tlb)
- 	return true;
- }
- 
-+static void tlb_batch_pages_flush(struct mmu_gather *tlb)
-+{
-+	struct mmu_gather_batch *batch;
-+
-+	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
-+		free_pages_and_swap_cache(batch->pages, batch->nr);
-+		batch->nr = 0;
-+	}
-+	tlb->active = &tlb->local;
-+}
-+
-+static void tlb_batch_list_free(struct mmu_gather *tlb)
-+{
-+	struct mmu_gather_batch *batch, *next;
-+
-+	for (batch = tlb->local.next; batch; batch = next) {
-+		next = batch->next;
-+		free_pages((unsigned long)batch, 0);
-+	}
-+	tlb->local.next = NULL;
-+}
-+
-+/* __tlb_remove_page
-+ *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)), while
-+ *	handling the additional races in SMP caused by other CPUs caching valid
-+ *	mappings in their TLBs. Returns the number of free page slots left.
-+ *	When out of page slots we must call tlb_flush_mmu().
-+ *returns true if the caller should flush.
-+ */
-+bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_size)
-+{
-+	struct mmu_gather_batch *batch;
-+
-+	VM_BUG_ON(!tlb->end);
-+
-+#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
-+	VM_WARN_ON(tlb->page_size != page_size);
-+#endif
-+
-+	batch = tlb->active;
-+	/*
-+	 * Add the page and check if we are full. If so
-+	 * force a flush.
-+	 */
-+	batch->pages[batch->nr++] = page;
-+	if (batch->nr == batch->max) {
-+		if (!tlb_next_batch(tlb))
-+			return true;
-+		batch = tlb->active;
-+	}
-+	VM_BUG_ON_PAGE(batch->nr > batch->max, page);
-+
-+	return false;
-+}
-+
-+#endif
-+
- void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 				unsigned long start, unsigned long end)
- {
-@@ -48,12 +107,15 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 
- 	/* Is it from 0 to ~0? */
- 	tlb->fullmm     = !(start | (end+1));
-+
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
- 	tlb->need_flush_all = 0;
- 	tlb->local.next = NULL;
- 	tlb->local.nr   = 0;
- 	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
- 	tlb->active     = &tlb->local;
- 	tlb->batch_count = 0;
-+#endif
- 
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb->batch = NULL;
-@@ -67,16 +129,12 @@ void arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 
- void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
--	struct mmu_gather_batch *batch;
--
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
- #endif
--	for (batch = &tlb->local; batch && batch->nr; batch = batch->next) {
--		free_pages_and_swap_cache(batch->pages, batch->nr);
--		batch->nr = 0;
--	}
--	tlb->active = &tlb->local;
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+	tlb_batch_pages_flush(tlb);
-+#endif
- }
- 
- void tlb_flush_mmu(struct mmu_gather *tlb)
-@@ -92,8 +150,6 @@ void tlb_flush_mmu(struct mmu_gather *tlb)
- void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 		unsigned long start, unsigned long end, bool force)
- {
--	struct mmu_gather_batch *batch, *next;
--
- 	if (force) {
- 		__tlb_reset_range(tlb);
- 		__tlb_adjust_range(tlb, start, end - start);
-@@ -103,45 +159,9 @@ void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	for (batch = tlb->local.next; batch; batch = next) {
--		next = batch->next;
--		free_pages((unsigned long)batch, 0);
--	}
--	tlb->local.next = NULL;
--}
--
--/* __tlb_remove_page
-- *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)), while
-- *	handling the additional races in SMP caused by other CPUs caching valid
-- *	mappings in their TLBs. Returns the number of free page slots left.
-- *	When out of page slots we must call tlb_flush_mmu().
-- *returns true if the caller should flush.
-- */
--bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page, int page_size)
--{
--	struct mmu_gather_batch *batch;
--
--	VM_BUG_ON(!tlb->end);
--
--#ifdef CONFIG_HAVE_MMU_GATHER_PAGE_SIZE
--	VM_WARN_ON(tlb->page_size != page_size);
-+#ifndef CONFIG_HAVE_MMU_GATHER_NO_GATHER
-+	tlb_batch_list_free(tlb);
- #endif
--
--	batch = tlb->active;
--	/*
--	 * Add the page and check if we are full. If so
--	 * force a flush.
--	 */
--	batch->pages[batch->nr++] = page;
--	if (batch->nr == batch->max) {
--		if (!tlb_next_batch(tlb))
--			return true;
--		batch = tlb->active;
--	}
--	VM_BUG_ON_PAGE(batch->nr > batch->max, page);
--
--	return false;
- }
- 
- #endif /* HAVE_GENERIC_MMU_GATHER */
+Martin Schwidefsky (2):
+  asm-generic/tlb: introduce HAVE_MMU_GATHER_NO_GATHER
+  s390/tlb: convert to generic mmu_gather
+
+ arch/Kconfig                |   3 +
+ arch/s390/Kconfig           |   3 +
+ arch/s390/include/asm/tlb.h | 130 ++++++++++++++------------------------------
+ arch/s390/mm/pgalloc.c      |  63 +--------------------
+ include/asm-generic/tlb.h   |   9 ++-
+ mm/mmu_gather.c             | 114 ++++++++++++++++++++++----------------
+ 6 files changed, 121 insertions(+), 201 deletions(-)
+
 -- 
 2.16.4
