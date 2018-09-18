@@ -1,85 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:53114 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726526AbeIRFm2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 01:42:28 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:33883 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729070AbeIRFmb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 01:42:31 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 18 Sep 2018 02:05:45 +0200
-Message-ID: <20180918000546.12552-19-ebiederm@xmission.com>
+Date: Tue, 18 Sep 2018 02:05:42 +0200
+Message-ID: <20180918000546.12552-16-ebiederm@xmission.com>
 In-Reply-To: <87y3bzk6yv.fsf@xmission.com>
 References: <87y3bzk6yv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 19/20] signal/x86: Pass pkey by value
+Subject: [REVIEW][PATCH 16/20] signal/x86: Pass pkey not vma into __bad_area
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180918000545.ixBht_w-SJZl-lO7LyGJWNKacc2xVupujZWvXlbKCGE@z>
+Message-ID: <20180918000542.ydkoFyDJSIbAMPZGag_o8krAkr2z0cm1mIuMKkvNKIw@z>
 
-Now that si_code == SEGV_PKUERR is the flag indicating that a pkey
-is present there is no longer a need to pass a pointer to a local
-pkey value, instead pkey can be passed more efficiently by value.
+There is only one caller of __bad_area that passes in PKUERR and thus
+will generate a siginfo with si_pkey set.  Therefore simplify the
+logic and hoist reading of vma_pkey up into that caller, and just
+pass *pkey into __bad_area.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/x86/mm/fault.c | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/x86/mm/fault.c | 18 +++++++-----------
+ 1 file changed, 7 insertions(+), 11 deletions(-)
 
 diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 548396aa03e1..c09a0c2fa614 100644
+index f82106578364..11a93f14a674 100644
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
-@@ -769,7 +769,7 @@ show_signal_msg(struct pt_regs *regs, unsigned long error_code,
- 
- static void
- __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
--		       unsigned long address, u32 *pkey, int si_code)
-+		       unsigned long address, u32 pkey, int si_code)
- {
- 	struct task_struct *tsk = current;
- 
-@@ -818,7 +818,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
- 		tsk->thread.trap_nr	= X86_TRAP_PF;
- 
- 		if (si_code == SEGV_PKUERR)
--			force_sig_pkuerr((void __user *)address, *pkey);
-+			force_sig_pkuerr((void __user *)address, pkey);
- 
- 		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
- 
-@@ -835,12 +835,12 @@ static noinline void
- bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
- 		     unsigned long address)
- {
--	__bad_area_nosemaphore(regs, error_code, address, NULL, SEGV_MAPERR);
-+	__bad_area_nosemaphore(regs, error_code, address, 0, SEGV_MAPERR);
- }
+@@ -904,22 +904,16 @@ bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
  
  static void
  __bad_area(struct pt_regs *regs, unsigned long error_code,
--	   unsigned long address, u32 *pkey, int si_code)
-+	   unsigned long address, u32 pkey, int si_code)
+-	   unsigned long address,  struct vm_area_struct *vma, int si_code)
++	   unsigned long address, u32 *pkey, int si_code)
  {
  	struct mm_struct *mm = current->mm;
+-	u32 pkey;
+-
+-	if (vma)
+-		pkey = vma_pkey(vma);
+-
  	/*
-@@ -855,7 +855,7 @@ __bad_area(struct pt_regs *regs, unsigned long error_code,
- static noinline void
- bad_area(struct pt_regs *regs, unsigned long error_code, unsigned long address)
- {
--	__bad_area(regs, error_code, address, NULL, SEGV_MAPERR);
-+	__bad_area(regs, error_code, address, 0, SEGV_MAPERR);
+ 	 * Something tried to access memory that isn't in our memory map..
+ 	 * Fix it, but check if it's kernel or user first..
+ 	 */
+ 	up_read(&mm->mmap_sem);
+ 
+-	__bad_area_nosemaphore(regs, error_code, address,
+-			       (vma) ? &pkey : NULL, si_code);
++	__bad_area_nosemaphore(regs, error_code, address, pkey, si_code);
  }
  
- static inline bool bad_area_access_from_pkeys(unsigned long error_code,
-@@ -906,10 +906,10 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
- 		 *	     faulted on a pte with its pkey=4.
- 		 */
- 		u32 pkey = vma_pkey(vma);
--		__bad_area(regs, error_code, address, &pkey, SEGV_PKUERR);
-+		__bad_area(regs, error_code, address, pkey, SEGV_PKUERR);
- 	}
+ static noinline void
+@@ -954,10 +948,12 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
+ 	 * But, doing it this way allows compiler optimizations
+ 	 * if pkeys are compiled out.
+ 	 */
+-	if (bad_area_access_from_pkeys(error_code, vma))
+-		__bad_area(regs, error_code, address, vma, SEGV_PKUERR);
++	if (bad_area_access_from_pkeys(error_code, vma)) {
++		u32 pkey = vma_pkey(vma);
++		__bad_area(regs, error_code, address, &pkey, SEGV_PKUERR);
++	}
  	else
--		__bad_area(regs, error_code, address, NULL, SEGV_ACCERR);
-+		__bad_area(regs, error_code, address, 0, SEGV_ACCERR);
+-		__bad_area(regs, error_code, address, vma, SEGV_ACCERR);
++		__bad_area(regs, error_code, address, NULL, SEGV_ACCERR);
  }
  
  static void
