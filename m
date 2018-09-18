@@ -1,59 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f67.google.com ([209.85.161.67]:40786 "EHLO
-        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727252AbeIRR35 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:29:57 -0400
-Received: by mail-yw1-f67.google.com with SMTP id z143-v6so641716ywa.7
-        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 04:57:41 -0700 (PDT)
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:45921 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729345AbeIRRrx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:47:53 -0400
+Received: by mail-yw1-f65.google.com with SMTP id p206-v6so651217ywg.12
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 05:15:33 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a221wz4iqwoKcof2ioVWzHmUCOwt8Y5cdVPvZEEtHcycQ@mail.gmail.com>
-References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
- <1536914314-5026-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a221wz4iqwoKcof2ioVWzHmUCOwt8Y5cdVPvZEEtHcycQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com>
+References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
+ <1536913980-4811-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com>
 From: Firoz Khan <firoz.khan@linaro.org>
-Date: Tue, 18 Sep 2018 17:27:40 +0530
-Message-ID: <CALxhOnjxFiWd_rTKnUo4dAYZZgqi_AqVsCj1AB8yHL-KwvMpQQ@mail.gmail.com>
-Subject: Re: [PATCH 2/3] mips: Add system call table generation support
+Date: Tue, 18 Sep 2018 17:45:32 +0530
+Message-ID: <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com>
+Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Hauke Mehrtens <hauke@hauke-m.de>, =?UTF-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180918115740.EZtX0UU3aPnJQzB478jgOQIxCxhRzyJhQv_akynkqSw@z>
+Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ram Pai <linuxram@us.ibm.com>, Breno Leitao <leitao@debian.org>, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180918121532.H_63PUXKOWjXjtaMri432VGyjGSjQYsBaJ5PTpxhWIQ@z>
 
-On 14 September 2018 at 15:28, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Fri, Sep 14, 2018 at 10:39 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->>
->> The system call tables are in different format in all
->> architecture and it will be difficult to manually add or
->> modify the system calls in the respective files. To make
->> it easy by keeping a script and which'll generate the
->> header file and syscall table file so this change will
->> unify them across all architectures.
->>
->> The system call table generation script is added in
->> syscalls directory which contain the script to generate
->> both uapi header file system call table generation file
->> and syscall_32/64.tbl file which'll be the input for the
->> scripts.
+On 14 September 2018 at 15:31, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> I think it would be best to name the files
-> o32/n64/n32 instead of 32/64/n32
+>> ---
+>>  arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
+>>  arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 ++++++++++++++++++++++++++++
+>>  arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 +++++++++++++++++++++++++++
+>>  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
+>>  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
+>
+> I think you should only need a single .tbl  input file here.
 
-This is an easy fix. I'll make it in the next version.
+Yes, we can do that way also.As I mentioned, it will add
+more complexity in the script.
+
+ The script has to be smart enough to parse the
+.tbl if we add more thing in the .tble file. It need more
+logic in the scripts. This is not common. So if you keep
+separate .tbl we can avoid this.
+
+ABI flag is serving *nothing* in all other architecture including
+SPARC.
+
+But as I told in the cover letter, I followed x86/arm/
+s390 architecture's system table generation implementation.
+They are keeping ABI flag. In our case we can delete this
+flag completely from all architectures.
+
+Most of the architecture these 32/64 similarity is absent.
+So it would be better keep separate files to maintain a
+generic script across all architecture.
 
 >
-> It would also be helpful to mention why the n32/n64
-> files cannot be combined into one nfile here.
+>
+>> +
+>> +systbl_abi_syscall_table_32 := 32
+>> +$(out)/syscall_table_32.h: $(syscall32) $(systbl)
+>> +       $(call if_changed,systbl)
+>> +
+>> +systbl_abi_syscall_table_64 := 64
+>> +$(out)/syscall_table_64.h: $(syscall64) $(systbl)
+>> +       $(call if_changed,systbl)
+>> +
+>> +systbl_abi_syscall_table_c32 := c32
+>> +$(out)/syscall_table_c32.h: $(syscall32) $(systbl)
+>> +       $(call if_changed,systbl)
+>
+> And here you need a fourth output file for the SPU table on ppc64.
 
-Sure.
+Hmm. Let me have a look where things went wrong.
 
 >
+>> +383     common  statx                           sys_statx
+>> +384     common  pkey_alloc                      sys_pkey_alloc
+>> +385     common  pkey_free                       sys_pkey_free
+>> +386     common  pkey_mprotect                   sys_pkey_mprotect
 >
->> +364     32      pkey_alloc                      sys_pkey_alloc
->> +365     32      pkey_free                       sys_pkey_free
->> +366     32      statx                           sys_statx
->
-> You missed the additon of rseq and io_pgetevetns here.
+> This also misses rseq and io_pgetevents.
 
 As I mentioned in the cover letter:
 "I started working system call table generation on 4.17-rc1. I used
