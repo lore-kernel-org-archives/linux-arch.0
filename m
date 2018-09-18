@@ -1,69 +1,73 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
- demand based pte insertion
-Date: Tue, 18 Sep 2018 03:53:37 +1000
-Message-ID: <20180918035337.0727dad0@roar.ozlabs.ibm.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
-        <20180828112034.30875-4-npiggin@gmail.com>
-        <20180905142951.GA15680@roeck-us.net>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [REVIEW][PATCH 00/20] siginfo cleanups for x86
+Date: Tue, 18 Sep 2018 02:03:04 +0200
+Message-ID: <87y3bzk6yv.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180905142951.GA15680@roeck-us.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 5 Sep 2018 07:29:51 -0700
-Guenter Roeck <linux@roeck-us.net> wrote:
 
-> Hi,
-> 
-> On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:
-> > Similarly to the previous patch, this tries to optimise dirty/accessed
-> > bits in ptes to avoid access costs of hardware setting them.
-> >   
-> 
-> This patch results in silent nios2 boot failures, silent meaning that
-> the boot stalls.
+I have been slowly going thought and reworking the arch specific
+functions that generate siginfo.  The problems I have been addressing
+is that using siginfo directly is error prone.  Using siginfo directly
+makes it easy to leave fields initialized, and get confused about
+which fields need to be filled in.
 
-Okay I just got back to looking at this. The reason for the hang is
-I think a bug in the nios2 TLB code, but maybe other archs have similar
-issues.
+To address this I have added a series of helper functions to
+kernel/signal.c, that are specific to exactly one use of struct siginfo
+and take the parameters they need.
 
-In case of a missing / !present Linux pte, nios2 installs a TLB entry
-with no permissions via its fast TLB exception handler (software TLB
-fill). Then it relies on that causing a TLB permission exception in a
-slower handler that calls handle_mm_fault to set the Linux pte and
-flushes the old TLB. Then the fast exception handler will find the new
-Linux pte.
+To use these functions the x86 signal handling needs some cleanups but
+the net result appears to be less code that is easier to follow.
 
-With this patch, nios2 has a case where handle_mm_fault does not flush
-the old TLB, which results in the TLB permission exception continually
-being retried.
+If while looking over these patches you see anything please let me know.
+I don't think I missed something but to err is human.
 
-What happens now is that fault paths like do_read_fault will install a
-Linux pte with the young bit clear and return. That will cause nios2 to
-fault again but this time go down the bottom of handle_pte_fault and to
-the access flags update with the young bit set. The young bit is seen to
-be different, so that causes ptep_set_access_flags to do a TLB flush and
-that finally allows the fast TLB handler to fire and pick up the new
-Linux pte.
+Likewise if you would like to merge these patches via the tip tree
+let me know.  Otherwise after the review is complete I plan on merging
+these into my siginfo tree.  At this point I believe all of the
+prerequisite patches are merged so it should not make a difference.
 
-With this patch, the young bit is set in the first handle_mm_fault, so
-the second handle_mm_fault no longer sees the ptes are different and
-does not flush the TLB. The spurious fault handler also does not flush
-them unless FAULT_FLAG_WRITE is set.
+Eric W. Biederman (20):
+      signal: Simplify tracehook_report_syscall_exit
+      signal/x86: Inline fill_sigtrap_info in it's only caller send_sigtrap
+      signal/x86: Move MCE error reporting out of force_sig_info_fault
+      signal/x86: Use send_sig_mceerr as apropriate
+      signal/x86: In trace_mpx_bounds_register_exception add __user annotations
+      signal/x86: Move mpx siginfo generation into do_bounds
+      signal/x86/traps: Factor out show_signal
+      signal/x86/traps: Move setting error_code and trap_nr into do_trap_no_signal
+      signal/x86/traps: Use force_sig_bnderr
+      signal/x86/traps: Use force_sig instead of open coding it.
+      signal/x86/traps: Simplify trap generation
+      signal/x86: Remove pkey parameter from bad_area_nosemaphore
+      signal/x86: Remove the pkey parameter from do_sigbus
+      signal/x86: Remove pkey parameter from mm_fault_error
+      signal/x86: Don't compute pkey in __do_page_fault
+      signal/x86: Pass pkey not vma into __bad_area
+      signal/x86: Call force_sig_pkuerr from __bad_area_nosemaphore
+      signal/x86: Replace force_sig_info_fault with force_sig_fault
+      signal/x86: Pass pkey by value
+      signal/x86: Use force_sig_fault where appropriate
 
-What nios2 should do is invalidate the TLB in update_mmu_cache. What it
-*really* should do is install the new TLB entry, I have some patches to
-make that work in qemu I can submit. But I would like to try getting
-these dirty/accessed bit optimisation in 4.20, so I will send a simple
-path to just do the TLB invalidate that could go in Andrew's git tree.
+ arch/powerpc/include/asm/ptrace.h     |   2 +-
+ arch/powerpc/kernel/traps.c           |   7 +-
+ arch/x86/entry/vsyscall/vsyscall_64.c |   9 +-
+ arch/x86/include/asm/mpx.h            |  13 ++-
+ arch/x86/include/asm/ptrace.h         |   2 +-
+ arch/x86/include/asm/trace/mpx.h      |   4 +-
+ arch/x86/kernel/ptrace.c              |  29 ++----
+ arch/x86/kernel/traps.c               | 175 ++++++++++++++--------------------
+ arch/x86/kernel/umip.c                |   8 +-
+ arch/x86/kvm/mmu.c                    |  11 +--
+ arch/x86/mm/fault.c                   | 161 +++++++++++--------------------
+ arch/x86/mm/mpx.c                     |  30 ++----
+ include/linux/ptrace.h                |  17 ++--
+ include/linux/tracehook.h             |  13 +--
+ 14 files changed, 175 insertions(+), 306 deletions(-)
 
-Is that agreeable with the nios2 maintainers?
-
-Thanks,
-Nick
+Eric
