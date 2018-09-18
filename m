@@ -1,31 +1,87 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH 2/4] sparc: Replace NR_SYSCALLS macro with __NR_SYSCALLS
-Date: Tue, 18 Sep 2018 15:15:18 +0530
-Message-ID: <CALxhOngq7kjFTA=oQBzV5fEtdtCq6ytb8excP76Gshikq3Q-4A@mail.gmail.com>
-References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
- <1536036087-15260-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a3_tzeKf2PFa4LMym3UgBPu380H9LGyGLTDJEu7aNyecQ@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
+Date: Tue, 18 Sep 2018 12:04:31 +0200
+Message-ID: <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
+References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
+ <1533791723-3882-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
+ <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3_tzeKf2PFa4LMym3UgBPu380H9LGyGLTDJEu7aNyecQ@mail.gmail.com>
+In-Reply-To: <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: firoz.khan@linaro.org
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On 6 September 2018 at 20:59, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->
->>
->> -#define NR_syscalls            361
->> +#define __NR_syscalls          361
->
-> What about the suggestion that was made earlier to enclose this in
-> #ifdef __KERNEL__?
+Hi Firoz,
 
-The issue, keeping __NR_syscalls in uapi header was pointed out by
-Michal Simek (microblaze) and Geert Uytterhoeven (m68k). I replied
-them with this suggestion (enclose with #ifdef __KERNEL__). Once
-they agree, my next version of patch series will have this change.
+On Tue, Sep 18, 2018 at 9:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> On 9 August 2018 at 13:00, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > One first comment below...
+> >
+> > On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >> NR_syscalls macro holds the number of system call exist in m68k
+> >> architecture. This macro is currently the part of asm/unistd.h file.
+> >> We have to change the value of NR_syscalls, if we add or delete a
+> >> system call.
+> >>
+> >> One of patch in this patch series has a script which will generate
+> >> a uapi header based on syscall.tbl file. The syscall.tbl file
+> >> contains the number of system call information. So we have two
+> >> option to update NR_syscalls value.
+> >>
+> >> 1. Update NR_syscalls in asm/unistd.h manually by counting the
+> >>    no.of system calls. No need to update NR_syscalls untill
+> >>    we either add a new system call or delete an existing system
+> >>    call.
+> >>
+> >> 2. We can keep this feature it above mentioned script, that'll
+> >>    count the number of syscalls and keep it in a generated file.
+> >>    In this case we don't need to explicitly update NR_syscalls
+> >>    in asm/unistd.h file.
+> >>
+> >> The 2nd option will be the recommended one. For that, I moved the
+> >> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+> >> name also changed form NR_syscalls to __NR_syscalls for making the
+> >> name convention same across all architecture. While __NR_syscalls
+> >> isn't strictly part of the uapi, having it as part of the generated
+> >> header to simplifies the implementation.
+> >
+> > It can indeed not be part of the UAPI, as UAPI definitions can never change,
+> > while new syscalls will be added in the future, increasing the number ;-)
+>
+> Thanks for your reply :)
+> Sorry for the delayed response :(
+>
+> I would like to keep __NR_syscalls macro to uapi header in order to simplify
+> the system call table generation script. Otherwise the __NR_syscalls
+> macro need to update manually. That become a problem.
+>
+> Please check the below implementation in uapi file make sense?
+> It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
+> and enclose it in #ifdef __KERNEL__
+>
+> ...
+> ...
+> #define __NR_pwritev2  378
+> #define __NR_statx      379
+>
+> #ifdef __KERNEL__
+> #define __NR_syscalls   380
+> #endif
+> ...
+> ...
 
-- Firoz
+#ifdef __KERNEL__ sounds fine to me.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
