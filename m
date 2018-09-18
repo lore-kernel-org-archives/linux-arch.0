@@ -1,82 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:45554 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727756AbeIRTnD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Sep 2018 15:43:03 -0400
-Date: Tue, 18 Sep 2018 15:10:34 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 07/11] arm/tlb: Convert to generic mmu_gather
-Message-ID: <20180918141034.GF16498@arm.com>
-References: <20180913092110.817204997@infradead.org>
- <20180913092812.247989787@infradead.org>
+Received: from mail-yb1-f195.google.com ([209.85.219.195]:43439 "EHLO
+        mail-yb1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729689AbeIRTpy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 15:45:54 -0400
+Received: by mail-yb1-f195.google.com with SMTP id w80-v6so851942ybe.10
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 07:13:06 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180913092812.247989787@infradead.org>
+In-Reply-To: <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org> <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Tue, 18 Sep 2018 19:43:06 +0530
+Message-ID: <CALxhOngEqaA6sNKG_eRTTgnjj94vM2OftbpgHPEXMZ0Yv_nC2w@mail.gmail.com>
+Subject: Re: [PATCH 0/3] System call table generation support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
-Message-ID: <20180918141034.siSLKtRFsHGY6Ue-j5wsRw1flr6PG95yKeqYuHvk27E@z>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Hauke Mehrtens <hauke@hauke-m.de>, =?UTF-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180918141306.jx8d1PdPdcF7gPiJ5ZJ2RQb5BqXchfy2-wK98hD7QiA@z>
 
-Hi Peter,
+On 17 September 2018 at 22:47, Paul Burton <paul.burton@mips.com> wrote:
+> Hi Firoz,
+>
+> On Fri, Sep 14, 2018 at 02:08:31PM +0530, Firoz Khan wrote:
+>> The purpose of this patch series is:
+>> 1. We can easily add/modify/delete system call by changing entry
+>> in syscall.tbl file. No need to manually edit many files.
+>>
+>> 2. It is easy to unify the system call implementation across all
+>> the architectures.
+>>
+>> The system call tables are in different format in all architecture
+>> and it will be difficult to manually add or modify the system calls
+>> in the respective files manually. To make it easy by keeping a script
+>> and which'll generate the header file and syscall table file so this
+>> change will unify them across all architectures.
+>
+> Interesting :)
+>
+> I actually started on something similar recently with the goals of
+> reducing the need to adjust both asm/unistd.h & the syscall entry tables
+> when adding syscalls, clean up asm/unistd.h a bit & make it
+> easier/cleaner to add support for nanoMIPS & the P32 ABI.
+>
+> My branch still needed some work but it's here if you're interested:
+>
+>     git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git wip-mips-syscalls
+>
+>     https://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git/log/?h=wip-mips-syscalls
+>
+> There are some differences:
+>
+>   - I'd placed syscall numbers the 3 current MIPS ABIs in one table,
+>     rather than splitting it up. I can see pros & cons to both though so
+>     I'm not tied to having a single all-encompassing table.
+>
+>   - I'd mostly inferred the entry point names from the syscall names,
+>     only specifying them where they differ. Again I'm not particularly
+>     tied to this.
+>
+>   - I'd made asm/unistd.h behave like asm-generic/unistd.h with the
+>     __SYSCALL() macro, where you generate separate syscall_table_*
+>     headers. I'm fine with that too.
+>
+> So I'm pretty happy to go with your series, though I agree with Arnd on
+> the ABI/file naming & the missing syscalls that were added in the 4.18
+> cycle. We probably need to provide mipsmt_sys_sched_[gs]etaffinity as
+> aliases to sys_sched_[gs]etaffinity when CONFIG_MIPS_MT_FPAFF isn't
+> enabled in order to fix the issue the kbuild test robot reported.
+>
+> But I'm looking forward to v2 :)
+>
+> Thanks,
+>     Paul
 
-On Thu, Sep 13, 2018 at 11:21:17AM +0200, Peter Zijlstra wrote:
-> Generic mmu_gather provides everything that ARM needs:
-> 
->  - range tracking
->  - RCU table free
->  - VM_EXEC tracking
->  - VIPT cache flushing
-> 
-> The one notable curiosity is the 'funny' range tracking for classical
-> ARM in __pte_free_tlb().
-> 
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Nick Piggin <npiggin@gmail.com>
-> Cc: Russell King <linux@armlinux.org.uk>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  arch/arm/include/asm/tlb.h |  255 ++-------------------------------------------
->  1 file changed, 14 insertions(+), 241 deletions(-)
+Thanks for your comments :)
 
-So whilst I was reviewing this, I realised that I think we should be
-selecting HAVE_RCU_TABLE_INVALIDATE for arch/arm/ if HAVE_RCU_TABLE_FREE.
+We're planning to come up with a generic script for system call table
+generation across all the architecture. So certain things I have to keep
+same across  all the architecture.
 
-Whilst we don't distinguish between invalidation of intermediate and leaf
-levels on 32-bit, the CPU is still permitted to cache partial translation
-table walks even if the leaf entry indicates a fault. That means that
-after tearing down the PTEs, we can still get walk cache allocations and
-so if the RCU batching of the page tables fails, we need to invalidate
-the TLB after clearing the intermediate entries but before freeing them.
+Having a single script is always our plan for long run. But I have to keep a
+separate versions for the start so each architecture can be handled  in one
+series. Which would make easier to merge in the initial version.
 
-> -static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
-> -	unsigned long addr)
-> +__pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte, unsigned long addr)
->  {
->  	pgtable_page_dtor(pte);
->  
-> -#ifdef CONFIG_ARM_LPAE
-> -	tlb_add_flush(tlb, addr);
-> -#else
-> +#ifndef CONFIG_ARM_LPAE
->  	/*
->  	 * With the classic ARM MMU, a pte page has two corresponding pmd
->  	 * entries, each covering 1MB.
->  	 */
-> -	addr &= PMD_MASK;
-> -	tlb_add_flush(tlb, addr + SZ_1M - PAGE_SIZE);
-> -	tlb_add_flush(tlb, addr + SZ_1M);
-> +	addr = (addr & PMD_MASK) + SZ_1M;
-> +	__tlb_adjust_range(tlb, addr - PAGE_SIZE, addr + PAGE_SIZE);
+we could probably add it to scripts/*.sh first, but that requires more
+coordination between the architectures.
 
-Hmm, I don't think you've got the range correct here. Don't we want
-something like:
-
-	__tlb_adjust_range(tlb, addr - PAGE_SIZE, 2 * PAGE_SIZE)
-
-to ensure that we flush on both sides of the 1M boundary?
-
-Will
+- Firoz
