@@ -1,177 +1,84 @@
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 11/20] signal/x86/traps: Simplify trap generation
-Date: Tue, 18 Sep 2018 02:05:37 +0200
-Message-ID: <20180918000546.12552-11-ebiederm@xmission.com>
-References: <87y3bzk6yv.fsf@xmission.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH 1/3] microblaze: Replace NR_syscalls macro from asm/unistd.h
+Date: Tue, 18 Sep 2018 12:07:01 +0530
+Message-ID: <CALxhOnho6av7nZja_MN4akQuVj1hVq753ZYgRM8fbKkL2rHzQw@mail.gmail.com>
+References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
+ <1533792466-4227-2-git-send-email-firoz.khan@linaro.org> <f1e95c4d-4f02-263d-7f35-cc87bc657fbb@xilinx.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87y3bzk6yv.fsf@xmission.com>
+In-Reply-To: <f1e95c4d-4f02-263d-7f35-cc87bc657fbb@xilinx.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Update the DO_ERROR macro to take si_code and si_addr values for a siginfo,
-removing the need for the fill_trap_info function.
+On 9 August 2018 at 12:18, Michal Simek <michal.simek@xilinx.com> wrote:
+> On 9.8.2018 07:27, Firoz Khan wrote:
+>> __NR_syscalls macro holds the number of system call exist in this
+>> architecture. This macro is currently the part of asm/unistd.h file.
+>> We have change the value of __NR_syscalls, if we add or delete a
+>> system call.
+>>
+>> One of the patch in this patch series has a script which will
+>> generate a uapi header based on syscall.tbl file. The syscall.tbl
+>> file contains the number of system call information. So we have
+>> two option to update __NR_syscalls value.
+>>
+>> 1. Update __NR_syscalls in asm/unistd.h manually by counting the
+>>    no.of system calls. No need to update __NR_syscalls untill
+>>    we either add a new system call or delete an existing system
+>>    call.
+>>
+>> 2. We can keep this feature it above mentioned script, that'll
+>>    count the number of syscalls and keep it in a generated file.
+>>    In this case we don't need to explicitly update __NR_syscalls
+>>    in asm/unistd.h file.
+>>
+>> The 2nd option will be the recommended one. For that, I moved the
+>> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+>> name also changed form NR_syscalls to __NR_syscalls for making the
+>> name convention same across all architecture. While __NR_syscalls
+>> isn't strictly part of the uapi, having it as part of the generated
+>> header to simplifies the implementation.
+>
+> This macro was in unistd.h in past but it was moved out because it was
+> causing problem with strace.
+>
+> commit 40c2702a02b755e0183b702778331b351f3be20c
+> Author:     Michal Simek <michal.simek@xilinx.com>
+> AuthorDate: Mon Jul 8 09:50:24 2013 +0200
+> Commit:     Michal Simek <michal.simek@xilinx.com>
+> CommitDate: Wed Jul 10 07:32:09 2013 +0200
+>
+>     microblaze: Move __NR_syscalls from uapi
+>
+>
+> That's why I don't think this is the right thing to do.
+> I have grepped strace and glibc and none is using this macro that's why
+> I think it shouldn't be exported via uapi.
 
-Update do_trap to also take the sicode and si_addr values for a sigininfo
-and modify the code to call force_sig when a sicode is not passed in
-and to call force_sig_fault when all of the information is present.
 
-Making this a more obvious, simpler and less error prone construction.
+Thanks for you reply :)
+Sorry for the delayed response :(
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/x86/kernel/traps.c | 85 ++++++++++++-----------------------------
- 1 file changed, 24 insertions(+), 61 deletions(-)
+I would like to keep __NR_syscalls macro to uapi header in order to simplify
+the system call table generation script. Otherwise the __NR_syscalls
+macro need to update manually. That become a problem.
 
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 3e4a3172d711..eb54f1964252 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -241,40 +241,9 @@ static void show_signal(struct task_struct *tsk, int signr,
- 	}
- }
- 
--static siginfo_t *fill_trap_info(struct pt_regs *regs, int signr, int trapnr,
--				siginfo_t *info)
--{
--	unsigned long siaddr;
--	int sicode;
--
--	switch (trapnr) {
--	default:
--		return SEND_SIG_PRIV;
--
--	case X86_TRAP_DE:
--		sicode = FPE_INTDIV;
--		siaddr = uprobe_get_trap_addr(regs);
--		break;
--	case X86_TRAP_UD:
--		sicode = ILL_ILLOPN;
--		siaddr = uprobe_get_trap_addr(regs);
--		break;
--	case X86_TRAP_AC:
--		sicode = BUS_ADRALN;
--		siaddr = 0;
--		break;
--	}
--
--	info->si_signo = signr;
--	info->si_errno = 0;
--	info->si_code = sicode;
--	info->si_addr = (void __user *)siaddr;
--	return info;
--}
--
- static void
- do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
--	long error_code, siginfo_t *info)
-+	long error_code, int sicode, void __user *addr)
- {
- 	struct task_struct *tsk = current;
- 
-@@ -284,15 +253,16 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
- 
- 	show_signal(tsk, signr, "trap ", str, regs, error_code);
- 
--	force_sig_info(signr, info ?: SEND_SIG_PRIV, tsk);
-+	if (!sicode)
-+		force_sig(signr, tsk);
-+	else
-+		force_sig_fault(signr, sicode, addr, tsk);
- }
- NOKPROBE_SYMBOL(do_trap);
- 
- static void do_error_trap(struct pt_regs *regs, long error_code, char *str,
--			  unsigned long trapnr, int signr)
-+	unsigned long trapnr, int signr, int sicode, void __user *addr)
- {
--	siginfo_t info;
--
- 	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
- 
- 	/*
-@@ -305,26 +275,26 @@ static void do_error_trap(struct pt_regs *regs, long error_code, char *str,
- 	if (notify_die(DIE_TRAP, str, regs, error_code, trapnr, signr) !=
- 			NOTIFY_STOP) {
- 		cond_local_irq_enable(regs);
--		clear_siginfo(&info);
--		do_trap(trapnr, signr, str, regs, error_code,
--			fill_trap_info(regs, signr, trapnr, &info));
-+		do_trap(trapnr, signr, str, regs, error_code, sicode, addr);
- 	}
- }
- 
--#define DO_ERROR(trapnr, signr, str, name)				\
--dotraplinkage void do_##name(struct pt_regs *regs, long error_code)	\
--{									\
--	do_error_trap(regs, error_code, str, trapnr, signr);		\
-+#define IP ((void __user *)uprobe_get_trap_addr(regs))
-+#define DO_ERROR(trapnr, signr, sicode, addr, str, name)		   \
-+dotraplinkage void do_##name(struct pt_regs *regs, long error_code)	   \
-+{									   \
-+	do_error_trap(regs, error_code, str, trapnr, signr, sicode, addr); \
- }
- 
--DO_ERROR(X86_TRAP_DE,     SIGFPE,  "divide error",		divide_error)
--DO_ERROR(X86_TRAP_OF,     SIGSEGV, "overflow",			overflow)
--DO_ERROR(X86_TRAP_UD,     SIGILL,  "invalid opcode",		invalid_op)
--DO_ERROR(X86_TRAP_OLD_MF, SIGFPE,  "coprocessor segment overrun",coprocessor_segment_overrun)
--DO_ERROR(X86_TRAP_TS,     SIGSEGV, "invalid TSS",		invalid_TSS)
--DO_ERROR(X86_TRAP_NP,     SIGBUS,  "segment not present",	segment_not_present)
--DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
--DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",		alignment_check)
-+DO_ERROR(X86_TRAP_DE,     SIGFPE,  FPE_INTDIV,   IP, "divide error",        divide_error)
-+DO_ERROR(X86_TRAP_OF,     SIGSEGV,          0, NULL, "overflow",            overflow)
-+DO_ERROR(X86_TRAP_UD,     SIGILL,  ILL_ILLOPN,   IP, "invalid opcode",      invalid_op)
-+DO_ERROR(X86_TRAP_OLD_MF, SIGFPE,           0, NULL, "coprocessor segment overrun", coprocessor_segment_overrun)
-+DO_ERROR(X86_TRAP_TS,     SIGSEGV,          0, NULL, "invalid TSS",         invalid_TSS)
-+DO_ERROR(X86_TRAP_NP,     SIGBUS,           0, NULL, "segment not present", segment_not_present)
-+DO_ERROR(X86_TRAP_SS,     SIGBUS,           0, NULL, "stack segment",       stack_segment)
-+DO_ERROR(X86_TRAP_AC,     SIGBUS,  BUS_ADRALN, NULL, "alignment check",     alignment_check)
-+#undef IP
- 
- #ifdef CONFIG_VMAP_STACK
- __visible void __noreturn handle_stack_overflow(const char *message,
-@@ -541,7 +511,7 @@ dotraplinkage void do_bounds(struct pt_regs *regs, long error_code)
- 	 * up here if the kernel has MPX turned off at compile
- 	 * time..
- 	 */
--	do_trap(X86_TRAP_BR, SIGSEGV, "bounds", regs, error_code, NULL);
-+	do_trap(X86_TRAP_BR, SIGSEGV, "bounds", regs, error_code, 0, NULL);
- }
- 
- dotraplinkage void
-@@ -625,7 +595,7 @@ dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
- 		goto exit;
- 
- 	cond_local_irq_enable(regs);
--	do_trap(X86_TRAP_BP, SIGTRAP, "int3", regs, error_code, NULL);
-+	do_trap(X86_TRAP_BP, SIGTRAP, "int3", regs, error_code, 0, NULL);
- 	cond_local_irq_disable(regs);
- 
- exit:
-@@ -936,20 +906,13 @@ NOKPROBE_SYMBOL(do_device_not_available);
- #ifdef CONFIG_X86_32
- dotraplinkage void do_iret_error(struct pt_regs *regs, long error_code)
- {
--	siginfo_t info;
--
- 	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
- 	local_irq_enable();
- 
--	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_BADSTK;
--	info.si_addr = NULL;
- 	if (notify_die(DIE_TRAP, "iret exception", regs, error_code,
- 			X86_TRAP_IRET, SIGILL) != NOTIFY_STOP) {
- 		do_trap(X86_TRAP_IRET, SIGILL, "iret exception", regs, error_code,
--			&info);
-+			ILL_BADSTK, (void __user *)NULL);
- 	}
- }
- #endif
--- 
-2.17.1
+Please check the below implementation in uapi file make sense?
+It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
+and enclose it in #ifdef __KERNEL__
+
+...
+...
+#define __NR_pkey_free  397
+#define __NR_statx      398
+
+#ifdef __KERNEL__
+#define __NR_syscalls   399
+#endif
+...
+...
+
+- Firoz
