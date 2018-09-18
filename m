@@ -1,40 +1,51 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v4 2/2] tty/serial: atmel: add ISO7816 support
-Date: Tue, 18 Sep 2018 15:28:56 +0200
-Message-ID: <20180918132856.GA14333@kroah.com>
-References: <20180906134214.29031-1-ludovic.desroches@microchip.com>
- <20180906134214.29031-3-ludovic.desroches@microchip.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V7 1/2] csky/dma: bugfix dma_sync_for_cpu/device
+Date: Tue, 18 Sep 2018 21:48:13 +0800
+Message-ID: <1ccf1bed89758a5a9b57ac2ce6d11ca898a1b9ae.1537276837.git.ren_guo@c-sky.com>
+References: <cover.1537276837.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180906134214.29031-3-ludovic.desroches@microchip.com>
+In-Reply-To: <cover.1537276837.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1537276837.git.ren_guo@c-sky.com>
+References: <cover.1537276837.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ludovic Desroches <ludovic.desroches@microchip.com>
-Cc: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org
+To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
+Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 06, 2018 at 03:42:14PM +0200, Ludovic Desroches wrote:
-> From: Nicolas Ferre <nicolas.ferre@microchip.com>
-> 
-> When mode is set in atmel_config_iso7816() we backup last RS232 mode
-> for coming back to this mode if requested.
-> Also allow setup of T=0 and T=1 parameter and basic support in set_termios
-> function as well.
-> 
-> Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> [ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
-> Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
-> Acked-by: Richard Genoud <richard.genoud@gmail.com>
-> ---
->  drivers/tty/serial/atmel_serial.c | 190 +++++++++++++++++++++++++++++++++++---
->  drivers/tty/serial/atmel_serial.h |   3 +-
->  2 files changed, 181 insertions(+), 12 deletions(-)
+ref: https://lkml.org/lkml/2018/5/18/1068
 
-This doesn't apply to my tree :(
+        map             for_cpu         for_device      unmap
+TO_DEV  writeback       none            writeback       none
+TO_CPU  invalidate      invalidate*     invalidate      invalidate*
+BIDIR   writeback       invalidate      writeback       invalidate
 
-Also, shouldn't this new ioctl be documented somewhere?
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/mm/dma-mapping.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-thanks,
-
-greg k-h
+diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
+index 16c2087..30a2041 100644
+--- a/arch/csky/mm/dma-mapping.c
++++ b/arch/csky/mm/dma-mapping.c
+@@ -217,7 +217,8 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+ 		break;
+ 	case DMA_FROM_DEVICE:
+ 	case DMA_BIDIRECTIONAL:
+-		BUG();
++		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
++		break;
+ 	default:
+ 		BUG();
+ 	}
+@@ -240,7 +241,7 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+ 
+ 	switch (dir) {
+ 	case DMA_TO_DEVICE:
+-		BUG();
++		break;
+ 	case DMA_FROM_DEVICE:
+ 	case DMA_BIDIRECTIONAL:
+ 		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
+-- 
+2.7.4
