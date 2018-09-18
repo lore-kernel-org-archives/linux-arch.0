@@ -1,77 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:42567 "EHLO
-        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727207AbeIRRZX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:25:23 -0400
-Received: by mail-yw1-f68.google.com with SMTP id n207-v6so632431ywn.9
-        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 04:53:08 -0700 (PDT)
+Received: from mail-yw1-f67.google.com ([209.85.161.67]:40786 "EHLO
+        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727252AbeIRR35 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:29:57 -0400
+Received: by mail-yw1-f67.google.com with SMTP id z143-v6so641716ywa.7
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 04:57:41 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a1JCnSPi+D+CozhqL0dS9WwXtONDHp4=Kg5kCHrpdYwrw@mail.gmail.com>
-References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
- <1536036087-15260-2-git-send-email-firoz.khan@linaro.org> <CAK8P3a1JCnSPi+D+CozhqL0dS9WwXtONDHp4=Kg5kCHrpdYwrw@mail.gmail.com>
+In-Reply-To: <CAK8P3a221wz4iqwoKcof2ioVWzHmUCOwt8Y5cdVPvZEEtHcycQ@mail.gmail.com>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
+ <1536914314-5026-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a221wz4iqwoKcof2ioVWzHmUCOwt8Y5cdVPvZEEtHcycQ@mail.gmail.com>
 From: Firoz Khan <firoz.khan@linaro.org>
-Date: Tue, 18 Sep 2018 17:23:07 +0530
-Message-ID: <CALxhOngCL4DEcMD7NaxbUiksByzoxaaozzZGPmB0JFziFEWojw@mail.gmail.com>
-Subject: Re: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi header
+Date: Tue, 18 Sep 2018 17:27:40 +0530
+Message-ID: <CALxhOnjxFiWd_rTKnUo4dAYZZgqi_AqVsCj1AB8yHL-KwvMpQQ@mail.gmail.com>
+Subject: Re: [PATCH 2/3] mips: Add system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180918115307.6v6c4cyre-O-VZ2yY7Re2XTaMA3oxbj_NJaGPGN-Jlo@z>
+Cc: Hauke Mehrtens <hauke@hauke-m.de>, =?UTF-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@mips.com>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180918115740.EZtX0UU3aPnJQzB478jgOQIxCxhRzyJhQv_akynkqSw@z>
 
-On 6 September 2018 at 20:58, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->
->> +++ b/arch/sparc/include/uapi/asm/unistd.h
->> @@ -15,12 +15,6 @@
->>  #ifndef _UAPI_SPARC_UNISTD_H
->>  #define _UAPI_SPARC_UNISTD_H
+On 14 September 2018 at 15:28, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Fri, Sep 14, 2018 at 10:39 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >>
->> -#ifndef __32bit_syscall_numbers__
->> -#ifndef __arch64__
->> -#define __32bit_syscall_numbers__
->> -#endif
->> -#endif
+>> The system call tables are in different format in all
+>> architecture and it will be difficult to manually add or
+>> modify the system calls in the respective files. To make
+>> it easy by keeping a script and which'll generate the
+>> header file and syscall table file so this change will
+>> unify them across all architectures.
+>>
+>> The system call table generation script is added in
+>> syscalls directory which contain the script to generate
+>> both uapi header file system call table generation file
+>> and syscall_32/64.tbl file which'll be the input for the
+>> scripts.
 >
-> This is certainly required in the uapi header as of this patch,
-> without it all the numbers are wrong when you include the
-> file from user space.
->
-> I suppose it can be removed later once the header is replaced
-> with the two generated versions,
+> I think it would be best to name the files
+> o32/n64/n32 instead of 32/64/n32
 
-The script will generate 2 versions, ie, unistd_32.h and unistd_64.h.
-Please give few more pointer here.
-
->
->> -/* Bitmask values returned from kern_features system call.  */
->> -#define KERN_FEATURE_MIXED_MODE_STACK  0x00000001
->
-> I'm fairly sure this also needs to remain in the uapi/asm/unistd.h header
-> as a start, so that user space can call the sys_kern_features() system
-> call and interpret its result when only the first patch is applied.
-
-Sure. I'll update in the next patch series. Thanks!
+This is an easy fix. I'll make it in the next version.
 
 >
->> -#ifdef __32bit_syscall_numbers__
->> -/* Sparc 32-bit only has the "setresuid32", "getresuid32" variants,
->> - * it never had the plain ones and there is no value to adding those
->> - * old versions into the syscall table.
->> - */
->> -#define __IGNORE_setresuid
->> -#define __IGNORE_getresuid
->> -#define __IGNORE_setresgid
->> -#define __IGNORE_getresgid
->> -#endif
->> -
->> -/* Sparc doesn't have protection keys. */
->> -#define __IGNORE_pkey_mprotect
->> -#define __IGNORE_pkey_alloc
->> -#define __IGNORE_pkey_free
->> -
+> It would also be helpful to mention why the n32/n64
+> files cannot be combined into one nfile here.
+
+Sure.
+
 >
-> This part is fine.
 >
->       Arnd
+>> +364     32      pkey_alloc                      sys_pkey_alloc
+>> +365     32      pkey_free                       sys_pkey_free
+>> +366     32      statx                           sys_statx
+>
+> You missed the additon of rseq and io_pgetevetns here.
+
+As I mentioned in the cover letter:
+"I started working system call table generation on 4.17-rc1. I used
+marcin's script - https://github.com/hrw/syscalls-table to generate
+the syscall.tbl file. And this will be the input to the system call
+table generation script. But there are couple system call got add
+in the latest rc release. If run Marcin's script on latest release,
+It will generate a new syscall.tbl. But I still use the old file -
+syscall.tbl and once all review got over I'll update syscall.tbl
+alone w.r.to the tip of the kernel. The impact of this thing, few
+of the system call won't work."
+
+Hopefully, the next version does have this change. Thanks!
+
+- Firoz
