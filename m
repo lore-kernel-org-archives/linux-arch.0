@@ -1,92 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f65.google.com ([209.85.217.65]:33816 "EHLO
-        mail-vs1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726838AbeIRPgf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 11:36:35 -0400
+Received: from mail-yw1-f66.google.com ([209.85.161.66]:43172 "EHLO
+        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727846AbeIRRJ2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 13:09:28 -0400
+Received: by mail-yw1-f66.google.com with SMTP id l189-v6so612516ywb.10
+        for <linux-arch@vger.kernel.org>; Tue, 18 Sep 2018 04:37:17 -0700 (PDT)
 MIME-Version: 1.0
-References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
- <1533791723-3882-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
- <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com>
-In-Reply-To: <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 18 Sep 2018 12:04:31 +0200
-Message-ID: <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
-Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
+In-Reply-To: <CAK8P3a0cfk6MG2SBRhJZ41suHw4D-dyCYGhqV9YeD_1rSMrGqQ@mail.gmail.com>
+References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
+ <1536036087-15260-4-git-send-email-firoz.khan@linaro.org> <CAK8P3a0cfk6MG2SBRhJZ41suHw4D-dyCYGhqV9YeD_1rSMrGqQ@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Tue, 18 Sep 2018 17:07:16 +0530
+Message-ID: <CALxhOnhRFEenKmC2MuudFU4NMdR3v9jGOXWfbxE96eZj+YetfQ@mail.gmail.com>
+Subject: Re: [PATCH 3/4] sparc: Add system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: firoz.khan@linaro.org
-Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, marcin.juszkiewicz@linaro.org
-Message-ID: <20180918100431._9fe7bp1jUsjrvA_Mz9eL5_qudkAhTbH9n1PYj_zygc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180918113716.anWLYK9ZYpvvxuRCZgS4nV4wPcbXrfvzZ_c_NfOepMc@z>
 
-Hi Firoz,
-
-On Tue, Sep 18, 2018 at 9:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> On 9 August 2018 at 13:00, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> > One first comment below...
-> >
-> > On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> >> NR_syscalls macro holds the number of system call exist in m68k
-> >> architecture. This macro is currently the part of asm/unistd.h file.
-> >> We have to change the value of NR_syscalls, if we add or delete a
-> >> system call.
-> >>
-> >> One of patch in this patch series has a script which will generate
-> >> a uapi header based on syscall.tbl file. The syscall.tbl file
-> >> contains the number of system call information. So we have two
-> >> option to update NR_syscalls value.
-> >>
-> >> 1. Update NR_syscalls in asm/unistd.h manually by counting the
-> >>    no.of system calls. No need to update NR_syscalls untill
-> >>    we either add a new system call or delete an existing system
-> >>    call.
-> >>
-> >> 2. We can keep this feature it above mentioned script, that'll
-> >>    count the number of syscalls and keep it in a generated file.
-> >>    In this case we don't need to explicitly update NR_syscalls
-> >>    in asm/unistd.h file.
-> >>
-> >> The 2nd option will be the recommended one. For that, I moved the
-> >> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
-> >> name also changed form NR_syscalls to __NR_syscalls for making the
-> >> name convention same across all architecture. While __NR_syscalls
-> >> isn't strictly part of the uapi, having it as part of the generated
-> >> header to simplifies the implementation.
-> >
-> > It can indeed not be part of the UAPI, as UAPI definitions can never change,
-> > while new syscalls will be added in the future, increasing the number ;-)
+On 6 September 2018 at 21:02, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> Thanks for your reply :)
-> Sorry for the delayed response :(
+>> The system call table generation script is added in
+>> syscalls directory which contain the script to generate
+>> both uapi header file system call table generation file
+>> and syscall_32/64.tbl file which'll be the input for the
+>> scripts.
 >
-> I would like to keep __NR_syscalls macro to uapi header in order to simplify
-> the system call table generation script. Otherwise the __NR_syscalls
-> macro need to update manually. That become a problem.
+> I would argue that for sparc we only want a single input
+> table, since the 32/64 versions are similar enough that the
+> differences can be addressed with 'abi' flag, rather than
+> having everything marked as 'common'. Isn't that the
+> purpose of the abi flag in the first place?
 >
-> Please check the below implementation in uapi file make sense?
-> It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
-> and enclose it in #ifdef __KERNEL__
->
-> ...
-> ...
-> #define __NR_pwritev2  378
-> #define __NR_statx      379
->
-> #ifdef __KERNEL__
-> #define __NR_syscalls   380
-> #endif
-> ...
-> ...
+>           Arnd
 
-#ifdef __KERNEL__ sounds fine to me.
+Yes, we can do that way also. But few concerns I would
+like to share with you.
 
-Gr{oetje,eeting}s,
+I feel it add the complexity in the scripts. eg:-
 
-                        Geert
+108     32    setresuid32                     sys_setresuid
+108     64    setresuid                         sys_setresuid
+This case the script has to be smart enough to parse the
+.tbl file properly. It need more logic in the scripts. This is
+not common. So if you keep separate .tbl we can avoid
+this.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+ABI flag is serving *nothing* in all other architecture including
+SPARC.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+But as I told in the cover letter, I followed x86/arm/
+s390 architecture's system table generation implementation.
+They are keeping ABI flag. In our case we can delete this
+flag completely from all architectures.
+
+Most of the architecture these 32/64 similarity is absent.
+So it would be better keep separate files to maintain a
+generic script across all architecture.
+
+One question here is; while invoking the script I'm passing
+the abi flag. It is simply keeping in the .tbl file to make the
+file similar to x86.  What I can do here?
+
+- Firoz
