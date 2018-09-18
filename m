@@ -1,182 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:33865 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726275AbeIRFm3 (ORCPT
+Received: from out02.mta.xmission.com ([166.70.13.232]:53119 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728943AbeIRFm3 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 01:42:29 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 18 Sep 2018 02:05:37 +0200
-Message-ID: <20180918000546.12552-11-ebiederm@xmission.com>
+Date: Tue, 18 Sep 2018 02:05:46 +0200
+Message-ID: <20180918000546.12552-20-ebiederm@xmission.com>
 In-Reply-To: <87y3bzk6yv.fsf@xmission.com>
 References: <87y3bzk6yv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 11/20] signal/x86/traps: Simplify trap generation
+Subject: [REVIEW][PATCH 20/20] signal/x86: Use force_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180918000537.zIVH3yMjLTMN22xn83ZfmX484zJvGX6wi_U3Gusn8Xo@z>
-
-Update the DO_ERROR macro to take si_code and si_addr values for a siginfo,
-removing the need for the fill_trap_info function.
-
-Update do_trap to also take the sicode and si_addr values for a sigininfo
-and modify the code to call force_sig when a sicode is not passed in
-and to call force_sig_fault when all of the information is present.
-
-Making this a more obvious, simpler and less error prone construction.
+Message-ID: <20180918000546.gDJ7VNUX8EWEx6DL-kcu_lx7qvff7zlAL-kyYD9U3qQ@z>
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/x86/kernel/traps.c | 85 ++++++++++++-----------------------------
- 1 file changed, 24 insertions(+), 61 deletions(-)
+ arch/x86/entry/vsyscall/vsyscall_64.c |  9 +--------
+ arch/x86/kernel/ptrace.c              | 10 ++--------
+ arch/x86/kernel/traps.c               | 14 +++++---------
+ arch/x86/kernel/umip.c                |  8 +-------
+ 4 files changed, 9 insertions(+), 32 deletions(-)
 
+diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
+index 82ed001e8909..85fd85d52ffd 100644
+--- a/arch/x86/entry/vsyscall/vsyscall_64.c
++++ b/arch/x86/entry/vsyscall/vsyscall_64.c
+@@ -100,20 +100,13 @@ static bool write_ok_or_segv(unsigned long ptr, size_t size)
+ 	 */
+ 
+ 	if (!access_ok(VERIFY_WRITE, (void __user *)ptr, size)) {
+-		siginfo_t info;
+ 		struct thread_struct *thread = &current->thread;
+ 
+ 		thread->error_code	= 6;  /* user fault, no page, write */
+ 		thread->cr2		= ptr;
+ 		thread->trap_nr		= X86_TRAP_PF;
+ 
+-		clear_siginfo(&info);
+-		info.si_signo		= SIGSEGV;
+-		info.si_errno		= 0;
+-		info.si_code		= SEGV_MAPERR;
+-		info.si_addr		= (void __user *)ptr;
+-
+-		force_sig_info(SIGSEGV, &info, current);
++		force_sig_fault(SIGSEGV, SEGV_MAPERR, (void __user *)ptr, current);
+ 		return false;
+ 	} else {
+ 		return true;
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 511ea0f16078..a78fff5b3384 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -1372,18 +1372,12 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+ 					 int error_code, int si_code)
+ {
+-	struct siginfo info;
+-
+-	clear_siginfo(&info);
+ 	tsk->thread.trap_nr = X86_TRAP_DB;
+ 	tsk->thread.error_code = error_code;
+ 
+-	info.si_signo = SIGTRAP;
+-	info.si_code = si_code;
+-	info.si_addr = user_mode(regs) ? (void __user *)regs->ip : NULL;
+-
+ 	/* Send us the fake SIGTRAP */
+-	force_sig_info(SIGTRAP, &info, tsk);
++	force_sig_fault(SIGTRAP, si_code,
++			user_mode(regs) ? (void __user *)regs->ip : NULL, tsk);
+ }
+ 
+ void user_single_step_report(struct pt_regs *regs)
 diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 3e4a3172d711..eb54f1964252 100644
+index eb54f1964252..b3c5708b6d31 100644
 --- a/arch/x86/kernel/traps.c
 +++ b/arch/x86/kernel/traps.c
-@@ -241,40 +241,9 @@ static void show_signal(struct task_struct *tsk, int signr,
- 	}
+@@ -809,7 +809,7 @@ static void math_error(struct pt_regs *regs, int error_code, int trapnr)
+ {
+ 	struct task_struct *task = current;
+ 	struct fpu *fpu = &task->thread.fpu;
+-	siginfo_t info;
++	int si_code;
+ 	char *str = (trapnr == X86_TRAP_MF) ? "fpu exception" :
+ 						"simd exception";
+ 
+@@ -835,18 +835,14 @@ static void math_error(struct pt_regs *regs, int error_code, int trapnr)
+ 
+ 	task->thread.trap_nr	= trapnr;
+ 	task->thread.error_code = error_code;
+-	clear_siginfo(&info);
+-	info.si_signo		= SIGFPE;
+-	info.si_errno		= 0;
+-	info.si_addr		= (void __user *)uprobe_get_trap_addr(regs);
+-
+-	info.si_code = fpu__exception_code(fpu, trapnr);
+ 
++	si_code = fpu__exception_code(fpu, trapnr);
+ 	/* Retry when we get spurious exceptions: */
+-	if (!info.si_code)
++	if (!si_code)
+ 		return;
+ 
+-	force_sig_info(SIGFPE, &info, task);
++	force_sig_fault(SIGFPE, si_code,
++			(void __user *)uprobe_get_trap_addr(regs), task);
  }
  
--static siginfo_t *fill_trap_info(struct pt_regs *regs, int signr, int trapnr,
--				siginfo_t *info)
--{
--	unsigned long siaddr;
--	int sicode;
--
--	switch (trapnr) {
--	default:
--		return SEND_SIG_PRIV;
--
--	case X86_TRAP_DE:
--		sicode = FPE_INTDIV;
--		siaddr = uprobe_get_trap_addr(regs);
--		break;
--	case X86_TRAP_UD:
--		sicode = ILL_ILLOPN;
--		siaddr = uprobe_get_trap_addr(regs);
--		break;
--	case X86_TRAP_AC:
--		sicode = BUS_ADRALN;
--		siaddr = 0;
--		break;
--	}
--
--	info->si_signo = signr;
--	info->si_errno = 0;
--	info->si_code = sicode;
--	info->si_addr = (void __user *)siaddr;
--	return info;
--}
--
- static void
- do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
--	long error_code, siginfo_t *info)
-+	long error_code, int sicode, void __user *addr)
+ dotraplinkage void do_coprocessor_error(struct pt_regs *regs, long error_code)
+diff --git a/arch/x86/kernel/umip.c b/arch/x86/kernel/umip.c
+index ff20b35e98dd..f8f3cfda01ae 100644
+--- a/arch/x86/kernel/umip.c
++++ b/arch/x86/kernel/umip.c
+@@ -271,19 +271,13 @@ static int emulate_umip_insn(struct insn *insn, int umip_inst,
+  */
+ static void force_sig_info_umip_fault(void __user *addr, struct pt_regs *regs)
  {
+-	siginfo_t info;
  	struct task_struct *tsk = current;
  
-@@ -284,15 +253,16 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
- 
- 	show_signal(tsk, signr, "trap ", str, regs, error_code);
- 
--	force_sig_info(signr, info ?: SEND_SIG_PRIV, tsk);
-+	if (!sicode)
-+		force_sig(signr, tsk);
-+	else
-+		force_sig_fault(signr, sicode, addr, tsk);
- }
- NOKPROBE_SYMBOL(do_trap);
- 
- static void do_error_trap(struct pt_regs *regs, long error_code, char *str,
--			  unsigned long trapnr, int signr)
-+	unsigned long trapnr, int signr, int sicode, void __user *addr)
- {
--	siginfo_t info;
--
- 	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
- 
- 	/*
-@@ -305,26 +275,26 @@ static void do_error_trap(struct pt_regs *regs, long error_code, char *str,
- 	if (notify_die(DIE_TRAP, str, regs, error_code, trapnr, signr) !=
- 			NOTIFY_STOP) {
- 		cond_local_irq_enable(regs);
--		clear_siginfo(&info);
--		do_trap(trapnr, signr, str, regs, error_code,
--			fill_trap_info(regs, signr, trapnr, &info));
-+		do_trap(trapnr, signr, str, regs, error_code, sicode, addr);
- 	}
- }
- 
--#define DO_ERROR(trapnr, signr, str, name)				\
--dotraplinkage void do_##name(struct pt_regs *regs, long error_code)	\
--{									\
--	do_error_trap(regs, error_code, str, trapnr, signr);		\
-+#define IP ((void __user *)uprobe_get_trap_addr(regs))
-+#define DO_ERROR(trapnr, signr, sicode, addr, str, name)		   \
-+dotraplinkage void do_##name(struct pt_regs *regs, long error_code)	   \
-+{									   \
-+	do_error_trap(regs, error_code, str, trapnr, signr, sicode, addr); \
- }
- 
--DO_ERROR(X86_TRAP_DE,     SIGFPE,  "divide error",		divide_error)
--DO_ERROR(X86_TRAP_OF,     SIGSEGV, "overflow",			overflow)
--DO_ERROR(X86_TRAP_UD,     SIGILL,  "invalid opcode",		invalid_op)
--DO_ERROR(X86_TRAP_OLD_MF, SIGFPE,  "coprocessor segment overrun",coprocessor_segment_overrun)
--DO_ERROR(X86_TRAP_TS,     SIGSEGV, "invalid TSS",		invalid_TSS)
--DO_ERROR(X86_TRAP_NP,     SIGBUS,  "segment not present",	segment_not_present)
--DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
--DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",		alignment_check)
-+DO_ERROR(X86_TRAP_DE,     SIGFPE,  FPE_INTDIV,   IP, "divide error",        divide_error)
-+DO_ERROR(X86_TRAP_OF,     SIGSEGV,          0, NULL, "overflow",            overflow)
-+DO_ERROR(X86_TRAP_UD,     SIGILL,  ILL_ILLOPN,   IP, "invalid opcode",      invalid_op)
-+DO_ERROR(X86_TRAP_OLD_MF, SIGFPE,           0, NULL, "coprocessor segment overrun", coprocessor_segment_overrun)
-+DO_ERROR(X86_TRAP_TS,     SIGSEGV,          0, NULL, "invalid TSS",         invalid_TSS)
-+DO_ERROR(X86_TRAP_NP,     SIGBUS,           0, NULL, "segment not present", segment_not_present)
-+DO_ERROR(X86_TRAP_SS,     SIGBUS,           0, NULL, "stack segment",       stack_segment)
-+DO_ERROR(X86_TRAP_AC,     SIGBUS,  BUS_ADRALN, NULL, "alignment check",     alignment_check)
-+#undef IP
- 
- #ifdef CONFIG_VMAP_STACK
- __visible void __noreturn handle_stack_overflow(const char *message,
-@@ -541,7 +511,7 @@ dotraplinkage void do_bounds(struct pt_regs *regs, long error_code)
- 	 * up here if the kernel has MPX turned off at compile
- 	 * time..
- 	 */
--	do_trap(X86_TRAP_BR, SIGSEGV, "bounds", regs, error_code, NULL);
-+	do_trap(X86_TRAP_BR, SIGSEGV, "bounds", regs, error_code, 0, NULL);
- }
- 
- dotraplinkage void
-@@ -625,7 +595,7 @@ dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
- 		goto exit;
- 
- 	cond_local_irq_enable(regs);
--	do_trap(X86_TRAP_BP, SIGTRAP, "int3", regs, error_code, NULL);
-+	do_trap(X86_TRAP_BP, SIGTRAP, "int3", regs, error_code, 0, NULL);
- 	cond_local_irq_disable(regs);
- 
- exit:
-@@ -936,20 +906,13 @@ NOKPROBE_SYMBOL(do_device_not_available);
- #ifdef CONFIG_X86_32
- dotraplinkage void do_iret_error(struct pt_regs *regs, long error_code)
- {
--	siginfo_t info;
--
- 	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
- 	local_irq_enable();
+ 	tsk->thread.cr2		= (unsigned long)addr;
+ 	tsk->thread.error_code	= X86_PF_USER | X86_PF_WRITE;
+ 	tsk->thread.trap_nr	= X86_TRAP_PF;
  
 -	clear_siginfo(&info);
--	info.si_signo = SIGILL;
--	info.si_errno = 0;
--	info.si_code = ILL_BADSTK;
--	info.si_addr = NULL;
- 	if (notify_die(DIE_TRAP, "iret exception", regs, error_code,
- 			X86_TRAP_IRET, SIGILL) != NOTIFY_STOP) {
- 		do_trap(X86_TRAP_IRET, SIGILL, "iret exception", regs, error_code,
--			&info);
-+			ILL_BADSTK, (void __user *)NULL);
- 	}
- }
- #endif
+-	info.si_signo	= SIGSEGV;
+-	info.si_errno	= 0;
+-	info.si_code	= SEGV_MAPERR;
+-	info.si_addr	= addr;
+-	force_sig_info(SIGSEGV, &info, tsk);
++	force_sig_fault(SIGSEGV, SEGV_MAPERR, addr, tsk);
+ 
+ 	if (!(show_unhandled_signals && unhandled_signal(tsk, SIGSEGV)))
+ 		return;
 -- 
 2.17.1
