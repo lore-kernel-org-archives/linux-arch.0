@@ -1,42 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46319 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726275AbeIRFhn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 01:37:43 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:53114 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726526AbeIRFm2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 01:42:28 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 18 Sep 2018 02:05:36 +0200
-Message-ID: <20180918000546.12552-10-ebiederm@xmission.com>
+Date: Tue, 18 Sep 2018 02:05:45 +0200
+Message-ID: <20180918000546.12552-19-ebiederm@xmission.com>
 In-Reply-To: <87y3bzk6yv.fsf@xmission.com>
 References: <87y3bzk6yv.fsf@xmission.com>
-Subject: [REVIEW][PATCH 10/20] signal/x86/traps: Use force_sig instead of open coding it.
+Subject: [REVIEW][PATCH 19/20] signal/x86: Pass pkey by value
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180918000536.TgOmRs4sIDxAXJdTHiU4CdXh0JIU57iPEGGcNdZFUWw@z>
+Message-ID: <20180918000545.ixBht_w-SJZl-lO7LyGJWNKacc2xVupujZWvXlbKCGE@z>
 
-The function "force_sig(sig, tsk)" is equivalent to "
-force_sig_info(sig, SEND_SIG_PRIV, tsk)".  Using the siginfo variants can
-be error prone so use the simpler old fashioned force_sig variant,
-and with luck the force_sig_info variant can go away.
+Now that si_code == SEGV_PKUERR is the flag indicating that a pkey
+is present there is no longer a need to pass a pointer to a local
+pkey value, instead pkey can be passed more efficiently by value.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/x86/kernel/traps.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/x86/mm/fault.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 9f7b3831fb7e..3e4a3172d711 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -582,7 +582,7 @@ do_general_protection(struct pt_regs *regs, long error_code)
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 548396aa03e1..c09a0c2fa614 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -769,7 +769,7 @@ show_signal_msg(struct pt_regs *regs, unsigned long error_code,
  
- 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
+ static void
+ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+-		       unsigned long address, u32 *pkey, int si_code)
++		       unsigned long address, u32 pkey, int si_code)
+ {
+ 	struct task_struct *tsk = current;
  
--	force_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
-+	force_sig(SIGSEGV, tsk);
+@@ -818,7 +818,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+ 		tsk->thread.trap_nr	= X86_TRAP_PF;
+ 
+ 		if (si_code == SEGV_PKUERR)
+-			force_sig_pkuerr((void __user *)address, *pkey);
++			force_sig_pkuerr((void __user *)address, pkey);
+ 
+ 		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
+ 
+@@ -835,12 +835,12 @@ static noinline void
+ bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
+ 		     unsigned long address)
+ {
+-	__bad_area_nosemaphore(regs, error_code, address, NULL, SEGV_MAPERR);
++	__bad_area_nosemaphore(regs, error_code, address, 0, SEGV_MAPERR);
  }
- NOKPROBE_SYMBOL(do_general_protection);
  
+ static void
+ __bad_area(struct pt_regs *regs, unsigned long error_code,
+-	   unsigned long address, u32 *pkey, int si_code)
++	   unsigned long address, u32 pkey, int si_code)
+ {
+ 	struct mm_struct *mm = current->mm;
+ 	/*
+@@ -855,7 +855,7 @@ __bad_area(struct pt_regs *regs, unsigned long error_code,
+ static noinline void
+ bad_area(struct pt_regs *regs, unsigned long error_code, unsigned long address)
+ {
+-	__bad_area(regs, error_code, address, NULL, SEGV_MAPERR);
++	__bad_area(regs, error_code, address, 0, SEGV_MAPERR);
+ }
+ 
+ static inline bool bad_area_access_from_pkeys(unsigned long error_code,
+@@ -906,10 +906,10 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
+ 		 *	     faulted on a pte with its pkey=4.
+ 		 */
+ 		u32 pkey = vma_pkey(vma);
+-		__bad_area(regs, error_code, address, &pkey, SEGV_PKUERR);
++		__bad_area(regs, error_code, address, pkey, SEGV_PKUERR);
+ 	}
+ 	else
+-		__bad_area(regs, error_code, address, NULL, SEGV_ACCERR);
++		__bad_area(regs, error_code, address, 0, SEGV_ACCERR);
+ }
+ 
+ static void
 -- 
 2.17.1
