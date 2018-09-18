@@ -1,30 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:58097 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:42548 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1729491AbeIRTWe (ORCPT
+        by vger.kernel.org with ESMTP id S1729416AbeIRTWP (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Sep 2018 15:22:34 -0400
+        Tue, 18 Sep 2018 15:22:15 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 0/2] irqchip: add C-SKY APB bus interrupt controller
-Date: Tue, 18 Sep 2018 21:49:38 +0800
-Message-ID: <cover.1537276735.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 2/2] dt-bindings: timer: gx6605s SOC timer
+Date: Tue, 18 Sep 2018 21:48:55 +0800
+Message-ID: <590ea79ca7a96255fd83da1963402ee619767c0e.1537276815.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1537276815.git.ren_guo@c-sky.com>
+References: <cover.1537276815.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1537276815.git.ren_guo@c-sky.com>
+References: <cover.1537276815.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180918134938.6TkV4Fyv_21F58qlvt294i3k5y4j2sFsR6dlgyFjSes@z>
+Message-ID: <20180918134855.tt4FpIoI2pJMsjug7G2zJwSLpqBGorTnkFE3MhZS4dQ@z>
 
-Guo Ren (2):
-  irqchip: add C-SKY APB bus interrupt controller
-  dt-bindings: interrupt-controller: C-SKY APB intc
+ - Dt-bindings doc for gx6605s SOC's system timer.
 
- .../interrupt-controller/csky,apb-intc.txt         |  70 ++++++
- drivers/irqchip/Kconfig                            |   8 +
- drivers/irqchip/Makefile                           |   1 +
- drivers/irqchip/irq-csky-apb-intc.c                | 260 +++++++++++++++++++++
- 4 files changed, 339 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
- create mode 100644 drivers/irqchip/irq-csky-apb-intc.c
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Reviewed-by: Rob Herring <robh@kernel.org>
+---
+ .../bindings/timer/csky,gx6605s-timer.txt          | 42 ++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
 
+diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
+new file mode 100644
+index 0000000..6b04344
+--- /dev/null
++++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
+@@ -0,0 +1,42 @@
++=================
++gx6605s SOC Timer
++=================
++
++The timer is used in gx6605s soc as system timer and the driver
++contain clk event and clk source.
++
++==============================
++timer node bindings definition
++==============================
++
++	Description: Describes gx6605s SOC timer
++
++	PROPERTIES
++
++	- compatible
++		Usage: required
++		Value type: <string>
++		Definition: must be "csky,gx6605s-timer"
++	- reg
++		Usage: required
++		Value type: <u32 u32>
++		Definition: <phyaddr size> in soc from cpu view
++	- clocks
++		Usage: required
++		Value type: phandle + clock specifier cells
++		Definition: must be input clk node
++	- interrupt
++		Usage: required
++		Value type: <u32>
++		Definition: must be timer irq num defined by soc
++
++Examples:
++---------
++
++	timer0: timer@20a000 {
++		compatible = "csky,gx6605s-timer";
++		reg = <0x0020a000 0x400>;
++		clocks = <&dummy_apb_clk>;
++		interrupts = <10>;
++		interrupt-parent = <&intc>;
++	};
 -- 
 2.7.4
