@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 19/20] signal/x86: Pass pkey by value
-Date: Tue, 18 Sep 2018 02:05:45 +0200
-Message-ID: <20180918000546.12552-19-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 15/20] signal/x86: Don't compute pkey in __do_page_fault
+Date: Tue, 18 Sep 2018 02:05:41 +0200
+Message-ID: <20180918000546.12552-15-ebiederm@xmission.com>
 References: <87y3bzk6yv.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87y3bzk6yv.fsf@xmission.com>
@@ -10,73 +10,36 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-Now that si_code == SEGV_PKUERR is the flag indicating that a pkey
-is present there is no longer a need to pass a pointer to a local
-pkey value, instead pkey can be passed more efficiently by value.
+There are no more users of the computed pkey value in __do_page_fault
+so stop computing the value.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/x86/mm/fault.c | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/x86/mm/fault.c | 4 ----
+ 1 file changed, 4 deletions(-)
 
 diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 548396aa03e1..c09a0c2fa614 100644
+index 7ba00519fa5d..f82106578364 100644
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
-@@ -769,7 +769,7 @@ show_signal_msg(struct pt_regs *regs, unsigned long error_code,
+@@ -1215,7 +1215,6 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 	struct mm_struct *mm;
+ 	vm_fault_t fault, major = 0;
+ 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+-	u32 pkey;
  
- static void
- __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
--		       unsigned long address, u32 *pkey, int si_code)
-+		       unsigned long address, u32 pkey, int si_code)
- {
- 	struct task_struct *tsk = current;
+ 	tsk = current;
+ 	mm = tsk->mm;
+@@ -1387,10 +1386,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 	 * (potentially after handling any pending signal during the return to
+ 	 * userland). The return to userland is identified whenever
+ 	 * FAULT_FLAG_USER|FAULT_FLAG_KILLABLE are both set in flags.
+-	 * Thus we have to be careful about not touching vma after handling the
+-	 * fault, so we read the pkey beforehand.
+ 	 */
+-	pkey = vma_pkey(vma);
+ 	fault = handle_mm_fault(vma, address, flags);
+ 	major |= fault & VM_FAULT_MAJOR;
  
-@@ -818,7 +818,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
- 		tsk->thread.trap_nr	= X86_TRAP_PF;
- 
- 		if (si_code == SEGV_PKUERR)
--			force_sig_pkuerr((void __user *)address, *pkey);
-+			force_sig_pkuerr((void __user *)address, pkey);
- 
- 		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
- 
-@@ -835,12 +835,12 @@ static noinline void
- bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
- 		     unsigned long address)
- {
--	__bad_area_nosemaphore(regs, error_code, address, NULL, SEGV_MAPERR);
-+	__bad_area_nosemaphore(regs, error_code, address, 0, SEGV_MAPERR);
- }
- 
- static void
- __bad_area(struct pt_regs *regs, unsigned long error_code,
--	   unsigned long address, u32 *pkey, int si_code)
-+	   unsigned long address, u32 pkey, int si_code)
- {
- 	struct mm_struct *mm = current->mm;
- 	/*
-@@ -855,7 +855,7 @@ __bad_area(struct pt_regs *regs, unsigned long error_code,
- static noinline void
- bad_area(struct pt_regs *regs, unsigned long error_code, unsigned long address)
- {
--	__bad_area(regs, error_code, address, NULL, SEGV_MAPERR);
-+	__bad_area(regs, error_code, address, 0, SEGV_MAPERR);
- }
- 
- static inline bool bad_area_access_from_pkeys(unsigned long error_code,
-@@ -906,10 +906,10 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
- 		 *	     faulted on a pte with its pkey=4.
- 		 */
- 		u32 pkey = vma_pkey(vma);
--		__bad_area(regs, error_code, address, &pkey, SEGV_PKUERR);
-+		__bad_area(regs, error_code, address, pkey, SEGV_PKUERR);
- 	}
- 	else
--		__bad_area(regs, error_code, address, NULL, SEGV_ACCERR);
-+		__bad_area(regs, error_code, address, 0, SEGV_ACCERR);
- }
- 
- static void
 -- 
 2.17.1
