@@ -1,60 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58684 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58687 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729200AbeISB4T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 21:56:19 -0400
-Date: Tue, 18 Sep 2018 22:21:58 +0200 (CEST)
+        with ESMTP id S1729732AbeISB5M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 21:57:12 -0400
+Date: Tue, 18 Sep 2018 22:22:56 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [REVIEW][PATCH 04/20] signal/x86: Use send_sig_mceerr as
- apropriate
-In-Reply-To: <20180918000546.12552-4-ebiederm@xmission.com>
-Message-ID: <alpine.DEB.2.21.1809182220310.1468@nanos.tec.linutronix.de>
-References: <87y3bzk6yv.fsf@xmission.com> <20180918000546.12552-4-ebiederm@xmission.com>
+Subject: Re: [REVIEW][PATCH 05/20] signal/x86: In trace_mpx_bounds_register_exception
+ add __user annotations
+In-Reply-To: <20180918000546.12552-5-ebiederm@xmission.com>
+Message-ID: <alpine.DEB.2.21.1809182222290.1468@nanos.tec.linutronix.de>
+References: <87y3bzk6yv.fsf@xmission.com> <20180918000546.12552-5-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20180918202158.NKuYfJaNE_vJ9gtMggBo-epqaAKNTo3-ySJMjDT-iVI@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
+Message-ID: <20180918202256.eLZ-nWSOYpfOBLK3Iz2sPSBV2_ScEHf6b0EmPtIreIA@z>
 
 On Tue, 18 Sep 2018, Eric W. Biederman wrote:
 
-CC+ kvm folks
-
-> This simplifies the code making it clearer what is going on.
+> The value passed in to addr_referenced is of type void __user *, so update
+> the addr_referenced parameter in trace_mpx_bounds_register_exception to match.
 > 
+> Also update the addr_referenced paramater in TP_STRUCT__entry as it again
+> holdes the same value.
+> 
+> I don't know why this was missed earlier but sparse was complaining when
+> testing test branch so fix this now.
+
+Good question.
+
 > Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
 Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-
-> ---
->  arch/x86/kvm/mmu.c | 11 +----------
->  1 file changed, 1 insertion(+), 10 deletions(-)
-> 
-> diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
-> index a282321329b5..95349bfe3b59 100644
-> --- a/arch/x86/kvm/mmu.c
-> +++ b/arch/x86/kvm/mmu.c
-> @@ -3114,16 +3114,7 @@ static int __direct_map(struct kvm_vcpu *vcpu, int write, int map_writable,
->  
->  static void kvm_send_hwpoison_signal(unsigned long address, struct task_struct *tsk)
->  {
-> -	siginfo_t info;
-> -
-> -	clear_siginfo(&info);
-> -	info.si_signo	= SIGBUS;
-> -	info.si_errno	= 0;
-> -	info.si_code	= BUS_MCEERR_AR;
-> -	info.si_addr	= (void __user *)address;
-> -	info.si_addr_lsb = PAGE_SHIFT;
-> -
-> -	send_sig_info(SIGBUS, &info, tsk);
-> +	send_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, PAGE_SHIFT, tsk);
->  }
->  
->  static int kvm_handle_bad_page(struct kvm_vcpu *vcpu, gfn_t gfn, kvm_pfn_t pfn)
-> -- 
-> 2.17.1
-> 
-> 
