@@ -1,45 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:58670 "EHLO
+Received: from Galois.linutronix.de ([146.0.238.70]:58684 "EHLO
         Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729732AbeISBx3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 21:53:29 -0400
-Date: Tue, 18 Sep 2018 22:19:14 +0200 (CEST)
+        with ESMTP id S1729200AbeISB4T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 21:56:19 -0400
+Date: Tue, 18 Sep 2018 22:21:58 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [REVIEW][PATCH 03/20] signal/x86: Move MCE error reporting out
- of force_sig_info_fault
-In-Reply-To: <20180918000546.12552-3-ebiederm@xmission.com>
-Message-ID: <alpine.DEB.2.21.1809182217000.1468@nanos.tec.linutronix.de>
-References: <87y3bzk6yv.fsf@xmission.com> <20180918000546.12552-3-ebiederm@xmission.com>
+Subject: Re: [REVIEW][PATCH 04/20] signal/x86: Use send_sig_mceerr as
+ apropriate
+In-Reply-To: <20180918000546.12552-4-ebiederm@xmission.com>
+Message-ID: <alpine.DEB.2.21.1809182220310.1468@nanos.tec.linutronix.de>
+References: <87y3bzk6yv.fsf@xmission.com> <20180918000546.12552-4-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
-Message-ID: <20180918201914.tAjjUTAtT_gpg_R_yNGhVftmSFe0QypmBGwR2NzhLpw@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20180918202158.NKuYfJaNE_vJ9gtMggBo-epqaAKNTo3-ySJMjDT-iVI@z>
 
 On Tue, 18 Sep 2018, Eric W. Biederman wrote:
->  #ifdef CONFIG_MEMORY_FAILURE
->  	if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
-> +		unsigned lsb = 0;
 
-Newline between variable declaration and code please.
+CC+ kvm folks
 
->  		printk(KERN_ERR
->  	"MCE: Killing %s:%d due to hardware memory corruption fault at %lx\n",
->  			tsk->comm, tsk->pid, address);
-
-Can you please convert that to pr_err() while at it?
-
-> -		code = BUS_MCEERR_AR;
-> +		if (fault & VM_FAULT_HWPOISON_LARGE)
-> +			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
-> +		if (fault & VM_FAULT_HWPOISON)
-> +			lsb = PAGE_SHIFT;
-> +		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb, tsk);
-> +		return;
->  	}
-
-With that fixed:
+> This simplifies the code making it clearer what is going on.
+> 
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
 Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+
+> ---
+>  arch/x86/kvm/mmu.c | 11 +----------
+>  1 file changed, 1 insertion(+), 10 deletions(-)
+> 
+> diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
+> index a282321329b5..95349bfe3b59 100644
+> --- a/arch/x86/kvm/mmu.c
+> +++ b/arch/x86/kvm/mmu.c
+> @@ -3114,16 +3114,7 @@ static int __direct_map(struct kvm_vcpu *vcpu, int write, int map_writable,
+>  
+>  static void kvm_send_hwpoison_signal(unsigned long address, struct task_struct *tsk)
+>  {
+> -	siginfo_t info;
+> -
+> -	clear_siginfo(&info);
+> -	info.si_signo	= SIGBUS;
+> -	info.si_errno	= 0;
+> -	info.si_code	= BUS_MCEERR_AR;
+> -	info.si_addr	= (void __user *)address;
+> -	info.si_addr_lsb = PAGE_SHIFT;
+> -
+> -	send_sig_info(SIGBUS, &info, tsk);
+> +	send_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, PAGE_SHIFT, tsk);
+>  }
+>  
+>  static int kvm_handle_bad_page(struct kvm_vcpu *vcpu, gfn_t gfn, kvm_pfn_t pfn)
+> -- 
+> 2.17.1
+> 
+> 
