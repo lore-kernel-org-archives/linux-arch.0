@@ -1,61 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:51145 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726821AbeISCo4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2018 22:44:56 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from bombadil.infradead.org ([198.137.202.133]:47844 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726044AbeISLXL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2018 07:23:11 -0400
+Date: Tue, 18 Sep 2018 22:46:53 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [REVIEW][PATCH 02/20] signal/x86: Inline fill_sigtrap_info in
+ it's only caller send_sigtrap
+Message-ID: <20180919054653.GA32263@infradead.org>
 References: <87y3bzk6yv.fsf@xmission.com>
-        <alpine.DEB.2.21.1809182253220.1468@nanos.tec.linutronix.de>
-Date: Tue, 18 Sep 2018 23:10:06 +0200
-In-Reply-To: <alpine.DEB.2.21.1809182253220.1468@nanos.tec.linutronix.de>
-        (Thomas Gleixner's message of "Tue, 18 Sep 2018 22:55:08 +0200
-        (CEST)")
-Message-ID: <87zhweh5qp.fsf@xmission.com>
+ <20180918000546.12552-2-ebiederm@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 00/20] siginfo cleanups for x86
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180918000546.12552-2-ebiederm@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
-Message-ID: <20180918211006.BJbKfQt9ZVNiUu5HzmPNtPOTYZZYAxdVbUvk2O4iy7Y@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
+Message-ID: <20180919054653.T8Go-UkjnDasyX7Y-J6kz0tozVcbyw33Lm04lg9YTws@z>
 
-Thomas Gleixner <tglx@linutronix.de> writes:
+>  
+>  	clear_siginfo(&info);
+> -	fill_sigtrap_info(tsk, regs, error_code, si_code, &info);
+> +	tsk->thread.trap_nr = X86_TRAP_DB;
+> +	tsk->thread.error_code = error_code;
+> +
+> +	info.si_signo = SIGTRAP;
+> +	info.si_code = si_code;
+> +	info.si_addr = user_mode(regs) ? (void __user *)regs->ip : NULL;
 
-> On Tue, 18 Sep 2018, Eric W. Biederman wrote:
->> I have been slowly going thought and reworking the arch specific
->> functions that generate siginfo.  The problems I have been addressing
->> is that using siginfo directly is error prone.  Using siginfo directly
->> makes it easy to leave fields initialized, and get confused about
->> which fields need to be filled in.
->> 
->> To address this I have added a series of helper functions to
->> kernel/signal.c, that are specific to exactly one use of struct siginfo
->> and take the parameters they need.
->> 
->> To use these functions the x86 signal handling needs some cleanups but
->> the net result appears to be less code that is easier to follow.
->> 
->> If while looking over these patches you see anything please let me know.
->
-> Only nitpicks.
->
->> I don't think I missed something but to err is human.
->
-> I went through the changes a couple of times, but failed to spot
-> something. Was pleasure to read that set!
->
->> Likewise if you would like to merge these patches via the tip tree
->> let me know.  Otherwise after the review is complete I plan on merging
->> these into my siginfo tree.  At this point I believe all of the
->> prerequisite patches are merged so it should not make a difference.
->
-> Works either way. Ingo?
+clear_siginfo already zeroes the whole structure, so this could be
+written more clearly as:
 
-If I manage to get through all of the architecture specific code I can
-shrink the in-kernel version of struct siginfo.    So there is a slight
-advantage to having it all in my tree.  But worst case I just have to
-wait another cycle which doesn't look like a particularly long wait at
-this point.
-
-Eric
+	if (user_mode(regs)
+		info.si_addr = (void __user *)regs->ip;
