@@ -1,66 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:38756 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727056AbeISMXN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2018 08:23:13 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87y3bzk6yv.fsf@xmission.com>
-        <20180918000546.12552-2-ebiederm@xmission.com>
-        <20180919054653.GA32263@infradead.org>
-Date: Wed, 19 Sep 2018 08:46:30 +0200
-In-Reply-To: <20180919054653.GA32263@infradead.org> (Christoph Hellwig's
-        message of "Tue, 18 Sep 2018 22:46:53 -0700")
-Message-ID: <87pnxaf0hl.fsf@xmission.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:48520 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730952AbeISRGK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2018 13:06:10 -0400
+Date: Wed, 19 Sep 2018 13:28:29 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 07/11] arm/tlb: Convert to generic mmu_gather
+Message-ID: <20180919112829.GA24124@hirez.programming.kicks-ass.net>
+References: <20180913092110.817204997@infradead.org>
+ <20180913092812.247989787@infradead.org>
+ <20180918141034.GF16498@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 02/20] signal/x86: Inline fill_sigtrap_info in it's only caller send_sigtrap
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180918141034.GF16498@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
-Message-ID: <20180919064630.3OtEeqT8TWMII3_kJKpXW0k6gJV8Kw3b7w1b3vcS47g@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
+Message-ID: <20180919112829.CkFs6zA7gBnrd-kWzPAM83AG80gaQPU0ScebUcdeLMQ@z>
 
-Christoph Hellwig <hch@infradead.org> writes:
+On Tue, Sep 18, 2018 at 03:10:34PM +0100, Will Deacon wrote:
 
->>  
->>  	clear_siginfo(&info);
->> -	fill_sigtrap_info(tsk, regs, error_code, si_code, &info);
->> +	tsk->thread.trap_nr = X86_TRAP_DB;
->> +	tsk->thread.error_code = error_code;
->> +
->> +	info.si_signo = SIGTRAP;
->> +	info.si_code = si_code;
->> +	info.si_addr = user_mode(regs) ? (void __user *)regs->ip : NULL;
->
-> clear_siginfo already zeroes the whole structure, so this could be
-> written more clearly as:
->
-> 	if (user_mode(regs)
-> 		info.si_addr = (void __user *)regs->ip;
+> So whilst I was reviewing this, I realised that I think we should be
+> selecting HAVE_RCU_TABLE_INVALIDATE for arch/arm/ if HAVE_RCU_TABLE_FREE.
 
-That change does not make sense in this particular patch as it is just
-code motion.
+Yes very much so. Let me invert that option, you normally want that,
+except if you don't natively use the linux page-tables.
 
-It also does not make sense in the final version of the code at
-the end of the patch series which is:
+---
+Subject: asm-generic/tlb: Invert HAVE_RCU_TABLE_INVALIDATE
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Wed Sep 19 13:24:41 CEST 2018
 
-void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-					 int error_code, int si_code)
-{
-	tsk->thread.trap_nr = X86_TRAP_DB;
-	tsk->thread.error_code = error_code;
+Make issuing a TLB invalidate for page-table pages the normal case.
 
-	/* Send us the fake SIGTRAP */
-	force_sig_fault(SIGTRAP, si_code,
-			user_mode(regs) ? (void __user *)regs->ip : NULL, tsk);
-}
+The reason is twofold:
 
-In this version the test also makes sense because struct siginfo is
-gone because manually filling it out results in more bugs than
-necessary.  That is now left up to force_sig_fault.
+ - too many invalidates is safer than too few,
+ - most architectures use the linux page-tables natively
+   and would this require this.
 
-I was hoping that we could show that user_mode(regs) is always true.
-But according to arch/x86/kernel/traps.c:do_debug watch points that will
-trigger even when the kernel accesses user space addresses.
+Make it an opt-out, instead of an opt-in.
 
-Eric
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/Kconfig              |    2 +-
+ arch/arm64/Kconfig        |    1 -
+ arch/powerpc/Kconfig      |    1 +
+ arch/sparc/Kconfig        |    1 +
+ arch/x86/Kconfig          |    1 -
+ include/asm-generic/tlb.h |    9 +++++----
+ mm/mmu_gather.c           |    2 +-
+ 7 files changed, 9 insertions(+), 8 deletions(-)
+
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -362,7 +362,7 @@ config HAVE_ARCH_JUMP_LABEL
+ config HAVE_RCU_TABLE_FREE
+ 	bool
+ 
+-config HAVE_RCU_TABLE_INVALIDATE
++config HAVE_RCU_TABLE_NO_INVALIDATE
+ 	bool
+ 
+ config HAVE_MMU_GATHER_PAGE_SIZE
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -142,7 +142,6 @@ config ARM64
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RCU_TABLE_FREE
+-	select HAVE_RCU_TABLE_INVALIDATE
+ 	select HAVE_RSEQ
+ 	select HAVE_STACKPROTECTOR
+ 	select HAVE_SYSCALL_TRACEPOINTS
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -216,6 +216,7 @@ config PPC
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_RCU_TABLE_FREE		if SMP
++	select HAVE_RCU_TABLE_NO_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MMU_GATHER_PAGE_SIZE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if PPC64 && CPU_LITTLE_ENDIAN
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -64,6 +64,7 @@ config SPARC64
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KPROBES
+ 	select HAVE_RCU_TABLE_FREE if SMP
++	select HAVE_RCU_TABLE_NO_INVALIDATE if HAVE_RCU_TABLE_FREE
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_DYNAMIC_FTRACE
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -181,7 +181,6 @@ config X86
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_RCU_TABLE_FREE		if PARAVIRT
+-	select HAVE_RCU_TABLE_INVALIDATE	if HAVE_RCU_TABLE_FREE
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE		if X86_64 && (UNWINDER_FRAME_POINTER || UNWINDER_ORC) && STACK_VALIDATION
+ 	select HAVE_STACKPROTECTOR		if CC_HAS_SANE_STACKPROTECTOR
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -127,11 +127,12 @@
+  *  When used, an architecture is expected to provide __tlb_remove_table()
+  *  which does the actual freeing of these pages.
+  *
+- *  HAVE_RCU_TABLE_INVALIDATE
++ *  HAVE_RCU_TABLE_NO_INVALIDATE
+  *
+- *  This makes HAVE_RCU_TABLE_FREE call tlb_flush_mmu_tlbonly() before freeing
+- *  the page-table pages. Required if you use HAVE_RCU_TABLE_FREE and your
+- *  architecture uses the Linux page-tables natively.
++ *  This makes HAVE_RCU_TABLE_FREE avoid calling tlb_flush_mmu_tlbonly() before
++ *  freeing the page-table pages. This can be avoided if you use
++ *  HAVE_RCU_TABLE_FREE and your architecture does _NOT_ use the Linux
++ *  page-tables natively.
+  *
+  */
+ #define HAVE_GENERIC_MMU_GATHER
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -157,7 +157,7 @@ bool __tlb_remove_page_size(struct mmu_g
+  */
+ static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+ {
+-#ifdef CONFIG_HAVE_RCU_TABLE_INVALIDATE
++#ifndef CONFIG_HAVE_RCU_TABLE_NO_INVALIDATE
+ 	/*
+ 	 * Invalidate page-table caches used by hardware walkers. Then we still
+ 	 * need to RCU-sched wait while freeing the pages because software
