@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39514 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728334AbeISRKn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2018 13:10:43 -0400
-Date: Wed, 19 Sep 2018 13:33:06 +0200
+Received: from bombadil.infradead.org ([198.137.202.133]:49090 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726911AbeISR3n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2018 13:29:43 -0400
+Date: Wed, 19 Sep 2018 13:51:58 +0200
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Message-ID: <20180919113305.GC24124@hirez.programming.kicks-ass.net>
+Message-ID: <20180919115158.GD24124@hirez.programming.kicks-ass.net>
 References: <20180913092110.817204997@infradead.org>
  <20180913092811.894806629@infradead.org>
  <20180914164857.GG6236@arm.com>
@@ -18,24 +18,65 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
 Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
-Message-ID: <20180919113306.X7Xt-q3z-rY6rQ45a1FHcqpnsBof_cHor7_OmlkKyAE@z>
+Message-ID: <20180919115158.P2_9PEa3hgD3lX-8iHbcnaKlGYDhOrHbWDbv521Dpus@z>
 
 On Fri, Sep 14, 2018 at 05:48:57PM +0100, Will Deacon wrote:
 
-> > + *  - tlb_change_page_size()
-> 
-> This doesn't seem to exist in my tree.
-> [since realised you rename to it in the next patch]
-> 
-
-> > + * Additionally there are a few opt-in features:
+> > + *  - mmu_gather::fullmm
 > > + *
-> > + *  HAVE_MMU_GATHER_PAGE_SIZE
+> > + *    A flag set by tlb_gather_mmu() to indicate we're going to free
+> > + *    the entire mm; this allows a number of optimizations.
 > > + *
-> > + *  This ensures we call tlb_flush() every time tlb_change_page_size() actually
-> > + *  changes the size and provides mmu_gather::page_size to tlb_flush().
+> > + *    XXX list optimizations
 > 
-> Ah, you add this later in the series. I think Nick reckoned we could get rid
-> of this (the page_size field) eventually...
+> On arm64, we can elide the invalidation altogether because we won't
+> re-allocate the ASID. We also have an invalidate-by-ASID (mm) instruction,
+> which we could use if we needed to.
 
-Right; let me fix that ordering..
+Right, but I was also struggling to put into words the normal fullmm
+case.
+
+I now ended up with:
+
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -82,7 +82,11 @@
+  *    A flag set by tlb_gather_mmu() to indicate we're going to free
+  *    the entire mm; this allows a number of optimizations.
+  *
+- *    XXX list optimizations
++ *    - We can ignore tlb_{start,end}_vma(); because we don't
++ *      care about ranges. Everything will be shot down.
++ *
++ *    - (RISC) architectures that use ASIDs can cycle to a new ASID
++ *      and delay the invalidation until ASID space runs out.
+  *
+  *  - mmu_gather::need_flush_all
+  *
+
+Does that about cover things; or do we need more?
+
+> > + *
+> > + *  - mmu_gather::need_flush_all
+> > + *
+> > + *    A flag that can be set by the arch code if it wants to force
+> > + *    flush the entire TLB irrespective of the range. For instance
+> > + *    x86-PAE needs this when changing top-level entries.
+> > + *
+> > + * And requires the architecture to provide and implement tlb_flush().
+> > + *
+> > + * tlb_flush() may, in addition to the above mentioned mmu_gather fields, make
+> > + * use of:
+> > + *
+> > + *  - mmu_gather::start / mmu_gather::end
+> > + *
+> > + *    which (when !need_flush_all; fullmm will have start = end = ~0UL) provides
+> > + *    the range that needs to be flushed to cover the pages to be freed.
+> 
+> I don't understand the mention of need_flush_all here -- I didn't think it
+> was used by the core code at all.
+
+The core does indeed not use that flag; but if the architecture set
+that, the range is still ignored.
+
+Can you suggest clearer wording?
