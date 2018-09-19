@@ -1,32 +1,23 @@
 From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [REVIEW][PATCH 02/20] signal/x86: Inline fill_sigtrap_info in
- it's only caller send_sigtrap
-Date: Tue, 18 Sep 2018 22:46:53 -0700
-Message-ID: <20180919054653.GA32263@infradead.org>
+Subject: Re: [REVIEW][PATCH 06/20] signal/x86: Move mpx siginfo generation
+ into do_bounds
+Date: Tue, 18 Sep 2018 22:48:59 -0700
+Message-ID: <20180919054859.GB32263@infradead.org>
 References: <87y3bzk6yv.fsf@xmission.com>
- <20180918000546.12552-2-ebiederm@xmission.com>
+ <20180918000546.12552-6-ebiederm@xmission.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180918000546.12552-2-ebiederm@xmission.com>
+In-Reply-To: <20180918000546.12552-6-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
->  
->  	clear_siginfo(&info);
-> -	fill_sigtrap_info(tsk, regs, error_code, si_code, &info);
-> +	tsk->thread.trap_nr = X86_TRAP_DB;
-> +	tsk->thread.error_code = error_code;
-> +
-> +	info.si_signo = SIGTRAP;
-> +	info.si_code = si_code;
-> +	info.si_addr = user_mode(regs) ? (void __user *)regs->ip : NULL;
+> +struct mpx_fault_info
+> +{
 
-clear_siginfo already zeroes the whole structure, so this could be
-written more clearly as:
+Normal kernel style would be:
 
-	if (user_mode(regs)
-		info.si_addr = (void __user *)regs->ip;
+struct mpx_fault_info {
