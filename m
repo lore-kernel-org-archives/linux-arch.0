@@ -1,55 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58400 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727675AbeISSCB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Sep 2018 14:02:01 -0400
-Date: Wed, 19 Sep 2018 13:24:39 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 07/11] arm/tlb: Convert to generic mmu_gather
-Message-ID: <20180919122439.GC22723@arm.com>
-References: <20180913092110.817204997@infradead.org>
- <20180913092812.247989787@infradead.org>
- <20180918141034.GF16498@arm.com>
- <20180919112829.GA24124@hirez.programming.kicks-ass.net>
+Received: from bombadil.infradead.org ([198.137.202.133]:60808 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730876AbeISSQr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2018 14:16:47 -0400
+Date: Wed, 19 Sep 2018 14:38:49 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/2] s390/tlb: convert to generic mmu_gather
+Message-ID: <20180919123849.GF24124@hirez.programming.kicks-ass.net>
+References: <20180918125151.31744-1-schwidefsky@de.ibm.com>
+ <20180918125151.31744-3-schwidefsky@de.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180919112829.GA24124@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180918125151.31744-3-schwidefsky@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
-Message-ID: <20180919122439.R4c24_gbD85frfxmr4-XMJ1olAM1e_YzzrRetfpH428@z>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20180919123849.OSJH5089KiJmgwKqPMDNEGtluSmSTLLj7JJVwenfb1w@z>
 
-On Wed, Sep 19, 2018 at 01:28:29PM +0200, Peter Zijlstra wrote:
-> On Tue, Sep 18, 2018 at 03:10:34PM +0100, Will Deacon wrote:
-> 
-> > So whilst I was reviewing this, I realised that I think we should be
-> > selecting HAVE_RCU_TABLE_INVALIDATE for arch/arm/ if HAVE_RCU_TABLE_FREE.
-> 
-> Yes very much so. Let me invert that option, you normally want that,
-> except if you don't natively use the linux page-tables.
+On Tue, Sep 18, 2018 at 02:51:51PM +0200, Martin Schwidefsky wrote:
+> +#define pte_free_tlb pte_free_tlb
+> +#define pmd_free_tlb pmd_free_tlb
+> +#define p4d_free_tlb p4d_free_tlb
+> +#define pud_free_tlb pud_free_tlb
 
-Yeah, inverting this to be opt-out is definitely the safe thing to do.
-Patch below looks good:
+> @@ -121,9 +62,18 @@ static inline void tlb_remove_page_size(struct mmu_gather *tlb,
+>   * page table from the tlb.
+>   */
+>  static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+> +                                unsigned long address)
+>  {
+> +	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+> +	tlb->mm->context.flush_mm = 1;
+> +	tlb->freed_tables = 1;
+> +	tlb->cleared_ptes = 1;
+> +	/*
+> +	 * page_table_free_rcu takes care of the allocation bit masks
+> +	 * of the 2K table fragments in the 4K page table page,
+> +	 * then calls tlb_remove_table.
+> +	 */
+> +        page_table_free_rcu(tlb, (unsigned long *) pte, address);
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+(whitespace damage, fixed)
 
-Will
+Also, could you perhaps explain the need for that
+page_table_alloc/page_table_free code? That is, I get the comment about
+using 2K page-table fragments out of 4k physical page, but why this
+custom allocator instead of kmem_cache? It feels like there's a little
+extra complication, but it's not immediately obvious what.
 
-> ---
-> Subject: asm-generic/tlb: Invert HAVE_RCU_TABLE_INVALIDATE
-> From: Peter Zijlstra <peterz@infradead.org>
-> Date: Wed Sep 19 13:24:41 CEST 2018
-> 
-> Make issuing a TLB invalidate for page-table pages the normal case.
-> 
-> The reason is twofold:
-> 
->  - too many invalidates is safer than too few,
->  - most architectures use the linux page-tables natively
->    and would this require this.
-> 
-> Make it an opt-out, instead of an opt-in.
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>  }
+
+We _could_ use __pte_free_tlb() here I suppose, but...
+
+>  /*
+> @@ -139,6 +89,10 @@ static inline void pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
+>  	if (tlb->mm->context.asce_limit <= _REGION3_SIZE)
+>  		return;
+>  	pgtable_pmd_page_dtor(virt_to_page(pmd));
+> +	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+> +	tlb->mm->context.flush_mm = 1;
+> +	tlb->freed_tables = 1;
+> +	tlb->cleared_puds = 1;
+>  	tlb_remove_table(tlb, pmd);
+>  }
+>  
+> @@ -154,6 +108,10 @@ static inline void p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
+>  {
+>  	if (tlb->mm->context.asce_limit <= _REGION1_SIZE)
+>  		return;
+> +	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+> +	tlb->mm->context.flush_mm = 1;
+> +	tlb->freed_tables = 1;
+> +	tlb->cleared_p4ds = 1;
+>  	tlb_remove_table(tlb, p4d);
+>  }
+>  
+> @@ -169,19 +127,11 @@ static inline void pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
+>  {
+>  	if (tlb->mm->context.asce_limit <= _REGION2_SIZE)
+>  		return;
+> +	tlb->mm->context.flush_mm = 1;
+> +	tlb->freed_tables = 1;
+> +	tlb->cleared_puds = 1;
+>  	tlb_remove_table(tlb, pud);
+>  }
+
+It's that ASCE limit that makes it impossible to use the generic
+helpers, right?
