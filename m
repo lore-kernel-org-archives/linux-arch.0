@@ -1,92 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58372 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:58400 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731070AbeISSAv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Sep 2018 14:00:51 -0400
-Date: Wed, 19 Sep 2018 13:23:29 +0100
+        id S1727675AbeISSCB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Sep 2018 14:02:01 -0400
+Date: Wed, 19 Sep 2018 13:24:39 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Message-ID: <20180919122328.GB22723@arm.com>
+Subject: Re: [RFC][PATCH 07/11] arm/tlb: Convert to generic mmu_gather
+Message-ID: <20180919122439.GC22723@arm.com>
 References: <20180913092110.817204997@infradead.org>
- <20180913092811.894806629@infradead.org>
- <20180914164857.GG6236@arm.com>
- <20180919115158.GD24124@hirez.programming.kicks-ass.net>
+ <20180913092812.247989787@infradead.org>
+ <20180918141034.GF16498@arm.com>
+ <20180919112829.GA24124@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180919115158.GD24124@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180919112829.GA24124@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
-Message-ID: <20180919122329.WX5FYeEIWXmx6zGUF7wjTeLXthOwLINZ9XvLW2VE7vA@z>
+Message-ID: <20180919122439.R4c24_gbD85frfxmr4-XMJ1olAM1e_YzzrRetfpH428@z>
 
-On Wed, Sep 19, 2018 at 01:51:58PM +0200, Peter Zijlstra wrote:
-> On Fri, Sep 14, 2018 at 05:48:57PM +0100, Will Deacon wrote:
+On Wed, Sep 19, 2018 at 01:28:29PM +0200, Peter Zijlstra wrote:
+> On Tue, Sep 18, 2018 at 03:10:34PM +0100, Will Deacon wrote:
 > 
-> > > + *  - mmu_gather::fullmm
-> > > + *
-> > > + *    A flag set by tlb_gather_mmu() to indicate we're going to free
-> > > + *    the entire mm; this allows a number of optimizations.
-> > > + *
-> > > + *    XXX list optimizations
-> > 
-> > On arm64, we can elide the invalidation altogether because we won't
-> > re-allocate the ASID. We also have an invalidate-by-ASID (mm) instruction,
-> > which we could use if we needed to.
+> > So whilst I was reviewing this, I realised that I think we should be
+> > selecting HAVE_RCU_TABLE_INVALIDATE for arch/arm/ if HAVE_RCU_TABLE_FREE.
 > 
-> Right, but I was also struggling to put into words the normal fullmm
-> case.
-> 
-> I now ended up with:
-> 
-> --- a/include/asm-generic/tlb.h
-> +++ b/include/asm-generic/tlb.h
-> @@ -82,7 +82,11 @@
->   *    A flag set by tlb_gather_mmu() to indicate we're going to free
->   *    the entire mm; this allows a number of optimizations.
->   *
-> - *    XXX list optimizations
-> + *    - We can ignore tlb_{start,end}_vma(); because we don't
-> + *      care about ranges. Everything will be shot down.
-> + *
-> + *    - (RISC) architectures that use ASIDs can cycle to a new ASID
-> + *      and delay the invalidation until ASID space runs out.
->   *
->   *  - mmu_gather::need_flush_all
->   *
-> 
-> Does that about cover things; or do we need more?
+> Yes very much so. Let me invert that option, you normally want that,
+> except if you don't natively use the linux page-tables.
 
-I think that's fine as a starting point. People can always add more.
+Yeah, inverting this to be opt-out is definitely the safe thing to do.
+Patch below looks good:
 
-> > > + *
-> > > + *  - mmu_gather::need_flush_all
-> > > + *
-> > > + *    A flag that can be set by the arch code if it wants to force
-> > > + *    flush the entire TLB irrespective of the range. For instance
-> > > + *    x86-PAE needs this when changing top-level entries.
-> > > + *
-> > > + * And requires the architecture to provide and implement tlb_flush().
-> > > + *
-> > > + * tlb_flush() may, in addition to the above mentioned mmu_gather fields, make
-> > > + * use of:
-> > > + *
-> > > + *  - mmu_gather::start / mmu_gather::end
-> > > + *
-> > > + *    which (when !need_flush_all; fullmm will have start = end = ~0UL) provides
-> > > + *    the range that needs to be flushed to cover the pages to be freed.
-> > 
-> > I don't understand the mention of need_flush_all here -- I didn't think it
-> > was used by the core code at all.
-> 
-> The core does indeed not use that flag; but if the architecture set
-> that, the range is still ignored.
-> 
-> Can you suggest clearer wording?
-
-The range is only ignored if the default tlb_flush() implementation is used
-though, right? Since this text is about the fields that tlb_flush() can use,
-I think we can just delete the part in brackets.
+Acked-by: Will Deacon <will.deacon@arm.com>
 
 Will
+
+> ---
+> Subject: asm-generic/tlb: Invert HAVE_RCU_TABLE_INVALIDATE
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Wed Sep 19 13:24:41 CEST 2018
+> 
+> Make issuing a TLB invalidate for page-table pages the normal case.
+> 
+> The reason is twofold:
+> 
+>  - too many invalidates is safer than too few,
+>  - most architectures use the linux page-tables natively
+>    and would this require this.
+> 
+> Make it an opt-out, instead of an opt-in.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
