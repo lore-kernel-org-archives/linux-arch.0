@@ -1,77 +1,87 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [RFC][PATCH 01/11] asm-generic/tlb: Provide a comment
-Date: Wed, 19 Sep 2018 13:51:58 +0200
-Message-ID: <20180919115158.GD24124@hirez.programming.kicks-ass.net>
+Date: Wed, 19 Sep 2018 13:23:29 +0100
+Message-ID: <20180919122328.GB22723@arm.com>
 References: <20180913092110.817204997@infradead.org>
  <20180913092811.894806629@infradead.org>
  <20180914164857.GG6236@arm.com>
+ <20180919115158.GD24124@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180914164857.GG6236@arm.com>
+In-Reply-To: <20180919115158.GD24124@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 14, 2018 at 05:48:57PM +0100, Will Deacon wrote:
-
-> > + *  - mmu_gather::fullmm
-> > + *
-> > + *    A flag set by tlb_gather_mmu() to indicate we're going to free
-> > + *    the entire mm; this allows a number of optimizations.
-> > + *
-> > + *    XXX list optimizations
+On Wed, Sep 19, 2018 at 01:51:58PM +0200, Peter Zijlstra wrote:
+> On Fri, Sep 14, 2018 at 05:48:57PM +0100, Will Deacon wrote:
 > 
-> On arm64, we can elide the invalidation altogether because we won't
-> re-allocate the ASID. We also have an invalidate-by-ASID (mm) instruction,
-> which we could use if we needed to.
-
-Right, but I was also struggling to put into words the normal fullmm
-case.
-
-I now ended up with:
-
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -82,7 +82,11 @@
-  *    A flag set by tlb_gather_mmu() to indicate we're going to free
-  *    the entire mm; this allows a number of optimizations.
-  *
-- *    XXX list optimizations
-+ *    - We can ignore tlb_{start,end}_vma(); because we don't
-+ *      care about ranges. Everything will be shot down.
-+ *
-+ *    - (RISC) architectures that use ASIDs can cycle to a new ASID
-+ *      and delay the invalidation until ASID space runs out.
-  *
-  *  - mmu_gather::need_flush_all
-  *
-
-Does that about cover things; or do we need more?
-
-> > + *
-> > + *  - mmu_gather::need_flush_all
-> > + *
-> > + *    A flag that can be set by the arch code if it wants to force
-> > + *    flush the entire TLB irrespective of the range. For instance
-> > + *    x86-PAE needs this when changing top-level entries.
-> > + *
-> > + * And requires the architecture to provide and implement tlb_flush().
-> > + *
-> > + * tlb_flush() may, in addition to the above mentioned mmu_gather fields, make
-> > + * use of:
-> > + *
-> > + *  - mmu_gather::start / mmu_gather::end
-> > + *
-> > + *    which (when !need_flush_all; fullmm will have start = end = ~0UL) provides
-> > + *    the range that needs to be flushed to cover the pages to be freed.
+> > > + *  - mmu_gather::fullmm
+> > > + *
+> > > + *    A flag set by tlb_gather_mmu() to indicate we're going to free
+> > > + *    the entire mm; this allows a number of optimizations.
+> > > + *
+> > > + *    XXX list optimizations
+> > 
+> > On arm64, we can elide the invalidation altogether because we won't
+> > re-allocate the ASID. We also have an invalidate-by-ASID (mm) instruction,
+> > which we could use if we needed to.
 > 
-> I don't understand the mention of need_flush_all here -- I didn't think it
-> was used by the core code at all.
+> Right, but I was also struggling to put into words the normal fullmm
+> case.
+> 
+> I now ended up with:
+> 
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -82,7 +82,11 @@
+>   *    A flag set by tlb_gather_mmu() to indicate we're going to free
+>   *    the entire mm; this allows a number of optimizations.
+>   *
+> - *    XXX list optimizations
+> + *    - We can ignore tlb_{start,end}_vma(); because we don't
+> + *      care about ranges. Everything will be shot down.
+> + *
+> + *    - (RISC) architectures that use ASIDs can cycle to a new ASID
+> + *      and delay the invalidation until ASID space runs out.
+>   *
+>   *  - mmu_gather::need_flush_all
+>   *
+> 
+> Does that about cover things; or do we need more?
 
-The core does indeed not use that flag; but if the architecture set
-that, the range is still ignored.
+I think that's fine as a starting point. People can always add more.
 
-Can you suggest clearer wording?
+> > > + *
+> > > + *  - mmu_gather::need_flush_all
+> > > + *
+> > > + *    A flag that can be set by the arch code if it wants to force
+> > > + *    flush the entire TLB irrespective of the range. For instance
+> > > + *    x86-PAE needs this when changing top-level entries.
+> > > + *
+> > > + * And requires the architecture to provide and implement tlb_flush().
+> > > + *
+> > > + * tlb_flush() may, in addition to the above mentioned mmu_gather fields, make
+> > > + * use of:
+> > > + *
+> > > + *  - mmu_gather::start / mmu_gather::end
+> > > + *
+> > > + *    which (when !need_flush_all; fullmm will have start = end = ~0UL) provides
+> > > + *    the range that needs to be flushed to cover the pages to be freed.
+> > 
+> > I don't understand the mention of need_flush_all here -- I didn't think it
+> > was used by the core code at all.
+> 
+> The core does indeed not use that flag; but if the architecture set
+> that, the range is still ignored.
+> 
+> Can you suggest clearer wording?
+
+The range is only ignored if the default tlb_flush() implementation is used
+though, right? Since this text is about the fields that tlb_flush() can use,
+I think we can just delete the part in brackets.
+
+Will
