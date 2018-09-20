@@ -1,89 +1,111 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v6 07/16] x86/pci: Add Hygon Dhyana support to PCI and
- north bridge
-Date: Thu, 20 Sep 2018 16:05:07 +0800
-Message-ID: <b44e0656-7d57-3f9e-03fb-1dcf04091cdc@hygon.cn>
-References: <cover.1536550549.git.puwen@hygon.cn>
- <035e5d0a4f2a0edf68ca0f1019e47b878eaa5da6.1536550550.git.puwen@hygon.cn>
- <d05c7aa5-05ba-5ac2-c70f-414d9539925f@amd.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
+Date: Thu, 20 Sep 2018 13:42:37 +0530
+Message-ID: <CALxhOnjLKU8BCHFoc35P_tTh=6+NRbCrO6oB3Gar=uBMqYU4iw@mail.gmail.com>
+References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
+ <1533791723-3882-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
+ <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com> <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <d05c7aa5-05ba-5ac2-c70f-414d9539925f@amd.com>
-Content-Language: en-US
+In-Reply-To: <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Lendacky, Thomas" <Thomas.Lendacky@amd.com>, "tglx@linutronix.de" <tglx@linutronix.de>
-Cc: "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "bp@alien8.de" <bp@alien8.de>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "helgaas@kernel.org" <helgaas@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/20 1:20, Lendacky, Thomas wrote:
->> @@ -197,12 +212,25 @@ int amd_cache_northbridges(void)
->>   	u16 i = 0;
->>   	struct amd_northbridge *nb;
->>   	struct pci_dev *root, *misc, *link;
->> +	const struct pci_device_id *root_ids = NULL;
->> +	const struct pci_device_id *misc_ids = NULL;
->> +	const struct pci_device_id *link_ids = NULL;
->> +
->> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD) {
->> +		root_ids = amd_root_ids;
->> +		misc_ids = amd_nb_misc_ids;
->> +		link_ids = amd_nb_link_ids;
->> +	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
->> +		root_ids = hygon_root_ids;
->> +		misc_ids = hygon_nb_misc_ids;
->> +		link_ids = hygon_nb_link_ids;
->> +	}
+Hi Geert,
+
+On 18 September 2018 at 15:34, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> Hi Firoz,
 >
-> To be compatible with "before this patch" you should probably do:
+> On Tue, Sep 18, 2018 at 9:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>> On 9 August 2018 at 13:00, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>> > One first comment below...
+>> >
+>> > On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>> >> NR_syscalls macro holds the number of system call exist in m68k
+>> >> architecture. This macro is currently the part of asm/unistd.h file.
+>> >> We have to change the value of NR_syscalls, if we add or delete a
+>> >> system call.
+>> >>
+>> >> One of patch in this patch series has a script which will generate
+>> >> a uapi header based on syscall.tbl file. The syscall.tbl file
+>> >> contains the number of system call information. So we have two
+>> >> option to update NR_syscalls value.
+>> >>
+>> >> 1. Update NR_syscalls in asm/unistd.h manually by counting the
+>> >>    no.of system calls. No need to update NR_syscalls untill
+>> >>    we either add a new system call or delete an existing system
+>> >>    call.
+>> >>
+>> >> 2. We can keep this feature it above mentioned script, that'll
+>> >>    count the number of syscalls and keep it in a generated file.
+>> >>    In this case we don't need to explicitly update NR_syscalls
+>> >>    in asm/unistd.h file.
+>> >>
+>> >> The 2nd option will be the recommended one. For that, I moved the
+>> >> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+>> >> name also changed form NR_syscalls to __NR_syscalls for making the
+>> >> name convention same across all architecture. While __NR_syscalls
+>> >> isn't strictly part of the uapi, having it as part of the generated
+>> >> header to simplifies the implementation.
+>> >
+>> > It can indeed not be part of the UAPI, as UAPI definitions can never change,
+>> > while new syscalls will be added in the future, increasing the number ;-)
+>>
+>> Thanks for your reply :)
+>> Sorry for the delayed response :(
+>>
+>> I would like to keep __NR_syscalls macro to uapi header in order to simplify
+>> the system call table generation script. Otherwise the __NR_syscalls
+>> macro need to update manually. That become a problem.
+>>
+>> Please check the below implementation in uapi file make sense?
+>> It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
+>> and enclose it in #ifdef __KERNEL__
+>>
+>> ...
+>> ...
+>> #define __NR_pwritev2  378
+>> #define __NR_statx      379
+>>
+>> #ifdef __KERNEL__
+>> #define __NR_syscalls   380
+>> #endif
+>> ...
+>> ...
 >
-> 	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-> 		root_ids = hygon_root_ids;
-> 		misc_ids = hygon_nb_misc_ids;
-> 		link_ids = hygon_nb_link_ids;
-> 	} else {
-> 		root_ids = amd_root_ids;
-> 		misc_ids = amd_nb_misc_ids;
-> 		link_ids = amd_nb_link_ids;
-> 	}
+> #ifdef __KERNEL__ sounds fine to me.
+
+I posted similar script for 10 different architectures. I got few good review
+from the maintainers and it will be applicable for all the
+architectures including
+m68k. There are few area which I identified need to improve. This will take
+couple of days.
+
+But it will be very helpful if you can perform the boot test on the
+actual platform
+and share the result.
+
+FYI, Keeping a single script is always our plan for long run. But I
+have to keep a
+separate versions for the start so each architecture can be handled  in one
+series. Which would make easier to merge in the initial version. we
+could probably
+add it to scripts/*.sh first, but that requires more coordination between the
+architectures.
+
+- Firoz
+
 >
-> That way they are always the AMD values if not your chip.
+> Gr{oetje,eeting}s,
 >
-...
->> @@ -263,9 +291,15 @@ bool __init early_is_amd_nb(u32 device)
->>   {
->>   	const struct pci_device_id *id;
->>   	u32 vendor = device & 0xffff;
->> +	const struct pci_device_id *misc_ids = NULL;
->> +
->> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
->> +		misc_ids = amd_nb_misc_ids;
->> +	else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
->> +		misc_ids = hygon_nb_misc_ids;
+>                         Geert
 >
-> Same comment as above.  This will probably eliminate the PANIC that
-> that was reported by LKP.
-
-Yes, it's this modification that caused the PANIC reported by LKP.
-Because the misc_ids will be NULL if running on Intel chip.
-
-If change the vendor checking like this:
-
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
-+		misc_ids = hygon_nb_misc_ids;
-+	else
-+		misc_ids = amd_nb_misc_ids;
-
-The PANIC will be eliminated.
-
-The PANIC will also be eliminated by adding AMD vendor checking in
-amd_gart_present:
-
-+	if(boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
-+		return false;
-
-To prevent the function return true on non AMD platform.
-
-Thanks,
-Pu Wen
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
