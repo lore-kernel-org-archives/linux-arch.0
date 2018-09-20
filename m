@@ -1,81 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:46241 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387749AbeITUus (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 16:50:48 -0400
-Received: by mail-pf1-f196.google.com with SMTP id u24-v6so4497433pfn.13
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 08:06:54 -0700 (PDT)
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 2/5] m68k: Replace NR_syscalls macro from asm/unistd.h
-Date: Thu, 20 Sep 2018 20:36:10 +0530
-Message-ID: <1537455973-12468-3-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
-References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:36716 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728005AbeITVyG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 17:54:06 -0400
+Received: by mail-pf1-f195.google.com with SMTP id b11-v6so4603945pfo.3
+        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 09:09:55 -0700 (PDT)
+Subject: Re: [RESEND PATCH v3 0/3] sh: make early_platform code
+ SuperH-specific
+References: <20180827090651.25062-1-brgl@bgdev.pl>
+ <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Message-ID: <9963d3f3-ba14-0d18-d669-53fc79b783c2@linaro.org>
+Date: Thu, 20 Sep 2018 18:09:52 +0200
+MIME-Version: 1.0
+In-Reply-To: <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20180920150610.TxHbX_2UMkeHvNaO1urOPsapC7yOs-G22MBdVAKHTZg@z>
+To: Bartosz Golaszewski <brgl@bgdev.pl>, Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20180920160952.dtB0ruQ0Yd2_wxOxxG2nUanBqf7n4uYXwmFAPqAuOcY@z>
 
-NR_syscalls macro holds the number of system call exist in m68k
-architecture. This macro is currently the part of asm/unistd.h file.
-We have to change the value of NR_syscalls, if we add or delete a
-system call.
+On 20/09/2018 15:00, Bartosz Golaszewski wrote:
 
-One of patch in this patch series has a script which will generate
-a uapi header based on syscall.tbl file. The syscall.tbl file
-contains the number of system call information. So we have two
-option to update NR_syscalls value.
+[ ... ]
 
-1. Update NR_syscalls in asm/unistd.h manually by counting the
-   no.of system calls. No need to update NR_syscalls untill
-   we either add a new system call or delete an existing system
-   call.
+> Ping for 4.20. This is the third release cycle I'm trying to get this
+> merged and there never were any objections.
 
-2. We can keep this feature it above mentioned script, that'll
-   count the number of syscalls and keep it in a generated file.
-   In this case we don't need to explicitly update NR_syscalls
-   in asm/unistd.h file.
+Thanks for the heads up, it is in the pipe.
 
-The 2nd option will be the recommended one. For that, I come up
-with another macro - __NR_syscalls which will be updated by the
-script and it will be present in api/asm/unistd.h. While __NR_syscalls
-isn't strictly part of the uapi, having it as part of the generated
-header to simplifies the implementation. So we need to enclose this
-macro with #ifdef __KERNEL__ to avoid side effects.
+  -- Daniel
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/m68k/include/asm/unistd.h      | 3 +--
- arch/m68k/include/uapi/asm/unistd.h | 4 ++++
- 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
-index 30d0d3f..5072e94 100644
---- a/arch/m68k/include/asm/unistd.h
-+++ b/arch/m68k/include/asm/unistd.h
-@@ -4,8 +4,7 @@
- 
- #include <uapi/asm/unistd.h>
- 
--
--#define NR_syscalls		380
-+#define NR_syscalls __NR_syscalls
- 
- #define __ARCH_WANT_OLD_READDIR
- #define __ARCH_WANT_OLD_STAT
-diff --git a/arch/m68k/include/uapi/asm/unistd.h b/arch/m68k/include/uapi/asm/unistd.h
-index de3054f..ba4176aa 100644
---- a/arch/m68k/include/uapi/asm/unistd.h
-+++ b/arch/m68k/include/uapi/asm/unistd.h
-@@ -387,4 +387,8 @@
- #define __NR_pwritev2		378
- #define __NR_statx		379
- 
-+#ifdef __KERNEL__
-+#define __NR_syscalls		380
-+#endif
-+
- #endif /* _UAPI_ASM_M68K_UNISTD_H_ */
 -- 
-1.9.1
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
