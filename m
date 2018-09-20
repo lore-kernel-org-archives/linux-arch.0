@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from exmail.andestech.com ([59.124.169.137]:19846 "EHLO
+Received: from exmail.andestech.com ([59.124.169.137]:15577 "EHLO
         ATCSQR.andestech.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731366AbeITI2P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 04:28:15 -0400
+        with ESMTP id S1731366AbeITI2K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 04:28:10 -0400
 From: Vincent Chen <vincentc@andestech.com>
-Subject: [PATCH 5/5] math-emu/soft-fp.h: (_FP_ROUND_ZERO) cast 0 to void to fix warning
-Date: Thu, 20 Sep 2018 10:46:22 +0800
-Message-ID: <1537411582-23723-6-git-send-email-vincentc@andestech.com>
+Subject: [PATCH 4/5] math-emu/op-2.h: Use statement expressions to prevent negative constant shift
+Date: Thu, 20 Sep 2018 10:46:21 +0800
+Message-ID: <1537411582-23723-5-git-send-email-vincentc@andestech.com>
 In-Reply-To: <1537411582-23723-1-git-send-email-vincentc@andestech.com>
 References: <1537411582-23723-1-git-send-email-vincentc@andestech.com>
 MIME-Version: 1.0
@@ -14,33 +14,129 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, deanbo422@gmail.com, vincentc@andestech.com
-Message-ID: <20180920024622.Bv96GgIp-vkPKesoUyoq2u3hCDwOx6kmHIKUDpxjBu8@z>
+Message-ID: <20180920024621.-jkyZorB5oKzxqXp8mxL6yoTM8BErN2ldsCoNIMVo40@z>
 
-  _FP_ROUND_ZERO is defined as 0 and used as a statemente in macro
-_FP_ROUND. This generates "error: statement with no effect
-[-Werror=unused-value]" from gcc. Defining _FP_ROUND_ZERO as (void)0 to
-fix it.
-
-This modification is quoted from glibc 'commit <In libc/:>
-(8ed1e7d5894000c155acbd06f)'
+ This modification is quoted from glibc 'commit
+<sysdeps/unix/sysv/linux/sparc/sparc64/dl-procinfo.c: Moved to>
+(fe0b1e854ad32a69b260)'
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 ---
- include/math-emu/soft-fp.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ include/math-emu/op-2.h |   97 ++++++++++++++++++++++------------------------
+ 1 files changed, 46 insertions(+), 51 deletions(-)
 
-diff --git a/include/math-emu/soft-fp.h b/include/math-emu/soft-fp.h
-index 3f284bc..5650c16 100644
---- a/include/math-emu/soft-fp.h
-+++ b/include/math-emu/soft-fp.h
-@@ -138,7 +138,7 @@
-       _FP_FRAC_ADDI_##wc(X, _FP_WORK_ROUND);		\
- } while (0)
+diff --git a/include/math-emu/op-2.h b/include/math-emu/op-2.h
+index 4f26ecc..13a374f 100644
+--- a/include/math-emu/op-2.h
++++ b/include/math-emu/op-2.h
+@@ -31,61 +31,56 @@
+ #define _FP_FRAC_HIGH_2(X)	(X##_f1)
+ #define _FP_FRAC_LOW_2(X)	(X##_f0)
+ #define _FP_FRAC_WORD_2(X,w)	(X##_f##w)
++#define _FP_FRAC_SLL_2(X, N) (						       \
++	(void) (((N) < _FP_W_TYPE_SIZE)					       \
++	  ? ({								       \
++		if (__builtin_constant_p(N) && (N) == 1) {		       \
++			X##_f1 = X##_f1 + X##_f1 +			       \
++				(((_FP_WS_TYPE) (X##_f0)) < 0);		       \
++			X##_f0 += X##_f0;				       \
++		} else {						       \
++			X##_f1 = X##_f1 << (N) | X##_f0 >>		       \
++						(_FP_W_TYPE_SIZE - (N));       \
++			X##_f0 <<= (N);					       \
++		}							       \
++		0;							       \
++	    })								       \
++	  : ({								       \
++	      X##_f1 = X##_f0 << ((N) - _FP_W_TYPE_SIZE);		       \
++	      X##_f0 = 0;						       \
++	  })))
++
++
++#define _FP_FRAC_SRL_2(X, N) (						       \
++	(void) (((N) < _FP_W_TYPE_SIZE)					       \
++	  ? ({								       \
++	      X##_f0 = X##_f0 >> (N) | X##_f1 << (_FP_W_TYPE_SIZE - (N));      \
++	      X##_f1 >>= (N);						       \
++	    })								       \
++	  : ({								       \
++	      X##_f0 = X##_f1 >> ((N) - _FP_W_TYPE_SIZE);		       \
++	      X##_f1 = 0;						       \
++	    })))
  
--#define _FP_ROUND_ZERO(wc, X)		0
-+#define _FP_ROUND_ZERO(wc, X)		(void)0
+-#define _FP_FRAC_SLL_2(X,N)						\
+-  do {									\
+-    if ((N) < _FP_W_TYPE_SIZE)						\
+-      {									\
+-	if (__builtin_constant_p(N) && (N) == 1) 			\
+-	  {								\
+-	    X##_f1 = X##_f1 + X##_f1 + (((_FP_WS_TYPE)(X##_f0)) < 0);	\
+-	    X##_f0 += X##_f0;						\
+-	  }								\
+-	else								\
+-	  {								\
+-	    X##_f1 = X##_f1 << (N) | X##_f0 >> (_FP_W_TYPE_SIZE - (N));	\
+-	    X##_f0 <<= (N);						\
+-	  }								\
+-      }									\
+-    else								\
+-      {									\
+-	X##_f1 = X##_f0 << ((N) - _FP_W_TYPE_SIZE);			\
+-	X##_f0 = 0;							\
+-      }									\
+-  } while (0)
+-
+-#define _FP_FRAC_SRL_2(X,N)						\
+-  do {									\
+-    if ((N) < _FP_W_TYPE_SIZE)						\
+-      {									\
+-	X##_f0 = X##_f0 >> (N) | X##_f1 << (_FP_W_TYPE_SIZE - (N));	\
+-	X##_f1 >>= (N);							\
+-      }									\
+-    else								\
+-      {									\
+-	X##_f0 = X##_f1 >> ((N) - _FP_W_TYPE_SIZE);			\
+-	X##_f1 = 0;							\
+-      }									\
+-  } while (0)
  
- #define _FP_ROUND_PINF(wc, X)				\
- do {							\
+ /* Right shift with sticky-lsb.  */
+-#define _FP_FRAC_SRS_2(X,N,sz)						\
+-  do {									\
+-    if ((N) < _FP_W_TYPE_SIZE)						\
+-      {									\
+-	X##_f0 = (X##_f1 << (_FP_W_TYPE_SIZE - (N)) | X##_f0 >> (N) |	\
+-		  (__builtin_constant_p(N) && (N) == 1			\
+-		   ? X##_f0 & 1						\
+-		   : (X##_f0 << (_FP_W_TYPE_SIZE - (N))) != 0));	\
+-	X##_f1 >>= (N);							\
+-      }									\
+-    else								\
+-      {									\
+-	X##_f0 = (X##_f1 >> ((N) - _FP_W_TYPE_SIZE) |			\
+-		(((X##_f1 << (2*_FP_W_TYPE_SIZE - (N))) | X##_f0) != 0)); \
+-	X##_f1 = 0;							\
+-      }									\
+-  } while (0)
++#define _FP_FRAC_SRS_2(X, N, sz) (					       \
++	(void) (((N) < _FP_W_TYPE_SIZE)					       \
++	  ? ({								       \
++	      X##_f0 = (X##_f1 << (_FP_W_TYPE_SIZE - (N)) | X##_f0 >> (N)      \
++			| (__builtin_constant_p(N) && (N) == 1		       \
++			   ? X##_f0 & 1					       \
++			   : (X##_f0 << (_FP_W_TYPE_SIZE - (N))) != 0));       \
++		X##_f1 >>= (N);						       \
++	    })								       \
++	  : ({								       \
++	      X##_f0 = (X##_f1 >> ((N) - _FP_W_TYPE_SIZE)		       \
++			| ((((N) == _FP_W_TYPE_SIZE			       \
++			     ? 0					       \
++			     : (X##_f1 << (2*_FP_W_TYPE_SIZE - (N))))          \
++			    | X##_f0) != 0));				       \
++	      X##_f1 = 0;						       \
++	    })))
+ 
+ #define _FP_FRAC_ADDI_2(X,I)	\
+   __FP_FRAC_ADDI_2(X##_f1, X##_f0, I)
 -- 
 1.7.1
