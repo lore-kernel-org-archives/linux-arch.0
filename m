@@ -1,45 +1,109 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [LKP] [x86/pci] 7ffb31888c: PANIC:early_exception
-Date: Thu, 20 Sep 2018 11:39:17 +0200 (CEST)
-Message-ID: <alpine.DEB.2.21.1809201138230.3243@nanos.tec.linutronix.de>
-References: <20180919031923.GC8820@shao2-debian> <4f5166f8-97b8-a58f-3e5d-19d1751a4601@hygon.cn> <dfc09a36-cfc5-0479-a862-696c224f9a19@intel.com> <7e9e862a-e890-775f-ed92-74c591c7deb6@hygon.cn>
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Subject: Re: [RESEND PATCH v3 0/3] sh: make early_platform code SuperH-specific
+Date: Thu, 20 Sep 2018 15:00:45 +0200
+Message-ID: <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
+References: <20180827090651.25062-1-brgl@bgdev.pl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <7e9e862a-e890-775f-ed92-74c591c7deb6@hygon.cn>
+In-Reply-To: <20180827090651.25062-1-brgl@bgdev.pl>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Pu Wen <puwen@hygon.cn>
-Cc: Rong Chen <rong.a.chen@intel.com>, bp@alien8.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lkp@01.org
+To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Bartosz Golaszewski <brgl@bgdev.pl>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 20 Sep 2018, Pu Wen wrote:
-> On 2018/9/20 8:26, Rong Chen wrote:
-> > On 09/19/2018 09:53 PM, Pu Wen wrote:
-> > > I cannot reproduce this panic on Hygon Dhyana platform. I tired lkp-tests
-> > > both in Ubuntu 16.04 (with gcc-5) and Ubuntu 18.04 (with gcc-7).
-> > > What kind of host do you use to run the qemu? A Intel one or AMD one?
-> > It's a Intel one,
-> > 
-> > model: Nehalem-EX
-> > memory: 224G
-> > nr_node: 4
-> > nr_cpu: 64
-> > nr_socket: 4
-> > brand: Intel(R) Xeon(R) CPU X7560 @ 2.27GHz
-> 
-> I reproduced the PANIC by running lkp-tests with a Intel machine.
-> 
-> The reason is that the function early_is_amd_nb is called even if
-> running on Intel machine. At this case the misc_ids is NULL so the
-> PANIC occur.
-> 
-> I'll rework a patch to solve this problem, either restore the default
-> value of misc_ids with the original AMD one or not call early_is_amd_nb
-> on Intel platform.
+2018-08-27 11:06 GMT+02:00 Bartosz Golaszewski <brgl@bgdev.pl>:
+> I recently started a discussion about the need for a proper early device
+> probing mechanism[1]. One that would be based on real platform drivers
+> and support both platform data and device tree.
+>
+> While we're far from reaching any consensus on the implementation, Arnd
+> suggested that I start off by moving the SuperH-specific early platform
+> drivers implementation to arch/sh[2].
+>
+> This series is the first attempt at making way for a new, less hacky
+> implementation.
+>
+> The first patch removes the last instance of a non-sh driver using the
+> early_platform API. It can be removed since ARM no longer probes early
+> drivers.
+>
+> The second patch moves all the early_platform code to arch/sh.
+>
+> The last patch prefixes all early_platform symbols with 'sh_'.
+>
+> [1] https://lkml.org/lkml/2018/4/26/657
+> [2] https://lkml.org/lkml/2018/4/27/239
+>
+> v1 -> v2:
+> - certain drivers are compiled for arm/mach-shmobile too - we need to
+>   add ifdefs for CONFIG_SUPERH around early_platform calls
+>
+> v2 -> v3:
+> - added a stub for is_early_platform_device() which always returns false
+>   on non-SuperH architectures
+>
+> RESEND: rebased on top of v4.18-rc1 and verified that there are no build
+> failures.
+>
+> RESEND AGAIN: rebased on top of v4.19-rc1 and verified builds again.
+>
+> Bartosz Golaszewski (3):
+>   clocksource: timer-ti-dm: remove the early platform driver
+>     registration
+>   platform: move the early platform device support to arch/sh
+>   sh: add the sh_ prefix to early platform symbols
+>
+>  arch/sh/drivers/Makefile               |   2 +-
+>  arch/sh/drivers/platform_early.c       | 347 +++++++++++++++++++++++++
+>  arch/sh/include/asm/platform_early.h   |  61 +++++
+>  arch/sh/kernel/cpu/sh2/setup-sh7619.c  |   3 +-
+>  arch/sh/kernel/cpu/sh2a/setup-mxg.c    |   3 +-
+>  arch/sh/kernel/cpu/sh2a/setup-sh7201.c |   3 +-
+>  arch/sh/kernel/cpu/sh2a/setup-sh7203.c |   3 +-
+>  arch/sh/kernel/cpu/sh2a/setup-sh7206.c |   3 +-
+>  arch/sh/kernel/cpu/sh2a/setup-sh7264.c |   3 +-
+>  arch/sh/kernel/cpu/sh2a/setup-sh7269.c |   3 +-
+>  arch/sh/kernel/cpu/sh3/setup-sh3.c     |   1 +
+>  arch/sh/kernel/cpu/sh3/setup-sh7705.c  |   3 +-
+>  arch/sh/kernel/cpu/sh3/setup-sh770x.c  |   3 +-
+>  arch/sh/kernel/cpu/sh3/setup-sh7710.c  |   3 +-
+>  arch/sh/kernel/cpu/sh3/setup-sh7720.c  |   3 +-
+>  arch/sh/kernel/cpu/sh4/setup-sh4-202.c |   3 +-
+>  arch/sh/kernel/cpu/sh4/setup-sh7750.c  |   9 +-
+>  arch/sh/kernel/cpu/sh4/setup-sh7760.c  |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7343.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7366.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7722.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7723.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7724.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7734.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7757.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7763.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7770.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7780.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7785.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-sh7786.c |   3 +-
+>  arch/sh/kernel/cpu/sh4a/setup-shx3.c   |   3 +-
+>  arch/sh/kernel/cpu/sh5/setup-sh5.c     |   3 +-
+>  arch/sh/kernel/setup.c                 |   3 +-
+>  arch/sh/kernel/time.c                  |   5 +-
+>  drivers/base/platform.c                | 288 --------------------
+>  drivers/clocksource/sh_cmt.c           |  13 +-
+>  drivers/clocksource/sh_mtu2.c          |  13 +-
+>  drivers/clocksource/sh_tmu.c           |  14 +-
+>  drivers/clocksource/timer-ti-dm.c      |   1 -
+>  drivers/tty/serial/sh-sci.c            |  11 +-
+>  include/linux/platform_device.h        |  64 +----
+>  41 files changed, 525 insertions(+), 388 deletions(-)
+>  create mode 100644 arch/sh/drivers/platform_early.c
+>  create mode 100644 arch/sh/include/asm/platform_early.h
+>
+> --
+> 2.18.0
+>
 
-Return when !AMD and !HYGON is the right thing to do. No point in checking
-device ids which cannot happen in the first place.
+Ping for 4.20. This is the third release cycle I'm trying to get this
+merged and there never were any objections.
 
-Thanks,
-
-	tglx
+Bart
