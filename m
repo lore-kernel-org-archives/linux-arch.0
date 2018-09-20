@@ -1,82 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f194.google.com ([209.85.219.194]:38013 "EHLO
-        mail-yb1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728347AbeIUDlb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 23:41:31 -0400
-Received: by mail-yb1-f194.google.com with SMTP id e190-v6so4600519ybb.5
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 14:55:56 -0700 (PDT)
-Received: from mail-yb1-f176.google.com (mail-yb1-f176.google.com. [209.85.219.176])
-        by smtp.gmail.com with ESMTPSA id p78-v6sm15598838ywp.31.2018.09.20.14.55.53
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 20 Sep 2018 14:55:53 -0700 (PDT)
-Received: by mail-yb1-f176.google.com with SMTP id b3-v6so3548255yba.4
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 14:55:53 -0700 (PDT)
+Received: from sonic305-10.consmr.mail.bf2.yahoo.com ([74.6.133.49]:45168 "EHLO
+        sonic305-10.consmr.mail.bf2.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726057AbeIUFZP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Sep 2018 01:25:15 -0400
+Subject: Re: [PATCH security-next v2 01/26] LSM: Correctly announce start of
+ LSM initialization
+References: <20180920162338.21060-1-keescook@chromium.org>
+ <20180920162338.21060-2-keescook@chromium.org>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <d273e21a-4323-f2ed-84ef-6b47e89633e4@schaufler-ca.com>
+Date: Thu, 20 Sep 2018 16:39:12 -0700
 MIME-Version: 1.0
-In-Reply-To: <1898403.NNy4ELVaME@merkaba>
-References: <20180920162338.21060-1-keescook@chromium.org> <1898403.NNy4ELVaME@merkaba>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 20 Sep 2018 14:55:52 -0700
-Message-ID: <CAGXu5jJfp2ezmODaQgj_gROdpr=_Dc4_h=ujPeR-ggTZ8AUciQ@mail.gmail.com>
-Subject: Re: [PATCH security-next v2 00/26] LSM: Explict LSM ordering
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20180920162338.21060-2-keescook@chromium.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Steigerwald <martin@lichtvoll.de>
-Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20180920215552.iF-B8n877xzC9YjAEen-qCzV9eNTFl-kQMqt7cG3ILY@z>
+To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
+Cc: John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180920233912.JS0iHqhkyHnkBbC8O6obG9fHdeRe9TAIi7sKST-oVio@z>
 
-On Thu, Sep 20, 2018 at 1:14 PM, Martin Steigerwald <martin@lichtvoll.de> w=
-rote:
-> Kees Cook - 20.09.18, 18:23:
->> v2:
->> - add "lsm.order=3D" and CONFIG_LSM_ORDER instead of overloading
->> "security=3D" - reorganize introduction of ordering logic code
->>
->> Updated cover letter:
->>
->> This refactors the LSM registration and initialization infrastructure
->> to more centrally support different LSM types. What was considered a
->> "major" LSM is kept for legacy use of the "security=3D" boot parameter,
->> and now overlaps with the new class of "exclusive" LSMs for the future
->> blob sharing (to be added later). The "minor" LSMs become more well
->> defined as a result of the refactoring.
->>
->> Instead of continuing to (somewhat improperly) overload the kernel's
->> initcall system, this changes the LSM infrastructure to store a
->> registration structure (struct lsm_info) table instead, where metadata
->> about each LSM can be recorded (name, flags, order, enable flag, init
->> function). This can be extended in the future to include things like
->> required blob size for the coming "blob sharing" LSMs.
+On 9/20/2018 9:23 AM, Kees Cook wrote:
+> For a while now, the LSM core has said it was "initializED", rather than
+> "initializING". This adjust the report to be more accurate (i.e. before
+> this was reported before any LSMs had been initialized.)
 >
-> I read the cover letter and still don=C2=B4t know what this is about. Now=
- I
-> am certainly not engaged deeply with LSM. I bet my main missing piece
-> is: What is a "blob sharing" LSM.
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
+
+> ---
+>  security/security.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 >
-> I think it would improve the cover letter greatly if it explains briefly
-> what is a major LSM, what is a minor LSM and what is a "blob sharing"
-> LSM.
->
-> Why those are all needed? What is the actual security or end user
-> benefit of this work? The questions are not to question your work. I bet
-> it makes all perfect sense. I just did not understand its sense from
-> reading the cover letter.
-
-Sure, thanks! I'll include more details for any later versions. This
-is mainly related to some internal refactoring the LSM is doing to
-support additional LSM that need more extensive "stacking" of the
-kernel internals. I aimed this at linux-doc@ and linux-arch@ to get
-feedback on the Documentation/ and linker script changes,
-respectively. In theory, users don't need to know anything about
-minor/major nor blob-sharing, as that should normally be all an
-internal issue.
-
-Thanks!
-
--Kees
-
---=20
-Kees Cook
-Pixel Security
+> diff --git a/security/security.c b/security/security.c
+> index 736e78da1ab9..4cbcf244a965 100644
+> --- a/security/security.c
+> +++ b/security/security.c
+> @@ -72,10 +72,11 @@ int __init security_init(void)
+>  	int i;
+>  	struct hlist_head *list = (struct hlist_head *) &security_hook_heads;
+>  
+> +	pr_info("Security Framework initializing\n");
+> +
+>  	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
+>  	     i++)
+>  		INIT_HLIST_HEAD(&list[i]);
+> -	pr_info("Security Framework initialized\n");
+>  
+>  	/*
+>  	 * Load minor LSMs, with the capability module always first.
