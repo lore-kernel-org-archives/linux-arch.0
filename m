@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:38190 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:53999 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726994AbeITLVv (ORCPT
+        by vger.kernel.org with ESMTP id S1731670AbeITLVx (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Sep 2018 07:21:51 -0400
+        Thu, 20 Sep 2018 07:21:53 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V8 2/6] csky: remove irq_mapping from smp.c
-Date: Thu, 20 Sep 2018 13:39:28 +0800
-Message-ID: <7fea6f7e58728eef8248c8c5e518f45e6043ba4b.1537417413.git.ren_guo@c-sky.com>
+Subject: [PATCH V8 3/6] irqchip: add C-SKY SMP interrupt controller
+Date: Thu, 20 Sep 2018 13:39:29 +0800
+Message-ID: <98731d0679cc1bdebfa66de43fe8f2da84e76890.1537417413.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
 References: <cover.1537417413.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
@@ -16,104 +16,257 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180920053928.Xk1zVRtwlyepRKWbkmE_rVi_SGh0AYkMHwRuG0BTT9o@z>
+Message-ID: <20180920053929.BD9W67RcpEn0E5LtGR22g2GSByp0mLfr8UTAnsS9riA@z>
 
- - Add irq_mapping return check
- - Move IPI_IRQ into irq-driver
- - remove irq_mapping from smp.c to irq-driver
- - Add set_ipi_irq_mapping api to irq-driver
- - update asm/smp.h
+ - Irq-csky-mpintc is C-SKY smp system interrupt controller and it
+   could support 16 soft irqs, 16 private irqs, and 992 max common
+   irqs.
+
+Changelog:
+ - Move IPI_IRQ into the driver
+ - Remove irq_set_default_host() and use set_ipi_irq_mapping()
+ - Change name with upstream feed-back
+ - Change irq map, reserve soft_irq & private_irq space
+ - Add License and Copyright
+ - Support set_affinity for irq balance in SMP
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/smp.h |  4 +++-
- arch/csky/kernel/smp.c      | 27 +++++++++++++++++++--------
- 2 files changed, 22 insertions(+), 9 deletions(-)
+ drivers/irqchip/Kconfig           |   8 ++
+ drivers/irqchip/Makefile          |   1 +
+ drivers/irqchip/irq-csky-mpintc.c | 195 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 204 insertions(+)
+ create mode 100644 drivers/irqchip/irq-csky-mpintc.c
 
-diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
-index 9a53abf..f3e4f24 100644
---- a/arch/csky/include/asm/smp.h
-+++ b/arch/csky/include/asm/smp.h
-@@ -17,7 +17,9 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask);
+diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
+index 383e7b7..92e1c20 100644
+--- a/drivers/irqchip/Kconfig
++++ b/drivers/irqchip/Kconfig
+@@ -371,6 +371,14 @@ config QCOM_PDC
+ 	  Power Domain Controller driver to manage and configure wakeup
+ 	  IRQs for Qualcomm Technologies Inc (QTI) mobile chips.
  
- void arch_send_call_function_single_ipi(int cpu);
- 
--void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long));
-+void __init set_send_ipi(void (*func)(const unsigned long *));
++config CSKY_MPINTC
++	bool "C-SKY Multi Processor Interrupt Controller"
++	depends on CSKY
++	help
++	  Say yes here to enable C-SKY SMP interrupt controller driver used
++	  for C-SKY SMP system. In fact it's not mmio map and it use ld/st
++	  to visit the controller's register inside CPU.
 +
-+void __init set_ipi_irq_mapping(int (*func)(void));
+ endmenu
  
- #define raw_smp_processor_id()	(current_thread_info()->cpu)
- 
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-index 522c73f..14877e2 100644
---- a/arch/csky/kernel/smp.c
-+++ b/arch/csky/kernel/smp.c
-@@ -20,8 +20,6 @@
- #include <asm/mmu_context.h>
- #include <asm/pgalloc.h>
- 
--#define IPI_IRQ	15
--
- static struct {
- 	unsigned long bits ____cacheline_aligned;
- } ipi_data[NR_CPUS] __cacheline_aligned;
-@@ -56,9 +54,9 @@ static irqreturn_t handle_ipi(int irq, void *dev)
- 	return IRQ_HANDLED;
- }
- 
--static void (*send_arch_ipi)(const unsigned long *mask, unsigned long irq) = NULL;
-+static void (*send_arch_ipi)(const unsigned long *mask) = NULL;
- 
--void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long))
-+void __init set_send_ipi(void (*func)(const unsigned long *))
- {
- 	if (send_arch_ipi)
- 		return;
-@@ -75,7 +73,7 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
- 		set_bit(operation, &ipi_data[i].bits);
- 
- 	smp_mb();
--	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
-+	send_arch_ipi(cpumask_bits(to_whom));
- }
- 
- void arch_send_call_function_ipi_mask(struct cpumask *mask)
-@@ -115,19 +113,32 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
- }
- 
- static int ipi_dummy_dev;
-+static int ipi_irq;
- 
- void __init enable_smp_ipi(void)
- {
--	enable_percpu_irq(IPI_IRQ, 0);
-+	enable_percpu_irq(ipi_irq, 0);
+ config SIFIVE_PLIC
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index fbd1ec8..6b739ea 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -87,4 +87,5 @@ obj-$(CONFIG_MESON_IRQ_GPIO)		+= irq-meson-gpio.o
+ obj-$(CONFIG_GOLDFISH_PIC) 		+= irq-goldfish-pic.o
+ obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+ obj-$(CONFIG_QCOM_PDC)			+= qcom-pdc.o
++obj-$(CONFIG_CSKY_MPINTC)		+= irq-csky-mpintc.o
+ obj-$(CONFIG_SIFIVE_PLIC)		+= irq-sifive-plic.o
+diff --git a/drivers/irqchip/irq-csky-mpintc.c b/drivers/irqchip/irq-csky-mpintc.c
+new file mode 100644
+index 0000000..2b424d27
+--- /dev/null
++++ b/drivers/irqchip/irq-csky-mpintc.c
+@@ -0,0 +1,195 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
++#include <linux/interrupt.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++#include <asm/traps.h>
++#include <asm/reg_ops.h>
++#include <asm/smp.h>
++
++static struct irq_domain *root_domain;
++static void __iomem *INTCG_base;
++static void __iomem *INTCL_base;
++
++#define IPI_IRQ		15
++#define INTC_IRQS	256
++#define COMM_IRQ_BASE	32
++
++#define INTCG_SIZE	0x8000
++#define INTCL_SIZE	0x1000
++#define INTC_SIZE	INTCL_SIZE*nr_cpu_ids + INTCG_SIZE
++
++#define INTCG_ICTLR	0x0
++#define INTCG_CICFGR	0x100
++#define INTCG_CIDSTR	0x1000
++
++#define INTCL_PICTLR	0x0
++#define INTCL_SIGR	0x60
++#define INTCL_HPPIR	0x68
++#define INTCL_RDYIR	0x6c
++#define INTCL_SENR	0xa0
++#define INTCL_CENR	0xa4
++#define INTCL_CACR	0xb4
++
++static DEFINE_PER_CPU(void __iomem *, intcl_reg);
++
++static void csky_mpintc_handler(struct pt_regs *regs)
++{
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
++
++	do {
++		handle_domain_irq(root_domain,
++				  readl_relaxed(reg_base + INTCL_RDYIR),
++				  regs);
++	} while (readl_relaxed(reg_base + INTCL_HPPIR) & BIT(31));
 +}
 +
-+static int (*arch_ipi_irq_mapping)(void) = NULL;
-+
-+void __init set_ipi_irq_mapping(int (*func)(void))
++static void csky_mpintc_enable(struct irq_data *d)
 +{
-+	if (arch_ipi_irq_mapping)
-+		return;
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
 +
-+	arch_ipi_irq_mapping = func;
- }
- 
- void __init setup_smp_ipi(void)
- {
- 	int rc;
- 
--	irq_create_mapping(NULL, IPI_IRQ);
-+	ipi_irq = arch_ipi_irq_mapping();
-+	if (ipi_irq == 0)
-+		panic("%s IRQ mapping failed\n", __func__);
- 
--	rc = request_percpu_irq(IPI_IRQ, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
-+	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
- 	if (rc)
- 		panic("%s IRQ request failed\n", __func__);
- 
++	writel_relaxed(d->hwirq, reg_base + INTCL_SENR);
++}
++
++static void csky_mpintc_disable(struct irq_data *d)
++{
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
++
++	writel_relaxed(d->hwirq, reg_base + INTCL_CENR);
++}
++
++static void csky_mpintc_eoi(struct irq_data *d)
++{
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
++
++	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
++}
++
++#ifdef CONFIG_SMP
++static int csky_irq_set_affinity(struct irq_data *d,
++				 const struct cpumask *mask_val,
++				 bool force)
++{
++	unsigned int cpu;
++	unsigned int offset = 4 * (d->hwirq - COMM_IRQ_BASE);
++
++	if (!force)
++		cpu = cpumask_any_and(mask_val, cpu_online_mask);
++	else
++		cpu = cpumask_first(mask_val);
++
++	if (cpu >= nr_cpu_ids)
++		return -EINVAL;
++
++	/* Enable interrupt destination */
++	cpu |= BIT(31);
++
++	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + offset);
++
++	irq_data_update_effective_affinity(d, cpumask_of(cpu));
++
++	return IRQ_SET_MASK_OK_DONE;
++}
++#endif
++
++static struct irq_chip csky_irq_chip = {
++	.name           = "C-SKY SMP Intc",
++	.irq_eoi	= csky_mpintc_eoi,
++	.irq_enable	= csky_mpintc_enable,
++	.irq_disable	= csky_mpintc_disable,
++#ifdef CONFIG_SMP
++	.irq_set_affinity = csky_irq_set_affinity,
++#endif
++};
++
++static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
++			      irq_hw_number_t hwirq)
++{
++	if(hwirq < COMM_IRQ_BASE) {
++		irq_set_percpu_devid(irq);
++		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
++	} else {
++		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
++	}
++
++	return 0;
++}
++
++static const struct irq_domain_ops csky_irqdomain_ops = {
++	.map	= csky_irqdomain_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++#ifdef CONFIG_SMP
++static void csky_mpintc_send_ipi(const unsigned long *mask)
++{
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
++
++	/*
++	 * INTCL_SIGR[3:0] INTID
++	 * INTCL_SIGR[8:15] CPUMASK
++	 */
++	writel_relaxed((*mask) << 8 | IPI_IRQ, reg_base + INTCL_SIGR);
++}
++
++static int csky_mpintc_ipi_irq_mapping(void)
++{
++	return irq_create_mapping(root_domain, IPI_IRQ);
++}
++#endif
++
++/* C-SKY multi processor interrupt controller */
++static int __init
++csky_mpintc_init(struct device_node *node, struct device_node *parent)
++{
++	unsigned int cpu, nr_irq;
++	int ret;
++
++	if (parent)
++		return 0;
++
++	ret = of_property_read_u32(node, "csky,num-irqs", &nr_irq);
++	if (ret < 0)
++		nr_irq = INTC_IRQS;
++
++	if (INTCG_base == NULL) {
++		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
++		if (INTCG_base == NULL)
++			return -EIO;
++
++		INTCL_base = INTCG_base + INTCG_SIZE;
++
++		writel_relaxed(BIT(0), INTCG_base + INTCG_ICTLR);
++	}
++
++	root_domain = irq_domain_add_linear(node, nr_irq, &csky_irqdomain_ops,
++					    NULL);
++	if (!root_domain)
++		return -ENXIO;
++
++	/* for every cpu */
++	for_each_present_cpu(cpu) {
++		per_cpu(intcl_reg, cpu) = INTCL_base + (INTCL_SIZE * cpu);
++		writel_relaxed(BIT(0), per_cpu(intcl_reg, cpu) + INTCL_PICTLR);
++	}
++
++	set_handle_irq(&csky_mpintc_handler);
++
++#ifdef CONFIG_SMP
++	set_send_ipi(&csky_mpintc_send_ipi);
++
++	set_ipi_irq_mapping(&csky_mpintc_ipi_irq_mapping);
++#endif
++
++	return 0;
++}
++IRQCHIP_DECLARE(csky_mpintc, "csky,mpintc", csky_mpintc_init);
 -- 
 2.7.4
