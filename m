@@ -1,82 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:50376 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:60110 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1731670AbeITLWH (ORCPT
+        by vger.kernel.org with ESMTP id S1726994AbeITLVs (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Sep 2018 07:22:07 -0400
+        Thu, 20 Sep 2018 07:21:48 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V8 6/6] dt-bindings: timer: C-SKY Multi-processor timer
-Date: Thu, 20 Sep 2018 13:39:32 +0800
-Message-ID: <6c2373f3a70d817095d15535ebd08f503319b6e2.1537417413.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
-References: <cover.1537417413.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
-References: <cover.1537417413.git.ren_guo@c-sky.com>
+Subject: [PATCH V8 0/6] C-SKY(csky) Linux Kernel Port
+Date: Thu, 20 Sep 2018 13:39:26 +0800
+Message-ID: <cover.1537417413.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180920053932.miCIGBHsYjUPWjPdo6Df4sIG-VqFSdlNzE9PoGTGh6o@z>
+Message-ID: <20180920053926.vE2G1vuIe7L2aUX4cmNfepEXGUF6Pft0cVjTv2NTXJ0@z>
 
- - Dt-bingdings doc for C-SKY SMP system setting.
+Because I've sent to Stephen Roth with the linux-4.19-rc3 git-tree for
+linux-next, I shouldn't rebase any more.
+https://github.com/c-sky/csky-linux.git#linux-next
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- .../devicetree/bindings/timer/csky,mptimer.txt     | 46 ++++++++++++++++++++++
- 1 file changed, 46 insertions(+)
+This patchset include mptimer and mpintc drivers and fixup:
+
+ - Fixup smp IPI's problems found by Marc Zyngier
+ - Add irq-csky-mpintc.c patch in this patchset
+ - Add mptimer.c patch in this patchset 
+ - Fixup dma_sync_for_cpu/device in dma-mapping.c
+
+Guo Ren (6):
+  csky/dma: bugfix dma_sync_for_cpu/device
+  csky: remove irq_mapping from smp.c
+  irqchip: add C-SKY SMP interrupt controller
+  dt-bindings: interrupt-controller: C-SKY SMP intc
+  clocksource: add C-SKY SMP timer
+  dt-bindings: timer: C-SKY Multi-processor timer
+
+ .../bindings/interrupt-controller/csky,mpintc.txt  |  40 +++++
+ .../devicetree/bindings/timer/csky,mptimer.txt     |  46 +++++
+ arch/csky/include/asm/smp.h                        |   4 +-
+ arch/csky/kernel/smp.c                             |  27 ++-
+ arch/csky/mm/dma-mapping.c                         |   5 +-
+ drivers/clocksource/Kconfig                        |   8 +
+ drivers/clocksource/Makefile                       |   1 +
+ drivers/clocksource/csky_mptimer.c                 | 178 +++++++++++++++++++
+ drivers/irqchip/Kconfig                            |   8 +
+ drivers/irqchip/Makefile                           |   1 +
+ drivers/irqchip/irq-csky-mpintc.c                  | 195 +++++++++++++++++++++
+ include/linux/cpuhotplug.h                         |   1 +
+ 12 files changed, 503 insertions(+), 11 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
  create mode 100644 Documentation/devicetree/bindings/timer/csky,mptimer.txt
+ create mode 100644 drivers/clocksource/csky_mptimer.c
+ create mode 100644 drivers/irqchip/irq-csky-mpintc.c
 
-diff --git a/Documentation/devicetree/bindings/timer/csky,mptimer.txt b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
-new file mode 100644
-index 0000000..1e7e31d
---- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/csky,mptimer.txt
-@@ -0,0 +1,46 @@
-+============================
-+C-SKY Multi-processors Timer
-+============================
-+
-+C-SKY multi-processors timer is designed for C-SKY SMP system and the
-+regs is accessed by cpu co-processor 4 registers with mtcr/mfcr.
-+
-+ - PTIM_CTLR "cr<0, 14>" Control reg to start reset timer.
-+ - PTIM_TSR  "cr<1, 14>" Interrupt cleanup status reg.
-+ - PTIM_CCVR "cr<3, 14>" Current counter value reg.
-+ - PTIM_LVR  "cr<6, 14>" Window value reg to triger next event.
-+
-+==============================
-+timer node bindings definition
-+==============================
-+
-+	Description: Describes SMP timer
-+
-+	PROPERTIES
-+
-+	- compatible
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "csky,mptimer"
-+	- clocks
-+		Usage: required
-+		Value type: <node>
-+		Definition: must be input clk node
-+	- interrupts
-+		Usage: required
-+		Value type: <u32>
-+		Definition: must be timer irq num defined by soc
-+	- interrupt-parent:
-+		Usage: required
-+		Value type: <node>
-+		Definition: must be interrupt controller node
-+
-+Examples:
-+---------
-+
-+	timer: timer {
-+		compatible = "csky,mptimer";
-+		clocks = <&dummy_apb_clk>;
-+		interrupts = <16>;
-+		interrupt-parent = <&intc>;
-+	};
 -- 
 2.7.4
