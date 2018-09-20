@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V8 1/6] csky/dma: bugfix dma_sync_for_cpu/device
-Date: Thu, 20 Sep 2018 13:39:27 +0800
-Message-ID: <1ccf1bed89758a5a9b57ac2ce6d11ca898a1b9ae.1537417413.git.ren_guo@c-sky.com>
+Subject: [PATCH V8 4/6] dt-bindings: interrupt-controller: C-SKY SMP intc
+Date: Thu, 20 Sep 2018 13:39:30 +0800
+Message-ID: <57888913907d6c22b23425ed9d4e5a79be5b2eff.1537417413.git.ren_guo@c-sky.com>
 References: <cover.1537417413.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
@@ -12,40 +12,59 @@ To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kern
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-ref: https://lkml.org/lkml/2018/5/18/1068
-
-        map             for_cpu         for_device      unmap
-TO_DEV  writeback       none            writeback       none
-TO_CPU  invalidate      invalidate*     invalidate      invalidate*
-BIDIR   writeback       invalidate      writeback       invalidate
+ - Dt-bindings doc about C-SKY Multi-processors interrupt controller.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/mm/dma-mapping.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ .../bindings/interrupt-controller/csky,mpintc.txt  | 40 ++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
 
-diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
-index 16c2087..30a2041 100644
---- a/arch/csky/mm/dma-mapping.c
-+++ b/arch/csky/mm/dma-mapping.c
-@@ -217,7 +217,8 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
- 		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
--		BUG();
-+		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
-+		break;
- 	default:
- 		BUG();
- 	}
-@@ -240,7 +241,7 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
- 
- 	switch (dir) {
- 	case DMA_TO_DEVICE:
--		BUG();
-+		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
- 		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+new file mode 100644
+index 0000000..9cdad74
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+@@ -0,0 +1,40 @@
++===========================================
++C-SKY Multi-processors Interrupt Controller
++===========================================
++
++C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
++SMP soc, and it also could be used in non-SMP system.
++
++Interrupt number definition:
++
++  0-15  : software irq, and we use 15 as our IPI_IRQ.
++ 16-31  : private  irq, and we use 16 as the co-processor timer.
++ 31-1024: common irq for soc ip.
++
++=============================
++intc node bindings definition
++=============================
++
++	Description: Describes SMP interrupt controller
++
++	PROPERTIES
++
++	- compatible
++		Usage: required
++		Value type: <string>
++		Definition: must be "csky,mpintc"
++	- interrupt-cells
++		Usage: required
++		Value type: <u32>
++		Definition: must be <1>
++	- interrupt-controller:
++		Usage: required
++
++Examples:
++---------
++
++	intc: interrupt-controller {
++		compatible = "csky,mpintc";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
 -- 
 2.7.4
