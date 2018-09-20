@@ -1,91 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:33568 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732438AbeITWNy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 18:13:54 -0400
-Received: by mail-pf1-f196.google.com with SMTP id d4-v6so4633518pfn.0
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 09:29:37 -0700 (PDT)
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:34604 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731713AbeITWNx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 18:13:53 -0400
+Received: by mail-pg1-f193.google.com with SMTP id d19-v6so4694682pgv.1
+        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 09:29:36 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v2 22/26] Yama: Initialize as ordered LSM
-Date: Thu, 20 Sep 2018 09:23:34 -0700
-Message-ID: <20180920162338.21060-23-keescook@chromium.org>
+Subject: [PATCH security-next v2 21/26] LoadPin: Initialize as ordered LSM
+Date: Thu, 20 Sep 2018 09:23:33 -0700
+Message-ID: <20180920162338.21060-22-keescook@chromium.org>
 In-Reply-To: <20180920162338.21060-1-keescook@chromium.org>
 References: <20180920162338.21060-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180920162334.xM8jYIE8GskwHClT9Xq8KYa6CTVztXmI0QOGM4cc-2o@z>
+Message-ID: <20180920162333.1jO97_ogPwCMtQtaxiJinr_W15Kj1qAXvblcZ2nYrrs@z>
 
-This converts Yama from being a direct "minor" LSM into an ordered LSM.
+This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- include/linux/lsm_hooks.h | 5 -----
- security/Kconfig          | 2 +-
- security/security.c       | 1 -
- security/yama/yama_lsm.c  | 7 ++++++-
- 4 files changed, 7 insertions(+), 8 deletions(-)
+ include/linux/lsm_hooks.h  |  5 -----
+ security/Kconfig           |  2 +-
+ security/loadpin/loadpin.c | 10 ++++++++--
+ security/security.c        |  1 -
+ 4 files changed, 9 insertions(+), 9 deletions(-)
 
 diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 7a38ffdd690f..d75a42eb3ddd 100644
+index ec1c0a97dfe3..7a38ffdd690f 100644
 --- a/include/linux/lsm_hooks.h
 +++ b/include/linux/lsm_hooks.h
-@@ -2092,10 +2092,5 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
- #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
- 
- extern void __init capability_add_hooks(void);
--#ifdef CONFIG_SECURITY_YAMA
--extern void __init yama_add_hooks(void);
+@@ -2097,10 +2097,5 @@ extern void __init yama_add_hooks(void);
+ #else
+ static inline void __init yama_add_hooks(void) { }
+ #endif
+-#ifdef CONFIG_SECURITY_LOADPIN
+-void __init loadpin_add_hooks(void);
 -#else
--static inline void __init yama_add_hooks(void) { }
+-static inline void loadpin_add_hooks(void) { };
 -#endif
  
  #endif /* ! __LINUX_LSM_HOOKS_H */
 diff --git a/security/Kconfig b/security/Kconfig
-index f2003bd03ef6..33c9ac3cb759 100644
+index de8202886c1d..f2003bd03ef6 100644
 --- a/security/Kconfig
 +++ b/security/Kconfig
 @@ -278,7 +278,7 @@ config DEFAULT_SECURITY
  
  config LSM_ORDER
  	string "Default initialization order of builtin LSMs"
--	default "loadpin,integrity"
-+	default "yama,loadpin,integrity"
+-	default "integrity"
++	default "loadpin,integrity"
  	help
  	  A comma-separated list of LSMs, in initialization order.
  	  Any LSMs left off this list will be link-order initialized
+diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
+index 0716af28808a..e638fba7363d 100644
+--- a/security/loadpin/loadpin.c
++++ b/security/loadpin/loadpin.c
+@@ -184,12 +184,18 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
+ };
+ 
+-void __init loadpin_add_hooks(void)
++static int __init loadpin_init(void)
+ {
+-	pr_info("ready to pin (currently %sabled)", enabled ? "en" : "dis");
++	pr_info("ready to pin\n");
+ 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
++	return 0;
+ }
+ 
++DEFINE_LSM(loadpin)
++	.enabled = &enabled,
++	.init = loadpin_init,
++END_LSM;
++
+ /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
+ module_param(enabled, int, 0);
+ MODULE_PARM_DESC(enabled, "Pin module/firmware loading (default: true)");
 diff --git a/security/security.c b/security/security.c
-index 9ffb76b7655b..3fba28de789b 100644
+index 4db194f81419..9ffb76b7655b 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -245,7 +245,6 @@ int __init security_init(void)
- 	 * Load minor LSMs, with the capability module always first.
+@@ -246,7 +246,6 @@ int __init security_init(void)
  	 */
  	capability_add_hooks();
--	yama_add_hooks();
+ 	yama_add_hooks();
+-	loadpin_add_hooks();
  
  	/* Load LSMs in specified order. */
  	prepare_lsm_order();
-diff --git a/security/yama/yama_lsm.c b/security/yama/yama_lsm.c
-index ffda91a4a1aa..f2b1f47f98e8 100644
---- a/security/yama/yama_lsm.c
-+++ b/security/yama/yama_lsm.c
-@@ -477,9 +477,14 @@ static void __init yama_init_sysctl(void)
- static inline void yama_init_sysctl(void) { }
- #endif /* CONFIG_SYSCTL */
- 
--void __init yama_add_hooks(void)
-+static int __init yama_init(void)
- {
- 	pr_info("Yama: becoming mindful.\n");
- 	security_add_hooks(yama_hooks, ARRAY_SIZE(yama_hooks), "yama");
- 	yama_init_sysctl();
-+	return 0;
- }
-+
-+DEFINE_LSM(yama)
-+	.init = yama_init,
-+END_LSM;
 -- 
 2.17.1
