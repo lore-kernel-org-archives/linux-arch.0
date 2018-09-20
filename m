@@ -1,49 +1,113 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V8 0/6] C-SKY(csky) Linux Kernel Port
-Date: Thu, 20 Sep 2018 13:39:26 +0800
-Message-ID: <cover.1537417413.git.ren_guo@c-sky.com>
+Subject: [PATCH V8 2/6] csky: remove irq_mapping from smp.c
+Date: Thu, 20 Sep 2018 13:39:28 +0800
+Message-ID: <7fea6f7e58728eef8248c8c5e518f45e6043ba4b.1537417413.git.ren_guo@c-sky.com>
+References: <cover.1537417413.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1537417413.git.ren_guo@c-sky.com>
+References: <cover.1537417413.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
 Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-Because I've sent to Stephen Roth with the linux-4.19-rc3 git-tree for
-linux-next, I shouldn't rebase any more.
-https://github.com/c-sky/csky-linux.git#linux-next
+ - Add irq_mapping return check
+ - Move IPI_IRQ into irq-driver
+ - remove irq_mapping from smp.c to irq-driver
+ - Add set_ipi_irq_mapping api to irq-driver
+ - update asm/smp.h
 
-This patchset include mptimer and mpintc drivers and fixup:
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/include/asm/smp.h |  4 +++-
+ arch/csky/kernel/smp.c      | 27 +++++++++++++++++++--------
+ 2 files changed, 22 insertions(+), 9 deletions(-)
 
- - Fixup smp IPI's problems found by Marc Zyngier
- - Add irq-csky-mpintc.c patch in this patchset
- - Add mptimer.c patch in this patchset 
- - Fixup dma_sync_for_cpu/device in dma-mapping.c
-
-Guo Ren (6):
-  csky/dma: bugfix dma_sync_for_cpu/device
-  csky: remove irq_mapping from smp.c
-  irqchip: add C-SKY SMP interrupt controller
-  dt-bindings: interrupt-controller: C-SKY SMP intc
-  clocksource: add C-SKY SMP timer
-  dt-bindings: timer: C-SKY Multi-processor timer
-
- .../bindings/interrupt-controller/csky,mpintc.txt  |  40 +++++
- .../devicetree/bindings/timer/csky,mptimer.txt     |  46 +++++
- arch/csky/include/asm/smp.h                        |   4 +-
- arch/csky/kernel/smp.c                             |  27 ++-
- arch/csky/mm/dma-mapping.c                         |   5 +-
- drivers/clocksource/Kconfig                        |   8 +
- drivers/clocksource/Makefile                       |   1 +
- drivers/clocksource/csky_mptimer.c                 | 178 +++++++++++++++++++
- drivers/irqchip/Kconfig                            |   8 +
- drivers/irqchip/Makefile                           |   1 +
- drivers/irqchip/irq-csky-mpintc.c                  | 195 +++++++++++++++++++++
- include/linux/cpuhotplug.h                         |   1 +
- 12 files changed, 503 insertions(+), 11 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
- create mode 100644 Documentation/devicetree/bindings/timer/csky,mptimer.txt
- create mode 100644 drivers/clocksource/csky_mptimer.c
- create mode 100644 drivers/irqchip/irq-csky-mpintc.c
-
+diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
+index 9a53abf..f3e4f24 100644
+--- a/arch/csky/include/asm/smp.h
++++ b/arch/csky/include/asm/smp.h
+@@ -17,7 +17,9 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask);
+ 
+ void arch_send_call_function_single_ipi(int cpu);
+ 
+-void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long));
++void __init set_send_ipi(void (*func)(const unsigned long *));
++
++void __init set_ipi_irq_mapping(int (*func)(void));
+ 
+ #define raw_smp_processor_id()	(current_thread_info()->cpu)
+ 
+diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
+index 522c73f..14877e2 100644
+--- a/arch/csky/kernel/smp.c
++++ b/arch/csky/kernel/smp.c
+@@ -20,8 +20,6 @@
+ #include <asm/mmu_context.h>
+ #include <asm/pgalloc.h>
+ 
+-#define IPI_IRQ	15
+-
+ static struct {
+ 	unsigned long bits ____cacheline_aligned;
+ } ipi_data[NR_CPUS] __cacheline_aligned;
+@@ -56,9 +54,9 @@ static irqreturn_t handle_ipi(int irq, void *dev)
+ 	return IRQ_HANDLED;
+ }
+ 
+-static void (*send_arch_ipi)(const unsigned long *mask, unsigned long irq) = NULL;
++static void (*send_arch_ipi)(const unsigned long *mask) = NULL;
+ 
+-void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long))
++void __init set_send_ipi(void (*func)(const unsigned long *))
+ {
+ 	if (send_arch_ipi)
+ 		return;
+@@ -75,7 +73,7 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
+ 		set_bit(operation, &ipi_data[i].bits);
+ 
+ 	smp_mb();
+-	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
++	send_arch_ipi(cpumask_bits(to_whom));
+ }
+ 
+ void arch_send_call_function_ipi_mask(struct cpumask *mask)
+@@ -115,19 +113,32 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ }
+ 
+ static int ipi_dummy_dev;
++static int ipi_irq;
+ 
+ void __init enable_smp_ipi(void)
+ {
+-	enable_percpu_irq(IPI_IRQ, 0);
++	enable_percpu_irq(ipi_irq, 0);
++}
++
++static int (*arch_ipi_irq_mapping)(void) = NULL;
++
++void __init set_ipi_irq_mapping(int (*func)(void))
++{
++	if (arch_ipi_irq_mapping)
++		return;
++
++	arch_ipi_irq_mapping = func;
+ }
+ 
+ void __init setup_smp_ipi(void)
+ {
+ 	int rc;
+ 
+-	irq_create_mapping(NULL, IPI_IRQ);
++	ipi_irq = arch_ipi_irq_mapping();
++	if (ipi_irq == 0)
++		panic("%s IRQ mapping failed\n", __func__);
+ 
+-	rc = request_percpu_irq(IPI_IRQ, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
++	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
+ 	if (rc)
+ 		panic("%s IRQ request failed\n", __func__);
+ 
 -- 
 2.7.4
