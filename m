@@ -1,75 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:53273 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725914AbeITGIz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Sep 2018 02:08:55 -0400
-Subject: Re: [LKP] [x86/pci] 7ffb31888c: PANIC:early_exception
-References: <20180919031923.GC8820@shao2-debian>
- <4f5166f8-97b8-a58f-3e5d-19d1751a4601@hygon.cn>
-From: Rong Chen <rong.a.chen@intel.com>
-Message-ID: <dfc09a36-cfc5-0479-a862-696c224f9a19@intel.com>
-Date: Thu, 20 Sep 2018 08:26:30 +0800
+Received: from exmail.andestech.com ([59.124.169.137]:56571 "EHLO
+        ATCSQR.andestech.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726065AbeITI1p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 04:27:45 -0400
+From: Vincent Chen <vincentc@andestech.com>
+Subject: [PATCH 0/5] nds32 FPU port
+Date: Thu, 20 Sep 2018 10:46:17 +0800
+Message-ID: <1537411582-23723-1-git-send-email-vincentc@andestech.com>
 MIME-Version: 1.0
-In-Reply-To: <4f5166f8-97b8-a58f-3e5d-19d1751a4601@hygon.cn>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pu Wen <puwen@hygon.cn>
-Cc: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lkp@01.org
-Message-ID: <20180920002630.V-DT9lU829kRPs_-7ozb1u2-RrHN0xDzpQjjxUHjnCk@z>
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, deanbo422@gmail.com, vincentc@andestech.com
+Message-ID: <20180920024617.DY6fA_19Alvr9wH6thSeygRiJkL__FoTqb3XEShowoE@z>
 
+  This patchset contains basic components for nds32 FPU support such as
+exception handler and context switch for FPU register. Lazy FPU is
+supported in nds32 by default. User can through CONFIG_UNLZAY_FPU to
+disable this feature. In addition, a floating point emulator is needed to
+deal with all arithmetic for denormalized number because it is unsupported
+by nds32 FPU.
 
+  As stated above, denormalized number is unsupported by nds32 FPU. This
+means denormalized operands and result are not permitted. If an instruction
+contains denormalized operands, nds32 FPU will raise an denormalized input
+exception to notify kernel to deal with this instruction. If the result of
+a instruction is a denormalized number, normally nds32 FPU will treat it as
+an underflow case and round the result to an appropriate value based on
+current rounding mode. Obviously, there is a precision gap for tininess
+number. To reduce this precision gap, kernel will enable the underflow trap
+by default to direct all underflow cases to floating pointer emulator.
+Through floating pointer emulator, the correct denormalized number can be
+derived in kernel and return to user program. The feature is configurable
+by CONFIG_SUPPORT_DENORMAL_ARITHMETIC and user maybe disable this feature
+to keep performance if the precision recruitment is not strict for tininess
+number.
 
-On 09/19/2018 09:53 PM, Pu Wen wrote:
-> On 2018/9/19 11:19, kernel test robot wrote:
->> [    0.800215] AGP: No AGP bridge found
->> PANIC: early exception 0xe3 IP 10:ffffffff8294623f error 0 cr2 0x0
->> [    0.815262] CPU: 0 PID: 0 Comm: swapper Not tainted 4.19.0-rc2-00018-g7ffb318 #1
->> [    0.826860] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
->> [    0.839894] RIP: 0010:early_is_amd_nb+0x30/0x4b
->> [    0.846986] Code: 15 07 3e c8 ff 0f b7 cf 48 c7 c0 c0 6a 01 82 80 fa 02 74 13 80 fa 09 48 c7 c0 20 69 01 82 ba 00 00 00 00 48 0f 45 c2 c1 ef 10 <8b> 10 85 d2 74 0f 39 ca 75 05 39 78 04 74 09 48 83 c0 20 eb eb 31
->> [    0.876321] RSP: 0000:ffffffff82403e38 EFLAGS: 00010017 ORIG_RAX: 0000000000000000
->> [    0.888131] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 000000000000ffff
->> [    0.899187] RDX: 0000000000000000 RSI: 000000000000c000 RDI: 000000000000ffff
->> [    0.910233] RBP: 0000000000000018 R08: 0000000000000002 R09: 0000000000000000
->> [    0.921388] R10: ffffffff829ecc40 R11: ffffffff82aeed87 R12: 0000000000000000
->> [    0.932476] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
->> [    0.943658] FS:  0000000000000000(0000) GS:ffffffff82909000(0000) knlGS:0000000000000000
->> [    0.956271] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
->> [    0.965216] CR2: 0000000000000000 CR3: 00000000029a2000 CR4: 00000000000006a0
->> [    0.976358] Call Trace:
->> [    0.980238]  ? early_gart_iommu_check+0xef/0x2c5
->> [    0.987493]  ? setup_arch+0x4fa/0xc67
->> [    0.993231]  ? printk+0x52/0x6e
->> [    0.998157]  ? start_kernel+0x6e/0x4dc
->> [    1.004044]  ? load_ucode_bsp+0x42/0x12e
->> [    1.010145]  ? secondary_startup_64+0xa4/0xb0
->> BUG: kernel hang in boot stage
->>
->> Elapsed time: 700
->>
->> #!/bin/bash
->>
->>
->>
->> To reproduce:
->>
->>           git clone https://github.com/intel/lkp-tests.git
->>           cd lkp-tests
->>           bin/lkp qemu -k <bzImage> job-script # job-script is attached in this email
-> I cannot reproduce this panic on Hygon Dhyana platform. I tired lkp-tests
-> both in Ubuntu 16.04 (with gcc-5) and Ubuntu 18.04 (with gcc-7).
-> What kind of host do you use to run the qemu? A Intel one or AMD one?
-It's a Intel one,
+  The implementation of floating point emulator is based on the soft-fp
+which is placed in include/math-emu folder. However, the soft-fp is too
+out-of-date to pass the check by current compiler. The needed modification
+for soft-fp is included in this patchset
 
-model: Nehalem-EX
-memory: 224G
-nr_node: 4
-nr_cpu: 64
-nr_socket: 4
-brand: Intel(R) Xeon(R) CPU X7560 @ 2.27GHz
+Vincent Chen (5):
+  nds32: nds32 FPU port
+  nds32: Support FP emulation
+  nds32: support denormalized result through FP emulator
+  math-emu/op-2.h: Use statement expressions to prevent negative
+    constant shift
+  math-emu/soft-fp.h: (_FP_ROUND_ZERO) cast 0 to void to fix warning
 
-Best Regards,
-Rong Chen
+ arch/nds32/Kconfig                       |    1 +
+ arch/nds32/Kconfig.cpu                   |   35 +++
+ arch/nds32/Makefile                      |   11 +
+ arch/nds32/include/asm/bitfield.h        |   15 ++
+ arch/nds32/include/asm/elf.h             |   11 +
+ arch/nds32/include/asm/fpu.h             |  128 +++++++++++
+ arch/nds32/include/asm/fpuemu.h          |   32 +++
+ arch/nds32/include/asm/nds32_fpu_inst.h  |  109 +++++++++
+ arch/nds32/include/asm/processor.h       |    7 +
+ arch/nds32/include/asm/sfp-machine.h     |  158 +++++++++++++
+ arch/nds32/include/asm/syscalls.h        |    1 +
+ arch/nds32/include/uapi/asm/auxvec.h     |    7 +
+ arch/nds32/include/uapi/asm/sigcontext.h |   14 ++
+ arch/nds32/include/uapi/asm/udftrap.h    |   13 +
+ arch/nds32/include/uapi/asm/unistd.h     |    2 +
+ arch/nds32/kernel/Makefile               |    9 +
+ arch/nds32/kernel/ex-entry.S             |    9 +
+ arch/nds32/kernel/ex-exit.S              |    8 +-
+ arch/nds32/kernel/ex-scall.S             |    8 +-
+ arch/nds32/kernel/fpu.c                  |  257 +++++++++++++++++++++
+ arch/nds32/kernel/process.c              |   64 +++++-
+ arch/nds32/kernel/setup.c                |    5 +
+ arch/nds32/kernel/signal.c               |   77 +++++++-
+ arch/nds32/kernel/sys_nds32.c            |   32 +++
+ arch/nds32/kernel/traps.c                |   16 ++
+ arch/nds32/math-emu/Makefile             |    7 +
+ arch/nds32/math-emu/faddd.c              |   24 ++
+ arch/nds32/math-emu/fadds.c              |   24 ++
+ arch/nds32/math-emu/fcmpd.c              |   24 ++
+ arch/nds32/math-emu/fcmps.c              |   24 ++
+ arch/nds32/math-emu/fd2s.c               |   22 ++
+ arch/nds32/math-emu/fdivd.c              |   27 +++
+ arch/nds32/math-emu/fdivs.c              |   26 +++
+ arch/nds32/math-emu/fmuld.c              |   23 ++
+ arch/nds32/math-emu/fmuls.c              |   23 ++
+ arch/nds32/math-emu/fnegd.c              |   21 ++
+ arch/nds32/math-emu/fnegs.c              |   21 ++
+ arch/nds32/math-emu/fpuemu.c             |  357 ++++++++++++++++++++++++++++++
+ arch/nds32/math-emu/fs2d.c               |   23 ++
+ arch/nds32/math-emu/fsqrtd.c             |   21 ++
+ arch/nds32/math-emu/fsqrts.c             |   21 ++
+ arch/nds32/math-emu/fsubd.c              |   27 +++
+ arch/nds32/math-emu/fsubs.c              |   27 +++
+ include/math-emu/op-2.h                  |   97 ++++-----
+ include/math-emu/soft-fp.h               |    2 +-
+ 45 files changed, 1807 insertions(+), 63 deletions(-)
+ create mode 100644 arch/nds32/include/asm/fpu.h
+ create mode 100644 arch/nds32/include/asm/fpuemu.h
+ create mode 100644 arch/nds32/include/asm/nds32_fpu_inst.h
+ create mode 100644 arch/nds32/include/asm/sfp-machine.h
+ create mode 100644 arch/nds32/include/uapi/asm/udftrap.h
+ create mode 100644 arch/nds32/kernel/fpu.c
+ create mode 100644 arch/nds32/math-emu/Makefile
+ create mode 100644 arch/nds32/math-emu/faddd.c
+ create mode 100644 arch/nds32/math-emu/fadds.c
+ create mode 100644 arch/nds32/math-emu/fcmpd.c
+ create mode 100644 arch/nds32/math-emu/fcmps.c
+ create mode 100644 arch/nds32/math-emu/fd2s.c
+ create mode 100644 arch/nds32/math-emu/fdivd.c
+ create mode 100644 arch/nds32/math-emu/fdivs.c
+ create mode 100644 arch/nds32/math-emu/fmuld.c
+ create mode 100644 arch/nds32/math-emu/fmuls.c
+ create mode 100644 arch/nds32/math-emu/fnegd.c
+ create mode 100644 arch/nds32/math-emu/fnegs.c
+ create mode 100644 arch/nds32/math-emu/fpuemu.c
+ create mode 100644 arch/nds32/math-emu/fs2d.c
+ create mode 100644 arch/nds32/math-emu/fsqrtd.c
+ create mode 100644 arch/nds32/math-emu/fsqrts.c
+ create mode 100644 arch/nds32/math-emu/fsubd.c
+ create mode 100644 arch/nds32/math-emu/fsubs.c
