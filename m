@@ -1,91 +1,136 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Date: Thu, 20 Sep 2018 10:52:12 -0700 (PDT)
-Message-ID: <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
-References: <20180914143719.GA27689@guoren-Inspiron-7460>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+From: Martin Steigerwald <martin@lichtvoll.de>
+Subject: Re: [PATCH security-next v2 00/26] LSM: Explict LSM ordering
+Date: Thu, 20 Sep 2018 22:14:46 +0200
+Message-ID: <1898403.NNy4ELVaME@merkaba>
+References: <20180920162338.21060-1-keescook@chromium.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180914143719.GA27689@guoren-Inspiron-7460>
+In-Reply-To: <20180920162338.21060-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: ren_guo@c-sky.com
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, devicetree@vger.kernel.org, andrea.parri@amarulasolutions.com, peterz@infradead.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, green.hu@gmail.com, Stephen Rothwell <sfr@canb.auug.org.au>
+To: Kees Cook <keescook@chromium.org>
+Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
->> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
->> >
->> > This is the 3th version patchset to add the Linux kernel port for C-SKY(csky).
->> > Thanks to everyone who provided feedback on the previous version.
->> >
->> > This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
->> > CPU cores and the patches are based on linux-4.18.4
->> >
->> > There are two ABI versions with several CPU cores in this patchset:
->> >   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
->> >   ABIv2: ck807 ck810 ck860 (16/32-bit variable length instruction, PIPT Cache,
->> >          SMP ...)
->> >
->> > More information: http://en.c-sky.com
->>
->> This looks good to me overall. I think a good next step would be to get the port
->> included in linux-next, by preparing a git tree with all the patches and asking
->> Stephen Rothwell to include it there. Further comments on the architecture
->> port itself can be done on top of the existing patches. I would suggest you
->> base the git tree on an -rc release (either 4.19-rc1 or 4.19-rc3) and then never
->> rebase again.
-> Nice :) I'll follow the rules.
->
->>
->> You have included a couple of drivers in the submission: two timer and
->> two irqchip drivers. Please leave those out for the moment, and either have
->> them merged through the respective subsystem  trees, or get an Ack
->> from the maintainers to merge them through your tree.
-> Ok.
->
->>
->> I notice that a lot of the patches have no changeset comments on them.
->> You should fix that and make a habit of describing every single patch
->> with a few sentences, even if it seems obvious to you. Have a look at
->> the changeset descriptions for the nds32 and riscv architectures when
->> they got merged.
-> Ok, I'll fixup them.
->
->>
->> One big question for me is what to do about time_t. Deepa and I are
->> in the process of finalizing the system call ABI for 32-bit architectures
->> with 64-bit time_t, but we are not done yet and it won't be complete
->> for 4.20. If you target 4.21, that could be a chance to make csky the
->> first architecture to only need the 64-bit time_t interface, with the
->> corresponding user space changes.
-> y2038 is very important and csky32 has the issue. But 4.21 is too late for
-> us, we really want to get into kernel.org as soon as possible.
-> We could remove 32-bit time_t in future.
+Kees Cook - 20.09.18, 18:23:
+> v2:
+> - add "lsm.order=" and CONFIG_LSM_ORDER instead of overloading
+> "security=" - reorganize introduction of ordering logic code
+> 
+> Updated cover letter:
+> 
+> This refactors the LSM registration and initialization infrastructure
+> to more centrally support different LSM types. What was considered a
+> "major" LSM is kept for legacy use of the "security=" boot parameter,
+> and now overlaps with the new class of "exclusive" LSMs for the future
+> blob sharing (to be added later). The "minor" LSMs become more well
+> defined as a result of the refactoring.
+> 
+> Instead of continuing to (somewhat improperly) overload the kernel's
+> initcall system, this changes the LSM infrastructure to store a
+> registration structure (struct lsm_info) table instead, where metadata
+> about each LSM can be recorded (name, flags, order, enable flag, init
+> function). This can be extended in the future to include things like
+> required blob size for the coming "blob sharing" LSMs.
 
-I don't want to hijack this thread, but in RISC-V land we were hoping to have a 
-user ABI free of 32-bit time_t.  Our 32-bit glibc ABI hasn't been finalized 
-yet, and when I talked to the glibc guys a few weeks ago they were happy to let 
-us wait until 32-bit time_t can be removed before we stabilize the ABI.  We've 
-been maintaining out-of-tree glibc patches for a while now, so I'd really like 
-to get them into the next glibc release.
+I read the cover letter and still don´t know what this is about. Now I 
+am certainly not engaged deeply with LSM. I bet my main missing piece 
+is: What is a "blob sharing" LSM.
 
-Mapping out the schedule more explicitly, as I'm terrible with dates:
+I think it would improve the cover letter greatly if it explains briefly 
+what is a major LSM, what is a minor LSM and what is a "blob sharing" 
+LSM.
 
-* 4.19-rc4 was 2018-09-16
-* 4.19 should be 2018-10-21
-* 4.20 should be 2019-01-13 (skipping 2 weeks for the holidays)
-* 4.21 merge window should close 2019-01-27
-* glibc 2.29 is scheduled for 2019-02-01
+Why those are all needed? What is the actual security or end user 
+benefit of this work? The questions are not to question your work. I bet 
+it makes all perfect sense. I just did not understand its sense from 
+reading the cover letter.
 
-That's very tight, but assuming we at least have a prototype of the API so we 
-can get the rv32i glibc patches in much earlier it might be OK.  There was some 
-talk of being able to use some workarounds to do a 32-bit time_t user ABI 
-without the cooresponding kernel ABI, so we could always go down that route to 
-start and then decide to deprecate or not deprecate the 32-bit kernel ABI at 
-the last minute -- not something I'm fond of doing, but an option.
+> The "major" LSMs had to individually negotiate which of them should be
+> enabled. This didn't provide a way to negotiate combinations of other
+> LSMs (as will be needed for "blob sharing" LSMs). This is solved by
+> providing the LSM infrastructure with all the details needed to make
+> the choice (exposing the per-LSM "enabled" flag, if used, the LSM
+> characteristics, and ordering expectations).
+> 
+> As a result of the refactoring, the "minor" LSMs are able to remove
+> the open-coded security_add_hooks() calls for "capability", "yama",
+> and "loadpin", and to redefine "integrity" properly as a general LSM.
+> (Note that "integrity" actually defined _no_ hooks, but needs the
+> early initialization).
+> 
+> With all LSMs being proessed centrally, it was possible to implement
+> a new boot parameter "lsm.order=" to provide explicit ordering, which
+> is helpful for the future "blob sharing" LSMs. Matching this is the
+> new CONFIG_LSM_ORDER, which replaces CONFIG_DEFAULT_SECURITY, as it
+> provides a higher granularity of control.
+> 
+> To better show LSMs activation some debug reporting was added (enabled
+> with the "lsm.debug" boot commandline option).
+> 
+> Finally, I added a WARN() around LSM initialization failures, which
+> appear to have always been silently ignored. (Realistically any LSM
+> init failures would have only been due to catastrophic kernel issues
+> that would render a system unworkable anyway, but it'd be better to
+> expose the problem as early as possible.)
+> 
+> -Kees
+> 
+> Kees Cook (26):
+>   LSM: Correctly announce start of LSM initialization
+>   vmlinux.lds.h: Avoid copy/paste of security_init section
+>   LSM: Rename .security_initcall section to .lsm_info
+>   LSM: Remove initcall tracing
+>   LSM: Convert from initcall to struct lsm_info
+>   vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+>   LSM: Convert security_initcall() into DEFINE_LSM()
+>   LSM: Record LSM name in struct lsm_info
+>   LSM: Provide init debugging infrastructure
+>   LSM: Don't ignore initialization failures
+>   LSM: Introduce LSM_FLAG_LEGACY_MAJOR
+>   LSM: Provide separate ordered initialization
+>   LSM: Plumb visibility into optional "enabled" state
+>   LSM: Lift LSM selection out of individual LSMs
+>   LSM: Introduce lsm.enable= and lsm.disable=
+>   LSM: Prepare for reorganizing "security=" logic
+>   LSM: Refactor "security=" in terms of enable/disable
+>   LSM: Build ordered list of ordered LSMs for init
+>   LSM: Introduce CONFIG_LSM_ORDER
+>   LSM: Introduce "lsm.order=" for boottime ordering
+>   LoadPin: Initialize as ordered LSM
+>   Yama: Initialize as ordered LSM
+>   LSM: Introduce enum lsm_order
+>   capability: Mark as LSM_ORDER_FIRST
+>   LSM: Separate idea of "major" LSM from "exclusive" LSM
+>   LSM: Add all exclusive LSMs to ordered initialization
+> 
+>  .../admin-guide/kernel-parameters.txt         |   7 +
+>  arch/arc/kernel/vmlinux.lds.S                 |   1 -
+>  arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
+>  arch/arm64/kernel/vmlinux.lds.S               |   1 -
+>  arch/h8300/kernel/vmlinux.lds.S               |   1 -
+>  arch/microblaze/kernel/vmlinux.lds.S          |   2 -
+>  arch/powerpc/kernel/vmlinux.lds.S             |   2 -
+>  arch/um/include/asm/common.lds.S              |   2 -
+>  arch/xtensa/kernel/vmlinux.lds.S              |   1 -
+>  include/asm-generic/vmlinux.lds.h             |  25 +-
+>  include/linux/init.h                          |   2 -
+>  include/linux/lsm_hooks.h                     |  43 ++-
+>  include/linux/module.h                        |   1 -
+>  security/Kconfig                              |  42 +--
+>  security/apparmor/lsm.c                       |  16 +-
+>  security/commoncap.c                          |   8 +-
+>  security/integrity/iint.c                     |   5 +-
+>  security/loadpin/loadpin.c                    |  10 +-
+>  security/security.c                           | 304
+> ++++++++++++++---- security/selinux/hooks.c                      | 
+> 16 +-
+>  security/smack/smack_lsm.c                    |   8 +-
+>  security/tomoyo/tomoyo.c                      |   7 +-
+>  security/yama/yama_lsm.c                      |   7 +-
+>  23 files changed, 348 insertions(+), 164 deletions(-)
 
-How close to done do you think the 32-bit time_t will be by the end of the 4.20 
-merge window?  If it's close enough to start our glibc push then that might be 
-OK.
+
+-- 
+Martin
