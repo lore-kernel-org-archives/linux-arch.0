@@ -1,35 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:55113 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1731260AbeITLgx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Sep 2018 07:36:53 -0400
-Date: Thu, 20 Sep 2018 13:54:40 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V8 5/6] clocksource: add C-SKY SMP timer
-Message-ID: <20180920055439.GA5488@guoren-Inspiron-7460>
-References: <cover.1537417413.git.ren_guo@c-sky.com>
- <81ffeff6131882989652a0050e5a947ffc9a327c.1537417413.git.ren_guo@c-sky.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <81ffeff6131882989652a0050e5a947ffc9a327c.1537417413.git.ren_guo@c-sky.com>
+Received: from relay1-d.mail.gandi.net ([217.70.183.193]:45057 "EHLO
+        relay1-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731240AbeITLpy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 07:45:54 -0400
+From: Alexandre Ghiti <alex@ghiti.fr>
+Subject: [PATCH v7 00/11] hugetlb: Factorize hugetlb architecture primitives 
+Date: Thu, 20 Sep 2018 06:03:47 +0000
+Message-ID: <20180920060358.16606-1-alex@ghiti.fr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, arnd@arndb.de, robh@kernel.org, sfr@canb.auug.org.au
-Cc: linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com
-Message-ID: <20180920055440.wAY2Io-iafi7PR05t6oQ5rK5VEs_jt_pK9u_4XVTzDc@z>
+To: akpm@linux-foundation.org
+Cc: linux-mm@kvack.org, mike.kravetz@oracle.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, ralf@linux-mips.org, paul.burton@mips.com, jhogan@kernel.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Alexandre Ghiti <alex@ghiti.fr>
+Message-ID: <20180920060347.JLqwbdRqjaxQAuDMkWHtGZNyPHJ_E6Yo_6qRJ1ua1SY@z>
 
-On Thu, Sep 20, 2018 at 01:39:31PM +0800, Guo Ren wrote:
-> +struct clocksource csky_clocksource = {
-> +	.name	= "csky",
-> +	.rating	= 400,
-> +	.mask	= CLOCKSOURCE_MASK(32),
-> +	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
-> +	.read	= clksrc_read,
-> +};
-> +
-> +#define CPUHP_AP_CSKY_TIMER_STARTING CPUHP_AP_RISCV_TIMER_STARTING
-My fault, forget delete the line above.
+Hi Andrew,
 
- Guo Ren
+As suggested by people who reviewed/acked this series, please consider
+including this series into -mm tree.
+
+In order to reduce copy/paste of functions across architectures and then         
+make riscv hugetlb port (and future ports) simpler and smaller, this             
+patchset intends to factorize the numerous hugetlb primitives that are           
+defined across all the architectures.                                            
+                                                                                 
+Except for prepare_hugepage_range, this patchset moves the versions that         
+are just pass-through to standard pte primitives into                            
+asm-generic/hugetlb.h by using the same #ifdef semantic that can be              
+found in asm-generic/pgtable.h, i.e. __HAVE_ARCH_***.                            
+                                                                                 
+s390 architecture has not been tackled in this serie since it does not           
+use asm-generic/hugetlb.h at all.                                                
+                                                                                 
+This patchset has been compiled on all addressed architectures with              
+success (except for parisc, but the problem does not come from this              
+series).                 
+
+v7:
+  Add Ingo Molnar Acked-By for x86.
+
+v6:                                                                              
+  - Remove nohash/32 and book3s/32 powerpc specific implementations in
+    order to use the generic ones.                                                        
+  - Add all the Reviewed-by, Acked-by and Tested-by in the commits,              
+    thanks to everyone.                                                          
+                                                                                 
+v5:                                                                              
+  As suggested by Mike Kravetz, no need to move the #include                     
+  <asm-generic/hugetlb.h> for arm and x86 architectures, let it live at          
+  the top of the file.                                                           
+                                                                                 
+v4:                                                                              
+  Fix powerpc build error due to misplacing of #include                          
+  <asm-generic/hugetlb.h> outside of #ifdef CONFIG_HUGETLB_PAGE, as              
+  pointed by Christophe Leroy.                                                   
+                                                                                 
+v1, v2, v3:                                                                      
+  Same version, just problems with email provider and misuse of                  
+  --batch-size option of git send-email
+
+Alexandre Ghiti (11):
+  hugetlb: Harmonize hugetlb.h arch specific defines with pgtable.h
+  hugetlb: Introduce generic version of hugetlb_free_pgd_range
+  hugetlb: Introduce generic version of set_huge_pte_at
+  hugetlb: Introduce generic version of huge_ptep_get_and_clear
+  hugetlb: Introduce generic version of huge_ptep_clear_flush
+  hugetlb: Introduce generic version of huge_pte_none
+  hugetlb: Introduce generic version of huge_pte_wrprotect
+  hugetlb: Introduce generic version of prepare_hugepage_range
+  hugetlb: Introduce generic version of huge_ptep_set_wrprotect
+  hugetlb: Introduce generic version of huge_ptep_set_access_flags
+  hugetlb: Introduce generic version of huge_ptep_get
+
+ arch/arm/include/asm/hugetlb-3level.h        | 32 +---------
+ arch/arm/include/asm/hugetlb.h               | 30 ----------
+ arch/arm64/include/asm/hugetlb.h             | 39 +++---------
+ arch/ia64/include/asm/hugetlb.h              | 47 ++-------------
+ arch/mips/include/asm/hugetlb.h              | 40 +++----------
+ arch/parisc/include/asm/hugetlb.h            | 33 +++--------
+ arch/powerpc/include/asm/book3s/32/pgtable.h |  6 --
+ arch/powerpc/include/asm/book3s/64/pgtable.h |  1 +
+ arch/powerpc/include/asm/hugetlb.h           | 43 ++------------
+ arch/powerpc/include/asm/nohash/32/pgtable.h |  6 --
+ arch/powerpc/include/asm/nohash/64/pgtable.h |  1 +
+ arch/sh/include/asm/hugetlb.h                | 54 ++---------------
+ arch/sparc/include/asm/hugetlb.h             | 40 +++----------
+ arch/x86/include/asm/hugetlb.h               | 69 ----------------------
+ include/asm-generic/hugetlb.h                | 88 +++++++++++++++++++++++++++-
+ 15 files changed, 135 insertions(+), 394 deletions(-)
+
+-- 
+2.16.2
