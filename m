@@ -1,143 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:35350 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732555AbeITWNz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 18:13:55 -0400
-Received: by mail-pf1-f196.google.com with SMTP id p12-v6so4626701pfh.2
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 09:29:38 -0700 (PDT)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:38099 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727029AbeITWNx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 18:13:53 -0400
+Received: by mail-pg1-f194.google.com with SMTP id t84-v6so4676908pgb.5
+        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 09:29:35 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v2 18/26] LSM: Build ordered list of ordered LSMs for init
-Date: Thu, 20 Sep 2018 09:23:30 -0700
-Message-ID: <20180920162338.21060-19-keescook@chromium.org>
+Subject: [PATCH security-next v2 24/26] capability: Mark as LSM_ORDER_FIRST
+Date: Thu, 20 Sep 2018 09:23:36 -0700
+Message-ID: <20180920162338.21060-25-keescook@chromium.org>
 In-Reply-To: <20180920162338.21060-1-keescook@chromium.org>
 References: <20180920162338.21060-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180920162330.9LqkjyPhN414ZAfIZ-7mVTrj4gZBGelvliwDK7jPkNk@z>
+Message-ID: <20180920162336.et-EYmoB_7LWTG1S3Q0-6U3UT6j_7gy-TQ7LLrxAPEI@z>
 
-This constructs a list of ordered LSMs to initialize, using a hard-coded
-list of only "integrity": minor LSMs continue to have direct hook calls,
-and major LSMs continue to initialize separately.
+This converts capabilities to use the new LSM_ORDER_FIRST position.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/security.c | 59 +++++++++++++++++++++++++++++++++++++++------
- 1 file changed, 52 insertions(+), 7 deletions(-)
+ include/linux/lsm_hooks.h | 2 --
+ security/commoncap.c      | 8 +++++++-
+ security/security.c       | 5 -----
+ 3 files changed, 7 insertions(+), 8 deletions(-)
 
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index bf29851baf47..8e843eaacffb 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2098,6 +2098,4 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
+ #define __lsm_ro_after_init	__ro_after_init
+ #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
+ 
+-extern void __init capability_add_hooks(void);
+-
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/commoncap.c b/security/commoncap.c
+index 2e489d6a3ac8..7a6abaec65de 100644
+--- a/security/commoncap.c
++++ b/security/commoncap.c
+@@ -1366,10 +1366,16 @@ struct security_hook_list capability_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(vm_enough_memory, cap_vm_enough_memory),
+ };
+ 
+-void __init capability_add_hooks(void)
++static int __init capability_init(void)
+ {
+ 	security_add_hooks(capability_hooks, ARRAY_SIZE(capability_hooks),
+ 				"capability");
++	return 0;
+ }
+ 
++DEFINE_LSM(capability)
++	.order = LSM_ORDER_FIRST,
++	.init = capability_init,
++END_LSM;
++
+ #endif /* CONFIG_SECURITY */
 diff --git a/security/security.c b/security/security.c
-index 25a019cc4a2b..2541a512a0f7 100644
+index d649e7dea4c4..a40e938db1b0 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -34,6 +34,9 @@
- 
- #define MAX_LSM_EVM_XATTR	2
- 
-+/* How many LSMs were built into the kernel? */
-+#define LSM_COUNT (__end_lsm_info - __start_lsm_info)
-+
- struct security_hook_heads security_hook_heads __lsm_ro_after_init;
- static ATOMIC_NOTIFIER_HEAD(lsm_notifier_chain);
- 
-@@ -41,6 +44,9 @@ char *lsm_names;
- /* Boot-time LSM user choice */
- static __initdata const char *chosen_major_lsm;
- 
-+/* Ordered list of LSMs to initialize. */
-+static __initdata struct lsm_info **ordered_lsms;
-+
- static bool debug __initdata;
- #define init_debug(...)						\
- 	do {							\
-@@ -74,6 +80,45 @@ static void __init set_enabled(struct lsm_info *lsm, bool enabled)
+@@ -259,11 +259,6 @@ int __init security_init(void)
+ 		}
  	}
- }
  
-+/* Is an LSM already listed in the ordered LSMs list? */
-+static bool __init exists_ordered_lsm(struct lsm_info *lsm)
-+{
-+	struct lsm_info **check;
-+
-+	for (check = ordered_lsms; *check; check++)
-+		if (*check == lsm)
-+			return true;
-+
-+	return false;
-+}
-+
-+/* Append an LSM to the list of ordered LSMs to initialize. */
-+static int last_lsm __initdata;
-+static void __init append_ordered_lsm(struct lsm_info *lsm, const char *from)
-+{
-+	/* Ignore duplicate selections. */
-+	if (exists_ordered_lsm(lsm))
-+		return;
-+
-+	if (WARN(last_lsm == LSM_COUNT, "%s: out of LSM slots!?\n", from))
-+		return;
-+
-+	ordered_lsms[last_lsm++] = lsm;
-+	init_debug("%s ordering: %s (%sabled)\n", from, lsm->name,
-+		   (!lsm->enabled || *lsm->enabled) ? "en" : "dis");
-+}
-+
-+/* Populate ordered LSMs list from hard-coded list of LSMs. */
-+static void __init prepare_lsm_order(void)
-+{
-+	struct lsm_info *lsm;
-+
-+	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+		if (strcmp(lsm->name, "integrity") == 0)
-+			append_ordered_lsm(lsm, "builtin");
-+	}
-+}
-+
- /* Is an LSM allowed to be enabled? */
- static bool __init lsm_allowed(struct lsm_info *lsm)
- {
-@@ -104,14 +149,10 @@ static void __init maybe_initialize_lsm(struct lsm_info *lsm)
- 
- static void __init ordered_lsm_init(void)
- {
--	struct lsm_info *lsm;
+-	/*
+-	 * Load minor LSMs, with the capability module always first.
+-	 */
+-	capability_add_hooks();
 -
--	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
--		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) != 0)
--			continue;
-+	struct lsm_info **lsm;
- 
--		maybe_initialize_lsm(lsm);
--	}
-+	for (lsm = ordered_lsms; *lsm; lsm++)
-+		maybe_initialize_lsm(*lsm);
- }
- 
- static void __init major_lsm_init(void)
-@@ -141,6 +182,8 @@ int __init security_init(void)
- 	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
- 	     i++)
- 		INIT_HLIST_HEAD(&list[i]);
-+	ordered_lsms = kcalloc(LSM_COUNT + 1, sizeof(*ordered_lsms),
-+				GFP_KERNEL);
- 
- 	/* Process "security=", if given. */
- 	if (!chosen_major_lsm)
-@@ -169,6 +212,7 @@ int __init security_init(void)
- 	loadpin_add_hooks();
- 
  	/* Load LSMs in specified order. */
-+	prepare_lsm_order();
+ 	prepare_lsm_order();
  	ordered_lsm_init();
- 
- 	/*
-@@ -176,6 +220,7 @@ int __init security_init(void)
- 	 */
- 	major_lsm_init();
- 
-+	kfree(ordered_lsms);
- 	return 0;
- }
- 
 -- 
 2.17.1
