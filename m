@@ -1,41 +1,36 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 5/5] m68k: added __IGNORE* entries in asm/unistd.h
-Date: Thu, 20 Sep 2018 20:36:13 +0530
-Message-ID: <1537455973-12468-6-git-send-email-firoz.khan@linaro.org>
-References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: Re: [RESEND PATCH v3 0/3] sh: make early_platform code
+ SuperH-specific
+Date: Thu, 20 Sep 2018 18:09:52 +0200
+Message-ID: <9963d3f3-ba14-0d18-d669-53fc79b783c2@linaro.org>
+References: <20180827090651.25062-1-brgl@bgdev.pl>
+ <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+To: Bartosz Golaszewski <brgl@bgdev.pl>, Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob
+Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Added few __IGNORE* entries for seccomp, pkey_mprotect,
-pkey_alloc, pkey_free, io_pgetevents and rseq in the file
-asm/unistd.h as it is correct to keep __IGNORE* entry in
-non uapi header asm/unistd.h while uapi/asm/unistd.h must
-hold information only useful for user space applications.
+On 20/09/2018 15:00, Bartosz Golaszewski wrote:
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/m68k/include/asm/unistd.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+[ ... ]
 
-diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
-index 5072e94..cc5f640 100644
---- a/arch/m68k/include/asm/unistd.h
-+++ b/arch/m68k/include/asm/unistd.h
-@@ -31,4 +31,11 @@
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
- 
-+#define __IGNORE_seccomp
-+#define __IGNORE_pkey_mprotect
-+#define __IGNORE_pkey_alloc
-+#define __IGNORE_pkey_free
-+#define __IGNORE_io_pgetevents
-+#define __IGNORE_rseq
-+
- #endif /* _ASM_M68K_UNISTD_H_ */
+> Ping for 4.20. This is the third release cycle I'm trying to get this
+> merged and there never were any objections.
+
+Thanks for the heads up, it is in the pipe.
+
+  -- Daniel
+
+
 -- 
-1.9.1
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
