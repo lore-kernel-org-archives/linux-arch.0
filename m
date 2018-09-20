@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v2 01/26] LSM: Correctly announce start of LSM initialization
-Date: Thu, 20 Sep 2018 09:23:13 -0700
-Message-ID: <20180920162338.21060-2-keescook@chromium.org>
+Subject: [PATCH security-next v2 24/26] capability: Mark as LSM_ORDER_FIRST
+Date: Thu, 20 Sep 2018 09:23:36 -0700
+Message-ID: <20180920162338.21060-25-keescook@chromium.org>
 References: <20180920162338.21060-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180920162338.21060-1-keescook@chromium.org>
@@ -10,31 +10,63 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-For a while now, the LSM core has said it was "initializED", rather than
-"initializING". This adjust the report to be more accurate (i.e. before
-this was reported before any LSMs had been initialized.)
+This converts capabilities to use the new LSM_ORDER_FIRST position.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/security.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ include/linux/lsm_hooks.h | 2 --
+ security/commoncap.c      | 8 +++++++-
+ security/security.c       | 5 -----
+ 3 files changed, 7 insertions(+), 8 deletions(-)
 
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index bf29851baf47..8e843eaacffb 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2098,6 +2098,4 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
+ #define __lsm_ro_after_init	__ro_after_init
+ #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
+ 
+-extern void __init capability_add_hooks(void);
+-
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/commoncap.c b/security/commoncap.c
+index 2e489d6a3ac8..7a6abaec65de 100644
+--- a/security/commoncap.c
++++ b/security/commoncap.c
+@@ -1366,10 +1366,16 @@ struct security_hook_list capability_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(vm_enough_memory, cap_vm_enough_memory),
+ };
+ 
+-void __init capability_add_hooks(void)
++static int __init capability_init(void)
+ {
+ 	security_add_hooks(capability_hooks, ARRAY_SIZE(capability_hooks),
+ 				"capability");
++	return 0;
+ }
+ 
++DEFINE_LSM(capability)
++	.order = LSM_ORDER_FIRST,
++	.init = capability_init,
++END_LSM;
++
+ #endif /* CONFIG_SECURITY */
 diff --git a/security/security.c b/security/security.c
-index 736e78da1ab9..4cbcf244a965 100644
+index d649e7dea4c4..a40e938db1b0 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -72,10 +72,11 @@ int __init security_init(void)
- 	int i;
- 	struct hlist_head *list = (struct hlist_head *) &security_hook_heads;
+@@ -259,11 +259,6 @@ int __init security_init(void)
+ 		}
+ 	}
  
-+	pr_info("Security Framework initializing\n");
-+
- 	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
- 	     i++)
- 		INIT_HLIST_HEAD(&list[i]);
--	pr_info("Security Framework initialized\n");
- 
- 	/*
- 	 * Load minor LSMs, with the capability module always first.
+-	/*
+-	 * Load minor LSMs, with the capability module always first.
+-	 */
+-	capability_add_hooks();
+-
+ 	/* Load LSMs in specified order. */
+ 	prepare_lsm_order();
+ 	ordered_lsm_init();
 -- 
 2.17.1
