@@ -1,109 +1,59 @@
-From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: Re: [RESEND PATCH v3 0/3] sh: make early_platform code SuperH-specific
-Date: Thu, 20 Sep 2018 15:00:45 +0200
-Message-ID: <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
-References: <20180827090651.25062-1-brgl@bgdev.pl>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/3] System call table generation support
+Date: Thu, 20 Sep 2018 07:52:03 -0700
+Message-ID: <CAK8P3a1=BriZ7hgzgK4QpAT00MBEtXaKOSU+vdHN1=5owB9i4A@mail.gmail.com>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org> <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180827090651.25062-1-brgl@bgdev.pl>
+In-Reply-To: <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>
-Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, Bartosz Golaszewski <brgl@bgdev.pl>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Firoz Khan <firoz.khan@linaro.org>, Hauke Mehrtens <hauke@hauke-m.de>, =?UTF-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-2018-08-27 11:06 GMT+02:00 Bartosz Golaszewski <brgl@bgdev.pl>:
-> I recently started a discussion about the need for a proper early device
-> probing mechanism[1]. One that would be based on real platform drivers
-> and support both platform data and device tree.
+On Mon, Sep 17, 2018 at 10:17 AM Paul Burton <paul.burton@mips.com> wrote:
+> On Fri, Sep 14, 2018 at 02:08:31PM +0530, Firoz Khan wrote:
+> > The purpose of this patch series is:
+> > 1. We can easily add/modify/delete system call by changing entry
+> > in syscall.tbl file. No need to manually edit many files.
+> >
+> > 2. It is easy to unify the system call implementation across all
+> > the architectures.
+> >
+> > The system call tables are in different format in all architecture
+> > and it will be difficult to manually add or modify the system calls
+> > in the respective files manually. To make it easy by keeping a script
+> > and which'll generate the header file and syscall table file so this
+> > change will unify them across all architectures.
 >
-> While we're far from reaching any consensus on the implementation, Arnd
-> suggested that I start off by moving the SuperH-specific early platform
-> drivers implementation to arch/sh[2].
+> Interesting :)
 >
-> This series is the first attempt at making way for a new, less hacky
-> implementation.
+> I actually started on something similar recently with the goals of
+> reducing the need to adjust both asm/unistd.h & the syscall entry tables
+> when adding syscalls, clean up asm/unistd.h a bit & make it
+> easier/cleaner to add support for nanoMIPS & the P32 ABI.
 >
-> The first patch removes the last instance of a non-sh driver using the
-> early_platform API. It can be removed since ARM no longer probes early
-> drivers.
+> My branch still needed some work but it's here if you're interested:
 >
-> The second patch moves all the early_platform code to arch/sh.
+>     git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git wip-mips-syscalls
 >
-> The last patch prefixes all early_platform symbols with 'sh_'.
->
-> [1] https://lkml.org/lkml/2018/4/26/657
-> [2] https://lkml.org/lkml/2018/4/27/239
->
-> v1 -> v2:
-> - certain drivers are compiled for arm/mach-shmobile too - we need to
->   add ifdefs for CONFIG_SUPERH around early_platform calls
->
-> v2 -> v3:
-> - added a stub for is_early_platform_device() which always returns false
->   on non-SuperH architectures
->
-> RESEND: rebased on top of v4.18-rc1 and verified that there are no build
-> failures.
->
-> RESEND AGAIN: rebased on top of v4.19-rc1 and verified builds again.
->
-> Bartosz Golaszewski (3):
->   clocksource: timer-ti-dm: remove the early platform driver
->     registration
->   platform: move the early platform device support to arch/sh
->   sh: add the sh_ prefix to early platform symbols
->
->  arch/sh/drivers/Makefile               |   2 +-
->  arch/sh/drivers/platform_early.c       | 347 +++++++++++++++++++++++++
->  arch/sh/include/asm/platform_early.h   |  61 +++++
->  arch/sh/kernel/cpu/sh2/setup-sh7619.c  |   3 +-
->  arch/sh/kernel/cpu/sh2a/setup-mxg.c    |   3 +-
->  arch/sh/kernel/cpu/sh2a/setup-sh7201.c |   3 +-
->  arch/sh/kernel/cpu/sh2a/setup-sh7203.c |   3 +-
->  arch/sh/kernel/cpu/sh2a/setup-sh7206.c |   3 +-
->  arch/sh/kernel/cpu/sh2a/setup-sh7264.c |   3 +-
->  arch/sh/kernel/cpu/sh2a/setup-sh7269.c |   3 +-
->  arch/sh/kernel/cpu/sh3/setup-sh3.c     |   1 +
->  arch/sh/kernel/cpu/sh3/setup-sh7705.c  |   3 +-
->  arch/sh/kernel/cpu/sh3/setup-sh770x.c  |   3 +-
->  arch/sh/kernel/cpu/sh3/setup-sh7710.c  |   3 +-
->  arch/sh/kernel/cpu/sh3/setup-sh7720.c  |   3 +-
->  arch/sh/kernel/cpu/sh4/setup-sh4-202.c |   3 +-
->  arch/sh/kernel/cpu/sh4/setup-sh7750.c  |   9 +-
->  arch/sh/kernel/cpu/sh4/setup-sh7760.c  |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7343.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7366.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7722.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7723.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7724.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7734.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7757.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7763.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7770.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7780.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7785.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-sh7786.c |   3 +-
->  arch/sh/kernel/cpu/sh4a/setup-shx3.c   |   3 +-
->  arch/sh/kernel/cpu/sh5/setup-sh5.c     |   3 +-
->  arch/sh/kernel/setup.c                 |   3 +-
->  arch/sh/kernel/time.c                  |   5 +-
->  drivers/base/platform.c                | 288 --------------------
->  drivers/clocksource/sh_cmt.c           |  13 +-
->  drivers/clocksource/sh_mtu2.c          |  13 +-
->  drivers/clocksource/sh_tmu.c           |  14 +-
->  drivers/clocksource/timer-ti-dm.c      |   1 -
->  drivers/tty/serial/sh-sci.c            |  11 +-
->  include/linux/platform_device.h        |  64 +----
->  41 files changed, 525 insertions(+), 388 deletions(-)
->  create mode 100644 arch/sh/drivers/platform_early.c
->  create mode 100644 arch/sh/include/asm/platform_early.h
->
-> --
-> 2.18.0
->
+>     https://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git/log/?h=wip-mips-syscalls
 
-Ping for 4.20. This is the third release cycle I'm trying to get this
-merged and there never were any objections.
+This looks like a very nice approach that we would probably prefer if we wanted
+to do it only for mips. The way Firoz did it makes sense in the context of doing
+it the same way on all architectures, where usually the information is more
+accessible to human readers by using the number as the primary key.
 
-Bart
+Speaking of nanoMIPS, what is your plan for the syscall ABI there?
+I can see two ways of approaching it:
+
+a) keep all the MIPSisms in the data structures, and just use a subset of
+    o32 that drops all the obsolete entry points
+b) start over and stay as close as possible to the generic ABI, using the
+    asm-generic versions of both the syscall table and the uapi header
+    files instead of the traditional version.
+
+         Arnd
+
+         Arnd
