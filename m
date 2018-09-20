@@ -1,141 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mondschein.lichtvoll.de ([194.150.191.11]:48901 "EHLO
-        mail.lichtvoll.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727232AbeIUCAB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Sep 2018 22:00:01 -0400
-From: Martin Steigerwald <martin@lichtvoll.de>
-Subject: Re: [PATCH security-next v2 00/26] LSM: Explict LSM ordering
-Date: Thu, 20 Sep 2018 22:14:46 +0200
-Message-ID: <1898403.NNy4ELVaME@merkaba>
-In-Reply-To: <20180920162338.21060-1-keescook@chromium.org>
-References: <20180920162338.21060-1-keescook@chromium.org>
+Received: from mail-co1nam03on0113.outbound.protection.outlook.com ([104.47.40.113]:11008
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1733291AbeIUCeC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 20 Sep 2018 22:34:02 -0400
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH 0/3] System call table generation support
+Date: Thu, 20 Sep 2018 20:48:37 +0000
+Message-ID: <20180920204833.gpypjjxcmxjupls6@pburton-laptop>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
+ <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
+ <CAK8P3a1=BriZ7hgzgK4QpAT00MBEtXaKOSU+vdHN1=5owB9i4A@mail.gmail.com>
+In-Reply-To: <CAK8P3a1=BriZ7hgzgK4QpAT00MBEtXaKOSU+vdHN1=5owB9i4A@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-2"
+Content-ID: <574F09FB11710046BB4B89F6CAD92D8D@namprd08.prod.outlook.com>
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8BIT
-Content-Type: text/plain; charset="iso-8859-1"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180920201446.kIxtYsRQs8-uhygg_NFjnAgv9Fyc35nwRF4V1xjtceQ@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Firoz Khan <firoz.khan@linaro.org>, Hauke Mehrtens <hauke@hauke-m.de>, =?iso-8859-2?Q?Rafa=B3_Mi=B3ecki?= <zajec5@gmail.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180920204837.L-AsC-Z58FeLIFe_MBSkMG-o0G9wmMN0icFqEef9X4g@z>
 
-Kees Cook - 20.09.18, 18:23:
-> v2:
-> - add "lsm.order=" and CONFIG_LSM_ORDER instead of overloading
-> "security=" - reorganize introduction of ordering logic code
-> 
-> Updated cover letter:
-> 
-> This refactors the LSM registration and initialization infrastructure
-> to more centrally support different LSM types. What was considered a
-> "major" LSM is kept for legacy use of the "security=" boot parameter,
-> and now overlaps with the new class of "exclusive" LSMs for the future
-> blob sharing (to be added later). The "minor" LSMs become more well
-> defined as a result of the refactoring.
-> 
-> Instead of continuing to (somewhat improperly) overload the kernel's
-> initcall system, this changes the LSM infrastructure to store a
-> registration structure (struct lsm_info) table instead, where metadata
-> about each LSM can be recorded (name, flags, order, enable flag, init
-> function). This can be extended in the future to include things like
-> required blob size for the coming "blob sharing" LSMs.
+Hi Arnd,
 
-I read the cover letter and still don´t know what this is about. Now I 
-am certainly not engaged deeply with LSM. I bet my main missing piece 
-is: What is a "blob sharing" LSM.
+On Thu, Sep 20, 2018 at 07:52:03AM -0700, Arnd Bergmann wrote:
+> On Mon, Sep 17, 2018 at 10:17 AM Paul Burton <paul.burton@mips.com> wrote=
+:
+> > On Fri, Sep 14, 2018 at 02:08:31PM +0530, Firoz Khan wrote:
+> > > The purpose of this patch series is:
+> > > 1. We can easily add/modify/delete system call by changing entry
+> > > in syscall.tbl file. No need to manually edit many files.
+> > >
+> > > 2. It is easy to unify the system call implementation across all
+> > > the architectures.
+> > >
+> > > The system call tables are in different format in all architecture
+> > > and it will be difficult to manually add or modify the system calls
+> > > in the respective files manually. To make it easy by keeping a script
+> > > and which'll generate the header file and syscall table file so this
+> > > change will unify them across all architectures.
+> >
+> > Interesting :)
+> >
+> > I actually started on something similar recently with the goals of
+> > reducing the need to adjust both asm/unistd.h & the syscall entry table=
+s
+> > when adding syscalls, clean up asm/unistd.h a bit & make it
+> > easier/cleaner to add support for nanoMIPS & the P32 ABI.
+> >
+> > My branch still needed some work but it's here if you're interested:
+> >
+> >     git://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git wip-mi=
+ps-syscalls
+> >
+> >     https://git.kernel.org/pub/scm/linux/kernel/git/mips/linux.git/log/=
+?h=3Dwip-mips-syscalls
+>=20
+> This looks like a very nice approach that we would probably prefer if we =
+wanted
+> to do it only for mips. The way Firoz did it makes sense in the context o=
+f doing
+> it the same way on all architectures, where usually the information is mo=
+re
+> accessible to human readers by using the number as the primary key.
 
-I think it would improve the cover letter greatly if it explains briefly 
-what is a major LSM, what is a minor LSM and what is a "blob sharing" 
-LSM.
+Yup, I completely agree that moving all this towards being common
+infrastructure for all architectures is a worthy goal :)
 
-Why those are all needed? What is the actual security or end user 
-benefit of this work? The questions are not to question your work. I bet 
-it makes all perfect sense. I just did not understand its sense from 
-reading the cover letter.
+> Speaking of nanoMIPS, what is your plan for the syscall ABI there?
+> I can see two ways of approaching it:
+>=20
+> a) keep all the MIPSisms in the data structures, and just use a subset of
+>     o32 that drops all the obsolete entry points
+> b) start over and stay as close as possible to the generic ABI, using the
+>     asm-generic versions of both the syscall table and the uapi header
+>     files instead of the traditional version.
 
-> The "major" LSMs had to individually negotiate which of them should be
-> enabled. This didn't provide a way to negotiate combinations of other
-> LSMs (as will be needed for "blob sharing" LSMs). This is solved by
-> providing the LSM infrastructure with all the details needed to make
-> the choice (exposing the per-LSM "enabled" flag, if used, the LSM
-> characteristics, and ordering expectations).
-> 
-> As a result of the refactoring, the "minor" LSMs are able to remove
-> the open-coded security_add_hooks() calls for "capability", "yama",
-> and "loadpin", and to redefine "integrity" properly as a general LSM.
-> (Note that "integrity" actually defined _no_ hooks, but needs the
-> early initialization).
-> 
-> With all LSMs being proessed centrally, it was possible to implement
-> a new boot parameter "lsm.order=" to provide explicit ordering, which
-> is helpful for the future "blob sharing" LSMs. Matching this is the
-> new CONFIG_LSM_ORDER, which replaces CONFIG_DEFAULT_SECURITY, as it
-> provides a higher granularity of control.
-> 
-> To better show LSMs activation some debug reporting was added (enabled
-> with the "lsm.debug" boot commandline option).
-> 
-> Finally, I added a WARN() around LSM initialization failures, which
-> appear to have always been silently ignored. (Realistically any LSM
-> init failures would have only been due to catastrophic kernel issues
-> that would render a system unworkable anyway, but it'd be better to
-> expose the problem as early as possible.)
-> 
-> -Kees
-> 
-> Kees Cook (26):
->   LSM: Correctly announce start of LSM initialization
->   vmlinux.lds.h: Avoid copy/paste of security_init section
->   LSM: Rename .security_initcall section to .lsm_info
->   LSM: Remove initcall tracing
->   LSM: Convert from initcall to struct lsm_info
->   vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
->   LSM: Convert security_initcall() into DEFINE_LSM()
->   LSM: Record LSM name in struct lsm_info
->   LSM: Provide init debugging infrastructure
->   LSM: Don't ignore initialization failures
->   LSM: Introduce LSM_FLAG_LEGACY_MAJOR
->   LSM: Provide separate ordered initialization
->   LSM: Plumb visibility into optional "enabled" state
->   LSM: Lift LSM selection out of individual LSMs
->   LSM: Introduce lsm.enable= and lsm.disable=
->   LSM: Prepare for reorganizing "security=" logic
->   LSM: Refactor "security=" in terms of enable/disable
->   LSM: Build ordered list of ordered LSMs for init
->   LSM: Introduce CONFIG_LSM_ORDER
->   LSM: Introduce "lsm.order=" for boottime ordering
->   LoadPin: Initialize as ordered LSM
->   Yama: Initialize as ordered LSM
->   LSM: Introduce enum lsm_order
->   capability: Mark as LSM_ORDER_FIRST
->   LSM: Separate idea of "major" LSM from "exclusive" LSM
->   LSM: Add all exclusive LSMs to ordered initialization
-> 
->  .../admin-guide/kernel-parameters.txt         |   7 +
->  arch/arc/kernel/vmlinux.lds.S                 |   1 -
->  arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
->  arch/arm64/kernel/vmlinux.lds.S               |   1 -
->  arch/h8300/kernel/vmlinux.lds.S               |   1 -
->  arch/microblaze/kernel/vmlinux.lds.S          |   2 -
->  arch/powerpc/kernel/vmlinux.lds.S             |   2 -
->  arch/um/include/asm/common.lds.S              |   2 -
->  arch/xtensa/kernel/vmlinux.lds.S              |   1 -
->  include/asm-generic/vmlinux.lds.h             |  25 +-
->  include/linux/init.h                          |   2 -
->  include/linux/lsm_hooks.h                     |  43 ++-
->  include/linux/module.h                        |   1 -
->  security/Kconfig                              |  42 +--
->  security/apparmor/lsm.c                       |  16 +-
->  security/commoncap.c                          |   8 +-
->  security/integrity/iint.c                     |   5 +-
->  security/loadpin/loadpin.c                    |  10 +-
->  security/security.c                           | 304
-> ++++++++++++++---- security/selinux/hooks.c                      | 
-> 16 +-
->  security/smack/smack_lsm.c                    |   8 +-
->  security/tomoyo/tomoyo.c                      |   7 +-
->  security/yama/yama_lsm.c                      |   7 +-
->  23 files changed, 348 insertions(+), 164 deletions(-)
+We've taken option b in our current downstream kernel & that's what I
+hope we'll get upstream too. There's no expectation that we'll ever need
+to mix pre-nanoMIPS & nanoMIPS ISAs or their associated ABIs across the
+kernel/user boundary so it's felt like a great opportunity to clean up &
+standardise.
 
+Getting nanoMIPS/p32 support submitted upstream is on my to-do list, but
+there's a bunch of prep work to get in first & of course that to-do list
+is forever growing. Hopefully in the next couple of cycles.
 
--- 
-Martin
+Thanks,
+    Paul
