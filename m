@@ -1,29 +1,55 @@
-From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: Re: [RESEND PATCH v3 0/3] sh: make early_platform code SuperH-specific
-Date: Thu, 20 Sep 2018 18:19:47 +0200
-Message-ID: <CAMRc=MeC8gwEpjNf5AEX4oocHYv8c_CJXkCDMM9CQvaqxrbdXQ@mail.gmail.com>
-References: <20180827090651.25062-1-brgl@bgdev.pl> <CAMRc=McWre+5PRuozF69YKONvzy4X31=MzZim-QjhaAZ9iAVTw@mail.gmail.com>
- <9963d3f3-ba14-0d18-d669-53fc79b783c2@linaro.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH security-next v2 04/26] LSM: Remove initcall tracing
+Date: Thu, 20 Sep 2018 09:23:16 -0700
+Message-ID: <20180920162338.21060-5-keescook@chromium.org>
+References: <20180920162338.21060-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <9963d3f3-ba14-0d18-d669-53fc79b783c2@linaro.org>
+In-Reply-To: <20180920162338.21060-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@kernel.org>, David Lechner <david@lechnology.com>, Michael Turquette <mturquette@baylibre.com>, Stephen Boyd <sboyd@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mark Rutland <mark.rutland@arm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Marc Zyngier <marc.zyngier@arm.com>, "Rafael J . Wysocki" <rafael.j.wysocki@intel.com>, Peter Rosin <peda@axentia.se>, Jiri Slaby <jslaby@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Magnus Damm <magnus.damm@gmail.com>, Johan Hovold <johan@kernel.org>, Rob Herring <robh+dt@kernel.org>, Frank
+To: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-2018-09-20 18:09 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
-> On 20/09/2018 15:00, Bartosz Golaszewski wrote:
->
-> [ ... ]
->
->> Ping for 4.20. This is the third release cycle I'm trying to get this
->> merged and there never were any objections.
->
-> Thanks for the heads up, it is in the pipe.
->
+This partially reverts commit 58eacfffc417 ("init, tracing: instrument
+security and console initcall trace events") since security init calls
+are about to no longer resemble regular init calls.
 
-I guess you mean only the clocksource patch?
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ security/security.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-Bart
+diff --git a/security/security.c b/security/security.c
+index 892fe6b691cf..41a5da2c7faf 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -30,8 +30,6 @@
+ #include <linux/string.h>
+ #include <net/flow.h>
+ 
+-#include <trace/events/initcall.h>
+-
+ #define MAX_LSM_EVM_XATTR	2
+ 
+ /* Maximum number of letters for an LSM name string */
+@@ -47,17 +45,13 @@ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+ 
+ static void __init do_security_initcalls(void)
+ {
+-	int ret;
+ 	initcall_t call;
+ 	initcall_entry_t *ce;
+ 
+ 	ce = __start_lsm_info;
+-	trace_initcall_level("security");
+ 	while (ce < __end_lsm_info) {
+ 		call = initcall_from_entry(ce);
+-		trace_initcall_start(call);
+-		ret = call();
+-		trace_initcall_finish(call, ret);
++		call();
+ 		ce++;
+ 	}
+ }
+-- 
+2.17.1
