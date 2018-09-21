@@ -1,50 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga11.intel.com ([192.55.52.93]:13761 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728184AbeIUU7m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S2390777AbeIUU7m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 21 Sep 2018 16:59:42 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v4 23/27] mm/map: Add Shadow stack pages to memory accounting
-Date: Fri, 21 Sep 2018 08:03:47 -0700
-Message-ID: <20180921150351.20898-24-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v4 25/27] mm/mmap: Prevent Shadow Stack VMA merges
+Date: Fri, 21 Sep 2018 08:03:49 -0700
+Message-ID: <20180921150351.20898-26-yu-cheng.yu@intel.com>
 In-Reply-To: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180921150347.owBgub0i8gULF8DV0Zemr-33JdisueQt-goZRhHkkng@z>
+Message-ID: <20180921150349.iM8hJxusNTc0RGsZqMDC64h-SKDn4u0FSNdv_e0v1Ug@z>
 
-Add shadow stack pages to memory accounting.
-Also check if the system has enough memory before enabling CET.
+Function returns could unwind stacks beyond its allocated area.
+We do not merge shadow stack areas.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu.intel.com>
+This and VMA guards prevent shadow stack underflow.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- mm/mmap.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ mm/mmap.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
 diff --git a/mm/mmap.c b/mm/mmap.c
-index 5f2b2b184c60..de2d0faa1c61 100644
+index de2d0faa1c61..fa581ced3f56 100644
 --- a/mm/mmap.c
 +++ b/mm/mmap.c
-@@ -1671,6 +1671,9 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
- 	if (file && is_file_hugepages(file))
- 		return 0;
+@@ -1123,6 +1123,12 @@ struct vm_area_struct *vma_merge(struct mm_struct *mm,
+ 	if (vm_flags & VM_SPECIAL)
+ 		return NULL;
  
-+	if (arch_copy_pte_mapping(vm_flags))
-+		return 1;
++	/*
++	 * Do not merge shadow stack areas.
++	 */
++	if (vm_flags & VM_SHSTK)
++		return NULL;
 +
- 	return (vm_flags & (VM_NORESERVE | VM_SHARED | VM_WRITE)) == VM_WRITE;
- }
- 
-@@ -3261,6 +3264,8 @@ void vm_stat_account(struct mm_struct *mm, vm_flags_t flags, long npages)
- 		mm->stack_vm += npages;
- 	else if (is_data_mapping(flags))
- 		mm->data_vm += npages;
-+	else if (arch_copy_pte_mapping(flags))
-+		mm->data_vm += npages;
- }
- 
- static vm_fault_t special_mapping_fault(struct vm_fault *vmf);
+ 	if (prev)
+ 		next = prev->vm_next;
+ 	else
 -- 
 2.17.1
