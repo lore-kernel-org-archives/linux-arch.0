@@ -1,35 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:60095 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728365AbeIUT20 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 15:28:26 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87y3bzk6yv.fsf@xmission.com>
-        <20180918000546.12552-8-ebiederm@xmission.com>
-        <alpine.DEB.2.21.1809182228350.1468@nanos.tec.linutronix.de>
-        <877ejf58aa.fsf@xmission.com>
-Date: Fri, 21 Sep 2018 15:39:19 +0200
-In-Reply-To: <877ejf58aa.fsf@xmission.com> (Eric W. Biederman's message of
-        "Fri, 21 Sep 2018 14:45:01 +0200")
-Message-ID: <87tvmj3r7c.fsf@xmission.com>
+Received: from sonic306-9.consmr.mail.bf2.yahoo.com ([74.6.132.48]:37062 "EHLO
+        sonic306-9.consmr.mail.bf2.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2390279AbeIUUqz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Sep 2018 16:46:55 -0400
+Subject: Re: [PATCH security-next v2 26/26] LSM: Add all exclusive LSMs to
+ ordered initialization
+References: <20180920162338.21060-1-keescook@chromium.org>
+ <20180920162338.21060-27-keescook@chromium.org>
+ <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com>
+ <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
+ <7d2cc28b-aee5-ee91-9362-f92f8ca30adc@schaufler-ca.com>
+ <6c899d9e-45aa-8159-c402-b3c4d1936112@canonical.com>
+ <CAGXu5jKzqij5dY2FYm5rafPNPpF1Tx9BPmK+=FvG+=tpFxpscw@mail.gmail.com>
+ <74ecd4ec-491b-93d7-4e3f-46f92121130b@canonical.com>
+ <CAGXu5j+QhU2HOicYKqfNo17n9k6DKgt1upa3O2p1b5Gvn6icbQ@mail.gmail.com>
+ <915ba7e5-0e10-87ef-f0a9-1d8db2e6de90@canonical.com>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <78fc6ba1-881a-9c82-ebc1-64311279050c@schaufler-ca.com>
+Date: Fri, 21 Sep 2018 07:57:30 -0700
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 08/20] signal/x86/traps: Move setting error_code and trap_nr into do_trap_no_signal
+In-Reply-To: <915ba7e5-0e10-87ef-f0a9-1d8db2e6de90@canonical.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
-Message-ID: <20180921133919.UWf0nMmdfipR-WAocfRWj3Tu4UmRetv7-KPmopKTFkU@z>
+To: John Johansen <john.johansen@canonical.com>, Kees Cook <keescook@chromium.org>
+Cc: James Morris <jmorris@namei.org>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20180921145730.yXDRCysXE46nP6S6lJytYVDUDqczM7Z8DQ31JheNr5c@z>
 
-ebiederm@xmission.com (Eric W. Biederman) writes:
+On 9/21/2018 6:19 AM, John Johansen wrote:
+> On 09/20/2018 08:02 PM, Kees Cook wrote:
+>> On Thu, Sep 20, 2018 at 7:14 PM, John Johansen
+>> <john.johansen@canonical.com> wrote:
+>>> On 09/20/2018 07:05 PM, Kees Cook wrote:
+>>>> On Thu, Sep 20, 2018 at 6:39 PM, John Johansen
+>>>> <john.johansen@canonical.com> wrote:
+>>>>
+>>>> Yes, I like CONFIG_LSM_ENABLE if "empty" means "enable all". Should
+>>>> CONFIG_LSM_ENABLE replace all the other CONFIG-based LSM
+>>>> enabling/disabling?
+>>> I don't particularly like "empty" being "enable all". With that
+>>> how would I disable all builtin lsms so that I just boot with
+>>> capability.
+>>>
+>>> An option of all or even * is more explicit and leaves the empty
+>>> set to mean disable everything
+>> Okay, that works. I prefer "all" FWIW.
+>>
+> me too, I was just trying to throw out options.
 
-> I also realized for clarity of the code I could have moved show_signal
-> into do_trap_no_signal as well.  I will post a follow up change where I
-> do that.
-
-Except of course do_trap_no_signal does not take a signal number show
-it can't call show signal.  On second glance I don't see enough gain
-to make it worth moving show_signal into do_trap_no_signal.  So I am
-just going to skip that for now.
-
-Eric
+I'll buy that. "all" is fine by me, although it means we
+can't have an LSM named "all". :) We should also allow "none"
+to mean no LSMs. I know lots of people who love using security=none.
