@@ -1,59 +1,42 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Date: Thu, 20 Sep 2018 22:18:51 -0700
-Message-ID: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
-References: <20180914143719.GA27689@guoren-Inspiron-7460> <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
+From: Philippe De Muyter <phdm@macq.eu>
+Subject: Re: [PATCH v2 1/5] m68k: Rename system call table file name
+Date: Fri, 21 Sep 2018 07:48:51 +0200
+Message-ID: <20180921054850.GA13343@frolo.macqel>
+References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org> <1537455973-12468-2-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
+Content-Disposition: inline
+In-Reply-To: <1537455973-12468-2-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Palmer Dabbelt <palmer@sifive.com>
-Cc: Guo Ren <ren_guo@c-sky.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
->
-> On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> I don't want to hijack this thread, but in RISC-V land we were hoping to have a
-> user ABI free of 32-bit time_t.  Our 32-bit glibc ABI hasn't been finalized
-> yet, and when I talked to the glibc guys a few weeks ago they were happy to let
-> us wait until 32-bit time_t can be removed before we stabilize the ABI.  We've
-> been maintaining out-of-tree glibc patches for a while now, so I'd really like
-> to get them into the next glibc release.
->
-> Mapping out the schedule more explicitly, as I'm terrible with dates:
->
-> * 4.19-rc4 was 2018-09-16
-> * 4.19 should be 2018-10-21
-> * 4.20 should be 2019-01-13 (skipping 2 weeks for the holidays)
-> * 4.21 merge window should close 2019-01-27
-> * glibc 2.29 is scheduled for 2019-02-01
->
-> That's very tight, but assuming we at least have a prototype of the API so we
-> can get the rv32i glibc patches in much earlier it might be OK.  There was some
-> talk of being able to use some workarounds to do a 32-bit time_t user ABI
-> without the cooresponding kernel ABI, so we could always go down that route to
-> start and then decide to deprecate or not deprecate the 32-bit kernel ABI at
-> the last minute -- not something I'm fond of doing, but an option.
->
-> How close to done do you think the 32-bit time_t will be by the end of the 4.20
-> merge window?  If it's close enough to start our glibc push then that might be
-> OK.
+On Thu, Sep 20, 2018 at 08:36:09PM +0530, Firoz Khan wrote:
+> The system call table entries are present in syscalltable.S. One of
+> the patch in this patch series will auto-generate the system call
+> table entries using the system call table generation script and
+> which'll replace the existig table file.
+> 
+> In order to come up with a common naming convention across all
+> architecture, we need to change the file name to syscall_table.S.
 
-It will be a bit of a stretch, but it's possible. Most syscalls are
-done in linux-next,
-I have a few more pending, and only clock_adjtime is really missing now (I had
-some earlier patches that I could revive).
+That file was probably called that way to be able to distinguish it
+from syscalltable.s and syscalltable.o in a file system with a 14
+characters limit in file names (in sysV unix systems).
 
-My plan was to get that all into 4.20, and then have a conversation about the
-actual syscall table changes in 4.21. If we need it for both csky and rv32,
-we might just change the generic syscall table that way in 4.21 without
-changing all the other ones along with them. I don't want to drag things out
-over too many merge windows though, and my plan was to do all architectures
-together to simplify the version checks in the libc code to only have to check
-for a single version.
+> This change will unify the implementation across all architecture.
+> 
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/m68k/kernel/Makefile        |   2 +-
+>  arch/m68k/kernel/syscall_table.S | 403 +++++++++++++++++++++++++++++++++++++++
+>  arch/m68k/kernel/syscalltable.S  | 403 ---------------------------------------
 
-         Arnd
+You should generate your patch with the '-M' or '--find-renames' option.
+
+Philippe
+
+-- 
+Philippe De Muyter +32 2 6101532 Macq SA rue de l'Aeronef 2 B-1140 Bruxelles
