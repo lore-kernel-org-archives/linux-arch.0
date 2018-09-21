@@ -1,47 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.macqel.be ([109.135.2.61]:58094 "EHLO smtp2.macqel.be"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727795AbeIULpQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Sep 2018 07:45:16 -0400
-Date: Fri, 21 Sep 2018 07:48:51 +0200
-From: Philippe De Muyter <phdm@macq.eu>
-Subject: Re: [PATCH v2 1/5] m68k: Rename system call table file name
-Message-ID: <20180921054850.GA13343@frolo.macqel>
-References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org> <1537455973-12468-2-git-send-email-firoz.khan@linaro.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:47368 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388944AbeIUL5O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 07:57:14 -0400
+Date: Thu, 20 Sep 2018 23:09:41 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 0/3] System call table generation support
+Message-ID: <20180921060941.GB13865@infradead.org>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
+ <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
+ <CAK8P3a1=BriZ7hgzgK4QpAT00MBEtXaKOSU+vdHN1=5owB9i4A@mail.gmail.com>
+ <20180920204833.gpypjjxcmxjupls6@pburton-laptop>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <1537455973-12468-2-git-send-email-firoz.khan@linaro.org>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20180920204833.gpypjjxcmxjupls6@pburton-laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
-Message-ID: <20180921054851.KW4DkVE6K6k7h4JhxX1W0g04j48GnfYRfpU4NLtw6cE@z>
+To: Paul Burton <paul.burton@mips.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Firoz Khan <firoz.khan@linaro.org>, Hauke Mehrtens <hauke@hauke-m.de>, =?utf-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180921060941.jHZcldQTzxkQdPIwQWqN3QnsOdh_6w9EM4zNaMzvCrw@z>
 
-On Thu, Sep 20, 2018 at 08:36:09PM +0530, Firoz Khan wrote:
-> The system call table entries are present in syscalltable.S. One of
-> the patch in this patch series will auto-generate the system call
-> table entries using the system call table generation script and
-> which'll replace the existig table file.
+On Thu, Sep 20, 2018 at 08:48:37PM +0000, Paul Burton wrote:
+> > Speaking of nanoMIPS, what is your plan for the syscall ABI there?
+> > I can see two ways of approaching it:
+> > 
+> > a) keep all the MIPSisms in the data structures, and just use a subset of
+> >     o32 that drops all the obsolete entry points
+> > b) start over and stay as close as possible to the generic ABI, using the
+> >     asm-generic versions of both the syscall table and the uapi header
+> >     files instead of the traditional version.
 > 
-> In order to come up with a common naming convention across all
-> architecture, we need to change the file name to syscall_table.S.
-
-That file was probably called that way to be able to distinguish it
-from syscalltable.s and syscalltable.o in a file system with a 14
-characters limit in file names (in sysV unix systems).
-
-> This change will unify the implementation across all architecture.
+> We've taken option b in our current downstream kernel & that's what I
+> hope we'll get upstream too. There's no expectation that we'll ever need
+> to mix pre-nanoMIPS & nanoMIPS ISAs or their associated ABIs across the
+> kernel/user boundary so it's felt like a great opportunity to clean up &
+> standardise.
 > 
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> ---
->  arch/m68k/kernel/Makefile        |   2 +-
->  arch/m68k/kernel/syscall_table.S | 403 +++++++++++++++++++++++++++++++++++++++
->  arch/m68k/kernel/syscalltable.S  | 403 ---------------------------------------
+> Getting nanoMIPS/p32 support submitted upstream is on my to-do list, but
+> there's a bunch of prep work to get in first & of course that to-do list
+> is forever growing. Hopefully in the next couple of cycles.
 
-You should generate your patch with the '-M' or '--find-renames' option.
+p32 is just the ABI name for nanoMIPS or yet another MIPS ABI?
 
-Philippe
+Either way, І think if there is yet another ABI even on an existing port
+we should always aim for the asm-generic syscall table indeed.
 
--- 
-Philippe De Muyter +32 2 6101532 Macq SA rue de l'Aeronef 2 B-1140 Bruxelles
+Especially for mips where o32 has a rather awkward ABI only explained by
+odd decisions more than 20 years ago.
