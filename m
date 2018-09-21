@@ -1,58 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:47290 "EHLO mga07.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:13767 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390383AbeIUU6I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Sep 2018 16:58:08 -0400
+        id S2390860AbeIUU7r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Sep 2018 16:59:47 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v4 08/27] mm: Introduce VM_SHSTK for shadow stack memory
-Date: Fri, 21 Sep 2018 08:03:32 -0700
-Message-ID: <20180921150351.20898-9-yu-cheng.yu@intel.com>
-In-Reply-To: <20180921150351.20898-1-yu-cheng.yu@intel.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v4 3/9] x86/cet/ibt: Add IBT legacy code bitmap allocation function
+Date: Fri, 21 Sep 2018 08:05:47 -0700
+Message-ID: <20180921150553.21016-4-yu-cheng.yu@intel.com>
+In-Reply-To: <20180921150553.21016-1-yu-cheng.yu@intel.com>
+References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180921150332.CCcqPlV7yXVuNUs7w2ZHzCqXH8Gdv5_SzOR2EJKqCCA@z>
+Message-ID: <20180921150547.dp1neqarXhUwziS_JvbVvmTdH6uF3IBkHHv1gm53cD8@z>
 
-VM_SHSTK indicates a shadow stack memory area.
-The shadow stack is implemented only for the 64-bit kernel.
+Indirect branch tracking provides an optional legacy code bitmap
+that indicates locations of non-IBT compatible code.  When set,
+each bit in the bitmap represents a page in the linear address is
+legacy code.
+
+We allocate the bitmap only when the application requests it.
+Most applications do not need the bitmap.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- include/linux/mm.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ arch/x86/kernel/cet.c | 45 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index a61ebe8ad4ca..f40387ecd920 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -224,11 +224,13 @@ extern unsigned int kobjsize(const void *objp);
- #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
- #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
- #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
-+#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures */
- #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
- #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
- #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
- #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
- #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
-+#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
- #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
- 
- #ifdef CONFIG_ARCH_HAS_PKEYS
-@@ -266,6 +268,12 @@ extern unsigned int kobjsize(const void *objp);
- # define VM_MPX		VM_NONE
- #endif
- 
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+# define VM_SHSTK	VM_HIGH_ARCH_5
-+#else
-+# define VM_SHSTK	VM_NONE
-+#endif
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index 6adfe795d692..a65d9745af08 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -314,3 +314,48 @@ void cet_disable_ibt(void)
+ 	wrmsrl(MSR_IA32_U_CET, r);
+ 	current->thread.cet.ibt_enabled = 0;
+ }
 +
- #ifndef VM_GROWSUP
- # define VM_GROWSUP	VM_NONE
- #endif
++int cet_setup_ibt_bitmap(void)
++{
++	u64 r;
++	unsigned long bitmap;
++	unsigned long size;
++
++	if (!cpu_feature_enabled(X86_FEATURE_IBT))
++		return -EOPNOTSUPP;
++
++	if (!current->thread.cet.ibt_bitmap_addr) {
++		/*
++		 * Calculate size and put in thread header.
++		 * may_expand_vm() needs this information.
++		 */
++		size = TASK_SIZE / PAGE_SIZE / BITS_PER_BYTE;
++		current->thread.cet.ibt_bitmap_size = size;
++		bitmap = do_mmap_locked(0, size, PROT_READ | PROT_WRITE,
++					MAP_ANONYMOUS | MAP_PRIVATE,
++					VM_DONTDUMP);
++
++		if (bitmap >= TASK_SIZE) {
++			current->thread.cet.ibt_bitmap_size = 0;
++			return -ENOMEM;
++		}
++
++		current->thread.cet.ibt_bitmap_addr = bitmap;
++	}
++
++	/*
++	 * Lower bits of MSR_IA32_CET_LEG_IW_EN are for IBT
++	 * settings.  Clear lower bits even bitmap is already
++	 * page-aligned.
++	 */
++	bitmap = current->thread.cet.ibt_bitmap_addr;
++	bitmap &= PAGE_MASK;
++
++	/*
++	 * Turn on IBT legacy bitmap.
++	 */
++	rdmsrl(MSR_IA32_U_CET, r);
++	r |= (MSR_IA32_CET_LEG_IW_EN | bitmap);
++	wrmsrl(MSR_IA32_U_CET, r);
++	return 0;
++}
 -- 
 2.17.1
