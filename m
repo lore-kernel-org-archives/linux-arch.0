@@ -1,117 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f67.google.com ([209.85.161.67]:46364 "EHLO
-        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727252AbeIUIsr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 04:48:47 -0400
-Received: by mail-yw1-f67.google.com with SMTP id j131-v6so4630279ywc.13
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 20:02:05 -0700 (PDT)
-Received: from mail-yb1-f169.google.com (mail-yb1-f169.google.com. [209.85.219.169])
-        by smtp.gmail.com with ESMTPSA id t10-v6sm3899906ywg.74.2018.09.20.20.02.02
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 20 Sep 2018 20:02:02 -0700 (PDT)
-Received: by mail-yb1-f169.google.com with SMTP id y9-v6so4864640ybh.0
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 20:02:02 -0700 (PDT)
+Received: from mail-qt1-f176.google.com ([209.85.160.176]:35969 "EHLO
+        mail-qt1-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725898AbeIULGU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 07:06:20 -0400
 MIME-Version: 1.0
-In-Reply-To: <74ecd4ec-491b-93d7-4e3f-46f92121130b@canonical.com>
-References: <20180920162338.21060-1-keescook@chromium.org> <20180920162338.21060-27-keescook@chromium.org>
- <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com> <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
- <7d2cc28b-aee5-ee91-9362-f92f8ca30adc@schaufler-ca.com> <6c899d9e-45aa-8159-c402-b3c4d1936112@canonical.com>
- <CAGXu5jKzqij5dY2FYm5rafPNPpF1Tx9BPmK+=FvG+=tpFxpscw@mail.gmail.com> <74ecd4ec-491b-93d7-4e3f-46f92121130b@canonical.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 20 Sep 2018 20:02:01 -0700
-Message-ID: <CAGXu5j+QhU2HOicYKqfNo17n9k6DKgt1upa3O2p1b5Gvn6icbQ@mail.gmail.com>
-Subject: Re: [PATCH security-next v2 26/26] LSM: Add all exclusive LSMs to
- ordered initialization
+References: <20180914143719.GA27689@guoren-Inspiron-7460> <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
+In-Reply-To: <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 20 Sep 2018 22:18:51 -0700
+Message-ID: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
+Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Johansen <john.johansen@canonical.com>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20180921030201.q2odkskWx6XovqTdNSyFXgLgo8zLhym3e3i5AvPoBbA@z>
+To: Palmer Dabbelt <palmer@sifive.com>
+Cc: Guo Ren <ren_guo@c-sky.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20180921051851.JSgD0keA3KFiOn30f8whNwoMsJP9rpdRuE3TI9pvNzU@z>
 
-On Thu, Sep 20, 2018 at 7:14 PM, John Johansen
-<john.johansen@canonical.com> wrote:
-> On 09/20/2018 07:05 PM, Kees Cook wrote:
->> On Thu, Sep 20, 2018 at 6:39 PM, John Johansen
->> <john.johansen@canonical.com> wrote:
->>> On 09/20/2018 06:10 PM, Casey Schaufler wrote:
->>>> On 9/20/2018 5:45 PM, Kees Cook wrote:
->>>>> On Thu, Sep 20, 2018 at 5:25 PM, Casey Schaufler <casey@schaufler-ca.com> wrote:
->>>>>> On 9/20/2018 9:23 AM, Kees Cook wrote:
->>>>>>>  config LSM_ORDER
->>>>>>>       string "Default initialization order of builtin LSMs"
->>>>>>> -     default "yama,loadpin,integrity"
->>>>>>> +     default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
->>>>>> If I want to compile all the major modules into my kernel and use
->>>>>> AppArmor by default would I use
->>>>>>
->>>>>>         default "yama,loadpin,integrity,apparmor,selinux,smack,tomoyo"
->>>>>>
->>>>>> or
->>>>>>
->>>>>>         default "yama,loadpin,integrity,apparmor"
->>>>> I was expecting the former, but the latter will have the same result.
->>>
->>> t find having the two be equivalent violates expectations. At least
->>> when considering the end goal of full/extreme stacking, its trivially
->>> the same with current major lsms being exclusive
->>
->> This mixes "enablement" with "ordering", though, and I think the past
->> threads have shown this to be largely problematic.
->>
->> However, with CONFIG_LSM_ENABLED, we get the effect you're looking for, IIUC.
+On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
 >
-> no, I was just stating in a world where we have full stacking those two
-> are not equivalent, as I would assume the order of any lsm not listed
-> may end up being different.
-
-Right, the ordering would be defined first by runtime (lsm.order=)
-followed any missing LSMs then ordered by their order in
-CONFIG_LSM_ORDER=, followed by any still missing LSMs then ordered by
-their order at link-time (which *may* be Makefile order, but could
-change with LTO, etc).
-
->>>>>> When we have "blob-sharing" how could I compile in tomoyo,
->>>>>> but exclude it without a boot line option?
->>>>> Ooh, yes, this series has no way to do that. Perhaps
->>>>> CONFIG_LSM_DISABLE in the same form as CONFIG_LSM_ORDER? I would
->>>>> totally remove LoadPin's CONFIG for this in favor it.
->>>>
->>>> I would generally prefer an optional CONFIG_LSM_ENABLE to
->>>> CONFIG_LSM_DISABLE, but I understand the logic behind your
->>>> approach. I would be looking for something like
->>>>
->>> +1 on the CONFIG_LSM_ENABLE ove DISABLE
->>>
->>>> CONFIG LSM_ENABLE
->>>>       string "Default set of enabled LSMs"
->>>>       default ""
->>>>
->>>> as opposed to
->>>>
->>>> CONFIG LSM_DISABLE
->>>>       string "Default set of disabled LSMs"
->>>>       default ""
->>>>
->>>> where an empty string is interpreted as "use 'em all"
->>>> in either case.
->>
->> Yes, I like CONFIG_LSM_ENABLE if "empty" means "enable all". Should
->> CONFIG_LSM_ENABLE replace all the other CONFIG-based LSM
->> enabling/disabling?
+> On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
+> > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
+> >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
+> I don't want to hijack this thread, but in RISC-V land we were hoping to have a
+> user ABI free of 32-bit time_t.  Our 32-bit glibc ABI hasn't been finalized
+> yet, and when I talked to the glibc guys a few weeks ago they were happy to let
+> us wait until 32-bit time_t can be removed before we stabilize the ABI.  We've
+> been maintaining out-of-tree glibc patches for a while now, so I'd really like
+> to get them into the next glibc release.
 >
-> I don't particularly like "empty" being "enable all". With that
-> how would I disable all builtin lsms so that I just boot with
-> capability.
+> Mapping out the schedule more explicitly, as I'm terrible with dates:
 >
-> An option of all or even * is more explicit and leaves the empty
-> set to mean disable everything
+> * 4.19-rc4 was 2018-09-16
+> * 4.19 should be 2018-10-21
+> * 4.20 should be 2019-01-13 (skipping 2 weeks for the holidays)
+> * 4.21 merge window should close 2019-01-27
+> * glibc 2.29 is scheduled for 2019-02-01
+>
+> That's very tight, but assuming we at least have a prototype of the API so we
+> can get the rv32i glibc patches in much earlier it might be OK.  There was some
+> talk of being able to use some workarounds to do a 32-bit time_t user ABI
+> without the cooresponding kernel ABI, so we could always go down that route to
+> start and then decide to deprecate or not deprecate the 32-bit kernel ABI at
+> the last minute -- not something I'm fond of doing, but an option.
+>
+> How close to done do you think the 32-bit time_t will be by the end of the 4.20
+> merge window?  If it's close enough to start our glibc push then that might be
+> OK.
 
-Okay, that works. I prefer "all" FWIW.
+It will be a bit of a stretch, but it's possible. Most syscalls are
+done in linux-next,
+I have a few more pending, and only clock_adjtime is really missing now (I had
+some earlier patches that I could revive).
 
--Kees
+My plan was to get that all into 4.20, and then have a conversation about the
+actual syscall table changes in 4.21. If we need it for both csky and rv32,
+we might just change the generic syscall table that way in 4.21 without
+changing all the other ones along with them. I don't want to drag things out
+over too many merge windows though, and my plan was to do all architectures
+together to simplify the version checks in the libc code to only have to check
+for a single version.
 
--- 
-Kees Cook
-Pixel Security
+         Arnd
