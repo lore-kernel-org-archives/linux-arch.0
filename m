@@ -1,50 +1,126 @@
-From: Casey Schaufler <casey@schaufler-ca.com>
-Subject: Re: [PATCH security-next v2 26/26] LSM: Add all exclusive LSMs to
- ordered initialization
-Date: Fri, 21 Sep 2018 07:57:30 -0700
-Message-ID: <78fc6ba1-881a-9c82-ebc1-64311279050c@schaufler-ca.com>
-References: <20180920162338.21060-1-keescook@chromium.org>
- <20180920162338.21060-27-keescook@chromium.org>
- <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com>
- <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
- <7d2cc28b-aee5-ee91-9362-f92f8ca30adc@schaufler-ca.com>
- <6c899d9e-45aa-8159-c402-b3c4d1936112@canonical.com>
- <CAGXu5jKzqij5dY2FYm5rafPNPpF1Tx9BPmK+=FvG+=tpFxpscw@mail.gmail.com>
- <74ecd4ec-491b-93d7-4e3f-46f92121130b@canonical.com>
- <CAGXu5j+QhU2HOicYKqfNo17n9k6DKgt1upa3O2p1b5Gvn6icbQ@mail.gmail.com>
- <915ba7e5-0e10-87ef-f0a9-1d8db2e6de90@canonical.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v4 00/27] Control Flow Enforcement: Shadow Stack
+Date: Fri, 21 Sep 2018 08:03:24 -0700
+Message-ID: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <915ba7e5-0e10-87ef-f0a9-1d8db2e6de90@canonical.com>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Johansen <john.johansen@canonical.com>, Kees Cook <keescook@chromium.org>
-Cc: James Morris <jmorris@namei.org>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 9/21/2018 6:19 AM, John Johansen wrote:
-> On 09/20/2018 08:02 PM, Kees Cook wrote:
->> On Thu, Sep 20, 2018 at 7:14 PM, John Johansen
->> <john.johansen@canonical.com> wrote:
->>> On 09/20/2018 07:05 PM, Kees Cook wrote:
->>>> On Thu, Sep 20, 2018 at 6:39 PM, John Johansen
->>>> <john.johansen@canonical.com> wrote:
->>>>
->>>> Yes, I like CONFIG_LSM_ENABLE if "empty" means "enable all". Should
->>>> CONFIG_LSM_ENABLE replace all the other CONFIG-based LSM
->>>> enabling/disabling?
->>> I don't particularly like "empty" being "enable all". With that
->>> how would I disable all builtin lsms so that I just boot with
->>> capability.
->>>
->>> An option of all or even * is more explicit and leaves the empty
->>> set to mean disable everything
->> Okay, that works. I prefer "all" FWIW.
->>
-> me too, I was just trying to throw out options.
+The previous version of CET patches can be found in the following
+link:
 
-I'll buy that. "all" is fine by me, although it means we
-can't have an LSM named "all". :) We should also allow "none"
-to mean no LSMs. I know lots of people who love using security=none.
+  https://lkml.org/lkml/2018/8/30/608
+
+Summary of changes from v3:
+
+  Fixed an issue in page fault handling in do_swap_page().
+  Fixed issues in ptep_set_wrprotect/pmdp_set_wrprotect.
+  Changed WRUSS fault handling to asm_goto.
+  Added shadow stack to memory accounting.
+  Added a patch to create a guard gap between VMAs.
+  Added a patch to prevent merging of shadow stack areas.
+  Other small fixes in ELF header parsing and typos.
+
+Yu-cheng Yu (27):
+  x86/cpufeatures: Add CPUIDs for Control-flow Enforcement Technology
+    (CET)
+  x86/fpu/xstate: Change some names to separate XSAVES system and user
+    states
+  x86/fpu/xstate: Enable XSAVES system states
+  x86/fpu/xstate: Add XSAVES system states for shadow stack
+  Documentation/x86: Add CET description
+  x86/cet: Control protection exception handler
+  x86/cet/shstk: Add Kconfig option for user-mode shadow stack
+  mm: Introduce VM_SHSTK for shadow stack memory
+  x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
+  drm/i915/gvt: Update _PAGE_DIRTY to _PAGE_DIRTY_BITS
+  x86/mm: Introduce _PAGE_DIRTY_SW
+  x86/mm: Modify ptep_set_wrprotect and pmdp_set_wrprotect for
+    _PAGE_DIRTY_SW
+  x86/mm: Shadow stack page fault error checking
+  mm: Handle shadow stack page fault
+  mm: Handle THP/HugeTLB shadow stack page fault
+  mm: Update can_follow_write_pte/pmd for shadow stack
+  mm: Introduce do_mmap_locked()
+  x86/cet/shstk: User-mode shadow stack support
+  x86/cet/shstk: Introduce WRUSS instruction
+  x86/cet/shstk: Signal handling for shadow stack
+  x86/cet/shstk: ELF header parsing of Shadow Stack
+  x86/cet/shstk: Handle thread shadow stack
+  mm/map: Add Shadow stack pages to memory accounting
+  mm/mmap: Create a guard area between VMAs
+  mm/mmap: Prevent Shadow Stack VMA merges
+  x86/cet/shstk: Add arch_prctl functions for Shadow Stack
+  x86/cet/shstk: Add Shadow Stack instructions to opcode map
+
+ .../admin-guide/kernel-parameters.txt         |   6 +
+ Documentation/index.rst                       |   1 +
+ Documentation/x86/index.rst                   |  11 +
+ Documentation/x86/intel_cet.rst               | 259 +++++++++++++
+ arch/x86/Kconfig                              |  28 ++
+ arch/x86/Makefile                             |   7 +
+ arch/x86/entry/entry_64.S                     |   2 +-
+ arch/x86/ia32/ia32_signal.c                   |  13 +
+ arch/x86/include/asm/cet.h                    |  42 +++
+ arch/x86/include/asm/cpufeatures.h            |   2 +
+ arch/x86/include/asm/disabled-features.h      |   8 +-
+ arch/x86/include/asm/elf.h                    |   5 +
+ arch/x86/include/asm/fpu/internal.h           |   6 +-
+ arch/x86/include/asm/fpu/types.h              |  22 ++
+ arch/x86/include/asm/fpu/xstate.h             |  31 +-
+ arch/x86/include/asm/mmu_context.h            |   3 +
+ arch/x86/include/asm/msr-index.h              |  14 +
+ arch/x86/include/asm/pgtable.h                | 191 ++++++++--
+ arch/x86/include/asm/pgtable_types.h          |  31 +-
+ arch/x86/include/asm/processor.h              |   5 +
+ arch/x86/include/asm/sighandling.h            |   5 +
+ arch/x86/include/asm/special_insns.h          |  32 ++
+ arch/x86/include/asm/traps.h                  |   5 +
+ arch/x86/include/uapi/asm/elf_property.h      |  15 +
+ arch/x86/include/uapi/asm/prctl.h             |   5 +
+ arch/x86/include/uapi/asm/processor-flags.h   |   2 +
+ arch/x86/include/uapi/asm/sigcontext.h        |  17 +
+ arch/x86/kernel/Makefile                      |   4 +
+ arch/x86/kernel/cet.c                         | 285 +++++++++++++++
+ arch/x86/kernel/cet_prctl.c                   |  79 ++++
+ arch/x86/kernel/cpu/common.c                  |  24 ++
+ arch/x86/kernel/cpu/scattered.c               |   1 +
+ arch/x86/kernel/elf.c                         | 340 ++++++++++++++++++
+ arch/x86/kernel/fpu/core.c                    |  11 +-
+ arch/x86/kernel/fpu/init.c                    |  10 -
+ arch/x86/kernel/fpu/signal.c                  |   6 +-
+ arch/x86/kernel/fpu/xstate.c                  | 152 +++++---
+ arch/x86/kernel/idt.c                         |   4 +
+ arch/x86/kernel/process.c                     |   8 +
+ arch/x86/kernel/process_64.c                  |   7 +
+ arch/x86/kernel/relocate_kernel_64.S          |   2 +-
+ arch/x86/kernel/signal.c                      |  96 +++++
+ arch/x86/kernel/traps.c                       |  58 +++
+ arch/x86/kvm/vmx.c                            |   2 +-
+ arch/x86/lib/x86-opcode-map.txt               |  26 +-
+ arch/x86/mm/fault.c                           |  27 ++
+ arch/x86/mm/pgtable.c                         |  42 +++
+ drivers/gpu/drm/i915/gvt/gtt.c                |   2 +-
+ fs/binfmt_elf.c                               |  15 +
+ fs/proc/task_mmu.c                            |   3 +
+ include/asm-generic/pgtable.h                 |  14 +
+ include/linux/mm.h                            |  56 ++-
+ include/uapi/linux/elf.h                      |   1 +
+ mm/gup.c                                      |   8 +-
+ mm/huge_memory.c                              |  12 +-
+ mm/memory.c                                   |   7 +-
+ mm/mmap.c                                     |  11 +
+ tools/objtool/arch/x86/lib/x86-opcode-map.txt |  26 +-
+ 58 files changed, 1946 insertions(+), 161 deletions(-)
+ create mode 100644 Documentation/x86/index.rst
+ create mode 100644 Documentation/x86/intel_cet.rst
+ create mode 100644 arch/x86/include/asm/cet.h
+ create mode 100644 arch/x86/include/uapi/asm/elf_property.h
+ create mode 100644 arch/x86/kernel/cet.c
+ create mode 100644 arch/x86/kernel/cet_prctl.c
+ create mode 100644 arch/x86/kernel/elf.c
+
+-- 
+2.17.1
