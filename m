@@ -1,28 +1,61 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v4 23/27] mm/map: Add Shadow stack pages to memory
- accounting
-Date: Fri, 21 Sep 2018 10:21:50 -0700
-Message-ID: <c2d5d7944b7a34b67ddc0e5c1d3600e63c426236.camel@intel.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
-         <20180921150351.20898-24-yu-cheng.yu@intel.com>
-         <8c18fabf-170f-9010-3075-238e34c9f09b@infradead.org>
+From: Paul Burton <paul.burton@mips.com>
+Subject: Re: [PATCH 0/3] System call table generation support
+Date: Fri, 21 Sep 2018 19:32:18 +0000
+Message-ID: <20180921193216.wta4bvmmbp2jyasl@pburton-laptop>
+References: <1536914314-5026-1-git-send-email-firoz.khan@linaro.org>
+ <20180917171720.wda5qrl7hyyacmwl@pburton-laptop>
+ <CAK8P3a1=BriZ7hgzgK4QpAT00MBEtXaKOSU+vdHN1=5owB9i4A@mail.gmail.com>
+ <20180920204833.gpypjjxcmxjupls6@pburton-laptop>
+ <20180921060941.GB13865@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8c18fabf-170f-9010-3075-238e34c9f09b@infradead.org>
+In-Reply-To: <20180921060941.GB13865@infradead.org>
+Content-Language: en-US
+Content-ID: <68F2D21C2AB6864B8A20E470BD24A6B1@namprd08.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pave
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Firoz Khan <firoz.khan@linaro.org>, Hauke Mehrtens <hauke@hauke-m.de>, =?utf-8?B?UmFmYcWCIE1pxYJlY2tp?= <zajec5@gmail.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2018-09-21 at 09:55 -0700, Randy Dunlap wrote:
-> On 9/21/18 8:03 AM, Yu-cheng Yu wrote:
-> > Add shadow stack pages to memory accounting.
-> > Also check if the system has enough memory before enabling CET.
-> > 
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu.intel.com>
-> 
-> oops. typo above.
-> 
-
-I will fix it.  Thanks!
+SGkgQ2hyaXN0b3BoLA0KDQpPbiBUaHUsIFNlcCAyMCwgMjAxOCBhdCAxMTowOTo0MVBNIC0wNzAw
+LCBDaHJpc3RvcGggSGVsbHdpZyB3cm90ZToNCj4gT24gVGh1LCBTZXAgMjAsIDIwMTggYXQgMDg6
+NDg6MzdQTSArMDAwMCwgUGF1bCBCdXJ0b24gd3JvdGU6DQo+ID4gPiBTcGVha2luZyBvZiBuYW5v
+TUlQUywgd2hhdCBpcyB5b3VyIHBsYW4gZm9yIHRoZSBzeXNjYWxsIEFCSSB0aGVyZT8NCj4gPiA+
+IEkgY2FuIHNlZSB0d28gd2F5cyBvZiBhcHByb2FjaGluZyBpdDoNCj4gPiA+IA0KPiA+ID4gYSkg
+a2VlcCBhbGwgdGhlIE1JUFNpc21zIGluIHRoZSBkYXRhIHN0cnVjdHVyZXMsIGFuZCBqdXN0IHVz
+ZSBhIHN1YnNldCBvZg0KPiA+ID4gICAgIG8zMiB0aGF0IGRyb3BzIGFsbCB0aGUgb2Jzb2xldGUg
+ZW50cnkgcG9pbnRzDQo+ID4gPiBiKSBzdGFydCBvdmVyIGFuZCBzdGF5IGFzIGNsb3NlIGFzIHBv
+c3NpYmxlIHRvIHRoZSBnZW5lcmljIEFCSSwgdXNpbmcgdGhlDQo+ID4gPiAgICAgYXNtLWdlbmVy
+aWMgdmVyc2lvbnMgb2YgYm90aCB0aGUgc3lzY2FsbCB0YWJsZSBhbmQgdGhlIHVhcGkgaGVhZGVy
+DQo+ID4gPiAgICAgZmlsZXMgaW5zdGVhZCBvZiB0aGUgdHJhZGl0aW9uYWwgdmVyc2lvbi4NCj4g
+PiANCj4gPiBXZSd2ZSB0YWtlbiBvcHRpb24gYiBpbiBvdXIgY3VycmVudCBkb3duc3RyZWFtIGtl
+cm5lbCAmIHRoYXQncyB3aGF0IEkNCj4gPiBob3BlIHdlJ2xsIGdldCB1cHN0cmVhbSB0b28uIFRo
+ZXJlJ3Mgbm8gZXhwZWN0YXRpb24gdGhhdCB3ZSdsbCBldmVyIG5lZWQNCj4gPiB0byBtaXggcHJl
+LW5hbm9NSVBTICYgbmFub01JUFMgSVNBcyBvciB0aGVpciBhc3NvY2lhdGVkIEFCSXMgYWNyb3Nz
+IHRoZQ0KPiA+IGtlcm5lbC91c2VyIGJvdW5kYXJ5IHNvIGl0J3MgZmVsdCBsaWtlIGEgZ3JlYXQg
+b3Bwb3J0dW5pdHkgdG8gY2xlYW4gdXAgJg0KPiA+IHN0YW5kYXJkaXNlLg0KPiA+IA0KPiA+IEdl
+dHRpbmcgbmFub01JUFMvcDMyIHN1cHBvcnQgc3VibWl0dGVkIHVwc3RyZWFtIGlzIG9uIG15IHRv
+LWRvIGxpc3QsIGJ1dA0KPiA+IHRoZXJlJ3MgYSBidW5jaCBvZiBwcmVwIHdvcmsgdG8gZ2V0IGlu
+IGZpcnN0ICYgb2YgY291cnNlIHRoYXQgdG8tZG8gbGlzdA0KPiA+IGlzIGZvcmV2ZXIgZ3Jvd2lu
+Zy4gSG9wZWZ1bGx5IGluIHRoZSBuZXh0IGNvdXBsZSBvZiBjeWNsZXMuDQo+IA0KPiBwMzIgaXMg
+anVzdCB0aGUgQUJJIG5hbWUgZm9yIG5hbm9NSVBTIG9yIHlldCBhbm90aGVyIE1JUFMgQUJJPw0K
+DQpwMzIgaXMgdGhlIEFCSSBmb3IgbmFub01JUFMgLSBpZS4gaXQgaXMgYSBuZXcgQUJJLCBidXQg
+aXQncyBub3QgZm9yIHVzZQ0Kd2l0aCBwcmUtbmFub01JUFMgSVNBcyAmIG5hbm9NSVBTIGlzbid0
+IHVzZWQgd2l0aCBvMzIvbjMyL242NC4NCg0KU29tZSBvZiB0aGUgY29kZSBkZW5zaXR5IGltcHJv
+dmVtZW50cyBuYW5vTUlQUyBicmluZ3MgYXJlIGR1ZSB0byB0aGUgSVNBDQomIHAzMiBBQkkgYmVp
+bmcgZGV2ZWxvcGVkIHRvZ2V0aGVyIC0gZWcuIHRoZSBsb2FkL3N0b3JlIG11bHRpcGxlICYNCnNh
+dmUvcmVzdG9yZSBpbnN0cnVjdGlvbnMgbWFrZSBpdCBlYXN5IHRvIHNhdmUgc2VxdWVuY2VzIG9m
+ICRzcCwgJGZwLA0KJHJhICYgc29tZSBudW1iZXIgb2YgdGhlICRzTiBjYWxsZWUtc2F2ZWQgcmVn
+aXN0ZXJzLiBDb21wcmVzc2VkIHJlZ2lzdGVyDQpudW1iZXIgZW5jb2RpbmdzIGdlbmVyYWxseSBp
+bmNsdWRlIHJlZ2lzdGVycyB0aGF0IG1ha2Ugc2Vuc2UgZm9yIHRoZSBwMzINCkFCSSwgYW5kIEkn
+bSBzdXJlIHRoZXJlIHdlcmUgb3RoZXIgdGhpbmdzIEkndmUgZm9yZ290dGVuLg0KDQo+IEVpdGhl
+ciB3YXksINCGIHRoaW5rIGlmIHRoZXJlIGlzIHlldCBhbm90aGVyIEFCSSBldmVuIG9uIGFuIGV4
+aXN0aW5nIHBvcnQNCj4gd2Ugc2hvdWxkIGFsd2F5cyBhaW0gZm9yIHRoZSBhc20tZ2VuZXJpYyBz
+eXNjYWxsIHRhYmxlIGluZGVlZC4NCj4gDQo+IEVzcGVjaWFsbHkgZm9yIG1pcHMgd2hlcmUgbzMy
+IGhhcyBhIHJhdGhlciBhd2t3YXJkIEFCSSBvbmx5IGV4cGxhaW5lZCBieQ0KPiBvZGQgZGVjaXNp
+b25zIG1vcmUgdGhhbiAyMCB5ZWFycyBhZ28uDQoNCkdsYWQgdG8gaGVhciB3ZSdyZSBvbiB0aGUg
+c2FtZSBwYWdlIDopDQoNCkknbSBhbGwgZm9yIGJlaW5nIGxlc3MgInNwZWNpYWwiICYgY291bGRu
+J3QgY2FyZSBsZXNzIGlmIG91ciBuYW5vTUlQUw0Kc3VwcG9ydCBpc24ndCBjb21wYXRpYmxlIHdp
+dGggSVJJWC4NCg0KVGhhbmtzLA0KICAgIFBhdWwNCg==
