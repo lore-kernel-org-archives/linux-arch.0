@@ -1,25 +1,69 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: [RFC PATCH v4 00/27] Control Flow Enforcement: Shadow Stack
-Date: Fri, 21 Sep 2018 15:53:08 -0700
-Message-ID: <1ca5178d-60f3-ae70-ce95-7026ac0429b4@linux.intel.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
+Date: Sat, 22 Sep 2018 07:48:14 +0800
+Message-ID: <20180921234813.GA5469@guoren-Inspiron-7460>
+References: <20180914143719.GA27689@guoren-Inspiron-7460>
+ <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
+ <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180921150351.20898-1-yu-cheng.yu@intel.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <pet>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Palmer Dabbelt <palmer@sifive.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-On 09/21/2018 08:03 AM, Yu-cheng Yu wrote:
-> The previous version of CET patches can be found in the following
-> link:
+On Thu, Sep 20, 2018 at 10:18:51PM -0700, Arnd Bergmann wrote:
+> On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
+> >
+> > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
+> > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
+> > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
+> > I don't want to hijack this thread, but in RISC-V land we were hoping to have a
+> > user ABI free of 32-bit time_t.  Our 32-bit glibc ABI hasn't been finalized
+> > yet, and when I talked to the glibc guys a few weeks ago they were happy to let
+> > us wait until 32-bit time_t can be removed before we stabilize the ABI.  We've
+> > been maintaining out-of-tree glibc patches for a while now, so I'd really like
+> > to get them into the next glibc release.
+> >
+> > Mapping out the schedule more explicitly, as I'm terrible with dates:
+> >
+> > * 4.19-rc4 was 2018-09-16
+> > * 4.19 should be 2018-10-21
+> > * 4.20 should be 2019-01-13 (skipping 2 weeks for the holidays)
+> > * 4.21 merge window should close 2019-01-27
+> > * glibc 2.29 is scheduled for 2019-02-01
+Thx for the schedule info.
+
+> >
+> > That's very tight, but assuming we at least have a prototype of the API so we
+> > can get the rv32i glibc patches in much earlier it might be OK.  There was some
+> > talk of being able to use some workarounds to do a 32-bit time_t user ABI
+> > without the cooresponding kernel ABI, so we could always go down that route to
+> > start and then decide to deprecate or not deprecate the 32-bit kernel ABI at
+> > the last minute -- not something I'm fond of doing, but an option.
+> >
+> > How close to done do you think the 32-bit time_t will be by the end of the 4.20
+> > merge window?  If it's close enough to start our glibc push then that might be
+> > OK.
 > 
->   https://lkml.org/lkml/2018/8/30/608
+> It will be a bit of a stretch, but it's possible. Most syscalls are
+> done in linux-next,
+> I have a few more pending, and only clock_adjtime is really missing now (I had
+> some earlier patches that I could revive).
+Seems time schedule is OK. If we make csky get into linux-4.20, then csky glibc
+port could remove 32-bit time_t in patchset before glibc 2.29 release.
 
-So, this is an RFC, but there no mention of what you want comments *on*. :)
+> My plan was to get that all into 4.20, and then have a conversation about the
+> actual syscall table changes in 4.21. If we need it for both csky and rv32,
+> we might just change the generic syscall table that way in 4.21 without
+> changing all the other ones along with them. I don't want to drag things out
+> over too many merge windows though, and my plan was to do all architectures
+> together to simplify the version checks in the libc code to only have to check
+> for a single version.
+Seems that's no problem.
 
-What do you want folks to review?  What needs to get settled before this
-is merged?
+Best Regards
+ Guo Ren
