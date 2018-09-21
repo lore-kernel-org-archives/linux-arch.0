@@ -1,87 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:19987 "EHLO mga09.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:13568 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390454AbeIUU6K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Sep 2018 16:58:10 -0400
+        id S2390450AbeIUU6I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Sep 2018 16:58:08 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v4 13/27] x86/mm: Shadow stack page fault error checking
-Date: Fri, 21 Sep 2018 08:03:37 -0700
-Message-ID: <20180921150351.20898-14-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v4 19/27] x86/cet/shstk: Introduce WRUSS instruction
+Date: Fri, 21 Sep 2018 08:03:43 -0700
+Message-ID: <20180921150351.20898-20-yu-cheng.yu@intel.com>
 In-Reply-To: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180921150337.-2amgIqYLnlpMZLVfC2tGhDfulAIOLpezAJX3CP5BpM@z>
+Message-ID: <20180921150343.CMEgg6BCKC3D2Hg2zuUSnqQQgrYLgaCwUv6INhoXi8M@z>
 
-If a page fault is triggered by a shadow stack access (e.g.
-call/ret) or shadow stack management instructions (e.g.
-wrussq), then bit[6] of the page fault error code is set.
+WRUSS is a new kernel-mode instruction but writes directly
+to user shadow stack memory.  This is used to construct
+a return address on the shadow stack for the signal
+handler.
 
-In access_error(), we check if a shadow stack page fault
-is within a shadow stack memory area.
+This instruction can fault if the user shadow stack is
+invalid shadow stack memory.  In that case, the kernel does
+fixup.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/include/asm/traps.h |  2 ++
- arch/x86/mm/fault.c          | 18 ++++++++++++++++++
- 2 files changed, 20 insertions(+)
+ arch/x86/include/asm/special_insns.h | 32 ++++++++++++++++++++++++++++
+ arch/x86/mm/fault.c                  |  9 ++++++++
+ 2 files changed, 41 insertions(+)
 
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index 5196050ff3d5..58ea2f5722e9 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -157,6 +157,7 @@ enum {
-  *   bit 3 ==				1: use of reserved bit detected
-  *   bit 4 ==				1: fault was an instruction fetch
-  *   bit 5 ==				1: protection keys block access
-+ *   bit 6 ==				1: shadow stack access fault
-  */
- enum x86_pf_error_code {
- 	X86_PF_PROT	=		1 << 0,
-@@ -165,5 +166,6 @@ enum x86_pf_error_code {
- 	X86_PF_RSVD	=		1 << 3,
- 	X86_PF_INSTR	=		1 << 4,
- 	X86_PF_PK	=		1 << 5,
-+	X86_PF_SHSTK	=		1 << 6,
- };
- #endif /* _ASM_X86_TRAPS_H */
+diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+index 317fc59b512c..c04e68ef47da 100644
+--- a/arch/x86/include/asm/special_insns.h
++++ b/arch/x86/include/asm/special_insns.h
+@@ -237,6 +237,38 @@ static inline void clwb(volatile void *__p)
+ 		: [pax] "a" (p));
+ }
+ 
++#ifdef CONFIG_X86_INTEL_CET
++#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
++{
++	asm_volatile_goto("1: wrussd %1, (%0)\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: "r" (addr), "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -1;
++}
++#else
++static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
++{
++	WARN_ONCE(1, "write_user_shstk_32 used but not supported.\n");
++	return -EFAULT;
++}
++#endif
++
++static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
++{
++	asm_volatile_goto("1: wrussq %1, (%0)\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: "r" (addr), "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -1;
++}
++#endif /* CONFIG_X86_INTEL_CET */
++
+ #define nop() asm volatile ("nop")
+ 
+ 
 diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 47bebfe6efa7..7c3877a982f4 100644
+index 7c3877a982f4..4d4ac57a4ba2 100644
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
-@@ -1162,6 +1162,17 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
- 				       (error_code & X86_PF_INSTR), foreign))
- 		return 1;
- 
-+	/*
-+	 * Verify X86_PF_SHSTK is within a shadow stack VMA.
-+	 * It is always an error if there is a shadow stack
-+	 * fault outside a shadow stack VMA.
-+	 */
-+	if (error_code & X86_PF_SHSTK) {
-+		if (!(vma->vm_flags & VM_SHSTK))
-+			return 1;
-+		return 0;
-+	}
-+
- 	if (error_code & X86_PF_WRITE) {
- 		/* write, present and write, not present: */
- 		if (unlikely(!(vma->vm_flags & VM_WRITE)))
-@@ -1300,6 +1311,13 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
- 
- 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
- 
-+	/*
-+	 * If the fault is caused by a shadow stack access,
-+	 * i.e. CALL/RET/SAVEPREVSSP/RSTORSSP, then set
-+	 * FAULT_FLAG_WRITE to effect copy-on-write.
-+	 */
-+	if (error_code & X86_PF_SHSTK)
-+		flags |= FAULT_FLAG_WRITE;
- 	if (error_code & X86_PF_WRITE)
- 		flags |= FAULT_FLAG_WRITE;
- 	if (error_code & X86_PF_INSTR)
+@@ -1305,6 +1305,15 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 		error_code |= X86_PF_USER;
+ 		flags |= FAULT_FLAG_USER;
+ 	} else {
++		/*
++		 * WRUSS is a kernel instrcution and but writes
++		 * to user shadow stack.  When a fault occurs,
++		 * both X86_PF_USER and X86_PF_SHSTK are set.
++		 * Clear X86_PF_USER here.
++		 */
++		if ((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
++		    (X86_PF_USER | X86_PF_SHSTK))
++			error_code &= ~X86_PF_USER;
+ 		if (regs->flags & X86_EFLAGS_IF)
+ 			local_irq_enable();
+ 	}
 -- 
 2.17.1
