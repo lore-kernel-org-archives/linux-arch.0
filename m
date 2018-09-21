@@ -1,68 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f196.google.com ([209.85.219.196]:41662 "EHLO
-        mail-yb1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725810AbeIUGcE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 02:32:04 -0400
-Received: by mail-yb1-f196.google.com with SMTP id v10-v6so4747538ybm.8
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 17:45:52 -0700 (PDT)
-Received: from mail-yw1-f52.google.com (mail-yw1-f52.google.com. [209.85.161.52])
-        by smtp.gmail.com with ESMTPSA id c10-v6sm6211691ywh.27.2018.09.20.17.45.48
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 20 Sep 2018 17:45:49 -0700 (PDT)
-Received: by mail-yw1-f52.google.com with SMTP id j131-v6so4531059ywc.13
-        for <linux-arch@vger.kernel.org>; Thu, 20 Sep 2018 17:45:48 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com>
-References: <20180920162338.21060-1-keescook@chromium.org> <20180920162338.21060-27-keescook@chromium.org>
- <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 20 Sep 2018 17:45:47 -0700
-Message-ID: <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
+Received: from sonic305-10.consmr.mail.bf2.yahoo.com ([74.6.133.49]:43428 "EHLO
+        sonic305-10.consmr.mail.bf2.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2388849AbeIUG40 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Sep 2018 02:56:26 -0400
 Subject: Re: [PATCH security-next v2 26/26] LSM: Add all exclusive LSMs to
  ordered initialization
-Content-Type: text/plain; charset="UTF-8"
+References: <20180920162338.21060-1-keescook@chromium.org>
+ <20180920162338.21060-27-keescook@chromium.org>
+ <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com>
+ <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <7d2cc28b-aee5-ee91-9362-f92f8ca30adc@schaufler-ca.com>
+Date: Thu, 20 Sep 2018 18:10:03 -0700
+MIME-Version: 1.0
+In-Reply-To: <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Casey Schaufler <casey@schaufler-ca.com>
+To: Kees Cook <keescook@chromium.org>
 Cc: James Morris <jmorris@namei.org>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20180921004547.V23sUMSJBstzA4o-xPVxltqyZWFjWpgxM9mccp_Y-5E@z>
+Message-ID: <20180921011003.s1sEj6GOK49D-2fDO36nbsoVSl92ZgM5DGAh-0VR6f0@z>
 
-On Thu, Sep 20, 2018 at 5:25 PM, Casey Schaufler <casey@schaufler-ca.com> wrote:
-> On 9/20/2018 9:23 AM, Kees Cook wrote:
->>  config LSM_ORDER
->>       string "Default initialization order of builtin LSMs"
->> -     default "yama,loadpin,integrity"
->> +     default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
+On 9/20/2018 5:45 PM, Kees Cook wrote:
+> On Thu, Sep 20, 2018 at 5:25 PM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+>> On 9/20/2018 9:23 AM, Kees Cook wrote:
+>>>  config LSM_ORDER
+>>>       string "Default initialization order of builtin LSMs"
+>>> -     default "yama,loadpin,integrity"
+>>> +     default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
+>> If I want to compile all the major modules into my kernel and use
+>> AppArmor by default would I use
+>>
+>>         default "yama,loadpin,integrity,apparmor,selinux,smack,tomoyo"
+>>
+>> or
+>>
+>>         default "yama,loadpin,integrity,apparmor"
+> I was expecting the former, but the latter will have the same result.
 >
-> If I want to compile all the major modules into my kernel and use
-> AppArmor by default would I use
+>> When we have "blob-sharing" how could I compile in tomoyo,
+>> but exclude it without a boot line option?
+> Ooh, yes, this series has no way to do that. Perhaps
+> CONFIG_LSM_DISABLE in the same form as CONFIG_LSM_ORDER? I would
+> totally remove LoadPin's CONFIG for this in favor it.
+
+I would generally prefer an optional CONFIG_LSM_ENABLE to
+CONFIG_LSM_DISABLE, but I understand the logic behind your
+approach. I would be looking for something like
+
+CONFIG LSM_ENABLE
+	string "Default set of enabled LSMs"
+	default ""
+
+as opposed to
+
+CONFIG LSM_DISABLE
+	string "Default set of disabled LSMs"
+	default ""
+
+where an empty string is interpreted as "use 'em all" 
+in either case.
+
+>> When we have full stacking, how could I compile in selinux
+>> but exclude it?
+> Yup, same problem. Same suggested solution?
 >
->         default "yama,loadpin,integrity,apparmor,selinux,smack,tomoyo"
->
-> or
->
->         default "yama,loadpin,integrity,apparmor"
+> Should lsm.enable/disable= also become a comma-separated list, or
+> should I leave it as a multi-instance thing like I have it?
 
-I was expecting the former, but the latter will have the same result.
+I prefer the multi-instance
+	lsm.disable=selinux lsm.disable=yama
+to the list
+	lsm.disable=selinux,yama
 
-> When we have "blob-sharing" how could I compile in tomoyo,
-> but exclude it without a boot line option?
-
-Ooh, yes, this series has no way to do that. Perhaps
-CONFIG_LSM_DISABLE in the same form as CONFIG_LSM_ORDER? I would
-totally remove LoadPin's CONFIG for this in favor it.
-
-> When we have full stacking, how could I compile in selinux
-> but exclude it?
-
-Yup, same problem. Same suggested solution?
-
-Should lsm.enable/disable= also become a comma-separated list, or
-should I leave it as a multi-instance thing like I have it?
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+but at this point I don't really care all that much.
