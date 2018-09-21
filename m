@@ -1,209 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:47196 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727554AbeIUSd6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 14:33:58 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87y3bzk6yv.fsf@xmission.com>
-        <20180918000546.12552-8-ebiederm@xmission.com>
-        <alpine.DEB.2.21.1809182228350.1468@nanos.tec.linutronix.de>
-Date: Fri, 21 Sep 2018 14:45:01 +0200
-In-Reply-To: <alpine.DEB.2.21.1809182228350.1468@nanos.tec.linutronix.de>
-        (Thomas Gleixner's message of "Tue, 18 Sep 2018 22:33:15 +0200
-        (CEST)")
-Message-ID: <877ejf58aa.fsf@xmission.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:48515 "EHLO
+        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727392AbeIUTJM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2018 15:09:12 -0400
+Subject: Re: [PATCH security-next v2 26/26] LSM: Add all exclusive LSMs to
+ ordered initialization
+References: <20180920162338.21060-1-keescook@chromium.org>
+ <20180920162338.21060-27-keescook@chromium.org>
+ <a0165ce9-d15b-eaef-a5e8-2aeb6bdc69f6@schaufler-ca.com>
+ <CAGXu5j++wXMUXuqT7m5MZdeXqO=i7RgyKZoLwELfSTx6UPOVSA@mail.gmail.com>
+ <7d2cc28b-aee5-ee91-9362-f92f8ca30adc@schaufler-ca.com>
+ <6c899d9e-45aa-8159-c402-b3c4d1936112@canonical.com>
+ <CAGXu5jKzqij5dY2FYm5rafPNPpF1Tx9BPmK+=FvG+=tpFxpscw@mail.gmail.com>
+ <74ecd4ec-491b-93d7-4e3f-46f92121130b@canonical.com>
+ <CAGXu5j+QhU2HOicYKqfNo17n9k6DKgt1upa3O2p1b5Gvn6icbQ@mail.gmail.com>
+From: John Johansen <john.johansen@canonical.com>
+Message-ID: <915ba7e5-0e10-87ef-f0a9-1d8db2e6de90@canonical.com>
+Date: Fri, 21 Sep 2018 06:19:56 -0700
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [REVIEW][PATCH 08/20] signal/x86/traps: Move setting error_code and trap_nr into do_trap_no_signal
+In-Reply-To: <CAGXu5j+QhU2HOicYKqfNo17n9k6DKgt1upa3O2p1b5Gvn6icbQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
-Message-ID: <20180921124501.l6wm5JUtOkVAV9O8mUT8refA-S5bSZtDt4_ov36A9Cg@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20180921131956.jZh-aQMHwQwxBC15CTCDw1dvTza-Tgecb8acr1UQ7Qc@z>
 
-Thomas Gleixner <tglx@linutronix.de> writes:
-
-> On Tue, 18 Sep 2018, Eric W. Biederman wrote:
->
->> Half of the times when error_code and trap_nr are set are already in
->
-> s/when// I think
-
-Yes that changelog was not a good description of why I was changing
-things.
-
->> do_trap_no_signal.  Move the other time these are set into do_trap_no_signal,
->
-> Please write function as do_trap_no_signal() so it's more obvious what you
-> are talking about.
-
-That feels quite unnatural to me.
-
->> and give do_trap_no_signal a single exit where a signals are sent.
->
-> s/a/// or s/a/all/ Not sure what you wanted to do here.
->
->> After the move the comment documeting this all is much easier to follow
->> as everything is together in one place.
->> 
->> Also update the string that is passed in to const.  The only user of that
->> str is die and it already takes a const string, so this just makes it explicit
->
-> string
->
->> that the string won't change.
->> 
->> This prepares the way for adding a second caller to do_trap_no_signal.
->> 
->> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->> ---
->>  arch/x86/kernel/traps.c | 29 ++++++++++++++---------------
->>  1 file changed, 14 insertions(+), 15 deletions(-)
->> 
->> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
->> index 31a689b67be3..f31c0ddee278 100644
->> --- a/arch/x86/kernel/traps.c
->> +++ b/arch/x86/kernel/traps.c
->> @@ -189,7 +189,7 @@ int fixup_bug(struct pt_regs *regs, int trapnr)
->>  }
->>  
->>  static nokprobe_inline int
->> -do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
->> +do_trap_no_signal(struct task_struct *tsk, int trapnr, const char *str,
->>  		  struct pt_regs *regs,	long error_code)
->>  {
->>  	if (v8086_mode(regs)) {
->> @@ -202,10 +202,8 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
->>  						error_code, trapnr))
->>  				return 0;
->>  		}
->> -		return -1;
->>  	}
->> -
->> -	if (!user_mode(regs)) {
->> +	else if (!user_mode(regs)) {
->
-> Please put that 'else if' right after the closing bracket, i.e.
->
-> 	} else if (...) {
->
->>  		if (fixup_exception(regs, trapnr))
->>  			return 0;
->
-> With that fixed:
->
-> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-
-Done.  The upated patch is below.
-
-I also realized for clarity of the code I could have moved show_signal
-into do_trap_no_signal as well.  I will post a follow up change where I
-do that.
-
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Fri, 4 Aug 2017 14:01:50 -0500
-Subject: [PATCH] signal/x86/traps: Move more code into do_trap_no_signal so it can be reused
-
-The function do_trap_no_signal embodies almost all of the work of the
-function do_trap.  The exceptions are setting of thread.error_code and
-thread.trap_nr in the case when the signal will be sent, and reporting
-which signal will be sent with show_signal.
-
-Filling in struct siginfo and then calling do_trap is problematic as
-filling in struct siginfo is an fiddly process that can through
-inattention has resulted in fields not initialized and the wrong
-fields being filled in.
-
-To avoid this error prone situation I am replacing force_sig_info with
-a set of functions that take as arguments the information needed to
-send a specific kind of signal.
-
-The function do_trap is called in the context of several different
-kinds of signals today.  Having a solid do_trap_no_signal that
-can be reused allows call sites that send different kinds of
-signals to reuse all of the code in do_trap_no_signal.
-
-Modify do_trap_no_signal to have a single exit there signals
-where be sent (aka returning -1) to allow more of the signal
-sending path to be moved to from do_trap to do_trap_no_signal.
-
-Move setting thread.trap_nr and thread.error_code into do_trap_no_signal
-so the code does not need to be duplicated.
-
-Make the type of the string that is passed into do_trap_no_signal to
-const.  The only user of that str is die and it already takes a const
-string, so this just makes it explicit that the string won't change.
-
-All of this prepares the way for using do_trap_no_signal outside
-of do_trap.
-
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/x86/kernel/traps.c | 29 ++++++++++++++---------------
- 1 file changed, 14 insertions(+), 15 deletions(-)
-
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 31a689b67be3..f31c0ddee278 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -189,7 +189,7 @@ int fixup_bug(struct pt_regs *regs, int trapnr)
- }
- 
- static nokprobe_inline int
--do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
-+do_trap_no_signal(struct task_struct *tsk, int trapnr, const char *str,
- 		  struct pt_regs *regs,	long error_code)
- {
- 	if (v8086_mode(regs)) {
-@@ -202,10 +202,8 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
- 						error_code, trapnr))
- 				return 0;
- 		}
--		return -1;
- 	}
--
--	if (!user_mode(regs)) {
-+	else if (!user_mode(regs)) {
- 		if (fixup_exception(regs, trapnr))
- 			return 0;
- 
-@@ -214,6 +212,18 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
- 		die(str, regs, error_code);
- 	}
- 
-+	/*
-+	 * We want error_code and trap_nr set for userspace faults and
-+	 * kernelspace faults which result in die(), but not
-+	 * kernelspace faults which are fixed up.  die() gives the
-+	 * process no chance to handle the signal and notice the
-+	 * kernel fault information, so that won't result in polluting
-+	 * the information about previously queued, but not yet
-+	 * delivered, faults.  See also do_general_protection below.
-+	 */
-+	tsk->thread.error_code = error_code;
-+	tsk->thread.trap_nr = trapnr;
-+
- 	return -1;
- }
- 
-@@ -271,17 +281,6 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
- 
- 	if (!do_trap_no_signal(tsk, trapnr, str, regs, error_code))
- 		return;
--	/*
--	 * We want error_code and trap_nr set for userspace faults and
--	 * kernelspace faults which result in die(), but not
--	 * kernelspace faults which are fixed up.  die() gives the
--	 * process no chance to handle the signal and notice the
--	 * kernel fault information, so that won't result in polluting
--	 * the information about previously queued, but not yet
--	 * delivered, faults.  See also do_general_protection below.
--	 */
--	tsk->thread.error_code = error_code;
--	tsk->thread.trap_nr = trapnr;
- 
- 	show_signal(tsk, signr, "trap ", str, regs, error_code);
- 
--- 
-2.17.1
+On 09/20/2018 08:02 PM, Kees Cook wrote:
+> On Thu, Sep 20, 2018 at 7:14 PM, John Johansen
+> <john.johansen@canonical.com> wrote:
+>> On 09/20/2018 07:05 PM, Kees Cook wrote:
+>>> On Thu, Sep 20, 2018 at 6:39 PM, John Johansen
+>>> <john.johansen@canonical.com> wrote:
+>>>> On 09/20/2018 06:10 PM, Casey Schaufler wrote:
+>>>>> On 9/20/2018 5:45 PM, Kees Cook wrote:
+>>>>>> On Thu, Sep 20, 2018 at 5:25 PM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+>>>>>>> On 9/20/2018 9:23 AM, Kees Cook wrote:
+>>>>>>>>  config LSM_ORDER
+>>>>>>>>       string "Default initialization order of builtin LSMs"
+>>>>>>>> -     default "yama,loadpin,integrity"
+>>>>>>>> +     default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
+>>>>>>> If I want to compile all the major modules into my kernel and use
+>>>>>>> AppArmor by default would I use
+>>>>>>>
+>>>>>>>         default "yama,loadpin,integrity,apparmor,selinux,smack,tomoyo"
+>>>>>>>
+>>>>>>> or
+>>>>>>>
+>>>>>>>         default "yama,loadpin,integrity,apparmor"
+>>>>>> I was expecting the former, but the latter will have the same result.
+>>>>
+>>>> t find having the two be equivalent violates expectations. At least
+>>>> when considering the end goal of full/extreme stacking, its trivially
+>>>> the same with current major lsms being exclusive
+>>>
+>>> This mixes "enablement" with "ordering", though, and I think the past
+>>> threads have shown this to be largely problematic.
+>>>
+>>> However, with CONFIG_LSM_ENABLED, we get the effect you're looking for, IIUC.
+>>
+>> no, I was just stating in a world where we have full stacking those two
+>> are not equivalent, as I would assume the order of any lsm not listed
+>> may end up being different.
+> 
+> Right, the ordering would be defined first by runtime (lsm.order=)
+> followed any missing LSMs then ordered by their order in
+> CONFIG_LSM_ORDER=, followed by any still missing LSMs then ordered by
+> their order at link-time (which *may* be Makefile order, but could
+> change with LTO, etc).
+> 
+>>>>>>> When we have "blob-sharing" how could I compile in tomoyo,
+>>>>>>> but exclude it without a boot line option?
+>>>>>> Ooh, yes, this series has no way to do that. Perhaps
+>>>>>> CONFIG_LSM_DISABLE in the same form as CONFIG_LSM_ORDER? I would
+>>>>>> totally remove LoadPin's CONFIG for this in favor it.
+>>>>>
+>>>>> I would generally prefer an optional CONFIG_LSM_ENABLE to
+>>>>> CONFIG_LSM_DISABLE, but I understand the logic behind your
+>>>>> approach. I would be looking for something like
+>>>>>
+>>>> +1 on the CONFIG_LSM_ENABLE ove DISABLE
+>>>>
+>>>>> CONFIG LSM_ENABLE
+>>>>>       string "Default set of enabled LSMs"
+>>>>>       default ""
+>>>>>
+>>>>> as opposed to
+>>>>>
+>>>>> CONFIG LSM_DISABLE
+>>>>>       string "Default set of disabled LSMs"
+>>>>>       default ""
+>>>>>
+>>>>> where an empty string is interpreted as "use 'em all"
+>>>>> in either case.
+>>>
+>>> Yes, I like CONFIG_LSM_ENABLE if "empty" means "enable all". Should
+>>> CONFIG_LSM_ENABLE replace all the other CONFIG-based LSM
+>>> enabling/disabling?
+>>
+>> I don't particularly like "empty" being "enable all". With that
+>> how would I disable all builtin lsms so that I just boot with
+>> capability.
+>>
+>> An option of all or even * is more explicit and leaves the empty
+>> set to mean disable everything
+> 
+> Okay, that works. I prefer "all" FWIW.
+> 
+me too, I was just trying to throw out options.
