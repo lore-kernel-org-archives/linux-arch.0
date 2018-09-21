@@ -1,95 +1,58 @@
-From: Ley Foon Tan <ley.foon.tan@intel.com>
-Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
- demand based pte insertion
-Date: Fri, 21 Sep 2018 16:42:05 +0800
-Message-ID: <1537519325.19048.0.camel@intel.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
-         <20180828112034.30875-4-npiggin@gmail.com>
-         <20180905142951.GA15680@roeck-us.net>
-         <20180918035337.0727dad0@roar.ozlabs.ibm.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [REVIEW][PATCH 6/9] signal/powerpc: Call force_sig_fault from
+ _exception
+Date: Fri, 21 Sep 2018 18:48:19 +1000
+Message-ID: <20180921184819.31e97d4a@canb.auug.org.au>
+References: <878t3yitze.fsf@xmission.com>
+        <20180918175850.4437-6-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_//oavHTfsofletcttCN6o5i3"; protocol="application/pgp-signature"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180918035337.0727dad0@roar.ozlabs.ibm.com>
+In-Reply-To: <20180918175850.4437-6-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>, Guenter Roeck <linux@roeck-us.net>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-09-18 at 03:53 +1000, Nicholas Piggin wrote:
-> On Wed, 5 Sep 2018 07:29:51 -0700
-> Guenter Roeck <linux@roeck-us.net> wrote:
-> 
-> > 
-> > Hi,
-> > 
-> > On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:
-> > > 
-> > > Similarly to the previous patch, this tries to optimise
-> > > dirty/accessed
-> > > bits in ptes to avoid access costs of hardware setting them.
-> > > 
-> > This patch results in silent nios2 boot failures, silent meaning
-> > that
-> > the boot stalls.
-> Okay I just got back to looking at this. The reason for the hang is
-> I think a bug in the nios2 TLB code, but maybe other archs have
-> similar
-> issues.
-> 
-> In case of a missing / !present Linux pte, nios2 installs a TLB entry
-> with no permissions via its fast TLB exception handler (software TLB
-> fill). Then it relies on that causing a TLB permission exception in a
-> slower handler that calls handle_mm_fault to set the Linux pte and
-> flushes the old TLB. Then the fast exception handler will find the
-> new
-> Linux pte.
-> 
-> With this patch, nios2 has a case where handle_mm_fault does not
-> flush
-> the old TLB, which results in the TLB permission exception
-> continually
-> being retried.
-> 
-> What happens now is that fault paths like do_read_fault will install
-> a
-> Linux pte with the young bit clear and return. That will cause nios2
-> to
-> fault again but this time go down the bottom of handle_pte_fault and
-> to
-> the access flags update with the young bit set. The young bit is seen
-> to
-> be different, so that causes ptep_set_access_flags to do a TLB flush
-> and
-> that finally allows the fast TLB handler to fire and pick up the new
-> Linux pte.
-> 
-> With this patch, the young bit is set in the first handle_mm_fault,
-> so
-> the second handle_mm_fault no longer sees the ptes are different and
-> does not flush the TLB. The spurious fault handler also does not
-> flush
-> them unless FAULT_FLAG_WRITE is set.
-> 
-> What nios2 should do is invalidate the TLB in update_mmu_cache. What
-> it
-> *really* should do is install the new TLB entry, I have some patches
-> to
-> make that work in qemu I can submit. But I would like to try getting
-> these dirty/accessed bit optimisation in 4.20, so I will send a
-> simple
-> path to just do the TLB invalidate that could go in Andrew's git
-> tree.
-> 
-> Is that agreeable with the nios2 maintainers?
-> 
-> Thanks,
-> Nick
-> 
-Hi
+--Sig_//oavHTfsofletcttCN6o5i3
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-Do you have patches to test?
+Hi Eric,
 
-Regards
-Ley Foon
+On Tue, 18 Sep 2018 19:58:47 +0200 "Eric W. Biederman" <ebiederm@xmission.c=
+om> wrote:
+>
+> The callers of _exception don't need the pkey exception logic because
+> they are not processing a pkey exception.  So just call exception_common
+> directly and then call force_sig_fault to generate the appropriate siginfo
+> and deliver the appropriate signal.
+>=20
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+
+Looks right to me.
+
+Reviewed-by: Stephen Rothwell <sfr@canb.auug.org.au>
+
+--=20
+Cheers,
+Stephen Rothwell
+
+--Sig_//oavHTfsofletcttCN6o5i3
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAluksFMACgkQAVBC80lX
+0GyYsAf+OiYQG3ODygJsePBryYHacWy/HSB4up16a8tiS+Z7tUtZ2qvt1ws0pDt5
+6m6Zezu956UM4xpHzbfyTkghJa0cWJkf330zzqNKEkfkIio9R2DMCW0ZQrM/U0Kf
+lBz4rX5O9y1yKKf1fjSW3TmpyGoE+J0XWt2LHvP25uulsc3Yz8j0HP1W6NV49DSM
+s2rxt3N2SFOIw/9yCxZGNhjBeT06hnTqlaLIbJtYxRrmc9ZNmz672SrMfC2AbG4M
+bxuip5jj84XaKAAdOEeAtvESJoD0kDgaRNMx8tqomhkxWt5Vy3AO626jzs20OpG2
+eJUo8DhIdxrx1I27p5xpI3/D8bHWhA==
+=mCgH
+-----END PGP SIGNATURE-----
+
+--Sig_//oavHTfsofletcttCN6o5i3--
