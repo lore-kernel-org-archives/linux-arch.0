@@ -1,428 +1,369 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:13568 "EHLO mga11.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:19983 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2390452AbeIUU6J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Sep 2018 16:58:09 -0400
+        id S2390382AbeIUU6I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Sep 2018 16:58:08 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH v4 20/27] x86/cet/shstk: Signal handling for shadow stack
-Date: Fri, 21 Sep 2018 08:03:44 -0700
-Message-ID: <20180921150351.20898-21-yu-cheng.yu@intel.com>
+Subject: [RFC PATCH v4 11/27] x86/mm: Introduce _PAGE_DIRTY_SW
+Date: Fri, 21 Sep 2018 08:03:35 -0700
+Message-ID: <20180921150351.20898-12-yu-cheng.yu@intel.com>
 In-Reply-To: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20180921150344.BxkL560DqTzl8yZxzxP97htrEfW5IDtOrfXyyD_7f6Y@z>
+Message-ID: <20180921150335.5B82udl3QN9C5gWynxsOrr8eWoBZYBZh-7RUbkyRzLc@z>
 
-When setting up a signal, the kernel creates a shadow stack
-restore token at the current SHSTK address and then stores the
-token's address in the signal frame, right after the FPU state.
-Before restoring a signal, the kernel verifies and then uses the
-restore token to set the SHSTK pointer.
+A RO and dirty PTE exists in the following cases:
+
+(a) A page is modified and then shared with a fork()'ed child;
+(b) A R/O page that has been COW'ed;
+(c) A SHSTK page.
+
+The processor does not read the dirty bit for (a) and (b), but
+checks the dirty bit for (c).  To prevent the use of non-SHSTK
+memory as SHSTK, we introduce a spare bit of the 64-bit PTE as
+_PAGE_BIT_DIRTY_SW and use that for (a) and (b).  This results
+to the following possible PTE settings:
+
+Modified PTE:             (R/W + DIRTY_HW)
+Modified and shared PTE:  (R/O + DIRTY_SW)
+R/O PTE COW'ed:           (R/O + DIRTY_SW)
+SHSTK PTE:                (R/O + DIRTY_HW)
+SHSTK PTE COW'ed:         (R/O + DIRTY_HW)
+SHSTK PTE shared:         (R/O + DIRTY_SW)
+
+Note that _PAGE_BIT_DRITY_SW is only used in R/O PTEs but
+not R/W PTEs.
+
+When this patch is applied, there are six free bits left in
+the 64-bit PTE.  There is no more free bit in the 32-bit
+PTE (except for PAE) and shadow stack is not implemented
+for the 32-bit kernel.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/ia32/ia32_signal.c            |  13 +++
- arch/x86/include/asm/cet.h             |   5 ++
- arch/x86/include/asm/sighandling.h     |   5 ++
- arch/x86/include/uapi/asm/sigcontext.h |  17 ++++
- arch/x86/kernel/cet.c                  | 115 +++++++++++++++++++++++++
- arch/x86/kernel/signal.c               |  96 +++++++++++++++++++++
- 6 files changed, 251 insertions(+)
+ arch/x86/include/asm/pgtable.h       | 129 ++++++++++++++++++++++-----
+ arch/x86/include/asm/pgtable_types.h |  14 ++-
+ 2 files changed, 121 insertions(+), 22 deletions(-)
 
-diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
-index 86b1341cba9a..cea28d2a946e 100644
---- a/arch/x86/ia32/ia32_signal.c
-+++ b/arch/x86/ia32/ia32_signal.c
-@@ -34,6 +34,7 @@
- #include <asm/sigframe.h>
- #include <asm/sighandling.h>
- #include <asm/smap.h>
-+#include <asm/cet.h>
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 95c918ad84ed..3ee554d81480 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -119,9 +119,9 @@ extern pmdval_t early_pmd_flags;
+  * The following only work if pte_present() is true.
+  * Undefined behaviour if not..
+  */
+-static inline int pte_dirty(pte_t pte)
++static inline bool pte_dirty(pte_t pte)
+ {
+-	return pte_flags(pte) & _PAGE_DIRTY;
++	return pte_flags(pte) & _PAGE_DIRTY_BITS;
+ }
  
- /*
-  * Do a signal return; undo the signal stack.
-@@ -108,6 +109,9 @@ static int ia32_restore_sigcontext(struct pt_regs *regs,
  
- 	err |= fpu__restore_sig(buf, 1);
+@@ -143,9 +143,9 @@ static inline int pte_young(pte_t pte)
+ 	return pte_flags(pte) & _PAGE_ACCESSED;
+ }
  
-+	if (!err)
-+		err = restore_sigcontext_ext(buf);
+-static inline int pmd_dirty(pmd_t pmd)
++static inline bool pmd_dirty(pmd_t pmd)
+ {
+-	return pmd_flags(pmd) & _PAGE_DIRTY;
++	return pmd_flags(pmd) & _PAGE_DIRTY_BITS;
+ }
+ 
+ static inline int pmd_young(pmd_t pmd)
+@@ -153,9 +153,9 @@ static inline int pmd_young(pmd_t pmd)
+ 	return pmd_flags(pmd) & _PAGE_ACCESSED;
+ }
+ 
+-static inline int pud_dirty(pud_t pud)
++static inline bool pud_dirty(pud_t pud)
+ {
+-	return pud_flags(pud) & _PAGE_DIRTY;
++	return pud_flags(pud) & _PAGE_DIRTY_BITS;
+ }
+ 
+ static inline int pud_young(pud_t pud)
+@@ -294,9 +294,23 @@ static inline pte_t pte_clear_flags(pte_t pte, pteval_t clear)
+ 	return native_make_pte(v & ~clear);
+ }
+ 
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
++{
++	if (pte_flags(pte) & from)
++		pte = pte_set_flags(pte_clear_flags(pte, from), to);
++	return pte;
++}
++#else
++static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
++{
++	return pte;
++}
++#endif
 +
- 	force_iret();
+ static inline pte_t pte_mkclean(pte_t pte)
+ {
+-	return pte_clear_flags(pte, _PAGE_DIRTY);
++	return pte_clear_flags(pte, _PAGE_DIRTY_BITS);
+ }
  
- 	return err;
-@@ -234,6 +238,10 @@ static void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
- 	if (fpu->initialized) {
- 		unsigned long fx_aligned, math_size;
+ static inline pte_t pte_mkold(pte_t pte)
+@@ -306,6 +320,7 @@ static inline pte_t pte_mkold(pte_t pte)
  
-+		/* sigcontext extension */
-+		if (boot_cpu_has(X86_FEATURE_SHSTK))
-+			sp -= (sizeof(struct sc_ext) + 8);
+ static inline pte_t pte_wrprotect(pte_t pte)
+ {
++	pte = pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
+ 	return pte_clear_flags(pte, _PAGE_RW);
+ }
+ 
+@@ -316,9 +331,24 @@ static inline pte_t pte_mkexec(pte_t pte)
+ 
+ static inline pte_t pte_mkdirty(pte_t pte)
+ {
++	pteval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER) ||
++			   pte_write(pte)) ? _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++	return pte_set_flags(pte, dirty | _PAGE_SOFT_DIRTY);
++}
 +
- 		sp = fpu__alloc_mathframe(sp, 1, &fx_aligned, &math_size);
- 		*fpstate = (struct _fpstate_32 __user *) sp;
- 		if (copy_fpstate_to_sigframe(*fpstate, (void __user *)fx_aligned,
-@@ -277,6 +285,8 @@ int ia32_setup_frame(int sig, struct ksignal *ksig,
++#ifdef CONFIG_ARCH_HAS_SHSTK
++static inline pte_t pte_mkdirty_shstk(pte_t pte)
++{
++	pte = pte_clear_flags(pte, _PAGE_DIRTY_SW);
+ 	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
  
- 	if (ia32_setup_sigcontext(&frame->sc, fpstate, regs, set->sig[0]))
- 		return -EFAULT;
-+	if (setup_sigcontext_ext(ksig, fpstate))
-+		return -EFAULT;
- 
- 	if (_COMPAT_NSIG_WORDS > 1) {
- 		if (__copy_to_user(frame->extramask, &set->sig[1],
-@@ -384,6 +394,9 @@ int ia32_setup_rt_frame(int sig, struct ksignal *ksig,
- 				     regs, set->sig[0]);
- 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
- 
-+	if (!err)
-+		err = setup_sigcontext_ext(ksig, fpstate);
++static inline bool pte_dirty_hw(pte_t pte)
++{
++	return pte_flags(pte) & _PAGE_DIRTY_HW;
++}
++#endif
 +
- 	if (err)
- 		return -EFAULT;
+ static inline pte_t pte_mkyoung(pte_t pte)
+ {
+ 	return pte_set_flags(pte, _PAGE_ACCESSED);
+@@ -326,6 +356,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
  
-diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-index ad278c520414..d9ae3d86cdd7 100644
---- a/arch/x86/include/asm/cet.h
-+++ b/arch/x86/include/asm/cet.h
-@@ -19,10 +19,15 @@ struct cet_status {
- int cet_setup_shstk(void);
- void cet_disable_shstk(void);
- void cet_disable_free_shstk(struct task_struct *p);
-+int cet_restore_signal(unsigned long ssp);
-+int cet_setup_signal(bool ia32, unsigned long rstor, unsigned long *new_ssp);
- #else
- static inline int cet_setup_shstk(void) { return 0; }
- static inline void cet_disable_shstk(void) {}
- static inline void cet_disable_free_shstk(struct task_struct *p) {}
-+static inline int cet_restore_signal(unsigned long ssp) { return 0; }
-+static inline int cet_setup_signal(bool ia32, unsigned long rstor,
-+				   unsigned long *new_ssp) { return 0; }
+ static inline pte_t pte_mkwrite(pte_t pte)
+ {
++	pte = pte_move_flags(pte, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
+ 	return pte_set_flags(pte, _PAGE_RW);
+ }
+ 
+@@ -373,6 +404,20 @@ static inline pmd_t pmd_clear_flags(pmd_t pmd, pmdval_t clear)
+ 	return native_make_pmd(v & ~clear);
+ }
+ 
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++static inline pmd_t pmd_move_flags(pmd_t pmd, pmdval_t from, pmdval_t to)
++{
++	if (pmd_flags(pmd) & from)
++		pmd = pmd_set_flags(pmd_clear_flags(pmd, from), to);
++	return pmd;
++}
++#else
++static inline pmd_t pmd_move_flags(pmd_t pmd, pmdval_t from, pmdval_t to)
++{
++	return pmd;
++}
++#endif
++
+ static inline pmd_t pmd_mkold(pmd_t pmd)
+ {
+ 	return pmd_clear_flags(pmd, _PAGE_ACCESSED);
+@@ -380,19 +425,36 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
+ 
+ static inline pmd_t pmd_mkclean(pmd_t pmd)
+ {
+-	return pmd_clear_flags(pmd, _PAGE_DIRTY);
++	return pmd_clear_flags(pmd, _PAGE_DIRTY_BITS);
+ }
+ 
+ static inline pmd_t pmd_wrprotect(pmd_t pmd)
+ {
++	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
+ 	return pmd_clear_flags(pmd, _PAGE_RW);
+ }
+ 
+ static inline pmd_t pmd_mkdirty(pmd_t pmd)
+ {
++	pmdval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER) ||
++			  (pmd_flags(pmd) & _PAGE_RW)) ?
++			  _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++	return pmd_set_flags(pmd, dirty | _PAGE_SOFT_DIRTY);
++}
++
++#ifdef CONFIG_ARCH_HAS_SHSTK
++static inline pmd_t pmd_mkdirty_shstk(pmd_t pmd)
++{
++	pmd = pmd_clear_flags(pmd, _PAGE_DIRTY_SW);
+ 	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+ 
++static inline bool pmd_dirty_hw(pmd_t pmd)
++{
++	return  pmd_flags(pmd) & _PAGE_DIRTY_HW;
++}
++#endif
++
+ static inline pmd_t pmd_mkdevmap(pmd_t pmd)
+ {
+ 	return pmd_set_flags(pmd, _PAGE_DEVMAP);
+@@ -410,6 +472,7 @@ static inline pmd_t pmd_mkyoung(pmd_t pmd)
+ 
+ static inline pmd_t pmd_mkwrite(pmd_t pmd)
+ {
++	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
+ 	return pmd_set_flags(pmd, _PAGE_RW);
+ }
+ 
+@@ -427,6 +490,20 @@ static inline pud_t pud_clear_flags(pud_t pud, pudval_t clear)
+ 	return native_make_pud(v & ~clear);
+ }
+ 
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++static inline pud_t pud_move_flags(pud_t pud, pudval_t from, pudval_t to)
++{
++	if (pud_flags(pud) & from)
++		pud = pud_set_flags(pud_clear_flags(pud, from), to);
++	return pud;
++}
++#else
++static inline pud_t pud_move_flags(pud_t pud, pudval_t from, pudval_t to)
++{
++	return pud;
++}
++#endif
++
+ static inline pud_t pud_mkold(pud_t pud)
+ {
+ 	return pud_clear_flags(pud, _PAGE_ACCESSED);
+@@ -434,17 +511,22 @@ static inline pud_t pud_mkold(pud_t pud)
+ 
+ static inline pud_t pud_mkclean(pud_t pud)
+ {
+-	return pud_clear_flags(pud, _PAGE_DIRTY);
++	return pud_clear_flags(pud, _PAGE_DIRTY_BITS);
+ }
+ 
+ static inline pud_t pud_wrprotect(pud_t pud)
+ {
++	pud = pud_move_flags(pud, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
+ 	return pud_clear_flags(pud, _PAGE_RW);
+ }
+ 
+ static inline pud_t pud_mkdirty(pud_t pud)
+ {
+-	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
++	pudval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER) ||
++			  (pud_flags(pud) & _PAGE_RW)) ?
++			  _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++
++	return pud_set_flags(pud, dirty | _PAGE_SOFT_DIRTY);
+ }
+ 
+ static inline pud_t pud_mkdevmap(pud_t pud)
+@@ -464,6 +546,7 @@ static inline pud_t pud_mkyoung(pud_t pud)
+ 
+ static inline pud_t pud_mkwrite(pud_t pud)
+ {
++	pud = pud_move_flags(pud, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
+ 	return pud_set_flags(pud, _PAGE_RW);
+ }
+ 
+@@ -595,19 +678,12 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ 	val &= _PAGE_CHG_MASK;
+ 	val |= check_pgprot(newprot) & ~_PAGE_CHG_MASK;
+ 	val = flip_protnone_guard(oldval, val, PTE_PFN_MASK);
++	if ((pte_write(pte) && !(pgprot_val(newprot) & _PAGE_RW)))
++		return pte_move_flags(__pte(val), _PAGE_DIRTY_HW,
++				      _PAGE_DIRTY_SW);
+ 	return __pte(val);
+ }
+ 
+-static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
+-{
+-	pmdval_t val = pmd_val(pmd), oldval = val;
+-
+-	val &= _HPAGE_CHG_MASK;
+-	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
+-	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
+-	return __pmd(val);
+-}
+-
+ /* mprotect needs to preserve PAT bits when updating vm_page_prot */
+ #define pgprot_modify pgprot_modify
+ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
+@@ -1159,6 +1235,19 @@ static inline int pmd_write(pmd_t pmd)
+ 	return pmd_flags(pmd) & _PAGE_RW;
+ }
+ 
++static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
++{
++	pmdval_t val = pmd_val(pmd), oldval = val;
++
++	val &= _HPAGE_CHG_MASK;
++	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
++	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
++	if ((pmd_write(pmd) && !(pgprot_val(newprot) & _PAGE_RW)))
++		return pmd_move_flags(__pmd(val), _PAGE_DIRTY_HW,
++				      _PAGE_DIRTY_SW);
++	return __pmd(val);
++}
++
+ #define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
+ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm, unsigned long addr,
+ 				       pmd_t *pmdp)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 0657a22d5216..f47bbc1f9c45 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -23,6 +23,7 @@
+ #define _PAGE_BIT_SOFTW2	10	/* " */
+ #define _PAGE_BIT_SOFTW3	11	/* " */
+ #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
++#define _PAGE_BIT_SOFTW5	57	/* available for programmer */
+ #define _PAGE_BIT_SOFTW4	58	/* available for programmer */
+ #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
+ #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
+@@ -34,6 +35,7 @@
+ #define _PAGE_BIT_CPA_TEST	_PAGE_BIT_SOFTW1
+ #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking */
+ #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
++#define _PAGE_BIT_DIRTY_SW	_PAGE_BIT_SOFTW5 /* was written to */
+ 
+ /* If _PAGE_BIT_PRESENT is clear, we use these: */
+ /* - if the user mapped it with PROT_NONE; pte_present gives true */
+@@ -109,6 +111,14 @@
+ #define _PAGE_DEVMAP	(_AT(pteval_t, 0))
  #endif
  
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/x86/include/asm/sighandling.h b/arch/x86/include/asm/sighandling.h
-index bd26834724e5..23014b4082de 100644
---- a/arch/x86/include/asm/sighandling.h
-+++ b/arch/x86/include/asm/sighandling.h
-@@ -17,4 +17,9 @@ void signal_fault(struct pt_regs *regs, void __user *frame, char *where);
- int setup_sigcontext(struct sigcontext __user *sc, void __user *fpstate,
- 		     struct pt_regs *regs, unsigned long mask);
- 
-+#ifdef CONFIG_X86_64
-+int setup_sigcontext_ext(struct ksignal *ksig, void __user *fpu);
-+int restore_sigcontext_ext(void __user *fpu);
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++#define _PAGE_DIRTY_SW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_SW)
++#else
++#define _PAGE_DIRTY_SW	(_AT(pteval_t, 0))
 +#endif
 +
- #endif /* _ASM_X86_SIGHANDLING_H */
-diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/uapi/asm/sigcontext.h
-index 844d60eb1882..74f5ea5dcd24 100644
---- a/arch/x86/include/uapi/asm/sigcontext.h
-+++ b/arch/x86/include/uapi/asm/sigcontext.h
-@@ -196,6 +196,23 @@ struct _xstate {
- 	/* New processor state extensions go here: */
- };
- 
-+#ifdef __x86_64__
-+/*
-+ * Sigcontext extension (struct sc_ext) is located after
-+ * sigcontext->fpstate.  Because currently only the shadow
-+ * stack pointer is saved there and the shadow stack depends
-+ * on XSAVES, we can find sc_ext from sigcontext->fpstate.
-+ *
-+ * The 64-bit fpstate has a size of fpu_user_xstate_size, plus
-+ * FP_XSTATE_MAGIC2_SIZE when XSAVE* is used.  The struct sc_ext
-+ * is located at the end of sigcontext->fpstate, aligned to 8.
-+ */
-+struct sc_ext {
-+	unsigned long total_size;
-+	unsigned long ssp;
-+};
-+#endif
++#define _PAGE_DIRTY_BITS (_PAGE_DIRTY_HW | _PAGE_DIRTY_SW)
 +
- /*
-  * The 32-bit signal frame:
+ #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
+ 
+ #define _PAGE_TABLE_NOENC	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |\
+@@ -122,9 +132,9 @@
+  * instance, and is *not* included in this mask since
+  * pte_modify() does modify it.
   */
-diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-index ec256ae27a31..5cc4be6e0982 100644
---- a/arch/x86/kernel/cet.c
-+++ b/arch/x86/kernel/cet.c
-@@ -18,6 +18,7 @@
- #include <asm/fpu/types.h>
- #include <asm/compat.h>
- #include <asm/cet.h>
-+#include <asm/special_insns.h>
+-#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
++#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |			\
+ 			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
+-			 _PAGE_SOFT_DIRTY)
++			 _PAGE_DIRTY_SW | _PAGE_SOFT_DIRTY)
+ #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
  
- static int set_shstk_ptr(unsigned long addr)
- {
-@@ -46,6 +47,69 @@ static unsigned long get_shstk_addr(void)
- 	return ptr;
- }
- 
-+/*
-+ * Verify the restore token at the address of 'ssp' is
-+ * valid and then set shadow stack pointer according to the
-+ * token.
-+ */
-+static int verify_rstor_token(bool ia32, unsigned long ssp,
-+			      unsigned long *new_ssp)
-+{
-+	unsigned long token;
-+
-+	*new_ssp = 0;
-+
-+	if (!IS_ALIGNED(ssp, 8))
-+		return -EINVAL;
-+
-+	if (get_user(token, (unsigned long __user *)ssp))
-+		return -EFAULT;
-+
-+	/* Is 64-bit mode flag correct? */
-+	if (ia32 && (token & 3) != 0)
-+		return -EINVAL;
-+	else if ((token & 3) != 1)
-+		return -EINVAL;
-+
-+	token &= ~(1UL);
-+
-+	if ((!ia32 && !IS_ALIGNED(token, 8)) || !IS_ALIGNED(token, 4))
-+		return -EINVAL;
-+
-+	if ((ALIGN_DOWN(token, 8) - 8) != ssp)
-+		return -EINVAL;
-+
-+	*new_ssp = token;
-+	return 0;
-+}
-+
-+/*
-+ * Create a restore token on the shadow stack.
-+ * A token is always 8-byte and aligned to 8.
-+ */
-+static int create_rstor_token(bool ia32, unsigned long ssp,
-+			      unsigned long *new_ssp)
-+{
-+	unsigned long addr;
-+
-+	*new_ssp = 0;
-+
-+	if ((!ia32 && !IS_ALIGNED(ssp, 8)) || !IS_ALIGNED(ssp, 4))
-+		return -EINVAL;
-+
-+	addr = ALIGN_DOWN(ssp, 8) - 8;
-+
-+	/* Is the token for 64-bit? */
-+	if (!ia32)
-+		ssp |= 1;
-+
-+	if (write_user_shstk_64(addr, ssp))
-+		return -EFAULT;
-+
-+	*new_ssp = addr;
-+	return 0;
-+}
-+
- int cet_setup_shstk(void)
- {
- 	unsigned long addr, size;
-@@ -107,3 +171,54 @@ void cet_disable_free_shstk(struct task_struct *tsk)
- 
- 	tsk->thread.cet.shstk_enabled = 0;
- }
-+
-+int cet_restore_signal(unsigned long ssp)
-+{
-+	unsigned long new_ssp;
-+	int err;
-+
-+	if (!current->thread.cet.shstk_enabled)
-+		return 0;
-+
-+	err = verify_rstor_token(in_ia32_syscall(), ssp, &new_ssp);
-+
-+	if (err)
-+		return err;
-+
-+	return set_shstk_ptr(new_ssp);
-+}
-+
-+/*
-+ * Setup the shadow stack for the signal handler: first,
-+ * create a restore token to keep track of the current ssp,
-+ * and then the return address of the signal handler.
-+ */
-+int cet_setup_signal(bool ia32, unsigned long rstor_addr,
-+		     unsigned long *new_ssp)
-+{
-+	unsigned long ssp;
-+	int err;
-+
-+	if (!current->thread.cet.shstk_enabled)
-+		return 0;
-+
-+	ssp = get_shstk_addr();
-+	err = create_rstor_token(ia32, ssp, new_ssp);
-+
-+	if (err)
-+		return err;
-+
-+	if (ia32) {
-+		ssp = *new_ssp - sizeof(u32);
-+		err = write_user_shstk_32(ssp, (unsigned int)rstor_addr);
-+	} else {
-+		ssp = *new_ssp - sizeof(u64);
-+		err = write_user_shstk_64(ssp, rstor_addr);
-+	}
-+
-+	if (err)
-+		return err;
-+
-+	set_shstk_ptr(ssp);
-+	return 0;
-+}
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 92a3b312a53c..e9a85689143f 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -46,6 +46,7 @@
- 
- #include <asm/sigframe.h>
- #include <asm/signal.h>
-+#include <asm/cet.h>
- 
- #define COPY(x)			do {			\
- 	get_user_ex(regs->x, &sc->x);			\
-@@ -152,6 +153,10 @@ static int restore_sigcontext(struct pt_regs *regs,
- 
- 	err |= fpu__restore_sig(buf, IS_ENABLED(CONFIG_X86_32));
- 
-+#ifdef CONFIG_X86_64
-+	err |= restore_sigcontext_ext(buf);
-+#endif
-+
- 	force_iret();
- 
- 	return err;
-@@ -266,6 +271,11 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size,
- 	}
- 
- 	if (fpu->initialized) {
-+#ifdef CONFIG_X86_64
-+		/* sigcontext extension */
-+		if (boot_cpu_has(X86_FEATURE_SHSTK))
-+			sp -= sizeof(struct sc_ext) + 8;
-+#endif
- 		sp = fpu__alloc_mathframe(sp, IS_ENABLED(CONFIG_X86_32),
- 					  &buf_fx, &math_size);
- 		*fpstate = (void __user *)sp;
-@@ -493,6 +503,9 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
- 	err |= setup_sigcontext(&frame->uc.uc_mcontext, fp, regs, set->sig[0]);
- 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
- 
-+	if (!err)
-+		err = setup_sigcontext_ext(ksig, fp);
-+
- 	if (err)
- 		return -EFAULT;
- 
-@@ -576,6 +589,9 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
- 				regs, set->sig[0]);
- 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
- 
-+	if (!err)
-+		err = setup_sigcontext_ext(ksig, fpstate);
-+
- 	if (err)
- 		return -EFAULT;
- 
-@@ -707,6 +723,86 @@ setup_rt_frame(struct ksignal *ksig, struct pt_regs *regs)
- 	}
- }
- 
-+#ifdef CONFIG_X86_64
-+static int copy_ext_from_user(struct sc_ext *ext, void __user *fpu)
-+{
-+	void __user *p;
-+
-+	if (!fpu)
-+		return -EINVAL;
-+
-+	p = fpu + fpu_user_xstate_size + FP_XSTATE_MAGIC2_SIZE;
-+	p = (void __user *)ALIGN((unsigned long)p, 8);
-+
-+	if (!access_ok(VERIFY_READ, p, sizeof(*ext)))
-+		return -EFAULT;
-+
-+	if (__copy_from_user(ext, p, sizeof(*ext)))
-+		return -EFAULT;
-+
-+	if (ext->total_size != sizeof(*ext))
-+		return -EINVAL;
-+	return 0;
-+}
-+
-+static int copy_ext_to_user(void __user *fpu, struct sc_ext *ext)
-+{
-+	void __user *p;
-+
-+	if (!fpu)
-+		return -EINVAL;
-+
-+	if (ext->total_size != sizeof(*ext))
-+		return -EINVAL;
-+
-+	p = fpu + fpu_user_xstate_size + FP_XSTATE_MAGIC2_SIZE;
-+	p = (void __user *)ALIGN((unsigned long)p, 8);
-+
-+	if (!access_ok(VERIFY_WRITE, p, sizeof(*ext)))
-+		return -EFAULT;
-+
-+	if (__copy_to_user(p, ext, sizeof(*ext)))
-+		return -EFAULT;
-+
-+	return 0;
-+}
-+
-+int restore_sigcontext_ext(void __user *fp)
-+{
-+	int err = 0;
-+
-+	if (boot_cpu_has(X86_FEATURE_SHSTK) && fp) {
-+		struct sc_ext ext = {0, 0};
-+
-+		err = copy_ext_from_user(&ext, fp);
-+
-+		if (!err)
-+			err = cet_restore_signal(ext.ssp);
-+	}
-+
-+	return err;
-+}
-+
-+int setup_sigcontext_ext(struct ksignal *ksig, void __user *fp)
-+{
-+	int err = 0;
-+
-+	if (boot_cpu_has(X86_FEATURE_SHSTK) && fp) {
-+		struct sc_ext ext = {0, 0};
-+		unsigned long rstor;
-+
-+		rstor = (unsigned long)ksig->ka.sa.sa_restorer;
-+		err = cet_setup_signal(is_ia32_frame(ksig), rstor, &ext.ssp);
-+		if (!err) {
-+			ext.total_size = sizeof(ext);
-+			err = copy_ext_to_user(fp, &ext);
-+		}
-+	}
-+
-+	return err;
-+}
-+#endif
-+
- static void
- handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- {
+ /*
 -- 
 2.17.1
