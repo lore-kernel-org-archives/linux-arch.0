@@ -1,69 +1,136 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Date: Sat, 22 Sep 2018 07:48:14 +0800
-Message-ID: <20180921234813.GA5469@guoren-Inspiron-7460>
-References: <20180914143719.GA27689@guoren-Inspiron-7460>
- <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
- <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from
+	asm/unistd.h
+Date: Sat, 22 Sep 2018 17:03:43 +0530
+Message-ID: <CALxhOnjR2M1Xd_M4BkhD0qLiRvGVCBipQE77mDn0N8O7k6iwPA@mail.gmail.com>
+References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
+ <1533791723-3882-3-git-send-email-firoz.khan@linaro.org>
+ <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
+ <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com>
+ <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
+ <CALxhOnjLKU8BCHFoc35P_tTh=6+NRbCrO6oB3Gar=uBMqYU4iw@mail.gmail.com>
+ <CAMuHMdWMxEfVKkohmv6ZAUPKYdZiFK6YoE6Y_L40j7YU-OtY0A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Palmer Dabbelt <palmer@sifive.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <CAMuHMdWMxEfVKkohmv6ZAUPKYdZiFK6YoE6Y_L40j7YU-OtY0A@mail.gmail.com>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Deepa Dinamani <deepa.kernel@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 20, 2018 at 10:18:51PM -0700, Arnd Bergmann wrote:
-> On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
-> >
-> > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > I don't want to hijack this thread, but in RISC-V land we were hoping to have a
-> > user ABI free of 32-bit time_t.  Our 32-bit glibc ABI hasn't been finalized
-> > yet, and when I talked to the glibc guys a few weeks ago they were happy to let
-> > us wait until 32-bit time_t can be removed before we stabilize the ABI.  We've
-> > been maintaining out-of-tree glibc patches for a while now, so I'd really like
-> > to get them into the next glibc release.
-> >
-> > Mapping out the schedule more explicitly, as I'm terrible with dates:
-> >
-> > * 4.19-rc4 was 2018-09-16
-> > * 4.19 should be 2018-10-21
-> > * 4.20 should be 2019-01-13 (skipping 2 weeks for the holidays)
-> > * 4.21 merge window should close 2019-01-27
-> > * glibc 2.29 is scheduled for 2019-02-01
-Thx for the schedule info.
-
-> >
-> > That's very tight, but assuming we at least have a prototype of the API so we
-> > can get the rv32i glibc patches in much earlier it might be OK.  There was some
-> > talk of being able to use some workarounds to do a 32-bit time_t user ABI
-> > without the cooresponding kernel ABI, so we could always go down that route to
-> > start and then decide to deprecate or not deprecate the 32-bit kernel ABI at
-> > the last minute -- not something I'm fond of doing, but an option.
-> >
-> > How close to done do you think the 32-bit time_t will be by the end of the 4.20
-> > merge window?  If it's close enough to start our glibc push then that might be
-> > OK.
-> 
-> It will be a bit of a stretch, but it's possible. Most syscalls are
-> done in linux-next,
-> I have a few more pending, and only clock_adjtime is really missing now (I had
-> some earlier patches that I could revive).
-Seems time schedule is OK. If we make csky get into linux-4.20, then csky glibc
-port could remove 32-bit time_t in patchset before glibc 2.29 release.
-
-> My plan was to get that all into 4.20, and then have a conversation about the
-> actual syscall table changes in 4.21. If we need it for both csky and rv32,
-> we might just change the generic syscall table that way in 4.21 without
-> changing all the other ones along with them. I don't want to drag things out
-> over too many merge windows though, and my plan was to do all architectures
-> together to simplify the version checks in the libc code to only have to check
-> for a single version.
-Seems that's no problem.
-
-Best Regards
- Guo Ren
+SGkgR2VlcnQsCgpPbiBUaHUsIDIwIFNlcCAyMDE4IGF0IDE0OjU0LCBHZWVydCBVeXR0ZXJob2V2
+ZW4gPGdlZXJ0QGxpbnV4LW02OGsub3JnPiB3cm90ZToKPgo+IEhpIEZpcm96LAo+Cj4gT24gVGh1
+LCBTZXAgMjAsIDIwMTggYXQgMTA6MTIgQU0gRmlyb3ogS2hhbiA8Zmlyb3oua2hhbkBsaW5hcm8u
+b3JnPiB3cm90ZToKPiA+IE9uIDE4IFNlcHRlbWJlciAyMDE4IGF0IDE1OjM0LCBHZWVydCBVeXR0
+ZXJob2V2ZW4gPGdlZXJ0QGxpbnV4LW02OGsub3JnPiB3cm90ZToKPiA+ID4gT24gVHVlLCBTZXAg
+MTgsIDIwMTggYXQgOToxNiBBTSBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5vcmc+IHdy
+b3RlOgo+ID4gPj4gT24gOSBBdWd1c3QgMjAxOCBhdCAxMzowMCwgR2VlcnQgVXl0dGVyaG9ldmVu
+IDxnZWVydEBsaW51eC1tNjhrLm9yZz4gd3JvdGU6Cj4gPiA+PiA+IE9uZSBmaXJzdCBjb21tZW50
+IGJlbG93Li4uCj4gPiA+PiA+Cj4gPiA+PiA+IE9uIFRodSwgQXVnIDksIDIwMTggYXQgNzoxNiBB
+TSBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5vcmc+IHdyb3RlOgo+ID4gPj4gPj4gTlJf
+c3lzY2FsbHMgbWFjcm8gaG9sZHMgdGhlIG51bWJlciBvZiBzeXN0ZW0gY2FsbCBleGlzdCBpbiBt
+NjhrCj4gPiA+PiA+PiBhcmNoaXRlY3R1cmUuIFRoaXMgbWFjcm8gaXMgY3VycmVudGx5IHRoZSBw
+YXJ0IG9mIGFzbS91bmlzdGQuaCBmaWxlLgo+ID4gPj4gPj4gV2UgaGF2ZSB0byBjaGFuZ2UgdGhl
+IHZhbHVlIG9mIE5SX3N5c2NhbGxzLCBpZiB3ZSBhZGQgb3IgZGVsZXRlIGEKPiA+ID4+ID4+IHN5
+c3RlbSBjYWxsLgo+ID4gPj4gPj4KPiA+ID4+ID4+IE9uZSBvZiBwYXRjaCBpbiB0aGlzIHBhdGNo
+IHNlcmllcyBoYXMgYSBzY3JpcHQgd2hpY2ggd2lsbCBnZW5lcmF0ZQo+ID4gPj4gPj4gYSB1YXBp
+IGhlYWRlciBiYXNlZCBvbiBzeXNjYWxsLnRibCBmaWxlLiBUaGUgc3lzY2FsbC50YmwgZmlsZQo+
+ID4gPj4gPj4gY29udGFpbnMgdGhlIG51bWJlciBvZiBzeXN0ZW0gY2FsbCBpbmZvcm1hdGlvbi4g
+U28gd2UgaGF2ZSB0d28KPiA+ID4+ID4+IG9wdGlvbiB0byB1cGRhdGUgTlJfc3lzY2FsbHMgdmFs
+dWUuCj4gPiA+PiA+Pgo+ID4gPj4gPj4gMS4gVXBkYXRlIE5SX3N5c2NhbGxzIGluIGFzbS91bmlz
+dGQuaCBtYW51YWxseSBieSBjb3VudGluZyB0aGUKPiA+ID4+ID4+ICAgIG5vLm9mIHN5c3RlbSBj
+YWxscy4gTm8gbmVlZCB0byB1cGRhdGUgTlJfc3lzY2FsbHMgdW50aWxsCj4gPiA+PiA+PiAgICB3
+ZSBlaXRoZXIgYWRkIGEgbmV3IHN5c3RlbSBjYWxsIG9yIGRlbGV0ZSBhbiBleGlzdGluZyBzeXN0
+ZW0KPiA+ID4+ID4+ICAgIGNhbGwuCj4gPiA+PiA+Pgo+ID4gPj4gPj4gMi4gV2UgY2FuIGtlZXAg
+dGhpcyBmZWF0dXJlIGl0IGFib3ZlIG1lbnRpb25lZCBzY3JpcHQsIHRoYXQnbGwKPiA+ID4+ID4+
+ICAgIGNvdW50IHRoZSBudW1iZXIgb2Ygc3lzY2FsbHMgYW5kIGtlZXAgaXQgaW4gYSBnZW5lcmF0
+ZWQgZmlsZS4KPiA+ID4+ID4+ICAgIEluIHRoaXMgY2FzZSB3ZSBkb24ndCBuZWVkIHRvIGV4cGxp
+Y2l0bHkgdXBkYXRlIE5SX3N5c2NhbGxzCj4gPiA+PiA+PiAgICBpbiBhc20vdW5pc3RkLmggZmls
+ZS4KPiA+ID4+ID4+Cj4gPiA+PiA+PiBUaGUgMm5kIG9wdGlvbiB3aWxsIGJlIHRoZSByZWNvbW1l
+bmRlZCBvbmUuIEZvciB0aGF0LCBJIG1vdmVkIHRoZQo+ID4gPj4gPj4gTlJfc3lzY2FsbHMgbWFj
+cm8gZnJvbSBhc20vdW5pc3RkLmggdG8gdWFwaS9hc20vdW5pc3RkLmguIFRoZSBtYWNybwo+ID4g
+Pj4gPj4gbmFtZSBhbHNvIGNoYW5nZWQgZm9ybSBOUl9zeXNjYWxscyB0byBfX05SX3N5c2NhbGxz
+IGZvciBtYWtpbmcgdGhlCj4gPiA+PiA+PiBuYW1lIGNvbnZlbnRpb24gc2FtZSBhY3Jvc3MgYWxs
+IGFyY2hpdGVjdHVyZS4gV2hpbGUgX19OUl9zeXNjYWxscwo+ID4gPj4gPj4gaXNuJ3Qgc3RyaWN0
+bHkgcGFydCBvZiB0aGUgdWFwaSwgaGF2aW5nIGl0IGFzIHBhcnQgb2YgdGhlIGdlbmVyYXRlZAo+
+ID4gPj4gPj4gaGVhZGVyIHRvIHNpbXBsaWZpZXMgdGhlIGltcGxlbWVudGF0aW9uLgo+ID4gPj4g
+Pgo+ID4gPj4gPiBJdCBjYW4gaW5kZWVkIG5vdCBiZSBwYXJ0IG9mIHRoZSBVQVBJLCBhcyBVQVBJ
+IGRlZmluaXRpb25zIGNhbiBuZXZlciBjaGFuZ2UsCj4gPiA+PiA+IHdoaWxlIG5ldyBzeXNjYWxs
+cyB3aWxsIGJlIGFkZGVkIGluIHRoZSBmdXR1cmUsIGluY3JlYXNpbmcgdGhlIG51bWJlciA7LSkK
+PiA+ID4+Cj4gPiA+PiBUaGFua3MgZm9yIHlvdXIgcmVwbHkgOikKPiA+ID4+IFNvcnJ5IGZvciB0
+aGUgZGVsYXllZCByZXNwb25zZSA6KAo+ID4gPj4KPiA+ID4+IEkgd291bGQgbGlrZSB0byBrZWVw
+IF9fTlJfc3lzY2FsbHMgbWFjcm8gdG8gdWFwaSBoZWFkZXIgaW4gb3JkZXIgdG8gc2ltcGxpZnkK
+PiA+ID4+IHRoZSBzeXN0ZW0gY2FsbCB0YWJsZSBnZW5lcmF0aW9uIHNjcmlwdC4gT3RoZXJ3aXNl
+IHRoZSBfX05SX3N5c2NhbGxzCj4gPiA+PiBtYWNybyBuZWVkIHRvIHVwZGF0ZSBtYW51YWxseS4g
+VGhhdCBiZWNvbWUgYSBwcm9ibGVtLgo+ID4gPj4KPiA+ID4+IFBsZWFzZSBjaGVjayB0aGUgYmVs
+b3cgaW1wbGVtZW50YXRpb24gaW4gdWFwaSBmaWxlIG1ha2Ugc2Vuc2U/Cj4gPiA+PiBJdCBpcyBh
+biBlYXN5IHdvcmthcm91bmQgdG8gbGVhdmUgX19OUl9zeXNjYWxscyBtYWNybyBpbiB1YXBpL2Fz
+bS91bmlzdGQuaAo+ID4gPj4gYW5kIGVuY2xvc2UgaXQgaW4gI2lmZGVmIF9fS0VSTkVMX18KPiA+
+ID4+Cj4gPiA+PiAuLi4KPiA+ID4+IC4uLgo+ID4gPj4gI2RlZmluZSBfX05SX3B3cml0ZXYyICAz
+NzgKPiA+ID4+ICNkZWZpbmUgX19OUl9zdGF0eCAgICAgIDM3OQo+ID4gPj4KPiA+ID4+ICNpZmRl
+ZiBfX0tFUk5FTF9fCj4gPiA+PiAjZGVmaW5lIF9fTlJfc3lzY2FsbHMgICAzODAKPiA+ID4+ICNl
+bmRpZgo+ID4gPj4gLi4uCj4gPiA+PiAuLi4KPiA+ID4KPiA+ID4gI2lmZGVmIF9fS0VSTkVMX18g
+c291bmRzIGZpbmUgdG8gbWUuCj4gPgo+ID4gSSBwb3N0ZWQgc2ltaWxhciBzY3JpcHQgZm9yIDEw
+IGRpZmZlcmVudCBhcmNoaXRlY3R1cmVzLiBJIGdvdCBmZXcgZ29vZCByZXZpZXcKPiA+IGZyb20g
+dGhlIG1haW50YWluZXJzIGFuZCBpdCB3aWxsIGJlIGFwcGxpY2FibGUgZm9yIGFsbCB0aGUKPiA+
+IGFyY2hpdGVjdHVyZXMgaW5jbHVkaW5nCj4gPiBtNjhrLiBUaGVyZSBhcmUgZmV3IGFyZWEgd2hp
+Y2ggSSBpZGVudGlmaWVkIG5lZWQgdG8gaW1wcm92ZS4gVGhpcyB3aWxsIHRha2UKPiA+IGNvdXBs
+ZSBvZiBkYXlzLgo+ID4KPiA+IEJ1dCBpdCB3aWxsIGJlIHZlcnkgaGVscGZ1bCBpZiB5b3UgY2Fu
+IHBlcmZvcm0gdGhlIGJvb3QgdGVzdCBvbiB0aGUKPiA+IGFjdHVhbCBwbGF0Zm9ybQo+ID4gYW5k
+IHNoYXJlIHRoZSByZXN1bHQuCj4KPiBCdWlsZHMgYW5kIGJvb3RzIGZpbmUgb24gQVJBbnlNICh2
+aXJ0dWFsIEF0YXJpKS4KClRoYW5rcyBmb3IgdGhlIHN1cHBvcnQgOikKCj4KPiBTbyBmb3IgdGhl
+IGZ1bGwgc2VyaWVzOgo+IFRlc3RlZC1ieTogR2VlcnQgVXl0dGVyaG9ldmVuIDxnZWVydEBsaW51
+eC1tNjhrLm9yZz4KPgo+IEhvd2V2ZXIsIEkgbm90aWNlZCB0aGUgZm9sbG93aW5nIGVmZmVjdGl2
+ZSBkaWZmZXJlbmNlIGJldHdlZW4gdGhlIG9sZAo+IGFyY2gvbTY4ay9pbmNsdWRlL3VhcGkvYXNt
+L3VuaXN0ZC5oIGFuZCB0aGUgbmV3IGdlbmVyYXRlZAo+IGFyY2gvbTY4ay9pbmNsdWRlL2dlbmVy
+YXRlZC91YXBpL2FzbS91bmlzdGRfMzIuaDoKPgo+IC0vKiNkZWZpbmUgX19OUl9icmVhayAgICAg
+ICAgICAgIDE3Ki8KPiAtLyojZGVmaW5lIF9fTlJfc3R0eSAgICAgICAgICAgICAzMSovCj4gLS8q
+I2RlZmluZSBfX05SX2d0dHkgICAgICAgICAgICAgMzIqLwo+IC0vKiNkZWZpbmUgX19OUl9mdGlt
+ZSAgICAgICAgICAgIDM1Ki8KPiAtLyojZGVmaW5lIF9fTlJfcHJvZiAgICAgICAgICAgICA0NCov
+Cj4gLS8qI2RlZmluZSBfX05SX2xvY2sgICAgICAgICAgICAgNTMqLwo+IC0vKiNkZWZpbmUgX19O
+Ul9tcHggICAgICAgICAgICAgIDU2Ki8KPiAtLyojZGVmaW5lIF9fTlJfdWxpbWl0ICAgICAgICAg
+ICA1OCovCj4gLS8qI2RlZmluZSBfX05SX29sZG9sZHVuYW1lICAgICAgNTkqLwo+IC0vKiNkZWZp
+bmUgX19OUl9wcm9maWwgICAgICAgICAgIDk4Ki8KPiAtLyojZGVmaW5lIF9fTlJfaW9wZXJtICAg
+ICAgICAgIDEwMSovCj4gLS8qI2RlZmluZSBfX05SX29sZHVuYW1lICAgICAgICAgICAgICAgIDEw
+OSovCj4gLS8qI2RlZmluZSBfX05SX2lvcGwgICAgICAgICAgICAxMTAqLyAvKiBub3Qgc3VwcG9y
+dGVkICovCj4gLS8qI2RlZmluZSBfX05SX2lkbGUgICAgICAgICAgICAxMTIqLyAvKiBPYnNvbGV0
+ZSAqLwo+IC0vKiNkZWZpbmUgX19OUl92bTg2ICAgICAgICAgICAgMTEzKi8gLyogbm90IHN1cHBv
+cnRlZCAqLwo+IC0vKiNkZWZpbmUgX19OUl9hZnNfc3lzY2FsbCAgICAgMTM3Ki8gLyogU3lzY2Fs
+bCBmb3IgQW5kcmV3IEZpbGUgU3lzdGVtICovCj4gLS8qI2RlZmluZSBfX05SX3ZzZXJ2ZXIgICAg
+ICAgICAyNzgqLwo+ICsjZGVmaW5lIF9fTlJfYnJlYWsgICAgIDE3Cj4gKyNkZWZpbmUgX19OUl9z
+dHR5ICAgICAgMzEKPiArI2RlZmluZSBfX05SX2d0dHkgICAgICAzMgo+ICsjZGVmaW5lIF9fTlJf
+ZnRpbWUgICAgIDM1Cj4gKyNkZWZpbmUgX19OUl9wcm9mICAgICAgNDQKPiArI2RlZmluZSBfX05S
+X2xvY2sgICAgICA1Mwo+ICsjZGVmaW5lIF9fTlJfbXB4ICAgICAgIDU2Cj4gKyNkZWZpbmUgX19O
+Ul91bGltaXQgICAgNTgKPiArI2RlZmluZSBfX05SX29sZG9sZHVuYW1lICAgICAgIDU5Cj4gKyNk
+ZWZpbmUgX19OUl9wcm9maWwgICAgOTgKPiArI2RlZmluZSBfX05SX2lvcGVybSAgICAxMDEKPiAr
+I2RlZmluZSBfX05SX29sZHVuYW1lICAxMDkKPiArI2RlZmluZSBfX05SX2lvcGwgICAgICAxMTAK
+PiArI2RlZmluZSBfX05SX2lkbGUgICAgICAxMTIKPiArI2RlZmluZSBfX05SX3ZtODYgICAgICAx
+MTMKPiArI2RlZmluZSBfX05SX2Fmc19zeXNjYWxsICAgICAgIDEzNwo+ICsjZGVmaW5lIF9fTlJf
+dnNlcnZlciAgIDI3OAo+Cj4gR2l2ZW4gdXNlcnNwYWNlIGNvZGUgbWF5IGNvbnRhaW4gY2hlY2tz
+IGZvciB0aGUgcHJlc2VuY2Ugb2YgdGhlc2UKPiBkZWZpbmVzLCBJIHRoaW5rIHRoZXkgc2hvdWxk
+IG5vdCBiZSBwcmVzZW50LgoKTXkgcGF0Y2ggc2VyaWVzIGhhZCBzb21lIGRpZmZlcmVudCB3YXkg
+dG8gaGFuZGxlIHRoZSBhYm92ZSBvbmUuIFNvbWUKaG93IHRoZSBwbGFuIGdvdCBjaGFuZ2VkIGFu
+ZCBtaXNzZWQgaXQgOigKCkkgcG9zdGVkIHYyIHBhdGNoIHNlcmllcyBUaHVyc2RheSBldmVuaW5n
+LiBUaGlzIGNvbnRhaW4gc29tZSBtb2RpLQpmaWNhdGlvbnMgc3VnZ2VzdGVkIGJ5IGRpZmZlcmVu
+dCBhcmNoaXRlY3R1cmUgbWFpbnRhaW5lcnMgaW5jbHVkaW5nCnlvdS4KClBsZWFzZSBoZWxwIHVz
+IHRvIHJldmlldyB0aGUgcGF0Y2ggc2VyaWVzIGFuZCBwbGVhc2UgcGVyZm9ybSBib290CnRlc3Qg
+b24gdGhlIGFjdHVhbCBwbGF0Zm9ybS4KClRoYW5rcwpGaXJvegoKPgo+IEdye29ldGplLGVldGlu
+Z31zLAo+Cj4gICAgICAgICAgICAgICAgICAgICAgICAgR2VlcnQKPgo+IC0tCj4gR2VlcnQgVXl0
+dGVyaG9ldmVuIC0tIFRoZXJlJ3MgbG90cyBvZiBMaW51eCBiZXlvbmQgaWEzMiAtLSBnZWVydEBs
+aW51eC1tNjhrLm9yZwo+Cj4gSW4gcGVyc29uYWwgY29udmVyc2F0aW9ucyB3aXRoIHRlY2huaWNh
+bCBwZW9wbGUsIEkgY2FsbCBteXNlbGYgYSBoYWNrZXIuIEJ1dAo+IHdoZW4gSSdtIHRhbGtpbmcg
+dG8gam91cm5hbGlzdHMgSSBqdXN0IHNheSAicHJvZ3JhbW1lciIgb3Igc29tZXRoaW5nIGxpa2Ug
+dGhhdC4KPiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC0tIExpbnVzIFRvcnZhbGRz
+Cl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1h
+aWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9y
+Zy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
