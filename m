@@ -1,75 +1,176 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:45365 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725748AbeIVFkC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Sep 2018 01:40:02 -0400
-Date: Sat, 22 Sep 2018 07:48:14 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Message-ID: <20180921234813.GA5469@guoren-Inspiron-7460>
-References: <20180914143719.GA27689@guoren-Inspiron-7460>
- <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
- <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
+Received: from mail-yb1-f196.google.com ([209.85.219.196]:37768 "EHLO
+        mail-yb1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728073AbeIVR1L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2018 13:27:11 -0400
+Received: by mail-yb1-f196.google.com with SMTP id b3-v6so5463131yba.4
+        for <linux-arch@vger.kernel.org>; Sat, 22 Sep 2018 04:33:55 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
+References: <1533791723-3882-1-git-send-email-firoz.khan@linaro.org>
+ <1533791723-3882-3-git-send-email-firoz.khan@linaro.org> <CAMuHMdVR+GKwT8WwjZy+=8j=ndWJ0s0sVnCGFGtsyvPAY9jnHQ@mail.gmail.com>
+ <CALxhOnheD75br1X_A7h5cNYWdjrDn4ciPc++mYd-_oZJApJyZg@mail.gmail.com>
+ <CAMuHMdUcg-73DNNGuG3Kn9oQ9R+LpYxpWYV_1tmzN-EzBFUXVQ@mail.gmail.com>
+ <CALxhOnjLKU8BCHFoc35P_tTh=6+NRbCrO6oB3Gar=uBMqYU4iw@mail.gmail.com> <CAMuHMdWMxEfVKkohmv6ZAUPKYdZiFK6YoE6Y_L40j7YU-OtY0A@mail.gmail.com>
+In-Reply-To: <CAMuHMdWMxEfVKkohmv6ZAUPKYdZiFK6YoE6Y_L40j7YU-OtY0A@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Sat, 22 Sep 2018 17:03:43 +0530
+Message-ID: <CALxhOnjR2M1Xd_M4BkhD0qLiRvGVCBipQE77mDn0N8O7k6iwPA@mail.gmail.com>
+Subject: Re: [PATCH 2/4] m68k: Replace NR_syscalls macro from asm/unistd.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Palmer Dabbelt <palmer@sifive.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20180921234814.irZaM1mgwCMyaUCt1aJOxiK_somLj36PNFX_BYd6Hck@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180922113343.GEcFMvjCA6aUtN9iv2JVLYcI_K2jLc12i5w7MgJB42E@z>
 
-On Thu, Sep 20, 2018 at 10:18:51PM -0700, Arnd Bergmann wrote:
-> On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
-> >
-> > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > I don't want to hijack this thread, but in RISC-V land we were hoping to have a
-> > user ABI free of 32-bit time_t.  Our 32-bit glibc ABI hasn't been finalized
-> > yet, and when I talked to the glibc guys a few weeks ago they were happy to let
-> > us wait until 32-bit time_t can be removed before we stabilize the ABI.  We've
-> > been maintaining out-of-tree glibc patches for a while now, so I'd really like
-> > to get them into the next glibc release.
-> >
-> > Mapping out the schedule more explicitly, as I'm terrible with dates:
-> >
-> > * 4.19-rc4 was 2018-09-16
-> > * 4.19 should be 2018-10-21
-> > * 4.20 should be 2019-01-13 (skipping 2 weeks for the holidays)
-> > * 4.21 merge window should close 2019-01-27
-> > * glibc 2.29 is scheduled for 2019-02-01
-Thx for the schedule info.
+Hi Geert,
 
+On Thu, 20 Sep 2018 at 14:54, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+> Hi Firoz,
+>
+> On Thu, Sep 20, 2018 at 10:12 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > On 18 September 2018 at 15:34, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > > On Tue, Sep 18, 2018 at 9:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > >> On 9 August 2018 at 13:00, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> > >> > One first comment below...
+> > >> >
+> > >> > On Thu, Aug 9, 2018 at 7:16 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > >> >> NR_syscalls macro holds the number of system call exist in m68k
+> > >> >> architecture. This macro is currently the part of asm/unistd.h file.
+> > >> >> We have to change the value of NR_syscalls, if we add or delete a
+> > >> >> system call.
+> > >> >>
+> > >> >> One of patch in this patch series has a script which will generate
+> > >> >> a uapi header based on syscall.tbl file. The syscall.tbl file
+> > >> >> contains the number of system call information. So we have two
+> > >> >> option to update NR_syscalls value.
+> > >> >>
+> > >> >> 1. Update NR_syscalls in asm/unistd.h manually by counting the
+> > >> >>    no.of system calls. No need to update NR_syscalls untill
+> > >> >>    we either add a new system call or delete an existing system
+> > >> >>    call.
+> > >> >>
+> > >> >> 2. We can keep this feature it above mentioned script, that'll
+> > >> >>    count the number of syscalls and keep it in a generated file.
+> > >> >>    In this case we don't need to explicitly update NR_syscalls
+> > >> >>    in asm/unistd.h file.
+> > >> >>
+> > >> >> The 2nd option will be the recommended one. For that, I moved the
+> > >> >> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+> > >> >> name also changed form NR_syscalls to __NR_syscalls for making the
+> > >> >> name convention same across all architecture. While __NR_syscalls
+> > >> >> isn't strictly part of the uapi, having it as part of the generated
+> > >> >> header to simplifies the implementation.
+> > >> >
+> > >> > It can indeed not be part of the UAPI, as UAPI definitions can never change,
+> > >> > while new syscalls will be added in the future, increasing the number ;-)
+> > >>
+> > >> Thanks for your reply :)
+> > >> Sorry for the delayed response :(
+> > >>
+> > >> I would like to keep __NR_syscalls macro to uapi header in order to simplify
+> > >> the system call table generation script. Otherwise the __NR_syscalls
+> > >> macro need to update manually. That become a problem.
+> > >>
+> > >> Please check the below implementation in uapi file make sense?
+> > >> It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
+> > >> and enclose it in #ifdef __KERNEL__
+> > >>
+> > >> ...
+> > >> ...
+> > >> #define __NR_pwritev2  378
+> > >> #define __NR_statx      379
+> > >>
+> > >> #ifdef __KERNEL__
+> > >> #define __NR_syscalls   380
+> > >> #endif
+> > >> ...
+> > >> ...
+> > >
+> > > #ifdef __KERNEL__ sounds fine to me.
 > >
-> > That's very tight, but assuming we at least have a prototype of the API so we
-> > can get the rv32i glibc patches in much earlier it might be OK.  There was some
-> > talk of being able to use some workarounds to do a 32-bit time_t user ABI
-> > without the cooresponding kernel ABI, so we could always go down that route to
-> > start and then decide to deprecate or not deprecate the 32-bit kernel ABI at
-> > the last minute -- not something I'm fond of doing, but an option.
+> > I posted similar script for 10 different architectures. I got few good review
+> > from the maintainers and it will be applicable for all the
+> > architectures including
+> > m68k. There are few area which I identified need to improve. This will take
+> > couple of days.
 > >
-> > How close to done do you think the 32-bit time_t will be by the end of the 4.20
-> > merge window?  If it's close enough to start our glibc push then that might be
-> > OK.
-> 
-> It will be a bit of a stretch, but it's possible. Most syscalls are
-> done in linux-next,
-> I have a few more pending, and only clock_adjtime is really missing now (I had
-> some earlier patches that I could revive).
-Seems time schedule is OK. If we make csky get into linux-4.20, then csky glibc
-port could remove 32-bit time_t in patchset before glibc 2.29 release.
+> > But it will be very helpful if you can perform the boot test on the
+> > actual platform
+> > and share the result.
+>
+> Builds and boots fine on ARAnyM (virtual Atari).
 
-> My plan was to get that all into 4.20, and then have a conversation about the
-> actual syscall table changes in 4.21. If we need it for both csky and rv32,
-> we might just change the generic syscall table that way in 4.21 without
-> changing all the other ones along with them. I don't want to drag things out
-> over too many merge windows though, and my plan was to do all architectures
-> together to simplify the version checks in the libc code to only have to check
-> for a single version.
-Seems that's no problem.
+Thanks for the support :)
 
-Best Regards
- Guo Ren
+>
+> So for the full series:
+> Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>
+> However, I noticed the following effective difference between the old
+> arch/m68k/include/uapi/asm/unistd.h and the new generated
+> arch/m68k/include/generated/uapi/asm/unistd_32.h:
+>
+> -/*#define __NR_break            17*/
+> -/*#define __NR_stty             31*/
+> -/*#define __NR_gtty             32*/
+> -/*#define __NR_ftime            35*/
+> -/*#define __NR_prof             44*/
+> -/*#define __NR_lock             53*/
+> -/*#define __NR_mpx              56*/
+> -/*#define __NR_ulimit           58*/
+> -/*#define __NR_oldolduname      59*/
+> -/*#define __NR_profil           98*/
+> -/*#define __NR_ioperm          101*/
+> -/*#define __NR_olduname                109*/
+> -/*#define __NR_iopl            110*/ /* not supported */
+> -/*#define __NR_idle            112*/ /* Obsolete */
+> -/*#define __NR_vm86            113*/ /* not supported */
+> -/*#define __NR_afs_syscall     137*/ /* Syscall for Andrew File System */
+> -/*#define __NR_vserver         278*/
+> +#define __NR_break     17
+> +#define __NR_stty      31
+> +#define __NR_gtty      32
+> +#define __NR_ftime     35
+> +#define __NR_prof      44
+> +#define __NR_lock      53
+> +#define __NR_mpx       56
+> +#define __NR_ulimit    58
+> +#define __NR_oldolduname       59
+> +#define __NR_profil    98
+> +#define __NR_ioperm    101
+> +#define __NR_olduname  109
+> +#define __NR_iopl      110
+> +#define __NR_idle      112
+> +#define __NR_vm86      113
+> +#define __NR_afs_syscall       137
+> +#define __NR_vserver   278
+>
+> Given userspace code may contain checks for the presence of these
+> defines, I think they should not be present.
+
+My patch series had some different way to handle the above one. Some
+how the plan got changed and missed it :(
+
+I posted v2 patch series Thursday evening. This contain some modi-
+fications suggested by different architecture maintainers including
+you.
+
+Please help us to review the patch series and please perform boot
+test on the actual platform.
+
+Thanks
+Firoz
+
+>
+> Gr{oetje,eeting}s,
+>
+>                         Geert
+>
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
