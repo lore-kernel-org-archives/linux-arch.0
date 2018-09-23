@@ -1,84 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:49639 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:50085 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726052AbeIWPdk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 23 Sep 2018 11:33:40 -0400
+        id S1726071AbeIWPeQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 23 Sep 2018 11:34:16 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v8 11/16] x86/kvm: Add Hygon Dhyana support to KVM infrastructure
-Date: Sun, 23 Sep 2018 17:36:31 +0800
-Message-ID: <654dd12876149fba9561698eaf9fc15d030301f8.1537533369.git.puwen@hygon.cn>
+Subject: [PATCH v8 13/16] ACPI, x86: Add Hygon Dhyana support
+Date: Sun, 23 Sep 2018 17:37:05 +0800
+Message-ID: <cce6ee26f4e2ebbab493433264d89d7cea661284.1537533369.git.puwen@hygon.cn>
 In-Reply-To: <cover.1537533368.git.puwen@hygon.cn>
 References: <cover.1537533368.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bp@alien8.de, pbonzini@redhat.com, rkrcmar@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180923093631.zdbcQfT9qYAN47kXSA1iiCx6iwhlS72J1dkXkQhYUG8@z>
+To: rjw@rjwysocki.net, bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, lenb@kernel.org, rafael@kernel.org, rafael.j.wysocki@intel.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-acpi@vger.kernel.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180923093705.22vtMYrs4WIdz8xVgscxHVmwc0RCMELMdTJPMQDHhaE@z>
 
-The Hygon Dhyana CPU has the SVM feature as AMD family 17h does.
-So enable the KVM infrastructure support to it.
+The Hygon Dhyana CPU has NONSTOP TSC feature, so enable the ACPI
+driver support to it.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
-Reviewed-by: Borislav Petkov <bp@suse.de>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 ---
- arch/x86/include/asm/kvm_emulate.h |  4 ++++
- arch/x86/include/asm/virtext.h     |  5 +++--
- arch/x86/kvm/emulate.c             | 11 ++++++++++-
- 3 files changed, 17 insertions(+), 3 deletions(-)
+ drivers/acpi/acpi_pad.c       | 1 +
+ drivers/acpi/processor_idle.c | 1 +
+ 2 files changed, 2 insertions(+)
 
-diff --git a/arch/x86/include/asm/kvm_emulate.h b/arch/x86/include/asm/kvm_emulate.h
-index 0f82cd9..93c4bf5 100644
---- a/arch/x86/include/asm/kvm_emulate.h
-+++ b/arch/x86/include/asm/kvm_emulate.h
-@@ -364,6 +364,10 @@ struct x86_emulate_ctxt {
- #define X86EMUL_CPUID_VENDOR_AMDisbetterI_ecx 0x21726574
- #define X86EMUL_CPUID_VENDOR_AMDisbetterI_edx 0x74656273
+diff --git a/drivers/acpi/acpi_pad.c b/drivers/acpi/acpi_pad.c
+index 552c1f7..a47676a 100644
+--- a/drivers/acpi/acpi_pad.c
++++ b/drivers/acpi/acpi_pad.c
+@@ -70,6 +70,7 @@ static void power_saving_mwait_init(void)
  
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_ebx 0x6f677948
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_ecx 0x656e6975
-+#define X86EMUL_CPUID_VENDOR_HygonGenuine_edx 0x6e65476e
-+
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_ebx 0x756e6547
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_ecx 0x6c65746e
- #define X86EMUL_CPUID_VENDOR_GenuineIntel_edx 0x49656e69
-diff --git a/arch/x86/include/asm/virtext.h b/arch/x86/include/asm/virtext.h
-index 0116b2e..e05e0d3 100644
---- a/arch/x86/include/asm/virtext.h
-+++ b/arch/x86/include/asm/virtext.h
-@@ -83,9 +83,10 @@ static inline void cpu_emergency_vmxoff(void)
-  */
- static inline int cpu_has_svm(const char **msg)
+ #if defined(CONFIG_X86)
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 		/*
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index abb559c..b2131c4 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -205,6 +205,7 @@ static void lapic_timer_state_broadcast(struct acpi_processor *pr,
+ static void tsc_check_state(int state)
  {
--	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD) {
-+	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
-+	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON) {
- 		if (msg)
--			*msg = "not amd";
-+			*msg = "not amd or hygon";
- 		return 0;
- 	}
- 
-diff --git a/arch/x86/kvm/emulate.c b/arch/x86/kvm/emulate.c
-index 106482d..34edf19 100644
---- a/arch/x86/kvm/emulate.c
-+++ b/arch/x86/kvm/emulate.c
-@@ -2711,7 +2711,16 @@ static bool em_syscall_is_enabled(struct x86_emulate_ctxt *ctxt)
- 	    edx == X86EMUL_CPUID_VENDOR_AMDisbetterI_edx)
- 		return true;
- 
--	/* default: (not Intel, not AMD), apply Intel's stricter rules... */
-+	/* Hygon ("HygonGenuine") */
-+	if (ebx == X86EMUL_CPUID_VENDOR_HygonGenuine_ebx &&
-+	    ecx == X86EMUL_CPUID_VENDOR_HygonGenuine_ecx &&
-+	    edx == X86EMUL_CPUID_VENDOR_HygonGenuine_edx)
-+		return true;
-+
-+	/*
-+	 * default: (not Intel, not AMD, not Hygon), apply Intel's
-+	 * stricter rules...
-+	 */
- 	return false;
- }
- 
+ 	switch (boot_cpu_data.x86_vendor) {
++	case X86_VENDOR_HYGON:
+ 	case X86_VENDOR_AMD:
+ 	case X86_VENDOR_INTEL:
+ 	case X86_VENDOR_CENTAUR:
 -- 
 2.7.4
