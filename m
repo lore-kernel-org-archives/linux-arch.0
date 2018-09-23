@@ -1,107 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:37172 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726087AbeIWPUL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 23 Sep 2018 11:20:11 -0400
-Date: Sun, 23 Sep 2018 19:23:15 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
- demand based pte insertion
-Message-ID: <20180923192315.13cb4114@roar.ozlabs.ibm.com>
-In-Reply-To: <1537519325.19048.0.camel@intel.com>
-References: <20180828112034.30875-1-npiggin@gmail.com>
-        <20180828112034.30875-4-npiggin@gmail.com>
-        <20180905142951.GA15680@roeck-us.net>
-        <20180918035337.0727dad0@roar.ozlabs.ibm.com>
-        <1537519325.19048.0.camel@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from smtp21.cstnet.cn ([159.226.251.21]:45873 "EHLO cstnet.cn"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726094AbeIWPaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 23 Sep 2018 11:30:22 -0400
+From: Pu Wen <puwen@hygon.cn>
+Subject: [PATCH v8 00/16] Add support for Hygon Dhyana Family 18h processor
+Date: Sun, 23 Sep 2018 17:30:47 +0800
+Message-ID: <cover.1537533368.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <ley.foon.tan@intel.com>
-Cc: Guenter Roeck <linux@roeck-us.net>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
-Message-ID: <20180923092315.kPqlkmcfrQPDr-i3ItI8-a8X04JahMBVgXl_PdjeR-Q@z>
+To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, pbonzini@redhat.com, tony.luck@intel.com, rkrcmar@redhat.com, boris.ostrovsky@oracle.com, jgross@suse.com, rjw@rjwysocki.net, lenb@kernel.org, viresh.kumar@linaro.org, mchehab@kernel.org, trenn@suse.com, shuah@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linux-acpi@vger.kernel.org, linux-edac@vger.kernel.org, linux-pm@vger.kernel.org, kvm@vger.kernel.org, xen-devel@lists.xenproject.org, Pu Wen <puwen@hygon.cn>
+Message-ID: <20180923093047.mfMR0AWvbgQ1jAiKziY7EfzyGWU-4EfS_cpOMqbhWY8@z>
 
-On Fri, 21 Sep 2018 16:42:05 +0800
-Ley Foon Tan <ley.foon.tan@intel.com> wrote:
+As a new x86 CPU Vendor, Chengdu Haiguang IC Design Co., Ltd (Hygon)
+is a Joint Venture between AMD and Haiguang Information Technology Co.,
+Ltd., and aims at providing high performance x86 processor for China
+server market.
 
-> On Tue, 2018-09-18 at 03:53 +1000, Nicholas Piggin wrote:
-> > On Wed, 5 Sep 2018 07:29:51 -0700
-> > Guenter Roeck <linux@roeck-us.net> wrote:
-> >   
-> > > 
-> > > Hi,
-> > > 
-> > > On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:  
-> > > > 
-> > > > Similarly to the previous patch, this tries to optimise
-> > > > dirty/accessed
-> > > > bits in ptes to avoid access costs of hardware setting them.
-> > > >   
-> > > This patch results in silent nios2 boot failures, silent meaning
-> > > that
-> > > the boot stalls.  
-> > Okay I just got back to looking at this. The reason for the hang is
-> > I think a bug in the nios2 TLB code, but maybe other archs have
-> > similar
-> > issues.
-> > 
-> > In case of a missing / !present Linux pte, nios2 installs a TLB entry
-> > with no permissions via its fast TLB exception handler (software TLB
-> > fill). Then it relies on that causing a TLB permission exception in a
-> > slower handler that calls handle_mm_fault to set the Linux pte and
-> > flushes the old TLB. Then the fast exception handler will find the
-> > new
-> > Linux pte.
-> > 
-> > With this patch, nios2 has a case where handle_mm_fault does not
-> > flush
-> > the old TLB, which results in the TLB permission exception
-> > continually
-> > being retried.
-> > 
-> > What happens now is that fault paths like do_read_fault will install
-> > a
-> > Linux pte with the young bit clear and return. That will cause nios2
-> > to
-> > fault again but this time go down the bottom of handle_pte_fault and
-> > to
-> > the access flags update with the young bit set. The young bit is seen
-> > to
-> > be different, so that causes ptep_set_access_flags to do a TLB flush
-> > and
-> > that finally allows the fast TLB handler to fire and pick up the new
-> > Linux pte.
-> > 
-> > With this patch, the young bit is set in the first handle_mm_fault,
-> > so
-> > the second handle_mm_fault no longer sees the ptes are different and
-> > does not flush the TLB. The spurious fault handler also does not
-> > flush
-> > them unless FAULT_FLAG_WRITE is set.
-> > 
-> > What nios2 should do is invalidate the TLB in update_mmu_cache. What
-> > it
-> > *really* should do is install the new TLB entry, I have some patches
-> > to
-> > make that work in qemu I can submit. But I would like to try getting
-> > these dirty/accessed bit optimisation in 4.20, so I will send a
-> > simple
-> > path to just do the TLB invalidate that could go in Andrew's git
-> > tree.
-> > 
-> > Is that agreeable with the nios2 maintainers?
-> > 
-> > Thanks,
-> > Nick
-> >   
-> Hi
-> 
-> Do you have patches to test?
+The first generation Hygon's processor(Dhyana) originates from AMD
+technology and shares most of the architecture with AMD's family 17h,
+but with different CPU Vendor ID("HygonGenuine")/PCIE Device Vendor ID
+(0x1D94)/Family series number (Family 18h).
 
-I've been working on some, it has taken longer than I expected, I'll
-hopefully have something to send out by tomorrow.
+To enable the support of Linux kernel to Hygon's CPU, we added a new
+vendor type (X86_VENDOR_HYGON, with value of 9) in arch/x86/include/
+asm/processor.h, and shared most of kernel support codes with AMD
+family 17h.
 
-Thanks,
-Nick
+As Hygon will negotiate with AMD to make sure that only Hygon will
+use family 18h, so try to minimize code modification and share most
+codes with AMD under this consideration.
+
+This patch series have been applied and tested successfully on Hygon
+Dhyana SoC silicon. Also tested on AMD EPYC (Family 17h) processor,
+it works fine and makes no harm to the existing codes.
+
+
+v7->v8:
+  - Fix the issue that patch x86/pci may cause LKP boot test failure
+    on some Intel platform.
+
+v6->v7:
+  - Rebased on 4.19-rc4 and tested against it.
+  - Add Reviewed-by from Borislav Petkov for patches x86/cpu,
+    x86/cpu/mtrr, perf/x86, x86/pci, x86/apic, x86/mce.
+  - Refine the patch descriptions and fix some typos.
+  - Remove unneeded vendor checking for patch x86/apic.
+  - Restore the user-visible pr_err string in patch x86/bugs.
+
+v5->v6:
+  - Rebased on 4.19-rc3 and tested against it.
+  - Add Reviewed-by from Borislav Petkov for cacheinfo, smpboot,
+    alternative and kvm.
+  - Rework the patch subjects and patch descriptions.
+  - Rework vendor checking for some patches to minimize the code
+    modification.
+
+v4->v5:
+  - Rebased on 4.19-rc1 and tested against it.
+  - Add Reviewed-by from Boris Ostrovsky for Xen.
+  - Rework EDAC patch without vendor checking for minimal modification.
+
+v3->v4:
+  - Rebased on 4.18.3 and tested against it.
+  - Merge patches 05/17 perfctr and 10/17 events in v3 to patch 05/16
+    PMU for better patch function group.
+  - Add hygon_get_topology_early() in patch 01/16.
+  - Rework vendor checking and refine coding style.
+  - Add Acked-by from Bjorn Helgaas for pci.
+  - Add Acked-by from Rafael J. Wysocki for cpufreq and acpi.
+
+v2->v3:
+  - Rebased on 4.18-rc8 and tested against it.
+  - Rework vendor checking codes to improve consistency.
+
+v1->v2:
+  - Rebased on 4.18-rc6 and tested against it.
+  - Split the patch set to small series of patches.
+  - Rework patch descriptions.
+  - Create a separated arch/x86/kernel/cpu/hygon.c for Dhyana CPU
+    initialization to reduce long-term maintenance effort.
+
+
+Pu Wen (16):
+  x86/cpu: Create Hygon Dhyana architecture support file
+  x86/cpu: Get cache info and setup cache cpumap for Hygon Dhyana
+  x86/cpu/mtrr: Support TOP_MEM2 and get MTRR number
+  x86/smpboot: SMP init no delay and not flush caches before sleep
+  perf/x86: Add Hygon Dhyana support to PMU infrastructure
+  x86/alternative: Init ideal_nops for Hygon Dhyana
+  x86/pci: Add Hygon Dhyana support to PCI and north bridge
+  x86/apic: Add Hygon Dhyana support to APIC
+  x86/bugs: Add mitigation to spectre and no meltdown for Hygon Dhyana
+  x86/mce: Add Hygon Dhyana support to MCE infrastructure
+  x86/kvm: Add Hygon Dhyana support to KVM infrastructure
+  x86/xen: Add Hygon Dhyana support to Xen
+  ACPI, x86: Add Hygon Dhyana support
+  cpufreq, x86: Add Hygon Dhyana support
+  EDAC, amd64: Add Hygon Dhyana support
+  cpupower, x86: Add Hygon Dhyana support
+
+ MAINTAINERS                                        |   6 +
+ arch/x86/Kconfig.cpu                               |  14 +
+ arch/x86/events/amd/core.c                         |   4 +
+ arch/x86/events/amd/uncore.c                       |  20 +-
+ arch/x86/events/core.c                             |   4 +
+ arch/x86/include/asm/amd_nb.h                      |   3 +
+ arch/x86/include/asm/cacheinfo.h                   |   1 +
+ arch/x86/include/asm/kvm_emulate.h                 |   4 +
+ arch/x86/include/asm/mce.h                         |   2 +
+ arch/x86/include/asm/processor.h                   |   3 +-
+ arch/x86/include/asm/virtext.h                     |   5 +-
+ arch/x86/kernel/alternative.c                      |   4 +
+ arch/x86/kernel/amd_nb.c                           |  47 ++-
+ arch/x86/kernel/apic/apic.c                        |   7 +
+ arch/x86/kernel/apic/probe_32.c                    |   1 +
+ arch/x86/kernel/cpu/Makefile                       |   1 +
+ arch/x86/kernel/cpu/bugs.c                         |   4 +-
+ arch/x86/kernel/cpu/cacheinfo.c                    |  31 +-
+ arch/x86/kernel/cpu/common.c                       |   1 +
+ arch/x86/kernel/cpu/cpu.h                          |   1 +
+ arch/x86/kernel/cpu/hygon.c                        | 411 +++++++++++++++++++++
+ arch/x86/kernel/cpu/mcheck/mce-severity.c          |   3 +-
+ arch/x86/kernel/cpu/mcheck/mce.c                   |  20 +-
+ arch/x86/kernel/cpu/mtrr/cleanup.c                 |   3 +-
+ arch/x86/kernel/cpu/mtrr/mtrr.c                    |   2 +-
+ arch/x86/kernel/cpu/perfctr-watchdog.c             |   2 +
+ arch/x86/kernel/smpboot.c                          |   4 +-
+ arch/x86/kvm/emulate.c                             |  11 +-
+ arch/x86/pci/amd_bus.c                             |   6 +-
+ arch/x86/xen/pmu.c                                 |  12 +-
+ drivers/acpi/acpi_pad.c                            |   1 +
+ drivers/acpi/processor_idle.c                      |   1 +
+ drivers/cpufreq/acpi-cpufreq.c                     |   5 +
+ drivers/cpufreq/amd_freq_sensitivity.c             |   9 +-
+ drivers/edac/amd64_edac.c                          |   8 +-
+ drivers/edac/mce_amd.c                             |   4 +-
+ include/linux/pci_ids.h                            |   2 +
+ tools/power/cpupower/utils/cpufreq-info.c          |   6 +-
+ tools/power/cpupower/utils/helpers/amd.c           |   4 +-
+ tools/power/cpupower/utils/helpers/cpuid.c         |   8 +-
+ tools/power/cpupower/utils/helpers/helpers.h       |   2 +-
+ tools/power/cpupower/utils/helpers/misc.c          |   2 +-
+ .../cpupower/utils/idle_monitor/mperf_monitor.c    |   3 +-
+ 43 files changed, 644 insertions(+), 48 deletions(-)
+ create mode 100644 arch/x86/kernel/cpu/hygon.c
+
+-- 
+2.7.4
