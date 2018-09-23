@@ -1,130 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:49161 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:53710 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726052AbeIWPdQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 23 Sep 2018 11:33:16 -0400
+        id S1726066AbeIWQCX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 23 Sep 2018 12:02:23 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v8 10/16] x86/mce: Add Hygon Dhyana support to MCE infrastructure
-Date: Sun, 23 Sep 2018 17:36:04 +0800
-Message-ID: <87d8a4f16bdea0bfe0c0cf2e4a8d2c2a99b1055c.1537533369.git.puwen@hygon.cn>
-In-Reply-To: <cover.1537533368.git.puwen@hygon.cn>
-References: <cover.1537533368.git.puwen@hygon.cn>
+Subject: Re: [LKP] [x86/pci] 7ffb31888c: PANIC:early_exception
+References: <20180919031923.GC8820@shao2-debian>
+ <4f5166f8-97b8-a58f-3e5d-19d1751a4601@hygon.cn>
+ <dfc09a36-cfc5-0479-a862-696c224f9a19@intel.com>
+ <7e9e862a-e890-775f-ed92-74c591c7deb6@hygon.cn>
+ <alpine.DEB.2.21.1809201138230.3243@nanos.tec.linutronix.de>
+Message-ID: <17475050-594c-0037-52d4-25bb631da141@hygon.cn>
+Date: Sun, 23 Sep 2018 18:05:06 +0800
+MIME-Version: 1.0
+In-Reply-To: <alpine.DEB.2.21.1809201138230.3243@nanos.tec.linutronix.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, tony.luck@intel.com, thomas.lendacky@amd.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-edac@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180923093604.hvdcyb61WxrKFExBjRg5qZoZhU6yc0B9qHPNtln4G5g@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Rong Chen <rong.a.chen@intel.com>, bp@alien8.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lkp@01.org
+Message-ID: <20180923100506.VaSo_AQf0dMAGKUhkkDz_SxPIbmqCJgAuHTKAoxRUx0@z>
 
-The machine check architecture for Hygon Dhyana CPU is similar to the
-AMD family 17h one. To make MCE working on Hygon platform, add vendor
-checking for Hygon Dhyana to share the code path of AMD family 17h.
+On 2018/9/20 17:39, Thomas Gleixner wrote:
+>> I reproduced the PANIC by running lkp-tests with a Intel machine.
+>>
+>> The reason is that the function early_is_amd_nb is called even if
+>> running on Intel machine. At this case the misc_ids is NULL so the
+>> PANIC occur.
+>>
+>> I'll rework a patch to solve this problem, either restore the default
+>> value of misc_ids with the original AMD one or not call early_is_amd_nb
+>> on Intel platform.
+> 
+> Return when !AMD and !HYGON is the right thing to do. No point in checking
+> device ids which cannot happen in the first place.
 
-Signed-off-by: Pu Wen <puwen@hygon.cn>
-Reviewed-by: Borislav Petkov <bp@suse.de>
----
- arch/x86/include/asm/mce.h                |  2 ++
- arch/x86/kernel/cpu/mcheck/mce-severity.c |  3 ++-
- arch/x86/kernel/cpu/mcheck/mce.c          | 20 +++++++++++++++-----
- 3 files changed, 19 insertions(+), 6 deletions(-)
+All right, I reworked a new reversion which will return if it's Intel.
 
-diff --git a/arch/x86/include/asm/mce.h b/arch/x86/include/asm/mce.h
-index 3a17107..550f2c9 100644
---- a/arch/x86/include/asm/mce.h
-+++ b/arch/x86/include/asm/mce.h
-@@ -214,6 +214,8 @@ static inline void mce_amd_feature_init(struct cpuinfo_x86 *c) { }
- static inline int umc_normaddr_to_sysaddr(u64 norm_addr, u16 nid, u8 umc, u64 *sys_addr) { return -EINVAL; };
- #endif
- 
-+static inline void mce_hygon_feature_init(struct cpuinfo_x86 *c) { return mce_amd_feature_init(c); }
-+
- int mce_available(struct cpuinfo_x86 *c);
- bool mce_is_memory_error(struct mce *m);
- 
-diff --git a/arch/x86/kernel/cpu/mcheck/mce-severity.c b/arch/x86/kernel/cpu/mcheck/mce-severity.c
-index f34d89c..44396d5 100644
---- a/arch/x86/kernel/cpu/mcheck/mce-severity.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce-severity.c
-@@ -336,7 +336,8 @@ int (*mce_severity)(struct mce *m, int tolerant, char **msg, bool is_excp) =
- 
- void __init mcheck_vendor_init_severity(void)
- {
--	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
-+	if (boot_cpu_data.x86_vendor == X86_VENDOR_AMD ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON)
- 		mce_severity = mce_severity_amd;
- }
- 
-diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
-index 953b3ce..909f1d7 100644
---- a/arch/x86/kernel/cpu/mcheck/mce.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce.c
-@@ -270,7 +270,7 @@ static void print_mce(struct mce *m)
- {
- 	__print_mce(m);
- 
--	if (m->cpuvendor != X86_VENDOR_AMD)
-+	if (m->cpuvendor != X86_VENDOR_AMD && m->cpuvendor != X86_VENDOR_HYGON)
- 		pr_emerg_ratelimited(HW_ERR "Run the above through 'mcelog --ascii'\n");
- }
- 
-@@ -508,9 +508,9 @@ static int mce_usable_address(struct mce *m)
- 
- bool mce_is_memory_error(struct mce *m)
- {
--	if (m->cpuvendor == X86_VENDOR_AMD) {
-+	if (m->cpuvendor == X86_VENDOR_AMD ||
-+	    m->cpuvendor == X86_VENDOR_HYGON) {
- 		return amd_mce_is_memory_error(m);
--
- 	} else if (m->cpuvendor == X86_VENDOR_INTEL) {
- 		/*
- 		 * Intel SDM Volume 3B - 15.9.2 Compound Error Codes
-@@ -539,6 +539,9 @@ static bool mce_is_correctable(struct mce *m)
- 	if (m->cpuvendor == X86_VENDOR_AMD && m->status & MCI_STATUS_DEFERRED)
- 		return false;
- 
-+	if (m->cpuvendor == X86_VENDOR_HYGON && m->status & MCI_STATUS_DEFERRED)
-+		return false;
-+
- 	if (m->status & MCI_STATUS_UC)
- 		return false;
- 
-@@ -1705,7 +1708,7 @@ static int __mcheck_cpu_ancient_init(struct cpuinfo_x86 *c)
-  */
- static void __mcheck_cpu_init_early(struct cpuinfo_x86 *c)
- {
--	if (c->x86_vendor == X86_VENDOR_AMD) {
-+	if (c->x86_vendor == X86_VENDOR_AMD || c->x86_vendor == X86_VENDOR_HYGON) {
- 		mce_flags.overflow_recov = !!cpu_has(c, X86_FEATURE_OVERFLOW_RECOV);
- 		mce_flags.succor	 = !!cpu_has(c, X86_FEATURE_SUCCOR);
- 		mce_flags.smca		 = !!cpu_has(c, X86_FEATURE_SMCA);
-@@ -1746,6 +1749,11 @@ static void __mcheck_cpu_init_vendor(struct cpuinfo_x86 *c)
- 		mce_amd_feature_init(c);
- 		break;
- 		}
-+
-+	case X86_VENDOR_HYGON:
-+		mce_hygon_feature_init(c);
-+		break;
-+
- 	case X86_VENDOR_CENTAUR:
- 		mce_centaur_feature_init(c);
- 		break;
-@@ -1971,12 +1979,14 @@ static void mce_disable_error_reporting(void)
- static void vendor_disable_error_reporting(void)
- {
- 	/*
--	 * Don't clear on Intel or AMD CPUs. Some of these MSRs are socket-wide.
-+	 * Don't clear on Intel or AMD or Hygon CPUs. Some of these MSRs
-+	 * are socket-wide.
- 	 * Disabling them for just a single offlined CPU is bad, since it will
- 	 * inhibit reporting for all shared resources on the socket like the
- 	 * last level cache (LLC), the integrated memory controller (iMC), etc.
- 	 */
- 	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL ||
-+	    boot_cpu_data.x86_vendor == X86_VENDOR_HYGON ||
- 	    boot_cpu_data.x86_vendor == X86_VENDOR_AMD)
- 		return;
- 
--- 
-2.7.4
+Thanks,
+Pu Wen
