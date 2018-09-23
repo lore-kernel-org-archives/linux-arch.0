@@ -1,38 +1,45 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [LKP] [x86/pci] 7ffb31888c: PANIC:early_exception
-Date: Sun, 23 Sep 2018 18:05:06 +0800
-Message-ID: <17475050-594c-0037-52d4-25bb631da141@hygon.cn>
-References: <20180919031923.GC8820@shao2-debian>
- <4f5166f8-97b8-a58f-3e5d-19d1751a4601@hygon.cn>
- <dfc09a36-cfc5-0479-a862-696c224f9a19@intel.com>
- <7e9e862a-e890-775f-ed92-74c591c7deb6@hygon.cn>
- <alpine.DEB.2.21.1809201138230.3243@nanos.tec.linutronix.de>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v8 07/16] x86/pci: Add Hygon Dhyana support to PCI and
+ north bridge
+Date: Sun, 23 Sep 2018 13:10:46 +0200
+Message-ID: <20180923111046.GA20575@zn.tnic>
+References: <cover.1537533368.git.puwen@hygon.cn>
+ <580dc519d37ad9257520fe8c533f2c61d3e0cd83.1537533369.git.puwen@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1809201138230.3243@nanos.tec.linutronix.de>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <580dc519d37ad9257520fe8c533f2c61d3e0cd83.1537533369.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Rong Chen <rong.a.chen@intel.com>, bp@alien8.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lkp@01.org
+To: Pu Wen <puwen@hygon.cn>
+Cc: bhelgaas@google.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/20 17:39, Thomas Gleixner wrote:
->> I reproduced the PANIC by running lkp-tests with a Intel machine.
->>
->> The reason is that the function early_is_amd_nb is called even if
->> running on Intel machine. At this case the misc_ids is NULL so the
->> PANIC occur.
->>
->> I'll rework a patch to solve this problem, either restore the default
->> value of misc_ids with the original AMD one or not call early_is_amd_nb
->> on Intel platform.
+On Sun, Sep 23, 2018 at 05:35:13PM +0800, Pu Wen wrote:
+> As Hygon registered its PCI Vendor ID as a new one 0x1d94, and there
+> are PCI Devices 0x1450/0x1463/0x1464 for Host bridge on Hygon Dhyana
+> platform, so add Hygon Dhyana support to the PCI and north bridge
+> subsystem by using the code path of AMD family 17h.
 > 
-> Return when !AMD and !HYGON is the right thing to do. No point in checking
-> device ids which cannot happen in the first place.
+> To prevent further checking PCI device ids which cannot happen both on
+> Hygon and Intel platform, the function amd_gart_present should return
+> if it's not a AMD CPU.
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
+> Reviewed-by: Borislav Petkov <bp@suse.de>
 
-All right, I reworked a new reversion which will return if it's Intel.
+A note for your future submissions: if you rework a patch in a
+non-trivial way, you *must* drop Reviewed-by/Acked-by tags because they
+are not valid anymore.
 
-Thanks,
-Pu Wen
+In this case I guess Bjorn's tag can stay because he's acking the
+pci_ids.h addition but mine definitely must go.
+
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
