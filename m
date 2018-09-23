@@ -1,153 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp21.cstnet.cn ([159.226.251.21]:46645 "EHLO cstnet.cn"
+Received: from smtp21.cstnet.cn ([159.226.251.21]:47166 "EHLO cstnet.cn"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726288AbeIWPa7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 23 Sep 2018 11:30:59 -0400
+        id S1726135AbeIWPbW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 23 Sep 2018 11:31:22 -0400
 From: Pu Wen <puwen@hygon.cn>
-Subject: [PATCH v8 02/16] x86/cpu: Get cache info and setup cache cpumap for Hygon Dhyana
-Date: Sun, 23 Sep 2018 17:33:44 +0800
-Message-ID: <2a686b2ac0e2f5a1f2f5f101124d9dd44f949731.1537533369.git.puwen@hygon.cn>
+Subject: [PATCH v8 03/16] x86/cpu/mtrr: Support TOP_MEM2 and get MTRR number
+Date: Sun, 23 Sep 2018 17:34:16 +0800
+Message-ID: <8246f81648d014601de3812ade40e85d9c50d9b3.1537533369.git.puwen@hygon.cn>
 In-Reply-To: <cover.1537533368.git.puwen@hygon.cn>
 References: <cover.1537533368.git.puwen@hygon.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Pu Wen <puwen@hygon.cn>
-Message-ID: <20180923093344.-c3xpx_NflLIhDssoZ5Rml8cov70jRIyUlESdAcIbfo@z>
+Message-ID: <20180923093416.LISSHGI7_44Uq8n6yB05lVQw8k8sy2CaIrWBiprygZk@z>
 
-The Hygon Dhyana CPU has topology extensions bit in CPUID. With this
-bit, the kernel can get the cache information. So add support in
-cpuid4_cache_lookup_regs() to get the correct cache size.
+The Hygon Dhyana CPU has a special magic MSR way to force WB for
+memory >4GB, and support TOP_MEM2. Therefore, it is necessary to
+add Hygon Dhyana support in amd_special_default_mtrr().
 
-The Hygon Dhyana CPU also discovers num_cache_leaves via CPUID leaf
-0x8000001d, so add support to it in find_num_cache_leaves().
-
-Also add cacheinfo_hygon_init_llc_id() and init_hygon_cacheinfo()
-functions to initialize Dhyana cache info. Setup cache cpumap in
-the same way as AMD does.
+The number of variable MTRRs for Hygon is 2 as AMD's.
 
 Signed-off-by: Pu Wen <puwen@hygon.cn>
 Reviewed-by: Borislav Petkov <bp@suse.de>
 ---
- arch/x86/include/asm/cacheinfo.h |  1 +
- arch/x86/kernel/cpu/cacheinfo.c  | 31 +++++++++++++++++++++++++++++--
- arch/x86/kernel/cpu/cpu.h        |  1 +
- arch/x86/kernel/cpu/hygon.c      |  3 +++
- 4 files changed, 34 insertions(+), 2 deletions(-)
+ arch/x86/kernel/cpu/mtrr/cleanup.c | 3 ++-
+ arch/x86/kernel/cpu/mtrr/mtrr.c    | 2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/cacheinfo.h b/arch/x86/include/asm/cacheinfo.h
-index e958e28..86b63c7 100644
---- a/arch/x86/include/asm/cacheinfo.h
-+++ b/arch/x86/include/asm/cacheinfo.h
-@@ -3,5 +3,6 @@
- #define _ASM_X86_CACHEINFO_H
- 
- void cacheinfo_amd_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id);
-+void cacheinfo_hygon_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id);
- 
- #endif /* _ASM_X86_CACHEINFO_H */
-diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
-index 0c5fcbd..dc1b934 100644
---- a/arch/x86/kernel/cpu/cacheinfo.c
-+++ b/arch/x86/kernel/cpu/cacheinfo.c
-@@ -602,6 +602,10 @@ cpuid4_cache_lookup_regs(int index, struct _cpuid4_info_regs *this_leaf)
- 		else
- 			amd_cpuid4(index, &eax, &ebx, &ecx);
- 		amd_init_l3_cache(this_leaf, index);
-+	} else if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
-+		cpuid_count(0x8000001d, index, &eax.full,
-+			    &ebx.full, &ecx.full, &edx);
-+		amd_init_l3_cache(this_leaf, index);
- 	} else {
- 		cpuid_count(4, index, &eax.full, &ebx.full, &ecx.full, &edx);
- 	}
-@@ -625,7 +629,8 @@ static int find_num_cache_leaves(struct cpuinfo_x86 *c)
- 	union _cpuid4_leaf_eax	cache_eax;
- 	int 			i = -1;
- 
--	if (c->x86_vendor == X86_VENDOR_AMD)
-+	if (c->x86_vendor == X86_VENDOR_AMD ||
-+	    c->x86_vendor == X86_VENDOR_HYGON)
- 		op = 0x8000001d;
- 	else
- 		op = 4;
-@@ -678,6 +683,22 @@ void cacheinfo_amd_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id)
- 	}
- }
- 
-+void cacheinfo_hygon_init_llc_id(struct cpuinfo_x86 *c, int cpu, u8 node_id)
-+{
-+	/*
-+	 * We may have multiple LLCs if L3 caches exist, so check if we
-+	 * have an L3 cache by looking at the L3 cache CPUID leaf.
-+	 */
-+	if (!cpuid_edx(0x80000006))
-+		return;
-+
-+	/*
-+	 * LLC is at the core complex level.
-+	 * Core complex ID is ApicId[3] for these processors.
-+	 */
-+	per_cpu(cpu_llc_id, cpu) = c->apicid >> 3;
-+}
-+
- void init_amd_cacheinfo(struct cpuinfo_x86 *c)
+diff --git a/arch/x86/kernel/cpu/mtrr/cleanup.c b/arch/x86/kernel/cpu/mtrr/cleanup.c
+index 765afd5..3668c5d 100644
+--- a/arch/x86/kernel/cpu/mtrr/cleanup.c
++++ b/arch/x86/kernel/cpu/mtrr/cleanup.c
+@@ -831,7 +831,8 @@ int __init amd_special_default_mtrr(void)
  {
+ 	u32 l, h;
  
-@@ -691,6 +712,11 @@ void init_amd_cacheinfo(struct cpuinfo_x86 *c)
- 	}
- }
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
++	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD &&
++	    boot_cpu_data.x86_vendor != X86_VENDOR_HYGON)
+ 		return 0;
+ 	if (boot_cpu_data.x86 < 0xf)
+ 		return 0;
+diff --git a/arch/x86/kernel/cpu/mtrr/mtrr.c b/arch/x86/kernel/cpu/mtrr/mtrr.c
+index 9a19c80..507039c 100644
+--- a/arch/x86/kernel/cpu/mtrr/mtrr.c
++++ b/arch/x86/kernel/cpu/mtrr/mtrr.c
+@@ -127,7 +127,7 @@ static void __init set_num_var_ranges(void)
  
-+void init_hygon_cacheinfo(struct cpuinfo_x86 *c)
-+{
-+	num_cache_leaves = find_num_cache_leaves(c);
-+}
-+
- void init_intel_cacheinfo(struct cpuinfo_x86 *c)
- {
- 	/* Cache sizes */
-@@ -913,7 +939,8 @@ static void __cache_cpumap_setup(unsigned int cpu, int index,
- 	int index_msb, i;
- 	struct cpuinfo_x86 *c = &cpu_data(cpu);
- 
--	if (c->x86_vendor == X86_VENDOR_AMD) {
-+	if (c->x86_vendor == X86_VENDOR_AMD ||
-+	    c->x86_vendor == X86_VENDOR_HYGON) {
- 		if (__cache_amd_cpumap_setup(cpu, index, base))
- 			return;
- 	}
-diff --git a/arch/x86/kernel/cpu/cpu.h b/arch/x86/kernel/cpu/cpu.h
-index 7b229af..da5446a 100644
---- a/arch/x86/kernel/cpu/cpu.h
-+++ b/arch/x86/kernel/cpu/cpu.h
-@@ -54,6 +54,7 @@ extern u32 get_scattered_cpuid_leaf(unsigned int level,
- 				    enum cpuid_regs_idx reg);
- extern void init_intel_cacheinfo(struct cpuinfo_x86 *c);
- extern void init_amd_cacheinfo(struct cpuinfo_x86 *c);
-+extern void init_hygon_cacheinfo(struct cpuinfo_x86 *c);
- 
- extern void detect_num_cpu_cores(struct cpuinfo_x86 *c);
- extern int detect_extended_topology_early(struct cpuinfo_x86 *c);
-diff --git a/arch/x86/kernel/cpu/hygon.c b/arch/x86/kernel/cpu/hygon.c
-index 9f5679e..ac70997 100644
---- a/arch/x86/kernel/cpu/hygon.c
-+++ b/arch/x86/kernel/cpu/hygon.c
-@@ -90,6 +90,7 @@ static void hygon_get_topology(struct cpuinfo_x86 *c)
- 		if (!err)
- 			c->x86_coreid_bits = get_count_order(c->x86_max_cores);
- 
-+		cacheinfo_hygon_init_llc_id(c, cpu, node_id);
- 	} else if (cpu_has(c, X86_FEATURE_NODEID_MSR)) {
- 		u64 value;
- 
-@@ -324,6 +325,8 @@ static void init_hygon(struct cpuinfo_x86 *c)
- 	hygon_get_topology(c);
- 	srat_detect_node(c);
- 
-+	init_hygon_cacheinfo(c);
-+
- 	if (cpu_has(c, X86_FEATURE_XMM2)) {
- 		unsigned long long val;
- 		int ret;
+ 	if (use_intel())
+ 		rdmsr(MSR_MTRRcap, config, dummy);
+-	else if (is_cpu(AMD))
++	else if (is_cpu(AMD) || is_cpu(HYGON))
+ 		config = 2;
+ 	else if (is_cpu(CYRIX) || is_cpu(CENTAUR))
+ 		config = 8;
 -- 
 2.7.4
