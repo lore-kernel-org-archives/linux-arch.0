@@ -1,57 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f67.google.com ([209.85.161.67]:47082 "EHLO
-        mail-yw1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727634AbeIVRa1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2018 13:30:27 -0400
-Received: by mail-yw1-f67.google.com with SMTP id j131-v6so6210006ywc.13
-        for <linux-arch@vger.kernel.org>; Sat, 22 Sep 2018 04:37:11 -0700 (PDT)
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:37172 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726087AbeIWPUL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 23 Sep 2018 11:20:11 -0400
+Date: Sun, 23 Sep 2018 19:23:15 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/3] mm: optimise pte dirty/accessed bit setting by
+ demand based pte insertion
+Message-ID: <20180923192315.13cb4114@roar.ozlabs.ibm.com>
+In-Reply-To: <1537519325.19048.0.camel@intel.com>
+References: <20180828112034.30875-1-npiggin@gmail.com>
+        <20180828112034.30875-4-npiggin@gmail.com>
+        <20180905142951.GA15680@roeck-us.net>
+        <20180918035337.0727dad0@roar.ozlabs.ibm.com>
+        <1537519325.19048.0.camel@intel.com>
 MIME-Version: 1.0
-References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
- <1537455973-12468-2-git-send-email-firoz.khan@linaro.org> <20180921054850.GA13343@frolo.macqel>
-In-Reply-To: <20180921054850.GA13343@frolo.macqel>
-From: Firoz Khan <firoz.khan@linaro.org>
-Date: Sat, 22 Sep 2018 17:06:59 +0530
-Message-ID: <CALxhOnhWMf3Zq73nMYkv4JwQUWVKiD6YepcVOFhL8AC5fggvdw@mail.gmail.com>
-Subject: Re: [PATCH v2 1/5] m68k: Rename system call table file name
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: phdm@macq.eu
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180922113659.eZebW4rCOPU0q8IScrvMzuuER9eL7GjQOpF8efXyIN8@z>
+To: Ley Foon Tan <ley.foon.tan@intel.com>
+Cc: Guenter Roeck <linux@roeck-us.net>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Message-ID: <20180923092315.kPqlkmcfrQPDr-i3ItI8-a8X04JahMBVgXl_PdjeR-Q@z>
 
-Hi Phillippe,
+On Fri, 21 Sep 2018 16:42:05 +0800
+Ley Foon Tan <ley.foon.tan@intel.com> wrote:
 
-On Fri, 21 Sep 2018 at 11:18, Philippe De Muyter <phdm@macq.eu> wrote:
->
-> On Thu, Sep 20, 2018 at 08:36:09PM +0530, Firoz Khan wrote:
-> > The system call table entries are present in syscalltable.S. One of
-> > the patch in this patch series will auto-generate the system call
-> > table entries using the system call table generation script and
-> > which'll replace the existig table file.
-> >
-> > In order to come up with a common naming convention across all
-> > architecture, we need to change the file name to syscall_table.S.
->
-> That file was probably called that way to be able to distinguish it
-> from syscalltable.s and syscalltable.o in a file system with a 14
-> characters limit in file names (in sysV unix systems).
->
-> > This change will unify the implementation across all architecture.
-> >
-> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> > ---
-> >  arch/m68k/kernel/Makefile        |   2 +-
-> >  arch/m68k/kernel/syscall_table.S | 403 +++++++++++++++++++++++++++++++++++++++
-> >  arch/m68k/kernel/syscalltable.S  | 403 ---------------------------------------
->
-> You should generate your patch with the '-M' or '--find-renames' option.
+> On Tue, 2018-09-18 at 03:53 +1000, Nicholas Piggin wrote:
+> > On Wed, 5 Sep 2018 07:29:51 -0700
+> > Guenter Roeck <linux@roeck-us.net> wrote:
+> >   
+> > > 
+> > > Hi,
+> > > 
+> > > On Tue, Aug 28, 2018 at 09:20:34PM +1000, Nicholas Piggin wrote:  
+> > > > 
+> > > > Similarly to the previous patch, this tries to optimise
+> > > > dirty/accessed
+> > > > bits in ptes to avoid access costs of hardware setting them.
+> > > >   
+> > > This patch results in silent nios2 boot failures, silent meaning
+> > > that
+> > > the boot stalls.  
+> > Okay I just got back to looking at this. The reason for the hang is
+> > I think a bug in the nios2 TLB code, but maybe other archs have
+> > similar
+> > issues.
+> > 
+> > In case of a missing / !present Linux pte, nios2 installs a TLB entry
+> > with no permissions via its fast TLB exception handler (software TLB
+> > fill). Then it relies on that causing a TLB permission exception in a
+> > slower handler that calls handle_mm_fault to set the Linux pte and
+> > flushes the old TLB. Then the fast exception handler will find the
+> > new
+> > Linux pte.
+> > 
+> > With this patch, nios2 has a case where handle_mm_fault does not
+> > flush
+> > the old TLB, which results in the TLB permission exception
+> > continually
+> > being retried.
+> > 
+> > What happens now is that fault paths like do_read_fault will install
+> > a
+> > Linux pte with the young bit clear and return. That will cause nios2
+> > to
+> > fault again but this time go down the bottom of handle_pte_fault and
+> > to
+> > the access flags update with the young bit set. The young bit is seen
+> > to
+> > be different, so that causes ptep_set_access_flags to do a TLB flush
+> > and
+> > that finally allows the fast TLB handler to fire and pick up the new
+> > Linux pte.
+> > 
+> > With this patch, the young bit is set in the first handle_mm_fault,
+> > so
+> > the second handle_mm_fault no longer sees the ptes are different and
+> > does not flush the TLB. The spurious fault handler also does not
+> > flush
+> > them unless FAULT_FLAG_WRITE is set.
+> > 
+> > What nios2 should do is invalidate the TLB in update_mmu_cache. What
+> > it
+> > *really* should do is install the new TLB entry, I have some patches
+> > to
+> > make that work in qemu I can submit. But I would like to try getting
+> > these dirty/accessed bit optimisation in 4.20, so I will send a
+> > simple
+> > path to just do the TLB invalidate that could go in Andrew's git
+> > tree.
+> > 
+> > Is that agreeable with the nios2 maintainers?
+> > 
+> > Thanks,
+> > Nick
+> >   
+> Hi
+> 
+> Do you have patches to test?
 
-Sure. Thanks!
-Firoz
+I've been working on some, it has taken longer than I expected, I'll
+hopefully have something to send out by tomorrow.
 
->
-> Philippe
->
-> --
-> Philippe De Muyter +32 2 6101532 Macq SA rue de l'Aeronef 2 B-1140 Bruxelles
+Thanks,
+Nick
