@@ -1,37 +1,97 @@
-From: Pu Wen <puwen@hygon.cn>
-Subject: Re: [PATCH v8 07/16] x86/pci: Add Hygon Dhyana support to PCI and
- north bridge
-Date: Sun, 23 Sep 2018 20:54:47 +0800
-Message-ID: <f20743b0-cad2-4eb4-ac6d-f1aa7b34ce16@hygon.cn>
-References: <cover.1537533368.git.puwen@hygon.cn>
- <580dc519d37ad9257520fe8c533f2c61d3e0cd83.1537533369.git.puwen@hygon.cn>
- <20180923111046.GA20575@zn.tnic>
+From: Greg Ungerer <gerg@linux-m68k.org>
+Subject: Re: [PATCH v2 0/5] System call table generation support
+Date: Mon, 24 Sep 2018 11:08:11 +1000
+Message-ID: <b42ac34f-ab67-5d5c-1d6f-354af40773d8@linux-m68k.org>
+References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180923111046.GA20575@zn.tnic>
+In-Reply-To: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: bhelgaas@google.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
+To: Firoz Khan <firoz.khan@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/9/23 19:10, Borislav Petkov wrote:
->> Signed-off-by: Pu Wen <puwen@hygon.cn>
->> Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
->> Reviewed-by: Borislav Petkov <bp@suse.de>
->
-> A note for your future submissions: if you rework a patch in a
-> non-trivial way, you *must* drop Reviewed-by/Acked-by tags because they
-> are not valid anymore.
->
-> In this case I guess Bjorn's tag can stay because he's acking the
-> pci_ids.h addition but mine definitely must go.
+Hi Firoz,
 
-Thanks for the note. I'm sorry for not removing the Reviewed-by tag.
-Is this revision still OK by you? :)
+On 21/09/18 01:06, Firoz Khan wrote:
+> The purpose of this patch series is:
+> 1. We can easily add/modify/delete system call by changing entry
+> in syscall.tbl file. No need to manually edit many files.
+> 
+> 2. It is easy to unify the system call implementation across all
+> the architectures.
+> 
+> The system call tables are in different format in all architecture
+> and it will be difficult to manually add or modify the system calls
+> in the respective files manually. To make it easy by keeping a script
+> and which'll generate the header file and syscall table file so this
+> change will unify them across all architectures.
+> 
+> syscall.tbl contains the list of available system calls along with
+> system call number and corresponding entry point. Add a new system
+> call in this architecture will be possible by adding new entry in
+> the syscall.tbl file.
+> 
+> Adding a new table entry consisting of:
+>          - System call number.
+>          - ABI.
+>          - System call name.
+>          - Entry point name.
+>          - Compat entry name, if required.
+> 
+> ARM, s390 and x86 architecuture does exist the similar support. I
+> leverage their implementation to come up with a generic solution.
+> 
+> I have done the same support for work for alpha, microblaze, sparc,
+> mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending
+> the patch for one architecuture for review. Below mentioned git
+> repository contains more details.
+> Git repo:- https://github.com/frzkhn/system_call_table_generator/
+> 
+> Added an extra patch to keep __IGNORE* entries in asm/unistd.h.
+> 
+> Finally, this is the ground work for solving the Y2038 issue. We
+> need to add/change two dozen of system calls to solve Y2038 issue.
+> So this patch series will help to easily modify from existing
+> system call to Y2038 compatible system calls.
+>
+> Firoz Khan (5):
+>    m68k: Rename system call table file name
+>    m68k: Replace NR_syscalls macro from asm/unistd.h
+>    m68k: Added system call table generation support
+>    m68k: uapi header and system call table file generation
+>    m68k: added __IGNORE* entries in asm/unistd.h
 
--- 
-Regards,
-Pu Wen
+Built and tested on a couple of m68k/ColdFire targets,
+m520x (no MMU) and m5475 (with MMU). Load and run on real hardware,
+no problems found. So for m68knommu/ColdFire:
+
+Tested-by: Greg Ungerer <gerg@linux-m68k.org>
+
+Regards
+Greg
+
+
+>   arch/m68k/Makefile                      |   3 +
+>   arch/m68k/include/asm/Kbuild            |   1 +
+>   arch/m68k/include/asm/unistd.h          |  10 +-
+>   arch/m68k/include/uapi/asm/Kbuild       |   1 +
+>   arch/m68k/include/uapi/asm/unistd.h     | 385 +-----------------------------
+>   arch/m68k/kernel/Makefile               |   2 +-
+>   arch/m68k/kernel/syscall_table.S        |  14 ++
+>   arch/m68k/kernel/syscalls/Makefile      |  37 +++
+>   arch/m68k/kernel/syscalls/syscall.tbl   | 369 +++++++++++++++++++++++++++++
+>   arch/m68k/kernel/syscalls/syscallhdr.sh |  39 ++++
+>   arch/m68k/kernel/syscalls/syscalltbl.sh |  28 +++
+>   arch/m68k/kernel/syscalltable.S         | 403 --------------------------------
+>   12 files changed, 502 insertions(+), 790 deletions(-)
+>   create mode 100644 arch/m68k/kernel/syscall_table.S
+>   create mode 100644 arch/m68k/kernel/syscalls/Makefile
+>   create mode 100644 arch/m68k/kernel/syscalls/syscall.tbl
+>   create mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
+>   create mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
+>   delete mode 100644 arch/m68k/kernel/syscalltable.S
+> 
