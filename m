@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V5 27/30] dt-bindings: interrupt-controller: C-SKY APB intc
-Date: Tue, 25 Sep 2018 07:39:30 +0800
-Message-ID: <962274d8ec61f3900b19c07bbe8923674c94d044.1537789737.git.ren_guo@c-sky.com>
+Subject: [PATCH V5 29/30] dt-bindings: timer: gx6605s SOC timer
+Date: Tue, 25 Sep 2018 07:39:32 +0800
+Message-ID: <685331b91778b111d2cfef87d15d058ad4570867.1537789737.git.ren_guo@c-sky.com>
 References: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
@@ -12,81 +12,62 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
- - Dt-bindings doc about C-SKY apb bus interrupt controller.
+ - Dt-bindings doc for gx6605s SOC's system timer.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- .../interrupt-controller/csky,apb-intc.txt         | 62 ++++++++++++++++++++++
- 1 file changed, 62 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+ .../bindings/timer/csky,gx6605s-timer.txt          | 42 ++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
 new file mode 100644
-index 0000000..44286dc
+index 0000000..6b04344
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
-@@ -0,0 +1,62 @@
++++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
+@@ -0,0 +1,42 @@
++=================
++gx6605s SOC Timer
++=================
++
++The timer is used in gx6605s soc as system timer and the driver
++contain clk event and clk source.
++
 +==============================
-+C-SKY APB Interrupt Controller
++timer node bindings definition
 +==============================
 +
-+C-SKY APB Interrupt Controller is a simple soc interrupt controller
-+on the apb bus and we only use it as root irq controller.
-+
-+ - csky,apb-intc is used in a lot of csky fpgas and socs, it support 64 irq nums.
-+ - csky,dual-apb-intc consists of 2 apb-intc and 128 irq nums supported.
-+ - csky,gx6605s-intc is gx6605s soc internal irq interrupt controller, 64 irq nums.
-+
-+=============================
-+intc node bindings definition
-+=============================
-+
-+	Description: Describes APB interrupt controller
++	Description: Describes gx6605s SOC timer
 +
 +	PROPERTIES
 +
 +	- compatible
 +		Usage: required
 +		Value type: <string>
-+		Definition: must be "csky,apb-intc"
-+				    "csky,dual-apb-intc"
-+				    "csky,gx6605s-intc"
-+	- #interrupt-cells
-+		Usage: required
-+		Value type: <u32>
-+		Definition: must be <1>
++		Definition: must be "csky,gx6605s-timer"
 +	- reg
 +		Usage: required
 +		Value type: <u32 u32>
 +		Definition: <phyaddr size> in soc from cpu view
-+	- interrupt-controller:
++	- clocks
 +		Usage: required
-+	- csky,support-pulse-signal:
-+		Usage: select
-+		Description: to support pulse signal flag
++		Value type: phandle + clock specifier cells
++		Definition: must be input clk node
++	- interrupt
++		Usage: required
++		Value type: <u32>
++		Definition: must be timer irq num defined by soc
 +
 +Examples:
 +---------
 +
-+	intc: interrupt-controller@500000 {
-+		compatible = "csky,apb-intc";
-+		#interrupt-cells = <1>;
-+		reg = <0x00500000 0x400>;
-+		interrupt-controller;
-+	};
-+
-+	intc: interrupt-controller@500000 {
-+		compatible = "csky,dual-apb-intc";
-+		#interrupt-cells = <1>;
-+		reg = <0x00500000 0x400>;
-+		interrupt-controller;
-+	};
-+
-+	intc: interrupt-controller@500000 {
-+		compatible = "csky,gx6605s-intc";
-+		#interrupt-cells = <1>;
-+		reg = <0x00500000 0x400>;
-+		interrupt-controller;
++	timer0: timer@20a000 {
++		compatible = "csky,gx6605s-timer";
++		reg = <0x0020a000 0x400>;
++		clocks = <&dummy_apb_clk>;
++		interrupts = <10>;
++		interrupt-parent = <&intc>;
 +	};
 -- 
 2.7.4
