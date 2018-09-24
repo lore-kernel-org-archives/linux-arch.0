@@ -1,41 +1,30 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: Re: [REVIEW][PATCH 0/3] signal/ia64: siginfo fixes and cleanups
-Date: Mon, 24 Sep 2018 10:38:20 -0700
-Message-ID: <20180924173818.GA9522@agluck-desk>
-References: <87bm8n2czz.fsf@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH V7 2/2] csky: remove irq_mapping from smp.c.
+Date: Mon, 24 Sep 2018 22:23:14 +0200
+Message-ID: <CAK8P3a2WLCZNZ_A1qPQuEQdxEyLKZj2EY2oHzG+_GTGiWEna7w@mail.gmail.com>
+References: <cover.1537276837.git.ren_guo@c-sky.com> <ec95f397f52b8b5d9191b85d0d907a1a43d2e2c1.1537276837.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87bm8n2czz.fsf@xmission.com>
+In-Reply-To: <ec95f397f52b8b5d9191b85d0d907a1a43d2e2c1.1537276837.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rob Herring <robh@kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 24, 2018 at 04:20:32PM +0200, Eric W. Biederman wrote:
-> 
-> It turns out that ia64 is one of the noticable offenders.  Ever since
-> ia64 was merged in 2.3.43 it has been generating incorrect siginfo for
-> SIGSEGV assocaited with the inability to setup a signal stack frame
-> or cleanup a signal stack frame.
+On Tue, Sep 18, 2018 at 3:48 PM Guo Ren <ren_guo@c-sky.com> wrote:
+>
+>  - remove irq_mapping from smp.c to irq-driver
+>  - Add set_ipi_irq_mapping api to irq-driver
+>  - update asm/smp.h
+>
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 
-I'll blame that on the "previous administration". I didn't start work
-on Linux until 2.3.99, and didn't take over as maintainer until 2.6.11 :-)
+The patch seems ok to me, but please try to improve the changelog comments.
+Generally speaking, use full English sentences instead of an enumerated list,
+and explain what the change is for rather than what you are doing. The text
+you have here can easily be derived from looking at the code changes,
+but I still don't understand what caused you to change it, and why this
+is better than the previous version.
 
-> I don't think I have made made any mistakes in this coversion but if
-> people can look the code over and see if they can spot anything I would
-> appreciate it.
-
-I don't see any mistakes either. It builds and boots. Obviously I don't
-have a test case for this issue (or it would have been found long ago).
-
-> My intention is to merge this through my siginfo tree.  If you feel it
-> should go through your arch tree let me know.   All of the prerequisites
-> should have been merged several releases ago.
-
-Sure. Merge away.
-
-Acked-by: Tony Luck <tony.luck@intel.com>
-
--Tony
+       Arnd
