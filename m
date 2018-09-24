@@ -1,77 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:56609 "EHLO
+Received: from out02.mta.xmission.com ([166.70.13.232]:56615 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728367AbeIXPRS (ORCPT
+        with ESMTP id S1728400AbeIXPRS (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:17:18 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 24 Sep 2018 11:10:14 +0200
-Message-ID: <20180924091015.4458-14-ebiederm@xmission.com>
+Date: Mon, 24 Sep 2018 11:10:15 +0200
+Message-ID: <20180924091015.4458-15-ebiederm@xmission.com>
 In-Reply-To: <871s9j462u.fsf@xmission.com>
 References: <871s9j462u.fsf@xmission.com>
-Subject: [REVIEW][PATCH 14/15] signal/arm64: Add and use arm64_force_sig_ptrace_errno_trap
+Subject: [REVIEW][PATCH 15/15] signal/arm64: Use send_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180924091014.ymq2G6oPErCWEg8cNbJkoaGJlh7eB0Tyk2oMEXCzqDI@z>
-
-Add arm64_force_sig_ptrace_errno_trap for consistency with
-arm64_force_sig_fault and use it where appropriate.
-
-This adds the show_signal logic to the force_sig_errno_trap case,
-where it was apparently overlooked earlier.
+Message-ID: <20180924091015.g0UBFMHm4msLK2UdqMeesQJ56OWKiliCpV5grGA0oYg@z>
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm64/include/asm/traps.h | 1 +
- arch/arm64/kernel/ptrace.c     | 4 +++-
- arch/arm64/kernel/traps.c      | 7 +++++++
- 3 files changed, 11 insertions(+), 1 deletion(-)
+ arch/arm64/kernel/fpsimd.c | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/include/asm/traps.h b/arch/arm64/include/asm/traps.h
-index d32b8bd440af..f9c1aa6167d2 100644
---- a/arch/arm64/include/asm/traps.h
-+++ b/arch/arm64/include/asm/traps.h
-@@ -39,6 +39,7 @@ void force_signal_inject(int signal, int code, unsigned long address);
- void arm64_notify_segfault(unsigned long addr);
- void arm64_force_sig_fault(int signo, int code, void __user *addr, const char *str);
- void arm64_force_sig_mceerr(int code, void __user *addr, short lsb, const char *str);
-+void arm64_force_sig_ptrace_errno_trap(int errno, void __user *addr, const char *str);
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index 58c53bc96928..5ebe73b69961 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -842,7 +842,6 @@ asmlinkage void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
+  */
+ asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
+ {
+-	siginfo_t info;
+ 	unsigned int si_code = FPE_FLTUNK;
  
- /*
-  * Move regs->pc to next instruction and do necessary setup before it
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 921267f59d0d..1710a2d01669 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -202,7 +202,9 @@ static void ptrace_hbptriggered(struct perf_event *bp,
- 				break;
- 			}
- 		}
--		force_sig_ptrace_errno_trap(si_errno, (void __user *)bkpt->trigger);
-+		arm64_force_sig_ptrace_errno_trap(si_errno,
-+						  (void __user *)bkpt->trigger,
-+						  desc);
+ 	if (esr & ESR_ELx_FP_EXC_TFV) {
+@@ -858,12 +857,9 @@ asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
+ 			si_code = FPE_FLTRES;
  	}
- #endif
- 	arm64_force_sig_fault(SIGTRAP, TRAP_HWBKPT,
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index de67818258cd..856b32aa03d8 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -262,6 +262,13 @@ void arm64_force_sig_mceerr(int code, void __user *addr, short lsb,
- 	force_sig_mceerr(code, addr, lsb, current);
+ 
+-	clear_siginfo(&info);
+-	info.si_signo = SIGFPE;
+-	info.si_code = si_code;
+-	info.si_addr = (void __user *)instruction_pointer(regs);
+-
+-	send_sig_info(SIGFPE, &info, current);
++	send_sig_fault(SIGFPE, si_code,
++		       (void __user *)instruction_pointer(regs),
++		       current);
  }
  
-+void arm64_force_sig_ptrace_errno_trap(int errno, void __user *addr,
-+				       const char *str)
-+{
-+	arm64_show_signal(SIGTRAP, str);
-+	force_sig_ptrace_errno_trap(errno, addr);
-+}
-+
- void arm64_notify_die(const char *str, struct pt_regs *regs,
- 		      int signo, int sicode, void __user *addr,
- 		      int err)
+ void fpsimd_thread_switch(struct task_struct *next)
 -- 
 2.17.1
