@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 06/15] signal/arm64: For clarity separate the 3 signal sending cases in do_page_fault
-Date: Mon, 24 Sep 2018 11:10:06 +0200
-Message-ID: <20180924091015.4458-6-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 07/15] signal/arm64: Expand __do_user_fault and remove it
+Date: Mon, 24 Sep 2018 11:10:07 +0200
+Message-ID: <20180924091015.4458-7-ebiederm@xmission.com>
 References: <871s9j462u.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <871s9j462u.fsf@xmission.com>
@@ -10,65 +10,71 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-It gets easy to confuse what is going on when some code is shared and some not
-so stop sharing the trivial bits of signal generation to make future updates
-easier to understand.
+Not all of the signals passed to __do_user_fault can be handled
+the same way so expand the now tiny __do_user_fault in it's callers
+and remove it.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm64/mm/fault.c | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+ arch/arm64/mm/fault.c | 18 ++++++++----------
+ 1 file changed, 8 insertions(+), 10 deletions(-)
 
 diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index 0ddc8c6ba53b..14d6ff895139 100644
+index 14d6ff895139..7df3d8b561c2 100644
 --- a/arch/arm64/mm/fault.c
 +++ b/arch/arm64/mm/fault.c
-@@ -567,16 +567,16 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
- 		return 0;
- 	}
+@@ -354,12 +354,6 @@ static void set_thread_esr(unsigned long address, unsigned int esr)
+ 	current->thread.fault_code = esr;
+ }
  
--	clear_siginfo(&si);
--	si.si_addr = (void __user *)addr;
+-static void __do_user_fault(struct siginfo *info, unsigned int esr)
+-{
+-	set_thread_esr((unsigned long)info->si_addr, esr);
+-	arm64_force_sig_info(info, esr_to_fault_info(esr)->name);
+-}
 -
- 	if (fault & VM_FAULT_SIGBUS) {
- 		/*
- 		 * We had some memory, but were unable to successfully fix up
- 		 * this page fault.
- 		 */
-+		clear_siginfo(&si);
+ static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ {
+ 	/*
+@@ -375,7 +369,8 @@ static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *re
+ 		si.si_code	= inf->code;
+ 		si.si_addr	= (void __user *)addr;
+ 
+-		__do_user_fault(&si, esr);
++		set_thread_esr(addr, esr);
++		arm64_force_sig_info(&si, inf->name);
+ 	} else {
+ 		__do_kernel_fault(addr, esr, regs);
+ 	}
+@@ -576,7 +571,8 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
  		si.si_signo	= SIGBUS;
  		si.si_code	= BUS_ADRERR;
-+		si.si_addr = (void __user *)addr;
-+		__do_user_fault(&si, esr);
+ 		si.si_addr = (void __user *)addr;
+-		__do_user_fault(&si, esr);
++		set_thread_esr(addr, esr);
++		arm64_force_sig_info(&si, esr_to_fault_info(esr)->name);
  	} else if (fault & (VM_FAULT_HWPOISON_LARGE | VM_FAULT_HWPOISON)) {
  		unsigned int lsb;
  
-@@ -584,20 +584,25 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
- 		if (fault & VM_FAULT_HWPOISON_LARGE)
- 			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
- 
-+		clear_siginfo(&si);
- 		si.si_signo	= SIGBUS;
+@@ -589,7 +585,8 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
  		si.si_code	= BUS_MCEERR_AR;
-+		si.si_addr = (void __user *)addr;
+ 		si.si_addr = (void __user *)addr;
  		si.si_addr_lsb	= lsb;
-+		__do_user_fault(&si, esr);
+-		__do_user_fault(&si, esr);
++		set_thread_esr(addr, esr);
++		arm64_force_sig_info(&si, esr_to_fault_info(esr)->name);
  	} else {
  		/*
  		 * Something tried to access memory that isn't in our memory
- 		 * map.
- 		 */
-+		clear_siginfo(&si);
- 		si.si_signo	= SIGSEGV;
+@@ -600,7 +597,8 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
  		si.si_code	= fault == VM_FAULT_BADACCESS ?
  				  SEGV_ACCERR : SEGV_MAPERR;
-+		si.si_addr = (void __user *)addr;
-+		__do_user_fault(&si, esr);
+ 		si.si_addr = (void __user *)addr;
+-		__do_user_fault(&si, esr);
++		set_thread_esr(addr, esr);
++		arm64_force_sig_info(&si, esr_to_fault_info(esr)->name);
  	}
  
--	__do_user_fault(&si, esr);
  	return 0;
- 
- no_context:
 -- 
 2.17.1
