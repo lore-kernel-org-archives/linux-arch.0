@@ -1,88 +1,92 @@
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 1/2] signal/arc: Push siginfo generation into
- unhandled_exception
-Date: Mon, 24 Sep 2018 16:49:09 +0200
-Message-ID: <20180924144910.14902-1-ebiederm@xmission.com>
-References: <874lef2bqn.fsf@xmission.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by sparse
+Date: Mon, 24 Sep 2018 17:04:31 +0200
+Message-ID: <CAAeHK+z0C+GKK3dEVmtaAiS2koAZ5NDug7-nahUT79y3MX3MLQ@mail.gmail.com>
+References: <cover.1535629099.git.andreyknvl@google.com> <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+ <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
+ <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
+ <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
+ <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
+ <20180911164152.GA29166@arrakis.emea.arm.com> <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <874lef2bqn.fsf@xmission.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, linux-snps-arc@lists.infradead.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, linux-mm <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Al Viro <viro@zeniv.linux.org.uk>D
 List-Id: linux-arch.vger.kernel.org
 
-Pass signr, sicode, and address into unhandled_exception as explicit
-parameters instead of members of struct siginfo.  Then in unhandled
-exception generate and send the siginfo using force_sig_fault.
+On Mon, Sep 17, 2018 at 7:01 PM, Andrey Konovalov <andreyknvl@google.com> wrote:
+> I took another look at the changes this patchset does to the kernel
+> and here are my thoughts:
+>
+> I see two ways how a (potentially tagged) user pointer gets into the kernel:
+>
+> 1. A pointer is passed to a syscall (directly as an argument or
+> indirectly as a struct field).
+> 2. A pointer is extracted from user context (registers, etc.) by some
+> kind of a trap/fault handler.
+> (Is there something else?)
+>
+> In case 1 we also have a special case of a pointer passed to one of
+> the memory syscalls (mmap, mprotect, etc.). These syscalls "are not
+> doing memory accesses but rather dealing with the memory range, hence
+> an untagged pointer is better suited" as pointed out by Catalin (these
+> syscalls do not always use "unsigned long" instead of "void __user *"
+> though, for example shmat uses "void __user *").
+>
+> Looking at patch #8 ("usb, arm64: untag user addresses in devio") in
+> this series, it seems that that devio ioctl actually accepts a pointer
+> into a vma, so we shouldn't actually be untagging its argument and the
+> patch needs to be dropped. Otherwise there's quite a few more cases
+> that needs to be changed (like tcp_zerocopy_receive() for example,
+> more can be found by grepping find_vma() in generic code).
+>
+> Regarding case 2, it seems that analyzing casts of __user pointers
+> won't really help, since the code (arch/arm64/mm/fault.c) doesn't
+> really use them. However all of this code is arch specific, so it
+> shouldn't really change over time (right?). It looks like dealing with
+> tags passed to the kernel through these fault handlers is already
+> resolved with these patches (and therefore patch #6 ("arm64: untag
+> user address in __do_user_fault") in this series is not actually
+> needed and can be dropped (need to test that)):
+>
+> 276e9327 ("arm64: entry: improve data abort handling of tagged pointers"),
+> 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on
+> a tagged pointer")
+> 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged pointers")
+>
+> Now, I also see two cases when kernel behavior changes depending on
+> whether a pointer is tagged:
+>
+> 1. Kernel code checks that a pointer belongs to userspace by comparing
+> it with TASK_SIZE/addr_limit/user_addr_max()/USER_DS/... .
+> 2. A pointer gets passed to find_vma() or similar functions.
+> (Is there something else?)
+>
+> The initial thought that I had here is that the pointers that reach
+> find_vma() must be passed through memory syscalls and therefore
+> shouldn't be untagged and don't require any fixes. There are at least
+> two exceptions to this: 1. get_user_pages() (see patch #4 ("mm, arm64:
+> untag user addresses in mm/gup.c") in this patch series) and 2.
+> __do_page_fault() in arch/arm64/mm/fault.c. Are there any other
+> obvious exceptions? I've tried adding BUG_ON(has_tag(addr)) to
+> find_vma() and running a modified syzkaller version that passes tagged
+> pointers to the kernel and failed to find anything else.
+>
+> As for case 1, the places where pointers are compared with TASK_SIZE
+> and others can be found with grep. Maybe it makes sense to introduce
+> some kind of routine like is_user_pointer() that handles tagged
+> pointers and refactor the existing code to use it? And maybe add a
+> rule to checkpatch.pl that forbids the direct usage of TASK_SIZE and
+> others.
+>
+> So I think detecting direct comparisons with TASK_SIZE and others
+> would more useful than finding __user pointer casts (it seems that the
+> latter requires a lot of annotations to be fixed/added), and I should
+> just drop this patch with annotations.
+>
+> WDYT?
 
-This keeps the code simpler and less error prone.
-
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/arc/kernel/traps.c | 22 ++++++++--------------
- 1 file changed, 8 insertions(+), 14 deletions(-)
-
-diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
-index b123558bf0bb..a7fcbc0d3943 100644
---- a/arch/arc/kernel/traps.c
-+++ b/arch/arc/kernel/traps.c
-@@ -42,21 +42,22 @@ void die(const char *str, struct pt_regs *regs, unsigned long address)
-  *  -for kernel, chk if due to copy_(to|from)_user, otherwise die()
-  */
- static noinline int
--unhandled_exception(const char *str, struct pt_regs *regs, siginfo_t *info)
-+unhandled_exception(const char *str, struct pt_regs *regs,
-+		    int signo, int si_code, void __user *addr)
- {
- 	if (user_mode(regs)) {
- 		struct task_struct *tsk = current;
- 
--		tsk->thread.fault_address = (__force unsigned int)info->si_addr;
-+		tsk->thread.fault_address = (__force unsigned int)addr;
- 
--		force_sig_info(info->si_signo, info, tsk);
-+		force_sig_fault(signo, si_code, addr, tsk);
- 
- 	} else {
- 		/* If not due to copy_(to|from)_user, we are doomed */
- 		if (fixup_exception(regs))
- 			return 0;
- 
--		die(str, regs, (unsigned long)info->si_addr);
-+		die(str, regs, (unsigned long)addr);
- 	}
- 
- 	return 1;
-@@ -64,16 +65,9 @@ unhandled_exception(const char *str, struct pt_regs *regs, siginfo_t *info)
- 
- #define DO_ERROR_INFO(signr, str, name, sicode) \
- int name(unsigned long address, struct pt_regs *regs) \
--{						\
--	siginfo_t info;				\
--						\
--	clear_siginfo(&info);			\
--	info.si_signo = signr;			\
--	info.si_errno = 0;			\
--	info.si_code  = sicode;			\
--	info.si_addr = (void __user *)address;	\
--						\
--	return unhandled_exception(str, regs, &info);\
-+{								\
-+	return unhandled_exception(str, regs, signr, sicode,	\
-+				   (void __user *)address);	\
- }
- 
- /*
--- 
-2.17.1
+ping
