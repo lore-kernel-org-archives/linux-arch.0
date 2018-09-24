@@ -1,56 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:38890 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729726AbeIXSOJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 14:14:09 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:50626 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731264AbeIXSOD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 14:14:03 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 24 Sep 2018 14:11:28 +0200
-Message-ID: <20180924121128.5983-4-ebiederm@xmission.com>
+Date: Mon, 24 Sep 2018 14:11:27 +0200
+Message-ID: <20180924121128.5983-3-ebiederm@xmission.com>
 In-Reply-To: <87pnx32j2p.fsf@xmission.com>
 References: <87pnx32j2p.fsf@xmission.com>
-Subject: [REVIEW][PATCH 4/4] signal/arm/kvm: Use send_sig_mceerr
+Subject: [REVIEW][PATCH 3/4] signal/arm: Use send_sig_fault where appropriate
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180924121128.nv24R0hyh1i7sf3cQZHrBuo9sLjFxKqbmCvC74c49PQ@z>
-
-This simplifies the code making it clearer what is going on, and
-making the siginfo generation easier to maintain.
+Message-ID: <20180924121127.TZnAWzWJbgK8BJnBHsZZ1KSSFozGGgwZyNEwc54j4A4@z>
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- virt/kvm/arm/mmu.c | 14 ++++----------
- 1 file changed, 4 insertions(+), 10 deletions(-)
+ arch/arm/vfp/vfpmodule.c | 11 +++--------
+ 1 file changed, 3 insertions(+), 8 deletions(-)
 
-diff --git a/virt/kvm/arm/mmu.c b/virt/kvm/arm/mmu.c
-index 91aaf73b00df..39c0405f2021 100644
---- a/virt/kvm/arm/mmu.c
-+++ b/virt/kvm/arm/mmu.c
-@@ -1450,20 +1450,14 @@ static void invalidate_icache_guest_page(kvm_pfn_t pfn, unsigned long size)
- static void kvm_send_hwpoison_signal(unsigned long address,
- 				     struct vm_area_struct *vma)
+diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
+index dc7e6b50ef67..aa96cc5c9fe9 100644
+--- a/arch/arm/vfp/vfpmodule.c
++++ b/arch/arm/vfp/vfpmodule.c
+@@ -216,13 +216,6 @@ static struct notifier_block vfp_notifier_block = {
+  */
+ static void vfp_raise_sigfpe(unsigned int sicode, struct pt_regs *regs)
  {
 -	siginfo_t info;
 -
 -	clear_siginfo(&info);
--	info.si_signo   = SIGBUS;
--	info.si_errno   = 0;
--	info.si_code    = BUS_MCEERR_AR;
--	info.si_addr    = (void __user *)address;
-+	short lsb;
+-	info.si_signo = SIGFPE;
+-	info.si_code = sicode;
+-	info.si_addr = (void __user *)(instruction_pointer(regs) - 4);
+-
+ 	/*
+ 	 * This is the same as NWFPE, because it's not clear what
+ 	 * this is used for
+@@ -230,7 +223,9 @@ static void vfp_raise_sigfpe(unsigned int sicode, struct pt_regs *regs)
+ 	current->thread.error_code = 0;
+ 	current->thread.trap_no = 6;
  
- 	if (is_vm_hugetlb_page(vma))
--		info.si_addr_lsb = huge_page_shift(hstate_vma(vma));
-+		lsb = huge_page_shift(hstate_vma(vma));
- 	else
--		info.si_addr_lsb = PAGE_SHIFT;
-+		lsb = PAGE_SHIFT;
- 
--	send_sig_info(SIGBUS, &info, current);
-+	send_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb, current);
+-	send_sig_info(SIGFPE, &info, current);
++	send_sig_fault(SIGFPE, sicode,
++		       (void __user *)(instruction_pointer(regs) - 4),
++		       current);
  }
  
- static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
+ static void vfp_panic(char *reason, u32 inst)
 -- 
 2.17.1
