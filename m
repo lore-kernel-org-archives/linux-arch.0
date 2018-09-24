@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V5 21/30] csky: remove irq_mapping from smp.c
-Date: Tue, 25 Sep 2018 07:39:24 +0800
-Message-ID: <7fea6f7e58728eef8248c8c5e518f45e6043ba4b.1537789737.git.ren_guo@c-sky.com>
+Subject: [PATCH V5 23/30] dt-bindings: interrupt-controller: C-SKY SMP intc
+Date: Tue, 25 Sep 2018 07:39:26 +0800
+Message-ID: <57888913907d6c22b23425ed9d4e5a79be5b2eff.1537789737.git.ren_guo@c-sky.com>
 References: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
@@ -12,102 +12,59 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
- - Add irq_mapping return check
- - Move IPI_IRQ into irq-driver
- - remove irq_mapping from smp.c to irq-driver
- - Add set_ipi_irq_mapping api to irq-driver
- - update asm/smp.h
+ - Dt-bindings doc about C-SKY Multi-processors interrupt controller.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/smp.h |  4 +++-
- arch/csky/kernel/smp.c      | 27 +++++++++++++++++++--------
- 2 files changed, 22 insertions(+), 9 deletions(-)
+ .../bindings/interrupt-controller/csky,mpintc.txt  | 40 ++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
 
-diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
-index 9a53abf..f3e4f24 100644
---- a/arch/csky/include/asm/smp.h
-+++ b/arch/csky/include/asm/smp.h
-@@ -17,7 +17,9 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask);
- 
- void arch_send_call_function_single_ipi(int cpu);
- 
--void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long));
-+void __init set_send_ipi(void (*func)(const unsigned long *));
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+new file mode 100644
+index 0000000..9cdad74
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+@@ -0,0 +1,40 @@
++===========================================
++C-SKY Multi-processors Interrupt Controller
++===========================================
 +
-+void __init set_ipi_irq_mapping(int (*func)(void));
- 
- #define raw_smp_processor_id()	(current_thread_info()->cpu)
- 
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
-index 522c73f..14877e2 100644
---- a/arch/csky/kernel/smp.c
-+++ b/arch/csky/kernel/smp.c
-@@ -20,8 +20,6 @@
- #include <asm/mmu_context.h>
- #include <asm/pgalloc.h>
- 
--#define IPI_IRQ	15
--
- static struct {
- 	unsigned long bits ____cacheline_aligned;
- } ipi_data[NR_CPUS] __cacheline_aligned;
-@@ -56,9 +54,9 @@ static irqreturn_t handle_ipi(int irq, void *dev)
- 	return IRQ_HANDLED;
- }
- 
--static void (*send_arch_ipi)(const unsigned long *mask, unsigned long irq) = NULL;
-+static void (*send_arch_ipi)(const unsigned long *mask) = NULL;
- 
--void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long))
-+void __init set_send_ipi(void (*func)(const unsigned long *))
- {
- 	if (send_arch_ipi)
- 		return;
-@@ -75,7 +73,7 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
- 		set_bit(operation, &ipi_data[i].bits);
- 
- 	smp_mb();
--	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
-+	send_arch_ipi(cpumask_bits(to_whom));
- }
- 
- void arch_send_call_function_ipi_mask(struct cpumask *mask)
-@@ -115,19 +113,32 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
- }
- 
- static int ipi_dummy_dev;
-+static int ipi_irq;
- 
- void __init enable_smp_ipi(void)
- {
--	enable_percpu_irq(IPI_IRQ, 0);
-+	enable_percpu_irq(ipi_irq, 0);
-+}
++C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
++SMP soc, and it also could be used in non-SMP system.
 +
-+static int (*arch_ipi_irq_mapping)(void) = NULL;
++Interrupt number definition:
 +
-+void __init set_ipi_irq_mapping(int (*func)(void))
-+{
-+	if (arch_ipi_irq_mapping)
-+		return;
++  0-15  : software irq, and we use 15 as our IPI_IRQ.
++ 16-31  : private  irq, and we use 16 as the co-processor timer.
++ 31-1024: common irq for soc ip.
 +
-+	arch_ipi_irq_mapping = func;
- }
- 
- void __init setup_smp_ipi(void)
- {
- 	int rc;
- 
--	irq_create_mapping(NULL, IPI_IRQ);
-+	ipi_irq = arch_ipi_irq_mapping();
-+	if (ipi_irq == 0)
-+		panic("%s IRQ mapping failed\n", __func__);
- 
--	rc = request_percpu_irq(IPI_IRQ, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
-+	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
- 	if (rc)
- 		panic("%s IRQ request failed\n", __func__);
- 
++=============================
++intc node bindings definition
++=============================
++
++	Description: Describes SMP interrupt controller
++
++	PROPERTIES
++
++	- compatible
++		Usage: required
++		Value type: <string>
++		Definition: must be "csky,mpintc"
++	- interrupt-cells
++		Usage: required
++		Value type: <u32>
++		Definition: must be <1>
++	- interrupt-controller:
++		Usage: required
++
++Examples:
++---------
++
++	intc: interrupt-controller {
++		compatible = "csky,mpintc";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
 -- 
 2.7.4
