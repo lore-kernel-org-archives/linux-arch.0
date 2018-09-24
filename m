@@ -1,80 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:56427 "EHLO
+Received: from out02.mta.xmission.com ([166.70.13.232]:56433 "EHLO
         out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728028AbeIXPMn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:12:43 -0400
+        with ESMTP id S1728028AbeIXPMs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:12:48 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 24 Sep 2018 11:10:03 +0200
-Message-ID: <20180924091015.4458-3-ebiederm@xmission.com>
+Date: Mon, 24 Sep 2018 11:10:04 +0200
+Message-ID: <20180924091015.4458-4-ebiederm@xmission.com>
 In-Reply-To: <871s9j462u.fsf@xmission.com>
 References: <871s9j462u.fsf@xmission.com>
-Subject: [REVIEW][PATCH 03/15] signal/arm64: Factor out arm64_show_signal from arm64_force_sig_info
+Subject: [REVIEW][PATCH 04/15] signal/arm64: Factor set_thread_esr out of __do_user_fault
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180924091003._bFLAbKE7dOXqfwTBd9F31Ff35OQM9vtGf9gOP8xwfU@z>
+Message-ID: <20180924091004.MGFN6rGkquCSih330kOvMeZ36_bw87EVAeJgrScXttk@z>
 
-Filling in siginfo is error prone and so it is wise to use more
-specialized helpers to do that work.  Factor out the arm specific
-unhandled signal reporting from the work of delivering a signal so
-the code can be modified to use functions that take the information
-to fill out siginfo as parameters.
+This pepares for sending signals with something other than
+arm64_force_sig_info.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm64/kernel/traps.c | 24 +++++++++++-------------
- 1 file changed, 11 insertions(+), 13 deletions(-)
+ arch/arm64/mm/fault.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 24035d124608..daee8c2ca561 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -224,24 +224,19 @@ void die(const char *str, struct pt_regs *regs, int err)
- 		do_exit(SIGSEGV);
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index f42aff0e90ad..654a861c4bd0 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -297,9 +297,9 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
+ 	die_kernel_fault(msg, addr, esr, regs);
  }
  
--static bool show_unhandled_signals_ratelimited(void)
-+static void arm64_show_signal(int signo, const char *str)
+-static void __do_user_fault(struct siginfo *info, unsigned int esr)
++static void set_thread_esr(unsigned long address, unsigned int esr)
  {
- 	static DEFINE_RATELIMIT_STATE(rs, DEFAULT_RATELIMIT_INTERVAL,
- 				      DEFAULT_RATELIMIT_BURST);
--	return show_unhandled_signals && __ratelimit(&rs);
--}
--
--void arm64_force_sig_info(struct siginfo *info, const char *str)
--{
- 	struct task_struct *tsk = current;
- 	unsigned int esr = tsk->thread.fault_code;
- 	struct pt_regs *regs = task_pt_regs(tsk);
+-	current->thread.fault_address = (unsigned long)info->si_addr;
++	current->thread.fault_address = address;
  
--	if (!unhandled_signal(tsk, info->si_signo))
--		goto send_sig;
--
--	if (!show_unhandled_signals_ratelimited())
--		goto send_sig;
-+	/* Leave if the signal won't be shown */
-+	if (!show_unhandled_signals ||
-+	    !unhandled_signal(tsk, signo) ||
-+	    !__ratelimit(&rs))
-+		return;
+ 	/*
+ 	 * If the faulting address is in the kernel, we must sanitize the ESR.
+@@ -352,6 +352,11 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
+ 	}
  
- 	pr_info("%s[%d]: unhandled exception: ", tsk->comm, task_pid_nr(tsk));
- 	if (esr)
-@@ -251,9 +246,12 @@ void arm64_force_sig_info(struct siginfo *info, const char *str)
- 	print_vma_addr(KERN_CONT " in ", regs->pc);
- 	pr_cont("\n");
- 	__show_regs(regs);
+ 	current->thread.fault_code = esr;
 +}
- 
--send_sig:
--	force_sig_info(info->si_signo, info, tsk);
-+void arm64_force_sig_info(struct siginfo *info, const char *str)
++
++static void __do_user_fault(struct siginfo *info, unsigned int esr)
 +{
-+	arm64_show_signal(info->si_signo, str);
-+	force_sig_info(info->si_signo, info, current);
++	set_thread_esr((unsigned long)info->si_addr, esr);
+ 	arm64_force_sig_info(info, esr_to_fault_info(esr)->name);
  }
  
- void arm64_notify_die(const char *str, struct pt_regs *regs,
 -- 
 2.17.1
