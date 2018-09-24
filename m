@@ -1,40 +1,140 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [REVIEW][PATCH 0/3] signal/unicore32: siginfo cleanups
-Date: Mon, 24 Sep 2018 17:23:35 +0200
-Message-ID: <87lg7q2a2w.fsf@xmission.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v8 07/16] x86/pci: Add Hygon Dhyana support to PCI and
+ north bridge
+Date: Mon, 24 Sep 2018 17:24:48 +0200
+Message-ID: <20180924152448.GE20187@zn.tnic>
+References: <cover.1537533368.git.puwen@hygon.cn>
+ <580dc519d37ad9257520fe8c533f2c61d3e0cd83.1537533369.git.puwen@hygon.cn>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <580dc519d37ad9257520fe8c533f2c61d3e0cd83.1537533369.git.puwen@hygon.cn>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Guan Xuetao <gxt@pku.edu.cn>
+To: Pu Wen <puwen@hygon.cn>
+Cc: bhelgaas@google.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Sun, Sep 23, 2018 at 05:35:13PM +0800, Pu Wen wrote:
+> As Hygon registered its PCI Vendor ID as a new one 0x1d94, and there
+> are PCI Devices 0x1450/0x1463/0x1464 for Host bridge on Hygon Dhyana
+> platform, so add Hygon Dhyana support to the PCI and north bridge
+> subsystem by using the code path of AMD family 17h.
+> 
+> To prevent further checking PCI device ids which cannot happen both on
+> Hygon and Intel platform, the function amd_gart_present should return
+> if it's not a AMD CPU.
+> 
+> Signed-off-by: Pu Wen <puwen@hygon.cn>
+> Acked-by: Bjorn Helgaas <bhelgaas@google.com>	# pci_ids.h
+> Reviewed-by: Borislav Petkov <bp@suse.de>
+> ---
+>  arch/x86/include/asm/amd_nb.h |  3 +++
+>  arch/x86/kernel/amd_nb.c      | 47 +++++++++++++++++++++++++++++++++++++------
+>  arch/x86/pci/amd_bus.c        |  6 ++++--
+>  include/linux/pci_ids.h       |  2 ++
+>  4 files changed, 50 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/amd_nb.h b/arch/x86/include/asm/amd_nb.h
+> index fddb6d2..1ae4e57 100644
+> --- a/arch/x86/include/asm/amd_nb.h
+> +++ b/arch/x86/include/asm/amd_nb.h
+> @@ -103,6 +103,9 @@ static inline u16 amd_pci_dev_to_node_id(struct pci_dev *pdev)
+>  
+>  static inline bool amd_gart_present(void)
+>  {
+> +	if (boot_cpu_data.x86_vendor != X86_VENDOR_AMD)
+> +		return false;
+> +
 
-I have been slowly cleaning up the architectues ever since I discovered
-that the pattern of passing in struct siginfo is error prone, and
-occassionally results in broken siginfo being sent to userspace.
+What is that for?
 
-I don't have a clue how to obtain a working unicore32 compiler so the
-following changes have only been reviewed carefully and not compile
-tested.  Still I believe they are simple and obviously correct.
+Hygon doesn't have F15h so that function will return false there too...
 
-Anyone who can review or test these changes please do and let me know
-about any problems you find so that I can correct them.
+... or is that because the qemu script you got from the 0day bot guys
+uses -cpu kvm64 which is family 0xf:
 
-My intention is to merge this through my siginfo tree.  If you feel it
-should go through your arch tree let me know.   All of the prerequisites
-should have been merged several releases ago.
+[    0.214353] smpboot: CPU0: AMD Common KVM processor (family: 0xf, model: 0x6, stepping: 0x1)
 
-Eric W. Biederman (3):
-      signal/unicore32: Use send_sig_fault where appropriate
-      signal/unicore32: Generate siginfo in ucs32_notify_die
-      signal/unicore32: Use force_sig_fault where appropriate
+?
 
- arch/unicore32/include/asm/bug.h  |  3 ++-
- arch/unicore32/kernel/fpu-ucf64.c | 12 +++---------
- arch/unicore32/kernel/traps.c     |  5 +++--
- arch/unicore32/mm/fault.c         | 27 +++++----------------------
- 4 files changed, 13 insertions(+), 34 deletions(-)
+and that makes amd_gart_present() say yes.
 
-Eric
+In that case, please make a *prepatch* which adds the vendor check to
+both amd_gart_present() and early_is_amd_nb() and send it as a reply to
+this message.
+
+*Then*, do this patch ontop and also as a reply.
+
+>  	/* GART present only on Fam15h, upto model 0fh */
+>  	if (boot_cpu_data.x86 == 0xf || boot_cpu_data.x86 == 0x10 ||
+>  	    (boot_cpu_data.x86 == 0x15 && boot_cpu_data.x86_model < 0x10))
+> diff --git a/arch/x86/kernel/amd_nb.c b/arch/x86/kernel/amd_nb.c
+> index b481b95..dcc4130 100644
+> --- a/arch/x86/kernel/amd_nb.c
+> +++ b/arch/x86/kernel/amd_nb.c
+> @@ -61,6 +61,21 @@ static const struct pci_device_id amd_nb_link_ids[] = {
+>  	{}
+>  };
+>  
+> +static const struct pci_device_id hygon_root_ids[] = {
+> +	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_AMD_17H_ROOT) },
+> +	{}
+> +};
+> +
+> +const struct pci_device_id hygon_nb_misc_ids[] = {
+> +	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_AMD_17H_DF_F3) },
+> +	{}
+> +};
+> +
+> +static const struct pci_device_id hygon_nb_link_ids[] = {
+> +	{ PCI_DEVICE(PCI_VENDOR_ID_HYGON, PCI_DEVICE_ID_AMD_17H_DF_F4) },
+> +	{}
+> +};
+> +
+>  const struct amd_nb_bus_dev_range amd_nb_bus_dev_ranges[] __initconst = {
+>  	{ 0x00, 0x18, 0x20 },
+>  	{ 0xff, 0x00, 0x20 },
+> @@ -197,12 +212,25 @@ int amd_cache_northbridges(void)
+>  	u16 i = 0;
+>  	struct amd_northbridge *nb;
+>  	struct pci_dev *root, *misc, *link;
+> +	const struct pci_device_id *root_ids = NULL;
+> +	const struct pci_device_id *misc_ids = NULL;
+> +	const struct pci_device_id *link_ids = NULL;
+> +
+> +	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+> +		root_ids = hygon_root_ids;
+> +		misc_ids = hygon_nb_misc_ids;
+> +		link_ids = hygon_nb_link_ids;
+> +	} else {
+> +		root_ids = amd_root_ids;
+> +		misc_ids = amd_nb_misc_ids;
+> +		link_ids = amd_nb_link_ids;
+> +	}
+
+Also, you can make this assignment differently:
+
+	const struct pci_device_id *root_ids = amd_root_ids;
+	const struct pci_device_id *misc_ids = amd_nb_misc_ids;
+	const struct pci_device_id *link_ids = amd_nb_link_ids;
+
+
+	if (boot_cpu_data.x86_vendor == X86_VENDOR_HYGON) {
+		root_ids = hygon_root_ids;
+		misc_ids = hygon_nb_misc_ids;
+		link_ids = hygon_nb_link_ids;
+	}
+
+This way the change is obvious and it is only for Hygon without
+affecting the other vendors.
+
+Ditto for the other assignment.
+
+Thx.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
