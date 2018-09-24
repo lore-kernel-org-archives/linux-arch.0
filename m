@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V5 14/30] csky: User access
-Date: Mon, 24 Sep 2018 22:36:30 +0800
-Message-ID: <dd7047e9e42e529c8929fb3ccc4639b1944aff06.1537789737.git.ren_guo@c-sky.com>
+Subject: [PATCH V5 13/30] csky: Library functions
+Date: Mon, 24 Sep 2018 22:36:29 +0800
+Message-ID: <2418a9d77fb92ff7606c08e209d8994e4f21e7ff.1537789737.git.ren_guo@c-sky.com>
 References: <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1537789737.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1537789737.git.ren_guo@c-sky.com>
@@ -9,700 +9,1671 @@ In-Reply-To: <cover.1537789736.git.ren_guo@c-sky.com>
 References: <cover.1537789736.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>, Chen Linfei <linfei_chen@c-sky.com>, Mao Han <han_mao@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds "user access from kernel" codes.
+This patch adds string optimize codes and some auxiliary code.
 
+Signed-off-by: Chen Linfei <linfei_chen@c-sky.com>
+Signed-off-by: Mao Han <han_mao@c-sky.com>
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/uaccess.h | 399 ++++++++++++++++++++++++++++++++++++++++
- arch/csky/lib/usercopy.c        | 271 +++++++++++++++++++++++++++
- 2 files changed, 670 insertions(+)
- create mode 100644 arch/csky/include/asm/uaccess.h
- create mode 100644 arch/csky/lib/usercopy.c
+ arch/csky/abiv1/bswapdi.c        |  19 +++
+ arch/csky/abiv1/bswapsi.c        |  15 ++
+ arch/csky/abiv1/inc/abi/string.h |  13 ++
+ arch/csky/abiv1/memcpy.S         | 345 +++++++++++++++++++++++++++++++++++++++
+ arch/csky/abiv1/memset.c         |  37 +++++
+ arch/csky/abiv1/strksyms.c       |   7 +
+ arch/csky/abiv2/inc/abi/string.h |  28 ++++
+ arch/csky/abiv2/memcmp.S         | 152 +++++++++++++++++
+ arch/csky/abiv2/memcpy.S         | 110 +++++++++++++
+ arch/csky/abiv2/memcpy.c         |  40 +++++
+ arch/csky/abiv2/memmove.S        | 108 ++++++++++++
+ arch/csky/abiv2/memset.S         |  83 ++++++++++
+ arch/csky/abiv2/strcmp.S         | 168 +++++++++++++++++++
+ arch/csky/abiv2/strcpy.S         | 123 ++++++++++++++
+ arch/csky/abiv2/strksyms.c       |  12 ++
+ arch/csky/abiv2/strlen.S         |  97 +++++++++++
+ arch/csky/abiv2/sysdep.h         |  30 ++++
+ arch/csky/include/asm/string.h   |  13 ++
+ arch/csky/kernel/platform.c      |  17 ++
+ arch/csky/kernel/power.c         |  30 ++++
+ arch/csky/lib/delay.c            |  40 +++++
+ 21 files changed, 1487 insertions(+)
+ create mode 100644 arch/csky/abiv1/bswapdi.c
+ create mode 100644 arch/csky/abiv1/bswapsi.c
+ create mode 100644 arch/csky/abiv1/inc/abi/string.h
+ create mode 100644 arch/csky/abiv1/memcpy.S
+ create mode 100644 arch/csky/abiv1/memset.c
+ create mode 100644 arch/csky/abiv1/strksyms.c
+ create mode 100644 arch/csky/abiv2/inc/abi/string.h
+ create mode 100644 arch/csky/abiv2/memcmp.S
+ create mode 100644 arch/csky/abiv2/memcpy.S
+ create mode 100644 arch/csky/abiv2/memcpy.c
+ create mode 100644 arch/csky/abiv2/memmove.S
+ create mode 100644 arch/csky/abiv2/memset.S
+ create mode 100644 arch/csky/abiv2/strcmp.S
+ create mode 100644 arch/csky/abiv2/strcpy.S
+ create mode 100644 arch/csky/abiv2/strksyms.c
+ create mode 100644 arch/csky/abiv2/strlen.S
+ create mode 100644 arch/csky/abiv2/sysdep.h
+ create mode 100644 arch/csky/include/asm/string.h
+ create mode 100644 arch/csky/kernel/platform.c
+ create mode 100644 arch/csky/kernel/power.c
+ create mode 100644 arch/csky/lib/delay.c
 
-diff --git a/arch/csky/include/asm/uaccess.h b/arch/csky/include/asm/uaccess.h
+diff --git a/arch/csky/abiv1/bswapdi.c b/arch/csky/abiv1/bswapdi.c
 new file mode 100644
-index 0000000..b927391
+index 0000000..80bf1e8
 --- /dev/null
-+++ b/arch/csky/include/asm/uaccess.h
-@@ -0,0 +1,399 @@
++++ b/arch/csky/abiv1/bswapdi.c
+@@ -0,0 +1,19 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_UACCESS_H
-+#define __ASM_CSKY_UACCESS_H
-+
-+/*
-+ * User space memory access functions
-+ */
++#include <linux/export.h>
 +#include <linux/compiler.h>
-+#include <linux/errno.h>
-+#include <linux/types.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/string.h>
-+#include <linux/version.h>
-+#include <asm/segment.h>
 +
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
-+
-+static inline int access_ok(int type, const void * addr, unsigned long size)
++unsigned long long notrace __bswapdi2(unsigned long long u)
 +{
-+	return (((unsigned long)addr < current_thread_info()->addr_limit.seg) &&
-+		((unsigned long)(addr + size) < current_thread_info()->addr_limit.seg));
++	return (((u) & 0xff00000000000000ull) >> 56) |
++	       (((u) & 0x00ff000000000000ull) >> 40) |
++	       (((u) & 0x0000ff0000000000ull) >> 24) |
++	       (((u) & 0x000000ff00000000ull) >>  8) |
++	       (((u) & 0x00000000ff000000ull) <<  8) |
++	       (((u) & 0x0000000000ff0000ull) << 24) |
++	       (((u) & 0x000000000000ff00ull) << 40) |
++	       (((u) & 0x00000000000000ffull) << 56);
 +}
 +
-+static inline int verify_area(int type, const void * addr, unsigned long size)
-+{
-+	return access_ok(type, addr, size) ? 0 : -EFAULT;
-+}
-+
-+#define __addr_ok(addr) (access_ok(VERIFY_READ, addr,0))
-+
-+extern int __put_user_bad(void);
-+
-+/*
-+ * Tell gcc we read from memory instead of writing: this is because
-+ * we do not write to any memory gcc knows about, so there are no
-+ * aliasing issues.
-+ */
-+
-+/*
-+ * These are the main single-value transfer routines.  They automatically
-+ * use the right size if we just have the right pointer type.
-+ *
-+ * This gets kind of ugly. We want to return _two_ values in "get_user()"
-+ * and yet we don't want to do any pointers, because that is too much
-+ * of a performance impact. Thus we have a few rather ugly macros here,
-+ * and hide all the ugliness from the user.
-+ *
-+ * The "__xxx" versions of the user access functions are versions that
-+ * do not verify the address space, that must have been done previously
-+ * with a separate "access_ok()" call (this is used when we do multiple
-+ * accesses to the same area of user memory).
-+ *
-+ * As we use the same address space for kernel and user data on
-+ * Ckcore, we can just do these as direct assignments.  (Of course, the
-+ * exception handling means that it's no longer "just"...)
-+ */
-+
-+#define put_user(x,ptr) \
-+	__put_user_check((x), (ptr), sizeof(*(ptr)))
-+
-+#define __put_user(x,ptr) \
-+	__put_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+#define __ptr(x) ((unsigned long *)(x))
-+
-+#define get_user(x,ptr) \
-+	__get_user_check((x), (ptr), sizeof(*(ptr)))
-+
-+#define __get_user(x,ptr) \
-+	__get_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+#define __put_user_nocheck(x, ptr, size)				\
-+({									\
-+	long __pu_err=0;						\
-+	typeof(*(ptr)) *__pu_addr = (ptr);				\
-+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);			\
-+	if(__pu_addr){							\
-+	    __put_user_size(__pu_val, (__pu_addr), (size), __pu_err);	\
-+	}								\
-+	__pu_err;							\
-+})
-+
-+#define __put_user_check(x,ptr,size)					\
-+({									\
-+	long __pu_err = -EFAULT;					\
-+	typeof(*(ptr)) *__pu_addr = (ptr);				\
-+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
-+	if (access_ok(VERIFY_WRITE, __pu_addr, size) && __pu_addr)      \
-+		__put_user_size(__pu_val, __pu_addr, (size), __pu_err); \
-+	__pu_err;                                                       \
-+})
-+
-+#define __put_user_size(x,ptr,size,retval)                              \
-+do {                                                                    \
-+	retval = 0;                                                     \
-+	switch (size) {                                                 \
-+		case 1: __put_user_asm_b(x, ptr, retval); break;        \
-+		case 2: __put_user_asm_h(x, ptr, retval); break;        \
-+		case 4: __put_user_asm_w(x, ptr, retval); break;        \
-+		case 8: __put_user_asm_64(x, ptr, retval); break;       \
-+		default: __put_user_bad();                              \
-+	}	                                                        \
-+} while (0)
-+
-+/*
-+ * We don't tell gcc that we are accessing memory, but this is OK
-+ * because we do not write to any memory gcc knows about, so there
-+ * are no aliasing issues.
-+ *
-+ * Note that PC at a fault is the address *after* the faulting
-+ * instruction.
-+ */
-+#define __put_user_asm_b(x, ptr, err)                           \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	         "1:     stb   %1, (%2,0)        \n"            \
-+	         "       br    3f                \n"            \
-+	         "2:     mov   %0, %3            \n"            \
-+	         "       br    3f                \n"            \
-+	         ".section __ex_table,\"a\"      \n"            \
-+	         ".align   2                     \n"            \
-+	         ".long    1b,2b                 \n"            \
-+	         ".previous                      \n"            \
-+	          "3:                            \n"            \
-+	         : "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode) \
-+	         : "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)     \
-+	         : "memory");                                   \
-+}while(0)
-+
-+#define __put_user_asm_h(x, ptr, err)                           \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	         "1:     sth   %1, (%2,0)        \n"            \
-+	         "       br    3f                \n"            \
-+	         "2:     mov   %0, %3            \n"            \
-+	         "       br    3f                \n"            \
-+	         ".section __ex_table,\"a\"      \n"            \
-+	         ".align   2                     \n"            \
-+	         ".long    1b,2b                 \n"            \
-+	         ".previous                      \n"            \
-+	          "3:                            \n"            \
-+	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
-+	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
-+	         : "memory");                                   \
-+}while(0)
-+
-+#define __put_user_asm_w(x, ptr, err)                           \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	         "1:     stw   %1, (%2,0)        \n"            \
-+	         "       br    3f                \n"            \
-+	         "2:     mov   %0, %3            \n"            \
-+	         "       br    3f                \n"            \
-+	         ".section __ex_table,\"a\"      \n"            \
-+	         ".align   2                     \n"            \
-+	         ".long    1b,2b                 \n"            \
-+	         ".previous                      \n"            \
-+	          "3:                            \n"            \
-+	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
-+	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
-+	         : "memory");                                   \
-+}while(0)
-+
-+#define __put_user_asm_64(x, ptr, err)                          \
-+do{                                                             \
-+	int tmp;                                                \
-+	int errcode;                                            \
-+	typeof(*(ptr)) src = ( typeof(*(ptr)))x;                \
-+	typeof(*(ptr)) *psrc = &src;                            \
-+	                                                        \
-+	asm volatile(                                           \
-+	        "     ldw     %3, (%1, 0)     \n"               \
-+	        "1:   stw     %3, (%2, 0)     \n"               \
-+	        "     ldw     %3, (%1, 4)     \n"               \
-+	        "2:   stw     %3, (%2, 4)     \n"               \
-+	        "     br      4f              \n"               \
-+	        "3:   mov     %0, %4          \n"               \
-+	        "     br      4f              \n"               \
-+	        ".section __ex_table, \"a\"   \n"               \
-+	        ".align   2                   \n"               \
-+	        ".long    1b, 3b              \n"               \
-+	        ".long    2b, 3b              \n"               \
-+	        ".previous                    \n"               \
-+	        "4:                           \n"               \
-+	        :"=r"(err),"=r"(psrc),"=r"(ptr),"=r"(tmp),"=r"(errcode) \
-+	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)   \
-+	        : "memory" );                                   \
-+}while (0)
-+
-+#define __get_user_nocheck(x, ptr, size)                        \
-+({                                                              \
-+	long  __gu_err;	                                        \
-+	__get_user_size(x, (ptr), (size), __gu_err);            \
-+	__gu_err;                                               \
-+})
-+
-+#define __get_user_check(x, ptr, size)                          \
-+({                                                              \
-+	int __gu_err = -EFAULT;	                                \
-+	const __typeof__(*(ptr)) __user * __gu_ptr = (ptr);     \
-+	if (access_ok(VERIFY_READ, __gu_ptr, size) && __gu_ptr) \
-+		__get_user_size(x, __gu_ptr, (size), __gu_err); \
-+	__gu_err;                                               \
-+})
-+
-+#define __get_user_size(x, ptr, size, retval)                   \
-+do {                                                            \
-+	switch (size) {                                         \
-+		case 1: __get_user_asm_common((x),ptr,"ldb",retval);break;\
-+		case 2: __get_user_asm_common((x),ptr,"ldh",retval);break;\
-+		case 4: __get_user_asm_common((x),ptr,"ldw",retval);break;\
-+		default:                                        \
-+			x=0;                                    \
-+			(retval) = __get_user_bad();            \
-+	}                                                       \
-+} while (0)
-+
-+#define __get_user_asm_common(x, ptr, ins, err)                 \
-+do{                                                             \
-+	int errcode;                                            \
-+	asm volatile(                                           \
-+	        "1:   " ins "   %1, (%4,0)      \n"             \
-+	        "       br    3f                \n"             \
-+	        /* Fix up codes */                              \
-+	        "2:     mov   %0, %2            \n"             \
-+	        "       movi  %1, 0             \n"             \
-+	        "       br    3f                \n"             \
-+	        ".section __ex_table,\"a\"      \n"             \
-+	        ".align   2                     \n"             \
-+	        ".long    1b,2b                 \n"             \
-+	        ".previous                      \n"             \
-+	        "3:                            \n"              \
-+	        :"=r"(err), "=r"(x), "=r"(errcode)              \
-+	        :"0"(0), "r"(ptr), "2"(-EFAULT)                 \
-+	        : "memory");                                    \
-+}while(0)
-+
-+extern int __get_user_bad(void);
-+
-+#define __copy_user(to, from, n)                                \
-+do{                                                             \
-+	int w0, w1, w2, w3;                                     \
-+	asm volatile(                                           \
-+		"0:     cmpnei  %1, 0           \n"             \
-+		"       bf      8f              \n"             \
-+		"       mov     %3, %1          \n"             \
-+		"       or      %3, %2          \n"             \
-+		"       andi    %3, 3           \n"             \
-+		"       cmpnei  %3, 0           \n"             \
-+		"       bf      1f              \n"             \
-+		"       br      5f              \n"             \
-+		"1:     cmplti  %0, 16          \n"   /* 4W */  \
-+		"       bt      3f              \n"             \
-+		"       ldw     %3, (%2, 0)     \n"             \
-+		"       ldw     %4, (%2, 4)     \n"             \
-+		"       ldw     %5, (%2, 8)     \n"             \
-+		"       ldw     %6, (%2, 12)    \n"             \
-+		"2:     stw     %3, (%1, 0)     \n"             \
-+		"9:     stw     %4, (%1, 4)     \n"             \
-+		"10:    stw     %5, (%1, 8)     \n"             \
-+		"11:    stw     %6, (%1, 12)    \n"             \
-+		"       addi    %2, 16          \n"             \
-+		"       addi    %1, 16          \n"             \
-+		"       subi    %0, 16          \n"             \
-+		"       br      1b              \n"             \
-+		"3:     cmplti  %0, 4           \n"  /* 1W */   \
-+		"       bt      5f              \n"             \
-+		"       ldw     %3, (%2, 0)     \n"             \
-+		"4:     stw     %3, (%1, 0)     \n"             \
-+		"       addi    %2, 4           \n"             \
-+		"       addi    %1, 4           \n"             \
-+		"       subi    %0, 4           \n"             \
-+		"       br      3b              \n"             \
-+		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-+		"       bf      8f              \n"             \
-+		"       ldb     %3, (%2, 0)     \n"             \
-+		"6:     stb     %3, (%1, 0)     \n"             \
-+		"       addi    %2,  1          \n"             \
-+		"       addi    %1,  1          \n"             \
-+		"       subi    %0,  1          \n"             \
-+		"       br      5b              \n"             \
-+		"7:     br      8f              \n"             \
-+		".section __ex_table, \"a\"     \n"             \
-+		".align   2                     \n"             \
-+		".long    2b, 7b                \n"             \
-+		".long    9b, 7b                \n"             \
-+		".long   10b, 7b                \n"             \
-+		".long   11b, 7b                \n"             \
-+		".long    4b, 7b                \n"             \
-+		".long    6b, 7b                \n"             \
-+		".previous                      \n"		\
-+		"8:                             \n"		\
-+	        : "=r"(n), "=r"(to), "=r"(from), "=r"(w0),	\
-+		  "=r"(w1), "=r"(w2), "=r"(w3)			\
-+		: "0"(n), "1"(to), "2"(from)                    \
-+		: "memory" );                                   \
-+} while (0)
-+
-+#define __copy_user_zeroing(to, from, n) \
-+do{								\
-+	int tmp;						\
-+	int nsave;						\
-+	asm volatile(						\
-+		"0:     cmpnei  %1, 0           \n"		\
-+		"       bf      7f              \n"		\
-+		"       mov     %3, %1          \n"		\
-+		"       or      %3, %2          \n"		\
-+		"       andi    %3, 3           \n"		\
-+		"       cmpnei  %3, 0           \n"		\
-+		"       bf      1f              \n"		\
-+		"       br      5f              \n"		\
-+		"1:     cmplti  %0, 16          \n"		\
-+		"       bt      3f              \n"		\
-+		"2:     ldw     %3, (%2, 0)     \n"		\
-+		"10:    ldw     %4, (%2, 4)     \n"		\
-+		"       stw     %3, (%1, 0)     \n"		\
-+		"       stw     %4, (%1, 4)     \n"		\
-+		"11:    ldw     %3, (%2, 8)     \n"		\
-+		"12:    ldw     %4, (%2, 12)    \n"		\
-+		"       stw     %3, (%1, 8)     \n"		\
-+		"       stw     %4, (%1, 12)    \n"		\
-+		"       addi    %2, 16          \n"		\
-+		"       addi    %1, 16          \n"		\
-+		"       subi    %0, 16          \n"		\
-+		"       br      1b              \n"		\
-+		"3:     cmplti  %0, 4           \n"		\
-+		"       bt      5f              \n"		\
-+		"4:     ldw     %3, (%2, 0)     \n"		\
-+		"       stw     %3, (%1, 0)     \n"		\
-+		"       addi    %2, 4           \n"		\
-+		"       addi    %1, 4           \n"		\
-+		"       subi    %0, 4           \n"		\
-+		"       br      3b              \n"		\
-+		"5:     cmpnei  %0, 0           \n"		\
-+		"       bf      7f              \n"		\
-+		"6:     ldb     %3, (%2, 0)     \n"		\
-+		"       stb     %3, (%1, 0)     \n"		\
-+		"       addi    %2,  1          \n"		\
-+		"       addi    %1,  1          \n"		\
-+		"       subi    %0,  1          \n"		\
-+		"       br      5b              \n"		\
-+		"8:     mov     %3, %0          \n"		\
-+		"       movi    %4, 0           \n"		\
-+		"9:     stb     %4, (%1, 0)     \n"		\
-+		"       addi    %1, 1           \n"		\
-+		"       subi    %3, 1           \n"		\
-+		"       cmpnei  %3, 0           \n"		\
-+		"       bt      9b              \n"		\
-+		"       br      7f              \n"		\
-+		".section __ex_table, \"a\"     \n"		\
-+		".align   2                     \n"		\
-+		".long    2b, 8b                \n"		\
-+		".long   10b, 8b                \n"		\
-+		".long   11b, 8b                \n"		\
-+		".long   12b, 8b                \n"		\
-+		".long    4b, 8b                \n"		\
-+		".long    6b, 8b                \n"		\
-+		".previous                      \n"		\
-+		"7:                             \n"		\
-+		: "=r"(n), "=r"(to), "=r"(from), "=r"(nsave),	\
-+		  "=r"(tmp)					\
-+		: "0"(n), "1"(to), "2"(from)			\
-+		: "memory" );					\
-+} while (0)
-+
-+unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);
-+unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
-+
-+unsigned long clear_user(void *to, unsigned long n);
-+unsigned long __clear_user(void __user *to, unsigned long n);
-+
-+long strncpy_from_user(char *dst, const char *src, long count);
-+long __strncpy_from_user(char *dst, const char *src, long count);
-+
-+/*
-+ * Return the size of a string (including the ending 0)
-+ *
-+ * Return 0 on exception, a value greater than N if too long
-+ */
-+long strnlen_user(const char *src, long n);
-+
-+#define strlen_user(str) strnlen_user(str, 32767)
-+
-+struct exception_table_entry
-+{
-+	unsigned long insn;
-+	unsigned long nextinsn;
-+};
-+
-+extern int fixup_exception(struct pt_regs *regs);
-+
-+#endif /* __ASM_CSKY_UACCESS_H */
-diff --git a/arch/csky/lib/usercopy.c b/arch/csky/lib/usercopy.c
++EXPORT_SYMBOL(__bswapdi2);
+diff --git a/arch/csky/abiv1/bswapsi.c b/arch/csky/abiv1/bswapsi.c
 new file mode 100644
-index 0000000..576386e
+index 0000000..043a18f
 --- /dev/null
-+++ b/arch/csky/lib/usercopy.c
-@@ -0,0 +1,271 @@
++++ b/arch/csky/abiv1/bswapsi.c
+@@ -0,0 +1,15 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/uaccess.h>
++#include <linux/export.h>
++#include <linux/compiler.h>
++
++unsigned int notrace __bswapsi2(unsigned int u)
++{
++	return (((u) & 0xff000000) >> 24) |
++	       (((u) & 0x00ff0000) >>  8) |
++	       (((u) & 0x0000ff00) <<  8) |
++	       (((u) & 0x000000ff) << 24);
++}
++
++EXPORT_SYMBOL(__bswapsi2);
+diff --git a/arch/csky/abiv1/inc/abi/string.h b/arch/csky/abiv1/inc/abi/string.h
+new file mode 100644
+index 0000000..60d4fc4
+--- /dev/null
++++ b/arch/csky/abiv1/inc/abi/string.h
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ABI_CSKY_STRING_H
++#define __ABI_CSKY_STRING_H
++
++#define __HAVE_ARCH_MEMCPY
++extern void * memcpy(void *,const void *,__kernel_size_t);
++
++#define __HAVE_ARCH_MEMSET
++extern void * memset(void *,int,__kernel_size_t);
++
++#endif /* __ABI_CSKY_STRING_H */
+diff --git a/arch/csky/abiv1/memcpy.S b/arch/csky/abiv1/memcpy.S
+new file mode 100644
+index 0000000..cae1d20
+--- /dev/null
++++ b/arch/csky/abiv1/memcpy.S
+@@ -0,0 +1,345 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++
++.macro	GET_FRONT_BITS rx y
++#ifdef	__cskyLE__
++	lsri	\rx, \y
++#else
++	lsli	\rx, \y
++#endif
++.endm
++
++.macro	GET_AFTER_BITS rx y
++#ifdef	__cskyLE__
++	lsli	\rx, \y
++#else
++	lsri	\rx, \y
++#endif
++.endm
++
++/* void *memcpy(void *dest, const void *src, size_t n); */
++ENTRY(memcpy)
++	mov	r7, r2
++	cmplti	r4, 4                                   /* If len less than 4 bytes */
++	bt	.L_copy_by_byte
++	mov	r6, r2
++	andi	r6, 3
++	cmpnei	r6, 0
++	jbt	.L_dest_not_aligned                     /* If dest is not 4 bytes aligned */
++	mov	r6, r3
++	andi	r6, 3
++	cmpnei	r6, 0
++	jbt	.L_dest_aligned_but_src_not_aligned     /* If dest is aligned, but src is not aligned */
++.L0:
++	cmplti	r4, 16
++	jbt	.L_aligned_and_len_less_16bytes         /* If len less than 16 bytes */
++	subi	sp, 8
++	stw	r8, (sp, 0)
++.L_aligned_and_len_larger_16bytes:                      /* src and dst are all aligned, and len > 16 bytes */
++	ldw	r1, (r3, 0)
++	ldw	r5, (r3, 4)
++	ldw	r8, (r3, 8)
++	stw	r1, (r7, 0)
++	ldw	r1, (r3, 12)
++	stw	r5, (r7, 4)
++	stw	r8, (r7, 8)
++	stw	r1, (r7, 12)
++	subi	r4, 16
++	addi	r3, 16
++	addi	r7, 16
++	cmplti	r4, 16
++	jbf	.L_aligned_and_len_larger_16bytes
++	ldw	r8, (sp, 0)
++	addi	sp, 8
++	cmpnei	r4, 0                    /* If len == 0, return, else goto .L_aligned_and_len_less_16bytes  */
++	jbf	.L_return
++
++.L_aligned_and_len_less_16bytes:
++	cmplti	r4, 4
++	bt	.L_copy_by_byte
++.L1:
++	ldw	r1, (r3, 0)
++	stw	r1, (r7, 0)
++	subi	r4, 4
++	addi	r3, 4
++	addi	r7, 4
++	cmplti	r4, 4
++	jbf	.L1
++	br	.L_copy_by_byte
++
++.L_return:
++	rts
++
++.L_copy_by_byte:                      /* len less than 4 bytes */
++	cmpnei	r4, 0
++	jbf	.L_return
++.L4:
++	ldb	r1, (r3, 0)
++	stb	r1, (r7, 0)
++	addi	r3, 1
++	addi	r7, 1
++	decne	r4
++	jbt	.L4
++	rts
++
++/* If dest is not aligned, just copying some bytes makes the dest align.
++   Afther that, we judge whether the src is aligned. */
++.L_dest_not_aligned:
++	mov	r5, r3
++	rsub	r5, r5, r7
++	abs	r5, r5
++	cmplt	r5, r4
++	bt	.L_copy_by_byte
++	mov	r5, r7
++	sub	r5, r3
++	cmphs	r5, r4
++	bf	.L_copy_by_byte
++	mov	r5, r6
++.L5:
++	ldb	r1, (r3, 0)              /* makes the dest align. */
++	stb	r1, (r7, 0)
++	addi	r5, 1
++	subi	r4, 1
++	addi	r3, 1
++	addi	r7, 1
++	cmpnei	r5, 4
++	jbt	.L5
++	cmplti	r4, 4
++	jbt	.L_copy_by_byte
++	mov	r6, r3                   /* judge whether the src is aligned. */
++	andi	r6, 3
++	cmpnei	r6, 0
++	jbf	.L0
++
++/* Judge the number of misaligned, 1, 2, 3? */
++.L_dest_aligned_but_src_not_aligned:
++	mov	r5, r3
++	rsub	r5, r5, r7
++	abs	r5, r5
++	cmplt	r5, r4
++	bt	.L_copy_by_byte
++	bclri	r3, 0
++	bclri	r3, 1
++	ldw	r1, (r3, 0)
++	addi	r3, 4
++	cmpnei	r6, 2
++	bf	.L_dest_aligned_but_src_not_aligned_2bytes
++	cmpnei	r6, 3
++	bf	.L_dest_aligned_but_src_not_aligned_3bytes
++
++.L_dest_aligned_but_src_not_aligned_1byte:
++	mov	r5, r7
++	sub	r5, r3
++	cmphs	r5, r4
++	bf	.L_copy_by_byte
++	cmplti	r4, 16
++	bf	.L11
++.L10:                                     /* If the len is less than 16 bytes */
++	GET_FRONT_BITS r1 8
++	mov	r5, r1
++	ldw	r6, (r3, 0)
++	mov	r1, r6
++	GET_AFTER_BITS r6 24
++	or	r5, r6
++	stw	r5, (r7, 0)
++	subi	r4, 4
++	addi	r3, 4
++	addi	r7, 4
++	cmplti	r4, 4
++	bf	.L10
++	subi	r3, 3
++	br	.L_copy_by_byte
++.L11:
++	subi	sp, 16
++	stw	r8, (sp, 0)
++	stw	r9, (sp, 4)
++	stw	r10, (sp, 8)
++	stw	r11, (sp, 12)
++.L12:
++	ldw	r5, (r3, 0)
++	ldw	r11, (r3, 4)
++	ldw	r8, (r3, 8)
++	ldw	r9, (r3, 12)
++
++	GET_FRONT_BITS r1 8               /* little or big endian? */
++	mov	r10, r5
++	GET_AFTER_BITS r5 24
++	or	r5, r1
++
++	GET_FRONT_BITS r10 8
++	mov	r1, r11
++	GET_AFTER_BITS r11 24
++	or	r11, r10
++
++	GET_FRONT_BITS r1 8
++	mov	r10, r8
++	GET_AFTER_BITS r8 24
++	or	r8, r1
++
++	GET_FRONT_BITS r10 8
++	mov	r1, r9
++	GET_AFTER_BITS r9 24
++	or	r9, r10
++
++	stw	r5, (r7, 0)
++	stw	r11, (r7, 4)
++	stw	r8, (r7, 8)
++	stw	r9, (r7, 12)
++	subi	r4, 16
++	addi	r3, 16
++	addi	r7, 16
++	cmplti	r4, 16
++	jbf	.L12
++	ldw	r8, (sp, 0)
++	ldw	r9, (sp, 4)
++	ldw	r10, (sp, 8)
++	ldw	r11, (sp, 12)
++	addi	sp , 16
++	cmplti	r4, 4
++	bf	.L10
++	subi	r3, 3
++	br	.L_copy_by_byte
++
++.L_dest_aligned_but_src_not_aligned_2bytes:
++	cmplti	r4, 16
++	bf	.L21
++.L20:
++	GET_FRONT_BITS r1 16
++	mov	r5, r1
++	ldw	r6, (r3, 0)
++	mov	r1, r6
++	GET_AFTER_BITS r6 16
++	or	r5, r6
++	stw	r5, (r7, 0)
++	subi	r4, 4
++	addi	r3, 4
++	addi	r7, 4
++	cmplti	r4, 4
++	bf	.L20
++	subi	r3, 2
++	br	.L_copy_by_byte
++	rts
++
++.L21:	/* n > 16 */
++	subi 	sp, 16
++	stw	r8, (sp, 0)
++	stw	r9, (sp, 4)
++	stw	r10, (sp, 8)
++	stw	r11, (sp, 12)
++
++.L22:
++	ldw	r5, (r3, 0)
++	ldw	r11, (r3, 4)
++	ldw	r8, (r3, 8)
++	ldw	r9, (r3, 12)
++
++	GET_FRONT_BITS r1 16
++	mov	r10, r5
++	GET_AFTER_BITS r5 16
++	or	r5, r1
++
++	GET_FRONT_BITS r10 16
++	mov	r1, r11
++	GET_AFTER_BITS r11 16
++	or	r11, r10
++
++	GET_FRONT_BITS r1 16
++	mov	r10, r8
++	GET_AFTER_BITS r8 16
++	or	r8, r1
++
++	GET_FRONT_BITS r10 16
++	mov	r1, r9
++	GET_AFTER_BITS r9 16
++	or	r9, r10
++
++	stw	r5, (r7, 0)
++	stw	r11, (r7, 4)
++	stw	r8, (r7, 8)
++	stw	r9, (r7, 12)
++	subi	r4, 16
++	addi	r3, 16
++	addi	r7, 16
++	cmplti	r4, 16
++	jbf	.L22
++	ldw	r8, (sp, 0)
++	ldw	r9, (sp, 4)
++	ldw	r10, (sp, 8)
++	ldw	r11, (sp, 12)
++	addi	sp, 16
++	cmplti	r4, 4
++	bf	.L20
++	subi	r3, 2
++	br	.L_copy_by_byte
++
++
++.L_dest_aligned_but_src_not_aligned_3bytes:
++	cmplti	r4, 16
++	bf	.L31
++.L30:
++	GET_FRONT_BITS r1 24
++	mov	r5, r1
++	ldw	r6, (r3, 0)
++	mov	r1, r6
++	GET_AFTER_BITS r6 8
++	or	r5, r6
++	stw	r5, (r7, 0)
++	subi	r4, 4
++	addi	r3, 4
++	addi	r7, 4
++	cmplti	r4, 4
++	bf	.L30
++	subi	r3, 1
++	br	.L_copy_by_byte
++.L31:
++	subi	sp, 16
++	stw	r8, (sp, 0)
++	stw	r9, (sp, 4)
++	stw	r10, (sp, 8)
++	stw	r11, (sp, 12)
++.L32:
++	ldw	r5, (r3, 0)
++	ldw	r11, (r3, 4)
++	ldw	r8, (r3, 8)
++	ldw	r9, (r3, 12)
++
++	GET_FRONT_BITS r1 24
++	mov	r10, r5
++	GET_AFTER_BITS r5 8
++	or	r5, r1
++
++	GET_FRONT_BITS r10 24
++	mov	r1, r11
++	GET_AFTER_BITS r11 8
++	or	r11, r10
++
++	GET_FRONT_BITS r1 24
++	mov	r10, r8
++	GET_AFTER_BITS r8 8
++	or	r8, r1
++
++	GET_FRONT_BITS r10 24
++	mov	r1, r9
++	GET_AFTER_BITS r9 8
++	or	r9, r10
++
++	stw	r5, (r7, 0)
++	stw	r11, (r7, 4)
++	stw	r8, (r7, 8)
++	stw	r9, (r7, 12)
++	subi	r4, 16
++	addi	r3, 16
++	addi	r7, 16
++	cmplti	r4, 16
++	jbf	.L32
++	ldw	r8, (sp, 0)
++	ldw	r9, (sp, 4)
++	ldw	r10, (sp, 8)
++	ldw	r11, (sp, 12)
++	addi	sp, 16
++	cmplti	r4, 4
++	bf	.L30
++	subi	r3, 1
++	br	.L_copy_by_byte
+diff --git a/arch/csky/abiv1/memset.c b/arch/csky/abiv1/memset.c
+new file mode 100644
+index 0000000..b4aa75b
+--- /dev/null
++++ b/arch/csky/abiv1/memset.c
+@@ -0,0 +1,37 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
 +#include <linux/types.h>
 +
-+unsigned long
-+raw_copy_from_user(
-+		void *to,
-+		const void *from,
-+		unsigned long n)
++void *memset(void *dest, int c, size_t l)
 +{
-+	if (access_ok(VERIFY_READ, from, n))
-+		__copy_user_zeroing(to,from,n);
-+	else
-+		memset(to,0, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_from_user);
++	char *d = dest;
++	int ch = c & 0xff;
++	int tmp = (ch | ch << 8 | ch << 16 | ch << 24);
 +
-+unsigned long
-+raw_copy_to_user(
-+		void *to,
-+		const void *from,
-+		unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__copy_user(to,from,n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_to_user);
++	while (((uintptr_t)d & 0x3) && l--)
++		*d++ = ch;
 +
-+
-+/*
-+ * copy a null terminated string from userspace.
-+ */
-+#define __do_strncpy_from_user(dst,src,count,res)       \
-+do{                                                     \
-+        int tmp;                                        \
-+        long faultres;                                  \
-+        asm volatile(                           \
-+        "       cmpnei  %3, 0           \n"             \
-+        "       bf      4f              \n"             \
-+        "1:     cmpnei  %1, 0          	\n"             \
-+        "       bf      5f              \n"             \
-+        "2:     ldb     %4, (%3, 0)     \n"             \
-+        "       stb     %4, (%2, 0)     \n"             \
-+        "       cmpnei  %4, 0           \n"             \
-+        "       bf      3f              \n"             \
-+        "       addi    %3,  1          \n"             \
-+        "       addi    %2,  1          \n"             \
-+        "       subi    %1,  1          \n"             \
-+        "       br      1b              \n"             \
-+        "3:     subu	%0, %1          \n"             \
-+        "       br      5f              \n"             \
-+        "4:     mov     %0, %5          \n"             \
-+        "       br      5f              \n"             \
-+        ".section __ex_table, \"a\"     \n"             \
-+        ".align   2                     \n"             \
-+        ".long    2b, 4b                \n"             \
-+        ".previous                      \n"             \
-+        "5:                             \n"             \
-+          :"=r"(res),"=r"(count),"=r"(dst),"=r"(src), "=r"(tmp),"=r"(faultres) \
-+          : "5"(-EFAULT),"0"(count), "1"(count), "2"(dst),"3"(src)     	       \
-+          : "memory" );	                                \
-+} while(0)
-+
-+/*
-+ * __strncpy_from_user: - Copy a NUL terminated string from userspace, with less checking.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ * Caller must check the specified block with access_ok() before calling
-+ * this function.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long
-+__strncpy_from_user(
-+	char *dst,
-+	const char *src,
-+	long count)
-+{
-+	long res;
-+	__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+EXPORT_SYMBOL(__strncpy_from_user);
-+
-+/*
-+ * strncpy_from_user: - Copy a NUL terminated string from userspace.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long
-+strncpy_from_user(
-+	char *dst,
-+	const char *src,
-+	long count)
-+{
-+	long res = -EFAULT;
-+	if (access_ok(VERIFY_READ, src, 1))
-+		__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+EXPORT_SYMBOL(strncpy_from_user);
-+
-+/*
-+ * strlen_user: - Get the size of a string in user space.
-+ * @str: The string to measure.
-+ * @n:   The maximum valid length
-+ *
-+ * Get the size of a NUL-terminated string in user space.
-+ *
-+ * Returns the size of the string INCLUDING the terminating NUL.
-+ * On exception, returns 0.
-+ * If the string is too long, returns a value greater than @n.
-+ */
-+long strnlen_user(const char *s, long n)
-+{
-+
-+	unsigned long res,tmp;
-+	if(s){
-+	asm volatile(
-+        "       cmpnei  %1, 0           \n"
-+        "       bf      3f              \n"
-+        "1:     cmpnei  %0, 0           \n"
-+        "       bf      3f              \n"
-+        "2:     ldb     %3, (%1, 0)     \n"
-+        "       cmpnei  %3, 0           \n"
-+        "       bf      3f              \n"
-+        "       subi    %0,  1          \n"
-+        "       addi    %1,  1          \n"
-+        "       br      1b              \n"
-+        "3:     subu    %2, %0          \n"
-+        "       addi    %2,  1          \n"
-+        "       br      5f              \n"
-+        "4:     movi    %0, 0           \n"
-+        "       br      5f              \n"
-+        ".section __ex_table, \"a\"     \n"
-+        ".align   2                     \n"
-+        ".long    2b, 4b                \n"
-+        ".previous                      \n"
-+        "5:                             \n"
-+        :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)
-+        : "0"(n), "1"(s), "2"(n)
-+        : "memory", "cc" );
-+		return res;
++	while (l >= 16) {
++		*(((u32 *)d))   = tmp;
++		*(((u32 *)d)+1) = tmp;
++		*(((u32 *)d)+2) = tmp;
++		*(((u32 *)d)+3) = tmp;
++		l -= 16;
++		d += 16;
 +	}
-+	return 0;
-+}
-+EXPORT_SYMBOL(strnlen_user);
 +
-+#define __do_clear_user(addr, size)                             \
-+do {                                                            \
-+	int __d0;                                               \
-+	int zvalue;                                             \
-+	int tmp;                                                \
-+	asm volatile(						\
-+		"0:     cmpnei  %1, 0           \n"             \
-+		"       bf      7f              \n"             \
-+		"       mov     %3, %1          \n"             \
-+		"       andi    %3, 3           \n"             \
-+		"       cmpnei  %3, 0           \n"             \
-+		"       bf      1f              \n"             \
-+		"       br      5f              \n"             \
-+		"1:     cmplti  %0, 32          \n"   /* 4W */  \
-+		"       bt      3f              \n"             \
-+		"8:     stw     %2, (%1, 0)     \n"             \
-+		"10:    stw     %2, (%1, 4)     \n"             \
-+		"11:    stw     %2, (%1, 8)     \n"             \
-+		"12:    stw     %2, (%1, 12)    \n"             \
-+		"13:    stw     %2, (%1, 16)    \n"             \
-+		"14:    stw     %2, (%1, 20)    \n"             \
-+		"15:    stw     %2, (%1, 24)    \n"             \
-+		"16:    stw     %2, (%1, 28)    \n"             \
-+		"       addi    %1, 32          \n"             \
-+		"       subi    %0, 32          \n"             \
-+		"       br      1b              \n"             \
-+		"3:     cmplti  %0, 4           \n"  /* 1W */   \
-+		"       bt      5f              \n"             \
-+		"4:     stw     %2, (%1, 0)     \n"             \
-+		"       addi    %1, 4           \n"             \
-+		"       subi    %0, 4           \n"             \
-+		"       br      3b              \n"             \
-+		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-+		"9:     bf      7f              \n"             \
-+		"6:     stb     %2, (%1, 0)     \n"             \
-+		"       addi    %1,  1          \n"             \
-+		"       subi    %0,  1          \n"             \
-+		"       br      5b              \n"             \
-+		".section __ex_table,\"a\"      \n"             \
-+		".align   2                     \n"             \
-+		".long    8b, 9b                \n"             \
-+		".long    10b, 9b               \n"             \
-+		".long    11b, 9b               \n"             \
-+		".long    12b, 9b               \n"             \
-+		".long    13b, 9b               \n"             \
-+		".long    14b, 9b               \n"             \
-+		".long    15b, 9b               \n"             \
-+		".long    16b, 9b               \n"             \
-+		".long    4b, 9b                \n"             \
-+		".long    6b, 9b                \n"             \
-+		".previous                      \n"             \
-+		"7:                             \n"             \
-+		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp) \
-+		: "0"(size), "1"(addr), "2"(0)                  \
-+		: "memory"                                      \
-+	);                                                      \
-+} while (0)
++	while (l > 3) {
++		*(((u32 *)d)) = tmp;
++		l -= 4;
++		d += 4;
++	}
++
++	while (l) {
++		*d = ch;
++		l--;
++		d++;
++	}
++
++	return dest;
++}
+diff --git a/arch/csky/abiv1/strksyms.c b/arch/csky/abiv1/strksyms.c
+new file mode 100644
+index 0000000..436995c
+--- /dev/null
++++ b/arch/csky/abiv1/strksyms.c
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/module.h>
++
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
+diff --git a/arch/csky/abiv2/inc/abi/string.h b/arch/csky/abiv2/inc/abi/string.h
+new file mode 100644
+index 0000000..2297d13
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/string.h
+@@ -0,0 +1,28 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ABI_CSKY_STRING_H
++#define __ABI_CSKY_STRING_H
++
++#define __HAVE_ARCH_MEMCMP
++extern int memcmp(const void *,const void *,__kernel_size_t);
++
++#define __HAVE_ARCH_MEMCPY
++extern void * memcpy(void *,const void *,__kernel_size_t);
++
++#define __HAVE_ARCH_MEMMOVE
++extern void * memmove(void *,const void *,__kernel_size_t);
++
++#define __HAVE_ARCH_MEMSET
++extern void * memset(void *,int,__kernel_size_t);
++
++#define __HAVE_ARCH_STRCMP
++extern int strcmp(const char *,const char *);
++
++#define __HAVE_ARCH_STRCPY
++extern char * strcpy(char *,const char *);
++
++#define __HAVE_ARCH_STRLEN
++extern __kernel_size_t strlen(const char *);
++
++#endif /* __ABI_CSKY_STRING_H */
+diff --git a/arch/csky/abiv2/memcmp.S b/arch/csky/abiv2/memcmp.S
+new file mode 100644
+index 0000000..717de57
+--- /dev/null
++++ b/arch/csky/abiv2/memcmp.S
+@@ -0,0 +1,152 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++ENTRY(memcmp)
++	/* Test if len less than 4 bytes.  */
++	mov	r3, r0
++	movi	r0, 0
++	mov	r12, r4
++	cmplti	r2, 4
++	jbt	.L_compare_by_byte
++
++	andi	r13, r0, 3
++	movi	r19, 4
++
++	/* Test if s1 is not 4 bytes aligned.  */
++	bnez	r13, .L_s1_not_aligned
++
++	LABLE_ALIGN
++.L_s1_aligned:
++	/* If dest is aligned, then copy.  */
++	zext	r18, r2, 31, 4
++	/* Test if len less than 16 bytes.  */
++	bez	r18, .L_compare_by_word
++
++.L_compare_by_4word:
++	/* If aligned, load word each time.  */
++	ldw	r20, (r3, 0)
++	ldw	r21, (r1, 0)
++	/* If s1[i] != s2[i], goto .L_byte_check.  */
++	cmpne	r20, r21
++	bt	.L_byte_check
++
++	ldw	r20, (r3, 4)
++	ldw	r21, (r1, 4)
++	cmpne	r20, r21
++	bt	.L_byte_check
++
++	ldw	r20, (r3, 8)
++	ldw	r21, (r1, 8)
++	cmpne	r20, r21
++	bt	.L_byte_check
++
++	ldw	r20, (r3, 12)
++	ldw	r21, (r1, 12)
++	cmpne	r20, r21
++	bt	.L_byte_check
++
++	PRE_BNEZAD (r18)
++	addi	a3, 16
++	addi	a1, 16
++
++	BNEZAD (r18, .L_compare_by_4word)
++
++.L_compare_by_word:
++	zext	r18, r2, 3, 2
++	bez	r18, .L_compare_by_byte
++.L_compare_by_word_loop:
++	ldw	r20, (r3, 0)
++	ldw	r21, (r1, 0)
++	addi	r3, 4
++	PRE_BNEZAD (r18)
++	cmpne	r20, r21
++	addi    r1, 4
++	bt	.L_byte_check
++	BNEZAD (r18, .L_compare_by_word_loop)
++
++.L_compare_by_byte:
++        zext    r18, r2, 1, 0
++        bez     r18, .L_return
++.L_compare_by_byte_loop:
++        ldb     r0, (r3, 0)
++        ldb     r4, (r1, 0)
++        addi    r3, 1
++        subu    r0, r4
++        PRE_BNEZAD (r18)
++        addi    r1, 1
++        bnez    r0, .L_return
++        BNEZAD (r18, .L_compare_by_byte_loop)
++
++.L_return:
++        mov     r4, r12
++        rts
++
++# ifdef __CSKYBE__
++/* d[i] != s[i] in word, so we check byte 0.  */
++.L_byte_check:
++        xtrb0   r0, r20
++        xtrb0   r2, r21
++        subu    r0, r2
++        bnez    r0, .L_return
++
++        /* check byte 1 */
++        xtrb1   r0, r20
++        xtrb1   r2, r21
++        subu    r0, r2
++        bnez    r0, .L_return
++
++        /* check byte 2 */
++        xtrb2   r0, r20
++        xtrb2   r2, r21
++        subu    r0, r2
++        bnez    r0, .L_return
++
++        /* check byte 3 */
++        xtrb3   r0, r20
++        xtrb3   r2, r21
++        subu    r0, r2
++# else
++/* s1[i] != s2[i] in word, so we check byte 3.  */
++.L_byte_check:
++	xtrb3	r0, r20
++	xtrb3	r2, r21
++        subu    r0, r2
++        bnez    r0, .L_return
++
++	/* check byte 2 */
++	xtrb2	r0, r20
++	xtrb2	r2, r21
++        subu    r0, r2
++        bnez    r0, .L_return
++
++	/* check byte 1 */
++	xtrb1	r0, r20
++	xtrb1	r2, r21
++	subu	r0, r2
++	bnez    r0, .L_return
++
++	/* check byte 0 */
++	xtrb0	r0, r20
++	xtrb0	r2, r21
++	subu	r0, r2
++	br	.L_return
++# endif /* !__CSKYBE__ */
++
++/* Compare when s1 is not aligned.  */
++.L_s1_not_aligned:
++	sub	r13, r19, r13
++	sub	r2, r13
++.L_s1_not_aligned_loop:
++	ldb	r0, (r3, 0)
++	ldb	r4, (r1, 0)
++	addi	r3, 1
++	subu	r0, r4
++	PRE_BNEZAD (r13)
++	addi	r1, 1
++	bnez	r0, .L_return
++	BNEZAD (r13, .L_s1_not_aligned_loop)
++	br	.L_s1_aligned
++ENDPROC(memcmp)
+diff --git a/arch/csky/abiv2/memcpy.S b/arch/csky/abiv2/memcpy.S
+new file mode 100644
+index 0000000..0623e7c
+--- /dev/null
++++ b/arch/csky/abiv2/memcpy.S
+@@ -0,0 +1,110 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++ENTRY(__memcpy)
++ENTRY(memcpy)
++	/* Test if len less than 4 bytes.  */
++	mov	r12, r0
++	cmplti	r2, 4
++	jbt	.L_copy_by_byte
++
++	andi	r13, r0, 3
++	movi	r19, 4
++	/* Test if dest is not 4 bytes aligned.  */
++	bnez	r13, .L_dest_not_aligned
++
++/* Hardware can handle unaligned access directly.  */
++.L_dest_aligned:
++	/* If dest is aligned, then copy.  */
++	zext	r18, r2, 31, 4
++
++	/* Test if len less than 16 bytes.  */
++	bez	r18, .L_len_less_16bytes
++	movi	r19, 0
++
++	LABLE_ALIGN
++.L_len_larger_16bytes:
++#if defined(__CSKY_VDSPV2__)
++	vldx.8	vr0, (r1), r19
++	PRE_BNEZAD (r18)
++	addi	r1, 16
++	vstx.8	vr0, (r0), r19
++	addi	r0, 16
++#elif defined(__CK860__)
++	ldw	r3, (r1, 0)
++	stw	r3, (r0, 0)
++	ldw	r3, (r1, 4)
++	stw	r3, (r0, 4)
++	ldw	r3, (r1, 8)
++	stw	r3, (r0, 8)
++	ldw	r3, (r1, 12)
++	addi	r1, 16
++	stw	r3, (r0, 12)
++	addi	r0, 16
++#else
++	ldw	r20, (r1, 0)
++	ldw	r21, (r1, 4)
++	ldw	r22, (r1, 8)
++	ldw	r23, (r1, 12)
++	stw	r20, (r0, 0)
++	stw	r21, (r0, 4)
++	stw	r22, (r0, 8)
++	stw	r23, (r0, 12)
++	PRE_BNEZAD (r18)
++	addi	r1, 16
++	addi	r0, 16
++#endif
++	BNEZAD (r18, .L_len_larger_16bytes)
++
++.L_len_less_16bytes:
++	zext	r18, r2, 3, 2
++	bez	r18, .L_copy_by_byte
++.L_len_less_16bytes_loop:
++	ldw	r3, (r1, 0)
++	PRE_BNEZAD (r18)
++	addi	r1, 4
++	stw	r3, (r0, 0)
++	addi	r0, 4
++	BNEZAD (r18, .L_len_less_16bytes_loop)
++
++/* Test if len less than 4 bytes.  */
++.L_copy_by_byte:
++	zext	r18, r2, 1, 0
++	bez	r18, .L_return
++.L_copy_by_byte_loop:
++	ldb	r3, (r1, 0)
++	PRE_BNEZAD (r18)
++	addi	r1, 1
++	stb	r3, (r0, 0)
++	addi	r0, 1
++	BNEZAD (r18, .L_copy_by_byte_loop)
++
++.L_return:
++	mov	r0, r12
++	rts
 +
 +/*
-+ * clear_user: - Zero a block of memory in user space.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
++ * If dest is not aligned, just copying some bytes makes the
++ * dest align.
 + */
-+unsigned long
-+clear_user(void __user *to, unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(clear_user);
++.L_dest_not_aligned:
++	sub	r13, r19, r13
++	sub	r2, r13
++
++/* Makes the dest align.  */
++.L_dest_not_aligned_loop:
++	ldb	r3, (r1, 0)
++	PRE_BNEZAD (r13)
++	addi	r1, 1
++	stb	r3, (r0, 0)
++	addi	r0, 1
++	BNEZAD (r13, .L_dest_not_aligned_loop)
++	cmplti	r2, 4
++	jbt	.L_copy_by_byte
++
++	/* Check whether the src is aligned.  */
++	jbr	.L_dest_aligned
++ENDPROC(__memcpy)
+diff --git a/arch/csky/abiv2/memcpy.c b/arch/csky/abiv2/memcpy.c
+new file mode 100644
+index 0000000..b8b4019
+--- /dev/null
++++ b/arch/csky/abiv2/memcpy.c
+@@ -0,0 +1,40 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/types.h>
 +
 +/*
-+ * __clear_user: - Zero a block of memory in user space, with less checking.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
++ * memory copy function.
 + */
-+unsigned long
-+__clear_user(void __user *to, unsigned long n)
++void *memcpy (void *to, const void *from, size_t l)
 +{
-+	__do_clear_user(to, n);
-+	return n;
++	char *d = to;
++	const char *s = from;
++
++	if (((long)d | (long)s) & 0x3) {
++		while (l--) *d++ = *s++;
++	} else {
++		while (l >= 16) {
++			*(((long *)d)) = *(((long *)s));
++			*(((long *)d)+1) = *(((long *)s)+1);
++			*(((long *)d)+2) = *(((long *)s)+2);
++			*(((long *)d)+3) = *(((long *)s)+3);
++			l -= 16;
++			d += 16;
++			s += 16;
++		}
++
++		while (l > 3) {
++			*(((long *)d)) = *(((long *)s));
++			d = d +4;
++			s = s +4;
++			l -= 4;
++		}
++
++		while (l) {
++			*d++ = *s++;
++			l--;
++		}
++	}
++	return to;
 +}
-+EXPORT_SYMBOL(__clear_user);
+diff --git a/arch/csky/abiv2/memmove.S b/arch/csky/abiv2/memmove.S
+new file mode 100644
+index 0000000..fe703c6
+--- /dev/null
++++ b/arch/csky/abiv2/memmove.S
+@@ -0,0 +1,108 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++	.weak memmove
++ENTRY(__memmove)
++ENTRY(memmove)
++	subu	r3, r0, r1
++	cmphs	r3, r2
++	jbt	memcpy
++
++	mov	r12, r0
++	addu	r0, r0, r2
++	addu	r1, r1, r2
++
++	/* Test if len less than 4 bytes.  */
++	cmplti	r2, 4
++	jbt	.L_copy_by_byte
++
++	andi	r13, r0, 3
++	/* Test if dest is not 4 bytes aligned.  */
++	bnez	r13, .L_dest_not_aligned
++	/* Hardware can handle unaligned access directly.  */
++.L_dest_aligned:
++	/* If dest is aligned, then copy.  */
++	zext	r18, r2, 31, 4
++	/* Test if len less than 16 bytes.  */
++	bez	r18, .L_len_less_16bytes
++	movi	r19, 0
++
++	/* len > 16 bytes */
++	LABLE_ALIGN
++.L_len_larger_16bytes:
++	subi	r1, 16
++	subi	r0, 16
++#if defined(__CSKY_VDSPV2__)
++	vldx.8	vr0, (r1), r19
++	PRE_BNEZAD (r18)
++	vstx.8	vr0, (r0), r19
++#elif defined(__CK860__)
++	ldw	r3, (r1, 12)
++	stw	r3, (r0, 12)
++	ldw	r3, (r1, 8)
++	stw	r3, (r0, 8)
++	ldw	r3, (r1, 4)
++	stw	r3, (r0, 4)
++	ldw	r3, (r1, 0)
++	stw	r3, (r0, 0)
++#else
++	ldw	r20, (r1, 0)
++	ldw	r21, (r1, 4)
++	ldw	r22, (r1, 8)
++	ldw	r23, (r1, 12)
++	stw	r20, (r0, 0)
++	stw	r21, (r0, 4)
++	stw	r22, (r0, 8)
++	stw	r23, (r0, 12)
++	PRE_BNEZAD (r18)
++#endif
++	BNEZAD (r18, .L_len_larger_16bytes)
++
++.L_len_less_16bytes:
++	zext	r18, r2, 3, 2
++	bez	r18, .L_copy_by_byte
++.L_len_less_16bytes_loop:
++	subi	r1, 4
++	subi	r0, 4
++	ldw	r3, (r1, 0)
++	PRE_BNEZAD (r18)
++	stw	r3, (r0, 0)
++	BNEZAD (r18, .L_len_less_16bytes_loop)
++
++	/* Test if len less than 4 bytes.  */
++.L_copy_by_byte:
++	zext	r18, r2, 1, 0
++	bez	r18, .L_return
++.L_copy_by_byte_loop:
++	subi	r1, 1
++	subi	r0, 1
++	ldb	r3, (r1, 0)
++	PRE_BNEZAD (r18)
++	stb	r3, (r0, 0)
++	BNEZAD (r18, .L_copy_by_byte_loop)
++
++.L_return:
++	mov	r0, r12
++	rts
++
++	/* If dest is not aligned, just copy some bytes makes the dest
++	   align.  */
++.L_dest_not_aligned:
++	sub	r2, r13
++.L_dest_not_aligned_loop:
++	subi	r1, 1
++	subi	r0, 1
++	/* Makes the dest align.  */
++	ldb	r3, (r1, 0)
++	PRE_BNEZAD (r13)
++	stb	r3, (r0, 0)
++	BNEZAD (r13, .L_dest_not_aligned_loop)
++	cmplti	r2, 4
++	jbt	.L_copy_by_byte
++	/* Check whether the src is aligned.  */
++	jbr	.L_dest_aligned
++ENDPROC(memmove)
++ENDPROC(__memmove)
+diff --git a/arch/csky/abiv2/memset.S b/arch/csky/abiv2/memset.S
+new file mode 100644
+index 0000000..ff438ac
+--- /dev/null
++++ b/arch/csky/abiv2/memset.S
+@@ -0,0 +1,83 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++	.weak memset
++ENTRY(__memset)
++ENTRY(memset)
++	/* Test if len less than 4 bytes.  */
++	mov	r12, r0
++	cmplti	r2, 8
++	jbt	.L_set_by_byte
++
++	andi	r13, r0, 3
++	movi	r19, 4
++	/* Test if dest is not 4 bytes aligned.  */
++	bnez	r13, .L_dest_not_aligned
++	/* Hardware can handle unaligned access directly.  */
++.L_dest_aligned:
++        zextb   r3, r1
++        lsli    r1, 8
++        or      r1, r3
++        lsli    r3, r1, 16
++        or      r3, r1
++
++	/* If dest is aligned, then copy.  */
++	zext	r18, r2, 31, 4
++	/* Test if len less than 16 bytes.  */
++	bez	r18, .L_len_less_16bytes
++
++	LABLE_ALIGN
++.L_len_larger_16bytes:
++	stw	r3, (r0, 0)
++	stw	r3, (r0, 4)
++	stw	r3, (r0, 8)
++	stw	r3, (r0, 12)
++	PRE_BNEZAD (r18)
++	addi	r0, 16
++	BNEZAD (r18, .L_len_larger_16bytes)
++
++.L_len_less_16bytes:
++	zext	r18, r2, 3, 2
++	andi	r2, 3
++	bez	r18, .L_set_by_byte
++.L_len_less_16bytes_loop:
++	stw	r3, (r0, 0)
++	PRE_BNEZAD (r18)
++	addi	r0, 4
++	BNEZAD (r18, .L_len_less_16bytes_loop)
++
++	/* Test if len less than 4 bytes.  */
++.L_set_by_byte:
++	zext	r18, r2, 2, 0
++	bez	r18, .L_return
++.L_set_by_byte_loop:
++	stb	r1, (r0, 0)
++	PRE_BNEZAD (r18)
++	addi	r0, 1
++	BNEZAD (r18, .L_set_by_byte_loop)
++
++.L_return:
++	mov	r0, r12
++	rts
++
++	/* If dest is not aligned, just set some bytes makes the dest
++	   align.  */
++
++.L_dest_not_aligned:
++	sub	r13, r19, r13
++	sub	r2, r13
++.L_dest_not_aligned_loop:
++	/* Makes the dest align.  */
++	stb	r1, (r0, 0)
++	PRE_BNEZAD (r13)
++	addi	r0, 1
++	BNEZAD (r13, .L_dest_not_aligned_loop)
++	cmplti	r2, 8
++	jbt	.L_set_by_byte
++	/* Check whether the src is aligned.  */
++	jbr	.L_dest_aligned
++ENDPROC(memset)
++ENDPROC(__memset)
+diff --git a/arch/csky/abiv2/strcmp.S b/arch/csky/abiv2/strcmp.S
+new file mode 100644
+index 0000000..7cbbaec
+--- /dev/null
++++ b/arch/csky/abiv2/strcmp.S
+@@ -0,0 +1,168 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++ENTRY(strcmp)
++	mov	a3, a0
++	/* Check if the s1 addr is aligned.  */
++	xor	a2, a3, a1
++	andi	a2, 0x3
++	bnez	a2, 7f
++	andi	t1, a0, 0x3
++	bnez	t1, 5f
++
++1:
++	/* If aligned, load word each time.  */
++	ldw	t0, (a3, 0)
++	ldw	t1, (a1, 0)
++	/* If s1[i] != s2[i], goto 2f.  */
++	cmpne   t0, t1
++	bt      2f
++	/* If s1[i] == s2[i], check if s1 or s2 is at the end.  */
++	tstnbz	t0
++	/* If at the end, goto 3f (finish comparing).  */
++	bf	3f
++
++	ldw	t0, (a3, 4)
++	ldw	t1, (a1, 4)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	ldw	t0, (a3, 8)
++	ldw	t1, (a1, 8)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	ldw	t0, (a3, 12)
++	ldw	t1, (a1, 12)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	ldw	t0, (a3, 16)
++	ldw	t1, (a1, 16)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	ldw	t0, (a3, 20)
++	ldw	t1, (a1, 20)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	ldw	t0, (a3, 24)
++	ldw	t1, (a1, 24)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	ldw	t0, (a3, 28)
++	ldw	t1, (a1, 28)
++	cmpne	t0, t1
++	bt	2f
++	tstnbz	t0
++	bf	3f
++
++	addi	a3, 32
++	addi	a1, 32
++
++	br	1b
++
++# ifdef __CSKYBE__
++	/* d[i] != s[i] in word, so we check byte 0.  */
++2:
++	xtrb0   a0, t0
++	xtrb0   a2, t1
++	subu    a0, a2
++	bez     a2, 4f
++	bnez    a0, 4f
++
++	/* check byte 1 */
++	xtrb1   a0, t0
++	xtrb1   a2, t1
++	subu    a0, a2
++	bez     a2, 4f
++	bnez    a0, 4f
++
++	/* check byte 2 */
++	xtrb2   a0, t0
++	xtrb2   a2, t1
++	subu    a0, a2
++	bez     a2, 4f
++	bnez    a0, 4f
++
++	/* check byte 3 */
++	xtrb3   a0, t0
++	xtrb3   a2, t1
++	subu    a0, a2
++# else
++	/* s1[i] != s2[i] in word, so we check byte 3.  */
++2:
++	xtrb3	a0, t0
++	xtrb3	a2, t1
++	subu    a0, a2
++	bez     a2, 4f
++	bnez    a0, 4f
++
++	/* check byte 2 */
++	xtrb2	a0, t0
++	xtrb2	a2, t1
++	subu    a0, a2
++	bez     a2, 4f
++	bnez    a0, 4f
++
++	/* check byte 1 */
++	xtrb1	a0, t0
++	xtrb1	a2, t1
++	subu	a0, a2
++	bez	a2, 4f
++	bnez    a0, 4f
++
++	/* check byte 0 */
++	xtrb0	a0, t0
++	xtrb0	a2, t1
++	subu	a0, a2
++
++# endif /* !__CSKYBE__ */
++	jmp     lr
++3:
++	movi	a0, 0
++4:
++	jmp     lr
++
++	/* Compare when s1 or s2 is not aligned.  */
++5:
++	subi    t1, 4
++6:
++	ldb	a0, (a3, 0)
++	ldb	a2, (a1, 0)
++	subu	a0, a2
++	bez	a2, 4b
++	bnez	a0, 4b
++	addi    t1, 1
++	addi	a1, 1
++	addi	a3, 1
++	bnez	t1, 6b
++	br	1b
++
++7:
++	ldb	a0, (a3, 0)
++	addi	a3, 1
++	ldb	a2, (a1, 0)
++	addi	a1, 1
++	subu    a0, a2
++	bnez    a0, 4b
++	bnez	a2, 7b
++	jmp	r15
++ENDPROC(strcmp)
+diff --git a/arch/csky/abiv2/strcpy.S b/arch/csky/abiv2/strcpy.S
+new file mode 100644
+index 0000000..0183c5e
+--- /dev/null
++++ b/arch/csky/abiv2/strcpy.S
+@@ -0,0 +1,123 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++ENTRY(strcpy)
++	mov	a3, a0
++	/* Check if the src addr is aligned.  */
++        andi    t0, a1, 3
++        bnez	t0, 11f
++1:
++	/* Check if all the bytes in the word are not zero.  */
++	ldw	a2, (a1)
++	tstnbz	a2
++	bf	9f
++	stw	a2, (a3)
++
++	ldw	a2, (a1, 4)
++	tstnbz	a2
++	bf	2f
++	stw	a2, (a3, 4)
++
++	ldw	a2, (a1, 8)
++	tstnbz	a2
++	bf	3f
++	stw	a2, (a3, 8)
++
++	ldw	a2, (a1, 12)
++	tstnbz	a2
++	bf	4f
++	stw	a2, (a3, 12)
++
++	ldw	a2, (a1, 16)
++	tstnbz	a2
++	bf	5f
++	stw	a2, (a3, 16)
++
++	ldw	a2, (a1, 20)
++	tstnbz	a2
++	bf	6f
++	stw	a2, (a3, 20)
++
++	ldw	a2, (a1, 24)
++	tstnbz	a2
++	bf	7f
++	stw	a2, (a3, 24)
++
++	ldw	a2, (a1, 28)
++	tstnbz	a2
++	bf	8f
++	stw	a2, (a3, 28)
++
++	addi	a3, 32
++	addi	a1, 32
++	br	1b
++
++
++2:
++	addi	a3, 4
++	br	9f
++
++3:
++	addi	a3, 8
++	br	9f
++
++4:
++	addi	a3, 12
++	br	9f
++
++5:
++	addi	a3, 16
++	br	9f
++
++6:
++	addi	a3, 20
++	br	9f
++
++7:
++	addi	a3, 24
++	br	9f
++
++8:
++	addi	a3, 28
++9:
++# ifdef __CSKYBE__
++	xtrb0	t0, a2
++	st.b	t0, (a3)
++	bez	t0, 10f
++	xtrb1	t0, a2
++	st.b	t0, (a3, 1)
++	bez	t0, 10f
++	xtrb2	t0, a2
++	st.b	t0, (a3, 2)
++	bez	t0, 10f
++	stw	a2, (a3)
++# else
++	xtrb3	t0, a2
++	st.b	t0, (a3)
++	bez	t0, 10f
++	xtrb2	t0, a2
++	st.b	t0, (a3, 1)
++	bez	t0, 10f
++	xtrb1	t0, a2
++	st.b	t0, (a3, 2)
++	bez	t0, 10f
++	stw	a2, (a3)
++# endif	/* !__CSKYBE__ */
++10:
++	jmp	lr
++
++11:
++	subi    t0, 4
++12:
++        ld.b    a2, (a1)
++        st.b	a2, (a3)
++        bez	a2, 10b
++	addi    t0, 1
++        addi    a1, a1, 1
++        addi    a3, a3, 1
++	bnez	t0, 12b
++	jbr	1b
++ENDPROC(strcpy)
+diff --git a/arch/csky/abiv2/strksyms.c b/arch/csky/abiv2/strksyms.c
+new file mode 100644
+index 0000000..06da723
+--- /dev/null
++++ b/arch/csky/abiv2/strksyms.c
+@@ -0,0 +1,12 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/module.h>
++
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
++EXPORT_SYMBOL(memcmp);
++EXPORT_SYMBOL(memmove);
++EXPORT_SYMBOL(strcmp);
++EXPORT_SYMBOL(strcpy);
++EXPORT_SYMBOL(strlen);
+diff --git a/arch/csky/abiv2/strlen.S b/arch/csky/abiv2/strlen.S
+new file mode 100644
+index 0000000..c0c5d79
+--- /dev/null
++++ b/arch/csky/abiv2/strlen.S
+@@ -0,0 +1,97 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include "sysdep.h"
++
++ENTRY(strlen)
++	/* Check if the start addr is aligned.  */
++	mov	r3, r0
++	andi	r1, r0, 3
++	movi	r2, 4
++	movi	r0, 0
++	bnez	r1, .L_start_not_aligned
++
++	LABLE_ALIGN
++.L_start_addr_aligned:
++	/* Check if all the bytes in the word are not zero.  */
++	ldw	r1, (r3)
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 4)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 8)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 12)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 16)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 20)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 24)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	ldw	r1, (r3, 28)
++	addi	r0, 4
++	tstnbz	r1
++	bf	.L_string_tail
++
++	addi	r0, 4
++	addi	r3, 32
++	br	.L_start_addr_aligned
++
++.L_string_tail:
++# ifdef __CSKYBE__
++	xtrb0	r3, r1
++	bez	r3, .L_return
++	addi	r0, 1
++	xtrb1	r3, r1
++	bez	r3, .L_return
++	addi	r0, 1
++	xtrb2	r3, r1
++	bez	r3, .L_return
++	addi	r0, 1
++# else
++	xtrb3	r3, r1
++	bez	r3, .L_return
++	addi	r0, 1
++	xtrb2	r3, r1
++	bez	r3, .L_return
++	addi	r0, 1
++	xtrb1	r3, r1
++	bez	r3, .L_return
++	addi	r0, 1
++# endif	/* !__CSKYBE__ */
++
++.L_return:
++	rts
++
++.L_start_not_aligned:
++	sub	r2, r2, r1
++.L_start_not_aligned_loop:
++	ldb	r1, (r3)
++	PRE_BNEZAD (r2)
++	addi	r3, 1
++	bez	r1, .L_return
++	addi	r0, 1
++	BNEZAD (r2, .L_start_not_aligned_loop)
++	br	.L_start_addr_aligned
++ENDPROC(strlen)
+diff --git a/arch/csky/abiv2/sysdep.h b/arch/csky/abiv2/sysdep.h
+new file mode 100644
+index 0000000..3655a68
+--- /dev/null
++++ b/arch/csky/abiv2/sysdep.h
+@@ -0,0 +1,30 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __SYSDEP_H
++#define __SYSDEP_H
++
++#ifdef __ASSEMBLER__
++
++#if defined (__CK860__)
++#define LABLE_ALIGN	\
++	.balignw 16, 0x6c03
++
++#define PRE_BNEZAD(R)
++
++#define BNEZAD(R, L)	\
++	bnezad	R, L
++#else
++#define LABLE_ALIGN	\
++	.balignw 8, 0x6c03
++
++#define PRE_BNEZAD(R)	\
++	subi	R, 1
++
++#define BNEZAD(R, L)	\
++	bnez	R, L
++#endif
++
++#endif
++
++#endif
+diff --git a/arch/csky/include/asm/string.h b/arch/csky/include/asm/string.h
+new file mode 100644
+index 0000000..a8b8930
+--- /dev/null
++++ b/arch/csky/include/asm/string.h
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef _CSKY_STRING_MM_H_
++#define _CSKY_STRING_MM_H_
++
++#ifndef __ASSEMBLY__
++#include <linux/types.h>
++#include <linux/compiler.h>
++#include <abi/string.h>
++#endif
++
++#endif /* _CSKY_STRING_MM_H_ */
+diff --git a/arch/csky/kernel/platform.c b/arch/csky/kernel/platform.c
+new file mode 100644
+index 0000000..9d04c50
+--- /dev/null
++++ b/arch/csky/kernel/platform.c
+@@ -0,0 +1,17 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/init.h>
++#include <linux/of_platform.h>
++#include <linux/of_address.h>
++#include <linux/of_fdt.h>
++#include <linux/err.h>
++#include <linux/slab.h>
++#include <linux/sys_soc.h>
++#include <linux/io.h>
++
++static int __init csky_platform_init(void)
++{
++	return of_platform_default_populate(NULL, NULL, NULL);
++}
++device_initcall(csky_platform_init);
+diff --git a/arch/csky/kernel/power.c b/arch/csky/kernel/power.c
+new file mode 100644
+index 0000000..923ee4e
+--- /dev/null
++++ b/arch/csky/kernel/power.c
+@@ -0,0 +1,30 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/reboot.h>
++
++void (*pm_power_off)(void);
++EXPORT_SYMBOL(pm_power_off);
++
++void machine_power_off(void)
++{
++	local_irq_disable();
++	if (pm_power_off)
++		pm_power_off();
++	asm volatile ("bkpt");
++}
++
++void machine_halt(void)
++{
++	local_irq_disable();
++	if (pm_power_off)
++		pm_power_off();
++	asm volatile ("bkpt");
++}
++
++void machine_restart(char *cmd)
++{
++	local_irq_disable();
++	do_kernel_restart(cmd);
++	asm volatile ("bkpt");
++}
+diff --git a/arch/csky/lib/delay.c b/arch/csky/lib/delay.c
+new file mode 100644
+index 0000000..34766a4
+--- /dev/null
++++ b/arch/csky/lib/delay.c
+@@ -0,0 +1,40 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/init.h>
++
++void __delay(unsigned long loops)
++{
++       asm volatile (
++		"mov r0, r0\n"
++		"1:declt %0\n"
++		"bf	1b"
++                :"=r"(loops)
++	        :"0"(loops));
++}
++EXPORT_SYMBOL(__delay);
++
++extern unsigned long loops_per_jiffy;
++
++void __const_udelay(unsigned long xloops)
++{
++	unsigned long long loops;
++
++	loops = (unsigned long long)xloops * loops_per_jiffy * HZ;
++
++	__delay(loops >> 32);
++}
++EXPORT_SYMBOL(__const_udelay);
++
++void __udelay(unsigned long usecs)
++{
++	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
++}
++EXPORT_SYMBOL(__udelay);
++
++void __ndelay(unsigned long nsecs)
++{
++	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++}
++EXPORT_SYMBOL(__ndelay);
 -- 
 2.7.4
