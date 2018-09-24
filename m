@@ -1,69 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:39046 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725982AbeIXPId (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:08:33 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-Date: Mon, 24 Sep 2018 11:07:05 +0200
-Message-ID: <871s9j462u.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: [REVIEW][PATCH 00/15] signal/arm64: siginfo cleanups
+Received: from out01.mta.xmission.com ([166.70.13.231]:37233 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728351AbeIXPMY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:12:24 -0400
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Mon, 24 Sep 2018 11:10:02 +0200
+Message-ID: <20180924091015.4458-2-ebiederm@xmission.com>
+In-Reply-To: <871s9j462u.fsf@xmission.com>
+References: <871s9j462u.fsf@xmission.com>
+Subject: [REVIEW][PATCH 02/15] signal/arm64: Remove unneeded tsk parameter from arm64_force_sig_info
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180924090705.NDj7y-Mw5oY8IlYYc6NeZL0Y80eEwq-t_sGz8JotoPs@z>
+Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180924091002.RYPMgtbl4irZcnG_ru5GSqleAlA3RZWuFSTlTLalsjs@z>
 
+Every caller passes in current for tsk so there is no need to pass
+tsk.  Instead make tsk a local variable initialized to current.
 
-This is the continuation of my work to sort out signaling of exceptions
-with siginfo.  The old signal sending functions by taking a siginfo
-argument resulted in their callers having to deal with the fiddly nature
-of siginfo directly.  In small numbers of callers this is not a problem
-but in the number of callers in the kernel this resulted in cases
-where fields were not initialized or improperly initialized before
-being passed to userspace.
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ arch/arm64/include/asm/traps.h     | 3 +--
+ arch/arm64/kernel/debug-monitors.c | 2 +-
+ arch/arm64/kernel/ptrace.c         | 2 +-
+ arch/arm64/kernel/traps.c          | 8 ++++----
+ arch/arm64/mm/fault.c              | 2 +-
+ 5 files changed, 8 insertions(+), 9 deletions(-)
 
-To avoid having to worry about those issues I have added new signal
-sending functions that each deal wit a different siginfo case.  When
-using these functions there is no room for the fiddly nature of siginfo
-to cause mistakes.
-
-This is my set of changes to update arm64 to use those functions.
-Along with some refactoring so those functions can be cleanly used.
-
-Folks please review and double check me.  I think I have kept these
-changes simple and obviously correct but I am human and mess up
-sometimes.
-
-After these patches have had a chance to be reviewed I plan to merge
-them by my siginfo tree.  If you would rather take them in the arm64
-tree let me know.   All of the prerequisites should have been merged
-through Linus's tree several releases ago.
-
-Eric W. Biederman (15):
-      signal/arm64: Push siginfo generation into arm64_notify_die
-      signal/arm64: Remove unneeded tsk parameter from arm64_force_sig_info
-      signal/arm64: Factor out arm64_show_signal from arm64_force_sig_info
-      signal/arm64: Factor set_thread_esr out of __do_user_fault
-      signal/arm64: Consolidate the two hwpoison cases in do_page_fault
-      signal/arm64: For clarity separate the 3 signal sending cases in do_page_fault
-      signal/arm64: Expand __do_user_fault and remove it
-      signal/arm64: Only perform one esr_to_fault_info call in do_page_fault
-      signal/arm64: Only call set_thread_esr once in do_page_fault
-      signal/arm64: Add and use arm64_force_sig_fault where appropriate
-      signal/arm64: Add and use arm64_force_sig_mceerr as appropriate
-      signal/arm64: Remove arm64_force_sig_info
-      signal/arm64: In ptrace_hbptriggered name the signal description string
-      signal/arm64: Add and use arm64_force_sig_ptrace_errno_trap
-      signal/arm64: Use send_sig_fault where appropriate
-
- arch/arm64/include/asm/system_misc.h |  3 +-
- arch/arm64/include/asm/traps.h       |  5 +-
- arch/arm64/kernel/debug-monitors.c   | 11 ++---
- arch/arm64/kernel/fpsimd.c           | 10 ++--
- arch/arm64/kernel/ptrace.c           | 16 +++---
- arch/arm64/kernel/sys_compat.c       | 13 ++---
- arch/arm64/kernel/traps.c            | 67 ++++++++++++-------------
- arch/arm64/mm/fault.c                | 94 +++++++++++++-----------------------
- 8 files changed, 90 insertions(+), 129 deletions(-)
+diff --git a/arch/arm64/include/asm/traps.h b/arch/arm64/include/asm/traps.h
+index c320f3bf6c57..cd3a2ca9c179 100644
+--- a/arch/arm64/include/asm/traps.h
++++ b/arch/arm64/include/asm/traps.h
+@@ -37,8 +37,7 @@ void register_undef_hook(struct undef_hook *hook);
+ void unregister_undef_hook(struct undef_hook *hook);
+ void force_signal_inject(int signal, int code, unsigned long address);
+ void arm64_notify_segfault(unsigned long addr);
+-void arm64_force_sig_info(struct siginfo *info, const char *str,
+-			  struct task_struct *tsk);
++void arm64_force_sig_info(struct siginfo *info, const char *str);
+ 
+ /*
+  * Move regs->pc to next instruction and do necessary setup before it
+diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-monitors.c
+index 06ca574495af..e0d9502be5bf 100644
+--- a/arch/arm64/kernel/debug-monitors.c
++++ b/arch/arm64/kernel/debug-monitors.c
+@@ -224,7 +224,7 @@ static void send_user_sigtrap(int si_code)
+ 	if (interrupts_enabled(regs))
+ 		local_irq_enable();
+ 
+-	arm64_force_sig_info(&info, "User debug trap", current);
++	arm64_force_sig_info(&info, "User debug trap");
+ }
+ 
+ static int single_step_handler(unsigned long addr, unsigned int esr,
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 6219486fa25f..20b68cb31ecb 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -211,7 +211,7 @@ static void ptrace_hbptriggered(struct perf_event *bp,
+ 		force_sig_ptrace_errno_trap(si_errno, (void __user *)bkpt->trigger);
+ 	}
+ #endif
+-	arm64_force_sig_info(&info, "Hardware breakpoint trap (ptrace)", current);
++	arm64_force_sig_info(&info, "Hardware breakpoint trap (ptrace)");
+ }
+ 
+ /*
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 459eb6fb7158..24035d124608 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -231,9 +231,9 @@ static bool show_unhandled_signals_ratelimited(void)
+ 	return show_unhandled_signals && __ratelimit(&rs);
+ }
+ 
+-void arm64_force_sig_info(struct siginfo *info, const char *str,
+-			  struct task_struct *tsk)
++void arm64_force_sig_info(struct siginfo *info, const char *str)
+ {
++	struct task_struct *tsk = current;
+ 	unsigned int esr = tsk->thread.fault_code;
+ 	struct pt_regs *regs = task_pt_regs(tsk);
+ 
+@@ -273,7 +273,7 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 		info.si_code  = sicode;
+ 		info.si_addr  = addr;
+ 
+-		arm64_force_sig_info(&info, str, current);
++		arm64_force_sig_info(&info, str);
+ 	} else {
+ 		die(str, regs, err);
+ 	}
+@@ -630,7 +630,7 @@ asmlinkage void bad_el0_sync(struct pt_regs *regs, int reason, unsigned int esr)
+ 	current->thread.fault_address = 0;
+ 	current->thread.fault_code = esr;
+ 
+-	arm64_force_sig_info(&info, "Bad EL0 synchronous exception", current);
++	arm64_force_sig_info(&info, "Bad EL0 synchronous exception");
+ }
+ 
+ #ifdef CONFIG_VMAP_STACK
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 86fe70d8722f..f42aff0e90ad 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -352,7 +352,7 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
+ 	}
+ 
+ 	current->thread.fault_code = esr;
+-	arm64_force_sig_info(info, esr_to_fault_info(esr)->name, current);
++	arm64_force_sig_info(info, esr_to_fault_info(esr)->name);
+ }
+ 
+ static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+-- 
+2.17.1
