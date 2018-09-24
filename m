@@ -1,50 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f193.google.com ([209.85.160.193]:39403 "EHLO
-        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727525AbeIXOs0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 10:48:26 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:39046 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725982AbeIXPId (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:08:33 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+Date: Mon, 24 Sep 2018 11:07:05 +0200
+Message-ID: <871s9j462u.fsf@xmission.com>
 MIME-Version: 1.0
-References: <20180914143719.GA27689@guoren-Inspiron-7460> <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
- <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com> <CAMuHMdVV0QWXCkkL8dq4UMLaANGMHu7ePhQ83FiFDtynpJzbLA@mail.gmail.com>
-In-Reply-To: <CAMuHMdVV0QWXCkkL8dq4UMLaANGMHu7ePhQ83FiFDtynpJzbLA@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 24 Sep 2018 10:47:09 +0200
-Message-ID: <CAK8P3a0AVPL3nYF4HTM_jD8-vFn_ScSTnLMUku9vRdbwZQeD4g@mail.gmail.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+Subject: [REVIEW][PATCH 00/15] signal/arm64: siginfo cleanups
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Palmer Dabbelt <palmer@sifive.com>, Guo Ren <ren_guo@c-sky.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20180924084709.2FdRfYnKXyZ5r4QHuPIlE8F-eWiCiBE8dG8r2--QEHE@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180924090705.NDj7y-Mw5oY8IlYYc6NeZL0Y80eEwq-t_sGz8JotoPs@z>
 
-On Mon, Sep 24, 2018 at 9:21 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->
-> Hi Arnd,
->
-> On Fri, Sep 21, 2018 at 7:19 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
-> > > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> > > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> > > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > My plan was to get that all into 4.20, and then have a conversation about the
-> > actual syscall table changes in 4.21. If we need it for both csky and rv32,
-> > we might just change the generic syscall table that way in 4.21 without
-> > changing all the other ones along with them. I don't want to drag things out
-> > over too many merge windows though, and my plan was to do all architectures
-> > together to simplify the version checks in the libc code to only have to check
-> > for a single version.
->
-> What happens with the version checks if it is backported to stable?
 
-They end up as dead code.
+This is the continuation of my work to sort out signaling of exceptions
+with siginfo.  The old signal sending functions by taking a siginfo
+argument resulted in their callers having to deal with the fiddly nature
+of siginfo directly.  In small numbers of callers this is not a problem
+but in the number of callers in the kernel this resulted in cases
+where fields were not initialized or improperly initialized before
+being passed to userspace.
 
-The way these version checks are done in glibc, we always try the new
-interface first before falling back to the old version, but don't check the
-kernel version at runtime.
+To avoid having to worry about those issues I have added new signal
+sending functions that each deal wit a different siginfo case.  When
+using these functions there is no room for the fiddly nature of siginfo
+to cause mistakes.
 
-The compile-time check optimizes out the fallback if glibc is built for
-a recent-enough minimum kernel version that is guaranteed to have
-the new version.
+This is my set of changes to update arm64 to use those functions.
+Along with some refactoring so those functions can be cleanly used.
 
-      Arnd
+Folks please review and double check me.  I think I have kept these
+changes simple and obviously correct but I am human and mess up
+sometimes.
+
+After these patches have had a chance to be reviewed I plan to merge
+them by my siginfo tree.  If you would rather take them in the arm64
+tree let me know.   All of the prerequisites should have been merged
+through Linus's tree several releases ago.
+
+Eric W. Biederman (15):
+      signal/arm64: Push siginfo generation into arm64_notify_die
+      signal/arm64: Remove unneeded tsk parameter from arm64_force_sig_info
+      signal/arm64: Factor out arm64_show_signal from arm64_force_sig_info
+      signal/arm64: Factor set_thread_esr out of __do_user_fault
+      signal/arm64: Consolidate the two hwpoison cases in do_page_fault
+      signal/arm64: For clarity separate the 3 signal sending cases in do_page_fault
+      signal/arm64: Expand __do_user_fault and remove it
+      signal/arm64: Only perform one esr_to_fault_info call in do_page_fault
+      signal/arm64: Only call set_thread_esr once in do_page_fault
+      signal/arm64: Add and use arm64_force_sig_fault where appropriate
+      signal/arm64: Add and use arm64_force_sig_mceerr as appropriate
+      signal/arm64: Remove arm64_force_sig_info
+      signal/arm64: In ptrace_hbptriggered name the signal description string
+      signal/arm64: Add and use arm64_force_sig_ptrace_errno_trap
+      signal/arm64: Use send_sig_fault where appropriate
+
+ arch/arm64/include/asm/system_misc.h |  3 +-
+ arch/arm64/include/asm/traps.h       |  5 +-
+ arch/arm64/kernel/debug-monitors.c   | 11 ++---
+ arch/arm64/kernel/fpsimd.c           | 10 ++--
+ arch/arm64/kernel/ptrace.c           | 16 +++---
+ arch/arm64/kernel/sys_compat.c       | 13 ++---
+ arch/arm64/kernel/traps.c            | 67 ++++++++++++-------------
+ arch/arm64/mm/fault.c                | 94 +++++++++++++-----------------------
+ 8 files changed, 90 insertions(+), 129 deletions(-)
