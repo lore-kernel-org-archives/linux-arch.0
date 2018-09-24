@@ -1,47 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f67.google.com ([209.85.217.67]:38389 "EHLO
-        mail-vs1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726210AbeIXNWd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 09:22:33 -0400
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:34875 "EHLO
+        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725956AbeIXNyc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 09:54:32 -0400
+Received: by mail-yw1-f68.google.com with SMTP id y76-v6so942147ywd.2
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 00:53:43 -0700 (PDT)
 MIME-Version: 1.0
-References: <20180914143719.GA27689@guoren-Inspiron-7460> <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
- <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
-In-Reply-To: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 24 Sep 2018 09:21:36 +0200
-Message-ID: <CAMuHMdVV0QWXCkkL8dq4UMLaANGMHu7ePhQ83FiFDtynpJzbLA@mail.gmail.com>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
+References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
+ <1537455973-12468-4-git-send-email-firoz.khan@linaro.org> <CAMuHMdUPKh+6ocdH38=46veyOFUE2o_Hj=xodyLDCQ3s8J9ADQ@mail.gmail.com>
+In-Reply-To: <CAMuHMdUPKh+6ocdH38=46veyOFUE2o_Hj=xodyLDCQ3s8J9ADQ@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Mon, 24 Sep 2018 13:23:31 +0530
+Message-ID: <CALxhOnipc=-fxG6o1_2ygpprjunfe3d6XPdraeRJNKnUwwzk5w@mail.gmail.com>
+Subject: Re: [PATCH v2 3/5] m68k: Added system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Palmer Dabbelt <palmer@sifive.com>, Guo Ren <ren_guo@c-sky.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20180924072136.Z60CnijhxSGdCh4id7zVbB3pOLXJyirfHl90Y2Qnt3w@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180924075331.Cx8FYGtp4z7tEHJOp1nD8XNE8QwirFKYNDoNduZgB1w@z>
 
-Hi Arnd,
+Hi Geert,
 
-On Fri, Sep 21, 2018 at 7:19 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
-> > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> My plan was to get that all into 4.20, and then have a conversation about the
-> actual syscall table changes in 4.21. If we need it for both csky and rv32,
-> we might just change the generic syscall table that way in 4.21 without
-> changing all the other ones along with them. I don't want to drag things out
-> over too many merge windows though, and my plan was to do all architectures
-> together to simplify the version checks in the libc code to only have to check
-> for a single version.
+On Mon, 24 Sep 2018 at 12:33, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+> Hi Firoz,
+>
+> On Thu, Sep 20, 2018 at 5:07 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > The system call tables are in different format in all
+> > architecture and it will be difficult to manually add or
+> > modify the system calls in the respective files. To make
+> > it easy by keeping a script and which'll generate the
+> > header file and syscall table file so this change will
+> > unify them across all architectures.
+> >
+> > The system call table generation script is added in
+> > syscalls directory which contain the script to generate
+> > both uapi header file system call table generation file
+> > and syscall.tbl file which'll be the input for the scripts.
+> >
+> > syscall.tbl contains the list of available system calls
+> > along with system call number and corresponding entry point.
+> > Add a new system call in this architecture will be possible
+> > by adding new entry in the syscall.tbl file.
+> >
+> > Adding a new table entry consisting of:
+> >         - System call number.
+> >         - ABI.
+> >         - System call name.
+> >         - Entry point name.
+> >
+> > syscallhdr.sh and syscalltbl.sh will generate uapi header-
+> > unistd.h and syscall_table.h files respectively. File
+> > syscall_table.h is included by syscall_table.S - the real
+> > system call table. Both .sh files will parse the content
+> > syscall.tbl to generate the header and table files.
+> >
+> > ARM, s390 and x86 architecuture does have the similar support.
+> > I leverage their implementation to come up with a generic
+> > solution. And this is the ground work for y2038 issue. We need
+> > to change two dozons of system call implementation and this
+> > work will reduce the effort by simply modify two dozon entries
+> > in syscall.tbl.
+> >
+> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+>
+> Thanks for your patch!
+>
+> > --- /dev/null
+> > +++ b/arch/m68k/kernel/syscalls/syscall.tbl
+> > @@ -0,0 +1,369 @@
+> > +#
+> > +# Linux system call numbers and entry vectors
+> > +#
+> > +# The format is:
+> > +# <number> <abi> <name> <entry point>
+> > +#
+> > +# The abi is always common for this file.
+> > +#
+> > +0       common   restart_syscall          sys_restart_syscall
+>
+> Why the indentation by an "odd" number of spaces, instead of TABs?
 
-What happens with the version checks if it is backported to stable?
+I'll check and fix ASAP. Hopefully I can post a clean (almost) patch series
+within couple of days!
 
-Gr{oetje,eeting}s,
+- Firoz
 
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+>
+> Gr{oetje,eeting}s,
+>
+>                         Geert
+>
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
