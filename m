@@ -1,78 +1,75 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v2 3/5] m68k: Added system call table generation
-	support
-Date: Mon, 24 Sep 2018 13:23:31 +0530
-Message-ID: <CALxhOnipc=-fxG6o1_2ygpprjunfe3d6XPdraeRJNKnUwwzk5w@mail.gmail.com>
+Subject: Re: [PATCH v2 4/5] m68k: uapi header and system call table file generation
+Date: Mon, 24 Sep 2018 13:25:15 +0530
+Message-ID: <CALxhOng7vodqyOAceTbv_LxLhe2KfuEgHSx+=8Dj57McQX1qCQ@mail.gmail.com>
 References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
- <1537455973-12468-4-git-send-email-firoz.khan@linaro.org>
- <CAMuHMdUPKh+6ocdH38=46veyOFUE2o_Hj=xodyLDCQ3s8J9ADQ@mail.gmail.com>
+ <1537455973-12468-5-git-send-email-firoz.khan@linaro.org> <CAMuHMdWZv7eKt+2CSXQ3kgPXc-Vvm7o7zED9afXxnG8dh6+nFA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <CAMuHMdUPKh+6ocdH38=46veyOFUE2o_Hj=xodyLDCQ3s8J9ADQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdWZv7eKt+2CSXQ3kgPXc-Vvm7o7zED9afXxnG8dh6+nFA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgR2VlcnQsCgpPbiBNb24sIDI0IFNlcCAyMDE4IGF0IDEyOjMzLCBHZWVydCBVeXR0ZXJob2V2
-ZW4gPGdlZXJ0QGxpbnV4LW02OGsub3JnPiB3cm90ZToKPgo+IEhpIEZpcm96LAo+Cj4gT24gVGh1
-LCBTZXAgMjAsIDIwMTggYXQgNTowNyBQTSBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5v
-cmc+IHdyb3RlOgo+ID4gVGhlIHN5c3RlbSBjYWxsIHRhYmxlcyBhcmUgaW4gZGlmZmVyZW50IGZv
-cm1hdCBpbiBhbGwKPiA+IGFyY2hpdGVjdHVyZSBhbmQgaXQgd2lsbCBiZSBkaWZmaWN1bHQgdG8g
-bWFudWFsbHkgYWRkIG9yCj4gPiBtb2RpZnkgdGhlIHN5c3RlbSBjYWxscyBpbiB0aGUgcmVzcGVj
-dGl2ZSBmaWxlcy4gVG8gbWFrZQo+ID4gaXQgZWFzeSBieSBrZWVwaW5nIGEgc2NyaXB0IGFuZCB3
-aGljaCdsbCBnZW5lcmF0ZSB0aGUKPiA+IGhlYWRlciBmaWxlIGFuZCBzeXNjYWxsIHRhYmxlIGZp
-bGUgc28gdGhpcyBjaGFuZ2Ugd2lsbAo+ID4gdW5pZnkgdGhlbSBhY3Jvc3MgYWxsIGFyY2hpdGVj
-dHVyZXMuCj4gPgo+ID4gVGhlIHN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRpb24gc2NyaXB0IGlz
-IGFkZGVkIGluCj4gPiBzeXNjYWxscyBkaXJlY3Rvcnkgd2hpY2ggY29udGFpbiB0aGUgc2NyaXB0
-IHRvIGdlbmVyYXRlCj4gPiBib3RoIHVhcGkgaGVhZGVyIGZpbGUgc3lzdGVtIGNhbGwgdGFibGUg
-Z2VuZXJhdGlvbiBmaWxlCj4gPiBhbmQgc3lzY2FsbC50YmwgZmlsZSB3aGljaCdsbCBiZSB0aGUg
-aW5wdXQgZm9yIHRoZSBzY3JpcHRzLgo+ID4KPiA+IHN5c2NhbGwudGJsIGNvbnRhaW5zIHRoZSBs
-aXN0IG9mIGF2YWlsYWJsZSBzeXN0ZW0gY2FsbHMKPiA+IGFsb25nIHdpdGggc3lzdGVtIGNhbGwg
-bnVtYmVyIGFuZCBjb3JyZXNwb25kaW5nIGVudHJ5IHBvaW50Lgo+ID4gQWRkIGEgbmV3IHN5c3Rl
-bSBjYWxsIGluIHRoaXMgYXJjaGl0ZWN0dXJlIHdpbGwgYmUgcG9zc2libGUKPiA+IGJ5IGFkZGlu
-ZyBuZXcgZW50cnkgaW4gdGhlIHN5c2NhbGwudGJsIGZpbGUuCj4gPgo+ID4gQWRkaW5nIGEgbmV3
-IHRhYmxlIGVudHJ5IGNvbnNpc3Rpbmcgb2Y6Cj4gPiAgICAgICAgIC0gU3lzdGVtIGNhbGwgbnVt
-YmVyLgo+ID4gICAgICAgICAtIEFCSS4KPiA+ICAgICAgICAgLSBTeXN0ZW0gY2FsbCBuYW1lLgo+
-ID4gICAgICAgICAtIEVudHJ5IHBvaW50IG5hbWUuCj4gPgo+ID4gc3lzY2FsbGhkci5zaCBhbmQg
-c3lzY2FsbHRibC5zaCB3aWxsIGdlbmVyYXRlIHVhcGkgaGVhZGVyLQo+ID4gdW5pc3RkLmggYW5k
-IHN5c2NhbGxfdGFibGUuaCBmaWxlcyByZXNwZWN0aXZlbHkuIEZpbGUKPiA+IHN5c2NhbGxfdGFi
-bGUuaCBpcyBpbmNsdWRlZCBieSBzeXNjYWxsX3RhYmxlLlMgLSB0aGUgcmVhbAo+ID4gc3lzdGVt
-IGNhbGwgdGFibGUuIEJvdGggLnNoIGZpbGVzIHdpbGwgcGFyc2UgdGhlIGNvbnRlbnQKPiA+IHN5
-c2NhbGwudGJsIHRvIGdlbmVyYXRlIHRoZSBoZWFkZXIgYW5kIHRhYmxlIGZpbGVzLgo+ID4KPiA+
-IEFSTSwgczM5MCBhbmQgeDg2IGFyY2hpdGVjdXR1cmUgZG9lcyBoYXZlIHRoZSBzaW1pbGFyIHN1
-cHBvcnQuCj4gPiBJIGxldmVyYWdlIHRoZWlyIGltcGxlbWVudGF0aW9uIHRvIGNvbWUgdXAgd2l0
-aCBhIGdlbmVyaWMKPiA+IHNvbHV0aW9uLiBBbmQgdGhpcyBpcyB0aGUgZ3JvdW5kIHdvcmsgZm9y
-IHkyMDM4IGlzc3VlLiBXZSBuZWVkCj4gPiB0byBjaGFuZ2UgdHdvIGRvem9ucyBvZiBzeXN0ZW0g
-Y2FsbCBpbXBsZW1lbnRhdGlvbiBhbmQgdGhpcwo+ID4gd29yayB3aWxsIHJlZHVjZSB0aGUgZWZm
-b3J0IGJ5IHNpbXBseSBtb2RpZnkgdHdvIGRvem9uIGVudHJpZXMKPiA+IGluIHN5c2NhbGwudGJs
-Lgo+ID4KPiA+IFNpZ25lZC1vZmYtYnk6IEZpcm96IEtoYW4gPGZpcm96LmtoYW5AbGluYXJvLm9y
-Zz4KPgo+IFRoYW5rcyBmb3IgeW91ciBwYXRjaCEKPgo+ID4gLS0tIC9kZXYvbnVsbAo+ID4gKysr
-IGIvYXJjaC9tNjhrL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibAo+ID4gQEAgLTAsMCArMSwz
-NjkgQEAKPiA+ICsjCj4gPiArIyBMaW51eCBzeXN0ZW0gY2FsbCBudW1iZXJzIGFuZCBlbnRyeSB2
-ZWN0b3JzCj4gPiArIwo+ID4gKyMgVGhlIGZvcm1hdCBpczoKPiA+ICsjIDxudW1iZXI+IDxhYmk+
-IDxuYW1lPiA8ZW50cnkgcG9pbnQ+Cj4gPiArIwo+ID4gKyMgVGhlIGFiaSBpcyBhbHdheXMgY29t
-bW9uIGZvciB0aGlzIGZpbGUuCj4gPiArIwo+ID4gKzAgICAgICAgY29tbW9uICAgcmVzdGFydF9z
-eXNjYWxsICAgICAgICAgIHN5c19yZXN0YXJ0X3N5c2NhbGwKPgo+IFdoeSB0aGUgaW5kZW50YXRp
-b24gYnkgYW4gIm9kZCIgbnVtYmVyIG9mIHNwYWNlcywgaW5zdGVhZCBvZiBUQUJzPwoKSSdsbCBj
-aGVjayBhbmQgZml4IEFTQVAuIEhvcGVmdWxseSBJIGNhbiBwb3N0IGEgY2xlYW4gKGFsbW9zdCkg
-cGF0Y2ggc2VyaWVzCndpdGhpbiBjb3VwbGUgb2YgZGF5cyEKCi0gRmlyb3oKCj4KPiBHcntvZXRq
-ZSxlZXRpbmd9cywKPgo+ICAgICAgICAgICAgICAgICAgICAgICAgIEdlZXJ0Cj4KPiAtLQo+IEdl
-ZXJ0IFV5dHRlcmhvZXZlbiAtLSBUaGVyZSdzIGxvdHMgb2YgTGludXggYmV5b25kIGlhMzIgLS0g
-Z2VlcnRAbGludXgtbTY4ay5vcmcKPgo+IEluIHBlcnNvbmFsIGNvbnZlcnNhdGlvbnMgd2l0aCB0
-ZWNobmljYWwgcGVvcGxlLCBJIGNhbGwgbXlzZWxmIGEgaGFja2VyLiBCdXQKPiB3aGVuIEknbSB0
-YWxraW5nIHRvIGpvdXJuYWxpc3RzIEkganVzdCBzYXkgInByb2dyYW1tZXIiIG9yIHNvbWV0aGlu
-ZyBsaWtlIHRoYXQuCj4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAtLSBMaW51cyBU
-b3J2YWxkcwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZ
-MjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxp
-bmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+On Mon, 24 Sep 2018 at 12:35, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+> Hi Firoz,
+>
+> On Thu, Sep 20, 2018 at 5:07 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > System call table generation script must be run to generate
+> > unistd_32.h and syscall_table.h files. This patch will have
+> > changes which will invokes the script.
+> >
+> > This patch will generate unistd_32.h and syscall_table.h
+> > files by the syscall table generation script invoked by
+> > arch/m68k/Makefile and the generated files against the
+> > removed files will be identical.
+> >
+> > The generated uapi header file will be included in
+> > uapi/asm/unistd.h and generated system call table support
+> > file will be included by arch/m68k/kernel/syscall_table.S
+> > file.
+> >
+> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+>
+> Thanks for your patch!
+>
+> > --- a/arch/m68k/include/asm/Kbuild
+> > +++ b/arch/m68k/include/asm/Kbuild
+> > @@ -24,3 +24,4 @@ generic-y += topology.h
+> >  generic-y += trace_clock.h
+> >  generic-y += word-at-a-time.h
+> >  generic-y += xor.h
+> > +generic-y += syscall_table.h
+> > \ No newline at end of file
+>
+> Please add the missing newline.
+
+Sure. Will do. Thanks!
+
+>
+> > diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
+> > index c2e26a4..6d600e9 100644
+> > --- a/arch/m68k/include/uapi/asm/Kbuild
+> > +++ b/arch/m68k/include/uapi/asm/Kbuild
+> > @@ -21,3 +21,4 @@ generic-y += statfs.h
+> >  generic-y += termbits.h
+> >  generic-y += termios.h
+> >  generic-y += types.h
+> > +generic-y += unistd_32.h
+> > \ No newline at end of file
+>
+> Likewise.
+>
+> Gr{oetje,eeting}s,
+>
+>                         Geert
+>
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
