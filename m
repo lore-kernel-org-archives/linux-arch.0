@@ -1,86 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:56268 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387629AbeIXUw1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 16:52:27 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:38152 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730163AbeIXUwI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 16:52:08 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 24 Sep 2018 16:49:10 +0200
-Message-ID: <20180924144910.14902-2-ebiederm@xmission.com>
+Date: Mon, 24 Sep 2018 16:49:09 +0200
+Message-ID: <20180924144910.14902-1-ebiederm@xmission.com>
 In-Reply-To: <874lef2bqn.fsf@xmission.com>
 References: <874lef2bqn.fsf@xmission.com>
-Subject: [REVIEW][PATCH 2/2] signal/arc: Use force_sig_fault where appropriate
+Subject: [REVIEW][PATCH 1/2] signal/arc: Push siginfo generation into unhandled_exception
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-snps-arc@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180924144910.lvjm_ijc9jU2ZnZh_aKJEFn03wHIr2lRU3N4XPRzLho@z>
+Message-ID: <20180924144909.qI-iE3jWhf_nALA54fYl83McmNndrY56U8vUNFwXumg@z>
+
+Pass signr, sicode, and address into unhandled_exception as explicit
+parameters instead of members of struct siginfo.  Then in unhandled
+exception generate and send the siginfo using force_sig_fault.
+
+This keeps the code simpler and less error prone.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arc/mm/fault.c | 20 +++++---------------
- 1 file changed, 5 insertions(+), 15 deletions(-)
+ arch/arc/kernel/traps.c | 22 ++++++++--------------
+ 1 file changed, 8 insertions(+), 14 deletions(-)
 
-diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
-index db6913094be3..c9da6102eb4f 100644
---- a/arch/arc/mm/fault.c
-+++ b/arch/arc/mm/fault.c
-@@ -66,14 +66,12 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
- 	struct vm_area_struct *vma = NULL;
- 	struct task_struct *tsk = current;
- 	struct mm_struct *mm = tsk->mm;
--	siginfo_t info;
-+	int si_code;
- 	int ret;
- 	vm_fault_t fault;
- 	int write = regs->ecr_cause & ECR_C_PROTV_STORE;  /* ST/EX */
- 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
- 
--	clear_siginfo(&info);
--
- 	/*
- 	 * We fault-in kernel-space virtual memory on-demand. The
- 	 * 'reference' page table is init_mm.pgd.
-@@ -91,7 +89,7 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
- 			return;
- 	}
- 
--	info.si_code = SEGV_MAPERR;
-+	si_code = SEGV_MAPERR;
- 
- 	/*
- 	 * If we're in an interrupt or have no user
-@@ -119,7 +117,7 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
- 	 * we can handle it..
- 	 */
- good_area:
--	info.si_code = SEGV_ACCERR;
-+	si_code = SEGV_ACCERR;
- 
- 	/* Handle protection violation, execute on heap or stack */
- 
-@@ -199,11 +197,7 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
- 	/* User mode accesses just cause a SIGSEGV */
+diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
+index b123558bf0bb..a7fcbc0d3943 100644
+--- a/arch/arc/kernel/traps.c
++++ b/arch/arc/kernel/traps.c
+@@ -42,21 +42,22 @@ void die(const char *str, struct pt_regs *regs, unsigned long address)
+  *  -for kernel, chk if due to copy_(to|from)_user, otherwise die()
+  */
+ static noinline int
+-unhandled_exception(const char *str, struct pt_regs *regs, siginfo_t *info)
++unhandled_exception(const char *str, struct pt_regs *regs,
++		    int signo, int si_code, void __user *addr)
+ {
  	if (user_mode(regs)) {
- 		tsk->thread.fault_address = address;
--		info.si_signo = SIGSEGV;
--		info.si_errno = 0;
--		/* info.si_code has been set above */
--		info.si_addr = (void __user *)address;
--		force_sig_info(SIGSEGV, &info, tsk);
-+		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
- 		return;
+ 		struct task_struct *tsk = current;
+ 
+-		tsk->thread.fault_address = (__force unsigned int)info->si_addr;
++		tsk->thread.fault_address = (__force unsigned int)addr;
+ 
+-		force_sig_info(info->si_signo, info, tsk);
++		force_sig_fault(signo, si_code, addr, tsk);
+ 
+ 	} else {
+ 		/* If not due to copy_(to|from)_user, we are doomed */
+ 		if (fixup_exception(regs))
+ 			return 0;
+ 
+-		die(str, regs, (unsigned long)info->si_addr);
++		die(str, regs, (unsigned long)addr);
  	}
  
-@@ -238,9 +232,5 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
- 		goto no_context;
+ 	return 1;
+@@ -64,16 +65,9 @@ unhandled_exception(const char *str, struct pt_regs *regs, siginfo_t *info)
  
- 	tsk->thread.fault_address = address;
--	info.si_signo = SIGBUS;
--	info.si_errno = 0;
--	info.si_code = BUS_ADRERR;
--	info.si_addr = (void __user *)address;
--	force_sig_info(SIGBUS, &info, tsk);
-+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, tsk);
+ #define DO_ERROR_INFO(signr, str, name, sicode) \
+ int name(unsigned long address, struct pt_regs *regs) \
+-{						\
+-	siginfo_t info;				\
+-						\
+-	clear_siginfo(&info);			\
+-	info.si_signo = signr;			\
+-	info.si_errno = 0;			\
+-	info.si_code  = sicode;			\
+-	info.si_addr = (void __user *)address;	\
+-						\
+-	return unhandled_exception(str, regs, &info);\
++{								\
++	return unhandled_exception(str, regs, signr, sicode,	\
++				   (void __user *)address);	\
  }
+ 
+ /*
 -- 
 2.17.1
