@@ -1,82 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f65.google.com ([209.85.161.65]:34724 "EHLO
-        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726269AbeIXN4Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 09:56:16 -0400
-Received: by mail-yw1-f65.google.com with SMTP id m129-v6so1756770ywc.1
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 00:55:27 -0700 (PDT)
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:39403 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727525AbeIXOs0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 10:48:26 -0400
 MIME-Version: 1.0
-References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
- <1537455973-12468-5-git-send-email-firoz.khan@linaro.org> <CAMuHMdWZv7eKt+2CSXQ3kgPXc-Vvm7o7zED9afXxnG8dh6+nFA@mail.gmail.com>
-In-Reply-To: <CAMuHMdWZv7eKt+2CSXQ3kgPXc-Vvm7o7zED9afXxnG8dh6+nFA@mail.gmail.com>
-From: Firoz Khan <firoz.khan@linaro.org>
-Date: Mon, 24 Sep 2018 13:25:15 +0530
-Message-ID: <CALxhOng7vodqyOAceTbv_LxLhe2KfuEgHSx+=8Dj57McQX1qCQ@mail.gmail.com>
-Subject: Re: [PATCH v2 4/5] m68k: uapi header and system call table file generation
+References: <20180914143719.GA27689@guoren-Inspiron-7460> <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
+ <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com> <CAMuHMdVV0QWXCkkL8dq4UMLaANGMHu7ePhQ83FiFDtynpJzbLA@mail.gmail.com>
+In-Reply-To: <CAMuHMdVV0QWXCkkL8dq4UMLaANGMHu7ePhQ83FiFDtynpJzbLA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 24 Sep 2018 10:47:09 +0200
+Message-ID: <CAK8P3a0AVPL3nYF4HTM_jD8-vFn_ScSTnLMUku9vRdbwZQeD4g@mail.gmail.com>
+Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180924075515.nT6TdZnlY5DG1Y1bFDmpZclUsek2EHqMoE-r2OHIobw@z>
+Cc: Palmer Dabbelt <palmer@sifive.com>, Guo Ren <ren_guo@c-sky.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, DTML <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20180924084709.2FdRfYnKXyZ5r4QHuPIlE8F-eWiCiBE8dG8r2--QEHE@z>
 
-On Mon, 24 Sep 2018 at 12:35, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+On Mon, Sep 24, 2018 at 9:21 AM Geert Uytterhoeven <geert@linux-m68k.org> wrote:
 >
-> Hi Firoz,
+> Hi Arnd,
 >
-> On Thu, Sep 20, 2018 at 5:07 PM Firoz Khan <firoz.khan@linaro.org> wrote:
-> > System call table generation script must be run to generate
-> > unistd_32.h and syscall_table.h files. This patch will have
-> > changes which will invokes the script.
-> >
-> > This patch will generate unistd_32.h and syscall_table.h
-> > files by the syscall table generation script invoked by
-> > arch/m68k/Makefile and the generated files against the
-> > removed files will be identical.
-> >
-> > The generated uapi header file will be included in
-> > uapi/asm/unistd.h and generated system call table support
-> > file will be included by arch/m68k/kernel/syscall_table.S
-> > file.
-> >
-> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> On Fri, Sep 21, 2018 at 7:19 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
+> > > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
+> > > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
+> > > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
+> > My plan was to get that all into 4.20, and then have a conversation about the
+> > actual syscall table changes in 4.21. If we need it for both csky and rv32,
+> > we might just change the generic syscall table that way in 4.21 without
+> > changing all the other ones along with them. I don't want to drag things out
+> > over too many merge windows though, and my plan was to do all architectures
+> > together to simplify the version checks in the libc code to only have to check
+> > for a single version.
 >
-> Thanks for your patch!
->
-> > --- a/arch/m68k/include/asm/Kbuild
-> > +++ b/arch/m68k/include/asm/Kbuild
-> > @@ -24,3 +24,4 @@ generic-y += topology.h
-> >  generic-y += trace_clock.h
-> >  generic-y += word-at-a-time.h
-> >  generic-y += xor.h
-> > +generic-y += syscall_table.h
-> > \ No newline at end of file
->
-> Please add the missing newline.
+> What happens with the version checks if it is backported to stable?
 
-Sure. Will do. Thanks!
+They end up as dead code.
 
->
-> > diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-> > index c2e26a4..6d600e9 100644
-> > --- a/arch/m68k/include/uapi/asm/Kbuild
-> > +++ b/arch/m68k/include/uapi/asm/Kbuild
-> > @@ -21,3 +21,4 @@ generic-y += statfs.h
-> >  generic-y += termbits.h
-> >  generic-y += termios.h
-> >  generic-y += types.h
-> > +generic-y += unistd_32.h
-> > \ No newline at end of file
->
-> Likewise.
->
-> Gr{oetje,eeting}s,
->
->                         Geert
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
+The way these version checks are done in glibc, we always try the new
+interface first before falling back to the old version, but don't check the
+kernel version at runtime.
+
+The compile-time check optimizes out the fallback if glibc is built for
+a recent-enough minimum kernel version that is guaranteed to have
+the new version.
+
+      Arnd
