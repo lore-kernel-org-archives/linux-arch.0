@@ -1,24 +1,41 @@
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: Re: [REVIEW][PATCH 2/2] signal/arc: Use force_sig_fault where
- appropriate
-Date: Mon, 24 Sep 2018 17:37:36 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B096A98@us01wembx1.internal.synopsys.com>
-References: <874lef2bqn.fsf@xmission.com>
- <20180924144910.14902-2-ebiederm@xmission.com>
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: Re: [REVIEW][PATCH 0/3] signal/ia64: siginfo fixes and cleanups
+Date: Mon, 24 Sep 2018 10:38:20 -0700
+Message-ID: <20180924173818.GA9522@agluck-desk>
+References: <87bm8n2czz.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <87bm8n2czz.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Vineet Gupta <vineet.gupta1@synopsys.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 09/24/2018 07:49 AM, Eric W. Biederman wrote:=0A=
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>=0A=
-=0A=
-Acked-by: Vineet Gupta <vgupta@synopsys.com>=0A=
-=0A=
-Thx,=0A=
--Vineet=0A=
+On Mon, Sep 24, 2018 at 04:20:32PM +0200, Eric W. Biederman wrote:
+> 
+> It turns out that ia64 is one of the noticable offenders.  Ever since
+> ia64 was merged in 2.3.43 it has been generating incorrect siginfo for
+> SIGSEGV assocaited with the inability to setup a signal stack frame
+> or cleanup a signal stack frame.
+
+I'll blame that on the "previous administration". I didn't start work
+on Linux until 2.3.99, and didn't take over as maintainer until 2.6.11 :-)
+
+> I don't think I have made made any mistakes in this coversion but if
+> people can look the code over and see if they can spot anything I would
+> appreciate it.
+
+I don't see any mistakes either. It builds and boots. Obviously I don't
+have a test case for this issue (or it would have been found long ago).
+
+> My intention is to merge this through my siginfo tree.  If you feel it
+> should go through your arch tree let me know.   All of the prerequisites
+> should have been merged several releases ago.
+
+Sure. Merge away.
+
+Acked-by: Tony Luck <tony.luck@intel.com>
+
+-Tony
