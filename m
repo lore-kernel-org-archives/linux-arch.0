@@ -1,54 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:44000 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728572AbeIXV3E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 17:29:04 -0400
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 24 Sep 2018 17:25:35 +0200
-Message-ID: <20180924152537.19515-1-ebiederm@xmission.com>
-In-Reply-To: <87lg7q2a2w.fsf@xmission.com>
-References: <87lg7q2a2w.fsf@xmission.com>
-Subject: [REVIEW][PATCH 1/3] signal/unicore32: Use send_sig_fault where appropriate
+Received: from mga11.intel.com ([192.55.52.93]:56450 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726400AbeIXVdV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Sep 2018 17:33:21 -0400
+Message-ID: <4e453720b77fd9c4dade6fcefc5b6f0eea396a1a.camel@intel.com>
+Subject: Re: [RFC PATCH v4 00/27] Control Flow Enforcement: Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Mon, 24 Sep 2018 08:25:51 -0700
+In-Reply-To: <1ca5178d-60f3-ae70-ce95-7026ac0429b4@linux.intel.com>
+References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
+         <1ca5178d-60f3-ae70-ce95-7026ac0429b4@linux.intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Guan Xuetao <gxt@pku.edu.cn>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180924152535.Ybw1oqJb7hyrKZGfLcInPUUgeDZfcwhlR1HUn42QOcU@z>
+To: Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20180924152551.IhlaBJaUxbBTjo967TKSDPY78YZA7APo2DcDFYU9e2E@z>
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/unicore32/kernel/fpu-ucf64.c | 12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+On Fri, 2018-09-21 at 15:53 -0700, Dave Hansen wrote:
+> On 09/21/2018 08:03 AM, Yu-cheng Yu wrote:
+> > The previous version of CET patches can be found in the following
+> > link:
+> > 
+> >   https://lkml.org/lkml/2018/8/30/608
+> 
+> So, this is an RFC, but there no mention of what you want comments *on*. :)
+> 
+> What do you want folks to review?  What needs to get settled before this
+> is merged?
 
-diff --git a/arch/unicore32/kernel/fpu-ucf64.c b/arch/unicore32/kernel/fpu-ucf64.c
-index 8594b168f25e..fc5dad32a982 100644
---- a/arch/unicore32/kernel/fpu-ucf64.c
-+++ b/arch/unicore32/kernel/fpu-ucf64.c
-@@ -54,14 +54,6 @@
-  */
- void ucf64_raise_sigfpe(struct pt_regs *regs)
- {
--	siginfo_t info;
--
--	clear_siginfo(&info);
--
--	info.si_signo = SIGFPE;
--	info.si_code = FPE_FLTUNK;
--	info.si_addr = (void __user *)(instruction_pointer(regs) - 4);
--
- 	/*
- 	 * This is the same as NWFPE, because it's not clear what
- 	 * this is used for
-@@ -69,7 +61,9 @@ void ucf64_raise_sigfpe(struct pt_regs *regs)
- 	current->thread.error_code = 0;
- 	current->thread.trap_no = 6;
- 
--	send_sig_info(SIGFPE, &info, current);
-+	send_sig_fault(SIGFPE, FPE_FLTUNK,
-+		       (void __user *)(instruction_pointer(regs) - 4),
-+		       current);
- }
- 
- /*
--- 
-2.17.1
+Thanks, Dave!
+
+These patches passed GLIBC built-in tests and more tests HJ and I put together
+at https://github.com/hjl-tools/cet-smoke-test.
+
+I made some changes since V3 as outlined in the cover letter.
+In particular there are two new patches for the VMA guard and preventing shadow
+stack merging.  Does anyone have comments on those and the whole Shadow
+Stack/IBT series in general?
+
+Thanks,
+Yu-cheng
