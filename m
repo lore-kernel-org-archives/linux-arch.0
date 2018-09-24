@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [REVIEW][PATCH 1/3] signal/ia64: Use the generic force_sigsegv in setup_frame
-Date: Mon, 24 Sep 2018 16:21:41 +0200
-Message-ID: <20180924142143.21356-1-ebiederm@xmission.com>
+Subject: [REVIEW][PATCH 2/3] signal/ia64: Use the force_sig(SIGSEGV,...) in ia64_rt_sigreturn
+Date: Mon, 24 Sep 2018 16:21:42 +0200
+Message-ID: <20180924142143.21356-2-ebiederm@xmission.com>
 References: <87pnx32j2p.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87pnx32j2p.fsf@xmission.com>
@@ -10,25 +10,18 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Tony Luck <tony.luck@intel.com>, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-The ia64 handling of failure to setup a signal frame has been trying
-to set overlapping fields in struct siginfo since 2.3.43.  The si_pid
-and si_uid fields are stomped when the si_addr field is set.  The
-si_code of SI_KERNEL indicates that si_pid and si_uid should be valid,
-and that si_addr does not exist.
+The ia64 handling of failure to return from a signal frame has been trying
+to set overlapping fields in struct siginfo since 2.3.43.  The si_code
+corresponds to the fields that were stomped (not the field that is
+actually written), so I can not imagine a piece of userspace code
+making sense of the signal frame if it looks closely.
 
-Being at odds with the definition of SI_KERNEL and with nothing to
-indicate that this was a signal frame setup failure there is no way
-for userspace to know that si_addr was filled out instead.
+In practice failure to return from a signal frame is a rare event that
+almost never happens.  Someone using an alternate signal stack to
+recover and looking in detail is even more rare.  So I presume no one
+has ever noticed and reported this ia64 nonsense.
 
-In practice failure to setup a signal frame is rare, and si_pid and
-si_uid are always set to 0 when si_code is SI_KERNEL so I expect no
-one has looked closely enough before to see this weirdness.  Further
-the only difference between force_sigsegv_info and the generic
-force_sigsegv other than the return code is that force_sigsegv_info
-stomps the si_uid and si_pid fields.
-
-Remove the bug and simplify the code by using force_sigsegv in this
-case just like other architectures.
+Sort this out by causing ia64 to use force_sig(SIGSEGV) like other architectures.
 
 Fixes: 2.3.43
 Cc: Tony Luck <tony.luck@intel.com>
@@ -36,87 +29,36 @@ Cc: Fenghua Yu <fenghua.yu@intel.com>
 Cc: linux-ia64@vger.kernel.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/ia64/kernel/signal.c | 50 ++++++++++-----------------------------
- 1 file changed, 12 insertions(+), 38 deletions(-)
+ arch/ia64/kernel/signal.c | 10 +---------
+ 1 file changed, 1 insertion(+), 9 deletions(-)
 
 diff --git a/arch/ia64/kernel/signal.c b/arch/ia64/kernel/signal.c
-index d1234a5ba4c5..01fc133b2e4c 100644
+index 01fc133b2e4c..9a960829a01d 100644
 --- a/arch/ia64/kernel/signal.c
 +++ b/arch/ia64/kernel/signal.c
-@@ -231,37 +231,6 @@ rbs_on_sig_stack (unsigned long bsp)
- 	return (bsp - current->sas_ss_sp < current->sas_ss_size);
- }
- 
--static long
--force_sigsegv_info (int sig, void __user *addr)
--{
--	unsigned long flags;
+@@ -110,7 +110,6 @@ ia64_rt_sigreturn (struct sigscratch *scr)
+ {
+ 	extern char ia64_strace_leave_kernel, ia64_leave_kernel;
+ 	struct sigcontext __user *sc;
 -	struct siginfo si;
--
+ 	sigset_t set;
+ 	long retval;
+ 
+@@ -153,14 +152,7 @@ ia64_rt_sigreturn (struct sigscratch *scr)
+ 	return retval;
+ 
+   give_sigsegv:
 -	clear_siginfo(&si);
--	if (sig == SIGSEGV) {
--		/*
--		 * Acquiring siglock around the sa_handler-update is almost
--		 * certainly overkill, but this isn't a
--		 * performance-critical path and I'd rather play it safe
--		 * here than having to debug a nasty race if and when
--		 * something changes in kernel/signal.c that would make it
--		 * no longer safe to modify sa_handler without holding the
--		 * lock.
--		 */
--		spin_lock_irqsave(&current->sighand->siglock, flags);
--		current->sighand->action[sig - 1].sa.sa_handler = SIG_DFL;
--		spin_unlock_irqrestore(&current->sighand->siglock, flags);
--	}
 -	si.si_signo = SIGSEGV;
 -	si.si_errno = 0;
 -	si.si_code = SI_KERNEL;
 -	si.si_pid = task_pid_vnr(current);
 -	si.si_uid = from_kuid_munged(current_user_ns(), current_uid());
--	si.si_addr = addr;
+-	si.si_addr = sc;
 -	force_sig_info(SIGSEGV, &si, current);
--	return 1;
--}
--
- static long
- setup_frame(struct ksignal *ksig, sigset_t *set, struct sigscratch *scr)
- {
-@@ -295,15 +264,18 @@ setup_frame(struct ksignal *ksig, sigset_t *set, struct sigscratch *scr)
- 			 * instead so we will die with SIGSEGV.
- 			 */
- 			check_sp = (new_sp - sizeof(*frame)) & -STACK_ALIGN;
--			if (!likely(on_sig_stack(check_sp)))
--				return force_sigsegv_info(ksig->sig, (void __user *)
--							  check_sp);
-+			if (!likely(on_sig_stack(check_sp))) {
-+				force_sigsegv(ksig->sig, current);
-+				return 1;
-+			}
- 		}
- 	}
- 	frame = (void __user *) ((new_sp - sizeof(*frame)) & -STACK_ALIGN);
++	force_sig(SIGSEGV, current);
+ 	return retval;
+ }
  
--	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		return force_sigsegv_info(ksig->sig, frame);
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame))) {
-+		force_sigsegv(ksig->sig, current);
-+		return 1;
-+	}
- 
- 	err  = __put_user(ksig->sig, &frame->arg0);
- 	err |= __put_user(&frame->info, &frame->arg1);
-@@ -317,8 +289,10 @@ setup_frame(struct ksignal *ksig, sigset_t *set, struct sigscratch *scr)
- 	err |= __save_altstack(&frame->sc.sc_stack, scr->pt.r12);
- 	err |= setup_sigcontext(&frame->sc, set, scr);
- 
--	if (unlikely(err))
--		return force_sigsegv_info(ksig->sig, frame);
-+	if (unlikely(err)) {
-+		force_sigsegv(ksig->sig, current);
-+		return 1;
-+	}
- 
- 	scr->pt.r12 = (unsigned long) frame - 16;	/* new stack pointer */
- 	scr->pt.ar_fpsr = FPSR_DEFAULT;			/* reset fpsr for signal handler */
 -- 
 2.17.1
