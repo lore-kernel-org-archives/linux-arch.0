@@ -1,19 +1,19 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 121/173] sched/core: Use smp_mb() in wake_woken_function()
-Date: Mon, 24 Sep 2018 13:52:35 +0200
-Message-ID: <20180924113124.853998762@linuxfoundation.org>
-References: <20180924113114.334025954@linuxfoundation.org>
+Subject: [PATCH 4.18 166/235] sched/core: Use smp_mb() in wake_woken_function()
+Date: Mon, 24 Sep 2018 13:52:32 +0200
+Message-ID: <20180924113121.613527884@linuxfoundation.org>
+References: <20180924113103.999624566@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180924113114.334025954@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180924113103.999624566@linuxfoundation.org>
+Sender: stable-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, akiyks@gmail.com, boqun.feng@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, linux-arch@vger.kernel.org, luc.maranget@inria.fr, npiggin@gmail.com, parri.andrea@gmail.com, stern@rowland.harvard.edu, will.deacon@arm.com, Ingo Molnar <mingo@kernel.org>, Sasha Levin <alexander.levin@microsoft.com>
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.18-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -68,7 +68,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/kernel/sched/wait.c
 +++ b/kernel/sched/wait.c
-@@ -395,35 +395,36 @@ static inline bool is_kthread_should_sto
+@@ -392,35 +392,36 @@ static inline bool is_kthread_should_sto
   *     if (condition)
   *         break;
   *
@@ -123,7 +123,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	 */
  	smp_store_mb(wq_entry->flags, wq_entry->flags & ~WQ_FLAG_WOKEN); /* B */
  
-@@ -433,14 +434,8 @@ EXPORT_SYMBOL(wait_woken);
+@@ -430,14 +431,8 @@ EXPORT_SYMBOL(wait_woken);
  
  int woken_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, int sync, void *key)
  {
