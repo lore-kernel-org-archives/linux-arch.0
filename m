@@ -1,44 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:56450 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726400AbeIXVdV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Sep 2018 17:33:21 -0400
-Message-ID: <4e453720b77fd9c4dade6fcefc5b6f0eea396a1a.camel@intel.com>
-Subject: Re: [RFC PATCH v4 00/27] Control Flow Enforcement: Shadow Stack
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Mon, 24 Sep 2018 08:25:51 -0700
-In-Reply-To: <1ca5178d-60f3-ae70-ce95-7026ac0429b4@linux.intel.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
-         <1ca5178d-60f3-ae70-ce95-7026ac0429b4@linux.intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from smtprelay.synopsys.com ([198.182.47.9]:38314 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730136AbeIXXkh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 19:40:37 -0400
+From: Vineet Gupta <vineet.gupta1@synopsys.com>
+Subject: Re: [REVIEW][PATCH 1/2] signal/arc: Push siginfo generation into
+ unhandled_exception
+Date: Mon, 24 Sep 2018 17:37:20 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B096A87@us01wembx1.internal.synopsys.com>
+References: <874lef2bqn.fsf@xmission.com>
+ <20180924144910.14902-1-ebiederm@xmission.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20180924152551.IhlaBJaUxbBTjo967TKSDPY78YZA7APo2DcDFYU9e2E@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Vineet Gupta <vineet.gupta1@synopsys.com>
+Message-ID: <20180924173720.4TT0EjbdfPApL_JA-Rz7aq8iF5pBb2ODNnp9sGyxBQE@z>
 
-On Fri, 2018-09-21 at 15:53 -0700, Dave Hansen wrote:
-> On 09/21/2018 08:03 AM, Yu-cheng Yu wrote:
-> > The previous version of CET patches can be found in the following
-> > link:
-> > 
-> >   https://lkml.org/lkml/2018/8/30/608
-> 
-> So, this is an RFC, but there no mention of what you want comments *on*. :)
-> 
-> What do you want folks to review?  What needs to get settled before this
-> is merged?
-
-Thanks, Dave!
-
-These patches passed GLIBC built-in tests and more tests HJ and I put together
-at https://github.com/hjl-tools/cet-smoke-test.
-
-I made some changes since V3 as outlined in the cover letter.
-In particular there are two new patches for the VMA guard and preventing shadow
-stack merging.  Does anyone have comments on those and the whole Shadow
-Stack/IBT series in general?
-
-Thanks,
-Yu-cheng
+On 09/24/2018 07:49 AM, Eric W. Biederman wrote:=0A=
+> Pass signr, sicode, and address into unhandled_exception as explicit=0A=
+> parameters instead of members of struct siginfo.  Then in unhandled=0A=
+> exception generate and send the siginfo using force_sig_fault.=0A=
+>=0A=
+> This keeps the code simpler and less error prone.=0A=
+>=0A=
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>=0A=
+=0A=
+LGTM.=0A=
+=0A=
+Acked-by: Vineet Gupta <vgupta@synopsys.com>=0A=
+=0A=
+Thx,=0A=
+-Vineet=0A=
