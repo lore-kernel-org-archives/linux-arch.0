@@ -1,142 +1,50 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.18 166/235] sched/core: Use smp_mb() in wake_woken_function()
-Date: Mon, 24 Sep 2018 13:52:32 +0200
-Message-ID: <20180924113121.613527884@linuxfoundation.org>
-References: <20180924113103.999624566@linuxfoundation.org>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [REVIEW][PATCH 0/3] signal/ia64: siginfo fixes and cleanups
+Date: Mon, 24 Sep 2018 16:20:32 +0200
+Message-ID: <87bm8n2czz.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20180924113103.999624566@linuxfoundation.org>
-Sender: stable-owner@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Andrea Parri <andrea.parri@amarulasolutions.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, akiyks@gmail.com, boqun.feng@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, linux-arch@vger.kernel.org, luc.maranget@inria.fr, npiggin@gmail.com, parri.andrea@gmail.com, stern@rowland.harvard.edu, will.deacon@arm.com, Ingo Molnar <mingo@kernel.org>, Sasha Levin <alexander.levin@microsoft.com>
+Cc: linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Tony Luck <tony.luck@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-4.18-stable review patch.  If anyone has any objections, please let me know.
 
-------------------
+I have been slowly cleaning up the architectues ever since I discovered
+that the pattern of passing in struct siginfo is error prone, and
+occassionally results in borken siginfo being sent to userspace.
 
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
+It turns out that ia64 is one of the noticable offenders.  Ever since
+ia64 was merged in 2.3.43 it has been generating incorrect siginfo for
+SIGSEGV assocaited with the inability to setup a signal stack frame
+or cleanup a signal stack frame.
 
-[ Upstream commit 76e079fefc8f62bd9b2cd2950814d1ee806e31a5 ]
+This is pretty esoteric case and the problem was only some values that
+should be 0 being something else so I am not surpised it was missed.
 
-wake_woken_function() synchronizes with wait_woken() as follows:
+The following series fixes the two buggy cases I have found and then
+cleans up replaces force_sig_info with force_sig_fault to avoid errors
+of this kind in the future.
 
-  [wait_woken]                       [wake_woken_function]
+I don't think I have made made any mistakes in this coversion but if
+people can look the code over and see if they can spot anything I would
+appreciate it.
 
-  entry->flags &= ~wq_flag_woken;    condition = true;
-  smp_mb();                          smp_wmb();
-  if (condition)                     wq_entry->flags |= wq_flag_woken;
-     break;
+My intention is to merge this through my siginfo tree.  If you feel it
+should go through your arch tree let me know.   All of the prerequisites
+should have been merged several releases ago.
 
-This commit replaces the above smp_wmb() with an smp_mb() in order to
-guarantee that either wait_woken() sees the wait condition being true
-or the store to wq_entry->flags in woken_wake_function() follows the
-store in wait_woken() in the coherence order (so that the former can
-eventually be observed by wait_woken()).
+Eric W. Biederman (3):
+      signal/ia64: Use the generic force_sigsegv in setup_frame
+      signal/ia64: Use the force_sig(SIGSEGV,...) in ia64_rt_sigreturn
+      signal/ia64: Use force_sig_fault where appropriate
 
-The commit also fixes a comment associated to set_current_state() in
-wait_woken(): the comment pairs the barrier in set_current_state() to
-the above smp_wmb(), while the actual pairing involves the barrier in
-set_current_state() and the barrier executed by the try_to_wake_up()
-in wake_woken_function().
+ arch/ia64/kernel/brl_emu.c   |  31 ++--------
+ arch/ia64/kernel/signal.c    |  60 ++++--------------
+ arch/ia64/kernel/traps.c     | 144 ++++++++++++-------------------------------
+ arch/ia64/kernel/unaligned.c |  12 +---
+ arch/ia64/mm/fault.c         |  12 +---
+ 5 files changed, 62 insertions(+), 197 deletions(-)
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: akiyks@gmail.com
-Cc: boqun.feng@gmail.com
-Cc: dhowells@redhat.com
-Cc: j.alglave@ucl.ac.uk
-Cc: linux-arch@vger.kernel.org
-Cc: luc.maranget@inria.fr
-Cc: npiggin@gmail.com
-Cc: parri.andrea@gmail.com
-Cc: stern@rowland.harvard.edu
-Cc: will.deacon@arm.com
-Link: http://lkml.kernel.org/r/20180716180605.16115-10-paulmck@linux.vnet.ibm.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- kernel/sched/wait.c |   47 +++++++++++++++++++++--------------------------
- 1 file changed, 21 insertions(+), 26 deletions(-)
-
---- a/kernel/sched/wait.c
-+++ b/kernel/sched/wait.c
-@@ -392,35 +392,36 @@ static inline bool is_kthread_should_sto
-  *     if (condition)
-  *         break;
-  *
-- *     p->state = mode;				condition = true;
-- *     smp_mb(); // A				smp_wmb(); // C
-- *     if (!wq_entry->flags & WQ_FLAG_WOKEN)	wq_entry->flags |= WQ_FLAG_WOKEN;
-- *         schedule()				try_to_wake_up();
-- *     p->state = TASK_RUNNING;		    ~~~~~~~~~~~~~~~~~~
-- *     wq_entry->flags &= ~WQ_FLAG_WOKEN;		condition = true;
-- *     smp_mb() // B				smp_wmb(); // C
-- *						wq_entry->flags |= WQ_FLAG_WOKEN;
-- * }
-- * remove_wait_queue(&wq_head, &wait);
-+ *     // in wait_woken()			// in woken_wake_function()
-  *
-+ *     p->state = mode;				wq_entry->flags |= WQ_FLAG_WOKEN;
-+ *     smp_mb(); // A				try_to_wake_up():
-+ *     if (!(wq_entry->flags & WQ_FLAG_WOKEN))	   <full barrier>
-+ *         schedule()				   if (p->state & mode)
-+ *     p->state = TASK_RUNNING;			      p->state = TASK_RUNNING;
-+ *     wq_entry->flags &= ~WQ_FLAG_WOKEN;	~~~~~~~~~~~~~~~~~~
-+ *     smp_mb(); // B				condition = true;
-+ * }						smp_mb(); // C
-+ * remove_wait_queue(&wq_head, &wait);		wq_entry->flags |= WQ_FLAG_WOKEN;
-  */
- long wait_woken(struct wait_queue_entry *wq_entry, unsigned mode, long timeout)
- {
--	set_current_state(mode); /* A */
- 	/*
--	 * The above implies an smp_mb(), which matches with the smp_wmb() from
--	 * woken_wake_function() such that if we observe WQ_FLAG_WOKEN we must
--	 * also observe all state before the wakeup.
-+	 * The below executes an smp_mb(), which matches with the full barrier
-+	 * executed by the try_to_wake_up() in woken_wake_function() such that
-+	 * either we see the store to wq_entry->flags in woken_wake_function()
-+	 * or woken_wake_function() sees our store to current->state.
- 	 */
-+	set_current_state(mode); /* A */
- 	if (!(wq_entry->flags & WQ_FLAG_WOKEN) && !is_kthread_should_stop())
- 		timeout = schedule_timeout(timeout);
- 	__set_current_state(TASK_RUNNING);
- 
- 	/*
--	 * The below implies an smp_mb(), it too pairs with the smp_wmb() from
--	 * woken_wake_function() such that we must either observe the wait
--	 * condition being true _OR_ WQ_FLAG_WOKEN such that we will not miss
--	 * an event.
-+	 * The below executes an smp_mb(), which matches with the smp_mb() (C)
-+	 * in woken_wake_function() such that either we see the wait condition
-+	 * being true or the store to wq_entry->flags in woken_wake_function()
-+	 * follows ours in the coherence order.
- 	 */
- 	smp_store_mb(wq_entry->flags, wq_entry->flags & ~WQ_FLAG_WOKEN); /* B */
- 
-@@ -430,14 +431,8 @@ EXPORT_SYMBOL(wait_woken);
- 
- int woken_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, int sync, void *key)
- {
--	/*
--	 * Although this function is called under waitqueue lock, LOCK
--	 * doesn't imply write barrier and the users expects write
--	 * barrier semantics on wakeup functions.  The following
--	 * smp_wmb() is equivalent to smp_wmb() in try_to_wake_up()
--	 * and is paired with smp_store_mb() in wait_woken().
--	 */
--	smp_wmb(); /* C */
-+	/* Pairs with the smp_store_mb() in wait_woken(). */
-+	smp_mb(); /* C */
- 	wq_entry->flags |= WQ_FLAG_WOKEN;
- 
- 	return default_wake_function(wq_entry, mode, sync, key);
+Eric
