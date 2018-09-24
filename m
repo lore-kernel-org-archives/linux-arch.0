@@ -1,50 +1,49 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi header
-Date: Mon, 24 Sep 2018 23:06:25 +0200
-Message-ID: <CAK8P3a0_omFwid2NZzs_T=A_TY9ddfGOsVKV2vtiaVodWswbmQ@mail.gmail.com>
-References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
- <1536036087-15260-2-git-send-email-firoz.khan@linaro.org> <CAK8P3a1JCnSPi+D+CozhqL0dS9WwXtONDHp4=Kg5kCHrpdYwrw@mail.gmail.com>
- <CALxhOngCL4DEcMD7NaxbUiksByzoxaaozzZGPmB0JFziFEWojw@mail.gmail.com>
+Subject: Re: [PATCH 3/3] microblaze: uapi header and system call table file generation
+Date: Tue, 25 Sep 2018 01:20:21 +0200
+Message-ID: <CAK8P3a0sYYzFyLLjfUuvWOijTsqpOnG2HGDA4nSRmR6YkM6W9A@mail.gmail.com>
+References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
+ <1533792466-4227-4-git-send-email-firoz.khan@linaro.org> <27544098-abc8-db2e-5625-179d13fa63df@xilinx.com>
+ <CALxhOngGqB2hY1MaEpTZvpgKTP9rwqbnMpgRKT9NQuZ4CXOcew@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOngCL4DEcMD7NaxbUiksByzoxaaozzZGPmB0JFziFEWojw@mail.gmail.com>
+In-Reply-To: <CALxhOngGqB2hY1MaEpTZvpgKTP9rwqbnMpgRKT9NQuZ4CXOcew@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
-Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Cc: Michal Simek <michal.simek@xilinx.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 18, 2018 at 1:53 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Tue, Sep 18, 2018 at 9:12 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> On 6 September 2018 at 20:58, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> On 9 August 2018 at 12:42, Michal Simek <michal.simek@xilinx.com> wrote:
+> > On 9.8.2018 07:27, Firoz Khan wrote:
+
+> >> diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+> >> index fe6a6c6..99225ab 100644
+> >> --- a/arch/microblaze/include/asm/Kbuild
+> >> +++ b/arch/microblaze/include/asm/Kbuild
+> >> @@ -30,3 +30,5 @@ generic-y += trace_clock.h
+> >>  generic-y += vga.h
+> >>  generic-y += word-at-a-time.h
+> >>  generic-y += xor.h
+> >> +
+> >> +generated-y += syscall_table.h
+> >> \ No newline at end of file
 > >
-> >> +++ b/arch/sparc/include/uapi/asm/unistd.h
-> >> @@ -15,12 +15,6 @@
-> >>  #ifndef _UAPI_SPARC_UNISTD_H
-> >>  #define _UAPI_SPARC_UNISTD_H
-> >>
-> >> -#ifndef __32bit_syscall_numbers__
-> >> -#ifndef __arch64__
-> >> -#define __32bit_syscall_numbers__
-> >> -#endif
-> >> -#endif
-> >
-> > This is certainly required in the uapi header as of this patch,
-> > without it all the numbers are wrong when you include the
-> > file from user space.
-> >
-> > I suppose it can be removed later once the header is replaced
-> > with the two generated versions,
+> > This doesn't look right.
 >
-> The script will generate 2 versions, ie, unistd_32.h and unistd_64.h.
-> Please give few more pointer here.
+> You mean I have to keep something like this?
+>  generic-y += xor.h
+> -
+> -generated-y += syscall_table.h
+> \ No newline at end of file
+> +generic-y += syscall_table.h
+> \ No newline at end of file
 
-You still need to check at least for __arch64__ in asm/unistd.h in order
-to pick which header to include, right? Since the
-__32bit_syscall_numbers__ check was already in the public header
-file, it may also be possible that there is some user space application
-that sets this in order to get the 32-bit definitions. This might e.g.
-be needed for strace.
+The "\ No newline at end of file" line is produced by
+git format-patch when you have accidentally removed
+the newline at the end. Most editors don't even allow
+you to do that, so I don't know what went wrong.
 
-     Arnd
+       Arnd
