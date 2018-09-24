@@ -1,42 +1,78 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH V4 00/27] C-SKY(csky) Linux Kernel Port
-Date: Mon, 24 Sep 2018 09:21:36 +0200
-Message-ID: <CAMuHMdVV0QWXCkkL8dq4UMLaANGMHu7ePhQ83FiFDtynpJzbLA@mail.gmail.com>
-References: <20180914143719.GA27689@guoren-Inspiron-7460> <mhng-9d591179-01d4-4a84-a490-8a09d4f3a3d1@palmer-si-x1c4>
- <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v2 3/5] m68k: Added system call table generation
+	support
+Date: Mon, 24 Sep 2018 13:23:31 +0530
+Message-ID: <CALxhOnipc=-fxG6o1_2ygpprjunfe3d6XPdraeRJNKnUwwzk5w@mail.gmail.com>
+References: <1537455973-12468-1-git-send-email-firoz.khan@linaro.org>
+ <1537455973-12468-4-git-send-email-firoz.khan@linaro.org>
+ <CAMuHMdUPKh+6ocdH38=46veyOFUE2o_Hj=xodyLDCQ3s8J9ADQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3v0K6G47dAVFtn+XjM3iM7vx6L_RB0mmONBDB9gBNgag@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Palmer Dabbelt <palmer@sifive.com>, Guo Ren <ren_guo@c-sky.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, andrea.parri@amarulasolutions.com, Peter Zijlstra <peterz@infradead.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Thomas Petazzoni <thomas.petazzoni@bootlin.com>, wbx@uclibc-ng.org, Greentime Hu <green.hu@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <CAMuHMdUPKh+6ocdH38=46veyOFUE2o_Hj=xodyLDCQ3s8J9ADQ@mail.gmail.com>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
-
-On Fri, Sep 21, 2018 at 7:19 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thu, Sep 20, 2018 at 10:52 AM Palmer Dabbelt <palmer@sifive.com> wrote:
-> > On Fri, 14 Sep 2018 07:37:20 PDT (-0700), ren_guo@c-sky.com wrote:
-> > > On Wed, Sep 12, 2018 at 04:30:36PM +0200, Arnd Bergmann wrote:
-> > >> On Wed, Sep 12, 2018 at 3:25 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> My plan was to get that all into 4.20, and then have a conversation about the
-> actual syscall table changes in 4.21. If we need it for both csky and rv32,
-> we might just change the generic syscall table that way in 4.21 without
-> changing all the other ones along with them. I don't want to drag things out
-> over too many merge windows though, and my plan was to do all architectures
-> together to simplify the version checks in the libc code to only have to check
-> for a single version.
-
-What happens with the version checks if it is backported to stable?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+SGkgR2VlcnQsCgpPbiBNb24sIDI0IFNlcCAyMDE4IGF0IDEyOjMzLCBHZWVydCBVeXR0ZXJob2V2
+ZW4gPGdlZXJ0QGxpbnV4LW02OGsub3JnPiB3cm90ZToKPgo+IEhpIEZpcm96LAo+Cj4gT24gVGh1
+LCBTZXAgMjAsIDIwMTggYXQgNTowNyBQTSBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFyby5v
+cmc+IHdyb3RlOgo+ID4gVGhlIHN5c3RlbSBjYWxsIHRhYmxlcyBhcmUgaW4gZGlmZmVyZW50IGZv
+cm1hdCBpbiBhbGwKPiA+IGFyY2hpdGVjdHVyZSBhbmQgaXQgd2lsbCBiZSBkaWZmaWN1bHQgdG8g
+bWFudWFsbHkgYWRkIG9yCj4gPiBtb2RpZnkgdGhlIHN5c3RlbSBjYWxscyBpbiB0aGUgcmVzcGVj
+dGl2ZSBmaWxlcy4gVG8gbWFrZQo+ID4gaXQgZWFzeSBieSBrZWVwaW5nIGEgc2NyaXB0IGFuZCB3
+aGljaCdsbCBnZW5lcmF0ZSB0aGUKPiA+IGhlYWRlciBmaWxlIGFuZCBzeXNjYWxsIHRhYmxlIGZp
+bGUgc28gdGhpcyBjaGFuZ2Ugd2lsbAo+ID4gdW5pZnkgdGhlbSBhY3Jvc3MgYWxsIGFyY2hpdGVj
+dHVyZXMuCj4gPgo+ID4gVGhlIHN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRpb24gc2NyaXB0IGlz
+IGFkZGVkIGluCj4gPiBzeXNjYWxscyBkaXJlY3Rvcnkgd2hpY2ggY29udGFpbiB0aGUgc2NyaXB0
+IHRvIGdlbmVyYXRlCj4gPiBib3RoIHVhcGkgaGVhZGVyIGZpbGUgc3lzdGVtIGNhbGwgdGFibGUg
+Z2VuZXJhdGlvbiBmaWxlCj4gPiBhbmQgc3lzY2FsbC50YmwgZmlsZSB3aGljaCdsbCBiZSB0aGUg
+aW5wdXQgZm9yIHRoZSBzY3JpcHRzLgo+ID4KPiA+IHN5c2NhbGwudGJsIGNvbnRhaW5zIHRoZSBs
+aXN0IG9mIGF2YWlsYWJsZSBzeXN0ZW0gY2FsbHMKPiA+IGFsb25nIHdpdGggc3lzdGVtIGNhbGwg
+bnVtYmVyIGFuZCBjb3JyZXNwb25kaW5nIGVudHJ5IHBvaW50Lgo+ID4gQWRkIGEgbmV3IHN5c3Rl
+bSBjYWxsIGluIHRoaXMgYXJjaGl0ZWN0dXJlIHdpbGwgYmUgcG9zc2libGUKPiA+IGJ5IGFkZGlu
+ZyBuZXcgZW50cnkgaW4gdGhlIHN5c2NhbGwudGJsIGZpbGUuCj4gPgo+ID4gQWRkaW5nIGEgbmV3
+IHRhYmxlIGVudHJ5IGNvbnNpc3Rpbmcgb2Y6Cj4gPiAgICAgICAgIC0gU3lzdGVtIGNhbGwgbnVt
+YmVyLgo+ID4gICAgICAgICAtIEFCSS4KPiA+ICAgICAgICAgLSBTeXN0ZW0gY2FsbCBuYW1lLgo+
+ID4gICAgICAgICAtIEVudHJ5IHBvaW50IG5hbWUuCj4gPgo+ID4gc3lzY2FsbGhkci5zaCBhbmQg
+c3lzY2FsbHRibC5zaCB3aWxsIGdlbmVyYXRlIHVhcGkgaGVhZGVyLQo+ID4gdW5pc3RkLmggYW5k
+IHN5c2NhbGxfdGFibGUuaCBmaWxlcyByZXNwZWN0aXZlbHkuIEZpbGUKPiA+IHN5c2NhbGxfdGFi
+bGUuaCBpcyBpbmNsdWRlZCBieSBzeXNjYWxsX3RhYmxlLlMgLSB0aGUgcmVhbAo+ID4gc3lzdGVt
+IGNhbGwgdGFibGUuIEJvdGggLnNoIGZpbGVzIHdpbGwgcGFyc2UgdGhlIGNvbnRlbnQKPiA+IHN5
+c2NhbGwudGJsIHRvIGdlbmVyYXRlIHRoZSBoZWFkZXIgYW5kIHRhYmxlIGZpbGVzLgo+ID4KPiA+
+IEFSTSwgczM5MCBhbmQgeDg2IGFyY2hpdGVjdXR1cmUgZG9lcyBoYXZlIHRoZSBzaW1pbGFyIHN1
+cHBvcnQuCj4gPiBJIGxldmVyYWdlIHRoZWlyIGltcGxlbWVudGF0aW9uIHRvIGNvbWUgdXAgd2l0
+aCBhIGdlbmVyaWMKPiA+IHNvbHV0aW9uLiBBbmQgdGhpcyBpcyB0aGUgZ3JvdW5kIHdvcmsgZm9y
+IHkyMDM4IGlzc3VlLiBXZSBuZWVkCj4gPiB0byBjaGFuZ2UgdHdvIGRvem9ucyBvZiBzeXN0ZW0g
+Y2FsbCBpbXBsZW1lbnRhdGlvbiBhbmQgdGhpcwo+ID4gd29yayB3aWxsIHJlZHVjZSB0aGUgZWZm
+b3J0IGJ5IHNpbXBseSBtb2RpZnkgdHdvIGRvem9uIGVudHJpZXMKPiA+IGluIHN5c2NhbGwudGJs
+Lgo+ID4KPiA+IFNpZ25lZC1vZmYtYnk6IEZpcm96IEtoYW4gPGZpcm96LmtoYW5AbGluYXJvLm9y
+Zz4KPgo+IFRoYW5rcyBmb3IgeW91ciBwYXRjaCEKPgo+ID4gLS0tIC9kZXYvbnVsbAo+ID4gKysr
+IGIvYXJjaC9tNjhrL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibAo+ID4gQEAgLTAsMCArMSwz
+NjkgQEAKPiA+ICsjCj4gPiArIyBMaW51eCBzeXN0ZW0gY2FsbCBudW1iZXJzIGFuZCBlbnRyeSB2
+ZWN0b3JzCj4gPiArIwo+ID4gKyMgVGhlIGZvcm1hdCBpczoKPiA+ICsjIDxudW1iZXI+IDxhYmk+
+IDxuYW1lPiA8ZW50cnkgcG9pbnQ+Cj4gPiArIwo+ID4gKyMgVGhlIGFiaSBpcyBhbHdheXMgY29t
+bW9uIGZvciB0aGlzIGZpbGUuCj4gPiArIwo+ID4gKzAgICAgICAgY29tbW9uICAgcmVzdGFydF9z
+eXNjYWxsICAgICAgICAgIHN5c19yZXN0YXJ0X3N5c2NhbGwKPgo+IFdoeSB0aGUgaW5kZW50YXRp
+b24gYnkgYW4gIm9kZCIgbnVtYmVyIG9mIHNwYWNlcywgaW5zdGVhZCBvZiBUQUJzPwoKSSdsbCBj
+aGVjayBhbmQgZml4IEFTQVAuIEhvcGVmdWxseSBJIGNhbiBwb3N0IGEgY2xlYW4gKGFsbW9zdCkg
+cGF0Y2ggc2VyaWVzCndpdGhpbiBjb3VwbGUgb2YgZGF5cyEKCi0gRmlyb3oKCj4KPiBHcntvZXRq
+ZSxlZXRpbmd9cywKPgo+ICAgICAgICAgICAgICAgICAgICAgICAgIEdlZXJ0Cj4KPiAtLQo+IEdl
+ZXJ0IFV5dHRlcmhvZXZlbiAtLSBUaGVyZSdzIGxvdHMgb2YgTGludXggYmV5b25kIGlhMzIgLS0g
+Z2VlcnRAbGludXgtbTY4ay5vcmcKPgo+IEluIHBlcnNvbmFsIGNvbnZlcnNhdGlvbnMgd2l0aCB0
+ZWNobmljYWwgcGVvcGxlLCBJIGNhbGwgbXlzZWxmIGEgaGFja2VyLiBCdXQKPiB3aGVuIEknbSB0
+YWxraW5nIHRvIGpvdXJuYWxpc3RzIEkganVzdCBzYXkgInByb2dyYW1tZXIiIG9yIHNvbWV0aGlu
+ZyBsaWtlIHRoYXQuCj4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAtLSBMaW51cyBU
+b3J2YWxkcwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZ
+MjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxp
+bmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
