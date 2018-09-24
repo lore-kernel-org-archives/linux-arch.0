@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V5 22/30] irqchip: add C-SKY SMP interrupt controller
-Date: Tue, 25 Sep 2018 07:39:25 +0800
-Message-ID: <98731d0679cc1bdebfa66de43fe8f2da84e76890.1537789737.git.ren_guo@c-sky.com>
+Subject: [PATCH V5 24/30] clocksource: add C-SKY SMP timer
+Date: Tue, 25 Sep 2018 07:39:27 +0800
+Message-ID: <a2cf100879410b36948d39849c14e92430d85cf7.1537789737.git.ren_guo@c-sky.com>
 References: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
@@ -12,255 +12,244 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
- - Irq-csky-mpintc is C-SKY smp system interrupt controller and it
-   could support 16 soft irqs, 16 private irqs, and 992 max common
-   irqs.
+This timer is used by SMP system and use mfcr/mtcr instruction
+to access the regs.
 
 Changelog:
- - Move IPI_IRQ into the driver
- - Remove irq_set_default_host() and use set_ipi_irq_mapping()
- - Change name with upstream feed-back
- - Change irq map, reserve soft_irq & private_irq space
- - Add License and Copyright
- - Support set_affinity for irq balance in SMP
+ - Remove #define CPUHP_AP_CSKY_TIMER_STARTING
+ - Add CPUHP_AP_CSKY_TIMER_STARTING in cpuhotplug.h
+ - Support csky mp timer alpha version.
+ - Just use low-counter with 32bit width as clocksource.
+ - Coding convention with upstream feed-back.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- drivers/irqchip/Kconfig           |   8 ++
- drivers/irqchip/Makefile          |   1 +
- drivers/irqchip/irq-csky-mpintc.c | 195 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 204 insertions(+)
- create mode 100644 drivers/irqchip/irq-csky-mpintc.c
+ drivers/clocksource/Kconfig        |   8 ++
+ drivers/clocksource/Makefile       |   1 +
+ drivers/clocksource/csky_mptimer.c | 176 +++++++++++++++++++++++++++++++++++++
+ include/linux/cpuhotplug.h         |   1 +
+ 4 files changed, 186 insertions(+)
+ create mode 100644 drivers/clocksource/csky_mptimer.c
 
-diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
-index 383e7b7..92e1c20 100644
---- a/drivers/irqchip/Kconfig
-+++ b/drivers/irqchip/Kconfig
-@@ -371,6 +371,14 @@ config QCOM_PDC
- 	  Power Domain Controller driver to manage and configure wakeup
- 	  IRQs for Qualcomm Technologies Inc (QTI) mobile chips.
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index a11f4ba..a28043f 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -620,4 +620,12 @@ config RISCV_TIMER
+ 	  is accessed via both the SBI and the rdcycle instruction.  This is
+ 	  required for all RISC-V systems.
  
-+config CSKY_MPINTC
-+	bool "C-SKY Multi Processor Interrupt Controller"
++config CSKY_MPTIMER
++	bool "C-SKY Multi Processor Timer"
 +	depends on CSKY
++	select TIMER_OF
 +	help
-+	  Say yes here to enable C-SKY SMP interrupt controller driver used
-+	  for C-SKY SMP system. In fact it's not mmio map and it use ld/st
-+	  to visit the controller's register inside CPU.
++	  Say yes here to enable C-SKY SMP timer driver used for C-SKY SMP
++	  system.
 +
  endmenu
- 
- config SIFIVE_PLIC
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index fbd1ec8..6b739ea 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -87,4 +87,5 @@ obj-$(CONFIG_MESON_IRQ_GPIO)		+= irq-meson-gpio.o
- obj-$(CONFIG_GOLDFISH_PIC) 		+= irq-goldfish-pic.o
- obj-$(CONFIG_NDS32)			+= irq-ativic32.o
- obj-$(CONFIG_QCOM_PDC)			+= qcom-pdc.o
-+obj-$(CONFIG_CSKY_MPINTC)		+= irq-csky-mpintc.o
- obj-$(CONFIG_SIFIVE_PLIC)		+= irq-sifive-plic.o
-diff --git a/drivers/irqchip/irq-csky-mpintc.c b/drivers/irqchip/irq-csky-mpintc.c
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index db51b24..848c676 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -79,3 +79,4 @@ obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
+ obj-$(CONFIG_ATCPIT100_TIMER)		+= timer-atcpit100.o
+ obj-$(CONFIG_RISCV_TIMER)		+= riscv_timer.o
++obj-$(CONFIG_CSKY_MPTIMER)		+= csky_mptimer.o
+diff --git a/drivers/clocksource/csky_mptimer.c b/drivers/clocksource/csky_mptimer.c
 new file mode 100644
-index 0000000..2b424d27
+index 0000000..9dc3cfb
 --- /dev/null
-+++ b/drivers/irqchip/irq-csky-mpintc.c
-@@ -0,0 +1,195 @@
++++ b/drivers/clocksource/csky_mptimer.c
+@@ -0,0 +1,176 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/kernel.h>
 +#include <linux/init.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/module.h>
-+#include <linux/irqdomain.h>
-+#include <linux/irqchip.h>
-+#include <linux/irq.h>
 +#include <linux/interrupt.h>
-+#include <asm/irq.h>
-+#include <asm/io.h>
-+#include <asm/traps.h>
++#include <linux/sched_clock.h>
++#include <linux/cpu.h>
 +#include <asm/reg_ops.h>
-+#include <asm/smp.h>
 +
-+static struct irq_domain *root_domain;
-+static void __iomem *INTCG_base;
-+static void __iomem *INTCL_base;
++#include "timer-of.h"
 +
-+#define IPI_IRQ		15
-+#define INTC_IRQS	256
-+#define COMM_IRQ_BASE	32
++#define PTIM_CCVR	"cr<3, 14>"
++#define PTIM_CTLR	"cr<0, 14>"
++#define PTIM_LVR	"cr<6, 14>"
++#define PTIM_TSR	"cr<1, 14>"
 +
-+#define INTCG_SIZE	0x8000
-+#define INTCL_SIZE	0x1000
-+#define INTC_SIZE	INTCL_SIZE*nr_cpu_ids + INTCG_SIZE
-+
-+#define INTCG_ICTLR	0x0
-+#define INTCG_CICFGR	0x100
-+#define INTCG_CIDSTR	0x1000
-+
-+#define INTCL_PICTLR	0x0
-+#define INTCL_SIGR	0x60
-+#define INTCL_HPPIR	0x68
-+#define INTCL_RDYIR	0x6c
-+#define INTCL_SENR	0xa0
-+#define INTCL_CENR	0xa4
-+#define INTCL_CACR	0xb4
-+
-+static DEFINE_PER_CPU(void __iomem *, intcl_reg);
-+
-+static void csky_mpintc_handler(struct pt_regs *regs)
++static int csky_mptimer_set_next_event(unsigned long delta, struct clock_event_device *ce)
 +{
-+	void __iomem *reg_base = this_cpu_read(intcl_reg);
-+
-+	do {
-+		handle_domain_irq(root_domain,
-+				  readl_relaxed(reg_base + INTCL_RDYIR),
-+				  regs);
-+	} while (readl_relaxed(reg_base + INTCL_HPPIR) & BIT(31));
-+}
-+
-+static void csky_mpintc_enable(struct irq_data *d)
-+{
-+	void __iomem *reg_base = this_cpu_read(intcl_reg);
-+
-+	writel_relaxed(d->hwirq, reg_base + INTCL_SENR);
-+}
-+
-+static void csky_mpintc_disable(struct irq_data *d)
-+{
-+	void __iomem *reg_base = this_cpu_read(intcl_reg);
-+
-+	writel_relaxed(d->hwirq, reg_base + INTCL_CENR);
-+}
-+
-+static void csky_mpintc_eoi(struct irq_data *d)
-+{
-+	void __iomem *reg_base = this_cpu_read(intcl_reg);
-+
-+	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
-+}
-+
-+#ifdef CONFIG_SMP
-+static int csky_irq_set_affinity(struct irq_data *d,
-+				 const struct cpumask *mask_val,
-+				 bool force)
-+{
-+	unsigned int cpu;
-+	unsigned int offset = 4 * (d->hwirq - COMM_IRQ_BASE);
-+
-+	if (!force)
-+		cpu = cpumask_any_and(mask_val, cpu_online_mask);
-+	else
-+		cpu = cpumask_first(mask_val);
-+
-+	if (cpu >= nr_cpu_ids)
-+		return -EINVAL;
-+
-+	/* Enable interrupt destination */
-+	cpu |= BIT(31);
-+
-+	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + offset);
-+
-+	irq_data_update_effective_affinity(d, cpumask_of(cpu));
-+
-+	return IRQ_SET_MASK_OK_DONE;
-+}
-+#endif
-+
-+static struct irq_chip csky_irq_chip = {
-+	.name           = "C-SKY SMP Intc",
-+	.irq_eoi	= csky_mpintc_eoi,
-+	.irq_enable	= csky_mpintc_enable,
-+	.irq_disable	= csky_mpintc_disable,
-+#ifdef CONFIG_SMP
-+	.irq_set_affinity = csky_irq_set_affinity,
-+#endif
-+};
-+
-+static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
-+			      irq_hw_number_t hwirq)
-+{
-+	if(hwirq < COMM_IRQ_BASE) {
-+		irq_set_percpu_devid(irq);
-+		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
-+	} else {
-+		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
-+	}
++	mtcr(PTIM_LVR, delta);
 +
 +	return 0;
 +}
 +
-+static const struct irq_domain_ops csky_irqdomain_ops = {
-+	.map	= csky_irqdomain_map,
-+	.xlate	= irq_domain_xlate_onecell,
++static int csky_mptimer_shutdown(struct clock_event_device *ce)
++{
++	mtcr(PTIM_CTLR, 0);
++
++	return 0;
++}
++
++static int csky_mptimer_oneshot(struct clock_event_device *ce)
++{
++	mtcr(PTIM_CTLR, 1);
++
++	return 0;
++}
++
++static int csky_mptimer_oneshot_stopped(struct clock_event_device *ce)
++{
++	mtcr(PTIM_CTLR, 0);
++
++	return 0;
++}
++
++static DEFINE_PER_CPU(struct timer_of, csky_to) = {
++	.flags					= TIMER_OF_CLOCK,
++	.clkevt = {
++		.rating				= 300,
++		.features			= CLOCK_EVT_FEAT_PERCPU |
++						  CLOCK_EVT_FEAT_ONESHOT,
++		.set_state_shutdown		= csky_mptimer_shutdown,
++		.set_state_oneshot		= csky_mptimer_oneshot,
++		.set_state_oneshot_stopped	= csky_mptimer_oneshot_stopped,
++		.set_next_event			= csky_mptimer_set_next_event,
++	},
++	.of_irq = {
++		.flags				= IRQF_TIMER,
++		.percpu				= 1,
++	},
 +};
 +
-+#ifdef CONFIG_SMP
-+static void csky_mpintc_send_ipi(const unsigned long *mask)
++static irqreturn_t timer_interrupt(int irq, void *dev)
 +{
-+	void __iomem *reg_base = this_cpu_read(intcl_reg);
++	struct timer_of *to = this_cpu_ptr(&csky_to);
++
++	mtcr(PTIM_TSR, 0);
++
++	to->clkevt.event_handler(&to->clkevt);
++
++	return IRQ_HANDLED;
++}
++
++/*
++ * clock event for percpu
++ */
++static int csky_mptimer_starting_cpu(unsigned int cpu)
++{
++	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
++
++	to->clkevt.cpumask = cpumask_of(cpu);
++
++	clockevents_config_and_register(&to->clkevt, timer_of_rate(to), 2, ULONG_MAX);
++
++	enable_percpu_irq(timer_of_irq(to), 0);
++
++	return 0;
++}
++
++static int csky_mptimer_dying_cpu(unsigned int cpu)
++{
++	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
++
++	disable_percpu_irq(timer_of_irq(to));
++
++	return 0;
++}
++
++/*
++ * clock source
++ */
++static u64 sched_clock_read(void)
++{
++	return (u64) mfcr(PTIM_CCVR);
++}
++
++static u64 clksrc_read(struct clocksource *c)
++{
++	return (u64) mfcr(PTIM_CCVR);
++}
++
++struct clocksource csky_clocksource = {
++	.name	= "csky",
++	.rating	= 400,
++	.mask	= CLOCKSOURCE_MASK(32),
++	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++	.read	= clksrc_read,
++};
++
++static int __init csky_mptimer_init(struct device_node *np)
++{
++	int ret, cpu;
++	struct timer_of *to;
++	int rate = 0;
++	int irq	 = 0;
 +
 +	/*
-+	 * INTCL_SIGR[3:0] INTID
-+	 * INTCL_SIGR[8:15] CPUMASK
++	 * Csky_mptimer is designed for C-SKY SMP multi-processors and
++	 * every core has it's own private irq and regs for clkevt and
++	 * clksrc.
++	 *
++	 * The regs is accessed by cpu instruction: mfcr/mtcr instead of
++	 * mmio map style. So we needn't mmio-address in dts, but we still
++	 * need to give clk and irq number.
++	 *
++	 * We use private irq for the mptimer and irq number is the same
++	 * for every core. So we use request_percpu_irq() in timer_of_init.
 +	 */
-+	writel_relaxed((*mask) << 8 | IPI_IRQ, reg_base + INTCL_SIGR);
-+}
 +
-+static int csky_mpintc_ipi_irq_mapping(void)
-+{
-+	return irq_create_mapping(root_domain, IPI_IRQ);
-+}
-+#endif
++	for_each_possible_cpu(cpu) {
++		to = per_cpu_ptr(&csky_to, cpu);
 +
-+/* C-SKY multi processor interrupt controller */
-+static int __init
-+csky_mpintc_init(struct device_node *node, struct device_node *parent)
-+{
-+	unsigned int cpu, nr_irq;
-+	int ret;
++		if (cpu == 0) {
++			to->flags	  |= TIMER_OF_IRQ;
++			to->of_irq.handler = timer_interrupt;
 +
-+	if (parent)
-+		return 0;
++			ret = timer_of_init(np, to);
++			if (ret)
++				return ret;
 +
-+	ret = of_property_read_u32(node, "csky,num-irqs", &nr_irq);
-+	if (ret < 0)
-+		nr_irq = INTC_IRQS;
++			rate	= timer_of_rate(to);
++			irq	= to->of_irq.irq;
++		} else {
++			ret = timer_of_init(np, to);
++			if (ret)
++				return ret;
 +
-+	if (INTCG_base == NULL) {
-+		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
-+		if (INTCG_base == NULL)
-+			return -EIO;
-+
-+		INTCL_base = INTCG_base + INTCG_SIZE;
-+
-+		writel_relaxed(BIT(0), INTCG_base + INTCG_ICTLR);
++			to->of_clk.rate	= rate;
++			to->of_irq.irq	= irq;
++		}
 +	}
 +
-+	root_domain = irq_domain_add_linear(node, nr_irq, &csky_irqdomain_ops,
-+					    NULL);
-+	if (!root_domain)
-+		return -ENXIO;
-+
-+	/* for every cpu */
-+	for_each_present_cpu(cpu) {
-+		per_cpu(intcl_reg, cpu) = INTCL_base + (INTCL_SIZE * cpu);
-+		writel_relaxed(BIT(0), per_cpu(intcl_reg, cpu) + INTCL_PICTLR);
++	ret = cpuhp_setup_state(CPUHP_AP_CSKY_TIMER_STARTING,
++				"clockevents/csky/timer:starting",
++				csky_mptimer_starting_cpu,
++				csky_mptimer_dying_cpu);
++	if (ret) {
++		pr_err("%s: Failed to cpuhp_setup_state.\n", __func__);
++		return ret;
 +	}
 +
-+	set_handle_irq(&csky_mpintc_handler);
-+
-+#ifdef CONFIG_SMP
-+	set_send_ipi(&csky_mpintc_send_ipi);
-+
-+	set_ipi_irq_mapping(&csky_mpintc_ipi_irq_mapping);
-+#endif
++	clocksource_register_hz(&csky_clocksource, rate);
++	sched_clock_register(sched_clock_read, 32, rate);
 +
 +	return 0;
 +}
-+IRQCHIP_DECLARE(csky_mpintc, "csky,mpintc", csky_mpintc_init);
++TIMER_OF_DECLARE(csky_mptimer, "csky,mptimer", csky_mptimer_init);
+diff --git a/include/linux/cpuhotplug.h b/include/linux/cpuhotplug.h
+index caf40ad..e0cd2ba 100644
+--- a/include/linux/cpuhotplug.h
++++ b/include/linux/cpuhotplug.h
+@@ -126,6 +126,7 @@ enum cpuhp_state {
+ 	CPUHP_AP_MIPS_GIC_TIMER_STARTING,
+ 	CPUHP_AP_ARC_TIMER_STARTING,
+ 	CPUHP_AP_RISCV_TIMER_STARTING,
++	CPUHP_AP_CSKY_TIMER_STARTING,
+ 	CPUHP_AP_KVM_STARTING,
+ 	CPUHP_AP_KVM_ARM_VGIC_INIT_STARTING,
+ 	CPUHP_AP_KVM_ARM_VGIC_STARTING,
 -- 
 2.7.4
