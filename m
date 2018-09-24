@@ -1,118 +1,240 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:37233 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728351AbeIXPMY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:12:24 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:56414 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728433AbeIXPMU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2018 11:12:20 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 24 Sep 2018 11:10:02 +0200
-Message-ID: <20180924091015.4458-2-ebiederm@xmission.com>
+Date: Mon, 24 Sep 2018 11:10:01 +0200
+Message-ID: <20180924091015.4458-1-ebiederm@xmission.com>
 In-Reply-To: <871s9j462u.fsf@xmission.com>
 References: <871s9j462u.fsf@xmission.com>
-Subject: [REVIEW][PATCH 02/15] signal/arm64: Remove unneeded tsk parameter from arm64_force_sig_info
+Subject: [REVIEW][PATCH 01/15] signal/arm64: Push siginfo generation into arm64_notify_die
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180924091002.RYPMgtbl4irZcnG_ru5GSqleAlA3RZWuFSTlTLalsjs@z>
+Message-ID: <20180924091001.qQcB_rAgFQWUpiNMopvnHdl1vopvaPz5u_IzTzjtiaI@z>
 
-Every caller passes in current for tsk so there is no need to pass
-tsk.  Instead make tsk a local variable initialized to current.
+Instead of generating a struct siginfo before calling arm64_notify_die
+pass the signal number, tne sicode and the fault address into
+arm64_notify_die and have it call force_sig_fault instead of
+force_sig_info to let the generic code generate the struct siginfo.
+
+This keeps code passing just the needed information into
+siginfo generating code, making it easier to see what
+is happening and harder to get wrong.  Further by letting
+the generic code handle the generation of struct siginfo
+it reduces the number of sites generating struct siginfo
+making it possible to review them and verify that all
+of the fiddly details for a structure passed to userspace
+are handled properly.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm64/include/asm/traps.h     | 3 +--
- arch/arm64/kernel/debug-monitors.c | 2 +-
- arch/arm64/kernel/ptrace.c         | 2 +-
- arch/arm64/kernel/traps.c          | 8 ++++----
- arch/arm64/mm/fault.c              | 2 +-
- 5 files changed, 8 insertions(+), 9 deletions(-)
+ arch/arm64/include/asm/system_misc.h |  3 +-
+ arch/arm64/kernel/sys_compat.c       | 13 ++++-----
+ arch/arm64/kernel/traps.c            | 24 ++++++++--------
+ arch/arm64/mm/fault.c                | 41 +++++++---------------------
+ 4 files changed, 30 insertions(+), 51 deletions(-)
 
-diff --git a/arch/arm64/include/asm/traps.h b/arch/arm64/include/asm/traps.h
-index c320f3bf6c57..cd3a2ca9c179 100644
---- a/arch/arm64/include/asm/traps.h
-+++ b/arch/arm64/include/asm/traps.h
-@@ -37,8 +37,7 @@ void register_undef_hook(struct undef_hook *hook);
- void unregister_undef_hook(struct undef_hook *hook);
- void force_signal_inject(int signal, int code, unsigned long address);
- void arm64_notify_segfault(unsigned long addr);
--void arm64_force_sig_info(struct siginfo *info, const char *str,
--			  struct task_struct *tsk);
-+void arm64_force_sig_info(struct siginfo *info, const char *str);
+diff --git a/arch/arm64/include/asm/system_misc.h b/arch/arm64/include/asm/system_misc.h
+index 28893a0b141d..0e2a0ecaf484 100644
+--- a/arch/arm64/include/asm/system_misc.h
++++ b/arch/arm64/include/asm/system_misc.h
+@@ -33,7 +33,8 @@ void die(const char *msg, struct pt_regs *regs, int err);
  
- /*
-  * Move regs->pc to next instruction and do necessary setup before it
-diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-monitors.c
-index 06ca574495af..e0d9502be5bf 100644
---- a/arch/arm64/kernel/debug-monitors.c
-+++ b/arch/arm64/kernel/debug-monitors.c
-@@ -224,7 +224,7 @@ static void send_user_sigtrap(int si_code)
- 	if (interrupts_enabled(regs))
- 		local_irq_enable();
+ struct siginfo;
+ void arm64_notify_die(const char *str, struct pt_regs *regs,
+-		      struct siginfo *info, int err);
++		      int signo, int sicode, void __user *addr,
++		      int err);
  
--	arm64_force_sig_info(&info, "User debug trap", current);
-+	arm64_force_sig_info(&info, "User debug trap");
- }
+ void hook_debug_fault_code(int nr, int (*fn)(unsigned long, unsigned int,
+ 					     struct pt_regs *),
+diff --git a/arch/arm64/kernel/sys_compat.c b/arch/arm64/kernel/sys_compat.c
+index a6109825eeb9..32653d156747 100644
+--- a/arch/arm64/kernel/sys_compat.c
++++ b/arch/arm64/kernel/sys_compat.c
+@@ -68,8 +68,8 @@ do_compat_cache_op(unsigned long start, unsigned long end, int flags)
+  */
+ long compat_arm_syscall(struct pt_regs *regs)
+ {
+-	siginfo_t info;
+ 	unsigned int no = regs->regs[7];
++	void __user *addr;
  
- static int single_step_handler(unsigned long addr, unsigned int esr,
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 6219486fa25f..20b68cb31ecb 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -211,7 +211,7 @@ static void ptrace_hbptriggered(struct perf_event *bp,
- 		force_sig_ptrace_errno_trap(si_errno, (void __user *)bkpt->trigger);
+ 	switch (no) {
+ 	/*
+@@ -112,13 +112,10 @@ long compat_arm_syscall(struct pt_regs *regs)
+ 		break;
  	}
- #endif
--	arm64_force_sig_info(&info, "Hardware breakpoint trap (ptrace)", current);
-+	arm64_force_sig_info(&info, "Hardware breakpoint trap (ptrace)");
- }
  
- /*
+-	clear_siginfo(&info);
+-	info.si_signo = SIGILL;
+-	info.si_errno = 0;
+-	info.si_code  = ILL_ILLTRP;
+-	info.si_addr  = (void __user *)instruction_pointer(regs) -
+-			 (compat_thumb_mode(regs) ? 2 : 4);
++	addr  = (void __user *)instruction_pointer(regs) -
++		(compat_thumb_mode(regs) ? 2 : 4);
+ 
+-	arm64_notify_die("Oops - bad compat syscall(2)", regs, &info, no);
++	arm64_notify_die("Oops - bad compat syscall(2)", regs,
++			 SIGILL, ILL_ILLTRP, addr, no);
+ 	return 0;
+ }
 diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 459eb6fb7158..24035d124608 100644
+index 039e9ff379cc..459eb6fb7158 100644
 --- a/arch/arm64/kernel/traps.c
 +++ b/arch/arm64/kernel/traps.c
-@@ -231,9 +231,9 @@ static bool show_unhandled_signals_ratelimited(void)
- 	return show_unhandled_signals && __ratelimit(&rs);
+@@ -257,13 +257,23 @@ void arm64_force_sig_info(struct siginfo *info, const char *str,
  }
  
--void arm64_force_sig_info(struct siginfo *info, const char *str,
--			  struct task_struct *tsk)
-+void arm64_force_sig_info(struct siginfo *info, const char *str)
+ void arm64_notify_die(const char *str, struct pt_regs *regs,
+-		      struct siginfo *info, int err)
++		      int signo, int sicode, void __user *addr,
++		      int err)
  {
-+	struct task_struct *tsk = current;
- 	unsigned int esr = tsk->thread.fault_code;
- 	struct pt_regs *regs = task_pt_regs(tsk);
- 
-@@ -273,7 +273,7 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 		info.si_code  = sicode;
- 		info.si_addr  = addr;
- 
--		arm64_force_sig_info(&info, str, current);
-+		arm64_force_sig_info(&info, str);
+ 	if (user_mode(regs)) {
++		struct siginfo info;
++
+ 		WARN_ON(regs != current_pt_regs());
+ 		current->thread.fault_address = 0;
+ 		current->thread.fault_code = err;
+-		arm64_force_sig_info(info, str, current);
++
++		clear_siginfo(&info);
++		info.si_signo = signo;
++		info.si_errno = 0;
++		info.si_code  = sicode;
++		info.si_addr  = addr;
++
++		arm64_force_sig_info(&info, str, current);
  	} else {
  		die(str, regs, err);
  	}
-@@ -630,7 +630,7 @@ asmlinkage void bad_el0_sync(struct pt_regs *regs, int reason, unsigned int esr)
- 	current->thread.fault_address = 0;
- 	current->thread.fault_code = esr;
+@@ -348,12 +358,9 @@ static int call_undef_hook(struct pt_regs *regs)
  
--	arm64_force_sig_info(&info, "Bad EL0 synchronous exception", current);
-+	arm64_force_sig_info(&info, "Bad EL0 synchronous exception");
- }
+ void force_signal_inject(int signal, int code, unsigned long address)
+ {
+-	siginfo_t info;
+ 	const char *desc;
+ 	struct pt_regs *regs = current_pt_regs();
  
- #ifdef CONFIG_VMAP_STACK
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index 86fe70d8722f..f42aff0e90ad 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -352,7 +352,7 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
+-	clear_siginfo(&info);
+-
+ 	switch (signal) {
+ 	case SIGILL:
+ 		desc = "undefined instruction";
+@@ -372,12 +379,7 @@ void force_signal_inject(int signal, int code, unsigned long address)
+ 		signal = SIGKILL;
  	}
  
- 	current->thread.fault_code = esr;
--	arm64_force_sig_info(info, esr_to_fault_info(esr)->name, current);
-+	arm64_force_sig_info(info, esr_to_fault_info(esr)->name);
+-	info.si_signo = signal;
+-	info.si_errno = 0;
+-	info.si_code  = code;
+-	info.si_addr  = (void __user *)address;
+-
+-	arm64_notify_die(desc, regs, &info, 0);
++	arm64_notify_die(desc, regs, signal, code, (void __user *)address, 0);
  }
  
- static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ /*
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 50b30ff30de4..86fe70d8722f 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -625,8 +625,8 @@ static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ 
+ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ {
+-	struct siginfo info;
+ 	const struct fault_info *inf;
++	void __user *siaddr;
+ 
+ 	inf = esr_to_fault_info(esr);
+ 
+@@ -645,15 +645,11 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ 			nmi_exit();
+ 	}
+ 
+-	clear_siginfo(&info);
+-	info.si_signo = inf->sig;
+-	info.si_errno = 0;
+-	info.si_code  = inf->code;
+ 	if (esr & ESR_ELx_FnV)
+-		info.si_addr = NULL;
++		siaddr = NULL;
+ 	else
+-		info.si_addr  = (void __user *)addr;
+-	arm64_notify_die(inf->name, regs, &info, esr);
++		siaddr  = (void __user *)addr;
++	arm64_notify_die(inf->name, regs, inf->sig, inf->code, siaddr, esr);
+ 
+ 	return 0;
+ }
+@@ -734,7 +730,6 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
+ 					 struct pt_regs *regs)
+ {
+ 	const struct fault_info *inf = esr_to_fault_info(esr);
+-	struct siginfo info;
+ 
+ 	if (!inf->fn(addr, esr, regs))
+ 		return;
+@@ -745,12 +740,8 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
+ 		show_pte(addr);
+ 	}
+ 
+-	clear_siginfo(&info);
+-	info.si_signo = inf->sig;
+-	info.si_errno = 0;
+-	info.si_code  = inf->code;
+-	info.si_addr  = (void __user *)addr;
+-	arm64_notify_die(inf->name, regs, &info, esr);
++	arm64_notify_die(inf->name, regs,
++			 inf->sig, inf->code, (void __user *)addr, esr);
+ }
+ 
+ asmlinkage void __exception do_el0_irq_bp_hardening(void)
+@@ -780,20 +771,14 @@ asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
+ 					   unsigned int esr,
+ 					   struct pt_regs *regs)
+ {
+-	struct siginfo info;
+-
+ 	if (user_mode(regs)) {
+ 		if (instruction_pointer(regs) > TASK_SIZE)
+ 			arm64_apply_bp_hardening();
+ 		local_irq_enable();
+ 	}
+ 
+-	clear_siginfo(&info);
+-	info.si_signo = SIGBUS;
+-	info.si_errno = 0;
+-	info.si_code  = BUS_ADRALN;
+-	info.si_addr  = (void __user *)addr;
+-	arm64_notify_die("SP/PC alignment exception", regs, &info, esr);
++	arm64_notify_die("SP/PC alignment exception", regs,
++			 SIGBUS, BUS_ADRALN, (void __user *)addr, esr);
+ }
+ 
+ int __init early_brk64(unsigned long addr, unsigned int esr,
+@@ -847,14 +832,8 @@ asmlinkage int __exception do_debug_exception(unsigned long addr,
+ 	if (!inf->fn(addr, esr, regs)) {
+ 		rv = 1;
+ 	} else {
+-		struct siginfo info;
+-
+-		clear_siginfo(&info);
+-		info.si_signo = inf->sig;
+-		info.si_errno = 0;
+-		info.si_code  = inf->code;
+-		info.si_addr  = (void __user *)addr;
+-		arm64_notify_die(inf->name, regs, &info, esr);
++		arm64_notify_die(inf->name, regs,
++				 inf->sig, inf->code, (void __user *)addr, esr);
+ 		rv = 0;
+ 	}
+ 
 -- 
 2.17.1
