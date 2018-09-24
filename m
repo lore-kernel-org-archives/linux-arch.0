@@ -1,71 +1,50 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
-Date: Mon, 24 Sep 2018 22:59:59 +0200
-Message-ID: <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com>
-References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
- <1536913980-4811-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com>
- <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com>
+Subject: Re: [PATCH 1/4] sparc: Move __IGNORE* entries to non uapi header
+Date: Mon, 24 Sep 2018 23:06:25 +0200
+Message-ID: <CAK8P3a0_omFwid2NZzs_T=A_TY9ddfGOsVKV2vtiaVodWswbmQ@mail.gmail.com>
+References: <1536036087-15260-1-git-send-email-firoz.khan@linaro.org>
+ <1536036087-15260-2-git-send-email-firoz.khan@linaro.org> <CAK8P3a1JCnSPi+D+CozhqL0dS9WwXtONDHp4=Kg5kCHrpdYwrw@mail.gmail.com>
+ <CALxhOngCL4DEcMD7NaxbUiksByzoxaaozzZGPmB0JFziFEWojw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com>
+In-Reply-To: <CALxhOngCL4DEcMD7NaxbUiksByzoxaaozzZGPmB0JFziFEWojw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxram@us.ibm.com, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Cc: David Miller <davem@davemloft.net>, sparclinux <sparclinux@vger.kernel.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 18, 2018 at 2:15 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Tue, Sep 18, 2018 at 1:53 PM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> On 14 September 2018 at 15:31, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> On 6 September 2018 at 20:58, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Tue, Sep 4, 2018 at 6:42 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 > >
-> >> ---
-> >>  arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
-> >>  arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 ++++++++++++++++++++++++++++
-> >>  arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 +++++++++++++++++++++++++++
-> >>  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
-> >>  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
+> >> +++ b/arch/sparc/include/uapi/asm/unistd.h
+> >> @@ -15,12 +15,6 @@
+> >>  #ifndef _UAPI_SPARC_UNISTD_H
+> >>  #define _UAPI_SPARC_UNISTD_H
+> >>
+> >> -#ifndef __32bit_syscall_numbers__
+> >> -#ifndef __arch64__
+> >> -#define __32bit_syscall_numbers__
+> >> -#endif
+> >> -#endif
 > >
-> > I think you should only need a single .tbl  input file here.
+> > This is certainly required in the uapi header as of this patch,
+> > without it all the numbers are wrong when you include the
+> > file from user space.
+> >
+> > I suppose it can be removed later once the header is replaced
+> > with the two generated versions,
 >
-> Yes, we can do that way also.As I mentioned, it will add
-> more complexity in the script.
->
->  The script has to be smart enough to parse the
-> .tbl if we add more thing in the .tble file. It need more
-> logic in the scripts. This is not common. So if you keep
-> separate .tbl we can avoid this.
+> The script will generate 2 versions, ie, unistd_32.h and unistd_64.h.
+> Please give few more pointer here.
 
-But all three existing architectures (x86, s390 and arm) already
-have the capability to parse the table and generate different output
-from that.
+You still need to check at least for __arch64__ in asm/unistd.h in order
+to pick which header to include, right? Since the
+__32bit_syscall_numbers__ check was already in the public header
+file, it may also be possible that there is some user space application
+that sets this in order to get the 32-bit definitions. This might e.g.
+be needed for strace.
 
-> ABI flag is serving *nothing* in all other architecture including
-> SPARC.
-
-If you don't use it in sparc, I think that's a bug, see e.g.
-
-#ifdef __32bit_syscall_numbers__
-#define __NR_setresuid32        108 /* Linux Specific, sigvec under
-SunOS          */
-#else
-#define __NR_setresuid          108 /* Linux Specific, sigvec under
-SunOS          */
-#endif
-
-> But as I told in the cover letter, I followed x86/arm/
-> s390 architecture's system table generation implementation.
-> They are keeping ABI flag. In our case we can delete this
-> flag completely from all architectures.
->
-> Most of the architecture these 32/64 similarity is absent.
-> So it would be better keep separate files to maintain a
-> generic script across all architecture.
-
-There are a couple of architectures that definitely need it:
-ARM for oabi, x86 for x32, s390, parisc and sparc for compat,
-asm-generic for compat, powerpc for compat and spu,
-and arm64 if we want to share the arm32 syscall table
-for compat mode later.
-
-      Arnd
+     Arnd
