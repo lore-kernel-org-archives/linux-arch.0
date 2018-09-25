@@ -1,91 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:45278 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727698AbeIYGXd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:33 -0400
-Received: by mail-pg1-f194.google.com with SMTP id t70-v6so5309010pgd.12
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:47 -0700 (PDT)
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:45288 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728634AbeIYGXk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:40 -0400
+Received: by mail-pg1-f196.google.com with SMTP id t70-v6so5309179pgd.12
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:54 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 09/29] LSM: Provide init debugging infrastructure
-Date: Mon, 24 Sep 2018 17:18:12 -0700
-Message-ID: <20180925001832.18322-10-keescook@chromium.org>
+Subject: [PATCH security-next v3 16/29] LSM: Prepare for arbitrary LSM enabling
+Date: Mon, 24 Sep 2018 17:18:19 -0700
+Message-ID: <20180925001832.18322-17-keescook@chromium.org>
 In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001812.Sui1HdnDFRfTrqlk7Wh1Aycorq9ZUlJhHOtdSnVI65w@z>
+Message-ID: <20180925001819.XGtldj3zCxSJ-42bitHVOivLCFvtJRVMfsDRvt4AW-M@z>
 
-Booting with "lsm.debug" will report future details on how LSM ordering
-decisions are being made.
+Before now, all the LSMs that did not specify an "enable" variable in their
+struct lsm_info were considered enabled by default. This prepares to make
+LSM enabling more explicit. For all LSMs without an explicit "enable"
+variable, a hard-coded storage location is chosen, and all LSMs without
+an external "enable" state have their state explicitly set to "enabled".
+
+This code appears more complex than it needs to be (comma-separated
+list parsing and "set" function parameter) because its use will be
+expanded on in the following patches to provide more explicit enabling.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- .../admin-guide/kernel-parameters.txt          |  2 ++
- security/security.c                            | 18 ++++++++++++++++++
- 2 files changed, 20 insertions(+)
+ security/security.c | 69 ++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 65 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 9871e649ffef..32d323ee9218 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2274,6 +2274,8 @@
- 	ltpc=		[NET]
- 			Format: <io>,<irq>,<dma>
- 
-+	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
-+
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
- 			Example: machvec=hpzx1_swiotlb
 diff --git a/security/security.c b/security/security.c
-index e74f46fba591..ee49b921d750 100644
+index 056b36cf6245..a8107d54b3d3 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -12,6 +12,8 @@
-  *	(at your option) any later version.
-  */
+@@ -54,17 +54,46 @@ static bool debug __initdata;
  
-+#define pr_fmt(fmt) "LSM: " fmt
-+
- #include <linux/bpf.h>
- #include <linux/capability.h>
- #include <linux/dcache.h>
-@@ -43,11 +45,19 @@ char *lsm_names;
- static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
- 	CONFIG_DEFAULT_SECURITY;
- 
-+static bool debug __initdata;
-+#define init_debug(...)						\
-+	do {							\
-+		if (debug)					\
-+			pr_info(__VA_ARGS__);			\
-+	} while (0)
-+
- static void __init major_lsm_init(void)
+ static bool __init is_enabled(struct lsm_info *lsm)
  {
- 	struct lsm_info *lsm;
+-	if (!lsm->enabled || *lsm->enabled)
+-		return true;
++	if (WARN_ON(!lsm->enabled))
++		return false;
  
- 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+		init_debug("initializing %s\n", lsm->name);
- 		lsm->init();
+-	return false;
++	return *lsm->enabled;
+ }
+ 
+ /* Mark an LSM's enabled flag, if it exists. */
+-static void __init set_enabled(struct lsm_info *lsm, bool enabled)
++static int lsm_enabled_true __initdata = 1;
++static int lsm_enabled_false __initdata = 0;
++
++static void __init default_enabled(struct lsm_info *lsm, bool enabled)
+ {
++	/* If storage location already set, skip this one. */
+ 	if (lsm->enabled)
++		return;
++
++	/*
++	 * When an LSM hasn't configured an enable variable, we can use
++	 * a hard-coded location for storing the default enabled state.
++	 */
++	if (enabled)
++		lsm->enabled = &lsm_enabled_true;
++	else
++		lsm->enabled = &lsm_enabled_false;
++}
++
++static void __init set_enabled(struct lsm_info *lsm, bool enabled)
++{
++	if (WARN_ON(!lsm->enabled))
++		return;
++
++	if (lsm->enabled == &lsm_enabled_true) {
++		if (!enabled)
++			lsm->enabled = &lsm_enabled_false;
++	} else if (lsm->enabled == &lsm_enabled_false) {
++		if (enabled)
++			lsm->enabled = &lsm_enabled_true;
++	} else {
+ 		*lsm->enabled = enabled;
++	}
+ }
+ 
+ /* Is an LSM allowed to be initialized? */
+@@ -127,6 +156,35 @@ static void __init major_lsm_init(void)
  	}
  }
-@@ -91,6 +101,14 @@ static int __init choose_lsm(char *str)
- }
- __setup("security=", choose_lsm);
  
-+/* Enable LSM order debugging. */
-+static int __init enable_debug(char *str)
++static void __init parse_lsm_enable(const char *str,
++				    void (*set)(struct lsm_info *, bool),
++				    bool enabled)
 +{
-+	debug = true;
-+	return 1;
-+}
-+__setup("lsm.debug", enable_debug);
++	char *sep, *name, *next;
 +
- static bool match_last_lsm(const char *list, const char *lsm)
- {
- 	const char *last;
++	if (!str)
++		return;
++
++	sep = kstrdup(str, GFP_KERNEL);
++	next = sep;
++	while ((name = strsep(&next, ",")) != NULL) {
++		struct lsm_info *lsm;
++
++		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++			if (strcmp(name, "all") == 0 ||
++			    strcmp(name, lsm->name) == 0)
++				set(lsm, enabled);
++		}
++	}
++	kfree(sep);
++}
++
++static void __init prepare_lsm_enable(void)
++{
++	/* Prepare defaults. */
++	parse_lsm_enable("all", default_enabled, true);
++}
++
+ /**
+  * security_init - initializes the security framework
+  *
+@@ -143,6 +201,9 @@ int __init security_init(void)
+ 	     i++)
+ 		INIT_HLIST_HEAD(&list[i]);
+ 
++	/* Figure out which LSMs are enabled and disabled. */
++	prepare_lsm_enable();
++
+ 	/*
+ 	 * Load minor LSMs, with the capability module always first.
+ 	 */
 -- 
 2.17.1
