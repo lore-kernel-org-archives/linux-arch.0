@@ -1,76 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:34288 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727341AbeIYFqL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Sep 2018 01:46:11 -0400
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V5 23/30] dt-bindings: interrupt-controller: C-SKY SMP intc
-Date: Tue, 25 Sep 2018 07:39:26 +0800
-Message-ID: <57888913907d6c22b23425ed9d4e5a79be5b2eff.1537789737.git.ren_guo@c-sky.com>
-In-Reply-To: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
-References: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1537789736.git.ren_guo@c-sky.com>
-References: <cover.1537789736.git.ren_guo@c-sky.com>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:44061 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726281AbeIYGXY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:24 -0400
+Received: by mail-pf1-f196.google.com with SMTP id k21-v6so9904515pff.11
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:38 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH security-next v3 01/29] LSM: Correctly announce start of LSM initialization
+Date: Mon, 24 Sep 2018 17:18:04 -0700
+Message-ID: <20180925001832.18322-2-keescook@chromium.org>
+In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
+References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180924233926.p2RXifz5Cz7uRqgVPWXV-DcY0wVNYMgTTcasPMPOqbc@z>
+To: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180925001804.8VTJn5iAk0vOYrT37pzFwDcCNMHkDY3D0eAoQoCwECQ@z>
 
- - Dt-bindings doc about C-SKY Multi-processors interrupt controller.
+For a while now, the LSM core has said it was "initializED", rather than
+"initializING". This adjust the report to be more accurate (i.e. before
+this was reported before any LSMs had been initialized.)
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- .../bindings/interrupt-controller/csky,mpintc.txt  | 40 ++++++++++++++++++++++
- 1 file changed, 40 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
+ security/security.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-new file mode 100644
-index 0000000..9cdad74
---- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-@@ -0,0 +1,40 @@
-+===========================================
-+C-SKY Multi-processors Interrupt Controller
-+===========================================
+diff --git a/security/security.c b/security/security.c
+index 736e78da1ab9..4cbcf244a965 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -72,10 +72,11 @@ int __init security_init(void)
+ 	int i;
+ 	struct hlist_head *list = (struct hlist_head *) &security_hook_heads;
+ 
++	pr_info("Security Framework initializing\n");
 +
-+C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
-+SMP soc, and it also could be used in non-SMP system.
-+
-+Interrupt number definition:
-+
-+  0-15  : software irq, and we use 15 as our IPI_IRQ.
-+ 16-31  : private  irq, and we use 16 as the co-processor timer.
-+ 31-1024: common irq for soc ip.
-+
-+=============================
-+intc node bindings definition
-+=============================
-+
-+	Description: Describes SMP interrupt controller
-+
-+	PROPERTIES
-+
-+	- compatible
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "csky,mpintc"
-+	- interrupt-cells
-+		Usage: required
-+		Value type: <u32>
-+		Definition: must be <1>
-+	- interrupt-controller:
-+		Usage: required
-+
-+Examples:
-+---------
-+
-+	intc: interrupt-controller {
-+		compatible = "csky,mpintc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
+ 	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
+ 	     i++)
+ 		INIT_HLIST_HEAD(&list[i]);
+-	pr_info("Security Framework initialized\n");
+ 
+ 	/*
+ 	 * Load minor LSMs, with the capability module always first.
 -- 
-2.7.4
+2.17.1
