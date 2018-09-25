@@ -1,52 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:42357 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726025AbeIYGxo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Sep 2018 02:53:44 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
-In-Reply-To: <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com>
-References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org> <1536913980-4811-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com> <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com> <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com>
-Date: Tue, 25 Sep 2018 10:48:49 +1000
-Message-ID: <87efdi5rm6.fsf@concordia.ellerman.id.au>
+Received: from mail-qk1-f193.google.com ([209.85.222.193]:36730 "EHLO
+        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726129AbeIYMGj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 08:06:39 -0400
 MIME-Version: 1.0
-Content-Type: text/plain
+References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
+ <1536913980-4811-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com>
+ <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com>
+ <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com> <87efdi5rm6.fsf@concordia.ellerman.id.au>
+In-Reply-To: <87efdi5rm6.fsf@concordia.ellerman.id.au>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 25 Sep 2018 08:00:28 +0200
+Message-ID: <CAK8P3a2=kxoum6hcPR2UN_St2PaFtZud_NNVkK9rHaf=N7ym-g@mail.gmail.com>
+Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Firoz Khan <firoz.khan@linaro.org>
-Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxram@us.ibm.com, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180925004849.QgIP704YyYGECdJdQ_xCfDgfK5VSt2VqX4pUca4w5GY@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Firoz Khan <firoz.khan@linaro.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxram@us.ibm.com, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180925060028.M2dGOKk5wwuLCyOUUOu_5TgBuIeoZ9zHiSKYNBqmBDE@z>
 
-Arnd Bergmann <arnd@arndb.de> writes:
-> On Tue, Sep 18, 2018 at 2:15 PM Firoz Khan <firoz.khan@linaro.org> wrote:
->> On 14 September 2018 at 15:31, Arnd Bergmann <arnd@arndb.de> wrote:
->> > On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->> >
->> >> ---
->> >>  arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
->> >>  arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 ++++++++++++++++++++++++++++
->> >>  arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 +++++++++++++++++++++++++++
->> >>  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
->> >>  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
->> >
->> > I think you should only need a single .tbl  input file here.
->>
->> Yes, we can do that way also.As I mentioned, it will add
->> more complexity in the script.
->>
->>  The script has to be smart enough to parse the
->> .tbl if we add more thing in the .tble file. It need more
->> logic in the scripts. This is not common. So if you keep
->> separate .tbl we can avoid this.
+On Tue, Sep 25, 2018 at 2:48 AM Michael Ellerman <mpe@ellerman.id.au> wrote:
+> Arnd Bergmann <arnd@arndb.de> writes:
+> > On Tue, Sep 18, 2018 at 2:15 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >> On 14 September 2018 at 15:31, Arnd Bergmann <arnd@arndb.de> wrote:
+> >> > On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >
+> > But all three existing architectures (x86, s390 and arm) already
+> > have the capability to parse the table and generate different output
+> > from that.
 >
-> But all three existing architectures (x86, s390 and arm) already
-> have the capability to parse the table and generate different output
-> from that.
+> Yeah, we want that on powerpc too.
+>
+> If the script needs to be more complex that's fine, if it can't be
+> shared across arches that's fine, the main thing for me is that wiring
+> up a syscall can be done by adding a single line in a single file.
 
-Yeah, we want that on powerpc too.
+Yes, that's definitely the idea, we want to make it easier for everyone.
+We need at least a special case for mips, which needs three separate
+input files (the tables are completely different) to generate four versions
+of the output, plus a future extension to use the generic table for their
+new one.
 
-If the script needs to be more complex that's fine, if it can't be
-shared across arches that's fine, the main thing for me is that wiring
-up a syscall can be done by adding a single line in a single file.
+For powerpc, I'm hoping that both the table format and script can be
+completely generic and not need a special case that is different
+from the others, but if we need some extra magic to handle the SPU
+syscalls, we can still do that with a private script.
 
-cheers
+      Arnd
