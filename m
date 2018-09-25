@@ -1,144 +1,159 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:37313 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728062AbeIYGX1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:27 -0400
-Received: by mail-pf1-f193.google.com with SMTP id c14-v6so113943pfi.4
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:41 -0700 (PDT)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:33191 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728840AbeIYGXm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:42 -0400
+Received: by mail-pg1-f194.google.com with SMTP id y18-v6so6814829pge.0
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:56 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
-Date: Mon, 24 Sep 2018 17:18:03 -0700
-Message-ID: <20180925001832.18322-1-keescook@chromium.org>
+Subject: [PATCH security-next v3 29/29] LSM: Add all exclusive LSMs to ordered initialization
+Date: Mon, 24 Sep 2018 17:18:32 -0700
+Message-ID: <20180925001832.18322-30-keescook@chromium.org>
+In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
+References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001803.SKUUWHx78N5_gb-uGZjbMSgM2GBpSdDHF1CIdy5kcPI@z>
+Message-ID: <20180925001832.YrwWWk_OJigBBfyAatUbDAgqPuybTg1qsM26uqWNCFs@z>
 
-v3:
-- add CONFIG_LSM_ENABLE and refactor resulting logic
+This removes CONFIG_DEFAULT_SECURITY in favor of the explicit build-time
+ordering offered by CONFIG_LSM_ORDER, and adds all the exclusive LSMs to
+the ordered LSM initialization. The old meaning of CONFIG_DEFAULT_SECURITY
+is now captured by which exclusive LSM is listed first in the LSM order.
 
-v2:
-- add "lsm.order=" and CONFIG_LSM_ORDER instead of overloading "security="
-- reorganize introduction of ordering logic code
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ security/Kconfig    | 43 ++++---------------------------------------
+ security/security.c | 23 +----------------------
+ 2 files changed, 5 insertions(+), 61 deletions(-)
 
-Overview:
-
-This refactors the LSM registration and initialization infrastructure to
-more centrally support different LSM types for more cleanly supporting the
-future expansion of LSM stacking via the "blob-sharing" patch series. What
-was considered a "major" LSM is kept for legacy use of the "security="
-boot parameter, and now overlaps with the new class of "exclusive" LSMs
-for the future blob sharing. The "minor" LSMs become more well defined
-as a result of the refactoring.
-
-Approach:
-
-To better show LSMs activation some debug reporting was added (enabled
-with the "lsm.debug" boot commandline option).
-
-I added a WARN() around LSM initialization failures, which appear to
-have always been silently ignored. (Realistically any LSM init failures
-would have only been due to catastrophic kernel issues that would render
-a system unworkable anyway, but it'd be better to expose the problem as
-early as possible.)
-
-Instead of continuing to (somewhat improperly) overload the kernel's
-initcall system, this changes the LSM infrastructure to store a
-registration structure (struct lsm_info) table instead, where metadata
-about each LSM can be recorded (name, flags, order, enable flag, init
-function). This can be extended in the future to include things like
-required blob size for the coming "blob sharing" LSMs.
-
-The "major" LSMs had to individually negotiate which of them should be
-enabled. This didn't provide a way to negotiate combinations of other
-LSMs (as will be needed for "blob sharing" LSMs). This is solved by
-providing the LSM infrastructure with all the details needed to make
-the choice (exposing the per-LSM "enabled" flag, if used, the LSM
-characteristics, and ordering expectations).
-
-As a result of the refactoring, the "minor" LSMs are able to remove
-the open-coded security_add_hooks() calls for "capability", "yama",
-and "loadpin", and to redefine "integrity" properly as a general LSM.
-(Note that "integrity" actually defined _no_ hooks, but needs the early
-initialization).
-
-With all LSMs being proessed centrally, it was possible to implement
-a new boot parameter "lsm.order=" to provide explicit ordering, which
-is helpful for the future "blob sharing" LSMs. Matching this is the
-new CONFIG_LSM_ORDER, which replaces CONFIG_DEFAULT_SECURITY, as it
-provides a higher granularity of control.
-
-Breakdown of patches:
-
-Infrastructure improvements (no logical changes):
-  LSM: Correctly announce start of LSM initialization
-  vmlinux.lds.h: Avoid copy/paste of security_init section
-  LSM: Rename .security_initcall section to .lsm_info
-  LSM: Remove initcall tracing
-  LSM: Convert from initcall to struct lsm_info
-  vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
-  LSM: Convert security_initcall() into DEFINE_LSM()
-  LSM: Record LSM name in struct lsm_info
-  LSM: Provide init debugging infrastructure
-  LSM: Don't ignore initialization failures
-
-Split "integrity" out into "ordered initialization" (no logical changes):
-  LSM: Introduce LSM_FLAG_LEGACY_MAJOR
-  LSM: Provide separate ordered initialization
-
-Provide centralized LSM enable/disable infrastructure:
-  LoadPin: Rename "enable" to "enforce"
-  LSM: Plumb visibility into optional "enabled" state
-  LSM: Lift LSM selection out of individual LSMs
-  LSM: Prepare for arbitrary LSM enabling
-  LSM: Introduce CONFIG_LSM_ENABLE
-  LSM: Introduce lsm.enable= and lsm.disable=
-  LSM: Prepare for reorganizing "security=" logic
-  LSM: Refactor "security=" in terms of enable/disable
-
-Provide centralized LSM ordering infrastructure:
-  LSM: Build ordered list of ordered LSMs for init
-  LSM: Introduce CONFIG_LSM_ORDER
-  LSM: Introduce "lsm.order=" for boottime ordering
-
-Move minor LSMs into ordered LSM initialization:
-  LoadPin: Initialize as ordered LSM
-  Yama: Initialize as ordered LSM
-  LSM: Introduce enum lsm_order
-  capability: Initialize as LSM_ORDER_FIRST
-
-Move major LSMs into ordered LSM initialization:
-  LSM: Separate idea of "major" LSM from "exclusive" LSM
-  LSM: Add all exclusive LSMs to ordered initialization
-
--Kees
-
- .../admin-guide/kernel-parameters.txt         |  20 +
- arch/arc/kernel/vmlinux.lds.S                 |   1 -
- arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
- arch/arm64/kernel/vmlinux.lds.S               |   1 -
- arch/h8300/kernel/vmlinux.lds.S               |   1 -
- arch/microblaze/kernel/vmlinux.lds.S          |   2 -
- arch/powerpc/kernel/vmlinux.lds.S             |   2 -
- arch/um/include/asm/common.lds.S              |   2 -
- arch/xtensa/kernel/vmlinux.lds.S              |   1 -
- include/asm-generic/vmlinux.lds.h             |  25 +-
- include/linux/init.h                          |   2 -
- include/linux/lsm_hooks.h                     |  43 ++-
- include/linux/module.h                        |   1 -
- security/Kconfig                              |  61 ++-
- security/apparmor/lsm.c                       |  16 +-
- security/commoncap.c                          |   8 +-
- security/integrity/iint.c                     |   5 +-
- security/loadpin/Kconfig                      |   4 +-
- security/loadpin/loadpin.c                    |  28 +-
- security/security.c                           | 351 +++++++++++++++---
- security/selinux/hooks.c                      |  16 +-
- security/smack/smack_lsm.c                    |   8 +-
- security/tomoyo/tomoyo.c                      |   7 +-
- security/yama/yama_lsm.c                      |   7 +-
- 24 files changed, 438 insertions(+), 175 deletions(-)
-
+diff --git a/security/Kconfig b/security/Kconfig
+index e37de9a44747..efa4826c3d99 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -239,43 +239,6 @@ source security/yama/Kconfig
+ 
+ source security/integrity/Kconfig
+ 
+-choice
+-	prompt "Default security module"
+-	default DEFAULT_SECURITY_SELINUX if SECURITY_SELINUX
+-	default DEFAULT_SECURITY_SMACK if SECURITY_SMACK
+-	default DEFAULT_SECURITY_TOMOYO if SECURITY_TOMOYO
+-	default DEFAULT_SECURITY_APPARMOR if SECURITY_APPARMOR
+-	default DEFAULT_SECURITY_DAC
+-
+-	help
+-	  Select the security module that will be used by default if the
+-	  kernel parameter security= is not specified.
+-
+-	config DEFAULT_SECURITY_SELINUX
+-		bool "SELinux" if SECURITY_SELINUX=y
+-
+-	config DEFAULT_SECURITY_SMACK
+-		bool "Simplified Mandatory Access Control" if SECURITY_SMACK=y
+-
+-	config DEFAULT_SECURITY_TOMOYO
+-		bool "TOMOYO" if SECURITY_TOMOYO=y
+-
+-	config DEFAULT_SECURITY_APPARMOR
+-		bool "AppArmor" if SECURITY_APPARMOR=y
+-
+-	config DEFAULT_SECURITY_DAC
+-		bool "Unix Discretionary Access Controls"
+-
+-endchoice
+-
+-config DEFAULT_SECURITY
+-	string
+-	default "selinux" if DEFAULT_SECURITY_SELINUX
+-	default "smack" if DEFAULT_SECURITY_SMACK
+-	default "tomoyo" if DEFAULT_SECURITY_TOMOYO
+-	default "apparmor" if DEFAULT_SECURITY_APPARMOR
+-	default "" if DEFAULT_SECURITY_DAC
+-
+ config LSM_ENABLE
+ 	string "LSMs to enable at boot time"
+ 	default "all"
+@@ -293,12 +256,14 @@ config LSM_ENABLE
+ 
+ config LSM_ORDER
+ 	string "Default initialization order of builtin LSMs"
+-	default "yama,loadpin,integrity"
++	default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be link-order initialized
+ 	  after any listed LSMs. Any LSMs listed here but not built in
+-	  the kernel will be ignored.
++	  the kernel will be ignored. If the boot parameter
++	  "lsm.order=" is used, it will override this order, with any
++	  unlisted LSMs falling back to the order of this config, etc.
+ 
+ 	  If unsure, leave this as the default.
+ 
+diff --git a/security/security.c b/security/security.c
+index 5a3e19f1fe48..fedc26fb8554 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -154,7 +154,6 @@ static void __init parse_lsm_order(const char *order, const char *origin)
+ 
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+ 			if (lsm->order == LSM_ORDER_MUTABLE &&
+-			    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
+ 			    strcmp(lsm->name, name) == 0) {
+ 				append_ordered_lsm(lsm, origin);
+ 				found = true;
+@@ -186,8 +185,7 @@ static void __init prepare_lsm_order(void)
+ 
+ 	/* Add any missing LSMs, in link order. */
+ 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if (lsm->order == LSM_ORDER_MUTABLE &&
+-		    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
++		if (lsm->order == LSM_ORDER_MUTABLE)
+ 			append_ordered_lsm(lsm, "link-time");
+ 	}
+ 
+@@ -245,18 +243,6 @@ static void __init ordered_lsm_init(void)
+ 		maybe_initialize_lsm(*lsm);
+ }
+ 
+-static void __init major_lsm_init(void)
+-{
+-	struct lsm_info *lsm;
+-
+-	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+-			continue;
+-
+-		maybe_initialize_lsm(lsm);
+-	}
+-}
+-
+ static void __init parse_lsm_enable(const char *str,
+ 				    void (*set)(struct lsm_info *, bool),
+ 				    bool enabled)
+@@ -290,8 +276,6 @@ static void __init prepare_lsm_enable(void)
+ 	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
+ 
+ 	/* Process "security=", if given. */
+-	if (!chosen_major_lsm)
+-		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
+ 	if (chosen_major_lsm) {
+ 		struct lsm_info *lsm;
+ 
+@@ -334,11 +318,6 @@ int __init security_init(void)
+ 	prepare_lsm_order();
+ 	ordered_lsm_init();
+ 
+-	/*
+-	 * Load all the remaining security modules.
+-	 */
+-	major_lsm_init();
+-
+ 	kfree(ordered_lsms);
+ 	return 0;
+ }
 -- 
 2.17.1
