@@ -1,90 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:42450 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727492AbeIYGaG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:30:06 -0400
-Received: by mail-pf1-f194.google.com with SMTP id l9-v6so9920509pff.9
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:25:19 -0700 (PDT)
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:37899 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726025AbeIYGaF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:30:05 -0400
+Received: by mail-pg1-f193.google.com with SMTP id r77-v6so4999301pgr.5
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:25:17 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 19/29] LSM: Prepare for reorganizing "security=" logic
-Date: Mon, 24 Sep 2018 17:18:22 -0700
-Message-ID: <20180925001832.18322-20-keescook@chromium.org>
+Subject: [PATCH security-next v3 25/29] Yama: Initialize as ordered LSM
+Date: Mon, 24 Sep 2018 17:18:28 -0700
+Message-ID: <20180925001832.18322-26-keescook@chromium.org>
 In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001822.fIWwC8dscytK3VwjZOVytCObxDn2I_nNMyNGvY3igGU@z>
+Message-ID: <20180925001828.ADzZbAtSrGaQ7FdtNQ_rLPsv6jIjiPnJMkEwp4voYvk@z>
 
-This moves the string handling for "security=" boot parameter into
-a stored pointer instead of a string duplicate. This will allow
-easier handling of the string when switching logic to use the coming
-enable/disable infrastructure.
+This converts Yama from being a direct "minor" LSM into an ordered LSM.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/security.c | 17 ++++++++---------
- 1 file changed, 8 insertions(+), 9 deletions(-)
+ include/linux/lsm_hooks.h | 5 -----
+ security/Kconfig          | 2 +-
+ security/security.c       | 1 -
+ security/yama/yama_lsm.c  | 7 ++++++-
+ 4 files changed, 7 insertions(+), 8 deletions(-)
 
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 9df08955f684..5be95c6155b4 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2092,10 +2092,5 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
+ #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
+ 
+ extern void __init capability_add_hooks(void);
+-#ifdef CONFIG_SECURITY_YAMA
+-extern void __init yama_add_hooks(void);
+-#else
+-static inline void __init yama_add_hooks(void) { }
+-#endif
+ 
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/Kconfig b/security/Kconfig
+index e20c2a3143e7..e37de9a44747 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -293,7 +293,7 @@ config LSM_ENABLE
+ 
+ config LSM_ORDER
+ 	string "Default initialization order of builtin LSMs"
+-	default "loadpin,integrity"
++	default "yama,loadpin,integrity"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be link-order initialized
 diff --git a/security/security.c b/security/security.c
-index 456a3f73bc36..e325fcc41f00 100644
+index cb25f321e044..c4ba5832ef2f 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -34,18 +34,14 @@
+@@ -304,7 +304,6 @@ int __init security_init(void)
+ 	 * Load minor LSMs, with the capability module always first.
+ 	 */
+ 	capability_add_hooks();
+-	yama_add_hooks();
  
- #define MAX_LSM_EVM_XATTR	2
+ 	/* Load LSMs in specified order. */
+ 	prepare_lsm_order();
+diff --git a/security/yama/yama_lsm.c b/security/yama/yama_lsm.c
+index ffda91a4a1aa..f2b1f47f98e8 100644
+--- a/security/yama/yama_lsm.c
++++ b/security/yama/yama_lsm.c
+@@ -477,9 +477,14 @@ static void __init yama_init_sysctl(void)
+ static inline void yama_init_sysctl(void) { }
+ #endif /* CONFIG_SYSCTL */
  
--/* Maximum number of letters for an LSM name string */
--#define SECURITY_NAME_MAX	10
--
- struct security_hook_heads security_hook_heads __lsm_ro_after_init;
- static ATOMIC_NOTIFIER_HEAD(lsm_notifier_chain);
- 
- char *lsm_names;
- /* Boot-time LSM user choice */
--static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
--	CONFIG_DEFAULT_SECURITY;
- static __initdata const char *chosen_lsm_enable;
- static __initdata const char *chosen_lsm_disable;
-+static __initdata const char *chosen_major_lsm;
- 
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
- 
-@@ -112,7 +108,7 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
- 		return true;
- 
- 	/* Disabled if this LSM isn't the chosen one. */
--	if (strcmp(lsm->name, chosen_lsm) != 0)
-+	if (strcmp(lsm->name, chosen_major_lsm) != 0)
- 		return false;
- 
- 	return true;
-@@ -191,6 +187,9 @@ static void __init prepare_lsm_enable(void)
- 	/* Process "lsm.enable=" and "lsm.disable=", if given. */
- 	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
- 	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
-+
-+	if (!chosen_major_lsm)
-+		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
- }
- 
- /**
-@@ -231,12 +230,12 @@ int __init security_init(void)
- }
- 
- /* Save user chosen LSM */
--static int __init choose_lsm(char *str)
-+static int __init choose_major_lsm(char *str)
+-void __init yama_add_hooks(void)
++static int __init yama_init(void)
  {
--	strncpy(chosen_lsm, str, SECURITY_NAME_MAX);
-+	chosen_major_lsm = str;
- 	return 1;
+ 	pr_info("Yama: becoming mindful.\n");
+ 	security_add_hooks(yama_hooks, ARRAY_SIZE(yama_hooks), "yama");
+ 	yama_init_sysctl();
++	return 0;
  }
--__setup("security=", choose_lsm);
-+__setup("security=", choose_major_lsm);
- 
- /* Enable LSM order debugging. */
- static int __init enable_debug(char *str)
++
++DEFINE_LSM(yama)
++	.init = yama_init,
++END_LSM;
 -- 
 2.17.1
