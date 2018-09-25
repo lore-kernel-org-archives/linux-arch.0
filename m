@@ -1,77 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:44242 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726400AbeIYX2T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 19:28:19 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:60785 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726400AbeIYX2X (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 19:28:23 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 25 Sep 2018 19:19:01 +0200
-Message-ID: <20180925171906.19683-1-ebiederm@xmission.com>
+Date: Tue, 25 Sep 2018 19:19:02 +0200
+Message-ID: <20180925171906.19683-2-ebiederm@xmission.com>
 In-Reply-To: <87h8idv6nw.fsf@xmission.com>
 References: <87h8idv6nw.fsf@xmission.com>
-Subject: [REVIEW][PATCH 1/6] signal/sparc: Move EMT_TAGOVF into the generic siginfo.h
+Subject: [REVIEW][PATCH 2/6] signal: Fail sigqueueinfo if si_signo != sig
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180925171901.mC0FPnsgVPmMSol9uA5YmOnkFKTV7hkFYKs2M_OXYsg@z>
+Message-ID: <20180925171902.R4E424RlwiIBP8iPoM23IdZLxymJy4AQxpzLUyAJtKc@z>
 
-When moving all of the architectures specific si_codes into
-siginfo.h, I apparently overlooked EMT_TAGOVF.  Move it now.
+The kernel needs to validate that the contents of struct siginfo make
+sense as siginfo is copied into the kernel, so that the proper union
+members can be put in the appropriate locations.  The field si_signo
+is a fundamental part of that validation.  As such changing the
+contents of si_signo after the validation make no sense and can result
+in nonsense values in the kernel.
 
-Remove the now redundant test in siginfo_layout for SIGEMT
-as now NSIGEMT is always defined.
+As such simply fail if someone is silly enough to set si_signo out of
+sync with the signal number passed to sigqueueinfo.
+
+I don't expect a problem as glibc's sigqueue implementation sets
+"si_signo = sig" and CRIU just returns to the kernel what the kernel
+gave to it.
+
+If there is some application that calls sigqueueinfo directly that has
+a problem with this added sanity check we can revisit this when we see
+what kind of crazy that application is doing.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sparc/include/uapi/asm/siginfo.h | 6 ------
- include/uapi/asm-generic/siginfo.h    | 6 ++++++
- kernel/signal.c                       | 2 +-
- 3 files changed, 7 insertions(+), 7 deletions(-)
+ kernel/signal.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sparc/include/uapi/asm/siginfo.h b/arch/sparc/include/uapi/asm/siginfo.h
-index e7049550ac82..6c820ea0813b 100644
---- a/arch/sparc/include/uapi/asm/siginfo.h
-+++ b/arch/sparc/include/uapi/asm/siginfo.h
-@@ -17,10 +17,4 @@
- 
- #define SI_NOINFO	32767		/* no information in siginfo_t */
- 
--/*
-- * SIGEMT si_codes
-- */
--#define EMT_TAGOVF	1	/* tag overflow */
--#define NSIGEMT		1
--
- #endif /* _UAPI__SPARC_SIGINFO_H */
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index 80e2a7227205..1811b8101937 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -285,6 +285,12 @@ typedef struct siginfo {
- #define SYS_SECCOMP	1	/* seccomp triggered */
- #define NSIGSYS		1
- 
-+/*
-+ * SIGEMT si_codes
-+ */
-+#define EMT_TAGOVF	1	/* tag overflow */
-+#define NSIGEMT		1
-+
- /*
-  * sigevent definitions
-  * 
 diff --git a/kernel/signal.c b/kernel/signal.c
-index e16278710b36..7b49c31d3fdb 100644
+index 7b49c31d3fdb..e445b0a63faa 100644
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
-@@ -2856,7 +2856,7 @@ enum siginfo_layout siginfo_layout(int sig, int si_code)
- 			[SIGSEGV] = { NSIGSEGV, SIL_FAULT },
- 			[SIGBUS]  = { NSIGBUS,  SIL_FAULT },
- 			[SIGTRAP] = { NSIGTRAP, SIL_FAULT },
--#if defined(SIGEMT) && defined(NSIGEMT)
-+#if defined(SIGEMT)
- 			[SIGEMT]  = { NSIGEMT,  SIL_FAULT },
- #endif
- 			[SIGCHLD] = { NSIGCHLD, SIL_CHLD },
+@@ -3306,7 +3306,8 @@ static int do_rt_sigqueueinfo(pid_t pid, int sig, siginfo_t *info)
+ 	    (task_pid_vnr(current) != pid))
+ 		return -EPERM;
+ 
+-	info->si_signo = sig;
++	if (info->si_signo != sig)
++		return -EINVAL;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, info, pid);
+@@ -3354,7 +3355,8 @@ static int do_rt_tgsigqueueinfo(pid_t tgid, pid_t pid, int sig, siginfo_t *info)
+ 	    (task_pid_vnr(current) != pid))
+ 		return -EPERM;
+ 
+-	info->si_signo = sig;
++	if (info->si_signo != sig)
++		return -EINVAL;
+ 
+ 	return do_send_specific(tgid, pid, sig, info);
+ }
 -- 
 2.17.1
