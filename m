@@ -1,73 +1,54 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V5 29/30] dt-bindings: timer: gx6605s SOC timer
-Date: Tue, 25 Sep 2018 07:39:32 +0800
-Message-ID: <685331b91778b111d2cfef87d15d058ad4570867.1537789737.git.ren_guo@c-sky.com>
-References: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH security-next v3 02/29] vmlinux.lds.h: Avoid copy/paste of security_init section
+Date: Mon, 24 Sep 2018 17:18:05 -0700
+Message-ID: <20180925001832.18322-3-keescook@chromium.org>
+References: <20180925001832.18322-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <a23b652c2ab55b129f729a57ec765550da1d2c16.1537789737.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1537789736.git.ren_guo@c-sky.com>
-References: <cover.1537789736.git.ren_guo@c-sky.com>
+In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
+To: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
- - Dt-bindings doc for gx6605s SOC's system timer.
+Avoid copy/paste by defining SECURITY_INIT in terms of SECURITY_INITCALL.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Reviewed-by: Rob Herring <robh@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- .../bindings/timer/csky,gx6605s-timer.txt          | 42 ++++++++++++++++++++++
- 1 file changed, 42 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
+ include/asm-generic/vmlinux.lds.h | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-new file mode 100644
-index 0000000..6b04344
---- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-@@ -0,0 +1,42 @@
-+=================
-+gx6605s SOC Timer
-+=================
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 7b75ff6e2fce..934a45395547 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -473,13 +473,6 @@
+ #define RODATA          RO_DATA_SECTION(4096)
+ #define RO_DATA(align)  RO_DATA_SECTION(align)
+ 
+-#define SECURITY_INIT							\
+-	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
+-		__security_initcall_start = .;				\
+-		KEEP(*(.security_initcall.init))			\
+-		__security_initcall_end = .;				\
+-	}
+-
+ /*
+  * .text section. Map to function alignment to avoid address changes
+  * during second ld run in second ld pass when generating System.map
+@@ -798,6 +791,12 @@
+ 		KEEP(*(.security_initcall.init))			\
+ 		__security_initcall_end = .;
+ 
++/* Older linker script style for security init. */
++#define SECURITY_INIT							\
++	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
++		SECURITY_INITCALL					\
++	}
 +
-+The timer is used in gx6605s soc as system timer and the driver
-+contain clk event and clk source.
-+
-+==============================
-+timer node bindings definition
-+==============================
-+
-+	Description: Describes gx6605s SOC timer
-+
-+	PROPERTIES
-+
-+	- compatible
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "csky,gx6605s-timer"
-+	- reg
-+		Usage: required
-+		Value type: <u32 u32>
-+		Definition: <phyaddr size> in soc from cpu view
-+	- clocks
-+		Usage: required
-+		Value type: phandle + clock specifier cells
-+		Definition: must be input clk node
-+	- interrupt
-+		Usage: required
-+		Value type: <u32>
-+		Definition: must be timer irq num defined by soc
-+
-+Examples:
-+---------
-+
-+	timer0: timer@20a000 {
-+		compatible = "csky,gx6605s-timer";
-+		reg = <0x0020a000 0x400>;
-+		clocks = <&dummy_apb_clk>;
-+		interrupts = <10>;
-+		interrupt-parent = <&intc>;
-+	};
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
 -- 
-2.7.4
+2.17.1
