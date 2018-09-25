@@ -1,118 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:46513 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728302AbeIYGaL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:30:11 -0400
-Received: by mail-pg1-f194.google.com with SMTP id b129-v6so10107704pga.13
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:25:23 -0700 (PDT)
+Received: from mail-pg1-f195.google.com ([209.85.215.195]:42112 "EHLO
+        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728192AbeIYGaK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:30:10 -0400
+Received: by mail-pg1-f195.google.com with SMTP id y4-v6so10117669pgp.9
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:25:22 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 22/29] LSM: Introduce CONFIG_LSM_ORDER
-Date: Mon, 24 Sep 2018 17:18:25 -0700
-Message-ID: <20180925001832.18322-23-keescook@chromium.org>
+Subject: [PATCH security-next v3 20/29] LSM: Refactor "security=" in terms of enable/disable
+Date: Mon, 24 Sep 2018 17:18:23 -0700
+Message-ID: <20180925001832.18322-21-keescook@chromium.org>
 In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001825.0-z-XHCDUX7NbpirTKh6xqUHbZAmIoidKaP3isYdW3s@z>
+Message-ID: <20180925001823.WgwJQNFbMfJUvcVgB5pvP78OqJAHFvTaIDNI2ohPq64@z>
 
-This provides a way to declare LSM initialization order via Kconfig.
+For what are marked as the Legacy Major LSMs, make them effectively
+exclusive when selected on the "security=" boot parameter, to handle
+the future case of when a previously major LSMs become non-exclusive
+(e.g. when TOMOYO starts blob-sharing).
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/Kconfig    | 16 ++++++++++++++++
- security/security.c | 40 +++++++++++++++++++++++++++++++++++++---
- 2 files changed, 53 insertions(+), 3 deletions(-)
+ security/security.c | 24 ++++++++++++++++--------
+ 1 file changed, 16 insertions(+), 8 deletions(-)
 
-diff --git a/security/Kconfig b/security/Kconfig
-index 1a82a006cc62..7ec86dbdb6b8 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -286,5 +286,21 @@ config LSM_ENABLE
- 	  changed with the "lsm.enable=" and "lsm.disable=" boot
- 	  parameters.
- 
-+	  Note that any enabled exclusive LSM modules will be initialized
-+	  based on LSM ordering, automatically disabling any following
-+	  exclusive LSMs. See CONFIG_LSM_ORDER for more details on
-+	  changing LSM initialization order.
-+
-+config LSM_ORDER
-+	string "Default initialization order of builtin LSMs"
-+	default "integrity"
-+	help
-+	  A comma-separated list of LSMs, in initialization order.
-+	  Any LSMs left off this list will be link-order initialized
-+	  after any listed LSMs. Any LSMs listed here but not built in
-+	  the kernel will be ignored.
-+
-+	  If unsure, leave this as the default.
-+
- endmenu
- 
 diff --git a/security/security.c b/security/security.c
-index ef1ced0a3a50..e38df0314f5e 100644
+index e325fcc41f00..a98549b334af 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -47,6 +47,7 @@ static __initdata const char *chosen_lsm_disable;
- static __initdata const char *chosen_major_lsm;
+@@ -103,14 +103,6 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
+ 	if (!is_enabled(lsm))
+ 		return false;
  
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
-+static __initconst const char * const builtin_lsm_order = CONFIG_LSM_ORDER;
- 
- /* Ordered list of LSMs to initialize. */
- static __initdata struct lsm_info **ordered_lsms;
-@@ -130,14 +131,47 @@ static void __init append_ordered_lsm(struct lsm_info *lsm, const char *from)
- 		   is_enabled(lsm) ? "en" : "dis");
+-	/* Skip major-specific checks if not a major LSM. */
+-	if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+-		return true;
+-
+-	/* Disabled if this LSM isn't the chosen one. */
+-	if (strcmp(lsm->name, chosen_major_lsm) != 0)
+-		return false;
+-
+ 	return true;
  }
  
--/* Populate ordered LSMs list from hard-coded list of LSMs. */
-+/* Populate ordered LSMs list from given string. */
-+static void __init parse_lsm_order(const char *order, const char *origin)
-+{
-+	struct lsm_info *lsm;
-+	char *sep, *name, *next;
+@@ -188,8 +180,24 @@ static void __init prepare_lsm_enable(void)
+ 	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
+ 	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
+ 
++	/* Process "security=", if given. */
+ 	if (!chosen_major_lsm)
+ 		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
++	if (chosen_major_lsm) {
++		struct lsm_info *lsm;
 +
-+	if (!order)
-+		return;
-+
-+	sep = kstrdup(order, GFP_KERNEL);
-+	next = sep;
-+	/* Walk the list, looking for matching LSMs. */
-+	while ((name = strsep(&next, ",")) != NULL) {
-+		bool found = false;
-+
++		/*
++		 * To match the original "security=" behavior, this
++		 * explicitly does NOT fallback to another Legacy Major
++		 * if the selected one was separately disabled: disable
++		 * all non-matching Legacy Major LSMs.
++		 */
 +		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
-+			    strcmp(lsm->name, name) == 0) {
-+				append_ordered_lsm(lsm, origin);
-+				found = true;
-+			}
++			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) &&
++			    strcmp(lsm->name, chosen_major_lsm) != 0)
++				set_enabled(lsm, false);
 +		}
-+
-+		if (!found)
-+			init_debug("%s ignored: %s\n", origin, name);
 +	}
-+	kfree(sep);
-+}
-+
-+/* Populate ordered LSMs list from builtin list of LSMs. */
- static void __init prepare_lsm_order(void)
- {
- 	struct lsm_info *lsm;
- 
-+	/* Parse order from builtin list. */
-+	parse_lsm_order(builtin_lsm_order, "builtin");
-+
-+	/* Add any missing LSMs, in link order. */
- 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
--		if (strcmp(lsm->name, "integrity") == 0)
--			append_ordered_lsm(lsm, "builtin");
-+		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
-+			append_ordered_lsm(lsm, "link-time");
- 	}
  }
  
+ /**
 -- 
 2.17.1
