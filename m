@@ -1,45 +1,103 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
-Date: Tue, 25 Sep 2018 08:00:28 +0200
-Message-ID: <CAK8P3a2=kxoum6hcPR2UN_St2PaFtZud_NNVkK9rHaf=N7ym-g@mail.gmail.com>
-References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org>
- <1536913980-4811-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com>
- <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com>
- <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com> <87efdi5rm6.fsf@concordia.ellerman.id.au>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH V5 06/30] csky: Cache and TLB routines
+Date: Tue, 25 Sep 2018 09:24:07 +0200
+Message-ID: <20180925072407.GA6999@hirez.programming.kicks-ass.net>
+References: <cover.1537789736.git.ren_guo@c-sky.com>
+ <7cd7abcd2acf5c61435589338ff80a75a13173ca.1537789737.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87efdi5rm6.fsf@concordia.ellerman.id.au>
+Content-Disposition: inline
+In-Reply-To: <7cd7abcd2acf5c61435589338ff80a75a13173ca.1537789737.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Firoz Khan <firoz.khan@linaro.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxram@us.ibm.com, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, palmer@sifive.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 25, 2018 at 2:48 AM Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Arnd Bergmann <arnd@arndb.de> writes:
-> > On Tue, Sep 18, 2018 at 2:15 PM Firoz Khan <firoz.khan@linaro.org> wrote:
-> >> On 14 September 2018 at 15:31, Arnd Bergmann <arnd@arndb.de> wrote:
-> >> > On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
-> >
-> > But all three existing architectures (x86, s390 and arm) already
-> > have the capability to parse the table and generate different output
-> > from that.
->
-> Yeah, we want that on powerpc too.
->
-> If the script needs to be more complex that's fine, if it can't be
-> shared across arches that's fine, the main thing for me is that wiring
-> up a syscall can be done by adding a single line in a single file.
+On Mon, Sep 24, 2018 at 10:36:22PM +0800, Guo Ren wrote:
+> diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
+> new file mode 100644
+> index 0000000..f0de49c
+> --- /dev/null
+> +++ b/arch/csky/abiv1/inc/abi/cacheflush.h
+> @@ -0,0 +1,43 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+> +
+> +#ifndef __ABI_CSKY_CACHEFLUSH_H
+> +#define __ABI_CSKY_CACHEFLUSH_H
+> +
+> +#include <linux/compiler.h>
+> +#include <asm/string.h>
+> +#include <asm/cache.h>
+> +
+> +#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+> +extern void flush_dcache_page(struct page *);
+> +
+> +#define flush_cache_mm(mm)		cache_wbinv_all()
+> +#define flush_cache_page(vma,page,pfn)	cache_wbinv_all()
+> +#define flush_cache_dup_mm(mm)		cache_wbinv_all()
+> +
+> +#define flush_cache_range(mm,start,end)	cache_wbinv_range(start, end)
+                             ^^^ should be vma
 
-Yes, that's definitely the idea, we want to make it easier for everyone.
-We need at least a special case for mips, which needs three separate
-input files (the tables are completely different) to generate four versions
-of the output, plus a future extension to use the generic table for their
-new one.
+> +#endif /* __ABI_CSKY_CACHEFLUSH_H */
 
-For powerpc, I'm hoping that both the table format and script can be
-completely generic and not need a special case that is different
-from the others, but if we need some extra magic to handle the SPU
-syscalls, we can still do that with a private script.
 
-      Arnd
+> diff --git a/arch/csky/abiv1/inc/abi/tlb.h b/arch/csky/abiv1/inc/abi/tlb.h
+> new file mode 100644
+> index 0000000..6d461f3
+> --- /dev/null
+> +++ b/arch/csky/abiv1/inc/abi/tlb.h
+> @@ -0,0 +1,12 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+> +
+> +#ifndef __ABI_CSKY_TLB_H
+> +#define __ABI_CSKY_TLB_H
+> +
+> +#define tlb_start_vma(tlb, vma) \
+> +	do { \
+> +		if (!tlb->fullmm) \
+> +			cache_wbinv_all(); \
+> +	}  while (0)
+> +#endif /* __ABI_CSKY_TLB_H */
+
+That should be:
+
+	if (!tlb->fullmm)
+		flush_cache_range(vma, vma->vm_start, vma->vm_end);
+
+Because as per the whole abiv1 vs abiv2, you don't need write back
+invalidation for v2 at all, also, you only need to invalidate the vma
+range, no reason to shoot everything down.
+
+Also, I'll be shortly removing this:
+
+  https://lkml.kernel.org/r/20180913092812.071989585@infradead.org
+
+> diff --git a/arch/csky/abiv2/inc/abi/cacheflush.h b/arch/csky/abiv2/inc/abi/cacheflush.h
+> new file mode 100644
+> index 0000000..756beb7
+> --- /dev/null
+> +++ b/arch/csky/abiv2/inc/abi/cacheflush.h
+> @@ -0,0 +1,40 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +
+> +#ifndef __ABI_CSKY_CACHEFLUSH_H
+> +#define __ABI_CSKY_CACHEFLUSH_H
+> +
+> +/* Keep includes the same across arches.  */
+> +#include <linux/mm.h>
+> +
+> +/*
+> + * The cache doesn't need to be flushed when TLB entries change when
+> + * the cache is mapped to physical memory, not virtual memory
+> + */
+> +#define flush_cache_all()			do { } while (0)
+> +#define flush_cache_mm(mm)			do { } while (0)
+> +#define flush_cache_dup_mm(mm)			do { } while (0)
+> +#define flush_cache_range(vma, start, end)	do { } while (0)
+                             ^^^ like here..
+
+> +#endif /* __ABI_CSKY_TLB_H */
