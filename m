@@ -1,66 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f194.google.com ([209.85.160.194]:44301 "EHLO
-        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726927AbeIYQGw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 12:06:52 -0400
+Received: from mail-ed1-f67.google.com ([209.85.208.67]:40713 "EHLO
+        mail-ed1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726541AbeIYQPC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 12:15:02 -0400
+Received: by mail-ed1-f67.google.com with SMTP id j62-v6so18817446edd.7
+        for <linux-arch@vger.kernel.org>; Tue, 25 Sep 2018 03:08:12 -0700 (PDT)
+Date: Tue, 25 Sep 2018 12:08:03 +0200
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: Re: [PATCH V5 17/30] csky: Misc headers
+Message-ID: <20180925100803.GA6891@andrea>
+References: <cover.1537789736.git.ren_guo@c-sky.com>
+ <5ae1990e1863fe2293bba1e5ec0408892a9a7f0c.1537789737.git.ren_guo@c-sky.com>
 MIME-Version: 1.0
-References: <cover.1537276837.git.ren_guo@c-sky.com> <1ccf1bed89758a5a9b57ac2ce6d11ca898a1b9ae.1537276837.git.ren_guo@c-sky.com>
- <CAK8P3a0RDiP_R8+Lo9-nwiRS3k1NrtcsCFLi0Ww0TJGoAdb3iQ@mail.gmail.com> <20180925094601.GA2102@guoren>
-In-Reply-To: <20180925094601.GA2102@guoren>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 25 Sep 2018 11:59:48 +0200
-Message-ID: <CAK8P3a1bv_Kx5Jo3UOyC9y0fmrH1i2+HB3_=H7pkBfBxBH-nXA@mail.gmail.com>
-Subject: Re: [PATCH V7 1/2] csky/dma: bugfix dma_sync_for_cpu/device
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5ae1990e1863fe2293bba1e5ec0408892a9a7f0c.1537789737.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rob Herring <robh@kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Greentime Hu <green.hu@gmail.com>
-Message-ID: <20180925095948.SrkL6Y2aRDkx1-gxlBHbVV2bT1bnaAd6kXqh8WqzpN4@z>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com
+Message-ID: <20180925100803.Wx-1U_QAHtZTFfkVP2sXtrikJGLQDweo3v1Rro1PaKk@z>
 
-On Tue, Sep 25, 2018 at 11:46 AM Guo Ren <ren_guo@c-sky.com> wrote:
->
-> On Mon, Sep 24, 2018 at 10:38:04PM +0200, Arnd Bergmann wrote:
-> > On Tue, Sep 18, 2018 at 3:48 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > >
-> > > ref: https://lkml.org/lkml/2018/5/18/1068
-> > >
-> > >         map             for_cpu         for_device      unmap
-> > > TO_DEV  writeback       none            writeback       none
-> > > TO_CPU  invalidate      invalidate*     invalidate      invalidate*
-> > > BIDIR   writeback       invalidate      writeback       invalidate
-> > >
-> > > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> >
-> > Same comment as for the other patch: Explain why the original
-> > version is wrong first. When giving a reference to some other
-> > discussion, use the "Link" tag above your Signed-off-by line.
-> > To point to a discussion on lkml, lore.kernel.org is the
-> > recommended archive, so it would become
-> >
-> > Link: https://lore.kernel.org/lkml/20180518215548.GH17671@n2100.armlinux.org.uk/
-> Ok, I'll improve the comment:
->
-> Fixup dma_mapping error in linux-4.19-rc3, and we must implement all
-> DMA_TO_DEVICE/FROM_DEVICE/BIDIRECTIONAL for both sync_dma_for_device/cpu.
-> The implementation of arch should follow the following rules:
->
-> ...
+Hi Guo,
 
-That seems ok, but it's better to start with a description of the problem
-rather than the 'Fixup dma_mapping error in linux-4.19-rc3' part.
-I would write this like:
+> +/*
+> + * set_bit - Atomically set a bit in memory
+> + * @nr: the bit to set
+> + * @addr: the address to start counting from
+> + *
+> + * This function is atomic and may not be reordered.  See __set_bit()
+> + * if you do not require the atomic guarantees.
+> + *
+> + * Note: there are no guarantees that this function will not be reordered
+> + * on non x86 architectures, so if you are writing portable code,
+> + * make sure not to rely on its reordering guarantees.
+> + *
+> + * Note that @nr may be almost arbitrarily large; this function is not
+> + * restricted to acting on a single-word quantity.
+> + */
+> +static inline void set_bit(int nr, volatile unsigned long *addr)
+> +{
+> +	unsigned long mask = BIT_MASK(nr);
+> +	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+> +	unsigned long tmp;
+> +
+> +	/* *p  |= mask; */
+> +	smp_mb();
+> +	asm volatile (
+> +		"1:	ldex.w		%0, (%2)	\n"
+> +		"	or32		%0, %0, %1	\n"
+> +		"	stex.w		%0, (%2)	\n"
+> +		"	bez		%0, 1b		\n"
+> +		: "=&r"(tmp)
+> +		: "r"(mask), "r"(p)
+> +		: "memory");
+> +	smp_mb();
+> +}
+> +
+> +/**
+> + * clear_bit - Clears a bit in memory
+> + * @nr: Bit to clear
+> + * @addr: Address to start counting from
+> + *
+> + * clear_bit() is atomic and may not be reordered.  However, it does
+> + * not contain a memory barrier, so if it is used for locking purposes,
+> + * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
+> + * in order to ensure changes are visible on other processors.
+> + */
+> +static inline void clear_bit(int nr, volatile unsigned long *addr)
+> +{
+> +	unsigned long mask = BIT_MASK(nr);
+> +	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+> +	unsigned long tmp;
+> +
+> +	/* *p &= ~mask; */
+> +	mask = ~mask;
+> +	smp_mb();
+> +	asm volatile (
+> +		"1:	ldex.w		%0, (%2)	\n"
+> +		"	and32		%0, %0, %1	\n"
+> +		"	stex.w		%0, (%2)	\n"
+> +		"	bez		%0, 1b		\n"
+> +		: "=&r"(tmp)
+> +		: "r"(mask), "r"(p)
+> +		: "memory");
+> +	smp_mb();
+> +}
+> +
+> +/**
+> + * change_bit - Toggle a bit in memory
+> + * @nr: Bit to change
+> + * @addr: Address to start counting from
+> + *
+> + * change_bit() is atomic and may not be reordered. It may be
+> + * reordered on other architectures than x86.
+> + * Note that @nr may be almost arbitrarily large; this function is not
+> + * restricted to acting on a single-word quantity.
+> + */
+> +static inline void change_bit(int nr, volatile unsigned long *addr)
+> +{
+> +	unsigned long mask = BIT_MASK(nr);
+> +	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+> +	unsigned long tmp;
+> +
+> +	/* *p ^= mask; */
+> +	smp_mb();
+> +	asm volatile (
+> +		"1:	ldex.w		%0, (%2)	\n"
+> +		"	xor32		%0, %0, %1	\n"
+> +		"	stex.w		%0, (%2)	\n"
+> +		"	bez		%0, 1b		\n"
+> +		: "=&r"(tmp)
+> +		: "r"(mask), "r"(p)
+> +		: "memory");
+> +	smp_mb();
+> +}
 
-| The arch_sync_dma_for_cpu()/arch_sync_dma_for_device()
-| implementation is broken for some combinations that end up
-| in a BUG() instead of performing the necessary flushes.
-|
-| The implementation of arch should follow the following rules:
-| ...
+The {set,clear,change}_bit() operations don't have to be ordered: you
+might want to remove the above smp_mb()s (and adjust the comments).
 
-The imperative 'Fix up dma_mapping error ...' is what belongs
-into the subject line, and is ideally revisited at the end of the
-changelog comment if you want to add more detail about what
-you do.
-
-       Arnd
+  Andrea
