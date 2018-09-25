@@ -1,53 +1,41 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH v4 0/4] devres: provide and use devm_kstrdup_const()
-Date: Tue, 25 Sep 2018 13:51:32 +0100
-Message-ID: <c25df148-718a-d29d-9c1d-20701a0e4534@arm.com>
-References: <20180925124629.20710-1-brgl@bgdev.pl>
+From: Pu Wen <puwen@hygon.cn>
+Subject: Re: [PATCH v8 07/16] x86/pci: Add Hygon Dhyana support to PCI and
+ north bridge
+Date: Tue, 25 Sep 2018 20:57:20 +0800
+Message-ID: <d565ef8a-6d53-4490-2cba-1f237b0aa9d5@hygon.cn>
+References: <cover.1537533368.git.puwen@hygon.cn>
+ <580dc519d37ad9257520fe8c533f2c61d3e0cd83.1537533369.git.puwen@hygon.cn>
+ <20180924152448.GE20187@zn.tnic>
+ <8ed72e5f-c85c-67f6-67e9-460ef99ab372@hygon.cn>
+ <20180925123035.GC23986@zn.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925124629.20710-1-brgl@bgdev.pl>
-Content-Language: en-GB
+In-Reply-To: <20180925123035.GC23986@zn.tnic>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Bartosz Golaszewski <brgl@bgdev.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafael@kernel.org>, Jassi Brar <jassisinghbrar@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Jonathan Hunter <jonathanh@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Ulf Hansson <ulf.hansson@linaro.org>, Rob Herring <robh@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arend van Spriel <aspriel@gmail.com>, Vivek Gautam <vivek.gautam@codeaurora.org>, Joe Perches <joe@perches.com>, Heikki Krogerus <heikki.krogerus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Roman Gushchin <guro@fb.com>, Michal Hocko <mhocko@suse.com>, Huang Ying <ying.huang@intel.com>, Andy Shevchenko <and>
-Cc: linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: bhelgaas@google.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, thomas.lendacky@amd.com, helgaas@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 25/09/18 13:46, Bartosz Golaszewski wrote:
-> This series implements devm_kstrdup_const() together with some
-> prerequisite changes and uses it in pmc-atom driver.
+On 2018/9/25 20:30, Borislav Petkov wrote:
+> On Tue, Sep 25, 2018 at 08:27:15PM +0800, Pu Wen wrote:
+>> All right, I will change these in the next version patch set.
+> 
+> Just send two patches as a reply to this thread here:
+> 
+> 1. add the vendor check to both amd_gart_present() and early_is_amd_nb()
+> 2. redo 7/16 ontop of the first patch.
+> 
+> I don't think you need to resend the whole patchset as the rest is still
+> good.
 
-Is anyone expecting me to review this series, or am I just here because 
-I once made a couple of entirely unrelated changes to device.h?
+OK, I got the point. :)
+I'll just send the two patches.
 
-Robin.
+Thx.
 
-> v1 -> v2:
-> - fixed the changelog in the patch implementing devm_kstrdup_const()
-> - fixed the kernel doc
-> - moved is_kernel_rodata() to asm-generic/sections.h
-> - fixed constness
-> 
-> v2 -> v3:
-> - rebased on top of 4.19-rc5 as there were some conflicts in the
->    pmc-atom driver
-> - collected Reviewed-by tags
-> 
-> v3 -> v4:
-> - Andy NAK'ed patch 4/4 so I added a different example
-> - collected more tags
-> 
-> Bartosz Golaszewski (4):
->    devres: constify p in devm_kfree()
->    mm: move is_kernel_rodata() to asm-generic/sections.h
->    devres: provide devm_kstrdup_const()
->    mailbox: tegra-hsp: use devm_kstrdup_const()
-> 
->   drivers/base/devres.c          | 43 ++++++++++++++++++++++++++++++++--
->   drivers/mailbox/tegra-hsp.c    | 41 +++++++-------------------------
->   include/asm-generic/sections.h | 14 +++++++++++
->   include/linux/device.h         |  5 +++-
->   mm/util.c                      |  7 ------
->   5 files changed, 68 insertions(+), 42 deletions(-)
-> 
+-- 
+Regards,
+Pu Wen
