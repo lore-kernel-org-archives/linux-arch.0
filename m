@@ -1,95 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:37844 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728126AbeIYGaI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:30:08 -0400
-Received: by mail-pf1-f196.google.com with SMTP id c14-v6so123470pfi.4
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:25:20 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 24/29] LoadPin: Initialize as ordered LSM
-Date: Mon, 24 Sep 2018 17:18:27 -0700
-Message-ID: <20180925001832.18322-25-keescook@chromium.org>
-In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
-References: <20180925001832.18322-1-keescook@chromium.org>
+Received: from ozlabs.org ([203.11.71.1]:42357 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726025AbeIYGxo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 25 Sep 2018 02:53:44 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 2/3] powerpc: Add system call table generation support
+In-Reply-To: <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com>
+References: <1536913980-4811-1-git-send-email-firoz.khan@linaro.org> <1536913980-4811-3-git-send-email-firoz.khan@linaro.org> <CAK8P3a1PCnHy1JX4T21LjOr3ZGAVLdqxQaPYfLHAgM-9Y5yxVg@mail.gmail.com> <CALxhOngVYQRwbcUg6c_3LcKAEoBwyN1B478LqRGmWEGL004--w@mail.gmail.com> <CAK8P3a2hi-Ndh7X-9r3NhBUJXQBTBFsTU==GbHesy6YD9idCJA@mail.gmail.com>
+Date: Tue, 25 Sep 2018 10:48:49 +1000
+Message-ID: <87efdi5rm6.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001827.J1XSFXknWflNIPTvJoG_WAz63pL5XSkwV5_fWLos2oY@z>
+To: Arnd Bergmann <arnd@arndb.de>, Firoz Khan <firoz.khan@linaro.org>
+Cc: linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxram@us.ibm.com, leitao@debian.org, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180925004849.QgIP704YyYGECdJdQ_xCfDgfK5VSt2VqX4pUca4w5GY@z>
 
-This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
+Arnd Bergmann <arnd@arndb.de> writes:
+> On Tue, Sep 18, 2018 at 2:15 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+>> On 14 September 2018 at 15:31, Arnd Bergmann <arnd@arndb.de> wrote:
+>> > On Fri, Sep 14, 2018 at 10:33 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+>> >
+>> >> ---
+>> >>  arch/powerpc/kernel/syscalls/Makefile       |  51 ++++
+>> >>  arch/powerpc/kernel/syscalls/syscall_32.tbl | 378 ++++++++++++++++++++++++++++
+>> >>  arch/powerpc/kernel/syscalls/syscall_64.tbl | 372 +++++++++++++++++++++++++++
+>> >>  arch/powerpc/kernel/syscalls/syscallhdr.sh  |  37 +++
+>> >>  arch/powerpc/kernel/syscalls/syscalltbl.sh  |  38 +++
+>> >
+>> > I think you should only need a single .tbl  input file here.
+>>
+>> Yes, we can do that way also.As I mentioned, it will add
+>> more complexity in the script.
+>>
+>>  The script has to be smart enough to parse the
+>> .tbl if we add more thing in the .tble file. It need more
+>> logic in the scripts. This is not common. So if you keep
+>> separate .tbl we can avoid this.
+>
+> But all three existing architectures (x86, s390 and arm) already
+> have the capability to parse the table and generate different output
+> from that.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/linux/lsm_hooks.h  | 5 -----
- security/Kconfig           | 2 +-
- security/loadpin/loadpin.c | 7 ++++++-
- security/security.c        | 1 -
- 4 files changed, 7 insertions(+), 8 deletions(-)
+Yeah, we want that on powerpc too.
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index ab23f1bc6d77..9df08955f684 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2097,10 +2097,5 @@ extern void __init yama_add_hooks(void);
- #else
- static inline void __init yama_add_hooks(void) { }
- #endif
--#ifdef CONFIG_SECURITY_LOADPIN
--void __init loadpin_add_hooks(void);
--#else
--static inline void loadpin_add_hooks(void) { };
--#endif
- 
- #endif /* ! __LINUX_LSM_HOOKS_H */
-diff --git a/security/Kconfig b/security/Kconfig
-index 7ec86dbdb6b8..e20c2a3143e7 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -293,7 +293,7 @@ config LSM_ENABLE
- 
- config LSM_ORDER
- 	string "Default initialization order of builtin LSMs"
--	default "integrity"
-+	default "loadpin,integrity"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
- 	  Any LSMs left off this list will be link-order initialized
-diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
-index d8a68a6f6fef..7abdf4619b46 100644
---- a/security/loadpin/loadpin.c
-+++ b/security/loadpin/loadpin.c
-@@ -184,13 +184,18 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
- 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
- };
- 
--void __init loadpin_add_hooks(void)
-+static int __init loadpin_init(void)
- {
- 	pr_info("ready to pin (currently %senforcing)\n",
- 		enforcing ? "" : "not ");
- 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
-+	return 0;
- }
- 
-+DEFINE_LSM(loadpin)
-+	.init = loadpin_init,
-+END_LSM;
-+
- /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
- module_param(enforcing, int, 0);
- MODULE_PARM_DESC(enforcing, "Enforce module/firmware pinning");
-diff --git a/security/security.c b/security/security.c
-index f1c3581d870f..cb25f321e044 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -305,7 +305,6 @@ int __init security_init(void)
- 	 */
- 	capability_add_hooks();
- 	yama_add_hooks();
--	loadpin_add_hooks();
- 
- 	/* Load LSMs in specified order. */
- 	prepare_lsm_order();
--- 
-2.17.1
+If the script needs to be more complex that's fine, if it can't be
+shared across arches that's fine, the main thing for me is that wiring
+up a syscall can be done by adding a single line in a single file.
+
+cheers
