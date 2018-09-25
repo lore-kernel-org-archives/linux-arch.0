@@ -1,7 +1,7 @@
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH v4 1/4] devres: constify p in devm_kfree()
-Date: Tue, 25 Sep 2018 14:46:26 +0200
-Message-ID: <20180925124629.20710-2-brgl@bgdev.pl>
+Subject: [PATCH v4 3/4] devres: provide devm_kstrdup_const()
+Date: Tue, 25 Sep 2018 14:46:28 +0200
+Message-ID: <20180925124629.20710-4-brgl@bgdev.pl>
 References: <20180925124629.20710-1-brgl@bgdev.pl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180925124629.20710-1-brgl@bgdev.pl>
@@ -10,47 +10,97 @@ To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafae
 Cc: linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Bartosz Golaszewski <brgl@bgdev.pl>
 List-Id: linux-arch.vger.kernel.org
 
-Make devm_kfree() signature uniform with that of kfree(). To avoid
-compiler warnings: cast p to (void *) when calling devres_destroy().
+Provide a resource managed version of kstrdup_const(). This variant
+internally calls devm_kstrdup() on pointers that are outside of
+.rodata section and returns the string as is otherwise.
+
+Also provide a corresponding version of devm_kfree().
 
 Signed-off-by: Bartosz Golaszewski <brgl@bgdev.pl>
 Reviewed-by: Bjorn Andersson <bjorn.andersson@linaro.org>
+Acked-by: Mike Rapoport <rppt@linux.vnet.ibm.com>
 ---
- drivers/base/devres.c  | 5 +++--
- include/linux/device.h | 2 +-
- 2 files changed, 4 insertions(+), 3 deletions(-)
+ drivers/base/devres.c  | 38 ++++++++++++++++++++++++++++++++++++++
+ include/linux/device.h |  3 +++
+ 2 files changed, 41 insertions(+)
 
 diff --git a/drivers/base/devres.c b/drivers/base/devres.c
-index f98a097e73f2..438c91a43508 100644
+index 438c91a43508..48185d57bc5b 100644
 --- a/drivers/base/devres.c
 +++ b/drivers/base/devres.c
-@@ -885,11 +885,12 @@ EXPORT_SYMBOL_GPL(devm_kasprintf);
-  *
-  * Free memory allocated with devm_kmalloc().
-  */
--void devm_kfree(struct device *dev, void *p)
-+void devm_kfree(struct device *dev, const void *p)
- {
- 	int rc;
+@@ -11,6 +11,8 @@
+ #include <linux/slab.h>
+ #include <linux/percpu.h>
  
--	rc = devres_destroy(dev, devm_kmalloc_release, devm_kmalloc_match, p);
-+	rc = devres_destroy(dev, devm_kmalloc_release,
-+			    devm_kmalloc_match, (void *)p);
- 	WARN_ON(rc);
++#include <asm/sections.h>
++
+ #include "base.h"
+ 
+ struct devres_node {
+@@ -822,6 +824,28 @@ char *devm_kstrdup(struct device *dev, const char *s, gfp_t gfp)
+ }
+ EXPORT_SYMBOL_GPL(devm_kstrdup);
+ 
++/**
++ * devm_kstrdup_const - resource managed conditional string duplication
++ * @dev: device for which to duplicate the string
++ * @s: the string to duplicate
++ * @gfp: the GFP mask used in the kmalloc() call when allocating memory
++ *
++ * Strings allocated by devm_kstrdup_const will be automatically freed when
++ * the associated device is detached.
++ *
++ * RETURNS:
++ * Source string if it is in .rodata section otherwise it falls back to
++ * devm_kstrdup.
++ */
++const char *devm_kstrdup_const(struct device *dev, const char *s, gfp_t gfp)
++{
++	if (is_kernel_rodata((unsigned long)s))
++		return s;
++
++	return devm_kstrdup(dev, s, gfp);
++}
++EXPORT_SYMBOL(devm_kstrdup_const);
++
+ /**
+  * devm_kvasprintf - Allocate resource managed space and format a string
+  *		     into that.
+@@ -895,6 +919,20 @@ void devm_kfree(struct device *dev, const void *p)
  }
  EXPORT_SYMBOL_GPL(devm_kfree);
+ 
++/**
++ * devm_kfree_const - Resource managed conditional kfree
++ * @dev: device this memory belongs to
++ * @p: memory to free
++ *
++ * Function calls devm_kfree only if @p is not in .rodata section.
++ */
++void devm_kfree_const(struct device *dev, const void *p)
++{
++	if (!is_kernel_rodata((unsigned long)p))
++		devm_kfree(dev, p);
++}
++EXPORT_SYMBOL(devm_kfree_const);
++
+ /**
+  * devm_kmemdup - Resource-managed kmemdup
+  * @dev: Device this memory belongs to
 diff --git a/include/linux/device.h b/include/linux/device.h
-index 8f882549edee..33f7cb271fbb 100644
+index 33f7cb271fbb..79ccc6eb0975 100644
 --- a/include/linux/device.h
 +++ b/include/linux/device.h
-@@ -692,7 +692,7 @@ static inline void *devm_kcalloc(struct device *dev,
- {
+@@ -693,7 +693,10 @@ static inline void *devm_kcalloc(struct device *dev,
  	return devm_kmalloc_array(dev, n, size, flags | __GFP_ZERO);
  }
--extern void devm_kfree(struct device *dev, void *p);
-+extern void devm_kfree(struct device *dev, const void *p);
+ extern void devm_kfree(struct device *dev, const void *p);
++extern void devm_kfree_const(struct device *dev, const void *p);
  extern char *devm_kstrdup(struct device *dev, const char *s, gfp_t gfp) __malloc;
++extern const char *devm_kstrdup_const(struct device *dev,
++				      const char *s, gfp_t gfp);
  extern void *devm_kmemdup(struct device *dev, const void *src, size_t len,
  			  gfp_t gfp);
+ 
 -- 
 2.18.0
