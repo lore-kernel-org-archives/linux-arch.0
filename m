@@ -1,137 +1,92 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
-Date: Mon, 24 Sep 2018 17:18:03 -0700
-Message-ID: <20180925001832.18322-1-keescook@chromium.org>
+Subject: [PATCH security-next v3 03/29] LSM: Rename .security_initcall section to .lsm_info
+Date: Mon, 24 Sep 2018 17:18:06 -0700
+Message-ID: <20180925001832.18322-4-keescook@chromium.org>
+References: <20180925001832.18322-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "Serge E. Hallyn" <serge@hallyn.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-v3:
-- add CONFIG_LSM_ENABLE and refactor resulting logic
+In preparation for switching from initcall to just a regular set of
+pointers in a section, rename the internal section name.
 
-v2:
-- add "lsm.order=" and CONFIG_LSM_ORDER instead of overloading "security="
-- reorganize introduction of ordering logic code
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: James Morris <jmorris@namei.org>
+Cc: "Serge E. Hallyn" <serge@hallyn.com>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-security-module@vger.kernel.org
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ include/asm-generic/vmlinux.lds.h | 10 +++++-----
+ include/linux/init.h              |  4 ++--
+ security/security.c               |  4 ++--
+ 3 files changed, 9 insertions(+), 9 deletions(-)
 
-Overview:
-
-This refactors the LSM registration and initialization infrastructure to
-more centrally support different LSM types for more cleanly supporting the
-future expansion of LSM stacking via the "blob-sharing" patch series. What
-was considered a "major" LSM is kept for legacy use of the "security="
-boot parameter, and now overlaps with the new class of "exclusive" LSMs
-for the future blob sharing. The "minor" LSMs become more well defined
-as a result of the refactoring.
-
-Approach:
-
-To better show LSMs activation some debug reporting was added (enabled
-with the "lsm.debug" boot commandline option).
-
-I added a WARN() around LSM initialization failures, which appear to
-have always been silently ignored. (Realistically any LSM init failures
-would have only been due to catastrophic kernel issues that would render
-a system unworkable anyway, but it'd be better to expose the problem as
-early as possible.)
-
-Instead of continuing to (somewhat improperly) overload the kernel's
-initcall system, this changes the LSM infrastructure to store a
-registration structure (struct lsm_info) table instead, where metadata
-about each LSM can be recorded (name, flags, order, enable flag, init
-function). This can be extended in the future to include things like
-required blob size for the coming "blob sharing" LSMs.
-
-The "major" LSMs had to individually negotiate which of them should be
-enabled. This didn't provide a way to negotiate combinations of other
-LSMs (as will be needed for "blob sharing" LSMs). This is solved by
-providing the LSM infrastructure with all the details needed to make
-the choice (exposing the per-LSM "enabled" flag, if used, the LSM
-characteristics, and ordering expectations).
-
-As a result of the refactoring, the "minor" LSMs are able to remove
-the open-coded security_add_hooks() calls for "capability", "yama",
-and "loadpin", and to redefine "integrity" properly as a general LSM.
-(Note that "integrity" actually defined _no_ hooks, but needs the early
-initialization).
-
-With all LSMs being proessed centrally, it was possible to implement
-a new boot parameter "lsm.order=" to provide explicit ordering, which
-is helpful for the future "blob sharing" LSMs. Matching this is the
-new CONFIG_LSM_ORDER, which replaces CONFIG_DEFAULT_SECURITY, as it
-provides a higher granularity of control.
-
-Breakdown of patches:
-
-Infrastructure improvements (no logical changes):
-  LSM: Correctly announce start of LSM initialization
-  vmlinux.lds.h: Avoid copy/paste of security_init section
-  LSM: Rename .security_initcall section to .lsm_info
-  LSM: Remove initcall tracing
-  LSM: Convert from initcall to struct lsm_info
-  vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
-  LSM: Convert security_initcall() into DEFINE_LSM()
-  LSM: Record LSM name in struct lsm_info
-  LSM: Provide init debugging infrastructure
-  LSM: Don't ignore initialization failures
-
-Split "integrity" out into "ordered initialization" (no logical changes):
-  LSM: Introduce LSM_FLAG_LEGACY_MAJOR
-  LSM: Provide separate ordered initialization
-
-Provide centralized LSM enable/disable infrastructure:
-  LoadPin: Rename "enable" to "enforce"
-  LSM: Plumb visibility into optional "enabled" state
-  LSM: Lift LSM selection out of individual LSMs
-  LSM: Prepare for arbitrary LSM enabling
-  LSM: Introduce CONFIG_LSM_ENABLE
-  LSM: Introduce lsm.enable= and lsm.disable=
-  LSM: Prepare for reorganizing "security=" logic
-  LSM: Refactor "security=" in terms of enable/disable
-
-Provide centralized LSM ordering infrastructure:
-  LSM: Build ordered list of ordered LSMs for init
-  LSM: Introduce CONFIG_LSM_ORDER
-  LSM: Introduce "lsm.order=" for boottime ordering
-
-Move minor LSMs into ordered LSM initialization:
-  LoadPin: Initialize as ordered LSM
-  Yama: Initialize as ordered LSM
-  LSM: Introduce enum lsm_order
-  capability: Initialize as LSM_ORDER_FIRST
-
-Move major LSMs into ordered LSM initialization:
-  LSM: Separate idea of "major" LSM from "exclusive" LSM
-  LSM: Add all exclusive LSMs to ordered initialization
-
--Kees
-
- .../admin-guide/kernel-parameters.txt         |  20 +
- arch/arc/kernel/vmlinux.lds.S                 |   1 -
- arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
- arch/arm64/kernel/vmlinux.lds.S               |   1 -
- arch/h8300/kernel/vmlinux.lds.S               |   1 -
- arch/microblaze/kernel/vmlinux.lds.S          |   2 -
- arch/powerpc/kernel/vmlinux.lds.S             |   2 -
- arch/um/include/asm/common.lds.S              |   2 -
- arch/xtensa/kernel/vmlinux.lds.S              |   1 -
- include/asm-generic/vmlinux.lds.h             |  25 +-
- include/linux/init.h                          |   2 -
- include/linux/lsm_hooks.h                     |  43 ++-
- include/linux/module.h                        |   1 -
- security/Kconfig                              |  61 ++-
- security/apparmor/lsm.c                       |  16 +-
- security/commoncap.c                          |   8 +-
- security/integrity/iint.c                     |   5 +-
- security/loadpin/Kconfig                      |   4 +-
- security/loadpin/loadpin.c                    |  28 +-
- security/security.c                           | 351 +++++++++++++++---
- security/selinux/hooks.c                      |  16 +-
- security/smack/smack_lsm.c                    |   8 +-
- security/tomoyo/tomoyo.c                      |   7 +-
- security/yama/yama_lsm.c                      |   7 +-
- 24 files changed, 438 insertions(+), 175 deletions(-)
-
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 934a45395547..5079a969e612 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -787,14 +787,14 @@
+ 		__con_initcall_end = .;
+ 
+ #define SECURITY_INITCALL						\
+-		__security_initcall_start = .;				\
+-		KEEP(*(.security_initcall.init))			\
+-		__security_initcall_end = .;
++		__start_lsm_info = .;					\
++		KEEP(*(.lsm_info.init))					\
++		__end_lsm_info = .;
+ 
+ /* Older linker script style for security init. */
+ #define SECURITY_INIT							\
+-	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
+-		SECURITY_INITCALL					\
++	.lsm_info.init : AT(ADDR(.lsm_info.init) - LOAD_OFFSET) {	\
++		LSM_INFO						\
+ 	}
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 2538d176dd1f..77636539e77c 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -133,7 +133,7 @@ static inline initcall_t initcall_from_entry(initcall_entry_t *entry)
+ #endif
+ 
+ extern initcall_entry_t __con_initcall_start[], __con_initcall_end[];
+-extern initcall_entry_t __security_initcall_start[], __security_initcall_end[];
++extern initcall_entry_t __start_lsm_info[], __end_lsm_info[];
+ 
+ /* Used for contructor calls. */
+ typedef void (*ctor_fn_t)(void);
+@@ -236,7 +236,7 @@ extern bool initcall_debug;
+ 	static exitcall_t __exitcall_##fn __exit_call = fn
+ 
+ #define console_initcall(fn)	___define_initcall(fn,, .con_initcall)
+-#define security_initcall(fn)	___define_initcall(fn,, .security_initcall)
++#define security_initcall(fn)	___define_initcall(fn,, .lsm_info)
+ 
+ struct obs_kernel_param {
+ 	const char *str;
+diff --git a/security/security.c b/security/security.c
+index 4cbcf244a965..892fe6b691cf 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -51,9 +51,9 @@ static void __init do_security_initcalls(void)
+ 	initcall_t call;
+ 	initcall_entry_t *ce;
+ 
+-	ce = __security_initcall_start;
++	ce = __start_lsm_info;
+ 	trace_initcall_level("security");
+-	while (ce < __security_initcall_end) {
++	while (ce < __end_lsm_info) {
+ 		call = initcall_from_entry(ce);
+ 		trace_initcall_start(call);
+ 		ret = call();
 -- 
 2.17.1
