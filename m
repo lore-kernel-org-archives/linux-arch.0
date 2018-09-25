@@ -1,159 +1,193 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:33191 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728840AbeIYGXm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:42 -0400
-Received: by mail-pg1-f194.google.com with SMTP id y18-v6so6814829pge.0
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:56 -0700 (PDT)
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:34726 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728466AbeIYGXa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:30 -0400
+Received: by mail-pg1-f193.google.com with SMTP id d19-v6so10129160pgv.1
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:44 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 29/29] LSM: Add all exclusive LSMs to ordered initialization
-Date: Mon, 24 Sep 2018 17:18:32 -0700
-Message-ID: <20180925001832.18322-30-keescook@chromium.org>
+Subject: [PATCH security-next v3 06/29] vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+Date: Mon, 24 Sep 2018 17:18:09 -0700
+Message-ID: <20180925001832.18322-7-keescook@chromium.org>
 In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001832.YrwWWk_OJigBBfyAatUbDAgqPuybTg1qsM26uqWNCFs@z>
+Cc: Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180925001809.5-NGGx-P4xjI9AlzLzIWd4qayEPy4CUN7ihh2BbG2Fw@z>
 
-This removes CONFIG_DEFAULT_SECURITY in favor of the explicit build-time
-ordering offered by CONFIG_LSM_ORDER, and adds all the exclusive LSMs to
-the ordered LSM initialization. The old meaning of CONFIG_DEFAULT_SECURITY
-is now captured by which exclusive LSM is listed first in the LSM order.
+Since the struct lsm_info table is not an initcall, we can just move it
+into INIT_DATA like all the other tables.
 
+Cc: linux-arch@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/Kconfig    | 43 ++++---------------------------------------
- security/security.c | 23 +----------------------
- 2 files changed, 5 insertions(+), 61 deletions(-)
+ arch/arc/kernel/vmlinux.lds.S        |  1 -
+ arch/arm/kernel/vmlinux-xip.lds.S    |  1 -
+ arch/arm64/kernel/vmlinux.lds.S      |  1 -
+ arch/h8300/kernel/vmlinux.lds.S      |  1 -
+ arch/microblaze/kernel/vmlinux.lds.S |  2 --
+ arch/powerpc/kernel/vmlinux.lds.S    |  2 --
+ arch/um/include/asm/common.lds.S     |  2 --
+ arch/xtensa/kernel/vmlinux.lds.S     |  1 -
+ include/asm-generic/vmlinux.lds.h    | 24 +++++++++++-------------
+ 9 files changed, 11 insertions(+), 24 deletions(-)
 
-diff --git a/security/Kconfig b/security/Kconfig
-index e37de9a44747..efa4826c3d99 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -239,43 +239,6 @@ source security/yama/Kconfig
- 
- source security/integrity/Kconfig
- 
--choice
--	prompt "Default security module"
--	default DEFAULT_SECURITY_SELINUX if SECURITY_SELINUX
--	default DEFAULT_SECURITY_SMACK if SECURITY_SMACK
--	default DEFAULT_SECURITY_TOMOYO if SECURITY_TOMOYO
--	default DEFAULT_SECURITY_APPARMOR if SECURITY_APPARMOR
--	default DEFAULT_SECURITY_DAC
--
--	help
--	  Select the security module that will be used by default if the
--	  kernel parameter security= is not specified.
--
--	config DEFAULT_SECURITY_SELINUX
--		bool "SELinux" if SECURITY_SELINUX=y
--
--	config DEFAULT_SECURITY_SMACK
--		bool "Simplified Mandatory Access Control" if SECURITY_SMACK=y
--
--	config DEFAULT_SECURITY_TOMOYO
--		bool "TOMOYO" if SECURITY_TOMOYO=y
--
--	config DEFAULT_SECURITY_APPARMOR
--		bool "AppArmor" if SECURITY_APPARMOR=y
--
--	config DEFAULT_SECURITY_DAC
--		bool "Unix Discretionary Access Controls"
--
--endchoice
--
--config DEFAULT_SECURITY
--	string
--	default "selinux" if DEFAULT_SECURITY_SELINUX
--	default "smack" if DEFAULT_SECURITY_SMACK
--	default "tomoyo" if DEFAULT_SECURITY_TOMOYO
--	default "apparmor" if DEFAULT_SECURITY_APPARMOR
--	default "" if DEFAULT_SECURITY_DAC
--
- config LSM_ENABLE
- 	string "LSMs to enable at boot time"
- 	default "all"
-@@ -293,12 +256,14 @@ config LSM_ENABLE
- 
- config LSM_ORDER
- 	string "Default initialization order of builtin LSMs"
--	default "yama,loadpin,integrity"
-+	default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
- 	  Any LSMs left off this list will be link-order initialized
- 	  after any listed LSMs. Any LSMs listed here but not built in
--	  the kernel will be ignored.
-+	  the kernel will be ignored. If the boot parameter
-+	  "lsm.order=" is used, it will override this order, with any
-+	  unlisted LSMs falling back to the order of this config, etc.
- 
- 	  If unsure, leave this as the default.
- 
-diff --git a/security/security.c b/security/security.c
-index 5a3e19f1fe48..fedc26fb8554 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -154,7 +154,6 @@ static void __init parse_lsm_order(const char *order, const char *origin)
- 
- 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
- 			if (lsm->order == LSM_ORDER_MUTABLE &&
--			    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
- 			    strcmp(lsm->name, name) == 0) {
- 				append_ordered_lsm(lsm, origin);
- 				found = true;
-@@ -186,8 +185,7 @@ static void __init prepare_lsm_order(void)
- 
- 	/* Add any missing LSMs, in link order. */
- 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
--		if (lsm->order == LSM_ORDER_MUTABLE &&
--		    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
-+		if (lsm->order == LSM_ORDER_MUTABLE)
- 			append_ordered_lsm(lsm, "link-time");
+diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
+index f35ed578e007..8fb16bdabdcf 100644
+--- a/arch/arc/kernel/vmlinux.lds.S
++++ b/arch/arc/kernel/vmlinux.lds.S
+@@ -71,7 +71,6 @@ SECTIONS
+ 		INIT_SETUP(L1_CACHE_BYTES)
+ 		INIT_CALLS
+ 		CON_INITCALL
+-		SECURITY_INITCALL
  	}
  
-@@ -245,18 +243,6 @@ static void __init ordered_lsm_init(void)
- 		maybe_initialize_lsm(*lsm);
- }
+ 	.init.arch.info : {
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 3593d5c1acd2..8c74037ade22 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -96,7 +96,6 @@ SECTIONS
+ 		INIT_SETUP(16)
+ 		INIT_CALLS
+ 		CON_INITCALL
+-		SECURITY_INITCALL
+ 		INIT_RAM_FS
+ 	}
  
--static void __init major_lsm_init(void)
--{
--	struct lsm_info *lsm;
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 605d1b60469c..7d23d591b03c 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -166,7 +166,6 @@ SECTIONS
+ 		INIT_SETUP(16)
+ 		INIT_CALLS
+ 		CON_INITCALL
+-		SECURITY_INITCALL
+ 		INIT_RAM_FS
+ 		*(.init.rodata.* .init.bss)	/* from the EFI stub */
+ 	}
+diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
+index 35716a3048de..49f716c0a1df 100644
+--- a/arch/h8300/kernel/vmlinux.lds.S
++++ b/arch/h8300/kernel/vmlinux.lds.S
+@@ -56,7 +56,6 @@ SECTIONS
+ 	__init_begin = .;
+ 	INIT_TEXT_SECTION(4)
+ 	INIT_DATA_SECTION(4)
+-	SECURITY_INIT
+ 	__init_end = .;
+ 	_edata = . ;
+ 	_begin_data = LOADADDR(.data);
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index 289d0e7f3e3a..e1f3e8741292 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -117,8 +117,6 @@ SECTIONS {
+ 		CON_INITCALL
+ 	}
+ 
+-	SECURITY_INIT
 -
--	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
--		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
--			continue;
+ 	__init_end_before_initramfs = .;
+ 
+ 	.init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) {
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 07ae018e550e..105a976323aa 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -212,8 +212,6 @@ SECTIONS
+ 		CON_INITCALL
+ 	}
+ 
+-	SECURITY_INIT
 -
--		maybe_initialize_lsm(lsm);
+ 	. = ALIGN(8);
+ 	__ftr_fixup : AT(ADDR(__ftr_fixup) - LOAD_OFFSET) {
+ 		__start___ftr_fixup = .;
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 7adb4e6b658a..4049f2c46387 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -53,8 +53,6 @@
+ 	CON_INITCALL
+   }
+ 
+-  SECURITY_INIT
+-
+   .exitcall : {
+ 	__exitcall_begin = .;
+ 	*(.exitcall.exit)
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index a1c3edb8ad56..b727b18a68ac 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -197,7 +197,6 @@ SECTIONS
+     INIT_SETUP(XCHAL_ICACHE_LINESIZE)
+     INIT_CALLS
+     CON_INITCALL
+-    SECURITY_INITCALL
+     INIT_RAM_FS
+   }
+ 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 5079a969e612..b31ea8bdfef9 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -203,6 +203,15 @@
+ #define EARLYCON_TABLE()
+ #endif
+ 
++#ifdef CONFIG_SECURITY
++#define LSM_TABLE()	. = ALIGN(8);					\
++			__start_lsm_info = .;				\
++			KEEP(*(.lsm_info.init))				\
++			__end_lsm_info = .;
++#else
++#define LSM_TABLE()
++#endif
++
+ #define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
+ #define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)
+ #define OF_TABLE(cfg, name)	__OF_TABLE(IS_ENABLED(cfg), name)
+@@ -597,7 +606,8 @@
+ 	IRQCHIP_OF_MATCH_TABLE()					\
+ 	ACPI_PROBE_TABLE(irqchip)					\
+ 	ACPI_PROBE_TABLE(timer)						\
+-	EARLYCON_TABLE()
++	EARLYCON_TABLE()						\
++	LSM_TABLE()
+ 
+ #define INIT_TEXT							\
+ 	*(.init.text .init.text.*)					\
+@@ -786,17 +796,6 @@
+ 		KEEP(*(.con_initcall.init))				\
+ 		__con_initcall_end = .;
+ 
+-#define SECURITY_INITCALL						\
+-		__start_lsm_info = .;					\
+-		KEEP(*(.lsm_info.init))					\
+-		__end_lsm_info = .;
+-
+-/* Older linker script style for security init. */
+-#define SECURITY_INIT							\
+-	.lsm_info.init : AT(ADDR(.lsm_info.init) - LOAD_OFFSET) {	\
+-		LSM_INFO						\
 -	}
--}
 -
- static void __init parse_lsm_enable(const char *str,
- 				    void (*set)(struct lsm_info *, bool),
- 				    bool enabled)
-@@ -290,8 +276,6 @@ static void __init prepare_lsm_enable(void)
- 	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
+@@ -963,7 +962,6 @@
+ 		INIT_SETUP(initsetup_align)				\
+ 		INIT_CALLS						\
+ 		CON_INITCALL						\
+-		SECURITY_INITCALL					\
+ 		INIT_RAM_FS						\
+ 	}
  
- 	/* Process "security=", if given. */
--	if (!chosen_major_lsm)
--		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
- 	if (chosen_major_lsm) {
- 		struct lsm_info *lsm;
- 
-@@ -334,11 +318,6 @@ int __init security_init(void)
- 	prepare_lsm_order();
- 	ordered_lsm_init();
- 
--	/*
--	 * Load all the remaining security modules.
--	 */
--	major_lsm_init();
--
- 	kfree(ordered_lsms);
- 	return 0;
- }
 -- 
 2.17.1
