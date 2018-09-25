@@ -1,68 +1,123 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V7 1/2] csky/dma: bugfix dma_sync_for_cpu/device
-Date: Tue, 25 Sep 2018 19:38:24 +0800
-Message-ID: <20180925113824.GA7183@guoren>
-References: <cover.1537276837.git.ren_guo@c-sky.com>
- <1ccf1bed89758a5a9b57ac2ce6d11ca898a1b9ae.1537276837.git.ren_guo@c-sky.com>
- <CAK8P3a0RDiP_R8+Lo9-nwiRS3k1NrtcsCFLi0Ww0TJGoAdb3iQ@mail.gmail.com>
- <20180925094601.GA2102@guoren>
- <CAK8P3a1bv_Kx5Jo3UOyC9y0fmrH1i2+HB3_=H7pkBfBxBH-nXA@mail.gmail.com>
+From: Alexander Lochmann <alexander.lochmann@tu-dortmund.de>
+Subject: [x86] BUG()/BUG_ON() macros cannot be disabled
+Date: Tue, 25 Sep 2018 13:35:29 +0200
+Message-ID: <9516e4b3-f9f2-b150-f019-8b1ef465efb3@tu-dortmund.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+ protocol="application/pgp-signature";
+ boundary="beyh2CM9IKZjJUog9ZIi56j5rFrMc4SBz"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a1bv_Kx5Jo3UOyC9y0fmrH1i2+HB3_=H7pkBfBxBH-nXA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rob Herring <robh@kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Greentime Hu <green.hu@gmail.com>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 25, 2018 at 11:59:48AM +0200, Arnd Bergmann wrote:
-> On Tue, Sep 25, 2018 at 11:46 AM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > On Mon, Sep 24, 2018 at 10:38:04PM +0200, Arnd Bergmann wrote:
-> > > On Tue, Sep 18, 2018 at 3:48 PM Guo Ren <ren_guo@c-sky.com> wrote:
-> > > >
-> > > > ref: https://lkml.org/lkml/2018/5/18/1068
-> > > >
-> > > >         map             for_cpu         for_device      unmap
-> > > > TO_DEV  writeback       none            writeback       none
-> > > > TO_CPU  invalidate      invalidate*     invalidate      invalidate*
-> > > > BIDIR   writeback       invalidate      writeback       invalidate
-> > > >
-> > > > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> > >
-> > > Same comment as for the other patch: Explain why the original
-> > > version is wrong first. When giving a reference to some other
-> > > discussion, use the "Link" tag above your Signed-off-by line.
-> > > To point to a discussion on lkml, lore.kernel.org is the
-> > > recommended archive, so it would become
-> > >
-> > > Link: https://lore.kernel.org/lkml/20180518215548.GH17671@n2100.armlinux.org.uk/
-> > Ok, I'll improve the comment:
-> >
-> > Fixup dma_mapping error in linux-4.19-rc3, and we must implement all
-> > DMA_TO_DEVICE/FROM_DEVICE/BIDIRECTIONAL for both sync_dma_for_device/cpu.
-> > The implementation of arch should follow the following rules:
-> >
-> > ...
-> 
-> That seems ok, but it's better to start with a description of the problem
-> rather than the 'Fixup dma_mapping error in linux-4.19-rc3' part.
-> I would write this like:
-> 
-> | The arch_sync_dma_for_cpu()/arch_sync_dma_for_device()
-> | implementation is broken for some combinations that end up
-> | in a BUG() instead of performing the necessary flushes.
-> |
-> | The implementation of arch should follow the following rules:
-> | ...
-> 
-> The imperative 'Fix up dma_mapping error ...' is what belongs
-> into the subject line, and is ideally revisited at the end of the
-> changelog comment if you want to add more detail about what
-> you do.
-Nice tips, Thx. I'll continue to improve my comments.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--beyh2CM9IKZjJUog9ZIi56j5rFrMc4SBz
+Content-Type: multipart/mixed; boundary="ykzM58qJSbQVMj6jyweAtzezWrFi9csp4";
+ protected-headers="v1"
+From: Alexander Lochmann <alexander.lochmann@tu-dortmund.de>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <9516e4b3-f9f2-b150-f019-8b1ef465efb3@tu-dortmund.de>
+Subject: [x86] BUG()/BUG_ON() macros cannot be disabled
 
-Best Regards
- Guo Ren
+--ykzM58qJSbQVMj6jyweAtzezWrFi9csp4
+Content-Type: multipart/mixed;
+ boundary="------------5E0CA33CC47A8D6B0687C66A"
+Content-Language: en-US
+
+This is a multi-part message in MIME format.
+--------------5E0CA33CC47A8D6B0687C66A
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hi Arnd,
+
+I recently tried to disable the BUG macros on x86-32. I disabled the
+config item in 'General Setup -> Configure standard kernel features
+(expert users) -> BUG() support'.
+However, BUG/BUG_ON is still defined. In the !CONFIG_BUG branch in
+include/asm-generic/bug.h (line 181) the code checks for the existence
+of architecture-specific variants of those macros.
+Since x86 defines its own version of BUG(), line 182 is *not* used.
+In the following, the x86 variant of BUG() is then used to define the
+BUG_ON() macro.
+
+I propose a patch that really disables both macros if the developer
+wants it.
+It undefines the respective x86 variants, and defines both macros as
+'empty' macros.
+
+Regards,
+Alex
+
+--=20
+Technische Universit=C3=A4t Dortmund
+Alexander Lochmann                PGP key: 0xBC3EF6FD
+Otto-Hahn-Str. 16                 phone:  +49.231.7556141
+D-44227 Dortmund                  fax:    +49.231.7556116
+http://ess.cs.tu-dortmund.de/Staff/al
+
+--------------5E0CA33CC47A8D6B0687C66A
+Content-Type: text/x-patch;
+ name="disable-bug-macro.patch"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: attachment;
+ filename="disable-bug-macro.patch"
+
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 20561a60db9c..1e7977582277 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -178,14 +178,17 @@ void __warn(const char *file, int line, void *calle=
+r, unsigned taint,
+ })
+=20
+ #else /* !CONFIG_BUG */
+-#ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while (1)
++#ifdef HAVE_ARCH_BUG
++#undef BUG
+ #endif
+=20
+-#ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
++#ifdef HAVE_ARCH_BUG_ON
++#undef BUG_ON
+ #endif
+=20
++#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
++#define BUG() do {} while (1)
++
+ #ifndef HAVE_ARCH_WARN_ON
+ #define WARN_ON(condition) ({						\
+ 	int __ret_warn_on =3D !!(condition);				\
+
+--------------5E0CA33CC47A8D6B0687C66A--
+
+--ykzM58qJSbQVMj6jyweAtzezWrFi9csp4--
+
+--beyh2CM9IKZjJUog9ZIi56j5rFrMc4SBz
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEElhZsUHzVP0dbkjCRWT7tBbw+9v0FAluqHYEACgkQWT7tBbw+
+9v0zChAAliYhce/UyYMlH6hVIcK8eoehFisYKEz8wK5Rd8VGWxsXMTvVVeWaj/j2
+q+Gu+ixJvdZHqlgOYDvce6arXBDKQXS4Yzf975gXAlk170+UVREBrREpihaKOsFk
+1bvAZ9cUTLI1Btc/VyNS98Pd83XOBzyas7PNDsppKlPG/Z4fJAWRWHr9C8nJm+Vt
+lSBL6I7E2ytbBHNQLLMSeo/W5z3VMfvAHEMdaGp9PG0A90UQEAu1OyR8OgwzjJYd
+XRxuYSXUk/C5oT8syuIEOoUdpW7HPoTNeRQBzwcThgsj39N+f1hgPrw2SB3iqdr+
+iy9vMAJfsQvImk1OQ7vYk7+HO0sDhjccF71M/G8tSN6m0kzWm7bsya+xk5dA659C
+Mldev/vYT84tLR1GMjaMbNb1YubNIDPXHhUgVfojT589e0FswuEvBpdt+mUCrJ1i
+68dnpEm2NStc94oq/jya8pw3MNQofJc9MkDoiDMZZW1jcKx1R4XPZDrj/IKTsTiw
+Z+lXNkrk/w97beu7h8vBB9VcGSxZQaNaWoDMvg92m5R9Ad/GeVBGnwHTQ5YoDQUQ
+l3SpJUFXsJ1Ii6nhAxRW1OCoHNEXzuh9fBJZ2vd0vBOGAD/3Cs3kQDOf7SctF28/
+VdcjlS9v6vs0i5PpF1DAtAdqX2YRRrLGvI4tF2vT8u7RxcF0U9A=
+=2Kut
+-----END PGP SIGNATURE-----
+
+--beyh2CM9IKZjJUog9ZIi56j5rFrMc4SBz--
