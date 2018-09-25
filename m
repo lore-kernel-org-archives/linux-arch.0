@@ -1,103 +1,44 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH V5 06/30] csky: Cache and TLB routines
-Date: Tue, 25 Sep 2018 09:24:07 +0200
-Message-ID: <20180925072407.GA6999@hirez.programming.kicks-ass.net>
-References: <cover.1537789736.git.ren_guo@c-sky.com>
- <7cd7abcd2acf5c61435589338ff80a75a13173ca.1537789737.git.ren_guo@c-sky.com>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V7 2/2] csky: remove irq_mapping from smp.c.
+Date: Tue, 25 Sep 2018 17:17:03 +0800
+Message-ID: <20180925091702.GA6607@guoren>
+References: <cover.1537276837.git.ren_guo@c-sky.com>
+ <ec95f397f52b8b5d9191b85d0d907a1a43d2e2c1.1537276837.git.ren_guo@c-sky.com>
+ <CAK8P3a2WLCZNZ_A1qPQuEQdxEyLKZj2EY2oHzG+_GTGiWEna7w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <7cd7abcd2acf5c61435589338ff80a75a13173ca.1537789737.git.ren_guo@c-sky.com>
+In-Reply-To: <CAK8P3a2WLCZNZ_A1qPQuEQdxEyLKZj2EY2oHzG+_GTGiWEna7w@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, green.hu@gmail.com, palmer@sifive.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Rob Herring <robh@kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, Greentime Hu <green.hu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 24, 2018 at 10:36:22PM +0800, Guo Ren wrote:
-> diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
-> new file mode 100644
-> index 0000000..f0de49c
-> --- /dev/null
-> +++ b/arch/csky/abiv1/inc/abi/cacheflush.h
-> @@ -0,0 +1,43 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-> +
-> +#ifndef __ABI_CSKY_CACHEFLUSH_H
-> +#define __ABI_CSKY_CACHEFLUSH_H
-> +
-> +#include <linux/compiler.h>
-> +#include <asm/string.h>
-> +#include <asm/cache.h>
-> +
-> +#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-> +extern void flush_dcache_page(struct page *);
-> +
-> +#define flush_cache_mm(mm)		cache_wbinv_all()
-> +#define flush_cache_page(vma,page,pfn)	cache_wbinv_all()
-> +#define flush_cache_dup_mm(mm)		cache_wbinv_all()
-> +
-> +#define flush_cache_range(mm,start,end)	cache_wbinv_range(start, end)
-                             ^^^ should be vma
+On Mon, Sep 24, 2018 at 10:23:14PM +0200, Arnd Bergmann wrote:
+> On Tue, Sep 18, 2018 at 3:48 PM Guo Ren <ren_guo@c-sky.com> wrote:
+> >
+> >  - remove irq_mapping from smp.c to irq-driver
+> >  - Add set_ipi_irq_mapping api to irq-driver
+> >  - update asm/smp.h
+> >
+> > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> 
+> The patch seems ok to me, but please try to improve the changelog comments.
+> Generally speaking, use full English sentences instead of an enumerated list,
+> and explain what the change is for rather than what you are doing. The text
+Ok, I'll improve it.
+> you have here can easily be derived from looking at the code changes,
+> but I still don't understand what caused you to change it, and why this
+> is better than the previous version.
+The changelog comment will change to:
 
-> +#endif /* __ABI_CSKY_CACHEFLUSH_H */
+There are some feedbacks from irqchip, and we need to adjust "smp.c & smp.h"
+to match the csky_mptimer modification.
+ - Move IPI_IRQ define into drivers/irqchip/csky_mpintc.c, because it's a
+   interrupt controller specific.
+ - Bugfix request_irq with IPI_IRQ, we must use irq_mapping return value not
+   directly use IPI_IRQ. The modification also involves csky_mpintc.
 
-
-> diff --git a/arch/csky/abiv1/inc/abi/tlb.h b/arch/csky/abiv1/inc/abi/tlb.h
-> new file mode 100644
-> index 0000000..6d461f3
-> --- /dev/null
-> +++ b/arch/csky/abiv1/inc/abi/tlb.h
-> @@ -0,0 +1,12 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-> +
-> +#ifndef __ABI_CSKY_TLB_H
-> +#define __ABI_CSKY_TLB_H
-> +
-> +#define tlb_start_vma(tlb, vma) \
-> +	do { \
-> +		if (!tlb->fullmm) \
-> +			cache_wbinv_all(); \
-> +	}  while (0)
-> +#endif /* __ABI_CSKY_TLB_H */
-
-That should be:
-
-	if (!tlb->fullmm)
-		flush_cache_range(vma, vma->vm_start, vma->vm_end);
-
-Because as per the whole abiv1 vs abiv2, you don't need write back
-invalidation for v2 at all, also, you only need to invalidate the vma
-range, no reason to shoot everything down.
-
-Also, I'll be shortly removing this:
-
-  https://lkml.kernel.org/r/20180913092812.071989585@infradead.org
-
-> diff --git a/arch/csky/abiv2/inc/abi/cacheflush.h b/arch/csky/abiv2/inc/abi/cacheflush.h
-> new file mode 100644
-> index 0000000..756beb7
-> --- /dev/null
-> +++ b/arch/csky/abiv2/inc/abi/cacheflush.h
-> @@ -0,0 +1,40 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +
-> +#ifndef __ABI_CSKY_CACHEFLUSH_H
-> +#define __ABI_CSKY_CACHEFLUSH_H
-> +
-> +/* Keep includes the same across arches.  */
-> +#include <linux/mm.h>
-> +
-> +/*
-> + * The cache doesn't need to be flushed when TLB entries change when
-> + * the cache is mapped to physical memory, not virtual memory
-> + */
-> +#define flush_cache_all()			do { } while (0)
-> +#define flush_cache_mm(mm)			do { } while (0)
-> +#define flush_cache_dup_mm(mm)			do { } while (0)
-> +#define flush_cache_range(vma, start, end)	do { } while (0)
-                             ^^^ like here..
-
-> +#endif /* __ABI_CSKY_TLB_H */
+Best Regards
+ Guo Ren
