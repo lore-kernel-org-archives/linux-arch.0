@@ -1,91 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:42931 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728834AbeIYGXl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:41 -0400
-Received: by mail-pf1-f195.google.com with SMTP id l9-v6so9911242pff.9
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:55 -0700 (PDT)
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:39147 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728354AbeIYGaM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:30:12 -0400
+Received: by mail-pf1-f196.google.com with SMTP id j8-v6so9926320pff.6
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:25:24 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 23/29] LSM: Introduce "lsm.order=" for boottime ordering
-Date: Mon, 24 Sep 2018 17:18:26 -0700
-Message-ID: <20180925001832.18322-24-keescook@chromium.org>
+Subject: [PATCH security-next v3 26/29] LSM: Introduce enum lsm_order
+Date: Mon, 24 Sep 2018 17:18:29 -0700
+Message-ID: <20180925001832.18322-27-keescook@chromium.org>
 In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001826.9fBWEBw4V87QXngnB0xuIsWB1EeLFTipBMjKN0qcPTY@z>
+Message-ID: <20180925001829.jBgXACS3FNnuDworjwaL2_BCVqdClYVPv1DRLd1y1tY@z>
 
-Provide a way to reorder LSM initialization using the new "lsm.order="
-comma-separated list of LSMs. Any LSMs not listed will be added in builtin
-order.
+In preparation for distinguishing the "capability" LSM from other LSMs,
+it must be ordered first. This introduces LSM_ORDER_MUTABLE for the
+general LSMs, LSM_ORDER_FIRST for capabilities, and LSM_ORDER_LAST for
+anything that must run last (e.g. Landlock may use this in the future).
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- Documentation/admin-guide/kernel-parameters.txt |  6 ++++++
- security/security.c                             | 14 +++++++++++++-
- 2 files changed, 19 insertions(+), 1 deletion(-)
+ include/linux/lsm_hooks.h |  7 +++++++
+ security/security.c       | 18 ++++++++++++++++--
+ 2 files changed, 23 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 67c90985d2b8..c7c1a0d253ee 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2288,6 +2288,12 @@
- 			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
- 			boot parameters.
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 5be95c6155b4..b38902ea0be5 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2041,8 +2041,15 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
  
-+	lsm.order=lsm1,...,lsmN
-+			[SECURITY] Choose order of enabled LSM
-+			initialization. Any builtin LSMs not listed here
-+			will be implicitly appended to the list in builtin
-+			order.
+ #define LSM_FLAG_LEGACY_MAJOR	BIT(0)
+ 
++enum lsm_order {
++	LSM_ORDER_FIRST = -1,	/* This is only for capabilities. */
++	LSM_ORDER_MUTABLE = 0,
++	LSM_ORDER_LAST,
++};
 +
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
- 			Example: machvec=hpzx1_swiotlb
+ struct lsm_info {
+ 	const char *name;	/* Populated automatically. */
++	enum lsm_order order;	/* Optional: default is LSM_ORDER_MUTABLE */
+ 	unsigned long flags;	/* Optional: flags describing LSM */
+ 	int *enabled;		/* Optional: NULL checks CONFIG_LSM_ENABLE */
+ 	int (*init)(void);
 diff --git a/security/security.c b/security/security.c
-index e38df0314f5e..f1c3581d870f 100644
+index c4ba5832ef2f..8b93afa75e3c 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -44,6 +44,7 @@ char *lsm_names;
- /* Boot-time LSM user choice */
- static __initdata const char *chosen_lsm_enable;
- static __initdata const char *chosen_lsm_disable;
-+static __initdata const char *chosen_lsm_order;
- static __initdata const char *chosen_major_lsm;
+@@ -148,7 +148,8 @@ static void __init parse_lsm_order(const char *order, const char *origin)
+ 		bool found = false;
  
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
-@@ -160,11 +161,14 @@ static void __init parse_lsm_order(const char *order, const char *origin)
- 	kfree(sep);
- }
- 
--/* Populate ordered LSMs list from builtin list of LSMs. */
-+/* Populate ordered LSMs list from commandline and builtin list of LSMs. */
- static void __init prepare_lsm_order(void)
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
++			if (lsm->order == LSM_ORDER_MUTABLE &&
++			    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
+ 			    strcmp(lsm->name, name) == 0) {
+ 				append_ordered_lsm(lsm, origin);
+ 				found = true;
+@@ -166,6 +167,12 @@ static void __init prepare_lsm_order(void)
  {
  	struct lsm_info *lsm;
  
-+	/* Parse order from commandline, if present. */
-+	parse_lsm_order(chosen_lsm_order, "cmdline");
++	/* LSM_ORDER_FIRST is always first. */
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if (lsm->order == LSM_ORDER_FIRST)
++			append_ordered_lsm(lsm, "first");
++	}
 +
- 	/* Parse order from builtin list. */
- 	parse_lsm_order(builtin_lsm_order, "builtin");
+ 	/* Parse order from commandline, if present. */
+ 	parse_lsm_order(chosen_lsm_order, "cmdline");
  
-@@ -324,6 +328,14 @@ static int __init choose_major_lsm(char *str)
+@@ -174,9 +181,16 @@ static void __init prepare_lsm_order(void)
+ 
+ 	/* Add any missing LSMs, in link order. */
+ 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
++		if (lsm->order == LSM_ORDER_MUTABLE &&
++		    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+ 			append_ordered_lsm(lsm, "link-time");
+ 	}
++
++	/* LSM_ORDER_LAST is always last. */
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if (lsm->order == LSM_ORDER_LAST)
++			append_ordered_lsm(lsm, "last");
++	}
  }
- __setup("security=", choose_major_lsm);
  
-+/* Explicitly choose LSM initialization order. */
-+static int __init choose_lsm_order(char *str)
-+{
-+	chosen_lsm_order = str;
-+	return 1;
-+}
-+__setup("lsm.order=", choose_lsm_order);
-+
- /* Enable LSM order debugging. */
- static int __init enable_debug(char *str)
- {
+ /* Is an LSM allowed to be initialized? */
 -- 
 2.17.1
