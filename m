@@ -1,80 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:41038 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728683AbeIYGXg (ORCPT
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:39622 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728705AbeIYGXg (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 02:23:36 -0400
-Received: by mail-pf1-f193.google.com with SMTP id m77-v6so1215514pfi.8
-        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:50 -0700 (PDT)
+Received: by mail-pf1-f196.google.com with SMTP id j8-v6so9916569pff.6
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2018 17:18:51 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v3 12/29] LSM: Provide separate ordered initialization
-Date: Mon, 24 Sep 2018 17:18:15 -0700
-Message-ID: <20180925001832.18322-13-keescook@chromium.org>
+Subject: [PATCH security-next v3 11/29] LSM: Introduce LSM_FLAG_LEGACY_MAJOR
+Date: Mon, 24 Sep 2018 17:18:14 -0700
+Message-ID: <20180925001832.18322-12-keescook@chromium.org>
 In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
 References: <20180925001832.18322-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180925001815.4CBi8zF6Uu8ZNwC6s4Ty9v3aaOVpS0Sn9ElJLcsGglo@z>
+Message-ID: <20180925001814.DTQXxmSDNsvGxsJ4bbCYoK4rNoDmcOZy7A89afLKsVg@z>
 
-This provides a place for ordered LSMs to be initialized, separate from
-the "major" LSMs. This is mainly a copy/paste from major_lsm_init() to
-ordered_lsm_init(), but it will change drastically in later patches.
-
-What is not obvious in the patch is that this change moves the integrity
-LSM from major_lsm_init() into ordered_lsm_init(), since it is not marked
-with the LSM_FLAG_LEGACY_MAJOR. As it is the only LSM in the "ordered"
-list, there is no reordering yet created.
+This adds a flag for the current "major" LSMs to distinguish them when
+we have a universal method for ordering all LSMs. It's called "legacy"
+since the distinction of "major" will go away in the blob-sharing world.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/security.c | 21 +++++++++++++++++++++
- 1 file changed, 21 insertions(+)
+ include/linux/lsm_hooks.h  | 3 +++
+ security/apparmor/lsm.c    | 1 +
+ security/selinux/hooks.c   | 1 +
+ security/smack/smack_lsm.c | 1 +
+ security/tomoyo/tomoyo.c   | 1 +
+ 5 files changed, 7 insertions(+)
 
-diff --git a/security/security.c b/security/security.c
-index 1f055936a746..a886a978214a 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -52,12 +52,30 @@ static bool debug __initdata;
- 			pr_info(__VA_ARGS__);			\
- 	} while (0)
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 543636f18152..5056f7374b3d 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2039,8 +2039,11 @@ extern char *lsm_names;
+ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+ 				char *lsm);
  
-+static void __init ordered_lsm_init(void)
-+{
-+	struct lsm_info *lsm;
-+	int ret;
++#define LSM_FLAG_LEGACY_MAJOR	BIT(0)
 +
-+	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) != 0)
-+			continue;
-+
-+		init_debug("initializing %s\n", lsm->name);
-+		ret = lsm->init();
-+		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
-+	}
-+}
-+
- static void __init major_lsm_init(void)
- {
- 	struct lsm_info *lsm;
- 	int ret;
+ struct lsm_info {
+ 	const char *name;	/* Populated automatically. */
++	unsigned long flags;	/* Optional: flags describing LSM */
+ 	int (*init)(void);
+ };
  
- 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
-+			continue;
-+
- 		init_debug("initializing %s\n", lsm->name);
- 		ret = lsm->init();
- 		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
-@@ -87,6 +105,9 @@ int __init security_init(void)
- 	yama_add_hooks();
- 	loadpin_add_hooks();
+diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
+index 7fa7b4464cf4..4c5f63e9aeba 100644
+--- a/security/apparmor/lsm.c
++++ b/security/apparmor/lsm.c
+@@ -1607,5 +1607,6 @@ static int __init apparmor_init(void)
+ }
  
-+	/* Load LSMs in specified order. */
-+	ordered_lsm_init();
-+
- 	/*
- 	 * Load all the remaining security modules.
- 	 */
+ DEFINE_LSM(apparmor)
++	.flags = LSM_FLAG_LEGACY_MAJOR,
+ 	.init = apparmor_init,
+ END_LSM;
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index 469a90806bc6..615cf6498c0f 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -7203,6 +7203,7 @@ void selinux_complete_init(void)
+ /* SELinux requires early initialization in order to label
+    all processes and objects when they are created. */
+ DEFINE_LSM(selinux)
++	.flags = LSM_FLAG_LEGACY_MAJOR,
+ 	.init = selinux_init,
+ END_LSM;
+ 
+diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
+index 1e1ace718e75..4aef844fc0e2 100644
+--- a/security/smack/smack_lsm.c
++++ b/security/smack/smack_lsm.c
+@@ -4883,5 +4883,6 @@ static __init int smack_init(void)
+  * all processes and objects when they are created.
+  */
+ DEFINE_LSM(smack)
++	.flags = LSM_FLAG_LEGACY_MAJOR,
+ 	.init = smack_init,
+ END_LSM;
+diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
+index a280d4eab456..528b6244a648 100644
+--- a/security/tomoyo/tomoyo.c
++++ b/security/tomoyo/tomoyo.c
+@@ -551,5 +551,6 @@ static int __init tomoyo_init(void)
+ }
+ 
+ DEFINE_LSM(tomoyo)
++	.flags = LSM_FLAG_LEGACY_MAJOR,
+ 	.init = tomoyo_init,
+ END_LSM;
 -- 
 2.17.1
