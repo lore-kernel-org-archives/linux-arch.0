@@ -1,7 +1,7 @@
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH v4 4/4] mailbox: tegra-hsp: use devm_kstrdup_const()
-Date: Tue, 25 Sep 2018 14:46:29 +0200
-Message-ID: <20180925124629.20710-5-brgl@bgdev.pl>
+Subject: [PATCH v4 2/4] mm: move is_kernel_rodata() to asm-generic/sections.h
+Date: Tue, 25 Sep 2018 14:46:27 +0200
+Message-ID: <20180925124629.20710-3-brgl@bgdev.pl>
 References: <20180925124629.20710-1-brgl@bgdev.pl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180925124629.20710-1-brgl@bgdev.pl>
@@ -10,125 +10,61 @@ To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafae
 Cc: linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Bartosz Golaszewski <brgl@bgdev.pl>
 List-Id: linux-arch.vger.kernel.org
 
-Use devm_kstrdup_const() in the tegra-hsp driver. This mostly serves as
-an example of how to use this new routine to shrink driver code.
-
-Also use devm_kzalloc() instead of regular kzalloc() to get shrink the
-driver even more.
-
-Doorbell objects are only removed in the driver's remove callback so
-it's safe to convert all memory allocations to devres.
+Export this routine so that we can use it later in devm_kstrdup_const()
+and devm_kfree_const().
 
 Signed-off-by: Bartosz Golaszewski <brgl@bgdev.pl>
+Reviewed-by: Bjorn Andersson <bjorn.andersson@linaro.org>
+Acked-by: Mike Rapoport <rppt@linux.vnet.ibm.com>
 ---
- drivers/mailbox/tegra-hsp.c | 41 ++++++++-----------------------------
- 1 file changed, 9 insertions(+), 32 deletions(-)
+ include/asm-generic/sections.h | 14 ++++++++++++++
+ mm/util.c                      |  7 -------
+ 2 files changed, 14 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/mailbox/tegra-hsp.c b/drivers/mailbox/tegra-hsp.c
-index 0cde356c11ab..106c94dedbf1 100644
---- a/drivers/mailbox/tegra-hsp.c
-+++ b/drivers/mailbox/tegra-hsp.c
-@@ -183,14 +183,15 @@ static irqreturn_t tegra_hsp_doorbell_irq(int irq, void *data)
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 849cd8eb5ca0..d79abca81a52 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -141,4 +141,18 @@ static inline bool init_section_intersects(void *virt, size_t size)
+ 	return memory_intersects(__init_begin, __init_end, virt, size);
  }
  
- static struct tegra_hsp_channel *
--tegra_hsp_doorbell_create(struct tegra_hsp *hsp, const char *name,
--			  unsigned int master, unsigned int index)
-+tegra_hsp_doorbell_create(struct device *dev, struct tegra_hsp *hsp,
-+			  const char *name, unsigned int master,
-+			  unsigned int index)
- {
- 	struct tegra_hsp_doorbell *db;
- 	unsigned int offset;
- 	unsigned long flags;
++/**
++ * is_kernel_rodata - checks if the pointer address is located in the
++ *                    .rodata section
++ *
++ * @addr: address to check
++ *
++ * Returns: true if the address is located in .rodata, false otherwise.
++ */
++static inline bool is_kernel_rodata(unsigned long addr)
++{
++	return addr >= (unsigned long)__start_rodata &&
++	       addr < (unsigned long)__end_rodata;
++}
++
+ #endif /* _ASM_GENERIC_SECTIONS_H_ */
+diff --git a/mm/util.c b/mm/util.c
+index 9e3ebd2ef65f..470f5cd80b64 100644
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -15,17 +15,10 @@
+ #include <linux/vmalloc.h>
+ #include <linux/userfaultfd_k.h>
  
--	db = kzalloc(sizeof(*db), GFP_KERNEL);
-+	db = devm_kzalloc(dev, sizeof(*db), GFP_KERNEL);
- 	if (!db)
- 		return ERR_PTR(-ENOMEM);
+-#include <asm/sections.h>
+ #include <linux/uaccess.h>
  
-@@ -200,7 +201,7 @@ tegra_hsp_doorbell_create(struct tegra_hsp *hsp, const char *name,
- 	db->channel.regs = hsp->regs + offset;
- 	db->channel.hsp = hsp;
+ #include "internal.h"
  
--	db->name = kstrdup_const(name, GFP_KERNEL);
-+	db->name = devm_kstrdup_const(dev, name, GFP_KERNEL);
- 	db->master = master;
- 	db->index = index;
- 
-@@ -211,13 +212,6 @@ tegra_hsp_doorbell_create(struct tegra_hsp *hsp, const char *name,
- 	return &db->channel;
- }
- 
--static void __tegra_hsp_doorbell_destroy(struct tegra_hsp_doorbell *db)
+-static inline int is_kernel_rodata(unsigned long addr)
 -{
--	list_del(&db->list);
--	kfree_const(db->name);
--	kfree(db);
+-	return addr >= (unsigned long)__start_rodata &&
+-		addr < (unsigned long)__end_rodata;
 -}
 -
- static int tegra_hsp_doorbell_send_data(struct mbox_chan *chan, void *data)
- {
- 	struct tegra_hsp_doorbell *db = chan->con_priv;
-@@ -332,31 +326,16 @@ static struct mbox_chan *of_tegra_hsp_xlate(struct mbox_controller *mbox,
- 	return chan ?: ERR_PTR(-EBUSY);
- }
- 
--static void tegra_hsp_remove_doorbells(struct tegra_hsp *hsp)
--{
--	struct tegra_hsp_doorbell *db, *tmp;
--	unsigned long flags;
--
--	spin_lock_irqsave(&hsp->lock, flags);
--
--	list_for_each_entry_safe(db, tmp, &hsp->doorbells, list)
--		__tegra_hsp_doorbell_destroy(db);
--
--	spin_unlock_irqrestore(&hsp->lock, flags);
--}
--
--static int tegra_hsp_add_doorbells(struct tegra_hsp *hsp)
-+static int tegra_hsp_add_doorbells(struct device *dev, struct tegra_hsp *hsp)
- {
- 	const struct tegra_hsp_db_map *map = hsp->soc->map;
- 	struct tegra_hsp_channel *channel;
- 
- 	while (map->name) {
--		channel = tegra_hsp_doorbell_create(hsp, map->name,
-+		channel = tegra_hsp_doorbell_create(dev, hsp, map->name,
- 						    map->master, map->index);
--		if (IS_ERR(channel)) {
--			tegra_hsp_remove_doorbells(hsp);
-+		if (IS_ERR(channel))
- 			return PTR_ERR(channel);
--		}
- 
- 		map++;
- 	}
-@@ -412,7 +391,7 @@ static int tegra_hsp_probe(struct platform_device *pdev)
- 	if (!hsp->mbox.chans)
- 		return -ENOMEM;
- 
--	err = tegra_hsp_add_doorbells(hsp);
-+	err = tegra_hsp_add_doorbells(&pdev->dev, hsp);
- 	if (err < 0) {
- 		dev_err(&pdev->dev, "failed to add doorbells: %d\n", err);
- 		return err;
-@@ -423,7 +402,6 @@ static int tegra_hsp_probe(struct platform_device *pdev)
- 	err = mbox_controller_register(&hsp->mbox);
- 	if (err) {
- 		dev_err(&pdev->dev, "failed to register mailbox: %d\n", err);
--		tegra_hsp_remove_doorbells(hsp);
- 		return err;
- 	}
- 
-@@ -443,7 +421,6 @@ static int tegra_hsp_remove(struct platform_device *pdev)
- 	struct tegra_hsp *hsp = platform_get_drvdata(pdev);
- 
- 	mbox_controller_unregister(&hsp->mbox);
--	tegra_hsp_remove_doorbells(hsp);
- 
- 	return 0;
- }
+ /**
+  * kfree_const - conditionally free memory
+  * @x: pointer to the memory
 -- 
 2.18.0
