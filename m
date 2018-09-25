@@ -1,58 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0123.hostedemail.com ([216.40.44.123]:37917 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728598AbeIYWGA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Sep 2018 18:06:00 -0400
-Message-ID: <a729cfd1102ef280650074dd8bec32c6b12636db.camel@perches.com>
+Received: from mail-io1-f66.google.com ([209.85.166.66]:39451 "EHLO
+        mail-io1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728598AbeIYWKq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Sep 2018 18:10:46 -0400
+Received: by mail-io1-f66.google.com with SMTP id l7-v6so20897347iok.6
+        for <linux-arch@vger.kernel.org>; Tue, 25 Sep 2018 09:02:37 -0700 (PDT)
+MIME-Version: 1.0
+References: <20180925124629.20710-1-brgl@bgdev.pl> <c25df148-718a-d29d-9c1d-20701a0e4534@arm.com>
+ <a729cfd1102ef280650074dd8bec32c6b12636db.camel@perches.com>
+In-Reply-To: <a729cfd1102ef280650074dd8bec32c6b12636db.camel@perches.com>
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Date: Tue, 25 Sep 2018 18:02:25 +0200
+Message-ID: <CAMRc=MeSte7oQ+oLm0f-Re0LgO1c203xPZRQF9mky9oLCTkeKg@mail.gmail.com>
 Subject: Re: [PATCH v4 0/4] devres: provide and use devm_kstrdup_const()
-From: Joe Perches <joe@perches.com>
-Date: Tue, 25 Sep 2018 08:48:52 -0700
-In-Reply-To: <c25df148-718a-d29d-9c1d-20701a0e4534@arm.com>
-References: <20180925124629.20710-1-brgl@bgdev.pl>
-         <c25df148-718a-d29d-9c1d-20701a0e4534@arm.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>, Bartosz Golaszewski <brgl@bgdev.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafael@kernel.org>, Jassi Brar <jassisinghbrar@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Jonathan Hunter <jonathanh@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Ulf Hansson <ulf.hansson@linaro.org>, Rob Herring <robh@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arend van Spriel <aspriel@gmail.com>, Vivek Gautam <vivek.gautam@codeaurora.org>, Heikki Krogerus <heikki.krogerus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Roman Gushchin <guro@fb.com>, Michal Hocko <mhocko@suse.com>, Huang Ying <ying.huang@intel.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Bjorn Andersson <bjorn.andersson@linaro.org>
-Cc: linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20180925154852.siImhE-6bWrhNnGrEQbKSP-YV-xhcjw3lSR5EXsqjd4@z>
+To: Joe Perches <joe@perches.com>
+Cc: Robin Murphy <robin.murphy@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafael@kernel.org>, Jassi Brar <jassisinghbrar@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Jonathan Hunter <jonathanh@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Ulf Hansson <ulf.hansson@linaro.org>, Rob Herring <robh@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arend van Spriel <aspriel@gmail.com>, Vivek Gautam <vivek.gautam@codeaurora.org>, Heikki Krogerus <heikki.krogerus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Roman Gushchin <guro@fb.com>, Michal Hocko <mhocko@suse.com>, Huang Ying <ying.huang@intel.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Bjorn Andersson <bjorn.andersson@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-tegra@vger.kernel.org, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, linux-mm@kvack.org
+Message-ID: <20180925160225.XAJl96dsnCaiVbtpo0Gt4FLdkzWK7CvVOjrRn7FFukk@z>
 
-On Tue, 2018-09-25 at 13:51 +0100, Robin Murphy wrote:
-> On 25/09/18 13:46, Bartosz Golaszewski wrote:
-> > This series implements devm_kstrdup_const() together with some
-> > prerequisite changes and uses it in pmc-atom driver.
-> 
-> Is anyone expecting me to review this series,
+wt., 25 wrz 2018 o 17:48 Joe Perches <joe@perches.com> napisa=C5=82(a):
+>
+> On Tue, 2018-09-25 at 13:51 +0100, Robin Murphy wrote:
+> > On 25/09/18 13:46, Bartosz Golaszewski wrote:
+> > > This series implements devm_kstrdup_const() together with some
+> > > prerequisite changes and uses it in pmc-atom driver.
+> >
+> > Is anyone expecting me to review this series,
+>
+> Probably not.
+>
+> > or am I just here because
+> > I once made a couple of entirely unrelated changes to device.h?
+>
+> Most likely yes.
+>
+> It is likely that Bartosz should update his use of the
+> get_maintainer.pl script to add "--nogit --nogit-fallback"
+> so drive-by patch submitters are not also cc'd on these
+> sorts of series.
+>
+> $ ./scripts/get_maintainer.pl -f \
+>         drivers/base/devres.c \
+>         drivers/mailbox/tegra-hsp.c \
+>         include/asm-generic/sections.h \
+>         include/linux/device.h \
+>         mm/util.c | \
+>   wc -l
+> 26
+>
+> $ ./scripts/get_maintainer.pl -f --nogit --nogit-fallback \
+>         drivers/base/devres.c \
+>         drivers/mailbox/tegra-hsp.c \
+>         include/asm-generic/sections.h \
+>         include/linux/device.h \
+>         mm/util.c | \
+>   wc -l
+> 10
+>
+>
 
-Probably not.
+Hi, sorry for that. Got it and will use next time.
 
-> or am I just here because 
-> I once made a couple of entirely unrelated changes to device.h?
-
-Most likely yes.
-
-It is likely that Bartosz should update his use of the
-get_maintainer.pl script to add "--nogit --nogit-fallback"
-so drive-by patch submitters are not also cc'd on these
-sorts of series.
-
-$ ./scripts/get_maintainer.pl -f \
-	drivers/base/devres.c \
-	drivers/mailbox/tegra-hsp.c \
-	include/asm-generic/sections.h \
-	include/linux/device.h \
-	mm/util.c | \
-  wc -l
-26
-
-$ ./scripts/get_maintainer.pl -f --nogit --nogit-fallback \
-	drivers/base/devres.c \
-	drivers/mailbox/tegra-hsp.c \
-	include/asm-generic/sections.h \
-	include/linux/device.h \
-	mm/util.c | \
-  wc -l
-10
+Bartosz
