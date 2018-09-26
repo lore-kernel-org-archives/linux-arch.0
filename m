@@ -1,81 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:46480 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:46454 "EHLO
         merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728223AbeIZSHw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Sep 2018 14:07:52 -0400
-Message-ID: <20180926114801.417460864@infradead.org>
-Date: Wed, 26 Sep 2018 13:36:40 +0200
+        with ESMTP id S1728599AbeIZSHt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Sep 2018 14:07:49 -0400
+Message-ID: <20180926114801.094298493@infradead.org>
+Date: Wed, 26 Sep 2018 13:36:34 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 17/18] asm-generic/tlb: Remove tlb_flush_mmu_free()
+Subject: [PATCH 11/18] um/tlb: Convert to generic mmu_gather
 References: <20180926113623.863696043@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: will.deacon@arm.com, aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
-Message-ID: <20180926113640.D6pv13HB4j91A0oN0YTeHZljk3bO-fe85RcHbh3cXPI@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, peterz@infradead.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com, Richard Weinberger <richard@nod.at>
+Message-ID: <20180926113634.DIv-uxSbxb7FYUYuH21xKXsbYFhxCExMtAHVHcLpeAc@z>
 
-As the comment notes; it is a potentially dangerous operation. Just
-use tlb_flush_mmu(), that will skip the (double) TLB invalidate if
-it really isn't needed anyway.
+Generic mmu_gather provides the simple flush_tlb_range() based range
+tracking mmu_gather UM needs.
 
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nick Piggin <npiggin@gmail.com>
+Cc: Richard Weinberger <richard@nod.at>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/asm-generic/tlb.h |   10 +++-------
- mm/memory.c               |    2 +-
- mm/mmu_gather.c           |    2 +-
- 3 files changed, 5 insertions(+), 9 deletions(-)
+ arch/um/include/asm/tlb.h |  156 ----------------------------------------------
+ 1 file changed, 2 insertions(+), 154 deletions(-)
 
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -67,16 +67,13 @@
-  *    call before __tlb_remove_page*() to set the current page-size; implies a
-  *    possible tlb_flush_mmu() call.
-  *
-- *  - tlb_flush_mmu() / tlb_flush_mmu_tlbonly() / tlb_flush_mmu_free()
-+ *  - tlb_flush_mmu() / tlb_flush_mmu_tlbonly()
-  *
-  *    tlb_flush_mmu_tlbonly() - does the TLB invalidate (and resets
-  *                              related state, like the range)
-  *
-- *    tlb_flush_mmu_free() - frees the queued pages; make absolutely
-- *			     sure no additional tlb_remove_page()
-- *			     calls happen between _tlbonly() and this.
+--- a/arch/um/include/asm/tlb.h
++++ b/arch/um/include/asm/tlb.h
+@@ -2,160 +2,8 @@
+ #ifndef __UM_TLB_H
+ #define __UM_TLB_H
+ 
+-#include <linux/pagemap.h>
+-#include <linux/swap.h>
+-#include <asm/percpu.h>
+-#include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+-
+-#define tlb_start_vma(tlb, vma) do { } while (0)
+-#define tlb_end_vma(tlb, vma) do { } while (0)
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-
+-/* struct mmu_gather is an opaque type used by the mm code for passing around
+- * any data needed by arch specific code for tlb_remove_page.
+- */
+-struct mmu_gather {
+-	struct mm_struct	*mm;
+-	unsigned int		need_flush; /* Really unmapped some ptes? */
+-	unsigned long		start;
+-	unsigned long		end;
+-	unsigned int		fullmm; /* non-zero means full mm flush */
+-};
+-
+-static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
+-					  unsigned long address)
+-{
+-	if (tlb->start > address)
+-		tlb->start = address;
+-	if (tlb->end < address + PAGE_SIZE)
+-		tlb->end = address + PAGE_SIZE;
+-}
+-
+-static inline void init_tlb_gather(struct mmu_gather *tlb)
+-{
+-	tlb->need_flush = 0;
+-
+-	tlb->start = TASK_SIZE;
+-	tlb->end = 0;
+-
+-	if (tlb->fullmm) {
+-		tlb->start = 0;
+-		tlb->end = TASK_SIZE;
+-	}
+-}
+-
+-static inline void
+-arch_tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
+-		unsigned long start, unsigned long end)
+-{
+-	tlb->mm = mm;
+-	tlb->start = start;
+-	tlb->end = end;
+-	tlb->fullmm = !(start | (end+1));
+-
+-	init_tlb_gather(tlb);
+-}
+-
+-extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+-			       unsigned long end);
+-
+-static inline void
+-tlb_flush_mmu_tlbonly(struct mmu_gather *tlb)
+-{
+-	flush_tlb_mm_range(tlb->mm, tlb->start, tlb->end);
+-}
+-
+-static inline void
+-tlb_flush_mmu_free(struct mmu_gather *tlb)
+-{
+-	init_tlb_gather(tlb);
+-}
+-
+-static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb)
+-{
+-	if (!tlb->need_flush)
+-		return;
+-
+-	tlb_flush_mmu_tlbonly(tlb);
+-	tlb_flush_mmu_free(tlb);
+-}
+-
+-/* arch_tlb_finish_mmu
+- *	Called at the end of the shootdown operation to free up any resources
+- *	that were required.
+- */
+-static inline void
+-arch_tlb_finish_mmu(struct mmu_gather *tlb,
+-		unsigned long start, unsigned long end, bool force)
+-{
+-	if (force) {
+-		tlb->start = start;
+-		tlb->end = end;
+-		tlb->need_flush = 1;
+-	}
+-	tlb_flush_mmu(tlb);
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-}
+-
+-/* tlb_remove_page
+- *	Must perform the equivalent to __free_pte(pte_get_and_clear(ptep)),
+- *	while handling the additional races in SMP caused by other CPUs
+- *	caching valid mappings in their TLBs.
+- */
+-static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	tlb->need_flush = 1;
+-	free_page_and_swap_cache(page);
+-	return false; /* avoid calling tlb_flush_mmu */
+-}
+-
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	__tlb_remove_page(tlb, page);
+-}
+-
+-static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
+-					  struct page *page, int page_size)
+-{
+-	return __tlb_remove_page(tlb, page);
+-}
+-
+-static inline void tlb_remove_page_size(struct mmu_gather *tlb,
+-					struct page *page, int page_size)
+-{
+-	return tlb_remove_page(tlb, page);
+-}
+-
+-/**
+- * tlb_remove_tlb_entry - remember a pte unmapping for later tlb invalidation.
 - *
-- *    tlb_flush_mmu() - the above two calls.
-+ *    tlb_flush_mmu() - in addition to the above TLB invalidate, also frees
-+ *			whatever pages are still batched.
-  *
-  *  - mmu_gather::fullmm
-  *
-@@ -274,7 +271,6 @@ void arch_tlb_gather_mmu(struct mmu_gath
- void tlb_flush_mmu(struct mmu_gather *tlb);
- void arch_tlb_finish_mmu(struct mmu_gather *tlb,
- 			 unsigned long start, unsigned long end, bool force);
--void tlb_flush_mmu_free(struct mmu_gather *tlb);
+- * Record the fact that pte's were really umapped in ->need_flush, so we can
+- * later optimise away the tlb invalidate.   This helps when userspace is
+- * unmapping already-unmapped pages, which happens quite a lot.
+- */
+-#define tlb_remove_tlb_entry(tlb, ptep, address)		\
+-	do {							\
+-		tlb->need_flush = 1;				\
+-		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+-	} while (0)
+-
+-#define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+-	tlb_remove_tlb_entry(tlb, ptep, address)
+-
+-static inline void tlb_change_page_size(struct mmu_gather *tlb, unsigned int page_size)
+-{
+-}
+-
+-#define pte_free_tlb(tlb, ptep, addr) __pte_free_tlb(tlb, ptep, addr)
+-
+-#define pud_free_tlb(tlb, pudp, addr) __pud_free_tlb(tlb, pudp, addr)
+-
+-#define pmd_free_tlb(tlb, pmdp, addr) __pmd_free_tlb(tlb, pmdp, addr)
+-
+-#define tlb_migrate_finish(mm) do {} while (0)
++#include <asm-generic/cacheflush.h>
++#include <asm-generic/tlb.h>
  
- static inline void __tlb_adjust_range(struct mmu_gather *tlb,
- 				      unsigned long address,
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1155,7 +1155,7 @@ static unsigned long zap_pte_range(struc
- 	 */
- 	if (force_flush) {
- 		force_flush = 0;
--		tlb_flush_mmu_free(tlb);
-+		tlb_flush_mmu(tlb);
- 		if (addr != end)
- 			goto again;
- 	}
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -91,7 +91,7 @@ bool __tlb_remove_page_size(struct mmu_g
- 
- #endif /* HAVE_MMU_GATHER_NO_GATHER */
- 
--void tlb_flush_mmu_free(struct mmu_gather *tlb)
-+static void tlb_flush_mmu_free(struct mmu_gather *tlb)
- {
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
+ #endif
