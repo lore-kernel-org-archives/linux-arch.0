@@ -1,61 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48584 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726987AbeIZTcB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Sep 2018 15:32:01 -0400
-Date: Wed, 26 Sep 2018 15:11:41 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/18] asm-generic/tlb: Provide generic tlb_flush
-Message-ID: <20180926131141.GA12444@hirez.programming.kicks-ass.net>
-References: <20180926113623.863696043@infradead.org>
- <20180926114800.770817616@infradead.org>
- <20180926125335.GG2979@brain-police>
+Received: from mail.kernel.org ([198.145.29.99]:34506 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728241AbeIZWtR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Sep 2018 18:49:17 -0400
+Date: Wed, 26 Sep 2018 12:35:22 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH security-next v3 04/29] LSM: Remove initcall tracing
+Message-ID: <20180926123522.4080d9eb@vmware.local.home>
+In-Reply-To: <20180925001832.18322-5-keescook@chromium.org>
+References: <20180925001832.18322-1-keescook@chromium.org>
+        <20180925001832.18322-5-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180926125335.GG2979@brain-police>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
-Message-ID: <20180926131141.AzN2rUbcmwu2OR3cc0uS2FIXduMarokh6CkP4kcBesk@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, Abderrahmane Benbachir <abderrahmane.benbachir@polymtl.ca>, linux-security-module@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180926163522.IgitqGzasXt4Urjk18kAT_DdxSzWGLMA6oT90K9PeDw@z>
 
-On Wed, Sep 26, 2018 at 01:53:35PM +0100, Will Deacon wrote:
-> On Wed, Sep 26, 2018 at 01:36:28PM +0200, Peter Zijlstra wrote:
-> > +#ifndef tlb_flush
-> > +
-> > +#if defined(tlb_start_vma) || defined(tlb_end_vma)
-> > +#error Default tlb_flush() relies on default tlb_start_vma() and tlb_end_vma()
-> > +#endif
-> > +
-> > +#define tlb_flush tlb_flush
+On Mon, 24 Sep 2018 17:18:07 -0700
+Kees Cook <keescook@chromium.org> wrote:
+
+> This partially reverts commit 58eacfffc417 ("init, tracing: instrument
+> security and console initcall trace events") since security init calls
+> are about to no longer resemble regular init calls.
+
+I'm not against the change, but how much are they going to "no longer
+resemble regular init calls"?
+
+-- Steve
+
 > 
-> Do we need this #define?
-
-Probably not, that was just my fingers doing the normal #ifndef #define
-pattern. I'll take em out back for a 'hug' :-)
-
-> > +static inline void tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
-> > +{
-> > +	if (tlb->fullmm)
-> > +		return;
-> > +
-> > +	/*
-> > +	 * flush_tlb_range() implementations that look at VM_HUGETLB (tile,
-> > +	 * mips-4k) flush only large pages.
-> > +	 *
-> > +	 * flush_tlb_range() implementations that flush I-TLB also flush D-TLB
-> > +	 * (tile, xtensa, arm), so it's ok to just add VM_EXEC to an existing
-> > +	 * range.
-> > +	 *
-> > +	 * We rely on tlb_end_vma() to issue a flush, such that when we reset
-> > +	 * these values the batch is empty.
-> > +	 */
-> > +	tlb->vma_huge = !!(vma->vm_flags & VM_HUGETLB);
-> > +	tlb->vma_exec = !!(vma->vm_flags & VM_EXEC);
+> Cc: James Morris <jmorris@namei.org>
+> Cc: "Serge E. Hallyn" <serge@hallyn.com>
+> Cc: Abderrahmane Benbachir <abderrahmane.benbachir@polymtl.ca>
+> Cc: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> Cc: linux-security-module@vger.kernel.org
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  security/security.c | 8 +-------
+>  1 file changed, 1 insertion(+), 7 deletions(-)
 > 
-> Hmm, does this result in code generation for archs that don't care about the
-> vm_flags?
-
-Yes. It's not much code, but if you deeply care we could frob things to
-get rid of it.
+> diff --git a/security/security.c b/security/security.c
+> index 892fe6b691cf..41a5da2c7faf 100644
+> --- a/security/security.c
+> +++ b/security/security.c
+> @@ -30,8 +30,6 @@
+>  #include <linux/string.h>
+>  #include <net/flow.h>
+>  
+> -#include <trace/events/initcall.h>
+> -
+>  #define MAX_LSM_EVM_XATTR	2
+>  
+>  /* Maximum number of letters for an LSM name string */
+> @@ -47,17 +45,13 @@ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+>  
+>  static void __init do_security_initcalls(void)
+>  {
+> -	int ret;
+>  	initcall_t call;
+>  	initcall_entry_t *ce;
+>  
+>  	ce = __start_lsm_info;
+> -	trace_initcall_level("security");
+>  	while (ce < __end_lsm_info) {
+>  		call = initcall_from_entry(ce);
+> -		trace_initcall_start(call);
+> -		ret = call();
+> -		trace_initcall_finish(call, ret);
+> +		call();
+>  		ce++;
+>  	}
+>  }
