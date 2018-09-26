@@ -1,36 +1,89 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v3 04/29] LSM: Remove initcall tracing
-Date: Wed, 26 Sep 2018 11:35:21 -0700
-Message-ID: <CAGXu5jJyL7FuLRj1XxujpGs9=wUQgS4dRfeGB+HUBqy4mkEBhQ@mail.gmail.com>
-References: <20180925001832.18322-1-keescook@chromium.org> <20180925001832.18322-5-keescook@chromium.org>
- <20180926123522.4080d9eb@vmware.local.home>
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: Re: [PATCH v14 08/19] signal: x86/sgx: Add SIGSEGV siginfo code for
+ SGX EPCM fault
+Date: Wed, 26 Sep 2018 12:14:32 -0700
+Message-ID: <20180926191432.GB11183@linux.intel.com>
+References: <20180925130845.9962-1-jarkko.sakkinen@linux.intel.com>
+ <20180925130845.9962-9-jarkko.sakkinen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180926123522.4080d9eb@vmware.local.home>
+Content-Disposition: inline
+In-Reply-To: <20180925130845.9962-9-jarkko.sakkinen@linux.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, Abderrahmane Benbachir <abderrahmane.benbachir@polymtl.ca>, linux-security-module <linux-security-module@vger.kernel.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Cc: x86@kernel.org, platform-driver-x86@vger.kernel.org, dave.hansen@intel.com, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, Dave Hansen <dave.hansen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 26, 2018 at 9:35 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Mon, 24 Sep 2018 17:18:07 -0700
-> Kees Cook <keescook@chromium.org> wrote:
->
->> This partially reverts commit 58eacfffc417 ("init, tracing: instrument
->> security and console initcall trace events") since security init calls
->> are about to no longer resemble regular init calls.
->
-> I'm not against the change, but how much are they going to "no longer
-> resemble regular init calls"?
+On Tue, Sep 25, 2018 at 04:06:45PM +0300, Jarkko Sakkinen wrote:
+> From: Sean Christopherson <sean.j.christopherson@intel.com>
+> 
+> The SGX Enclave Page Cache Map (EPCM) is a hardware-managed table
+> that enforces accesses to an enclave's EPC page in addition to the
+> software-managed kernel page tables, i.e. the effective permissions
+> for an EPC page are a logical AND of the kernel's page tables and
+> the corresponding EPCM entry.  The primary purpose of the EPCM is
+> to prevent a malcious or compromised kernel from attacking an enclave
+> by modifying the enclave's page tables.  The EPCM entires for an
+> enclave are populated when the enclave is built and verified, using
+> metadata provided by the enclave that is included in the measurement
+> used to verify the enclave.
+> 
+> In normal operation of a properly functioning, non-malicious kernel
+> (and enclave), the EPCM permissions will never trigger a fault, i.e.
+> the kernel may make the permissions for an EPC page more restrictive,
+> e.g. mark it not-present to swap out the EPC page, but the kernel will
+> never make its permissions less restrictive.
+> 
+> But, there is a legitimate scenario in which the kernel's page tables
+> can become less restrictive than the EPCM: on current hardware all
+> enclaves are destroyed (by hardware) on a transition to S3 or lower
+> sleep states, i.e. all EPCM entries are invalid (not-present) after
+> the system resumes from its sleep state.
+> 
+> Unfortunately, on CPUs that support only SGX1, EPCM violations result
+> in a #GP.  The upside of the #GP is that no kernel changes are needed
+> to deal with the EPCM being blasted away by hardware, e.g. userspace
+> gets a SIGSEGV, assumes the EPCM was lost and restarts its enclave
+> and everyone is happy.  The downside is that userspace has to assume
+> the SIGSEGV was because the EPC was lost (or possibly do some leg work
+> to rule out other causes).
+> 
+> In SGX2, the oddity of delivering a #GP due to what are inherently
+> paging related violations is remedied.  CPUs that support SGX2 deliver
+> EPCM violations as #PFs with a new SGX error code bit set.  So, now
+> that hardware provides us with a way to unequivocally determine that
+> a fault was due to a EPCM violation, define a signfo code for SIGSEGV
+> so that the information can be passed onto userspace.
+> 
+> Cc: Dave Hansen <dave.hansen@linux.intel.com>
+> Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+> Signed-off-by: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+> ---
+>  include/uapi/asm-generic/siginfo.h | 4 ++++
+>  1 file changed, 4 insertions(+)
+> 
+> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> index 80e2a7227205..fdd898e2325b 100644
+> --- a/include/uapi/asm-generic/siginfo.h
+> +++ b/include/uapi/asm-generic/siginfo.h
+> @@ -225,7 +225,11 @@ typedef struct siginfo {
+>  #else
+>  # define SEGV_PKUERR	4	/* failed protection key checks */
+>  #endif
+> +#ifdef __x86_64__
 
-My take on "regular" init calls is that they're always run, link-time
-ordered, etc. The changes proposed here will make it so not all
-initialization are run depending on runtime configurations, ordering
-will be flexible, etc.
+Argh, this needs to be "#if defined(__i386__) || defined(__x86_64__)"
+otherwise 32-bit builds break on later patches that use SEGV_SGXERR,
+e.g. the errors flagged by the 0-DAY bot.
 
--Kees
-
--- 
-Kees Cook
-Pixel Security
+> +#define SEGV_SGXERR	5	/* SGX Enclave Page Cache Map fault */
+> +#else
+>  #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
+> +#endif
+>  #define SEGV_ADIDERR	6	/* Disrupting MCD error */
+>  #define SEGV_ADIPERR	7	/* Precise MCD exception */
+>  #define NSIGSEGV	7
+> -- 
+> 2.17.1
+> 
