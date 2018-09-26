@@ -1,71 +1,53 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH security-next v3 04/29] LSM: Remove initcall tracing
-Date: Wed, 26 Sep 2018 12:35:22 -0400
-Message-ID: <20180926123522.4080d9eb@vmware.local.home>
-References: <20180925001832.18322-1-keescook@chromium.org>
-        <20180925001832.18322-5-keescook@chromium.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [REVIEW][PATCH 00/15] signal/arm64: siginfo cleanups
+Date: Wed, 26 Sep 2018 18:38:42 +0100
+Message-ID: <20180926173841.GD175719@arrakis.emea.arm.com>
+References: <871s9j462u.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925001832.18322-5-keescook@chromium.org>
+Content-Disposition: inline
+In-Reply-To: <871s9j462u.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, Abderrahmane Benbachir <abderrahmane.benbachir@polymtl.ca>, linux-security-module@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 24 Sep 2018 17:18:07 -0700
-Kees Cook <keescook@chromium.org> wrote:
+Hi Eric,
 
-> This partially reverts commit 58eacfffc417 ("init, tracing: instrument
-> security and console initcall trace events") since security init calls
-> are about to no longer resemble regular init calls.
-
-I'm not against the change, but how much are they going to "no longer
-resemble regular init calls"?
-
--- Steve
-
+On Mon, Sep 24, 2018 at 11:07:05AM +0200, Eric W. Biederman wrote:
+> This is the continuation of my work to sort out signaling of exceptions
+> with siginfo.  The old signal sending functions by taking a siginfo
+> argument resulted in their callers having to deal with the fiddly nature
+> of siginfo directly.  In small numbers of callers this is not a problem
+> but in the number of callers in the kernel this resulted in cases
+> where fields were not initialized or improperly initialized before
+> being passed to userspace.
 > 
-> Cc: James Morris <jmorris@namei.org>
-> Cc: "Serge E. Hallyn" <serge@hallyn.com>
-> Cc: Abderrahmane Benbachir <abderrahmane.benbachir@polymtl.ca>
-> Cc: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> Cc: linux-security-module@vger.kernel.org
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  security/security.c | 8 +-------
->  1 file changed, 1 insertion(+), 7 deletions(-)
+> To avoid having to worry about those issues I have added new signal
+> sending functions that each deal wit a different siginfo case.  When
+> using these functions there is no room for the fiddly nature of siginfo
+> to cause mistakes.
 > 
-> diff --git a/security/security.c b/security/security.c
-> index 892fe6b691cf..41a5da2c7faf 100644
-> --- a/security/security.c
-> +++ b/security/security.c
-> @@ -30,8 +30,6 @@
->  #include <linux/string.h>
->  #include <net/flow.h>
->  
-> -#include <trace/events/initcall.h>
-> -
->  #define MAX_LSM_EVM_XATTR	2
->  
->  /* Maximum number of letters for an LSM name string */
-> @@ -47,17 +45,13 @@ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
->  
->  static void __init do_security_initcalls(void)
->  {
-> -	int ret;
->  	initcall_t call;
->  	initcall_entry_t *ce;
->  
->  	ce = __start_lsm_info;
-> -	trace_initcall_level("security");
->  	while (ce < __end_lsm_info) {
->  		call = initcall_from_entry(ce);
-> -		trace_initcall_start(call);
-> -		ret = call();
-> -		trace_initcall_finish(call, ret);
-> +		call();
->  		ce++;
->  	}
->  }
+> This is my set of changes to update arm64 to use those functions.
+> Along with some refactoring so those functions can be cleanly used.
+> 
+> Folks please review and double check me.  I think I have kept these
+> changes simple and obviously correct but I am human and mess up
+> sometimes.
+
+Nice clean-up, thanks. I started reviewing the patches, I should finish
+by tomorrow (I also applied them locally to give some testing).
+
+> After these patches have had a chance to be reviewed I plan to merge
+> them by my siginfo tree.  If you would rather take them in the arm64
+> tree let me know.   All of the prerequisites should have been merged
+> through Linus's tree several releases ago.
+
+Either way works for me. There is a trivial conflict in
+force_signal_inject() with the arm64 for-next/core tree so I could as
+well put them on top of this branch and send them during the 4.20
+merging window.
+
+-- 
+Catalin
