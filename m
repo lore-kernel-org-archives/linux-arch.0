@@ -1,440 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:42582 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725990AbeI0Ano (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Sep 2018 20:43:44 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w8QITAt4014832
-        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 14:29:29 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2mre7buqfw-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 14:29:29 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 26 Sep 2018 14:29:28 -0400
-From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 2/5] tools/memory-model: Add extra ordering for locks and remove it for ordinary release/acquire
-Date: Wed, 26 Sep 2018 11:29:17 -0700
-In-Reply-To: <20180926182845.GA24839@linux.ibm.com>
-References: <20180926182845.GA24839@linux.ibm.com>
-Message-ID: <20180926182920.27644-2-paulmck@linux.ibm.com>
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:33359 "EHLO
+        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728498AbeI0Atn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Sep 2018 20:49:43 -0400
+Received: by mail-yw1-f68.google.com with SMTP id x67-v6so11243842ywg.0
+        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 11:35:27 -0700 (PDT)
+Received: from mail-yw1-f49.google.com (mail-yw1-f49.google.com. [209.85.161.49])
+        by smtp.gmail.com with ESMTPSA id j8-v6sm3318130ywj.6.2018.09.26.11.35.23
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Wed, 26 Sep 2018 11:35:23 -0700 (PDT)
+Received: by mail-yw1-f49.google.com with SMTP id q129-v6so11218370ywg.8
+        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 11:35:23 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20180926123522.4080d9eb@vmware.local.home>
+References: <20180925001832.18322-1-keescook@chromium.org> <20180925001832.18322-5-keescook@chromium.org>
+ <20180926123522.4080d9eb@vmware.local.home>
+From: Kees Cook <keescook@chromium.org>
+Date: Wed, 26 Sep 2018 11:35:21 -0700
+Message-ID: <CAGXu5jJyL7FuLRj1XxujpGs9=wUQgS4dRfeGB+HUBqy4mkEBhQ@mail.gmail.com>
+Subject: Re: [PATCH security-next v3 04/29] LSM: Remove initcall tracing
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180926182917.O4jwOU8YD-eq1ahx-KQmNjo1bunwp87BulDyIqasa7Q@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, Abderrahmane Benbachir <abderrahmane.benbachir@polymtl.ca>, linux-security-module <linux-security-module@vger.kernel.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20180926183521.uiJRn9C4d5fcgNkSesYkFyryI2yNZLt65OOyprwv5fI@z>
 
-From: Alan Stern <stern@rowland.harvard.edu>
+On Wed, Sep 26, 2018 at 9:35 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> On Mon, 24 Sep 2018 17:18:07 -0700
+> Kees Cook <keescook@chromium.org> wrote:
+>
+>> This partially reverts commit 58eacfffc417 ("init, tracing: instrument
+>> security and console initcall trace events") since security init calls
+>> are about to no longer resemble regular init calls.
+>
+> I'm not against the change, but how much are they going to "no longer
+> resemble regular init calls"?
 
-More than one kernel developer has expressed the opinion that the LKMM
-should enforce ordering of writes by locking.  In other words, given
-the following code:
+My take on "regular" init calls is that they're always run, link-time
+ordered, etc. The changes proposed here will make it so not all
+initialization are run depending on runtime configurations, ordering
+will be flexible, etc.
 
-	WRITE_ONCE(x, 1);
-	spin_unlock(&s):
-	spin_lock(&s);
-	WRITE_ONCE(y, 1);
+-Kees
 
-the stores to x and y should be propagated in order to all other CPUs,
-even though those other CPUs might not access the lock s.  In terms of
-the memory model, this means expanding the cumul-fence relation.
-
-Locks should also provide read-read (and read-write) ordering in a
-similar way.  Given:
-
-	READ_ONCE(x);
-	spin_unlock(&s);
-	spin_lock(&s);
-	READ_ONCE(y);		// or WRITE_ONCE(y, 1);
-
-the load of x should be executed before the load of (or store to) y.
-The LKMM already provides this ordering, but it provides it even in
-the case where the two accesses are separated by a release/acquire
-pair of fences rather than unlock/lock.  This would prevent
-architectures from using weakly ordered implementations of release and
-acquire, which seems like an unnecessary restriction.  The patch
-therefore removes the ordering requirement from the LKMM for that
-case.
-
-There are several arguments both for and against this change.  Let us
-refer to these enhanced ordering properties by saying that the LKMM
-would require locks to be RCtso (a bit of a misnomer, but analogous to
-RCpc and RCsc) and it would require ordinary acquire/release only to
-be RCpc.  (Note: In the following, the phrase "all supported
-architectures" is meant not to include RISC-V.  Although RISC-V is
-indeed supported by the kernel, the implementation is still somewhat
-in a state of flux and therefore statements about it would be
-premature.)
-
-Pros:
-
-	The kernel already provides RCtso ordering for locks on all
-	supported architectures, even though this is not stated
-	explicitly anywhere.  Therefore the LKMM should formalize it.
-
-	In theory, guaranteeing RCtso ordering would reduce the need
-	for additional barrier-like constructs meant to increase the
-	ordering strength of locks.
-
-	Will Deacon and Peter Zijlstra are strongly in favor of
-	formalizing the RCtso requirement.  Linus Torvalds and Will
-	would like to go even further, requiring locks to have RCsc
-	behavior (ordering preceding writes against later reads), but
-	they recognize that this would incur a noticeable performance
-	degradation on the POWER architecture.  Linus also points out
-	that people have made the mistake, in the past, of assuming
-	that locking has stronger ordering properties than is
-	currently guaranteed, and this change would reduce the
-	likelihood of such mistakes.
-
-	Not requiring ordinary acquire/release to be any stronger than
-	RCpc may prove advantageous for future architectures, allowing
-	them to implement smp_load_acquire() and smp_store_release()
-	with more efficient machine instructions than would be
-	possible if the operations had to be RCtso.  Will and Linus
-	approve this rationale, hypothetical though it is at the
-	moment (it may end up affecting the RISC-V implementation).
-	The same argument may or may not apply to RMW-acquire/release;
-	see also the second Con entry below.
-
-	Linus feels that locks should be easy for people to use
-	without worrying about memory consistency issues, since they
-	are so pervasive in the kernel, whereas acquire/release is
-	much more of an "experts only" tool.  Requiring locks to be
-	RCtso is a step in this direction.
-
-Cons:
-
-	Andrea Parri and Luc Maranget think that locks should have the
-	same ordering properties as ordinary acquire/release (indeed,
-	Luc points out that the names "acquire" and "release" derive
-	from the usage of locks).  Andrea points out that having
-	different ordering properties for different forms of acquires
-	and releases is not only unnecessary, it would also be
-	confusing and unmaintainable.
-
-	Locks are constructed from lower-level primitives, typically
-	RMW-acquire (for locking) and ordinary release (for unlock).
-	It is illogical to require stronger ordering properties from
-	the high-level operations than from the low-level operations
-	they comprise.  Thus, this change would make
-
-		while (cmpxchg_acquire(&s, 0, 1) != 0)
-			cpu_relax();
-
-	an incorrect implementation of spin_lock(&s) as far as the
-	LKMM is concerned.  In theory this weakness can be ameliorated
-	by changing the LKMM even further, requiring
-	RMW-acquire/release also to be RCtso (which it already is on
-	all supported architectures).
-
-	As far as I know, nobody has singled out any examples of code
-	in the kernel that actually relies on locks being RCtso.
-	(People mumble about RCU and the scheduler, but nobody has
-	pointed to any actual code.  If there are any real cases,
-	their number is likely quite small.)  If RCtso ordering is not
-	needed, why require it?
-
-	A handful of locking constructs (qspinlocks, qrwlocks, and
-	mcs_spinlocks) are built on top of smp_cond_load_acquire()
-	instead of an RMW-acquire instruction.  It currently provides
-	only the ordinary acquire semantics, not the stronger ordering
-	this patch would require of locks.  In theory this could be
-	ameliorated by requiring smp_cond_load_acquire() in
-	combination with ordinary release also to be RCtso (which is
-	currently true on all supported architectures).
-
-	On future weakly ordered architectures, people may be able to
-	implement locks in a non-RCtso fashion with significant
-	performance improvement.  Meeting the RCtso requirement would
-	necessarily add run-time overhead.
-
-Overall, the technical aspects of these arguments seem relatively
-minor, and it appears mostly to boil down to a matter of opinion.
-Since the opinions of senior kernel maintainers such as Linus,
-Peter, and Will carry more weight than those of Luc and Andrea, this
-patch changes the model in accordance with the maintainers' wishes.
-
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-Reviewed-by: Will Deacon <will.deacon@arm.com>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Andrea Parri <andrea.parri@amarulasolutions.com>
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- .../Documentation/explanation.txt             | 186 ++++++++++++++----
- tools/memory-model/linux-kernel.cat           |   8 +-
- ...ISA2+pooncelock+pooncelock+pombonce.litmus |   7 +-
- 3 files changed, 150 insertions(+), 51 deletions(-)
-
-diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-index 0cbd1ef8f86d..35bff92cc773 100644
---- a/tools/memory-model/Documentation/explanation.txt
-+++ b/tools/memory-model/Documentation/explanation.txt
-@@ -28,7 +28,8 @@ Explanation of the Linux-Kernel Memory Consistency Model
-   20. THE HAPPENS-BEFORE RELATION: hb
-   21. THE PROPAGATES-BEFORE RELATION: pb
-   22. RCU RELATIONS: rcu-link, gp, rscs, rcu-fence, and rb
--  23. ODDS AND ENDS
-+  23. LOCKING
-+  24. ODDS AND ENDS
- 
- 
- 
-@@ -1067,28 +1068,6 @@ allowing out-of-order writes like this to occur.  The model avoided
- violating the write-write coherence rule by requiring the CPU not to
- send the W write to the memory subsystem at all!)
- 
--There is one last example of preserved program order in the LKMM: when
--a load-acquire reads from an earlier store-release.  For example:
--
--	smp_store_release(&x, 123);
--	r1 = smp_load_acquire(&x);
--
--If the smp_load_acquire() ends up obtaining the 123 value that was
--stored by the smp_store_release(), the LKMM says that the load must be
--executed after the store; the store cannot be forwarded to the load.
--This requirement does not arise from the operational model, but it
--yields correct predictions on all architectures supported by the Linux
--kernel, although for differing reasons.
--
--On some architectures, including x86 and ARMv8, it is true that the
--store cannot be forwarded to the load.  On others, including PowerPC
--and ARMv7, smp_store_release() generates object code that starts with
--a fence and smp_load_acquire() generates object code that ends with a
--fence.  The upshot is that even though the store may be forwarded to
--the load, it is still true that any instruction preceding the store
--will be executed before the load or any following instructions, and
--the store will be executed before any instruction following the load.
--
- 
- AND THEN THERE WAS ALPHA
- ------------------------
-@@ -1766,6 +1745,147 @@ before it does, and the critical section in P2 both starts after P1's
- grace period does and ends after it does.
- 
- 
-+LOCKING
-+-------
-+
-+The LKMM includes locking.  In fact, there is special code for locking
-+in the formal model, added in order to make tools run faster.
-+However, this special code is intended to be more or less equivalent
-+to concepts we have already covered.  A spinlock_t variable is treated
-+the same as an int, and spin_lock(&s) is treated almost the same as:
-+
-+	while (cmpxchg_acquire(&s, 0, 1) != 0)
-+		cpu_relax();
-+
-+This waits until s is equal to 0 and then atomically sets it to 1,
-+and the read part of the cmpxchg operation acts as an acquire fence.
-+An alternate way to express the same thing would be:
-+
-+	r = xchg_acquire(&s, 1);
-+
-+along with a requirement that at the end, r = 0.  Similarly,
-+spin_trylock(&s) is treated almost the same as:
-+
-+	return !cmpxchg_acquire(&s, 0, 1);
-+
-+which atomically sets s to 1 if it is currently equal to 0 and returns
-+true if it succeeds (the read part of the cmpxchg operation acts as an
-+acquire fence only if the operation is successful).  spin_unlock(&s)
-+is treated almost the same as:
-+
-+	smp_store_release(&s, 0);
-+
-+The "almost" qualifiers above need some explanation.  In the LKMM, the
-+store-release in a spin_unlock() and the load-acquire which forms the
-+first half of the atomic rmw update in a spin_lock() or a successful
-+spin_trylock() -- we can call these things lock-releases and
-+lock-acquires -- have two properties beyond those of ordinary releases
-+and acquires.
-+
-+First, when a lock-acquire reads from a lock-release, the LKMM
-+requires that every instruction po-before the lock-release must
-+execute before any instruction po-after the lock-acquire.  This would
-+naturally hold if the release and acquire operations were on different
-+CPUs, but the LKMM says it holds even when they are on the same CPU.
-+For example:
-+
-+	int x, y;
-+	spinlock_t s;
-+
-+	P0()
-+	{
-+		int r1, r2;
-+
-+		spin_lock(&s);
-+		r1 = READ_ONCE(x);
-+		spin_unlock(&s);
-+		spin_lock(&s);
-+		r2 = READ_ONCE(y);
-+		spin_unlock(&s);
-+	}
-+
-+	P1()
-+	{
-+		WRITE_ONCE(y, 1);
-+		smp_wmb();
-+		WRITE_ONCE(x, 1);
-+	}
-+
-+Here the second spin_lock() reads from the first spin_unlock(), and
-+therefore the load of x must execute before the load of y.  Thus we
-+cannot have r1 = 1 and r2 = 0 at the end (this is an instance of the
-+MP pattern).
-+
-+This requirement does not apply to ordinary release and acquire
-+fences, only to lock-related operations.  For instance, suppose P0()
-+in the example had been written as:
-+
-+	P0()
-+	{
-+		int r1, r2, r3;
-+
-+		r1 = READ_ONCE(x);
-+		smp_store_release(&s, 1);
-+		r3 = smp_load_acquire(&s);
-+		r2 = READ_ONCE(y);
-+	}
-+
-+Then the CPU would be allowed to forward the s = 1 value from the
-+smp_store_release() to the smp_load_acquire(), executing the
-+instructions in the following order:
-+
-+		r3 = smp_load_acquire(&s);	// Obtains r3 = 1
-+		r2 = READ_ONCE(y);
-+		r1 = READ_ONCE(x);
-+		smp_store_release(&s, 1);	// Value is forwarded
-+
-+and thus it could load y before x, obtaining r2 = 0 and r1 = 1.
-+
-+Second, when a lock-acquire reads from a lock-release, and some other
-+stores W and W' occur po-before the lock-release and po-after the
-+lock-acquire respectively, the LKMM requires that W must propagate to
-+each CPU before W' does.  For example, consider:
-+
-+	int x, y;
-+	spinlock_t x;
-+
-+	P0()
-+	{
-+		spin_lock(&s);
-+		WRITE_ONCE(x, 1);
-+		spin_unlock(&s);
-+	}
-+
-+	P1()
-+	{
-+		int r1;
-+
-+		spin_lock(&s);
-+		r1 = READ_ONCE(x);
-+		WRITE_ONCE(y, 1);
-+		spin_unlock(&s);
-+	}
-+
-+	P2()
-+	{
-+		int r2, r3;
-+
-+		r2 = READ_ONCE(y);
-+		smp_rmb();
-+		r3 = READ_ONCE(x);
-+	}
-+
-+If r1 = 1 at the end then the spin_lock() in P1 must have read from
-+the spin_unlock() in P0.  Hence the store to x must propagate to P2
-+before the store to y does, so we cannot have r2 = 1 and r3 = 0.
-+
-+These two special requirements for lock-release and lock-acquire do
-+not arise from the operational model.  Nevertheless, kernel developers
-+have come to expect and rely on them because they do hold on all
-+architectures supported by the Linux kernel, albeit for various
-+differing reasons.
-+
-+
- ODDS AND ENDS
- -------------
- 
-@@ -1831,26 +1951,6 @@ they behave as follows:
- 	events and the events preceding them against all po-later
- 	events.
- 
--The LKMM includes locking.  In fact, there is special code for locking
--in the formal model, added in order to make tools run faster.
--However, this special code is intended to be exactly equivalent to
--concepts we have already covered.  A spinlock_t variable is treated
--the same as an int, and spin_lock(&s) is treated the same as:
--
--	while (cmpxchg_acquire(&s, 0, 1) != 0)
--		cpu_relax();
--
--which waits until s is equal to 0 and then atomically sets it to 1,
--and where the read part of the atomic update is also an acquire fence.
--An alternate way to express the same thing would be:
--
--	r = xchg_acquire(&s, 1);
--
--along with a requirement that at the end, r = 0.  spin_unlock(&s) is
--treated the same as:
--
--	smp_store_release(&s, 0);
--
- Interestingly, RCU and locking each introduce the possibility of
- deadlock.  When faced with code sequences such as:
- 
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 59b5cbe6b624..882fc33274ac 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -38,7 +38,7 @@ let strong-fence = mb | gp
- (* Release Acquire *)
- let acq-po = [Acquire] ; po ; [M]
- let po-rel = [M] ; po ; [Release]
--let rfi-rel-acq = [Release] ; rfi ; [Acquire]
-+let po-unlock-rf-lock-po = po ; [UL] ; rf ; [LKR] ; po
- 
- (**********************************)
- (* Fundamental coherence ordering *)
-@@ -60,13 +60,13 @@ let dep = addr | data
- let rwdep = (dep | ctrl) ; [W]
- let overwrite = co | fr
- let to-w = rwdep | (overwrite & int)
--let to-r = addr | (dep ; rfi) | rfi-rel-acq
-+let to-r = addr | (dep ; rfi)
- let fence = strong-fence | wmb | po-rel | rmb | acq-po
--let ppo = to-r | to-w | fence
-+let ppo = to-r | to-w | fence | (po-unlock-rf-lock-po & int)
- 
- (* Propagation: Ordering from release operations and strong fences. *)
- let A-cumul(r) = rfe? ; r
--let cumul-fence = A-cumul(strong-fence | po-rel) | wmb
-+let cumul-fence = A-cumul(strong-fence | po-rel) | wmb | po-unlock-rf-lock-po
- let prop = (overwrite & ext)? ; cumul-fence* ; rfe?
- 
- (*
-diff --git a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
-index 0f749e419b34..094d58df7789 100644
---- a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
-+++ b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
-@@ -1,11 +1,10 @@
- C ISA2+pooncelock+pooncelock+pombonce
- 
- (*
-- * Result: Sometimes
-+ * Result: Never
-  *
-- * This test shows that the ordering provided by a lock-protected S
-- * litmus test (P0() and P1()) are not visible to external process P2().
-- * This is likely to change soon.
-+ * This test shows that write-write ordering provided by locks
-+ * (in P0() and P1()) is visible to external process P2().
-  *)
- 
- {}
 -- 
-2.17.1
+Kees Cook
+Pixel Security
