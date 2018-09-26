@@ -1,53 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from esa2.microchip.iphmx.com ([68.232.149.84]:16840 "EHLO
-        esa2.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726768AbeIZTIY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Sep 2018 15:08:24 -0400
-Date: Wed, 26 Sep 2018 14:55:28 +0200
+Received: from esa6.microchip.iphmx.com ([216.71.154.253]:26688 "EHLO
+        esa6.microchip.iphmx.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726315AbeIZTPb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Sep 2018 15:15:31 -0400
 From: Ludovic Desroches <ludovic.desroches@microchip.com>
-Subject: Re: [PATCH v4 2/2] tty/serial: atmel: add ISO7816 support
-Message-ID: <20180926125528.fmfti62ymod2derb@M43218.corp.atmel.com>
-References: <20180906134214.29031-1-ludovic.desroches@microchip.com>
- <20180906134214.29031-3-ludovic.desroches@microchip.com>
- <20180918132856.GA14333@kroah.com>
+Subject: [PATCH v5 0/2] add ISO7816 support
+Date: Wed, 26 Sep 2018 14:58:46 +0200
+Message-ID: <20180926125848.31032-1-ludovic.desroches@microchip.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <20180918132856.GA14333@kroah.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, jslaby@suse.com, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org
-Message-ID: <20180926125528.69ZkZwmkH9jtatT3qukM8AXYUWALIuJjADm5ozJfCTY@z>
+To: linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: gregkh@linuxfoundation.org, arnd@arndb.de, richard.genoud@gmail.com, nicolas.ferre@microchip.com, alexandre.belloni@bootlin.com, linux-kernel@vger.kernel.org, Ludovic Desroches <ludovic.desroches@microchip.com>
+Message-ID: <20180926125846.3qGrq9GIYTdynwsx_6Sl4rphQd31TIOevxj6MnXM87w@z>
 
-On Tue, Sep 18, 2018 at 03:28:56PM +0200, Greg KH wrote:
-> On Thu, Sep 06, 2018 at 03:42:14PM +0200, Ludovic Desroches wrote:
-> > From: Nicolas Ferre <nicolas.ferre@microchip.com>
-> > 
-> > When mode is set in atmel_config_iso7816() we backup last RS232 mode
-> > for coming back to this mode if requested.
-> > Also allow setup of T=0 and T=1 parameter and basic support in set_termios
-> > function as well.
-> > 
-> > Signed-off-by: Nicolas Ferre <nicolas.ferre@microchip.com>
-> > [ludovic.desroches@microchip.com: rebase, add check on fidi ratio, checkpatch fixes]
-> > Signed-off-by: Ludovic Desroches <ludovic.desroches@microchip.com>
-> > Acked-by: Richard Genoud <richard.genoud@gmail.com>
-> > ---
-> >  drivers/tty/serial/atmel_serial.c | 190 +++++++++++++++++++++++++++++++++++---
-> >  drivers/tty/serial/atmel_serial.h |   3 +-
-> >  2 files changed, 181 insertions(+), 12 deletions(-)
-> 
-> This doesn't apply to my tree :(
-> 
+Hi,
 
-I am rebasing it on tty-next.
+This patchset adds support for the ISO7816 standard. The USART devices
+in Microchip SoCs have an ISO7816 mode. It allows to let the USART
+managing the CLK and I/O signals of a smart card.
 
-> Also, shouldn't this new ioctl be documented somewhere?
-> 
+Changes:
+- v5
+  - rebase on tty-next.
+  - add documentation for the new ioctls (mimic rs485 one).
+  - fix a switch/case identation
+- v4
+  - use the IP version number instead of the compatible string to set
+  min and max values for fidi.
+  - remove a useless macro for fidi.
+- v3
+  - add IOCTLs to parisc arch.
+  - rework atmel_config_iso7816 according to the comments by Richard.
+  - keep max iteration hard coded. Will see later if the user need to
+    set this value. It may also concern the normal/inverse mode.
+  - improve the checking of the value from the user space.
+- v2
+  - uart_get_iso7816_config: check there is an iso7816_config function.
+  - use IOCTL macros to generate the IOCTL number.
+  - check that reserved field is not used.
+  - remove debug logs.
+  - check that the iso7816_config is right before doing any action.
+  - change the error from nack and max iteration status to a debug
+    message.
+  - remove patch 3 as it concerns both rs485 and iso7816 to think more
+    about the need of adding a lock or not.
 
-v5 is coming.
+Nicolas Ferre (2):
+  tty/serial_core: add ISO7816 infrastructure
+  tty/serial: atmel: add ISO7816 support
 
-Regards
+ Documentation/serial/serial-iso7816.txt |  83 ++++++++++++++
+ arch/alpha/include/uapi/asm/ioctls.h    |   2 +
+ arch/mips/include/uapi/asm/ioctls.h     |   2 +
+ arch/parisc/include/uapi/asm/ioctls.h   |   2 +
+ arch/powerpc/include/uapi/asm/ioctls.h  |   2 +
+ arch/sh/include/uapi/asm/ioctls.h       |   2 +
+ arch/sparc/include/uapi/asm/ioctls.h    |   2 +
+ arch/xtensa/include/uapi/asm/ioctls.h   |   2 +
+ drivers/tty/serial/atmel_serial.c       | 190 ++++++++++++++++++++++++++++++--
+ drivers/tty/serial/atmel_serial.h       |   3 +-
+ drivers/tty/serial/serial_core.c        |  60 ++++++++++
+ include/linux/serial_core.h             |   3 +
+ include/uapi/asm-generic/ioctls.h       |   2 +
+ include/uapi/linux/serial.h             |  17 +++
+ 14 files changed, 360 insertions(+), 12 deletions(-)
+ create mode 100644 Documentation/serial/serial-iso7816.txt
 
-Ludovic
+-- 
+2.12.2
