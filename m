@@ -1,166 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46378 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725987AbeI0Ann (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:56706 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728221AbeI0Anp (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Sep 2018 20:43:43 -0400
-Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w8QITC3S028605
-        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 14:29:29 -0400
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2mrdekx3j5-1
+        Wed, 26 Sep 2018 20:43:45 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w8QITHtj120267
+        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 14:29:30 -0400
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2mre64kq9w-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 14:29:29 -0400
+        for <linux-arch@vger.kernel.org>; Wed, 26 Sep 2018 14:29:30 -0400
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 26 Sep 2018 14:29:28 -0400
+        Wed, 26 Sep 2018 14:29:29 -0400
 From: "Paul E. McKenney" <paulmck@linux.ibm.com>
-Subject: [PATCH memory-model 1/5] tools/memory-model: Add litmus-test naming scheme
-Date: Wed, 26 Sep 2018 11:29:16 -0700
+Subject: [PATCH memory-model 3/5] tools/memory-model: Fix a README typo
+Date: Wed, 26 Sep 2018 11:29:18 -0700
 In-Reply-To: <20180926182845.GA24839@linux.ibm.com>
 References: <20180926182845.GA24839@linux.ibm.com>
-Message-ID: <20180926182920.27644-1-paulmck@linux.ibm.com>
+Message-ID: <20180926182920.27644-3-paulmck@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20180926182916.JzNCFDvdow1Im3uDm9hIDVZFPqtaeUQTIU1grAK-8nU@z>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, SeongJae Park <sj38.park@gmail.com>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20180926182918.lg4ghWVMcTSqkTA2Cdl-Xtv3-ocovSgi3ZZa9Vgomb0@z>
 
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: SeongJae Park <sj38.park@gmail.com>
 
-This commit documents the scheme used to generate the names for the
-litmus tests.
+This commit fixes a duplicate-"the" typo in README.
 
+Signed-off-by: SeongJae Park <sj38.park@gmail.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-[ paulmck: Apply feedback from Andrea Parri and Will Deacon. ]
-Acked-by: Will Deacon <will.deacon@arm.com>
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
 ---
- tools/memory-model/litmus-tests/README | 104 ++++++++++++++++++++++++-
- 1 file changed, 102 insertions(+), 2 deletions(-)
+ tools/memory-model/Documentation/recipes.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 4581ec2d3c57..5ee08f129094 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -1,4 +1,6 @@
--This directory contains the following litmus tests:
-+============
-+LITMUS TESTS
-+============
+diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
+index af72700cc20a..7fe8d7aa3029 100644
+--- a/tools/memory-model/Documentation/recipes.txt
++++ b/tools/memory-model/Documentation/recipes.txt
+@@ -311,7 +311,7 @@ The smp_wmb() macro orders prior stores against later stores, and the
+ smp_rmb() macro orders prior loads against later loads.  Therefore, if
+ the final value of r0 is 1, the final value of r1 must also be 1.
  
- CoRR+poonceonce+Once.litmus
- 	Test of read-read coherence, that is, whether or not two
-@@ -36,7 +38,7 @@ IRIW+poonceonces+OnceOnce.litmus
- ISA2+pooncelock+pooncelock+pombonce.litmus
- 	Tests whether the ordering provided by a lock-protected S
- 	litmus test is visible to an external process whose accesses are
--	separated by smp_mb().	This addition of an external process to
-+	separated by smp_mb().  This addition of an external process to
- 	S is otherwise known as ISA2.
+-The the xlog_state_switch_iclogs() function in fs/xfs/xfs_log.c contains
++The xlog_state_switch_iclogs() function in fs/xfs/xfs_log.c contains
+ the following write-side code fragment:
  
- ISA2+poonceonces.litmus
-@@ -151,3 +153,101 @@ Z6.0+pooncerelease+poacquirerelease+fencembonceonce.litmus
- A great many more litmus tests are available here:
- 
- 	https://github.com/paulmckrcu/litmus
-+
-+==================
-+LITMUS TEST NAMING
-+==================
-+
-+Litmus tests are usually named based on their contents, which means that
-+looking at the name tells you what the litmus test does.  The naming
-+scheme covers litmus tests having a single cycle that passes through
-+each process exactly once, so litmus tests not fitting this description
-+are named on an ad-hoc basis.
-+
-+The structure of a litmus-test name is the litmus-test class, a plus
-+sign ("+"), and one string for each process, separated by plus signs.
-+The end of the name is ".litmus".
-+
-+The litmus-test classes may be found in the infamous test6.pdf:
-+https://www.cl.cam.ac.uk/~pes20/ppc-supplemental/test6.pdf
-+Each class defines the pattern of accesses and of the variables accessed.
-+For example, if the one process writes to a pair of variables, and
-+the other process reads from these same variables, the corresponding
-+litmus-test class is "MP" (message passing), which may be found on the
-+left-hand end of the second row of tests on page one of test6.pdf.
-+
-+The strings used to identify the actions carried out by each process are
-+complex due to a desire to have short(er) names.  Thus, there is a tool to
-+generate these strings from a given litmus test's actions.  For example,
-+consider the processes from SB+rfionceonce-poonceonces.litmus:
-+
-+	P0(int *x, int *y)
-+	{
-+		int r1;
-+		int r2;
-+
-+		WRITE_ONCE(*x, 1);
-+		r1 = READ_ONCE(*x);
-+		r2 = READ_ONCE(*y);
-+	}
-+
-+	P1(int *x, int *y)
-+	{
-+		int r3;
-+		int r4;
-+
-+		WRITE_ONCE(*y, 1);
-+		r3 = READ_ONCE(*y);
-+		r4 = READ_ONCE(*x);
-+	}
-+
-+The next step is to construct a space-separated list of descriptors,
-+interleaving descriptions of the relation between a pair of consecutive
-+accesses with descriptions of the second access in the pair.
-+
-+P0()'s WRITE_ONCE() is read by its first READ_ONCE(), which is a
-+reads-from link (rf) and internal to the P0() process.  This is
-+"rfi", which is an abbreviation for "reads-from internal".  Because
-+some of the tools string these abbreviations together with space
-+characters separating processes, the first character is capitalized,
-+resulting in "Rfi".
-+
-+P0()'s second access is a READ_ONCE(), as opposed to (for example)
-+smp_load_acquire(), so next is "Once".  Thus far, we have "Rfi Once".
-+
-+P0()'s third access is also a READ_ONCE(), but to y rather than x.
-+This is related to P0()'s second access by program order ("po"),
-+to a different variable ("d"), and both accesses are reads ("RR").
-+The resulting descriptor is "PodRR".  Because P0()'s third access is
-+READ_ONCE(), we add another "Once" descriptor.
-+
-+A from-read ("fre") relation links P0()'s third to P1()'s first
-+access, and the resulting descriptor is "Fre".  P1()'s first access is
-+WRITE_ONCE(), which as before gives the descriptor "Once".  The string
-+thus far is thus "Rfi Once PodRR Once Fre Once".
-+
-+The remainder of P1() is similar to P0(), which means we add
-+"Rfi Once PodRR Once".  Another fre links P1()'s last access to
-+P0()'s first access, which is WRITE_ONCE(), so we add "Fre Once".
-+The full string is thus:
-+
-+	Rfi Once PodRR Once Fre Once Rfi Once PodRR Once Fre Once
-+
-+This string can be given to the "norm7" and "classify7" tools to
-+produce the name:
-+
-+	$ norm7 -bell linux-kernel.bell \
-+		Rfi Once PodRR Once Fre Once Rfi Once PodRR Once Fre Once | \
-+	  sed -e 's/:.*//g'
-+	SB+rfionceonce-poonceonces
-+
-+Adding the ".litmus" suffix: SB+rfionceonce-poonceonces.litmus
-+
-+The descriptors that describe connections between consecutive accesses
-+within the cycle through a given litmus test can be provided by the herd
-+tool (Rfi, Po, Fre, and so on) or by the linux-kernel.bell file (Once,
-+Release, Acquire, and so on).
-+
-+To see the full list of descriptors, execute the following command:
-+
-+	$ diyone7 -bell linux-kernel.bell -show edges
+ 	log->l_curr_block -= log->l_logBBsize;
 -- 
 2.17.1
