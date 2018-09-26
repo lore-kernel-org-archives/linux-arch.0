@@ -1,53 +1,90 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [REVIEW][PATCH 00/15] signal/arm64: siginfo cleanups
-Date: Wed, 26 Sep 2018 18:38:42 +0100
-Message-ID: <20180926173841.GD175719@arrakis.emea.arm.com>
-References: <871s9j462u.fsf@xmission.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 05/18] asm-generic/tlb: Provide generic tlb_flush
+Date: Wed, 26 Sep 2018 20:07:27 +0200
+Message-ID: <20180926180727.GA7455@hirez.programming.kicks-ass.net>
+References: <20180926113623.863696043@infradead.org>
+ <20180926114800.770817616@infradead.org>
+ <20180926125335.GG2979@brain-police>
+ <20180926131141.GA12444@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <871s9j462u.fsf@xmission.com>
+In-Reply-To: <20180926131141.GA12444@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Eric,
+On Wed, Sep 26, 2018 at 03:11:41PM +0200, Peter Zijlstra wrote:
+> On Wed, Sep 26, 2018 at 01:53:35PM +0100, Will Deacon wrote:
 
-On Mon, Sep 24, 2018 at 11:07:05AM +0200, Eric W. Biederman wrote:
-> This is the continuation of my work to sort out signaling of exceptions
-> with siginfo.  The old signal sending functions by taking a siginfo
-> argument resulted in their callers having to deal with the fiddly nature
-> of siginfo directly.  In small numbers of callers this is not a problem
-> but in the number of callers in the kernel this resulted in cases
-> where fields were not initialized or improperly initialized before
-> being passed to userspace.
+> > > +static inline void tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+> > > +{
+> > > +	if (tlb->fullmm)
+> > > +		return;
+> > > +
+> > > +	/*
+> > > +	 * flush_tlb_range() implementations that look at VM_HUGETLB (tile,
+> > > +	 * mips-4k) flush only large pages.
+> > > +	 *
+> > > +	 * flush_tlb_range() implementations that flush I-TLB also flush D-TLB
+> > > +	 * (tile, xtensa, arm), so it's ok to just add VM_EXEC to an existing
+> > > +	 * range.
+> > > +	 *
+> > > +	 * We rely on tlb_end_vma() to issue a flush, such that when we reset
+> > > +	 * these values the batch is empty.
+> > > +	 */
+> > > +	tlb->vma_huge = !!(vma->vm_flags & VM_HUGETLB);
+> > > +	tlb->vma_exec = !!(vma->vm_flags & VM_EXEC);
+> > 
+> > Hmm, does this result in code generation for archs that don't care about the
+> > vm_flags?
 > 
-> To avoid having to worry about those issues I have added new signal
-> sending functions that each deal wit a different siginfo case.  When
-> using these functions there is no room for the fiddly nature of siginfo
-> to cause mistakes.
-> 
-> This is my set of changes to update arm64 to use those functions.
-> Along with some refactoring so those functions can be cleanly used.
-> 
-> Folks please review and double check me.  I think I have kept these
-> changes simple and obviously correct but I am human and mess up
-> sometimes.
+> Yes. It's not much code, but if you deeply care we could frob things to
+> get rid of it.
 
-Nice clean-up, thanks. I started reviewing the patches, I should finish
-by tomorrow (I also applied them locally to give some testing).
+Something a little like the below... not particularly pretty but should
+work.
 
-> After these patches have had a chance to be reviewed I plan to merge
-> them by my siginfo tree.  If you would rather take them in the arm64
-> tree let me know.   All of the prerequisites should have been merged
-> through Linus's tree several releases ago.
-
-Either way works for me. There is a trivial conflict in
-force_signal_inject() with the arm64 for-next/core tree so I could as
-well put them on top of this branch and send them during the 4.20
-merging window.
-
--- 
-Catalin
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -305,7 +305,8 @@ static inline void __tlb_reset_range(str
+ #error Default tlb_flush() relies on default tlb_start_vma() and tlb_end_vma()
+ #endif
+ 
+-#define tlb_flush tlb_flush
++#define generic_tlb_flush
++
+ static inline void tlb_flush(struct mmu_gather *tlb)
+ {
+ 	if (tlb->fullmm || tlb->need_flush_all) {
+@@ -391,12 +392,12 @@ static inline unsigned long tlb_get_unma
+  * the vmas are adjusted to only cover the region to be torn down.
+  */
+ #ifndef tlb_start_vma
+-#define tlb_start_vma tlb_start_vma
+ static inline void tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+ {
+ 	if (tlb->fullmm)
+ 		return;
+ 
++#ifdef generic_tlb_flush
+ 	/*
+ 	 * flush_tlb_range() implementations that look at VM_HUGETLB (tile,
+ 	 * mips-4k) flush only large pages.
+@@ -410,13 +411,13 @@ static inline void tlb_start_vma(struct
+ 	 */
+ 	tlb->vma_huge = !!(vma->vm_flags & VM_HUGETLB);
+ 	tlb->vma_exec = !!(vma->vm_flags & VM_EXEC);
++#endif
+ 
+ 	flush_cache_range(vma, vma->vm_start, vma->vm_end);
+ }
+ #endif
+ 
+ #ifndef tlb_end_vma
+-#define tlb_end_vma tlb_end_vma
+ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+ {
+ 	if (tlb->fullmm)
