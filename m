@@ -1,46 +1,84 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 7/7] ia64: add __IGNORE* entries in asm/unistd.h
-Date: Thu, 27 Sep 2018 19:45:20 +0530
-Message-ID: <1538057720-3392-8-git-send-email-firoz.khan@linaro.org>
-References: <1538057720-3392-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v2 0/5] System call table generation support
+Date: Thu, 27 Sep 2018 19:54:22 +0530
+Message-ID: <1538058267-3765-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1538057720-3392-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Add __IGNORE* entries for perf_event_open, seccomp, pkey_
-mprotect, pkey_alloc, pkey_free, statx, io_pgetevents and
-rseq in the file asm/unistd.h as it is correct to keep
-__IGNORE* entry in non uapi header asm/unistd.h while uapi/
-asm/unistd.h must hold information only useful for user
-space applications.
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/ia64/include/asm/unistd.h | 9 +++++++++
- 1 file changed, 9 insertions(+)
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
-diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
-index 397b143..a0941e6 100644
---- a/arch/ia64/include/asm/unistd.h
-+++ b/arch/ia64/include/asm/unistd.h
-@@ -26,6 +26,15 @@
- #define __IGNORE_vfork		/* clone() */
- #define __IGNORE_umount2	/* umount() */
- 
-+#define __IGNORE_perf_event_open
-+#define __IGNORE_seccomp
-+#define __IGNORE_pkey_mprotect
-+#define __IGNORE_pkey_alloc
-+#define __IGNORE_pkey_free
-+#define __IGNORE_statx
-+#define __IGNORE_io_pgetevents
-+#define __IGNORE_rseq
-+
- #if !defined(__ASSEMBLY__) && !defined(ASSEMBLER)
- 
- #include <linux/types.h>
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify them across all architectures.
+
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, microblaze, sparc,
+m68k, mips, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Added an extra patch to keep __IGNORE* entries in asm/unistd.h.
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+Firoz Khan (5):
+  parisc: move __IGNORE* entries to non uapi header
+  parisc: add __NR_Linux_syscalls macro with __NR_syscalls
+  parisc: add system call table generation support
+  parisc: uapi header and system call table file generation
+  parisc: add __IGNORE* entries in asm/unistd.h
+
+ arch/parisc/Makefile                       |   4 +
+ arch/parisc/include/asm/Kbuild             |   3 +
+ arch/parisc/include/asm/unistd.h           |   9 +
+ arch/parisc/include/uapi/asm/Kbuild        |   2 +
+ arch/parisc/include/uapi/asm/unistd.h      | 380 +-----------------------
+ arch/parisc/kernel/syscall.S               |  12 +-
+ arch/parisc/kernel/syscall_table.S         | 459 -----------------------------
+ arch/parisc/kernel/syscall_table_32.S      |  13 +
+ arch/parisc/kernel/syscall_table_64.S      |  20 ++
+ arch/parisc/kernel/syscalls/Makefile       |  55 ++++
+ arch/parisc/kernel/syscalls/syscall_32.tbl | 342 +++++++++++++++++++++
+ arch/parisc/kernel/syscalls/syscall_64.tbl | 342 +++++++++++++++++++++
+ arch/parisc/kernel/syscalls/syscallhdr.sh  |  35 +++
+ arch/parisc/kernel/syscalls/syscalltbl.sh  |  42 +++
+ 14 files changed, 877 insertions(+), 841 deletions(-)
+ delete mode 100644 arch/parisc/kernel/syscall_table.S
+ create mode 100644 arch/parisc/kernel/syscall_table_32.S
+ create mode 100644 arch/parisc/kernel/syscall_table_64.S
+ create mode 100644 arch/parisc/kernel/syscalls/Makefile
+ create mode 100644 arch/parisc/kernel/syscalls/syscall_32.tbl
+ create mode 100644 arch/parisc/kernel/syscalls/syscall_64.tbl
+ create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+
 -- 
 1.9.1
