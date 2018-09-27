@@ -1,133 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:52378 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727212AbeI0VKY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Sep 2018 17:10:24 -0400
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V6 10/33] csky: IRQ handling
-Date: Thu, 27 Sep 2018 22:47:47 +0800
-Message-ID: <fbb4e798d1588e9df2da16818932747430068baf.1538058840.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1538058840.git.ren_guo@c-sky.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:43296 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727212AbeI0WGi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Sep 2018 18:06:38 -0400
+Date: Thu, 27 Sep 2018 08:47:33 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH V6 07/33] csky: MMU and page table management
+Message-ID: <20180927154733.GA15985@infradead.org>
 References: <cover.1538058840.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1538058840.git.ren_guo@c-sky.com>
-References: <cover.1538058840.git.ren_guo@c-sky.com>
+ <ed7dcac1e0f3a858fa75735fa881818bc4ab1468.1538058840.git.ren_guo@c-sky.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ed7dcac1e0f3a858fa75735fa881818bc4ab1468.1538058840.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180927144747.9q025zB6LCicO7vgGRAai5hb2W0LTFwBdxBDNKn6vkM@z>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
+Message-ID: <20180927154733.csTqw8zLmAkM8YRlDLQDoizPboqnjTA9kdlsXhFmcag@z>
 
-This patch adds IRQ handling files.
+> +static void *csky_dma_alloc_atomic(
+> +	struct device *dev,
+> +	size_t size,
+> +	dma_addr_t *dma_handle
+> +	)
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/include/asm/irq.h      |  9 ++++++++
- arch/csky/include/asm/irqflags.h | 50 ++++++++++++++++++++++++++++++++++++++++
- arch/csky/kernel/irq.c           | 22 ++++++++++++++++++
- 3 files changed, 81 insertions(+)
- create mode 100644 arch/csky/include/asm/irq.h
- create mode 100644 arch/csky/include/asm/irqflags.h
- create mode 100644 arch/csky/kernel/irq.c
+Can you please use normal kernel coding style?  Closing brace on the
+same line, either two tab indents for the arguments or align them to the
+first argument:
 
-diff --git a/arch/csky/include/asm/irq.h b/arch/csky/include/asm/irq.h
-new file mode 100644
-index 0000000..970ef4f
---- /dev/null
-+++ b/arch/csky/include/asm/irq.h
-@@ -0,0 +1,9 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_IRQ_H
-+#define __ASM_CSKY_IRQ_H
-+
-+#include <asm-generic/irq.h>
-+
-+#endif /* __ASM_CSKY_IRQ_H */
-diff --git a/arch/csky/include/asm/irqflags.h b/arch/csky/include/asm/irqflags.h
-new file mode 100644
-index 0000000..a4fd2dd
---- /dev/null
-+++ b/arch/csky/include/asm/irqflags.h
-@@ -0,0 +1,50 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_IRQFLAGS_H
-+#define __ASM_CSKY_IRQFLAGS_H
-+#include <abi/reg_ops.h>
-+
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags;
-+
-+	flags = mfcr("psr");
-+	asm volatile("psrclr ie\n":::"memory");
-+	return flags;
-+}
-+#define arch_local_irq_save arch_local_irq_save
-+
-+static inline void arch_local_irq_enable(void)
-+{
-+	asm volatile("psrset ee, ie\n":::"memory");
-+}
-+#define arch_local_irq_enable arch_local_irq_enable
-+
-+static inline void arch_local_irq_disable(void)
-+{
-+	asm volatile("psrclr ie\n":::"memory");
-+}
-+#define arch_local_irq_disable arch_local_irq_disable
-+
-+static inline unsigned long arch_local_save_flags(void)
-+{
-+	return mfcr("psr");
-+}
-+#define arch_local_save_flags arch_local_save_flags
-+
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	mtcr("psr", flags);
-+}
-+#define arch_local_irq_restore arch_local_irq_restore
-+
-+static inline int arch_irqs_disabled_flags(unsigned long flags)
-+{
-+	return !(flags & (1<<6));
-+}
-+#define arch_irqs_disabled_flags arch_irqs_disabled_flags
-+
-+#include <asm-generic/irqflags.h>
-+
-+#endif /* __ASM_CSKY_IRQFLAGS_H */
-diff --git a/arch/csky/kernel/irq.c b/arch/csky/kernel/irq.c
-new file mode 100644
-index 0000000..03a1930
---- /dev/null
-+++ b/arch/csky/kernel/irq.c
-@@ -0,0 +1,22 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/irq.h>
-+#include <linux/irqchip.h>
-+#include <asm/traps.h>
-+#include <asm/smp.h>
-+
-+void __init init_IRQ(void)
-+{
-+	irqchip_init();
-+#ifdef CONFIG_SMP
-+	setup_smp_ipi();
-+#endif
-+}
-+
-+asmlinkage void __irq_entry csky_do_IRQ(struct pt_regs *regs)
-+{
-+	handle_arch_irq(regs);
-+}
--- 
-2.7.4
+static void *csky_dma_alloc_atomic(struct device *dev, size_t size,
+		dma_addr_t *dma_handle)
+
+or:
+
+static void *csky_dma_alloc_atomic(struct device *dev, size_t size,
+				   dma_addr_t *dma_handle)
+
+> +	if (DMA_ATTR_NON_CONSISTENT & attrs)
+> +		BUG();
+
+Please don't bug on unknown attributs, they can be safely ignored.
+
+> +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+> +			      size_t size, enum dma_data_direction dir)
+> +{
+> +	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
+> +	unsigned long offset = paddr & ~PAGE_MASK;
+> +	unsigned long vaddr;
+> +
+> +	if (PageHighMem(page))
+> +		vaddr = (unsigned long) kmap_atomic(page);
+
+This isn't going to work as the size might be larger than PAGE_SIZE.
