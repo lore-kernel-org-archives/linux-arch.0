@@ -1,94 +1,80 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH v14 08/19] signal: x86/sgx: Add SIGSEGV siginfo code for SGX EPCM fault
-Date: Thu, 27 Sep 2018 20:41:48 +0200
-Message-ID: <87in2qpytv.fsf@xmission.com>
-References: <20180925130845.9962-1-jarkko.sakkinen@linux.intel.com>
-        <20180925130845.9962-9-jarkko.sakkinen@linux.intel.com>
+Subject: Re: [PATCH V6 08/33] csky: Process management and Signal
+Date: Thu, 27 Sep 2018 21:50:43 +0200
+Message-ID: <87h8iaoh2k.fsf@xmission.com>
+References: <cover.1538058840.git.ren_guo@c-sky.com>
+        <cover.1538058840.git.ren_guo@c-sky.com>
+        <a51eb26bd9442a3e4d09e9785ae5ccaf2555a534.1538058840.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925130845.9962-9-jarkko.sakkinen@linux.intel.com> (Jarkko
-        Sakkinen's message of "Tue, 25 Sep 2018 16:06:45 +0300")
+In-Reply-To: <a51eb26bd9442a3e4d09e9785ae5ccaf2555a534.1538058840.git.ren_guo@c-sky.com>
+        (Guo Ren's message of "Thu, 27 Sep 2018 22:47:45 +0800")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-Cc: x86@kernel.org, platform-driver-x86@vger.kernel.org, dave.hansen@intel.com, sean.j.christopherson@intel.com, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, Dave Hansen <dave.hansen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com> writes:
+Guo Ren <ren_guo@c-sky.com> writes:
 
-> From: Sean Christopherson <sean.j.christopherson@intel.com>
->
-> The SGX Enclave Page Cache Map (EPCM) is a hardware-managed table
-> that enforces accesses to an enclave's EPC page in addition to the
-> software-managed kernel page tables, i.e. the effective permissions
-> for an EPC page are a logical AND of the kernel's page tables and
-> the corresponding EPCM entry.  The primary purpose of the EPCM is
-> to prevent a malcious or compromised kernel from attacking an enclave
-> by modifying the enclave's page tables.  The EPCM entires for an
-> enclave are populated when the enclave is built and verified, using
-> metadata provided by the enclave that is included in the measurement
-> used to verify the enclave.
->
-> In normal operation of a properly functioning, non-malicious kernel
-> (and enclave), the EPCM permissions will never trigger a fault, i.e.
-> the kernel may make the permissions for an EPC page more restrictive,
-> e.g. mark it not-present to swap out the EPC page, but the kernel will
-> never make its permissions less restrictive.
->
-> But, there is a legitimate scenario in which the kernel's page tables
-> can become less restrictive than the EPCM: on current hardware all
-> enclaves are destroyed (by hardware) on a transition to S3 or lower
-> sleep states, i.e. all EPCM entries are invalid (not-present) after
-> the system resumes from its sleep state.
->
-> Unfortunately, on CPUs that support only SGX1, EPCM violations result
-> in a #GP.  The upside of the #GP is that no kernel changes are needed
-> to deal with the EPCM being blasted away by hardware, e.g. userspace
-> gets a SIGSEGV, assumes the EPCM was lost and restarts its enclave
-> and everyone is happy.  The downside is that userspace has to assume
-> the SIGSEGV was because the EPC was lost (or possibly do some leg work
-> to rule out other causes).
->
-> In SGX2, the oddity of delivering a #GP due to what are inherently
-> paging related violations is remedied.  CPUs that support SGX2 deliver
-> EPCM violations as #PFs with a new SGX error code bit set.  So, now
-> that hardware provides us with a way to unequivocally determine that
-> a fault was due to a EPCM violation, define a signfo code for SIGSEGV
-> so that the information can be passed onto userspace.
->
-> Cc: Dave Hansen <dave.hansen@linux.intel.com>
-> Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
-> Signed-off-by: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
-> ---
->  include/uapi/asm-generic/siginfo.h | 4 ++++
->  1 file changed, 4 insertions(+)
->
-> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> index 80e2a7227205..fdd898e2325b 100644
-> --- a/include/uapi/asm-generic/siginfo.h
-> +++ b/include/uapi/asm-generic/siginfo.h
-> @@ -225,7 +225,11 @@ typedef struct siginfo {
->  #else
->  # define SEGV_PKUERR	4	/* failed protection key checks */
->  #endif
-> +#ifdef __x86_64__
-> +#define SEGV_SGXERR	5	/* SGX Enclave Page Cache Map fault */
-> +#else
->  #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
-> +#endif
+> --- /dev/null
+> +++ b/arch/csky/abiv2/fpu.c
+> +void fpu_fpe(struct pt_regs * regs)
+> +{
+> +	int sig;
+> +	unsigned int fesr;
+> +	siginfo_t info;
+> +
+> +	fesr = mfcr("cr<2, 2>");
+> +
+> +	if(fesr & FPE_ILLE){
+> +		info.si_code = ILL_ILLOPC;
+> +		sig = SIGILL;
+> +	}
+> +	else if(fesr & FPE_IDC){
+> +		info.si_code = ILL_ILLOPN;
+> +		sig = SIGILL;
+> +	}
+> +	else if(fesr & FPE_FEC){
+> +		sig = SIGFPE;
+> +		if(fesr & FPE_IOC){
+> +			info.si_code = FPE_FLTINV;
+> +		}
+> +		else if(fesr & FPE_DZC){
+> +			info.si_code = FPE_FLTDIV;
+> +		}
+> +		else if(fesr & FPE_UFC){
+> +			info.si_code = FPE_FLTUND;
+> +		}
+> +		else if(fesr & FPE_OFC){
+> +			info.si_code = FPE_FLTOVF;
+> +		}
+> +		else if(fesr & FPE_IXC){
+> +			info.si_code = FPE_FLTRES;
+> +		}
+> +		else {
+> +			info.si_code = NSIGFPE;
+> +		}
+> +	}
+> +	else {
+> +		info.si_code = NSIGFPE;
+> +		sig = SIGFPE;
+> +	}
+> +	info.si_signo = SIGFPE;
+> +	info.si_errno = 0;
+> +	info.si_addr = (void *)regs->pc;
+> +	force_sig_info(sig, &info, current);
+> +}
 
-Don't do this crazy ifdef thing.  si_codes are not supposed to be per
-architecture.  There are a few historical bugs but with a 32bit space
-it is just stupid to add #ifdefs.
 
-Just set.
-#define SEGV_SGXERR 8 and increase NSIGSEGV
+This use of sending a signal is buggy.  It results in undefined values
+being copied to userspace.
 
-Anything else is just asking for trouble.  Especially when you want to
-get SGX working on itaninum.
+Userspace should never be sent NSIGXXX as a si_code.  You can use
+FPE_FLTUNK for this default case.
 
->  #define SEGV_ADIDERR	6	/* Disrupting MCD error */
->  #define SEGV_ADIPERR	7	/* Precise MCD exception */
->  #define NSIGSEGV	7
+In new code please use force_sig_fault instead of force_sig_info in new
+code.  That saves you the trouble of messing with struct siginfo.
 
-Eric
+Thank you very much,
+Eric Biederman
