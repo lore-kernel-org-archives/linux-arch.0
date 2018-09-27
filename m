@@ -1,27 +1,94 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH V5 27/30] dt-bindings: interrupt-controller: C-SKY APB
- intc
-Date: Thu, 27 Sep 2018 12:36:38 -0500
-Message-ID: <20180927173638.GA5231@bogus>
-References: <cover.1537789736.git.ren_guo@c-sky.com>
- <962274d8ec61f3900b19c07bbe8923674c94d044.1537789737.git.ren_guo@c-sky.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH v14 08/19] signal: x86/sgx: Add SIGSEGV siginfo code for SGX EPCM fault
+Date: Thu, 27 Sep 2018 20:41:48 +0200
+Message-ID: <87in2qpytv.fsf@xmission.com>
+References: <20180925130845.9962-1-jarkko.sakkinen@linux.intel.com>
+        <20180925130845.9962-9-jarkko.sakkinen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <962274d8ec61f3900b19c07bbe8923674c94d044.1537789737.git.ren_guo@c-sky.com>
+In-Reply-To: <20180925130845.9962-9-jarkko.sakkinen@linux.intel.com> (Jarkko
+        Sakkinen's message of "Tue, 25 Sep 2018 16:06:45 +0300")
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com, Guo Ren <ren_guo@c-sky.com>
+To: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+Cc: x86@kernel.org, platform-driver-x86@vger.kernel.org, dave.hansen@intel.com, sean.j.christopherson@intel.com, nhorman@redhat.com, npmccallum@redhat.com, serge.ayoun@intel.com, shay.katz-zamir@intel.com, linux-sgx@vger.kernel.org, andriy.shevchenko@linux.intel.com, Dave Hansen <dave.hansen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 25 Sep 2018 07:39:30 +0800, Guo Ren wrote:
->  - Dt-bindings doc about C-SKY apb bus interrupt controller.
-> 
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> ---
->  .../interrupt-controller/csky,apb-intc.txt         | 62 ++++++++++++++++++++++
->  1 file changed, 62 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
-> 
+Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com> writes:
 
-Reviewed-by: Rob Herring <robh@kernel.org>
+> From: Sean Christopherson <sean.j.christopherson@intel.com>
+>
+> The SGX Enclave Page Cache Map (EPCM) is a hardware-managed table
+> that enforces accesses to an enclave's EPC page in addition to the
+> software-managed kernel page tables, i.e. the effective permissions
+> for an EPC page are a logical AND of the kernel's page tables and
+> the corresponding EPCM entry.  The primary purpose of the EPCM is
+> to prevent a malcious or compromised kernel from attacking an enclave
+> by modifying the enclave's page tables.  The EPCM entires for an
+> enclave are populated when the enclave is built and verified, using
+> metadata provided by the enclave that is included in the measurement
+> used to verify the enclave.
+>
+> In normal operation of a properly functioning, non-malicious kernel
+> (and enclave), the EPCM permissions will never trigger a fault, i.e.
+> the kernel may make the permissions for an EPC page more restrictive,
+> e.g. mark it not-present to swap out the EPC page, but the kernel will
+> never make its permissions less restrictive.
+>
+> But, there is a legitimate scenario in which the kernel's page tables
+> can become less restrictive than the EPCM: on current hardware all
+> enclaves are destroyed (by hardware) on a transition to S3 or lower
+> sleep states, i.e. all EPCM entries are invalid (not-present) after
+> the system resumes from its sleep state.
+>
+> Unfortunately, on CPUs that support only SGX1, EPCM violations result
+> in a #GP.  The upside of the #GP is that no kernel changes are needed
+> to deal with the EPCM being blasted away by hardware, e.g. userspace
+> gets a SIGSEGV, assumes the EPCM was lost and restarts its enclave
+> and everyone is happy.  The downside is that userspace has to assume
+> the SIGSEGV was because the EPC was lost (or possibly do some leg work
+> to rule out other causes).
+>
+> In SGX2, the oddity of delivering a #GP due to what are inherently
+> paging related violations is remedied.  CPUs that support SGX2 deliver
+> EPCM violations as #PFs with a new SGX error code bit set.  So, now
+> that hardware provides us with a way to unequivocally determine that
+> a fault was due to a EPCM violation, define a signfo code for SIGSEGV
+> so that the information can be passed onto userspace.
+>
+> Cc: Dave Hansen <dave.hansen@linux.intel.com>
+> Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+> Signed-off-by: Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
+> ---
+>  include/uapi/asm-generic/siginfo.h | 4 ++++
+>  1 file changed, 4 insertions(+)
+>
+> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> index 80e2a7227205..fdd898e2325b 100644
+> --- a/include/uapi/asm-generic/siginfo.h
+> +++ b/include/uapi/asm-generic/siginfo.h
+> @@ -225,7 +225,11 @@ typedef struct siginfo {
+>  #else
+>  # define SEGV_PKUERR	4	/* failed protection key checks */
+>  #endif
+> +#ifdef __x86_64__
+> +#define SEGV_SGXERR	5	/* SGX Enclave Page Cache Map fault */
+> +#else
+>  #define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
+> +#endif
+
+Don't do this crazy ifdef thing.  si_codes are not supposed to be per
+architecture.  There are a few historical bugs but with a 32bit space
+it is just stupid to add #ifdefs.
+
+Just set.
+#define SEGV_SGXERR 8 and increase NSIGSEGV
+
+Anything else is just asking for trouble.  Especially when you want to
+get SGX working on itaninum.
+
+>  #define SEGV_ADIDERR	6	/* Disrupting MCD error */
+>  #define SEGV_ADIPERR	7	/* Precise MCD exception */
+>  #define NSIGSEGV	7
+
+Eric
