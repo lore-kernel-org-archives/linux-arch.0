@@ -1,37 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:45342 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727212AbeI0WIT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Sep 2018 18:08:19 -0400
-Date: Thu, 27 Sep 2018 08:49:18 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH V6 10/33] csky: IRQ handling
-Message-ID: <20180927154918.GB15985@infradead.org>
-References: <cover.1538058840.git.ren_guo@c-sky.com>
- <fbb4e798d1588e9df2da16818932747430068baf.1538058840.git.ren_guo@c-sky.com>
+Received: from mail-oi1-f193.google.com ([209.85.167.193]:46434 "EHLO
+        mail-oi1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727338AbeI0XC0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Sep 2018 19:02:26 -0400
+Date: Thu, 27 Sep 2018 11:43:17 -0500
+From: Rob Herring <robh@kernel.org>
+Subject: Re: [PATCH V5 18/30] dt-bindings: csky CPU Bindings
+Message-ID: <20180927164317.GA8427@bogus>
+References: <cover.1537789736.git.ren_guo@c-sky.com>
+ <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1537789737.git.ren_guo@c-sky.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <fbb4e798d1588e9df2da16818932747430068baf.1538058840.git.ren_guo@c-sky.com>
+In-Reply-To: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1537789737.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
-Message-ID: <20180927154918.kLLghEvdh0qXTpx2hKHbZqtJOO9t4hqw0jSotkdDuYc@z>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com
+Message-ID: <20180927164317.Ijro-ybwLyrKfUQ3yjC2Z_YeHJKIS231Fer385xxbxg@z>
 
+On Tue, Sep 25, 2018 at 07:39:21AM +0800, Guo Ren wrote:
+> This patch adds the documentation to describe that how to add cpu nodes in
+> dts for SMP.
+> 
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> ---
+>  Documentation/devicetree/bindings/csky/cpus.txt | 70 +++++++++++++++++++++++++
+>  1 file changed, 70 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
+> 
+> diff --git a/Documentation/devicetree/bindings/csky/cpus.txt b/Documentation/devicetree/bindings/csky/cpus.txt
+> new file mode 100644
+> index 0000000..ee3901d
 > --- /dev/null
-> +++ b/arch/csky/include/asm/irq.h
-> @@ -0,0 +1,9 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+> +++ b/Documentation/devicetree/bindings/csky/cpus.txt
+> @@ -0,0 +1,70 @@
+> +==================
+> +C-SKY CPU Bindings
+> +==================
 > +
-> +#ifndef __ASM_CSKY_IRQ_H
-> +#define __ASM_CSKY_IRQ_H
+> +The device tree allows to describe the layout of CPUs in a system through
+> +the "cpus" node, which in turn contains a number of subnodes (ie "cpu")
+> +defining properties for every cpu.
 > +
-> +#include <asm-generic/irq.h>
-> +
-> +#endif /* __ASM_CSKY_IRQ_H */
+> +Only SMP system need to care about the cpus node and single processor
+> +needn't define cpus node at all.
 
-Just wire this up using generic-y in the Kbuild file instead of
-creating a wrapper.  (Same for any other header which is a trivial
-asm-generic wrapper).
+We've generally found this is not true. Even for single core, you can 
+have power domains, clocks for DVFS, etc.
+
+> +
+> +=====================================
+> +cpus and cpu node bindings definition
+> +=====================================
+> +
+> +- cpus node
+> +
+> +        Description: Container of cpu nodes
+> +
+> +        The node name must be "cpus".
+> +
+> +        A cpus node must define the following properties:
+> +
+> +        - #address-cells
+> +                Usage: required
+> +                Value type: <u32>
+> +                Definition: must be set to 1
+> +        - #size-cells
+> +                Usage: required
+> +                Value type: <u32>
+> +                Definition: must be set to 0
+> +
+> +- cpu node
+> +
+> +        Description: Describes one of SMP cores
+> +
+> +        PROPERTIES
+> +
+
+You need a compatible property for cpu nodes.
+
+> +        - device_type
+> +                Usage: required
+> +                Value type: <string>
+> +                Definition: must be "cpu"
+> +        - reg
+> +                Usage: required
+> +                Value type: <u32>
+> +                Definition: CPU index
+> +        - status:
+
+You don't need to document status here.
+
+> +                Usage: required
+> +                Value type: <string>
+> +                Definition: "ok"       means enable  the cpu-core
+> +                            "disabled" means disable the cpu-core
+> +
+> +Example:
+> +--------
+> +
+> +	cpus {
+> +		#address-cells = <1>;
+> +		#size-cells = <0>;
+> +		cpu@0 {
+> +			device_type = "cpu";
+> +			reg = <0>;
+> +			status = "ok";
+> +		};
+> +
+> +		cpu@1 {
+> +			device_type = "cpu";
+> +			reg = <1>;
+> +			status = "ok";
+> +		};
+> +	};
+> -- 
+> 2.7.4
+> 
