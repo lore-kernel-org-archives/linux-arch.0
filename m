@@ -1,64 +1,81 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [REVIEW][PATCH 00/15] signal/arm64: siginfo cleanups
-Date: Thu, 27 Sep 2018 14:50:18 +0100
-Message-ID: <20180927135017.GC44459@arrakis.emea.arm.com>
-References: <871s9j462u.fsf@xmission.com>
- <20180926173841.GD175719@arrakis.emea.arm.com>
- <87ftxvs2i0.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v2 0/7] System call table generation support
+Date: Thu, 27 Sep 2018 19:45:13 +0530
+Message-ID: <1538057720-3392-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <87ftxvs2i0.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 27, 2018 at 11:39:35AM +0200, Eric W. Biederman wrote:
-> Catalin Marinas <catalin.marinas@arm.com> writes:
-> > On Mon, Sep 24, 2018 at 11:07:05AM +0200, Eric W. Biederman wrote:
-> >> After these patches have had a chance to be reviewed I plan to merge
-> >> them by my siginfo tree.  If you would rather take them in the arm64
-> >> tree let me know.   All of the prerequisites should have been merged
-> >> through Linus's tree several releases ago.
-> >
-> > Either way works for me. There is a trivial conflict in
-> > force_signal_inject() with the arm64 for-next/core tree so I could as
-> > well put them on top of this branch and send them during the 4.20
-> > merging window.
-> 
-> As long as there is a trivial conflict I would like to keep everything
-> in one tree.
-> 
-> There is a following patchset that manages to reduce the size of struct
-> siginfo in the kernel that I have also posted for review.    With
-> everything in one tree I can make that change now, and just cross it off
-> my list of things to worry about.
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-Fine by me:
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Tested-by: Catalin Marinas <catalin.marinas@arm.com>
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify them across all architectures.
 
-The conflict will appear in -next but the resolution is simple:
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
 
-diff --cc arch/arm64/kernel/traps.c
-index 21689c6a985f,856b32aa03d8..adb0a32c1568
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@@ -353,12 -366,6 +368,9 @@@ void force_signal_inject(int signal, in
-  	const char *desc;
-  	struct pt_regs *regs = current_pt_regs();
-  
- +	if (WARN_ON(!user_mode(regs)))
- +		return;
- +
-- 	clear_siginfo(&info);
-- 
-  	switch (signal) {
-  	case SIGILL:
-  		desc = "undefined instruction";
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, microblaze, sparc,
+mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Added an extra patch to add __NR_old_getpagesize macro.
+Added an extra patch to keep __IGNORE* entries in asm/unistd.h.
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+Firoz Khan (7):
+  ia64: add __NR_old_getpagesize macro
+  ia64: replace NR_syscalls macro from asm/unistd.h
+  ia64: add an offset for system call number
+  ia64: replace the system call table entries from entry.S
+  ia64: add system call table generation support
+  ia64: uapi header and system call table file generation
+  ia64: add __IGNORE* entries in asm/unistd.h
+
+ arch/ia64/Makefile                      |   3 +
+ arch/ia64/include/asm/Kbuild            |   1 +
+ arch/ia64/include/asm/unistd.h          |  13 +-
+ arch/ia64/include/uapi/asm/Kbuild       |   1 +
+ arch/ia64/include/uapi/asm/unistd.h     | 334 +-------------------------------
+ arch/ia64/kernel/entry.S                | 333 +------------------------------
+ arch/ia64/kernel/syscall_table.S        |  12 ++
+ arch/ia64/kernel/syscalls/Makefile      |  40 ++++
+ arch/ia64/kernel/syscalls/syscall.tbl   | 328 +++++++++++++++++++++++++++++++
+ arch/ia64/kernel/syscalls/syscallhdr.sh |  35 ++++
+ arch/ia64/kernel/syscalls/syscalltbl.sh |  34 ++++
+ 11 files changed, 469 insertions(+), 665 deletions(-)
+ create mode 100644 arch/ia64/kernel/syscall_table.S
+ create mode 100644 arch/ia64/kernel/syscalls/Makefile
+ create mode 100644 arch/ia64/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/ia64/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/ia64/kernel/syscalls/syscalltbl.sh
 
 -- 
-Catalin
+1.9.1
