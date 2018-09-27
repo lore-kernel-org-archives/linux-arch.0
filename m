@@ -1,65 +1,64 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 05/18] asm-generic/tlb: Provide generic tlb_flush
-Date: Thu, 27 Sep 2018 13:14:26 +0100
-Message-ID: <20180927121425.GC5028@brain-police>
-References: <20180926113623.863696043@infradead.org>
- <20180926114800.770817616@infradead.org>
- <20180926125335.GG2979@brain-police>
- <20180926131141.GA12444@hirez.programming.kicks-ass.net>
- <20180926180727.GA7455@hirez.programming.kicks-ass.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [REVIEW][PATCH 00/15] signal/arm64: siginfo cleanups
+Date: Thu, 27 Sep 2018 14:50:18 +0100
+Message-ID: <20180927135017.GC44459@arrakis.emea.arm.com>
+References: <871s9j462u.fsf@xmission.com>
+ <20180926173841.GD175719@arrakis.emea.arm.com>
+ <87ftxvs2i0.fsf@xmission.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180926180727.GA7455@hirez.programming.kicks-ass.net>
+In-Reply-To: <87ftxvs2i0.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: aneesh.kumar@linux.vnet.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux@armlinux.org.uk, heiko.carstens@de.ibm.com, riel@surriel.com
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 26, 2018 at 08:07:27PM +0200, Peter Zijlstra wrote:
-> --- a/include/asm-generic/tlb.h
-> +++ b/include/asm-generic/tlb.h
-> @@ -305,7 +305,8 @@ static inline void __tlb_reset_range(str
->  #error Default tlb_flush() relies on default tlb_start_vma() and tlb_end_vma()
->  #endif
->  
-> -#define tlb_flush tlb_flush
-> +#define generic_tlb_flush
-> +
->  static inline void tlb_flush(struct mmu_gather *tlb)
->  {
->  	if (tlb->fullmm || tlb->need_flush_all) {
-> @@ -391,12 +392,12 @@ static inline unsigned long tlb_get_unma
->   * the vmas are adjusted to only cover the region to be torn down.
->   */
->  #ifndef tlb_start_vma
-> -#define tlb_start_vma tlb_start_vma
->  static inline void tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
->  {
->  	if (tlb->fullmm)
->  		return;
->  
-> +#ifdef generic_tlb_flush
->  	/*
->  	 * flush_tlb_range() implementations that look at VM_HUGETLB (tile,
->  	 * mips-4k) flush only large pages.
-> @@ -410,13 +411,13 @@ static inline void tlb_start_vma(struct
->  	 */
->  	tlb->vma_huge = !!(vma->vm_flags & VM_HUGETLB);
->  	tlb->vma_exec = !!(vma->vm_flags & VM_EXEC);
-> +#endif
+On Thu, Sep 27, 2018 at 11:39:35AM +0200, Eric W. Biederman wrote:
+> Catalin Marinas <catalin.marinas@arm.com> writes:
+> > On Mon, Sep 24, 2018 at 11:07:05AM +0200, Eric W. Biederman wrote:
+> >> After these patches have had a chance to be reviewed I plan to merge
+> >> them by my siginfo tree.  If you would rather take them in the arm64
+> >> tree let me know.   All of the prerequisites should have been merged
+> >> through Linus's tree several releases ago.
+> >
+> > Either way works for me. There is a trivial conflict in
+> > force_signal_inject() with the arm64 for-next/core tree so I could as
+> > well put them on top of this branch and send them during the 4.20
+> > merging window.
+> 
+> As long as there is a trivial conflict I would like to keep everything
+> in one tree.
+> 
+> There is a following patchset that manages to reduce the size of struct
+> siginfo in the kernel that I have also posted for review.    With
+> everything in one tree I can make that change now, and just cross it off
+> my list of things to worry about.
 
-Alternatively, we could wrap the two assignments above in a macro like:
+Fine by me:
 
-	tlb_update_vma_flags(tlb, vma)
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Tested-by: Catalin Marinas <catalin.marinas@arm.com>
 
-which could be empty if the generic tlb_flush isn't in use?
+The conflict will appear in -next but the resolution is simple:
 
-Anyway, as long as we resolve this one way or the other, you can add my Ack:
+diff --cc arch/arm64/kernel/traps.c
+index 21689c6a985f,856b32aa03d8..adb0a32c1568
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@@ -353,12 -366,6 +368,9 @@@ void force_signal_inject(int signal, in
+  	const char *desc;
+  	struct pt_regs *regs = current_pt_regs();
+  
+ +	if (WARN_ON(!user_mode(regs)))
+ +		return;
+ +
+- 	clear_siginfo(&info);
+- 
+  	switch (signal) {
+  	case SIGILL:
+  		desc = "undefined instruction";
 
-Acked-by: Will Deacon <will.deacon@arm.com>
-
-Cheers,
-
-Will
+-- 
+Catalin
