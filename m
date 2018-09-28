@@ -1,53 +1,101 @@
-From: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Subject: Re: [PATCH net-next v6 01/23] asm: simd context helper API
-Date: Fri, 28 Sep 2018 16:01:37 +0200
-Message-ID: <CAHmME9rqsOid6UOx+VTsFzJLEiaXpTP_z_wvHC6MbeAQUeEtHg@mail.gmail.com>
-References: <20180925145622.29959-1-Jason@zx2c4.com> <20180925145622.29959-2-Jason@zx2c4.com>
- <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com>
- <CAKv+Gu9kbLPZH4W0zKAfuv-b11mcDaZ05HUauvh9gMZVGVR0AQ@mail.gmail.com>
- <CAHmME9pfs0_MsD9QAGfSm31_w-=6BCF_gZO04XkfhD=mEoZmtQ@mail.gmail.com>
- <CAKv+Gu__7mZFFq6qC=8yh0OuaV+TCCLFt6nm8yJfaANHUPrJ=A@mail.gmail.com>
- <CAHmME9owF+3aQaZUkK4KkfnJna+DK=GoWV8yf-Wb+gH4w3y9eg@mail.gmail.com> <CAKv+Gu9FAVVOiYyGovYZ19-107_6sK9Ya6LnK=AQkTgctMmu5A@mail.gmail.com>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Subject: Re: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
+Date: Fri, 28 Sep 2018 08:55:12 -0700
+Message-ID: <e6122c7d-bd29-d081-3c1e-96b7c369d4fe@schaufler-ca.com>
+References: <20180925001832.18322-1-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAKv+Gu9FAVVOiYyGovYZ19-107_6sK9Ya6LnK=AQkTgctMmu5A@mail.gmail.com>
+In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Joe Perches <joe@perches.com>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
+Cc: John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 28, 2018 at 4:00 PM Ard Biesheuvel
-<ard.biesheuvel@linaro.org> wrote:
->
-> On 28 September 2018 at 15:59, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
-> > On Fri, Sep 28, 2018 at 3:58 PM Ard Biesheuvel
-> > <ard.biesheuvel@linaro.org> wrote:
-> >>
-> >> On 28 September 2018 at 15:47, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
-> >> > On Fri, Sep 28, 2018 at 10:49 AM Ard Biesheuvel
-> >> > <ard.biesheuvel@linaro.org> wrote:
-> >> >> >> +typedef enum {
-> >> >> >> +       HAVE_NO_SIMD = 1 << 0,
-> >> >> >> +       HAVE_FULL_SIMD = 1 << 1,
-> >> >> >> +       HAVE_SIMD_IN_USE = 1 << 31
-> >> >> >> +} simd_context_t;
-> >> >> >> +
-> >> >>
-> >> >> Oh, and another thing (and I'm surprised checkpatch.pl didn't complain
-> >> >> about it): the use of typedef in new code is strongly discouraged.
-> >> >> This policy predates my involvement, so perhaps Joe can elaborate on
-> >> >> the rationale?
-> >> >
-> >> > In case it matters, the motivation for making this a typedef is I
-> >> > could imagine this at some point turning into a more complicated
-> >> > struct on certain platforms and that would make refactoring easier. I
-> >> > could just make it `struct simd_context` now with 1 member though...
-> >>
-> >> Yes that makes sense
-> >
-> > The rationale for it being a typedef or moving to a struct now?
->
-> Yes just switch to a struct.
+On 9/24/2018 5:18 PM, Kees Cook wrote:
+> v3:
+> - add CONFIG_LSM_ENABLE and refactor resulting logic
 
-Okay. No problem with that, but will wait to hear from Joe first.
+Kees, you can add my
+
+	Reviewed-by:Casey Schaufler <casey@schaufler-ca.com>
+
+for this entire patch set. Thank you for taking this on, it's
+a significant and important chunk of the LSM infrastructure
+update.
+
+
+> ...
+> Breakdown of patches:
+>
+> Infrastructure improvements (no logical changes):
+>   LSM: Correctly announce start of LSM initialization
+>   vmlinux.lds.h: Avoid copy/paste of security_init section
+>   LSM: Rename .security_initcall section to .lsm_info
+>   LSM: Remove initcall tracing
+>   LSM: Convert from initcall to struct lsm_info
+>   vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+>   LSM: Convert security_initcall() into DEFINE_LSM()
+>   LSM: Record LSM name in struct lsm_info
+>   LSM: Provide init debugging infrastructure
+>   LSM: Don't ignore initialization failures
+>
+> Split "integrity" out into "ordered initialization" (no logical changes):
+>   LSM: Introduce LSM_FLAG_LEGACY_MAJOR
+>   LSM: Provide separate ordered initialization
+>
+> Provide centralized LSM enable/disable infrastructure:
+>   LoadPin: Rename "enable" to "enforce"
+>   LSM: Plumb visibility into optional "enabled" state
+>   LSM: Lift LSM selection out of individual LSMs
+>   LSM: Prepare for arbitrary LSM enabling
+>   LSM: Introduce CONFIG_LSM_ENABLE
+>   LSM: Introduce lsm.enable= and lsm.disable=
+>   LSM: Prepare for reorganizing "security=" logic
+>   LSM: Refactor "security=" in terms of enable/disable
+>
+> Provide centralized LSM ordering infrastructure:
+>   LSM: Build ordered list of ordered LSMs for init
+>   LSM: Introduce CONFIG_LSM_ORDER
+>   LSM: Introduce "lsm.order=" for boottime ordering
+>
+> Move minor LSMs into ordered LSM initialization:
+>   LoadPin: Initialize as ordered LSM
+>   Yama: Initialize as ordered LSM
+>   LSM: Introduce enum lsm_order
+>   capability: Initialize as LSM_ORDER_FIRST
+>
+> Move major LSMs into ordered LSM initialization:
+>   LSM: Separate idea of "major" LSM from "exclusive" LSM
+>   LSM: Add all exclusive LSMs to ordered initialization
+>
+> -Kees
+>
+>  .../admin-guide/kernel-parameters.txt         |  20 +
+>  arch/arc/kernel/vmlinux.lds.S                 |   1 -
+>  arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
+>  arch/arm64/kernel/vmlinux.lds.S               |   1 -
+>  arch/h8300/kernel/vmlinux.lds.S               |   1 -
+>  arch/microblaze/kernel/vmlinux.lds.S          |   2 -
+>  arch/powerpc/kernel/vmlinux.lds.S             |   2 -
+>  arch/um/include/asm/common.lds.S              |   2 -
+>  arch/xtensa/kernel/vmlinux.lds.S              |   1 -
+>  include/asm-generic/vmlinux.lds.h             |  25 +-
+>  include/linux/init.h                          |   2 -
+>  include/linux/lsm_hooks.h                     |  43 ++-
+>  include/linux/module.h                        |   1 -
+>  security/Kconfig                              |  61 ++-
+>  security/apparmor/lsm.c                       |  16 +-
+>  security/commoncap.c                          |   8 +-
+>  security/integrity/iint.c                     |   5 +-
+>  security/loadpin/Kconfig                      |   4 +-
+>  security/loadpin/loadpin.c                    |  28 +-
+>  security/security.c                           | 351 +++++++++++++++---
+>  security/selinux/hooks.c                      |  16 +-
+>  security/smack/smack_lsm.c                    |   8 +-
+>  security/tomoyo/tomoyo.c                      |   7 +-
+>  security/yama/yama_lsm.c                      |   7 +-
+>  24 files changed, 438 insertions(+), 175 deletions(-)
+>
