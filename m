@@ -1,153 +1,117 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by
- sparse
-Date: Fri, 28 Sep 2018 18:50:14 +0100
-Message-ID: <20180928175013.GC193149@arrakis.emea.arm.com>
-References: <cover.1535629099.git.andreyknvl@google.com>
- <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
- <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
- <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
- <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
- <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
- <20180911164152.GA29166@arrakis.emea.arm.com>
- <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
+Date: Fri, 28 Sep 2018 13:01:30 -0700
+Message-ID: <CAGXu5jKQVDW8Wp0ESv2raa0xJnHCCMNqFCzZ5jSVXQ=Dp7FF8A@mail.gmail.com>
+References: <20180925001832.18322-1-keescook@chromium.org> <e6122c7d-bd29-d081-3c1e-96b7c369d4fe@schaufler-ca.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
+In-Reply-To: <e6122c7d-bd29-d081-3c1e-96b7c369d4fe@schaufler-ca.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.or>
+To: Casey Schaufler <casey@schaufler-ca.com>
+Cc: James Morris <jmorris@namei.org>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Andrey,
+On Fri, Sep 28, 2018 at 8:55 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+> On 9/24/2018 5:18 PM, Kees Cook wrote:
+>> v3:
+>> - add CONFIG_LSM_ENABLE and refactor resulting logic
+>
+> Kees, you can add my
+>
+>         Reviewed-by:Casey Schaufler <casey@schaufler-ca.com>
+>
+> for this entire patch set. Thank you for taking this on, it's
+> a significant and important chunk of the LSM infrastructure
+> update.
 
-(sorry for the delay)
+Thanks!
 
-On Mon, Sep 17, 2018 at 07:01:00PM +0200, Andrey Konovalov wrote:
-> I took another look at the changes this patchset does to the kernel
-> and here are my thoughts:
-> 
-> I see two ways how a (potentially tagged) user pointer gets into the kernel:
-> 
-> 1. A pointer is passed to a syscall (directly as an argument or
-> indirectly as a struct field).
-> 2. A pointer is extracted from user context (registers, etc.) by some
-> kind of a trap/fault handler.
-> (Is there something else?)
+John, you'd looked at this a bit too -- do the results line up with
+your expectations?
 
-Not AFAICT.
+Any thoughts from SELinux, TOMOYO, or IMA folks?
 
-> In case 1 we also have a special case of a pointer passed to one of
-> the memory syscalls (mmap, mprotect, etc.). These syscalls "are not
-> doing memory accesses but rather dealing with the memory range, hence
-> an untagged pointer is better suited" as pointed out by Catalin (these
-> syscalls do not always use "unsigned long" instead of "void __user *"
-> though, for example shmat uses "void __user *").
+-Kees
 
-If it makes things any simpler, we could revisit this though it seems to
-me more consistent not to pass a tagged pointer back into the kernel
-when the original one was untagged (i.e. mmap vs munmap).
+>
+>
+>> ...
+>> Breakdown of patches:
+>>
+>> Infrastructure improvements (no logical changes):
+>>   LSM: Correctly announce start of LSM initialization
+>>   vmlinux.lds.h: Avoid copy/paste of security_init section
+>>   LSM: Rename .security_initcall section to .lsm_info
+>>   LSM: Remove initcall tracing
+>>   LSM: Convert from initcall to struct lsm_info
+>>   vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+>>   LSM: Convert security_initcall() into DEFINE_LSM()
+>>   LSM: Record LSM name in struct lsm_info
+>>   LSM: Provide init debugging infrastructure
+>>   LSM: Don't ignore initialization failures
+>>
+>> Split "integrity" out into "ordered initialization" (no logical changes):
+>>   LSM: Introduce LSM_FLAG_LEGACY_MAJOR
+>>   LSM: Provide separate ordered initialization
+>>
+>> Provide centralized LSM enable/disable infrastructure:
+>>   LoadPin: Rename "enable" to "enforce"
+>>   LSM: Plumb visibility into optional "enabled" state
+>>   LSM: Lift LSM selection out of individual LSMs
+>>   LSM: Prepare for arbitrary LSM enabling
+>>   LSM: Introduce CONFIG_LSM_ENABLE
+>>   LSM: Introduce lsm.enable= and lsm.disable=
+>>   LSM: Prepare for reorganizing "security=" logic
+>>   LSM: Refactor "security=" in terms of enable/disable
+>>
+>> Provide centralized LSM ordering infrastructure:
+>>   LSM: Build ordered list of ordered LSMs for init
+>>   LSM: Introduce CONFIG_LSM_ORDER
+>>   LSM: Introduce "lsm.order=" for boottime ordering
+>>
+>> Move minor LSMs into ordered LSM initialization:
+>>   LoadPin: Initialize as ordered LSM
+>>   Yama: Initialize as ordered LSM
+>>   LSM: Introduce enum lsm_order
+>>   capability: Initialize as LSM_ORDER_FIRST
+>>
+>> Move major LSMs into ordered LSM initialization:
+>>   LSM: Separate idea of "major" LSM from "exclusive" LSM
+>>   LSM: Add all exclusive LSMs to ordered initialization
+>>
+>> -Kees
+>>
+>>  .../admin-guide/kernel-parameters.txt         |  20 +
+>>  arch/arc/kernel/vmlinux.lds.S                 |   1 -
+>>  arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
+>>  arch/arm64/kernel/vmlinux.lds.S               |   1 -
+>>  arch/h8300/kernel/vmlinux.lds.S               |   1 -
+>>  arch/microblaze/kernel/vmlinux.lds.S          |   2 -
+>>  arch/powerpc/kernel/vmlinux.lds.S             |   2 -
+>>  arch/um/include/asm/common.lds.S              |   2 -
+>>  arch/xtensa/kernel/vmlinux.lds.S              |   1 -
+>>  include/asm-generic/vmlinux.lds.h             |  25 +-
+>>  include/linux/init.h                          |   2 -
+>>  include/linux/lsm_hooks.h                     |  43 ++-
+>>  include/linux/module.h                        |   1 -
+>>  security/Kconfig                              |  61 ++-
+>>  security/apparmor/lsm.c                       |  16 +-
+>>  security/commoncap.c                          |   8 +-
+>>  security/integrity/iint.c                     |   5 +-
+>>  security/loadpin/Kconfig                      |   4 +-
+>>  security/loadpin/loadpin.c                    |  28 +-
+>>  security/security.c                           | 351 +++++++++++++++---
+>>  security/selinux/hooks.c                      |  16 +-
+>>  security/smack/smack_lsm.c                    |   8 +-
+>>  security/tomoyo/tomoyo.c                      |   7 +-
+>>  security/yama/yama_lsm.c                      |   7 +-
+>>  24 files changed, 438 insertions(+), 175 deletions(-)
+>>
+>
 
-(if it wasn't for pointers in structures, I would have just left the
-problem entirely to the C library to do the untagging before calling the
-kernel)
 
-> Looking at patch #8 ("usb, arm64: untag user addresses in devio") in
-> this series, it seems that that devio ioctl actually accepts a pointer
-> into a vma, so we shouldn't actually be untagging its argument and the
-> patch needs to be dropped.
-
-You are right, the pointer seems to have originated from the kernel as
-already untagged (mmap() on the driver), so we would expect the user to
-pass it back an untagged pointer.
-
-> Otherwise there's quite a few more cases that needs to be changed
-> (like tcp_zerocopy_receive() for example, more can be found by
-> grepping find_vma() in generic code).
-
-Yes, it's similar to the devio one.
-
-> Regarding case 2, it seems that analyzing casts of __user pointers
-> won't really help, since the code (arch/arm64/mm/fault.c) doesn't
-> really use them. However all of this code is arch specific, so it
-> shouldn't really change over time (right?). It looks like dealing with
-> tags passed to the kernel through these fault handlers is already
-> resolved with these patches (and therefore patch #6 ("arm64: untag
-> user address in __do_user_fault") in this series is not actually
-> needed and can be dropped (need to test that)):
-
-I'm less worried about (2) since, as you say, it's under the arch
-control and, even if it changes slightly over time, we can be aware of
-this.
-
-> Now, I also see two cases when kernel behavior changes depending on
-> whether a pointer is tagged:
-> 
-> 1. Kernel code checks that a pointer belongs to userspace by comparing
-> it with TASK_SIZE/addr_limit/user_addr_max()/USER_DS/... .
-> 2. A pointer gets passed to find_vma() or similar functions.
-> (Is there something else?)
-
-I think these are the main cases.
-
-> The initial thought that I had here is that the pointers that reach
-> find_vma() must be passed through memory syscalls and therefore
-> shouldn't be untagged and don't require any fixes. There are at least
-> two exceptions to this: 1. get_user_pages() (see patch #4 ("mm, arm64:
-> untag user addresses in mm/gup.c") in this patch series) and 2.
-> __do_page_fault() in arch/arm64/mm/fault.c. Are there any other
-> obvious exceptions?
-
-Vincenzo F did some more in-depth analysis, I'll let him answer whether
-he has found any more cases.
-
-At a quick grep, arm64_notify_segfault() (it changes the siginfo
-si_code). There are a few other places which assume that the address is
-already untagged but we don't seem to have a clear guideline on the ABI.
-For example, prctl(PR_SET_MM) takes user addresses and we assume they
-are untagged (as in the mmap() and friends).
-
-> I've tried adding BUG_ON(has_tag(addr)) to find_vma() and running a
-> modified syzkaller version that passes tagged pointers to the kernel
-> and failed to find anything else.
-
-I added a similar test with an LD_PRELOAD'ed malloc/free implementation
-on Debian and seemed alright but I'd rather want something more
-consistent when defining the user ABI, otherwise we have places where
-find_vma() is called but requires untagging.
-
-> As for case 1, the places where pointers are compared with TASK_SIZE
-> and others can be found with grep. Maybe it makes sense to introduce
-> some kind of routine like is_user_pointer() that handles tagged
-> pointers and refactor the existing code to use it? And maybe add a
-> rule to checkpatch.pl that forbids the direct usage of TASK_SIZE and
-> others.
-> 
-> So I think detecting direct comparisons with TASK_SIZE and others
-> would more useful than finding __user pointer casts (it seems that the
-> latter requires a lot of annotations to be fixed/added), and I should
-> just drop this patch with annotations.
-
-I think point (1) is not too bad, usually found with grep.
-
-As I've said in my previous reply, I kind of came to the same conclusion
-that searching __user pointer casts to long may not actually scale. If
-we could add an __untagged annotation to ulong where it matters (e.g.
-find_vma()), we could identify a ulong (default tagged) and annotate
-some of those.
-
-However, this analysis on __user * casting was useful even if we don't
-end up using it. If we come up with a clearer definition of the ABI
-(which syscalls accept tagged pointers), we may conclude that the only
-places where untagging matters are a few find_vma() calls in the arch
-and mm code and can ignore the rest.
-
-FTR, this code is a prerequisite for ARM's memory tagging hardware
-feature. Interestingly, I can't find SPARC ADI support dealing with this
-aspect at all. I suspect their user ABI does not allow tagged addresses
-passed to the kernel.
 
 -- 
-Catalin
+Kees Cook
+Pixel Security
