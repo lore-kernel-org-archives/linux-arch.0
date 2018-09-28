@@ -1,32 +1,62 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 1/7] ia64: add __NR_old_getpagesize macro
-Date: Fri, 28 Sep 2018 14:11:30 +0200
-Message-ID: <CAK8P3a3zhVOymM4--mJ5dfbee3buhp2vw4uxQHgxVoDCDTuR2w@mail.gmail.com>
-References: <1538057720-3392-1-git-send-email-firoz.khan@linaro.org>
- <1538057720-3392-2-git-send-email-firoz.khan@linaro.org>
+Subject: Re: [PATCH v2 2/5] parisc: add __NR_Linux_syscalls macro with __NR_syscalls
+Date: Fri, 28 Sep 2018 14:14:26 +0200
+Message-ID: <CAK8P3a3ZOC-V0uOD6uD=Hg-AoN8mkJynD6ubpaTppevUvQ54qw@mail.gmail.com>
+References: <1538058267-3765-1-git-send-email-firoz.khan@linaro.org> <1538058267-3765-3-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1538057720-3392-2-git-send-email-firoz.khan@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1538058267-3765-3-git-send-email-firoz.khan@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Fenghua Yu <fenghua.yu@intel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, y2038 Mailman List <y2038@lists.linaro.org>, gregkh <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBTZXAgMjcsIDIwMTggYXQgNDoxNiBQTSBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxp
-bmFyby5vcmc+IHdyb3RlOgo+Cj4gQWRkIF9fTlJfb2xkX2dldHBhZ2VzaXplIGluIG9yZGVyIHRv
-IG5vdCBicmVhayBvbGQgdXNlciBzcGFjZQo+IGFzIGl0IGlzIHJlc2VydmVkIGZvciBiYWNrd2Fy
-ZHMgY29tcGF0aWJpbGl0eSB3aXRoIG9sZCBfX05SXwo+IGdldHBhZ2VzaXplLgoKVGhhdCBkZXNj
-cmlwdGlvbiBkb2Vzbid0IHJlYWxseSBtYWtlIHNlbnNlIGhlcmUuCgogICAgICAgIEFybmQKX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGlu
-ZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21h
-aWxtYW4vbGlzdGluZm8veTIwMzgK
+On Thu, Sep 27, 2018 at 4:25 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+>
+> 1. Update __NR_Linux_syscalls in uapi/asm/unistd.h manually
+>    by counting the no.of system calls. No need to update
+>    __NR_Linux_syscalls until we either add a new system call
+>    or delete an existing system call.
+>
+> 2. We can keep this feature it above mentioned script, that
+>    will count the number of syscalls and keep it in a gener-
+>    ated file. In this case we don't need to explicitly update
+>    __NR_Linux_syscalls in asm/unistd.h file.
+>
+> The 2nd option will be the recommended one. For that, I moved
+> the __NR_Linux_syscalls macro from uapi/asm/unistd.h to asm/
+> unistd.h. The macro __NR_syscalls also added for making the
+> name convention same across all architecture. While __NR_sys-
+> calls isn't strictly part of the uapi, having it as part of
+> the generated header to simplifies the implementation. We also
+> need to enclose this macro with #ifdef __KERNEL__ to avoid side
+> effects.
+>
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/parisc/include/uapi/asm/unistd.h | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+> index bb52e12..255c62a 100644
+> --- a/arch/parisc/include/uapi/asm/unistd.h
+> +++ b/arch/parisc/include/uapi/asm/unistd.h
+> @@ -366,7 +366,11 @@
+>  #define __NR_statx             (__NR_Linux + 349)
+>  #define __NR_io_pgetevents     (__NR_Linux + 350)
+>
+> -#define __NR_Linux_syscalls    (__NR_io_pgetevents + 1)
+> +#ifdef __KERNEL__
+> +#define __NR_syscalls           351
+> +#endif
+> +
+> +#define __NR_Linux_syscalls     __NR_syscalls
+>
+
+Hmm, now you have a __NR_Linux_syscalls macro that is defined in user
+space to a another macro that is not visible there. How about moving
+__NR_Linux_syscalls into arch/parisc/include/asm/unistd.h or
+replacing its users with __NR_syscalls instead?
+
+       Arnd
