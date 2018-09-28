@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V6 20/33] csky/dma: fix up dma_mapping error
-Date: Fri, 28 Sep 2018 08:51:17 +0800
-Message-ID: <378d4064bf29863785f4cc637999e07507e2e926.1538058840.git.ren_guo@c-sky.com>
+Subject: [PATCH V6 26/33] MAINTAINERS: Add csky
+Date: Fri, 28 Sep 2018 08:51:23 +0800
+Message-ID: <64738b50aea8b964e36550ec62fad0139ac5f0d7.1538058840.git.ren_guo@c-sky.com>
 References: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
@@ -12,44 +12,39 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-The arch_sync_dma_for_cpu()/arch_sync_dma_for_device() implementation is
-broken for some combinations that end up in a BUG() instead of performing
-the necessary flushes.
+Add a maintainer information for the csky(C-SKY) architecture.
 
-The implementation of arch should follow the following rules:
-         map             for_cpu         for_device      unmap
- TO_DEV  writeback       none            writeback       none
- TO_CPU  invalidate      invalidate*     invalidate      invalidate*
- BIDIR   writeback       invalidate      writeback       invalidate
-
-Link: https://lore.kernel.org/lkml/20180518215548.GH17671@n2100.armlinux.org.uk/
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/mm/dma-mapping.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ MAINTAINERS | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
-diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
-index 16c2087..30a2041 100644
---- a/arch/csky/mm/dma-mapping.c
-+++ b/arch/csky/mm/dma-mapping.c
-@@ -217,7 +217,8 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
- 		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
--		BUG();
-+		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
-+		break;
- 	default:
- 		BUG();
- 	}
-@@ -240,7 +241,7 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+diff --git a/MAINTAINERS b/MAINTAINERS
+index d870cb5..6b7c1be 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3211,6 +3211,22 @@ T:	git git://git.alsa-project.org/alsa-kernel.git
+ S:	Maintained
+ F:	sound/pci/oxygen/
  
- 	switch (dir) {
- 	case DMA_TO_DEVICE:
--		BUG();
-+		break;
- 	case DMA_FROM_DEVICE:
- 	case DMA_BIDIRECTIONAL:
- 		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
++C-SKY ARCHITECTURE
++M:	Guo Ren <ren_guo@c-sky.com>
++T:	git https://github.com/c-sky/csky-linux.git
++S:	Supported
++F:	arch/csky/
++F:	Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
++F:	drivers/irqchip/irq-csky-mpintc.c
++F:	Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
++F:	drivers/irqchip/irq-csky-apb-intc.c
++F:	Documentation/devicetree/bindings/timer/csky,mptimer.txt
++F:	drivers/clocksource/csky_mptimer.c
++F:	Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
++F:	drivers/clocksource/timer-gx6605s.c
++K:	csky
++N:	csky
++
+ C6X ARCHITECTURE
+ M:	Mark Salter <msalter@redhat.com>
+ M:	Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
 -- 
 2.7.4
