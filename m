@@ -1,90 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:52605 "EHLO
-        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726068AbeI1TfD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Sep 2018 15:35:03 -0400
-Date: Fri, 28 Sep 2018 21:10:47 +0800
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V6 08/33] csky: Process management and Signal
-Message-ID: <20180928131047.GC2082@guoren-Inspiron-7460>
-References: <cover.1538058840.git.ren_guo@c-sky.com>
- <cover.1538058840.git.ren_guo@c-sky.com>
- <a51eb26bd9442a3e4d09e9785ae5ccaf2555a534.1538058840.git.ren_guo@c-sky.com>
- <87h8iaoh2k.fsf@xmission.com>
+Received: from frisell.zx2c4.com ([192.95.5.64]:35371 "EHLO frisell.zx2c4.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726349AbeI1UJ0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Sep 2018 16:09:26 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87h8iaoh2k.fsf@xmission.com>
+References: <20180925145622.29959-1-Jason@zx2c4.com> <20180925145622.29959-2-Jason@zx2c4.com>
+ <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com>
+In-Reply-To: <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com>
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Date: Fri, 28 Sep 2018 15:45:20 +0200
+Message-ID: <CAHmME9qpRSNZnPds8dcoObstWhMm_QXs55o=QHipLFfT7n=edg@mail.gmail.com>
+Subject: Re: [PATCH net-next v6 01/23] asm: simd context helper API
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
-Message-ID: <20180928131047.gyqH0KnLRCdbX_XmZ1NnecKDckXFmCx4nBtG6CPlo2A@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
+Message-ID: <20180928134520.AZoSJqiWL9_qFJ8MuPRwVx6az-tHPiIcS8L0Vc3jfLI@z>
 
-On Thu, Sep 27, 2018 at 09:50:43PM +0200, Eric W. Biederman wrote:
-> Guo Ren <ren_guo@c-sky.com> writes:
-> 
-> > --- /dev/null
-> > +++ b/arch/csky/abiv2/fpu.c
-> > +void fpu_fpe(struct pt_regs * regs)
+On Fri, Sep 28, 2018 at 10:28 AM Ard Biesheuvel
+<ard.biesheuvel@linaro.org> wrote:
+> Given that this patch applies to all architectures at once, it is
+> probably better to drop the unrelated reordering hunks to avoid
+> conflicts.
+
+Ack. Will retain order for v7.
+
+> > +static __must_check inline bool may_use_simd(void)
 > > +{
-> > +	int sig;
-> > +	unsigned int fesr;
-> > +	siginfo_t info;
-> > +
-> > +	fesr = mfcr("cr<2, 2>");
-> > +
-> > +	if(fesr & FPE_ILLE){
-> > +		info.si_code = ILL_ILLOPC;
-> > +		sig = SIGILL;
-> > +	}
-> > +	else if(fesr & FPE_IDC){
-> > +		info.si_code = ILL_ILLOPN;
-> > +		sig = SIGILL;
-> > +	}
-> > +	else if(fesr & FPE_FEC){
-> > +		sig = SIGFPE;
-> > +		if(fesr & FPE_IOC){
-> > +			info.si_code = FPE_FLTINV;
-> > +		}
-> > +		else if(fesr & FPE_DZC){
-> > +			info.si_code = FPE_FLTDIV;
-> > +		}
-> > +		else if(fesr & FPE_UFC){
-> > +			info.si_code = FPE_FLTUND;
-> > +		}
-> > +		else if(fesr & FPE_OFC){
-> > +			info.si_code = FPE_FLTOVF;
-> > +		}
-> > +		else if(fesr & FPE_IXC){
-> > +			info.si_code = FPE_FLTRES;
-> > +		}
-> > +		else {
-> > +			info.si_code = NSIGFPE;
-> > +		}
-> > +	}
-> > +	else {
-> > +		info.si_code = NSIGFPE;
-> > +		sig = SIGFPE;
-> > +	}
-> > +	info.si_signo = SIGFPE;
-> > +	info.si_errno = 0;
-> > +	info.si_addr = (void *)regs->pc;
-> > +	force_sig_info(sig, &info, current);
+> > +       return !in_interrupt();
 > > +}
-> 
-> 
-> This use of sending a signal is buggy.  It results in undefined values
-> being copied to userspace.
-> 
-> Userspace should never be sent NSIGXXX as a si_code.  You can use
-> FPE_FLTUNK for this default case.
-Ok, thx for the tips. I'll fix it up in next patch-set.
+> > +
+>
+> Remember this guy?
+>
+> https://marc.info/?l=linux-arch&m=149631094625176&w=2
+>
+> That was never merged, so let's get it right this time.
 
-> In new code please use force_sig_fault instead of force_sig_info in new
-> code.  That saves you the trouble of messing with struct siginfo.
-Ok, got it. Thx
+Wow, nice memory. I had forgotten all about that. Queued for v7.
 
-Best Regards
- Guo Ren
+> > +static inline void simd_relax(simd_context_t *ctx)
+> > +{
+> > +#ifdef CONFIG_PREEMPT
+> > +       if ((*ctx & HAVE_SIMD_IN_USE) && need_resched()) {
+> > +               simd_put(ctx);
+> > +               simd_get(ctx);
+> > +       }
+> > +#endif
+>
+> Could we return a bool here indicating whether we rescheduled or not?
+> In some cases, we could pass that into the asm code as a 'reload'
+> param, allowing repeated loads of key schedules, round constant tables
+> or S-boxes to be elided.
+
+Sure, sounds easy enough.
