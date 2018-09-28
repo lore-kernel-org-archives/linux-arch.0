@@ -1,62 +1,60 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 2/5] parisc: add __NR_Linux_syscalls macro with __NR_syscalls
-Date: Fri, 28 Sep 2018 14:14:26 +0200
-Message-ID: <CAK8P3a3ZOC-V0uOD6uD=Hg-AoN8mkJynD6ubpaTppevUvQ54qw@mail.gmail.com>
-References: <1538058267-3765-1-git-send-email-firoz.khan@linaro.org> <1538058267-3765-3-git-send-email-firoz.khan@linaro.org>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V6 07/33] csky: MMU and page table management
+Date: Fri, 28 Sep 2018 21:08:48 +0800
+Message-ID: <20180928130847.GA2082@guoren-Inspiron-7460>
+References: <cover.1538058840.git.ren_guo@c-sky.com>
+ <ed7dcac1e0f3a858fa75735fa881818bc4ab1468.1538058840.git.ren_guo@c-sky.com>
+ <20180927154733.GA15985@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1538058267-3765-3-git-send-email-firoz.khan@linaro.org>
+Content-Disposition: inline
+In-Reply-To: <20180927154733.GA15985@infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Parisc List <linux-parisc@vger.kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 27, 2018 at 4:25 PM Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> 1. Update __NR_Linux_syscalls in uapi/asm/unistd.h manually
->    by counting the no.of system calls. No need to update
->    __NR_Linux_syscalls until we either add a new system call
->    or delete an existing system call.
->
-> 2. We can keep this feature it above mentioned script, that
->    will count the number of syscalls and keep it in a gener-
->    ated file. In this case we don't need to explicitly update
->    __NR_Linux_syscalls in asm/unistd.h file.
->
-> The 2nd option will be the recommended one. For that, I moved
-> the __NR_Linux_syscalls macro from uapi/asm/unistd.h to asm/
-> unistd.h. The macro __NR_syscalls also added for making the
-> name convention same across all architecture. While __NR_sys-
-> calls isn't strictly part of the uapi, having it as part of
-> the generated header to simplifies the implementation. We also
-> need to enclose this macro with #ifdef __KERNEL__ to avoid side
-> effects.
->
-> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> ---
->  arch/parisc/include/uapi/asm/unistd.h | 6 +++++-
->  1 file changed, 5 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
-> index bb52e12..255c62a 100644
-> --- a/arch/parisc/include/uapi/asm/unistd.h
-> +++ b/arch/parisc/include/uapi/asm/unistd.h
-> @@ -366,7 +366,11 @@
->  #define __NR_statx             (__NR_Linux + 349)
->  #define __NR_io_pgetevents     (__NR_Linux + 350)
->
-> -#define __NR_Linux_syscalls    (__NR_io_pgetevents + 1)
-> +#ifdef __KERNEL__
-> +#define __NR_syscalls           351
-> +#endif
-> +
-> +#define __NR_Linux_syscalls     __NR_syscalls
->
+On Thu, Sep 27, 2018 at 08:47:33AM -0700, Christoph Hellwig wrote:
+> > +static void *csky_dma_alloc_atomic(
+> > +	struct device *dev,
+> > +	size_t size,
+> > +	dma_addr_t *dma_handle
+> > +	)
+> 
+> Can you please use normal kernel coding style?  Closing brace on the
+> same line, either two tab indents for the arguments or align them to the
+> first argument:
+> 
+> static void *csky_dma_alloc_atomic(struct device *dev, size_t size,
+> 		dma_addr_t *dma_handle)
+> 
+> or:
+> 
+> static void *csky_dma_alloc_atomic(struct device *dev, size_t size,
+> 				   dma_addr_t *dma_handle)
+Ok.
 
-Hmm, now you have a __NR_Linux_syscalls macro that is defined in user
-space to a another macro that is not visible there. How about moving
-__NR_Linux_syscalls into arch/parisc/include/asm/unistd.h or
-replacing its users with __NR_syscalls instead?
+> 
+> > +	if (DMA_ATTR_NON_CONSISTENT & attrs)
+> > +		BUG();
+> 
+> Please don't bug on unknown attributs, they can be safely ignored.
+Ok.
 
-       Arnd
+> 
+> > +void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+> > +			      size_t size, enum dma_data_direction dir)
+> > +{
+> > +	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
+> > +	unsigned long offset = paddr & ~PAGE_MASK;
+> > +	unsigned long vaddr;
+> > +
+> > +	if (PageHighMem(page))
+> > +		vaddr = (unsigned long) kmap_atomic(page);
+> 
+> This isn't going to work as the size might be larger than PAGE_SIZE.
+Yes, you are right. I must fix it up. Thank you
+
+Best Regards
+ Guo Ren
