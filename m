@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V6 26/33] MAINTAINERS: Add csky
-Date: Fri, 28 Sep 2018 08:51:23 +0800
-Message-ID: <64738b50aea8b964e36550ec62fad0139ac5f0d7.1538058840.git.ren_guo@c-sky.com>
+Subject: [PATCH V6 27/33] dt-bindings: interrupt-controller: C-SKY APB intc
+Date: Fri, 28 Sep 2018 08:51:24 +0800
+Message-ID: <78ff18cae7dd7fb543ec46935c523f12fb04337e.1538058840.git.ren_guo@c-sky.com>
 References: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
@@ -12,39 +12,81 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add a maintainer information for the csky(C-SKY) architecture.
+ - Dt-bindings doc about C-SKY apb bus interrupt controller.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- MAINTAINERS | 16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
+ .../interrupt-controller/csky,apb-intc.txt         | 62 ++++++++++++++++++++++
+ 1 file changed, 62 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index d870cb5..6b7c1be 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -3211,6 +3211,22 @@ T:	git git://git.alsa-project.org/alsa-kernel.git
- S:	Maintained
- F:	sound/pci/oxygen/
- 
-+C-SKY ARCHITECTURE
-+M:	Guo Ren <ren_guo@c-sky.com>
-+T:	git https://github.com/c-sky/csky-linux.git
-+S:	Supported
-+F:	arch/csky/
-+F:	Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-+F:	drivers/irqchip/irq-csky-mpintc.c
-+F:	Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
-+F:	drivers/irqchip/irq-csky-apb-intc.c
-+F:	Documentation/devicetree/bindings/timer/csky,mptimer.txt
-+F:	drivers/clocksource/csky_mptimer.c
-+F:	Documentation/devicetree/bindings/timer/csky,gx6605s-timer.txt
-+F:	drivers/clocksource/timer-gx6605s.c
-+K:	csky
-+N:	csky
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+new file mode 100644
+index 0000000..44286dc
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+@@ -0,0 +1,62 @@
++==============================
++C-SKY APB Interrupt Controller
++==============================
 +
- C6X ARCHITECTURE
- M:	Mark Salter <msalter@redhat.com>
- M:	Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
++C-SKY APB Interrupt Controller is a simple soc interrupt controller
++on the apb bus and we only use it as root irq controller.
++
++ - csky,apb-intc is used in a lot of csky fpgas and socs, it support 64 irq nums.
++ - csky,dual-apb-intc consists of 2 apb-intc and 128 irq nums supported.
++ - csky,gx6605s-intc is gx6605s soc internal irq interrupt controller, 64 irq nums.
++
++=============================
++intc node bindings definition
++=============================
++
++	Description: Describes APB interrupt controller
++
++	PROPERTIES
++
++	- compatible
++		Usage: required
++		Value type: <string>
++		Definition: must be "csky,apb-intc"
++				    "csky,dual-apb-intc"
++				    "csky,gx6605s-intc"
++	- #interrupt-cells
++		Usage: required
++		Value type: <u32>
++		Definition: must be <1>
++	- reg
++		Usage: required
++		Value type: <u32 u32>
++		Definition: <phyaddr size> in soc from cpu view
++	- interrupt-controller:
++		Usage: required
++	- csky,support-pulse-signal:
++		Usage: select
++		Description: to support pulse signal flag
++
++Examples:
++---------
++
++	intc: interrupt-controller@500000 {
++		compatible = "csky,apb-intc";
++		#interrupt-cells = <1>;
++		reg = <0x00500000 0x400>;
++		interrupt-controller;
++	};
++
++	intc: interrupt-controller@500000 {
++		compatible = "csky,dual-apb-intc";
++		#interrupt-cells = <1>;
++		reg = <0x00500000 0x400>;
++		interrupt-controller;
++	};
++
++	intc: interrupt-controller@500000 {
++		compatible = "csky,gx6605s-intc";
++		#interrupt-cells = <1>;
++		reg = <0x00500000 0x400>;
++		interrupt-controller;
++	};
 -- 
 2.7.4
