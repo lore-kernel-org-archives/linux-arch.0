@@ -1,101 +1,30 @@
-From: Casey Schaufler <casey@schaufler-ca.com>
-Subject: Re: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
-Date: Fri, 28 Sep 2018 08:55:12 -0700
-Message-ID: <e6122c7d-bd29-d081-3c1e-96b7c369d4fe@schaufler-ca.com>
-References: <20180925001832.18322-1-keescook@chromium.org>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH V6 01/33] csky: Build infrastructure
+Date: Fri, 28 Sep 2018 09:11:10 -0700
+Message-ID: <20180928161110.GA19827@infradead.org>
+References: <cover.1538058840.git.ren_guo@c-sky.com>
+ <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1538058840.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925001832.18322-1-keescook@chromium.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1538058840.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
-Cc: John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 9/24/2018 5:18 PM, Kees Cook wrote:
-> v3:
-> - add CONFIG_LSM_ENABLE and refactor resulting logic
+> --- /dev/null
+> +++ b/arch/csky/kernel/Makefile
+> @@ -0,0 +1,8 @@
+> +extra-y := head.o vmlinux.lds
+> +
+> +obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o \
+> +	 power.o syscall.o platform.o syscall_table.o setup.o \
+> +	 process.o cpu-probe.o ptrace.o dumpstack.o
+> +
+> +obj-$(CONFIG_MODULES)			+= module.o
 
-Kees, you can add my
+You can't just wire up the build infrastructure before th code.
 
-	Reviewed-by:Casey Schaufler <casey@schaufler-ca.com>
-
-for this entire patch set. Thank you for taking this on, it's
-a significant and important chunk of the LSM infrastructure
-update.
-
-
-> ...
-> Breakdown of patches:
->
-> Infrastructure improvements (no logical changes):
->   LSM: Correctly announce start of LSM initialization
->   vmlinux.lds.h: Avoid copy/paste of security_init section
->   LSM: Rename .security_initcall section to .lsm_info
->   LSM: Remove initcall tracing
->   LSM: Convert from initcall to struct lsm_info
->   vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
->   LSM: Convert security_initcall() into DEFINE_LSM()
->   LSM: Record LSM name in struct lsm_info
->   LSM: Provide init debugging infrastructure
->   LSM: Don't ignore initialization failures
->
-> Split "integrity" out into "ordered initialization" (no logical changes):
->   LSM: Introduce LSM_FLAG_LEGACY_MAJOR
->   LSM: Provide separate ordered initialization
->
-> Provide centralized LSM enable/disable infrastructure:
->   LoadPin: Rename "enable" to "enforce"
->   LSM: Plumb visibility into optional "enabled" state
->   LSM: Lift LSM selection out of individual LSMs
->   LSM: Prepare for arbitrary LSM enabling
->   LSM: Introduce CONFIG_LSM_ENABLE
->   LSM: Introduce lsm.enable= and lsm.disable=
->   LSM: Prepare for reorganizing "security=" logic
->   LSM: Refactor "security=" in terms of enable/disable
->
-> Provide centralized LSM ordering infrastructure:
->   LSM: Build ordered list of ordered LSMs for init
->   LSM: Introduce CONFIG_LSM_ORDER
->   LSM: Introduce "lsm.order=" for boottime ordering
->
-> Move minor LSMs into ordered LSM initialization:
->   LoadPin: Initialize as ordered LSM
->   Yama: Initialize as ordered LSM
->   LSM: Introduce enum lsm_order
->   capability: Initialize as LSM_ORDER_FIRST
->
-> Move major LSMs into ordered LSM initialization:
->   LSM: Separate idea of "major" LSM from "exclusive" LSM
->   LSM: Add all exclusive LSMs to ordered initialization
->
-> -Kees
->
->  .../admin-guide/kernel-parameters.txt         |  20 +
->  arch/arc/kernel/vmlinux.lds.S                 |   1 -
->  arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
->  arch/arm64/kernel/vmlinux.lds.S               |   1 -
->  arch/h8300/kernel/vmlinux.lds.S               |   1 -
->  arch/microblaze/kernel/vmlinux.lds.S          |   2 -
->  arch/powerpc/kernel/vmlinux.lds.S             |   2 -
->  arch/um/include/asm/common.lds.S              |   2 -
->  arch/xtensa/kernel/vmlinux.lds.S              |   1 -
->  include/asm-generic/vmlinux.lds.h             |  25 +-
->  include/linux/init.h                          |   2 -
->  include/linux/lsm_hooks.h                     |  43 ++-
->  include/linux/module.h                        |   1 -
->  security/Kconfig                              |  61 ++-
->  security/apparmor/lsm.c                       |  16 +-
->  security/commoncap.c                          |   8 +-
->  security/integrity/iint.c                     |   5 +-
->  security/loadpin/Kconfig                      |   4 +-
->  security/loadpin/loadpin.c                    |  28 +-
->  security/security.c                           | 351 +++++++++++++++---
->  security/selinux/hooks.c                      |  16 +-
->  security/smack/smack_lsm.c                    |   8 +-
->  security/tomoyo/tomoyo.c                      |   7 +-
->  security/yama/yama_lsm.c                      |   7 +-
->  24 files changed, 438 insertions(+), 175 deletions(-)
->
+Please add the objects to the Makefiles when they are actually added.
