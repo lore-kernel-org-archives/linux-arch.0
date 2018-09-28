@@ -1,30 +1,32 @@
 From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH V6 01/33] csky: Build infrastructure
-Date: Fri, 28 Sep 2018 09:11:10 -0700
-Message-ID: <20180928161110.GA19827@infradead.org>
+Subject: Re: [PATCH V6 03/33] csky: Kernel booting
+Date: Fri, 28 Sep 2018 09:13:05 -0700
+Message-ID: <20180928161305.GB19827@infradead.org>
 References: <cover.1538058840.git.ren_guo@c-sky.com>
- <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1538058840.git.ren_guo@c-sky.com>
+ <d46b38db96f8b39c38d40170e1842a0dc5ba0671.1538058840.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1538058840.git.ren_guo@c-sky.com>
+In-Reply-To: <d46b38db96f8b39c38d40170e1842a0dc5ba0671.1538058840.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-> --- /dev/null
-> +++ b/arch/csky/kernel/Makefile
-> @@ -0,0 +1,8 @@
-> +extra-y := head.o vmlinux.lds
-> +
-> +obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o \
-> +	 power.o syscall.o platform.o syscall_table.o setup.o \
-> +	 process.o cpu-probe.o ptrace.o dumpstack.o
-> +
-> +obj-$(CONFIG_MODULES)			+= module.o
+> +phys_addr_t __init_memblock memblock_end_of_REG0(void)
+> +{
+> +	return (memblock.memory.regions[0].base + memblock.memory.regions[0].size);
+> +}
 
-You can't just wire up the build infrastructure before th code.
+No need for the braces.
 
-Please add the objects to the Makefiles when they are actually added.
+> +	if (memblock.memory.cnt > 1) {
+> +		zone_size[ZONE_NORMAL]  = PFN_DOWN(memblock_start_of_REG1()) - min_low_pfn;
+> +		zhole_size[ZONE_NORMAL] = PFN_DOWN(memblock_start_of_REG1()) - max_low_pfn;
+
+Please brake lines after 80 characters.
+
+> +	pr_info("C-SKY: https://github.com/c-sky/csky-linux\n");
+
+I don't think this belongs into the kernel log.
