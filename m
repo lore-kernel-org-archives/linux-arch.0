@@ -1,73 +1,47 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V5 23/30] dt-bindings: interrupt-controller: C-SKY SMP
- intc
-Date: Fri, 28 Sep 2018 09:07:23 +0800
-Message-ID: <20180928010721.GB4179@guoren-Inspiron-7460>
-References: <cover.1537789736.git.ren_guo@c-sky.com>
- <57888913907d6c22b23425ed9d4e5a79be5b2eff.1537789737.git.ren_guo@c-sky.com>
- <20180927165044.GA30320@bogus>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Bartosz Golaszewski <brgl@bgdev.pl>
+Subject: [PATCH v5 0/4] devres: provide and use devm_kstrdup_const()
+Date: Fri, 28 Sep 2018 09:14:10 +0200
+Message-ID: <20180928071414.30703-1-brgl@bgdev.pl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180927165044.GA30320@bogus>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rob Herring <robh@kernel.org>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, palmer@sifive.com
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafael@kernel.org>, Jassi Brar <jassisinghbrar@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Jonathan Hunter <jonathanh@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Bartosz Golaszewski <brgl@bgdev.pl>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 27, 2018 at 11:50:44AM -0500, Rob Herring wrote:
-> On Tue, Sep 25, 2018 at 07:39:26AM +0800, Guo Ren wrote:
-> >  - Dt-bindings doc about C-SKY Multi-processors interrupt controller.
-> > 
-> > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> > ---
-> >  .../bindings/interrupt-controller/csky,mpintc.txt  | 40 ++++++++++++++++++++++
-> >  1 file changed, 40 insertions(+)
-> >  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-> > 
-> > diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-> > new file mode 100644
-> > index 0000000..9cdad74
-> > --- /dev/null
-> > +++ b/Documentation/devicetree/bindings/interrupt-controller/csky,mpintc.txt
-> > @@ -0,0 +1,40 @@
-> > +===========================================
-> > +C-SKY Multi-processors Interrupt Controller
-> > +===========================================
-> > +
-> > +C-SKY Multi-processors Interrupt Controller is designed for ck807/ck810/ck860
-> > +SMP soc, and it also could be used in non-SMP system.
-> > +
-> > +Interrupt number definition:
-> > +
-> > +  0-15  : software irq, and we use 15 as our IPI_IRQ.
-> > + 16-31  : private  irq, and we use 16 as the co-processor timer.
-> > + 31-1024: common irq for soc ip.
-> > +
-> > +=============================
-> > +intc node bindings definition
-> > +=============================
-> > +
-> > +	Description: Describes SMP interrupt controller
-> > +
-> > +	PROPERTIES
-> > +
-> > +	- compatible
-> > +		Usage: required
-> > +		Value type: <string>
-> > +		Definition: must be "csky,mpintc"
-> 
-> Only 1 version?
-Currently, one version. Only one csky,mpintc.
+This series implements devm_kstrdup_const() together with some
+prerequisite changes and uses it in pmc-atom driver.
 
-> 
-> This is fine for a fallback, but you should have an SoC specific 
-> compatible too in case there are any SoC specific errata/quirks.
-No SoC specific in fact currently. If necessary we could add it in future.
+v1 -> v2:
+- fixed the changelog in the patch implementing devm_kstrdup_const()
+- fixed the kernel doc
+- moved is_kernel_rodata() to asm-generic/sections.h
+- fixed constness
 
-> 
-> > +	- interrupt-cells
-> 
-> Should be: #interrupt-cells
-Yes, I'll fix it.
+v2 -> v3:
+- rebased on top of 4.19-rc5 as there were some conflicts in the
+  pmc-atom driver
+- collected Reviewed-by tags
+
+v3 -> v4:
+- Andy NAK'ed patch 4/4 so I added a different example
+- collected more tags
+
+v4 -> v5:
+- instead of providing devm_kfree_const(), make devm_kfree() check if
+  given pointer is not in .rodata and act accordingly
+
+Bartosz Golaszewski (4):
+  devres: constify p in devm_kfree()
+  mm: move is_kernel_rodata() to asm-generic/sections.h
+  devres: provide devm_kstrdup_const()
+  mailbox: tegra-hsp: use devm_kstrdup_const()
+
+ drivers/base/devres.c          | 36 +++++++++++++++++++++++++++--
+ drivers/mailbox/tegra-hsp.c    | 41 ++++++++--------------------------
+ include/asm-generic/sections.h | 14 ++++++++++++
+ include/linux/device.h         |  4 +++-
+ mm/util.c                      |  7 ------
+ 5 files changed, 60 insertions(+), 42 deletions(-)
+
+-- 
+2.18.0
