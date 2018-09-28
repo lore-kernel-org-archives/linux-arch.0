@@ -1,85 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:43756 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727294AbeI1CLD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Sep 2018 22:11:03 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:52931 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726091AbeI1HN0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Sep 2018 03:13:26 -0400
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V6 20/33] csky/dma: fix up dma_mapping error
+Date: Fri, 28 Sep 2018 08:51:17 +0800
+Message-ID: <378d4064bf29863785f4cc637999e07507e2e926.1538058840.git.ren_guo@c-sky.com>
+In-Reply-To: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
+References: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1538058840.git.ren_guo@c-sky.com>
 References: <cover.1538058840.git.ren_guo@c-sky.com>
-        <cover.1538058840.git.ren_guo@c-sky.com>
-        <a51eb26bd9442a3e4d09e9785ae5ccaf2555a534.1538058840.git.ren_guo@c-sky.com>
-Date: Thu, 27 Sep 2018 21:50:43 +0200
-In-Reply-To: <a51eb26bd9442a3e4d09e9785ae5ccaf2555a534.1538058840.git.ren_guo@c-sky.com>
-        (Guo Ren's message of "Thu, 27 Sep 2018 22:47:45 +0800")
-Message-ID: <87h8iaoh2k.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH V6 08/33] csky: Process management and Signal
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
-Message-ID: <20180927195043._8o4owt5e7-jeA5enQVYtx7UMUGspqsaj6NzYfU9oBw@z>
+To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
+Message-ID: <20180928005117.aEcusDPRCY8tKU7kMSnfTUtslmJY3CkKc_bH-wHq3IE@z>
 
-Guo Ren <ren_guo@c-sky.com> writes:
+The arch_sync_dma_for_cpu()/arch_sync_dma_for_device() implementation is
+broken for some combinations that end up in a BUG() instead of performing
+the necessary flushes.
 
-> --- /dev/null
-> +++ b/arch/csky/abiv2/fpu.c
-> +void fpu_fpe(struct pt_regs * regs)
-> +{
-> +	int sig;
-> +	unsigned int fesr;
-> +	siginfo_t info;
-> +
-> +	fesr = mfcr("cr<2, 2>");
-> +
-> +	if(fesr & FPE_ILLE){
-> +		info.si_code = ILL_ILLOPC;
-> +		sig = SIGILL;
-> +	}
-> +	else if(fesr & FPE_IDC){
-> +		info.si_code = ILL_ILLOPN;
-> +		sig = SIGILL;
-> +	}
-> +	else if(fesr & FPE_FEC){
-> +		sig = SIGFPE;
-> +		if(fesr & FPE_IOC){
-> +			info.si_code = FPE_FLTINV;
-> +		}
-> +		else if(fesr & FPE_DZC){
-> +			info.si_code = FPE_FLTDIV;
-> +		}
-> +		else if(fesr & FPE_UFC){
-> +			info.si_code = FPE_FLTUND;
-> +		}
-> +		else if(fesr & FPE_OFC){
-> +			info.si_code = FPE_FLTOVF;
-> +		}
-> +		else if(fesr & FPE_IXC){
-> +			info.si_code = FPE_FLTRES;
-> +		}
-> +		else {
-> +			info.si_code = NSIGFPE;
-> +		}
-> +	}
-> +	else {
-> +		info.si_code = NSIGFPE;
-> +		sig = SIGFPE;
-> +	}
-> +	info.si_signo = SIGFPE;
-> +	info.si_errno = 0;
-> +	info.si_addr = (void *)regs->pc;
-> +	force_sig_info(sig, &info, current);
-> +}
+The implementation of arch should follow the following rules:
+         map             for_cpu         for_device      unmap
+ TO_DEV  writeback       none            writeback       none
+ TO_CPU  invalidate      invalidate*     invalidate      invalidate*
+ BIDIR   writeback       invalidate      writeback       invalidate
 
+Link: https://lore.kernel.org/lkml/20180518215548.GH17671@n2100.armlinux.org.uk/
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/mm/dma-mapping.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-This use of sending a signal is buggy.  It results in undefined values
-being copied to userspace.
-
-Userspace should never be sent NSIGXXX as a si_code.  You can use
-FPE_FLTUNK for this default case.
-
-In new code please use force_sig_fault instead of force_sig_info in new
-code.  That saves you the trouble of messing with struct siginfo.
-
-Thank you very much,
-Eric Biederman
+diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
+index 16c2087..30a2041 100644
+--- a/arch/csky/mm/dma-mapping.c
++++ b/arch/csky/mm/dma-mapping.c
+@@ -217,7 +217,8 @@ void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+ 		break;
+ 	case DMA_FROM_DEVICE:
+ 	case DMA_BIDIRECTIONAL:
+-		BUG();
++		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
++		break;
+ 	default:
+ 		BUG();
+ 	}
+@@ -240,7 +241,7 @@ void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+ 
+ 	switch (dir) {
+ 	case DMA_TO_DEVICE:
+-		BUG();
++		break;
+ 	case DMA_FROM_DEVICE:
+ 	case DMA_BIDIRECTIONAL:
+ 		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
+-- 
+2.7.4
