@@ -1,28 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f170.google.com ([209.85.160.170]:44879 "EHLO
-        mail-qt1-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726106AbeI1SfR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2018 14:35:17 -0400
+Received: from mail-qt1-f194.google.com ([209.85.160.194]:37069 "EHLO
+        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726121AbeI1SiN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2018 14:38:13 -0400
 MIME-Version: 1.0
-References: <1538057720-3392-1-git-send-email-firoz.khan@linaro.org> <1538057720-3392-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1538057720-3392-2-git-send-email-firoz.khan@linaro.org>
+References: <1538058267-3765-1-git-send-email-firoz.khan@linaro.org> <1538058267-3765-3-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1538058267-3765-3-git-send-email-firoz.khan@linaro.org>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 28 Sep 2018 14:11:30 +0200
-Message-ID: <CAK8P3a3zhVOymM4--mJ5dfbee3buhp2vw4uxQHgxVoDCDTuR2w@mail.gmail.com>
-Subject: Re: [PATCH v2 1/7] ia64: add __NR_old_getpagesize macro
+Date: Fri, 28 Sep 2018 14:14:26 +0200
+Message-ID: <CAK8P3a3ZOC-V0uOD6uD=Hg-AoN8mkJynD6ubpaTppevUvQ54qw@mail.gmail.com>
+Subject: Re: [PATCH v2 2/5] parisc: add __NR_Linux_syscalls macro with __NR_syscalls
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20180928121130.b9PwU3vUk9dKMgW4U_uhVAPg9c7BXygq9sjwYxyn5jI@z>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20180928121426.Uk1_r0pRFagWtSidiZV7ElPceLEaHpLGZtuw9IsZqUc@z>
 
-On Thu, Sep 27, 2018 at 4:16 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Thu, Sep 27, 2018 at 4:25 PM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> Add __NR_old_getpagesize in order to not break old user space
-> as it is reserved for backwards compatibility with old __NR_
-> getpagesize.
+> 1. Update __NR_Linux_syscalls in uapi/asm/unistd.h manually
+>    by counting the no.of system calls. No need to update
+>    __NR_Linux_syscalls until we either add a new system call
+>    or delete an existing system call.
+>
+> 2. We can keep this feature it above mentioned script, that
+>    will count the number of syscalls and keep it in a gener-
+>    ated file. In this case we don't need to explicitly update
+>    __NR_Linux_syscalls in asm/unistd.h file.
+>
+> The 2nd option will be the recommended one. For that, I moved
+> the __NR_Linux_syscalls macro from uapi/asm/unistd.h to asm/
+> unistd.h. The macro __NR_syscalls also added for making the
+> name convention same across all architecture. While __NR_sys-
+> calls isn't strictly part of the uapi, having it as part of
+> the generated header to simplifies the implementation. We also
+> need to enclose this macro with #ifdef __KERNEL__ to avoid side
+> effects.
+>
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/parisc/include/uapi/asm/unistd.h | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+> index bb52e12..255c62a 100644
+> --- a/arch/parisc/include/uapi/asm/unistd.h
+> +++ b/arch/parisc/include/uapi/asm/unistd.h
+> @@ -366,7 +366,11 @@
+>  #define __NR_statx             (__NR_Linux + 349)
+>  #define __NR_io_pgetevents     (__NR_Linux + 350)
+>
+> -#define __NR_Linux_syscalls    (__NR_io_pgetevents + 1)
+> +#ifdef __KERNEL__
+> +#define __NR_syscalls           351
+> +#endif
+> +
+> +#define __NR_Linux_syscalls     __NR_syscalls
+>
 
-That description doesn't really make sense here.
+Hmm, now you have a __NR_Linux_syscalls macro that is defined in user
+space to a another macro that is not visible there. How about moving
+__NR_Linux_syscalls into arch/parisc/include/asm/unistd.h or
+replacing its users with __NR_syscalls instead?
 
-        Arnd
+       Arnd
