@@ -1,31 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:59784 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:35432 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726121AbeI1Wkn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2018 18:40:43 -0400
-Date: Fri, 28 Sep 2018 09:16:09 -0700
+        with ESMTP id S1726121AbeI1WpH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2018 18:45:07 -0400
+Date: Fri, 28 Sep 2018 09:20:30 -0700
 From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH V6 05/33] csky: System Call
-Message-ID: <20180928161609.GD19827@infradead.org>
+Subject: Re: [PATCH V6 13/33] csky: Library functions
+Message-ID: <20180928162030.GE19827@infradead.org>
 References: <cover.1538058840.git.ren_guo@c-sky.com>
- <c98f0fc0103196e839bdc016f50f227fce8c54b1.1538058840.git.ren_guo@c-sky.com>
+ <2418a9d77fb92ff7606c08e209d8994e4f21e7ff.1538058840.git.ren_guo@c-sky.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <c98f0fc0103196e839bdc016f50f227fce8c54b1.1538058840.git.ren_guo@c-sky.com>
+In-Reply-To: <2418a9d77fb92ff7606c08e209d8994e4f21e7ff.1538058840.git.ren_guo@c-sky.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
-Message-ID: <20180928161609.Ed80Ciy3NYFQ0FrcZ5-Y7p_kLdzhm6DgkrF5MIFJiQ4@z>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Chen Linfei <linfei_chen@c-sky.com>, Mao Han <han_mao@c-sky.com>
+Message-ID: <20180928162030.SUfJNXqegiMlzs6H6-J6egWvm0iw3sOOD-WS60N9NEo@z>
 
-> +
-> +static inline void
-> +syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-> +		      unsigned int i, unsigned int n, const unsigned long *args)
+> +unsigned long long notrace __bswapdi2(unsigned long long u)
 > +{
-> +	BUG_ON(i + n > 6);
-> +        if (i == 0) {
+> +	return (((u) & 0xff00000000000000ull) >> 56) |
+> +	       (((u) & 0x00ff000000000000ull) >> 40) |
+> +	       (((u) & 0x0000ff0000000000ull) >> 24) |
+> +	       (((u) & 0x000000ff00000000ull) >>  8) |
+> +	       (((u) & 0x00000000ff000000ull) <<  8) |
+> +	       (((u) & 0x0000000000ff0000ull) << 24) |
+> +	       (((u) & 0x000000000000ff00ull) << 40) |
+> +	       (((u) & 0x00000000000000ffull) << 56);
+> +}
 
-Please fix your indentation - again checkpatch.pl will be helpful (even
-if it sometimes is a littler overzealous).
+How is this any better than using the generic byteswap helpers?
+
+> +unsigned int notrace __bswapsi2(unsigned int u)
+> +{
+> +	return (((u) & 0xff000000) >> 24) |
+> +	       (((u) & 0x00ff0000) >>  8) |
+> +	       (((u) & 0x0000ff00) <<  8) |
+> +	       (((u) & 0x000000ff) << 24);
+> +}
+
+Same here.
