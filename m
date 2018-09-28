@@ -1,92 +1,99 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V6 27/33] dt-bindings: interrupt-controller: C-SKY APB intc
-Date: Fri, 28 Sep 2018 08:51:24 +0800
-Message-ID: <78ff18cae7dd7fb543ec46935c523f12fb04337e.1538058840.git.ren_guo@c-sky.com>
-References: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1538058840.git.ren_guo@c-sky.com>
+Subject: [PATCH V6 18/33] dt-bindings: csky CPU Bindings
+Date: Fri, 28 Sep 2018 08:51:15 +0800
+Message-ID: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
 References: <cover.1538058840.git.ren_guo@c-sky.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1538058840.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
- - Dt-bindings doc about C-SKY apb bus interrupt controller.
+This patch adds the documentation to describe that how to add cpu nodes in
+dts for SMP.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- .../interrupt-controller/csky,apb-intc.txt         | 62 ++++++++++++++++++++++
- 1 file changed, 62 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+ Documentation/devicetree/bindings/csky/cpus.txt | 70 +++++++++++++++++++++++++
+ 1 file changed, 70 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
+diff --git a/Documentation/devicetree/bindings/csky/cpus.txt b/Documentation/devicetree/bindings/csky/cpus.txt
 new file mode 100644
-index 0000000..44286dc
+index 0000000..ee3901d
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/csky,apb-intc.txt
-@@ -0,0 +1,62 @@
-+==============================
-+C-SKY APB Interrupt Controller
-+==============================
++++ b/Documentation/devicetree/bindings/csky/cpus.txt
+@@ -0,0 +1,70 @@
++==================
++C-SKY CPU Bindings
++==================
 +
-+C-SKY APB Interrupt Controller is a simple soc interrupt controller
-+on the apb bus and we only use it as root irq controller.
++The device tree allows to describe the layout of CPUs in a system through
++the "cpus" node, which in turn contains a number of subnodes (ie "cpu")
++defining properties for every cpu.
 +
-+ - csky,apb-intc is used in a lot of csky fpgas and socs, it support 64 irq nums.
-+ - csky,dual-apb-intc consists of 2 apb-intc and 128 irq nums supported.
-+ - csky,gx6605s-intc is gx6605s soc internal irq interrupt controller, 64 irq nums.
++Only SMP system need to care about the cpus node and single processor
++needn't define cpus node at all.
 +
-+=============================
-+intc node bindings definition
-+=============================
++=====================================
++cpus and cpu node bindings definition
++=====================================
 +
-+	Description: Describes APB interrupt controller
++- cpus node
 +
-+	PROPERTIES
++        Description: Container of cpu nodes
 +
-+	- compatible
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "csky,apb-intc"
-+				    "csky,dual-apb-intc"
-+				    "csky,gx6605s-intc"
-+	- #interrupt-cells
-+		Usage: required
-+		Value type: <u32>
-+		Definition: must be <1>
-+	- reg
-+		Usage: required
-+		Value type: <u32 u32>
-+		Definition: <phyaddr size> in soc from cpu view
-+	- interrupt-controller:
-+		Usage: required
-+	- csky,support-pulse-signal:
-+		Usage: select
-+		Description: to support pulse signal flag
++        The node name must be "cpus".
 +
-+Examples:
-+---------
++        A cpus node must define the following properties:
 +
-+	intc: interrupt-controller@500000 {
-+		compatible = "csky,apb-intc";
-+		#interrupt-cells = <1>;
-+		reg = <0x00500000 0x400>;
-+		interrupt-controller;
-+	};
++        - #address-cells
++                Usage: required
++                Value type: <u32>
++                Definition: must be set to 1
++        - #size-cells
++                Usage: required
++                Value type: <u32>
++                Definition: must be set to 0
 +
-+	intc: interrupt-controller@500000 {
-+		compatible = "csky,dual-apb-intc";
-+		#interrupt-cells = <1>;
-+		reg = <0x00500000 0x400>;
-+		interrupt-controller;
-+	};
++- cpu node
 +
-+	intc: interrupt-controller@500000 {
-+		compatible = "csky,gx6605s-intc";
-+		#interrupt-cells = <1>;
-+		reg = <0x00500000 0x400>;
-+		interrupt-controller;
++        Description: Describes one of SMP cores
++
++        PROPERTIES
++
++        - device_type
++                Usage: required
++                Value type: <string>
++                Definition: must be "cpu"
++        - reg
++                Usage: required
++                Value type: <u32>
++                Definition: CPU index
++        - status:
++                Usage: required
++                Value type: <string>
++                Definition: "ok"       means enable  the cpu-core
++                            "disabled" means disable the cpu-core
++
++Example:
++--------
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		cpu@0 {
++			device_type = "cpu";
++			reg = <0>;
++			status = "ok";
++		};
++
++		cpu@1 {
++			device_type = "cpu";
++			reg = <1>;
++			status = "ok";
++		};
 +	};
 -- 
 2.7.4
