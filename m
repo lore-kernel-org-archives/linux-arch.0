@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:57183 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:44396 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728744AbeI1HNr (ORCPT
+        by vger.kernel.org with ESMTP id S1728744AbeI1HNv (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Sep 2018 03:13:47 -0400
+        Fri, 28 Sep 2018 03:13:51 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V6 30/33] clocksource: add gx6605s SOC system timer
-Date: Fri, 28 Sep 2018 08:51:27 +0800
-Message-ID: <8f77e77744276b0cbdf1d6c9ba6daed49f9452a7.1538058840.git.ren_guo@c-sky.com>
+Subject: [PATCH V6 22/33] irqchip: add C-SKY SMP interrupt controller
+Date: Fri, 28 Sep 2018 08:51:19 +0800
+Message-ID: <629b7a6de76d7150d16ebbe64f5755c75b1e00e9.1538058840.git.ren_guo@c-sky.com>
 In-Reply-To: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
 References: <62098e7d0a7fbdd09f44d7e23333dad258a01bd2.1538058840.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1538058840.git.ren_guo@c-sky.com>
@@ -16,203 +16,257 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180928005127.Sk3JgZffvvYEO1RmxxaMSLNvN-2NNwYjA16yjtolIpU@z>
+Message-ID: <20180928005119.wFOTDhte5mh3QA7KVvtUWFCqufsFuuWjB8BdAP0QfvY@z>
+
+ - Irq-csky-mpintc is C-SKY smp system interrupt controller and it
+   could support 16 soft irqs, 16 private irqs, and 992 max common
+   irqs.
 
 Changelog:
+ - Move IPI_IRQ into the driver
+ - Remove irq_set_default_host() and use set_ipi_irq_mapping()
+ - Change name with upstream feed-back
+ - Change irq map, reserve soft_irq & private_irq space
  - Add License and Copyright
- - Use timer-of framework
- - Change name with upstream feedback
- - Use clksource_mmio framework
+ - Support set_affinity for irq balance in SMP
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- drivers/clocksource/Kconfig         |   8 ++
- drivers/clocksource/Makefile        |   1 +
- drivers/clocksource/timer-gx6605s.c | 150 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 159 insertions(+)
- create mode 100644 drivers/clocksource/timer-gx6605s.c
+ drivers/irqchip/Kconfig           |   8 ++
+ drivers/irqchip/Makefile          |   1 +
+ drivers/irqchip/irq-csky-mpintc.c | 195 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 204 insertions(+)
+ create mode 100644 drivers/irqchip/irq-csky-mpintc.c
 
-diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-index a28043f..0f38acc 100644
---- a/drivers/clocksource/Kconfig
-+++ b/drivers/clocksource/Kconfig
-@@ -628,4 +628,12 @@ config CSKY_MPTIMER
- 	  Say yes here to enable C-SKY SMP timer driver used for C-SKY SMP
- 	  system.
+diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
+index 383e7b7..92e1c20 100644
+--- a/drivers/irqchip/Kconfig
++++ b/drivers/irqchip/Kconfig
+@@ -371,6 +371,14 @@ config QCOM_PDC
+ 	  Power Domain Controller driver to manage and configure wakeup
+ 	  IRQs for Qualcomm Technologies Inc (QTI) mobile chips.
  
-+config GX6605S_TIMER
-+	bool "Gx6605s SOC system timer driver"
++config CSKY_MPINTC
++	bool "C-SKY Multi Processor Interrupt Controller"
 +	depends on CSKY
-+	select CLKSRC_MMIO
-+	select TIMER_OF
 +	help
-+	  This option enables support for gx6605s SOC's timer.
++	  Say yes here to enable C-SKY SMP interrupt controller driver used
++	  for C-SKY SMP system. In fact it's not mmio map and it use ld/st
++	  to visit the controller's register inside CPU.
 +
  endmenu
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index 848c676..7a1b0f4 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -80,3 +80,4 @@ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
- obj-$(CONFIG_ATCPIT100_TIMER)		+= timer-atcpit100.o
- obj-$(CONFIG_RISCV_TIMER)		+= riscv_timer.o
- obj-$(CONFIG_CSKY_MPTIMER)		+= csky_mptimer.o
-+obj-$(CONFIG_GX6605S_TIMER)		+= timer-gx6605s.o
-diff --git a/drivers/clocksource/timer-gx6605s.c b/drivers/clocksource/timer-gx6605s.c
+ 
+ config SIFIVE_PLIC
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index fbd1ec8..6b739ea 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -87,4 +87,5 @@ obj-$(CONFIG_MESON_IRQ_GPIO)		+= irq-meson-gpio.o
+ obj-$(CONFIG_GOLDFISH_PIC) 		+= irq-goldfish-pic.o
+ obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+ obj-$(CONFIG_QCOM_PDC)			+= qcom-pdc.o
++obj-$(CONFIG_CSKY_MPINTC)		+= irq-csky-mpintc.o
+ obj-$(CONFIG_SIFIVE_PLIC)		+= irq-sifive-plic.o
+diff --git a/drivers/irqchip/irq-csky-mpintc.c b/drivers/irqchip/irq-csky-mpintc.c
 new file mode 100644
-index 0000000..10194c9
+index 0000000..2b424d27
 --- /dev/null
-+++ b/drivers/clocksource/timer-gx6605s.c
-@@ -0,0 +1,150 @@
++++ b/drivers/irqchip/irq-csky-mpintc.c
+@@ -0,0 +1,195 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
++#include <linux/kernel.h>
 +#include <linux/init.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
 +#include <linux/interrupt.h>
-+#include <linux/sched_clock.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++#include <asm/traps.h>
++#include <asm/reg_ops.h>
++#include <asm/smp.h>
 +
-+#include "timer-of.h"
++static struct irq_domain *root_domain;
++static void __iomem *INTCG_base;
++static void __iomem *INTCL_base;
 +
-+#define CLKSRC_OFFSET	0x40
++#define IPI_IRQ		15
++#define INTC_IRQS	256
++#define COMM_IRQ_BASE	32
 +
-+#define TIMER_STATUS	0x00
-+#define TIMER_VALUE	0x04
-+#define TIMER_CONTRL	0x10
-+#define TIMER_CONFIG	0x20
-+#define TIMER_DIV	0x24
-+#define TIMER_INI	0x28
++#define INTCG_SIZE	0x8000
++#define INTCL_SIZE	0x1000
++#define INTC_SIZE	INTCL_SIZE*nr_cpu_ids + INTCG_SIZE
 +
-+#define GX6605S_STATUS_CLR	BIT(0)
-+#define GX6605S_CONTRL_RST	BIT(0)
-+#define GX6605S_CONTRL_START	BIT(1)
-+#define GX6605S_CONFIG_EN	BIT(0)
-+#define GX6605S_CONFIG_IRQ_EN	BIT(1)
++#define INTCG_ICTLR	0x0
++#define INTCG_CICFGR	0x100
++#define INTCG_CIDSTR	0x1000
 +
-+static irqreturn_t gx6605s_timer_interrupt(int irq, void *dev)
++#define INTCL_PICTLR	0x0
++#define INTCL_SIGR	0x60
++#define INTCL_HPPIR	0x68
++#define INTCL_RDYIR	0x6c
++#define INTCL_SENR	0xa0
++#define INTCL_CENR	0xa4
++#define INTCL_CACR	0xb4
++
++static DEFINE_PER_CPU(void __iomem *, intcl_reg);
++
++static void csky_mpintc_handler(struct pt_regs *regs)
 +{
-+	struct clock_event_device *ce = (struct clock_event_device *) dev;
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
 +
-+	writel_relaxed(GX6605S_STATUS_CLR, base + TIMER_STATUS);
-+
-+	ce->event_handler(ce);
-+
-+	return IRQ_HANDLED;
++	do {
++		handle_domain_irq(root_domain,
++				  readl_relaxed(reg_base + INTCL_RDYIR),
++				  regs);
++	} while (readl_relaxed(reg_base + INTCL_HPPIR) & BIT(31));
 +}
 +
-+static int gx6605s_timer_set_oneshot(struct clock_event_device *ce)
++static void csky_mpintc_enable(struct irq_data *d)
 +{
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
 +
-+	/* reset and stop counter */
-+	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
-+
-+	/* enable with irq and start */
-+	writel_relaxed(GX6605S_CONFIG_EN | GX6605S_CONFIG_IRQ_EN, base + TIMER_CONFIG);
-+
-+	return 0;
++	writel_relaxed(d->hwirq, reg_base + INTCL_SENR);
 +}
 +
-+static int gx6605s_timer_set_next_event(unsigned long delta, struct clock_event_device *ce)
++static void csky_mpintc_disable(struct irq_data *d)
 +{
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
 +
-+	/* use reset to pause timer */
-+	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
-+
-+	/* config next timeout value */
-+	writel_relaxed(ULONG_MAX - delta, base + TIMER_INI);
-+	writel_relaxed(GX6605S_CONTRL_START, base + TIMER_CONTRL);
-+
-+	return 0;
++	writel_relaxed(d->hwirq, reg_base + INTCL_CENR);
 +}
 +
-+static int gx6605s_timer_shutdown(struct clock_event_device *ce)
++static void csky_mpintc_eoi(struct irq_data *d)
 +{
-+	void __iomem *base = timer_of_base(to_timer_of(ce));
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
 +
-+	writel_relaxed(0, base + TIMER_CONTRL);
-+	writel_relaxed(0, base + TIMER_CONFIG);
-+
-+	return 0;
++	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
 +}
 +
-+static struct timer_of to = {
-+	.flags = TIMER_OF_IRQ | TIMER_OF_BASE | TIMER_OF_CLOCK,
-+	.clkevt = {
-+		.rating			= 300,
-+		.features		= CLOCK_EVT_FEAT_DYNIRQ |
-+					  CLOCK_EVT_FEAT_ONESHOT,
-+		.set_state_shutdown	= gx6605s_timer_shutdown,
-+		.set_state_oneshot	= gx6605s_timer_set_oneshot,
-+		.set_next_event		= gx6605s_timer_set_next_event,
-+		.cpumask		= cpu_possible_mask,
-+	},
-+	.of_irq = {
-+		.handler		= gx6605s_timer_interrupt,
-+		.flags			= IRQF_TIMER | IRQF_IRQPOLL,
-+	},
++#ifdef CONFIG_SMP
++static int csky_irq_set_affinity(struct irq_data *d,
++				 const struct cpumask *mask_val,
++				 bool force)
++{
++	unsigned int cpu;
++	unsigned int offset = 4 * (d->hwirq - COMM_IRQ_BASE);
++
++	if (!force)
++		cpu = cpumask_any_and(mask_val, cpu_online_mask);
++	else
++		cpu = cpumask_first(mask_val);
++
++	if (cpu >= nr_cpu_ids)
++		return -EINVAL;
++
++	/* Enable interrupt destination */
++	cpu |= BIT(31);
++
++	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + offset);
++
++	irq_data_update_effective_affinity(d, cpumask_of(cpu));
++
++	return IRQ_SET_MASK_OK_DONE;
++}
++#endif
++
++static struct irq_chip csky_irq_chip = {
++	.name           = "C-SKY SMP Intc",
++	.irq_eoi	= csky_mpintc_eoi,
++	.irq_enable	= csky_mpintc_enable,
++	.irq_disable	= csky_mpintc_disable,
++#ifdef CONFIG_SMP
++	.irq_set_affinity = csky_irq_set_affinity,
++#endif
 +};
 +
-+static u64 notrace gx6605s_sched_clock_read(void)
++static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
++			      irq_hw_number_t hwirq)
 +{
-+	void __iomem *base;
++	if(hwirq < COMM_IRQ_BASE) {
++		irq_set_percpu_devid(irq);
++		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
++	} else {
++		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
++	}
 +
-+	base = timer_of_base(&to) + CLKSRC_OFFSET;
-+
-+	return (u64) readl_relaxed(base + TIMER_VALUE);
++	return 0;
 +}
 +
-+static void gx6605s_clkevt_init(void __iomem *base)
++static const struct irq_domain_ops csky_irqdomain_ops = {
++	.map	= csky_irqdomain_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++#ifdef CONFIG_SMP
++static void csky_mpintc_send_ipi(const unsigned long *mask)
 +{
-+	writel_relaxed(0, base + TIMER_DIV);
-+	writel_relaxed(0, base + TIMER_CONFIG);
-+
-+	clockevents_config_and_register(&to.clkevt, timer_of_rate(&to), 2, ULONG_MAX);
-+}
-+
-+static int gx6605s_clksrc_init(void __iomem *base)
-+{
-+	writel_relaxed(0, base + TIMER_DIV);
-+	writel_relaxed(0, base + TIMER_INI);
-+
-+	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
-+
-+	writel_relaxed(GX6605S_CONFIG_EN, base + TIMER_CONFIG);
-+
-+	writel_relaxed(GX6605S_CONTRL_START, base + TIMER_CONTRL);
-+
-+	sched_clock_register(gx6605s_sched_clock_read, 32, timer_of_rate(&to));
-+
-+	return clocksource_mmio_init(base + TIMER_VALUE, "gx6605s", timer_of_rate(&to),
-+				     200, 32, clocksource_mmio_readl_up);
-+}
-+
-+static int __init gx6605s_timer_init(struct device_node *np)
-+{
-+	int ret;
++	void __iomem *reg_base = this_cpu_read(intcl_reg);
 +
 +	/*
-+	 * The timer driver is for nationalchip gx6605s SOC and there are two same timer
-+	 * in gx6605s. We use one for clkevt and another for clksrc.
-+	 *
-+	 * The timer is mmio map to access, so we need give mmio addres in dts.
-+	 *
-+	 * It provides a 32bit countup timer and interrupt will be caused by count-overflow.
-+	 * So we need set-next-event by ULONG_MAX - delta in TIMER_INI reg.
-+	 *
-+	 * The counter at 0x0  offset is clock event.
-+	 * The counter at 0x40 offset is clock source.
-+	 * They are the same in hardware, just different used by driver.
++	 * INTCL_SIGR[3:0] INTID
++	 * INTCL_SIGR[8:15] CPUMASK
 +	 */
-+	ret = timer_of_init(np, &to);
-+	if (ret)
-+		return ret;
-+
-+	gx6605s_clkevt_init(timer_of_base(&to));
-+
-+	return gx6605s_clksrc_init(timer_of_base(&to) + CLKSRC_OFFSET);
++	writel_relaxed((*mask) << 8 | IPI_IRQ, reg_base + INTCL_SIGR);
 +}
-+TIMER_OF_DECLARE(csky_gx6605s_timer, "csky,gx6605s-timer", gx6605s_timer_init);
++
++static int csky_mpintc_ipi_irq_mapping(void)
++{
++	return irq_create_mapping(root_domain, IPI_IRQ);
++}
++#endif
++
++/* C-SKY multi processor interrupt controller */
++static int __init
++csky_mpintc_init(struct device_node *node, struct device_node *parent)
++{
++	unsigned int cpu, nr_irq;
++	int ret;
++
++	if (parent)
++		return 0;
++
++	ret = of_property_read_u32(node, "csky,num-irqs", &nr_irq);
++	if (ret < 0)
++		nr_irq = INTC_IRQS;
++
++	if (INTCG_base == NULL) {
++		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
++		if (INTCG_base == NULL)
++			return -EIO;
++
++		INTCL_base = INTCG_base + INTCG_SIZE;
++
++		writel_relaxed(BIT(0), INTCG_base + INTCG_ICTLR);
++	}
++
++	root_domain = irq_domain_add_linear(node, nr_irq, &csky_irqdomain_ops,
++					    NULL);
++	if (!root_domain)
++		return -ENXIO;
++
++	/* for every cpu */
++	for_each_present_cpu(cpu) {
++		per_cpu(intcl_reg, cpu) = INTCL_base + (INTCL_SIZE * cpu);
++		writel_relaxed(BIT(0), per_cpu(intcl_reg, cpu) + INTCL_PICTLR);
++	}
++
++	set_handle_irq(&csky_mpintc_handler);
++
++#ifdef CONFIG_SMP
++	set_send_ipi(&csky_mpintc_send_ipi);
++
++	set_ipi_irq_mapping(&csky_mpintc_ipi_irq_mapping);
++#endif
++
++	return 0;
++}
++IRQCHIP_DECLARE(csky_mpintc, "csky,mpintc", csky_mpintc_init);
 -- 
 2.7.4
