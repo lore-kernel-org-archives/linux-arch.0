@@ -1,33 +1,51 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V6 01/33] csky: Build infrastructure
-Date: Sun, 30 Sep 2018 01:20:33 +0800
-Message-ID: <20180929172032.GH27796@guoren-Inspiron-7460>
-References: <cover.1538058840.git.ren_guo@c-sky.com>
- <dbd9228bb886c672ba75ad9e479f870957d6bcfa.1538058840.git.ren_guo@c-sky.com>
- <20180928161110.GA19827@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path resolution
+Date: Sat, 29 Sep 2018 10:25:17 -0700
+Message-ID: <F0E08B90-F10B-4897-913D-CA18E99A987D@amacapital.net>
+References: <20180929103453.12025-1-cyphar@cyphar.com> <20180929131534.24472-1-cyphar@cyphar.com> <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180928161110.GA19827@infradead.org>
+In-Reply-To: <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, green.hu@gmail.com
+To: Jann Horn <jannh@google.com>
+Cc: cyphar@cyphar.com, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 28, 2018 at 09:11:10AM -0700, Christoph Hellwig wrote:
-> > --- /dev/null
-> > +++ b/arch/csky/kernel/Makefile
-> > @@ -0,0 +1,8 @@
-> > +extra-y := head.o vmlinux.lds
-> > +
-> > +obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o \
-> > +	 power.o syscall.o platform.o syscall_table.o setup.o \
-> > +	 process.o cpu-probe.o ptrace.o dumpstack.o
-> > +
-> > +obj-$(CONFIG_MODULES)			+= module.o
-> 
-> You can't just wire up the build infrastructure before th code.
-> 
-> Please add the objects to the Makefiles when they are actually added.
-I don't got it? Patchset should be seperated by makefile dir?
+
+
+> On Sep 29, 2018, at 9:35 AM, Jann Horn <jannh@google.com> wrote:
+>=20
+> +cc linux-api; please keep them in CC for future versions of the patch
+>=20
+>> On Sat, Sep 29, 2018 at 4:29 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>> The primary motivation for the need for this flag is container runtimes
+>> which have to interact with malicious root filesystems in the host
+>> namespaces. One of the first requirements for a container runtime to be
+>> secure against a malicious rootfs is that they correctly scope symlinks
+>> (that is, they should be scoped as though they are chroot(2)ed into the
+>> container's rootfs) and ".."-style paths. The already-existing AT_XDEV
+>> and AT_NO_PROCLINKS help defend against other potential attacks in a
+>> malicious rootfs scenario.
+>=20
+> So, I really like the concept for patch 1 of this series (but haven't
+> read the code yet); but I dislike this patch because of its footgun
+> potential.
+>=20
+
+The code could do it differently: do the path walk and then, before acceptin=
+g the result, walk back up and make sure the result is under the starting po=
+int.
+
+This is *not* a full solution, though, since a walk above the root gas side e=
+ffects on timing, various caches, and possibly network traffic, so it=E2=80=99=
+s open to Spectre-like attacks in which a malicious container could use a ru=
+ntime-initiated AT_THIS_ROOT to infer the existence of directories outside t=
+he container.
+
+But what=E2=80=99s the container usecase?  Any sane container is based on pi=
+vot_root or similar, so the runtime can just do the walk in the container co=
+ntext. IOW I=E2=80=99m a bit confused as to the exact intended use of the wh=
+ole series. Can you elaborate?=
