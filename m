@@ -1,51 +1,87 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path resolution
-Date: Sat, 29 Sep 2018 10:25:17 -0700
-Message-ID: <F0E08B90-F10B-4897-913D-CA18E99A987D@amacapital.net>
-References: <20180929103453.12025-1-cyphar@cyphar.com> <20180929131534.24472-1-cyphar@cyphar.com> <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
+Date: Sat, 29 Sep 2018 11:18:40 -0700
+Message-ID: <CAGXu5jLUaFX_jPHoOq1abEAjJdLo29Hr2q=sk07yj4KytW6psQ@mail.gmail.com>
+References: <20180925001832.18322-1-keescook@chromium.org> <e6122c7d-bd29-d081-3c1e-96b7c369d4fe@schaufler-ca.com>
+ <CAGXu5jKQVDW8Wp0ESv2raa0xJnHCCMNqFCzZ5jSVXQ=Dp7FF8A@mail.gmail.com> <eda428eb-f6e1-f048-a394-251953c388b6@i-love.sakura.ne.jp>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
+In-Reply-To: <eda428eb-f6e1-f048-a394-251953c388b6@i-love.sakura.ne.jp>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: cyphar@cyphar.com, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, Linux API <linux-api@vger.kernel.org>
+To: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, John Johansen <john.johansen@canonical.com>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Sat, Sep 29, 2018 at 3:48 AM, Tetsuo Handa
+<penguin-kernel@i-love.sakura.ne.jp> wrote:
+> On 2018/09/29 5:01, Kees Cook wrote:
+>> On Fri, Sep 28, 2018 at 8:55 AM, Casey Schaufler <casey@schaufler-ca.com> wrote:
+>>> On 9/24/2018 5:18 PM, Kees Cook wrote:
+>>>> v3:
+>>>> - add CONFIG_LSM_ENABLE and refactor resulting logic
+>>>
+>>> Kees, you can add my
+>>>
+>>>         Reviewed-by:Casey Schaufler <casey@schaufler-ca.com>
+>>>
+>>> for this entire patch set. Thank you for taking this on, it's
+>>> a significant and important chunk of the LSM infrastructure
+>>> update.
+>>
+>> Thanks!
+>>
+>> John, you'd looked at this a bit too -- do the results line up with
+>> your expectations?
+>>
+>> Any thoughts from SELinux, TOMOYO, or IMA folks?
+>
+> I'm OK with this approach. Thank you.
 
+Thanks for looking it over!
 
-> On Sep 29, 2018, at 9:35 AM, Jann Horn <jannh@google.com> wrote:
->=20
-> +cc linux-api; please keep them in CC for future versions of the patch
->=20
->> On Sat, Sep 29, 2018 at 4:29 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
->> The primary motivation for the need for this flag is container runtimes
->> which have to interact with malicious root filesystems in the host
->> namespaces. One of the first requirements for a container runtime to be
->> secure against a malicious rootfs is that they correctly scope symlinks
->> (that is, they should be scoped as though they are chroot(2)ed into the
->> container's rootfs) and ".."-style paths. The already-existing AT_XDEV
->> and AT_NO_PROCLINKS help defend against other potential attacks in a
->> malicious rootfs scenario.
->=20
-> So, I really like the concept for patch 1 of this series (but haven't
-> read the code yet); but I dislike this patch because of its footgun
-> potential.
->=20
+> Just wondering what is "__lsm_name_##lsm" for...
+>
+> +#define DEFINE_LSM(lsm)                                                        \
+> +       static const char __lsm_name_##lsm[] __initconst                \
+> +               __aligned(1) = #lsm;                                    \
+> +       static struct lsm_info __lsm_##lsm                              \
+> +               __used __section(.lsm_info.init)                        \
+> +               __aligned(sizeof(unsigned long))                        \
+> +               = {                                                     \
+> +                       .name = __lsm_name_##lsm,                       \
+> +
+> +#define END_LSM          }
 
-The code could do it differently: do the path walk and then, before acceptin=
-g the result, walk back up and make sure the result is under the starting po=
-int.
+I wasn't super happy with the END_LSM thing, but I wanted to be able
+to declare the name as __initconst, otherwise it needlessly stays in
+memory after init. That said, it's not a huge deal, and maybe
+readability trumps a tiny meory savings?
 
-This is *not* a full solution, though, since a walk above the root gas side e=
-ffects on timing, various caches, and possibly network traffic, so it=E2=80=99=
-s open to Spectre-like attacks in which a malicious container could use a ru=
-ntime-initiated AT_THIS_ROOT to infer the existence of directories outside t=
-he container.
+> We could do something like below so that funny END_LSM is not required?
+> I felt } like a typo error at the first glance. What we need is to
+> gather into one section with appropriate alignment, isn't it?
+>
+> #define LSM_INFO                                                        \
+>         static struct lsm_info __lsm_                                   \
+>                 __used __section(.lsm_info.init)                        \
+>                 __aligned(sizeof(unsigned long))                        \
+>
+> LSM_INFO = {
+>         .name = "tomoyo",
+>         .flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+>         .init = tomoyo_init,
+> };
 
-But what=E2=80=99s the container usecase?  Any sane container is based on pi=
-vot_root or similar, so the runtime can just do the walk in the container co=
-ntext. IOW I=E2=80=99m a bit confused as to the exact intended use of the wh=
-ole series. Can you elaborate?=
+I thought the structure instances would need a unique name, but it
+seems the section naming removes that requirement. This seems only to
+be needed if we had multiple LSMs defined in the same source file.
+Though I wonder if this would be a problem for LTO in the future?
+
+I'm happy to do whatever.
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
