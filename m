@@ -1,45 +1,46 @@
-From: "Guan Xuetao" <gxt@pku.edu.cn>
-Subject: Re: [REVIEW][PATCH 0/3] signal/unicore32: siginfo cleanups
-Date: Sat, 29 Sep 2018 21:18:22 +0800 (GMT+08:00)
-Message-ID: <4d6cc3dd.4ed8.166257ae39a.Coremail.gxt@pku.edu.cn>
-References: <87lg7q2a2w.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 0/3] namei: implement various scoping AT_* flags
+Date: Sat, 29 Sep 2018 07:25:57 -0700
+Message-ID: <1EE20CA2-4C8B-4A80-B613-0277D92B376D@amacapital.net>
+References: <20180929103453.12025-1-cyphar@cyphar.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87lg7q2a2w.fsf@xmission.com>
+In-Reply-To: <20180929103453.12025-1-cyphar@cyphar.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "eric w. biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Tycho Andersen <tycho@tycho.ws>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgRXJpYywKCkknbGwgcmV2aWV3IGFuZCBjaGVjayB0aGUgcGF0Y2hlcyBhZnRlciBjaGluZXNl
-IG5hdGlvbmFsIGRheSB2b2NhdGlvbi4KClRoYW5rcy4KCkd1YW4gWHVldGFvCgo+IC0tLS0tT3Jp
-Z2luYWwgTWVzc2FnZXMtLS0tLQo+IEZyb206ICJFcmljIFcuIEJpZWRlcm1hbiIgPGViaWVkZXJt
-QHhtaXNzaW9uLmNvbT4KPiBTZW50IFRpbWU6IDIwMTgtMDktMjQgMjM6MjM6MzUgKE1vbmRheSkK
-PiBUbzogbGludXgta2VybmVsQHZnZXIua2VybmVsLm9yZwo+IENjOiBsaW51eC1hcmNoQHZnZXIu
-a2VybmVsLm9yZywgIkd1YW4gWHVldGFvIiA8Z3h0QHBrdS5lZHUuY24+Cj4gU3ViamVjdDogW1JF
-VklFV11bUEFUQ0ggMC8zXSBzaWduYWwvdW5pY29yZTMyOiBzaWdpbmZvIGNsZWFudXBzCj4gCj4g
-Cj4gSSBoYXZlIGJlZW4gc2xvd2x5IGNsZWFuaW5nIHVwIHRoZSBhcmNoaXRlY3R1ZXMgZXZlciBz
-aW5jZSBJIGRpc2NvdmVyZWQKPiB0aGF0IHRoZSBwYXR0ZXJuIG9mIHBhc3NpbmcgaW4gc3RydWN0
-IHNpZ2luZm8gaXMgZXJyb3IgcHJvbmUsIGFuZAo+IG9jY2Fzc2lvbmFsbHkgcmVzdWx0cyBpbiBi
-cm9rZW4gc2lnaW5mbyBiZWluZyBzZW50IHRvIHVzZXJzcGFjZS4KPiAKPiBJIGRvbid0IGhhdmUg
-YSBjbHVlIGhvdyB0byBvYnRhaW4gYSB3b3JraW5nIHVuaWNvcmUzMiBjb21waWxlciBzbyB0aGUK
-PiBmb2xsb3dpbmcgY2hhbmdlcyBoYXZlIG9ubHkgYmVlbiByZXZpZXdlZCBjYXJlZnVsbHkgYW5k
-IG5vdCBjb21waWxlCj4gdGVzdGVkLiAgU3RpbGwgSSBiZWxpZXZlIHRoZXkgYXJlIHNpbXBsZSBh
-bmQgb2J2aW91c2x5IGNvcnJlY3QuCj4gCj4gQW55b25lIHdobyBjYW4gcmV2aWV3IG9yIHRlc3Qg
-dGhlc2UgY2hhbmdlcyBwbGVhc2UgZG8gYW5kIGxldCBtZSBrbm93Cj4gYWJvdXQgYW55IHByb2Js
-ZW1zIHlvdSBmaW5kIHNvIHRoYXQgSSBjYW4gY29ycmVjdCB0aGVtLgo+IAo+IE15IGludGVudGlv
-biBpcyB0byBtZXJnZSB0aGlzIHRocm91Z2ggbXkgc2lnaW5mbyB0cmVlLiAgSWYgeW91IGZlZWwg
-aXQKPiBzaG91bGQgZ28gdGhyb3VnaCB5b3VyIGFyY2ggdHJlZSBsZXQgbWUga25vdy4gICBBbGwg
-b2YgdGhlIHByZXJlcXVpc2l0ZXMKPiBzaG91bGQgaGF2ZSBiZWVuIG1lcmdlZCBzZXZlcmFsIHJl
-bGVhc2VzIGFnby4KPiAKPiBFcmljIFcuIEJpZWRlcm1hbiAoMyk6Cj4gICAgICAgc2lnbmFsL3Vu
-aWNvcmUzMjogVXNlIHNlbmRfc2lnX2ZhdWx0IHdoZXJlIGFwcHJvcHJpYXRlCj4gICAgICAgc2ln
-bmFsL3VuaWNvcmUzMjogR2VuZXJhdGUgc2lnaW5mbyBpbiB1Y3MzMl9ub3RpZnlfZGllCj4gICAg
-ICAgc2lnbmFsL3VuaWNvcmUzMjogVXNlIGZvcmNlX3NpZ19mYXVsdCB3aGVyZSBhcHByb3ByaWF0
-ZQo+IAo+ICBhcmNoL3VuaWNvcmUzMi9pbmNsdWRlL2FzbS9idWcuaCAgfCAgMyArKy0KPiAgYXJj
-aC91bmljb3JlMzIva2VybmVsL2ZwdS11Y2Y2NC5jIHwgMTIgKysrLS0tLS0tLS0tCj4gIGFyY2gv
-dW5pY29yZTMyL2tlcm5lbC90cmFwcy5jICAgICB8ICA1ICsrKy0tCj4gIGFyY2gvdW5pY29yZTMy
-L21tL2ZhdWx0LmMgICAgICAgICB8IDI3ICsrKysrLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQo+ICA0
-IGZpbGVzIGNoYW5nZWQsIDEzIGluc2VydGlvbnMoKyksIDM0IGRlbGV0aW9ucygtKQo+IAo+IEVy
-aWMK
+
+
+> On Sep 29, 2018, at 3:34 AM, Aleksa Sarai <cyphar@cyphar.com> wrote:
+>=20
+> The need for some sort of control over VFS's path resolution (to avoid
+> malicious paths resulting in inadvertent breakouts) has been a very
+> long-standing desire of many userspace applications. This patchset is a
+> revival of Al Viro's old AT_NO_JUMPS[1] patchset with a few additions.
+>=20
+> The most obvious change is that AT_NO_JUMPS has been split as dicussed
+> in the original thread, along with a further split of AT_NO_PROCLINKS
+> which means that each individual property of AT_NO_JUMPS is now a
+> separate flag:
+>=20
+>  * Path-based escapes from the starting-point using "/" or ".." are
+>    blocked by AT_BENEATH.
+
+Seems useful.
+
+>  * Mountpoint crossings are blocked by AT_XDEV.
+
+Seems useful.
+
+>  * /proc/$pid/fd/$fd resolution is blocked by AT_NO_PROCLINKS (more
+>    correctly it actually blocks any user of nd_jump_link() because it
+>    allows out-of-VFS path resolution manipulation).
+>=20
+
+So how do I disable following symlinks? ISTM the most natural way would be t=
+o have AT_NO_SYMLINKS, and to have that flag disable proc links.=
