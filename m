@@ -1,58 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:42372 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728553AbeJADAr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 30 Sep 2018 23:00:47 -0400
-Received: by mail-wr1-f65.google.com with SMTP id b11-v6so11540162wru.9
-        for <linux-arch@vger.kernel.org>; Sun, 30 Sep 2018 13:26:21 -0700 (PDT)
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:43445 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728661AbeJADAw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 30 Sep 2018 23:00:52 -0400
+Received: by mail-wr1-f68.google.com with SMTP id n1-v6so1410597wrt.10
+        for <linux-arch@vger.kernel.org>; Sun, 30 Sep 2018 13:26:25 -0700 (PDT)
 From: Bartosz Golaszewski <brgl@bgdev.pl>
-Subject: [PATCH v6 0/4] devres: provide and use devm_kstrdup_const()
-Date: Sun, 30 Sep 2018 22:26:11 +0200
-Message-ID: <20180930202615.12951-1-brgl@bgdev.pl>
+Subject: [PATCH v6 3/4] devres: provide devm_kstrdup_const()
+Date: Sun, 30 Sep 2018 22:26:14 +0200
+Message-ID: <20180930202615.12951-4-brgl@bgdev.pl>
+In-Reply-To: <20180930202615.12951-1-brgl@bgdev.pl>
+References: <20180930202615.12951-1-brgl@bgdev.pl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rafael@kernel.org>, Jassi Brar <jassisinghbrar@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Jonathan Hunter <jonathanh@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>
 Cc: linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Bartosz Golaszewski <brgl@bgdev.pl>
-Message-ID: <20180930202611.cPRgfxPWvg8QHFk44hX-5K-iFhGCP-9UwIFqgr93fJU@z>
+Message-ID: <20180930202614.4g5OOOTMdP-rnlXPXT6tIQ22BXjSyuXZfgtAMsWFmrk@z>
 
-This series implements devm_kstrdup_const() together with some
-prerequisite changes and uses it in tegra-hsp driver.
+Provide a resource managed version of kstrdup_const(). This variant
+internally calls devm_kstrdup() on pointers that are outside of
+.rodata section and returns the string as is otherwise.
 
-v1 -> v2:
-- fixed the changelog in the patch implementing devm_kstrdup_const()
-- fixed the kernel doc
-- moved is_kernel_rodata() to asm-generic/sections.h
-- fixed constness
+Make devm_kfree() check if the passed pointer doesn't point to .rodata
+and if so - don't actually destroy the resource.
 
-v2 -> v3:
-- rebased on top of 4.19-rc5 as there were some conflicts in the
-  pmc-atom driver
-- collected Reviewed-by tags
+Signed-off-by: Bartosz Golaszewski <brgl@bgdev.pl>
+Reviewed-by: Bjorn Andersson <bjorn.andersson@linaro.org>
+Acked-by: Mike Rapoport <rppt@linux.vnet.ibm.com>
+Acked-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ drivers/base/devres.c  | 31 +++++++++++++++++++++++++++++++
+ include/linux/device.h |  2 ++
+ 2 files changed, 33 insertions(+)
 
-v3 -> v4:
-- Andy NAK'ed patch 4/4 so I added a different example
-- collected more tags
-
-v4 -> v5:
-- instead of providing devm_kfree_const(), make devm_kfree() check if
-  given pointer is not in .rodata and act accordingly
-
-v5 -> v6:
-- fixed the commit message in patch 2/4 (s/devm_kfree_const/devm_kfree/)
-- collected even more tags
-
-Bartosz Golaszewski (4):
-  devres: constify p in devm_kfree()
-  mm: move is_kernel_rodata() to asm-generic/sections.h
-  devres: provide devm_kstrdup_const()
-  mailbox: tegra-hsp: use devm_kstrdup_const()
-
- drivers/base/devres.c          | 36 +++++++++++++++++++++++++++--
- drivers/mailbox/tegra-hsp.c    | 41 ++++++++--------------------------
- include/asm-generic/sections.h | 14 ++++++++++++
- include/linux/device.h         |  4 +++-
- mm/util.c                      |  7 ------
- 5 files changed, 60 insertions(+), 42 deletions(-)
-
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+index 438c91a43508..00c70f0fcdcd 100644
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -11,6 +11,8 @@
+ #include <linux/slab.h>
+ #include <linux/percpu.h>
+ 
++#include <asm/sections.h>
++
+ #include "base.h"
+ 
+ struct devres_node {
+@@ -822,6 +824,28 @@ char *devm_kstrdup(struct device *dev, const char *s, gfp_t gfp)
+ }
+ EXPORT_SYMBOL_GPL(devm_kstrdup);
+ 
++/**
++ * devm_kstrdup_const - resource managed conditional string duplication
++ * @dev: device for which to duplicate the string
++ * @s: the string to duplicate
++ * @gfp: the GFP mask used in the kmalloc() call when allocating memory
++ *
++ * Strings allocated by devm_kstrdup_const will be automatically freed when
++ * the associated device is detached.
++ *
++ * RETURNS:
++ * Source string if it is in .rodata section otherwise it falls back to
++ * devm_kstrdup.
++ */
++const char *devm_kstrdup_const(struct device *dev, const char *s, gfp_t gfp)
++{
++	if (is_kernel_rodata((unsigned long)s))
++		return s;
++
++	return devm_kstrdup(dev, s, gfp);
++}
++EXPORT_SYMBOL(devm_kstrdup_const);
++
+ /**
+  * devm_kvasprintf - Allocate resource managed space and format a string
+  *		     into that.
+@@ -889,6 +913,13 @@ void devm_kfree(struct device *dev, const void *p)
+ {
+ 	int rc;
+ 
++	/*
++	 * Special case: pointer to a string in .rodata returned by
++	 * devm_kstrdup_const().
++	 */
++	if (unlikely(is_kernel_rodata((unsigned long)p)))
++		return;
++
+ 	rc = devres_destroy(dev, devm_kmalloc_release,
+ 			    devm_kmalloc_match, (void *)p);
+ 	WARN_ON(rc);
+diff --git a/include/linux/device.h b/include/linux/device.h
+index 33f7cb271fbb..e626acb93ef5 100644
+--- a/include/linux/device.h
++++ b/include/linux/device.h
+@@ -694,6 +694,8 @@ static inline void *devm_kcalloc(struct device *dev,
+ }
+ extern void devm_kfree(struct device *dev, const void *p);
+ extern char *devm_kstrdup(struct device *dev, const char *s, gfp_t gfp) __malloc;
++extern const char *devm_kstrdup_const(struct device *dev,
++				      const char *s, gfp_t gfp);
+ extern void *devm_kmemdup(struct device *dev, const void *src, size_t len,
+ 			  gfp_t gfp);
+ 
 -- 
 2.18.0
