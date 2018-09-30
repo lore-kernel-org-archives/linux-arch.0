@@ -1,45 +1,63 @@
-From: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
-Subject: Re: [PATCH security-next v3 00/29] LSM: Explict LSM ordering
-Date: Sun, 30 Sep 2018 11:36:15 +0900
-Message-ID: <67c14d95-10f6-37d5-ee8a-c1fb6a6d460a@i-love.sakura.ne.jp>
-References: <20180925001832.18322-1-keescook@chromium.org>
- <e6122c7d-bd29-d081-3c1e-96b7c369d4fe@schaufler-ca.com>
- <CAGXu5jKQVDW8Wp0ESv2raa0xJnHCCMNqFCzZ5jSVXQ=Dp7FF8A@mail.gmail.com>
- <eda428eb-f6e1-f048-a394-251953c388b6@i-love.sakura.ne.jp>
- <CAGXu5jLUaFX_jPHoOq1abEAjJdLo29Hr2q=sk07yj4KytW6psQ@mail.gmail.com>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [PATCH net-next v6 01/23] asm: simd context helper API
+Date: Sat, 29 Sep 2018 21:20:50 -0700
+Message-ID: <8afdd3b1c51587708db6ae878eb0a7e9f8b5673a.camel@perches.com>
+References: <20180925145622.29959-1-Jason@zx2c4.com>
+         <20180925145622.29959-2-Jason@zx2c4.com>
+         <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com>
+         <CAKv+Gu9kbLPZH4W0zKAfuv-b11mcDaZ05HUauvh9gMZVGVR0AQ@mail.gmail.com>
+         <CAHmME9pfs0_MsD9QAGfSm31_w-=6BCF_gZO04XkfhD=mEoZmtQ@mail.gmail.com>
+         <CAKv+Gu__7mZFFq6qC=8yh0OuaV+TCCLFt6nm8yJfaANHUPrJ=A@mail.gmail.com>
+         <CAHmME9owF+3aQaZUkK4KkfnJna+DK=GoWV8yf-Wb+gH4w3y9eg@mail.gmail.com>
+         <CAKv+Gu9FAVVOiYyGovYZ19-107_6sK9Ya6LnK=AQkTgctMmu5A@mail.gmail.com>
+         <CAHmME9rqsOid6UOx+VTsFzJLEiaXpTP_z_wvHC6MbeAQUeEtHg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jLUaFX_jPHoOq1abEAjJdLo29Hr2q=sk07yj4KytW6psQ@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <CAHmME9rqsOid6UOx+VTsFzJLEiaXpTP_z_wvHC6MbeAQUeEtHg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, John Johansen <john.johansen@canonical.com>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/09/30 3:18, Kees Cook wrote:
->> Just wondering what is "__lsm_name_##lsm" for...
->>
->> +#define DEFINE_LSM(lsm)                                                        \
->> +       static const char __lsm_name_##lsm[] __initconst                \
->> +               __aligned(1) = #lsm;                                    \
->> +       static struct lsm_info __lsm_##lsm                              \
->> +               __used __section(.lsm_info.init)                        \
->> +               __aligned(sizeof(unsigned long))                        \
->> +               = {                                                     \
->> +                       .name = __lsm_name_##lsm,                       \
->> +
->> +#define END_LSM          }
+On Fri, 2018-09-28 at 16:01 +0200, Jason A. Donenfeld wrote:
+> On Fri, Sep 28, 2018 at 4:00 PM Ard Biesheuvel
+> <ard.biesheuvel@linaro.org> wrote:
+> > 
+> > On 28 September 2018 at 15:59, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+> > > On Fri, Sep 28, 2018 at 3:58 PM Ard Biesheuvel
+> > > <ard.biesheuvel@linaro.org> wrote:
+> > > > 
+> > > > On 28 September 2018 at 15:47, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+> > > > > On Fri, Sep 28, 2018 at 10:49 AM Ard Biesheuvel
+> > > > > <ard.biesheuvel@linaro.org> wrote:
+> > > > > > > > +typedef enum {
+> > > > > > > > +       HAVE_NO_SIMD = 1 << 0,
+> > > > > > > > +       HAVE_FULL_SIMD = 1 << 1,
+> > > > > > > > +       HAVE_SIMD_IN_USE = 1 << 31
+> > > > > > > > +} simd_context_t;
+> > > > > > > > +
+> > > > > > 
+> > > > > > Oh, and another thing (and I'm surprised checkpatch.pl didn't complain
+> > > > > > about it): the use of typedef in new code is strongly discouraged.
+> > > > > > This policy predates my involvement, so perhaps Joe can elaborate on
+> > > > > > the rationale?
+> > > > > 
+> > > > > In case it matters, the motivation for making this a typedef is I
+> > > > > could imagine this at some point turning into a more complicated
+> > > > > struct on certain platforms and that would make refactoring easier. I
+> > > > > could just make it `struct simd_context` now with 1 member though...
+> > > > 
+> > > > Yes that makes sense
+> > > 
+> > > The rationale for it being a typedef or moving to a struct now?
+> > 
+> > Yes just switch to a struct.
 > 
-> I wasn't super happy with the END_LSM thing, but I wanted to be able
-> to declare the name as __initconst, otherwise it needlessly stays in
-> memory after init. That said, it's not a huge deal, and maybe
-> readability trumps a tiny meory savings?
+> Okay. No problem with that, but will wait to hear from Joe first.
 
-The value of .name field is a few bytes string, and is not sensitive
-information. Keeping such string in non-__initdata section unlikely
-increases total memory pages required for that module.
+Why do you need to hear from me again?
 
-Unless we need to generate unique address of such string for some reason,
-I think that this saving is pointless.
+As far as I know, the only info about typedef avoidance are in
+Documentation/process/coding-style.rst section 5.
