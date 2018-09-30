@@ -1,68 +1,70 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH 0/3] namei: implement various scoping AT_* flags
-Date: Sun, 30 Sep 2018 14:44:11 +1000
-Message-ID: <20180930044411.orcuw7xok4szqzzo@ryuk>
-References: <20180929103453.12025-1-cyphar@cyphar.com>
- <20180929143814.yfo6rud7dkyb5ip4@brauner.io>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="olyw2qotbhbwue5q"
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH net-next v6 01/23] asm: simd context helper API
+Date: Sat, 29 Sep 2018 22:35:13 -0700
+Message-ID: <3E9E1888-026E-45C1-8AA7-DADA211EDBDF@amacapital.net>
+References: <20180925145622.29959-1-Jason@zx2c4.com> <20180925145622.29959-2-Jason@zx2c4.com> <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com> <CAKv+Gu9kbLPZH4W0zKAfuv-b11mcDaZ05HUauvh9gMZVGVR0AQ@mail.gmail.com> <CAHmME9pfs0_MsD9QAGfSm31_w-=6BCF_gZO04XkfhD=mEoZmtQ@mail.gmail.com> <CAKv+Gu__7mZFFq6qC=8yh0OuaV+TCCLFt6nm8yJfaANHUPrJ=A@mail.gmail.com> <CAHmME9owF+3aQaZUkK4KkfnJna+DK=GoWV8yf-Wb+gH4w3y9eg@mail.gmail.com> <CAKv+Gu9FAVVOiYyGovYZ19-107_6sK9Ya6LnK=AQkTgctMmu5A@mail.gmail.com> <CAHmME9rqsOid6UOx+VTsFzJLEiaXpTP_z_wvHC6MbeAQUeEtHg@mail.gmail.com> <8afdd3b1c51587708db6ae878eb0a7e9f8b5673a.camel@perches.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180929143814.yfo6rud7dkyb5ip4@brauner.io>
+In-Reply-To: <8afdd3b1c51587708db6ae878eb0a7e9f8b5673a.camel@perches.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Brauner <christian@brauner.io>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Eric Biederman <ebiederm@xmission.com>, Tycho Andersen <tycho@tycho.ws>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org
+To: Joe Perches <joe@perches.com>
+Cc: "Jason A. Donenfeld" <Jason@zx2c4.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
---olyw2qotbhbwue5q
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On 2018-09-29, Christian Brauner <christian@brauner.io> wrote:
-> > Currently I've only enabled these for openat(2) and the stat(2) family.
-> > I would hope we could enable it for basically every *at(2) syscall --
-> > but many of them appear to not have a @flags argument and thus we'll
-> > need to add several new syscalls to do this. I'm more than happy to send
-> > those patches, but I'd prefer to know that this preliminary work is
-> > acceptable before doing a bunch of copy-paste to add new sets of *at(2)
-> > syscalls.
+> On Sep 29, 2018, at 9:20 PM, Joe Perches <joe@perches.com> wrote:
 >=20
-> We should really make sure that we can't make due with openat() alone
-> before adding a bunch of new syscalls. So there's no need to rush into
-> this. :)
+>> On Fri, 2018-09-28 at 16:01 +0200, Jason A. Donenfeld wrote:
+>> On Fri, Sep 28, 2018 at 4:00 PM Ard Biesheuvel
+>> <ard.biesheuvel@linaro.org> wrote:
+>>>=20
+>>>> On 28 September 2018 at 15:59, Jason A. Donenfeld <Jason@zx2c4.com> wro=
+te:
+>>>> On Fri, Sep 28, 2018 at 3:58 PM Ard Biesheuvel
+>>>> <ard.biesheuvel@linaro.org> wrote:
+>>>>>=20
+>>>>>> On 28 September 2018 at 15:47, Jason A. Donenfeld <Jason@zx2c4.com> w=
+rote:
+>>>>>> On Fri, Sep 28, 2018 at 10:49 AM Ard Biesheuvel
+>>>>>> <ard.biesheuvel@linaro.org> wrote:
+>>>>>>>>> +typedef enum {
+>>>>>>>>> +       HAVE_NO_SIMD =3D 1 << 0,
+>>>>>>>>> +       HAVE_FULL_SIMD =3D 1 << 1,
+>>>>>>>>> +       HAVE_SIMD_IN_USE =3D 1 << 31
+>>>>>>>>> +} simd_context_t;
+>>>>>>>>> +
+>>>>>>>=20
+>>>>>>> Oh, and another thing (and I'm surprised checkpatch.pl didn't compla=
+in
+>>>>>>> about it): the use of typedef in new code is strongly discouraged.
+>>>>>>> This policy predates my involvement, so perhaps Joe can elaborate on=
 
-Yeah, I think that we could (mostly) make do with openat(2). We might
-need to have renameat(2) and a few others, but if we had more support
-for AT_EMPTY_PATH you should be able to just O_PATH|O_{BENEATH,XDEV,...}
-and then operate on the O_PATH fd.
+>>>>>>> the rationale?
+>>>>>>=20
+>>>>>> In case it matters, the motivation for making this a typedef is I
+>>>>>> could imagine this at some point turning into a more complicated
+>>>>>> struct on certain platforms and that would make refactoring easier. I=
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+>>>>>> could just make it `struct simd_context` now with 1 member though...
+>>>>>=20
+>>>>> Yes that makes sense
+>>>>=20
+>>>> The rationale for it being a typedef or moving to a struct now?
+>>>=20
+>>> Yes just switch to a struct.
+>>=20
+>> Okay. No problem with that, but will wait to hear from Joe first.
+>=20
+> Why do you need to hear from me again?
+>=20
+> As far as I know, the only info about typedef avoidance are in
+> Documentation/process/coding-style.rst section 5.
+>=20
+>=20
 
---olyw2qotbhbwue5q
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAluwVJsACgkQnhiqJn3b
-jbR0AA//VbHHrVwS/hgpTdN1okuZDNZ5MgjStZWgSjTWaEpyL8G2YwAmKes3x5MS
-nfvOGCx32EeDIXhcjNzSjkDQIMGRHNwPTTqzymFzY/OmVgYj1ECdDrpQrFtF3msM
-501KZ507tvbJti4hZq0EZF6Jbq3py+fXzGqpCWGBv4VWoPsHPt+/KoTf6enleZQJ
-6hiM4anCKveDNTE+BQ20fsTbs1V0x7A9ykVq2hNQECmiWJvOHgUdzddBIdOM95Vb
-13k7G3Wf/YcaS2kp1cUVtLcfFocqKGPLcuPrdXAjkekfYth0KwDX0ViBKt5LbUKb
-l4XpiFZ0MlFOY04zdIGRYGyP8s6Vse/GpdukmnSTL68ALRDR5/4G5okrbSILmvFh
-YJr+QF+b/H+yg51LdYi/o2YZqcwPrYJAdUzbWvxz68nLA3YdOeXCEOvES/q8ebDZ
-03Rt7v1UhTSg2QdZvax4MAdlhUe2IJKw0/vC18uyCqwTPRpE+yxM7Ux2P1RpMp2t
-eDC6zH7sGdAN7iGewJqEWmD+EE6FYlaP0Fd1IjNgg6qeETprfNzk5orJPzwxvMdu
-zGrxuAGmagi+6t18ZSKq7Gsaq8ZpZ1wXfgaC5cRzDEQigy1s105NepC0/wbBhVFU
-5g7ykyPiCuOSN+E4ifsbWCUUemKUNb8FmZwx1XIArYE5UDbY9Q0=
-=oJlG
------END PGP SIGNATURE-----
-
---olyw2qotbhbwue5q--
+I personally prefer it with the typedef. If this were my code, I=E2=80=99d s=
+ay the coding style is silly for opaque tiny structs like this.=
