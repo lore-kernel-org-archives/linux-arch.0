@@ -1,78 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:34620 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729017AbeJATV3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 15:21:29 -0400
-Received: by mail-pf1-f193.google.com with SMTP id k19-v6so9154995pfi.1
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 05:43:50 -0700 (PDT)
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 1/3] microblaze: replace __NR_syscalls macro from asm/unistd.h
-Date: Mon,  1 Oct 2018 18:13:02 +0530
-Message-ID: <1538397784-4214-2-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
-References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
+Received: from mail-lf1-f68.google.com ([209.85.167.68]:34228 "EHLO
+        mail-lf1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729189AbeJAT37 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 15:29:59 -0400
+MIME-Version: 1.0
+References: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org> <1538397477-4003-6-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1538397477-4003-6-git-send-email-firoz.khan@linaro.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 1 Oct 2018 14:51:59 +0200
+Message-ID: <CAK8P3a3_NjWWPnoNjg0cgoAMyYCuG4ABqy-z9CyjROjLGxeG3g@mail.gmail.com>
+Subject: Re: [PATCH v3 5/5] m68k: add __IGNORE* entries in asm/unistd.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181001124302.3UcwwP3QE5QkI3CkfxAK9GsZcmO9_fekmWH636sNmQI@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181001125159.Z8xCZnUcNZs0jFHE1W3mzSV5YSkGWqi0ZCYZm2qJKH4@z>
 
-__NR_syscalls macro holds the number of system call exist in this
-architecture. This macro is currently the part of asm/unistd.h file.
-We have change the value of __NR_syscalls, if we add or delete a
-system call.
+On Mon, Oct 1, 2018 at 2:39 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+>
+> Add __IGNORE* entries for seccomp, pkey_mprotect, pkey_
+> alloc, pkey_free, io_pgetevents and rseq in the file
+> asm/unistd.h as it is correct to keep __IGNORE* entry in
+> non uapi header asm/unistd.h while uapi/asm/unistd.h must
+> hold information only useful for user space applications.
+>
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/m68k/include/asm/unistd.h | 7 +++++++
+>  1 file changed, 7 insertions(+)
 
-One of the patch in this patch series has a script which will
-generate a uapi header based on syscall.tbl file. The syscall.tbl
-file contains the number of system call information. So we have
-two option to update __NR_syscalls value.
+I think this one needs to be dropped, as I commented on a similar patch for
+another architecture (I forget which one). We really should implemente all
+the syscalls below, with the possible exception of the pkey calls.
 
-1. Update __NR_syscalls in asm/unistd.h manually by counting the
-   no.of system calls. No need to update __NR_syscalls until
-   we either add a new system call or delete an existing system
-   call.
+Note that we even list pkey_* in architectures that don't support the feature.
+See also the commit text for a60f7b69d92c ("generic syscalls: Wire up
+memory protection keys syscalls")
 
-2. We can keep this feature it above mentioned script, that'll
-   count the number of syscalls and keep it in a generated file.
-   In this case we don't need to explicitly update __NR_syscalls
-   in asm/unistd.h file.
-
-The 2nd option will be the recommended one. For that, I moved the
-__NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. While
-__NR_syscalls isn't strictly part of the uapi, having it as part
-of the generated header to simplifies the implementation. We also
-need to enclose this macro with #ifdef __KERNEL__ to avoid side
-effects.
-
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/microblaze/include/asm/unistd.h      | 2 --
- arch/microblaze/include/uapi/asm/unistd.h | 4 ++++
- 2 files changed, 4 insertions(+), 2 deletions(-)
-
-diff --git a/arch/microblaze/include/asm/unistd.h b/arch/microblaze/include/asm/unistd.h
-index a62d094..e19550f 100644
---- a/arch/microblaze/include/asm/unistd.h
-+++ b/arch/microblaze/include/asm/unistd.h
-@@ -38,6 +38,4 @@
- 
- #endif /* __ASSEMBLY__ */
- 
--#define __NR_syscalls         401
--
- #endif /* _ASM_MICROBLAZE_UNISTD_H */
-diff --git a/arch/microblaze/include/uapi/asm/unistd.h b/arch/microblaze/include/uapi/asm/unistd.h
-index 7a9f16a..ed9c6f5 100644
---- a/arch/microblaze/include/uapi/asm/unistd.h
-+++ b/arch/microblaze/include/uapi/asm/unistd.h
-@@ -418,4 +418,8 @@
- #define __NR_io_pgetevents	399
- #define __NR_rseq		400
- 
-+#ifdef __KERNEL__
-+#define __NR_syscalls         401
-+#endif
-+
- #endif /* _UAPI_ASM_MICROBLAZE_UNISTD_H */
--- 
-1.9.1
+     Arnd
