@@ -1,78 +1,47 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 0/5] System call table generation support
-Date: Mon,  1 Oct 2018 18:07:52 +0530
-Message-ID: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 1/5] m68k: rename system call table file name
+Date: Mon,  1 Oct 2018 18:07:53 +0530
+Message-ID: <1538397477-4003-2-git-send-email-firoz.khan@linaro.org>
+References: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is:
-1. We can easily add/modify/delete system call by changing entry 
-in syscall.tbl file. No need to manually edit many files.
+The system call table entries are present in syscalltable.S. One of
+the patch in this patch series will auto-generate the system call
+table entries using the system call table generation script and
+which'll replace the existig table file.
 
-2. It is easy to unify the system call implementation across all 
-the architectures. 
+In order to come up with a common naming convention across all
+architecture, we need to change the file name to syscall_table.S.
+This change will unify the implementation across all architecture.
 
-The system call tables are in different format in all architecture 
-and it will be difficult to manually add or modify the system calls
-in the respective files manually. To make it easy by keeping a script 
-and which'll generate the header file and syscall table file so this 
-change will unify them across all architectures.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/m68k/kernel/Makefile                            | 2 +-
+ arch/m68k/kernel/{syscalltable.S => syscall_table.S} | 0
+ 2 files changed, 1 insertion(+), 1 deletion(-)
+ rename arch/m68k/kernel/{syscalltable.S => syscall_table.S} (100%)
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
-
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-        - Compat entry name, if required.
-
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
-
-I have done the same support for work for alpha, ia64, sparc, mips, 
-parisc, powerpc, sh, sparc, and xtensa. But I started sending 
-the patch for one architecuture for review. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work for solving the Y2038 issue. We 
-need to add/change two dozen of system calls to solve Y2038 issue. 
-So this patch series will help to easily modify from existing 
-system call to Y2038 compatible system calls.
-
-Firoz Khan (5):
-  m68k: rename system call table file name
-  m68k: replace NR_syscalls macro from asm/unistd.h
-  m68k: add system call table generation support
-  m68k: uapi header and system call table file generation
-  m68k: add __IGNORE* entries in asm/unistd.h
-
- arch/m68k/Makefile                      |   3 +
- arch/m68k/include/asm/Kbuild            |   1 +
- arch/m68k/include/asm/unistd.h          |  10 +-
- arch/m68k/include/uapi/asm/Kbuild       |   1 +
- arch/m68k/include/uapi/asm/unistd.h     | 385 +-----------------------------
- arch/m68k/kernel/Makefile               |   2 +-
- arch/m68k/kernel/syscall_table.S        |  14 ++
- arch/m68k/kernel/syscalls/Makefile      |  38 +++
- arch/m68k/kernel/syscalls/syscall.tbl   | 369 +++++++++++++++++++++++++++++
- arch/m68k/kernel/syscalls/syscallhdr.sh |  35 +++
- arch/m68k/kernel/syscalls/syscalltbl.sh |  34 +++
- arch/m68k/kernel/syscalltable.S         | 403 --------------------------------
- 12 files changed, 505 insertions(+), 790 deletions(-)
- create mode 100644 arch/m68k/kernel/syscall_table.S
- create mode 100644 arch/m68k/kernel/syscalls/Makefile
- create mode 100644 arch/m68k/kernel/syscalls/syscall.tbl
- create mode 100644 arch/m68k/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/m68k/kernel/syscalls/syscalltbl.sh
- delete mode 100644 arch/m68k/kernel/syscalltable.S
-
+diff --git a/arch/m68k/kernel/Makefile b/arch/m68k/kernel/Makefile
+index dbac7f8..5f40ce6 100644
+--- a/arch/m68k/kernel/Makefile
++++ b/arch/m68k/kernel/Makefile
+@@ -15,7 +15,7 @@ extra-$(CONFIG_SUN3)	:= sun3-head.o
+ extra-y			+= vmlinux.lds
+ 
+ obj-y	:= entry.o irq.o module.o process.o ptrace.o
+-obj-y	+= setup.o signal.o sys_m68k.o syscalltable.o time.o traps.o
++obj-y	+= setup.o signal.o sys_m68k.o syscall_table.o time.o traps.o
+ 
+ obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
+ obj-$(CONFIG_MMU_SUN3) += ints.o vectors.o
+diff --git a/arch/m68k/kernel/syscalltable.S b/arch/m68k/kernel/syscall_table.S
+similarity index 100%
+rename from arch/m68k/kernel/syscalltable.S
+rename to arch/m68k/kernel/syscall_table.S
 -- 
 1.9.1
