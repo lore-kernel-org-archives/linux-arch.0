@@ -1,93 +1,98 @@
-From: John Johansen <john.johansen@canonical.com>
-Subject: Re: [PATCH security-next v3 19/29] LSM: Prepare for reorganizing
- "security=" logic
-Date: Mon, 1 Oct 2018 14:47:37 -0700
-Message-ID: <0a668ede-bf8a-33eb-13cc-a1667c974944@canonical.com>
-References: <20180925001832.18322-1-keescook@chromium.org>
- <20180925001832.18322-20-keescook@chromium.org>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH security-next v3 14/29] LSM: Plumb visibility into optional
+ "enabled" state
+Date: Tue, 2 Oct 2018 07:47:44 +1000 (AEST)
+Message-ID: <alpine.LRH.2.21.1810020747380.20364@namei.org>
+References: <20180925001832.18322-1-keescook@chromium.org> <20180925001832.18322-15-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925001832.18322-20-keescook@chromium.org>
-Content-Language: en-GB
+In-Reply-To: <20180925001832.18322-15-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 09/24/2018 05:18 PM, Kees Cook wrote:
-> This moves the string handling for "security=" boot parameter into
-> a stored pointer instead of a string duplicate. This will allow
-> easier handling of the string when switching logic to use the coming
-> enable/disable infrastructure.
+On Mon, 24 Sep 2018, Kees Cook wrote:
+
+> In preparation for lifting the "is this LSM enabled?" logic out of the
+> individual LSMs, pass in any special enabled state tracking (as needed
+> for SELinux, AppArmor, and LoadPin). This should be an "int" to include
+> handling any future cases where "enabled" is exposed via sysctl which
+> has no "bool" type.
 > 
 > Signed-off-by: Kees Cook <keescook@chromium.org>
-
-Reviewed-by: John Johansen <john.johansen@canonical.com>
-
-
 > ---
->  security/security.c | 17 ++++++++---------
->  1 file changed, 8 insertions(+), 9 deletions(-)
+>  include/linux/lsm_hooks.h | 1 +
+>  security/apparmor/lsm.c   | 5 +++--
+>  security/selinux/hooks.c  | 1 +
+>  3 files changed, 5 insertions(+), 2 deletions(-)
 > 
-> diff --git a/security/security.c b/security/security.c
-> index 456a3f73bc36..e325fcc41f00 100644
-> --- a/security/security.c
-> +++ b/security/security.c
-> @@ -34,18 +34,14 @@
+> diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+> index 5056f7374b3d..2a41e8e6f6e5 100644
+> --- a/include/linux/lsm_hooks.h
+> +++ b/include/linux/lsm_hooks.h
+> @@ -2044,6 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+>  struct lsm_info {
+>  	const char *name;	/* Populated automatically. */
+>  	unsigned long flags;	/* Optional: flags describing LSM */
+> +	int *enabled;		/* Optional: NULL means enabled. */
+
+This seems potentially confusing.
+
+Perhaps initialize 'enabled' to a default int pointer, like:
+
+	static int lsm_default_enabled = 1;
+
+Then,
+
+	DEFINE_LSM(foobar)
+	flags = LSM_FLAG_LEGACY_MAJOR,
+	.enabled = &lsm_default_enabled,
+	.init = foobar_init,
+	END_LSM;
+
+
+
+>  	int (*init)(void);
+>  };
 >  
->  #define MAX_LSM_EVM_XATTR	2
+> diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
+> index 4c5f63e9aeba..d03133a267f2 100644
+> --- a/security/apparmor/lsm.c
+> +++ b/security/apparmor/lsm.c
+> @@ -1303,8 +1303,8 @@ bool aa_g_paranoid_load = true;
+>  module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
 >  
-> -/* Maximum number of letters for an LSM name string */
-> -#define SECURITY_NAME_MAX	10
-> -
->  struct security_hook_heads security_hook_heads __lsm_ro_after_init;
->  static ATOMIC_NOTIFIER_HEAD(lsm_notifier_chain);
+>  /* Boot time disable flag */
+> -static bool apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
+> -module_param_named(enabled, apparmor_enabled, bool, S_IRUGO);
+> +static int apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
+> +module_param_named(enabled, apparmor_enabled, int, 0444);
 >  
->  char *lsm_names;
->  /* Boot-time LSM user choice */
-> -static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
-> -	CONFIG_DEFAULT_SECURITY;
->  static __initdata const char *chosen_lsm_enable;
->  static __initdata const char *chosen_lsm_disable;
-> +static __initdata const char *chosen_major_lsm;
->  
->  static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
->  
-> @@ -112,7 +108,7 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
->  		return true;
->  
->  	/* Disabled if this LSM isn't the chosen one. */
-> -	if (strcmp(lsm->name, chosen_lsm) != 0)
-> +	if (strcmp(lsm->name, chosen_major_lsm) != 0)
->  		return false;
->  
->  	return true;
-> @@ -191,6 +187,9 @@ static void __init prepare_lsm_enable(void)
->  	/* Process "lsm.enable=" and "lsm.disable=", if given. */
->  	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
->  	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
-> +
-> +	if (!chosen_major_lsm)
-> +		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
->  }
->  
->  /**
-> @@ -231,12 +230,12 @@ int __init security_init(void)
->  }
->  
->  /* Save user chosen LSM */
-> -static int __init choose_lsm(char *str)
-> +static int __init choose_major_lsm(char *str)
+>  static int __init apparmor_enabled_setup(char *str)
 >  {
-> -	strncpy(chosen_lsm, str, SECURITY_NAME_MAX);
-> +	chosen_major_lsm = str;
->  	return 1;
->  }
-> -__setup("security=", choose_lsm);
-> +__setup("security=", choose_major_lsm);
+> @@ -1608,5 +1608,6 @@ static int __init apparmor_init(void)
 >  
->  /* Enable LSM order debugging. */
->  static int __init enable_debug(char *str)
+>  DEFINE_LSM(apparmor)
+>  	.flags = LSM_FLAG_LEGACY_MAJOR,
+> +	.enabled = &apparmor_enabled,
+>  	.init = apparmor_init,
+>  END_LSM;
+> diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+> index 615cf6498c0f..3f999ed98cfd 100644
+> --- a/security/selinux/hooks.c
+> +++ b/security/selinux/hooks.c
+> @@ -7204,6 +7204,7 @@ void selinux_complete_init(void)
+>     all processes and objects when they are created. */
+>  DEFINE_LSM(selinux)
+>  	.flags = LSM_FLAG_LEGACY_MAJOR,
+> +	.enabled = &selinux_enabled,
+>  	.init = selinux_init,
+>  END_LSM;
+>  
 > 
+
+-- 
+James Morris
+<jmorris@namei.org>
