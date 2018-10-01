@@ -1,50 +1,64 @@
 From: John Johansen <john.johansen@canonical.com>
-Subject: Re: [PATCH security-next v3 01/29] LSM: Correctly announce start of
- LSM initialization
-Date: Mon, 1 Oct 2018 14:05:32 -0700
-Message-ID: <9c0f5719-1028-bb8b-972e-dd38f4358f84@canonical.com>
+Subject: Re: [PATCH security-next v3 02/29] vmlinux.lds.h: Avoid copy/paste of
+ security_init section
+Date: Mon, 1 Oct 2018 14:05:51 -0700
+Message-ID: <6adced07-f3a9-a098-3f56-ba5fd2e03bcb@canonical.com>
 References: <20180925001832.18322-1-keescook@chromium.org>
- <20180925001832.18322-2-keescook@chromium.org>
+ <20180925001832.18322-3-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925001832.18322-2-keescook@chromium.org>
+In-Reply-To: <20180925001832.18322-3-keescook@chromium.org>
 Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
 To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 On 09/24/2018 05:18 PM, Kees Cook wrote:
-> For a while now, the LSM core has said it was "initializED", rather than
-> "initializING". This adjust the report to be more accurate (i.e. before
-> this was reported before any LSMs had been initialized.)
+> Avoid copy/paste by defining SECURITY_INIT in terms of SECURITY_INITCALL.
 > 
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-arch@vger.kernel.org
 > Signed-off-by: Kees Cook <keescook@chromium.org>
-> Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
+
 
 Reviewed-by: John Johansen <john.johansen@canonical.com>
 
 > ---
->  security/security.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
+>  include/asm-generic/vmlinux.lds.h | 13 ++++++-------
+>  1 file changed, 6 insertions(+), 7 deletions(-)
 > 
-> diff --git a/security/security.c b/security/security.c
-> index 736e78da1ab9..4cbcf244a965 100644
-> --- a/security/security.c
-> +++ b/security/security.c
-> @@ -72,10 +72,11 @@ int __init security_init(void)
->  	int i;
->  	struct hlist_head *list = (struct hlist_head *) &security_hook_heads;
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 7b75ff6e2fce..934a45395547 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -473,13 +473,6 @@
+>  #define RODATA          RO_DATA_SECTION(4096)
+>  #define RO_DATA(align)  RO_DATA_SECTION(align)
 >  
-> +	pr_info("Security Framework initializing\n");
+> -#define SECURITY_INIT							\
+> -	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
+> -		__security_initcall_start = .;				\
+> -		KEEP(*(.security_initcall.init))			\
+> -		__security_initcall_end = .;				\
+> -	}
+> -
+>  /*
+>   * .text section. Map to function alignment to avoid address changes
+>   * during second ld run in second ld pass when generating System.map
+> @@ -798,6 +791,12 @@
+>  		KEEP(*(.security_initcall.init))			\
+>  		__security_initcall_end = .;
+>  
+> +/* Older linker script style for security init. */
+> +#define SECURITY_INIT							\
+> +	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
+> +		SECURITY_INITCALL					\
+> +	}
 > +
->  	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
->  	     i++)
->  		INIT_HLIST_HEAD(&list[i]);
-> -	pr_info("Security Framework initialized\n");
->  
->  	/*
->  	 * Load minor LSMs, with the capability module always first.
+>  #ifdef CONFIG_BLK_DEV_INITRD
+>  #define INIT_RAM_FS							\
+>  	. = ALIGN(4);							\
 > 
