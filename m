@@ -1,41 +1,72 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 5/5] m68k: add __IGNORE* entries in asm/unistd.h
-Date: Mon,  1 Oct 2018 18:07:57 +0530
-Message-ID: <1538397477-4003-6-git-send-email-firoz.khan@linaro.org>
-References: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v2 0/3] System call table generation support
+Date: Mon,  1 Oct 2018 18:13:01 +0530
+Message-ID: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Add __IGNORE* entries for seccomp, pkey_mprotect, pkey_
-alloc, pkey_free, io_pgetevents and rseq in the file
-asm/unistd.h as it is correct to keep __IGNORE* entry in
-non uapi header asm/unistd.h while uapi/asm/unistd.h must
-hold information only useful for user space applications.
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/m68k/include/asm/unistd.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
-diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
-index 5072e94..cc5f640 100644
---- a/arch/m68k/include/asm/unistd.h
-+++ b/arch/m68k/include/asm/unistd.h
-@@ -31,4 +31,11 @@
- #define __ARCH_WANT_SYS_FORK
- #define __ARCH_WANT_SYS_VFORK
- 
-+#define __IGNORE_seccomp
-+#define __IGNORE_pkey_mprotect
-+#define __IGNORE_pkey_alloc
-+#define __IGNORE_pkey_free
-+#define __IGNORE_io_pgetevents
-+#define __IGNORE_rseq
-+
- #endif /* _ASM_M68K_UNISTD_H_ */
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify them across all architectures.
+
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, ia64, sparc, mips, 
+parisc, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+Firoz Khan (3):
+  microblaze: replace __NR_syscalls macro from asm/unistd.h
+  microblaze: add system call table generation support
+  microblaze: uapi header and system call table file generation
+
+ arch/microblaze/Makefile                      |   3 +
+ arch/microblaze/include/asm/Kbuild            |   1 +
+ arch/microblaze/include/asm/unistd.h          |   2 -
+ arch/microblaze/include/uapi/asm/Kbuild       |   1 +
+ arch/microblaze/include/uapi/asm/unistd.h     | 407 +-------------------------
+ arch/microblaze/kernel/syscall_table.S        | 406 +------------------------
+ arch/microblaze/kernel/syscalls/Makefile      |  38 +++
+ arch/microblaze/kernel/syscalls/syscall.tbl   | 405 +++++++++++++++++++++++++
+ arch/microblaze/kernel/syscalls/syscallhdr.sh |  35 +++
+ arch/microblaze/kernel/syscalls/syscalltbl.sh |  34 +++
+ 10 files changed, 522 insertions(+), 810 deletions(-)
+ create mode 100644 arch/microblaze/kernel/syscalls/Makefile
+ create mode 100644 arch/microblaze/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/microblaze/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/microblaze/kernel/syscalls/syscalltbl.sh
+
 -- 
 1.9.1
