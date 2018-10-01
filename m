@@ -1,54 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f196.google.com ([209.85.215.196]:37807 "EHLO
-        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729243AbeJATQU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 15:16:20 -0400
-Received: by mail-pg1-f196.google.com with SMTP id c10-v6so9398088pgq.4
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 05:38:43 -0700 (PDT)
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:37821 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729223AbeJATQ0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 15:16:26 -0400
+Received: by mail-pg1-f193.google.com with SMTP id c10-v6so9398235pgq.4
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 05:38:49 -0700 (PDT)
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 1/5] m68k: rename system call table file name
-Date: Mon,  1 Oct 2018 18:07:53 +0530
-Message-ID: <1538397477-4003-2-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 2/5] m68k: replace NR_syscalls macro from asm/unistd.h
+Date: Mon,  1 Oct 2018 18:07:54 +0530
+Message-ID: <1538397477-4003-3-git-send-email-firoz.khan@linaro.org>
 In-Reply-To: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
 References: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181001123753.pEybewEOncwCquFEU0CQ2plJqZe6n9v2xVJ0VJF7TAw@z>
+Message-ID: <20181001123754.n4X7FWmvWck5OMfInhtpY1juFs4eA1o8Z_4Z3aG9Frg@z>
 
-The system call table entries are present in syscalltable.S. One of
-the patch in this patch series will auto-generate the system call
-table entries using the system call table generation script and
-which'll replace the existig table file.
+NR_syscalls macro holds the number of system call exist in m68k
+architecture. This macro is currently the part of asm/unistd.h file.
+We have to change the value of NR_syscalls, if we add or delete a
+system call.
 
-In order to come up with a common naming convention across all
-architecture, we need to change the file name to syscall_table.S.
-This change will unify the implementation across all architecture.
+One of patch in this patch series has a script which will generate
+a uapi header based on syscall.tbl file. The syscall.tbl file
+contains the number of system call information. So we have two
+option to update NR_syscalls value.
+
+1. Update NR_syscalls in asm/unistd.h manually by counting the
+   no.of system calls. No need to update NR_syscalls until
+   we either add a new system call or delete an existing system
+   call.
+
+2. We can keep this feature it above mentioned script, that'll
+   count the number of syscalls and keep it in a generated file.
+   In this case we don't need to explicitly update NR_syscalls
+   in asm/unistd.h file.
+
+The 2nd option will be the recommended one. For that, I come up
+with another macro - __NR_syscalls which will be updated by the
+script and it will be present in api/asm/unistd.h. While __NR_syscalls
+isn't strictly part of the uapi, having it as part of the generated
+header to simplifies the implementation. So we need to enclose this
+macro with #ifdef __KERNEL__ to avoid side effects.
 
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/m68k/kernel/Makefile                            | 2 +-
- arch/m68k/kernel/{syscalltable.S => syscall_table.S} | 0
- 2 files changed, 1 insertion(+), 1 deletion(-)
- rename arch/m68k/kernel/{syscalltable.S => syscall_table.S} (100%)
+ arch/m68k/include/asm/unistd.h      | 3 +--
+ arch/m68k/include/uapi/asm/unistd.h | 4 ++++
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m68k/kernel/Makefile b/arch/m68k/kernel/Makefile
-index dbac7f8..5f40ce6 100644
---- a/arch/m68k/kernel/Makefile
-+++ b/arch/m68k/kernel/Makefile
-@@ -15,7 +15,7 @@ extra-$(CONFIG_SUN3)	:= sun3-head.o
- extra-y			+= vmlinux.lds
+diff --git a/arch/m68k/include/asm/unistd.h b/arch/m68k/include/asm/unistd.h
+index 30d0d3f..5072e94 100644
+--- a/arch/m68k/include/asm/unistd.h
++++ b/arch/m68k/include/asm/unistd.h
+@@ -4,8 +4,7 @@
  
- obj-y	:= entry.o irq.o module.o process.o ptrace.o
--obj-y	+= setup.o signal.o sys_m68k.o syscalltable.o time.o traps.o
-+obj-y	+= setup.o signal.o sys_m68k.o syscall_table.o time.o traps.o
+ #include <uapi/asm/unistd.h>
  
- obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
- obj-$(CONFIG_MMU_SUN3) += ints.o vectors.o
-diff --git a/arch/m68k/kernel/syscalltable.S b/arch/m68k/kernel/syscall_table.S
-similarity index 100%
-rename from arch/m68k/kernel/syscalltable.S
-rename to arch/m68k/kernel/syscall_table.S
+-
+-#define NR_syscalls		380
++#define NR_syscalls __NR_syscalls
+ 
+ #define __ARCH_WANT_OLD_READDIR
+ #define __ARCH_WANT_OLD_STAT
+diff --git a/arch/m68k/include/uapi/asm/unistd.h b/arch/m68k/include/uapi/asm/unistd.h
+index de3054f..ba4176aa 100644
+--- a/arch/m68k/include/uapi/asm/unistd.h
++++ b/arch/m68k/include/uapi/asm/unistd.h
+@@ -387,4 +387,8 @@
+ #define __NR_pwritev2		378
+ #define __NR_statx		379
+ 
++#ifdef __KERNEL__
++#define __NR_syscalls		380
++#endif
++
+ #endif /* _UAPI_ASM_M68K_UNISTD_H_ */
 -- 
 1.9.1
