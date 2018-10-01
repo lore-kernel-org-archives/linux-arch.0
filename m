@@ -1,81 +1,61 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 0/3] namei: implement various scoping AT_* flags
-Date: Mon, 1 Oct 2018 13:28:28 +0000
-Message-ID: <1f1d699b1c8d472495a5b07199c31a6e@AcuMS.aculab.com>
+From: Bruce Fields <bfields@fieldses.org>
+Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path
+ resolution
+Date: Mon, 1 Oct 2018 09:55:58 -0400
+Message-ID: <20181001135558.GB25003@fieldses.org>
 References: <20180929103453.12025-1-cyphar@cyphar.com>
+ <20180929131534.24472-1-cyphar@cyphar.com>
+ <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
+ <20181001054246.gfinmx3api7kjhmc@ryuk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180929103453.12025-1-cyphar@cyphar.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20181001054246.gfinmx3api7kjhmc@ryuk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: 'Aleksa Sarai' <cyphar@cyphar.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>
-Cc: David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Tycho Andersen <tycho@tycho.ws>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "dev@opencontainers.org" <dev@opencontainers.org>, "containers@lists.linux-foundation.org" <containers@lists.linux-foundation.org>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jann Horn <jannh@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Aleksa Sarai
-> Sent: 29 September 2018 11:35
+On Mon, Oct 01, 2018 at 03:44:28PM +1000, Aleksa Sarai wrote:
+> On 2018-09-29, Jann Horn <jannh@google.com> wrote:
+> > The problem is what happens if a folder you are walking through is
+> > concurrently moved out of the chroot. Consider the following scenario:
+> > 
+> > You attempt to open "C/../../etc/passwd" under the root "/A/B".
+> > Something else concurrently moves /A/B/C to /A/C. This can result in
+> > the following:
+> > 
+> > 1. You start the path walk and reach /A/B/C.
+> > 2. The other process moves /A/B/C to /A/C. Your path walk is now at /A/C.
+> > 3. Your path walk follows the first ".." up into /A. This is outside
+> > the process root, but you never actually encountered the process root,
+> > so you don't notice.
+> > 4. Your path walk follows the second ".." up to /. Again, this is
+> > outside the process root, but you don't notice.
+> > 5. Your path walk walks down to /etc/passwd, and the open completes
+> > successfully. You now have an fd pointing outside your chroot.
+> > 
+> > If the root of your walk is below an attacker-controlled directory,
+> > this of course means that you lose instantly. If you point the root of
+> > the walk at a directory out of which a process in the container
+> > wouldn't be able to move the file, you're probably kinda mostly fine -
+> > as long as you know, for certain, that nothing else on the system
+> > would ever do that. But I still wouldn't feel good about that.
 > 
-> The need for some sort of control over VFS's path resolution (to avoid
-> malicious paths resulting in inadvertent breakouts) has been a very
-> long-standing desire of many userspace applications. This patchset is a
-> revival of Al Viro's old AT_NO_JUMPS[1] patchset with a few additions.
-> 
-> The most obvious change is that AT_NO_JUMPS has been split as dicussed
-> in the original thread, along with a further split of AT_NO_PROCLINKS
-> which means that each individual property of AT_NO_JUMPS is now a
-> separate flag:
-> 
->   * Path-based escapes from the starting-point using "/" or ".." are
->     blocked by AT_BENEATH.
+> Please correct me if I'm wrong here (this is the first patch I've
+> written for VFS). Isn't the retry/LOOKUP_REVAL code meant to handle this
 
-You may need to allow absolute paths that refer to items inside
-the controlled area.
-(Even if done by a textual replacement based on the expected name
-of the base directory.)
-
->   * Mountpoint crossings are blocked by AT_XDEV.
-
-You might want a mountpoint flag that allows crossing into the mounted
-filesystem (you may need to get out in order to do pwd()).
-
->   * /proc/$pid/fd/$fd resolution is blocked by AT_NO_PROCLINKS (more
-> 	correctly it actually blocks any user of nd_jump_link() because it
-> 	allows out-of-VFS path resolution manipulation).
-
-Or 'fix' the /proc/$pid/fd/$fd code to open the actual vnode rather than
-being a symlink (although this might still let you get a directory vnode).
-FWIW this is what NetBSD does - you can link the open file back into
-the filesystem!
-
-> 
-> AT_NO_JUMPS is now effectively (AT_BENEATH|AT_XDEV|AT_NO_PROCLINKS). At
-> Linus' suggestion in the original thread, I've also implemented
-> AT_NO_SYMLINKS which just denies _all_ symlink resolution (including
-> "proclink" resolution).
-
-What about allowing 'trivial' symlinks?
+No.
 
 ...
-> Currently I've only enabled these for openat(2) and the stat(2) family.
-> I would hope we could enable it for basically every *at(2) syscall --
-> but many of them appear to not have a @flags argument and thus we'll
-> need to add several new syscalls to do this. I'm more than happy to send
-> those patches, but I'd prefer to know that this preliminary work is
-> acceptable before doing a bunch of copy-paste to add new sets of *at(2)
-> syscalls.
+> Speaking naively, doesn't it make sense to invalidate the walk if a path
+> component was modified? Or is this something that would be far too
+> costly with little benefit?
 
-If you make the flags a property of the directory vnode (perhaps as
-well as any syscall flags), and make it inherited by vnode lookup then
-it can be used to stop library functions (or entire binaries) using
-blocked paths.
-You'd then only need to add an fcntl() call to set the flags (but never
-clear them) to get the restriction applied to every lookup.
-...
+Lookups and renames can definitely proceed in parallel, and yes I
+suspect it would be difficult to get good performance and guaranteed
+forward progress if you required lookup of the full path to be atomic
+with respect to renames.
 
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+--b.
