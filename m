@@ -1,47 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:35915 "EHLO
-        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729415AbeJAVB0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 17:01:26 -0400
-Received: by mail-yw1-f68.google.com with SMTP id e201-v6so5549041ywa.3
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 07:23:23 -0700 (PDT)
-MIME-Version: 1.0
-References: <1538058267-3765-1-git-send-email-firoz.khan@linaro.org>
- <1538058267-3765-4-git-send-email-firoz.khan@linaro.org> <CAK8P3a0D2G8=weYcua7G3HmL07vrYR_iExmmjt2SuokbJ=Vvog@mail.gmail.com>
-In-Reply-To: <CAK8P3a0D2G8=weYcua7G3HmL07vrYR_iExmmjt2SuokbJ=Vvog@mail.gmail.com>
-From: Firoz Khan <firoz.khan@linaro.org>
-Date: Mon, 1 Oct 2018 19:53:12 +0530
-Message-ID: <CALxhOnjwY+n5qdNBsL2_ZxCMkGf=Fz=_MwMwBjrWS8=WzYxAQQ@mail.gmail.com>
-Subject: Re: [PATCH v2 3/5] parisc: add system call table generation support
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:36265 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729513AbeJAVGm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 17:06:42 -0400
+Received: by mail-pf1-f193.google.com with SMTP id b7-v6so9354199pfo.3
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 07:28:37 -0700 (PDT)
+Content-Type: text/plain;
+        charset=utf-8
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path resolution
+From: Andy Lutomirski <luto@amacapital.net>
+In-Reply-To: <20181001054246.gfinmx3api7kjhmc@ryuk>
+Date: Mon, 1 Oct 2018 07:28:34 -0700
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <C89D720F-3CC4-4FA9-9CBB-E41A67360A6B@amacapital.net>
+References: <20180929103453.12025-1-cyphar@cyphar.com> <20180929131534.24472-1-cyphar@cyphar.com> <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com> <20181001054246.gfinmx3api7kjhmc@ryuk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181001142312.DMot6GfgNVG_DsMF9TDG3jn1vVUHJ6xoro1L6tcNouQ@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jann Horn <jannh@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20181001142834.JvBi4kCohoW3t61Dwd3BswHAlTLEQxpTZrWf5zRnjKA@z>
 
-Hi Arnd,
 
-On Mon, 1 Oct 2018 at 17:06, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Thu, Sep 27, 2018 at 4:25 PM Firoz Khan <firoz.khan@linaro.org> wrote:
-> >
-> > ---
-> >  arch/parisc/kernel/syscalls/Makefile       |  55 +++++
-> >  arch/parisc/kernel/syscalls/syscall_32.tbl | 342 +++++++++++++++++++++++++++++
-> >  arch/parisc/kernel/syscalls/syscall_64.tbl | 342 +++++++++++++++++++++++++++++
-> >  arch/parisc/kernel/syscalls/syscallhdr.sh  |  35 +++
-> >  arch/parisc/kernel/syscalls/syscalltbl.sh  |  42 ++++
->
-> I think we absolutely want to share the .tbl files for generating all
-> five outputs
-> (32-bit unistd.h, 64-bit unistd.h, 32-bit native syscall-table.S, 64-bit native
-> syscall-table.S, and 32-bit compat syscall-table.S) so we only
-> have to modify one file when adding another syscall, and to ensure that
->  32/64 are in sync.
+>>> Currently most container runtimes try to do this resolution in
+>>> userspace[1], causing many potential race conditions. In addition, the
+>>> "obvious" alternative (actually performing a {ch,pivot_}root(2))
+>>> requires a fork+exec which is *very* costly if necessary for every
+>>> filesystem operation involving a container.
+>>=20
+>> Wait. fork() I understand, but why exec? And actually, you don't need
+>> a full fork() either, clone() lets you do this with some process parts
+>> shared. And then you also shouldn't need to use SCM_RIGHTS, just keep
+>> the file descriptor table shared. And why chroot()/pivot_root(),
+>> wouldn't you want to use setns()?
+>=20
+> You're right about this -- for C runtimes. In Go we cannot do a raw
+> clone() or fork() (if you do it manually with RawSyscall you'll end with
+> broken runtime state). So you're forced to do fork+exec (which then
+> means that you can't use CLONE_FILES and must use SCM_RIGHTS). Same goes
+> for CLONE_VFORK.
 
-For this design, I need to rework. I'll update you shortly
+I must admit that I=E2=80=99m not very sympathetic to the argument that =E2=80=
+=9CGo=E2=80=99s runtime model is incompatible with the simpler solution.=E2=80=
+=9D
 
-- Firoz
->
->       Arnd
+Anyway, it occurs to me that the real problem is that setns() and chroot() a=
+re both overkill for this use case. What=E2=80=99s needed is to start your w=
+alk from /proc/pid-in-container/root, with two twists:
+
+1. Do the walk as though rooted at a directory. This is basically just your A=
+T_THIS_ROOT, but the footgun is avoided because the dirfd you use is from a f=
+oreign namespace, and, except for symlinks to absolute paths, no amount of .=
+. racing is going to escape the *namespace*.
+
+2. Avoid /proc. It=E2=80=99s not just the *links* =E2=80=94 you really don=E2=
+=80=99t want to walk into /proc/self. *Maybe* procfs is already careful enou=
+gh when mounted in a namespace?
