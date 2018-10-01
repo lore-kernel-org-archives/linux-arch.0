@@ -1,52 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f196.google.com ([209.85.219.196]:38445 "EHLO
-        mail-yb1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729404AbeJAU7x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 16:59:53 -0400
-Received: by mail-yb1-f196.google.com with SMTP id e190-v6so5649604ybb.5
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 07:21:50 -0700 (PDT)
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:35915 "EHLO
+        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729415AbeJAVB0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2018 17:01:26 -0400
+Received: by mail-yw1-f68.google.com with SMTP id e201-v6so5549041ywa.3
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 07:23:23 -0700 (PDT)
 MIME-Version: 1.0
-References: <1538057720-3392-1-git-send-email-firoz.khan@linaro.org> <20180928173044.GA16322@agluck-desk>
-In-Reply-To: <20180928173044.GA16322@agluck-desk>
+References: <1538058267-3765-1-git-send-email-firoz.khan@linaro.org>
+ <1538058267-3765-4-git-send-email-firoz.khan@linaro.org> <CAK8P3a0D2G8=weYcua7G3HmL07vrYR_iExmmjt2SuokbJ=Vvog@mail.gmail.com>
+In-Reply-To: <CAK8P3a0D2G8=weYcua7G3HmL07vrYR_iExmmjt2SuokbJ=Vvog@mail.gmail.com>
 From: Firoz Khan <firoz.khan@linaro.org>
-Date: Mon, 1 Oct 2018 19:51:38 +0530
-Message-ID: <CALxhOni76kqr795gDemsb6QQn7LeM7jL7DqFA8pesJuJaBKFHg@mail.gmail.com>
-Subject: Re: [PATCH v2 0/7] System call table generation support
+Date: Mon, 1 Oct 2018 19:53:12 +0530
+Message-ID: <CALxhOnjwY+n5qdNBsL2_ZxCMkGf=Fz=_MwMwBjrWS8=WzYxAQQ@mail.gmail.com>
+Subject: Re: [PATCH v2 3/5] parisc: add system call table generation support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: linux-ia64@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181001142138.wUDx15BdOk86vTysOsc2nMZ4AAsqDM__0GyDpQ0Z2kA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181001142312.DMot6GfgNVG_DsMF9TDG3jn1vVUHJ6xoro1L6tcNouQ@z>
 
-Hi Tony,
+Hi Arnd,
 
-On Fri, 28 Sep 2018 at 23:01, Luck, Tony <tony.luck@intel.com> wrote:
+On Mon, 1 Oct 2018 at 17:06, Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> Still does not boot. Last part of console log (nothing unusual
-> before the "Kernel panic" line):
+> On Thu, Sep 27, 2018 at 4:25 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >
+> > ---
+> >  arch/parisc/kernel/syscalls/Makefile       |  55 +++++
+> >  arch/parisc/kernel/syscalls/syscall_32.tbl | 342 +++++++++++++++++++++++++++++
+> >  arch/parisc/kernel/syscalls/syscall_64.tbl | 342 +++++++++++++++++++++++++++++
+> >  arch/parisc/kernel/syscalls/syscallhdr.sh  |  35 +++
+> >  arch/parisc/kernel/syscalls/syscalltbl.sh  |  42 ++++
 >
->
-> EFI Variables Facility v0.08 2004-May-17
-> sd 5:0:0:0: [sdb] 286749488 512-byte logical blocks: (147 GB/137 GiB)
-> sd 5:0:0:0: [sdb] Write Protect is off
-> sd 5:0:0:0: [sdb] Write cache: enabled, read cache: enabled, supports DPO and FUA
->  sdb: sdb1 sdb2
-> sd 5:0:0:0: [sdb] Attached SCSI disk
-> NET: Registered protocol family 17
-> console [netcon0] enabled
-> netconsole: network logging started
-> Freeing unused kernel memory: 960K
-> This architecture does not have kernel memory protection.
-> Run /init as init process
-> Kernel panic - not syncing: Attempted to kill init! exitcode=0x00007f00
->
-> ---[ end Kernel panic - not syncing: Attempted to kill init! exitcode=0x00007f00
->  ]---
->
+> I think we absolutely want to share the .tbl files for generating all
+> five outputs
+> (32-bit unistd.h, 64-bit unistd.h, 32-bit native syscall-table.S, 64-bit native
+> syscall-table.S, and 32-bit compat syscall-table.S) so we only
+> have to modify one file when adding another syscall, and to ensure that
+>  32/64 are in sync.
 
-Thanks for the update. I'm planning to solve this issue asap.
+For this design, I need to rework. I'll update you shortly
 
 - Firoz
-
-> -Tony
+>
+>       Arnd
