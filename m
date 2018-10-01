@@ -1,15 +1,15 @@
 From: John Johansen <john.johansen@canonical.com>
-Subject: Re: [PATCH security-next v3 18/29] LSM: Introduce lsm.enable= and
- lsm.disable=
-Date: Mon, 1 Oct 2018 14:46:54 -0700
-Message-ID: <68e4e323-3216-7e77-2807-c3207126ae68@canonical.com>
+Subject: Re: [PATCH security-next v3 19/29] LSM: Prepare for reorganizing
+ "security=" logic
+Date: Mon, 1 Oct 2018 14:47:37 -0700
+Message-ID: <0a668ede-bf8a-33eb-13cc-a1667c974944@canonical.com>
 References: <20180925001832.18322-1-keescook@chromium.org>
- <20180925001832.18322-19-keescook@chromium.org>
+ <20180925001832.18322-20-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180925001832.18322-19-keescook@chromium.org>
+In-Reply-To: <20180925001832.18322-20-keescook@chromium.org>
 Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
 To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
@@ -17,133 +17,77 @@ Cc: Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-lov
 List-Id: linux-arch.vger.kernel.org
 
 On 09/24/2018 05:18 PM, Kees Cook wrote:
-> This introduces the "lsm.enable=..." and "lsm.disable=..." boot parameters
-> which each can contain a comma-separated list of LSMs to enable or
-> disable, respectively. The string "all" matches all LSMs.
-> 
-> This has very similar functionality to the existing per-LSM enable
-> handling ("apparmor.enabled=...", etc), but provides a centralized
-> place to perform the changes. These parameters take precedent over any
-> LSM-specific boot parameters.
-> 
-> Disabling an LSM means it will not be considered when performing
-> initializations. Enabling an LSM means either undoing a previous
-> LSM-specific boot parameter disabling or a undoing a default-disabled
-> CONFIG setting.
-> 
-> For example: "lsm.disable=apparmor apparmor.enabled=1" will result in
-> AppArmor being disabled. "selinux.enabled=0 lsm.enable=selinux" will
-> result in SELinux being enabled.
+> This moves the string handling for "security=" boot parameter into
+> a stored pointer instead of a string duplicate. This will allow
+> easier handling of the string when switching logic to use the coming
+> enable/disable infrastructure.
 > 
 > Signed-off-by: Kees Cook <keescook@chromium.org>
 
-I don't like this. It brings about conflicting kernel params that are
-bound to confuse users. Its pretty easy for a user to understand that
-when they specify a parameter manually at boot, that  it overrides the
-build time default. But conflicting kernel parameters are a lot harder
-to deal with.
-
-I prefer a plain enabled= list being an override of the default build
-time value. Where conflicts with LSM-specific configs always result in
-the LSM being disabled with a complaint about the conflict.
-
-Though I have yet to be convinced its worth the cost, I do recognize
-it is sometimes convenient to disable a single LSM, instead of typing
-in a whole list of what to enable. If we have to have conflicting
-kernel parameters I would prefer that the conflict throw up a warning
-and leaving the LSM with the conflicting config disabled.
-
+Reviewed-by: John Johansen <john.johansen@canonical.com>
 
 
 > ---
->  .../admin-guide/kernel-parameters.txt         | 12 ++++++++++
->  security/Kconfig                              |  4 +++-
->  security/security.c                           | 22 +++++++++++++++++++
->  3 files changed, 37 insertions(+), 1 deletion(-)
+>  security/security.c | 17 ++++++++---------
+>  1 file changed, 8 insertions(+), 9 deletions(-)
 > 
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index 32d323ee9218..67c90985d2b8 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -2276,6 +2276,18 @@
->  
->  	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
->  
-> +	lsm.disable=lsm1,...,lsmN
-> +			[SECURITY] Comma-separated list of LSMs to disable
-> +			at boot time. This overrides "lsm.enable=",
-> +			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and boot
-> +			parameters.
-> +
-> +	lsm.enable=lsm1,...,lsmN
-> +			[SECURITY] Comma-separated list of LSMs to enable
-> +			at boot time. This overrides any omissions from
-> +			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
-> +			boot parameters.
-> +
->  	machvec=	[IA-64] Force the use of a particular machine-vector
->  			(machvec) in a generic kernel.
->  			Example: machvec=hpzx1_swiotlb
-> diff --git a/security/Kconfig b/security/Kconfig
-> index 71306b046270..1a82a006cc62 100644
-> --- a/security/Kconfig
-> +++ b/security/Kconfig
-> @@ -282,7 +282,9 @@ config LSM_ENABLE
->  	help
->  	  A comma-separate list of LSMs to enable by default at boot. The
->  	  default is "all", to enable all LSM modules at boot. Any LSMs
-> -	  not listed here will be disabled by default.
-> +	  not listed here will be disabled by default. This can be
-> +	  changed with the "lsm.enable=" and "lsm.disable=" boot
-> +	  parameters.
->  
->  endmenu
->  
 > diff --git a/security/security.c b/security/security.c
-> index 7ecb9879a863..456a3f73bc36 100644
+> index 456a3f73bc36..e325fcc41f00 100644
 > --- a/security/security.c
 > +++ b/security/security.c
-> @@ -44,6 +44,8 @@ char *lsm_names;
+> @@ -34,18 +34,14 @@
+>  
+>  #define MAX_LSM_EVM_XATTR	2
+>  
+> -/* Maximum number of letters for an LSM name string */
+> -#define SECURITY_NAME_MAX	10
+> -
+>  struct security_hook_heads security_hook_heads __lsm_ro_after_init;
+>  static ATOMIC_NOTIFIER_HEAD(lsm_notifier_chain);
+>  
+>  char *lsm_names;
 >  /* Boot-time LSM user choice */
->  static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
->  	CONFIG_DEFAULT_SECURITY;
-> +static __initdata const char *chosen_lsm_enable;
-> +static __initdata const char *chosen_lsm_disable;
+> -static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+> -	CONFIG_DEFAULT_SECURITY;
+>  static __initdata const char *chosen_lsm_enable;
+>  static __initdata const char *chosen_lsm_disable;
+> +static __initdata const char *chosen_major_lsm;
 >  
 >  static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
 >  
-> @@ -185,6 +187,10 @@ static void __init prepare_lsm_enable(void)
->  {
->  	/* Prepare defaults. */
->  	parse_lsm_enable(builtin_lsm_enable, default_enabled, true);
+> @@ -112,7 +108,7 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
+>  		return true;
+>  
+>  	/* Disabled if this LSM isn't the chosen one. */
+> -	if (strcmp(lsm->name, chosen_lsm) != 0)
+> +	if (strcmp(lsm->name, chosen_major_lsm) != 0)
+>  		return false;
+>  
+>  	return true;
+> @@ -191,6 +187,9 @@ static void __init prepare_lsm_enable(void)
+>  	/* Process "lsm.enable=" and "lsm.disable=", if given. */
+>  	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
+>  	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
 > +
-> +	/* Process "lsm.enable=" and "lsm.disable=", if given. */
-> +	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
-> +	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
+> +	if (!chosen_major_lsm)
+> +		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
 >  }
 >  
 >  /**
-> @@ -240,6 +246,22 @@ static int __init enable_debug(char *str)
+> @@ -231,12 +230,12 @@ int __init security_init(void)
 >  }
->  __setup("lsm.debug", enable_debug);
 >  
-> +/* Explicitly enable a list of LSMs. */
-> +static int __init enable_lsm(char *str)
-> +{
-> +	chosen_lsm_enable = str;
-> +	return 1;
-> +}
-> +__setup("lsm.enable=", enable_lsm);
-> +
-> +/* Explicitly disable a list of LSMs. */
-> +static int __init disable_lsm(char *str)
-> +{
-> +	chosen_lsm_disable = str;
-> +	return 1;
-> +}
-> +__setup("lsm.disable=", disable_lsm);
-> +
->  static bool match_last_lsm(const char *list, const char *lsm)
+>  /* Save user chosen LSM */
+> -static int __init choose_lsm(char *str)
+> +static int __init choose_major_lsm(char *str)
 >  {
->  	const char *last;
+> -	strncpy(chosen_lsm, str, SECURITY_NAME_MAX);
+> +	chosen_major_lsm = str;
+>  	return 1;
+>  }
+> -__setup("security=", choose_lsm);
+> +__setup("security=", choose_major_lsm);
+>  
+>  /* Enable LSM order debugging. */
+>  static int __init enable_debug(char *str)
 > 
