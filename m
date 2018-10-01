@@ -1,94 +1,238 @@
-From: John Johansen <john.johansen@canonical.com>
-Subject: Re: [PATCH security-next v3 14/29] LSM: Plumb visibility into
- optional "enabled" state
-Date: Mon, 1 Oct 2018 15:53:33 -0700
-Message-ID: <c4270e42-388a-c1c8-add9-66116b7f5fb3@canonical.com>
-References: <20180925001832.18322-1-keescook@chromium.org>
- <20180925001832.18322-15-keescook@chromium.org>
- <alpine.LRH.2.21.1810020747380.20364@namei.org>
- <CAGXu5jJKvb=3vu3_b-NNdr_=KwvgO9qa96Qo5qzSZuiy2=+Oig@mail.gmail.com>
- <822e8ef3-5035-736e-1bea-dcb4af5c36ac@canonical.com>
- <CAGXu5jKm3yp8VFjTrRd1dibMVQeCmsHawNMyvtiCcEjxT7S57Q@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v3 18/29] LSM: Introduce lsm.enable= and lsm.disable=
+Date: Mon, 1 Oct 2018 16:30:08 -0700
+Message-ID: <CAGXu5jJheexJgnJ+OWaDoRFraqm9yxj1Vr290tfZ7kELBPUpAw@mail.gmail.com>
+References: <20180925001832.18322-1-keescook@chromium.org> <20180925001832.18322-19-keescook@chromium.org>
+ <68e4e323-3216-7e77-2807-c3207126ae68@canonical.com> <CAGXu5j+jzmFh-iuXDVHQTq7e=mftpfaqS-45TP_UR3B+qtGcLQ@mail.gmail.com>
+ <9b3e1733-7cfa-5047-1422-0f9d92d88d39@canonical.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jKm3yp8VFjTrRd1dibMVQeCmsHawNMyvtiCcEjxT7S57Q@mail.gmail.com>
-Content-Language: en-GB
+In-Reply-To: <9b3e1733-7cfa-5047-1422-0f9d92d88d39@canonical.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: John Johansen <john.johansen@canonical.com>
+Cc: Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/01/2018 03:29 PM, Kees Cook wrote:
-> On Mon, Oct 1, 2018 at 3:20 PM, John Johansen
-> <john.johansen@canonical.com> wrote:
->> On 10/01/2018 02:56 PM, Kees Cook wrote:
->>> On Mon, Oct 1, 2018 at 2:47 PM, James Morris <jmorris@namei.org> wrote:
->>>> On Mon, 24 Sep 2018, Kees Cook wrote:
+On Mon, Oct 1, 2018 at 3:48 PM, John Johansen
+<john.johansen@canonical.com> wrote:
+> On 10/01/2018 03:27 PM, Kees Cook wrote:
+>> On Mon, Oct 1, 2018 at 2:46 PM, John Johansen
+>> <john.johansen@canonical.com> wrote:
+>>> On 09/24/2018 05:18 PM, Kees Cook wrote:
+>>>> This introduces the "lsm.enable=..." and "lsm.disable=..." boot parameters
+>>>> which each can contain a comma-separated list of LSMs to enable or
+>>>> disable, respectively. The string "all" matches all LSMs.
 >>>>
->>>>> In preparation for lifting the "is this LSM enabled?" logic out of the
->>>>> individual LSMs, pass in any special enabled state tracking (as needed
->>>>> for SELinux, AppArmor, and LoadPin). This should be an "int" to include
->>>>> handling any future cases where "enabled" is exposed via sysctl which
->>>>> has no "bool" type.
->>>>>
->>>>> Signed-off-by: Kees Cook <keescook@chromium.org>
->>>>> ---
->>>>>  include/linux/lsm_hooks.h | 1 +
->>>>>  security/apparmor/lsm.c   | 5 +++--
->>>>>  security/selinux/hooks.c  | 1 +
->>>>>  3 files changed, 5 insertions(+), 2 deletions(-)
->>>>>
->>>>> diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
->>>>> index 5056f7374b3d..2a41e8e6f6e5 100644
->>>>> --- a/include/linux/lsm_hooks.h
->>>>> +++ b/include/linux/lsm_hooks.h
->>>>> @@ -2044,6 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
->>>>>  struct lsm_info {
->>>>>       const char *name;       /* Populated automatically. */
->>>>>       unsigned long flags;    /* Optional: flags describing LSM */
->>>>> +     int *enabled;           /* Optional: NULL means enabled. */
+>>>> This has very similar functionality to the existing per-LSM enable
+>>>> handling ("apparmor.enabled=...", etc), but provides a centralized
+>>>> place to perform the changes. These parameters take precedent over any
+>>>> LSM-specific boot parameters.
 >>>>
->>>> This seems potentially confusing.
+>>>> Disabling an LSM means it will not be considered when performing
+>>>> initializations. Enabling an LSM means either undoing a previous
+>>>> LSM-specific boot parameter disabling or a undoing a default-disabled
+>>>> CONFIG setting.
 >>>>
->>>> Perhaps initialize 'enabled' to a default int pointer, like:
+>>>> For example: "lsm.disable=apparmor apparmor.enabled=1" will result in
+>>>> AppArmor being disabled. "selinux.enabled=0 lsm.enable=selinux" will
+>>>> result in SELinux being enabled.
 >>>>
->>>>         static int lsm_default_enabled = 1;
->>>>
->>>> Then,
->>>>
->>>>         DEFINE_LSM(foobar)
->>>>         flags = LSM_FLAG_LEGACY_MAJOR,
->>>>         .enabled = &lsm_default_enabled,
->>>>         .init = foobar_init,
->>>>         END_LSM;
+>>>> Signed-off-by: Kees Cook <keescook@chromium.org>
 >>>
->>> The reason I didn't do this is because there are only two LSMs that
->>> expose this "enabled" variable, so I didn't like making the other LSMs
->>> have to declare this. Internally, though, this is exactly what the
->>> infrastructure does: if it finds a NULL, it aims it at
->>> &lsm_default_enabled (in a later patch).
+>>> I don't like this. It brings about conflicting kernel params that are
+>>> bound to confuse users. Its pretty easy for a user to understand that
+>>> when they specify a parameter manually at boot, that  it overrides the
+>>> build time default. But conflicting kernel parameters are a lot harder
+>>> to deal with.
 >>>
->>> However, it seems more discussion is needed on the "enable" bit of
->>> this, so I'll reply to John in a moment...
+>>> I prefer a plain enabled= list being an override of the default build
+>>> time value. Where conflicts with LSM-specific configs always result in
+>>> the LSM being disabled with a complaint about the conflict.
 >>>
->> fwiw the apparmor.enabled config is really only a meant to be used to
->> disable apparmor. I'd drop it entirely except its part of the userspace
->> api now and needs to show up in
+>>> Though I have yet to be convinced its worth the cost, I do recognize
+>>> it is sometimes convenient to disable a single LSM, instead of typing
+>>> in a whole list of what to enable. If we have to have conflicting
+>>> kernel parameters I would prefer that the conflict throw up a warning
+>>> and leaving the LSM with the conflicting config disabled.
 >>
->>   /sys/module/apparmor/parameters/enabled
-> 
-> Showing the enabled-ness there can be wired up. What should happen if
-> someone sets apparmor.enabled=0/1 in new-series-world? (See other
-> thread...)
-> 
-I am open to either just making apparmor=0/apparmor.enabled=0 a means
-of only disabling apparmor, thats how it is currently used. Or even
-potentially getting rid of it as an available kernel boot config
-parameter and running with just lsm.enabled/disabled.
+>> Alright, let's drill down a bit more. I thought I had all the
+>> requirements sorted out here. :)
+>>
+>> AppArmor and SELinux are "special" here in that they have both:
+>>
+>> - CONFIG for enable-ness
+>> - boot param for enable-ness
+>>
+>> Now, the way this worked in the past was that combined with
+>> CONFIG_DEFAULT_SECURITY and the link-time ordering, this resulted in a
+>> way to get the LSM enabled, skipped, etc. But it was highly CONFIG
+>> dependent.
+>>
+>> SELinux does:
+>>
+>> #ifdef CONFIG_SECURITY_SELINUX_BOOTPARAM
+>> int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
+>>
+>> static int __init selinux_enabled_setup(char *str)
+>> {
+>>         unsigned long enabled;
+>>         if (!kstrtoul(str, 0, &enabled))
+>>                 selinux_enabled = enabled ? 1 : 0;
+>>         return 1;
+>> }
+>> __setup("selinux=", selinux_enabled_setup);
+>> #else
+>> int selinux_enabled = 1;
+>> #endif
+>> ...
+>>         if (!security_module_enable("selinux")) {
+>>                 selinux_enabled = 0;
+>>                 return 0;
+>>         }
+>>
+>>         if (!selinux_enabled) {
+>>                 pr_info("SELinux:  Disabled at boot.\n");
+>>                 return 0;
+>>         }
+>>
+>>
+>> AppArmor does:
+>>
+>> /* Boot time disable flag */
+>> static bool apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
+>> module_param_named(enabled, apparmor_enabled, bool, S_IRUGO);
+>>
+>> static int __init apparmor_enabled_setup(char *str)
+>> {
+>>         unsigned long enabled;
+>>         int error = kstrtoul(str, 0, &enabled);
+>>         if (!error)
+>>                 apparmor_enabled = enabled ? 1 : 0;
+>>         return 1;
+>> }
+>>
+>> __setup("apparmor=", apparmor_enabled_setup);
+>> ...
+>>         if (!apparmor_enabled || !security_module_enable("apparmor")) {
+>>                 aa_info_message("AppArmor disabled by boot time parameter");
+>>                 apparmor_enabled = false;
+>>                 return 0;
+>>         }
+>>
+>>
+>> Smack and TOMOYO each do:
+>>
+>>         if (!security_module_enable("smack"))
+>>                 return 0;
+>>
+>>         if (!security_module_enable("tomoyo"))
+>>                 return 0;
+>>
+>>
+>> Capability, Integrity, Yama, and LoadPin always run init. (This series
+>> fixes LoadPin to separate enable vs enforce, so we can ignore its
+>> "enable" setting, which isn't an "am I active?" boolean -- its init
+>> was always run.) With the enable logic is lifted out of the LSMs, we
+>> want to have "implicit enable" for 6 of 8 of the LSMs. (Which is why I
+>> had originally suggested CONFIG_LSM_DISABLE, since the normal state is
+>> enabled.) But given your feedback, I made this "implicit disable" and
+>> added CONFIG_LSM_ENABLE instead. (For which "CONFIG_LSM_ENABLE=all"
+>> gets the same results.)
+>>
+>>
+>> I think, then, the first question (mainly for you and Paul) is:
+>>
+>> Should we remove CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE and
+>> CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE in favor of only
+>> CONFIG_LSM_ENABLE?
+>>
+>
+> We can remove the Kconfig for the apparmor bootparam value. In fact I
+> will attach that patch below. I can't get rid of the parameter as it
+> is part of the userspace api. There are tools and applications
+> checking /sys/module/apparmor/parameters/enabled
+>
+> but we can certainly default it to enabled and make it work only as a
+> runtime kernel parameter to disable apparmor which is how it has been
+> traditionally been used.
+>
+>> The answer will affect the next question: what should be done with the
+>> boot parameters? AppArmor has two ways to change enablement:
+>> apparmor=0/1 and apparmor.enabled=0/1. SELinux just has selinux=0/1.
+>> Should those be removed in favor of "lsm.enable=..."? (And if they're
+>> not removed, how do people imagine they should interact?)
+>
+> I am not against removing the apparmor one, it does mean retraining
+> users but it is seldmon used so it may be worth dropping. If we keep
+> it, it should be a disable only flag that where the use of apparmor=0
+> or apparmor.enable=0 (same thing) means apparmor is disabled.
 
-The important bit that applications are relying on is having
-  /sys/module/apparmor/parameters/enabled
+If we keep it, "apparmor=0 lsm_enable=apparmor" would mean it's
+enabled. Is that okay?
 
-set to the the correct value.
+> ---
+>
+> commit 367b8a47105c68fa170bdd14b0204555eb930476
+> Author: John Johansen <john.johansen@canonical.com>
+> Date:   Mon Oct 1 15:46:02 2018 -0700
+>
+>     apparmor: remove apparmor boot param config
+>
+>     The boot param value is only ever used as a means to disable apparmor.
+>     Get rid of the Kconfig and a default the parameter to true.
+>
+>     Signed-off-by: John Johansen <john.johansen@canonical.com>
+>
+> diff --git a/security/apparmor/Kconfig b/security/apparmor/Kconfig
+> index b6b68a7750ce..3de21f46c82a 100644
+> --- a/security/apparmor/Kconfig
+> +++ b/security/apparmor/Kconfig
+> @@ -14,22 +14,6 @@ config SECURITY_APPARMOR
+>
+>           If you are unsure how to answer this question, answer N.
+>
+> -config SECURITY_APPARMOR_BOOTPARAM_VALUE
+> -       int "AppArmor boot parameter default value"
+> -       depends on SECURITY_APPARMOR
+> -       range 0 1
+> -       default 1
+> -       help
+> -         This option sets the default value for the kernel parameter
+> -         'apparmor', which allows AppArmor to be enabled or disabled
+> -          at boot.  If this option is set to 0 (zero), the AppArmor
+> -         kernel parameter will default to 0, disabling AppArmor at
+> -         boot.  If this option is set to 1 (one), the AppArmor
+> -         kernel parameter will default to 1, enabling AppArmor at
+> -         boot.
+> -
+> -         If you are unsure how to answer this question, answer 1.
+> -
+>  config SECURITY_APPARMOR_HASH
+>         bool "Enable introspection of sha1 hashes for loaded profiles"
+>         depends on SECURITY_APPARMOR
+> diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
+> index f09fea0b4db7..8e83ee52a0a3 100644
+> --- a/security/apparmor/lsm.c
+> +++ b/security/apparmor/lsm.c
+> @@ -1303,7 +1303,7 @@ bool aa_g_paranoid_load = true;
+>  module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
+>
+>  /* Boot time disable flag */
+> -static bool apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
+> +static bool apparmor_enabled = true;
+
+In the new world, this wouldn't be "= true" since its state would be
+controlled by CONFIG_LSM_ENABLE (and lsm.enable=...). Is that okay?
+
+>  module_param_named(enabled, apparmor_enabled, bool, S_IRUGO);
+>
+>  static int __init apparmor_enabled_setup(char *str)
+
+I'll add this to the series, thanks!
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
