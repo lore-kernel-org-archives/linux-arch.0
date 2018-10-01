@@ -1,904 +1,563 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v2 3/3] microblaze: uapi header and system call table file generation
-Date: Mon,  1 Oct 2018 18:13:04 +0530
-Message-ID: <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v2 2/3] microblaze: add system call table generation
+	support
+Date: Mon,  1 Oct 2018 18:13:03 +0530
+Message-ID: <1538397784-4214-3-git-send-email-firoz.khan@linaro.org>
 References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
 In-Reply-To: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
 To: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, deepa.kernel@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-System call table generation script must be run to generate
-unistd_32.h and syscall_table.h files. This patch will have
-changes which will invokes the script.
-
-This patch will generate unistd_32.h and syscall_table.h
-files by the syscall table generation script invoked by
-arch/microblaze/Makefile and the generated files against the
-removed files will be identical.
-
-The generated uapi header file will be included in
-uapi/asm/unistd.h and generated system call table support
-file will be included by kernel/syscall_table.S file.
-
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/microblaze/Makefile                  |   3 +
- arch/microblaze/include/asm/Kbuild        |   1 +
- arch/microblaze/include/uapi/asm/Kbuild   |   1 +
- arch/microblaze/include/uapi/asm/unistd.h | 411 +-----------------------------
- arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
- 5 files changed, 10 insertions(+), 812 deletions(-)
-
-diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-index 4f3ab57..cda5e03 100644
---- a/arch/microblaze/Makefile
-+++ b/arch/microblaze/Makefile
-@@ -81,6 +81,9 @@ all: linux.bin
- archclean:
- 	$(Q)$(MAKE) $(clean)=$(boot)
- 
-+archheaders:
-+	$(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
-+
- linux.bin linux.bin.gz linux.bin.ub: vmlinux
- 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
- 
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index 569ba9e..d64f5e7 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -31,3 +31,4 @@ generic-y += trace_clock.h
- generic-y += vga.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
-+generic-y += syscall_table.h
-\ No newline at end of file
-diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-index 2c6a6bf..3a40659 100644
---- a/arch/microblaze/include/uapi/asm/Kbuild
-+++ b/arch/microblaze/include/uapi/asm/Kbuild
-@@ -28,3 +28,4 @@ generic-y += termbits.h
- generic-y += termios.h
- generic-y += types.h
- generic-y += ucontext.h
-+generic-y += unistd_32.h
-\ No newline at end of file
-diff --git a/arch/microblaze/include/uapi/asm/unistd.h b/arch/microblaze/include/uapi/asm/unistd.h
-index ed9c6f5..3f2d7cb 100644
---- a/arch/microblaze/include/uapi/asm/unistd.h
-+++ b/arch/microblaze/include/uapi/asm/unistd.h
-@@ -11,415 +11,6 @@
- #ifndef _UAPI_ASM_MICROBLAZE_UNISTD_H
- #define _UAPI_ASM_MICROBLAZE_UNISTD_H
- 
--#define __NR_restart_syscall	0 /* ok */
--#define __NR_exit		1 /* ok */
--#define __NR_fork		2 /* not for no MMU - weird */
--#define __NR_read		3 /* ok */
--#define __NR_write		4 /* ok */
--#define __NR_open		5 /* openat */
--#define __NR_close		6 /* ok */
--#define __NR_waitpid		7 /* waitid */
--#define __NR_creat		8 /* openat */
--#define __NR_link		9 /* linkat */
--#define __NR_unlink		10 /* unlinkat */
--#define __NR_execve		11 /* ok */
--#define __NR_chdir		12 /* ok */
--#define __NR_time		13 /* obsolete -> sys_gettimeofday */
--#define __NR_mknod		14 /* mknodat */
--#define __NR_chmod		15 /* fchmodat */
--#define __NR_lchown		16 /* ok */
--#define __NR_break		17 /* don't know */
--#define __NR_oldstat		18 /* remove */
--#define __NR_lseek		19 /* ok */
--#define __NR_getpid		20 /* ok */
--#define __NR_mount		21 /* ok */
--#define __NR_umount		22 /* ok */  /* use only umount2 */
--#define __NR_setuid		23 /* ok */
--#define __NR_getuid		24 /* ok */
--#define __NR_stime		25 /* obsolete -> sys_settimeofday */
--#define __NR_ptrace		26 /* ok */
--#define __NR_alarm		27 /* obsolete -> sys_setitimer */
--#define __NR_oldfstat		28 /* remove */
--#define __NR_pause		29 /* obsolete -> sys_rt_sigtimedwait */
--#define __NR_utime		30 /* obsolete -> sys_utimesat */
--#define __NR_stty		31 /* remove */
--#define __NR_gtty		32 /* remove */
--#define __NR_access		33 /* faccessat */
--/* can be implemented by sys_setpriority */
--#define __NR_nice		34
--#define __NR_ftime		35 /* remove */
--#define __NR_sync		36 /* ok */
--#define __NR_kill		37 /* ok */
--#define __NR_rename		38 /* renameat */
--#define __NR_mkdir		39 /* mkdirat */
--#define __NR_rmdir		40 /* unlinkat */
--#define __NR_dup		41 /* ok */
--#define __NR_pipe		42 /* ok */
--#define __NR_times		43 /* ok */
--#define __NR_prof		44 /* remove */
--#define __NR_brk		45 /* ok -mmu, nommu specific */
--#define __NR_setgid		46 /* ok */
--#define __NR_getgid		47 /* ok */
--#define __NR_signal		48 /* obsolete -> sys_rt_sigaction */
--#define __NR_geteuid		49 /* ok */
--#define __NR_getegid		50 /* ok */
--#define __NR_acct		51 /* add it and then I can disable it */
--#define __NR_umount2		52 /* remove */
--#define __NR_lock		53 /* remove */
--#define __NR_ioctl		54 /* ok */
--#define __NR_fcntl		55 /* ok -> 64bit version*/
--#define __NR_mpx		56 /* remove */
--#define __NR_setpgid		57 /* ok */
--#define __NR_ulimit		58 /* remove */
--#define __NR_oldolduname	59 /* remove */
--#define __NR_umask		60 /* ok */
--#define __NR_chroot		61 /* ok */
--#define __NR_ustat		62 /* obsolete -> statfs64 */
--#define __NR_dup2		63 /* ok */
--#define __NR_getppid		64 /* ok */
--#define __NR_getpgrp		65 /* obsolete -> sys_getpgid */
--#define __NR_setsid		66 /* ok */
--#define __NR_sigaction		67 /* obsolete -> rt_sigaction */
--#define __NR_sgetmask		68 /* obsolete -> sys_rt_sigprocmask */
--#define __NR_ssetmask		69 /* obsolete ->sys_rt_sigprocmask */
--#define __NR_setreuid		70 /* ok */
--#define __NR_setregid		71 /* ok */
--#define __NR_sigsuspend		72 /* obsolete -> rt_sigsuspend */
--#define __NR_sigpending		73 /* obsolete -> sys_rt_sigpending */
--#define __NR_sethostname	74 /* ok */
--#define __NR_setrlimit		75 /* ok */
--#define __NR_getrlimit		76 /* ok Back compatible 2G limited rlimit */
--#define __NR_getrusage		77 /* ok */
--#define __NR_gettimeofday	78 /* ok */
--#define __NR_settimeofday	79 /* ok */
--#define __NR_getgroups		80 /* ok */
--#define __NR_setgroups		81 /* ok */
--#define __NR_select		82 /* obsolete -> sys_pselect6 */
--#define __NR_symlink		83 /* symlinkat */
--#define __NR_oldlstat		84 /* remove */
--#define __NR_readlink		85 /* obsolete -> sys_readlinkat */
--#define __NR_uselib		86 /* remove */
--#define __NR_swapon		87 /* ok */
--#define __NR_reboot		88 /* ok */
--#define __NR_readdir		89 /* remove ? */
--#define __NR_mmap		90 /* obsolete -> sys_mmap2 */
--#define __NR_munmap		91 /* ok - mmu and nommu */
--#define __NR_truncate		92 /* ok or truncate64 */
--#define __NR_ftruncate		93 /* ok or ftruncate64 */
--#define __NR_fchmod		94 /* ok */
--#define __NR_fchown		95 /* ok */
--#define __NR_getpriority	96 /* ok */
--#define __NR_setpriority	97 /* ok */
--#define __NR_profil		98 /* remove */
--#define __NR_statfs		99 /* ok or statfs64 */
--#define __NR_fstatfs		100  /* ok or fstatfs64 */
--#define __NR_ioperm		101 /* remove */
--#define __NR_socketcall		102 /* remove */
--#define __NR_syslog		103 /* ok */
--#define __NR_setitimer		104 /* ok */
--#define __NR_getitimer		105 /* ok */
--#define __NR_stat		106 /* remove */
--#define __NR_lstat		107 /* remove */
--#define __NR_fstat		108 /* remove */
--#define __NR_olduname		109 /* remove */
--#define __NR_iopl		110 /* remove */
--#define __NR_vhangup		111 /* ok */
--#define __NR_idle		112 /* remove */
--#define __NR_vm86old		113 /* remove */
--#define __NR_wait4		114 /* obsolete -> waitid */
--#define __NR_swapoff		115 /* ok */
--#define __NR_sysinfo		116 /* ok */
--#define __NR_ipc		117 /* remove - direct call */
--#define __NR_fsync		118 /* ok */
--#define __NR_sigreturn		119 /* obsolete -> sys_rt_sigreturn */
--#define __NR_clone		120 /* ok */
--#define __NR_setdomainname	121 /* ok */
--#define __NR_uname		122 /* remove */
--#define __NR_modify_ldt		123 /* remove */
--#define __NR_adjtimex		124 /* ok */
--#define __NR_mprotect		125 /* remove */
--#define __NR_sigprocmask	126 /* obsolete -> sys_rt_sigprocmask */
--#define __NR_create_module	127 /* remove */
--#define __NR_init_module	128 /* ok */
--#define __NR_delete_module	129 /* ok */
--#define __NR_get_kernel_syms	130 /* remove */
--#define __NR_quotactl		131 /* ok */
--#define __NR_getpgid		132 /* ok */
--#define __NR_fchdir		133 /* ok */
--#define __NR_bdflush		134 /* remove */
--#define __NR_sysfs		135 /* needed for busybox */
--#define __NR_personality	136 /* ok */
--#define __NR_afs_syscall	137 /* Syscall for Andrew File System */
--#define __NR_setfsuid		138 /* ok */
--#define __NR_setfsgid		139 /* ok */
--#define __NR__llseek		140 /* remove only lseek */
--#define __NR_getdents		141 /* ok or getdents64 */
--#define __NR__newselect		142 /* remove */
--#define __NR_flock		143 /* ok */
--#define __NR_msync		144 /* remove */
--#define __NR_readv		145 /* ok */
--#define __NR_writev		146 /* ok */
--#define __NR_getsid		147 /* ok */
--#define __NR_fdatasync		148 /* ok */
--#define __NR__sysctl		149 /* remove */
--#define __NR_mlock		150 /* ok - nommu or mmu */
--#define __NR_munlock		151 /* ok - nommu or mmu */
--#define __NR_mlockall		152 /* ok - nommu or mmu */
--#define __NR_munlockall		153 /* ok - nommu or mmu */
--#define __NR_sched_setparam		154 /* ok */
--#define __NR_sched_getparam		155 /* ok */
--#define __NR_sched_setscheduler		156 /* ok */
--#define __NR_sched_getscheduler		157 /* ok */
--#define __NR_sched_yield		158 /* ok */
--#define __NR_sched_get_priority_max	159 /* ok */
--#define __NR_sched_get_priority_min	160 /* ok */
--#define __NR_sched_rr_get_interval	161 /* ok */
--#define __NR_nanosleep		162 /* ok */
--#define __NR_mremap		163 /* ok - nommu or mmu */
--#define __NR_setresuid		164 /* ok */
--#define __NR_getresuid		165 /* ok */
--#define __NR_vm86		166 /* remove */
--#define __NR_query_module	167 /* ok */
--#define __NR_poll		168 /* obsolete -> sys_ppoll */
--#define __NR_nfsservctl		169 /* ok */
--#define __NR_setresgid		170 /* ok */
--#define __NR_getresgid		171 /* ok */
--#define __NR_prctl		172 /* ok */
--#define __NR_rt_sigreturn	173 /* ok */
--#define __NR_rt_sigaction	174 /* ok */
--#define __NR_rt_sigprocmask	175 /* ok */
--#define __NR_rt_sigpending	176 /* ok */
--#define __NR_rt_sigtimedwait	177 /* ok */
--#define __NR_rt_sigqueueinfo	178 /* ok */
--#define __NR_rt_sigsuspend	179 /* ok */
--#define __NR_pread64		180 /* ok */
--#define __NR_pwrite64		181 /* ok */
--#define __NR_chown		182 /* obsolete -> fchownat */
--#define __NR_getcwd		183 /* ok */
--#define __NR_capget		184 /* ok */
--#define __NR_capset		185 /* ok */
--#define __NR_sigaltstack	186 /* remove */
--#define __NR_sendfile		187 /* ok -> exist 64bit version*/
--#define __NR_getpmsg		188 /* remove */
--/* remove - some people actually want streams */
--#define __NR_putpmsg		189
--/* for noMMU - group with clone -> maybe remove */
--#define __NR_vfork		190
--#define __NR_ugetrlimit		191 /* remove - SuS compliant getrlimit */
--#define __NR_mmap2		192 /* ok */
--#define __NR_truncate64		193 /* ok */
--#define __NR_ftruncate64	194 /* ok */
--#define __NR_stat64		195 /* remove _ARCH_WANT_STAT64 */
--#define __NR_lstat64		196 /* remove _ARCH_WANT_STAT64 */
--#define __NR_fstat64		197 /* remove _ARCH_WANT_STAT64 */
--#define __NR_lchown32		198 /* ok - without 32 */
--#define __NR_getuid32		199 /* ok - without 32 */
--#define __NR_getgid32		200 /* ok - without 32 */
--#define __NR_geteuid32		201 /* ok - without 32 */
--#define __NR_getegid32		202 /* ok - without 32 */
--#define __NR_setreuid32		203 /* ok - without 32 */
--#define __NR_setregid32		204 /* ok - without 32 */
--#define __NR_getgroups32	205 /* ok - without 32 */
--#define __NR_setgroups32	206 /* ok - without 32 */
--#define __NR_fchown32		207 /* ok - without 32 */
--#define __NR_setresuid32	208 /* ok - without 32 */
--#define __NR_getresuid32	209 /* ok - without 32 */
--#define __NR_setresgid32	210 /* ok - without 32 */
--#define __NR_getresgid32	211 /* ok - without 32 */
--#define __NR_chown32		212 /* ok - without 32 -obsolete -> fchownat */
--#define __NR_setuid32		213 /* ok - without 32 */
--#define __NR_setgid32		214 /* ok - without 32 */
--#define __NR_setfsuid32		215 /* ok - without 32 */
--#define __NR_setfsgid32		216 /* ok - without 32 */
--#define __NR_pivot_root		217 /* ok */
--#define __NR_mincore		218 /* ok */
--#define __NR_madvise		219 /* ok */
--#define __NR_getdents64		220 /* ok */
--#define __NR_fcntl64		221 /* ok */
--/* 223 is unused */
--#define __NR_gettid		224 /* ok */
--#define __NR_readahead		225 /* ok */
--#define __NR_setxattr		226 /* ok */
--#define __NR_lsetxattr		227 /* ok */
--#define __NR_fsetxattr		228 /* ok */
--#define __NR_getxattr		229 /* ok */
--#define __NR_lgetxattr		230 /* ok */
--#define __NR_fgetxattr		231 /* ok */
--#define __NR_listxattr		232 /* ok */
--#define __NR_llistxattr		233 /* ok */
--#define __NR_flistxattr		234 /* ok */
--#define __NR_removexattr	235 /* ok */
--#define __NR_lremovexattr	236 /* ok */
--#define __NR_fremovexattr	237 /* ok */
--#define __NR_tkill		238 /* ok */
--#define __NR_sendfile64		239 /* ok */
--#define __NR_futex		240 /* ok */
--#define __NR_sched_setaffinity	241 /* ok */
--#define __NR_sched_getaffinity	242 /* ok */
--#define __NR_set_thread_area	243 /* remove */
--#define __NR_get_thread_area	244 /* remove */
--#define __NR_io_setup		245 /* ok */
--#define __NR_io_destroy		246 /* ok */
--#define __NR_io_getevents	247 /* ok */
--#define __NR_io_submit		248 /* ok */
--#define __NR_io_cancel		249 /* ok */
--#define __NR_fadvise64		250 /* remove -> sys_fadvise64_64 */
--/* 251 is available for reuse (was briefly sys_set_zone_reclaim) */
--#define __NR_exit_group		252 /* ok */
--#define __NR_lookup_dcookie	253 /* ok */
--#define __NR_epoll_create	254 /* ok */
--#define __NR_epoll_ctl		255 /* ok */
--#define __NR_epoll_wait		256 /* obsolete -> sys_epoll_pwait */
--#define __NR_remap_file_pages	257 /* only for mmu */
--#define __NR_set_tid_address	258 /* ok */
--#define __NR_timer_create	259 /* ok */
--#define __NR_timer_settime	(__NR_timer_create+1) /* 260 */ /* ok */
--#define __NR_timer_gettime	(__NR_timer_create+2) /* 261 */ /* ok */
--#define __NR_timer_getoverrun	(__NR_timer_create+3) /* 262 */ /* ok */
--#define __NR_timer_delete	(__NR_timer_create+4) /* 263 */ /* ok */
--#define __NR_clock_settime	(__NR_timer_create+5) /* 264 */ /* ok */
--#define __NR_clock_gettime	(__NR_timer_create+6) /* 265 */ /* ok */
--#define __NR_clock_getres	(__NR_timer_create+7) /* 266 */ /* ok */
--#define __NR_clock_nanosleep	(__NR_timer_create+8) /* 267 */ /* ok */
--#define __NR_statfs64		268 /* ok */
--#define __NR_fstatfs64		269 /* ok */
--#define __NR_tgkill		270 /* ok */
--#define __NR_utimes		271 /* obsolete -> sys_futimesat */
--#define __NR_fadvise64_64	272 /* ok */
--#define __NR_vserver		273 /* ok */
--#define __NR_mbind		274 /* only for mmu */
--#define __NR_get_mempolicy	275 /* only for mmu */
--#define __NR_set_mempolicy	276 /* only for mmu */
--#define __NR_mq_open		277 /* ok */
--#define __NR_mq_unlink		(__NR_mq_open+1) /* 278 */ /* ok */
--#define __NR_mq_timedsend	(__NR_mq_open+2) /* 279 */ /* ok */
--#define __NR_mq_timedreceive	(__NR_mq_open+3) /* 280 */ /* ok */
--#define __NR_mq_notify		(__NR_mq_open+4) /* 281 */ /* ok */
--#define __NR_mq_getsetattr	(__NR_mq_open+5) /* 282 */ /* ok */
--#define __NR_kexec_load		283 /* ok */
--#define __NR_waitid		284 /* ok */
--/* #define __NR_sys_setaltroot	285 */
--#define __NR_add_key		286 /* ok */
--#define __NR_request_key	287 /* ok */
--#define __NR_keyctl		288 /* ok */
--#define __NR_ioprio_set		289 /* ok */
--#define __NR_ioprio_get		290 /* ok */
--#define __NR_inotify_init	291 /* ok */
--#define __NR_inotify_add_watch	292 /* ok */
--#define __NR_inotify_rm_watch	293 /* ok */
--#define __NR_migrate_pages	294 /* mmu */
--#define __NR_openat		295 /* ok */
--#define __NR_mkdirat		296 /* ok */
--#define __NR_mknodat		297 /* ok */
--#define __NR_fchownat		298 /* ok */
--#define __NR_futimesat		299 /* obsolete -> sys_utimesat */
--#define __NR_fstatat64		300 /* stat64 */
--#define __NR_unlinkat		301 /* ok */
--#define __NR_renameat		302 /* ok */
--#define __NR_linkat		303 /* ok */
--#define __NR_symlinkat		304 /* ok */
--#define __NR_readlinkat		305 /* ok */
--#define __NR_fchmodat		306 /* ok */
--#define __NR_faccessat		307 /* ok */
--#define __NR_pselect6		308 /* ok */
--#define __NR_ppoll		309 /* ok */
--#define __NR_unshare		310 /* ok */
--#define __NR_set_robust_list	311 /* ok */
--#define __NR_get_robust_list	312 /* ok */
--#define __NR_splice		313 /* ok */
--#define __NR_sync_file_range	314 /* ok */
--#define __NR_tee		315 /* ok */
--#define __NR_vmsplice		316 /* ok */
--#define __NR_move_pages		317 /* mmu */
--#define __NR_getcpu		318 /* ok */
--#define __NR_epoll_pwait	319 /* ok */
--#define __NR_utimensat		320 /* ok */
--#define __NR_signalfd		321 /* ok */
--#define __NR_timerfd_create	322 /* ok */
--#define __NR_eventfd		323 /* ok */
--#define __NR_fallocate		324 /* ok */
--#define __NR_semtimedop		325 /* ok - semaphore group */
--#define __NR_timerfd_settime	326 /* ok */
--#define __NR_timerfd_gettime	327 /* ok */
--/* sysv ipc syscalls */
--#define __NR_semctl		328 /* ok */
--#define __NR_semget		329 /* ok */
--#define __NR_semop		330 /* ok */
--#define __NR_msgctl		331 /* ok */
--#define __NR_msgget		332 /* ok */
--#define __NR_msgrcv		333 /* ok */
--#define __NR_msgsnd		334 /* ok */
--#define __NR_shmat		335 /* ok */
--#define __NR_shmctl		336 /* ok */
--#define __NR_shmdt		337 /* ok */
--#define __NR_shmget		338 /* ok */
--
--
--#define __NR_signalfd4		339 /* new */
--#define __NR_eventfd2		340 /* new */
--#define __NR_epoll_create1	341 /* new */
--#define __NR_dup3		342 /* new */
--#define __NR_pipe2		343 /* new */
--#define __NR_inotify_init1	344 /* new */
--#define __NR_socket		345 /* new */
--#define __NR_socketpair		346 /* new */
--#define __NR_bind		347 /* new */
--#define __NR_listen		348 /* new */
--#define __NR_accept		349 /* new */
--#define __NR_connect		350 /* new */
--#define __NR_getsockname	351 /* new */
--#define __NR_getpeername	352 /* new */
--#define __NR_sendto		353 /* new */
--#define __NR_send		354 /* new */
--#define __NR_recvfrom		355 /* new */
--#define __NR_recv		356 /* new */
--#define __NR_setsockopt		357 /* new */
--#define __NR_getsockopt		358 /* new */
--#define __NR_shutdown		359 /* new */
--#define __NR_sendmsg		360 /* new */
--#define __NR_recvmsg		361 /* new */
--#define __NR_accept4		362 /* new */
--#define __NR_preadv		363 /* new */
--#define __NR_pwritev		364 /* new */
--#define __NR_rt_tgsigqueueinfo	365 /* new */
--#define __NR_perf_event_open	366 /* new */
--#define __NR_recvmmsg		367 /* new */
--#define __NR_fanotify_init	368
--#define __NR_fanotify_mark	369
--#define __NR_prlimit64		370
--#define __NR_name_to_handle_at	371
--#define __NR_open_by_handle_at	372
--#define __NR_clock_adjtime	373
--#define __NR_syncfs		374
--#define __NR_setns		375
--#define __NR_sendmmsg		376
--#define __NR_process_vm_readv	377
--#define __NR_process_vm_writev	378
--#define __NR_kcmp		379
--#define __NR_finit_module	380
--#define __NR_sched_setattr	381
--#define __NR_sched_getattr	382
--#define __NR_renameat2		383
--#define __NR_seccomp		384
--#define __NR_getrandom		385
--#define __NR_memfd_create	386
--#define __NR_bpf		387
--#define __NR_execveat		388
--#define __NR_userfaultfd	389
--#define __NR_membarrier		390
--#define __NR_mlock2		391
--#define __NR_copy_file_range	392
--#define __NR_preadv2		393
--#define __NR_pwritev2		394
--#define __NR_pkey_mprotect	395
--#define __NR_pkey_alloc		396
--#define __NR_pkey_free		397
--#define __NR_statx		398
--#define __NR_io_pgetevents	399
--#define __NR_rseq		400
--
--#ifdef __KERNEL__
--#define __NR_syscalls         401
--#endif
-+#include <asm/unistd_32.h>
- 
- #endif /* _UAPI_ASM_MICROBLAZE_UNISTD_H */
-diff --git a/arch/microblaze/kernel/syscall_table.S b/arch/microblaze/kernel/syscall_table.S
-index 6ab6505..ce00664 100644
---- a/arch/microblaze/kernel/syscall_table.S
-+++ b/arch/microblaze/kernel/syscall_table.S
-@@ -1,404 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 */
-+
-+#define __SYSCALL(nr, entry, nargs) .long entry
- ENTRY(sys_call_table)
--	.long sys_restart_syscall	/* 0 - old "setup()" system call,
--					 * used for restarting */
--	.long sys_exit
--	.long sys_fork
--	.long sys_read
--	.long sys_write
--	.long sys_open			/* 5 */
--	.long sys_close
--	.long sys_waitpid
--	.long sys_creat
--	.long sys_link
--	.long sys_unlink		/* 10 */
--	.long sys_execve
--	.long sys_chdir
--	.long sys_time
--	.long sys_mknod
--	.long sys_chmod			/* 15 */
--	.long sys_lchown
--	.long sys_ni_syscall		/* old break syscall holder */
--	.long sys_ni_syscall		/* old stat */
--	.long sys_lseek
--	.long sys_getpid		/* 20 */
--	.long sys_mount
--	.long sys_oldumount
--	.long sys_setuid
--	.long sys_getuid
--	.long sys_stime			/* 25 */
--	.long sys_ptrace
--	.long sys_alarm
--	.long sys_ni_syscall		/* oldfstat */
--	.long sys_pause
--	.long sys_utime			/* 30 */
--	.long sys_ni_syscall		/* old stty syscall holder */
--	.long sys_ni_syscall		/* old gtty syscall holder */
--	.long sys_access
--	.long sys_nice
--	.long sys_ni_syscall		/* 35 - old ftime syscall holder */
--	.long sys_sync
--	.long sys_kill
--	.long sys_rename
--	.long sys_mkdir
--	.long sys_rmdir			/* 40 */
--	.long sys_dup
--	.long sys_pipe
--	.long sys_times
--	.long sys_ni_syscall		/* old prof syscall holder */
--	.long sys_brk			/* 45 */
--	.long sys_setgid
--	.long sys_getgid
--	.long sys_signal
--	.long sys_geteuid
--	.long sys_getegid		/* 50 */
--	.long sys_acct
--	.long sys_umount		/* recycled never used phys() */
--	.long sys_ni_syscall		/* old lock syscall holder */
--	.long sys_ioctl
--	.long sys_fcntl			/* 55 */
--	.long sys_ni_syscall		/* old mpx syscall holder */
--	.long sys_setpgid
--	.long sys_ni_syscall		/* old ulimit syscall holder */
--	.long sys_ni_syscall		/* olduname */
--	.long sys_umask			/* 60 */
--	.long sys_chroot
--	.long sys_ustat
--	.long sys_dup2
--	.long sys_getppid
--	.long sys_getpgrp		/* 65 */
--	.long sys_setsid
--	.long sys_ni_syscall		/* sys_sigaction */
--	.long sys_sgetmask
--	.long sys_ssetmask
--	.long sys_setreuid		/* 70 */
--	.long sys_setregid
--	.long sys_ni_syscall		/* sys_sigsuspend_wrapper */
--	.long sys_sigpending
--	.long sys_sethostname
--	.long sys_setrlimit		/* 75 */
--	.long sys_ni_syscall		/* old_getrlimit */
--	.long sys_getrusage
--	.long sys_gettimeofday
--	.long sys_settimeofday
--	.long sys_getgroups		/* 80 */
--	.long sys_setgroups
--	.long sys_ni_syscall		/* old_select */
--	.long sys_symlink
--	.long sys_ni_syscall		/* oldlstat */
--	.long sys_readlink		/* 85 */
--	.long sys_uselib
--	.long sys_swapon
--	.long sys_reboot
--	.long sys_ni_syscall		/* old_readdir */
--	.long sys_mmap			/* 90 */ /* old_mmap */
--	.long sys_munmap
--	.long sys_truncate
--	.long sys_ftruncate
--	.long sys_fchmod
--	.long sys_fchown		/* 95 */
--	.long sys_getpriority
--	.long sys_setpriority
--	.long sys_ni_syscall		/* old profil syscall holder */
--	.long sys_statfs
--	.long sys_fstatfs		/* 100 */
--	.long sys_ni_syscall		/* ioperm */
--	.long sys_socketcall
--	.long sys_syslog		/* operation with system console */
--	.long sys_setitimer
--	.long sys_getitimer		/* 105 */
--	.long sys_newstat
--	.long sys_newlstat
--	.long sys_newfstat
--	.long sys_ni_syscall		/* uname */
--	.long sys_ni_syscall		/* 110 */ /* iopl */
--	.long sys_vhangup
--	.long sys_ni_syscall		/* old "idle" system call */
--	.long sys_ni_syscall		/* old sys_vm86old */
--	.long sys_wait4
--	.long sys_swapoff		/* 115 */
--	.long sys_sysinfo
--	.long sys_ni_syscall		/* old sys_ipc */
--	.long sys_fsync
--	.long sys_ni_syscall		/* sys_sigreturn_wrapper */
--	.long sys_clone		/* 120 */
--	.long sys_setdomainname
--	.long sys_newuname
--	.long sys_ni_syscall		/* modify_ldt */
--	.long sys_adjtimex
--	.long sys_mprotect		/* 125:	sys_mprotect */
--	.long sys_sigprocmask
--	.long sys_ni_syscall		/* old "create_module" */
--	.long sys_init_module
--	.long sys_delete_module
--	.long sys_ni_syscall		/* 130:	old "get_kernel_syms" */
--	.long sys_quotactl
--	.long sys_getpgid
--	.long sys_fchdir
--	.long sys_bdflush
--	.long sys_sysfs			/* 135 */
--	.long sys_personality
--	.long sys_ni_syscall		/* reserved for afs_syscall */
--	.long sys_setfsuid
--	.long sys_setfsgid
--	.long sys_llseek		/* 140 */
--	.long sys_getdents
--	.long sys_select
--	.long sys_flock
--	.long sys_msync
--	.long sys_readv			/* 145 */
--	.long sys_writev
--	.long sys_getsid
--	.long sys_fdatasync
--	.long sys_sysctl
--	.long sys_mlock		/* 150:	sys_mlock */
--	.long sys_munlock
--	.long sys_mlockall
--	.long sys_munlockall
--	.long sys_sched_setparam
--	.long sys_sched_getparam	/* 155 */
--	.long sys_sched_setscheduler
--	.long sys_sched_getscheduler
--	.long sys_sched_yield
--	.long sys_sched_get_priority_max
--	.long sys_sched_get_priority_min	/* 160 */
--	.long sys_sched_rr_get_interval
--	.long sys_nanosleep
--	.long sys_mremap
--	.long sys_setresuid
--	.long sys_getresuid		/* 165 */
--	.long sys_ni_syscall		/* sys_vm86 */
--	.long sys_ni_syscall		/* Old sys_query_module */
--	.long sys_poll
--	.long sys_ni_syscall		/* old nfsservctl */
--	.long sys_setresgid		/* 170 */
--	.long sys_getresgid
--	.long sys_prctl
--	.long sys_rt_sigreturn_wrapper
--	.long sys_rt_sigaction
--	.long sys_rt_sigprocmask	/* 175 */
--	.long sys_rt_sigpending
--	.long sys_rt_sigtimedwait
--	.long sys_rt_sigqueueinfo
--	.long sys_rt_sigsuspend
--	.long sys_pread64		/* 180 */
--	.long sys_pwrite64
--	.long sys_chown
--	.long sys_getcwd
--	.long sys_capget
--	.long sys_capset		/* 185 */
--	.long sys_ni_syscall		/* sigaltstack */
--	.long sys_sendfile
--	.long sys_ni_syscall		/* reserved for streams1 */
--	.long sys_ni_syscall		/* reserved for streams2 */
--	.long sys_vfork		/* 190 */
--	.long sys_getrlimit
--	.long sys_mmap2
--	.long sys_truncate64
--	.long sys_ftruncate64
--	.long sys_stat64		/* 195 */
--	.long sys_lstat64
--	.long sys_fstat64
--	.long sys_lchown
--	.long sys_getuid
--	.long sys_getgid		/* 200 */
--	.long sys_geteuid
--	.long sys_getegid
--	.long sys_setreuid
--	.long sys_setregid
--	.long sys_getgroups		/* 205 */
--	.long sys_setgroups
--	.long sys_fchown
--	.long sys_setresuid
--	.long sys_getresuid
--	.long sys_setresgid		/* 210 */
--	.long sys_getresgid
--	.long sys_chown
--	.long sys_setuid
--	.long sys_setgid
--	.long sys_setfsuid		/* 215 */
--	.long sys_setfsgid
--	.long sys_pivot_root
--	.long sys_mincore
--	.long sys_madvise
--	.long sys_getdents64		/* 220 */
--	.long sys_fcntl64
--	.long sys_ni_syscall		/* reserved for TUX */
--	.long sys_ni_syscall
--	.long sys_gettid
--	.long sys_readahead		/* 225 */
--	.long sys_setxattr
--	.long sys_lsetxattr
--	.long sys_fsetxattr
--	.long sys_getxattr
--	.long sys_lgetxattr		/* 230 */
--	.long sys_fgetxattr
--	.long sys_listxattr
--	.long sys_llistxattr
--	.long sys_flistxattr
--	.long sys_removexattr		/* 235 */
--	.long sys_lremovexattr
--	.long sys_fremovexattr
--	.long sys_tkill
--	.long sys_sendfile64
--	.long sys_futex			/* 240 */
--	.long sys_sched_setaffinity
--	.long sys_sched_getaffinity
--	.long sys_ni_syscall		/* set_thread_area */
--	.long sys_ni_syscall		/* get_thread_area */
--	.long sys_io_setup		/* 245 */
--	.long sys_io_destroy
--	.long sys_io_getevents
--	.long sys_io_submit
--	.long sys_io_cancel
--	.long sys_fadvise64		/* 250 */
--	.long sys_ni_syscall
--	.long sys_exit_group
--	.long sys_lookup_dcookie
--	.long sys_epoll_create
--	.long sys_epoll_ctl		/* 255 */
--	.long sys_epoll_wait
--	.long sys_remap_file_pages
--	.long sys_set_tid_address
--	.long sys_timer_create
--	.long sys_timer_settime		/* 260 */
--	.long sys_timer_gettime
--	.long sys_timer_getoverrun
--	.long sys_timer_delete
--	.long sys_clock_settime
--	.long sys_clock_gettime		/* 265 */
--	.long sys_clock_getres
--	.long sys_clock_nanosleep
--	.long sys_statfs64
--	.long sys_fstatfs64
--	.long sys_tgkill		/* 270 */
--	.long sys_utimes
--	.long sys_fadvise64_64
--	.long sys_ni_syscall		/* sys_vserver */
--	.long sys_mbind
--	.long sys_get_mempolicy
--	.long sys_set_mempolicy
--	.long sys_mq_open
--	.long sys_mq_unlink
--	.long sys_mq_timedsend
--	.long sys_mq_timedreceive	/* 280 */
--	.long sys_mq_notify
--	.long sys_mq_getsetattr
--	.long sys_kexec_load
--	.long sys_waitid
--	.long sys_ni_syscall		/* 285 */ /* available */
--	.long sys_add_key
--	.long sys_request_key
--	.long sys_keyctl
--	.long sys_ioprio_set
--	.long sys_ioprio_get		/* 290 */
--	.long sys_inotify_init
--	.long sys_inotify_add_watch
--	.long sys_inotify_rm_watch
--	.long sys_ni_syscall		/* sys_migrate_pages */
--	.long sys_openat	/* 295 */
--	.long sys_mkdirat
--	.long sys_mknodat
--	.long sys_fchownat
--	.long sys_futimesat
--	.long sys_fstatat64		/* 300 */
--	.long sys_unlinkat
--	.long sys_renameat
--	.long sys_linkat
--	.long sys_symlinkat
--	.long sys_readlinkat		/* 305 */
--	.long sys_fchmodat
--	.long sys_faccessat
--	.long sys_pselect6
--	.long sys_ppoll
--	.long sys_unshare		/* 310 */
--	.long sys_set_robust_list
--	.long sys_get_robust_list
--	.long sys_splice
--	.long sys_sync_file_range
--	.long sys_tee 			/* 315 */
--	.long sys_vmsplice
--	.long sys_move_pages
--	.long sys_getcpu
--	.long sys_epoll_pwait
--	.long sys_utimensat		/* 320 */
--	.long sys_signalfd
--	.long sys_timerfd_create
--	.long sys_eventfd
--	.long sys_fallocate
--	.long sys_semtimedop		/* 325 */
--	.long sys_timerfd_settime
--	.long sys_timerfd_gettime
--	.long sys_semctl
--	.long sys_semget
--	.long sys_semop			/* 330 */
--	.long sys_msgctl
--	.long sys_msgget
--	.long sys_msgrcv
--	.long sys_msgsnd
--	.long sys_shmat			/* 335 */
--	.long sys_shmctl
--	.long sys_shmdt
--	.long sys_shmget
--	.long sys_signalfd4	/* new syscall */
--	.long sys_eventfd2		/* 340 */
--	.long sys_epoll_create1
--	.long sys_dup3
--	.long sys_pipe2
--	.long sys_inotify_init1
--	.long sys_socket		/* 345 */
--	.long sys_socketpair
--	.long sys_bind
--	.long sys_listen
--	.long sys_accept
--	.long sys_connect		/* 350 */
--	.long sys_getsockname
--	.long sys_getpeername
--	.long sys_sendto
--	.long sys_send
--	.long sys_recvfrom		/* 355 */
--	.long sys_recv
--	.long sys_setsockopt
--	.long sys_getsockopt
--	.long sys_shutdown
--	.long sys_sendmsg		/* 360 */
--	.long sys_recvmsg
--	.long sys_accept4
--	.long sys_preadv
--	.long sys_pwritev
--	.long sys_rt_tgsigqueueinfo	/* 365 */
--	.long sys_perf_event_open
--	.long sys_recvmmsg
--	.long sys_fanotify_init
--	.long sys_fanotify_mark
--	.long sys_prlimit64	/* 370 */
--	.long sys_name_to_handle_at
--	.long sys_open_by_handle_at
--	.long sys_clock_adjtime
--	.long sys_syncfs
--	.long sys_setns			/* 375 */
--	.long sys_sendmmsg
--	.long sys_process_vm_readv
--	.long sys_process_vm_writev
--	.long sys_kcmp
--	.long sys_finit_module		/* 380 */
--	.long sys_sched_setattr
--	.long sys_sched_getattr
--	.long sys_renameat2
--	.long sys_seccomp
--	.long sys_getrandom		/* 385 */
--	.long sys_memfd_create
--	.long sys_bpf
--	.long sys_execveat
--	.long sys_userfaultfd
--	.long sys_membarrier		/* 390 */
--	.long sys_mlock2
--	.long sys_copy_file_range
--	.long sys_preadv2
--	.long sys_pwritev2
--	.long sys_pkey_mprotect		/* 395 */
--	.long sys_pkey_alloc
--	.long sys_pkey_free
--	.long sys_statx
--	.long sys_io_pgetevents
--	.long sys_rseq
-+#include <asm/syscall_table.h>
-+#undef __SYSCALL
--- 
-1.9.1
+VGhlIHN5c3RlbSBjYWxsIHRhYmxlcyBhcmUgaW4gZGlmZmVyZW50IGZvcm1hdCBpbiBhbGwKYXJj
+aGl0ZWN0dXJlIGFuZCBpdCB3aWxsIGJlIGRpZmZpY3VsdCB0byBtYW51YWxseSBhZGQgb3IKbW9k
+aWZ5IHRoZSBzeXN0ZW0gY2FsbHMgaW4gdGhlIHJlc3BlY3RpdmUgZmlsZXMuIFRvIG1ha2UKaXQg
+ZWFzeSBieSBrZWVwaW5nIGEgc2NyaXB0IGFuZCB3aGljaCdsbCBnZW5lcmF0ZSB0aGUKaGVhZGVy
+IGZpbGUgYW5kIHN5c2NhbGwgdGFibGUgZmlsZSBzbyB0aGlzIGNoYW5nZSB3aWxsCnVuaWZ5IHRo
+ZW0gYWNyb3NzIGFsbCBhcmNoaXRlY3R1cmVzLgoKVGhlIHN5c3RlbSBjYWxsIHRhYmxlIGdlbmVy
+YXRpb24gc2NyaXB0IGlzIGFkZGVkIGluCnN5c2NhbGxzIGRpcmVjdG9yeSB3aGljaCBjb250YWlu
+IHRoZSBzY3JpcHQgdG8gZ2VuZXJhdGUKYm90aCB1YXBpIGhlYWRlciBmaWxlIHN5c3RlbSBjYWxs
+IHRhYmxlIGdlbmVyYXRpb24gZmlsZQphbmQgc3lzY2FsbC50YmwgZmlsZSB3aGljaCdsbCBiZSB0
+aGUgaW5wdXQgZm9yIHRoZSBzY3JpcHRzLgoKc3lzY2FsbC50YmwgY29udGFpbnMgdGhlIGxpc3Qg
+b2YgYXZhaWxhYmxlIHN5c3RlbSBjYWxscwphbG9uZyB3aXRoIHN5c3RlbSBjYWxsIG51bWJlciBh
+bmQgY29ycmVzcG9uZGluZyBlbnRyeSBwb2ludC4KQWRkIGEgbmV3IHN5c3RlbSBjYWxsIGluIHRo
+aXMgYXJjaGl0ZWN0dXJlIHdpbGwgYmUgcG9zc2libGUKYnkgYWRkaW5nIG5ldyBlbnRyeSBpbiB0
+aGUgc3lzY2FsbC50YmwgZmlsZS4KCkFkZGluZyBhIG5ldyB0YWJsZSBlbnRyeSBjb25zaXN0aW5n
+IG9mOgogICAgICAgIC0gU3lzdGVtIGNhbGwgbnVtYmVyLgogICAgICAgIC0gQUJJLgogICAgICAg
+IC0gU3lzdGVtIGNhbGwgbmFtZS4KICAgICAgICAtIEVudHJ5IHBvaW50IG5hbWUuCgpzeXNjYWxs
+aGRyLnNoIGFuZCBzeXNjYWxsdGJsLnNoIHdpbGwgZ2VuZXJhdGUgdWFwaSBoZWFkZXItCnVuaXN0
+ZC5oIGFuZCBzeXNjYWxsX3RhYmxlLmggZmlsZXMgcmVzcGVjdGl2ZWx5LiBGaWxlCnN5c2NhbGxf
+dGFibGUuaCBpcyBpbmNsdWRlZCBieSBzeXNjYWxsLlMgLSB0aGUgcmVhbCBzeXN0ZW0KY2FsbCB0
+YWJsZS4gQm90aCAuc2ggZmlsZXMgd2lsbCBwYXJzZSB0aGUgY29udGVudCBzeXNjYWxsLnRibAp0
+byBnZW5lcmF0ZSB0aGUgaGVhZGVyIGFuZCB0YWJsZSBmaWxlcy4KCkFSTSwgczM5MCBhbmQgeDg2
+IGFyY2hpdGVjdXR1cmUgZG9lcyBoYXZlIHRoZSBzaW1pbGFyIHN1cHBvcnQuCkkgbGV2ZXJhZ2Ug
+dGhlaXIgaW1wbGVtZW50YXRpb24gdG8gY29tZSB1cCB3aXRoIGEgZ2VuZXJpYwpzb2x1dGlvbi4g
+QW5kIHRoaXMgaXMgdGhlIGdyb3VuZCB3b3JrIGZvciBZMjAzOCBpc3N1ZS4gV2UgbmVlZAp0byBj
+aGFuZ2UgdHdvIGRvem9ucyBvZiBzeXN0ZW0gY2FsbCBpbXBsZW1lbnRhdGlvbiBhbmQgdGhpcwp3
+b3JrIHdpbGwgcmVkdWNlIHRoZSBlZmZvcnQgYnkgc2ltcGx5IG1vZGlmeSB0d28gZG96b24gZW50
+cmllcwppbiBzeXNjYWxsLnRibC4KClNpZ25lZC1vZmYtYnk6IEZpcm96IEtoYW4gPGZpcm96Lmto
+YW5AbGluYXJvLm9yZz4KLS0tCiBhcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzL01ha2Vm
+aWxlICAgICAgfCAgMzggKysrCiBhcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzL3N5c2Nh
+bGwudGJsICAgfCA0MDUgKysrKysrKysrKysrKysrKysrKysrKysrKysKIGFyY2gvbWljcm9ibGF6
+ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaCB8ICAzNSArKysKIGFyY2gvbWljcm9ibGF6
+ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbHRibC5zaCB8ICAzNCArKysKIDQgZmlsZXMgY2hhbmdl
+ZCwgNTEyIGluc2VydGlvbnMoKykKIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNoL21pY3JvYmxhemUv
+a2VybmVsL3N5c2NhbGxzL01ha2VmaWxlCiBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9taWNyb2Js
+YXplL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibAogY3JlYXRlIG1vZGUgMTAwNjQ0IGFyY2gv
+bWljcm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaAogY3JlYXRlIG1vZGUgMTAw
+NjQ0IGFyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbHRibC5zaAoKZGlmZiAt
+LWdpdCBhL2FyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMvTWFrZWZpbGUgYi9hcmNoL21p
+Y3JvYmxhemUva2VybmVsL3N5c2NhbGxzL01ha2VmaWxlCm5ldyBmaWxlIG1vZGUgMTAwNjQ0Cmlu
+ZGV4IDAwMDAwMDAuLmFlOTIwN2YKLS0tIC9kZXYvbnVsbAorKysgYi9hcmNoL21pY3JvYmxhemUv
+a2VybmVsL3N5c2NhbGxzL01ha2VmaWxlCkBAIC0wLDAgKzEsMzggQEAKKyMgU1BEWC1MaWNlbnNl
+LUlkZW50aWZpZXI6IEdQTC0yLjAKK291dCA6PSBhcmNoLyQoU1JDQVJDSCkvaW5jbHVkZS9nZW5l
+cmF0ZWQvYXNtCit1YXBpIDo9IGFyY2gvJChTUkNBUkNIKS9pbmNsdWRlL2dlbmVyYXRlZC91YXBp
+L2FzbQorCitfZHVtbXkgOj0gJChzaGVsbCBbIC1kICckKHVhcGkpJyBdIHx8IG1rZGlyIC1wICck
+KHVhcGkpJykgXAorCSAgJChzaGVsbCBbIC1kICckKG91dCknIF0gfHwgbWtkaXIgLXAgJyQob3V0
+KScpCisKK3N5c2NhbGwgOj0gJChzcmN0cmVlKS8kKHNyYykvc3lzY2FsbC50YmwKKworc3lzaGRy
+IDo9ICQoc3JjdHJlZSkvJChzcmMpL3N5c2NhbGxoZHIuc2gKK3N5c3RibCA6PSAkKHNyY3RyZWUp
+LyQoc3JjKS9zeXNjYWxsdGJsLnNoCisKK3F1aWV0X2NtZF9zeXNoZHIgPSBTWVNIRFIgICRACisg
+ICAgICBjbWRfc3lzaGRyID0gJChDT05GSUdfU0hFTEwpICckKHN5c2hkciknICckPCcgJyRAJyAg
+XAorCQkgICAnJChzeXNoZHJfYWJpXyQoYmFzZXRhcmdldCkpJyAgICAgICAgICBcCisJCSAgICck
+KHN5c2hkcl9wZnhfJChiYXNldGFyZ2V0KSknICAgICAgICAgIFwKKwkJICAgJyQoc3lzaGRyX29m
+ZnNldF8kKGJhc2V0YXJnZXQpKScKKworcXVpZXRfY21kX3N5c3RibCA9IFNZU1RCTCAgJEAKKyAg
+ICAgIGNtZF9zeXN0YmwgPSAkKENPTkZJR19TSEVMTCkgJyQoc3lzdGJsKScgJyQ8JyAnJEAnICBc
+CisJCSAgICckKHN5c3RibF9hYmlfJChiYXNldGFyZ2V0KSknICAgICAgICAgIFwKKwkJICAgJyQo
+c3lzdGJsX29mZnNldF8kKGJhc2V0YXJnZXQpKScKKworJCh1YXBpKS91bmlzdGRfMzIuaDogJChz
+eXNjYWxsKSAkKHN5c2hkcikKKwkkKGNhbGwgaWZfY2hhbmdlZCxzeXNoZHIpCisKKyQob3V0KS9z
+eXNjYWxsX3RhYmxlLmg6ICQoc3lzY2FsbCkgJChzeXN0YmwpCisJJChjYWxsIGlmX2NoYW5nZWQs
+c3lzdGJsKQorCit1YXBpc3lzaGRyLXkJCQkrPSB1bmlzdGRfMzIuaAorc3lzaGRyLXkJCQkrPSBz
+eXNjYWxsX3RhYmxlLmgKKwordGFyZ2V0cwkrPSAkKHVhcGlzeXNoZHIteSkgJChzeXNoZHIteSkK
+KworUEhPTlkgKz0gYWxsCithbGw6ICQoYWRkcHJlZml4ICQodWFwaSkvLCQodWFwaXN5c2hkci15
+KSkKK2FsbDogJChhZGRwcmVmaXggJChvdXQpLywkKHN5c2hkci15KSkKKwlAOgpkaWZmIC0tZ2l0
+IGEvYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibCBiL2FyY2gvbWlj
+cm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbC50YmwKbmV3IGZpbGUgbW9kZSAxMDA2NDQK
+aW5kZXggMDAwMDAwMC4uOGNhOTBlNgotLS0gL2Rldi9udWxsCisrKyBiL2FyY2gvbWljcm9ibGF6
+ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbC50YmwKQEAgLTAsMCArMSw0MDUgQEAKKyMKKyMgTGlu
+dXggc3lzdGVtIGNhbGwgbnVtYmVycyBhbmQgZW50cnkgdmVjdG9ycworIworIyBUaGUgZm9ybWF0
+IGlzOgorIyA8bnVtYmVyPiA8YWJpPiA8bmFtZT4gPGVudHJ5IHBvaW50PgorIworIyBUaGUgYWJp
+IGlzIGFsd2F5cyBjb21tb24gZm9yIHRoaXMgZmlsZS4KKyMKKzAgICAgICAgY29tbW9uICByZXN0
+YXJ0X3N5c2NhbGwgICAgICAgICAgICAgICAgIHN5c19yZXN0YXJ0X3N5c2NhbGwKKzEgICAgICAg
+Y29tbW9uICBleGl0ICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19leGl0CisyICAgICAg
+IGNvbW1vbiAgZm9yayAgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZm9yaworMyAgICAg
+ICBjb21tb24gIHJlYWQgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3JlYWQKKzQgICAg
+ICAgY29tbW9uICB3cml0ZSAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c193cml0ZQorNSAg
+ICAgICBjb21tb24gIG9wZW4gICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX29wZW4KKzYg
+ICAgICAgY29tbW9uICBjbG9zZSAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19jbG9zZQor
+NyAgICAgICBjb21tb24gIHdhaXRwaWQgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3dhaXRw
+aWQKKzggICAgICAgY29tbW9uICBjcmVhdCAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19j
+cmVhdAorOSAgICAgICBjb21tb24gIGxpbmsgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X2xpbmsKKzEwICAgICAgY29tbW9uICB1bmxpbmsgICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c191bmxpbmsKKzExICAgICAgY29tbW9uICBleGVjdmUgICAgICAgICAgICAgICAgICAgICAgICAg
+IHN5c19leGVjdmUKKzEyICAgICAgY29tbW9uICBjaGRpciAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIHN5c19jaGRpcgorMTMgICAgICBjb21tb24gIHRpbWUgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgc3lzX3RpbWUKKzE0ICAgICAgY29tbW9uICBta25vZCAgICAgICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19ta25vZAorMTUgICAgICBjb21tb24gIGNobW9kICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgc3lzX2NobW9kCisxNiAgICAgIGNvbW1vbiAgbGNob3duICAgICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfbGNob3duCisxNyAgICAgIGNvbW1vbiAgYnJlYWsgICAgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMTggICAgICBjb21tb24gIG9sZHN0YXQgICAg
+ICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzE5ICAgICAgY29tbW9uICBsc2Vl
+ayAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19sc2VlaworMjAgICAgICBjb21tb24gIGdl
+dHBpZCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2dldHBpZAorMjEgICAgICBjb21tb24g
+IG1vdW50ICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX21vdW50CisyMiAgICAgIGNvbW1v
+biAgdW1vdW50ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfb2xkdW1vdW50CisyMyAgICAg
+IGNvbW1vbiAgc2V0dWlkICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfc2V0dWlkCisyNCAg
+ICAgIGNvbW1vbiAgZ2V0dWlkICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZ2V0dWlkCisy
+NSAgICAgIGNvbW1vbiAgc3RpbWUgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfc3RpbWUK
+KzI2ICAgICAgY29tbW9uICBwdHJhY2UgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19wdHJh
+Y2UKKzI3ICAgICAgY29tbW9uICBhbGFybSAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19h
+bGFybQorMjggICAgICBjb21tb24gIG9sZGZzdGF0ICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X25pX3N5c2NhbGwKKzI5ICAgICAgY29tbW9uICBwYXVzZSAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIHN5c19wYXVzZQorMzAgICAgICBjb21tb24gIHV0aW1lICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgc3lzX3V0aW1lCiszMSAgICAgIGNvbW1vbiAgc3R0eSAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICBzeXNfbmlfc3lzY2FsbAorMzIgICAgICBjb21tb24gIGd0dHkgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzMzICAgICAgY29tbW9uICBhY2Nlc3MgICAg
+ICAgICAgICAgICAgICAgICAgICAgIHN5c19hY2Nlc3MKKzM0ICAgICAgY29tbW9uICBuaWNlICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19uaWNlCiszNSAgICAgIGNvbW1vbiAgZnRpbWUg
+ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMzYgICAgICBjb21tb24g
+IHN5bmMgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3N5bmMKKzM3ICAgICAgY29tbW9u
+ICBraWxsICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19raWxsCiszOCAgICAgIGNvbW1v
+biAgcmVuYW1lICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcmVuYW1lCiszOSAgICAgIGNv
+bW1vbiAgbWtkaXIgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbWtkaXIKKzQwICAgICAg
+Y29tbW9uICBybWRpciAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19ybWRpcgorNDEgICAg
+ICBjb21tb24gIGR1cCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2R1cAorNDIgICAg
+ICBjb21tb24gIHBpcGUgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3BpcGUKKzQzICAg
+ICAgY29tbW9uICB0aW1lcyAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c190aW1lcworNDQg
+ICAgICBjb21tb24gIHByb2YgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2Nh
+bGwKKzQ1ICAgICAgY29tbW9uICBicmsgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19i
+cmsKKzQ2ICAgICAgY29tbW9uICBzZXRnaWQgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19z
+ZXRnaWQKKzQ3ICAgICAgY29tbW9uICBnZXRnaWQgICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19nZXRnaWQKKzQ4ICAgICAgY29tbW9uICBzaWduYWwgICAgICAgICAgICAgICAgICAgICAgICAg
+IHN5c19zaWduYWwKKzQ5ICAgICAgY29tbW9uICBnZXRldWlkICAgICAgICAgICAgICAgICAgICAg
+ICAgIHN5c19nZXRldWlkCis1MCAgICAgIGNvbW1vbiAgZ2V0ZWdpZCAgICAgICAgICAgICAgICAg
+ICAgICAgICBzeXNfZ2V0ZWdpZAorNTEgICAgICBjb21tb24gIGFjY3QgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgc3lzX2FjY3QKKzUyICAgICAgY29tbW9uICB1bW91bnQyICAgICAgICAgICAg
+ICAgICAgICAgICAgIHN5c191bW91bnQKKzUzICAgICAgY29tbW9uICBsb2NrICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgIHN5c19uaV9zeXNjYWxsCis1NCAgICAgIGNvbW1vbiAgaW9jdGwgICAg
+ICAgICAgICAgICAgICAgICAgICAgICBzeXNfaW9jdGwKKzU1ICAgICAgY29tbW9uICBmY250bCAg
+ICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19mY250bAorNTYgICAgICBjb21tb24gIG1weCAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzU3ICAgICAgY29tbW9u
+ICBzZXRwZ2lkICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRwZ2lkCis1OCAgICAgIGNv
+bW1vbiAgdWxpbWl0ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorNTkg
+ICAgICBjb21tb24gIG9sZG9sZHVuYW1lICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2Nh
+bGwKKzYwICAgICAgY29tbW9uICB1bWFzayAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c191
+bWFzaworNjEgICAgICBjb21tb24gIGNocm9vdCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X2Nocm9vdAorNjIgICAgICBjb21tb24gIHVzdGF0ICAgICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX3VzdGF0Cis2MyAgICAgIGNvbW1vbiAgZHVwMiAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfZHVwMgorNjQgICAgICBjb21tb24gIGdldHBwaWQgICAgICAgICAgICAgICAgICAgICAg
+ICAgc3lzX2dldHBwaWQKKzY1ICAgICAgY29tbW9uICBnZXRwZ3JwICAgICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19nZXRwZ3JwCis2NiAgICAgIGNvbW1vbiAgc2V0c2lkICAgICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfc2V0c2lkCis2NyAgICAgIGNvbW1vbiAgc2lnYWN0aW9uICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorNjggICAgICBjb21tb24gIHNnZXRtYXNrICAg
+ICAgICAgICAgICAgICAgICAgICAgc3lzX3NnZXRtYXNrCis2OSAgICAgIGNvbW1vbiAgc3NldG1h
+c2sgICAgICAgICAgICAgICAgICAgICAgICBzeXNfc3NldG1hc2sKKzcwICAgICAgY29tbW9uICBz
+ZXRyZXVpZCAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRyZXVpZAorNzEgICAgICBjb21t
+b24gIHNldHJlZ2lkICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3NldHJlZ2lkCis3MiAgICAg
+IGNvbW1vbiAgc2lnc3VzcGVuZCAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAor
+NzMgICAgICBjb21tb24gIHNpZ3BlbmRpbmcgICAgICAgICAgICAgICAgICAgICAgc3lzX3NpZ3Bl
+bmRpbmcKKzc0ICAgICAgY29tbW9uICBzZXRob3N0bmFtZSAgICAgICAgICAgICAgICAgICAgIHN5
+c19zZXRob3N0bmFtZQorNzUgICAgICBjb21tb24gIHNldHJsaW1pdCAgICAgICAgICAgICAgICAg
+ICAgICAgc3lzX3NldHJsaW1pdAorNzYgICAgICBjb21tb24gIGdldHJsaW1pdCAgICAgICAgICAg
+ICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzc3ICAgICAgY29tbW9uICBnZXRydXNhZ2UgICAg
+ICAgICAgICAgICAgICAgICAgIHN5c19nZXRydXNhZ2UKKzc4ICAgICAgY29tbW9uICBnZXR0aW1l
+b2ZkYXkgICAgICAgICAgICAgICAgICAgIHN5c19nZXR0aW1lb2ZkYXkKKzc5ICAgICAgY29tbW9u
+ICBzZXR0aW1lb2ZkYXkgICAgICAgICAgICAgICAgICAgIHN5c19zZXR0aW1lb2ZkYXkKKzgwICAg
+ICAgY29tbW9uICBnZXRncm91cHMgICAgICAgICAgICAgICAgICAgICAgIHN5c19nZXRncm91cHMK
+KzgxICAgICAgY29tbW9uICBzZXRncm91cHMgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRn
+cm91cHMKKzgyICAgICAgY29tbW9uICBzZWxlY3QgICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19uaV9zeXNjYWxsCis4MyAgICAgIGNvbW1vbiAgc3ltbGluayAgICAgICAgICAgICAgICAgICAg
+ICAgICBzeXNfc3ltbGluaworODQgICAgICBjb21tb24gIG9sZGxzdGF0ICAgICAgICAgICAgICAg
+ICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzg1ICAgICAgY29tbW9uICByZWFkbGluayAgICAgICAg
+ICAgICAgICAgICAgICAgIHN5c19yZWFkbGluaworODYgICAgICBjb21tb24gIHVzZWxpYiAgICAg
+ICAgICAgICAgICAgICAgICAgICAgc3lzX3VzZWxpYgorODcgICAgICBjb21tb24gIHN3YXBvbiAg
+ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3N3YXBvbgorODggICAgICBjb21tb24gIHJlYm9v
+dCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3JlYm9vdAorODkgICAgICBjb21tb24gIHJl
+YWRkaXIgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzkwICAgICAgY29t
+bW9uICBtbWFwICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19tbWFwCis5MSAgICAgIGNv
+bW1vbiAgbXVubWFwICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbXVubWFwCis5MiAgICAg
+IGNvbW1vbiAgdHJ1bmNhdGUgICAgICAgICAgICAgICAgICAgICAgICBzeXNfdHJ1bmNhdGUKKzkz
+ICAgICAgY29tbW9uICBmdHJ1bmNhdGUgICAgICAgICAgICAgICAgICAgICAgIHN5c19mdHJ1bmNh
+dGUKKzk0ICAgICAgY29tbW9uICBmY2htb2QgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19m
+Y2htb2QKKzk1ICAgICAgY29tbW9uICBmY2hvd24gICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19mY2hvd24KKzk2ICAgICAgY29tbW9uICBnZXRwcmlvcml0eSAgICAgICAgICAgICAgICAgICAg
+IHN5c19nZXRwcmlvcml0eQorOTcgICAgICBjb21tb24gIHNldHByaW9yaXR5ICAgICAgICAgICAg
+ICAgICAgICAgc3lzX3NldHByaW9yaXR5Cis5OCAgICAgIGNvbW1vbiAgcHJvZmlsICAgICAgICAg
+ICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorOTkgICAgICBjb21tb24gIHN0YXRmcyAg
+ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3N0YXRmcworMTAwICAgICBjb21tb24gIGZzdGF0
+ZnMgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2ZzdGF0ZnMKKzEwMSAgICAgY29tbW9uICBp
+b3Blcm0gICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19uaV9zeXNjYWxsCisxMDIgICAgIGNv
+bW1vbiAgc29ja2V0Y2FsbCAgICAgICAgICAgICAgICAgICAgICBzeXNfc29ja2V0Y2FsbAorMTAz
+ICAgICBjb21tb24gIHN5c2xvZyAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3N5c2xvZwor
+MTA0ICAgICBjb21tb24gIHNldGl0aW1lciAgICAgICAgICAgICAgICAgICAgICAgc3lzX3NldGl0
+aW1lcgorMTA1ICAgICBjb21tb24gIGdldGl0aW1lciAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X2dldGl0aW1lcgorMTA2ICAgICBjb21tb24gIHN0YXQgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgc3lzX25ld3N0YXQKKzEwNyAgICAgY29tbW9uICBsc3RhdCAgICAgICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19uZXdsc3RhdAorMTA4ICAgICBjb21tb24gIGZzdGF0ICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgc3lzX25ld2ZzdGF0CisxMDkgICAgIGNvbW1vbiAgb2xkdW5hbWUgICAgICAg
+ICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMTEwICAgICBjb21tb24gIGlvcGwgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzExMSAgICAgY29tbW9uICB2
+aGFuZ3VwICAgICAgICAgICAgICAgICAgICAgICAgIHN5c192aGFuZ3VwCisxMTIgICAgIGNvbW1v
+biAgaWRsZSAgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMTEzICAg
+ICBjb21tb24gIHZtODZvbGQgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwK
+KzExNCAgICAgY29tbW9uICB3YWl0NCAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c193YWl0
+NAorMTE1ICAgICBjb21tb24gIHN3YXBvZmYgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3N3
+YXBvZmYKKzExNiAgICAgY29tbW9uICBzeXNpbmZvICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19zeXNpbmZvCisxMTcgICAgIGNvbW1vbiAgaXBjICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfbmlfc3lzY2FsbAorMTE4ICAgICBjb21tb24gIGZzeW5jICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgc3lzX2ZzeW5jCisxMTkgICAgIGNvbW1vbiAgc2lncmV0dXJuICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMTIwICAgICBjb21tb24gIGNsb25lICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgc3lzX2Nsb25lCisxMjEgICAgIGNvbW1vbiAgc2V0ZG9tYWlubmFt
+ZSAgICAgICAgICAgICAgICAgICBzeXNfc2V0ZG9tYWlubmFtZQorMTIyICAgICBjb21tb24gIHVu
+YW1lICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX25ld3VuYW1lCisxMjMgICAgIGNvbW1v
+biAgbW9kaWZ5X2xkdCAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMTI0ICAg
+ICBjb21tb24gIGFkanRpbWV4ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2FkanRpbWV4Cisx
+MjUgICAgIGNvbW1vbiAgbXByb3RlY3QgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbXByb3Rl
+Y3QKKzEyNiAgICAgY29tbW9uICBzaWdwcm9jbWFzayAgICAgICAgICAgICAgICAgICAgIHN5c19z
+aWdwcm9jbWFzaworMTI3ICAgICBjb21tb24gIGNyZWF0ZV9tb2R1bGUgICAgICAgICAgICAgICAg
+ICAgc3lzX25pX3N5c2NhbGwKKzEyOCAgICAgY29tbW9uICBpbml0X21vZHVsZSAgICAgICAgICAg
+ICAgICAgICAgIHN5c19pbml0X21vZHVsZQorMTI5ICAgICBjb21tb24gIGRlbGV0ZV9tb2R1bGUg
+ICAgICAgICAgICAgICAgICAgc3lzX2RlbGV0ZV9tb2R1bGUKKzEzMCAgICAgY29tbW9uICBnZXRf
+a2VybmVsX3N5bXMgICAgICAgICAgICAgICAgIHN5c19uaV9zeXNjYWxsCisxMzEgICAgIGNvbW1v
+biAgcXVvdGFjdGwgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcXVvdGFjdGwKKzEzMiAgICAg
+Y29tbW9uICBnZXRwZ2lkICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19nZXRwZ2lkCisxMzMg
+ICAgIGNvbW1vbiAgZmNoZGlyICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZmNoZGlyCisx
+MzQgICAgIGNvbW1vbiAgYmRmbHVzaCAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfYmRmbHVz
+aAorMTM1ICAgICBjb21tb24gIHN5c2ZzICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3N5
+c2ZzCisxMzYgICAgIGNvbW1vbiAgcGVyc29uYWxpdHkgICAgICAgICAgICAgICAgICAgICBzeXNf
+cGVyc29uYWxpdHkKKzEzNyAgICAgY29tbW9uICBhZnNfc3lzY2FsbCAgICAgICAgICAgICAgICAg
+ICAgIHN5c19uaV9zeXNjYWxsCisxMzggICAgIGNvbW1vbiAgc2V0ZnN1aWQgICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfc2V0ZnN1aWQKKzEzOSAgICAgY29tbW9uICBzZXRmc2dpZCAgICAgICAg
+ICAgICAgICAgICAgICAgIHN5c19zZXRmc2dpZAorMTQwICAgICBjb21tb24gIF9sbHNlZWsgICAg
+ICAgICAgICAgICAgICAgICAgICAgc3lzX2xsc2VlaworMTQxICAgICBjb21tb24gIGdldGRlbnRz
+ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2dldGRlbnRzCisxNDIgICAgIGNvbW1vbiAgX25l
+d3NlbGVjdCAgICAgICAgICAgICAgICAgICAgICBzeXNfc2VsZWN0CisxNDMgICAgIGNvbW1vbiAg
+ZmxvY2sgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZmxvY2sKKzE0NCAgICAgY29tbW9u
+ICBtc3luYyAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19tc3luYworMTQ1ICAgICBjb21t
+b24gIHJlYWR2ICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3JlYWR2CisxNDYgICAgIGNv
+bW1vbiAgd3JpdGV2ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfd3JpdGV2CisxNDcgICAg
+IGNvbW1vbiAgZ2V0c2lkICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZ2V0c2lkCisxNDgg
+ICAgIGNvbW1vbiAgZmRhdGFzeW5jICAgICAgICAgICAgICAgICAgICAgICBzeXNfZmRhdGFzeW5j
+CisxNDkgICAgIGNvbW1vbiAgX3N5c2N0bCAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfc3lz
+Y3RsCisxNTAgICAgIGNvbW1vbiAgbWxvY2sgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNf
+bWxvY2sKKzE1MSAgICAgY29tbW9uICBtdW5sb2NrICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19tdW5sb2NrCisxNTIgICAgIGNvbW1vbiAgbWxvY2thbGwgICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfbWxvY2thbGwKKzE1MyAgICAgY29tbW9uICBtdW5sb2NrYWxsICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19tdW5sb2NrYWxsCisxNTQgICAgIGNvbW1vbiAgc2NoZWRfc2V0cGFyYW0gICAg
+ICAgICAgICAgICAgICBzeXNfc2NoZWRfc2V0cGFyYW0KKzE1NSAgICAgY29tbW9uICBzY2hlZF9n
+ZXRwYXJhbSAgICAgICAgICAgICAgICAgIHN5c19zY2hlZF9nZXRwYXJhbQorMTU2ICAgICBjb21t
+b24gIHNjaGVkX3NldHNjaGVkdWxlciAgICAgICAgICAgICAgc3lzX3NjaGVkX3NldHNjaGVkdWxl
+cgorMTU3ICAgICBjb21tb24gIHNjaGVkX2dldHNjaGVkdWxlciAgICAgICAgICAgICAgc3lzX3Nj
+aGVkX2dldHNjaGVkdWxlcgorMTU4ICAgICBjb21tb24gIHNjaGVkX3lpZWxkICAgICAgICAgICAg
+ICAgICAgICAgc3lzX3NjaGVkX3lpZWxkCisxNTkgICAgIGNvbW1vbiAgc2NoZWRfZ2V0X3ByaW9y
+aXR5X21heCAgICAgICAgICBzeXNfc2NoZWRfZ2V0X3ByaW9yaXR5X21heAorMTYwICAgICBjb21t
+b24gIHNjaGVkX2dldF9wcmlvcml0eV9taW4gICAgICAgICAgc3lzX3NjaGVkX2dldF9wcmlvcml0
+eV9taW4KKzE2MSAgICAgY29tbW9uICBzY2hlZF9ycl9nZXRfaW50ZXJ2YWwgICAgICAgICAgIHN5
+c19zY2hlZF9ycl9nZXRfaW50ZXJ2YWwKKzE2MiAgICAgY29tbW9uICBuYW5vc2xlZXAgICAgICAg
+ICAgICAgICAgICAgICAgIHN5c19uYW5vc2xlZXAKKzE2MyAgICAgY29tbW9uICBtcmVtYXAgICAg
+ICAgICAgICAgICAgICAgICAgICAgIHN5c19tcmVtYXAKKzE2NCAgICAgY29tbW9uICBzZXRyZXN1
+aWQgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRyZXN1aWQKKzE2NSAgICAgY29tbW9uICBn
+ZXRyZXN1aWQgICAgICAgICAgICAgICAgICAgICAgIHN5c19nZXRyZXN1aWQKKzE2NiAgICAgY29t
+bW9uICB2bTg2ICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19uaV9zeXNjYWxsCisxNjcg
+ICAgIGNvbW1vbiAgcXVlcnlfbW9kdWxlICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2Fs
+bAorMTY4ICAgICBjb21tb24gIHBvbGwgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3Bv
+bGwKKzE2OSAgICAgY29tbW9uICBuZnNzZXJ2Y3RsICAgICAgICAgICAgICAgICAgICAgIHN5c19u
+aV9zeXNjYWxsCisxNzAgICAgIGNvbW1vbiAgc2V0cmVzZ2lkICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfc2V0cmVzZ2lkCisxNzEgICAgIGNvbW1vbiAgZ2V0cmVzZ2lkICAgICAgICAgICAgICAg
+ICAgICAgICBzeXNfZ2V0cmVzZ2lkCisxNzIgICAgIGNvbW1vbiAgcHJjdGwgICAgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfcHJjdGwKKzE3MyAgICAgY29tbW9uICBydF9zaWdyZXR1cm4gICAg
+ICAgICAgICAgICAgICAgIHN5c19ydF9zaWdyZXR1cm5fd3JhcHBlcgorMTc0ICAgICBjb21tb24g
+IHJ0X3NpZ2FjdGlvbiAgICAgICAgICAgICAgICAgICAgc3lzX3J0X3NpZ2FjdGlvbgorMTc1ICAg
+ICBjb21tb24gIHJ0X3NpZ3Byb2NtYXNrICAgICAgICAgICAgICAgICAgc3lzX3J0X3NpZ3Byb2Nt
+YXNrCisxNzYgICAgIGNvbW1vbiAgcnRfc2lncGVuZGluZyAgICAgICAgICAgICAgICAgICBzeXNf
+cnRfc2lncGVuZGluZworMTc3ICAgICBjb21tb24gIHJ0X3NpZ3RpbWVkd2FpdCAgICAgICAgICAg
+ICAgICAgc3lzX3J0X3NpZ3RpbWVkd2FpdAorMTc4ICAgICBjb21tb24gIHJ0X3NpZ3F1ZXVlaW5m
+byAgICAgICAgICAgICAgICAgc3lzX3J0X3NpZ3F1ZXVlaW5mbworMTc5ICAgICBjb21tb24gIHJ0
+X3NpZ3N1c3BlbmQgICAgICAgICAgICAgICAgICAgc3lzX3J0X3NpZ3N1c3BlbmQKKzE4MCAgICAg
+Y29tbW9uICBwcmVhZDY0ICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19wcmVhZDY0CisxODEg
+ICAgIGNvbW1vbiAgcHdyaXRlNjQgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcHdyaXRlNjQK
+KzE4MiAgICAgY29tbW9uICBjaG93biAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19jaG93
+bgorMTgzICAgICBjb21tb24gIGdldGN3ZCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2dl
+dGN3ZAorMTg0ICAgICBjb21tb24gIGNhcGdldCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X2NhcGdldAorMTg1ICAgICBjb21tb24gIGNhcHNldCAgICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX2NhcHNldAorMTg2ICAgICBjb21tb24gIHNpZ2FsdHN0YWNrICAgICAgICAgICAgICAgICAg
+ICAgc3lzX25pX3N5c2NhbGwKKzE4NyAgICAgY29tbW9uICBzZW5kZmlsZSAgICAgICAgICAgICAg
+ICAgICAgICAgIHN5c19zZW5kZmlsZQorMTg4ICAgICBjb21tb24gIGdldHBtc2cgICAgICAgICAg
+ICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzE4OSAgICAgY29tbW9uICBwdXRwbXNnICAg
+ICAgICAgICAgICAgICAgICAgICAgIHN5c19uaV9zeXNjYWxsCisxOTAgICAgIGNvbW1vbiAgdmZv
+cmsgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfdmZvcmsKKzE5MSAgICAgY29tbW9uICB1
+Z2V0cmxpbWl0ICAgICAgICAgICAgICAgICAgICAgIHN5c19nZXRybGltaXQKKzE5MiAgICAgY29t
+bW9uICBtbWFwMiAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19tbWFwMgorMTkzICAgICBj
+b21tb24gIHRydW5jYXRlNjQgICAgICAgICAgICAgICAgICAgICAgc3lzX3RydW5jYXRlNjQKKzE5
+NCAgICAgY29tbW9uICBmdHJ1bmNhdGU2NCAgICAgICAgICAgICAgICAgICAgIHN5c19mdHJ1bmNh
+dGU2NAorMTk1ICAgICBjb21tb24gIHN0YXQ2NCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X3N0YXQ2NAorMTk2ICAgICBjb21tb24gIGxzdGF0NjQgICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX2xzdGF0NjQKKzE5NyAgICAgY29tbW9uICBmc3RhdDY0ICAgICAgICAgICAgICAgICAgICAg
+ICAgIHN5c19mc3RhdDY0CisxOTggICAgIGNvbW1vbiAgbGNob3duMzIgICAgICAgICAgICAgICAg
+ICAgICAgICBzeXNfbGNob3duCisxOTkgICAgIGNvbW1vbiAgZ2V0dWlkMzIgICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfZ2V0dWlkCisyMDAgICAgIGNvbW1vbiAgZ2V0Z2lkMzIgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfZ2V0Z2lkCisyMDEgICAgIGNvbW1vbiAgZ2V0ZXVpZDMyICAgICAg
+ICAgICAgICAgICAgICAgICBzeXNfZ2V0ZXVpZAorMjAyICAgICBjb21tb24gIGdldGVnaWQzMiAg
+ICAgICAgICAgICAgICAgICAgICAgc3lzX2dldGVnaWQKKzIwMyAgICAgY29tbW9uICBzZXRyZXVp
+ZDMyICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRyZXVpZAorMjA0ICAgICBjb21tb24gIHNl
+dHJlZ2lkMzIgICAgICAgICAgICAgICAgICAgICAgc3lzX3NldHJlZ2lkCisyMDUgICAgIGNvbW1v
+biAgZ2V0Z3JvdXBzMzIgICAgICAgICAgICAgICAgICAgICBzeXNfZ2V0Z3JvdXBzCisyMDYgICAg
+IGNvbW1vbiAgc2V0Z3JvdXBzMzIgICAgICAgICAgICAgICAgICAgICBzeXNfc2V0Z3JvdXBzCisy
+MDcgICAgIGNvbW1vbiAgZmNob3duMzIgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZmNob3du
+CisyMDggICAgIGNvbW1vbiAgc2V0cmVzdWlkMzIgICAgICAgICAgICAgICAgICAgICBzeXNfc2V0
+cmVzdWlkCisyMDkgICAgIGNvbW1vbiAgZ2V0cmVzdWlkMzIgICAgICAgICAgICAgICAgICAgICBz
+eXNfZ2V0cmVzdWlkCisyMTAgICAgIGNvbW1vbiAgc2V0cmVzZ2lkMzIgICAgICAgICAgICAgICAg
+ICAgICBzeXNfc2V0cmVzZ2lkCisyMTEgICAgIGNvbW1vbiAgZ2V0cmVzZ2lkMzIgICAgICAgICAg
+ICAgICAgICAgICBzeXNfZ2V0cmVzZ2lkCisyMTIgICAgIGNvbW1vbiAgY2hvd24zMiAgICAgICAg
+ICAgICAgICAgICAgICAgICBzeXNfY2hvd24KKzIxMyAgICAgY29tbW9uICBzZXR1aWQzMiAgICAg
+ICAgICAgICAgICAgICAgICAgIHN5c19zZXR1aWQKKzIxNCAgICAgY29tbW9uICBzZXRnaWQzMiAg
+ICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRnaWQKKzIxNSAgICAgY29tbW9uICBzZXRmc3Vp
+ZDMyICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRmc3VpZAorMjE2ICAgICBjb21tb24gIHNl
+dGZzZ2lkMzIgICAgICAgICAgICAgICAgICAgICAgc3lzX3NldGZzZ2lkCisyMTcgICAgIGNvbW1v
+biAgcGl2b3Rfcm9vdCAgICAgICAgICAgICAgICAgICAgICBzeXNfcGl2b3Rfcm9vdAorMjE4ICAg
+ICBjb21tb24gIG1pbmNvcmUgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX21pbmNvcmUKKzIx
+OSAgICAgY29tbW9uICBtYWR2aXNlICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19tYWR2aXNl
+CisyMjAgICAgIGNvbW1vbiAgZ2V0ZGVudHM2NCAgICAgICAgICAgICAgICAgICAgICBzeXNfZ2V0
+ZGVudHM2NAorMjIxICAgICBjb21tb24gIGZjbnRsNjQgICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX2ZjbnRsNjQKKzIyNCAgICAgY29tbW9uICBnZXR0aWQgICAgICAgICAgICAgICAgICAgICAg
+ICAgIHN5c19nZXR0aWQKKzIyNSAgICAgY29tbW9uICByZWFkYWhlYWQgICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19yZWFkYWhlYWQKKzIyNiAgICAgY29tbW9uICBzZXR4YXR0ciAgICAgICAgICAg
+ICAgICAgICAgICAgIHN5c19zZXR4YXR0cgorMjI3ICAgICBjb21tb24gIGxzZXR4YXR0ciAgICAg
+ICAgICAgICAgICAgICAgICAgc3lzX2xzZXR4YXR0cgorMjI4ICAgICBjb21tb24gIGZzZXR4YXR0
+ciAgICAgICAgICAgICAgICAgICAgICAgc3lzX2ZzZXR4YXR0cgorMjI5ICAgICBjb21tb24gIGdl
+dHhhdHRyICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2dldHhhdHRyCisyMzAgICAgIGNvbW1v
+biAgbGdldHhhdHRyICAgICAgICAgICAgICAgICAgICAgICBzeXNfbGdldHhhdHRyCisyMzEgICAg
+IGNvbW1vbiAgZmdldHhhdHRyICAgICAgICAgICAgICAgICAgICAgICBzeXNfZmdldHhhdHRyCisy
+MzIgICAgIGNvbW1vbiAgbGlzdHhhdHRyICAgICAgICAgICAgICAgICAgICAgICBzeXNfbGlzdHhh
+dHRyCisyMzMgICAgIGNvbW1vbiAgbGxpc3R4YXR0ciAgICAgICAgICAgICAgICAgICAgICBzeXNf
+bGxpc3R4YXR0cgorMjM0ICAgICBjb21tb24gIGZsaXN0eGF0dHIgICAgICAgICAgICAgICAgICAg
+ICAgc3lzX2ZsaXN0eGF0dHIKKzIzNSAgICAgY29tbW9uICByZW1vdmV4YXR0ciAgICAgICAgICAg
+ICAgICAgICAgIHN5c19yZW1vdmV4YXR0cgorMjM2ICAgICBjb21tb24gIGxyZW1vdmV4YXR0ciAg
+ICAgICAgICAgICAgICAgICAgc3lzX2xyZW1vdmV4YXR0cgorMjM3ICAgICBjb21tb24gIGZyZW1v
+dmV4YXR0ciAgICAgICAgICAgICAgICAgICAgc3lzX2ZyZW1vdmV4YXR0cgorMjM4ICAgICBjb21t
+b24gIHRraWxsICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3RraWxsCisyMzkgICAgIGNv
+bW1vbiAgc2VuZGZpbGU2NCAgICAgICAgICAgICAgICAgICAgICBzeXNfc2VuZGZpbGU2NAorMjQw
+ICAgICBjb21tb24gIGZ1dGV4ICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2Z1dGV4Cisy
+NDEgICAgIGNvbW1vbiAgc2NoZWRfc2V0YWZmaW5pdHkgICAgICAgICAgICAgICBzeXNfc2NoZWRf
+c2V0YWZmaW5pdHkKKzI0MiAgICAgY29tbW9uICBzY2hlZF9nZXRhZmZpbml0eSAgICAgICAgICAg
+ICAgIHN5c19zY2hlZF9nZXRhZmZpbml0eQorMjQzICAgICBjb21tb24gIHNldF90aHJlYWRfYXJl
+YSAgICAgICAgICAgICAgICAgc3lzX25pX3N5c2NhbGwKKzI0NCAgICAgY29tbW9uICBnZXRfdGhy
+ZWFkX2FyZWEgICAgICAgICAgICAgICAgIHN5c19uaV9zeXNjYWxsCisyNDUgICAgIGNvbW1vbiAg
+aW9fc2V0dXAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfaW9fc2V0dXAKKzI0NiAgICAgY29t
+bW9uICBpb19kZXN0cm95ICAgICAgICAgICAgICAgICAgICAgIHN5c19pb19kZXN0cm95CisyNDcg
+ICAgIGNvbW1vbiAgaW9fZ2V0ZXZlbnRzICAgICAgICAgICAgICAgICAgICBzeXNfaW9fZ2V0ZXZl
+bnRzCisyNDggICAgIGNvbW1vbiAgaW9fc3VibWl0ICAgICAgICAgICAgICAgICAgICAgICBzeXNf
+aW9fc3VibWl0CisyNDkgICAgIGNvbW1vbiAgaW9fY2FuY2VsICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfaW9fY2FuY2VsCisyNTAgICAgIGNvbW1vbiAgZmFkdmlzZTY0ICAgICAgICAgICAgICAg
+ICAgICAgICBzeXNfZmFkdmlzZTY0CisyNTIgICAgIGNvbW1vbiAgZXhpdF9ncm91cCAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfZXhpdF9ncm91cAorMjUzICAgICBjb21tb24gIGxvb2t1cF9kY29v
+a2llICAgICAgICAgICAgICAgICAgc3lzX2xvb2t1cF9kY29va2llCisyNTQgICAgIGNvbW1vbiAg
+ZXBvbGxfY3JlYXRlICAgICAgICAgICAgICAgICAgICBzeXNfZXBvbGxfY3JlYXRlCisyNTUgICAg
+IGNvbW1vbiAgZXBvbGxfY3RsICAgICAgICAgICAgICAgICAgICAgICBzeXNfZXBvbGxfY3RsCisy
+NTYgICAgIGNvbW1vbiAgZXBvbGxfd2FpdCAgICAgICAgICAgICAgICAgICAgICBzeXNfZXBvbGxf
+d2FpdAorMjU3ICAgICBjb21tb24gIHJlbWFwX2ZpbGVfcGFnZXMgICAgICAgICAgICAgICAgc3lz
+X3JlbWFwX2ZpbGVfcGFnZXMKKzI1OCAgICAgY29tbW9uICBzZXRfdGlkX2FkZHJlc3MgICAgICAg
+ICAgICAgICAgIHN5c19zZXRfdGlkX2FkZHJlc3MKKzI1OSAgICAgY29tbW9uICB0aW1lcl9jcmVh
+dGUgICAgICAgICAgICAgICAgICAgIHN5c190aW1lcl9jcmVhdGUKKzI2MCAgICAgY29tbW9uICB0
+aW1lcl9zZXR0aW1lICAgICAgICAgICAgICAgICAgIHN5c190aW1lcl9zZXR0aW1lCisyNjEgICAg
+IGNvbW1vbiAgdGltZXJfZ2V0dGltZSAgICAgICAgICAgICAgICAgICBzeXNfdGltZXJfZ2V0dGlt
+ZQorMjYyICAgICBjb21tb24gIHRpbWVyX2dldG92ZXJydW4gICAgICAgICAgICAgICAgc3lzX3Rp
+bWVyX2dldG92ZXJydW4KKzI2MyAgICAgY29tbW9uICB0aW1lcl9kZWxldGUgICAgICAgICAgICAg
+ICAgICAgIHN5c190aW1lcl9kZWxldGUKKzI2NCAgICAgY29tbW9uICBjbG9ja19zZXR0aW1lICAg
+ICAgICAgICAgICAgICAgIHN5c19jbG9ja19zZXR0aW1lCisyNjUgICAgIGNvbW1vbiAgY2xvY2tf
+Z2V0dGltZSAgICAgICAgICAgICAgICAgICBzeXNfY2xvY2tfZ2V0dGltZQorMjY2ICAgICBjb21t
+b24gIGNsb2NrX2dldHJlcyAgICAgICAgICAgICAgICAgICAgc3lzX2Nsb2NrX2dldHJlcworMjY3
+ICAgICBjb21tb24gIGNsb2NrX25hbm9zbGVlcCAgICAgICAgICAgICAgICAgc3lzX2Nsb2NrX25h
+bm9zbGVlcAorMjY4ICAgICBjb21tb24gIHN0YXRmczY0ICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX3N0YXRmczY0CisyNjkgICAgIGNvbW1vbiAgZnN0YXRmczY0ICAgICAgICAgICAgICAgICAg
+ICAgICBzeXNfZnN0YXRmczY0CisyNzAgICAgIGNvbW1vbiAgdGdraWxsICAgICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfdGdraWxsCisyNzEgICAgIGNvbW1vbiAgdXRpbWVzICAgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfdXRpbWVzCisyNzIgICAgIGNvbW1vbiAgZmFkdmlzZTY0XzY0ICAg
+ICAgICAgICAgICAgICAgICBzeXNfZmFkdmlzZTY0XzY0CisyNzMgICAgIGNvbW1vbiAgdnNlcnZl
+ciAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAorMjc0ICAgICBjb21tb24g
+IG1iaW5kICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX21iaW5kCisyNzUgICAgIGNvbW1v
+biAgZ2V0X21lbXBvbGljeSAgICAgICAgICAgICAgICAgICBzeXNfZ2V0X21lbXBvbGljeQorMjc2
+ICAgICBjb21tb24gIHNldF9tZW1wb2xpY3kgICAgICAgICAgICAgICAgICAgc3lzX3NldF9tZW1w
+b2xpY3kKKzI3NyAgICAgY29tbW9uICBtcV9vcGVuICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19tcV9vcGVuCisyNzggICAgIGNvbW1vbiAgbXFfdW5saW5rICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfbXFfdW5saW5rCisyNzkgICAgIGNvbW1vbiAgbXFfdGltZWRzZW5kICAgICAgICAgICAg
+ICAgICAgICBzeXNfbXFfdGltZWRzZW5kCisyODAgICAgIGNvbW1vbiAgbXFfdGltZWRyZWNlaXZl
+ICAgICAgICAgICAgICAgICBzeXNfbXFfdGltZWRyZWNlaXZlCisyODEgICAgIGNvbW1vbiAgbXFf
+bm90aWZ5ICAgICAgICAgICAgICAgICAgICAgICBzeXNfbXFfbm90aWZ5CisyODIgICAgIGNvbW1v
+biAgbXFfZ2V0c2V0YXR0ciAgICAgICAgICAgICAgICAgICBzeXNfbXFfZ2V0c2V0YXR0cgorMjgz
+ICAgICBjb21tb24gIGtleGVjX2xvYWQgICAgICAgICAgICAgICAgICAgICAgc3lzX2tleGVjX2xv
+YWQKKzI4NCAgICAgY29tbW9uICB3YWl0aWQgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c193
+YWl0aWQKKzI4NiAgICAgY29tbW9uICBhZGRfa2V5ICAgICAgICAgICAgICAgICAgICAgICAgIHN5
+c19hZGRfa2V5CisyODcgICAgIGNvbW1vbiAgcmVxdWVzdF9rZXkgICAgICAgICAgICAgICAgICAg
+ICBzeXNfcmVxdWVzdF9rZXkKKzI4OCAgICAgY29tbW9uICBrZXljdGwgICAgICAgICAgICAgICAg
+ICAgICAgICAgIHN5c19rZXljdGwKKzI4OSAgICAgY29tbW9uICBpb3ByaW9fc2V0ICAgICAgICAg
+ICAgICAgICAgICAgIHN5c19pb3ByaW9fc2V0CisyOTAgICAgIGNvbW1vbiAgaW9wcmlvX2dldCAg
+ICAgICAgICAgICAgICAgICAgICBzeXNfaW9wcmlvX2dldAorMjkxICAgICBjb21tb24gIGlub3Rp
+ZnlfaW5pdCAgICAgICAgICAgICAgICAgICAgc3lzX2lub3RpZnlfaW5pdAorMjkyICAgICBjb21t
+b24gIGlub3RpZnlfYWRkX3dhdGNoICAgICAgICAgICAgICAgc3lzX2lub3RpZnlfYWRkX3dhdGNo
+CisyOTMgICAgIGNvbW1vbiAgaW5vdGlmeV9ybV93YXRjaCAgICAgICAgICAgICAgICBzeXNfaW5v
+dGlmeV9ybV93YXRjaAorMjk0ICAgICBjb21tb24gIG1pZ3JhdGVfcGFnZXMgICAgICAgICAgICAg
+ICAgICAgc3lzX25pX3N5c2NhbGwKKzI5NSAgICAgY29tbW9uICBvcGVuYXQgICAgICAgICAgICAg
+ICAgICAgICAgICAgIHN5c19vcGVuYXQKKzI5NiAgICAgY29tbW9uICBta2RpcmF0ICAgICAgICAg
+ICAgICAgICAgICAgICAgIHN5c19ta2RpcmF0CisyOTcgICAgIGNvbW1vbiAgbWtub2RhdCAgICAg
+ICAgICAgICAgICAgICAgICAgICBzeXNfbWtub2RhdAorMjk4ICAgICBjb21tb24gIGZjaG93bmF0
+ICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2ZjaG93bmF0CisyOTkgICAgIGNvbW1vbiAgZnV0
+aW1lc2F0ICAgICAgICAgICAgICAgICAgICAgICBzeXNfZnV0aW1lc2F0CiszMDAgICAgIGNvbW1v
+biAgZnN0YXRhdDY0ICAgICAgICAgICAgICAgICAgICAgICBzeXNfZnN0YXRhdDY0CiszMDEgICAg
+IGNvbW1vbiAgdW5saW5rYXQgICAgICAgICAgICAgICAgICAgICAgICBzeXNfdW5saW5rYXQKKzMw
+MiAgICAgY29tbW9uICByZW5hbWVhdCAgICAgICAgICAgICAgICAgICAgICAgIHN5c19yZW5hbWVh
+dAorMzAzICAgICBjb21tb24gIGxpbmthdCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2xp
+bmthdAorMzA0ICAgICBjb21tb24gIHN5bWxpbmthdCAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X3N5bWxpbmthdAorMzA1ICAgICBjb21tb24gIHJlYWRsaW5rYXQgICAgICAgICAgICAgICAgICAg
+ICAgc3lzX3JlYWRsaW5rYXQKKzMwNiAgICAgY29tbW9uICBmY2htb2RhdCAgICAgICAgICAgICAg
+ICAgICAgICAgIHN5c19mY2htb2RhdAorMzA3ICAgICBjb21tb24gIGZhY2Nlc3NhdCAgICAgICAg
+ICAgICAgICAgICAgICAgc3lzX2ZhY2Nlc3NhdAorMzA4ICAgICBjb21tb24gIHBzZWxlY3Q2ICAg
+ICAgICAgICAgICAgICAgICAgICAgc3lzX3BzZWxlY3Q2CiszMDkgICAgIGNvbW1vbiAgcHBvbGwg
+ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcHBvbGwKKzMxMCAgICAgY29tbW9uICB1bnNo
+YXJlICAgICAgICAgICAgICAgICAgICAgICAgIHN5c191bnNoYXJlCiszMTEgICAgIGNvbW1vbiAg
+c2V0X3JvYnVzdF9saXN0ICAgICAgICAgICAgICAgICBzeXNfc2V0X3JvYnVzdF9saXN0CiszMTIg
+ICAgIGNvbW1vbiAgZ2V0X3JvYnVzdF9saXN0ICAgICAgICAgICAgICAgICBzeXNfZ2V0X3JvYnVz
+dF9saXN0CiszMTMgICAgIGNvbW1vbiAgc3BsaWNlICAgICAgICAgICAgICAgICAgICAgICAgICBz
+eXNfc3BsaWNlCiszMTQgICAgIGNvbW1vbiAgc3luY19maWxlX3JhbmdlICAgICAgICAgICAgICAg
+ICBzeXNfc3luY19maWxlX3JhbmdlCiszMTUgICAgIGNvbW1vbiAgdGVlICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfdGVlCiszMTYgICAgIGNvbW1vbiAgdm1zcGxpY2UgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfdm1zcGxpY2UKKzMxNyAgICAgY29tbW9uICBtb3ZlX3BhZ2VzICAg
+ICAgICAgICAgICAgICAgICAgIHN5c19tb3ZlX3BhZ2VzCiszMTggICAgIGNvbW1vbiAgZ2V0Y3B1
+ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfZ2V0Y3B1CiszMTkgICAgIGNvbW1vbiAgZXBv
+bGxfcHdhaXQgICAgICAgICAgICAgICAgICAgICBzeXNfZXBvbGxfcHdhaXQKKzMyMCAgICAgY29t
+bW9uICB1dGltZW5zYXQgICAgICAgICAgICAgICAgICAgICAgIHN5c191dGltZW5zYXQKKzMyMSAg
+ICAgY29tbW9uICBzaWduYWxmZCAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zaWduYWxmZAor
+MzIyICAgICBjb21tb24gIHRpbWVyZmRfY3JlYXRlICAgICAgICAgICAgICAgICAgc3lzX3RpbWVy
+ZmRfY3JlYXRlCiszMjMgICAgIGNvbW1vbiAgZXZlbnRmZCAgICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfZXZlbnRmZAorMzI0ICAgICBjb21tb24gIGZhbGxvY2F0ZSAgICAgICAgICAgICAgICAg
+ICAgICAgc3lzX2ZhbGxvY2F0ZQorMzI1ICAgICBjb21tb24gIHNlbXRpbWVkb3AgICAgICAgICAg
+ICAgICAgICAgICAgc3lzX3NlbXRpbWVkb3AKKzMyNiAgICAgY29tbW9uICB0aW1lcmZkX3NldHRp
+bWUgICAgICAgICAgICAgICAgIHN5c190aW1lcmZkX3NldHRpbWUKKzMyNyAgICAgY29tbW9uICB0
+aW1lcmZkX2dldHRpbWUgICAgICAgICAgICAgICAgIHN5c190aW1lcmZkX2dldHRpbWUKKzMyOCAg
+ICAgY29tbW9uICBzZW1jdGwgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZW1jdGwKKzMy
+OSAgICAgY29tbW9uICBzZW1nZXQgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZW1nZXQK
+KzMzMCAgICAgY29tbW9uICBzZW1vcCAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zZW1v
+cAorMzMxICAgICBjb21tb24gIG1zZ2N0bCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX21z
+Z2N0bAorMzMyICAgICBjb21tb24gIG1zZ2dldCAgICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X21zZ2dldAorMzMzICAgICBjb21tb24gIG1zZ3JjdiAgICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX21zZ3JjdgorMzM0ICAgICBjb21tb24gIG1zZ3NuZCAgICAgICAgICAgICAgICAgICAgICAg
+ICAgc3lzX21zZ3NuZAorMzM1ICAgICBjb21tb24gIHNobWF0ICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgc3lzX3NobWF0CiszMzYgICAgIGNvbW1vbiAgc2htY3RsICAgICAgICAgICAgICAgICAg
+ICAgICAgICBzeXNfc2htY3RsCiszMzcgICAgIGNvbW1vbiAgc2htZHQgICAgICAgICAgICAgICAg
+ICAgICAgICAgICBzeXNfc2htZHQKKzMzOCAgICAgY29tbW9uICBzaG1nZXQgICAgICAgICAgICAg
+ICAgICAgICAgICAgIHN5c19zaG1nZXQKKzMzOSAgICAgY29tbW9uICBzaWduYWxmZDQgICAgICAg
+ICAgICAgICAgICAgICAgIHN5c19zaWduYWxmZDQKKzM0MCAgICAgY29tbW9uICBldmVudGZkMiAg
+ICAgICAgICAgICAgICAgICAgICAgIHN5c19ldmVudGZkMgorMzQxICAgICBjb21tb24gIGVwb2xs
+X2NyZWF0ZTEgICAgICAgICAgICAgICAgICAgc3lzX2Vwb2xsX2NyZWF0ZTEKKzM0MiAgICAgY29t
+bW9uICBkdXAzICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19kdXAzCiszNDMgICAgIGNv
+bW1vbiAgcGlwZTIgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcGlwZTIKKzM0NCAgICAg
+Y29tbW9uICBpbm90aWZ5X2luaXQxICAgICAgICAgICAgICAgICAgIHN5c19pbm90aWZ5X2luaXQx
+CiszNDUgICAgIGNvbW1vbiAgc29ja2V0ICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfc29j
+a2V0CiszNDYgICAgIGNvbW1vbiAgc29ja2V0cGFpciAgICAgICAgICAgICAgICAgICAgICBzeXNf
+c29ja2V0cGFpcgorMzQ3ICAgICBjb21tb24gIGJpbmQgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgc3lzX2JpbmQKKzM0OCAgICAgY29tbW9uICBsaXN0ZW4gICAgICAgICAgICAgICAgICAgICAg
+ICAgIHN5c19saXN0ZW4KKzM0OSAgICAgY29tbW9uICBhY2NlcHQgICAgICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19hY2NlcHQKKzM1MCAgICAgY29tbW9uICBjb25uZWN0ICAgICAgICAgICAgICAg
+ICAgICAgICAgIHN5c19jb25uZWN0CiszNTEgICAgIGNvbW1vbiAgZ2V0c29ja25hbWUgICAgICAg
+ICAgICAgICAgICAgICBzeXNfZ2V0c29ja25hbWUKKzM1MiAgICAgY29tbW9uICBnZXRwZWVybmFt
+ZSAgICAgICAgICAgICAgICAgICAgIHN5c19nZXRwZWVybmFtZQorMzUzICAgICBjb21tb24gIHNl
+bmR0byAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3NlbmR0bworMzU0ICAgICBjb21tb24g
+IHNlbmQgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3NlbmQKKzM1NSAgICAgY29tbW9u
+ICByZWN2ZnJvbSAgICAgICAgICAgICAgICAgICAgICAgIHN5c19yZWN2ZnJvbQorMzU2ICAgICBj
+b21tb24gIHJlY3YgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3JlY3YKKzM1NyAgICAg
+Y29tbW9uICBzZXRzb2Nrb3B0ICAgICAgICAgICAgICAgICAgICAgIHN5c19zZXRzb2Nrb3B0Cisz
+NTggICAgIGNvbW1vbiAgZ2V0c29ja29wdCAgICAgICAgICAgICAgICAgICAgICBzeXNfZ2V0c29j
+a29wdAorMzU5ICAgICBjb21tb24gIHNodXRkb3duICAgICAgICAgICAgICAgICAgICAgICAgc3lz
+X3NodXRkb3duCiszNjAgICAgIGNvbW1vbiAgc2VuZG1zZyAgICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfc2VuZG1zZworMzYxICAgICBjb21tb24gIHJlY3Ztc2cgICAgICAgICAgICAgICAgICAg
+ICAgICAgc3lzX3JlY3Ztc2cKKzM2MiAgICAgY29tbW9uICBhY2NlcHQ0ICAgICAgICAgICAgICAg
+ICAgICAgICAgIHN5c19hY2NlcHQ0CiszNjMgICAgIGNvbW1vbiAgcHJlYWR2ICAgICAgICAgICAg
+ICAgICAgICAgICAgICBzeXNfcHJlYWR2CiszNjQgICAgIGNvbW1vbiAgcHdyaXRldiAgICAgICAg
+ICAgICAgICAgICAgICAgICBzeXNfcHdyaXRldgorMzY1ICAgICBjb21tb24gIHJ0X3Rnc2lncXVl
+dWVpbmZvICAgICAgICAgICAgICAgc3lzX3J0X3Rnc2lncXVldWVpbmZvCiszNjYgICAgIGNvbW1v
+biAgcGVyZl9ldmVudF9vcGVuICAgICAgICAgICAgICAgICBzeXNfcGVyZl9ldmVudF9vcGVuCisz
+NjcgICAgIGNvbW1vbiAgcmVjdm1tc2cgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcmVjdm1t
+c2cKKzM2OCAgICAgY29tbW9uICBmYW5vdGlmeV9pbml0ICAgICAgICAgICAgICAgICAgIHN5c19m
+YW5vdGlmeV9pbml0CiszNjkgICAgIGNvbW1vbiAgZmFub3RpZnlfbWFyayAgICAgICAgICAgICAg
+ICAgICBzeXNfZmFub3RpZnlfbWFyaworMzcwICAgICBjb21tb24gIHBybGltaXQ2NCAgICAgICAg
+ICAgICAgICAgICAgICAgc3lzX3BybGltaXQ2NAorMzcxICAgICBjb21tb24gIG5hbWVfdG9faGFu
+ZGxlX2F0ICAgICAgICAgICAgICAgc3lzX25hbWVfdG9faGFuZGxlX2F0CiszNzIgICAgIGNvbW1v
+biAgb3Blbl9ieV9oYW5kbGVfYXQgICAgICAgICAgICAgICBzeXNfb3Blbl9ieV9oYW5kbGVfYXQK
+KzM3MyAgICAgY29tbW9uICBjbG9ja19hZGp0aW1lICAgICAgICAgICAgICAgICAgIHN5c19jbG9j
+a19hZGp0aW1lCiszNzQgICAgIGNvbW1vbiAgc3luY2ZzICAgICAgICAgICAgICAgICAgICAgICAg
+ICBzeXNfc3luY2ZzCiszNzUgICAgIGNvbW1vbiAgc2V0bnMgICAgICAgICAgICAgICAgICAgICAg
+ICAgICBzeXNfc2V0bnMKKzM3NiAgICAgY29tbW9uICBzZW5kbW1zZyAgICAgICAgICAgICAgICAg
+ICAgICAgIHN5c19zZW5kbW1zZworMzc3ICAgICBjb21tb24gIHByb2Nlc3Nfdm1fcmVhZHYgICAg
+ICAgICAgICAgICAgc3lzX3Byb2Nlc3Nfdm1fcmVhZHYKKzM3OCAgICAgY29tbW9uICBwcm9jZXNz
+X3ZtX3dyaXRldiAgICAgICAgICAgICAgIHN5c19wcm9jZXNzX3ZtX3dyaXRldgorMzc5ICAgICBj
+b21tb24gIGtjbXAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX2tjbXAKKzM4MCAgICAg
+Y29tbW9uICBmaW5pdF9tb2R1bGUgICAgICAgICAgICAgICAgICAgIHN5c19maW5pdF9tb2R1bGUK
+KzM4MSAgICAgY29tbW9uICBzY2hlZF9zZXRhdHRyICAgICAgICAgICAgICAgICAgIHN5c19zY2hl
+ZF9zZXRhdHRyCiszODIgICAgIGNvbW1vbiAgc2NoZWRfZ2V0YXR0ciAgICAgICAgICAgICAgICAg
+ICBzeXNfc2NoZWRfZ2V0YXR0cgorMzgzICAgICBjb21tb24gIHJlbmFtZWF0MiAgICAgICAgICAg
+ICAgICAgICAgICAgc3lzX3JlbmFtZWF0MgorMzg0ICAgICBjb21tb24gIHNlY2NvbXAgICAgICAg
+ICAgICAgICAgICAgICAgICAgc3lzX3NlY2NvbXAKKzM4NSAgICAgY29tbW9uICBnZXRyYW5kb20g
+ICAgICAgICAgICAgICAgICAgICAgIHN5c19nZXRyYW5kb20KKzM4NiAgICAgY29tbW9uICBtZW1m
+ZF9jcmVhdGUgICAgICAgICAgICAgICAgICAgIHN5c19tZW1mZF9jcmVhdGUKKzM4NyAgICAgY29t
+bW9uICBicGYgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19icGYKKzM4OCAgICAgY29t
+bW9uICBleGVjdmVhdCAgICAgICAgICAgICAgICAgICAgICAgIHN5c19leGVjdmVhdAorMzg5ICAg
+ICBjb21tb24gIHVzZXJmYXVsdGZkICAgICAgICAgICAgICAgICAgICAgc3lzX3VzZXJmYXVsdGZk
+CiszOTAgICAgIGNvbW1vbiAgbWVtYmFycmllciAgICAgICAgICAgICAgICAgICAgICBzeXNfbWVt
+YmFycmllcgorMzkxICAgICBjb21tb24gIG1sb2NrMiAgICAgICAgICAgICAgICAgICAgICAgICAg
+c3lzX21sb2NrMgorMzkyICAgICBjb21tb24gIGNvcHlfZmlsZV9yYW5nZSAgICAgICAgICAgICAg
+ICAgc3lzX2NvcHlfZmlsZV9yYW5nZQorMzkzICAgICBjb21tb24gIHByZWFkdjIgICAgICAgICAg
+ICAgICAgICAgICAgICAgc3lzX3ByZWFkdjIKKzM5NCAgICAgY29tbW9uICBwd3JpdGV2MiAgICAg
+ICAgICAgICAgICAgICAgICAgIHN5c19wd3JpdGV2MgorMzk1ICAgICBjb21tb24gIHBrZXlfbXBy
+b3RlY3QgICAgICAgICAgICAgICAgICAgc3lzX3BrZXlfbXByb3RlY3QKKzM5NiAgICAgY29tbW9u
+ICBwa2V5X2FsbG9jICAgICAgICAgICAgICAgICAgICAgIHN5c19wa2V5X2FsbG9jCiszOTcgICAg
+IGNvbW1vbiAgcGtleV9mcmVlICAgICAgICAgICAgICAgICAgICAgICBzeXNfcGtleV9mcmVlCisz
+OTggICAgIGNvbW1vbiAgc3RhdHggICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfc3RhdHgK
+KzM5OQljb21tb24gCWlvX3BnZXRldmVudHMJCQlzeXNfaW9fcGdldGV2ZW50cworNDAwCWNvbW1v
+bglyc2VxCQkJCXN5c19yc2VxClwgTm8gbmV3bGluZSBhdCBlbmQgb2YgZmlsZQpkaWZmIC0tZ2l0
+IGEvYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsaGRyLnNoIGIvYXJjaC9t
+aWNyb2JsYXplL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsaGRyLnNoCm5ldyBmaWxlIG1vZGUgMTAw
+NjQ0CmluZGV4IDAwMDAwMDAuLjY1Yzg4MmUKLS0tIC9kZXYvbnVsbAorKysgYi9hcmNoL21pY3Jv
+YmxhemUva2VybmVsL3N5c2NhbGxzL3N5c2NhbGxoZHIuc2gKQEAgLTAsMCArMSwzNSBAQAorIyEv
+YmluL3NoCisjIFNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBHUEwtMi4wCisKK2luPSIkMSIKK291
+dD0iJDIiCitteV9hYmlzPWBlY2hvICIoJDMpIiB8IHRyICcsJyAnfCdgCitwcmVmaXg9IiQ0Igor
+b2Zmc2V0PSIkNSIKKworZmlsZWd1YXJkPV9VQVBJX0FTTV9NSUNST0JMQVpFX2BiYXNlbmFtZSAi
+JG91dCIgfCBzZWQgXAorICAgIC1lICd5L2FiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6L0FCQ0RF
+RkdISUpLTE1OT1BRUlNUVVZXWFlaLycgXAorICAgIC1lICdzL1teQS1aMC05X10vXy9nJyAtZSAn
+cy9fXy9fL2cnYAorZ3JlcCAtRSAiXlswLTlBLUZhLWZYeF0rW1s6c3BhY2U6XV0rJHtteV9hYmlz
+fSIgIiRpbiIgfCBzb3J0IC1uIHwgKAorICAgIGVjaG8gIiNpZm5kZWYgJHtmaWxlZ3VhcmR9Igor
+ICAgIGVjaG8gIiNkZWZpbmUgJHtmaWxlZ3VhcmR9IgorICAgIGVjaG8gIiIKKworICAgIG54dD0w
+CisgICAgd2hpbGUgcmVhZCBuciBhYmkgbmFtZSBlbnRyeSA7IGRvCisJaWYgWyAteiAiJG9mZnNl
+dCIgXTsgdGhlbgorCSAgICBlY2hvIC1lICIjZGVmaW5lIF9fTlJfJHtwcmVmaXh9JHtuYW1lfVx0
+JG5yIgorCWVsc2UKKwkgICAgZWNobyAtZSAiI2RlZmluZSBfX05SXyR7cHJlZml4fSR7bmFtZX1c
+dCgkb2Zmc2V0ICsgJG5yKSIKKwlmaQorCW54dD0kbnIKKwlsZXQgbnh0PW54dCsxCisgICAgZG9u
+ZQorCisgICAgZWNobyAiIgorICAgIGVjaG8gIiNpZmRlZiBfX0tFUk5FTF9fIgorICAgIGVjaG8g
+LWUgIiNkZWZpbmUgX19OUl9zeXNjYWxsc1x0JG54dCIKKyAgICBlY2hvICIjZW5kaWYiCisgICAg
+ZWNobyAiIgorICAgIGVjaG8gIiNlbmRpZiAvKiAke2ZpbGVndWFyZH0gKi8iCispID4gIiRvdXQi
+CmRpZmYgLS1naXQgYS9hcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzL3N5c2NhbGx0Ymwu
+c2ggYi9hcmNoL21pY3JvYmxhemUva2VybmVsL3N5c2NhbGxzL3N5c2NhbGx0Ymwuc2gKbmV3IGZp
+bGUgbW9kZSAxMDA2NDQKaW5kZXggMDAwMDAwMC4uZDI2MzVkZQotLS0gL2Rldi9udWxsCisrKyBi
+L2FyY2gvbWljcm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbHRibC5zaApAQCAtMCwwICsx
+LDM0IEBACisjIS9iaW4vc2gKKyMgU1BEWC1MaWNlbnNlLUlkZW50aWZpZXI6IEdQTC0yLjAKKwor
+aW49IiQxIgorb3V0PSIkMiIKK215X2FiaT0iJDMiCitvZmZzZXQ9IiQ0IgorCitlbWl0KCkgewor
+ICAgIG54dD0iJDEiCisgICAgbnI9IiQyIgorICAgIGVudHJ5PSIkMyIKKworICAgIHdoaWxlIFsg
+JG54dCAtbHQgJG5yIF07IGRvCisJZWNobyAiX19TWVNDQUxMKCRueHQsIHN5c19uaV9zeXNjYWxs
+LCApIgorCWxldCBueHQ9bnh0KzEKKyAgICBkb25lCisKKyAgICBlY2hvICJfX1NZU0NBTEwoJG5y
+LCAkZW50cnksICkiCit9CisKK2dyZXAgJ15bMC05XScgIiRpbiIgfCBzb3J0IC1uIHwgKAorICAg
+IGlmIFsgLXogIiRvZmZzZXQiIF07IHRoZW4KKwlueHQ9MAorICAgIGVsc2UKKwlueHQ9JG9mZnNl
+dAorICAgIGZpCisKKyAgICB3aGlsZSByZWFkIG5yIGFiaSBuYW1lIGVudHJ5IDsgZG8KKwllbWl0
+ICRueHQgJG5yICRlbnRyeQorCW54dD0kbnIKKyAgICAgICAgbGV0IG54dD1ueHQrMQorICAgIGRv
+bmUKKykgPiAiJG91dCIKLS0gCjEuOS4xCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9y
+ZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
