@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 27/32] LoadPin: Initialize as ordered LSM
-Date: Mon,  1 Oct 2018 17:55:00 -0700
-Message-ID: <20181002005505.6112-28-keescook@chromium.org>
+Subject: [PATCH security-next v4 17/32] LSM: Introduce CONFIG_LSM_ENABLE
+Date: Mon,  1 Oct 2018 17:54:50 -0700
+Message-ID: <20181002005505.6112-18-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
@@ -10,81 +10,75 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
+To provide a set of default-enabled LSMs at boot, this introduces the
+new CONFIG_LSM_ENABLE. A value of "all" means all builtin LSMs are
+enabled by default. Any unlisted LSMs will be implicitly disabled
+(excepting those with LSM-specific CONFIGs for enabling/disabling).
+
+The behavior of the LSM-specific CONFIGs for SELinux are AppArmor
+unchanged: the default-enabled state for those LSMs remains controlled
+through their LSM-specific "enable" CONFIGs.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- include/linux/lsm_hooks.h  | 5 -----
- security/Kconfig           | 2 +-
- security/loadpin/loadpin.c | 8 +++++++-
- security/security.c        | 1 -
- 4 files changed, 8 insertions(+), 8 deletions(-)
+ include/linux/lsm_hooks.h | 2 +-
+ security/Kconfig          | 8 ++++++++
+ security/security.c       | 4 +++-
+ 3 files changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index b026ea93ff01..098ccf2caa0e 100644
+index 9ecb623fb39d..fd85637a1931 100644
 --- a/include/linux/lsm_hooks.h
 +++ b/include/linux/lsm_hooks.h
-@@ -2091,10 +2091,5 @@ extern void __init yama_add_hooks(void);
- #else
- static inline void __init yama_add_hooks(void) { }
- #endif
--#ifdef CONFIG_SECURITY_LOADPIN
--void __init loadpin_add_hooks(void);
--#else
--static inline void loadpin_add_hooks(void) { };
--#endif
- 
- #endif /* ! __LINUX_LSM_HOOKS_H */
-diff --git a/security/Kconfig b/security/Kconfig
-index c68520d97fd7..e59cb9296316 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -293,7 +293,7 @@ config LSM_ENABLE
- 
- config LSM_ORDER
- 	string "Default initialization order of builtin LSMs"
--	default "integrity"
-+	default "loadpin,integrity"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
- 	  Any LSMs left off this list will be link-order initialized
-diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
-index d8a68a6f6fef..dab42bfa1e4a 100644
---- a/security/loadpin/loadpin.c
-+++ b/security/loadpin/loadpin.c
-@@ -184,13 +184,19 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
- 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
+@@ -2044,7 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+ struct lsm_info {
+ 	const char *name;	/* Required. */
+ 	unsigned long flags;	/* Optional: flags describing LSM */
+-	int *enabled;		/* Optional: NULL means enabled. */
++	int *enabled;		/* Optional: NULL checks CONFIG_LSM_ENABLE */
+ 	int (*init)(void);	/* Required. */
  };
  
--void __init loadpin_add_hooks(void)
-+static int __init loadpin_init(void)
- {
- 	pr_info("ready to pin (currently %senforcing)\n",
- 		enforcing ? "" : "not ");
- 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
-+	return 0;
- }
+diff --git a/security/Kconfig b/security/Kconfig
+index 27d8b2688f75..ac23feba584d 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -276,5 +276,13 @@ config DEFAULT_SECURITY
+ 	default "apparmor" if DEFAULT_SECURITY_APPARMOR
+ 	default "" if DEFAULT_SECURITY_DAC
  
-+DEFINE_LSM(loadpin) = {
-+	.name = "loadpin",
-+	.init = loadpin_init,
-+};
++config LSM_ENABLE
++	string "LSMs to enable at boot time"
++	default "all"
++	help
++	  A comma-separated list of LSMs to enable by default at boot. The
++	  default is "all", to enable all LSM modules at boot. Any LSMs
++	  not listed here will be disabled by default.
 +
- /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
- module_param(enforcing, int, 0);
- MODULE_PARM_DESC(enforcing, "Enforce module/firmware pinning");
+ endmenu
+ 
 diff --git a/security/security.c b/security/security.c
-index 6fafad44b85e..6957f5f50483 100644
+index 9459b4ee4fd9..35601000176b 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -297,7 +297,6 @@ int __init security_init(void)
- 	 */
- 	capability_add_hooks();
- 	yama_add_hooks();
--	loadpin_add_hooks();
+@@ -45,6 +45,8 @@ char *lsm_names;
+ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+ 	CONFIG_DEFAULT_SECURITY;
  
- 	/* Load LSMs in specified order. */
- 	prepare_lsm_order();
++static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
++
+ static __initdata bool debug;
+ #define init_debug(...)						\
+ 	do {							\
+@@ -182,7 +184,7 @@ static void __init parse_lsm_enable(const char *str,
+ static void __init prepare_lsm_enable(void)
+ {
+ 	/* Prepare defaults. */
+-	parse_lsm_enable("all", default_enabled, true);
++	parse_lsm_enable(builtin_lsm_enable, default_enabled, true);
+ }
+ 
+ /**
 -- 
 2.17.1
