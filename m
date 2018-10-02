@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 02/32] vmlinux.lds.h: Avoid copy/paste of security_init section
-Date: Mon,  1 Oct 2018 17:54:35 -0700
-Message-ID: <20181002005505.6112-3-keescook@chromium.org>
+Subject: [PATCH security-next v4 09/32] LSM: Provide init debugging infrastructure
+Date: Mon,  1 Oct 2018 17:54:42 -0700
+Message-ID: <20181002005505.6112-10-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
@@ -10,46 +10,77 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Avoid copy/paste by defining SECURITY_INIT in terms of SECURITY_INITCALL.
+Booting with "lsm.debug" will report future details on how LSM ordering
+decisions are being made.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-Reviewed-by: James Morris <james.morris@microsoft.com>
 Reviewed-by: John Johansen <john.johansen@canonical.com>
 ---
- include/asm-generic/vmlinux.lds.h | 13 ++++++-------
- 1 file changed, 6 insertions(+), 7 deletions(-)
+ .../admin-guide/kernel-parameters.txt          |  2 ++
+ security/security.c                            | 18 ++++++++++++++++++
+ 2 files changed, 20 insertions(+)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 7b75ff6e2fce..934a45395547 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -473,13 +473,6 @@
- #define RODATA          RO_DATA_SECTION(4096)
- #define RO_DATA(align)  RO_DATA_SECTION(align)
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 9871e649ffef..32d323ee9218 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -2274,6 +2274,8 @@
+ 	ltpc=		[NET]
+ 			Format: <io>,<irq>,<dma>
  
--#define SECURITY_INIT							\
--	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
--		__security_initcall_start = .;				\
--		KEEP(*(.security_initcall.init))			\
--		__security_initcall_end = .;				\
--	}
--
- /*
-  * .text section. Map to function alignment to avoid address changes
-  * during second ld run in second ld pass when generating System.map
-@@ -798,6 +791,12 @@
- 		KEEP(*(.security_initcall.init))			\
- 		__security_initcall_end = .;
- 
-+/* Older linker script style for security init. */
-+#define SECURITY_INIT							\
-+	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
-+		SECURITY_INITCALL					\
-+	}
++	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
 +
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
+ 	machvec=	[IA-64] Force the use of a particular machine-vector
+ 			(machvec) in a generic kernel.
+ 			Example: machvec=hpzx1_swiotlb
+diff --git a/security/security.c b/security/security.c
+index e74f46fba591..395f804f6a91 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -12,6 +12,8 @@
+  *	(at your option) any later version.
+  */
+ 
++#define pr_fmt(fmt) "LSM: " fmt
++
+ #include <linux/bpf.h>
+ #include <linux/capability.h>
+ #include <linux/dcache.h>
+@@ -43,11 +45,19 @@ char *lsm_names;
+ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+ 	CONFIG_DEFAULT_SECURITY;
+ 
++static __initdata bool debug;
++#define init_debug(...)						\
++	do {							\
++		if (debug)					\
++			pr_info(__VA_ARGS__);			\
++	} while (0)
++
+ static void __init major_lsm_init(void)
+ {
+ 	struct lsm_info *lsm;
+ 
+ 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		init_debug("initializing %s\n", lsm->name);
+ 		lsm->init();
+ 	}
+ }
+@@ -91,6 +101,14 @@ static int __init choose_lsm(char *str)
+ }
+ __setup("security=", choose_lsm);
+ 
++/* Enable LSM order debugging. */
++static int __init enable_debug(char *str)
++{
++	debug = true;
++	return 1;
++}
++__setup("lsm.debug", enable_debug);
++
+ static bool match_last_lsm(const char *list, const char *lsm)
+ {
+ 	const char *last;
 -- 
 2.17.1
