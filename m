@@ -1,134 +1,65 @@
 From: Andrey Konovalov <andreyknvl@google.com>
-Subject: [PATCH v7 0/8] arm64: untag user pointers passed to the kernel
-Date: Tue,  2 Oct 2018 15:12:35 +0200
-Message-ID: <cover.1538485901.git.andreyknvl@google.com>
+Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by sparse
+Date: Tue, 2 Oct 2018 15:19:57 +0200
+Message-ID: <CAAeHK+xK2Nb6J6YbvUJdXaZoecB0GS2UyY6pgGwrfCoOQJ34xg@mail.gmail.com>
+References: <cover.1535629099.git.andreyknvl@google.com> <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
+ <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
+ <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
+ <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
+ <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
+ <20180911164152.GA29166@arrakis.emea.arm.com> <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
+ <20180928175013.GC193149@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180928175013.GC193149@arrakis.emea.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Andrey Konovalov <andreyknvl@google.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.or>
 List-Id: linux-arch.vger.kernel.org
 
-arm64 has a feature called Top Byte Ignore, which allows to embed pointer
-tags into the top byte of each pointer. Userspace programs (such as
-HWASan, a memory debugging tool [1]) might use this feature and pass
-tagged user pointers to the kernel through syscalls or other interfaces.
+On Fri, Sep 28, 2018 at 7:50 PM, Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> On Mon, Sep 17, 2018 at 07:01:00PM +0200, Andrey Konovalov wrote:
 
-Right now the kernel is already able to handle user faults with tagged
-pointers, due to these patches:
+>> Looking at patch #8 ("usb, arm64: untag user addresses in devio") in
+>> this series, it seems that that devio ioctl actually accepts a pointer
+>> into a vma, so we shouldn't actually be untagging its argument and the
+>> patch needs to be dropped.
+>
+> You are right, the pointer seems to have originated from the kernel as
+> already untagged (mmap() on the driver), so we would expect the user to
+> pass it back an untagged pointer.
 
-1. 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on a
-             tagged pointer")
-2. 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged
-	      pointers")
-3. 276e9327 ("arm64: entry: improve data abort handling of tagged
-	      pointers")
+OK, dropped this patch in v7.
 
-When passing tagged pointers to syscalls, there's a special case of such a
-pointer being passed to one of the memory syscalls (mmap, mprotect, etc.).
-These syscalls don't do memory accesses but rather deal with memory
-ranges, hence an untagged pointer is better suited.
+>> As for case 1, the places where pointers are compared with TASK_SIZE
+>> and others can be found with grep. Maybe it makes sense to introduce
+>> some kind of routine like is_user_pointer() that handles tagged
+>> pointers and refactor the existing code to use it? And maybe add a
+>> rule to checkpatch.pl that forbids the direct usage of TASK_SIZE and
+>> others.
+>>
+>> So I think detecting direct comparisons with TASK_SIZE and others
+>> would more useful than finding __user pointer casts (it seems that the
+>> latter requires a lot of annotations to be fixed/added), and I should
+>> just drop this patch with annotations.
+>
+> I think point (1) is not too bad, usually found with grep.
+>
+> As I've said in my previous reply, I kind of came to the same conclusion
+> that searching __user pointer casts to long may not actually scale. If
+> we could add an __untagged annotation to ulong where it matters (e.g.
+> find_vma()), we could identify a ulong (default tagged) and annotate
+> some of those.
+>
+> However, this analysis on __user * casting was useful even if we don't
+> end up using it. If we come up with a clearer definition of the ABI
+> (which syscalls accept tagged pointers), we may conclude that the only
+> places where untagging matters are a few find_vma() calls in the arch
+> and mm code and can ignore the rest.
 
-This patchset extends tagged pointer support to non-memory syscalls. This
-is done by reusing the untagged_addr macro to untag user pointers when the
-kernel performs pointer checking to find out whether the pointer comes
-from userspace (most notably in access_ok).
+So what exactly should I do now?
 
-The following testing approaches has been taken to find potential issues
-with user pointer untagging:
-
-1. Static testing (with sparse [2] and separately with a custom static
-   analyzer based on Clang) to track casts of __user pointers to integer
-   types to find places where untagging needs to be done.
-
-2. Dynamic testing: adding BUG_ON(has_tag(addr)) to find_vma() and running
-   a modified syzkaller version that passes tagged pointers to the kernel.
-
-Based on the results of the testing the requried patches have been added
-to the patchset.
-
-This patchset is a prerequisite for ARM's memory tagging hardware feature
-support [3].
-
-Thanks!
-
-[1] http://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html
-
-[2] https://github.com/lucvoo/sparse-dev/commit/5f960cb10f56ec2017c128ef9d16060e0145f292
-
-[3] https://community.arm.com/processors/b/blog/posts/arm-a-profile-architecture-2018-developments-armv85a
-
-Changes in v7:
-- Rebased onto 17b57b18 (4.19-rc6).
-- Dropped the "arm64: untag user address in __do_user_fault" patch, since
-  the existing patches already handle user faults properly.
-- Dropped the "usb, arm64: untag user addresses in devio" patch, since the
-  passed pointer must come from a vma and therefore be untagged.
-- Dropped the "arm64: annotate user pointers casts detected by sparse"
-  patch (see the discussion to the replies of the v6 of this patchset).
-- Added more context to the cover letter.
-- Updated Documentation/arm64/tagged-pointers.txt.
-
-Changes in v6:
-- Added annotations for user pointer casts found by sparse.
-- Rebased onto 050cdc6c (4.19-rc1+).
-
-Changes in v5:
-- Added 3 new patches that add untagging to places found with static
-  analysis.
-- Rebased onto 44c929e1 (4.18-rc8).
-
-Changes in v4:
-- Added a selftest for checking that passing tagged pointers to the
-  kernel succeeds.
-- Rebased onto 81e97f013 (4.18-rc1+).
-
-Changes in v3:
-- Rebased onto e5c51f30 (4.17-rc6+).
-- Added linux-arch@ to the list of recipients.
-
-Changes in v2:
-- Rebased onto 2d618bdf (4.17-rc3+).
-- Removed excessive untagging in gup.c.
-- Removed untagging pointers returned from __uaccess_mask_ptr.
-
-Changes in v1:
-- Rebased onto 4.17-rc1.
-
-Changes in RFC v2:
-- Added "#ifndef untagged_addr..." fallback in linux/uaccess.h instead of
-  defining it for each arch individually.
-- Updated Documentation/arm64/tagged-pointers.txt.
-- Dropped "mm, arm64: untag user addresses in memory syscalls".
-- Rebased onto 3eb2ce82 (4.16-rc7).
-
-Andrey Konovalov (8):
-  arm64: add type casts to untagged_addr macro
-  uaccess: add untagged_addr definition for other arches
-  arm64: untag user addresses in access_ok and __uaccess_mask_ptr
-  mm, arm64: untag user addresses in mm/gup.c
-  lib, arm64: untag addrs passed to strncpy_from_user and strnlen_user
-  fs, arm64: untag user address in copy_mount_options
-  arm64: update Documentation/arm64/tagged-pointers.txt
-  selftests, arm64: add a selftest for passing tagged pointers to kernel
-
- Documentation/arm64/tagged-pointers.txt       | 24 +++++++++++--------
- arch/arm64/include/asm/uaccess.h              | 14 +++++++----
- fs/namespace.c                                |  2 +-
- include/linux/uaccess.h                       |  4 ++++
- lib/strncpy_from_user.c                       |  2 ++
- lib/strnlen_user.c                            |  2 ++
- mm/gup.c                                      |  4 ++++
- tools/testing/selftests/arm64/.gitignore      |  1 +
- tools/testing/selftests/arm64/Makefile        | 11 +++++++++
- .../testing/selftests/arm64/run_tags_test.sh  | 12 ++++++++++
- tools/testing/selftests/arm64/tags_test.c     | 19 +++++++++++++++
- 11 files changed, 79 insertions(+), 16 deletions(-)
- create mode 100644 tools/testing/selftests/arm64/.gitignore
- create mode 100644 tools/testing/selftests/arm64/Makefile
- create mode 100755 tools/testing/selftests/arm64/run_tags_test.sh
- create mode 100644 tools/testing/selftests/arm64/tags_test.c
-
--- 
-2.19.0.605.g01d371f741-goog
+For now I've posted v7 with the sparse annotation patch dropped (to
+have the most up-do-date version posted).
