@@ -1,75 +1,86 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v22 5/6] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-Date: Tue,  2 Oct 2018 16:41:07 -0600
-Message-ID: <20181002224108.3321-6-logang@deltatee.com>
-References: <20181002224108.3321-1-logang@deltatee.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Tue, 2 Oct 2018 16:06:25 -0700
+Message-ID: <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181002224108.3321-1-logang@deltatee.com>
+In-Reply-To: <alpine.LRH.2.21.1810030758460.23596@namei.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+To: James Morris <jmorris@namei.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+On Tue, Oct 2, 2018 at 3:06 PM, James Morris <jmorris@namei.org> wrote:
+> On Tue, 2 Oct 2018, Kees Cook wrote:
+>
+>> On Tue, Oct 2, 2018 at 11:57 AM, John Johansen
+>> <john.johansen@canonical.com> wrote:
+>> > Under the current scheme
+>> >
+>> > lsm.enabled=selinux
+>> >
+>> > could actually mean selinux,yama,loadpin,something_else are
+>> > enabled. If we extend this behavior to when full stacking lands
+>> >
+>> > lsm.enabled=selinux,yama
+>> >
+>> > might mean selinux,yama,apparmor,loadpin,something_else
+>> >
+>> > and what that list is will vary from kernel to kernel, which I think
+>> > is harder for the user than the lsm.enabled list being what is
+>> > actually enabled at boot
+>>
+>> Ah, I think I missed this in your earlier emails. What you don't like
+>> here is that "lsm.enable=" is additive. You want it to be explicit.
+>>
+>
+> This is a path to madness.
+>
+> How about enable flags set ONLY per LSM:
+>
+> lsm.selinux.enable=x
+> lsm.apparmor.enable=x
+>
+> With no lsm.enable, and removing selinux=x and apparmor=x.
+>
+> Yes this will break existing docs, but they can be updated for newer
+> kernel versions to say "replace selinux=0 with lsm.selinux.enable=0" from
+> kernel X onwards.
+>
+> Surely distro packages and bootloaders are able to cope with changes to
+> kernel parameters?
+>
+> We can either take a one-time hit now, or build new usability debt, which
+> will confuse people forever.
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/intel/ntb_hw_intel.h | 30 +----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+I'd like to avoid this for a few reasons:
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.h b/drivers/ntb/hw/intel/ntb_hw_intel.h
-index c49ff8970ce3..e071e28bca3f 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.h
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.h
-@@ -53,6 +53,7 @@
- 
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- /* PCI device IDs */
- #define PCI_DEVICE_ID_INTEL_NTB_B2B_JSF	0x3725
-@@ -218,33 +219,4 @@ static inline int pdev_is_gen3(struct pci_dev *pdev)
- 	return 0;
- }
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #endif
+- this requires per-LSM plumbing instead of centralized plumbing
+  - each LSM needs to have its own CONFIG flag
+  - each LSM needs to have its own bootparam flag
+- SELinux has explicited stated they do not want to lose selinux=
+- this doesn't meet John's goal of having a "single explicit enable list"
+
+I think the current proposal (in the other thread) is likely the
+sanest approach:
+
+- Drop CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE
+- Drop CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE
+- All enabled LSMs are listed at build-time in CONFIG_LSM_ENABLE
+- Boot time enabling for selinux= and apparmor= remain
+- lsm.enable= is explicit: overrides above and omissions are disabled
+- maybe include lsm.disable= to disable anything
+
+-Kees
+
 -- 
-2.19.0
+Kees Cook
+Pixel Security
