@@ -1,50 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f193.google.com ([209.85.166.193]:50883 "EHLO
-        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726276AbeJBHfi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:38 -0400
-Received: by mail-it1-f193.google.com with SMTP id j81-v6so1000278ite.0
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:10 -0700 (PDT)
+Received: from mail-io1-f66.google.com ([209.85.166.66]:32831 "EHLO
+        mail-io1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727244AbeJBHfy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:54 -0400
+Received: by mail-io1-f66.google.com with SMTP id l25-v6so273762ioj.0
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:25 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 01/32] LSM: Correctly announce start of LSM initialization
-Date: Mon,  1 Oct 2018 17:54:34 -0700
-Message-ID: <20181002005505.6112-2-keescook@chromium.org>
+Subject: [PATCH security-next v4 26/32] LSM: Introduce "lsm.order=" for boottime ordering
+Date: Mon,  1 Oct 2018 17:54:59 -0700
+Message-ID: <20181002005505.6112-27-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005434.o6KW_4WiZrHoaFdqedld92IV5zJoDLB_G0wbawUHMf0@z>
+Message-ID: <20181002005459.VaTggsFgTs72Wgr8o79hEypwXxc7ztAQtkXCv_lM8yM@z>
 
-For a while now, the LSM core has said it was "initializED", rather than
-"initializING". This adjust the report to be more accurate (i.e. before
-this was reported before any LSMs had been initialized.)
+Provide a way to reorder LSM initialization using the new "lsm.order="
+comma-separated list of LSMs. Any LSMs not listed will be added in builtin
+order.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-Reviewed-by: James Morris <james.morris@microsoft.com>
-Reviewed-by: John Johansen <john.johansen@canonical.com>
 ---
- security/security.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ Documentation/admin-guide/kernel-parameters.txt |  6 ++++++
+ security/security.c                             | 14 +++++++++++++-
+ 2 files changed, 19 insertions(+), 1 deletion(-)
 
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 0d10ab3d020e..7e01b7a1e73d 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -2286,6 +2286,12 @@
+ 			at boot time. This overrides any omissions from
+ 			CONFIG_LSM_ENABLE.
+ 
++	lsm.order=lsm1,...,lsmN
++			[SECURITY] Choose order of enabled LSM
++			initialization. Any builtin LSMs not listed here
++			will be implicitly appended to the list in builtin
++			order.
++
+ 	machvec=	[IA-64] Force the use of a particular machine-vector
+ 			(machvec) in a generic kernel.
+ 			Example: machvec=hpzx1_swiotlb
 diff --git a/security/security.c b/security/security.c
-index 736e78da1ab9..4cbcf244a965 100644
+index 0510bb8e0af0..6fafad44b85e 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -72,10 +72,11 @@ int __init security_init(void)
- 	int i;
- 	struct hlist_head *list = (struct hlist_head *) &security_hook_heads;
+@@ -44,6 +44,7 @@ char *lsm_names;
+ /* Boot-time LSM user choice */
+ static __initdata const char *chosen_lsm_enable;
+ static __initdata const char *chosen_lsm_disable;
++static __initdata const char *chosen_lsm_order;
+ static __initdata const char *chosen_major_lsm;
  
-+	pr_info("Security Framework initializing\n");
+ static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
+@@ -152,11 +153,14 @@ static void __init parse_lsm_order(const char *order, const char *origin)
+ 	kfree(sep);
+ }
+ 
+-/* Populate ordered LSMs list from builtin list of LSMs. */
++/* Populate ordered LSMs list from commandline and builtin list of LSMs. */
+ static void __init prepare_lsm_order(void)
+ {
+ 	struct lsm_info *lsm;
+ 
++	/* Parse order from commandline, if present. */
++	parse_lsm_order(chosen_lsm_order, "cmdline");
 +
- 	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
- 	     i++)
- 		INIT_HLIST_HEAD(&list[i]);
--	pr_info("Security Framework initialized\n");
+ 	/* Parse order from builtin list. */
+ 	parse_lsm_order(builtin_lsm_order, "builtin");
  
- 	/*
- 	 * Load minor LSMs, with the capability module always first.
+@@ -316,6 +320,14 @@ static int __init choose_major_lsm(char *str)
+ }
+ __setup("security=", choose_major_lsm);
+ 
++/* Explicitly choose LSM initialization order. */
++static int __init choose_lsm_order(char *str)
++{
++	chosen_lsm_order = str;
++	return 1;
++}
++__setup("lsm.order=", choose_lsm_order);
++
+ /* Enable LSM order debugging. */
+ static int __init enable_debug(char *str)
+ {
 -- 
 2.17.1
