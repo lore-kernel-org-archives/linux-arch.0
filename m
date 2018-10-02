@@ -1,97 +1,150 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 08/32] LSM: Record LSM name in struct lsm_info
-Date: Mon,  1 Oct 2018 17:54:41 -0700
-Message-ID: <20181002005505.6112-9-keescook@chromium.org>
-References: <20181002005505.6112-1-keescook@chromium.org>
+Subject: [PATCH security-next v4 00/32] LSM: Explict LSM ordering
+Date: Mon,  1 Oct 2018 17:54:33 -0700
+Message-ID: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for making LSM selections outside of the LSMs, include
-the name of LSMs in struct lsm_info.
+v4:
+- add Reviewed-bys.
+- cosmetic tweaks.
+- New patches to fully centralize LSM "enable" decisions:
+    LSM: Finalize centralized LSM enabling logic
+    apparmor: Remove boot parameter
+    selinux: Remove boot parameter
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
----
- include/linux/lsm_hooks.h  | 1 +
- security/apparmor/lsm.c    | 1 +
- security/integrity/iint.c  | 1 +
- security/selinux/hooks.c   | 1 +
- security/smack/smack_lsm.c | 1 +
- security/tomoyo/tomoyo.c   | 1 +
- 6 files changed, 6 insertions(+)
+v3:
+- add CONFIG_LSM_ENABLE and refactor resulting logic
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 9c6b4198ff5a..ae159b02f3ab 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2040,6 +2040,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- 				char *lsm);
- 
- struct lsm_info {
-+	const char *name;	/* Required. */
- 	int (*init)(void);	/* Required. */
- };
- 
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index c4863956c832..dca4b7dbf368 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1607,5 +1607,6 @@ static int __init apparmor_init(void)
- }
- 
- DEFINE_LSM(apparmor) = {
-+	.name = "apparmor",
- 	.init = apparmor_init,
- };
-diff --git a/security/integrity/iint.c b/security/integrity/iint.c
-index 94e8e1820748..1ea05da2323d 100644
---- a/security/integrity/iint.c
-+++ b/security/integrity/iint.c
-@@ -176,6 +176,7 @@ static int __init integrity_iintcache_init(void)
- 	return 0;
- }
- DEFINE_LSM(integrity) = {
-+	.name = "integrity",
- 	.init = integrity_iintcache_init,
- };
- 
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index 6ca2e89ddbd6..9651bccae270 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -7203,6 +7203,7 @@ void selinux_complete_init(void)
- /* SELinux requires early initialization in order to label
-    all processes and objects when they are created. */
- DEFINE_LSM(selinux) = {
-+	.name = "selinux",
- 	.init = selinux_init,
- };
- 
-diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
-index c62e26939a69..2fb56bcf1316 100644
---- a/security/smack/smack_lsm.c
-+++ b/security/smack/smack_lsm.c
-@@ -4883,5 +4883,6 @@ static __init int smack_init(void)
-  * all processes and objects when they are created.
-  */
- DEFINE_LSM(smack) = {
-+	.name = "smack",
- 	.init = smack_init,
- };
-diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
-index b2d833999910..1b5b5097efd7 100644
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
-@@ -551,5 +551,6 @@ static int __init tomoyo_init(void)
- }
- 
- DEFINE_LSM(tomoyo) = {
-+	.name = "tomoyo",
- 	.init = tomoyo_init,
- };
+v2:
+- add "lsm.order=" and CONFIG_LSM_ORDER instead of overloading "security="
+- reorganize introduction of ordering logic code
+
+Overview:
+
+This refactors the LSM registration and initialization infrastructure to
+more centrally support different LSM types for more cleanly supporting the
+future expansion of LSM stacking via the "blob-sharing" patch series. What
+was considered a "major" LSM is kept for legacy use of the "security="
+boot parameter, and now overlaps with the new class of "exclusive" LSMs
+for the future blob sharing. The "minor" LSMs become more well defined
+as a result of the refactoring.
+
+Approach:
+
+To better show LSMs activation some debug reporting was added (enabled
+with the "lsm.debug" boot commandline option).
+
+I added a WARN() around LSM initialization failures, which appear to
+have always been silently ignored. (Realistically any LSM init failures
+would have only been due to catastrophic kernel issues that would render
+a system unworkable anyway, but it'd be better to expose the problem as
+early as possible.)
+
+Instead of continuing to (somewhat improperly) overload the kernel's
+initcall system, this changes the LSM infrastructure to store a
+registration structure (struct lsm_info) table instead, where metadata
+about each LSM can be recorded (name, flags, order, enable flag, init
+function). This can be extended in the future to include things like
+required blob size for the coming "blob sharing" LSMs.
+
+The "major" LSMs had to individually negotiate which of them should be
+enabled. This didn't provide a way to negotiate combinations of other
+LSMs (as will be needed for "blob sharing" LSMs). This is solved by
+providing the LSM infrastructure with all the details needed to make
+the choice (exposing the per-LSM "enabled" flag, if used, the LSM
+characteristics, and ordering expectations).
+
+As a result of the refactoring, the "minor" LSMs are able to remove
+the open-coded security_add_hooks() calls for "capability", "yama",
+and "loadpin", and to redefine "integrity" properly as a general LSM.
+(Note that "integrity" actually defined _no_ hooks, but needs the early
+initialization).
+
+With all LSMs being proessed centrally, it was possible to implement
+a new boot parameter "lsm.order=" to provide explicit ordering, which
+is helpful for the future "blob sharing" LSMs. Matching this is the
+new CONFIG_LSM_ORDER, which replaces CONFIG_DEFAULT_SECURITY, as it
+provides a higher granularity of control.
+
+Breakdown of patches:
+
+Infrastructure improvements (no logical changes):
+  LSM: Correctly announce start of LSM initialization
+  vmlinux.lds.h: Avoid copy/paste of security_init section
+  LSM: Rename .security_initcall section to .lsm_info
+  LSM: Remove initcall tracing
+  LSM: Convert from initcall to struct lsm_info
+  vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+  LSM: Convert security_initcall() into DEFINE_LSM()
+  LSM: Record LSM name in struct lsm_info
+  LSM: Provide init debugging infrastructure
+  LSM: Don't ignore initialization failures
+
+Split "integrity" out into "ordered initialization" (no logical changes):
+  LSM: Introduce LSM_FLAG_LEGACY_MAJOR
+  LSM: Provide separate ordered initialization
+
+Provide centralized LSM enable/disable infrastructure:
+  LoadPin: Rename "enable" to "enforce"
+  LSM: Plumb visibility into optional "enabled" state
+  LSM: Lift LSM selection out of individual LSMs
+  LSM: Prepare for arbitrary LSM enabling
+  LSM: Introduce CONFIG_LSM_ENABLE
+  LSM: Introduce lsm.enable= and lsm.disable=
+  LSM: Prepare for reorganizing "security=" logic
+  LSM: Refactor "security=" in terms of enable/disable
+  LSM: Finalize centralized LSM enabling logic
+  apparmor: Remove boot parameter
+  selinux: Remove boot parameter
+
+Provide centralized LSM ordering infrastructure:
+  LSM: Build ordered list of ordered LSMs for init
+  LSM: Introduce CONFIG_LSM_ORDER
+  LSM: Introduce "lsm.order=" for boottime ordering
+
+Move minor LSMs into ordered LSM initialization:
+  LoadPin: Initialize as ordered LSM
+  Yama: Initialize as ordered LSM
+  LSM: Introduce enum lsm_order
+  capability: Initialize as LSM_ORDER_FIRST
+
+Move major LSMs into ordered LSM initialization:
+  LSM: Separate idea of "major" LSM from "exclusive" LSM
+  LSM: Add all exclusive LSMs to ordered initialization
+
+-Kees
+
+ .../admin-guide/kernel-parameters.txt         |  34 +-
+ arch/arc/kernel/vmlinux.lds.S                 |   1 -
+ arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
+ arch/arm64/kernel/vmlinux.lds.S               |   1 -
+ arch/h8300/kernel/vmlinux.lds.S               |   1 -
+ arch/microblaze/kernel/vmlinux.lds.S          |   2 -
+ arch/powerpc/kernel/vmlinux.lds.S             |   2 -
+ arch/um/include/asm/common.lds.S              |   2 -
+ arch/xtensa/kernel/vmlinux.lds.S              |   1 -
+ include/asm-generic/vmlinux.lds.h             |  25 +-
+ include/linux/init.h                          |   2 -
+ include/linux/lsm_hooks.h                     |  37 +-
+ include/linux/module.h                        |   1 -
+ security/Kconfig                              |  61 ++--
+ security/apparmor/Kconfig                     |  16 -
+ security/apparmor/lsm.c                       |  22 +-
+ security/commoncap.c                          |   9 +-
+ security/integrity/iint.c                     |   6 +-
+ security/loadpin/Kconfig                      |   4 +-
+ security/loadpin/loadpin.c                    |  29 +-
+ security/security.c                           | 343 +++++++++++++++---
+ security/selinux/Kconfig                      |  29 --
+ security/selinux/hooks.c                      |  32 +-
+ security/smack/smack_lsm.c                    |   9 +-
+ security/tomoyo/tomoyo.c                      |   8 +-
+ security/yama/yama_lsm.c                      |   8 +-
+ 26 files changed, 432 insertions(+), 254 deletions(-)
+
 -- 
 2.17.1
