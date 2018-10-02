@@ -1,97 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io1-f67.google.com ([209.85.166.67]:39487 "EHLO
+Received: from mail-io1-f67.google.com ([209.85.166.67]:45453 "EHLO
         mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726731AbeJBHo7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:44:59 -0400
-Received: by mail-io1-f67.google.com with SMTP id z16-v6so284583iol.6
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:28 -0700 (PDT)
+        with ESMTP id S1726900AbeJBHpE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:45:04 -0400
+Received: by mail-io1-f67.google.com with SMTP id e12-v6so261958iok.12
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:33 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 27/32] LoadPin: Initialize as ordered LSM
-Date: Mon,  1 Oct 2018 17:55:00 -0700
-Message-ID: <20181002005505.6112-28-keescook@chromium.org>
+Subject: [PATCH security-next v4 20/32] LSM: Refactor "security=" in terms of enable/disable
+Date: Mon,  1 Oct 2018 17:54:53 -0700
+Message-ID: <20181002005505.6112-21-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005500.IGCh7dq0217UTlzE9kEoQdbQtRW5f1XMGuR_olnhxfA@z>
+Message-ID: <20181002005453.CklX-FXLRU5t0jLVj0TpGZ-3Nhnnn0LQWWjNJoDrCW0@z>
 
-This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
+For what are marked as the Legacy Major LSMs, make them effectively
+exclusive when selected on the "security=" boot parameter, to handle
+the future case of when a previously major LSMs become non-exclusive
+(e.g. when TOMOYO starts blob-sharing).
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- include/linux/lsm_hooks.h  | 5 -----
- security/Kconfig           | 2 +-
- security/loadpin/loadpin.c | 8 +++++++-
- security/security.c        | 1 -
- 4 files changed, 8 insertions(+), 8 deletions(-)
+ security/security.c | 24 ++++++++++++++++--------
+ 1 file changed, 16 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index b026ea93ff01..098ccf2caa0e 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2091,10 +2091,5 @@ extern void __init yama_add_hooks(void);
- #else
- static inline void __init yama_add_hooks(void) { }
- #endif
--#ifdef CONFIG_SECURITY_LOADPIN
--void __init loadpin_add_hooks(void);
--#else
--static inline void loadpin_add_hooks(void) { };
--#endif
- 
- #endif /* ! __LINUX_LSM_HOOKS_H */
-diff --git a/security/Kconfig b/security/Kconfig
-index c68520d97fd7..e59cb9296316 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -293,7 +293,7 @@ config LSM_ENABLE
- 
- config LSM_ORDER
- 	string "Default initialization order of builtin LSMs"
--	default "integrity"
-+	default "loadpin,integrity"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
- 	  Any LSMs left off this list will be link-order initialized
-diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
-index d8a68a6f6fef..dab42bfa1e4a 100644
---- a/security/loadpin/loadpin.c
-+++ b/security/loadpin/loadpin.c
-@@ -184,13 +184,19 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
- 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
- };
- 
--void __init loadpin_add_hooks(void)
-+static int __init loadpin_init(void)
- {
- 	pr_info("ready to pin (currently %senforcing)\n",
- 		enforcing ? "" : "not ");
- 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
-+	return 0;
- }
- 
-+DEFINE_LSM(loadpin) = {
-+	.name = "loadpin",
-+	.init = loadpin_init,
-+};
-+
- /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
- module_param(enforcing, int, 0);
- MODULE_PARM_DESC(enforcing, "Enforce module/firmware pinning");
 diff --git a/security/security.c b/security/security.c
-index 6fafad44b85e..6957f5f50483 100644
+index 455ba2767965..d7132c181ea6 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -297,7 +297,6 @@ int __init security_init(void)
- 	 */
- 	capability_add_hooks();
- 	yama_add_hooks();
--	loadpin_add_hooks();
+@@ -103,14 +103,6 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
+ 	if (!is_enabled(lsm))
+ 		return false;
  
- 	/* Load LSMs in specified order. */
- 	prepare_lsm_order();
+-	/* Skip major-specific checks if not a major LSM. */
+-	if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+-		return true;
+-
+-	/* Disabled if this LSM isn't the chosen one. */
+-	if (strcmp(lsm->name, chosen_major_lsm) != 0)
+-		return false;
+-
+ 	return true;
+ }
+ 
+@@ -188,8 +180,24 @@ static void __init prepare_lsm_enable(void)
+ 	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
+ 	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
+ 
++	/* Process "security=", if given. */
+ 	if (!chosen_major_lsm)
+ 		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
++	if (chosen_major_lsm) {
++		struct lsm_info *lsm;
++
++		/*
++		 * To match the original "security=" behavior, this
++		 * explicitly does NOT fallback to another Legacy Major
++		 * if the selected one was separately disabled: disable
++		 * all non-matching Legacy Major LSMs.
++		 */
++		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) &&
++			    strcmp(lsm->name, chosen_major_lsm) != 0)
++				set_enabled(lsm, false);
++		}
++	}
+ }
+ 
+ /**
 -- 
 2.17.1
