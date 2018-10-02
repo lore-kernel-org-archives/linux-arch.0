@@ -1,65 +1,136 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [PATCH v6 11/11] arm64: annotate user pointers casts detected by sparse
-Date: Tue, 2 Oct 2018 15:19:57 +0200
-Message-ID: <CAAeHK+xK2Nb6J6YbvUJdXaZoecB0GS2UyY6pgGwrfCoOQJ34xg@mail.gmail.com>
-References: <cover.1535629099.git.andreyknvl@google.com> <5d54526e5ff2e5ad63d0dfdd9ab17cf359afa4f2.1535629099.git.andreyknvl@google.com>
- <CA+55aFyW9N2tSb2bQvkthbVVyY6nt5yFeWQRLHp1zruBmb5ocw@mail.gmail.com>
- <CA+55aFy2t_MHgr_CgwbhtFkL+djaCq2qMM1G+f2DwJ0qEr1URQ@mail.gmail.com>
- <20180907152600.myidisza5o4kdmvf@armageddon.cambridge.arm.com>
- <CA+55aFzQ+ykLu10q3AdyaaKJx8SDWWL9Qiu6WH2jbN_ugRUTOg@mail.gmail.com>
- <20180911164152.GA29166@arrakis.emea.arm.com> <CAAeHK+z4HOF_PobxSys8svftWt8dhbuUXEpq2sdXBTCXwTEH2g@mail.gmail.com>
- <20180928175013.GC193149@arrakis.emea.arm.com>
+From: Stephen Smalley <sds@tycho.nsa.gov>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Tue, 2 Oct 2018 09:42:58 -0400
+Message-ID: <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
+References: <20181002005505.6112-1-keescook@chromium.org>
+ <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180928175013.GC193149@arrakis.emea.arm.com>
+In-Reply-To: <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Kostya Serebryany <kcc@google.com>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Evgenii Stepanov <eugenis@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Robin Murphy <robin.murphy@arm.com>, Al Viro <viro@zeniv.linux.or>
+To: Paul Moore <paul@paul-moore.com>, keescook@chromium.org
+Cc: James Morris <jmorris@namei.org>, casey@schaufler-ca.com, john.johansen@canonical.com, penguin-kernel@i-love.sakura.ne.jp, casey.schaufler@intel.com, linux-security-module@vger.kernel.org, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 28, 2018 at 7:50 PM, Catalin Marinas
-<catalin.marinas@arm.com> wrote:
-> On Mon, Sep 17, 2018 at 07:01:00PM +0200, Andrey Konovalov wrote:
-
->> Looking at patch #8 ("usb, arm64: untag user addresses in devio") in
->> this series, it seems that that devio ioctl actually accepts a pointer
->> into a vma, so we shouldn't actually be untagging its argument and the
->> patch needs to be dropped.
->
-> You are right, the pointer seems to have originated from the kernel as
-> already untagged (mmap() on the driver), so we would expect the user to
-> pass it back an untagged pointer.
-
-OK, dropped this patch in v7.
-
->> As for case 1, the places where pointers are compared with TASK_SIZE
->> and others can be found with grep. Maybe it makes sense to introduce
->> some kind of routine like is_user_pointer() that handles tagged
->> pointers and refactor the existing code to use it? And maybe add a
->> rule to checkpatch.pl that forbids the direct usage of TASK_SIZE and
->> others.
+On 10/02/2018 08:12 AM, Paul Moore wrote:
+> On Mon, Oct 1, 2018 at 9:04 PM Kees Cook <keescook@chromium.org> wrote:
+>> Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
+>> "lsm.enable=...", this removes the LSM-specific enabling logic from
+>> SELinux.
 >>
->> So I think detecting direct comparisons with TASK_SIZE and others
->> would more useful than finding __user pointer casts (it seems that the
->> latter requires a lot of annotations to be fixed/added), and I should
->> just drop this patch with annotations.
->
-> I think point (1) is not too bad, usually found with grep.
->
-> As I've said in my previous reply, I kind of came to the same conclusion
-> that searching __user pointer casts to long may not actually scale. If
-> we could add an __untagged annotation to ulong where it matters (e.g.
-> find_vma()), we could identify a ulong (default tagged) and annotate
-> some of those.
->
-> However, this analysis on __user * casting was useful even if we don't
-> end up using it. If we come up with a clearer definition of the ABI
-> (which syscalls accept tagged pointers), we may conclude that the only
-> places where untagging matters are a few find_vma() calls in the arch
-> and mm code and can ignore the rest.
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>> ---
+>>   .../admin-guide/kernel-parameters.txt         |  9 ------
+>>   security/selinux/Kconfig                      | 29 -------------------
+>>   security/selinux/hooks.c                      | 15 +---------
+>>   3 files changed, 1 insertion(+), 52 deletions(-)
+>>
+>> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+>> index cf963febebb0..0d10ab3d020e 100644
+>> --- a/Documentation/admin-guide/kernel-parameters.txt
+>> +++ b/Documentation/admin-guide/kernel-parameters.txt
+>> @@ -4045,15 +4045,6 @@
+>>                          loaded. An invalid security module name will be treated
+>>                          as if no module has been chosen.
+>>
+>> -       selinux=        [SELINUX] Disable or enable SELinux at boot time.
+>> -                       Format: { "0" | "1" }
+>> -                       See security/selinux/Kconfig help text.
+>> -                       0 -- disable.
+>> -                       1 -- enable.
+>> -                       Default value is set via kernel config option.
+>> -                       If enabled at boot time, /selinux/disable can be used
+>> -                       later to disable prior to initial policy load.
+> 
+> No comments yet on the rest of the patchset, but the subject line of
+> this patch caught my eye and I wanted to comment quickly on this one
+> ...
+> 
+> Not a fan unfortunately.
+> 
+> Much like the SELinux bits under /proc/self/attr, this is a user
+> visible thing which has made its way into a lot of docs, scripts, and
+> minds; I believe removing it would be a big mistake.
 
-So what exactly should I do now?
+Yes, we can't suddenly break existing systems that had selinux=0 in 
+their grub config.  We have to retain the support.
 
-For now I've posted v7 with the sparse annotation patch dropped (to
-have the most up-do-date version posted).
+> 
+>>          serialnumber    [BUGS=X86-32]
+>>
+>>          shapers=        [NET]
+>> diff --git a/security/selinux/Kconfig b/security/selinux/Kconfig
+>> index 8af7a690eb40..86936528a0bb 100644
+>> --- a/security/selinux/Kconfig
+>> +++ b/security/selinux/Kconfig
+>> @@ -8,35 +8,6 @@ config SECURITY_SELINUX
+>>            You will also need a policy configuration and a labeled filesystem.
+>>            If you are unsure how to answer this question, answer N.
+>>
+>> -config SECURITY_SELINUX_BOOTPARAM
+>> -       bool "NSA SELinux boot parameter"
+>> -       depends on SECURITY_SELINUX
+>> -       default n
+>> -       help
+>> -         This option adds a kernel parameter 'selinux', which allows SELinux
+>> -         to be disabled at boot.  If this option is selected, SELinux
+>> -         functionality can be disabled with selinux=0 on the kernel
+>> -         command line.  The purpose of this option is to allow a single
+>> -         kernel image to be distributed with SELinux built in, but not
+>> -         necessarily enabled.
+>> -
+>> -         If you are unsure how to answer this question, answer N.
+>> -
+>> -config SECURITY_SELINUX_BOOTPARAM_VALUE
+>> -       int "NSA SELinux boot parameter default value"
+>> -       depends on SECURITY_SELINUX_BOOTPARAM
+>> -       range 0 1
+>> -       default 1
+>> -       help
+>> -         This option sets the default value for the kernel parameter
+>> -         'selinux', which allows SELinux to be disabled at boot.  If this
+>> -         option is set to 0 (zero), the SELinux kernel parameter will
+>> -         default to 0, disabling SELinux at bootup.  If this option is
+>> -         set to 1 (one), the SELinux kernel parameter will default to 1,
+>> -         enabling SELinux at bootup.
+>> -
+>> -         If you are unsure how to answer this question, answer 1.
+>> -
+>>   config SECURITY_SELINUX_DISABLE
+>>          bool "NSA SELinux runtime disable"
+>>          depends on SECURITY_SELINUX
+>> diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+>> index 71a10fedecb3..8f5eea097612 100644
+>> --- a/security/selinux/hooks.c
+>> +++ b/security/selinux/hooks.c
+>> @@ -120,20 +120,7 @@ __setup("enforcing=", enforcing_setup);
+>>   #define selinux_enforcing_boot 1
+>>   #endif
+>>
+>> -#ifdef CONFIG_SECURITY_SELINUX_BOOTPARAM
+>> -int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
+>> -
+>> -static int __init selinux_enabled_setup(char *str)
+>> -{
+>> -       unsigned long enabled;
+>> -       if (!kstrtoul(str, 0, &enabled))
+>> -               selinux_enabled = enabled ? 1 : 0;
+>> -       return 1;
+>> -}
+>> -__setup("selinux=", selinux_enabled_setup);
+>> -#else
+>> -int selinux_enabled = 1;
+>> -#endif
+>> +int selinux_enabled __lsm_ro_after_init;
+>>
+>>   static unsigned int selinux_checkreqprot_boot =
+>>          CONFIG_SECURITY_SELINUX_CHECKREQPROT_VALUE;
+>> --
+>> 2.17.1
+>>
+> 
+> 
