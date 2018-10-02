@@ -1,35 +1,62 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v4 10/32] LSM: Don't ignore initialization failures
-Date: Tue, 2 Oct 2018 14:38:05 -0700
-Message-ID: <CAGXu5jJRFv_e7_-hAnuuEoC90JPXG2aTaHJ98_UaoS_4R1mYtg@mail.gmail.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-11-keescook@chromium.org>
- <alpine.LRH.2.21.1810030719040.23596@namei.org>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Wed, 3 Oct 2018 08:06:12 +1000 (AEST)
+Message-ID: <alpine.LRH.2.21.1810030758460.23596@namei.org>
+References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org> <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com> <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
+ <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com> <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com> <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LRH.2.21.1810030719040.23596@namei.org>
+In-Reply-To: <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: James Morris <jmorris@namei.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 2, 2018 at 2:20 PM, James Morris <jmorris@namei.org> wrote:
-> On Mon, 1 Oct 2018, Kees Cook wrote:
->
->> LSM initialization failures have traditionally been ignored. We should
->> at least WARN when something goes wrong.
->
-> I guess we could have a boot param which specifies what to do if any LSM
-> fails to init, as I think some folks will want to stop execution at that
-> point.
->
-> Thoughts?
+On Tue, 2 Oct 2018, Kees Cook wrote:
 
-I'm not opposed, but I won't author it because Linus will yell at me
-about introducing a "machine killing" option.
+> On Tue, Oct 2, 2018 at 11:57 AM, John Johansen
+> <john.johansen@canonical.com> wrote:
+> > Under the current scheme
+> >
+> > lsm.enabled=selinux
+> >
+> > could actually mean selinux,yama,loadpin,something_else are
+> > enabled. If we extend this behavior to when full stacking lands
+> >
+> > lsm.enabled=selinux,yama
+> >
+> > might mean selinux,yama,apparmor,loadpin,something_else
+> >
+> > and what that list is will vary from kernel to kernel, which I think
+> > is harder for the user than the lsm.enabled list being what is
+> > actually enabled at boot
+> 
+> Ah, I think I missed this in your earlier emails. What you don't like
+> here is that "lsm.enable=" is additive. You want it to be explicit.
+> 
 
--Kees
+This is a path to madness.
+
+How about enable flags set ONLY per LSM:
+
+lsm.selinux.enable=x
+lsm.apparmor.enable=x
+
+With no lsm.enable, and removing selinux=x and apparmor=x.
+
+Yes this will break existing docs, but they can be updated for newer 
+kernel versions to say "replace selinux=0 with lsm.selinux.enable=0" from 
+kernel X onwards.
+
+Surely distro packages and bootloaders are able to cope with changes to 
+kernel parameters?
+
+We can either take a one-time hit now, or build new usability debt, which 
+will confuse people forever.
+
 
 -- 
-Kees Cook
-Pixel Security
+James Morris
+<jmorris@namei.org>
