@@ -1,70 +1,117 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH net-next v6 01/23] asm: simd context helper API
-Date: Tue, 2 Oct 2018 09:18:12 +0200
-Message-ID: <CAKv+Gu-9i28ncTCzZLFLoJsmWjVJGiJAUCmRCCc6VhiqeySV0Q@mail.gmail.com>
-References: <20180925145622.29959-1-Jason@zx2c4.com> <20180925145622.29959-2-Jason@zx2c4.com>
- <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com>
- <CAKv+Gu9kbLPZH4W0zKAfuv-b11mcDaZ05HUauvh9gMZVGVR0AQ@mail.gmail.com>
- <CAHmME9pfs0_MsD9QAGfSm31_w-=6BCF_gZO04XkfhD=mEoZmtQ@mail.gmail.com>
- <CAKv+Gu__7mZFFq6qC=8yh0OuaV+TCCLFt6nm8yJfaANHUPrJ=A@mail.gmail.com>
- <CAHmME9owF+3aQaZUkK4KkfnJna+DK=GoWV8yf-Wb+gH4w3y9eg@mail.gmail.com>
- <CAKv+Gu9FAVVOiYyGovYZ19-107_6sK9Ya6LnK=AQkTgctMmu5A@mail.gmail.com>
- <CAHmME9rqsOid6UOx+VTsFzJLEiaXpTP_z_wvHC6MbeAQUeEtHg@mail.gmail.com>
- <8afdd3b1c51587708db6ae878eb0a7e9f8b5673a.camel@perches.com>
- <3E9E1888-026E-45C1-8AA7-DADA211EDBDF@amacapital.net> <CAHmME9o7_Xh=dZfnEHbPCJdqzXW1L5R7qjg=_sqPZiP2KmTc1Q@mail.gmail.com>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path
+ resolution
+Date: Tue, 2 Oct 2018 17:32:20 +1000
+Message-ID: <20181002073220.7mzndna4tdnxdvdt@ryuk>
+References: <20180929103453.12025-1-cyphar@cyphar.com>
+ <20180929131534.24472-1-cyphar@cyphar.com>
+ <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
+ <20181001054246.gfinmx3api7kjhmc@ryuk>
+ <C89D720F-3CC4-4FA9-9CBB-E41A67360A6B@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAHmME9o7_Xh=dZfnEHbPCJdqzXW1L5R7qjg=_sqPZiP2KmTc1Q@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Joe Perches <joe@perches.com>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="f5grxfjtcz5dvrfy"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <C89D720F-3CC4-4FA9-9CBB-E41A67360A6B@amacapital.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Jann Horn <jannh@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 1 October 2018 at 03:43, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
-> On Sun, Sep 30, 2018 at 7:35 AM Andy Lutomirski <luto@amacapital.net> wro=
-te:
->> >>>>>>> Oh, and another thing (and I'm surprised checkpatch.pl didn't co=
-mplain
->> >>>>>>> about it): the use of typedef in new code is strongly discourage=
-d.
->> >>>>>>> This policy predates my involvement, so perhaps Joe can elaborat=
-e on
->> >>>>>>> the rationale?
->> >>>>>>
->> >>>>>> In case it matters, the motivation for making this a typedef is I
->> >>>>>> could imagine this at some point turning into a more complicated
->> >>>>>> struct on certain platforms and that would make refactoring easie=
-r. I
->> >>>>>> could just make it `struct simd_context` now with 1 member though=
-...
->> >>>>>
->> >>>>> Yes that makes sense
->> >>>>
->> >>>> The rationale for it being a typedef or moving to a struct now?
->> >>>
->> >>> Yes just switch to a struct.
->> >>
->> >> Okay. No problem with that, but will wait to hear from Joe first.
->> >
->> > Why do you need to hear from me again?
->> >
->> > As far as I know, the only info about typedef avoidance are in
->> > Documentation/process/coding-style.rst section 5.
->> >
->> >
->>
->> I personally prefer it with the typedef. If this were my code, I=E2=80=
-=99d say the coding style is silly for opaque tiny structs like this.
->
-> I'll stick with a typedef. Reading the style guide, this clearly falls
-> into 5.a, 5.b, and maybe 5.c. For 5.a, at some point this will
-> possibly contain architecture specific blobs. For 5.b, it is just an
-> enum (integer) right now.
 
-I can live with that, but other may still object.
+--f5grxfjtcz5dvrfy
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-In any case, since you are using the enum member as a bitfield, it
-would be better to typedef it to int instead, and retain the enum
-definition only for the symbolic constants.
+On 2018-10-01, Andy Lutomirski <luto@amacapital.net> wrote:
+> >>> Currently most container runtimes try to do this resolution in
+> >>> userspace[1], causing many potential race conditions. In addition, the
+> >>> "obvious" alternative (actually performing a {ch,pivot_}root(2))
+> >>> requires a fork+exec which is *very* costly if necessary for every
+> >>> filesystem operation involving a container.
+> >>=20
+> >> Wait. fork() I understand, but why exec? And actually, you don't need
+> >> a full fork() either, clone() lets you do this with some process parts
+> >> shared. And then you also shouldn't need to use SCM_RIGHTS, just keep
+> >> the file descriptor table shared. And why chroot()/pivot_root(),
+> >> wouldn't you want to use setns()?
+> >=20
+> > You're right about this -- for C runtimes. In Go we cannot do a raw
+> > clone() or fork() (if you do it manually with RawSyscall you'll end with
+> > broken runtime state). So you're forced to do fork+exec (which then
+> > means that you can't use CLONE_FILES and must use SCM_RIGHTS). Same goes
+> > for CLONE_VFORK.
+>=20
+> I must admit that I=E2=80=99m not very sympathetic to the argument that =
+=E2=80=9CGo=E2=80=99s
+> runtime model is incompatible with the simpler solution.=E2=80=9D
+
+Multi-threaded programs have a similar issue (though with Go it's much
+worse). If you fork a multi-threaded C program then you can only safely
+use AS-Safe glibc functions (those that are safe within a signal
+handler). But if you're just doing three syscalls this shouldn't be as
+big of a problem as Go where you can't even do said syscalls.
+
+> Anyway, it occurs to me that the real problem is that setns() and
+> chroot() are both overkill for this use case.
+
+I agree. My diversion to Go was to explain why it was particularly bad
+for cri-o/rkt/runc/Docker/etc.
+
+> What=E2=80=99s needed is to start your walk from /proc/pid-in-container/r=
+oot,
+> with two twists:
+>=20
+> 1. Do the walk as though rooted at a directory. This is basically just
+> your AT_THIS_ROOT, but the footgun is avoided because the dirfd you
+> use is from a foreign namespace, and, except for symlinks to absolute
+> paths, no amount of .. racing is going to escape the *namespace*.
+
+This is quite clever and I'll admit I hadn't thought of this. This
+definitely fixes the ".." issue, but as you've said it won't handle
+absolute symlinks (which means userspace has the same races that we
+currently have even if you assume that you have a container process
+already running -- CVE-2018-15664 is one of many examples of this).
+
+(AT_THIS_ROOT using /proc/$container/root would in principle fix all of
+the mentioned issues -- but as I said before I'd like to see whether
+hardening ".." would be enough to solve the escape problem.)
+
+> 2. Avoid /proc. It=E2=80=99s not just the *links* =E2=80=94 you really do=
+n=E2=80=99t want to
+> walk into /proc/self. *Maybe* procfs is already careful enough when
+> mounted in a namespace?
+
+I just tried it and /proc/self gives you -ENOENT. I believe this is
+because it does a check against the pid namespace that the procfs mount
+has pinned.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--f5grxfjtcz5dvrfy
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAluzHwEACgkQnhiqJn3b
+jbQ5LRAAxGtWfDWV6hZtCxTiyzf5SiMxYXCzdM/1SmlYfclwu0o7Cvpcs2dHqwbo
+EftRBczNj1uLzuI4Qov9gpM3Ey5Y1YwxAFzEEIlCvtKUIO+oekiAMd0gsarwxLLo
+OPROl3596WbVsOyCXkhJ5hu2XtiU3h/T3gbMuqM9KbsFL9Bb8En607RI4BI3yhE/
+d8iSrBv8zxhfxSoQLPlNNJHG5TKN3G1C0hb+puVHkzbb9l9R/gcSJMEQsfMdTs48
+ZBVByLUKirntkbDKgw5aDg52n8hz2TUx35V7dQD2E366V3jzEWRtKViG193NOvSu
+8v0NpyyDC3+GxDTO1gm0XKMEEC5Xb/wMlTvOU6xj1hLV7L3APPqUkuOG5TTdB1Id
+hKwiK7H5RlbRo3FaIpkOJaU5eYH4Q6QGYw9+lKg1fk/FTvgB1y8HcYBFC+PKI++j
+bZPB0MZEL0cCCWnDYROA7vrgFCk+AgY7pMCAowOrsjDDd4stZohpq2qDN0nKR7m1
+BtciN5dAxNMHoEqn/Q1y5CapVHmLzQOUTYksUORO7tsDKyDMp7V3DnBJ8GWqVQYE
+AfzhuRdsW50sf3lyGfLE+8wlhlXzIc9Mcvjk5UXt6XBL80OQAOQbUzdrqSUXUWkx
+WHbkFyxKgu/1bjE1HKYxlyIF6cxoq11EIseP5igqtrgFE4kdV1U=
+=pZFZ
+-----END PGP SIGNATURE-----
+
+--f5grxfjtcz5dvrfy--
