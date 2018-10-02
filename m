@@ -1,145 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:53391 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726836AbeJBHpF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:45:05 -0400
-Received: by mail-it1-f194.google.com with SMTP id q70-v6so1011643itb.3
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:35 -0700 (PDT)
+Received: from mail-io1-f67.google.com ([209.85.166.67]:38487 "EHLO
+        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726739AbeJBHpD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:45:03 -0400
+Received: by mail-io1-f67.google.com with SMTP id y3-v6so284672ioc.5
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:32 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 21/32] LSM: Finalize centralized LSM enabling logic
-Date: Mon,  1 Oct 2018 17:54:54 -0700
-Message-ID: <20181002005505.6112-22-keescook@chromium.org>
+Subject: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Mon,  1 Oct 2018 17:54:56 -0700
+Message-ID: <20181002005505.6112-24-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005454.PMVIadYryfmT_Yi1waHQeC-sTOKKdqY6T72LufS_uEA@z>
+Message-ID: <20181002005456.rzPXF2i3SwRnZXczk1us1_S9--1M4f4Ki5zl68dMPRQ@z>
 
-Prior to this patch, default "enable" behavior was unchanged: SELinux
-and AppArmor were controlled separately from the centralized control
-defined by CONFIG_LSM_ENABLE and "lsm.enable=...". This changes the
-logic to give all control over to the central logic.
-
-Instead of allowing SELinux and AppArmor to override the central LSM
-enabling logic, by having separate CONFIG and boot parameters, this
-forces all "enable" variables to disabled, then enables any listed in
-the CONFIG_LSM_ENABLE and "lsm.enable=..." settings, and finally disables
-any listed in "lsm.disable=...".
+Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
+"lsm.enable=...", this removes the LSM-specific enabling logic from
+SELinux.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- .../admin-guide/kernel-parameters.txt         |  6 ++--
- include/linux/lsm_hooks.h                     |  2 +-
- security/security.c                           | 32 +++++++------------
- 3 files changed, 15 insertions(+), 25 deletions(-)
+ .../admin-guide/kernel-parameters.txt         |  9 ------
+ security/selinux/Kconfig                      | 29 -------------------
+ security/selinux/hooks.c                      | 15 +---------
+ 3 files changed, 1 insertion(+), 52 deletions(-)
 
 diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 67c90985d2b8..f646cfab5613 100644
+index cf963febebb0..0d10ab3d020e 100644
 --- a/Documentation/admin-guide/kernel-parameters.txt
 +++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2279,14 +2279,12 @@
- 	lsm.disable=lsm1,...,lsmN
- 			[SECURITY] Comma-separated list of LSMs to disable
- 			at boot time. This overrides "lsm.enable=",
--			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and boot
--			parameters.
-+			CONFIG_LSM_ENABLE.
+@@ -4045,15 +4045,6 @@
+ 			loaded. An invalid security module name will be treated
+ 			as if no module has been chosen.
  
- 	lsm.enable=lsm1,...,lsmN
- 			[SECURITY] Comma-separated list of LSMs to enable
- 			at boot time. This overrides any omissions from
--			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
--			boot parameters.
-+			CONFIG_LSM_ENABLE.
+-	selinux=	[SELINUX] Disable or enable SELinux at boot time.
+-			Format: { "0" | "1" }
+-			See security/selinux/Kconfig help text.
+-			0 -- disable.
+-			1 -- enable.
+-			Default value is set via kernel config option.
+-			If enabled at boot time, /selinux/disable can be used
+-			later to disable prior to initial policy load.
+-
+ 	serialnumber	[BUGS=X86-32]
  
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index fd85637a1931..b026ea93ff01 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2044,7 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- struct lsm_info {
- 	const char *name;	/* Required. */
- 	unsigned long flags;	/* Optional: flags describing LSM */
--	int *enabled;		/* Optional: NULL checks CONFIG_LSM_ENABLE */
-+	int *enabled;		/* Optional: set based on CONFIG_LSM_ENABLE */
- 	int (*init)(void);	/* Required. */
- };
+ 	shapers=	[NET]
+diff --git a/security/selinux/Kconfig b/security/selinux/Kconfig
+index 8af7a690eb40..86936528a0bb 100644
+--- a/security/selinux/Kconfig
++++ b/security/selinux/Kconfig
+@@ -8,35 +8,6 @@ config SECURITY_SELINUX
+ 	  You will also need a policy configuration and a labeled filesystem.
+ 	  If you are unsure how to answer this question, answer N.
  
-diff --git a/security/security.c b/security/security.c
-index d7132c181ea6..40b9f508b856 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -63,27 +63,19 @@ static bool __init is_enabled(struct lsm_info *lsm)
- /* Mark an LSM's enabled flag, if it exists. */
- static int lsm_enabled_true __initdata = 1;
- static int lsm_enabled_false __initdata = 0;
+-config SECURITY_SELINUX_BOOTPARAM
+-	bool "NSA SELinux boot parameter"
+-	depends on SECURITY_SELINUX
+-	default n
+-	help
+-	  This option adds a kernel parameter 'selinux', which allows SELinux
+-	  to be disabled at boot.  If this option is selected, SELinux
+-	  functionality can be disabled with selinux=0 on the kernel
+-	  command line.  The purpose of this option is to allow a single
+-	  kernel image to be distributed with SELinux built in, but not
+-	  necessarily enabled.
 -
--static void __init default_enabled(struct lsm_info *lsm, bool enabled)
-+static void __init set_enabled(struct lsm_info *lsm, bool enabled)
- {
--	/* If storage location already set, skip this one. */
--	if (lsm->enabled)
--		return;
+-	  If you are unsure how to answer this question, answer N.
 -
- 	/*
- 	 * When an LSM hasn't configured an enable variable, we can use
- 	 * a hard-coded location for storing the default enabled state.
- 	 */
--	if (enabled)
--		lsm->enabled = &lsm_enabled_true;
--	else
--		lsm->enabled = &lsm_enabled_false;
--}
+-config SECURITY_SELINUX_BOOTPARAM_VALUE
+-	int "NSA SELinux boot parameter default value"
+-	depends on SECURITY_SELINUX_BOOTPARAM
+-	range 0 1
+-	default 1
+-	help
+-	  This option sets the default value for the kernel parameter
+-	  'selinux', which allows SELinux to be disabled at boot.  If this
+-	  option is set to 0 (zero), the SELinux kernel parameter will
+-	  default to 0, disabling SELinux at bootup.  If this option is
+-	  set to 1 (one), the SELinux kernel parameter will default to 1,
+-	  enabling SELinux at bootup.
 -
--static void __init set_enabled(struct lsm_info *lsm, bool enabled)
+-	  If you are unsure how to answer this question, answer 1.
+-
+ config SECURITY_SELINUX_DISABLE
+ 	bool "NSA SELinux runtime disable"
+ 	depends on SECURITY_SELINUX
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index 71a10fedecb3..8f5eea097612 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -120,20 +120,7 @@ __setup("enforcing=", enforcing_setup);
+ #define selinux_enforcing_boot 1
+ #endif
+ 
+-#ifdef CONFIG_SECURITY_SELINUX_BOOTPARAM
+-int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
+-
+-static int __init selinux_enabled_setup(char *str)
 -{
--	if (WARN_ON(!lsm->enabled))
-+	if (!lsm->enabled) {
-+		if (enabled)
-+			lsm->enabled = &lsm_enabled_true;
-+		else
-+			lsm->enabled = &lsm_enabled_false;
- 		return;
-+	}
+-	unsigned long enabled;
+-	if (!kstrtoul(str, 0, &enabled))
+-		selinux_enabled = enabled ? 1 : 0;
+-	return 1;
+-}
+-__setup("selinux=", selinux_enabled_setup);
+-#else
+-int selinux_enabled = 1;
+-#endif
++int selinux_enabled __lsm_ro_after_init;
  
- 	if (lsm->enabled == &lsm_enabled_true) {
- 		if (!enabled)
-@@ -149,7 +141,6 @@ static void __init major_lsm_init(void)
- }
- 
- static void __init parse_lsm_enable(const char *str,
--				    void (*set)(struct lsm_info *, bool),
- 				    bool enabled)
- {
- 	char *sep, *name, *next;
-@@ -165,7 +156,7 @@ static void __init parse_lsm_enable(const char *str,
- 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
- 			if (strcmp(name, "all") == 0 ||
- 			    strcmp(name, lsm->name) == 0)
--				set(lsm, enabled);
-+				set_enabled(lsm, enabled);
- 		}
- 	}
- 	kfree(sep);
-@@ -174,11 +165,12 @@ static void __init parse_lsm_enable(const char *str,
- static void __init prepare_lsm_enable(void)
- {
- 	/* Prepare defaults. */
--	parse_lsm_enable(builtin_lsm_enable, default_enabled, true);
-+	parse_lsm_enable("all", false);
-+	parse_lsm_enable(builtin_lsm_enable, true);
- 
- 	/* Process "lsm.enable=" and "lsm.disable=", if given. */
--	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
--	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
-+	parse_lsm_enable(chosen_lsm_enable, true);
-+	parse_lsm_enable(chosen_lsm_disable, false);
- 
- 	/* Process "security=", if given. */
- 	if (!chosen_major_lsm)
+ static unsigned int selinux_checkreqprot_boot =
+ 	CONFIG_SECURITY_SELINUX_CHECKREQPROT_VALUE;
 -- 
 2.17.1
