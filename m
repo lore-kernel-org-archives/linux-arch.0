@@ -1,137 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lj1-f194.google.com ([209.85.208.194]:40900 "EHLO
-        mail-lj1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727943AbeJBSzi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 14:55:38 -0400
-Received: by mail-lj1-f194.google.com with SMTP id r83-v6so1511972ljr.7
-        for <linux-arch@vger.kernel.org>; Tue, 02 Oct 2018 05:12:35 -0700 (PDT)
+Received: from mail-wr1-f67.google.com ([209.85.221.67]:38385 "EHLO
+        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727942AbeJBT4K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 15:56:10 -0400
+Received: by mail-wr1-f67.google.com with SMTP id a13-v6so2173256wrt.5
+        for <linux-arch@vger.kernel.org>; Tue, 02 Oct 2018 06:12:52 -0700 (PDT)
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v7 4/8] mm, arm64: untag user addresses in mm/gup.c
+Date: Tue,  2 Oct 2018 15:12:39 +0200
+Message-ID: <405ee9e84a83178e762d8bac97dd1b36ea09074e.1538485901.git.andreyknvl@google.com>
+In-Reply-To: <cover.1538485901.git.andreyknvl@google.com>
+References: <cover.1538485901.git.andreyknvl@google.com>
 MIME-Version: 1.0
-References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
-In-Reply-To: <20181002005505.6112-24-keescook@chromium.org>
-From: Paul Moore <paul@paul-moore.com>
-Date: Tue, 2 Oct 2018 08:12:23 -0400
-Message-ID: <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: keescook@chromium.org
-Cc: James Morris <jmorris@namei.org>, casey@schaufler-ca.com, john.johansen@canonical.com, penguin-kernel@i-love.sakura.ne.jp, Stephen Smalley <sds@tycho.nsa.gov>, casey.schaufler@intel.com, linux-security-module@vger.kernel.org, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002121223.CDbcmbQ3x9O4MjhC5HYDLddwXGwHZSX9wFhLgYnwTPQ@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Andrey Konovalov <andreyknvl@google.com>
+Message-ID: <20181002131239.N8TZOqauFMEtmWx92ryFMqJG5SLQgLnr7C0VpVDNi5g@z>
 
-On Mon, Oct 1, 2018 at 9:04 PM Kees Cook <keescook@chromium.org> wrote:
-> Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
-> "lsm.enable=...", this removes the LSM-specific enabling logic from
-> SELinux.
->
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  .../admin-guide/kernel-parameters.txt         |  9 ------
->  security/selinux/Kconfig                      | 29 -------------------
->  security/selinux/hooks.c                      | 15 +---------
->  3 files changed, 1 insertion(+), 52 deletions(-)
->
-> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> index cf963febebb0..0d10ab3d020e 100644
-> --- a/Documentation/admin-guide/kernel-parameters.txt
-> +++ b/Documentation/admin-guide/kernel-parameters.txt
-> @@ -4045,15 +4045,6 @@
->                         loaded. An invalid security module name will be treated
->                         as if no module has been chosen.
->
-> -       selinux=        [SELINUX] Disable or enable SELinux at boot time.
-> -                       Format: { "0" | "1" }
-> -                       See security/selinux/Kconfig help text.
-> -                       0 -- disable.
-> -                       1 -- enable.
-> -                       Default value is set via kernel config option.
-> -                       If enabled at boot time, /selinux/disable can be used
-> -                       later to disable prior to initial policy load.
+mm/gup.c provides a kernel interface that accepts user addresses and
+manipulates user pages directly (for example get_user_pages, that is used
+by the futex syscall). Since a user can provided tagged addresses, we need
+to handle such case.
 
-No comments yet on the rest of the patchset, but the subject line of
-this patch caught my eye and I wanted to comment quickly on this one
-...
+Add untagging to gup.c functions that use user addresses for vma lookup.
 
-Not a fan unfortunately.
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+---
+ mm/gup.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-Much like the SELinux bits under /proc/self/attr, this is a user
-visible thing which has made its way into a lot of docs, scripts, and
-minds; I believe removing it would be a big mistake.
-
->         serialnumber    [BUGS=X86-32]
->
->         shapers=        [NET]
-> diff --git a/security/selinux/Kconfig b/security/selinux/Kconfig
-> index 8af7a690eb40..86936528a0bb 100644
-> --- a/security/selinux/Kconfig
-> +++ b/security/selinux/Kconfig
-> @@ -8,35 +8,6 @@ config SECURITY_SELINUX
->           You will also need a policy configuration and a labeled filesystem.
->           If you are unsure how to answer this question, answer N.
->
-> -config SECURITY_SELINUX_BOOTPARAM
-> -       bool "NSA SELinux boot parameter"
-> -       depends on SECURITY_SELINUX
-> -       default n
-> -       help
-> -         This option adds a kernel parameter 'selinux', which allows SELinux
-> -         to be disabled at boot.  If this option is selected, SELinux
-> -         functionality can be disabled with selinux=0 on the kernel
-> -         command line.  The purpose of this option is to allow a single
-> -         kernel image to be distributed with SELinux built in, but not
-> -         necessarily enabled.
-> -
-> -         If you are unsure how to answer this question, answer N.
-> -
-> -config SECURITY_SELINUX_BOOTPARAM_VALUE
-> -       int "NSA SELinux boot parameter default value"
-> -       depends on SECURITY_SELINUX_BOOTPARAM
-> -       range 0 1
-> -       default 1
-> -       help
-> -         This option sets the default value for the kernel parameter
-> -         'selinux', which allows SELinux to be disabled at boot.  If this
-> -         option is set to 0 (zero), the SELinux kernel parameter will
-> -         default to 0, disabling SELinux at bootup.  If this option is
-> -         set to 1 (one), the SELinux kernel parameter will default to 1,
-> -         enabling SELinux at bootup.
-> -
-> -         If you are unsure how to answer this question, answer 1.
-> -
->  config SECURITY_SELINUX_DISABLE
->         bool "NSA SELinux runtime disable"
->         depends on SECURITY_SELINUX
-> diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-> index 71a10fedecb3..8f5eea097612 100644
-> --- a/security/selinux/hooks.c
-> +++ b/security/selinux/hooks.c
-> @@ -120,20 +120,7 @@ __setup("enforcing=", enforcing_setup);
->  #define selinux_enforcing_boot 1
->  #endif
->
-> -#ifdef CONFIG_SECURITY_SELINUX_BOOTPARAM
-> -int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
-> -
-> -static int __init selinux_enabled_setup(char *str)
-> -{
-> -       unsigned long enabled;
-> -       if (!kstrtoul(str, 0, &enabled))
-> -               selinux_enabled = enabled ? 1 : 0;
-> -       return 1;
-> -}
-> -__setup("selinux=", selinux_enabled_setup);
-> -#else
-> -int selinux_enabled = 1;
-> -#endif
-> +int selinux_enabled __lsm_ro_after_init;
->
->  static unsigned int selinux_checkreqprot_boot =
->         CONFIG_SECURITY_SELINUX_CHECKREQPROT_VALUE;
-> --
-> 2.17.1
->
-
-
+diff --git a/mm/gup.c b/mm/gup.c
+index 1abc8b4afff6..6f09132c654e 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -666,6 +666,8 @@ static long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
+ 	if (!nr_pages)
+ 		return 0;
+ 
++	start = untagged_addr(start);
++
+ 	VM_BUG_ON(!!pages != !!(gup_flags & FOLL_GET));
+ 
+ 	/*
+@@ -820,6 +822,8 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
+ 	struct vm_area_struct *vma;
+ 	vm_fault_t ret, major = 0;
+ 
++	address = untagged_addr(address);
++
+ 	if (unlocked)
+ 		fault_flags |= FAULT_FLAG_ALLOW_RETRY;
+ 
 -- 
-paul moore
-www.paul-moore.com
+2.19.0.605.g01d371f741-goog
