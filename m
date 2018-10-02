@@ -1,136 +1,88 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH security-next v4 13/32] LoadPin: Rename "enable" to
- "enforce"
-Date: Mon, 1 Oct 2018 18:06:58 -0700
-Message-ID: <0d76adea-93b9-9512-a57b-8605b7928bc2@infradead.org>
-References: <20181002005505.6112-1-keescook@chromium.org>
- <20181002005505.6112-14-keescook@chromium.org>
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [RESEND PATCH v4 0/8] Introduce the for_each_set_clump macro
+Date: Tue,  2 Oct 2018 10:12:39 +0900
+Message-ID: <cover.1538441919.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181002005505.6112-14-keescook@chromium.org>
-Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linus.walleij@linaro.org, akpm@linux-foundation.org
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/1/18 5:54 PM, Kees Cook wrote:
-> LoadPin's "enable" setting is really about enforcement, not whether
-> or not the LSM is using LSM hooks. Instead, split this out so that LSM
-> enabling can be logically distinct from whether enforcement is happening
-> (for example, the pinning happens when the LSM is enabled, but the pin
-> is only checked when "enforce" is set). This allows LoadPin to continue
+This is a resend of v4 in hopes of getting some more ACKS and a few more
+eyes on this patchset.
 
-ISTB:             when "enforcing" is set).  ??
+Changes in v4:
+  - Fix bitmap_set arguments (last parameter is nbits not endbit)
 
-> to operate sanely in test environments once LSM enable/disable is
-> centrally handled (i.e. we want LoadPin to be enabled separately from
-> its enforcement).
-> 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-> Reviewed-by: John Johansen <john.johansen@canonical.com>
-> ---
->  security/loadpin/Kconfig   |  4 ++--
->  security/loadpin/loadpin.c | 21 +++++++++++----------
->  2 files changed, 13 insertions(+), 12 deletions(-)
-> 
-> diff --git a/security/loadpin/Kconfig b/security/loadpin/Kconfig
-> index dd01aa91e521..8653608a3693 100644
-> --- a/security/loadpin/Kconfig
-> +++ b/security/loadpin/Kconfig
-> @@ -10,10 +10,10 @@ config SECURITY_LOADPIN
->  	  have a root filesystem backed by a read-only device such as
->  	  dm-verity or a CDROM.
->  
-> -config SECURITY_LOADPIN_ENABLED
-> +config SECURITY_LOADPIN_ENFORCING
->  	bool "Enforce LoadPin at boot"
->  	depends on SECURITY_LOADPIN
->  	help
->  	  If selected, LoadPin will enforce pinning at boot. If not
->  	  selected, it can be enabled at boot with the kernel parameter
-> -	  "loadpin.enabled=1".
-> +	  "loadpin.enforcing=1".
-> diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
-> index 0716af28808a..d8a68a6f6fef 100644
-> --- a/security/loadpin/loadpin.c
-> +++ b/security/loadpin/loadpin.c
-> @@ -44,7 +44,7 @@ static void report_load(const char *origin, struct file *file, char *operation)
->  	kfree(pathname);
->  }
->  
-> -static int enabled = IS_ENABLED(CONFIG_SECURITY_LOADPIN_ENABLED);
-> +static int enforcing = IS_ENABLED(CONFIG_SECURITY_LOADPIN_ENFORCING);
->  static struct super_block *pinned_root;
->  static DEFINE_SPINLOCK(pinned_root_spinlock);
->  
-> @@ -60,8 +60,8 @@ static struct ctl_path loadpin_sysctl_path[] = {
->  
->  static struct ctl_table loadpin_sysctl_table[] = {
->  	{
-> -		.procname       = "enabled",
-> -		.data           = &enabled,
-> +		.procname       = "enforcing",
-> +		.data           = &enforcing,
->  		.maxlen         = sizeof(int),
->  		.mode           = 0644,
->  		.proc_handler   = proc_dointvec_minmax,
-> @@ -97,7 +97,7 @@ static void check_pinning_enforcement(struct super_block *mnt_sb)
->  					   loadpin_sysctl_table))
->  			pr_notice("sysctl registration failed!\n");
->  		else
-> -			pr_info("load pinning can be disabled.\n");
-> +			pr_info("enforcement can be disabled.\n");
->  	} else
->  		pr_info("load pinning engaged.\n");
->  }
-> @@ -128,7 +128,7 @@ static int loadpin_read_file(struct file *file, enum kernel_read_file_id id)
->  
->  	/* This handles the older init_module API that has a NULL file. */
->  	if (!file) {
-> -		if (!enabled) {
-> +		if (!enforcing) {
->  			report_load(origin, NULL, "old-api-pinning-ignored");
->  			return 0;
->  		}
-> @@ -151,7 +151,7 @@ static int loadpin_read_file(struct file *file, enum kernel_read_file_id id)
->  		 * Unlock now since it's only pinned_root we care about.
->  		 * In the worst case, we will (correctly) report pinning
->  		 * failures before we have announced that pinning is
-> -		 * enabled. This would be purely cosmetic.
-> +		 * enforcing. This would be purely cosmetic.
->  		 */
->  		spin_unlock(&pinned_root_spinlock);
->  		check_pinning_enforcement(pinned_root);
-> @@ -161,7 +161,7 @@ static int loadpin_read_file(struct file *file, enum kernel_read_file_id id)
->  	}
->  
->  	if (IS_ERR_OR_NULL(pinned_root) || load_root != pinned_root) {
-> -		if (unlikely(!enabled)) {
-> +		if (unlikely(!enforcing)) {
->  			report_load(origin, file, "pinning-ignored");
->  			return 0;
->  		}
-> @@ -186,10 +186,11 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
->  
->  void __init loadpin_add_hooks(void)
->  {
-> -	pr_info("ready to pin (currently %sabled)", enabled ? "en" : "dis");
-> +	pr_info("ready to pin (currently %senforcing)\n",
-> +		enforcing ? "" : "not ");
->  	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
->  }
->  
->  /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
-> -module_param(enabled, int, 0);
-> -MODULE_PARM_DESC(enabled, "Pin module/firmware loading (default: true)");
-> +module_param(enforcing, int, 0);
-> +MODULE_PARM_DESC(enforcing, "Enforce module/firmware pinning");
-> 
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
 
+This patchset introduces the for_each_set_clump macro and utilizes it in
+several GPIO drivers. The for_each_set_clump macro facilitates a
+for-loop syntax that iterates over entire groups of set bits at a time.
+
+For example, suppose you would like to iterate over a 16-bit integer 4
+bits at a time, skipping over 4-bit groups with no set bit, where XXXX
+represents the current 4-bit group:
+
+    Example:        1011 1110 0000 1111
+    First loop:     1011 1110 0000 XXXX
+    Second loop:    1011 XXXX 0000 1111
+    Third loop:     XXXX 1110 0000 1111
+
+Each iteration of the loop returns the next 4-bit group that has at
+least one set bit.
+
+The for_each_set_clump macro has six parameters:
+
+    * clump: set to current clump index for the iteration
+    * index: set to current bitmap word index for the iteration
+    * offset: bits offset of the found clump in the bitmap word
+    * bits: bitmap to search within
+    * size: bitmap size in number of clumps
+    * clump_size: clump size in number of bits
+
+The clump_size argument can be an arbitrary number of bits and is not
+required to be a multiple of 2.
+
+This patchset was rebased on top of the following three commits:
+
+    * commit aaf96e51de11 ("gpio: pci-idio-16: Fix port memory offset for get_multiple callback")
+    * commit 304440aa96c6 ("gpio: pcie-idio-24: Fix port memory offset for get_multiple/set_multiple callbacks")
+    * commit e026646c178d ("gpio: pcie-idio-24: Fix off-by-one error in get_multiple loop")
+
+When I implemented the test_for_each_set_clump function, I used
+bitmap_set to set the expected bitmap for the test. This method of
+setting bits only segments at a time was rather tedious and error-prone;
+is there a better way to accomplish what I did (set a bitmap after a
+DECLARE_BITMAP)?
+
+William Breathitt Gray
+
+William Breathitt Gray (8):
+  bitops: Introduce the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump macro
+  gpio: 104-idi-48: Utilize for_each_set_clump macro
+  gpio: gpio-mm: Utilize for_each_set_clump macro
+  gpio: ws16c48: Utilize for_each_set_clump macro
+  gpio: pci-idio-16: Utilize for_each_set_clump macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump macro
+
+ drivers/gpio/gpio-104-dio-48e.c   |  67 +++++---------------
+ drivers/gpio/gpio-104-idi-48.c    |  32 ++--------
+ drivers/gpio/gpio-gpio-mm.c       |  67 +++++---------------
+ drivers/gpio/gpio-pci-idio-16.c   |  67 ++++++--------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 102 +++++++++++-------------------
+ drivers/gpio/gpio-ws16c48.c       |  66 +++++--------------
+ include/asm-generic/bitops/find.h |   9 +++
+ include/linux/bitops.h            |   7 ++
+ lib/find_bit.c                    |  40 ++++++++++++
+ lib/test_bitmap.c                 |  71 +++++++++++++++++++++
+ 10 files changed, 236 insertions(+), 292 deletions(-)
 
 -- 
-~Randy
+2.19.0
