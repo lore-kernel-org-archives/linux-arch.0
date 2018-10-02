@@ -1,92 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:30067 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727285AbeJBPEG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 2 Oct 2018 11:04:06 -0400
-Date: Tue, 2 Oct 2018 11:21:42 +0300
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [RESEND PATCH v4 1/8] bitops: Introduce the for_each_set_clump
- macro
-Message-ID: <20181002082142.GC15943@smile.fi.intel.com>
-References: <cover.1538441919.git.vilhelm.gray@gmail.com>
- <f5250b9c78377e476667be1b616c86cf573b57dc.1538441919.git.vilhelm.gray@gmail.com>
- <40ecad49-2797-0d30-b52d-a2e6838dc1ab@rasmusvillemoes.dk>
+Received: from mail-wm1-f67.google.com ([209.85.128.67]:38960 "EHLO
+        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727383AbeJBPKr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 11:10:47 -0400
+Date: Tue, 2 Oct 2018 10:28:37 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH memory-model 0/5] Updates to the formal memory model
+Message-ID: <20181002082837.GB69893@gmail.com>
+References: <20180926182845.GA24839@linux.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <40ecad49-2797-0d30-b52d-a2e6838dc1ab@rasmusvillemoes.dk>
+In-Reply-To: <20180926182845.GA24839@linux.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, linus.walleij@linaro.org, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20181002082142.O-z0SvFFOcI5EN2J_t8K56DPZ2l4yNLd_YKeMmwcPe8@z>
+To: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20181002082837.pD5m1Ys-Z5TRqCvNIxU2fGdeEwlfPOqjk-JUM-vBBLg@z>
 
-On Tue, Oct 02, 2018 at 09:42:48AM +0200, Rasmus Villemoes wrote:
-> On 2018-10-02 03:13, William Breathitt Gray wrote:
 
-> The cover letter says
+* Paul E. McKenney <paulmck@linux.ibm.com> wrote:
+
+> Hello, Ingo!
 > 
->   The clump_size argument can be an arbitrary number of bits and is not
->   required to be a multiple of 2.
+> This series contains updates to the Linux kernel's formal memory model
+> in tools/memory-model, along with corresponding changes in documentation
+> and Linux-kernel code.  These patches are ready for inclusion into -tip.
 > 
-> by which I assume you mean "power of 2", but either way, the above code
-> does not seem to take into account the case where bits_offset +
-> clump_size straddles a word boundary, so it wouldn't work for a
-> clump_size that does not divide BITS_PER_LONG.
-
-E.g. 3 bits in a clump? Hmm...
-
-Why would we need that? I mean some real use case?
-
-> May I suggest another approach:
-
-You may, of course, but see above and my comments below.
-
-> unsigned long bitmap_get_value(const unsigned long *bitmap, unsigned
-> start, unsigned width): Get the value of bitmap[start:start+width] for
-> 1<=width<=BITS_PER_LONG (it's up to the caller to ensure this is within
-> the defined region). That can almost be an inline
+> 1.	Document litmus-test naming scheme.
 > 
-> bitmap_get_value(const unsigned long *bitmap, unsigned start, unsigned
-> width)
-> {
->   unsigned idx = BIT_WORD(start);
->   unsigned offset = start % BITS_PER_LONG;
->   unsigned long lower = bitmap[idx] >> offset;
->   unsigned long upper = offset <= BITS_PER_LONG - width ? 0 :
-> bitmap[idx+1] << (BITS_PER_LONG - offset);
->   return (lower | upper) & GENMASK(width-1, 0)
-> }
+> 2.	Add extra ordering for locks and remove it for ordinary
+> 	release/acquire, courtesy of Alan Stern.
 > 
-> Then you can implement the for_each_set_clump by a (IMO) more readable
+> 3.	Fix a README typo, courtesy of SeongJae Park.
 > 
->   for (i = 0, start = 0; i < num_ports; i++, start += gpio_reg_size) {
->     word_mask = bitmap_get_value(mask, start, gpio_reg_size);
->     if (!word_mask)
->       continue;
->     ...
->   }
+> 4.	Expand the list of LKMM limitations.
+> 
+> 5.	Replace smp_cond_acquire() with smp_cond_load_acquire(),
+> 	courtesy of Andrea Parri.
+> 
+> 							Thanx, Paul
+> 
+> ------------------------------------------------------------------------
+> 
+>  Documentation/memory-barriers.txt                                          |    3 
+>  tools/memory-model/Documentation/explanation.txt                           |  186 +++++++---
+>  tools/memory-model/Documentation/recipes.txt                               |    2 
+>  tools/memory-model/README                                                  |   39 ++
+>  tools/memory-model/linux-kernel.cat                                        |    8 
+>  tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus |    7 
+>  tools/memory-model/litmus-tests/README                                     |  104 +++++
+>  7 files changed, 293 insertions(+), 56 deletions(-)
 
-I would rather go with two prototypes to get()/set() a clump in the bitmap
-in a way when it's aligned and BITS_PER_LONG % clump_size == 0.
+Applied to tip:locking/core, thanks Paul!
 
-unsigned long bitmap_get_clump(unsigned long *src, unsigned int start, unsigned int clump_size)
-{
-	unsigned int index = BIT_WORD(start);
-	unsigned int offset = start % BITS_PER_LONG;
-
-
-	/* These just for spelling the restrictions */
-	WARN_ON(BITS_PER_LONG % clump_size);
-	WARN_ON(offset % clump_size);
-
-	/* TODO: take care of clump_size == 64 */
-	return (bitmap[index] >> offset) & GENMASK(clump_size - 1, 0);
-}
-
-Something similar with set with additional parameter unsigned long value
-which has MSB cleared till we reach [clump_size - 1 : 0].
-
--- 
-With Best Regards,
-Andy Shevchenko
+	Ingo
