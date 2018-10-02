@@ -1,82 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f193.google.com ([209.85.166.193]:40666 "EHLO
-        mail-it1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727183AbeJBHfx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:53 -0400
-Received: by mail-it1-f193.google.com with SMTP id i191-v6so1055543iti.5
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:24 -0700 (PDT)
+Received: from mail-io1-f65.google.com ([209.85.166.65]:42879 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727281AbeJBHf4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:56 -0400
+Received: by mail-io1-f65.google.com with SMTP id n18-v6so241962ioa.9
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:27 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 14/32] LSM: Plumb visibility into optional "enabled" state
-Date: Mon,  1 Oct 2018 17:54:47 -0700
-Message-ID: <20181002005505.6112-15-keescook@chromium.org>
+Subject: [PATCH security-next v4 30/32] capability: Initialize as LSM_ORDER_FIRST
+Date: Mon,  1 Oct 2018 17:55:03 -0700
+Message-ID: <20181002005505.6112-31-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005447.MjAqXFxVebHZVITr03YvpjBnBGb5xolNvdr-PuG7fDU@z>
+Message-ID: <20181002005503.LAliDgA8Cto-4w94pAbxHCZu1_d2ekDqdb4o3qI2oQE@z>
 
-In preparation for lifting the "is this LSM enabled?" logic out of the
-individual LSMs, pass in any special enabled state tracking (as needed
-for SELinux, AppArmor, and LoadPin). This should be an "int" to include
-handling any future cases where "enabled" is exposed via sysctl which
-has no "bool" type.
+This converts capabilities to use the new LSM_ORDER_FIRST position.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-Reviewed-by: John Johansen <john.johansen@canonical.com>
 ---
- include/linux/lsm_hooks.h | 1 +
- security/apparmor/lsm.c   | 5 +++--
- security/selinux/hooks.c  | 1 +
- 3 files changed, 5 insertions(+), 2 deletions(-)
+ include/linux/lsm_hooks.h | 2 --
+ security/commoncap.c      | 9 ++++++++-
+ security/security.c       | 9 ++++-----
+ 3 files changed, 12 insertions(+), 8 deletions(-)
 
 diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 531e219a49b9..6ec5a0266f21 100644
+index 62bc230826e0..36e7a716fdfe 100644
 --- a/include/linux/lsm_hooks.h
 +++ b/include/linux/lsm_hooks.h
-@@ -2044,6 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- struct lsm_info {
- 	const char *name;	/* Required. */
- 	unsigned long flags;	/* Optional: flags describing LSM */
-+	int *enabled;		/* Optional: NULL means enabled. */
- 	int (*init)(void);	/* Required. */
+@@ -2092,6 +2092,4 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
+ #define __lsm_ro_after_init	__ro_after_init
+ #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
+ 
+-extern void __init capability_add_hooks(void);
+-
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/commoncap.c b/security/commoncap.c
+index 2e489d6a3ac8..c928eb3fe784 100644
+--- a/security/commoncap.c
++++ b/security/commoncap.c
+@@ -1366,10 +1366,17 @@ struct security_hook_list capability_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(vm_enough_memory, cap_vm_enough_memory),
  };
  
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index 768cb539fb6c..6ace45704cb6 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1303,8 +1303,8 @@ bool aa_g_paranoid_load = true;
- module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
- 
- /* Boot time disable flag */
--static bool apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
--module_param_named(enabled, apparmor_enabled, bool, S_IRUGO);
-+static int apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
-+module_param_named(enabled, apparmor_enabled, int, 0444);
- 
- static int __init apparmor_enabled_setup(char *str)
+-void __init capability_add_hooks(void)
++static int __init capability_init(void)
  {
-@@ -1609,5 +1609,6 @@ static int __init apparmor_init(void)
- DEFINE_LSM(apparmor) = {
- 	.name = "apparmor",
- 	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.enabled = &apparmor_enabled,
- 	.init = apparmor_init,
- };
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index 020886895819..e8da99550b67 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -7205,6 +7205,7 @@ void selinux_complete_init(void)
- DEFINE_LSM(selinux) = {
- 	.name = "selinux",
- 	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.enabled = &selinux_enabled,
- 	.init = selinux_init,
- };
+ 	security_add_hooks(capability_hooks, ARRAY_SIZE(capability_hooks),
+ 				"capability");
++	return 0;
+ }
  
++DEFINE_LSM(capability) = {
++	.name = "capability",
++	.order = LSM_ORDER_FIRST,
++	.init = capability_init,
++};
++
+ #endif /* CONFIG_SECURITY */
+diff --git a/security/security.c b/security/security.c
+index dac379518e60..813dab3b5b97 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -62,6 +62,10 @@ static __initdata bool debug;
+ 
+ static bool __init is_enabled(struct lsm_info *lsm)
+ {
++	/* LSM_ORDER_FIRST is always enabled. */
++	if (lsm->order == LSM_ORDER_FIRST)
++		return true;
++
+ 	if (WARN_ON(!lsm->enabled))
+ 		return false;
+ 
+@@ -306,11 +310,6 @@ int __init security_init(void)
+ 	/* Figure out which LSMs are enabled and disabled. */
+ 	prepare_lsm_enable();
+ 
+-	/*
+-	 * Load minor LSMs, with the capability module always first.
+-	 */
+-	capability_add_hooks();
+-
+ 	/* Load LSMs in specified order. */
+ 	prepare_lsm_order();
+ 	ordered_lsm_init();
 -- 
 2.17.1
