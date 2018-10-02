@@ -1,135 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f196.google.com ([209.85.166.196]:38027 "EHLO
-        mail-it1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727287AbeJBHf5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:57 -0400
-Received: by mail-it1-f196.google.com with SMTP id i76-v6so1072298ita.3
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:28 -0700 (PDT)
+Received: from mail-io1-f65.google.com ([209.85.166.65]:41949 "EHLO
+        mail-io1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727273AbeJBHfz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:55 -0400
+Received: by mail-io1-f65.google.com with SMTP id q4-v6so243848iob.8
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:26 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 31/32] LSM: Separate idea of "major" LSM from "exclusive" LSM
-Date: Mon,  1 Oct 2018 17:55:04 -0700
-Message-ID: <20181002005505.6112-32-keescook@chromium.org>
+Subject: [PATCH security-next v4 32/32] LSM: Add all exclusive LSMs to ordered initialization
+Date: Mon,  1 Oct 2018 17:55:05 -0700
+Message-ID: <20181002005505.6112-33-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005504.3va1RyYyk-YdNB6_Gy8_yPJKwXgyuM2lEEkA_mx9IdQ@z>
+Message-ID: <20181002005505.H2yQXDm-adHYFrCBMJu16kP39QiN2ARG9XIwtILN5To@z>
 
-In order to both support old "security=" Legacy Major LSM selection, and
-handling real exclusivity, this creates LSM_FLAG_EXCLUSIVE and updates
-the selection logic to handle them.
+This removes CONFIG_DEFAULT_SECURITY in favor of the explicit build-time
+ordering offered by CONFIG_LSM_ORDER, and adds all the exclusive LSMs to
+the ordered LSM initialization. The old meaning of CONFIG_DEFAULT_SECURITY
+is now captured by which exclusive LSM is listed first in the LSM order.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- include/linux/lsm_hooks.h  |  1 +
- security/apparmor/lsm.c    |  2 +-
- security/security.c        | 12 ++++++++++++
- security/selinux/hooks.c   |  2 +-
- security/smack/smack_lsm.c |  2 +-
- security/tomoyo/tomoyo.c   |  2 +-
- 6 files changed, 17 insertions(+), 4 deletions(-)
+ security/Kconfig    | 43 ++++---------------------------------------
+ security/security.c | 23 +----------------------
+ 2 files changed, 5 insertions(+), 61 deletions(-)
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 36e7a716fdfe..2c9cf89a20ad 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2040,6 +2040,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- 				char *lsm);
+diff --git a/security/Kconfig b/security/Kconfig
+index c459d2b4c7bd..cc8bb1c344f5 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -239,43 +239,6 @@ source security/yama/Kconfig
  
- #define LSM_FLAG_LEGACY_MAJOR	BIT(0)
-+#define LSM_FLAG_EXCLUSIVE	BIT(1)
+ source security/integrity/Kconfig
  
- enum lsm_order {
- 	LSM_ORDER_FIRST = -1,	/* This is only for capabilities. */
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index 4cd96a66ed6f..4eb74a6f2020 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1599,7 +1599,7 @@ static int __init apparmor_init(void)
+-choice
+-	prompt "Default security module"
+-	default DEFAULT_SECURITY_SELINUX if SECURITY_SELINUX
+-	default DEFAULT_SECURITY_SMACK if SECURITY_SMACK
+-	default DEFAULT_SECURITY_TOMOYO if SECURITY_TOMOYO
+-	default DEFAULT_SECURITY_APPARMOR if SECURITY_APPARMOR
+-	default DEFAULT_SECURITY_DAC
+-
+-	help
+-	  Select the security module that will be used by default if the
+-	  kernel parameter security= is not specified.
+-
+-	config DEFAULT_SECURITY_SELINUX
+-		bool "SELinux" if SECURITY_SELINUX=y
+-
+-	config DEFAULT_SECURITY_SMACK
+-		bool "Simplified Mandatory Access Control" if SECURITY_SMACK=y
+-
+-	config DEFAULT_SECURITY_TOMOYO
+-		bool "TOMOYO" if SECURITY_TOMOYO=y
+-
+-	config DEFAULT_SECURITY_APPARMOR
+-		bool "AppArmor" if SECURITY_APPARMOR=y
+-
+-	config DEFAULT_SECURITY_DAC
+-		bool "Unix Discretionary Access Controls"
+-
+-endchoice
+-
+-config DEFAULT_SECURITY
+-	string
+-	default "selinux" if DEFAULT_SECURITY_SELINUX
+-	default "smack" if DEFAULT_SECURITY_SMACK
+-	default "tomoyo" if DEFAULT_SECURITY_TOMOYO
+-	default "apparmor" if DEFAULT_SECURITY_APPARMOR
+-	default "" if DEFAULT_SECURITY_DAC
+-
+ config LSM_ENABLE
+ 	string "LSMs to enable at boot time"
+ 	default "all"
+@@ -293,12 +256,14 @@ config LSM_ENABLE
  
- DEFINE_LSM(apparmor) = {
- 	.name = "apparmor",
--	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
- 	.enabled = &apparmor_enabled,
- 	.init = apparmor_init,
- };
+ config LSM_ORDER
+ 	string "Default initialization order of builtin LSMs"
+-	default "yama,loadpin,integrity"
++	default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be link-order initialized
+ 	  after any listed LSMs. Any LSMs listed here but not built in
+-	  the kernel will be ignored.
++	  the kernel will be ignored. If the boot parameter
++	  "lsm.order=" is used, it will override this order, with any
++	  unlisted LSMs falling back to the order of this config, etc.
+ 
+ 	  If unsure, leave this as the default.
+ 
 diff --git a/security/security.c b/security/security.c
-index 813dab3b5b97..7d542e78b7e8 100644
+index 7d542e78b7e8..d682342b6450 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -52,6 +52,7 @@ static __initconst const char * const builtin_lsm_order = CONFIG_LSM_ORDER;
+@@ -146,7 +146,6 @@ static void __init parse_lsm_order(const char *order, const char *origin)
  
- /* Ordered list of LSMs to initialize. */
- static __initdata struct lsm_info **ordered_lsms;
-+static __initdata struct lsm_info *exclusive;
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+ 			if (lsm->order == LSM_ORDER_MUTABLE &&
+-			    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
+ 			    strcmp(lsm->name, name) == 0) {
+ 				append_ordered_lsm(lsm, origin);
+ 				found = true;
+@@ -178,8 +177,7 @@ static void __init prepare_lsm_order(void)
  
- static __initdata bool debug;
- #define init_debug(...)						\
-@@ -196,6 +197,12 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
- 	if (!is_enabled(lsm))
- 		return false;
+ 	/* Add any missing LSMs, in link order. */
+ 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if (lsm->order == LSM_ORDER_MUTABLE &&
+-		    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
++		if (lsm->order == LSM_ORDER_MUTABLE)
+ 			append_ordered_lsm(lsm, "link-time");
+ 	}
  
-+	/* Not allowed if another exclusive LSM already initialized. */
-+	if ((lsm->flags & LSM_FLAG_EXCLUSIVE) && exclusive) {
-+		init_debug("exclusive disabled: %s\n", lsm->name);
-+		return false;
-+	}
-+
- 	return true;
+@@ -237,18 +235,6 @@ static void __init ordered_lsm_init(void)
+ 		maybe_initialize_lsm(*lsm);
  }
  
-@@ -211,6 +218,11 @@ static void __init maybe_initialize_lsm(struct lsm_info *lsm)
- 	if (enabled) {
- 		int ret;
+-static void __init major_lsm_init(void)
+-{
+-	struct lsm_info *lsm;
+-
+-	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+-			continue;
+-
+-		maybe_initialize_lsm(lsm);
+-	}
+-}
+-
+ static void __init parse_lsm_enable(const char *str,
+ 				    bool enabled)
+ {
+@@ -282,8 +268,6 @@ static void __init prepare_lsm_enable(void)
+ 	parse_lsm_enable(chosen_lsm_disable, false);
  
-+		if ((lsm->flags & LSM_FLAG_EXCLUSIVE) && !exclusive) {
-+			exclusive = lsm;
-+			init_debug("exclusive: %s\n", lsm->name);
-+		}
-+
- 		init_debug("initializing %s\n", lsm->name);
- 		ret = lsm->init();
- 		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index 8f5eea097612..c070d3761ddc 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -7181,7 +7181,7 @@ void selinux_complete_init(void)
-    all processes and objects when they are created. */
- DEFINE_LSM(selinux) = {
- 	.name = "selinux",
--	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
- 	.enabled = &selinux_enabled,
- 	.init = selinux_init,
- };
-diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
-index f243044d5a55..92e4baa342f8 100644
---- a/security/smack/smack_lsm.c
-+++ b/security/smack/smack_lsm.c
-@@ -4881,6 +4881,6 @@ static __init int smack_init(void)
-  */
- DEFINE_LSM(smack) = {
- 	.name = "smack",
--	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
- 	.init = smack_init,
- };
-diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
-index a46f6bc1e97c..daff7d7897ad 100644
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
-@@ -550,6 +550,6 @@ static int __init tomoyo_init(void)
+ 	/* Process "security=", if given. */
+-	if (!chosen_major_lsm)
+-		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
+ 	if (chosen_major_lsm) {
+ 		struct lsm_info *lsm;
  
- DEFINE_LSM(tomoyo) = {
- 	.name = "tomoyo",
--	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
- 	.init = tomoyo_init,
- };
+@@ -326,11 +310,6 @@ int __init security_init(void)
+ 	prepare_lsm_order();
+ 	ordered_lsm_init();
+ 
+-	/*
+-	 * Load all the remaining security modules.
+-	 */
+-	major_lsm_init();
+-
+ 	kfree(ordered_lsms);
+ 	return 0;
+ }
 -- 
 2.17.1
