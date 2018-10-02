@@ -1,33 +1,67 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v4 02/27] x86/fpu/xstate: Change some names to
- separate XSAVES system and user states
-Date: Tue, 02 Oct 2018 09:43:05 -0700
-Message-ID: <23e8d0a3b0e5649a74ec1fd8ef9975856fdc7eab.camel@intel.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
-         <20180921150351.20898-3-yu-cheng.yu@intel.com>
-         <20181002152903.GB29601@zn.tnic>
-         <ba13d643c21de8e1e01a8d528457fb5dd82c42aa.camel@intel.com>
-         <498c8824-9255-96be-71c2-3ebfa684a9d3@linux.intel.com>
-         <20181002163736.GD29601@zn.tnic>
-         <6859a180-8973-e794-7ac4-1ac8f0e1c709@linux.intel.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Tue, 2 Oct 2018 09:54:05 -0700
+Message-ID: <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6859a180-8973-e794-7ac4-1ac8f0e1c709@linux.intel.com>
+In-Reply-To: <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@linux.intel.com>, Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdu>
+To: Jordan Glover <Golden_Miller83@protonmail.ch>
+Cc: Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-10-02 at 09:39 -0700, Dave Hansen wrote:
-> On 10/02/2018 09:37 AM, Borislav Petkov wrote:
-> > This patch's commit message is not even close. So I'd very much
-> > appreciate a more verbose explanation, even if it repeats itself at
-> > places.
-> 
-> Yep, totally agree.
+On Tue, Oct 2, 2018 at 9:33 AM, Jordan Glover
+<Golden_Miller83@protonmail.ch> wrote:
+> It's always documented as: "selinux=1 security=selinux" so security= should
+> still do the job and selinux=1 become no-op, no?
 
-Ok, I will work on that.
+The v3 patch set worked this way, yes. (The per-LSM enable defaults
+were set by the LSM. Only in the case of "lsm.disable=selinux" would
+the above stop working.)
 
-Yu-cheng
+John did not like the separation of having two CONFIG and two
+bootparams mixing the controls. The v3 resolution rules were:
+
+SECURITY_SELINUX_BOOTPARAM_VALUE overrides CONFIG_LSM_ENABLE.
+SECURITY_APPARMOR_BOOTPARAM_VALUE overrides CONFIG_LSM_ENABLE.
+selinux= overrides SECURITY_SELINUX_BOOTPARAM_VALUE.
+apparmor.enabled= overrides SECURITY_APPARMOR_BOOTPARAM_VALUE.
+apparmor= overrides apparmor.enabled=.
+lsm.enable= overrides selinux=.
+lsm.enable= overrides apparmor=.
+lsm.disable= overrides lsm.enable=.
+major LSM _omission_ from security= (if present) overrides lsm.enable.
+
+v4 removed the per-LSM boot params and CONFIGs at John's request, but
+Paul and Stephen don't want this for SELinux.
+
+The pieces for reducing conflict with CONFIG_LSM_ENABLE and
+lsm.{enable,disable}= were:
+
+1- Remove SECURITY_APPARMOR_BOOTPARAM_VALUE.
+2- Remove apparmor= and apparmor.enabled=.
+3- Remove SECURITY_SELINUX_BOOTPARAM_VALUE.
+4- Remove selinux=.
+
+v4 used all of 1-4 above. SELinux says "4" cannot happen as it's too
+commonly used. Would 3 be okay for SELinux?
+
+John, with 4 not happening, do you prefer to not have 2 happen?
+
+With CONFIGs removed, then the boot time defaults are controlled by
+CONFIG_LSM_ENABLE, but the boot params continue to work as before.
+Only the use of the new lsm.enable= and lsm.disable= would override
+the per-LSM boot params. This would clean up the build-time CONFIG
+weirdness, and leave the existing boot params as before (putting us
+functionally in between the v3 and v4 series).
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
