@@ -1,136 +1,82 @@
-From: Stephen Smalley <sds@tycho.nsa.gov>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Tue, 2 Oct 2018 09:42:58 -0400
-Message-ID: <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
-References: <20181002005505.6112-1-keescook@chromium.org>
- <20181002005505.6112-24-keescook@chromium.org>
- <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call table file
+ generation
+Date: Tue, 2 Oct 2018 16:06:56 +0200
+Message-ID: <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
+References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
+ <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+In-Reply-To: <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Moore <paul@paul-moore.com>, keescook@chromium.org
-Cc: James Morris <jmorris@namei.org>, casey@schaufler-ca.com, john.johansen@canonical.com, penguin-kernel@i-love.sakura.ne.jp, casey.schaufler@intel.com, linux-security-module@vger.kernel.org, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Firoz Khan <firoz.khan@linaro.org>, Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On 10/02/2018 08:12 AM, Paul Moore wrote:
-> On Mon, Oct 1, 2018 at 9:04 PM Kees Cook <keescook@chromium.org> wrote:
->> Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
->> "lsm.enable=...", this removes the LSM-specific enabling logic from
->> SELinux.
->>
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->> ---
->>   .../admin-guide/kernel-parameters.txt         |  9 ------
->>   security/selinux/Kconfig                      | 29 -------------------
->>   security/selinux/hooks.c                      | 15 +---------
->>   3 files changed, 1 insertion(+), 52 deletions(-)
->>
->> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
->> index cf963febebb0..0d10ab3d020e 100644
->> --- a/Documentation/admin-guide/kernel-parameters.txt
->> +++ b/Documentation/admin-guide/kernel-parameters.txt
->> @@ -4045,15 +4045,6 @@
->>                          loaded. An invalid security module name will be treated
->>                          as if no module has been chosen.
->>
->> -       selinux=        [SELINUX] Disable or enable SELinux at boot time.
->> -                       Format: { "0" | "1" }
->> -                       See security/selinux/Kconfig help text.
->> -                       0 -- disable.
->> -                       1 -- enable.
->> -                       Default value is set via kernel config option.
->> -                       If enabled at boot time, /selinux/disable can be used
->> -                       later to disable prior to initial policy load.
+On 1.10.2018 14:43, Firoz Khan wrote:
+> System call table generation script must be run to generate
+> unistd_32.h and syscall_table.h files. This patch will have
+> changes which will invokes the script.
 > 
-> No comments yet on the rest of the patchset, but the subject line of
-> this patch caught my eye and I wanted to comment quickly on this one
-> ...
+> This patch will generate unistd_32.h and syscall_table.h
+> files by the syscall table generation script invoked by
+> arch/microblaze/Makefile and the generated files against the
+> removed files will be identical.
 > 
-> Not a fan unfortunately.
+> The generated uapi header file will be included in
+> uapi/asm/unistd.h and generated system call table support
+> file will be included by kernel/syscall_table.S file.
 > 
-> Much like the SELinux bits under /proc/self/attr, this is a user
-> visible thing which has made its way into a lot of docs, scripts, and
-> minds; I believe removing it would be a big mistake.
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> ---
+>  arch/microblaze/Makefile                  |   3 +
+>  arch/microblaze/include/asm/Kbuild        |   1 +
+>  arch/microblaze/include/uapi/asm/Kbuild   |   1 +
+>  arch/microblaze/include/uapi/asm/unistd.h | 411 +-----------------------------
+>  arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
+>  5 files changed, 10 insertions(+), 812 deletions(-)
+> 
+> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
+> index 4f3ab57..cda5e03 100644
+> --- a/arch/microblaze/Makefile
+> +++ b/arch/microblaze/Makefile
+> @@ -81,6 +81,9 @@ all: linux.bin
+>  archclean:
+>  	$(Q)$(MAKE) $(clean)=$(boot)
+>  
+> +archheaders:
+> +	$(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
+> +
+>  linux.bin linux.bin.gz linux.bin.ub: vmlinux
+>  	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+>  
+> diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+> index 569ba9e..d64f5e7 100644
+> --- a/arch/microblaze/include/asm/Kbuild
+> +++ b/arch/microblaze/include/asm/Kbuild
+> @@ -31,3 +31,4 @@ generic-y += trace_clock.h
+>  generic-y += vga.h
+>  generic-y += word-at-a-time.h
+>  generic-y += xor.h
+> +generic-y += syscall_table.h
+> \ No newline at end of file
 
-Yes, we can't suddenly break existing systems that had selinux=0 in 
-their grub config.  We have to retain the support.
+Still the problem with "No newline at end of file"
 
-> 
->>          serialnumber    [BUGS=X86-32]
->>
->>          shapers=        [NET]
->> diff --git a/security/selinux/Kconfig b/security/selinux/Kconfig
->> index 8af7a690eb40..86936528a0bb 100644
->> --- a/security/selinux/Kconfig
->> +++ b/security/selinux/Kconfig
->> @@ -8,35 +8,6 @@ config SECURITY_SELINUX
->>            You will also need a policy configuration and a labeled filesystem.
->>            If you are unsure how to answer this question, answer N.
->>
->> -config SECURITY_SELINUX_BOOTPARAM
->> -       bool "NSA SELinux boot parameter"
->> -       depends on SECURITY_SELINUX
->> -       default n
->> -       help
->> -         This option adds a kernel parameter 'selinux', which allows SELinux
->> -         to be disabled at boot.  If this option is selected, SELinux
->> -         functionality can be disabled with selinux=0 on the kernel
->> -         command line.  The purpose of this option is to allow a single
->> -         kernel image to be distributed with SELinux built in, but not
->> -         necessarily enabled.
->> -
->> -         If you are unsure how to answer this question, answer N.
->> -
->> -config SECURITY_SELINUX_BOOTPARAM_VALUE
->> -       int "NSA SELinux boot parameter default value"
->> -       depends on SECURITY_SELINUX_BOOTPARAM
->> -       range 0 1
->> -       default 1
->> -       help
->> -         This option sets the default value for the kernel parameter
->> -         'selinux', which allows SELinux to be disabled at boot.  If this
->> -         option is set to 0 (zero), the SELinux kernel parameter will
->> -         default to 0, disabling SELinux at bootup.  If this option is
->> -         set to 1 (one), the SELinux kernel parameter will default to 1,
->> -         enabling SELinux at bootup.
->> -
->> -         If you are unsure how to answer this question, answer 1.
->> -
->>   config SECURITY_SELINUX_DISABLE
->>          bool "NSA SELinux runtime disable"
->>          depends on SECURITY_SELINUX
->> diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
->> index 71a10fedecb3..8f5eea097612 100644
->> --- a/security/selinux/hooks.c
->> +++ b/security/selinux/hooks.c
->> @@ -120,20 +120,7 @@ __setup("enforcing=", enforcing_setup);
->>   #define selinux_enforcing_boot 1
->>   #endif
->>
->> -#ifdef CONFIG_SECURITY_SELINUX_BOOTPARAM
->> -int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
->> -
->> -static int __init selinux_enabled_setup(char *str)
->> -{
->> -       unsigned long enabled;
->> -       if (!kstrtoul(str, 0, &enabled))
->> -               selinux_enabled = enabled ? 1 : 0;
->> -       return 1;
->> -}
->> -__setup("selinux=", selinux_enabled_setup);
->> -#else
->> -int selinux_enabled = 1;
->> -#endif
->> +int selinux_enabled __lsm_ro_after_init;
->>
->>   static unsigned int selinux_checkreqprot_boot =
->>          CONFIG_SECURITY_SELINUX_CHECKREQPROT_VALUE;
->> --
->> 2.17.1
->>
-> 
-> 
+> diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
+> index 2c6a6bf..3a40659 100644
+> --- a/arch/microblaze/include/uapi/asm/Kbuild
+> +++ b/arch/microblaze/include/uapi/asm/Kbuild
+> @@ -28,3 +28,4 @@ generic-y += termbits.h
+>  generic-y += termios.h
+>  generic-y += types.h
+>  generic-y += ucontext.h
+> +generic-y += unistd_32.h
+> \ No newline at end of file
+
+and here too.
+
+M
