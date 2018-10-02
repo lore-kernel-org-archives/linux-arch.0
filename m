@@ -1,92 +1,70 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH 1/3] microblaze: Replace NR_syscalls macro from
- asm/unistd.h
-Date: Tue, 2 Oct 2018 09:07:25 +0200
-Message-ID: <89533601-366f-ebf4-dc31-996bc649bc51@xilinx.com>
-References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
- <1533792466-4227-2-git-send-email-firoz.khan@linaro.org>
- <f1e95c4d-4f02-263d-7f35-cc87bc657fbb@xilinx.com>
- <CALxhOnho6av7nZja_MN4akQuVj1hVq753ZYgRM8fbKkL2rHzQw@mail.gmail.com>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: Re: [PATCH net-next v6 01/23] asm: simd context helper API
+Date: Tue, 2 Oct 2018 09:18:12 +0200
+Message-ID: <CAKv+Gu-9i28ncTCzZLFLoJsmWjVJGiJAUCmRCCc6VhiqeySV0Q@mail.gmail.com>
+References: <20180925145622.29959-1-Jason@zx2c4.com> <20180925145622.29959-2-Jason@zx2c4.com>
+ <CAKv+Gu9e35+AyktmSq9qeNE0LR83_yrEEB3DiQv0bmyArivqRQ@mail.gmail.com>
+ <CAKv+Gu9kbLPZH4W0zKAfuv-b11mcDaZ05HUauvh9gMZVGVR0AQ@mail.gmail.com>
+ <CAHmME9pfs0_MsD9QAGfSm31_w-=6BCF_gZO04XkfhD=mEoZmtQ@mail.gmail.com>
+ <CAKv+Gu__7mZFFq6qC=8yh0OuaV+TCCLFt6nm8yJfaANHUPrJ=A@mail.gmail.com>
+ <CAHmME9owF+3aQaZUkK4KkfnJna+DK=GoWV8yf-Wb+gH4w3y9eg@mail.gmail.com>
+ <CAKv+Gu9FAVVOiYyGovYZ19-107_6sK9Ya6LnK=AQkTgctMmu5A@mail.gmail.com>
+ <CAHmME9rqsOid6UOx+VTsFzJLEiaXpTP_z_wvHC6MbeAQUeEtHg@mail.gmail.com>
+ <8afdd3b1c51587708db6ae878eb0a7e9f8b5673a.camel@perches.com>
+ <3E9E1888-026E-45C1-8AA7-DADA211EDBDF@amacapital.net> <CAHmME9o7_Xh=dZfnEHbPCJdqzXW1L5R7qjg=_sqPZiP2KmTc1Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOnho6av7nZja_MN4akQuVj1hVq753ZYgRM8fbKkL2rHzQw@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Firoz Khan <firoz.khan@linaro.org>, Michal Simek <michal.simek@xilinx.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CAHmME9o7_Xh=dZfnEHbPCJdqzXW1L5R7qjg=_sqPZiP2KmTc1Q@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Joe Perches <joe@perches.com>, LKML <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, David Miller <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Samuel Neves <sneves@dei.uc.pt>, Andrew Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 18.9.2018 08:37, Firoz Khan wrote:
-> On 9 August 2018 at 12:18, Michal Simek <michal.simek@xilinx.com> wrote:
->> On 9.8.2018 07:27, Firoz Khan wrote:
->>> __NR_syscalls macro holds the number of system call exist in this
->>> architecture. This macro is currently the part of asm/unistd.h file.
->>> We have change the value of __NR_syscalls, if we add or delete a
->>> system call.
->>>
->>> One of the patch in this patch series has a script which will
->>> generate a uapi header based on syscall.tbl file. The syscall.tbl
->>> file contains the number of system call information. So we have
->>> two option to update __NR_syscalls value.
->>>
->>> 1. Update __NR_syscalls in asm/unistd.h manually by counting the
->>>    no.of system calls. No need to update __NR_syscalls untill
->>>    we either add a new system call or delete an existing system
->>>    call.
->>>
->>> 2. We can keep this feature it above mentioned script, that'll
->>>    count the number of syscalls and keep it in a generated file.
->>>    In this case we don't need to explicitly update __NR_syscalls
->>>    in asm/unistd.h file.
->>>
->>> The 2nd option will be the recommended one. For that, I moved the
->>> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
->>> name also changed form NR_syscalls to __NR_syscalls for making the
->>> name convention same across all architecture. While __NR_syscalls
->>> isn't strictly part of the uapi, having it as part of the generated
->>> header to simplifies the implementation.
+On 1 October 2018 at 03:43, Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+> On Sun, Sep 30, 2018 at 7:35 AM Andy Lutomirski <luto@amacapital.net> wro=
+te:
+>> >>>>>>> Oh, and another thing (and I'm surprised checkpatch.pl didn't co=
+mplain
+>> >>>>>>> about it): the use of typedef in new code is strongly discourage=
+d.
+>> >>>>>>> This policy predates my involvement, so perhaps Joe can elaborat=
+e on
+>> >>>>>>> the rationale?
+>> >>>>>>
+>> >>>>>> In case it matters, the motivation for making this a typedef is I
+>> >>>>>> could imagine this at some point turning into a more complicated
+>> >>>>>> struct on certain platforms and that would make refactoring easie=
+r. I
+>> >>>>>> could just make it `struct simd_context` now with 1 member though=
+...
+>> >>>>>
+>> >>>>> Yes that makes sense
+>> >>>>
+>> >>>> The rationale for it being a typedef or moving to a struct now?
+>> >>>
+>> >>> Yes just switch to a struct.
+>> >>
+>> >> Okay. No problem with that, but will wait to hear from Joe first.
+>> >
+>> > Why do you need to hear from me again?
+>> >
+>> > As far as I know, the only info about typedef avoidance are in
+>> > Documentation/process/coding-style.rst section 5.
+>> >
+>> >
 >>
->> This macro was in unistd.h in past but it was moved out because it was
->> causing problem with strace.
->>
->> commit 40c2702a02b755e0183b702778331b351f3be20c
->> Author:     Michal Simek <michal.simek@xilinx.com>
->> AuthorDate: Mon Jul 8 09:50:24 2013 +0200
->> Commit:     Michal Simek <michal.simek@xilinx.com>
->> CommitDate: Wed Jul 10 07:32:09 2013 +0200
->>
->>     microblaze: Move __NR_syscalls from uapi
->>
->>
->> That's why I don't think this is the right thing to do.
->> I have grepped strace and glibc and none is using this macro that's why
->> I think it shouldn't be exported via uapi.
-> 
-> 
-> Thanks for you reply :)
-> Sorry for the delayed response :(
-> 
-> I would like to keep __NR_syscalls macro to uapi header in order to simplify
-> the system call table generation script. Otherwise the __NR_syscalls
-> macro need to update manually. That become a problem.
-> 
-> Please check the below implementation in uapi file make sense?
-> It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
-> and enclose it in #ifdef __KERNEL__
-> 
-> ...
-> ...
-> #define __NR_pkey_free  397
-> #define __NR_statx      398
-> 
-> #ifdef __KERNEL__
-> #define __NR_syscalls   399
-> #endif
-> ...
-> ...
+>> I personally prefer it with the typedef. If this were my code, I=E2=80=
+=99d say the coding style is silly for opaque tiny structs like this.
+>
+> I'll stick with a typedef. Reading the style guide, this clearly falls
+> into 5.a, 5.b, and maybe 5.c. For 5.a, at some point this will
+> possibly contain architecture specific blobs. For 5.b, it is just an
+> enum (integer) right now.
 
-This should be fine.
+I can live with that, but other may still object.
 
-M
+In any case, since you are using the enum member as a bitfield, it
+would be better to typedef it to int instead, and retain the enum
+definition only for the symbolic constants.
