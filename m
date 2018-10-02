@@ -1,132 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:52626 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726304AbeJBHo5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:44:57 -0400
-Received: by mail-it1-f194.google.com with SMTP id 134-v6so1016030itz.2
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:26 -0700 (PDT)
+Received: from mail-io1-f67.google.com ([209.85.166.67]:39487 "EHLO
+        mail-io1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726731AbeJBHo7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:44:59 -0400
+Received: by mail-io1-f67.google.com with SMTP id z16-v6so284583iol.6
+        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:28 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 18/32] LSM: Introduce lsm.enable= and lsm.disable=
-Date: Mon,  1 Oct 2018 17:54:51 -0700
-Message-ID: <20181002005505.6112-19-keescook@chromium.org>
+Subject: [PATCH security-next v4 27/32] LoadPin: Initialize as ordered LSM
+Date: Mon,  1 Oct 2018 17:55:00 -0700
+Message-ID: <20181002005505.6112-28-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005451.6E3xwv1-Klfjh9Ak337TUTaER0Y_iIAUbIpVFJdMMtk@z>
+Message-ID: <20181002005500.IGCh7dq0217UTlzE9kEoQdbQtRW5f1XMGuR_olnhxfA@z>
 
-This introduces the "lsm.enable=..." and "lsm.disable=..." boot parameters
-which each can contain a comma-separated list of LSMs to enable or
-disable, respectively. The string "all" matches all LSMs.
-
-This has very similar functionality to the existing per-LSM enable
-handling ("apparmor.enabled=...", etc), but provides a centralized
-place to perform the changes. These parameters take precedent over any
-LSM-specific boot parameters.
-
-Disabling an LSM means it will not be considered when performing
-initializations. Enabling an LSM means either undoing a previous
-LSM-specific boot parameter disabling or a undoing a default-disabled
-CONFIG setting.
-
-For example: "lsm.disable=apparmor apparmor.enabled=1" will result in
-AppArmor being disabled. "selinux.enabled=0 lsm.enable=selinux" will
-result in SELinux being enabled.
+This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- .../admin-guide/kernel-parameters.txt         | 12 ++++++++++
- security/Kconfig                              |  4 +++-
- security/security.c                           | 22 +++++++++++++++++++
- 3 files changed, 37 insertions(+), 1 deletion(-)
+ include/linux/lsm_hooks.h  | 5 -----
+ security/Kconfig           | 2 +-
+ security/loadpin/loadpin.c | 8 +++++++-
+ security/security.c        | 1 -
+ 4 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 32d323ee9218..67c90985d2b8 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2276,6 +2276,18 @@
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index b026ea93ff01..098ccf2caa0e 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2091,10 +2091,5 @@ extern void __init yama_add_hooks(void);
+ #else
+ static inline void __init yama_add_hooks(void) { }
+ #endif
+-#ifdef CONFIG_SECURITY_LOADPIN
+-void __init loadpin_add_hooks(void);
+-#else
+-static inline void loadpin_add_hooks(void) { };
+-#endif
  
- 	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
- 
-+	lsm.disable=lsm1,...,lsmN
-+			[SECURITY] Comma-separated list of LSMs to disable
-+			at boot time. This overrides "lsm.enable=",
-+			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and boot
-+			parameters.
-+
-+	lsm.enable=lsm1,...,lsmN
-+			[SECURITY] Comma-separated list of LSMs to enable
-+			at boot time. This overrides any omissions from
-+			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
-+			boot parameters.
-+
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
- 			Example: machvec=hpzx1_swiotlb
+ #endif /* ! __LINUX_LSM_HOOKS_H */
 diff --git a/security/Kconfig b/security/Kconfig
-index ac23feba584d..1e57619fd561 100644
+index c68520d97fd7..e59cb9296316 100644
 --- a/security/Kconfig
 +++ b/security/Kconfig
-@@ -282,7 +282,9 @@ config LSM_ENABLE
+@@ -293,7 +293,7 @@ config LSM_ENABLE
+ 
+ config LSM_ORDER
+ 	string "Default initialization order of builtin LSMs"
+-	default "integrity"
++	default "loadpin,integrity"
  	help
- 	  A comma-separated list of LSMs to enable by default at boot. The
- 	  default is "all", to enable all LSM modules at boot. Any LSMs
--	  not listed here will be disabled by default.
-+	  not listed here will be disabled by default. This can be
-+	  changed with the "lsm.enable=" and "lsm.disable=" boot
-+	  parameters.
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be link-order initialized
+diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
+index d8a68a6f6fef..dab42bfa1e4a 100644
+--- a/security/loadpin/loadpin.c
++++ b/security/loadpin/loadpin.c
+@@ -184,13 +184,19 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
+ };
  
- endmenu
+-void __init loadpin_add_hooks(void)
++static int __init loadpin_init(void)
+ {
+ 	pr_info("ready to pin (currently %senforcing)\n",
+ 		enforcing ? "" : "not ");
+ 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
++	return 0;
+ }
  
++DEFINE_LSM(loadpin) = {
++	.name = "loadpin",
++	.init = loadpin_init,
++};
++
+ /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
+ module_param(enforcing, int, 0);
+ MODULE_PARM_DESC(enforcing, "Enforce module/firmware pinning");
 diff --git a/security/security.c b/security/security.c
-index 35601000176b..3fff2d1d1ec4 100644
+index 6fafad44b85e..6957f5f50483 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -44,6 +44,8 @@ char *lsm_names;
- /* Boot-time LSM user choice */
- static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
- 	CONFIG_DEFAULT_SECURITY;
-+static __initdata const char *chosen_lsm_enable;
-+static __initdata const char *chosen_lsm_disable;
+@@ -297,7 +297,6 @@ int __init security_init(void)
+ 	 */
+ 	capability_add_hooks();
+ 	yama_add_hooks();
+-	loadpin_add_hooks();
  
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
- 
-@@ -185,6 +187,10 @@ static void __init prepare_lsm_enable(void)
- {
- 	/* Prepare defaults. */
- 	parse_lsm_enable(builtin_lsm_enable, default_enabled, true);
-+
-+	/* Process "lsm.enable=" and "lsm.disable=", if given. */
-+	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
-+	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
- }
- 
- /**
-@@ -240,6 +246,22 @@ static int __init enable_debug(char *str)
- }
- __setup("lsm.debug", enable_debug);
- 
-+/* Explicitly enable a list of LSMs. */
-+static int __init enable_lsm(char *str)
-+{
-+	chosen_lsm_enable = str;
-+	return 1;
-+}
-+__setup("lsm.enable=", enable_lsm);
-+
-+/* Explicitly disable a list of LSMs. */
-+static int __init disable_lsm(char *str)
-+{
-+	chosen_lsm_disable = str;
-+	return 1;
-+}
-+__setup("lsm.disable=", disable_lsm);
-+
- static bool match_last_lsm(const char *list, const char *lsm)
- {
- 	const char *last;
+ 	/* Load LSMs in specified order. */
+ 	prepare_lsm_order();
 -- 
 2.17.1
