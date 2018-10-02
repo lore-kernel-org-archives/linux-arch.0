@@ -1,92 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:55496 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726484AbeJBHo6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:44:58 -0400
-Received: by mail-it1-f194.google.com with SMTP id c23-v6so994820itd.5
-        for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 18:04:26 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 19/32] LSM: Prepare for reorganizing "security=" logic
-Date: Mon,  1 Oct 2018 17:54:52 -0700
-Message-ID: <20181002005505.6112-20-keescook@chromium.org>
-In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
-References: <20181002005505.6112-1-keescook@chromium.org>
+Received: from mail-io1-f68.google.com ([209.85.166.68]:35479 "EHLO
+        mail-io1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726027AbeJBHxs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:53:48 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: [RESEND PATCH v4 0/8] Introduce the for_each_set_clump macro
+Date: Tue,  2 Oct 2018 10:12:39 +0900
+Message-ID: <cover.1538441919.git.vilhelm.gray@gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005452.Qe_oz7xnpH2-7i0KM8h2JaQmFp0zWaFib8jnWd5RQT8@z>
+To: linus.walleij@linaro.org, akpm@linux-foundation.org
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, linux@rasmusvillemoes.dk, William Breathitt Gray <vilhelm.gray@gmail.com>
+Message-ID: <20181002011239.pZD3D4ZjSyevj7_VJ-cCQ-BvZCOFSM_7cj_fofTRnGI@z>
 
-This moves the string handling for "security=" boot parameter into
-a stored pointer instead of a string duplicate. This will allow
-easier handling of the string when switching logic to use the coming
-enable/disable infrastructure.
+This is a resend of v4 in hopes of getting some more ACKS and a few more
+eyes on this patchset.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-Reviewed-by: John Johansen <john.johansen@canonical.com>
----
- security/security.c | 17 ++++++++---------
- 1 file changed, 8 insertions(+), 9 deletions(-)
+Changes in v4:
+  - Fix bitmap_set arguments (last parameter is nbits not endbit)
 
-diff --git a/security/security.c b/security/security.c
-index 3fff2d1d1ec4..455ba2767965 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -34,18 +34,14 @@
- 
- #define MAX_LSM_EVM_XATTR	2
- 
--/* Maximum number of letters for an LSM name string */
--#define SECURITY_NAME_MAX	10
--
- struct security_hook_heads security_hook_heads __lsm_ro_after_init;
- static ATOMIC_NOTIFIER_HEAD(lsm_notifier_chain);
- 
- char *lsm_names;
- /* Boot-time LSM user choice */
--static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
--	CONFIG_DEFAULT_SECURITY;
- static __initdata const char *chosen_lsm_enable;
- static __initdata const char *chosen_lsm_disable;
-+static __initdata const char *chosen_major_lsm;
- 
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
- 
-@@ -112,7 +108,7 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
- 		return true;
- 
- 	/* Disabled if this LSM isn't the chosen one. */
--	if (strcmp(lsm->name, chosen_lsm) != 0)
-+	if (strcmp(lsm->name, chosen_major_lsm) != 0)
- 		return false;
- 
- 	return true;
-@@ -191,6 +187,9 @@ static void __init prepare_lsm_enable(void)
- 	/* Process "lsm.enable=" and "lsm.disable=", if given. */
- 	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
- 	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
-+
-+	if (!chosen_major_lsm)
-+		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
- }
- 
- /**
-@@ -231,12 +230,12 @@ int __init security_init(void)
- }
- 
- /* Save user chosen LSM */
--static int __init choose_lsm(char *str)
-+static int __init choose_major_lsm(char *str)
- {
--	strncpy(chosen_lsm, str, SECURITY_NAME_MAX);
-+	chosen_major_lsm = str;
- 	return 1;
- }
--__setup("security=", choose_lsm);
-+__setup("security=", choose_major_lsm);
- 
- /* Enable LSM order debugging. */
- static int __init enable_debug(char *str)
+While adding GPIO get_multiple/set_multiple callback support for various
+drivers, I noticed a pattern of looping manifesting that would be useful
+standardized as a macro.
+
+This patchset introduces the for_each_set_clump macro and utilizes it in
+several GPIO drivers. The for_each_set_clump macro facilitates a
+for-loop syntax that iterates over entire groups of set bits at a time.
+
+For example, suppose you would like to iterate over a 16-bit integer 4
+bits at a time, skipping over 4-bit groups with no set bit, where XXXX
+represents the current 4-bit group:
+
+    Example:        1011 1110 0000 1111
+    First loop:     1011 1110 0000 XXXX
+    Second loop:    1011 XXXX 0000 1111
+    Third loop:     XXXX 1110 0000 1111
+
+Each iteration of the loop returns the next 4-bit group that has at
+least one set bit.
+
+The for_each_set_clump macro has six parameters:
+
+    * clump: set to current clump index for the iteration
+    * index: set to current bitmap word index for the iteration
+    * offset: bits offset of the found clump in the bitmap word
+    * bits: bitmap to search within
+    * size: bitmap size in number of clumps
+    * clump_size: clump size in number of bits
+
+The clump_size argument can be an arbitrary number of bits and is not
+required to be a multiple of 2.
+
+This patchset was rebased on top of the following three commits:
+
+    * commit aaf96e51de11 ("gpio: pci-idio-16: Fix port memory offset for get_multiple callback")
+    * commit 304440aa96c6 ("gpio: pcie-idio-24: Fix port memory offset for get_multiple/set_multiple callbacks")
+    * commit e026646c178d ("gpio: pcie-idio-24: Fix off-by-one error in get_multiple loop")
+
+When I implemented the test_for_each_set_clump function, I used
+bitmap_set to set the expected bitmap for the test. This method of
+setting bits only segments at a time was rather tedious and error-prone;
+is there a better way to accomplish what I did (set a bitmap after a
+DECLARE_BITMAP)?
+
+William Breathitt Gray
+
+William Breathitt Gray (8):
+  bitops: Introduce the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: 104-dio-48e: Utilize for_each_set_clump macro
+  gpio: 104-idi-48: Utilize for_each_set_clump macro
+  gpio: gpio-mm: Utilize for_each_set_clump macro
+  gpio: ws16c48: Utilize for_each_set_clump macro
+  gpio: pci-idio-16: Utilize for_each_set_clump macro
+  gpio: pcie-idio-24: Utilize for_each_set_clump macro
+
+ drivers/gpio/gpio-104-dio-48e.c   |  67 +++++---------------
+ drivers/gpio/gpio-104-idi-48.c    |  32 ++--------
+ drivers/gpio/gpio-gpio-mm.c       |  67 +++++---------------
+ drivers/gpio/gpio-pci-idio-16.c   |  67 ++++++--------------
+ drivers/gpio/gpio-pcie-idio-24.c  | 102 +++++++++++-------------------
+ drivers/gpio/gpio-ws16c48.c       |  66 +++++--------------
+ include/asm-generic/bitops/find.h |   9 +++
+ include/linux/bitops.h            |   7 ++
+ lib/find_bit.c                    |  40 ++++++++++++
+ lib/test_bitmap.c                 |  71 +++++++++++++++++++++
+ 10 files changed, 236 insertions(+), 292 deletions(-)
+
 -- 
-2.17.1
+2.19.0
