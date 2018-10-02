@@ -1,150 +1,187 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 00/32] LSM: Explict LSM ordering
-Date: Mon,  1 Oct 2018 17:54:33 -0700
-Message-ID: <20181002005505.6112-1-keescook@chromium.org>
+Subject: [PATCH security-next v4 06/32] vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+Date: Mon,  1 Oct 2018 17:54:39 -0700
+Message-ID: <20181002005505.6112-7-keescook@chromium.org>
+References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-v4:
-- add Reviewed-bys.
-- cosmetic tweaks.
-- New patches to fully centralize LSM "enable" decisions:
-    LSM: Finalize centralized LSM enabling logic
-    apparmor: Remove boot parameter
-    selinux: Remove boot parameter
+Since the struct lsm_info table is not an initcall, we can just move it
+into INIT_DATA like all the other tables.
 
-v3:
-- add CONFIG_LSM_ENABLE and refactor resulting logic
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
+Reviewed-by: John Johansen <john.johansen@canonical.com>
+---
+ arch/arc/kernel/vmlinux.lds.S        |  1 -
+ arch/arm/kernel/vmlinux-xip.lds.S    |  1 -
+ arch/arm64/kernel/vmlinux.lds.S      |  1 -
+ arch/h8300/kernel/vmlinux.lds.S      |  1 -
+ arch/microblaze/kernel/vmlinux.lds.S |  2 --
+ arch/powerpc/kernel/vmlinux.lds.S    |  2 --
+ arch/um/include/asm/common.lds.S     |  2 --
+ arch/xtensa/kernel/vmlinux.lds.S     |  1 -
+ include/asm-generic/vmlinux.lds.h    | 24 +++++++++++-------------
+ 9 files changed, 11 insertions(+), 24 deletions(-)
 
-v2:
-- add "lsm.order=" and CONFIG_LSM_ORDER instead of overloading "security="
-- reorganize introduction of ordering logic code
-
-Overview:
-
-This refactors the LSM registration and initialization infrastructure to
-more centrally support different LSM types for more cleanly supporting the
-future expansion of LSM stacking via the "blob-sharing" patch series. What
-was considered a "major" LSM is kept for legacy use of the "security="
-boot parameter, and now overlaps with the new class of "exclusive" LSMs
-for the future blob sharing. The "minor" LSMs become more well defined
-as a result of the refactoring.
-
-Approach:
-
-To better show LSMs activation some debug reporting was added (enabled
-with the "lsm.debug" boot commandline option).
-
-I added a WARN() around LSM initialization failures, which appear to
-have always been silently ignored. (Realistically any LSM init failures
-would have only been due to catastrophic kernel issues that would render
-a system unworkable anyway, but it'd be better to expose the problem as
-early as possible.)
-
-Instead of continuing to (somewhat improperly) overload the kernel's
-initcall system, this changes the LSM infrastructure to store a
-registration structure (struct lsm_info) table instead, where metadata
-about each LSM can be recorded (name, flags, order, enable flag, init
-function). This can be extended in the future to include things like
-required blob size for the coming "blob sharing" LSMs.
-
-The "major" LSMs had to individually negotiate which of them should be
-enabled. This didn't provide a way to negotiate combinations of other
-LSMs (as will be needed for "blob sharing" LSMs). This is solved by
-providing the LSM infrastructure with all the details needed to make
-the choice (exposing the per-LSM "enabled" flag, if used, the LSM
-characteristics, and ordering expectations).
-
-As a result of the refactoring, the "minor" LSMs are able to remove
-the open-coded security_add_hooks() calls for "capability", "yama",
-and "loadpin", and to redefine "integrity" properly as a general LSM.
-(Note that "integrity" actually defined _no_ hooks, but needs the early
-initialization).
-
-With all LSMs being proessed centrally, it was possible to implement
-a new boot parameter "lsm.order=" to provide explicit ordering, which
-is helpful for the future "blob sharing" LSMs. Matching this is the
-new CONFIG_LSM_ORDER, which replaces CONFIG_DEFAULT_SECURITY, as it
-provides a higher granularity of control.
-
-Breakdown of patches:
-
-Infrastructure improvements (no logical changes):
-  LSM: Correctly announce start of LSM initialization
-  vmlinux.lds.h: Avoid copy/paste of security_init section
-  LSM: Rename .security_initcall section to .lsm_info
-  LSM: Remove initcall tracing
-  LSM: Convert from initcall to struct lsm_info
-  vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
-  LSM: Convert security_initcall() into DEFINE_LSM()
-  LSM: Record LSM name in struct lsm_info
-  LSM: Provide init debugging infrastructure
-  LSM: Don't ignore initialization failures
-
-Split "integrity" out into "ordered initialization" (no logical changes):
-  LSM: Introduce LSM_FLAG_LEGACY_MAJOR
-  LSM: Provide separate ordered initialization
-
-Provide centralized LSM enable/disable infrastructure:
-  LoadPin: Rename "enable" to "enforce"
-  LSM: Plumb visibility into optional "enabled" state
-  LSM: Lift LSM selection out of individual LSMs
-  LSM: Prepare for arbitrary LSM enabling
-  LSM: Introduce CONFIG_LSM_ENABLE
-  LSM: Introduce lsm.enable= and lsm.disable=
-  LSM: Prepare for reorganizing "security=" logic
-  LSM: Refactor "security=" in terms of enable/disable
-  LSM: Finalize centralized LSM enabling logic
-  apparmor: Remove boot parameter
-  selinux: Remove boot parameter
-
-Provide centralized LSM ordering infrastructure:
-  LSM: Build ordered list of ordered LSMs for init
-  LSM: Introduce CONFIG_LSM_ORDER
-  LSM: Introduce "lsm.order=" for boottime ordering
-
-Move minor LSMs into ordered LSM initialization:
-  LoadPin: Initialize as ordered LSM
-  Yama: Initialize as ordered LSM
-  LSM: Introduce enum lsm_order
-  capability: Initialize as LSM_ORDER_FIRST
-
-Move major LSMs into ordered LSM initialization:
-  LSM: Separate idea of "major" LSM from "exclusive" LSM
-  LSM: Add all exclusive LSMs to ordered initialization
-
--Kees
-
- .../admin-guide/kernel-parameters.txt         |  34 +-
- arch/arc/kernel/vmlinux.lds.S                 |   1 -
- arch/arm/kernel/vmlinux-xip.lds.S             |   1 -
- arch/arm64/kernel/vmlinux.lds.S               |   1 -
- arch/h8300/kernel/vmlinux.lds.S               |   1 -
- arch/microblaze/kernel/vmlinux.lds.S          |   2 -
- arch/powerpc/kernel/vmlinux.lds.S             |   2 -
- arch/um/include/asm/common.lds.S              |   2 -
- arch/xtensa/kernel/vmlinux.lds.S              |   1 -
- include/asm-generic/vmlinux.lds.h             |  25 +-
- include/linux/init.h                          |   2 -
- include/linux/lsm_hooks.h                     |  37 +-
- include/linux/module.h                        |   1 -
- security/Kconfig                              |  61 ++--
- security/apparmor/Kconfig                     |  16 -
- security/apparmor/lsm.c                       |  22 +-
- security/commoncap.c                          |   9 +-
- security/integrity/iint.c                     |   6 +-
- security/loadpin/Kconfig                      |   4 +-
- security/loadpin/loadpin.c                    |  29 +-
- security/security.c                           | 343 +++++++++++++++---
- security/selinux/Kconfig                      |  29 --
- security/selinux/hooks.c                      |  32 +-
- security/smack/smack_lsm.c                    |   9 +-
- security/tomoyo/tomoyo.c                      |   8 +-
- security/yama/yama_lsm.c                      |   8 +-
- 26 files changed, 432 insertions(+), 254 deletions(-)
-
+diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
+index f35ed578e007..8fb16bdabdcf 100644
+--- a/arch/arc/kernel/vmlinux.lds.S
++++ b/arch/arc/kernel/vmlinux.lds.S
+@@ -71,7 +71,6 @@ SECTIONS
+ 		INIT_SETUP(L1_CACHE_BYTES)
+ 		INIT_CALLS
+ 		CON_INITCALL
+-		SECURITY_INITCALL
+ 	}
+ 
+ 	.init.arch.info : {
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 3593d5c1acd2..8c74037ade22 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -96,7 +96,6 @@ SECTIONS
+ 		INIT_SETUP(16)
+ 		INIT_CALLS
+ 		CON_INITCALL
+-		SECURITY_INITCALL
+ 		INIT_RAM_FS
+ 	}
+ 
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 605d1b60469c..7d23d591b03c 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -166,7 +166,6 @@ SECTIONS
+ 		INIT_SETUP(16)
+ 		INIT_CALLS
+ 		CON_INITCALL
+-		SECURITY_INITCALL
+ 		INIT_RAM_FS
+ 		*(.init.rodata.* .init.bss)	/* from the EFI stub */
+ 	}
+diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
+index 35716a3048de..49f716c0a1df 100644
+--- a/arch/h8300/kernel/vmlinux.lds.S
++++ b/arch/h8300/kernel/vmlinux.lds.S
+@@ -56,7 +56,6 @@ SECTIONS
+ 	__init_begin = .;
+ 	INIT_TEXT_SECTION(4)
+ 	INIT_DATA_SECTION(4)
+-	SECURITY_INIT
+ 	__init_end = .;
+ 	_edata = . ;
+ 	_begin_data = LOADADDR(.data);
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index 289d0e7f3e3a..e1f3e8741292 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -117,8 +117,6 @@ SECTIONS {
+ 		CON_INITCALL
+ 	}
+ 
+-	SECURITY_INIT
+-
+ 	__init_end_before_initramfs = .;
+ 
+ 	.init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) {
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 07ae018e550e..105a976323aa 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -212,8 +212,6 @@ SECTIONS
+ 		CON_INITCALL
+ 	}
+ 
+-	SECURITY_INIT
+-
+ 	. = ALIGN(8);
+ 	__ftr_fixup : AT(ADDR(__ftr_fixup) - LOAD_OFFSET) {
+ 		__start___ftr_fixup = .;
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 7adb4e6b658a..4049f2c46387 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -53,8 +53,6 @@
+ 	CON_INITCALL
+   }
+ 
+-  SECURITY_INIT
+-
+   .exitcall : {
+ 	__exitcall_begin = .;
+ 	*(.exitcall.exit)
+diff --git a/arch/xtensa/kernel/vmlinux.lds.S b/arch/xtensa/kernel/vmlinux.lds.S
+index a1c3edb8ad56..b727b18a68ac 100644
+--- a/arch/xtensa/kernel/vmlinux.lds.S
++++ b/arch/xtensa/kernel/vmlinux.lds.S
+@@ -197,7 +197,6 @@ SECTIONS
+     INIT_SETUP(XCHAL_ICACHE_LINESIZE)
+     INIT_CALLS
+     CON_INITCALL
+-    SECURITY_INITCALL
+     INIT_RAM_FS
+   }
+ 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 5079a969e612..b31ea8bdfef9 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -203,6 +203,15 @@
+ #define EARLYCON_TABLE()
+ #endif
+ 
++#ifdef CONFIG_SECURITY
++#define LSM_TABLE()	. = ALIGN(8);					\
++			__start_lsm_info = .;				\
++			KEEP(*(.lsm_info.init))				\
++			__end_lsm_info = .;
++#else
++#define LSM_TABLE()
++#endif
++
+ #define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
+ #define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)
+ #define OF_TABLE(cfg, name)	__OF_TABLE(IS_ENABLED(cfg), name)
+@@ -597,7 +606,8 @@
+ 	IRQCHIP_OF_MATCH_TABLE()					\
+ 	ACPI_PROBE_TABLE(irqchip)					\
+ 	ACPI_PROBE_TABLE(timer)						\
+-	EARLYCON_TABLE()
++	EARLYCON_TABLE()						\
++	LSM_TABLE()
+ 
+ #define INIT_TEXT							\
+ 	*(.init.text .init.text.*)					\
+@@ -786,17 +796,6 @@
+ 		KEEP(*(.con_initcall.init))				\
+ 		__con_initcall_end = .;
+ 
+-#define SECURITY_INITCALL						\
+-		__start_lsm_info = .;					\
+-		KEEP(*(.lsm_info.init))					\
+-		__end_lsm_info = .;
+-
+-/* Older linker script style for security init. */
+-#define SECURITY_INIT							\
+-	.lsm_info.init : AT(ADDR(.lsm_info.init) - LOAD_OFFSET) {	\
+-		LSM_INFO						\
+-	}
+-
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
+@@ -963,7 +962,6 @@
+ 		INIT_SETUP(initsetup_align)				\
+ 		INIT_CALLS						\
+ 		CON_INITCALL						\
+-		SECURITY_INITCALL					\
+ 		INIT_RAM_FS						\
+ 	}
+ 
 -- 
 2.17.1
