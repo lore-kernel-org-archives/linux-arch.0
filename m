@@ -1,92 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:38130 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727433AbeJCF0y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Oct 2018 01:26:54 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Tue,  2 Oct 2018 16:41:08 -0600
-Message-ID: <20181002224108.3321-7-logang@deltatee.com>
-In-Reply-To: <20181002224108.3321-1-logang@deltatee.com>
-References: <20181002224108.3321-1-logang@deltatee.com>
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:44029 "EHLO
+        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727009AbeJCFwO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 01:52:14 -0400
+Received: by mail-yw1-f68.google.com with SMTP id j75-v6so1512312ywj.10
+        for <linux-arch@vger.kernel.org>; Tue, 02 Oct 2018 16:06:30 -0700 (PDT)
+Received: from mail-yb1-f179.google.com (mail-yb1-f179.google.com. [209.85.219.179])
+        by smtp.gmail.com with ESMTPSA id l30-v6sm17946393ywa.104.2018.10.02.16.06.26
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Tue, 02 Oct 2018 16:06:27 -0700 (PDT)
+Received: by mail-yb1-f179.google.com with SMTP id u88-v6so1582355ybi.0
+        for <linux-arch@vger.kernel.org>; Tue, 02 Oct 2018 16:06:26 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Subject: [PATCH v22 6/6] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
+In-Reply-To: <alpine.LRH.2.21.1810030758460.23596@namei.org>
+References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org>
+From: Kees Cook <keescook@chromium.org>
+Date: Tue, 2 Oct 2018 16:06:25 -0700
+Message-ID: <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20181002224108.JWc84oviJFUiMfp6fTAx0jkv0jmnnCIYWhSyC3LtH1o@z>
+To: James Morris <jmorris@namei.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181002230625.Lb2MaSwQuA4BbXnEU9htx91EV-9L_ecQrPP8U6I160g@z>
 
-Clean up the ifdefs which conditionally defined the io{read|write}64
-functions in favour of the new common io-64-nonatomic-lo-hi header.
+On Tue, Oct 2, 2018 at 3:06 PM, James Morris <jmorris@namei.org> wrote:
+> On Tue, 2 Oct 2018, Kees Cook wrote:
+>
+>> On Tue, Oct 2, 2018 at 11:57 AM, John Johansen
+>> <john.johansen@canonical.com> wrote:
+>> > Under the current scheme
+>> >
+>> > lsm.enabled=selinux
+>> >
+>> > could actually mean selinux,yama,loadpin,something_else are
+>> > enabled. If we extend this behavior to when full stacking lands
+>> >
+>> > lsm.enabled=selinux,yama
+>> >
+>> > might mean selinux,yama,apparmor,loadpin,something_else
+>> >
+>> > and what that list is will vary from kernel to kernel, which I think
+>> > is harder for the user than the lsm.enabled list being what is
+>> > actually enabled at boot
+>>
+>> Ah, I think I missed this in your earlier emails. What you don't like
+>> here is that "lsm.enable=" is additive. You want it to be explicit.
+>>
+>
+> This is a path to madness.
+>
+> How about enable flags set ONLY per LSM:
+>
+> lsm.selinux.enable=x
+> lsm.apparmor.enable=x
+>
+> With no lsm.enable, and removing selinux=x and apparmor=x.
+>
+> Yes this will break existing docs, but they can be updated for newer
+> kernel versions to say "replace selinux=0 with lsm.selinux.enable=0" from
+> kernel X onwards.
+>
+> Surely distro packages and bootloaders are able to cope with changes to
+> kernel parameters?
+>
+> We can either take a one-time hit now, or build new usability debt, which
+> will confuse people forever.
 
-Per a nit from Andy Shevchenko, the include list is also made
-alphabetical.
+I'd like to avoid this for a few reasons:
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 +++-----------------------
- 1 file changed, 4 insertions(+), 32 deletions(-)
+- this requires per-LSM plumbing instead of centralized plumbing
+  - each LSM needs to have its own CONFIG flag
+  - each LSM needs to have its own bootparam flag
+- SELinux has explicited stated they do not want to lose selinux=
+- this doesn't meet John's goal of having a "single explicit enable list"
 
-diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-index 5ee5f40b4dfc..c0b97699169d 100644
---- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-+++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-@@ -13,13 +13,14 @@
-  *
-  */
- 
--#include <linux/switchtec.h>
--#include <linux/module.h>
-+#include <linux/interrupt.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- #include <linux/delay.h>
- #include <linux/kthread.h>
--#include <linux/interrupt.h>
-+#include <linux/module.h>
- #include <linux/ntb.h>
- #include <linux/pci.h>
-+#include <linux/switchtec.h>
- 
- MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
- MODULE_VERSION("0.1");
-@@ -36,35 +37,6 @@ module_param(use_lut_mws, bool, 0644);
- MODULE_PARM_DESC(use_lut_mws,
- 		 "Enable the use of the LUT based memory windows");
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #define SWITCHTEC_NTB_MAGIC 0x45CC0001
- #define MAX_MWS     128
- 
+I think the current proposal (in the other thread) is likely the
+sanest approach:
+
+- Drop CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE
+- Drop CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE
+- All enabled LSMs are listed at build-time in CONFIG_LSM_ENABLE
+- Boot time enabling for selinux= and apparmor= remain
+- lsm.enable= is explicit: overrides above and omissions are disabled
+- maybe include lsm.disable= to disable anything
+
+-Kees
+
 -- 
-2.19.0
+Kees Cook
+Pixel Security
