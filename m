@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 22/32] apparmor: Remove boot parameter
-Date: Mon,  1 Oct 2018 17:54:55 -0700
-Message-ID: <20181002005505.6112-23-keescook@chromium.org>
+Subject: [PATCH security-next v4 29/32] LSM: Introduce enum lsm_order
+Date: Mon,  1 Oct 2018 17:55:02 -0700
+Message-ID: <20181002005505.6112-30-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
@@ -10,85 +10,82 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
-"lsm.enable=...", this removes the LSM-specific enabling logic from
-AppArmor, though it leaves the existing userspace API visibility into
-/sys/module/apparmor/parameters/enabled.
+In preparation for distinguishing the "capability" LSM from other LSMs,
+it must be ordered first. This introduces LSM_ORDER_MUTABLE for the
+general LSMs, LSM_ORDER_FIRST for capabilities, and LSM_ORDER_LAST for
+anything that must run last (e.g. Landlock may use this in the future).
 
-Co-developed-by: John Johansen <john.johansen@canonical.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt |  7 -------
- security/apparmor/Kconfig                       | 16 ----------------
- security/apparmor/lsm.c                         |  7 ++-----
- 3 files changed, 2 insertions(+), 28 deletions(-)
+ include/linux/lsm_hooks.h |  7 +++++++
+ security/security.c       | 18 ++++++++++++++++--
+ 2 files changed, 23 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index f646cfab5613..cf963febebb0 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4054,13 +4054,6 @@
- 			If enabled at boot time, /selinux/disable can be used
- 			later to disable prior to initial policy load.
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 63a6caaee8e6..62bc230826e0 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2041,8 +2041,15 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
  
--	apparmor=	[APPARMOR] Disable or enable AppArmor at boot time
--			Format: { "0" | "1" }
--			See security/apparmor/Kconfig help text
--			0 -- disable.
--			1 -- enable.
--			Default value is set via kernel config option.
--
- 	serialnumber	[BUGS=X86-32]
+ #define LSM_FLAG_LEGACY_MAJOR	BIT(0)
  
- 	shapers=	[NET]
-diff --git a/security/apparmor/Kconfig b/security/apparmor/Kconfig
-index b6b68a7750ce..3de21f46c82a 100644
---- a/security/apparmor/Kconfig
-+++ b/security/apparmor/Kconfig
-@@ -14,22 +14,6 @@ config SECURITY_APPARMOR
++enum lsm_order {
++	LSM_ORDER_FIRST = -1,	/* This is only for capabilities. */
++	LSM_ORDER_MUTABLE = 0,
++	LSM_ORDER_LAST,
++};
++
+ struct lsm_info {
+ 	const char *name;	/* Required. */
++	enum lsm_order order;	/* Optional: default is LSM_ORDER_MUTABLE */
+ 	unsigned long flags;	/* Optional: flags describing LSM */
+ 	int *enabled;		/* Optional: set based on CONFIG_LSM_ENABLE */
+ 	int (*init)(void);	/* Required. */
+diff --git a/security/security.c b/security/security.c
+index 44c23d23158e..dac379518e60 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -140,7 +140,8 @@ static void __init parse_lsm_order(const char *order, const char *origin)
+ 		bool found = false;
  
- 	  If you are unsure how to answer this question, answer N.
- 
--config SECURITY_APPARMOR_BOOTPARAM_VALUE
--	int "AppArmor boot parameter default value"
--	depends on SECURITY_APPARMOR
--	range 0 1
--	default 1
--	help
--	  This option sets the default value for the kernel parameter
--	  'apparmor', which allows AppArmor to be enabled or disabled
--          at boot.  If this option is set to 0 (zero), the AppArmor
--	  kernel parameter will default to 0, disabling AppArmor at
--	  boot.  If this option is set to 1 (one), the AppArmor
--	  kernel parameter will default to 1, enabling AppArmor at
--	  boot.
--
--	  If you are unsure how to answer this question, answer 1.
--
- config SECURITY_APPARMOR_HASH
- 	bool "Enable introspection of sha1 hashes for loaded profiles"
- 	depends on SECURITY_APPARMOR
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index bc56b058dc75..4cd96a66ed6f 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1303,15 +1303,12 @@ bool aa_g_paranoid_load = true;
- module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
- 
- /* Boot time disable flag */
--static int apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
-+static int apparmor_enabled __lsm_ro_after_init;
- module_param_named(enabled, apparmor_enabled, int, 0444);
- 
- static int __init apparmor_enabled_setup(char *str)
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
++			if (lsm->order == LSM_ORDER_MUTABLE &&
++			    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
+ 			    strcmp(lsm->name, name) == 0) {
+ 				append_ordered_lsm(lsm, origin);
+ 				found = true;
+@@ -158,6 +159,12 @@ static void __init prepare_lsm_order(void)
  {
--	unsigned long enabled;
--	int error = kstrtoul(str, 0, &enabled);
--	if (!error)
--		apparmor_enabled = enabled ? 1 : 0;
-+	pr_err("Boot param 'apparmor=' ignored. Use 'lsm.disable=apparmor'\n");
- 	return 1;
+ 	struct lsm_info *lsm;
+ 
++	/* LSM_ORDER_FIRST is always first. */
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if (lsm->order == LSM_ORDER_FIRST)
++			append_ordered_lsm(lsm, "first");
++	}
++
+ 	/* Parse order from commandline, if present. */
+ 	parse_lsm_order(chosen_lsm_order, "cmdline");
+ 
+@@ -166,9 +173,16 @@ static void __init prepare_lsm_order(void)
+ 
+ 	/* Add any missing LSMs, in link order. */
+ 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
++		if (lsm->order == LSM_ORDER_MUTABLE &&
++		    (lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+ 			append_ordered_lsm(lsm, "link-time");
+ 	}
++
++	/* LSM_ORDER_LAST is always last. */
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if (lsm->order == LSM_ORDER_LAST)
++			append_ordered_lsm(lsm, "last");
++	}
  }
  
+ /* Is an LSM allowed to be initialized? */
 -- 
 2.17.1
