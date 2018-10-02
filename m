@@ -1,104 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it1-f194.google.com ([209.85.166.194]:53233 "EHLO
-        mail-it1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726810AbeJBHfo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:44 -0400
-Received: by mail-it1-f194.google.com with SMTP id 134-v6so982566itz.2
+Received: from mail-io1-f68.google.com ([209.85.166.68]:46024 "EHLO
+        mail-io1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726767AbeJBHfn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2018 03:35:43 -0400
+Received: by mail-io1-f68.google.com with SMTP id e12-v6so229754iok.12
         for <linux-arch@vger.kernel.org>; Mon, 01 Oct 2018 17:55:15 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 08/32] LSM: Record LSM name in struct lsm_info
-Date: Mon,  1 Oct 2018 17:54:41 -0700
-Message-ID: <20181002005505.6112-9-keescook@chromium.org>
+Subject: [PATCH security-next v4 05/32] LSM: Convert from initcall to struct lsm_info
+Date: Mon,  1 Oct 2018 17:54:38 -0700
+Message-ID: <20181002005505.6112-6-keescook@chromium.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181002005441.LL2N3vqTWWbym85bL0UWsOfFaiGYdiRzD31R2aeBA9g@z>
+Message-ID: <20181002005438.UNohzSXAS-6D9ct_VXpkZpCPg_XY-7YykhcVdvNqueI@z>
 
-In preparation for making LSM selections outside of the LSMs, include
-the name of LSMs in struct lsm_info.
+In preparation for doing more interesting LSM init probing, this converts
+the existing initcall system into an explicit call into a function pointer
+from a section-collected struct lsm_info array.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
+Reviewed-by: James Morris <james.morris@microsoft.com>
+Reviewed-by: John Johansen <john.johansen@canonical.com>
 ---
- include/linux/lsm_hooks.h  | 1 +
- security/apparmor/lsm.c    | 1 +
- security/integrity/iint.c  | 1 +
- security/selinux/hooks.c   | 1 +
- security/smack/smack_lsm.c | 1 +
- security/tomoyo/tomoyo.c   | 1 +
- 6 files changed, 6 insertions(+)
+ include/linux/init.h      |  2 --
+ include/linux/lsm_hooks.h | 12 ++++++++++++
+ include/linux/module.h    |  1 -
+ security/integrity/iint.c |  1 +
+ security/security.c       | 14 +++++---------
+ 5 files changed, 18 insertions(+), 12 deletions(-)
 
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 77636539e77c..9c2aba1dbabf 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -133,7 +133,6 @@ static inline initcall_t initcall_from_entry(initcall_entry_t *entry)
+ #endif
+ 
+ extern initcall_entry_t __con_initcall_start[], __con_initcall_end[];
+-extern initcall_entry_t __start_lsm_info[], __end_lsm_info[];
+ 
+ /* Used for contructor calls. */
+ typedef void (*ctor_fn_t)(void);
+@@ -236,7 +235,6 @@ extern bool initcall_debug;
+ 	static exitcall_t __exitcall_##fn __exit_call = fn
+ 
+ #define console_initcall(fn)	___define_initcall(fn,, .con_initcall)
+-#define security_initcall(fn)	___define_initcall(fn,, .lsm_info)
+ 
+ struct obs_kernel_param {
+ 	const char *str;
 diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 9c6b4198ff5a..ae159b02f3ab 100644
+index 97a020c616ad..d13059feca09 100644
 --- a/include/linux/lsm_hooks.h
 +++ b/include/linux/lsm_hooks.h
-@@ -2040,6 +2040,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+@@ -2039,6 +2039,18 @@ extern char *lsm_names;
+ extern void security_add_hooks(struct security_hook_list *hooks, int count,
  				char *lsm);
  
- struct lsm_info {
-+	const char *name;	/* Required. */
- 	int (*init)(void);	/* Required. */
- };
++struct lsm_info {
++	int (*init)(void);	/* Required. */
++};
++
++extern struct lsm_info __start_lsm_info[], __end_lsm_info[];
++
++#define security_initcall(lsm)						\
++	static struct lsm_info __lsm_##lsm				\
++		__used __section(.lsm_info.init)			\
++		__aligned(sizeof(unsigned long))			\
++		= { .init = lsm, }
++
+ #ifdef CONFIG_SECURITY_SELINUX_DISABLE
+ /*
+  * Assuring the safety of deleting a security module is up to
+diff --git a/include/linux/module.h b/include/linux/module.h
+index f807f15bebbe..264979283756 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -123,7 +123,6 @@ extern void cleanup_module(void);
+ #define late_initcall_sync(fn)		module_init(fn)
  
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index c4863956c832..dca4b7dbf368 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1607,5 +1607,6 @@ static int __init apparmor_init(void)
- }
+ #define console_initcall(fn)		module_init(fn)
+-#define security_initcall(fn)		module_init(fn)
  
- DEFINE_LSM(apparmor) = {
-+	.name = "apparmor",
- 	.init = apparmor_init,
- };
+ /* Each module must use one module_init(). */
+ #define module_init(initfn)					\
 diff --git a/security/integrity/iint.c b/security/integrity/iint.c
-index 94e8e1820748..1ea05da2323d 100644
+index 5a6810041e5c..70d21b566955 100644
 --- a/security/integrity/iint.c
 +++ b/security/integrity/iint.c
-@@ -176,6 +176,7 @@ static int __init integrity_iintcache_init(void)
+@@ -22,6 +22,7 @@
+ #include <linux/file.h>
+ #include <linux/uaccess.h>
+ #include <linux/security.h>
++#include <linux/lsm_hooks.h>
+ #include "integrity.h"
+ 
+ static struct rb_root integrity_iint_tree = RB_ROOT;
+diff --git a/security/security.c b/security/security.c
+index 41a5da2c7faf..e74f46fba591 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -43,16 +43,12 @@ char *lsm_names;
+ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+ 	CONFIG_DEFAULT_SECURITY;
+ 
+-static void __init do_security_initcalls(void)
++static void __init major_lsm_init(void)
+ {
+-	initcall_t call;
+-	initcall_entry_t *ce;
++	struct lsm_info *lsm;
+ 
+-	ce = __start_lsm_info;
+-	while (ce < __end_lsm_info) {
+-		call = initcall_from_entry(ce);
+-		call();
+-		ce++;
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		lsm->init();
+ 	}
+ }
+ 
+@@ -82,7 +78,7 @@ int __init security_init(void)
+ 	/*
+ 	 * Load all the remaining security modules.
+ 	 */
+-	do_security_initcalls();
++	major_lsm_init();
+ 
  	return 0;
  }
- DEFINE_LSM(integrity) = {
-+	.name = "integrity",
- 	.init = integrity_iintcache_init,
- };
- 
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index 6ca2e89ddbd6..9651bccae270 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -7203,6 +7203,7 @@ void selinux_complete_init(void)
- /* SELinux requires early initialization in order to label
-    all processes and objects when they are created. */
- DEFINE_LSM(selinux) = {
-+	.name = "selinux",
- 	.init = selinux_init,
- };
- 
-diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
-index c62e26939a69..2fb56bcf1316 100644
---- a/security/smack/smack_lsm.c
-+++ b/security/smack/smack_lsm.c
-@@ -4883,5 +4883,6 @@ static __init int smack_init(void)
-  * all processes and objects when they are created.
-  */
- DEFINE_LSM(smack) = {
-+	.name = "smack",
- 	.init = smack_init,
- };
-diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
-index b2d833999910..1b5b5097efd7 100644
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
-@@ -551,5 +551,6 @@ static int __init tomoyo_init(void)
- }
- 
- DEFINE_LSM(tomoyo) = {
-+	.name = "tomoyo",
- 	.init = tomoyo_init,
- };
 -- 
 2.17.1
