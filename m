@@ -1,117 +1,120 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path
- resolution
-Date: Tue, 2 Oct 2018 17:32:20 +1000
-Message-ID: <20181002073220.7mzndna4tdnxdvdt@ryuk>
-References: <20180929103453.12025-1-cyphar@cyphar.com>
- <20180929131534.24472-1-cyphar@cyphar.com>
- <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
- <20181001054246.gfinmx3api7kjhmc@ryuk>
- <C89D720F-3CC4-4FA9-9CBB-E41A67360A6B@amacapital.net>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Subject: Re: [RESEND PATCH v4 1/8] bitops: Introduce the for_each_set_clump
+ macro
+Date: Tue, 2 Oct 2018 09:42:48 +0200
+Message-ID: <40ecad49-2797-0d30-b52d-a2e6838dc1ab@rasmusvillemoes.dk>
+References: <cover.1538441919.git.vilhelm.gray@gmail.com>
+ <f5250b9c78377e476667be1b616c86cf573b57dc.1538441919.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="f5grxfjtcz5dvrfy"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <C89D720F-3CC4-4FA9-9CBB-E41A67360A6B@amacapital.net>
+In-Reply-To: <f5250b9c78377e476667be1b616c86cf573b57dc.1538441919.git.vilhelm.gray@gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Jann Horn <jannh@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, Linux API <linux-api@vger.kernel.org>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>, linus.walleij@linaro.org, akpm@linux-foundation.org
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
+On 2018-10-02 03:13, William Breathitt Gray wrote:
+> This macro iterates for each group of bits (clump) with set bits, within
+> a bitmap memory region. For each iteration, "clump" is set to the found
+> clump index, "index" is set to the word index of the bitmap containing
+> the found clump, and "offset" is set to the bit offset of the found
+> clump within the respective bitmap word.
 
---f5grxfjtcz5dvrfy
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I can't say I'm a fan. It seems rather clumsy and ad-hoc - though I do
+see how it matches the code you replace in drivers/gpio/. When I
+initially read the cover letter, I assumed that one would get a sequence
+of 4-bit values, but one has to dig the actual value out of the bitmap
+afterwards using all of index, offset and a mask computed from clump_size.
 
-On 2018-10-01, Andy Lutomirski <luto@amacapital.net> wrote:
-> >>> Currently most container runtimes try to do this resolution in
-> >>> userspace[1], causing many potential race conditions. In addition, the
-> >>> "obvious" alternative (actually performing a {ch,pivot_}root(2))
-> >>> requires a fork+exec which is *very* costly if necessary for every
-> >>> filesystem operation involving a container.
-> >>=20
-> >> Wait. fork() I understand, but why exec? And actually, you don't need
-> >> a full fork() either, clone() lets you do this with some process parts
-> >> shared. And then you also shouldn't need to use SCM_RIGHTS, just keep
-> >> the file descriptor table shared. And why chroot()/pivot_root(),
-> >> wouldn't you want to use setns()?
-> >=20
-> > You're right about this -- for C runtimes. In Go we cannot do a raw
-> > clone() or fork() (if you do it manually with RawSyscall you'll end with
-> > broken runtime state). So you're forced to do fork+exec (which then
-> > means that you can't use CLONE_FILES and must use SCM_RIGHTS). Same goes
-> > for CLONE_VFORK.
->=20
-> I must admit that I=E2=80=99m not very sympathetic to the argument that =
-=E2=80=9CGo=E2=80=99s
-> runtime model is incompatible with the simpler solution.=E2=80=9D
+> +
+> +/**
+> + * find_next_clump - find next clump with set bits in a memory region
+> + * @index: location to store bitmap word index of found clump
+> + * @offset: bits offset of the found clump within the respective bitmap word
+> + * @bits: address to base the search on
+> + * @size: bitmap size in number of clumps
 
-Multi-threaded programs have a similar issue (though with Go it's much
-worse). If you fork a multi-threaded C program then you can only safely
-use AS-Safe glibc functions (those that are safe within a signal
-handler). But if you're just doing three syscalls this shouldn't be as
-big of a problem as Go where you can't even do said syscalls.
+That's a rather inconvenient unit, no? And rather easy to get wrong, I
+can easily see people passing nbits instead.
 
-> Anyway, it occurs to me that the real problem is that setns() and
-> chroot() are both overkill for this use case.
+I think you could reduce the number of arguments to this helper and the
+macro, while getting rid of some confusion: Drop index and offset, let
+clump_index be start_index and measured in bit positions (like
+find_next_bit et al), and let the return value also be a bit position.
+And instead of index and offset, have another unsigned long* output
+parameter that gives the actual value at [return value:return
+value+clump_size]. IOW, I think the prototype should be close to
+find_next_bit, except that in case of "clumps", there's an extra piece
+of information to return.
 
-I agree. My diversion to Go was to explain why it was particularly bad
-for cri-o/rkt/runc/Docker/etc.
+> + * @clump_index: clump index at which to start searching
+> + * @clump_size: clump size in bits
+> + *
+> + * Returns the clump index for the next clump with set bits; the respective
+> + * bitmap word index is stored at the location pointed by @index, and the bits
+> + * offset of the found clump within the respective bitmap word is stored at the
+> + * location pointed by @offset. If no bits are set, returns @size.
+> + */
+> +size_t find_next_clump(size_t *const index, unsigned int *const offset,
+> +		       const unsigned long *const bits, const size_t size,
+> +		       const size_t clump_index, const unsigned int clump_size)
+> +{
+> +	size_t i;
+> +	unsigned int bits_offset;
+> +	unsigned long word_mask;
+> +	const unsigned long clump_mask = GENMASK(clump_size - 1, 0);
+> +
+> +	for (i = clump_index; i < size; i++) {
+> +		bits_offset = i * clump_size;
+> +
+> +		*index = BIT_WORD(bits_offset);
+> +		*offset = bits_offset % BITS_PER_LONG;
+> +
+> +		word_mask = bits[*index] & (clump_mask << *offset);
+> +		if (!word_mask)
+> +			continue;
 
-> What=E2=80=99s needed is to start your walk from /proc/pid-in-container/r=
-oot,
-> with two twists:
->=20
-> 1. Do the walk as though rooted at a directory. This is basically just
-> your AT_THIS_ROOT, but the footgun is avoided because the dirfd you
-> use is from a foreign namespace, and, except for symlinks to absolute
-> paths, no amount of .. racing is going to escape the *namespace*.
+The cover letter says
 
-This is quite clever and I'll admit I hadn't thought of this. This
-definitely fixes the ".." issue, but as you've said it won't handle
-absolute symlinks (which means userspace has the same races that we
-currently have even if you assume that you have a container process
-already running -- CVE-2018-15664 is one of many examples of this).
+  The clump_size argument can be an arbitrary number of bits and is not
+  required to be a multiple of 2.
 
-(AT_THIS_ROOT using /proc/$container/root would in principle fix all of
-the mentioned issues -- but as I said before I'd like to see whether
-hardening ".." would be enough to solve the escape problem.)
+by which I assume you mean "power of 2", but either way, the above code
+does not seem to take into account the case where bits_offset +
+clump_size straddles a word boundary, so it wouldn't work for a
+clump_size that does not divide BITS_PER_LONG.
 
-> 2. Avoid /proc. It=E2=80=99s not just the *links* =E2=80=94 you really do=
-n=E2=80=99t want to
-> walk into /proc/self. *Maybe* procfs is already careful enough when
-> mounted in a namespace?
+May I suggest another approach:
 
-I just tried it and /proc/self gives you -ENOENT. I believe this is
-because it does a check against the pid namespace that the procfs mount
-has pinned.
+unsigned long bitmap_get_value(const unsigned long *bitmap, unsigned
+start, unsigned width): Get the value of bitmap[start:start+width] for
+1<=width<=BITS_PER_LONG (it's up to the caller to ensure this is within
+the defined region). That can almost be an inline
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+bitmap_get_value(const unsigned long *bitmap, unsigned start, unsigned
+width)
+{
+  unsigned idx = BIT_WORD(start);
+  unsigned offset = start % BITS_PER_LONG;
+  unsigned long lower = bitmap[idx] >> offset;
+  unsigned long upper = offset <= BITS_PER_LONG - width ? 0 :
+bitmap[idx+1] << (BITS_PER_LONG - offset);
+  return (lower | upper) & GENMASK(width-1, 0)
+}
 
---f5grxfjtcz5dvrfy
-Content-Type: application/pgp-signature; name="signature.asc"
+Then you can implement the for_each_set_clump by a (IMO) more readable
 
------BEGIN PGP SIGNATURE-----
+  for (i = 0, start = 0; i < num_ports; i++, start += gpio_reg_size) {
+    word_mask = bitmap_get_value(mask, start, gpio_reg_size);
+    if (!word_mask)
+      continue;
+    ...
+  }
 
-iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAluzHwEACgkQnhiqJn3b
-jbQ5LRAAxGtWfDWV6hZtCxTiyzf5SiMxYXCzdM/1SmlYfclwu0o7Cvpcs2dHqwbo
-EftRBczNj1uLzuI4Qov9gpM3Ey5Y1YwxAFzEEIlCvtKUIO+oekiAMd0gsarwxLLo
-OPROl3596WbVsOyCXkhJ5hu2XtiU3h/T3gbMuqM9KbsFL9Bb8En607RI4BI3yhE/
-d8iSrBv8zxhfxSoQLPlNNJHG5TKN3G1C0hb+puVHkzbb9l9R/gcSJMEQsfMdTs48
-ZBVByLUKirntkbDKgw5aDg52n8hz2TUx35V7dQD2E366V3jzEWRtKViG193NOvSu
-8v0NpyyDC3+GxDTO1gm0XKMEEC5Xb/wMlTvOU6xj1hLV7L3APPqUkuOG5TTdB1Id
-hKwiK7H5RlbRo3FaIpkOJaU5eYH4Q6QGYw9+lKg1fk/FTvgB1y8HcYBFC+PKI++j
-bZPB0MZEL0cCCWnDYROA7vrgFCk+AgY7pMCAowOrsjDDd4stZohpq2qDN0nKR7m1
-BtciN5dAxNMHoEqn/Q1y5CapVHmLzQOUTYksUORO7tsDKyDMp7V3DnBJ8GWqVQYE
-AfzhuRdsW50sf3lyGfLE+8wlhlXzIc9Mcvjk5UXt6XBL80OQAOQbUzdrqSUXUWkx
-WHbkFyxKgu/1bjE1HKYxlyIF6cxoq11EIseP5igqtrgFE4kdV1U=
-=pZFZ
------END PGP SIGNATURE-----
+Or, if you do want find_next_clump/for_each_set_clump, that can be
+implemented in terms of this.
 
---f5grxfjtcz5dvrfy--
+Rasmus
