@@ -1,140 +1,82 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 03/27] x86/fpu/xstate: Enable XSAVES system states
-Date: Tue, 2 Oct 2018 19:15:54 +0200
-Message-ID: <20181002171554.GE29601@zn.tnic>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
- <20180921150351.20898-4-yu-cheng.yu@intel.com>
+From: Stephen Smalley <sds@tycho.nsa.gov>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Tue, 2 Oct 2018 14:33:35 -0400
+Message-ID: <cc2ff677-a45e-e171-7a71-7d8e202bcabd@tycho.nsa.gov>
+References: <20181002005505.6112-1-keescook@chromium.org>
+ <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
+ <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov>
+ <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180921150351.20898-4-yu-cheng.yu@intel.com>
+In-Reply-To: <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
+To: Kees Cook <keescook@chromium.org>, Jordan Glover <Golden_Miller83@protonmail.ch>
+Cc: Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 21, 2018 at 08:03:27AM -0700, Yu-cheng Yu wrote:
-> XSAVES saves both system and user states.  The Linux kernel
-> currently does not save/restore any system states.  This patch
-> creates the framework for supporting system states.
+On 10/02/2018 12:54 PM, Kees Cook wrote:
+> On Tue, Oct 2, 2018 at 9:33 AM, Jordan Glover
+> <Golden_Miller83@protonmail.ch> wrote:
+>> It's always documented as: "selinux=1 security=selinux" so security= should
+>> still do the job and selinux=1 become no-op, no?
+> 
+> The v3 patch set worked this way, yes. (The per-LSM enable defaults
+> were set by the LSM. Only in the case of "lsm.disable=selinux" would
+> the above stop working.)
+> 
+> John did not like the separation of having two CONFIG and two
+> bootparams mixing the controls. The v3 resolution rules were:
+> 
+> SECURITY_SELINUX_BOOTPARAM_VALUE overrides CONFIG_LSM_ENABLE.
+> SECURITY_APPARMOR_BOOTPARAM_VALUE overrides CONFIG_LSM_ENABLE.
+> selinux= overrides SECURITY_SELINUX_BOOTPARAM_VALUE.
+> apparmor.enabled= overrides SECURITY_APPARMOR_BOOTPARAM_VALUE.
+> apparmor= overrides apparmor.enabled=.
+> lsm.enable= overrides selinux=.
+> lsm.enable= overrides apparmor=.
+> lsm.disable= overrides lsm.enable=.
+> major LSM _omission_ from security= (if present) overrides lsm.enable.
+> 
+> v4 removed the per-LSM boot params and CONFIGs at John's request, but
+> Paul and Stephen don't want this for SELinux.
+> 
+> The pieces for reducing conflict with CONFIG_LSM_ENABLE and
+> lsm.{enable,disable}= were:
+> 
+> 1- Remove SECURITY_APPARMOR_BOOTPARAM_VALUE.
+> 2- Remove apparmor= and apparmor.enabled=.
+> 3- Remove SECURITY_SELINUX_BOOTPARAM_VALUE.
+> 4- Remove selinux=.
+> 
+> v4 used all of 1-4 above. SELinux says "4" cannot happen as it's too
+> commonly used. Would 3 be okay for SELinux?
 
-... and needs a lot more text explaining *why* it is doing that.
+Let's say a user/packager/distro has been building kernels for the past 
+14 years (*) with a config that has SECURITY_SELINUX_BOOTPARAM_VALUE=0, 
+and now they build a new kernel that includes these patches using that 
+same config.  Won't SELinux be enabled by default because 
+SECURITY_SELINUX_BOOTPARAM_VALUE is now ignored and LSM_ENABLE defaults 
+to all?  Is it ok to require them to specify a new config option to 
+preserve old behavior?
+
+(*) how long this config option has been around
 
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/fpu/internal.h |   3 +-
->  arch/x86/include/asm/fpu/xstate.h   |   9 ++-
->  arch/x86/kernel/fpu/core.c          |   7 +-
->  arch/x86/kernel/fpu/init.c          |  10 ---
->  arch/x86/kernel/fpu/xstate.c        | 112 +++++++++++++++++-----------
->  5 files changed, 80 insertions(+), 61 deletions(-)
+> John, with 4 not happening, do you prefer to not have 2 happen?
 > 
-> diff --git a/arch/x86/include/asm/fpu/internal.h b/arch/x86/include/asm/fpu/internal.h
-> index f1f9bf91a0ab..1f447865db3a 100644
-> --- a/arch/x86/include/asm/fpu/internal.h
-> +++ b/arch/x86/include/asm/fpu/internal.h
-> @@ -45,7 +45,6 @@ extern void fpu__init_cpu_xstate(void);
->  extern void fpu__init_system(struct cpuinfo_x86 *c);
->  extern void fpu__init_check_bugs(void);
->  extern void fpu__resume_cpu(void);
-> -extern u64 fpu__get_supported_xfeatures_mask(void);
->  
->  /*
->   * Debugging facility:
-> @@ -94,7 +93,7 @@ static inline void fpstate_init_xstate(struct xregs_state *xsave)
->  	 * trigger #GP:
->  	 */
->  	xsave->header.xcomp_bv = XCOMP_BV_COMPACTED_FORMAT |
-> -			xfeatures_mask_user;
-> +			xfeatures_mask_all;
->  }
->  
->  static inline void fpstate_init_fxstate(struct fxregs_state *fx)
-> diff --git a/arch/x86/include/asm/fpu/xstate.h b/arch/x86/include/asm/fpu/xstate.h
-> index 9b382e5157ed..a32dc5f8c963 100644
-> --- a/arch/x86/include/asm/fpu/xstate.h
-> +++ b/arch/x86/include/asm/fpu/xstate.h
-> @@ -19,10 +19,10 @@
->  #define XSAVE_YMM_SIZE	    256
->  #define XSAVE_YMM_OFFSET    (XSAVE_HDR_SIZE + XSAVE_HDR_OFFSET)
->  
-> -/* System features */
-> -#define XFEATURE_MASK_SYSTEM (XFEATURE_MASK_PT)
-
-Previous patch renames it, this patch deletes it. Why do we need all
-that unnecessary churn?
-
-Also, this patch is trying to do a couple of things at once and
-reviewing it is not trivial. Please split the changes logically.
-
-> diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-> index 19f8df54c72a..dd2c561c4544 100644
-> --- a/arch/x86/kernel/fpu/xstate.c
-> +++ b/arch/x86/kernel/fpu/xstate.c
-> @@ -51,13 +51,16 @@ static short xsave_cpuid_features[] __initdata = {
->  };
->  
->  /*
-> - * Mask of xstate features supported by the CPU and the kernel:
-> + * Mask of xstate features supported by the CPU and the kernel.
-> + * This is the result from CPUID query, SUPPORTED_XFEATURES_MASK,
-> + * and boot_cpu_has().
->   */
-
-This needs to explain what both masks are - user and system. "CPU" and
-"kernel" is not "user" and "all".
-
->  u64 xfeatures_mask_user __read_mostly;
-> +u64 xfeatures_mask_all __read_mostly;
-
-
-
-> @@ -219,30 +222,31 @@ void fpstate_sanitize_xstate(struct fpu *fpu)
->   */
->  void fpu__init_cpu_xstate(void)
->  {
-> -	if (!boot_cpu_has(X86_FEATURE_XSAVE) || !xfeatures_mask_user)
-> +	if (!boot_cpu_has(X86_FEATURE_XSAVE) || !xfeatures_mask_all)
->  		return;
-> +
-> +	cr4_set_bits(X86_CR4_OSXSAVE);
-> +
->  	/*
-> -	 * Make it clear that XSAVES system states are not yet
-> -	 * implemented should anyone expect it to work by changing
-> -	 * bits in XFEATURE_MASK_* macros and XCR0.
-> +	 * XCR_XFEATURE_ENABLED_MASK sets the features that are managed
-> +	 * by XSAVE{C, OPT} and XRSTOR.  Only XSAVE user states can be
-> +	 * set here.
->  	 */
-> -	WARN_ONCE((xfeatures_mask_user & XFEATURE_MASK_SYSTEM),
-> -		"x86/fpu: XSAVES system states are not yet implemented.\n");
-> +	xsetbv(XCR_XFEATURE_ENABLED_MASK,
-> +	       xfeatures_mask_user);
-
-No need to break the line here.
-
-Also, you have a couple more places in your patches where you
-unnecessarily break lines. Please don't do that, even if it exceeds 80
-cols by a couple of chars.
-
->  
-> -	xfeatures_mask_user &= ~XFEATURE_MASK_SYSTEM;
-> -
-> -	cr4_set_bits(X86_CR4_OSXSAVE);
-> -	xsetbv(XCR_XFEATURE_ENABLED_MASK, xfeatures_mask_user);
-> +	/*
-> +	 * MSR_IA32_XSS sets which XSAVES system states to be managed by
-> +	 * XSAVES.  Only XSAVES system states can be set here.
-> +	 */
-> +	if (boot_cpu_has(X86_FEATURE_XSAVES))
-> +		wrmsrl(MSR_IA32_XSS,
-> +		       xfeatures_mask_all & ~xfeatures_mask_user);
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+> With CONFIGs removed, then the boot time defaults are controlled by
+> CONFIG_LSM_ENABLE, but the boot params continue to work as before.
+> Only the use of the new lsm.enable= and lsm.disable= would override
+> the per-LSM boot params. This would clean up the build-time CONFIG
+> weirdness, and leave the existing boot params as before (putting us
+> functionally in between the v3 and v4 series).
+> 
+> -Kees
+> 
