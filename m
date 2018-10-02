@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Mon,  1 Oct 2018 17:54:56 -0700
-Message-ID: <20181002005505.6112-24-keescook@chromium.org>
+Subject: [PATCH security-next v4 27/32] LoadPin: Initialize as ordered LSM
+Date: Mon,  1 Oct 2018 17:55:00 -0700
+Message-ID: <20181002005505.6112-28-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
@@ -10,102 +10,81 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
-"lsm.enable=...", this removes the LSM-specific enabling logic from
-SELinux.
+This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- .../admin-guide/kernel-parameters.txt         |  9 ------
- security/selinux/Kconfig                      | 29 -------------------
- security/selinux/hooks.c                      | 15 +---------
- 3 files changed, 1 insertion(+), 52 deletions(-)
+ include/linux/lsm_hooks.h  | 5 -----
+ security/Kconfig           | 2 +-
+ security/loadpin/loadpin.c | 8 +++++++-
+ security/security.c        | 1 -
+ 4 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index cf963febebb0..0d10ab3d020e 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4045,15 +4045,6 @@
- 			loaded. An invalid security module name will be treated
- 			as if no module has been chosen.
- 
--	selinux=	[SELINUX] Disable or enable SELinux at boot time.
--			Format: { "0" | "1" }
--			See security/selinux/Kconfig help text.
--			0 -- disable.
--			1 -- enable.
--			Default value is set via kernel config option.
--			If enabled at boot time, /selinux/disable can be used
--			later to disable prior to initial policy load.
--
- 	serialnumber	[BUGS=X86-32]
- 
- 	shapers=	[NET]
-diff --git a/security/selinux/Kconfig b/security/selinux/Kconfig
-index 8af7a690eb40..86936528a0bb 100644
---- a/security/selinux/Kconfig
-+++ b/security/selinux/Kconfig
-@@ -8,35 +8,6 @@ config SECURITY_SELINUX
- 	  You will also need a policy configuration and a labeled filesystem.
- 	  If you are unsure how to answer this question, answer N.
- 
--config SECURITY_SELINUX_BOOTPARAM
--	bool "NSA SELinux boot parameter"
--	depends on SECURITY_SELINUX
--	default n
--	help
--	  This option adds a kernel parameter 'selinux', which allows SELinux
--	  to be disabled at boot.  If this option is selected, SELinux
--	  functionality can be disabled with selinux=0 on the kernel
--	  command line.  The purpose of this option is to allow a single
--	  kernel image to be distributed with SELinux built in, but not
--	  necessarily enabled.
--
--	  If you are unsure how to answer this question, answer N.
--
--config SECURITY_SELINUX_BOOTPARAM_VALUE
--	int "NSA SELinux boot parameter default value"
--	depends on SECURITY_SELINUX_BOOTPARAM
--	range 0 1
--	default 1
--	help
--	  This option sets the default value for the kernel parameter
--	  'selinux', which allows SELinux to be disabled at boot.  If this
--	  option is set to 0 (zero), the SELinux kernel parameter will
--	  default to 0, disabling SELinux at bootup.  If this option is
--	  set to 1 (one), the SELinux kernel parameter will default to 1,
--	  enabling SELinux at bootup.
--
--	  If you are unsure how to answer this question, answer 1.
--
- config SECURITY_SELINUX_DISABLE
- 	bool "NSA SELinux runtime disable"
- 	depends on SECURITY_SELINUX
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index 71a10fedecb3..8f5eea097612 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -120,20 +120,7 @@ __setup("enforcing=", enforcing_setup);
- #define selinux_enforcing_boot 1
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index b026ea93ff01..098ccf2caa0e 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2091,10 +2091,5 @@ extern void __init yama_add_hooks(void);
+ #else
+ static inline void __init yama_add_hooks(void) { }
  #endif
- 
--#ifdef CONFIG_SECURITY_SELINUX_BOOTPARAM
--int selinux_enabled = CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE;
--
--static int __init selinux_enabled_setup(char *str)
--{
--	unsigned long enabled;
--	if (!kstrtoul(str, 0, &enabled))
--		selinux_enabled = enabled ? 1 : 0;
--	return 1;
--}
--__setup("selinux=", selinux_enabled_setup);
+-#ifdef CONFIG_SECURITY_LOADPIN
+-void __init loadpin_add_hooks(void);
 -#else
--int selinux_enabled = 1;
+-static inline void loadpin_add_hooks(void) { };
 -#endif
-+int selinux_enabled __lsm_ro_after_init;
  
- static unsigned int selinux_checkreqprot_boot =
- 	CONFIG_SECURITY_SELINUX_CHECKREQPROT_VALUE;
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/Kconfig b/security/Kconfig
+index c68520d97fd7..e59cb9296316 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -293,7 +293,7 @@ config LSM_ENABLE
+ 
+ config LSM_ORDER
+ 	string "Default initialization order of builtin LSMs"
+-	default "integrity"
++	default "loadpin,integrity"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be link-order initialized
+diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
+index d8a68a6f6fef..dab42bfa1e4a 100644
+--- a/security/loadpin/loadpin.c
++++ b/security/loadpin/loadpin.c
+@@ -184,13 +184,19 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
+ };
+ 
+-void __init loadpin_add_hooks(void)
++static int __init loadpin_init(void)
+ {
+ 	pr_info("ready to pin (currently %senforcing)\n",
+ 		enforcing ? "" : "not ");
+ 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
++	return 0;
+ }
+ 
++DEFINE_LSM(loadpin) = {
++	.name = "loadpin",
++	.init = loadpin_init,
++};
++
+ /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
+ module_param(enforcing, int, 0);
+ MODULE_PARM_DESC(enforcing, "Enforce module/firmware pinning");
+diff --git a/security/security.c b/security/security.c
+index 6fafad44b85e..6957f5f50483 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -297,7 +297,6 @@ int __init security_init(void)
+ 	 */
+ 	capability_add_hooks();
+ 	yama_add_hooks();
+-	loadpin_add_hooks();
+ 
+ 	/* Load LSMs in specified order. */
+ 	prepare_lsm_order();
 -- 
 2.17.1
