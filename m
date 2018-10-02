@@ -1,75 +1,55 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v4 21/32] LSM: Finalize centralized LSM
- enabling logic
-Date: Mon, 1 Oct 2018 21:49:37 -0700
-Message-ID: <CAGXu5j+ND4K5GvxJ1ieLr5E=Zsfb6mGQL8yTegOXv4V4qmuZUA@mail.gmail.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-22-keescook@chromium.org>
- <ccfbe049-392d-4df5-5eb5-ea18576d4afd@infradead.org>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Subject: Re: [RESEND PATCH v4 3/8] gpio: 104-dio-48e: Utilize
+ for_each_set_clump macro
+Date: Tue, 2 Oct 2018 09:00:45 +0200
+Message-ID: <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
+References: <cover.1538441919.git.vilhelm.gray@gmail.com>
+ <5906381114b14d5b0359510a1d23accbd239eaa5.1538441919.git.vilhelm.gray@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <ccfbe049-392d-4df5-5eb5-ea18576d4afd@infradead.org>
+In-Reply-To: <5906381114b14d5b0359510a1d23accbd239eaa5.1538441919.git.vilhelm.gray@gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>, linus.walleij@linaro.org, akpm@linux-foundation.org
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 1, 2018 at 6:18 PM, Randy Dunlap <rdunlap@infradead.org> wrote:
-> On 10/1/18 5:54 PM, Kees Cook wrote:
->> Prior to this patch, default "enable" behavior was unchanged: SELinux
->> and AppArmor were controlled separately from the centralized control
->> defined by CONFIG_LSM_ENABLE and "lsm.enable=...". This changes the
->> logic to give all control over to the central logic.
->>
->> Instead of allowing SELinux and AppArmor to override the central LSM
->> enabling logic, by having separate CONFIG and boot parameters, this
->> forces all "enable" variables to disabled, then enables any listed in
->> the CONFIG_LSM_ENABLE and "lsm.enable=..." settings, and finally disables
->> any listed in "lsm.disable=...".
->>
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->> ---
->>  .../admin-guide/kernel-parameters.txt         |  6 ++--
->>  include/linux/lsm_hooks.h                     |  2 +-
->>  security/security.c                           | 32 +++++++------------
->>  3 files changed, 15 insertions(+), 25 deletions(-)
->>
->> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
->> index 67c90985d2b8..f646cfab5613 100644
->> --- a/Documentation/admin-guide/kernel-parameters.txt
->> +++ b/Documentation/admin-guide/kernel-parameters.txt
->> @@ -2279,14 +2279,12 @@
->>       lsm.disable=lsm1,...,lsmN
->>                       [SECURITY] Comma-separated list of LSMs to disable
->>                       at boot time. This overrides "lsm.enable=",
->
-> better:                               This overrides "lsm.enable=" and
+On 2018-10-02 03:14, William Breathitt Gray wrote:
+>  	/* clear bits array to a clean slate */
+>  	bitmap_zero(bits, chip->ngpio);
+>  
+> -	/* get bits are evaluated a gpio port register at a time */
+> -	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+> -		/* gpio offset in bits array */
+> -		bits_offset = i * gpio_reg_size;
+> -
+> -		/* word index for bits array */
+> -		word_index = BIT_WORD(bits_offset);
+> -
+> -		/* gpio offset within current word of bits array */
+> -		word_offset = bits_offset % BITS_PER_LONG;
+> -
+> -		/* mask of get bits for current gpio within current word */
+> -		word_mask = mask[word_index] & (port_mask << word_offset);
+> -		if (!word_mask) {
+> -			/* no get bits in this port so skip to next one */
+> -			continue;
+> -		}
+> -
+> -		/* read bits from current gpio port */
+> +	for_each_set_clump(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
+>  		port_state = inb(dio48egpio->base + ports[i]);
+> -
+> -		/* store acquired bits at respective bits array offset */
+> -		bits[word_index] |= port_state << word_offset;
+> +		bits[word] |= port_state << offset;
 
-Eek, yes! Thank you. :)
+Somewhat unrelated to this series, but is the existing code correct? I'd
+expect the RHS to be masked by word_mask; otherwise we might set bits in
+bits[] that were not requested? And if one does that, the !word_mask
+test is merely an optimization to avoid reading the gpios when the
+result would be ignored anyway. Perhaps no caller cares.
 
--Kees
-
->
->> -                     CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and boot
->> -                     parameters.
->> +                     CONFIG_LSM_ENABLE.
->>
->>       lsm.enable=lsm1,...,lsmN
->>                       [SECURITY] Comma-separated list of LSMs to enable
->>                       at boot time. This overrides any omissions from
->> -                     CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
->> -                     boot parameters.
->> +                     CONFIG_LSM_ENABLE.
->>
->>       machvec=        [IA-64] Force the use of a particular machine-vector
->>                       (machvec) in a generic kernel.
->
->
-> --
-> ~Randy
-
-
-
--- 
-Kees Cook
-Pixel Security
+Rasmus
