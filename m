@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 25/32] LSM: Introduce CONFIG_LSM_ORDER
-Date: Mon,  1 Oct 2018 17:54:58 -0700
-Message-ID: <20181002005505.6112-26-keescook@chromium.org>
+Subject: [PATCH security-next v4 21/32] LSM: Finalize centralized LSM enabling logic
+Date: Mon,  1 Oct 2018 17:54:54 -0700
+Message-ID: <20181002005505.6112-22-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
@@ -10,103 +10,129 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This provides a way to declare LSM initialization order via Kconfig.
+Prior to this patch, default "enable" behavior was unchanged: SELinux
+and AppArmor were controlled separately from the centralized control
+defined by CONFIG_LSM_ENABLE and "lsm.enable=...". This changes the
+logic to give all control over to the central logic.
+
+Instead of allowing SELinux and AppArmor to override the central LSM
+enabling logic, by having separate CONFIG and boot parameters, this
+forces all "enable" variables to disabled, then enables any listed in
+the CONFIG_LSM_ENABLE and "lsm.enable=..." settings, and finally disables
+any listed in "lsm.disable=...".
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- security/Kconfig    | 16 ++++++++++++++++
- security/security.c | 40 +++++++++++++++++++++++++++++++++++++---
- 2 files changed, 53 insertions(+), 3 deletions(-)
+ .../admin-guide/kernel-parameters.txt         |  6 ++--
+ include/linux/lsm_hooks.h                     |  2 +-
+ security/security.c                           | 32 +++++++------------
+ 3 files changed, 15 insertions(+), 25 deletions(-)
 
-diff --git a/security/Kconfig b/security/Kconfig
-index 1e57619fd561..c68520d97fd7 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -286,5 +286,21 @@ config LSM_ENABLE
- 	  changed with the "lsm.enable=" and "lsm.disable=" boot
- 	  parameters.
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 67c90985d2b8..f646cfab5613 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -2279,14 +2279,12 @@
+ 	lsm.disable=lsm1,...,lsmN
+ 			[SECURITY] Comma-separated list of LSMs to disable
+ 			at boot time. This overrides "lsm.enable=",
+-			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and boot
+-			parameters.
++			CONFIG_LSM_ENABLE.
  
-+	  Note that any enabled exclusive LSM modules will be initialized
-+	  based on LSM ordering, automatically disabling any following
-+	  exclusive LSMs. See CONFIG_LSM_ORDER for more details on
-+	  changing LSM initialization order.
-+
-+config LSM_ORDER
-+	string "Default initialization order of builtin LSMs"
-+	default "integrity"
-+	help
-+	  A comma-separated list of LSMs, in initialization order.
-+	  Any LSMs left off this list will be link-order initialized
-+	  after any listed LSMs. Any LSMs listed here but not built in
-+	  the kernel will be ignored.
-+
-+	  If unsure, leave this as the default.
-+
- endmenu
+ 	lsm.enable=lsm1,...,lsmN
+ 			[SECURITY] Comma-separated list of LSMs to enable
+ 			at boot time. This overrides any omissions from
+-			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
+-			boot parameters.
++			CONFIG_LSM_ENABLE.
+ 
+ 	machvec=	[IA-64] Force the use of a particular machine-vector
+ 			(machvec) in a generic kernel.
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index fd85637a1931..b026ea93ff01 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2044,7 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+ struct lsm_info {
+ 	const char *name;	/* Required. */
+ 	unsigned long flags;	/* Optional: flags describing LSM */
+-	int *enabled;		/* Optional: NULL checks CONFIG_LSM_ENABLE */
++	int *enabled;		/* Optional: set based on CONFIG_LSM_ENABLE */
+ 	int (*init)(void);	/* Required. */
+ };
  
 diff --git a/security/security.c b/security/security.c
-index 8706b42b4d44..0510bb8e0af0 100644
+index d7132c181ea6..40b9f508b856 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -47,6 +47,7 @@ static __initdata const char *chosen_lsm_disable;
- static __initdata const char *chosen_major_lsm;
- 
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
-+static __initconst const char * const builtin_lsm_order = CONFIG_LSM_ORDER;
- 
- /* Ordered list of LSMs to initialize. */
- static __initdata struct lsm_info **ordered_lsms;
-@@ -122,14 +123,47 @@ static void __init append_ordered_lsm(struct lsm_info *lsm, const char *from)
- 		   is_enabled(lsm) ? "en" : "dis");
- }
- 
--/* Populate ordered LSMs list from hard-coded list of LSMs. */
-+/* Populate ordered LSMs list from given string. */
-+static void __init parse_lsm_order(const char *order, const char *origin)
-+{
-+	struct lsm_info *lsm;
-+	char *sep, *name, *next;
-+
-+	if (!order)
-+		return;
-+
-+	sep = kstrdup(order, GFP_KERNEL);
-+	next = sep;
-+	/* Walk the list, looking for matching LSMs. */
-+	while ((name = strsep(&next, ",")) != NULL) {
-+		bool found = false;
-+
-+		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
-+			    strcmp(lsm->name, name) == 0) {
-+				append_ordered_lsm(lsm, origin);
-+				found = true;
-+			}
-+		}
-+
-+		if (!found)
-+			init_debug("%s ignored: %s\n", origin, name);
-+	}
-+	kfree(sep);
-+}
-+
-+/* Populate ordered LSMs list from builtin list of LSMs. */
- static void __init prepare_lsm_order(void)
+@@ -63,27 +63,19 @@ static bool __init is_enabled(struct lsm_info *lsm)
+ /* Mark an LSM's enabled flag, if it exists. */
+ static int lsm_enabled_true __initdata = 1;
+ static int lsm_enabled_false __initdata = 0;
+-
+-static void __init default_enabled(struct lsm_info *lsm, bool enabled)
++static void __init set_enabled(struct lsm_info *lsm, bool enabled)
  {
- 	struct lsm_info *lsm;
+-	/* If storage location already set, skip this one. */
+-	if (lsm->enabled)
+-		return;
+-
+ 	/*
+ 	 * When an LSM hasn't configured an enable variable, we can use
+ 	 * a hard-coded location for storing the default enabled state.
+ 	 */
+-	if (enabled)
+-		lsm->enabled = &lsm_enabled_true;
+-	else
+-		lsm->enabled = &lsm_enabled_false;
+-}
+-
+-static void __init set_enabled(struct lsm_info *lsm, bool enabled)
+-{
+-	if (WARN_ON(!lsm->enabled))
++	if (!lsm->enabled) {
++		if (enabled)
++			lsm->enabled = &lsm_enabled_true;
++		else
++			lsm->enabled = &lsm_enabled_false;
+ 		return;
++	}
  
-+	/* Parse order from builtin list. */
-+	parse_lsm_order(builtin_lsm_order, "builtin");
-+
-+	/* Add any missing LSMs, in link order. */
- 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
--		if (strcmp(lsm->name, "integrity") == 0)
--			append_ordered_lsm(lsm, "builtin");
-+		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
-+			append_ordered_lsm(lsm, "link-time");
- 	}
+ 	if (lsm->enabled == &lsm_enabled_true) {
+ 		if (!enabled)
+@@ -149,7 +141,6 @@ static void __init major_lsm_init(void)
  }
  
+ static void __init parse_lsm_enable(const char *str,
+-				    void (*set)(struct lsm_info *, bool),
+ 				    bool enabled)
+ {
+ 	char *sep, *name, *next;
+@@ -165,7 +156,7 @@ static void __init parse_lsm_enable(const char *str,
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+ 			if (strcmp(name, "all") == 0 ||
+ 			    strcmp(name, lsm->name) == 0)
+-				set(lsm, enabled);
++				set_enabled(lsm, enabled);
+ 		}
+ 	}
+ 	kfree(sep);
+@@ -174,11 +165,12 @@ static void __init parse_lsm_enable(const char *str,
+ static void __init prepare_lsm_enable(void)
+ {
+ 	/* Prepare defaults. */
+-	parse_lsm_enable(builtin_lsm_enable, default_enabled, true);
++	parse_lsm_enable("all", false);
++	parse_lsm_enable(builtin_lsm_enable, true);
+ 
+ 	/* Process "lsm.enable=" and "lsm.disable=", if given. */
+-	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
+-	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
++	parse_lsm_enable(chosen_lsm_enable, true);
++	parse_lsm_enable(chosen_lsm_disable, false);
+ 
+ 	/* Process "security=", if given. */
+ 	if (!chosen_major_lsm)
 -- 
 2.17.1
