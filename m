@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v4 18/32] LSM: Introduce lsm.enable= and lsm.disable=
-Date: Mon,  1 Oct 2018 17:54:51 -0700
-Message-ID: <20181002005505.6112-19-keescook@chromium.org>
+Subject: [PATCH security-next v4 22/32] apparmor: Remove boot parameter
+Date: Mon,  1 Oct 2018 17:54:55 -0700
+Message-ID: <20181002005505.6112-23-keescook@chromium.org>
 References: <20181002005505.6112-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181002005505.6112-1-keescook@chromium.org>
@@ -10,116 +10,85 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Paul Moore <paul@paul-moore.com>, Stephen Smalley <sds@tycho.nsa.gov>, "Schaufler, Casey" <casey.schaufler@intel.com>, LSM <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This introduces the "lsm.enable=..." and "lsm.disable=..." boot parameters
-which each can contain a comma-separated list of LSMs to enable or
-disable, respectively. The string "all" matches all LSMs.
+Since LSM enabling is now centralized with CONFIG_LSM_ENABLE and
+"lsm.enable=...", this removes the LSM-specific enabling logic from
+AppArmor, though it leaves the existing userspace API visibility into
+/sys/module/apparmor/parameters/enabled.
 
-This has very similar functionality to the existing per-LSM enable
-handling ("apparmor.enabled=...", etc), but provides a centralized
-place to perform the changes. These parameters take precedent over any
-LSM-specific boot parameters.
-
-Disabling an LSM means it will not be considered when performing
-initializations. Enabling an LSM means either undoing a previous
-LSM-specific boot parameter disabling or a undoing a default-disabled
-CONFIG setting.
-
-For example: "lsm.disable=apparmor apparmor.enabled=1" will result in
-AppArmor being disabled. "selinux.enabled=0 lsm.enable=selinux" will
-result in SELinux being enabled.
-
+Co-developed-by: John Johansen <john.johansen@canonical.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- .../admin-guide/kernel-parameters.txt         | 12 ++++++++++
- security/Kconfig                              |  4 +++-
- security/security.c                           | 22 +++++++++++++++++++
- 3 files changed, 37 insertions(+), 1 deletion(-)
+ Documentation/admin-guide/kernel-parameters.txt |  7 -------
+ security/apparmor/Kconfig                       | 16 ----------------
+ security/apparmor/lsm.c                         |  7 ++-----
+ 3 files changed, 2 insertions(+), 28 deletions(-)
 
 diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 32d323ee9218..67c90985d2b8 100644
+index f646cfab5613..cf963febebb0 100644
 --- a/Documentation/admin-guide/kernel-parameters.txt
 +++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2276,6 +2276,18 @@
+@@ -4054,13 +4054,6 @@
+ 			If enabled at boot time, /selinux/disable can be used
+ 			later to disable prior to initial policy load.
  
- 	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
+-	apparmor=	[APPARMOR] Disable or enable AppArmor at boot time
+-			Format: { "0" | "1" }
+-			See security/apparmor/Kconfig help text
+-			0 -- disable.
+-			1 -- enable.
+-			Default value is set via kernel config option.
+-
+ 	serialnumber	[BUGS=X86-32]
  
-+	lsm.disable=lsm1,...,lsmN
-+			[SECURITY] Comma-separated list of LSMs to disable
-+			at boot time. This overrides "lsm.enable=",
-+			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and boot
-+			parameters.
-+
-+	lsm.enable=lsm1,...,lsmN
-+			[SECURITY] Comma-separated list of LSMs to enable
-+			at boot time. This overrides any omissions from
-+			CONFIG_LSM_ENABLE, and any per-LSM CONFIGs and
-+			boot parameters.
-+
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
- 			Example: machvec=hpzx1_swiotlb
-diff --git a/security/Kconfig b/security/Kconfig
-index ac23feba584d..1e57619fd561 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -282,7 +282,9 @@ config LSM_ENABLE
- 	help
- 	  A comma-separated list of LSMs to enable by default at boot. The
- 	  default is "all", to enable all LSM modules at boot. Any LSMs
--	  not listed here will be disabled by default.
-+	  not listed here will be disabled by default. This can be
-+	  changed with the "lsm.enable=" and "lsm.disable=" boot
-+	  parameters.
+ 	shapers=	[NET]
+diff --git a/security/apparmor/Kconfig b/security/apparmor/Kconfig
+index b6b68a7750ce..3de21f46c82a 100644
+--- a/security/apparmor/Kconfig
++++ b/security/apparmor/Kconfig
+@@ -14,22 +14,6 @@ config SECURITY_APPARMOR
  
- endmenu
+ 	  If you are unsure how to answer this question, answer N.
  
-diff --git a/security/security.c b/security/security.c
-index 35601000176b..3fff2d1d1ec4 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -44,6 +44,8 @@ char *lsm_names;
- /* Boot-time LSM user choice */
- static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
- 	CONFIG_DEFAULT_SECURITY;
-+static __initdata const char *chosen_lsm_enable;
-+static __initdata const char *chosen_lsm_disable;
+-config SECURITY_APPARMOR_BOOTPARAM_VALUE
+-	int "AppArmor boot parameter default value"
+-	depends on SECURITY_APPARMOR
+-	range 0 1
+-	default 1
+-	help
+-	  This option sets the default value for the kernel parameter
+-	  'apparmor', which allows AppArmor to be enabled or disabled
+-          at boot.  If this option is set to 0 (zero), the AppArmor
+-	  kernel parameter will default to 0, disabling AppArmor at
+-	  boot.  If this option is set to 1 (one), the AppArmor
+-	  kernel parameter will default to 1, enabling AppArmor at
+-	  boot.
+-
+-	  If you are unsure how to answer this question, answer 1.
+-
+ config SECURITY_APPARMOR_HASH
+ 	bool "Enable introspection of sha1 hashes for loaded profiles"
+ 	depends on SECURITY_APPARMOR
+diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
+index bc56b058dc75..4cd96a66ed6f 100644
+--- a/security/apparmor/lsm.c
++++ b/security/apparmor/lsm.c
+@@ -1303,15 +1303,12 @@ bool aa_g_paranoid_load = true;
+ module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
  
- static __initconst const char * const builtin_lsm_enable = CONFIG_LSM_ENABLE;
+ /* Boot time disable flag */
+-static int apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
++static int apparmor_enabled __lsm_ro_after_init;
+ module_param_named(enabled, apparmor_enabled, int, 0444);
  
-@@ -185,6 +187,10 @@ static void __init prepare_lsm_enable(void)
+ static int __init apparmor_enabled_setup(char *str)
  {
- 	/* Prepare defaults. */
- 	parse_lsm_enable(builtin_lsm_enable, default_enabled, true);
-+
-+	/* Process "lsm.enable=" and "lsm.disable=", if given. */
-+	parse_lsm_enable(chosen_lsm_enable, set_enabled, true);
-+	parse_lsm_enable(chosen_lsm_disable, set_enabled, false);
+-	unsigned long enabled;
+-	int error = kstrtoul(str, 0, &enabled);
+-	if (!error)
+-		apparmor_enabled = enabled ? 1 : 0;
++	pr_err("Boot param 'apparmor=' ignored. Use 'lsm.disable=apparmor'\n");
+ 	return 1;
  }
  
- /**
-@@ -240,6 +246,22 @@ static int __init enable_debug(char *str)
- }
- __setup("lsm.debug", enable_debug);
- 
-+/* Explicitly enable a list of LSMs. */
-+static int __init enable_lsm(char *str)
-+{
-+	chosen_lsm_enable = str;
-+	return 1;
-+}
-+__setup("lsm.enable=", enable_lsm);
-+
-+/* Explicitly disable a list of LSMs. */
-+static int __init disable_lsm(char *str)
-+{
-+	chosen_lsm_disable = str;
-+	return 1;
-+}
-+__setup("lsm.disable=", disable_lsm);
-+
- static bool match_last_lsm(const char *list, const char *lsm)
- {
- 	const char *last;
 -- 
 2.17.1
