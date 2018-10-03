@@ -1,60 +1,113 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Tue, 2 Oct 2018 17:12:58 -0700
-Message-ID: <CAGXu5jJ-2V5ch-Qer_O0mg1J5-9SUmyJXsGYicZEMyg5KkqHaw@mail.gmail.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
- <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
- <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
- <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
- <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
- <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
- <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
- <3b539d37-136f-b868-3155-f2982eb63890@canonical.com>
+From: Eugene Syromiatnikov <esyr@redhat.com>
+Subject: Re: [RFC PATCH v4 19/27] x86/cet/shstk: Introduce WRUSS instruction
+Date: Wed, 3 Oct 2018 06:15:57 +0200
+Message-ID: <20181003041557.GA22724@asgard.redhat.com>
+References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
+ <20180921150351.20898-20-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3b539d37-136f-b868-3155-f2982eb63890@canonical.com>
+Content-Disposition: inline
+In-Reply-To: <20180921150351.20898-20-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Johansen <john.johansen@canonical.com>
-Cc: James Morris <jmorris@namei.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 2, 2018 at 5:05 PM, John Johansen
-<john.johansen@canonical.com> wrote:
-> On 10/02/2018 04:54 PM, Kees Cook wrote:
->> That's not how I have it currently. It's a comma-separated a string,
->> including the reserved name "all". The default would just be
->> "CONFIG_LSM_ENABLE=all". Casey and I wanted this to have a way to
->> capture new LSMs by default at build-time.
->>
->
-> I understand where you are coming from, but speaking with my distro
-> hat on, that is not going to work. As a distro Ubuntu very much wants
-> to be able to offer all the LSMs built in to the kernel so the user
-> can select them. But very much wants to be able to specify a default
-> supported subset that is enabled at boot.
->
-> I expect RH and Suse will feel similarily. Speaking for Ubuntu if this
-> isn't available as part of lsm stacking it will get distro patched in.
+On Fri, Sep 21, 2018 at 08:03:43AM -0700, Yu-cheng Yu wrote:
+> WRUSS is a new kernel-mode instruction but writes directly
+> to user shadow stack memory.  This is used to construct
+> a return address on the shadow stack for the signal
+> handler.
+> 
+> This instruction can fault if the user shadow stack is
+> invalid shadow stack memory.  In that case, the kernel does
+> fixup.
 
-Right. Ubuntu would do something like:
+"a fixup"
 
-CONFIG_LSM_ENABLE=yama,apparmor,integrity
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/special_insns.h | 32 ++++++++++++++++++++++++++++
+>  arch/x86/mm/fault.c                  |  9 ++++++++
+>  2 files changed, 41 insertions(+)
+> 
+> diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/special_insns.h
+> index 317fc59b512c..c04e68ef47da 100644
+> --- a/arch/x86/include/asm/special_insns.h
+> +++ b/arch/x86/include/asm/special_insns.h
+> @@ -237,6 +237,38 @@ static inline void clwb(volatile void *__p)
+>  		: [pax] "a" (p));
+>  }
+>  
+> +#ifdef CONFIG_X86_INTEL_CET
+> +#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +	asm_volatile_goto("1: wrussd %1, (%0)\n"
+> +			  _ASM_EXTABLE(1b, %l[fail])
+> +			  :: "r" (addr), "r" (val)
+> +			  :: fail);
+> +	return 0;
+> +fail:
+> +	return -1;
 
-And that's why I wanted non-explicit lsm.enable, so that an end user
-could just do:
+Should it...
 
-lsm.enable=loadpin
+> +}
+> +#else
+> +static inline int write_user_shstk_32(unsigned long addr, unsigned int val)
+> +{
+> +	WARN_ONCE(1, "write_user_shstk_32 used but not supported.\n");
 
-to add loadpin.
+"is/was used"
 
-Perhaps we could have both? "lsm.enable=+loadpin" (add loadpin to
-build default list) vs "lsm.enable=loadpin" (override build default
-list with ONLY loadpin).
+> +	return -EFAULT;
+> +}
+> +#endif
+> +
+> +static inline int write_user_shstk_64(unsigned long addr, unsigned long val)
+> +{
+> +	asm_volatile_goto("1: wrussq %1, (%0)\n"
+> +			  _ASM_EXTABLE(1b, %l[fail])
+> +			  :: "r" (addr), "r" (val)
+> +			  :: fail);
+> +	return 0;
+> +fail:
+> +	return -1;
 
--Kees
+...and it be -EPERM, if -EFAULT was returned earlier for write_user_shstk_32?
 
--- 
-Kees Cook
-Pixel Security
+> +}
+> +#endif /* CONFIG_X86_INTEL_CET */
+> +
+>  #define nop() asm volatile ("nop")
+>  
+>  
+> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+> index 7c3877a982f4..4d4ac57a4ba2 100644
+> --- a/arch/x86/mm/fault.c
+> +++ b/arch/x86/mm/fault.c
+> @@ -1305,6 +1305,15 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+>  		error_code |= X86_PF_USER;
+>  		flags |= FAULT_FLAG_USER;
+>  	} else {
+> +		/*
+> +		 * WRUSS is a kernel instrcution and but writes
+
+"WRUSS is a kernel instruction but writes"
+
+> +		 * to user shadow stack.  When a fault occurs,
+> +		 * both X86_PF_USER and X86_PF_SHSTK are set.
+> +		 * Clear X86_PF_USER here.
+> +		 */
+> +		if ((error_code & (X86_PF_USER | X86_PF_SHSTK)) ==
+> +		    (X86_PF_USER | X86_PF_SHSTK))
+> +			error_code &= ~X86_PF_USER;
+>  		if (regs->flags & X86_EFLAGS_IF)
+>  			local_irq_enable();
+>  	}
+> -- 
+> 2.17.1
+> 
