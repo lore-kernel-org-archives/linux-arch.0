@@ -1,92 +1,96 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call table file generation
-Date: Wed, 3 Oct 2018 10:38:40 +0530
-Message-ID: <CALxhOnh4__SMm93Lpr13eHxBTvDnocHzdh3YDxtuogEKg355Vw@mail.gmail.com>
-References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
- <1538397784-4214-4-git-send-email-firoz.khan@linaro.org> <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
+Subject: Re: [PATCH 1/3] microblaze: Replace NR_syscalls macro from asm/unistd.h
+Date: Wed, 3 Oct 2018 10:39:40 +0530
+Message-ID: <CALxhOnj8fRf3WC4t6HRSt=L0aCMszadVbaCdbtLi_Xrf_fh-PQ@mail.gmail.com>
+References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
+ <1533792466-4227-2-git-send-email-firoz.khan@linaro.org> <f1e95c4d-4f02-263d-7f35-cc87bc657fbb@xilinx.com>
+ <CALxhOnho6av7nZja_MN4akQuVj1hVq753ZYgRM8fbKkL2rHzQw@mail.gmail.com> <89533601-366f-ebf4-dc31-996bc649bc51@xilinx.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
+In-Reply-To: <89533601-366f-ebf4-dc31-996bc649bc51@xilinx.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Michal Simek <michal.simek@xilinx.com>
-Cc: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
 Hi Michal,
 
-On Tue, 2 Oct 2018 at 19:37, Michal Simek <michal.simek@xilinx.com> wrote:
+On Tue, 2 Oct 2018 at 12:37, Michal Simek <michal.simek@xilinx.com> wrote:
 >
-> On 1.10.2018 14:43, Firoz Khan wrote:
-> > System call table generation script must be run to generate
-> > unistd_32.h and syscall_table.h files. This patch will have
-> > changes which will invokes the script.
+> On 18.9.2018 08:37, Firoz Khan wrote:
+> > On 9 August 2018 at 12:18, Michal Simek <michal.simek@xilinx.com> wrote:
+> >> On 9.8.2018 07:27, Firoz Khan wrote:
+> >>> __NR_syscalls macro holds the number of system call exist in this
+> >>> architecture. This macro is currently the part of asm/unistd.h file.
+> >>> We have change the value of __NR_syscalls, if we add or delete a
+> >>> system call.
+> >>>
+> >>> One of the patch in this patch series has a script which will
+> >>> generate a uapi header based on syscall.tbl file. The syscall.tbl
+> >>> file contains the number of system call information. So we have
+> >>> two option to update __NR_syscalls value.
+> >>>
+> >>> 1. Update __NR_syscalls in asm/unistd.h manually by counting the
+> >>>    no.of system calls. No need to update __NR_syscalls untill
+> >>>    we either add a new system call or delete an existing system
+> >>>    call.
+> >>>
+> >>> 2. We can keep this feature it above mentioned script, that'll
+> >>>    count the number of syscalls and keep it in a generated file.
+> >>>    In this case we don't need to explicitly update __NR_syscalls
+> >>>    in asm/unistd.h file.
+> >>>
+> >>> The 2nd option will be the recommended one. For that, I moved the
+> >>> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
+> >>> name also changed form NR_syscalls to __NR_syscalls for making the
+> >>> name convention same across all architecture. While __NR_syscalls
+> >>> isn't strictly part of the uapi, having it as part of the generated
+> >>> header to simplifies the implementation.
+> >>
+> >> This macro was in unistd.h in past but it was moved out because it was
+> >> causing problem with strace.
+> >>
+> >> commit 40c2702a02b755e0183b702778331b351f3be20c
+> >> Author:     Michal Simek <michal.simek@xilinx.com>
+> >> AuthorDate: Mon Jul 8 09:50:24 2013 +0200
+> >> Commit:     Michal Simek <michal.simek@xilinx.com>
+> >> CommitDate: Wed Jul 10 07:32:09 2013 +0200
+> >>
+> >>     microblaze: Move __NR_syscalls from uapi
+> >>
+> >>
+> >> That's why I don't think this is the right thing to do.
+> >> I have grepped strace and glibc and none is using this macro that's why
+> >> I think it shouldn't be exported via uapi.
 > >
-> > This patch will generate unistd_32.h and syscall_table.h
-> > files by the syscall table generation script invoked by
-> > arch/microblaze/Makefile and the generated files against the
-> > removed files will be identical.
 > >
-> > The generated uapi header file will be included in
-> > uapi/asm/unistd.h and generated system call table support
-> > file will be included by kernel/syscall_table.S file.
+> > Thanks for you reply :)
+> > Sorry for the delayed response :(
 > >
-> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> > ---
-> >  arch/microblaze/Makefile                  |   3 +
-> >  arch/microblaze/include/asm/Kbuild        |   1 +
-> >  arch/microblaze/include/uapi/asm/Kbuild   |   1 +
-> >  arch/microblaze/include/uapi/asm/unistd.h | 411 +-----------------------------
-> >  arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
-> >  5 files changed, 10 insertions(+), 812 deletions(-)
+> > I would like to keep __NR_syscalls macro to uapi header in order to simplify
+> > the system call table generation script. Otherwise the __NR_syscalls
+> > macro need to update manually. That become a problem.
 > >
-> > diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-> > index 4f3ab57..cda5e03 100644
-> > --- a/arch/microblaze/Makefile
-> > +++ b/arch/microblaze/Makefile
-> > @@ -81,6 +81,9 @@ all: linux.bin
-> >  archclean:
-> >       $(Q)$(MAKE) $(clean)=$(boot)
+> > Please check the below implementation in uapi file make sense?
+> > It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
+> > and enclose it in #ifdef __KERNEL__
 > >
-> > +archheaders:
-> > +     $(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
-> > +
-> >  linux.bin linux.bin.gz linux.bin.ub: vmlinux
-> >       $(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+> > ...
+> > ...
+> > #define __NR_pkey_free  397
+> > #define __NR_statx      398
 > >
-> > diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-> > index 569ba9e..d64f5e7 100644
-> > --- a/arch/microblaze/include/asm/Kbuild
-> > +++ b/arch/microblaze/include/asm/Kbuild
-> > @@ -31,3 +31,4 @@ generic-y += trace_clock.h
-> >  generic-y += vga.h
-> >  generic-y += word-at-a-time.h
-> >  generic-y += xor.h
-> > +generic-y += syscall_table.h
-> > \ No newline at end of file
+> > #ifdef __KERNEL__
+> > #define __NR_syscalls   399
+> > #endif
+> > ...
+> > ...
 >
-> Still the problem with "No newline at end of file"
->
-> > diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-> > index 2c6a6bf..3a40659 100644
-> > --- a/arch/microblaze/include/uapi/asm/Kbuild
-> > +++ b/arch/microblaze/include/uapi/asm/Kbuild
-> > @@ -28,3 +28,4 @@ generic-y += termbits.h
-> >  generic-y += termios.h
-> >  generic-y += types.h
-> >  generic-y += ucontext.h
-> > +generic-y += unistd_32.h
-> > \ No newline at end of file
->
-> and here too.
+> This should be fine.
 
-Thanks for your comment. checkpatch script didn't warn this one:(
-Hopefully, I can fix this one in the next version.
+Thanks for the confirmation!
 
-I would appreciate if you can perform the boot test on the actual
-platform and share the result with me.
-
-Thanks,
-Firoz
+- Firoz
 >
 > M
