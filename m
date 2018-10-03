@@ -1,69 +1,78 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v7 7/8] arm64: update
- Documentation/arm64/tagged-pointers.txt
-Date: Wed, 3 Oct 2018 18:32:57 +0100
-Message-ID: <20181003173256.GG12998@arrakis.emea.arm.com>
-References: <cover.1538485901.git.andreyknvl@google.com>
- <47a464307d4df3c0cb65f88d1fe83f9a741dd74b.1538485901.git.andreyknvl@google.com>
+From: James Morse <james.morse@arm.com>
+Subject: [PATCH] asm-generic/pgtable-nop?d.h: define folded with a value for
+ use in C
+Date: Wed,  3 Oct 2018 18:50:52 +0100
+Message-ID: <20181003175052.31917-1-james.morse@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <47a464307d4df3c0cb65f88d1fe83f9a741dd74b.1538485901.git.andreyknvl@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@goog>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, James Morse <james.morse@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 02, 2018 at 03:12:42PM +0200, Andrey Konovalov wrote:
-> diff --git a/Documentation/arm64/tagged-pointers.txt b/Documentation/arm64/tagged-pointers.txt
-> index a25a99e82bb1..ae877d185fdb 100644
-> --- a/Documentation/arm64/tagged-pointers.txt
-> +++ b/Documentation/arm64/tagged-pointers.txt
-> @@ -17,13 +17,21 @@ this byte for application use.
->  Passing tagged addresses to the kernel
->  --------------------------------------
->  
-> -All interpretation of userspace memory addresses by the kernel assumes
-> -an address tag of 0x00.
-> +Some initial work for supporting non-zero address tags passed to the
-> +kernel has been done. As of now, the kernel supports tags in:
+It turns out "if (__is_defined(__PAGETABLE_PMD_FOLDED))" isn't equivalent
+to "#ifdef __PAGETABLE_PMD_FOLDED". (who knew!)
 
-With my maintainer hat on, the above statement leads me to think this
-new ABI is work in progress, so not yet suitable for upstream.
+kconfig.h's __is_defined() expects a define of the form
+"#define CONFIG_BOOGER 1". But these nop?d headers just have
+"#define __PAGETABLE_PMD_FOLDED".
 
-Also, how is user space supposed to know that it can now pass tagged
-pointers into the kernel? An ABI change (or relaxation), needs to be
-advertised by the kernel, usually via a new HWCAP bit (e.g. HWCAP_TBI).
-Once we have a HWCAP bit in place, we need to be pretty clear about
-which syscalls can and cannot cope with tagged pointers. The "as of now"
-implies potential further relaxation which, again, would need to be
-advertised to user in some (additional) way.
+This means ____is_defined()'s triplet passed to __take_second_arg() is
+'empty-string, 1 0' in both cases, meaning these symbols can't be used
+from C. (they are always false).
 
-> -This includes, but is not limited to, addresses found in:
-> +  - user fault addresses
+asm-generic gets away with this as its using the pre-processor's
+defined() macro on this, not the C __is_defined().
 
-While the kernel currently supports this in some way (by clearing the
-tag exception entry, el0_da), the above implies (at least to me) that
-sigcontext.fault_address would contain the tagged address. That's not
-the case (unless I missed it in your patches).
+Add the expected '1'.
 
-> - - pointer arguments to system calls, including pointers in structures
-> -   passed to system calls,
-> +  - pointer arguments (including pointers in structures), which don't
-> +    describe virtual memory ranges, passed to system calls
+Signed-off-by: James Morse <james.morse@arm.com>
+CC: Mark Rutland <mark.rutland@arm.com>
+---
+This fixes an issue with patches queued for arm64. Can it go via the arm64 tree?
+Link: lore.kernel.org/r/0f9a3abc-4890-faf5-ee7e-18434641b858@arm.com
 
-I think we need to be more precise here...
 
-> +All other interpretations of userspace memory addresses by the kernel
-> +assume an address tag of 0x00. This includes, but is not limited to,
-> +addresses found in:
-> +
-> + - pointer arguments (including pointers in structures), which describe
-> +   virtual memory ranges, passed to memory system calls (mmap, mprotect,
-> +   etc.)
 
-...and probably a full list here.
+ include/asm-generic/pgtable-nopmd.h | 2 +-
+ include/asm-generic/pgtable-nopud.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
+diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+index f35f6e8149e4..fcb4769a075a 100644
+--- a/include/asm-generic/pgtable-nopmd.h
++++ b/include/asm-generic/pgtable-nopmd.h
+@@ -8,7 +8,7 @@
+ 
+ struct mm_struct;
+ 
+-#define __PAGETABLE_PMD_FOLDED
++#define __PAGETABLE_PMD_FOLDED	1
+ 
+ /*
+  * Having the pmd type consist of a pud gets the size right, and allows
+diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+index e950b9c50f34..d300dbcddaf3 100644
+--- a/include/asm-generic/pgtable-nopud.h
++++ b/include/asm-generic/pgtable-nopud.h
+@@ -9,7 +9,7 @@
+ #else
+ #include <asm-generic/pgtable-nop4d.h>
+ 
+-#define __PAGETABLE_PUD_FOLDED
++#define __PAGETABLE_PUD_FOLDED	1
+ 
+ /*
+  * Having the pud type consist of a p4d gets the size right, and allows
 -- 
-Catalin
+2.19.0
