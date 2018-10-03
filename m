@@ -1,147 +1,103 @@
-From: Vineet Gupta <vineet.gupta1@synopsys.com>
-Subject: Re: [PATCH 12/18] arch/tlb: Clean up simple architectures
-Date: Wed, 3 Oct 2018 17:03:50 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075012B09A59E@us01wembx1.internal.synopsys.com>
-References: <20180926113623.863696043@infradead.org>
- <20180926114801.146189550@infradead.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Wed, 3 Oct 2018 10:26:36 -0700
+Message-ID: <CAGXu5jLmQQd4e=B3YsiEoRVih2m889ia2tnzu5r8bqcms2sOqQ@mail.gmail.com>
+References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+ <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
+ <583a703e-18af-a1b2-dfc9-62a2a3384825@tycho.nsa.gov>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
+In-Reply-To: <583a703e-18af-a1b2-dfc9-62a2a3384825@tycho.nsa.gov>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "aneesh.kumar@linux.vnet.ibm.com" <aneesh.kumar@linux.vnet.ibm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "npiggin@gmail.com" <npiggin@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "riel@surriel.com" <riel@surriel.com>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vineet.gupta1@synopsys.com>, Mark Salter <msalter@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Michal Simek <monstr@monstr.eu>, Paul Burton <paul.burton@mips.com>, Greentime Hu <green.hu@gmail.com>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@pku.edu.cn>, Max Filippov <jcmvbkbc@gmail.com>
+To: Stephen Smalley <sds@tycho.nsa.gov>
+Cc: John Johansen <john.johansen@canonical.com>, James Morris <jmorris@namei.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 09/26/2018 04:56 AM, Peter Zijlstra wrote:=0A=
-> There are generally two cases:=0A=
->=0A=
->  1) either the platform has an efficient flush_tlb_range() and=0A=
->     asm-generic/tlb.h doesn't need any overrides at all.=0A=
->=0A=
->  2) or an architecture lacks an efficient flush_tlb_range() and=0A=
->     we override tlb_end_vma() and tlb_flush().=0A=
->=0A=
-> Convert all 'simple' architectures to one of these two forms.=0A=
->=0A=
-> alpha:	    has no range invalidate -> 2=0A=
-> arc:	    already used flush_tlb_range() -> 1=0A=
-> c6x:	    has no range invalidate -> 2=0A=
-> h8300:	    has no mmu=0A=
-> hexagon:    has an efficient flush_tlb_range() -> 1=0A=
->             (flush_tlb_mm() is in fact a full range invalidate,=0A=
-> 	     so no need to shoot down everything)=0A=
-> m68k:	    has inefficient flush_tlb_range() -> 2=0A=
-> microblaze: has no flush_tlb_range() -> 2=0A=
-> mips:	    has efficient flush_tlb_range() -> 1=0A=
-> 	    (even though it currently seems to use flush_tlb_mm())=0A=
-> nds32:	    already uses flush_tlb_range() -> 1=0A=
-> nios2:	    has inefficient flush_tlb_range() -> 2=0A=
-> 	    (no limit on range iteration)=0A=
-> openrisc:   has inefficient flush_tlb_range() -> 2=0A=
-> 	    (no limit on range iteration)=0A=
-> parisc:	    already uses flush_tlb_range() -> 1=0A=
-> sparc32:    already uses flush_tlb_range() -> 1=0A=
-> unicore32:  has inefficient flush_tlb_range() -> 2=0A=
-> 	    (no limit on range iteration)=0A=
-> xtensa:	    has efficient flush_tlb_range() -> 1=0A=
->=0A=
-> Cc: Richard Henderson <rth@twiddle.net>=0A=
-> Cc: Vineet Gupta <vgupta@synopsys.com>=0A=
-> Cc: Mark Salter <msalter@redhat.com>=0A=
-> Cc: Richard Kuo <rkuo@codeaurora.org>=0A=
-> Cc: Michal Simek <monstr@monstr.eu>=0A=
-> Cc: Paul Burton <paul.burton@mips.com>=0A=
-> Cc: Greentime Hu <green.hu@gmail.com>=0A=
-> Cc: Ley Foon Tan <lftan@altera.com>=0A=
-> Cc: Jonas Bonn <jonas@southpole.se>=0A=
-> Cc: Helge Deller <deller@gmx.de>=0A=
-> Cc: "David S. Miller" <davem@davemloft.net>=0A=
-> Cc: Guan Xuetao <gxt@pku.edu.cn>=0A=
-> Cc: Max Filippov <jcmvbkbc@gmail.com>=0A=
-> Cc: Will Deacon <will.deacon@arm.com>=0A=
-> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>=0A=
-> Cc: Andrew Morton <akpm@linux-foundation.org>=0A=
-> Cc: Nick Piggin <npiggin@gmail.com>=0A=
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>=0A=
-> ---=0A=
->  arch/alpha/include/asm/tlb.h      |    2 --=0A=
->  arch/arc/include/asm/tlb.h        |   23 -----------------------=0A=
->  arch/c6x/include/asm/tlb.h        |    1 +=0A=
->  arch/h8300/include/asm/tlb.h      |    2 --=0A=
->  arch/hexagon/include/asm/tlb.h    |   12 ------------=0A=
->  arch/m68k/include/asm/tlb.h       |    1 -=0A=
->  arch/microblaze/include/asm/tlb.h |    4 +---=0A=
->  arch/mips/include/asm/tlb.h       |    8 --------=0A=
->  arch/nds32/include/asm/tlb.h      |   10 ----------=0A=
->  arch/nios2/include/asm/tlb.h      |    8 +++++---=0A=
->  arch/openrisc/include/asm/tlb.h   |    6 ++++--=0A=
->  arch/parisc/include/asm/tlb.h     |   13 -------------=0A=
->  arch/powerpc/include/asm/tlb.h    |    1 -=0A=
->  arch/sparc/include/asm/tlb_32.h   |   13 -------------=0A=
->  arch/unicore32/include/asm/tlb.h  |   10 ++++++----=0A=
->  arch/xtensa/include/asm/tlb.h     |   17 -----------------=0A=
->  16 files changed, 17 insertions(+), 114 deletions(-)=0A=
->=0A=
-> --- a/arch/alpha/include/asm/tlb.h=0A=
-> +++ b/arch/alpha/include/asm/tlb.h=0A=
-> @@ -4,8 +4,6 @@=0A=
->  =0A=
->  #define tlb_start_vma(tlb, vma)			do { } while (0)=0A=
->  #define tlb_end_vma(tlb, vma)			do { } while (0)=0A=
-> -#define __tlb_remove_tlb_entry(tlb, pte, addr)	do { } while (0)=0A=
-> -=0A=
->  #define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)=0A=
->  =0A=
->  #include <asm-generic/tlb.h>=0A=
-> --- a/arch/arc/include/asm/tlb.h=0A=
-> +++ b/arch/arc/include/asm/tlb.h=0A=
-> @@ -9,29 +9,6 @@=0A=
->  #ifndef _ASM_ARC_TLB_H=0A=
->  #define _ASM_ARC_TLB_H=0A=
->  =0A=
-> -#define tlb_flush(tlb)				\=0A=
-> -do {						\=0A=
-> -	if (tlb->fullmm)			\=0A=
-> -		flush_tlb_mm((tlb)->mm);	\=0A=
-> -} while (0)=0A=
-> -=0A=
-> -/*=0A=
-> - * This pair is called at time of munmap/exit to flush cache and TLB ent=
-ries=0A=
-> - * for mappings being torn down.=0A=
-> - * 1) cache-flush part -implemented via tlb_start_vma( ) for VIPT aliasi=
-ng D$=0A=
-> - * 2) tlb-flush part - implemted via tlb_end_vma( ) flushes the TLB rang=
-e=0A=
-> - *=0A=
-> - * Note, read https://urldefense.proofpoint.com/v2/url?u=3Dhttp-3A__lkml=
-.org_lkml_2004_1_15_6&d=3DDwIBaQ&c=3DDPL6_X_6JkXFx7AXWqB0tg&r=3Dc14YS-cH-kd=
-hTOW89KozFhBtBJgs1zXscZojEZQ0THs&m=3D5jiyvgRek4SKK5DUWDBGufVcuLez5G-jJCh3K-=
-ndHsg&s=3D7uAzzw_jdAXMfb07B-vGPh3V1vggbTAsB7xL6Kie47A&e=3D=0A=
-> - */=0A=
-> -=0A=
-> -#define tlb_end_vma(tlb, vma)						\=0A=
-> -do {									\=0A=
-> -	if (!tlb->fullmm)						\=0A=
-> -		flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\=0A=
-> -} while (0)=0A=
-> -=0A=
-> -#define __tlb_remove_tlb_entry(tlb, ptep, address)=0A=
-> -=0A=
->  #include <linux/pagemap.h>=0A=
->  #include <asm-generic/tlb.h>=0A=
-=0A=
-LGTM per discussion in an earlier thread. However given that for "simpler" =
-arches=0A=
-the whole series doesn't apply can you please beef up the changelog so I do=
-n't go=0A=
-scratching my head 2 years down the line. It currently describes the hows o=
-f=0A=
-things but not exactly whys: shift_arg_pages missing tlb_start_vma,=0A=
-move_page_tables look dodgy, yady yadda ?=0A=
-=0A=
-Thx,=0A=
--Vineet=0A=
-=0A=
+On Wed, Oct 3, 2018 at 6:39 AM, Stephen Smalley <sds@tycho.nsa.gov> wrote:
+> On 10/02/2018 07:54 PM, Kees Cook wrote:
+>>
+>> On Tue, Oct 2, 2018 at 4:46 PM, John Johansen
+>> <john.johansen@canonical.com> wrote:
+>>>
+>>> On 10/02/2018 04:06 PM, Kees Cook wrote:
+>>>>
+>>>> I think the current proposal (in the other thread) is likely the
+>>>> sanest approach:
+>>>>
+>>>> - Drop CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE
+>>>> - Drop CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE
+>>>> - All enabled LSMs are listed at build-time in CONFIG_LSM_ENABLE
+>>>
+>>>
+>>> Hrrmmm isn't this a Kconfig selectable list, with each built-in LSM
+>>> available to be enabled by default at boot.
+>>
+>>
+>> That's not how I have it currently. It's a comma-separated a string,
+>> including the reserved name "all". The default would just be
+>> "CONFIG_LSM_ENABLE=all". Casey and I wanted this to have a way to
+>> capture new LSMs by default at build-time.
+>>
+>>>> - Boot time enabling for selinux= and apparmor= remain
+>>>> - lsm.enable= is explicit: overrides above and omissions are disabled
+>>>
+>>> wfm
+>>
+>>
+>> Okay, this is closer to v3 than v4. Paul or Stephen, how do you feel
+>> about losing the SELinux bootparam CONFIG? (i.e. CONFIG_LSM_ENABLE
+>> would be replacing its functionality.)
+>
+>
+> I'd like to know how distro kernel maintainers feel about it. They would
+> need to understand that if they were previously setting
+> CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE to 0 and want to preserve that
+> behavior, then they must set CONFIG_LSM_ENABLE explicitly to a list of
+> security modules (that does not include selinux, of course).  In practice,
+
+That's not how it would be done. See below...
+
+> this means that even the distros that choose to build all security modules
+> into their kernels must explicitly set CONFIG_LSM_ENABLE to a specific list
+> of security modules.  So no one would use "all" in practice.
+
+This is why I had originally wanted to do CONFIG_LSM_DISABLE. Right
+now, distro kernel maintainers have two ways to trigger enablement:
+via the SELinux and AppArmor BOOTPARAM_VALUE _and_ DEFAULT_SECURITY
+(which is an implicit "enable" for Smack or TOMOYO). All the minors
+are on-if-built. So, really, the BOOTPARAM_VALUEs were only used for
+disabling. Distros would build what they wanted, then use
+DEFAULT_SECURITY for their desired major, and if their
+DEFAULT_SECURITY wasn't SELinux or AppArmor, they'd _also_ have to set
+those BOOTPARAM_VALUEs to 0.
+
+The goal of the series is to split this more cleanly between "enable"
+and "order": the way to handle the LSMs is to enable _everything_ and
+then set the desired init order: the first exclusive "wins". So I *do*
+think the default would be CONFIG_LSM_ENALBE=all, since it's
+CONFIG_LSM_ORDER= that effectively replaces CONFIG_DEFAULT_SECURITY.
+
+Either a distro builds a very specific subset of LSMs, or they build
+in all LSMs (for the user to choose from). In both cases, they set an
+explicit order, which defines which exclusive LSM get selected.
+
+AppArmor wants to drop BOOTPARAM_VALUE, which make sense, since it's
+even now redundant to CONFIG_DEFAULT_SECURITY. I think it makes sense
+to drop SELinux's BOOTPARAM_VALUE too. The current way to "enable" a
+major LSM is via CONFIG_DEFAULT_SECURITY. No sane distro kernel is
+going to set CONFIG_DEFAULT_SECURITY=selinux and
+CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE=0. If you wanted no major LSM
+(but still build them all in), you'd set CONFIG_DEFAULT_SECURITY="".
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
