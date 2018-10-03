@@ -1,66 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f196.google.com ([209.85.219.196]:43126 "EHLO
-        mail-yb1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725198AbeJCGka (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 02:40:30 -0400
-Received: by mail-yb1-f196.google.com with SMTP id w80-v6so1600325ybe.10
-        for <linux-arch@vger.kernel.org>; Tue, 02 Oct 2018 16:54:37 -0700 (PDT)
-Received: from mail-yw1-f51.google.com (mail-yw1-f51.google.com. [209.85.161.51])
-        by smtp.gmail.com with ESMTPSA id v34-v6sm15583644ywh.45.2018.10.02.16.54.33
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Tue, 02 Oct 2018 16:54:34 -0700 (PDT)
-Received: by mail-yw1-f51.google.com with SMTP id s73-v6so1548584ywg.11
-        for <linux-arch@vger.kernel.org>; Tue, 02 Oct 2018 16:54:33 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
- <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
- <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
- <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
- <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
- <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
- <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Tue, 2 Oct 2018 16:54:32 -0700
-Message-ID: <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:48206 "EHLO
+        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726304AbeJCGvm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 02:51:42 -0400
 Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Content-Type: text/plain; charset="UTF-8"
+References: <20181002005505.6112-1-keescook@chromium.org>
+ <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
+ <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov>
+ <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com>
+ <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org>
+ <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+ <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com>
+ <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
+From: John Johansen <john.johansen@canonical.com>
+Message-ID: <3b539d37-136f-b868-3155-f2982eb63890@canonical.com>
+Date: Tue, 2 Oct 2018 17:05:39 -0700
+MIME-Version: 1.0
+In-Reply-To: <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Johansen <john.johansen@canonical.com>
+To: Kees Cook <keescook@chromium.org>
 Cc: James Morris <jmorris@namei.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181002235432.Zzgpcs89OcOM9YGwNYpAvvX3u9Ncousj301bUkAR_W4@z>
+Message-ID: <20181003000539.Chk6-FLn8B_rL8ck7G6qvrGMLl1lboiEHOP1k-dAN3g@z>
 
-On Tue, Oct 2, 2018 at 4:46 PM, John Johansen
-<john.johansen@canonical.com> wrote:
-> On 10/02/2018 04:06 PM, Kees Cook wrote:
->> I think the current proposal (in the other thread) is likely the
->> sanest approach:
+On 10/02/2018 04:54 PM, Kees Cook wrote:
+> On Tue, Oct 2, 2018 at 4:46 PM, John Johansen
+> <john.johansen@canonical.com> wrote:
+>> On 10/02/2018 04:06 PM, Kees Cook wrote:
+>>> I think the current proposal (in the other thread) is likely the
+>>> sanest approach:
+>>>
+>>> - Drop CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE
+>>> - Drop CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE
+>>> - All enabled LSMs are listed at build-time in CONFIG_LSM_ENABLE
 >>
->> - Drop CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE
->> - Drop CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE
->> - All enabled LSMs are listed at build-time in CONFIG_LSM_ENABLE
->
-> Hrrmmm isn't this a Kconfig selectable list, with each built-in LSM
-> available to be enabled by default at boot.
+>> Hrrmmm isn't this a Kconfig selectable list, with each built-in LSM
+>> available to be enabled by default at boot.
+> 
+> That's not how I have it currently. It's a comma-separated a string,
+> including the reserved name "all". The default would just be
+> "CONFIG_LSM_ENABLE=all". Casey and I wanted this to have a way to
+> capture new LSMs by default at build-time.
+> 
 
-That's not how I have it currently. It's a comma-separated a string,
-including the reserved name "all". The default would just be
-"CONFIG_LSM_ENABLE=all". Casey and I wanted this to have a way to
-capture new LSMs by default at build-time.
+I understand where you are coming from, but speaking with my distro
+hat on, that is not going to work. As a distro Ubuntu very much wants
+to be able to offer all the LSMs built in to the kernel so the user
+can select them. But very much wants to be able to specify a default
+supported subset that is enabled at boot.
 
->> - Boot time enabling for selinux= and apparmor= remain
->> - lsm.enable= is explicit: overrides above and omissions are disabled
-> wfm
+I expect RH and Suse will feel similarily. Speaking for Ubuntu if this
+isn't available as part of lsm stacking it will get distro patched in.
 
-Okay, this is closer to v3 than v4. Paul or Stephen, how do you feel
-about losing the SELinux bootparam CONFIG? (i.e. CONFIG_LSM_ENABLE
-would be replacing its functionality.)
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+>>> - Boot time enabling for selinux= and apparmor= remain
+>>> - lsm.enable= is explicit: overrides above and omissions are disabled
+>> wfm
+> 
+> Okay, this is closer to v3 than v4. Paul or Stephen, how do you feel
+> about losing the SELinux bootparam CONFIG? (i.e. CONFIG_LSM_ENABLE
+> would be replacing its functionality.)
+> 
+> -Kees
+> 
