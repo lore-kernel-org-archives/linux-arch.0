@@ -1,33 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:58502 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726748AbeJCU1e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 16:27:34 -0400
-Date: Wed, 3 Oct 2018 06:38:56 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [RFC PATCH v4 09/27] x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
-Message-ID: <20181003133856.GA24782@bombadil.infradead.org>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
- <20180921150351.20898-10-yu-cheng.yu@intel.com>
+Received: from upbd19pa10.eemsg.mail.mil ([214.24.27.85]:53362 "EHLO
+        upbd19pa10.eemsg.mail.mil" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726694AbeJCUf4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 16:35:56 -0400
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+References: <20181002005505.6112-1-keescook@chromium.org>
+ <20181002005505.6112-24-keescook@chromium.org>
+ <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
+ <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
+ <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov>
+ <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com>
+ <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org>
+ <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+ <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com>
+ <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
+From: Stephen Smalley <sds@tycho.nsa.gov>
+Message-ID: <583a703e-18af-a1b2-dfc9-62a2a3384825@tycho.nsa.gov>
+Date: Wed, 3 Oct 2018 09:39:10 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180921150351.20898-10-yu-cheng.yu@intel.com>
+In-Reply-To: <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Message-ID: <20181003133856.mmjSY7_jeeU1Wz-6YZVr_i10zhAvLSzUtNm7V2J1utE@z>
+To: Kees Cook <keescook@chromium.org>, John Johansen <john.johansen@canonical.com>
+Cc: James Morris <jmorris@namei.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181003133910.TnmGFg3E0WDX2TLEy__ju-yjzlddDYCLm_tg_m2RcDo@z>
 
-On Fri, Sep 21, 2018 at 08:03:33AM -0700, Yu-cheng Yu wrote:
-> We are going to create _PAGE_DIRTY_SW for non-hardware, memory
-> management purposes.  Rename _PAGE_DIRTY to _PAGE_DIRTY_HW and
-> _PAGE_BIT_DIRTY to _PAGE_BIT_DIRTY_HW to make these PTE dirty
-> bits more clear.  There are no functional changes in this
-> patch.
+On 10/02/2018 07:54 PM, Kees Cook wrote:
+> On Tue, Oct 2, 2018 at 4:46 PM, John Johansen
+> <john.johansen@canonical.com> wrote:
+>> On 10/02/2018 04:06 PM, Kees Cook wrote:
+>>> I think the current proposal (in the other thread) is likely the
+>>> sanest approach:
+>>>
+>>> - Drop CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE
+>>> - Drop CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE
+>>> - All enabled LSMs are listed at build-time in CONFIG_LSM_ENABLE
+>>
+>> Hrrmmm isn't this a Kconfig selectable list, with each built-in LSM
+>> available to be enabled by default at boot.
+> 
+> That's not how I have it currently. It's a comma-separated a string,
+> including the reserved name "all". The default would just be
+> "CONFIG_LSM_ENABLE=all". Casey and I wanted this to have a way to
+> capture new LSMs by default at build-time.
+> 
+>>> - Boot time enabling for selinux= and apparmor= remain
+>>> - lsm.enable= is explicit: overrides above and omissions are disabled
+>> wfm
+> 
+> Okay, this is closer to v3 than v4. Paul or Stephen, how do you feel
+> about losing the SELinux bootparam CONFIG? (i.e. CONFIG_LSM_ENABLE
+> would be replacing its functionality.)
 
-I would like there to be some documentation in this patchset which
-explains the difference between PAGE_SOFT_DIRTY and PAGE_DIRTY_SW.
-
-Also, is it really necessary to rename PAGE_DIRTY?  It feels like a
-lot of churn.
+I'd like to know how distro kernel maintainers feel about it. They would 
+need to understand that if they were previously setting 
+CONFIG_SECURITY_SELINUX_BOOTPARAM_VALUE to 0 and want to preserve that 
+behavior, then they must set CONFIG_LSM_ENABLE explicitly to a list of 
+security modules (that does not include selinux, of course).  In 
+practice, this means that even the distros that choose to build all 
+security modules into their kernels must explicitly set 
+CONFIG_LSM_ENABLE to a specific list of security modules.  So no one 
+would use "all" in practice.
