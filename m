@@ -1,76 +1,91 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Wed, 3 Oct 2018 13:10:51 -0700
-Message-ID: <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <20181002005505.6112-24-keescook@chromium.org>
- <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
- <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
- <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
- <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
- <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
- <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org>
- <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com> <alpine.LRH.2.21.1810040427550.13517@namei.org>
+From: Eugene Syromiatnikov <esyr@redhat.com>
+Subject: Re: [RFC PATCH v4 4/9] mm/mmap: Add IBT bitmap size to address space
+ limit check
+Date: Wed, 3 Oct 2018 22:21:46 +0200
+Message-ID: <20181003202146.GG32759@asgard.redhat.com>
+References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
+ <20180921150553.21016-5-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LRH.2.21.1810040427550.13517@namei.org>
+Content-Disposition: inline
+In-Reply-To: <20180921150553.21016-5-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: James Morris <jmorris@namei.org>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 3, 2018 at 11:28 AM, James Morris <jmorris@namei.org> wrote:
-> On Wed, 3 Oct 2018, Kees Cook wrote:
->
->> On Wed, Oct 3, 2018 at 11:17 AM, James Morris <jmorris@namei.org> wrote:
->> > On Tue, 2 Oct 2018, John Johansen wrote:
->> >> To me a list like
->> >>   lsm.enable=X,Y,Z
->> >
->> > What about even simpler:
->> >
->> > lsm=selinux,!apparmor,yama
->>
->> We're going to have lsm.order=, so I'd like to keep it with a dot
->> separator (this makes it more like module parameters, too). You want
->> to mix enable/disable in the same string? That implies you'd want
->> implicit enabling (i.e. it complements the builtin enabling), which is
->> opposite from what John wanted.
->>
->
-> Why can't this be the order as well?
+On Fri, Sep 21, 2018 at 08:05:48AM -0700, Yu-cheng Yu wrote:
+> The indirect branch tracking legacy bitmap takes a large address
+> space.  This causes may_expand_vm() failure on the address limit
+> check.  For a IBT-enabled task, add the bitmap size to the
+> address limit.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/uapi/asm/resource.h |  5 +++++
+>  include/uapi/asm-generic/resource.h  |  3 +++
+>  mm/mmap.c                            | 12 +++++++++++-
+>  3 files changed, 19 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/include/uapi/asm/resource.h b/arch/x86/include/uapi/asm/resource.h
+> index 04bc4db8921b..0741b2a6101a 100644
+> --- a/arch/x86/include/uapi/asm/resource.h
+> +++ b/arch/x86/include/uapi/asm/resource.h
+> @@ -1 +1,6 @@
+> +/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
+> +#ifdef CONFIG_X86_INTEL_CET
+> +#define rlimit_as_extra() current->thread.cet.ibt_bitmap_size
+> +#endif
 
-That was covered extensively in the earlier threads. It boils down to
-making sure we do not create a pattern of leaving LSMs disabled by
-default when they are added to the kernel. The v1 series used
-security= like this:
+Does this really belong to UAPI?
 
-+       security=       [SECURITY] An ordered comma-separated list of
-+                       security modules to attempt to enable at boot. If
-+                       this boot parameter is not specified, only the
-+                       security modules asking for initialization will be
-+                       enabled (see CONFIG_DEFAULT_SECURITY). Duplicate
-+                       or invalid security modules will be ignored. The
-+                       capability module is always loaded first, without
-+                       regard to this parameter.
+> +
+>  #include <asm-generic/resource.h>
+> diff --git a/include/uapi/asm-generic/resource.h b/include/uapi/asm-generic/resource.h
+> index f12db7a0da64..8a7608a09700 100644
+> --- a/include/uapi/asm-generic/resource.h
+> +++ b/include/uapi/asm-generic/resource.h
+> @@ -58,5 +58,8 @@
+>  # define RLIM_INFINITY		(~0UL)
+>  #endif
+>  
+> +#ifndef rlimit_as_extra
+> +#define rlimit_as_extra() 0
+> +#endif
 
-This meant booting "security=apparmor" would disable all the other
-LSMs, which wasn't friendly at all. So "security=" was left alone (to
-leave it to only select the "major" LSM: all major LSMs not matching
-"security=" would be disabled). So I proposed "lsm.order=" to specify
-the order things were going to be initialized in, but to avoid kernels
-booting with newly added LSMs forced-off due to not being listed in
-"lsm.order=", it had to have implicit fall-back for unlisted LSMs.
-(i.e. anything missing from lsm.order would then follow their order in
-CONFIG_LSM_ORDER, and anything missing there would fall back to
-link-time ordering.) However, then the objection was raised that this
-didn't provide a way to explicitly disable an LSM. So I proposed
-lsm.enable/disable, and John argued for CONFIG_LSM_ENABLE over
-CONFIG_LSM_DISABLE.
+And this?
 
--Kees
+>  #endif /* _UAPI_ASM_GENERIC_RESOURCE_H */
+> diff --git a/mm/mmap.c b/mm/mmap.c
+> index fa581ced3f56..397b8cb0b0af 100644
+> --- a/mm/mmap.c
+> +++ b/mm/mmap.c
+> @@ -3237,7 +3237,17 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
+>   */
+>  bool may_expand_vm(struct mm_struct *mm, vm_flags_t flags, unsigned long npages)
+>  {
+> -	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)
+> +	unsigned long as_limit = rlimit(RLIMIT_AS);
+> +	unsigned long as_limit_plus = as_limit + rlimit_as_extra();
+> +
+> +	/* as_limit_plus overflowed */
+> +	if (as_limit_plus < as_limit)
+> +		as_limit_plus = RLIM_INFINITY;
+> +
+> +	if (as_limit_plus > as_limit)
+> +		as_limit = as_limit_plus;
+> +
+> +	if (mm->total_vm + npages > as_limit >> PAGE_SHIFT)
 
--- 
-Kees Cook
-Pixel Security
+I wonder, how realistic a scenario where a userspace application enables IBT,
+configures a huge prefetchable IO memory region (that just ignores bits
+of offset beyond 16, for example), and start repeatedly loading a legacy
+library there at different linear addresses.
+
+>  		return false;
+>  
+>  	if (is_data_mapping(flags) &&
+> -- 
+> 2.17.1
+> 
