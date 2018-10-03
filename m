@@ -1,41 +1,70 @@
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [RFC PATCH v4 10/27] drm/i915/gvt: Update _PAGE_DIRTY to
- _PAGE_DIRTY_BITS
-Date: Wed, 3 Oct 2018 15:19:11 +0200
-Message-ID: <20181003131911.GB32759@asgard.redhat.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
- <20180921150351.20898-11-yu-cheng.yu@intel.com>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH 0/3] namei: implement various scoping AT_* flags
+Date: Wed, 3 Oct 2018 13:21:59 +0000
+Message-ID: <71b13208253f4b3fa82640ec96bf9301@AcuMS.aculab.com>
+References: <20180929103453.12025-1-cyphar@cyphar.com>
+ <1f1d699b1c8d472495a5b07199c31a6e@AcuMS.aculab.com>
+ <20181001161535.3zslyuk6vmnpioy6@ryuk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180921150351.20898-11-yu-cheng.yu@intel.com>
+In-Reply-To: <20181001161535.3zslyuk6vmnpioy6@ryuk>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
+To: 'Aleksa Sarai' <cyphar@cyphar.com>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Eric Biederman <ebiederm@xmission.com>, Tycho Andersen <tycho@tycho.ws>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>, "dev@opencontainers.org" <dev@opencontainers.org>, "containers@lists.linux-foundation.org" <containers@lists.linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 21, 2018 at 08:03:34AM -0700, Yu-cheng Yu wrote:
-> Update _PAGE_DIRTY to _PAGE_DIRTY_BITS in split_2MB_gtt_entry().
+From: Aleksa Sarai
+> Sent: 01 October 2018 17:16
 > 
-> In order to support Control Flow Enforcement (CET), _PAGE_DIRTY
-> is now _PAGE_DIRTY_HW or _PAGE_DIRTY_SW.
+> On 2018-10-01, David Laight <David.Laight@ACULAB.COM> wrote:
+...
+> > >   * Mountpoint crossings are blocked by AT_XDEV.
+> >
+> > You might want a mountpoint flag that allows crossing into the mounted
+> > filesystem (you may need to get out in order to do pwd()).
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  drivers/gpu/drm/i915/gvt/gtt.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/drivers/gpu/drm/i915/gvt/gtt.c b/drivers/gpu/drm/i915/gvt/gtt.c
-> index 00aad8164dec..2d6ba1462dd8 100644
-> --- a/drivers/gpu/drm/i915/gvt/gtt.c
-> +++ b/drivers/gpu/drm/i915/gvt/gtt.c
-> @@ -1170,7 +1170,7 @@ static int split_2MB_gtt_entry(struct intel_vgpu *vgpu,
->  	}
->  
->  	/* Clear dirty field. */
-> -	se->val64 &= ~_PAGE_DIRTY;
-> +	se->val64 &= ~_PAGE_DIRTY_BITS;
+> Like a mount flag? I'm not sure how I feel about that. The intention is
+> to allow for a process to have control over how path lookups are
+> handled, and tying it to a mount flag means that it's no longer entirely
+> up to the process.
 
-_PAGE_DIRTY_BITS is defined only in "[RFC PATCH v4 11/27] x86/mm:
-Introduce _PAGE_DIRTY_SW",
+Right, but you may have some mount points that you don't want to cross
+and others that it is perfectly fine to cross.
+For example you might want to be able to cross into a 'tmp' filesystem.
+
+...
+> > If you make the flags a property of the directory vnode (perhaps as
+> > well as any syscall flags), and make it inherited by vnode lookup then
+> > it can be used to stop library functions (or entire binaries) using
+> > blocked paths.
+> > You'd then only need to add an fcntl() call to set the flags (but never
+> > clear them) to get the restriction applied to every lookup.
+> 
+> This seems like it might be useful, but it could always be done as a
+> follow-up patch by just setting LOOKUP_BLAH if the dirfd has the flag
+> set. I'm also a little bit concerned that (because fd flags are set on
+> the 'struct file') if you start sharing fds then you can no longer use
+> the lookup scoping for security (a racing process could remove the
+> flags while the management process resolves through it).
+
+I was thinking that the flags would never be removable.
+A management process might have to flip its cwd back and forth
+in order to clear the flags (opendir(".") should give a different
+struct file).
+
+This all gets tied up with the slight requirement for per-thread cwd.
+
+I had another thought that the crudentials structure used for a file
+lookup could also be taken from the cwd (not sure how it would
+get there - especially if you need the correct group list).
+That would allow a 'management' process to open a file in the context
+of the target user process.
+
+	David
+
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
