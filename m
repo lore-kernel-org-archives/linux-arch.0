@@ -1,92 +1,81 @@
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Thu, 4 Oct 2018 07:34:38 +1000 (AEST)
-Message-ID: <alpine.LRH.2.21.1810040723320.16168@namei.org>
-References: <20181002005505.6112-1-keescook@chromium.org> <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com> <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov>
- <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch> <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com> <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com>
- <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com> <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com> <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com>
- <alpine.LRH.2.21.1810040416500.13517@namei.org> <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com> <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path resolution
+Date: Wed, 3 Oct 2018 15:09:18 -0700
+Message-ID: <CALCETrXZ_Kg25gToCzzM=4g1Z3mQgou8RmF6OWoh3+vuPk3vUA@mail.gmail.com>
+References: <20180929103453.12025-1-cyphar@cyphar.com> <20180929131534.24472-1-cyphar@cyphar.com>
+ <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
+ <20181001054246.gfinmx3api7kjhmc@ryuk> <C89D720F-3CC4-4FA9-9CBB-E41A67360A6B@amacapital.net>
+ <20181002073220.7mzndna4tdnxdvdt@ryuk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
+In-Reply-To: <20181002073220.7mzndna4tdnxdvdt@ryuk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Jann Horn <jannh@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, David Howells <dhowells@redhat.com>, Andrew Lutomirski <luto@kernel.org>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, LKML <linux-kernel@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, dev@opencontainers.org, Linux Containers <containers@lists.linux-foundation.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 3 Oct 2018, Kees Cook wrote:
-
-> On Wed, Oct 3, 2018 at 11:28 AM, James Morris <jmorris@namei.org> wrote:
-> > On Wed, 3 Oct 2018, Kees Cook wrote:
+On Tue, Oct 2, 2018 at 12:32 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>
+> On 2018-10-01, Andy Lutomirski <luto@amacapital.net> wrote:
+> > >>> Currently most container runtimes try to do this resolution in
+> > >>> userspace[1], causing many potential race conditions. In addition, =
+the
+> > >>> "obvious" alternative (actually performing a {ch,pivot_}root(2))
+> > >>> requires a fork+exec which is *very* costly if necessary for every
+> > >>> filesystem operation involving a container.
+> > >>
+> > >> Wait. fork() I understand, but why exec? And actually, you don't nee=
+d
+> > >> a full fork() either, clone() lets you do this with some process par=
+ts
+> > >> shared. And then you also shouldn't need to use SCM_RIGHTS, just kee=
+p
+> > >> the file descriptor table shared. And why chroot()/pivot_root(),
+> > >> wouldn't you want to use setns()?
+> > >
+> > > You're right about this -- for C runtimes. In Go we cannot do a raw
+> > > clone() or fork() (if you do it manually with RawSyscall you'll end w=
+ith
+> > > broken runtime state). So you're forced to do fork+exec (which then
+> > > means that you can't use CLONE_FILES and must use SCM_RIGHTS). Same g=
+oes
+> > > for CLONE_VFORK.
 > >
-> >> On Wed, Oct 3, 2018 at 11:17 AM, James Morris <jmorris@namei.org> wrote:
-> >> > On Tue, 2 Oct 2018, John Johansen wrote:
-> >> >> To me a list like
-> >> >>   lsm.enable=X,Y,Z
-> >> >
-> >> > What about even simpler:
-> >> >
-> >> > lsm=selinux,!apparmor,yama
-> >>
-> >> We're going to have lsm.order=, so I'd like to keep it with a dot
-> >> separator (this makes it more like module parameters, too). You want
-> >> to mix enable/disable in the same string? That implies you'd want
-> >> implicit enabling (i.e. it complements the builtin enabling), which is
-> >> opposite from what John wanted.
-> >>
+> > I must admit that I=E2=80=99m not very sympathetic to the argument that=
+ =E2=80=9CGo=E2=80=99s
+> > runtime model is incompatible with the simpler solution.=E2=80=9D
+>
+> Multi-threaded programs have a similar issue (though with Go it's much
+> worse). If you fork a multi-threaded C program then you can only safely
+> use AS-Safe glibc functions (those that are safe within a signal
+> handler). But if you're just doing three syscalls this shouldn't be as
+> big of a problem as Go where you can't even do said syscalls.
+>
+> > Anyway, it occurs to me that the real problem is that setns() and
+> > chroot() are both overkill for this use case.
+>
+> I agree. My diversion to Go was to explain why it was particularly bad
+> for cri-o/rkt/runc/Docker/etc.
+>
+> > What=E2=80=99s needed is to start your walk from /proc/pid-in-container=
+/root,
+> > with two twists:
 > >
-> > Why can't this be the order as well?
-> 
-> That was covered extensively in the earlier threads. It boils down to
-> making sure we do not create a pattern of leaving LSMs disabled by
-> default when they are added to the kernel. The v1 series used
-> security= like this:
-> 
-> +       security=       [SECURITY] An ordered comma-separated list of
-> +                       security modules to attempt to enable at boot. If
-> +                       this boot parameter is not specified, only the
-> +                       security modules asking for initialization will be
-> +                       enabled (see CONFIG_DEFAULT_SECURITY). Duplicate
-> +                       or invalid security modules will be ignored. The
-> +                       capability module is always loaded first, without
-> +                       regard to this parameter.
-> 
-> This meant booting "security=apparmor" would disable all the other
-> LSMs, which wasn't friendly at all. So "security=" was left alone (to
-> leave it to only select the "major" LSM: all major LSMs not matching
-> "security=" would be disabled). So I proposed "lsm.order=" to specify
-> the order things were going to be initialized in, but to avoid kernels
-> booting with newly added LSMs forced-off due to not being listed in
-> "lsm.order=", it had to have implicit fall-back for unlisted LSMs.
-> (i.e. anything missing from lsm.order would then follow their order in
-> CONFIG_LSM_ORDER, and anything missing there would fall back to
-> link-time ordering.) However, then the objection was raised that this
-> didn't provide a way to explicitly disable an LSM. So I proposed
-> lsm.enable/disable, and John argued for CONFIG_LSM_ENABLE over
-> CONFIG_LSM_DISABLE.
+> > 1. Do the walk as though rooted at a directory. This is basically just
+> > your AT_THIS_ROOT, but the footgun is avoided because the dirfd you
+> > use is from a foreign namespace, and, except for symlinks to absolute
+> > paths, no amount of .. racing is going to escape the *namespace*.
+>
+> This is quite clever and I'll admit I hadn't thought of this. This
+> definitely fixes the ".." issue, but as you've said it won't handle
+> absolute symlinks (which means userspace has the same races that we
+> currently have even if you assume that you have a container process
+> already running -- CVE-2018-15664 is one of many examples of this).
+>
+> (AT_THIS_ROOT using /proc/$container/root would in principle fix all of
+> the mentioned issues -- but as I said before I'd like to see whether
+> hardening ".." would be enough to solve the escape problem.)
 
-Ok, but it may end up being clearer, simpler, and thus more secure to just 
-have a single way to configure LSM.
-
-For example:
-
-  - All LSMs which are built are NOT enabled by default
-
-  - You specify enablement and order via a Kconfig:
-
-	CONFIG_LSM="selinux,yama"
-
-  - This can be entirely overridden by a boot param:
-
-	lsm="apparmor,landlock"
-
-And that's it.
-
-Of course, capabilities is always enabled and not be visible to kconfig or 
-boot params.
-
-
--- 
-James Morris
-<jmorris@namei.org>
+Hmm.  Good point.
