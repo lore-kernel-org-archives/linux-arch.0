@@ -1,96 +1,30 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH 1/3] microblaze: Replace NR_syscalls macro from asm/unistd.h
-Date: Wed, 3 Oct 2018 10:39:40 +0530
-Message-ID: <CALxhOnj8fRf3WC4t6HRSt=L0aCMszadVbaCdbtLi_Xrf_fh-PQ@mail.gmail.com>
-References: <1533792466-4227-1-git-send-email-firoz.khan@linaro.org>
- <1533792466-4227-2-git-send-email-firoz.khan@linaro.org> <f1e95c4d-4f02-263d-7f35-cc87bc657fbb@xilinx.com>
- <CALxhOnho6av7nZja_MN4akQuVj1hVq753ZYgRM8fbKkL2rHzQw@mail.gmail.com> <89533601-366f-ebf4-dc31-996bc649bc51@xilinx.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC PATCH v4 24/27] mm/mmap: Create a guard area between VMAs
+Date: Tue, 2 Oct 2018 22:36:15 -0700
+Message-ID: <CALCETrU-Ny-uC1NqRedQwNKe2MMhsFEqZ08TtHJwbLfCACMmLw@mail.gmail.com>
+References: <20180921150351.20898-1-yu-cheng.yu@intel.com> <20180921150351.20898-25-yu-cheng.yu@intel.com>
+ <20181003045611.GB22724@asgard.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <89533601-366f-ebf4-dc31-996bc649bc51@xilinx.com>
+In-Reply-To: <20181003045611.GB22724@asgard.redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <michal.simek@xilinx.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Eugene Syromiatnikov <esyr@redhat.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>Oleg Nesterov <o>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michal,
-
-On Tue, 2 Oct 2018 at 12:37, Michal Simek <michal.simek@xilinx.com> wrote:
+On Tue, Oct 2, 2018 at 9:55 PM Eugene Syromiatnikov <esyr@redhat.com> wrote:
 >
-> On 18.9.2018 08:37, Firoz Khan wrote:
-> > On 9 August 2018 at 12:18, Michal Simek <michal.simek@xilinx.com> wrote:
-> >> On 9.8.2018 07:27, Firoz Khan wrote:
-> >>> __NR_syscalls macro holds the number of system call exist in this
-> >>> architecture. This macro is currently the part of asm/unistd.h file.
-> >>> We have change the value of __NR_syscalls, if we add or delete a
-> >>> system call.
-> >>>
-> >>> One of the patch in this patch series has a script which will
-> >>> generate a uapi header based on syscall.tbl file. The syscall.tbl
-> >>> file contains the number of system call information. So we have
-> >>> two option to update __NR_syscalls value.
-> >>>
-> >>> 1. Update __NR_syscalls in asm/unistd.h manually by counting the
-> >>>    no.of system calls. No need to update __NR_syscalls untill
-> >>>    we either add a new system call or delete an existing system
-> >>>    call.
-> >>>
-> >>> 2. We can keep this feature it above mentioned script, that'll
-> >>>    count the number of syscalls and keep it in a generated file.
-> >>>    In this case we don't need to explicitly update __NR_syscalls
-> >>>    in asm/unistd.h file.
-> >>>
-> >>> The 2nd option will be the recommended one. For that, I moved the
-> >>> NR_syscalls macro from asm/unistd.h to uapi/asm/unistd.h. The macro
-> >>> name also changed form NR_syscalls to __NR_syscalls for making the
-> >>> name convention same across all architecture. While __NR_syscalls
-> >>> isn't strictly part of the uapi, having it as part of the generated
-> >>> header to simplifies the implementation.
-> >>
-> >> This macro was in unistd.h in past but it was moved out because it was
-> >> causing problem with strace.
-> >>
-> >> commit 40c2702a02b755e0183b702778331b351f3be20c
-> >> Author:     Michal Simek <michal.simek@xilinx.com>
-> >> AuthorDate: Mon Jul 8 09:50:24 2013 +0200
-> >> Commit:     Michal Simek <michal.simek@xilinx.com>
-> >> CommitDate: Wed Jul 10 07:32:09 2013 +0200
-> >>
-> >>     microblaze: Move __NR_syscalls from uapi
-> >>
-> >>
-> >> That's why I don't think this is the right thing to do.
-> >> I have grepped strace and glibc and none is using this macro that's why
-> >> I think it shouldn't be exported via uapi.
-> >
-> >
-> > Thanks for you reply :)
-> > Sorry for the delayed response :(
-> >
-> > I would like to keep __NR_syscalls macro to uapi header in order to simplify
-> > the system call table generation script. Otherwise the __NR_syscalls
-> > macro need to update manually. That become a problem.
-> >
-> > Please check the below implementation in uapi file make sense?
-> > It is an easy workaround to leave __NR_syscalls macro in uapi/asm/unistd.h
-> > and enclose it in #ifdef __KERNEL__
-> >
-> > ...
-> > ...
-> > #define __NR_pkey_free  397
-> > #define __NR_statx      398
-> >
-> > #ifdef __KERNEL__
-> > #define __NR_syscalls   399
-> > #endif
-> > ...
-> > ...
+> On Fri, Sep 21, 2018 at 08:03:48AM -0700, Yu-cheng Yu wrote:
+> > Create a guard area between VMAs, to detect memory corruption.
 >
-> This should be fine.
+> Do I understand correctly that with this patch a user space program
+> no longer be able to place two mappings back to back? If it is so,
+> it will likely break a lot of things; for example, it's a common ring
+> buffer implementations technique, to map buffer memory twice back
+> to back in order to avoid special handling of items wrapping its end.
 
-Thanks for the confirmation!
+I haven't checked what the patch actually does, but it shouldn't have
+any affect on MAP_FIXED or the new no-replace MAP_FIXED variant.
 
-- Firoz
->
-> M
+--Andy
