@@ -1,43 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:51820 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726720AbeJCUTo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 16:19:44 -0400
-Date: Wed, 3 Oct 2018 15:31:12 +0200
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH v7 0/8] arm64: untag user pointers passed to the kernel
-Message-ID: <20181003133110.4y3xhexjrvffivff@ltop.local>
-References: <cover.1538485901.git.andreyknvl@google.com>
+Received: from bombadil.infradead.org ([198.137.202.133]:58502 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726748AbeJCU1e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2018 16:27:34 -0400
+Date: Wed, 3 Oct 2018 06:38:56 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [RFC PATCH v4 09/27] x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
+Message-ID: <20181003133856.GA24782@bombadil.infradead.org>
+References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
+ <20180921150351.20898-10-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <cover.1538485901.git.andreyknvl@google.com>
+In-Reply-To: <20180921150351.20898-10-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Konovalov <andreyknvl@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20181003133112.vLsWs4bo5TyaLOUs_N2OdCyBtcmjDbrqStEM6WvUfNQ@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
+Message-ID: <20181003133856.mmjSY7_jeeU1Wz-6YZVr_i10zhAvLSzUtNm7V2J1utE@z>
 
-On Tue, Oct 02, 2018 at 03:12:35PM +0200, Andrey Konovalov wrote:
-...
+On Fri, Sep 21, 2018 at 08:03:33AM -0700, Yu-cheng Yu wrote:
+> We are going to create _PAGE_DIRTY_SW for non-hardware, memory
+> management purposes.  Rename _PAGE_DIRTY to _PAGE_DIRTY_HW and
+> _PAGE_BIT_DIRTY to _PAGE_BIT_DIRTY_HW to make these PTE dirty
+> bits more clear.  There are no functional changes in this
+> patch.
 
-> Changes in v7:
-> - Rebased onto 17b57b18 (4.19-rc6).
-> - Dropped the "arm64: untag user address in __do_user_fault" patch, since
->   the existing patches already handle user faults properly.
-> - Dropped the "usb, arm64: untag user addresses in devio" patch, since the
->   passed pointer must come from a vma and therefore be untagged.
-> - Dropped the "arm64: annotate user pointers casts detected by sparse"
->   patch (see the discussion to the replies of the v6 of this patchset).
-> - Added more context to the cover letter.
-> - Updated Documentation/arm64/tagged-pointers.txt.
+I would like there to be some documentation in this patchset which
+explains the difference between PAGE_SOFT_DIRTY and PAGE_DIRTY_SW.
 
-Hi,
-
-I'm quite hapy now with what concerns me (sparse).
-Please, feel free to add my:
-Reviewed-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-
-
-Cheers,
--- Luc Van Oostenryck
+Also, is it really necessary to rename PAGE_DIRTY?  It feels like a
+lot of churn.
