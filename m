@@ -1,89 +1,211 @@
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [RFC PATCH v4 06/27] x86/cet: Control protection exception
- handler
-Date: Wed, 3 Oct 2018 12:39:59 +0200
-Message-ID: <20181003103959.GB7111@asgard.redhat.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
- <20180921150351.20898-7-yu-cheng.yu@intel.com>
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call table file
+ generation
+Date: Wed, 3 Oct 2018 13:26:15 +0200
+Message-ID: <440fc4a0-cd4e-c8fc-9278-928cf5b7cd92@xilinx.com>
+References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
+ <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
+ <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
+ <CALxhOnh4__SMm93Lpr13eHxBTvDnocHzdh3YDxtuogEKg355Vw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180921150351.20898-7-yu-cheng.yu@intel.com>
+In-Reply-To: <CALxhOnh4__SMm93Lpr13eHxBTvDnocHzdh3YDxtuogEKg355Vw@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
+To: Firoz Khan <firoz.khan@linaro.org>, Michal Simek <michal.simek@xilinx.com>
+Cc: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 21, 2018 at 08:03:30AM -0700, Yu-cheng Yu wrote:
+On 3.10.2018 07:08, Firoz Khan wrote:
+> Hi Michal,
+> 
+> On Tue, 2 Oct 2018 at 19:37, Michal Simek <michal.simek@xilinx.com> wrote:
+>>
+>> On 1.10.2018 14:43, Firoz Khan wrote:
+>>> System call table generation script must be run to generate
+>>> unistd_32.h and syscall_table.h files. This patch will have
+>>> changes which will invokes the script.
+>>>
+>>> This patch will generate unistd_32.h and syscall_table.h
+>>> files by the syscall table generation script invoked by
+>>> arch/microblaze/Makefile and the generated files against the
+>>> removed files will be identical.
+>>>
+>>> The generated uapi header file will be included in
+>>> uapi/asm/unistd.h and generated system call table support
+>>> file will be included by kernel/syscall_table.S file.
+>>>
+>>> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+>>> ---
+>>>  arch/microblaze/Makefile                  |   3 +
+>>>  arch/microblaze/include/asm/Kbuild        |   1 +
+>>>  arch/microblaze/include/uapi/asm/Kbuild   |   1 +
+>>>  arch/microblaze/include/uapi/asm/unistd.h | 411 +-----------------------------
+>>>  arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
+>>>  5 files changed, 10 insertions(+), 812 deletions(-)
+>>>
+>>> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
+>>> index 4f3ab57..cda5e03 100644
+>>> --- a/arch/microblaze/Makefile
+>>> +++ b/arch/microblaze/Makefile
+>>> @@ -81,6 +81,9 @@ all: linux.bin
+>>>  archclean:
+>>>       $(Q)$(MAKE) $(clean)=$(boot)
+>>>
+>>> +archheaders:
+>>> +     $(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
+>>> +
+>>>  linux.bin linux.bin.gz linux.bin.ub: vmlinux
+>>>       $(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+>>>
+>>> diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+>>> index 569ba9e..d64f5e7 100644
+>>> --- a/arch/microblaze/include/asm/Kbuild
+>>> +++ b/arch/microblaze/include/asm/Kbuild
+>>> @@ -31,3 +31,4 @@ generic-y += trace_clock.h
+>>>  generic-y += vga.h
+>>>  generic-y += word-at-a-time.h
+>>>  generic-y += xor.h
+>>> +generic-y += syscall_table.h
+>>> \ No newline at end of file
+>>
+>> Still the problem with "No newline at end of file"
+>>
+>>> diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
+>>> index 2c6a6bf..3a40659 100644
+>>> --- a/arch/microblaze/include/uapi/asm/Kbuild
+>>> +++ b/arch/microblaze/include/uapi/asm/Kbuild
+>>> @@ -28,3 +28,4 @@ generic-y += termbits.h
+>>>  generic-y += termios.h
+>>>  generic-y += types.h
+>>>  generic-y += ucontext.h
+>>> +generic-y += unistd_32.h
+>>> \ No newline at end of file
+>>
+>> and here too.
+> 
+> Thanks for your comment. checkpatch script didn't warn this one:(
+> Hopefully, I can fix this one in the next version.
+> 
+> I would appreciate if you can perform the boot test on the actual
+> platform and share the result with me.
 
-> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-> index e6db475164ed..873765adc244 100644
-> --- a/arch/x86/kernel/traps.c
-> +++ b/arch/x86/kernel/traps.c
-> @@ -578,6 +578,64 @@ do_general_protection(struct pt_regs *regs, long error_code)
->  }
->  NOKPROBE_SYMBOL(do_general_protection);
->  
-> +static const char *control_protection_err[] =
-> +{
-> +	"unknown",
-> +	"near-ret",
-> +	"far-ret/iret",
-> +	"endbranch",
-> +	"rstorssp",
-> +	"setssbsy",
-> +};
-> +
-> +/*
-> + * When a control protection exception occurs, send a signal
-> + * to the responsible application.  Currently, control
-> + * protection is only enabled for the user mode.  This
-> + * exception should not come from the kernel mode.
-> + */
-> +dotraplinkage void
-> +do_control_protection(struct pt_regs *regs, long error_code)
-> +{
-> +	struct task_struct *tsk;
-> +
-> +	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
-> +	if (notify_die(DIE_TRAP, "control protection fault", regs,
-> +		       error_code, X86_TRAP_CP, SIGSEGV) == NOTIFY_STOP)
-> +		return;
-> +	cond_local_irq_enable(regs);
-> +
-> +	if (!user_mode(regs))
-> +		die("kernel control protection fault", regs, error_code);
-> +
-> +	if (!static_cpu_has(X86_FEATURE_SHSTK) &&
-> +	    !static_cpu_has(X86_FEATURE_IBT))
-> +		WARN_ONCE(1, "CET is disabled but got control "
-> +			  "protection fault\n");
-> +
-> +	tsk = current;
-> +	tsk->thread.error_code = error_code;
-> +	tsk->thread.trap_nr = X86_TRAP_CP;
-> +
-> +	if (show_unhandled_signals && unhandled_signal(tsk, SIGSEGV) &&
-> +	    printk_ratelimit()) {
-> +		unsigned int max_err;
-> +
-> +		max_err = ARRAY_SIZE(control_protection_err) - 1;
-> +		if ((error_code < 0) || (error_code > max_err))
-> +			error_code = 0;
-> +		pr_info("%s[%d] control protection ip:%lx sp:%lx error:%lx(%s)",
-> +			tsk->comm, task_pid_nr(tsk),
-> +			regs->ip, regs->sp, error_code,
-> +			control_protection_err[error_code]);
-> +		print_vma_addr(KERN_CONT " in ", regs->ip);
-> +		pr_cont("\n");
-> +	}
-> +
-> +	force_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
+I see one issue there.
+Run
+make mrproper
+make ARCH=microblaze headers_install INSTALL_HDR_PATH=/tmp/1/
 
-That way, no information is provided to userspace (both application and
-debugger), which is rather unfortunate. It would be nice if a new SEGV_*
-code was added at least, and CET error (with error code constant provided
-in UAPI) is passed via si_errno. (Having ip/sp/*ssp would be even
-better, but I'm not exactly sure about ramifications of providing this
-kind of information to user space).
+And then
+
+make mrproper
+make archheaders V=1
+make ARCH=microblaze headers_install INSTALL_HDR_PATH=/tmp/2/
+
+And compare output.
+What I see is that in the first part asm/unistd_32.h pointing to
+asm-generic/unistd_32.h
+
+But when archheaders is run before there is expected content.
+
+That means there is incorrect/missing dependency in Makefiles.
+
+
+Time to time I am able to see compilation warnings
+but I didn't find exact steps to replicate this but it also looks like
+on missing dependency somewhere.
+
+[linux](next)$ make mmu_defconfig
+#
+# configuration written to .config
+#
+[linux](next)$ make -j8 simpleImage.system
+  WRAP    arch/microblaze/include/generated/asm/barrier.h
+  WRAP    arch/microblaze/include/generated/asm/bitops.h
+  WRAP    arch/microblaze/include/generated/asm/bug.h
+  WRAP    arch/microblaze/include/generated/asm/bugs.h
+  WRAP    arch/microblaze/include/generated/asm/device.h
+  WRAP    arch/microblaze/include/generated/asm/compat.h
+  WRAP    arch/microblaze/include/generated/asm/div64.h
+  WRAP    arch/microblaze/include/generated/asm/dma-mapping.h
+  WRAP    arch/microblaze/include/generated/asm/emergency-restart.h
+  WRAP    arch/microblaze/include/generated/asm/exec.h
+  WRAP    arch/microblaze/include/generated/asm/extable.h
+  WRAP    arch/microblaze/include/generated/asm/fb.h
+  WRAP    arch/microblaze/include/generated/asm/hardirq.h
+  WRAP    arch/microblaze/include/generated/asm/irq_regs.h
+  WRAP    arch/microblaze/include/generated/asm/kdebug.h
+  WRAP    arch/microblaze/include/generated/asm/kmap_types.h
+  WRAP    arch/microblaze/include/generated/asm/irq_work.h
+  WRAP    arch/microblaze/include/generated/asm/kprobes.h
+  WRAP    arch/microblaze/include/generated/asm/linkage.h
+  WRAP    arch/microblaze/include/generated/asm/local.h
+  WRAP    arch/microblaze/include/generated/asm/local64.h
+  WRAP    arch/microblaze/include/generated/asm/mcs_spinlock.h
+  WRAP    arch/microblaze/include/generated/asm/mm-arch-hooks.h
+  WRAP    arch/microblaze/include/generated/asm/parport.h
+  WRAP    arch/microblaze/include/generated/asm/percpu.h
+  WRAP    arch/microblaze/include/generated/asm/preempt.h
+  WRAP    arch/microblaze/include/generated/asm/topology.h
+  WRAP    arch/microblaze/include/generated/asm/syscalls.h
+  WRAP    arch/microblaze/include/generated/asm/trace_clock.h
+  WRAP    arch/microblaze/include/generated/asm/vga.h
+  WRAP    arch/microblaze/include/generated/asm/serial.h
+  WRAP    arch/microblaze/include/generated/asm/word-at-a-time.h
+  WRAP    arch/microblaze/include/generated/asm/xor.h
+  HOSTCC  scripts/bin2c
+  HOSTCC  scripts/kallsyms
+  HOSTCC  scripts/dtc/dtc.o
+  HOSTCC  scripts/mod/mk_elfconfig
+  HOSTCC  scripts/sortextable
+  CC      scripts/mod/empty.o
+  HOSTCC  scripts/dtc/flattree.o
+  UPD     include/config/kernel.release
+  HOSTCC  scripts/dtc/fstree.o
+  HOSTCC  scripts/dtc/data.o
+  HOSTCC  scripts/dtc/livetree.o
+  CC      scripts/mod/devicetable-offsets.s
+  HOSTCC  scripts/dtc/treesource.o
+  HOSTCC  scripts/dtc/srcpos.o
+  MKELF   scripts/mod/elfconfig.h
+  UPD     scripts/mod/devicetable-offsets.h
+  HOSTCC  scripts/dtc/checks.o
+  HOSTCC  scripts/dtc/util.o
+  HOSTCC  scripts/mod/sumversion.o
+  LEX     scripts/dtc/dtc-lexer.lex.c
+  YACC    scripts/dtc/dtc-parser.tab.h
+  YACC    scripts/dtc/dtc-parser.tab.c
+  UPD     include/generated/utsrelease.h
+  HOSTCC  scripts/dtc/dtc-lexer.lex.o
+  CC      kernel/bounds.s
+  UPD     include/generated/timeconst.h
+  HOSTCC  scripts/dtc/dtc-parser.tab.o
+  HOSTCC  scripts/mod/file2alias.o
+  HOSTCC  scripts/mod/modpost.o
+  UPD     include/generated/bounds.h
+  CC      arch/microblaze/kernel/asm-offsets.s
+In file included from ./arch/microblaze/include/uapi/asm/unistd.h:14:0,
+                 from ./arch/microblaze/include/asm/unistd.h:12,
+                 from ./include/uapi/linux/unistd.h:8,
+                 from ./arch/microblaze/include/asm/seccomp.h:5,
+                 from ./include/linux/seccomp.h:14,
+                 from ./include/linux/sched.h:21,
+                 from arch/microblaze/kernel/asm-offsets.c:13:
+./arch/microblaze/include/generated/uapi/asm/unistd_32.h:1:35: fatal
+error: asm-generic/unistd_32.h: No such file or directory
+ #include <asm-generic/unistd_32.h>
+                                   ^
+compilation terminated.
+make[1]: *** [arch/microblaze/kernel/asm-offsets.s] Error 1
+make: *** [prepare0] Error 2
+make: *** Waiting for unfinished jobs....
+  HOSTLD  scripts/dtc/dtc
+  HOSTLD  scripts/mod/modpost
+
+
+
+When build is fine system is booting fine (v4.19-rc6 + your patches).
+
+Thanks,
+Michal
