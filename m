@@ -1,459 +1,169 @@
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [RFC PATCH v4 21/27] x86/cet/shstk: ELF header parsing of Shadow
- Stack
-Date: Thu, 4 Oct 2018 01:27:36 +0200
-Message-ID: <20181003232736.GI32759@asgard.redhat.com>
-References: <20180921150351.20898-1-yu-cheng.yu@intel.com>
- <20180921150351.20898-22-yu-cheng.yu@intel.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Wed, 3 Oct 2018 16:55:31 -0700
+Message-ID: <CAGXu5jJDBhFrdCBHH4MZVDmG88mMxSaSx0w9anCcyx24YHLO5w@mail.gmail.com>
+References: <20181002005505.6112-1-keescook@chromium.org> <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov>
+ <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+ <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org>
+ <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com>
+ <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
+ <alpine.LRH.2.21.1810040723320.16168@namei.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180921150351.20898-22-yu-cheng.yu@intel.com>
+In-Reply-To: <alpine.LRH.2.21.1810040723320.16168@namei.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
+To: James Morris <jmorris@namei.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 21, 2018 at 08:03:45AM -0700, Yu-cheng Yu wrote:
-> Look in .note.gnu.property of an ELF file and check if Shadow Stack needs
-> to be enabled for the task.
-> 
-> Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/Kconfig                         |   4 +
->  arch/x86/include/asm/elf.h               |   5 +
->  arch/x86/include/uapi/asm/elf_property.h |  15 +
->  arch/x86/kernel/Makefile                 |   2 +
->  arch/x86/kernel/elf.c                    | 340 +++++++++++++++++++++++
->  fs/binfmt_elf.c                          |  15 +
->  include/uapi/linux/elf.h                 |   1 +
->  7 files changed, 382 insertions(+)
->  create mode 100644 arch/x86/include/uapi/asm/elf_property.h
->  create mode 100644 arch/x86/kernel/elf.c
-> 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index 808aa3aecf3c..6377125543cc 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1919,12 +1919,16 @@ config X86_INTEL_CET
->  config ARCH_HAS_SHSTK
->  	def_bool n
->  
-> +config ARCH_HAS_PROGRAM_PROPERTIES
-> +	def_bool n
-> +
->  config X86_INTEL_SHADOW_STACK_USER
->  	prompt "Intel Shadow Stack for user-mode"
->  	def_bool n
->  	depends on CPU_SUP_INTEL && X86_64
->  	select X86_INTEL_CET
->  	select ARCH_HAS_SHSTK
-> +	select ARCH_HAS_PROGRAM_PROPERTIES
->  	---help---
->  	  Shadow stack provides hardware protection against program stack
->  	  corruption.  Only when all the following are true will an application
-> diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-> index 0d157d2a1e2a..5b5f169c5c07 100644
-> --- a/arch/x86/include/asm/elf.h
-> +++ b/arch/x86/include/asm/elf.h
-> @@ -382,4 +382,9 @@ struct va_alignment {
->  
->  extern struct va_alignment va_align;
->  extern unsigned long align_vdso_addr(unsigned long);
-> +
-> +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
-> +extern int arch_setup_features(void *ehdr, void *phdr, struct file *file,
-> +			       bool interp);
-> +#endif
->  #endif /* _ASM_X86_ELF_H */
-> diff --git a/arch/x86/include/uapi/asm/elf_property.h b/arch/x86/include/uapi/asm/elf_property.h
-> new file mode 100644
-> index 000000000000..af361207718c
-> --- /dev/null
-> +++ b/arch/x86/include/uapi/asm/elf_property.h
-> @@ -0,0 +1,15 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef _UAPI_ASM_X86_ELF_PROPERTY_H
-> +#define _UAPI_ASM_X86_ELF_PROPERTY_H
-> +
-> +/*
-> + * pr_type
-> + */
-> +#define GNU_PROPERTY_X86_FEATURE_1_AND (0xc0000002)
-> +
-> +/*
-> + * Bits for GNU_PROPERTY_X86_FEATURE_1_AND
-> + */
-> +#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	(0x00000002)
+On Wed, Oct 3, 2018 at 2:34 PM, James Morris <jmorris@namei.org> wrote:
+> On Wed, 3 Oct 2018, Kees Cook wrote:
+>
+>> On Wed, Oct 3, 2018 at 11:28 AM, James Morris <jmorris@namei.org> wrote:
+>> > On Wed, 3 Oct 2018, Kees Cook wrote:
+>> >
+>> >> On Wed, Oct 3, 2018 at 11:17 AM, James Morris <jmorris@namei.org> wrote:
+>> >> > On Tue, 2 Oct 2018, John Johansen wrote:
+>> >> >> To me a list like
+>> >> >>   lsm.enable=X,Y,Z
+>> >> >
+>> >> > What about even simpler:
+>> >> >
+>> >> > lsm=selinux,!apparmor,yama
+>> >>
+>> >> We're going to have lsm.order=, so I'd like to keep it with a dot
+>> >> separator (this makes it more like module parameters, too). You want
+>> >> to mix enable/disable in the same string? That implies you'd want
+>> >> implicit enabling (i.e. it complements the builtin enabling), which is
+>> >> opposite from what John wanted.
+>> >>
+>> >
+>> > Why can't this be the order as well?
+>>
+>> That was covered extensively in the earlier threads. It boils down to
+>> making sure we do not create a pattern of leaving LSMs disabled by
+>> default when they are added to the kernel. The v1 series used
+>> security= like this:
+>>
+>> +       security=       [SECURITY] An ordered comma-separated list of
+>> +                       security modules to attempt to enable at boot. If
+>> +                       this boot parameter is not specified, only the
+>> +                       security modules asking for initialization will be
+>> +                       enabled (see CONFIG_DEFAULT_SECURITY). Duplicate
+>> +                       or invalid security modules will be ignored. The
+>> +                       capability module is always loaded first, without
+>> +                       regard to this parameter.
+>>
+>> This meant booting "security=apparmor" would disable all the other
+>> LSMs, which wasn't friendly at all. So "security=" was left alone (to
+>> leave it to only select the "major" LSM: all major LSMs not matching
+>> "security=" would be disabled). So I proposed "lsm.order=" to specify
+>> the order things were going to be initialized in, but to avoid kernels
+>> booting with newly added LSMs forced-off due to not being listed in
+>> "lsm.order=", it had to have implicit fall-back for unlisted LSMs.
+>> (i.e. anything missing from lsm.order would then follow their order in
+>> CONFIG_LSM_ORDER, and anything missing there would fall back to
+>> link-time ordering.) However, then the objection was raised that this
+>> didn't provide a way to explicitly disable an LSM. So I proposed
+>> lsm.enable/disable, and John argued for CONFIG_LSM_ENABLE over
+>> CONFIG_LSM_DISABLE.
+>
+> Ok, but it may end up being clearer, simpler, and thus more secure to just
+> have a single way to configure LSM.
+>
+> For example:
+>
+>   - All LSMs which are built are NOT enabled by default
+>
+>   - You specify enablement and order via a Kconfig:
+>
+>         CONFIG_LSM="selinux,yama"
+>
+>   - This can be entirely overridden by a boot param:
+>
+>         lsm="apparmor,landlock"
 
-Hm, these defeinitions aren't much different comparing to NT_*
-definitions in include/uapi/linux/elf.h, is it expected that those
-properties have to be parsed individually for each architecture?
+This doesn't work with how SELinux and AppArmor do their bootparams,
+unfortunately. (And Paul and Stephen have expressed that the
+documented selinux on/off must continue to work.) For example, let's
+say you've built an Ubuntu kernel with:
 
-> +
-> +#endif /* _UAPI_ASM_X86_ELF_PROPERTY_H */
-> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-> index fbb2d91fb756..36b14ef410c8 100644
-> --- a/arch/x86/kernel/Makefile
-> +++ b/arch/x86/kernel/Makefile
-> @@ -141,6 +141,8 @@ obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
->  
->  obj-$(CONFIG_X86_INTEL_CET)		+= cet.o
->  
-> +obj-$(CONFIG_ARCH_HAS_PROGRAM_PROPERTIES) += elf.o
+CONFIG_SELINUX=y
+...
+CONFIG_LSM="yama,apparmor"
 
-Same thing here, enablement of program properties per se seems rather generic.
+(i.e. you want SELinux available, but not enabled, so it's left out of
+CONFIG_LSM)
 
-> diff --git a/arch/x86/kernel/elf.c b/arch/x86/kernel/elf.c
-> new file mode 100644
-> index 000000000000..2fddd0bc545b
-> --- /dev/null
-> +++ b/arch/x86/kernel/elf.c
-> @@ -0,0 +1,340 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * Look at an ELF file's .note.gnu.property and determine if the file
-> + * supports shadow stack and/or indirect branch tracking.
-> + * The path from the ELF header to the note section is the following:
-> + * elfhdr->elf_phdr->elf_note->property[].
-> + */
-> +
-> +#include <asm/cet.h>
-> +#include <asm/elf_property.h>
-> +#include <asm/prctl.h>
-> +#include <asm/processor.h>
-> +#include <uapi/linux/elf-em.h>
-> +#include <uapi/linux/prctl.h>
-> +#include <linux/binfmts.h>
-> +#include <linux/elf.h>
-> +#include <linux/slab.h>
-> +#include <linux/fs.h>
-> +#include <linux/uaccess.h>
-> +#include <linux/string.h>
-> +#include <linux/compat.h>
-> +
-> +/*
-> + * The .note.gnu.property layout:
-> + *
-> + *	struct elf_note {
-> + *		u32 n_namesz; --> sizeof(n_name[]); always (4)
-> + *		u32 n_ndescsz;--> sizeof(property[])
-> + *		u32 n_type;   --> always NT_GNU_PROPERTY_TYPE_0
-> + *	};
-> + *	char n_name[4]; --> always 'GNU\0'
-> + *
-> + *	struct {
-> + *		struct property_x86 {
-> + *			u32 pr_type;
-> + *			u32 pr_datasz;
-> + *		};
-> + *		u8 pr_data[pr_datasz];
-> + *	}[];
-> + */
-> +
-> +#define BUF_SIZE (PAGE_SIZE / 4)
-> +
-> +struct property_x86 {
-> +	u32 pr_type;
-> +	u32 pr_datasz;
-> +};
-> +
-> +typedef bool (test_fn)(void *buf, u32 *arg);
-> +typedef void *(next_fn)(void *buf, u32 *arg);
-> +
-> +static inline bool test_note_type_0(void *buf, u32 *arg)
-> +{
-> +	struct elf_note *n = buf;
-> +
-> +	return ((n->n_namesz == 4) && (memcmp(n + 1, "GNU", 4) == 0) &&
-> +		(n->n_type == NT_GNU_PROPERTY_TYPE_0));
-> +}
-> +
-> +static inline void *next_note(void *buf, u32 *arg)
-> +{
-> +	struct elf_note *n = buf;
-> +	u32 align = *arg;
-> +	int size;
-> +
-> +	size = round_up(sizeof(*n) + n->n_namesz, align);
-> +	size = round_up(size + n->n_descsz, align);
-> +
-> +	if (buf + size < buf)
-> +		return NULL;
-> +	else
-> +		return (buf + size);
-> +}
-> +
-> +static inline bool test_property_x86(void *buf, u32 *arg)
-> +{
-> +	struct property_x86 *pr = buf;
-> +	u32 max_type = *arg;
-> +
-> +	if (pr->pr_type > max_type)
-> +		*arg = pr->pr_type;
-> +
-> +	return (pr->pr_type == GNU_PROPERTY_X86_FEATURE_1_AND);
-> +}
-> +
-> +static inline void *next_property(void *buf, u32 *arg)
-> +{
-> +	struct property_x86 *pr = buf;
-> +	u32 max_type = *arg;
-> +
-> +	if ((buf + sizeof(*pr) +  pr->pr_datasz < buf) ||
-> +	    (pr->pr_type > GNU_PROPERTY_X86_FEATURE_1_AND) ||
-> +	    (pr->pr_type > max_type))
-> +		return NULL;
-> +	else
-> +		return (buf + sizeof(*pr) + pr->pr_datasz);
-> +}
-> +
-> +/*
-> + * Scan 'buf' for a pattern; return true if found.
-> + * *pos is the distance from the beginning of buf to where
-> + * the searched item or the next item is located.
-> + */
-> +static int scan(u8 *buf, u32 buf_size, int item_size,
-> +		 test_fn test, next_fn next, u32 *arg, u32 *pos)
-> +{
-> +	int found = 0;
-> +	u8 *p, *max;
-> +
-> +	max = buf + buf_size;
-> +	if (max < buf)
-> +		return 0;
-> +
-> +	p = buf;
-> +
-> +	while ((p + item_size < max) && (p + item_size > buf)) {
-> +		if (test(p, arg)) {
-> +			found = 1;
-> +			break;
-> +		}
-> +
-> +		p = next(p, arg);
-> +	}
-> +
-> +	*pos = (p + item_size <= buf) ? 0 : (u32)(p - buf);
-> +	return found;
-> +}
-> +
-> +/*
-> + * Search a NT_GNU_PROPERTY_TYPE_0 for GNU_PROPERTY_X86_FEATURE_1_AND.
-> + */
-> +static int find_feature_x86(struct file *file, unsigned long desc_size,
-> +			    loff_t file_offset, u8 *buf, u32 *feature)
-> +{
-> +	u32 buf_pos;
-> +	unsigned long read_size;
-> +	unsigned long done;
-> +	int found = 0;
-> +	int ret = 0;
-> +	u32 last_pr = 0;
-> +
-> +	*feature = 0;
-> +	buf_pos = 0;
-> +
-> +	for (done = 0; done < desc_size; done += buf_pos) {
-> +		read_size = desc_size - done;
-> +		if (read_size > BUF_SIZE)
-> +			read_size = BUF_SIZE;
-> +
-> +		ret = kernel_read(file, buf, read_size, &file_offset);
-> +
-> +		if (ret != read_size)
-> +			return (ret < 0) ? ret : -EIO;
-> +
-> +		ret = 0;
-> +		found = scan(buf, read_size, sizeof(struct property_x86),
-> +			     test_property_x86, next_property,
-> +			     &last_pr, &buf_pos);
-> +
-> +		if ((!buf_pos) || found)
-> +			break;
-> +
-> +		file_offset += buf_pos - read_size;
-> +	}
-> +
-> +	if (found) {
-> +		struct property_x86 *pr =
-> +			(struct property_x86 *)(buf + buf_pos);
-> +
-> +		if (pr->pr_datasz == 4) {
-> +			u32 *max =  (u32 *)(buf + read_size);
-> +			u32 *data = (u32 *)((u8 *)pr + sizeof(*pr));
-> +
-> +			if (data + 1 <= max) {
-> +				*feature = *data;
-> +			} else {
-> +				file_offset += buf_pos - read_size;
-> +				file_offset += sizeof(*pr);
-> +				ret = kernel_read(file, feature, 4,
-> +						  &file_offset);
-> +			}
-> +		}
-> +	}
-> +
-> +	return ret;
-> +}
-> +
-> +/*
-> + * Search a PT_NOTE segment for the first NT_GNU_PROPERTY_TYPE_0.
-> + */
-> +static int find_note_type_0(struct file *file, unsigned long note_size,
-> +			    loff_t file_offset, u32 align, u32 *feature)
-> +{
-> +	u8 *buf;
-> +	u32 buf_pos;
-> +	unsigned long read_size;
-> +	unsigned long done;
-> +	int found = 0;
-> +	int ret = 0;
-> +
-> +	buf = kmalloc(BUF_SIZE, GFP_KERNEL);
-> +	if (!buf)
-> +		return -ENOMEM;
-> +
-> +	*feature = 0;
-> +	buf_pos = 0;
-> +
-> +	for (done = 0; done < note_size; done += buf_pos) {
-> +		read_size = note_size - done;
-> +		if (read_size > BUF_SIZE)
-> +			read_size = BUF_SIZE;
-> +
-> +		ret = kernel_read(file, buf, read_size, &file_offset);
-> +
-> +		if (ret != read_size) {
-> +			ret = (ret < 0) ? ret : -EIO;
-> +			kfree(buf);
-> +			return ret;
-> +		}
-> +
-> +		/*
-> +		 * item_size = sizeof(struct elf_note) + elf_note.n_namesz.
-> +		 * n_namesz is 4 for the note type we look for.
-> +		 */
-> +		ret = 0;
-> +		found += scan(buf, read_size, sizeof(struct elf_note) + 4,
-> +			      test_note_type_0, next_note,
-> +			      &align, &buf_pos);
-> +
-> +		file_offset += buf_pos - read_size;
-> +
-> +		if (found == 1) {
-> +			struct elf_note *n =
-> +				(struct elf_note *)(buf + buf_pos);
-> +			u32 start = round_up(sizeof(*n) + n->n_namesz, align);
-> +			u32 total = round_up(start + n->n_descsz, align);
-> +
-> +			ret = find_feature_x86(file, n->n_descsz,
-> +					       file_offset + start,
-> +					       buf, feature);
-> +			file_offset += total;
-> +			buf_pos += total;
-> +		} else if (!buf_pos) {
-> +			*feature = 0;
-> +			break;
-> +		}
-> +	}
-> +
-> +	kfree(buf);
-> +	return ret;
-> +}
-> +
-> +#ifdef CONFIG_COMPAT
-> +static int check_notes_32(struct file *file, struct elf32_phdr *phdr,
-> +			  int phnum, u32 *feature)
-> +{
-> +	int i;
-> +	int err = 0;
-> +
-> +	for (i = 0; i < phnum; i++, phdr++) {
-> +		if ((phdr->p_type != PT_NOTE) || (phdr->p_align != 4))
-> +			continue;
-> +
-> +		err = find_note_type_0(file, phdr->p_filesz, phdr->p_offset,
-> +				       phdr->p_align, feature);
-> +		if (err)
-> +			return err;
-> +	}
-> +
-> +	return 0;
-> +}
-> +#endif
-> +
-> +#ifdef CONFIG_X86_64
-> +static int check_notes_64(struct file *file, struct elf64_phdr *phdr,
-> +			  int phnum, u32 *feature)
-> +{
-> +	int i;
-> +	int err = 0;
-> +
-> +	for (i = 0; i < phnum; i++, phdr++) {
-> +		if ((phdr->p_type != PT_NOTE) || (phdr->p_align != 8))
-> +			continue;
-> +
-> +		err = find_note_type_0(file, phdr->p_filesz, phdr->p_offset,
-> +				       phdr->p_align, feature);
-> +		if (err)
-> +			return err;
-> +	}
-> +
-> +	return 0;
-> +}
-> +#endif
-> +
-> +int arch_setup_features(void *ehdr_p, void *phdr_p,
-> +			struct file *file, bool interp)
-> +{
-> +	int err = 0;
-> +	u32 feature = 0;
-> +
-> +	struct elf64_hdr *ehdr64 = ehdr_p;
-> +
-> +	if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
-> +		return 0;
-> +
-> +	if (ehdr64->e_ident[EI_CLASS] == ELFCLASS64) {
-> +		struct elf64_phdr *phdr64 = phdr_p;
-> +
-> +		err = check_notes_64(file, phdr64, ehdr64->e_phnum,
-> +				     &feature);
-> +		if (err < 0)
-> +			goto out;
-> +	} else {
-> +#ifdef CONFIG_COMPAT
-> +		struct elf32_hdr *ehdr32 = ehdr_p;
-> +
-> +		if (ehdr32->e_ident[EI_CLASS] == ELFCLASS32) {
-> +			struct elf32_phdr *phdr32 = phdr_p;
-> +
-> +			err = check_notes_32(file, phdr32, ehdr32->e_phnum,
-> +					     &feature);
-> +			if (err < 0)
-> +				goto out;
-> +		}
-> +#endif
-> +	}
-> +
-> +	memset(&current->thread.cet, 0, sizeof(struct cet_status));
-> +
-> +	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
-> +		if (feature & GNU_PROPERTY_X86_FEATURE_1_SHSTK) {
-> +			err = cet_setup_shstk();
-> +			if (err < 0)
-> +				goto out;
-> +		}
-> +	}
-> +
-> +out:
-> +	return err;
-> +}
+Then someone boots the system with:
 
-There's a lot of similar code with bpf stackmap .build-id code (commit
-v4.17-rc1~148^2~156^2~3^2~1), it might be worthy generalising some ELF
-traversal routines, since there's general need of parsing ELF property
-segments.
+selinux=1 security=selinux
+
+In what order does selinux get initialized relative to yama?
+(apparmor, flagged as a "legacy major", would have been disabled by
+the "security=" not matching it.)
+
+
+The LSM order needs to be defined externally to enablement because
+something may become enabled when not listed in the order.
+
+Now, maybe I misunderstood your earlier suggestion, and what you meant
+was to do something like:
+
+CONFIG_LSM="yama,apparmor,!selinux"
+
+to mean "put selinux here in the order, but don't enable it". Then the
+problem becomes what happens to an LSM that has been built in but not
+listed in CONFIG_LSM?
+
+Related to that, this means that when new LSMs are added, they will
+need to be added to any custom CONFIG_LSM= or lsm= parameters. If
+that's really how we have to go, I'll accept it, but I think it's a
+bit unfriendly. :P
+
+Another reason I don't like it is because it requires users to know
+about all the LSMs to make changes. One LSM can't be added/removed
+without specifying ALL of the LSMs. (i.e. there is no trivial way to
+enable/disable a single LSM without it growing its own enable/disable
+code as in SELinux/AppArmor. I'd hoped to make that easier for both
+users and developers.) Again, I can live with it, but I think it's
+unfriendly.
+
+I just want to have a direct I can go that meets all the requirements.
+:) I'm fine to ignore my sense of aesthetics if everyone can agree on
+the code.
+
+> And that's it.
+>
+> Of course, capabilities is always enabled and not be visible to kconfig or
+> boot params.
+
+Correct. I've made sure that's true in all the versions.
+
+BTW, there doesn't seem to be disagreement about the earlier part of
+the series, though (patches 1-10). Could these go into -next just so I
+don't have to keep sending them? :)
+
+LSM: Correctly announce start of LSM initialization
+vmlinux.lds.h: Avoid copy/paste of security_init section
+LSM: Rename .security_initcall section to .lsm_info
+LSM: Remove initcall tracing
+LSM: Convert from initcall to struct lsm_info
+vmlinux.lds.h: Move LSM_TABLE into INIT_DATA
+LSM: Convert security_initcall() into DEFINE_LSM()
+LSM: Record LSM name in struct lsm_info
+LSM: Provide init debugging infrastructure
+LSM: Don't ignore initialization failures
+
+Thanks!
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
