@@ -1,49 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f47.google.com ([209.85.161.47]:40933 "EHLO
-        mail-yw1-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727519AbeJDW4u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2018 18:56:50 -0400
-Received: by mail-yw1-f47.google.com with SMTP id l79-v6so3966013ywc.7
-        for <linux-arch@vger.kernel.org>; Thu, 04 Oct 2018 09:02:55 -0700 (PDT)
-Received: from mail-yw1-f50.google.com (mail-yw1-f50.google.com. [209.85.161.50])
-        by smtp.gmail.com with ESMTPSA id u22-v6sm5058756ywu.49.2018.10.04.09.02.52
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Thu, 04 Oct 2018 09:02:52 -0700 (PDT)
-Received: by mail-yw1-f50.google.com with SMTP id v198-v6so3960659ywg.12
-        for <linux-arch@vger.kernel.org>; Thu, 04 Oct 2018 09:02:52 -0700 (PDT)
+Received: from mail.kernel.org ([198.145.29.99]:60388 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727407AbeJDXCX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 4 Oct 2018 19:02:23 -0400
+Received: from mail-wm1-f43.google.com (mail-wm1-f43.google.com [209.85.128.43])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 13CD9206B2
+        for <linux-arch@vger.kernel.org>; Thu,  4 Oct 2018 16:08:27 +0000 (UTC)
+Received: by mail-wm1-f43.google.com with SMTP id y140-v6so1899740wmd.0
+        for <linux-arch@vger.kernel.org>; Thu, 04 Oct 2018 09:08:27 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <638db305-cfef-4391-90bf-458f50c4612f@canonical.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
- <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
- <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
- <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
- <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
- <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
- <583a703e-18af-a1b2-dfc9-62a2a3384825@tycho.nsa.gov> <CAGXu5jLmQQd4e=B3YsiEoRVih2m889ia2tnzu5r8bqcms2sOqQ@mail.gmail.com>
- <638db305-cfef-4391-90bf-458f50c4612f@canonical.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Thu, 4 Oct 2018 09:02:50 -0700
-Message-ID: <CAGXu5jKkCL7YVajp0b5x7G=06XyrhLrvh_p8FAKNKKYZW7sAfw@mail.gmail.com>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+References: <20180921150553.21016-1-yu-cheng.yu@intel.com> <20180921150553.21016-7-yu-cheng.yu@intel.com>
+ <20181004132811.GJ32759@asgard.redhat.com> <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
+In-Reply-To: <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 4 Oct 2018 09:08:12 -0700
+Message-ID: <CALCETrWTu-zuSKn6e3=QkP4_ca8PJfuevMD8KJq0VX3nq7Hw8Q@mail.gmail.com>
+Subject: Re: [RFC PATCH v4 6/9] x86/cet/ibt: Add arch_prctl functions for IBT
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Johansen <john.johansen@canonical.com>
-Cc: Stephen Smalley <sds@tycho.nsa.gov>, James Morris <jmorris@namei.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181004160250.D0bBp4nAEnzRMGSrk-d0Nxt2RT5ibAPtkcMmmun8zxU@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Eugene Syromiatnikov <esyr@redhat.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>
+Message-ID: <20181004160812.f1aiFZqambMNkCDhpSwC-QMYAXxn7bT2G1ZYS8Q3BUI@z>
 
-On Wed, Oct 3, 2018 at 10:38 PM, John Johansen
-<john.johansen@canonical.com> wrote:
-> but distinct of first exclusive (major) will likely be going away
-> once full lsm stacking land.
+> On Oct 4, 2018, at 8:37 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+>
+>> On Thu, 2018-10-04 at 15:28 +0200, Eugene Syromiatnikov wrote:
+>>> On Fri, Sep 21, 2018 at 08:05:50AM -0700, Yu-cheng Yu wrote:
+>>> Update ARCH_CET_STATUS and ARCH_CET_DISABLE to include Indirect
+>>> Branch Tracking features.
+>>>
+>>> Introduce:
+>>>
+>>> arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
+>>>    Enable the Indirect Branch Tracking legacy code bitmap.
+>>>
+>>>    The parameter 'addr' is a pointer to a user buffer.
+>>>    On returning to the caller, the kernel fills the following:
+>>>
+>>>    *addr = IBT bitmap base address
+>>>    *(addr + 1) = IBT bitmap size
+>>
+>> Again, some structure with a size field would be better from
+>> UAPI/extensibility standpoint.
+>>
+>> One additional point: "size" in the structure from kernel should have
+>> structure size expected by kernel, and at least providing there "0" from
+>> user space shouldn't lead to failure (in fact, it is possible to provide
+>> structure size back to userspace even if buffer is too small, along
+>> with error).
+>
+> This has been in GLIBC v2.28.  We cannot change it anymore.
 
-Right -- then policy loading because the "enabled" flag. The point is
-to get us to where we don't care about exclusivity at all.
+Sure you can. Just change ARCH_CET_LEGACY_BITMAP to a new number.  You
+might need to change all the constants.  And if the ELF note by itself
+causes a problem too, you may need to rename it.  And maybe ask glibc
+to kindly not enable code that depends on non-upstreamed kernel
+features.
 
--Kees
-
--- 
-Kees Cook
-Pixel Security
+There is not, and has never been, any ABI compatibility requirement
+that says that, if glibc 2.28 "enables" a feature, that the kernel
+will ever enable it in a way that makes glibc 2.28 actually support
+it.  All the kernel needs to do is avoid making glibc 2.28 *crash*.
