@@ -1,68 +1,93 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [RFC PATCH v4 6/9] x86/cet/ibt: Add arch_prctl functions for IBT
-Date: Thu, 4 Oct 2018 09:12:04 -0700
-Message-ID: <CALCETrXTqxQLWEHhSQ6WsDosnD61rnN2TgAFFomVAf5URP4DzA@mail.gmail.com>
-References: <20180921150553.21016-1-yu-cheng.yu@intel.com> <20180921150553.21016-7-yu-cheng.yu@intel.com>
- <20181004132811.GJ32759@asgard.redhat.com> <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
- <87murtn19o.fsf@mid.deneb.enyo.de>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Thu, 4 Oct 2018 09:18:40 -0700
+Message-ID: <CAGXu5jJJit8bDNvgXaFkuvFPy7NWtJW2oRWFbG-6iWk0+A1qng@mail.gmail.com>
+References: <20181002005505.6112-1-keescook@chromium.org> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
+ <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+ <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org>
+ <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com>
+ <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
+ <CAGXu5jLBHN=YSs3Uh49bBJ1SRA1Km2UUD4j37GJJXiKhQq+KPA@mail.gmail.com> <f016c836-cc9d-0a2d-fb18-930b43898cdf@canonical.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87murtn19o.fsf@mid.deneb.enyo.de>
+In-Reply-To: <f016c836-cc9d-0a2d-fb18-930b43898cdf@canonical.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Florian Weimer <fw@deneb.enyo.de>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav
+To: John Johansen <john.johansen@canonical.com>, James Morris <jmorris@namei.org>
+Cc: Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 4, 2018 at 9:08 AM Florian Weimer <fw@deneb.enyo.de> wrote:
+On Wed, Oct 3, 2018 at 10:56 PM, John Johansen
+<john.johansen@canonical.com> wrote:
+> On 10/03/2018 01:36 PM, Kees Cook wrote:
+>> I still think we should have all built LSMs enabled by default, with
+>> CONFIG_LSM_DISABLE available to turn stuff off. CONFIG_LSM_ORDER
 >
-> * Yu-cheng Yu:
+> and this as a distro ubuntu does not want.
+> Ubuntu wants to make yes available by building them in, but does NOT
+> want all the LSM enabled by default, not even necessarily all minor LSMs.
 >
-> > On Thu, 2018-10-04 at 15:28 +0200, Eugene Syromiatnikov wrote:
-> >> On Fri, Sep 21, 2018 at 08:05:50AM -0700, Yu-cheng Yu wrote:
-> >> > Update ARCH_CET_STATUS and ARCH_CET_DISABLE to include Indirect
-> >> > Branch Tracking features.
-> >> >
-> >> > Introduce:
-> >> >
-> >> > arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
-> >> >     Enable the Indirect Branch Tracking legacy code bitmap.
-> >> >
-> >> >     The parameter 'addr' is a pointer to a user buffer.
-> >> >     On returning to the caller, the kernel fills the following:
-> >> >
-> >> >     *addr = IBT bitmap base address
-> >> >     *(addr + 1) = IBT bitmap size
-> >>
-> >> Again, some structure with a size field would be better from
-> >> UAPI/extensibility standpoint.
-> >>
-> >> One additional point: "size" in the structure from kernel should have
-> >> structure size expected by kernel, and at least providing there "0" from
-> >> user space shouldn't lead to failure (in fact, it is possible to provide
-> >> structure size back to userspace even if buffer is too small, along
-> >> with error).
-> >
-> > This has been in GLIBC v2.28.  We cannot change it anymore.
+> As a distro we want a supported set as default, and users can opt-in
+> to new LSMs. If a new LSM comes along we don't want it enabled by
+> default, which happens Using the lsm disable approach.
+
+Okay, but order still matters. Where, in the order, should a disabled
+LSM go? It seems like the friendliest approach for an end-user would
+be to do something like
+
+lsm=+landlock
+
+and it all works correctly. That user doesn't need to know about
+ordering or the distro default LSMs. They just want to _add_ landlock.
+They want all the other LSMs to still be present, and they want the
+distro to have chosen where landlock is in the ordering.
+
+>> I should also note that I don't want to leave CONFIG_DEFAULT_SECURITY
+>> in, since it's just a way to disable all the other majors. I don't
+>> like this because it will force LSMs to be disabled that don't need to
+>> be once blob-sharing lands. The whole point of this series is to get
+>> us away from fixed ordering and thinking about "major" vs "minor" and
+>> towards "exclusive" or not, where we can continue to slowly chip away
+>> at exclusivity without breaking anything.
+>>
+> sure we definitely want to get away form "major" vs "minor" and in
+> generally even exclusive, except where to LSMs just can't live
+> with each other.
 >
-> In theory, you could, if you change the ARCH_CET_LEGACY_BITMAP
-> constant, so that glibc will not use the different arch_prctl
-> operation.  We could backport the change into the glibc 2.28 dynamic
-> linker, so that existing binaries will start using CET again.  Then
-> only statically linked binaries will be impacted.
->
-> It's definitely not ideal, but it's doable if the interface is
-> terminally broken or otherwise unacceptable.  But to me it looks like
-> this threshold isn't reached here.
+> But that doesn't mean dropping something like default security. The
+> mistake with the current DEFAULT_SECURITY was that it only applied
+> to major LSMs, not the minor ones.
 
-I tend to agree.
+Right, we need to expand it to include a full description of ordering
+and enablement.
 
-But I do think there's a real problem that should be fixed and won't
-affect ABI: the *name* of the prctl is pretty bad.  I read the test
-several times trying to decide if you meant
-ARCH_GET_CET_LEGACY_BITMAP?  But you don't.
+How about this:
 
-Maybe name it ARCH_CET_CREATE_LEGACY_BITMAP?  And explicitly document
-what it does if legacy bitmap already exists?
+CONFIG_LSM specifies order and enablement status. For example:
 
---Andy
+CONFIG_LSM=yama,loadpin,apparmor,!selinux
+
+This means init order is yama, loadpin, apparmor, selinux, but selinux
+is disabled. Anything not listed in CONFIG_LSM but built in will be
+disabled and ordered in link-order. (i.e. an implicit trailing
+"!smack,!tomoyo".)
+
+Then we add "lsm=" which understands modifiers "-", and "+".
+"lsm=-apparmor,+selinux" wouldn't change ordering, but would disable
+apparmor and enable selinux. "lsm=smack,loadpin" would enable only
+smack and loadpin, in that order and disable everything else.
+
+I don't want to overload "security=", but we can if we want. It would
+be as above, but a trailing comma would be needed to trigger the
+"ordering" behavior. e.g. "security=selinux" would disable all other
+majors (retaining the current behavior), but "security=selinux," would
+disable all other LSMs.
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
