@@ -1,43 +1,55 @@
 From: "H. Peter Anvin (Intel)" <hpa@zytor.com>
-Subject: [PATCH 4/5] arch/parisc, termios: use <asm-generic/termios.h>
-Date: Thu,  4 Oct 2018 15:29:52 -0700
-Message-ID: <20181004222953.2229-5-hpa@zytor.com>
+Subject: [PATCH 5/5] arch/xtensa, termios: use <asm-generic/termbits.h>
+Date: Thu,  4 Oct 2018 15:29:53 -0700
+Message-ID: <20181004222953.2229-6-hpa@zytor.com>
 References: <20181004222953.2229-1-hpa@zytor.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181004222953.2229-1-hpa@zytor.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-serial@vger.kernel.org
-Cc: "H. Peter Anvin (Intel)" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Kate Stewart <kstewart@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Philippe Ombredanne <pombredanne@nexb.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-parisc@vger.kernel.org, Jiri Slaby <jslaby@suse.com>
+Cc: "H. Peter Anvin (Intel)" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, linux-xtensa@linux-xtensa.org, Jiri Slaby <jslaby@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-The PARISC  definition of termbits.h is almost identical to the generic
-one, so use the generic one and only redefine a handful of constants.
+The Xtensa definition of termbits.h is identical to the generic one.
 
 Signed-off-by: H. Peter Anvin (Intel) <hpa@zytor.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Philippe Ombredanne <pombredanne@nexb.com>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: <linux-parisc@vger.kernel.org>
+Cc: Philippe Ombredanne <pombredanne@nexb.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>
+Cc: <linux-xtensa@linux-xtensa.org>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Jiri Slaby <jslaby@suse.com>
 ---
- arch/parisc/include/uapi/asm/termbits.h | 197 +-------------------------------
- 1 file changed, 4 insertions(+), 193 deletions(-)
+ arch/xtensa/include/uapi/asm/termbits.h | 222 +-------------------------------
+ 1 file changed, 1 insertion(+), 221 deletions(-)
 
-diff --git a/arch/parisc/include/uapi/asm/termbits.h b/arch/parisc/include/uapi/asm/termbits.h
-index 40e920f8d683..28ce9067f2e0 100644
---- a/arch/parisc/include/uapi/asm/termbits.h
-+++ b/arch/parisc/include/uapi/asm/termbits.h
-@@ -2,201 +2,12 @@
- #ifndef __ARCH_PARISC_TERMBITS_H__
- #define __ARCH_PARISC_TERMBITS_H__
- 
+diff --git a/arch/xtensa/include/uapi/asm/termbits.h b/arch/xtensa/include/uapi/asm/termbits.h
+index d4206a7c5138..3935b106de79 100644
+--- a/arch/xtensa/include/uapi/asm/termbits.h
++++ b/arch/xtensa/include/uapi/asm/termbits.h
+@@ -1,221 +1 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-/*
+- * include/asm-xtensa/termbits.h
+- *
+- * Copied from SH.
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
+- *
+- * Copyright (C) 2001 - 2005 Tensilica Inc.
+- */
+-
+-#ifndef _XTENSA_TERMBITS_H
+-#define _XTENSA_TERMBITS_H
+-
+-
 -#include <linux/posix_types.h>
-+#include <asm-generic/termbits.h>
- 
+-
 -typedef unsigned char	cc_t;
 -typedef unsigned int	speed_t;
 -typedef unsigned int	tcflag_t;
@@ -75,6 +87,7 @@ index 40e920f8d683..28ce9067f2e0 100644
 -};
 -
 -/* c_cc characters */
+-
 -#define VINTR 0
 -#define VQUIT 1
 -#define VERASE 2
@@ -93,8 +106,8 @@ index 40e920f8d683..28ce9067f2e0 100644
 -#define VLNEXT 15
 -#define VEOL2 16
 -
--
 -/* c_iflag bits */
+-
 -#define IGNBRK	0000001
 -#define BRKINT	0000002
 -#define IGNPAR	0000004
@@ -108,13 +121,11 @@ index 40e920f8d683..28ce9067f2e0 100644
 -#define IXON	0002000
 -#define IXANY	0004000
 -#define IXOFF	0010000
-+/* c_iflag bits that differ from the generic ABI */
-+#undef IMAXBEL
- #define IMAXBEL	0040000
-+#undef IUTF8
- #define IUTF8	0100000
- 
+-#define IMAXBEL	0020000
+-#define IUTF8	0040000
+-
 -/* c_oflag bits */
+-
 -#define OPOST	0000001
 -#define OLCUC	0000002
 -#define ONLCR	0000004
@@ -148,38 +159,39 @@ index 40e920f8d683..28ce9067f2e0 100644
 -#define   FF1	0100000
 -
 -/* c_cflag bit meaning */
--#define CBAUD   0010017
--#define  B0     0000000         /* hang up */
--#define  B50    0000001
--#define  B75    0000002
--#define  B110   0000003
--#define  B134   0000004
--#define  B150   0000005
--#define  B200   0000006
--#define  B300   0000007
--#define  B600   0000010
--#define  B1200  0000011
--#define  B1800  0000012
--#define  B2400  0000013
--#define  B4800  0000014
--#define  B9600  0000015
--#define  B19200 0000016
--#define  B38400 0000017
+-
+-#define CBAUD	0010017
+-#define  B0	0000000		/* hang up */
+-#define  B50	0000001
+-#define  B75	0000002
+-#define  B110	0000003
+-#define  B134	0000004
+-#define  B150	0000005
+-#define  B200	0000006
+-#define  B300	0000007
+-#define  B600	0000010
+-#define  B1200	0000011
+-#define  B1800	0000012
+-#define  B2400	0000013
+-#define  B4800	0000014
+-#define  B9600	0000015
+-#define  B19200	0000016
+-#define  B38400	0000017
 -#define EXTA B19200
 -#define EXTB B38400
--#define CSIZE   0000060
--#define   CS5   0000000
--#define   CS6   0000020
--#define   CS7   0000040
--#define   CS8   0000060
--#define CSTOPB  0000100
--#define CREAD   0000200
--#define PARENB  0000400
--#define PARODD  0001000
--#define HUPCL   0002000
--#define CLOCAL  0004000
+-#define CSIZE	0000060
+-#define   CS5	0000000
+-#define   CS6	0000020
+-#define   CS7	0000040
+-#define   CS8	0000060
+-#define CSTOPB	0000100
+-#define CREAD	0000200
+-#define PARENB	0000400
+-#define PARODD	0001000
+-#define HUPCL	0002000
+-#define CLOCAL	0004000
 -#define CBAUDEX 0010000
--#define    BOTHER 0010000
+-#define	   BOTHER 0010000
 -#define    B57600 0010001
 -#define   B115200 0010002
 -#define   B230400 0010003
@@ -195,47 +207,51 @@ index 40e920f8d683..28ce9067f2e0 100644
 -#define  B3000000 0010015
 -#define  B3500000 0010016
 -#define  B4000000 0010017
--#define CIBAUD    002003600000		/* input baud rate */
--#define CMSPAR    010000000000          /* mark or space (stick) parity */
--#define CRTSCTS   020000000000          /* flow control */
+-#define CIBAUD	  002003600000		/* input baud rate */
+-#define CMSPAR	  010000000000		/* mark or space (stick) parity */
+-#define CRTSCTS	  020000000000		/* flow control */
 -
 -#define IBSHIFT	16		/* Shift from CBAUD to CIBAUD */
 -
--
 -/* c_lflag bits */
--#define ISIG    0000001
--#define ICANON  0000002
--#define XCASE   0000004
--#define ECHO    0000010
--#define ECHOE   0000020
--#define ECHOK   0000040
--#define ECHONL  0000100
--#define NOFLSH  0000200
--#define TOSTOP  0000400
--#define ECHOCTL 0001000
--#define ECHOPRT 0002000
--#define ECHOKE  0004000
--#define FLUSHO  0010000
--#define PENDIN  0040000
--#define IEXTEN  0100000
+-
+-#define ISIG	0000001
+-#define ICANON	0000002
+-#define XCASE	0000004
+-#define ECHO	0000010
+-#define ECHOE	0000020
+-#define ECHOK	0000040
+-#define ECHONL	0000100
+-#define NOFLSH	0000200
+-#define TOSTOP	0000400
+-#define ECHOCTL	0001000
+-#define ECHOPRT	0002000
+-#define ECHOKE	0004000
+-#define FLUSHO	0010000
+-#define PENDIN	0040000
+-#define IEXTEN	0100000
 -#define EXTPROC	0200000
 -
 -/* tcflow() and TCXONC use these */
+-
 -#define	TCOOFF		0
 -#define	TCOON		1
 -#define	TCIOFF		2
 -#define	TCION		3
 -
 -/* tcflush() and TCFLSH use these */
+-
 -#define	TCIFLUSH	0
 -#define	TCOFLUSH	1
 -#define	TCIOFLUSH	2
 -
 -/* tcsetattr uses these */
+-
 -#define	TCSANOW		0
 -#define	TCSADRAIN	1
 -#define	TCSAFLUSH	2
 -
- #endif
+-#endif	/* _XTENSA_TERMBITS_H */
++#include <asm-generic/termbits.h>
 -- 
 2.14.4
