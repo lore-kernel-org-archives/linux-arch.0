@@ -1,61 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from albireo.enyo.de ([5.158.152.32]:36938 "EHLO albireo.enyo.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727526AbeJDXMx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Oct 2018 19:12:53 -0400
-From: Florian Weimer <fw@deneb.enyo.de>
-Subject: Re: [RFC PATCH v4 6/9] x86/cet/ibt: Add arch_prctl functions for IBT
-References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
-        <20180921150553.21016-7-yu-cheng.yu@intel.com>
-        <20181004132811.GJ32759@asgard.redhat.com>
-        <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
-Date: Thu, 04 Oct 2018 18:07:47 +0200
-In-Reply-To: <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
-        (Yu-cheng Yu's message of "Thu, 04 Oct 2018 08:37:16 -0700")
-Message-ID: <87murtn19o.fsf@mid.deneb.enyo.de>
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:59744 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727557AbeJDXNV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2018 19:13:21 -0400
+From: Alexey Brodkin <alexey.brodkin@synopsys.com>
+Subject: Re: [PATCH v3] devres: Explicitly align datai[] to 64-bit
+Date: Thu, 4 Oct 2018 16:19:16 +0000
+Message-ID: <ad4f865a92828c3226628a0e378ca2fb4054e96a.camel@synopsys.com>
+References: <20180709134550.29541-1-abrodkin@synopsys.com>
+         <20180709140717.GR2476@hirez.programming.kicks-ass.net>
+         <20180709141056.GR2512@hirez.programming.kicks-ass.net>
+         <44727d3cebda7bee5b68fb388bd2fecfc6dc7b89.camel@synopsys.com>
+         <20180709144925.GU2476@hirez.programming.kicks-ass.net>
+         <4f6e9e8bf60f05872afaed4a1d8e516331e95ea7.camel@synopsys.com>
+In-Reply-To: <4f6e9e8bf60f05872afaed4a1d8e516331e95ea7.camel@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <A8E53F6133B72C4FAA865926D1CDE440@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Eugene Syromiatnikov <esyr@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, libc-alpha@sourceware.org, carlos@redhat.com
-Message-ID: <20181004160747._slGZKd3XVx4QBW3k43OdB1tHZ2ZJ5knQLsTRR48lps@z>
+To: "peterz@infradead.org" <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "greg@kroah.com" <greg@kroah.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "David.Laight@ACULAB.COM" <David.Laight@ACULAB.COM>, Vineet Gupta <vineet.gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>
+Message-ID: <20181004161916.YtTFlxD7lbllKx-wYxOGQzNIDGWGmzRUza7cFhL1i44@z>
 
-* Yu-cheng Yu:
-
-> On Thu, 2018-10-04 at 15:28 +0200, Eugene Syromiatnikov wrote:
->> On Fri, Sep 21, 2018 at 08:05:50AM -0700, Yu-cheng Yu wrote:
->> > Update ARCH_CET_STATUS and ARCH_CET_DISABLE to include Indirect
->> > Branch Tracking features.
->> > 
->> > Introduce:
->> > 
->> > arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
->> >     Enable the Indirect Branch Tracking legacy code bitmap.
->> > 
->> >     The parameter 'addr' is a pointer to a user buffer.
->> >     On returning to the caller, the kernel fills the following:
->> > 
->> >     *addr = IBT bitmap base address
->> >     *(addr + 1) = IBT bitmap size
->> 
->> Again, some structure with a size field would be better from
->> UAPI/extensibility standpoint.
->> 
->> One additional point: "size" in the structure from kernel should have
->> structure size expected by kernel, and at least providing there "0" from
->> user space shouldn't lead to failure (in fact, it is possible to provide
->> structure size back to userspace even if buffer is too small, along
->> with error).
->
-> This has been in GLIBC v2.28.  We cannot change it anymore.
-
-In theory, you could, if you change the ARCH_CET_LEGACY_BITMAP
-constant, so that glibc will not use the different arch_prctl
-operation.  We could backport the change into the glibc 2.28 dynamic
-linker, so that existing binaries will start using CET again.  Then
-only statically linked binaries will be impacted.
-
-It's definitely not ideal, but it's doable if the interface is
-terminally broken or otherwise unacceptable.  But to me it looks like
-this threshold isn't reached here.
+SGkgUGV0ZXIsDQoNCk9uIE1vbiwgMjAxOC0wNy0wOSBhdCAxNzo1MyArMDMwMCwgQWxleGV5IEJy
+b2RraW4gd3JvdGU6DQo+IEhpIFBldGVyLA0KPiANCj4gT24gTW9uLCAyMDE4LTA3LTA5IGF0IDE2
+OjQ5ICswMjAwLCBQZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gPiBPbiBNb24sIEp1bCAwOSwgMjAx
+OCBhdCAwMjozMzoyNlBNICswMDAwLCBBbGV4ZXkgQnJvZGtpbiB3cm90ZToNCj4gPiA+ID4gSW4g
+ZmFjdCwgc2luY2UgYWxsb2NfZHIoKSB1c2VzIGttYWxsb2MoKSB0byBhbGxvY2F0ZSB0aGUgZW50
+aXJlIHRoaW5nLA0KPiA+ID4gPiBpdCBpcyBpbXBvc3NpYmxlIHRvIGd1YXJhbnRlZSBhIGxhcmdl
+ciBhbGlnbm1lbnQgdGhhbiBrbWFsbG9jIGRvZXMuDQo+ID4gPiANCj4gPiA+IFdlbGwgYnV0IDQt
+Ynl0ZXMgW3doaWNoIGlzIGNyaXRpY2FsIGZvciBhdG9taWM2NF90XSBzaG91bGQgYmUgbXVjaCBs
+ZXNzDQo+ID4gPiB0aGFuIGEgc2FuZSBjYWNoZSBsaW5lIGxlbmd0aCBzbyBhYm92ZSBzaG91bGQg
+d29yay4NCj4gPiANCj4gPiBBRkFJQ1QgQVJDSF9LTUFMTE9DX01JTkFMSUdOIGVuZHMgdXAgYmVp
+bmcgNCBvbiB4ODZfMzIgKGl0IGRvZXNuJ3QNCj4gPiBkZWZpbmUgQVJDSF9ETUFfTUlOQUxJR04g
+YW5kIGRvZXNuJ3Qgc2VlbSB0byBvdGhlcndpc2Ugb3ZlcnJpZGUgdGhlDQo+ID4gdGhpbmcpLg0K
+PiA+IA0KPiA+IFNvIHVuY29uZGl0aW9uYWxseSBzZXR0aW5nIHRoZSBhbGlnbm1lbnQgb2YgZGV2
+cmVzOjpkYXRhIHRvIDggc2VlbXMNCj4gPiBicm9rZW4uDQo+IA0KPiBXZWxsIGJ1dCB0aGVuIHdo
+YXQgb3RoZXIgb3B0aW9ucyBkbyB3ZSBoYXZlIHRvIGZpeCBhIHByb2JsZW0gd2l0aA0KPiBtaXNh
+bGlnbmVkIGFjY2VzcyB0byBhdG9taWM2NF90IGluIGRybV9ncHVfc2NoZWR1bGVyPw0KDQpQaW5n
+IQ0KDQpTaG91bGQgSSBzZW5kIHY0IHdpdGggQVJDSF9LTUFMTE9DX01JTkFMSUdOIHVzZWQgZm9y
+IGFsaWdubWVudA0KaWYgZXhwbGljaXRseSBzZXQgX19hbGlnbmVkX18oOCkgd2lsbCBicmVhayB4
+ODZfMzI/DQoNCi1BbGV4ZXkNCg==
