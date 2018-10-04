@@ -1,35 +1,56 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Thu, 4 Oct 2018 09:02:50 -0700
-Message-ID: <CAGXu5jKkCL7YVajp0b5x7G=06XyrhLrvh_p8FAKNKKYZW7sAfw@mail.gmail.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <CAHC9VhQjMfH6Q+Tif8nBknZojgxrb6x+oDz4vHRiZN8rb8MZ5Q@mail.gmail.com>
- <785ef6a9-ae46-3533-0348-74bcf6f10928@tycho.nsa.gov> <CAGXu5jKNzG3rGUAV39D0w4txHRG3H2qU1Z1e_b+03OgycTaWqA@mail.gmail.com>
- <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov> <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
- <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
- <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
- <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <CAGXu5jKqSZ5LhQ_HwbA9-_DAg3efNzWfLjpxO_rurBgUZ-nnAA@mail.gmail.com>
- <583a703e-18af-a1b2-dfc9-62a2a3384825@tycho.nsa.gov> <CAGXu5jLmQQd4e=B3YsiEoRVih2m889ia2tnzu5r8bqcms2sOqQ@mail.gmail.com>
- <638db305-cfef-4391-90bf-458f50c4612f@canonical.com>
+From: Florian Weimer <fw@deneb.enyo.de>
+Subject: Re: [RFC PATCH v4 6/9] x86/cet/ibt: Add arch_prctl functions for IBT
+Date: Thu, 04 Oct 2018 18:07:47 +0200
+Message-ID: <87murtn19o.fsf@mid.deneb.enyo.de>
+References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
+        <20180921150553.21016-7-yu-cheng.yu@intel.com>
+        <20181004132811.GJ32759@asgard.redhat.com>
+        <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <638db305-cfef-4391-90bf-458f50c4612f@canonical.com>
+In-Reply-To: <3350f7b42b32f3f7a1963a9c9c526210c24f7b05.camel@intel.com>
+        (Yu-cheng Yu's message of "Thu, 04 Oct 2018 08:37:16 -0700")
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Johansen <john.johansen@canonical.com>
-Cc: Stephen Smalley <sds@tycho.nsa.gov>, James Morris <jmorris@namei.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: Eugene Syromiatnikov <esyr@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 3, 2018 at 10:38 PM, John Johansen
-<john.johansen@canonical.com> wrote:
-> but distinct of first exclusive (major) will likely be going away
-> once full lsm stacking land.
+* Yu-cheng Yu:
 
-Right -- then policy loading because the "enabled" flag. The point is
-to get us to where we don't care about exclusivity at all.
+> On Thu, 2018-10-04 at 15:28 +0200, Eugene Syromiatnikov wrote:
+>> On Fri, Sep 21, 2018 at 08:05:50AM -0700, Yu-cheng Yu wrote:
+>> > Update ARCH_CET_STATUS and ARCH_CET_DISABLE to include Indirect
+>> > Branch Tracking features.
+>> > 
+>> > Introduce:
+>> > 
+>> > arch_prctl(ARCH_CET_LEGACY_BITMAP, unsigned long *addr)
+>> >     Enable the Indirect Branch Tracking legacy code bitmap.
+>> > 
+>> >     The parameter 'addr' is a pointer to a user buffer.
+>> >     On returning to the caller, the kernel fills the following:
+>> > 
+>> >     *addr = IBT bitmap base address
+>> >     *(addr + 1) = IBT bitmap size
+>> 
+>> Again, some structure with a size field would be better from
+>> UAPI/extensibility standpoint.
+>> 
+>> One additional point: "size" in the structure from kernel should have
+>> structure size expected by kernel, and at least providing there "0" from
+>> user space shouldn't lead to failure (in fact, it is possible to provide
+>> structure size back to userspace even if buffer is too small, along
+>> with error).
+>
+> This has been in GLIBC v2.28.  We cannot change it anymore.
 
--Kees
+In theory, you could, if you change the ARCH_CET_LEGACY_BITMAP
+constant, so that glibc will not use the different arch_prctl
+operation.  We could backport the change into the glibc 2.28 dynamic
+linker, so that existing binaries will start using CET again.  Then
+only statically linked binaries will be impacted.
 
--- 
-Kees Cook
-Pixel Security
+It's definitely not ideal, but it's doable if the interface is
+terminally broken or otherwise unacceptable.  But to me it looks like
+this threshold isn't reached here.
