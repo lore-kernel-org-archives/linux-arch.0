@@ -1,68 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47816 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:47856 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728625AbeJEPrm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Oct 2018 11:47:42 -0400
+        id S1728587AbeJEPrv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Oct 2018 11:47:51 -0400
 From: Kristina Martsenko <kristina.martsenko@arm.com>
-Subject: [PATCH v5 04/17] arm64: Don't trap host pointer auth use to EL2
-Date: Fri,  5 Oct 2018 09:47:41 +0100
-Message-ID: <20181005084754.20950-5-kristina.martsenko@arm.com>
+Subject: [PATCH v5 06/17] asm-generic: mm_hooks: allow hooks to be overridden individually
+Date: Fri,  5 Oct 2018 09:47:43 +0100
+Message-ID: <20181005084754.20950-7-kristina.martsenko@arm.com>
 In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181005084741.dJzE3d5RmL8pe7T-xWYKZtHY-KbM4Dr-a3wZQxwNPKk@z>
+Message-ID: <20181005084743.Qkl0KsRevJmj1hX0qYekBf23n4nQjC1fb0GKWoliXS0@z>
 
 From: Mark Rutland <mark.rutland@arm.com>
 
-To allow EL0 (and/or EL1) to use pointer authentication functionality,
-we must ensure that pointer authentication instructions and accesses to
-pointer authentication keys are not trapped to EL2.
+Currently, an architecture must either implement all of the mm hooks
+itself, or use all of those provided by the asm-generic implementation.
+When an architecture only needs to override a single hook, it must copy
+the stub implementations from the asm-generic version.
 
-This patch ensures that HCR_EL2 is configured appropriately when the
-kernel is booted at EL2. For non-VHE kernels we set HCR_EL2.{API,APK},
-ensuring that EL1 can access keys and permit EL0 use of instructions.
-For VHE kernels host EL0 (TGE && E2H) is unaffected by these settings,
-and it doesn't matter how we configure HCR_EL2.{API,APK}, so we don't
-bother setting them.
-
-This does not enable support for KVM guests, since KVM manages HCR_EL2
-itself when running VMs.
+To avoid this repetition, allow each hook to be overridden indiviually,
+by placing each under an #ifndef block. As architectures providing their
+own hooks can't include this file today, this shouldn't adversely affect
+any existing hooks.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-Acked-by: Christoffer Dall <christoffer.dall@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: kvmarm@lists.cs.columbia.edu
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 ---
- arch/arm64/include/asm/kvm_arm.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ include/asm-generic/mm_hooks.h | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-index f885f4e96002..1405bb24acac 100644
---- a/arch/arm64/include/asm/kvm_arm.h
-+++ b/arch/arm64/include/asm/kvm_arm.h
-@@ -24,6 +24,8 @@
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index 8ac4e68a12f0..2b3ee15d3702 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -7,31 +7,42 @@
+ #ifndef _ASM_GENERIC_MM_HOOKS_H
+ #define _ASM_GENERIC_MM_HOOKS_H
  
- /* Hyp Configuration Register (HCR) bits */
- #define HCR_FWB		(UL(1) << 46)
-+#define HCR_API		(UL(1) << 41)
-+#define HCR_APK		(UL(1) << 40)
- #define HCR_TEA		(UL(1) << 37)
- #define HCR_TERR	(UL(1) << 36)
- #define HCR_TLOR	(UL(1) << 35)
-@@ -87,7 +89,7 @@
- 			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW | HCR_TLOR | \
- 			 HCR_FMO | HCR_IMO)
- #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
--#define HCR_HOST_NVHE_FLAGS (HCR_RW)
-+#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK)
- #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
++#ifndef arch_dup_mmap
+ static inline int arch_dup_mmap(struct mm_struct *oldmm,
+ 				struct mm_struct *mm)
+ {
+ 	return 0;
+ }
++#endif
  
- /* TCR_EL2 Registers bits */
++#ifndef arch_exit_mmap
+ static inline void arch_exit_mmap(struct mm_struct *mm)
+ {
+ }
++#endif
+ 
++#ifndef arch_unmap
+ static inline void arch_unmap(struct mm_struct *mm,
+ 			struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end)
+ {
+ }
++#endif
+ 
++#ifndef arch_bprm_mm_init
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+ 				     struct vm_area_struct *vma)
+ {
+ }
++#endif
+ 
++#ifndef arch_vma_access_permitted
+ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 		bool write, bool execute, bool foreign)
+ {
+ 	/* by default, allow everything */
+ 	return true;
+ }
++#endif
++
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
 -- 
 2.11.0
