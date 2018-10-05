@@ -1,1837 +1,1656 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:54015 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:51611 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727600AbeJEMkf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2018 08:40:35 -0400
+        by vger.kernel.org with ESMTP id S1727615AbeJEMlN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2018 08:41:13 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 07/20] csky: MMU and page table management
-Date: Fri,  5 Oct 2018 13:41:49 +0800
-Message-ID: <08443a92dcf04682292b08fbd4e5dc699be6f66e.1538715563.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
-References: <cover.1538715563.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 04/20] csky: Exception handling and mm-fault
+Date: Fri,  5 Oct 2018 13:41:46 +0800
+Message-ID: <c695b40fe1dc2a64cbbbea4c8e28bc034bc8d7b5.1538715563.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
 References: <cover.1538715563.git.ren_guo@c-sky.com>
 MIME-Version: 1.0
+In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
+References: <cover.1538715563.git.ren_guo@c-sky.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
 Cc: green.hu@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20181005054149.3IKgg8yi9NXBKqQKxrzYp0SjLU1-Xu-V6-LYeLwL5Og@z>
+Message-ID: <20181005054146._DUbZGnPkGKe0C9MZhVrp7L0kKarLvMCZOzeViOPJ-U@z>
 
-This patch adds files related to memory management and here is our
-memory-layout:
+This patch adds exception handling code, cpuinfo and mm-fault code.
 
-   Fixmap       : 0xffc02000 – 0xfffff000       (4 MB - 12KB)
-   Pkmap        : 0xff800000 – 0xffc00000       (4 MB)
-   Vmalloc      : 0xf0200000 – 0xff000000       (238 MB)
-   Lowmem       : 0x80000000 – 0xc0000000       (1GB)
-
-abiv1 CPU (CK610) is VIPT cache and it doesn't support highmem.
-abiv2 CPUs are all PIPT cache and they could support highmem.
-
-Lowmem is directly mapped by msa0 & msa1 reg, and we needn't setup
-memory page table for it.
-
-Changelog:
- - dma-mapping: fix up dma_mapping error
-   The arch_sync_dma_for_cpu()/arch_sync_dma_for_device() implementation is
-   broken for some combinations that end up in a BUG() instead of performing
-   the necessary flushes.
-
- - Fixup arch_sync_dma() broken when size is larger than PAGE_SIZE.
-   Ignore the DMA_ATTR_NON_CONSISTENT, remove the BUG() and use return NULL
-   instead.
-
-   The implementation of arch should follow the following rules:
-	   map             for_cpu         for_device      unmap
-   TO_DEV  writeback       none            writeback       none
-   TO_CPU  invalidate      invalidate*     invalidate      invalidate*
-   BIDIR   writeback       invalidate      writeback       invalidate
-
-Link:https://lore.kernel.org/lkml/20180518215548.GH17671@n2100.armlinux.org.uk/
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv1/inc/abi/ckmmu.h        |  75 ++++++++
- arch/csky/abiv1/inc/abi/page.h         |  27 +++
- arch/csky/abiv1/inc/abi/pgtable-bits.h |  37 ++++
- arch/csky/abiv1/mmap.c                 |  66 +++++++
- arch/csky/abiv2/inc/abi/ckmmu.h        |  87 ++++++++++
- arch/csky/abiv2/inc/abi/page.h         |  14 ++
- arch/csky/abiv2/inc/abi/pgtable-bits.h |  37 ++++
- arch/csky/include/asm/addrspace.h      |  10 ++
- arch/csky/include/asm/fixmap.h         |  27 +++
- arch/csky/include/asm/highmem.h        |  51 ++++++
- arch/csky/include/asm/mmu.h            |  12 ++
- arch/csky/include/asm/page.h           | 105 +++++++++++
- arch/csky/include/asm/pgalloc.h        | 115 +++++++++++++
- arch/csky/include/asm/pgtable.h        | 306 +++++++++++++++++++++++++++++++++
- arch/csky/include/asm/segment.h        |  19 ++
- arch/csky/include/asm/shmparam.h       |  11 ++
- arch/csky/mm/dma-mapping.c             | 254 +++++++++++++++++++++++++++
- arch/csky/mm/highmem.c                 | 196 +++++++++++++++++++++
- arch/csky/mm/init.c                    | 121 +++++++++++++
- arch/csky/mm/ioremap.c                 |  48 ++++++
- 20 files changed, 1618 insertions(+)
- create mode 100644 arch/csky/abiv1/inc/abi/ckmmu.h
- create mode 100644 arch/csky/abiv1/inc/abi/page.h
- create mode 100644 arch/csky/abiv1/inc/abi/pgtable-bits.h
- create mode 100644 arch/csky/abiv1/mmap.c
- create mode 100644 arch/csky/abiv2/inc/abi/ckmmu.h
- create mode 100644 arch/csky/abiv2/inc/abi/page.h
- create mode 100644 arch/csky/abiv2/inc/abi/pgtable-bits.h
- create mode 100644 arch/csky/include/asm/addrspace.h
- create mode 100644 arch/csky/include/asm/fixmap.h
- create mode 100644 arch/csky/include/asm/highmem.h
- create mode 100644 arch/csky/include/asm/mmu.h
- create mode 100644 arch/csky/include/asm/page.h
- create mode 100644 arch/csky/include/asm/pgalloc.h
- create mode 100644 arch/csky/include/asm/pgtable.h
- create mode 100644 arch/csky/include/asm/segment.h
- create mode 100644 arch/csky/include/asm/shmparam.h
- create mode 100644 arch/csky/mm/dma-mapping.c
- create mode 100644 arch/csky/mm/highmem.c
- create mode 100644 arch/csky/mm/init.c
- create mode 100644 arch/csky/mm/ioremap.c
+ arch/csky/abiv1/alignment.c     | 323 ++++++++++++++++++++++++++++++++
+ arch/csky/abiv1/inc/abi/entry.h | 160 ++++++++++++++++
+ arch/csky/abiv2/inc/abi/entry.h | 156 ++++++++++++++++
+ arch/csky/include/asm/traps.h   |  44 +++++
+ arch/csky/include/asm/unistd.h  |   4 +
+ arch/csky/kernel/cpu-probe.c    |  79 ++++++++
+ arch/csky/kernel/entry.S        | 396 ++++++++++++++++++++++++++++++++++++++++
+ arch/csky/kernel/traps.c        | 172 +++++++++++++++++
+ arch/csky/mm/fault.c            | 220 ++++++++++++++++++++++
+ 9 files changed, 1554 insertions(+)
+ create mode 100644 arch/csky/abiv1/alignment.c
+ create mode 100644 arch/csky/abiv1/inc/abi/entry.h
+ create mode 100644 arch/csky/abiv2/inc/abi/entry.h
+ create mode 100644 arch/csky/include/asm/traps.h
+ create mode 100644 arch/csky/include/asm/unistd.h
+ create mode 100644 arch/csky/kernel/cpu-probe.c
+ create mode 100644 arch/csky/kernel/entry.S
+ create mode 100644 arch/csky/kernel/traps.c
+ create mode 100644 arch/csky/mm/fault.c
 
-diff --git a/arch/csky/abiv1/inc/abi/ckmmu.h b/arch/csky/abiv1/inc/abi/ckmmu.h
+diff --git a/arch/csky/abiv1/alignment.c b/arch/csky/abiv1/alignment.c
 new file mode 100644
-index 0000000..3a00201
+index 0000000..8ec7400
 --- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/ckmmu.h
-@@ -0,0 +1,75 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_CKMMUV1_H
-+#define __ASM_CSKY_CKMMUV1_H
-+#include <abi/reg_ops.h>
-+
-+static inline int read_mmu_index(void)
-+{
-+	return cprcr("cpcr0");
-+}
-+
-+static inline void write_mmu_index(int value)
-+{
-+	cpwcr("cpcr0", value);
-+}
-+
-+static inline int read_mmu_entrylo0(void)
-+{
-+	return cprcr("cpcr2") << 6;
-+}
-+
-+static inline int read_mmu_entrylo1(void)
-+{
-+	return cprcr("cpcr3") << 6;
-+}
-+
-+static inline void write_mmu_pagemask(int value)
-+{
-+	cpwcr("cpcr6", value);
-+}
-+
-+static inline int read_mmu_entryhi(void)
-+{
-+	return cprcr("cpcr4");
-+}
-+
-+static inline void write_mmu_entryhi(int value)
-+{
-+	cpwcr("cpcr4", value);
-+}
-+
-+/*
-+ * TLB operations.
-+ */
-+static inline void tlb_probe(void)
-+{
-+	cpwcr("cpcr8", 0x80000000);
-+}
-+
-+static inline void tlb_read(void)
-+{
-+	cpwcr("cpcr8", 0x40000000);
-+}
-+
-+static inline void tlb_invalid_all(void)
-+{
-+	cpwcr("cpcr8", 0x04000000);
-+}
-+
-+static inline void tlb_invalid_indexed(void)
-+{
-+	cpwcr("cpcr8", 0x02000000);
-+}
-+
-+static inline void setup_pgd(unsigned long pgd, bool kernel)
-+{
-+	cpwcr("cpcr29", pgd);
-+}
-+
-+static inline unsigned long get_pgd(void)
-+{
-+	return cprcr("cpcr29");
-+}
-+#endif /* __ASM_CSKY_CKMMUV1_H */
-diff --git a/arch/csky/abiv1/inc/abi/page.h b/arch/csky/abiv1/inc/abi/page.h
-new file mode 100644
-index 0000000..6336e92
---- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/page.h
-@@ -0,0 +1,27 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+extern unsigned long shm_align_mask;
-+extern void flush_dcache_page(struct page *page);
-+
-+static inline unsigned long pages_do_alias(unsigned long addr1,
-+					   unsigned long addr2)
-+{
-+	return (addr1 ^ addr2) & shm_align_mask;
-+}
-+
-+static inline void clear_user_page(void *addr, unsigned long vaddr,
-+				   struct page *page)
-+{
-+	clear_page(addr);
-+	if (pages_do_alias((unsigned long) addr, vaddr & PAGE_MASK))
-+		flush_dcache_page(page);
-+}
-+
-+static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
-+				  struct page *page)
-+{
-+	copy_page(to, from);
-+	if (pages_do_alias((unsigned long) to, vaddr & PAGE_MASK))
-+		flush_dcache_page(page);
-+}
-diff --git a/arch/csky/abiv1/inc/abi/pgtable-bits.h b/arch/csky/abiv1/inc/abi/pgtable-bits.h
-new file mode 100644
-index 0000000..455075b
---- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/pgtable-bits.h
-@@ -0,0 +1,37 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_PGTABLE_BITS_H
-+#define __ASM_CSKY_PGTABLE_BITS_H
-+
-+/* implemented in software */
-+#define _PAGE_ACCESSED		(1<<3)
-+#define PAGE_ACCESSED_BIT	(3)
-+
-+#define _PAGE_READ		(1<<1)
-+#define _PAGE_WRITE		(1<<2)
-+#define _PAGE_PRESENT		(1<<0)
-+
-+#define _PAGE_MODIFIED		(1<<4)
-+#define PAGE_MODIFIED_BIT	(4)
-+
-+/* implemented in hardware */
-+#define _PAGE_GLOBAL		(1<<6)
-+
-+#define _PAGE_VALID		(1<<7)
-+#define PAGE_VALID_BIT		(7)
-+
-+#define _PAGE_DIRTY		(1<<8)
-+#define PAGE_DIRTY_BIT		(8)
-+
-+#define _PAGE_CACHE		(3<<9)
-+#define _PAGE_UNCACHE		(2<<9)
-+
-+#define _CACHE_MASK		(7<<9)
-+
-+#define _CACHE_CACHED		(_PAGE_VALID | _PAGE_CACHE)
-+#define _CACHE_UNCACHED		(_PAGE_VALID | _PAGE_UNCACHE)
-+
-+#define HAVE_ARCH_UNMAPPED_AREA
-+
-+#endif /* __ASM_CSKY_PGTABLE_BITS_H */
-diff --git a/arch/csky/abiv1/mmap.c b/arch/csky/abiv1/mmap.c
-new file mode 100644
-index 0000000..b462fd5
---- /dev/null
-+++ b/arch/csky/abiv1/mmap.c
-@@ -0,0 +1,66 @@
++++ b/arch/csky/abiv1/alignment.c
+@@ -0,0 +1,323 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/mman.h>
-+#include <linux/shm.h>
-+#include <linux/sched.h>
-+#include <linux/random.h>
-+#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/uaccess.h>
++#include <linux/ptrace.h>
 +
-+unsigned long shm_align_mask = (0x4000 >> 1) - 1;   /* Sane caches */
++static int align_enable = 1;
++static int align_count;
 +
-+#define COLOUR_ALIGN(addr, pgoff) \
-+	((((addr) + shm_align_mask) & ~shm_align_mask) + \
-+	 (((pgoff) << PAGE_SHIFT) & shm_align_mask))
-+
-+unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
-+		unsigned long len, unsigned long pgoff, unsigned long flags)
++static inline uint32_t get_ptreg(struct pt_regs *regs, uint32_t rx)
 +{
-+	struct vm_area_struct *vmm;
-+	int do_color_align;
-+
-+	if (flags & MAP_FIXED) {
-+		/*
-+		 * We do not accept a shared mapping if it would violate
-+		 * cache aliasing constraints.
-+		 */
-+		if ((flags & MAP_SHARED) &&
-+			((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
-+			return -EINVAL;
-+		return addr;
-+	}
-+
-+	if (len > TASK_SIZE)
-+		return -ENOMEM;
-+	do_color_align = 0;
-+	if (filp || (flags & MAP_SHARED))
-+		do_color_align = 1;
-+	if (addr) {
-+		if (do_color_align)
-+			addr = COLOUR_ALIGN(addr, pgoff);
-+		else
-+			addr = PAGE_ALIGN(addr);
-+		vmm = find_vma(current->mm, addr);
-+		if (TASK_SIZE - len >= addr &&
-+				(!vmm || addr + len <= vmm->vm_start))
-+			return addr;
-+	}
-+	addr = TASK_UNMAPPED_BASE;
-+	if (do_color_align)
-+		addr = COLOUR_ALIGN(addr, pgoff);
-+	else
-+		addr = PAGE_ALIGN(addr);
-+
-+	for (vmm = find_vma(current->mm, addr); ; vmm = vmm->vm_next) {
-+		/* At this point: (!vmm || addr < vmm->vm_end). */
-+		if (TASK_SIZE - len < addr)
-+			return -ENOMEM;
-+		if (!vmm || addr + len <= vmm->vm_start)
-+			return addr;
-+		addr = vmm->vm_end;
-+		if (do_color_align)
-+			addr = COLOUR_ALIGN(addr, pgoff);
-+	}
-+}
-diff --git a/arch/csky/abiv2/inc/abi/ckmmu.h b/arch/csky/abiv2/inc/abi/ckmmu.h
-new file mode 100644
-index 0000000..97230ad
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/ckmmu.h
-@@ -0,0 +1,87 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_CKMMUV2_H
-+#define __ASM_CSKY_CKMMUV2_H
-+
-+#include <abi/reg_ops.h>
-+#include <asm/barrier.h>
-+
-+static inline int read_mmu_index(void)
-+{
-+	return mfcr("cr<0, 15>");
++	return *((int *)&(regs->a0) - 2 + rx);
 +}
 +
-+static inline void write_mmu_index(int value)
++static inline void put_ptreg(struct pt_regs *regs, uint32_t rx, uint32_t val)
 +{
-+	mtcr("cr<0, 15>", value);
-+}
-+
-+static inline int read_mmu_entrylo0(void)
-+{
-+	return mfcr("cr<2, 15>");
-+}
-+
-+static inline int read_mmu_entrylo1(void)
-+{
-+	return mfcr("cr<3, 15>");
-+}
-+
-+static inline void write_mmu_pagemask(int value)
-+{
-+	mtcr("cr<6, 15>", value);
-+}
-+
-+static inline int read_mmu_entryhi(void)
-+{
-+	return mfcr("cr<4, 15>");
-+}
-+
-+static inline void write_mmu_entryhi(int value)
-+{
-+	mtcr("cr<4, 15>", value);
++	*((int *)&(regs->a0) - 2 + rx) = val;
 +}
 +
 +/*
-+ * TLB operations.
++ * Get byte-value from addr and set it to *valp.
++ *
++ * Success: return 0
++ * Failure: return 1
 + */
-+static inline void tlb_probe(void)
++static int ldb_asm(uint32_t addr, uint32_t *valp)
 +{
-+	mtcr("cr<8, 15>", 0x80000000);
++	uint32_t val;
++	int err;
++
++	if (!access_ok(VERIFY_READ, (void *)addr, 1))
++		return 1;
++
++	asm volatile (
++		"movi	%0, 0\n"
++		"1:\n"
++		"ldb	%1, (%2)\n"
++		"br	3f\n"
++		"2:\n"
++		"movi	%0, 1\n"
++		"br	3f\n"
++		".section __ex_table,\"a\"\n"
++		".align 2\n"
++		".long	1b, 2b\n"
++		".previous\n"
++		"3:\n"
++		: "=&r"(err), "=r"(val)
++		: "r" (addr)
++	);
++
++	*valp = val;
++
++	return err;
 +}
 +
-+static inline void tlb_read(void)
++/*
++ * Put byte-value to addr.
++ *
++ * Success: return 0
++ * Failure: return 1
++ */
++static int stb_asm(uint32_t addr, uint32_t val)
 +{
-+	mtcr("cr<8, 15>", 0x40000000);
++	int err;
++
++	if (!access_ok(VERIFY_WRITE, (void *)addr, 1))
++		return 1;
++
++	asm volatile (
++		"movi	%0, 0\n"
++		"1:\n"
++		"stb	%1, (%2)\n"
++		"br	3f\n"
++		"2:\n"
++		"movi	%0, 1\n"
++		"br	3f\n"
++		".section __ex_table,\"a\"\n"
++		".align 2\n"
++		".long	1b, 2b\n"
++		".previous\n"
++		"3:\n"
++		: "=&r"(err)
++		: "r"(val), "r" (addr)
++	);
++
++	return err;
 +}
 +
-+static inline void tlb_invalid_all(void)
++/*
++ * Get half-word from [rx + imm]
++ *
++ * Success: return 0
++ * Failure: return 1
++ */
++static int ldh_c(struct pt_regs *regs, uint32_t rz, uint32_t addr)
 +{
-+#ifdef CONFIG_CPU_HAS_TLBI
-+	asm volatile("tlbi.alls\n":::"memory");
-+	sync_is();
-+#else
-+	mtcr("cr<8, 15>", 0x04000000);
-+#endif
++	uint32_t byte0, byte1;
++
++	if (ldb_asm(addr, &byte0))
++		return 1;
++	addr += 1;
++	if (ldb_asm(addr, &byte1))
++		return 1;
++
++	byte0 |= byte1 << 8;
++	put_ptreg(regs, rz, byte0);
++
++	return 0;
 +}
 +
-+static inline void tlb_invalid_indexed(void)
++/*
++ * Store half-word to [rx + imm]
++ *
++ * Success: return 0
++ * Failure: return 1
++ */
++static int sth_c(struct pt_regs *regs, uint32_t rz, uint32_t addr)
 +{
-+	mtcr("cr<8, 15>", 0x02000000);
++	uint32_t byte0, byte1;
++
++	byte0 = byte1 = get_ptreg(regs, rz);
++
++	byte0 &= 0xff;
++
++	if (stb_asm(addr, byte0))
++		return 1;
++
++	addr += 1;
++	byte1 = (byte1 >> 8) & 0xff;
++	if (stb_asm(addr, byte1))
++		return 1;
++
++	return 0;
 +}
 +
-+/* setup hardrefil pgd */
-+static inline unsigned long get_pgd(void)
++/*
++ * Get word from [rx + imm]
++ *
++ * Success: return 0
++ * Failure: return 1
++ */
++static int ldw_c(struct pt_regs *regs, uint32_t rz, uint32_t addr)
 +{
-+	return mfcr("cr<29, 15>");
++	uint32_t byte0, byte1, byte2, byte3;
++
++	if (ldb_asm(addr, &byte0))
++		return 1;
++
++	addr += 1;
++	if (ldb_asm(addr, &byte1))
++		return 1;
++
++	addr += 1;
++	if (ldb_asm(addr, &byte2))
++		return 1;
++
++	addr += 1;
++	if (ldb_asm(addr, &byte3))
++		return 1;
++
++	byte0 |= byte1 << 8;
++	byte0 |= byte2 << 16;
++	byte0 |= byte3 << 24;
++
++	put_ptreg(regs, rz, byte0);
++
++	return 0;
 +}
 +
-+static inline void setup_pgd(unsigned long pgd, bool kernel)
++/*
++ * Store word to [rx + imm]
++ *
++ * Success: return 0
++ * Failure: return 1
++ */
++static int stw_c(struct pt_regs *regs, uint32_t rz, uint32_t addr)
 +{
-+	if (kernel)
-+		mtcr("cr<28, 15>", pgd);
-+	else
-+		mtcr("cr<29, 15>", pgd);
++	uint32_t byte0, byte1, byte2, byte3;
++
++	byte0 = byte1 = byte2 = byte3 = get_ptreg(regs, rz);
++
++	byte0 &= 0xff;
++
++	if (stb_asm(addr, byte0))
++		return 1;
++
++	addr += 1;
++	byte1 = (byte1 >> 8) & 0xff;
++	if (stb_asm(addr, byte1))
++		return 1;
++
++	addr += 1;
++	byte2 = (byte2 >> 16) & 0xff;
++	if (stb_asm(addr, byte2))
++		return 1;
++
++	addr += 1;
++	byte3 = (byte3 >> 24) & 0xff;
++	if (stb_asm(addr, byte3))
++		return 1;
++
++	align_count++;
++
++	return 0;
 +}
 +
-+#endif /* __ASM_CSKY_CKMMUV2_H */
-diff --git a/arch/csky/abiv2/inc/abi/page.h b/arch/csky/abiv2/inc/abi/page.h
-new file mode 100644
-index 0000000..0a70cb5
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/page.h
-@@ -0,0 +1,14 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++extern int fixup_exception(struct pt_regs *regs);
 +
-+static inline void clear_user_page(void *addr, unsigned long vaddr,
-+				   struct page *page)
++#define OP_LDH 0xc000
++#define OP_STH 0xd000
++#define OP_LDW 0x8000
++#define OP_STW 0x9000
++
++void csky_alignment(struct pt_regs *regs)
 +{
-+	clear_page(addr);
++	int ret;
++	uint16_t tmp;
++	uint32_t opcode = 0;
++	uint32_t rx     = 0;
++	uint32_t rz     = 0;
++	uint32_t imm    = 0;
++	uint32_t addr   = 0;
++
++	if (!user_mode(regs))
++		goto bad_area;
++
++	ret = get_user(tmp, (uint16_t *)instruction_pointer(regs));
++	if (ret) {
++		pr_err("%s get_user failed.\n", __func__);
++		goto bad_area;
++	}
++
++	opcode = (uint32_t)tmp;
++
++	rx  = opcode & 0xf;
++	imm = (opcode >> 4) & 0xf;
++	rz  = (opcode >> 8) & 0xf;
++	opcode &= 0xf000;
++
++	if (rx == 0 || rx == 15 || rz == 0 || rz == 15)
++		goto bad_area;
++
++	switch (opcode) {
++	case OP_LDH:
++		addr = get_ptreg(regs, rx) + (imm << 1);
++		ret = ldh_c(regs, rz, addr);
++		break;
++	case OP_LDW:
++		addr = get_ptreg(regs, rx) + (imm << 2);
++		ret = ldw_c(regs, rz, addr);
++		break;
++	case OP_STH:
++		addr = get_ptreg(regs, rx) + (imm << 1);
++		ret = sth_c(regs, rz, addr);
++		break;
++	case OP_STW:
++		addr = get_ptreg(regs, rx) + (imm << 2);
++		ret = stw_c(regs, rz, addr);
++		break;
++	}
++
++	if (ret)
++		goto bad_area;
++
++	regs->pc += 2;
++
++	return;
++
++bad_area:
++	if (!user_mode(regs)) {
++		if (fixup_exception(regs))
++			return;
++
++		bust_spinlocks(1);
++		pr_alert("%s opcode: %x, rz: %d, rx: %d, imm: %d, addr: %x.\n",
++				__func__, opcode, rz, rx, imm, addr);
++		show_regs(regs);
++		bust_spinlocks(0);
++		do_exit(SIGKILL);
++	}
++
++	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)addr, current);
 +}
 +
-+static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
-+				  struct page *page)
-+{
-+	copy_page(to, from);
-+}
-diff --git a/arch/csky/abiv2/inc/abi/pgtable-bits.h b/arch/csky/abiv2/inc/abi/pgtable-bits.h
-new file mode 100644
-index 0000000..b20ae19
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/pgtable-bits.h
-@@ -0,0 +1,37 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_PGTABLE_BITS_H
-+#define __ASM_CSKY_PGTABLE_BITS_H
-+
-+/* implemented in software */
-+#define _PAGE_ACCESSED		(1<<7)
-+#define PAGE_ACCESSED_BIT	(7)
-+
-+#define _PAGE_READ		(1<<8)
-+#define _PAGE_WRITE		(1<<9)
-+#define _PAGE_PRESENT		(1<<10)
-+
-+#define _PAGE_MODIFIED		(1<<11)
-+#define PAGE_MODIFIED_BIT	(11)
-+
-+/* implemented in hardware */
-+#define _PAGE_GLOBAL		(1<<0)
-+
-+#define _PAGE_VALID		(1<<1)
-+#define PAGE_VALID_BIT		(1)
-+
-+#define _PAGE_DIRTY		(1<<2)
-+#define PAGE_DIRTY_BIT		(2)
-+
-+#define _PAGE_SO		(1<<5)
-+#define _PAGE_BUF		(1<<6)
-+
-+#define _PAGE_CACHE		(1<<3)
-+
-+#define _CACHE_MASK		_PAGE_CACHE
-+
-+#define _CACHE_CACHED		(_PAGE_VALID | _PAGE_CACHE | _PAGE_BUF)
-+#define _CACHE_UNCACHED		(_PAGE_VALID | _PAGE_SO)
-+
-+#endif /* __ASM_CSKY_PGTABLE_BITS_H */
-diff --git a/arch/csky/include/asm/addrspace.h b/arch/csky/include/asm/addrspace.h
-new file mode 100644
-index 0000000..d1c2ede
---- /dev/null
-+++ b/arch/csky/include/asm/addrspace.h
-@@ -0,0 +1,10 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_ADDRSPACE_H
-+#define __ASM_CSKY_ADDRSPACE_H
-+
-+#define KSEG0		0x80000000ul
-+#define KSEG0ADDR(a)	(((unsigned long)a & 0x1fffffff) | KSEG0)
-+
-+#endif /* __ASM_CSKY_ADDRSPACE_H */
-diff --git a/arch/csky/include/asm/fixmap.h b/arch/csky/include/asm/fixmap.h
-new file mode 100644
-index 0000000..380ff0a
---- /dev/null
-+++ b/arch/csky/include/asm/fixmap.h
-@@ -0,0 +1,27 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_FIXMAP_H
-+#define __ASM_CSKY_FIXMAP_H
-+
-+#include <asm/page.h>
-+#ifdef CONFIG_HIGHMEM
-+#include <linux/threads.h>
-+#include <asm/kmap_types.h>
-+#endif
-+
-+enum fixed_addresses {
-+#ifdef CONFIG_HIGHMEM
-+	FIX_KMAP_BEGIN,
-+	FIX_KMAP_END = FIX_KMAP_BEGIN + (KM_TYPE_NR * NR_CPUS) - 1,
-+#endif
-+	__end_of_fixed_addresses
++static struct ctl_table alignment_tbl[4] = {
++	{
++		.procname = "enable",
++		.data = &align_enable,
++		.maxlen = sizeof(align_enable),
++		.mode = 0666,
++		.proc_handler = &proc_dointvec
++	},
++	{
++		.procname = "count",
++		.data = &align_count,
++		.maxlen = sizeof(align_count),
++		.mode = 0666,
++		.proc_handler = &proc_dointvec
++	},
++	{}
 +};
 +
-+#define FIXADDR_TOP	0xffffc000
-+#define FIXADDR_SIZE	(__end_of_fixed_addresses << PAGE_SHIFT)
-+#define FIXADDR_START	(FIXADDR_TOP - FIXADDR_SIZE)
++static struct ctl_table sysctl_table[2] = {
++	{
++	 .procname = "csky_alignment",
++	 .mode = 0555,
++	 .child = alignment_tbl},
++	{}
++};
 +
-+#include <asm-generic/fixmap.h>
++static struct ctl_path sysctl_path[2] = {
++	{.procname = "csky"},
++	{}
++};
 +
-+#endif /* __ASM_CSKY_FIXMAP_H */
-diff --git a/arch/csky/include/asm/highmem.h b/arch/csky/include/asm/highmem.h
++static int __init csky_alignment_init(void)
++{
++	register_sysctl_paths(sysctl_path, sysctl_table);
++	return 0;
++}
++
++arch_initcall(csky_alignment_init);
+diff --git a/arch/csky/abiv1/inc/abi/entry.h b/arch/csky/abiv1/inc/abi/entry.h
 new file mode 100644
-index 0000000..a345a2f
+index 0000000..3f3faab
 --- /dev/null
-+++ b/arch/csky/include/asm/highmem.h
-@@ -0,0 +1,51 @@
++++ b/arch/csky/abiv1/inc/abi/entry.h
+@@ -0,0 +1,160 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_HIGHMEM_H
-+#define __ASM_CSKY_HIGHMEM_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/uaccess.h>
-+#include <asm/kmap_types.h>
-+#include <asm/cache.h>
-+
-+/* undef for production */
-+#define HIGHMEM_DEBUG 1
-+
-+/* declarations for highmem.c */
-+extern unsigned long highstart_pfn, highend_pfn;
-+
-+extern pte_t *pkmap_page_table;
-+
-+/*
-+ * Right now we initialize only a single pte table. It can be extended
-+ * easily, subsequent pte tables have to be allocated in one physical
-+ * chunk of RAM.
-+ */
-+#define LAST_PKMAP 1024
-+#define LAST_PKMAP_MASK (LAST_PKMAP-1)
-+#define PKMAP_NR(virt)  ((virt-PKMAP_BASE) >> PAGE_SHIFT)
-+#define PKMAP_ADDR(nr)  (PKMAP_BASE + ((nr) << PAGE_SHIFT))
-+
-+extern void *kmap_high(struct page *page);
-+extern void kunmap_high(struct page *page);
-+
-+extern void *kmap(struct page *page);
-+extern void kunmap(struct page *page);
-+extern void *kmap_atomic(struct page *page);
-+extern void __kunmap_atomic(void *kvaddr);
-+extern void *kmap_atomic_pfn(unsigned long pfn);
-+extern struct page *kmap_atomic_to_page(void *ptr);
-+
-+#define flush_cache_kmaps() do {} while (0)
-+
-+extern void kmap_init(void);
-+
-+#define kmap_prot PAGE_KERNEL
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_CSKY_HIGHMEM_H */
-diff --git a/arch/csky/include/asm/mmu.h b/arch/csky/include/asm/mmu.h
-new file mode 100644
-index 0000000..cb34467
---- /dev/null
-+++ b/arch/csky/include/asm/mmu.h
-@@ -0,0 +1,12 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_MMU_H
-+#define __ASM_CSKY_MMU_H
-+
-+typedef struct {
-+	unsigned long asid[NR_CPUS];
-+	void *vdso;
-+} mm_context_t;
-+
-+#endif /* __ASM_CSKY_MMU_H */
-diff --git a/arch/csky/include/asm/page.h b/arch/csky/include/asm/page.h
-new file mode 100644
-index 0000000..6f064a1
---- /dev/null
-+++ b/arch/csky/include/asm/page.h
-@@ -0,0 +1,105 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef __ASM_CSKY_PAGE_H
-+#define __ASM_CSKY_PAGE_H
++#ifndef __ASM_CSKY_ENTRY_H
++#define __ASM_CSKY_ENTRY_H
 +
 +#include <asm/setup.h>
-+#include <asm/cache.h>
-+#include <linux/const.h>
++#include <abi/regdef.h>
 +
-+/*
-+ * PAGE_SHIFT determines the page size
-+ */
-+#define PAGE_SHIFT	12
-+#define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
-+#define PAGE_MASK	(~(PAGE_SIZE - 1))
-+#define THREAD_SIZE	(PAGE_SIZE * 2)
-+#define THREAD_MASK	(~(THREAD_SIZE - 1))
-+#define THREAD_SHIFT	(PAGE_SHIFT + 1)
++#define LSAVE_PC	8
++#define LSAVE_PSR	12
++#define LSAVE_A0	24
++#define LSAVE_A1	28
++#define LSAVE_A2	32
++#define LSAVE_A3	36
++#define LSAVE_A4	40
++#define LSAVE_A5	44
 +
-+/*
-+ * NOTE: virtual isn't really correct, actually it should be the offset into the
-+ * memory node, but we have no highmem, so that works for now.
-+ * TODO: implement (fast) pfn<->pgdat_idx conversion functions, this makes lots
-+ * of the shifts unnecessary.
-+ */
++#define EPC_INCREASE	2
++#define EPC_KEEP	0
 +
-+#ifndef __ASSEMBLY__
++.macro USPTOKSP
++	mtcr	sp, ss1
++	mfcr	sp, ss0
++.endm
 +
-+#include <linux/pfn.h>
++.macro KSPTOUSP
++	mtcr	sp, ss0
++	mfcr	sp, ss1
++.endm
 +
-+#define virt_to_pfn(kaddr)      (__pa(kaddr) >> PAGE_SHIFT)
-+#define pfn_to_virt(pfn)        __va((pfn) << PAGE_SHIFT)
++.macro INCTRAP	rx
++	addi	\rx, EPC_INCREASE
++.endm
 +
-+#define virt_addr_valid(kaddr)  ((void *)(kaddr) >= (void *)PAGE_OFFSET && \
-+			(void *)(kaddr) < high_memory)
-+extern unsigned long min_low_pfn, max_pfn;
-+#define pfn_valid(pfn)		((pfn >= min_low_pfn) && (pfn < max_pfn))
++.macro	SAVE_ALL epc_inc
++	mtcr    r13, ss2
++	mfcr    r13, epsr
++	btsti   r13, 31
++	bt      1f
++	USPTOKSP
++1:
++	subi    sp, 32
++	subi    sp, 32
++	subi    sp, 16
++	stw     r13, (sp, 12)
 +
-+extern void *memset(void *dest, int c, size_t l);
-+extern void *memcpy(void *to, const void *from, size_t l);
++	stw     lr, (sp, 4)
 +
-+#define clear_page(page)	memset((page), 0, PAGE_SIZE)
-+#define copy_page(to, from)	memcpy((to), (from), PAGE_SIZE)
++	mfcr	lr, epc
++	movi	r13, \epc_inc
++	add	lr, r13
++	stw     lr, (sp, 8)
 +
-+#define page_to_phys(page)	(page_to_pfn(page) << PAGE_SHIFT)
-+#define phys_to_page(paddr)	(pfn_to_page(PFN_DOWN(paddr)))
++	mfcr	lr, ss1
++	stw     lr, (sp, 16)
 +
-+struct page;
++	stw     a0, (sp, 20)
++	stw     a0, (sp, 24)
++	stw     a1, (sp, 28)
++	stw     a2, (sp, 32)
++	stw     a3, (sp, 36)
 +
-+#include <abi/page.h>
++	addi	sp, 32
++	addi	sp, 8
++	mfcr    r13, ss2
++	stw	r6, (sp)
++	stw	r7, (sp, 4)
++	stw	r8, (sp, 8)
++	stw	r9, (sp, 12)
++	stw	r10, (sp, 16)
++	stw	r11, (sp, 20)
++	stw	r12, (sp, 24)
++	stw	r13, (sp, 28)
++	stw	r14, (sp, 32)
++	stw	r1, (sp, 36)
++	subi	sp, 32
++	subi	sp, 8
++.endm
 +
-+struct vm_area_struct;
++.macro	RESTORE_ALL
++	psrclr  ie
++	ldw	lr, (sp, 4)
++	ldw     a0, (sp, 8)
++	mtcr    a0, epc
++	ldw     a0, (sp, 12)
++	mtcr    a0, epsr
++	btsti   a0, 31
++	ldw     a0, (sp, 16)
++	mtcr	a0, ss1
 +
-+/*
-+ * These are used to make use of C type-checking..
-+ */
-+typedef struct { unsigned long pte_low; } pte_t;
-+#define pte_val(x)	((x).pte_low)
++	ldw     a0, (sp, 24)
++	ldw     a1, (sp, 28)
++	ldw     a2, (sp, 32)
++	ldw     a3, (sp, 36)
 +
-+typedef struct { unsigned long pgd; } pgd_t;
-+typedef struct { unsigned long pgprot; } pgprot_t;
-+typedef struct page *pgtable_t;
++	addi	sp, 32
++	addi	sp, 8
++	ldw	r6, (sp)
++	ldw	r7, (sp, 4)
++	ldw	r8, (sp, 8)
++	ldw	r9, (sp, 12)
++	ldw	r10, (sp, 16)
++	ldw	r11, (sp, 20)
++	ldw	r12, (sp, 24)
++	ldw	r13, (sp, 28)
++	ldw	r14, (sp, 32)
++	ldw	r1, (sp, 36)
++	addi	sp, 32
++	addi	sp, 8
 +
-+#define pgd_val(x)	((x).pgd)
-+#define pgprot_val(x)	((x).pgprot)
++	bt      1f
++	KSPTOUSP
++1:
++	rte
++.endm
 +
-+#define ptep_buddy(x)	((pte_t *)((unsigned long)(x) ^ sizeof(pte_t)))
++.macro SAVE_SWITCH_STACK
++	subi    sp, 32
++	stm     r8-r15, (sp)
++.endm
 +
-+#define __pte(x)	((pte_t) { (x) })
-+#define __pgd(x)	((pgd_t) { (x) })
-+#define __pgprot(x)	((pgprot_t) { (x) })
++.macro RESTORE_SWITCH_STACK
++	ldm     r8-r15, (sp)
++	addi    sp, 32
++.endm
 +
-+#endif /* !__ASSEMBLY__ */
++/* MMU registers operators. */
++.macro RD_MIR	rx
++	cprcr   \rx, cpcr0
++.endm
 +
-+#define PHYS_OFFSET		(CONFIG_RAM_BASE & ~(LOWMEM_LIMIT - 1))
-+#define PHYS_OFFSET_OFFSET	(CONFIG_RAM_BASE & (LOWMEM_LIMIT - 1))
-+#define ARCH_PFN_OFFSET		PFN_DOWN(CONFIG_RAM_BASE)
++.macro RD_MEH	rx
++	cprcr   \rx, cpcr4
++.endm
 +
-+#define	PAGE_OFFSET	0x80000000
-+#define LOWMEM_LIMIT	0x40000000
++.macro RD_MCIR	rx
++	cprcr   \rx, cpcr8
++.endm
 +
-+#define __pa(x)		((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
-+#define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - \
-+				  PHYS_OFFSET))
-+#define __pa_symbol(x)	__pa(RELOC_HIDE((unsigned long)(x), 0))
++.macro RD_PGDR  rx
++	cprcr   \rx, cpcr29
++.endm
 +
-+#define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - \
-+				 PHYS_OFFSET_OFFSET)
-+#define virt_to_page(x)	(mem_map + MAP_NR(x))
++.macro WR_MEH	rx
++	cpwcr   \rx, cpcr4
++.endm
 +
-+#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
-+				VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++.macro WR_MCIR	rx
++	cpwcr   \rx, cpcr8
++.endm
 +
-+/*
-+ * main RAM and kernel working space are coincident at 0x80000000, but to make
-+ * life more interesting, there's also an uncached virtual shadow at 0xb0000000
-+ * - these mappings are fixed in the MMU
-+ */
++.macro SETUP_MMU rx
++	lrw	\rx, PHYS_OFFSET | 0xe
++	cpwcr	\rx, cpcr30
++	lrw	\rx, (PHYS_OFFSET + 0x20000000) | 0xe
++	cpwcr	\rx, cpcr31
++.endm
 +
-+#define pfn_to_kaddr(x)	__va(PFN_PHYS(x))
-+
-+#include <asm-generic/memory_model.h>
-+#include <asm-generic/getorder.h>
-+
-+#endif /* __ASM_CSKY_PAGE_H */
-diff --git a/arch/csky/include/asm/pgalloc.h b/arch/csky/include/asm/pgalloc.h
++#endif /* __ASM_CSKY_ENTRY_H */
+diff --git a/arch/csky/abiv2/inc/abi/entry.h b/arch/csky/abiv2/inc/abi/entry.h
 new file mode 100644
-index 0000000..bf4f4a0
+index 0000000..acd0521
 --- /dev/null
-+++ b/arch/csky/include/asm/pgalloc.h
-@@ -0,0 +1,115 @@
++++ b/arch/csky/abiv2/inc/abi/entry.h
+@@ -0,0 +1,156 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_PGALLOC_H
-+#define __ASM_CSKY_PGALLOC_H
++#ifndef __ASM_CSKY_ENTRY_H
++#define __ASM_CSKY_ENTRY_H
 +
-+#include <linux/highmem.h>
-+#include <linux/mm.h>
-+#include <linux/sched.h>
++#include <asm/setup.h>
++#include <abi/regdef.h>
 +
-+static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
-+					pte_t *pte)
-+{
-+	set_pmd(pmd, __pmd(__pa(pte)));
-+}
++#define LSAVE_PC	8
++#define LSAVE_PSR	12
++#define LSAVE_A0	24
++#define LSAVE_A1	28
++#define LSAVE_A2	32
++#define LSAVE_A3	36
 +
-+static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
-+					pgtable_t pte)
-+{
-+	set_pmd(pmd, __pmd(__pa(page_address(pte))));
-+}
++#define EPC_INCREASE	4
++#define EPC_KEEP	0
 +
-+#define pmd_pgtable(pmd) pmd_page(pmd)
++#define KSPTOUSP
++#define USPTOKSP
 +
-+extern void pgd_init(unsigned long *p);
++#define usp cr<14, 1>
 +
-+static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
-+					unsigned long address)
-+{
-+	pte_t *pte;
-+	unsigned long *kaddr, i;
++.macro INCTRAP	rx
++	addi	\rx, EPC_INCREASE
++.endm
 +
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL,
-+					 PTE_ORDER);
-+	kaddr = (unsigned long *)pte;
-+	if (address & 0x80000000)
-+		for (i = 0; i < (PAGE_SIZE/4); i++)
-+			*(kaddr + i) = 0x1;
-+	else
-+		clear_page(kaddr);
++.macro SAVE_ALL epc_inc
++	subi    sp, 152
++	stw	tls, (sp, 0)
++	stw	lr, (sp, 4)
 +
-+	return pte;
-+}
++	mfcr	lr, epc
++	movi	tls, \epc_inc
++	add	lr, tls
++	stw	lr, (sp, 8)
 +
-+static inline struct page *pte_alloc_one(struct mm_struct *mm,
-+						unsigned long address)
-+{
-+	struct page *pte;
-+	unsigned long *kaddr, i;
++	mfcr	lr, epsr
++	stw	lr, (sp, 12)
++	mfcr	lr, usp
++	stw	lr, (sp, 16)
 +
-+	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
-+	if (pte) {
-+		kaddr = kmap_atomic(pte);
-+		if (address & 0x80000000) {
-+			for (i = 0; i < (PAGE_SIZE/4); i++)
-+				*(kaddr + i) = 0x1;
-+		} else
-+			clear_page(kaddr);
-+		kunmap_atomic(kaddr);
-+		pgtable_page_ctor(pte);
-+	}
-+	return pte;
-+}
++	stw     a0, (sp, 20)
++	stw     a0, (sp, 24)
++	stw     a1, (sp, 28)
++	stw     a2, (sp, 32)
++	stw     a3, (sp, 36)
 +
-+static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-+{
-+	free_pages((unsigned long)pte, PTE_ORDER);
-+}
++	addi	sp, 40
++	stm	r4-r13, (sp)
 +
-+static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
-+{
-+	pgtable_page_dtor(pte);
-+	__free_pages(pte, PTE_ORDER);
-+}
-+
-+static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-+{
-+	free_pages((unsigned long)pgd, PGD_ORDER);
-+}
-+
-+static inline pgd_t *pgd_alloc(struct mm_struct *mm)
-+{
-+	pgd_t *ret;
-+	pgd_t *init;
-+
-+	ret = (pgd_t *) __get_free_pages(GFP_KERNEL, PGD_ORDER);
-+	if (ret) {
-+		init = pgd_offset(&init_mm, 0UL);
-+		pgd_init((unsigned long *)ret);
-+		memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
-+			(PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-+		/* prevent out of order excute */
-+		smp_mb();
-+#ifdef CONFIG_CPU_NEED_TLBSYNC
-+		dcache_wb_range((unsigned int)ret,
-+				(unsigned int)(ret + PTRS_PER_PGD));
++	addi    sp, 40
++	stm     r16-r30, (sp)
++#ifdef CONFIG_CPU_HAS_HILO
++	mfhi	lr
++	stw	lr, (sp, 60)
++	mflo	lr
++	stw	lr, (sp, 64)
 +#endif
-+	}
++	subi	sp, 80
++.endm
 +
-+	return ret;
-+}
++.macro	RESTORE_ALL
++	psrclr  ie
++	ldw	tls, (sp, 0)
++	ldw	lr, (sp, 4)
++	ldw	a0, (sp, 8)
++	mtcr	a0, epc
++	ldw	a0, (sp, 12)
++	mtcr	a0, epsr
++	ldw	a0, (sp, 16)
++	mtcr	a0, usp
 +
-+#define __pte_free_tlb(tlb, pte, address)		\
-+do {							\
-+	pgtable_page_dtor(pte);				\
-+	tlb_remove_page(tlb, pte);			\
++#ifdef CONFIG_CPU_HAS_HILO
++	ldw	a0, (sp, 140)
++	mthi	a0
++	ldw	a0, (sp, 144)
++	mtlo	a0
++#endif
++
++	ldw     a0, (sp, 24)
++	ldw     a1, (sp, 28)
++	ldw     a2, (sp, 32)
++	ldw     a3, (sp, 36)
++
++	addi	sp, 40
++	ldm	r4-r13, (sp)
++	addi    sp, 40
++	ldm     r16-r30, (sp)
++	addi    sp, 72
++	rte
++.endm
++
++.macro SAVE_SWITCH_STACK
++	subi	sp, 64
++	stm	r4-r11, (sp)
++	stw	r15, (sp, 32)
++	stw	r16, (sp, 36)
++	stw	r17, (sp, 40)
++	stw	r26, (sp, 44)
++	stw	r27, (sp, 48)
++	stw	r28, (sp, 52)
++	stw	r29, (sp, 56)
++	stw	r30, (sp, 60)
++.endm
++
++.macro RESTORE_SWITCH_STACK
++	ldm	r4-r11, (sp)
++	ldw	r15, (sp, 32)
++	ldw	r16, (sp, 36)
++	ldw	r17, (sp, 40)
++	ldw	r26, (sp, 44)
++	ldw	r27, (sp, 48)
++	ldw	r28, (sp, 52)
++	ldw	r29, (sp, 56)
++	ldw	r30, (sp, 60)
++	addi	sp, 64
++.endm
++
++/* MMU registers operators. */
++.macro RD_MIR rx
++	mfcr	\rx, cr<0, 15>
++.endm
++
++.macro RD_MEH rx
++	mfcr	\rx, cr<4, 15>
++.endm
++
++.macro RD_MCIR rx
++	mfcr	\rx, cr<8, 15>
++.endm
++
++.macro RD_PGDR rx
++	mfcr	\rx, cr<29, 15>
++.endm
++
++.macro RD_PGDR_K rx
++	mfcr	\rx, cr<28, 15>
++.endm
++
++.macro WR_MEH rx
++	mtcr	\rx, cr<4, 15>
++.endm
++
++.macro WR_MCIR rx
++	mtcr	\rx, cr<8, 15>
++.endm
++
++.macro SETUP_MMU rx
++	lrw	\rx, PHYS_OFFSET | 0xe
++	mtcr	\rx, cr<30, 15>
++	lrw	\rx, (PHYS_OFFSET + 0x20000000) | 0xe
++	mtcr	\rx, cr<31, 15>
++.endm
++#endif /* __ASM_CSKY_ENTRY_H */
+diff --git a/arch/csky/include/asm/traps.h b/arch/csky/include/asm/traps.h
+new file mode 100644
+index 0000000..1c08180
+--- /dev/null
++++ b/arch/csky/include/asm/traps.h
+@@ -0,0 +1,44 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_TRAPS_H
++#define __ASM_CSKY_TRAPS_H
++
++#define VEC_RESET	0
++#define VEC_ALIGN	1
++#define VEC_ACCESS	2
++#define VEC_ZERODIV	3
++#define VEC_ILLEGAL	4
++#define VEC_PRIV	5
++#define VEC_TRACE	6
++#define VEC_BREAKPOINT	7
++#define VEC_UNRECOVER	8
++#define VEC_SOFTRESET	9
++#define VEC_AUTOVEC	10
++#define VEC_FAUTOVEC	11
++#define VEC_HWACCEL	12
++
++#define	VEC_TLBMISS	14
++#define	VEC_TLBMODIFIED	15
++
++#define VEC_TRAP0	16
++#define VEC_TRAP1	17
++#define VEC_TRAP2	18
++#define VEC_TRAP3	19
++
++#define	VEC_TLBINVALIDL	20
++#define	VEC_TLBINVALIDS	21
++
++#define VEC_PRFL	29
++#define VEC_FPE		30
++
++extern void *vec_base[];
++
++#define VEC_INIT(i, func) \
++do { \
++	vec_base[i] = (void *)func; \
 +} while (0)
 +
-+#define check_pgt_cache()	do {} while (0)
++void csky_alignment(struct pt_regs *regs);
 +
-+extern void pagetable_init(void);
-+extern void pre_mmu_init(void);
-+extern void pre_trap_init(void);
-+
-+#endif /* __ASM_CSKY_PGALLOC_H */
-diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
++#endif /* __ASM_CSKY_TRAPS_H */
+diff --git a/arch/csky/include/asm/unistd.h b/arch/csky/include/asm/unistd.h
 new file mode 100644
-index 0000000..edfcbb2
+index 0000000..2844874
 --- /dev/null
-+++ b/arch/csky/include/asm/pgtable.h
-@@ -0,0 +1,306 @@
++++ b/arch/csky/include/asm/unistd.h
+@@ -0,0 +1,4 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_PGTABLE_H
-+#define __ASM_CSKY_PGTABLE_H
-+
-+#include <asm/fixmap.h>
-+#include <asm/addrspace.h>
-+#include <abi/pgtable-bits.h>
-+#include <asm-generic/pgtable-nopmd.h>
-+
-+#define PGDIR_SHIFT		22
-+#define PGDIR_SIZE		(1UL << PGDIR_SHIFT)
-+#define PGDIR_MASK		(~(PGDIR_SIZE-1))
-+
-+#define USER_PTRS_PER_PGD	(0x80000000UL/PGDIR_SIZE)
-+#define FIRST_USER_ADDRESS	0UL
-+
-+#define PKMAP_BASE		(0xff800000)
-+
-+#define VMALLOC_START		(0xc0008000)
-+#define VMALLOC_END		(PKMAP_BASE - 2*PAGE_SIZE)
-+
-+/*
-+ * C-SKY is two-level paging structure:
-+ */
-+#define PGD_ORDER	0
-+#define PTE_ORDER	0
-+
-+#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) / sizeof(pgd_t))
-+#define PTRS_PER_PMD	1
-+#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
-+
-+#define pte_ERROR(e) \
-+	pr_err("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, (e).pte_low)
-+#define pgd_ERROR(e) \
-+	pr_err("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
-+
-+/* Find an entry in the third-level page table.. */
-+#define __pte_offset_t(address) \
-+	(((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-+#define pte_offset_kernel(dir, address) \
-+	(pmd_page_vaddr(*(dir)) + __pte_offset_t(address))
-+#define pte_offset_map(dir, address) \
-+	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset_t(address))
-+#define pmd_page(pmd)	(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
-+#define pte_clear(mm, addr, ptep)	set_pte((ptep), \
-+			(((unsigned int)addr&0x80000000)?__pte(1):__pte(0)))
-+#define pte_none(pte)	(!(pte_val(pte)&0xfffffffe))
-+#define pte_present(pte)	(pte_val(pte) & _PAGE_PRESENT)
-+#define pte_pfn(x)	((unsigned long)((x).pte_low >> PAGE_SHIFT))
-+#define pfn_pte(pfn, prot) __pte(((unsigned long long)(pfn) << PAGE_SHIFT) \
-+				| pgprot_val(prot))
-+
-+#define __READABLE	(_PAGE_READ | _PAGE_VALID | _PAGE_ACCESSED)
-+#define __WRITEABLE	(_PAGE_WRITE | _PAGE_DIRTY | _PAGE_MODIFIED)
-+
-+#define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED | \
-+			 _CACHE_MASK)
-+
-+#define pte_unmap(pte)	((void)(pte))
-+
-+#define __swp_type(x)			(((x).val >> 4) & 0xff)
-+#define __swp_offset(x)			((x).val >> 12)
-+#define __swp_entry(type, offset)	((swp_entry_t) {((type) << 4) | \
-+					((offset) << 12) })
-+#define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)		((pte_t) { (x).val })
-+
-+#define pte_page(x)			pfn_to_page(pte_pfn(x))
-+#define __mk_pte(page_nr, pgprot)	__pte(((page_nr) << PAGE_SHIFT) | \
-+					pgprot_val(pgprot))
-+
-+/*
-+ * CSKY can't do page protection for execute, and considers that the same like
-+ * read. Also, write permissions imply read permissions. This is the closest
-+ * we can get by reasonable means..
-+ */
-+#define PAGE_NONE	__pgprot(_PAGE_PRESENT | _CACHE_CACHED)
-+#define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE | \
-+				_CACHE_CACHED)
-+#define PAGE_COPY	__pgprot(_PAGE_PRESENT | _PAGE_READ | _CACHE_CACHED)
-+#define PAGE_READONLY	__pgprot(_PAGE_PRESENT | _PAGE_READ | _CACHE_CACHED)
-+#define PAGE_KERNEL	__pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE | \
-+				_PAGE_GLOBAL | _CACHE_CACHED)
-+#define PAGE_USERIO	__pgprot(_PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE | \
-+				_CACHE_CACHED)
-+
-+#define __P000	PAGE_NONE
-+#define __P001	PAGE_READONLY
-+#define __P010	PAGE_COPY
-+#define __P011	PAGE_COPY
-+#define __P100	PAGE_READONLY
-+#define __P101	PAGE_READONLY
-+#define __P110	PAGE_COPY
-+#define __P111	PAGE_COPY
-+
-+#define __S000	PAGE_NONE
-+#define __S001	PAGE_READONLY
-+#define __S010	PAGE_SHARED
-+#define __S011	PAGE_SHARED
-+#define __S100	PAGE_READONLY
-+#define __S101	PAGE_READONLY
-+#define __S110	PAGE_SHARED
-+#define __S111	PAGE_SHARED
-+
-+extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
-+#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
-+
-+extern void load_pgd(unsigned long pg_dir);
-+extern pte_t invalid_pte_table[PTRS_PER_PTE];
-+
-+static inline int pte_special(pte_t pte) { return 0; }
-+static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
-+
-+static inline void set_pte(pte_t *p, pte_t pte)
-+{
-+	*p = pte;
-+#if defined(CONFIG_CPU_NEED_TLBSYNC)
-+	dcache_wb_line((u32)p);
-+#endif
-+	/* prevent out of order excution */
-+	smp_mb();
-+}
-+#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
-+
-+static inline pte_t *pmd_page_vaddr(pmd_t pmd)
-+{
-+	unsigned long ptr;
-+
-+	ptr = pmd_val(pmd);
-+
-+	return __va(ptr);
-+}
-+
-+#define pmd_phys(pmd) pmd_val(pmd)
-+
-+static inline void set_pmd(pmd_t *p, pmd_t pmd)
-+{
-+	*p = pmd;
-+#if defined(CONFIG_CPU_NEED_TLBSYNC)
-+	dcache_wb_line((u32)p);
-+#endif
-+	/* prevent specul excute */
-+	smp_mb();
-+}
-+
-+
-+static inline int pmd_none(pmd_t pmd)
-+{
-+	return pmd_val(pmd) == __pa(invalid_pte_table);
-+}
-+
-+#define pmd_bad(pmd)	(pmd_val(pmd) & ~PAGE_MASK)
-+
-+static inline int pmd_present(pmd_t pmd)
-+{
-+	return (pmd_val(pmd) != __pa(invalid_pte_table));
-+}
-+
-+static inline void pmd_clear(pmd_t *p)
-+{
-+	pmd_val(*p) = (__pa(invalid_pte_table));
-+#if defined(CONFIG_CPU_NEED_TLBSYNC)
-+	dcache_wb_line((u32)p);
-+#endif
-+}
-+
-+/*
-+ * The following only work if pte_present() is true.
-+ * Undefined behaviour if not..
-+ */
-+static inline int pte_read(pte_t pte)
-+{
-+	return pte.pte_low & _PAGE_READ;
-+}
-+
-+static inline int pte_write(pte_t pte)
-+{
-+	return (pte).pte_low & _PAGE_WRITE;
-+}
-+
-+static inline int pte_dirty(pte_t pte)
-+{
-+	return (pte).pte_low & _PAGE_MODIFIED;
-+}
-+
-+static inline int pte_young(pte_t pte)
-+{
-+	return (pte).pte_low & _PAGE_ACCESSED;
-+}
-+
-+static inline pte_t pte_wrprotect(pte_t pte)
-+{
-+	pte_val(pte) &= ~(_PAGE_WRITE | _PAGE_DIRTY);
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkclean(pte_t pte)
-+{
-+	pte_val(pte) &= ~(_PAGE_MODIFIED|_PAGE_DIRTY);
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkold(pte_t pte)
-+{
-+	pte_val(pte) &= ~(_PAGE_ACCESSED|_PAGE_VALID);
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkwrite(pte_t pte)
-+{
-+	pte_val(pte) |= _PAGE_WRITE;
-+	if (pte_val(pte) & _PAGE_MODIFIED)
-+		pte_val(pte) |= _PAGE_DIRTY;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkdirty(pte_t pte)
-+{
-+	pte_val(pte) |= _PAGE_MODIFIED;
-+	if (pte_val(pte) & _PAGE_WRITE)
-+		pte_val(pte) |= _PAGE_DIRTY;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkyoung(pte_t pte)
-+{
-+	pte_val(pte) |= _PAGE_ACCESSED;
-+	if (pte_val(pte) & _PAGE_READ)
-+		pte_val(pte) |= _PAGE_VALID;
-+	return pte;
-+}
-+
-+#define __pgd_offset(address)	pgd_index(address)
-+#define __pud_offset(address)	(((address) >> PUD_SHIFT) & (PTRS_PER_PUD-1))
-+#define __pmd_offset(address)	(((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1))
-+
-+/* to find an entry in a kernel page-table-directory */
-+#define pgd_offset_k(address)	pgd_offset(&init_mm, address)
-+
-+#define pgd_index(address)	((address) >> PGDIR_SHIFT)
-+
-+/*
-+ * Macro to make mark a page protection value as "uncacheable".  Note
-+ * that "protection" is really a misnomer here as the protection value
-+ * contains the memory attribute bits, dirty bits, and various other
-+ * bits as well.
-+ */
-+#define pgprot_noncached pgprot_noncached
-+
-+static inline pgprot_t pgprot_noncached(pgprot_t _prot)
-+{
-+	unsigned long prot = pgprot_val(_prot);
-+
-+	prot = (prot & ~_CACHE_MASK) | _CACHE_UNCACHED;
-+
-+	return __pgprot(prot);
-+}
-+
-+/*
-+ * Conversion functions: convert a page and protection to a page entry,
-+ * and a page entry and page directory to the page they refer to.
-+ */
-+#define mk_pte(page, pgprot)    pfn_pte(page_to_pfn(page), (pgprot))
-+static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-+{
-+	return __pte((pte_val(pte) & _PAGE_CHG_MASK) |
-+		     (pgprot_val(newprot)));
-+}
-+
-+/* to find an entry in a page-table-directory */
-+static inline pgd_t *pgd_offset(struct mm_struct *mm, unsigned long address)
-+{
-+	return mm->pgd + pgd_index(address);
-+}
-+
-+/* Find an entry in the third-level page table.. */
-+static inline pte_t *pte_offset(pmd_t *dir, unsigned long address)
-+{
-+	return (pte_t *) (pmd_page_vaddr(*dir)) +
-+		((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1));
-+}
-+
-+extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
-+extern void paging_init(void);
-+
-+extern void show_jtlb_table(void);
-+
-+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
-+		      pte_t *pte);
-+
-+/* Needs to be defined here and not in linux/mm.h, as it is arch dependent */
-+#define kern_addr_valid(addr)	(1)
-+
-+/*
-+ * No page table caches to initialise
-+ */
-+#define pgtable_cache_init()	do {} while (0)
-+
-+#define io_remap_pfn_range(vma, vaddr, pfn, size, prot) \
-+	remap_pfn_range(vma, vaddr, pfn, size, prot)
-+
-+#include <asm-generic/pgtable.h>
-+
-+#endif /* __ASM_CSKY_PGTABLE_H */
-diff --git a/arch/csky/include/asm/segment.h b/arch/csky/include/asm/segment.h
++#include <uapi/asm/unistd.h>
+diff --git a/arch/csky/kernel/cpu-probe.c b/arch/csky/kernel/cpu-probe.c
 new file mode 100644
-index 0000000..ffdc4c4
+index 0000000..5f15ca3
 --- /dev/null
-+++ b/arch/csky/include/asm/segment.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_SEGMENT_H
-+#define __ASM_CSKY_SEGMENT_H
-+
-+typedef struct {
-+	unsigned long seg;
-+} mm_segment_t;
-+
-+#define KERNEL_DS		((mm_segment_t) { 0xFFFFFFFF })
-+#define get_ds()		KERNEL_DS
-+
-+#define USER_DS			((mm_segment_t) { 0x80000000UL })
-+#define get_fs()		(current_thread_info()->addr_limit)
-+#define set_fs(x)		(current_thread_info()->addr_limit = (x))
-+#define segment_eq(a, b)	((a).seg == (b).seg)
-+
-+#endif /* __ASM_CSKY_SEGMENT_H */
-diff --git a/arch/csky/include/asm/shmparam.h b/arch/csky/include/asm/shmparam.h
-new file mode 100644
-index 0000000..efafe4c
---- /dev/null
-+++ b/arch/csky/include/asm/shmparam.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __ASM_CSKY_SHMPARAM_H
-+#define __ASM_CSKY_SHMPARAM_H
-+
-+#define SHMLBA	(4 * PAGE_SIZE)
-+
-+#define __ARCH_FORCE_SHMLBA
-+
-+#endif /* __ASM_CSKY_SHMPARAM_H */
-diff --git a/arch/csky/mm/dma-mapping.c b/arch/csky/mm/dma-mapping.c
-new file mode 100644
-index 0000000..85437b2
---- /dev/null
-+++ b/arch/csky/mm/dma-mapping.c
-@@ -0,0 +1,254 @@
++++ b/arch/csky/kernel/cpu-probe.c
+@@ -0,0 +1,79 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/cache.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/dma-contiguous.h>
-+#include <linux/dma-noncoherent.h>
-+#include <linux/genalloc.h>
-+#include <linux/highmem.h>
-+#include <linux/io.h>
-+#include <linux/mm.h>
-+#include <linux/scatterlist.h>
-+#include <linux/types.h>
-+#include <linux/version.h>
-+#include <asm/cache.h>
-+
-+static struct gen_pool *atomic_pool;
-+static size_t atomic_pool_size __initdata = SZ_256K;
-+
-+static int __init early_coherent_pool(char *p)
-+{
-+	atomic_pool_size = memparse(p, &p);
-+	return 0;
-+}
-+early_param("coherent_pool", early_coherent_pool);
-+
-+static int __init atomic_pool_init(void)
-+{
-+	struct page *page;
-+	size_t size = atomic_pool_size;
-+	void *ptr;
-+	int ret;
-+
-+	atomic_pool = gen_pool_create(PAGE_SHIFT, -1);
-+	if (!atomic_pool)
-+		BUG();
-+
-+	page = alloc_pages(GFP_KERNEL | GFP_DMA, get_order(size));
-+	if (!page)
-+		BUG();
-+
-+	ptr = dma_common_contiguous_remap(page, size, VM_ALLOC,
-+					  pgprot_noncached(PAGE_KERNEL),
-+					  __builtin_return_address(0));
-+	if (!ptr)
-+		BUG();
-+
-+	ret = gen_pool_add_virt(atomic_pool, (unsigned long)ptr,
-+				page_to_phys(page), atomic_pool_size, -1);
-+	if (ret)
-+		BUG();
-+
-+	gen_pool_set_algo(atomic_pool, gen_pool_first_fit_order_align, NULL);
-+
-+	pr_info("DMA: preallocated %zu KiB pool for atomic coherent pool\n",
-+		atomic_pool_size / 1024);
-+
-+	pr_info("DMA: vaddr: 0x%x phy: 0x%lx,\n", (unsigned int)ptr,
-+		page_to_phys(page));
-+
-+	return 0;
-+}
-+postcore_initcall(atomic_pool_init);
-+
-+static void *csky_dma_alloc_atomic(struct device *dev, size_t size,
-+				   dma_addr_t *dma_handle)
-+{
-+	unsigned long addr;
-+
-+	addr = gen_pool_alloc(atomic_pool, size);
-+	if (addr)
-+		*dma_handle = gen_pool_virt_to_phys(atomic_pool, addr);
-+
-+	return (void *)addr;
-+}
-+
-+static void csky_dma_free_atomic(struct device *dev, size_t size, void *vaddr,
-+				 dma_addr_t dma_handle, unsigned long attrs)
-+{
-+	gen_pool_free(atomic_pool, (unsigned long)vaddr, size);
-+}
-+
-+static void __dma_clear_buffer(struct page *page, size_t size)
-+{
-+	if (PageHighMem(page)) {
-+		unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-+
-+		do {
-+			void *ptr = kmap_atomic(page);
-+			size_t _size = (size < PAGE_SIZE) ? size : PAGE_SIZE;
-+
-+			memset(ptr, 0, _size);
-+			dma_wbinv_range((unsigned long)ptr,
-+					(unsigned long)ptr + _size);
-+
-+			kunmap_atomic(ptr);
-+
-+			page++;
-+			size -= PAGE_SIZE;
-+			count--;
-+		} while (count);
-+	} else {
-+		void *ptr = page_address(page);
-+
-+		memset(ptr, 0, size);
-+		dma_wbinv_range((unsigned long)ptr, (unsigned long)ptr + size);
-+	}
-+}
-+
-+static void *csky_dma_alloc_nonatomic(struct device *dev, size_t size,
-+				      dma_addr_t *dma_handle, gfp_t gfp,
-+				      unsigned long attrs)
-+{
-+	void  *vaddr;
-+	struct page *page;
-+	unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-+
-+	if (DMA_ATTR_NON_CONSISTENT & attrs) {
-+		pr_err("csky %s can't support DMA_ATTR_NON_CONSISTENT.\n", __func__);
-+		return NULL;
-+	}
-+
-+	if (IS_ENABLED(CONFIG_DMA_CMA))
-+		page = dma_alloc_from_contiguous(dev, count, get_order(size),
-+						 gfp);
-+	else
-+		page = alloc_pages(gfp, get_order(size));
-+
-+	if (!page) {
-+		pr_err("csky %s no more free pages.\n", __func__);
-+		return NULL;
-+	}
-+
-+	*dma_handle = page_to_phys(page);
-+
-+	__dma_clear_buffer(page, size);
-+
-+	if (attrs & DMA_ATTR_NO_KERNEL_MAPPING)
-+		return page;
-+
-+	vaddr = dma_common_contiguous_remap(page, PAGE_ALIGN(size), VM_USERMAP,
-+		pgprot_noncached(PAGE_KERNEL), __builtin_return_address(0));
-+	if (!vaddr)
-+		BUG();
-+
-+	return vaddr;
-+}
-+
-+static void csky_dma_free_nonatomic(
-+	struct device *dev,
-+	size_t size,
-+	void *vaddr,
-+	dma_addr_t dma_handle,
-+	unsigned long attrs
-+	)
-+{
-+	struct page *page = phys_to_page(dma_handle);
-+	unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-+
-+	if ((unsigned int)vaddr >= VMALLOC_START)
-+		dma_common_free_remap(vaddr, size, VM_USERMAP);
-+
-+	if (IS_ENABLED(CONFIG_DMA_CMA))
-+		dma_release_from_contiguous(dev, page, count);
-+	else
-+		__free_pages(page, get_order(size));
-+}
-+
-+void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
-+		     gfp_t gfp, unsigned long attrs)
-+{
-+	if (gfpflags_allow_blocking(gfp))
-+		return csky_dma_alloc_nonatomic(dev, size, dma_handle, gfp,
-+						attrs);
-+	else
-+		return csky_dma_alloc_atomic(dev, size, dma_handle);
-+}
-+
-+void arch_dma_free(struct device *dev, size_t size, void *vaddr,
-+		   dma_addr_t dma_handle, unsigned long attrs)
-+{
-+	if (!addr_in_gen_pool(atomic_pool, (unsigned int) vaddr, size))
-+		csky_dma_free_nonatomic(dev, size, vaddr, dma_handle, attrs);
-+	else
-+		csky_dma_free_atomic(dev, size, vaddr, dma_handle, attrs);
-+}
-+
-+static inline void cache_op(phys_addr_t paddr, size_t size,
-+			    void (*fn)(unsigned long start, unsigned long end))
-+{
-+	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
-+	unsigned int offset = paddr & ~PAGE_MASK;
-+	size_t left = size;
-+	unsigned long start;
-+
-+	do {
-+		size_t len = left;
-+
-+		if (PageHighMem(page)) {
-+			void *addr;
-+
-+			if (offset + len > PAGE_SIZE) {
-+				if (offset >= PAGE_SIZE) {
-+					page += offset >> PAGE_SHIFT;
-+					offset &= ~PAGE_MASK;
-+				}
-+				len = PAGE_SIZE - offset;
-+			}
-+
-+			addr = kmap_atomic(page);
-+			start = (unsigned long)(addr + offset);
-+			fn(start, start + len);
-+			kunmap_atomic(addr);
-+		} else {
-+			start = (unsigned long)phys_to_virt(paddr);
-+			fn(start, start + size);
-+		}
-+		offset = 0;
-+		page++;
-+		left -= len;
-+	} while (left);
-+}
-+
-+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
-+			      size_t size, enum dma_data_direction dir)
-+{
-+	switch (dir) {
-+	case DMA_TO_DEVICE:
-+		cache_op(paddr, size, dma_wb_range);
-+		break;
-+	case DMA_FROM_DEVICE:
-+	case DMA_BIDIRECTIONAL:
-+		cache_op(paddr, size, dma_wbinv_range);
-+		break;
-+	default:
-+		BUG();
-+	}
-+}
-+
-+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
-+			   size_t size, enum dma_data_direction dir)
-+{
-+	switch (dir) {
-+	case DMA_TO_DEVICE:
-+		cache_op(paddr, size, dma_wb_range);
-+		break;
-+	case DMA_FROM_DEVICE:
-+	case DMA_BIDIRECTIONAL:
-+		cache_op(paddr, size, dma_wbinv_range);
-+		break;
-+	default:
-+		BUG();
-+	}
-+}
-diff --git a/arch/csky/mm/highmem.c b/arch/csky/mm/highmem.c
-new file mode 100644
-index 0000000..30e658b
---- /dev/null
-+++ b/arch/csky/mm/highmem.c
-@@ -0,0 +1,196 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/module.h>
-+#include <linux/highmem.h>
-+#include <linux/smp.h>
-+#include <linux/bootmem.h>
-+#include <asm/fixmap.h>
-+#include <asm/tlbflush.h>
-+#include <asm/cacheflush.h>
-+
-+static pte_t *kmap_pte;
-+
-+unsigned long highstart_pfn, highend_pfn;
-+
-+void *kmap(struct page *page)
-+{
-+	void *addr;
-+
-+	might_sleep();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+	addr = kmap_high(page);
-+	flush_tlb_one((unsigned long)addr);
-+
-+	return addr;
-+}
-+EXPORT_SYMBOL(kmap);
-+
-+void kunmap(struct page *page)
-+{
-+	BUG_ON(in_interrupt());
-+	if (!PageHighMem(page))
-+		return;
-+	kunmap_high(page);
-+}
-+EXPORT_SYMBOL(kunmap);
-+
-+void *kmap_atomic(struct page *page)
-+{
-+	unsigned long vaddr;
-+	int idx, type;
-+
-+	preempt_disable();
-+	pagefault_disable();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+
-+	type = kmap_atomic_idx_push();
-+	idx = type + KM_TYPE_NR*smp_processor_id();
-+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
-+#ifdef CONFIG_DEBUG_HIGHMEM
-+	BUG_ON(!pte_none(*(kmap_pte - idx)));
-+#endif
-+	set_pte(kmap_pte-idx, mk_pte(page, PAGE_KERNEL));
-+	flush_tlb_one((unsigned long)vaddr);
-+
-+	return (void *)vaddr;
-+}
-+EXPORT_SYMBOL(kmap_atomic);
-+
-+void __kunmap_atomic(void *kvaddr)
-+{
-+	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
-+
-+	if (vaddr < FIXADDR_START)
-+		goto out;
-+
-+#ifdef CONFIG_DEBUG_HIGHMEM
-+	int idx = KM_TYPE_NR*smp_processor_id() + kmap_atomic_idx();
-+
-+	BUG_ON(vaddr != __fix_to_virt(FIX_KMAP_BEGIN + idx));
-+
-+	pte_clear(&init_mm, vaddr, kmap_pte - idx);
-+	flush_tlb_one(vaddr);
-+#endif
-+
-+	kmap_atomic_idx_pop();
-+out:
-+	pagefault_enable();
-+	preempt_enable();
-+}
-+EXPORT_SYMBOL(__kunmap_atomic);
-+
-+/*
-+ * This is the same as kmap_atomic() but can map memory that doesn't
-+ * have a struct page associated with it.
-+ */
-+void *kmap_atomic_pfn(unsigned long pfn)
-+{
-+	unsigned long vaddr;
-+	int idx, type;
-+
-+	pagefault_disable();
-+
-+	type = kmap_atomic_idx_push();
-+	idx = type + KM_TYPE_NR*smp_processor_id();
-+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
-+	set_pte(kmap_pte-idx, pfn_pte(pfn, PAGE_KERNEL));
-+	flush_tlb_one(vaddr);
-+
-+	return (void *) vaddr;
-+}
-+
-+struct page *kmap_atomic_to_page(void *ptr)
-+{
-+	unsigned long idx, vaddr = (unsigned long)ptr;
-+	pte_t *pte;
-+
-+	if (vaddr < FIXADDR_START)
-+		return virt_to_page(ptr);
-+
-+	idx = virt_to_fix(vaddr);
-+	pte = kmap_pte - (idx - FIX_KMAP_BEGIN);
-+	return pte_page(*pte);
-+}
-+
-+static void __init fixrange_init(unsigned long start, unsigned long end,
-+				pgd_t *pgd_base)
-+{
-+#ifdef CONFIG_HIGHMEM
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+	int i, j, k;
-+	unsigned long vaddr;
-+
-+	vaddr = start;
-+	i = __pgd_offset(vaddr);
-+	j = __pud_offset(vaddr);
-+	k = __pmd_offset(vaddr);
-+	pgd = pgd_base + i;
-+
-+	for ( ; (i < PTRS_PER_PGD) && (vaddr != end); pgd++, i++) {
-+		pud = (pud_t *)pgd;
-+		for ( ; (j < PTRS_PER_PUD) && (vaddr != end); pud++, j++) {
-+			pmd = (pmd_t *)pud;
-+			for (; (k < PTRS_PER_PMD) && (vaddr != end); pmd++, k++) {
-+				if (pmd_none(*pmd)) {
-+					pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
-+					set_pmd(pmd, __pmd(__pa(pte)));
-+					BUG_ON(pte != pte_offset_kernel(pmd, 0));
-+				}
-+				vaddr += PMD_SIZE;
-+			}
-+			k = 0;
-+		}
-+		j = 0;
-+	}
-+#endif
-+}
-+
-+void __init fixaddr_kmap_pages_init(void)
-+{
-+	unsigned long vaddr;
-+	pgd_t *pgd_base;
-+#ifdef CONFIG_HIGHMEM
-+	pgd_t *pgd;
-+	pmd_t *pmd;
-+	pud_t *pud;
-+	pte_t *pte;
-+#endif
-+	pgd_base = swapper_pg_dir;
-+
-+	/*
-+	 * Fixed mappings:
-+	 */
-+	vaddr = __fix_to_virt(__end_of_fixed_addresses - 1) & PMD_MASK;
-+	fixrange_init(vaddr, 0, pgd_base);
-+
-+#ifdef CONFIG_HIGHMEM
-+	/*
-+	 * Permanent kmaps:
-+	 */
-+	vaddr = PKMAP_BASE;
-+	fixrange_init(vaddr, vaddr + PAGE_SIZE*LAST_PKMAP, pgd_base);
-+
-+	pgd = swapper_pg_dir + __pgd_offset(vaddr);
-+	pud = (pud_t *)pgd;
-+	pmd = pmd_offset(pud, vaddr);
-+	pte = pte_offset_kernel(pmd, vaddr);
-+	pkmap_page_table = pte;
-+#endif
-+}
-+
-+void __init kmap_init(void)
-+{
-+	unsigned long vaddr;
-+
-+	fixaddr_kmap_pages_init();
-+
-+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN);
-+
-+	kmap_pte = pte_offset_kernel((pmd_t *)pgd_offset_k(vaddr), vaddr);
-+}
-diff --git a/arch/csky/mm/init.c b/arch/csky/mm/init.c
-new file mode 100644
-index 0000000..4d9ef56
---- /dev/null
-+++ b/arch/csky/mm/init.c
-@@ -0,0 +1,121 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/bug.h>
-+#include <linux/module.h>
++#include <linux/of.h>
 +#include <linux/init.h>
-+#include <linux/signal.h>
++#include <linux/seq_file.h>
++#include <linux/memblock.h>
++
++#include <abi/reg_ops.h>
++
++static void percpu_print(void *arg)
++{
++	struct seq_file *m = (struct seq_file *)arg;
++	unsigned int cur, next, i;
++
++	seq_printf(m, "processor       : %d\n", smp_processor_id());
++	seq_printf(m, "C-SKY CPU model : %s\n", CSKYCPU_DEF_NAME);
++
++	/* read processor id, max is 100 */
++	cur  = mfcr("cr13");
++	for (i = 0; i < 100; i++) {
++		seq_printf(m, "product info[%d] : 0x%08x\n", i, cur);
++
++		next = mfcr("cr13");
++
++		/* some CPU only has one id reg */
++		if (cur == next)
++			break;
++
++		cur = next;
++
++		/* cpid index is 31-28, reset */
++		if (!(next >> 28)) {
++			while ((mfcr("cr13") >> 28) != i);
++			break;
++		}
++	}
++
++	/* CPU feature regs, setup by bootloader or gdbinit */
++	seq_printf(m, "hint (CPU funcs): 0x%08x\n", mfcr_hint());
++	seq_printf(m, "ccr  (L1C & MMU): 0x%08x\n", mfcr("cr18"));
++	seq_printf(m, "ccr2 (L2C)      : 0x%08x\n", mfcr_ccr2());
++	seq_printf(m, "\n");
++}
++
++static int c_show(struct seq_file *m, void *v)
++{
++	int cpu;
++
++	for_each_online_cpu(cpu)
++		smp_call_function_single(cpu, percpu_print, m, true);
++
++#ifdef CSKY_ARCH_VERSION
++	seq_printf(m, "arch-version : %s\n", CSKY_ARCH_VERSION);
++	seq_printf(m, "\n");
++#endif
++
++	return 0;
++}
++
++static void *c_start(struct seq_file *m, loff_t *pos)
++{
++	return *pos < 1 ? (void *)1 : NULL;
++}
++
++static void *c_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return NULL;
++}
++
++static void c_stop(struct seq_file *m, void *v) {}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= c_start,
++	.next	= c_next,
++	.stop	= c_stop,
++	.show	= c_show,
++};
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+new file mode 100644
+index 0000000..79f92b8
+--- /dev/null
++++ b/arch/csky/kernel/entry.S
+@@ -0,0 +1,396 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/linkage.h>
++#include <abi/entry.h>
++#include <abi/pgtable-bits.h>
++#include <asm/errno.h>
++#include <asm/setup.h>
++#include <asm/unistd.h>
++#include <asm/asm-offsets.h>
++#include <linux/threads.h>
++#include <asm/setup.h>
++#include <asm/page.h>
++#include <asm/thread_info.h>
++
++#define PTE_INDX_MSK    0xffc
++#define PTE_INDX_SHIFT  10
++#define _PGDIR_SHIFT    22
++
++.macro tlbop_begin name, val0, val1, val2
++ENTRY(csky_\name)
++	mtcr    a3, ss2
++	mtcr    r6, ss3
++	mtcr    a2, ss4
++
++	RD_PGDR	r6
++	RD_MEH	a3
++#ifdef CONFIG_CPU_HAS_TLBI
++	tlbi.vaas a3
++	sync.is
++
++	btsti	a3, 31
++	bf	1f
++	RD_PGDR_K r6
++1:
++#else
++	bgeni	a2, 31
++	WR_MCIR	a2
++	bgeni	a2, 25
++	WR_MCIR	a2
++#endif
++	bclri   r6, 0
++	lrw	a2, PHYS_OFFSET
++	subu	r6, a2
++	bseti	r6, 31
++
++	mov     a2, a3
++	lsri    a2, _PGDIR_SHIFT
++	lsli    a2, 2
++	addu    r6, a2
++	ldw     r6, (r6)
++
++	lrw	a2, PHYS_OFFSET
++	subu	r6, a2
++	bseti	r6, 31
++
++	lsri    a3, PTE_INDX_SHIFT
++	lrw     a2, PTE_INDX_MSK
++	and     a3, a2
++	addu    r6, a3
++	ldw     a3, (r6)
++
++	movi	a2, (_PAGE_PRESENT | \val0)
++	and     a3, a2
++	cmpne   a3, a2
++	bt	\name
++
++	/* First read/write the page, just update the flags */
++	ldw     a3, (r6)
++	bgeni   a2, PAGE_VALID_BIT
++	bseti   a2, PAGE_ACCESSED_BIT
++	bseti   a2, \val1
++	bseti   a2, \val2
++	or      a3, a2
++	stw     a3, (r6)
++
++	/* Some cpu tlb-hardrefill bypass the cache */
++#ifdef CONFIG_CPU_NEED_TLBSYNC
++	movi	a2, 0x22
++	bseti	a2, 6
++	mtcr	r6, cr22
++	mtcr	a2, cr17
++	sync
++#endif
++
++	mfcr    a3, ss2
++	mfcr    r6, ss3
++	mfcr    a2, ss4
++	rte
++\name:
++	mfcr    a3, ss2
++	mfcr    r6, ss3
++	mfcr    a2, ss4
++	SAVE_ALL EPC_KEEP
++.endm
++.macro tlbop_end is_write
++	RD_MEH	a2
++	psrset  ee, ie
++	mov     a0, sp
++	movi    a1, \is_write
++	jbsr    do_page_fault
++	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
++	jmpi    ret_from_exception
++.endm
++
++.text
++
++tlbop_begin tlbinvalidl, _PAGE_READ, PAGE_VALID_BIT, PAGE_ACCESSED_BIT
++tlbop_end 0
++
++tlbop_begin tlbinvalids, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
++tlbop_end 1
++
++tlbop_begin tlbmodified, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
++#ifndef CONFIG_CPU_HAS_LDSTEX
++jbsr csky_cmpxchg_fixup
++#endif
++tlbop_end 1
++
++ENTRY(csky_systemcall)
++	SAVE_ALL EPC_INCREASE
++
++	psrset  ee, ie
++
++	/* Stack frame for syscall, origin call set_esp0 */
++	mov     r12, sp
++
++	bmaski  r11, 13
++	andn    r12, r11
++	bgeni   r11, 9
++	addi    r11, 32
++	addu    r12, r11
++	st      sp, (r12, 0)
++
++	lrw     r11, __NR_syscalls
++	cmphs   syscallid, r11		/* Check nr of syscall */
++	bt      ret_from_exception
++
++	lrw     r13, sys_call_table
++	ixw     r13, syscallid
++	ldw     r11, (r13)
++	cmpnei  r11, 0
++	bf      ret_from_exception
++
++	mov     r9, sp
++	bmaski  r10, THREAD_SHIFT
++	andn    r9, r10
++	ldw     r8, (r9, TINFO_FLAGS)
++	btsti   r8, TIF_SYSCALL_TRACE
++	bt      1f
++#if defined(__CSKYABIV2__)
++	subi    sp, 8
++	stw  	r5, (sp, 0x4)
++	stw  	r4, (sp, 0x0)
++	jsr     r11                      /* Do system call */
++	addi 	sp, 8
++#else
++	jsr     r11
++#endif
++	stw     a0, (sp, LSAVE_A0)      /* Save return value */
++	jmpi    ret_from_exception
++
++1:
++	movi	a0, 0                   /* enter system call */
++	mov	a1, sp                  /* sp = pt_regs pointer */
++	jbsr	syscall_trace
++	/* Prepare args before do system call */
++	ldw	a0, (sp, LSAVE_A0)
++	ldw	a1, (sp, LSAVE_A1)
++	ldw	a2, (sp, LSAVE_A2)
++	ldw	a3, (sp, LSAVE_A3)
++#if defined(__CSKYABIV2__)
++	subi	sp, 8
++	stw	r5, (sp, 0x4)
++	stw	r4, (sp, 0x0)
++#else
++	ldw	r6, (sp, LSAVE_A4)
++	ldw	r7, (sp, LSAVE_A5)
++#endif
++	jsr	r11                     /* Do system call */
++#if defined(__CSKYABIV2__)
++	addi	sp, 8
++#endif
++	stw	a0, (sp, LSAVE_A0)	/* Save return value */
++
++	movi	a0, 1			/* leave system call */
++	mov	a1, sp			/* sp = pt_regs pointer */
++	jbsr	syscall_trace
++
++syscall_exit_work:
++	ld	syscallid, (sp, LSAVE_PSR)
++	btsti	syscallid, 31
++	bt	2f
++
++	jmpi	resume_userspace
++
++2:      RESTORE_ALL
++
++ENTRY(ret_from_kernel_thread)
++	jbsr	schedule_tail
++	mov	a0, r8
++	jsr	r9
++	jbsr	ret_from_exception
++
++ENTRY(ret_from_fork)
++	jbsr	schedule_tail
++	mov	r9, sp
++	bmaski	r10, THREAD_SHIFT
++	andn	r9, r10
++	ldw	r8, (r9, TINFO_FLAGS)
++	movi	r11_sig, 1
++	btsti	r8, TIF_SYSCALL_TRACE
++	bf	3f
++	movi	a0, 1
++	mov	a1, sp			/* sp = pt_regs pointer */
++	jbsr	syscall_trace
++3:
++	jbsr	ret_from_exception
++
++ret_from_exception:
++	ld	syscallid, (sp, LSAVE_PSR)
++	btsti	syscallid, 31
++	bt	1f
++
++	/*
++	 * Load address of current->thread_info, Then get address of task_struct
++	 * Get task_needreshed in task_struct
++	 */
++	mov	r9, sp
++	bmaski	r10, THREAD_SHIFT
++	andn	r9, r10
++
++resume_userspace:
++	ldw	r8, (r9, TINFO_FLAGS)
++	andi	r8, (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED)
++	cmpnei	r8, 0
++	bt	exit_work
++1:  RESTORE_ALL
++
++exit_work:
++	mov	a0, sp			/* Stack address is arg[0] */
++	jbsr	set_esp0		/* Call C level */
++	btsti	r8, TIF_NEED_RESCHED
++	bt	work_resched
++	/* If thread_info->flag is empty, RESTORE_ALL */
++	cmpnei	r8, 0
++	bf	1b
++	mov	a1, sp
++	mov	a0, r8
++	mov	a2, r11_sig		/* syscall? */
++	btsti	r8, TIF_SIGPENDING	/* delivering a signal? */
++	/* prevent further restarts(set r11 = 0) */
++	clrt	r11_sig
++	jbsr	do_notify_resume	/* do signals */
++	br	resume_userspace
++
++work_resched:
++	lrw	syscallid, ret_from_exception
++	mov	r15, syscallid		/* Return address in link */
++	jmpi	schedule
++
++ENTRY(sys_rt_sigreturn)
++	movi	r11_sig, 0
++	jmpi	do_rt_sigreturn
++
++ENTRY(csky_trap)
++	SAVE_ALL EPC_KEEP
++	psrset	ee
++	movi	r11_sig, 0             /* r11 = 0, Not a syscall. */
++	mov	a0, sp                 /* Push Stack pointer arg */
++	jbsr	trap_c                 /* Call C-level trap handler */
++	jmpi	ret_from_exception
++
++/*
++ * Prototype from libc for abiv1:
++ * register unsigned int __result asm("a0");
++ * asm( "trap 3" :"=r"(__result)::);
++ */
++ENTRY(csky_get_tls)
++	USPTOKSP
++
++	/* increase epc for continue */
++	mfcr	a0, epc
++	INCTRAP	a0
++	mtcr	a0, epc
++
++	/* get current task thread_info with kernel 8K stack */
++	bmaski	a0, THREAD_SHIFT
++	not	a0
++	subi	sp, 1
++	and	a0, sp
++	addi	sp, 1
++
++	/* get tls */
++	ldw	a0, (a0, TINFO_TP_VALUE)
++
++	KSPTOUSP
++	rte
++
++ENTRY(csky_irq)
++	SAVE_ALL EPC_KEEP
++	psrset	ee
++	movi	r11_sig, 0		/* r11 = 0, Not a syscall. */
++
++#ifdef CONFIG_PREEMPT
++	mov	r9, sp			/* Get current stack  pointer */
++	bmaski	r10, THREAD_SHIFT
++	andn	r9, r10			/* Get thread_info */
++
++	/*
++	 * Get task_struct->stack.preempt_count for current,
++	 * and increase 1.
++	 */
++	ldw	r8, (r9, TINFO_PREEMPT)
++	addi	r8, 1
++	stw	r8, (r9, TINFO_PREEMPT)
++#endif
++
++	mov	a0, sp
++	jbsr	csky_do_IRQ
++
++#ifdef CONFIG_PREEMPT
++	subi	r8, 1
++	stw	r8, (r9, TINFO_PREEMPT)
++	cmpnei	r8, 0
++	bt	2f
++	ldw	r8, (r9, TINFO_FLAGS)
++	btsti	r8, TIF_NEED_RESCHED
++	bf	2f
++1:
++	jbsr	preempt_schedule_irq	/* irq en/disable is done inside */
++	ldw	r7, (r9, TINFO_FLAGS)	/* get new tasks TI_FLAGS */
++	btsti	r7, TIF_NEED_RESCHED
++	bt	1b			/* go again */
++#endif
++2:
++	jmpi	ret_from_exception
++
++/*
++ * a0 =  prev task_struct *
++ * a1 =  next task_struct *
++ * a0 =  return next
++ */
++ENTRY(__switch_to)
++	lrw	a3, TASK_THREAD
++	addu	a3, a0
++
++	mfcr	a2, psr			/* Save PSR value */
++	stw	a2, (a3, THREAD_SR)	/* Save PSR in task struct */
++	bclri	a2, 6			/* Disable interrupts */
++	mtcr	a2, psr
++
++	SAVE_SWITCH_STACK
++
++	stw	sp, (a3, THREAD_KSP)
++
++#ifdef CONFIG_CPU_HAS_HILO
++	lrw	r10, THREAD_DSPHI
++	add	r10, a3
++	mfhi	r6
++	mflo	r7
++	stw	r6, (r10, 0)		/* THREAD_DSPHI */
++	stw	r7, (r10, 4)		/* THREAD_DSPLO */
++	mfcr	r6, cr14
++	stw	r6, (r10, 8)		/* THREAD_DSPCSR */
++#endif
++
++	/* Set up next process to run */
++	lrw	a3, TASK_THREAD
++	addu	a3, a1
++
++	ldw	sp, (a3, THREAD_KSP)	/* Set next kernel sp */
++
++#ifdef CONFIG_CPU_HAS_HILO
++	lrw	r10, THREAD_DSPHI
++	add	r10, a3
++	ldw	r6, (r10, 8)		/* THREAD_DSPCSR */
++	mtcr	r6, cr14
++	ldw	r6, (r10, 0)		/* THREAD_DSPHI */
++	ldw	r7, (r10, 4)		/* THREAD_DSPLO */
++	mthi	r6
++	mtlo	r7
++#endif
++
++	ldw	a2, (a3, THREAD_SR)	/* Set next PSR */
++	mtcr	a2, psr
++
++#if  defined(__CSKYABIV2__)
++	addi	r7, a1, TASK_THREAD_INFO
++	ldw	tls, (r7, TINFO_TP_VALUE)
++#endif
++
++	RESTORE_SWITCH_STACK
++
++	rts
++ENDPROC(__switch_to)
+diff --git a/arch/csky/kernel/traps.c b/arch/csky/kernel/traps.c
+new file mode 100644
+index 0000000..4d43730
+--- /dev/null
++++ b/arch/csky/kernel/traps.c
+@@ -0,0 +1,172 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
 +#include <linux/sched.h>
++#include <linux/signal.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/user.h>
++#include <linux/string.h>
++#include <linux/linkage.h>
++#include <linux/init.h>
++#include <linux/ptrace.h>
++#include <linux/kallsyms.h>
++#include <linux/rtc.h>
++#include <linux/uaccess.h>
++
++#include <asm/setup.h>
++#include <asm/traps.h>
++#include <asm/pgalloc.h>
++#include <asm/siginfo.h>
++
++#include <asm/mmu_context.h>
++
++#ifdef CONFIG_CPU_HAS_FPU
++#include <abi/fpu.h>
++#endif
++
++/* Defined in entry.S */
++asmlinkage void csky_trap(void);
++
++asmlinkage void csky_systemcall(void);
++asmlinkage void csky_cmpxchg(void);
++asmlinkage void csky_get_tls(void);
++asmlinkage void csky_irq(void);
++
++asmlinkage void csky_tlbinvalidl(void);
++asmlinkage void csky_tlbinvalids(void);
++asmlinkage void csky_tlbmodified(void);
++
++/* Defined in head.S */
++asmlinkage void _start_smp_secondary(void);
++
++void __init pre_trap_init(void)
++{
++	int i;
++
++	mtcr("vbr", vec_base);
++
++	for (i = 1; i < 128; i++)
++		VEC_INIT(i, csky_trap);
++}
++
++void __init trap_init(void)
++{
++	VEC_INIT(VEC_AUTOVEC, csky_irq);
++
++	/* setup trap0 trap2 trap3 */
++	VEC_INIT(VEC_TRAP0, csky_systemcall);
++	VEC_INIT(VEC_TRAP2, csky_cmpxchg);
++	VEC_INIT(VEC_TRAP3, csky_get_tls);
++
++	/* setup MMU TLB exception */
++	VEC_INIT(VEC_TLBINVALIDL, csky_tlbinvalidl);
++	VEC_INIT(VEC_TLBINVALIDS, csky_tlbinvalids);
++	VEC_INIT(VEC_TLBMODIFIED, csky_tlbmodified);
++
++#ifdef CONFIG_CPU_HAS_FPU
++	init_fpu();
++#endif
++
++#ifdef CONFIG_SMP
++	mtcr("cr<28, 0>", virt_to_phys(vec_base));
++
++	VEC_INIT(VEC_RESET, (void *)virt_to_phys(_start_smp_secondary));
++#endif
++}
++
++void die_if_kernel(char *str, struct pt_regs *regs, int nr)
++{
++	if (user_mode(regs))
++		return;
++
++	console_verbose();
++	pr_err("%s: %08x\n", str, nr);
++	show_regs(regs);
++	add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
++	do_exit(SIGSEGV);
++}
++
++void buserr(struct pt_regs *regs)
++{
++	siginfo_t info;
++#ifdef CONFIG_CPU_CK810
++	static unsigned long prev_pc;
++
++	if ((regs->pc == prev_pc) && prev_pc != 0) {
++		prev_pc = 0;
++	} else {
++		prev_pc = regs->pc;
++		return;
++	}
++#endif
++
++	die_if_kernel("Kernel mode BUS error", regs, 0);
++
++	pr_err("User mode Bus Error\n");
++	show_regs(regs);
++
++	current->thread.esp0 = (unsigned long) regs;
++	info.si_signo = SIGSEGV;
++	info.si_errno = 0;
++	force_sig_info(SIGSEGV, &info, current);
++}
++
++#define USR_BKPT 0x1464
++asmlinkage void trap_c(struct pt_regs *regs)
++{
++	int sig;
++	unsigned long vector;
++	siginfo_t info;
++
++	vector = (mfcr("psr") >> 16) & 0xff;
++
++	switch (vector) {
++	case VEC_ZERODIV:
++		sig = SIGFPE;
++		break;
++	/* ptrace */
++	case VEC_TRACE:
++		info.si_code = TRAP_TRACE;
++		sig = SIGTRAP;
++		break;
++	case VEC_ILLEGAL:
++#ifndef CONFIG_CPU_NO_USER_BKPT
++		if (*(uint16_t *)instruction_pointer(regs) != USR_BKPT)
++#endif
++		{
++			sig = SIGILL;
++			break;
++		}
++	/* gdbserver  breakpoint */
++	case VEC_TRAP1:
++	/* jtagserver breakpoint */
++	case VEC_BREAKPOINT:
++		info.si_code = TRAP_BRKPT;
++		sig = SIGTRAP;
++		break;
++	case VEC_ACCESS:
++		return buserr(regs);
++#ifdef CONFIG_CPU_NEED_SOFTALIGN
++	case VEC_ALIGN:
++		return csky_alignment(regs);
++#endif
++#ifdef CONFIG_CPU_HAS_FPU
++	case VEC_FPE:
++		return fpu_fpe(regs);
++	case VEC_PRIV:
++		if (fpu_libc_helper(regs))
++			return;
++#endif
++	default:
++		sig = SIGSEGV;
++		break;
++	}
++	send_sig(sig, current, 0);
++}
++
++asmlinkage void set_esp0(unsigned long ssp)
++{
++	current->thread.esp0 = ssp;
++}
+diff --git a/arch/csky/mm/fault.c b/arch/csky/mm/fault.c
+new file mode 100644
+index 0000000..0c337b1
+--- /dev/null
++++ b/arch/csky/mm/fault.c
+@@ -0,0 +1,220 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/signal.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
 +#include <linux/kernel.h>
 +#include <linux/errno.h>
 +#include <linux/string.h>
 +#include <linux/types.h>
-+#include <linux/pagemap.h>
 +#include <linux/ptrace.h>
 +#include <linux/mman.h>
 +#include <linux/mm.h>
-+#include <linux/bootmem.h>
-+#include <linux/highmem.h>
-+#include <linux/memblock.h>
-+#include <linux/swap.h>
-+#include <linux/proc_fs.h>
-+#include <linux/pfn.h>
++#include <linux/smp.h>
++#include <linux/version.h>
++#include <linux/vt_kern.h>
++#include <linux/kernel.h>
++#include <linux/extable.h>
++#include <linux/uaccess.h>
 +
-+#include <asm/setup.h>
-+#include <asm/cachectl.h>
-+#include <asm/dma.h>
-+#include <asm/pgtable.h>
-+#include <asm/pgalloc.h>
++#include <asm/hardirq.h>
 +#include <asm/mmu_context.h>
-+#include <asm/sections.h>
-+#include <asm/tlb.h>
++#include <asm/traps.h>
++#include <asm/page.h>
 +
-+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
-+pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
-+unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
-+						__page_aligned_bss;
-+
-+void __init mem_init(void)
++int fixup_exception(struct pt_regs *regs)
 +{
-+#ifdef CONFIG_HIGHMEM
-+	unsigned long tmp;
++	const struct exception_table_entry *fixup;
 +
-+	max_mapnr = highend_pfn;
-+#else
-+	max_mapnr = max_low_pfn;
-+#endif
-+	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
++	fixup = search_exception_tables(instruction_pointer(regs));
++	if (fixup) {
++		regs->pc = fixup->nextinsn;
 +
-+	free_all_bootmem();
-+
-+#ifdef CONFIG_HIGHMEM
-+	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
-+		struct page *page = pfn_to_page(tmp);
-+
-+		/* FIXME not sure about */
-+		if (!memblock_is_reserved(tmp << PAGE_SHIFT))
-+			free_highmem_page(page);
-+	}
-+#endif
-+	mem_init_print_info(NULL);
-+}
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	if (start < end)
-+		pr_info("Freeing initrd memory: %ldk freed\n",
-+			(end - start) >> 10);
-+
-+	for (; start < end; start += PAGE_SIZE) {
-+		ClearPageReserved(virt_to_page(start));
-+		init_page_count(virt_to_page(start));
-+		free_page(start);
-+		totalram_pages++;
-+	}
-+}
-+#endif
-+
-+extern char __init_begin[], __init_end[];
-+
-+void free_initmem(void)
-+{
-+	unsigned long addr;
-+
-+	addr = (unsigned long) &__init_begin;
-+
-+	while (addr < (unsigned long) &__init_end) {
-+		ClearPageReserved(virt_to_page(addr));
-+		init_page_count(virt_to_page(addr));
-+		free_page(addr);
-+		totalram_pages++;
-+		addr += PAGE_SIZE;
++		return 1;
 +	}
 +
-+	pr_info("Freeing unused kernel memory: %dk freed\n",
-+	((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
++	return 0;
 +}
 +
-+void pgd_init(unsigned long *p)
++/*
++ * This routine handles page faults. It determines the address,
++ * and the problem, and then passes it off to one of the appropriate
++ * routines.
++ */
++asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
++			      unsigned long mmu_meh)
 +{
-+	int i;
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	siginfo_t info;
++	int fault;
++	unsigned long address = mmu_meh & PAGE_MASK;
 +
-+	for (i = 0; i < PTRS_PER_PGD; i++)
-+		p[i] = __pa(invalid_pte_table);
-+}
++	info.si_code = SEGV_MAPERR;
 +
-+void __init pre_mmu_init(void)
-+{
++#ifndef CONFIG_CPU_HAS_TLBI
 +	/*
-+	 * Setup page-table and enable TLB-hardrefill
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
 +	 */
-+	flush_tlb_all();
-+	pgd_init((unsigned long *)swapper_pg_dir);
-+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-+	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
++	if (unlikely(address >= VMALLOC_START) &&
++	    unlikely(address <= VMALLOC_END)) {
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Do _not_ use "tsk" here. We might be inside
++		 * an interrupt in the middle of a task switch..
++		 */
++		int offset = __pgd_offset(address);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
 +
-+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
++		unsigned long pgd_base;
 +
-+	/* Setup page mask to 4k */
-+	write_mmu_pagemask(0);
-+}
-diff --git a/arch/csky/mm/ioremap.c b/arch/csky/mm/ioremap.c
-new file mode 100644
-index 0000000..7ad3ff1
---- /dev/null
-+++ b/arch/csky/mm/ioremap.c
-@@ -0,0 +1,48 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++		pgd_base = tlb_get_pgd();
++		pgd = (pgd_t *)pgd_base + offset;
++		pgd_k = init_mm.pgd + offset;
 +
-+#include <linux/export.h>
-+#include <linux/mm.h>
-+#include <linux/vmalloc.h>
-+#include <linux/io.h>
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++		set_pgd(pgd, *pgd_k);
 +
-+#include <asm/pgtable.h>
++		pud = (pud_t *)pgd;
++		pud_k = (pud_t *)pgd_k;
++		if (!pud_present(*pud_k))
++			goto no_context;
 +
-+void __iomem *ioremap(phys_addr_t addr, size_t size)
-+{
-+	phys_addr_t last_addr;
-+	unsigned long offset, vaddr;
-+	struct vm_struct *area;
-+	pgprot_t prot;
++		pmd = pmd_offset(pud, address);
++		pmd_k = pmd_offset(pud_k, address);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++		set_pmd(pmd, *pmd_k);
 +
-+	last_addr = addr + size - 1;
-+	if (!size || last_addr < addr)
-+		return NULL;
++		pte_k = pte_offset_kernel(pmd_k, address);
++		if (!pte_present(*pte_k))
++			goto no_context;
++		return;
++	}
++#endif
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto bad_area_nosemaphore;
 +
-+	offset = addr & (~PAGE_MASK);
-+	addr &= PAGE_MASK;
-+	size = PAGE_ALIGN(size + offset);
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++good_area:
++	info.si_code = SEGV_ACCERR;
 +
-+	area = get_vm_area_caller(size, VM_ALLOC, __builtin_return_address(0));
-+	if (!area)
-+		return NULL;
-+
-+	vaddr = (unsigned long)area->addr;
-+
-+	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
-+			_PAGE_GLOBAL | _CACHE_UNCACHED);
-+
-+	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {
-+		free_vm_area(area);
-+		return NULL;
++	if (write) {
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++	} else {
++		if (!(vma->vm_flags & (VM_READ | VM_WRITE | VM_EXEC)))
++			goto bad_area;
 +	}
 +
-+	return (void __iomem *)(vaddr + offset);
-+}
-+EXPORT_SYMBOL(ioremap);
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(vma, address, write ? FAULT_FLAG_WRITE : 0);
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		else if (fault & VM_FAULT_SIGSEGV)
++			goto bad_area;
++		BUG();
++	}
++	if (fault & VM_FAULT_MAJOR)
++		tsk->maj_flt++;
++	else
++		tsk->min_flt++;
 +
-+void iounmap(void __iomem *addr)
-+{
-+	vunmap((void *)((unsigned long)addr & PAGE_MASK));
++	up_read(&mm->mmap_sem);
++	return;
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		tsk->thread.address = address;
++		tsk->thread.error_code = write;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void __user *) address;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault? */
++	if (fixup_exception(regs))
++		return;
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++	bust_spinlocks(1);
++	pr_alert("Unable to %s at vaddr: %08lx, epc: %08lx\n",
++		 __func__, address, regs->pc);
++	die_if_kernel("Oops", regs, write);
++
++out_of_memory:
++	/*
++	 * We ran out of memory, call the OOM killer, and return the userspace
++	 * (which will retry the fault, or kill us if we got oom-killed).
++	 */
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	tsk->thread.address = address;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void __user *) address;
++	force_sig_info(SIGBUS, &info, tsk);
 +}
-+EXPORT_SYMBOL(iounmap);
 -- 
 2.7.4
