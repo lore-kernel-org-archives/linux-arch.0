@@ -1,199 +1,46 @@
-From: Ramana Radhakrishnan <ramana.radhakrishnan@foss.arm.com>
-Subject: Re: [PATCH v5 11/17] arm64: docs: document pointer authentication
-Date: Fri, 5 Oct 2018 10:04:50 +0100
-Message-ID: <9acb0cd2-66b0-1c41-b1a8-7c70608e9a9b@foss.arm.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-12-kristina.martsenko@arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH] asm-generic/pgtable-nop?d.h: define folded with a value
+ for use in C
+Date: Fri, 5 Oct 2018 12:02:37 +0100
+Message-ID: <20181005110237.ygozdfgfifwglu5x@lakrids.cambridge.arm.com>
+References: <20181003175052.31917-1-james.morse@arm.com>
+ <20181004094500.GA108096@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181005084754.20950-12-kristina.martsenko@arm.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Kristina Martsenko <kristina.martsenko@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <Catalin.Marinas@arm.com>, Christoffer Dall <Christoffer.Dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Suzuki Poulose <Suzuki.Poulose@arm.com>, Will Deacon <Will.Deacon@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20181004094500.GA108096@arrakis.emea.arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 05/10/2018 09:47, Kristina Martsenko wrote:
-> From: Mark Rutland <mark.rutland@arm.com>
+On Thu, Oct 04, 2018 at 10:45:00AM +0100, Catalin Marinas wrote:
+> On Wed, Oct 03, 2018 at 06:50:52PM +0100, James Morse wrote:
+> > It turns out "if (__is_defined(__PAGETABLE_PMD_FOLDED))" isn't equivalent
+> > to "#ifdef __PAGETABLE_PMD_FOLDED". (who knew!)
+> > 
+> > kconfig.h's __is_defined() expects a define of the form
+> > "#define CONFIG_BOOGER 1". But these nop?d headers just have
+> > "#define __PAGETABLE_PMD_FOLDED".
 > 
-> Now that we've added code to support pointer authentication, add some
-> documentation so that people can figure out if/how to use it.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> [kristina: update cpu-feature-registers.txt]
-> Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-> Cc: Andrew Jones <drjones@redhat.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->   Documentation/arm64/booting.txt                |  8 +++
->   Documentation/arm64/cpu-feature-registers.txt  |  4 ++
->   Documentation/arm64/elf_hwcaps.txt             |  5 ++
->   Documentation/arm64/pointer-authentication.txt | 84 ++++++++++++++++++++++++++
->   4 files changed, 101 insertions(+)
->   create mode 100644 Documentation/arm64/pointer-authentication.txt
-> 
-> diff --git a/Documentation/arm64/booting.txt b/Documentation/arm64/booting.txt
-> index 8d0df62c3fe0..8df9f4658d6f 100644
-> --- a/Documentation/arm64/booting.txt
-> +++ b/Documentation/arm64/booting.txt
-> @@ -205,6 +205,14 @@ Before jumping into the kernel, the following conditions must be met:
->       ICC_SRE_EL2.SRE (bit 0) must be initialised to 0b0.
->     - The DT or ACPI tables must describe a GICv2 interrupt controller.
->   
-> +  For CPUs with pointer authentication functionality:
-> +  - If EL3 is present:
-> +    SCR_EL3.APK (bit 16) must be initialised to 0b1
-> +    SCR_EL3.API (bit 17) must be initialised to 0b1
-> +  - If the kernel is entered at EL1:
-> +    HCR_EL2.APK (bit 40) must be initialised to 0b1
-> +    HCR_EL2.API (bit 41) must be initialised to 0b1
-> +
->   The requirements described above for CPU mode, caches, MMUs, architected
->   timers, coherency and system registers apply to all CPUs.  All CPUs must
->   enter the kernel in the same exception level.
-> diff --git a/Documentation/arm64/cpu-feature-registers.txt b/Documentation/arm64/cpu-feature-registers.txt
-> index 7964f03846b1..b165677ffab9 100644
-> --- a/Documentation/arm64/cpu-feature-registers.txt
-> +++ b/Documentation/arm64/cpu-feature-registers.txt
-> @@ -190,6 +190,10 @@ infrastructure:
->        |--------------------------------------------------|
->        | JSCVT                        | [15-12] |    y    |
->        |--------------------------------------------------|
-> +     | API                          | [11-8]  |    y    |
-> +     |--------------------------------------------------|
-> +     | APA                          | [7-4]   |    y    |
-> +     |--------------------------------------------------|
->        | DPB                          | [3-0]   |    y    |
->        x--------------------------------------------------x
->   
-> diff --git a/Documentation/arm64/elf_hwcaps.txt b/Documentation/arm64/elf_hwcaps.txt
-> index d6aff2c5e9e2..95509a7b0ffe 100644
-> --- a/Documentation/arm64/elf_hwcaps.txt
-> +++ b/Documentation/arm64/elf_hwcaps.txt
-> @@ -178,3 +178,8 @@ HWCAP_ILRCPC
->   HWCAP_FLAGM
->   
->       Functionality implied by ID_AA64ISAR0_EL1.TS == 0b0001.
-> +
-> +HWCAP_APIA
-> +
-> +    EL0 AddPac and Auth functionality using APIAKey_EL1 is enabled, as
-> +    described by Documentation/arm64/pointer-authentication.txt.
-> diff --git a/Documentation/arm64/pointer-authentication.txt b/Documentation/arm64/pointer-authentication.txt
-> new file mode 100644
-> index 000000000000..8a9cb5713770
-> --- /dev/null
-> +++ b/Documentation/arm64/pointer-authentication.txt
-> @@ -0,0 +1,84 @@
-> +Pointer authentication in AArch64 Linux
-> +=======================================
-> +
-> +Author: Mark Rutland <mark.rutland@arm.com>
-> +Date: 2017-07-19
-> +
-> +This document briefly describes the provision of pointer authentication
-> +functionality in AArch64 Linux.
-> +
-> +
-> +Architecture overview
-> +---------------------
-> +
-> +The ARMv8.3 Pointer Authentication extension adds primitives that can be
-> +used to mitigate certain classes of attack where an attacker can corrupt
-> +the contents of some memory (e.g. the stack).
-> +
-> +The extension uses a Pointer Authentication Code (PAC) to determine
-> +whether pointers have been modified unexpectedly. A PAC is derived from
-> +a pointer, another value (such as the stack pointer), and a secret key
-> +held in system registers.
-> +
-> +The extension adds instructions to insert a valid PAC into a pointer,
-> +and to verify/remove the PAC from a pointer. The PAC occupies a number
-> +of high-order bits of the pointer, which varies dependent on the
-> +configured virtual address size and whether pointer tagging is in use.
+> I wonder why we're using __is_defined() at all on arm64. It looks like
+> some internal kconfig.h helper for IS_ENABLED() etc. Even if it looks
+> nicer, I'd rather go for an #ifdef in the arm64 set_pmd() code.
 
-s/pointer tagging/top byte ignore unless that's the terminology in the 
-rest of the kernel documentation ?
+This was my fault entirely; sorry about that.
 
-> +
-> +A subset of these instructions have been allocated from the HINT
-> +encoding space. In the absence of the extension (or when disabled),
-> +these instructions behave as NOPs. Applications and libraries using
-> +these instructions operate correctly regardless of the presence of the
-> +extension.
-> +
-> +
-> +Basic support
-> +-------------
-> +
-> +When CONFIG_ARM64_PTR_AUTH is selected, and relevant HW support is
-> +present, the kernel will assign a random APIAKey value to each process
-> +at exec*() time. This key is shared by all threads within the process,
-> +and the key is preserved across fork(). Presence of functionality using
-> +APIAKey is advertised via HWCAP_APIA.
-> +
-> +Recent versions of GCC can compile code with APIAKey-based return
-> +address protection when passed the -msign-return-address option. This
-> +uses instructions in the HINT space, and such code can run on systems
-> +without the pointer authentication extension.
+I'd wanted to ensure that we got build coverage regardless of the kernel
+configuration, which was why i'd used __is_defined().
 
-Just a clarification.
-
-This uses instructions in the hint space for architecture levels less 
-than armv8.3-a by default. If folks use -march=armv8.3-a you will start 
-seeing the combined forms of retaa appear.
-
-> +
-> +The remaining instruction and data keys (APIBKey, APDAKey, APDBKey) are
-> +reserved for future use, and instructions using these keys must not be
-> +used by software until a purpose and scope for their use has been
-> +decided. To enable future software using these keys to function on
-> +contemporary kernels, where possible, instructions using these keys are
-> +made to behave as NOPs.
-> +
-> +The generic key (APGAKey) is currently unsupported. Instructions using
-> +the generic key must not be used by software.
-> +
-> +
-> +Debugging
-> +---------
-> +
-> +When CONFIG_ARM64_PTR_AUTH is selected, and relevant HW support is
-> +present, the kernel will expose the position of TTBR0 PAC bits in the
-> +NT_ARM_PAC_MASK regset (struct user_pac_mask), which userspace can
-> +acqure via PTRACE_GETREGSET.
-> +
-> +Separate masks are exposed for data pointers and instruction pointers,
-> +as the set of PAC bits can vary between the two. Debuggers should not
-> +expect that HWCAP_APIA implies the presence (or non-presence) of this
-> +regset -- in future the kernel may support the use of APIBKey, APDAKey,
-> +and/or APBAKey, even in the absence of APIAKey.
-> +
-> +Note that the masks apply to TTBR0 addresses, and are not valid to apply
-> +to TTBR1 addresses (e.g. kernel pointers).
-> +
-> +
-> +Virtualization
-> +--------------
-> +
-> +Pointer authentication is not currently supported in KVM guests. KVM
-> +will mask the feature bits from ID_AA64ISAR1_EL1, and attempted use of
-> +the feature will result in an UNDEFINED exception being injected into
-> +the guest.
-
-However applications using instructions from the hint space will 
-continue to work albeit without any protection (as they would just be 
-nops) ?
-
-
-regards,
-Ramana
-
-
-Reviewed-by: Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
-
-> 
+Thanks,
+Mark.
