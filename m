@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:34690 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726732AbeJENZG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2018 09:25:06 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:50592 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726732AbeJENsh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2018 09:48:37 -0400
 From: ebiederm@xmission.com (Eric W. Biederman)
 References: <87h8idv6nw.fsf@xmission.com>
         <20180925171906.19683-2-ebiederm@xmission.com>
         <20181005060611.GA19061@gmail.com>
-Date: Fri, 05 Oct 2018 08:27:41 +0200
+Date: Fri, 05 Oct 2018 08:50:51 +0200
 In-Reply-To: <20181005060611.GA19061@gmail.com> (Andrei Vagin's message of
         "Thu, 4 Oct 2018 23:06:13 -0700")
-Message-ID: <87h8i0di1u.fsf@xmission.com>
+Message-ID: <878t3cc2es.fsf@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Subject: Re: [REVIEW][PATCH 2/6] signal: Fail sigqueueinfo if si_signo != sig
@@ -18,7 +18,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrei Vagin <avagin@gmail.com>
 Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20181005062741.ENutVMTnppv0s2f7nXo3xneyykvyKWy5Qh3jqPQl5ws@z>
+Message-ID: <20181005065051.5_0Zsewz-AzUuOQ1p6CSd2bZ8mG5VFE3LoNBf3y4_z8@z>
 
 Andrei Vagin <avagin@gmail.com> writes:
 
@@ -32,7 +32,24 @@ Andrei Vagin <avagin@gmail.com> writes:
 >
 > Accoding to the man page, the user should not set si_signo, it has to be set
 > by kernel.
->
+
+I wanted to say look at copy_siginfo_from_user32 it uses si_signo and it
+has always done so.  But before I got to fixing copy_siginfo_from_user32
+only looked at si_code.  This is one of the areas where we deliberately
+slightly changed the KABI.  To start looking an signo instead of magic
+kernel internal si_code values.
+
+So yes.  Looking at si_signo instead of the passed in signo appears to
+be a regression all of the way around (except for ptrace) where that
+value is not present.  So I will see if I can figure out how to refactor
+the code to accomplish that.
+
+I am travelling for the next couple of days so I won't be able to get to
+this for a bit.
+
+I am thinking I will need two version of copy_siginfo_from user now.
+One for ptrace and one for rt_sgiqueueinfo.  Sigh.
+
 > $ man 2 rt_sigqueueinfo
 >
 >     The uinfo argument specifies the data to accompany  the  signal.   This
@@ -82,14 +99,8 @@ Andrei Vagin <avagin@gmail.com> writes:
 > https://github.com/checkpoint-restore/criu/blob/master/test/zdtm/static/sigpending.c
 >
 > Disclaimer: I'm the author of both of them.
-
-Fair enough.  Then this counts as a regression.  The setting in the
-kernel happens in an awkward place and I will see if it can be moved
-earlier.
-
-Eric
-
-
+>
+>> 
 >> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 >> ---
 >>  kernel/signal.c | 6 ++++--
