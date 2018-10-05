@@ -1,83 +1,104 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Fri, 5 Oct 2018 09:35:27 -0700
-Message-ID: <CAGXu5jKrOWnrmEfpzH3ay2uQBsP1nmpgceWLsGRsEzZ0n4dLvw@mail.gmail.com>
-References: <20181002005505.6112-1-keescook@chromium.org> <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
- <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
- <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org>
- <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com>
- <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
- <alpine.LRH.2.21.1810040723320.16168@namei.org> <CAGXu5jJDBhFrdCBHH4MZVDmG88mMxSaSx0w9anCcyx24YHLO5w@mail.gmail.com>
- <alpine.LRH.2.21.1810050338470.14095@namei.org> <CAGXu5j+3HqqBa_ogQqGJYubeZr9uCrbKzEoKO3Or=71e4c_=Gw@mail.gmail.com>
- <alpine.LRH.2.21.1810051449110.2590@namei.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v4 3/9] x86/cet/ibt: Add IBT legacy code bitmap
+ allocation function
+Date: Fri, 05 Oct 2018 09:58:24 -0700
+Message-ID: <aa5a061c159471f410d677af6a609793906cece1.camel@intel.com>
+References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
+         <20180921150553.21016-4-yu-cheng.yu@intel.com>
+         <20181003195702.GF32759@asgard.redhat.com>
+         <fc2f98ab46240c0498bdf4d7458b4373c1f02bf8.camel@intel.com>
+         <5BF3AE8F-CC2A-4160-9FF6-FEA171A76371@amacapital.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LRH.2.21.1810051449110.2590@namei.org>
+In-Reply-To: <5BF3AE8F-CC2A-4160-9FF6-FEA171A76371@amacapital.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: James Morris <jmorris@namei.org>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Eugene Syromiatnikov <esyr@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 4, 2018 at 9:58 PM, James Morris <jmorris@namei.org> wrote:
-> On Thu, 4 Oct 2018, Kees Cook wrote:
->
->> On Thu, Oct 4, 2018 at 10:49 AM, James Morris <jmorris@namei.org> wrote:
->> > On Wed, 3 Oct 2018, Kees Cook wrote:
->> >> Then someone boots the system with:
->> >>
->> >> selinux=1 security=selinux
->> >>
->> >> In what order does selinux get initialized relative to yama?
->> >> (apparmor, flagged as a "legacy major", would have been disabled by
->> >> the "security=" not matching it.)
->> >
->> > It doesn't, it needs to be specified in one place.
->> >
->> > Distros will need to update boot parameter handling for this kernel
->> > onwards.  Otherwise, we will need to carry this confusing mess forward
->> > forever.
->>
->> Are you saying that you want to overrule Paul and Stephen about
->> keeping "selinux=1 secuiryt=selinux" working?
->
-> Not overrule, but convince.
->
-> At least, deprecate selinux=1 and security=X, but not extend it any
-> further.
+On Fri, 2018-10-05 at 09:28 -0700, Andy Lutomirski wrote:
+> > On Oct 5, 2018, at 9:13 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> > 
+> > > On Wed, 2018-10-03 at 21:57 +0200, Eugene Syromiatnikov wrote:
+> > > > On Fri, Sep 21, 2018 at 08:05:47AM -0700, Yu-cheng Yu wrote:
+> > > > Indirect branch tracking provides an optional legacy code bitmap
+> > > > that indicates locations of non-IBT compatible code.  When set,
+> > > > each bit in the bitmap represents a page in the linear address is
+> > > > legacy code.
+> > > > 
+> > > > We allocate the bitmap only when the application requests it.
+> > > > Most applications do not need the bitmap.
+> > > > 
+> > > > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > > > ---
+> > > > arch/x86/kernel/cet.c | 45 +++++++++++++++++++++++++++++++++++++++++++
+> > > > 1 file changed, 45 insertions(+)
+> > > > 
+> > > > diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+> > > > index 6adfe795d692..a65d9745af08 100644
+> > > > --- a/arch/x86/kernel/cet.c
+> > > > +++ b/arch/x86/kernel/cet.c
+> > > > @@ -314,3 +314,48 @@ void cet_disable_ibt(void)
+> > > >    wrmsrl(MSR_IA32_U_CET, r);
+> > > >    current->thread.cet.ibt_enabled = 0;
+> > > > }
+> > > > +
+> > > > +int cet_setup_ibt_bitmap(void)
+> > > > +{
+> > > > +    u64 r;
+> > > > +    unsigned long bitmap;
+> > > > +    unsigned long size;
+> > > > +
+> > > > +    if (!cpu_feature_enabled(X86_FEATURE_IBT))
+> > > > +        return -EOPNOTSUPP;
+> > > > +
+> > > > +    if (!current->thread.cet.ibt_bitmap_addr) {
+> > > > +        /*
+> > > > +         * Calculate size and put in thread header.
+> > > > +         * may_expand_vm() needs this information.
+> > > > +         */
+> > > > +        size = TASK_SIZE / PAGE_SIZE / BITS_PER_BYTE;
+> > > 
+> > > TASK_SIZE_MAX is likely needed here, as an application can easily switch
+> > > between long an 32-bit protected mode.  And then the case of a CPU that
+> > > doesn't support 5LPT.
+> > 
+> > If we had calculated bitmap size from TASK_SIZE_MAX, all 32-bit apps would
+> > have
+> > failed the allocation for bitmap size > TASK_SIZE.  Please see values below,
+> > which is printed from the current code.
+> > 
+> > Yu-cheng
+> > 
+> > 
+> > x64:
+> > TASK_SIZE_MAX    = 0000 7fff ffff f000
+> > TASK_SIZE    = 0000 7fff ffff f000
+> > bitmap size    = 0000 0000 ffff ffff
+> > 
+> > x32:
+> > TASK_SIZE_MAX    = 0000 7fff ffff f000
+> > TASK_SIZE    = 0000 0000 ffff e000
+> > bitmap size    = 0000 0000 0001 ffff
+> > 
+> 
+> I haven’t followed all the details here, but I have a general policy of
+> objecting to any new use of TASK_SIZE. If you really really need to depend on
+> 32-bitness in new code, please figure out what exactly you mean by “32-bit”
+> and use an explicit check.
 
-Okay, this is the expectation from me as well. I think my series makes
-it work as-is with the new stuff just fine.
+The explicit check would be:
 
->> > In my most recent suggestion, there is no '!' disablement, just
->> > enablement.  If an LSM is not listed in CONFIG_LSM="", it's not enabled.
->>
->> And a user would need to specify ALL lsms on the "lsm=" line?
->>
->
-> Yes, the ones they want enabled.
->
->> What do you think of my latest proposal? It could happily work all
->> three ways: old boot params and security= work ("selinux=1
->> security=selinux" keeps working), individual LSM enable/disable works
->> ("lsm=+loadpin"), and full LSM ordering works
->> ("lsm=each,lsm,in,order,here"):
->>
->> https://lore.kernel.org/lkml/CAGXu5jJJit8bDNvgXaFkuvFPy7NWtJW2oRWFbG-6iWk0+A1qng@mail.gmail.com/
->>
->
-> I think having something like +yama will still lead to confusion.
-> Explicitly stating each enabled LSM in order is totally unambiguous.
->
-> If people are moving away from the distro defaults, and there is no
-> high-level interface to manage this, it seems to me there's a deeper
-> issue with the distro.
+test_thread_flag(TIF_ADDR32) ? IA32_PAGE_OFFSET : TASK_SIZE_MAX
 
-Okay. I will adjust the series and send a v5.
+which is the same as TASK_SIZE.
 
--Kees
+Or, do we want a new macro?
 
--- 
-Kees Cook
-Pixel Security
+#define IBT_BITMAP_SIZE (test_thread_flag(TIF_ADDR32) ? \
+	(IA32_PAGE_OFFSET / PAGE_SIZE / BITS_PER_BYTE) : \
+	(TASK_SIZE_MAX / PAGE_SIZE / BITS_PER_BYTE))
+
+Yu-cheng
