@@ -1,71 +1,215 @@
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
-Date: Fri, 5 Oct 2018 14:58:13 +1000 (AEST)
-Message-ID: <alpine.LRH.2.21.1810051449110.2590@namei.org>
-References: <20181002005505.6112-1-keescook@chromium.org> <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com> <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
- <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com> <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org> <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com>
- <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com> <alpine.LRH.2.21.1810040723320.16168@namei.org> <CAGXu5jJDBhFrdCBHH4MZVDmG88mMxSaSx0w9anCcyx24YHLO5w@mail.gmail.com>
- <alpine.LRH.2.21.1810050338470.14095@namei.org> <CAGXu5j+3HqqBa_ogQqGJYubeZr9uCrbKzEoKO3Or=71e4c_=Gw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V7 05/20] csky: System Call
+Date: Fri,  5 Oct 2018 13:41:47 +0800
+Message-ID: <36464adeb406b0e3110eb76ecbd644743e819d61.1538715563.git.ren_guo@c-sky.com>
+References: <cover.1538715563.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5j+3HqqBa_ogQqGJYubeZr9uCrbKzEoKO3Or=71e4c_=Gw@mail.gmail.com>
+In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
+References: <cover.1538715563.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
+Cc: green.hu@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 4 Oct 2018, Kees Cook wrote:
+This patch adds files related to syscall.
 
-> On Thu, Oct 4, 2018 at 10:49 AM, James Morris <jmorris@namei.org> wrote:
-> > On Wed, 3 Oct 2018, Kees Cook wrote:
-> >> Then someone boots the system with:
-> >>
-> >> selinux=1 security=selinux
-> >>
-> >> In what order does selinux get initialized relative to yama?
-> >> (apparmor, flagged as a "legacy major", would have been disabled by
-> >> the "security=" not matching it.)
-> >
-> > It doesn't, it needs to be specified in one place.
-> >
-> > Distros will need to update boot parameter handling for this kernel
-> > onwards.  Otherwise, we will need to carry this confusing mess forward
-> > forever.
-> 
-> Are you saying that you want to overrule Paul and Stephen about
-> keeping "selinux=1 secuiryt=selinux" working?
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ arch/csky/include/asm/syscall.h     | 71 +++++++++++++++++++++++++++++++++++++
+ arch/csky/include/asm/syscalls.h    | 15 ++++++++
+ arch/csky/include/uapi/asm/unistd.h | 10 ++++++
+ arch/csky/kernel/syscall.c          | 43 ++++++++++++++++++++++
+ arch/csky/kernel/syscall_table.c    | 14 ++++++++
+ 5 files changed, 153 insertions(+)
+ create mode 100644 arch/csky/include/asm/syscall.h
+ create mode 100644 arch/csky/include/asm/syscalls.h
+ create mode 100644 arch/csky/include/uapi/asm/unistd.h
+ create mode 100644 arch/csky/kernel/syscall.c
+ create mode 100644 arch/csky/kernel/syscall_table.c
 
-Not overrule, but convince.
-
-At least, deprecate selinux=1 and security=X, but not extend it any 
-further.
-
-> > In my most recent suggestion, there is no '!' disablement, just
-> > enablement.  If an LSM is not listed in CONFIG_LSM="", it's not enabled.
-> 
-> And a user would need to specify ALL lsms on the "lsm=" line?
-> 
-
-Yes, the ones they want enabled.
-
-> What do you think of my latest proposal? It could happily work all
-> three ways: old boot params and security= work ("selinux=1
-> security=selinux" keeps working), individual LSM enable/disable works
-> ("lsm=+loadpin"), and full LSM ordering works
-> ("lsm=each,lsm,in,order,here"):
-> 
-> https://lore.kernel.org/lkml/CAGXu5jJJit8bDNvgXaFkuvFPy7NWtJW2oRWFbG-6iWk0+A1qng@mail.gmail.com/
-> 
-
-I think having something like +yama will still lead to confusion.
-Explicitly stating each enabled LSM in order is totally unambiguous.
-
-If people are moving away from the distro defaults, and there is no 
-high-level interface to manage this, it seems to me there's a deeper 
-issue with the distro.
-
-
+diff --git a/arch/csky/include/asm/syscall.h b/arch/csky/include/asm/syscall.h
+new file mode 100644
+index 0000000..926a64a
+--- /dev/null
++++ b/arch/csky/include/asm/syscall.h
+@@ -0,0 +1,71 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef __ASM_SYSCALL_H
++#define __ASM_SYSCALL_H
++
++#include <linux/sched.h>
++#include <linux/err.h>
++#include <abi/regdef.h>
++
++static inline int
++syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs_syscallid(regs);
++}
++
++static inline void
++syscall_rollback(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->a0 = regs->orig_a0;
++}
++
++static inline long
++syscall_get_error(struct task_struct *task, struct pt_regs *regs)
++{
++	unsigned long error = regs->a0;
++
++	return IS_ERR_VALUE(error) ? error : 0;
++}
++
++static inline long
++syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs->a0;
++}
++
++static inline void
++syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
++		int error, long val)
++{
++	regs->a0 = (long) error ?: val;
++}
++
++static inline void
++syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
++		      unsigned int i, unsigned int n, unsigned long *args)
++{
++	BUG_ON(i + n > 6);
++	if (i == 0) {
++		args[0] = regs->orig_a0;
++		args++;
++		i++;
++		n--;
++	}
++	memcpy(args, &regs->a1 + i * sizeof(regs->a1), n * sizeof(args[0]));
++}
++
++static inline void
++syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
++		      unsigned int i, unsigned int n, const unsigned long *args)
++{
++	BUG_ON(i + n > 6);
++	if (i == 0) {
++		regs->orig_a0 = args[0];
++		args++;
++		i++;
++		n--;
++	}
++	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
++}
++
++#endif	/* __ASM_SYSCALL_H */
+diff --git a/arch/csky/include/asm/syscalls.h b/arch/csky/include/asm/syscalls.h
+new file mode 100644
+index 0000000..5d48e5e
+--- /dev/null
++++ b/arch/csky/include/asm/syscalls.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_SYSCALLS_H
++#define __ASM_CSKY_SYSCALLS_H
++
++#include <asm-generic/syscalls.h>
++
++long sys_cacheflush(void __user *, unsigned long, int);
++
++long sys_set_thread_area(unsigned long addr);
++
++long sys_csky_fadvise64_64(int fd, int advice, loff_t offset, loff_t len);
++
++#endif /* __ASM_CSKY_SYSCALLS_H */
+diff --git a/arch/csky/include/uapi/asm/unistd.h b/arch/csky/include/uapi/asm/unistd.h
+new file mode 100644
+index 0000000..16ed71e
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/unistd.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#define __ARCH_WANT_SYS_CLONE
++#include <asm-generic/unistd.h>
++
++#define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
++__SYSCALL(__NR_set_thread_area, sys_set_thread_area)
++#define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
++__SYSCALL(__NR_cacheflush, sys_cacheflush)
+diff --git a/arch/csky/kernel/syscall.c b/arch/csky/kernel/syscall.c
+new file mode 100644
+index 0000000..3d30e58
+--- /dev/null
++++ b/arch/csky/kernel/syscall.c
+@@ -0,0 +1,43 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/syscalls.h>
++
++SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)
++{
++	struct thread_info *ti = task_thread_info(current);
++	struct pt_regs *reg = current_pt_regs();
++
++	reg->tls = addr;
++	ti->tp_value = addr;
++
++	return 0;
++}
++
++SYSCALL_DEFINE6(mmap2,
++	unsigned long, addr,
++	unsigned long, len,
++	unsigned long, prot,
++	unsigned long, flags,
++	unsigned long, fd,
++	off_t, offset)
++{
++	if (unlikely(offset & (~PAGE_MASK >> 12)))
++		return -EINVAL;
++
++	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
++			       offset >> (PAGE_SHIFT - 12));
++}
++
++/*
++ * for abiv1 the 64bits args should be even th, So we need mov the advice
++ * forward.
++ */
++SYSCALL_DEFINE4(csky_fadvise64_64,
++	int, fd,
++	int, advice,
++	loff_t, offset,
++	loff_t, len)
++{
++	return ksys_fadvise64_64(fd, offset, len, advice);
++}
+diff --git a/arch/csky/kernel/syscall_table.c b/arch/csky/kernel/syscall_table.c
+new file mode 100644
+index 0000000..a0c238c
+--- /dev/null
++++ b/arch/csky/kernel/syscall_table.c
+@@ -0,0 +1,14 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/syscalls.h>
++#include <asm/syscalls.h>
++
++#undef __SYSCALL
++#define __SYSCALL(nr, call)[nr] = (call),
++
++#define sys_fadvise64_64 sys_csky_fadvise64_64
++void * const sys_call_table[__NR_syscalls] __page_aligned_data = {
++	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
++#include <asm/unistd.h>
++};
 -- 
-James Morris
-<jmorris@namei.org>
+2.7.4
