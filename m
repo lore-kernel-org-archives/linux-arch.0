@@ -1,90 +1,31 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [RFC PATCH v4 3/9] x86/cet/ibt: Add IBT legacy code bitmap allocation function
-Date: Fri, 5 Oct 2018 09:28:05 -0700
-Message-ID: <5BF3AE8F-CC2A-4160-9FF6-FEA171A76371@amacapital.net>
-References: <20180921150553.21016-1-yu-cheng.yu@intel.com> <20180921150553.21016-4-yu-cheng.yu@intel.com> <20181003195702.GF32759@asgard.redhat.com> <fc2f98ab46240c0498bdf4d7458b4373c1f02bf8.camel@intel.com>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain;
-        charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Sat, 6 Oct 2018 02:29:16 +1000 (AEST)
+Message-ID: <alpine.LRH.2.21.1810060229090.8957@namei.org>
+References: <20181002005505.6112-1-keescook@chromium.org> <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com> <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com> <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org> <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com>
+ <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com> <alpine.LRH.2.21.1810040723320.16168@namei.org> <CAGXu5jJDBhFrdCBHH4MZVDmG88mMxSaSx0w9anCcyx24YHLO5w@mail.gmail.com>
+ <alpine.LRH.2.21.1810050338470.14095@namei.org> <CAGXu5j+3HqqBa_ogQqGJYubeZr9uCrbKzEoKO3Or=71e4c_=Gw@mail.gmail.com> <alpine.LRH.2.21.1810051449110.2590@namei.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <fc2f98ab46240c0498bdf4d7458b4373c1f02bf8.camel@intel.com>
+In-Reply-To: <alpine.LRH.2.21.1810051449110.2590@namei.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: Eugene Syromiatnikov <esyr@redhat.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>Peter
+To: Kees Cook <keescook@chromium.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, 5 Oct 2018, James Morris wrote:
 
+> On Thu, 4 Oct 2018, Kees Cook wrote:
 
-> On Oct 5, 2018, at 9:13 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
->=20
->> On Wed, 2018-10-03 at 21:57 +0200, Eugene Syromiatnikov wrote:
->>> On Fri, Sep 21, 2018 at 08:05:47AM -0700, Yu-cheng Yu wrote:
->>> Indirect branch tracking provides an optional legacy code bitmap
->>> that indicates locations of non-IBT compatible code.  When set,
->>> each bit in the bitmap represents a page in the linear address is
->>> legacy code.
->>>=20
->>> We allocate the bitmap only when the application requests it.
->>> Most applications do not need the bitmap.
->>>=20
->>> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
->>> ---
->>> arch/x86/kernel/cet.c | 45 +++++++++++++++++++++++++++++++++++++++++++
->>> 1 file changed, 45 insertions(+)
->>>=20
->>> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
->>> index 6adfe795d692..a65d9745af08 100644
->>> --- a/arch/x86/kernel/cet.c
->>> +++ b/arch/x86/kernel/cet.c
->>> @@ -314,3 +314,48 @@ void cet_disable_ibt(void)
->>>    wrmsrl(MSR_IA32_U_CET, r);
->>>    current->thread.cet.ibt_enabled =3D 0;
->>> }
->>> +
->>> +int cet_setup_ibt_bitmap(void)
->>> +{
->>> +    u64 r;
->>> +    unsigned long bitmap;
->>> +    unsigned long size;
->>> +
->>> +    if (!cpu_feature_enabled(X86_FEATURE_IBT))
->>> +        return -EOPNOTSUPP;
->>> +
->>> +    if (!current->thread.cet.ibt_bitmap_addr) {
->>> +        /*
->>> +         * Calculate size and put in thread header.
->>> +         * may_expand_vm() needs this information.
->>> +         */
->>> +        size =3D TASK_SIZE / PAGE_SIZE / BITS_PER_BYTE;
->>=20
->> TASK_SIZE_MAX is likely needed here, as an application can easily switch
->> between long an 32-bit protected mode.  And then the case of a CPU that
->> doesn't support 5LPT.
->=20
-> If we had calculated bitmap size from TASK_SIZE_MAX, all 32-bit apps would=
- have
-> failed the allocation for bitmap size > TASK_SIZE.  Please see values belo=
-w,
-> which is printed from the current code.
->=20
-> Yu-cheng
->=20
->=20
-> x64:
-> TASK_SIZE_MAX    =3D 0000 7fff ffff f000
-> TASK_SIZE    =3D 0000 7fff ffff f000
-> bitmap size    =3D 0000 0000 ffff ffff
->=20
-> x32:
-> TASK_SIZE_MAX    =3D 0000 7fff ffff f000
-> TASK_SIZE    =3D 0000 0000 ffff e000
-> bitmap size    =3D 0000 0000 0001 ffff
->=20
+> > And a user would need to specify ALL lsms on the "lsm=" line?
+> > 
+> 
+> Yes, the ones they want enabled.
 
-I haven=E2=80=99t followed all the details here, but I have a general policy=
- of objecting to any new use of TASK_SIZE. If you really really need to depe=
-nd on 32-bitness in new code, please figure out what exactly you mean by =E2=
-=80=9C32-bit=E2=80=9D and use an explicit check.
+If they're overriding the kconfig value.
 
-Some day I would love to delete TASK_SIZE.=
+-- 
+James Morris
+<jmorris@namei.org>
