@@ -1,152 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47988 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:48086 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727809AbeJEPsV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Oct 2018 11:48:21 -0400
+        id S1728608AbeJEPsn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Oct 2018 11:48:43 -0400
 From: Kristina Martsenko <kristina.martsenko@arm.com>
-Subject: [RFC 12/17] arm64: move ptrauth keys to thread_info
-Date: Fri,  5 Oct 2018 09:47:49 +0100
-Message-ID: <20181005084754.20950-13-kristina.martsenko@arm.com>
+Subject: [RFC 16/17] arm64: initialize and switch ptrauth kernel keys
+Date: Fri,  5 Oct 2018 09:47:53 +0100
+Message-ID: <20181005084754.20950-17-kristina.martsenko@arm.com>
 In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181005084749.FMkOmPp4nE_78Ch39r0ZmdiPxbVp4Up2WsVhIsoE4nA@z>
+Message-ID: <20181005084753.ohs41CnrH0Y369IG2-pJRoJiY-OdX0O68B5_8LVPvH4@z>
 
-From: Mark Rutland <mark.rutland@arm.com>
+Set up keys to use pointer auth in the kernel. Each task has its own
+APIAKey, which is initialized during fork. The key is changed during
+context switch and on kernel entry from EL0.
 
-To use pointer authentication in the kernel, we'll need to switch keys
-in the entry assembly. This patch moves the pointer auth keys into
-thread_info to make this possible.
-
-There should be no functional change as a result of this patch.
+A function that changes the key cannot return, so inline such functions.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
 ---
- arch/arm64/include/asm/mmu.h          |  5 -----
- arch/arm64/include/asm/mmu_context.h  | 13 -------------
- arch/arm64/include/asm/pointer_auth.h | 13 +++++++------
- arch/arm64/include/asm/thread_info.h  |  4 ++++
- arch/arm64/kernel/process.c           |  4 ++++
- 5 files changed, 15 insertions(+), 24 deletions(-)
+ arch/arm64/include/asm/pointer_auth.h |  9 ++++++++-
+ arch/arm64/include/asm/ptrauth-asm.h  | 13 +++++++++++++
+ arch/arm64/include/asm/thread_info.h  |  1 +
+ arch/arm64/kernel/asm-offsets.c       |  1 +
+ arch/arm64/kernel/entry.S             |  4 ++++
+ arch/arm64/kernel/process.c           |  3 +++
+ arch/arm64/kernel/smp.c               |  3 +++
+ 7 files changed, 33 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
-index f6480ea7b0d5..dd320df0d026 100644
---- a/arch/arm64/include/asm/mmu.h
-+++ b/arch/arm64/include/asm/mmu.h
-@@ -25,15 +25,10 @@
- 
- #ifndef __ASSEMBLY__
- 
--#include <asm/pointer_auth.h>
--
- typedef struct {
- 	atomic64_t	id;
- 	void		*vdso;
- 	unsigned long	flags;
--#ifdef CONFIG_ARM64_PTR_AUTH
--	struct ptrauth_keys	ptrauth_keys;
--#endif
- } mm_context_t;
- 
- /*
-diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
-index 983f80925566..387e810063c7 100644
---- a/arch/arm64/include/asm/mmu_context.h
-+++ b/arch/arm64/include/asm/mmu_context.h
-@@ -215,8 +215,6 @@ static inline void __switch_mm(struct mm_struct *next)
- 		return;
- 	}
- 
--	mm_ctx_ptrauth_switch(&next->context);
--
- 	check_and_switch_context(next, cpu);
- }
- 
-@@ -242,17 +240,6 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
- void verify_cpu_asid_bits(void);
- void post_ttbr_update_workaround(void);
- 
--static inline void arch_bprm_mm_init(struct mm_struct *mm,
--				     struct vm_area_struct *vma)
--{
--	mm_ctx_ptrauth_init(&mm->context);
--}
--#define arch_bprm_mm_init arch_bprm_mm_init
--
--/*
-- * We need to override arch_bprm_mm_init before including the generic hooks,
-- * which are otherwise sufficient for us.
-- */
- #include <asm-generic/mm_hooks.h>
- 
- #endif /* !__ASSEMBLY__ */
 diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-index f5a4b075be65..cedb03bd175b 100644
+index 0634f06c3af2..e94ca7df8dab 100644
 --- a/arch/arm64/include/asm/pointer_auth.h
 +++ b/arch/arm64/include/asm/pointer_auth.h
-@@ -63,16 +63,17 @@ static inline unsigned long ptrauth_strip_insn_pac(unsigned long ptr)
- 	return ptr & ~ptrauth_pac_mask();
+@@ -50,12 +50,13 @@ do {								\
+ 	write_sysreg_s(__pki_v.hi, SYS_ ## k ## KEYHI_EL1);	\
+ } while (0)
+ 
+-static inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
++static __always_inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
+ {
+ 	if (!cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH))
+ 		return;
+ 
+ 	__ptrauth_key_install(APIA, keys->apia);
++	isb();
  }
  
--#define mm_ctx_ptrauth_init(ctx) \
--	ptrauth_keys_init(&(ctx)->ptrauth_keys)
-+#define ptrauth_task_init_user(tsk)	\
-+	ptrauth_keys_init(&(tsk)->thread_info.keys_user); \
-+	ptrauth_keys_switch(&(tsk)->thread_info.keys_user)
+ static __always_inline void ptrauth_cpu_enable(void)
+@@ -85,11 +86,17 @@ static inline unsigned long ptrauth_strip_insn_pac(unsigned long ptr)
  
--#define mm_ctx_ptrauth_switch(ctx) \
--	ptrauth_keys_switch(&(ctx)->ptrauth_keys)
+ #define ptrauth_task_init_user(tsk)	\
+ 	ptrauth_keys_init(&(tsk)->thread_info.keys_user)
++#define ptrauth_task_init_kernel(tsk)	\
++	ptrauth_keys_init(&(tsk)->thread_info.keys_kernel)
 +#define ptrauth_task_switch(tsk)	\
-+	ptrauth_keys_switch(&(tsk)->thread_info.keys_user)
++	ptrauth_keys_switch(&(tsk)->thread_info.keys_kernel)
  
  #else /* CONFIG_ARM64_PTR_AUTH */
+ #define __no_ptrauth
  #define ptrauth_strip_insn_pac(lr)	(lr)
--#define mm_ctx_ptrauth_init(ctx)
--#define mm_ctx_ptrauth_switch(ctx)
-+#define ptrauth_task_init_user(tsk)
+ #define ptrauth_task_init_user(tsk)
++#define ptrauth_task_init_kernel(tsk)
 +#define ptrauth_task_switch(tsk)
+ #define ptrauth_cpu_enable(tsk)
  #endif /* CONFIG_ARM64_PTR_AUTH */
  
- #endif /* __ASM_POINTER_AUTH_H */
+diff --git a/arch/arm64/include/asm/ptrauth-asm.h b/arch/arm64/include/asm/ptrauth-asm.h
+index f50bdfc4046c..3ef1cc8903d5 100644
+--- a/arch/arm64/include/asm/ptrauth-asm.h
++++ b/arch/arm64/include/asm/ptrauth-asm.h
+@@ -16,11 +16,24 @@ alternative_if ARM64_HAS_ADDRESS_AUTH
+ alternative_else_nop_endif
+ 	.endm
+ 
++	.macro ptrauth_keys_install_kernel tsk, tmp
++alternative_if ARM64_HAS_ADDRESS_AUTH
++	ldr	\tmp, [\tsk, #(TSK_TI_KEYS_KERNEL + PTRAUTH_KEY_APIALO)]
++	msr_s	SYS_APIAKEYLO_EL1, \tmp
++	ldr	\tmp, [\tsk, #(TSK_TI_KEYS_KERNEL + PTRAUTH_KEY_APIAHI)]
++	msr_s	SYS_APIAKEYHI_EL1, \tmp
++	isb
++alternative_else_nop_endif
++	.endm
++
+ #else /* CONFIG_ARM64_PTR_AUTH */
+ 
+ 	.macro ptrauth_keys_install_user tsk, tmp
+ 	.endm
+ 
++	.macro ptrauth_keys_install_kernel tsk, tmp
++	.endm
++
+ #endif /* CONFIG_ARM64_PTR_AUTH */
+ 
+ #endif /* __ASM_PTRAUTH_ASM_H */
 diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-index cb2c10a8f0a8..ea9272fb52d4 100644
+index ea9272fb52d4..e3ec5345addc 100644
 --- a/arch/arm64/include/asm/thread_info.h
 +++ b/arch/arm64/include/asm/thread_info.h
-@@ -28,6 +28,7 @@
- struct task_struct;
- 
- #include <asm/memory.h>
-+#include <asm/pointer_auth.h>
- #include <asm/stack_pointer.h>
- #include <asm/types.h>
- 
-@@ -43,6 +44,9 @@ struct thread_info {
- 	u64			ttbr0;		/* saved TTBR0_EL1 */
- #endif
+@@ -46,6 +46,7 @@ struct thread_info {
  	int			preempt_count;	/* 0 => preemptable, <0 => bug */
-+#ifdef CONFIG_ARM64_PTR_AUTH
-+	struct ptrauth_keys	keys_user;
-+#endif
+ #ifdef CONFIG_ARM64_PTR_AUTH
+ 	struct ptrauth_keys	keys_user;
++	struct ptrauth_keys	keys_kernel;
+ #endif
  };
  
- #define thread_saved_pc(tsk)	\
+diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
+index b6be0dd037fd..6c61c9722b47 100644
+--- a/arch/arm64/kernel/asm-offsets.c
++++ b/arch/arm64/kernel/asm-offsets.c
+@@ -47,6 +47,7 @@ int main(void)
+ #endif
+ #ifdef CONFIG_ARM64_PTR_AUTH
+   DEFINE(TSK_TI_KEYS_USER, 	offsetof(struct task_struct, thread_info.keys_user));
++  DEFINE(TSK_TI_KEYS_KERNEL, 	offsetof(struct task_struct, thread_info.keys_kernel));
+ #endif
+   DEFINE(TSK_STACK,		offsetof(struct task_struct, stack));
+   BLANK();
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index 1e925f6d2978..a4503da445f7 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -250,6 +250,10 @@ alternative_else_nop_endif
+ 	msr	sp_el0, tsk
+ 	.endif
+ 
++	.if	\el == 0
++	ptrauth_keys_install_kernel tsk, x20
++	.endif
++
+ 	/*
+ 	 * Registers that may be useful after this macro is invoked:
+ 	 *
 diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 7f1628effe6d..fae52be66c92 100644
+index 857ae05cd04c..a866996610de 100644
 --- a/arch/arm64/kernel/process.c
 +++ b/arch/arm64/kernel/process.c
-@@ -57,6 +57,7 @@
- #include <asm/fpsimd.h>
- #include <asm/mmu_context.h>
- #include <asm/processor.h>
-+#include <asm/pointer_auth.h>
- #include <asm/stacktrace.h>
+@@ -330,6 +330,8 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
+ 	 */
+ 	fpsimd_flush_task_state(p);
  
- #ifdef CONFIG_STACKPROTECTOR
-@@ -425,6 +426,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
++	ptrauth_task_init_kernel(p);
++
+ 	if (likely(!(p->flags & PF_KTHREAD))) {
+ 		*childregs = *current_pt_regs();
+ 		childregs->regs[0] = 0;
+@@ -426,6 +428,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
  	contextidr_thread_switch(next);
  	entry_task_switch(next);
  	uao_thread_switch(next);
@@ -154,14 +159,26 @@ index 7f1628effe6d..fae52be66c92 100644
  
  	/*
  	 * Complete any pending TLB or cache maintenance on this CPU in case
-@@ -492,6 +494,8 @@ unsigned long arch_randomize_brk(struct mm_struct *mm)
- void arch_setup_new_exec(void)
- {
- 	current->mm->context.flags = is_compat_task() ? MMCF_AARCH32 : 0;
-+
-+	ptrauth_task_init_user(current);
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 09690024dce8..d952dd62c780 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -212,6 +212,7 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	 */
+ 	check_local_cpu_capabilities();
+ 
++	ptrauth_task_switch(current);
+ 	ptrauth_cpu_enable();
+ 
+ 	if (cpu_ops[cpu]->cpu_postboot)
+@@ -418,6 +419,8 @@ void __init __no_ptrauth smp_prepare_boot_cpu(void)
+ 	jump_label_init();
+ 	cpuinfo_store_boot_cpu();
+ 
++	ptrauth_task_init_kernel(current);
++	ptrauth_task_switch(current);
+ 	ptrauth_cpu_enable();
  }
  
- #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
 -- 
 2.11.0
