@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:36011 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:49607 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726979AbeJEMo4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2018 08:44:56 -0400
+        by vger.kernel.org with ESMTP id S1727176AbeJEMmz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2018 08:42:55 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 16/20] csky: SMP support
-Date: Fri,  5 Oct 2018 13:41:58 +0800
-Message-ID: <6f899d910260f6191816a42a83431e3e2362667e.1538715563.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 12/20] csky: ELF and module probe
+Date: Fri,  5 Oct 2018 13:41:54 +0800
+Message-ID: <f5ed3644906cbd5758d90598cca038bbacb78798.1538715563.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
 References: <cover.1538715563.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
@@ -15,316 +15,291 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
 Cc: green.hu@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20181005054158.IJnCyT1WEvSlh3XoWdzgJtG68PkCg7Kzjn1hTDfnK2I@z>
+Message-ID: <20181005054154.ldTUzdkVx0PVPqdz8v6KjzQEBHNNrM5COfWYhMoytxs@z>
 
-This patch adds boot, ipi, hotplug code for SMP.
-
-Changelog:
- - csky: remove irq_mapping from smp.c
-   There are some feedbacks from irqchip, and we need to adjust
-   "smp.c & smp.h" to match the csky_mp_timer modification.
- - Move IPI_IRQ define into drivers/irqchip/csky_mpintc.c, because it's a
-   interrupt controller specific.
- - Bugfix request_irq with IPI_IRQ, we must use irq_mapping return value
-   not directly use IPI_IRQ. The modification also involves csky_mp_intc.
+This patch adds ELF definition and module relocate codes.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/smp.h |  30 ++++++
- arch/csky/kernel/smp.c      | 248 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 278 insertions(+)
- create mode 100644 arch/csky/include/asm/smp.h
- create mode 100644 arch/csky/kernel/smp.c
+ arch/csky/abiv1/inc/abi/elf.h | 26 ++++++++++++
+ arch/csky/abiv2/inc/abi/elf.h | 43 ++++++++++++++++++++
+ arch/csky/include/asm/elf.h   | 85 +++++++++++++++++++++++++++++++++++++++
+ arch/csky/kernel/module.c     | 92 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 246 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/elf.h
+ create mode 100644 arch/csky/abiv2/inc/abi/elf.h
+ create mode 100644 arch/csky/include/asm/elf.h
+ create mode 100644 arch/csky/kernel/module.c
 
-diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
+diff --git a/arch/csky/abiv1/inc/abi/elf.h b/arch/csky/abiv1/inc/abi/elf.h
 new file mode 100644
-index 0000000..d77f582
+index 0000000..3058cc0
 --- /dev/null
-+++ b/arch/csky/include/asm/smp.h
-@@ -0,0 +1,30 @@
++++ b/arch/csky/abiv1/inc/abi/elf.h
+@@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +
-+#ifndef __ASM_CSKY_SMP_H
-+#define __ASM_CSKY_SMP_H
++#ifndef __ABI_CSKY_ELF_H
++#define __ABI_CSKY_ELF_H
 +
-+#include <linux/cpumask.h>
-+#include <linux/irqreturn.h>
-+#include <linux/threads.h>
-+
-+#ifdef CONFIG_SMP
-+
-+void __init setup_smp(void);
-+
-+void __init setup_smp_ipi(void);
-+
-+void __init enable_smp_ipi(void);
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask);
-+
-+void arch_send_call_function_single_ipi(int cpu);
-+
-+void __init set_send_ipi(void (*func)(const unsigned long *));
-+
-+void __init set_ipi_irq_mapping(int (*func)(void));
-+
-+#define raw_smp_processor_id()	(current_thread_info()->cpu)
-+
-+#endif /* CONFIG_SMP */
-+
-+#endif /* __ASM_CSKY_SMP_H */
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
++#define ELF_CORE_COPY_REGS(pr_reg, regs) do {	\
++	pr_reg[0] = regs->pc;			\
++	pr_reg[1] = regs->regs[9];		\
++	pr_reg[2] = regs->usp;			\
++	pr_reg[3] = regs->sr;			\
++	pr_reg[4] = regs->a0;			\
++	pr_reg[5] = regs->a1;			\
++	pr_reg[6] = regs->a2;			\
++	pr_reg[7] = regs->a3;			\
++	pr_reg[8] = regs->regs[0];		\
++	pr_reg[9] = regs->regs[1];		\
++	pr_reg[10] = regs->regs[2];		\
++	pr_reg[11] = regs->regs[3];		\
++	pr_reg[12] = regs->regs[4];		\
++	pr_reg[13] = regs->regs[5];		\
++	pr_reg[14] = regs->regs[6];		\
++	pr_reg[15] = regs->regs[7];		\
++	pr_reg[16] = regs->regs[8];		\
++	pr_reg[17] = regs->lr;			\
++} while (0);
++#endif /* __ABI_CSKY_ELF_H */
+diff --git a/arch/csky/abiv2/inc/abi/elf.h b/arch/csky/abiv2/inc/abi/elf.h
 new file mode 100644
-index 0000000..841cf72
+index 0000000..290f49e
 --- /dev/null
-+++ b/arch/csky/kernel/smp.c
-@@ -0,0 +1,248 @@
-+// SPDX-License-Identifier: GPL-2.0
++++ b/arch/csky/abiv2/inc/abi/elf.h
+@@ -0,0 +1,43 @@
++/* SPDX-License-Identifier: GPL-2.0 */
 +
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/notifier.h>
-+#include <linux/cpu.h>
-+#include <linux/percpu.h>
-+#include <linux/delay.h>
-+#include <linux/err.h>
-+#include <linux/irq.h>
-+#include <linux/irqdomain.h>
-+#include <linux/of.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/sched/mm.h>
-+#include <asm/irq.h>
-+#include <asm/traps.h>
-+#include <asm/sections.h>
-+#include <asm/mmu_context.h>
-+#include <asm/pgalloc.h>
++#ifndef __ABI_CSKY_ELF_H
++#define __ABI_CSKY_ELF_H
 +
-+static struct {
-+	unsigned long bits ____cacheline_aligned;
-+} ipi_data[NR_CPUS] __cacheline_aligned;
++/* The member sort in array pr_reg[x] is defined by GDB. */
++#define ELF_CORE_COPY_REGS(pr_reg, regs) do {	\
++	pr_reg[0] = regs->pc;			\
++	pr_reg[1] = regs->a1;			\
++	pr_reg[2] = regs->a0;			\
++	pr_reg[3] = regs->sr;			\
++	pr_reg[4] = regs->a2;			\
++	pr_reg[5] = regs->a3;			\
++	pr_reg[6] = regs->regs[0];		\
++	pr_reg[7] = regs->regs[1];		\
++	pr_reg[8] = regs->regs[2];		\
++	pr_reg[9] = regs->regs[3];		\
++	pr_reg[10] = regs->regs[4];		\
++	pr_reg[11] = regs->regs[5];		\
++	pr_reg[12] = regs->regs[6];		\
++	pr_reg[13] = regs->regs[7];		\
++	pr_reg[14] = regs->regs[8];		\
++	pr_reg[15] = regs->regs[9];		\
++	pr_reg[16] = regs->usp;			\
++	pr_reg[17] = regs->lr;			\
++	pr_reg[18] = regs->exregs[0];		\
++	pr_reg[19] = regs->exregs[1];		\
++	pr_reg[20] = regs->exregs[2];		\
++	pr_reg[21] = regs->exregs[3];		\
++	pr_reg[22] = regs->exregs[4];		\
++	pr_reg[23] = regs->exregs[5];		\
++	pr_reg[24] = regs->exregs[6];		\
++	pr_reg[25] = regs->exregs[7];		\
++	pr_reg[26] = regs->exregs[8];		\
++	pr_reg[27] = regs->exregs[9];		\
++	pr_reg[28] = regs->exregs[10];		\
++	pr_reg[29] = regs->exregs[11];		\
++	pr_reg[30] = regs->exregs[12];		\
++	pr_reg[31] = regs->exregs[13];		\
++	pr_reg[32] = regs->exregs[14];		\
++	pr_reg[33] = regs->tls;			\
++} while (0);
++#endif /* __ABI_CSKY_ELF_H */
+diff --git a/arch/csky/include/asm/elf.h b/arch/csky/include/asm/elf.h
+new file mode 100644
+index 0000000..773b133
+--- /dev/null
++++ b/arch/csky/include/asm/elf.h
+@@ -0,0 +1,85 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+enum ipi_message_type {
-+	IPI_EMPTY,
-+	IPI_RESCHEDULE,
-+	IPI_CALL_FUNC,
-+	IPI_MAX
-+};
++#ifndef __ASM_CSKY_ELF_H
++#define __ASM_CSKY_ELF_H
 +
-+static irqreturn_t handle_ipi(int irq, void *dev)
-+{
-+	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
++#include <asm/ptrace.h>
++#include <abi/regdef.h>
 +
-+	while (true) {
-+		unsigned long ops;
++#define ELF_ARCH 252
 +
-+		ops = xchg(pending_ipis, 0);
-+		if (ops == 0)
-+			return IRQ_HANDLED;
++/* CSKY Relocations */
++#define R_CSKY_NONE               0
++#define R_CSKY_32                 1
++#define R_CSKY_PCIMM8BY4          2
++#define R_CSKY_PCIMM11BY2         3
++#define R_CSKY_PCIMM4BY2          4
++#define R_CSKY_PC32               5
++#define R_CSKY_PCRELJSR_IMM11BY2  6
++#define R_CSKY_GNU_VTINHERIT      7
++#define R_CSKY_GNU_VTENTRY        8
++#define R_CSKY_RELATIVE           9
++#define R_CSKY_COPY               10
++#define R_CSKY_GLOB_DAT           11
++#define R_CSKY_JUMP_SLOT          12
++#define R_CSKY_ADDR_HI16          24
++#define R_CSKY_ADDR_LO16          25
++#define R_CSKY_PCRELJSR_IMM26BY2  40
 +
-+		if (ops & (1 << IPI_RESCHEDULE))
-+			scheduler_ipi();
++typedef unsigned long elf_greg_t;
 +
-+		if (ops & (1 << IPI_CALL_FUNC))
-+			generic_smp_call_function_interrupt();
++typedef struct user_fp elf_fpregset_t;
 +
-+		BUG_ON((ops >> IPI_MAX) != 0);
-+	}
++#define ELF_NGREG (sizeof(struct pt_regs) / sizeof(elf_greg_t))
 +
-+	return IRQ_HANDLED;
-+}
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
 +
-+static void (*send_arch_ipi)(const unsigned long *mask);
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
 +
-+void __init set_send_ipi(void (*func)(const unsigned long *))
-+{
-+	if (send_arch_ipi)
-+		return;
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define USE_ELF_CORE_DUMP
++#define ELF_EXEC_PAGESIZE		4096
++#define ELF_CLASS			ELFCLASS32
++#define ELF_PLAT_INIT(_r, load_addr)	{ _r->a0 = 0; }
 +
-+	send_arch_ipi = func;
-+}
-+
-+static void
-+send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
-+{
-+	int i;
-+
-+	for_each_cpu(i, to_whom)
-+		set_bit(operation, &ipi_data[i].bits);
-+
-+	smp_mb();
-+	send_arch_ipi(cpumask_bits(to_whom));
-+}
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask)
-+{
-+	send_ipi_message(mask, IPI_CALL_FUNC);
-+}
-+
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
-+}
-+
-+static void ipi_stop(void *unused)
-+{
-+	while (1);
-+}
-+
-+void smp_send_stop(void)
-+{
-+	on_each_cpu(ipi_stop, NULL, 1);
-+}
-+
-+void smp_send_reschedule(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
-+}
-+
-+void *__cpu_up_stack_pointer[NR_CPUS];
-+void *__cpu_up_task_pointer[NR_CPUS];
-+
-+void __init smp_prepare_boot_cpu(void)
-+{
-+}
-+
-+void __init smp_prepare_cpus(unsigned int max_cpus)
-+{
-+}
-+
-+static int ipi_dummy_dev;
-+static int ipi_irq;
-+
-+void __init enable_smp_ipi(void)
-+{
-+	enable_percpu_irq(ipi_irq, 0);
-+}
-+
-+static int (*arch_ipi_irq_mapping)(void);
-+
-+void __init set_ipi_irq_mapping(int (*func)(void))
-+{
-+	if (arch_ipi_irq_mapping)
-+		return;
-+
-+	arch_ipi_irq_mapping = func;
-+}
-+
-+void __init setup_smp_ipi(void)
-+{
-+	int rc;
-+
-+	ipi_irq = arch_ipi_irq_mapping();
-+	if (ipi_irq == 0)
-+		panic("%s IRQ mapping failed\n", __func__);
-+
-+	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt",
-+				&ipi_dummy_dev);
-+	if (rc)
-+		panic("%s IRQ request failed\n", __func__);
-+
-+	enable_smp_ipi();
-+}
-+
-+void __init setup_smp(void)
-+{
-+	struct device_node *node = NULL;
-+	int cpu;
-+
-+	while ((node = of_find_node_by_type(node, "cpu"))) {
-+		if (!of_device_is_available(node))
-+			continue;
-+
-+		if (of_property_read_u32(node, "reg", &cpu))
-+			continue;
-+
-+		if (cpu >= NR_CPUS)
-+			continue;
-+
-+		set_cpu_possible(cpu, true);
-+		set_cpu_present(cpu, true);
-+	}
-+}
-+
-+extern void _start_smp_secondary(void);
-+
-+volatile unsigned int secondary_hint;
-+volatile unsigned int secondary_ccr;
-+volatile unsigned int secondary_stack;
-+
-+int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-+{
-+	unsigned int tmp;
-+
-+	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
-+
-+	secondary_hint = mfcr("cr31");
-+
-+	secondary_ccr  = mfcr("cr18");
-+
-+	/* Flush dcache */
-+	mtcr("cr17", 0x22);
-+
-+	/* Enable cpu in SMP reset ctrl reg */
-+	tmp = mfcr("cr<29, 0>");
-+	tmp |= 1 << cpu;
-+	mtcr("cr<29, 0>", tmp);
-+
-+	/* Wait for the cpu online */
-+	while (!cpu_online(cpu));
-+
-+	secondary_stack = 0;
-+
-+	return 0;
-+}
-+
-+void __init smp_cpus_done(unsigned int max_cpus)
-+{
-+}
-+
-+int setup_profiling_timer(unsigned int multiplier)
-+{
-+	return -EINVAL;
-+}
-+
-+void csky_start_secondary(void)
-+{
-+	struct mm_struct *mm = &init_mm;
-+	unsigned int cpu = smp_processor_id();
-+
-+	mtcr("cr31", secondary_hint);
-+	mtcr("cr18", secondary_ccr);
-+
-+	mtcr("vbr", vec_base);
-+
-+	flush_tlb_all();
-+	write_mmu_pagemask(0);
-+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-+	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
-+
-+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
-+
-+#ifdef CONFIG_CPU_HAS_FPU
-+	init_fpu();
++#ifdef __cskyBE__
++#define ELF_DATA	ELFDATA2MSB
++#else
++#define ELF_DATA	ELFDATA2LSB
 +#endif
 +
-+	enable_smp_ipi();
++/*
++ * This is the location that an ET_DYN program is loaded if exec'ed. Typical
++ * use of this is to invoke "./ld.so someprog" to test out a new version of
++ * the loader.  We need to make sure that it is out of the way of the program
++ * that it will "exec", and that there is sufficient room for the brk.
++ */
++#define ELF_ET_DYN_BASE	0x0UL
++#include <abi/elf.h>
 +
-+	mmget(mm);
-+	mmgrab(mm);
-+	current->active_mm = mm;
-+	cpumask_set_cpu(cpu, mm_cpumask(mm));
++/* Similar, but for a thread other than current. */
++struct task_struct;
++extern int dump_task_regs(struct task_struct *tsk, elf_gregset_t *elf_regs);
++#define ELF_CORE_COPY_TASK_REGS(tsk, elf_regs) dump_task_regs(tsk, elf_regs)
 +
-+	notify_cpu_starting(cpu);
-+	set_cpu_online(cpu, true);
++#define ELF_HWCAP	(0)
 +
-+	pr_info("CPU%u Online: %s...\n", cpu, __func__);
++/*
++ * This yields a string that ld.so will use to load implementation specific
++ * libraries for optimization. This is more specific in intent than poking
++ * at uname or /proc/cpuinfo.
++ */
++#define ELF_PLATFORM		(NULL)
++#define SET_PERSONALITY(ex)	set_personality(PER_LINUX)
 +
-+	local_irq_enable();
-+	preempt_disable();
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
++struct linux_binprm;
++extern int arch_setup_additional_pages(struct linux_binprm *bprm,
++				       int uses_interp);
++#endif /* __ASM_CSKY_ELF_H */
+diff --git a/arch/csky/kernel/module.c b/arch/csky/kernel/module.c
+new file mode 100644
+index 0000000..65abab0
+--- /dev/null
++++ b/arch/csky/kernel/module.c
+@@ -0,0 +1,92 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++#include <linux/spinlock.h>
++#include <asm/pgtable.h>
++
++#if defined(__CSKYABIV2__)
++#define IS_BSR32(hi16, lo16)		(((hi16) & 0xFC00) == 0xE000)
++#define IS_JSRI32(hi16, lo16)		((hi16) == 0xEAE0)
++
++#define CHANGE_JSRI_TO_LRW(addr) do {					\
++	*(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x001a;	\
++	*((uint16_t *)(addr) + 1) = *((uint16_t *)(addr) + 1) & 0xFFFF;	\
++} while (0)
++
++#define SET_JSR32_R26(addr) do {		\
++	*(uint16_t *)(addr) = 0xE8Fa;		\
++	*((uint16_t *)(addr) + 1) = 0x0000;	\
++} while (0)
++#endif
++
++int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
++		unsigned int symindex, unsigned int relsec, struct module *me)
++{
++	unsigned int i;
++	Elf32_Rela	*rel = (void *) sechdrs[relsec].sh_addr;
++	Elf32_Sym	*sym;
++	uint32_t	*location;
++	short		*temp;
++#if defined(__CSKYABIV2__)
++	uint16_t	*location_tmp;
++#endif
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++							+ rel[i].r_offset;
++		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++						+ ELF32_R_SYM(rel[i].r_info);
++
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_CSKY_32:
++			/* We add the value into the location given */
++			*location = rel[i].r_addend + sym->st_value;
++			break;
++		case R_CSKY_PC32:
++			/* Add the value, subtract its postition */
++			*location = rel[i].r_addend + sym->st_value
++							- (uint32_t)location;
++			break;
++		case R_CSKY_PCRELJSR_IMM11BY2:
++			break;
++		case R_CSKY_PCRELJSR_IMM26BY2:
++#if defined(__CSKYABIV2__)
++			location_tmp = (uint16_t *)location;
++			if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
++				break;
++
++			if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
++				/* jsri 0x...  --> lrw r26, 0x... */
++				CHANGE_JSRI_TO_LRW(location);
++				/* lsli r0, r0 --> jsr r26 */
++				SET_JSR32_R26(location + 1);
++			}
++#endif
++			break;
++		case R_CSKY_ADDR_HI16:
++			temp = ((short  *)location) + 1;
++			*temp = (short)
++				((rel[i].r_addend + sym->st_value) >> 16);
++			break;
++		case R_CSKY_ADDR_LO16:
++			temp = ((short  *)location) + 1;
++			*temp = (short)
++				((rel[i].r_addend + sym->st_value) & 0xffff);
++			break;
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++				me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
 +}
 -- 
 2.7.4
