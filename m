@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 13/20] csky: Library functions
-Date: Fri,  5 Oct 2018 13:41:55 +0800
-Message-ID: <c951b8a865fefeca29d95f35b4c7cadcc81d4016.1538715563.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 15/20] csky: Debug and Ptrace GDB
+Date: Fri,  5 Oct 2018 13:41:57 +0800
+Message-ID: <f7be910fc6e78bfb4410e8cb17679d5975986079.1538715563.git.ren_guo@c-sky.com>
 References: <cover.1538715563.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
@@ -9,1592 +9,556 @@ In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
 References: <cover.1538715563.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
-Cc: green.hu@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>, Chen Linfei <linfei_chen@c-sky.com>, Mao Han <han_mao@c-sky.com>
+Cc: green.hu@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds string optimize codes and some auxiliary code.
+This patch adds arch ptrace implementation, stack dump and bug.h.
 
-Changelog:
- - Use bt instead of jbt in asm, jbt will cause relocation problem.
- - remove kernel/platform.c
-
-Signed-off-by: Chen Linfei <linfei_chen@c-sky.com>
-Signed-off-by: Mao Han <han_mao@c-sky.com>
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv1/bswapdi.c        |  12 ++
- arch/csky/abiv1/bswapsi.c        |  12 ++
- arch/csky/abiv1/inc/abi/string.h |  13 ++
- arch/csky/abiv1/memcpy.S         | 347 +++++++++++++++++++++++++++++++++++++++
- arch/csky/abiv1/memset.c         |  37 +++++
- arch/csky/abiv1/strksyms.c       |   7 +
- arch/csky/abiv2/inc/abi/string.h |  27 +++
- arch/csky/abiv2/memcmp.S         | 152 +++++++++++++++++
- arch/csky/abiv2/memcpy.S         | 110 +++++++++++++
- arch/csky/abiv2/memmove.S        | 108 ++++++++++++
- arch/csky/abiv2/memset.S         |  83 ++++++++++
- arch/csky/abiv2/strcmp.S         | 168 +++++++++++++++++++
- arch/csky/abiv2/strcpy.S         | 123 ++++++++++++++
- arch/csky/abiv2/strksyms.c       |  12 ++
- arch/csky/abiv2/strlen.S         |  97 +++++++++++
- arch/csky/abiv2/sysdep.h         |  30 ++++
- arch/csky/include/asm/string.h   |  13 ++
- arch/csky/kernel/power.c         |  30 ++++
- arch/csky/lib/delay.c            |  39 +++++
- 19 files changed, 1420 insertions(+)
- create mode 100644 arch/csky/abiv1/bswapdi.c
- create mode 100644 arch/csky/abiv1/bswapsi.c
- create mode 100644 arch/csky/abiv1/inc/abi/string.h
- create mode 100644 arch/csky/abiv1/memcpy.S
- create mode 100644 arch/csky/abiv1/memset.c
- create mode 100644 arch/csky/abiv1/strksyms.c
- create mode 100644 arch/csky/abiv2/inc/abi/string.h
- create mode 100644 arch/csky/abiv2/memcmp.S
- create mode 100644 arch/csky/abiv2/memcpy.S
- create mode 100644 arch/csky/abiv2/memmove.S
- create mode 100644 arch/csky/abiv2/memset.S
- create mode 100644 arch/csky/abiv2/strcmp.S
- create mode 100644 arch/csky/abiv2/strcpy.S
- create mode 100644 arch/csky/abiv2/strksyms.c
- create mode 100644 arch/csky/abiv2/strlen.S
- create mode 100644 arch/csky/abiv2/sysdep.h
- create mode 100644 arch/csky/include/asm/string.h
- create mode 100644 arch/csky/kernel/power.c
- create mode 100644 arch/csky/lib/delay.c
+ arch/csky/include/asm/bug.h         |  26 +++
+ arch/csky/include/uapi/asm/ptrace.h | 104 ++++++++++++
+ arch/csky/kernel/dumpstack.c        |  66 ++++++++
+ arch/csky/kernel/ptrace.c           | 314 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 510 insertions(+)
+ create mode 100644 arch/csky/include/asm/bug.h
+ create mode 100644 arch/csky/include/uapi/asm/ptrace.h
+ create mode 100644 arch/csky/kernel/dumpstack.c
+ create mode 100644 arch/csky/kernel/ptrace.c
 
-diff --git a/arch/csky/abiv1/bswapdi.c b/arch/csky/abiv1/bswapdi.c
+diff --git a/arch/csky/include/asm/bug.h b/arch/csky/include/asm/bug.h
 new file mode 100644
-index 0000000..f50a1d6
+index 0000000..bd7b323
 --- /dev/null
-+++ b/arch/csky/abiv1/bswapdi.c
-@@ -0,0 +1,12 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/export.h>
-+#include <linux/compiler.h>
-+#include <uapi/linux/swab.h>
-+
-+unsigned long long notrace __bswapdi2(unsigned long long u)
-+{
-+	return ___constant_swab64(u);
-+}
-+EXPORT_SYMBOL(__bswapdi2);
-diff --git a/arch/csky/abiv1/bswapsi.c b/arch/csky/abiv1/bswapsi.c
-new file mode 100644
-index 0000000..0f79182
---- /dev/null
-+++ b/arch/csky/abiv1/bswapsi.c
-@@ -0,0 +1,12 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/export.h>
-+#include <linux/compiler.h>
-+#include <uapi/linux/swab.h>
-+
-+unsigned int notrace __bswapsi2(unsigned int u)
-+{
-+	return ___constant_swab32(u);
-+}
-+EXPORT_SYMBOL(__bswapsi2);
-diff --git a/arch/csky/abiv1/inc/abi/string.h b/arch/csky/abiv1/inc/abi/string.h
-new file mode 100644
-index 0000000..5abe80b
---- /dev/null
-+++ b/arch/csky/abiv1/inc/abi/string.h
-@@ -0,0 +1,13 @@
++++ b/arch/csky/include/asm/bug.h
+@@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ABI_CSKY_STRING_H
-+#define __ABI_CSKY_STRING_H
++#ifndef __ASM_CSKY_BUG_H
++#define __ASM_CSKY_BUG_H
 +
-+#define __HAVE_ARCH_MEMCPY
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+
-+#define __HAVE_ARCH_MEMSET
-+extern void *memset(void *, int, __kernel_size_t);
-+
-+#endif /* __ABI_CSKY_STRING_H */
-diff --git a/arch/csky/abiv1/memcpy.S b/arch/csky/abiv1/memcpy.S
-new file mode 100644
-index 0000000..5078eb5
---- /dev/null
-+++ b/arch/csky/abiv1/memcpy.S
-@@ -0,0 +1,347 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+
-+.macro	GET_FRONT_BITS rx y
-+#ifdef	__cskyLE__
-+	lsri	\rx, \y
-+#else
-+	lsli	\rx, \y
-+#endif
-+.endm
-+
-+.macro	GET_AFTER_BITS rx y
-+#ifdef	__cskyLE__
-+	lsli	\rx, \y
-+#else
-+	lsri	\rx, \y
-+#endif
-+.endm
-+
-+/* void *memcpy(void *dest, const void *src, size_t n); */
-+ENTRY(memcpy)
-+	mov	r7, r2
-+	cmplti	r4, 4
-+	bt	.L_copy_by_byte
-+	mov	r6, r2
-+	andi	r6, 3
-+	cmpnei	r6, 0
-+	jbt	.L_dest_not_aligned
-+	mov	r6, r3
-+	andi	r6, 3
-+	cmpnei	r6, 0
-+	jbt	.L_dest_aligned_but_src_not_aligned
-+.L0:
-+	cmplti	r4, 16
-+	jbt	.L_aligned_and_len_less_16bytes
-+	subi	sp, 8
-+	stw	r8, (sp, 0)
-+.L_aligned_and_len_larger_16bytes:
-+	ldw	r1, (r3, 0)
-+	ldw	r5, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	stw	r1, (r7, 0)
-+	ldw	r1, (r3, 12)
-+	stw	r5, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r1, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L_aligned_and_len_larger_16bytes
-+	ldw	r8, (sp, 0)
-+	addi	sp, 8
-+	cmpnei	r4, 0
-+	jbf	.L_return
-+
-+.L_aligned_and_len_less_16bytes:
-+	cmplti	r4, 4
-+	bt	.L_copy_by_byte
-+.L1:
-+	ldw	r1, (r3, 0)
-+	stw	r1, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	jbf	.L1
-+	br	.L_copy_by_byte
-+
-+.L_return:
-+	rts
-+
-+.L_copy_by_byte:                      /* len less than 4 bytes */
-+	cmpnei	r4, 0
-+	jbf	.L_return
-+.L4:
-+	ldb	r1, (r3, 0)
-+	stb	r1, (r7, 0)
-+	addi	r3, 1
-+	addi	r7, 1
-+	decne	r4
-+	jbt	.L4
-+	rts
-+
-+/*
-+ * If dest is not aligned, just copying some bytes makes the dest align.
-+ * Afther that, we judge whether the src is aligned.
-+ */
-+.L_dest_not_aligned:
-+	mov	r5, r3
-+	rsub	r5, r5, r7
-+	abs	r5, r5
-+	cmplt	r5, r4
-+	bt	.L_copy_by_byte
-+	mov	r5, r7
-+	sub	r5, r3
-+	cmphs	r5, r4
-+	bf	.L_copy_by_byte
-+	mov	r5, r6
-+.L5:
-+	ldb	r1, (r3, 0)              /* makes the dest align. */
-+	stb	r1, (r7, 0)
-+	addi	r5, 1
-+	subi	r4, 1
-+	addi	r3, 1
-+	addi	r7, 1
-+	cmpnei	r5, 4
-+	jbt	.L5
-+	cmplti	r4, 4
-+	jbt	.L_copy_by_byte
-+	mov	r6, r3                   /* judge whether the src is aligned. */
-+	andi	r6, 3
-+	cmpnei	r6, 0
-+	jbf	.L0
-+
-+/* Judge the number of misaligned, 1, 2, 3? */
-+.L_dest_aligned_but_src_not_aligned:
-+	mov	r5, r3
-+	rsub	r5, r5, r7
-+	abs	r5, r5
-+	cmplt	r5, r4
-+	bt	.L_copy_by_byte
-+	bclri	r3, 0
-+	bclri	r3, 1
-+	ldw	r1, (r3, 0)
-+	addi	r3, 4
-+	cmpnei	r6, 2
-+	bf	.L_dest_aligned_but_src_not_aligned_2bytes
-+	cmpnei	r6, 3
-+	bf	.L_dest_aligned_but_src_not_aligned_3bytes
-+
-+.L_dest_aligned_but_src_not_aligned_1byte:
-+	mov	r5, r7
-+	sub	r5, r3
-+	cmphs	r5, r4
-+	bf	.L_copy_by_byte
-+	cmplti	r4, 16
-+	bf	.L11
-+.L10:                                     /* If the len is less than 16 bytes */
-+	GET_FRONT_BITS r1 8
-+	mov	r5, r1
-+	ldw	r6, (r3, 0)
-+	mov	r1, r6
-+	GET_AFTER_BITS r6 24
-+	or	r5, r6
-+	stw	r5, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	bf	.L10
-+	subi	r3, 3
-+	br	.L_copy_by_byte
-+.L11:
-+	subi	sp, 16
-+	stw	r8, (sp, 0)
-+	stw	r9, (sp, 4)
-+	stw	r10, (sp, 8)
-+	stw	r11, (sp, 12)
-+.L12:
-+	ldw	r5, (r3, 0)
-+	ldw	r11, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	ldw	r9, (r3, 12)
-+
-+	GET_FRONT_BITS r1 8               /* little or big endian? */
-+	mov	r10, r5
-+	GET_AFTER_BITS r5 24
-+	or	r5, r1
-+
-+	GET_FRONT_BITS r10 8
-+	mov	r1, r11
-+	GET_AFTER_BITS r11 24
-+	or	r11, r10
-+
-+	GET_FRONT_BITS r1 8
-+	mov	r10, r8
-+	GET_AFTER_BITS r8 24
-+	or	r8, r1
-+
-+	GET_FRONT_BITS r10 8
-+	mov	r1, r9
-+	GET_AFTER_BITS r9 24
-+	or	r9, r10
-+
-+	stw	r5, (r7, 0)
-+	stw	r11, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r9, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L12
-+	ldw	r8, (sp, 0)
-+	ldw	r9, (sp, 4)
-+	ldw	r10, (sp, 8)
-+	ldw	r11, (sp, 12)
-+	addi	sp , 16
-+	cmplti	r4, 4
-+	bf	.L10
-+	subi	r3, 3
-+	br	.L_copy_by_byte
-+
-+.L_dest_aligned_but_src_not_aligned_2bytes:
-+	cmplti	r4, 16
-+	bf	.L21
-+.L20:
-+	GET_FRONT_BITS r1 16
-+	mov	r5, r1
-+	ldw	r6, (r3, 0)
-+	mov	r1, r6
-+	GET_AFTER_BITS r6 16
-+	or	r5, r6
-+	stw	r5, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	bf	.L20
-+	subi	r3, 2
-+	br	.L_copy_by_byte
-+	rts
-+
-+.L21:	/* n > 16 */
-+	subi 	sp, 16
-+	stw	r8, (sp, 0)
-+	stw	r9, (sp, 4)
-+	stw	r10, (sp, 8)
-+	stw	r11, (sp, 12)
-+
-+.L22:
-+	ldw	r5, (r3, 0)
-+	ldw	r11, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	ldw	r9, (r3, 12)
-+
-+	GET_FRONT_BITS r1 16
-+	mov	r10, r5
-+	GET_AFTER_BITS r5 16
-+	or	r5, r1
-+
-+	GET_FRONT_BITS r10 16
-+	mov	r1, r11
-+	GET_AFTER_BITS r11 16
-+	or	r11, r10
-+
-+	GET_FRONT_BITS r1 16
-+	mov	r10, r8
-+	GET_AFTER_BITS r8 16
-+	or	r8, r1
-+
-+	GET_FRONT_BITS r10 16
-+	mov	r1, r9
-+	GET_AFTER_BITS r9 16
-+	or	r9, r10
-+
-+	stw	r5, (r7, 0)
-+	stw	r11, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r9, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L22
-+	ldw	r8, (sp, 0)
-+	ldw	r9, (sp, 4)
-+	ldw	r10, (sp, 8)
-+	ldw	r11, (sp, 12)
-+	addi	sp, 16
-+	cmplti	r4, 4
-+	bf	.L20
-+	subi	r3, 2
-+	br	.L_copy_by_byte
-+
-+
-+.L_dest_aligned_but_src_not_aligned_3bytes:
-+	cmplti	r4, 16
-+	bf	.L31
-+.L30:
-+	GET_FRONT_BITS r1 24
-+	mov	r5, r1
-+	ldw	r6, (r3, 0)
-+	mov	r1, r6
-+	GET_AFTER_BITS r6 8
-+	or	r5, r6
-+	stw	r5, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	bf	.L30
-+	subi	r3, 1
-+	br	.L_copy_by_byte
-+.L31:
-+	subi	sp, 16
-+	stw	r8, (sp, 0)
-+	stw	r9, (sp, 4)
-+	stw	r10, (sp, 8)
-+	stw	r11, (sp, 12)
-+.L32:
-+	ldw	r5, (r3, 0)
-+	ldw	r11, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	ldw	r9, (r3, 12)
-+
-+	GET_FRONT_BITS r1 24
-+	mov	r10, r5
-+	GET_AFTER_BITS r5 8
-+	or	r5, r1
-+
-+	GET_FRONT_BITS r10 24
-+	mov	r1, r11
-+	GET_AFTER_BITS r11 8
-+	or	r11, r10
-+
-+	GET_FRONT_BITS r1 24
-+	mov	r10, r8
-+	GET_AFTER_BITS r8 8
-+	or	r8, r1
-+
-+	GET_FRONT_BITS r10 24
-+	mov	r1, r9
-+	GET_AFTER_BITS r9 8
-+	or	r9, r10
-+
-+	stw	r5, (r7, 0)
-+	stw	r11, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r9, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L32
-+	ldw	r8, (sp, 0)
-+	ldw	r9, (sp, 4)
-+	ldw	r10, (sp, 8)
-+	ldw	r11, (sp, 12)
-+	addi	sp, 16
-+	cmplti	r4, 4
-+	bf	.L30
-+	subi	r3, 1
-+	br	.L_copy_by_byte
-diff --git a/arch/csky/abiv1/memset.c b/arch/csky/abiv1/memset.c
-new file mode 100644
-index 0000000..b4aa75b
---- /dev/null
-+++ b/arch/csky/abiv1/memset.c
-@@ -0,0 +1,37 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
++#include <linux/compiler.h>
++#include <linux/const.h>
 +#include <linux/types.h>
 +
-+void *memset(void *dest, int c, size_t l)
-+{
-+	char *d = dest;
-+	int ch = c & 0xff;
-+	int tmp = (ch | ch << 8 | ch << 16 | ch << 24);
++#define BUG()				\
++do {					\
++	asm volatile ("bkpt\n");	\
++	unreachable();			\
++} while (0)
 +
-+	while (((uintptr_t)d & 0x3) && l--)
-+		*d++ = ch;
++#define HAVE_ARCH_BUG
 +
-+	while (l >= 16) {
-+		*(((u32 *)d))   = tmp;
-+		*(((u32 *)d)+1) = tmp;
-+		*(((u32 *)d)+2) = tmp;
-+		*(((u32 *)d)+3) = tmp;
-+		l -= 16;
-+		d += 16;
-+	}
++#include <asm-generic/bug.h>
 +
-+	while (l > 3) {
-+		*(((u32 *)d)) = tmp;
-+		l -= 4;
-+		d += 4;
-+	}
++struct pt_regs;
 +
-+	while (l) {
-+		*d = ch;
-+		l--;
-+		d++;
-+	}
++void die_if_kernel(char *str, struct pt_regs *regs, int nr);
++void show_regs(struct pt_regs *regs);
 +
-+	return dest;
-+}
-diff --git a/arch/csky/abiv1/strksyms.c b/arch/csky/abiv1/strksyms.c
++#endif /* __ASM_CSKY_BUG_H */
+diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..436995c
+index 0000000..f10d02c
 --- /dev/null
-+++ b/arch/csky/abiv1/strksyms.c
-@@ -0,0 +1,7 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/module.h>
-+
-+EXPORT_SYMBOL(memcpy);
-+EXPORT_SYMBOL(memset);
-diff --git a/arch/csky/abiv2/inc/abi/string.h b/arch/csky/abiv2/inc/abi/string.h
-new file mode 100644
-index 0000000..f01bad2
---- /dev/null
-+++ b/arch/csky/abiv2/inc/abi/string.h
-@@ -0,0 +1,27 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef __ABI_CSKY_STRING_H
-+#define __ABI_CSKY_STRING_H
-+
-+#define __HAVE_ARCH_MEMCMP
-+extern int memcmp(const void *, const void *, __kernel_size_t);
-+
-+#define __HAVE_ARCH_MEMCPY
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+
-+#define __HAVE_ARCH_MEMMOVE
-+extern void *memmove(void *, const void *, __kernel_size_t);
-+
-+#define __HAVE_ARCH_MEMSET
-+extern void *memset(void *, int,  __kernel_size_t);
-+
-+#define __HAVE_ARCH_STRCMP
-+extern int strcmp(const char *, const char *);
-+
-+#define __HAVE_ARCH_STRCPY
-+extern char *strcpy(char *, const char *);
-+
-+#define __HAVE_ARCH_STRLEN
-+extern __kernel_size_t strlen(const char *);
-+
-+#endif /* __ABI_CSKY_STRING_H */
-diff --git a/arch/csky/abiv2/memcmp.S b/arch/csky/abiv2/memcmp.S
-new file mode 100644
-index 0000000..bf0d809
---- /dev/null
-+++ b/arch/csky/abiv2/memcmp.S
-@@ -0,0 +1,152 @@
++++ b/arch/csky/include/uapi/asm/ptrace.h
+@@ -0,0 +1,104 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+ENTRY(memcmp)
-+	/* Test if len less than 4 bytes.  */
-+	mov	r3, r0
-+	movi	r0, 0
-+	mov	r12, r4
-+	cmplti	r2, 4
-+	bt	.L_compare_by_byte
-+
-+	andi	r13, r0, 3
-+	movi	r19, 4
-+
-+	/* Test if s1 is not 4 bytes aligned.  */
-+	bnez	r13, .L_s1_not_aligned
-+
-+	LABLE_ALIGN
-+.L_s1_aligned:
-+	/* If dest is aligned, then copy.  */
-+	zext	r18, r2, 31, 4
-+	/* Test if len less than 16 bytes.  */
-+	bez	r18, .L_compare_by_word
-+
-+.L_compare_by_4word:
-+	/* If aligned, load word each time.  */
-+	ldw	r20, (r3, 0)
-+	ldw	r21, (r1, 0)
-+	/* If s1[i] != s2[i], goto .L_byte_check.  */
-+	cmpne	r20, r21
-+	bt	.L_byte_check
-+
-+	ldw	r20, (r3, 4)
-+	ldw	r21, (r1, 4)
-+	cmpne	r20, r21
-+	bt	.L_byte_check
-+
-+	ldw	r20, (r3, 8)
-+	ldw	r21, (r1, 8)
-+	cmpne	r20, r21
-+	bt	.L_byte_check
-+
-+	ldw	r20, (r3, 12)
-+	ldw	r21, (r1, 12)
-+	cmpne	r20, r21
-+	bt	.L_byte_check
-+
-+	PRE_BNEZAD (r18)
-+	addi	a3, 16
-+	addi	a1, 16
-+
-+	BNEZAD (r18, .L_compare_by_4word)
-+
-+.L_compare_by_word:
-+	zext	r18, r2, 3, 2
-+	bez	r18, .L_compare_by_byte
-+.L_compare_by_word_loop:
-+	ldw	r20, (r3, 0)
-+	ldw	r21, (r1, 0)
-+	addi	r3, 4
-+	PRE_BNEZAD (r18)
-+	cmpne	r20, r21
-+	addi    r1, 4
-+	bt	.L_byte_check
-+	BNEZAD (r18, .L_compare_by_word_loop)
-+
-+.L_compare_by_byte:
-+        zext    r18, r2, 1, 0
-+        bez     r18, .L_return
-+.L_compare_by_byte_loop:
-+        ldb     r0, (r3, 0)
-+        ldb     r4, (r1, 0)
-+        addi    r3, 1
-+        subu    r0, r4
-+        PRE_BNEZAD (r18)
-+        addi    r1, 1
-+        bnez    r0, .L_return
-+        BNEZAD (r18, .L_compare_by_byte_loop)
-+
-+.L_return:
-+        mov     r4, r12
-+        rts
-+
-+# ifdef __CSKYBE__
-+/* d[i] != s[i] in word, so we check byte 0.  */
-+.L_byte_check:
-+        xtrb0   r0, r20
-+        xtrb0   r2, r21
-+        subu    r0, r2
-+        bnez    r0, .L_return
-+
-+        /* check byte 1 */
-+        xtrb1   r0, r20
-+        xtrb1   r2, r21
-+        subu    r0, r2
-+        bnez    r0, .L_return
-+
-+        /* check byte 2 */
-+        xtrb2   r0, r20
-+        xtrb2   r2, r21
-+        subu    r0, r2
-+        bnez    r0, .L_return
-+
-+        /* check byte 3 */
-+        xtrb3   r0, r20
-+        xtrb3   r2, r21
-+        subu    r0, r2
-+# else
-+/* s1[i] != s2[i] in word, so we check byte 3.  */
-+.L_byte_check:
-+	xtrb3	r0, r20
-+	xtrb3	r2, r21
-+        subu    r0, r2
-+        bnez    r0, .L_return
-+
-+	/* check byte 2 */
-+	xtrb2	r0, r20
-+	xtrb2	r2, r21
-+        subu    r0, r2
-+        bnez    r0, .L_return
-+
-+	/* check byte 1 */
-+	xtrb1	r0, r20
-+	xtrb1	r2, r21
-+	subu	r0, r2
-+	bnez    r0, .L_return
-+
-+	/* check byte 0 */
-+	xtrb0	r0, r20
-+	xtrb0	r2, r21
-+	subu	r0, r2
-+	br	.L_return
-+# endif /* !__CSKYBE__ */
-+
-+/* Compare when s1 is not aligned.  */
-+.L_s1_not_aligned:
-+	sub	r13, r19, r13
-+	sub	r2, r13
-+.L_s1_not_aligned_loop:
-+	ldb	r0, (r3, 0)
-+	ldb	r4, (r1, 0)
-+	addi	r3, 1
-+	subu	r0, r4
-+	PRE_BNEZAD (r13)
-+	addi	r1, 1
-+	bnez	r0, .L_return
-+	BNEZAD (r13, .L_s1_not_aligned_loop)
-+	br	.L_s1_aligned
-+ENDPROC(memcmp)
-diff --git a/arch/csky/abiv2/memcpy.S b/arch/csky/abiv2/memcpy.S
-new file mode 100644
-index 0000000..987fec6
---- /dev/null
-+++ b/arch/csky/abiv2/memcpy.S
-@@ -0,0 +1,110 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+ENTRY(__memcpy)
-+ENTRY(memcpy)
-+	/* Test if len less than 4 bytes.  */
-+	mov	r12, r0
-+	cmplti	r2, 4
-+	bt	.L_copy_by_byte
-+
-+	andi	r13, r0, 3
-+	movi	r19, 4
-+	/* Test if dest is not 4 bytes aligned.  */
-+	bnez	r13, .L_dest_not_aligned
-+
-+/* Hardware can handle unaligned access directly.  */
-+.L_dest_aligned:
-+	/* If dest is aligned, then copy.  */
-+	zext	r18, r2, 31, 4
-+
-+	/* Test if len less than 16 bytes.  */
-+	bez	r18, .L_len_less_16bytes
-+	movi	r19, 0
-+
-+	LABLE_ALIGN
-+.L_len_larger_16bytes:
-+#if defined(__CSKY_VDSPV2__)
-+	vldx.8	vr0, (r1), r19
-+	PRE_BNEZAD (r18)
-+	addi	r1, 16
-+	vstx.8	vr0, (r0), r19
-+	addi	r0, 16
-+#elif defined(__CK860__)
-+	ldw	r3, (r1, 0)
-+	stw	r3, (r0, 0)
-+	ldw	r3, (r1, 4)
-+	stw	r3, (r0, 4)
-+	ldw	r3, (r1, 8)
-+	stw	r3, (r0, 8)
-+	ldw	r3, (r1, 12)
-+	addi	r1, 16
-+	stw	r3, (r0, 12)
-+	addi	r0, 16
-+#else
-+	ldw	r20, (r1, 0)
-+	ldw	r21, (r1, 4)
-+	ldw	r22, (r1, 8)
-+	ldw	r23, (r1, 12)
-+	stw	r20, (r0, 0)
-+	stw	r21, (r0, 4)
-+	stw	r22, (r0, 8)
-+	stw	r23, (r0, 12)
-+	PRE_BNEZAD (r18)
-+	addi	r1, 16
-+	addi	r0, 16
-+#endif
-+	BNEZAD (r18, .L_len_larger_16bytes)
-+
-+.L_len_less_16bytes:
-+	zext	r18, r2, 3, 2
-+	bez	r18, .L_copy_by_byte
-+.L_len_less_16bytes_loop:
-+	ldw	r3, (r1, 0)
-+	PRE_BNEZAD (r18)
-+	addi	r1, 4
-+	stw	r3, (r0, 0)
-+	addi	r0, 4
-+	BNEZAD (r18, .L_len_less_16bytes_loop)
-+
-+/* Test if len less than 4 bytes.  */
-+.L_copy_by_byte:
-+	zext	r18, r2, 1, 0
-+	bez	r18, .L_return
-+.L_copy_by_byte_loop:
-+	ldb	r3, (r1, 0)
-+	PRE_BNEZAD (r18)
-+	addi	r1, 1
-+	stb	r3, (r0, 0)
-+	addi	r0, 1
-+	BNEZAD (r18, .L_copy_by_byte_loop)
-+
-+.L_return:
-+	mov	r0, r12
-+	rts
-+
-+/*
-+ * If dest is not aligned, just copying some bytes makes the
-+ * dest align.
-+ */
-+.L_dest_not_aligned:
-+	sub	r13, r19, r13
-+	sub	r2, r13
-+
-+/* Makes the dest align.  */
-+.L_dest_not_aligned_loop:
-+	ldb	r3, (r1, 0)
-+	PRE_BNEZAD (r13)
-+	addi	r1, 1
-+	stb	r3, (r0, 0)
-+	addi	r0, 1
-+	BNEZAD (r13, .L_dest_not_aligned_loop)
-+	cmplti	r2, 4
-+	bt	.L_copy_by_byte
-+
-+	/* Check whether the src is aligned.  */
-+	jbr	.L_dest_aligned
-+ENDPROC(__memcpy)
-diff --git a/arch/csky/abiv2/memmove.S b/arch/csky/abiv2/memmove.S
-new file mode 100644
-index 0000000..b0c42ec
---- /dev/null
-+++ b/arch/csky/abiv2/memmove.S
-@@ -0,0 +1,108 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+	.weak memmove
-+ENTRY(__memmove)
-+ENTRY(memmove)
-+	subu	r3, r0, r1
-+	cmphs	r3, r2
-+	bt	memcpy
-+
-+	mov	r12, r0
-+	addu	r0, r0, r2
-+	addu	r1, r1, r2
-+
-+	/* Test if len less than 4 bytes.  */
-+	cmplti	r2, 4
-+	bt	.L_copy_by_byte
-+
-+	andi	r13, r0, 3
-+	/* Test if dest is not 4 bytes aligned.  */
-+	bnez	r13, .L_dest_not_aligned
-+	/* Hardware can handle unaligned access directly.  */
-+.L_dest_aligned:
-+	/* If dest is aligned, then copy.  */
-+	zext	r18, r2, 31, 4
-+	/* Test if len less than 16 bytes.  */
-+	bez	r18, .L_len_less_16bytes
-+	movi	r19, 0
-+
-+	/* len > 16 bytes */
-+	LABLE_ALIGN
-+.L_len_larger_16bytes:
-+	subi	r1, 16
-+	subi	r0, 16
-+#if defined(__CSKY_VDSPV2__)
-+	vldx.8	vr0, (r1), r19
-+	PRE_BNEZAD (r18)
-+	vstx.8	vr0, (r0), r19
-+#elif defined(__CK860__)
-+	ldw	r3, (r1, 12)
-+	stw	r3, (r0, 12)
-+	ldw	r3, (r1, 8)
-+	stw	r3, (r0, 8)
-+	ldw	r3, (r1, 4)
-+	stw	r3, (r0, 4)
-+	ldw	r3, (r1, 0)
-+	stw	r3, (r0, 0)
-+#else
-+	ldw	r20, (r1, 0)
-+	ldw	r21, (r1, 4)
-+	ldw	r22, (r1, 8)
-+	ldw	r23, (r1, 12)
-+	stw	r20, (r0, 0)
-+	stw	r21, (r0, 4)
-+	stw	r22, (r0, 8)
-+	stw	r23, (r0, 12)
-+	PRE_BNEZAD (r18)
-+#endif
-+	BNEZAD (r18, .L_len_larger_16bytes)
-+
-+.L_len_less_16bytes:
-+	zext	r18, r2, 3, 2
-+	bez	r18, .L_copy_by_byte
-+.L_len_less_16bytes_loop:
-+	subi	r1, 4
-+	subi	r0, 4
-+	ldw	r3, (r1, 0)
-+	PRE_BNEZAD (r18)
-+	stw	r3, (r0, 0)
-+	BNEZAD (r18, .L_len_less_16bytes_loop)
-+
-+	/* Test if len less than 4 bytes.  */
-+.L_copy_by_byte:
-+	zext	r18, r2, 1, 0
-+	bez	r18, .L_return
-+.L_copy_by_byte_loop:
-+	subi	r1, 1
-+	subi	r0, 1
-+	ldb	r3, (r1, 0)
-+	PRE_BNEZAD (r18)
-+	stb	r3, (r0, 0)
-+	BNEZAD (r18, .L_copy_by_byte_loop)
-+
-+.L_return:
-+	mov	r0, r12
-+	rts
-+
-+	/* If dest is not aligned, just copy some bytes makes the dest
-+	   align.  */
-+.L_dest_not_aligned:
-+	sub	r2, r13
-+.L_dest_not_aligned_loop:
-+	subi	r1, 1
-+	subi	r0, 1
-+	/* Makes the dest align.  */
-+	ldb	r3, (r1, 0)
-+	PRE_BNEZAD (r13)
-+	stb	r3, (r0, 0)
-+	BNEZAD (r13, .L_dest_not_aligned_loop)
-+	cmplti	r2, 4
-+	bt	.L_copy_by_byte
-+	/* Check whether the src is aligned.  */
-+	jbr	.L_dest_aligned
-+ENDPROC(memmove)
-+ENDPROC(__memmove)
-diff --git a/arch/csky/abiv2/memset.S b/arch/csky/abiv2/memset.S
-new file mode 100644
-index 0000000..a7e7d99
---- /dev/null
-+++ b/arch/csky/abiv2/memset.S
-@@ -0,0 +1,83 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+	.weak memset
-+ENTRY(__memset)
-+ENTRY(memset)
-+	/* Test if len less than 4 bytes.  */
-+	mov	r12, r0
-+	cmplti	r2, 8
-+	bt	.L_set_by_byte
-+
-+	andi	r13, r0, 3
-+	movi	r19, 4
-+	/* Test if dest is not 4 bytes aligned.  */
-+	bnez	r13, .L_dest_not_aligned
-+	/* Hardware can handle unaligned access directly.  */
-+.L_dest_aligned:
-+        zextb   r3, r1
-+        lsli    r1, 8
-+        or      r1, r3
-+        lsli    r3, r1, 16
-+        or      r3, r1
-+
-+	/* If dest is aligned, then copy.  */
-+	zext	r18, r2, 31, 4
-+	/* Test if len less than 16 bytes.  */
-+	bez	r18, .L_len_less_16bytes
-+
-+	LABLE_ALIGN
-+.L_len_larger_16bytes:
-+	stw	r3, (r0, 0)
-+	stw	r3, (r0, 4)
-+	stw	r3, (r0, 8)
-+	stw	r3, (r0, 12)
-+	PRE_BNEZAD (r18)
-+	addi	r0, 16
-+	BNEZAD (r18, .L_len_larger_16bytes)
-+
-+.L_len_less_16bytes:
-+	zext	r18, r2, 3, 2
-+	andi	r2, 3
-+	bez	r18, .L_set_by_byte
-+.L_len_less_16bytes_loop:
-+	stw	r3, (r0, 0)
-+	PRE_BNEZAD (r18)
-+	addi	r0, 4
-+	BNEZAD (r18, .L_len_less_16bytes_loop)
-+
-+	/* Test if len less than 4 bytes.  */
-+.L_set_by_byte:
-+	zext	r18, r2, 2, 0
-+	bez	r18, .L_return
-+.L_set_by_byte_loop:
-+	stb	r1, (r0, 0)
-+	PRE_BNEZAD (r18)
-+	addi	r0, 1
-+	BNEZAD (r18, .L_set_by_byte_loop)
-+
-+.L_return:
-+	mov	r0, r12
-+	rts
-+
-+	/* If dest is not aligned, just set some bytes makes the dest
-+	   align.  */
-+
-+.L_dest_not_aligned:
-+	sub	r13, r19, r13
-+	sub	r2, r13
-+.L_dest_not_aligned_loop:
-+	/* Makes the dest align.  */
-+	stb	r1, (r0, 0)
-+	PRE_BNEZAD (r13)
-+	addi	r0, 1
-+	BNEZAD (r13, .L_dest_not_aligned_loop)
-+	cmplti	r2, 8
-+	bt	.L_set_by_byte
-+	/* Check whether the src is aligned.  */
-+	jbr	.L_dest_aligned
-+ENDPROC(memset)
-+ENDPROC(__memset)
-diff --git a/arch/csky/abiv2/strcmp.S b/arch/csky/abiv2/strcmp.S
-new file mode 100644
-index 0000000..f8403f4
---- /dev/null
-+++ b/arch/csky/abiv2/strcmp.S
-@@ -0,0 +1,168 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+ENTRY(strcmp)
-+	mov	a3, a0
-+	/* Check if the s1 addr is aligned.  */
-+	xor	a2, a3, a1
-+	andi	a2, 0x3
-+	bnez	a2, 7f
-+	andi	t1, a0, 0x3
-+	bnez	t1, 5f
-+
-+1:
-+	/* If aligned, load word each time.  */
-+	ldw	t0, (a3, 0)
-+	ldw	t1, (a1, 0)
-+	/* If s1[i] != s2[i], goto 2f.  */
-+	cmpne   t0, t1
-+	bt      2f
-+	/* If s1[i] == s2[i], check if s1 or s2 is at the end.  */
-+	tstnbz	t0
-+	/* If at the end, goto 3f (finish comparing).  */
-+	bf	3f
-+
-+	ldw	t0, (a3, 4)
-+	ldw	t1, (a1, 4)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	ldw	t0, (a3, 8)
-+	ldw	t1, (a1, 8)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	ldw	t0, (a3, 12)
-+	ldw	t1, (a1, 12)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	ldw	t0, (a3, 16)
-+	ldw	t1, (a1, 16)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	ldw	t0, (a3, 20)
-+	ldw	t1, (a1, 20)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	ldw	t0, (a3, 24)
-+	ldw	t1, (a1, 24)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	ldw	t0, (a3, 28)
-+	ldw	t1, (a1, 28)
-+	cmpne	t0, t1
-+	bt	2f
-+	tstnbz	t0
-+	bf	3f
-+
-+	addi	a3, 32
-+	addi	a1, 32
-+
-+	br	1b
-+
-+# ifdef __CSKYBE__
-+	/* d[i] != s[i] in word, so we check byte 0.  */
-+2:
-+	xtrb0   a0, t0
-+	xtrb0   a2, t1
-+	subu    a0, a2
-+	bez     a2, 4f
-+	bnez    a0, 4f
-+
-+	/* check byte 1 */
-+	xtrb1   a0, t0
-+	xtrb1   a2, t1
-+	subu    a0, a2
-+	bez     a2, 4f
-+	bnez    a0, 4f
-+
-+	/* check byte 2 */
-+	xtrb2   a0, t0
-+	xtrb2   a2, t1
-+	subu    a0, a2
-+	bez     a2, 4f
-+	bnez    a0, 4f
-+
-+	/* check byte 3 */
-+	xtrb3   a0, t0
-+	xtrb3   a2, t1
-+	subu    a0, a2
-+# else
-+	/* s1[i] != s2[i] in word, so we check byte 3.  */
-+2:
-+	xtrb3	a0, t0
-+	xtrb3	a2, t1
-+	subu    a0, a2
-+	bez     a2, 4f
-+	bnez    a0, 4f
-+
-+	/* check byte 2 */
-+	xtrb2	a0, t0
-+	xtrb2	a2, t1
-+	subu    a0, a2
-+	bez     a2, 4f
-+	bnez    a0, 4f
-+
-+	/* check byte 1 */
-+	xtrb1	a0, t0
-+	xtrb1	a2, t1
-+	subu	a0, a2
-+	bez	a2, 4f
-+	bnez    a0, 4f
-+
-+	/* check byte 0 */
-+	xtrb0	a0, t0
-+	xtrb0	a2, t1
-+	subu	a0, a2
-+
-+# endif /* !__CSKYBE__ */
-+	jmp     lr
-+3:
-+	movi	a0, 0
-+4:
-+	jmp     lr
-+
-+	/* Compare when s1 or s2 is not aligned.  */
-+5:
-+	subi    t1, 4
-+6:
-+	ldb	a0, (a3, 0)
-+	ldb	a2, (a1, 0)
-+	subu	a0, a2
-+	bez	a2, 4b
-+	bnez	a0, 4b
-+	addi    t1, 1
-+	addi	a1, 1
-+	addi	a3, 1
-+	bnez	t1, 6b
-+	br	1b
-+
-+7:
-+	ldb	a0, (a3, 0)
-+	addi	a3, 1
-+	ldb	a2, (a1, 0)
-+	addi	a1, 1
-+	subu    a0, a2
-+	bnez    a0, 4b
-+	bnez	a2, 7b
-+	jmp	r15
-+ENDPROC(strcmp)
-diff --git a/arch/csky/abiv2/strcpy.S b/arch/csky/abiv2/strcpy.S
-new file mode 100644
-index 0000000..3c6d3f6
---- /dev/null
-+++ b/arch/csky/abiv2/strcpy.S
-@@ -0,0 +1,123 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+ENTRY(strcpy)
-+	mov	a3, a0
-+	/* Check if the src addr is aligned.  */
-+        andi    t0, a1, 3
-+        bnez	t0, 11f
-+1:
-+	/* Check if all the bytes in the word are not zero.  */
-+	ldw	a2, (a1)
-+	tstnbz	a2
-+	bf	9f
-+	stw	a2, (a3)
-+
-+	ldw	a2, (a1, 4)
-+	tstnbz	a2
-+	bf	2f
-+	stw	a2, (a3, 4)
-+
-+	ldw	a2, (a1, 8)
-+	tstnbz	a2
-+	bf	3f
-+	stw	a2, (a3, 8)
-+
-+	ldw	a2, (a1, 12)
-+	tstnbz	a2
-+	bf	4f
-+	stw	a2, (a3, 12)
-+
-+	ldw	a2, (a1, 16)
-+	tstnbz	a2
-+	bf	5f
-+	stw	a2, (a3, 16)
-+
-+	ldw	a2, (a1, 20)
-+	tstnbz	a2
-+	bf	6f
-+	stw	a2, (a3, 20)
-+
-+	ldw	a2, (a1, 24)
-+	tstnbz	a2
-+	bf	7f
-+	stw	a2, (a3, 24)
-+
-+	ldw	a2, (a1, 28)
-+	tstnbz	a2
-+	bf	8f
-+	stw	a2, (a3, 28)
-+
-+	addi	a3, 32
-+	addi	a1, 32
-+	br	1b
-+
-+
-+2:
-+	addi	a3, 4
-+	br	9f
-+
-+3:
-+	addi	a3, 8
-+	br	9f
-+
-+4:
-+	addi	a3, 12
-+	br	9f
-+
-+5:
-+	addi	a3, 16
-+	br	9f
-+
-+6:
-+	addi	a3, 20
-+	br	9f
-+
-+7:
-+	addi	a3, 24
-+	br	9f
-+
-+8:
-+	addi	a3, 28
-+9:
-+# ifdef __CSKYBE__
-+	xtrb0	t0, a2
-+	st.b	t0, (a3)
-+	bez	t0, 10f
-+	xtrb1	t0, a2
-+	st.b	t0, (a3, 1)
-+	bez	t0, 10f
-+	xtrb2	t0, a2
-+	st.b	t0, (a3, 2)
-+	bez	t0, 10f
-+	stw	a2, (a3)
-+# else
-+	xtrb3	t0, a2
-+	st.b	t0, (a3)
-+	bez	t0, 10f
-+	xtrb2	t0, a2
-+	st.b	t0, (a3, 1)
-+	bez	t0, 10f
-+	xtrb1	t0, a2
-+	st.b	t0, (a3, 2)
-+	bez	t0, 10f
-+	stw	a2, (a3)
-+# endif	/* !__CSKYBE__ */
-+10:
-+	jmp	lr
-+
-+11:
-+	subi    t0, 4
-+12:
-+        ld.b    a2, (a1)
-+        st.b	a2, (a3)
-+        bez	a2, 10b
-+	addi    t0, 1
-+        addi    a1, a1, 1
-+        addi    a3, a3, 1
-+	bnez	t0, 12b
-+	jbr	1b
-+ENDPROC(strcpy)
-diff --git a/arch/csky/abiv2/strksyms.c b/arch/csky/abiv2/strksyms.c
-new file mode 100644
-index 0000000..06da723
---- /dev/null
-+++ b/arch/csky/abiv2/strksyms.c
-@@ -0,0 +1,12 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/module.h>
-+
-+EXPORT_SYMBOL(memcpy);
-+EXPORT_SYMBOL(memset);
-+EXPORT_SYMBOL(memcmp);
-+EXPORT_SYMBOL(memmove);
-+EXPORT_SYMBOL(strcmp);
-+EXPORT_SYMBOL(strcpy);
-+EXPORT_SYMBOL(strlen);
-diff --git a/arch/csky/abiv2/strlen.S b/arch/csky/abiv2/strlen.S
-new file mode 100644
-index 0000000..bcdd707
---- /dev/null
-+++ b/arch/csky/abiv2/strlen.S
-@@ -0,0 +1,97 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/linkage.h>
-+#include "sysdep.h"
-+
-+ENTRY(strlen)
-+	/* Check if the start addr is aligned.  */
-+	mov	r3, r0
-+	andi	r1, r0, 3
-+	movi	r2, 4
-+	movi	r0, 0
-+	bnez	r1, .L_start_not_aligned
-+
-+	LABLE_ALIGN
-+.L_start_addr_aligned:
-+	/* Check if all the bytes in the word are not zero.  */
-+	ldw	r1, (r3)
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 4)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 8)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 12)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 16)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 20)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 24)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	ldw	r1, (r3, 28)
-+	addi	r0, 4
-+	tstnbz	r1
-+	bf	.L_string_tail
-+
-+	addi	r0, 4
-+	addi	r3, 32
-+	br	.L_start_addr_aligned
-+
-+.L_string_tail:
-+# ifdef __CSKYBE__
-+	xtrb0	r3, r1
-+	bez	r3, .L_return
-+	addi	r0, 1
-+	xtrb1	r3, r1
-+	bez	r3, .L_return
-+	addi	r0, 1
-+	xtrb2	r3, r1
-+	bez	r3, .L_return
-+	addi	r0, 1
-+# else
-+	xtrb3	r3, r1
-+	bez	r3, .L_return
-+	addi	r0, 1
-+	xtrb2	r3, r1
-+	bez	r3, .L_return
-+	addi	r0, 1
-+	xtrb1	r3, r1
-+	bez	r3, .L_return
-+	addi	r0, 1
-+# endif	/* !__CSKYBE__ */
-+
-+.L_return:
-+	rts
-+
-+.L_start_not_aligned:
-+	sub	r2, r2, r1
-+.L_start_not_aligned_loop:
-+	ldb	r1, (r3)
-+	PRE_BNEZAD (r2)
-+	addi	r3, 1
-+	bez	r1, .L_return
-+	addi	r0, 1
-+	BNEZAD (r2, .L_start_not_aligned_loop)
-+	br	.L_start_addr_aligned
-+ENDPROC(strlen)
-diff --git a/arch/csky/abiv2/sysdep.h b/arch/csky/abiv2/sysdep.h
-new file mode 100644
-index 0000000..bbbedfd
---- /dev/null
-+++ b/arch/csky/abiv2/sysdep.h
-@@ -0,0 +1,30 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef __SYSDEP_H
-+#define __SYSDEP_H
-+
-+#ifdef __ASSEMBLER__
-+
-+#if defined(__CK860__)
-+#define LABLE_ALIGN	\
-+	.balignw 16, 0x6c03
-+
-+#define PRE_BNEZAD(R)
-+
-+#define BNEZAD(R, L)	\
-+	bnezad	R, L
-+#else
-+#define LABLE_ALIGN	\
-+	.balignw 8, 0x6c03
-+
-+#define PRE_BNEZAD(R)	\
-+	subi	R, 1
-+
-+#define BNEZAD(R, L)	\
-+	bnez	R, L
-+#endif
-+
-+#endif
-+
-+#endif
-diff --git a/arch/csky/include/asm/string.h b/arch/csky/include/asm/string.h
-new file mode 100644
-index 0000000..73142de
---- /dev/null
-+++ b/arch/csky/include/asm/string.h
-@@ -0,0 +1,13 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#ifndef _CSKY_STRING_MM_H_
-+#define _CSKY_STRING_MM_H_
++#ifndef _CSKY_PTRACE_H
++#define _CSKY_PTRACE_H
 +
 +#ifndef __ASSEMBLY__
-+#include <linux/types.h>
-+#include <linux/compiler.h>
-+#include <abi/string.h>
++
++struct pt_regs {
++	unsigned long	tls;
++	unsigned long	lr;
++	unsigned long	pc;
++	unsigned long	sr;
++	unsigned long	usp;
++
++	/*
++	 * a0, a1, a2, a3:
++	 * abiv1: r2, r3, r4, r5
++	 * abiv2: r0, r1, r2, r3
++	 */
++	unsigned long	orig_a0;
++	unsigned long	a0;
++	unsigned long	a1;
++	unsigned long	a2;
++	unsigned long	a3;
++
++	/*
++	 * ABIV2: r4 ~ r13
++	 * ABIV1: r6 ~ r14, r1
++	 */
++	unsigned long	regs[10];
++
++#if defined(__CSKYABIV2__)
++	/* r16 ~ r30 */
++	unsigned long	exregs[15];
++
++	unsigned long	rhi;
++	unsigned long	rlo;
++	unsigned long	pad; /* reserved */
++#endif
++};
++
++struct user_fp {
++	unsigned long	vr[96];
++	unsigned long	fcr;
++	unsigned long	fesr;
++	unsigned long	fid;
++	unsigned long	reserved;
++};
++
++/*
++ * Switch stack for switch_to after push pt_regs.
++ *
++ * ABI_CSKYV2: r4 ~ r11, r15 ~ r17, r26 ~ r30;
++ * ABI_CSKYV1: r8 ~ r14, r15;
++ */
++struct  switch_stack {
++#if defined(__CSKYABIV2__)
++	unsigned long   r4;
++	unsigned long   r5;
++	unsigned long   r6;
++	unsigned long   r7;
++	unsigned long   r8;
++	unsigned long   r9;
++	unsigned long   r10;
++	unsigned long   r11;
++#else
++	unsigned long   r8;
++	unsigned long   r9;
++	unsigned long   r10;
++	unsigned long   r11;
++	unsigned long   r12;
++	unsigned long   r13;
++	unsigned long   r14;
++#endif
++	unsigned long   r15;
++#if defined(__CSKYABIV2__)
++	unsigned long   r16;
++	unsigned long   r17;
++	unsigned long   r26;
++	unsigned long   r27;
++	unsigned long   r28;
++	unsigned long   r29;
++	unsigned long   r30;
++#endif
++};
++
++#ifdef __KERNEL__
++
++#define PS_S	0x80000000 /* Supervisor Mode */
++
++#define arch_has_single_step() (1)
++#define current_pt_regs() \
++({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
++
++#define user_stack_pointer(regs) ((regs)->usp)
++
++#define user_mode(regs) (!((regs)->sr & PS_S))
++#define instruction_pointer(regs) ((regs)->pc)
++#define profile_pc(regs) instruction_pointer(regs)
++
++#endif /* __KERNEL__ */
++#endif /* __ASSEMBLY__ */
++#endif /* _CSKY_PTRACE_H */
+diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
+new file mode 100644
+index 0000000..a9a03ac
+--- /dev/null
++++ b/arch/csky/kernel/dumpstack.c
+@@ -0,0 +1,66 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/ptrace.h>
++
++int kstack_depth_to_print = 48;
++
++void show_trace(unsigned long *stack)
++{
++	unsigned long *endstack;
++	unsigned long addr;
++	int i;
++
++	pr_info("Call Trace:\n");
++	addr = (unsigned long)stack + THREAD_SIZE - 1;
++	endstack = (unsigned long *)(addr & -THREAD_SIZE);
++	i = 0;
++	while (stack + 1 <= endstack) {
++		addr = *stack++;
++		/*
++		 * If the address is either in the text segment of the
++		 * kernel, or in the region which contains vmalloc'ed
++		 * memory, it *may* be the address of a calling
++		 * routine; if so, print it so that someone tracing
++		 * down the cause of the crash will be able to figure
++		 * out the call path that was taken.
++		 */
++		if (__kernel_text_address(addr)) {
++#ifndef CONFIG_KALLSYMS
++			if (i % 5 == 0)
++				pr_cont("\n       ");
++#endif
++			pr_cont(" [<%08lx>] %pS\n", addr, (void *)addr);
++			i++;
++		}
++	}
++	pr_cont("\n");
++}
++
++void show_stack(struct task_struct *task, unsigned long *stack)
++{
++	unsigned long *p;
++	unsigned long *endstack;
++	int i;
++
++	if (!stack) {
++		if (task)
++			stack = (unsigned long *)task->thread.esp0;
++		else
++			stack = (unsigned long *)&stack;
++	}
++	endstack = (unsigned long *)
++		(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
++
++	pr_info("Stack from %08lx:", (unsigned long)stack);
++	p = stack;
++	for (i = 0; i < kstack_depth_to_print; i++) {
++		if (p + 1 > endstack)
++			break;
++		if (i % 8 == 0)
++			pr_cont("\n       ");
++		pr_cont(" %08lx", *p++);
++	}
++	pr_cont("\n");
++	show_trace(stack);
++}
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
+new file mode 100644
+index 0000000..34b3025
+--- /dev/null
++++ b/arch/csky/kernel/ptrace.c
+@@ -0,0 +1,314 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/elf.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/ptrace.h>
++#include <linux/regset.h>
++#include <linux/sched.h>
++#include <linux/signal.h>
++#include <linux/smp.h>
++#include <linux/uaccess.h>
++#include <linux/user.h>
++
++#include <asm/thread_info.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/processor.h>
++#include <asm/asm-offsets.h>
++
++#include <abi/regdef.h>
++
++/* sets the trace bits. */
++#define TRACE_MODE_SI      (1 << 14)
++#define TRACE_MODE_RUN     0
++#define TRACE_MODE_MASK    ~(0x3 << 14)
++
++/*
++ * Make sure the single step bit is not set.
++ */
++static void singlestep_disable(struct task_struct *tsk)
++{
++	struct pt_regs *regs;
++
++	regs = task_pt_regs(tsk);
++	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
++}
++
++static void singlestep_enable(struct task_struct *tsk)
++{
++	struct pt_regs *regs;
++
++	regs = task_pt_regs(tsk);
++	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_SI;
++}
++
++/*
++ * Make sure the single step bit is set.
++ */
++void user_enable_single_step(struct task_struct *child)
++{
++	if (child->thread.esp0 == 0)
++		return;
++	singlestep_enable(child);
++}
++
++void user_disable_single_step(struct task_struct *child)
++{
++	if (child->thread.esp0 == 0)
++		return;
++	singlestep_disable(child);
++}
++
++enum csky_regset {
++	REGSET_GPR,
++	REGSET_FPR,
++};
++
++static int gpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user *ubuf)
++{
++	struct pt_regs *regs;
++
++	regs = task_pt_regs(target);
++
++	/* Abiv1 regs->tls is fake and we need sync here. */
++	regs->tls = task_thread_info(target)->tp_value;
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++}
++
++static int gpr_set(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++	struct pt_regs regs;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
++	if (ret)
++		return ret;
++
++	regs.sr = task_pt_regs(target)->sr;
++
++	task_thread_info(target)->tp_value = regs.tls;
++
++	*task_pt_regs(target) = regs;
++
++	return 0;
++}
++
++static int fpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user *ubuf)
++{
++	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
++
++#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
++	int i;
++	struct user_fp tmp = *regs;
++
++	for (i = 0; i < 16; i++) {
++		tmp.vr[i*4] = regs->vr[i*2];
++		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
++	}
++
++	for (i = 0; i < 32; i++)
++		tmp.vr[64 + i] = regs->vr[32 + i];
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++#else
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++#endif
++}
++
++static int fpr_set(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
++
++#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
++	int i;
++	struct user_fp tmp;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++
++	*regs = tmp;
++
++	for (i = 0; i < 16; i++) {
++		regs->vr[i*2] = tmp.vr[i*4];
++		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
++	}
++
++	for (i = 0; i < 32; i++)
++		regs->vr[32 + i] = tmp.vr[64 + i];
++#else
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 +#endif
 +
-+#endif /* _CSKY_STRING_MM_H_ */
-diff --git a/arch/csky/kernel/power.c b/arch/csky/kernel/power.c
-new file mode 100644
-index 0000000..923ee4e
---- /dev/null
-+++ b/arch/csky/kernel/power.c
-@@ -0,0 +1,30 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+
-+#include <linux/reboot.h>
-+
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void machine_power_off(void)
-+{
-+	local_irq_disable();
-+	if (pm_power_off)
-+		pm_power_off();
-+	asm volatile ("bkpt");
++	return ret;
 +}
 +
-+void machine_halt(void)
++static const struct user_regset csky_regsets[] = {
++	[REGSET_GPR] = {
++		.core_note_type = NT_PRSTATUS,
++		.n = ELF_NGREG,
++		.size = sizeof(u32),
++		.align = sizeof(u32),
++		.get = &gpr_get,
++		.set = &gpr_set,
++	},
++	[REGSET_FPR] = {
++		.core_note_type = NT_PRFPREG,
++		.n = sizeof(struct user_fp) / sizeof(u32),
++		.size = sizeof(u32),
++		.align = sizeof(u32),
++		.get = &fpr_get,
++		.set = &fpr_set,
++	},
++};
++
++static const struct user_regset_view user_csky_view = {
++	.name = "csky",
++	.e_machine = ELF_ARCH,
++	.regsets = csky_regsets,
++	.n = ARRAY_SIZE(csky_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
 +{
-+	local_irq_disable();
-+	if (pm_power_off)
-+		pm_power_off();
-+	asm volatile ("bkpt");
++	return &user_csky_view;
 +}
 +
-+void machine_restart(char *cmd)
++void ptrace_disable(struct task_struct *child)
 +{
-+	local_irq_disable();
-+	do_kernel_restart(cmd);
-+	asm volatile ("bkpt");
++	singlestep_disable(child);
 +}
-diff --git a/arch/csky/lib/delay.c b/arch/csky/lib/delay.c
-new file mode 100644
-index 0000000..22570b0
---- /dev/null
-+++ b/arch/csky/lib/delay.c
-@@ -0,0 +1,39 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/kernel.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/delay.h>
 +
-+void __delay(unsigned long loops)
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
 +{
-+	asm volatile (
-+		"mov r0, r0\n"
-+		"1:declt %0\n"
-+		"bf	1b"
-+		: "=r"(loops)
-+		: "0"(loops));
-+}
-+EXPORT_SYMBOL(__delay);
++	long ret = -EIO;
 +
-+void __const_udelay(unsigned long xloops)
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	return ret;
++}
++
++/*
++ * If process's system calls is traces, do some corresponding handles in this
++ * function before entering system call function and after exiting system call
++ * function.
++ */
++asmlinkage void syscall_trace(int why, struct pt_regs *regs)
 +{
-+	unsigned long long loops;
++	long saved_why;
++	/*
++	 * Save saved_why, why is used to denote syscall entry/exit;
++	 * why = 0:entry, why = 1: exit
++	 */
++	saved_why = regs->regs[SYSTRACE_SAVENUM];
++	regs->regs[SYSTRACE_SAVENUM] = why;
 +
-+	loops = (unsigned long long)xloops * loops_per_jiffy * HZ;
++	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
++					? 0x80 : 0));
 +
-+	__delay(loops >> 32);
++	/*
++	 * this isn't the same as continuing with a signal, but it will do
++	 * for normal use.  strace only continues with a signal if the
++	 * stopping signal is not SIGTRAP.  -brl
++	 */
++	if (current->exit_code) {
++		send_sig(current->exit_code, current, 1);
++		current->exit_code = 0;
++	}
++
++	regs->regs[SYSTRACE_SAVENUM] = saved_why;
 +}
-+EXPORT_SYMBOL(__const_udelay);
 +
-+void __udelay(unsigned long usecs)
++void show_regs(struct pt_regs *fp)
 +{
-+	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
-+}
-+EXPORT_SYMBOL(__udelay);
++	unsigned long   *sp;
++	unsigned char   *tp;
++	int	i;
 +
-+void __ndelay(unsigned long nsecs)
-+{
-+	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++	pr_info("\nCURRENT PROCESS:\n\n");
++	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
++
++	if (current->mm) {
++		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
++		       (int) current->mm->start_code,
++		       (int) current->mm->end_code,
++		       (int) current->mm->start_data,
++		       (int) current->mm->end_data,
++		       (int) current->mm->end_data,
++		       (int) current->mm->brk);
++		pr_info("USER-STACK=%08x  KERNEL-STACK=%08x\n\n",
++		       (int) current->mm->start_stack,
++		       (int) (((unsigned long) current) + 2 * PAGE_SIZE));
++	}
++
++	pr_info("PC: 0x%08lx\n", (long)fp->pc);
++	pr_info("orig_a0: 0x%08lx\n", fp->orig_a0);
++	pr_info("PSR: 0x%08lx\n", (long)fp->sr);
++
++	pr_info("a0: 0x%08lx  a1: 0x%08lx  a2: 0x%08lx  a3: 0x%08lx\n",
++	       fp->a0, fp->a1, fp->a2, fp->a3);
++#if defined(__CSKYABIV2__)
++	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
++		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
++	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
++		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
++	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
++		fp->regs[8], fp->regs[9], fp->lr);
++	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
++		fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
++	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
++		fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
++	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
++		fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
++	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
++		fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
++	pr_info("hi 0x%08lx    lo: 0x%08lx\n",
++		fp->rhi, fp->rlo);
++#else
++	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
++		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
++	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
++		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
++	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
++		fp->regs[8], fp->regs[9], fp->lr);
++#endif
++
++	pr_info("\nCODE:");
++	tp = ((unsigned char *) fp->pc) - 0x20;
++	tp += ((int)tp % 4) ? 2 : 0;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
++		if ((i % 0x10) == 0)
++			pr_cont("\n%08x: ", (int) (tp + i));
++		pr_cont("%08x ", (int) *sp++);
++	}
++	pr_cont("\n");
++
++	pr_info("\nKERNEL STACK:");
++	tp = ((unsigned char *) fp) - 0x40;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
++		if ((i % 0x10) == 0)
++			pr_cont("\n%08x: ", (int) (tp + i));
++		pr_cont("%08x ", (int) *sp++);
++	}
++	pr_cont("\n");
 +}
-+EXPORT_SYMBOL(__ndelay);
 -- 
 2.7.4
