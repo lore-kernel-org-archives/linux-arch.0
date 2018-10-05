@@ -1,28 +1,66 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 5/5] arch/xtensa, termios: use <asm-generic/termbits.h>
-Date: Thu, 4 Oct 2018 16:08:19 -0700
-Message-ID: <e2439721-ff84-6943-2295-b7fb2d082ef9@zytor.com>
-References: <20181004222953.2229-1-hpa@zytor.com>
- <20181004222953.2229-6-hpa@zytor.com>
- <CAMo8BfJRvmNu=oHb4MaB_M7mdR5dMZRgfHb-Me8En3OoUe5m8g@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v4 23/32] selinux: Remove boot parameter
+Date: Thu, 4 Oct 2018 17:05:09 -0700
+Message-ID: <CAGXu5j+3HqqBa_ogQqGJYubeZr9uCrbKzEoKO3Or=71e4c_=Gw@mail.gmail.com>
+References: <20181002005505.6112-1-keescook@chromium.org> <809f1cfd-077b-ee58-51ba-b22daf46d12b@tycho.nsa.gov>
+ <QpdcE4QSCQKJqDmB2QBEGBlnlioHuRHlM0g5HF8KbHjU1zIUAOjnQ2r9EIMu3m0S2OWNR3_M_TSp_M6CVDqkp6kKuFPUvegsyDPNw1AGju4=@protonmail.ch>
+ <CAGXu5jKqXNbEvPr1axQtGCCnWsGhDgjynW5u326mcx4vZ1oH8g@mail.gmail.com>
+ <abe03d09-4dcb-2b02-4102-5e108d617a42@canonical.com> <CAGXu5jJtC1gkJ0ZKDFroL8UzvjiPfmC+6EsrzyB0j0oETdSQQg@mail.gmail.com>
+ <alpine.LRH.2.21.1810030758460.23596@namei.org> <CAGXu5jLKgrdhah-5TtAXDL-odbLGeyAUH2=PkAU769AkEnZFfQ@mail.gmail.com>
+ <5955f5ce-b803-4f58-8b07-54c291e33da5@canonical.com> <alpine.LRH.2.21.1810040416500.13517@namei.org>
+ <CAGXu5j+oPR58oJ06-n7e96-Rmu+ywTW0hud5LhOZ_3UXG5s12w@mail.gmail.com>
+ <alpine.LRH.2.21.1810040427550.13517@namei.org> <CAGXu5jJmVR4Wsdti=aFaDhCBaxsVu1KTJOdsJOtFvZOV1ZhdvQ@mail.gmail.com>
+ <alpine.LRH.2.21.1810040723320.16168@namei.org> <CAGXu5jJDBhFrdCBHH4MZVDmG88mMxSaSx0w9anCcyx24YHLO5w@mail.gmail.com>
+ <alpine.LRH.2.21.1810050338470.14095@namei.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMo8BfJRvmNu=oHb4MaB_M7mdR5dMZRgfHb-Me8En3OoUe5m8g@mail.gmail.com>
-Content-Language: en-US
+In-Reply-To: <alpine.LRH.2.21.1810050338470.14095@namei.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-serial@vger.kernel.org, Chris Zankel <chris@zankel.net>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, pombredanne@nexb.com, kstewart@linuxfoundation.org, linux-xtensa@linux-xtensa.org, Jiri Slaby <jslaby@suse.com>
+To: James Morris <jmorris@namei.org>
+Cc: John Johansen <john.johansen@canonical.com>, Jordan Glover <Golden_Miller83@protonmail.ch>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Schaufler, Casey" <casey.schaufler@intel.com>, linux-security-module <linux-security-module@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/04/18 15:35, Max Filippov wrote:
-> 
-> Looks good. But why not removing the header entirely and adding
-> generic-y += termbits.h
-> to arch/xtensa/include/uapi/asm/Kbuild?
-> 
+On Thu, Oct 4, 2018 at 10:49 AM, James Morris <jmorris@namei.org> wrote:
+> On Wed, 3 Oct 2018, Kees Cook wrote:
+>> Then someone boots the system with:
+>>
+>> selinux=1 security=selinux
+>>
+>> In what order does selinux get initialized relative to yama?
+>> (apparmor, flagged as a "legacy major", would have been disabled by
+>> the "security=" not matching it.)
+>
+> It doesn't, it needs to be specified in one place.
+>
+> Distros will need to update boot parameter handling for this kernel
+> onwards.  Otherwise, we will need to carry this confusing mess forward
+> forever.
 
-Good idea.  Should do that for others that also have the same #include.
+Are you saying that you want to overrule Paul and Stephen about
+keeping "selinux=1 secuiryt=selinux" working?
 
-	-hpa
+>> CONFIG_LSM="yama,apparmor,!selinux"
+>>
+>> to mean "put selinux here in the order, but don't enable it". Then the
+>> problem becomes what happens to an LSM that has been built in but not
+>> listed in CONFIG_LSM?
+>
+> In my most recent suggestion, there is no '!' disablement, just
+> enablement.  If an LSM is not listed in CONFIG_LSM="", it's not enabled.
+
+And a user would need to specify ALL lsms on the "lsm=" line?
+
+What do you think of my latest proposal? It could happily work all
+three ways: old boot params and security= work ("selinux=1
+security=selinux" keeps working), individual LSM enable/disable works
+("lsm=+loadpin"), and full LSM ordering works
+("lsm=each,lsm,in,order,here"):
+
+https://lore.kernel.org/lkml/CAGXu5jJJit8bDNvgXaFkuvFPy7NWtJW2oRWFbG-6iWk0+A1qng@mail.gmail.com/
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
