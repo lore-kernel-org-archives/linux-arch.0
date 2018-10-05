@@ -1,183 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47902 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728587AbeJEPsA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Oct 2018 11:48:00 -0400
+Received: from foss.arm.com ([217.140.101.70]:48058 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728960AbeJEPsf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Oct 2018 11:48:35 -0400
 From: Kristina Martsenko <kristina.martsenko@arm.com>
-Subject: [PATCH v5 08/17] arm64: expose user PAC bit positions via ptrace
-Date: Fri,  5 Oct 2018 09:47:45 +0100
-Message-ID: <20181005084754.20950-9-kristina.martsenko@arm.com>
+Subject: [RFC 15/17] arm64: enable ptrauth earlier
+Date: Fri,  5 Oct 2018 09:47:52 +0100
+Message-ID: <20181005084754.20950-16-kristina.martsenko@arm.com>
 In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181005084745.Kp-INKWJfeXYIXqpVHhQwslwVJUPJX7LDBKqjBTQfiE@z>
+Message-ID: <20181005084752.nRsh0QrKa51-1pRcE-syGa9lLFDOkMjkNTJHS9MDNuY@z>
 
-From: Mark Rutland <mark.rutland@arm.com>
+When the kernel is compiled with pointer auth instructions, the boot CPU
+needs to start using pointer auth very early, so change the cpucap to
+account for this.
 
-When pointer authentication is in use, data/instruction pointers have a
-number of PAC bits inserted into them. The number and position of these
-bits depends on the configured TCR_ELx.TxSZ and whether tagging is
-enabled. ARMv8.3 allows tagging to differ for instruction and data
-pointers.
+A function that enables pointer auth cannot return, so inline such
+functions or compile them without pointer auth.
 
-For userspace debuggers to unwind the stack and/or to follow pointer
-chains, they need to be able to remove the PAC bits before attempting to
-use a pointer.
+Do not use the cpu_enable callback, to avoid compiling the whole
+callchain down to cpu_enable without pointer auth.
 
-This patch adds a new structure with masks describing the location of
-the PAC bits in userspace instruction and data pointers (i.e. those
-addressable via TTBR0), which userspace can query via PTRACE_GETREGSET.
-By clearing these bits from pointers (and replacing them with the value
-of bit 55), userspace can acquire the PAC-less versions.
+Note the change in behavior: if the boot CPU has pointer auth and a late
+CPU does not, we panic. Until now we would have just disabled pointer
+auth in this case.
 
-This new regset is exposed when the kernel is built with (user) pointer
-authentication support, and the feature is enabled. Otherwise, it is
-hidden.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-[kristina: cpus_have_cap -> cpus_have_const_cap]
 Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm64/include/asm/pointer_auth.h |  8 ++++++++
- arch/arm64/include/uapi/asm/ptrace.h  |  7 +++++++
- arch/arm64/kernel/ptrace.c            | 38 +++++++++++++++++++++++++++++++++++
- include/uapi/linux/elf.h              |  1 +
- 4 files changed, 54 insertions(+)
+ arch/arm64/include/asm/cpufeature.h   |  9 +++++++++
+ arch/arm64/include/asm/pointer_auth.h | 18 ++++++++++++++++++
+ arch/arm64/kernel/cpufeature.c        | 14 ++++----------
+ arch/arm64/kernel/smp.c               |  7 ++++++-
+ 4 files changed, 37 insertions(+), 11 deletions(-)
 
+diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
+index 1717ba1db35d..af4ca92a5fa9 100644
+--- a/arch/arm64/include/asm/cpufeature.h
++++ b/arch/arm64/include/asm/cpufeature.h
+@@ -292,6 +292,15 @@ extern struct arm64_ftr_reg arm64_ftr_reg_ctrel0;
+  */
+ #define ARM64_CPUCAP_STRICT_BOOT_CPU_FEATURE ARM64_CPUCAP_SCOPE_BOOT_CPU
+ 
++/*
++ * CPU feature used early in the boot based on the boot CPU. It is safe for a
++ * late CPU to have this feature even though the boot CPU hasn't enabled it,
++ * although the feature will not be used by Linux in this case. If the boot CPU
++ * has enabled this feature already, then every late CPU must have it.
++ */
++#define ARM64_CPUCAP_BOOT_CPU_FEATURE			\
++	 (ARM64_CPUCAP_SCOPE_BOOT_CPU | ARM64_CPUCAP_PERMITTED_FOR_LATE_CPU)
++
+ struct arm64_cpu_capabilities {
+ 	const char *desc;
+ 	u16 capability;
 diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-index 2aefedc31d9e..15486079e9ec 100644
+index e60f225d9fa2..0634f06c3af2 100644
 --- a/arch/arm64/include/asm/pointer_auth.h
 +++ b/arch/arm64/include/asm/pointer_auth.h
-@@ -2,9 +2,11 @@
- #ifndef __ASM_POINTER_AUTH_H
- #define __ASM_POINTER_AUTH_H
- 
-+#include <linux/bitops.h>
- #include <linux/random.h>
- 
- #include <asm/cpufeature.h>
-+#include <asm/memory.h>
- #include <asm/sysreg.h>
+@@ -11,6 +11,13 @@
  
  #ifdef CONFIG_ARM64_PTR_AUTH
-@@ -49,6 +51,12 @@ static inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
+ /*
++ * Compile the function without pointer authentication instructions. This
++ * allows pointer authentication to be enabled/disabled within the function
++ * (but leaves the function unprotected by pointer authentication).
++ */
++#define __no_ptrauth	__attribute__((target("sign-return-address=none")))
++
++/*
+  * Each key is a 128-bit quantity which is split across a pair of 64-bit
+  * registers (Lo and Hi).
+  */
+@@ -51,6 +58,15 @@ static inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
  	__ptrauth_key_install(APIA, keys->apia);
  }
  
-+/*
-+ * The EL0 pointer bits used by a pointer authentication code.
-+ * This is dependent on TBI0 being enabled, or bits 63:56 would also apply.
-+ */
-+#define ptrauth_pac_mask() 	GENMASK(54, VA_BITS)
-+
- #define mm_ctx_ptrauth_init(ctx) \
- 	ptrauth_keys_init(&(ctx)->ptrauth_keys)
- 
-diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-index 98c4ce55d9c3..4994d718771a 100644
---- a/arch/arm64/include/uapi/asm/ptrace.h
-+++ b/arch/arm64/include/uapi/asm/ptrace.h
-@@ -228,6 +228,13 @@ struct user_sve_header {
- 		  SVE_PT_SVE_OFFSET + SVE_PT_SVE_SIZE(vq, flags)	\
- 		: SVE_PT_FPSIMD_OFFSET + SVE_PT_FPSIMD_SIZE(vq, flags))
- 
-+/* pointer authentication masks (NT_ARM_PAC_MASK) */
-+
-+struct user_pac_mask {
-+	__u64		data_mask;
-+	__u64		insn_mask;
-+};
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* _UAPI__ASM_PTRACE_H */
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 6219486fa25f..cb8246f8c603 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -46,6 +46,7 @@
- #include <asm/debug-monitors.h>
- #include <asm/fpsimd.h>
- #include <asm/pgtable.h>
-+#include <asm/pointer_auth.h>
- #include <asm/stacktrace.h>
- #include <asm/syscall.h>
- #include <asm/traps.h>
-@@ -958,6 +959,30 @@ static int sve_set(struct task_struct *target,
- 
- #endif /* CONFIG_ARM64_SVE */
- 
-+#ifdef CONFIG_ARM64_PTR_AUTH
-+static int pac_mask_get(struct task_struct *target,
-+			const struct user_regset *regset,
-+			unsigned int pos, unsigned int count,
-+			void *kbuf, void __user *ubuf)
++static __always_inline void ptrauth_cpu_enable(void)
 +{
-+	/*
-+	 * The PAC bits can differ across data and instruction pointers
-+	 * depending on TCR_EL1.TBID*, which we may make use of in future, so
-+	 * we expose separate masks.
-+	 */
-+	unsigned long mask = ptrauth_pac_mask();
-+	struct user_pac_mask uregs = {
-+		.data_mask = mask,
-+		.insn_mask = mask,
-+	};
-+
 +	if (!cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH))
-+		return -EINVAL;
++		return;
 +
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &uregs, 0, -1);
++	sysreg_clear_set(sctlr_el1, 0, SCTLR_ELx_ENIA);
++	isb();
 +}
-+#endif /* CONFIG_ARM64_PTR_AUTH */
 +
- enum aarch64_regset {
- 	REGSET_GPR,
- 	REGSET_FPR,
-@@ -970,6 +995,9 @@ enum aarch64_regset {
- #ifdef CONFIG_ARM64_SVE
- 	REGSET_SVE,
- #endif
-+#ifdef CONFIG_ARM64_PTR_AUTH
-+	REGSET_PAC_MASK,
-+#endif
- };
+ /*
+  * The EL0 pointer bits used by a pointer authentication code.
+  * This is dependent on TBI0 being enabled, or bits 63:56 would also apply.
+@@ -71,8 +87,10 @@ static inline unsigned long ptrauth_strip_insn_pac(unsigned long ptr)
+ 	ptrauth_keys_init(&(tsk)->thread_info.keys_user)
  
- static const struct user_regset aarch64_regsets[] = {
-@@ -1039,6 +1067,16 @@ static const struct user_regset aarch64_regsets[] = {
- 		.get_size = sve_get_size,
+ #else /* CONFIG_ARM64_PTR_AUTH */
++#define __no_ptrauth
+ #define ptrauth_strip_insn_pac(lr)	(lr)
+ #define ptrauth_task_init_user(tsk)
++#define ptrauth_cpu_enable(tsk)
+ #endif /* CONFIG_ARM64_PTR_AUTH */
+ 
+ #endif /* __ASM_POINTER_AUTH_H */
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 3157685aa56a..380ee01145e8 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -1040,15 +1040,10 @@ static void cpu_has_fwb(const struct arm64_cpu_capabilities *__unused)
+ }
+ 
+ #ifdef CONFIG_ARM64_PTR_AUTH
+-static void cpu_enable_address_auth(struct arm64_cpu_capabilities const *cap)
+-{
+-	sysreg_clear_set(sctlr_el1, 0, SCTLR_ELx_ENIA);
+-}
+-
+ static bool has_address_auth(const struct arm64_cpu_capabilities *entry,
+ 			     int __unused)
+ {
+-	u64 isar1 = read_sanitised_ftr_reg(SYS_ID_AA64ISAR1_EL1);
++	u64 isar1 = read_sysreg(id_aa64isar1_el1);
+ 	bool api, apa;
+ 
+ 	apa = cpuid_feature_extract_unsigned_field(isar1,
+@@ -1251,7 +1246,7 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+ 	{
+ 		.desc = "Address authentication (architected algorithm)",
+ 		.capability = ARM64_HAS_ADDRESS_AUTH_ARCH,
+-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
++		.type = ARM64_CPUCAP_BOOT_CPU_FEATURE,
+ 		.sys_reg = SYS_ID_AA64ISAR1_EL1,
+ 		.sign = FTR_UNSIGNED,
+ 		.field_pos = ID_AA64ISAR1_APA_SHIFT,
+@@ -1261,7 +1256,7 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+ 	{
+ 		.desc = "Address authentication (IMP DEF algorithm)",
+ 		.capability = ARM64_HAS_ADDRESS_AUTH_IMP_DEF,
+-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
++		.type = ARM64_CPUCAP_BOOT_CPU_FEATURE,
+ 		.sys_reg = SYS_ID_AA64ISAR1_EL1,
+ 		.sign = FTR_UNSIGNED,
+ 		.field_pos = ID_AA64ISAR1_API_SHIFT,
+@@ -1270,9 +1265,8 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
  	},
- #endif
-+#ifdef CONFIG_ARM64_PTR_AUTH
-+	[REGSET_PAC_MASK] = {
-+		.core_note_type = NT_ARM_PAC_MASK,
-+		.n = sizeof(struct user_pac_mask) / sizeof(u64),
-+		.size = sizeof(u64),
-+		.align = sizeof(u64),
-+		.get = pac_mask_get,
-+		/* this cannot be set dynamically */
-+	},
-+#endif
- };
+ 	{
+ 		.capability = ARM64_HAS_ADDRESS_AUTH,
+-		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
++		.type = ARM64_CPUCAP_BOOT_CPU_FEATURE,
+ 		.matches = has_address_auth,
+-		.cpu_enable = cpu_enable_address_auth,
+ 	},
+ #endif /* CONFIG_ARM64_PTR_AUTH */
+ 	{},
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 25fcd22a4bb2..09690024dce8 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -53,6 +53,7 @@
+ #include <asm/numa.h>
+ #include <asm/pgtable.h>
+ #include <asm/pgalloc.h>
++#include <asm/pointer_auth.h>
+ #include <asm/processor.h>
+ #include <asm/smp_plat.h>
+ #include <asm/sections.h>
+@@ -211,6 +212,8 @@ asmlinkage notrace void secondary_start_kernel(void)
+ 	 */
+ 	check_local_cpu_capabilities();
  
- static const struct user_regset_view user_aarch64_view = {
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index c5358e0ae7c5..3f23273d690c 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -420,6 +420,7 @@ typedef struct elf64_shdr {
- #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
- #define NT_ARM_SYSTEM_CALL	0x404	/* ARM system call number */
- #define NT_ARM_SVE	0x405		/* ARM Scalable Vector Extension registers */
-+#define NT_ARM_PAC_MASK		0x406	/* ARM pointer authentication code masks */
- #define NT_ARC_V2	0x600		/* ARCv2 accumulator/extra registers */
- #define NT_VMCOREDD	0x700		/* Vmcore Device Dump Note */
- #define NT_MIPS_DSP	0x800		/* MIPS DSP ASE registers */
++	ptrauth_cpu_enable();
++
+ 	if (cpu_ops[cpu]->cpu_postboot)
+ 		cpu_ops[cpu]->cpu_postboot();
+ 
+@@ -405,7 +408,7 @@ void __init smp_cpus_done(unsigned int max_cpus)
+ 	mark_linear_text_alias_ro();
+ }
+ 
+-void __init smp_prepare_boot_cpu(void)
++void __init __no_ptrauth smp_prepare_boot_cpu(void)
+ {
+ 	set_my_cpu_offset(per_cpu_offset(smp_processor_id()));
+ 	/*
+@@ -414,6 +417,8 @@ void __init smp_prepare_boot_cpu(void)
+ 	 */
+ 	jump_label_init();
+ 	cpuinfo_store_boot_cpu();
++
++	ptrauth_cpu_enable();
+ }
+ 
+ static u64 __init of_get_cpu_mpidr(struct device_node *dn)
 -- 
 2.11.0
