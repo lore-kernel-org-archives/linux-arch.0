@@ -1,183 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48086 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:47772 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728608AbeJEPsn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Oct 2018 11:48:43 -0400
+        id S1728283AbeJEPre (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Oct 2018 11:47:34 -0400
 From: Kristina Martsenko <kristina.martsenko@arm.com>
-Subject: [RFC 16/17] arm64: initialize and switch ptrauth kernel keys
-Date: Fri,  5 Oct 2018 09:47:53 +0100
-Message-ID: <20181005084754.20950-17-kristina.martsenko@arm.com>
+Subject: [PATCH v5 02/17] arm64/kvm: consistently handle host HCR_EL2 flags
+Date: Fri,  5 Oct 2018 09:47:39 +0100
+Message-ID: <20181005084754.20950-3-kristina.martsenko@arm.com>
 In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181005084753.ohs41CnrH0Y369IG2-pJRoJiY-OdX0O68B5_8LVPvH4@z>
+Message-ID: <20181005084739.jk4SRLOucxFrBuy_XX_KJUqolPKK1I106gMkmGVMpqk@z>
 
-Set up keys to use pointer auth in the kernel. Each task has its own
-APIAKey, which is initialized during fork. The key is changed during
-context switch and on kernel entry from EL0.
+From: Mark Rutland <mark.rutland@arm.com>
 
-A function that changes the key cannot return, so inline such functions.
+In KVM we define the configuration of HCR_EL2 for a VHE HOST in
+HCR_HOST_VHE_FLAGS, but we don't have a similar definition for the
+non-VHE host flags, and open-code HCR_RW. Further, in head.S we
+open-code the flags for VHE and non-VHE configurations.
+
+In future, we're going to want to configure more flags for the host, so
+lets add a HCR_HOST_NVHE_FLAGS defintion, and consistently use both
+HCR_HOST_VHE_FLAGS and HCR_HOST_NVHE_FLAGS in the kvm code and head.S.
+
+We now use mov_q to generate the HCR_EL2 value, as we use when
+configuring other registers in head.S.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
+Reviewed-by: Christoffer Dall <christoffer.dall@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Marc Zyngier <marc.zyngier@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: kvmarm@lists.cs.columbia.edu
 ---
- arch/arm64/include/asm/pointer_auth.h |  9 ++++++++-
- arch/arm64/include/asm/ptrauth-asm.h  | 13 +++++++++++++
- arch/arm64/include/asm/thread_info.h  |  1 +
- arch/arm64/kernel/asm-offsets.c       |  1 +
- arch/arm64/kernel/entry.S             |  4 ++++
- arch/arm64/kernel/process.c           |  3 +++
- arch/arm64/kernel/smp.c               |  3 +++
- 7 files changed, 33 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/kvm_arm.h | 1 +
+ arch/arm64/kernel/head.S         | 5 ++---
+ arch/arm64/kvm/hyp/switch.c      | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
-index 0634f06c3af2..e94ca7df8dab 100644
---- a/arch/arm64/include/asm/pointer_auth.h
-+++ b/arch/arm64/include/asm/pointer_auth.h
-@@ -50,12 +50,13 @@ do {								\
- 	write_sysreg_s(__pki_v.hi, SYS_ ## k ## KEYHI_EL1);	\
- } while (0)
+diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
+index aa45df752a16..f885f4e96002 100644
+--- a/arch/arm64/include/asm/kvm_arm.h
++++ b/arch/arm64/include/asm/kvm_arm.h
+@@ -87,6 +87,7 @@
+ 			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW | HCR_TLOR | \
+ 			 HCR_FMO | HCR_IMO)
+ #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
++#define HCR_HOST_NVHE_FLAGS (HCR_RW)
+ #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
  
--static inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
-+static __always_inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
- {
- 	if (!cpus_have_const_cap(ARM64_HAS_ADDRESS_AUTH))
- 		return;
- 
- 	__ptrauth_key_install(APIA, keys->apia);
-+	isb();
- }
- 
- static __always_inline void ptrauth_cpu_enable(void)
-@@ -85,11 +86,17 @@ static inline unsigned long ptrauth_strip_insn_pac(unsigned long ptr)
- 
- #define ptrauth_task_init_user(tsk)	\
- 	ptrauth_keys_init(&(tsk)->thread_info.keys_user)
-+#define ptrauth_task_init_kernel(tsk)	\
-+	ptrauth_keys_init(&(tsk)->thread_info.keys_kernel)
-+#define ptrauth_task_switch(tsk)	\
-+	ptrauth_keys_switch(&(tsk)->thread_info.keys_kernel)
- 
- #else /* CONFIG_ARM64_PTR_AUTH */
- #define __no_ptrauth
- #define ptrauth_strip_insn_pac(lr)	(lr)
- #define ptrauth_task_init_user(tsk)
-+#define ptrauth_task_init_kernel(tsk)
-+#define ptrauth_task_switch(tsk)
- #define ptrauth_cpu_enable(tsk)
- #endif /* CONFIG_ARM64_PTR_AUTH */
- 
-diff --git a/arch/arm64/include/asm/ptrauth-asm.h b/arch/arm64/include/asm/ptrauth-asm.h
-index f50bdfc4046c..3ef1cc8903d5 100644
---- a/arch/arm64/include/asm/ptrauth-asm.h
-+++ b/arch/arm64/include/asm/ptrauth-asm.h
-@@ -16,11 +16,24 @@ alternative_if ARM64_HAS_ADDRESS_AUTH
- alternative_else_nop_endif
- 	.endm
- 
-+	.macro ptrauth_keys_install_kernel tsk, tmp
-+alternative_if ARM64_HAS_ADDRESS_AUTH
-+	ldr	\tmp, [\tsk, #(TSK_TI_KEYS_KERNEL + PTRAUTH_KEY_APIALO)]
-+	msr_s	SYS_APIAKEYLO_EL1, \tmp
-+	ldr	\tmp, [\tsk, #(TSK_TI_KEYS_KERNEL + PTRAUTH_KEY_APIAHI)]
-+	msr_s	SYS_APIAKEYHI_EL1, \tmp
-+	isb
-+alternative_else_nop_endif
-+	.endm
-+
- #else /* CONFIG_ARM64_PTR_AUTH */
- 
- 	.macro ptrauth_keys_install_user tsk, tmp
- 	.endm
- 
-+	.macro ptrauth_keys_install_kernel tsk, tmp
-+	.endm
-+
- #endif /* CONFIG_ARM64_PTR_AUTH */
- 
- #endif /* __ASM_PTRAUTH_ASM_H */
-diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-index ea9272fb52d4..e3ec5345addc 100644
---- a/arch/arm64/include/asm/thread_info.h
-+++ b/arch/arm64/include/asm/thread_info.h
-@@ -46,6 +46,7 @@ struct thread_info {
- 	int			preempt_count;	/* 0 => preemptable, <0 => bug */
- #ifdef CONFIG_ARM64_PTR_AUTH
- 	struct ptrauth_keys	keys_user;
-+	struct ptrauth_keys	keys_kernel;
+ /* TCR_EL2 Registers bits */
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+index b0853069702f..651a06b1980f 100644
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -494,10 +494,9 @@ ENTRY(el2_setup)
  #endif
- };
  
-diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
-index b6be0dd037fd..6c61c9722b47 100644
---- a/arch/arm64/kernel/asm-offsets.c
-+++ b/arch/arm64/kernel/asm-offsets.c
-@@ -47,6 +47,7 @@ int main(void)
- #endif
- #ifdef CONFIG_ARM64_PTR_AUTH
-   DEFINE(TSK_TI_KEYS_USER, 	offsetof(struct task_struct, thread_info.keys_user));
-+  DEFINE(TSK_TI_KEYS_KERNEL, 	offsetof(struct task_struct, thread_info.keys_kernel));
- #endif
-   DEFINE(TSK_STACK,		offsetof(struct task_struct, stack));
-   BLANK();
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index 1e925f6d2978..a4503da445f7 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -250,6 +250,10 @@ alternative_else_nop_endif
- 	msr	sp_el0, tsk
- 	.endif
+ 	/* Hyp configuration. */
+-	mov	x0, #HCR_RW			// 64-bit EL1
++	mov_q	x0, HCR_HOST_NVHE_FLAGS
+ 	cbz	x2, set_hcr
+-	orr	x0, x0, #HCR_TGE		// Enable Host Extensions
+-	orr	x0, x0, #HCR_E2H
++	mov_q	x0, HCR_HOST_VHE_FLAGS
+ set_hcr:
+ 	msr	hcr_el2, x0
+ 	isb
+diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
+index ca46153d7915..a1c32c1f2267 100644
+--- a/arch/arm64/kvm/hyp/switch.c
++++ b/arch/arm64/kvm/hyp/switch.c
+@@ -157,7 +157,7 @@ static void __hyp_text __deactivate_traps_nvhe(void)
+ 	mdcr_el2 |= MDCR_EL2_E2PB_MASK << MDCR_EL2_E2PB_SHIFT;
  
-+	.if	\el == 0
-+	ptrauth_keys_install_kernel tsk, x20
-+	.endif
-+
- 	/*
- 	 * Registers that may be useful after this macro is invoked:
- 	 *
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index 857ae05cd04c..a866996610de 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -330,6 +330,8 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
- 	 */
- 	fpsimd_flush_task_state(p);
- 
-+	ptrauth_task_init_kernel(p);
-+
- 	if (likely(!(p->flags & PF_KTHREAD))) {
- 		*childregs = *current_pt_regs();
- 		childregs->regs[0] = 0;
-@@ -426,6 +428,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
- 	contextidr_thread_switch(next);
- 	entry_task_switch(next);
- 	uao_thread_switch(next);
-+	ptrauth_task_switch(next);
- 
- 	/*
- 	 * Complete any pending TLB or cache maintenance on this CPU in case
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index 09690024dce8..d952dd62c780 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -212,6 +212,7 @@ asmlinkage notrace void secondary_start_kernel(void)
- 	 */
- 	check_local_cpu_capabilities();
- 
-+	ptrauth_task_switch(current);
- 	ptrauth_cpu_enable();
- 
- 	if (cpu_ops[cpu]->cpu_postboot)
-@@ -418,6 +419,8 @@ void __init __no_ptrauth smp_prepare_boot_cpu(void)
- 	jump_label_init();
- 	cpuinfo_store_boot_cpu();
- 
-+	ptrauth_task_init_kernel(current);
-+	ptrauth_task_switch(current);
- 	ptrauth_cpu_enable();
+ 	write_sysreg(mdcr_el2, mdcr_el2);
+-	write_sysreg(HCR_RW, hcr_el2);
++	write_sysreg(HCR_HOST_NVHE_FLAGS, hcr_el2);
+ 	write_sysreg(CPTR_EL2_DEFAULT, cptr_el2);
  }
  
 -- 
