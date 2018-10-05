@@ -1,88 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47772 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:48042 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728283AbeJEPre (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Oct 2018 11:47:34 -0400
+        id S1728012AbeJEPsb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Oct 2018 11:48:31 -0400
 From: Kristina Martsenko <kristina.martsenko@arm.com>
-Subject: [PATCH v5 02/17] arm64/kvm: consistently handle host HCR_EL2 flags
-Date: Fri,  5 Oct 2018 09:47:39 +0100
-Message-ID: <20181005084754.20950-3-kristina.martsenko@arm.com>
+Subject: [RFC 14/17] arm64: unwind: strip PAC from kernel addresses
+Date: Fri,  5 Oct 2018 09:47:51 +0100
+Message-ID: <20181005084754.20950-15-kristina.martsenko@arm.com>
 In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181005084739.jk4SRLOucxFrBuy_XX_KJUqolPKK1I106gMkmGVMpqk@z>
+Message-ID: <20181005084751.obtv_dYJW6kOtPuoPVrIUbxExaG0qYnlV5rRVFevvmE@z>
 
 From: Mark Rutland <mark.rutland@arm.com>
 
-In KVM we define the configuration of HCR_EL2 for a VHE HOST in
-HCR_HOST_VHE_FLAGS, but we don't have a similar definition for the
-non-VHE host flags, and open-code HCR_RW. Further, in head.S we
-open-code the flags for VHE and non-VHE configurations.
+When we enable pointer authentication in the kernel, LR values saved to
+the stack will have a PAC which we must strip in order to retrieve the
+real return address.
 
-In future, we're going to want to configure more flags for the host, so
-lets add a HCR_HOST_NVHE_FLAGS defintion, and consistently use both
-HCR_HOST_VHE_FLAGS and HCR_HOST_NVHE_FLAGS in the kvm code and head.S.
-
-We now use mov_q to generate the HCR_EL2 value, as we use when
-configuring other registers in head.S.
+Strip PACs when unwinding the stack in order to account for this.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-Reviewed-by: Christoffer Dall <christoffer.dall@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: kvmarm@lists.cs.columbia.edu
 ---
- arch/arm64/include/asm/kvm_arm.h | 1 +
- arch/arm64/kernel/head.S         | 5 ++---
- arch/arm64/kvm/hyp/switch.c      | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/pointer_auth.h | 10 +++++++---
+ arch/arm64/kernel/ptrace.c            |  2 +-
+ arch/arm64/kernel/stacktrace.c        |  3 +++
+ 3 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-index aa45df752a16..f885f4e96002 100644
---- a/arch/arm64/include/asm/kvm_arm.h
-+++ b/arch/arm64/include/asm/kvm_arm.h
-@@ -87,6 +87,7 @@
- 			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW | HCR_TLOR | \
- 			 HCR_FMO | HCR_IMO)
- #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
-+#define HCR_HOST_NVHE_FLAGS (HCR_RW)
- #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
+diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
+index 5e40533f4ea2..e60f225d9fa2 100644
+--- a/arch/arm64/include/asm/pointer_auth.h
++++ b/arch/arm64/include/asm/pointer_auth.h
+@@ -55,12 +55,16 @@ static inline void ptrauth_keys_switch(struct ptrauth_keys *keys)
+  * The EL0 pointer bits used by a pointer authentication code.
+  * This is dependent on TBI0 being enabled, or bits 63:56 would also apply.
+  */
+-#define ptrauth_pac_mask() 	GENMASK(54, VA_BITS)
++#define ptrauth_pac_mask_ttbr0()	GENMASK(54, VA_BITS)
++
++#define ptrauth_pac_mask_ttbr1()	(GENMASK(63, 56) | GENMASK(54, VA_BITS))
  
- /* TCR_EL2 Registers bits */
-diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
-index b0853069702f..651a06b1980f 100644
---- a/arch/arm64/kernel/head.S
-+++ b/arch/arm64/kernel/head.S
-@@ -494,10 +494,9 @@ ENTRY(el2_setup)
- #endif
- 
- 	/* Hyp configuration. */
--	mov	x0, #HCR_RW			// 64-bit EL1
-+	mov_q	x0, HCR_HOST_NVHE_FLAGS
- 	cbz	x2, set_hcr
--	orr	x0, x0, #HCR_TGE		// Enable Host Extensions
--	orr	x0, x0, #HCR_E2H
-+	mov_q	x0, HCR_HOST_VHE_FLAGS
- set_hcr:
- 	msr	hcr_el2, x0
- 	isb
-diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
-index ca46153d7915..a1c32c1f2267 100644
---- a/arch/arm64/kvm/hyp/switch.c
-+++ b/arch/arm64/kvm/hyp/switch.c
-@@ -157,7 +157,7 @@ static void __hyp_text __deactivate_traps_nvhe(void)
- 	mdcr_el2 |= MDCR_EL2_E2PB_MASK << MDCR_EL2_E2PB_SHIFT;
- 
- 	write_sysreg(mdcr_el2, mdcr_el2);
--	write_sysreg(HCR_RW, hcr_el2);
-+	write_sysreg(HCR_HOST_NVHE_FLAGS, hcr_el2);
- 	write_sysreg(CPTR_EL2_DEFAULT, cptr_el2);
+-/* Only valid for EL0 TTBR0 instruction pointers */
+ static inline unsigned long ptrauth_strip_insn_pac(unsigned long ptr)
+ {
+-	return ptr & ~ptrauth_pac_mask();
++	if (ptr & BIT_ULL(55))
++		return ptr | ptrauth_pac_mask_ttbr1();
++	else
++		return ptr & ~ptrauth_pac_mask_ttbr0();
  }
  
+ #define ptrauth_task_init_user(tsk)	\
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index cb8246f8c603..bf4d6d384e4f 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -970,7 +970,7 @@ static int pac_mask_get(struct task_struct *target,
+ 	 * depending on TCR_EL1.TBID*, which we may make use of in future, so
+ 	 * we expose separate masks.
+ 	 */
+-	unsigned long mask = ptrauth_pac_mask();
++	unsigned long mask = ptrauth_pac_mask_ttbr0();
+ 	struct user_pac_mask uregs = {
+ 		.data_mask = mask,
+ 		.insn_mask = mask,
+diff --git a/arch/arm64/kernel/stacktrace.c b/arch/arm64/kernel/stacktrace.c
+index 4989f7ea1e59..44f6a64a8006 100644
+--- a/arch/arm64/kernel/stacktrace.c
++++ b/arch/arm64/kernel/stacktrace.c
+@@ -24,6 +24,7 @@
+ #include <linux/stacktrace.h>
+ 
+ #include <asm/irq.h>
++#include <asm/pointer_auth.h>
+ #include <asm/stack_pointer.h>
+ #include <asm/stacktrace.h>
+ 
+@@ -56,6 +57,8 @@ int notrace unwind_frame(struct task_struct *tsk, struct stackframe *frame)
+ 	frame->fp = READ_ONCE_NOCHECK(*(unsigned long *)(fp));
+ 	frame->pc = READ_ONCE_NOCHECK(*(unsigned long *)(fp + 8));
+ 
++	frame->pc = ptrauth_strip_insn_pac(frame->pc);
++
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ 	if (tsk->ret_stack &&
+ 			(frame->pc == (unsigned long)return_to_handler)) {
 -- 
 2.11.0
