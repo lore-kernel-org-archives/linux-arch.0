@@ -1,99 +1,43 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V7 18/20] dt-bindings: csky CPU Bindings
-Date: Fri,  5 Oct 2018 16:33:14 +0800
-Message-ID: <994158389acaf01d065bf1460eb51b3b7249bd07.1538715563.git.ren_guo@c-sky.com>
-References: <cover.1538715563.git.ren_guo@c-sky.com>
+Subject: [PATCH V7 20/20] MAINTAINERS: Add csky
+Date: Fri,  5 Oct 2018 16:33:16 +0800
+Message-ID: <1f700f59aeec8d1e09b967bc3fe7271c00a9a3e9.1538715563.git.ren_guo@c-sky.com>
+References: <994158389acaf01d065bf1460eb51b3b7249bd07.1538715563.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <994158389acaf01d065bf1460eb51b3b7249bd07.1538715563.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1538715563.git.ren_guo@c-sky.com>
+References: <cover.1538715563.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, jason@lakedaemon.net, marc.zyngier@arm.com, mark.rutland@arm.com, mchehab+samsung@kernel.org, peterz@infradead.org, robh@kernel.org, robh+dt@kernel.org, tglx@linutronix.de
 Cc: green.hu@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the documentation to describe that how to add cpu nodes in
-dts for SMP.
+Add a maintainer information for the csky(C-SKY) architecture.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- Documentation/devicetree/bindings/csky/cpus.txt | 70 +++++++++++++++++++++++++
- 1 file changed, 70 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
+ MAINTAINERS | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/csky/cpus.txt b/Documentation/devicetree/bindings/csky/cpus.txt
-new file mode 100644
-index 0000000..ee3901d
---- /dev/null
-+++ b/Documentation/devicetree/bindings/csky/cpus.txt
-@@ -0,0 +1,70 @@
-+==================
-+C-SKY CPU Bindings
-+==================
+diff --git a/MAINTAINERS b/MAINTAINERS
+index d870cb5..9dac20e 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3211,6 +3211,15 @@ T:	git git://git.alsa-project.org/alsa-kernel.git
+ S:	Maintained
+ F:	sound/pci/oxygen/
+ 
++C-SKY ARCHITECTURE
++M:	Guo Ren <ren_guo@c-sky.com>
++T:	git https://github.com/c-sky/csky-linux.git
++S:	Supported
++F:	arch/csky/
++F:	Documentation/devicetree/bindings/csky/
++K:	csky
++N:	csky
 +
-+The device tree allows to describe the layout of CPUs in a system through
-+the "cpus" node, which in turn contains a number of subnodes (ie "cpu")
-+defining properties for every cpu.
-+
-+Only SMP system need to care about the cpus node and single processor
-+needn't define cpus node at all.
-+
-+=====================================
-+cpus and cpu node bindings definition
-+=====================================
-+
-+- cpus node
-+
-+        Description: Container of cpu nodes
-+
-+        The node name must be "cpus".
-+
-+        A cpus node must define the following properties:
-+
-+        - #address-cells
-+                Usage: required
-+                Value type: <u32>
-+                Definition: must be set to 1
-+        - #size-cells
-+                Usage: required
-+                Value type: <u32>
-+                Definition: must be set to 0
-+
-+- cpu node
-+
-+        Description: Describes one of SMP cores
-+
-+        PROPERTIES
-+
-+        - device_type
-+                Usage: required
-+                Value type: <string>
-+                Definition: must be "cpu"
-+        - reg
-+                Usage: required
-+                Value type: <u32>
-+                Definition: CPU index
-+        - status:
-+                Usage: required
-+                Value type: <string>
-+                Definition: "ok"       means enable  the cpu-core
-+                            "disabled" means disable the cpu-core
-+
-+Example:
-+--------
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			device_type = "cpu";
-+			reg = <0>;
-+			status = "ok";
-+		};
-+
-+		cpu@1 {
-+			device_type = "cpu";
-+			reg = <1>;
-+			status = "ok";
-+		};
-+	};
+ C6X ARCHITECTURE
+ M:	Mark Salter <msalter@redhat.com>
+ M:	Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
 -- 
 2.7.4
