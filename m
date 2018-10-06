@@ -1,146 +1,617 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path
- resolution
-Date: Sat, 6 Oct 2018 12:10:02 +1000
-Message-ID: <20181006021002.6vzsdwd3klddbmji@ryuk>
-References: <20180929103453.12025-1-cyphar@cyphar.com>
- <20180929131534.24472-1-cyphar@cyphar.com>
- <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
- <20181004162611.vdlujbdguvagalpt@ryuk>
- <CAG48ez2u--Wac7d9n3idC92Pd-M40QzYtR6FKR8PAYr=VQHUBQ@mail.gmail.com>
- <20181005150728.mgqnpkbukpeu3bsm@ryuk>
- <CAG48ez3FG0axt92F=+vDe1Q=kj-YngmCgFqDET7E2xCE1mOgeg@mail.gmail.com>
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Subject: [PATCH net-next v7 02/28] asm: simd context helper API
+Date: Sat,  6 Oct 2018 04:56:43 +0200
+Message-ID: <20181006025709.4019-3-Jason@zx2c4.com>
+References: <20181006025709.4019-1-Jason@zx2c4.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="y5cyimyl4h3ru7zm"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAG48ez3FG0axt92F=+vDe1Q=kj-YngmCgFqDET7E2xCE1mOgeg@mail.gmail.com>
+In-Reply-To: <20181006025709.4019-1-Jason@zx2c4.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, "cyphar@cyphar.com Linux API" <linux-api@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, netdev@vger.kernel.org, davem@davemloft.net, gregkh@linuxfoundation.org
+Cc: "Jason A. Donenfeld" <Jason@zx2c4.com>, Samuel Neves <sneves@dei.uc.pt>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+Sometimes it's useful to amortize calls to XSAVE/XRSTOR and the related
+FPU/SIMD functions over a number of calls, because FPU restoration is
+quite expensive. This adds a simple header for carrying out this pattern:
 
---y5cyimyl4h3ru7zm
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+    simd_context_t simd_context;
 
-On 2018-10-05, Jann Horn <jannh@google.com> wrote:
-> > What if we took rename_lock (call it nd->r_seq) at the start of the
-> > resolution, and then only tried the __d_path-style check
-> >
-> >   if (read_seqretry(&rename_lock, nd->r_seq) ||
-> >       read_seqretry(&mount_lock, nd->m_seq))
-> >           /* do the __d_path lookup. */
-> >
-> > That way you would only hit the slow path if there were concurrent
-> > renames or mounts *and* you are doing a path resolution with
-> > AT_THIS_ROOT or AT_BENEATH. I've attached a modified patch that does
-> > this (and after some testing it also appears to work).
->=20
-> Yeah, I think that might do the job.
+    simd_get(&simd_context);
+    while ((item = get_item_from_queue()) != NULL) {
+        encrypt_item(item, &simd_context);
+        simd_relax(&simd_context);
+    }
+    simd_put(&simd_context);
 
-*phew* I was all out of other ideas. :P
+The relaxation step ensures that we don't trample over preemption, and
+the get/put API should be a familiar paradigm in the kernel.
 
-> > ---
-> >  fs/namei.c | 49 ++++++++++++++++++++++++++++++++++++++++++++++---
-> >  1 file changed, 46 insertions(+), 3 deletions(-)
-> >
-> > diff --git a/fs/namei.c b/fs/namei.c
-> > index 6f995e6de6b1..12c9be175cb4 100644
-> > --- a/fs/namei.c
-> > +++ b/fs/namei.c
-> > @@ -493,7 +493,7 @@ struct nameidata {
-> >         struct path     root;
-> >         struct inode    *inode; /* path.dentry.d_inode */
-> >         unsigned int    flags;
-> > -       unsigned        seq, m_seq;
-> > +       unsigned        seq, m_seq, r_seq;
-> >         int             last_type;
-> >         unsigned        depth;
-> >         int             total_link_count;
-> > @@ -1375,6 +1375,27 @@ static int follow_dotdot_rcu(struct nameidata *n=
-d)
-> >                                 return -EXDEV;
-> >                         break;
-> >                 }
-> > +               if (unlikely((nd->flags & (LOOKUP_BENEATH | LOOKUP_CHRO=
-OT)) &&
-> > +                            (read_seqretry(&rename_lock, nd->r_seq) ||
-> > +                             read_seqretry(&mount_lock, nd->m_seq)))) {
-> > +                       char *pathbuf, *pathptr;
-> > +
-> > +                       nd->r_seq =3D read_seqbegin(&rename_lock);
-> > +                       /* Cannot take m_seq here. */
-> > +
-> > +                       pathbuf =3D kmalloc(PATH_MAX, GFP_ATOMIC);
-> > +                       if (!pathbuf)
-> > +                               return -ECHILD;
-> > +                       pathptr =3D __d_path(&nd->path, &nd->root, path=
-buf, PATH_MAX);
-> > +                       kfree(pathbuf);
->=20
-> You're doing this check before actually looking up the parent, right?
-> So as long as I don't trigger the "path_equal(&nd->path, &nd->root)"
-> check that you do for O_BENEATH, escaping up by one level is possible,
-> right? You should probably move this check so that it happens after
-> following "..".
+On the other end, code that actually wants to use SIMD instructions can
+accept this as a parameter and check it via:
 
-Yup, you're right. I'll do that.
+   void encrypt_item(struct item *item, simd_context_t *simd_context)
+   {
+       if (item->len > LARGE_FOR_SIMD && simd_use(simd_context))
+           wild_simd_code(item);
+       else
+           boring_scalar_code(item);
+   }
 
-> (Also: I assume that you're going to get rid of that memory allocation
-> in a future version.)
+The actual XSAVE happens during simd_use (and only on the first time),
+so that if the context is never actually used, no performance penalty is
+hit.
 
-Sure. Would you prefer adding some scratch space in nameidata, or that I
-change __d_path so it accepts NULL as the buffer (and thus it doesn't
-actually do any string operations)?
+Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+Cc: Samuel Neves <sneves@dei.uc.pt>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Greg KH <gregkh@linuxfoundation.org>
+Cc: linux-arch@vger.kernel.org
+---
+ arch/alpha/include/asm/Kbuild      |  1 +
+ arch/arc/include/asm/Kbuild        |  1 +
+ arch/arm/include/asm/Kbuild        |  1 -
+ arch/arm/include/asm/simd.h        | 63 ++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/simd.h      | 51 +++++++++++++++++++++---
+ arch/c6x/include/asm/Kbuild        |  1 +
+ arch/h8300/include/asm/Kbuild      |  1 +
+ arch/hexagon/include/asm/Kbuild    |  1 +
+ arch/ia64/include/asm/Kbuild       |  1 +
+ arch/m68k/include/asm/Kbuild       |  1 +
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/mips/include/asm/Kbuild       |  1 +
+ arch/nds32/include/asm/Kbuild      |  1 +
+ arch/nios2/include/asm/Kbuild      |  1 +
+ arch/openrisc/include/asm/Kbuild   |  1 +
+ arch/parisc/include/asm/Kbuild     |  1 +
+ arch/powerpc/include/asm/Kbuild    |  1 +
+ arch/riscv/include/asm/Kbuild      |  1 +
+ arch/s390/include/asm/Kbuild       |  1 +
+ arch/sh/include/asm/Kbuild         |  1 +
+ arch/sparc/include/asm/Kbuild      |  1 +
+ arch/um/include/asm/Kbuild         |  1 +
+ arch/unicore32/include/asm/Kbuild  |  1 +
+ arch/x86/include/asm/simd.h        | 44 ++++++++++++++++++++-
+ arch/xtensa/include/asm/Kbuild     |  1 +
+ include/asm-generic/simd.h         | 20 ++++++++++
+ include/linux/simd.h               | 32 +++++++++++++++
+ 27 files changed, 224 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm/include/asm/simd.h
+ create mode 100644 include/linux/simd.h
 
-> >                 if (nd->path.dentry !=3D nd->path.mnt->mnt_root) {
-> >                         int ret =3D path_parent_directory(&nd->path);
-> >                         if (ret)
-> > @@ -2269,6 +2311,9 @@ static const char *path_init(struct nameidata *nd=
-, unsigned flags)
-> >         nd->last_type =3D LAST_ROOT; /* if there are only slashes... */
-> >         nd->flags =3D flags | LOOKUP_JUMPED | LOOKUP_PARENT;
-> >         nd->depth =3D 0;
-> > +       nd->m_seq =3D read_seqbegin(&mount_lock);
-> > +       nd->r_seq =3D read_seqbegin(&rename_lock);
->=20
-> This means that now, attempting to perform a lookup while something is
-> holding the rename_lock will spin on the lock. I don't know whether
-> that's a problem in practice though. Does anyone on this thread know
-> whether this is problematic?
-
-I could make it so that we only take &rename_lock
-  if (nd->flags & (FOLLOW_BENEATH | FOLLOW_CHROOT)),
-since it's not used outside of that path.
-
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---y5cyimyl4h3ru7zm
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAlu4GXcACgkQnhiqJn3b
-jbSetw/9H1Y6MiSjGRuK0/R1aLFbEbq0BkUgy+kdt3R+qt0BJjUU9JrmzbbUWnjC
-eQH8by6CDPNBIY5R8G/SlbcUiEoyRevo/saa14ZS5ny2vJjuxd9n82Ey9oHpZb0Y
-hSD4+dx6S4iQADq0+HbsVO/5x+9jxVr2Nmk92GkTdGd1kTeob8NmNW8rbFqteGM8
-6HJ9DxCaOC0Tlk0aY70OzavIk5rylvi4conyxoYWqE+gZIXUCRNzFBBqbxSAgUMq
-NKFkDwEK+MuCgMoGstrKvCnaGijbuTGBGjY1lKmY506wsnPO1k2hnQPDS904jOoB
-P4MjsobwBIU2Kx4lPIeDbL70E+f1AwXpmBQw2rFotf4mq79SoASM40wb/TP7HBhx
-cn9gjPO1oykB9NkJ/yhFySN3rZszXHfhNRAY2BwQeBlA5Mo1fmJCAN0E8813GCt8
-f5KLN6vYYxsnUjiY4R1yLHe4TsY+F93b0xqLkghdgpHg+78ytOvgpDR+13TShE3j
-eIcwyeG0ZCJr84Xgloeny/tc13IhtW0nnH5HgTaNXqFHpavtaRAROBXttV7ADTL2
-XSmRgIihrrN8ULpFTuwEvE7qBLwh3V9AyYhMY4XrVlanEygmdVJkn0R/CQ7lbwiV
-EW56EqlbKmen/1fN7jYU9obldALUIX+b5Iq8AktXKyOOVBeekXk=
-=EMae
------END PGP SIGNATURE-----
-
---y5cyimyl4h3ru7zm--
+diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+index 0580cb8c84b2..220dfd170d45 100644
+--- a/arch/alpha/include/asm/Kbuild
++++ b/arch/alpha/include/asm/Kbuild
+@@ -13,3 +13,4 @@ generic-y += sections.h
+ generic-y += trace_clock.h
+ generic-y += current.h
+ generic-y += kprobes.h
++generic-y += simd.h
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index feed50ce89fa..a7f4255f1649 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -22,6 +22,7 @@ generic-y += parport.h
+ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += preempt.h
++generic-y += simd.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += user.h
+diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+index 1d66db9c9db5..ebdc9eeb8d39 100644
+--- a/arch/arm/include/asm/Kbuild
++++ b/arch/arm/include/asm/Kbuild
+@@ -16,7 +16,6 @@ generic-y += rwsem.h
+ generic-y += seccomp.h
+ generic-y += segment.h
+ generic-y += serial.h
+-generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += timex.h
+ generic-y += trace_clock.h
+diff --git a/arch/arm/include/asm/simd.h b/arch/arm/include/asm/simd.h
+new file mode 100644
+index 000000000000..264ed84b41d8
+--- /dev/null
++++ b/arch/arm/include/asm/simd.h
+@@ -0,0 +1,63 @@
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#include <linux/simd.h>
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
++#ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++
++static __must_check inline bool may_use_simd(void)
++{
++	return !in_nmi() && !in_irq() && !in_serving_softirq();
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++	if (*ctx & HAVE_SIMD_IN_USE)
++		kernel_neon_end();
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	kernel_neon_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++}
++
++#else
++
++static __must_check inline bool may_use_simd(void)
++{
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	return false;
++}
++#endif
++
++#endif /* _ASM_SIMD_H */
+diff --git a/arch/arm64/include/asm/simd.h b/arch/arm64/include/asm/simd.h
+index 6495cc51246f..a45ff1600040 100644
+--- a/arch/arm64/include/asm/simd.h
++++ b/arch/arm64/include/asm/simd.h
+@@ -1,11 +1,10 @@
+-/*
+- * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
++/* SPDX-License-Identifier: GPL-2.0
+  *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License version 2 as published
+- * by the Free Software Foundation.
++ * Copyright (C) 2017 Linaro Ltd. <ard.biesheuvel@linaro.org>
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+  */
+ 
++#include <linux/simd.h>
+ #ifndef __ASM_SIMD_H
+ #define __ASM_SIMD_H
+ 
+@@ -16,6 +15,8 @@
+ #include <linux/types.h>
+ 
+ #ifdef CONFIG_KERNEL_MODE_NEON
++#include <asm/neon.h>
++#include <asm/simd.h>
+ 
+ DECLARE_PER_CPU(bool, kernel_neon_busy);
+ 
+@@ -40,9 +41,47 @@ static __must_check inline bool may_use_simd(void)
+ 		!this_cpu_read(kernel_neon_busy);
+ }
+ 
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++	if (*ctx & HAVE_SIMD_IN_USE)
++		kernel_neon_end();
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	kernel_neon_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++}
++
+ #else /* ! CONFIG_KERNEL_MODE_NEON */
+ 
+-static __must_check inline bool may_use_simd(void) {
++static __must_check inline bool may_use_simd(void)
++{
++	return false;
++}
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
+ 	return false;
+ }
+ 
+diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
+index 33a2c94fed0d..7543c38f7ade 100644
+--- a/arch/c6x/include/asm/Kbuild
++++ b/arch/c6x/include/asm/Kbuild
+@@ -30,6 +30,7 @@ generic-y += pgalloc.h
+ generic-y += preempt.h
+ generic-y += segment.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += tlbflush.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index a5d0b2991f47..1fcef25ee19d 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -39,6 +39,7 @@ generic-y += preempt.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += spinlock.h
+ generic-y += timex.h
+diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+index dd2fd9c0d292..217d4695fd8a 100644
+--- a/arch/hexagon/include/asm/Kbuild
++++ b/arch/hexagon/include/asm/Kbuild
+@@ -29,6 +29,7 @@ generic-y += rwsem.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index 557bbc8ba9f5..41c5ebdf79e5 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -4,6 +4,7 @@ generic-y += irq_work.h
+ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+ generic-y += preempt.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += vtime.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
+index a4b8d3331a9e..73898dd1a4d0 100644
+--- a/arch/m68k/include/asm/Kbuild
++++ b/arch/m68k/include/asm/Kbuild
+@@ -19,6 +19,7 @@ generic-y += mm-arch-hooks.h
+ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += sections.h
++generic-y += simd.h
+ generic-y += spinlock.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+index 569ba9e670c1..7a877eea99d3 100644
+--- a/arch/microblaze/include/asm/Kbuild
++++ b/arch/microblaze/include/asm/Kbuild
+@@ -25,6 +25,7 @@ generic-y += parport.h
+ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += syscalls.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index 58351e48421e..e8868e0fb2c3 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -16,6 +16,7 @@ generic-y += qrwlock.h
+ generic-y += qspinlock.h
+ generic-y += sections.h
+ generic-y += segment.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+ generic-y += user.h
+diff --git a/arch/nds32/include/asm/Kbuild b/arch/nds32/include/asm/Kbuild
+index dbc4e5422550..fb2f113716ce 100644
+--- a/arch/nds32/include/asm/Kbuild
++++ b/arch/nds32/include/asm/Kbuild
+@@ -46,6 +46,7 @@ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += shmbuf.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += stat.h
+ generic-y += switch_to.h
+diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
+index 8fde4fa2c34f..571a9d9ad107 100644
+--- a/arch/nios2/include/asm/Kbuild
++++ b/arch/nios2/include/asm/Kbuild
+@@ -33,6 +33,7 @@ generic-y += preempt.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += spinlock.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index eb87cd8327c8..b6231211bbad 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -34,6 +34,7 @@ generic-y += qrwlock_types.h
+ generic-y += qrwlock.h
+ generic-y += sections.h
+ generic-y += segment.h
++generic-y += simd.h
+ generic-y += string.h
+ generic-y += switch_to.h
+ generic-y += topology.h
+diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
+index 2013d639e735..97970b4d05ab 100644
+--- a/arch/parisc/include/asm/Kbuild
++++ b/arch/parisc/include/asm/Kbuild
+@@ -17,6 +17,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += seccomp.h
+ generic-y += segment.h
++generic-y += simd.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += user.h
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index 3196d227e351..2337190aaf69 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -8,3 +8,4 @@ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += vtime.h
+ generic-y += msi.h
++generic-y += simd.h
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index efdbe311e936..438a11d9c47a 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -46,6 +46,7 @@ generic-y += setup.h
+ generic-y += shmbuf.h
+ generic-y += shmparam.h
+ generic-y += signal.h
++generic-y += simd.h
+ generic-y += socket.h
+ generic-y += sockios.h
+ generic-y += stat.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index e3239772887a..3744c4c61fb5 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -22,6 +22,7 @@ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
+index 6a5609a55965..8e64ff35a933 100644
+--- a/arch/sh/include/asm/Kbuild
++++ b/arch/sh/include/asm/Kbuild
+@@ -16,6 +16,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += trace_clock.h
+ generic-y += xor.h
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index 410b263ef5c8..72b9e08fb350 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -17,5 +17,6 @@ generic-y += msi.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += trace_clock.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
+index b10dde6cb793..8c2bfa6e0494 100644
+--- a/arch/um/include/asm/Kbuild
++++ b/arch/um/include/asm/Kbuild
+@@ -22,6 +22,7 @@ generic-y += param.h
+ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += preempt.h
++generic-y += simd.h
+ generic-y += switch_to.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
+index bfc7abe77905..98a908720bbd 100644
+--- a/arch/unicore32/include/asm/Kbuild
++++ b/arch/unicore32/include/asm/Kbuild
+@@ -27,6 +27,7 @@ generic-y += preempt.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
++generic-y += simd.h
+ generic-y += sizes.h
+ generic-y += syscalls.h
+ generic-y += topology.h
+diff --git a/arch/x86/include/asm/simd.h b/arch/x86/include/asm/simd.h
+index a341c878e977..4aad7f158dcb 100644
+--- a/arch/x86/include/asm/simd.h
++++ b/arch/x86/include/asm/simd.h
+@@ -1,4 +1,11 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#include <linux/simd.h>
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
+ 
+ #include <asm/fpu/api.h>
+ 
+@@ -10,3 +17,38 @@ static __must_check inline bool may_use_simd(void)
+ {
+ 	return irq_fpu_usable();
+ }
++
++static inline void simd_get(simd_context_t *ctx)
++{
++#if !defined(CONFIG_UML)
++	*ctx = may_use_simd() ? HAVE_FULL_SIMD : HAVE_NO_SIMD;
++#else
++	*ctx = HAVE_NO_SIMD;
++#endif
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++#if !defined(CONFIG_UML)
++	if (*ctx & HAVE_SIMD_IN_USE)
++		kernel_fpu_end();
++#endif
++	*ctx = HAVE_NO_SIMD;
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++#if !defined(CONFIG_UML)
++	if (!(*ctx & HAVE_FULL_SIMD))
++		return false;
++	if (*ctx & HAVE_SIMD_IN_USE)
++		return true;
++	kernel_fpu_begin();
++	*ctx |= HAVE_SIMD_IN_USE;
++	return true;
++#else
++	return false;
++#endif
++}
++
++#endif /* _ASM_SIMD_H */
+diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+index 82c756431b49..7950f359649d 100644
+--- a/arch/xtensa/include/asm/Kbuild
++++ b/arch/xtensa/include/asm/Kbuild
+@@ -24,6 +24,7 @@ generic-y += percpu.h
+ generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += sections.h
++generic-y += simd.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += word-at-a-time.h
+diff --git a/include/asm-generic/simd.h b/include/asm-generic/simd.h
+index d0343d58a74a..b3dd61ac010e 100644
+--- a/include/asm-generic/simd.h
++++ b/include/asm-generic/simd.h
+@@ -1,5 +1,9 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ 
++#include <linux/simd.h>
++#ifndef _ASM_SIMD_H
++#define _ASM_SIMD_H
++
+ #include <linux/hardirq.h>
+ 
+ /*
+@@ -13,3 +17,19 @@ static __must_check inline bool may_use_simd(void)
+ {
+ 	return !in_interrupt();
+ }
++
++static inline void simd_get(simd_context_t *ctx)
++{
++	*ctx = HAVE_NO_SIMD;
++}
++
++static inline void simd_put(simd_context_t *ctx)
++{
++}
++
++static __must_check inline bool simd_use(simd_context_t *ctx)
++{
++	return false;
++}
++
++#endif /* _ASM_SIMD_H */
+diff --git a/include/linux/simd.h b/include/linux/simd.h
+new file mode 100644
+index 000000000000..4e0b8a9bdc14
+--- /dev/null
++++ b/include/linux/simd.h
+@@ -0,0 +1,32 @@
++/* SPDX-License-Identifier: GPL-2.0
++ *
++ * Copyright (C) 2015-2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
++ */
++
++#ifndef _SIMD_H
++#define _SIMD_H
++
++typedef enum {
++	HAVE_NO_SIMD = 1 << 0,
++	HAVE_FULL_SIMD = 1 << 1,
++	HAVE_SIMD_IN_USE = 1 << 31
++} simd_context_t;
++
++#define DONT_USE_SIMD ((simd_context_t []){ HAVE_NO_SIMD })
++
++#include <linux/sched.h>
++#include <asm/simd.h>
++
++static inline bool simd_relax(simd_context_t *ctx)
++{
++#ifdef CONFIG_PREEMPT
++	if ((*ctx & HAVE_SIMD_IN_USE) && need_resched()) {
++		simd_put(ctx);
++		simd_get(ctx);
++		return true;
++	}
++#endif
++	return false;
++}
++
++#endif /* _SIMD_H */
+-- 
+2.19.0
