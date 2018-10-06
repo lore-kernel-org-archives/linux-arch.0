@@ -1,121 +1,146 @@
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [RFC PATCH v4 3/9] x86/cet/ibt: Add IBT legacy code bitmap
- allocation function
-Date: Fri, 5 Oct 2018 19:26:22 +0200
-Message-ID: <20181005172622.GD19360@asgard.redhat.com>
-References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
- <20180921150553.21016-4-yu-cheng.yu@intel.com>
- <20181003195702.GF32759@asgard.redhat.com>
- <fc2f98ab46240c0498bdf4d7458b4373c1f02bf8.camel@intel.com>
- <5BF3AE8F-CC2A-4160-9FF6-FEA171A76371@amacapital.net>
- <aa5a061c159471f410d677af6a609793906cece1.camel@intel.com>
- <CALCETrXVdYsJsVy=QWruDYdRc6wb44b=0J3OK3zjR_fT1fQH7w@mail.gmail.com>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH 2/3] namei: implement AT_THIS_ROOT chroot-like path
+ resolution
+Date: Sat, 6 Oct 2018 12:10:02 +1000
+Message-ID: <20181006021002.6vzsdwd3klddbmji@ryuk>
+References: <20180929103453.12025-1-cyphar@cyphar.com>
+ <20180929131534.24472-1-cyphar@cyphar.com>
+ <CAG48ez30WJhbsro2HOc_DR7V91M+hNFzBP5ogRMZaxbAORvqzg@mail.gmail.com>
+ <20181004162611.vdlujbdguvagalpt@ryuk>
+ <CAG48ez2u--Wac7d9n3idC92Pd-M40QzYtR6FKR8PAYr=VQHUBQ@mail.gmail.com>
+ <20181005150728.mgqnpkbukpeu3bsm@ryuk>
+ <CAG48ez3FG0axt92F=+vDe1Q=kj-YngmCgFqDET7E2xCE1mOgeg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="y5cyimyl4h3ru7zm"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CALCETrXVdYsJsVy=QWruDYdRc6wb44b=0J3OK3zjR_fT1fQH7w@mail.gmail.com>
+In-Reply-To: <CAG48ez3FG0axt92F=+vDe1Q=kj-YngmCgFqDET7E2xCE1mOgeg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>Oleg Nesterov <o>
+To: Jann Horn <jannh@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, shuah@kernel.org, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, kernel list <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-kselftest@vger.kernel.org, dev@opencontainers.org, containers@lists.linux-foundation.org, "cyphar@cyphar.com Linux API" <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 05, 2018 at 10:07:46AM -0700, Andy Lutomirski wrote:
-> On Fri, Oct 5, 2018 at 10:03 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> >
-> > On Fri, 2018-10-05 at 09:28 -0700, Andy Lutomirski wrote:
-> > > > On Oct 5, 2018, at 9:13 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > > >
-> > > > > On Wed, 2018-10-03 at 21:57 +0200, Eugene Syromiatnikov wrote:
-> > > > > > On Fri, Sep 21, 2018 at 08:05:47AM -0700, Yu-cheng Yu wrote:
-> > > > > > Indirect branch tracking provides an optional legacy code bitmap
-> > > > > > that indicates locations of non-IBT compatible code.  When set,
-> > > > > > each bit in the bitmap represents a page in the linear address is
-> > > > > > legacy code.
-> > > > > >
-> > > > > > We allocate the bitmap only when the application requests it.
-> > > > > > Most applications do not need the bitmap.
-> > > > > >
-> > > > > > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > > > > > ---
-> > > > > > arch/x86/kernel/cet.c | 45 +++++++++++++++++++++++++++++++++++++++++++
-> > > > > > 1 file changed, 45 insertions(+)
-> > > > > >
-> > > > > > diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-> > > > > > index 6adfe795d692..a65d9745af08 100644
-> > > > > > --- a/arch/x86/kernel/cet.c
-> > > > > > +++ b/arch/x86/kernel/cet.c
-> > > > > > @@ -314,3 +314,48 @@ void cet_disable_ibt(void)
-> > > > > >    wrmsrl(MSR_IA32_U_CET, r);
-> > > > > >    current->thread.cet.ibt_enabled = 0;
-> > > > > > }
-> > > > > > +
-> > > > > > +int cet_setup_ibt_bitmap(void)
-> > > > > > +{
-> > > > > > +    u64 r;
-> > > > > > +    unsigned long bitmap;
-> > > > > > +    unsigned long size;
-> > > > > > +
-> > > > > > +    if (!cpu_feature_enabled(X86_FEATURE_IBT))
-> > > > > > +        return -EOPNOTSUPP;
-> > > > > > +
-> > > > > > +    if (!current->thread.cet.ibt_bitmap_addr) {
-> > > > > > +        /*
-> > > > > > +         * Calculate size and put in thread header.
-> > > > > > +         * may_expand_vm() needs this information.
-> > > > > > +         */
-> > > > > > +        size = TASK_SIZE / PAGE_SIZE / BITS_PER_BYTE;
-> > > > >
-> > > > > TASK_SIZE_MAX is likely needed here, as an application can easily switch
-> > > > > between long an 32-bit protected mode.  And then the case of a CPU that
-> > > > > doesn't support 5LPT.
-> > > >
-> > > > If we had calculated bitmap size from TASK_SIZE_MAX, all 32-bit apps would
-> > > > have
-> > > > failed the allocation for bitmap size > TASK_SIZE.  Please see values below,
-> > > > which is printed from the current code.
-> > > >
-> > > > Yu-cheng
-> > > >
-> > > >
-> > > > x64:
-> > > > TASK_SIZE_MAX    = 0000 7fff ffff f000
-> > > > TASK_SIZE    = 0000 7fff ffff f000
-> > > > bitmap size    = 0000 0000 ffff ffff
-> > > >
-> > > > x32:
-> > > > TASK_SIZE_MAX    = 0000 7fff ffff f000
-> > > > TASK_SIZE    = 0000 0000 ffff e000
-> > > > bitmap size    = 0000 0000 0001 ffff
-> > > >
-> > >
-> > > I haven’t followed all the details here, but I have a general policy of
-> > > objecting to any new use of TASK_SIZE. If you really really need to depend on
-> > > 32-bitness in new code, please figure out what exactly you mean by “32-bit”
-> > > and use an explicit check.
-> >
-> > The explicit check would be:
-> >
-> > test_thread_flag(TIF_ADDR32) ? IA32_PAGE_OFFSET : TASK_SIZE_MAX
-> >
-> > which is the same as TASK_SIZE.
-> 
-> But this is only ever done in response to a syscall, right?  So
-> wouldn't in_compat_syscall() be the right check?
-> 
-> Also, this whole thing makes me extremely nervous.  The MSR only
-> contains the start address, not the size, right?  So what prevents
-> some goof from causing the CPU to read way past the end of the bitmap
-> if the bitmap is short because the kernel thought it was supposed to
-> be 32-bit?
 
-That's what I've mentioned initially: every syscall made with int 0x80
-is interpreted as compat, even if it was made from long mode.
+--y5cyimyl4h3ru7zm
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> I'm inclined to suggest something awful-ish: always allocate the
-> bitmap as though it's for a 64-bit process, and just let it be at a
-> high address.  And add a syscall or arch_prctl() to manipulate it for
-> the benefit of 32-bit programs that can't address it directly.
+On 2018-10-05, Jann Horn <jannh@google.com> wrote:
+> > What if we took rename_lock (call it nd->r_seq) at the start of the
+> > resolution, and then only tried the __d_path-style check
+> >
+> >   if (read_seqretry(&rename_lock, nd->r_seq) ||
+> >       read_seqretry(&mount_lock, nd->m_seq))
+> >           /* do the __d_path lookup. */
+> >
+> > That way you would only hit the slow path if there were concurrent
+> > renames or mounts *and* you are doing a path resolution with
+> > AT_THIS_ROOT or AT_BENEATH. I've attached a modified patch that does
+> > this (and after some testing it also appears to work).
+>=20
+> Yeah, I think that might do the job.
 
-That's likely the only way to go.
+*phew* I was all out of other ideas. :P
+
+> > ---
+> >  fs/namei.c | 49 ++++++++++++++++++++++++++++++++++++++++++++++---
+> >  1 file changed, 46 insertions(+), 3 deletions(-)
+> >
+> > diff --git a/fs/namei.c b/fs/namei.c
+> > index 6f995e6de6b1..12c9be175cb4 100644
+> > --- a/fs/namei.c
+> > +++ b/fs/namei.c
+> > @@ -493,7 +493,7 @@ struct nameidata {
+> >         struct path     root;
+> >         struct inode    *inode; /* path.dentry.d_inode */
+> >         unsigned int    flags;
+> > -       unsigned        seq, m_seq;
+> > +       unsigned        seq, m_seq, r_seq;
+> >         int             last_type;
+> >         unsigned        depth;
+> >         int             total_link_count;
+> > @@ -1375,6 +1375,27 @@ static int follow_dotdot_rcu(struct nameidata *n=
+d)
+> >                                 return -EXDEV;
+> >                         break;
+> >                 }
+> > +               if (unlikely((nd->flags & (LOOKUP_BENEATH | LOOKUP_CHRO=
+OT)) &&
+> > +                            (read_seqretry(&rename_lock, nd->r_seq) ||
+> > +                             read_seqretry(&mount_lock, nd->m_seq)))) {
+> > +                       char *pathbuf, *pathptr;
+> > +
+> > +                       nd->r_seq =3D read_seqbegin(&rename_lock);
+> > +                       /* Cannot take m_seq here. */
+> > +
+> > +                       pathbuf =3D kmalloc(PATH_MAX, GFP_ATOMIC);
+> > +                       if (!pathbuf)
+> > +                               return -ECHILD;
+> > +                       pathptr =3D __d_path(&nd->path, &nd->root, path=
+buf, PATH_MAX);
+> > +                       kfree(pathbuf);
+>=20
+> You're doing this check before actually looking up the parent, right?
+> So as long as I don't trigger the "path_equal(&nd->path, &nd->root)"
+> check that you do for O_BENEATH, escaping up by one level is possible,
+> right? You should probably move this check so that it happens after
+> following "..".
+
+Yup, you're right. I'll do that.
+
+> (Also: I assume that you're going to get rid of that memory allocation
+> in a future version.)
+
+Sure. Would you prefer adding some scratch space in nameidata, or that I
+change __d_path so it accepts NULL as the buffer (and thus it doesn't
+actually do any string operations)?
+
+> >                 if (nd->path.dentry !=3D nd->path.mnt->mnt_root) {
+> >                         int ret =3D path_parent_directory(&nd->path);
+> >                         if (ret)
+> > @@ -2269,6 +2311,9 @@ static const char *path_init(struct nameidata *nd=
+, unsigned flags)
+> >         nd->last_type =3D LAST_ROOT; /* if there are only slashes... */
+> >         nd->flags =3D flags | LOOKUP_JUMPED | LOOKUP_PARENT;
+> >         nd->depth =3D 0;
+> > +       nd->m_seq =3D read_seqbegin(&mount_lock);
+> > +       nd->r_seq =3D read_seqbegin(&rename_lock);
+>=20
+> This means that now, attempting to perform a lookup while something is
+> holding the rename_lock will spin on the lock. I don't know whether
+> that's a problem in practice though. Does anyone on this thread know
+> whether this is problematic?
+
+I could make it so that we only take &rename_lock
+  if (nd->flags & (FOLLOW_BENEATH | FOLLOW_CHROOT)),
+since it's not used outside of that path.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--y5cyimyl4h3ru7zm
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAlu4GXcACgkQnhiqJn3b
+jbSetw/9H1Y6MiSjGRuK0/R1aLFbEbq0BkUgy+kdt3R+qt0BJjUU9JrmzbbUWnjC
+eQH8by6CDPNBIY5R8G/SlbcUiEoyRevo/saa14ZS5ny2vJjuxd9n82Ey9oHpZb0Y
+hSD4+dx6S4iQADq0+HbsVO/5x+9jxVr2Nmk92GkTdGd1kTeob8NmNW8rbFqteGM8
+6HJ9DxCaOC0Tlk0aY70OzavIk5rylvi4conyxoYWqE+gZIXUCRNzFBBqbxSAgUMq
+NKFkDwEK+MuCgMoGstrKvCnaGijbuTGBGjY1lKmY506wsnPO1k2hnQPDS904jOoB
+P4MjsobwBIU2Kx4lPIeDbL70E+f1AwXpmBQw2rFotf4mq79SoASM40wb/TP7HBhx
+cn9gjPO1oykB9NkJ/yhFySN3rZszXHfhNRAY2BwQeBlA5Mo1fmJCAN0E8813GCt8
+f5KLN6vYYxsnUjiY4R1yLHe4TsY+F93b0xqLkghdgpHg+78ytOvgpDR+13TShE3j
+eIcwyeG0ZCJr84Xgloeny/tc13IhtW0nnH5HgTaNXqFHpavtaRAROBXttV7ADTL2
+XSmRgIihrrN8ULpFTuwEvE7qBLwh3V9AyYhMY4XrVlanEygmdVJkn0R/CQ7lbwiV
+EW56EqlbKmen/1fN7jYU9obldALUIX+b5Iq8AktXKyOOVBeekXk=
+=EMae
+-----END PGP SIGNATURE-----
+
+--y5cyimyl4h3ru7zm--
