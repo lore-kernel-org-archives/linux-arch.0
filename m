@@ -1,64 +1,81 @@
-From: Firoz Khan <firoz.khan@linaro.org>
+From: Helge Deller <deller@gmx.de>
 Subject: Re: [PATCH v3 5/6] parisc: wire up rseq system call
-Date: Mon, 8 Oct 2018 11:22:38 +0530
-Message-ID: <CALxhOnjjWQRi6G4N-o+GZzkqc_zAYNT3RaN+P6bdEXeE=uY6-g@mail.gmail.com>
+Date: Mon, 8 Oct 2018 08:06:26 +0200
+Message-ID: <22745bed-baf6-4f08-6801-3529021cf33e@gmx.de>
 References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
  <1538975801-13735-6-git-send-email-firoz.khan@linaro.org>
  <feb53cb6-e20b-42c3-5b53-8b310c772545@gmx.de>
+ <CALxhOnjjWQRi6G4N-o+GZzkqc_zAYNT3RaN+P6bdEXeE=uY6-g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <feb53cb6-e20b-42c3-5b53-8b310c772545@gmx.de>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Helge Deller <deller@gmx.de>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-parisc@vger.kernel.org, y2038 Mailman List <y2038@lists.linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "James E . J . Bottomley" <jejb@parisc-linux.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CALxhOnjjWQRi6G4N-o+GZzkqc_zAYNT3RaN+P6bdEXeE=uY6-g@mail.gmail.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgSGVsZ2UsCgpPbiBNb24sIDggT2N0IDIwMTggYXQgMTE6MTEsIEhlbGdlIERlbGxlciA8ZGVs
-bGVyQGdteC5kZT4gd3JvdGU6Cj4KPiBPbiAwOC4xMC4yMDE4IDA3OjE2LCBGaXJveiBLaGFuIHdy
-b3RlOgo+ID4gU2lnbmVkLW9mZi1ieTogRmlyb3ogS2hhbiA8Zmlyb3oua2hhbkBsaW5hcm8ub3Jn
-Pgo+ID4gLS0tCj4gPiAgYXJjaC9wYXJpc2Mva2VybmVsL3N5c2NhbGxzL3N5c2NhbGwudGJsIHwg
-MyArKy0KPiA+ICAxIGZpbGUgY2hhbmdlZCwgMiBpbnNlcnRpb25zKCspLCAxIGRlbGV0aW9uKC0p
-Cj4gPgo+ID4gZGlmZiAtLWdpdCBhL2FyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxs
-LnRibCBiL2FyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsLnRibAo+ID4gaW5kZXgg
-NGU4NTI5My4uNDMzNGJiNyAxMDA2NDQKPiA+IC0tLSBhL2FyY2gvcGFyaXNjL2tlcm5lbC9zeXNj
-YWxscy9zeXNjYWxsLnRibAo+ID4gKysrIGIvYXJjaC9wYXJpc2Mva2VybmVsL3N5c2NhbGxzL3N5
-c2NhbGwudGJsCj4gPiBAQCAtMzQ5LDQgKzM0OSw1IEBACj4gPiAgMzQ3ICAgICBjb21tb24gIHBy
-ZWFkdjIgICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3ByZWFkdjIgICAgICAgICAgICAgICAg
-ICAgICBjb21wYXRfc3lzX3ByZWFkdjIKPiA+ICAzNDggICAgIGNvbW1vbiAgcHdyaXRldjIgICAg
-ICAgICAgICAgICAgICAgICAgICBzeXNfcHdyaXRldjIgICAgICAgICAgICAgICAgICAgIGNvbXBh
-dF9zeXNfcHdyaXRldjIKPiA+ICAzNDkgICAgIGNvbW1vbiAgc3RhdHggICAgICAgICAgICAgICAg
-ICAgICAgICAgICBzeXNfc3RhdHgKPiA+IC0zNTAgIGNvbW1vbiAgaW9fcGdldGV2ZW50cyAgICAg
-ICAgICAgICAgICAgICBzeXNfaW9fcGdldGV2ZW50cyAgICAgICAgICAgICAgIGNvbXBhdF9zeXNf
-aW9fcGdldGV2ZW50cwo+ID4gXCBObyBuZXdsaW5lIGF0IGVuZCBvZiBmaWxlCj4gPiArMzUwICBj
-b21tb24gIGlvX3BnZXRldmVudHMgICAgICAgICAgICAgICAgICAgc3lzX2lvX3BnZXRldmVudHMg
-ICAgICAgICAgICAgICBjb21wYXRfc3lzX2lvX3BnZXRldmVudHMKPiA+ICszNTEgIGNvbW1vbiAg
-cnNlcSAgICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfcnNlcSAgICAgICAgICAgICAgICAg
-ICAgICAgIGNvbXBhdF9zeXNfcnNlcQo+Cj4gWW91IGNhbid0IGFkZCB0aGUgcnNlcSBzeXNjYWxs
-IGZvciBwYXJpc2MgeWV0Lgo+IEl0IG5lZWRzIGFkZGl0aW9uYWwgY29kZSBpbiB0aGUga2VybmVs
-IGZvciBwYXJpc2Mgd2hpY2ggaGFzbid0IGJlZW4gdGVzdGVkIHlldC4KPiBTZWUgbXkgaW5pdGlh
-bCB1bnRlc3RlZCBwYXRjaCBhdCBodHRwczovL3BhdGNod29yay5rZXJuZWwub3JnL3BhdGNoLzEw
-NDk1MjA5LwoKVGhhbmtzIGZvciB5b3VyIHVwZGF0ZSEKCldoZW4gSSBjb21waWxlZCB0aGUga2Vy
-bmVsIEkgZ290IGJlbG93IHdhcm5pbmdzLgoKPHN0ZGluPjo2OTY6Mjogd2FybmluZzogI3dhcm5p
-bmcgc3lzY2FsbCBuZnNzZXJ2Y3RsIG5vdCBpbXBsZW1lbnRlZCBbLVdjcHBdCjxzdGRpbj46MTMz
-NToyOiB3YXJuaW5nOiAjd2FybmluZyBzeXNjYWxsIHJzZXEgbm90IGltcGxlbWVudGVkIFstV2Nw
-cF0KCkkgYWRkZWQgYW4gSUdOT1JFIGVudHJ5IG5mc3NlcnZjdGwgaW4gc2NyaXB0L2NoZWNrc3lz
-Y2FsbHMuc2ggYmVjYXVzZSB0aGlzCnN5c2NhbGwgaXMgZ29uZS4gQnV0IHdlIGRlZmluaXRlbHkg
-aGF2ZSB0byBrZWVwIHJzZXEgZW50cnkgb24gcGFyaXNjCmFyY2hpdGVjdHVyZS4KCkkgY2FuIGln
-bm9yZSB0aGlzIHBhdGNoIGN1cnJlbnRseSBhcyB5b3VyIHBhdGNoIG5vdCB5ZXQgdGVzdGVkLgoK
-RllJLCBJIGhhdmUgbWVyZ2VkIHRoZSBzeXN0ZW0gY2FsbCB0YWJsZSBmaWxlcyBiYXNlZCBvbiBv
-dXIgcHJldmlvdXMKZGlzY3Vzc2lvbnMuClBsZWFzZSBjb21tZW50IG9uIHRoYXQuCgpJIHdvdWxk
-IGFwcHJlY2lhdGUgaWYgeW91IGNhbiBwZXJmb3JtIGEgYm9vdCB0ZXN0IHdpdGhvdXQgdGhpcyBw
-YXRjaApvbiB0aGUgYWN0dWFsCnBsYXRmb3JtLgoKRmlyb3oKCj4KPiBIZWxnZQpfX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QK
-WTIwMzhAbGlzdHMubGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9s
-aXN0aW5mby95MjAzOAo=
+On 08.10.2018 07:52, Firoz Khan wrote:
+> Hi Helge,
+> 
+> On Mon, 8 Oct 2018 at 11:11, Helge Deller <deller@gmx.de> wrote:
+>>
+>> On 08.10.2018 07:16, Firoz Khan wrote:
+>>> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+>>> ---
+>>>  arch/parisc/kernel/syscalls/syscall.tbl | 3 ++-
+>>>  1 file changed, 2 insertions(+), 1 deletion(-)
+>>>
+>>> diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
+>>> index 4e85293..4334bb7 100644
+>>> --- a/arch/parisc/kernel/syscalls/syscall.tbl
+>>> +++ b/arch/parisc/kernel/syscalls/syscall.tbl
+>>> @@ -349,4 +349,5 @@
+>>>  347     common  preadv2                         sys_preadv2                     compat_sys_preadv2
+>>>  348     common  pwritev2                        sys_pwritev2                    compat_sys_pwritev2
+>>>  349     common  statx                           sys_statx
+>>> -350  common  io_pgetevents                   sys_io_pgetevents               compat_sys_io_pgetevents
+>>> \ No newline at end of file
+>>> +350  common  io_pgetevents                   sys_io_pgetevents               compat_sys_io_pgetevents
+>>> +351  common  rseq                            sys_rseq                        compat_sys_rseq
+>>
+>> You can't add the rseq syscall for parisc yet.
+>> It needs additional code in the kernel for parisc which hasn't been tested yet.
+>> See my initial untested patch at https://patchwork.kernel.org/patch/10495209/
+> 
+> Thanks for your update!
+> 
+> When I compiled the kernel I got below warnings.
+> 
+> <stdin>:696:2: warning: #warning syscall nfsservctl not implemented [-Wcpp]
+> <stdin>:1335:2: warning: #warning syscall rseq not implemented [-Wcpp]
+> 
+> I added an IGNORE entry nfsservctl in script/checksyscalls.sh because this
+> syscall is gone. But we definitely have to keep rseq entry on parisc
+> architecture.
+
+I prefer to keep the warning for rseq for now.
+It reminds me that we still may want the rseq syscall.
+If the warning is a problem, you may simply add the __IGNORE_rseq define. 
+
+> I can ignore this patch currently as your patch not yet tested.
+> 
+> FYI, I have merged the system call table files based on our previous
+> discussions.
+> Please comment on that.
+
+I'll do after testing.
+
+Thanks!
+Helge
+ 
+> I would appreciate if you can perform a boot test without this patch
+> on the actual
+> platform.
+> 
+> Firoz
+> 
+>>
+>> Helge
