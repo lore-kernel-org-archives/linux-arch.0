@@ -1,83 +1,68 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 0/6] System call table generation support
-Date: Mon,  8 Oct 2018 10:46:35 +0530
-Message-ID: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+Subject: [PATCH v3 1/6] parisc: move __IGNORE* entries to non uapi header
+Date: Mon,  8 Oct 2018 10:46:36 +0530
+Message-ID: <1538975801-13735-2-git-send-email-firoz.khan@linaro.org>
+References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org, deepa.kernel@gmail.com
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-VGhlIHB1cnBvc2Ugb2YgdGhpcyBwYXRjaCBzZXJpZXMgaXM6CjEuIFdlIGNhbiBlYXNpbHkgYWRk
-L21vZGlmeS9kZWxldGUgc3lzdGVtIGNhbGwgYnkgY2hhbmdpbmcgZW50cnkgCmluIHN5c2NhbGwu
-dGJsIGZpbGUuIE5vIG5lZWQgdG8gbWFudWFsbHkgZWRpdCBtYW55IGZpbGVzLgoKMi4gSXQgaXMg
-ZWFzeSB0byB1bmlmeSB0aGUgc3lzdGVtIGNhbGwgaW1wbGVtZW50YXRpb24gYWNyb3NzIGFsbCAK
-dGhlIGFyY2hpdGVjdHVyZXMuIAoKVGhlIHN5c3RlbSBjYWxsIHRhYmxlcyBhcmUgaW4gZGlmZmVy
-ZW50IGZvcm1hdCBpbiBhbGwgYXJjaGl0ZWN0dXJlIAphbmQgaXQgd2lsbCBiZSBkaWZmaWN1bHQg
-dG8gbWFudWFsbHkgYWRkIG9yIG1vZGlmeSB0aGUgc3lzdGVtIGNhbGxzCmluIHRoZSByZXNwZWN0
-aXZlIGZpbGVzIG1hbnVhbGx5LiBUbyBtYWtlIGl0IGVhc3kgYnkga2VlcGluZyBhIHNjcmlwdCAK
-YW5kIHdoaWNoJ2xsIGdlbmVyYXRlIHRoZSBoZWFkZXIgZmlsZSBhbmQgc3lzY2FsbCB0YWJsZSBm
-aWxlIHNvIHRoaXMgCmNoYW5nZSB3aWxsIHVuaWZ5IHRoZW0gYWNyb3NzIGFsbCBhcmNoaXRlY3R1
-cmVzLgoKc3lzY2FsbC50YmwgY29udGFpbnMgdGhlIGxpc3Qgb2YgYXZhaWxhYmxlIHN5c3RlbSBj
-YWxscyBhbG9uZyB3aXRoIApzeXN0ZW0gY2FsbCBudW1iZXIgYW5kIGNvcnJlc3BvbmRpbmcgZW50
-cnkgcG9pbnQuIEFkZCBhIG5ldyBzeXN0ZW0gCmNhbGwgaW4gdGhpcyBhcmNoaXRlY3R1cmUgd2ls
-bCBiZSBwb3NzaWJsZSBieSBhZGRpbmcgbmV3IGVudHJ5IGluIAp0aGUgc3lzY2FsbC50YmwgZmls
-ZS4KCkFkZGluZyBhIG5ldyB0YWJsZSBlbnRyeSBjb25zaXN0aW5nIG9mOgogICAgICAgIC0gU3lz
-dGVtIGNhbGwgbnVtYmVyLgogICAgICAgIC0gQUJJLgogICAgICAgIC0gU3lzdGVtIGNhbGwgbmFt
-ZS4KICAgICAgICAtIEVudHJ5IHBvaW50IG5hbWUuCiAgICAgICAgLSBDb21wYXQgZW50cnkgbmFt
-ZSwgaWYgcmVxdWlyZWQuCgpBUk0sIHMzOTAgYW5kIHg4NiBhcmNoaXRlY3V0dXJlIGRvZXMgZXhp
-c3QgdGhlIHNpbWlsYXIgc3VwcG9ydC4gSSAKbGV2ZXJhZ2UgdGhlaXIgaW1wbGVtZW50YXRpb24g
-dG8gY29tZSB1cCB3aXRoIGEgZ2VuZXJpYyBzb2x1dGlvbi4KCkkgaGF2ZSBkb25lIHRoZSBzYW1l
-IHN1cHBvcnQgZm9yIHdvcmsgZm9yIGFscGhhLCBtaWNyb2JsYXplLCBzcGFyYywKbTY4aywgbWlw
-cywgcG93ZXJwYywgc2gsIHNwYXJjLCBhbmQgeHRlbnNhLiBCdXQgSSBzdGFydGVkIHNlbmRpbmcg
-CnRoZSBwYXRjaCBmb3Igb25lIGFyY2hpdGVjdXR1cmUgZm9yIHJldmlldy4gQmVsb3cgbWVudGlv
-bmVkIGdpdApyZXBvc2l0b3J5IGNvbnRhaW5zIG1vcmUgZGV0YWlscy4KR2l0IHJlcG86LSBodHRw
-czovL2dpdGh1Yi5jb20vZnJ6a2huL3N5c3RlbV9jYWxsX3RhYmxlX2dlbmVyYXRvci8KCkFkZGVk
-IGFuIGlnbm9yZSBlbnRyeSBmb3IgbmZzc2VydmN0bCBpbiBzY3JpcHQvY2hlY2tzeXNjYWxscy5z
-aC4KV2lyZWQgdXAgcnNlcSBzeXN0ZW0gY2FsbC4KCkZpbmFsbHksIHRoaXMgaXMgdGhlIGdyb3Vu
-ZCB3b3JrIGZvciBzb2x2aW5nIHRoZSBZMjAzOCBpc3N1ZS4gV2UgCm5lZWQgdG8gYWRkL2NoYW5n
-ZSB0d28gZG96ZW4gb2Ygc3lzdGVtIGNhbGxzIHRvIHNvbHZlIFkyMDM4IGlzc3VlLiAKU28gdGhp
-cyBwYXRjaCBzZXJpZXMgd2lsbCBoZWxwIHRvIGVhc2lseSBtb2RpZnkgZnJvbSBleGlzdGluZyAK
-c3lzdGVtIGNhbGwgdG8gWTIwMzggY29tcGF0aWJsZSBzeXN0ZW0gY2FsbHMuCgpGaXJveiBLaGFu
-ICg2KToKICBwYXJpc2M6IG1vdmUgX19JR05PUkUqIGVudHJpZXMgdG8gbm9uIHVhcGkgaGVhZGVy
-CiAgcGFyaXNjOiBhZGQgX19OUl9MaW51eF9zeXNjYWxscyBhbG9uZyB3aXRoIF9fTlJfc3lzY2Fs
-bHMKICBwYXJpc2M6IGFkZCBzeXN0ZW0gY2FsbCB0YWJsZSBnZW5lcmF0aW9uIHN1cHBvcnQKICBw
-YXJpc2M6IHVhcGkgaGVhZGVyIGFuZCBzeXN0ZW0gY2FsbCB0YWJsZSBmaWxlIGdlbmVyYXRpb24K
-ICBwYXJpc2M6IHdpcmUgdXAgcnNlcSBzeXN0ZW0gY2FsbAogIHBhcmlzYzogc3lzY2FsbHM6IEln
-bm9yZSBuZnNzZXJ2Y3RsIGZvciBvdGhlciBhcmNoaXRlY3R1cmVzCgogYXJjaC9wYXJpc2MvTWFr
-ZWZpbGUgICAgICAgICAgICAgICAgICAgICAgfCAgIDQgKwogYXJjaC9wYXJpc2MvaW5jbHVkZS9h
-c20vS2J1aWxkICAgICAgICAgICAgfCAgIDMgKwogYXJjaC9wYXJpc2MvaW5jbHVkZS9hc20vdW5p
-c3RkLmggICAgICAgICAgfCAgIDggKwogYXJjaC9wYXJpc2MvaW5jbHVkZS91YXBpL2FzbS9LYnVp
-bGQgICAgICAgfCAgIDIgKwogYXJjaC9wYXJpc2MvaW5jbHVkZS91YXBpL2FzbS91bmlzdGQuaCAg
-ICAgfCAzODIgKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQogYXJjaC9wYXJpc2Mva2VybmVsL3N5
-c2NhbGwuUyAgICAgICAgICAgICAgfCAgMTIgKy0KIGFyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxs
-X3RhYmxlLlMgICAgICAgIHwgNDU5IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQogYXJj
-aC9wYXJpc2Mva2VybmVsL3N5c2NhbGxfdGFibGVfMzIuUyAgICAgfCAgMTMgKwogYXJjaC9wYXJp
-c2Mva2VybmVsL3N5c2NhbGxfdGFibGVfNjQuUyAgICAgfCAgMjAgKysKIGFyY2gvcGFyaXNjL2tl
-cm5lbC9zeXNjYWxscy9NYWtlZmlsZSAgICAgIHwgIDU1ICsrKysKIGFyY2gvcGFyaXNjL2tlcm5l
-bC9zeXNjYWxscy9zeXNjYWxsLnRibCAgIHwgMzUzICsrKysrKysrKysrKysrKysrKysrKysrCiBh
-cmNoL3BhcmlzYy9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaCB8ICAzNSArKysKIGFyY2gv
-cGFyaXNjL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsdGJsLnNoIHwgIDQxICsrKwogc2NyaXB0cy9j
-aGVja3N5c2NhbGxzLnNoICAgICAgICAgICAgICAgICAgfCAgIDEgKwogMTQgZmlsZXMgY2hhbmdl
-ZCwgNTQ1IGluc2VydGlvbnMoKyksIDg0MyBkZWxldGlvbnMoLSkKIGRlbGV0ZSBtb2RlIDEwMDY0
-NCBhcmNoL3BhcmlzYy9rZXJuZWwvc3lzY2FsbF90YWJsZS5TCiBjcmVhdGUgbW9kZSAxMDA2NDQg
-YXJjaC9wYXJpc2Mva2VybmVsL3N5c2NhbGxfdGFibGVfMzIuUwogY3JlYXRlIG1vZGUgMTAwNjQ0
-IGFyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxsX3RhYmxlXzY0LlMKIGNyZWF0ZSBtb2RlIDEwMDY0
-NCBhcmNoL3BhcmlzYy9rZXJuZWwvc3lzY2FsbHMvTWFrZWZpbGUKIGNyZWF0ZSBtb2RlIDEwMDY0
-NCBhcmNoL3BhcmlzYy9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbC50YmwKIGNyZWF0ZSBtb2RlIDEw
-MDY0NCBhcmNoL3BhcmlzYy9rZXJuZWwvc3lzY2FsbHMvc3lzY2FsbGhkci5zaAogY3JlYXRlIG1v
-ZGUgMTAwNjQ0IGFyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsdGJsLnNoCgotLSAK
-MS45LjEKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClky
-MDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGlu
-YXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
+All the __IGNORE* entries are resides in the uapi header
+file move to non uapi header asm/unistd.h. Basically it
+is not used by any user space applications.
+
+It is correct to keep __IGNORE* entry in non uapi header
+asm/unistd.h while uapi/asm/unistd.h must hold information
+only useful for user space applications.
+
+One of the patch in this patch series will generate uapi
+headers that should present in the uapi header file. And
+some of the information which directly used by the user
+space application also need to be present in uapi file.
+
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/parisc/include/asm/unistd.h      | 6 ++++++
+ arch/parisc/include/uapi/asm/unistd.h | 7 -------
+ 2 files changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
+index 3d507d0..93fd9f6 100644
+--- a/arch/parisc/include/asm/unistd.h
++++ b/arch/parisc/include/asm/unistd.h
+@@ -8,6 +8,12 @@
+ 
+ #define SYS_ify(syscall_name)   __NR_##syscall_name
+ 
++#define __IGNORE_select                /* newselect */
++#define __IGNORE_fadvise64             /* fadvise64_64 */
++#define __IGNORE_pkey_mprotect
++#define __IGNORE_pkey_alloc
++#define __IGNORE_pkey_free
++
+ #ifndef ASM_LINE_SEP
+ # define ASM_LINE_SEP ;
+ #endif
+diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+index dc77c5a..bb52e12 100644
+--- a/arch/parisc/include/uapi/asm/unistd.h
++++ b/arch/parisc/include/uapi/asm/unistd.h
+@@ -368,13 +368,6 @@
+ 
+ #define __NR_Linux_syscalls	(__NR_io_pgetevents + 1)
+ 
+-
+-#define __IGNORE_select		/* newselect */
+-#define __IGNORE_fadvise64	/* fadvise64_64 */
+-#define __IGNORE_pkey_mprotect
+-#define __IGNORE_pkey_alloc
+-#define __IGNORE_pkey_free
+-
+ #define LINUX_GATEWAY_ADDR      0x100
+ 
+ #endif /* _UAPI_ASM_PARISC_UNISTD_H_ */
+-- 
+1.9.1
