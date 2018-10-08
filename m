@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 5/6] parisc: wire up rseq system call
-Date: Mon,  8 Oct 2018 10:46:40 +0530
-Message-ID: <1538975801-13735-6-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v3 6/6] parisc: syscalls: Ignore nfsservctl for other architectures
+Date: Mon,  8 Oct 2018 10:46:41 +0530
+Message-ID: <1538975801-13735-7-git-send-email-firoz.khan@linaro.org>
 References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
@@ -10,22 +10,31 @@ To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.o
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
+This adds an exception to the syscall table checking script.
+
+nfsservctl entry is only provided on x86, and there is no
+reason to add it elsewhere. However, including it on the
+syscall table caused a warning for most configurations on
+non-x86.
+
+<stdin>:696:2: warning: #warning syscall nfsservctl not implemented [-Wcpp]
+
 Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 ---
- arch/parisc/kernel/syscalls/syscall.tbl | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ scripts/checksyscalls.sh | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-index 4e85293..4334bb7 100644
---- a/arch/parisc/kernel/syscalls/syscall.tbl
-+++ b/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -349,4 +349,5 @@
- 347     common  preadv2                         sys_preadv2                     compat_sys_preadv2
- 348     common  pwritev2                        sys_pwritev2                    compat_sys_pwritev2
- 349     common  statx                           sys_statx
--350	common  io_pgetevents			sys_io_pgetevents		compat_sys_io_pgetevents
-\ No newline at end of file
-+350	common  io_pgetevents			sys_io_pgetevents		compat_sys_io_pgetevents
-+351	common	rseq				sys_rseq			compat_sys_rseq
+diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
+index ee3dfb5..cf93100 100755
+--- a/scripts/checksyscalls.sh
++++ b/scripts/checksyscalls.sh
+@@ -150,6 +150,7 @@ cat << EOF
+ #define __IGNORE_uselib
+ #define __IGNORE__sysctl
+ #define __IGNORE_arch_prctl
++#define __IGNORE_nfsservctl
+ 
+ /* ... including the "new" 32-bit uid syscalls */
+ #define __IGNORE_lchown32
 -- 
 1.9.1
