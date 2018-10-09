@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49586 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49496 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727376AbeJIUnK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:10 -0400
+        with ESMTP id S1727376AbeJIUnH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:07 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 20/33] powerpc/dma: remove the iommu fallback for coherent allocations
-Date: Tue,  9 Oct 2018 15:24:47 +0200
-Message-ID: <20181009132500.17643-21-hch@lst.de>
+Subject: [PATCH 14/33] powerpc/dart: use the generic iommu bypass code
+Date: Tue,  9 Oct 2018 15:24:41 +0200
+Message-ID: <20181009132500.17643-15-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,131 +15,88 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132447.WKKggiVwHxRETYnZRsvzYCYNA5AZBOqQTHWcsnje4lo@z>
+Message-ID: <20181009132441.CRy2lXbNDYLMUDSAY7oDLdm7U8EZpzaxXR9ElspHrZ4@z>
 
-All iommu capable platforms now always use the iommu code with the
-internal bypass, so there is not need for this magic anymore.
+Use the generic iommu bypass code instead of overriding set_dma_mask.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/Kconfig      |  4 ---
- arch/powerpc/kernel/dma.c | 68 ++-------------------------------------
- 2 files changed, 2 insertions(+), 70 deletions(-)
+ arch/powerpc/sysdev/dart_iommu.c | 45 +++++++++++---------------------
+ 1 file changed, 15 insertions(+), 30 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 06996df07cad..7097019d8907 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -119,9 +119,6 @@ config GENERIC_HWEIGHT
- 	bool
- 	default y
- 
--config ARCH_HAS_DMA_SET_COHERENT_MASK
--        bool
--
- config PPC
- 	bool
- 	default y
-@@ -129,7 +126,6 @@ config PPC
- 	# Please keep this list sorted alphabetically.
- 	#
- 	select ARCH_HAS_DEVMEM_IS_ALLOWED
--	select ARCH_HAS_DMA_SET_COHERENT_MASK
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_FORTIFY_SOURCE
- 	select ARCH_HAS_GCOV_PROFILE_ALL
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 78ef4076e15c..bef91b8ad064 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -114,51 +114,6 @@ void __dma_nommu_free_coherent(struct device *dev, size_t size,
+diff --git a/arch/powerpc/sysdev/dart_iommu.c b/arch/powerpc/sysdev/dart_iommu.c
+index ce5dd2048f57..e7d1645a2d2e 100644
+--- a/arch/powerpc/sysdev/dart_iommu.c
++++ b/arch/powerpc/sysdev/dart_iommu.c
+@@ -360,13 +360,6 @@ static void iommu_table_dart_setup(void)
+ 	set_bit(iommu_table_dart.it_size - 1, iommu_table_dart.it_map);
  }
- #endif /* !CONFIG_NOT_COHERENT_CACHE */
  
--static void *dma_nommu_alloc_coherent(struct device *dev, size_t size,
--				       dma_addr_t *dma_handle, gfp_t flag,
--				       unsigned long attrs)
+-static void pci_dma_dev_setup_dart(struct pci_dev *dev)
 -{
--	struct iommu_table *iommu;
--
--	/* The coherent mask may be smaller than the real mask, check if
--	 * we can really use the direct ops
--	 */
--	if (dma_nommu_dma_supported(dev, dev->coherent_dma_mask))
--		return __dma_nommu_alloc_coherent(dev, size, dma_handle,
--						   flag, attrs);
--
--	/* Ok we can't ... do we have an iommu ? If not, fail */
--	iommu = get_iommu_table_base(dev);
--	if (!iommu)
--		return NULL;
--
--	/* Try to use the iommu */
--	return iommu_alloc_coherent(dev, iommu, size, dma_handle,
--				    dev->coherent_dma_mask, flag,
--				    dev_to_node(dev));
+-	if (dart_is_u4)
+-		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
+-	set_iommu_table_base(&dev->dev, &iommu_table_dart);
 -}
 -
--static void dma_nommu_free_coherent(struct device *dev, size_t size,
--				     void *vaddr, dma_addr_t dma_handle,
--				     unsigned long attrs)
--{
--	struct iommu_table *iommu;
--
--	/* See comments in dma_nommu_alloc_coherent() */
--	if (dma_nommu_dma_supported(dev, dev->coherent_dma_mask))
--		return __dma_nommu_free_coherent(dev, size, vaddr, dma_handle,
--						  attrs);
--	/* Maybe we used an iommu ... */
--	iommu = get_iommu_table_base(dev);
--
--	/* If we hit that we should have never allocated in the first
--	 * place so how come we are freeing ?
--	 */
--	if (WARN_ON(!iommu))
--		return;
--	iommu_free_coherent(iommu, size, vaddr, dma_handle);
--}
--
- int dma_nommu_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
- 			     void *cpu_addr, dma_addr_t handle, size_t size,
- 			     unsigned long attrs)
-@@ -228,8 +183,8 @@ static inline void dma_nommu_sync_single(struct device *dev,
- #endif
- 
- const struct dma_map_ops dma_nommu_ops = {
--	.alloc				= dma_nommu_alloc_coherent,
--	.free				= dma_nommu_free_coherent,
-+	.alloc				= __dma_nommu_alloc_coherent,
-+	.free				= __dma_nommu_free_coherent,
- 	.mmap				= dma_nommu_mmap_coherent,
- 	.map_sg				= dma_nommu_map_sg,
- 	.dma_supported			= dma_nommu_dma_supported,
-@@ -243,25 +198,6 @@ const struct dma_map_ops dma_nommu_ops = {
- };
- EXPORT_SYMBOL(dma_nommu_ops);
- 
--int dma_set_coherent_mask(struct device *dev, u64 mask)
--{
--	if (!dma_supported(dev, mask)) {
--		/*
--		 * We need to special case the direct DMA ops which can
--		 * support a fallback for coherent allocations. There
--		 * is no dma_op->set_coherent_mask() so we have to do
--		 * things the hard way:
--		 */
--		if (get_dma_ops(dev) != &dma_nommu_ops ||
--		    get_iommu_table_base(dev) == NULL ||
--		    !dma_iommu_dma_supported(dev, mask))
--			return -EIO;
--	}
--	dev->coherent_dma_mask = mask;
--	return 0;
--}
--EXPORT_SYMBOL(dma_set_coherent_mask);
--
- int dma_set_mask(struct device *dev, u64 dma_mask)
+ static void pci_dma_bus_setup_dart(struct pci_bus *bus)
  {
- 	if (ppc_md.dma_set_mask)
+ 	if (!iommu_table_dart_inited) {
+@@ -390,27 +383,16 @@ static bool dart_device_on_pcie(struct device *dev)
+ 	return false;
+ }
+ 
+-static int dart_dma_set_mask(struct device *dev, u64 dma_mask)
++static void pci_dma_dev_setup_dart(struct pci_dev *dev)
+ {
+-	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
+-		return -EIO;
+-
+-	/* U4 supports a DART bypass, we use it for 64-bit capable
+-	 * devices to improve performances. However, that only works
+-	 * for devices connected to U4 own PCIe interface, not bridged
+-	 * through hypertransport. We need the device to support at
+-	 * least 40 bits of addresses.
+-	 */
+-	if (dart_device_on_pcie(dev) && dma_mask >= DMA_BIT_MASK(40)) {
+-		dev_info(dev, "Using 64-bit DMA iommu bypass\n");
+-		set_dma_ops(dev, &dma_nommu_ops);
+-	} else {
+-		dev_info(dev, "Using 32-bit DMA via iommu\n");
+-		set_dma_ops(dev, &dma_iommu_ops);
+-	}
++	if (dart_is_u4 && dart_device_on_pcie(&dev->dev))
++		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
++	set_iommu_table_base(&dev->dev, &iommu_table_dart);
++}
+ 
+-	*dev->dma_mask = dma_mask;
+-	return 0;
++static bool iommu_bypass_supported_dart(struct pci_dev *dev, u64 mask)
++{
++	return dart_is_u4 && dart_device_on_pcie(&dev->dev);
+ }
+ 
+ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+@@ -430,12 +412,15 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+ 	if (dart_init(dn) != 0)
+ 		return;
+ 
+-	/* Setup bypass if supported */
+-	if (dart_is_u4)
+-		ppc_md.dma_set_mask = dart_dma_set_mask;
+-
++	/*
++	 * U4 supports a DART bypass, we use it for 64-bit capable devices to
++	 * improve performance.  However, that only works for devices connected
++	 * to the U4 own PCIe interface, not bridged through hypertransport.
++	 * We need the device to support at least 40 bits of addresses.
++	 */
+ 	controller_ops->dma_dev_setup = pci_dma_dev_setup_dart;
+ 	controller_ops->dma_bus_setup = pci_dma_bus_setup_dart;
++	controller_ops->iommu_bypass_supported = iommu_bypass_supported_dart;
+ 
+ 	/* Setup pci_dma ops */
+ 	set_pci_dma_ops(&dma_iommu_ops);
 -- 
 2.19.0
