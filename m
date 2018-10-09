@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49592 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49594 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727477AbeJIUnK (ORCPT
+        with ESMTP id S1727476AbeJIUnK (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:10 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/33] powerpc/powernv: remove pnv_pci_ioda_pe_single_vendor
-Date: Tue,  9 Oct 2018 15:24:42 +0200
-Message-ID: <20181009132500.17643-16-hch@lst.de>
+Subject: [PATCH 19/33] powerpc/pci: remove the dma_set_mask pci_controller ops methods
+Date: Tue,  9 Oct 2018 15:24:46 +0200
+Message-ID: <20181009132500.17643-20-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,62 +15,46 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132442.C6bz4n34hHTmh0z-vLS3DH3jxoT6cpEuaE3H8-SyXZk@z>
+Message-ID: <20181009132446.CwrkIIHLuDNQtQRIEKp4VMVzXiM-tkUuf1EyUEicRkY@z>
 
-This function is completely bogus - the fact that two PCIe devices come
-from the same vendor has absolutely nothing to say about the DMA
-capabilities and characteristics.
+Unused now.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/platforms/powernv/pci-ioda.c | 28 ++---------------------
- 1 file changed, 2 insertions(+), 26 deletions(-)
+ arch/powerpc/include/asm/pci-bridge.h | 2 --
+ arch/powerpc/kernel/dma.c             | 7 -------
+ 2 files changed, 9 deletions(-)
 
-diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
-index cde710297a4e..913175ba1c10 100644
---- a/arch/powerpc/platforms/powernv/pci-ioda.c
-+++ b/arch/powerpc/platforms/powernv/pci-ioda.c
-@@ -1746,31 +1746,6 @@ static void pnv_pci_ioda_dma_dev_setup(struct pnv_phb *phb, struct pci_dev *pdev
- 	 */
- }
+diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
+index aace7033fa02..a50703af7db3 100644
+--- a/arch/powerpc/include/asm/pci-bridge.h
++++ b/arch/powerpc/include/asm/pci-bridge.h
+@@ -45,8 +45,6 @@ struct pci_controller_ops {
+ 	void		(*teardown_msi_irqs)(struct pci_dev *pdev);
+ #endif
  
--static bool pnv_pci_ioda_pe_single_vendor(struct pnv_ioda_pe *pe)
--{
--	unsigned short vendor = 0;
--	struct pci_dev *pdev;
+-	int             (*dma_set_mask)(struct pci_dev *pdev, u64 dma_mask);
 -
--	if (pe->device_count == 1)
--		return true;
--
--	/* pe->pdev should be set if it's a single device, pe->pbus if not */
--	if (!pe->pbus)
--		return true;
--
--	list_for_each_entry(pdev, &pe->pbus->devices, bus_list) {
--		if (!vendor) {
--			vendor = pdev->vendor;
--			continue;
--		}
--
--		if (pdev->vendor != vendor)
--			return false;
+ 	void		(*shutdown)(struct pci_controller *hose);
+ };
+ 
+diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
+index 9ca9d2cec4ed..78ef4076e15c 100644
+--- a/arch/powerpc/kernel/dma.c
++++ b/arch/powerpc/kernel/dma.c
+@@ -267,13 +267,6 @@ int dma_set_mask(struct device *dev, u64 dma_mask)
+ 	if (ppc_md.dma_set_mask)
+ 		return ppc_md.dma_set_mask(dev, dma_mask);
+ 
+-	if (dev_is_pci(dev)) {
+-		struct pci_dev *pdev = to_pci_dev(dev);
+-		struct pci_controller *phb = pci_bus_to_host(pdev->bus);
+-		if (phb->controller_ops.dma_set_mask)
+-			return phb->controller_ops.dma_set_mask(pdev, dma_mask);
 -	}
 -
--	return true;
--}
--
- /*
-  * Reconfigure TVE#0 to be usable as 64-bit DMA space.
-  *
-@@ -1871,7 +1846,8 @@ static int pnv_pci_ioda_dma_set_mask(struct pci_dev *pdev, u64 dma_mask)
- 		 */
- 		if (dma_mask >> 32 &&
- 		    dma_mask > (memory_hotplug_max() + (1ULL << 32)) &&
--		    pnv_pci_ioda_pe_single_vendor(pe) &&
-+		    /* pe->pdev should be set if it's a single device, pe->pbus if not */
-+		    (pe->device_count == 1 || !pe->pbus) &&
- 		    phb->model == PNV_PHB_MODEL_PHB3) {
- 			/* Configure the bypass mode */
- 			rc = pnv_pci_ioda_dma_64bit_bypass(pe);
+ 	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
+ 		return -EIO;
+ 	*dev->dma_mask = dma_mask;
 -- 
 2.19.0
