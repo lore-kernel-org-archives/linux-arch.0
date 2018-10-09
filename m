@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49968 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49534 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727705AbeJIUnU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:20 -0400
+        with ESMTP id S1727374AbeJIUnI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:08 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 25/33] cxl: drop the dma_set_mask callback from vphb
-Date: Tue,  9 Oct 2018 15:24:52 +0200
-Message-ID: <20181009132500.17643-26-hch@lst.de>
+Subject: [PATCH 18/33] powerpc/dma: stop overriding dma_get_required_mask
+Date: Tue,  9 Oct 2018 15:24:45 +0200
+Message-ID: <20181009132500.17643-19-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,46 +15,158 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132452.DbRlhbviQLZRUFGC6tk_4RLyKvAHuJalsrxhwMWR2wM@z>
+Message-ID: <20181009132445.7yv6Ml-2-vqBlt8lgfQ2sgV7iDk16PHcIyVKV8nblRQ@z>
 
-The CXL code never even looks at the dma mask, so there is no good
-reason for this sanity check.  Remove it because it gets in the way
-of the dma ops refactoring.
+The ppc_md and pci_controller_ops methods are unused now and can be
+removed.  The dma_nommu implementation is generic to the generic one
+except for using max_pfn instead of calling into the memblock API,
+and all other dma_map_ops instances implement a method of their own.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/misc/cxl/vphb.c | 12 ------------
- 1 file changed, 12 deletions(-)
+ arch/powerpc/include/asm/device.h      |  2 --
+ arch/powerpc/include/asm/dma-mapping.h |  2 --
+ arch/powerpc/include/asm/machdep.h     |  2 --
+ arch/powerpc/include/asm/pci-bridge.h  |  1 -
+ arch/powerpc/kernel/dma.c              | 42 --------------------------
+ drivers/base/platform.c                |  2 --
+ 6 files changed, 51 deletions(-)
 
-diff --git a/drivers/misc/cxl/vphb.c b/drivers/misc/cxl/vphb.c
-index 7908633d9204..49da2f744bbf 100644
---- a/drivers/misc/cxl/vphb.c
-+++ b/drivers/misc/cxl/vphb.c
-@@ -11,17 +11,6 @@
- #include <misc/cxl.h>
- #include "cxl.h"
- 
--static int cxl_dma_set_mask(struct pci_dev *pdev, u64 dma_mask)
--{
--	if (dma_mask < DMA_BIT_MASK(64)) {
--		pr_info("%s only 64bit DMA supported on CXL", __func__);
--		return -EIO;
--	}
--
--	*(pdev->dev.dma_mask) = dma_mask;
--	return 0;
--}
--
- static int cxl_pci_probe_mode(struct pci_bus *bus)
- {
- 	return PCI_PROBE_NORMAL;
-@@ -220,7 +209,6 @@ static struct pci_controller_ops cxl_pci_controller_ops =
- 	.reset_secondary_bus = cxl_pci_reset_secondary_bus,
- 	.setup_msi_irqs = cxl_setup_msi_irqs,
- 	.teardown_msi_irqs = cxl_teardown_msi_irqs,
--	.dma_set_mask = cxl_dma_set_mask,
+diff --git a/arch/powerpc/include/asm/device.h b/arch/powerpc/include/asm/device.h
+index 1aa53318b4bc..3814e1c2d4bc 100644
+--- a/arch/powerpc/include/asm/device.h
++++ b/arch/powerpc/include/asm/device.h
+@@ -59,6 +59,4 @@ struct pdev_archdata {
+ 	u64 dma_mask;
  };
  
- int cxl_pci_vphb_add(struct cxl_afu *afu)
+-#define ARCH_HAS_DMA_GET_REQUIRED_MASK
+-
+ #endif /* _ASM_POWERPC_DEVICE_H */
+diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
+index 59c090b7eaac..b1999880fc61 100644
+--- a/arch/powerpc/include/asm/dma-mapping.h
++++ b/arch/powerpc/include/asm/dma-mapping.h
+@@ -112,7 +112,5 @@ static inline void set_dma_offset(struct device *dev, dma_addr_t off)
+ #define HAVE_ARCH_DMA_SET_MASK 1
+ extern int dma_set_mask(struct device *dev, u64 dma_mask);
+ 
+-extern u64 __dma_get_required_mask(struct device *dev);
+-
+ #endif /* __KERNEL__ */
+ #endif	/* _ASM_DMA_MAPPING_H */
+diff --git a/arch/powerpc/include/asm/machdep.h b/arch/powerpc/include/asm/machdep.h
+index a47de82fb8e2..99f06102474e 100644
+--- a/arch/powerpc/include/asm/machdep.h
++++ b/arch/powerpc/include/asm/machdep.h
+@@ -47,9 +47,7 @@ struct machdep_calls {
+ #endif
+ #endif /* CONFIG_PPC64 */
+ 
+-	/* Platform set_dma_mask and dma_get_required_mask overrides */
+ 	int		(*dma_set_mask)(struct device *dev, u64 dma_mask);
+-	u64		(*dma_get_required_mask)(struct device *dev);
+ 
+ 	int		(*probe)(void);
+ 	void		(*setup_arch)(void); /* Optional, may be NULL */
+diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
+index 5c7a1e7ffc8a..aace7033fa02 100644
+--- a/arch/powerpc/include/asm/pci-bridge.h
++++ b/arch/powerpc/include/asm/pci-bridge.h
+@@ -46,7 +46,6 @@ struct pci_controller_ops {
+ #endif
+ 
+ 	int             (*dma_set_mask)(struct pci_dev *pdev, u64 dma_mask);
+-	u64		(*dma_get_required_mask)(struct pci_dev *pdev);
+ 
+ 	void		(*shutdown)(struct pci_controller *hose);
+ };
+diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
+index 716b7eab3ee7..9ca9d2cec4ed 100644
+--- a/arch/powerpc/kernel/dma.c
++++ b/arch/powerpc/kernel/dma.c
+@@ -197,18 +197,6 @@ int dma_nommu_map_sg(struct device *dev, struct scatterlist *sgl,
+ 	return nents;
+ }
+ 
+-static u64 dma_nommu_get_required_mask(struct device *dev)
+-{
+-	u64 end, mask;
+-
+-	end = memblock_end_of_DRAM() + get_dma_offset(dev);
+-
+-	mask = 1ULL << (fls64(end) - 1);
+-	mask += mask - 1;
+-
+-	return mask;
+-}
+-
+ dma_addr_t dma_nommu_map_page(struct device *dev, struct page *page,
+ 		unsigned long offset, size_t size,
+ 		enum dma_data_direction dir, unsigned long attrs)
+@@ -246,7 +234,6 @@ const struct dma_map_ops dma_nommu_ops = {
+ 	.map_sg				= dma_nommu_map_sg,
+ 	.dma_supported			= dma_nommu_dma_supported,
+ 	.map_page			= dma_nommu_map_page,
+-	.get_required_mask		= dma_nommu_get_required_mask,
+ #ifdef CONFIG_NOT_COHERENT_CACHE
+ 	.sync_single_for_cpu 		= dma_nommu_sync_single,
+ 	.sync_single_for_device 	= dma_nommu_sync_single,
+@@ -294,35 +281,6 @@ int dma_set_mask(struct device *dev, u64 dma_mask)
+ }
+ EXPORT_SYMBOL(dma_set_mask);
+ 
+-u64 __dma_get_required_mask(struct device *dev)
+-{
+-	const struct dma_map_ops *dma_ops = get_dma_ops(dev);
+-
+-	if (unlikely(dma_ops == NULL))
+-		return 0;
+-
+-	if (dma_ops->get_required_mask)
+-		return dma_ops->get_required_mask(dev);
+-
+-	return DMA_BIT_MASK(8 * sizeof(dma_addr_t));
+-}
+-
+-u64 dma_get_required_mask(struct device *dev)
+-{
+-	if (ppc_md.dma_get_required_mask)
+-		return ppc_md.dma_get_required_mask(dev);
+-
+-	if (dev_is_pci(dev)) {
+-		struct pci_dev *pdev = to_pci_dev(dev);
+-		struct pci_controller *phb = pci_bus_to_host(pdev->bus);
+-		if (phb->controller_ops.dma_get_required_mask)
+-			return phb->controller_ops.dma_get_required_mask(pdev);
+-	}
+-
+-	return __dma_get_required_mask(dev);
+-}
+-EXPORT_SYMBOL_GPL(dma_get_required_mask);
+-
+ static int __init dma_init(void)
+ {
+ #ifdef CONFIG_IBMVIO
+diff --git a/drivers/base/platform.c b/drivers/base/platform.c
+index 23cf4427f425..057357521561 100644
+--- a/drivers/base/platform.c
++++ b/drivers/base/platform.c
+@@ -1179,7 +1179,6 @@ int __init platform_bus_init(void)
+ 	return error;
+ }
+ 
+-#ifndef ARCH_HAS_DMA_GET_REQUIRED_MASK
+ static u64 dma_default_get_required_mask(struct device *dev)
+ {
+ 	u32 low_totalram = ((max_pfn - 1) << PAGE_SHIFT);
+@@ -1208,7 +1207,6 @@ u64 dma_get_required_mask(struct device *dev)
+ 	return dma_default_get_required_mask(dev);
+ }
+ EXPORT_SYMBOL_GPL(dma_get_required_mask);
+-#endif
+ 
+ static __initdata LIST_HEAD(early_platform_driver_list);
+ static __initdata LIST_HEAD(early_platform_device_list);
 -- 
 2.19.0
