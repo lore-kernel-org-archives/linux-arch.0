@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/33] powerpc/powernv: remove pnv_pci_ioda_pe_single_vendor
-Date: Tue,  9 Oct 2018 15:24:42 +0200
-Message-ID: <20181009132500.17643-16-hch@lst.de>
+Subject: [PATCH 22/33] powerpc/dma: move pci_dma_dev_setup_swiotlb to fsl_pci.c
+Date: Tue,  9 Oct 2018 15:24:49 +0200
+Message-ID: <20181009132500.17643-23-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,60 +12,70 @@ To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@sa
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This function is completely bogus - the fact that two PCIe devices come
-from the same vendor has absolutely nothing to say about the DMA
-capabilities and characteristics.
+pci_dma_dev_setup_swiotlb is only used by the fsl_pci code, and closely
+related to it, so fsl_pci.c seems like a better place for it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/platforms/powernv/pci-ioda.c | 28 ++---------------------
- 1 file changed, 2 insertions(+), 26 deletions(-)
+ arch/powerpc/include/asm/swiotlb.h |  2 --
+ arch/powerpc/kernel/dma-swiotlb.c  | 11 -----------
+ arch/powerpc/sysdev/fsl_pci.c      |  9 +++++++++
+ 3 files changed, 9 insertions(+), 13 deletions(-)
 
-diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
-index cde710297a4e..913175ba1c10 100644
---- a/arch/powerpc/platforms/powernv/pci-ioda.c
-+++ b/arch/powerpc/platforms/powernv/pci-ioda.c
-@@ -1746,31 +1746,6 @@ static void pnv_pci_ioda_dma_dev_setup(struct pnv_phb *phb, struct pci_dev *pdev
- 	 */
- }
+diff --git a/arch/powerpc/include/asm/swiotlb.h b/arch/powerpc/include/asm/swiotlb.h
+index f65ecf57b66c..26a0f12b835b 100644
+--- a/arch/powerpc/include/asm/swiotlb.h
++++ b/arch/powerpc/include/asm/swiotlb.h
+@@ -18,8 +18,6 @@ extern const struct dma_map_ops powerpc_swiotlb_dma_ops;
+ extern unsigned int ppc_swiotlb_enable;
+ int __init swiotlb_setup_bus_notifier(void);
  
--static bool pnv_pci_ioda_pe_single_vendor(struct pnv_ioda_pe *pe)
+-extern void pci_dma_dev_setup_swiotlb(struct pci_dev *pdev);
+-
+ #ifdef CONFIG_SWIOTLB
+ void swiotlb_detect_4g(void);
+ #else
+diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
+index 93a4622563c6..60cb86338233 100644
+--- a/arch/powerpc/kernel/dma-swiotlb.c
++++ b/arch/powerpc/kernel/dma-swiotlb.c
+@@ -63,17 +63,6 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
+ 	.get_required_mask = swiotlb_powerpc_get_required,
+ };
+ 
+-void pci_dma_dev_setup_swiotlb(struct pci_dev *pdev)
 -{
--	unsigned short vendor = 0;
--	struct pci_dev *pdev;
+-	struct pci_controller *hose;
+-	struct dev_archdata *sd;
 -
--	if (pe->device_count == 1)
--		return true;
--
--	/* pe->pdev should be set if it's a single device, pe->pbus if not */
--	if (!pe->pbus)
--		return true;
--
--	list_for_each_entry(pdev, &pe->pbus->devices, bus_list) {
--		if (!vendor) {
--			vendor = pdev->vendor;
--			continue;
--		}
--
--		if (pdev->vendor != vendor)
--			return false;
--	}
--
--	return true;
+-	hose = pci_bus_to_host(pdev->bus);
+-	sd = &pdev->dev.archdata;
+-	sd->max_direct_dma_addr =
+-		hose->dma_window_base_cur + hose->dma_window_size;
 -}
 -
- /*
-  * Reconfigure TVE#0 to be usable as 64-bit DMA space.
-  *
-@@ -1871,7 +1846,8 @@ static int pnv_pci_ioda_dma_set_mask(struct pci_dev *pdev, u64 dma_mask)
- 		 */
- 		if (dma_mask >> 32 &&
- 		    dma_mask > (memory_hotplug_max() + (1ULL << 32)) &&
--		    pnv_pci_ioda_pe_single_vendor(pe) &&
-+		    /* pe->pdev should be set if it's a single device, pe->pbus if not */
-+		    (pe->device_count == 1 || !pe->pbus) &&
- 		    phb->model == PNV_PHB_MODEL_PHB3) {
- 			/* Configure the bypass mode */
- 			rc = pnv_pci_ioda_dma_64bit_bypass(pe);
+ static int ppc_swiotlb_bus_notify(struct notifier_block *nb,
+ 				  unsigned long action, void *data)
+ {
+diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
+index 918be816b097..561f97d698cc 100644
+--- a/arch/powerpc/sysdev/fsl_pci.c
++++ b/arch/powerpc/sysdev/fsl_pci.c
+@@ -114,6 +114,15 @@ static struct pci_ops fsl_indirect_pcie_ops =
+ static u64 pci64_dma_offset;
+ 
+ #ifdef CONFIG_SWIOTLB
++static void pci_dma_dev_setup_swiotlb(struct pci_dev *pdev)
++{
++	struct pci_controller *hose = pci_bus_to_host(pdev->bus);
++	struct dev_archdata *sd = &pdev->dev.archdata;
++
++	sd->max_direct_dma_addr =
++		hose->dma_window_base_cur + hose->dma_window_size;
++}
++
+ static void setup_swiotlb_ops(struct pci_controller *hose)
+ {
+ 	if (ppc_swiotlb_enable) {
 -- 
 2.19.0
