@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48034 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49068 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726492AbeJIUmZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:25 -0400
+        with ESMTP id S1726476AbeJIUm4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:56 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/33] powerpc/dma: remove the unused ISA_DMA_THRESHOLD export
-Date: Tue,  9 Oct 2018 15:24:30 +0200
-Message-ID: <20181009132500.17643-4-hch@lst.de>
+Subject: [PATCH 09/33] powerpc/pseries: unwind dma_get_required_mask_pSeriesLP a bit
+Date: Tue,  9 Oct 2018 15:24:36 +0200
+Message-ID: <20181009132500.17643-10-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,25 +15,28 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132430.zjHVaUU_rCV8MrWsd4yxCXhsj2CvvUlA2cmQwvVu_p4@z>
+Message-ID: <20181009132436.A7jI1thDmqQUsmCLBK4nLai5uYF-ebS0o5L3A_s9NdQ@z>
+
+Call dma_get_required_mask_pSeriesLP directly instead of dma_iommu_ops
+to simply the code a bit.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/powerpc/kernel/setup_32.c | 1 -
- 1 file changed, 1 deletion(-)
+ arch/powerpc/platforms/pseries/iommu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/kernel/setup_32.c b/arch/powerpc/kernel/setup_32.c
-index 8c507be12c3c..3cc2e449594c 100644
---- a/arch/powerpc/kernel/setup_32.c
-+++ b/arch/powerpc/kernel/setup_32.c
-@@ -59,7 +59,6 @@ unsigned long ISA_DMA_THRESHOLD;
- unsigned int DMA_MODE_READ;
- unsigned int DMA_MODE_WRITE;
+diff --git a/arch/powerpc/platforms/pseries/iommu.c b/arch/powerpc/platforms/pseries/iommu.c
+index 06f02960b439..da5716de7f4c 100644
+--- a/arch/powerpc/platforms/pseries/iommu.c
++++ b/arch/powerpc/platforms/pseries/iommu.c
+@@ -1273,7 +1273,7 @@ static u64 dma_get_required_mask_pSeriesLP(struct device *dev)
+ 			return DMA_BIT_MASK(64);
+ 	}
  
--EXPORT_SYMBOL(ISA_DMA_THRESHOLD);
- EXPORT_SYMBOL(DMA_MODE_READ);
- EXPORT_SYMBOL(DMA_MODE_WRITE);
+-	return dma_iommu_ops.get_required_mask(dev);
++	return dma_iommu_get_required_mask(dev);
+ }
  
+ static int iommu_mem_notifier(struct notifier_block *nb, unsigned long action,
 -- 
 2.19.0
