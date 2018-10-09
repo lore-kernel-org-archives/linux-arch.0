@@ -1,145 +1,96 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v3 3/6] parisc: add system call table generation support
-Date: Tue, 9 Oct 2018 11:10:32 +0530
-Message-ID: <CALxhOniF517UCU-u-kL9OwcRXGDnmASX249LUgtZ1NLvxM53xg@mail.gmail.com>
-References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
- <1538975801-13735-4-git-send-email-firoz.khan@linaro.org> <CALxhOnj4r_MUuAa2zvkvxvhQttEvCZ98n2dA9d6CYyvVf2rB3g@mail.gmail.com>
- <20181008130301.GM32759@asgard.redhat.com> <CAK8P3a0eoCVBVOZs0VwybAnUw0OUoW4Z=NJYi8686EHKj076_Q@mail.gmail.com>
- <CALxhOniJZGNCP+Xw_9EF8hnUEG_AWwrnQ86Gbh7vAW6SrE8ykQ@mail.gmail.com>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: [PATCH v2 0/3] namei: implement various lookup restriction AT_* flags
+Date: Tue,  9 Oct 2018 17:52:56 +1100
+Message-ID: <20181009065300.11053-1-cyphar@cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOniJZGNCP+Xw_9EF8hnUEG_AWwrnQ86Gbh7vAW6SrE8ykQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: esyr@redhat.com, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Al Viro <viro@zeniv.linux.org.uk>, Eric Biederman <ebiederm@xmission.com>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, David Howells <dhowells@redhat.com>, Jann Horn <jannh@google.com>, Christian Brauner <christian@brauner.io>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 9 Oct 2018 at 11:05, Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> Hi Eugene, Arnd,
->
-> On Mon, 8 Oct 2018 at 19:27, Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > On Mon, Oct 8, 2018 at 3:02 PM Eugene Syromiatnikov <esyr@redhat.com> wrote:
-> > > > On Mon, 8 Oct 2018 at 10:47, Firoz Khan <firoz.khan@linaro.org> wrote:
-> > > > > diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-> > >
-> > > > > +84      common  lstat                           sys_newlstat                    compat_sys_newlstat
-> > > > > +85      common  readlink                        sys_readlink
-> > > > > +86      common  uselib                          sys_ni_syscall
-> > >
-> > > Why uselib is declared, contrary to all the skipped syscalls below,
-> > > that were sys_ni_syscall previously? Only __NR_socketcall was explicitly
-> > > undefined in arch/parisc/include/uapi/asm/unistd.h.
-> >
-> > Good catch, I didn't see that in my earlier review. I agree we want the
-> > files to be identical to the version they replace, so the macros need to
-> > be there for now.
-> >
-> > We may later decide to clean this up and remove all __NR_* that have
-> > no entry point, but the conversion to the new table format needs to
-> > otherwise be a nop.
-> >
-> > > > > +87      common  swapon                          sys_swapon
-> > > > > +88      common  reboot                          sys_reboot
-> > > > > +89      common  mmap2                           sys_mmap2
-> > > > > +90      common  mmap                            sys_mmap
-> > > > > +91      common  munmap                          sys_munmap
-> > > > > +92      common  truncate                        sys_truncate                    compat_sys_truncate
-> > > > > +93      common  ftruncate                       sys_ftruncate                   compat_sys_ftruncate
-> > > > > +94      common  fchmod                          sys_fchmod
-> > > > > +95      common  fchown                          sys_fchown
-> > > > > +96      common  getpriority                     sys_getpriority
-> > > > > +97      common  setpriority                     sys_setpriority
-> > > > > +98      common  recv                            sys_recv
-> > > > > +99      common  statfs                          sys_statfs                      compat_sys_statfs
-> > > > > +100     common  fstatfs                         sys_fstatfs                     compat_sys_fstatfs
-> > > > > +101     common  stat64                          sys_stat64
-> > >
-> > > It is probably worth adding a comment here that syscall 102 was
-> > > socketcall, in order to make reason for this jump in syscall numeration
-> > > self-evident.
-> >
-> > +1
-> >
-> > In general, I'd argue we want to keep all the nontrivial comments that
-> > were present in either unistd.h or syscall_table.S.
->
-> unistd_32.h, unistd_64.h, syscall_table_32.h, syscall_table_64.h and
-> syscall_table_c32.h
-> are generated files. unistd.h and syscall_table.S file include
-> generated files. I had the
-> support to keep the comments in the generated files.
->
-> Eg:- from github
-> https://github.com/frzkhn/system_call_table_generator/blob/5fe5fb5a3ad457b234e7600d8a4b61b2e3629acd/ia64/syscall.tbl#L105
->
-> But I got to know the generated file don't carry any license info and
-> comment section. That's
-> why I removed it from all architecture.
->
-> I'm ok to keep this support for all architecture. Please feel free to
-> comment here.
+The need for some sort of control over VFS's path resolution (to avoid
+malicious paths resulting in inadvertent breakouts) has been a very
+long-standing desire of many userspace applications. This patchset is a
+revival of Al Viro's old AT_NO_JUMPS[1,2] patchset (which was a variant
+of David Drysdale's O_BENEATH patchset[3] which was a spin-off of the
+capsicum patchset[4]) with a few additions and changes made based on the
+previous discussion within [5] as well as others I felt were useful.
 
-My suggestion is to leave the non trivial comments only in the .tbl file.
+As per the discussion in the AT_NO_JUMPS thread, AT_NO_JUMPS has been
+split into separate flags.
 
-Thanks
-Firoz
+  * AT_XDEV blocks mountpoint crossings (both upwards and downwards).
+      openat("/", "tmp", AT_XDEV); // blocked
+      openat("/tmp", "..", AT_XDEV); // blocked
+      openat("/tmp", "/", AT_XDEV); // blocked
 
->
-> >
-> > > > > +103     common  syslog                          sys_syslog
-> > > > > +104     common  setitimer                       sys_setitimer                   compat_sys_setitimer
-> > > > > +105     common  getitimer                       sys_getitimer                   compat_sys_getitimer
-> > > > > +106     common  capget                          sys_capget
-> > > > > +107     common  capset                          sys_capset
-> > >
-> > > > > +108     32      pread64                         parisc_pread64
-> > > > > +108     64      pread64                         sys_pread64                     parisc_pread64
-> > >
-> > > It would be probably nice to have some syntax that would allow avoid
-> > > this duplication (as compat handler on 64 bit and native on 32 bit are
-> > > the same).
-> >
-> > I think I would prefer to have the compat table be generated with the '32'
-> > abi rather than the '64' abi, so we end up with
-> >
-> > 108     32      pread64                         parisc_pread64
-> >    parisc_pread64
-> > 108     64      pread64                         sys_pread64
-> >
-> > I think this makes more sense, in particular on the other architectures
-> > that have different macro names in some cases. When we do this,
-> > the entries could get compressed to
-> >
-> > 108     32      pread64                         parisc_pread64
-> > 108     64      pread64                         sys_pread64
-> >
->
-> Sure. I can do this thing. The above one may be applicable for parisc not other
-> architecture. So the scripts might be slightly different. If we keep a
-> standard way,
-> the script will be unique. So the only difference will be Makefile and
-> .tbl files for all
-> architecture; I think that is our one of the goal.
->
-> > > > > +348     common  pwritev2                        sys_pwritev2                    compat_sys_pwritev2
-> > > > > +349     common  statx                           sys_statx
-> > > > > +350    common  io_pgetevents                   sys_io_pgetevents               compat_sys_io_pgetevents
-> > > > > \ No newline at end of file
-> >
-> > As others have commented several times, Firoz still needs to fix
-> > the missing newline.
->
-> Sure. I was wondering why the checkpatch script is not catching this one.
-> Where ever I came across I fixed it.
->
-> Thanks
-> Firoz
->
-> >
-> > Firoz, please fix all the newlines before you repost any further
-> > patches.
-> >
-> >       Arnd
+  * AT_NO_PROCLINKS blocks all resolution through /proc/$pid/fd/$fd
+	"symlinks". Specifically, this blocks all jumps caused by a
+	filesystem using nd_jump_link() to shove you around in the
+	filesystem tree (these are referred to as "proclinks" in lieu of a
+	better name).
+
+  * AT_BENEATH disallows escapes from the starting dirfd using ".." or
+	absolute paths (either in the path or during symlink resolution).
+	Conceptually this flag ensures that you "stay below" the starting
+	point in the filesystem tree. ".." resolution is allowed if it
+	doesn't land you outside of the starting point (this is made safe
+	against races by patch 3 in this series).
+
+	AT_BENEATH also currently disallows all "proclink" resolution
+	because they can trivially throw you outside of the starting point.
+	In a future patch we might allow such resolution (as long as it
+	stays within the root).
+
+In addition, two more flags have been added to the series:
+
+  * AT_NO_SYMLINKS disallows *all* symlink resolution, and thus implies
+	AT_NO_PROCLINKS. Linus mentioned this is something that git would
+	like to have in the original discussion[5].
+
+  * AT_THIS_ROOT is a very similar idea to AT_BENEATH, but it serves a
+    very different purpose. Rather than blocking resolutions if they
+	would go outside of the starting point, it treats the starting point
+	as a form of chroot(2). Container runtimes are one of the primary
+	justifications for this flag, as they currently have to implement
+	this sort of path handling racily in userspace[6].
+
+	The restrictions on "proclink" resolution are the same as with
+	AT_BENEATH (though in AT_THIS_ROOT's case it's not really clear how
+	"proclink" jumps outside of the root should be handled), and patch 3
+	in this series was also required to make ".." resolution safe.
+
+Patch changelog:
+  v2:
+    * Made ".." resolution with AT_THIS_ROOT and AT_BENEATH safe by
+	  through __d_path checking (see patch 3).
+    * Disallowed "proclinks" with AT_THIS_ROOT and AT_BENEATH, in the
+	  hopes they can be re-enabled once safe.
+    * Removed the selftests as they will be reimplemented as xfstests.
+
+[1]: https://lwn.net/Articles/721443/
+[2]: https://lore.kernel.org/patchwork/patch/784221/
+[3]: https://lwn.net/Articles/619151/
+[4]: https://lwn.net/Articles/603929/
+[5]: https://lwn.net/Articles/723057/
+[6]: https://github.com/cyphar/filepath-securejoin
+
+Aleksa Sarai (3):
+  namei: implement O_BENEATH-style AT_* flags
+  namei: implement AT_THIS_ROOT chroot-like path resolution
+  namei: aggressively check nd->root on ".." resolution
+
+ fs/fcntl.c                       |   2 +-
+ fs/namei.c                       | 192 ++++++++++++++++++++++---------
+ fs/open.c                        |  10 ++
+ fs/stat.c                        |   4 +-
+ include/linux/fcntl.h            |   3 +-
+ include/linux/namei.h            |   8 ++
+ include/uapi/asm-generic/fcntl.h |  20 ++++
+ include/uapi/linux/fcntl.h       |  10 ++
+ 8 files changed, 193 insertions(+), 56 deletions(-)
+
+-- 
+2.19.0
