@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48182 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:48776 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726664AbeJIUme (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:34 -0400
+        with ESMTP id S1726664AbeJIUmt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:49 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/33] powerpc/dma: untangle vio_dma_mapping_ops from dma_iommu_ops
-Date: Tue,  9 Oct 2018 15:24:34 +0200
-Message-ID: <20181009132500.17643-8-hch@lst.de>
+Subject: [PATCH 12/33] powerpc/cell: use the generic iommu bypass code
+Date: Tue,  9 Oct 2018 15:24:39 +0200
+Message-ID: <20181009132500.17643-13-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,212 +15,285 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132434.Ux8DpgNUDmr7rglbI3HAmAVlgwEzP7E_hgj6fX7bfoc@z>
+Message-ID: <20181009132439.t8zgtvdoaFL8TIo6jFqlUld7-UCoMneFvTBOmh3SHDw@z>
 
-vio_dma_mapping_ops currently does a lot of indirect calls through
-dma_iommu_ops, which not only make the code harder to follow but are
-also expensive in the post-spectre world.  Unwind the indirect calls
-by calling the ppc_iommu_* or iommu_* APIs directly applicable, or
-just use the dma_iommu_* methods directly where we can.
+This gets rid of a lot of clumsy code and finally allows us to mark
+dma_iommu_ops const.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/iommu.h     |  1 +
- arch/powerpc/kernel/dma-iommu.c      |  2 +-
- arch/powerpc/platforms/pseries/vio.c | 87 ++++++++++++----------------
- 3 files changed, 38 insertions(+), 52 deletions(-)
+ arch/powerpc/include/asm/dma-mapping.h |   2 +-
+ arch/powerpc/include/asm/iommu.h       |   6 ++
+ arch/powerpc/kernel/dma-iommu.c        |   7 +-
+ arch/powerpc/platforms/cell/iommu.c    | 143 ++-----------------------
+ 4 files changed, 22 insertions(+), 136 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
+index 27283eb68c50..59c090b7eaac 100644
+--- a/arch/powerpc/include/asm/dma-mapping.h
++++ b/arch/powerpc/include/asm/dma-mapping.h
+@@ -73,7 +73,7 @@ static inline unsigned long device_to_mask(struct device *dev)
+  * Available generic sets of operations
+  */
+ #ifdef CONFIG_PPC64
+-extern struct dma_map_ops dma_iommu_ops;
++extern const struct dma_map_ops dma_iommu_ops;
+ #endif
+ extern const struct dma_map_ops dma_nommu_ops;
+ 
 diff --git a/arch/powerpc/include/asm/iommu.h b/arch/powerpc/include/asm/iommu.h
-index ab3a4fba38e3..26b7cc176a99 100644
+index 26b7cc176a99..264d04f1dcd1 100644
 --- a/arch/powerpc/include/asm/iommu.h
 +++ b/arch/powerpc/include/asm/iommu.h
-@@ -244,6 +244,7 @@ static inline int __init tce_iommu_bus_notifier_init(void)
- }
- #endif /* !CONFIG_IOMMU_API */
+@@ -328,5 +328,11 @@ extern void iommu_release_ownership(struct iommu_table *tbl);
+ extern enum dma_data_direction iommu_tce_direction(unsigned long tce);
+ extern unsigned long iommu_direction_to_tce_perm(enum dma_data_direction dir);
  
-+u64 dma_iommu_get_required_mask(struct device *dev);
- int dma_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr);
- 
- #else
++#ifdef CONFIG_PPC_CELL_NATIVE
++extern bool iommu_fixed_is_weak;
++#else
++#define iommu_fixed_is_weak false
++#endif
++
+ #endif /* __KERNEL__ */
+ #endif /* _ASM_IOMMU_H */
 diff --git a/arch/powerpc/kernel/dma-iommu.c b/arch/powerpc/kernel/dma-iommu.c
-index 2ca6cfaebf65..0613278abf9f 100644
+index c865e15ad024..7fa3636636fa 100644
 --- a/arch/powerpc/kernel/dma-iommu.c
 +++ b/arch/powerpc/kernel/dma-iommu.c
-@@ -92,7 +92,7 @@ int dma_iommu_dma_supported(struct device *dev, u64 mask)
- 		return 1;
+@@ -20,14 +20,15 @@
+  */
+ static inline bool dma_iommu_alloc_bypass(struct device *dev)
+ {
+-	return dev->archdata.iommu_bypass &&
++	return dev->archdata.iommu_bypass && !iommu_fixed_is_weak &&
+ 		dma_nommu_dma_supported(dev, dev->coherent_dma_mask);
  }
  
--static u64 dma_iommu_get_required_mask(struct device *dev)
-+u64 dma_iommu_get_required_mask(struct device *dev)
- {
- 	struct iommu_table *tbl = get_iommu_table_base(dev);
- 	u64 mask;
-diff --git a/arch/powerpc/platforms/pseries/vio.c b/arch/powerpc/platforms/pseries/vio.c
-index 49e04ec19238..1dfff53ebd7f 100644
---- a/arch/powerpc/platforms/pseries/vio.c
-+++ b/arch/powerpc/platforms/pseries/vio.c
-@@ -492,7 +492,9 @@ static void *vio_dma_iommu_alloc_coherent(struct device *dev, size_t size,
- 		return NULL;
- 	}
- 
--	ret = dma_iommu_ops.alloc(dev, size, dma_handle, flag, attrs);
-+	ret = iommu_alloc_coherent(dev, get_iommu_table_base(dev), size,
-+				    dma_handle, dev->coherent_dma_mask, flag,
-+				    dev_to_node(dev));
- 	if (unlikely(ret == NULL)) {
- 		vio_cmo_dealloc(viodev, roundup(size, PAGE_SIZE));
- 		atomic_inc(&viodev->cmo.allocs_failed);
-@@ -507,8 +509,7 @@ static void vio_dma_iommu_free_coherent(struct device *dev, size_t size,
- {
- 	struct vio_dev *viodev = to_vio_dev(dev);
- 
--	dma_iommu_ops.free(dev, size, vaddr, dma_handle, attrs);
--
-+	iommu_free_coherent(get_iommu_table_base(dev), size, vaddr, dma_handle);
- 	vio_cmo_dealloc(viodev, roundup(size, PAGE_SIZE));
- }
- 
-@@ -518,22 +519,22 @@ static dma_addr_t vio_dma_iommu_map_page(struct device *dev, struct page *page,
-                                          unsigned long attrs)
- {
- 	struct vio_dev *viodev = to_vio_dev(dev);
--	struct iommu_table *tbl;
-+	struct iommu_table *tbl = get_iommu_table_base(dev);
- 	dma_addr_t ret = IOMMU_MAPPING_ERROR;
- 
--	tbl = get_iommu_table_base(dev);
--	if (vio_cmo_alloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl)))) {
--		atomic_inc(&viodev->cmo.allocs_failed);
--		return ret;
--	}
--
--	ret = dma_iommu_ops.map_page(dev, page, offset, size, direction, attrs);
--	if (unlikely(dma_mapping_error(dev, ret))) {
--		vio_cmo_dealloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl)));
--		atomic_inc(&viodev->cmo.allocs_failed);
--	}
--
-+	if (vio_cmo_alloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl))))
-+		goto out_fail;
-+	ret = iommu_map_page(dev, tbl, page, offset, size, device_to_mask(dev),
-+			direction, attrs);
-+	if (unlikely(ret == IOMMU_MAPPING_ERROR))
-+		goto out_deallocate;
- 	return ret;
-+
-+out_deallocate:
-+	vio_cmo_dealloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl)));
-+out_fail:
-+	atomic_inc(&viodev->cmo.allocs_failed);
-+	return IOMMU_MAPPING_ERROR;
- }
- 
- static void vio_dma_iommu_unmap_page(struct device *dev, dma_addr_t dma_handle,
-@@ -542,11 +543,9 @@ static void vio_dma_iommu_unmap_page(struct device *dev, dma_addr_t dma_handle,
- 				     unsigned long attrs)
- {
- 	struct vio_dev *viodev = to_vio_dev(dev);
--	struct iommu_table *tbl;
--
--	tbl = get_iommu_table_base(dev);
--	dma_iommu_ops.unmap_page(dev, dma_handle, size, direction, attrs);
-+	struct iommu_table *tbl = get_iommu_table_base(dev);
- 
-+	iommu_unmap_page(tbl, dma_handle, size, direction, attrs);
- 	vio_cmo_dealloc(viodev, roundup(size, IOMMU_PAGE_SIZE(tbl)));
- }
- 
-@@ -555,34 +554,32 @@ static int vio_dma_iommu_map_sg(struct device *dev, struct scatterlist *sglist,
-                                 unsigned long attrs)
- {
- 	struct vio_dev *viodev = to_vio_dev(dev);
--	struct iommu_table *tbl;
-+	struct iommu_table *tbl = get_iommu_table_base(dev);
- 	struct scatterlist *sgl;
- 	int ret, count;
- 	size_t alloc_size = 0;
- 
--	tbl = get_iommu_table_base(dev);
- 	for_each_sg(sglist, sgl, nelems, count)
- 		alloc_size += roundup(sgl->length, IOMMU_PAGE_SIZE(tbl));
- 
--	if (vio_cmo_alloc(viodev, alloc_size)) {
--		atomic_inc(&viodev->cmo.allocs_failed);
--		return 0;
--	}
--
--	ret = dma_iommu_ops.map_sg(dev, sglist, nelems, direction, attrs);
--
--	if (unlikely(!ret)) {
--		vio_cmo_dealloc(viodev, alloc_size);
--		atomic_inc(&viodev->cmo.allocs_failed);
--		return ret;
--	}
-+	if (vio_cmo_alloc(viodev, alloc_size))
-+		goto out_fail;
-+	ret = ppc_iommu_map_sg(dev, tbl, sglist, nelems, device_to_mask(dev),
-+			direction, attrs);
-+	if (unlikely(!ret))
-+		goto out_deallocate;
- 
- 	for_each_sg(sglist, sgl, ret, count)
- 		alloc_size -= roundup(sgl->dma_length, IOMMU_PAGE_SIZE(tbl));
- 	if (alloc_size)
- 		vio_cmo_dealloc(viodev, alloc_size);
--
- 	return ret;
-+
-+out_deallocate:
-+	vio_cmo_dealloc(viodev, alloc_size);
-+out_fail:
-+	atomic_inc(&viodev->cmo.allocs_failed);
-+	return 0;
- }
- 
- static void vio_dma_iommu_unmap_sg(struct device *dev,
-@@ -591,30 +588,18 @@ static void vio_dma_iommu_unmap_sg(struct device *dev,
+ static inline bool dma_iommu_map_bypass(struct device *dev,
  		unsigned long attrs)
  {
- 	struct vio_dev *viodev = to_vio_dev(dev);
--	struct iommu_table *tbl;
-+	struct iommu_table *tbl = get_iommu_table_base(dev);
- 	struct scatterlist *sgl;
- 	size_t alloc_size = 0;
- 	int count;
- 
--	tbl = get_iommu_table_base(dev);
- 	for_each_sg(sglist, sgl, nelems, count)
- 		alloc_size += roundup(sgl->dma_length, IOMMU_PAGE_SIZE(tbl));
- 
--	dma_iommu_ops.unmap_sg(dev, sglist, nelems, direction, attrs);
--
-+	ppc_iommu_unmap_sg(tbl, sglist, nelems, direction, attrs);
- 	vio_cmo_dealloc(viodev, alloc_size);
+-	return dev->archdata.iommu_bypass;
++	return dev->archdata.iommu_bypass &&
++		(!iommu_fixed_is_weak || (attrs & DMA_ATTR_WEAK_ORDERING));
  }
  
--static int vio_dma_iommu_dma_supported(struct device *dev, u64 mask)
--{
--        return dma_iommu_ops.dma_supported(dev, mask);
--}
--
--static u64 vio_dma_get_required_mask(struct device *dev)
--{
--        return dma_iommu_ops.get_required_mask(dev);
--}
--
- static const struct dma_map_ops vio_dma_mapping_ops = {
- 	.alloc             = vio_dma_iommu_alloc_coherent,
- 	.free              = vio_dma_iommu_free_coherent,
-@@ -623,8 +608,8 @@ static const struct dma_map_ops vio_dma_mapping_ops = {
- 	.unmap_sg          = vio_dma_iommu_unmap_sg,
- 	.map_page          = vio_dma_iommu_map_page,
- 	.unmap_page        = vio_dma_iommu_unmap_page,
--	.dma_supported     = vio_dma_iommu_dma_supported,
--	.get_required_mask = vio_dma_get_required_mask,
-+	.dma_supported     = dma_iommu_mapping_error,
-+	.get_required_mask = dma_iommu_get_required_mask,
- 	.mapping_error	   = dma_iommu_mapping_error,
- };
+ /* Allocates a contiguous real buffer and creates mappings over it.
+@@ -168,7 +169,7 @@ int dma_iommu_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ 	return dma_addr == IOMMU_MAPPING_ERROR;
+ }
  
+-struct dma_map_ops dma_iommu_ops = {
++const struct dma_map_ops dma_iommu_ops = {
+ 	.alloc			= dma_iommu_alloc_coherent,
+ 	.free			= dma_iommu_free_coherent,
+ 	.mmap			= dma_nommu_mmap_coherent,
+diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
+index cce5bf9515e5..fb51f78035ce 100644
+--- a/arch/powerpc/platforms/cell/iommu.c
++++ b/arch/powerpc/platforms/cell/iommu.c
+@@ -546,7 +546,7 @@ static unsigned long cell_dma_nommu_offset;
+ static unsigned long dma_iommu_fixed_base;
+ 
+ /* iommu_fixed_is_weak is set if booted with iommu_fixed=weak */
+-static int iommu_fixed_is_weak;
++bool iommu_fixed_is_weak;
+ 
+ static struct iommu_table *cell_get_iommu_table(struct device *dev)
+ {
+@@ -568,95 +568,6 @@ static struct iommu_table *cell_get_iommu_table(struct device *dev)
+ 	return &window->table;
+ }
+ 
+-/* A coherent allocation implies strong ordering */
+-
+-static void *dma_fixed_alloc_coherent(struct device *dev, size_t size,
+-				      dma_addr_t *dma_handle, gfp_t flag,
+-				      unsigned long attrs)
+-{
+-	if (iommu_fixed_is_weak)
+-		return iommu_alloc_coherent(dev, cell_get_iommu_table(dev),
+-					    size, dma_handle,
+-					    device_to_mask(dev), flag,
+-					    dev_to_node(dev));
+-	else
+-		return dma_nommu_ops.alloc(dev, size, dma_handle, flag,
+-					    attrs);
+-}
+-
+-static void dma_fixed_free_coherent(struct device *dev, size_t size,
+-				    void *vaddr, dma_addr_t dma_handle,
+-				    unsigned long attrs)
+-{
+-	if (iommu_fixed_is_weak)
+-		iommu_free_coherent(cell_get_iommu_table(dev), size, vaddr,
+-				    dma_handle);
+-	else
+-		dma_nommu_ops.free(dev, size, vaddr, dma_handle, attrs);
+-}
+-
+-static dma_addr_t dma_fixed_map_page(struct device *dev, struct page *page,
+-				     unsigned long offset, size_t size,
+-				     enum dma_data_direction direction,
+-				     unsigned long attrs)
+-{
+-	if (iommu_fixed_is_weak == (attrs & DMA_ATTR_WEAK_ORDERING))
+-		return dma_nommu_ops.map_page(dev, page, offset, size,
+-					       direction, attrs);
+-	else
+-		return iommu_map_page(dev, cell_get_iommu_table(dev), page,
+-				      offset, size, device_to_mask(dev),
+-				      direction, attrs);
+-}
+-
+-static void dma_fixed_unmap_page(struct device *dev, dma_addr_t dma_addr,
+-				 size_t size, enum dma_data_direction direction,
+-				 unsigned long attrs)
+-{
+-	if (iommu_fixed_is_weak == (attrs & DMA_ATTR_WEAK_ORDERING))
+-		dma_nommu_ops.unmap_page(dev, dma_addr, size, direction,
+-					  attrs);
+-	else
+-		iommu_unmap_page(cell_get_iommu_table(dev), dma_addr, size,
+-				 direction, attrs);
+-}
+-
+-static int dma_fixed_map_sg(struct device *dev, struct scatterlist *sg,
+-			   int nents, enum dma_data_direction direction,
+-			   unsigned long attrs)
+-{
+-	if (iommu_fixed_is_weak == (attrs & DMA_ATTR_WEAK_ORDERING))
+-		return dma_nommu_ops.map_sg(dev, sg, nents, direction, attrs);
+-	else
+-		return ppc_iommu_map_sg(dev, cell_get_iommu_table(dev), sg,
+-					nents, device_to_mask(dev),
+-					direction, attrs);
+-}
+-
+-static void dma_fixed_unmap_sg(struct device *dev, struct scatterlist *sg,
+-			       int nents, enum dma_data_direction direction,
+-			       unsigned long attrs)
+-{
+-	if (iommu_fixed_is_weak == (attrs & DMA_ATTR_WEAK_ORDERING))
+-		dma_nommu_ops.unmap_sg(dev, sg, nents, direction, attrs);
+-	else
+-		ppc_iommu_unmap_sg(cell_get_iommu_table(dev), sg, nents,
+-				   direction, attrs);
+-}
+-
+-static int dma_suported_and_switch(struct device *dev, u64 dma_mask);
+-
+-static const struct dma_map_ops dma_iommu_fixed_ops = {
+-	.alloc          = dma_fixed_alloc_coherent,
+-	.free           = dma_fixed_free_coherent,
+-	.map_sg         = dma_fixed_map_sg,
+-	.unmap_sg       = dma_fixed_unmap_sg,
+-	.dma_supported  = dma_suported_and_switch,
+-	.map_page       = dma_fixed_map_page,
+-	.unmap_page     = dma_fixed_unmap_page,
+-	.mapping_error	= dma_iommu_mapping_error,
+-};
+-
+ static u64 cell_iommu_get_fixed_address(struct device *dev);
+ 
+ static void cell_dma_dev_setup(struct device *dev)
+@@ -953,22 +864,10 @@ static u64 cell_iommu_get_fixed_address(struct device *dev)
+ 	return dev_addr;
+ }
+ 
+-static int dma_suported_and_switch(struct device *dev, u64 dma_mask)
++static bool cell_pci_iommu_bypass_supported(struct pci_dev *pdev, u64 mask)
+ {
+-	if (dma_mask == DMA_BIT_MASK(64) &&
+-	    cell_iommu_get_fixed_address(dev) != OF_BAD_ADDR) {
+-		dev_dbg(dev, "iommu: 64-bit OK, using fixed ops\n");
+-		set_dma_ops(dev, &dma_iommu_fixed_ops);
+-		return 1;
+-	}
+-
+-	if (dma_iommu_dma_supported(dev, dma_mask)) {
+-		dev_dbg(dev, "iommu: not 64-bit, using default ops\n");
+-		set_dma_ops(dev, &dma_iommu_ops);
+-		return 1;
+-	}
+-
+-	return 0;
++	return mask == DMA_BIT_MASK(64) &&
++		cell_iommu_get_fixed_address(&pdev->dev) != OF_BAD_ADDR;
+ }
+ 
+ static void insert_16M_pte(unsigned long addr, unsigned long *ptab,
+@@ -1122,9 +1021,6 @@ static int __init cell_iommu_fixed_mapping_init(void)
+ 		cell_iommu_setup_window(iommu, np, dbase, dsize, 0);
+ 	}
+ 
+-	dma_iommu_ops.dma_supported = dma_suported_and_switch;
+-	set_pci_dma_ops(&dma_iommu_ops);
+-
+ 	return 0;
+ }
+ 
+@@ -1145,7 +1041,7 @@ static int __init setup_iommu_fixed(char *str)
+ 	pciep = of_find_node_by_type(NULL, "pcie-endpoint");
+ 
+ 	if (strcmp(str, "weak") == 0 || (pciep && strcmp(str, "strong") != 0))
+-		iommu_fixed_is_weak = DMA_ATTR_WEAK_ORDERING;
++		iommu_fixed_is_weak = true;
+ 
+ 	of_node_put(pciep);
+ 
+@@ -1153,26 +1049,6 @@ static int __init setup_iommu_fixed(char *str)
+ }
+ __setup("iommu_fixed=", setup_iommu_fixed);
+ 
+-static u64 cell_dma_get_required_mask(struct device *dev)
+-{
+-	const struct dma_map_ops *dma_ops;
+-
+-	if (!dev->dma_mask)
+-		return 0;
+-
+-	if (!iommu_fixed_disabled &&
+-			cell_iommu_get_fixed_address(dev) != OF_BAD_ADDR)
+-		return DMA_BIT_MASK(64);
+-
+-	dma_ops = get_dma_ops(dev);
+-	if (dma_ops->get_required_mask)
+-		return dma_ops->get_required_mask(dev);
+-
+-	WARN_ONCE(1, "no get_required_mask in %p ops", dma_ops);
+-
+-	return DMA_BIT_MASK(64);
+-}
+-
+ static int __init cell_iommu_init(void)
+ {
+ 	struct device_node *np;
+@@ -1189,10 +1065,9 @@ static int __init cell_iommu_init(void)
+ 
+ 	/* Setup various callbacks */
+ 	cell_pci_controller_ops.dma_dev_setup = cell_pci_dma_dev_setup;
+-	ppc_md.dma_get_required_mask = cell_dma_get_required_mask;
+ 
+ 	if (!iommu_fixed_disabled && cell_iommu_fixed_mapping_init() == 0)
+-		goto bail;
++		goto done;
+ 
+ 	/* Create an iommu for each /axon node.  */
+ 	for_each_node_by_name(np, "axon") {
+@@ -1209,8 +1084,12 @@ static int __init cell_iommu_init(void)
+ 			continue;
+ 		cell_iommu_init_one(np, SPIDER_DMA_OFFSET);
+ 	}
+-
++ done:
+ 	/* Setup default PCI iommu ops */
++	if (!iommu_fixed_disabled) {
++		cell_pci_controller_ops.iommu_bypass_supported =
++				cell_pci_iommu_bypass_supported;
++	}
+ 	set_pci_dma_ops(&dma_iommu_ops);
+ 
+  bail:
 -- 
 2.19.0
