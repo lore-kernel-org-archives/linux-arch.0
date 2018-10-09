@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:49496 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49450 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727376AbeJIUnH (ORCPT
+        with ESMTP id S1727031AbeJIUnH (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:07 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 14/33] powerpc/dart: use the generic iommu bypass code
-Date: Tue,  9 Oct 2018 15:24:41 +0200
-Message-ID: <20181009132500.17643-15-hch@lst.de>
+Subject: [PATCH 13/33] powerpc/dart: remove dead cleanup code in iommu_init_early_dart
+Date: Tue,  9 Oct 2018 15:24:40 +0200
+Message-ID: <20181009132500.17643-14-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,88 +15,44 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132441.CRy2lXbNDYLMUDSAY7oDLdm7U8EZpzaxXR9ElspHrZ4@z>
+Message-ID: <20181009132440.28xrbzyZO35jYc6rPCipWFxwsqn8yp4W4OtzpmGRREg@z>
 
-Use the generic iommu bypass code instead of overriding set_dma_mask.
+If dart_init failed we didn't have a chance to setup dma or controller
+ops yet, so there is no point in resetting them.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/sysdev/dart_iommu.c | 45 +++++++++++---------------------
- 1 file changed, 15 insertions(+), 30 deletions(-)
+ arch/powerpc/sysdev/dart_iommu.c | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
 diff --git a/arch/powerpc/sysdev/dart_iommu.c b/arch/powerpc/sysdev/dart_iommu.c
-index ce5dd2048f57..e7d1645a2d2e 100644
+index 5ca3e22d0512..ce5dd2048f57 100644
 --- a/arch/powerpc/sysdev/dart_iommu.c
 +++ b/arch/powerpc/sysdev/dart_iommu.c
-@@ -360,13 +360,6 @@ static void iommu_table_dart_setup(void)
- 	set_bit(iommu_table_dart.it_size - 1, iommu_table_dart.it_map);
- }
+@@ -428,7 +428,7 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
  
--static void pci_dma_dev_setup_dart(struct pci_dev *dev)
--{
--	if (dart_is_u4)
--		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
--	set_iommu_table_base(&dev->dev, &iommu_table_dart);
--}
--
- static void pci_dma_bus_setup_dart(struct pci_bus *bus)
- {
- 	if (!iommu_table_dart_inited) {
-@@ -390,27 +383,16 @@ static bool dart_device_on_pcie(struct device *dev)
- 	return false;
- }
- 
--static int dart_dma_set_mask(struct device *dev, u64 dma_mask)
-+static void pci_dma_dev_setup_dart(struct pci_dev *dev)
- {
--	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
--		return -EIO;
--
--	/* U4 supports a DART bypass, we use it for 64-bit capable
--	 * devices to improve performances. However, that only works
--	 * for devices connected to U4 own PCIe interface, not bridged
--	 * through hypertransport. We need the device to support at
--	 * least 40 bits of addresses.
--	 */
--	if (dart_device_on_pcie(dev) && dma_mask >= DMA_BIT_MASK(40)) {
--		dev_info(dev, "Using 64-bit DMA iommu bypass\n");
--		set_dma_ops(dev, &dma_nommu_ops);
--	} else {
--		dev_info(dev, "Using 32-bit DMA via iommu\n");
--		set_dma_ops(dev, &dma_iommu_ops);
--	}
-+	if (dart_is_u4 && dart_device_on_pcie(&dev->dev))
-+		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
-+	set_iommu_table_base(&dev->dev, &iommu_table_dart);
-+}
- 
--	*dev->dma_mask = dma_mask;
--	return 0;
-+static bool iommu_bypass_supported_dart(struct pci_dev *dev, u64 mask)
-+{
-+	return dart_is_u4 && dart_device_on_pcie(&dev->dev);
- }
- 
- void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
-@@ -430,12 +412,15 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
+ 	/* Initialize the DART HW */
  	if (dart_init(dn) != 0)
- 		return;
+-		goto bail;
++		return;
  
--	/* Setup bypass if supported */
--	if (dart_is_u4)
--		ppc_md.dma_set_mask = dart_dma_set_mask;
--
-+	/*
-+	 * U4 supports a DART bypass, we use it for 64-bit capable devices to
-+	 * improve performance.  However, that only works for devices connected
-+	 * to the U4 own PCIe interface, not bridged through hypertransport.
-+	 * We need the device to support at least 40 bits of addresses.
-+	 */
- 	controller_ops->dma_dev_setup = pci_dma_dev_setup_dart;
- 	controller_ops->dma_bus_setup = pci_dma_bus_setup_dart;
-+	controller_ops->iommu_bypass_supported = iommu_bypass_supported_dart;
+ 	/* Setup bypass if supported */
+ 	if (dart_is_u4)
+@@ -439,15 +439,6 @@ void __init iommu_init_early_dart(struct pci_controller_ops *controller_ops)
  
  	/* Setup pci_dma ops */
  	set_pci_dma_ops(&dma_iommu_ops);
+-	return;
+-
+- bail:
+-	/* If init failed, use direct iommu and null setup functions */
+-	controller_ops->dma_dev_setup = NULL;
+-	controller_ops->dma_bus_setup = NULL;
+-
+-	/* Setup pci_dma ops */
+-	set_pci_dma_ops(&dma_nommu_ops);
+ }
+ 
+ #ifdef CONFIG_PM
 -- 
 2.19.0
