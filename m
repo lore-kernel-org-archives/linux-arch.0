@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48012 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:48102 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726492AbeJIUmW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:22 -0400
+        with ESMTP id S1726861AbeJIUm3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:29 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 01/33] powerpc: use mm zones more sensibly
-Date: Tue,  9 Oct 2018 15:24:28 +0200
-Message-ID: <20181009132500.17643-2-hch@lst.de>
+Subject: [PATCH 05/33] powerpc/dma: split the two __dma_alloc_coherent implementations
+Date: Tue,  9 Oct 2018 15:24:32 +0200
+Message-ID: <20181009132500.17643-6-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,267 +15,167 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132428.E3h23hn1_GlQImjGgsz2lepmC-9gHNO_zyWUElMcZ3U@z>
+Message-ID: <20181009132432.xA0BlsjJ5YC6Ec1lYL65p_auMCQh9IyR22MKBmIosMY@z>
 
-Powerpc has somewhat odd usage where ZONE_DMA is used for all memory on
-common 64-bit configfs, and ZONE_DMA32 is used for 31-bit schemes.
-
-Move to a scheme closer to what other architectures use (and I dare to
-say the intent of the system):
-
- - ZONE_DMA: optionally for memory < 31-bit
- - ZONE_NORMAL: everything addressable by the kernel
- - ZONE_HIGHMEM: memory > 32-bit for 32-bit kernels
-
-Also provide information on how ZONE_DMA is used by defining
-ARCH_ZONE_DMA_BITS.
-
-Contains various fixes from Benjamin Herrenschmidt.
+The implemementation for the CONFIG_NOT_COHERENT_CACHE case doesn't share
+any code with the one for systems with coherent caches.  Split it off
+and merge it with the helpers in dma-noncoherent.c that have no other
+callers.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/powerpc/Kconfig                          |  6 +--
- arch/powerpc/include/asm/page.h               |  2 +
- arch/powerpc/include/asm/pgtable.h            |  1 -
- arch/powerpc/kernel/dma-swiotlb.c             |  6 +--
- arch/powerpc/kernel/dma.c                     |  7 +--
- arch/powerpc/mm/mem.c                         | 50 +++++++------------
- arch/powerpc/platforms/85xx/corenet_generic.c | 10 ----
- arch/powerpc/platforms/85xx/qemu_e500.c       |  9 ----
- include/linux/mmzone.h                        |  2 +-
- 9 files changed, 24 insertions(+), 69 deletions(-)
+ arch/powerpc/include/asm/dma-mapping.h |  5 -----
+ arch/powerpc/kernel/dma.c              | 14 ++------------
+ arch/powerpc/mm/dma-noncoherent.c      | 15 +++++++--------
+ arch/powerpc/platforms/44x/warp.c      |  2 +-
+ 4 files changed, 10 insertions(+), 26 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index a80669209155..06996df07cad 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -380,7 +380,7 @@ config PPC_ADV_DEBUG_DAC_RANGE
- 	depends on PPC_ADV_DEBUG_REGS && 44x
- 	default y
+diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
+index f2a4a7142b1e..dacd0f93f2b2 100644
+--- a/arch/powerpc/include/asm/dma-mapping.h
++++ b/arch/powerpc/include/asm/dma-mapping.h
+@@ -39,9 +39,6 @@ extern int dma_nommu_mmap_coherent(struct device *dev,
+  * to ensure it is consistent.
+  */
+ struct device;
+-extern void *__dma_alloc_coherent(struct device *dev, size_t size,
+-				  dma_addr_t *handle, gfp_t gfp);
+-extern void __dma_free_coherent(size_t size, void *vaddr);
+ extern void __dma_sync(void *vaddr, size_t size, int direction);
+ extern void __dma_sync_page(struct page *page, unsigned long offset,
+ 				 size_t size, int direction);
+@@ -52,8 +49,6 @@ extern unsigned long __dma_get_coherent_pfn(unsigned long cpu_addr);
+  * Cache coherent cores.
+  */
  
--config ZONE_DMA32
-+config ZONE_DMA
- 	bool
- 	default y if PPC64
+-#define __dma_alloc_coherent(dev, gfp, size, handle)	NULL
+-#define __dma_free_coherent(size, addr)		((void)0)
+ #define __dma_sync(addr, size, rw)		((void)0)
+ #define __dma_sync_page(pg, off, sz, rw)	((void)0)
  
-@@ -879,10 +879,6 @@ config ISA
- 	  have an IBM RS/6000 or pSeries machine, say Y.  If you have an
- 	  embedded board, consult your board documentation.
- 
--config ZONE_DMA
--	bool
--	default y
--
- config GENERIC_ISA_DMA
- 	bool
- 	depends on ISA_DMA_API
-diff --git a/arch/powerpc/include/asm/page.h b/arch/powerpc/include/asm/page.h
-index f6a1265face2..fc8c9ac0c6be 100644
---- a/arch/powerpc/include/asm/page.h
-+++ b/arch/powerpc/include/asm/page.h
-@@ -354,4 +354,6 @@ typedef struct page *pgtable_t;
- #endif /* __ASSEMBLY__ */
- #include <asm/slice.h>
- 
-+#define ARCH_ZONE_DMA_BITS 31
-+
- #endif /* _ASM_POWERPC_PAGE_H */
-diff --git a/arch/powerpc/include/asm/pgtable.h b/arch/powerpc/include/asm/pgtable.h
-index 14c79a7dc855..9bafb38e959e 100644
---- a/arch/powerpc/include/asm/pgtable.h
-+++ b/arch/powerpc/include/asm/pgtable.h
-@@ -37,7 +37,6 @@ extern unsigned long empty_zero_page[];
- 
- extern pgd_t swapper_pg_dir[];
- 
--void limit_zone_pfn(enum zone_type zone, unsigned long max_pfn);
- int dma_pfn_limit_to_zone(u64 pfn_limit);
- extern void paging_init(void);
- 
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index 88f3963ca30f..93a4622563c6 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -108,12 +108,8 @@ int __init swiotlb_setup_bus_notifier(void)
- 
- void __init swiotlb_detect_4g(void)
- {
--	if ((memblock_end_of_DRAM() - 1) > 0xffffffff) {
-+	if ((memblock_end_of_DRAM() - 1) > 0xffffffff)
- 		ppc_swiotlb_enable = 1;
--#ifdef CONFIG_ZONE_DMA32
--		limit_zone_pfn(ZONE_DMA32, (1ULL << 32) >> PAGE_SHIFT);
--#endif
--	}
- }
- 
- static int __init check_swiotlb_enabled(void)
 diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index dbfc7056d7df..6551685a4ed0 100644
+index 6551685a4ed0..d6deb458bb91 100644
 --- a/arch/powerpc/kernel/dma.c
 +++ b/arch/powerpc/kernel/dma.c
-@@ -50,7 +50,7 @@ static int dma_nommu_dma_supported(struct device *dev, u64 mask)
- 		return 1;
- 
- #ifdef CONFIG_FSL_SOC
--	/* Freescale gets another chance via ZONE_DMA/ZONE_DMA32, however
-+	/* Freescale gets another chance via ZONE_DMA, however
- 	 * that will have to be refined if/when they support iommus
- 	 */
- 	return 1;
-@@ -94,13 +94,10 @@ void *__dma_nommu_alloc_coherent(struct device *dev, size_t size,
- 	}
- 
- 	switch (zone) {
-+#ifdef CONFIG_ZONE_DMA
- 	case ZONE_DMA:
- 		flag |= GFP_DMA;
- 		break;
--#ifdef CONFIG_ZONE_DMA32
--	case ZONE_DMA32:
--		flag |= GFP_DMA32;
--		break;
+@@ -62,18 +62,12 @@ static int dma_nommu_dma_supported(struct device *dev, u64 mask)
  #endif
- 	};
- #endif /* CONFIG_FSL_SOC */
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index 5c8530d0c611..8bff7e893bde 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -69,15 +69,12 @@ pte_t *kmap_pte;
- EXPORT_SYMBOL(kmap_pte);
- pgprot_t kmap_prot;
- EXPORT_SYMBOL(kmap_prot);
--#define TOP_ZONE ZONE_HIGHMEM
+ }
  
- static inline pte_t *virt_to_kpte(unsigned long vaddr)
++#ifndef CONFIG_NOT_COHERENT_CACHE
+ void *__dma_nommu_alloc_coherent(struct device *dev, size_t size,
+ 				  dma_addr_t *dma_handle, gfp_t flag,
+ 				  unsigned long attrs)
  {
- 	return pte_offset_kernel(pmd_offset(pud_offset(pgd_offset_k(vaddr),
- 			vaddr), vaddr), vaddr);
- }
+ 	void *ret;
+-#ifdef CONFIG_NOT_COHERENT_CACHE
+-	ret = __dma_alloc_coherent(dev, size, dma_handle, flag);
+-	if (ret == NULL)
+-		return NULL;
+-	*dma_handle += get_dma_offset(dev);
+-	return ret;
 -#else
--#define TOP_ZONE ZONE_NORMAL
- #endif
+ 	struct page *page;
+ 	int node = dev_to_node(dev);
+ #ifdef CONFIG_FSL_SOC
+@@ -110,19 +104,15 @@ void *__dma_nommu_alloc_coherent(struct device *dev, size_t size,
+ 	*dma_handle = __pa(ret) + get_dma_offset(dev);
  
- int page_is_ram(unsigned long pfn)
-@@ -246,35 +243,19 @@ static int __init mark_nonram_nosave(void)
+ 	return ret;
+-#endif
  }
- #endif
  
--static bool zone_limits_final;
--
--/*
-- * The memory zones past TOP_ZONE are managed by generic mm code.
-- * These should be set to zero since that's what every other
-- * architecture does.
-- */
--static unsigned long max_zone_pfns[MAX_NR_ZONES] = {
--	[0            ... TOP_ZONE        ] = ~0UL,
--	[TOP_ZONE + 1 ... MAX_NR_ZONES - 1] = 0
--};
--
- /*
-- * Restrict the specified zone and all more restrictive zones
-- * to be below the specified pfn.  May not be called after
-- * paging_init().
-+ * Zones usage:
-+ *
-+ * We setup ZONE_DMA to be 31-bits on all platforms and ZONE_NORMAL to be
-+ * everything else. GFP_DMA32 page allocations automatically fall back to
-+ * ZONE_DMA.
-+ *
-+ * By using 31-bit unconditionally, we can exploit ARCH_ZONE_DMA_BITS to
-+ * inform the generic DMA mapping code.  32-bit only devices (if not handled
-+ * by an IOMMU anyway) will take a first dip into ZONE_NORMAL and get
-+ * otherwise served by ZONE_DMA.
+ void __dma_nommu_free_coherent(struct device *dev, size_t size,
+ 				void *vaddr, dma_addr_t dma_handle,
+ 				unsigned long attrs)
+ {
+-#ifdef CONFIG_NOT_COHERENT_CACHE
+-	__dma_free_coherent(size, vaddr);
+-#else
+ 	free_pages((unsigned long)vaddr, get_order(size));
+-#endif
+ }
++#endif /* !CONFIG_NOT_COHERENT_CACHE */
+ 
+ static void *dma_nommu_alloc_coherent(struct device *dev, size_t size,
+ 				       dma_addr_t *dma_handle, gfp_t flag,
+diff --git a/arch/powerpc/mm/dma-noncoherent.c b/arch/powerpc/mm/dma-noncoherent.c
+index 382528475433..965ce3d19f5a 100644
+--- a/arch/powerpc/mm/dma-noncoherent.c
++++ b/arch/powerpc/mm/dma-noncoherent.c
+@@ -29,7 +29,7 @@
+ #include <linux/string.h>
+ #include <linux/types.h>
+ #include <linux/highmem.h>
+-#include <linux/dma-mapping.h>
++#include <linux/dma-direct.h>
+ #include <linux/export.h>
+ 
+ #include <asm/tlbflush.h>
+@@ -151,8 +151,8 @@ static struct ppc_vm_region *ppc_vm_region_find(struct ppc_vm_region *head, unsi
+  * Allocate DMA-coherent memory space and return both the kernel remapped
+  * virtual and bus address for that space.
   */
--void __init limit_zone_pfn(enum zone_type zone, unsigned long pfn_limit)
--{
--	int i;
--
--	if (WARN_ON(zone_limits_final))
--		return;
--
--	for (i = zone; i >= 0; i--) {
--		if (max_zone_pfns[i] > pfn_limit)
--			max_zone_pfns[i] = pfn_limit;
--	}
--}
-+static unsigned long max_zone_pfns[MAX_NR_ZONES];
+-void *
+-__dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp)
++void *__dma_nommu_alloc_coherent(struct device *dev, size_t size,
++		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
+ {
+ 	struct page *page;
+ 	struct ppc_vm_region *c;
+@@ -223,7 +223,7 @@ __dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *handle, gfp_t
+ 		/*
+ 		 * Set the "dma handle"
+ 		 */
+-		*handle = page_to_phys(page);
++		*dma_handle = phys_to_dma(dev, page_to_phys(page));
+ 
+ 		do {
+ 			SetPageReserved(page);
+@@ -249,12 +249,12 @@ __dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *handle, gfp_t
+  no_page:
+ 	return NULL;
+ }
+-EXPORT_SYMBOL(__dma_alloc_coherent);
  
  /*
-  * Find the least restrictive zone that is entirely below the
-@@ -324,11 +305,14 @@ void __init paging_init(void)
- 	printk(KERN_DEBUG "Memory hole size: %ldMB\n",
- 	       (long int)((top_of_ram - total_ram) >> 20));
- 
-+#ifdef CONFIG_ZONE_DMA
-+	max_zone_pfns[ZONE_DMA]	= min(max_low_pfn, 0x7fffffffUL >> PAGE_SHIFT);
-+#endif
-+	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
- #ifdef CONFIG_HIGHMEM
--	limit_zone_pfn(ZONE_NORMAL, lowmem_end_addr >> PAGE_SHIFT);
-+	max_zone_pfns[ZONE_HIGHMEM] = max_pfn
- #endif
--	limit_zone_pfn(TOP_ZONE, top_of_ram >> PAGE_SHIFT);
--	zone_limits_final = true;
-+
- 	free_area_init_nodes(max_zone_pfns);
- 
- 	mark_nonram_nosave();
-diff --git a/arch/powerpc/platforms/85xx/corenet_generic.c b/arch/powerpc/platforms/85xx/corenet_generic.c
-index ac191a7a1337..b0dac307bebf 100644
---- a/arch/powerpc/platforms/85xx/corenet_generic.c
-+++ b/arch/powerpc/platforms/85xx/corenet_generic.c
-@@ -68,16 +68,6 @@ void __init corenet_gen_setup_arch(void)
- 
- 	swiotlb_detect_4g();
- 
--#if defined(CONFIG_FSL_PCI) && defined(CONFIG_ZONE_DMA32)
--	/*
--	 * Inbound windows don't cover the full lower 4 GiB
--	 * due to conflicts with PCICSRBAR and outbound windows,
--	 * so limit the DMA32 zone to 2 GiB, to allow consistent
--	 * allocations to succeed.
--	 */
--	limit_zone_pfn(ZONE_DMA32, 1UL << (31 - PAGE_SHIFT));
--#endif
--
- 	pr_info("%s board\n", ppc_md.name);
- 
- 	mpc85xx_qe_init();
-diff --git a/arch/powerpc/platforms/85xx/qemu_e500.c b/arch/powerpc/platforms/85xx/qemu_e500.c
-index b63a8548366f..27631c607f3d 100644
---- a/arch/powerpc/platforms/85xx/qemu_e500.c
-+++ b/arch/powerpc/platforms/85xx/qemu_e500.c
-@@ -45,15 +45,6 @@ static void __init qemu_e500_setup_arch(void)
- 
- 	fsl_pci_assign_primary();
- 	swiotlb_detect_4g();
--#if defined(CONFIG_FSL_PCI) && defined(CONFIG_ZONE_DMA32)
--	/*
--	 * Inbound windows don't cover the full lower 4 GiB
--	 * due to conflicts with PCICSRBAR and outbound windows,
--	 * so limit the DMA32 zone to 2 GiB, to allow consistent
--	 * allocations to succeed.
--	 */
--	limit_zone_pfn(ZONE_DMA32, 1UL << (31 - PAGE_SHIFT));
--#endif
- 	mpc85xx_smp_init();
+  * free a page as defined by the above mapping.
+  */
+-void __dma_free_coherent(size_t size, void *vaddr)
++void __dma_nommu_free_coherent(struct device *dev, size_t size, void *vaddr,
++		dma_addr_t dma_handle, unsigned long attrs)
+ {
+ 	struct ppc_vm_region *c;
+ 	unsigned long flags, addr;
+@@ -309,7 +309,6 @@ void __dma_free_coherent(size_t size, void *vaddr)
+ 	       __func__, vaddr);
+ 	dump_stack();
  }
+-EXPORT_SYMBOL(__dma_free_coherent);
  
-diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index 1e22d96734e0..68970340df1c 100644
---- a/include/linux/mmzone.h
-+++ b/include/linux/mmzone.h
-@@ -312,7 +312,7 @@ enum zone_type {
- 	 * Architecture		Limit
- 	 * ---------------------------
- 	 * parisc, ia64, sparc	<4G
--	 * s390			<2G
-+	 * s390, powerpc	<2G
- 	 * arm			Various
- 	 * alpha		Unlimited or 0-16MB.
- 	 *
+ /*
+  * make an area consistent.
+@@ -401,7 +400,7 @@ EXPORT_SYMBOL(__dma_sync_page);
+ 
+ /*
+  * Return the PFN for a given cpu virtual address returned by
+- * __dma_alloc_coherent. This is used by dma_mmap_coherent()
++ * __dma_nommu_alloc_coherent. This is used by dma_mmap_coherent()
+  */
+ unsigned long __dma_get_coherent_pfn(unsigned long cpu_addr)
+ {
+diff --git a/arch/powerpc/platforms/44x/warp.c b/arch/powerpc/platforms/44x/warp.c
+index a886c2c22097..7e4f8ca19ce8 100644
+--- a/arch/powerpc/platforms/44x/warp.c
++++ b/arch/powerpc/platforms/44x/warp.c
+@@ -47,7 +47,7 @@ static int __init warp_probe(void)
+ 	if (!of_machine_is_compatible("pika,warp"))
+ 		return 0;
+ 
+-	/* For __dma_alloc_coherent */
++	/* For __dma_nommu_alloc_coherent */
+ 	ISA_DMA_THRESHOLD = ~0L;
+ 
+ 	return 1;
 -- 
 2.19.0
