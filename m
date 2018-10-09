@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:50206 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49586 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726717AbeJIUn0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:26 -0400
+        with ESMTP id S1727376AbeJIUnK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:10 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/33] powerpc/dma: remove get_pci_dma_ops
-Date: Tue,  9 Oct 2018 15:24:48 +0200
-Message-ID: <20181009132500.17643-22-hch@lst.de>
+Subject: [PATCH 20/33] powerpc/dma: remove the iommu fallback for coherent allocations
+Date: Tue,  9 Oct 2018 15:24:47 +0200
+Message-ID: <20181009132500.17643-21-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,105 +15,131 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132448.36w27FAJNMVb9AMjBswed0EeD_ydnUua3v2fjC7EfzU@z>
+Message-ID: <20181009132447.WKKggiVwHxRETYnZRsvzYCYNA5AZBOqQTHWcsnje4lo@z>
 
-This function is only used by the Cell iommu code, which can keep track
-if it is using the iommu internally just as good.
+All iommu capable platforms now always use the iommu code with the
+internal bypass, so there is not need for this magic anymore.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/pci.h      |  2 --
- arch/powerpc/kernel/pci-common.c    |  6 ------
- arch/powerpc/platforms/cell/iommu.c | 17 ++++++++---------
- 3 files changed, 8 insertions(+), 17 deletions(-)
+ arch/powerpc/Kconfig      |  4 ---
+ arch/powerpc/kernel/dma.c | 68 ++-------------------------------------
+ 2 files changed, 2 insertions(+), 70 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
-index a01d2e3d6ff9..4f7cf0a7f89d 100644
---- a/arch/powerpc/include/asm/pci.h
-+++ b/arch/powerpc/include/asm/pci.h
-@@ -52,10 +52,8 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 06996df07cad..7097019d8907 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -119,9 +119,6 @@ config GENERIC_HWEIGHT
+ 	bool
+ 	default y
  
- #ifdef CONFIG_PCI
- extern void set_pci_dma_ops(const struct dma_map_ops *dma_ops);
--extern const struct dma_map_ops *get_pci_dma_ops(void);
- #else	/* CONFIG_PCI */
- #define set_pci_dma_ops(d)
--#define get_pci_dma_ops()	NULL
+-config ARCH_HAS_DMA_SET_COHERENT_MASK
+-        bool
+-
+ config PPC
+ 	bool
+ 	default y
+@@ -129,7 +126,6 @@ config PPC
+ 	# Please keep this list sorted alphabetically.
+ 	#
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+-	select ARCH_HAS_DMA_SET_COHERENT_MASK
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FORTIFY_SOURCE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
+index 78ef4076e15c..bef91b8ad064 100644
+--- a/arch/powerpc/kernel/dma.c
++++ b/arch/powerpc/kernel/dma.c
+@@ -114,51 +114,6 @@ void __dma_nommu_free_coherent(struct device *dev, size_t size,
+ }
+ #endif /* !CONFIG_NOT_COHERENT_CACHE */
+ 
+-static void *dma_nommu_alloc_coherent(struct device *dev, size_t size,
+-				       dma_addr_t *dma_handle, gfp_t flag,
+-				       unsigned long attrs)
+-{
+-	struct iommu_table *iommu;
+-
+-	/* The coherent mask may be smaller than the real mask, check if
+-	 * we can really use the direct ops
+-	 */
+-	if (dma_nommu_dma_supported(dev, dev->coherent_dma_mask))
+-		return __dma_nommu_alloc_coherent(dev, size, dma_handle,
+-						   flag, attrs);
+-
+-	/* Ok we can't ... do we have an iommu ? If not, fail */
+-	iommu = get_iommu_table_base(dev);
+-	if (!iommu)
+-		return NULL;
+-
+-	/* Try to use the iommu */
+-	return iommu_alloc_coherent(dev, iommu, size, dma_handle,
+-				    dev->coherent_dma_mask, flag,
+-				    dev_to_node(dev));
+-}
+-
+-static void dma_nommu_free_coherent(struct device *dev, size_t size,
+-				     void *vaddr, dma_addr_t dma_handle,
+-				     unsigned long attrs)
+-{
+-	struct iommu_table *iommu;
+-
+-	/* See comments in dma_nommu_alloc_coherent() */
+-	if (dma_nommu_dma_supported(dev, dev->coherent_dma_mask))
+-		return __dma_nommu_free_coherent(dev, size, vaddr, dma_handle,
+-						  attrs);
+-	/* Maybe we used an iommu ... */
+-	iommu = get_iommu_table_base(dev);
+-
+-	/* If we hit that we should have never allocated in the first
+-	 * place so how come we are freeing ?
+-	 */
+-	if (WARN_ON(!iommu))
+-		return;
+-	iommu_free_coherent(iommu, size, vaddr, dma_handle);
+-}
+-
+ int dma_nommu_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
+ 			     void *cpu_addr, dma_addr_t handle, size_t size,
+ 			     unsigned long attrs)
+@@ -228,8 +183,8 @@ static inline void dma_nommu_sync_single(struct device *dev,
  #endif
  
- #ifdef CONFIG_PPC64
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 88e4f69a09e5..a84707680525 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -69,12 +69,6 @@ void set_pci_dma_ops(const struct dma_map_ops *dma_ops)
- 	pci_dma_ops = dma_ops;
- }
+ const struct dma_map_ops dma_nommu_ops = {
+-	.alloc				= dma_nommu_alloc_coherent,
+-	.free				= dma_nommu_free_coherent,
++	.alloc				= __dma_nommu_alloc_coherent,
++	.free				= __dma_nommu_free_coherent,
+ 	.mmap				= dma_nommu_mmap_coherent,
+ 	.map_sg				= dma_nommu_map_sg,
+ 	.dma_supported			= dma_nommu_dma_supported,
+@@ -243,25 +198,6 @@ const struct dma_map_ops dma_nommu_ops = {
+ };
+ EXPORT_SYMBOL(dma_nommu_ops);
  
--const struct dma_map_ops *get_pci_dma_ops(void)
+-int dma_set_coherent_mask(struct device *dev, u64 mask)
 -{
--	return pci_dma_ops;
+-	if (!dma_supported(dev, mask)) {
+-		/*
+-		 * We need to special case the direct DMA ops which can
+-		 * support a fallback for coherent allocations. There
+-		 * is no dma_op->set_coherent_mask() so we have to do
+-		 * things the hard way:
+-		 */
+-		if (get_dma_ops(dev) != &dma_nommu_ops ||
+-		    get_iommu_table_base(dev) == NULL ||
+-		    !dma_iommu_dma_supported(dev, mask))
+-			return -EIO;
+-	}
+-	dev->coherent_dma_mask = mask;
+-	return 0;
 -}
--EXPORT_SYMBOL(get_pci_dma_ops);
+-EXPORT_SYMBOL(dma_set_coherent_mask);
 -
- /*
-  * This function should run under locking protection, specifically
-  * hose_spinlock.
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index fb51f78035ce..93c7e4aef571 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -544,6 +544,7 @@ static struct cbe_iommu *cell_iommu_for_node(int nid)
- static unsigned long cell_dma_nommu_offset;
- 
- static unsigned long dma_iommu_fixed_base;
-+static bool cell_iommu_enabled;
- 
- /* iommu_fixed_is_weak is set if booted with iommu_fixed=weak */
- bool iommu_fixed_is_weak;
-@@ -572,16 +573,14 @@ static u64 cell_iommu_get_fixed_address(struct device *dev);
- 
- static void cell_dma_dev_setup(struct device *dev)
+ int dma_set_mask(struct device *dev, u64 dma_mask)
  {
--	if (get_pci_dma_ops() == &dma_iommu_ops) {
-+	if (cell_iommu_enabled) {
- 		u64 addr = cell_iommu_get_fixed_address(dev);
- 
- 		if (addr != OF_BAD_ADDR)
- 			set_dma_offset(dev, addr + dma_iommu_fixed_base);
- 		set_iommu_table_base(dev, cell_get_iommu_table(dev));
--	} else if (get_pci_dma_ops() == &dma_nommu_ops) {
--		set_dma_offset(dev, cell_dma_nommu_offset);
- 	} else {
--		BUG();
-+		set_dma_offset(dev, cell_dma_nommu_offset);
- 	}
- }
- 
-@@ -599,11 +598,11 @@ static int cell_of_bus_notify(struct notifier_block *nb, unsigned long action,
- 	if (action != BUS_NOTIFY_ADD_DEVICE)
- 		return 0;
- 
--	/* We use the PCI DMA ops */
--	dev->dma_ops = get_pci_dma_ops();
--
-+	if (cell_iommu_enabled)
-+		dev->dma_ops = &dma_iommu_ops;
-+	else
-+		dev->dma_ops = &dma_nommu_ops;
- 	cell_dma_dev_setup(dev);
--
- 	return 0;
- }
- 
-@@ -1091,7 +1090,7 @@ static int __init cell_iommu_init(void)
- 				cell_pci_iommu_bypass_supported;
- 	}
- 	set_pci_dma_ops(&dma_iommu_ops);
--
-+	cell_iommu_enabled = true;
-  bail:
- 	/* Register callbacks on OF platform device addition/removal
- 	 * to handle linking them to the right DMA operations
+ 	if (ppc_md.dma_set_mask)
 -- 
 2.19.0
