@@ -1,55 +1,88 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 25/33] cxl: drop the dma_set_mask callback from vphb
-Date: Tue,  9 Oct 2018 15:24:52 +0200
-Message-ID: <20181009132500.17643-26-hch@lst.de>
-References: <20181009132500.17643-1-hch@lst.de>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v3 3/6] parisc: add system call table generation support
+Date: Tue, 9 Oct 2018 19:40:46 +0530
+Message-ID: <CALxhOnip15ztzMed59M3eKOdqdLJ2y8Yi5OGF3v__zApHzJkBQ@mail.gmail.com>
+References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
+ <1538975801-13735-4-git-send-email-firoz.khan@linaro.org> <CALxhOnj4r_MUuAa2zvkvxvhQttEvCZ98n2dA9d6CYyvVf2rB3g@mail.gmail.com>
+ <20181008130301.GM32759@asgard.redhat.com> <CAK8P3a0eoCVBVOZs0VwybAnUw0OUoW4Z=NJYi8686EHKj076_Q@mail.gmail.com>
+ <CALxhOniJZGNCP+Xw_9EF8hnUEG_AWwrnQ86Gbh7vAW6SrE8ykQ@mail.gmail.com>
+ <CAK8P3a0D+GUzza--ETrT1NHGduTfFGVoCcSEn5LxvKTtMYisbA@mail.gmail.com>
+ <CALxhOnhCRWsuz-2G-SovjfqkXpsRdTrG5Atz2X8s+T8u=GbUcA@mail.gmail.com> <CAK8P3a343PoH9WNH5ZYkNDTy=-ybGGsmvH9PbaSMmNo0Yob5eA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181009132500.17643-1-hch@lst.de>
+In-Reply-To: <CAK8P3a343PoH9WNH5ZYkNDTy=-ybGGsmvH9PbaSMmNo0Yob5eA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: esyr@redhat.com, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-The CXL code never even looks at the dma mask, so there is no good
-reason for this sanity check.  Remove it because it gets in the way
-of the dma ops refactoring.
+Hi Arnd,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- drivers/misc/cxl/vphb.c | 12 ------------
- 1 file changed, 12 deletions(-)
+On Tue, 9 Oct 2018 at 16:58, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Tue, Oct 9, 2018 at 11:36 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > On Tue, 9 Oct 2018 at 13:18, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Tue, Oct 9, 2018 at 7:35 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > > > On Mon, 8 Oct 2018 at 19:27, Arnd Bergmann <arnd@arndb.de> wrote:
+> > Let me bring another example from powerpc:
+> >
+> > syscall_32.tbl,
+> > 136     common  personality                     sys_personality
+> >          ppc64_personality   ---> 32-bit, compat (this is the current
+> > model which I implemented)
+> > syscall_64.tbl
+> > 136     common  personality                     ppc64_personality
+> >                                        ---> 64-bit
+> >
+> > I was wondering if the above table is right, how to arrange like parisc model?
+>
+> I think this should simply be
+>
+> 136    32 personality sys_personality      ppc64_personality
+> 136    64 personality ppc64_personality
+>
+> Keeping the contents exactly the same as you have them
+> in the separate .tbl files, just merging the two files, and
+> splitting out the differences as 32/64 ABI.
+>
+> > FYI, there are some implement missing for SPU in powerpc
+> >
+> > For your reference:
+> > SYSX_SPU(sys_newfstatat,sys_fstatat64,sys_fstatat64)
+> > SYSX_SPU(ppc64_personality,ppc64_personality,sys_personality)
+>
+> This is a good question. The only difference between SPU and
+> native 64-bit is that some syscalls are not part of the SPU table
+> because those syscalls are impossible to implement on SPU.
+>
+> Maybe we can solve this by allowing multiple comma-separated
+> ABIs in the table. On powerpc, 'common' would then mean
+> '32-bit, 64-bit and spu', while you could have various other
+> combinations:
+>
+> /* always:32, 64 and SPU */
+> 1 common exit sys_exit
+>
+> /* 32-bit only call */
+> 76  32    getrlimit      sys_old_getrlimit     compat_sys_old_getrlimit
+>
+> /* 64-bit only, no SPU */
+> 363 64 switch_endian  sys_switch_endian
+>
+> /* 32-bit and 64-bit, no SPU */
+> 198 32,64 pciconfig_read  sys_pciconfig_read
+>
+> /* different pointers */
+> 136    32 personality sys_personality      ppc64_personality
+> 136    64,spu personality ppc64_personality
+>
+> Would that work for you?
 
-diff --git a/drivers/misc/cxl/vphb.c b/drivers/misc/cxl/vphb.c
-index 7908633d9204..49da2f744bbf 100644
---- a/drivers/misc/cxl/vphb.c
-+++ b/drivers/misc/cxl/vphb.c
-@@ -11,17 +11,6 @@
- #include <misc/cxl.h>
- #include "cxl.h"
- 
--static int cxl_dma_set_mask(struct pci_dev *pdev, u64 dma_mask)
--{
--	if (dma_mask < DMA_BIT_MASK(64)) {
--		pr_info("%s only 64bit DMA supported on CXL", __func__);
--		return -EIO;
--	}
--
--	*(pdev->dev.dma_mask) = dma_mask;
--	return 0;
--}
--
- static int cxl_pci_probe_mode(struct pci_bus *bus)
- {
- 	return PCI_PROBE_NORMAL;
-@@ -220,7 +209,6 @@ static struct pci_controller_ops cxl_pci_controller_ops =
- 	.reset_secondary_bus = cxl_pci_reset_secondary_bus,
- 	.setup_msi_irqs = cxl_setup_msi_irqs,
- 	.teardown_msi_irqs = cxl_teardown_msi_irqs,
--	.dma_set_mask = cxl_dma_set_mask,
- };
- 
- int cxl_pci_vphb_add(struct cxl_afu *afu)
--- 
-2.19.0
+At this point, yes. V2 patches for powerpc on my pipeline. I can bring
+the above points when I start creating those patches.
+
+Thanks
+Firoz
+>
+>        Arnd
