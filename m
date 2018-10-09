@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48612 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49098 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726861AbeJIUmp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:45 -0400
+        with ESMTP id S1727316AbeJIUm5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:42:57 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 11/33] powerpc/cell: move dma direct window setup out of dma_configure
-Date: Tue,  9 Oct 2018 15:24:38 +0200
-Message-ID: <20181009132500.17643-12-hch@lst.de>
+Subject: [PATCH 04/33] powerpc/dma: remove the unused dma_iommu_ops export
+Date: Tue,  9 Oct 2018 15:24:31 +0200
+Message-ID: <20181009132500.17643-5-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,66 +15,29 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132438.BKvOSqFRt1rtooe80JXy5BvxmPrEOHLosOSGcX8Pces@z>
-
-Configure the dma settings at device setup time, and stop playing games
-with get_pci_dma_ops.  This prepares for using the common dma_configure
-code later on.
+Message-ID: <20181009132431.KUm4Y21b-yhl9huC11kISnrlX2Pf7PiNCr5h3eXxUnQ@z>
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/platforms/cell/iommu.c | 20 +++++++++++---------
- 1 file changed, 11 insertions(+), 9 deletions(-)
+ arch/powerpc/kernel/dma-iommu.c | 2 --
+ 1 file changed, 2 deletions(-)
 
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index 12352a58072a..cce5bf9515e5 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -657,14 +657,21 @@ static const struct dma_map_ops dma_iommu_fixed_ops = {
- 	.mapping_error	= dma_iommu_mapping_error,
+diff --git a/arch/powerpc/kernel/dma-iommu.c b/arch/powerpc/kernel/dma-iommu.c
+index f9fe2080ceb9..2ca6cfaebf65 100644
+--- a/arch/powerpc/kernel/dma-iommu.c
++++ b/arch/powerpc/kernel/dma-iommu.c
+@@ -6,7 +6,6 @@
+  * busses using the iommu infrastructure
+  */
+ 
+-#include <linux/export.h>
+ #include <asm/iommu.h>
+ 
+ /*
+@@ -123,4 +122,3 @@ struct dma_map_ops dma_iommu_ops = {
+ 	.get_required_mask	= dma_iommu_get_required_mask,
+ 	.mapping_error		= dma_iommu_mapping_error,
  };
- 
-+static u64 cell_iommu_get_fixed_address(struct device *dev);
-+
- static void cell_dma_dev_setup(struct device *dev)
- {
--	if (get_pci_dma_ops() == &dma_iommu_ops)
-+	if (get_pci_dma_ops() == &dma_iommu_ops) {
-+		u64 addr = cell_iommu_get_fixed_address(dev);
-+
-+		if (addr != OF_BAD_ADDR)
-+			set_dma_offset(dev, addr + dma_iommu_fixed_base);
- 		set_iommu_table_base(dev, cell_get_iommu_table(dev));
--	else if (get_pci_dma_ops() == &dma_nommu_ops)
-+	} else if (get_pci_dma_ops() == &dma_nommu_ops) {
- 		set_dma_offset(dev, cell_dma_nommu_offset);
--	else
-+	} else {
- 		BUG();
-+	}
- }
- 
- static void cell_pci_dma_dev_setup(struct pci_dev *dev)
-@@ -950,19 +957,14 @@ static int dma_suported_and_switch(struct device *dev, u64 dma_mask)
- {
- 	if (dma_mask == DMA_BIT_MASK(64) &&
- 	    cell_iommu_get_fixed_address(dev) != OF_BAD_ADDR) {
--		u64 addr = cell_iommu_get_fixed_address(dev) +
--			dma_iommu_fixed_base;
- 		dev_dbg(dev, "iommu: 64-bit OK, using fixed ops\n");
--		dev_dbg(dev, "iommu: fixed addr = %llx\n", addr);
- 		set_dma_ops(dev, &dma_iommu_fixed_ops);
--		set_dma_offset(dev, addr);
- 		return 1;
- 	}
- 
- 	if (dma_iommu_dma_supported(dev, dma_mask)) {
- 		dev_dbg(dev, "iommu: not 64-bit, using default ops\n");
--		set_dma_ops(dev, get_pci_dma_ops());
--		cell_dma_dev_setup(dev);
-+		set_dma_ops(dev, &dma_iommu_ops);
- 		return 1;
- 	}
- 
+-EXPORT_SYMBOL(dma_iommu_ops);
 -- 
 2.19.0
