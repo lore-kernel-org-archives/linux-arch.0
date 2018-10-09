@@ -1,65 +1,55 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 19/33] powerpc/pci: remove the dma_set_mask pci_controller ops
-	methods
-Date: Tue,  9 Oct 2018 15:24:46 +0200
-Message-ID: <20181009132500.17643-20-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 25/33] cxl: drop the dma_set_mask callback from vphb
+Date: Tue,  9 Oct 2018 15:24:52 +0200
+Message-ID: <20181009132500.17643-26-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20181009132500.17643-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181009132500.17643-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Unused now.
+The CXL code never even looks at the dma mask, so there is no good
+reason for this sanity check.  Remove it because it gets in the way
+of the dma ops refactoring.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/include/asm/pci-bridge.h | 2 --
- arch/powerpc/kernel/dma.c             | 7 -------
- 2 files changed, 9 deletions(-)
+ drivers/misc/cxl/vphb.c | 12 ------------
+ 1 file changed, 12 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index aace7033fa02..a50703af7db3 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -45,8 +45,6 @@ struct pci_controller_ops {
- 	void		(*teardown_msi_irqs)(struct pci_dev *pdev);
- #endif
+diff --git a/drivers/misc/cxl/vphb.c b/drivers/misc/cxl/vphb.c
+index 7908633d9204..49da2f744bbf 100644
+--- a/drivers/misc/cxl/vphb.c
++++ b/drivers/misc/cxl/vphb.c
+@@ -11,17 +11,6 @@
+ #include <misc/cxl.h>
+ #include "cxl.h"
  
--	int             (*dma_set_mask)(struct pci_dev *pdev, u64 dma_mask);
--
- 	void		(*shutdown)(struct pci_controller *hose);
- };
- 
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 9ca9d2cec4ed..78ef4076e15c 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -267,13 +267,6 @@ int dma_set_mask(struct device *dev, u64 dma_mask)
- 	if (ppc_md.dma_set_mask)
- 		return ppc_md.dma_set_mask(dev, dma_mask);
- 
--	if (dev_is_pci(dev)) {
--		struct pci_dev *pdev = to_pci_dev(dev);
--		struct pci_controller *phb = pci_bus_to_host(pdev->bus);
--		if (phb->controller_ops.dma_set_mask)
--			return phb->controller_ops.dma_set_mask(pdev, dma_mask);
+-static int cxl_dma_set_mask(struct pci_dev *pdev, u64 dma_mask)
+-{
+-	if (dma_mask < DMA_BIT_MASK(64)) {
+-		pr_info("%s only 64bit DMA supported on CXL", __func__);
+-		return -EIO;
 -	}
 -
- 	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
- 		return -EIO;
- 	*dev->dma_mask = dma_mask;
+-	*(pdev->dev.dma_mask) = dma_mask;
+-	return 0;
+-}
+-
+ static int cxl_pci_probe_mode(struct pci_bus *bus)
+ {
+ 	return PCI_PROBE_NORMAL;
+@@ -220,7 +209,6 @@ static struct pci_controller_ops cxl_pci_controller_ops =
+ 	.reset_secondary_bus = cxl_pci_reset_secondary_bus,
+ 	.setup_msi_irqs = cxl_setup_msi_irqs,
+ 	.teardown_msi_irqs = cxl_teardown_msi_irqs,
+-	.dma_set_mask = cxl_dma_set_mask,
+ };
+ 
+ int cxl_pci_vphb_add(struct cxl_afu *afu)
 -- 
 2.19.0
