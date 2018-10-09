@@ -1,177 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:50684 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726567AbeJIUnp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:45 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 30/33] powerpc/dma: remove set_dma_offset
-Date: Tue,  9 Oct 2018 15:24:57 +0200
-Message-ID: <20181009132500.17643-31-hch@lst.de>
-In-Reply-To: <20181009132500.17643-1-hch@lst.de>
-References: <20181009132500.17643-1-hch@lst.de>
+Received: from mail-yb1-f195.google.com ([209.85.219.195]:36825 "EHLO
+        mail-yb1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726568AbeJIV2M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 17:28:12 -0400
+Received: by mail-yb1-f195.google.com with SMTP id 5-v6so686392ybf.3
+        for <linux-arch@vger.kernel.org>; Tue, 09 Oct 2018 07:11:03 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
+ <1538975801-13735-4-git-send-email-firoz.khan@linaro.org> <CALxhOnj4r_MUuAa2zvkvxvhQttEvCZ98n2dA9d6CYyvVf2rB3g@mail.gmail.com>
+ <20181008130301.GM32759@asgard.redhat.com> <CAK8P3a0eoCVBVOZs0VwybAnUw0OUoW4Z=NJYi8686EHKj076_Q@mail.gmail.com>
+ <CALxhOniJZGNCP+Xw_9EF8hnUEG_AWwrnQ86Gbh7vAW6SrE8ykQ@mail.gmail.com>
+ <CAK8P3a0D+GUzza--ETrT1NHGduTfFGVoCcSEn5LxvKTtMYisbA@mail.gmail.com>
+ <CALxhOnhCRWsuz-2G-SovjfqkXpsRdTrG5Atz2X8s+T8u=GbUcA@mail.gmail.com> <CAK8P3a343PoH9WNH5ZYkNDTy=-ybGGsmvH9PbaSMmNo0Yob5eA@mail.gmail.com>
+In-Reply-To: <CAK8P3a343PoH9WNH5ZYkNDTy=-ybGGsmvH9PbaSMmNo0Yob5eA@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Tue, 9 Oct 2018 19:40:46 +0530
+Message-ID: <CALxhOnip15ztzMed59M3eKOdqdLJ2y8Yi5OGF3v__zApHzJkBQ@mail.gmail.com>
+Subject: Re: [PATCH v3 3/6] parisc: add system call table generation support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132457.VWBXfoanG29s0xX1bG8NxsYkFArIDzoBVN7zXdrwkw0@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: esyr@redhat.com, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181009141046.OsKpbrHS2NraVbZvO9t0F3yujumORFJlOcuDUuO79V0@z>
 
-There is no good reason for this helper, just opencode it.
+Hi Arnd,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/include/asm/dma-mapping.h    | 6 ------
- arch/powerpc/kernel/pci-common.c          | 2 +-
- arch/powerpc/platforms/cell/iommu.c       | 4 ++--
- arch/powerpc/platforms/powernv/pci-ioda.c | 6 +++---
- arch/powerpc/platforms/pseries/iommu.c    | 7 ++-----
- arch/powerpc/sysdev/dart_iommu.c          | 2 +-
- arch/powerpc/sysdev/fsl_pci.c             | 2 +-
- drivers/misc/cxl/vphb.c                   | 2 +-
- 8 files changed, 11 insertions(+), 20 deletions(-)
+On Tue, 9 Oct 2018 at 16:58, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Tue, Oct 9, 2018 at 11:36 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > On Tue, 9 Oct 2018 at 13:18, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Tue, Oct 9, 2018 at 7:35 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> > > > On Mon, 8 Oct 2018 at 19:27, Arnd Bergmann <arnd@arndb.de> wrote:
+> > Let me bring another example from powerpc:
+> >
+> > syscall_32.tbl,
+> > 136     common  personality                     sys_personality
+> >          ppc64_personality   ---> 32-bit, compat (this is the current
+> > model which I implemented)
+> > syscall_64.tbl
+> > 136     common  personality                     ppc64_personality
+> >                                        ---> 64-bit
+> >
+> > I was wondering if the above table is right, how to arrange like parisc model?
+>
+> I think this should simply be
+>
+> 136    32 personality sys_personality      ppc64_personality
+> 136    64 personality ppc64_personality
+>
+> Keeping the contents exactly the same as you have them
+> in the separate .tbl files, just merging the two files, and
+> splitting out the differences as 32/64 ABI.
+>
+> > FYI, there are some implement missing for SPU in powerpc
+> >
+> > For your reference:
+> > SYSX_SPU(sys_newfstatat,sys_fstatat64,sys_fstatat64)
+> > SYSX_SPU(ppc64_personality,ppc64_personality,sys_personality)
+>
+> This is a good question. The only difference between SPU and
+> native 64-bit is that some syscalls are not part of the SPU table
+> because those syscalls are impossible to implement on SPU.
+>
+> Maybe we can solve this by allowing multiple comma-separated
+> ABIs in the table. On powerpc, 'common' would then mean
+> '32-bit, 64-bit and spu', while you could have various other
+> combinations:
+>
+> /* always:32, 64 and SPU */
+> 1 common exit sys_exit
+>
+> /* 32-bit only call */
+> 76  32    getrlimit      sys_old_getrlimit     compat_sys_old_getrlimit
+>
+> /* 64-bit only, no SPU */
+> 363 64 switch_endian  sys_switch_endian
+>
+> /* 32-bit and 64-bit, no SPU */
+> 198 32,64 pciconfig_read  sys_pciconfig_read
+>
+> /* different pointers */
+> 136    32 personality sys_personality      ppc64_personality
+> 136    64,spu personality ppc64_personality
+>
+> Would that work for you?
 
-diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-index 2d0879b0acf3..e12439ae8211 100644
---- a/arch/powerpc/include/asm/dma-mapping.h
-+++ b/arch/powerpc/include/asm/dma-mapping.h
-@@ -87,11 +87,5 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- 	return NULL;
- }
- 
--static inline void set_dma_offset(struct device *dev, dma_addr_t off)
--{
--	if (dev)
--		dev->archdata.dma_offset = off;
--}
--
- #endif /* __KERNEL__ */
- #endif	/* _ASM_DMA_MAPPING_H */
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index a84707680525..fca2b0bafd82 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -966,7 +966,7 @@ static void pcibios_setup_device(struct pci_dev *dev)
- 
- 	/* Hook up default DMA ops */
- 	set_dma_ops(&dev->dev, pci_dma_ops);
--	set_dma_offset(&dev->dev, PCI_DRAM_OFFSET);
-+	dev->dev.archdata.dma_offset = PCI_DRAM_OFFSET;
- 
- 	/* Additional platform DMA/iommu setup */
- 	phb = pci_bus_to_host(dev->bus);
-diff --git a/arch/powerpc/platforms/cell/iommu.c b/arch/powerpc/platforms/cell/iommu.c
-index 93c7e4aef571..997ee0f5fc2f 100644
---- a/arch/powerpc/platforms/cell/iommu.c
-+++ b/arch/powerpc/platforms/cell/iommu.c
-@@ -577,10 +577,10 @@ static void cell_dma_dev_setup(struct device *dev)
- 		u64 addr = cell_iommu_get_fixed_address(dev);
- 
- 		if (addr != OF_BAD_ADDR)
--			set_dma_offset(dev, addr + dma_iommu_fixed_base);
-+			dev->archdata.dma_offset = addr + dma_iommu_fixed_base;
- 		set_iommu_table_base(dev, cell_get_iommu_table(dev));
- 	} else {
--		set_dma_offset(dev, cell_dma_nommu_offset);
-+		dev->archdata.dma_offset = cell_dma_nommu_offset;
- 	}
- }
- 
-diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
-index 5748b62e2e86..e2333e10598d 100644
---- a/arch/powerpc/platforms/powernv/pci-ioda.c
-+++ b/arch/powerpc/platforms/powernv/pci-ioda.c
-@@ -1660,7 +1660,7 @@ static void pnv_pci_ioda_dma_dev_setup(struct pnv_phb *phb, struct pci_dev *pdev
- 
- 	pe = &phb->ioda.pe_array[pdn->pe_number];
- 	WARN_ON(get_dma_ops(&pdev->dev) != &dma_iommu_ops);
--	set_dma_offset(&pdev->dev, pe->tce_bypass_base);
-+	pdev->dev.archdata.dma_offset = pe->tce_bypass_base;
- 	set_iommu_table_base(&pdev->dev, pe->table_group.tables[0]);
- 	/*
- 	 * Note: iommu_add_device() will fail here as
-@@ -1773,7 +1773,7 @@ static bool pnv_pci_ioda_iommu_bypass_supported(struct pci_dev *pdev,
- 		if (rc)
- 			return rc;
- 		/* 4GB offset bypasses 32-bit space */
--		set_dma_offset(&pdev->dev, (1ULL << 32));
-+		pdev->dev.archdata.dma_offset = (1ULL << 32);
- 		return true;
- 	}
- 
-@@ -1788,7 +1788,7 @@ static void pnv_ioda_setup_bus_dma(struct pnv_ioda_pe *pe,
- 
- 	list_for_each_entry(dev, &bus->devices, bus_list) {
- 		set_iommu_table_base(&dev->dev, pe->table_group.tables[0]);
--		set_dma_offset(&dev->dev, pe->tce_bypass_base);
-+		dev->dev.archdata.dma_offset = pe->tce_bypass_base;
- 		if (add_to_group)
- 			iommu_add_device(&dev->dev);
- 
-diff --git a/arch/powerpc/platforms/pseries/iommu.c b/arch/powerpc/platforms/pseries/iommu.c
-index 8965d174c53b..a2ff20d154fe 100644
---- a/arch/powerpc/platforms/pseries/iommu.c
-+++ b/arch/powerpc/platforms/pseries/iommu.c
-@@ -1197,7 +1197,6 @@ static bool iommu_bypass_supported_pSeriesLP(struct pci_dev *pdev, u64 dma_mask)
- {
- 	struct device_node *dn = pci_device_to_OF_node(pdev), *pdn;
- 	const __be32 *dma_window = NULL;
--	u64 dma_offset;
- 
- 	/* only attempt to use a new window if 64-bit DMA is requested */
- 	if (dma_mask < DMA_BIT_MASK(64))
-@@ -1219,11 +1218,9 @@ static bool iommu_bypass_supported_pSeriesLP(struct pci_dev *pdev, u64 dma_mask)
- 	}
- 
- 	if (pdn && PCI_DN(pdn)) {
--		dma_offset = enable_ddw(pdev, pdn);
--		if (dma_offset != 0) {
--			set_dma_offset(&pdev->dev, dma_offset);
-+		pdev->dev.archdata.dma_offset = enable_ddw(pdev, pdn);
-+		if (pdev->dev.archdata.dma_offset)
- 			return true;
--		}
- 	}
- 
- 	return false;
-diff --git a/arch/powerpc/sysdev/dart_iommu.c b/arch/powerpc/sysdev/dart_iommu.c
-index e7d1645a2d2e..21d7e8a30aea 100644
---- a/arch/powerpc/sysdev/dart_iommu.c
-+++ b/arch/powerpc/sysdev/dart_iommu.c
-@@ -386,7 +386,7 @@ static bool dart_device_on_pcie(struct device *dev)
- static void pci_dma_dev_setup_dart(struct pci_dev *dev)
- {
- 	if (dart_is_u4 && dart_device_on_pcie(&dev->dev))
--		set_dma_offset(&dev->dev, DART_U4_BYPASS_BASE);
-+		dev->dev.archdata.dma_offset = DART_U4_BYPASS_BASE;
- 	set_iommu_table_base(&dev->dev, &iommu_table_dart);
- }
- 
-diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
-index cb91a3d113d1..d6b7c91a9ce2 100644
---- a/arch/powerpc/sysdev/fsl_pci.c
-+++ b/arch/powerpc/sysdev/fsl_pci.c
-@@ -141,7 +141,7 @@ static int fsl_pci_dma_set_mask(struct device *dev, u64 dma_mask)
- 	 */
- 	if (dev_is_pci(dev) && dma_mask >= pci64_dma_offset * 2 - 1) {
- 		dev->bus_dma_mask = 0;
--		set_dma_offset(dev, pci64_dma_offset);
-+		dev->archdata.dma_offset = pci64_dma_offset;
- 	}
- 
- 	return 0;
-diff --git a/drivers/misc/cxl/vphb.c b/drivers/misc/cxl/vphb.c
-index 49da2f744bbf..f0645ba1d728 100644
---- a/drivers/misc/cxl/vphb.c
-+++ b/drivers/misc/cxl/vphb.c
-@@ -44,7 +44,7 @@ static bool cxl_pci_enable_device_hook(struct pci_dev *dev)
- 	}
- 
- 	set_dma_ops(&dev->dev, &dma_nommu_ops);
--	set_dma_offset(&dev->dev, PAGE_OFFSET);
-+	dev->dev.archdata.dma_offset = PAGE_OFFSET;
- 
- 	/*
- 	 * Allocate a context to do cxl things too.  If we eventually do real
--- 
-2.19.0
+At this point, yes. V2 patches for powerpc on my pipeline. I can bring
+the above points when I start creating those patches.
+
+Thanks
+Firoz
+>
+>        Arnd
