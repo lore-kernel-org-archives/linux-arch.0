@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:50494 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:49942 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727002AbeJIUnc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:32 -0400
+        with ESMTP id S1727080AbeJIUnS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 16:43:18 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 29/33] powerpc/dma: remove get_dma_offset
-Date: Tue,  9 Oct 2018 15:24:56 +0200
-Message-ID: <20181009132500.17643-30-hch@lst.de>
+Subject: [PATCH 24/33] powerpc/dma: fix an off-by-one in dma_capable
+Date: Tue,  9 Oct 2018 15:24:51 +0200
+Message-ID: <20181009132500.17643-25-hch@lst.de>
 In-Reply-To: <20181009132500.17643-1-hch@lst.de>
 References: <20181009132500.17643-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,66 +15,38 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181009132456.ri8t1vZYrOjtapvNIUbY7seJO_us44harah4HKd1qdk@z>
+Message-ID: <20181009132451.a2bzIrCCaJdbTqBXf6YYSI6YGnuPdfqjz9GWHolKSWg@z>
 
-Just fold the calculation into __phys_to_dma/__dma_to_phys as those are
-the only places that should know about it.
+We need to compare the last byte in the dma range and not the one after it
+for the bus_dma_mask, just like we do for the regular dma_mask.  Fix this
+cleanly by merging the two comparisms into one.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/powerpc/include/asm/dma-direct.h  |  8 ++++++--
- arch/powerpc/include/asm/dma-mapping.h | 16 ----------------
- 2 files changed, 6 insertions(+), 18 deletions(-)
+ arch/powerpc/include/asm/dma-direct.h | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/dma-direct.h b/arch/powerpc/include/asm/dma-direct.h
-index 92d8aed86422..a2912b47102c 100644
+index e00ab5d0612d..92d8aed86422 100644
 --- a/arch/powerpc/include/asm/dma-direct.h
 +++ b/arch/powerpc/include/asm/dma-direct.h
-@@ -13,11 +13,15 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+@@ -4,15 +4,11 @@
+ 
+ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+ {
+-#ifdef CONFIG_SWIOTLB
+-	if (dev->bus_dma_mask && addr + size > dev->bus_dma_mask)
+-		return false;
+-#endif
+-
+ 	if (!dev->dma_mask)
+ 		return false;
+ 
+-	return addr + size - 1 <= *dev->dma_mask;
++	return addr + size - 1 <=
++		min_not_zero(*dev->dma_mask, dev->bus_dma_mask);
+ }
  
  static inline dma_addr_t __phys_to_dma(struct device *dev, phys_addr_t paddr)
- {
--	return paddr + get_dma_offset(dev);
-+	if (!dev)
-+		return paddr + PCI_DRAM_OFFSET;
-+	return paddr + dev->archdata.dma_offset;
- }
- 
- static inline phys_addr_t __dma_to_phys(struct device *dev, dma_addr_t daddr)
- {
--	return daddr - get_dma_offset(dev);
-+	if (!dev)
-+		return daddr - PCI_DRAM_OFFSET;
-+	return daddr - dev->archdata.dma_offset;
- }
- #endif /* ASM_POWERPC_DMA_DIRECT_H */
-diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-index 7694985f05ee..2d0879b0acf3 100644
---- a/arch/powerpc/include/asm/dma-mapping.h
-+++ b/arch/powerpc/include/asm/dma-mapping.h
-@@ -87,22 +87,6 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- 	return NULL;
- }
- 
--/*
-- * get_dma_offset()
-- *
-- * Get the dma offset on configurations where the dma address can be determined
-- * from the physical address by looking at a simple offset.  Direct dma and
-- * swiotlb use this function, but it is typically not used by implementations
-- * with an iommu.
-- */
--static inline dma_addr_t get_dma_offset(struct device *dev)
--{
--	if (dev)
--		return dev->archdata.dma_offset;
--
--	return PCI_DRAM_OFFSET;
--}
--
- static inline void set_dma_offset(struct device *dev, dma_addr_t off)
- {
- 	if (dev)
 -- 
 2.19.0
