@@ -1,87 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:43742 "EHLO
-        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726977AbeJJAE6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2018 20:04:58 -0400
-Received: by mail-ot1-f67.google.com with SMTP id k9so2325887otl.10
-        for <linux-arch@vger.kernel.org>; Tue, 09 Oct 2018 09:47:08 -0700 (PDT)
+Received: from mail.kernel.org ([198.145.29.99]:50844 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726752AbeJJCoe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Oct 2018 22:44:34 -0400
+Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id DE5DF21526
+        for <linux-arch@vger.kernel.org>; Tue,  9 Oct 2018 19:26:05 +0000 (UTC)
+Received: by mail-wm1-f50.google.com with SMTP id z204-v6so3223935wmc.5
+        for <linux-arch@vger.kernel.org>; Tue, 09 Oct 2018 12:26:05 -0700 (PDT)
 MIME-Version: 1.0
-References: <20181009070230.12884-1-cyphar@cyphar.com> <20181009070230.12884-4-cyphar@cyphar.com>
- <CAG48ez3Ae5b20g2UquekfBNaUw1tLt4nWy2pYm-LNRMbDVpHfA@mail.gmail.com> <20181009153728.2altaqxclntvyc7b@mikami>
-In-Reply-To: <20181009153728.2altaqxclntvyc7b@mikami>
-From: Jann Horn <jannh@google.com>
-Date: Tue, 9 Oct 2018 18:46:41 +0200
-Message-ID: <CAG48ez0TeT7=SC7rxNC6RA4ALUcqfRrewx9RYtg9PwFkmy044A@mail.gmail.com>
-Subject: Re: [PATCH v3 3/3] namei: aggressively check for nd->root escape on
- ".." resolution
+References: <20181009065300.11053-1-cyphar@cyphar.com> <20181009065300.11053-3-cyphar@cyphar.com>
+In-Reply-To: <20181009065300.11053-3-cyphar@cyphar.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Tue, 9 Oct 2018 12:25:52 -0700
+Message-ID: <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com>
+Subject: Re: [PATCH v2 1/3] namei: implement O_BENEATH-style AT_* flags
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: asarai@suse.de
-Cc: cyphar@cyphar.com, Al Viro <viro@zeniv.linux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, jlayton@kernel.org, Bruce Fields <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, David Howells <dhowells@redhat.com>, christian@brauner.io, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, containers@lists.linux-foundation.org, linux-fsdevel@vger.kernel.org, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20181009164641.2w8qElbnwdQTdiuqB8ph-4CIrZx-RMWpyGsd3wN4TBE@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Lutomirski <luto@kernel.org>, David Howells <dhowells@redhat.com>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20181009192552.2WBcTJZCht4YogVaCRXqE6NSWHIE5VIJmcaSv2g1GD0@z>
 
-On Tue, Oct 9, 2018 at 5:36 PM Aleksa Sarai <asarai@suse.de> wrote:
-> On 2018-10-09, 'Jann Horn' via dev <jannh@google.com> wrote:
-> > On Tue, Oct 9, 2018 at 9:03 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> > > This patch allows for AT_BENEATH and AT_THIS_ROOT to safely permit ".."
-> > > resolution (in the case of AT_BENEATH the resolution will still fail if
-> > > ".." resolution would resolve a path outside of the root -- while
-> > > AT_THIS_ROOT will chroot(2)-style scope it). "proclink" jumps are still
-> > > disallowed entirely because now they could result in inconsistent
-> > > behaviour if resolution encounters a subsequent "..".
-> > >
-> > > The need for this patch is explained by observing there is a fairly
-> > > easy-to-exploit race condition with chroot(2) (and thus by extension
-> > > AT_THIS_ROOT and AT_BENEATH) where a rename(2) of a path can be used to
-> > > "skip over" nd->root and thus escape to the filesystem above nd->root.
-> > >
-> > >   thread1 [attacker]:
-> > >     for (;;)
-> > >       renameat2(AT_FDCWD, "/a/b/c", AT_FDCWD, "/a/d", RENAME_EXCHANGE);
-> > >   thread2 [victim]:
-> > >     for (;;)
-> > >       openat(dirb, "b/c/../../etc/shadow", O_THISROOT);
-> > >
-> > > With fairly significant regularity, thread2 will resolve to
-> > > "/etc/shadow" rather than "/a/b/etc/shadow". There is also a similar
-> > > (though somewhat more privileged) attack using MS_MOVE.
-> > >
-> > > With this patch, such cases will be detected *during* ".." resolution
-> > > (which is the weak point of chroot(2) -- since walking *into* a
-> > > subdirectory tautologically cannot result in you walking *outside*
-> > > nd->root -- except through a bind-mount or "proclink"). By detecting
-> > > this at ".." resolution (rather than checking only at the end of the
-> > > entire resolution) we can both correct escapes by jumping back to the
-> > > root (in the case of AT_THIS_ROOT), as well as avoid revealing to
-> > > attackers the structure of the filesystem outside of the root (through
-> > > timing attacks for instance).
-> > >
-> > > In order to avoid a quadratic lookup with each ".." entry, we only
-> > > activate the slow path if a write through &rename_lock or &mount_lock
-> > > have occurred during path resolution (&rename_lock and &mount_lock are
-> > > re-taken to further optimise the lookup). Since the primary attack being
-> > > protected against is MS_MOVE or rename(2), not doing additional checks
-> > > unless a mount or rename have occurred avoids making the common case
-> > > slow.
-> > >
-> > > The use of __d_path here might seem suspect, but on further inspection
-> > > of the most important race (a path was *inside* the root but is now
-> > > *outside*), there appears to be no attack potential. If __d_path occurs
-> > > before the rename, then the path will be resolved but since the path was
-> > > originally inside the root there is no escape. Subsequent ".." jumps are
-> > > guaranteed to check __d_path reachable (by construction, &rename_lock or
-> > > &mount_lock must have been taken after __d_path returned),
-> >
-> > "after"? Don't you mean "before"? Otherwise I don't understand what
-> > you're saying here.
->
-> I meant that the attacker doing the rename must've taken &rename_lock
-> or &mount_lock after __d_path returns in the target process (because the
-> race being examined is that the rename occurs *after* __d_path) and thus
-> are guaranteed to be detected).
->
-> Maybe there's a better way to phrase what I mean...
+On Mon, Oct 8, 2018 at 11:53 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> * AT_NO_PROCLINK: Disallows ->get_link "symlink" jumping. This is a very
+>   specific restriction, and it exists because /proc/$pid/fd/...
+>   "symlinks" allow for access outside nd->root and pose risk to
+>   container runtimes that don't want to be tricked into accessing a host
+>   path (but do want to allow no-funny-business symlink resolution).
 
-Aah, I thought you were referring to what the victim process is doing,
-not what the racing attacker is doing.
+Can you elaborate on the use case?
+
+If I'm set up a container namespace and walk it for real (through the
+outside /proc/PID/root or otherwise starting from an fd that points
+into that namespace), and I walk through that namespace's /proc, I'm
+going to see the same thing that the processes in the namespace would
+see.  So what's the issue?
+
+Similarly, if I somehow manage to walk into the outside /proc, then
+I've pretty much lost regardless of the links.
+
+--Andy
