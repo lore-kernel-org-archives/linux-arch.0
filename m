@@ -1,231 +1,184 @@
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call table file generation
-Date: Wed, 10 Oct 2018 08:44:43 +0530
-Message-ID: <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call
+ table file generation
+Date: Wed, 10 Oct 2018 08:23:27 +0200
+Message-ID: <841821b9-6223-ad74-7558-3b456f498317@xilinx.com>
 References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
- <1538397784-4214-4-git-send-email-firoz.khan@linaro.org> <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
+ <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
+ <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
  <CALxhOnh4__SMm93Lpr13eHxBTvDnocHzdh3YDxtuogEKg355Vw@mail.gmail.com>
- <440fc4a0-cd4e-c8fc-9278-928cf5b7cd92@xilinx.com> <CALxhOnhFyb13YZTRFNsvs9FWD7OCzPtbmdzn+V_YepXACVOxiQ@mail.gmail.com>
+ <440fc4a0-cd4e-c8fc-9278-928cf5b7cd92@xilinx.com>
+ <CALxhOnhFyb13YZTRFNsvs9FWD7OCzPtbmdzn+V_YepXACVOxiQ@mail.gmail.com>
+ <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALxhOnhFyb13YZTRFNsvs9FWD7OCzPtbmdzn+V_YepXACVOxiQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <michal.simek@xilinx.com>
-Cc: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Firoz Khan <firoz.khan@linaro.org>, Michal Simek <michal.simek@xilinx.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Michal,
-
-On Thu, 4 Oct 2018 at 16:05, Firoz Khan <firoz.khan@linaro.org> wrote:
->
-> Hi Michal,
->
-> On Wed, 3 Oct 2018 at 16:56, Michal Simek <michal.simek@xilinx.com> wrote:
-> >
-> > On 3.10.2018 07:08, Firoz Khan wrote:
-> > > Hi Michal,
-> > >
-> > > On Tue, 2 Oct 2018 at 19:37, Michal Simek <michal.simek@xilinx.com> wrote:
-> > >>
-> > >> On 1.10.2018 14:43, Firoz Khan wrote:
-> > >>> System call table generation script must be run to generate
-> > >>> unistd_32.h and syscall_table.h files. This patch will have
-> > >>> changes which will invokes the script.
-> > >>>
-> > >>> This patch will generate unistd_32.h and syscall_table.h
-> > >>> files by the syscall table generation script invoked by
-> > >>> arch/microblaze/Makefile and the generated files against the
-> > >>> removed files will be identical.
-> > >>>
-> > >>> The generated uapi header file will be included in
-> > >>> uapi/asm/unistd.h and generated system call table support
-> > >>> file will be included by kernel/syscall_table.S file.
-> > >>>
-> > >>> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
-> > >>> ---
-> > >>>  arch/microblaze/Makefile                  |   3 +
-> > >>>  arch/microblaze/include/asm/Kbuild        |   1 +
-> > >>>  arch/microblaze/include/uapi/asm/Kbuild   |   1 +
-> > >>>  arch/microblaze/include/uapi/asm/unistd.h | 411 +-----------------------------
-> > >>>  arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
-> > >>>  5 files changed, 10 insertions(+), 812 deletions(-)
-> > >>>
-> > >>> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-> > >>> index 4f3ab57..cda5e03 100644
-> > >>> --- a/arch/microblaze/Makefile
-> > >>> +++ b/arch/microblaze/Makefile
-> > >>> @@ -81,6 +81,9 @@ all: linux.bin
-> > >>>  archclean:
-> > >>>       $(Q)$(MAKE) $(clean)=$(boot)
-> > >>>
-> > >>> +archheaders:
-> > >>> +     $(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
-> > >>> +
-> > >>>  linux.bin linux.bin.gz linux.bin.ub: vmlinux
-> > >>>       $(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-> > >>>
-> > >>> diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-> > >>> index 569ba9e..d64f5e7 100644
-> > >>> --- a/arch/microblaze/include/asm/Kbuild
-> > >>> +++ b/arch/microblaze/include/asm/Kbuild
-> > >>> @@ -31,3 +31,4 @@ generic-y += trace_clock.h
-> > >>>  generic-y += vga.h
-> > >>>  generic-y += word-at-a-time.h
-> > >>>  generic-y += xor.h
-> > >>> +generic-y += syscall_table.h
-> > >>> \ No newline at end of file
-> > >>
-> > >> Still the problem with "No newline at end of file"
-> > >>
-> > >>> diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-> > >>> index 2c6a6bf..3a40659 100644
-> > >>> --- a/arch/microblaze/include/uapi/asm/Kbuild
-> > >>> +++ b/arch/microblaze/include/uapi/asm/Kbuild
-> > >>> @@ -28,3 +28,4 @@ generic-y += termbits.h
-> > >>>  generic-y += termios.h
-> > >>>  generic-y += types.h
-> > >>>  generic-y += ucontext.h
-> > >>> +generic-y += unistd_32.h
-> > >>> \ No newline at end of file
-> > >>
-> > >> and here too.
-> > >
-> > > Thanks for your comment. checkpatch script didn't warn this one:(
-> > > Hopefully, I can fix this one in the next version.
-> > >
-> > > I would appreciate if you can perform the boot test on the actual
-> > > platform and share the result with me.
-> >
-> > I see one issue there.
-> > Run
-> > make mrproper
-> > make ARCH=microblaze headers_install INSTALL_HDR_PATH=/tmp/1/
-> >
-> > And then
-> >
-> > make mrproper
-> > make archheaders V=1
-> > make ARCH=microblaze headers_install INSTALL_HDR_PATH=/tmp/2/
-> >
-> > And compare output.
-> > What I see is that in the first part asm/unistd_32.h pointing to
-> > asm-generic/unistd_32.h
-> >
-> > But when archheaders is run before there is expected content.
-> >
-> > That means there is incorrect/missing dependency in Makefiles.
-> >
-> >
-> > Time to time I am able to see compilation warnings
-> > but I didn't find exact steps to replicate this but it also looks like
-> > on missing dependency somewhere.
-> >
-> > [linux](next)$ make mmu_defconfig
-> > #
-> > # configuration written to .config
-> > #
-> > [linux](next)$ make -j8 simpleImage.system
-> >   WRAP    arch/microblaze/include/generated/asm/barrier.h
-> >   WRAP    arch/microblaze/include/generated/asm/bitops.h
-> >   WRAP    arch/microblaze/include/generated/asm/bug.h
-> >   WRAP    arch/microblaze/include/generated/asm/bugs.h
-> >   WRAP    arch/microblaze/include/generated/asm/device.h
-> >   WRAP    arch/microblaze/include/generated/asm/compat.h
-> >   WRAP    arch/microblaze/include/generated/asm/div64.h
-> >   WRAP    arch/microblaze/include/generated/asm/dma-mapping.h
-> >   WRAP    arch/microblaze/include/generated/asm/emergency-restart.h
-> >   WRAP    arch/microblaze/include/generated/asm/exec.h
-> >   WRAP    arch/microblaze/include/generated/asm/extable.h
-> >   WRAP    arch/microblaze/include/generated/asm/fb.h
-> >   WRAP    arch/microblaze/include/generated/asm/hardirq.h
-> >   WRAP    arch/microblaze/include/generated/asm/irq_regs.h
-> >   WRAP    arch/microblaze/include/generated/asm/kdebug.h
-> >   WRAP    arch/microblaze/include/generated/asm/kmap_types.h
-> >   WRAP    arch/microblaze/include/generated/asm/irq_work.h
-> >   WRAP    arch/microblaze/include/generated/asm/kprobes.h
-> >   WRAP    arch/microblaze/include/generated/asm/linkage.h
-> >   WRAP    arch/microblaze/include/generated/asm/local.h
-> >   WRAP    arch/microblaze/include/generated/asm/local64.h
-> >   WRAP    arch/microblaze/include/generated/asm/mcs_spinlock.h
-> >   WRAP    arch/microblaze/include/generated/asm/mm-arch-hooks.h
-> >   WRAP    arch/microblaze/include/generated/asm/parport.h
-> >   WRAP    arch/microblaze/include/generated/asm/percpu.h
-> >   WRAP    arch/microblaze/include/generated/asm/preempt.h
-> >   WRAP    arch/microblaze/include/generated/asm/topology.h
-> >   WRAP    arch/microblaze/include/generated/asm/syscalls.h
-> >   WRAP    arch/microblaze/include/generated/asm/trace_clock.h
-> >   WRAP    arch/microblaze/include/generated/asm/vga.h
-> >   WRAP    arch/microblaze/include/generated/asm/serial.h
-> >   WRAP    arch/microblaze/include/generated/asm/word-at-a-time.h
-> >   WRAP    arch/microblaze/include/generated/asm/xor.h
-> >   HOSTCC  scripts/bin2c
-> >   HOSTCC  scripts/kallsyms
-> >   HOSTCC  scripts/dtc/dtc.o
-> >   HOSTCC  scripts/mod/mk_elfconfig
-> >   HOSTCC  scripts/sortextable
-> >   CC      scripts/mod/empty.o
-> >   HOSTCC  scripts/dtc/flattree.o
-> >   UPD     include/config/kernel.release
-> >   HOSTCC  scripts/dtc/fstree.o
-> >   HOSTCC  scripts/dtc/data.o
-> >   HOSTCC  scripts/dtc/livetree.o
-> >   CC      scripts/mod/devicetable-offsets.s
-> >   HOSTCC  scripts/dtc/treesource.o
-> >   HOSTCC  scripts/dtc/srcpos.o
-> >   MKELF   scripts/mod/elfconfig.h
-> >   UPD     scripts/mod/devicetable-offsets.h
-> >   HOSTCC  scripts/dtc/checks.o
-> >   HOSTCC  scripts/dtc/util.o
-> >   HOSTCC  scripts/mod/sumversion.o
-> >   LEX     scripts/dtc/dtc-lexer.lex.c
-> >   YACC    scripts/dtc/dtc-parser.tab.h
-> >   YACC    scripts/dtc/dtc-parser.tab.c
-> >   UPD     include/generated/utsrelease.h
-> >   HOSTCC  scripts/dtc/dtc-lexer.lex.o
-> >   CC      kernel/bounds.s
-> >   UPD     include/generated/timeconst.h
-> >   HOSTCC  scripts/dtc/dtc-parser.tab.o
-> >   HOSTCC  scripts/mod/file2alias.o
-> >   HOSTCC  scripts/mod/modpost.o
-> >   UPD     include/generated/bounds.h
-> >   CC      arch/microblaze/kernel/asm-offsets.s
-> > In file included from ./arch/microblaze/include/uapi/asm/unistd.h:14:0,
-> >                  from ./arch/microblaze/include/asm/unistd.h:12,
-> >                  from ./include/uapi/linux/unistd.h:8,
-> >                  from ./arch/microblaze/include/asm/seccomp.h:5,
-> >                  from ./include/linux/seccomp.h:14,
-> >                  from ./include/linux/sched.h:21,
-> >                  from arch/microblaze/kernel/asm-offsets.c:13:
-> > ./arch/microblaze/include/generated/uapi/asm/unistd_32.h:1:35: fatal
-> > error: asm-generic/unistd_32.h: No such file or directory
-> >  #include <asm-generic/unistd_32.h>
-> >                                    ^
-> > compilation terminated.
-> > make[1]: *** [arch/microblaze/kernel/asm-offsets.s] Error 1
-> > make: *** [prepare0] Error 2
-> > make: *** Waiting for unfinished jobs....
-> >   HOSTLD  scripts/dtc/dtc
-> >   HOSTLD  scripts/mod/modpost
-> >
-> >
-> >
-> > When build is fine system is booting fine (v4.19-rc6 + your patches).
->
-> Thanks for your support. I'll work on the same which shared above.
-> I'll update you asap with the fix.
-
-I'm bit busy this week, working on parisc and ia64 support.
-Hopefully I can update you next week.
-
-Thanks
-Firoz
-
->
-> - Firoz
->
-> >
-> > Thanks,
-> > Michal
-> >
-> >
+T24gMTAuMTAuMjAxOCAwNToxNCwgRmlyb3ogS2hhbiB3cm90ZToKPiBIaSBNaWNoYWwsCj4gCj4g
+T24gVGh1LCA0IE9jdCAyMDE4IGF0IDE2OjA1LCBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFy
+by5vcmc+IHdyb3RlOgo+Pgo+PiBIaSBNaWNoYWwsCj4+Cj4+IE9uIFdlZCwgMyBPY3QgMjAxOCBh
+dCAxNjo1NiwgTWljaGFsIFNpbWVrIDxtaWNoYWwuc2ltZWtAeGlsaW54LmNvbT4gd3JvdGU6Cj4+
+Pgo+Pj4gT24gMy4xMC4yMDE4IDA3OjA4LCBGaXJveiBLaGFuIHdyb3RlOgo+Pj4+IEhpIE1pY2hh
+bCwKPj4+Pgo+Pj4+IE9uIFR1ZSwgMiBPY3QgMjAxOCBhdCAxOTozNywgTWljaGFsIFNpbWVrIDxt
+aWNoYWwuc2ltZWtAeGlsaW54LmNvbT4gd3JvdGU6Cj4+Pj4+Cj4+Pj4+IE9uIDEuMTAuMjAxOCAx
+NDo0MywgRmlyb3ogS2hhbiB3cm90ZToKPj4+Pj4+IFN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRp
+b24gc2NyaXB0IG11c3QgYmUgcnVuIHRvIGdlbmVyYXRlCj4+Pj4+PiB1bmlzdGRfMzIuaCBhbmQg
+c3lzY2FsbF90YWJsZS5oIGZpbGVzLiBUaGlzIHBhdGNoIHdpbGwgaGF2ZQo+Pj4+Pj4gY2hhbmdl
+cyB3aGljaCB3aWxsIGludm9rZXMgdGhlIHNjcmlwdC4KPj4+Pj4+Cj4+Pj4+PiBUaGlzIHBhdGNo
+IHdpbGwgZ2VuZXJhdGUgdW5pc3RkXzMyLmggYW5kIHN5c2NhbGxfdGFibGUuaAo+Pj4+Pj4gZmls
+ZXMgYnkgdGhlIHN5c2NhbGwgdGFibGUgZ2VuZXJhdGlvbiBzY3JpcHQgaW52b2tlZCBieQo+Pj4+
+Pj4gYXJjaC9taWNyb2JsYXplL01ha2VmaWxlIGFuZCB0aGUgZ2VuZXJhdGVkIGZpbGVzIGFnYWlu
+c3QgdGhlCj4+Pj4+PiByZW1vdmVkIGZpbGVzIHdpbGwgYmUgaWRlbnRpY2FsLgo+Pj4+Pj4KPj4+
+Pj4+IFRoZSBnZW5lcmF0ZWQgdWFwaSBoZWFkZXIgZmlsZSB3aWxsIGJlIGluY2x1ZGVkIGluCj4+
+Pj4+PiB1YXBpL2FzbS91bmlzdGQuaCBhbmQgZ2VuZXJhdGVkIHN5c3RlbSBjYWxsIHRhYmxlIHN1
+cHBvcnQKPj4+Pj4+IGZpbGUgd2lsbCBiZSBpbmNsdWRlZCBieSBrZXJuZWwvc3lzY2FsbF90YWJs
+ZS5TIGZpbGUuCj4+Pj4+Pgo+Pj4+Pj4gU2lnbmVkLW9mZi1ieTogRmlyb3ogS2hhbiA8Zmlyb3ou
+a2hhbkBsaW5hcm8ub3JnPgo+Pj4+Pj4gLS0tCj4+Pj4+PiAgYXJjaC9taWNyb2JsYXplL01ha2Vm
+aWxlICAgICAgICAgICAgICAgICAgfCAgIDMgKwo+Pj4+Pj4gIGFyY2gvbWljcm9ibGF6ZS9pbmNs
+dWRlL2FzbS9LYnVpbGQgICAgICAgIHwgICAxICsKPj4+Pj4+ICBhcmNoL21pY3JvYmxhemUvaW5j
+bHVkZS91YXBpL2FzbS9LYnVpbGQgICB8ICAgMSArCj4+Pj4+PiAgYXJjaC9taWNyb2JsYXplL2lu
+Y2x1ZGUvdWFwaS9hc20vdW5pc3RkLmggfCA0MTEgKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tCj4+Pj4+PiAgYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxsX3RhYmxlLlMgICAgfCA0
+MDYgKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KPj4+Pj4+ICA1IGZpbGVzIGNoYW5nZWQs
+IDEwIGluc2VydGlvbnMoKyksIDgxMiBkZWxldGlvbnMoLSkKPj4+Pj4+Cj4+Pj4+PiBkaWZmIC0t
+Z2l0IGEvYXJjaC9taWNyb2JsYXplL01ha2VmaWxlIGIvYXJjaC9taWNyb2JsYXplL01ha2VmaWxl
+Cj4+Pj4+PiBpbmRleCA0ZjNhYjU3Li5jZGE1ZTAzIDEwMDY0NAo+Pj4+Pj4gLS0tIGEvYXJjaC9t
+aWNyb2JsYXplL01ha2VmaWxlCj4+Pj4+PiArKysgYi9hcmNoL21pY3JvYmxhemUvTWFrZWZpbGUK
+Pj4+Pj4+IEBAIC04MSw2ICs4MSw5IEBAIGFsbDogbGludXguYmluCj4+Pj4+PiAgYXJjaGNsZWFu
+Ogo+Pj4+Pj4gICAgICAgJChRKSQoTUFLRSkgJChjbGVhbik9JChib290KQo+Pj4+Pj4KPj4+Pj4+
+ICthcmNoaGVhZGVyczoKPj4+Pj4+ICsgICAgICQoUSkkKE1BS0UpICQoYnVpbGQpPWFyY2gvbWlj
+cm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMgYWxsCj4+Pj4+PiArCj4+Pj4+PiAgbGludXguYmluIGxp
+bnV4LmJpbi5neiBsaW51eC5iaW4udWI6IHZtbGludXgKPj4+Pj4+ICAgICAgICQoUSkkKE1BS0Up
+ICQoYnVpbGQpPSQoYm9vdCkgJChib290KS8kQAo+Pj4+Pj4KPj4+Pj4+IGRpZmYgLS1naXQgYS9h
+cmNoL21pY3JvYmxhemUvaW5jbHVkZS9hc20vS2J1aWxkIGIvYXJjaC9taWNyb2JsYXplL2luY2x1
+ZGUvYXNtL0tidWlsZAo+Pj4+Pj4gaW5kZXggNTY5YmE5ZS4uZDY0ZjVlNyAxMDA2NDQKPj4+Pj4+
+IC0tLSBhL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9LYnVpbGQKPj4+Pj4+ICsrKyBiL2Fy
+Y2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9LYnVpbGQKPj4+Pj4+IEBAIC0zMSwzICszMSw0IEBA
+IGdlbmVyaWMteSArPSB0cmFjZV9jbG9jay5oCj4+Pj4+PiAgZ2VuZXJpYy15ICs9IHZnYS5oCj4+
+Pj4+PiAgZ2VuZXJpYy15ICs9IHdvcmQtYXQtYS10aW1lLmgKPj4+Pj4+ICBnZW5lcmljLXkgKz0g
+eG9yLmgKPj4+Pj4+ICtnZW5lcmljLXkgKz0gc3lzY2FsbF90YWJsZS5oCj4+Pj4+PiBcIE5vIG5l
+d2xpbmUgYXQgZW5kIG9mIGZpbGUKPj4+Pj4KPj4+Pj4gU3RpbGwgdGhlIHByb2JsZW0gd2l0aCAi
+Tm8gbmV3bGluZSBhdCBlbmQgb2YgZmlsZSIKPj4+Pj4KPj4+Pj4+IGRpZmYgLS1naXQgYS9hcmNo
+L21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQgYi9hcmNoL21pY3JvYmxhemUvaW5j
+bHVkZS91YXBpL2FzbS9LYnVpbGQKPj4+Pj4+IGluZGV4IDJjNmE2YmYuLjNhNDA2NTkgMTAwNjQ0
+Cj4+Pj4+PiAtLS0gYS9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQKPj4+
+Pj4+ICsrKyBiL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL3VhcGkvYXNtL0tidWlsZAo+Pj4+Pj4g
+QEAgLTI4LDMgKzI4LDQgQEAgZ2VuZXJpYy15ICs9IHRlcm1iaXRzLmgKPj4+Pj4+ICBnZW5lcmlj
+LXkgKz0gdGVybWlvcy5oCj4+Pj4+PiAgZ2VuZXJpYy15ICs9IHR5cGVzLmgKPj4+Pj4+ICBnZW5l
+cmljLXkgKz0gdWNvbnRleHQuaAo+Pj4+Pj4gK2dlbmVyaWMteSArPSB1bmlzdGRfMzIuaAo+Pj4+
+Pj4gXCBObyBuZXdsaW5lIGF0IGVuZCBvZiBmaWxlCj4+Pj4+Cj4+Pj4+IGFuZCBoZXJlIHRvby4K
+Pj4+Pgo+Pj4+IFRoYW5rcyBmb3IgeW91ciBjb21tZW50LiBjaGVja3BhdGNoIHNjcmlwdCBkaWRu
+J3Qgd2FybiB0aGlzIG9uZTooCj4+Pj4gSG9wZWZ1bGx5LCBJIGNhbiBmaXggdGhpcyBvbmUgaW4g
+dGhlIG5leHQgdmVyc2lvbi4KPj4+Pgo+Pj4+IEkgd291bGQgYXBwcmVjaWF0ZSBpZiB5b3UgY2Fu
+IHBlcmZvcm0gdGhlIGJvb3QgdGVzdCBvbiB0aGUgYWN0dWFsCj4+Pj4gcGxhdGZvcm0gYW5kIHNo
+YXJlIHRoZSByZXN1bHQgd2l0aCBtZS4KPj4+Cj4+PiBJIHNlZSBvbmUgaXNzdWUgdGhlcmUuCj4+
+PiBSdW4KPj4+IG1ha2UgbXJwcm9wZXIKPj4+IG1ha2UgQVJDSD1taWNyb2JsYXplIGhlYWRlcnNf
+aW5zdGFsbCBJTlNUQUxMX0hEUl9QQVRIPS90bXAvMS8KPj4+Cj4+PiBBbmQgdGhlbgo+Pj4KPj4+
+IG1ha2UgbXJwcm9wZXIKPj4+IG1ha2UgYXJjaGhlYWRlcnMgVj0xCj4+PiBtYWtlIEFSQ0g9bWlj
+cm9ibGF6ZSBoZWFkZXJzX2luc3RhbGwgSU5TVEFMTF9IRFJfUEFUSD0vdG1wLzIvCj4+Pgo+Pj4g
+QW5kIGNvbXBhcmUgb3V0cHV0Lgo+Pj4gV2hhdCBJIHNlZSBpcyB0aGF0IGluIHRoZSBmaXJzdCBw
+YXJ0IGFzbS91bmlzdGRfMzIuaCBwb2ludGluZyB0bwo+Pj4gYXNtLWdlbmVyaWMvdW5pc3RkXzMy
+LmgKPj4+Cj4+PiBCdXQgd2hlbiBhcmNoaGVhZGVycyBpcyBydW4gYmVmb3JlIHRoZXJlIGlzIGV4
+cGVjdGVkIGNvbnRlbnQuCj4+Pgo+Pj4gVGhhdCBtZWFucyB0aGVyZSBpcyBpbmNvcnJlY3QvbWlz
+c2luZyBkZXBlbmRlbmN5IGluIE1ha2VmaWxlcy4KPj4+Cj4+Pgo+Pj4gVGltZSB0byB0aW1lIEkg
+YW0gYWJsZSB0byBzZWUgY29tcGlsYXRpb24gd2FybmluZ3MKPj4+IGJ1dCBJIGRpZG4ndCBmaW5k
+IGV4YWN0IHN0ZXBzIHRvIHJlcGxpY2F0ZSB0aGlzIGJ1dCBpdCBhbHNvIGxvb2tzIGxpa2UKPj4+
+IG9uIG1pc3NpbmcgZGVwZW5kZW5jeSBzb21ld2hlcmUuCj4+Pgo+Pj4gW2xpbnV4XShuZXh0KSQg
+bWFrZSBtbXVfZGVmY29uZmlnCj4+PiAjCj4+PiAjIGNvbmZpZ3VyYXRpb24gd3JpdHRlbiB0byAu
+Y29uZmlnCj4+PiAjCj4+PiBbbGludXhdKG5leHQpJCBtYWtlIC1qOCBzaW1wbGVJbWFnZS5zeXN0
+ZW0KPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2Jh
+cnJpZXIuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9h
+c20vYml0b3BzLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0
+ZWQvYXNtL2J1Zy5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJh
+dGVkL2FzbS9idWdzLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5l
+cmF0ZWQvYXNtL2RldmljZS5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUv
+Z2VuZXJhdGVkL2FzbS9jb21wYXQuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNs
+dWRlL2dlbmVyYXRlZC9hc20vZGl2NjQuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9p
+bmNsdWRlL2dlbmVyYXRlZC9hc20vZG1hLW1hcHBpbmcuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWlj
+cm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vZW1lcmdlbmN5LXJlc3RhcnQuaAo+Pj4gICBX
+UkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vZXhlYy5oCj4+PiAg
+IFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9leHRhYmxlLmgK
+Pj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2ZiLmgK
+Pj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2hhcmRp
+cnEuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20v
+aXJxX3JlZ3MuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRl
+ZC9hc20va2RlYnVnLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5l
+cmF0ZWQvYXNtL2ttYXBfdHlwZXMuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNs
+dWRlL2dlbmVyYXRlZC9hc20vaXJxX3dvcmsuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6
+ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20va3Byb2Jlcy5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNy
+b2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9saW5rYWdlLmgKPj4+ICAgV1JBUCAgICBhcmNo
+L21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2xvY2FsLmgKPj4+ICAgV1JBUCAgICBh
+cmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2xvY2FsNjQuaAo+Pj4gICBXUkFQ
+ICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vbWNzX3NwaW5sb2NrLmgK
+Pj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL21tLWFy
+Y2gtaG9va3MuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRl
+ZC9hc20vcGFycG9ydC5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2Vu
+ZXJhdGVkL2FzbS9wZXJjcHUuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRl
+L2dlbmVyYXRlZC9hc20vcHJlZW1wdC5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2lu
+Y2x1ZGUvZ2VuZXJhdGVkL2FzbS90b3BvbG9neS5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2Js
+YXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9zeXNjYWxscy5oCj4+PiAgIFdSQVAgICAgYXJjaC9t
+aWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS90cmFjZV9jbG9jay5oCj4+PiAgIFdSQVAg
+ICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS92Z2EuaAo+Pj4gICBXUkFQ
+ICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vc2VyaWFsLmgKPj4+ICAg
+V1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL3dvcmQtYXQtYS10
+aW1lLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNt
+L3hvci5oCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9iaW4yYwo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMv
+a2FsbHN5bXMKPj4+ICAgSE9TVENDICBzY3JpcHRzL2R0Yy9kdGMubwo+Pj4gICBIT1NUQ0MgIHNj
+cmlwdHMvbW9kL21rX2VsZmNvbmZpZwo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMvc29ydGV4dGFibGUK
+Pj4+ICAgQ0MgICAgICBzY3JpcHRzL21vZC9lbXB0eS5vCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9k
+dGMvZmxhdHRyZWUubwo+Pj4gICBVUEQgICAgIGluY2x1ZGUvY29uZmlnL2tlcm5lbC5yZWxlYXNl
+Cj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9kdGMvZnN0cmVlLm8KPj4+ICAgSE9TVENDICBzY3JpcHRz
+L2R0Yy9kYXRhLm8KPj4+ICAgSE9TVENDICBzY3JpcHRzL2R0Yy9saXZldHJlZS5vCj4+PiAgIEND
+ICAgICAgc2NyaXB0cy9tb2QvZGV2aWNldGFibGUtb2Zmc2V0cy5zCj4+PiAgIEhPU1RDQyAgc2Ny
+aXB0cy9kdGMvdHJlZXNvdXJjZS5vCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9kdGMvc3JjcG9zLm8K
+Pj4+ICAgTUtFTEYgICBzY3JpcHRzL21vZC9lbGZjb25maWcuaAo+Pj4gICBVUEQgICAgIHNjcmlw
+dHMvbW9kL2RldmljZXRhYmxlLW9mZnNldHMuaAo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMvZHRjL2No
+ZWNrcy5vCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9kdGMvdXRpbC5vCj4+PiAgIEhPU1RDQyAgc2Ny
+aXB0cy9tb2Qvc3VtdmVyc2lvbi5vCj4+PiAgIExFWCAgICAgc2NyaXB0cy9kdGMvZHRjLWxleGVy
+LmxleC5jCj4+PiAgIFlBQ0MgICAgc2NyaXB0cy9kdGMvZHRjLXBhcnNlci50YWIuaAo+Pj4gICBZ
+QUNDICAgIHNjcmlwdHMvZHRjL2R0Yy1wYXJzZXIudGFiLmMKPj4+ICAgVVBEICAgICBpbmNsdWRl
+L2dlbmVyYXRlZC91dHNyZWxlYXNlLmgKPj4+ICAgSE9TVENDICBzY3JpcHRzL2R0Yy9kdGMtbGV4
+ZXIubGV4Lm8KPj4+ICAgQ0MgICAgICBrZXJuZWwvYm91bmRzLnMKPj4+ICAgVVBEICAgICBpbmNs
+dWRlL2dlbmVyYXRlZC90aW1lY29uc3QuaAo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMvZHRjL2R0Yy1w
+YXJzZXIudGFiLm8KPj4+ICAgSE9TVENDICBzY3JpcHRzL21vZC9maWxlMmFsaWFzLm8KPj4+ICAg
+SE9TVENDICBzY3JpcHRzL21vZC9tb2Rwb3N0Lm8KPj4+ICAgVVBEICAgICBpbmNsdWRlL2dlbmVy
+YXRlZC9ib3VuZHMuaAo+Pj4gICBDQyAgICAgIGFyY2gvbWljcm9ibGF6ZS9rZXJuZWwvYXNtLW9m
+ZnNldHMucwo+Pj4gSW4gZmlsZSBpbmNsdWRlZCBmcm9tIC4vYXJjaC9taWNyb2JsYXplL2luY2x1
+ZGUvdWFwaS9hc20vdW5pc3RkLmg6MTQ6MCwKPj4+ICAgICAgICAgICAgICAgICAgZnJvbSAuL2Fy
+Y2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS91bmlzdGQuaDoxMiwKPj4+ICAgICAgICAgICAgICAg
+ICAgZnJvbSAuL2luY2x1ZGUvdWFwaS9saW51eC91bmlzdGQuaDo4LAo+Pj4gICAgICAgICAgICAg
+ICAgICBmcm9tIC4vYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvYXNtL3NlY2NvbXAuaDo1LAo+Pj4g
+ICAgICAgICAgICAgICAgICBmcm9tIC4vaW5jbHVkZS9saW51eC9zZWNjb21wLmg6MTQsCj4+PiAg
+ICAgICAgICAgICAgICAgIGZyb20gLi9pbmNsdWRlL2xpbnV4L3NjaGVkLmg6MjEsCj4+PiAgICAg
+ICAgICAgICAgICAgIGZyb20gYXJjaC9taWNyb2JsYXplL2tlcm5lbC9hc20tb2Zmc2V0cy5jOjEz
+Ogo+Pj4gLi9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvdWFwaS9hc20vdW5pc3Rk
+XzMyLmg6MTozNTogZmF0YWwKPj4+IGVycm9yOiBhc20tZ2VuZXJpYy91bmlzdGRfMzIuaDogTm8g
+c3VjaCBmaWxlIG9yIGRpcmVjdG9yeQo+Pj4gICNpbmNsdWRlIDxhc20tZ2VuZXJpYy91bmlzdGRf
+MzIuaD4KPj4+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXgo+Pj4gY29tcGls
+YXRpb24gdGVybWluYXRlZC4KPj4+IG1ha2VbMV06ICoqKiBbYXJjaC9taWNyb2JsYXplL2tlcm5l
+bC9hc20tb2Zmc2V0cy5zXSBFcnJvciAxCj4+PiBtYWtlOiAqKiogW3ByZXBhcmUwXSBFcnJvciAy
+Cj4+PiBtYWtlOiAqKiogV2FpdGluZyBmb3IgdW5maW5pc2hlZCBqb2JzLi4uLgo+Pj4gICBIT1NU
+TEQgIHNjcmlwdHMvZHRjL2R0Ywo+Pj4gICBIT1NUTEQgIHNjcmlwdHMvbW9kL21vZHBvc3QKPj4+
+Cj4+Pgo+Pj4KPj4+IFdoZW4gYnVpbGQgaXMgZmluZSBzeXN0ZW0gaXMgYm9vdGluZyBmaW5lICh2
+NC4xOS1yYzYgKyB5b3VyIHBhdGNoZXMpLgo+Pgo+PiBUaGFua3MgZm9yIHlvdXIgc3VwcG9ydC4g
+SSdsbCB3b3JrIG9uIHRoZSBzYW1lIHdoaWNoIHNoYXJlZCBhYm92ZS4KPj4gSSdsbCB1cGRhdGUg
+eW91IGFzYXAgd2l0aCB0aGUgZml4Lgo+IAo+IEknbSBiaXQgYnVzeSB0aGlzIHdlZWssIHdvcmtp
+bmcgb24gcGFyaXNjIGFuZCBpYTY0IHN1cHBvcnQuCj4gSG9wZWZ1bGx5IEkgY2FuIHVwZGF0ZSB5
+b3UgbmV4dCB3ZWVrLgoKbm8gd29ycmllcy4KCk0KX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFy
+by5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
