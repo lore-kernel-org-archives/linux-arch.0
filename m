@@ -1,236 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr700041.outbound.protection.outlook.com ([40.107.70.41]:33920
-        "EHLO NAM04-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725757AbeJJNpc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Oct 2018 09:45:32 -0400
-Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call table file
- generation
-References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
- <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
- <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
- <CALxhOnh4__SMm93Lpr13eHxBTvDnocHzdh3YDxtuogEKg355Vw@mail.gmail.com>
- <440fc4a0-cd4e-c8fc-9278-928cf5b7cd92@xilinx.com>
- <CALxhOnhFyb13YZTRFNsvs9FWD7OCzPtbmdzn+V_YepXACVOxiQ@mail.gmail.com>
- <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
-From: Michal Simek <michal.simek@xilinx.com>
-Message-ID: <841821b9-6223-ad74-7558-3b456f498317@xilinx.com>
-Date: Wed, 10 Oct 2018 08:23:27 +0200
+Received: from mx1.mailbox.org ([80.241.60.212]:9176 "EHLO mx1.mailbox.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725837AbeJJO2w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Oct 2018 10:28:52 -0400
+Date: Wed, 10 Oct 2018 18:07:47 +1100
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v2 1/3] namei: implement O_BENEATH-style AT_* flags
+Message-ID: <20181010070747.byi2itbi4j42gynq@ryuk>
+References: <20181009065300.11053-1-cyphar@cyphar.com>
+ <20181009065300.11053-3-cyphar@cyphar.com>
+ <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="n7emm7xa7e276qdd"
+Content-Disposition: inline
+In-Reply-To: <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>, Michal Simek <michal.simek@xilinx.com>
-Cc: Michal Simek <monstr@monstr.eu>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181010062327.gAZxEHQxuMmrKL6TbCIWxJDf3U7i6hD2oZAd2oi0jP4@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20181010070747.p6-rvgQ8P4HU7dWi0utvKRvIMzsxJuT-O8_cVkX245M@z>
 
-On 10.10.2018 05:14, Firoz Khan wrote:
-> Hi Michal,
-> 
-> On Thu, 4 Oct 2018 at 16:05, Firoz Khan <firoz.khan@linaro.org> wrote:
->>
->> Hi Michal,
->>
->> On Wed, 3 Oct 2018 at 16:56, Michal Simek <michal.simek@xilinx.com> wrote:
->>>
->>> On 3.10.2018 07:08, Firoz Khan wrote:
->>>> Hi Michal,
->>>>
->>>> On Tue, 2 Oct 2018 at 19:37, Michal Simek <michal.simek@xilinx.com> wrote:
->>>>>
->>>>> On 1.10.2018 14:43, Firoz Khan wrote:
->>>>>> System call table generation script must be run to generate
->>>>>> unistd_32.h and syscall_table.h files. This patch will have
->>>>>> changes which will invokes the script.
->>>>>>
->>>>>> This patch will generate unistd_32.h and syscall_table.h
->>>>>> files by the syscall table generation script invoked by
->>>>>> arch/microblaze/Makefile and the generated files against the
->>>>>> removed files will be identical.
->>>>>>
->>>>>> The generated uapi header file will be included in
->>>>>> uapi/asm/unistd.h and generated system call table support
->>>>>> file will be included by kernel/syscall_table.S file.
->>>>>>
->>>>>> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
->>>>>> ---
->>>>>>  arch/microblaze/Makefile                  |   3 +
->>>>>>  arch/microblaze/include/asm/Kbuild        |   1 +
->>>>>>  arch/microblaze/include/uapi/asm/Kbuild   |   1 +
->>>>>>  arch/microblaze/include/uapi/asm/unistd.h | 411 +-----------------------------
->>>>>>  arch/microblaze/kernel/syscall_table.S    | 406 +----------------------------
->>>>>>  5 files changed, 10 insertions(+), 812 deletions(-)
->>>>>>
->>>>>> diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
->>>>>> index 4f3ab57..cda5e03 100644
->>>>>> --- a/arch/microblaze/Makefile
->>>>>> +++ b/arch/microblaze/Makefile
->>>>>> @@ -81,6 +81,9 @@ all: linux.bin
->>>>>>  archclean:
->>>>>>       $(Q)$(MAKE) $(clean)=$(boot)
->>>>>>
->>>>>> +archheaders:
->>>>>> +     $(Q)$(MAKE) $(build)=arch/microblaze/kernel/syscalls all
->>>>>> +
->>>>>>  linux.bin linux.bin.gz linux.bin.ub: vmlinux
->>>>>>       $(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
->>>>>>
->>>>>> diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
->>>>>> index 569ba9e..d64f5e7 100644
->>>>>> --- a/arch/microblaze/include/asm/Kbuild
->>>>>> +++ b/arch/microblaze/include/asm/Kbuild
->>>>>> @@ -31,3 +31,4 @@ generic-y += trace_clock.h
->>>>>>  generic-y += vga.h
->>>>>>  generic-y += word-at-a-time.h
->>>>>>  generic-y += xor.h
->>>>>> +generic-y += syscall_table.h
->>>>>> \ No newline at end of file
->>>>>
->>>>> Still the problem with "No newline at end of file"
->>>>>
->>>>>> diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
->>>>>> index 2c6a6bf..3a40659 100644
->>>>>> --- a/arch/microblaze/include/uapi/asm/Kbuild
->>>>>> +++ b/arch/microblaze/include/uapi/asm/Kbuild
->>>>>> @@ -28,3 +28,4 @@ generic-y += termbits.h
->>>>>>  generic-y += termios.h
->>>>>>  generic-y += types.h
->>>>>>  generic-y += ucontext.h
->>>>>> +generic-y += unistd_32.h
->>>>>> \ No newline at end of file
->>>>>
->>>>> and here too.
->>>>
->>>> Thanks for your comment. checkpatch script didn't warn this one:(
->>>> Hopefully, I can fix this one in the next version.
->>>>
->>>> I would appreciate if you can perform the boot test on the actual
->>>> platform and share the result with me.
->>>
->>> I see one issue there.
->>> Run
->>> make mrproper
->>> make ARCH=microblaze headers_install INSTALL_HDR_PATH=/tmp/1/
->>>
->>> And then
->>>
->>> make mrproper
->>> make archheaders V=1
->>> make ARCH=microblaze headers_install INSTALL_HDR_PATH=/tmp/2/
->>>
->>> And compare output.
->>> What I see is that in the first part asm/unistd_32.h pointing to
->>> asm-generic/unistd_32.h
->>>
->>> But when archheaders is run before there is expected content.
->>>
->>> That means there is incorrect/missing dependency in Makefiles.
->>>
->>>
->>> Time to time I am able to see compilation warnings
->>> but I didn't find exact steps to replicate this but it also looks like
->>> on missing dependency somewhere.
->>>
->>> [linux](next)$ make mmu_defconfig
->>> #
->>> # configuration written to .config
->>> #
->>> [linux](next)$ make -j8 simpleImage.system
->>>   WRAP    arch/microblaze/include/generated/asm/barrier.h
->>>   WRAP    arch/microblaze/include/generated/asm/bitops.h
->>>   WRAP    arch/microblaze/include/generated/asm/bug.h
->>>   WRAP    arch/microblaze/include/generated/asm/bugs.h
->>>   WRAP    arch/microblaze/include/generated/asm/device.h
->>>   WRAP    arch/microblaze/include/generated/asm/compat.h
->>>   WRAP    arch/microblaze/include/generated/asm/div64.h
->>>   WRAP    arch/microblaze/include/generated/asm/dma-mapping.h
->>>   WRAP    arch/microblaze/include/generated/asm/emergency-restart.h
->>>   WRAP    arch/microblaze/include/generated/asm/exec.h
->>>   WRAP    arch/microblaze/include/generated/asm/extable.h
->>>   WRAP    arch/microblaze/include/generated/asm/fb.h
->>>   WRAP    arch/microblaze/include/generated/asm/hardirq.h
->>>   WRAP    arch/microblaze/include/generated/asm/irq_regs.h
->>>   WRAP    arch/microblaze/include/generated/asm/kdebug.h
->>>   WRAP    arch/microblaze/include/generated/asm/kmap_types.h
->>>   WRAP    arch/microblaze/include/generated/asm/irq_work.h
->>>   WRAP    arch/microblaze/include/generated/asm/kprobes.h
->>>   WRAP    arch/microblaze/include/generated/asm/linkage.h
->>>   WRAP    arch/microblaze/include/generated/asm/local.h
->>>   WRAP    arch/microblaze/include/generated/asm/local64.h
->>>   WRAP    arch/microblaze/include/generated/asm/mcs_spinlock.h
->>>   WRAP    arch/microblaze/include/generated/asm/mm-arch-hooks.h
->>>   WRAP    arch/microblaze/include/generated/asm/parport.h
->>>   WRAP    arch/microblaze/include/generated/asm/percpu.h
->>>   WRAP    arch/microblaze/include/generated/asm/preempt.h
->>>   WRAP    arch/microblaze/include/generated/asm/topology.h
->>>   WRAP    arch/microblaze/include/generated/asm/syscalls.h
->>>   WRAP    arch/microblaze/include/generated/asm/trace_clock.h
->>>   WRAP    arch/microblaze/include/generated/asm/vga.h
->>>   WRAP    arch/microblaze/include/generated/asm/serial.h
->>>   WRAP    arch/microblaze/include/generated/asm/word-at-a-time.h
->>>   WRAP    arch/microblaze/include/generated/asm/xor.h
->>>   HOSTCC  scripts/bin2c
->>>   HOSTCC  scripts/kallsyms
->>>   HOSTCC  scripts/dtc/dtc.o
->>>   HOSTCC  scripts/mod/mk_elfconfig
->>>   HOSTCC  scripts/sortextable
->>>   CC      scripts/mod/empty.o
->>>   HOSTCC  scripts/dtc/flattree.o
->>>   UPD     include/config/kernel.release
->>>   HOSTCC  scripts/dtc/fstree.o
->>>   HOSTCC  scripts/dtc/data.o
->>>   HOSTCC  scripts/dtc/livetree.o
->>>   CC      scripts/mod/devicetable-offsets.s
->>>   HOSTCC  scripts/dtc/treesource.o
->>>   HOSTCC  scripts/dtc/srcpos.o
->>>   MKELF   scripts/mod/elfconfig.h
->>>   UPD     scripts/mod/devicetable-offsets.h
->>>   HOSTCC  scripts/dtc/checks.o
->>>   HOSTCC  scripts/dtc/util.o
->>>   HOSTCC  scripts/mod/sumversion.o
->>>   LEX     scripts/dtc/dtc-lexer.lex.c
->>>   YACC    scripts/dtc/dtc-parser.tab.h
->>>   YACC    scripts/dtc/dtc-parser.tab.c
->>>   UPD     include/generated/utsrelease.h
->>>   HOSTCC  scripts/dtc/dtc-lexer.lex.o
->>>   CC      kernel/bounds.s
->>>   UPD     include/generated/timeconst.h
->>>   HOSTCC  scripts/dtc/dtc-parser.tab.o
->>>   HOSTCC  scripts/mod/file2alias.o
->>>   HOSTCC  scripts/mod/modpost.o
->>>   UPD     include/generated/bounds.h
->>>   CC      arch/microblaze/kernel/asm-offsets.s
->>> In file included from ./arch/microblaze/include/uapi/asm/unistd.h:14:0,
->>>                  from ./arch/microblaze/include/asm/unistd.h:12,
->>>                  from ./include/uapi/linux/unistd.h:8,
->>>                  from ./arch/microblaze/include/asm/seccomp.h:5,
->>>                  from ./include/linux/seccomp.h:14,
->>>                  from ./include/linux/sched.h:21,
->>>                  from arch/microblaze/kernel/asm-offsets.c:13:
->>> ./arch/microblaze/include/generated/uapi/asm/unistd_32.h:1:35: fatal
->>> error: asm-generic/unistd_32.h: No such file or directory
->>>  #include <asm-generic/unistd_32.h>
->>>                                    ^
->>> compilation terminated.
->>> make[1]: *** [arch/microblaze/kernel/asm-offsets.s] Error 1
->>> make: *** [prepare0] Error 2
->>> make: *** Waiting for unfinished jobs....
->>>   HOSTLD  scripts/dtc/dtc
->>>   HOSTLD  scripts/mod/modpost
->>>
->>>
->>>
->>> When build is fine system is booting fine (v4.19-rc6 + your patches).
->>
->> Thanks for your support. I'll work on the same which shared above.
->> I'll update you asap with the fix.
-> 
-> I'm bit busy this week, working on parisc and ia64 support.
-> Hopefully I can update you next week.
 
-no worries.
+--n7emm7xa7e276qdd
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-M
+On 2018-10-09, Andy Lutomirski <luto@kernel.org> wrote:
+> On Mon, Oct 8, 2018 at 11:53 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > * AT_NO_PROCLINK: Disallows ->get_link "symlink" jumping. This is a very
+> >   specific restriction, and it exists because /proc/$pid/fd/...
+> >   "symlinks" allow for access outside nd->root and pose risk to
+> >   container runtimes that don't want to be tricked into accessing a host
+> >   path (but do want to allow no-funny-business symlink resolution).
+>=20
+> Can you elaborate on the use case?
+>=20
+> If I'm set up a container namespace and walk it for real (through the
+> outside /proc/PID/root or otherwise starting from an fd that points
+> into that namespace), and I walk through that namespace's /proc, I'm
+> going to see the same thing that the processes in the namespace would
+> see.  So what's the issue?
+>=20
+> Similarly, if I somehow manage to walk into the outside /proc, then
+> I've pretty much lost regardless of the links.
+
+Well, there's a couple of reasons:
+
+* The original AT_NO_JUMPS patchset similarly disabled "proclinks" but
+  it was sort of all contained within AT_NO_JUMPS. In order to have a
+  precise 1:1 feature mapping we need this in *some* form (and in v1 the
+  only way to get it was to add a separate flag). According to the
+  original O_BENEATH changelog, both you and Al pushed for this to be
+  part of O_BENEATH. :P
+
+  *However* in v2 of the patchset, proclinks are also disabled by
+  AT_BENEATH (because it's not really safe or consistent to allow them
+  at the moment -- we'd need to add __d_path checks when jumping through
+  them as well if we wanted them to be consistent) -- so the need for
+  this flag (purely for AT_NO_JUMPS compatibility) is reduced.
+
+* There were cases in the past where races caused (temporarily)
+  something like /proc/self/exe (or a file descriptor referencing the
+  host filesystem) to be exposed into a container -- but because of
+  set_dumpable they were blocked. CVE-2016-9962 was an example of this
+  (it wasn't blocked by set_dumpable -- but the fix used set_dumpable).
+
+  In those cases, if you can trick a host-side process to open that
+  procfs file through a symlink/bind-mount (which is technically
+  "accessible" but not actually usable by the container process), you
+  can trick the resolution to resolve the host filesystem (and this
+  might be a file which is unlinked and thus there's no way for __d_path
+  checking to verify whether it is safe or not).
+
+  I think that AT_BENEATH allowing only proclinks that result in you
+  being under the root is something we might want in the future, but I
+  think there are some cases where you want to be _very_ sure you don't
+  follow a proclink (now or in the future).
+
+* And finally, some containers run with the host's pidns. This is not a
+  usecase that I'm particularly fond of, but some folks do use this (as
+  far as I'm aware this is one of the reasons why the subreaper concept
+  exists). In those cases, the procfs mount would be able to see the
+  host processes -- and thus /proc/self would resolve (as would the
+  host's init and so on).
+
+I will admit that this flag is more paranoid than the others though.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--n7emm7xa7e276qdd
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAlu9pT8ACgkQnhiqJn3b
+jbSBVg//c4KvbXk7YydiFAtNTbwXcmuc0QpBJdnDKNZX8J9MrzVvUv0yhbrsrOj+
+SBIeBvSytBsbRhVohQSJpR3CUL4BgGKRFh2z7YSVgxa9dOSoFJ+NPLR2RkXl/h2x
+59GGaWP/THGOtKheWGMjJgbOJMd31RaNru0w3gZx69kEhU8V3jCFfuTvx1s+RP9O
+sUA4E+nHcoVxPp7lZRtF1odlEBOrqo6V9Nw9gDOPKWK/dI6wiIZMsfzo72Q+xaZh
+7XURnAKdLHTqQX+GQ/ydPfNaBZb2ccn4fAg2dlRmlN27rESfwaqj+wOgPJyNOYPE
+RHYCaJKh6xXbq3KbeIxgIWhHQRjnB+sZt8CdXlikFAWST3vOXIiqwkbh9Whnqrz+
+W75INjqyzstSlgXpEqBQZ0nneHkt94C8hQE8qn3tkEdVmx2reoYK+1ZNBuR0hK7G
+vOvT2xEB1i2Lkd3qhZQjcKDFZ8o0D1oA8tVGL9Nne21c4AFomYlRB7j4C+Pw6K5U
+c94RS53SjMpIpgbmS4EnwYUHPmuuQe98h5O+WxOMvnBrIcs1OqgUTmTFR4/a/De6
+hoFfo1nszzlieolP9lS3fbY/q1DFWtX4XyuxgMW0FxmjkSer2zlPG9khkbfYhwks
+DWRx2nas50uUEWsI9SPSZbFbRrDC+IeJ3UicDXdLOxNE43/R3wU=
+=QM+v
+-----END PGP SIGNATURE-----
+
+--n7emm7xa7e276qdd--
