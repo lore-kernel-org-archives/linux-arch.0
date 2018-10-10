@@ -1,184 +1,112 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: Re: [PATCH v2 3/3] microblaze: uapi header and system call
- table file generation
-Date: Wed, 10 Oct 2018 08:23:27 +0200
-Message-ID: <841821b9-6223-ad74-7558-3b456f498317@xilinx.com>
-References: <1538397784-4214-1-git-send-email-firoz.khan@linaro.org>
- <1538397784-4214-4-git-send-email-firoz.khan@linaro.org>
- <0741f810-58c9-dcf3-8c1c-93860c08e428@xilinx.com>
- <CALxhOnh4__SMm93Lpr13eHxBTvDnocHzdh3YDxtuogEKg355Vw@mail.gmail.com>
- <440fc4a0-cd4e-c8fc-9278-928cf5b7cd92@xilinx.com>
- <CALxhOnhFyb13YZTRFNsvs9FWD7OCzPtbmdzn+V_YepXACVOxiQ@mail.gmail.com>
- <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v2 1/3] namei: implement O_BENEATH-style AT_* flags
+Date: Wed, 10 Oct 2018 18:07:47 +1100
+Message-ID: <20181010070747.byi2itbi4j42gynq@ryuk>
+References: <20181009065300.11053-1-cyphar@cyphar.com>
+ <20181009065300.11053-3-cyphar@cyphar.com>
+ <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <CALxhOngLfXNvnxXZZJuJVbUGW7peoo3=Ss8ToVWcDCm-g14GTg@mail.gmail.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Firoz Khan <firoz.khan@linaro.org>, Michal Simek <michal.simek@xilinx.com>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>, y2038 Mailman List <y2038@lists.linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="n7emm7xa7e276qdd"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gMTAuMTAuMjAxOCAwNToxNCwgRmlyb3ogS2hhbiB3cm90ZToKPiBIaSBNaWNoYWwsCj4gCj4g
-T24gVGh1LCA0IE9jdCAyMDE4IGF0IDE2OjA1LCBGaXJveiBLaGFuIDxmaXJvei5raGFuQGxpbmFy
-by5vcmc+IHdyb3RlOgo+Pgo+PiBIaSBNaWNoYWwsCj4+Cj4+IE9uIFdlZCwgMyBPY3QgMjAxOCBh
-dCAxNjo1NiwgTWljaGFsIFNpbWVrIDxtaWNoYWwuc2ltZWtAeGlsaW54LmNvbT4gd3JvdGU6Cj4+
-Pgo+Pj4gT24gMy4xMC4yMDE4IDA3OjA4LCBGaXJveiBLaGFuIHdyb3RlOgo+Pj4+IEhpIE1pY2hh
-bCwKPj4+Pgo+Pj4+IE9uIFR1ZSwgMiBPY3QgMjAxOCBhdCAxOTozNywgTWljaGFsIFNpbWVrIDxt
-aWNoYWwuc2ltZWtAeGlsaW54LmNvbT4gd3JvdGU6Cj4+Pj4+Cj4+Pj4+IE9uIDEuMTAuMjAxOCAx
-NDo0MywgRmlyb3ogS2hhbiB3cm90ZToKPj4+Pj4+IFN5c3RlbSBjYWxsIHRhYmxlIGdlbmVyYXRp
-b24gc2NyaXB0IG11c3QgYmUgcnVuIHRvIGdlbmVyYXRlCj4+Pj4+PiB1bmlzdGRfMzIuaCBhbmQg
-c3lzY2FsbF90YWJsZS5oIGZpbGVzLiBUaGlzIHBhdGNoIHdpbGwgaGF2ZQo+Pj4+Pj4gY2hhbmdl
-cyB3aGljaCB3aWxsIGludm9rZXMgdGhlIHNjcmlwdC4KPj4+Pj4+Cj4+Pj4+PiBUaGlzIHBhdGNo
-IHdpbGwgZ2VuZXJhdGUgdW5pc3RkXzMyLmggYW5kIHN5c2NhbGxfdGFibGUuaAo+Pj4+Pj4gZmls
-ZXMgYnkgdGhlIHN5c2NhbGwgdGFibGUgZ2VuZXJhdGlvbiBzY3JpcHQgaW52b2tlZCBieQo+Pj4+
-Pj4gYXJjaC9taWNyb2JsYXplL01ha2VmaWxlIGFuZCB0aGUgZ2VuZXJhdGVkIGZpbGVzIGFnYWlu
-c3QgdGhlCj4+Pj4+PiByZW1vdmVkIGZpbGVzIHdpbGwgYmUgaWRlbnRpY2FsLgo+Pj4+Pj4KPj4+
-Pj4+IFRoZSBnZW5lcmF0ZWQgdWFwaSBoZWFkZXIgZmlsZSB3aWxsIGJlIGluY2x1ZGVkIGluCj4+
-Pj4+PiB1YXBpL2FzbS91bmlzdGQuaCBhbmQgZ2VuZXJhdGVkIHN5c3RlbSBjYWxsIHRhYmxlIHN1
-cHBvcnQKPj4+Pj4+IGZpbGUgd2lsbCBiZSBpbmNsdWRlZCBieSBrZXJuZWwvc3lzY2FsbF90YWJs
-ZS5TIGZpbGUuCj4+Pj4+Pgo+Pj4+Pj4gU2lnbmVkLW9mZi1ieTogRmlyb3ogS2hhbiA8Zmlyb3ou
-a2hhbkBsaW5hcm8ub3JnPgo+Pj4+Pj4gLS0tCj4+Pj4+PiAgYXJjaC9taWNyb2JsYXplL01ha2Vm
-aWxlICAgICAgICAgICAgICAgICAgfCAgIDMgKwo+Pj4+Pj4gIGFyY2gvbWljcm9ibGF6ZS9pbmNs
-dWRlL2FzbS9LYnVpbGQgICAgICAgIHwgICAxICsKPj4+Pj4+ICBhcmNoL21pY3JvYmxhemUvaW5j
-bHVkZS91YXBpL2FzbS9LYnVpbGQgICB8ICAgMSArCj4+Pj4+PiAgYXJjaC9taWNyb2JsYXplL2lu
-Y2x1ZGUvdWFwaS9hc20vdW5pc3RkLmggfCA0MTEgKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tCj4+Pj4+PiAgYXJjaC9taWNyb2JsYXplL2tlcm5lbC9zeXNjYWxsX3RhYmxlLlMgICAgfCA0
-MDYgKy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KPj4+Pj4+ICA1IGZpbGVzIGNoYW5nZWQs
-IDEwIGluc2VydGlvbnMoKyksIDgxMiBkZWxldGlvbnMoLSkKPj4+Pj4+Cj4+Pj4+PiBkaWZmIC0t
-Z2l0IGEvYXJjaC9taWNyb2JsYXplL01ha2VmaWxlIGIvYXJjaC9taWNyb2JsYXplL01ha2VmaWxl
-Cj4+Pj4+PiBpbmRleCA0ZjNhYjU3Li5jZGE1ZTAzIDEwMDY0NAo+Pj4+Pj4gLS0tIGEvYXJjaC9t
-aWNyb2JsYXplL01ha2VmaWxlCj4+Pj4+PiArKysgYi9hcmNoL21pY3JvYmxhemUvTWFrZWZpbGUK
-Pj4+Pj4+IEBAIC04MSw2ICs4MSw5IEBAIGFsbDogbGludXguYmluCj4+Pj4+PiAgYXJjaGNsZWFu
-Ogo+Pj4+Pj4gICAgICAgJChRKSQoTUFLRSkgJChjbGVhbik9JChib290KQo+Pj4+Pj4KPj4+Pj4+
-ICthcmNoaGVhZGVyczoKPj4+Pj4+ICsgICAgICQoUSkkKE1BS0UpICQoYnVpbGQpPWFyY2gvbWlj
-cm9ibGF6ZS9rZXJuZWwvc3lzY2FsbHMgYWxsCj4+Pj4+PiArCj4+Pj4+PiAgbGludXguYmluIGxp
-bnV4LmJpbi5neiBsaW51eC5iaW4udWI6IHZtbGludXgKPj4+Pj4+ICAgICAgICQoUSkkKE1BS0Up
-ICQoYnVpbGQpPSQoYm9vdCkgJChib290KS8kQAo+Pj4+Pj4KPj4+Pj4+IGRpZmYgLS1naXQgYS9h
-cmNoL21pY3JvYmxhemUvaW5jbHVkZS9hc20vS2J1aWxkIGIvYXJjaC9taWNyb2JsYXplL2luY2x1
-ZGUvYXNtL0tidWlsZAo+Pj4+Pj4gaW5kZXggNTY5YmE5ZS4uZDY0ZjVlNyAxMDA2NDQKPj4+Pj4+
-IC0tLSBhL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9LYnVpbGQKPj4+Pj4+ICsrKyBiL2Fy
-Y2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9LYnVpbGQKPj4+Pj4+IEBAIC0zMSwzICszMSw0IEBA
-IGdlbmVyaWMteSArPSB0cmFjZV9jbG9jay5oCj4+Pj4+PiAgZ2VuZXJpYy15ICs9IHZnYS5oCj4+
-Pj4+PiAgZ2VuZXJpYy15ICs9IHdvcmQtYXQtYS10aW1lLmgKPj4+Pj4+ICBnZW5lcmljLXkgKz0g
-eG9yLmgKPj4+Pj4+ICtnZW5lcmljLXkgKz0gc3lzY2FsbF90YWJsZS5oCj4+Pj4+PiBcIE5vIG5l
-d2xpbmUgYXQgZW5kIG9mIGZpbGUKPj4+Pj4KPj4+Pj4gU3RpbGwgdGhlIHByb2JsZW0gd2l0aCAi
-Tm8gbmV3bGluZSBhdCBlbmQgb2YgZmlsZSIKPj4+Pj4KPj4+Pj4+IGRpZmYgLS1naXQgYS9hcmNo
-L21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQgYi9hcmNoL21pY3JvYmxhemUvaW5j
-bHVkZS91YXBpL2FzbS9LYnVpbGQKPj4+Pj4+IGluZGV4IDJjNmE2YmYuLjNhNDA2NTkgMTAwNjQ0
-Cj4+Pj4+PiAtLS0gYS9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQKPj4+
-Pj4+ICsrKyBiL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL3VhcGkvYXNtL0tidWlsZAo+Pj4+Pj4g
-QEAgLTI4LDMgKzI4LDQgQEAgZ2VuZXJpYy15ICs9IHRlcm1iaXRzLmgKPj4+Pj4+ICBnZW5lcmlj
-LXkgKz0gdGVybWlvcy5oCj4+Pj4+PiAgZ2VuZXJpYy15ICs9IHR5cGVzLmgKPj4+Pj4+ICBnZW5l
-cmljLXkgKz0gdWNvbnRleHQuaAo+Pj4+Pj4gK2dlbmVyaWMteSArPSB1bmlzdGRfMzIuaAo+Pj4+
-Pj4gXCBObyBuZXdsaW5lIGF0IGVuZCBvZiBmaWxlCj4+Pj4+Cj4+Pj4+IGFuZCBoZXJlIHRvby4K
-Pj4+Pgo+Pj4+IFRoYW5rcyBmb3IgeW91ciBjb21tZW50LiBjaGVja3BhdGNoIHNjcmlwdCBkaWRu
-J3Qgd2FybiB0aGlzIG9uZTooCj4+Pj4gSG9wZWZ1bGx5LCBJIGNhbiBmaXggdGhpcyBvbmUgaW4g
-dGhlIG5leHQgdmVyc2lvbi4KPj4+Pgo+Pj4+IEkgd291bGQgYXBwcmVjaWF0ZSBpZiB5b3UgY2Fu
-IHBlcmZvcm0gdGhlIGJvb3QgdGVzdCBvbiB0aGUgYWN0dWFsCj4+Pj4gcGxhdGZvcm0gYW5kIHNo
-YXJlIHRoZSByZXN1bHQgd2l0aCBtZS4KPj4+Cj4+PiBJIHNlZSBvbmUgaXNzdWUgdGhlcmUuCj4+
-PiBSdW4KPj4+IG1ha2UgbXJwcm9wZXIKPj4+IG1ha2UgQVJDSD1taWNyb2JsYXplIGhlYWRlcnNf
-aW5zdGFsbCBJTlNUQUxMX0hEUl9QQVRIPS90bXAvMS8KPj4+Cj4+PiBBbmQgdGhlbgo+Pj4KPj4+
-IG1ha2UgbXJwcm9wZXIKPj4+IG1ha2UgYXJjaGhlYWRlcnMgVj0xCj4+PiBtYWtlIEFSQ0g9bWlj
-cm9ibGF6ZSBoZWFkZXJzX2luc3RhbGwgSU5TVEFMTF9IRFJfUEFUSD0vdG1wLzIvCj4+Pgo+Pj4g
-QW5kIGNvbXBhcmUgb3V0cHV0Lgo+Pj4gV2hhdCBJIHNlZSBpcyB0aGF0IGluIHRoZSBmaXJzdCBw
-YXJ0IGFzbS91bmlzdGRfMzIuaCBwb2ludGluZyB0bwo+Pj4gYXNtLWdlbmVyaWMvdW5pc3RkXzMy
-LmgKPj4+Cj4+PiBCdXQgd2hlbiBhcmNoaGVhZGVycyBpcyBydW4gYmVmb3JlIHRoZXJlIGlzIGV4
-cGVjdGVkIGNvbnRlbnQuCj4+Pgo+Pj4gVGhhdCBtZWFucyB0aGVyZSBpcyBpbmNvcnJlY3QvbWlz
-c2luZyBkZXBlbmRlbmN5IGluIE1ha2VmaWxlcy4KPj4+Cj4+Pgo+Pj4gVGltZSB0byB0aW1lIEkg
-YW0gYWJsZSB0byBzZWUgY29tcGlsYXRpb24gd2FybmluZ3MKPj4+IGJ1dCBJIGRpZG4ndCBmaW5k
-IGV4YWN0IHN0ZXBzIHRvIHJlcGxpY2F0ZSB0aGlzIGJ1dCBpdCBhbHNvIGxvb2tzIGxpa2UKPj4+
-IG9uIG1pc3NpbmcgZGVwZW5kZW5jeSBzb21ld2hlcmUuCj4+Pgo+Pj4gW2xpbnV4XShuZXh0KSQg
-bWFrZSBtbXVfZGVmY29uZmlnCj4+PiAjCj4+PiAjIGNvbmZpZ3VyYXRpb24gd3JpdHRlbiB0byAu
-Y29uZmlnCj4+PiAjCj4+PiBbbGludXhdKG5leHQpJCBtYWtlIC1qOCBzaW1wbGVJbWFnZS5zeXN0
-ZW0KPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2Jh
-cnJpZXIuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9h
-c20vYml0b3BzLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0
-ZWQvYXNtL2J1Zy5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJh
-dGVkL2FzbS9idWdzLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5l
-cmF0ZWQvYXNtL2RldmljZS5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUv
-Z2VuZXJhdGVkL2FzbS9jb21wYXQuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNs
-dWRlL2dlbmVyYXRlZC9hc20vZGl2NjQuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9p
-bmNsdWRlL2dlbmVyYXRlZC9hc20vZG1hLW1hcHBpbmcuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWlj
-cm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vZW1lcmdlbmN5LXJlc3RhcnQuaAo+Pj4gICBX
-UkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vZXhlYy5oCj4+PiAg
-IFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9leHRhYmxlLmgK
-Pj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2ZiLmgK
-Pj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2hhcmRp
-cnEuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20v
-aXJxX3JlZ3MuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRl
-ZC9hc20va2RlYnVnLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5l
-cmF0ZWQvYXNtL2ttYXBfdHlwZXMuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNs
-dWRlL2dlbmVyYXRlZC9hc20vaXJxX3dvcmsuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6
-ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20va3Byb2Jlcy5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNy
-b2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9saW5rYWdlLmgKPj4+ICAgV1JBUCAgICBhcmNo
-L21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2xvY2FsLmgKPj4+ICAgV1JBUCAgICBh
-cmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL2xvY2FsNjQuaAo+Pj4gICBXUkFQ
-ICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vbWNzX3NwaW5sb2NrLmgK
-Pj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL21tLWFy
-Y2gtaG9va3MuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRl
-ZC9hc20vcGFycG9ydC5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2Vu
-ZXJhdGVkL2FzbS9wZXJjcHUuaAo+Pj4gICBXUkFQICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRl
-L2dlbmVyYXRlZC9hc20vcHJlZW1wdC5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2JsYXplL2lu
-Y2x1ZGUvZ2VuZXJhdGVkL2FzbS90b3BvbG9neS5oCj4+PiAgIFdSQVAgICAgYXJjaC9taWNyb2Js
-YXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9zeXNjYWxscy5oCj4+PiAgIFdSQVAgICAgYXJjaC9t
-aWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS90cmFjZV9jbG9jay5oCj4+PiAgIFdSQVAg
-ICAgYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS92Z2EuaAo+Pj4gICBXUkFQ
-ICAgIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2dlbmVyYXRlZC9hc20vc2VyaWFsLmgKPj4+ICAg
-V1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNtL3dvcmQtYXQtYS10
-aW1lLmgKPj4+ICAgV1JBUCAgICBhcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvYXNt
-L3hvci5oCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9iaW4yYwo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMv
-a2FsbHN5bXMKPj4+ICAgSE9TVENDICBzY3JpcHRzL2R0Yy9kdGMubwo+Pj4gICBIT1NUQ0MgIHNj
-cmlwdHMvbW9kL21rX2VsZmNvbmZpZwo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMvc29ydGV4dGFibGUK
-Pj4+ICAgQ0MgICAgICBzY3JpcHRzL21vZC9lbXB0eS5vCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9k
-dGMvZmxhdHRyZWUubwo+Pj4gICBVUEQgICAgIGluY2x1ZGUvY29uZmlnL2tlcm5lbC5yZWxlYXNl
-Cj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9kdGMvZnN0cmVlLm8KPj4+ICAgSE9TVENDICBzY3JpcHRz
-L2R0Yy9kYXRhLm8KPj4+ICAgSE9TVENDICBzY3JpcHRzL2R0Yy9saXZldHJlZS5vCj4+PiAgIEND
-ICAgICAgc2NyaXB0cy9tb2QvZGV2aWNldGFibGUtb2Zmc2V0cy5zCj4+PiAgIEhPU1RDQyAgc2Ny
-aXB0cy9kdGMvdHJlZXNvdXJjZS5vCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9kdGMvc3JjcG9zLm8K
-Pj4+ICAgTUtFTEYgICBzY3JpcHRzL21vZC9lbGZjb25maWcuaAo+Pj4gICBVUEQgICAgIHNjcmlw
-dHMvbW9kL2RldmljZXRhYmxlLW9mZnNldHMuaAo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMvZHRjL2No
-ZWNrcy5vCj4+PiAgIEhPU1RDQyAgc2NyaXB0cy9kdGMvdXRpbC5vCj4+PiAgIEhPU1RDQyAgc2Ny
-aXB0cy9tb2Qvc3VtdmVyc2lvbi5vCj4+PiAgIExFWCAgICAgc2NyaXB0cy9kdGMvZHRjLWxleGVy
-LmxleC5jCj4+PiAgIFlBQ0MgICAgc2NyaXB0cy9kdGMvZHRjLXBhcnNlci50YWIuaAo+Pj4gICBZ
-QUNDICAgIHNjcmlwdHMvZHRjL2R0Yy1wYXJzZXIudGFiLmMKPj4+ICAgVVBEICAgICBpbmNsdWRl
-L2dlbmVyYXRlZC91dHNyZWxlYXNlLmgKPj4+ICAgSE9TVENDICBzY3JpcHRzL2R0Yy9kdGMtbGV4
-ZXIubGV4Lm8KPj4+ICAgQ0MgICAgICBrZXJuZWwvYm91bmRzLnMKPj4+ICAgVVBEICAgICBpbmNs
-dWRlL2dlbmVyYXRlZC90aW1lY29uc3QuaAo+Pj4gICBIT1NUQ0MgIHNjcmlwdHMvZHRjL2R0Yy1w
-YXJzZXIudGFiLm8KPj4+ICAgSE9TVENDICBzY3JpcHRzL21vZC9maWxlMmFsaWFzLm8KPj4+ICAg
-SE9TVENDICBzY3JpcHRzL21vZC9tb2Rwb3N0Lm8KPj4+ICAgVVBEICAgICBpbmNsdWRlL2dlbmVy
-YXRlZC9ib3VuZHMuaAo+Pj4gICBDQyAgICAgIGFyY2gvbWljcm9ibGF6ZS9rZXJuZWwvYXNtLW9m
-ZnNldHMucwo+Pj4gSW4gZmlsZSBpbmNsdWRlZCBmcm9tIC4vYXJjaC9taWNyb2JsYXplL2luY2x1
-ZGUvdWFwaS9hc20vdW5pc3RkLmg6MTQ6MCwKPj4+ICAgICAgICAgICAgICAgICAgZnJvbSAuL2Fy
-Y2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS91bmlzdGQuaDoxMiwKPj4+ICAgICAgICAgICAgICAg
-ICAgZnJvbSAuL2luY2x1ZGUvdWFwaS9saW51eC91bmlzdGQuaDo4LAo+Pj4gICAgICAgICAgICAg
-ICAgICBmcm9tIC4vYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvYXNtL3NlY2NvbXAuaDo1LAo+Pj4g
-ICAgICAgICAgICAgICAgICBmcm9tIC4vaW5jbHVkZS9saW51eC9zZWNjb21wLmg6MTQsCj4+PiAg
-ICAgICAgICAgICAgICAgIGZyb20gLi9pbmNsdWRlL2xpbnV4L3NjaGVkLmg6MjEsCj4+PiAgICAg
-ICAgICAgICAgICAgIGZyb20gYXJjaC9taWNyb2JsYXplL2tlcm5lbC9hc20tb2Zmc2V0cy5jOjEz
-Ogo+Pj4gLi9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS9nZW5lcmF0ZWQvdWFwaS9hc20vdW5pc3Rk
-XzMyLmg6MTozNTogZmF0YWwKPj4+IGVycm9yOiBhc20tZ2VuZXJpYy91bmlzdGRfMzIuaDogTm8g
-c3VjaCBmaWxlIG9yIGRpcmVjdG9yeQo+Pj4gICNpbmNsdWRlIDxhc20tZ2VuZXJpYy91bmlzdGRf
-MzIuaD4KPj4+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXgo+Pj4gY29tcGls
-YXRpb24gdGVybWluYXRlZC4KPj4+IG1ha2VbMV06ICoqKiBbYXJjaC9taWNyb2JsYXplL2tlcm5l
-bC9hc20tb2Zmc2V0cy5zXSBFcnJvciAxCj4+PiBtYWtlOiAqKiogW3ByZXBhcmUwXSBFcnJvciAy
-Cj4+PiBtYWtlOiAqKiogV2FpdGluZyBmb3IgdW5maW5pc2hlZCBqb2JzLi4uLgo+Pj4gICBIT1NU
-TEQgIHNjcmlwdHMvZHRjL2R0Ywo+Pj4gICBIT1NUTEQgIHNjcmlwdHMvbW9kL21vZHBvc3QKPj4+
-Cj4+Pgo+Pj4KPj4+IFdoZW4gYnVpbGQgaXMgZmluZSBzeXN0ZW0gaXMgYm9vdGluZyBmaW5lICh2
-NC4xOS1yYzYgKyB5b3VyIHBhdGNoZXMpLgo+Pgo+PiBUaGFua3MgZm9yIHlvdXIgc3VwcG9ydC4g
-SSdsbCB3b3JrIG9uIHRoZSBzYW1lIHdoaWNoIHNoYXJlZCBhYm92ZS4KPj4gSSdsbCB1cGRhdGUg
-eW91IGFzYXAgd2l0aCB0aGUgZml4Lgo+IAo+IEknbSBiaXQgYnVzeSB0aGlzIHdlZWssIHdvcmtp
-bmcgb24gcGFyaXNjIGFuZCBpYTY0IHN1cHBvcnQuCj4gSG9wZWZ1bGx5IEkgY2FuIHVwZGF0ZSB5
-b3UgbmV4dCB3ZWVrLgoKbm8gd29ycmllcy4KCk0KX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFy
-by5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
+
+--n7emm7xa7e276qdd
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On 2018-10-09, Andy Lutomirski <luto@kernel.org> wrote:
+> On Mon, Oct 8, 2018 at 11:53 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > * AT_NO_PROCLINK: Disallows ->get_link "symlink" jumping. This is a very
+> >   specific restriction, and it exists because /proc/$pid/fd/...
+> >   "symlinks" allow for access outside nd->root and pose risk to
+> >   container runtimes that don't want to be tricked into accessing a host
+> >   path (but do want to allow no-funny-business symlink resolution).
+>=20
+> Can you elaborate on the use case?
+>=20
+> If I'm set up a container namespace and walk it for real (through the
+> outside /proc/PID/root or otherwise starting from an fd that points
+> into that namespace), and I walk through that namespace's /proc, I'm
+> going to see the same thing that the processes in the namespace would
+> see.  So what's the issue?
+>=20
+> Similarly, if I somehow manage to walk into the outside /proc, then
+> I've pretty much lost regardless of the links.
+
+Well, there's a couple of reasons:
+
+* The original AT_NO_JUMPS patchset similarly disabled "proclinks" but
+  it was sort of all contained within AT_NO_JUMPS. In order to have a
+  precise 1:1 feature mapping we need this in *some* form (and in v1 the
+  only way to get it was to add a separate flag). According to the
+  original O_BENEATH changelog, both you and Al pushed for this to be
+  part of O_BENEATH. :P
+
+  *However* in v2 of the patchset, proclinks are also disabled by
+  AT_BENEATH (because it's not really safe or consistent to allow them
+  at the moment -- we'd need to add __d_path checks when jumping through
+  them as well if we wanted them to be consistent) -- so the need for
+  this flag (purely for AT_NO_JUMPS compatibility) is reduced.
+
+* There were cases in the past where races caused (temporarily)
+  something like /proc/self/exe (or a file descriptor referencing the
+  host filesystem) to be exposed into a container -- but because of
+  set_dumpable they were blocked. CVE-2016-9962 was an example of this
+  (it wasn't blocked by set_dumpable -- but the fix used set_dumpable).
+
+  In those cases, if you can trick a host-side process to open that
+  procfs file through a symlink/bind-mount (which is technically
+  "accessible" but not actually usable by the container process), you
+  can trick the resolution to resolve the host filesystem (and this
+  might be a file which is unlinked and thus there's no way for __d_path
+  checking to verify whether it is safe or not).
+
+  I think that AT_BENEATH allowing only proclinks that result in you
+  being under the root is something we might want in the future, but I
+  think there are some cases where you want to be _very_ sure you don't
+  follow a proclink (now or in the future).
+
+* And finally, some containers run with the host's pidns. This is not a
+  usecase that I'm particularly fond of, but some folks do use this (as
+  far as I'm aware this is one of the reasons why the subreaper concept
+  exists). In those cases, the procfs mount would be able to see the
+  host processes -- and thus /proc/self would resolve (as would the
+  host's init and so on).
+
+I will admit that this flag is more paranoid than the others though.
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--n7emm7xa7e276qdd
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEXzbGxhtUYBJKdfWmnhiqJn3bjbQFAlu9pT8ACgkQnhiqJn3b
+jbSBVg//c4KvbXk7YydiFAtNTbwXcmuc0QpBJdnDKNZX8J9MrzVvUv0yhbrsrOj+
+SBIeBvSytBsbRhVohQSJpR3CUL4BgGKRFh2z7YSVgxa9dOSoFJ+NPLR2RkXl/h2x
+59GGaWP/THGOtKheWGMjJgbOJMd31RaNru0w3gZx69kEhU8V3jCFfuTvx1s+RP9O
+sUA4E+nHcoVxPp7lZRtF1odlEBOrqo6V9Nw9gDOPKWK/dI6wiIZMsfzo72Q+xaZh
+7XURnAKdLHTqQX+GQ/ydPfNaBZb2ccn4fAg2dlRmlN27rESfwaqj+wOgPJyNOYPE
+RHYCaJKh6xXbq3KbeIxgIWhHQRjnB+sZt8CdXlikFAWST3vOXIiqwkbh9Whnqrz+
+W75INjqyzstSlgXpEqBQZ0nneHkt94C8hQE8qn3tkEdVmx2reoYK+1ZNBuR0hK7G
+vOvT2xEB1i2Lkd3qhZQjcKDFZ8o0D1oA8tVGL9Nne21c4AFomYlRB7j4C+Pw6K5U
+c94RS53SjMpIpgbmS4EnwYUHPmuuQe98h5O+WxOMvnBrIcs1OqgUTmTFR4/a/De6
+hoFfo1nszzlieolP9lS3fbY/q1DFWtX4XyuxgMW0FxmjkSer2zlPG9khkbfYhwks
+DWRx2nas50uUEWsI9SPSZbFbRrDC+IeJ3UicDXdLOxNE43/R3wU=
+=QM+v
+-----END PGP SIGNATURE-----
+
+--n7emm7xa7e276qdd--
