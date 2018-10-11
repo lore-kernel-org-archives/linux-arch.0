@@ -1,41 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f196.google.com ([209.85.160.196]:36048 "EHLO
-        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726664AbeJKWgy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 18:36:54 -0400
+Received: from Galois.linutronix.de ([146.0.238.70]:47811 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726664AbeJKWhA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 18:37:00 -0400
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Subject: [PATCH] percpu: include irqflags.h for raw_local_irq_save()
+Date: Thu, 11 Oct 2018 17:09:20 +0200
+Message-Id: <20181011150920.9034-1-bigeasy@linutronix.de>
 MIME-Version: 1.0
-In-Reply-To: <20181011150654.GB22118@asgard.redhat.com>
-References: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
- <1539231895-4118-8-git-send-email-firoz.khan@linaro.org> <CAK8P3a3OS-aKFrb5g1i00-+G1+uZqEkH0C1FX08tTx=-89-hfQ@mail.gmail.com>
- <20181011150654.GB22118@asgard.redhat.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 11 Oct 2018 17:09:02 +0200
-Message-ID: <CAK8P3a2EOb+_aOSUqPuFpMoZYSuZv0v89XB-pWf5C7X3rnfOrg@mail.gmail.com>
-Subject: Re: [PATCH v3 7/7] ia64: wire up system calls
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugene Syromiatnikov <esyr@redhat.com>
-Cc: Firoz Khan <firoz.khan@linaro.org>, linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181011150902.E9pb7E-LeWnwLEKzCZ0MCxLy-fayxmKxvAb6bEwejos@z>
+To: linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, tglx@linutronix.de, Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 
-On 10/11/18, Eugene Syromiatnikov <esyr@redhat.com> wrote:
-> On Thu, Oct 11, 2018 at 09:24:43AM +0200, Arnd Bergmann wrote:
->> On Thu, Oct 11, 2018 at 6:26 AM Firoz Khan <firoz.khan@linaro.org> wrote:
->
->> > +# pkey_mprotect requires an architecture specific implementation
->> > +328    common  pkey_mprotect                   sys_pkey_mprotect
->> > +# pkey_alloc requires an architecture specific implementation
->> > +329    common  pkey_alloc                      sys_pkey_alloc
->> > +# pkey_free requires an architecture specific implementation
->> > +330    common  pkey_free                       sys_pkey_free
->>
->> One comment for all pkey calls would be sufficient. More importantly
->> it requires hardware support that ia64 does not have AFAICT.
->
-> Except it has[1].
->
+The header percpu.h header file is using raw_local_irq_save() but does
+not include irqflags.h for its definition. It compiles because the
+header file is included via an other header file.
+On -RT the build fails because raw_local_irq_save() is not defined.
 
-Ok, then we should definitely assign the system call numbers.
+Include irqflags.h in percpu.h.
 
-      Arnd
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ include/asm-generic/percpu.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
+index 1817a8415a5e8..942d64c0476e7 100644
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -5,6 +5,7 @@
+ #include <linux/compiler.h>
+ #include <linux/threads.h>
+ #include <linux/percpu-defs.h>
++#include <linux/irqflags.h>
+ 
+ #ifdef CONFIG_SMP
+ 
+-- 
+2.19.1
