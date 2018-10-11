@@ -1,73 +1,36 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 7/7] ia64: wire up system calls
-Date: Thu, 11 Oct 2018 09:24:43 +0200
-Message-ID: <CAK8P3a3OS-aKFrb5g1i00-+G1+uZqEkH0C1FX08tTx=-89-hfQ@mail.gmail.com>
-References: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org> <1539231895-4118-8-git-send-email-firoz.khan@linaro.org>
+Subject: Re: [PATCH v3 4/7] ia64: replace the system call table entries from entry.S
+Date: Thu, 11 Oct 2018 09:32:57 +0200
+Message-ID: <CAK8P3a2JdFnAQcZ9YSOkEC_Od4QeLLP0RcWkte5MHC6VSXi0qQ@mail.gmail.com>
+References: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org> <1539231895-4118-5-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1539231895-4118-8-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <1539231895-4118-5-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Firoz Khan <firoz.khan@linaro.org>
 Cc: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 11, 2018 at 6:26 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Thu, Oct 11, 2018 at 6:25 AM Firoz Khan <firoz.khan@linaro.org> wrote:
 >
-> wire up perf_event_open, seccomp, pkey_mprotect, pkey_alloc,
-> pkey_free, statx, io_pgetevents and rseq system calls
+> In IA64, system call table entries are the part of entry.S file.
+> We need to keep it in a separate file so that one of the patch in
+> this patch series contains a system call table generation script
+> which can separately handle system call table entries.
 >
-> This require an architecture specific implementation as it not
-> present now.
+> Replaced the system call table from entry.S to syscall_table.S,
+> this is a new file. This change will unify the implementation
+> across all the architecture and to simplify the implementation for
+> system call table generation using the script.
 >
 > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 > ---
->  arch/ia64/kernel/syscalls/syscall.tbl | 16 ++++++++++++++++
->  1 file changed, 16 insertions(+)
->
-> diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
-> index 6b64f60..1f42b60 100644
-> --- a/arch/ia64/kernel/syscalls/syscall.tbl
-> +++ b/arch/ia64/kernel/syscalls/syscall.tbl
-> @@ -335,3 +335,19 @@
->  323     common  copy_file_range                 sys_copy_file_range
->  324     common  preadv2                         sys_preadv2
->  325     common  pwritev2                        sys_pwritev2
-> +# perf_event_open requires an architecture specific implementation
-> +326    common  perf_event_open                 sys_perf_event_open
-> +# seccomp requires an architecture specific implementation
-> +327    common  seccomp                         sys_seccomp
+>  arch/ia64/kernel/entry.S         | 333 +-------------------------------------
+>  arch/ia64/kernel/syscall_table.S | 334 +++++++++++++++++++++++++++++++++++++++
 
-I don't think that's correct for these two. perf_event_open() of
-course requires 'perf' support that ia64 does not have, but
-at least seccomp should just work.
-
-> +# pkey_mprotect requires an architecture specific implementation
-> +328    common  pkey_mprotect                   sys_pkey_mprotect
-> +# pkey_alloc requires an architecture specific implementation
-> +329    common  pkey_alloc                      sys_pkey_alloc
-> +# pkey_free requires an architecture specific implementation
-> +330    common  pkey_free                       sys_pkey_free
-
-One comment for all pkey calls would be sufficient. More importantly
-it requires hardware support that ia64 does not have AFAICT.
-
-> +# statx requires an architecture specific implementation
-> +331    common  statx                           sys_statx
-> +# io_pgetevents requires an architecture specific implementation
-> +332    common  io_pgetevents                   sys_io_pgetevents
-
-It certainly does not require any support from the architecture for these.
-
-> +# rseq requires an architecture specific implementation
-> +333    common  rseq                            sys_rseq
-
-Maybe leave rseq and pkey_* commented out so we reserve
-the number but don't add it for real? Maybe the ia64 maintainers
-have a preference.
-
-As asm-generic maintainer, I'd like to have the various asm/unistd.h
-headers be as similar as possible and at least reserve all the
-numbers even if we don't need the calls on a given architecture.
+According to the discussion we had on the same patch for parisc,
+I suppose we can skip this one as well now, and just remove the
+entries when the generated table is added.
 
        Arnd
