@@ -1,84 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:35782 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726908AbeJKLu7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 07:50:59 -0400
-Received: by mail-pf1-f194.google.com with SMTP id l17-v6so3721293pff.2
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 21:25:36 -0700 (PDT)
+Received: from mail-yw1-f68.google.com ([209.85.161.68]:42869 "EHLO
+        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727461AbeJKNgm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 09:36:42 -0400
+Received: by mail-yw1-f68.google.com with SMTP id a197-v6so3148461ywh.9
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 23:10:58 -0700 (PDT)
+MIME-Version: 1.0
+References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
+ <1538975801-13735-5-git-send-email-firoz.khan@linaro.org> <20181009201321.GA28911@ls3530.fritz.box>
+In-Reply-To: <20181009201321.GA28911@ls3530.fritz.box>
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v3 2/7] ia64: replace NR_syscalls macro from asm/unistd.h
-Date: Thu, 11 Oct 2018 09:54:50 +0530
-Message-ID: <1539231895-4118-3-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
-References: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
+Date: Thu, 11 Oct 2018 11:40:46 +0530
+Message-ID: <CALxhOnjxkq1-N59i81+ra58tZhx7Gik6iPyUsNFJY9wEJA+D1w@mail.gmail.com>
+Subject: Re: [PATCH v3 4/6] parisc: uapi header and system call table file generation
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181011042450.spECAz-bYyy2TQ42_2mlf4o4AWxNm39v42iz1Jq2Sl0@z>
+To: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181011061046.2jhPWHUq9n6ib5okvCcMKhLmrdGxOYcrXmy0HAAX8s8@z>
 
-NR_syscalls macro holds the number of system call exist in IA64
-architecture. This macro is currently the part of asm/unistd.h
-file. We have to change the value of NR_syscalls, if we add or
-delete a system call.
+Hi Helge,
 
-One of the patch in this patch series has a script which will
-generate a uapi header based on syscall.tbl file. The syscall.tbl
-file contains the number of system call information. So we have
-two option to update NR_syscalls value.
+On Wed, 10 Oct 2018 at 01:48, Helge Deller <deller@gmx.de> wrote:
+>
+> * Firoz Khan <firoz.khan@linaro.org>:
+> > System call table generation script must be run to generate
+> > unistd_32/64.h and syscall_table_32/64/c32.h files. This patch
+> > will have changes which will invokes the script.
+> >
+> > This patch will generate unistd_32/64.h and syscall_table_
+> > 32/64/c32.h files by the syscall table generation script
+> > invoked by arch/parisc/Makefile and the generated files against
+> > the removed files will be identical.
+> >
+> > The generated uapi header file will be included in uapi/asm/
+> > unistd_32/64.h and generated system call table support file will
+> > be included by arch/sparc/kernel/syscall_table_32/64.S file.
+> >
+> > Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> > ---
+> >  arch/parisc/Makefile                  |   4 +
+> >  arch/parisc/include/asm/Kbuild        |   3 +
+> >  arch/parisc/include/uapi/asm/Kbuild   |   2 +
+> >  arch/parisc/include/uapi/asm/unistd.h | 373 +--------------------------
+> >  arch/parisc/kernel/syscall.S          |  12 +-
+> >  arch/parisc/kernel/syscall_table.S    | 459 ----------------------------------
+>
+>
+> Can we please get rid of those two new files:
 
-1. Update NR_syscalls in asm/unistd.h manually by counting the
-   no.of system calls. No need to update NR_syscalls until we
-   either add a new system call or delete an existing system
-   call.
+Yes, we don't need those files some of the architecture and other
+architecture does have same/similar files. That's why I added below
+files, so every architecture implementation looks same.
 
-2. We can keep this feature it above mentioned script, that'll
-   count the number of syscalls and keep it in a generated file.
-   In this case we don't need to explicitly update NR_syscalls
-   in asm/unistd.h file.
+I feel it is better to remove these files.
+Arnd, Do u have any comment on this?
 
-The 2nd option will be the recommended one. For that, I come up
-with another macro - __NR_syscalls which will be updated by the
-script and it will be present in uapi/asm/unistd.h. The macro
-name changed form NR_syscalls to __NR_syscalls for making the
-name convention same across all architecture. While __NR_syscalls
-isn't strictly part of the uapi, having it as part of the generated
-header to simplifies the implementation. We also need to enclose
-this macro with #ifdef __KERNEL__ to avoid side effects.
+Thanks
+Firoz
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- arch/ia64/include/asm/unistd.h      | 4 +---
- arch/ia64/include/uapi/asm/unistd.h | 4 ++++
- 2 files changed, 5 insertions(+), 3 deletions(-)
-
-diff --git a/arch/ia64/include/asm/unistd.h b/arch/ia64/include/asm/unistd.h
-index ffb705d..397b143 100644
---- a/arch/ia64/include/asm/unistd.h
-+++ b/arch/ia64/include/asm/unistd.h
-@@ -10,9 +10,7 @@
- 
- #include <uapi/asm/unistd.h>
- 
--
--
--#define NR_syscalls			326 /* length of syscall table */
-+#define NR_syscalls		__NR_syscalls /* length of syscall table */
- 
- /*
-  * The following defines stop scripts/checksyscalls.sh from complaining about
-diff --git a/arch/ia64/include/uapi/asm/unistd.h b/arch/ia64/include/uapi/asm/unistd.h
-index 4d590c9..4186dc2 100644
---- a/arch/ia64/include/uapi/asm/unistd.h
-+++ b/arch/ia64/include/uapi/asm/unistd.h
-@@ -341,4 +341,8 @@
- #define __NR_preadv2			1348
- #define __NR_pwritev2			1349
- 
-+#ifdef __KERNEL__
-+#define __NR_syscalls			326
-+#endif
-+
- #endif /* _UAPI_ASM_IA64_UNISTD_H */
--- 
-1.9.1
+>
+> >  arch/parisc/kernel/syscall_table_32.S |  13 +
+> >  arch/parisc/kernel/syscall_table_64.S |  20 ++
+>
+> Both are not needed (at least on parisc) if you apply the following
+> patch on top of your patch series.
+> This patch finally fixes the 64-bit kernel on parisc (tested on real
+> hardware).
+>
+> Helge
+>
+> diff --git a/arch/parisc/kernel/syscall.S b/arch/parisc/kernel/syscall.S
+> index 2523b83b88d8..45cddeeb968f 100644
+> --- a/arch/parisc/kernel/syscall.S
+> +++ b/arch/parisc/kernel/syscall.S
+> @@ -923,10 +923,20 @@ ENTRY(lws_table)
+>  END(lws_table)
+>         /* End of lws table */
+>
+> -#include "syscall_table_32.S"
+> +#define __SYSCALL(nr, entry, nargs) ASM_ULONG_INSN entry
+> +
+> +ENTRY(sys_call_table)
+> +#if defined(CONFIG_64BIT)
+> +#include <asm/syscall_table_c32.h>     /* compat syscalls */
+> +#else
+> +#include <asm/syscall_table_32.h>      /* 32-bit native syscalls */
+> +#endif
+> +END(sys_call_table)
+> +
+>  #ifdef CONFIG_64BIT
+> -#define SYSCALL_TABLE_64BIT
+> -#include "syscall_table_64.S"
+> +ENTRY(sys_call_table64)
+> +#include <asm/syscall_table_64.h>      /* 64-bit native syscalls */
+> +END(sys_call_table64)
+>  #endif
+>
+>         /*
