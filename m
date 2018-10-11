@@ -1,48 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:35467 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727170AbeJLHJm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Oct 2018 03:09:42 -0400
-From: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Subject: [PATCH v2 6/7] sparc/modules: Add rlimit for sparc modules
-Date: Thu, 11 Oct 2018 16:31:16 -0700
-Message-ID: <20181011233117.7883-7-rick.p.edgecombe@intel.com>
-In-Reply-To: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
-References: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:58814 "EHLO
+        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725830AbeJLHSC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2018 03:18:02 -0400
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+References: <20181011001846.30964-1-keescook@chromium.org>
+ <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
+ <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
+ <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
+From: John Johansen <john.johansen@canonical.com>
+Message-ID: <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
+Date: Thu, 11 Oct 2018 16:48:14 -0700
+MIME-Version: 1.0
+In-Reply-To: <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: kristen@linux.intel.com, dave.hansen@intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com, Rick Edgecombe <rick.p.edgecombe@intel.com>
-Message-ID: <20181011233116.xlulUt4hfMAybnQlDsf7g55FCPqvhc2vURSI-re_we0@z>
+To: Kees Cook <keescook@chromium.org>, Jordan Glover <Golden_Miller83@protonmail.ch>
+Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181011234814.6uE3u2ZkTcOTMBmuveLGOryQCNKaTY5YbA2AZTES9AM@z>
 
-This adds in the rlimit checking for the sparc module allocator.
+On 10/11/2018 04:09 PM, Kees Cook wrote:
+> On Thu, Oct 11, 2018 at 3:58 PM, Jordan Glover
+> <Golden_Miller83@protonmail.ch> wrote:
+>> On Thursday, October 11, 2018 7:57 PM, Kees Cook <keescook@chromium.org> wrote:
+>>>     To switch to SELinux at boot time with
+>>>     "CONFIG_LSM=yama,loadpin,integrity,apparmor", the old way continues to
+>>>     work:
+>>>
+>>>     selinux=1 security=selinux
+>>>
+>>>     This will work still, since it will enable selinux (selinux=1) and
+>>>     disable all other major LSMs (security=selinux).
+>>>
+>>>     The new way to enable selinux would be using
+>>>     "lsm=yama,loadpin,integrity,selinux".
+>>>
+>>
+>> It seems to me that legacy way is more user friendly than the new one.
+>> AppArmor and SElinux are households names but the rest may be enigmatic
+>> for most users and the need for explicit passing them all may be
+>> troublesome. Especially when the new ones like sara,landlock or cows :)
+>> will be incoming. Moreover to knew what you have to pass there, you need
+>> to look at CONFIG_LSM in kernel config (which will vary across distros
+>> and also mean copy-paste from the web source may won't work as expected)
+>> which again most users don't do.
+>>
+>> I think there is risk that users will end up with "lsm=selinux" without
+>> realizing that they may disable something along the way.
+>>
+>> I would prefer for "lsm=" to work as override to "CONFIG_LSM=" with
+>> below assumptions:
+>>
+>> I. lsm="$lsm" will append "$lsm" at the end of string. Before extreme
+>> stacking it will also remove the other major (explicit) lsm from it.
+>>
+>> II. lsm="!$lsm" will remove "$lsm" from the string.
+>>
+>> III. If "$lsm" already exist in the string, it's moved at the end of it
+>> (this will cover ordering).
+> 
+> We've had things sort of like this proposed, but if you can convince
+> James and others, I'm all for it. I think the standing objection from
+> James and John about this is that the results of booting with
+> "lsm=something" ends up depending on CONFIG_LSM= for that distro. So
+> you end up with different behaviors instead of a consistent behavior
+> across all distros.
+> 
 
-This has not been tested.
+Its certainly a point that could confuse the user. I do have concerns
+about it, but not something that is on a must haves list
 
-Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
----
- arch/sparc/kernel/module.c | 5 +++++
- 1 file changed, 5 insertions(+)
+> Now, in the future blob and extreme stacking world, having the
+> explicit lsm= list shouldn't be too bad since LSMs will effectively
+> ALL be initialized -- but they'll be inactive since they have no
+> policy loaded.
+> 
 
-diff --git a/arch/sparc/kernel/module.c b/arch/sparc/kernel/module.c
-index df39580f398d..24854fdfa7c3 100644
---- a/arch/sparc/kernel/module.c
-+++ b/arch/sparc/kernel/module.c
-@@ -44,10 +44,15 @@ void *module_alloc(unsigned long size)
- {
- 	void *ret;
- 
-+	if (check_inc_mod_rlimit(size))
-+		return NULL;
-+
- 	ret = module_map(size);
- 	if (ret)
- 		memset(ret, 0, size);
- 
-+	update_mod_rlimit(ret, size);
-+
- 	return ret;
- }
- 
--- 
-2.17.1
+you are more optimistic about this than I am, but there will be at
+least some movement towards this.
+
+> But I still agree with you: I'd like a friendlier way to
+> disable/enable specific LSMs, but an explicit lsm= seems to be the
+> only way.
+> 
+
+Hrmmm, I don't know about the only way, but a way to provide the
+explicit list, and also set a specific set as the default in the
+Kconfig is a hard requirement.
+
+The initial lsm.ebable, lsm.disable had too many issues, and for
+various reasons I never managed to get back to kees' proposal
+for using +.
+
+That said, I do think the right approach for the initial pass is
+the explicit list. It moves the arguments to the side and allows
+this work to move forward.
+
+>> It's possible that something lime this was discussed already
+>> but without full examples it was hard to me for tracking things.
+> 
+> It's been a painful thread. ;)
+> 
+
+Indeed
