@@ -1,99 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f193.google.com ([209.85.214.193]:39373 "EHLO
-        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725995AbeJKHuW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:22 -0400
-Received: by mail-pl1-f193.google.com with SMTP id w14-v6so3293347plp.6
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:46 -0700 (PDT)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:37791 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726290AbeJKHu1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:27 -0400
+Received: by mail-pg1-f194.google.com with SMTP id c10-v6so3286686pgq.4
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:50 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 18/30] LSM: Introduce "lsm=" for boottime LSM selection
-Date: Wed, 10 Oct 2018 17:18:34 -0700
-Message-ID: <20181011001846.30964-19-keescook@chromium.org>
+Subject: [PATCH security-next v5 30/30] capability: Initialize as LSM_ORDER_FIRST
+Date: Wed, 10 Oct 2018 17:18:46 -0700
+Message-ID: <20181011001846.30964-31-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001834.yTp_2hwxwS5NnVifWHnQVhrGhYsH6tCEjq-He3pDeK8@z>
+Message-ID: <20181011001846.KqEIfDHzkr7tyAQ93sCsO4-TXuZD2wg7YaSdj2KeTO4@z>
 
-Provide a way to explicitly choose LSM initialization order via the new
-"lsm=" comma-separated list of LSMs.
+This converts capabilities to use the new LSM_ORDER_FIRST position.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt |  4 ++++
- security/Kconfig                                |  3 ++-
- security/security.c                             | 14 +++++++++++++-
- 3 files changed, 19 insertions(+), 2 deletions(-)
+ include/linux/lsm_hooks.h | 2 --
+ security/commoncap.c      | 9 ++++++++-
+ security/security.c       | 5 -----
+ 3 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 32d323ee9218..d6389ab66f49 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2276,6 +2276,10 @@
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 97898679a505..b728cb448957 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2092,6 +2092,4 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
+ #define __lsm_ro_after_init	__ro_after_init
+ #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
  
- 	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
+-extern void __init capability_add_hooks(void);
+-
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/commoncap.c b/security/commoncap.c
+index 2e489d6a3ac8..c928eb3fe784 100644
+--- a/security/commoncap.c
++++ b/security/commoncap.c
+@@ -1366,10 +1366,17 @@ struct security_hook_list capability_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(vm_enough_memory, cap_vm_enough_memory),
+ };
  
-+	lsm=lsm1,...,lsmN
-+			[SECURITY] Choose order of LSM initialization. This
-+			overrides CONFIG_LSM.
+-void __init capability_add_hooks(void)
++static int __init capability_init(void)
+ {
+ 	security_add_hooks(capability_hooks, ARRAY_SIZE(capability_hooks),
+ 				"capability");
++	return 0;
+ }
+ 
++DEFINE_LSM(capability) = {
++	.name = "capability",
++	.order = LSM_ORDER_FIRST,
++	.init = capability_init,
++};
 +
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
- 			Example: machvec=hpzx1_swiotlb
-diff --git a/security/Kconfig b/security/Kconfig
-index 005634f7c4bb..0aa82c1c928e 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -281,7 +281,8 @@ config LSM
- 	default "integrity"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
--	  Any LSMs left off this list will be ignored.
-+	  Any LSMs left off this list will be ignored. This can be
-+	  controlled at boot with the "lsm=" parameter.
- 
- 	  If unsure, leave this as the default.
- 
+ #endif /* CONFIG_SECURITY */
 diff --git a/security/security.c b/security/security.c
-index 1c4889bce917..70cb2d0004e9 100644
+index 004938eb8e70..aa91181133c1 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -47,6 +47,7 @@ char *lsm_names;
- /* Boot-time LSM user choice */
- static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
- 	CONFIG_DEFAULT_SECURITY;
-+static __initdata const char *chosen_lsm_order;
+@@ -267,11 +267,6 @@ int __init security_init(void)
+ 	     i++)
+ 		INIT_HLIST_HEAD(&list[i]);
  
- static __initconst const char * const builtin_lsm_order = CONFIG_LSM;
+-	/*
+-	 * Load minor LSMs, with the capability module always first.
+-	 */
+-	capability_add_hooks();
+-
+ 	/* Load LSMs in specified order. */
+ 	ordered_lsm_init();
  
-@@ -190,7 +191,10 @@ static void __init ordered_lsm_init(void)
- 	ordered_lsms = kcalloc(LSM_COUNT + 1, sizeof(*ordered_lsms),
- 				GFP_KERNEL);
- 
--	ordered_lsm_parse(builtin_lsm_order, "builtin");
-+	if (chosen_lsm_order)
-+		ordered_lsm_parse(chosen_lsm_order, "cmdline");
-+	else
-+		ordered_lsm_parse(builtin_lsm_order, "builtin");
- 
- 	for (lsm = ordered_lsms; *lsm; lsm++)
- 		maybe_initialize_lsm(*lsm);
-@@ -252,6 +256,14 @@ static int __init choose_lsm(char *str)
- }
- __setup("security=", choose_lsm);
- 
-+/* Explicitly choose LSM initialization order. */
-+static int __init choose_lsm_order(char *str)
-+{
-+	chosen_lsm_order = str;
-+	return 1;
-+}
-+__setup("lsm=", choose_lsm_order);
-+
- /* Enable LSM order debugging. */
- static int __init enable_debug(char *str)
- {
 -- 
 2.17.1
