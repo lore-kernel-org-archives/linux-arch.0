@@ -1,7 +1,7 @@
 From: Firoz Khan <firoz.khan@linaro.org>
 Subject: Re: [PATCH v3 4/6] parisc: uapi header and system call table file generation
-Date: Thu, 11 Oct 2018 11:44:13 +0530
-Message-ID: <CALxhOnhcP==cGqMQvtrZ9GiNWGB69hz4G0n0kocBtd9NpDthCg@mail.gmail.com>
+Date: Thu, 11 Oct 2018 12:18:21 +0530
+Message-ID: <CALxhOnj1SnTO9Sm-1cAL9B8gEmYrOHr03K6OqF4qqt5Oh0x+4g@mail.gmail.com>
 References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
  <1538975801-13735-5-git-send-email-firoz.khan@linaro.org> <20181009201321.GA28911@ls3530.fritz.box>
  <CALxhOnjxkq1-N59i81+ra58tZhx7Gik6iPyUsNFJY9wEJA+D1w@mail.gmail.com>
@@ -14,7 +14,7 @@ To: Helge Deller <deller@gmx.de>
 Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Typo fixed!
+Hi Helge,
 
 On Thu, 11 Oct 2018 at 11:40, Firoz Khan <firoz.khan@linaro.org> wrote:
 >
@@ -50,8 +50,6 @@ On Thu, 11 Oct 2018 at 11:40, Firoz Khan <firoz.khan@linaro.org> wrote:
 >
 > Yes, we don't need those files some of the architecture and other
 > architecture does have same/similar files. That's why I added below
-Yes, we don't need those files some of the architecture does have ...
-
 > files, so every architecture implementation looks same.
 >
 > I feel it is better to remove these files.
@@ -99,3 +97,9 @@ Yes, we don't need those files some of the architecture does have ...
 > >  #endif
 > >
 > >         /*
+
+I could see a patch (commit 47514da3ac20150cdf764466fbc2010c0fca0163)
+which will perform a compile-check when adding a new syscall. My patches
+will remove this feature. Is that fine?
+
+Firoz
