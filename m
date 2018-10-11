@@ -1,27 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw1-f68.google.com ([209.85.161.68]:44102 "EHLO
-        mail-yw1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727563AbeJKNkK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 09:40:10 -0400
-Received: by mail-yw1-f68.google.com with SMTP id s73-v6so3142346ywg.11
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 23:14:25 -0700 (PDT)
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:41100 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726693AbeJKOOZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 10:14:25 -0400
+Received: by mail-yw1-f65.google.com with SMTP id 135-v6so3176158ywo.8
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 23:48:33 -0700 (PDT)
 MIME-Version: 1.0
 References: <1538975801-13735-1-git-send-email-firoz.khan@linaro.org>
  <1538975801-13735-5-git-send-email-firoz.khan@linaro.org> <20181009201321.GA28911@ls3530.fritz.box>
  <CALxhOnjxkq1-N59i81+ra58tZhx7Gik6iPyUsNFJY9wEJA+D1w@mail.gmail.com>
 In-Reply-To: <CALxhOnjxkq1-N59i81+ra58tZhx7Gik6iPyUsNFJY9wEJA+D1w@mail.gmail.com>
 From: Firoz Khan <firoz.khan@linaro.org>
-Date: Thu, 11 Oct 2018 11:44:13 +0530
-Message-ID: <CALxhOnhcP==cGqMQvtrZ9GiNWGB69hz4G0n0kocBtd9NpDthCg@mail.gmail.com>
+Date: Thu, 11 Oct 2018 12:18:21 +0530
+Message-ID: <CALxhOnj1SnTO9Sm-1cAL9B8gEmYrOHr03K6OqF4qqt5Oh0x+4g@mail.gmail.com>
 Subject: Re: [PATCH v3 4/6] parisc: uapi header and system call table file generation
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Helge Deller <deller@gmx.de>
 Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
-Message-ID: <20181011061413.lpulfVwIdQa-PrcE1kaTz2qe-f2hzFfM1CmUvmtSEuc@z>
+Message-ID: <20181011064821.uUB5chaEtPN328ayfytHsMpE3AeJ10tw2nQnB1ufVpE@z>
 
-Typo fixed!
+Hi Helge,
 
 On Thu, 11 Oct 2018 at 11:40, Firoz Khan <firoz.khan@linaro.org> wrote:
 >
@@ -57,8 +57,6 @@ On Thu, 11 Oct 2018 at 11:40, Firoz Khan <firoz.khan@linaro.org> wrote:
 >
 > Yes, we don't need those files some of the architecture and other
 > architecture does have same/similar files. That's why I added below
-Yes, we don't need those files some of the architecture does have ...
-
 > files, so every architecture implementation looks same.
 >
 > I feel it is better to remove these files.
@@ -106,3 +104,9 @@ Yes, we don't need those files some of the architecture does have ...
 > >  #endif
 > >
 > >         /*
+
+I could see a patch (commit 47514da3ac20150cdf764466fbc2010c0fca0163)
+which will perform a compile-check when adding a new syscall. My patches
+will remove this feature. Is that fine?
+
+Firoz
