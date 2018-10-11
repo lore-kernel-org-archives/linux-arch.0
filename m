@@ -1,82 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:44003 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726666AbeJKHu1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:27 -0400
-Received: by mail-pl1-f196.google.com with SMTP id 30-v6so3288232plb.10
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:51 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 26/30] LSM: Split LSM preparation from initialization
-Date: Wed, 10 Oct 2018 17:18:42 -0700
-Message-ID: <20181011001846.30964-27-keescook@chromium.org>
+Received: from namei.org ([65.99.196.166]:33620 "EHLO namei.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726008AbeJKLK6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Oct 2018 07:10:58 -0400
+Date: Thu, 11 Oct 2018 14:45:01 +1100 (AEDT)
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
+Message-ID: <alpine.LRH.2.21.1810111443500.25845@namei.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Morris <jmorris@namei.org>
-Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001842.nz8-MCsMT_1MruqO5NqQ6Fnq5Y-XYJ6vTwKEoFtxWQI@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181011034501.3T3obRCqCSEzt4kpJ4ku4yNBthNweAc3ibmMITGhBzE@z>
 
-Since we already have to do a pass through the LSMs to figure out if
-exclusive LSMs should be disabled after the first one is seen as enabled,
-this splits the logic up a bit more cleanly. Now we do a full "prepare"
-pass through the LSMs (which also allows for later use by the blob-sharing
-code), before starting the LSM initialization pass.
+On Wed, 10 Oct 2018, Kees Cook wrote:
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- security/security.c | 21 +++++++++++++++------
- 1 file changed, 15 insertions(+), 6 deletions(-)
+> v5:
+> - redesigned to use CONFIG_LSM= and lsm= for both ordering and enabling
+> - dropped various Reviewed-bys due to rather large refactoring
 
-diff --git a/security/security.c b/security/security.c
-index 4f52bd06705f..b40c4c212892 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -139,22 +139,28 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
- 	return true;
- }
- 
--/* Check if LSM should be initialized. */
--static void __init maybe_initialize_lsm(struct lsm_info *lsm)
-+/* Prepare LSM for initialization. */
-+static void __init prepare_lsm(struct lsm_info *lsm)
- {
- 	int enabled = lsm_allowed(lsm);
- 
- 	/* Record enablement (to handle any following exclusive LSMs). */
- 	set_enabled(lsm, enabled);
- 
--	/* If selected, initialize the LSM. */
-+	/* If enabled, do pre-initialization work. */
- 	if (enabled) {
--		int ret;
--
- 		if ((lsm->flags & LSM_FLAG_EXCLUSIVE) && !exclusive) {
- 			exclusive = lsm;
- 			init_debug("exclusive chosen: %s\n", lsm->name);
- 		}
-+	}
-+}
-+
-+/* Initialize a given LSM, if it is enabled. */
-+static void __init initialize_lsm(struct lsm_info *lsm)
-+{
-+	if (is_enabled(lsm)) {
-+		int ret;
- 
- 		init_debug("initializing %s\n", lsm->name);
- 		ret = lsm->init();
-@@ -230,7 +236,10 @@ static void __init ordered_lsm_init(void)
- 		ordered_lsm_parse(builtin_lsm_order, "builtin");
- 
- 	for (lsm = ordered_lsms; *lsm; lsm++)
--		maybe_initialize_lsm(*lsm);
-+		prepare_lsm(*lsm);
-+
-+	for (lsm = ordered_lsms; *lsm; lsm++)
-+		initialize_lsm(*lsm);
- 
- 	kfree(ordered_lsms);
- }
+Patches 1-10 applied to
+git://git.kernel.org/pub/scm/linux/kernel/git/jmorris/linux-security.git next-general
+and next-testing.
+
+
 -- 
-2.17.1
+James Morris
+<jmorris@namei.org>
