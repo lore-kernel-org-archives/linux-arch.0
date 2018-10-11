@@ -1,97 +1,159 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:35707 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726958AbeJKHub (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:31 -0400
-Received: by mail-pf1-f195.google.com with SMTP id l17-v6so3456703pff.2
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:54 -0700 (PDT)
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:40866 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726750AbeJKHu3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:29 -0400
+Received: by mail-pl1-f193.google.com with SMTP id 1-v6so3295019plv.7
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:53 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 27/30] LoadPin: Initialize as ordered LSM
-Date: Wed, 10 Oct 2018 17:18:43 -0700
-Message-ID: <20181011001846.30964-28-keescook@chromium.org>
+Subject: [PATCH security-next v5 25/30] LSM: Add all exclusive LSMs to ordered initialization
+Date: Wed, 10 Oct 2018 17:18:41 -0700
+Message-ID: <20181011001846.30964-26-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001843.8aGf50aiYudQZKCcYpBPFIv5IZb7MzgIeVdUXo4KQdk@z>
+Message-ID: <20181011001841.AZQ_ioDSCn0wiq1Pg5TUG8zAfmsxLGipTfcRMdD-FT0@z>
 
-This converts LoadPin from being a direct "minor" LSM into an ordered LSM.
+This removes CONFIG_DEFAULT_SECURITY in favor of the explicit ordering
+offered by CONFIG_LSM and adds all the exclusive LSMs to the ordered
+LSM initialization. The old meaning of CONFIG_DEFAULT_SECURITY is now
+captured by which exclusive LSM is listed first in the LSM order. All
+LSMs not added to the ordered list are explicitly disabled.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- include/linux/lsm_hooks.h  | 5 -----
- security/Kconfig           | 2 +-
- security/loadpin/loadpin.c | 8 +++++++-
- security/security.c        | 1 -
- 4 files changed, 8 insertions(+), 8 deletions(-)
+ security/Kconfig    | 39 +--------------------------------------
+ security/security.c | 35 ++++++++++-------------------------
+ 2 files changed, 11 insertions(+), 63 deletions(-)
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index e88c725a43b8..e6893ff9ca2b 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2092,10 +2092,5 @@ extern void __init yama_add_hooks(void);
- #else
- static inline void __init yama_add_hooks(void) { }
- #endif
--#ifdef CONFIG_SECURITY_LOADPIN
--void __init loadpin_add_hooks(void);
--#else
--static inline void loadpin_add_hooks(void) { };
--#endif
- 
- #endif /* ! __LINUX_LSM_HOOKS_H */
 diff --git a/security/Kconfig b/security/Kconfig
-index 2f8dc1f59cae..550bd7032ab2 100644
+index 0aa82c1c928e..2f8dc1f59cae 100644
 --- a/security/Kconfig
 +++ b/security/Kconfig
-@@ -241,7 +241,7 @@ source security/integrity/Kconfig
+@@ -239,46 +239,9 @@ source security/yama/Kconfig
  
+ source security/integrity/Kconfig
+ 
+-choice
+-	prompt "Default security module"
+-	default DEFAULT_SECURITY_SELINUX if SECURITY_SELINUX
+-	default DEFAULT_SECURITY_SMACK if SECURITY_SMACK
+-	default DEFAULT_SECURITY_TOMOYO if SECURITY_TOMOYO
+-	default DEFAULT_SECURITY_APPARMOR if SECURITY_APPARMOR
+-	default DEFAULT_SECURITY_DAC
+-
+-	help
+-	  Select the security module that will be used by default if the
+-	  kernel parameter security= is not specified.
+-
+-	config DEFAULT_SECURITY_SELINUX
+-		bool "SELinux" if SECURITY_SELINUX=y
+-
+-	config DEFAULT_SECURITY_SMACK
+-		bool "Simplified Mandatory Access Control" if SECURITY_SMACK=y
+-
+-	config DEFAULT_SECURITY_TOMOYO
+-		bool "TOMOYO" if SECURITY_TOMOYO=y
+-
+-	config DEFAULT_SECURITY_APPARMOR
+-		bool "AppArmor" if SECURITY_APPARMOR=y
+-
+-	config DEFAULT_SECURITY_DAC
+-		bool "Unix Discretionary Access Controls"
+-
+-endchoice
+-
+-config DEFAULT_SECURITY
+-	string
+-	default "selinux" if DEFAULT_SECURITY_SELINUX
+-	default "smack" if DEFAULT_SECURITY_SMACK
+-	default "tomoyo" if DEFAULT_SECURITY_TOMOYO
+-	default "apparmor" if DEFAULT_SECURITY_APPARMOR
+-	default "" if DEFAULT_SECURITY_DAC
+-
  config LSM
  	string "Ordered list of enabled LSMs"
--	default "integrity,selinux,smack,tomoyo,apparmor"
-+	default "loadpin,integrity,selinux,smack,tomoyo,apparmor"
+-	default "integrity"
++	default "integrity,selinux,smack,tomoyo,apparmor"
  	help
  	  A comma-separated list of LSMs, in initialization order.
  	  Any LSMs left off this list will be ignored. This can be
-diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
-index a2dc146b6364..640d9c69cf2e 100644
---- a/security/loadpin/loadpin.c
-+++ b/security/loadpin/loadpin.c
-@@ -184,13 +184,19 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
- 	LSM_HOOK_INIT(kernel_load_data, loadpin_load_data),
- };
- 
--void __init loadpin_add_hooks(void)
-+static int __init loadpin_init(void)
- {
- 	pr_info("ready to pin (currently %senforcing)\n",
- 		enforce ? "" : "not ");
- 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
-+	return 0;
- }
- 
-+DEFINE_LSM(loadpin) = {
-+	.name = "loadpin",
-+	.init = loadpin_init,
-+};
-+
- /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
- module_param(enforce, int, 0);
- MODULE_PARM_DESC(enforce, "Enforce module/firmware pinning");
 diff --git a/security/security.c b/security/security.c
-index b40c4c212892..6ad1262aa6ab 100644
+index 65f1fa733e4b..4f52bd06705f 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -265,7 +265,6 @@ int __init security_init(void)
- 	 */
- 	capability_add_hooks();
- 	yama_add_hooks();
--	loadpin_add_hooks();
+@@ -175,8 +175,7 @@ static void __init ordered_lsm_parse(const char *order, const char *origin)
+ 		bool found = false;
  
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-			if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0 &&
+-			    strcmp(lsm->name, name) == 0) {
++			if (strcmp(lsm->name, name) == 0) {
+ 				append_ordered_lsm(lsm, origin);
+ 				found = true;
+ 			}
+@@ -185,6 +184,15 @@ static void __init ordered_lsm_parse(const char *order, const char *origin)
+ 		if (!found)
+ 			init_debug("%s ignored: %s\n", origin, name);
+ 	}
++
++	/* Disable all LSMs not in the ordered list. */
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if (exists_ordered_lsm(lsm))
++			continue;
++		set_enabled(lsm, false);
++		init_debug("%s disabled: %s\n", origin, lsm->name);
++	}
++
+ 	kfree(sep);
+ }
+ 
+@@ -196,8 +204,6 @@ static void __init ordered_lsm_init(void)
+ 				GFP_KERNEL);
+ 
+ 	/* Process "security=", if given. */
+-	if (!chosen_major_lsm)
+-		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
+ 	if (chosen_major_lsm) {
+ 		struct lsm_info *major;
+ 
+@@ -229,22 +235,6 @@ static void __init ordered_lsm_init(void)
+ 	kfree(ordered_lsms);
+ }
+ 
+-static void __init major_lsm_init(void)
+-{
+-	struct lsm_info *lsm;
+-
+-	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+-			continue;
+-
+-		/* Enable this LSM, if it is not already set. */
+-		if (!lsm->enabled)
+-			lsm->enabled = &lsm_enabled_true;
+-
+-		maybe_initialize_lsm(lsm);
+-	}
+-}
+-
+ /**
+  * security_init - initializes the security framework
+  *
+@@ -271,11 +261,6 @@ int __init security_init(void)
  	/* Load LSMs in specified order. */
  	ordered_lsm_init();
+ 
+-	/*
+-	 * Load all the remaining security modules.
+-	 */
+-	major_lsm_init();
+-
+ 	return 0;
+ }
+ 
 -- 
 2.17.1
