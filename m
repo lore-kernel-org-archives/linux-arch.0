@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 13/30] LoadPin: Rename boot param "enabled" to "enforce"
-Date: Wed, 10 Oct 2018 17:18:29 -0700
-Message-ID: <20181011001846.30964-14-keescook@chromium.org>
+Subject: [PATCH security-next v5 21/30] LSM: Refactor "security=" in terms of enable/disable
+Date: Wed, 10 Oct 2018 17:18:37 -0700
+Message-ID: <20181011001846.30964-22-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
@@ -10,114 +10,64 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-LoadPin's "enabled" setting is really about enforcement, not whether
-or not the LSM is using LSM hooks. Instead, split this out so that LSM
-enabling can be logically distinct from whether enforcement is happening
-(for example, the pinning happens when the LSM is enabled, but the pin
-is only checked when "enforce" is set). This allows LoadPin to continue
-to operate sanely in test environments once LSM enable/disable is
-centrally handled (i.e. we want LoadPin to be enabled separately from
-its enforcement).
+For what are marked as the Legacy Major LSMs, make them effectively
+exclusive when selected on the "security=" boot parameter, to handle
+the future case of when a previously major LSMs become non-exclusive
+(e.g. when TOMOYO starts blob-sharing).
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-Reviewed-by: John Johansen <john.johansen@canonical.com>
 ---
- security/loadpin/Kconfig   |  4 ++--
- security/loadpin/loadpin.c | 21 +++++++++++----------
- 2 files changed, 13 insertions(+), 12 deletions(-)
+ security/security.c | 28 ++++++++++++++++++++--------
+ 1 file changed, 20 insertions(+), 8 deletions(-)
 
-diff --git a/security/loadpin/Kconfig b/security/loadpin/Kconfig
-index dd01aa91e521..a0d70d82b98e 100644
---- a/security/loadpin/Kconfig
-+++ b/security/loadpin/Kconfig
-@@ -10,10 +10,10 @@ config SECURITY_LOADPIN
- 	  have a root filesystem backed by a read-only device such as
- 	  dm-verity or a CDROM.
+diff --git a/security/security.c b/security/security.c
+index 1b1ee823457c..2c754968f98b 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -129,14 +129,6 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
+ 	if (!is_enabled(lsm))
+ 		return false;
  
--config SECURITY_LOADPIN_ENABLED
-+config SECURITY_LOADPIN_ENFORCE
- 	bool "Enforce LoadPin at boot"
- 	depends on SECURITY_LOADPIN
- 	help
- 	  If selected, LoadPin will enforce pinning at boot. If not
- 	  selected, it can be enabled at boot with the kernel parameter
--	  "loadpin.enabled=1".
-+	  "loadpin.enforce=1".
-diff --git a/security/loadpin/loadpin.c b/security/loadpin/loadpin.c
-index 0716af28808a..a2dc146b6364 100644
---- a/security/loadpin/loadpin.c
-+++ b/security/loadpin/loadpin.c
-@@ -44,7 +44,7 @@ static void report_load(const char *origin, struct file *file, char *operation)
- 	kfree(pathname);
+-	/* Skip major-specific checks if not a major LSM. */
+-	if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
+-		return true;
+-
+-	/* Disabled if this LSM isn't the chosen one. */
+-	if (strcmp(lsm->name, chosen_major_lsm) != 0)
+-		return false;
+-
+ 	return true;
  }
  
--static int enabled = IS_ENABLED(CONFIG_SECURITY_LOADPIN_ENABLED);
-+static int enforce = IS_ENABLED(CONFIG_SECURITY_LOADPIN_ENFORCE);
- static struct super_block *pinned_root;
- static DEFINE_SPINLOCK(pinned_root_spinlock);
+@@ -191,8 +183,28 @@ static void __init ordered_lsm_init(void)
+ 	ordered_lsms = kcalloc(LSM_COUNT + 1, sizeof(*ordered_lsms),
+ 				GFP_KERNEL);
  
-@@ -60,8 +60,8 @@ static struct ctl_path loadpin_sysctl_path[] = {
++	/* Process "security=", if given. */
+ 	if (!chosen_major_lsm)
+ 		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
++	if (chosen_major_lsm) {
++		struct lsm_info *major;
++
++		/*
++		 * To match the original "security=" behavior, this
++		 * explicitly does NOT fallback to another Legacy Major
++		 * if the selected one was separately disabled: disable
++		 * all non-matching Legacy Major LSMs.
++		 */
++		for (major = __start_lsm_info; major < __end_lsm_info;
++		     major++) {
++			if ((major->flags & LSM_FLAG_LEGACY_MAJOR) &&
++			    strcmp(major->name, chosen_major_lsm) != 0) {
++				set_enabled(major, false);
++				init_debug("security=%s disabled: %s\n",
++					   chosen_major_lsm, major->name);
++			}
++		}
++	}
  
- static struct ctl_table loadpin_sysctl_table[] = {
- 	{
--		.procname       = "enabled",
--		.data           = &enabled,
-+		.procname       = "enforce",
-+		.data           = &enforce,
- 		.maxlen         = sizeof(int),
- 		.mode           = 0644,
- 		.proc_handler   = proc_dointvec_minmax,
-@@ -97,7 +97,7 @@ static void check_pinning_enforcement(struct super_block *mnt_sb)
- 					   loadpin_sysctl_table))
- 			pr_notice("sysctl registration failed!\n");
- 		else
--			pr_info("load pinning can be disabled.\n");
-+			pr_info("enforcement can be disabled.\n");
- 	} else
- 		pr_info("load pinning engaged.\n");
- }
-@@ -128,7 +128,7 @@ static int loadpin_read_file(struct file *file, enum kernel_read_file_id id)
- 
- 	/* This handles the older init_module API that has a NULL file. */
- 	if (!file) {
--		if (!enabled) {
-+		if (!enforce) {
- 			report_load(origin, NULL, "old-api-pinning-ignored");
- 			return 0;
- 		}
-@@ -151,7 +151,7 @@ static int loadpin_read_file(struct file *file, enum kernel_read_file_id id)
- 		 * Unlock now since it's only pinned_root we care about.
- 		 * In the worst case, we will (correctly) report pinning
- 		 * failures before we have announced that pinning is
--		 * enabled. This would be purely cosmetic.
-+		 * enforcing. This would be purely cosmetic.
- 		 */
- 		spin_unlock(&pinned_root_spinlock);
- 		check_pinning_enforcement(pinned_root);
-@@ -161,7 +161,7 @@ static int loadpin_read_file(struct file *file, enum kernel_read_file_id id)
- 	}
- 
- 	if (IS_ERR_OR_NULL(pinned_root) || load_root != pinned_root) {
--		if (unlikely(!enabled)) {
-+		if (unlikely(!enforce)) {
- 			report_load(origin, file, "pinning-ignored");
- 			return 0;
- 		}
-@@ -186,10 +186,11 @@ static struct security_hook_list loadpin_hooks[] __lsm_ro_after_init = {
- 
- void __init loadpin_add_hooks(void)
- {
--	pr_info("ready to pin (currently %sabled)", enabled ? "en" : "dis");
-+	pr_info("ready to pin (currently %senforcing)\n",
-+		enforce ? "" : "not ");
- 	security_add_hooks(loadpin_hooks, ARRAY_SIZE(loadpin_hooks), "loadpin");
- }
- 
- /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
--module_param(enabled, int, 0);
--MODULE_PARM_DESC(enabled, "Pin module/firmware loading (default: true)");
-+module_param(enforce, int, 0);
-+MODULE_PARM_DESC(enforce, "Enforce module/firmware pinning");
+ 	if (chosen_lsm_order)
+ 		ordered_lsm_parse(chosen_lsm_order, "cmdline");
 -- 
 2.17.1
