@@ -1,7 +1,7 @@
 From: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Subject: [PATCH v2 4/7] arm64/modules: Add rlimit checking for arm64 modules
-Date: Thu, 11 Oct 2018 16:31:14 -0700
-Message-ID: <20181011233117.7883-5-rick.p.edgecombe@intel.com>
+Subject: [PATCH v2 5/7] mips/modules: Add rlimit checking for mips modules
+Date: Thu, 11 Oct 2018 16:31:15 -0700
+Message-ID: <20181011233117.7883-6-rick.p.edgecombe@intel.com>
 References: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
@@ -10,37 +10,38 @@ To: kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium
 Cc: kristen@linux.intel.com, dave.hansen@intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com, Rick Edgecombe <rick.p.edgecombe@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This adds in the rlimit checking for the arm64 module allocator.
+This adds in the rlimit checking for the mips module allocator.
 
 This has not been tested.
 
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
 ---
- arch/arm64/kernel/module.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/mips/kernel/module.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/kernel/module.c b/arch/arm64/kernel/module.c
-index f0f27aeefb73..ea9794f2f571 100644
---- a/arch/arm64/kernel/module.c
-+++ b/arch/arm64/kernel/module.c
-@@ -39,6 +39,9 @@ void *module_alloc(unsigned long size)
- 	if (IS_ENABLED(CONFIG_ARM64_MODULE_PLTS))
- 		gfp_mask |= __GFP_NOWARN;
- 
+diff --git a/arch/mips/kernel/module.c b/arch/mips/kernel/module.c
+index 491605137b03..7a23392512d1 100644
+--- a/arch/mips/kernel/module.c
++++ b/arch/mips/kernel/module.c
+@@ -47,9 +47,18 @@ static DEFINE_SPINLOCK(dbe_lock);
+ #ifdef MODULE_START
+ void *module_alloc(unsigned long size)
+ {
+-	return __vmalloc_node_range(size, 1, MODULE_START, MODULE_END,
++	void *p;
++
 +	if (check_inc_mod_rlimit(size))
 +		return NULL;
 +
- 	p = __vmalloc_node_range(size, MODULE_ALIGN, module_alloc_base,
- 				module_alloc_base + MODULES_VSIZE,
- 				gfp_mask, PAGE_KERNEL_EXEC, 0,
-@@ -65,6 +68,8 @@ void *module_alloc(unsigned long size)
- 		return NULL;
- 	}
- 
++	p = __vmalloc_node_range(size, 1, MODULE_START, MODULE_END,
+ 				GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
++
 +	update_mod_rlimit(p, size);
 +
- 	return p;
++	return p;
  }
+ #endif
  
 -- 
 2.17.1
