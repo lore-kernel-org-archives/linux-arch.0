@@ -1,58 +1,44 @@
-From: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Subject: [PATCH v2 3/7] arm/modules: Add rlimit checking for arm modules
-Date: Thu, 11 Oct 2018 16:31:13 -0700
-Message-ID: <20181011233117.7883-4-rick.p.edgecombe@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v2 4/7] arm64/modules: Add rlimit checking for arm64
+ modules
+Date: Thu, 11 Oct 2018 16:47:29 -0700
+Message-ID: <25951d99-8ba7-5c9e-938e-baf92395f9e0@intel.com>
 References: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
-Return-path: <kernel-hardening-return-14170-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
-To: kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: kristen@linux.intel.com, dave.hansen@intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com, Rick Edgecombe <rick.p.edgecombe@intel.com>
+ <20181011233117.7883-5-rick.p.edgecombe@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20181011233117.7883-5-rick.p.edgecombe@intel.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rick Edgecombe <rick.p.edgecombe@intel.com>, kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: kristen@linux.intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-This adds in the rlimit checking for the arm module allocator.
+On 10/11/2018 04:31 PM, Rick Edgecombe wrote:
+> +	if (check_inc_mod_rlimit(size))
+> +		return NULL;
+> +
+>  	p = __vmalloc_node_range(size, MODULE_ALIGN, module_alloc_base,
+>  				module_alloc_base + MODULES_VSIZE,
+>  				gfp_mask, PAGE_KERNEL_EXEC, 0,
+> @@ -65,6 +68,8 @@ void *module_alloc(unsigned long size)
+>  		return NULL;
+>  	}
+>  
+> +	update_mod_rlimit(p, size);
 
-This has not been tested.
+Is there a reason we couldn't just rename all of the existing per-arch
+module_alloc() calls to be called, say, "arch_module_alloc()", then put
+this new rlimit code in a generic helper that does:
 
-Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
----
- arch/arm/kernel/module.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/kernel/module.c b/arch/arm/kernel/module.c
-index 3ff571c2c71c..e331863553d2 100644
---- a/arch/arm/kernel/module.c
-+++ b/arch/arm/kernel/module.c
-@@ -43,6 +43,9 @@ void *module_alloc(unsigned long size)
- 	gfp_t gfp_mask = GFP_KERNEL;
- 	void *p;
- 
-+	if (check_inc_mod_rlimit(size))
-+		return NULL;
-+
- 	/* Silence the initial allocation */
- 	if (IS_ENABLED(CONFIG_ARM_MODULE_PLTS))
- 		gfp_mask |= __GFP_NOWARN;
-@@ -51,10 +54,15 @@ void *module_alloc(unsigned long size)
- 				gfp_mask, PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
- 				__builtin_return_address(0));
- 	if (!IS_ENABLED(CONFIG_ARM_MODULE_PLTS) || p)
--		return p;
--	return __vmalloc_node_range(size, 1,  VMALLOC_START, VMALLOC_END,
-+		goto done;
-+	p = __vmalloc_node_range(size, 1,  VMALLOC_START, VMALLOC_END,
- 				GFP_KERNEL, PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
- 				__builtin_return_address(0));
-+
-+done:
-+	update_mod_rlimit(p, size);
-+
-+	return p;
- }
- #endif
- 
--- 
-2.17.1
+	if (check_inc_mod_rlimit(size))
+		return NULL;
+
+	p = arch_module_alloc(...);
+
+	...
+
+	update_mod_rlimit(p, size);
