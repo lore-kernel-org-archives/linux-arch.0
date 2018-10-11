@@ -1,33 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from namei.org ([65.99.196.166]:33620 "EHLO namei.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726008AbeJKLK6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Oct 2018 07:10:58 -0400
-Date: Thu, 11 Oct 2018 14:45:01 +1100 (AEDT)
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
-Message-ID: <alpine.LRH.2.21.1810111443500.25845@namei.org>
-References: <20181011001846.30964-1-keescook@chromium.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mail-pf1-f172.google.com ([209.85.210.172]:33099 "EHLO
+        mail-pf1-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726047AbeJKLuu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 07:50:50 -0400
+Received: by mail-pf1-f172.google.com with SMTP id 78-v6so1332694pfq.0
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 21:25:26 -0700 (PDT)
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v3 0/7] ia64: system call table generation support
+Date: Thu, 11 Oct 2018 09:54:48 +0530
+Message-ID: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011034501.3T3obRCqCSEzt4kpJ4ku4yNBthNweAc3ibmMITGhBzE@z>
+To: linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
+Message-ID: <20181011042448.K7ii7MUvk2yBQtfDiTPVDC4elk-1BBbQDK89Uaa_od4@z>
 
-On Wed, 10 Oct 2018, Kees Cook wrote:
+The purpose of this patch series is:
+1. We can easily add/modify/delete system call by changing entry 
+in syscall.tbl file. No need to manually edit many files.
 
-> v5:
-> - redesigned to use CONFIG_LSM= and lsm= for both ordering and enabling
-> - dropped various Reviewed-bys due to rather large refactoring
+2. It is easy to unify the system call implementation across all 
+the architectures. 
 
-Patches 1-10 applied to
-git://git.kernel.org/pub/scm/linux/kernel/git/jmorris/linux-security.git next-general
-and next-testing.
+The system call tables are in different format in all architecture 
+and it will be difficult to manually add or modify the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate the header file and syscall table file so this 
+change will unify them across all architectures.
 
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, microblaze, sparc,
+mips, parisc, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+In v3 patch series, I wired up perf_event_open, seccomp, pkey_
+mprotect, pkey_alloc, pkey_free, statx, io_pgetevents and rseq 
+system calls. This require an architecture specific implementation 
+as it not present now.
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add/change two dozen of system calls to solve Y2038 issue. 
+So this patch series will help to easily modify from existing 
+system call to Y2038 compatible system calls.
+
+Firoz Khan (7):
+  ia64: add __NR_old_getpagesize in uapi/asm/unistd.h
+  ia64: replace NR_syscalls macro from asm/unistd.h
+  ia64: add an offset for system call number
+  ia64: replace the system call table entries from entry.S
+  ia64: add system call table generation support
+  ia64: uapi header and system call table file generation
+  ia64: wire up system calls
+
+ arch/ia64/Makefile                      |   3 +
+ arch/ia64/include/asm/Kbuild            |   1 +
+ arch/ia64/include/asm/unistd.h          |   4 +-
+ arch/ia64/include/uapi/asm/Kbuild       |   1 +
+ arch/ia64/include/uapi/asm/unistd.h     | 332 +-----------------------------
+ arch/ia64/kernel/entry.S                | 333 +-----------------------------
+ arch/ia64/kernel/syscall_table.S        |   9 +
+ arch/ia64/kernel/syscalls/Makefile      |  39 ++++
+ arch/ia64/kernel/syscalls/syscall.tbl   | 353 ++++++++++++++++++++++++++++++++
+ arch/ia64/kernel/syscalls/syscallhdr.sh |  35 ++++
+ arch/ia64/kernel/syscalls/syscalltbl.sh |  37 ++++
+ 11 files changed, 483 insertions(+), 664 deletions(-)
+ create mode 100644 arch/ia64/kernel/syscall_table.S
+ create mode 100644 arch/ia64/kernel/syscalls/Makefile
+ create mode 100644 arch/ia64/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/ia64/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/ia64/kernel/syscalls/syscalltbl.sh
 
 -- 
-James Morris
-<jmorris@namei.org>
+1.9.1
