@@ -1,80 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:35187 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727417AbeJKHnq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:43:46 -0400
-Received: by mail-pg1-f193.google.com with SMTP id v133-v6so3280344pgb.2
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:19:12 -0700 (PDT)
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:40759 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726670AbeJKHna (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:43:30 -0400
+Received: by mail-pf1-f195.google.com with SMTP id s5-v6so3442304pfj.7
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:18:56 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 21/30] LSM: Refactor "security=" in terms of enable/disable
-Date: Wed, 10 Oct 2018 17:18:37 -0700
-Message-ID: <20181011001846.30964-22-keescook@chromium.org>
+Subject: [PATCH security-next v5 04/30] LSM: Remove initcall tracing
+Date: Wed, 10 Oct 2018 17:18:20 -0700
+Message-ID: <20181011001846.30964-5-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001837.wk18RMinKwfZ8dAXxFO0ZcycOhTBDph--4VjGZpOqbY@z>
+Message-ID: <20181011001820.KIGL4woSwhOdwwXYOgs0MkP9opq5jR0pDom-Hiz9Bng@z>
 
-For what are marked as the Legacy Major LSMs, make them effectively
-exclusive when selected on the "security=" boot parameter, to handle
-the future case of when a previously major LSMs become non-exclusive
-(e.g. when TOMOYO starts blob-sharing).
+This partially reverts commit 58eacfffc417 ("init, tracing: instrument
+security and console initcall trace events") since security init calls
+are about to no longer resemble regular init calls.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
+Reviewed-by: James Morris <james.morris@microsoft.com>
 ---
- security/security.c | 28 ++++++++++++++++++++--------
- 1 file changed, 20 insertions(+), 8 deletions(-)
+ security/security.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
 diff --git a/security/security.c b/security/security.c
-index 1b1ee823457c..2c754968f98b 100644
+index 892fe6b691cf..41a5da2c7faf 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -129,14 +129,6 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
- 	if (!is_enabled(lsm))
- 		return false;
+@@ -30,8 +30,6 @@
+ #include <linux/string.h>
+ #include <net/flow.h>
  
--	/* Skip major-specific checks if not a major LSM. */
--	if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
--		return true;
+-#include <trace/events/initcall.h>
 -
--	/* Disabled if this LSM isn't the chosen one. */
--	if (strcmp(lsm->name, chosen_major_lsm) != 0)
--		return false;
--
- 	return true;
+ #define MAX_LSM_EVM_XATTR	2
+ 
+ /* Maximum number of letters for an LSM name string */
+@@ -47,17 +45,13 @@ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+ 
+ static void __init do_security_initcalls(void)
+ {
+-	int ret;
+ 	initcall_t call;
+ 	initcall_entry_t *ce;
+ 
+ 	ce = __start_lsm_info;
+-	trace_initcall_level("security");
+ 	while (ce < __end_lsm_info) {
+ 		call = initcall_from_entry(ce);
+-		trace_initcall_start(call);
+-		ret = call();
+-		trace_initcall_finish(call, ret);
++		call();
+ 		ce++;
+ 	}
  }
- 
-@@ -191,8 +183,28 @@ static void __init ordered_lsm_init(void)
- 	ordered_lsms = kcalloc(LSM_COUNT + 1, sizeof(*ordered_lsms),
- 				GFP_KERNEL);
- 
-+	/* Process "security=", if given. */
- 	if (!chosen_major_lsm)
- 		chosen_major_lsm = CONFIG_DEFAULT_SECURITY;
-+	if (chosen_major_lsm) {
-+		struct lsm_info *major;
-+
-+		/*
-+		 * To match the original "security=" behavior, this
-+		 * explicitly does NOT fallback to another Legacy Major
-+		 * if the selected one was separately disabled: disable
-+		 * all non-matching Legacy Major LSMs.
-+		 */
-+		for (major = __start_lsm_info; major < __end_lsm_info;
-+		     major++) {
-+			if ((major->flags & LSM_FLAG_LEGACY_MAJOR) &&
-+			    strcmp(major->name, chosen_major_lsm) != 0) {
-+				set_enabled(major, false);
-+				init_debug("security=%s disabled: %s\n",
-+					   chosen_major_lsm, major->name);
-+			}
-+		}
-+	}
- 
- 	if (chosen_lsm_order)
- 		ordered_lsm_parse(chosen_lsm_order, "cmdline");
 -- 
 2.17.1
