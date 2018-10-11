@@ -1,148 +1,38 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v5 04/27] x86/fpu/xstate: Add XSAVES system states for shadow stack
-Date: Thu, 11 Oct 2018 08:15:00 -0700
-Message-ID: <20181011151523.27101-5-yu-cheng.yu@intel.com>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+Date: Fri, 12 Oct 2018 02:52:32 +1100 (AEDT)
+Message-ID: <alpine.LRH.2.21.1810120252220.20563@namei.org>
+References: <20181011001846.30964-1-keescook@chromium.org> <alpine.LRH.2.21.1810111443500.25845@namei.org> <CAGXu5jLzsYY1Ja8onnNdHXbenZ6vPrat_L8U_sbcCic0qk--qQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+In-Reply-To: <CAGXu5jLzsYY1Ja8onnNdHXbenZ6vPrat_L8U_sbcCic0qk--qQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Intel Control-flow Enforcement Technology (CET) introduces the
-following MSRs into the XSAVES system states.
+On Thu, 11 Oct 2018, Kees Cook wrote:
 
-    IA32_U_CET (user-mode CET settings),
-    IA32_PL3_SSP (user-mode shadow stack),
-    IA32_PL0_SSP (kernel-mode shadow stack),
-    IA32_PL1_SSP (ring-1 shadow stack),
-    IA32_PL2_SSP (ring-2 shadow stack).
+> On Wed, Oct 10, 2018 at 8:45 PM, James Morris <jmorris@namei.org> wrote:
+> > On Wed, 10 Oct 2018, Kees Cook wrote:
+> >
+> >> v5:
+> >> - redesigned to use CONFIG_LSM= and lsm= for both ordering and enabling
+> >> - dropped various Reviewed-bys due to rather large refactoring
+> >
+> > Patches 1-10 applied to
+> > git://git.kernel.org/pub/scm/linux/kernel/git/jmorris/linux-security.git next-general
+> > and next-testing.
+> 
+> Very cool; thanks!
+> 
+> As for the rest, I could post some examples of how the new CONFIG_LSM
+> and "lsm=..." work (and how they mix with the "legacy" options). Would
+> that be helpful?
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/include/asm/fpu/types.h            | 22 +++++++++++++++++++++
- arch/x86/include/asm/fpu/xstate.h           |  4 +++-
- arch/x86/include/uapi/asm/processor-flags.h |  2 ++
- arch/x86/kernel/fpu/xstate.c                | 10 ++++++++++
- 4 files changed, 37 insertions(+), 1 deletion(-)
+Yes, thanks.
 
-diff --git a/arch/x86/include/asm/fpu/types.h b/arch/x86/include/asm/fpu/types.h
-index 202c53918ecf..e55d51d172f1 100644
---- a/arch/x86/include/asm/fpu/types.h
-+++ b/arch/x86/include/asm/fpu/types.h
-@@ -114,6 +114,9 @@ enum xfeature {
- 	XFEATURE_Hi16_ZMM,
- 	XFEATURE_PT_UNIMPLEMENTED_SO_FAR,
- 	XFEATURE_PKRU,
-+	XFEATURE_RESERVED,
-+	XFEATURE_SHSTK_USER,
-+	XFEATURE_SHSTK_KERNEL,
- 
- 	XFEATURE_MAX,
- };
-@@ -128,6 +131,8 @@ enum xfeature {
- #define XFEATURE_MASK_Hi16_ZMM		(1 << XFEATURE_Hi16_ZMM)
- #define XFEATURE_MASK_PT		(1 << XFEATURE_PT_UNIMPLEMENTED_SO_FAR)
- #define XFEATURE_MASK_PKRU		(1 << XFEATURE_PKRU)
-+#define XFEATURE_MASK_SHSTK_USER	(1 << XFEATURE_SHSTK_USER)
-+#define XFEATURE_MASK_SHSTK_KERNEL	(1 << XFEATURE_SHSTK_KERNEL)
- 
- #define XFEATURE_MASK_FPSSE		(XFEATURE_MASK_FP | XFEATURE_MASK_SSE)
- #define XFEATURE_MASK_AVX512		(XFEATURE_MASK_OPMASK \
-@@ -229,6 +234,23 @@ struct pkru_state {
- 	u32				pad;
- } __packed;
- 
-+/*
-+ * State component 11 is Control flow Enforcement user states
-+ */
-+struct cet_user_state {
-+	u64 u_cet;	/* user control flow settings */
-+	u64 user_ssp;	/* user shadow stack pointer */
-+} __packed;
-+
-+/*
-+ * State component 12 is Control flow Enforcement kernel states
-+ */
-+struct cet_kernel_state {
-+	u64 kernel_ssp;	/* kernel shadow stack */
-+	u64 pl1_ssp;	/* ring-1 shadow stack */
-+	u64 pl2_ssp;	/* ring-2 shadow stack */
-+} __packed;
-+
- struct xstate_header {
- 	u64				xfeatures;
- 	u64				xcomp_bv;
-diff --git a/arch/x86/include/asm/fpu/xstate.h b/arch/x86/include/asm/fpu/xstate.h
-index d8e2ec99f635..18b60748a34d 100644
---- a/arch/x86/include/asm/fpu/xstate.h
-+++ b/arch/x86/include/asm/fpu/xstate.h
-@@ -28,7 +28,9 @@
- 				  XFEATURE_MASK_Hi16_ZMM | \
- 				  XFEATURE_MASK_PKRU | \
- 				  XFEATURE_MASK_BNDREGS | \
--				  XFEATURE_MASK_BNDCSR)
-+				  XFEATURE_MASK_BNDCSR | \
-+				  XFEATURE_MASK_SHSTK_USER | \
-+				  XFEATURE_MASK_SHSTK_KERNEL)
- 
- #ifdef CONFIG_X86_64
- #define REX_PREFIX	"0x48, "
-diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
-index bcba3c643e63..25311ec4b731 100644
---- a/arch/x86/include/uapi/asm/processor-flags.h
-+++ b/arch/x86/include/uapi/asm/processor-flags.h
-@@ -130,6 +130,8 @@
- #define X86_CR4_SMAP		_BITUL(X86_CR4_SMAP_BIT)
- #define X86_CR4_PKE_BIT		22 /* enable Protection Keys support */
- #define X86_CR4_PKE		_BITUL(X86_CR4_PKE_BIT)
-+#define X86_CR4_CET_BIT		23 /* enable Control flow Enforcement */
-+#define X86_CR4_CET		_BITUL(X86_CR4_CET_BIT)
- 
- /*
-  * x86-64 Task Priority Register, CR8
-diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-index 605ec6decf3e..ad36ea28bfd1 100644
---- a/arch/x86/kernel/fpu/xstate.c
-+++ b/arch/x86/kernel/fpu/xstate.c
-@@ -35,6 +35,9 @@ static const char *xfeature_names[] =
- 	"Processor Trace (unused)"	,
- 	"Protection Keys User registers",
- 	"unknown xstate feature"	,
-+	"Control flow User registers"	,
-+	"Control flow Kernel registers"	,
-+	"unknown xstate feature"	,
- };
- 
- static short xsave_cpuid_features[] __initdata = {
-@@ -48,6 +51,9 @@ static short xsave_cpuid_features[] __initdata = {
- 	X86_FEATURE_AVX512F,
- 	X86_FEATURE_INTEL_PT,
- 	X86_FEATURE_PKU,
-+	0,		   /* Unused */
-+	X86_FEATURE_SHSTK, /* XFEATURE_SHSTK_USER */
-+	X86_FEATURE_SHSTK, /* XFEATURE_SHSTK_KERNEL */
- };
- 
- /*
-@@ -312,6 +318,8 @@ static void __init print_xstate_features(void)
- 	print_xstate_feature(XFEATURE_MASK_ZMM_Hi256);
- 	print_xstate_feature(XFEATURE_MASK_Hi16_ZMM);
- 	print_xstate_feature(XFEATURE_MASK_PKRU);
-+	print_xstate_feature(XFEATURE_MASK_SHSTK_USER);
-+	print_xstate_feature(XFEATURE_MASK_SHSTK_KERNEL);
- }
- 
- /*
-@@ -558,6 +566,8 @@ static void check_xstate_against_struct(int nr)
- 	XCHECK_SZ(sz, nr, XFEATURE_ZMM_Hi256, struct avx_512_zmm_uppers_state);
- 	XCHECK_SZ(sz, nr, XFEATURE_Hi16_ZMM,  struct avx_512_hi16_state);
- 	XCHECK_SZ(sz, nr, XFEATURE_PKRU,      struct pkru_state);
-+	XCHECK_SZ(sz, nr, XFEATURE_SHSTK_USER,   struct cet_user_state);
-+	XCHECK_SZ(sz, nr, XFEATURE_SHSTK_KERNEL, struct cet_kernel_state);
- 
- 	/*
- 	 * Make *SURE* to add any feature numbers in below if
 -- 
-2.17.1
+James Morris
+<jmorris@namei.org>
