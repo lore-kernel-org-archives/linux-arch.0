@@ -1,29 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:50401 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725819AbeJLEWp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Oct 2018 00:22:45 -0400
-Message-ID: <c61b4c393f938ee6e97f84d97ed76867ae75cb02.camel@intel.com>
-Subject: Re: [PATCH v5 07/27] mm/mmap: Create a guard area between VMAs
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 11 Oct 2018 13:49:00 -0700
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:40517 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726762AbeJLEYi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2018 00:24:38 -0400
+Received: by mail-wr1-f65.google.com with SMTP id d2-v6so11172554wro.7
+        for <linux-arch@vger.kernel.org>; Thu, 11 Oct 2018 13:55:39 -0700 (PDT)
+MIME-Version: 1.0
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com> <20181011151523.27101-8-yu-cheng.yu@intel.com>
+ <CAG48ez3R7XL8MX_sjff1FFYuARX_58wA_=ACbv2im-XJKR8tvA@mail.gmail.com>
 In-Reply-To: <CAG48ez3R7XL8MX_sjff1FFYuARX_58wA_=ACbv2im-XJKR8tvA@mail.gmail.com>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
-         <20181011151523.27101-8-yu-cheng.yu@intel.com>
-         <CAG48ez3R7XL8MX_sjff1FFYuARX_58wA_=ACbv2im-XJKR8tvA@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 11 Oct 2018 13:55:26 -0700
+Message-ID: <CALCETrUJ1t_K=FQExa_K0yg+aXkPot6wn6RHBPDc3BsAxtmMBw@mail.gmail.com>
+Subject: Re: [PATCH v5 07/27] mm/mmap: Create a guard area between VMAs
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>, Andy Lutomirski <luto@amacapital.net>
-Cc: the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, rdunlap@infradead.org, ravi.v.shankar@intel.com, vedvyas.shanbhogue@intel.com, Daniel Micay <danielmicay@gmail.com>
-Message-ID: <20181011204900.0CGVO17S1fiH9Y2vGT8jM875xgaauy7tBdC7WgOP_WY@z>
+To: Jann Horn <jannh@google.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, "Shanbhogue, Vedvyas" <vedvyas.shanbhogue@intel.com>, Daniel Micay <danielmicay@gmail.com>
+Message-ID: <20181011205526.lZkKN-fbYbSfQz2BAiiTUUnu__vnia63cdFT9vqY-Yc@z>
 
-On Thu, 2018-10-11 at 22:39 +0200, Jann Horn wrote:
+On Thu, Oct 11, 2018 at 1:39 PM Jann Horn <jannh@google.com> wrote:
+>
 > On Thu, Oct 11, 2018 at 5:20 PM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
 > > Create a guard area between VMAs to detect memory corruption.
-> 
 > [...]
 > > +config VM_AREA_GUARD
 > > +       bool "VM area guard"
@@ -33,7 +33,7 @@ On Thu, 2018-10-11 at 22:39 +0200, Jann Horn wrote:
 > > +         limit can be detected.
 > > +
 > >  endmenu
-> 
+>
 > Sorry to bring this up so late, but Daniel Micay pointed out to me
 > that, given that VMA guards will raise the number of VMAs by
 > inhibiting vma_merge(), people are more likely to run into
@@ -42,7 +42,13 @@ On Thu, 2018-10-11 at 22:39 +0200, Jann Horn wrote:
 > page->_mapcount on systems with over ~800GiB of RAM, see
 > https://lore.kernel.org/lkml/20180208021112.GB14918@bombadil.infradead.org/
 > and replies) with this change.
+>
+> Playing with glibc's memory allocator, it looks like glibc will use
+> mmap() for 128KB allocations; so at 65530*128KB=8GB of memory usage in
+> 128KB chunks, an application could run out of VMAs.
 
-Can we use the VMA guard only for Shadow Stacks?
+Ugh.
 
-Yu-cheng
+Do we have a free VM flag so we could do VM_GUARD to force a guard
+page?  (And to make sure that, when a new VMA is allocated, it won't
+be directly adjacent to a VM_GUARD VMA.)
