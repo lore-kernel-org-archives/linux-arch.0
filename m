@@ -1,78 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37912 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:38318 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727129AbeJKV2V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Oct 2018 17:28:21 -0400
+        id S1726537AbeJKVue (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Oct 2018 17:50:34 -0400
 Subject: Re: [RFC 17/17] arm64: compile the kernel with ptrauth
  -msign-return-address
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
  <20181005084754.20950-18-kristina.martsenko@arm.com>
- <cd1eface-aebb-b654-c57c-91690087957f@foss.arm.com>
-From: Kristina Martsenko <kristina.martsenko@arm.com>
-Message-ID: <edbb3ad0-a38e-743f-f2e7-2241f2ed12ee@arm.com>
-Date: Thu, 11 Oct 2018 15:00:57 +0100
+From: Vladimir Murzin <vladimir.murzin@arm.com>
+Message-ID: <d0e36e1f-fa1a-f4ab-5a83-11e095801fef@arm.com>
+Date: Thu, 11 Oct 2018 15:23:05 +0100
 MIME-Version: 1.0
-In-Reply-To: <cd1eface-aebb-b654-c57c-91690087957f@foss.arm.com>
-Content-Type: text/plain; charset=windows-1252
+In-Reply-To: <20181005084754.20950-18-kristina.martsenko@arm.com>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ramana Radhakrishnan <ramana.radhakrishnan@foss.arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <Catalin.Marinas@arm.com>, Christoffer Dall <Christoffer.Dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Mark Rutland <Mark.Rutland@arm.com>, Suzuki Poulose <Suzuki.Poulose@arm.com>, Will Deacon <Will.Deacon@arm.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20181011140057.6p4P1ZAvQrsNsEGn_z7ka_TQ4xnIqu16YvmY6K7EJgo@z>
+To: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>
+Message-ID: <20181011142305.SnEb6D8N-tWlQd1RU7xK3pUvvFdPqmfQ1V26kX5J6zw@z>
 
-On 05/10/2018 10:01, Ramana Radhakrishnan wrote:
-> On 05/10/2018 09:47, Kristina Martsenko wrote:
->> Compile all functions with two ptrauth instructions: paciasp in the
->> prologue to sign the return address, and autiasp in the epilogue to
->> authenticate the return address. This should help protect the kernel
->> against attacks using return-oriented programming.
->>
->> CONFIG_ARM64_PTR_AUTH enables pointer auth for both userspace and the
->> kernel.
->>
->> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
->> Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
->> ---
->>   arch/arm64/Makefile | 4 ++++
->>   1 file changed, 4 insertions(+)
->>
->> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
->> index 106039d25e2f..dbcd43ea99d8 100644
->> --- a/arch/arm64/Makefile
->> +++ b/arch/arm64/Makefile
->> @@ -56,6 +56,10 @@ KBUILD_AFLAGS    += $(lseinstr) $(brokengasinst)
->>   KBUILD_CFLAGS    += $(call cc-option,-mabi=lp64)
->>   KBUILD_AFLAGS    += $(call cc-option,-mabi=lp64)
->>   +ifeq ($(CONFIG_ARM64_PTR_AUTH),y)
->> +KBUILD_CFLAGS    += -msign-return-address=all
-> 
-> Glad to see this being done and being proposed for mainline.
-> 
-> I can see why you would prefer this though have you guys experimented at
-> all with -msign-return-address=non-leaf as well ?
+Hi Kristina,
 
-I've tried non-leaf and it works too. I'd be fine with switching to it,
-I'm not sure which would be better for the kernel.
+On 05/10/18 09:47, Kristina Martsenko wrote:
+> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+> index 106039d25e2f..dbcd43ea99d8 100644
+> --- a/arch/arm64/Makefile
+> +++ b/arch/arm64/Makefile
+> @@ -56,6 +56,10 @@ KBUILD_AFLAGS	+= $(lseinstr) $(brokengasinst)
+>  KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
+>  KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
+>  
+> +ifeq ($(CONFIG_ARM64_PTR_AUTH),y)
+> +KBUILD_CFLAGS	+= -msign-return-address=all
+> +endif
 
-What kind of experiments did you have in mind? If I understand
-correctly, then compared to non-leaf, "all" additionally protects leaf
-functions that write to the stack. I don't know how many of those there
-are in the kernel (or will be in the future). I also don't know the
-additional performance impact of "all", as I don't think we have any
-v8.3 hardware to test on yet. There is a minor code size impact (0.36%
-on the current kernel), but I'm not sure how much that matters.
+Should not it be done via cc-option so old toolchains keep working [1]?
 
-> Orthogonally and just fair warning - the command lines for this are also
-> being revised to provide ROP and JOP protection using BTI from v8.5-a
-> during the GCC-9 timeframe but I suspect that's a different option.
+[1]
+$ aarch64-linux-gnu-gcc --version
+aarch64-linux-gnu-gcc (Linaro GCC 2014.11) 4.9.3 20141031 (prerelease)
+Copyright (C) 2014 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-Thanks. I expect it will be a separate Kconfig option to build the
-kernel with BTI and pointer auth, yes.
+$ aarch64-linux-gnu-gcc -msign-return-address=all
+aarch64-linux-gnu-gcc: error: unrecognized command line option '-msign-return-address=all'
+...
 
-> Reviewed-by: Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
-
-Thanks!
-
-Kristina
+Cheers
+Vladimir
