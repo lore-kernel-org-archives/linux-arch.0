@@ -1,49 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:2596 "EHLO mga18.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:35467 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725830AbeJLHRg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Oct 2018 03:17:36 -0400
-Subject: Re: [PATCH v2 4/7] arm64/modules: Add rlimit checking for arm64
- modules
+        id S1727170AbeJLHJm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Oct 2018 03:09:42 -0400
+From: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Subject: [PATCH v2 6/7] sparc/modules: Add rlimit for sparc modules
+Date: Thu, 11 Oct 2018 16:31:16 -0700
+Message-ID: <20181011233117.7883-7-rick.p.edgecombe@intel.com>
+In-Reply-To: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
 References: <20181011233117.7883-1-rick.p.edgecombe@intel.com>
- <20181011233117.7883-5-rick.p.edgecombe@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <25951d99-8ba7-5c9e-938e-baf92395f9e0@intel.com>
-Date: Thu, 11 Oct 2018 16:47:29 -0700
-MIME-Version: 1.0
-In-Reply-To: <20181011233117.7883-5-rick.p.edgecombe@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rick Edgecombe <rick.p.edgecombe@intel.com>, kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: kristen@linux.intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com
-Message-ID: <20181011234729._ngqDPcxXdE103ULNkwOHFlsNuNCHbs5gznwjp7a3lA@z>
+To: kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: kristen@linux.intel.com, dave.hansen@intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com, Rick Edgecombe <rick.p.edgecombe@intel.com>
+Message-ID: <20181011233116.xlulUt4hfMAybnQlDsf7g55FCPqvhc2vURSI-re_we0@z>
 
-On 10/11/2018 04:31 PM, Rick Edgecombe wrote:
-> +	if (check_inc_mod_rlimit(size))
-> +		return NULL;
-> +
->  	p = __vmalloc_node_range(size, MODULE_ALIGN, module_alloc_base,
->  				module_alloc_base + MODULES_VSIZE,
->  				gfp_mask, PAGE_KERNEL_EXEC, 0,
-> @@ -65,6 +68,8 @@ void *module_alloc(unsigned long size)
->  		return NULL;
->  	}
->  
-> +	update_mod_rlimit(p, size);
+This adds in the rlimit checking for the sparc module allocator.
 
-Is there a reason we couldn't just rename all of the existing per-arch
-module_alloc() calls to be called, say, "arch_module_alloc()", then put
-this new rlimit code in a generic helper that does:
+This has not been tested.
 
+Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+---
+ arch/sparc/kernel/module.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-	if (check_inc_mod_rlimit(size))
-		return NULL;
-
-	p = arch_module_alloc(...);
-
-	...
-
-	update_mod_rlimit(p, size);
+diff --git a/arch/sparc/kernel/module.c b/arch/sparc/kernel/module.c
+index df39580f398d..24854fdfa7c3 100644
+--- a/arch/sparc/kernel/module.c
++++ b/arch/sparc/kernel/module.c
+@@ -44,10 +44,15 @@ void *module_alloc(unsigned long size)
+ {
+ 	void *ret;
+ 
++	if (check_inc_mod_rlimit(size))
++		return NULL;
++
+ 	ret = module_map(size);
+ 	if (ret)
+ 		memset(ret, 0, size);
+ 
++	update_mod_rlimit(ret, size);
++
+ 	return ret;
+ }
+ 
+-- 
+2.17.1
