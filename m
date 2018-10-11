@@ -1,87 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:35918 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727148AbeJKHue (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:34 -0400
-Received: by mail-pf1-f195.google.com with SMTP id l81-v6so3457567pfg.3
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:57 -0700 (PDT)
+Received: from mail-pl1-f194.google.com ([209.85.214.194]:34190 "EHLO
+        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727056AbeJKHud (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:33 -0400
+Received: by mail-pl1-f194.google.com with SMTP id f18-v6so3311947plr.1
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:56 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 19/30] LSM: Tie enabling logic to presence in ordered list
-Date: Wed, 10 Oct 2018 17:18:35 -0700
-Message-ID: <20181011001846.30964-20-keescook@chromium.org>
+Subject: [PATCH security-next v5 28/30] Yama: Initialize as ordered LSM
+Date: Wed, 10 Oct 2018 17:18:44 -0700
+Message-ID: <20181011001846.30964-29-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001835.7bgqx1w9a9n9TRG_SkJZrBzcFEBjBgSLGLA8uX-LMWE@z>
+Message-ID: <20181011001844.VGCYn5JtfTNayWA-LONG5tekewSsUhRRIFoNlNPYJf8@z>
 
-Until now, any LSM without an enable storage variable was considered
-enabled. This inverts the logic and sets defaults to true only if the
-LSM gets added to the ordered initialization list. (And an exception
-continues for the major LSMs until they are integrated into the ordered
-initialization in a later patch.)
+This converts Yama from being a direct "minor" LSM into an ordered LSM.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- include/linux/lsm_hooks.h |  2 +-
- security/security.c       | 14 +++++++++++---
- 2 files changed, 12 insertions(+), 4 deletions(-)
+ include/linux/lsm_hooks.h | 5 -----
+ security/Kconfig          | 2 +-
+ security/security.c       | 1 -
+ security/yama/yama_lsm.c  | 8 +++++++-
+ 4 files changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 9ecb623fb39d..b6b05d351eb4 100644
+index e6893ff9ca2b..833ec0f03795 100644
 --- a/include/linux/lsm_hooks.h
 +++ b/include/linux/lsm_hooks.h
-@@ -2044,7 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- struct lsm_info {
- 	const char *name;	/* Required. */
- 	unsigned long flags;	/* Optional: flags describing LSM */
--	int *enabled;		/* Optional: NULL means enabled. */
-+	int *enabled;		/* Optional: controlled by CONFIG_LSM */
- 	int (*init)(void);	/* Required. */
- };
+@@ -2087,10 +2087,5 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
+ #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
  
+ extern void __init capability_add_hooks(void);
+-#ifdef CONFIG_SECURITY_YAMA
+-extern void __init yama_add_hooks(void);
+-#else
+-static inline void __init yama_add_hooks(void) { }
+-#endif
+ 
+ #endif /* ! __LINUX_LSM_HOOKS_H */
+diff --git a/security/Kconfig b/security/Kconfig
+index 550bd7032ab2..f2a04f922ede 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -241,7 +241,7 @@ source security/integrity/Kconfig
+ 
+ config LSM
+ 	string "Ordered list of enabled LSMs"
+-	default "loadpin,integrity,selinux,smack,tomoyo,apparmor"
++	default "yama,loadpin,integrity,selinux,smack,tomoyo,apparmor"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+ 	  Any LSMs left off this list will be ignored. This can be
 diff --git a/security/security.c b/security/security.c
-index 70cb2d0004e9..f3777ed4ca80 100644
+index 6ad1262aa6ab..2eb8afdd945d 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -63,10 +63,10 @@ static __initdata bool debug;
+@@ -264,7 +264,6 @@ int __init security_init(void)
+ 	 * Load minor LSMs, with the capability module always first.
+ 	 */
+ 	capability_add_hooks();
+-	yama_add_hooks();
  
- static bool __init is_enabled(struct lsm_info *lsm)
+ 	/* Load LSMs in specified order. */
+ 	ordered_lsm_init();
+diff --git a/security/yama/yama_lsm.c b/security/yama/yama_lsm.c
+index ffda91a4a1aa..eb1da1303d2e 100644
+--- a/security/yama/yama_lsm.c
++++ b/security/yama/yama_lsm.c
+@@ -477,9 +477,15 @@ static void __init yama_init_sysctl(void)
+ static inline void yama_init_sysctl(void) { }
+ #endif /* CONFIG_SYSCTL */
+ 
+-void __init yama_add_hooks(void)
++static int __init yama_init(void)
  {
--	if (!lsm->enabled || *lsm->enabled)
--		return true;
-+	if (!lsm->enabled)
-+		return false;
- 
--	return false;
-+	return *lsm->enabled;
+ 	pr_info("Yama: becoming mindful.\n");
+ 	security_add_hooks(yama_hooks, ARRAY_SIZE(yama_hooks), "yama");
+ 	yama_init_sysctl();
++	return 0;
  }
- 
- /* Mark an LSM's enabled flag. */
-@@ -117,7 +117,11 @@ static void __init append_ordered_lsm(struct lsm_info *lsm, const char *from)
- 	if (WARN(last_lsm == LSM_COUNT, "%s: out of LSM slots!?\n", from))
- 		return;
- 
-+	/* Enable this LSM, if it is not already set. */
-+	if (!lsm->enabled)
-+		lsm->enabled = &lsm_enabled_true;
- 	ordered_lsms[last_lsm++] = lsm;
 +
- 	init_debug("%s ordering: %s (%sabled)\n", from, lsm->name,
- 		   is_enabled(lsm) ? "en" : "dis");
- }
-@@ -210,6 +214,10 @@ static void __init major_lsm_init(void)
- 		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
- 			continue;
- 
-+		/* Enable this LSM, if it is not already set. */
-+		if (!lsm->enabled)
-+			lsm->enabled = &lsm_enabled_true;
-+
- 		maybe_initialize_lsm(lsm);
- 	}
- }
++DEFINE_LSM(yama) = {
++	.name = "yama",
++	.init = yama_init,
++};
 -- 
 2.17.1
