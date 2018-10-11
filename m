@@ -1,135 +1,89 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v4 3/9] x86/cet/ibt: Add IBT legacy code bitmap
- allocation function
-Date: Wed, 10 Oct 2018 08:56:03 -0700
-Message-ID: <f6dcfb3c548f49cd096088e4366e44f57ec5964e.camel@intel.com>
-References: <20180921150553.21016-1-yu-cheng.yu@intel.com>
-         <20180921150553.21016-4-yu-cheng.yu@intel.com>
-         <20181003195702.GF32759@asgard.redhat.com>
-         <fc2f98ab46240c0498bdf4d7458b4373c1f02bf8.camel@intel.com>
-         <5BF3AE8F-CC2A-4160-9FF6-FEA171A76371@amacapital.net>
-         <aa5a061c159471f410d677af6a609793906cece1.camel@intel.com>
-         <CALCETrXVdYsJsVy=QWruDYdRc6wb44b=0J3OK3zjR_fT1fQH7w@mail.gmail.com>
-         <20181005172622.GD19360@asgard.redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH security-next v5 03/30] LSM: Rename .security_initcall section to .lsm_info
+Date: Wed, 10 Oct 2018 17:18:19 -0700
+Message-ID: <20181011001846.30964-4-keescook@chromium.org>
+References: <20181011001846.30964-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181005172622.GD19360@asgard.redhat.com>
+In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugene Syromiatnikov <esyr@redhat.com>, Andy Lutomirski <luto@amacapital.net>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H. J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@red>
+To: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2018-10-05 at 10:26 -0700, Eugene Syromiatnikov wrote:
-> On Fri, Oct 05, 2018 at 10:07:46AM -0700, Andy Lutomirski wrote:
-> > On Fri, Oct 5, 2018 at 10:03 AM Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > > 
-> > > On Fri, 2018-10-05 at 09:28 -0700, Andy Lutomirski wrote:
-> > > > > On Oct 5, 2018, at 9:13 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
-> > > > > 
-> > > > > > On Wed, 2018-10-03 at 21:57 +0200, Eugene Syromiatnikov wrote:
-> > > > > > > On Fri, Sep 21, 2018 at 08:05:47AM -0700, Yu-cheng Yu wrote:
-> > > > > > > Indirect branch tracking provides an optional legacy code bitmap
-> > > > > > > that indicates locations of non-IBT compatible code.  When set,
-> > > > > > > each bit in the bitmap represents a page in the linear address is
-> > > > > > > legacy code.
-> > > > > > > 
-> > > > > > > We allocate the bitmap only when the application requests it.
-> > > > > > > Most applications do not need the bitmap.
-> > > > > > > 
-> > > > > > > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > > > > > > ---
-> > > > > > > arch/x86/kernel/cet.c | 45
-> > > > > > > +++++++++++++++++++++++++++++++++++++++++++
-> > > > > > > 1 file changed, 45 insertions(+)
-> > > > > > > 
-> > > > > > > diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-> > > > > > > index 6adfe795d692..a65d9745af08 100644
-> > > > > > > --- a/arch/x86/kernel/cet.c
-> > > > > > > +++ b/arch/x86/kernel/cet.c
-> > > > > > > @@ -314,3 +314,48 @@ void cet_disable_ibt(void)
-> > > > > > >    wrmsrl(MSR_IA32_U_CET, r);
-> > > > > > >    current->thread.cet.ibt_enabled = 0;
-> > > > > > > }
-> > > > > > > +
-> > > > > > > +int cet_setup_ibt_bitmap(void)
-> > > > > > > +{
-> > > > > > > +    u64 r;
-> > > > > > > +    unsigned long bitmap;
-> > > > > > > +    unsigned long size;
-> > > > > > > +
-> > > > > > > +    if (!cpu_feature_enabled(X86_FEATURE_IBT))
-> > > > > > > +        return -EOPNOTSUPP;
-> > > > > > > +
-> > > > > > > +    if (!current->thread.cet.ibt_bitmap_addr) {
-> > > > > > > +        /*
-> > > > > > > +         * Calculate size and put in thread header.
-> > > > > > > +         * may_expand_vm() needs this information.
-> > > > > > > +         */
-> > > > > > > +        size = TASK_SIZE / PAGE_SIZE / BITS_PER_BYTE;
-> > > > > > 
-> > > > > > TASK_SIZE_MAX is likely needed here, as an application can easily
-> > > > > > switch
-> > > > > > between long an 32-bit protected mode.  And then the case of a CPU
-> > > > > > that
-> > > > > > doesn't support 5LPT.
-> > > > > 
-> > > > > If we had calculated bitmap size from TASK_SIZE_MAX, all 32-bit apps
-> > > > > would
-> > > > > have
-> > > > > failed the allocation for bitmap size > TASK_SIZE.  Please see values
-> > > > > below,
-> > > > > which is printed from the current code.
-> > > > > 
-> > > > > Yu-cheng
-> > > > > 
-> > > > > 
-> > > > > x64:
-> > > > > TASK_SIZE_MAX    = 0000 7fff ffff f000
-> > > > > TASK_SIZE    = 0000 7fff ffff f000
-> > > > > bitmap size    = 0000 0000 ffff ffff
-> > > > > 
-> > > > > x32:
-> > > > > TASK_SIZE_MAX    = 0000 7fff ffff f000
-> > > > > TASK_SIZE    = 0000 0000 ffff e000
-> > > > > bitmap size    = 0000 0000 0001 ffff
-> > > > > 
-> > > > 
-> > > > I haven’t followed all the details here, but I have a general policy of
-> > > > objecting to any new use of TASK_SIZE. If you really really need to
-> > > > depend on
-> > > > 32-bitness in new code, please figure out what exactly you mean by “32-
-> > > > bit”
-> > > > and use an explicit check.
-> > > 
-> > > The explicit check would be:
-> > > 
-> > > test_thread_flag(TIF_ADDR32) ? IA32_PAGE_OFFSET : TASK_SIZE_MAX
-> > > 
-> > > which is the same as TASK_SIZE.
-> > 
-> > But this is only ever done in response to a syscall, right?  So
-> > wouldn't in_compat_syscall() be the right check?
-> > 
-> > Also, this whole thing makes me extremely nervous.  The MSR only
-> > contains the start address, not the size, right?  So what prevents
-> > some goof from causing the CPU to read way past the end of the bitmap
-> > if the bitmap is short because the kernel thought it was supposed to
-> > be 32-bit?
-> 
-> That's what I've mentioned initially: every syscall made with int 0x80
-> is interpreted as compat, even if it was made from long mode.
-> 
-> > I'm inclined to suggest something awful-ish: always allocate the
-> > bitmap as though it's for a 64-bit process, and just let it be at a
-> > high address.  And add a syscall or arch_prctl() to manipulate it for
-> > the benefit of 32-bit programs that can't address it directly.
-> 
-> That's likely the only way to go.
+In preparation for switching from initcall to just a regular set of
+pointers in a section, rename the internal section name.
 
-This bitmap is needed only when the app does dlopen() a non-IBT .so file.  Most
-applications do not need it.  Can't we let dlopen mmap() the bitmap when needed
-and pass it to the kernel?
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
+Reviewed-by: James Morris <james.morris@microsoft.com>
+Reviewed-by: John Johansen <john.johansen@canonical.com>
+---
+ include/asm-generic/vmlinux.lds.h | 10 +++++-----
+ include/linux/init.h              |  4 ++--
+ security/security.c               |  4 ++--
+ 3 files changed, 9 insertions(+), 9 deletions(-)
 
-Yu-cheng
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 934a45395547..5079a969e612 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -787,14 +787,14 @@
+ 		__con_initcall_end = .;
+ 
+ #define SECURITY_INITCALL						\
+-		__security_initcall_start = .;				\
+-		KEEP(*(.security_initcall.init))			\
+-		__security_initcall_end = .;
++		__start_lsm_info = .;					\
++		KEEP(*(.lsm_info.init))					\
++		__end_lsm_info = .;
+ 
+ /* Older linker script style for security init. */
+ #define SECURITY_INIT							\
+-	.security_initcall.init : AT(ADDR(.security_initcall.init) - LOAD_OFFSET) { \
+-		SECURITY_INITCALL					\
++	.lsm_info.init : AT(ADDR(.lsm_info.init) - LOAD_OFFSET) {	\
++		LSM_INFO						\
+ 	}
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 2538d176dd1f..77636539e77c 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -133,7 +133,7 @@ static inline initcall_t initcall_from_entry(initcall_entry_t *entry)
+ #endif
+ 
+ extern initcall_entry_t __con_initcall_start[], __con_initcall_end[];
+-extern initcall_entry_t __security_initcall_start[], __security_initcall_end[];
++extern initcall_entry_t __start_lsm_info[], __end_lsm_info[];
+ 
+ /* Used for contructor calls. */
+ typedef void (*ctor_fn_t)(void);
+@@ -236,7 +236,7 @@ extern bool initcall_debug;
+ 	static exitcall_t __exitcall_##fn __exit_call = fn
+ 
+ #define console_initcall(fn)	___define_initcall(fn,, .con_initcall)
+-#define security_initcall(fn)	___define_initcall(fn,, .security_initcall)
++#define security_initcall(fn)	___define_initcall(fn,, .lsm_info)
+ 
+ struct obs_kernel_param {
+ 	const char *str;
+diff --git a/security/security.c b/security/security.c
+index 4cbcf244a965..892fe6b691cf 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -51,9 +51,9 @@ static void __init do_security_initcalls(void)
+ 	initcall_t call;
+ 	initcall_entry_t *ce;
+ 
+-	ce = __security_initcall_start;
++	ce = __start_lsm_info;
+ 	trace_initcall_level("security");
+-	while (ce < __security_initcall_end) {
++	while (ce < __end_lsm_info) {
+ 		call = initcall_from_entry(ce);
+ 		trace_initcall_start(call);
+ 		ret = call();
+-- 
+2.17.1
