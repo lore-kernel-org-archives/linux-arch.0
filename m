@@ -1,65 +1,61 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v5 01/17] arm64: add pointer authentication register bits
-Date: Thu, 11 Oct 2018 17:28:14 +0100
-Message-ID: <20181011162814.GC17000@arm.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-2-kristina.martsenko@arm.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 01/27] x86/cpufeatures: Add CPUIDs for Control Flow
+ Enforcement Technology (CET)
+Date: Thu, 11 Oct 2018 18:43:29 +0200
+Message-ID: <20181011164329.GF25435@zn.tnic>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+ <20181011151523.27101-2-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20181005084754.20950-2-kristina.martsenko@arm.com>
+In-Reply-To: <20181011151523.27101-2-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kristina Martsenko <kristina.martsenko@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 05, 2018 at 09:47:38AM +0100, Kristina Martsenko wrote:
-> From: Mark Rutland <mark.rutland@arm.com>
+On Thu, Oct 11, 2018 at 08:14:57AM -0700, Yu-cheng Yu wrote:
+> Add CPUIDs for Control Flow Enforcement Technology (CET).
+
+This is not "CPUIDs" but feature flags. Fix the subject too pls.
+
+> CPUID.(EAX=7,ECX=0):ECX[bit 7] Shadow stack
+> CPUID.(EAX=7,ECX=0):EDX[bit 20] Indirect branch tracking
 > 
-> The ARMv8.3 pointer authentication extension adds:
-> 
-> * New fields in ID_AA64ISAR1 to report the presence of pointer
->   authentication functionality.
-> 
-> * New control bits in SCTLR_ELx to enable this functionality.
-> 
-> * New system registers to hold the keys necessary for this
->   functionality.
-> 
-> * A new ESR_ELx.EC code used when the new instructions are affected by
->   configurable traps
-> 
-> This patch adds the relevant definitions to <asm/sysreg.h> and
-> <asm/esr.h> for these, to be used by subsequent patches.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Marc Zyngier <marc.zyngier@arm.com>
-> Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 > ---
->  arch/arm64/include/asm/esr.h    |  3 ++-
->  arch/arm64/include/asm/sysreg.h | 30 ++++++++++++++++++++++++++++++
->  2 files changed, 32 insertions(+), 1 deletion(-)
+>  arch/x86/include/asm/cpufeatures.h | 2 ++
+>  1 file changed, 2 insertions(+)
 > 
-> diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-> index ce70c3ffb993..022785162281 100644
-> --- a/arch/arm64/include/asm/esr.h
-> +++ b/arch/arm64/include/asm/esr.h
-> @@ -30,7 +30,8 @@
->  #define ESR_ELx_EC_CP14_LS	(0x06)
->  #define ESR_ELx_EC_FP_ASIMD	(0x07)
->  #define ESR_ELx_EC_CP10_ID	(0x08)
-> -/* Unallocated EC: 0x09 - 0x0B */
-> +#define ESR_ELx_EC_PAC		(0x09)
+> diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+> index 89a048c2faec..142b15da06fd 100644
+> --- a/arch/x86/include/asm/cpufeatures.h
+> +++ b/arch/x86/include/asm/cpufeatures.h
+> @@ -321,6 +321,7 @@
+>  #define X86_FEATURE_PKU			(16*32+ 3) /* Protection Keys for Userspace */
+>  #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
+>  #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
+> +#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
+>  #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
+>  #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
+>  #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
+> @@ -341,6 +342,7 @@
+>  #define X86_FEATURE_AVX512_4VNNIW	(18*32+ 2) /* AVX-512 Neural Network Instructions */
+>  #define X86_FEATURE_AVX512_4FMAPS	(18*32+ 3) /* AVX-512 Multiply Accumulation Single precision */
+>  #define X86_FEATURE_PCONFIG		(18*32+18) /* Intel PCONFIG */
+> +#define X86_FEATURE_IBT			(18*32+20) /* Indirect Branch Tracking */
+>  #define X86_FEATURE_SPEC_CTRL		(18*32+26) /* "" Speculation Control (IBRS + IBPB) */
+>  #define X86_FEATURE_INTEL_STIBP		(18*32+27) /* "" Single Thread Indirect Branch Predictors */
+>  #define X86_FEATURE_FLUSH_L1D		(18*32+28) /* Flush L1D cache */
+> -- 
 
-Really minor nit: but shouldn't this be ESR_EL2_EC_PAC, since this trap
-can't occur at EL1 afaict?
+With that addressed:
 
-Rest of the patch looks good:
+Reviewed-by: Borislav Petkov <bp@suse.de>
 
-Reviewed-by: Will Deacon <will.deacon@arm.com>
+-- 
+Regards/Gruss,
+    Boris.
 
-Will
+Good mailing practices for 400: avoid top-posting and trim the reply.
