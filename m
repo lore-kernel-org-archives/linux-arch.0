@@ -1,92 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga17.intel.com ([192.55.52.151]:21581 "EHLO mga17.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728921AbeJKWto (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727863AbeJKWto (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 11 Oct 2018 18:49:44 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v5 07/11] x86/cet/ibt: Add ENDBR to op-code-map
-Date: Thu, 11 Oct 2018 08:16:50 -0700
-Message-ID: <20181011151654.27221-8-yu-cheng.yu@intel.com>
+Subject: [PATCH v5 08/11] x86: Insert endbr32/endbr64 to vDSO
+Date: Thu, 11 Oct 2018 08:16:51 -0700
+Message-ID: <20181011151654.27221-9-yu-cheng.yu@intel.com>
 In-Reply-To: <20181011151654.27221-1-yu-cheng.yu@intel.com>
 References: <20181011151654.27221-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20181011151650._EibXoXQY9U8Bp-TwH239PBapcLxqoYt6t7QekhpKZo@z>
+Message-ID: <20181011151651.YS5cfx4D5kRWLtQLHL_-Zo1gPzDzFaFMe43esKbK6wc@z>
 
-Add control transfer terminating instructions:
+From: "H.J. Lu" <hjl.tools@gmail.com>
 
-ENDBR64/ENDBR32:
-    Mark a valid 64/32-bit control transfer endpoint.
+When Intel indirect branch tracking is enabled, functions in vDSO which
+may be called indirectly must have endbr32 or endbr64 as the first
+instruction.  Compiler must support -fcf-protection=branch so that it
+can be used to compile vDSO.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 ---
- arch/x86/lib/x86-opcode-map.txt               | 13 +++++++++++--
- tools/objtool/arch/x86/lib/x86-opcode-map.txt | 13 +++++++++++--
- 2 files changed, 22 insertions(+), 4 deletions(-)
+ arch/x86/entry/vdso/.gitignore        |  4 ++++
+ arch/x86/entry/vdso/Makefile          | 12 +++++++++++-
+ arch/x86/entry/vdso/vdso-layout.lds.S |  1 +
+ 3 files changed, 16 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/lib/x86-opcode-map.txt b/arch/x86/lib/x86-opcode-map.txt
-index c5e825d44766..fbc53481bc59 100644
---- a/arch/x86/lib/x86-opcode-map.txt
-+++ b/arch/x86/lib/x86-opcode-map.txt
-@@ -620,7 +620,16 @@ ea: SAVEPREVSSP (f3)
- # Skip 0xeb-0xff
- EndTable
+diff --git a/arch/x86/entry/vdso/.gitignore b/arch/x86/entry/vdso/.gitignore
+index aae8ffdd5880..552941fdfae0 100644
+--- a/arch/x86/entry/vdso/.gitignore
++++ b/arch/x86/entry/vdso/.gitignore
+@@ -5,3 +5,7 @@ vdso32-sysenter-syms.lds
+ vdso32-int80-syms.lds
+ vdso-image-*.c
+ vdso2c
++vclock_gettime.S
++vgetcpu.S
++vclock_gettime.asm
++vgetcpu.asm
+diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
+index 141d415a8c80..0b1b464e7ae7 100644
+--- a/arch/x86/entry/vdso/Makefile
++++ b/arch/x86/entry/vdso/Makefile
+@@ -108,13 +108,17 @@ vobjx32s := $(foreach F,$(vobjx32s-y),$(obj)/$F)
  
--Table: 3-byte opcode 2 (0x0f 0x38)
-+Table: 3-byte opcode 2 (0x0f 0x1e)
-+Referrer:
-+AVXcode:
-+# Skip 0x00-0xf9
-+fa: ENDBR64 (f3)
-+fb: ENDBR32 (f3)
-+#skip 0xfc-0xff
-+EndTable
+ # Convert 64bit object file to x32 for x32 vDSO.
+ quiet_cmd_x32 = X32     $@
+-      cmd_x32 = $(OBJCOPY) -O elf32-x86-64 $< $@
++      cmd_x32 = $(OBJCOPY) -R .note.gnu.property -O elf32-x86-64 $< $@
+ 
+ $(obj)/%-x32.o: $(obj)/%.o FORCE
+ 	$(call if_changed,x32)
+ 
+ targets += vdsox32.lds $(vobjx32s-y)
+ 
++ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
++    $(obj)/vclock_gettime.o $(obj)/vgetcpu.o $(obj)/vdso32/vclock_gettime.o: KBUILD_CFLAGS += -fcf-protection=branch
++endif
 +
-+Table: 3-byte opcode 3 (0x0f 0x38)
- Referrer: 3-byte escape 1
- AVXcode: 2
- # 0x0f 0x38 0x00-0x0f
-@@ -804,7 +813,7 @@ f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq
- f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
- EndTable
+ $(obj)/%.so: OBJCOPYFLAGS := -S
+ $(obj)/%.so: $(obj)/%.so.dbg
+ 	$(call if_changed,objcopy)
+@@ -172,6 +176,12 @@ quiet_cmd_vdso = VDSO    $@
  
--Table: 3-byte opcode 3 (0x0f 0x3a)
-+Table: 3-byte opcode 4 (0x0f 0x3a)
- Referrer: 3-byte escape 2
- AVXcode: 3
- # 0x0f 0x3a 0x00-0xff
-diff --git a/tools/objtool/arch/x86/lib/x86-opcode-map.txt b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-index c5e825d44766..fbc53481bc59 100644
---- a/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-+++ b/tools/objtool/arch/x86/lib/x86-opcode-map.txt
-@@ -620,7 +620,16 @@ ea: SAVEPREVSSP (f3)
- # Skip 0xeb-0xff
- EndTable
+ VDSO_LDFLAGS = -shared $(call ld-option, --hash-style=both) \
+ 	$(call ld-option, --build-id) -Bsymbolic
++ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
++  VDSO_LDFLAGS += $(call ldoption, -z$(comma)ibt)
++endif
++ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++  VDSO_LDFLAGS += $(call ldoption, -z$(comma)shstk)
++endif
+ GCOV_PROFILE := n
  
--Table: 3-byte opcode 2 (0x0f 0x38)
-+Table: 3-byte opcode 2 (0x0f 0x1e)
-+Referrer:
-+AVXcode:
-+# Skip 0x00-0xf9
-+fa: ENDBR64 (f3)
-+fb: ENDBR32 (f3)
-+#skip 0xfc-0xff
-+EndTable
-+
-+Table: 3-byte opcode 3 (0x0f 0x38)
- Referrer: 3-byte escape 1
- AVXcode: 2
- # 0x0f 0x38 0x00-0x0f
-@@ -804,7 +813,7 @@ f6: ADCX Gy,Ey (66) | ADOX Gy,Ey (F3) | MULX By,Gy,rDX,Ey (F2),(v) | WRSS Pq,Qq
- f7: BEXTR Gy,Ey,By (v) | SHLX Gy,Ey,By (66),(v) | SARX Gy,Ey,By (F3),(v) | SHRX Gy,Ey,By (F2),(v)
- EndTable
+ #
+diff --git a/arch/x86/entry/vdso/vdso-layout.lds.S b/arch/x86/entry/vdso/vdso-layout.lds.S
+index acfd5ba7d943..cabaeedfed78 100644
+--- a/arch/x86/entry/vdso/vdso-layout.lds.S
++++ b/arch/x86/entry/vdso/vdso-layout.lds.S
+@@ -74,6 +74,7 @@ SECTIONS
+ 	.fake_shstrtab	: { *(.fake_shstrtab) }		:text
  
--Table: 3-byte opcode 3 (0x0f 0x3a)
-+Table: 3-byte opcode 4 (0x0f 0x3a)
- Referrer: 3-byte escape 2
- AVXcode: 3
- # 0x0f 0x3a 0x00-0xff
+ 
++	.note.gnu.property : { *(.note.gnu.property) }	:text	:note
+ 	.note		: { *(.note.*) }		:text	:note
+ 
+ 	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
 -- 
 2.17.1
