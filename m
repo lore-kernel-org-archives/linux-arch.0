@@ -1,94 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:33314 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727151AbeJKHnj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:43:39 -0400
-Received: by mail-pf1-f195.google.com with SMTP id 78-v6so1060932pfq.0
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:19:04 -0700 (PDT)
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:43235 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727233AbeJKHnl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:43:41 -0400
+Received: by mail-pg1-f194.google.com with SMTP id 80-v6so3263761pgh.10
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:19:06 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 09/30] LSM: Provide init debugging infrastructure
-Date: Wed, 10 Oct 2018 17:18:25 -0700
-Message-ID: <20181011001846.30964-10-keescook@chromium.org>
+Subject: [PATCH security-next v5 12/30] LSM: Provide separate ordered initialization
+Date: Wed, 10 Oct 2018 17:18:28 -0700
+Message-ID: <20181011001846.30964-13-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001825.z73vkYNi2Xh9PsQ-1CEqb7rTKr4jKuFYz7qfIQbcyC4@z>
+Message-ID: <20181011001828.31wzfmP7VDbPYPpctWlgJ83XHiSWo3vylOfxhC0K3Pc@z>
 
-Booting with "lsm.debug" will report future details on how LSM ordering
-decisions are being made.
+This provides a place for ordered LSMs to be initialized, separate from
+the "major" LSMs. This is mainly a copy/paste from major_lsm_init() to
+ordered_lsm_init(), but it will change drastically in later patches.
+
+What is not obvious in the patch is that this change moves the integrity
+LSM from major_lsm_init() into ordered_lsm_init(), since it is not marked
+with the LSM_FLAG_LEGACY_MAJOR. As it is the only LSM in the "ordered"
+list, there is no reordering yet created.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 Reviewed-by: John Johansen <john.johansen@canonical.com>
-Reviewed-by: James Morris <james.morris@microsoft.com>
 ---
- .../admin-guide/kernel-parameters.txt          |  2 ++
- security/security.c                            | 18 ++++++++++++++++++
- 2 files changed, 20 insertions(+)
+ security/security.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 9871e649ffef..32d323ee9218 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2274,6 +2274,8 @@
- 	ltpc=		[NET]
- 			Format: <io>,<irq>,<dma>
- 
-+	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
-+
- 	machvec=	[IA-64] Force the use of a particular machine-vector
- 			(machvec) in a generic kernel.
- 			Example: machvec=hpzx1_swiotlb
 diff --git a/security/security.c b/security/security.c
-index e74f46fba591..395f804f6a91 100644
+index 2055af907eba..ebbbb672ced5 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -12,6 +12,8 @@
-  *	(at your option) any later version.
-  */
+@@ -52,12 +52,30 @@ static __initdata bool debug;
+ 			pr_info(__VA_ARGS__);			\
+ 	} while (0)
  
-+#define pr_fmt(fmt) "LSM: " fmt
++static void __init ordered_lsm_init(void)
++{
++	struct lsm_info *lsm;
++	int ret;
 +
- #include <linux/bpf.h>
- #include <linux/capability.h>
- #include <linux/dcache.h>
-@@ -43,11 +45,19 @@ char *lsm_names;
- static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
- 	CONFIG_DEFAULT_SECURITY;
- 
-+static __initdata bool debug;
-+#define init_debug(...)						\
-+	do {							\
-+		if (debug)					\
-+			pr_info(__VA_ARGS__);			\
-+	} while (0)
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) != 0)
++			continue;
++
++		init_debug("initializing %s\n", lsm->name);
++		ret = lsm->init();
++		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
++	}
++}
 +
  static void __init major_lsm_init(void)
  {
  	struct lsm_info *lsm;
+ 	int ret;
  
  	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+		init_debug("initializing %s\n", lsm->name);
- 		lsm->init();
- 	}
- }
-@@ -91,6 +101,14 @@ static int __init choose_lsm(char *str)
- }
- __setup("security=", choose_lsm);
- 
-+/* Enable LSM order debugging. */
-+static int __init enable_debug(char *str)
-+{
-+	debug = true;
-+	return 1;
-+}
-+__setup("lsm.debug", enable_debug);
++		if ((lsm->flags & LSM_FLAG_LEGACY_MAJOR) == 0)
++			continue;
 +
- static bool match_last_lsm(const char *list, const char *lsm)
- {
- 	const char *last;
+ 		init_debug("initializing %s\n", lsm->name);
+ 		ret = lsm->init();
+ 		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
+@@ -87,6 +105,9 @@ int __init security_init(void)
+ 	yama_add_hooks();
+ 	loadpin_add_hooks();
+ 
++	/* Load LSMs in specified order. */
++	ordered_lsm_init();
++
+ 	/*
+ 	 * Load all the remaining security modules.
+ 	 */
 -- 
 2.17.1
