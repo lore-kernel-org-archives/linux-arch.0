@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 14/30] LSM: Plumb visibility into optional "enabled" state
-Date: Wed, 10 Oct 2018 17:18:30 -0700
-Message-ID: <20181011001846.30964-15-keescook@chromium.org>
+Subject: [PATCH security-next v5 10/30] LSM: Don't ignore initialization failures
+Date: Wed, 10 Oct 2018 17:18:26 -0700
+Message-ID: <20181011001846.30964-11-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
@@ -10,66 +10,33 @@ To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for lifting the "is this LSM enabled?" logic out of the
-individual LSMs, pass in any special enabled state tracking (as needed
-for SELinux, AppArmor, and LoadPin). This should be an "int" to include
-handling any future cases where "enabled" is exposed via sysctl which
-has no "bool" type.
+LSM initialization failures have traditionally been ignored. We should
+at least WARN when something goes wrong.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 Reviewed-by: John Johansen <john.johansen@canonical.com>
 ---
- include/linux/lsm_hooks.h | 1 +
- security/apparmor/lsm.c   | 5 +++--
- security/selinux/hooks.c  | 1 +
- 3 files changed, 5 insertions(+), 2 deletions(-)
+ security/security.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 531e219a49b9..6ec5a0266f21 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2044,6 +2044,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- struct lsm_info {
- 	const char *name;	/* Required. */
- 	unsigned long flags;	/* Optional: flags describing LSM */
-+	int *enabled;		/* Optional: NULL means enabled. */
- 	int (*init)(void);	/* Required. */
- };
- 
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index 768cb539fb6c..6ace45704cb6 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1303,8 +1303,8 @@ bool aa_g_paranoid_load = true;
- module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
- 
- /* Boot time disable flag */
--static bool apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
--module_param_named(enabled, apparmor_enabled, bool, S_IRUGO);
-+static int apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
-+module_param_named(enabled, apparmor_enabled, int, 0444);
- 
- static int __init apparmor_enabled_setup(char *str)
+diff --git a/security/security.c b/security/security.c
+index 395f804f6a91..2055af907eba 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -55,10 +55,12 @@ static __initdata bool debug;
+ static void __init major_lsm_init(void)
  {
-@@ -1609,5 +1609,6 @@ static int __init apparmor_init(void)
- DEFINE_LSM(apparmor) = {
- 	.name = "apparmor",
- 	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.enabled = &apparmor_enabled,
- 	.init = apparmor_init,
- };
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index 020886895819..e8da99550b67 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -7205,6 +7205,7 @@ void selinux_complete_init(void)
- DEFINE_LSM(selinux) = {
- 	.name = "selinux",
- 	.flags = LSM_FLAG_LEGACY_MAJOR,
-+	.enabled = &selinux_enabled,
- 	.init = selinux_init,
- };
+ 	struct lsm_info *lsm;
++	int ret;
+ 
+ 	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+ 		init_debug("initializing %s\n", lsm->name);
+-		lsm->init();
++		ret = lsm->init();
++		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
+ 	}
+ }
  
 -- 
 2.17.1
