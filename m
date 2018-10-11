@@ -1,82 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:21581 "EHLO mga17.intel.com"
+Received: from mga18.intel.com ([134.134.136.126]:64714 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727400AbeJKWtn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Oct 2018 18:49:43 -0400
+        id S1728528AbeJKWtV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Oct 2018 18:49:21 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v5 04/11] mm/mmap: Add IBT bitmap size to address space limit check
-Date: Thu, 11 Oct 2018 08:16:47 -0700
-Message-ID: <20181011151654.27221-5-yu-cheng.yu@intel.com>
-In-Reply-To: <20181011151654.27221-1-yu-cheng.yu@intel.com>
-References: <20181011151654.27221-1-yu-cheng.yu@intel.com>
+Subject: [PATCH v5 00/11] Control Flow Enforcement: Branch Tracking, PTRACE
+Date: Thu, 11 Oct 2018 08:16:43 -0700
+Message-ID: <20181011151654.27221-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20181011151647.6Y5grhXnN5dZw53aOGmat99fXSXVyddNjuM0-BZkg-w@z>
+Message-ID: <20181011151643.F29JM07Yj5IWvwG6LdyWKanON4wbiKHAhoLlRDfRfsc@z>
 
-The indirect branch tracking legacy bitmap takes a large address
-space.  This causes may_expand_vm() failure on the address limit
-check.  For a IBT-enabled task, add the bitmap size to the
-address limit.
+The previous version of CET Branch Tracking/PTRACE patches is at the following
+link:
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/include/asm/mmu_context.h |  7 +++++++
- mm/mmap.c                          | 19 ++++++++++++++++++-
- 2 files changed, 25 insertions(+), 1 deletion(-)
+  https://lkml.org/lkml/2018/9/21/773
 
-diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-index 8da7c999b7ee..9c726171e5c5 100644
---- a/arch/x86/include/asm/mmu_context.h
-+++ b/arch/x86/include/asm/mmu_context.h
-@@ -341,4 +341,11 @@ static inline unsigned long __get_current_cr3_fast(void)
- 	return cr3;
- }
- 
-+#ifdef CONFIG_X86_INTEL_BRANCH_TRACKING_USER
-+static inline unsigned long arch_as_limit(void)
-+{
-+	return current->thread.cet.ibt_bitmap_size;
-+}
-+#endif
-+
- #endif /* _ASM_X86_MMU_CONTEXT_H */
-diff --git a/mm/mmap.c b/mm/mmap.c
-index fa581ced3f56..62b3045af005 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -3231,13 +3231,30 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
- 	return NULL;
- }
- 
-+#ifndef CONFIG_ARCH_HAS_AS_LIMIT
-+static inline int arch_as_limit(void)
-+{
-+	return 0;
-+}
-+#endif
-+
- /*
-  * Return true if the calling process may expand its vm space by the passed
-  * number of pages
-  */
- bool may_expand_vm(struct mm_struct *mm, vm_flags_t flags, unsigned long npages)
- {
--	if (mm->total_vm + npages > rlimit(RLIMIT_AS) >> PAGE_SHIFT)
-+	unsigned long as_limit = rlimit(RLIMIT_AS);
-+	unsigned long as_limit_plus = as_limit + arch_as_limit();
-+
-+	/* as_limit_plus overflowed */
-+	if (as_limit_plus < as_limit)
-+		as_limit_plus = RLIM_INFINITY;
-+
-+	if (as_limit_plus > as_limit)
-+		as_limit = as_limit_plus;
-+
-+	if (mm->total_vm + npages > as_limit >> PAGE_SHIFT)
- 		return false;
- 
- 	if (is_data_mapping(flags) &&
+Summary of changes from v4:
+
+  Add ENDBR32/ENDBR64 to vsyscall assembly code.
+  Small cleanups.
+  Small fixes in IBT bitmap allocation.
+
+  From the discussion of IBT bitmap size, I got:
+
+    1. There are potential issues from using TASK_SIZE/TASK_SIZE_MAX;
+    2. We cannot always depend on in_compat_syscall();
+    3. Doing allocation in the kernel is tricky;
+
+    The bitmap is needed only when an app does dlopen() non-IBT .so
+    files; most applications do not need it.
+
+    I am proposing that dlopen() does mmap() and passes the bitmap to
+    the kernel.  If that is accepted, we can change these patches
+    accordingly.
+
+H.J. Lu (3):
+  x86: Insert endbr32/endbr64 to vDSO
+  x86/vsyscall/32: Add ENDBR32 to vsyscall entry point
+  x86/vsyscall/64: Add ENDBR64 to vsyscall entry points
+
+Yu-cheng Yu (8):
+  x86/cet/ibt: Add Kconfig option for user-mode Indirect Branch Tracking
+  x86/cet/ibt: User-mode indirect branch tracking support
+  x86/cet/ibt: Add IBT legacy code bitmap allocation function
+  mm/mmap: Add IBT bitmap size to address space limit check
+  x86/cet/ibt: ELF header parsing for IBT
+  x86/cet/ibt: Add arch_prctl functions for IBT
+  x86/cet/ibt: Add ENDBR to op-code-map
+  x86/cet: Add PTRACE interface for CET
+
+ arch/x86/Kconfig                              | 16 ++++
+ arch/x86/Makefile                             |  7 ++
+ arch/x86/entry/vdso/.gitignore                |  4 +
+ arch/x86/entry/vdso/Makefile                  | 12 ++-
+ arch/x86/entry/vdso/vdso-layout.lds.S         |  1 +
+ arch/x86/entry/vdso/vdso32/system_call.S      |  3 +
+ arch/x86/entry/vsyscall/vsyscall_emu_64.S     |  9 +++
+ arch/x86/include/asm/cet.h                    |  8 ++
+ arch/x86/include/asm/disabled-features.h      |  8 +-
+ arch/x86/include/asm/fpu/regset.h             |  7 +-
+ arch/x86/include/asm/mmu_context.h            |  7 ++
+ arch/x86/include/uapi/asm/elf_property.h      |  1 +
+ arch/x86/include/uapi/asm/prctl.h             |  1 +
+ arch/x86/kernel/cet.c                         | 78 +++++++++++++++++++
+ arch/x86/kernel/cet_prctl.c                   | 35 +++++++++
+ arch/x86/kernel/cpu/common.c                  | 17 ++++
+ arch/x86/kernel/elf.c                         |  5 ++
+ arch/x86/kernel/fpu/regset.c                  | 41 ++++++++++
+ arch/x86/kernel/process.c                     |  1 +
+ arch/x86/kernel/ptrace.c                      | 16 ++++
+ arch/x86/lib/x86-opcode-map.txt               | 13 +++-
+ include/uapi/linux/elf.h                      |  1 +
+ mm/mmap.c                                     | 19 ++++-
+ tools/objtool/arch/x86/lib/x86-opcode-map.txt | 13 +++-
+ 24 files changed, 313 insertions(+), 10 deletions(-)
+
 -- 
 2.17.1
