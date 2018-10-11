@@ -1,82 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga18.intel.com ([134.134.136.126]:64714 "EHLO mga18.intel.com"
+Received: from mga05.intel.com ([192.55.52.43]:3984 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728528AbeJKWtV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Oct 2018 18:49:21 -0400
+        id S1728528AbeJKWs0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Oct 2018 18:48:26 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v5 00/11] Control Flow Enforcement: Branch Tracking, PTRACE
-Date: Thu, 11 Oct 2018 08:16:43 -0700
-Message-ID: <20181011151654.27221-1-yu-cheng.yu@intel.com>
+Subject: [PATCH v5 18/27] mm: Update can_follow_write_pte/pmd for shadow stack
+Date: Thu, 11 Oct 2018 08:15:14 -0700
+Message-ID: <20181011151523.27101-19-yu-cheng.yu@intel.com>
+In-Reply-To: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20181011151643.F29JM07Yj5IWvwG6LdyWKanON4wbiKHAhoLlRDfRfsc@z>
+Message-ID: <20181011151514.dtaPyABzyl8VcJ30ZoF05g7CcAxEYbkjBmxsyuZklmk@z>
 
-The previous version of CET Branch Tracking/PTRACE patches is at the following
-link:
+can_follow_write_pte/pmd look for the (RO & DIRTY) PTE/PMD to
+verify an exclusive RO page still exists after a broken COW.
 
-  https://lkml.org/lkml/2018/9/21/773
+A shadow stack PTE is RO & PAGE_DIRTY_SW when it is shared,
+otherwise RO & PAGE_DIRTY_HW.
 
-Summary of changes from v4:
+Introduce pte_exclusive() and pmd_exclusive() to also verify a
+shadow stack PTE is exclusive.
 
-  Add ENDBR32/ENDBR64 to vsyscall assembly code.
-  Small cleanups.
-  Small fixes in IBT bitmap allocation.
+Also rename can_follow_write_pte/pmd() to can_follow_write() to
+make their meaning clear; i.e. "Can we write to the page?", not
+"Is the PTE writable?"
 
-  From the discussion of IBT bitmap size, I got:
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/mm/pgtable.c         | 18 ++++++++++++++++++
+ include/asm-generic/pgtable.h |  4 ++++
+ mm/gup.c                      |  8 +++++---
+ mm/huge_memory.c              |  8 +++++---
+ 4 files changed, 32 insertions(+), 6 deletions(-)
 
-    1. There are potential issues from using TASK_SIZE/TASK_SIZE_MAX;
-    2. We cannot always depend on in_compat_syscall();
-    3. Doing allocation in the kernel is tricky;
-
-    The bitmap is needed only when an app does dlopen() non-IBT .so
-    files; most applications do not need it.
-
-    I am proposing that dlopen() does mmap() and passes the bitmap to
-    the kernel.  If that is accepted, we can change these patches
-    accordingly.
-
-H.J. Lu (3):
-  x86: Insert endbr32/endbr64 to vDSO
-  x86/vsyscall/32: Add ENDBR32 to vsyscall entry point
-  x86/vsyscall/64: Add ENDBR64 to vsyscall entry points
-
-Yu-cheng Yu (8):
-  x86/cet/ibt: Add Kconfig option for user-mode Indirect Branch Tracking
-  x86/cet/ibt: User-mode indirect branch tracking support
-  x86/cet/ibt: Add IBT legacy code bitmap allocation function
-  mm/mmap: Add IBT bitmap size to address space limit check
-  x86/cet/ibt: ELF header parsing for IBT
-  x86/cet/ibt: Add arch_prctl functions for IBT
-  x86/cet/ibt: Add ENDBR to op-code-map
-  x86/cet: Add PTRACE interface for CET
-
- arch/x86/Kconfig                              | 16 ++++
- arch/x86/Makefile                             |  7 ++
- arch/x86/entry/vdso/.gitignore                |  4 +
- arch/x86/entry/vdso/Makefile                  | 12 ++-
- arch/x86/entry/vdso/vdso-layout.lds.S         |  1 +
- arch/x86/entry/vdso/vdso32/system_call.S      |  3 +
- arch/x86/entry/vsyscall/vsyscall_emu_64.S     |  9 +++
- arch/x86/include/asm/cet.h                    |  8 ++
- arch/x86/include/asm/disabled-features.h      |  8 +-
- arch/x86/include/asm/fpu/regset.h             |  7 +-
- arch/x86/include/asm/mmu_context.h            |  7 ++
- arch/x86/include/uapi/asm/elf_property.h      |  1 +
- arch/x86/include/uapi/asm/prctl.h             |  1 +
- arch/x86/kernel/cet.c                         | 78 +++++++++++++++++++
- arch/x86/kernel/cet_prctl.c                   | 35 +++++++++
- arch/x86/kernel/cpu/common.c                  | 17 ++++
- arch/x86/kernel/elf.c                         |  5 ++
- arch/x86/kernel/fpu/regset.c                  | 41 ++++++++++
- arch/x86/kernel/process.c                     |  1 +
- arch/x86/kernel/ptrace.c                      | 16 ++++
- arch/x86/lib/x86-opcode-map.txt               | 13 +++-
- include/uapi/linux/elf.h                      |  1 +
- mm/mmap.c                                     | 19 ++++-
- tools/objtool/arch/x86/lib/x86-opcode-map.txt | 13 +++-
- 24 files changed, 313 insertions(+), 10 deletions(-)
-
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 864954bda7fe..80876b2d03b7 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -903,4 +903,22 @@ inline bool arch_copy_pte_mapping(vm_flags_t vm_flags)
+ {
+ 	return (vm_flags & VM_SHSTK);
+ }
++
++inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & VM_SHSTK)
++		return pte_dirty_hw(pte);
++	else
++		return pte_dirty(pte);
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++inline bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma)
++{
++	if (vma->vm_flags & VM_SHSTK)
++		return pmd_dirty_hw(pmd);
++	else
++		return pmd_dirty(pmd);
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 7512e4dfd642..09881698a566 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1131,10 +1131,14 @@ static inline bool arch_has_pfn_modify_check(void)
+ #define pte_set_vma_features(pte, vma) pte
+ #define pmd_set_vma_features(pmd, vma) pmd
+ #define arch_copy_pte_mapping(vma_flags) false
++#define pte_exclusive(pte, vma) pte_dirty(pte)
++#define pmd_exclusive(pmd, vma) pmd_dirty(pmd)
+ #else
+ pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
+ pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
+ bool arch_copy_pte_mapping(vm_flags_t vm_flags);
++bool pte_exclusive(pte_t pte, struct vm_area_struct *vma);
++bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma);
+ #endif
+ 
+ #endif /* _ASM_GENERIC_PGTABLE_H */
+diff --git a/mm/gup.c b/mm/gup.c
+index 1abc8b4afff6..03cb2e331f80 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -64,10 +64,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
+  * FOLL_FORCE can write to even unwritable pte's, but only
+  * after we've gone through a COW cycle and they are dirty.
+  */
+-static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
++static inline bool can_follow_write(pte_t pte, unsigned int flags,
++				    struct vm_area_struct *vma)
+ {
+ 	return pte_write(pte) ||
+-		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
++		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
++		 pte_exclusive(pte, vma));
+ }
+ 
+ static struct page *follow_page_pte(struct vm_area_struct *vma,
+@@ -105,7 +107,7 @@ static struct page *follow_page_pte(struct vm_area_struct *vma,
+ 	}
+ 	if ((flags & FOLL_NUMA) && pte_protnone(pte))
+ 		goto no_page;
+-	if ((flags & FOLL_WRITE) && !can_follow_write_pte(pte, flags)) {
++	if ((flags & FOLL_WRITE) && !can_follow_write(pte, flags, vma)) {
+ 		pte_unmap_unlock(ptep, ptl);
+ 		return NULL;
+ 	}
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 6e03e26c1cec..3b3e1026fb5b 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1387,10 +1387,12 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
+  * FOLL_FORCE can write to even unwritable pmd's, but only
+  * after we've gone through a COW cycle and they are dirty.
+  */
+-static inline bool can_follow_write_pmd(pmd_t pmd, unsigned int flags)
++static inline bool can_follow_write(pmd_t pmd, unsigned int flags,
++				    struct vm_area_struct *vma)
+ {
+ 	return pmd_write(pmd) ||
+-	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) && pmd_dirty(pmd));
++	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
++		pmd_exclusive(pmd, vma));
+ }
+ 
+ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
+@@ -1403,7 +1405,7 @@ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
+ 
+ 	assert_spin_locked(pmd_lockptr(mm, pmd));
+ 
+-	if (flags & FOLL_WRITE && !can_follow_write_pmd(*pmd, flags))
++	if (flags & FOLL_WRITE && !can_follow_write(*pmd, flags, vma))
+ 		goto out;
+ 
+ 	/* Avoid dumping huge zero page */
 -- 
 2.17.1
