@@ -1,142 +1,376 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:3984 "EHLO mga05.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:21816 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728528AbeJKWs0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1728423AbeJKWs0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 11 Oct 2018 18:48:26 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v5 18/27] mm: Update can_follow_write_pte/pmd for shadow stack
-Date: Thu, 11 Oct 2018 08:15:14 -0700
-Message-ID: <20181011151523.27101-19-yu-cheng.yu@intel.com>
+Subject: [PATCH v5 12/27] x86/mm: Introduce _PAGE_DIRTY_SW
+Date: Thu, 11 Oct 2018 08:15:08 -0700
+Message-ID: <20181011151523.27101-13-yu-cheng.yu@intel.com>
 In-Reply-To: <20181011151523.27101-1-yu-cheng.yu@intel.com>
 References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20181011151514.dtaPyABzyl8VcJ30ZoF05g7CcAxEYbkjBmxsyuZklmk@z>
+Message-ID: <20181011151508.TkGKeWU47_eEFvcZ_5fz7kKiZ-C1iF5N45HwKU-dfLg@z>
 
-can_follow_write_pte/pmd look for the (RO & DIRTY) PTE/PMD to
-verify an exclusive RO page still exists after a broken COW.
+A RO and dirty PTE exists in the following cases:
 
-A shadow stack PTE is RO & PAGE_DIRTY_SW when it is shared,
-otherwise RO & PAGE_DIRTY_HW.
+(a) A page is modified and then shared with a fork()'ed child;
+(b) A R/O page that has been COW'ed;
+(c) A SHSTK page.
 
-Introduce pte_exclusive() and pmd_exclusive() to also verify a
-shadow stack PTE is exclusive.
+The processor does not read the dirty bit for (a) and (b), but
+checks the dirty bit for (c).  To prevent the use of non-SHSTK
+memory as SHSTK, we introduce a spare bit of the 64-bit PTE as
+_PAGE_BIT_DIRTY_SW and use that for (a) and (b).  This results
+to the following possible PTE settings:
 
-Also rename can_follow_write_pte/pmd() to can_follow_write() to
-make their meaning clear; i.e. "Can we write to the page?", not
-"Is the PTE writable?"
+Modified PTE:             (R/W + DIRTY_HW)
+Modified and shared PTE:  (R/O + DIRTY_SW)
+R/O PTE COW'ed:           (R/O + DIRTY_SW)
+SHSTK PTE:                (R/O + DIRTY_HW)
+SHSTK PTE COW'ed:         (R/O + DIRTY_HW)
+SHSTK PTE shared:         (R/O + DIRTY_SW)
+
+Note that _PAGE_BIT_DRITY_SW is only used in R/O PTEs but
+not R/W PTEs.
+
+When this patch is applied, there are six free bits left in
+the 64-bit PTE.  There is no more free bit in the 32-bit
+PTE (except for PAE) and shadow stack is not implemented
+for the 32-bit kernel.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/mm/pgtable.c         | 18 ++++++++++++++++++
- include/asm-generic/pgtable.h |  4 ++++
- mm/gup.c                      |  8 +++++---
- mm/huge_memory.c              |  8 +++++---
- 4 files changed, 32 insertions(+), 6 deletions(-)
+ arch/x86/include/asm/pgtable.h       | 129 ++++++++++++++++++++++-----
+ arch/x86/include/asm/pgtable_types.h |  21 ++++-
+ 2 files changed, 128 insertions(+), 22 deletions(-)
 
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 864954bda7fe..80876b2d03b7 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -903,4 +903,22 @@ inline bool arch_copy_pte_mapping(vm_flags_t vm_flags)
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 95c918ad84ed..3ee554d81480 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -119,9 +119,9 @@ extern pmdval_t early_pmd_flags;
+  * The following only work if pte_present() is true.
+  * Undefined behaviour if not..
+  */
+-static inline int pte_dirty(pte_t pte)
++static inline bool pte_dirty(pte_t pte)
  {
- 	return (vm_flags & VM_SHSTK);
+-	return pte_flags(pte) & _PAGE_DIRTY;
++	return pte_flags(pte) & _PAGE_DIRTY_BITS;
  }
-+
-+inline bool pte_exclusive(pte_t pte, struct vm_area_struct *vma)
+ 
+ 
+@@ -143,9 +143,9 @@ static inline int pte_young(pte_t pte)
+ 	return pte_flags(pte) & _PAGE_ACCESSED;
+ }
+ 
+-static inline int pmd_dirty(pmd_t pmd)
++static inline bool pmd_dirty(pmd_t pmd)
+ {
+-	return pmd_flags(pmd) & _PAGE_DIRTY;
++	return pmd_flags(pmd) & _PAGE_DIRTY_BITS;
+ }
+ 
+ static inline int pmd_young(pmd_t pmd)
+@@ -153,9 +153,9 @@ static inline int pmd_young(pmd_t pmd)
+ 	return pmd_flags(pmd) & _PAGE_ACCESSED;
+ }
+ 
+-static inline int pud_dirty(pud_t pud)
++static inline bool pud_dirty(pud_t pud)
+ {
+-	return pud_flags(pud) & _PAGE_DIRTY;
++	return pud_flags(pud) & _PAGE_DIRTY_BITS;
+ }
+ 
+ static inline int pud_young(pud_t pud)
+@@ -294,9 +294,23 @@ static inline pte_t pte_clear_flags(pte_t pte, pteval_t clear)
+ 	return native_make_pte(v & ~clear);
+ }
+ 
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
 +{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pte_dirty_hw(pte);
-+	else
-+		return pte_dirty(pte);
++	if (pte_flags(pte) & from)
++		pte = pte_set_flags(pte_clear_flags(pte, from), to);
++	return pte;
++}
++#else
++static inline pte_t pte_move_flags(pte_t pte, pteval_t from, pteval_t to)
++{
++	return pte;
++}
++#endif
++
+ static inline pte_t pte_mkclean(pte_t pte)
+ {
+-	return pte_clear_flags(pte, _PAGE_DIRTY);
++	return pte_clear_flags(pte, _PAGE_DIRTY_BITS);
+ }
+ 
+ static inline pte_t pte_mkold(pte_t pte)
+@@ -306,6 +320,7 @@ static inline pte_t pte_mkold(pte_t pte)
+ 
+ static inline pte_t pte_wrprotect(pte_t pte)
+ {
++	pte = pte_move_flags(pte, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
+ 	return pte_clear_flags(pte, _PAGE_RW);
+ }
+ 
+@@ -316,9 +331,24 @@ static inline pte_t pte_mkexec(pte_t pte)
+ 
+ static inline pte_t pte_mkdirty(pte_t pte)
+ {
++	pteval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER) ||
++			   pte_write(pte)) ? _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++	return pte_set_flags(pte, dirty | _PAGE_SOFT_DIRTY);
 +}
 +
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+inline bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma)
++#ifdef CONFIG_ARCH_HAS_SHSTK
++static inline pte_t pte_mkdirty_shstk(pte_t pte)
 +{
-+	if (vma->vm_flags & VM_SHSTK)
-+		return pmd_dirty_hw(pmd);
-+	else
-+		return pmd_dirty(pmd);
++	pte = pte_clear_flags(pte, _PAGE_DIRTY_SW);
+ 	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+ 
++static inline bool pte_dirty_hw(pte_t pte)
++{
++	return pte_flags(pte) & _PAGE_DIRTY_HW;
 +}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif /* CONFIG_X86_INTEL_SHADOW_STACK_USER */
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 7512e4dfd642..09881698a566 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1131,10 +1131,14 @@ static inline bool arch_has_pfn_modify_check(void)
- #define pte_set_vma_features(pte, vma) pte
- #define pmd_set_vma_features(pmd, vma) pmd
- #define arch_copy_pte_mapping(vma_flags) false
-+#define pte_exclusive(pte, vma) pte_dirty(pte)
-+#define pmd_exclusive(pmd, vma) pmd_dirty(pmd)
- #else
- pte_t pte_set_vma_features(pte_t pte, struct vm_area_struct *vma);
- pmd_t pmd_set_vma_features(pmd_t pmd, struct vm_area_struct *vma);
- bool arch_copy_pte_mapping(vm_flags_t vm_flags);
-+bool pte_exclusive(pte_t pte, struct vm_area_struct *vma);
-+bool pmd_exclusive(pmd_t pmd, struct vm_area_struct *vma);
++#endif
++
+ static inline pte_t pte_mkyoung(pte_t pte)
+ {
+ 	return pte_set_flags(pte, _PAGE_ACCESSED);
+@@ -326,6 +356,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
+ 
+ static inline pte_t pte_mkwrite(pte_t pte)
+ {
++	pte = pte_move_flags(pte, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
+ 	return pte_set_flags(pte, _PAGE_RW);
+ }
+ 
+@@ -373,6 +404,20 @@ static inline pmd_t pmd_clear_flags(pmd_t pmd, pmdval_t clear)
+ 	return native_make_pmd(v & ~clear);
+ }
+ 
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++static inline pmd_t pmd_move_flags(pmd_t pmd, pmdval_t from, pmdval_t to)
++{
++	if (pmd_flags(pmd) & from)
++		pmd = pmd_set_flags(pmd_clear_flags(pmd, from), to);
++	return pmd;
++}
++#else
++static inline pmd_t pmd_move_flags(pmd_t pmd, pmdval_t from, pmdval_t to)
++{
++	return pmd;
++}
++#endif
++
+ static inline pmd_t pmd_mkold(pmd_t pmd)
+ {
+ 	return pmd_clear_flags(pmd, _PAGE_ACCESSED);
+@@ -380,19 +425,36 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
+ 
+ static inline pmd_t pmd_mkclean(pmd_t pmd)
+ {
+-	return pmd_clear_flags(pmd, _PAGE_DIRTY);
++	return pmd_clear_flags(pmd, _PAGE_DIRTY_BITS);
+ }
+ 
+ static inline pmd_t pmd_wrprotect(pmd_t pmd)
+ {
++	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
+ 	return pmd_clear_flags(pmd, _PAGE_RW);
+ }
+ 
+ static inline pmd_t pmd_mkdirty(pmd_t pmd)
+ {
++	pmdval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER) ||
++			  (pmd_flags(pmd) & _PAGE_RW)) ?
++			  _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++	return pmd_set_flags(pmd, dirty | _PAGE_SOFT_DIRTY);
++}
++
++#ifdef CONFIG_ARCH_HAS_SHSTK
++static inline pmd_t pmd_mkdirty_shstk(pmd_t pmd)
++{
++	pmd = pmd_clear_flags(pmd, _PAGE_DIRTY_SW);
+ 	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+ 
++static inline bool pmd_dirty_hw(pmd_t pmd)
++{
++	return  pmd_flags(pmd) & _PAGE_DIRTY_HW;
++}
++#endif
++
+ static inline pmd_t pmd_mkdevmap(pmd_t pmd)
+ {
+ 	return pmd_set_flags(pmd, _PAGE_DEVMAP);
+@@ -410,6 +472,7 @@ static inline pmd_t pmd_mkyoung(pmd_t pmd)
+ 
+ static inline pmd_t pmd_mkwrite(pmd_t pmd)
+ {
++	pmd = pmd_move_flags(pmd, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
+ 	return pmd_set_flags(pmd, _PAGE_RW);
+ }
+ 
+@@ -427,6 +490,20 @@ static inline pud_t pud_clear_flags(pud_t pud, pudval_t clear)
+ 	return native_make_pud(v & ~clear);
+ }
+ 
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++static inline pud_t pud_move_flags(pud_t pud, pudval_t from, pudval_t to)
++{
++	if (pud_flags(pud) & from)
++		pud = pud_set_flags(pud_clear_flags(pud, from), to);
++	return pud;
++}
++#else
++static inline pud_t pud_move_flags(pud_t pud, pudval_t from, pudval_t to)
++{
++	return pud;
++}
++#endif
++
+ static inline pud_t pud_mkold(pud_t pud)
+ {
+ 	return pud_clear_flags(pud, _PAGE_ACCESSED);
+@@ -434,17 +511,22 @@ static inline pud_t pud_mkold(pud_t pud)
+ 
+ static inline pud_t pud_mkclean(pud_t pud)
+ {
+-	return pud_clear_flags(pud, _PAGE_DIRTY);
++	return pud_clear_flags(pud, _PAGE_DIRTY_BITS);
+ }
+ 
+ static inline pud_t pud_wrprotect(pud_t pud)
+ {
++	pud = pud_move_flags(pud, _PAGE_DIRTY_HW, _PAGE_DIRTY_SW);
+ 	return pud_clear_flags(pud, _PAGE_RW);
+ }
+ 
+ static inline pud_t pud_mkdirty(pud_t pud)
+ {
+-	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
++	pudval_t dirty = (!IS_ENABLED(CONFIG_X86_INTEL_SHADOW_STACK_USER) ||
++			  (pud_flags(pud) & _PAGE_RW)) ?
++			  _PAGE_DIRTY_HW:_PAGE_DIRTY_SW;
++
++	return pud_set_flags(pud, dirty | _PAGE_SOFT_DIRTY);
+ }
+ 
+ static inline pud_t pud_mkdevmap(pud_t pud)
+@@ -464,6 +546,7 @@ static inline pud_t pud_mkyoung(pud_t pud)
+ 
+ static inline pud_t pud_mkwrite(pud_t pud)
+ {
++	pud = pud_move_flags(pud, _PAGE_DIRTY_SW, _PAGE_DIRTY_HW);
+ 	return pud_set_flags(pud, _PAGE_RW);
+ }
+ 
+@@ -595,19 +678,12 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ 	val &= _PAGE_CHG_MASK;
+ 	val |= check_pgprot(newprot) & ~_PAGE_CHG_MASK;
+ 	val = flip_protnone_guard(oldval, val, PTE_PFN_MASK);
++	if ((pte_write(pte) && !(pgprot_val(newprot) & _PAGE_RW)))
++		return pte_move_flags(__pte(val), _PAGE_DIRTY_HW,
++				      _PAGE_DIRTY_SW);
+ 	return __pte(val);
+ }
+ 
+-static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
+-{
+-	pmdval_t val = pmd_val(pmd), oldval = val;
+-
+-	val &= _HPAGE_CHG_MASK;
+-	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
+-	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
+-	return __pmd(val);
+-}
+-
+ /* mprotect needs to preserve PAT bits when updating vm_page_prot */
+ #define pgprot_modify pgprot_modify
+ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
+@@ -1159,6 +1235,19 @@ static inline int pmd_write(pmd_t pmd)
+ 	return pmd_flags(pmd) & _PAGE_RW;
+ }
+ 
++static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
++{
++	pmdval_t val = pmd_val(pmd), oldval = val;
++
++	val &= _HPAGE_CHG_MASK;
++	val |= check_pgprot(newprot) & ~_HPAGE_CHG_MASK;
++	val = flip_protnone_guard(oldval, val, PHYSICAL_PMD_PAGE_MASK);
++	if ((pmd_write(pmd) && !(pgprot_val(newprot) & _PAGE_RW)))
++		return pmd_move_flags(__pmd(val), _PAGE_DIRTY_HW,
++				      _PAGE_DIRTY_SW);
++	return __pmd(val);
++}
++
+ #define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
+ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm, unsigned long addr,
+ 				       pmd_t *pmdp)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 0657a22d5216..bd17e38d6a36 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -23,6 +23,7 @@
+ #define _PAGE_BIT_SOFTW2	10	/* " */
+ #define _PAGE_BIT_SOFTW3	11	/* " */
+ #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
++#define _PAGE_BIT_SOFTW5	57	/* available for programmer */
+ #define _PAGE_BIT_SOFTW4	58	/* available for programmer */
+ #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
+ #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
+@@ -34,6 +35,7 @@
+ #define _PAGE_BIT_CPA_TEST	_PAGE_BIT_SOFTW1
+ #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking */
+ #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
++#define _PAGE_BIT_DIRTY_SW	_PAGE_BIT_SOFTW5 /* was written to */
+ 
+ /* If _PAGE_BIT_PRESENT is clear, we use these: */
+ /* - if the user mapped it with PROT_NONE; pte_present gives true */
+@@ -109,6 +111,21 @@
+ #define _PAGE_DEVMAP	(_AT(pteval_t, 0))
  #endif
  
- #endif /* _ASM_GENERIC_PGTABLE_H */
-diff --git a/mm/gup.c b/mm/gup.c
-index 1abc8b4afff6..03cb2e331f80 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -64,10 +64,12 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
-  * FOLL_FORCE can write to even unwritable pte's, but only
-  * after we've gone through a COW cycle and they are dirty.
++/*
++ * _PAGE_DIRTY_HW: set by the processor when a page is written.
++ * _PAGE_DIRTY_SW: a spare bit tracking a written, but now R/O page.
++ *   [R/W + _PAGE_DIRTY_HW] <-> [R/O + _PAGE_DIRTY_SW].
++ * _PAGE_SOFT_DIRTY: a spare bit used to track written pages since a time point
++ * set by the system admin; see Documentation/admin-guide/mm/soft-dirty.rst.
++ */
++#if defined(CONFIG_X86_INTEL_SHADOW_STACK_USER)
++#define _PAGE_DIRTY_SW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_SW)
++#else
++#define _PAGE_DIRTY_SW	(_AT(pteval_t, 0))
++#endif
++
++#define _PAGE_DIRTY_BITS (_PAGE_DIRTY_HW | _PAGE_DIRTY_SW)
++
+ #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
+ 
+ #define _PAGE_TABLE_NOENC	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |\
+@@ -122,9 +139,9 @@
+  * instance, and is *not* included in this mask since
+  * pte_modify() does modify it.
   */
--static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
-+static inline bool can_follow_write(pte_t pte, unsigned int flags,
-+				    struct vm_area_struct *vma)
- {
- 	return pte_write(pte) ||
--		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
-+		((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
-+		 pte_exclusive(pte, vma));
- }
+-#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
++#define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |			\
+ 			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
+-			 _PAGE_SOFT_DIRTY)
++			 _PAGE_DIRTY_SW | _PAGE_SOFT_DIRTY)
+ #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
  
- static struct page *follow_page_pte(struct vm_area_struct *vma,
-@@ -105,7 +107,7 @@ static struct page *follow_page_pte(struct vm_area_struct *vma,
- 	}
- 	if ((flags & FOLL_NUMA) && pte_protnone(pte))
- 		goto no_page;
--	if ((flags & FOLL_WRITE) && !can_follow_write_pte(pte, flags)) {
-+	if ((flags & FOLL_WRITE) && !can_follow_write(pte, flags, vma)) {
- 		pte_unmap_unlock(ptep, ptl);
- 		return NULL;
- 	}
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 6e03e26c1cec..3b3e1026fb5b 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1387,10 +1387,12 @@ vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
-  * FOLL_FORCE can write to even unwritable pmd's, but only
-  * after we've gone through a COW cycle and they are dirty.
-  */
--static inline bool can_follow_write_pmd(pmd_t pmd, unsigned int flags)
-+static inline bool can_follow_write(pmd_t pmd, unsigned int flags,
-+				    struct vm_area_struct *vma)
- {
- 	return pmd_write(pmd) ||
--	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) && pmd_dirty(pmd));
-+	       ((flags & FOLL_FORCE) && (flags & FOLL_COW) &&
-+		pmd_exclusive(pmd, vma));
- }
- 
- struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
-@@ -1403,7 +1405,7 @@ struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
- 
- 	assert_spin_locked(pmd_lockptr(mm, pmd));
- 
--	if (flags & FOLL_WRITE && !can_follow_write_pmd(*pmd, flags))
-+	if (flags & FOLL_WRITE && !can_follow_write(*pmd, flags, vma))
- 		goto out;
- 
- 	/* Avoid dumping huge zero page */
+ /*
 -- 
 2.17.1
