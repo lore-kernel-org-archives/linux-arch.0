@@ -1,79 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:40863 "EHLO
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:44007 "EHLO
         mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726219AbeJKHuZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:25 -0400
-Received: by mail-pl1-f196.google.com with SMTP id 1-v6so3294944plv.7
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:48 -0700 (PDT)
+        with ESMTP id S1726903AbeJKHuc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:32 -0400
+Received: by mail-pl1-f196.google.com with SMTP id 30-v6so3288303plb.10
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:55 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 29/30] LSM: Introduce enum lsm_order
-Date: Wed, 10 Oct 2018 17:18:45 -0700
-Message-ID: <20181011001846.30964-30-keescook@chromium.org>
+Subject: [PATCH security-next v5 22/30] LSM: Separate idea of "major" LSM from "exclusive" LSM
+Date: Wed, 10 Oct 2018 17:18:38 -0700
+Message-ID: <20181011001846.30964-23-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001845.zKG48jj_oCIR95sUon_J6x2DILhH8R057VRkxS2ixnw@z>
+Message-ID: <20181011001838.qIcI9ZDmJkIJcG5F1Sjp-roz5O-99GG9rVf8cijqhHk@z>
 
-In preparation for distinguishing the "capability" LSM from other LSMs, it
-must be ordered first. This introduces LSM_ORDER_MUTABLE for the general
-LSMs and LSM_ORDER_FIRST for capability. In the future LSM_ORDER_LAST
-for could be added for anything that must run last (e.g. Landlock may
-use this).
+In order to both support old "security=" Legacy Major LSM selection, and
+handling real exclusivity, this creates LSM_FLAG_EXCLUSIVE and updates
+the selection logic to handle them.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
 ---
- include/linux/lsm_hooks.h | 6 ++++++
- security/security.c       | 9 ++++++++-
- 2 files changed, 14 insertions(+), 1 deletion(-)
+ include/linux/lsm_hooks.h  |  1 +
+ security/apparmor/lsm.c    |  2 +-
+ security/security.c        | 12 ++++++++++++
+ security/selinux/hooks.c   |  2 +-
+ security/smack/smack_lsm.c |  2 +-
+ security/tomoyo/tomoyo.c   |  2 +-
+ 6 files changed, 17 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 833ec0f03795..97898679a505 100644
+index b6b05d351eb4..e88c725a43b8 100644
 --- a/include/linux/lsm_hooks.h
 +++ b/include/linux/lsm_hooks.h
-@@ -2042,8 +2042,14 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
- #define LSM_FLAG_LEGACY_MAJOR	BIT(0)
- #define LSM_FLAG_EXCLUSIVE	BIT(1)
+@@ -2040,6 +2040,7 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+ 				char *lsm);
  
-+enum lsm_order {
-+	LSM_ORDER_FIRST = -1,	/* This is only for capabilities. */
-+	LSM_ORDER_MUTABLE = 0,
-+};
-+
+ #define LSM_FLAG_LEGACY_MAJOR	BIT(0)
++#define LSM_FLAG_EXCLUSIVE	BIT(1)
+ 
  struct lsm_info {
  	const char *name;	/* Required. */
-+	enum lsm_order order;	/* Optional: default is LSM_ORDER_MUTABLE */
- 	unsigned long flags;	/* Optional: flags describing LSM */
- 	int *enabled;		/* Optional: controlled by CONFIG_LSM */
- 	int (*init)(void);	/* Required. */
+diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
+index bc56b058dc75..ebf63461a79c 100644
+--- a/security/apparmor/lsm.c
++++ b/security/apparmor/lsm.c
+@@ -1602,7 +1602,7 @@ static int __init apparmor_init(void)
+ 
+ DEFINE_LSM(apparmor) = {
+ 	.name = "apparmor",
+-	.flags = LSM_FLAG_LEGACY_MAJOR,
++	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+ 	.enabled = &apparmor_enabled,
+ 	.init = apparmor_init,
+ };
 diff --git a/security/security.c b/security/security.c
-index 2eb8afdd945d..004938eb8e70 100644
+index 2c754968f98b..65f1fa733e4b 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -174,6 +174,12 @@ static void __init ordered_lsm_parse(const char *order, const char *origin)
- 	struct lsm_info *lsm;
- 	char *sep, *name, *next;
+@@ -49,6 +49,7 @@ static __initconst const char * const builtin_lsm_order = CONFIG_LSM;
  
-+	/* LSM_ORDER_FIRST is always first. */
-+	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
-+		if (lsm->order == LSM_ORDER_FIRST)
-+			append_ordered_lsm(lsm, "first");
+ /* Ordered list of LSMs to initialize. */
+ static __initdata struct lsm_info **ordered_lsms;
++static __initdata struct lsm_info *exclusive;
+ 
+ static __initdata bool debug;
+ #define init_debug(...)						\
+@@ -129,6 +130,12 @@ static bool __init lsm_allowed(struct lsm_info *lsm)
+ 	if (!is_enabled(lsm))
+ 		return false;
+ 
++	/* Not allowed if another exclusive LSM already initialized. */
++	if ((lsm->flags & LSM_FLAG_EXCLUSIVE) && exclusive) {
++		init_debug("exclusive disabled: %s\n", lsm->name);
++		return false;
 +	}
 +
- 	sep = kstrdup(order, GFP_KERNEL);
- 	next = sep;
- 	/* Walk the list, looking for matching LSMs. */
-@@ -181,7 +187,8 @@ static void __init ordered_lsm_parse(const char *order, const char *origin)
- 		bool found = false;
+ 	return true;
+ }
  
- 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
--			if (strcmp(lsm->name, name) == 0) {
-+			if (lsm->order == LSM_ORDER_MUTABLE &&
-+			    strcmp(lsm->name, name) == 0) {
- 				append_ordered_lsm(lsm, origin);
- 				found = true;
- 			}
+@@ -144,6 +151,11 @@ static void __init maybe_initialize_lsm(struct lsm_info *lsm)
+ 	if (enabled) {
+ 		int ret;
+ 
++		if ((lsm->flags & LSM_FLAG_EXCLUSIVE) && !exclusive) {
++			exclusive = lsm;
++			init_debug("exclusive chosen: %s\n", lsm->name);
++		}
++
+ 		init_debug("initializing %s\n", lsm->name);
+ 		ret = lsm->init();
+ 		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index 71a10fedecb3..0f8d7bb88197 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -7194,7 +7194,7 @@ void selinux_complete_init(void)
+    all processes and objects when they are created. */
+ DEFINE_LSM(selinux) = {
+ 	.name = "selinux",
+-	.flags = LSM_FLAG_LEGACY_MAJOR,
++	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+ 	.enabled = &selinux_enabled,
+ 	.init = selinux_init,
+ };
+diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
+index f243044d5a55..92e4baa342f8 100644
+--- a/security/smack/smack_lsm.c
++++ b/security/smack/smack_lsm.c
+@@ -4881,6 +4881,6 @@ static __init int smack_init(void)
+  */
+ DEFINE_LSM(smack) = {
+ 	.name = "smack",
+-	.flags = LSM_FLAG_LEGACY_MAJOR,
++	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+ 	.init = smack_init,
+ };
+diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
+index a46f6bc1e97c..daff7d7897ad 100644
+--- a/security/tomoyo/tomoyo.c
++++ b/security/tomoyo/tomoyo.c
+@@ -550,6 +550,6 @@ static int __init tomoyo_init(void)
+ 
+ DEFINE_LSM(tomoyo) = {
+ 	.name = "tomoyo",
+-	.flags = LSM_FLAG_LEGACY_MAJOR,
++	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+ 	.init = tomoyo_init,
+ };
 -- 
 2.17.1
