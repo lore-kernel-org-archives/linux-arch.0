@@ -1,36 +1,36 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 7/7] ia64: wire up system calls
-Date: Thu, 11 Oct 2018 17:09:02 +0200
-Message-ID: <CAK8P3a2EOb+_aOSUqPuFpMoZYSuZv0v89XB-pWf5C7X3rnfOrg@mail.gmail.com>
-References: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
- <1539231895-4118-8-git-send-email-firoz.khan@linaro.org> <CAK8P3a3OS-aKFrb5g1i00-+G1+uZqEkH0C1FX08tTx=-89-hfQ@mail.gmail.com>
- <20181011150654.GB22118@asgard.redhat.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+Date: Thu, 11 Oct 2018 08:14:24 -0700
+Message-ID: <CAGXu5jLzsYY1Ja8onnNdHXbenZ6vPrat_L8U_sbcCic0qk--qQ@mail.gmail.com>
+References: <20181011001846.30964-1-keescook@chromium.org> <alpine.LRH.2.21.1810111443500.25845@namei.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181011150654.GB22118@asgard.redhat.com>
+In-Reply-To: <alpine.LRH.2.21.1810111443500.25845@namei.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Eugene Syromiatnikov <esyr@redhat.com>
-Cc: Firoz Khan <firoz.khan@linaro.org>, linux-ia64@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, gregkh <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: James Morris <jmorris@namei.org>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/11/18, Eugene Syromiatnikov <esyr@redhat.com> wrote:
-> On Thu, Oct 11, 2018 at 09:24:43AM +0200, Arnd Bergmann wrote:
->> On Thu, Oct 11, 2018 at 6:26 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+On Wed, Oct 10, 2018 at 8:45 PM, James Morris <jmorris@namei.org> wrote:
+> On Wed, 10 Oct 2018, Kees Cook wrote:
 >
->> > +# pkey_mprotect requires an architecture specific implementation
->> > +328    common  pkey_mprotect                   sys_pkey_mprotect
->> > +# pkey_alloc requires an architecture specific implementation
->> > +329    common  pkey_alloc                      sys_pkey_alloc
->> > +# pkey_free requires an architecture specific implementation
->> > +330    common  pkey_free                       sys_pkey_free
->>
->> One comment for all pkey calls would be sufficient. More importantly
->> it requires hardware support that ia64 does not have AFAICT.
+>> v5:
+>> - redesigned to use CONFIG_LSM= and lsm= for both ordering and enabling
+>> - dropped various Reviewed-bys due to rather large refactoring
 >
-> Except it has[1].
->
+> Patches 1-10 applied to
+> git://git.kernel.org/pub/scm/linux/kernel/git/jmorris/linux-security.git next-general
+> and next-testing.
 
-Ok, then we should definitely assign the system call numbers.
+Very cool; thanks!
 
-      Arnd
+As for the rest, I could post some examples of how the new CONFIG_LSM
+and "lsm=..." work (and how they mix with the "legacy" options). Would
+that be helpful?
+
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
