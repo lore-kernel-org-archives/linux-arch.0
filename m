@@ -1,28 +1,21 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v5 01/27] x86/cpufeatures: Add CPUIDs for Control Flow
- Enforcement Technology (CET)
-Date: Thu, 11 Oct 2018 09:45:21 -0700
-Message-ID: <c3d193c68e017230dea1398f2eac4d8a8615f75e.camel@intel.com>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
-         <20181011151523.27101-2-yu-cheng.yu@intel.com>
-         <20181011164329.GF25435@zn.tnic>
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: RE: [PATCH v3 0/7] ia64: system call table generation support
+Date: Thu, 11 Oct 2018 17:28:57 +0000
+Message-ID: <3908561D78D1C84285E8C5FCA982C28F7D40F9DD@ORSMSX107.amr.corp.intel.com>
+References: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181011164329.GF25435@zn.tnic>
+In-Reply-To: <1539231895-4118-1-git-send-email-firoz.khan@linaro.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Firoz Khan <firoz.khan@linaro.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "Yu, Fenghua" <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: "y2038@lists.linaro.org" <y2038@lists.linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "deepa.kernel@gmail.com" <deepa.kernel@gmail.com>, "marcin.juszkiewicz@linaro.org" <marcin.juszkiewicz@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2018-10-11 at 18:43 +0200, Borislav Petkov wrote:
-> On Thu, Oct 11, 2018 at 08:14:57AM -0700, Yu-cheng Yu wrote:
-> > Add CPUIDs for Control Flow Enforcement Technology (CET).
-> 
-> This is not "CPUIDs" but feature flags. Fix the subject too pls.
+Third time lucky. This series boots without any obvious errors on my ia64 machine.
 
-I will fix it.
+That's not and Ack or Review ... I just applied, compiled and booted.
 
-Thanks,
-Yu-cheng
+-Tony
