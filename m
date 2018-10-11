@@ -1,103 +1,79 @@
-From: John Johansen <john.johansen@canonical.com>
+From: Jordan Glover <Golden_Miller83@protonmail.ch>
 Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-Date: Thu, 11 Oct 2018 16:48:14 -0700
-Message-ID: <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
+Date: Thu, 11 Oct 2018 23:53:50 +0000
+Message-ID: <37rRa7F7i2XcwVPiT6gLC8cX8p0732iDiT6mGjstlbBi3mcJsQCLA6A8HcDMNjR0SGheErloJl8z-Z5c57XxtJRBF9-LO_fUTUf41EcAGC4=@protonmail.ch>
 References: <20181011001846.30964-1-keescook@chromium.org>
  <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
  <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
  <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
+Reply-To: Jordan Glover <Golden_Miller83@protonmail.ch>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
-Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>, Jordan Glover <Golden_Miller83@protonmail.ch>
-Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/11/2018 04:09 PM, Kees Cook wrote:
-> On Thu, Oct 11, 2018 at 3:58 PM, Jordan Glover
-> <Golden_Miller83@protonmail.ch> wrote:
->> On Thursday, October 11, 2018 7:57 PM, Kees Cook <keescook@chromium.org> wrote:
->>>     To switch to SELinux at boot time with
->>>     "CONFIG_LSM=yama,loadpin,integrity,apparmor", the old way continues to
->>>     work:
->>>
->>>     selinux=1 security=selinux
->>>
->>>     This will work still, since it will enable selinux (selinux=1) and
->>>     disable all other major LSMs (security=selinux).
->>>
->>>     The new way to enable selinux would be using
->>>     "lsm=yama,loadpin,integrity,selinux".
->>>
->>
->> It seems to me that legacy way is more user friendly than the new one.
->> AppArmor and SElinux are households names but the rest may be enigmatic
->> for most users and the need for explicit passing them all may be
->> troublesome. Especially when the new ones like sara,landlock or cows :)
->> will be incoming. Moreover to knew what you have to pass there, you need
->> to look at CONFIG_LSM in kernel config (which will vary across distros
->> and also mean copy-paste from the web source may won't work as expected)
->> which again most users don't do.
->>
->> I think there is risk that users will end up with "lsm=selinux" without
->> realizing that they may disable something along the way.
->>
->> I would prefer for "lsm=" to work as override to "CONFIG_LSM=" with
->> below assumptions:
->>
->> I. lsm="$lsm" will append "$lsm" at the end of string. Before extreme
->> stacking it will also remove the other major (explicit) lsm from it.
->>
->> II. lsm="!$lsm" will remove "$lsm" from the string.
->>
->> III. If "$lsm" already exist in the string, it's moved at the end of it
->> (this will cover ordering).
-> 
+=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90 Original Me=
+ssage =E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90
+On Friday, October 12, 2018 1:09 AM, Kees Cook <keescook@chromium.org> wrot=
+e:
+
 > We've had things sort of like this proposed, but if you can convince
 > James and others, I'm all for it. I think the standing objection from
 > James and John about this is that the results of booting with
-> "lsm=something" ends up depending on CONFIG_LSM= for that distro. So
+> "lsm=3Dsomething" ends up depending on CONFIG_LSM=3D for that distro. So
 > you end up with different behaviors instead of a consistent behavior
 > across all distros.
-> 
+>
 
-Its certainly a point that could confuse the user. I do have concerns
-about it, but not something that is on a must haves list
+Ok, I'll try :)
 
-> Now, in the future blob and extreme stacking world, having the
-> explicit lsm= list shouldn't be too bad since LSMs will effectively
-> ALL be initialized -- but they'll be inactive since they have no
-> policy loaded.
-> 
+The final lsm string contains two parts: Kconfig "CONFIG_LSM=3D" and boot
+param "lsm=3D". Changing even only one of those parts also changes the
+final string.
 
-you are more optimistic about this than I am, but there will be at
-least some movement towards this.
+In case of distros, it's the "CONFIG_LSM=3D" which changes. Even when "lsm=
+=3D"
+stays constant, the behavior will be different, example:
 
-> But I still agree with you: I'd like a friendlier way to
-> disable/enable specific LSMs, but an explicit lsm= seems to be the
-> only way.
-> 
+Distro A has: CONFIG_LSM=3Dloadpin,integrity,selinux
+Distro B has CONFIG_LSM=3Dyama,loadpin,integrity,selinux
 
-Hrmmm, I don't know about the only way, but a way to provide the
-explicit list, and also set a specific set as the default in the
-Kconfig is a hard requirement.
+User on distro A wants to enable apparmor with:
 
-The initial lsm.ebable, lsm.disable had too many issues, and for
-various reasons I never managed to get back to kees' proposal
-for using +.
+lsm=3Dloadpin,integrity,apparmor
 
-That said, I do think the right approach for the initial pass is
-the explicit list. It moves the arguments to the side and allows
-this work to move forward.
+which they do and add it to howto on wiki.
 
->> It's possible that something lime this was discussed already
->> but without full examples it was hard to me for tracking things.
-> 
-> It's been a painful thread. ;)
-> 
+User on distro B want to enable apparmor, they found info on some wiki and =
+do:
 
-Indeed
+lsm=3Dloadpin,integrity,apparmor
+
+
+Puff, yama got disabled!
+
+Above example shows why I think "consistent behavior across all distros"
+argument for current approach is flawed -  because distros aren't
+consistent. In my proposition the user will just use "lsm=3Dapparmor" and
+it will consistently enable apparmor on all distros which is what they
+really wanted, but all pre-existing differences across distros will
+remain unchanged.
+
+The current approach requires that everyone who dares to touch "lsm=3D"
+knows about existence of all lsm, their enabled/disabled status on
+target distro and their order. I doubt there are many people other
+than recipients of this mail who fit for the above.
+
+I it's better to assume that average user has rather vague knowledge
+about lsm and don't delve deep into Kconfig's of their chosen distro.
+If they want to use "lsm=3D" their goal is to disable/enable on or more
+things. My proposition will work better for those. More advanced users
+still will may pass any "lsm=3D" string as they like, this having full
+control.
+
+Jordan
