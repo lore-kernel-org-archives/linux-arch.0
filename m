@@ -1,92 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40176 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727042AbeJKX16 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Oct 2018 19:27:58 -0400
-Subject: Re: [PATCH v5 07/17] arm64: add basic pointer authentication support
+Received: from foss.arm.com ([217.140.101.70]:40806 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729368AbeJKX4L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Oct 2018 19:56:11 -0400
+Date: Thu, 11 Oct 2018 17:28:14 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 01/17] arm64: add pointer authentication register bits
+Message-ID: <20181011162814.GC17000@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-8-kristina.martsenko@arm.com>
-From: Suzuki K Poulose <suzuki.poulose@arm.com>
-Message-ID: <56fbbada-902d-f802-0448-4692a56c7e72@arm.com>
-Date: Thu, 11 Oct 2018 17:00:04 +0100
+ <20181005084754.20950-2-kristina.martsenko@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20181005084754.20950-8-kristina.martsenko@arm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20181005084754.20950-2-kristina.martsenko@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011160004.1ZMi3ZKksCLlruUoyX8rpIFv8bHC0uN_BQBnYw1ZTQ0@z>
+To: Kristina Martsenko <kristina.martsenko@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181011162814.2rSFFa40O_k4C0_leEnSBM2Cv7rZIOIUHG6xm1Ut4Ck@z>
 
-Hi Kristina,
-
-On 05/10/18 09:47, Kristina Martsenko wrote:
+On Fri, Oct 05, 2018 at 09:47:38AM +0100, Kristina Martsenko wrote:
 > From: Mark Rutland <mark.rutland@arm.com>
 > 
-> This patch adds basic support for pointer authentication, allowing
-> userspace to make use of APIAKey. The kernel maintains an APIAKey value
-> for each process (shared by all threads within), which is initialised to
-> a random value at exec() time.
+> The ARMv8.3 pointer authentication extension adds:
 > 
-> To describe that address authentication instructions are available, the
-> ID_AA64ISAR0.{APA,API} fields are exposed to userspace. A new hwcap,
-> APIA, is added to describe that the kernel manages APIAKey.
+> * New fields in ID_AA64ISAR1 to report the presence of pointer
+>   authentication functionality.
 > 
-> Instructions using other keys (APIBKey, APDAKey, APDBKey) are disabled,
-> and will behave as NOPs. These may be made use of in future patches.
+> * New control bits in SCTLR_ELx to enable this functionality.
 > 
-> No support is added for the generic key (APGAKey), though this cannot be
-> trapped or made to behave as a NOP. Its presence is not advertised with
-> a hwcap.
+> * New system registers to hold the keys necessary for this
+>   functionality.
+> 
+> * A new ESR_ELx.EC code used when the new instructions are affected by
+>   configurable traps
+> 
+> This patch adds the relevant definitions to <asm/sysreg.h> and
+> <asm/esr.h> for these, to be used by subsequent patches.
 > 
 > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> [kristina: init keys in arch_bprm_mm_init; add AA64ISAR1.API HWCAP_CAP; use sysreg_clear_set]
 > Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-> Tested-by: Adam Wallis <awallis@codeaurora.org>
 > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
+> Cc: Marc Zyngier <marc.zyngier@arm.com>
 > Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
 > Cc: Will Deacon <will.deacon@arm.com>
+> ---
+>  arch/arm64/include/asm/esr.h    |  3 ++-
+>  arch/arm64/include/asm/sysreg.h | 30 ++++++++++++++++++++++++++++++
+>  2 files changed, 32 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
+> index ce70c3ffb993..022785162281 100644
+> --- a/arch/arm64/include/asm/esr.h
+> +++ b/arch/arm64/include/asm/esr.h
+> @@ -30,7 +30,8 @@
+>  #define ESR_ELx_EC_CP14_LS	(0x06)
+>  #define ESR_ELx_EC_FP_ASIMD	(0x07)
+>  #define ESR_ELx_EC_CP10_ID	(0x08)
+> -/* Unallocated EC: 0x09 - 0x0B */
+> +#define ESR_ELx_EC_PAC		(0x09)
 
-> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-> index 0dd171c7d71e..3157685aa56a 100644
-> --- a/arch/arm64/kernel/cpufeature.c
-> +++ b/arch/arm64/kernel/cpufeature.c
-> @@ -1040,6 +1040,11 @@ static void cpu_has_fwb(const struct arm64_cpu_capabilities *__unused)
->   }
->   
->   #ifdef CONFIG_ARM64_PTR_AUTH
-> +static void cpu_enable_address_auth(struct arm64_cpu_capabilities const *cap)
-> +{
-> +	sysreg_clear_set(sctlr_el1, 0, SCTLR_ELx_ENIA);
-> +}
-> +
->   static bool has_address_auth(const struct arm64_cpu_capabilities *entry,
->   			     int __unused)
->   {
-> @@ -1267,6 +1272,7 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
->   		.capability = ARM64_HAS_ADDRESS_AUTH,
->   		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
->   		.matches = has_address_auth,
-> +		.cpu_enable = cpu_enable_address_auth,
->   	},
->   #endif /* CONFIG_ARM64_PTR_AUTH */
->   	{},
-> @@ -1314,6 +1320,10 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
->   #ifdef CONFIG_ARM64_SVE
->   	HWCAP_CAP(SYS_ID_AA64PFR0_EL1, ID_AA64PFR0_SVE_SHIFT, FTR_UNSIGNED, ID_AA64PFR0_SVE, CAP_HWCAP, HWCAP_SVE),
->   #endif
-> +#ifdef CONFIG_ARM64_PTR_AUTH
-> +	HWCAP_CAP(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_APA_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, HWCAP_APIA),
-> +	HWCAP_CAP(SYS_ID_AA64ISAR1_EL1, ID_AA64ISAR1_API_SHIFT, FTR_UNSIGNED, 1, CAP_HWCAP, HWCAP_APIA),
+Really minor nit: but shouldn't this be ESR_EL2_EC_PAC, since this trap
+can't occur at EL1 afaict?
 
-This is a bit problematic. If all the CPUs have just the IMPDEF
-algorithm available, we could fail to match the first entry (APA) for a
-late secondary CPU and thus thus fail the CPU from booting. I guess we 
-need a custom entry which reuses the has_address_auth() as the matches().
+Rest of the patch looks good:
 
-Rest looks fine to me.
+Reviewed-by: Will Deacon <will.deacon@arm.com>
 
-Suzuki
+Will
