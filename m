@@ -1,121 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:33311 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726991AbeJKHnf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:43:35 -0400
-Received: by mail-pf1-f195.google.com with SMTP id 78-v6so1060870pfq.0
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:19:01 -0700 (PDT)
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:39373 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725995AbeJKHuW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:22 -0400
+Received: by mail-pl1-f193.google.com with SMTP id w14-v6so3293347plp.6
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:46 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 07/30] LSM: Convert security_initcall() into DEFINE_LSM()
-Date: Wed, 10 Oct 2018 17:18:23 -0700
-Message-ID: <20181011001846.30964-8-keescook@chromium.org>
+Subject: [PATCH security-next v5 18/30] LSM: Introduce "lsm=" for boottime LSM selection
+Date: Wed, 10 Oct 2018 17:18:34 -0700
+Message-ID: <20181011001846.30964-19-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001823.pw3BNswJ8TrPUSgQyrNA8IlHnRgj2-XkS_ZyjMvlIkE@z>
+Message-ID: <20181011001834.yTp_2hwxwS5NnVifWHnQVhrGhYsH6tCEjq-He3pDeK8@z>
 
-Instead of using argument-based initializers, switch to defining the
-contents of struct lsm_info on a per-LSM basis. This also drops
-the final use of the now inaccurate "initcall" naming.
+Provide a way to explicitly choose LSM initialization order via the new
+"lsm=" comma-separated list of LSMs.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Casey Schaufler <casey@schaufler-ca.com>
-Reviewed-by: James Morris <james.morris@microsoft.com>
 ---
- include/linux/lsm_hooks.h  | 5 ++---
- security/apparmor/lsm.c    | 4 +++-
- security/integrity/iint.c  | 4 +++-
- security/selinux/hooks.c   | 4 +++-
- security/smack/smack_lsm.c | 4 +++-
- security/tomoyo/tomoyo.c   | 4 +++-
- 6 files changed, 17 insertions(+), 8 deletions(-)
+ Documentation/admin-guide/kernel-parameters.txt |  4 ++++
+ security/Kconfig                                |  3 ++-
+ security/security.c                             | 14 +++++++++++++-
+ 3 files changed, 19 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index d13059feca09..9c6b4198ff5a 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -2045,11 +2045,10 @@ struct lsm_info {
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 32d323ee9218..d6389ab66f49 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -2276,6 +2276,10 @@
  
- extern struct lsm_info __start_lsm_info[], __end_lsm_info[];
+ 	lsm.debug	[SECURITY] Enable LSM initialization debugging output.
  
--#define security_initcall(lsm)						\
-+#define DEFINE_LSM(lsm)							\
- 	static struct lsm_info __lsm_##lsm				\
- 		__used __section(.lsm_info.init)			\
--		__aligned(sizeof(unsigned long))			\
--		= { .init = lsm, }
-+		__aligned(sizeof(unsigned long))
++	lsm=lsm1,...,lsmN
++			[SECURITY] Choose order of LSM initialization. This
++			overrides CONFIG_LSM.
++
+ 	machvec=	[IA-64] Force the use of a particular machine-vector
+ 			(machvec) in a generic kernel.
+ 			Example: machvec=hpzx1_swiotlb
+diff --git a/security/Kconfig b/security/Kconfig
+index 005634f7c4bb..0aa82c1c928e 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -281,7 +281,8 @@ config LSM
+ 	default "integrity"
+ 	help
+ 	  A comma-separated list of LSMs, in initialization order.
+-	  Any LSMs left off this list will be ignored.
++	  Any LSMs left off this list will be ignored. This can be
++	  controlled at boot with the "lsm=" parameter.
  
- #ifdef CONFIG_SECURITY_SELINUX_DISABLE
- /*
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index 8b8b70620bbe..c4863956c832 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1606,4 +1606,6 @@ static int __init apparmor_init(void)
- 	return error;
+ 	  If unsure, leave this as the default.
+ 
+diff --git a/security/security.c b/security/security.c
+index 1c4889bce917..70cb2d0004e9 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -47,6 +47,7 @@ char *lsm_names;
+ /* Boot-time LSM user choice */
+ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
+ 	CONFIG_DEFAULT_SECURITY;
++static __initdata const char *chosen_lsm_order;
+ 
+ static __initconst const char * const builtin_lsm_order = CONFIG_LSM;
+ 
+@@ -190,7 +191,10 @@ static void __init ordered_lsm_init(void)
+ 	ordered_lsms = kcalloc(LSM_COUNT + 1, sizeof(*ordered_lsms),
+ 				GFP_KERNEL);
+ 
+-	ordered_lsm_parse(builtin_lsm_order, "builtin");
++	if (chosen_lsm_order)
++		ordered_lsm_parse(chosen_lsm_order, "cmdline");
++	else
++		ordered_lsm_parse(builtin_lsm_order, "builtin");
+ 
+ 	for (lsm = ordered_lsms; *lsm; lsm++)
+ 		maybe_initialize_lsm(*lsm);
+@@ -252,6 +256,14 @@ static int __init choose_lsm(char *str)
  }
+ __setup("security=", choose_lsm);
  
--security_initcall(apparmor_init);
-+DEFINE_LSM(apparmor) = {
-+	.init = apparmor_init,
-+};
-diff --git a/security/integrity/iint.c b/security/integrity/iint.c
-index 70d21b566955..94e8e1820748 100644
---- a/security/integrity/iint.c
-+++ b/security/integrity/iint.c
-@@ -175,7 +175,9 @@ static int __init integrity_iintcache_init(void)
- 			      0, SLAB_PANIC, init_once);
- 	return 0;
- }
--security_initcall(integrity_iintcache_init);
-+DEFINE_LSM(integrity) = {
-+	.init = integrity_iintcache_init,
-+};
- 
- 
- /*
-diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
-index ad9a9b8e9979..6ca2e89ddbd6 100644
---- a/security/selinux/hooks.c
-+++ b/security/selinux/hooks.c
-@@ -7202,7 +7202,9 @@ void selinux_complete_init(void)
- 
- /* SELinux requires early initialization in order to label
-    all processes and objects when they are created. */
--security_initcall(selinux_init);
-+DEFINE_LSM(selinux) = {
-+	.init = selinux_init,
-+};
- 
- #if defined(CONFIG_NETFILTER)
- 
-diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
-index 340fc30ad85d..c62e26939a69 100644
---- a/security/smack/smack_lsm.c
-+++ b/security/smack/smack_lsm.c
-@@ -4882,4 +4882,6 @@ static __init int smack_init(void)
-  * Smack requires early initialization in order to label
-  * all processes and objects when they are created.
-  */
--security_initcall(smack_init);
-+DEFINE_LSM(smack) = {
-+	.init = smack_init,
-+};
-diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
-index 9f932e2d6852..b2d833999910 100644
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
-@@ -550,4 +550,6 @@ static int __init tomoyo_init(void)
- 	return 0;
- }
- 
--security_initcall(tomoyo_init);
-+DEFINE_LSM(tomoyo) = {
-+	.init = tomoyo_init,
-+};
++/* Explicitly choose LSM initialization order. */
++static int __init choose_lsm_order(char *str)
++{
++	chosen_lsm_order = str;
++	return 1;
++}
++__setup("lsm=", choose_lsm_order);
++
+ /* Enable LSM order debugging. */
+ static int __init enable_debug(char *str)
+ {
 -- 
 2.17.1
