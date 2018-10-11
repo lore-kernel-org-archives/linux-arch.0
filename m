@@ -1,74 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:37895 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726299AbeJKHua (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:30 -0400
-Received: by mail-pf1-f195.google.com with SMTP id f29-v6so3453522pff.5
-        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:54 -0700 (PDT)
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:40863 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726219AbeJKHuZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2018 03:50:25 -0400
+Received: by mail-pl1-f196.google.com with SMTP id 1-v6so3294944plv.7
+        for <linux-arch@vger.kernel.org>; Wed, 10 Oct 2018 17:25:48 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH security-next v5 23/30] apparmor: Remove SECURITY_APPARMOR_BOOTPARAM_VALUE
-Date: Wed, 10 Oct 2018 17:18:39 -0700
-Message-ID: <20181011001846.30964-24-keescook@chromium.org>
+Subject: [PATCH security-next v5 29/30] LSM: Introduce enum lsm_order
+Date: Wed, 10 Oct 2018 17:18:45 -0700
+Message-ID: <20181011001846.30964-30-keescook@chromium.org>
 In-Reply-To: <20181011001846.30964-1-keescook@chromium.org>
 References: <20181011001846.30964-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Morris <jmorris@namei.org>
 Cc: Kees Cook <keescook@chromium.org>, Casey Schaufler <casey@schaufler-ca.com>, John Johansen <john.johansen@canonical.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Jordan Glover <Golden_Miller83@protonmail.ch>, LSM <linux-security-module@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20181011001839.x1jaQrHA3vwiuxbZcQDL8HwmXBc7WeIFRmqVdh0wmCg@z>
+Message-ID: <20181011001845.zKG48jj_oCIR95sUon_J6x2DILhH8R057VRkxS2ixnw@z>
 
-In preparation for removing CONFIG_DEFAULT_SECURITY, this removes the
-soon-to-be redundant SECURITY_APPARMOR_BOOTPARAM_VALUE. Since explicit
-ordering via CONFIG_LSM or "lsm=" will define whether an LSM is enabled or
-not, this CONFIG will become effectively ignored, so remove it. However,
-in order to stay backward-compatible with "security=apparmor", the enable
-variable defaults to true.
+In preparation for distinguishing the "capability" LSM from other LSMs, it
+must be ordered first. This introduces LSM_ORDER_MUTABLE for the general
+LSMs and LSM_ORDER_FIRST for capability. In the future LSM_ORDER_LAST
+for could be added for anything that must run last (e.g. Landlock may
+use this).
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- security/apparmor/Kconfig | 16 ----------------
- security/apparmor/lsm.c   |  2 +-
- 2 files changed, 1 insertion(+), 17 deletions(-)
+ include/linux/lsm_hooks.h | 6 ++++++
+ security/security.c       | 9 ++++++++-
+ 2 files changed, 14 insertions(+), 1 deletion(-)
 
-diff --git a/security/apparmor/Kconfig b/security/apparmor/Kconfig
-index b6b68a7750ce..3de21f46c82a 100644
---- a/security/apparmor/Kconfig
-+++ b/security/apparmor/Kconfig
-@@ -14,22 +14,6 @@ config SECURITY_APPARMOR
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 833ec0f03795..97898679a505 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -2042,8 +2042,14 @@ extern void security_add_hooks(struct security_hook_list *hooks, int count,
+ #define LSM_FLAG_LEGACY_MAJOR	BIT(0)
+ #define LSM_FLAG_EXCLUSIVE	BIT(1)
  
- 	  If you are unsure how to answer this question, answer N.
++enum lsm_order {
++	LSM_ORDER_FIRST = -1,	/* This is only for capabilities. */
++	LSM_ORDER_MUTABLE = 0,
++};
++
+ struct lsm_info {
+ 	const char *name;	/* Required. */
++	enum lsm_order order;	/* Optional: default is LSM_ORDER_MUTABLE */
+ 	unsigned long flags;	/* Optional: flags describing LSM */
+ 	int *enabled;		/* Optional: controlled by CONFIG_LSM */
+ 	int (*init)(void);	/* Required. */
+diff --git a/security/security.c b/security/security.c
+index 2eb8afdd945d..004938eb8e70 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -174,6 +174,12 @@ static void __init ordered_lsm_parse(const char *order, const char *origin)
+ 	struct lsm_info *lsm;
+ 	char *sep, *name, *next;
  
--config SECURITY_APPARMOR_BOOTPARAM_VALUE
--	int "AppArmor boot parameter default value"
--	depends on SECURITY_APPARMOR
--	range 0 1
--	default 1
--	help
--	  This option sets the default value for the kernel parameter
--	  'apparmor', which allows AppArmor to be enabled or disabled
--          at boot.  If this option is set to 0 (zero), the AppArmor
--	  kernel parameter will default to 0, disabling AppArmor at
--	  boot.  If this option is set to 1 (one), the AppArmor
--	  kernel parameter will default to 1, enabling AppArmor at
--	  boot.
--
--	  If you are unsure how to answer this question, answer 1.
--
- config SECURITY_APPARMOR_HASH
- 	bool "Enable introspection of sha1 hashes for loaded profiles"
- 	depends on SECURITY_APPARMOR
-diff --git a/security/apparmor/lsm.c b/security/apparmor/lsm.c
-index ebf63461a79c..9eaf1dec2e61 100644
---- a/security/apparmor/lsm.c
-+++ b/security/apparmor/lsm.c
-@@ -1303,7 +1303,7 @@ bool aa_g_paranoid_load = true;
- module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
++	/* LSM_ORDER_FIRST is always first. */
++	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
++		if (lsm->order == LSM_ORDER_FIRST)
++			append_ordered_lsm(lsm, "first");
++	}
++
+ 	sep = kstrdup(order, GFP_KERNEL);
+ 	next = sep;
+ 	/* Walk the list, looking for matching LSMs. */
+@@ -181,7 +187,8 @@ static void __init ordered_lsm_parse(const char *order, const char *origin)
+ 		bool found = false;
  
- /* Boot time disable flag */
--static int apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
-+static int apparmor_enabled __lsm_ro_after_init = 1;
- module_param_named(enabled, apparmor_enabled, int, 0444);
- 
- static int __init apparmor_enabled_setup(char *str)
+ 		for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+-			if (strcmp(lsm->name, name) == 0) {
++			if (lsm->order == LSM_ORDER_MUTABLE &&
++			    strcmp(lsm->name, name) == 0) {
+ 				append_ordered_lsm(lsm, origin);
+ 				found = true;
+ 			}
 -- 
 2.17.1
