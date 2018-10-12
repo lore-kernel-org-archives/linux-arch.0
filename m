@@ -1,76 +1,68 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v4 0/6] parisc: system call table generation support
-Date: Fri, 12 Oct 2018 15:13:56 +0530
-Message-ID: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
+Subject: [PATCH v4 1/6] parisc: move __IGNORE* entries to non uapi header
+Date: Fri, 12 Oct 2018 15:13:57 +0530
+Message-ID: <1539337442-3676-2-git-send-email-firoz.khan@linaro.org>
+References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
 Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-The purpose of this patch series is, we can easily add/modify/delete
-system call table support by changing entry in syscall.tbl file 
-instead of manually changing many files. The other goal is to unify 
-the system call table generation support implementation across all 
-the architectures. 
+All the __IGNORE* entries are resides in the uapi header
+file move to non uapi header asm/unistd.h. Basically it
+is not used by any user space applications.
 
-The system call tables are in different format in all architecture. It
-will be difficult to manually add, modify or delete the system calls
-in the respective files manually. To make it easy by keeping a script 
-and which'll generate uapi header file and syscall table file.
+It is correct to keep __IGNORE* entry in non uapi header
+asm/unistd.h while uapi/asm/unistd.h must hold information
+only useful for user space applications.
 
-syscall.tbl contains the list of available system calls along with 
-system call number and corresponding entry point. Add a new system 
-call in this architecture will be possible by adding new entry in 
-the syscall.tbl file.
+One of the patch in this patch series will generate uapi
+headers that should present in the uapi header file. And
+some of the information which directly used by the user
+space application also need to be present in uapi file.
 
-Adding a new table entry consisting of:
-        - System call number.
-        - ABI.
-        - System call name.
-        - Entry point name.
-        - Compat entry name, if required.
+Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+---
+ arch/parisc/include/asm/unistd.h      | 6 ++++++
+ arch/parisc/include/uapi/asm/unistd.h | 7 -------
+ 2 files changed, 6 insertions(+), 7 deletions(-)
 
-ARM, s390 and x86 architecuture does exist the similar support. I 
-leverage their implementation to come up with a generic solution.
-
-I have done the same support for work for alpha, microblaze, sparc,
-m68k, mips, powerpc, sh, sparc, and xtensa. But I started sending 
-the patch for one architecuture for review. Below mentioned git
-repository contains more details.
-Git repo:- https://github.com/frzkhn/system_call_table_generator/
-
-Finally, this is the ground work for solving the Y2038 issue. We 
-need to add two dozen of system calls to solve Y2038 issue. So this
-patch series will help to add new system calls easily by adding new
-entry in the syscall.tbl.
-
-Firoz Khan (6):
-  parisc: move __IGNORE* entries to non uapi header
-  parisc: add __NR_Linux_syscalls along with __NR_syscalls
-  parisc: add system call table generation support
-  parisc: uapi header and system call table file generation
-  parisc: wire up rseq system call
-  parisc: syscalls: Ignore nfsservctl for other architectures
-
- arch/parisc/Makefile                      |   4 +
- arch/parisc/include/asm/Kbuild            |   3 +
- arch/parisc/include/asm/unistd.h          |   8 +
- arch/parisc/include/uapi/asm/Kbuild       |   2 +
- arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
- arch/parisc/kernel/syscall.S              |  10 +-
- arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
- arch/parisc/kernel/syscalls/Makefile      |  55 ++++
- arch/parisc/kernel/syscalls/syscall.tbl   | 371 ++++++++++++++++++++++++
- arch/parisc/kernel/syscalls/syscallhdr.sh |  35 +++
- arch/parisc/kernel/syscalls/syscalltbl.sh |  46 +++
- scripts/checksyscalls.sh                  |   1 +
- 12 files changed, 540 insertions(+), 836 deletions(-)
- delete mode 100644 arch/parisc/kernel/syscall_table.S
- create mode 100644 arch/parisc/kernel/syscalls/Makefile
- create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
- create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
- create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
-
+diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
+index 3d507d0..93fd9f6 100644
+--- a/arch/parisc/include/asm/unistd.h
++++ b/arch/parisc/include/asm/unistd.h
+@@ -8,6 +8,12 @@
+ 
+ #define SYS_ify(syscall_name)   __NR_##syscall_name
+ 
++#define __IGNORE_select                /* newselect */
++#define __IGNORE_fadvise64             /* fadvise64_64 */
++#define __IGNORE_pkey_mprotect
++#define __IGNORE_pkey_alloc
++#define __IGNORE_pkey_free
++
+ #ifndef ASM_LINE_SEP
+ # define ASM_LINE_SEP ;
+ #endif
+diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+index dc77c5a..bb52e12 100644
+--- a/arch/parisc/include/uapi/asm/unistd.h
++++ b/arch/parisc/include/uapi/asm/unistd.h
+@@ -368,13 +368,6 @@
+ 
+ #define __NR_Linux_syscalls	(__NR_io_pgetevents + 1)
+ 
+-
+-#define __IGNORE_select		/* newselect */
+-#define __IGNORE_fadvise64	/* fadvise64_64 */
+-#define __IGNORE_pkey_mprotect
+-#define __IGNORE_pkey_alloc
+-#define __IGNORE_pkey_free
+-
+ #define LINUX_GATEWAY_ADDR      0x100
+ 
+ #endif /* _UAPI_ASM_PARISC_UNISTD_H_ */
 -- 
 1.9.1
