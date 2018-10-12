@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V8 14/21] csky: User access
-Date: Fri, 12 Oct 2018 12:42:49 +0800
-Message-ID: <b34b21895c39d835b18bfa0c04ea7b374ffee475.1539315391.git.ren_guo@c-sky.com>
+Subject: [PATCH V8 15/21] csky: Debug and Ptrace GDB
+Date: Fri, 12 Oct 2018 12:42:50 +0800
+Message-ID: <a7bf4b86f9bcee1465727cc19642d5c913281e7b.1539315391.git.ren_guo@c-sky.com>
 References: <cover.1539315390.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1539315390.git.ren_guo@c-sky.com>
@@ -12,705 +12,553 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds "user access from kernel" codes.
+This patch adds arch ptrace implementation, stack dump and bug.h.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/include/asm/uaccess.h | 416 ++++++++++++++++++++++++++++++++++++++++
- arch/csky/lib/usercopy.c        | 262 +++++++++++++++++++++++++
- 2 files changed, 678 insertions(+)
- create mode 100644 arch/csky/include/asm/uaccess.h
- create mode 100644 arch/csky/lib/usercopy.c
+ arch/csky/include/asm/bug.h         |  26 +++
+ arch/csky/include/uapi/asm/ptrace.h | 104 ++++++++++++
+ arch/csky/kernel/dumpstack.c        |  66 ++++++++
+ arch/csky/kernel/ptrace.c           | 314 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 510 insertions(+)
+ create mode 100644 arch/csky/include/asm/bug.h
+ create mode 100644 arch/csky/include/uapi/asm/ptrace.h
+ create mode 100644 arch/csky/kernel/dumpstack.c
+ create mode 100644 arch/csky/kernel/ptrace.c
 
-diff --git a/arch/csky/include/asm/uaccess.h b/arch/csky/include/asm/uaccess.h
+diff --git a/arch/csky/include/asm/bug.h b/arch/csky/include/asm/bug.h
 new file mode 100644
-index 0000000..acaf0e210
+index 0000000..bd7b323
 --- /dev/null
-+++ b/arch/csky/include/asm/uaccess.h
-@@ -0,0 +1,416 @@
++++ b/arch/csky/include/asm/bug.h
+@@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#ifndef __ASM_CSKY_UACCESS_H
-+#define __ASM_CSKY_UACCESS_H
++#ifndef __ASM_CSKY_BUG_H
++#define __ASM_CSKY_BUG_H
 +
-+/*
-+ * User space memory access functions
-+ */
 +#include <linux/compiler.h>
-+#include <linux/errno.h>
++#include <linux/const.h>
 +#include <linux/types.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/string.h>
-+#include <linux/version.h>
-+#include <asm/segment.h>
 +
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
-+
-+static inline int access_ok(int type, const void *addr, unsigned long size)
-+{
-+	unsigned long limit = current_thread_info()->addr_limit.seg;
-+
-+	return (((unsigned long)addr < limit) &&
-+		((unsigned long)(addr + size) < limit));
-+}
-+
-+static inline int verify_area(int type, const void *addr, unsigned long size)
-+{
-+	return access_ok(type, addr, size) ? 0 : -EFAULT;
-+}
-+
-+#define __addr_ok(addr) (access_ok(VERIFY_READ, addr, 0))
-+
-+extern int __put_user_bad(void);
-+
-+/*
-+ * Tell gcc we read from memory instead of writing: this is because
-+ * we do not write to any memory gcc knows about, so there are no
-+ * aliasing issues.
-+ */
-+
-+/*
-+ * These are the main single-value transfer routines.  They automatically
-+ * use the right size if we just have the right pointer type.
-+ *
-+ * This gets kind of ugly. We want to return _two_ values in "get_user()"
-+ * and yet we don't want to do any pointers, because that is too much
-+ * of a performance impact. Thus we have a few rather ugly macros here,
-+ * and hide all the ugliness from the user.
-+ *
-+ * The "__xxx" versions of the user access functions are versions that
-+ * do not verify the address space, that must have been done previously
-+ * with a separate "access_ok()" call (this is used when we do multiple
-+ * accesses to the same area of user memory).
-+ *
-+ * As we use the same address space for kernel and user data on
-+ * Ckcore, we can just do these as direct assignments.  (Of course, the
-+ * exception handling means that it's no longer "just"...)
-+ */
-+
-+#define put_user(x, ptr) \
-+	__put_user_check((x), (ptr), sizeof(*(ptr)))
-+
-+#define __put_user(x, ptr) \
-+	__put_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+#define __ptr(x) ((unsigned long *)(x))
-+
-+#define get_user(x, ptr) \
-+	__get_user_check((x), (ptr), sizeof(*(ptr)))
-+
-+#define __get_user(x, ptr) \
-+	__get_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+#define __put_user_nocheck(x, ptr, size)				\
-+({									\
-+	long __pu_err = 0;						\
-+	typeof(*(ptr)) *__pu_addr = (ptr);				\
-+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);			\
-+	if (__pu_addr)							\
-+		__put_user_size(__pu_val, (__pu_addr), (size),		\
-+				__pu_err);				\
-+	__pu_err;							\
-+})
-+
-+#define __put_user_check(x, ptr, size)					\
-+({									\
-+	long __pu_err = -EFAULT;					\
-+	typeof(*(ptr)) *__pu_addr = (ptr);				\
-+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);			\
-+	if (access_ok(VERIFY_WRITE, __pu_addr, size) && __pu_addr)	\
-+		__put_user_size(__pu_val, __pu_addr, (size), __pu_err);	\
-+	__pu_err;							\
-+})
-+
-+#define __put_user_size(x, ptr, size, retval)		\
-+do {							\
-+	retval = 0;					\
-+	switch (size) {                                 \
-+	case 1:						\
-+		__put_user_asm_b(x, ptr, retval);	\
-+		break;					\
-+	case 2:						\
-+		__put_user_asm_h(x, ptr, retval);	\
-+		break;					\
-+	case 4:						\
-+		__put_user_asm_w(x, ptr, retval);	\
-+		break;					\
-+	case 8:						\
-+		__put_user_asm_64(x, ptr, retval);	\
-+		break;					\
-+	default:					\
-+		__put_user_bad();			\
-+	}	                                        \
++#define BUG()				\
++do {					\
++	asm volatile ("bkpt\n");	\
++	unreachable();			\
 +} while (0)
 +
-+/*
-+ * We don't tell gcc that we are accessing memory, but this is OK
-+ * because we do not write to any memory gcc knows about, so there
-+ * are no aliasing issues.
-+ *
-+ * Note that PC at a fault is the address *after* the faulting
-+ * instruction.
-+ */
-+#define __put_user_asm_b(x, ptr, err)			\
-+do {							\
-+	int errcode;					\
-+	asm volatile(					\
-+	"1:     stb   %1, (%2,0)	\n"		\
-+	"       br    3f		\n"		\
-+	"2:     mov   %0, %3		\n"		\
-+	"       br    3f		\n"		\
-+	".section __ex_table, \"a\"	\n"		\
-+	".align   2			\n"		\
-+	".long    1b,2b			\n"		\
-+	".previous			\n"		\
-+	"3:				\n"		\
-+	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
-+	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
-+	: "memory");					\
-+} while (0)
++#define HAVE_ARCH_BUG
 +
-+#define __put_user_asm_h(x, ptr, err)			\
-+do {							\
-+	int errcode;					\
-+	asm volatile(					\
-+	"1:     sth   %1, (%2,0)	\n"		\
-+	"       br    3f		\n"		\
-+	"2:     mov   %0, %3		\n"		\
-+	"       br    3f		\n"		\
-+	".section __ex_table, \"a\"	\n"		\
-+	".align   2			\n"		\
-+	".long    1b,2b			\n"		\
-+	".previous			\n"		\
-+	"3:				\n"		\
-+	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
-+	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
-+	: "memory");					\
-+} while (0)
++#include <asm-generic/bug.h>
 +
-+#define __put_user_asm_w(x, ptr, err)			\
-+do {							\
-+	int errcode;					\
-+	asm volatile(					\
-+	"1:     stw   %1, (%2,0)	\n"		\
-+	"       br    3f		\n"		\
-+	"2:     mov   %0, %3		\n"		\
-+	"       br    3f		\n"		\
-+	".section __ex_table,\"a\"	\n"		\
-+	".align   2			\n"		\
-+	".long    1b, 2b		\n"		\
-+	".previous			\n"		\
-+	"3:				\n"		\
-+	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
-+	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
-+	: "memory");					\
-+} while (0)
++struct pt_regs;
 +
-+#define __put_user_asm_64(x, ptr, err)				\
-+do {								\
-+	int tmp;						\
-+	int errcode;						\
-+	typeof(*(ptr))src = (typeof(*(ptr)))x;			\
-+	typeof(*(ptr))*psrc = &src;				\
-+								\
-+	asm volatile(						\
-+	"     ldw     %3, (%1, 0)     \n"			\
-+	"1:   stw     %3, (%2, 0)     \n"			\
-+	"     ldw     %3, (%1, 4)     \n"			\
-+	"2:   stw     %3, (%2, 4)     \n"			\
-+	"     br      4f              \n"			\
-+	"3:   mov     %0, %4          \n"			\
-+	"     br      4f              \n"			\
-+	".section __ex_table, \"a\"   \n"			\
-+	".align   2                   \n"			\
-+	".long    1b, 3b              \n"			\
-+	".long    2b, 3b              \n"			\
-+	".previous                    \n"			\
-+	"4:                           \n"			\
-+	: "=r"(err), "=r"(psrc), "=r"(ptr),			\
-+	  "=r"(tmp), "=r"(errcode)				\
-+	: "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)	\
-+	: "memory");						\
-+} while (0)
++void die_if_kernel(char *str, struct pt_regs *regs, int nr);
++void show_regs(struct pt_regs *regs);
 +
-+#define __get_user_nocheck(x, ptr, size)			\
-+({								\
-+	long  __gu_err;						\
-+	__get_user_size(x, (ptr), (size), __gu_err);		\
-+	__gu_err;						\
-+})
++#endif /* __ASM_CSKY_BUG_H */
+diff --git a/arch/csky/include/uapi/asm/ptrace.h b/arch/csky/include/uapi/asm/ptrace.h
+new file mode 100644
+index 0000000..f10d02c
+--- /dev/null
++++ b/arch/csky/include/uapi/asm/ptrace.h
+@@ -0,0 +1,104 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#define __get_user_check(x, ptr, size)				\
-+({								\
-+	int __gu_err = -EFAULT;					\
-+	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);	\
-+	if (access_ok(VERIFY_READ, __gu_ptr, size) && __gu_ptr)	\
-+		__get_user_size(x, __gu_ptr, size, __gu_err);	\
-+	__gu_err;						\
-+})
++#ifndef _CSKY_PTRACE_H
++#define _CSKY_PTRACE_H
 +
-+#define __get_user_size(x, ptr, size, retval)			\
-+do {								\
-+	switch (size) {						\
-+	case 1:							\
-+		__get_user_asm_common((x), ptr, "ldb", retval);	\
-+		break;						\
-+	case 2:							\
-+		__get_user_asm_common((x), ptr, "ldh", retval);	\
-+		break;						\
-+	case 4:							\
-+		__get_user_asm_common((x), ptr, "ldw", retval);	\
-+		break;						\
-+	default:						\
-+		x = 0;						\
-+		(retval) = __get_user_bad();			\
-+	}							\
-+} while (0)
++#ifndef __ASSEMBLY__
 +
-+#define __get_user_asm_common(x, ptr, ins, err)			\
-+do {								\
-+	int errcode;						\
-+	asm volatile(						\
-+	"1:   " ins " %1, (%4,0)	\n"			\
-+	"       br    3f		\n"			\
-+	/* Fix up codes */					\
-+	"2:     mov   %0, %2		\n"			\
-+	"       movi  %1, 0		\n"			\
-+	"       br    3f		\n"			\
-+	".section __ex_table,\"a\"      \n"			\
-+	".align   2			\n"			\
-+	".long    1b, 2b		\n"			\
-+	".previous			\n"			\
-+	"3:				\n" 			\
-+	: "=r"(err), "=r"(x), "=r"(errcode)			\
-+	: "0"(0), "r"(ptr), "2"(-EFAULT)			\
-+	: "memory");						\
-+} while (0)
++struct pt_regs {
++	unsigned long	tls;
++	unsigned long	lr;
++	unsigned long	pc;
++	unsigned long	sr;
++	unsigned long	usp;
 +
-+extern int __get_user_bad(void);
++	/*
++	 * a0, a1, a2, a3:
++	 * abiv1: r2, r3, r4, r5
++	 * abiv2: r0, r1, r2, r3
++	 */
++	unsigned long	orig_a0;
++	unsigned long	a0;
++	unsigned long	a1;
++	unsigned long	a2;
++	unsigned long	a3;
 +
-+#define __copy_user(to, from, n)			\
-+do {							\
-+	int w0, w1, w2, w3;				\
-+	asm volatile(					\
-+	"0:     cmpnei  %1, 0           \n"		\
-+	"       bf      8f              \n"		\
-+	"       mov     %3, %1          \n"		\
-+	"       or      %3, %2          \n"		\
-+	"       andi    %3, 3           \n"		\
-+	"       cmpnei  %3, 0           \n"		\
-+	"       bf      1f              \n"		\
-+	"       br      5f              \n"		\
-+	"1:     cmplti  %0, 16          \n" /* 4W */	\
-+	"       bt      3f              \n"		\
-+	"       ldw     %3, (%2, 0)     \n"		\
-+	"       ldw     %4, (%2, 4)     \n"		\
-+	"       ldw     %5, (%2, 8)     \n"		\
-+	"       ldw     %6, (%2, 12)    \n"		\
-+	"2:     stw     %3, (%1, 0)     \n"		\
-+	"9:     stw     %4, (%1, 4)     \n"		\
-+	"10:    stw     %5, (%1, 8)     \n"		\
-+	"11:    stw     %6, (%1, 12)    \n"		\
-+	"       addi    %2, 16          \n"		\
-+	"       addi    %1, 16          \n"		\
-+	"       subi    %0, 16          \n"		\
-+	"       br      1b              \n"		\
-+	"3:     cmplti  %0, 4           \n" /* 1W */	\
-+	"       bt      5f              \n"		\
-+	"       ldw     %3, (%2, 0)     \n"		\
-+	"4:     stw     %3, (%1, 0)     \n"		\
-+	"       addi    %2, 4           \n"		\
-+	"       addi    %1, 4           \n"		\
-+	"       subi    %0, 4           \n"		\
-+	"       br      3b              \n"		\
-+	"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-+	"       bf      8f              \n"		\
-+	"       ldb     %3, (%2, 0)     \n"		\
-+	"6:     stb     %3, (%1, 0)     \n"		\
-+	"       addi    %2,  1          \n"		\
-+	"       addi    %1,  1          \n"		\
-+	"       subi    %0,  1          \n"		\
-+	"       br      5b              \n"		\
-+	"7:     br      8f              \n"		\
-+	".section __ex_table, \"a\"     \n"		\
-+	".align   2                     \n"		\
-+	".long    2b, 7b                \n"		\
-+	".long    9b, 7b                \n"		\
-+	".long   10b, 7b                \n"		\
-+	".long   11b, 7b                \n"		\
-+	".long    4b, 7b                \n"		\
-+	".long    6b, 7b                \n"		\
-+	".previous                      \n"		\
-+	"8:                             \n"		\
-+	: "=r"(n), "=r"(to), "=r"(from), "=r"(w0),	\
-+	  "=r"(w1), "=r"(w2), "=r"(w3)			\
-+	: "0"(n), "1"(to), "2"(from)			\
-+	: "memory");					\
-+} while (0)
++	/*
++	 * ABIV2: r4 ~ r13
++	 * ABIV1: r6 ~ r14, r1
++	 */
++	unsigned long	regs[10];
 +
-+#define __copy_user_zeroing(to, from, n)		\
-+do {							\
-+	int tmp;					\
-+	int nsave;					\
-+	asm volatile(					\
-+	"0:     cmpnei  %1, 0           \n"		\
-+	"       bf      7f              \n"		\
-+	"       mov     %3, %1          \n"		\
-+	"       or      %3, %2          \n"		\
-+	"       andi    %3, 3           \n"		\
-+	"       cmpnei  %3, 0           \n"		\
-+	"       bf      1f              \n"		\
-+	"       br      5f              \n"		\
-+	"1:     cmplti  %0, 16          \n"		\
-+	"       bt      3f              \n"		\
-+	"2:     ldw     %3, (%2, 0)     \n"		\
-+	"10:    ldw     %4, (%2, 4)     \n"		\
-+	"       stw     %3, (%1, 0)     \n"		\
-+	"       stw     %4, (%1, 4)     \n"		\
-+	"11:    ldw     %3, (%2, 8)     \n"		\
-+	"12:    ldw     %4, (%2, 12)    \n"		\
-+	"       stw     %3, (%1, 8)     \n"		\
-+	"       stw     %4, (%1, 12)    \n"		\
-+	"       addi    %2, 16          \n"		\
-+	"       addi    %1, 16          \n"		\
-+	"       subi    %0, 16          \n"		\
-+	"       br      1b              \n"		\
-+	"3:     cmplti  %0, 4           \n"		\
-+	"       bt      5f              \n"		\
-+	"4:     ldw     %3, (%2, 0)     \n"		\
-+	"       stw     %3, (%1, 0)     \n"		\
-+	"       addi    %2, 4           \n"		\
-+	"       addi    %1, 4           \n"		\
-+	"       subi    %0, 4           \n"		\
-+	"       br      3b              \n"		\
-+	"5:     cmpnei  %0, 0           \n"		\
-+	"       bf      7f              \n"		\
-+	"6:     ldb     %3, (%2, 0)     \n"		\
-+	"       stb     %3, (%1, 0)     \n"		\
-+	"       addi    %2,  1          \n"		\
-+	"       addi    %1,  1          \n"		\
-+	"       subi    %0,  1          \n"		\
-+	"       br      5b              \n"		\
-+	"8:     mov     %3, %0          \n"		\
-+	"       movi    %4, 0           \n"		\
-+	"9:     stb     %4, (%1, 0)     \n"		\
-+	"       addi    %1, 1           \n"		\
-+	"       subi    %3, 1           \n"		\
-+	"       cmpnei  %3, 0           \n"		\
-+	"       bt      9b              \n"		\
-+	"       br      7f              \n"		\
-+	".section __ex_table, \"a\"     \n"		\
-+	".align   2                     \n"		\
-+	".long    2b, 8b                \n"		\
-+	".long   10b, 8b                \n"		\
-+	".long   11b, 8b                \n"		\
-+	".long   12b, 8b                \n"		\
-+	".long    4b, 8b                \n"		\
-+	".long    6b, 8b                \n"		\
-+	".previous                      \n"		\
-+	"7:                             \n"		\
-+	: "=r"(n), "=r"(to), "=r"(from), "=r"(nsave),	\
-+	  "=r"(tmp)					\
-+	: "0"(n), "1"(to), "2"(from)			\
-+	: "memory");					\
-+} while (0)
++#if defined(__CSKYABIV2__)
++	/* r16 ~ r30 */
++	unsigned long	exregs[15];
 +
-+unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);
-+unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
-+
-+unsigned long clear_user(void *to, unsigned long n);
-+unsigned long __clear_user(void __user *to, unsigned long n);
-+
-+long strncpy_from_user(char *dst, const char *src, long count);
-+long __strncpy_from_user(char *dst, const char *src, long count);
-+
-+/*
-+ * Return the size of a string (including the ending 0)
-+ *
-+ * Return 0 on exception, a value greater than N if too long
-+ */
-+long strnlen_user(const char *src, long n);
-+
-+#define strlen_user(str) strnlen_user(str, 32767)
-+
-+struct exception_table_entry {
-+	unsigned long insn;
-+	unsigned long nextinsn;
++	unsigned long	rhi;
++	unsigned long	rlo;
++	unsigned long	pad; /* reserved */
++#endif
 +};
 +
-+extern int fixup_exception(struct pt_regs *regs);
++struct user_fp {
++	unsigned long	vr[96];
++	unsigned long	fcr;
++	unsigned long	fesr;
++	unsigned long	fid;
++	unsigned long	reserved;
++};
 +
-+#endif /* __ASM_CSKY_UACCESS_H */
-diff --git a/arch/csky/lib/usercopy.c b/arch/csky/lib/usercopy.c
++/*
++ * Switch stack for switch_to after push pt_regs.
++ *
++ * ABI_CSKYV2: r4 ~ r11, r15 ~ r17, r26 ~ r30;
++ * ABI_CSKYV1: r8 ~ r14, r15;
++ */
++struct  switch_stack {
++#if defined(__CSKYABIV2__)
++	unsigned long   r4;
++	unsigned long   r5;
++	unsigned long   r6;
++	unsigned long   r7;
++	unsigned long   r8;
++	unsigned long   r9;
++	unsigned long   r10;
++	unsigned long   r11;
++#else
++	unsigned long   r8;
++	unsigned long   r9;
++	unsigned long   r10;
++	unsigned long   r11;
++	unsigned long   r12;
++	unsigned long   r13;
++	unsigned long   r14;
++#endif
++	unsigned long   r15;
++#if defined(__CSKYABIV2__)
++	unsigned long   r16;
++	unsigned long   r17;
++	unsigned long   r26;
++	unsigned long   r27;
++	unsigned long   r28;
++	unsigned long   r29;
++	unsigned long   r30;
++#endif
++};
++
++#ifdef __KERNEL__
++
++#define PS_S	0x80000000 /* Supervisor Mode */
++
++#define arch_has_single_step() (1)
++#define current_pt_regs() \
++({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
++
++#define user_stack_pointer(regs) ((regs)->usp)
++
++#define user_mode(regs) (!((regs)->sr & PS_S))
++#define instruction_pointer(regs) ((regs)->pc)
++#define profile_pc(regs) instruction_pointer(regs)
++
++#endif /* __KERNEL__ */
++#endif /* __ASSEMBLY__ */
++#endif /* _CSKY_PTRACE_H */
+diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
 new file mode 100644
-index 0000000..ac9170e
+index 0000000..a9a03ac
 --- /dev/null
-+++ b/arch/csky/lib/usercopy.c
-@@ -0,0 +1,262 @@
++++ b/arch/csky/kernel/dumpstack.c
+@@ -0,0 +1,66 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
++#include <linux/ptrace.h>
++
++int kstack_depth_to_print = 48;
++
++void show_trace(unsigned long *stack)
++{
++	unsigned long *endstack;
++	unsigned long addr;
++	int i;
++
++	pr_info("Call Trace:\n");
++	addr = (unsigned long)stack + THREAD_SIZE - 1;
++	endstack = (unsigned long *)(addr & -THREAD_SIZE);
++	i = 0;
++	while (stack + 1 <= endstack) {
++		addr = *stack++;
++		/*
++		 * If the address is either in the text segment of the
++		 * kernel, or in the region which contains vmalloc'ed
++		 * memory, it *may* be the address of a calling
++		 * routine; if so, print it so that someone tracing
++		 * down the cause of the crash will be able to figure
++		 * out the call path that was taken.
++		 */
++		if (__kernel_text_address(addr)) {
++#ifndef CONFIG_KALLSYMS
++			if (i % 5 == 0)
++				pr_cont("\n       ");
++#endif
++			pr_cont(" [<%08lx>] %pS\n", addr, (void *)addr);
++			i++;
++		}
++	}
++	pr_cont("\n");
++}
++
++void show_stack(struct task_struct *task, unsigned long *stack)
++{
++	unsigned long *p;
++	unsigned long *endstack;
++	int i;
++
++	if (!stack) {
++		if (task)
++			stack = (unsigned long *)task->thread.esp0;
++		else
++			stack = (unsigned long *)&stack;
++	}
++	endstack = (unsigned long *)
++		(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
++
++	pr_info("Stack from %08lx:", (unsigned long)stack);
++	p = stack;
++	for (i = 0; i < kstack_depth_to_print; i++) {
++		if (p + 1 > endstack)
++			break;
++		if (i % 8 == 0)
++			pr_cont("\n       ");
++		pr_cont(" %08lx", *p++);
++	}
++	pr_cont("\n");
++	show_trace(stack);
++}
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
+new file mode 100644
+index 0000000..34b3025
+--- /dev/null
++++ b/arch/csky/kernel/ptrace.c
+@@ -0,0 +1,314 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#include <linux/elf.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/ptrace.h>
++#include <linux/regset.h>
++#include <linux/sched.h>
++#include <linux/signal.h>
++#include <linux/smp.h>
 +#include <linux/uaccess.h>
-+#include <linux/types.h>
++#include <linux/user.h>
 +
-+unsigned long raw_copy_from_user(void *to, const void *from,
-+			unsigned long n)
-+{
-+	if (access_ok(VERIFY_READ, from, n))
-+		__copy_user_zeroing(to, from, n);
-+	else
-+		memset(to, 0, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_from_user);
++#include <asm/thread_info.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/processor.h>
++#include <asm/asm-offsets.h>
 +
-+unsigned long raw_copy_to_user(void *to, const void *from,
-+			unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__copy_user(to, from, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_to_user);
++#include <abi/regdef.h>
 +
++/* sets the trace bits. */
++#define TRACE_MODE_SI      (1 << 14)
++#define TRACE_MODE_RUN     0
++#define TRACE_MODE_MASK    ~(0x3 << 14)
 +
 +/*
-+ * copy a null terminated string from userspace.
++ * Make sure the single step bit is not set.
 + */
-+#define __do_strncpy_from_user(dst, src, count, res)	\
-+do {							\
-+	int tmp;					\
-+	long faultres;					\
-+	asm volatile(					\
-+	"       cmpnei  %3, 0           \n"		\
-+	"       bf      4f              \n"		\
-+	"1:     cmpnei  %1, 0          	\n"		\
-+	"       bf      5f              \n"		\
-+	"2:     ldb     %4, (%3, 0)     \n"		\
-+	"       stb     %4, (%2, 0)     \n"		\
-+	"       cmpnei  %4, 0           \n"		\
-+	"       bf      3f              \n"		\
-+	"       addi    %3,  1          \n"		\
-+	"       addi    %2,  1          \n"		\
-+	"       subi    %1,  1          \n"		\
-+	"       br      1b              \n"		\
-+	"3:     subu	%0, %1          \n"		\
-+	"       br      5f              \n"		\
-+	"4:     mov     %0, %5          \n"		\
-+	"       br      5f              \n"		\
-+	".section __ex_table, \"a\"     \n"		\
-+	".align   2                     \n"		\
-+	".long    2b, 4b                \n"		\
-+	".previous                      \n"		\
-+	"5:                             \n"		\
-+	: "=r"(res), "=r"(count), "=r"(dst),		\
-+	  "=r"(src), "=r"(tmp),   "=r"(faultres)	\
-+	: "5"(-EFAULT), "0"(count), "1"(count),		\
-+	  "2"(dst), "3"(src)				\
-+	: "memory", "cc");				\
-+} while (0)
++static void singlestep_disable(struct task_struct *tsk)
++{
++	struct pt_regs *regs;
++
++	regs = task_pt_regs(tsk);
++	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
++}
++
++static void singlestep_enable(struct task_struct *tsk)
++{
++	struct pt_regs *regs;
++
++	regs = task_pt_regs(tsk);
++	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_SI;
++}
 +
 +/*
-+ * __strncpy_from_user: - Copy a NUL terminated string from userspace,
-+ * with less checking.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ * Caller must check the specified block with access_ok() before calling
-+ * this function.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
++ * Make sure the single step bit is set.
 + */
-+long __strncpy_from_user(char *dst, const char *src, long count)
++void user_enable_single_step(struct task_struct *child)
 +{
-+	long res;
-+
-+	__do_strncpy_from_user(dst, src, count, res);
-+	return res;
++	if (child->thread.esp0 == 0)
++		return;
++	singlestep_enable(child);
 +}
-+EXPORT_SYMBOL(__strncpy_from_user);
++
++void user_disable_single_step(struct task_struct *child)
++{
++	if (child->thread.esp0 == 0)
++		return;
++	singlestep_disable(child);
++}
++
++enum csky_regset {
++	REGSET_GPR,
++	REGSET_FPR,
++};
++
++static int gpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user *ubuf)
++{
++	struct pt_regs *regs;
++
++	regs = task_pt_regs(target);
++
++	/* Abiv1 regs->tls is fake and we need sync here. */
++	regs->tls = task_thread_info(target)->tp_value;
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++}
++
++static int gpr_set(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++	struct pt_regs regs;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
++	if (ret)
++		return ret;
++
++	regs.sr = task_pt_regs(target)->sr;
++
++	task_thread_info(target)->tp_value = regs.tls;
++
++	*task_pt_regs(target) = regs;
++
++	return 0;
++}
++
++static int fpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user *ubuf)
++{
++	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
++
++#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
++	int i;
++	struct user_fp tmp = *regs;
++
++	for (i = 0; i < 16; i++) {
++		tmp.vr[i*4] = regs->vr[i*2];
++		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
++	}
++
++	for (i = 0; i < 32; i++)
++		tmp.vr[64 + i] = regs->vr[32 + i];
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++#else
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++#endif
++}
++
++static int fpr_set(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
++
++#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
++	int i;
++	struct user_fp tmp;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++
++	*regs = tmp;
++
++	for (i = 0; i < 16; i++) {
++		regs->vr[i*2] = tmp.vr[i*4];
++		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
++	}
++
++	for (i = 0; i < 32; i++)
++		regs->vr[32 + i] = tmp.vr[64 + i];
++#else
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++#endif
++
++	return ret;
++}
++
++static const struct user_regset csky_regsets[] = {
++	[REGSET_GPR] = {
++		.core_note_type = NT_PRSTATUS,
++		.n = ELF_NGREG,
++		.size = sizeof(u32),
++		.align = sizeof(u32),
++		.get = &gpr_get,
++		.set = &gpr_set,
++	},
++	[REGSET_FPR] = {
++		.core_note_type = NT_PRFPREG,
++		.n = sizeof(struct user_fp) / sizeof(u32),
++		.size = sizeof(u32),
++		.align = sizeof(u32),
++		.get = &fpr_get,
++		.set = &fpr_set,
++	},
++};
++
++static const struct user_regset_view user_csky_view = {
++	.name = "csky",
++	.e_machine = ELF_ARCH,
++	.regsets = csky_regsets,
++	.n = ARRAY_SIZE(csky_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_csky_view;
++}
++
++void ptrace_disable(struct task_struct *child)
++{
++	singlestep_disable(child);
++}
++
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	long ret = -EIO;
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	return ret;
++}
 +
 +/*
-+ * strncpy_from_user: - Copy a NUL terminated string from userspace.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
++ * If process's system calls is traces, do some corresponding handles in this
++ * function before entering system call function and after exiting system call
++ * function.
 + */
-+long strncpy_from_user(char *dst, const char *src, long count)
++asmlinkage void syscall_trace(int why, struct pt_regs *regs)
 +{
-+	long res = -EFAULT;
++	long saved_why;
++	/*
++	 * Save saved_why, why is used to denote syscall entry/exit;
++	 * why = 0:entry, why = 1: exit
++	 */
++	saved_why = regs->regs[SYSTRACE_SAVENUM];
++	regs->regs[SYSTRACE_SAVENUM] = why;
 +
-+	if (access_ok(VERIFY_READ, src, 1))
-+		__do_strncpy_from_user(dst, src, count, res);
-+	return res;
++	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
++					? 0x80 : 0));
++
++	/*
++	 * this isn't the same as continuing with a signal, but it will do
++	 * for normal use.  strace only continues with a signal if the
++	 * stopping signal is not SIGTRAP.  -brl
++	 */
++	if (current->exit_code) {
++		send_sig(current->exit_code, current, 1);
++		current->exit_code = 0;
++	}
++
++	regs->regs[SYSTRACE_SAVENUM] = saved_why;
 +}
-+EXPORT_SYMBOL(strncpy_from_user);
 +
-+/*
-+ * strlen_user: - Get the size of a string in user space.
-+ * @str: The string to measure.
-+ * @n:   The maximum valid length
-+ *
-+ * Get the size of a NUL-terminated string in user space.
-+ *
-+ * Returns the size of the string INCLUDING the terminating NUL.
-+ * On exception, returns 0.
-+ * If the string is too long, returns a value greater than @n.
-+ */
-+long strnlen_user(const char *s, long n)
++void show_regs(struct pt_regs *fp)
 +{
-+	unsigned long res, tmp;
++	unsigned long   *sp;
++	unsigned char   *tp;
++	int	i;
 +
-+	if (s == NULL)
-+		return 0;
++	pr_info("\nCURRENT PROCESS:\n\n");
++	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
 +
-+	asm volatile(
-+	"       cmpnei  %1, 0           \n"
-+	"       bf      3f              \n"
-+	"1:     cmpnei  %0, 0           \n"
-+	"       bf      3f              \n"
-+	"2:     ldb     %3, (%1, 0)     \n"
-+	"       cmpnei  %3, 0           \n"
-+	"       bf      3f              \n"
-+	"       subi    %0,  1          \n"
-+	"       addi    %1,  1          \n"
-+	"       br      1b              \n"
-+	"3:     subu    %2, %0          \n"
-+	"       addi    %2,  1          \n"
-+	"       br      5f              \n"
-+	"4:     movi    %0, 0           \n"
-+	"       br      5f              \n"
-+	".section __ex_table, \"a\"     \n"
-+	".align   2                     \n"
-+	".long    2b, 4b                \n"
-+	".previous                      \n"
-+	"5:                             \n"
-+	: "=r"(n), "=r"(s), "=r"(res), "=r"(tmp)
-+	: "0"(n), "1"(s), "2"(n)
-+	: "memory", "cc");
++	if (current->mm) {
++		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
++		       (int) current->mm->start_code,
++		       (int) current->mm->end_code,
++		       (int) current->mm->start_data,
++		       (int) current->mm->end_data,
++		       (int) current->mm->end_data,
++		       (int) current->mm->brk);
++		pr_info("USER-STACK=%08x  KERNEL-STACK=%08x\n\n",
++		       (int) current->mm->start_stack,
++		       (int) (((unsigned long) current) + 2 * PAGE_SIZE));
++	}
 +
-+	return res;
++	pr_info("PC: 0x%08lx\n", (long)fp->pc);
++	pr_info("orig_a0: 0x%08lx\n", fp->orig_a0);
++	pr_info("PSR: 0x%08lx\n", (long)fp->sr);
++
++	pr_info("a0: 0x%08lx  a1: 0x%08lx  a2: 0x%08lx  a3: 0x%08lx\n",
++	       fp->a0, fp->a1, fp->a2, fp->a3);
++#if defined(__CSKYABIV2__)
++	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
++		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
++	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
++		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
++	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
++		fp->regs[8], fp->regs[9], fp->lr);
++	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
++		fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
++	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
++		fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
++	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
++		fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
++	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
++		fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
++	pr_info("hi 0x%08lx    lo: 0x%08lx\n",
++		fp->rhi, fp->rlo);
++#else
++	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
++		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
++	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
++		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
++	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
++		fp->regs[8], fp->regs[9], fp->lr);
++#endif
++
++	pr_info("\nCODE:");
++	tp = ((unsigned char *) fp->pc) - 0x20;
++	tp += ((int)tp % 4) ? 2 : 0;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
++		if ((i % 0x10) == 0)
++			pr_cont("\n%08x: ", (int) (tp + i));
++		pr_cont("%08x ", (int) *sp++);
++	}
++	pr_cont("\n");
++
++	pr_info("\nKERNEL STACK:");
++	tp = ((unsigned char *) fp) - 0x40;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
++		if ((i % 0x10) == 0)
++			pr_cont("\n%08x: ", (int) (tp + i));
++		pr_cont("%08x ", (int) *sp++);
++	}
++	pr_cont("\n");
 +}
-+EXPORT_SYMBOL(strnlen_user);
-+
-+#define __do_clear_user(addr, size)			\
-+do {							\
-+	int __d0, zvalue, tmp;				\
-+							\
-+	asm volatile(					\
-+	"0:     cmpnei  %1, 0           \n"		\
-+	"       bf      7f              \n"		\
-+	"       mov     %3, %1          \n"		\
-+	"       andi    %3, 3           \n"		\
-+	"       cmpnei  %3, 0           \n"		\
-+	"       bf      1f              \n"		\
-+	"       br      5f              \n"		\
-+	"1:     cmplti  %0, 32          \n" /* 4W */	\
-+	"       bt      3f              \n"		\
-+	"8:     stw     %2, (%1, 0)     \n"		\
-+	"10:    stw     %2, (%1, 4)     \n"		\
-+	"11:    stw     %2, (%1, 8)     \n"		\
-+	"12:    stw     %2, (%1, 12)    \n"		\
-+	"13:    stw     %2, (%1, 16)    \n"		\
-+	"14:    stw     %2, (%1, 20)    \n"		\
-+	"15:    stw     %2, (%1, 24)    \n"		\
-+	"16:    stw     %2, (%1, 28)    \n"		\
-+	"       addi    %1, 32          \n"		\
-+	"       subi    %0, 32          \n"		\
-+	"       br      1b              \n"		\
-+	"3:     cmplti  %0, 4           \n" /* 1W */	\
-+	"       bt      5f              \n"		\
-+	"4:     stw     %2, (%1, 0)     \n"		\
-+	"       addi    %1, 4           \n"		\
-+	"       subi    %0, 4           \n"		\
-+	"       br      3b              \n"		\
-+	"5:     cmpnei  %0, 0           \n" /* 1B */	\
-+	"9:     bf      7f              \n"		\
-+	"6:     stb     %2, (%1, 0)     \n"		\
-+	"       addi    %1,  1          \n"		\
-+	"       subi    %0,  1          \n"		\
-+	"       br      5b              \n"		\
-+	".section __ex_table,\"a\"      \n"		\
-+	".align   2                     \n"		\
-+	".long    8b, 9b                \n"		\
-+	".long    10b, 9b               \n"		\
-+	".long    11b, 9b               \n"		\
-+	".long    12b, 9b               \n"		\
-+	".long    13b, 9b               \n"		\
-+	".long    14b, 9b               \n"		\
-+	".long    15b, 9b               \n"		\
-+	".long    16b, 9b               \n"		\
-+	".long    4b, 9b                \n"		\
-+	".long    6b, 9b                \n"		\
-+	".previous                      \n"		\
-+	"7:                             \n"		\
-+	: "=r"(size), "=r" (__d0),			\
-+	  "=r"(zvalue), "=r"(tmp)			\
-+	: "0"(size), "1"(addr), "2"(0)			\
-+	: "memory", "cc");				\
-+} while (0)
-+
-+/*
-+ * clear_user: - Zero a block of memory in user space.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+unsigned long
-+clear_user(void __user *to, unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(clear_user);
-+
-+/*
-+ * __clear_user: - Zero a block of memory in user space, with less checking.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+unsigned long
-+__clear_user(void __user *to, unsigned long n)
-+{
-+	__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(__clear_user);
 -- 
 2.7.4
