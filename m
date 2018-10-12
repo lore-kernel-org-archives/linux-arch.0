@@ -1,103 +1,105 @@
-From: John Johansen <john.johansen@canonical.com>
-Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-Date: Thu, 11 Oct 2018 17:26:35 -0700
-Message-ID: <1a8ac9f4-8f82-5d3b-46ef-08801793443e@canonical.com>
-References: <20181011001846.30964-1-keescook@chromium.org>
- <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
- <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
- <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
- <37rRa7F7i2XcwVPiT6gLC8cX8p0732iDiT6mGjstlbBi3mcJsQCLA6A8HcDMNjR0SGheErloJl8z-Z5c57XxtJRBF9-LO_fUTUf41EcAGC4=@protonmail.ch>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [PATCH v2 1/7] modules: Create rlimit for module space
+Date: Fri, 12 Oct 2018 02:35:28 +0200
+Message-ID: <CAG48ez2fWg64nGxDXUQS3695KpVNrakAbarXJnYPd6xv5wOD+A@mail.gmail.com>
+References: <20181011233117.7883-1-rick.p.edgecombe@intel.com> <20181011233117.7883-2-rick.p.edgecombe@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <37rRa7F7i2XcwVPiT6gLC8cX8p0732iDiT6mGjstlbBi3mcJsQCLA6A8HcDMNjR0SGheErloJl8z-Z5c57XxtJRBF9-LO_fUTUf41EcAGC4=@protonmail.ch>
-Content-Language: en-GB
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jordan Glover <Golden_Miller83@protonmail.ch>, Kees Cook <keescook@chromium.org>
-Cc: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <kernel-hardening-return-14177-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20181011233117.7883-2-rick.p.edgecombe@intel.com>
+To: rick.p.edgecombe@intel.com
+Cc: Kernel Hardening <kernel-hardening@lists.openwall.com>, Daniel Borkmann <daniel@iogearbox.net>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, kernel list <linux-kernel@vger.kernel.org>, linux-mips@linux-mips.org, linux-s390 <linux-s390@vger.kernel.org>, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, kristen@linux.intel.com, Dave Hansen <dave.hansen@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, deneen.t.dock@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On 10/11/2018 04:53 PM, Jordan Glover wrote:
-> ‐‐‐‐‐‐‐ Original Message ‐‐‐‐‐‐‐
-> On Friday, October 12, 2018 1:09 AM, Kees Cook <keescook@chromium.org> wrote:
-> 
->> We've had things sort of like this proposed, but if you can convince
->> James and others, I'm all for it. I think the standing objection from
->> James and John about this is that the results of booting with
->> "lsm=something" ends up depending on CONFIG_LSM= for that distro. So
->> you end up with different behaviors instead of a consistent behavior
->> across all distros.
->>
-> 
-> Ok, I'll try :)
-> 
-> The final lsm string contains two parts: Kconfig "CONFIG_LSM=" and boot
-> param "lsm=". Changing even only one of those parts also changes the
-> final string.
-> 
-> In case of distros, it's the "CONFIG_LSM=" which changes. Even when "lsm="
-> stays constant, the behavior will be different, example:
-> 
-> Distro A has: CONFIG_LSM=loadpin,integrity,selinux
-> Distro B has CONFIG_LSM=yama,loadpin,integrity,selinux
-> 
-> User on distro A wants to enable apparmor with:
-> 
-> lsm=loadpin,integrity,apparmor
-> 
-> which they do and add it to howto on wiki.
-> 
-> User on distro B want to enable apparmor, they found info on some wiki and do:
-> 
-> lsm=loadpin,integrity,apparmor
-> 
-> 
-> Puff, yama got disabled!
-> 
-> Above example shows why I think "consistent behavior across all distros"
-> argument for current approach is flawed -  because distros aren't
-> consistent. In my proposition the user will just use "lsm=apparmor" and
-> it will consistently enable apparmor on all distros which is what they
-> really wanted, but all pre-existing differences across distros will
-> remain unchanged.
+On Fri, Oct 12, 2018 at 1:40 AM Rick Edgecombe
+<rick.p.edgecombe@intel.com> wrote:
+> This introduces a new rlimit, RLIMIT_MODSPACE, which limits the amount of
+> module space a user can use. The intention is to be able to limit module =
+space
+> allocations that may come from un-privlidged users inserting e/BPF filter=
+s.
 
-Are you sure about that? I have had more than one question about
-security=X resulting in a system with more than just X enabled. Ie why
-is yama enabled when I specifically set security to X.
+Note that in some configurations (iirc e.g. the default Ubuntu
+config), normal users can use the subuid mechanism (the /etc/subuid
+config file and the /usr/bin/newuidmap setuid helper) to gain access
+to 65536 UIDs, which means that in such a configuration,
+RLIMIT_MODSPACE*65537 is the actual limit for one user. (Same thing
+applies to RLIMIT_MEMLOCK.)
 
-There will certainly be cases where what you describe is exactly what
-the user wants. The problem is an explosion of options isn't good
-for the user either.
+Also, it is probably possible to waste a few times as much virtual
+memory as permitted by the limit by deliberately fragmenting virtual
+memory?
 
-What I want at the moment is the discussion about different ways to
-enable LSMs to be split off so this work can move forward.
+> There is unfortunately no cross platform place to perform this accounting
+> during allocation in the module space, so instead two helpers are created=
+ to be
+> inserted into the various arch=E2=80=99s that implement module_alloc. The=
+se
+> helpers perform the checks and help with tracking. The intention is that =
+they
+> an be added to the various arch=E2=80=99s as easily as possible.
 
-> 
-> The current approach requires that everyone who dares to touch "lsm="
-> knows about existence of all lsm, their enabled/disabled status on
-> target distro and their order. I doubt there are many people other
-> than recipients of this mail who fit for the above.
-> 
-Without having gotten a chance to review the current set of patches
-that was not what was discussed, it should only requires they know the
-set that they want.
+nit: s/an/can/
 
-It is possible some of the LSMs in the list are not available for a
-given kernel, but that is a problem with even the additive approach.
-That is
-  lsm=+apparmor
+[...]
+> diff --git a/kernel/module.c b/kernel/module.c
+> index 6746c85511fe..2ef9ed95bf60 100644
+> --- a/kernel/module.c
+> +++ b/kernel/module.c
+> @@ -2110,9 +2110,139 @@ static void free_module_elf(struct module *mod)
+>  }
+>  #endif /* CONFIG_LIVEPATCH */
+>
+> +struct mod_alloc_user {
+> +       struct rb_node node;
+> +       unsigned long addr;
+> +       unsigned long pages;
+> +       kuid_t uid;
+> +};
+> +
+> +static struct rb_root alloc_users =3D RB_ROOT;
+> +static DEFINE_SPINLOCK(alloc_users_lock);
 
-will not add apparmor to the set of LSMs available at run time if
-apparmor has not been built into the kernel.
+Why all the rbtree stuff instead of stashing a pointer in struct
+vmap_area, or something like that?
 
+[...]
+> +int check_inc_mod_rlimit(unsigned long size)
+> +{
+> +       struct user_struct *user =3D get_current_user();
+> +       unsigned long modspace_pages =3D rlimit(RLIMIT_MODSPACE) >> PAGE_=
+SHIFT;
+> +       unsigned long cur_pages =3D atomic_long_read(&user->module_vm);
+> +       unsigned long new_pages =3D get_mod_page_cnt(size);
+> +
+> +       if (rlimit(RLIMIT_MODSPACE) !=3D RLIM_INFINITY
+> +                       && cur_pages + new_pages > modspace_pages) {
+> +               free_uid(user);
+> +               return 1;
+> +       }
+> +
+> +       atomic_long_add(new_pages, &user->module_vm);
+> +
+> +       if (atomic_long_read(&user->module_vm) > modspace_pages) {
+> +               atomic_long_sub(new_pages, &user->module_vm);
+> +               free_uid(user);
+> +               return 1;
+> +       }
+> +
+> +       free_uid(user);
 
-> I it's better to assume that average user has rather vague knowledge
-> about lsm and don't delve deep into Kconfig's of their chosen distro.
-> If they want to use "lsm=" their goal is to disable/enable on or more
-> things. My proposition will work better for those. More advanced users
-> still will may pass any "lsm=" string as they like, this having full
-> control.
-> 
-> Jordan
-> 
+If you drop the reference on the user_struct, an attacker with two
+UIDs can charge module allocations to UID A, keep the associated
+sockets alive as UID B, and then log out and back in again as UID A.
+At that point, nobody is charged for the module space anymore. If you
+look at the eBPF implementation, you'll see that
+bpf_prog_charge_memlock() actually stores a refcounted pointer to the
+user_struct.
+
+> +       return 0;
+> +}
