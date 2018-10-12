@@ -1,109 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f67.google.com ([209.85.210.67]:36854 "EHLO
-        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726074AbeJLIFi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2018 04:05:38 -0400
-Received: by mail-ot1-f67.google.com with SMTP id x4so9387182otg.3
-        for <linux-arch@vger.kernel.org>; Thu, 11 Oct 2018 17:35:55 -0700 (PDT)
+Received: from mail.kernel.org ([198.145.29.99]:48892 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726108AbeJLImH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Oct 2018 04:42:07 -0400
+Received: from mail-wr1-f41.google.com (mail-wr1-f41.google.com [209.85.221.41])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 7D70C214C4
+        for <linux-arch@vger.kernel.org>; Fri, 12 Oct 2018 01:12:14 +0000 (UTC)
+Received: by mail-wr1-f41.google.com with SMTP id y16so11624032wrw.3
+        for <linux-arch@vger.kernel.org>; Thu, 11 Oct 2018 18:12:14 -0700 (PDT)
 MIME-Version: 1.0
-References: <20181011233117.7883-1-rick.p.edgecombe@intel.com> <20181011233117.7883-2-rick.p.edgecombe@intel.com>
-In-Reply-To: <20181011233117.7883-2-rick.p.edgecombe@intel.com>
-From: Jann Horn <jannh@google.com>
-Date: Fri, 12 Oct 2018 02:35:28 +0200
-Message-ID: <CAG48ez2fWg64nGxDXUQS3695KpVNrakAbarXJnYPd6xv5wOD+A@mail.gmail.com>
-Subject: Re: [PATCH v2 1/7] modules: Create rlimit for module space
+References: <20181009065300.11053-1-cyphar@cyphar.com> <20181009065300.11053-3-cyphar@cyphar.com>
+ <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com> <20181010070747.byi2itbi4j42gynq@ryuk>
+In-Reply-To: <20181010070747.byi2itbi4j42gynq@ryuk>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 11 Oct 2018 18:12:01 -0700
+Message-ID: <CALCETrX_T9CF=UHHiTnb9b06R_uDt4XnZ2sSej-c82ptZ3Lbjw@mail.gmail.com>
+Subject: Re: [PATCH v2 1/3] namei: implement O_BENEATH-style AT_* flags
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rick.p.edgecombe@intel.com
-Cc: Kernel Hardening <kernel-hardening@lists.openwall.com>, Daniel Borkmann <daniel@iogearbox.net>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, the arch/x86 maintainers <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, kernel list <linux-kernel@vger.kernel.org>, linux-mips@linux-mips.org, linux-s390 <linux-s390@vger.kernel.org>, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, kristen@linux.intel.com, Dave Hansen <dave.hansen@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, deneen.t.dock@intel.com
-Message-ID: <20181012003528.Ns3GgpMmNONAwQXGiFEVkTFk3kxApbV4Z05YJZayKPs@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Andrew Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20181012011201.T-I1l5yFfIgbKAcEgzEP9N35DypUjESDzq-xwJiV7hI@z>
 
-On Fri, Oct 12, 2018 at 1:40 AM Rick Edgecombe
-<rick.p.edgecombe@intel.com> wrote:
-> This introduces a new rlimit, RLIMIT_MODSPACE, which limits the amount of
-> module space a user can use. The intention is to be able to limit module =
-space
-> allocations that may come from un-privlidged users inserting e/BPF filter=
-s.
-
-Note that in some configurations (iirc e.g. the default Ubuntu
-config), normal users can use the subuid mechanism (the /etc/subuid
-config file and the /usr/bin/newuidmap setuid helper) to gain access
-to 65536 UIDs, which means that in such a configuration,
-RLIMIT_MODSPACE*65537 is the actual limit for one user. (Same thing
-applies to RLIMIT_MEMLOCK.)
-
-Also, it is probably possible to waste a few times as much virtual
-memory as permitted by the limit by deliberately fragmenting virtual
-memory?
-
-> There is unfortunately no cross platform place to perform this accounting
-> during allocation in the module space, so instead two helpers are created=
- to be
-> inserted into the various arch=E2=80=99s that implement module_alloc. The=
-se
-> helpers perform the checks and help with tracking. The intention is that =
-they
-> an be added to the various arch=E2=80=99s as easily as possible.
-
-nit: s/an/can/
-
-[...]
-> diff --git a/kernel/module.c b/kernel/module.c
-> index 6746c85511fe..2ef9ed95bf60 100644
-> --- a/kernel/module.c
-> +++ b/kernel/module.c
-> @@ -2110,9 +2110,139 @@ static void free_module_elf(struct module *mod)
->  }
->  #endif /* CONFIG_LIVEPATCH */
+On Wed, Oct 10, 2018 at 12:08 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
 >
-> +struct mod_alloc_user {
-> +       struct rb_node node;
-> +       unsigned long addr;
-> +       unsigned long pages;
-> +       kuid_t uid;
-> +};
-> +
-> +static struct rb_root alloc_users =3D RB_ROOT;
-> +static DEFINE_SPINLOCK(alloc_users_lock);
+> On 2018-10-09, Andy Lutomirski <luto@kernel.org> wrote:
+> > On Mon, Oct 8, 2018 at 11:53 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+> > > * AT_NO_PROCLINK: Disallows ->get_link "symlink" jumping. This is a very
+> > >   specific restriction, and it exists because /proc/$pid/fd/...
+> > >   "symlinks" allow for access outside nd->root and pose risk to
+> > >   container runtimes that don't want to be tricked into accessing a host
+> > >   path (but do want to allow no-funny-business symlink resolution).
+> >
+> > Can you elaborate on the use case?
+> >
+> > If I'm set up a container namespace and walk it for real (through the
+> > outside /proc/PID/root or otherwise starting from an fd that points
+> > into that namespace), and I walk through that namespace's /proc, I'm
+> > going to see the same thing that the processes in the namespace would
+> > see.  So what's the issue?
+> >
+> > Similarly, if I somehow manage to walk into the outside /proc, then
+> > I've pretty much lost regardless of the links.
+>
+> Well, there's a couple of reasons:
+>
+> * The original AT_NO_JUMPS patchset similarly disabled "proclinks" but
+>   it was sort of all contained within AT_NO_JUMPS. In order to have a
+>   precise 1:1 feature mapping we need this in *some* form (and in v1 the
+>   only way to get it was to add a separate flag). According to the
+>   original O_BENEATH changelog, both you and Al pushed for this to be
+>   part of O_BENEATH. :P
 
-Why all the rbtree stuff instead of stashing a pointer in struct
-vmap_area, or something like that?
+:)
 
-[...]
-> +int check_inc_mod_rlimit(unsigned long size)
-> +{
-> +       struct user_struct *user =3D get_current_user();
-> +       unsigned long modspace_pages =3D rlimit(RLIMIT_MODSPACE) >> PAGE_=
-SHIFT;
-> +       unsigned long cur_pages =3D atomic_long_read(&user->module_vm);
-> +       unsigned long new_pages =3D get_mod_page_cnt(size);
-> +
-> +       if (rlimit(RLIMIT_MODSPACE) !=3D RLIM_INFINITY
-> +                       && cur_pages + new_pages > modspace_pages) {
-> +               free_uid(user);
-> +               return 1;
-> +       }
-> +
-> +       atomic_long_add(new_pages, &user->module_vm);
-> +
-> +       if (atomic_long_read(&user->module_vm) > modspace_pages) {
-> +               atomic_long_sub(new_pages, &user->module_vm);
-> +               free_uid(user);
-> +               return 1;
-> +       }
-> +
-> +       free_uid(user);
-
-If you drop the reference on the user_struct, an attacker with two
-UIDs can charge module allocations to UID A, keep the associated
-sockets alive as UID B, and then log out and back in again as UID A.
-At that point, nobody is charged for the module space anymore. If you
-look at the eBPF implementation, you'll see that
-bpf_prog_charge_memlock() actually stores a refcounted pointer to the
-user_struct.
-
-> +       return 0;
-> +}
+Now that you mention it, I *think* my reasoning involved a rather
+different use case: sandboxing.  If a task is Capsicum-ified or
+seccomp()ed such that it can *only* use O_BENEATH or AT_BENEATH, this
+restriction considerably strengthens the resulting security.
