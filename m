@@ -1,91 +1,112 @@
-From: Jordan Glover <Golden_Miller83@protonmail.ch>
-Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
-Date: Fri, 12 Oct 2018 11:31:13 +0000
-Message-ID: <_CkJnKYmEZ4ZF0JtsSYuahAd9sgnX9OtcstjXaeqb8wn5uxfimc6S4jomly7If9VqnOXqXwaiCbJ9ttS6NiqE7n6cQUlwLvfO53paLmacvU=@protonmail.ch>
-References: <20181011001846.30964-1-keescook@chromium.org>
- <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
- <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
- <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
- <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
- <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
- <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com>
-Reply-To: Jordan Glover <Golden_Miller83@protonmail.ch>
+From: Rob Herring <robh@kernel.org>
+Subject: Re: [PATCH V8 18/21] dt-bindings: csky CPU Bindings
+Date: Fri, 12 Oct 2018 06:35:51 -0500
+Message-ID: <20181012113551.GA17917@bogus>
+References: <cover.1539315390.git.ren_guo@c-sky.com>
+ <1c77e479a1dc0119912ac146b1038963b3653381.1539315391.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com>
+Content-Disposition: inline
+In-Reply-To: <1c77e479a1dc0119912ac146b1038963b3653381.1539315391.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Johansen <john.johansen@canonical.com>
-Cc: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, hch@infradead.org, marc.zyngier@arm.com, mark.rutland@arm.com, peterz@infradead.org, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, c-sky_gcc_upstream@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-Sent with ProtonMail Secure Email.
+On Fri, Oct 12, 2018 at 12:42:53PM +0800, Guo Ren wrote:
+> This patch adds the documentation to describe that how to add cpu nodes in
+> dts for SMP.
+> 
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> Cc: Rob Herring <robh@kernel.org>
+> ---
+>  Documentation/devicetree/bindings/csky/cpus.txt | 70 +++++++++++++++++++++++++
+>  1 file changed, 70 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
+> 
+> diff --git a/Documentation/devicetree/bindings/csky/cpus.txt b/Documentation/devicetree/bindings/csky/cpus.txt
+> new file mode 100644
+> index 0000000..ee3901d
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/csky/cpus.txt
+> @@ -0,0 +1,70 @@
+> +==================
+> +C-SKY CPU Bindings
+> +==================
+> +
+> +The device tree allows to describe the layout of CPUs in a system through
+> +the "cpus" node, which in turn contains a number of subnodes (ie "cpu")
+> +defining properties for every cpu.
+> +
+> +Only SMP system need to care about the cpus node and single processor
+> +needn't define cpus node at all.
+> +
+> +=====================================
+> +cpus and cpu node bindings definition
+> +=====================================
+> +
+> +- cpus node
+> +
+> +        Description: Container of cpu nodes
+> +
+> +        The node name must be "cpus".
+> +
+> +        A cpus node must define the following properties:
+> +
+> +        - #address-cells
+> +                Usage: required
+> +                Value type: <u32>
+> +                Definition: must be set to 1
+> +        - #size-cells
+> +                Usage: required
+> +                Value type: <u32>
+> +                Definition: must be set to 0
+> +
+> +- cpu node
+> +
+> +        Description: Describes one of SMP cores
+> +
+> +        PROPERTIES
+> +
 
-=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90 Original Me=
-ssage =E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90=E2=80=90
-On Friday, October 12, 2018 3:19 AM, John Johansen <john.johansen@canonical=
-.com> wrote:
->
-> It isn't perfect but it manages consistency across distros as best as
-> can be achieved atm.
->
-> Its just a fact that some LSMs are not going to be built into some
-> kernels. The only way to deal with that is direct people to build
-> their own kernels.
->
-> The other major problem is that the current LSM stacking patches do
-> not deal with "extreme" stacking. So doing
->
-> lsm=3D+apparmor
->
-> (I am going to stick with the + syntax atm to avoid confusion between
-> adding and setting)
->
-> assuming apparmor is builtin will not necessarily get you apparmor if
-> another major lsm is enabled. Yes your specific proposal would as it
-> specifies it overrides the current major, except that ordering
-> important so if say landlock registers before apparmor, you may still
-> not get apparmor.
->
+What happened to compatible?
 
-I think this will be solved with LSM_ORDER_LAST or something like that
-Kees proposed.
+> +        - device_type
+> +                Usage: required
+> +                Value type: <string>
+> +                Definition: must be "cpu"
+> +        - reg
+> +                Usage: required
+> +                Value type: <u32>
+> +                Definition: CPU index
+> +        - status:
 
-> You proposal does not provide a means to ensure you have only a
-> specific set of LSMs enabled. As an LSM not explicitly listed in lsm=3D
-> lsm=3D! may still be enabled. So the user is going to have to be aware
-> of the initial LSMs list if they are trying to guarentee a specific
-> security arrangement.
->
+Drop this. It is implied.
 
-What about special marker like "!!" which will mean "this string is
-explicit?
-
-lsm=3D!!,apparmor
-
-will enable apparmor and disable everything else.
-
-lsm=3D!!,!apparmor or lsm=3D!!
-
-will set the string empty and disable everything.
-
-"!!" in "CONFIG_LSM" will take precedence over "!!" in "lsm=3D" which
-will make "lsm=3D" totally ignored. This way distro could lock specific
-lsm set which isn't possible with current approach.
-
-CONFIG_LSM=3D!!,yama,loadpin,integrity,apparmor
-
-> This violates one of the hard asks, and I will tell you that this will
-> just mean there is going to be some distro patching to make sure it
-> exists.
->
-
-I think I can quess who will make those patches :)
-
-> The current explicit list is more consistent, and it is amenable to
-> being extended with + or ! as selective add/remove so we are not
-> locked into only supporting an explicit list.
->
-
-Jordan
+> +                Usage: required
+> +                Value type: <string>
+> +                Definition: "ok"       means enable  the cpu-core
+> +                            "disabled" means disable the cpu-core
+> +
+> +Example:
+> +--------
+> +
+> +	cpus {
+> +		#address-cells = <1>;
+> +		#size-cells = <0>;
+> +		cpu@0 {
+> +			device_type = "cpu";
+> +			reg = <0>;
+> +			status = "ok";
+> +		};
+> +
+> +		cpu@1 {
+> +			device_type = "cpu";
+> +			reg = <1>;
+> +			status = "ok";
+> +		};
+> +	};
+> -- 
+> 2.7.4
+> 
