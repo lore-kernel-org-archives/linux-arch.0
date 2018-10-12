@@ -1,39 +1,76 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v5 01/17] arm64: add pointer authentication register bits
-Date: Fri, 12 Oct 2018 09:56:05 +0100
-Message-ID: <20181012085605.GB11847@arm.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-2-kristina.martsenko@arm.com>
- <20181011162814.GC17000@arm.com>
- <20181012085352.xi6rkcpm62iqd6ru@lakrids.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v4 0/6] parisc: system call table generation support
+Date: Fri, 12 Oct 2018 15:13:56 +0530
+Message-ID: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181012085352.xi6rkcpm62iqd6ru@lakrids.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel@lists.infradead.org, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 12, 2018 at 09:53:54AM +0100, Mark Rutland wrote:
-> On Thu, Oct 11, 2018 at 05:28:14PM +0100, Will Deacon wrote:
-> > On Fri, Oct 05, 2018 at 09:47:38AM +0100, Kristina Martsenko wrote:
-> 
-> > > +#define ESR_ELx_EC_PAC		(0x09)
-> > 
-> > Really minor nit: but shouldn't this be ESR_EL2_EC_PAC, since this trap
-> > can't occur at EL1 afaict?
-> 
-> It can also be taken to EL3 dependent on SCR_EL3.API.
-> 
-> We use ESR_ELx_EC_<foo> for other exceptions that can't be taken to EL1
-> (e.g. ESR_ELx_EC_SMC{32,64}), so I think it would be more consistent to
-> leave this as ESR_ELx_EC_PAC rather than ESR_EL2_EC_PAC.
+The purpose of this patch series is, we can easily add/modify/delete
+system call table support by changing entry in syscall.tbl file 
+instead of manually changing many files. The other goal is to unify 
+the system call table generation support implementation across all 
+the architectures. 
 
-Fair enough, but if we grow a different EC for ESR_EL1 that uses encoding
-0x09, this all falls apart. At the very list, maybe we should comment those
-that are EL2 or higher with /* EL2 and above */ or just fix the misnomer and
-drop the useless _ELx_ part of the names completely.
+The system call tables are in different format in all architecture. It
+will be difficult to manually add, modify or delete the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate uapi header file and syscall table file.
 
-Will
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
+
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
+
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, microblaze, sparc,
+m68k, mips, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add two dozen of system calls to solve Y2038 issue. So this
+patch series will help to add new system calls easily by adding new
+entry in the syscall.tbl.
+
+Firoz Khan (6):
+  parisc: move __IGNORE* entries to non uapi header
+  parisc: add __NR_Linux_syscalls along with __NR_syscalls
+  parisc: add system call table generation support
+  parisc: uapi header and system call table file generation
+  parisc: wire up rseq system call
+  parisc: syscalls: Ignore nfsservctl for other architectures
+
+ arch/parisc/Makefile                      |   4 +
+ arch/parisc/include/asm/Kbuild            |   3 +
+ arch/parisc/include/asm/unistd.h          |   8 +
+ arch/parisc/include/uapi/asm/Kbuild       |   2 +
+ arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
+ arch/parisc/kernel/syscall.S              |  10 +-
+ arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
+ arch/parisc/kernel/syscalls/Makefile      |  55 ++++
+ arch/parisc/kernel/syscalls/syscall.tbl   | 371 ++++++++++++++++++++++++
+ arch/parisc/kernel/syscalls/syscallhdr.sh |  35 +++
+ arch/parisc/kernel/syscalls/syscalltbl.sh |  46 +++
+ scripts/checksyscalls.sh                  |   1 +
+ 12 files changed, 540 insertions(+), 836 deletions(-)
+ delete mode 100644 arch/parisc/kernel/syscall_table.S
+ create mode 100644 arch/parisc/kernel/syscalls/Makefile
+ create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+
+-- 
+1.9.1
