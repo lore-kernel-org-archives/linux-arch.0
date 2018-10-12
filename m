@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V8 18/21] dt-bindings: csky CPU Bindings
-Date: Fri, 12 Oct 2018 12:42:53 +0800
-Message-ID: <1c77e479a1dc0119912ac146b1038963b3653381.1539315391.git.ren_guo@c-sky.com>
+Subject: [PATCH V8 19/21] dt-bindings: Add vendor prefix for csky
+Date: Fri, 12 Oct 2018 12:42:54 +0800
+Message-ID: <64488ca37a3dcb9b040aebebb80d4ca261c0203d.1539315391.git.ren_guo@c-sky.com>
 References: <cover.1539315390.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1539315390.git.ren_guo@c-sky.com>
@@ -12,91 +12,25 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the documentation to describe that how to add cpu nodes in
-dts for SMP.
+Add csky vendor definition.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Rob Herring <robh@kernel.org>
+Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- Documentation/devicetree/bindings/csky/cpus.txt | 70 +++++++++++++++++++++++++
- 1 file changed, 70 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/csky/cpus.txt
+ Documentation/devicetree/bindings/vendor-prefixes.txt | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/Documentation/devicetree/bindings/csky/cpus.txt b/Documentation/devicetree/bindings/csky/cpus.txt
-new file mode 100644
-index 0000000..ee3901d
---- /dev/null
-+++ b/Documentation/devicetree/bindings/csky/cpus.txt
-@@ -0,0 +1,70 @@
-+==================
-+C-SKY CPU Bindings
-+==================
-+
-+The device tree allows to describe the layout of CPUs in a system through
-+the "cpus" node, which in turn contains a number of subnodes (ie "cpu")
-+defining properties for every cpu.
-+
-+Only SMP system need to care about the cpus node and single processor
-+needn't define cpus node at all.
-+
-+=====================================
-+cpus and cpu node bindings definition
-+=====================================
-+
-+- cpus node
-+
-+        Description: Container of cpu nodes
-+
-+        The node name must be "cpus".
-+
-+        A cpus node must define the following properties:
-+
-+        - #address-cells
-+                Usage: required
-+                Value type: <u32>
-+                Definition: must be set to 1
-+        - #size-cells
-+                Usage: required
-+                Value type: <u32>
-+                Definition: must be set to 0
-+
-+- cpu node
-+
-+        Description: Describes one of SMP cores
-+
-+        PROPERTIES
-+
-+        - device_type
-+                Usage: required
-+                Value type: <string>
-+                Definition: must be "cpu"
-+        - reg
-+                Usage: required
-+                Value type: <u32>
-+                Definition: CPU index
-+        - status:
-+                Usage: required
-+                Value type: <string>
-+                Definition: "ok"       means enable  the cpu-core
-+                            "disabled" means disable the cpu-core
-+
-+Example:
-+--------
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			device_type = "cpu";
-+			reg = <0>;
-+			status = "ok";
-+		};
-+
-+		cpu@1 {
-+			device_type = "cpu";
-+			reg = <1>;
-+			status = "ok";
-+		};
-+	};
+diff --git a/Documentation/devicetree/bindings/vendor-prefixes.txt b/Documentation/devicetree/bindings/vendor-prefixes.txt
+index 2c3fc51..a728ee3 100644
+--- a/Documentation/devicetree/bindings/vendor-prefixes.txt
++++ b/Documentation/devicetree/bindings/vendor-prefixes.txt
+@@ -84,6 +84,7 @@ cosmic	Cosmic Circuits
+ crane	Crane Connectivity Solutions
+ creative	Creative Technology Ltd
+ crystalfontz	Crystalfontz America, Inc.
++csky	Hangzhou C-SKY Microsystems Co., Ltd
+ cubietech	Cubietech, Ltd.
+ cypress	Cypress Semiconductor Corporation
+ cznic	CZ.NIC, z.s.p.o.
 -- 
 2.7.4
