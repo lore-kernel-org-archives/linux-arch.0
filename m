@@ -1,51 +1,158 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH v2 1/3] namei: implement O_BENEATH-style AT_* flags
-Date: Thu, 11 Oct 2018 18:12:01 -0700
-Message-ID: <CALCETrX_T9CF=UHHiTnb9b06R_uDt4XnZ2sSej-c82ptZ3Lbjw@mail.gmail.com>
-References: <20181009065300.11053-1-cyphar@cyphar.com> <20181009065300.11053-3-cyphar@cyphar.com>
- <CALCETrUZAYw-g+75WAijS+fmRA_DrTahpv156WrxgYuX3KX2xw@mail.gmail.com> <20181010070747.byi2itbi4j42gynq@ryuk>
+From: John Johansen <john.johansen@canonical.com>
+Subject: Re: [PATCH security-next v5 00/30] LSM: Explict ordering
+Date: Thu, 11 Oct 2018 18:19:48 -0700
+Message-ID: <38dde301-d77e-35fd-88d4-5cdc5b570ee8@canonical.com>
+References: <20181011001846.30964-1-keescook@chromium.org>
+ <CAGXu5jLBaHj5MhXaK-8zdu6Rgo2B6rEq+at17xZ1Puct+YUajQ@mail.gmail.com>
+ <ZhaXhoElmWQlsxHmgFHpB2xSWzJYFZWBasrSKQNjGj4_T2A4AY2F9v1rP9LkUfilUbZ0ExWXX9koLNjUM8S6baX6xfSSMPXY_CpihbCetVc=@protonmail.ch>
+ <CAGXu5j+kekUdcE2EhUu__8MXJ1O+D=-zTXLGNCRVa_VyDxePpw@mail.gmail.com>
+ <f68e5f4b-6360-a9e7-597f-89d1d3ca73c1@canonical.com>
+ <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181010070747.byi2itbi4j42gynq@ryuk>
+In-Reply-To: <32stV62RmME8Dj5jKB8Z03zPe_Et72kMo71D8SpgSOHUo6SaROc8DomMWdk5jDGpyqVd8T63NIIK2NdDw95clpF8Uj47Wca2FBFItXDRh7E=@protonmail.ch>
+Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Andrew Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, Christian Brauner <christian@brauner.io>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Jann Horn <jannh@google.com>, Tycho Andersen <tycho@tycho.ws>, David Drysdale <drysdale@google.com>, dev@opencontainers.org, Linux Containers <containers@lists.linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+To: Jordan Glover <Golden_Miller83@protonmail.ch>
+Cc: Kees Cook <keescook@chromium.org>, James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>, Stephen Smalley <sds@tycho.nsa.gov>, Paul Moore <paul@paul-moore.com>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, Mimi Zohar <zohar@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, LSM <linux-security-module@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 10, 2018 at 12:08 AM Aleksa Sarai <cyphar@cyphar.com> wrote:
->
-> On 2018-10-09, Andy Lutomirski <luto@kernel.org> wrote:
-> > On Mon, Oct 8, 2018 at 11:53 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
-> > > * AT_NO_PROCLINK: Disallows ->get_link "symlink" jumping. This is a very
-> > >   specific restriction, and it exists because /proc/$pid/fd/...
-> > >   "symlinks" allow for access outside nd->root and pose risk to
-> > >   container runtimes that don't want to be tricked into accessing a host
-> > >   path (but do want to allow no-funny-business symlink resolution).
-> >
-> > Can you elaborate on the use case?
-> >
-> > If I'm set up a container namespace and walk it for real (through the
-> > outside /proc/PID/root or otherwise starting from an fd that points
-> > into that namespace), and I walk through that namespace's /proc, I'm
-> > going to see the same thing that the processes in the namespace would
-> > see.  So what's the issue?
-> >
-> > Similarly, if I somehow manage to walk into the outside /proc, then
-> > I've pretty much lost regardless of the links.
->
-> Well, there's a couple of reasons:
->
-> * The original AT_NO_JUMPS patchset similarly disabled "proclinks" but
->   it was sort of all contained within AT_NO_JUMPS. In order to have a
->   precise 1:1 feature mapping we need this in *some* form (and in v1 the
->   only way to get it was to add a separate flag). According to the
->   original O_BENEATH changelog, both you and Al pushed for this to be
->   part of O_BENEATH. :P
+On 10/11/2018 05:11 PM, Jordan Glover wrote:
+> ‐‐‐‐‐‐‐ Original Message ‐‐‐‐‐‐‐
+> On Friday, October 12, 2018 1:48 AM, John Johansen <john.johansen@canonical.com> wrote:
+> 
+>> On 10/11/2018 04:09 PM, Kees Cook wrote:
+>>
+>>> On Thu, Oct 11, 2018 at 3:58 PM, Jordan Glover
+>>> Golden_Miller83@protonmail.ch wrote:
+>>>
+>>>> On Thursday, October 11, 2018 7:57 PM, Kees Cook keescook@chromium.org wrote:
+>>>>
+>>>>>     To switch to SELinux at boot time with
+>>>>>     "CONFIG_LSM=yama,loadpin,integrity,apparmor", the old way continues to
+>>>>>     work:
+>>>>>
+>>>>>     selinux=1 security=selinux
+>>>>>
+>>>>>     This will work still, since it will enable selinux (selinux=1) and
+>>>>>     disable all other major LSMs (security=selinux).
+>>>>>
+>>>>>     The new way to enable selinux would be using
+>>>>>     "lsm=yama,loadpin,integrity,selinux".
+>>>>>
+>>>>
+>>>> It seems to me that legacy way is more user friendly than the new one.
+>>>> AppArmor and SElinux are households names but the rest may be enigmatic
+>>>> for most users and the need for explicit passing them all may be
+>>>> troublesome. Especially when the new ones like sara,landlock or cows :)
+>>>> will be incoming. Moreover to knew what you have to pass there, you need
+>>>> to look at CONFIG_LSM in kernel config (which will vary across distros
+>>>> and also mean copy-paste from the web source may won't work as expected)
+>>>> which again most users don't do.
+>>>> I think there is risk that users will end up with "lsm=selinux" without
+>>>> realizing that they may disable something along the way.
+>>>> I would prefer for "lsm=" to work as override to "CONFIG_LSM=" with
+>>>> below assumptions:
+>>>> I. lsm="$lsm" will append "$lsm" at the end of string. Before extreme
+>>>> stacking it will also remove the other major (explicit) lsm from it.
+>>>> II. lsm="!$lsm" will remove "$lsm" from the string.
+>>>> III. If "$lsm" already exist in the string, it's moved at the end of it
+>>>> (this will cover ordering).
+>>>
+>>> We've had things sort of like this proposed, but if you can convince
+>>> James and others, I'm all for it. I think the standing objection from
+>>> James and John about this is that the results of booting with
+>>> "lsm=something" ends up depending on CONFIG_LSM= for that distro. So
+>>> you end up with different behaviors instead of a consistent behavior
+>>> across all distros.
+>>
+>> Its certainly a point that could confuse the user. I do have concerns
+>> about it, but not something that is on a must haves list
+>>
+>>> Now, in the future blob and extreme stacking world, having the
+>>> explicit lsm= list shouldn't be too bad since LSMs will effectively
+>>> ALL be initialized -- but they'll be inactive since they have no
+>>> policy loaded.
+>>
+>> you are more optimistic about this than I am, but there will be at
+>> least some movement towards this.
+>>
+>>> But I still agree with you: I'd like a friendlier way to
+>>> disable/enable specific LSMs, but an explicit lsm= seems to be the
+>>> only way.
+>>
+>> Hrmmm, I don't know about the only way, but a way to provide the
+>> explicit list, and also set a specific set as the default in the
+>> Kconfig is a hard requirement.
+>>
+> 
+> My proposition allows for explicit "lsm=" list but also accepts non
+> explicit list. This is it's advantage above current approach.
+> 
+> The current approach works but it seems to target the very same people
+> who designed it :)
+> 
+>> The initial lsm.ebable, lsm.disable had too many issues, and for
+>> various reasons I never managed to get back to kees' proposal
+>> for using +.
+>>
+>> That said, I do think the right approach for the initial pass is
+>> the explicit list. It moves the arguments to the side and allows
+>> this work to move forward.
+>>
+> 
+> I'm afraid when it hits stable kernel and people will rely on it,
+> then it will be too late. Things will be even more hard to change
+> than now when we have to keep legacy syntax of security=xxx.
+> 
+> I added explanation why explicit list doesn't solve consistency
+> across distros in the other reply
+> 
 
-:)
+It isn't perfect but it manages consistency across distros as best as
+can be achieved atm.
 
-Now that you mention it, I *think* my reasoning involved a rather
-different use case: sandboxing.  If a task is Capsicum-ified or
-seccomp()ed such that it can *only* use O_BENEATH or AT_BENEATH, this
-restriction considerably strengthens the resulting security.
+Its just a fact that some LSMs are not going to be built into some
+kernels. The only way to deal with that is direct people to build
+their own kernels.
+
+The other major problem is that the current LSM stacking patches do
+not deal with "extreme" stacking. So doing
+
+lsm=+apparmor
+
+(I am going to stick with the + syntax atm to avoid confusion between
+adding and setting)
+
+assuming apparmor is builtin will not necessarily get you apparmor if
+another major lsm is enabled.  Yes your specific proposal would as it
+specifies it overrides the current major, except that ordering
+important so if say landlock registers before apparmor, you may still
+not get apparmor.
+
+You proposal does not provide a means to ensure you have only a
+specific set of LSMs enabled. As an LSM not explicitly listed in lsm=
+lsm=! may still be enabled. So the user is going to have to be aware
+of the initial LSMs list if they are trying to guarentee a specific
+security arrangement.
+
+This violates one of the hard asks, and I will tell you that this will
+just mean there is going to be some distro patching to make sure it
+exists.
+
+The current explicit list is more consistent, and it is amenable to
+being extended with + or ! as selective add/remove so we are not
+locked into only supporting an explicit list.
+
+
+>>>> It's possible that something lime this was discussed already
+>>>> but without full examples it was hard to me for tracking things.
+>>>
+>>> It's been a painful thread. ;)
+>>
+>> Indeed
+> 
+> Jordan
+> 
