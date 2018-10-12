@@ -1,216 +1,168 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH v5 07/27] mm/mmap: Create a guard area between VMAs
-Date: Fri, 12 Oct 2018 06:17:28 -0700
-Message-ID: <20181012131728.GA28309@bombadil.infradead.org>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-8-yu-cheng.yu@intel.com>
- <CAG48ez3R7XL8MX_sjff1FFYuARX_58wA_=ACbv2im-XJKR8tvA@mail.gmail.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: Re: [PATCH v4 3/6] parisc: add system call table generation support
+Date: Fri, 12 Oct 2018 19:27:22 +0530
+Message-ID: <CALxhOnggUEkXVVupq0SebJV0StKqbTTCqQtaaao+oQveUFHgbg@mail.gmail.com>
+References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
+ <1539337442-3676-4-git-send-email-firoz.khan@linaro.org> <c6280818c999449646ec216984f2df9e@sf-tec.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAG48ez3R7XL8MX_sjff1FFYuARX_58wA_=ACbv2im-XJKR8tvA@mail.gmail.com>
+In-Reply-To: <c6280818c999449646ec216984f2df9e@sf-tec.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: yu-cheng.yu@intel.com, Andy Lutomirski <luto@amacapital.net>, the arch/x86 maintainers <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, kernel list <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, hjl.tools@gmail.com, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nad
+To: eike-kernel@sf-tec.de
+Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, linux-parisc-owner@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 11, 2018 at 10:39:24PM +0200, Jann Horn wrote:
-> Sorry to bring this up so late, but Daniel Micay pointed out to me
-> that, given that VMA guards will raise the number of VMAs by
-> inhibiting vma_merge(), people are more likely to run into
-> /proc/sys/vm/max_map_count (which limits the number of VMAs to ~65k by
-> default, and can't easily be raised without risking an overflow of
-> page->_mapcount on systems with over ~800GiB of RAM, see
-> https://lore.kernel.org/lkml/20180208021112.GB14918@bombadil.infradead.org/
-> and replies) with this change.
-> 
-[...]
-> 
-> Arguably the proper solution to this would be to raise the default
-> max_map_count to be much higher; but then that requires fixing the
-> mapcount overflow.
+Hi Arnd, Rolf,
 
-I have a fix that nobody has any particular reaction to:
+Thanks for the comments. It will help me to fine tune my scripts!
 
-diff --git a/mm/internal.h b/mm/internal.h
-index 7059a8389194..977852b8329e 100644
---- a/mm/internal.h
-+++ b/mm/internal.h
-@@ -97,6 +97,11 @@ extern void putback_lru_page(struct page *page);
-  */
- extern pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address);
- 
-+#ifdef CONFIG_64BIT
-+extern void mm_mapcount_overflow(struct page *page);
-+#else
-+static inline void mm_mapcount_overflow(struct page *page) { }
-+#endif
- /*
-  * in mm/page_alloc.c
-  */
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 9efdc021ad22..575766ec02f8 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1315,6 +1315,115 @@ static inline int mlock_future_check(struct mm_struct *mm,
- 	return 0;
- }
- 
-+#ifdef CONFIG_64BIT
-+/*
-+ * Machines with more than 2TB of memory can create enough VMAs to overflow
-+ * page->_mapcount if they all point to the same page.  32-bit machines do
-+ * not need to be concerned.
-+ */
-+/*
-+ * Experimentally determined.  gnome-shell currently uses fewer than
-+ * 3000 mappings, so should have zero effect on desktop users.
-+ */
-+#define mm_track_threshold	5000
-+static DEFINE_SPINLOCK(heavy_users_lock);
-+static DEFINE_IDR(heavy_users);
-+
-+static void mmap_track_user(struct mm_struct *mm, int max)
-+{
-+	struct mm_struct *entry;
-+	unsigned int id;
-+
-+	idr_preload(GFP_KERNEL);
-+	spin_lock(&heavy_users_lock);
-+	idr_for_each_entry(&heavy_users, entry, id) {
-+		if (entry == mm)
-+			break;
-+		if (entry->map_count < mm_track_threshold)
-+			idr_remove(&heavy_users, id);
-+	}
-+	if (!entry)
-+		idr_alloc(&heavy_users, mm, 0, 0, GFP_ATOMIC);
-+	spin_unlock(&heavy_users_lock);
-+}
-+
-+static void mmap_untrack_user(struct mm_struct *mm)
-+{
-+	struct mm_struct *entry;
-+	unsigned int id;
-+
-+	spin_lock(&heavy_users_lock);
-+	idr_for_each_entry(&heavy_users, entry, id) {
-+		if (entry == mm) {
-+			idr_remove(&heavy_users, id);
-+			break;
-+		}
-+	}
-+	spin_unlock(&heavy_users_lock);
-+}
-+
-+static void kill_mm(struct task_struct *tsk)
-+{
-+	/* Tear down the mappings first */
-+	do_send_sig_info(SIGKILL, SEND_SIG_FORCED, tsk, true);
-+}
-+
-+static void kill_abuser(struct mm_struct *mm)
-+{
-+	struct task_struct *tsk;
-+
-+	for_each_process(tsk)
-+		if (tsk->mm == mm)
-+			break;
-+
-+	if (down_write_trylock(&mm->mmap_sem)) {
-+		kill_mm(tsk);
-+		up_write(&mm->mmap_sem);
-+	} else {
-+		do_send_sig_info(SIGKILL, SEND_SIG_FORCED, tsk, true);
-+	}
-+}
-+
-+void mm_mapcount_overflow(struct page *page)
-+{
-+	struct mm_struct *entry = current->mm;
-+	unsigned int id;
-+	struct vm_area_struct *vma;
-+	struct address_space *mapping = page_mapping(page);
-+	unsigned long pgoff = page_to_pgoff(page);
-+	unsigned int count = 0;
-+
-+	vma_interval_tree_foreach(vma, &mapping->i_mmap, pgoff, pgoff + 1) {
-+		if (vma->vm_mm == entry)
-+			count++;
-+		if (count > 1000)
-+			kill_mm(current);
-+	}
-+
-+	rcu_read_lock();
-+	idr_for_each_entry(&heavy_users, entry, id) {
-+		count = 0;
-+
-+		vma_interval_tree_foreach(vma, &mapping->i_mmap,
-+				pgoff, pgoff + 1) {
-+			if (vma->vm_mm == entry)
-+				count++;
-+			if (count > 1000) {
-+				kill_abuser(entry);
-+				goto out;
-+			}
-+		}
-+	}
-+	if (!entry)
-+		panic("No abusers found but mapcount exceeded\n");
-+out:
-+	rcu_read_unlock();
-+}
-+#else
-+static void mmap_track_user(struct mm_struct *mm, int max) { }
-+static void mmap_untrack_user(struct mm_struct *mm) { }
-+#endif
-+
- /*
-  * The caller must hold down_write(&current->mm->mmap_sem).
-  */
-@@ -1357,6 +1466,8 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
- 	/* Too many mappings? */
- 	if (mm->map_count > sysctl_max_map_count)
- 		return -ENOMEM;
-+	if (mm->map_count > mm_track_threshold)
-+		mmap_track_user(mm, mm_track_threshold);
- 
- 	/* Obtain the address to map to. we verify (or select) it and ensure
- 	 * that it represents a valid section of the address space.
-@@ -2997,6 +3108,8 @@ void exit_mmap(struct mm_struct *mm)
- 	/* mm's last user has gone, and its about to be pulled down */
- 	mmu_notifier_release(mm);
- 
-+	mmap_untrack_user(mm);
-+
- 	if (mm->locked_vm) {
- 		vma = mm->mmap;
- 		while (vma) {
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 47db27f8049e..d88acf5c98e9 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1190,6 +1190,7 @@ void page_add_file_rmap(struct page *page, bool compound)
- 		VM_BUG_ON_PAGE(!PageSwapBacked(page), page);
- 		__inc_node_page_state(page, NR_SHMEM_PMDMAPPED);
- 	} else {
-+		int v;
- 		if (PageTransCompound(page) && page_mapping(page)) {
- 			VM_WARN_ON_ONCE(!PageLocked(page));
- 
-@@ -1197,8 +1198,13 @@ void page_add_file_rmap(struct page *page, bool compound)
- 			if (PageMlocked(page))
- 				clear_page_mlock(compound_head(page));
- 		}
--		if (!atomic_inc_and_test(&page->_mapcount))
-+		v = atomic_inc_return(&page->_mapcount);
-+		if (likely(v > 0))
- 			goto out;
-+		if (unlikely(v < 0)) {
-+			mm_mapcount_overflow(page);
-+			goto out;
-+		}
- 	}
- 	__mod_lruvec_page_state(page, NR_FILE_MAPPED, nr);
- out:
+On Fri, 12 Oct 2018 at 17:37, Rolf Eike Beer <eike-kernel@sf-tec.de> wrote:
+>
+> Firoz Khan wrote:
+>
+> > diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh
+> > b/arch/parisc/kernel/syscalls/syscallhdr.sh
+> > new file mode 100644
+> > index 0000000..607d4ca
+> > --- /dev/null
+> > +++ b/arch/parisc/kernel/syscalls/syscallhdr.sh
+> > @@ -0,0 +1,35 @@
+> > +#!/bin/sh
+> > +# SPDX-License-Identifier: GPL-2.0
+> > +
+> > +in="$1"
+> > +out="$2"
+> > +my_abis=`echo "($3)" | tr ',' '|'`
+>
+> Any reason not to use $() instead of backticks?
+>
+> > +prefix="$4"
+> > +offset="$5"
+> > +
+> > +fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
+> > +    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+> > +    -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+> > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> > +    echo "#ifndef ${fileguard}"
+> > +    echo "#define ${fileguard}"
+> > +    echo ""
+> > +
+> > +    nxt=0
+> > +    while read nr abi name entry compat ; do
+> > +     if [ -z "$offset" ]; then
+> > +         echo -e "#define __NR_${prefix}${name}\t$nr"
+>
+> This mixed indentation with both tabs and spaces is a bit messy.
+>
+> > +     else
+> > +         echo -e "#define __NR_${prefix}${name}\t($offset + $nr)"
+> > +     fi
+> > +     nxt=$nr
+> > +     let nxt=nxt+1
+>
+> Why do you use let here when you do $(()) calculations at other places?
+>
+> > +    done
+> > +
+> > +    echo ""
+> > +    echo "#ifdef __KERNEL__"
+> > +    echo -e "#define __NR_syscalls\t$nxt"
+> > +    echo "#endif"
+> > +    echo ""
+> > +    echo "#endif /* ${fileguard} */"
+> > +) > "$out"
+> > diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh
+> > b/arch/parisc/kernel/syscalls/syscalltbl.sh
+> > new file mode 100644
+> > index 0000000..04abde7
+> > --- /dev/null
+> > +++ b/arch/parisc/kernel/syscalls/syscalltbl.sh
+> > @@ -0,0 +1,46 @@
+> > +#!/bin/sh
+> > +# SPDX-License-Identifier: GPL-2.0
+> > +
+> > +in="$1"
+> > +out="$2"
+> > +my_abis=`echo "($3)" | tr ',' '|'`
+> > +offset="$4"
+> > +
+> > +emit() {
+> > +    nxt="$1"
+> > +    if [ -z "$offset" ]; then
+> > +     nr="$2"
+> > +    else
+> > +     nr="$2"
+> > +     nr=$((nr+offset))
+>
+> This could be one line, no? Or just set offset to 0 if it is empty and
+> avoid that if alltogether.
+>
+> > +    fi
+> > +    entry="$3"
+> > +
+> > +    while [ $nxt -lt $nr ]; do
+> > +     echo "__SYSCALL($nxt, sys_ni_syscall, )"
+> > +        let nxt=nxt+1
+> > +    done
+> > +    echo "__SYSCALL($nxt, $entry, )"
+> > +}
+> > +
+> > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> > +    if [ -z "$offset" ]; then
+> > +     nxt=0
+> > +    else
+> > +     nxt=$offset
+> > +    fi
+>
+> Another argument for offset=0 as default.
+>
+> > +
+> > +    my_abi="$(cut -d'|' -f2 <<< $my_abis)"
+
+Here is the logic of identifying the generated script is for compat interface
+or not. So systbl_abi_syscall_table_c32 := common,compat,32 in Makefile
+will parse the script and check the second string whether this is
+"compat" or not.
+
+Other ways are:
+1. add an extra flag, that will again add the complexity
+2. check if [ ${out: -5} = "c32.h" ], this looks weird
+
+Is there any better way to do the same?
+
+>
+> "<<<" is a bash extension and will not work with /bin/sh.
+>
+> > +    while read nr abi name entry compat ; do
+> > +     if [ $my_abi = "compat" ]; then
+> > +         if [ -z "$compat" ]; then
+> > +             emit $nxt $nr $entry
+> > +         else
+> > +             emit $nxt $nr $compat
+> > +         fi
+> > +     else
+> > +         emit $nxt $nr $entry
+> > +     fi
+>
+> I would go for a local variable being set to $compat or $entry and
+> calling emit at only one place. And there should be only one if with 2
+> expressions, no need for 3 branches.
+>
+> > +        let nxt=nxt+1
+>
+> Inconsistent indentation.
+>
+> > +    done
+> > +) > "$out"
+
+I'll address rest of the comment soon.
+
+Helge, I can update this patches asap with their comments and we can
+perform the
+boot test with next version. And thanks for your great support!
+
+Firoz
+
+>
+> Eike
