@@ -1,112 +1,192 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
-Date: Sat, 13 Oct 2018 09:54:22 -0700
-Message-ID: <CALCETrW0sFoOknkLGFSiobQLg9O4qzD9f-9ws8uk69J1X866cg@mail.gmail.com>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20180724173957.GA22106@yury-thinkpad> <20181010141017.GA2881@asgard.redhat.com>
- <20181010153655.GA212880@arrakis.emea.arm.com> <20181013021416.GE21972@asgard.redhat.com>
- <20181013093411.o3id6yzkspsxr5jt@mbp>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
+Date: Sat, 13 Oct 2018 20:27:38 +0200
+Message-ID: <CAG48ez2ZPhnxudqgU7nC2ORvLnS0Ja-qhLSE5WAY361jst7XNw@mail.gmail.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181013093411.o3id6yzkspsxr5jt@mbp>
+In-Reply-To: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Eugene Syromiatnikov <esyr@redhat.com>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, palmer@sifive.com, Heiko Carstens <heiko.carstens@de.ibm.com>, ynorov@caviumnetworks.com, Pavel Machek <pavel@ucw.cz>, philipp.tomsich@theobroma-systems.com, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch <linux-arch@vger.kernel.org>, sellcey@caviumnetworks.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Alexander Graf <agraf@suse.de>, bamv2005@gmail.com, Geert Uytterhoeven <geert@linux-m68k.org>, Dave Martin <Dave.Martin@arm.com>, Adam Borowski <kilobyte@angband.pl>, manuel.montezelo@gmail.com, James Hogan <james.hogan@imgtec.com>, Chris Metcalf <cmetcalf@mellanox.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com
+To: enkechen@cisco.com
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, deller@gmx.de, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, christian@brauner.io, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave.Martin@arm.com, mchehab+samsung@kernel.org, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A . Shutemov" <kirill.>
 List-Id: linux-arch.vger.kernel.org
 
-> On Oct 13, 2018, at 2:34 AM, Catalin Marinas <catalin.marinas@arm.com> wrote:
->
->> On Sat, Oct 13, 2018 at 04:14:16AM +0200, Eugene Syromiatnikov wrote:
->>> On Wed, Oct 10, 2018 at 04:36:56PM +0100, Catalin Marinas wrote:
->>>> On Wed, Oct 10, 2018 at 04:10:21PM +0200, Eugene Syromiatnikov wrote:
->>>> I have some questions regarding AArch64 ILP32 implementation for which I
->>>> failed to find an answer myself:
->>>> * How ptrace() tracer is supposed to distinguish between ILP32 and LP64
->>>>   tracees? For MIPS N32 and x32 this is possible based on syscall
->>>>   number, but for AArch64 ILP32 I do not see such a sign. There's also
->>>>   ARM_ip is employed for signalling entering/exiting, I wonder whether
->>>>   it's possible to employ it also for signalling tracee's personality.
->>>
->>> With the current implementation, I don't think you can distinguish. From
->>> the kernel perspective, the register set is the same. What is the
->>> use-case for this?
->>
->> Err, a ptrace()-based tracer trying to trace a process, for example?
->
-> I first thought it wouldn't matter for ptrace-based tracers since the
-> syscall numbers are (mostly) the same. But the arguments layout in
-> register is indeed different, so I see your point now about having to
-> distinguish.
->
->>> We could add a new regset to expose the ILP32 state (NT_ARM_..., I can't
->>> think of a name now but probably not PER* as this implies PER_LINUX_...
->>> which is independent from TIF_32BIT_*).
->>
->> So that would require an additional ptrace() call on each syscall stop,
->> is that correct?
->
-> The ILP32 state does not change at run-time, so it could only do a
-> ptrace() call once and save the information. No need to re-read it on
-> each syscall stop.
->
+On Sat, Oct 13, 2018 at 2:33 AM Enke Chen <enkechen@cisco.com> wrote:
+> For simplicity and consistency, this patch provides an implementation
+> for signal-based fault notification prior to the coredump of a child
+> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
+> be used by an application to express its interest and to specify the
+> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
+> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
 
-Please solve this in an arch independent way.  This situation is
-basically unusably broken on x86 right now.  Please solve it for real,
-by, for example, adding a new ptrace operation that returns something
-like this:
+Your suggested API looks vaguely similar to PR_SET_PDEATHSIG, but with
+some important differences:
 
-enum ptrace_syscall_state {
-  NO_SYSCALL,
-  SYSCALL_ENTRY,
-  SYSCALL_EXIT,
-  /* other values may be defined in the future. */
-};
+ - You don't reset the signal on setuid execution.
+ - You permit setting this not just on the current process, but also on others.
 
-struct ptrace_syscall_info {
-  enum ptrace_syscall_state state;
-  unsigned long arch;
-  union {
-    struct {
-      unsigned long nr;
-      unsigned long args[6];
-   } entry;
-   struct {
-      unsigned long ret;
-   } exit;
-};
+For both of these: Are these differences actually necessary, and if
+so, can you provide a specific rationale? From a security perspective,
+I would very much prefer it if this API had semantics closer to
+PR_SET_PDEATHSIG.
 
-where arch is an AUDIT_ARCH_XYZ constant.
-
-On x86, it's currently essentially impossible for tools like strace to
-correctly decode syscalls.
-
-> We could set a high bit in the syscall number reported to the ptrace
-> caller (though not changing the syscall ABI) but I haven't thought of
-> other consequences. For example, can the ptrace caller change the
-> syscall number?
-
-Yes it can.
-
+[...]
+> diff --git a/kernel/signal.c b/kernel/signal.c
+> index 312b43e..eb4a483 100644
+> --- a/kernel/signal.c
+> +++ b/kernel/signal.c
+> @@ -2337,6 +2337,44 @@ static int ptrace_signal(int signr, kernel_siginfo_t *info)
+>         return signr;
+>  }
 >
->>>> * What's the reasoning behind capping syscall arguments to 32 bit? x32
->>>>   and MIPS N32 do not have such a restriction (and do not need special
->>>>   wrappers for syscalls that pass 64-bit values as a result, except
->>>>   when they do,  as it is the case for preadv2 on x32); moreover, that
->>>>   would lead to insurmountable difficulties for AArch64 ILP32 tracers
->>>>   that try to trace LP64 tracees, as it would be impossible to pass
->>>>   64-bit addresses to process_vm_{read,write} or ptrace PEEK/POKE.
->>>
->>> We've attempted in earlier versions to allow a mix of 32 and 64-bit
->>> register values from ILP32 but it got pretty complicated. The entry code
->>> would need to know which registers need zeroing of the top 32-bit
->>
->> If kernel specifies 64-bit wide registers for syscalls, then it's the
->> caller's (libc's) responsibility to properly sign-extend arguments when
->> needed, and glibc, for example, already has proper type definitions that
->> aimed to handle this.
+> +/*
+> + * Let the parent, if so desired, know about the imminent death of a child
+> + * prior to its coredump.
+> + *
+> + * Locking logic is similar to do_notify_parent_cldstop().
+> + */
+> +static void do_notify_parent_predump(struct task_struct *tsk)
+> +{
+> +       struct sighand_struct *sighand;
+> +       struct task_struct *parent;
+> +       struct kernel_siginfo info;
+> +       unsigned long flags;
+> +       int sig;
+> +
+> +       parent = tsk->real_parent;
+> +       sig = parent->predump_signal;
+> +
+> +       /* Check again with "tasklist_lock" locked by the caller */
+> +       if (!valid_predump_signal(sig))
+> +               return;
+> +
+> +       clear_siginfo(&info);
+> +       info.si_signo = sig;
+> +       if (sig == SIGCHLD)
+> +               info.si_code = CLD_PREDUMP;
+> +
+> +       rcu_read_lock();
+> +       info.si_pid = task_pid_nr_ns(tsk, task_active_pid_ns(parent));
+> +       info.si_uid = from_kuid_munged(task_cred_xxx(parent, user_ns),
+> +                                      task_uid(tsk));
+
+You're sending a signal from the current namespaces, but with IDs that
+have been mapped into the parent's namespaces? That looks wrong to me.
+
+> +       rcu_read_unlock();
+> +
+> +       sighand = parent->sighand;
+> +       spin_lock_irqsave(&sighand->siglock, flags);
+> +       __group_send_sig_info(sig, &info, parent);
+> +       spin_unlock_irqrestore(&sighand->siglock, flags);
+> +}
+> +
+>  bool get_signal(struct ksignal *ksig)
+>  {
+>         struct sighand_struct *sighand = current->sighand;
+> @@ -2497,6 +2535,19 @@ bool get_signal(struct ksignal *ksig)
+>                 current->flags |= PF_SIGNALED;
 >
-> We tried, see my other reply.
+>                 if (sig_kernel_coredump(signr)) {
+> +                       /*
+> +                        * Notify the parent prior to the coredump if the
+> +                        * parent is interested in such a notificaiton.
+> +                        */
+> +                       int p_sig = current->real_parent->predump_signal;
+
+current->real_parent is an __rcu member. I think if you run the sparse
+checker against this patch, it's going to complain. Are you allowed to
+access current->real_parent in this context?
+
+> +                       if (valid_predump_signal(p_sig)) {
+> +                               read_lock(&tasklist_lock);
+> +                               do_notify_parent_predump(current);
+> +                               read_unlock(&tasklist_lock);
+> +                               cond_resched();
+> +                       }
+> +
+>                         if (print_fatal_signals)
+>                                 print_fatal_signal(ksig->info.si_signo);
+>                         proc_coredump_connector(current);
+> diff --git a/kernel/sys.c b/kernel/sys.c
+> index 123bd73..43eb250d 100644
+> --- a/kernel/sys.c
+> +++ b/kernel/sys.c
+> @@ -2258,6 +2258,76 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
+>         return -EINVAL;
+>  }
 >
-> --
-> Catalin
+> +static int prctl_get_predump_signal(struct task_struct *tsk, pid_t pid,
+> +                                   int __user *addr)
+> +{
+> +       struct task_struct *p;
+> +       int error;
+> +
+> +       /* For the current task, the common case */
+> +       if (pid == 0) {
+> +               put_user(tsk->predump_signal, addr);
+> +               return 0;
+> +       }
+> +
+> +       error = -ESRCH;
+> +       rcu_read_lock();
+> +       p = find_task_by_vpid(pid);
+> +       if (p) {
+> +               error = 0;
+> +               put_user(p->predump_signal, addr);
+
+This is wrong. You can't call put_user() while you're in an RCU
+read-side critical section.
+
+As below, I would like it if you could just get rid of this branch,
+and restrict this prctl to operating on the current process.
+
+> +       }
+> +       rcu_read_unlock();
+> +       return error;
+> +}
+> +
+> +/*
+> + * Returns true if current's euid is same as p's uid or euid,
+> + * or has CAP_SYS_ADMIN.
+> + *
+> + * Called with rcu_read_lock, creds are safe.
+> + *
+> + * Adapted from set_one_prio_perm().
+> + */
+> +static bool set_predump_signal_perm(struct task_struct *p)
+> +{
+> +       const struct cred *cred = current_cred(), *pcred = __task_cred(p);
+> +
+> +       return uid_eq(pcred->uid, cred->euid) ||
+> +              uid_eq(pcred->euid, cred->euid) ||
+> +              capable(CAP_SYS_ADMIN);
+> +}
+
+This permission check permits fiddling with other processes in
+scenarios where kill() wouldn't let you send signals (specifically, if
+you control the EUID of the target task). That worries me. Also,
+kill() is subject to LSM checks (see check_kill_permission()), but
+this interface isn't. I would really prefer it if you could amend this
+so that you can only operate on the current task, and get rid of this
+permission check.
+
+[...]
+>  SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+>                 unsigned long, arg4, unsigned long, arg5)
+>  {
+> @@ -2476,6 +2546,13 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
+>                         return -EINVAL;
+>                 error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
+>                 break;
+> +       case PR_SET_PREDUMP_SIG:
+> +               error = prctl_set_predump_signal(me, (pid_t)arg2, (int)arg3);
+> +               break;
+> +       case PR_GET_PREDUMP_SIG:
+> +               error = prctl_get_predump_signal(me, (pid_t)arg2,
+> +                                                (int __user *)arg3);
+> +               break;
+
+New prctl() calls should check that the unused arguments are zero, in
+order to make it possible to safely add more flags in the future.
