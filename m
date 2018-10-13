@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:33120 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:33110 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726292AbeJMWsK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2018 18:48:10 -0400
+        with ESMTP id S1726292AbeJMWsI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2018 18:48:08 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 7/8] eisa: consolidate EISA Kconfig entry in drivers/eisa
-Date: Sat, 13 Oct 2018 17:10:15 +0200
-Message-ID: <20181013151016.31674-8-hch@lst.de>
+Subject: [PATCH 6/8] rapidio: consolidate RAPIDIO config entry in drivers/rapidio
+Date: Sat, 13 Oct 2018 17:10:14 +0200
+Message-ID: <20181013151016.31674-7-hch@lst.de>
 In-Reply-To: <20181013151016.31674-1-hch@lst.de>
 References: <20181013151016.31674-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,281 +15,133 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masahiro Yamada <yamada.masahiro@socionext.com>
 Cc: Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild@vger.kernel.org, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20181013151015.JSTlXBKRGSbcz_jZ4BPHtG-Y9PNCFSeOBM3H1x0a7xw@z>
+Message-ID: <20181013151014.YacLlcgdpcWr3q3inKxKcf2jy9FZRZDElugt7sqNU9U@z>
 
-Let architectures opt into EISA support by selecting HAS_EISA and
-handle everything else in drivers/eisa.
+There is no good reason to duplicate the RAPIDIO menu in various
+architectures.  Instead provide a selectable HAS_RAPIDIO symbol
+that indicates native availability of RAPIDIO support and the handle
+the rest in drivers/pci.  This also means we now provide support
+for PCI(e) to Rapidio bridges for every architecture instead of a
+limited subset.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/alpha/Kconfig     |  8 +++-----
- arch/arm/Kconfig       | 16 +---------------
- arch/mips/Kconfig      | 31 +++++--------------------------
- arch/powerpc/Kconfig   |  3 ---
- arch/x86/Kconfig       | 19 +------------------
- drivers/eisa/Kconfig   | 21 ++++++++++++++++++++-
- drivers/parisc/Kconfig | 11 +----------
- 7 files changed, 31 insertions(+), 78 deletions(-)
+ arch/mips/Kconfig       | 13 -------------
+ arch/powerpc/Kconfig    | 13 -------------
+ arch/x86/Kconfig        | 10 ----------
+ drivers/Kconfig         |  1 +
+ drivers/rapidio/Kconfig | 11 +++++++++++
+ 5 files changed, 12 insertions(+), 36 deletions(-)
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 73a7558c71bd..6a9be9cb74e6 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -6,6 +6,9 @@ config ALPHA
- 	select ARCH_MIGHT_HAVE_PC_SERIO
- 	select ARCH_NO_PREEMPT
- 	select ARCH_USE_CMPXCHG_LOCKREF
-+	select HAS_EISA if ALPHA_GENERIC || ALPHA_JENSEN || ALPHA_ALCOR || \
-+				ALPHA_MIKASA || ALPHA_SABLE || ALPHA_LYNX || \
-+				ALPHA_NORITAKE || ALPHA_RAWHIDE
- 	select HAS_PCI if !ALPHA_JENSEN
- 	select PCI if !ALPHA_JENSEN
- 	select HAVE_AOUT
-@@ -518,11 +521,6 @@ config ALPHA_SRM
- 
- 	  If unsure, say N.
- 
--config EISA
--	bool
--	depends on ALPHA_GENERIC || ALPHA_JENSEN || ALPHA_ALCOR || ALPHA_MIKASA || ALPHA_SABLE || ALPHA_LYNX || ALPHA_NORITAKE || ALPHA_RAWHIDE
--	default y
--
- config ARCH_MAY_HAVE_PC_FDC
- 	def_bool y
- 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 0339c074147f..1903f73d42e7 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -49,6 +49,7 @@ config ARM
- 	select GENERIC_STRNLEN_USER
- 	select HANDLE_DOMAIN_IRQ
- 	select HARDIRQS_SW_RESEND
-+	select HAS_EISA
- 	select HAVE_ARCH_AUDITSYSCALL if (AEABI && !OABI_COMPAT)
- 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
- 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
-@@ -162,21 +163,6 @@ config HAVE_PROC_CPU
- config NO_IOPORT_MAP
- 	bool
- 
--config EISA
--	bool
--	---help---
--	  The Extended Industry Standard Architecture (EISA) bus was
--	  developed as an open alternative to the IBM MicroChannel bus.
--
--	  The EISA bus provided some of the features of the IBM MicroChannel
--	  bus while maintaining backward compatibility with cards made for
--	  the older ISA bus.  The EISA bus saw limited use between 1988 and
--	  1995 when it was made obsolete by the PCI bus.
--
--	  Say Y here if you are building a kernel for an EISA-based machine.
--
--	  Otherwise, say N.
--
- config SBUS
- 	bool
- 
 diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 70a9e09329bb..b3e6b2adf510 100644
+index fc74fd685e6a..70a9e09329bb 100644
 --- a/arch/mips/Kconfig
 +++ b/arch/mips/Kconfig
-@@ -23,6 +23,7 @@ config MIPS
- 	select GENERIC_CPU_AUTOPROBE
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_ISA_DMA if EISA
- 	select GENERIC_LIB_ASHLDI3
- 	select GENERIC_LIB_ASHRDI3
- 	select GENERIC_LIB_CMPDI2
-@@ -72,6 +73,7 @@ config MIPS
- 	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_VIRT_CPU_ACCOUNTING_GEN if 64BIT || !SMP
- 	select IRQ_FORCED_THREADING
-+	select ISA if EISA
- 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
- 	select MODULES_USE_ELF_REL if MODULES
- 	select PCI_DOMAINS if PCI
-@@ -634,7 +636,7 @@ config SGI_IP22
- 	select CSRC_R4K
- 	select DEFAULT_SGI_PARTITION
- 	select DMA_NONCOHERENT
--	select HW_HAS_EISA
-+	select HAS_EISA
- 	select I8253
- 	select I8259
- 	select IP22_CPU_SCACHE
-@@ -699,7 +701,7 @@ config SGI_IP28
- 	select DMA_NONCOHERENT
- 	select GENERIC_ISA_DMA_SUPPORT_BROKEN
- 	select IRQ_MIPS_CPU
--	select HW_HAS_EISA
-+	select HAS_EISA
- 	select I8253
- 	select I8259
- 	select SGI_HAS_I8042
-@@ -843,7 +845,7 @@ config SNI_RM
- 	select DMA_NONCOHERENT
- 	select GENERIC_ISA_DMA
- 	select HAVE_PCSPKR_PLATFORM
--	select HW_HAS_EISA
-+	select HAS_EISA
- 	select HAS_PCI
- 	select IRQ_MIPS_CPU
- 	select I8253
-@@ -2991,9 +2993,6 @@ config MIPS_AUTO_PFN_OFFSET
- 
- menu "Bus options (PCI, PCMCIA, EISA, ISA, TC)"
- 
--config HW_HAS_EISA
--	bool
--
- config HT_PCI
- 	bool "Support for HT-linked PCI"
- 	default y
-@@ -3027,26 +3026,6 @@ config PCI_DRIVERS_LEGACY
- config ISA
+@@ -3090,19 +3090,6 @@ config ZONE_DMA
+ config ZONE_DMA32
  	bool
  
--config EISA
--	bool "EISA support"
--	depends on HW_HAS_EISA
--	select ISA
--	select GENERIC_ISA_DMA
--	---help---
--	  The Extended Industry Standard Architecture (EISA) bus was
--	  developed as an open alternative to the IBM MicroChannel bus.
+-config HAS_RAPIDIO
+-	bool
+-	default n
 -
--	  The EISA bus provided some of the features of the IBM MicroChannel
--	  bus while maintaining backward compatibility with cards made for
--	  the older ISA bus.  The EISA bus saw limited use between 1988 and
--	  1995 when it was made obsolete by the PCI bus.
+-config RAPIDIO
+-	tristate "RapidIO support"
+-	depends on HAS_RAPIDIO || PCI
+-	help
+-	  If you say Y here, the kernel will include drivers and
+-	  infrastructure code to support RapidIO interconnect devices.
 -
--	  Say Y here if you are building a kernel for an EISA-based machine.
+-source "drivers/rapidio/Kconfig"
 -
--	  Otherwise, say N.
--
--source "drivers/eisa/Kconfig"
--
- config TC
- 	bool "TURBOchannel support"
- 	depends on MACH_DECSTATION
+ endmenu
+ 
+ config TRAD_SIGNALS
 diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index b1c3a47f1f30..f0ea460653cd 100644
+index 8959ce594b08..b1c3a47f1f30 100644
 --- a/arch/powerpc/Kconfig
 +++ b/arch/powerpc/Kconfig
-@@ -900,9 +900,6 @@ config PPC_INDIRECT_PCI
- 	default y if 40x || 44x
- 	default n
+@@ -971,17 +971,6 @@ config PCI_8260
+ 	select PPC_INDIRECT_PCI
+ 	default y
  
--config EISA
+-config HAS_RAPIDIO
 -	bool
+-	default n
 -
- config SBUS
- 	bool
+-config RAPIDIO
+-	tristate "RapidIO support"
+-	depends on HAS_RAPIDIO || PCI
+-	help
+-	  If you say Y here, the kernel will include drivers and
+-	  infrastructure code to support RapidIO interconnect devices.
+-
+ config FSL_RIO
+ 	bool "Freescale Embedded SRIO Controller support"
+ 	depends on RAPIDIO = y && HAS_RAPIDIO
+@@ -990,8 +979,6 @@ config FSL_RIO
+ 	  Include support for RapidIO controller on Freescale embedded
+ 	  processors (MPC8548, MPC8641, etc).
  
+-source "drivers/rapidio/Kconfig"
+-
+ endmenu
+ 
+ config NONSTATIC_KERNEL
 diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index f731ad1a043a..6a4fb550a206 100644
+index dc48280bdac9..f731ad1a043a 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
-@@ -113,6 +113,7 @@ config X86
- 	select GENERIC_STRNLEN_USER
- 	select GENERIC_TIME_VSYSCALL
- 	select HARDLOCKUP_CHECK_TIMESTAMP	if X86_64
-+	select HAS_EISA
- 	select HAS_PCI
- 	select HAVE_ACPI_APEI			if ACPI
- 	select HAVE_ACPI_APEI_NMI		if ACPI
-@@ -2680,24 +2681,6 @@ config ISA
- 	  (MCA) or VESA.  ISA is an older system, now being displaced by PCI;
- 	  newer boards don't support it.  If you have ISA, say Y, otherwise N.
+@@ -2810,16 +2810,6 @@ config AMD_NB
+ 	def_bool y
+ 	depends on CPU_SUP_AMD && PCI
  
--config EISA
--	bool "EISA support"
--	depends on ISA
--	---help---
--	  The Extended Industry Standard Architecture (EISA) bus was
--	  developed as an open alternative to the IBM MicroChannel bus.
+-config RAPIDIO
+-	tristate "RapidIO support"
+-	depends on PCI
+-	default n
+-	help
+-	  If enabled this option will include drivers and the core
+-	  infrastructure code to support RapidIO interconnect devices.
 -
--	  The EISA bus provided some of the features of the IBM MicroChannel
--	  bus while maintaining backward compatibility with cards made for
--	  the older ISA bus.  The EISA bus saw limited use between 1988 and
--	  1995 when it was made obsolete by the PCI bus.
+-source "drivers/rapidio/Kconfig"
 -
--	  Say Y here if you are building a kernel for an EISA-based machine.
--
--	  Otherwise, say N.
--
--source "drivers/eisa/Kconfig"
--
- config SCx200
- 	tristate "NatSemi SCx200 support"
- 	---help---
-diff --git a/drivers/eisa/Kconfig b/drivers/eisa/Kconfig
-index 2705284f6223..bd35daffee3b 100644
---- a/drivers/eisa/Kconfig
-+++ b/drivers/eisa/Kconfig
-@@ -1,6 +1,26 @@
+ config X86_SYSFB
+ 	bool "Mark VGA/VBE/EFI FB as generic system framebuffer"
+ 	help
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 58ee88c36cf5..065d308fcb00 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -6,6 +6,7 @@ menu "Device Drivers"
+ source "drivers/amba/Kconfig"
+ source "drivers/pci/Kconfig"
+ source "drivers/pcmcia/Kconfig"
++source "drivers/rapidio/Kconfig"
+ 
+ 
+ source "drivers/base/Kconfig"
+diff --git a/drivers/rapidio/Kconfig b/drivers/rapidio/Kconfig
+index d6d2f20c4597..102f4989c11a 100644
+--- a/drivers/rapidio/Kconfig
++++ b/drivers/rapidio/Kconfig
+@@ -1,6 +1,17 @@
  #
- # EISA configuration
+ # RapidIO configuration
  #
 +
-+config HAS_EISA
++config HAS_RAPIDIO
 +	bool
 +
-+menuconfig EISA
-+	bool "EISA support"
-+	depends on HAS_EISA
-+	---help---
-+	  The Extended Industry Standard Architecture (EISA) bus was
-+	  developed as an open alternative to the IBM MicroChannel bus.
++menuconfig RAPIDIO
++	tristate "RapidIO support"
++	depends on HAS_RAPIDIO || PCI
++	help
++	  If you say Y here, the kernel will include drivers and
++	  infrastructure code to support RapidIO interconnect devices.
 +
-+	  The EISA bus provided some of the features of the IBM MicroChannel
-+	  bus while maintaining backward compatibility with cards made for
-+	  the older ISA bus.  The EISA bus saw limited use between 1988 and
-+	  1995 when it was made obsolete by the PCI bus.
-+
-+	  Say Y here if you are building a kernel for an EISA-based machine.
-+
-+	  Otherwise, say N.
-+
- config EISA_VLB_PRIMING
- 	bool "Vesa Local Bus priming"
- 	depends on X86 && EISA
-@@ -53,4 +73,3 @@ config EISA_NAMES
- 	  names.
+ source "drivers/rapidio/devices/Kconfig"
  
- 	  When in doubt, say Y.
--
-diff --git a/drivers/parisc/Kconfig b/drivers/parisc/Kconfig
-index 1a55763d1245..09c5e59f5374 100644
---- a/drivers/parisc/Kconfig
-+++ b/drivers/parisc/Kconfig
-@@ -2,6 +2,7 @@ menu "Bus options (PCI, PCMCIA, EISA, GSC, ISA)"
- 
- config GSC
- 	bool "VSC/GSC/HSC bus support"
-+	select HAS_EISA
- 	default y
- 	help
- 	  The VSC, GSC and HSC busses were used from the earliest 700-series
-@@ -46,16 +47,6 @@ config GSC_WAX
- 	  used), a HIL interface chip and is also known to be used as the
- 	  GSC bridge for an X.25 GSC card.
- 
--config EISA
--	bool "EISA support"
--	depends on GSC
--	help
--	  Say Y here if you have an EISA bus in your machine.  This code
--	  supports both the Mongoose & Wax EISA adapters.  It is sadly
--	  incomplete and lacks support for card-to-host DMA.
--
--source "drivers/eisa/Kconfig"
--
- config ISA
- 	bool "ISA support"
- 	depends on EISA
+ config RAPIDIO_DISC_TIMEOUT
 -- 
 2.19.1
