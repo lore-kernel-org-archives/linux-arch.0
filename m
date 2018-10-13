@@ -1,73 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57230 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725978AbeJMJtU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 13 Oct 2018 05:49:20 -0400
-Date: Sat, 13 Oct 2018 04:14:16 +0200
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
-Message-ID: <20181013021416.GE21972@asgard.redhat.com>
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20180724173957.GA22106@yury-thinkpad>
- <20181010141017.GA2881@asgard.redhat.com>
- <20181010153655.GA212880@arrakis.emea.arm.com>
+Received: from mail-yw1-f66.google.com ([209.85.161.66]:36164 "EHLO
+        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726125AbeJMNSL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2018 09:18:11 -0400
+Received: by mail-yw1-f66.google.com with SMTP id e201-v6so5768027ywa.3
+        for <linux-arch@vger.kernel.org>; Fri, 12 Oct 2018 22:42:23 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20181010153655.GA212880@arrakis.emea.arm.com>
+References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
+ <1539337442-3676-6-git-send-email-firoz.khan@linaro.org> <CAK8P3a1gsuM7mBGm9hx-BTs=HAG3cSjB6M7N-kpMmPy3kixeCQ@mail.gmail.com>
+ <CALxhOnhj7qUj57tLX12KmbcE5G-zDK2Qf2fTUbQ=jpmiUcr52w@mail.gmail.com>
+ <CAK8P3a3BjuLQh0hTPFTDTkipXXQ+j8ADqbWmNpimkMDzoORkRA@mail.gmail.com> <71ea9dc5-7502-40af-2022-b2196dd2d690@gmx.de>
+In-Reply-To: <71ea9dc5-7502-40af-2022-b2196dd2d690@gmx.de>
+From: Firoz Khan <firoz.khan@linaro.org>
+Date: Sat, 13 Oct 2018 11:12:12 +0530
+Message-ID: <CALxhOniSbukoQYFzeLmWyD9tYE7Bgye6iq1O+fovvi1_G+56-Q@mail.gmail.com>
+Subject: Re: [PATCH v4 5/6] parisc: wire up rseq system call
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, "David S . Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, Manuel Montezelo <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan_Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Pavel Machek <pavel@ucw.cz>, Palmer Dabbelt <palmer@sifive.com>, Wookey <wookey@wookware.org>
-Message-ID: <20181013021416.mIk1VIgD7Aj0VSWQXzVBDBdoF9ocuuydmmj4WJAMzCY@z>
+To: Helge Deller <deller@gmx.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+Message-ID: <20181013054212.eOnF3eP8CmGmGE6P49E_MrylJy955yt5oxn1vWNRXu4@z>
 
-On Wed, Oct 10, 2018 at 04:36:56PM +0100, Catalin Marinas wrote:
-> On Wed, Oct 10, 2018 at 04:10:21PM +0200, Eugene Syromiatnikov wrote:
-> > I have some questions regarding AArch64 ILP32 implementation for which I
-> > failed to find an answer myself:
-> >  * How ptrace() tracer is supposed to distinguish between ILP32 and LP64
-> >    tracees? For MIPS N32 and x32 this is possible based on syscall
-> >    number, but for AArch64 ILP32 I do not see such a sign. There's also
-> >    ARM_ip is employed for signalling entering/exiting, I wonder whether
-> >    it's possible to employ it also for signalling tracee's personality.
-> 
-> With the current implementation, I don't think you can distinguish. From
-> the kernel perspective, the register set is the same. What is the
-> use-case for this?
+Hi Arnd, Helge,
 
-Err, a ptrace()-based tracer trying to trace a process, for example?
+On Sat, 13 Oct 2018 at 01:53, Helge Deller <deller@gmx.de> wrote:
+>
+> On 12.10.2018 13:52, Arnd Bergmann wrote:
+> > On Fri, Oct 12, 2018 at 12:16 PM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >>
+> >> Hi Arnd,
+> >>
+> >> On Fri, 12 Oct 2018 at 15:26, Arnd Bergmann <arnd@arndb.de> wrote:
+> >>>
+> >>> On Fri, Oct 12, 2018 at 11:45 AM Firoz Khan <firoz.khan@linaro.org> wrote:
+> >>>>
+> >>>> Wire up rseq system call requires an architecture specific
+> >>>> implementation as it not present now.
+> >>>>
+> >>>> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
+> >>>
+> >>> Didn't we conclude that this should be skipped?
+> >>
+> >> Helge told "I prefer to keep the warning for rseq for now.
+> >> It reminds me that we still may want the rseq syscall.
+> >> If the warning is a problem, you may simply add the __IGNORE_rseq define."
+> >>
+> >> I chose this option; I feel it looks clean
+> >> "# rseq requires an architecture specific implementation" in syscall.tbl
+> >> hopefully remind him to add rseq syscall implementation in this architecture.
+> >
+> > But he said he wants the warning instead.
+>
+> Correct.
+> Firoz, please simply drop this patch completely.
+> That way one will see generated warnings about the missing rseq (which is what
+> we want).
 
-> We could add a new regset to expose the ILP32 state (NT_ARM_..., I can't
-> think of a name now but probably not PER* as this implies PER_LINUX_...
-> which is independent from TIF_32BIT_*).
+Sure. will do!
 
-So that would require an additional ptrace() call on each syscall stop,
-is that correct?
+Firoz
 
-> >  * What's the reasoning behind capping syscall arguments to 32 bit? x32
-> >    and MIPS N32 do not have such a restriction (and do not need special
-> >    wrappers for syscalls that pass 64-bit values as a result, except
-> >    when they do,  as it is the case for preadv2 on x32); moreover, that
-> >    would lead to insurmountable difficulties for AArch64 ILP32 tracers
-> >    that try to trace LP64 tracees, as it would be impossible to pass
-> >    64-bit addresses to process_vm_{read,write} or ptrace PEEK/POKE.
-> 
-> We've attempted in earlier versions to allow a mix of 32 and 64-bit
-> register values from ILP32 but it got pretty complicated. The entry code
-> would need to know which registers need zeroing of the top 32-bit
-
-If kernel specifies 64-bit wide registers for syscalls, then it's the
-caller's (libc's) responsibility to properly sign-extend arguments when
-needed, and glibc, for example, already has proper type definitions that
-aimed to handle this.
-
-> and the generic unistd.h wrapper hacks were not very nice.
-
-They are already implemented in glibc during x32 introduction period.
-
-> Some past discussions:
-> 
-> https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1211716.html
-> 
-> -- 
-> Catalin
+>
+> Thanks,
+> Helge
