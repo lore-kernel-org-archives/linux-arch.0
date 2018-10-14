@@ -1,180 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:34630 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725733AbeJNIpu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 14 Oct 2018 04:45:50 -0400
-Date: Sun, 14 Oct 2018 03:06:58 +0200
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [PATCH v4 3/6] parisc: add system call table generation support
-Message-ID: <20181014010658.GB717@asgard.redhat.com>
-References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
- <1539337442-3676-4-git-send-email-firoz.khan@linaro.org>
+Received: from mail-pl1-f193.google.com ([209.85.214.193]:34098 "EHLO
+        mail-pl1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725848AbeJNL7N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2018 07:59:13 -0400
+Date: Sun, 14 Oct 2018 13:19:33 +0900
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: Re: [RESEND PATCH v4 3/8] gpio: 104-dio-48e: Utilize
+ for_each_set_clump macro
+Message-ID: <20181014041933.GA7335@icarus>
+References: <cover.1538441919.git.vilhelm.gray@gmail.com>
+ <5906381114b14d5b0359510a1d23accbd239eaa5.1538441919.git.vilhelm.gray@gmail.com>
+ <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <1539337442-3676-4-git-send-email-firoz.khan@linaro.org>
+In-Reply-To: <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
-Message-ID: <20181014010658.hZ5lRE1G2jwZHbwRsinM49obPCxDaLdrmJwq-qxvMCo@z>
+To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com
+Message-ID: <20181014041933.F90LKv2X9pPXbXjFEey-0IIvaOT_kHY5HQranXKlU40@z>
 
-On Fri, Oct 12, 2018 at 03:13:59PM +0530, Firoz Khan wrote:
-> diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-> new file mode 100644
-> index 0000000..7c9f268
-
-> +86      common  uselib                          sys_ni_syscall
-
-Again, why is this definition left, while others have been removed?
-
-> +348     common  pwritev2                        sys_pwritev2                    compat_sys_pwritev2
-> +349     common  statx                           sys_statx
-> +350	common  io_pgetevents			sys_io_pgetevents		compat_sys_io_pgetevents
-
-Tab instead of spaces.
-
-> diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh b/arch/parisc/kernel/syscalls/syscallhdr.sh
-> new file mode 100644
-> index 0000000..607d4ca
-> --- /dev/null
-> +++ b/arch/parisc/kernel/syscalls/syscallhdr.sh
-> @@ -0,0 +1,35 @@
-> +#!/bin/sh
-
-/bin/sh -efu
-
-> +# SPDX-License-Identifier: GPL-2.0
-
-"export LANG=C", due to usage of sed/grep/sort.
-
-> +
-> +in="$1"
-> +out="$2"
-> +my_abis=`echo "($3)" | tr ',' '|'`
-> +prefix="$4"
-> +offset="$5"
-> +
-> +fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
-> +    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
-> +    -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
-> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-
-grep -E '^[[:xdigit:]Xx]+[[:space:]]+'"${my_abis}" "$in"
-sort -n -k1,1
-
-> +    echo "#ifndef ${fileguard}"
-> +    echo "#define ${fileguard}"
-> +    echo ""
-
-	cat <<-EOF
-		#ifndef ${fileguard}
-		#define ${fileguard}
-
-	EOF
-
-> +
-> +    nxt=0
-> +    while read nr abi name entry compat ; do
-> +	if [ -z "$offset" ]; then
-> +	    echo -e "#define __NR_${prefix}${name}\t$nr"
-> +	else
-> +	    echo -e "#define __NR_${prefix}${name}\t($offset + $nr)"
-> +	fi
-
-echo options are not portable; something like
-
-	printf "#define __NR_%s%s\t(%s + %s)" "${prefix}" "${name}" "${offset}" "${nr}"
-
-> +	nxt=$nr
-> +	let nxt=nxt+1
-
-"let" is a bash extension, posix-conformant expression would be
-
-	nxt=$((nr + 1))
-
-(I would also check that nr >= nxt, however)
-
-> +    done
-> +
-> +    echo ""
-> +    echo "#ifdef __KERNEL__"
-> +    echo -e "#define __NR_syscalls\t$nxt"
-> +    echo "#endif"
-> +    echo ""
-> +    echo "#endif /* ${fileguard} */"
-
-	cat <<-EOF
-
-		#ifdef __KERNEL__
-		# define __NR_syscalls\t${nxt}
-		#endif
-
-		#endif /* ${fileguard} */
-	EOF
-
-> +) > "$out"
-> diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh b/arch/parisc/kernel/syscalls/syscalltbl.sh
-> new file mode 100644
-> index 0000000..04abde7
-> --- /dev/null
-> +++ b/arch/parisc/kernel/syscalls/syscalltbl.sh
-> @@ -0,0 +1,46 @@
-> +#!/bin/sh
-> +# SPDX-License-Identifier: GPL-2.0
-> +
-> +in="$1"
-> +out="$2"
-> +my_abis=`echo "($3)" | tr ',' '|'`
-> +offset="$4"
-> +
-> +emit() {
-> +    nxt="$1"
-> +    if [ -z "$offset" ]; then
-> +	nr="$2"
-> +    else
-> +	nr="$2"
-> +	nr=$((nr+offset))
-> +    fi
-> +    entry="$3"
-> +
-> +    while [ $nxt -lt $nr ]; do
-
-It would break nicely if nxt="-n x -o 1" or something like that.
-
-> +	echo "__SYSCALL($nxt, sys_ni_syscall, )"
-> +        let nxt=nxt+1
-> +    done
-> +    echo "__SYSCALL($nxt, $entry, )"
-> +}
-> +
-> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
-> +    if [ -z "$offset" ]; then
-> +	nxt=0
-> +    else
-> +	nxt=$offset
-> +    fi
-> +
-> +    my_abi="$(cut -d'|' -f2 <<< $my_abis)"
-
-	my_abi="${my_abis#*|}"
-
-But it looks like that $my_abis includes parentheses and this code
-is broken.
-
-> +    while read nr abi name entry compat ; do
-> +	if [ $my_abi = "compat" ]; then
-> +	    if [ -z "$compat" ]; then
-> +		emit $nxt $nr $entry
-> +	    else
-> +		emit $nxt $nr $compat
-> +	    fi
-> +	else
-> +	    emit $nxt $nr $entry
-> +	fi
-> +        let nxt=nxt+1
-> +    done
-> +) > "$out"
-> -- 
-> 1.9.1
+On Tue, Oct 02, 2018 at 09:00:45AM +0200, Rasmus Villemoes wrote:
+> On 2018-10-02 03:14, William Breathitt Gray wrote:
+> >  	/* clear bits array to a clean slate */
+> >  	bitmap_zero(bits, chip->ngpio);
+> >  
+> > -	/* get bits are evaluated a gpio port register at a time */
+> > -	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+> > -		/* gpio offset in bits array */
+> > -		bits_offset = i * gpio_reg_size;
+> > -
+> > -		/* word index for bits array */
+> > -		word_index = BIT_WORD(bits_offset);
+> > -
+> > -		/* gpio offset within current word of bits array */
+> > -		word_offset = bits_offset % BITS_PER_LONG;
+> > -
+> > -		/* mask of get bits for current gpio within current word */
+> > -		word_mask = mask[word_index] & (port_mask << word_offset);
+> > -		if (!word_mask) {
+> > -			/* no get bits in this port so skip to next one */
+> > -			continue;
+> > -		}
+> > -
+> > -		/* read bits from current gpio port */
+> > +	for_each_set_clump(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
+> >  		port_state = inb(dio48egpio->base + ports[i]);
+> > -
+> > -		/* store acquired bits at respective bits array offset */
+> > -		bits[word_index] |= port_state << word_offset;
+> > +		bits[word] |= port_state << offset;
 > 
+> Somewhat unrelated to this series, but is the existing code correct? I'd
+> expect the RHS to be masked by word_mask; otherwise we might set bits in
+> bits[] that were not requested? And if one does that, the !word_mask
+> test is merely an optimization to avoid reading the gpios when the
+> result would be ignored anyway. Perhaps no caller cares.
+> 
+> Rasmus
+
+I don't think the caller cares in this case. Take a look at the
+gpiod_get_array_value_complex function: the desired inputs are collected
+before gpio_chip_get_multiple is called and then looped through after --
+unrequested bits are simply ignored.
+
+This caller behavior also makes sense because a bit value of 0 in the
+bits array does not necessarily mean the input was not requested, but
+may instead mean that the value at the input is 0; therefore, the caller
+must keep track of the requested inputs rather than try to deduce them
+from the values in the bits array.
+
+William Breathitt Gray
