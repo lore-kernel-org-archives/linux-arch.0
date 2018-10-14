@@ -1,94 +1,69 @@
-From: Eugene Syromiatnikov <esyr@redhat.com>
-Subject: Re: [PATCH v4 3/6] parisc: add system call table generation
-	support
-Date: Sun, 14 Oct 2018 03:06:58 +0200
-Message-ID: <20181014010658.GB717@asgard.redhat.com>
-References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
- <1539337442-3676-4-git-send-email-firoz.khan@linaro.org>
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: Re: [RESEND PATCH v4 3/8] gpio: 104-dio-48e: Utilize
+ for_each_set_clump macro
+Date: Sun, 14 Oct 2018 13:19:33 +0900
+Message-ID: <20181014041933.GA7335@icarus>
+References: <cover.1538441919.git.vilhelm.gray@gmail.com>
+ <5906381114b14d5b0359510a1d23accbd239eaa5.1538441919.git.vilhelm.gray@gmail.com>
+ <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1539337442-3676-4-git-send-email-firoz.khan@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Firoz Khan <firoz.khan@linaro.org>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-parisc@vger.kernel.org, y2038@lists.linaro.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Helge Deller <deller@gmx.de>, "James E . J . Bottomley" <jejb@parisc-linux.org>, linux-kernel@vger.kernel.org, marcin.juszkiewicz@linaro.org, deepa.kernel@gmail.com, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>
+In-Reply-To: <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBPY3QgMTIsIDIwMTggYXQgMDM6MTM6NTlQTSArMDUzMCwgRmlyb3ogS2hhbiB3cm90
-ZToKPiBkaWZmIC0tZ2l0IGEvYXJjaC9wYXJpc2Mva2VybmVsL3N5c2NhbGxzL3N5c2NhbGwudGJs
-IGIvYXJjaC9wYXJpc2Mva2VybmVsL3N5c2NhbGxzL3N5c2NhbGwudGJsCj4gbmV3IGZpbGUgbW9k
-ZSAxMDA2NDQKPiBpbmRleCAwMDAwMDAwLi43YzlmMjY4Cgo+ICs4NiAgICAgIGNvbW1vbiAgdXNl
-bGliICAgICAgICAgICAgICAgICAgICAgICAgICBzeXNfbmlfc3lzY2FsbAoKQWdhaW4sIHdoeSBp
-cyB0aGlzIGRlZmluaXRpb24gbGVmdCwgd2hpbGUgb3RoZXJzIGhhdmUgYmVlbiByZW1vdmVkPwoK
-PiArMzQ4ICAgICBjb21tb24gIHB3cml0ZXYyICAgICAgICAgICAgICAgICAgICAgICAgc3lzX3B3
-cml0ZXYyICAgICAgICAgICAgICAgICAgICBjb21wYXRfc3lzX3B3cml0ZXYyCj4gKzM0OSAgICAg
-Y29tbW9uICBzdGF0eCAgICAgICAgICAgICAgICAgICAgICAgICAgIHN5c19zdGF0eAo+ICszNTAJ
-Y29tbW9uICBpb19wZ2V0ZXZlbnRzCQkJc3lzX2lvX3BnZXRldmVudHMJCWNvbXBhdF9zeXNfaW9f
-cGdldGV2ZW50cwoKVGFiIGluc3RlYWQgb2Ygc3BhY2VzLgoKPiBkaWZmIC0tZ2l0IGEvYXJjaC9w
-YXJpc2Mva2VybmVsL3N5c2NhbGxzL3N5c2NhbGxoZHIuc2ggYi9hcmNoL3BhcmlzYy9rZXJuZWwv
-c3lzY2FsbHMvc3lzY2FsbGhkci5zaAo+IG5ldyBmaWxlIG1vZGUgMTAwNjQ0Cj4gaW5kZXggMDAw
-MDAwMC4uNjA3ZDRjYQo+IC0tLSAvZGV2L251bGwKPiArKysgYi9hcmNoL3BhcmlzYy9rZXJuZWwv
-c3lzY2FsbHMvc3lzY2FsbGhkci5zaAo+IEBAIC0wLDAgKzEsMzUgQEAKPiArIyEvYmluL3NoCgov
-YmluL3NoIC1lZnUKCj4gKyMgU1BEWC1MaWNlbnNlLUlkZW50aWZpZXI6IEdQTC0yLjAKCiJleHBv
-cnQgTEFORz1DIiwgZHVlIHRvIHVzYWdlIG9mIHNlZC9ncmVwL3NvcnQuCgo+ICsKPiAraW49IiQx
-Igo+ICtvdXQ9IiQyIgo+ICtteV9hYmlzPWBlY2hvICIoJDMpIiB8IHRyICcsJyAnfCdgCj4gK3By
-ZWZpeD0iJDQiCj4gK29mZnNldD0iJDUiCj4gKwo+ICtmaWxlZ3VhcmQ9X1VBUElfQVNNX1BBUklT
-Q19gYmFzZW5hbWUgIiRvdXQiIHwgc2VkIFwKPiArICAgIC1lICd5L2FiY2RlZmdoaWprbG1ub3Bx
-cnN0dXZ3eHl6L0FCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaLycgXAo+ICsgICAgLWUgJ3MvW15B
-LVowLTlfXS9fL2cnIC1lICdzL19fL18vZydgCj4gK2dyZXAgLUUgIl5bMC05QS1GYS1mWHhdK1tb
-OnNwYWNlOl1dKyR7bXlfYWJpc30iICIkaW4iIHwgc29ydCAtbiB8ICgKCmdyZXAgLUUgJ15bWzp4
-ZGlnaXQ6XVh4XStbWzpzcGFjZTpdXSsnIiR7bXlfYWJpc30iICIkaW4iCnNvcnQgLW4gLWsxLDEK
-Cj4gKyAgICBlY2hvICIjaWZuZGVmICR7ZmlsZWd1YXJkfSIKPiArICAgIGVjaG8gIiNkZWZpbmUg
-JHtmaWxlZ3VhcmR9Igo+ICsgICAgZWNobyAiIgoKCWNhdCA8PC1FT0YKCQkjaWZuZGVmICR7Zmls
-ZWd1YXJkfQoJCSNkZWZpbmUgJHtmaWxlZ3VhcmR9CgoJRU9GCgo+ICsKPiArICAgIG54dD0wCj4g
-KyAgICB3aGlsZSByZWFkIG5yIGFiaSBuYW1lIGVudHJ5IGNvbXBhdCA7IGRvCj4gKwlpZiBbIC16
-ICIkb2Zmc2V0IiBdOyB0aGVuCj4gKwkgICAgZWNobyAtZSAiI2RlZmluZSBfX05SXyR7cHJlZml4
-fSR7bmFtZX1cdCRuciIKPiArCWVsc2UKPiArCSAgICBlY2hvIC1lICIjZGVmaW5lIF9fTlJfJHtw
-cmVmaXh9JHtuYW1lfVx0KCRvZmZzZXQgKyAkbnIpIgo+ICsJZmkKCmVjaG8gb3B0aW9ucyBhcmUg
-bm90IHBvcnRhYmxlOyBzb21ldGhpbmcgbGlrZQoKCXByaW50ZiAiI2RlZmluZSBfX05SXyVzJXNc
-dCglcyArICVzKSIgIiR7cHJlZml4fSIgIiR7bmFtZX0iICIke29mZnNldH0iICIke25yfSIKCj4g
-KwlueHQ9JG5yCj4gKwlsZXQgbnh0PW54dCsxCgoibGV0IiBpcyBhIGJhc2ggZXh0ZW5zaW9uLCBw
-b3NpeC1jb25mb3JtYW50IGV4cHJlc3Npb24gd291bGQgYmUKCglueHQ9JCgobnIgKyAxKSkKCihJ
-IHdvdWxkIGFsc28gY2hlY2sgdGhhdCBuciA+PSBueHQsIGhvd2V2ZXIpCgo+ICsgICAgZG9uZQo+
-ICsKPiArICAgIGVjaG8gIiIKPiArICAgIGVjaG8gIiNpZmRlZiBfX0tFUk5FTF9fIgo+ICsgICAg
-ZWNobyAtZSAiI2RlZmluZSBfX05SX3N5c2NhbGxzXHQkbnh0Igo+ICsgICAgZWNobyAiI2VuZGlm
-Igo+ICsgICAgZWNobyAiIgo+ICsgICAgZWNobyAiI2VuZGlmIC8qICR7ZmlsZWd1YXJkfSAqLyIK
-CgljYXQgPDwtRU9GCgoJCSNpZmRlZiBfX0tFUk5FTF9fCgkJIyBkZWZpbmUgX19OUl9zeXNjYWxs
-c1x0JHtueHR9CgkJI2VuZGlmCgoJCSNlbmRpZiAvKiAke2ZpbGVndWFyZH0gKi8KCUVPRgoKPiAr
-KSA+ICIkb3V0Igo+IGRpZmYgLS1naXQgYS9hcmNoL3BhcmlzYy9rZXJuZWwvc3lzY2FsbHMvc3lz
-Y2FsbHRibC5zaCBiL2FyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsdGJsLnNoCj4g
-bmV3IGZpbGUgbW9kZSAxMDA2NDQKPiBpbmRleCAwMDAwMDAwLi4wNGFiZGU3Cj4gLS0tIC9kZXYv
-bnVsbAo+ICsrKyBiL2FyY2gvcGFyaXNjL2tlcm5lbC9zeXNjYWxscy9zeXNjYWxsdGJsLnNoCj4g
-QEAgLTAsMCArMSw0NiBAQAo+ICsjIS9iaW4vc2gKPiArIyBTUERYLUxpY2Vuc2UtSWRlbnRpZmll
-cjogR1BMLTIuMAo+ICsKPiAraW49IiQxIgo+ICtvdXQ9IiQyIgo+ICtteV9hYmlzPWBlY2hvICIo
-JDMpIiB8IHRyICcsJyAnfCdgCj4gK29mZnNldD0iJDQiCj4gKwo+ICtlbWl0KCkgewo+ICsgICAg
-bnh0PSIkMSIKPiArICAgIGlmIFsgLXogIiRvZmZzZXQiIF07IHRoZW4KPiArCW5yPSIkMiIKPiAr
-ICAgIGVsc2UKPiArCW5yPSIkMiIKPiArCW5yPSQoKG5yK29mZnNldCkpCj4gKyAgICBmaQo+ICsg
-ICAgZW50cnk9IiQzIgo+ICsKPiArICAgIHdoaWxlIFsgJG54dCAtbHQgJG5yIF07IGRvCgpJdCB3
-b3VsZCBicmVhayBuaWNlbHkgaWYgbnh0PSItbiB4IC1vIDEiIG9yIHNvbWV0aGluZyBsaWtlIHRo
-YXQuCgo+ICsJZWNobyAiX19TWVNDQUxMKCRueHQsIHN5c19uaV9zeXNjYWxsLCApIgo+ICsgICAg
-ICAgIGxldCBueHQ9bnh0KzEKPiArICAgIGRvbmUKPiArICAgIGVjaG8gIl9fU1lTQ0FMTCgkbnh0
-LCAkZW50cnksICkiCj4gK30KPiArCj4gK2dyZXAgLUUgIl5bMC05QS1GYS1mWHhdK1tbOnNwYWNl
-Ol1dKyR7bXlfYWJpc30iICIkaW4iIHwgc29ydCAtbiB8ICgKPiArICAgIGlmIFsgLXogIiRvZmZz
-ZXQiIF07IHRoZW4KPiArCW54dD0wCj4gKyAgICBlbHNlCj4gKwlueHQ9JG9mZnNldAo+ICsgICAg
-ZmkKPiArCj4gKyAgICBteV9hYmk9IiQoY3V0IC1kJ3wnIC1mMiA8PDwgJG15X2FiaXMpIgoKCW15
-X2FiaT0iJHtteV9hYmlzIyp8fSIKCkJ1dCBpdCBsb29rcyBsaWtlIHRoYXQgJG15X2FiaXMgaW5j
-bHVkZXMgcGFyZW50aGVzZXMgYW5kIHRoaXMgY29kZQppcyBicm9rZW4uCgo+ICsgICAgd2hpbGUg
-cmVhZCBuciBhYmkgbmFtZSBlbnRyeSBjb21wYXQgOyBkbwo+ICsJaWYgWyAkbXlfYWJpID0gImNv
-bXBhdCIgXTsgdGhlbgo+ICsJICAgIGlmIFsgLXogIiRjb21wYXQiIF07IHRoZW4KPiArCQllbWl0
-ICRueHQgJG5yICRlbnRyeQo+ICsJICAgIGVsc2UKPiArCQllbWl0ICRueHQgJG5yICRjb21wYXQK
-PiArCSAgICBmaQo+ICsJZWxzZQo+ICsJICAgIGVtaXQgJG54dCAkbnIgJGVudHJ5Cj4gKwlmaQo+
-ICsgICAgICAgIGxldCBueHQ9bnh0KzEKPiArICAgIGRvbmUKPiArKSA+ICIkb3V0Igo+IC0tIAo+
-IDEuOS4xCj4gCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-ClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5saW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMu
-bGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4Cg==
+On Tue, Oct 02, 2018 at 09:00:45AM +0200, Rasmus Villemoes wrote:
+> On 2018-10-02 03:14, William Breathitt Gray wrote:
+> >  	/* clear bits array to a clean slate */
+> >  	bitmap_zero(bits, chip->ngpio);
+> >  
+> > -	/* get bits are evaluated a gpio port register at a time */
+> > -	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+> > -		/* gpio offset in bits array */
+> > -		bits_offset = i * gpio_reg_size;
+> > -
+> > -		/* word index for bits array */
+> > -		word_index = BIT_WORD(bits_offset);
+> > -
+> > -		/* gpio offset within current word of bits array */
+> > -		word_offset = bits_offset % BITS_PER_LONG;
+> > -
+> > -		/* mask of get bits for current gpio within current word */
+> > -		word_mask = mask[word_index] & (port_mask << word_offset);
+> > -		if (!word_mask) {
+> > -			/* no get bits in this port so skip to next one */
+> > -			continue;
+> > -		}
+> > -
+> > -		/* read bits from current gpio port */
+> > +	for_each_set_clump(i, word, offset, mask, ARRAY_SIZE(ports), 8) {
+> >  		port_state = inb(dio48egpio->base + ports[i]);
+> > -
+> > -		/* store acquired bits at respective bits array offset */
+> > -		bits[word_index] |= port_state << word_offset;
+> > +		bits[word] |= port_state << offset;
+> 
+> Somewhat unrelated to this series, but is the existing code correct? I'd
+> expect the RHS to be masked by word_mask; otherwise we might set bits in
+> bits[] that were not requested? And if one does that, the !word_mask
+> test is merely an optimization to avoid reading the gpios when the
+> result would be ignored anyway. Perhaps no caller cares.
+> 
+> Rasmus
+
+I don't think the caller cares in this case. Take a look at the
+gpiod_get_array_value_complex function: the desired inputs are collected
+before gpio_chip_get_multiple is called and then looped through after --
+unrequested bits are simply ignored.
+
+This caller behavior also makes sense because a bit value of 0 in the
+bits array does not necessarily mean the input was not requested, but
+may instead mean that the value at the input is 0; therefore, the caller
+must keep track of the requested inputs rather than try to deduce them
+from the values in the bits array.
+
+William Breathitt Gray
