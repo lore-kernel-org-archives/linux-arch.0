@@ -1,56 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f67.google.com ([209.85.128.67]:54620 "EHLO
-        mail-wm1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726831AbeJNDOz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2018 23:14:55 -0400
-Received: by mail-wm1-f67.google.com with SMTP id r63-v6so15205832wma.4
-        for <linux-arch@vger.kernel.org>; Sat, 13 Oct 2018 12:36:34 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:34630 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725733AbeJNIpu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 14 Oct 2018 04:45:50 -0400
+Date: Sun, 14 Oct 2018 03:06:58 +0200
+From: Eugene Syromiatnikov <esyr@redhat.com>
+Subject: Re: [PATCH v4 3/6] parisc: add system call table generation support
+Message-ID: <20181014010658.GB717@asgard.redhat.com>
+References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
+ <1539337442-3676-4-git-send-email-firoz.khan@linaro.org>
 MIME-Version: 1.0
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
-In-Reply-To: <20180516081910.10067-1-ynorov@caviumnetworks.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Sat, 13 Oct 2018 12:36:21 -0700
-Message-ID: <CALCETrVuabkb5ZQOSgQQTEq8CrS602NBpAkE2=4n982r1f5reQ@mail.gmail.com>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1539337442-3676-4-git-send-email-firoz.khan@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ynorov@caviumnetworks.com
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, klimov.linux@gmail.com, schwab@suse.de, Andrew Pinski <pinskia@gmail.com>, bamv2005@gmail.com, Chris Metcalf <cmetcalf@mellanox.com>, christoph.muellner@theobroma-systems.com, Dave Martin <Dave.Martin@arm.com>, "David S. Miller" <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, "Joseph S. Myers" <joseph@codesourcery.com>, linyongting@huawei.com, manuel.montezelo@gmail.com, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, philipp.tomsich@theobroma-systems.com, Prasun.Kapoor@caviumnetworks.com, ramana.gcc@googlemail.com, sellcey@caviumnetworks.com, szabolcs.nagy@arm.com
-Message-ID: <20181013193621.XimF27mZC-w7G2z6_8PRW0DqDwXE0o1Wl1R-0y0LK-M@z>
+To: Firoz Khan <firoz.khan@linaro.org>
+Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
+Message-ID: <20181014010658.hZ5lRE1G2jwZHbwRsinM49obPCxDaLdrmJwq-qxvMCo@z>
 
-On Wed, May 16, 2018 at 1:19 AM Yury Norov <ynorov@caviumnetworks.com> wrote:
->
-> This series enables AARCH64 with ILP32 mode.
->
-> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
-> option that is enabled for existing 32-bit architectures but disabled
-> for new arches (so 64-bit off_t userspace type is used by new userspace).
-> Also it deprecates getrlimit and setrlimit syscalls prior to prlimit64.
+On Fri, Oct 12, 2018 at 03:13:59PM +0530, Firoz Khan wrote:
+> diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
+> new file mode 100644
+> index 0000000..7c9f268
 
-A few thoughts:
+> +86      common  uselib                          sys_ni_syscall
 
-1. I've never been able to shake the feeling that x32 should not need
-kernel support at all.  As far as I can tell, the kernel support is an
-enormous amount of code and complexity to deal with exactly two
-issues.  First, ILP32 only has 32-bit pointers, so there needs to be a
-way to tell the kernel to only use the lower 4 GB of user address
-space.  That part is easy.  Second, ILP32 user code is highly unlikely
-to end up with the same struct layout as ILP64 code.  The latter seems
-like it should be solved entirely in userspace by adding a way to
-annotate a structure as being a kernel ABI structure and getting the
-toolchain to lay it out as if it were ILP64 even though the target is
-ILP32.
+Again, why is this definition left, while others have been removed?
 
-2. I think you should make a conscious decision as to whether the
-ILP32-ness of a syscall is a property of the task or of the syscall.
-On x86, x32-ness is a property of the syscall, but historically it
-also got rather entangled with the state of the task, and the result
-was a mess.  It looks like you're making it be a property of the task,
-which is fine, but you're making it impossible for very clever ILP32
-libraries to include little ILP64 stubs that do fancy things with full
-64-bit syscalls.
+> +348     common  pwritev2                        sys_pwritev2                    compat_sys_pwritev2
+> +349     common  statx                           sys_statx
+> +350	common  io_pgetevents			sys_io_pgetevents		compat_sys_io_pgetevents
 
-3. Make very certain that you aren't exploitable by malicious
-processes that set the high bits in ILP32 syscall args.  x86 compat
-has issues like that in the past.
+Tab instead of spaces.
+
+> diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh b/arch/parisc/kernel/syscalls/syscallhdr.sh
+> new file mode 100644
+> index 0000000..607d4ca
+> --- /dev/null
+> +++ b/arch/parisc/kernel/syscalls/syscallhdr.sh
+> @@ -0,0 +1,35 @@
+> +#!/bin/sh
+
+/bin/sh -efu
+
+> +# SPDX-License-Identifier: GPL-2.0
+
+"export LANG=C", due to usage of sed/grep/sort.
+
+> +
+> +in="$1"
+> +out="$2"
+> +my_abis=`echo "($3)" | tr ',' '|'`
+> +prefix="$4"
+> +offset="$5"
+> +
+> +fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
+> +    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+> +    -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+
+grep -E '^[[:xdigit:]Xx]+[[:space:]]+'"${my_abis}" "$in"
+sort -n -k1,1
+
+> +    echo "#ifndef ${fileguard}"
+> +    echo "#define ${fileguard}"
+> +    echo ""
+
+	cat <<-EOF
+		#ifndef ${fileguard}
+		#define ${fileguard}
+
+	EOF
+
+> +
+> +    nxt=0
+> +    while read nr abi name entry compat ; do
+> +	if [ -z "$offset" ]; then
+> +	    echo -e "#define __NR_${prefix}${name}\t$nr"
+> +	else
+> +	    echo -e "#define __NR_${prefix}${name}\t($offset + $nr)"
+> +	fi
+
+echo options are not portable; something like
+
+	printf "#define __NR_%s%s\t(%s + %s)" "${prefix}" "${name}" "${offset}" "${nr}"
+
+> +	nxt=$nr
+> +	let nxt=nxt+1
+
+"let" is a bash extension, posix-conformant expression would be
+
+	nxt=$((nr + 1))
+
+(I would also check that nr >= nxt, however)
+
+> +    done
+> +
+> +    echo ""
+> +    echo "#ifdef __KERNEL__"
+> +    echo -e "#define __NR_syscalls\t$nxt"
+> +    echo "#endif"
+> +    echo ""
+> +    echo "#endif /* ${fileguard} */"
+
+	cat <<-EOF
+
+		#ifdef __KERNEL__
+		# define __NR_syscalls\t${nxt}
+		#endif
+
+		#endif /* ${fileguard} */
+	EOF
+
+> +) > "$out"
+> diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh b/arch/parisc/kernel/syscalls/syscalltbl.sh
+> new file mode 100644
+> index 0000000..04abde7
+> --- /dev/null
+> +++ b/arch/parisc/kernel/syscalls/syscalltbl.sh
+> @@ -0,0 +1,46 @@
+> +#!/bin/sh
+> +# SPDX-License-Identifier: GPL-2.0
+> +
+> +in="$1"
+> +out="$2"
+> +my_abis=`echo "($3)" | tr ',' '|'`
+> +offset="$4"
+> +
+> +emit() {
+> +    nxt="$1"
+> +    if [ -z "$offset" ]; then
+> +	nr="$2"
+> +    else
+> +	nr="$2"
+> +	nr=$((nr+offset))
+> +    fi
+> +    entry="$3"
+> +
+> +    while [ $nxt -lt $nr ]; do
+
+It would break nicely if nxt="-n x -o 1" or something like that.
+
+> +	echo "__SYSCALL($nxt, sys_ni_syscall, )"
+> +        let nxt=nxt+1
+> +    done
+> +    echo "__SYSCALL($nxt, $entry, )"
+> +}
+> +
+> +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> +    if [ -z "$offset" ]; then
+> +	nxt=0
+> +    else
+> +	nxt=$offset
+> +    fi
+> +
+> +    my_abi="$(cut -d'|' -f2 <<< $my_abis)"
+
+	my_abi="${my_abis#*|}"
+
+But it looks like that $my_abis includes parentheses and this code
+is broken.
+
+> +    while read nr abi name entry compat ; do
+> +	if [ $my_abi = "compat" ]; then
+> +	    if [ -z "$compat" ]; then
+> +		emit $nxt $nr $entry
+> +	    else
+> +		emit $nxt $nr $compat
+> +	    fi
+> +	else
+> +	    emit $nxt $nr $entry
+> +	fi
+> +        let nxt=nxt+1
+> +    done
+> +) > "$out"
+> -- 
+> 1.9.1
+> 
