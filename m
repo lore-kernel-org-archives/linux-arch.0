@@ -1,38 +1,128 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 12/18] arch/tlb: Clean up simple architectures
-Date: Mon, 15 Oct 2018 16:14:58 +0200
-Message-ID: <20181015141458.GQ9867@hirez.programming.kicks-ass.net>
-References: <20180926113623.863696043@infradead.org>
- <20180926114801.146189550@infradead.org>
- <C2D7FE5348E1B147BCA15975FBA23075012B09A59E@us01wembx1.internal.synopsys.com>
- <20181011150406.GL9848@hirez.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075012B0ADA16@US01WEMBX2.internal.synopsys.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v5 02/27] x86/fpu/xstate: Change names to separate XSAVES
+ system and user states
+Date: Mon, 15 Oct 2018 19:03:20 +0200
+Message-ID: <20181015170320.GF11434@zn.tnic>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+ <20181011151523.27101-3-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075012B0ADA16@US01WEMBX2.internal.synopsys.com>
+In-Reply-To: <20181011151523.27101-3-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <vineet.gupta1@synopsys.com>
-Cc: "will.deacon@arm.com" <will.deacon@arm.com>, "aneesh.kumar@linux.vnet.ibm.com" <aneesh.kumar@linux.vnet.ibm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "npiggin@gmail.com" <npiggin@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux@armlinux.org.uk" <linux@armlinux.org.uk>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "riel@surriel.com" <riel@surriel.com>, Richard Henderson <rth@twiddle.net>, Mark Salter <msalter@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Michal Simek <monstr@monstr.eu>, Paul Burton <paul.burton@mips.com>, Greentime Hu <green.hu@gmail.com>, Ley Foon Tan <lftan@altera.com>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 12, 2018 at 07:40:04PM +0000, Vineet Gupta wrote:
-> Very nice. Thx for doing this.
+On Thu, Oct 11, 2018 at 08:14:58AM -0700, Yu-cheng Yu wrote:
+> Control Flow Enforcement (CET) MSRs are XSAVES system/supervisor
+> states.  To support CET, we introduce XSAVES system states first.
 > 
-> Once you have redone this, please point me to a branch so I can give this a spin.
-> I've always been interested in tracking down / optimizing the full TLB flushes -
-> which ARC implements by simply moving the MMU/process to a new ASID (TLB entries
-> tagged with an 8 bit value - unique per process). When I started looking into this
-> , a simple ls (fork+execve) would increment the ASID by 13 which I'd optimized to
-> a reasonable 4. Haven't checked that in recent times though so would be fun to
-> revive that measurement.
+> XSAVES is a "supervisor" instruction and, comparing to XSAVE, saves
+> additional "supervisor" states that can be modified only from CPL 0.
+> However, these states are per-task and not kernel's own.  Rename
+> "supervisor" states to "system" states to clearly separate them from
+> "user" states.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/fpu/internal.h |  4 +-
+>  arch/x86/include/asm/fpu/xstate.h   | 20 +++----
+>  arch/x86/kernel/fpu/core.c          |  4 +-
+>  arch/x86/kernel/fpu/init.c          |  2 +-
+>  arch/x86/kernel/fpu/signal.c        |  6 +--
+>  arch/x86/kernel/fpu/xstate.c        | 82 ++++++++++++++---------------
+>  6 files changed, 57 insertions(+), 61 deletions(-)
 
-I just pushed out the latest version to:
+...
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/queue.git mm/tlb
+> diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
+> index 87a57b7642d3..e7cbaed12ef1 100644
+> --- a/arch/x86/kernel/fpu/xstate.c
+> +++ b/arch/x86/kernel/fpu/xstate.c
+> @@ -51,13 +51,14 @@ static short xsave_cpuid_features[] __initdata = {
+>  };
+>  
+>  /*
+> - * Mask of xstate features supported by the CPU and the kernel:
+> + * Mask of supported 'user' xstate features derived from boot_cpu_has() and
+> + * SUPPORTED_XFEATURES_MASK.
 
-(mandatory caution: that tree is unstable / throw-away)
+<--- This comment here looks like a good place to put some blurb about
+user and system states, what they are, what the distinction is and so
+on.
 
-I'll wait a few days to see what, if anything, comes back from 0day
-before posting again.
+>   */
+> -u64 xfeatures_mask __read_mostly;
+> +u64 xfeatures_mask_user __read_mostly;
+>  
+>  static unsigned int xstate_offsets[XFEATURE_MAX] = { [ 0 ... XFEATURE_MAX - 1] = -1};
+>  static unsigned int xstate_sizes[XFEATURE_MAX]   = { [ 0 ... XFEATURE_MAX - 1] = -1};
+> -static unsigned int xstate_comp_offsets[sizeof(xfeatures_mask)*8];
+> +static unsigned int xstate_comp_offsets[sizeof(xfeatures_mask_user)*8];
+>  
+>  /*
+>   * The XSAVE area of kernel can be in standard or compacted format;
+> @@ -82,7 +83,7 @@ void fpu__xstate_clear_all_cpu_caps(void)
+>   */
+>  int cpu_has_xfeatures(u64 xfeatures_needed, const char **feature_name)
+>  {
+> -	u64 xfeatures_missing = xfeatures_needed & ~xfeatures_mask;
+> +	u64 xfeatures_missing = xfeatures_needed & ~xfeatures_mask_user;
+>  
+>  	if (unlikely(feature_name)) {
+>  		long xfeature_idx, max_idx;
+> @@ -113,14 +114,11 @@ int cpu_has_xfeatures(u64 xfeatures_needed, const char **feature_name)
+>  }
+>  EXPORT_SYMBOL_GPL(cpu_has_xfeatures);
+>  
+> -static int xfeature_is_supervisor(int xfeature_nr)
+> +static int xfeature_is_system(int xfeature_nr)
+>  {
+>  	/*
+> -	 * We currently do not support supervisor states, but if
+> -	 * we did, we could find out like this.
+> -	 *
+>  	 * SDM says: If state component 'i' is a user state component,
+> -	 * ECX[0] return 0; if state component i is a supervisor
+> +	 * ECX[0] return 0; if state component i is a system
+
+		  is 0
+
+>  	 * state component, ECX[0] returns 1.
+
+				   is 1.
+
+>  	 */
+>  	u32 eax, ebx, ecx, edx;
+
+...
+
+> @@ -242,7 +238,7 @@ void fpu__init_cpu_xstate(void)
+>   */
+>  static int xfeature_enabled(enum xfeature xfeature)
+>  {
+> -	return !!(xfeatures_mask & (1UL << xfeature));
+> +	return !!(xfeatures_mask_user & BIT_ULL(xfeature));
+>  }
+>  
+>  /*
+> @@ -272,7 +268,7 @@ static void __init setup_xstate_features(void)
+>  		cpuid_count(XSTATE_CPUID, i, &eax, &ebx, &ecx, &edx);
+>  
+>  		/*
+> -		 * If an xfeature is supervisor state, the offset
+> +		 * If an xfeature is system state, the offset
+
+				is a system state, ...
+
+>  		 * in EBX is invalid. We leave it to -1.
+>  		 */
+>  		if (xfeature_is_user(i))
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
