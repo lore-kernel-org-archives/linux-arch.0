@@ -1,67 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt1-f194.google.com ([209.85.160.194]:39704 "EHLO
-        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726375AbeJODfq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2018 23:35:46 -0400
-MIME-Version: 1.0
-References: <20180516081910.10067-1-ynorov@caviumnetworks.com>
- <20180724173957.GA22106@yury-thinkpad> <20181010141017.GA2881@asgard.redhat.com>
- <7aac1a08-8948-1a04-cbd3-fbc6a53f9ff0@arm.com> <20181013020731.GD21972@asgard.redhat.com>
-In-Reply-To: <20181013020731.GD21972@asgard.redhat.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Sun, 14 Oct 2018 21:53:22 +0200
-Message-ID: <CAK8P3a1qUVoE0CYkCOU2N+-WkqMad15fFsakbwkpiiPPRFz-eA@mail.gmail.com>
-Subject: Re: [PATCH v9 00/24] ILP32 for ARM64
+Received: from gate.crashing.org ([63.228.1.57]:45629 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726186AbeJOIwH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Oct 2018 04:52:07 -0400
+Message-ID: <9cfe508c687068853a6e5e030962a78467a8d313.camel@kernel.crashing.org>
+Subject: Re: [PATCH 01/33] powerpc: use mm zones more sensibly
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Mon, 15 Oct 2018 11:47:13 +1100
+In-Reply-To: <20181009132500.17643-2-hch@lst.de>
+References: <20181009132500.17643-1-hch@lst.de>
+         <20181009132500.17643-2-hch@lst.de>
 Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eugene Syromiatnikov <esyr@redhat.com>
-Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>, Yury Norov <ynorov@caviumnetworks.com>, nd@arm.com, Catalin Marinas <catalin.marinas@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Adam Borowski <kilobyte@angband.pl>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Andreas Schwab <schwab@suse.de>, Andrew Pinski <pinskia@gmail.com>, Bamvor Zhangjian <bamv2005@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Christoph Muellner <christoph.muellner@theobroma-systems.com>, Dave Martin <Dave.Martin@arm.com>, David Miller <davem@davemloft.net>, Florian Weimer <fweimer@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, James Hogan <james.hogan@imgtec.com>, James Morse <james.morse@arm.com>, Joseph Myers <joseph@codesourcery.com>, Lin Yongting <linyongting@huawei.com>, "Manuel A. Fernandez Montecelo" <manuel.montezelo@gmail.com>, Mark Brown <broonie@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Pavel Machek <pavel@ucw.cz>, Palmer Dabbelt <palmer@sifive.com>, Wookey <wookey@wookware.org>
-Message-ID: <20181014195322.lL6WZI58uWltKEuDJHp8FDa1chbbXTTGcYyP9MZFoHg@z>
+To: Christoph Hellwig <hch@lst.de>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181015004713.w_YlQrWZQFFS1sehmRgcIO1CPDK_QLS1TwfrVZQpTJY@z>
 
-On Sat, Oct 13, 2018 at 4:07 AM Eugene Syromiatnikov <esyr@redhat.com> wrote:
->
-> On Wed, Oct 10, 2018 at 03:39:07PM +0100, Szabolcs Nagy wrote:
-> > On 10/10/18 15:10, Eugene Syromiatnikov wrote:
-> > >  * What's the reasoning behind capping syscall arguments to 32 bit? x32
-> > >    and MIPS N32 do not have such a restriction (and do not need special
-> > >    wrappers for syscalls that pass 64-bit values as a result, except
-> > >    when they do,  as it is the case for preadv2 on x32); moreover, that
-> > >    would lead to insurmountable difficulties for AArch64 ILP32 tracers
-> > >    that try to trace LP64 tracees, as it would be impossible to pass
-> > >    64-bit addresses to process_vm_{read,write} or ptrace PEEK/POKE.
-> >
-> > but that's necessarily the case for all ilp32 abis:
-> > the userspace syscall function receives 32bit
-> > arguments so even if the kernel abi takes 64bit
-> > args you cannot use that from c code. (the libc
-> > does not even know which args should be sign or
-> > zero extended.)
->
-> glibc's syscall() prototype has kernel_ulong_t as its arguments (more
-> specifically, to __syscall_ulong_t, which is 64-bit wide on x32; it
-> should also have kernel_long_t as its return type instead of long,
-> but that's another story), so it works perfectly fine in case of x32.
->
-> > process_vm_readv/writev is limited by the ilp32
-> > iovec struct, not by the syscall arguments.
->
-> Right, on x32/N32 this issue is worked around by the usage of the respective
-> x86_64/N64 call, and it looks like another thing that is impossible
-> with AArch64 ilp32.
->
-> > ptrace is specified to take void* addr argument,
-> > and void* is 32bit on all ilp32 targets.
-> > so again on the c language level there is no
-> > way around the 32bit limitation.
->
-> Which is an issue.
+On Tue, 2018-10-09 at 15:24 +0200, Christoph Hellwig wrote:
+>   * Find the least restrictive zone that is entirely below the
+> @@ -324,11 +305,14 @@ void __init paging_init(void)
+>         printk(KERN_DEBUG "Memory hole size: %ldMB\n",
+>                (long int)((top_of_ram - total_ram) >> 20));
+>  
+> +#ifdef CONFIG_ZONE_DMA
+> +       max_zone_pfns[ZONE_DMA] = min(max_low_pfn, 0x7fffffffUL >> PAGE_SHIFT);
+> +#endif
+> +       max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
+>  #ifdef CONFIG_HIGHMEM
+> -       limit_zone_pfn(ZONE_NORMAL, lowmem_end_addr >> PAGE_SHIFT);
+> +       max_zone_pfns[ZONE_HIGHMEM] = max_pfn
+                                               ^
+Missing a  ";" here  --------------------------|
 
-I have no idea why you think this is a problem specific to aarch64-ilp32:
-If we want to be able to debug 64-bit tasks from a 32-bit task on any
-architecture that has compat mode, we should solve it once and
-extend the ptrace interface to allow it on *all* of them. We certainly
-don't need /more/ special cases for the x32 hack, there should really
-be fewer of them.
+Sorry ... works with that fix on an old laptop with highmem.
 
-      Arnd
+>  #endif
+> -       limit_zone_pfn(TOP_ZONE, top_of_ram >> PAGE_SHIFT);
+> -       zone_limits_final = true;
+> +
+>         free_area_init_nodes(max_zone_pfns);
+>  
