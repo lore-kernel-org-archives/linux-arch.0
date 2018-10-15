@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcdn-iport-5.cisco.com ([173.37.86.76]:49030 "EHLO
-        rcdn-iport-5.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726654AbeJPCqP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2018 22:46:15 -0400
+Received: from alln-iport-4.cisco.com ([173.37.142.91]:44152 "EHLO
+        alln-iport-4.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726681AbeJPDEp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2018 23:04:45 -0400
 Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
 References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
  <20181015120521.GA10146@redhat.com>
 From: Enke Chen <enkechen@cisco.com>
-Message-ID: <fd182817-4656-13f1-5071-b91392dfba96@cisco.com>
-Date: Mon, 15 Oct 2018 11:54:44 -0700
+Message-ID: <20398328-4ee1-96b2-5723-4b7eed55f0a2@cisco.com>
+Date: Mon, 15 Oct 2018 12:17:35 -0700
 MIME-Version: 1.0
 In-Reply-To: <20181015120521.GA10146@redhat.com>
 Content-Type: text/plain; charset=utf-8
@@ -18,9 +18,11 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Oleg Nesterov <oleg@redhat.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>, Eugene Syromiatnikov <esyr@redhat.com>, Enke Chen <enkechen@cisco.com>
-Message-ID: <20181015185444.lBoz1zwpEi2m_kK0g4UKqVant_eCudNEDCK9RUK9YYo@z>
+Message-ID: <20181015191735.uqo2EXJyPJWzTY7c8RDVDPhoKK-xxb_KDFqfR8h6SAY@z>
 
 Hi, Oleg:
+
+I missed some of your comments in my previous reply.
 
 On 10/15/18 5:05 AM, Oleg Nesterov wrote:
 > On 10/12, Enke Chen wrote:
@@ -33,10 +35,6 @@ On 10/15/18 5:05 AM, Oleg Nesterov wrote:
 >> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
 > 
 > To be honest, I can't say I like this new feature...
-
-The requirement for predump notification is real. IMO signal notification
-is simpler than "connector" or "signal + connector".
-
 > 
 >> --- a/include/linux/sched.h
 >> +++ b/include/linux/sched.h
@@ -51,10 +49,6 @@ is simpler than "connector" or "signal + connector".
 > 
 > At least, I think predump_signal should live in signal_struct, not
 > task_struct.
-
-It makes sense as "signal handling" must be consistent in a process.
-I was following the wrong example. I will make the change.
-
 > 
 > (pdeath_signal too, but it is too late to change (fix) this awkward API).
 > 
@@ -73,12 +67,26 @@ I was following the wrong example. I will make the change.
 >> +	sig = parent->predump_signal;
 > 
 > probably ->predump_signal should be cleared on exec?
+
+
+Is this not enough in "copy_process()"?
+
+@@ -1985,6 +1985,7 @@ static __latent_entropy struct task_struct *copy_process(
+ 	p->dirty_paused_when = 0;
+ 
+ 	p->pdeath_signal = 0;
++	p->predump_signal = 0;
+
 > 
 >> +	/* Check again with tasklist_lock" locked by the caller */
 >> +	if (!valid_predump_signal(sig))
 >> +		return;
 > 
 > I don't understand why we need valid_predump_signal() at all.
+
+Most of the signals have well-defined semantics, and would not be appropriate
+for this purpose.  That is why it is limited to only SIGCHLD, SIGUSR1, SIGUSR2.
+
 > 
 >>  bool get_signal(struct ksignal *ksig)
 >>  {
@@ -101,6 +109,11 @@ I was following the wrong example. I will make the change.
 > 
 > perhaps this should be called by do_coredump() after coredump_wait() kills
 > all the sub-threads?
+
+proc_coredump_connector(current) is located here, they should stay together.
+
+Thanks.  -- Enke
+
 > 
 >> +static int prctl_set_predump_signal(struct task_struct *tsk, pid_t pid, int sig)
 >> +{
@@ -133,7 +146,6 @@ I was following the wrong example. I will make the change.
 >> +}
 > 
 > Why? I mean, why do we really want to support the pid != 0 case?
-
-I will remove it. Please see my reply to Jann.
-
-Thanks.  -- Enke
+> 
+> Oleg.
+> 
