@@ -1,128 +1,93 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 02/27] x86/fpu/xstate: Change names to separate XSAVES
- system and user states
-Date: Mon, 15 Oct 2018 19:03:20 +0200
-Message-ID: <20181015170320.GF11434@zn.tnic>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-3-yu-cheng.yu@intel.com>
+From: Enke Chen <enkechen@cisco.com>
+Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
+Date: Mon, 15 Oct 2018 11:16:36 -0700
+Message-ID: <37401cea-5a37-2cd9-8595-8b07dfc4de7d@cisco.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <20181013064023.GA28177@kroah.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181011151523.27101-3-yu-cheng.yu@intel.com>
+In-Reply-To: <20181013064023.GA28177@kroah.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, Kirill A. Shutemov
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 11, 2018 at 08:14:58AM -0700, Yu-cheng Yu wrote:
-> Control Flow Enforcement (CET) MSRs are XSAVES system/supervisor
-> states.  To support CET, we introduce XSAVES system states first.
+Hi, Greg:
+
+> Shouldn't there also be a manpage update, and a kselftest added for this
+> new user/kernel api that is being created?
 > 
-> XSAVES is a "supervisor" instruction and, comparing to XSAVE, saves
-> additional "supervisor" states that can be modified only from CPL 0.
-> However, these states are per-task and not kernel's own.  Rename
-> "supervisor" states to "system" states to clearly separate them from
-> "user" states.
+
+I will submit a patch for manpage update once the code is accepted.
+
+Regarding the kselftest, I am not sure.  Once the prctl() is limited to
+self (which I will do), the logic would be pretty straightforward. Not
+sure if the selftest would add much value.
+
+Thanks.  -- Enke
+
+On 10/12/18 11:40 PM, Greg Kroah-Hartman wrote:
+> On Fri, Oct 12, 2018 at 05:33:35PM -0700, Enke Chen wrote:
+>> For simplicity and consistency, this patch provides an implementation
+>> for signal-based fault notification prior to the coredump of a child
+>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
+>> be used by an application to express its interest and to specify the
+>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
+>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
+>>
+>> Background:
+>>
+>> As the coredump of a process may take time, in certain time-sensitive
+>> applications it is necessary for a parent process (e.g., a process
+>> manager) to be notified of a child's imminent death before the coredump
+>> so that the parent process can act sooner, such as re-spawning an
+>> application process, or initiating a control-plane fail-over.
+>>
+>> Currently there are two ways for a parent process to be notified of a
+>> child process's state change. One is to use the POSIX signal, and
+>> another is to use the kernel connector module. The specific events and
+>> actions are summarized as follows:
+>>
+>> Process Event    POSIX Signal                Connector-based
+>> ----------------------------------------------------------------------
+>> ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
+>>                  SIGCHLD / CLD_STOPPED
+>>
+>> ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
+>>                  SIGCHLD / CLD_CONTINUED
+>>
+>> pre_coredump/    N/A                         proc_coredump_connector()
+>> get_signal()
+>>
+>> post_coredump/   do_notify_parent()          proc_exit_connector()
+>> do_exit()        SIGCHLD / exit_signal
+>> ----------------------------------------------------------------------
+>>
+>> As shown in the table, the signal-based pre-coredump notification is not
+>> currently available. In some cases using a connector-based notification
+>> can be quite complicated (e.g., when a process manager is written in shell
+>> scripts and thus is subject to certain inherent limitations), and a
+>> signal-based notification would be simpler and better suited.
+>>
+>> Signed-off-by: Enke Chen <enkechen@cisco.com>
+>> ---
+>>  arch/x86/kernel/signal_compat.c    |  2 +-
+>>  include/linux/sched.h              |  4 ++
+>>  include/linux/signal.h             |  5 +++
+>>  include/uapi/asm-generic/siginfo.h |  3 +-
+>>  include/uapi/linux/prctl.h         |  4 ++
+>>  kernel/fork.c                      |  1 +
+>>  kernel/signal.c                    | 51 +++++++++++++++++++++++++
+>>  kernel/sys.c                       | 77 ++++++++++++++++++++++++++++++++++++++
+>>  8 files changed, 145 insertions(+), 2 deletions(-)
 > 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/fpu/internal.h |  4 +-
->  arch/x86/include/asm/fpu/xstate.h   | 20 +++----
->  arch/x86/kernel/fpu/core.c          |  4 +-
->  arch/x86/kernel/fpu/init.c          |  2 +-
->  arch/x86/kernel/fpu/signal.c        |  6 +--
->  arch/x86/kernel/fpu/xstate.c        | 82 ++++++++++++++---------------
->  6 files changed, 57 insertions(+), 61 deletions(-)
-
-...
-
-> diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-> index 87a57b7642d3..e7cbaed12ef1 100644
-> --- a/arch/x86/kernel/fpu/xstate.c
-> +++ b/arch/x86/kernel/fpu/xstate.c
-> @@ -51,13 +51,14 @@ static short xsave_cpuid_features[] __initdata = {
->  };
->  
->  /*
-> - * Mask of xstate features supported by the CPU and the kernel:
-> + * Mask of supported 'user' xstate features derived from boot_cpu_has() and
-> + * SUPPORTED_XFEATURES_MASK.
-
-<--- This comment here looks like a good place to put some blurb about
-user and system states, what they are, what the distinction is and so
-on.
-
->   */
-> -u64 xfeatures_mask __read_mostly;
-> +u64 xfeatures_mask_user __read_mostly;
->  
->  static unsigned int xstate_offsets[XFEATURE_MAX] = { [ 0 ... XFEATURE_MAX - 1] = -1};
->  static unsigned int xstate_sizes[XFEATURE_MAX]   = { [ 0 ... XFEATURE_MAX - 1] = -1};
-> -static unsigned int xstate_comp_offsets[sizeof(xfeatures_mask)*8];
-> +static unsigned int xstate_comp_offsets[sizeof(xfeatures_mask_user)*8];
->  
->  /*
->   * The XSAVE area of kernel can be in standard or compacted format;
-> @@ -82,7 +83,7 @@ void fpu__xstate_clear_all_cpu_caps(void)
->   */
->  int cpu_has_xfeatures(u64 xfeatures_needed, const char **feature_name)
->  {
-> -	u64 xfeatures_missing = xfeatures_needed & ~xfeatures_mask;
-> +	u64 xfeatures_missing = xfeatures_needed & ~xfeatures_mask_user;
->  
->  	if (unlikely(feature_name)) {
->  		long xfeature_idx, max_idx;
-> @@ -113,14 +114,11 @@ int cpu_has_xfeatures(u64 xfeatures_needed, const char **feature_name)
->  }
->  EXPORT_SYMBOL_GPL(cpu_has_xfeatures);
->  
-> -static int xfeature_is_supervisor(int xfeature_nr)
-> +static int xfeature_is_system(int xfeature_nr)
->  {
->  	/*
-> -	 * We currently do not support supervisor states, but if
-> -	 * we did, we could find out like this.
-> -	 *
->  	 * SDM says: If state component 'i' is a user state component,
-> -	 * ECX[0] return 0; if state component i is a supervisor
-> +	 * ECX[0] return 0; if state component i is a system
-
-		  is 0
-
->  	 * state component, ECX[0] returns 1.
-
-				   is 1.
-
->  	 */
->  	u32 eax, ebx, ecx, edx;
-
-...
-
-> @@ -242,7 +238,7 @@ void fpu__init_cpu_xstate(void)
->   */
->  static int xfeature_enabled(enum xfeature xfeature)
->  {
-> -	return !!(xfeatures_mask & (1UL << xfeature));
-> +	return !!(xfeatures_mask_user & BIT_ULL(xfeature));
->  }
->  
->  /*
-> @@ -272,7 +268,7 @@ static void __init setup_xstate_features(void)
->  		cpuid_count(XSTATE_CPUID, i, &eax, &ebx, &ecx, &edx);
->  
->  		/*
-> -		 * If an xfeature is supervisor state, the offset
-> +		 * If an xfeature is system state, the offset
-
-				is a system state, ...
-
->  		 * in EBX is invalid. We leave it to -1.
->  		 */
->  		if (xfeature_is_user(i))
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+> Shouldn't there also be a manpage update, and a kselftest added for this
+> new user/kernel api that is being created?
+> 
+> thanks,
+> 
+> greg k-h
+> 
