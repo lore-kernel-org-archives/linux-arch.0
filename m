@@ -1,124 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:41223 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726713AbeJPClY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2018 22:41:24 -0400
-Received: by mail-ot1-f66.google.com with SMTP id c32so19967563otb.8
-        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 11:54:53 -0700 (PDT)
-MIME-Version: 1.0
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <CAG48ez2ZPhnxudqgU7nC2ORvLnS0Ja-qhLSE5WAY361jst7XNw@mail.gmail.com> <c5a09a04-b4f2-876b-af83-30f7e527497e@cisco.com>
-In-Reply-To: <c5a09a04-b4f2-876b-af83-30f7e527497e@cisco.com>
-From: Jann Horn <jannh@google.com>
-Date: Mon, 15 Oct 2018 20:54:27 +0200
-Message-ID: <CAG48ez2ZD=dovBApR07wi_DzYjJvEyO-Pm35eLv9AyXv1tcAFQ@mail.gmail.com>
+Received: from mail.kernel.org ([198.145.29.99]:47878 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726691AbeJPCpD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Oct 2018 22:45:03 -0400
+Date: Mon, 15 Oct 2018 20:58:29 +0200
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20181015185829.GA6397@kroah.com>
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <20181013064023.GA28177@kroah.com>
+ <37401cea-5a37-2cd9-8595-8b07dfc4de7d@cisco.com>
+ <20181015184358.GA12153@kroah.com>
+ <614dad0f-97e3-91b4-0c29-c052d01922eb@cisco.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <614dad0f-97e3-91b4-0c29-c052d01922eb@cisco.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: enkechen@cisco.com
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, deller@gmx.de, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, christian@brauner.io, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave.Martin@arm.com, mchehab+samsung@kernel.org, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, guro@fb.com, Marcos Souza <marcos.souza.org@gmail.com>, Oleg Nesterov <oleg@redhat.com>, linux@dominikbrodowski.net, Cyrill Gorcunov <gorcunov@openvz.org>, yang.shi@linux.alibaba.com, Kees Cook <keescook@chromium.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Victor Kamensky <kamensky@cisco.com>, xe-linux-external@cisco.com, sstrogin@cisco.com
-Message-ID: <20181015185427.q8jN_y6C2qwKZsj0_5ueHkKr1mWFRaz5nwlOYp9CYTI@z>
+To: Enke Chen <enkechen@cisco.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Roman Gushchin <guro@fb.com>, Marcos Paulo de Souza <marcos.souza.org@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Cyrill Gorcunov <gorcunov@openvz.org>, Yang Shi <yang.shi@linux.alibaba.com>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Victor Kamensky (kamensky)" <kamensky@cisco.com>, xe-linux-external@cisco.com, Stefan Strogin <sstrogin@cisco.com>
+Message-ID: <20181015185829.rQSTAi4ltHSB-2wT2pB4tJOVUrVdMuqXsDyJ7-9nuSU@z>
 
-On Mon, Oct 15, 2018 at 8:36 PM Enke Chen <enkechen@cisco.com> wrote:
-> On 10/13/18 11:27 AM, Jann Horn wrote:
-> > On Sat, Oct 13, 2018 at 2:33 AM Enke Chen <enkechen@cisco.com> wrote:
-> >> For simplicity and consistency, this patch provides an implementation
-> >> for signal-based fault notification prior to the coredump of a child
-> >> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
-> >> be used by an application to express its interest and to specify the
-> >> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
-> >> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
-> >
-> > Your suggested API looks vaguely similar to PR_SET_PDEATHSIG, but with
-> > some important differences:
-> >
-> >  - You don't reset the signal on setuid execution.
-[...]
-> >
-> > For both of these: Are these differences actually necessary, and if
-> > so, can you provide a specific rationale? From a security perspective,
-> > I would very much prefer it if this API had semantics closer to
-> > PR_SET_PDEATHSIG.
->
-[...]
->
-> Regarding the impact of "setuid", this property "PR_SET_PREDUMP_SIG" has to
-> do with the application/process whether the signal handler is set for receiving
-> such a notification.  If it is set, the "uid" should not matter.
+On Mon, Oct 15, 2018 at 11:49:11AM -0700, Enke Chen wrote:
+> Hi, Greg:
+> 
+> On 10/15/18 11:43 AM, Greg Kroah-Hartman wrote:
+> > On Mon, Oct 15, 2018 at 11:16:36AM -0700, Enke Chen wrote:
+> >> Hi, Greg:
+> >>
+> >>> Shouldn't there also be a manpage update, and a kselftest added for this
+> >>> new user/kernel api that is being created?
+> >>>
+> >>
+> >> I will submit a patch for manpage update once the code is accepted.
+> > 
+> > Writing a manpage update is key to see if what you are describing
+> > actually matches the code you have submitted.  You should do both at the
+> > same time so that they can be reviewed together.
+> 
+> Ok, will do at the same time. But should I submit it as a separate patch?
 
-If an attacker's process first calls PR_SET_PREDUMP_SIG, then forks
-off a child, then calls execve() on a setuid binary, the setuid binary
-calls setuid(0), and the attacker-controlled child then crashes, the
-privileged process will receive an unexpected signal that the attacker
-wouldn't have been allowed to send otherwise. For similar reasons, the
-parent death signal is reset when a setuid binary is executed:
+Yes please.
 
-void setup_new_exec(struct linux_binprm * bprm)
-{
-        /*
-         * Once here, prepare_binrpm() will not be called any more, so
-         * the final state of setuid/setgid/fscaps can be merged into the
-         * secureexec flag.
-         */
-        bprm->secureexec |= bprm->cap_elevated;
+> >> Regarding the kselftest, I am not sure.  Once the prctl() is limited to
+> >> self (which I will do), the logic would be pretty straightforward. Not
+> >> sure if the selftest would add much value.
+> > 
+> > If you do not have a test for this feature, how do you know it even
+> > works at all?  How will you know if it breaks in a future kernel
+> > release?  Have you tested this?  If so, how?
+> 
+> I have the test code. I am just not sure whether I should submit and check
+> it in to the kselftest?
 
-        if (bprm->secureexec) {
-                /* Make sure parent cannot signal privileged process. */
-                current->pdeath_signal = 0;
-[...]
-        }
-[...]
-}
+Of course you should, why wouldn't you?  Do you want to be the only
+person in the world responsible for ensuring that this feature does not
+break for the next 20+ years?  :)
 
-int commit_creds(struct cred *new)
-{
-[...]
-        /* dumpability changes */
-        if (!uid_eq(old->euid, new->euid) ||
-            !gid_eq(old->egid, new->egid) ||
-            !uid_eq(old->fsuid, new->fsuid) ||
-            !gid_eq(old->fsgid, new->fsgid) ||
-            !cred_cap_issubset(old, new)) {
-                if (task->mm)
-                        set_dumpable(task->mm, suid_dumpable);
-                task->pdeath_signal = 0;
-                smp_wmb();
-        }
-[...]
-}
+thanks,
 
-AppArmor and SELinux also do related changes:
-
-static void apparmor_bprm_committing_creds(struct linux_binprm *bprm)
-{
-[...]
-        /* bail out if unconfined or not changing profile */
-        if ((new_label->proxy == label->proxy) ||
-            (unconfined(new_label)))
-                return;
-
-        aa_inherit_files(bprm->cred, current->files);
-
-        current->pdeath_signal = 0;
-[...]
-}
-
-static void selinux_bprm_committing_creds(struct linux_binprm *bprm)
-{
-[...]
-        new_tsec = bprm->cred->security;
-        if (new_tsec->sid == new_tsec->osid)
-                return;
-
-        /* Close files for which the new task SID is not authorized. */
-        flush_unauthorized_files(bprm->cred, current->files);
-
-        /* Always clear parent death signal on SID transitions. */
-        current->pdeath_signal = 0;
-[...]
-}
-
-You should probably reset the coredump signal in the same places - or
-even better, add a new helper for resetting the parent death signal,
-and then add code for resetting the coredump signal in there.
+greg k-h
