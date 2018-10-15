@@ -1,42 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-01.nifty.com ([210.131.2.80]:32304 "EHLO
-        conssluserg-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726400AbeJOOXJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2018 10:23:09 -0400
+Received: from verein.lst.de ([213.95.11.211]:40956 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726273AbeJOQbl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Oct 2018 12:31:41 -0400
+Date: Mon, 15 Oct 2018 10:47:21 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/8] powerpc: simplify CONFIG_PCI_QSPAN Kconfig magic
+Message-ID: <20181015084721.GB27159@lst.de>
+References: <20181013151016.31674-1-hch@lst.de> <20181013151016.31674-3-hch@lst.de> <CAK7LNAQxZcBNadLJhfrmxJGj-XJFVaya3Z1eexZp20vRPwrN7A@mail.gmail.com>
 MIME-Version: 1.0
-References: <20181013151016.31674-1-hch@lst.de>
-In-Reply-To: <20181013151016.31674-1-hch@lst.de>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Mon, 15 Oct 2018 15:38:18 +0900
-Message-ID: <CAK7LNAQ3SNStaA6-tOWhm0QHWpNczO07x9T2F7gMcusduMS7GA@mail.gmail.com>
-Subject: Re: move bus (PCI, PCMCIA, EISA, rapdio) config to drivers/
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK7LNAQxZcBNadLJhfrmxJGj-XJFVaya3Z1eexZp20vRPwrN7A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: mporter@kernel.crashing.org, alex.bou9@gmail.com, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20181015063818.dJ-DFzWXNJS8kNXU0JLhiSAywmA17_5wFcSWog11l34@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Christoph Hellwig <hch@lst.de>, mporter@kernel.crashing.org, alex.bou9@gmail.com, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20181015084721.XZUyFH_bBgLWKBmYzZvWk6tNf01Ngvf5p3iKIs-W-X8@z>
 
-On Sun, Oct 14, 2018 at 12:10 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> Hi all,
->
-> currently every architecture that wants to provide on of the common
-> periphal busses needs to add some boilerplate code and include the
-> right Kconfig files.   This series instead just selects the presence
-> (when needed) and then handles everything in the bus-specific
-> Kconfig file under drivers/.
->
+On Mon, Oct 15, 2018 at 03:35:41PM +0900, Masahiro Yamada wrote:
+> 'git grep' did not get any other hit.
+> 
+> masahiro@pug:~/ref/linux$ git grep PCI_QSPAN
+> arch/powerpc/Kconfig:   default PCI_QSPAN if PPC_8xx
+> arch/powerpc/Kconfig:config PCI_QSPAN
+> 
+> With your patch, PCI_QSPAN will become
+> a dead config option.
+> 
+> How about removing it entirely?
 
-Thanks for great work again.
-
-However, I suspect some breakages
-(not testing yet, just quick review by my eyes.)
-
-I left some comments in individual patches.
-
-
-
---
-Best Regards
-Masahiro Yamada
+Yes, it should just go away.  Thanks!
