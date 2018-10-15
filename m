@@ -1,89 +1,186 @@
 From: Firoz Khan <firoz.khan@linaro.org>
-Subject: Re: [PATCH v3 3/5] m68k: add system call table generation support
-Date: Mon, 15 Oct 2018 09:42:10 +0530
-Message-ID: <CALxhOnhzKeax4fC2yibSU38+7JDgA6MearVTbF=CU+4cQGakHA@mail.gmail.com>
-References: <1538397477-4003-1-git-send-email-firoz.khan@linaro.org>
- <1538397477-4003-4-git-send-email-firoz.khan@linaro.org> <alpine.LNX.2.21.1810020843320.10@nippy.intranet>
+Subject: Re: [PATCH v4 3/6] parisc: add system call table generation support
+Date: Mon, 15 Oct 2018 10:18:07 +0530
+Message-ID: <CALxhOngwHfFzCGXknF4_CHjD=4LeM8BnrZ+s-p6ZRcJ3G8i_RA@mail.gmail.com>
+References: <1539337442-3676-1-git-send-email-firoz.khan@linaro.org>
+ <1539337442-3676-4-git-send-email-firoz.khan@linaro.org> <c6280818c999449646ec216984f2df9e@sf-tec.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LNX.2.21.1810020843320.10@nippy.intranet>
+In-Reply-To: <c6280818c999449646ec216984f2df9e@sf-tec.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: fthain@telegraphics.com.au
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+To: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Cc: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Deepa Dinamani <deepa.kernel@gmail.com>, Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>, linux-parisc-owner@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Finn,
+Hi Rolf,
 
-On Tue, 2 Oct 2018 at 04:22, Finn Thain <fthain@telegraphics.com.au> wrote:
+On Fri, 12 Oct 2018 at 17:37, Rolf Eike Beer <eike-kernel@sf-tec.de> wrote:
 >
-> On Mon, 1 Oct 2018, Firoz Khan wrote:
+> Firoz Khan wrote:
 >
+> > diff --git a/arch/parisc/kernel/syscalls/syscallhdr.sh
+> > b/arch/parisc/kernel/syscalls/syscallhdr.sh
+> > new file mode 100644
+> > index 0000000..607d4ca
 > > --- /dev/null
-> > +++ b/arch/m68k/kernel/syscalls/syscallhdr.sh
+> > +++ b/arch/parisc/kernel/syscalls/syscallhdr.sh
 > > @@ -0,0 +1,35 @@
 > > +#!/bin/sh
+> > +# SPDX-License-Identifier: GPL-2.0
+> > +
+> > +in="$1"
+> > +out="$2"
+> > +my_abis=`echo "($3)" | tr ',' '|'`
 >
-> That's not accurate. These are bash scripts, not Bourne shell.
+> Any reason not to use $() instead of backticks?
+
+I got this frame work from x86/entry/syscalls;
+https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscallhdr.sh
+I haven't modified the script but I tune this script to meet my requirements.
+
+Sure, I'll look into this.
+
 >
-> If you run 'checkbashisms', you'll see that a few small changes are needed
-> in order to gain standards compliance and portability.
+> > +prefix="$4"
+> > +offset="$5"
+> > +
+> > +fileguard=_UAPI_ASM_PARISC_`basename "$out" | sed \
+> > +    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+> > +    -e 's/[^A-Z0-9_]/_/g' -e 's/__/_/g'`
+> > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> > +    echo "#ifndef ${fileguard}"
+> > +    echo "#define ${fileguard}"
+> > +    echo ""
+> > +
+> > +    nxt=0
+> > +    while read nr abi name entry compat ; do
+> > +     if [ -z "$offset" ]; then
+> > +         echo -e "#define __NR_${prefix}${name}\t$nr"
+>
+> This mixed indentation with both tabs and spaces is a bit messy.
+
+Is this what you suggested?
+-           echo -e "#define __NR_${prefix}${name}\t$nr"
++           echo "#define __NR_${prefix}${name} $nr"
+
+>
+> > +     else
+> > +         echo -e "#define __NR_${prefix}${name}\t($offset + $nr)"
+> > +     fi
+> > +     nxt=$nr
+> > +     let nxt=nxt+1
+>
+> Why do you use let here when you do $(()) calculations at other places?
+
+Yes, will do this.
+-        nxt=$nr
+-        let nxt=nxt+1
++        nxt=$((nxt+1))
+
+>
+> > +    done
+> > +
+> > +    echo ""
+> > +    echo "#ifdef __KERNEL__"
+> > +    echo -e "#define __NR_syscalls\t$nxt"
+> > +    echo "#endif"
+> > +    echo ""
+> > +    echo "#endif /* ${fileguard} */"
+> > +) > "$out"
+> > diff --git a/arch/parisc/kernel/syscalls/syscalltbl.sh
+> > b/arch/parisc/kernel/syscalls/syscalltbl.sh
+> > new file mode 100644
+> > index 0000000..04abde7
+> > --- /dev/null
+> > +++ b/arch/parisc/kernel/syscalls/syscalltbl.sh
+> > @@ -0,0 +1,46 @@
+> > +#!/bin/sh
+> > +# SPDX-License-Identifier: GPL-2.0
+> > +
+> > +in="$1"
+> > +out="$2"
+> > +my_abis=`echo "($3)" | tr ',' '|'`
+> > +offset="$4"
+> > +
+> > +emit() {
+> > +    nxt="$1"
+> > +    if [ -z "$offset" ]; then
+> > +     nr="$2"
+> > +    else
+> > +     nr="$2"
+> > +     nr=$((nr+offset))
+>
+> This could be one line, no? Or just set offset to 0 if it is empty and
+> avoid that if alltogether.
+
+Sure!
+
+>
+> > +    fi
+> > +    entry="$3"
+> > +
+> > +    while [ $nxt -lt $nr ]; do
+> > +     echo "__SYSCALL($nxt, sys_ni_syscall, )"
+> > +        let nxt=nxt+1
+> > +    done
+> > +    echo "__SYSCALL($nxt, $entry, )"
+> > +}
+> > +
+> > +grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
+> > +    if [ -z "$offset" ]; then
+> > +     nxt=0
+> > +    else
+> > +     nxt=$offset
+> > +    fi
+>
+> Another argument for offset=0 as default.
 
 Sure.
 
 >
-> Some untested suggestions:
+> > +
+> > +    my_abi="$(cut -d'|' -f2 <<< $my_abis)"
 >
-> diff --git a/arch/m68k/kernel/syscalls/syscallhdr.sh b/arch/m68k/kernel/syscalls/syscallhdr.sh
-> index e0e3108cfc7f..9811f82848e6 100644
-> --- a/arch/m68k/kernel/syscalls/syscallhdr.sh
-> +++ b/arch/m68k/kernel/syscalls/syscallhdr.sh
-> @@ -18,17 +18,17 @@ grep -E "^[0-9A-Fa-fXx]+[[:space:]]+${my_abis}" "$in" | sort -n | (
->      nxt=0
->      while read nr abi name entry ; do
->         if [ -z "$offset" ]; then
-> -           echo -e "#define __NR_${prefix}${name}\t$nr"
-> +           echo "#define __NR_${prefix}${name} $nr"
->         else
-> -           echo -e "#define __NR_${prefix}${name}\t($offset + $nr)"
-> +           echo "#define __NR_${prefix}${name} ($offset + $nr)"
->         fi
->         nxt=$nr
-> -       let nxt=nxt+1
-> +       nxt=$((nxt+1))
->      done
->
->      echo ""
->      echo "#ifdef __KERNEL__"
-> -    echo -e "#define __NR_syscalls\t$nxt"
-> +    echo "#define __NR_syscalls        $nxt"
->      echo "#endif"
->      echo ""
->      echo "#endif /* ${fileguard} */"
-> diff --git a/arch/m68k/kernel/syscalls/syscalltbl.sh b/arch/m68k/kernel/syscalls/syscalltbl.sh
-> index d2635dea4e96..89ab047097ce 100644
-> --- a/arch/m68k/kernel/syscalls/syscalltbl.sh
-> +++ b/arch/m68k/kernel/syscalls/syscalltbl.sh
-> @@ -13,7 +13,7 @@ emit() {
->
->      while [ $nxt -lt $nr ]; do
->         echo "__SYSCALL($nxt, sys_ni_syscall, )"
-> -       let nxt=nxt+1
-> +       nxt=$((nxt+1))
->      done
->
->      echo "__SYSCALL($nr, $entry, )"
-> @@ -29,6 +29,6 @@ grep '^[0-9]' "$in" | sort -n | (
->      while read nr abi name entry ; do
->         emit $nxt $nr $entry
->         nxt=$nr
-> -        let nxt=nxt+1
-> +        nxt=$((nxt+1))
->      done
->  ) > "$out"
+> "<<<" is a bash extension and will not work with /bin/sh.
 
-Thanks for your comments! I'll have a look into it.
+Ohh, ok
 
+>
+> > +    while read nr abi name entry compat ; do
+> > +     if [ $my_abi = "compat" ]; then
+> > +         if [ -z "$compat" ]; then
+> > +             emit $nxt $nr $entry
+> > +         else
+> > +             emit $nxt $nr $compat
+> > +         fi
+> > +     else
+> > +         emit $nxt $nr $entry
+> > +     fi
+>
+> I would go for a local variable being set to $compat or $entry and
+> calling emit at only one place. And there should be only one if with 2
+> expressions, no need for 3 branches.
+
+Sure.
+
+>
+> > +        let nxt=nxt+1
+>
+> Inconsistent indentation.
+
+I'm using emacs editor with default settings. In the actual file, there is no
+indentation problem which I found but if I get patch using git format-patch,
+it has inconsistent indentation.
+
+No idea. I could find the same problem in other patches also.
+Let me use the vi editor to save the file and get the patch.
+
+Thanks
 Firoz
+
 >
-> --
+> > +    done
+> > +) > "$out"
+>
+> Eike
