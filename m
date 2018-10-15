@@ -1,129 +1,156 @@
 From: Enke Chen <enkechen@cisco.com>
 Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
-Date: Mon, 15 Oct 2018 12:23:45 -0700
-Message-ID: <a8638ed9-1ca8-ef03-c988-c17ce9a6ed39@cisco.com>
+Date: Mon, 15 Oct 2018 12:26:00 -0700
+Message-ID: <079f5939-8a74-9026-8ec9-91af0b827a69@cisco.com>
 References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <CAG48ez2ZPhnxudqgU7nC2ORvLnS0Ja-qhLSE5WAY361jst7XNw@mail.gmail.com>
- <c5a09a04-b4f2-876b-af83-30f7e527497e@cisco.com>
- <CAG48ez2ZD=dovBApR07wi_DzYjJvEyO-Pm35eLv9AyXv1tcAFQ@mail.gmail.com>
+ <20181015120521.GA10146@redhat.com>
+ <20398328-4ee1-96b2-5723-4b7eed55f0a2@cisco.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAG48ez2ZD=dovBApR07wi_DzYjJvEyO-Pm35eLv9AyXv1tcAFQ@mail.gmail.com>
+In-Reply-To: <20398328-4ee1-96b2-5723-4b7eed55f0a2@cisco.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jannh@google.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, deller@gmx.de, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, christian@brauner.io, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave.Martin@arm.com, mchehab+samsung@kernel.org, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A . Shutemov" <kirill.sh>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Jann:
+Hi, Olge:
 
-Thanks for your detail explanation. Will take care of it.
+>> probably ->predump_signal should be cleared on exec?
 
--- Enke
+As I replied to Jann, will do.
 
-On 10/15/18 11:54 AM, Jann Horn wrote:
-> On Mon, Oct 15, 2018 at 8:36 PM Enke Chen <enkechen@cisco.com> wrote:
->> On 10/13/18 11:27 AM, Jann Horn wrote:
->>> On Sat, Oct 13, 2018 at 2:33 AM Enke Chen <enkechen@cisco.com> wrote:
->>>> For simplicity and consistency, this patch provides an implementation
->>>> for signal-based fault notification prior to the coredump of a child
->>>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
->>>> be used by an application to express its interest and to specify the
->>>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
->>>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
+Thanks. -- Enke
+
+On 10/15/18 12:17 PM, Enke Chen wrote:
+> Hi, Oleg:
+> 
+> I missed some of your comments in my previous reply.
+> 
+> On 10/15/18 5:05 AM, Oleg Nesterov wrote:
+>> On 10/12, Enke Chen wrote:
 >>>
->>> Your suggested API looks vaguely similar to PR_SET_PDEATHSIG, but with
->>> some important differences:
->>>
->>>  - You don't reset the signal on setuid execution.
-> [...]
->>>
->>> For both of these: Are these differences actually necessary, and if
->>> so, can you provide a specific rationale? From a security perspective,
->>> I would very much prefer it if this API had semantics closer to
->>> PR_SET_PDEATHSIG.
+>>> For simplicity and consistency, this patch provides an implementation
+>>> for signal-based fault notification prior to the coredump of a child
+>>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
+>>> be used by an application to express its interest and to specify the
+>>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
+>>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
 >>
-> [...]
+>> To be honest, I can't say I like this new feature...
 >>
->> Regarding the impact of "setuid", this property "PR_SET_PREDUMP_SIG" has to
->> do with the application/process whether the signal handler is set for receiving
->> such a notification.  If it is set, the "uid" should not matter.
+>>> --- a/include/linux/sched.h
+>>> +++ b/include/linux/sched.h
+>>> @@ -696,6 +696,10 @@ struct task_struct {
+>>>  	int				exit_signal;
+>>>  	/* The signal sent when the parent dies: */
+>>>  	int				pdeath_signal;
+>>> +
+>>> +	/* The signal sent prior to a child's coredump: */
+>>> +	int				predump_signal;
+>>> +
+>>
+>> At least, I think predump_signal should live in signal_struct, not
+>> task_struct.
+>>
+>> (pdeath_signal too, but it is too late to change (fix) this awkward API).
+>>
+>>> +static void do_notify_parent_predump(struct task_struct *tsk)
+>>> +{
+>>> +	struct sighand_struct *sighand;
+>>> +	struct task_struct *parent;
+>>> +	struct kernel_siginfo info;
+>>> +	unsigned long flags;
+>>> +	int sig;
+>>> +
+>>> +	parent = tsk->real_parent;
+>>
+>> So, debuggere won't be notified, only real_parent...
+>>
+>>> +	sig = parent->predump_signal;
+>>
+>> probably ->predump_signal should be cleared on exec?
 > 
-> If an attacker's process first calls PR_SET_PREDUMP_SIG, then forks
-> off a child, then calls execve() on a setuid binary, the setuid binary
-> calls setuid(0), and the attacker-controlled child then crashes, the
-> privileged process will receive an unexpected signal that the attacker
-> wouldn't have been allowed to send otherwise. For similar reasons, the
-> parent death signal is reset when a setuid binary is executed:
 > 
-> void setup_new_exec(struct linux_binprm * bprm)
-> {
->         /*
->          * Once here, prepare_binrpm() will not be called any more, so
->          * the final state of setuid/setgid/fscaps can be merged into the
->          * secureexec flag.
->          */
->         bprm->secureexec |= bprm->cap_elevated;
+> Is this not enough in "copy_process()"?
 > 
->         if (bprm->secureexec) {
->                 /* Make sure parent cannot signal privileged process. */
->                 current->pdeath_signal = 0;
-> [...]
->         }
-> [...]
-> }
+> @@ -1985,6 +1985,7 @@ static __latent_entropy struct task_struct *copy_process(
+>  	p->dirty_paused_when = 0;
+>  
+>  	p->pdeath_signal = 0;
+> +	p->predump_signal = 0;
 > 
-> int commit_creds(struct cred *new)
-> {
-> [...]
->         /* dumpability changes */
->         if (!uid_eq(old->euid, new->euid) ||
->             !gid_eq(old->egid, new->egid) ||
->             !uid_eq(old->fsuid, new->fsuid) ||
->             !gid_eq(old->fsgid, new->fsgid) ||
->             !cred_cap_issubset(old, new)) {
->                 if (task->mm)
->                         set_dumpable(task->mm, suid_dumpable);
->                 task->pdeath_signal = 0;
->                 smp_wmb();
->         }
-> [...]
-> }
+>>
+>>> +	/* Check again with tasklist_lock" locked by the caller */
+>>> +	if (!valid_predump_signal(sig))
+>>> +		return;
+>>
+>> I don't understand why we need valid_predump_signal() at all.
 > 
-> AppArmor and SELinux also do related changes:
+> Most of the signals have well-defined semantics, and would not be appropriate
+> for this purpose.  That is why it is limited to only SIGCHLD, SIGUSR1, SIGUSR2.
 > 
-> static void apparmor_bprm_committing_creds(struct linux_binprm *bprm)
-> {
-> [...]
->         /* bail out if unconfined or not changing profile */
->         if ((new_label->proxy == label->proxy) ||
->             (unconfined(new_label)))
->                 return;
+>>
+>>>  bool get_signal(struct ksignal *ksig)
+>>>  {
+>>>  	struct sighand_struct *sighand = current->sighand;
+>>> @@ -2497,6 +2535,19 @@ bool get_signal(struct ksignal *ksig)
+>>>  		current->flags |= PF_SIGNALED;
+>>>  
+>>>  		if (sig_kernel_coredump(signr)) {
+>>> +			/*
+>>> +			 * Notify the parent prior to the coredump if the
+>>> +			 * parent is interested in such a notificaiton.
+>>> +			 */
+>>> +			int p_sig = current->real_parent->predump_signal;
+>>> +
+>>> +			if (valid_predump_signal(p_sig)) {
+>>> +				read_lock(&tasklist_lock);
+>>> +				do_notify_parent_predump(current);
+>>> +				read_unlock(&tasklist_lock);
+>>> +				cond_resched();
+>>
+>> perhaps this should be called by do_coredump() after coredump_wait() kills
+>> all the sub-threads?
 > 
->         aa_inherit_files(bprm->cred, current->files);
+> proc_coredump_connector(current) is located here, they should stay together.
 > 
->         current->pdeath_signal = 0;
-> [...]
-> }
+> Thanks.  -- Enke
 > 
-> static void selinux_bprm_committing_creds(struct linux_binprm *bprm)
-> {
-> [...]
->         new_tsec = bprm->cred->security;
->         if (new_tsec->sid == new_tsec->osid)
->                 return;
-> 
->         /* Close files for which the new task SID is not authorized. */
->         flush_unauthorized_files(bprm->cred, current->files);
-> 
->         /* Always clear parent death signal on SID transitions. */
->         current->pdeath_signal = 0;
-> [...]
-> }
-> 
-> You should probably reset the coredump signal in the same places - or
-> even better, add a new helper for resetting the parent death signal,
-> and then add code for resetting the coredump signal in there.
-> 
+>>
+>>> +static int prctl_set_predump_signal(struct task_struct *tsk, pid_t pid, int sig)
+>>> +{
+>>> +	struct task_struct *p;
+>>> +	int error;
+>>> +
+>>> +	/* 0 is valid for disabling the feature */
+>>> +	if (sig && !valid_predump_signal(sig))
+>>> +		return -EINVAL;
+>>> +
+>>> +	/* For the current task, the common case */
+>>> +	if (pid == 0) {
+>>> +		tsk->predump_signal = sig;
+>>> +		return 0;
+>>> +	}
+>>> +
+>>> +	error = -ESRCH;
+>>> +	rcu_read_lock();
+>>> +	p = find_task_by_vpid(pid);
+>>> +	if (p) {
+>>> +		if (!set_predump_signal_perm(p))
+>>> +			error = -EPERM;
+>>> +		else {
+>>> +			error = 0;
+>>> +			p->predump_signal = sig;
+>>> +		}
+>>> +	}
+>>> +	rcu_read_unlock();
+>>> +	return error;
+>>> +}
+>>
+>> Why? I mean, why do we really want to support the pid != 0 case?
+>>
+>> Oleg.
+>>
