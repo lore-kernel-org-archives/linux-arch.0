@@ -1,68 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f194.google.com ([209.85.219.194]:35779 "EHLO
-        mail-yb1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726911AbeJPG0L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 02:26:11 -0400
-Received: by mail-yb1-f194.google.com with SMTP id o63-v6so8150267yba.2
-        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:38:55 -0700 (PDT)
-Received: from mail-yw1-f50.google.com (mail-yw1-f50.google.com. [209.85.161.50])
-        by smtp.gmail.com with ESMTPSA id s3-v6sm3130062ywc.72.2018.10.15.15.38.54
+Received: from mail-yw1-f65.google.com ([209.85.161.65]:34967 "EHLO
+        mail-yw1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726917AbeJPGg4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 02:36:56 -0400
+Received: by mail-yw1-f65.google.com with SMTP id y76-v6so8185130ywd.2
+        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:49:38 -0700 (PDT)
+Received: from mail-yb1-f182.google.com (mail-yb1-f182.google.com. [209.85.219.182])
+        by smtp.gmail.com with ESMTPSA id q126-v6sm2909394ywf.7.2018.10.15.15.49.37
         for <linux-arch@vger.kernel.org>
         (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 15 Oct 2018 15:38:54 -0700 (PDT)
-Received: by mail-yw1-f50.google.com with SMTP id v1-v6so8166131ywv.6
-        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:38:54 -0700 (PDT)
+        Mon, 15 Oct 2018 15:49:37 -0700 (PDT)
+Received: by mail-yb1-f182.google.com with SMTP id x5-v6so8139739ybl.11
+        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:49:37 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <d0e36e1f-fa1a-f4ab-5a83-11e095801fef@arm.com>
+In-Reply-To: <20181005084754.20950-1-kristina.martsenko@arm.com>
 References: <20181005084754.20950-1-kristina.martsenko@arm.com>
- <20181005084754.20950-18-kristina.martsenko@arm.com> <d0e36e1f-fa1a-f4ab-5a83-11e095801fef@arm.com>
 From: Kees Cook <keescook@chromium.org>
-Date: Mon, 15 Oct 2018 15:38:53 -0700
-Message-ID: <CAGXu5jL5v_Db9RnLYEJtFcGHYf3j023Kxd5eWvtpBjYYQorYMQ@mail.gmail.com>
-Subject: Re: [RFC 17/17] arm64: compile the kernel with ptrauth -msign-return-address
+Date: Mon, 15 Oct 2018 15:42:31 -0700
+Message-ID: <CAGXu5jLtxRitee143FE37PYkPCs0UArGgNEsiU8fzsQL9N8S-Q@mail.gmail.com>
+Subject: Re: [PATCH 00/17] ARMv8.3 pointer authentication support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vladimir Murzin <vladimir.murzin@arm.com>
-Cc: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181015223853.OGqUgOnWU39_jSApo1hRQRDdFOz9scFlMg9f6BiM7I4@z>
+To: Kristina Martsenko <kristina.martsenko@arm.com>
+Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181015224231.Sqy5IgwCYnND5d0WFsfw5-DbaTPjmR5WgJKysbmiB6U@z>
 
-On Thu, Oct 11, 2018 at 7:23 AM, Vladimir Murzin
-<vladimir.murzin@arm.com> wrote:
-> Hi Kristina,
->
-> On 05/10/18 09:47, Kristina Martsenko wrote:
->> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
->> index 106039d25e2f..dbcd43ea99d8 100644
->> --- a/arch/arm64/Makefile
->> +++ b/arch/arm64/Makefile
->> @@ -56,6 +56,10 @@ KBUILD_AFLAGS      += $(lseinstr) $(brokengasinst)
->>  KBUILD_CFLAGS        += $(call cc-option,-mabi=lp64)
->>  KBUILD_AFLAGS        += $(call cc-option,-mabi=lp64)
->>
->> +ifeq ($(CONFIG_ARM64_PTR_AUTH),y)
->> +KBUILD_CFLAGS        += -msign-return-address=all
->> +endif
->
-> Should not it be done via cc-option so old toolchains keep working [1]?
->
-> [1]
-> $ aarch64-linux-gnu-gcc --version
-> aarch64-linux-gnu-gcc (Linaro GCC 2014.11) 4.9.3 20141031 (prerelease)
-> Copyright (C) 2014 Free Software Foundation, Inc.
-> This is free software; see the source for copying conditions.  There is NO
-> warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
->
-> $ aarch64-linux-gnu-gcc -msign-return-address=all
-> aarch64-linux-gnu-gcc: error: unrecognized command line option '-msign-return-address=all'
-> ...
+On Fri, Oct 5, 2018 at 1:47 AM, Kristina Martsenko
+<kristina.martsenko@arm.com> wrote:
+> This series adds support for the ARMv8.3 pointer authentication
+> extension. The series contains Mark's original patches to enable pointer
+> authentication for userspace [1], followed by early RFC patches using
+> pointer authentication in the kernel.
 
-I would like to see CONFIG_ARM64_PTR_AUTH testing for compiler support
-via Kconfig (as stack-protector does). This would allow developers to
-only see the option if it was available (i.e. no "downgrade" happens
-if the compiler is missing support). Using cc-option runs the risk of
-building a kernel with CONFIG_ARM64_PTR_AUTH set, but _not_ actually
-using ptr auth.
+It wasn't obvious to me where the PAC mismatch exceptions will be
+caught. I'm mainly curious to compare the PAC exception handling to
+the existing stack-protector panic(). Can you point me to which
+routines manage that? (Perhaps I just missed it in the series...)
+
+Thanks for the series! I'm quite excited for ARMv8.3 hardware. :)
 
 -Kees
 
