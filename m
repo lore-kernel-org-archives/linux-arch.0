@@ -1,76 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:43281 "EHLO ozlabs.org"
+Received: from gate.crashing.org ([63.228.1.57]:56988 "EHLO gate.crashing.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725842AbeLVRgC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Dec 2018 12:36:02 -0500
-Date: Sat, 22 Dec 2018 21:27:20 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH v3 0/5] alpha: system call table generation support
-Message-ID: <20181222212720.6637ef8e@canb.auug.org.au>
-In-Reply-To: <CAEdQ38EY3ix6XAwAjY8H4OhFwRcT1Yuvk4ofLa_GVyh5COpkRA@mail.gmail.com>
-References: <1542101513-22010-1-git-send-email-firoz.khan@linaro.org>
-        <CALxhOngxbsYFSbK1Y0okuiTmjWEQ8Zcd4vQ0OezhXBgXH82DtA@mail.gmail.com>
-        <CAEdQ38FQNC0mnf6UWOeandwR2guLRGmbYaJAo8MrEKFn2U61Gw@mail.gmail.com>
-        <CAK8P3a366UUWv8hXxWFQo9EQs++t5x4N+JmJ5abgD8BP99hECQ@mail.gmail.com>
-        <CAEdQ38EY3ix6XAwAjY8H4OhFwRcT1Yuvk4ofLa_GVyh5COpkRA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/K95BLF44cm9c5f5+VcHpoTZ"; protocol="application/pgp-signature"
+        id S1731280AbeLVSFh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 22 Dec 2018 13:05:37 -0500
+Message-ID: <a99ff76069ab6559a5664382a9079b5fddfee945.camel@kernel.crashing.org>
+Subject: Re: [PATCH 16/33] powerpc/powernv: remove dead npu-dma code
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Mon, 15 Oct 2018 13:45:26 +1100
+In-Reply-To: <7709932d-efb8-2c9b-5128-99cc491c302b@ozlabs.ru>
+References: <20181009132500.17643-1-hch@lst.de>
+         <20181009132500.17643-17-hch@lst.de>
+         <7709932d-efb8-2c9b-5128-99cc491c302b@ozlabs.ru>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Turner <mattst88@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Firoz Khan <firoz.khan@linaro.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20181222102720.YpWO3bH8nC8au1WAHJ3WdcePpeIe19uBiYMjxwHXp2w@z>
+To: Alexey Kardashevskiy <aik@ozlabs.ru>, Christoph Hellwig <hch@lst.de>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: linuxppc-dev@lists.ozlabs.org, iommu@lists.linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20181015024526.9ww3Qm7qHvgxJO4MRbRiU3FAltKQy5m-YKH7SfgmOJY@z>
 
---Sig_/K95BLF44cm9c5f5+VcHpoTZ
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On Mon, 2018-10-15 at 12:34 +1100, Alexey Kardashevskiy wrote:
+> On 10/10/2018 00:24, Christoph Hellwig wrote:
+> > This code has been unused since it was merged and is in the way of
+> > cleaning up the DMA code, thus remove it.
+> > 
+> > This effectively reverts commit 5d2aa710 ("powerpc/powernv: Add support
+> > for Nvlink NPUs").
+> 
+> 
+> This code is heavily used by the NVIDIA GPU driver.
 
-Hi Matt,
+Some of it is, yes. And while I don't want to be involved in the
+discussion about that specific can of worms, there is code in this file
+related to the custom "always error" DMA ops that I suppose we could
+remove, which is what is getting in the way of Christoph cleanups. It's
+just meant as a debug stuff to catch incorrect attempts at doing the
+dma mappings on the wrong "side" of the GPU.
 
-On Fri, 21 Dec 2018 11:46:59 -0500 Matt Turner <mattst88@gmail.com> wrote:
->
-> Probably so. This is just a super part-time thing for me, so I've
-> never figured out what I needed to do to be included in linux-next.
-
-The requirements are:
-
-"You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-        Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
-
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary."
-
-Just send me an email with the URL of a git tree that has a branch that
-I can fetch every day.
-
-However, I am not doing any releases until Jan 2, so it will be
-included then.
-
---=20
 Cheers,
-Stephen Rothwell
-
---Sig_/K95BLF44cm9c5f5+VcHpoTZ
-Content-Type: application/pgp-signature
-Content-Description: OpenPGP digital signature
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAlweEYgACgkQAVBC80lX
-0GzAZQf/ceFemIRud5chQHnpxdM8Q4WTwZPcT3g997vj97b35xydgjUw24JHscAi
-OJN7B2qj6Ieus3yyy+yrveCkxQlIVkmv9dhKete6KHiGIHogCcmwBT7lpsQK1qje
-CsdoKSEffgDUzPYe7uhGHGI2JdJnfM2OjfYXe/VgLdduUoMVD8S2z8qtAD6h27IC
-/M5zUSPPXF/+j8TXBeRPhIUMANw2q5oWx5rH10DTsC2NJ1rDsgy2adJY2kdul99d
-ORSsdvb/UqsjN8fjeoDFqsZEvGjicv9nN29IatD0Ih44cUZVdnPeB7S1OSCiwrsL
-Fomphge7jlCE0BrSP1LetXSjSHHzsQ==
-=KcoK
------END PGP SIGNATURE-----
-
---Sig_/K95BLF44cm9c5f5+VcHpoTZ--
+Ben.
