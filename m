@@ -1,342 +1,570 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
-Date: Mon, 15 Oct 2018 18:28:03 -0500
-Message-ID: <87va62lri4.fsf@xmission.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH v4 21/27] x86/cet/shstk: ELF header parsing of Shadow Stack
+Date: Mon, 15 Oct 2018 16:40:52 -0700
+Message-ID: <CAGXu5jKO5Ot5VAJBMHudgx40g4N2tqhLKHeCdS7rkFj1bPaHig@mail.gmail.com>
+References: <20180921150351.20898-1-yu-cheng.yu@intel.com> <20180921150351.20898-22-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com> (Enke Chen's
-        message of "Fri, 12 Oct 2018 17:33:35 -0700")
+In-Reply-To: <20180921150351.20898-22-yu-cheng.yu@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Enke Chen <enkechen@cisco.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, Kirill A. Shute
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Enke Chen <enkechen@cisco.com> writes:
+On Fri, Sep 21, 2018 at 8:03 AM, Yu-cheng Yu <yu-cheng.yu@intel.com> wrote:
+> Look in .note.gnu.property of an ELF file and check if Shadow Stack needs
+> to be enabled for the task.
 
-> For simplicity and consistency, this patch provides an implementation
-> for signal-based fault notification prior to the coredump of a child
-> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
-> be used by an application to express its interest and to specify the
-> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
-> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
+Ah, I've been wanting this for other things too (see below).
+
 >
-> Background:
->
-> As the coredump of a process may take time, in certain time-sensitive
-> applications it is necessary for a parent process (e.g., a process
-> manager) to be notified of a child's imminent death before the coredump
-> so that the parent process can act sooner, such as re-spawning an
-> application process, or initiating a control-plane fail-over.
-
-You talk about time senstive and then you talk about bash scripts.
-I don't think your definition of time-sensitive and my definition match.
-
-With that said I think the best solution would be to figure out how to
-allow the coredump to run in parallel with the usual exit signal, and
-exit code reaping of the process.
-
-That would solve the problem for everyone, and would not introduce any
-new complicated APIs.
-
-Short of that having the prctl in the process that receives the signals
-they you are doing is the right way to go.
-
-You are however calling do_notify_parent_predump from the wrong
-function, and frankly with the wrong locking.  There are multiple paths
-to the do_coredump function so you really want this notification from
-do_coredump.
-
-But I still think it would be better to solve the root cause problem and
-change the coredump logic to be able to run in parallel with the normal
-exit notification and zombie reaping logic.  Then the problem you are
-trying to solve goes away and everyone's code gets simpler.
-
-Eric
-
-> Currently there are two ways for a parent process to be notified of a
-> child process's state change. One is to use the POSIX signal, and
-> another is to use the kernel connector module. The specific events and
-> actions are summarized as follows:
->
-> Process Event    POSIX Signal                Connector-based
-> ----------------------------------------------------------------------
-> ptrace_attach()  do_notify_parent_cldstop()  proc_ptrace_connector()
->                  SIGCHLD / CLD_STOPPED
->
-> ptrace_detach()  do_notify_parent_cldstop()  proc_ptrace_connector()
->                  SIGCHLD / CLD_CONTINUED
->
-> pre_coredump/    N/A                         proc_coredump_connector()
-> get_signal()
->
-> post_coredump/   do_notify_parent()          proc_exit_connector()
-> do_exit()        SIGCHLD / exit_signal
-> ----------------------------------------------------------------------
->
-> As shown in the table, the signal-based pre-coredump notification is not
-> currently available. In some cases using a connector-based notification
-> can be quite complicated (e.g., when a process manager is written in shell
-> scripts and thus is subject to certain inherent limitations), and a
-> signal-based notification would be simpler and better suited.
->
-> Signed-off-by: Enke Chen <enkechen@cisco.com>
+> Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 > ---
->  arch/x86/kernel/signal_compat.c    |  2 +-
->  include/linux/sched.h              |  4 ++
->  include/linux/signal.h             |  5 +++
->  include/uapi/asm-generic/siginfo.h |  3 +-
->  include/uapi/linux/prctl.h         |  4 ++
->  kernel/fork.c                      |  1 +
->  kernel/signal.c                    | 51 +++++++++++++++++++++++++
->  kernel/sys.c                       | 77 ++++++++++++++++++++++++++++++++++++++
->  8 files changed, 145 insertions(+), 2 deletions(-)
+>  arch/x86/Kconfig                         |   4 +
+>  arch/x86/include/asm/elf.h               |   5 +
+>  arch/x86/include/uapi/asm/elf_property.h |  15 +
+>  arch/x86/kernel/Makefile                 |   2 +
+>  arch/x86/kernel/elf.c                    | 340 +++++++++++++++++++++++
+>  fs/binfmt_elf.c                          |  15 +
+>  include/uapi/linux/elf.h                 |   1 +
+>  7 files changed, 382 insertions(+)
+>  create mode 100644 arch/x86/include/uapi/asm/elf_property.h
+>  create mode 100644 arch/x86/kernel/elf.c
 >
-> diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-> index 9ccbf05..a3deba8 100644
-> --- a/arch/x86/kernel/signal_compat.c
-> +++ b/arch/x86/kernel/signal_compat.c
-> @@ -30,7 +30,7 @@ static inline void signal_compat_build_tests(void)
->  	BUILD_BUG_ON(NSIGSEGV != 7);
->  	BUILD_BUG_ON(NSIGBUS  != 5);
->  	BUILD_BUG_ON(NSIGTRAP != 5);
-> -	BUILD_BUG_ON(NSIGCHLD != 6);
-> +	BUILD_BUG_ON(NSIGCHLD != 7);
->  	BUILD_BUG_ON(NSIGSYS  != 1);
->  
->  	/* This is part of the ABI and can never change in size: */
-> diff --git a/include/linux/sched.h b/include/linux/sched.h
-> index 09026ea..cfb9645 100644
-> --- a/include/linux/sched.h
-> +++ b/include/linux/sched.h
-> @@ -696,6 +696,10 @@ struct task_struct {
->  	int				exit_signal;
->  	/* The signal sent when the parent dies: */
->  	int				pdeath_signal;
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 808aa3aecf3c..6377125543cc 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -1919,12 +1919,16 @@ config X86_INTEL_CET
+>  config ARCH_HAS_SHSTK
+>         def_bool n
+>
+> +config ARCH_HAS_PROGRAM_PROPERTIES
+> +       def_bool n
 > +
-> +	/* The signal sent prior to a child's coredump: */
-> +	int				predump_signal;
+>  config X86_INTEL_SHADOW_STACK_USER
+>         prompt "Intel Shadow Stack for user-mode"
+>         def_bool n
+>         depends on CPU_SUP_INTEL && X86_64
+>         select X86_INTEL_CET
+>         select ARCH_HAS_SHSTK
+> +       select ARCH_HAS_PROGRAM_PROPERTIES
+>         ---help---
+>           Shadow stack provides hardware protection against program stack
+>           corruption.  Only when all the following are true will an application
+> diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+> index 0d157d2a1e2a..5b5f169c5c07 100644
+> --- a/arch/x86/include/asm/elf.h
+> +++ b/arch/x86/include/asm/elf.h
+> @@ -382,4 +382,9 @@ struct va_alignment {
+>
+>  extern struct va_alignment va_align;
+>  extern unsigned long align_vdso_addr(unsigned long);
 > +
->  	/* JOBCTL_*, siglock protected: */
->  	unsigned long			jobctl;
->  
-> diff --git a/include/linux/signal.h b/include/linux/signal.h
-> index 706a499..7cb976d 100644
-> --- a/include/linux/signal.h
-> +++ b/include/linux/signal.h
-> @@ -256,6 +256,11 @@ static inline int valid_signal(unsigned long sig)
->  	return sig <= _NSIG ? 1 : 0;
->  }
->  
-> +static inline int valid_predump_signal(int sig)
+> +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
+> +extern int arch_setup_features(void *ehdr, void *phdr, struct file *file,
+> +                              bool interp);
+> +#endif
+>  #endif /* _ASM_X86_ELF_H */
+> diff --git a/arch/x86/include/uapi/asm/elf_property.h b/arch/x86/include/uapi/asm/elf_property.h
+> new file mode 100644
+> index 000000000000..af361207718c
+> --- /dev/null
+> +++ b/arch/x86/include/uapi/asm/elf_property.h
+> @@ -0,0 +1,15 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _UAPI_ASM_X86_ELF_PROPERTY_H
+> +#define _UAPI_ASM_X86_ELF_PROPERTY_H
+> +
+> +/*
+> + * pr_type
+> + */
+> +#define GNU_PROPERTY_X86_FEATURE_1_AND (0xc0000002)
+> +
+> +/*
+> + * Bits for GNU_PROPERTY_X86_FEATURE_1_AND
+> + */
+> +#define GNU_PROPERTY_X86_FEATURE_1_SHSTK       (0x00000002)
+> +
+> +#endif /* _UAPI_ASM_X86_ELF_PROPERTY_H */
+> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+> index fbb2d91fb756..36b14ef410c8 100644
+> --- a/arch/x86/kernel/Makefile
+> +++ b/arch/x86/kernel/Makefile
+> @@ -141,6 +141,8 @@ obj-$(CONFIG_UNWINDER_GUESS)                += unwind_guess.o
+>
+>  obj-$(CONFIG_X86_INTEL_CET)            += cet.o
+>
+> +obj-$(CONFIG_ARCH_HAS_PROGRAM_PROPERTIES) += elf.o
+> +
+>  ###
+>  # 64 bit specific files
+>  ifeq ($(CONFIG_X86_64),y)
+> diff --git a/arch/x86/kernel/elf.c b/arch/x86/kernel/elf.c
+> new file mode 100644
+> index 000000000000..2fddd0bc545b
+> --- /dev/null
+> +++ b/arch/x86/kernel/elf.c
+> @@ -0,0 +1,340 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +/*
+> + * Look at an ELF file's .note.gnu.property and determine if the file
+> + * supports shadow stack and/or indirect branch tracking.
+> + * The path from the ELF header to the note section is the following:
+> + * elfhdr->elf_phdr->elf_note->property[].
+> + */
+> +
+> +#include <asm/cet.h>
+> +#include <asm/elf_property.h>
+> +#include <asm/prctl.h>
+> +#include <asm/processor.h>
+> +#include <uapi/linux/elf-em.h>
+> +#include <uapi/linux/prctl.h>
+> +#include <linux/binfmts.h>
+> +#include <linux/elf.h>
+> +#include <linux/slab.h>
+> +#include <linux/fs.h>
+> +#include <linux/uaccess.h>
+> +#include <linux/string.h>
+> +#include <linux/compat.h>
+> +
+> +/*
+> + * The .note.gnu.property layout:
+> + *
+> + *     struct elf_note {
+> + *             u32 n_namesz; --> sizeof(n_name[]); always (4)
+> + *             u32 n_ndescsz;--> sizeof(property[])
+> + *             u32 n_type;   --> always NT_GNU_PROPERTY_TYPE_0
+> + *     };
+> + *     char n_name[4]; --> always 'GNU\0'
+> + *
+> + *     struct {
+> + *             struct property_x86 {
+> + *                     u32 pr_type;
+> + *                     u32 pr_datasz;
+> + *             };
+> + *             u8 pr_data[pr_datasz];
+> + *     }[];
+> + */
+
+Does NT_GNU_PROPERTY_TYPE_0 only ever contain property_x86 bytes? (I
+assume not, since there is a pr_type?)
+
+> +
+> +#define BUF_SIZE (PAGE_SIZE / 4)
+> +
+> +struct property_x86 {
+> +       u32 pr_type;
+> +       u32 pr_datasz;
+> +};
+> +
+> +typedef bool (test_fn)(void *buf, u32 *arg);
+> +typedef void *(next_fn)(void *buf, u32 *arg);
+> +
+> +static inline bool test_note_type_0(void *buf, u32 *arg)
 > +{
-> +	return (sig == SIGCHLD) || (sig == SIGUSR1) || (sig == SIGUSR2);
+> +       struct elf_note *n = buf;
+> +
+> +       return ((n->n_namesz == 4) && (memcmp(n + 1, "GNU", 4) == 0) &&
+> +               (n->n_type == NT_GNU_PROPERTY_TYPE_0));
+
+Cheaper to test n_type first...
+
 > +}
 > +
->  struct timespec;
->  struct pt_regs;
->  enum pid_type;
-> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> index cb3d6c2..1a47cef 100644
-> --- a/include/uapi/asm-generic/siginfo.h
-> +++ b/include/uapi/asm-generic/siginfo.h
-> @@ -267,7 +267,8 @@ struct {				\
->  #define CLD_TRAPPED	4	/* traced child has trapped */
->  #define CLD_STOPPED	5	/* child has stopped */
->  #define CLD_CONTINUED	6	/* stopped child has continued */
-> -#define NSIGCHLD	6
-> +#define CLD_PREDUMP	7	/* child is about to dump core */
-> +#define NSIGCHLD	7
->  
+> +static inline void *next_note(void *buf, u32 *arg)
+> +{
+> +       struct elf_note *n = buf;
+> +       u32 align = *arg;
+> +       int size;
+> +
+> +       size = round_up(sizeof(*n) + n->n_namesz, align);
+
+I think this could overflow: n_namesz can be u64 for elf64_note.
+
+> +       size = round_up(size + n->n_descsz, align);
+
+Same here. You may want to use check_add_overflow(), etc, an u64 types.
+
+> +
+> +       if (buf + size < buf)
+> +               return NULL;
+
+I don't understand this. You want to check size not exceeding the
+allocation, which isn't passed into this function. Checking for a full
+unsigned address wrap around is not sufficient to detect overflow.
+
+> +       else
+> +               return (buf + size);
+> +}
+> +
+> +static inline bool test_property_x86(void *buf, u32 *arg)
+> +{
+> +       struct property_x86 *pr = buf;
+> +       u32 max_type = *arg;
+> +
+> +       if (pr->pr_type > max_type)
+> +               *arg = pr->pr_type;
+
+Why is *arg being updated? I don't see last_pr used outside of here --
+are properties required to be pr_type-ordered?
+
+> +
+> +       return (pr->pr_type == GNU_PROPERTY_X86_FEATURE_1_AND);
+> +}
+> +
+> +static inline void *next_property(void *buf, u32 *arg)
+> +{
+> +       struct property_x86 *pr = buf;
+> +       u32 max_type = *arg;
+> +
+> +       if ((buf + sizeof(*pr) +  pr->pr_datasz < buf) ||
+
+Again, this "< buf" test doesn't look at all correct to me.
+
+> +           (pr->pr_type > GNU_PROPERTY_X86_FEATURE_1_AND) ||
+> +           (pr->pr_type > max_type))
+> +               return NULL;
+> +       else
+> +               return (buf + sizeof(*pr) + pr->pr_datasz);
+> +}
+> +
+> +/*
+> + * Scan 'buf' for a pattern; return true if found.
+> + * *pos is the distance from the beginning of buf to where
+> + * the searched item or the next item is located.
+> + */
+> +static int scan(u8 *buf, u32 buf_size, int item_size,
+> +                test_fn test, next_fn next, u32 *arg, u32 *pos)
+
+I'm not a fan of the short "scan", "test" and "next" names, and I
+really don't like an arg named "arg". Something slightly more
+descriptive for all of these would be nice, please.
+
+> +{
+> +       int found = 0;
+> +       u8 *p, *max;
+> +
+> +       max = buf + buf_size;
+> +       if (max < buf)
+> +               return 0;
+> +
+> +       p = buf;
+> +
+> +       while ((p + item_size < max) && (p + item_size > buf)) {
+
+These comparisons are safe due to the BUF_SIZE limit of buf_size and
+the only used size of item_size, but if this becomes more generic, it
+should be more defensive on the size calculations (e.g. make sure than
+"item_size < max" and then here "p < max - item_size", etc).
+
+I'd kind of rather this code walked the base type and check each for
+the matching feature. What is the general specification for what
+NT_GNU_PROPERTY_TYPE_0 contains?
+
+> +               if (test(p, arg)) {
+> +                       found = 1;
+> +                       break;
+> +               }
+> +
+> +               p = next(p, arg);
+> +       }
+> +
+> +       *pos = (p + item_size <= buf) ? 0 : (u32)(p - buf);
+> +       return found;
+> +}
+> +
+> +/*
+> + * Search a NT_GNU_PROPERTY_TYPE_0 for GNU_PROPERTY_X86_FEATURE_1_AND.
+> + */
+> +static int find_feature_x86(struct file *file, unsigned long desc_size,
+> +                           loff_t file_offset, u8 *buf, u32 *feature)
+> +{
+> +       u32 buf_pos;
+> +       unsigned long read_size;
+> +       unsigned long done;
+> +       int found = 0;
+> +       int ret = 0;
+> +       u32 last_pr = 0;
+> +
+> +       *feature = 0;
+> +       buf_pos = 0;
+> +
+> +       for (done = 0; done < desc_size; done += buf_pos) {
+> +               read_size = desc_size - done;
+> +               if (read_size > BUF_SIZE)
+> +                       read_size = BUF_SIZE;
+> +
+> +               ret = kernel_read(file, buf, read_size, &file_offset);
+> +
+> +               if (ret != read_size)
+> +                       return (ret < 0) ? ret : -EIO;
+> +
+> +               ret = 0;
+> +               found = scan(buf, read_size, sizeof(struct property_x86),
+> +                            test_property_x86, next_property,
+> +                            &last_pr, &buf_pos);
+> +
+> +               if ((!buf_pos) || found)
+> +                       break;
+> +
+> +               file_offset += buf_pos - read_size;
+> +       }
+> +
+> +       if (found) {
+> +               struct property_x86 *pr =
+> +                       (struct property_x86 *)(buf + buf_pos);
+> +
+> +               if (pr->pr_datasz == 4) {
+> +                       u32 *max =  (u32 *)(buf + read_size);
+> +                       u32 *data = (u32 *)((u8 *)pr + sizeof(*pr));
+> +
+> +                       if (data + 1 <= max) {
+> +                               *feature = *data;
+> +                       } else {
+> +                               file_offset += buf_pos - read_size;
+> +                               file_offset += sizeof(*pr);
+> +                               ret = kernel_read(file, feature, 4,
+> +                                                 &file_offset);
+> +                       }
+> +               }
+> +       }
+> +
+> +       return ret;
+> +}
+> +
+> +/*
+> + * Search a PT_NOTE segment for the first NT_GNU_PROPERTY_TYPE_0.
+> + */
+> +static int find_note_type_0(struct file *file, unsigned long note_size,
+> +                           loff_t file_offset, u32 align, u32 *feature)
+> +{
+> +       u8 *buf;
+> +       u32 buf_pos;
+> +       unsigned long read_size;
+> +       unsigned long done;
+> +       int found = 0;
+> +       int ret = 0;
+> +
+> +       buf = kmalloc(BUF_SIZE, GFP_KERNEL);
+> +       if (!buf)
+> +               return -ENOMEM;
+
+Why kmalloc over stack variable? (Or, does BUF_SIZE here really need
+to be 1024?)
+
+> +
+> +       *feature = 0;
+> +       buf_pos = 0;
+> +
+> +       for (done = 0; done < note_size; done += buf_pos) {
+> +               read_size = note_size - done;
+> +               if (read_size > BUF_SIZE)
+> +                       read_size = BUF_SIZE;
+> +
+> +               ret = kernel_read(file, buf, read_size, &file_offset);
+> +
+> +               if (ret != read_size) {
+> +                       ret = (ret < 0) ? ret : -EIO;
+> +                       kfree(buf);
+> +                       return ret;
+> +               }
+> +
+> +               /*
+> +                * item_size = sizeof(struct elf_note) + elf_note.n_namesz.
+> +                * n_namesz is 4 for the note type we look for.
+> +                */
+> +               ret = 0;
+> +               found += scan(buf, read_size, sizeof(struct elf_note) + 4,
+> +                             test_note_type_0, next_note,
+> +                             &align, &buf_pos);
+> +
+> +               file_offset += buf_pos - read_size;
+> +
+> +               if (found == 1) {
+> +                       struct elf_note *n =
+> +                               (struct elf_note *)(buf + buf_pos);
+> +                       u32 start = round_up(sizeof(*n) + n->n_namesz, align);
+> +                       u32 total = round_up(start + n->n_descsz, align);
+
+Same overflow notes from earlier...
+
+> +
+> +                       ret = find_feature_x86(file, n->n_descsz,
+> +                                              file_offset + start,
+> +                                              buf, feature);
+> +                       file_offset += total;
+> +                       buf_pos += total;
+> +               } else if (!buf_pos) {
+> +                       *feature = 0;
+> +                       break;
+> +               }
+> +       }
+> +
+> +       kfree(buf);
+> +       return ret;
+> +}
+> +
+> +#ifdef CONFIG_COMPAT
+> +static int check_notes_32(struct file *file, struct elf32_phdr *phdr,
+> +                         int phnum, u32 *feature)
+> +{
+> +       int i;
+> +       int err = 0;
+> +
+> +       for (i = 0; i < phnum; i++, phdr++) {
+> +               if ((phdr->p_type != PT_NOTE) || (phdr->p_align != 4))
+> +                       continue;
+> +
+> +               err = find_note_type_0(file, phdr->p_filesz, phdr->p_offset,
+> +                                      phdr->p_align, feature);
+> +               if (err)
+> +                       return err;
+> +       }
+> +
+> +       return 0;
+> +}
+> +#endif
+> +
+> +#ifdef CONFIG_X86_64
+> +static int check_notes_64(struct file *file, struct elf64_phdr *phdr,
+> +                         int phnum, u32 *feature)
+> +{
+> +       int i;
+> +       int err = 0;
+> +
+> +       for (i = 0; i < phnum; i++, phdr++) {
+> +               if ((phdr->p_type != PT_NOTE) || (phdr->p_align != 8))
+> +                       continue;
+
+Instead of a separate parser here, wouldn't it be a bit nicer to
+attach this to the existing binfmt_elf program header parsing loop:
+
+        elf_ppnt = elf_phdata;
+        for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++)
+                switch (elf_ppnt->p_type) {
+                case PT_GNU_STACK:
+...
+                case PT_LOPROC ... PT_HIPROC:
+...
+
+
+> +
+> +               err = find_note_type_0(file, phdr->p_filesz, phdr->p_offset,
+> +                                      phdr->p_align, feature);
+> +               if (err)
+> +                       return err;
+> +       }
+> +
+> +       return 0;
+> +}
+> +#endif
+> +
+> +int arch_setup_features(void *ehdr_p, void *phdr_p,
+> +                       struct file *file, bool interp)
+> +{
+> +       int err = 0;
+> +       u32 feature = 0;
+> +
+> +       struct elf64_hdr *ehdr64 = ehdr_p;
+> +
+> +       if (!cpu_feature_enabled(X86_FEATURE_SHSTK))
+> +               return 0;
+> +
+> +       if (ehdr64->e_ident[EI_CLASS] == ELFCLASS64) {
+> +               struct elf64_phdr *phdr64 = phdr_p;
+> +
+> +               err = check_notes_64(file, phdr64, ehdr64->e_phnum,
+> +                                    &feature);
+> +               if (err < 0)
+> +                       goto out;
+> +       } else {
+> +#ifdef CONFIG_COMPAT
+> +               struct elf32_hdr *ehdr32 = ehdr_p;
+> +
+> +               if (ehdr32->e_ident[EI_CLASS] == ELFCLASS32) {
+> +                       struct elf32_phdr *phdr32 = phdr_p;
+> +
+> +                       err = check_notes_32(file, phdr32, ehdr32->e_phnum,
+> +                                            &feature);
+> +                       if (err < 0)
+> +                               goto out;
+> +               }
+> +#endif
+
+Should there be an #else error here?
+
+> +       }
+> +
+> +       memset(&current->thread.cet, 0, sizeof(struct cet_status));
+> +
+> +       if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
+
+The CPU feature was already tested at arch_setup_features() entry.
+
+> +               if (feature & GNU_PROPERTY_X86_FEATURE_1_SHSTK) {
+> +                       err = cet_setup_shstk();
+> +                       if (err < 0)
+> +                               goto out;
+> +               }
+> +       }
+> +
+> +out:
+> +       return err;
+> +}
+> diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+> index efae2fb0930a..b891aa292b46 100644
+> --- a/fs/binfmt_elf.c
+> +++ b/fs/binfmt_elf.c
+> @@ -1081,6 +1081,21 @@ static int load_elf_binary(struct linux_binprm *bprm)
+>                 goto out_free_dentry;
+>         }
+>
+> +#ifdef CONFIG_ARCH_HAS_PROGRAM_PROPERTIES
+> +       if (interpreter) {
+> +               retval = arch_setup_features(&loc->interp_elf_ex,
+> +                                            interp_elf_phdata,
+> +                                            interpreter, true);
+> +       } else {
+> +               retval = arch_setup_features(&loc->elf_ex,
+> +                                            elf_phdata,
+> +                                            bprm->file, false);
+> +       }
+> +
+> +       if (retval < 0)
+> +               goto out_free_dentry;
+> +#endif
+> +
+>         if (elf_interpreter) {
+>                 unsigned long interp_map_addr = 0;
+>
+> diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+> index c5358e0ae7c5..5ef25a565e88 100644
+> --- a/include/uapi/linux/elf.h
+> +++ b/include/uapi/linux/elf.h
+> @@ -372,6 +372,7 @@ typedef struct elf64_shdr {
+>  #define NT_PRFPREG     2
+>  #define NT_PRPSINFO    3
+>  #define NT_TASKSTRUCT  4
+> +#define NT_GNU_PROPERTY_TYPE_0 5
+>  #define NT_AUXV                6
 >  /*
->   * SIGPOLL (or any other signal without signal specific si_codes) si_codes
-> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-> index c0d7ea0..79f0a8a 100644
-> --- a/include/uapi/linux/prctl.h
-> +++ b/include/uapi/linux/prctl.h
-> @@ -219,4 +219,8 @@ struct prctl_mm_map {
->  # define PR_SPEC_DISABLE		(1UL << 2)
->  # define PR_SPEC_FORCE_DISABLE		(1UL << 3)
->  
-> +/* Whether to receive signal prior to child's coredump */
-> +#define PR_SET_PREDUMP_SIG	54
-> +#define PR_GET_PREDUMP_SIG	55
-> +
->  #endif /* _LINUX_PRCTL_H */
-> diff --git a/kernel/fork.c b/kernel/fork.c
-> index 07cddff..c296c11 100644
-> --- a/kernel/fork.c
-> +++ b/kernel/fork.c
-> @@ -1985,6 +1985,7 @@ static __latent_entropy struct task_struct *copy_process(
->  	p->dirty_paused_when = 0;
->  
->  	p->pdeath_signal = 0;
-> +	p->predump_signal = 0;
->  	INIT_LIST_HEAD(&p->thread_group);
->  	p->task_works = NULL;
->  
-> diff --git a/kernel/signal.c b/kernel/signal.c
-> index 312b43e..eb4a483 100644
-> --- a/kernel/signal.c
-> +++ b/kernel/signal.c
-> @@ -2337,6 +2337,44 @@ static int ptrace_signal(int signr, kernel_siginfo_t *info)
->  	return signr;
->  }
->  
-> +/*
-> + * Let the parent, if so desired, know about the imminent death of a child
-> + * prior to its coredump.
-> + *
-> + * Locking logic is similar to do_notify_parent_cldstop().
-> + */
-> +static void do_notify_parent_predump(struct task_struct *tsk)
-> +{
-> +	struct sighand_struct *sighand;
-> +	struct task_struct *parent;
-> +	struct kernel_siginfo info;
-> +	unsigned long flags;
-> +	int sig;
-> +
-> +	parent = tsk->real_parent;
-> +	sig = parent->predump_signal;
-> +
-> +	/* Check again with "tasklist_lock" locked by the caller */
-> +	if (!valid_predump_signal(sig))
-> +		return;
-> +
-> +	clear_siginfo(&info);
-> +	info.si_signo = sig;
-> +	if (sig == SIGCHLD)
-> +		info.si_code = CLD_PREDUMP;
-> +
-> +	rcu_read_lock();
-> +	info.si_pid = task_pid_nr_ns(tsk, task_active_pid_ns(parent));
-> +	info.si_uid = from_kuid_munged(task_cred_xxx(parent, user_ns),
-> +				       task_uid(tsk));
-> +	rcu_read_unlock();
-> +
-> +	sighand = parent->sighand;
-> +	spin_lock_irqsave(&sighand->siglock, flags);
-> +	__group_send_sig_info(sig, &info, parent);
-> +	spin_unlock_irqrestore(&sighand->siglock, flags);
-> +}
-> +
->  bool get_signal(struct ksignal *ksig)
->  {
->  	struct sighand_struct *sighand = current->sighand;
-> @@ -2497,6 +2535,19 @@ bool get_signal(struct ksignal *ksig)
->  		current->flags |= PF_SIGNALED;
->  
->  		if (sig_kernel_coredump(signr)) {
-> +			/*
-> +			 * Notify the parent prior to the coredump if the
-> +			 * parent is interested in such a notificaiton.
-> +			 */
-> +			int p_sig = current->real_parent->predump_signal;
-> +
-> +			if (valid_predump_signal(p_sig)) {
-> +				read_lock(&tasklist_lock);
-> +				do_notify_parent_predump(current);
-> +				read_unlock(&tasklist_lock);
-> +				cond_resched();
-> +			}
-> +
->  			if (print_fatal_signals)
->  				print_fatal_signal(ksig->info.si_signo);
->  			proc_coredump_connector(current);
-> diff --git a/kernel/sys.c b/kernel/sys.c
-> index 123bd73..43eb250d 100644
-> --- a/kernel/sys.c
-> +++ b/kernel/sys.c
-> @@ -2258,6 +2258,76 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
->  	return -EINVAL;
->  }
->  
-> +static int prctl_get_predump_signal(struct task_struct *tsk, pid_t pid,
-> +				    int __user *addr)
-> +{
-> +	struct task_struct *p;
-> +	int error;
-> +
-> +	/* For the current task, the common case */
-> +	if (pid == 0) {
-> +		put_user(tsk->predump_signal, addr);
-> +		return 0;
-> +	}
-> +
-> +	error = -ESRCH;
-> +	rcu_read_lock();
-> +	p = find_task_by_vpid(pid);
-> +	if (p) {
-> +		error = 0;
-> +		put_user(p->predump_signal, addr);
-> +	}
-> +	rcu_read_unlock();
-> +	return error;
-> +}
-> +
-> +/*
-> + * Returns true if current's euid is same as p's uid or euid,
-> + * or has CAP_SYS_ADMIN.
-> + *
-> + * Called with rcu_read_lock, creds are safe.
-> + *
-> + * Adapted from set_one_prio_perm().
-> + */
-> +static bool set_predump_signal_perm(struct task_struct *p)
-> +{
-> +	const struct cred *cred = current_cred(), *pcred = __task_cred(p);
-> +
-> +	return uid_eq(pcred->uid, cred->euid) ||
-> +	       uid_eq(pcred->euid, cred->euid) ||
-> +	       capable(CAP_SYS_ADMIN);
-> +}
-> +
-> +static int prctl_set_predump_signal(struct task_struct *tsk, pid_t pid, int sig)
-> +{
-> +	struct task_struct *p;
-> +	int error;
-> +
-> +	/* 0 is valid for disabling the feature */
-> +	if (sig && !valid_predump_signal(sig))
-> +		return -EINVAL;
-> +
-> +	/* For the current task, the common case */
-> +	if (pid == 0) {
-> +		tsk->predump_signal = sig;
-> +		return 0;
-> +	}
-> +
-> +	error = -ESRCH;
-> +	rcu_read_lock();
-> +	p = find_task_by_vpid(pid);
-> +	if (p) {
-> +		if (!set_predump_signal_perm(p))
-> +			error = -EPERM;
-> +		else {
-> +			error = 0;
-> +			p->predump_signal = sig;
-> +		}
-> +	}
-> +	rcu_read_unlock();
-> +	return error;
-> +}
-> +
->  SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
->  		unsigned long, arg4, unsigned long, arg5)
->  {
-> @@ -2476,6 +2546,13 @@ int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
->  			return -EINVAL;
->  		error = arch_prctl_spec_ctrl_set(me, arg2, arg3);
->  		break;
-> +	case PR_SET_PREDUMP_SIG:
-> +		error = prctl_set_predump_signal(me, (pid_t)arg2, (int)arg3);
-> +		break;
-> +	case PR_GET_PREDUMP_SIG:
-> +		error = prctl_get_predump_signal(me, (pid_t)arg2,
-> +						 (int __user *)arg3);
-> +		break;
->  	default:
->  		error = -EINVAL;
->  		break;
+>   * Note to userspace developers: size of NT_SIGINFO note may increase
+> --
+> 2.17.1
+>
+
+I'd like to be using this code for a few other cases too (not just
+x86-specific). For example, for marking KASan binaries as needing a
+"legacy" memory layouts[1]. Others might be setting things like
+no_new_privs at exec time, etc.
+
+-Kees
+
+[1] https://lkml.kernel.org/r/CAGXu5jL1HRG7Dn9vraw8Hu7LF+69k3EDpztt1Ju7ijEzmvRdhA@mail.gmail.com
+
+-- 
+Kees Cook
+Pixel Security
