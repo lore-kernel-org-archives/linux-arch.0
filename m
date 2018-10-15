@@ -1,151 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f193.google.com ([209.85.219.193]:43084 "EHLO
-        mail-yb1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726430AbeJPGWy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 02:22:54 -0400
-Received: by mail-yb1-f193.google.com with SMTP id w80-v6so8131485ybe.10
-        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:35:39 -0700 (PDT)
-Received: from mail-yb1-f182.google.com (mail-yb1-f182.google.com. [209.85.219.182])
-        by smtp.gmail.com with ESMTPSA id d127-v6sm2933265ywb.84.2018.10.15.15.35.36
+Received: from mail-yb1-f194.google.com ([209.85.219.194]:35779 "EHLO
+        mail-yb1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726911AbeJPG0L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 02:26:11 -0400
+Received: by mail-yb1-f194.google.com with SMTP id o63-v6so8150267yba.2
+        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:38:55 -0700 (PDT)
+Received: from mail-yw1-f50.google.com (mail-yw1-f50.google.com. [209.85.161.50])
+        by smtp.gmail.com with ESMTPSA id s3-v6sm3130062ywc.72.2018.10.15.15.38.54
         for <linux-arch@vger.kernel.org>
         (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
-        Mon, 15 Oct 2018 15:35:36 -0700 (PDT)
-Received: by mail-yb1-f182.google.com with SMTP id w80-v6so8131436ybe.10
-        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:35:36 -0700 (PDT)
+        Mon, 15 Oct 2018 15:38:54 -0700 (PDT)
+Received: by mail-yw1-f50.google.com with SMTP id v1-v6so8166131ywv.6
+        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2018 15:38:54 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20181005084754.20950-12-kristina.martsenko@arm.com>
-References: <20181005084754.20950-1-kristina.martsenko@arm.com> <20181005084754.20950-12-kristina.martsenko@arm.com>
+In-Reply-To: <d0e36e1f-fa1a-f4ab-5a83-11e095801fef@arm.com>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <20181005084754.20950-18-kristina.martsenko@arm.com> <d0e36e1f-fa1a-f4ab-5a83-11e095801fef@arm.com>
 From: Kees Cook <keescook@chromium.org>
-Date: Mon, 15 Oct 2018 15:35:34 -0700
-Message-ID: <CAGXu5j+73z1dPS13xrOgPpn47sfwzNd9BO-USr7V+7quJt7yjA@mail.gmail.com>
-Subject: Re: [PATCH v5 11/17] arm64: docs: document pointer authentication
+Date: Mon, 15 Oct 2018 15:38:53 -0700
+Message-ID: <CAGXu5jL5v_Db9RnLYEJtFcGHYf3j023Kxd5eWvtpBjYYQorYMQ@mail.gmail.com>
+Subject: Re: [RFC 17/17] arm64: compile the kernel with ptrauth -msign-return-address
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kristina Martsenko <kristina.martsenko@arm.com>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Adam Wallis <awallis@codeaurora.org>, Amit Kachhap <Amit.Kachhap@arm.com>, Andrew Jones <drjones@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christoffer Dall <christoffer.dall@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Jacob Bramley <jacob.bramley@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, "Suzuki K . Poulose" <suzuki.poulose@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20181015223534.taNRwMRJKNiEG4wLye4_M0bXLdktKNjwnT4n6AfjPxA@z>
+To: Vladimir Murzin <vladimir.murzin@arm.com>
+Cc: Kristina Martsenko <kristina.martsenko@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, Dave P Martin <Dave.Martin@arm.com>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20181015223853.OGqUgOnWU39_jSApo1hRQRDdFOz9scFlMg9f6BiM7I4@z>
 
-On Fri, Oct 5, 2018 at 1:47 AM, Kristina Martsenko
-<kristina.martsenko@arm.com> wrote:
-> From: Mark Rutland <mark.rutland@arm.com>
+On Thu, Oct 11, 2018 at 7:23 AM, Vladimir Murzin
+<vladimir.murzin@arm.com> wrote:
+> Hi Kristina,
 >
-> Now that we've added code to support pointer authentication, add some
-> documentation so that people can figure out if/how to use it.
+> On 05/10/18 09:47, Kristina Martsenko wrote:
+>> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+>> index 106039d25e2f..dbcd43ea99d8 100644
+>> --- a/arch/arm64/Makefile
+>> +++ b/arch/arm64/Makefile
+>> @@ -56,6 +56,10 @@ KBUILD_AFLAGS      += $(lseinstr) $(brokengasinst)
+>>  KBUILD_CFLAGS        += $(call cc-option,-mabi=lp64)
+>>  KBUILD_AFLAGS        += $(call cc-option,-mabi=lp64)
+>>
+>> +ifeq ($(CONFIG_ARM64_PTR_AUTH),y)
+>> +KBUILD_CFLAGS        += -msign-return-address=all
+>> +endif
 >
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> [kristina: update cpu-feature-registers.txt]
-> Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
-> Cc: Andrew Jones <drjones@redhat.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  Documentation/arm64/booting.txt                |  8 +++
->  Documentation/arm64/cpu-feature-registers.txt  |  4 ++
->  Documentation/arm64/elf_hwcaps.txt             |  5 ++
->  Documentation/arm64/pointer-authentication.txt | 84 ++++++++++++++++++++++++++
->  4 files changed, 101 insertions(+)
->  create mode 100644 Documentation/arm64/pointer-authentication.txt
+> Should not it be done via cc-option so old toolchains keep working [1]?
 >
-> diff --git a/Documentation/arm64/booting.txt b/Documentation/arm64/booting.txt
-> index 8d0df62c3fe0..8df9f4658d6f 100644
-> --- a/Documentation/arm64/booting.txt
-> +++ b/Documentation/arm64/booting.txt
-> @@ -205,6 +205,14 @@ Before jumping into the kernel, the following conditions must be met:
->      ICC_SRE_EL2.SRE (bit 0) must be initialised to 0b0.
->    - The DT or ACPI tables must describe a GICv2 interrupt controller.
+> [1]
+> $ aarch64-linux-gnu-gcc --version
+> aarch64-linux-gnu-gcc (Linaro GCC 2014.11) 4.9.3 20141031 (prerelease)
+> Copyright (C) 2014 Free Software Foundation, Inc.
+> This is free software; see the source for copying conditions.  There is NO
+> warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 >
-> +  For CPUs with pointer authentication functionality:
-> +  - If EL3 is present:
-> +    SCR_EL3.APK (bit 16) must be initialised to 0b1
-> +    SCR_EL3.API (bit 17) must be initialised to 0b1
-> +  - If the kernel is entered at EL1:
-> +    HCR_EL2.APK (bit 40) must be initialised to 0b1
-> +    HCR_EL2.API (bit 41) must be initialised to 0b1
-> +
->  The requirements described above for CPU mode, caches, MMUs, architected
->  timers, coherency and system registers apply to all CPUs.  All CPUs must
->  enter the kernel in the same exception level.
-> diff --git a/Documentation/arm64/cpu-feature-registers.txt b/Documentation/arm64/cpu-feature-registers.txt
-> index 7964f03846b1..b165677ffab9 100644
-> --- a/Documentation/arm64/cpu-feature-registers.txt
-> +++ b/Documentation/arm64/cpu-feature-registers.txt
-> @@ -190,6 +190,10 @@ infrastructure:
->       |--------------------------------------------------|
->       | JSCVT                        | [15-12] |    y    |
->       |--------------------------------------------------|
-> +     | API                          | [11-8]  |    y    |
-> +     |--------------------------------------------------|
-> +     | APA                          | [7-4]   |    y    |
-> +     |--------------------------------------------------|
->       | DPB                          | [3-0]   |    y    |
->       x--------------------------------------------------x
->
-> diff --git a/Documentation/arm64/elf_hwcaps.txt b/Documentation/arm64/elf_hwcaps.txt
-> index d6aff2c5e9e2..95509a7b0ffe 100644
-> --- a/Documentation/arm64/elf_hwcaps.txt
-> +++ b/Documentation/arm64/elf_hwcaps.txt
-> @@ -178,3 +178,8 @@ HWCAP_ILRCPC
->  HWCAP_FLAGM
->
->      Functionality implied by ID_AA64ISAR0_EL1.TS == 0b0001.
-> +
-> +HWCAP_APIA
-> +
-> +    EL0 AddPac and Auth functionality using APIAKey_EL1 is enabled, as
-> +    described by Documentation/arm64/pointer-authentication.txt.
-> diff --git a/Documentation/arm64/pointer-authentication.txt b/Documentation/arm64/pointer-authentication.txt
-> new file mode 100644
-> index 000000000000..8a9cb5713770
-> --- /dev/null
-> +++ b/Documentation/arm64/pointer-authentication.txt
-> @@ -0,0 +1,84 @@
-> +Pointer authentication in AArch64 Linux
-> +=======================================
-> +
-> +Author: Mark Rutland <mark.rutland@arm.com>
-> +Date: 2017-07-19
-> +
-> +This document briefly describes the provision of pointer authentication
-> +functionality in AArch64 Linux.
-> +
-> +
-> +Architecture overview
-> +---------------------
-> +
-> +The ARMv8.3 Pointer Authentication extension adds primitives that can be
-> +used to mitigate certain classes of attack where an attacker can corrupt
-> +the contents of some memory (e.g. the stack).
-> +
-> +The extension uses a Pointer Authentication Code (PAC) to determine
-> +whether pointers have been modified unexpectedly. A PAC is derived from
-> +a pointer, another value (such as the stack pointer), and a secret key
-> +held in system registers.
-> +
-> +The extension adds instructions to insert a valid PAC into a pointer,
-> +and to verify/remove the PAC from a pointer. The PAC occupies a number
-> +of high-order bits of the pointer, which varies dependent on the
-> +configured virtual address size and whether pointer tagging is in use.
-> +
-> +A subset of these instructions have been allocated from the HINT
-> +encoding space. In the absence of the extension (or when disabled),
-> +these instructions behave as NOPs. Applications and libraries using
-> +these instructions operate correctly regardless of the presence of the
-> +extension.
-> +
-> +
-> +Basic support
-> +-------------
-> +
-> +When CONFIG_ARM64_PTR_AUTH is selected, and relevant HW support is
-> +present, the kernel will assign a random APIAKey value to each process
-> +at exec*() time. This key is shared by all threads within the process,
-> +and the key is preserved across fork(). Presence of functionality using
-> +APIAKey is advertised via HWCAP_APIA.
+> $ aarch64-linux-gnu-gcc -msign-return-address=all
+> aarch64-linux-gnu-gcc: error: unrecognized command line option '-msign-return-address=all'
+> ...
 
-It might be useful to include documentation here on how many bits of
-the address are being used for the PAC bits (I'm assuming it's 7?)
+I would like to see CONFIG_ARM64_PTR_AUTH testing for compiler support
+via Kconfig (as stack-protector does). This would allow developers to
+only see the option if it was available (i.e. no "downgrade" happens
+if the compiler is missing support). Using cc-option runs the risk of
+building a kernel with CONFIG_ARM64_PTR_AUTH set, but _not_ actually
+using ptr auth.
 
 -Kees
 
