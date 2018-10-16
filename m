@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V9 16/21] csky: SMP support
-Date: Tue, 16 Oct 2018 10:58:35 +0800
-Message-ID: <4fca35ebfae9208ed6117bbe41c863a33730681e.1539655732.git.ren_guo@c-sky.com>
+Subject: [PATCH V9 17/21] csky: Misc headers
+Date: Tue, 16 Oct 2018 10:58:36 +0800
+Message-ID: <efa8d7e6a2e6407707b77d9ed0d5bfaeea62692a.1539655732.git.ren_guo@c-sky.com>
 References: <cover.1539655731.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1539655731.git.ren_guo@c-sky.com>
@@ -12,310 +12,436 @@ To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@d
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds boot, ipi, hotplug codes for SMP.
+This patch adds csky registers' definition, bitops, byteorder,
+asm-offsets codes.
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Arnd Bergmann <arnd@arndb.de>
 ---
-Changelog:
- - Use PER_CPU_DEFINE for ipi_data.
- - Remove unused variable and add static for enable_smp_ipi().
- - Add comment to explain pass args from primary CPU to secondary CPU.
- - Remove set_ipi_irq_mapping callback.
- - Convert the cpumask to an interrupt-controller specific representation
-   in driver's code, and not the SMP code's.
- - csky: remove irq_mapping from smp.c
-   There are some feedbacks from irqchip, and we need to adjust
-   "smp.c & smp.h" to match the csky_mp_intc modification.
- - Move IPI_IRQ define into drivers/irqchip/csky_mpintc.c, because it's a
-   interrupt controller specific.
- - Bugfix request_irq with IPI_IRQ, we must use irq_mapping return value
-   not directly use IPI_IRQ. The modification also involves csky_mp_intc.
----
----
- arch/csky/include/asm/smp.h |  26 +++++
- arch/csky/kernel/smp.c      | 237 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 263 insertions(+)
- create mode 100644 arch/csky/include/asm/smp.h
- create mode 100644 arch/csky/kernel/smp.c
+ arch/csky/abiv1/inc/abi/reg_ops.h      | 27 +++++++++++
+ arch/csky/abiv1/inc/abi/regdef.h       | 26 ++++++++++
+ arch/csky/abiv2/inc/abi/reg_ops.h      | 17 +++++++
+ arch/csky/abiv2/inc/abi/regdef.h       | 26 ++++++++++
+ arch/csky/include/asm/bitops.h         | 82 +++++++++++++++++++++++++++++++
+ arch/csky/include/asm/checksum.h       | 50 +++++++++++++++++++
+ arch/csky/include/asm/reg_ops.h        | 26 ++++++++++
+ arch/csky/include/uapi/asm/byteorder.h |  9 ++++
+ arch/csky/kernel/asm-offsets.c         | 88 ++++++++++++++++++++++++++++++++++
+ 9 files changed, 351 insertions(+)
+ create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
+ create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
+ create mode 100644 arch/csky/include/asm/bitops.h
+ create mode 100644 arch/csky/include/asm/checksum.h
+ create mode 100644 arch/csky/include/asm/reg_ops.h
+ create mode 100644 arch/csky/include/uapi/asm/byteorder.h
+ create mode 100644 arch/csky/kernel/asm-offsets.c
 
-diff --git a/arch/csky/include/asm/smp.h b/arch/csky/include/asm/smp.h
+diff --git a/arch/csky/abiv1/inc/abi/reg_ops.h b/arch/csky/abiv1/inc/abi/reg_ops.h
 new file mode 100644
-index 0000000..4a929c4
+index 0000000..a153bd3
 --- /dev/null
-+++ b/arch/csky/include/asm/smp.h
++++ b/arch/csky/abiv1/inc/abi/reg_ops.h
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
++
++#define cprcr(reg)					\
++({							\
++	unsigned int tmp;				\
++	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
++	tmp;						\
++})
++
++#define cpwcr(reg, val)					\
++({							\
++	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
++})
++
++static inline unsigned int mfcr_hint(void)
++{
++	return mfcr("cr30");
++}
++
++static inline unsigned int mfcr_ccr2(void) { return 0; }
++
++#endif /* __ABI_REG_OPS_H */
+diff --git a/arch/csky/abiv1/inc/abi/regdef.h b/arch/csky/abiv1/inc/abi/regdef.h
+new file mode 100644
+index 0000000..8766892
+--- /dev/null
++++ b/arch/csky/abiv1/inc/abi/regdef.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_REGDEF_H
++#define __ASM_CSKY_REGDEF_H
++
++#define syscallid	r1
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[9]
++
++/*
++ * PSR format:
++ * | 31 | 30-24 | 23-16 | 15 14 | 13-0 |
++ *   S     CPID     VEC     TM
++ *
++ *    S: Super Mode
++ * CPID: Coprocessor id, only 15 for MMU
++ *  VEC: Exception Number
++ *   TM: Trace Mode
++ */
++#define DEFAULT_PSR_VALUE	0x8f000000
++
++#define SYSTRACE_SAVENUM	2
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/abiv2/inc/abi/reg_ops.h b/arch/csky/abiv2/inc/abi/reg_ops.h
+new file mode 100644
+index 0000000..ae82c3f
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/reg_ops.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ABI_REG_OPS_H
++#define __ABI_REG_OPS_H
++#include <asm/reg_ops.h>
++
++static inline unsigned int mfcr_hint(void)
++{
++	return mfcr("cr31");
++}
++
++static inline unsigned int mfcr_ccr2(void)
++{
++	return mfcr("cr23");
++}
++#endif /* __ABI_REG_OPS_H */
+diff --git a/arch/csky/abiv2/inc/abi/regdef.h b/arch/csky/abiv2/inc/abi/regdef.h
+new file mode 100644
+index 0000000..c72abb7
+--- /dev/null
++++ b/arch/csky/abiv2/inc/abi/regdef.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_REGDEF_H
++#define __ASM_CSKY_REGDEF_H
++
++#define syscallid	r7
++#define r11_sig		r11
++
++#define regs_syscallid(regs) regs->regs[3]
++
++/*
++ * PSR format:
++ * | 31 | 30-24 | 23-16 | 15 14 | 13-10 | 9 | 8-0 |
++ *   S              VEC     TM            MM
++ *
++ *   S: Super Mode
++ * VEC: Exception Number
++ *  TM: Trace Mode
++ *  MM: Memory unaligned addr access
++ */
++#define DEFAULT_PSR_VALUE	0x80000200
++
++#define SYSTRACE_SAVENUM	5
++
++#endif /* __ASM_CSKY_REGDEF_H */
+diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
+new file mode 100644
+index 0000000..335f288
+--- /dev/null
++++ b/arch/csky/include/asm/bitops.h
+@@ -0,0 +1,82 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_BITOPS_H
++#define __ASM_CSKY_BITOPS_H
++
++#include <linux/compiler.h>
++#include <asm/barrier.h>
++
++/*
++ * asm-generic/bitops/ffs.h
++ */
++static inline int ffs(int x)
++{
++	if (!x)
++		return 0;
++
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		"addi %0, 1\n"
++		: "=&r"(x)
++		: "0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/__ffs.h
++ */
++static __always_inline unsigned long __ffs(unsigned long x)
++{
++	asm volatile (
++		"brev %0\n"
++		"ff1  %0\n"
++		: "=&r"(x)
++		: "0"(x));
++	return x;
++}
++
++/*
++ * asm-generic/bitops/fls.h
++ */
++static __always_inline int fls(int x)
++{
++	asm volatile(
++		"ff1 %0\n"
++		: "=&r"(x)
++		: "0"(x));
++
++	return (32 - x);
++}
++
++/*
++ * asm-generic/bitops/__fls.h
++ */
++static __always_inline unsigned long __fls(unsigned long x)
++{
++	return fls(x) - 1;
++}
++
++#include <asm-generic/bitops/ffz.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
++
++#ifndef _LINUX_BITOPS_H
++#error only <linux/bitops.h> can be included directly
++#endif
++
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
++#include <asm-generic/bitops/atomic.h>
++
++/*
++ * bug fix, why only could use atomic!!!!
++ */
++#include <asm-generic/bitops/non-atomic.h>
++#define __clear_bit(nr, vaddr) clear_bit(nr, vaddr)
++
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
++#endif /* __ASM_CSKY_BITOPS_H */
+diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
+new file mode 100644
+index 0000000..7685824
+--- /dev/null
++++ b/arch/csky/include/asm/checksum.h
+@@ -0,0 +1,50 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
++#ifndef __ASM_CSKY_CHECKSUM_H
++#define __ASM_CSKY_CHECKSUM_H
++
++#include <linux/in6.h>
++#include <asm/byteorder.h>
++
++static inline __sum16 csum_fold(__wsum csum)
++{
++	u32 tmp;
++
++	asm volatile(
++	"mov	%1, %0\n"
++	"rori	%0, 16\n"
++	"addu	%0, %1\n"
++	"lsri	%0, 16\n"
++	: "=r"(csum), "=r"(tmp)
++	: "0"(csum));
++
++	return (__force __sum16) ~csum;
++}
++#define csum_fold csum_fold
++
++static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
++		unsigned short len, unsigned short proto, __wsum sum)
++{
++	asm volatile(
++	"clrc\n"
++	"addc    %0, %1\n"
++	"addc    %0, %2\n"
++	"addc    %0, %3\n"
++	"inct    %0\n"
++	: "=r"(sum)
++	: "r"((__force u32)saddr), "r"((__force u32)daddr),
++#ifdef __BIG_ENDIAN
++	"r"(proto + len),
++#else
++	"r"((proto + len) << 8),
++#endif
++	"0" ((__force unsigned long)sum)
++	: "cc");
++	return sum;
++}
++#define csum_tcpudp_nofold csum_tcpudp_nofold
++
++#include <asm-generic/checksum.h>
++
++#endif /* __ASM_CSKY_CHECKSUM_H */
+diff --git a/arch/csky/include/asm/reg_ops.h b/arch/csky/include/asm/reg_ops.h
+new file mode 100644
+index 0000000..cccf7d5
+--- /dev/null
++++ b/arch/csky/include/asm/reg_ops.h
 @@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +
-+#ifndef __ASM_CSKY_SMP_H
-+#define __ASM_CSKY_SMP_H
++#ifndef __ASM_REGS_OPS_H
++#define __ASM_REGS_OPS_H
 +
-+#include <linux/cpumask.h>
-+#include <linux/irqreturn.h>
-+#include <linux/threads.h>
++#define mfcr(reg)		\
++({				\
++	unsigned int tmp;	\
++	asm volatile(		\
++	"mfcr %0, "reg"\n"	\
++	: "=r"(tmp)		\
++	:			\
++	: "memory");		\
++	tmp;			\
++})
 +
-+#ifdef CONFIG_SMP
++#define mtcr(reg, val)		\
++({				\
++	asm volatile(		\
++	"mtcr %0, "reg"\n"	\
++	:			\
++	: "r"(val)		\
++	: "memory");		\
++})
 +
-+void __init setup_smp(void);
-+
-+void __init setup_smp_ipi(void);
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask);
-+
-+void arch_send_call_function_single_ipi(int cpu);
-+
-+void __init set_send_ipi(void (*func)(const struct cpumask *mask), int irq);
-+
-+#define raw_smp_processor_id()	(current_thread_info()->cpu)
-+
-+#endif /* CONFIG_SMP */
-+
-+#endif /* __ASM_CSKY_SMP_H */
-diff --git a/arch/csky/kernel/smp.c b/arch/csky/kernel/smp.c
++#endif /* __ASM_REGS_OPS_H */
+diff --git a/arch/csky/include/uapi/asm/byteorder.h b/arch/csky/include/uapi/asm/byteorder.h
 new file mode 100644
-index 0000000..36ebaf9
+index 0000000..b079ec7
 --- /dev/null
-+++ b/arch/csky/kernel/smp.c
-@@ -0,0 +1,237 @@
-+// SPDX-License-Identifier: GPL-2.0
++++ b/arch/csky/include/uapi/asm/byteorder.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 +
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
++#ifndef __ASM_CSKY_BYTEORDER_H
++#define __ASM_CSKY_BYTEORDER_H
++
++#include <linux/byteorder/little_endian.h>
++
++#endif /* __ASM_CSKY_BYTEORDER_H */
+diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
+new file mode 100644
+index 0000000..8d3ed81
+--- /dev/null
++++ b/arch/csky/kernel/asm-offsets.c
+@@ -0,0 +1,88 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++
 +#include <linux/sched.h>
 +#include <linux/kernel_stat.h>
-+#include <linux/notifier.h>
-+#include <linux/cpu.h>
-+#include <linux/percpu.h>
-+#include <linux/delay.h>
-+#include <linux/err.h>
-+#include <linux/irq.h>
-+#include <linux/irqdomain.h>
-+#include <linux/of.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/sched/mm.h>
-+#include <asm/irq.h>
-+#include <asm/traps.h>
-+#include <asm/sections.h>
-+#include <asm/mmu_context.h>
-+#include <asm/pgalloc.h>
++#include <linux/kbuild.h>
++#include <abi/regdef.h>
 +
-+struct ipi_data_struct {
-+	unsigned long bits ____cacheline_aligned;
-+};
-+static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
-+
-+enum ipi_message_type {
-+	IPI_EMPTY,
-+	IPI_RESCHEDULE,
-+	IPI_CALL_FUNC,
-+	IPI_MAX
-+};
-+
-+static irqreturn_t handle_ipi(int irq, void *dev)
++int main(void)
 +{
-+	while (true) {
-+		unsigned long ops;
++	/* offsets into the task struct */
++	DEFINE(TASK_STATE,        offsetof(struct task_struct, state));
++	DEFINE(TASK_THREAD_INFO,  offsetof(struct task_struct, stack));
++	DEFINE(TASK_FLAGS,        offsetof(struct task_struct, flags));
++	DEFINE(TASK_PTRACE,       offsetof(struct task_struct, ptrace));
++	DEFINE(TASK_THREAD,       offsetof(struct task_struct, thread));
++	DEFINE(TASK_MM,           offsetof(struct task_struct, mm));
++	DEFINE(TASK_ACTIVE_MM,    offsetof(struct task_struct, active_mm));
 +
-+		ops = xchg(&this_cpu_ptr(&ipi_data)->bits, 0);
-+		if (ops == 0)
-+			return IRQ_HANDLED;
++	/* offsets into the thread struct */
++	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
++	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
++	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
++	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
++	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
++	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
++	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
++	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
 +
-+		if (ops & (1 << IPI_RESCHEDULE))
-+			scheduler_ipi();
++	/* offsets into the thread_info struct */
++	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));
++	DEFINE(TINFO_PREEMPT,     offsetof(struct thread_info, preempt_count));
++	DEFINE(TINFO_ADDR_LIMIT,  offsetof(struct thread_info, addr_limit));
++	DEFINE(TINFO_TP_VALUE,   offsetof(struct thread_info, tp_value));
++	DEFINE(TINFO_TASK,        offsetof(struct thread_info, task));
 +
-+		if (ops & (1 << IPI_CALL_FUNC))
-+			generic_smp_call_function_interrupt();
++	/* offsets into the pt_regs */
++	DEFINE(PT_PC,             offsetof(struct pt_regs, pc));
++	DEFINE(PT_ORIG_AO,        offsetof(struct pt_regs, orig_a0));
++	DEFINE(PT_SR,             offsetof(struct pt_regs, sr));
 +
-+		BUG_ON((ops >> IPI_MAX) != 0);
-+	}
++	DEFINE(PT_A0,             offsetof(struct pt_regs, a0));
++	DEFINE(PT_A1,             offsetof(struct pt_regs, a1));
++	DEFINE(PT_A2,             offsetof(struct pt_regs, a2));
++	DEFINE(PT_A3,             offsetof(struct pt_regs, a3));
++	DEFINE(PT_REGS0,          offsetof(struct pt_regs, regs[0]));
++	DEFINE(PT_REGS1,          offsetof(struct pt_regs, regs[1]));
++	DEFINE(PT_REGS2,          offsetof(struct pt_regs, regs[2]));
++	DEFINE(PT_REGS3,          offsetof(struct pt_regs, regs[3]));
++	DEFINE(PT_REGS4,          offsetof(struct pt_regs, regs[4]));
++	DEFINE(PT_REGS5,          offsetof(struct pt_regs, regs[5]));
++	DEFINE(PT_REGS6,          offsetof(struct pt_regs, regs[6]));
++	DEFINE(PT_REGS7,          offsetof(struct pt_regs, regs[7]));
++	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
++	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
++	DEFINE(PT_R15,            offsetof(struct pt_regs, lr));
++#if defined(__CSKYABIV2__)
++	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
++	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));
++	DEFINE(PT_R18,            offsetof(struct pt_regs, exregs[2]));
++	DEFINE(PT_R19,            offsetof(struct pt_regs, exregs[3]));
++	DEFINE(PT_R20,            offsetof(struct pt_regs, exregs[4]));
++	DEFINE(PT_R21,            offsetof(struct pt_regs, exregs[5]));
++	DEFINE(PT_R22,            offsetof(struct pt_regs, exregs[6]));
++	DEFINE(PT_R23,            offsetof(struct pt_regs, exregs[7]));
++	DEFINE(PT_R24,            offsetof(struct pt_regs, exregs[8]));
++	DEFINE(PT_R25,            offsetof(struct pt_regs, exregs[9]));
++	DEFINE(PT_R26,            offsetof(struct pt_regs, exregs[10]));
++	DEFINE(PT_R27,            offsetof(struct pt_regs, exregs[11]));
++	DEFINE(PT_R28,            offsetof(struct pt_regs, exregs[12]));
++	DEFINE(PT_R29,            offsetof(struct pt_regs, exregs[13]));
++	DEFINE(PT_R30,            offsetof(struct pt_regs, exregs[14]));
++	DEFINE(PT_R31,            offsetof(struct pt_regs, exregs[15]));
++	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
++	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
++#endif
++	DEFINE(PT_USP,            offsetof(struct pt_regs, usp));
 +
-+	return IRQ_HANDLED;
-+}
++	/* offsets into the irq_cpustat_t struct */
++	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t,
++						__softirq_pending));
 +
-+static void (*send_arch_ipi)(const struct cpumask *mask);
-+
-+static int ipi_irq;
-+void __init set_send_ipi(void (*func)(const struct cpumask *mask), int irq)
-+{
-+	if (send_arch_ipi)
-+		return;
-+
-+	send_arch_ipi = func;
-+	ipi_irq = irq;
-+}
-+
-+static void
-+send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
-+{
-+	int i;
-+
-+	for_each_cpu(i, to_whom)
-+		set_bit(operation, &per_cpu_ptr(&ipi_data, i)->bits);
-+
-+	smp_mb();
-+	send_arch_ipi(to_whom);
-+}
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask)
-+{
-+	send_ipi_message(mask, IPI_CALL_FUNC);
-+}
-+
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
-+}
-+
-+static void ipi_stop(void *unused)
-+{
-+	while (1);
-+}
-+
-+void smp_send_stop(void)
-+{
-+	on_each_cpu(ipi_stop, NULL, 1);
-+}
-+
-+void smp_send_reschedule(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
-+}
-+
-+void __init smp_prepare_boot_cpu(void)
-+{
-+}
-+
-+void __init smp_prepare_cpus(unsigned int max_cpus)
-+{
-+}
-+
-+static void __init enable_smp_ipi(void)
-+{
-+	enable_percpu_irq(ipi_irq, 0);
-+}
-+
-+static int ipi_dummy_dev;
-+void __init setup_smp_ipi(void)
-+{
-+	int rc;
-+
-+	if (ipi_irq == 0)
-+		panic("%s IRQ mapping failed\n", __func__);
-+
-+	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt",
-+				&ipi_dummy_dev);
-+	if (rc)
-+		panic("%s IRQ request failed\n", __func__);
-+
-+	enable_smp_ipi();
-+}
-+
-+void __init setup_smp(void)
-+{
-+	struct device_node *node = NULL;
-+	int cpu;
-+
-+	while ((node = of_find_node_by_type(node, "cpu"))) {
-+		if (!of_device_is_available(node))
-+			continue;
-+
-+		if (of_property_read_u32(node, "reg", &cpu))
-+			continue;
-+
-+		if (cpu >= NR_CPUS)
-+			continue;
-+
-+		set_cpu_possible(cpu, true);
-+		set_cpu_present(cpu, true);
-+	}
-+}
-+
-+extern void _start_smp_secondary(void);
-+
-+volatile unsigned int secondary_hint;
-+volatile unsigned int secondary_ccr;
-+volatile unsigned int secondary_stack;
-+
-+int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-+{
-+	unsigned int tmp;
-+
-+	secondary_stack = (unsigned int)tidle->stack + THREAD_SIZE;
-+
-+	secondary_hint = mfcr("cr31");
-+
-+	secondary_ccr  = mfcr("cr18");
-+
-+	/*
-+	 * Because other CPUs are in reset status, we must flush data
-+	 * from cache to out and secondary CPUs use them in
-+	 * csky_start_secondary(void)
-+	 */
-+	mtcr("cr17", 0x22);
-+
-+	/* Enable cpu in SMP reset ctrl reg */
-+	tmp = mfcr("cr<29, 0>");
-+	tmp |= 1 << cpu;
-+	mtcr("cr<29, 0>", tmp);
-+
-+	/* Wait for the cpu online */
-+	while (!cpu_online(cpu));
-+
-+	secondary_stack = 0;
++	/* signal defines */
++	DEFINE(SIGSEGV, SIGSEGV);
++	DEFINE(SIGTRAP, SIGTRAP);
 +
 +	return 0;
-+}
-+
-+void __init smp_cpus_done(unsigned int max_cpus)
-+{
-+}
-+
-+int setup_profiling_timer(unsigned int multiplier)
-+{
-+	return -EINVAL;
-+}
-+
-+void csky_start_secondary(void)
-+{
-+	struct mm_struct *mm = &init_mm;
-+	unsigned int cpu = smp_processor_id();
-+
-+	mtcr("cr31", secondary_hint);
-+	mtcr("cr18", secondary_ccr);
-+
-+	mtcr("vbr", vec_base);
-+
-+	flush_tlb_all();
-+	write_mmu_pagemask(0);
-+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-+	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
-+
-+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
-+
-+#ifdef CONFIG_CPU_HAS_FPU
-+	init_fpu();
-+#endif
-+
-+	enable_smp_ipi();
-+
-+	mmget(mm);
-+	mmgrab(mm);
-+	current->active_mm = mm;
-+	cpumask_set_cpu(cpu, mm_cpumask(mm));
-+
-+	notify_cpu_starting(cpu);
-+	set_cpu_online(cpu, true);
-+
-+	pr_info("CPU%u Online: %s...\n", cpu, __func__);
-+
-+	local_irq_enable();
-+	preempt_disable();
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
 +}
 -- 
 2.7.4
