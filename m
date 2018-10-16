@@ -1,106 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:35758 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727069AbeJPVEi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 17:04:38 -0400
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:43374 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727069AbeJPVEr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 17:04:47 -0400
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 3/5] mm/cow: optimise pte accessed bit handling in fork
-Date: Tue, 16 Oct 2018 23:13:41 +1000
-Message-ID: <20181016131343.20556-4-npiggin@gmail.com>
+Subject: [PATCH v2 5/5] mm: optimise pte dirty/accessed bit setting by demand based pte insertion
+Date: Tue, 16 Oct 2018 23:13:43 +1000
+Message-ID: <20181016131343.20556-6-npiggin@gmail.com>
 In-Reply-To: <20181016131343.20556-1-npiggin@gmail.com>
 References: <20181016131343.20556-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Ley Foon Tan <ley.foon.tan@intel.com>
-Message-ID: <20181016131341.uTSz7_NXu71Xbjbb2SZd96BRzB4-4WCng1LNbiBRxds@z>
+Message-ID: <20181016131343.tL-GH2JVsGAbOU1B-9CUz7vvfC4X5hBiBjLEyj0HvKM@z>
 
-fork clears dirty/accessed bits from new ptes in the child. This logic
-has existed since mapped page reclaim was done by scanning ptes when
-it may have been quite important. Today with physical based pte
-scanning, there is less reason to clear these bits, so this patch
-avoids clearing the accessed bit in the child.
-
-Any accessed bit is treated similarly to many, with the difference
-today with > 1 referenced bit causing the page to be activated, while
-1 bit causes it to be kept. This patch causes pages shared by fork(2)
-to be more readily activated, but this heuristic is very fuzzy anyway
--- a page can be accessed by multiple threads via a single pte and be
-just as important as one that is accessed via multiple ptes, for
-example. In the end I don't believe fork(2) is a significant driver of
-page reclaim behaviour that this should matter too much.
-
-This and the following change eliminate a major source of faults that
-powerpc/radix requires to set dirty/accessed bits in ptes, speeding
-up a fork/exit microbenchmark by about 5% on POWER9 (16600 -> 17500
-fork/execs per second).
-
-Skylake appears to have a micro-fault overhead too -- a test which
-allocates 4GB anonymous memory, reads each page, then forks, and times
-the child reading a byte from each page. The first pass over the pages
-takes about 1000 cycles per page, the second pass takes about 27
-cycles (TLB miss). With no additional minor faults measured due to
-either child pass, and the page array well exceeding TLB capacity, the
-large cost must be caused by micro faults caused by setting accessed
-bit.
+Similarly to the previous patch, this tries to optimise dirty/accessed
+bits in ptes to avoid access costs of hardware setting them.
 
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- mm/huge_memory.c | 2 --
- mm/memory.c      | 1 -
- mm/vmscan.c      | 8 ++++++++
- 3 files changed, 8 insertions(+), 3 deletions(-)
+ mm/huge_memory.c | 12 ++++++++----
+ mm/memory.c      |  9 ++++++---
+ 2 files changed, 14 insertions(+), 7 deletions(-)
 
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 0fb0e3025f98..1f43265204d4 100644
+index 1f43265204d4..38c2cd3b4879 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -977,7 +977,6 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 		pmdp_set_wrprotect(src_mm, addr, src_pmd);
- 		pmd = pmd_wrprotect(pmd);
- 	}
--	pmd = pmd_mkold(pmd);
- 	set_pmd_at(dst_mm, addr, dst_pmd, pmd);
+@@ -1197,6 +1197,7 @@ static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
+ 	for (i = 0; i < HPAGE_PMD_NR; i++, haddr += PAGE_SIZE) {
+ 		pte_t entry;
+ 		entry = mk_pte(pages[i], vma->vm_page_prot);
++		entry = pte_mkyoung(entry);
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 		memcg = (void *)page_private(pages[i]);
+ 		set_page_private(pages[i], 0);
+@@ -2067,7 +2068,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	struct page *page;
+ 	pgtable_t pgtable;
+ 	pmd_t old_pmd, _pmd;
+-	bool young, write, soft_dirty, pmd_migration = false;
++	bool young, write, dirty, soft_dirty, pmd_migration = false;
+ 	unsigned long addr;
+ 	int i;
  
- 	ret = 0;
-@@ -1071,7 +1070,6 @@ int copy_huge_pud(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 		pudp_set_wrprotect(src_mm, addr, src_pud);
- 		pud = pud_wrprotect(pud);
- 	}
--	pud = pud_mkold(pud);
- 	set_pud_at(dst_mm, addr, dst_pud, pud);
- 
- 	ret = 0;
+@@ -2145,7 +2146,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 		page = pmd_page(old_pmd);
+ 	VM_BUG_ON_PAGE(!page_count(page), page);
+ 	page_ref_add(page, HPAGE_PMD_NR - 1);
+-	if (pmd_dirty(old_pmd))
++	dirty = pmd_dirty(old_pmd);
++	if (dirty)
+ 		SetPageDirty(page);
+ 	write = pmd_write(old_pmd);
+ 	young = pmd_young(old_pmd);
+@@ -2176,8 +2178,10 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 			entry = maybe_mkwrite(entry, vma);
+ 			if (!write)
+ 				entry = pte_wrprotect(entry);
+-			if (!young)
+-				entry = pte_mkold(entry);
++			if (young)
++				entry = pte_mkyoung(entry);
++			if (dirty)
++				entry = pte_mkdirty(entry);
+ 			if (soft_dirty)
+ 				entry = pte_mksoft_dirty(entry);
+ 		}
 diff --git a/mm/memory.c b/mm/memory.c
-index c467102a5cbc..0387ee1e3582 100644
+index 9e314339a0bd..f907ea7a6303 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
-@@ -1033,7 +1033,6 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	 */
- 	if (vm_flags & VM_SHARED)
- 		pte = pte_mkclean(pte);
--	pte = pte_mkold(pte);
+@@ -1804,10 +1804,9 @@ static int insert_pfn(struct vm_area_struct *vma, unsigned long addr,
+ 		entry = pte_mkspecial(pfn_t_pte(pfn, prot));
  
- 	page = vm_normal_page(vma, addr, pte);
- 	if (page) {
-diff --git a/mm/vmscan.c b/mm/vmscan.c
-index c5ef7240cbcb..e72d5b3336a0 100644
---- a/mm/vmscan.c
-+++ b/mm/vmscan.c
-@@ -1031,6 +1031,14 @@ static enum page_references page_check_references(struct page *page,
- 		 * to look twice if a mapped file page is used more
- 		 * than once.
- 		 *
-+		 * fork() will set referenced bits in child ptes despite
-+		 * not having been accessed, to avoid micro-faults of
-+		 * setting accessed bits. This heuristic is not perfectly
-+		 * accurate in other ways -- multiple map/unmap in the
-+		 * same time window would be treated as multiple references
-+		 * despite same number of actual memory accesses made by
-+		 * the program.
-+		 *
- 		 * Mark it and spare it for another trip around the
- 		 * inactive list.  Another page table reference will
- 		 * lead to its activation.
+ out_mkwrite:
+-	if (mkwrite) {
+-		entry = pte_mkyoung(entry);
++	entry = pte_mkyoung(entry);
++	if (mkwrite)
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+-	}
+ 
+ 	set_pte_at(mm, addr, pte, entry);
+ 	update_mmu_cache(vma, addr, pte); /* XXX: why not for insert_page? */
+@@ -2534,6 +2533,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+ 		}
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry = mk_pte(new_page, vma->vm_page_prot);
++		entry = pte_mkyoung(entry);
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+@@ -3043,6 +3043,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+ 	inc_mm_counter_fast(vma->vm_mm, MM_ANONPAGES);
+ 	dec_mm_counter_fast(vma->vm_mm, MM_SWAPENTS);
+ 	pte = mk_pte(page, vma->vm_page_prot);
++	pte = pte_mkyoung(pte);
+ 	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
+ 		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
+ 		vmf->flags &= ~FAULT_FLAG_WRITE;
+@@ -3185,6 +3186,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	__SetPageUptodate(page);
+ 
+ 	entry = mk_pte(page, vma->vm_page_prot);
++	entry = pte_mkyoung(entry);
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry = pte_mkwrite(pte_mkdirty(entry));
+ 
+@@ -3453,6 +3455,7 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, struct mem_cgroup *memcg,
+ 
+ 	flush_icache_page(vma, page);
+ 	entry = mk_pte(page, vma->vm_page_prot);
++	entry = pte_mkyoung(entry);
+ 	if (write)
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 	/* copy-on-write page */
 -- 
 2.18.0
