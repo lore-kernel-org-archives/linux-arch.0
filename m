@@ -1,84 +1,216 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 8/8] kconfig: remove CONFIG_MCA leftovers
-Date: Tue, 16 Oct 2018 14:20:23 +0900
-Message-ID: <CAK7LNAQwyWUq_ohVMe9QLLbyHHQdjkrkM9DPd3pgYLz8UhG6rA@mail.gmail.com>
-References: <20181013151016.31674-1-hch@lst.de> <20181013151016.31674-9-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V9 21/21] csky: support dword access for get_user_size()
+Date: Tue, 16 Oct 2018 13:48:19 +0800
+Message-ID: <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181013151016.31674-9-hch@lst.de>
+In-Reply-To: <cover.1539655731.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, hch@infradead.org, marc.zyngier@arm.com, mark.rutland@arm.com, peterz@infradead.org, robh@kernel.org, tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Oct 14, 2018 at 12:11 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
+Support dword access for get_user_size and redesign put_user_size with
+the same style of get_user_size. It's Ok to use xxx_user_asm_common for
+all size of variable with ldb, ldh, ldw, ld.d
 
+ld.d rx, (addr, 0) could "rx <= addr" "and r(x+1) <= addr+4" and this also
+follow abiv2 gcc ABI for dword access.
 
-Can you use "powerpc:" or something
-for the subject line?
+abiv1 couldn't support __get_user_dword now.
 
-I'd like to see "kconfig:" only for patches
-that touch the scripts/kconfig/ directory.
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/csky/include/asm/uaccess.h | 140 ++++++++++++++++------------------------
+ 1 file changed, 56 insertions(+), 84 deletions(-)
 
-
-
-
->  arch/powerpc/Kconfig | 4 ----
->  drivers/scsi/Kconfig | 6 +++---
->  2 files changed, 3 insertions(+), 7 deletions(-)
->
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index f0ea460653cd..8b9edf7caf96 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -944,10 +944,6 @@ config FSL_GTM
->         help
->           Freescale General-purpose Timers support
->
-> -# Yes MCA RS/6000s exist but Linux-PPC does not currently support any
-> -config MCA
-> -       bool
-> -
->  config PCI_DOMAINS
->         def_bool PCI
->
-> diff --git a/drivers/scsi/Kconfig b/drivers/scsi/Kconfig
-> index 7c097006c54d..d3734c54aec9 100644
-> --- a/drivers/scsi/Kconfig
-> +++ b/drivers/scsi/Kconfig
-> @@ -535,7 +535,7 @@ config SCSI_HPTIOP
->
->  config SCSI_BUSLOGIC
->         tristate "BusLogic SCSI support"
-> -       depends on (PCI || ISA || MCA) && SCSI && ISA_DMA_API && VIRT_TO_BUS
-> +       depends on (PCI || ISA) && SCSI && ISA_DMA_API && VIRT_TO_BUS
->         ---help---
->           This is support for BusLogic MultiMaster and FlashPoint SCSI Host
->           Adapters. Consult the SCSI-HOWTO, available from
-> @@ -1142,12 +1142,12 @@ config SCSI_LPFC_DEBUG_FS
->
->  config SCSI_SIM710
->         tristate "Simple 53c710 SCSI support (Compaq, NCR machines)"
-> -       depends on (EISA || MCA) && SCSI
-> +       depends on EISA && SCSI
->         select SCSI_SPI_ATTRS
->         ---help---
->           This driver is for NCR53c710 based SCSI host adapters.
->
-> -         It currently supports Compaq EISA cards and NCR MCA cards
-> +         It currently supports Compaq EISA cards.
->
->  config SCSI_DC395x
->         tristate "Tekram DC395(U/UW/F) and DC315(U) SCSI support"
-> --
-> 2.19.1
->
-
-
+diff --git a/arch/csky/include/asm/uaccess.h b/arch/csky/include/asm/uaccess.h
+index acaf0e210..80233e4 100644
+--- a/arch/csky/include/asm/uaccess.h
++++ b/arch/csky/include/asm/uaccess.h
+@@ -96,90 +96,32 @@ extern int __put_user_bad(void);
+ 	__pu_err;							\
+ })
+ 
+-#define __put_user_size(x, ptr, size, retval)		\
+-do {							\
+-	retval = 0;					\
+-	switch (size) {                                 \
+-	case 1:						\
+-		__put_user_asm_b(x, ptr, retval);	\
+-		break;					\
+-	case 2:						\
+-		__put_user_asm_h(x, ptr, retval);	\
+-		break;					\
+-	case 4:						\
+-		__put_user_asm_w(x, ptr, retval);	\
+-		break;					\
+-	case 8:						\
+-		__put_user_asm_64(x, ptr, retval);	\
+-		break;					\
+-	default:					\
+-		__put_user_bad();			\
+-	}	                                        \
+-} while (0)
+-
+-/*
+- * We don't tell gcc that we are accessing memory, but this is OK
+- * because we do not write to any memory gcc knows about, so there
+- * are no aliasing issues.
+- *
+- * Note that PC at a fault is the address *after* the faulting
+- * instruction.
+- */
+-#define __put_user_asm_b(x, ptr, err)			\
+-do {							\
+-	int errcode;					\
+-	asm volatile(					\
+-	"1:     stb   %1, (%2,0)	\n"		\
+-	"       br    3f		\n"		\
+-	"2:     mov   %0, %3		\n"		\
+-	"       br    3f		\n"		\
+-	".section __ex_table, \"a\"	\n"		\
+-	".align   2			\n"		\
+-	".long    1b,2b			\n"		\
+-	".previous			\n"		\
+-	"3:				\n"		\
+-	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
+-	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
+-	: "memory");					\
+-} while (0)
+-
+-#define __put_user_asm_h(x, ptr, err)			\
+-do {							\
+-	int errcode;					\
+-	asm volatile(					\
+-	"1:     sth   %1, (%2,0)	\n"		\
+-	"       br    3f		\n"		\
+-	"2:     mov   %0, %3		\n"		\
+-	"       br    3f		\n"		\
+-	".section __ex_table, \"a\"	\n"		\
+-	".align   2			\n"		\
+-	".long    1b,2b			\n"		\
+-	".previous			\n"		\
+-	"3:				\n"		\
+-	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
+-	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
+-	: "memory");					\
+-} while (0)
+-
+-#define __put_user_asm_w(x, ptr, err)			\
+-do {							\
+-	int errcode;					\
+-	asm volatile(					\
+-	"1:     stw   %1, (%2,0)	\n"		\
+-	"       br    3f		\n"		\
+-	"2:     mov   %0, %3		\n"		\
+-	"       br    3f		\n"		\
+-	".section __ex_table,\"a\"	\n"		\
+-	".align   2			\n"		\
+-	".long    1b, 2b		\n"		\
+-	".previous			\n"		\
+-	"3:				\n"		\
+-	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
+-	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
+-	: "memory");					\
++#define __put_user_size(x, ptr, size, retval)			\
++do {								\
++	retval = 0;						\
++	switch (size) {						\
++	case 1:							\
++		__put_user_asm_common(x, ptr, "stb", retval);	\
++		break;						\
++	case 2:							\
++		__put_user_asm_common(x, ptr, "sth", retval);	\
++		break;						\
++	case 4:							\
++		__put_user_asm_common(x, ptr, "stw", retval);	\
++		break;						\
++	case 8:							\
++		__put_user_asm_dword(x, ptr, retval);		\
++		break;						\
++	default:						\
++		__put_user_bad();				\
++	}							\
+ } while (0)
+ 
+-#define __put_user_asm_64(x, ptr, err)				\
++#if defined(__CSKYABIV2__)
++#define __put_user_asm_dword(x, ptr, err)			\
++	__put_user_asm_common(x, ptr, "st.d", err)
++#else
++#define __put_user_asm_dword(x, ptr, err)			\
+ do {								\
+ 	int tmp;						\
+ 	int errcode;						\
+@@ -205,6 +147,25 @@ do {								\
+ 	: "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)	\
+ 	: "memory");						\
+ } while (0)
++#endif
++
++#define __put_user_asm_common(x, ptr, ins, err)			\
++do {								\
++	int errcode;						\
++	asm volatile(						\
++	"1:   " ins "	%1, (%2,0)	\n"			\
++	"       br	3f		\n"			\
++	"2:     mov	%0, %3		\n"			\
++	"       br	3f		\n"			\
++	".section __ex_table, \"a\"	\n"			\
++	".align   2			\n"			\
++	".long    1b,2b			\n"			\
++	".previous			\n"			\
++	"3:				\n"			\
++	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)		\
++	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)		\
++	: "memory");						\
++} while (0)
+ 
+ #define __get_user_nocheck(x, ptr, size)			\
+ ({								\
+@@ -222,6 +183,7 @@ do {								\
+ 	__gu_err;						\
+ })
+ 
++extern int __get_user_bad(void);
+ #define __get_user_size(x, ptr, size, retval)			\
+ do {								\
+ 	switch (size) {						\
+@@ -234,12 +196,24 @@ do {								\
+ 	case 4:							\
+ 		__get_user_asm_common((x), ptr, "ldw", retval);	\
+ 		break;						\
++	case 8:							\
++		__get_user_asm_common((x), ptr, "ld.d", retval);\
++		break;						\
+ 	default:						\
+ 		x = 0;						\
+ 		(retval) = __get_user_bad();			\
+ 	}							\
+ } while (0)
+ 
++#if defined(__CSKYABIV2__)
++#define __get_user_asm_dword(x, ptr, err)			\
++	__get_user_asm_common(x, ptr, "ld.d", err)
++#else
++/* fixme: abiv1 not implement get_user_dword */
++#define __get_user_asm_dword(x, ptr, err)			\
++	__get_user_bad()
++#endif
++
+ #define __get_user_asm_common(x, ptr, ins, err)			\
+ do {								\
+ 	int errcode;						\
+@@ -260,8 +234,6 @@ do {								\
+ 	: "memory");						\
+ } while (0)
+ 
+-extern int __get_user_bad(void);
+-
+ #define __copy_user(to, from, n)			\
+ do {							\
+ 	int w0, w1, w2, w3;				\
 -- 
-Best Regards
-Masahiro Yamada
+2.7.4
