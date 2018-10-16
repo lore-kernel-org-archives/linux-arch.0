@@ -1,7 +1,7 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 2/5] mm/cow: don't bother write protecting already write-protected huge pages
-Date: Tue, 16 Oct 2018 23:13:40 +1000
-Message-ID: <20181016131343.20556-3-npiggin@gmail.com>
+Subject: [PATCH v2 3/5] mm/cow: optimise pte accessed bit handling in fork
+Date: Tue, 16 Oct 2018 23:13:41 +1000
+Message-ID: <20181016131343.20556-4-npiggin@gmail.com>
 References: <20181016131343.20556-1-npiggin@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20181016131343.20556-1-npiggin@gmail.com>
@@ -10,59 +10,92 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Ley Foon Tan <ley.foon.tan@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This is the HugePage / THP equivalent for 1b2de5d039c8 ("mm/cow: don't
-bother write protecting already write-protected pages").
+fork clears dirty/accessed bits from new ptes in the child. This logic
+has existed since mapped page reclaim was done by scanning ptes when
+it may have been quite important. Today with physical based pte
+scanning, there is less reason to clear these bits, so this patch
+avoids clearing the accessed bit in the child.
+
+Any accessed bit is treated similarly to many, with the difference
+today with > 1 referenced bit causing the page to be activated, while
+1 bit causes it to be kept. This patch causes pages shared by fork(2)
+to be more readily activated, but this heuristic is very fuzzy anyway
+-- a page can be accessed by multiple threads via a single pte and be
+just as important as one that is accessed via multiple ptes, for
+example. In the end I don't believe fork(2) is a significant driver of
+page reclaim behaviour that this should matter too much.
+
+This and the following change eliminate a major source of faults that
+powerpc/radix requires to set dirty/accessed bits in ptes, speeding
+up a fork/exit microbenchmark by about 5% on POWER9 (16600 -> 17500
+fork/execs per second).
+
+Skylake appears to have a micro-fault overhead too -- a test which
+allocates 4GB anonymous memory, reads each page, then forks, and times
+the child reading a byte from each page. The first pass over the pages
+takes about 1000 cycles per page, the second pass takes about 27
+cycles (TLB miss). With no additional minor faults measured due to
+either child pass, and the page array well exceeding TLB capacity, the
+large cost must be caused by micro faults caused by setting accessed
+bit.
 
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- mm/huge_memory.c | 14 ++++++++++----
- mm/hugetlb.c     |  2 +-
- 2 files changed, 11 insertions(+), 5 deletions(-)
+ mm/huge_memory.c | 2 --
+ mm/memory.c      | 1 -
+ mm/vmscan.c      | 8 ++++++++
+ 3 files changed, 8 insertions(+), 3 deletions(-)
 
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 58269f8ba7c4..0fb0e3025f98 100644
+index 0fb0e3025f98..1f43265204d4 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -973,8 +973,11 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 	mm_inc_nr_ptes(dst_mm);
- 	pgtable_trans_huge_deposit(dst_mm, dst_pmd, pgtable);
- 
--	pmdp_set_wrprotect(src_mm, addr, src_pmd);
--	pmd = pmd_mkold(pmd_wrprotect(pmd));
-+	if (pmd_write(pmd)) {
-+		pmdp_set_wrprotect(src_mm, addr, src_pmd);
-+		pmd = pmd_wrprotect(pmd);
-+	}
-+	pmd = pmd_mkold(pmd);
+@@ -977,7 +977,6 @@ int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 		pmdp_set_wrprotect(src_mm, addr, src_pmd);
+ 		pmd = pmd_wrprotect(pmd);
+ 	}
+-	pmd = pmd_mkold(pmd);
  	set_pmd_at(dst_mm, addr, dst_pmd, pmd);
  
  	ret = 0;
-@@ -1064,8 +1067,11 @@ int copy_huge_pud(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 		/* No huge zero pud yet */
+@@ -1071,7 +1070,6 @@ int copy_huge_pud(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 		pudp_set_wrprotect(src_mm, addr, src_pud);
+ 		pud = pud_wrprotect(pud);
  	}
- 
--	pudp_set_wrprotect(src_mm, addr, src_pud);
--	pud = pud_mkold(pud_wrprotect(pud));
-+	if (pud_write(pud)) {
-+		pudp_set_wrprotect(src_mm, addr, src_pud);
-+		pud = pud_wrprotect(pud);
-+	}
-+	pud = pud_mkold(pud);
+-	pud = pud_mkold(pud);
  	set_pud_at(dst_mm, addr, dst_pud, pud);
  
  	ret = 0;
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 5c390f5a5207..54a4dcb6ee21 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -3287,7 +3287,7 @@ int copy_hugetlb_page_range(struct mm_struct *dst, struct mm_struct *src,
- 			}
- 			set_huge_swap_pte_at(dst, addr, dst_pte, entry, sz);
- 		} else {
--			if (cow) {
-+			if (cow && huge_pte_write(entry)) {
- 				/*
- 				 * No need to notify as we are downgrading page
- 				 * table protection not changing it to point
+diff --git a/mm/memory.c b/mm/memory.c
+index c467102a5cbc..0387ee1e3582 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1033,7 +1033,6 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 	 */
+ 	if (vm_flags & VM_SHARED)
+ 		pte = pte_mkclean(pte);
+-	pte = pte_mkold(pte);
+ 
+ 	page = vm_normal_page(vma, addr, pte);
+ 	if (page) {
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index c5ef7240cbcb..e72d5b3336a0 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -1031,6 +1031,14 @@ static enum page_references page_check_references(struct page *page,
+ 		 * to look twice if a mapped file page is used more
+ 		 * than once.
+ 		 *
++		 * fork() will set referenced bits in child ptes despite
++		 * not having been accessed, to avoid micro-faults of
++		 * setting accessed bits. This heuristic is not perfectly
++		 * accurate in other ways -- multiple map/unmap in the
++		 * same time window would be treated as multiple references
++		 * despite same number of actual memory accesses made by
++		 * the program.
++		 *
+ 		 * Mark it and spare it for another trip around the
+ 		 * inactive list.  Another page table reference will
+ 		 * lead to its activation.
 -- 
 2.18.0
