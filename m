@@ -1,47 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f195.google.com ([209.85.214.195]:39147 "EHLO
-        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727959AbeJPOxe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 10:53:34 -0400
-Received: by mail-pl1-f195.google.com with SMTP id e67-v6so1550634plb.6
-        for <linux-arch@vger.kernel.org>; Tue, 16 Oct 2018 00:04:34 -0700 (PDT)
-From: Firoz Khan <firoz.khan@linaro.org>
-Subject: [PATCH v5 5/5] parisc: syscalls: ignore nfsservctl for other architectures
-Date: Tue, 16 Oct 2018 12:33:38 +0530
-Message-ID: <1539673418-7279-6-git-send-email-firoz.khan@linaro.org>
-In-Reply-To: <1539673418-7279-1-git-send-email-firoz.khan@linaro.org>
-References: <1539673418-7279-1-git-send-email-firoz.khan@linaro.org>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:32962 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726760AbeJPVEX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2018 17:04:23 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v2 0/5] mm: dirty/accessed pte optimisations
+Date: Tue, 16 Oct 2018 23:13:38 +1000
+Message-ID: <20181016131343.20556-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
-Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
-Message-ID: <20181016070338.LNFWS8wdEjW9MIthB03oAEwrmljff5FzJUfQzIQ_DCM@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Ley Foon Tan <ley.foon.tan@intel.com>
+Message-ID: <20181016131338.E9o9FUED1PBouny87SecdNvQBEZetXeiVA0dNFl_Oo8@z>
 
-This adds an exception to the syscall table checking script.
+Since v1 I fixed the hang in nios2, split the fork patch into two
+as Linus asked, and added hugetlb code for the "don't bother write
+protecting already writeprotected" patch.
 
-nfsservctl entry is only provided on x86, and there is no
-reason to add it elsewhere. However, including it on the
-syscall table caused a warning for most configurations on
-non-x86.
+Please consider this for more cooking in -mm.
 
-<stdin>:696:2: warning: #warning syscall nfsservctl not implemented [-Wcpp]
+Thanks,
+Nick
 
-Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
----
- scripts/checksyscalls.sh | 1 +
- 1 file changed, 1 insertion(+)
+Nicholas Piggin (5):
+  nios2: update_mmu_cache clear the old entry from the TLB
+  mm/cow: don't bother write protecting already write-protected huge
+    pages
+  mm/cow: optimise pte accessed bit handling in fork
+  mm/cow: optimise pte dirty bit handling in fork
+  mm: optimise pte dirty/accessed bit setting by demand based pte
+    insertion
 
-diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
-index ee3dfb5..cf93100 100755
---- a/scripts/checksyscalls.sh
-+++ b/scripts/checksyscalls.sh
-@@ -150,6 +150,7 @@ cat << EOF
- #define __IGNORE_uselib
- #define __IGNORE__sysctl
- #define __IGNORE_arch_prctl
-+#define __IGNORE_nfsservctl
- 
- /* ... including the "new" 32-bit uid syscalls */
- #define __IGNORE_lchown32
+ arch/nios2/mm/cacheflush.c |  2 ++
+ mm/huge_memory.c           | 24 ++++++++++++++++--------
+ mm/hugetlb.c               |  2 +-
+ mm/memory.c                | 19 +++++++++++--------
+ mm/vmscan.c                |  8 ++++++++
+ 5 files changed, 38 insertions(+), 17 deletions(-)
+
 -- 
-1.9.1
+2.18.0
