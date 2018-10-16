@@ -1,216 +1,75 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH V9 21/21] csky: support dword access for get_user_size()
-Date: Tue, 16 Oct 2018 13:48:19 +0800
-Message-ID: <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
-References: <cover.1539655731.git.ren_guo@c-sky.com>
+From: Firoz Khan <firoz.khan@linaro.org>
+Subject: [PATCH v5 0/5] parisc: system call table generation support
+Date: Tue, 16 Oct 2018 12:33:33 +0530
+Message-ID: <1539673418-7279-1-git-send-email-firoz.khan@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1539655731.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, hch@infradead.org, marc.zyngier@arm.com, mark.rutland@arm.com, peterz@infradead.org, robh@kernel.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
+To: linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org, firoz.khan@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Support dword access for get_user_size and redesign put_user_size with
-the same style of get_user_size. It's Ok to use xxx_user_asm_common for
-all size of variable with ldb, ldh, ldw, ld.d
+The purpose of this patch series is, we can easily add/modify/delete
+system call table support by changing entry in syscall.tbl file 
+instead of manually changing many files. The other goal is to unify 
+the system call table generation support implementation across all 
+the architectures. 
 
-ld.d rx, (addr, 0) could "rx <= addr" "and r(x+1) <= addr+4" and this also
-follow abiv2 gcc ABI for dword access.
+The system call tables are in different format in all architecture. It
+will be difficult to manually add, modify or delete the system calls
+in the respective files manually. To make it easy by keeping a script 
+and which'll generate uapi header file and syscall table file.
 
-abiv1 couldn't support __get_user_dword now.
+syscall.tbl contains the list of available system calls along with 
+system call number and corresponding entry point. Add a new system 
+call in this architecture will be possible by adding new entry in 
+the syscall.tbl file.
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/csky/include/asm/uaccess.h | 140 ++++++++++++++++------------------------
- 1 file changed, 56 insertions(+), 84 deletions(-)
+Adding a new table entry consisting of:
+        - System call number.
+        - ABI.
+        - System call name.
+        - Entry point name.
+        - Compat entry name, if required.
 
-diff --git a/arch/csky/include/asm/uaccess.h b/arch/csky/include/asm/uaccess.h
-index acaf0e210..80233e4 100644
---- a/arch/csky/include/asm/uaccess.h
-+++ b/arch/csky/include/asm/uaccess.h
-@@ -96,90 +96,32 @@ extern int __put_user_bad(void);
- 	__pu_err;							\
- })
- 
--#define __put_user_size(x, ptr, size, retval)		\
--do {							\
--	retval = 0;					\
--	switch (size) {                                 \
--	case 1:						\
--		__put_user_asm_b(x, ptr, retval);	\
--		break;					\
--	case 2:						\
--		__put_user_asm_h(x, ptr, retval);	\
--		break;					\
--	case 4:						\
--		__put_user_asm_w(x, ptr, retval);	\
--		break;					\
--	case 8:						\
--		__put_user_asm_64(x, ptr, retval);	\
--		break;					\
--	default:					\
--		__put_user_bad();			\
--	}	                                        \
--} while (0)
--
--/*
-- * We don't tell gcc that we are accessing memory, but this is OK
-- * because we do not write to any memory gcc knows about, so there
-- * are no aliasing issues.
-- *
-- * Note that PC at a fault is the address *after* the faulting
-- * instruction.
-- */
--#define __put_user_asm_b(x, ptr, err)			\
--do {							\
--	int errcode;					\
--	asm volatile(					\
--	"1:     stb   %1, (%2,0)	\n"		\
--	"       br    3f		\n"		\
--	"2:     mov   %0, %3		\n"		\
--	"       br    3f		\n"		\
--	".section __ex_table, \"a\"	\n"		\
--	".align   2			\n"		\
--	".long    1b,2b			\n"		\
--	".previous			\n"		\
--	"3:				\n"		\
--	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
--	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
--	: "memory");					\
--} while (0)
--
--#define __put_user_asm_h(x, ptr, err)			\
--do {							\
--	int errcode;					\
--	asm volatile(					\
--	"1:     sth   %1, (%2,0)	\n"		\
--	"       br    3f		\n"		\
--	"2:     mov   %0, %3		\n"		\
--	"       br    3f		\n"		\
--	".section __ex_table, \"a\"	\n"		\
--	".align   2			\n"		\
--	".long    1b,2b			\n"		\
--	".previous			\n"		\
--	"3:				\n"		\
--	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
--	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
--	: "memory");					\
--} while (0)
--
--#define __put_user_asm_w(x, ptr, err)			\
--do {							\
--	int errcode;					\
--	asm volatile(					\
--	"1:     stw   %1, (%2,0)	\n"		\
--	"       br    3f		\n"		\
--	"2:     mov   %0, %3		\n"		\
--	"       br    3f		\n"		\
--	".section __ex_table,\"a\"	\n"		\
--	".align   2			\n"		\
--	".long    1b, 2b		\n"		\
--	".previous			\n"		\
--	"3:				\n"		\
--	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)	\
--	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)	\
--	: "memory");					\
-+#define __put_user_size(x, ptr, size, retval)			\
-+do {								\
-+	retval = 0;						\
-+	switch (size) {						\
-+	case 1:							\
-+		__put_user_asm_common(x, ptr, "stb", retval);	\
-+		break;						\
-+	case 2:							\
-+		__put_user_asm_common(x, ptr, "sth", retval);	\
-+		break;						\
-+	case 4:							\
-+		__put_user_asm_common(x, ptr, "stw", retval);	\
-+		break;						\
-+	case 8:							\
-+		__put_user_asm_dword(x, ptr, retval);		\
-+		break;						\
-+	default:						\
-+		__put_user_bad();				\
-+	}							\
- } while (0)
- 
--#define __put_user_asm_64(x, ptr, err)				\
-+#if defined(__CSKYABIV2__)
-+#define __put_user_asm_dword(x, ptr, err)			\
-+	__put_user_asm_common(x, ptr, "st.d", err)
-+#else
-+#define __put_user_asm_dword(x, ptr, err)			\
- do {								\
- 	int tmp;						\
- 	int errcode;						\
-@@ -205,6 +147,25 @@ do {								\
- 	: "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)	\
- 	: "memory");						\
- } while (0)
-+#endif
-+
-+#define __put_user_asm_common(x, ptr, ins, err)			\
-+do {								\
-+	int errcode;						\
-+	asm volatile(						\
-+	"1:   " ins "	%1, (%2,0)	\n"			\
-+	"       br	3f		\n"			\
-+	"2:     mov	%0, %3		\n"			\
-+	"       br	3f		\n"			\
-+	".section __ex_table, \"a\"	\n"			\
-+	".align   2			\n"			\
-+	".long    1b,2b			\n"			\
-+	".previous			\n"			\
-+	"3:				\n"			\
-+	: "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)		\
-+	: "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)		\
-+	: "memory");						\
-+} while (0)
- 
- #define __get_user_nocheck(x, ptr, size)			\
- ({								\
-@@ -222,6 +183,7 @@ do {								\
- 	__gu_err;						\
- })
- 
-+extern int __get_user_bad(void);
- #define __get_user_size(x, ptr, size, retval)			\
- do {								\
- 	switch (size) {						\
-@@ -234,12 +196,24 @@ do {								\
- 	case 4:							\
- 		__get_user_asm_common((x), ptr, "ldw", retval);	\
- 		break;						\
-+	case 8:							\
-+		__get_user_asm_common((x), ptr, "ld.d", retval);\
-+		break;						\
- 	default:						\
- 		x = 0;						\
- 		(retval) = __get_user_bad();			\
- 	}							\
- } while (0)
- 
-+#if defined(__CSKYABIV2__)
-+#define __get_user_asm_dword(x, ptr, err)			\
-+	__get_user_asm_common(x, ptr, "ld.d", err)
-+#else
-+/* fixme: abiv1 not implement get_user_dword */
-+#define __get_user_asm_dword(x, ptr, err)			\
-+	__get_user_bad()
-+#endif
-+
- #define __get_user_asm_common(x, ptr, ins, err)			\
- do {								\
- 	int errcode;						\
-@@ -260,8 +234,6 @@ do {								\
- 	: "memory");						\
- } while (0)
- 
--extern int __get_user_bad(void);
--
- #define __copy_user(to, from, n)			\
- do {							\
- 	int w0, w1, w2, w3;				\
+ARM, s390 and x86 architecuture does exist the similar support. I 
+leverage their implementation to come up with a generic solution.
+
+I have done the same support for work for alpha, microblaze, sparc,
+m68k, mips, powerpc, sh, sparc, and xtensa. But I started sending 
+the patch for one architecuture for review. Below mentioned git
+repository contains more details.
+Git repo:- https://github.com/frzkhn/system_call_table_generator/
+
+Finally, this is the ground work for solving the Y2038 issue. We 
+need to add two dozen of system calls to solve Y2038 issue. So this
+patch series will help to add new system calls easily by adding new
+entry in the syscall.tbl.
+
+Firoz Khan (5):
+  parisc: move __IGNORE* entries to non uapi header
+  parisc: add __NR_syscalls along with __NR_Linux_syscalls
+  parisc: add system call table generation support
+  parisc: uapi header and system call table file generation
+  parisc: syscalls: ignore nfsservctl for other architectures
+
+ arch/parisc/Makefile                      |   4 +
+ arch/parisc/include/asm/Kbuild            |   3 +
+ arch/parisc/include/asm/unistd.h          |   8 +
+ arch/parisc/include/uapi/asm/Kbuild       |   2 +
+ arch/parisc/include/uapi/asm/unistd.h     | 382 +------------------------
+ arch/parisc/kernel/syscall.S              |  10 +-
+ arch/parisc/kernel/syscall_table.S        | 459 ------------------------------
+ arch/parisc/kernel/syscalls/Makefile      |  57 ++++
+ arch/parisc/kernel/syscalls/syscall.tbl   | 369 ++++++++++++++++++++++++
+ arch/parisc/kernel/syscalls/syscallhdr.sh |  34 +++
+ arch/parisc/kernel/syscalls/syscalltbl.sh |  36 +++
+ scripts/checksyscalls.sh                  |   1 +
+ 12 files changed, 529 insertions(+), 836 deletions(-)
+ delete mode 100644 arch/parisc/kernel/syscall_table.S
+ create mode 100644 arch/parisc/kernel/syscalls/Makefile
+ create mode 100644 arch/parisc/kernel/syscalls/syscall.tbl
+ create mode 100644 arch/parisc/kernel/syscalls/syscallhdr.sh
+ create mode 100644 arch/parisc/kernel/syscalls/syscalltbl.sh
+
 -- 
-2.7.4
+1.9.1
