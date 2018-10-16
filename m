@@ -1,79 +1,92 @@
-From: Enke Chen <enkechen@cisco.com>
-Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
-Date: Mon, 15 Oct 2018 17:54:43 -0700
-Message-ID: <6211eeaa-ce07-a909-e4c2-172618ddfb95@cisco.com>
-References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
- <87va62lri4.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: [PATCH V9 02/21] csky: defconfig
+Date: Tue, 16 Oct 2018 10:58:21 +0800
+Message-ID: <9ae20a094ce79774f2a1c84468221ad73a38e90a.1539655731.git.ren_guo@c-sky.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87va62lri4.fsf@xmission.com>
-Content-Language: en-US
+In-Reply-To: <cover.1539655731.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1539655731.git.ren_guo@c-sky.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christian Brauner <christian@brauner.io>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Martin <Dave.Martin@arm.com>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, Kirill A. Shute
+To: akpm@linux-foundation.org, arnd@arndb.de, daniel.lezcano@linaro.org, davem@davemloft.net, gregkh@linuxfoundation.org, hch@infradead.org, marc.zyngier@arm.com, mark.rutland@arm.com, peterz@infradead.org, robh@kernel.org, tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, robh+dt@kernel.org, c-sky_gcc_upstream@c-sky.com, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Eric:
+This patch adds csky defconfig.
 
-On 10/15/18 4:28 PM, Eric W. Biederman wrote:
-> Enke Chen <enkechen@cisco.com> writes:
-> 
->> For simplicity and consistency, this patch provides an implementation
->> for signal-based fault notification prior to the coredump of a child
->> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
->> be used by an application to express its interest and to specify the
->> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
->> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
->>
->> Background:
->>
->> As the coredump of a process may take time, in certain time-sensitive
->> applications it is necessary for a parent process (e.g., a process
->> manager) to be notified of a child's imminent death before the coredump
->> so that the parent process can act sooner, such as re-spawning an
->> application process, or initiating a control-plane fail-over.
-> 
-> You talk about time senstive and then you talk about bash scripts.
-> I don't think your definition of time-sensitive and my definition match.
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/csky/configs/defconfig | 61 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
+ create mode 100644 arch/csky/configs/defconfig
 
-It's certainly not my preference to have a process manager (or one for each
-application) written in bash scripts. But they do work, and are deployed.
-
-> 
-> With that said I think the best solution would be to figure out how to
-> allow the coredump to run in parallel with the usual exit signal, and
-> exit code reaping of the process> 
-> That would solve the problem for everyone, and would not introduce any
-> new complicated APIs.
-
-That would certainly help. But given the huge deployment of Linux, I don't
-think it would be feasible to change this fundamental behavior (signal post
-coredump).
-
-> 
-> Short of that having the prctl in the process that receives the signals
-> they you are doing is the right way to go.
-
-Thanks for for the encouragement.
-
-> 
-> You are however calling do_notify_parent_predump from the wrong
-> function, and frankly with the wrong locking.  There are multiple paths
-> to the do_coredump function so you really want this notification from
-> do_coredump.
-
-This makes two - Oleg also suggested doing it in do_coredump().
-I will look into it, perhaps also relocated proc_coredump_connector().
-
-> 
-> But I still think it would be better to solve the root cause problem and
-> change the coredump logic to be able to run in parallel with the normal
-> exit notification and zombie reaping logic.  Then the problem you are
-> trying to solve goes away and everyone's code gets simpler.
-> 
-> Eric
-> 
-
-Thanks.  -- Enke
+diff --git a/arch/csky/configs/defconfig b/arch/csky/configs/defconfig
+new file mode 100644
+index 0000000..7ef4289
+--- /dev/null
++++ b/arch/csky/configs/defconfig
+@@ -0,0 +1,61 @@
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_DEFAULT_HOSTNAME="csky"
++# CONFIG_SWAP is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_AUDIT=y
++CONFIG_NO_HZ_IDLE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_DEFAULT_DEADLINE=y
++CONFIG_CPU_CK807=y
++CONFIG_CPU_HAS_FPU=y
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=65536
++CONFIG_VT_HW_CONSOLE_BINDING=y
++CONFIG_SERIAL_NONSTANDARD=y
++CONFIG_SERIAL_8250=y
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_OF_PLATFORM=y
++CONFIG_TTY_PRINTK=y
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_CSKY_MPTIMER=y
++CONFIG_GX6605S_TIMER=y
++CONFIG_PM_DEVFREQ=y
++CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
++CONFIG_DEVFREQ_GOV_PERFORMANCE=y
++CONFIG_DEVFREQ_GOV_POWERSAVE=y
++CONFIG_DEVFREQ_GOV_USERSPACE=y
++CONFIG_GENERIC_PHY=y
++CONFIG_EXT4_FS=y
++CONFIG_FANOTIFY=y
++CONFIG_QUOTA=y
++CONFIG_FSCACHE=m
++CONFIG_FSCACHE_STATS=y
++CONFIG_CACHEFILES=m
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_FAT_DEFAULT_UTF8=y
++CONFIG_NTFS_FS=y
++CONFIG_PROC_KCORE=y
++CONFIG_PROC_CHILDREN=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_CRAMFS=y
++CONFIG_ROMFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_INFO=y
++CONFIG_DEBUG_FS=y
++CONFIG_MAGIC_SYSRQ=y
+-- 
+2.7.4
