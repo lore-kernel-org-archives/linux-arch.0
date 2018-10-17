@@ -1,30 +1,52 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 8/8] kconfig: remove CONFIG_MCA leftovers
-Date: Wed, 17 Oct 2018 10:17:06 +0200
-Message-ID: <20181017081706.GA24869@lst.de>
-References: <20181013151016.31674-1-hch@lst.de> <20181013151016.31674-9-hch@lst.de> <CAK7LNAQwyWUq_ohVMe9QLLbyHHQdjkrkM9DPd3pgYLz8UhG6rA@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: move bus (PCI, PCMCIA, EISA, rapdio) config to drivers/ v2
+Date: Wed, 17 Oct 2018 10:30:49 +0200
+Message-ID: <CAMuHMdWMtxxu8iivcnT=uWTMHsp=iSq_QzXqDWQut5OHwTU8Sg@mail.gmail.com>
+References: <20181017080201.10866-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK7LNAQwyWUq_ohVMe9QLLbyHHQdjkrkM9DPd3pgYLz8UhG6rA@mail.gmail.com>
+In-Reply-To: <20181017080201.10866-1-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Christoph Hellwig <hch@lst.de>, mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Matt Porter <mporter@kernel.crashing.org>, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, scsi <linux-scsi@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 16, 2018 at 02:20:23PM +0900, Masahiro Yamada wrote:
-> On Sun, Oct 14, 2018 at 12:11 AM Christoph Hellwig <hch@lst.de> wrote:
-> >
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > ---
-> 
-> 
-> Can you use "powerpc:" or something
-> for the subject line?
-> 
-> I'd like to see "kconfig:" only for patches
-> that touch the scripts/kconfig/ directory.
+Hi Christoph,
 
-Sorry, I missed this for v2.  Will fix it up for the next version
-or let you fix it up if there isn't one.
+On Wed, Oct 17, 2018 at 10:03 AM Christoph Hellwig <hch@lst.de> wrote:
+> currently every architecture that wants to provide on of the common
+> periphal busses needs to add some boilerplate code and include the
+> right Kconfig files.   This series instead just selects the presence
+> (when needed) and then handles everything in the bus-specific
+> Kconfig file under drivers/.
+>
+> Changes since v1:
+>  - rename all HAS_* Kconfig symbols to HAVE_*
+>  - drop the CONFIG_PCI_QSPAN option entirely
+>  - drop duplicate select from powerpc
+>  - restore missing selection of PCI_MSI for riscv
+>  - update x86 and riscv defconfigs to include PCI
+>  - actually inclue drivers/eisa/Kconfig
+>  - adjust some captilizations
+
+Thanks for the update!
+
+Please use "git format-patch -v<N> --cover" to prepare patch series
+for sending with git-send-email.
+
+  "-v<N>" to prefix all patches with version number <N>,
+  "--cover" to have a "[PATCH 0/<M>]" prefix in the cover letter.
+
+Thanks!
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
