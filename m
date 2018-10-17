@@ -1,152 +1,72 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v5 03/27] x86/fpu/xstate: Introduce XSAVES system states
-Date: Wed, 17 Oct 2018 12:41:37 +0200
-Message-ID: <20181017104137.GE22535@zn.tnic>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-4-yu-cheng.yu@intel.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v7 0/8] arm64: untag user pointers passed to the kernel
+Date: Wed, 17 Oct 2018 15:06:53 +0100
+Message-ID: <be684ce5-92fd-e970-b002-83452cf50abd@arm.com>
+References: <cover.1538485901.git.andreyknvl@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20181011151523.27101-4-yu-cheng.yu@intel.com>
+In-Reply-To: <cover.1538485901.git.andreyknvl@google.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pa
+To: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Chintan Pandya <cpandya@codeaurora.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Lee Smith <Lee.Smith@arm.com>, Kostya Serebryany <kcc@google.com>, Dmitry Vyukov <dvyukov@google.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Evgeniy Stepanov <eugenis@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 11, 2018 at 08:14:59AM -0700, Yu-cheng Yu wrote:
-> Control Flow Enforcement (CET) MSRs are XSAVES system states.
+Hi Andrey,
 
-That sentence needs massaging. MSRs are system states?!?!
-
-> To support CET, we introduce XSAVES system states first.
-
-Pls drop the "we" in all commit messages and convert the tone to
-impartial and passive.
-
-Also, this commit message needs to explain *why* you're doing this - it
-is too laconic.
-
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/fpu/internal.h |  3 +-
->  arch/x86/include/asm/fpu/xstate.h   |  4 +-
->  arch/x86/kernel/fpu/core.c          |  6 +-
->  arch/x86/kernel/fpu/init.c          | 10 ----
->  arch/x86/kernel/fpu/xstate.c        | 86 ++++++++++++++++++-----------
->  5 files changed, 62 insertions(+), 47 deletions(-)
+On 02/10/2018 14:12, Andrey Konovalov wrote:
+> arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+> tags into the top byte of each pointer. Userspace programs (such as
+> HWASan, a memory debugging tool [1]) might use this feature and pass
+> tagged user pointers to the kernel through syscalls or other interfaces.
 > 
-> diff --git a/arch/x86/include/asm/fpu/internal.h b/arch/x86/include/asm/fpu/internal.h
-> index 02c4296478c8..9a5db5a63f60 100644
-> --- a/arch/x86/include/asm/fpu/internal.h
-> +++ b/arch/x86/include/asm/fpu/internal.h
-> @@ -45,7 +45,6 @@ extern void fpu__init_cpu_xstate(void);
->  extern void fpu__init_system(struct cpuinfo_x86 *c);
->  extern void fpu__init_check_bugs(void);
->  extern void fpu__resume_cpu(void);
-> -extern u64 fpu__get_supported_xfeatures_mask(void);
->  
->  /*
->   * Debugging facility:
-> @@ -93,7 +92,7 @@ static inline void fpstate_init_xstate(struct xregs_state *xsave)
->  	 * XRSTORS requires these bits set in xcomp_bv, or it will
->  	 * trigger #GP:
->  	 */
-> -	xsave->header.xcomp_bv = XCOMP_BV_COMPACTED_FORMAT | xfeatures_mask_user;
-> +	xsave->header.xcomp_bv = XCOMP_BV_COMPACTED_FORMAT | xfeatures_mask_all;
->  }
->  
->  static inline void fpstate_init_fxstate(struct fxregs_state *fx)
-> diff --git a/arch/x86/include/asm/fpu/xstate.h b/arch/x86/include/asm/fpu/xstate.h
-> index 76f83d2ac10e..d8e2ec99f635 100644
-> --- a/arch/x86/include/asm/fpu/xstate.h
-> +++ b/arch/x86/include/asm/fpu/xstate.h
-> @@ -19,9 +19,6 @@
->  #define XSAVE_YMM_SIZE	    256
->  #define XSAVE_YMM_OFFSET    (XSAVE_HDR_SIZE + XSAVE_HDR_OFFSET)
->  
-> -/* Supervisor features */
-> -#define XFEATURE_MASK_SUPERVISOR (XFEATURE_MASK_PT)
-> -
->  /* All currently supported features */
->  #define SUPPORTED_XFEATURES_MASK (XFEATURE_MASK_FP | \
->  				  XFEATURE_MASK_SSE | \
-> @@ -40,6 +37,7 @@
->  #endif
->  
->  extern u64 xfeatures_mask_user;
-> +extern u64 xfeatures_mask_all;
-
-You have a bunch of places where you generate the system mask by doing
-~xfeatures_mask_user.
-
-Why not define
-
-	xfeatures_mask_system
-
-instead and generate the _all mask at the places you need it by doing
-
-	xfeatures_mask_user | xfeatures_mask_system
-
-?
-
-We are differentiating user and system states now so it is only logical
-to have that mirrored in the variables, right?
-
-You even do that in fpu__init_system_xstate().
-
+> Right now the kernel is already able to handle user faults with tagged
+> pointers, due to these patches:
+> 
+> 1. 81cddd65 ("arm64: traps: fix userspace cache maintenance emulation on a
+>              tagged pointer")
+> 2. 7dcd9dd8 ("arm64: hw_breakpoint: fix watchpoint matching for tagged
+> 	      pointers")
+> 3. 276e9327 ("arm64: entry: improve data abort handling of tagged
+> 	      pointers")
+> 
+> When passing tagged pointers to syscalls, there's a special case of such a
+> pointer being passed to one of the memory syscalls (mmap, mprotect, etc.).
+> These syscalls don't do memory accesses but rather deal with memory
+> ranges, hence an untagged pointer is better suited.
+> 
+> This patchset extends tagged pointer support to non-memory syscalls. This
+> is done by reusing the untagged_addr macro to untag user pointers when the
+> kernel performs pointer checking to find out whether the pointer comes
+> from userspace (most notably in access_ok).
+> 
+> The following testing approaches has been taken to find potential issues
+> with user pointer untagging:
+> 
+> 1. Static testing (with sparse [2] and separately with a custom static
+>    analyzer based on Clang) to track casts of __user pointers to integer
+>    types to find places where untagging needs to be done.
+> 
+> 2. Dynamic testing: adding BUG_ON(has_tag(addr)) to find_vma() and running
+>    a modified syzkaller version that passes tagged pointers to the kernel.
+> 
 ...
 
-> @@ -225,20 +230,19 @@ void fpu__init_cpu_xstate(void)
->  	 * set here.
->  	 */
->  
-> -	xfeatures_mask_user &= ~XFEATURE_MASK_SUPERVISOR;
-> -
->  	cr4_set_bits(X86_CR4_OSXSAVE);
->  	xsetbv(XCR_XFEATURE_ENABLED_MASK, xfeatures_mask_user);
+I have been thinking a bit lately on how to address the problem of user tagged pointers passed to the kernel through syscalls, and IMHO probably the best way we have to catch them all and make sure that the approach is maintainable in the long term is to introduce shims that tag/untag the pointers passed to the kernel.
 
-<---- newline here.
+In details, what I am proposing can live either in userspace (preferred solution so that we do not have to relax the ABI) or in kernel space and can be summarized as follows:
+ - A shim is specific to a syscall and is called by the libc when it needs to invoke the respective syscall.
+ - It is required only if the syscall accepts pointers.
+ - It saves the tags of a pointers passed to the syscall in memory (same approach if the we are passing a struct that contains pointers to the kernel, with the difference that all the tags of the pointers in the struct need to be saved singularly)
+ - Untags the pointers
+ - Invokes the syscall
+ - Retags the pointers with the tags stored in memory
+ - Returns
 
-> +	/*
-> +	 * MSR_IA32_XSS sets which XSAVES system states to be managed by
-
-Improve:
-
-"MSR_IA32_XSS controls which system (not user) states are going to be
-managed by XSAVES."
-
-> @@ -702,6 +703,7 @@ static int init_xstate_size(void)
->   */
->  static void fpu__init_disable_system_xstate(void)
->  {
-> +	xfeatures_mask_all = 0;
->  	xfeatures_mask_user = 0;
->  	cr4_clear_bits(X86_CR4_OSXSAVE);
->  	fpu__xstate_clear_all_cpu_caps();
-> @@ -717,6 +719,8 @@ void __init fpu__init_system_xstate(void)
->  	static int on_boot_cpu __initdata = 1;
->  	int err;
->  	int i;
-> +	u64 cpu_user_xfeatures_mask;
-> +	u64 cpu_system_xfeatures_mask;
-
-Please sort function local variables declaration in a reverse christmas
-tree order:
-
-	<type> longest_variable_name;
-	<type> shorter_var_name;
-	<type> even_shorter;
-	<type> i;
-
->  
->  	WARN_ON_FPU(!on_boot_cpu);
->  	on_boot_cpu = 0;
-
-...
+What do you think?
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Regards,
+Vincenzo
