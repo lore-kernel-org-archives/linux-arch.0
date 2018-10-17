@@ -1,49 +1,28 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [RESEND PATCH v4 3/8] gpio: 104-dio-48e: Utilize
- for_each_set_clump macro
-Date: Wed, 17 Oct 2018 10:54:02 +0900
-Message-ID: <20181017015402.GA3307@icarus>
-References: <cover.1538441919.git.vilhelm.gray@gmail.com>
- <5906381114b14d5b0359510a1d23accbd239eaa5.1538441919.git.vilhelm.gray@gmail.com>
- <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
- <20181014041933.GA7335@icarus>
- <afbe5c62-f003-ca92-d185-8e6e9340c75d@rasmusvillemoes.dk>
+From: Christoph Hellwig <hch@lst.de>
+Subject: move bus (PCI, PCMCIA, EISA, rapdio) config to drivers/ v2
+Date: Wed, 17 Oct 2018 10:01:53 +0200
+Message-ID: <20181017080201.10866-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <afbe5c62-f003-ca92-d185-8e6e9340c75d@rasmusvillemoes.dk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild@vger.kernel.org, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 15, 2018 at 01:59:33PM +0200, Rasmus Villemoes wrote:
-> On 2018-10-14 06:19, William Breathitt Gray wrote:
-> 
-> > a bit value of 0 in the
-> > bits array does not necessarily mean the input was not requested, but
-> > may instead mean that the value at the input is 0;
-> 
-> sure enough, but...
-> 
-> > therefore, the caller
-> > must keep track of the requested inputs rather than try to deduce them
-> > from the values in the bits array.
-> 
-> ...I don't agree that this logically follows. A caller might reasonably
-> expect not to find any bits set in positions other than those in mask. A
-> simple example would be caller that just tried to ask "are any of
-> _these_ inputs set"; it would be reasonable to implement that using
-> bitmap_empty() on the returned bitset, without first having to mask by
-> the mask he passed in.
-> 
-> Rasmus
+Hi all,
 
-I see your point. It would be good to keep the behavior consistent with
-what would be expected by the user -- and adding an additional AND
-operation at the end to mask away the unrequested bits should not really
-affect the performance to a discernible degree -- so I'll submit a
-patchset implementing the mask for these drivers some time this weekend.
+currently every architecture that wants to provide on of the common
+periphal busses needs to add some boilerplate code and include the
+right Kconfig files.   This series instead just selects the presence
+(when needed) and then handles everything in the bus-specific
+Kconfig file under drivers/.
 
-William Breathitt Gray
+Changes since v1:
+ - rename all HAS_* Kconfig symbols to HAVE_*
+ - drop the CONFIG_PCI_QSPAN option entirely
+ - drop duplicate select from powerpc
+ - restore missing selection of PCI_MSI for riscv
+ - update x86 and riscv defconfigs to include PCI
+ - actually inclue drivers/eisa/Kconfig
+ - adjust some captilizations
