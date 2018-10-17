@@ -1,42 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:44548 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727175AbeJQXkv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2018 19:40:51 -0400
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:39137 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727271AbeJQXna (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2018 19:43:30 -0400
 MIME-Version: 1.0
-References: <cover.1539655731.git.ren_guo@c-sky.com> <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
-In-Reply-To: <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com> <1963c845cf9b7aa31547cdfe1f82b1add1ad2504.1539655732.git.ren_guo@c-sky.com>
+In-Reply-To: <1963c845cf9b7aa31547cdfe1f82b1add1ad2504.1539655732.git.ren_guo@c-sky.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 17 Oct 2018 17:44:17 +0200
-Message-ID: <CAK8P3a1wfeWboHvU1o_kooMc2hML8iWcNrz=mp6tYT52iGwfjw@mail.gmail.com>
-Subject: Re: [PATCH V9 21/21] csky: support dword access for get_user_size()
+Date: Wed, 17 Oct 2018 17:46:56 +0200
+Message-ID: <CAK8P3a1hByh-k8mng8a22C1-tNU0yn1LNvoaCmHp4RpP_GUs4Q@mail.gmail.com>
+Subject: Re: [PATCH V9 15/21] csky: Debug and Ptrace GDB
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, David Miller <davem@davemloft.net>, gregkh <gregkh@linuxfoundation.org>, Christoph Hellwig <hch@infradead.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, c-sky_gcc_upstream@c-sky.com
-Message-ID: <20181017154417.N3XrlXCbIednVCqlLZOZTaBiqanKWYer6jPF0mtNZ_0@z>
+Message-ID: <20181017154656.dlHQLL701IA62pC2UVPvM-Nl3V3wy9CcPXYU0PjdiYs@z>
 
-On Tue, Oct 16, 2018 at 5:33 AM Guo Ren <ren_guo@c-sky.com> wrote:
+On Tue, Oct 16, 2018 at 5:06 AM Guo Ren <ren_guo@c-sky.com> wrote:
 >
-> Support dword access for get_user_size and redesign put_user_size with
-> the same style of get_user_size. It's Ok to use xxx_user_asm_common for
-> all size of variable with ldb, ldh, ldw, ld.d
+> This patch adds arch ptrace implementation, stack dump and bug.h.
 >
-> ld.d rx, (addr, 0) could "rx <= addr" "and r(x+1) <= addr+4" and this also
-> follow abiv2 gcc ABI for dword access.
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
 
-Are you sure this is correct for this?
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 
-static inline u32 get_64_to_32(__u64 __user *p)
-{
-      u32 ret;
-      get_user(ret, p);
-      return ret;
-}
+> diff --git a/arch/csky/include/asm/bug.h b/arch/csky/include/asm/bug.h
+> new file mode 100644
+> index 0000000..bd7b323
+> --- /dev/null
+> +++ b/arch/csky/include/asm/bug.h
+> @@ -0,0 +1,26 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+> +
+> +#ifndef __ASM_CSKY_BUG_H
+> +#define __ASM_CSKY_BUG_H
+> +
+> +#include <linux/compiler.h>
+> +#include <linux/const.h>
+> +#include <linux/types.h>
+> +
+> +#define BUG()                          \
+> +do {                                   \
+> +       asm volatile ("bkpt\n");        \
+> +       unreachable();                  \
+> +} while (0)
 
-If I read __get_user_asm_common() right, the ld.d would overwrite
-two registers, but the caller only expects one, so it clobbers one
-that might be in use.
-
-     Arnd
+Since you have a breakpoint instruction, a nice addition might
+be to use that for implementing WARN_ON as well, whenever you
+get around to doing that. It's certainly not required for the initial
+merge.
