@@ -1,54 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f194.google.com ([209.85.210.194]:45926 "EHLO
-        mail-pf1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726210AbeJQJrV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2018 05:47:21 -0400
-Date: Wed, 17 Oct 2018 10:54:02 +0900
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [RESEND PATCH v4 3/8] gpio: 104-dio-48e: Utilize
- for_each_set_clump macro
-Message-ID: <20181017015402.GA3307@icarus>
-References: <cover.1538441919.git.vilhelm.gray@gmail.com>
- <5906381114b14d5b0359510a1d23accbd239eaa5.1538441919.git.vilhelm.gray@gmail.com>
- <822be05b-092b-41c2-3c31-8981acd5cb9e@rasmusvillemoes.dk>
- <20181014041933.GA7335@icarus>
- <afbe5c62-f003-ca92-d185-8e6e9340c75d@rasmusvillemoes.dk>
+Received: from bombadil.infradead.org ([198.137.202.133]:50550 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726691AbeJQP4q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2018 11:56:46 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 2/8] powerpc: remove CONFIG_PCI_QSPAN
+Date: Wed, 17 Oct 2018 10:01:55 +0200
+Message-ID: <20181017080201.10866-3-hch@lst.de>
+In-Reply-To: <20181017080201.10866-1-hch@lst.de>
+References: <20181017080201.10866-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <afbe5c62-f003-ca92-d185-8e6e9340c75d@rasmusvillemoes.dk>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, andriy.shevchenko@linux.intel.com
-Message-ID: <20181017015402.G6D1GhGABfsjHAzcUpHqg8iEvJBF6dcdnOY17cnxizY@z>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kbuild@vger.kernel.org, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181017080155.tfgH5A46p6ooLFo5FfzfjjaaCvv212F7TXyhqo6w_P8@z>
 
-On Mon, Oct 15, 2018 at 01:59:33PM +0200, Rasmus Villemoes wrote:
-> On 2018-10-14 06:19, William Breathitt Gray wrote:
-> 
-> > a bit value of 0 in the
-> > bits array does not necessarily mean the input was not requested, but
-> > may instead mean that the value at the input is 0;
-> 
-> sure enough, but...
-> 
-> > therefore, the caller
-> > must keep track of the requested inputs rather than try to deduce them
-> > from the values in the bits array.
-> 
-> ...I don't agree that this logically follows. A caller might reasonably
-> expect not to find any bits set in positions other than those in mask. A
-> simple example would be caller that just tried to ask "are any of
-> _these_ inputs set"; it would be reasonable to implement that using
-> bitmap_empty() on the returned bitset, without first having to mask by
-> the mask he passed in.
-> 
-> Rasmus
+This option isn't actually used anywhere.
 
-I see your point. It would be good to keep the behavior consistent with
-what would be expected by the user -- and adding an additional AND
-operation at the end to mask away the unrequested bits should not really
-affect the performance to a discernible degree -- so I'll submit a
-patchset implementing the mask for these drivers some time this weekend.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/powerpc/Kconfig | 9 ---------
+ 1 file changed, 9 deletions(-)
 
-William Breathitt Gray
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index a80669209155..e8c8970248bc 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -955,7 +955,6 @@ config PCI
+ 	bool "PCI support" if PPC_PCI_CHOICE
+ 	default y if !40x && !CPM2 && !PPC_8xx && !PPC_83xx \
+ 		&& !PPC_85xx && !PPC_86xx && !GAMECUBE_COMMON
+-	default PCI_QSPAN if PPC_8xx
+ 	select GENERIC_PCI_IOMAP
+ 	help
+ 	  Find out whether your system includes a PCI bus. PCI is the name of
+@@ -969,14 +968,6 @@ config PCI_DOMAINS
+ config PCI_SYSCALL
+ 	def_bool PCI
+ 
+-config PCI_QSPAN
+-	bool "QSpan PCI"
+-	depends on PPC_8xx
+-	select PPC_I8259
+-	help
+-	  Say Y here if you have a system based on a Motorola 8xx-series
+-	  embedded processor with a QSPAN PCI interface, otherwise say N.
+-
+ config PCI_8260
+ 	bool
+ 	depends on PCI && 8260
+-- 
+2.19.1
