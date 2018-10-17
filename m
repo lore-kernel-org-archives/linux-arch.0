@@ -1,39 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:40058 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727048AbeJQXeK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2018 19:34:10 -0400
+Received: from mail-qk1-f194.google.com ([209.85.222.194]:44548 "EHLO
+        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727175AbeJQXkv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2018 19:40:51 -0400
 MIME-Version: 1.0
-References: <cover.1539655731.git.ren_guo@c-sky.com> <1c0d8cddcdf15e5f397b3e42b76461e97d6e34ad.1539655732.git.ren_guo@c-sky.com>
-In-Reply-To: <1c0d8cddcdf15e5f397b3e42b76461e97d6e34ad.1539655732.git.ren_guo@c-sky.com>
+References: <cover.1539655731.git.ren_guo@c-sky.com> <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
+In-Reply-To: <4bc11ff0cff5960892a464189605f9bc808383fc.1539655732.git.ren_guo@c-sky.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 17 Oct 2018 17:37:38 +0200
-Message-ID: <CAK8P3a363-ucdqEtrkUah9NPrFtQV6eH=4G3fcQtHMyMStME5w@mail.gmail.com>
-Subject: Re: [PATCH V9 14/21] csky: User access
+Date: Wed, 17 Oct 2018 17:44:17 +0200
+Message-ID: <CAK8P3a1wfeWboHvU1o_kooMc2hML8iWcNrz=mp6tYT52iGwfjw@mail.gmail.com>
+Subject: Re: [PATCH V9 21/21] csky: support dword access for get_user_size()
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, David Miller <davem@davemloft.net>, gregkh <gregkh@linuxfoundation.org>, Christoph Hellwig <hch@infradead.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, c-sky_gcc_upstream@c-sky.com
-Message-ID: <20181017153738.18A6HIgN42FdKPncOD6EnQKsQPhmYVTq0T_0ckkBjnc@z>
+Message-ID: <20181017154417.N3XrlXCbIednVCqlLZOZTaBiqanKWYer6jPF0mtNZ_0@z>
 
-On Tue, Oct 16, 2018 at 5:05 AM Guo Ren <ren_guo@c-sky.com> wrote:
+On Tue, Oct 16, 2018 at 5:33 AM Guo Ren <ren_guo@c-sky.com> wrote:
 >
-> The patch adds "user access from kernel" codes.
+> Support dword access for get_user_size and redesign put_user_size with
+> the same style of get_user_size. It's Ok to use xxx_user_asm_common for
+> all size of variable with ldb, ldh, ldw, ld.d
 >
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> ---
->  arch/csky/include/asm/uaccess.h | 416 ++++++++++++++++++++++++++++++++++++++++
->  arch/csky/lib/usercopy.c        | 262 +++++++++++++++++++++++++
->  2 files changed, 678 insertions(+)
->  create mode 100644 arch/csky/include/asm/uaccess.h
->  create mode 100644 arch/csky/lib/usercopy.c
+> ld.d rx, (addr, 0) could "rx <= addr" "and r(x+1) <= addr+4" and this also
+> follow abiv2 gcc ABI for dword access.
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+Are you sure this is correct for this?
 
-The 64-bit __put_user() is usually what everyone gets wrong, but
-your version seems fine. Also the access_ok() checks and
-the copy_to_user() result value all look correct.
+static inline u32 get_64_to_32(__u64 __user *p)
+{
+      u32 ret;
+      get_user(ret, p);
+      return ret;
+}
 
-        Arnd
+If I read __get_user_asm_common() right, the ld.d would overwrite
+two registers, but the caller only expects one, so it clobbers one
+that might be in use.
+
+     Arnd
