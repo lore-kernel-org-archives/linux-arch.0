@@ -1,33 +1,82 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v5 03/27] x86/fpu/xstate: Introduce XSAVES system states
-Date: Thu, 18 Oct 2018 11:33:44 -0700
-Message-ID: <17222925-1c4c-0acd-c92c-637228326b66@infradead.org>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-4-yu-cheng.yu@intel.com>
- <20181017104137.GE22535@zn.tnic>
- <32da559b-7958-60db-e328-f0eb316e668e@infradead.org>
- <20181017225829.GA32023@zn.tnic>
- <fde4c237-6210-f4e4-5362-c2e24a9916a2@infradead.org>
- <20181018092603.GB20831@zn.tnic>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH v5 1/5] parisc: move __IGNORE* entries to non uapi header
+Date: Thu, 18 Oct 2018 20:34:27 +0200
+Message-ID: <3571b003-d603-9ec5-01e3-12dbbca692b1@gmx.de>
+References: <1539673418-7279-1-git-send-email-firoz.khan@linaro.org>
+ <1539673418-7279-2-git-send-email-firoz.khan@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181018092603.GB20831@zn.tnic>
+In-Reply-To: <1539673418-7279-2-git-send-email-firoz.khan@linaro.org>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+To: Firoz Khan <firoz.khan@linaro.org>, linux-parisc@vger.kernel.org, "James E . J . Bottomley" <jejb@parisc-linux.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+Cc: y2038@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, deepa.kernel@gmail.com, marcin.juszkiewicz@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On 10/18/18 2:26 AM, Borislav Petkov wrote:
-> On Wed, Oct 17, 2018 at 04:17:01PM -0700, Randy Dunlap wrote:
->> I asked what I really wanted to know.
+On 16.10.2018 09:03, Firoz Khan wrote:
+> All the __IGNORE* entries are resides in the uapi header
+> file move to non uapi header asm/unistd.h as it is not
+> used by any user space applications.
 > 
-> Then the answer is a bit better readability, I'd guess.
+> It is correct to keep __IGNORE* entry in non uapi header
+> asm/unistd.h while uapi/asm/unistd.h must hold information
+> only useful for user space applications.
 > 
+> One of the patch in this patch series will generate uapi
+> header file. The information which directly used by the
+> user space application must be present in uapi file.
+> 
+> Signed-off-by: Firoz Khan <firoz.khan@linaro.org>
 
-Thanks for the reply.
+You may add an 
+Acked-by: Helge Deller <deller@gmx.de>
 
--- 
-~Randy
+I've tested it by sucessfully booting a 32bit kernel.
+
+Thanks!
+Helge
+
+
+> ---
+>  arch/parisc/include/asm/unistd.h      | 6 ++++++
+>  arch/parisc/include/uapi/asm/unistd.h | 7 -------
+>  2 files changed, 6 insertions(+), 7 deletions(-)
+> 
+> diff --git a/arch/parisc/include/asm/unistd.h b/arch/parisc/include/asm/unistd.h
+> index 3d507d0..93fd9f6 100644
+> --- a/arch/parisc/include/asm/unistd.h
+> +++ b/arch/parisc/include/asm/unistd.h
+> @@ -8,6 +8,12 @@
+>  
+>  #define SYS_ify(syscall_name)   __NR_##syscall_name
+>  
+> +#define __IGNORE_select                /* newselect */
+> +#define __IGNORE_fadvise64             /* fadvise64_64 */
+> +#define __IGNORE_pkey_mprotect
+> +#define __IGNORE_pkey_alloc
+> +#define __IGNORE_pkey_free
+> +
+>  #ifndef ASM_LINE_SEP
+>  # define ASM_LINE_SEP ;
+>  #endif
+> diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+> index dc77c5a..bb52e12 100644
+> --- a/arch/parisc/include/uapi/asm/unistd.h
+> +++ b/arch/parisc/include/uapi/asm/unistd.h
+> @@ -368,13 +368,6 @@
+>  
+>  #define __NR_Linux_syscalls	(__NR_io_pgetevents + 1)
+>  
+> -
+> -#define __IGNORE_select		/* newselect */
+> -#define __IGNORE_fadvise64	/* fadvise64_64 */
+> -#define __IGNORE_pkey_mprotect
+> -#define __IGNORE_pkey_alloc
+> -#define __IGNORE_pkey_free
+> -
+>  #define LINUX_GATEWAY_ADDR      0x100
+>  
+>  #endif /* _UAPI_ASM_PARISC_UNISTD_H_ */
+> 
