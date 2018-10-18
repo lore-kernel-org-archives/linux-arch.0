@@ -1,71 +1,61 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH V9 00/21] C-SKY(csky) Linux Kernel Port
-Date: Thu, 18 Oct 2018 17:03:22 +0800
-Message-ID: <20181018090322.GB21934@guoren-Inspiron-7460>
-References: <cover.1539655731.git.ren_guo@c-sky.com>
- <CAK8P3a25W5rE093QsmC539d+s038Wv9PmV8Xa76LQzDLk3E8Wg@mail.gmail.com>
- <20181018041038.GB17276@guoren-Inspiron-7460>
- <CAK8P3a0wRPfXm3wupQd6RdN6L8CvjD0HX_Bk61VBxOYeNCh+FA@mail.gmail.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v5 03/27] x86/fpu/xstate: Introduce XSAVES system states
+Date: Thu, 18 Oct 2018 11:24:29 +0200
+Message-ID: <20181018092429.GA10861@amd>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+ <20181011151523.27101-4-yu-cheng.yu@intel.com>
+ <20181017104137.GE22535@zn.tnic>
+ <32da559b-7958-60db-e328-f0eb316e668e@infradead.org>
+ <20181017225829.GA32023@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="tThc/1wpZn/ma/RB"
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a0wRPfXm3wupQd6RdN6L8CvjD0HX_Bk61VBxOYeNCh+FA@mail.gmail.com>
+In-Reply-To: <20181017225829.GA32023@zn.tnic>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, David Miller <davem@davemloft.net>, gregkh <gregkh@linuxfoundation.org>, Christoph Hellwig <hch@infradead.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, c-sky_gcc_upstream@c-sky.com
+To: Borislav Petkov <bp@alien8.de>
+Cc: Randy Dunlap <rdunlap@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.c>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 18, 2018 at 10:36:45AM +0200, Arnd Bergmann wrote:
-> On Thu, Oct 18, 2018 at 6:11 AM Guo Ren <ren_guo@c-sky.com> wrote:
-> >
-> > On Wed, Oct 17, 2018 at 05:58:46PM +0200, Arnd Bergmann wrote:
-> > > On Tue, Oct 16, 2018 at 4:58 AM Guo Ren <ren_guo@c-sky.com> wrote:
-> > > >
-> > > > This is the 9th version patchset to add the Linux kernel port for
-> > > > C-SKY(csky) based on linux-4.19-rc3.
-> > > >
-> > > > There are only a few changes between V8 patchset. Hope it could be
-> > > > merged into linux-4.20 and I'm very grateful for any help.
-> > >
-> > > I've gone through the entire series once more and saw no show-stoppers.
-> > > The last patch looked like it introduced a bug, but with that one dropped,
-> > > I'm happy for the architecture to get merged, unless anyone else
-> > > has any last-minute concerns. (Alternatively, explain why I'm wrong
-> > > and the code works correctly, of course).
-> > Ok and thx for the job of csky subsystem.
-> >
-> > >
-> > > I'd appreciate having someone else take another look at the signal
-> > > handling code, the atomics, and the DT bindings and provide another
-> > > Ack for those.
-> > >
-> > > The remaining open question is about the 32-bit time_t interfaces.
-> > > With 4.20, I did not manage to get the required system calls in place
-> > > for using 64-bit time_t in a new architecture, so you will at least
-> > > start out using 32-bit time_t and likely have to keep supporting
-> > > that going forward, unless we decide to break the ABI here later
-> > > on .This is something we normally don't do, but we might make
-> > > an exception here, under the assumption that there are no
-> > > existing users with the ABI. We can debate that once we get there.
-> > We support uclibc-ng and glibc.
-> >
-> > 1. For uclibc-ng, linux-4.20 could run with it.
-> >
-> > 2. For glibc, Maybe we could support 32-bit + 64-bit time_t with
-> > KERNEL_VERSION, or just only 64-bit then linux-4.20 couldn't work with
-> > the csky first glibc release.
-> 
-> Yes, it is always an option to make glibc more restrictive than the kernel.
-> We could also just make it a configuration option in the kernel whether
-> the system calls are provided, so they don't use memory for the
-> implementation.
-Ok.
- 
-> You will probably want musl support at some point. musl-1.x always
-> uses 32-bit time_t today, but musl-2.x will use the 64-bit interfaces,
-> so just waiting a bit will probably make it work out for you.
-Thx for the tips, we'll consider musl in the future.
 
-Best Regards
- Guo Ren
+--tThc/1wpZn/ma/RB
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Thu 2018-10-18 00:58:29, Borislav Petkov wrote:
+> On Wed, Oct 17, 2018 at 03:39:47PM -0700, Randy Dunlap wrote:
+> > Would you mind explaining this request? (requirement?)
+> > Other than to say that it is the preference of some maintainers,
+> > please say Why it is preferred.
+> >=20
+> > and since the <type>s above won't typically be the same length,
+> > it's not for variable name alignment, right?
+>=20
+> Searching the net a little, it shows you have asked that question
+> before. So what is it you really wanna know?
+
+Why do you think sorting local variables is good idea (for includes it
+reduces collision, hopefully you don't have that for local variables),
+and where is it documented in CodingStyle.
+
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--tThc/1wpZn/ma/RB
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlvIUU0ACgkQMOfwapXb+vLuYwCffF5sBE4m1yg2zzM9Cn5YOb1i
+rZsAnjdiBM6nrGcUURtx3ege7AefZD0x
+=AiQ3
+-----END PGP SIGNATURE-----
+
+--tThc/1wpZn/ma/RB--
