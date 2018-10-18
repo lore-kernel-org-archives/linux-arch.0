@@ -1,39 +1,44 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v5 03/27] x86/fpu/xstate: Introduce XSAVES system states
-Date: Wed, 17 Oct 2018 16:17:01 -0700
-Message-ID: <fde4c237-6210-f4e4-5362-c2e24a9916a2@infradead.org>
-References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
- <20181011151523.27101-4-yu-cheng.yu@intel.com>
- <20181017104137.GE22535@zn.tnic>
- <32da559b-7958-60db-e328-f0eb316e668e@infradead.org>
- <20181017225829.GA32023@zn.tnic>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH V9 05/21] csky: System Call
+Date: Thu, 18 Oct 2018 10:02:04 +0800
+Message-ID: <20181018020203.GA12027@guoren-Inspiron-7460>
+References: <cover.1539655731.git.ren_guo@c-sky.com>
+ <d83762614122402ba4b55524e35b418c9f6baf53.1539655731.git.ren_guo@c-sky.com>
+ <CAK8P3a3bNST+ZuPjLG0_sHjC=Ac0ir1omhHvMn9tz4zs+Kg9yw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181017225829.GA32023@zn.tnic>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a3bNST+ZuPjLG0_sHjC=Ac0ir1omhHvMn9tz4zs+Kg9yw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, David Miller <davem@davemloft.net>, gregkh <gregkh@linuxfoundation.org>, Christoph Hellwig <hch@infradead.org>, Marc Zyngier <marc.zyngier@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, c-sky_gcc_upstream@c-sky.com
 List-Id: linux-arch.vger.kernel.org
 
-On 10/17/18 3:58 PM, Borislav Petkov wrote:
-> On Wed, Oct 17, 2018 at 03:39:47PM -0700, Randy Dunlap wrote:
->> Would you mind explaining this request? (requirement?)
->> Other than to say that it is the preference of some maintainers,
->> please say Why it is preferred.
->>
->> and since the <type>s above won't typically be the same length,
->> it's not for variable name alignment, right?
+On Wed, Oct 17, 2018 at 05:02:33PM +0200, Arnd Bergmann wrote:
+> On Tue, Oct 16, 2018 at 5:01 AM Guo Ren <ren_guo@c-sky.com> wrote:
+> >
+> > This patch adds files related to syscall.
+> >
+> > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
 > 
-> Searching the net a little, it shows you have asked that question
-> before. So what is it you really wanna know?
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> I had a detailed look at this one and provided lots of comments, however
+> one tiny thing escaped me:
+> 
+> > +#define __NR_set_thread_area   (__NR_arch_specific_syscall + 0)
+> > +__SYSCALL(__NR_set_thread_area, sys_set_thread_area)
+> > +#define __NR_cacheflush                (__NR_arch_specific_syscall + 4)
+> > +__SYSCALL(__NR_cacheflush, sys_cacheflush)
+> 
+> It's odd that the second one uses __NR_arch_specific_syscall + 4 rather
+> than +1. If you can still change that changing too much other stuff,
+> that might avoid some head-scratching later. If it causes problems,
+> just leave it and maybe add a comment saying that the numbers
+> inbetween are still available.
+Change to (__NR_arch_specific_syscall + 1) is ok for now.
 
-OK, you have shown that your web search skills are better than mine.
-
-I asked what I really wanted to know.
-
-ta.
--- 
-~Randy
+Best Regards
+ Guo Ren
