@@ -1,66 +1,33 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v7 0/8] arm64: untag user pointers passed to the kernel
-Date: Thu, 18 Oct 2018 18:33:31 +0100
-Message-ID: <20181018173330.GG237391@arrakis.emea.arm.com>
-References: <cover.1538485901.git.andreyknvl@google.com>
- <be684ce5-92fd-e970-b002-83452cf50abd@arm.com>
- <CAAeHK+yEZTLjgSj8YUzeJec9Pp2TwuLT5nCa1OpfBLXJkx_hhg@mail.gmail.com>
- <CAFKCwrh4-BvFB_R1J0LWcbfeR=d02OazowFuMU+hmq8Y=Dx+4w@mail.gmail.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [PATCH v5 03/27] x86/fpu/xstate: Introduce XSAVES system states
+Date: Thu, 18 Oct 2018 11:33:44 -0700
+Message-ID: <17222925-1c4c-0acd-c92c-637228326b66@infradead.org>
+References: <20181011151523.27101-1-yu-cheng.yu@intel.com>
+ <20181011151523.27101-4-yu-cheng.yu@intel.com>
+ <20181017104137.GE22535@zn.tnic>
+ <32da559b-7958-60db-e328-f0eb316e668e@infradead.org>
+ <20181017225829.GA32023@zn.tnic>
+ <fde4c237-6210-f4e4-5362-c2e24a9916a2@infradead.org>
+ <20181018092603.GB20831@zn.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAFKCwrh4-BvFB_R1J0LWcbfeR=d02OazowFuMU+hmq8Y=Dx+4w@mail.gmail.com>
+In-Reply-To: <20181018092603.GB20831@zn.tnic>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Evgenii Stepanov <eugenis@google.com>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Mark Rutland <mark.rutland@arm.com>, Kate Stewart <kstewart@linuxfoundation.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Linux Memory Management List <linux-mm@kvack.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, Chintan Pandya <cpandya@codeaurora.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Jacob Bramley <Jacob.Bramley@arm.com>, Dmitry Vyukov <dvyukov@google.com>, Kees Cook <keescook@chromium.org>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Linux ARM <linux-arm->
+To: Borislav Petkov <bp@alien8.de>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Balbir Singh <bsingharora@gmail.com>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 17, 2018 at 01:25:42PM -0700, Evgenii Stepanov wrote:
-> On Wed, Oct 17, 2018 at 7:20 AM, Andrey Konovalov <andreyknvl@google.com> wrote:
-> > On Wed, Oct 17, 2018 at 4:06 PM, Vincenzo Frascino
-> > <vincenzo.frascino@arm.com> wrote:
-> >> I have been thinking a bit lately on how to address the problem of
-> >> user tagged pointers passed to the kernel through syscalls, and
-> >> IMHO probably the best way we have to catch them all and make sure
-> >> that the approach is maintainable in the long term is to introduce
-> >> shims that tag/untag the pointers passed to the kernel.
-> >>
-> >> In details, what I am proposing can live either in userspace
-> >> (preferred solution so that we do not have to relax the ABI) or in
-> >> kernel space and can be summarized as follows:
-> >>  - A shim is specific to a syscall and is called by the libc when
-> >>  it needs to invoke the respective syscall.
-> >>  - It is required only if the syscall accepts pointers.
-> >>  - It saves the tags of a pointers passed to the syscall in memory
-> >>  (same approach if the we are passing a struct that contains
-> >>  pointers to the kernel, with the difference that all the tags of
-> >>  the pointers in the struct need to be saved singularly)
-> >>  - Untags the pointers
-> >>  - Invokes the syscall
-> >>  - Retags the pointers with the tags stored in memory
-> >>  - Returns
-> >>
-> >> What do you think?
-> >
-> > If I correctly understand what you are proposing, I'm not sure if that
-> > would work with the countless number of different ioctl calls. For
-> > example when an ioctl accepts a struct with a bunch of pointer fields.
-> > In this case a shim like the one you propose can't live in userspace,
-> > since libc doesn't know about the interface of all ioctls, so it can't
-> > know which fields to untag. The kernel knows about those interfaces
-> > (since the kernel implements them), but then we would need a custom
-> > shim for each ioctl variation, which doesn't seem practical.
+On 10/18/18 2:26 AM, Borislav Petkov wrote:
+> On Wed, Oct 17, 2018 at 04:17:01PM -0700, Randy Dunlap wrote:
+>> I asked what I really wanted to know.
 > 
-> The current patchset handles majority of pointers in a just a few
-> common places, like copy_from_user. Userspace shims will need to untag
-> & retag all pointer arguments - we are looking at hundreds if not
-> thousands of shims. They will also be located in a different code base
-> from the syscall / ioctl implementations, which would make them
-> impossible to keep up to date.
+> Then the answer is a bit better readability, I'd guess.
+> 
 
-I think ioctls are a good reason not to attempt such user-space shim
-layer (though it would have been much easier for the kernel ;)).
+Thanks for the reply.
 
 -- 
-Catalin
+~Randy
