@@ -1,76 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:61395 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726942AbeJSNML (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2018 09:12:11 -0400
+Received: from mail-yw1-f66.google.com ([209.85.161.66]:43885 "EHLO
+        mail-yw1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726924AbeJSNYr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2018 09:24:47 -0400
 MIME-Version: 1.0
 References: <20181017080201.10866-1-hch@lst.de> <20181017080201.10866-5-hch@lst.de>
 In-Reply-To: <20181017080201.10866-5-hch@lst.de>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Fri, 19 Oct 2018 14:07:04 +0900
-Message-ID: <CAK7LNASJaRrut2neRa92CudohW4A-2=GHMzgEpOzT97VdGuhng@mail.gmail.com>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Date: Thu, 18 Oct 2018 22:19:51 -0700
+Message-ID: <CAMo8BfKOqAKLPEXatPZQ4bCAAzQLx_vAHscmxDJPC9PGsoJqtA@mail.gmail.com>
 Subject: Re: [PATCH 4/8] PCI: consolidate PCI config entry in drivers/pci
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, linux-pci@vger.kernel.org
-Cc: mporter@kernel.crashing.org, Alex Bounine <alex.bou9@gmail.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20181019050704.VjlOapMeRBw8gZAAoBImS-Y9D1fO0GwbWDIZk1bwjkg@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, mporter@kernel.crashing.org, alex.bou9@gmail.com, linux@dominikbrodowski.net, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20181019051951.g0Mulg6P-VMP3R4bhsilSATNxlLtUVXIdVhsQPx-I4o@z>
 
-On Wed, Oct 17, 2018 at 5:04 PM Christoph Hellwig <hch@lst.de> wrote:
->
-> There is no good reason to duplicate the PCI menu in every architecture.
-> Instead provide a selectable HAS_PCI symbol that indicates availability
+Hi Christoph,
 
-HAS_PCI -> HAVE_PCI
+On Wed, Oct 17, 2018 at 1:03 AM Christoph Hellwig <hch@lst.de> wrote:
+> diff --git a/arch/xtensa/configs/iss_defconfig b/arch/xtensa/configs/iss_defconfig
+> index 4bb5b76d9524..818849bb7736 100644
+> --- a/arch/xtensa/configs/iss_defconfig
+> +++ b/arch/xtensa/configs/iss_defconfig
+> @@ -4,7 +4,7 @@ CONFIG_EXPERT=y
+>  CONFIG_SYSCTL_SYSCALL=y
+>  # CONFIG_IOSCHED_DEADLINE is not set
+>  # CONFIG_IOSCHED_CFQ is not set
+> -# CONFIG_PCI is not set
+> +CONFIG_PCI=y
 
-
-> of PCI support and the handle the rest in drivers/pci.
->
-> Note that for powerpc we now select HAVE_PCI globally instead of the
-> convoluted mess of conditional or or non-conditional support per board,
-> similar to what we do e.g. on x86.  For alpha PCI is selected for the
-> non-jensen configs as it was the default before, and a lot of code does
-> not compile without PCI enabled.  On other architectures with limited
-> PCI support that wasn't as complicated I've left the selection as-is.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Acked-by: Thomas Gleixner <tglx@linutronix.de>
-> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
-
-
-
-Just in case, could you double-check these?
-PCI_ENDPOINT
-PCI_ENDPOINT_CONFIGFS
-PCI_EPF_TEST
-
-
-Previously, architecture without "source drivers/pci/Kconfig"
-could not enable PCI_ENDPOINT.
-
-Now, any architecture can enable it
-regardless of its actual PCI availability
-because PCI_ENDPOINT is only guarded by HAS_DMA.
-
-
-We could add 'depends on HAVE_PCI' or something
-to guard it to avoid changing the logic.
-
-
-config PCI_ENDPOINT
-        bool "PCI Endpoint Support"
-        depends on HAVE_PCI     # Is this correct ??
-        depends on HAS_DMA
-
-
-or better to have 'depends on PCI' ?
-
-
-PCI ML is also CC'ed, so comments are appreciated.
-
-
+This change doesn't make sense as there's no PCI hardware in the Xtensa ISS.
+Otherwise for the Xtensa part:
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
 
 -- 
-Best Regards
-Masahiro Yamada
+Thanks.
+-- Max
