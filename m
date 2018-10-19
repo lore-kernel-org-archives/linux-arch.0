@@ -1,61 +1,68 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v7 0/8] arm64: untag user pointers passed to the kernel
-Date: Fri, 19 Oct 2018 10:04:42 +0100
-Message-ID: <9bb7fefd-3f8f-266a-3cc9-cc64f8927206@arm.com>
-References: <cover.1538485901.git.andreyknvl@google.com>
- <be684ce5-92fd-e970-b002-83452cf50abd@arm.com>
- <CAAeHK+yEZTLjgSj8YUzeJec9Pp2TwuLT5nCa1OpfBLXJkx_hhg@mail.gmail.com>
- <CAFKCwrh4-BvFB_R1J0LWcbfeR=d02OazowFuMU+hmq8Y=Dx+4w@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v5 07/17] arm64: add basic pointer authentication support
+Date: Fri, 19 Oct 2018 12:15:43 +0100
+Message-ID: <20181019111542.6wrvjguirglzg7vg@mbp>
+References: <20181005084754.20950-1-kristina.martsenko@arm.com>
+ <20181005084754.20950-8-kristina.martsenko@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAFKCwrh4-BvFB_R1J0LWcbfeR=d02OazowFuMU+hmq8Y=Dx+4w@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Evgenii Stepanov <eugenis@google.com>, Andrey Konovalov <andreyknvl@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Kees Cook <keescook@chromium.org>, Kate Stewart <kstewart@linuxfoundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Shuah Khan <shuah@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Disposition: inline
+In-Reply-To: <20181005084754.20950-8-kristina.martsenko@arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Kristina Martsenko <kristina.martsenko@arm.com>
+Cc: linux-arch@vger.kernel.org, Jacob Bramley <jacob.bramley@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <marc.zyngier@arm.com>, linux-kernel@vger.kernel.org, Adam Wallis <awallis@codeaurora.org>, Will Deacon <will.deacon@arm.com>, Dave P Martin <Dave.Martin@arm.com>, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Amit Kachhap <Amit.Kachhap@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/17/18 9:25 PM, Evgenii Stepanov wrote:
-> On Wed, Oct 17, 2018 at 7:20 AM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> On Wed, Oct 17, 2018 at 4:06 PM, Vincenzo Frascino
->> <vincenzo.frascino@arm.com> wrote:
->>> Hi Andrey,
->>> I have been thinking a bit lately on how to address the problem of user tagged pointers passed to the kernel through syscalls, and IMHO probably the best way we have to catch them all and make sure that the approach is maintainable in the long term is to introduce shims that tag/untag the pointers passed to the kernel.
->>>
->>> In details, what I am proposing can live either in userspace (preferred solution so that we do not have to relax the ABI) or in kernel space and can be summarized as follows:
->>>  - A shim is specific to a syscall and is called by the libc when it needs to invoke the respective syscall.
->>>  - It is required only if the syscall accepts pointers.
->>>  - It saves the tags of a pointers passed to the syscall in memory (same approach if the we are passing a struct that contains pointers to the kernel, with the difference that all the tags of the pointers in the struct need to be saved singularly)
->>>  - Untags the pointers
->>>  - Invokes the syscall
->>>  - Retags the pointers with the tags stored in memory
->>>  - Returns
->>>
->>> What do you think?
->>
->> Hi Vincenzo,
->>
->> If I correctly understand what you are proposing, I'm not sure if that
->> would work with the countless number of different ioctl calls. For
->> example when an ioctl accepts a struct with a bunch of pointer fields.
->> In this case a shim like the one you propose can't live in userspace,
->> since libc doesn't know about the interface of all ioctls, so it can't
->> know which fields to untag. The kernel knows about those interfaces
->> (since the kernel implements them), but then we would need a custom
->> shim for each ioctl variation, which doesn't seem practical.
-> 
-> The current patchset handles majority of pointers in a just a few
-> common places, like copy_from_user. Userspace shims will need to untag
-> & retag all pointer arguments - we are looking at hundreds if not
-> thousands of shims. They will also be located in a different code base
-> from the syscall / ioctl implementations, which would make them
-> impossible to keep up to date.
-> 
+On Fri, Oct 05, 2018 at 09:47:44AM +0100, Kristina Martsenko wrote:
+> diff --git a/arch/arm64/include/asm/pointer_auth.h b/arch/arm64/include/asm/pointer_auth.h
+> new file mode 100644
+> index 000000000000..2aefedc31d9e
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/pointer_auth.h
+> @@ -0,0 +1,63 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +#ifndef __ASM_POINTER_AUTH_H
+> +#define __ASM_POINTER_AUTH_H
+> +
+> +#include <linux/random.h>
+> +
+> +#include <asm/cpufeature.h>
+> +#include <asm/sysreg.h>
+> +
+> +#ifdef CONFIG_ARM64_PTR_AUTH
+> +/*
+> + * Each key is a 128-bit quantity which is split across a pair of 64-bit
+> + * registers (Lo and Hi).
+> + */
+> +struct ptrauth_key {
+> +	unsigned long lo, hi;
+> +};
+> +
+> +/*
+> + * We give each process its own instruction A key (APIAKey), which is shared by
+> + * all threads. This is inherited upon fork(), and reinitialised upon exec*().
+> + * All other keys are currently unused, with APIBKey, APDAKey, and APBAKey
+> + * instructions behaving as NOPs.
+> + */
 
-I agree with both of you, ioctl is the real show stopper for this approach. Thanks for pointing this out.
+I don't remember the past discussions but I assume the tools guys are ok
+with a single key shared by multiple threads. Ramana, could you ack this
+part, FTR?
+
+(and it would help if someone from the Android and Chrome camps can
+confirm)
+
+Thanks.
 
 -- 
-Regards,
-Vincenzo
+Catalin
