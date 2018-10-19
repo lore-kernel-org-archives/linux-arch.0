@@ -1,85 +1,214 @@
-From: Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [PATCH 6/9] PCI: consolidate PCI config entry in drivers/pci
-Date: Fri, 19 Oct 2018 11:18:22 -0700 (PDT)
-Message-ID: <mhng-153e4e0b-8fe9-4712-849f-f01455ef56f4@palmer-si-x1c4>
-References: <20181019120952.32763-7-hch@lst.de>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+From: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Subject: [PATCH v3 1/3] modules: Create arch versions of module alloc/free
+Date: Fri, 19 Oct 2018 13:47:21 -0700
+Message-ID: <20181019204723.3903-2-rick.p.edgecombe@intel.com>
+References: <20181019204723.3903-1-rick.p.edgecombe@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20181019120952.32763-7-hch@lst.de>
+In-Reply-To: <20181019204723.3903-1-rick.p.edgecombe@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: yamada.masahiro@socionext.com, mporter@kernel.crashing.org, alex.bou9@gmail.com, linux@dominikbrodowski.net, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pci@vger.kernel.org, linux-scsi@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, jannh@google.com
+Cc: kristen@linux.intel.com, dave.hansen@intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com, Rick Edgecombe <rick.p.edgecombe@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 19 Oct 2018 05:09:49 PDT (-0700), Christoph Hellwig wrote:
-> There is no good reason to duplicate the PCI menu in every architecture.
-> Instead provide a selectable HAVE_PCI symbol that indicates availability
-> of PCI support and the handle the rest in drivers/pci.
->
-> Note that for powerpc we now select HAVE_PCI globally instead of the
-> convoluted mess of conditional or or non-conditional support per board,
-> similar to what we do e.g. on x86.  For alpha PCI is selected for the
-> non-jensen configs as it was the default before, and a lot of code does
-> not compile without PCI enabled.  On other architectures with limited
-> PCI support that wasn't as complicated I've left the selection as-is.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-> Acked-by: Thomas Gleixner <tglx@linutronix.de>
-> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+In prep for module space rlimit, create a singular cross platform
+module_alloc and module_memfree that call into arch specific
+implementations.
 
-...
+This has only been tested on x86.
 
-> diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-> index a344980287a5..071952cd4cae 100644
-> --- a/arch/riscv/Kconfig
-> +++ b/arch/riscv/Kconfig
-> @@ -39,8 +39,10 @@ config RISCV
->  	select SPARSE_IRQ
->  	select SYSCTL_EXCEPTION_TRACE
->  	select HAVE_ARCH_TRACEHOOK
-> +	select HAVE_PCI
->  	select MODULES_USE_ELF_RELA if MODULES
->  	select THREAD_INFO_IN_TASK
-> +	select PCI_MSI if PCI
->  	select RISCV_TIMER
->  	select GENERIC_IRQ_MULTI_HANDLER
->  	select ARCH_HAS_PTE_SPECIAL
-> @@ -216,28 +218,12 @@ source "kernel/Kconfig.hz"
->
->  endmenu
->
-> -menu "Bus support"
-> -
-> -config PCI
-> -	bool "PCI support"
-> -	select PCI_MSI
-> -	help
-> -	  This feature enables support for PCI bus system. If you say Y
-> -	  here, the kernel will include drivers and infrastructure code
-> -	  to support PCI bus devices.
-> -
-> -	  If you don't know what to do here, say Y.
-> -
->  config PCI_DOMAINS
->  	def_bool PCI
->
->  config PCI_DOMAINS_GENERIC
->  	def_bool PCI
->
-> -source "drivers/pci/Kconfig"
-> -
-> -endmenu
-> -
->  menu "Power management options"
->
->  source kernel/power/Kconfig
+Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+---
+ arch/arm/kernel/module.c       |  2 +-
+ arch/arm64/kernel/module.c     |  2 +-
+ arch/mips/kernel/module.c      |  2 +-
+ arch/nds32/kernel/module.c     |  2 +-
+ arch/nios2/kernel/module.c     |  4 ++--
+ arch/parisc/kernel/module.c    |  2 +-
+ arch/s390/kernel/module.c      |  2 +-
+ arch/sparc/kernel/module.c     |  2 +-
+ arch/unicore32/kernel/module.c |  2 +-
+ arch/x86/kernel/module.c       |  2 +-
+ kernel/module.c                | 14 ++++++++++++--
+ 11 files changed, 23 insertions(+), 13 deletions(-)
 
-Reviewed-by: Palmer Dabbelt <palmer@sifive.com>
-
-I'm assuming this will go in via PCI tree of some sort, so I'm not going to 
-touch it any further.
-
-Thanks for cleaning this up!
+diff --git a/arch/arm/kernel/module.c b/arch/arm/kernel/module.c
+index 3ff571c2c71c..359838a4bb06 100644
+--- a/arch/arm/kernel/module.c
++++ b/arch/arm/kernel/module.c
+@@ -38,7 +38,7 @@
+ #endif
+ 
+ #ifdef CONFIG_MMU
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	gfp_t gfp_mask = GFP_KERNEL;
+ 	void *p;
+diff --git a/arch/arm64/kernel/module.c b/arch/arm64/kernel/module.c
+index f0f27aeefb73..a6891eb2fc16 100644
+--- a/arch/arm64/kernel/module.c
++++ b/arch/arm64/kernel/module.c
+@@ -30,7 +30,7 @@
+ #include <asm/insn.h>
+ #include <asm/sections.h>
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	gfp_t gfp_mask = GFP_KERNEL;
+ 	void *p;
+diff --git a/arch/mips/kernel/module.c b/arch/mips/kernel/module.c
+index 491605137b03..e9ee8e7544f9 100644
+--- a/arch/mips/kernel/module.c
++++ b/arch/mips/kernel/module.c
+@@ -45,7 +45,7 @@ static LIST_HEAD(dbe_list);
+ static DEFINE_SPINLOCK(dbe_lock);
+ 
+ #ifdef MODULE_START
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULE_START, MODULE_END,
+ 				GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
+diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
+index 1e31829cbc2a..75535daa22a5 100644
+--- a/arch/nds32/kernel/module.c
++++ b/arch/nds32/kernel/module.c
+@@ -7,7 +7,7 @@
+ #include <linux/moduleloader.h>
+ #include <asm/pgtable.h>
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+ 				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
+diff --git a/arch/nios2/kernel/module.c b/arch/nios2/kernel/module.c
+index e2e3f13f98d5..cd059a8e9a7b 100644
+--- a/arch/nios2/kernel/module.c
++++ b/arch/nios2/kernel/module.c
+@@ -28,7 +28,7 @@
+  * from 0x80000000 (vmalloc area) to 0xc00000000 (kernel) (kmalloc returns
+  * addresses in 0xc0000000)
+  */
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	if (size == 0)
+ 		return NULL;
+@@ -36,7 +36,7 @@ void *module_alloc(unsigned long size)
+ }
+ 
+ /* Free memory returned from module_alloc */
+-void module_memfree(void *module_region)
++void arch_module_memfree(void *module_region)
+ {
+ 	kfree(module_region);
+ }
+diff --git a/arch/parisc/kernel/module.c b/arch/parisc/kernel/module.c
+index b5b3cb00f1fb..72ab3c8b103b 100644
+--- a/arch/parisc/kernel/module.c
++++ b/arch/parisc/kernel/module.c
+@@ -213,7 +213,7 @@ static inline int reassemble_22(int as22)
+ 		((as22 & 0x0003ff) << 3));
+ }
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	/* using RWX means less protection for modules, but it's
+ 	 * easier than trying to map the text, data, init_text and
+diff --git a/arch/s390/kernel/module.c b/arch/s390/kernel/module.c
+index d298d3cb46d0..e07c4a9384c0 100644
+--- a/arch/s390/kernel/module.c
++++ b/arch/s390/kernel/module.c
+@@ -30,7 +30,7 @@
+ 
+ #define PLT_ENTRY_SIZE 20
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	if (PAGE_ALIGN(size) > MODULES_LEN)
+ 		return NULL;
+diff --git a/arch/sparc/kernel/module.c b/arch/sparc/kernel/module.c
+index df39580f398d..870581ba9205 100644
+--- a/arch/sparc/kernel/module.c
++++ b/arch/sparc/kernel/module.c
+@@ -40,7 +40,7 @@ static void *module_map(unsigned long size)
+ }
+ #endif /* CONFIG_SPARC64 */
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	void *ret;
+ 
+diff --git a/arch/unicore32/kernel/module.c b/arch/unicore32/kernel/module.c
+index e191b3448bd3..53ea96459d8c 100644
+--- a/arch/unicore32/kernel/module.c
++++ b/arch/unicore32/kernel/module.c
+@@ -22,7 +22,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/sections.h>
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+ 				GFP_KERNEL, PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
+diff --git a/arch/x86/kernel/module.c b/arch/x86/kernel/module.c
+index f58336af095c..032e49180577 100644
+--- a/arch/x86/kernel/module.c
++++ b/arch/x86/kernel/module.c
+@@ -77,7 +77,7 @@ static unsigned long int get_module_load_offset(void)
+ }
+ #endif
+ 
+-void *module_alloc(unsigned long size)
++void *arch_module_alloc(unsigned long size)
+ {
+ 	void *p;
+ 
+diff --git a/kernel/module.c b/kernel/module.c
+index 6746c85511fe..41c22aba8209 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -2110,11 +2110,16 @@ static void free_module_elf(struct module *mod)
+ }
+ #endif /* CONFIG_LIVEPATCH */
+ 
+-void __weak module_memfree(void *module_region)
++void __weak arch_module_memfree(void *module_region)
+ {
+ 	vfree(module_region);
+ }
+ 
++void module_memfree(void *module_region)
++{
++	arch_module_memfree(module_region);
++}
++
+ void __weak module_arch_cleanup(struct module *mod)
+ {
+ }
+@@ -2728,11 +2733,16 @@ static void dynamic_debug_remove(struct module *mod, struct _ddebug *debug)
+ 		ddebug_remove_module(mod->name);
+ }
+ 
+-void * __weak module_alloc(unsigned long size)
++void * __weak arch_module_alloc(unsigned long size)
+ {
+ 	return vmalloc_exec(size);
+ }
+ 
++void *module_alloc(unsigned long size)
++{
++	return arch_module_alloc(size);
++}
++
+ #ifdef CONFIG_DEBUG_KMEMLEAK
+ static void kmemleak_load_module(const struct module *mod,
+ 				 const struct load_info *info)
+-- 
+2.17.1
