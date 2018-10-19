@@ -1,94 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:44517 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726321AbeJTE6f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 20 Oct 2018 00:58:35 -0400
-From: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Subject: [PATCH RFC v3 0/3] Rlimit for module space
-Date: Fri, 19 Oct 2018 13:47:20 -0700
-Message-ID: <20181019204723.3903-1-rick.p.edgecombe@intel.com>
+Received: from alln-iport-8.cisco.com ([173.37.142.95]:44176 "EHLO
+        alln-iport-8.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726455AbeJTHJ0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Oct 2018 03:09:26 -0400
+Subject: Re: [PATCH] kernel/signal: Signal-based pre-coredump notification
+References: <e7ed306f-8992-9d00-bcab-5131159e8d89@cisco.com>
+ <CAG48ez2ZPhnxudqgU7nC2ORvLnS0Ja-qhLSE5WAY361jst7XNw@mail.gmail.com>
+ <c5a09a04-b4f2-876b-af83-30f7e527497e@cisco.com>
+ <CAG48ez2ZD=dovBApR07wi_DzYjJvEyO-Pm35eLv9AyXv1tcAFQ@mail.gmail.com>
+From: Enke Chen <enkechen@cisco.com>
+Message-ID: <2631f765-8d7a-45ea-6aa4-d8a9bb00d56f@cisco.com>
+Date: Fri, 19 Oct 2018 16:01:15 -0700
+MIME-Version: 1.0
+In-Reply-To: <CAG48ez2ZD=dovBApR07wi_DzYjJvEyO-Pm35eLv9AyXv1tcAFQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com, daniel@iogearbox.net, keescook@chromium.org, catalin.marinas@arm.com, will.deacon@arm.com, davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, arnd@arndb.de, jeyu@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, jannh@google.com
-Cc: kristen@linux.intel.com, dave.hansen@intel.com, arjan@linux.intel.com, deneen.t.dock@intel.com, Rick Edgecombe <rick.p.edgecombe@intel.com>
-Message-ID: <20181019204720.usPwDs1BQagrZ9LnvhRpxFhRrShyZ8xu3iK97cFgDck@z>
+To: Jann Horn <jannh@google.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>, Kate Stewart <kstewart@linuxfoundation.org>, deller@gmx.de, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, christian@brauner.io, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave.Martin@arm.com, mchehab+samsung@kernel.org, Michal Hocko <mhocko@kernel.org>, Rik van Riel <riel@surriel.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, guro@fb.com, Marcos Souza <marcos.souza.org@gmail.com>, Oleg Nesterov <oleg@redhat.com>, linux@dominikbrodowski.net, Cyrill Gorcunov <gorcunov@openvz.org>, yang.shi@linux.alibaba.com, Kees Cook <keescook@chromium.org>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Victor Kamensky <kamensky@cisco.com>, xe-linux-external@cisco.com, sstrogin@cisco.com, Enke Chen <enkechen@cisco.com>
+Message-ID: <20181019230115.V-vfMSWwAmiGfiGqbCWdB8RJnBEFoIhjdSPKEYyWad0@z>
 
-If BPF JIT is on, there is no effective limit to prevent filling the entire
-module space with JITed e/BPF filters. For classic BPF filters attached with
-setsockopt SO_ATTACH_FILTER, there is no memlock rlimit check to limit the
-number of insertions like there is for the bpf syscall.
+Hi, Jann:
 
-This patch adds a per user rlimit for module space, as well as a system wide
-limit for BPF JIT. In a previously reviewed patchset, Jann Horn pointed out the
-problem that in some cases a user can get access to 65536 UIDs, so the effective
-limit cannot be set low enough to stop an attacker and be useful for the general
-case. A discussed alternative solution was a system wide limit for BPF JIT
-filters. This much more simply resolves the problem of exhaustion and
-de-randomizing in the case of non-CONFIG_BPF_JIT_ALWAYS_ON. If
-CONFIG_BPF_JIT_ALWAYS_ON is on however, BPF insertions will fail if another user
-exhausts the BPF JIT limit. In this case a per user limit is still needed. If
-the subuid facility is disabled for normal users, this should still be ok
-because the higher limit will not be able to be worked around that way.
+Regarding the security considerations, it seems simpler and more secure to
+just clear the "pre-coredump signal" cross execve(2), and let the new program
+decide for itself.  What do you think?
 
-The new BPF JIT limit can be set like this:
-echo 5000000 > /proc/sys/net/core/bpf_jit_limit
+---
+Changes to prctl(2):
 
-So I *think* this patchset should resolve that issue except for the
-configuration of CONFIG_BPF_JIT_ALWAYS_ON and subuid allowed for normal users.
-Better module space KASLR is another way to resolve the de-randomizing issue,
-and so then you would just be left with the BPF DOS in that configuration.
+DESCRIPTION
 
-Jann also pointed out how, with purposely fragmenting the module space, you
-could make the effective module space blockage area much larger. This is also
-somewhat un-resolved. The impact would depend on how big of a space you are
-trying to allocate. The limit has been lowered on x86_64 so that at least
-typical sized BPF filters cannot be blocked.
+       PR_SET_PREDUMP_SIG (since Linux 4.20.x)
+              This allows the calling process to receive a signal (arg2,
+              if nonzero) from a child process prior to the coredump of
+              the child process. arg2 must be SIGUSR1, or SIGUSR2, or
+              SIGCHLD, or 0 (for clear).
 
-If anyone with more experience with subuid/user namespaces has any suggestions
-I'd be glad to hear. On an Ubuntu machine it didn't seem like a un-privileged
-user could do this. I am going to keep working on this and see if I can find a
-better solution.
+              When SIGCHLD is specified, the signal code is set to
+              CLD_PREDUMP in such an SIGCHLD signal.
 
-Changes since v2:
- - System wide BPF JIT limit (discussion with Jann Horn)
- - Holding reference to user correctly (Jann)
- - Having arch versions of modulde_alloc (Dave Hansen, Jessica Yu)
- - Shrinking of default limits, to help prevent the limit being worked around
-   with fragmentation (Jann)
+              The value of the pre-coredump signal is cleared across
+              execve(2), or for the child of a fork(2).
 
-Changes since v1:
- - Plug in for non-x86
- - Arch specific default values
+       PR_GET_PREDUMP_SIG (since Linux 4.20.x)
+              Return the current value of the pre-coredump signal for the
+              calling process, in the location pointed to by (int *) arg2.
+---
 
+Thanks.  -- Enke
 
-Rick Edgecombe (3):
-  modules: Create arch versions of module alloc/free
-  modules: Create rlimit for module space
-  bpf: Add system wide BPF JIT limit
-
- arch/arm/kernel/module.c                |   2 +-
- arch/arm64/kernel/module.c              |   2 +-
- arch/mips/kernel/module.c               |   2 +-
- arch/nds32/kernel/module.c              |   2 +-
- arch/nios2/kernel/module.c              |   4 +-
- arch/parisc/kernel/module.c             |   2 +-
- arch/s390/kernel/module.c               |   2 +-
- arch/sparc/kernel/module.c              |   2 +-
- arch/unicore32/kernel/module.c          |   2 +-
- arch/x86/include/asm/pgtable_32_types.h |   3 +
- arch/x86/include/asm/pgtable_64_types.h |   2 +
- arch/x86/kernel/module.c                |   2 +-
- fs/proc/base.c                          |   1 +
- include/asm-generic/resource.h          |   8 ++
- include/linux/bpf.h                     |   7 ++
- include/linux/filter.h                  |   1 +
- include/linux/sched/user.h              |   4 +
- include/uapi/asm-generic/resource.h     |   3 +-
- kernel/bpf/core.c                       |  22 +++-
- kernel/bpf/inode.c                      |  16 +++
- kernel/module.c                         | 152 +++++++++++++++++++++++-
- net/core/sysctl_net_core.c              |   7 ++
- 22 files changed, 233 insertions(+), 15 deletions(-)
-
--- 
-2.17.1
+On 10/15/18 11:54 AM, Jann Horn wrote:
+> On Mon, Oct 15, 2018 at 8:36 PM Enke Chen <enkechen@cisco.com> wrote:
+>> On 10/13/18 11:27 AM, Jann Horn wrote:
+>>> On Sat, Oct 13, 2018 at 2:33 AM Enke Chen <enkechen@cisco.com> wrote:
+>>>> For simplicity and consistency, this patch provides an implementation
+>>>> for signal-based fault notification prior to the coredump of a child
+>>>> process. A new prctl command, PR_SET_PREDUMP_SIG, is defined that can
+>>>> be used by an application to express its interest and to specify the
+>>>> signal (SIGCHLD or SIGUSR1 or SIGUSR2) for such a notification. A new
+>>>> signal code (si_code), CLD_PREDUMP, is also defined for SIGCHLD.
+>>>
+>>> Your suggested API looks vaguely similar to PR_SET_PDEATHSIG, but with
+>>> some important differences:
+>>>
+>>>  - You don't reset the signal on setuid execution.
+> [...]
+>>>
+>>> For both of these: Are these differences actually necessary, and if
+>>> so, can you provide a specific rationale? From a security perspective,
+>>> I would very much prefer it if this API had semantics closer to
+>>> PR_SET_PDEATHSIG.
+>>
+> [...]
+>>
+>> Regarding the impact of "setuid", this property "PR_SET_PREDUMP_SIG" has to
+>> do with the application/process whether the signal handler is set for receiving
+>> such a notification.  If it is set, the "uid" should not matter.
+> 
+> If an attacker's process first calls PR_SET_PREDUMP_SIG, then forks
+> off a child, then calls execve() on a setuid binary, the setuid binary
+> calls setuid(0), and the attacker-controlled child then crashes, the
+> privileged process will receive an unexpected signal that the attacker
+> wouldn't have been allowed to send otherwise. For similar reasons, the
+> parent death signal is reset when a setuid binary is executed:
+> 
+> void setup_new_exec(struct linux_binprm * bprm)
+> {
+>         /*
+>          * Once here, prepare_binrpm() will not be called any more, so
+>          * the final state of setuid/setgid/fscaps can be merged into the
+>          * secureexec flag.
+>          */
+>         bprm->secureexec |= bprm->cap_elevated;
+> 
+>         if (bprm->secureexec) {
+>                 /* Make sure parent cannot signal privileged process. */
+>                 current->pdeath_signal = 0;
+> [...]
+>         }
+> [...]
+> }
+> 
+> int commit_creds(struct cred *new)
+> {
+> [...]
+>         /* dumpability changes */
+>         if (!uid_eq(old->euid, new->euid) ||
+>             !gid_eq(old->egid, new->egid) ||
+>             !uid_eq(old->fsuid, new->fsuid) ||
+>             !gid_eq(old->fsgid, new->fsgid) ||
+>             !cred_cap_issubset(old, new)) {
+>                 if (task->mm)
+>                         set_dumpable(task->mm, suid_dumpable);
+>                 task->pdeath_signal = 0;
+>                 smp_wmb();
+>         }
+> [...]
+> }
+> 
+> AppArmor and SELinux also do related changes:
+> 
+> static void apparmor_bprm_committing_creds(struct linux_binprm *bprm)
+> {
+> [...]
+>         /* bail out if unconfined or not changing profile */
+>         if ((new_label->proxy == label->proxy) ||
+>             (unconfined(new_label)))
+>                 return;
+> 
+>         aa_inherit_files(bprm->cred, current->files);
+> 
+>         current->pdeath_signal = 0;
+> [...]
+> }
+> 
+> static void selinux_bprm_committing_creds(struct linux_binprm *bprm)
+> {
+> [...]
+>         new_tsec = bprm->cred->security;
+>         if (new_tsec->sid == new_tsec->osid)
+>                 return;
+> 
+>         /* Close files for which the new task SID is not authorized. */
+>         flush_unauthorized_files(bprm->cred, current->files);
+> 
+>         /* Always clear parent death signal on SID transitions. */
+>         current->pdeath_signal = 0;
+> [...]
+> }
+> 
+> You should probably reset the coredump signal in the same places - or
+> even better, add a new helper for resetting the parent death signal,
+> and then add code for resetting the coredump signal in there.
+> 
